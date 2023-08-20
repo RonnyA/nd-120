@@ -1,0 +1,277 @@
+PAL1I6R6
+JLB 26NOV86
+44601B, 12D, CYCFSM
+
+osc #DLY1 /DLYQ CSDELAYO WAIT1 WAIT2
+
+fOE /SHORT /CC3 /CC2 /CC1
+
+'CGNTCACT HIT
+?CCO /TERM /CX /SLOW VCC
+
+/BRK GND
+
+; CYCLE CONTROL STATE COUNTER. FAST VERSION (ND-120/CX).
+
+cx := vec ;
+
+icc2
+icc2
+1CC2
+1CC2
+1cc2
+
+a
+3
+
+1CC3
+#cC3
+'cc3
+iCC3
+#CCc3
+#CC3
+#cc3
+
+* * * % 4 HH
+t+ £ + &
+
++ + + + + F +
+
+cco
+'TERM
+' TERM
+! TERM
+(TERM
+(TERM
+‘TERM
+
+icci *
+cci *
+cc1
+cco *
+cco *
+cco *
+cco x
+
+Q
+a
+wo
+i
+
+cc2 *
+cc3
+cc3
+cc3
+cc3
+cc3
+cc3
+
+*
+
++ + +e oe He +
++ 4+ £ 4 4
+
+Q
+Qo
+N
+i
+
+i TERM
+(TERM
+* CC1
+* CCl
+* CC1
+
+cc2 * CCO x
+cc2 * CCO *
+#CC3 * icCc2
+#cc3. * «/CC2
+#cc3 * iCC2
+
++ + te +e eH He +
+
+?cc3 * fcc2 * CCO
+#cc3 * 4CC2 * CCO
+cc3 * CC2 * CCO *
+cc3 * CcC2 * cco *
+cc1i * iCCO * ITERM
+cc1i * iCcO * /TERM
+cci * #CCO * I TERM
+cci * iCCO * I TERM
+
+a
+Qo
+iy
+++ hee eee
+
+Q
+Q
+Ss
+W
+
+#CC3 * iCC2 * iCC1
+#cC3 * CC2 * CCi *
+cc3 * CC2 * iCCi *
+cc3 * fCC2 * CC1 *
+#cc3. * Cc2 * CCci *
+'cc3 * CC2 * CC1
+fcc3 * CC2 * CC1 *
+fCCc3 *
+
++ + + + te te +
+*
+
+DESCRIPTION
+
+060387 JLB:
+; 060387 JLB:
+; 070387 JLB:
+; 120387 JLB:
+, SHORT IN ON
+; 120387 JLB:
+: 180387 JLB:
+: 180387 JLB:
+; 180387 JLB:
+; 210387 JLB:
+
+PIN 4.
+
+; 270487
+: 060887
+
+M3202B
+
+*
+
+*
+*
+*
+*
+*
+
+*
+
+*
+*
+*
+*
+*
+
+*
+*
+!
+!
+
+icc2 * CC1 * CCO * CGNTICACT *
+
+THIS IS THE FAST VERSION
+
+1 TERM
+
+cc2
+
+#cc2
+
+cc2 * cci
+fcc2 * CC1
+cc2 * CCL
+fcc2 * CCL
+
+#cc3 * CC2 * CCi * {TERM
+cc2 * /CCi * {TERM * CC3
+cc2 * iCC1 * /TERM *
+
+#CC3
+cc3
+
+#CC3
+
+#CCO * CGNTCACT * /TERM
+fCCO * IWAIT1 * i TERM
+#CCO * BRK * /TERM
+
+‘TERM * CC1
+‘TERM * /CC1
+TERM * CC1
+TERM * /CC1
+* CC2 * CC3
+* CcC2 * /CC3
+» #CC2 * CC3
+* 1€C2 * !CC3
+
+* fTERM
+
+cco * iTERM
+
+i TERM
+
+? TERM
+
+#CCO * /CGNTCACT *
+fccO * BRK * /TERM
+#ccO * /WAIT2 * /TERM
+
+(TERM
+
+SO NS CYCLE ON SHORT
+MR GATED WITH WAIT1 OUTSIDE. NEW INPUT CSDELAYO.
+
+BUFFERED WRITE.
+175NS SLOW & BRK CYCLES.
+
+200NS SLOW CYCLES,
+
+#cC1 * /CCO * SHORT * /TERM * /DLYO *
+#cci * CCO * SHORT * /BRK * /DLY1 * /TERM
+!CC1 * CCO * HIT * /BRK * /DEY1 * TERM
+cc1 * CCO * SHORT * /BRK * /TERM
+cci * CCO * HIT * {BRK *
+cc2 * cC1 * CCO * BRK * /TERM
+cc2 * #cci * CCO * SLOW * /TERM
+cc3 * #cC2 * /CC1 * /CCO * /TERM
+
+? TERM
+
+!BRK * /TERM
+
+MOD’S FROM SLOW VERSION IMPLEMENTED.
+100 NS CYCLE MIN. NO BUFFERED WRITE.
+75 NS CYCLE MIN. NO BUFFERED WRITE.
+IMPROVED HIT PATH. FORM REMOVED. HIT INPUT ON PIN 12.
+
+175NS BRK CYCLES.
+
+JLB: MAXIMIZED EQUATIONS TO MATCH CLOCK SKEW.
+
+'CSDELAYO ;SONS CYCLE
+
+.75NS CYCLE
+375NS CYCLE
+,100NS CYCLE
+,100NS CYCLE
+;BRK CYCLE (>200
+(SLOW CYCLES INCL. FE
+V;UART,LCS.RWCS CYCLES
+
+yhtit jtk+ltmtnto
+
+yetfegthti+ j+k
+
+;d WAIT FOR BUS IF
+:d WAITL AND NOT
+id BRK
+
+tb+ctdtet j+k+l+m
+
+yatbe+ft+it j+mtn
+
+;@ WAIT FOR BUS OR LOC
+MEM CYCLE TO FINISH
+IF WAIT2 AND NOT BRK
+PREV WRITE.
+
+ye
+se
+
+,e
+
