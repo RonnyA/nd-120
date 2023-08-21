@@ -16,7 +16,7 @@ This list of chips are used on the 3202 CPU Board and needs to be implemented in
 | IMS1403_25 - 16K x 1 Static RAM | 
 | TMM2018D_25 -  16K Static RAM (Cache) | 
 | AM9150_20 - 1024 x 4 High-Speed Static R/W RAM | http://www.sintran.com/library/libother/extern/AM9150.pdf |
-| AM29C821 - Bus Driver 10 bits / Shift register | |
+| AM29C821 - Bus Driver 10 bits / Shift register | https://www.digikey.com/en/products/detail/rochester-electronics-llc/AM29C821-BLA/12095382 |
 | AM29841 -  Bus Driver 10 bit (D-Latch) with 3-state output | https://www.alldatasheet.com/datasheet-pdf/pdf/107079/AMD/AM29841.html | 
 | AM29833A - PARITY BUS TRANSCEIVERS | https://pdf1.alldatasheet.com/datasheet-pdf/view/165880/AMD/AM29833A.html | 
 | AM29861A - 10 Bit High Performance Bus Transceivers | https://datasheetspdf.com/datasheet/AM29861.html |
