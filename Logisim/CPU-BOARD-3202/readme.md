@@ -2,7 +2,7 @@
 
 The 3202D CPU Board is described in the design documents in a PDF spanning 50 pages.
 
-![Photo of 3202D board](3202D-Photo.png)
+![Photo of 3202D board](3202D-Photo.PNG)
 
 # 3202D Circuits #
 
