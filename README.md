@@ -41,6 +41,11 @@ Design and implement I/O devices for reading and writing files from FLASH memory
 
 All the design documents are in the [Design Documents](DesignDocuments/Readme.md) folder.
 
+# Norsk Data documents
+
+Functional Description, Instruction set, Microprogramming guide and more are in the [NorskData-Doc](NorskData-Doc/Readme.md) folder.
+
+
 
 # Microcode #
 
