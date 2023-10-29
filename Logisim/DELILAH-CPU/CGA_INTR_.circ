@@ -1447,13 +1447,6 @@
     <a name="circuit" val="CGA_INTR_CNTLR_IRQ_REG_RQBIT"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1640,380)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -3259,6 +3252,7 @@
     </comp>
     <comp lib="1" loc="(1000,480)" name="NOR Gate">
       <a name="facing" val="south"/>
+      <a name="label" val="NR2"/>
       <a name="size" val="30"/>
     </comp>
     <comp lib="1" loc="(1030,740)" name="NOT Gate">
@@ -3268,6 +3262,7 @@
     <comp lib="1" loc="(1060,650)" name="NOR Gate">
       <a name="facing" val="south"/>
       <a name="inputs" val="4"/>
+      <a name="label" val="NRx"/>
       <a name="negate0" val="true"/>
       <a name="negate1" val="true"/>
       <a name="negate2" val="true"/>
@@ -3275,19 +3270,21 @@
     </comp>
     <comp lib="1" loc="(1080,490)" name="NAND Gate">
       <a name="facing" val="south"/>
+      <a name="label" val="ND2"/>
     </comp>
     <comp lib="1" loc="(1140,490)" name="NAND Gate">
       <a name="facing" val="south"/>
       <a name="inputs" val="3"/>
+      <a name="label" val="ND3"/>
     </comp>
     <comp lib="1" loc="(1200,490)" name="NAND Gate">
       <a name="facing" val="south"/>
       <a name="inputs" val="4"/>
+      <a name="label" val="ND4"/>
     </comp>
     <comp lib="1" loc="(500,330)" name="NOT Gate"/>
     <comp lib="1" loc="(500,350)" name="NOT Gate"/>
     <comp lib="1" loc="(500,370)" name="NOT Gate"/>
-    <comp lib="1" loc="(500,390)" name="NOT Gate"/>
     <comp lib="1" loc="(540,320)" name="NOT Gate"/>
     <comp lib="1" loc="(540,340)" name="NOT Gate"/>
     <comp lib="1" loc="(540,360)" name="NOT Gate"/>
@@ -3295,7 +3292,7 @@
     <comp lib="1" loc="(670,680)" name="OR Gate">
       <a name="facing" val="south"/>
       <a name="inputs" val="8"/>
-      <a name="label" val="OR_DET"/>
+      <a name="label" val="ND8P"/>
       <a name="negate0" val="true"/>
       <a name="negate1" val="true"/>
       <a name="negate2" val="true"/>
@@ -3309,7 +3306,7 @@
     <comp lib="1" loc="(850,680)" name="NOR Gate">
       <a name="facing" val="south"/>
       <a name="inputs" val="4"/>
-      <a name="label" val="O2"/>
+      <a name="label" val="NR4"/>
     </comp>
     <comp lib="1" loc="(850,740)" name="NOT Gate">
       <a name="facing" val="south"/>
@@ -3317,6 +3314,7 @@
     </comp>
     <comp lib="1" loc="(920,480)" name="OR Gate">
       <a name="facing" val="south"/>
+      <a name="label" val="OR2"/>
       <a name="size" val="30"/>
     </comp>
     <comp lib="1" loc="(940,680)" name="NOR Gate">
@@ -3330,7 +3328,7 @@
     <comp lib="1" loc="(960,590)" name="AND Gate">
       <a name="facing" val="south"/>
       <a name="inputs" val="3"/>
-      <a name="label" val="ANDv1"/>
+      <a name="label" val="NR3"/>
       <a name="negate0" val="true"/>
       <a name="negate1" val="true"/>
       <a name="negate2" val="true"/>
