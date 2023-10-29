@@ -10982,6 +10982,7 @@
     </comp>
     <comp lib="0" loc="(1860,1380)" name="Pin">
       <a name="appearance" val="classic"/>
+      <a name="radix" val="16"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(1880,1030)" name="Pin">
@@ -11123,6 +11124,15 @@
     </comp>
     <comp lib="0" loc="(680,1320)" name="Pin">
       <a name="appearance" val="classic"/>
+    </comp>
+    <comp lib="8" loc="(1591,1349)" name="Text">
+      <a name="text" val="ALU Source"/>
+    </comp>
+    <comp lib="8" loc="(1594,1317)" name="Text">
+      <a name="text" val="ALU Function"/>
+    </comp>
+    <comp lib="8" loc="(1605,1285)" name="Text">
+      <a name="text" val="ALU Destination"/>
     </comp>
     <comp loc="(2220,910)" name="CGA_ALU">
       <a name="label" val="Alu_under_test"/>
