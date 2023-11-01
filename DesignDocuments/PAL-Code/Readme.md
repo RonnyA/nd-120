@@ -94,13 +94,12 @@ Replace 44402X with 44412X, and 44601X with 44611x.
 | 12D    |        | 16R6D  | 10ns      | 513061   | 44611A   | CYCFSM NEW |
 
 ## PROM's ## 
-Pos.no. Check- Device Max. Stock Reg. no. Floating Bit
-sum delay no. format no.
 
+Microcode PROM's. One set for 32 bit FPU and one set for 48 Bit FPU opcodes.
 
 |Pos. no.|Checksum| Device | Max. delay| Stock no.| Reg. no. | Floating format | Bit no.|
 |--------|--------|--------|-----------|----------|----------|-----------------|--------|
-| 23B    |        | 27256  | 250ns     | 500854   | 45132L   | 32 bit          | 0-7    |
-| 26B    |        | 27256  | 250ns     | 500854   | 45133L   | 32 bit          | 8-15   |
+| 23B    |        | 27256  | 250ns     | 500854   | [45132L](/Microcode/AM27256_45132L.bin)   | 32 bit          | 0-7    |
+| 26B    |        | 27256  | 250ns     | 500854   | [45133L](/Microcode/AM27256_45133L.bin)   | 32 bit          | 8-15   |
 | 23B    |        | 27256  | 250ns     | 500854   | 45148L   | 48 bi           | 0-7    |
 | 26B    |        | 27256  | 250ns     | 500854   | 45149L   | 48 bi           | 8-15   |
