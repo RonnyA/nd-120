@@ -1679,7 +1679,6 @@
     <comp lib="0" loc="(240,2680)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="CSALUI_8_0"/>
-      <a name="radix" val="16"/>
       <a name="width" val="9"/>
     </comp>
     <comp lib="0" loc="(2430,2120)" name="Tunnel">
@@ -10957,6 +10956,24 @@
       <a name="appearance" val="classic"/>
       <a name="width" val="2"/>
     </comp>
+    <comp lib="0" loc="(1810,1480)" name="Pin">
+      <a name="appearance" val="classic"/>
+    </comp>
+    <comp lib="0" loc="(1810,1520)" name="Pin">
+      <a name="appearance" val="classic"/>
+    </comp>
+    <comp lib="0" loc="(1810,1600)" name="Pin">
+      <a name="appearance" val="classic"/>
+      <a name="width" val="2"/>
+    </comp>
+    <comp lib="0" loc="(1810,1630)" name="Pin">
+      <a name="appearance" val="classic"/>
+      <a name="width" val="2"/>
+    </comp>
+    <comp lib="0" loc="(1810,1660)" name="Pin">
+      <a name="appearance" val="classic"/>
+      <a name="width" val="2"/>
+    </comp>
     <comp lib="0" loc="(1820,1220)" name="Probe">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -10976,6 +10993,9 @@
       <a name="appearance" val="classic"/>
       <a name="radix" val="16"/>
       <a name="width" val="16"/>
+    </comp>
+    <comp lib="0" loc="(1850,1460)" name="Pin">
+      <a name="appearance" val="classic"/>
     </comp>
     <comp lib="0" loc="(1860,1310)" name="Pin">
       <a name="appearance" val="classic"/>
@@ -11109,6 +11129,34 @@
       <a name="facing" val="west"/>
       <a name="radix" val="16"/>
     </comp>
+    <comp lib="0" loc="(2440,1480)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
+    <comp lib="0" loc="(2440,1500)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
+    <comp lib="0" loc="(2440,1520)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
+    <comp lib="0" loc="(2440,1540)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
+    <comp lib="0" loc="(2440,1560)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
+    <comp lib="0" loc="(2440,1640)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
+    <comp lib="0" loc="(2440,1680)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
     <comp lib="0" loc="(560,1260)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="width" val="16"/>
@@ -11125,28 +11173,49 @@
     <comp lib="0" loc="(680,1320)" name="Pin">
       <a name="appearance" val="classic"/>
     </comp>
-    <comp lib="8" loc="(1591,1349)" name="Text">
-      <a name="text" val="ALU Source"/>
-    </comp>
-    <comp lib="8" loc="(1594,1317)" name="Text">
+    <comp lib="8" loc="(1590,1315)" name="Text">
       <a name="text" val="ALU Function"/>
+    </comp>
+    <comp lib="8" loc="(1590,1345)" name="Text">
+      <a name="text" val="ALU Source"/>
     </comp>
     <comp lib="8" loc="(1605,1285)" name="Text">
       <a name="text" val="ALU Destination"/>
     </comp>
+    <comp lib="8" loc="(435,1390)" name="Text">
+      <a name="text" val="ALUI7=0, Right shift. 1=LEFT shift"/>
+    </comp>
+    <comp lib="8" loc="(436,1435)" name="Text">
+      <a name="text" val="i8=&gt; 1=DO Shift (not logical operation. Also shift GPR register)"/>
+    </comp>
+    <comp lib="8" loc="(660,1137)" name="Text">
+      <a name="text" val="ALUI7=0, Right shift. 1=LEFT shift"/>
+    </comp>
+    <comp lib="8" loc="(948,1632)" name="Text">
+      <a name="text" val="1000000010000000 0001100000000000 1001111110001110 1001000000000000 "/>
+    </comp>
     <comp loc="(2220,910)" name="CGA_ALU">
       <a name="label" val="Alu_under_test"/>
     </comp>
+    <comp loc="(2230,1460)" name="CGA_CPU_ALU_CONTR"/>
     <comp loc="(950,1240)" name="CGA_ALU_SHIFT"/>
     <wire from="(1750,1270)" to="(1790,1270)"/>
     <wire from="(1790,1220)" to="(1790,1270)"/>
     <wire from="(1790,1220)" to="(1820,1220)"/>
-    <wire from="(1790,1270)" to="(2000,1270)"/>
+    <wire from="(1790,1270)" to="(1910,1270)"/>
     <wire from="(1810,1290)" to="(2000,1290)"/>
+    <wire from="(1810,1480)" to="(2010,1480)"/>
+    <wire from="(1810,1520)" to="(2010,1520)"/>
+    <wire from="(1810,1600)" to="(2010,1600)"/>
+    <wire from="(1810,1630)" to="(1840,1630)"/>
+    <wire from="(1810,1660)" to="(2010,1660)"/>
     <wire from="(1830,1010)" to="(2000,1010)"/>
     <wire from="(1830,930)" to="(2000,930)"/>
     <wire from="(1830,970)" to="(2000,970)"/>
-    <wire from="(1860,1310)" to="(2000,1310)"/>
+    <wire from="(1840,1630)" to="(1840,1640)"/>
+    <wire from="(1840,1640)" to="(2010,1640)"/>
+    <wire from="(1850,1460)" to="(2010,1460)"/>
+    <wire from="(1860,1310)" to="(1960,1310)"/>
     <wire from="(1860,1380)" to="(1940,1380)"/>
     <wire from="(1880,1030)" to="(2000,1030)"/>
     <wire from="(1880,1050)" to="(2000,1050)"/>
@@ -11160,11 +11229,17 @@
     <wire from="(1880,910)" to="(2000,910)"/>
     <wire from="(1880,950)" to="(2000,950)"/>
     <wire from="(1880,990)" to="(2000,990)"/>
+    <wire from="(1910,1270)" to="(1910,1800)"/>
+    <wire from="(1910,1270)" to="(2000,1270)"/>
+    <wire from="(1910,1800)" to="(2010,1800)"/>
     <wire from="(1940,1330)" to="(1940,1380)"/>
     <wire from="(1940,1330)" to="(2000,1330)"/>
     <wire from="(1960,1210)" to="(2000,1210)"/>
     <wire from="(1960,1230)" to="(2000,1230)"/>
     <wire from="(1960,1250)" to="(2000,1250)"/>
+    <wire from="(1960,1310)" to="(1960,1780)"/>
+    <wire from="(1960,1310)" to="(2000,1310)"/>
+    <wire from="(1960,1780)" to="(2010,1780)"/>
     <wire from="(2220,1010)" to="(2310,1010)"/>
     <wire from="(2220,1030)" to="(2280,1030)"/>
     <wire from="(2220,1050)" to="(2310,1050)"/>
@@ -11181,6 +11256,13 @@
     <wire from="(2220,950)" to="(2310,950)"/>
     <wire from="(2220,970)" to="(2280,970)"/>
     <wire from="(2220,990)" to="(2400,990)"/>
+    <wire from="(2230,1480)" to="(2440,1480)"/>
+    <wire from="(2230,1500)" to="(2440,1500)"/>
+    <wire from="(2230,1520)" to="(2440,1520)"/>
+    <wire from="(2230,1540)" to="(2440,1540)"/>
+    <wire from="(2230,1560)" to="(2440,1560)"/>
+    <wire from="(2230,1640)" to="(2440,1640)"/>
+    <wire from="(2230,1680)" to="(2440,1680)"/>
     <wire from="(560,1260)" to="(730,1260)"/>
     <wire from="(680,1240)" to="(730,1240)"/>
     <wire from="(680,1280)" to="(730,1280)"/>
