@@ -1,0 +1,61 @@
+
+# CGA ALU has still some "issues" with MATH as there is some negating somewhere going wrong
+
+
+#1 Validation SOURCE selection for CGA_ALU
+
+
+Input on SMUX/RMUX going to ALU_RALU
+
+SOURCE
+
+RD = D_15_0 (RMUX)  <= Signal comes from ALU_OUTMUX which is controlled by IDBS.
+RA = A_15_0
+
+
+SMUX
+-----
+A_15_0 
+B_15_0
+Q_15_0 
+
+ 		    SB	SA	RA	RD 
+000 = 		0	0	1	0   R=A S=Q => A_Q = 0,  // Am2901 AQ  
+001 = 		0	1	1	0   R=A S=B => A_B = 1,  // Am2901 AB 
+002 = 		0	0	0	0   R=0 S=Q => O_Q = 2,  // Am2901 ZQ
+003 = 		0	1	0	0   R=0 S=B => O_B = 3,  // Am2901 ZB
+004 = 		1	1	0	0   R=0 S=A => O_A = 4,  // Am2901 ZA
+005 = 		1	1	0	1   R=D S=A => D_A = 5,  // Am2901 DA
+006 = 		0	0	0	1   R=D S=Q => D_Q = 6,  // Am2901 DQ
+007 = 		1	0	0	1   R=D S=0 => D_O = 7   // Am2901 DZ
+
+
+SMUX
+0=Q
+1=B
+2=0
+3=A
+
+
+Data is selected nicely and goes to F_15_0 internal signal
+
+
+
+# ALU_OUTMUX
+
+D_15_0
+------
+
+Selected based on CSIDBS value
+
+
+G_15_0
+------
+G_15_0 is D, A or F depending on EA or EF (Enable A/ Enable F)
+
+EA = 0 EF = 0 ==> D
+EA = 0 EF = 1 ==> F
+EA = 1 EF = 0 ==> A
+
+
+G is Negated and goes directly to FIDO_15_0
