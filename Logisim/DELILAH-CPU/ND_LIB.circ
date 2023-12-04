@@ -1287,21 +1287,26 @@
     <comp lib="0" loc="(570,330)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="facing" val="west"/>
-      <a name="label" val="Z"/>
+      <a name="label" val="ZN"/>
       <a name="output" val="true"/>
     </comp>
+    <comp lib="1" loc="(520,330)" name="NOT Gate"/>
     <comp lib="2" loc="(430,330)" name="Multiplexer"/>
     <comp lib="8" loc="(380,185)" name="Text">
       <a name="text" val="Helper circuit for all MUX21LP components"/>
     </comp>
     <comp lib="8" loc="(415,215)" name="Text">
-      <a name="text" val="This is different from MUX21L in that its not NEGATED"/>
+      <a name="text" val="WAS: This is different from MUX21L in that its not NEGATED"/>
+    </comp>
+    <comp lib="8" loc="(499,262)" name="Text">
+      <a name="text" val="Chnaged 04.12.2023 - Its used in CGA_ALU mostly, and there it is definitively negated"/>
     </comp>
     <wire from="(300,320)" to="(400,320)"/>
     <wire from="(300,340)" to="(400,340)"/>
     <wire from="(300,390)" to="(410,390)"/>
     <wire from="(410,350)" to="(410,390)"/>
-    <wire from="(430,330)" to="(570,330)"/>
+    <wire from="(430,330)" to="(490,330)"/>
+    <wire from="(520,330)" to="(570,330)"/>
   </circuit>
   <circuit name="MUX24P">
     <a name="appearance" val="logisim_evolution"/>

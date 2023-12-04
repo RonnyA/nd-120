@@ -56,15 +56,15 @@
   <lib desc="#BFH-Praktika" name="9"/>
   <lib desc="#Input/Output-Extra" name="10"/>
   <lib desc="#Soc" name="11"/>
-  <lib desc="file#CGA_HELPER.circ" name="12"/>
-  <lib desc="file#CGA_TRAP_.circ" name="13"/>
-  <lib desc="file#CGA_MIC_.circ" name="14"/>
-  <lib desc="file#TESTMUX_.circ" name="15"/>
+  <lib desc="file#CGA_MIC_.circ" name="12"/>
+  <lib desc="file#CGA_HELPER.circ" name="13"/>
+  <lib desc="file#TESTMUX_.circ" name="14"/>
+  <lib desc="file#CGA_TRAP_.circ" name="15"/>
   <lib desc="file#CGA_IDBCTL_.circ" name="16"/>
-  <lib desc="file#CGA_ALU_.circ" name="17"/>
-  <lib desc="file#CGA_INTR_.circ" name="18"/>
-  <lib desc="file#CGA_WRF_.circ" name="19"/>
-  <lib desc="file#CGA_DCD_.circ" name="20"/>
+  <lib desc="file#CGA_DCD_.circ" name="17"/>
+  <lib desc="file#CGA_WRF_.circ" name="18"/>
+  <lib desc="file#CGA_ALU_.circ" name="19"/>
+  <lib desc="file#CGA_INTR_.circ" name="20"/>
   <lib desc="file#CGA_MAC_.circ" name="21"/>
   <main name="CGA"/>
   <options>
@@ -2160,32 +2160,32 @@
     <comp lib="0" loc="(990,7840)" name="Tunnel">
       <a name="label" val="CBRKN"/>
     </comp>
-    <comp lib="12" loc="(680,6930)" name="BusDriver16">
-      <a name="label" val="BD_FIDBO"/>
-    </comp>
-    <comp lib="13" loc="(1730,7620)" name="CGA_TRAP">
-      <a name="label" val="TRAP"/>
-    </comp>
-    <comp lib="14" loc="(780,9460)" name="CGA_MIC">
+    <comp lib="12" loc="(780,9460)" name="CGA_MIC">
       <a name="label" val="MIC"/>
     </comp>
-    <comp lib="15" loc="(960,11480)" name="CGA_TESTMUX">
+    <comp lib="13" loc="(680,6930)" name="BusDriver16">
+      <a name="label" val="BD_FIDBO"/>
+    </comp>
+    <comp lib="14" loc="(960,11480)" name="CGA_TESTMUX">
       <a name="label" val="TESTMUX"/>
+    </comp>
+    <comp lib="15" loc="(1730,7620)" name="CGA_TRAP">
+      <a name="label" val="TRAP"/>
     </comp>
     <comp lib="16" loc="(2050,8440)" name="CGA_IDBCTL">
       <a name="label" val="IDBCTL"/>
     </comp>
-    <comp lib="17" loc="(1590,10050)" name="CGA_ALU">
-      <a name="label" val="ALU"/>
+    <comp lib="17" loc="(660,7580)" name="CGA_DCD">
+      <a name="label" val="DCD"/>
     </comp>
-    <comp lib="18" loc="(750,8460)" name="CGA_INTR">
-      <a name="label" val="INTR"/>
-    </comp>
-    <comp lib="19" loc="(2550,10200)" name="CGA_WRF">
+    <comp lib="18" loc="(2550,10200)" name="CGA_WRF">
       <a name="label" val="WRF"/>
     </comp>
-    <comp lib="20" loc="(660,7580)" name="CGA_DCD">
-      <a name="label" val="DCD"/>
+    <comp lib="19" loc="(1590,10050)" name="CGA_ALU">
+      <a name="label" val="ALU"/>
+    </comp>
+    <comp lib="20" loc="(750,8460)" name="CGA_INTR">
+      <a name="label" val="INTR"/>
     </comp>
     <comp lib="21" loc="(780,10710)" name="CGA_MAC">
       <a name="label" val="MAC"/>
@@ -2307,7 +2307,7 @@
     <wire from="(1590,10070)" to="(1660,10070)"/>
     <wire from="(1590,10090)" to="(1700,10090)"/>
     <wire from="(1590,10110)" to="(1760,10110)"/>
-    <wire from="(1590,10130)" to="(1670,10130)"/>
+    <wire from="(1590,10130)" to="(1870,10130)"/>
     <wire from="(1590,10150)" to="(1760,10150)"/>
     <wire from="(1590,10170)" to="(1610,10170)"/>
     <wire from="(1590,10190)" to="(1690,10190)"/>
@@ -2324,7 +2324,6 @@
     <wire from="(1630,8720)" to="(1830,8720)"/>
     <wire from="(1640,10350)" to="(1640,10550)"/>
     <wire from="(1640,10350)" to="(1690,10350)"/>
-    <wire from="(1670,10130)" to="(1670,10530)"/>
     <wire from="(170,7900)" to="(440,7900)"/>
     <wire from="(1730,7620)" to="(1890,7620)"/>
     <wire from="(1730,7640)" to="(1960,7640)"/>
@@ -2338,6 +2337,9 @@
     <wire from="(180,7660)" to="(440,7660)"/>
     <wire from="(1810,8420)" to="(1810,8440)"/>
     <wire from="(1810,8440)" to="(1830,8440)"/>
+    <wire from="(1870,10130)" to="(1870,10280)"/>
+    <wire from="(1870,10280)" to="(1870,10530)"/>
+    <wire from="(1870,10280)" to="(2330,10280)"/>
     <wire from="(190,7700)" to="(440,7700)"/>
     <wire from="(190,7740)" to="(440,7740)"/>
     <wire from="(190,7780)" to="(440,7780)"/>
@@ -2365,8 +2367,6 @@
     <wire from="(2240,10220)" to="(2330,10220)"/>
     <wire from="(2240,9720)" to="(2240,10220)"/>
     <wire from="(2240,9720)" to="(2500,9720)"/>
-    <wire from="(2270,10280)" to="(2270,10660)"/>
-    <wire from="(2270,10280)" to="(2330,10280)"/>
     <wire from="(2290,10300)" to="(2290,10830)"/>
     <wire from="(2290,10300)" to="(2330,10300)"/>
     <wire from="(230,10180)" to="(560,10180)"/>
@@ -2830,10 +2830,8 @@
     <wire from="(440,980)" to="(480,980)"/>
     <wire from="(450,9540)" to="(560,9540)"/>
     <wire from="(450,9660)" to="(560,9660)"/>
-    <wire from="(460,10530)" to="(1670,10530)"/>
-    <wire from="(460,10530)" to="(460,10660)"/>
-    <wire from="(460,10660)" to="(2270,10660)"/>
-    <wire from="(460,10660)" to="(460,10950)"/>
+    <wire from="(460,10530)" to="(1870,10530)"/>
+    <wire from="(460,10530)" to="(460,10950)"/>
     <wire from="(460,10950)" to="(560,10950)"/>
     <wire from="(460,10970)" to="(460,11120)"/>
     <wire from="(460,10970)" to="(560,10970)"/>
