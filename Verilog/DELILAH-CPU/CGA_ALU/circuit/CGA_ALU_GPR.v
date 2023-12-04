@@ -367,7 +367,7 @@ module CGA_ALU_GPR( ALUCLK,
    MUX21LP   GPR0M21 (.A(s_logisimNet21),
                       .B(s_logisimBus46[0]),
                       .S(s_logisimBus53[2]),
-                      .Z(s_logisimNet62));
+                      .ZN(s_logisimNet62));
 
    SCAN_FF   GPR15FF (.CLK(s_logisimNet22),
                       .D(s_logisimNet50),

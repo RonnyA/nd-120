@@ -107,7 +107,7 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    wire [1:0] s_logisimBus124;
    wire [1:0] s_logisimBus136;
    wire [1:0] s_logisimBus16;
-   wire [1:0] s_logisimBus40;
+   wire [1:0] s_logisimBus39;
    wire [1:0] s_logisimBus85;
    wire [1:0] s_logisimBus89;
    wire [8:0] s_logisimBus91;
@@ -190,8 +190,8 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    wire       s_logisimNet36;
    wire       s_logisimNet37;
    wire       s_logisimNet38;
-   wire       s_logisimNet39;
    wire       s_logisimNet4;
+   wire       s_logisimNet40;
    wire       s_logisimNet41;
    wire       s_logisimNet42;
    wire       s_logisimNet43;
@@ -264,7 +264,7 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    assign s_logisimBus124[1:0] = CSCINSEL_1_0;
    assign s_logisimBus136[1:0] = CSALUM_1_0;
    assign s_logisimBus16[1:0]  = CD_10_9;
-   assign s_logisimBus40[1:0]  = CSMIS_1_0;
+   assign s_logisimBus39[1:0]  = CSMIS_1_0;
    assign s_logisimBus89[1:0]  = CSSST_1_0;
    assign s_logisimBus91[8:0]  = CSALUI_8_0;
    assign s_logisimNet104      = LCZN;
@@ -272,12 +272,12 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    assign s_logisimNet147      = CRY;
    assign s_logisimNet30       = STS7;
    assign s_logisimNet31       = F0;
-   assign s_logisimNet38       = Q0;
-   assign s_logisimNet39       = F15;
-   assign s_logisimNet41       = Q15;
-   assign s_logisimNet47       = XFETCHN;
-   assign s_logisimNet58       = STS6;
-   assign s_logisimNet60       = DGPR0N;
+   assign s_logisimNet37       = Q0;
+   assign s_logisimNet38       = F15;
+   assign s_logisimNet40       = Q15;
+   assign s_logisimNet46       = XFETCHN;
+   assign s_logisimNet57       = STS6;
+   assign s_logisimNet59       = DGPR0N;
    assign s_logisimNet8        = UPN;
    assign s_logisimNet82       = ALUCLK;
    assign s_logisimNet96       = LDIRV;
@@ -290,7 +290,7 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    assign ALUI4    = s_logisimNet34;
    assign ALUI7    = s_logisimNet141;
    assign ALUI8N   = s_logisimNet108;
-   assign BDEST    = s_logisimNet50;
+   assign BDEST    = s_logisimNet49;
    assign CI       = s_logisimNet116;
    assign CSTS_1_0 = s_logisimBus121[1:0];
    assign FSEL     = s_logisimNet118;
@@ -301,11 +301,11 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    assign QLI      = s_logisimNet75;
    assign QSEL_1_0 = s_logisimBus85[1:0];
    assign RA       = s_logisimNet149;
-   assign RD       = s_logisimNet45;
-   assign RLI      = s_logisimNet73;
-   assign RRI      = s_logisimNet68;
+   assign RD       = s_logisimNet44;
+   assign RLI      = s_logisimNet72;
+   assign RRI      = s_logisimNet67;
    assign RSN      = s_logisimNet134;
-   assign SA       = s_logisimNet72;
+   assign SA       = s_logisimNet71;
    assign SB       = s_logisimNet17;
 
    /*******************************************************************************
@@ -328,7 +328,7 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    assign s_logisimNet6 = ~s_logisimBus91[3];
 
    // NOT Gate
-   assign s_logisimNet37 = ~s_logisimBus91[2];
+   assign s_logisimNet74 = ~s_logisimBus91[2];
 
    // NOT Gate
    assign s_logisimNet146 = ~s_logisimBus91[0];
@@ -337,13 +337,13 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    assign s_logisimNet77 = ~s_logisimBus91[4];
 
    // NOT Gate
-   assign s_logisimBus85[1] = ~s_logisimNet67;
+   assign s_logisimBus85[1] = ~s_logisimNet66;
 
    // NOT Gate
    assign s_logisimBus85[0] = ~s_logisimNet32;
 
    // NOT Gate
-   assign s_logisimNet50 = ~s_logisimNet35;
+   assign s_logisimNet49 = ~s_logisimNet35;
 
    // NOT Gate
    assign s_logisimNet134 = ~s_logisimNet142;
@@ -355,19 +355,19 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    assign s_logisimNet76 = ~s_logisimNet80;
 
    // NOT Gate
-   assign s_logisimNet34 = ~s_logisimNet62;
+   assign s_logisimNet34 = ~s_logisimNet61;
 
    // NOT Gate
-   assign s_logisimNet17 = ~s_logisimNet43;
+   assign s_logisimNet17 = ~s_logisimNet42;
 
    // NOT Gate
-   assign s_logisimNet72 = ~s_logisimNet92;
+   assign s_logisimNet71 = ~s_logisimNet92;
 
    // NOT Gate
    assign s_logisimNet149 = ~s_logisimNet13;
 
    // NOT Gate
-   assign s_logisimNet45 = ~s_logisimNet69;
+   assign s_logisimNet44 = ~s_logisimNet68;
 
    // NOT Gate
    assign s_logisimNet141 = ~s_logisimNet103;
@@ -382,7 +382,7 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    assign s_logisimNet108 = ~s_logisimNet126;
 
    // NOT Gate
-   assign s_logisimBus119[0] = ~s_logisimNet65;
+   assign s_logisimBus119[0] = ~s_logisimNet64;
 
    // NOT Gate
    assign s_logisimBus119[1] = ~s_logisimNet28;
@@ -391,7 +391,7 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    assign s_logisimBus119[2] = ~s_logisimNet144;
 
    // NOT Gate
-   assign s_logisimNet46 = ~s_logisimBus136[0];
+   assign s_logisimNet45 = ~s_logisimBus136[0];
 
    /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -403,13 +403,13 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
 
    NOR_GATE #(.BubblesMask(2'b00))
       GATES_2 (.input1(s_logisimBus136[1]),
-               .input2(s_logisimNet46),
-               .result(s_logisimNet74));
+               .input2(s_logisimNet45),
+               .result(s_logisimNet73));
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_3 (.input1(s_logisimBus136[1]),
-               .input2(s_logisimNet46),
-               .result(s_logisimNet55));
+               .input2(s_logisimNet45),
+               .result(s_logisimNet54));
 
    AND_GATE #(.BubblesMask(2'b00))
       GATES_4 (.input1(s_logisimNet77),
@@ -432,13 +432,13 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
                .result(s_logisimNet9));
 
    NAND_GATE #(.BubblesMask(2'b00))
-      GATES_8 (.input1(s_logisimNet37),
+      GATES_8 (.input1(s_logisimNet74),
                .input2(s_logisimBus91[0]),
                .result(s_logisimNet130));
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_9 (.input1(s_logisimNet86),
-               .input2(s_logisimNet37),
+               .input2(s_logisimNet74),
                .result(s_logisimNet7));
 
    NAND_GATE #(.BubblesMask(2'b00))
@@ -453,25 +453,25 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_12 (.input1(s_logisimNet141),
-                .input2(s_logisimNet39),
+                .input2(s_logisimNet38),
                 .result(s_logisimNet120));
 
    NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
       GATES_13 (.input1(s_logisimNet143),
                 .input2(s_logisimNet98),
-                .input3(s_logisimNet38),
+                .input3(s_logisimNet37),
                 .result(s_logisimNet90));
 
    NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
       GATES_14 (.input1(s_logisimNet143),
                 .input2(s_logisimNet150),
                 .input3(s_logisimNet31),
-                .result(s_logisimNet51));
+                .result(s_logisimNet50));
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_15 (.input1(s_logisimBus91[5]),
                 .input2(s_logisimBus91[4]),
-                .result(s_logisimNet44));
+                .result(s_logisimNet43));
 
    NOR_GATE_3_INPUTS #(.BubblesMask(3'b000))
       GATES_16 (.input1(s_logisimNet87),
@@ -492,7 +492,7 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_19 (.input1(s_logisimNet9),
                 .input2(s_logisimNet130),
-                .result(s_logisimNet53));
+                .result(s_logisimNet52));
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_20 (.input1(s_logisimNet2),
@@ -505,41 +505,41 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
                 .result(s_logisimNet0));
 
    NAND_GATE #(.BubblesMask(2'b00))
-      GATES_22 (.input1(s_logisimNet38),
+      GATES_22 (.input1(s_logisimNet37),
                 .input2(s_logisimNet98),
                 .result(s_logisimNet15));
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_23 (.input1(s_logisimNet98),
-                .input2(s_logisimNet41),
-                .result(s_logisimNet57));
+                .input2(s_logisimNet40),
+                .result(s_logisimNet56));
 
    NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
       GATES_24 (.input1(s_logisimNet120),
                 .input2(s_logisimNet90),
-                .input3(s_logisimNet51),
+                .input3(s_logisimNet50),
                 .result(s_logisimNet84));
 
    AND_GATE #(.BubblesMask(2'b00))
       GATES_25 (.input1(s_logisimNet29),
-                .input2(s_logisimNet49),
+                .input2(s_logisimNet48),
                 .result(s_logisimNet110));
 
    NOR_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_26 (.input1(s_logisimNet61),
+      GATES_26 (.input1(s_logisimNet60),
                 .input2(s_logisimNet112),
                 .input3(s_logisimNet150),
                 .result(s_logisimNet138));
 
    NOR_GATE #(.BubblesMask(2'b00))
-      GATES_27 (.input1(s_logisimNet56),
+      GATES_27 (.input1(s_logisimNet55),
                 .input2(s_logisimNet129),
                 .result(s_logisimNet19));
 
    NOR_GATE #(.BubblesMask(2'b00))
       GATES_28 (.input1(s_logisimNet112),
                 .input2(s_logisimNet129),
-                .result(s_logisimNet54));
+                .result(s_logisimNet53));
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_29 (.input1(s_logisimNet0),
@@ -547,8 +547,8 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
                 .result(s_logisimNet101));
 
    NOR_GATE #(.BubblesMask(2'b00))
-      GATES_30 (.input1(s_logisimNet61),
-                .input2(s_logisimNet56),
+      GATES_30 (.input1(s_logisimNet60),
+                .input2(s_logisimNet55),
                 .result(s_logisimNet122));
 
    NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
@@ -560,7 +560,7 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_32 (.input1(s_logisimNet98),
                 .input2(s_logisimNet126),
-                .result(s_logisimNet67));
+                .result(s_logisimNet66));
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_33 (.input1(s_logisimNet98),
@@ -580,12 +580,12 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_36 (.input1(s_logisimNet97),
                 .input2(s_logisimNet147),
-                .result(s_logisimNet42));
+                .result(s_logisimNet41));
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_37 (.input1(s_logisimNet147),
                 .input2(s_logisimNet138),
-                .result(s_logisimNet66));
+                .result(s_logisimNet65));
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_38 (.input1(s_logisimNet101),
@@ -593,12 +593,12 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
                 .result(s_logisimNet18));
 
    NAND_GATE #(.BubblesMask(2'b00))
-      GATES_39 (.input1(s_logisimNet39),
-                .input2(s_logisimNet54),
+      GATES_39 (.input1(s_logisimNet38),
+                .input2(s_logisimNet53),
                 .result(s_logisimNet102));
 
    NAND_GATE #(.BubblesMask(2'b00))
-      GATES_40 (.input1(s_logisimNet39),
+      GATES_40 (.input1(s_logisimNet38),
                 .input2(s_logisimNet19),
                 .result(s_logisimNet148));
 
@@ -614,15 +614,15 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
 
    NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
       GATES_43 (.input1(s_logisimNet21),
-                .input2(s_logisimNet66),
+                .input2(s_logisimNet65),
                 .input3(s_logisimNet18),
                 .input4(s_logisimNet102),
-                .result(s_logisimNet68));
+                .result(s_logisimNet67));
 
    NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
       GATES_44 (.input1(s_logisimNet36),
                 .input2(s_logisimNet100),
-                .input3(s_logisimNet42),
+                .input3(s_logisimNet41),
                 .result(s_logisimNet3));
 
    NAND_GATE #(.BubblesMask(2'b00))
@@ -632,8 +632,8 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_46 (.input1(s_logisimNet127),
-                .input2(s_logisimNet57),
-                .result(s_logisimNet73));
+                .input2(s_logisimNet56),
+                .result(s_logisimNet72));
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_47 (.input1(s_logisimNet126),
@@ -646,22 +646,22 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
                 .result(s_logisimBus121[1]));
 
    NAND_GATE #(.BubblesMask(2'b00))
-      GATES_49 (.input1(s_logisimNet47),
+      GATES_49 (.input1(s_logisimNet46),
                 .input2(s_logisimNet143),
                 .result(s_logisimNet81));
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_50 (.input1(s_logisimNet81),
                 .input2(s_logisimNet11),
-                .result(s_logisimNet65));
+                .result(s_logisimNet64));
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_51 (.input1(s_logisimNet11),
-                .input2(s_logisimNet47),
+                .input2(s_logisimNet46),
                 .result(s_logisimNet28));
 
    NAND_GATE #(.BubblesMask(2'b00))
-      GATES_52 (.input1(~s_logisimNet28), //s_logisimBus119[1]
+      GATES_52 (.input1(~s_logisimNet28),
                 .input2(s_logisimNet108),
                 .result(s_logisimNet144));
 
@@ -706,38 +706,38 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   MUX21LP   CSMIS1_MUX (.A(s_logisimBus40[1]),
+   MUX21LP   CSMIS1_MUX (.A(s_logisimBus39[1]),
                          .B(s_logisimNet5),
                          .S(s_logisimNet26),
-                         .Z(s_logisimNet70));
+                         .ZN(s_logisimNet69));
 
-   MUX21LP   CSMIS0_MUX (.A(s_logisimBus40[0]),
+   MUX21LP   CSMIS0_MUX (.A(s_logisimBus39[0]),
                          .B(s_logisimNet33),
                          .S(s_logisimNet26),
-                         .Z(s_logisimNet23));
+                         .ZN(s_logisimNet23));
 
    MUX21LP   CSALUI7_MUX (.A(s_logisimBus91[7]),
                           .B(s_logisimNet8),
                           .S(s_logisimNet26),
-                          .Z(s_logisimNet29));
+                          .ZN(s_logisimNet29));
 
    MUX21LP   CSALUI8_MUX (.A(s_logisimBus91[8]),
                           .B(s_logisimNet104),
                           .S(s_logisimNet26),
-                          .Z(s_logisimNet49));
+                          .ZN(s_logisimNet48));
 
-   MUX21LP   ALUI3_MUX (.A(s_logisimNet60),
+   MUX21LP   ALUI3_MUX (.A(s_logisimNet59),
                         .B(s_logisimNet6),
-                        .S(s_logisimNet55),
-                        .Z(s_logisimNet140));
+                        .S(s_logisimNet54),
+                        .ZN(s_logisimNet140));
 
    MUX21LP   ALUI1N_MUX (.A(s_logisimBus91[1]),
-                         .B(s_logisimNet60),
-                         .S(s_logisimNet74),
-                         .Z(s_logisimNet86));
+                         .B(s_logisimNet59),
+                         .S(s_logisimNet73),
+                         .ZN(s_logisimNet86));
 
    R41P   REG_RFLA4 (.A(s_logisimNet79),
-                     .B(s_logisimNet44),
+                     .B(s_logisimNet43),
                      .C(s_logisimNet95),
                      .CP(s_logisimNet82),
                      .D(s_logisimBus91[4]),
@@ -748,34 +748,34 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
                      .QC(s_logisimNet80),
                      .QCN(),
                      .QD(),
-                     .QDN(s_logisimNet62));
+                     .QDN(s_logisimNet61));
 
    R41P   REG_BAAD (.A(s_logisimNet111),
-                    .B(s_logisimNet53),
+                    .B(s_logisimNet52),
                     .C(s_logisimNet7),
                     .CP(s_logisimNet82),
                     .D(s_logisimNet20),
                     .QA(),
-                    .QAN(s_logisimNet43),
+                    .QAN(s_logisimNet42),
                     .QB(),
                     .QBN(s_logisimNet92),
                     .QC(s_logisimNet13),
                     .QCN(),
-                    .QD(s_logisimNet69),
+                    .QD(s_logisimNet68),
                     .QDN());
 
-   R81   CONTR_REG (.A(s_logisimNet70),
+   R81   CONTR_REG (.A(s_logisimNet69),
                     .B(s_logisimNet23),
                     .C(s_logisimNet29),
                     .CP(s_logisimNet82),
-                    .D(s_logisimNet49),
+                    .D(s_logisimNet48),
                     .E(s_logisimBus89[0]),
                     .F(s_logisimBus89[1]),
                     .G(s_logisimBus124[0]),
                     .H(s_logisimBus124[1]),
-                    .QA(s_logisimNet61),
+                    .QA(s_logisimNet60),
                     .QAN(s_logisimNet129),
-                    .QB(s_logisimNet56),
+                    .QB(s_logisimNet55),
                     .QBN(s_logisimNet112),
                     .QC(s_logisimNet103),
                     .QCN(),
@@ -787,14 +787,14 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
                     .QFN(s_logisimNet94),
                     .QG(s_logisimNet105),
                     .QGN(),
-                    .QH(s_logisimNet64),
+                    .QH(s_logisimNet63),
                     .QHN());
 
    MUX41P   CI_SEL_MUX (.A(s_logisimNet105),
-                        .B(s_logisimNet64),
+                        .B(s_logisimNet63),
                         .D0(s_logisimNet12),
                         .D1(s_logisimNet78),
-                        .D2(s_logisimNet58),
+                        .D2(s_logisimNet57),
                         .D3(s_logisimNet97),
                         .Z(s_logisimNet116));
 

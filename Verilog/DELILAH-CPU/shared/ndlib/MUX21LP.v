@@ -1,23 +1,25 @@
 /******************************************************************************
  **                                                                          **
- ** Component : MUX21LP                                                      **
+ ** Component : MUX21LP  (2-to-1 Multiplexer NEGATED)                                                     **
  **                                                                          **
  *****************************************************************************/
 
-module MUX21LP(
-    input A, 
-    input B, 
-    input S, 
-    output Z
-);
-
-   // 2-to-1 Multiplexer
-   Multiplexer_2 PLEXER (
-      .muxIn_0(A),
-      .muxIn_1(B),
-      .muxOut(Z),
-      .sel(S)
+module MUX21LP( 
+   input A,    // Input A
+   input B,    // Input B
+   input S,    // Select input
+   output ZN   // Negated Output
    );
 
-endmodule
+   wire wire_plexer_out;
+   assign ZN = ~wire_plexer_out;
 
+   Multiplexer_2   PLEXERS_1 (
+                              .muxIn_0(A),
+                              .muxIn_1(B),
+                              .muxOut(wire_plexer_out),
+                              .sel(S)
+   );
+
+
+endmodule
