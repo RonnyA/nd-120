@@ -10,13 +10,13 @@ The Verilog code has been split into subfolder matching the structure of the Log
 
 | Folder           | Status   |  Test status | Comment |
 |------------------|----------|--------------|---------|
-| CGA_WRF          | Finished | 4 test cases |         |
-| CGA_ALU          | In progreess  |         | Some difficulties related to design documents not being clear on some negated gates |
+| CGA_WRF          | Completed | 4 test cases |         |
+| CGA_ALU          | In progreess  |         | ALU functions seem to work, need more testcases |
 | CGA_DCD          |          |              |
 | CGA_HELPER       |          |              | 
 | CGA_IDBCTL       |          |              |
 | CGA_INTR         |          |              |
-| CGA_MAC          |          |              |
+| CGA_MAC          | In progress  | Need to build testcases             |
 | CGA_MIC          |          |              |
 | CGA_TRAP         |          |              |
 | TESTMUX          |          |              |
