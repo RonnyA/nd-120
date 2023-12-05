@@ -12,7 +12,7 @@ The Verilog code has been split into subfolder matching the structure of the Log
 |------------------|----------|--------------|---------|
 | CGA_WRF          | Completed | 4 test cases |         |
 | CGA_ALU          | In progreess  |         | ALU functions seem to work, need more testcases |
-| CGA_DCD          |          |              |
+| CGA_DCD          | In progress  | Need to build testcases             |
 | CGA_HELPER       |          |              | 
 | CGA_IDBCTL       |          |              |
 | CGA_INTR         |          |              |
