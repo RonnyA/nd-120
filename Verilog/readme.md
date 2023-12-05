@@ -11,5 +11,5 @@ The Verilog code has been split into subfolder matching the structure of the Log
 | Folder           | Status   |  
 |------------------|----------|
 | DELILAH-CPU      | Started  |
-| DECODE-GateArray | Started  |
-| CPU-BOARD-3202   | Started  |
+| DECODE-GateArray | Waiting for completion of Logisim drawings  |
+| CPU-BOARD-3202   | No logisim drawings yet. Maybe code directly in Verilog |
