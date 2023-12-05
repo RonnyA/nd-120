@@ -20,6 +20,6 @@ run: test_testmux
 	./obj_dir/VCGA_TESTMUX
 
 gtk: run
-	gtkwave waveform.vcd &
+	gtkwave waveform.vcd testmux.gtkw &
 
 .PHONY: all clean

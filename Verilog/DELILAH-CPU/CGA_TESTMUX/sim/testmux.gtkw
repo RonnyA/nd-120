@@ -1,0 +1,33 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Tue Dec  5 19:49:30 2023
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_TESTMUX/sim/waveform.vcd"
+[dumpfile_mtime] "Tue Dec  5 19:46:51 2023"
+[dumpfile_size] 14250
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_TESTMUX/sim/testmux.gtkw"
+[timestart] 0
+[size] 1162 682
+[pos] -36 -326
+*-6.286304 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 214
+[signals_width] 134
+[sst_expanded] 1
+[sst_vpaned_height] 181
+@28
+TOP.TSEL_2_0[2:0]
+TOP.PTSTN
+@22
+TOP.SC_6_3[3:0]
+TOP.TVEC_3_0[3:0]
+@200
+-
+@28
+TOP.PTREEOUT
+TOP.VACCN
+@200
+-
+@23
+TOP.TEST_4_0[4:0]
+[pattern_trace] 1
+[pattern_trace] 0
