@@ -20,6 +20,6 @@ run: test_mic
 	./obj_dir/VCGA_MIC
 
 gtk: run
-	gtkwave waveform.vcd &
+	gtkwave waveform.vcd mic.gtkw &
 
 .PHONY: all clean
