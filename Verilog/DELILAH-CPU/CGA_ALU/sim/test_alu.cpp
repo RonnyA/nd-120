@@ -33,8 +33,8 @@ enum ALUSource {
 /// </summary>
 enum ALUFunc {
     ALUF_ADD = 0 << 3,   // ADD (R plus S)
-    ALUF_SUBR = 1 << 3,  // SUBR (S Minus R)
-    ALUF_SUBS = 2 << 3,  // SUBS (R Minus S)
+    ALUF_SUBR = 1 << 3,  // SUBR (S Minus R)  // CSCINSEL must be set to 1 to force CARRY IN
+    ALUF_SUBS = 2 << 3,  // SUBS (R Minus S)  // CSCINSEL must be set to 1 to force CARRY IN
     ALUF_OR = 3 << 3,    // OR (R or S)
     ALUF_AND = 4 << 3,   // AND (R and S)
     ALUF_NOTRS = 5 << 3, // NOTRS (/R AND /S)
@@ -130,7 +130,7 @@ struct TestCase {
     uint8_t LBA_3_0;  // Select which register (0-15) which goes to B output - But here is combined to EAARG register (bit 0-2)
 
     bool LDPILN;      // Load PIL (negated)
-    bool LDDBRN;      // Load DBR (negated) - "Databuse register" (for IO)
+    bool LDDBRN;      // Load DBR (negated) - "Data bus register" (for IO)
     bool LDGPRN;      // Load GPR (negated) - "General Purpose register" (has shift logic also)
     bool XFETCHN;     // ONLY FOR P REGISTER (#2): 0=FETCH FROM RB, 1=FETCH FROM NLCA
     bool LDIRV;       // Load IRV (clock pulse) Load bit 9 and 10 from CD to replace CSMIS0 and CSMIS1 signals when ALUM = 3 (ALUM_IR_SHIFT)
@@ -178,9 +178,25 @@ int main(int argc, char **argv)
     std::vector<TestCase> testCases = {    
 
         // A_15_0, B_15_0,  CD_15_0,  EA_15_0, FIDBI_15_0, CSBIT_15_0, CSIDBS_4_0, CSSST_1_0, CSCINSEL_1_0,  _____CSALUI_8_0______          CSALUM_1_0,    LAA_3_0, LBA_3_0, LDPILN, LDDBRN, LDGPRN, XFETCHN,  LDIRV,  UPN,   LCZN, expected_RB_15_0, expected_FIDBO_15_0, expected_CRY, expected_ZF, expected_SGR, expected_OVF, expected_F11, expected_F15, expected_BDEST, expected_MI, expected_PTM, expected_Z, expected_DOUBLE, expected_PONI, expected_IONI, expected_PIL, description
-        {      1,       2,   0xDEAD,   0xBEAF,     0xF00D,     0xB117,   IDBS_ALU,          0,           0,  A_B | ALUF_ADD | ALUD_B_YA,    ALUM_uSHIFT,         1,        6,   true,   true,   true,   true,   true,  true,  true,                0,                  0,         true,        true,        true,        true,        true,        true,           true,       true,        true,       true,           true,           true,           true,            0, "Add 1+2" },
-        {   0x10,    0x12,   0xDEAD,   0xBEAF,     0xF00D,     0xB117,   IDBS_ALU,          0,           0,  A_B | ALUF_ADD | ALUD_B_YA,    ALUM_uSHIFT,         1,        6,   true,   true,   true,   true,   true,  true,  true,                0,                  0,         true,        true,        true,        true,        true,        true,           true,       true,        true,       true,           true,           true,           true,            0, "Add 0x10 + 0x12" },
-        {  0x1AA,    0xAB,   0xDEAD,   0xBEAF,     0xF00D,     0xB117,   IDBS_ALU,          0,           0,  A_B | ALUF_ADD | ALUD_Q,       ALUM_uSHIFT,         1,        6,   true,   true,   true,   true,   true,  true,  true,                0,                  0,         true,        true,        true,        true,        true,        true,           true,       true,        true,       true,           true,           true,           true,            0, "Add 0x1AA+ 0xAB" }
+        
+        // ADD
+
+        {      1,       2,   0xDEAD,   0xBEAF,     0xF00D,     0xB117,   IDBS_ALU,          0,           0,  A_B | ALUF_ADD | ALUD_B,       ALUM_uSHIFT,         1,        6,   true,   true,   true,   true,   true,  true,  true,                0,                  0,         true,        true,        true,        true,        true,        true,           true,       true,        true,       true,           true,           true,           true,            0, "Add 1+2" },
+        {   0x10,    0x12,   0xDEAD,   0xBEAF,     0xF00D,     0xB117,   IDBS_ALU,          0,           0,  A_B | ALUF_ADD | ALUD_B,       ALUM_uSHIFT,         1,        6,   true,   true,   true,   true,   true,  true,  true,                0,                  0,         true,        true,        true,        true,        true,        true,           true,       true,        true,       true,           true,           true,           true,            0, "Add 0x10 + 0x12" },
+        {  0x1AA,    0xAB,   0xDEAD,   0xBEAF,     0xF00D,     0xB117,   IDBS_ALU,          0,           0,  A_B | ALUF_ADD | ALUD_Q,       ALUM_uSHIFT,         1,        6,   true,   true,   true,   true,   true,  true,  true,                0,                  0,         true,        true,        true,        true,        true,        true,           true,       true,        true,       true,           true,           true,           true,            0, "Add 0x1AA+ 0xAB" },
+
+        // Empty
+        {     0,        0,         0,       0,          0,          0,          0,          0,           0,                        0,                  0,        0,        0,   true,   true,   true,   true,   true,  true,  true,                0,                  0,         true,        true,        true,        true,        true,        true,           true,       true,        true,       true,           true,           true,           true,            0, "EMPTY"},
+
+
+
+        // SUBTRACT
+        {      1,       2,   0xDEAD,   0xBEAF,     0xF00D,     0xB117,   IDBS_ALU,          0,           1,  A_B | ALUF_SUBS | ALUD_B_YA,   ALUM_uSHIFT,         1,        6,   true,   true,   true,   true,   true,  true,  true,                0,                  0,         true,        true,        true,        true,        true,        true,           true,       true,        true,       true,           true,           true,           true,            0, "SUB 1+2" },
+        {   0x10,    0x12,   0xDEAD,   0xBEAF,     0xF00D,     0xB117,   IDBS_ALU,          0,           1,  A_B | ALUF_SUBS | ALUD_B_YA,   ALUM_uSHIFT,         1,        6,   true,   true,   true,   true,   true,  true,  true,                0,                  0,         true,        true,        true,        true,        true,        true,           true,       true,        true,       true,           true,           true,           true,            0, "SUB 0x10 + 0x12" },
+        {  0x1AA,    0xAB,   0xDEAD,   0xBEAF,     0xF00D,     0xB117,   IDBS_ALU,          0,           1,  A_B | ALUF_SUBS | ALUD_Q,      ALUM_uSHIFT,         1,        6,   true,   true,   true,   true,   true,  true,  true,                0,                  0,         true,        true,        true,        true,        true,        true,           true,       true,        true,       true,           true,           true,           true,            0, "SUB 0x1AA+ 0xAB" },
+
+        // Empty
+        {     0,        0,         0,       0,          0,          0,          0,          0,           0,                        0,                  0,        0,        0,   true,   true,   true,   true,   true,  true,  true,                0,                  0,         true,        true,        true,        true,        true,        true,           true,       true,        true,       true,           true,           true,           true,            0, "EMPTY"},
 
 #ifdef _xxx_
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, true, true, true, true, true, true, true, 0, 0, true, true, true, true, true, true, true, true, true, true, true, true, true, true, 0, "1"},

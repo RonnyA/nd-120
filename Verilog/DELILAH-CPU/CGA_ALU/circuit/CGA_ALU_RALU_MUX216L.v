@@ -26,9 +26,9 @@ module CGA_ALU_RALU_MUX216L( F_15_0,
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [15:0] s_logisimBus23;
-   wire [15:0] s_logisimBus40;
-   wire [15:0] s_logisimBus50;
+   wire [15:0] s_logisimBus24;
+   wire [15:0] s_logisimBus41;
+   wire [15:0] s_logisimBus51;
    wire        s_logisimNet0;
    wire        s_logisimNet1;
    wire        s_logisimNet10;
@@ -45,7 +45,7 @@ module CGA_ALU_RALU_MUX216L( F_15_0,
    wire        s_logisimNet20;
    wire        s_logisimNet21;
    wire        s_logisimNet22;
-   wire        s_logisimNet24;
+   wire        s_logisimNet23;
    wire        s_logisimNet25;
    wire        s_logisimNet26;
    wire        s_logisimNet27;
@@ -63,7 +63,7 @@ module CGA_ALU_RALU_MUX216L( F_15_0,
    wire        s_logisimNet38;
    wire        s_logisimNet39;
    wire        s_logisimNet4;
-   wire        s_logisimNet41;
+   wire        s_logisimNet40;
    wire        s_logisimNet42;
    wire        s_logisimNet43;
    wire        s_logisimNet44;
@@ -73,7 +73,8 @@ module CGA_ALU_RALU_MUX216L( F_15_0,
    wire        s_logisimNet48;
    wire        s_logisimNet49;
    wire        s_logisimNet5;
-   wire        s_logisimNet51;
+   wire        s_logisimNet50;
+   wire        s_logisimNet52;
    wire        s_logisimNet6;
    wire        s_logisimNet7;
    wire        s_logisimNet8;
@@ -86,97 +87,104 @@ module CGA_ALU_RALU_MUX216L( F_15_0,
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus40[15:0] = T_15_0;
-   assign s_logisimBus50[15:0] = F_15_0;
-   assign s_logisimNet24       = S;
+   assign s_logisimBus41[15:0] = T_15_0;
+   assign s_logisimBus51[15:0] = F_15_0;
+   assign s_logisimNet20       = S;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign O_15_0 = s_logisimBus23[15:0];
+   assign O_15_0 = s_logisimBus24[15:0];
+
+   /*******************************************************************************
+   ** Here all in-lined components are defined                                   **
+   *******************************************************************************/
+
+   // NOT Gate
+   assign s_logisimNet25 = ~s_logisimNet20;
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   MUX21LP   MUXQ10 (.A(s_logisimBus50[10]),
-                     .B(s_logisimBus40[10]),
-                     .S(s_logisimNet24),
-                     .ZN(s_logisimBus23[10]));
+   MUX21LP   MUXQ10 (.A(s_logisimBus51[10]),
+                     .B(s_logisimBus41[10]),
+                     .S(s_logisimNet25),
+                     .ZN(s_logisimBus24[10]));
 
-   MUX21LP   MUXQ9 (.A(s_logisimBus50[9]),
-                    .B(s_logisimBus40[9]),
-                    .S(s_logisimNet24),
-                    .ZN(s_logisimBus23[9]));
+   MUX21LP   MUXQ9 (.A(s_logisimBus51[9]),
+                    .B(s_logisimBus41[9]),
+                    .S(s_logisimNet25),
+                    .ZN(s_logisimBus24[9]));
 
-   MUX21LP   MUXQ8 (.A(s_logisimBus50[8]),
-                    .B(s_logisimBus40[8]),
-                    .S(s_logisimNet24),
-                    .ZN(s_logisimBus23[8]));
+   MUX21LP   MUXQ8 (.A(s_logisimBus51[8]),
+                    .B(s_logisimBus41[8]),
+                    .S(s_logisimNet25),
+                    .ZN(s_logisimBus24[8]));
 
-   MUX21LP   MUXQ7 (.A(s_logisimBus50[7]),
-                    .B(s_logisimBus40[7]),
-                    .S(s_logisimNet24),
-                    .ZN(s_logisimBus23[7]));
+   MUX21LP   MUXQ7 (.A(s_logisimBus51[7]),
+                    .B(s_logisimBus41[7]),
+                    .S(s_logisimNet25),
+                    .ZN(s_logisimBus24[7]));
 
-   MUX21LP   MUXQ6 (.A(s_logisimBus50[6]),
-                    .B(s_logisimBus40[6]),
-                    .S(s_logisimNet24),
-                    .ZN(s_logisimBus23[6]));
+   MUX21LP   MUXQ6 (.A(s_logisimBus51[6]),
+                    .B(s_logisimBus41[6]),
+                    .S(s_logisimNet25),
+                    .ZN(s_logisimBus24[6]));
 
-   MUX21LP   MUXQ5 (.A(s_logisimBus50[5]),
-                    .B(s_logisimBus40[5]),
-                    .S(s_logisimNet24),
-                    .ZN(s_logisimBus23[5]));
+   MUX21LP   MUXQ5 (.A(s_logisimBus51[5]),
+                    .B(s_logisimBus41[5]),
+                    .S(s_logisimNet25),
+                    .ZN(s_logisimBus24[5]));
 
-   MUX21LP   MUXQ4 (.A(s_logisimBus50[4]),
-                    .B(s_logisimBus40[4]),
-                    .S(s_logisimNet24),
-                    .ZN(s_logisimBus23[4]));
+   MUX21LP   MUXQ4 (.A(s_logisimBus51[4]),
+                    .B(s_logisimBus41[4]),
+                    .S(s_logisimNet25),
+                    .ZN(s_logisimBus24[4]));
 
-   MUX21LP   MUXQ3 (.A(s_logisimBus50[3]),
-                    .B(s_logisimBus40[3]),
-                    .S(s_logisimNet24),
-                    .ZN(s_logisimBus23[3]));
+   MUX21LP   MUXQ3 (.A(s_logisimBus51[3]),
+                    .B(s_logisimBus41[3]),
+                    .S(s_logisimNet25),
+                    .ZN(s_logisimBus24[3]));
 
-   MUX21LP   MUXQ2 (.A(s_logisimBus50[2]),
-                    .B(s_logisimBus40[2]),
-                    .S(s_logisimNet24),
-                    .ZN(s_logisimBus23[2]));
+   MUX21LP   MUXQ2 (.A(s_logisimBus51[2]),
+                    .B(s_logisimBus41[2]),
+                    .S(s_logisimNet25),
+                    .ZN(s_logisimBus24[2]));
 
-   MUX21LP   MUXQ1 (.A(s_logisimBus50[1]),
-                    .B(s_logisimBus40[1]),
-                    .S(s_logisimNet24),
-                    .ZN(s_logisimBus23[1]));
+   MUX21LP   MUXQ1 (.A(s_logisimBus51[1]),
+                    .B(s_logisimBus41[1]),
+                    .S(s_logisimNet25),
+                    .ZN(s_logisimBus24[1]));
 
-   MUX21LP   MUXQ0 (.A(s_logisimBus50[0]),
-                    .B(s_logisimBus40[0]),
-                    .S(s_logisimNet24),
-                    .ZN(s_logisimBus23[0]));
+   MUX21LP   MUXQ0 (.A(s_logisimBus51[0]),
+                    .B(s_logisimBus41[0]),
+                    .S(s_logisimNet25),
+                    .ZN(s_logisimBus24[0]));
 
-   MUX21LP   MUXQ15 (.A(s_logisimBus50[15]),
-                     .B(s_logisimBus40[15]),
-                     .S(s_logisimNet24),
-                     .ZN(s_logisimBus23[15]));
+   MUX21LP   MUXQ15 (.A(s_logisimBus51[15]),
+                     .B(s_logisimBus41[15]),
+                     .S(s_logisimNet25),
+                     .ZN(s_logisimBus24[15]));
 
-   MUX21LP   MUXQ14 (.A(s_logisimBus50[14]),
-                     .B(s_logisimBus40[14]),
-                     .S(s_logisimNet24),
-                     .ZN(s_logisimBus23[14]));
+   MUX21LP   MUXQ14 (.A(s_logisimBus51[14]),
+                     .B(s_logisimBus41[14]),
+                     .S(s_logisimNet25),
+                     .ZN(s_logisimBus24[14]));
 
-   MUX21LP   MUXQ13 (.A(s_logisimBus50[13]),
-                     .B(s_logisimBus40[13]),
-                     .S(s_logisimNet24),
-                     .ZN(s_logisimBus23[13]));
+   MUX21LP   MUXQ13 (.A(s_logisimBus51[13]),
+                     .B(s_logisimBus41[13]),
+                     .S(s_logisimNet25),
+                     .ZN(s_logisimBus24[13]));
 
-   MUX21LP   MUXQ12 (.A(s_logisimBus50[12]),
-                     .B(s_logisimBus40[12]),
-                     .S(s_logisimNet24),
-                     .ZN(s_logisimBus23[12]));
+   MUX21LP   MUXQ12 (.A(s_logisimBus51[12]),
+                     .B(s_logisimBus41[12]),
+                     .S(s_logisimNet25),
+                     .ZN(s_logisimBus24[12]));
 
-   MUX21LP   MUXQ11 (.A(s_logisimBus50[11]),
-                     .B(s_logisimBus40[11]),
-                     .S(s_logisimNet24),
-                     .ZN(s_logisimBus23[11]));
+   MUX21LP   MUXQ11 (.A(s_logisimBus51[11]),
+                     .B(s_logisimBus41[11]),
+                     .S(s_logisimNet25),
+                     .ZN(s_logisimBus24[11]));
 
 endmodule
