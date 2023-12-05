@@ -1,10 +1,6 @@
 # Verilog code for DELILAH-CPU
 
-The Verilog code has been split into subfolder matching the structure of the LogiSim and Design Documents
-
-1. DELILAH-CPU
-2. DECODE-GateArray
-3. CPU-BOARD-3202
+Status for the different modules in the DELILAH CPU
 
 
 
