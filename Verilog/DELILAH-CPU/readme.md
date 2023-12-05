@@ -17,7 +17,7 @@ The Verilog code has been split into subfolder matching the structure of the Log
 | CGA_IDBCTL       |          |              |
 | CGA_INTR         |          |              |
 | CGA_MAC          | In progress  | Need to build testcases             |
-| CGA_MIC          |          |              |
+| CGA_MIC          | In progress  | Need to build testcases             |
 | CGA_TRAP         |          |              |
 | TESTMUX          |          |              |
 | DELILAH          |          |              |
