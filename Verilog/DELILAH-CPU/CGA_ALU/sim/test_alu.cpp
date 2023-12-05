@@ -17,14 +17,14 @@
 /// ALU Source, bit 0-1-2 in the ALU i0-8 input
 /// </summary>
 enum ALUSource {
-    A_Q = 0,  // Am2901 AQ
-    A_B = 1,  // Am2901 AB
-    O_Q = 2,  // Am2901 ZQ
-    O_B = 3,  // Am2901 ZB
-    O_A = 4,  // Am2901 ZA
-    D_A = 5,  // Am2901 DA
-    D_Q = 6,  // Am2901 DQ
-    D_O = 7   // Am2901 DZ
+    A_Q = 0,  // Am2901 AQ  000
+    A_B = 1,  // Am2901 AB  001
+    O_Q = 2,  // Am2901 ZQ  010
+    O_B = 3,  // Am2901 ZB  011
+    O_A = 4,  // Am2901 ZA  100
+    D_A = 5,  // Am2901 DA  101
+    D_Q = 6,  // Am2901 DQ  110
+    D_O = 7   // Am2901 DZ  111
 };
 
 
