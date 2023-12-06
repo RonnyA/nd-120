@@ -1,3 +1,4 @@
 # Commpiled output from Verilator
 obj_dir/
 waveform.vcd
+.VSCodeCounter
