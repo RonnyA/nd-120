@@ -1,0 +1,43 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Wed Dec  6 06:39:24 2023
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_IDBCTL/sim/waveform.vcd"
+[dumpfile_mtime] "Wed Dec  6 06:36:40 2023"
+[dumpfile_size] 177439
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_IDBCTL/sim/idbctl.gtkw"
+[timestart] 0
+[size] 1641 968
+[pos] 0 230
+*-6.286304 9 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 214
+[signals_width] 316
+[sst_expanded] 1
+[sst_vpaned_height] 281
+@28
+TOP.CGA_IDBCTL.MCLK
+@22
+TOP.CGA_IDBCTL.LA_21_10[11:0]
+TOP.CGA_IDBCTL.PCR_15_0[15:0]
+TOP.CGA_IDBCTL.XFIDBI_15_0[15:0]
+TOP.CGA_IDBCTL.PICMASK_15_0[15:0]
+@28
+TOP.CGA_IDBCTL.PICV_2_0[2:0]
+TOP.CGA_IDBCTL.PICS_2_0[2:0]
+TOP.CGA_IDBCTL.VACCN
+TOP.CGA_IDBCTL.PVIOL
+TOP.CGA_IDBCTL.EPGSN
+TOP.CGA_IDBCTL.EPCRN
+TOP.CGA_IDBCTL.EPICSN
+TOP.CGA_IDBCTL.EPICVN
+TOP.CGA_IDBCTL.EPICMASKN
+TOP.CGA_IDBCTL.PD
+TOP.CGA_IDBCTL.HIGSN
+TOP.CGA_IDBCTL.LOGSN
+@200
+---------------------------
+@22
+TOP.CGA_IDBCTL.FIDBI_15_0[15:0]
+[pattern_trace] 1
+[pattern_trace] 0
