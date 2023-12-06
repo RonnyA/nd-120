@@ -1314,4 +1314,11 @@
     <wire from="(590,340)" to="(730,340)"/>
     <wire from="(810,310)" to="(940,310)"/>
   </circuit>
+  <circuit name="test_IDBCTL">
+    <a name="appearance" val="logisim_evolution"/>
+    <a name="circuit" val="test_IDBCTL"/>
+    <a name="circuitnamedboxfixedsize" val="true"/>
+    <a name="simulationFrequency" val="1.0"/>
+    <comp loc="(960,490)" name="CGA_IDBCTL"/>
+  </circuit>
 </project>
