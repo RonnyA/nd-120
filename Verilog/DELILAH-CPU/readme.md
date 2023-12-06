@@ -18,3 +18,6 @@ Status for the different modules in the DELILAH CPU
 | TESTMUX          | Completed | 26 test cases |         |
 | CGA (DELILAH)    | In progress  | Need to build testcases             |
                                
+The generated Verilog files contain a total of 22,978 lines.
+
+The generated C++ files from Verilator contains (for all submodules) a total of 373.923 lines.
