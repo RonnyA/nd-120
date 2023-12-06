@@ -123,7 +123,8 @@ struct TestCase {
     uint8_t CSCINSEL_1_0; // Selects input for "CarryInput" when ALUM = 3 (ALUM_IR_SHIFT). 0=0, 1=1, 2=STS6, 3=GPR0 (bits 46-47 in microcode)
     
     // ALU Control signals
-    uint16_t CSALUI_8_0; // ALU control signals, 9 bits. Identical to Am 2901 control bits. Combined enum "ALUSource | ALUFunc | ALUDestination"
+    uint16_t CSALUI_8_0; // ALU control signals, 9 bits. Identical to Am 2901 control bits. Combined enum "ALUSource | ALUFunc | ALUDestination"    
+    uint8_t CSMIS_1_0;  // ??
     uint8_t CSALUM_1_0;  // ALU Mode, 2 bits. See enum "ALUMode"
 
     uint8_t LAA_3_0;  // Select which register (0-15) which goes to A output - But here is combined to EAARG register (bit 4-6) 

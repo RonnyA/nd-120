@@ -8,7 +8,7 @@ VERILATOR_DIRS =  -I../circuit --I../../shared/ndlib --I../../shared/logisim --I
 CPP_SOURCES = test_alu.cpp
 
 # Default target
-all: test_alu run gtwave
+all: test_alu run gtk
 
 test_alu: $(CPP_SOURCES)
 	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS)
@@ -21,7 +21,7 @@ run: test_alu
 	./obj_dir/VCGA_ALU
 
 gtk:
-	gtkwave waveform.vcd &
+	gtkwave waveform.vcd alu.gtkw &
 
 .PHONY: all clean
 

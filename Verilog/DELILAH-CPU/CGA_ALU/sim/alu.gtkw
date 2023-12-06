@@ -1,0 +1,81 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Wed Dec  6 21:22:51 2023
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_ALU/sim/waveform.vcd"
+[dumpfile_mtime] "Tue Dec  5 08:33:35 2023"
+[dumpfile_size] 439243
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_ALU/sim/alu.gtkw"
+[timestart] 0
+[size] 2548 1359
+[pos] -771 -333
+*-4.712569 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 214
+[signals_width] 158
+[sst_expanded] 1
+[sst_vpaned_height] 419
+@28
+TOP.ALUCLK
+@200
+-
+@22
+TOP.A_15_0[15:0]
+TOP.B_15_0[15:0]
+TOP.CD_15_0[15:0]
+TOP.EA_15_0[15:0]
+TOP.FIDBI_15_0[15:0]
+TOP.CSBIT_15_0[15:0]
+TOP.CSIDBS_4_0[4:0]
+@28
+TOP.CSSST_1_0[1:0]
+@200
+-
+@22
+TOP.CSALUI_8_0[8:0]
+@28
+TOP.CSMIS_1_0[1:0]
+TOP.CSALUM_1_0[1:0]
+@200
+-
+@22
+TOP.LAA_3_0[3:0]
+TOP.LBA_3_0[3:0]
+@200
+-
+-
+@28
+TOP.LDPILN
+TOP.LDDBRN
+TOP.LDGPRN
+TOP.XFETCHN
+TOP.LDIRV
+TOP.UPN
+TOP.LCZN
+@200
+---- OUT ---
+@22
+TOP.RB_15_0[15:0]
+TOP.FIDBO_15_0[15:0]
+@200
+-
+@28
+TOP.CRY
+TOP.ZF
+TOP.SGR
+TOP.OVF
+TOP.F11
+TOP.F15
+TOP.BDEST
+@200
+-
+@28
+TOP.MI
+TOP.PTM
+TOP.Z
+TOP.DOUBLE
+TOP.PONI
+TOP.IONI
+@23
+TOP.PIL[3:0]
+[pattern_trace] 1
+[pattern_trace] 0
