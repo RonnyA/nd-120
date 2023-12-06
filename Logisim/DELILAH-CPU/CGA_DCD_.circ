@@ -2502,4 +2502,11 @@
     <wire from="(9980,3770)" to="(10040,3770)"/>
     <wire from="(9980,3900)" to="(10040,3900)"/>
   </circuit>
+  <circuit name="test_DCD">
+    <a name="appearance" val="logisim_evolution"/>
+    <a name="circuit" val="test_DCD"/>
+    <a name="circuitnamedboxfixedsize" val="true"/>
+    <a name="simulationFrequency" val="1.0"/>
+    <comp loc="(1230,960)" name="CGA_DCD"/>
+  </circuit>
 </project>
