@@ -1,0 +1,52 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Wed Dec  6 08:40:15 2023
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_TRAP/sim/waveform.vcd"
+[dumpfile_mtime] "Wed Dec  6 08:31:06 2023"
+[dumpfile_size] 45100
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_TRAP/sim/trap.gtkw"
+[timestart] 0
+[size] 863 974
+[pos] 1366 731
+*-6.286304 15 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.CGA_TRAP.BRKDET.
+[sst_width] 214
+[signals_width] 316
+[sst_expanded] 1
+[sst_vpaned_height] 283
+@28
+TOP.CGA_TRAP.TCLK
+@200
+-
+@28
+TOP.CGA_TRAP.PCR_1_0[1:0]
+@22
+TOP.CGA_TRAP.PT_15_9[6:0]
+@200
+-
+@28
+TOP.CGA_TRAP.CBRKN
+TOP.CGA_TRAP.DSTOPN
+TOP.CGA_TRAP.ETRAPN
+TOP.CGA_TRAP.FETCHN
+TOP.CGA_TRAP.FTRAPN
+TOP.CGA_TRAP.INDN
+TOP.CGA_TRAP.INTRQN
+TOP.CGA_TRAP.PANN
+TOP.CGA_TRAP.PONI
+TOP.CGA_TRAP.VACCN
+TOP.CGA_TRAP.VTRAPN
+TOP.CGA_TRAP.WRITEN
+@200
+----- out ----
+@28
+TOP.CGA_TRAP.BRKN
+TOP.CGA_TRAP.PVIOL
+TOP.CGA_TRAP.RESTR
+TOP.CGA_TRAP.TRAPN
+@23
+TOP.CGA_TRAP.TVEC_3_0[3:0]
+[pattern_trace] 1
+[pattern_trace] 0
