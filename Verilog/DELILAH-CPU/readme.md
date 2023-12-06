@@ -10,8 +10,8 @@ Status for the different modules in the DELILAH CPU
 | CGA_ALU          | In progreess  |         | ALU functions seem to work, need more testcases |
 | CGA_DCD          | In progress  | Need to build testcases             |
 | CGA_HELPER       |          |              | 
-| CGA_IDBCTL       |          |              |
-| CGA_INTR         |          |              |
+| CGA_IDBCTL       | In progress  | Need to build testcases             |
+| CGA_INTR         | In progress  | 4 test cases. Looking good |
 | CGA_MAC          | In progress  | Need to build testcases             |
 | CGA_MIC          | In progress  | Need to build testcases             |
 | CGA_TRAP         |          |              |
