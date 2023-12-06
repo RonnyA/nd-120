@@ -10,6 +10,6 @@ The Verilog code has been split into subfolder matching the structure of the Log
 
 | Folder           | Status   |  
 |------------------|----------|
-| DELILAH-CPU      | Started  |
+| DELILAH-CPU      | Verilog compiles - Missing a lot of testcases  |
 | DECODE-GateArray | Waiting for completion of Logisim drawings  |
 | CPU-BOARD-3202   | No logisim drawings yet. Maybe code directly in Verilog |
