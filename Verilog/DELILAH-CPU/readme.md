@@ -14,7 +14,7 @@ Status for the different modules in the DELILAH CPU
 | CGA_INTR         | In progress  | 4 test cases. Looking good |
 | CGA_MAC          | In progress  | Need to build testcases             |
 | CGA_MIC          | In progress  | Need to build testcases             |
-| CGA_TRAP         |          |              |
+| CGA_TRAP         | In progress  | 4 test cases. | Need to validate TRAP logic and add more testcases |
 | TESTMUX          | Completed | 26 test cases |         |
 | DELILAH          |          |              |
                                
