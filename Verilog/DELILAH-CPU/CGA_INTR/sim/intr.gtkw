@@ -1,0 +1,57 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Wed Dec  6 08:19:18 2023
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/sim/waveform.vcd"
+[dumpfile_mtime] "Wed Dec  6 08:16:29 2023"
+[dumpfile_size] 272365
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/sim/intr.gtkw"
+[timestart] 0
+[size] 858 748
+[pos] 1181 546
+*-6.286304 15 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 214
+[signals_width] 316
+[sst_expanded] 1
+[sst_vpaned_height] 204
+@28
+TOP.CGA_INTR.MCLK
+@201
+-
+@28
+TOP.CGA_INTR.PANN
+TOP.CGA_INTR.EMPIDN
+TOP.CGA_INTR.BINT15N
+TOP.CGA_INTR.POWFAILN
+TOP.CGA_INTR.NORN
+TOP.CGA_INTR.PARERRN
+TOP.CGA_INTR.IOXERRN
+TOP.CGA_INTR.Z
+TOP.CGA_INTR.BINT13N
+TOP.CGA_INTR.BINT12N
+TOP.CGA_INTR.BINT11N
+TOP.CGA_INTR.BINT10N
+@200
+-
+@22
+TOP.CGA_INTR.FIDBO_15_0[15:0]
+TOP.CGA_INTR.LAA_3_0[3:0]
+@28
+TOP.CGA_INTR.EPIC
+TOP.CGA_INTR.CLIRQN
+@200
+----- out ----
+@28
+TOP.CGA_INTR.PD
+TOP.CGA_INTR.EPICMASKN
+TOP.CGA_INTR.HIGSN
+TOP.CGA_INTR.INTRQN
+TOP.CGA_INTR.LOGSN
+@22
+TOP.CGA_INTR.PICMASK_15_0[15:0]
+@28
+TOP.CGA_INTR.PICS_2_0[2:0]
+TOP.CGA_INTR.PICV_2_0[2:0]
+[pattern_trace] 1
+[pattern_trace] 0
