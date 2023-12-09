@@ -8,3 +8,6 @@ This is now the new master file for DELILAH CPU for Logisim design.
 
 
 ![Photo of CPU Gate Array](CPU-photo.png)
+
+
+![LOGISIM version of CGA/DELILAH](DELILAH.PNG)

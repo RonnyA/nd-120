@@ -28,8 +28,7 @@ struct TestCase {
 	bool     XCSBIT20;
 	bool     XCSECOND;
 	bool     XCSLOOP;
-	bool     XCSRBSEL0;
-	bool     XCSRBSEL1;
+	
 	bool     XCSSCOND;
 	bool     XCSVECT;
 	bool     XCSXRF3;
@@ -60,6 +59,7 @@ struct TestCase {
 	uint8_t  XCSIDBS_4_0;
 	uint8_t  XCSMIS_1_0;
 	uint8_t  XCSRASEL_1_0;
+	uint8_t  XCSRBSEL_1_0;	
 	uint8_t  XCSRB_3_0;	
 	uint8_t  XCSSST_1_0;
 	uint8_t  XCSTS_6_3;		
@@ -113,11 +113,11 @@ int main(int argc, char** argv)
 	// 
 	// Create a collection of test cases
 	std::vector<TestCase> testCases = {
- 	  // BDEST  XBINT10N  XBINT11N  XBINT12N  XBINT13N  XBINT15N  XCSBIT20  XCSECOND  XCSLOOP  XCSRBSEL0  XCSRBSEL1  XCSSCOND  XCSVECT  XCSXRF3  XEDON  XEMPIDN  XETRAPN  XEWCAN  XFTRAPN  XILCSN  XIOXERRN  XMAPN  XMORN  XMRN  XPANN  XPARERRN  XPOWFAILN  XPTSTN  XSPARE  XSTP  XVTRAPN  XCD_15_0  XCSALUI_8_0  XCSALUM_1_0  XCSBIT_15_0  XCSCINSEL_1_0  XCSIDBS_4_0  XCSMIS_1_0  XCSRASEL_1_0  XCSRB_3_0  XCSSST_1_0  XCSTS_6_3  XCSCOMM_4_0  XPT_9_15  XTSEL_2_0  XFIDB_15_0_IN  expected_XFIDB_15_0_OUT  expected_XACONDN  expected_XBRKN  expected_XDOUBLE  expected_XECCR  expected_XERFN  expected_XINTRQN  expected_XIONI  expected_XLSHADOW  expected_XPONI  expected_XTRAPN  expected_XWCSN  expected_XWRTRF  expected_XLAA_3_0  expected_XLA_23_10  expected_XLBA_3_0  expected_XMA_12_0  expected_XMCA_9_0  expected_XPCR_1_0  expected_XPIL_3_0  expected_XRF_1_0  expected_XTEST_4_0  Description
-		{false, true,     true,     true,     true,     true,     false,    false,    false,   false,     false,     false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 1"},
-		{false, true,     true,     true,     true,     true,     false,    false,    false,   false,     false,     false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 2"},
-		{false, true,     true,     true,     true,     true,     false,    false,    false,   false,     false,     false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 3"},
-		{false, true,     true,     true,     true,     true,     false,    false,    false,   false,     false,     false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 4"},
+ 	  // BDEST  XBINT10N  XBINT11N  XBINT12N  XBINT13N  XBINT15N  XCSBIT20  XCSECOND  XCSLOOP  XCSSCOND  XCSVECT  XCSXRF3  XEDON  XEMPIDN  XETRAPN  XEWCAN  XFTRAPN  XILCSN  XIOXERRN  XMAPN  XMORN  XMRN  XPANN  XPARERRN  XPOWFAILN  XPTSTN  XSPARE  XSTP  XVTRAPN  XCD_15_0  XCSALUI_8_0  XCSALUM_1_0  XCSBIT_15_0  XCSCINSEL_1_0  XCSIDBS_4_0  XCSMIS_1_0  XCSRASEL_1_0  XCSRBSEL_1_0, XCSRB_3_0  XCSSST_1_0  XCSTS_6_3  XCSCOMM_4_0  XPT_9_15  XTSEL_2_0  XFIDB_15_0_IN  expected_XFIDB_15_0_OUT  expected_XACONDN  expected_XBRKN  expected_XDOUBLE  expected_XECCR  expected_XERFN  expected_XINTRQN  expected_XIONI  expected_XLSHADOW  expected_XPONI  expected_XTRAPN  expected_XWCSN  expected_XWRTRF  expected_XLAA_3_0  expected_XLA_23_10  expected_XLBA_3_0  expected_XMA_12_0  expected_XMCA_9_0  expected_XPCR_1_0  expected_XPIL_3_0  expected_XRF_1_0  expected_XTEST_4_0  Description
+		{false, true,     true,     true,     true,     true,     false,    false,    false,   false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 1"},
+		{false, true,     true,     true,     true,     true,     false,    false,    false,   false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 2"},
+		{false, true,     true,     true,     true,     true,     false,    false,    false,   false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 3"},
+		{false, true,     true,     true,     true,     true,     false,    false,    false,   false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 4"},
     };
 
 
@@ -163,8 +163,6 @@ int main(int argc, char** argv)
 				top->XCSBIT20 = test.XCSBIT20;
 				top->XCSECOND = test.XCSECOND;
 				top->XCSLOOP = test.XCSLOOP;
-				top->XCSRBSEL0 = test.XCSRBSEL0;
-				top->XCSRBSEL1 = test.XCSRBSEL1;
 				top->XCSSCOND = test.XCSSCOND;
 				top->XCSVECT = test.XCSVECT;
 				top->XCSXRF3 = test.XCSXRF3;
@@ -193,6 +191,7 @@ int main(int argc, char** argv)
 				top->XCSIDBS_4_0 = test.XCSIDBS_4_0;
 				top->XCSMIS_1_0 = test.XCSMIS_1_0;
 				top->XCSRASEL_1_0 = test.XCSRASEL_1_0;
+				top->XCSRBSEL_1_0 = test.XCSRBSEL_1_0;
 				top->XCSRB_3_0 = test.XCSRB_3_0;
 				top->XCSSST_1_0 = test.XCSSST_1_0;
 				top->XCSTS_6_3 = test.XCSTS_6_3;

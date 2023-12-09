@@ -124,7 +124,9 @@ struct TestCase {
     
     // ALU Control signals
     uint16_t CSALUI_8_0; // ALU control signals, 9 bits. Identical to Am 2901 control bits. Combined enum "ALUSource | ALUFunc | ALUDestination"    
-    uint8_t CSMIS_1_0;  // ??
+    
+    //uint8_t CSMIS_1_0;  // ?? Add signal to testcase 
+    
     uint8_t CSALUM_1_0;  // ALU Mode, 2 bits. See enum "ALUMode"
 
     uint8_t LAA_3_0;  // Select which register (0-15) which goes to A output - But here is combined to EAARG register (bit 4-6) 

@@ -177,8 +177,8 @@ module CGA_MIC_CONDREG( ACONDN,
 
    SCAN_FF   CSBIT7 (.CLK(s_logisimNet7),
                      .D(s_logisimBus30[7]),
-                     .Q(s_logisimNet4),
-                     .QN(),
+                     .Q(),
+                     .QN(s_logisimNet4),
                      .TE(s_logisimNet1),
                      .TI(s_logisimNet4));
 
