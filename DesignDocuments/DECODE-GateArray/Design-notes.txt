@@ -1,0 +1,23 @@
+
+
+
+F714 T-Flip Flop with R and S.
+* According to truth tabe page 273 in the REN_A12213XJ5V1UM00_OTH_19980801.PDF S=1 and R=1 should give both Q and QN to be 1. Logisim doesnt do that, it gives Q=0 and QN=1
+  (Probably better than to get an unstable flip-flop oscilating ?)
+  Note: R=S=1 is marked in the PDF with "Prohibition"
+
+F774 JK-Flip Flop with R and S
+* According to truth tabe page 282 in the REN_A12213XJ5V1UM00_OTH_19980801.PDF S=1 and R=1 should give both Q and QN to be 1. Logisim doesnt do that, it gives Q=0 and QN=1
+  (Probably better than to get an unstable flip-flop oscilating ?)
+  Note: R=S=1 is marked in the PDF with "Prohibition"
+
+
+DECODE_DGA
+* Page 6 - Sheet 5 of 6
+  Redesigned XI_3_0_O and XI_3_0_I circuit to avoid errors in Logisim (Error: multiple drivers for same source).
+  
+
+
+
+
+  
