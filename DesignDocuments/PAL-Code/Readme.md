@@ -23,6 +23,7 @@ PALASM Language guide
 
 PALASM Software
 * http://www.pldworld.com/_otherplds/palasm/-engr.uky.edu/_melham01/ee481/software.htm
+* http://www.brouhaha.com/~eric/retrocomputing/mmi/palasm/
 
 PALASM Under Linux
 * https://systemembedded.eu/viewtopic.php?t=43
@@ -43,7 +44,7 @@ Standard is 4Mb memory configured contiguosly from address 0.
 |--------|--------|--------|-----------|----------|----------|-----------|-----------------------------|------------------------------|----------------------|
 |11D     |3B8B    | 16L8-12| 12ns      | 513035   | 44302B   | LBCL      | [B IMG](IMG/44302B.png)     | [B PDS](SRC/44302B.txt)      | Converted. Needs more test |
 |2C      |3932    | 16L8-12| 12ns      | 513085   | 44303B   | LBC2      | [B IMG](IMG/44303B.png)     | [B PDS](SRC/44303B.txt)      | Converted. Needs more test |
-|1C      |508A    | 16L8-12| 12ns      | 5130385  | 44304E   | LBC3      | [E IMG](IMG/44304E.png)     | [E PDS](SRC/44304E.txt)  
+|1C      |508A    | 16L8-12| 12ns      | 5130385  | 44304E   | LBC3      | [E IMG](IMG/44304E.png)     | [E PDS](SRC/44304E.txt)      | Almost converted. Need to fix self-reference signals |
 |15F     |        | 16L8-12| 12ns      | 513085   | 44305D   | CSCIL     | [D IMG](IMG/44305D.png)     | [D PDS](SRC/44305D.txt)  
 |21G     |7856    | 16L8-12| 12ns      | 513035   | 44306A   | MMUCTL    | [A IMG](IMG/44306A.png)     | [A PDS](SRC/44306A.txt)  
 |13D     |8345    | 16L8-12| 12ns      | 513085   | 44307C   | CYCLK     | [C IMG](IMG/44307C.png)     | [C PDS](SRC/44307C.txt)  
@@ -55,7 +56,7 @@ Standard is 4Mb memory configured contiguosly from address 0.
 |19F     |OF93    | 16R4D  | 10ns      | 513060   | 44407A   | ERFIX     | [A IMG](IMG/44407A.png)     | [A PDS](SRC/44407A.txt)  
 |9G      |44C7    | 16R4D  | 10ns      | 513060   | 44445B   | CADEC     | [B IMG](IMG/44445B.png)     | [B PDS](SRC/44445B.txt)  
 |6G      |3EF5    | 16R4D  | 10ns      | 513060   | 44446B   | BADEC     | [B IMG](IMG/44446B.png)     | [B PDS](SRC/44446B.txt)  
-|22F     |        | 16R6D  | 10ns      | 513061   | 44408B   | VEXFIX    | [B IMG](IMG/44408B.png)     | [B PDS](SRC/44408B.txt)|
+|22F     |        | 16R6D  | 10ns      | 513061   | 44408B   | VEXFIX    | [B IMG](IMG/44408B.png)     | [B PDS](SRC/44408B.txt)     | Converted. Tested! |
 |12D     |7F40    | 16R6D  | 10ns      | 513061   | 44601B   | CYCFSM    | [IMG](IMG/44601B.png)     | [PDS](SRC/44601B.txt)  
 |10D     |6B08    | 16R8D  | 10ns      | 513062   | 44801A   | BARBA <-  | [IMG](IMG/44801A.png)     | [PDS](SRC/44801A.txt)  
 |5F      |605E    | 16R8D  | 10ns      | 513062   | 44803A   | RAMA      | [IMG](IMG/44803A.png)     | [PDS](SRC/44803A.txt)  

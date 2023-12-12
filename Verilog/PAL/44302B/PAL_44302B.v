@@ -18,9 +18,12 @@ wire RT = ~RT_n;
 wire BGNT = ~BGNT_n;
 
 
-// Output signal logic (active-high)
-reg EMD, CGNTCACT, BGNTCACT, DSTB;
+// Output signal logic (self reference)
 reg EMD_logic;
+reg EMD;
+
+// Output signal logic (active-high)
+reg CGNTCACT, BGNTCACT, DSTB;
 
 always @(*) begin
 
