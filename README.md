@@ -21,8 +21,8 @@ For that the minimum requirements are:
 
 | Component                      | Schematic    |  HDL   | Status | 
 |--------------------------------|--------------|--------|--------|
-| [DELILAH CPU Gate Array (CGA)](DesignDocuments\DELILAH-CPU\readme.md) | Completed | Logisim can generate Verilog | QA on schematic ongoing |
-| [NEC Decoder Gate Array (DGA)](DesignDocuments\DECODE-GateArray\readme.md) | In progress (50%) | 
+| [DELILAH CPU Gate Array (CGA)](DesignDocuments\DELILAH-CPU\readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
+| [NEC Decoder Gate Array (DGA)](DesignDocuments\DECODE-GateArray\readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
 | [ND 3202 CPU Board revision D](DesignDocuments/CPU-BOARD-3202/Readme.md) | Drawing not started | 
 
 In the CPU Board we will plug in the DELILAH CPU and the Decoder, and several other chips. 

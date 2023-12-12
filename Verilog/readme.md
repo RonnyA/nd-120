@@ -7,9 +7,10 @@ The Verilog code has been split into subfolder matching the structure of the Log
 3. CPU-BOARD-3202
 
 
+## Status
 
-| Folder           | Status   |  
-|------------------|----------|
-| DELILAH-CPU      | Verilog compiles - Missing a lot of testcases  |
-| DECODE-GateArray | Waiting for completion of Logisim drawings  |
-| CPU-BOARD-3202   | No logisim drawings yet. Maybe code directly in Verilog |
+| Folder           | Status Logisim           |  Status Verilog                                | Comment    |
+|------------------|--------------------------|------------------------------------------------|------------|
+| DELILAH-CPU      | Logisim drawing complete | Verilog compiles - Missing a lot of testcases  |
+| DECODE-GateArray | Logisim drawing complete | Verilog compiles - Missing a lot of testcases  |
+| CPU-BOARD-3202   | No logisim drawings yet  | Maybe code directly in Verilog ?               | Need to implement support chips like UART and all PAL's |
