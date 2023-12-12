@@ -1,12 +1,12 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Tue Dec 12 19:58:51 2023
+[*] Tue Dec 12 20:33:04 2023
 [*]
 [dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44408B/sim/waveform.vcd"
-[dumpfile_mtime] "Tue Dec 12 19:57:46 2023"
-[dumpfile_size] 6238
+[dumpfile_mtime] "Tue Dec 12 20:32:24 2023"
+[dumpfile_size] 7735
 [savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44408B/sim/pal.gtkw"
-[timestart] 0
+[timestart] 1611
 [size] 2336 600
 [pos] -1 -1
 *-5.456229 50 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
@@ -29,9 +29,8 @@ TOP.PAL_44408B.C3
 TOP.PAL_44408B.C4
 @200
 -
-@29
-TOP.PAL_44408B.M0
 @28
+TOP.PAL_44408B.M0
 TOP.PAL_44408B.M1
 @200
 -
@@ -39,16 +38,12 @@ TOP.PAL_44408B.M1
 TOP.PAL_44408B.LCS_n
 @200
 -
--
 --- output --
-@28
-TOP.PAL_44408B.test
-@200
 -
 @28
 TOP.PAL_44408B.LDEXM_n
 TOP.PAL_44408B.VEX_n
 TOP.PAL_44408B.OPCLCS_n
-TOP.PAL_44408B.RWCS
+TOP.PAL_44408B.RWCS_n
 [pattern_trace] 1
 [pattern_trace] 0

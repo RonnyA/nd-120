@@ -1,11 +1,13 @@
 /*
 ; TO FIX VIRTUAL EXAMINE BUG IN CGA 
 ; + MISC. OTHER BUGS. 
+
+Replaces 44608 that has a pin RT_n (Assume this signal is now comming from somewhere else)
 */
 
 module PAL_44408B(
     input CLK, C4, C3, C2, C1, C0, M1, M0, LCS_n, IDB2, OE_n,
-    output reg RWCS_n, OPCLCS_n, VEX_n, LDEXM_n, test
+    output reg RWCS_n, OPCLCS_n, VEX_n, LDEXM_n
 );
 
 // Inverted input signals
@@ -32,8 +34,6 @@ always @(posedge CLK) begin
 
 end
 
-assign test = CLK;
-
 // Tri-state control for outputs
 always @(*) begin
     if (OE_n) begin
@@ -45,9 +45,9 @@ always @(*) begin
     end else begin
         // Drive outputs normally when OE_n is low
         RWCS_n = ~RWCS_int;
-        assign OPCLCS_n = OPCLCS_n_int;
-        assign VEX_n = VEX_n_int;
-        assign LDEXM_n = ~LDEXM_int;
+        OPCLCS_n = OPCLCS_n_int;
+        VEX_n = VEX_n_int;
+        LDEXM_n = ~LDEXM_int;
     end
 end
 
