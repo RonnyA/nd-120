@@ -49,8 +49,14 @@ Functional Description, Instruction set, Microprogramming guide and more are in 
 
 # Microcode #
 
-The [Microcode](Microcode/readme.md) dump is from a ND-120 3202 CPU Board is Version 14/L
+The [Microcode](Code/Microcode/readme.md) dump is from a ND-120 3202 CPU Board is Version 14/L
 The source code is also for the L version.
+
+# 68705 #
+
+[ROM dump](Code/68705/readme.md) of the MC68705U3 (M6805 8-bit CPU, on-chip RAM, I/O and Timer)
+
+Big thanks to Matthieu Benoit for reading the data out of the chip.
 
 # Schematic drawings #
 
