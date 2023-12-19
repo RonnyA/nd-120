@@ -17,7 +17,7 @@ Chips for the 3202D board:
 | IMS1403_25  | 16K x 1 Static RAM                                       | |
 | TMM2018D_25 | 16K Static RAM (Cache)                                   | |
 | AM9150_20   | 1024 x 4 High-Speed Static R/W RAM                       | http://www.sintran.com/library/libother/extern/AM9150.pdf |
-| AM29C821    | Bus Driver 10 bits / Shift register                      | https://www.digikey.com/en/products/detail/rochester-electronics-llc/AM29C821-BLA/12095382 |
+| AM29C821    | Bus Driver 10 bits. Positive edge-triggered registeres with D-type flip-flops and 3-state| https://www.digikey.com/en/products/detail/rochester-electronics-llc/AM29C821-BLA/12095382 |
 | AM29841     | Bus Driver 10 bit (D-Latch) with 3-state output          | https://www.alldatasheet.com/datasheet-pdf/pdf/107079/AMD/AM29841.html | 
 | AM29833A    | PARITY BUS TRANSCEIVERS                                  | https://pdf1.alldatasheet.com/datasheet-pdf/view/165880/AMD/AM29833A.html | 
 | AM29861A    | 10 Bit High Performance Bus Transceivers                 | https://datasheetspdf.com/datasheet/AM29861.html |
@@ -29,6 +29,7 @@ Chips for the 3202D board:
 | 74LS248     | BCD-TO-SEVEN-SEGMENT DECODERS/DRIVERS                    | https://www.alldatasheet.com/datasheet-pdf/pdf/5697/MOTOROLA/SN54/74LS248.html | 
 | 74LS245     | Octal Bus Transceivers With 3-State Outputs              | https://www.ti.com/lit/ds/symlink/sn74ls245.pdf | Not started |
 | 74LS244     | Octal Buffers and Line Drivers With 3-State Outputs      | https://www.ti.com/lit/ds/symlink/sn74ls244.pdf |
+| 74LS373     | 74PCT373 Octal Transparent Latch                         | https://assets.nexperia.com/documents/data-sheet/74HC_HCT373.pdf |
 | 74F139      | DUAL 2-LINE TO 4-LINE DECODERS/DEMULTIPLEXERS            | https://www.alldatasheet.com/view.jsp?Searchword=SN74S139 |
 | 74S132      | QUADRUPLE 2-INPUT POSITIVE-NAND SCHMITT TRIGGERS         | https://www.alldatasheet.com/datasheet-pdf/pdf/27365/TI/SN74S132.html | 
 | 74F241      | OCTAL BUFFERS AND LINE DRIVERS WITH 3-STATE OUTPUTS      | https://www.alldatasheet.com/view.jsp?Searchword=SN74S241 | 
