@@ -26,25 +26,25 @@ A few Logisim files has been created.
 | BIF/DPATH/BDLBD   | BIF BD TO LBD         | 10                 | BIF          |
 | BIF/DPATH/CDLBD   | BIF CD TO LBD         | 11                 | BIF          |
 | BIF/DPATH/LBCTL   | LBD CONTROL           | 12                 | BIF          |
-| BIF/DPATH/PESPEA  | BIF PES & PEA         | 13                 | BIF          |
-| BIF/DPATH/PPNLBD  | BIF PPN to LBD        | 14                 | BIF          |
+| BIF/DPATH/PESPEA  | BIF PES & PEA         | 13                 | BIF          | Complete                                    |
+| BIF/DPATH/PPNLBD  | BIF PPN to LBD        | 14                 | BIF          | Complete                                    |
 | **CPU**
-| CPU               | TOP LEVEL             | 15                 | CPU          |
-| CPU/CS            | CONTROL STORE         | 16                 | CPU          |
-| CPU/CS/ACAL       | MICRO ADDR CALC       | 17                 | CPU          |
-| CPU/CS/CTL        | CS CONTROL            | 18                 | CPU          |
+| CPU               | TOP LEVEL             | 15                 | CPU          | Will be done in Verilog directly            |
+| CPU/CS            | CONTROL STORE         | 16                 | CPU          | Complete                                    |
+| CPU/CS/ACAL       | MICRO ADDR CALC       | 17                 | CPU          | Complete                                    |
+| CPU/CS/CTL        | CS CONTROL            | 18                 | CPU          | Complete                                    |
 | CPU/CS/PROM       | CS PROMS              | 19                 | CPU          | Complete                                    | Microcode EPROMS |
-| CPU/CS/TCV        | CS TRANSCIEVERS       | 20                 | CPU          |
+| CPU/CS/TCV        | CS TRANSCIEVERS       | 20                 | CPU          | Complete                                    |
 | CPU/CS/WCS        | Register file         | 21-22              | CPU          | Complete                                    |
 | CPU/LAPA          | LA TO PPN BUFF        | 23                 | CPU          | Complete                                    |
 | CPU/MMU           | MMU TOP LEVEL         | 24                 | CPU          | Complete                                    | PAL 44306 |
 | CPU/MMU/CACHE     | CACHE                 | 25                 | CPU          | Will be done in Verilog directly            | 4x TMM2018D_25(16K Static RAM) and 1x AM9150_20 (1024 x 4 High-Speed Static R/W RAM) |
-| CPU/MMU/CSR       | CACHE STATUS REG      | 26                 | CPU          | Complete
-| CPU/MMU/HIT       | HIT DETECTION         | 27                 | CPU          | Complete
+| CPU/MMU/CSR       | CACHE STATUS REG      | 26                 | CPU          | Complete                                    |
+| CPU/MMU/HIT       | HIT DETECTION         | 27                 | CPU          | Complete                                    |
 | CPU/MMU/PPNX      | PPN TO IDB            | 28                 | CPU          | Will be done in Verilog directly            | Uses 2x SNx4LS245 Octal Bus Transceivers With 3-State Outputs  +  74LS244 |
 | CPU/MMU/PT        | PAGE TABLES           | 29                 | CPU          | Will be done in Verilog directly            | 4x TMM2018D_25  (16K Static RAM) and 1x IMS1403_25 (16K x 1 Static RAM) |
 | CPU/MMU/PTIDB     | PT TO IDB             | 30                 | CPU          | Complete                                    | Uses 2x SNx4LS245 Octal Bus Transceivers With 3-State Outputs |
-| CPU/MMU/WCA       | PPN TO CPN            | 31                 | CPU          | Complete
+| CPU/MMU/WCA       | PPN TO CPN            | 31                 | CPU          | Complete                                    |
 | CPU/PROC          | PROCESSOR TOP LEVEL   | 32                 | CPU          | Will be done in Verilog directly            | 2x TMM2018D_25  (16K Static RAM)
 | CPU/PROC/CGA      | CPU GATE ARRAY        | 33                 | CPU          | Will be done in Verilog directly            | DELILAH Circuits plugin |
 | CPU/PROC/CMDDEC   | COMMANDS & IDB DECODE | 34                 | CPU          | Drawing complete. PAL's needs to be created | PAL 44407, 44608, 44511 |
@@ -52,15 +52,15 @@ A few Logisim files has been created.
 | **Cycle control**
 | CYC               | CYCLE CONTROL         | 36                 | CYC          | Drawing complete. PAL's needs to be created |PAL 44404, 44403, 44601/44611, 44307
 | **IO**
-| IO                | IO TOP LEVEL          | 37                 | IO           |
-| IO/DCD            | IO DECODING           | 38                 | IO           |
-| IO/DCD/DGA        | DECODE GATE ARRAY     | 39                 | IO           |                                             | DECODE GATE ARRAY (DGA) Plugin |
-| IO/PANCAL         | PANEL PROC & CALENDAR | 40                 | IO           |                                             | PANEL CPU |
-| IO/REG            | IOC, ALD & INR REGS   | 41                 | IO           |                                             | ALD register has also STRAP 5-9info in IDB11-IDB8 (For reading ECO level) IDB4-6 has "Print level", 0b100 for version D. IDB7 has info on CX, 0=Enabled
-| IO/UART           | UART AND IOR REG      | 42                 | IO           |
+| IO                | IO TOP LEVEL          | 37                 | IO           | Partially - finish in Verilog               |
+| IO/DCD            | IO DECODING           | 38                 | IO           | Partially - finish in Verilog               |
+| IO/DCD/DGA        | DECODE GATE ARRAY     | 39                 | IO           | Partially - finish in Verilog               | DECODE GATE ARRAY (DGA) Plugin |
+| IO/PANCAL         | PANEL PROC & CALENDAR | 40                 | IO           | Partially - finish in Verilog               | PANEL CPU |
+| IO/REG            | IOC, ALD & INR REGS   | 41                 | IO           | Complete                                    | ALD register has also STRAP 5-9info in IDB11-IDB8 (For reading ECO level) IDB4-6 has "Print level", 0b100 for version D. IDB7 has info on CX, 0=Enabled
+| IO/UART           | UART AND IOR REG      | 42                 | IO           | Complete. UART must be made in Verilog      |
 | **Memory** 
 | MEM               | MEMORY TOP LEVEL      | 43                 | MEM          |
-| MEM/ADDR          | MEM ADDR MUX          | 44                 | MEM          |
+| MEM/ADDR          | MEM ADDR MUX          | 44                 | MEM          | Complete
 | MEM/ADEC          | ADDRESS DECODER       | 45                 | MEM          |
 | MEM/DATA          | DATA & PARITY TCV     | 46                 | MEM          |
 | MEM/ERROR         | LOCAL PES & PEA       | 47                 | MEM          |
