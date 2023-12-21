@@ -21,19 +21,23 @@ Chips for the 3202D board:
 | AM29841     | Bus Driver 10 bit (D-Latch) with 3-state output          | https://www.alldatasheet.com/datasheet-pdf/pdf/107079/AMD/AM29841.html | 
 | AM29833A    | PARITY BUS TRANSCEIVERS                                  | https://pdf1.alldatasheet.com/datasheet-pdf/view/165880/AMD/AM29833A.html | 
 | AM29861A    | 10 Bit High Performance Bus Transceivers                 | https://datasheetspdf.com/datasheet/AM29861.html |
-| 74AS648     | Octal Bus Transciever and registers with 3-State Outputs | https://www.ti.com/lit/ds/symlink/sn74als648a.pdf | 
-| 74AS648     | Octal Bus Transciever and registers with 3-State Outputs | https://www.ti.com/lit/ds/symlink/sn54as646.pdf| 
-| 74LS534     | Octal D-Type Flip-Flop with 3-STATE Output               | [https://media.digikey.com/pdf/Data%20Sheets/Fairchild%20PDFs/DM74LS534.pdf](https://media.digikey.com/pdf/Data%20Sheets/Fairchild%20PDFs/DM74LS534.pdf) | 
-| 74FCT521A   | 8-BIT COMPARATOR                                         | https://datasheetspdf.com/pdf-file/1348201/IDT/IDT74FCT521AT/1 | Easy to recreate | 
-| 74LS393     | Dual 4-bit binary counters with individual clocks        | https://www.ti.com/lit/ds/symlink/sn74ls390.pdf |
-| 74LS248     | BCD-TO-SEVEN-SEGMENT DECODERS/DRIVERS                    | https://www.alldatasheet.com/datasheet-pdf/pdf/5697/MOTOROLA/SN54/74LS248.html | 
-| 74LS245     | Octal Bus Transceivers With 3-State Outputs              | https://www.ti.com/lit/ds/symlink/sn74ls245.pdf | Not started |
-| 74LS244     | Octal Buffers and Line Drivers With 3-State Outputs      | https://www.ti.com/lit/ds/symlink/sn74ls244.pdf |
-| 74LS373     | 74PCT373 Octal Transparent Latch                         | https://assets.nexperia.com/documents/data-sheet/74HC_HCT373.pdf |
-| 74F139      | DUAL 2-LINE TO 4-LINE DECODERS/DEMULTIPLEXERS            | https://www.alldatasheet.com/view.jsp?Searchword=SN74S139 |
+Data%20Sheets/Fairchild%20PDFs/DM74LS534.pdf) | 
 | 74S132      | QUADRUPLE 2-INPUT POSITIVE-NAND SCHMITT TRIGGERS         | https://www.alldatasheet.com/datasheet-pdf/pdf/27365/TI/SN74S132.html | 
+| 74F139      | DUAL 2-LINE TO 4-LINE DECODERS/DEMULTIPLEXERS            | https://www.alldatasheet.com/view.jsp?Searchword=SN74S139 |
 | 74F241      | OCTAL BUFFERS AND LINE DRIVERS WITH 3-STATE OUTPUTS      | https://www.alldatasheet.com/view.jsp?Searchword=SN74S241 | 
-| 74ALS374    | Octal D flip-flop Register (3-State)                     | https://www.alldatasheet.com/datasheet-pdf/pdf/15260/PHILIPS/74ALS374.html| |
+| 74LS248     | BCD-TO-SEVEN-SEGMENT DECODERS/DRIVERS                    | https://www.alldatasheet.com/datasheet-pdf/pdf/5697/MOTOROLA/SN54/74LS248.html | 
+| 74273       | 8-bit D-type register                                    |
+| 74LS244     | Octal Buffers and Line Drivers With 3-State Outputs      | https://www.ti.com/lit/ds/symlink/sn74ls244.pdf |
+| 74LS245     | Octal Bus Transceivers With 3-State Outputs              | https://www.ti.com/lit/ds/symlink/sn74ls245.pdf | Not started |
+| 74PCT373    | Octal Transparent Latch with 3-state                     |
+| 74ALS374    | Octal D flip-flop Register (3-State)                     | https://www.alldatasheet.com/datasheet-pdf/pdf/15260/PHILIPS/74ALS374.html  | |
+| 74LS393     | Dual 4-bit binary counters with individual clocks        | https://www.ti.com/lit/ds/symlink/sn74ls390.pdf |
+| 74FCT521A   | 8-BIT COMPARATOR                                         | https://datasheetspdf.com/pdf-file/1348201/IDT/IDT74FCT521AT/1 | Easy to recreate | 
+| 74LS534     | Octal D-Type Flip-Flop with 3-STATE Output               | [https://media.digikey.com/pdf/Data%20Sheets/Fairchild%20PDFs/DM74LS534.pdf](https://media.digikey.com/pdf/
+| 74AS646     | Octal Bus Transciever and registers with 3-State Outputs | https://www.ti.com/lit/ds/symlink/sn54as646.pdf| 
+| 74AS648     | Octal Bus Transciever and registers with 3-State Outputs | https://www.ti.com/lit/ds/symlink/sn74als648a.pdf | 
+
+
 
 Simple 74-series chips
 
