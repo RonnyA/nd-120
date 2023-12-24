@@ -17,13 +17,23 @@ module Decoder_8 (
     output reg decoderOut_7
 );
 
-   assign decoderOut_0  = (enable&(sel == 3'b000)) ? 1'b1 : 1'b0;
-   assign decoderOut_1  = (enable&(sel == 3'b001)) ? 1'b1 : 1'b0;
-   assign decoderOut_2  = (enable&(sel == 3'b010)) ? 1'b1 : 1'b0;
-   assign decoderOut_3  = (enable&(sel == 3'b011)) ? 1'b1 : 1'b0;
-   assign decoderOut_4  = (enable&(sel == 3'b100)) ? 1'b1 : 1'b0;
-   assign decoderOut_5  = (enable&(sel == 3'b101)) ? 1'b1 : 1'b0;
-   assign decoderOut_6  = (enable&(sel == 3'b110)) ? 1'b1 : 1'b0;
-   assign decoderOut_7  = (enable&(sel == 3'b111)) ? 1'b1 : 1'b0;
+    // Combinational logic for the 8-output decoder
+    always @(*) begin
+        if (enable) begin
+            case (sel)
+                3'b000: {decoderOut_7, decoderOut_6, decoderOut_5, decoderOut_4, decoderOut_3, decoderOut_2, decoderOut_1, decoderOut_0} = 8'b00000001;
+                3'b001: {decoderOut_7, decoderOut_6, decoderOut_5, decoderOut_4, decoderOut_3, decoderOut_2, decoderOut_1, decoderOut_0} = 8'b00000010;
+                3'b010: {decoderOut_7, decoderOut_6, decoderOut_5, decoderOut_4, decoderOut_3, decoderOut_2, decoderOut_1, decoderOut_0} = 8'b00000100;
+                3'b011: {decoderOut_7, decoderOut_6, decoderOut_5, decoderOut_4, decoderOut_3, decoderOut_2, decoderOut_1, decoderOut_0} = 8'b00001000;
+                3'b100: {decoderOut_7, decoderOut_6, decoderOut_5, decoderOut_4, decoderOut_3, decoderOut_2, decoderOut_1, decoderOut_0} = 8'b00010000;
+                3'b101: {decoderOut_7, decoderOut_6, decoderOut_5, decoderOut_4, decoderOut_3, decoderOut_2, decoderOut_1, decoderOut_0} = 8'b00100000;
+                3'b110: {decoderOut_7, decoderOut_6, decoderOut_5, decoderOut_4, decoderOut_3, decoderOut_2, decoderOut_1, decoderOut_0} = 8'b01000000;
+                3'b111: {decoderOut_7, decoderOut_6, decoderOut_5, decoderOut_4, decoderOut_3, decoderOut_2, decoderOut_1, decoderOut_0} = 8'b10000000;
+                default: {decoderOut_7, decoderOut_6, decoderOut_5, decoderOut_4, decoderOut_3, decoderOut_2, decoderOut_1, decoderOut_0} = 8'b00000000;
+            endcase
+        end else begin
+            {decoderOut_7, decoderOut_6, decoderOut_5, decoderOut_4, decoderOut_3, decoderOut_2, decoderOut_1, decoderOut_0} = 8'b00000000;
+        end
+    end
 
 endmodule

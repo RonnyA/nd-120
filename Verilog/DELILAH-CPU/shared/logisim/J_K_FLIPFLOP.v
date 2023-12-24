@@ -6,80 +6,41 @@
  **                                                                          **
  *****************************************************************************/
 
-module J_K_FLIPFLOP( clock,
-                     j,
-                     k,
-                     preset,
-                     q,
-                     qBar,
-                     reset,
-                     tick );
+module J_K_FLIPFLOP(
+    input  clock,
+    input  j,
+    input  k,
+    input  preset,
+    input  reset,
+    input  tick,
+    output q,
+    output qBar
+);
 
-   /*******************************************************************************
-   ** Here all module parameters are defined with a dummy value                  **
-   *******************************************************************************/
-   parameter invertClockEnable = 1;
+    parameter invertClockEnable = 1;
+    reg s_currentState;
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input clock;
-   input j;
-   input k;
-   input preset;
-   input reset;
-   input tick;
+    // Output logic
+    assign q = s_currentState;
+    assign qBar = ~s_currentState;
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output q;
-   output qBar;
+    // Clock inversion based on parameter
+    wire s_clock = (invertClockEnable == 0) ? clock : ~clock;
 
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-   wire s_clock;
-   wire s_nextState;
+    // State transition logic
+    wire s_nextState = (~s_currentState & j) | (s_currentState & ~k);
 
-   /*******************************************************************************
-   ** The registers are defined here                                             **
-   *******************************************************************************/
-   reg s_currentState;
+    // State update logic
+    always @(posedge reset or posedge preset or posedge s_clock) begin
+        if (reset)
+            s_currentState <= 1'b0;
+        else if (preset)
+            s_currentState <= 1'b1;
+        else if (tick)
+            s_currentState <= s_nextState;
+    end
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
-   /*******************************************************************************
-   ** Here the output signals are defined                                        **
-   *******************************************************************************/
-   assign q        = s_currentState;
-   assign qBar     = ~(s_currentState);
-   assign s_clock  = (invertClockEnable == 0) ? clock : ~clock;
-
-   /*******************************************************************************
-   ** Here the initial register value is defined; for simulation only            **
-   *******************************************************************************/
-   initial
-   begin
-      s_currentState = 0;
-   end
-
-   /*******************************************************************************
-   ** Here the update logic is defined                                           **
-   *******************************************************************************/
-   assign s_nextState = (~(s_currentState)&j)|
-                        (s_currentState&~(k));
-
-   /*******************************************************************************
-   ** Here the actual state register is defined                                  **
-   *******************************************************************************/
-   always @(posedge reset or posedge preset or posedge s_clock)
-   begin
-      if (reset) s_currentState <= 1'b0;
-      else if (preset) s_currentState <= 1'b1;
-      else if (tick) s_currentState <= s_nextState;
-   end
+    // Initial state for simulation
+    initial s_currentState = 0;
 
 endmodule

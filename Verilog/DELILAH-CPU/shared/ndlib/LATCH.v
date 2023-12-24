@@ -5,21 +5,28 @@
  *****************************************************************************/
 
 module LATCH(
-      input D,
-      input ENABLE,
+      input wire D,
+      input wire ENABLE,
       output reg Q,
       output reg QN );
 
+
+  // Initialize Q and QN with opposite values
+    initial begin
+        Q = 1'b0;
+        QN = 1'b1;
+    end
  
-   // Positive edge-triggered latch
-   always @(posedge ENABLE or posedge D)
-   begin
-      if (ENABLE)
-         Q <= D;
+   // LATCH
+   always @* begin 
+      if (ENABLE) begin
+         Q = D;
+         QN = ~Q; // Negate Q to get QN
+      end      
       // When ENABLE is low, Q retains its value
    end
 
-   assign QN = ~Q; // Negate Q to get QN
+   
 
 endmodule
 

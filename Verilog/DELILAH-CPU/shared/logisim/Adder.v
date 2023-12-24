@@ -1,46 +1,39 @@
 /******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
  **                                                                          **
  ** Component : Adder                                                        **
  **                                                                          **
  *****************************************************************************/
 
-module Adder( carryIn,
-              carryOut,
-              dataA,
-              dataB,
-              result );
+module Adder( carryIn, carryOut, dataA, dataB, result );
 
-   /*******************************************************************************
-   ** Here all module parameters are defined with a dummy value                  **
-   *******************************************************************************/
+   // Parameters are declared here
    parameter extendedBits = 1;
    parameter nrOfBits = 1;
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input                carryIn;
+   // Validate parameters
+   initial begin
+      if (nrOfBits <= 0) begin
+         $display("Error: nrOfBits must be greater than 0.");
+         $finish;
+      end
+      if (extendedBits <= 0) begin
+         $display("Error: extendedBits must be greater than 0.");
+         $finish;
+      end
+   end
+
+   // Inputs using the parameters in their declarations
+   input carryIn;
    input [nrOfBits-1:0] dataA;
    input [nrOfBits-1:0] dataB;
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output                carryOut;
-   output [nrOfBits-1:0] result;
+   // Outputs using the parameters in their declarations
+   output reg carryOut;
+   output reg [nrOfBits-1:0] result;
 
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-   wire [extendedBits-1:0] s_extendedDataA;
-   wire [extendedBits-1:0] s_extendedDataB;
-   wire [extendedBits-1:0] s_sumResult;
-
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-   assign   {carryOut, result} = dataA + dataB + carryIn;
+   // Combinational logic for addition
+   always @* begin
+      {carryOut, result} = dataA + dataB + carryIn;
+   end
 
 endmodule
