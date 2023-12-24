@@ -933,7 +933,7 @@
     </comp>
     <comp lib="0" loc="(740,3050)" name="Tunnel">
       <a name="facing" val="east"/>
-      <a name="label" val="CS_10_9"/>
+      <a name="label" val="CD_10_9"/>
       <a name="width" val="2"/>
     </comp>
     <comp lib="0" loc="(740,3270)" name="Tunnel">
@@ -1947,13 +1947,13 @@
     <comp lib="8" loc="(1790,495)" name="Text">
       <a name="text" val="QSEL1"/>
     </comp>
-    <comp lib="8" loc="(2085,4137)" name="Text">
+    <comp lib="8" loc="(2085,4135)" name="Text">
       <a name="text" val="RSN=1 =&gt; Subtract, else ADD"/>
     </comp>
-    <comp lib="8" loc="(2156,4240)" name="Text">
+    <comp lib="8" loc="(2155,4240)" name="Text">
       <a name="text" val="LOG=1, Logic function (AND/OR) else ADD/SUB"/>
     </comp>
-    <comp lib="8" loc="(2166,4201)" name="Text">
+    <comp lib="8" loc="(2165,4200)" name="Text">
       <a name="text" val="FSEL = 1, Logic function XOR else OR/AND/NOT"/>
     </comp>
     <comp lib="8" loc="(2220,2385)" name="Text">
@@ -4260,22 +4260,22 @@
     <comp lib="8" loc="(635,100)" name="Text">
       <a name="text" val="Page 46 - CGA_ALU_RALU (reviewed manually, Ronny 09.06.2023)"/>
     </comp>
-    <comp lib="8" loc="(711,556)" name="Text">
+    <comp lib="8" loc="(710,555)" name="Text">
       <a name="text" val="RSN=1 =&gt; Subtract, else ADD"/>
     </comp>
-    <comp lib="8" loc="(724,366)" name="Text">
+    <comp lib="8" loc="(720,365)" name="Text">
       <a name="text" val="CI = 1, Carry IN =1 else NO Carry"/>
     </comp>
     <comp lib="8" loc="(770,635)" name="Text">
       <a name="text" val="R"/>
     </comp>
+    <comp lib="8" loc="(780,410)" name="Text">
+      <a name="text" val="LOG=1, Logic function (AND/OR) else ADD/SUB"/>
+    </comp>
     <comp lib="8" loc="(780,615)" name="Text">
       <a name="text" val="RN"/>
     </comp>
-    <comp lib="8" loc="(783,412)" name="Text">
-      <a name="text" val="LOG=1, Logic function (AND/OR) else ADD/SUB"/>
-    </comp>
-    <comp lib="8" loc="(785,501)" name="Text">
+    <comp lib="8" loc="(785,500)" name="Text">
       <a name="text" val="FSEL = 1, Logic function XOR else OR/AND/NOT"/>
     </comp>
     <comp loc="(1050,620)" name="CGA_ALU_RALU_MUX216L">
@@ -11483,25 +11483,25 @@
     <comp lib="1" loc="(2540,2280)" name="NOT Gate">
       <a name="width" val="16"/>
     </comp>
-    <comp lib="8" loc="(2062,1349)" name="Text">
+    <comp lib="8" loc="(2060,1345)" name="Text">
       <a name="text" val="ALU Function"/>
     </comp>
-    <comp lib="8" loc="(2062,1379)" name="Text">
+    <comp lib="8" loc="(2060,1375)" name="Text">
       <a name="text" val="ALU Destination"/>
     </comp>
-    <comp lib="8" loc="(2077,1319)" name="Text">
+    <comp lib="8" loc="(2075,1315)" name="Text">
       <a name="text" val="ALU Source"/>
     </comp>
-    <comp lib="8" loc="(2583,694)" name="Text">
+    <comp lib="8" loc="(2580,690)" name="Text">
       <a name="text" val="bitmap gen?"/>
     </comp>
-    <comp lib="8" loc="(2608,746)" name="Text">
+    <comp lib="8" loc="(2605,745)" name="Text">
       <a name="text" val="internal bus (IDB?)"/>
     </comp>
-    <comp lib="8" loc="(3087,2448)" name="Text">
+    <comp lib="8" loc="(3085,2445)" name="Text">
       <a name="text" val="i8=&gt; 1=DO Shift (not logical operation. Also shift GPR register)"/>
     </comp>
-    <comp lib="8" loc="(3152,2415)" name="Text">
+    <comp lib="8" loc="(3150,2415)" name="Text">
       <a name="text" val="ALUI7=0, Right shift. 1=LEFT shift"/>
     </comp>
     <comp lib="8" loc="(3825,990)" name="Text">
