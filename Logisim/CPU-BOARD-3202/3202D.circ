@@ -101,11 +101,6 @@
     <a name="circuit" val="BLOCK_DIAGRAM_1"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(270,310)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="PD_4_1"/>
@@ -212,75 +207,6 @@
     <a name="circuit" val="BIF_5"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1020,750)" name="Tunnel">
       <a name="label" val="OUTIDENT_n"/>
     </comp>
@@ -947,70 +873,6 @@
     <a name="circuit" val="BIF_BCTL_6"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1020,450)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -1498,7 +1360,7 @@
       <a name="halign" val="left"/>
       <a name="text" val="IOREQ_n"/>
     </comp>
-    <comp lib="8" loc="(1977,1771)" name="Text">
+    <comp lib="8" loc="(1975,1770)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -1563,7 +1425,7 @@
       <a name="halign" val="left"/>
       <a name="text" val="n.c."/>
     </comp>
-    <comp lib="8" loc="(267,118)" name="Text">
+    <comp lib="8" loc="(265,115)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -2107,34 +1969,6 @@
     <a name="circuit" val="BIF_BCTL_SYNC_8"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1420,330)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -2393,48 +2227,6 @@
     <a name="circuit" val="BIF_DPATH_9"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1180,1170)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -2691,7 +2483,7 @@
       <a name="halign" val="left"/>
       <a name="text" val="n.c"/>
     </comp>
-    <comp lib="8" loc="(1401,309)" name="Text">
+    <comp lib="8" loc="(1400,305)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="Add gate here ? The signals needs to be connected in Verilog"/>
@@ -2812,16 +2604,6 @@
     <a name="circuit" val="BIF_DPATH_BDLBD_10"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1120,380)" name="Splitter">
       <a name="bit0" val="7"/>
       <a name="bit1" val="6"/>
@@ -3161,14 +2943,6 @@
     <a name="circuit" val="BIF_DPATH_CDLBD_11"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1070,380)" name="Splitter">
       <a name="bit0" val="7"/>
       <a name="bit1" val="6"/>
@@ -3390,44 +3164,6 @@
     <a name="circuit" val="BIF_DPATH_LDBCTL_12"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1160,1140)" name="Tunnel">
       <a name="label" val="FAPR"/>
     </comp>
@@ -3749,16 +3485,6 @@
     <a name="circuit" val="BIF_DPATH_PESPEA_13"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1000,150)" name="Probe">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -4060,7 +3786,7 @@
       <a name="halign" val="left"/>
       <a name="text" val="IDB0"/>
     </comp>
-    <comp lib="8" loc="(891,96)" name="Text">
+    <comp lib="8" loc="(890,95)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="Added gate here, but the signals needs to be connected in Verilog"/>
@@ -14350,21 +14076,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="CPU_CS_WCS_21_22"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1310,1600)" name="Splitter">
       <a name="appear" val="right"/>
       <a name="bit1" val="0"/>
@@ -14773,7 +14484,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(3435,1550)" name="Text">
       <a name="text" val="CSBIT15-CSBIT0"/>
     </comp>
-    <comp lib="8" loc="(3482,957)" name="Text">
+    <comp lib="8" loc="(3480,955)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -15201,11 +14912,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="CPU_LAPA_23"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1290,360)" name="Splitter">
       <a name="facing" val="west"/>
       <a name="fanout" val="14"/>
@@ -15365,30 +15071,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="CPU_MMU_CACHE_25"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1030,840)" name="Splitter">
       <a name="appear" val="right"/>
       <a name="bit0" val="1"/>
@@ -15643,7 +15325,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(2615,895)" name="Text">
       <a name="text" val="USED_n"/>
     </comp>
-    <comp lib="8" loc="(2846,986)" name="Text">
+    <comp lib="8" loc="(2845,985)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -15657,7 +15339,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(350,555)" name="Text">
       <a name="text" val="WCA_n"/>
     </comp>
-    <comp lib="8" loc="(365,78)" name="Text">
+    <comp lib="8" loc="(365,75)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -16297,21 +15979,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="CPU_MMU_CSR_26"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1160,500)" name="Splitter">
       <a name="appear" val="right"/>
       <a name="facing" val="west"/>
@@ -16438,15 +16105,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="CPU_MMU_HIT_27"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1420,500)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -16618,14 +16276,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="CPU_MMU_PPNX_28"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1300,500)" name="Tunnel">
       <a name="label" val="IDB8"/>
     </comp>
@@ -16923,16 +16573,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="CPU_MMU_PT_29"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1030,760)" name="Splitter">
       <a name="appear" val="right"/>
       <a name="bit0" val="1"/>
@@ -17170,12 +16810,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="CPU_MMU_PTIDB_30"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1180,550)" name="Splitter">
       <a name="appear" val="right"/>
       <a name="facing" val="west"/>
@@ -17346,11 +16980,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="CPU_MMU_WCA_31"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1140,510)" name="Splitter">
       <a name="appear" val="right"/>
       <a name="facing" val="west"/>
@@ -17808,11 +17437,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="clabelup" val="north"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1140,510)" name="Splitter">
       <a name="appear" val="right"/>
       <a name="bit0" val="3"/>
@@ -18022,54 +17646,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="CYC_36"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1080,1550)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="CGNTCACT_n"/>
@@ -18365,7 +17941,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(1265,1465)" name="Text">
       <a name="text" val="DLY0_n"/>
     </comp>
-    <comp lib="8" loc="(1265,711)" name="Text">
+    <comp lib="8" loc="(1265,710)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -18373,7 +17949,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(1270,1440)" name="Text">
       <a name="text" val="DLY1_n"/>
     </comp>
-    <comp lib="8" loc="(1349,1734)" name="Text">
+    <comp lib="8" loc="(1345,1730)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -18399,12 +17975,12 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(225,1255)" name="Text">
       <a name="text" val="MAP_n"/>
     </comp>
-    <comp lib="8" loc="(431,134)" name="Text">
+    <comp lib="8" loc="(430,130)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
     </comp>
-    <comp lib="8" loc="(685,401)" name="Text">
+    <comp lib="8" loc="(685,400)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -18415,7 +17991,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(825,1330)" name="Text">
       <a name="text" val="14D"/>
     </comp>
-    <comp lib="8" loc="(846,878)" name="Text">
+    <comp lib="8" loc="(845,875)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -18625,17 +18201,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="IO_37"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="8.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1130,600)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -18726,6 +18291,10 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(165,85)" name="Text">
       <a name="text" val="ND120 CPU, MM&amp;M"/>
     </comp>
+    <comp lib="8" loc="(2336,455)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="CONNECT IN VERILOG"/>
+    </comp>
     <comp lib="8" loc="(460,360)" name="Text">
       <a name="color" val="#d62537"/>
       <a name="halign" val="left"/>
@@ -18753,6 +18322,8 @@ e6 63 0 0 3a 0 0 48
     <wire from="(1110,690)" to="(1110,820)"/>
     <wire from="(1110,690)" to="(1940,690)"/>
     <wire from="(1110,820)" to="(1170,820)"/>
+    <wire from="(1390,720)" to="(2230,720)"/>
+    <wire from="(1390,740)" to="(2250,740)"/>
     <wire from="(1390,760)" to="(1480,760)"/>
     <wire from="(1480,1220)" to="(1660,1220)"/>
     <wire from="(1480,760)" to="(1480,1220)"/>
@@ -18760,6 +18331,7 @@ e6 63 0 0 3a 0 0 48
     <wire from="(1490,310)" to="(1990,310)"/>
     <wire from="(150,720)" to="(400,720)"/>
     <wire from="(150,760)" to="(400,760)"/>
+    <wire from="(1880,1000)" to="(2280,1000)"/>
     <wire from="(1880,1040)" to="(1940,1040)"/>
     <wire from="(1880,1080)" to="(1960,1080)"/>
     <wire from="(1940,690)" to="(1940,1040)"/>
@@ -18774,6 +18346,12 @@ e6 63 0 0 3a 0 0 48
     <wire from="(2120,370)" to="(2150,370)"/>
     <wire from="(220,410)" to="(220,620)"/>
     <wire from="(220,620)" to="(400,620)"/>
+    <wire from="(2230,440)" to="(2230,720)"/>
+    <wire from="(2230,440)" to="(2290,440)"/>
+    <wire from="(2250,460)" to="(2250,740)"/>
+    <wire from="(2250,460)" to="(2290,460)"/>
+    <wire from="(2280,480)" to="(2280,1000)"/>
+    <wire from="(2280,480)" to="(2300,480)"/>
     <wire from="(250,410)" to="(250,640)"/>
     <wire from="(250,640)" to="(400,640)"/>
     <wire from="(260,210)" to="(2050,210)"/>
@@ -18809,33 +18387,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="downloadFrequency" val="1.0"/>
     <a name="simulationFrequency" val="8.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1190,350)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -19149,12 +18700,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="IO_DCD_DGA_39"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(290,370)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="IDB_7_4"/>
@@ -19201,24 +18746,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="IO_PANCAL_40"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1550,300)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -19334,25 +18861,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="IO_REG_41"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1180,330)" name="Splitter">
       <a name="bit0" val="1"/>
       <a name="bit10" val="0"/>
@@ -19643,6 +19151,31 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="probably to be use for STRAP later?"/>
     </comp>
+    <comp lib="8" loc="(329,486)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="STR8"/>
+    </comp>
+    <comp lib="8" loc="(330,444)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="STR6"/>
+    </comp>
+    <comp lib="8" loc="(330,464)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="STR7"/>
+    </comp>
+    <comp lib="8" loc="(331,508)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="STR9"/>
+    </comp>
+    <comp lib="8" loc="(338,402)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="STR5"/>
+    </comp>
+    <comp lib="8" loc="(647,74)" name="Text">
+      <a name="color" val="#216cff"/>
+      <a name="halign" val="left"/>
+      <a name="text" val="ECO Fixes for 3202D and their strap settings: http://norsk-data.com/library/libeco/libeco100.html"/>
+    </comp>
     <comp lib="8" loc="(80,895)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="(need config in verilog)"/>
@@ -19675,7 +19208,7 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="IDB0"/>
     </comp>
-    <comp lib="8" loc="(926,930)" name="Text">
+    <comp lib="8" loc="(925,930)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -19848,26 +19381,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="IO_UART_42"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1000,670)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -19880,7 +19393,15 @@ e6 63 0 0 3a 0 0 48
       <a name="label" val="DA_n"/>
       <a name="output" val="true"/>
     </comp>
-    <comp lib="0" loc="(1030,1200)" name="Ground"/>
+    <comp lib="0" loc="(1010,1110)" name="Splitter">
+      <a name="bit0" val="4"/>
+      <a name="bit1" val="3"/>
+      <a name="bit3" val="1"/>
+      <a name="bit4" val="0"/>
+      <a name="fanout" val="5"/>
+      <a name="incoming" val="5"/>
+      <a name="spacing" val="2"/>
+    </comp>
     <comp lib="0" loc="(1530,820)" name="Splitter">
       <a name="bit0" val="7"/>
       <a name="bit1" val="6"/>
@@ -20013,11 +19534,15 @@ e6 63 0 0 3a 0 0 48
       <a name="spacing" val="2"/>
     </comp>
     <comp lib="0" loc="(590,630)" name="Ground"/>
+    <comp lib="0" loc="(890,1080)" name="Constant">
+      <a name="value" val="0x0"/>
+      <a name="width" val="5"/>
+    </comp>
     <comp lib="1" loc="(1940,750)" name="OR Gate">
       <a name="size" val="30"/>
     </comp>
     <comp lib="1" loc="(440,360)" name="NOT Gate"/>
-    <comp lib="8" loc="(1403,339)" name="Text">
+    <comp lib="8" loc="(1400,335)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -20086,11 +19611,11 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="MIS1"/>
     </comp>
-    <comp lib="8" loc="(765,1055)" name="Text">
+    <comp lib="8" loc="(580,1050)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="BAUD RATE CONTROL"/>
     </comp>
-    <comp lib="8" loc="(770,1080)" name="Text">
+    <comp lib="8" loc="(585,1075)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="TH2 Switch not in this drawing"/>
     </comp>
@@ -20104,15 +19629,10 @@ e6 63 0 0 3a 0 0 48
     <comp loc="(850,360)" name="SC2661_UART">
       <a name="label" val="CHIP_32H"/>
     </comp>
-    <wire from="(1030,1020)" to="(1030,1040)"/>
     <wire from="(1030,1020)" to="(1170,1020)"/>
-    <wire from="(1030,1040)" to="(1030,1060)"/>
     <wire from="(1030,1040)" to="(1170,1040)"/>
-    <wire from="(1030,1060)" to="(1030,1080)"/>
     <wire from="(1030,1060)" to="(1170,1060)"/>
-    <wire from="(1030,1080)" to="(1030,1100)"/>
     <wire from="(1030,1080)" to="(1170,1080)"/>
-    <wire from="(1030,1100)" to="(1030,1200)"/>
     <wire from="(1030,1100)" to="(1170,1100)"/>
     <wire from="(1390,1000)" to="(1630,1000)"/>
     <wire from="(1390,1020)" to="(1630,1020)"/>
@@ -20191,6 +19711,7 @@ e6 63 0 0 3a 0 0 48
     <wire from="(850,440)" to="(1780,440)"/>
     <wire from="(850,460)" to="(930,460)"/>
     <wire from="(850,480)" to="(910,480)"/>
+    <wire from="(890,1080)" to="(940,1080)"/>
     <wire from="(910,480)" to="(910,700)"/>
     <wire from="(910,700)" to="(1000,700)"/>
     <wire from="(910,700)" to="(910,940)"/>
@@ -20199,16 +19720,14 @@ e6 63 0 0 3a 0 0 48
     <wire from="(930,670)" to="(1000,670)"/>
     <wire from="(930,670)" to="(930,920)"/>
     <wire from="(930,920)" to="(1170,920)"/>
+    <wire from="(940,1080)" to="(940,1110)"/>
+    <wire from="(940,1110)" to="(1010,1110)"/>
   </circuit>
   <circuit name="MEM_43">
     <a name="appearance" val="logisim_evolution"/>
     <a name="circuit" val="MEM_43"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="8" loc="(125,105)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="ND120 CPU, MM&amp;M"/>
@@ -20252,15 +19771,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="MEM_ADDR_44"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1350,620)" name="Power"/>
     <comp lib="0" loc="(1780,930)" name="Splitter">
       <a name="appear" val="right"/>
@@ -20334,15 +19844,15 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(1855,1135)" name="Text">
       <a name="text" val="Not included: resistor network A-&gt;AA"/>
     </comp>
-    <comp lib="8" loc="(328,55)" name="Text">
+    <comp lib="8" loc="(325,55)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
     </comp>
-    <comp lib="8" loc="(828,113)" name="Text">
+    <comp lib="8" loc="(825,110)" name="Text">
       <a name="text" val="MEM ADDR MUX"/>
     </comp>
-    <comp lib="8" loc="(974,502)" name="Text">
+    <comp lib="8" loc="(970,500)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -20507,25 +20017,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="MEM_ERROR_47"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1130,600)" name="Splitter">
       <a name="appear" val="right"/>
       <a name="bit0" val="7"/>
@@ -20838,7 +20329,7 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="LBD0"/>
     </comp>
-    <comp lib="8" loc="(1528,1174)" name="Text">
+    <comp lib="8" loc="(1525,1170)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -20859,7 +20350,7 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="IDB0"/>
     </comp>
-    <comp lib="8" loc="(431,134)" name="Text">
+    <comp lib="8" loc="(430,130)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -21028,41 +20519,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="MEM_LBDIF_48"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1540,1550)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -21285,7 +20741,7 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="REF100_n"/>
     </comp>
-    <comp lib="8" loc="(1981,1344)" name="Text">
+    <comp lib="8" loc="(1980,1340)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -21294,7 +20750,7 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="REF100_n"/>
     </comp>
-    <comp lib="8" loc="(431,134)" name="Text">
+    <comp lib="8" loc="(430,130)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
@@ -21467,17 +20923,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="MEM_RAM_49"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1030,830)" name="Splitter">
       <a name="bit1" val="0"/>
       <a name="bit10" val="2"/>
@@ -21654,26 +21099,26 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="SHEET 49 of 50"/>
     </comp>
-    <comp lib="8" loc="(1861,824)" name="Text">
+    <comp lib="8" loc="(1860,820)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
     </comp>
-    <comp lib="8" loc="(3194,684)" name="Text">
+    <comp lib="8" loc="(3190,680)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="Re-Architected the CORR_n signal bus"/>
     </comp>
-    <comp lib="8" loc="(351,122)" name="Text">
+    <comp lib="8" loc="(350,120)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
     </comp>
-    <comp lib="8" loc="(354,224)" name="Text">
+    <comp lib="8" loc="(350,220)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="PRD_n bus signal to use OR"/>
     </comp>
-    <comp lib="8" loc="(357,196)" name="Text">
+    <comp lib="8" loc="(355,195)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
       <a name="text" val="Redesigned Q9/D9 logic to use OR"/>
@@ -21879,32 +21324,6 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="MEM_RAMC_50"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1210,1030)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -24785,11 +24204,11 @@ e6 63 0 0 3a 0 0 48
       <a name="appearance" val="logisim_evolution"/>
       <a name="trigger" val="falling"/>
     </comp>
-    <comp lib="8" loc="(1183,1096)" name="Text">
+    <comp lib="8" loc="(1180,1095)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="CONNECT  IN VERILOG"/>
     </comp>
-    <comp lib="8" loc="(323,933)" name="Text">
+    <comp lib="8" loc="(320,930)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="CONNECT  IN VERILOG"/>
     </comp>
@@ -25103,12 +24522,12 @@ e6 63 0 0 3a 0 0 48
       <a name="appearance" val="logisim_evolution"/>
       <a name="trigger" val="falling"/>
     </comp>
-    <comp lib="8" loc="(1195,1104)" name="Text">
+    <comp lib="8" loc="(1195,1100)" name="Text">
       <a name="color" val="#ff344b"/>
       <a name="halign" val="left"/>
       <a name="text" val="CONNECT  IN VERILOG"/>
     </comp>
-    <comp lib="8" loc="(298,932)" name="Text">
+    <comp lib="8" loc="(295,930)" name="Text">
       <a name="color" val="#ff344b"/>
       <a name="halign" val="left"/>
       <a name="text" val="CONNECT  IN VERILOG"/>
@@ -25318,7 +24737,7 @@ e6 63 0 0 3a 0 0 48
       <a name="tristate" val="true"/>
     </comp>
     <comp lib="1" loc="(340,470)" name="NOT Gate"/>
-    <comp lib="8" loc="(364,247)" name="Text">
+    <comp lib="8" loc="(360,245)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="NEEDS TO BE IMPLEMENTED IN VERILOG!"/>
     </comp>
@@ -25363,13 +24782,13 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(400,135)" name="Text">
       <a name="text" val="IDT6168A 16K (4Kx4) Static RAM"/>
     </comp>
-    <comp lib="8" loc="(498,427)" name="Text">
-      <a name="halign" val="left"/>
-      <a name="text" val="Output Enable"/>
-    </comp>
-    <comp lib="8" loc="(499,367)" name="Text">
+    <comp lib="8" loc="(495,365)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="Write Enable"/>
+    </comp>
+    <comp lib="8" loc="(495,425)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="Output Enable"/>
     </comp>
     <wire from="(240,420)" to="(290,420)"/>
     <wire from="(250,360)" to="(300,360)"/>
