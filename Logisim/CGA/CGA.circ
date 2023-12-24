@@ -4092,7 +4092,7 @@
     </comp>
     <comp lib="0" loc="(740,3050)" name="Tunnel">
       <a name="facing" val="east"/>
-      <a name="label" val="CS_10_9"/>
+      <a name="label" val="CD_10_9"/>
       <a name="width" val="2"/>
     </comp>
     <comp lib="0" loc="(740,3270)" name="Tunnel">
@@ -16359,16 +16359,16 @@
     <comp lib="8" loc="(2745,1920)" name="Text">
       <a name="text" val="IZ"/>
     </comp>
-    <comp lib="8" loc="(3130,3427)" name="Text">
+    <comp lib="8" loc="(3130,3425)" name="Text">
       <a name="text" val="22.2"/>
     </comp>
-    <comp lib="8" loc="(3241,3424)" name="Text">
+    <comp lib="8" loc="(3240,3420)" name="Text">
       <a name="text" val="23"/>
     </comp>
-    <comp lib="8" loc="(3328,3678)" name="Text">
+    <comp lib="8" loc="(3325,3675)" name="Text">
       <a name="text" val="22.2, 23,24,25,26,27"/>
     </comp>
-    <comp lib="8" loc="(3377,3424)" name="Text">
+    <comp lib="8" loc="(3375,3420)" name="Text">
       <a name="text" val="24-27"/>
     </comp>
     <comp lib="8" loc="(3960,1865)" name="Text">
@@ -16386,10 +16386,10 @@
     <comp lib="8" loc="(4295,1880)" name="Text">
       <a name="text" val="ICRY"/>
     </comp>
-    <comp lib="8" loc="(4594,3469)" name="Text">
+    <comp lib="8" loc="(4590,3465)" name="Text">
       <a name="text" val="32"/>
     </comp>
-    <comp lib="8" loc="(4595,3498)" name="Text">
+    <comp lib="8" loc="(4595,3495)" name="Text">
       <a name="text" val="33"/>
     </comp>
     <comp lib="8" loc="(4690,1950)" name="Text">
@@ -17801,13 +17801,13 @@
       <a name="max" val="0x1f"/>
       <a name="width" val="5"/>
     </comp>
-    <comp lib="8" loc="(1040,1749)" name="Text">
+    <comp lib="8" loc="(1040,1745)" name="Text">
       <a name="text" val="One could have been expected, but 2 ?"/>
     </comp>
-    <comp lib="8" loc="(1322,1701)" name="Text">
+    <comp lib="8" loc="(1320,1700)" name="Text">
       <a name="text" val="Test shows that output signals (like WRITEN) changes value 2 clock signals after the CSCOMM signal changes."/>
     </comp>
-    <comp lib="8" loc="(893,1787)" name="Text">
+    <comp lib="8" loc="(890,1785)" name="Text">
       <a name="text" val="Need to research if this is correct.."/>
     </comp>
     <comp loc="(1230,960)" name="CGA_DCD"/>
