@@ -56,16 +56,16 @@
   <lib desc="#BFH-Praktika" name="9"/>
   <lib desc="#Input/Output-Extra" name="10"/>
   <lib desc="#Soc" name="11"/>
-  <lib desc="file#CGA_MIC_.circ" name="12"/>
-  <lib desc="file#CGA_HELPER.circ" name="13"/>
-  <lib desc="file#TESTMUX_.circ" name="14"/>
+  <lib desc="file#CGA_IDBCTL_.circ" name="12"/>
+  <lib desc="file#CGA_WRF_.circ" name="13"/>
+  <lib desc="file#CGA_MIC_.circ" name="14"/>
   <lib desc="file#CGA_TRAP_.circ" name="15"/>
-  <lib desc="file#CGA_IDBCTL_.circ" name="16"/>
-  <lib desc="file#CGA_DCD_.circ" name="17"/>
-  <lib desc="file#CGA_WRF_.circ" name="18"/>
-  <lib desc="file#CGA_ALU_.circ" name="19"/>
-  <lib desc="file#CGA_INTR_.circ" name="20"/>
-  <lib desc="file#CGA_MAC_.circ" name="21"/>
+  <lib desc="file#CGA_DCD_.circ" name="16"/>
+  <lib desc="file#CGA_ALU_.circ" name="17"/>
+  <lib desc="file#TESTMUX_.circ" name="18"/>
+  <lib desc="file#CGA_INTR_.circ" name="19"/>
+  <lib desc="file#CGA_MAC_.circ" name="20"/>
+  <lib desc="file#CGA_HELPER.circ" name="21"/>
   <main name="CGA"/>
   <options>
     <a name="gateUndefined" val="ignore"/>
@@ -2070,6 +2070,11 @@
     <comp lib="0" loc="(810,7700)" name="Tunnel">
       <a name="label" val="LDIRV"/>
     </comp>
+    <comp lib="0" loc="(830,6180)" name="Tunnel">
+      <a name="facing" val="east"/>
+      <a name="label" val="PCR_15_0"/>
+      <a name="width" val="16"/>
+    </comp>
     <comp lib="0" loc="(830,9560)" name="Tunnel">
       <a name="label" val="MA_12_0"/>
       <a name="width" val="13"/>
@@ -2100,6 +2105,10 @@
     </comp>
     <comp lib="0" loc="(890,10710)" name="Tunnel">
       <a name="label" val="VEX"/>
+    </comp>
+    <comp lib="0" loc="(910,6210)" name="Splitter">
+      <a name="facing" val="west"/>
+      <a name="spacing" val="2"/>
     </comp>
     <comp lib="0" loc="(910,6930)" name="Tunnel">
       <a name="label" val="XFIDBI_15_0"/>
@@ -2141,6 +2150,10 @@
       <a name="label" val="RF_1_0"/>
       <a name="width" val="2"/>
     </comp>
+    <comp lib="0" loc="(950,6210)" name="Tunnel">
+      <a name="label" val="PCR_1_0"/>
+      <a name="width" val="2"/>
+    </comp>
     <comp lib="0" loc="(950,8040)" name="Tunnel">
       <a name="label" val="ERFN"/>
     </comp>
@@ -2150,45 +2163,41 @@
     <comp lib="0" loc="(960,7490)" name="Tunnel">
       <a name="label" val="DSTOPN"/>
     </comp>
-    <comp lib="0" loc="(980,6170)" name="Tunnel">
-      <a name="label" val="PCR_15_0"/>
-      <a name="width" val="16"/>
-    </comp>
     <comp lib="0" loc="(980,7530)" name="Tunnel">
       <a name="label" val="INDN"/>
     </comp>
     <comp lib="0" loc="(990,7840)" name="Tunnel">
       <a name="label" val="CBRKN"/>
     </comp>
-    <comp lib="12" loc="(780,9460)" name="CGA_MIC">
+    <comp lib="12" loc="(2050,8440)" name="CGA_IDBCTL">
+      <a name="label" val="IDBCTL"/>
+    </comp>
+    <comp lib="13" loc="(2550,10200)" name="CGA_WRF">
+      <a name="label" val="WRF"/>
+    </comp>
+    <comp lib="14" loc="(780,9460)" name="CGA_MIC">
       <a name="label" val="MIC"/>
-    </comp>
-    <comp lib="13" loc="(680,6930)" name="BusDriver16">
-      <a name="label" val="BD_FIDBO"/>
-    </comp>
-    <comp lib="14" loc="(960,11480)" name="CGA_TESTMUX">
-      <a name="label" val="TESTMUX"/>
     </comp>
     <comp lib="15" loc="(1730,7620)" name="CGA_TRAP">
       <a name="label" val="TRAP"/>
     </comp>
-    <comp lib="16" loc="(2050,8440)" name="CGA_IDBCTL">
-      <a name="label" val="IDBCTL"/>
-    </comp>
-    <comp lib="17" loc="(660,7580)" name="CGA_DCD">
+    <comp lib="16" loc="(660,7580)" name="CGA_DCD">
       <a name="label" val="DCD"/>
     </comp>
-    <comp lib="18" loc="(2550,10200)" name="CGA_WRF">
-      <a name="label" val="WRF"/>
-    </comp>
-    <comp lib="19" loc="(1590,10050)" name="CGA_ALU">
+    <comp lib="17" loc="(1590,10050)" name="CGA_ALU">
       <a name="label" val="ALU"/>
     </comp>
-    <comp lib="20" loc="(750,8460)" name="CGA_INTR">
+    <comp lib="18" loc="(960,11480)" name="CGA_TESTMUX">
+      <a name="label" val="TESTMUX"/>
+    </comp>
+    <comp lib="19" loc="(750,8460)" name="CGA_INTR">
       <a name="label" val="INTR"/>
     </comp>
-    <comp lib="21" loc="(780,10710)" name="CGA_MAC">
+    <comp lib="20" loc="(780,10710)" name="CGA_MAC">
       <a name="label" val="MAC"/>
+    </comp>
+    <comp lib="21" loc="(680,6930)" name="BusDriver16">
+      <a name="label" val="BD_FIDBO"/>
     </comp>
     <comp lib="8" loc="(1275,11155)" name="Text">
       <a name="text" val="WILL SHOW RED AS THERE IS LATCHES THAT IS &quot;UNDEFINED&quot; UNTIL USED"/>
@@ -2989,18 +2998,19 @@
     <wire from="(80,9880)" to="(520,9880)"/>
     <wire from="(810,8020)" to="(810,8380)"/>
     <wire from="(810,8380)" to="(1520,8380)"/>
+    <wire from="(830,6180)" to="(870,6180)"/>
     <wire from="(830,8000)" to="(830,8400)"/>
     <wire from="(830,8400)" to="(1500,8400)"/>
     <wire from="(850,7980)" to="(850,8360)"/>
     <wire from="(850,8360)" to="(1540,8360)"/>
-    <wire from="(870,6170)" to="(870,6210)"/>
-    <wire from="(870,6170)" to="(980,6170)"/>
+    <wire from="(870,6180)" to="(870,6210)"/>
     <wire from="(870,7960)" to="(870,8340)"/>
     <wire from="(870,8340)" to="(1560,8340)"/>
     <wire from="(890,7700)" to="(1510,7700)"/>
     <wire from="(890,7700)" to="(890,7760)"/>
     <wire from="(890,7760)" to="(890,8320)"/>
     <wire from="(890,8320)" to="(1580,8320)"/>
+    <wire from="(910,6210)" to="(950,6210)"/>
     <wire from="(910,7450)" to="(910,7620)"/>
     <wire from="(910,7450)" to="(960,7450)"/>
     <wire from="(910,7620)" to="(1510,7620)"/>

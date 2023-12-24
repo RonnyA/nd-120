@@ -20,7 +20,7 @@ module CGA_MAC( BR_15_0,
                 MCA_9_0,
                 MCLK,
                 NLCA_15_0,
-                PCR_15_7_2_0,
+                PCR_15_0,
                 PONI,
                 PR_15_0,
                 PTM,
@@ -58,7 +58,7 @@ module CGA_MAC( BR_15_0,
    output        LSHADOW;
    output [9:0]  MCA_9_0;
    output [15:0] NLCA_15_0;
-   output [15:0] PCR_15_7_2_0;
+   output [15:0] PCR_15_0;
    output        VEX;
 
    /*******************************************************************************
@@ -154,13 +154,13 @@ module CGA_MAC( BR_15_0,
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign ECCR         = s_logisimNet11;
-   assign LA_23_10     = s_logisimBus25[13:0];
-   assign LSHADOW      = s_logisimNet8;
-   assign MCA_9_0      = s_logisimBus48[9:0];
-   assign NLCA_15_0    = s_logisimBus58[15:0];
-   assign PCR_15_7_2_0 = s_logisimBus23[15:0];
-   assign VEX          = s_logisimNet49;
+   assign ECCR      = s_logisimNet11;
+   assign LA_23_10  = s_logisimBus25[13:0];
+   assign LSHADOW   = s_logisimNet8;
+   assign MCA_9_0   = s_logisimBus48[9:0];
+   assign NLCA_15_0 = s_logisimBus58[15:0];
+   assign PCR_15_0  = s_logisimBus23[15:0];
+   assign VEX       = s_logisimNet49;
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
