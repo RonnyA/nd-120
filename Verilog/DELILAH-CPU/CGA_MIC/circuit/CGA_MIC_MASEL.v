@@ -45,7 +45,7 @@ module CGA_MIC_MASEL( CSBIT20,
    wire [1:0]  s_logisimBus0;
    wire [12:0] s_logisimBus13;
    wire [12:0] s_logisimBus14;
-   wire [11:0] s_logisimBus47;
+   wire [11:0] s_logisimBus48;
    wire [12:0] s_logisimBus81;
    wire [12:0] s_logisimBus84;
    wire [3:0]  s_logisimBus87;
@@ -67,7 +67,7 @@ module CGA_MIC_MASEL( CSBIT20,
    wire        s_logisimNet24;
    wire        s_logisimNet25;
    wire        s_logisimNet26;
-   wire        s_logisimNet28;
+   wire        s_logisimNet27;
    wire        s_logisimNet29;
    wire        s_logisimNet3;
    wire        s_logisimNet30;
@@ -88,7 +88,7 @@ module CGA_MIC_MASEL( CSBIT20,
    wire        s_logisimNet44;
    wire        s_logisimNet45;
    wire        s_logisimNet46;
-   wire        s_logisimNet48;
+   wire        s_logisimNet47;
    wire        s_logisimNet49;
    wire        s_logisimNet5;
    wire        s_logisimNet50;
@@ -145,7 +145,7 @@ module CGA_MIC_MASEL( CSBIT20,
    assign s_logisimBus0[1]     = SC6;
    assign s_logisimBus13[12:0] = RET_12_0;
    assign s_logisimBus14[12:0] = NEXT_12_0;
-   assign s_logisimBus47[11:0] = CSBIT_11_0;
+   assign s_logisimBus48[11:0] = CSBIT_11_0;
    assign s_logisimBus87[3:0]  = JMP_3_0;
    assign s_logisimNet22       = MCLKN;
    assign s_logisimNet88       = MCLK;
@@ -162,7 +162,7 @@ module CGA_MIC_MASEL( CSBIT20,
    ** Here all normal components are defined                                     **
    *******************************************************************************/
    Multiplexer_4   PLEXERS_1 (
-                              .muxIn_0(s_logisimBus47[11]),
+                              .muxIn_0(s_logisimBus48[11]),
                               .muxIn_1(s_logisimBus13[11]),
                               .muxIn_2(s_logisimBus14[11]),
                               .muxIn_3(s_logisimBus84[11]),
@@ -170,7 +170,7 @@ module CGA_MIC_MASEL( CSBIT20,
                               .sel(s_logisimBus0[1:0]));
 
    Multiplexer_4   PLEXERS_2 (
-                              .muxIn_0(s_logisimBus47[10]),
+                              .muxIn_0(s_logisimBus48[10]),
                               .muxIn_1(s_logisimBus13[10]),
                               .muxIn_2(s_logisimBus14[10]),
                               .muxIn_3(s_logisimBus84[10]),
@@ -178,7 +178,7 @@ module CGA_MIC_MASEL( CSBIT20,
                               .sel(s_logisimBus0[1:0]));
 
    Multiplexer_4   PLEXERS_3 (
-                              .muxIn_0(s_logisimBus47[9]),
+                              .muxIn_0(s_logisimBus48[9]),
                               .muxIn_1(s_logisimBus13[9]),
                               .muxIn_2(s_logisimBus14[9]),
                               .muxIn_3(s_logisimBus84[9]),
@@ -186,7 +186,7 @@ module CGA_MIC_MASEL( CSBIT20,
                               .sel(s_logisimBus0[1:0]));
 
    Multiplexer_4   PLEXERS_4 (
-                              .muxIn_0(s_logisimBus47[8]),
+                              .muxIn_0(s_logisimBus48[8]),
                               .muxIn_1(s_logisimBus13[8]),
                               .muxIn_2(s_logisimBus14[8]),
                               .muxIn_3(s_logisimBus84[8]),
@@ -194,7 +194,7 @@ module CGA_MIC_MASEL( CSBIT20,
                               .sel(s_logisimBus0[1:0]));
 
    Multiplexer_4   PLEXERS_5 (
-                              .muxIn_0(s_logisimBus47[7]),
+                              .muxIn_0(s_logisimBus48[7]),
                               .muxIn_1(s_logisimBus13[7]),
                               .muxIn_2(s_logisimBus14[7]),
                               .muxIn_3(s_logisimBus84[7]),
@@ -202,7 +202,7 @@ module CGA_MIC_MASEL( CSBIT20,
                               .sel(s_logisimBus0[1:0]));
 
    Multiplexer_4   PLEXERS_6 (
-                              .muxIn_0(s_logisimBus47[6]),
+                              .muxIn_0(s_logisimBus48[6]),
                               .muxIn_1(s_logisimBus13[6]),
                               .muxIn_2(s_logisimBus14[6]),
                               .muxIn_3(s_logisimBus84[6]),
@@ -210,7 +210,7 @@ module CGA_MIC_MASEL( CSBIT20,
                               .sel(s_logisimBus0[1:0]));
 
    Multiplexer_4   PLEXERS_7 (
-                              .muxIn_0(s_logisimBus47[5]),
+                              .muxIn_0(s_logisimBus48[5]),
                               .muxIn_1(s_logisimBus13[5]),
                               .muxIn_2(s_logisimBus14[5]),
                               .muxIn_3(s_logisimBus84[5]),
@@ -218,7 +218,7 @@ module CGA_MIC_MASEL( CSBIT20,
                               .sel(s_logisimBus0[1:0]));
 
    Multiplexer_4   PLEXERS_8 (
-                              .muxIn_0(s_logisimBus47[4]),
+                              .muxIn_0(s_logisimBus48[4]),
                               .muxIn_1(s_logisimBus13[4]),
                               .muxIn_2(s_logisimBus14[4]),
                               .muxIn_3(s_logisimBus84[4]),
@@ -270,14 +270,14 @@ module CGA_MIC_MASEL( CSBIT20,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   L8   WL_HI (.A(s_logisimBus89[4]),
-               .B(s_logisimBus89[3]),
-               .C(s_logisimBus89[2]),
-               .D(s_logisimBus89[1]),
-               .E(s_logisimBus89[0]),
-               .F(1'b0),
-               .G(1'b0),
-               .H(1'b0),
+   L8   WL_HI (.A(s_logisimBus89[12]),
+               .B(s_logisimBus89[11]),
+               .C(s_logisimBus89[10]),
+               .D(s_logisimBus89[9]),
+               .E(s_logisimBus89[8]),
+               .F(s_logisimBus89[7]),
+               .G(s_logisimBus89[6]),
+               .H(s_logisimBus89[5]),
                .L(s_logisimNet22),
                .QA(s_logisimBus81[12]),
                .QAN(),
@@ -296,14 +296,14 @@ module CGA_MIC_MASEL( CSBIT20,
                .QH(s_logisimBus81[5]),
                .QHN());
 
-   L8   WL_LO (.A(s_logisimBus89[12]),
-               .B(s_logisimBus89[11]),
-               .C(s_logisimBus89[10]),
-               .D(s_logisimBus89[9]),
-               .E(s_logisimBus89[8]),
-               .F(s_logisimBus89[7]),
-               .G(s_logisimBus89[6]),
-               .H(s_logisimBus89[5]),
+   L8   WL_LO (.A(s_logisimBus89[4]),
+               .B(s_logisimBus89[3]),
+               .C(s_logisimBus89[2]),
+               .D(s_logisimBus89[1]),
+               .E(s_logisimBus89[0]),
+               .F(1'b0),
+               .G(1'b0),
+               .H(1'b0),
                .L(s_logisimNet22),
                .QA(s_logisimBus81[4]),
                .QAN(),
