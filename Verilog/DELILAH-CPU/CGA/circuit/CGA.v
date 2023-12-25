@@ -158,73 +158,70 @@ module CGA( BDEST,
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [1:0]  s_logisimBus102;
-   wire [6:0]  s_logisimBus103;
-   wire [1:0]  s_logisimBus104;
-   wire [15:0] s_logisimBus115;
-   wire [6:0]  s_logisimBus121;
-   wire [1:0]  s_logisimBus128;
-   wire [15:0] s_logisimBus130;
-   wire [3:0]  s_logisimBus132;
-   wire [15:0] s_logisimBus135;
-   wire [3:0]  s_logisimBus137;
-   wire [3:0]  s_logisimBus139;
-   wire [2:0]  s_logisimBus145;
-   wire [8:0]  s_logisimBus147;
+   wire [6:0]  s_logisimBus100;
+   wire [1:0]  s_logisimBus101;
+   wire [15:0] s_logisimBus112;
+   wire [6:0]  s_logisimBus118;
+   wire [1:0]  s_logisimBus125;
+   wire [15:0] s_logisimBus127;
+   wire [3:0]  s_logisimBus129;
+   wire [15:0] s_logisimBus132;
+   wire [3:0]  s_logisimBus134;
+   wire [3:0]  s_logisimBus136;
+   wire [2:0]  s_logisimBus142;
+   wire [8:0]  s_logisimBus144;
+   wire [3:0]  s_logisimBus149;
    wire [15:0] s_logisimBus15;
    wire [3:0]  s_logisimBus152;
-   wire [3:0]  s_logisimBus155;
-   wire [15:0] s_logisimBus16;
-   wire [15:0] s_logisimBus162;
+   wire [15:0] s_logisimBus159;
+   wire [15:0] s_logisimBus161;
    wire [15:0] s_logisimBus164;
-   wire [15:0] s_logisimBus167;
-   wire [15:0] s_logisimBus169;
-   wire [6:0]  s_logisimBus17;
-   wire [1:0]  s_logisimBus171;
-   wire [15:0] s_logisimBus178;
-   wire [1:0]  s_logisimBus183;
-   wire [1:0]  s_logisimBus184;
-   wire [4:0]  s_logisimBus189;
-   wire [4:0]  s_logisimBus190;
-   wire [3:0]  s_logisimBus193;
-   wire [15:0] s_logisimBus194;
-   wire [15:0] s_logisimBus196;
-   wire [2:0]  s_logisimBus200;
-   wire [15:0] s_logisimBus201;
-   wire [3:0]  s_logisimBus204;
-   wire [1:0]  s_logisimBus210;
-   wire [1:0]  s_logisimBus212;
-   wire [4:0]  s_logisimBus215;
-   wire [15:0] s_logisimBus216;
-   wire [9:0]  s_logisimBus218;
-   wire [4:0]  s_logisimBus224;
-   wire [13:0] s_logisimBus225;
-   wire [12:0] s_logisimBus230;
-   wire [1:0]  s_logisimBus231;
-   wire [1:0]  s_logisimBus232;
-   wire [11:0] s_logisimBus234;
-   wire [3:0]  s_logisimBus236;
-   wire [4:0]  s_logisimBus237;
-   wire [1:0]  s_logisimBus238;
-   wire [1:0]  s_logisimBus26;
-   wire [3:0]  s_logisimBus32;
-   wire [8:0]  s_logisimBus37;
-   wire [1:0]  s_logisimBus49;
-   wire [3:0]  s_logisimBus53;
-   wire [15:0] s_logisimBus55;
-   wire [1:0]  s_logisimBus60;
-   wire [15:0] s_logisimBus65;
-   wire [15:0] s_logisimBus67;
-   wire [2:0]  s_logisimBus70;
-   wire [15:0] s_logisimBus86;
+   wire [15:0] s_logisimBus166;
+   wire [1:0]  s_logisimBus168;
+   wire [15:0] s_logisimBus175;
+   wire [1:0]  s_logisimBus180;
+   wire [1:0]  s_logisimBus181;
+   wire [4:0]  s_logisimBus186;
+   wire [4:0]  s_logisimBus187;
+   wire [3:0]  s_logisimBus190;
+   wire [15:0] s_logisimBus191;
+   wire [15:0] s_logisimBus193;
+   wire [2:0]  s_logisimBus197;
+   wire [15:0] s_logisimBus198;
+   wire [3:0]  s_logisimBus201;
+   wire [1:0]  s_logisimBus207;
+   wire [1:0]  s_logisimBus209;
+   wire [4:0]  s_logisimBus212;
+   wire [15:0] s_logisimBus213;
+   wire [9:0]  s_logisimBus215;
+   wire [15:0] s_logisimBus221;
+   wire [13:0] s_logisimBus222;
+   wire [12:0] s_logisimBus227;
+   wire [1:0]  s_logisimBus228;
+   wire [1:0]  s_logisimBus229;
+   wire [3:0]  s_logisimBus233;
+   wire [4:0]  s_logisimBus234;
+   wire [1:0]  s_logisimBus235;
+   wire [1:0]  s_logisimBus24;
+   wire [3:0]  s_logisimBus30;
+   wire [8:0]  s_logisimBus35;
+   wire [1:0]  s_logisimBus47;
+   wire [15:0] s_logisimBus52;
+   wire [1:0]  s_logisimBus57;
+   wire [15:0] s_logisimBus62;
+   wire [15:0] s_logisimBus64;
+   wire [2:0]  s_logisimBus67;
+   wire [15:0] s_logisimBus83;
+   wire [2:0]  s_logisimBus88;
    wire [15:0] s_logisimBus9;
-   wire [2:0]  s_logisimBus91;
-   wire [4:0]  s_logisimBus96;
+   wire [4:0]  s_logisimBus93;
+   wire [1:0]  s_logisimBus99;
    wire        s_logisimNet0;
    wire        s_logisimNet1;
    wire        s_logisimNet10;
-   wire        s_logisimNet100;
-   wire        s_logisimNet101;
+   wire        s_logisimNet102;
+   wire        s_logisimNet103;
+   wire        s_logisimNet104;
    wire        s_logisimNet105;
    wire        s_logisimNet106;
    wire        s_logisimNet107;
@@ -233,116 +230,115 @@ module CGA( BDEST,
    wire        s_logisimNet11;
    wire        s_logisimNet110;
    wire        s_logisimNet111;
-   wire        s_logisimNet112;
    wire        s_logisimNet113;
    wire        s_logisimNet114;
+   wire        s_logisimNet115;
    wire        s_logisimNet116;
    wire        s_logisimNet117;
-   wire        s_logisimNet118;
    wire        s_logisimNet119;
    wire        s_logisimNet12;
    wire        s_logisimNet120;
+   wire        s_logisimNet121;
    wire        s_logisimNet122;
    wire        s_logisimNet123;
    wire        s_logisimNet124;
-   wire        s_logisimNet125;
    wire        s_logisimNet126;
-   wire        s_logisimNet127;
-   wire        s_logisimNet129;
+   wire        s_logisimNet128;
    wire        s_logisimNet13;
+   wire        s_logisimNet130;
    wire        s_logisimNet131;
    wire        s_logisimNet133;
-   wire        s_logisimNet134;
-   wire        s_logisimNet136;
+   wire        s_logisimNet135;
+   wire        s_logisimNet137;
    wire        s_logisimNet138;
+   wire        s_logisimNet139;
    wire        s_logisimNet14;
    wire        s_logisimNet140;
    wire        s_logisimNet141;
-   wire        s_logisimNet142;
    wire        s_logisimNet143;
-   wire        s_logisimNet144;
+   wire        s_logisimNet145;
    wire        s_logisimNet146;
+   wire        s_logisimNet147;
    wire        s_logisimNet148;
-   wire        s_logisimNet149;
    wire        s_logisimNet150;
    wire        s_logisimNet151;
    wire        s_logisimNet153;
    wire        s_logisimNet154;
+   wire        s_logisimNet155;
    wire        s_logisimNet156;
    wire        s_logisimNet157;
    wire        s_logisimNet158;
-   wire        s_logisimNet159;
+   wire        s_logisimNet16;
    wire        s_logisimNet160;
-   wire        s_logisimNet161;
+   wire        s_logisimNet162;
    wire        s_logisimNet163;
    wire        s_logisimNet165;
-   wire        s_logisimNet166;
-   wire        s_logisimNet168;
+   wire        s_logisimNet167;
+   wire        s_logisimNet169;
+   wire        s_logisimNet17;
    wire        s_logisimNet170;
+   wire        s_logisimNet171;
    wire        s_logisimNet172;
    wire        s_logisimNet173;
    wire        s_logisimNet174;
-   wire        s_logisimNet175;
    wire        s_logisimNet176;
    wire        s_logisimNet177;
+   wire        s_logisimNet178;
    wire        s_logisimNet179;
    wire        s_logisimNet18;
-   wire        s_logisimNet180;
-   wire        s_logisimNet181;
    wire        s_logisimNet182;
+   wire        s_logisimNet183;
+   wire        s_logisimNet184;
    wire        s_logisimNet185;
-   wire        s_logisimNet186;
-   wire        s_logisimNet187;
    wire        s_logisimNet188;
+   wire        s_logisimNet189;
    wire        s_logisimNet19;
-   wire        s_logisimNet191;
    wire        s_logisimNet192;
+   wire        s_logisimNet194;
    wire        s_logisimNet195;
-   wire        s_logisimNet197;
-   wire        s_logisimNet198;
+   wire        s_logisimNet196;
    wire        s_logisimNet199;
    wire        s_logisimNet2;
    wire        s_logisimNet20;
+   wire        s_logisimNet200;
    wire        s_logisimNet202;
    wire        s_logisimNet203;
+   wire        s_logisimNet204;
    wire        s_logisimNet205;
    wire        s_logisimNet206;
-   wire        s_logisimNet207;
    wire        s_logisimNet208;
-   wire        s_logisimNet209;
    wire        s_logisimNet21;
+   wire        s_logisimNet210;
    wire        s_logisimNet211;
-   wire        s_logisimNet213;
    wire        s_logisimNet214;
+   wire        s_logisimNet216;
    wire        s_logisimNet217;
+   wire        s_logisimNet218;
    wire        s_logisimNet219;
    wire        s_logisimNet22;
    wire        s_logisimNet220;
-   wire        s_logisimNet221;
-   wire        s_logisimNet222;
    wire        s_logisimNet223;
+   wire        s_logisimNet224;
+   wire        s_logisimNet225;
    wire        s_logisimNet226;
-   wire        s_logisimNet227;
-   wire        s_logisimNet228;
-   wire        s_logisimNet229;
    wire        s_logisimNet23;
-   wire        s_logisimNet233;
-   wire        s_logisimNet235;
-   wire        s_logisimNet239;
-   wire        s_logisimNet24;
-   wire        s_logisimNet240;
-   wire        s_logisimNet241;
+   wire        s_logisimNet230;
+   wire        s_logisimNet232;
+   wire        s_logisimNet236;
+   wire        s_logisimNet237;
+   wire        s_logisimNet238;
    wire        s_logisimNet25;
+   wire        s_logisimNet26;
    wire        s_logisimNet27;
    wire        s_logisimNet28;
    wire        s_logisimNet29;
    wire        s_logisimNet3;
-   wire        s_logisimNet30;
    wire        s_logisimNet31;
+   wire        s_logisimNet32;
    wire        s_logisimNet33;
    wire        s_logisimNet34;
-   wire        s_logisimNet35;
    wire        s_logisimNet36;
+   wire        s_logisimNet37;
    wire        s_logisimNet38;
    wire        s_logisimNet39;
    wire        s_logisimNet4;
@@ -353,26 +349,27 @@ module CGA( BDEST,
    wire        s_logisimNet44;
    wire        s_logisimNet45;
    wire        s_logisimNet46;
-   wire        s_logisimNet47;
    wire        s_logisimNet48;
+   wire        s_logisimNet49;
    wire        s_logisimNet5;
    wire        s_logisimNet50;
    wire        s_logisimNet51;
-   wire        s_logisimNet52;
+   wire        s_logisimNet53;
    wire        s_logisimNet54;
+   wire        s_logisimNet55;
    wire        s_logisimNet56;
-   wire        s_logisimNet57;
    wire        s_logisimNet58;
    wire        s_logisimNet59;
    wire        s_logisimNet6;
+   wire        s_logisimNet60;
    wire        s_logisimNet61;
-   wire        s_logisimNet62;
    wire        s_logisimNet63;
-   wire        s_logisimNet64;
+   wire        s_logisimNet65;
    wire        s_logisimNet66;
    wire        s_logisimNet68;
    wire        s_logisimNet69;
    wire        s_logisimNet7;
+   wire        s_logisimNet70;
    wire        s_logisimNet71;
    wire        s_logisimNet72;
    wire        s_logisimNet73;
@@ -386,20 +383,19 @@ module CGA( BDEST,
    wire        s_logisimNet80;
    wire        s_logisimNet81;
    wire        s_logisimNet82;
-   wire        s_logisimNet83;
    wire        s_logisimNet84;
    wire        s_logisimNet85;
+   wire        s_logisimNet86;
    wire        s_logisimNet87;
-   wire        s_logisimNet88;
    wire        s_logisimNet89;
    wire        s_logisimNet90;
+   wire        s_logisimNet91;
    wire        s_logisimNet92;
-   wire        s_logisimNet93;
    wire        s_logisimNet94;
    wire        s_logisimNet95;
+   wire        s_logisimNet96;
    wire        s_logisimNet97;
    wire        s_logisimNet98;
-   wire        s_logisimNet99;
 
    /*******************************************************************************
    ** The module functionality is described here                                 **
@@ -408,546 +404,547 @@ module CGA( BDEST,
    /*******************************************************************************
    ** Here all wiring is defined                                                 **
    *******************************************************************************/
-   assign s_logisimBus104[0]  = s_logisimNet52;
-   assign s_logisimBus104[1]  = s_logisimNet101;
-   assign s_logisimBus121[0]  = s_logisimNet58;
-   assign s_logisimBus121[1]  = s_logisimNet14;
-   assign s_logisimBus121[2]  = s_logisimNet54;
-   assign s_logisimBus121[3]  = s_logisimNet5;
-   assign s_logisimBus121[4]  = s_logisimNet116;
-   assign s_logisimBus121[5]  = s_logisimNet0;
-   assign s_logisimBus121[6]  = s_logisimNet19;
-   assign s_logisimBus139[0]  = s_logisimNet11;
-   assign s_logisimBus139[1]  = s_logisimNet41;
-   assign s_logisimBus139[2]  = s_logisimNet90;
-   assign s_logisimBus139[3]  = s_logisimNet77;
-   assign s_logisimBus147[0]  = s_logisimNet109;
-   assign s_logisimBus147[1]  = s_logisimNet89;
-   assign s_logisimBus147[2]  = s_logisimNet6;
-   assign s_logisimBus147[3]  = s_logisimNet78;
-   assign s_logisimBus147[4]  = s_logisimNet59;
-   assign s_logisimBus147[5]  = s_logisimNet4;
-   assign s_logisimBus147[6]  = s_logisimNet43;
-   assign s_logisimBus147[7]  = s_logisimNet10;
-   assign s_logisimBus147[8]  = s_logisimNet110;
-   assign s_logisimBus169[0]  = s_logisimNet2;
-   assign s_logisimBus169[10] = s_logisimNet88;
-   assign s_logisimBus169[11] = s_logisimNet112;
-   assign s_logisimBus169[12] = s_logisimNet51;
-   assign s_logisimBus169[13] = s_logisimNet57;
-   assign s_logisimBus169[14] = s_logisimNet80;
-   assign s_logisimBus169[15] = s_logisimNet118;
-   assign s_logisimBus169[1]  = s_logisimNet45;
-   assign s_logisimBus169[2]  = s_logisimNet87;
-   assign s_logisimBus169[3]  = s_logisimNet111;
-   assign s_logisimBus169[4]  = s_logisimNet50;
-   assign s_logisimBus169[5]  = s_logisimNet56;
-   assign s_logisimBus169[6]  = s_logisimNet79;
-   assign s_logisimBus169[7]  = s_logisimNet117;
-   assign s_logisimBus169[8]  = s_logisimNet3;
-   assign s_logisimBus169[9]  = s_logisimNet44;
-   assign s_logisimBus171[0]  = s_logisimNet92;
-   assign s_logisimBus171[1]  = s_logisimNet28;
-   assign s_logisimBus178[0]  = s_logisimNet62;
-   assign s_logisimBus178[10] = s_logisimNet127;
-   assign s_logisimBus178[11] = s_logisimNet13;
-   assign s_logisimBus178[12] = s_logisimNet72;
-   assign s_logisimBus178[13] = s_logisimNet94;
-   assign s_logisimBus178[14] = s_logisimNet27;
-   assign s_logisimBus178[15] = s_logisimNet39;
-   assign s_logisimBus178[1]  = s_logisimNet107;
-   assign s_logisimBus178[2]  = s_logisimNet126;
-   assign s_logisimBus178[3]  = s_logisimNet12;
-   assign s_logisimBus178[4]  = s_logisimNet73;
-   assign s_logisimBus178[5]  = s_logisimNet93;
-   assign s_logisimBus178[6]  = s_logisimNet29;
-   assign s_logisimBus178[7]  = s_logisimNet38;
-   assign s_logisimBus178[8]  = s_logisimNet63;
-   assign s_logisimBus178[9]  = s_logisimNet106;
-   assign s_logisimBus183[0]  = s_logisimNet240;
-   assign s_logisimBus183[1]  = s_logisimNet241;
-   assign s_logisimBus184[0]  = s_logisimNet85;
-   assign s_logisimBus184[1]  = s_logisimNet69;
-   assign s_logisimBus193[0]  = s_logisimNet18;
-   assign s_logisimBus193[1]  = s_logisimNet83;
-   assign s_logisimBus193[2]  = s_logisimNet98;
-   assign s_logisimBus193[3]  = s_logisimNet36;
-   assign s_logisimBus212[0]  = s_logisimNet33;
-   assign s_logisimBus212[1]  = s_logisimNet84;
-   assign s_logisimBus215[0]  = s_logisimNet95;
-   assign s_logisimBus215[1]  = s_logisimNet22;
-   assign s_logisimBus215[2]  = s_logisimNet40;
-   assign s_logisimBus215[3]  = s_logisimNet64;
-   assign s_logisimBus215[4]  = s_logisimNet75;
-   assign s_logisimBus231[0]  = s_logisimNet42;
-   assign s_logisimBus231[1]  = s_logisimNet120;
-   assign s_logisimBus237[0]  = s_logisimNet21;
-   assign s_logisimBus237[1]  = s_logisimNet34;
-   assign s_logisimBus237[2]  = s_logisimNet100;
-   assign s_logisimBus237[3]  = s_logisimNet68;
-   assign s_logisimBus237[4]  = s_logisimNet156;
-   assign s_logisimBus238[0]  = s_logisimNet7;
-   assign s_logisimBus238[1]  = s_logisimNet24;
-   assign s_logisimBus91[0]   = s_logisimNet25;
-   assign s_logisimBus91[1]   = s_logisimNet47;
-   assign s_logisimBus91[2]   = s_logisimNet20;
-   assign s_logisimNet0       = s_logisimBus103[5];
-   assign s_logisimNet10      = s_logisimBus37[7];
-   assign s_logisimNet100     = s_logisimBus190[2];
-   assign s_logisimNet101     = s_logisimBus102[1];
-   assign s_logisimNet106     = s_logisimBus167[9];
-   assign s_logisimNet107     = s_logisimBus167[1];
-   assign s_logisimNet109     = s_logisimBus37[0];
-   assign s_logisimNet11      = s_logisimBus32[0];
-   assign s_logisimNet110     = s_logisimBus37[8];
-   assign s_logisimNet111     = s_logisimBus216[3];
-   assign s_logisimNet112     = s_logisimBus216[11];
-   assign s_logisimNet116     = s_logisimBus103[4];
-   assign s_logisimNet117     = s_logisimBus216[7];
-   assign s_logisimNet118     = s_logisimBus216[15];
-   assign s_logisimNet12      = s_logisimBus167[3];
-   assign s_logisimNet120     = s_logisimBus49[1];
-   assign s_logisimNet126     = s_logisimBus167[2];
-   assign s_logisimNet127     = s_logisimBus167[10];
-   assign s_logisimNet13      = s_logisimBus167[11];
-   assign s_logisimNet14      = s_logisimBus103[1];
-   assign s_logisimNet156     = s_logisimBus190[4];
-   assign s_logisimNet18      = s_logisimBus155[0];
-   assign s_logisimNet19      = s_logisimBus103[6];
-   assign s_logisimNet2       = s_logisimBus216[0];
-   assign s_logisimNet20      = s_logisimBus200[2];
-   assign s_logisimNet21      = s_logisimBus190[0];
-   assign s_logisimNet22      = s_logisimBus189[1];
-   assign s_logisimNet24      = s_logisimBus26[1];
-   assign s_logisimNet240     = s_logisimBus201[0];
-   assign s_logisimNet241     = s_logisimBus201[1];
-   assign s_logisimNet25      = s_logisimBus200[0];
-   assign s_logisimNet27      = s_logisimBus167[14];
-   assign s_logisimNet28      = s_logisimBus60[1];
-   assign s_logisimNet29      = s_logisimBus167[6];
-   assign s_logisimNet3       = s_logisimBus216[8];
-   assign s_logisimNet33      = s_logisimBus210[0];
-   assign s_logisimNet34      = s_logisimBus190[1];
-   assign s_logisimNet36      = s_logisimBus155[3];
-   assign s_logisimNet38      = s_logisimBus167[7];
-   assign s_logisimNet39      = s_logisimBus167[15];
-   assign s_logisimNet4       = s_logisimBus37[5];
-   assign s_logisimNet40      = s_logisimBus189[2];
-   assign s_logisimNet41      = s_logisimBus32[1];
-   assign s_logisimNet42      = s_logisimBus49[0];
-   assign s_logisimNet43      = s_logisimBus37[6];
-   assign s_logisimNet44      = s_logisimBus216[9];
-   assign s_logisimNet45      = s_logisimBus216[1];
-   assign s_logisimNet47      = s_logisimBus200[1];
-   assign s_logisimNet5       = s_logisimBus103[3];
-   assign s_logisimNet50      = s_logisimBus216[4];
-   assign s_logisimNet51      = s_logisimBus216[12];
-   assign s_logisimNet52      = s_logisimBus102[0];
-   assign s_logisimNet54      = s_logisimBus103[2];
-   assign s_logisimNet56      = s_logisimBus216[5];
-   assign s_logisimNet57      = s_logisimBus216[13];
-   assign s_logisimNet58      = s_logisimBus103[0];
-   assign s_logisimNet59      = s_logisimBus37[4];
-   assign s_logisimNet6       = s_logisimBus37[2];
-   assign s_logisimNet62      = s_logisimBus167[0];
-   assign s_logisimNet63      = s_logisimBus167[8];
-   assign s_logisimNet64      = s_logisimBus189[3];
-   assign s_logisimNet68      = s_logisimBus190[3];
-   assign s_logisimNet69      = s_logisimBus232[1];
-   assign s_logisimNet7       = s_logisimBus26[0];
-   assign s_logisimNet72      = s_logisimBus167[12];
-   assign s_logisimNet73      = s_logisimBus167[4];
-   assign s_logisimNet75      = s_logisimBus189[4];
-   assign s_logisimNet77      = s_logisimBus32[3];
-   assign s_logisimNet78      = s_logisimBus37[3];
-   assign s_logisimNet79      = s_logisimBus216[6];
-   assign s_logisimNet80      = s_logisimBus216[14];
-   assign s_logisimNet83      = s_logisimBus155[1];
-   assign s_logisimNet84      = s_logisimBus210[1];
-   assign s_logisimNet85      = s_logisimBus232[0];
-   assign s_logisimNet87      = s_logisimBus216[2];
-   assign s_logisimNet88      = s_logisimBus216[10];
-   assign s_logisimNet89      = s_logisimBus37[1];
-   assign s_logisimNet90      = s_logisimBus32[2];
-   assign s_logisimNet92      = s_logisimBus60[0];
-   assign s_logisimNet93      = s_logisimBus167[5];
-   assign s_logisimNet94      = s_logisimBus167[13];
-   assign s_logisimNet95      = s_logisimBus189[0];
-   assign s_logisimNet98      = s_logisimBus155[2];
+   assign s_logisimBus101[0]  = s_logisimNet50;
+   assign s_logisimBus101[1]  = s_logisimNet98;
+   assign s_logisimBus118[0]  = s_logisimNet55;
+   assign s_logisimBus118[1]  = s_logisimNet14;
+   assign s_logisimBus118[2]  = s_logisimNet51;
+   assign s_logisimBus118[3]  = s_logisimNet5;
+   assign s_logisimBus118[4]  = s_logisimNet113;
+   assign s_logisimBus118[5]  = s_logisimNet0;
+   assign s_logisimBus118[6]  = s_logisimNet17;
+   assign s_logisimBus136[0]  = s_logisimNet11;
+   assign s_logisimBus136[1]  = s_logisimNet39;
+   assign s_logisimBus136[2]  = s_logisimNet87;
+   assign s_logisimBus136[3]  = s_logisimNet74;
+   assign s_logisimBus144[0]  = s_logisimNet106;
+   assign s_logisimBus144[1]  = s_logisimNet86;
+   assign s_logisimBus144[2]  = s_logisimNet6;
+   assign s_logisimBus144[3]  = s_logisimNet75;
+   assign s_logisimBus144[4]  = s_logisimNet56;
+   assign s_logisimBus144[5]  = s_logisimNet4;
+   assign s_logisimBus144[6]  = s_logisimNet41;
+   assign s_logisimBus144[7]  = s_logisimNet10;
+   assign s_logisimBus144[8]  = s_logisimNet107;
+   assign s_logisimBus166[0]  = s_logisimNet2;
+   assign s_logisimBus166[10] = s_logisimNet85;
+   assign s_logisimBus166[11] = s_logisimNet109;
+   assign s_logisimBus166[12] = s_logisimNet49;
+   assign s_logisimBus166[13] = s_logisimNet54;
+   assign s_logisimBus166[14] = s_logisimNet77;
+   assign s_logisimBus166[15] = s_logisimNet115;
+   assign s_logisimBus166[1]  = s_logisimNet42;
+   assign s_logisimBus166[2]  = s_logisimNet84;
+   assign s_logisimBus166[3]  = s_logisimNet108;
+   assign s_logisimBus166[4]  = s_logisimNet48;
+   assign s_logisimBus166[5]  = s_logisimNet53;
+   assign s_logisimBus166[6]  = s_logisimNet76;
+   assign s_logisimBus166[7]  = s_logisimNet114;
+   assign s_logisimBus166[8]  = s_logisimNet3;
+   assign s_logisimBus166[9]  = s_logisimNet43;
+   assign s_logisimBus168[0]  = s_logisimNet89;
+   assign s_logisimBus168[1]  = s_logisimNet26;
+   assign s_logisimBus175[0]  = s_logisimNet59;
+   assign s_logisimBus175[10] = s_logisimNet124;
+   assign s_logisimBus175[11] = s_logisimNet13;
+   assign s_logisimBus175[12] = s_logisimNet69;
+   assign s_logisimBus175[13] = s_logisimNet91;
+   assign s_logisimBus175[14] = s_logisimNet25;
+   assign s_logisimBus175[15] = s_logisimNet37;
+   assign s_logisimBus175[1]  = s_logisimNet104;
+   assign s_logisimBus175[2]  = s_logisimNet123;
+   assign s_logisimBus175[3]  = s_logisimNet12;
+   assign s_logisimBus175[4]  = s_logisimNet70;
+   assign s_logisimBus175[5]  = s_logisimNet90;
+   assign s_logisimBus175[6]  = s_logisimNet27;
+   assign s_logisimBus175[7]  = s_logisimNet36;
+   assign s_logisimBus175[8]  = s_logisimNet60;
+   assign s_logisimBus175[9]  = s_logisimNet103;
+   assign s_logisimBus180[0]  = s_logisimNet237;
+   assign s_logisimBus180[1]  = s_logisimNet238;
+   assign s_logisimBus181[0]  = s_logisimNet82;
+   assign s_logisimBus181[1]  = s_logisimNet66;
+   assign s_logisimBus190[0]  = s_logisimNet16;
+   assign s_logisimBus190[1]  = s_logisimNet80;
+   assign s_logisimBus190[2]  = s_logisimNet95;
+   assign s_logisimBus190[3]  = s_logisimNet34;
+   assign s_logisimBus209[0]  = s_logisimNet31;
+   assign s_logisimBus209[1]  = s_logisimNet81;
+   assign s_logisimBus212[0]  = s_logisimNet92;
+   assign s_logisimBus212[1]  = s_logisimNet20;
+   assign s_logisimBus212[2]  = s_logisimNet38;
+   assign s_logisimBus212[3]  = s_logisimNet61;
+   assign s_logisimBus212[4]  = s_logisimNet72;
+   assign s_logisimBus228[0]  = s_logisimNet40;
+   assign s_logisimBus228[1]  = s_logisimNet117;
+   assign s_logisimBus234[0]  = s_logisimNet19;
+   assign s_logisimBus234[1]  = s_logisimNet32;
+   assign s_logisimBus234[2]  = s_logisimNet97;
+   assign s_logisimBus234[3]  = s_logisimNet65;
+   assign s_logisimBus234[4]  = s_logisimNet153;
+   assign s_logisimBus235[0]  = s_logisimNet7;
+   assign s_logisimBus235[1]  = s_logisimNet22;
+   assign s_logisimBus88[0]   = s_logisimNet23;
+   assign s_logisimBus88[1]   = s_logisimNet45;
+   assign s_logisimBus88[2]   = s_logisimNet18;
+   assign s_logisimNet0       = s_logisimBus100[5];
+   assign s_logisimNet10      = s_logisimBus35[7];
+   assign s_logisimNet103     = s_logisimBus164[9];
+   assign s_logisimNet104     = s_logisimBus164[1];
+   assign s_logisimNet106     = s_logisimBus35[0];
+   assign s_logisimNet107     = s_logisimBus35[8];
+   assign s_logisimNet108     = s_logisimBus213[3];
+   assign s_logisimNet109     = s_logisimBus213[11];
+   assign s_logisimNet11      = s_logisimBus30[0];
+   assign s_logisimNet113     = s_logisimBus100[4];
+   assign s_logisimNet114     = s_logisimBus213[7];
+   assign s_logisimNet115     = s_logisimBus213[15];
+   assign s_logisimNet117     = s_logisimBus47[1];
+   assign s_logisimNet12      = s_logisimBus164[3];
+   assign s_logisimNet123     = s_logisimBus164[2];
+   assign s_logisimNet124     = s_logisimBus164[10];
+   assign s_logisimNet13      = s_logisimBus164[11];
+   assign s_logisimNet14      = s_logisimBus100[1];
+   assign s_logisimNet153     = s_logisimBus187[4];
+   assign s_logisimNet16      = s_logisimBus152[0];
+   assign s_logisimNet17      = s_logisimBus100[6];
+   assign s_logisimNet18      = s_logisimBus197[2];
+   assign s_logisimNet19      = s_logisimBus187[0];
+   assign s_logisimNet2       = s_logisimBus213[0];
+   assign s_logisimNet20      = s_logisimBus186[1];
+   assign s_logisimNet22      = s_logisimBus24[1];
+   assign s_logisimNet23      = s_logisimBus197[0];
+   assign s_logisimNet237     = s_logisimBus198[0];
+   assign s_logisimNet238     = s_logisimBus198[1];
+   assign s_logisimNet25      = s_logisimBus164[14];
+   assign s_logisimNet26      = s_logisimBus57[1];
+   assign s_logisimNet27      = s_logisimBus164[6];
+   assign s_logisimNet3       = s_logisimBus213[8];
+   assign s_logisimNet31      = s_logisimBus207[0];
+   assign s_logisimNet32      = s_logisimBus187[1];
+   assign s_logisimNet34      = s_logisimBus152[3];
+   assign s_logisimNet36      = s_logisimBus164[7];
+   assign s_logisimNet37      = s_logisimBus164[15];
+   assign s_logisimNet38      = s_logisimBus186[2];
+   assign s_logisimNet39      = s_logisimBus30[1];
+   assign s_logisimNet4       = s_logisimBus35[5];
+   assign s_logisimNet40      = s_logisimBus47[0];
+   assign s_logisimNet41      = s_logisimBus35[6];
+   assign s_logisimNet42      = s_logisimBus213[1];
+   assign s_logisimNet43      = s_logisimBus213[9];
+   assign s_logisimNet45      = s_logisimBus197[1];
+   assign s_logisimNet48      = s_logisimBus213[4];
+   assign s_logisimNet49      = s_logisimBus213[12];
+   assign s_logisimNet5       = s_logisimBus100[3];
+   assign s_logisimNet50      = s_logisimBus99[0];
+   assign s_logisimNet51      = s_logisimBus100[2];
+   assign s_logisimNet53      = s_logisimBus213[5];
+   assign s_logisimNet54      = s_logisimBus213[13];
+   assign s_logisimNet55      = s_logisimBus100[0];
+   assign s_logisimNet56      = s_logisimBus35[4];
+   assign s_logisimNet59      = s_logisimBus164[0];
+   assign s_logisimNet6       = s_logisimBus35[2];
+   assign s_logisimNet60      = s_logisimBus164[8];
+   assign s_logisimNet61      = s_logisimBus186[3];
+   assign s_logisimNet65      = s_logisimBus187[3];
+   assign s_logisimNet66      = s_logisimBus229[1];
+   assign s_logisimNet69      = s_logisimBus164[12];
+   assign s_logisimNet7       = s_logisimBus24[0];
+   assign s_logisimNet70      = s_logisimBus164[4];
+   assign s_logisimNet72      = s_logisimBus186[4];
+   assign s_logisimNet74      = s_logisimBus30[3];
+   assign s_logisimNet75      = s_logisimBus35[3];
+   assign s_logisimNet76      = s_logisimBus213[6];
+   assign s_logisimNet77      = s_logisimBus213[14];
+   assign s_logisimNet80      = s_logisimBus152[1];
+   assign s_logisimNet81      = s_logisimBus207[1];
+   assign s_logisimNet82      = s_logisimBus229[0];
+   assign s_logisimNet84      = s_logisimBus213[2];
+   assign s_logisimNet85      = s_logisimBus213[10];
+   assign s_logisimNet86      = s_logisimBus35[1];
+   assign s_logisimNet87      = s_logisimBus30[2];
+   assign s_logisimNet89      = s_logisimBus57[0];
+   assign s_logisimNet90      = s_logisimBus164[5];
+   assign s_logisimNet91      = s_logisimBus164[13];
+   assign s_logisimNet92      = s_logisimBus186[0];
+   assign s_logisimNet95      = s_logisimBus152[2];
+   assign s_logisimNet97      = s_logisimBus187[2];
+   assign s_logisimNet98      = s_logisimBus99[1];
 
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus102[1:0]  = XCSSST_1_0;
-   assign s_logisimBus103[6:0]  = XPT_9_15;
-   assign s_logisimBus155[3:0]  = XCSTS_6_3;
-   assign s_logisimBus167[15:0] = XCD_15_0;
-   assign s_logisimBus189[4:0]  = XCSIDBS_4_0;
-   assign s_logisimBus190[4:0]  = XCSCOMM_4_0;
-   assign s_logisimBus200[2:0]  = XTSEL_2_0;
-   assign s_logisimBus210[1:0]  = XCSRASEL_1_0;
-   assign s_logisimBus216[15:0] = XCSBIT_15_0;
-   assign s_logisimBus232[1:0]  = XCSRBSEL_1_0;
-   assign s_logisimBus26[1:0]   = XCSCINSEL_1_0;
-   assign s_logisimBus32[3:0]   = XCSRB_3_0;
-   assign s_logisimBus37[8:0]   = XCSALUI_8_0;
-   assign s_logisimBus49[1:0]   = XCSALUM_1_0;
-   assign s_logisimBus60[1:0]   = XCSMIS_1_0;
-   assign s_logisimBus86[15:0]  = XFIDB_15_0_IN;
-   assign s_logisimNet105       = XMRN;
-   assign s_logisimNet113       = XSTP;
-   assign s_logisimNet114       = XVTRAPN;
-   assign s_logisimNet119       = XMORN;
-   assign s_logisimNet122       = XPOWFAILN;
-   assign s_logisimNet129       = XPTSTN;
-   assign s_logisimNet133       = XMCLK;
-   assign s_logisimNet134       = XIOXERRN;
-   assign s_logisimNet140       = XCSSCOND;
-   assign s_logisimNet141       = XFTRAPN;
-   assign s_logisimNet142       = XSPARE;
-   assign s_logisimNet146       = XPANN;
-   assign s_logisimNet148       = BDEST;
-   assign s_logisimNet151       = XCSBIT20;
-   assign s_logisimNet160       = XILCSN;
-   assign s_logisimNet163       = XBINT12N;
-   assign s_logisimNet173       = XETRAPN;
-   assign s_logisimNet174       = XBINT11N;
-   assign s_logisimNet175       = XPARERRN;
-   assign s_logisimNet181       = XTCLK;
-   assign s_logisimNet192       = XCSXRF3;
-   assign s_logisimNet197       = XALUCLK;
-   assign s_logisimNet202       = XEMPIDN;
-   assign s_logisimNet211       = XEDON;
-   assign s_logisimNet220       = XEWCAN;
-   assign s_logisimNet221       = XCSECOND;
-   assign s_logisimNet222       = XCSVECT;
-   assign s_logisimNet228       = XBINT13N;
-   assign s_logisimNet229       = XMAPN;
-   assign s_logisimNet48        = XCSLOOP;
-   assign s_logisimNet71        = XBINT15N;
-   assign s_logisimNet76        = XBINT10N;
+   assign s_logisimBus100[6:0]  = XPT_9_15;
+   assign s_logisimBus152[3:0]  = XCSTS_6_3;
+   assign s_logisimBus164[15:0] = XCD_15_0;
+   assign s_logisimBus186[4:0]  = XCSIDBS_4_0;
+   assign s_logisimBus187[4:0]  = XCSCOMM_4_0;
+   assign s_logisimBus197[2:0]  = XTSEL_2_0;
+   assign s_logisimBus207[1:0]  = XCSRASEL_1_0;
+   assign s_logisimBus213[15:0] = XCSBIT_15_0;
+   assign s_logisimBus229[1:0]  = XCSRBSEL_1_0;
+   assign s_logisimBus24[1:0]   = XCSCINSEL_1_0;
+   assign s_logisimBus30[3:0]   = XCSRB_3_0;
+   assign s_logisimBus35[8:0]   = XCSALUI_8_0;
+   assign s_logisimBus47[1:0]   = XCSALUM_1_0;
+   assign s_logisimBus57[1:0]   = XCSMIS_1_0;
+   assign s_logisimBus83[15:0]  = XFIDB_15_0_IN;
+   assign s_logisimBus99[1:0]   = XCSSST_1_0;
+   assign s_logisimNet102       = XMRN;
+   assign s_logisimNet110       = XSTP;
+   assign s_logisimNet111       = XVTRAPN;
+   assign s_logisimNet116       = XMORN;
+   assign s_logisimNet119       = XPOWFAILN;
+   assign s_logisimNet126       = XPTSTN;
+   assign s_logisimNet130       = XMCLK;
+   assign s_logisimNet131       = XIOXERRN;
+   assign s_logisimNet137       = XCSSCOND;
+   assign s_logisimNet138       = XFTRAPN;
+   assign s_logisimNet139       = XSPARE;
+   assign s_logisimNet143       = XPANN;
+   assign s_logisimNet145       = BDEST;
+   assign s_logisimNet148       = XCSBIT20;
+   assign s_logisimNet157       = XILCSN;
+   assign s_logisimNet160       = XBINT12N;
+   assign s_logisimNet170       = XETRAPN;
+   assign s_logisimNet171       = XBINT11N;
+   assign s_logisimNet172       = XPARERRN;
+   assign s_logisimNet178       = XTCLK;
+   assign s_logisimNet189       = XCSXRF3;
+   assign s_logisimNet194       = XALUCLK;
+   assign s_logisimNet199       = XEMPIDN;
+   assign s_logisimNet208       = XEDON;
+   assign s_logisimNet217       = XEWCAN;
+   assign s_logisimNet218       = XCSECOND;
+   assign s_logisimNet219       = XCSVECT;
+   assign s_logisimNet225       = XBINT13N;
+   assign s_logisimNet226       = XMAPN;
+   assign s_logisimNet46        = XCSLOOP;
+   assign s_logisimNet68        = XBINT15N;
+   assign s_logisimNet73        = XBINT10N;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign XACONDN        = s_logisimNet208;
-   assign XBRKN          = s_logisimNet138;
-   assign XDOUBLE        = s_logisimNet131;
-   assign XECCR          = s_logisimNet143;
-   assign XERFN          = s_logisimNet176;
+   assign XACONDN        = s_logisimNet206;
+   assign XBRKN          = s_logisimNet135;
+   assign XDOUBLE        = s_logisimNet128;
+   assign XECCR          = s_logisimNet140;
+   assign XERFN          = s_logisimNet173;
    assign XFIDB_15_0_OUT = s_logisimBus15[15:0];
-   assign XINTRQN        = s_logisimNet168;
-   assign XIONI          = s_logisimNet217;
-   assign XLAA_3_0       = s_logisimBus204[3:0];
-   assign XLA_23_10      = s_logisimBus225[13:0];
-   assign XLBA_3_0       = s_logisimBus137[3:0];
-   assign XLSHADOW       = s_logisimNet170;
-   assign XMA_12_0       = s_logisimBus230[12:0];
-   assign XMCA_9_0       = s_logisimBus218[9:0];
-   assign XPCR_1_0       = s_logisimBus183[1:0];
-   assign XPIL_3_0       = s_logisimBus152[3:0];
-   assign XPONI          = s_logisimNet187;
-   assign XRF_1_0        = s_logisimBus128[1:0];
-   assign XTEST_4_0      = s_logisimBus96[4:0];
-   assign XTRAPN         = s_logisimNet199;
-   assign XWCSN          = s_logisimNet166;
-   assign XWRTRF         = s_logisimNet226;
+   assign XINTRQN        = s_logisimNet165;
+   assign XIONI          = s_logisimNet214;
+   assign XLAA_3_0       = s_logisimBus201[3:0];
+   assign XLA_23_10      = s_logisimBus222[13:0];
+   assign XLBA_3_0       = s_logisimBus134[3:0];
+   assign XLSHADOW       = s_logisimNet167;
+   assign XMA_12_0       = s_logisimBus227[12:0];
+   assign XMCA_9_0       = s_logisimBus215[9:0];
+   assign XPCR_1_0       = s_logisimBus180[1:0];
+   assign XPIL_3_0       = s_logisimBus149[3:0];
+   assign XPONI          = s_logisimNet184;
+   assign XRF_1_0        = s_logisimBus125[1:0];
+   assign XTEST_4_0      = s_logisimBus93[4:0];
+   assign XTRAPN         = s_logisimNet196;
+   assign XWCSN          = s_logisimNet163;
+   assign XWRTRF         = s_logisimNet223;
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
    // Power
-   assign  s_logisimNet99  =  1'b1;
+   assign  s_logisimNet96  =  1'b1;
 
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   CGA_ALU   ALU (.ALUCLK(s_logisimNet197),
-                  .A_15_0(s_logisimBus164[15:0]),
-                  .BDEST(s_logisimNet219),
-                  .B_15_0(s_logisimBus115[15:0]),
-                  .CD_15_0(s_logisimBus178[15:0]),
-                  .CRY(s_logisimNet158),
-                  .CSALUI_8_0(s_logisimBus147[8:0]),
-                  .CSALUM_1_0(s_logisimBus231[1:0]),
-                  .CSBIT_15_0(s_logisimBus169[15:0]),
-                  .CSCINSEL_1_0(s_logisimBus238[1:0]),
-                  .CSIDBS_4_0(s_logisimBus215[4:0]),
-                  .CSMIS_1_0(s_logisimBus171[1:0]),
-                  .CSSST_1_0(s_logisimBus104[1:0]),
-                  .DOUBLE(s_logisimNet131),
-                  .EA_15_0(s_logisimBus16[15:0]),
-                  .F11(s_logisimNet161),
-                  .F15(s_logisimNet223),
-                  .FIDBI_15_0(s_logisimBus194[15:0]),
-                  .FIDBO_15_0(s_logisimBus162[15:0]),
-                  .IONI(s_logisimNet217),
-                  .LAA_3_0(s_logisimBus204[3:0]),
-                  .LBA_3_0(s_logisimBus137[3:0]),
-                  .LCZN(s_logisimNet214),
-                  .LDDBRN(s_logisimNet186),
-                  .LDGPRN(s_logisimNet153),
-                  .LDIRV(s_logisimNet227),
-                  .LDPILN(s_logisimNet185),
-                  .MI(s_logisimNet206),
-                  .OVF(s_logisimNet172),
-                  .PIL(s_logisimBus53[3:0]),
-                  .PONI(s_logisimNet187),
-                  .PTM(s_logisimNet188),
-                  .RB_15_0(s_logisimBus65[15:0]),
-                  .SGR(s_logisimNet191),
-                  .UPN(s_logisimNet207),
-                  .XFETCHN(s_logisimNet209),
-                  .Z(s_logisimNet195),
-                  .ZF(s_logisimNet180));
+   CGA_ALU   ALU (.ALUCLK(s_logisimNet194),
+                  .A_15_0(s_logisimBus161[15:0]),
+                  .BDEST(s_logisimNet216),
+                  .B_15_0(s_logisimBus112[15:0]),
+                  .CD_15_0(s_logisimBus175[15:0]),
+                  .CRY(s_logisimNet155),
+                  .CSALUI_8_0(s_logisimBus144[8:0]),
+                  .CSALUM_1_0(s_logisimBus228[1:0]),
+                  .CSBIT_15_0(s_logisimBus166[15:0]),
+                  .CSCINSEL_1_0(s_logisimBus235[1:0]),
+                  .CSIDBS_4_0(s_logisimBus212[4:0]),
+                  .CSMIS_1_0(s_logisimBus168[1:0]),
+                  .CSSST_1_0(s_logisimBus101[1:0]),
+                  .DOUBLE(s_logisimNet128),
+                  .EA_15_0(s_logisimBus221[15:0]),
+                  .F11(s_logisimNet158),
+                  .F15(s_logisimNet220),
+                  .FIDBI_15_0(s_logisimBus191[15:0]),
+                  .FIDBO_15_0(s_logisimBus159[15:0]),
+                  .IONI(s_logisimNet214),
+                  .LAA_3_0(s_logisimBus201[3:0]),
+                  .LBA_3_0(s_logisimBus134[3:0]),
+                  .LCZN(s_logisimNet211),
+                  .LDDBRN(s_logisimNet183),
+                  .LDGPRN(s_logisimNet150),
+                  .LDIRV(s_logisimNet224),
+                  .LDPILN(s_logisimNet182),
+                  .MI(s_logisimNet203),
+                  .OVF(s_logisimNet169),
+                  .PIL_3_0(s_logisimBus149[3:0]),
+                  .PONI(s_logisimNet184),
+                  .PTM(s_logisimNet185),
+                  .RB_15_0(s_logisimBus62[15:0]),
+                  .SGR(s_logisimNet188),
+                  .UPN(s_logisimNet204),
+                  .XFETCHN(s_logisimNet205),
+                  .Z(s_logisimNet192),
+                  .ZF(s_logisimNet177));
 
-   CGA_TRAP   TRAP (.BRKN(s_logisimNet138),
-                    .CBRKN(s_logisimNet97),
-                    .DSTOPN(s_logisimNet66),
-                    .ETRAPN(s_logisimNet173),
-                    .FETCHN(s_logisimNet125),
-                    .FTRAPN(s_logisimNet141),
-                    .INDN(s_logisimNet123),
-                    .INTRQN(s_logisimNet168),
-                    .PANN(s_logisimNet146),
-                    .PCR_1_0(s_logisimBus183[1:0]),
-                    .PONI(s_logisimNet187),
-                    .PT_15_9(s_logisimBus17[6:0]),
-                    .PVIOL(s_logisimNet74),
-                    .RESTR(s_logisimNet213),
-                    .TCLK(s_logisimNet181),
-                    .TRAPN(s_logisimNet199),
-                    .TVEC_3_0(s_logisimBus132[3:0]),
-                    .VACCN(s_logisimNet149),
-                    .VTRAPN(s_logisimNet114),
-                    .WRITEN(s_logisimNet61));
+   CGA_TRAP   TRAP (.BRKN(s_logisimNet135),
+                    .CBRKN(s_logisimNet94),
+                    .DSTOPN(s_logisimNet63),
+                    .ETRAPN(s_logisimNet170),
+                    .FETCHN(s_logisimNet122),
+                    .FTRAPN(s_logisimNet138),
+                    .INDN(s_logisimNet120),
+                    .INTRQN(s_logisimNet165),
+                    .PANN(s_logisimNet143),
+                    .PCR_1_0(s_logisimBus180[1:0]),
+                    .PONI(s_logisimNet184),
+                    .PT_15_9(s_logisimBus118[6:0]),
+                    .PVIOL(s_logisimNet71),
+                    .RESTR(s_logisimNet210),
+                    .TCLK(s_logisimNet178),
+                    .TRAPN(s_logisimNet196),
+                    .TVEC_3_0(s_logisimBus129[3:0]),
+                    .VACCN(s_logisimNet146),
+                    .VTRAPN(s_logisimNet111),
+                    .WRITEN(s_logisimNet58));
 
-   CGA_IDBCTL   IDBCTL (.EPCRN(s_logisimNet35),
-                        .EPGSN(s_logisimNet23),
-                        .EPICMASKN(s_logisimNet108),
+   CGA_IDBCTL   IDBCTL (.EPCRN(s_logisimNet33),
+                        .EPGSN(s_logisimNet21),
+                        .EPICMASKN(s_logisimNet105),
                         .EPICSN(s_logisimNet1),
-                        .EPICVN(s_logisimNet81),
-                        .FETCHN(s_logisimNet125),
-                        .FIDBI_15_0(s_logisimBus194[15:0]),
-                        .HIGSN(s_logisimNet46),
-                        .LA_21_10(s_logisimBus234[11:0]),
+                        .EPICVN(s_logisimNet78),
+                        .FETCHN(s_logisimNet122),
+                        .FIDBI_15_0(s_logisimBus191[15:0]),
+                        .HIGSN(s_logisimNet44),
+                        .LA_21_10(s_logisimBus222[11:0]),
                         .LOGSN(s_logisimNet8),
-                        .MCLK(s_logisimNet133),
-                        .PCR_15_0(s_logisimBus201[15:0]),
-                        .PD(s_logisimNet31),
-                        .PICMASK_15_0(s_logisimBus135[15:0]),
-                        .PICS_2_0(s_logisimBus70[2:0]),
-                        .PICV_2_0(s_logisimBus145[2:0]),
-                        .PVIOL(s_logisimNet74),
-                        .VACCN(s_logisimNet149),
-                        .XFIDBI_15_0(s_logisimBus196[15:0]));
+                        .MCLK(s_logisimNet130),
+                        .PCR_15_0(s_logisimBus198[15:0]),
+                        .PD(s_logisimNet29),
+                        .PICMASK_15_0(s_logisimBus132[15:0]),
+                        .PICS_2_0(s_logisimBus67[2:0]),
+                        .PICV_2_0(s_logisimBus142[2:0]),
+                        .PVIOL(s_logisimNet71),
+                        .VACCN(s_logisimNet146),
+                        .XFIDBI_15_0(s_logisimBus193[15:0]));
 
-   CGA_WRF   WRF (.ALUCLK(s_logisimNet197),
-                  .A_15_0(s_logisimBus164[15:0]),
-                  .BDEST(s_logisimNet148),
+   CGA_WRF   WRF (.ALUCLK(s_logisimNet194),
+                  .A_15_0(s_logisimBus161[15:0]),
+                  .BDEST(s_logisimNet145),
                   .BR_15_0(s_logisimBus9[15:0]),
-                  .B_15_0(s_logisimBus115[15:0]),
-                  .LAA_3_0(s_logisimBus204[3:0]),
-                  .LBA_3_0(s_logisimBus137[3:0]),
-                  .NLCA_15_0(s_logisimBus130[15:0]),
-                  .PR_15_0(s_logisimBus55[15:0]),
-                  .RB_15_0(s_logisimBus65[15:0]),
-                  .WPN(s_logisimNet233),
-                  .WR3(s_logisimNet154),
-                  .WR7(s_logisimNet159),
-                  .XFETCHN(s_logisimNet209),
-                  .XR_15_0(s_logisimBus67[15:0]));
+                  .B_15_0(s_logisimBus112[15:0]),
+                  .EA_15_0(s_logisimBus221[15:0]),
+                  .LAA_3_0(s_logisimBus201[3:0]),
+                  .LBA_3_0(s_logisimBus134[3:0]),
+                  .NLCA_15_0(s_logisimBus127[15:0]),
+                  .PR_15_0(s_logisimBus52[15:0]),
+                  .RB_15_0(s_logisimBus62[15:0]),
+                  .WPN(s_logisimNet230),
+                  .WR3(s_logisimNet151),
+                  .WR7(s_logisimNet156),
+                  .XFETCHN(s_logisimNet205),
+                  .XR_15_0(s_logisimBus64[15:0]));
 
-   CGA_DCD   DCD (.BRKN(s_logisimNet138),
-                  .CBRKN(s_logisimNet97),
-                  .CFETCH(s_logisimNet124),
-                  .CLFFN(s_logisimNet239),
-                  .CLIRQN(s_logisimNet30),
-                  .CRY(s_logisimNet180),
-                  .CSCOMM_4_0(s_logisimBus224[4:0]),
-                  .CSIDBS_4_0(s_logisimBus215[4:0]),
-                  .CSMIS_1_0(s_logisimBus171[1:0]),
-                  .CSMREQ(s_logisimNet136),
-                  .DSTOPN(s_logisimNet66),
-                  .EPCRN(s_logisimNet35),
-                  .EPGSN(s_logisimNet23),
-                  .EPIC(s_logisimNet82),
+   CGA_DCD   DCD (.BRKN(s_logisimNet135),
+                  .CBRKN(s_logisimNet94),
+                  .CFETCH(s_logisimNet121),
+                  .CLFFN(s_logisimNet236),
+                  .CLIRQN(s_logisimNet28),
+                  .CRY(s_logisimNet177),
+                  .CSCOMM_4_0(s_logisimBus234[4:0]),
+                  .CSIDBS_4_0(s_logisimBus212[4:0]),
+                  .CSMIS_1_0(s_logisimBus168[1:0]),
+                  .CSMREQ(s_logisimNet133),
+                  .DSTOPN(s_logisimNet63),
+                  .EPCRN(s_logisimNet33),
+                  .EPGSN(s_logisimNet21),
+                  .EPIC(s_logisimNet79),
                   .EPICSN(s_logisimNet1),
-                  .EPICVN(s_logisimNet81),
-                  .ERFN(s_logisimNet176),
-                  .F15(s_logisimNet223),
-                  .FETCHN(s_logisimNet125),
-                  .FIDBO5(s_logisimBus162[5]),
-                  .ILCSN(s_logisimNet160),
-                  .INDN(s_logisimNet123),
-                  .INTRQN(s_logisimNet168),
-                  .LDDBRN(s_logisimNet186),
-                  .LDGPRN(s_logisimNet153),
-                  .LDIRV(s_logisimNet227),
-                  .LDLCN(s_logisimNet144),
-                  .LDPILN(s_logisimNet185),
-                  .LSHADOW(s_logisimNet170),
-                  .LWCAN(s_logisimNet203),
-                  .MCLK(s_logisimNet133),
-                  .MRN(s_logisimNet105),
-                  .PONI(s_logisimNet187),
-                  .SGR(s_logisimNet191),
-                  .VACCN(s_logisimNet149),
-                  .VEX(s_logisimNet198),
-                  .WPN(s_logisimNet233),
-                  .WRITEN(s_logisimNet61),
-                  .WRTRF(s_logisimNet226),
-                  .XFETCHN(s_logisimNet209),
-                  .ZF(s_logisimNet158));
+                  .EPICVN(s_logisimNet78),
+                  .ERFN(s_logisimNet173),
+                  .F15(s_logisimNet220),
+                  .FETCHN(s_logisimNet122),
+                  .FIDBO5(s_logisimBus159[5]),
+                  .ILCSN(s_logisimNet157),
+                  .INDN(s_logisimNet120),
+                  .INTRQN(s_logisimNet165),
+                  .LDDBRN(s_logisimNet183),
+                  .LDGPRN(s_logisimNet150),
+                  .LDIRV(s_logisimNet224),
+                  .LDLCN(s_logisimNet141),
+                  .LDPILN(s_logisimNet182),
+                  .LSHADOW(s_logisimNet167),
+                  .LWCAN(s_logisimNet200),
+                  .MCLK(s_logisimNet130),
+                  .MRN(s_logisimNet102),
+                  .PONI(s_logisimNet184),
+                  .SGR(s_logisimNet188),
+                  .VACCN(s_logisimNet146),
+                  .VEX(s_logisimNet195),
+                  .WPN(s_logisimNet230),
+                  .WRITEN(s_logisimNet58),
+                  .WRTRF(s_logisimNet223),
+                  .XFETCHN(s_logisimNet205),
+                  .ZF(s_logisimNet155));
 
-   BusDriver16   BD_FIDBO (.A_15_0(s_logisimBus162[15:0]),
-                           .EN(s_logisimNet211),
-                           .IN_15_0(s_logisimBus86[15:0]),
+   BusDriver16   BD_FIDBO (.A_15_0(s_logisimBus159[15:0]),
+                           .EN(s_logisimNet208),
+                           .IN_15_0(s_logisimBus83[15:0]),
                            .OUT_15_0(s_logisimBus15[15:0]),
-                           .TN(s_logisimNet129),
-                           .ZI_15_0(s_logisimBus196[15:0]));
+                           .TN(s_logisimNet126),
+                           .ZI_15_0(s_logisimBus193[15:0]));
 
-   CGA_INTR   INTR (.BINT10N(s_logisimNet76),
-                    .BINT11N(s_logisimNet174),
-                    .BINT12N(s_logisimNet163),
-                    .BINT13N(s_logisimNet228),
-                    .BINT15N(s_logisimNet71),
-                    .CLIRQN(s_logisimNet30),
-                    .EMPIDN(s_logisimNet202),
-                    .EPIC(s_logisimNet82),
-                    .EPICMASKN(s_logisimNet108),
-                    .FIDBO_15_0(s_logisimBus162[15:0]),
-                    .HIGSN(s_logisimNet46),
-                    .INTRQN(s_logisimNet168),
-                    .IOXERRN(s_logisimNet134),
-                    .IRQ(s_logisimNet177),
-                    .LAA_3_0(s_logisimBus204[3:0]),
+   CGA_INTR   INTR (.BINT10N(s_logisimNet73),
+                    .BINT11N(s_logisimNet171),
+                    .BINT12N(s_logisimNet160),
+                    .BINT13N(s_logisimNet225),
+                    .BINT15N(s_logisimNet68),
+                    .CLIRQN(s_logisimNet28),
+                    .EMPIDN(s_logisimNet199),
+                    .EPIC(s_logisimNet79),
+                    .EPICMASKN(s_logisimNet105),
+                    .FIDBO_15_0(s_logisimBus159[15:0]),
+                    .HIGSN(s_logisimNet44),
+                    .INTRQN(s_logisimNet165),
+                    .IOXERRN(s_logisimNet131),
+                    .IRQ(s_logisimNet174),
+                    .LAA_3_0(s_logisimBus201[3:0]),
                     .LOGSN(s_logisimNet8),
-                    .MCLK(s_logisimNet133),
-                    .NORN(s_logisimNet119),
-                    .PANN(s_logisimNet146),
-                    .PARERRN(s_logisimNet175),
-                    .PD(s_logisimNet31),
-                    .PICMASK_15_0(s_logisimBus135[15:0]),
-                    .PICS_2_0(s_logisimBus70[2:0]),
-                    .PICV_2_0(s_logisimBus145[2:0]),
-                    .POWFAILN(s_logisimNet122),
-                    .Z(s_logisimNet195));
+                    .MCLK(s_logisimNet130),
+                    .NORN(s_logisimNet116),
+                    .PANN(s_logisimNet143),
+                    .PARERRN(s_logisimNet172),
+                    .PD(s_logisimNet29),
+                    .PICMASK_15_0(s_logisimBus132[15:0]),
+                    .PICS_2_0(s_logisimBus67[2:0]),
+                    .PICV_2_0(s_logisimBus142[2:0]),
+                    .POWFAILN(s_logisimNet119),
+                    .Z(s_logisimNet192));
 
    CGA_MAC   MAC (.BR_15_0(s_logisimBus9[15:0]),
-                  .CD_15_0(s_logisimBus178[15:0]),
-                  .CMIS_1_0(s_logisimBus171[1:0]),
-                  .CSCOMM_4_0(s_logisimBus224[4:0]),
-                  .CSMREQ(s_logisimNet136),
-                  .DOUBLE(s_logisimNet131),
-                  .ECCR(s_logisimNet143),
-                  .FIDBO_15_0(s_logisimBus162[15:0]),
-                  .ILCSN(s_logisimNet160),
-                  .LA_23_10(s_logisimBus225[13:0]),
-                  .LSHADOW(s_logisimNet170),
-                  .MCA_9_0(s_logisimBus218[9:0]),
-                  .MCLK(s_logisimNet133),
-                  .NLCA_15_0(s_logisimBus130[15:0]),
-                  .PCR_15_0(s_logisimBus201[15:0]),
-                  .PONI(s_logisimNet187),
-                  .PR_15_0(s_logisimBus55[15:0]),
-                  .PTM(s_logisimNet188),
-                  .RB_15_0(s_logisimBus65[15:0]),
-                  .VEX(s_logisimNet198),
-                  .WR3(s_logisimNet154),
-                  .WR7(s_logisimNet159),
-                  .XR_15_0(s_logisimBus67[15:0]));
+                  .CD_15_0(s_logisimBus175[15:0]),
+                  .CMIS_1_0(s_logisimBus168[1:0]),
+                  .CSCOMM_4_0(s_logisimBus234[4:0]),
+                  .CSMREQ(s_logisimNet133),
+                  .DOUBLE(s_logisimNet128),
+                  .ECCR(s_logisimNet140),
+                  .FIDBO_15_0(s_logisimBus159[15:0]),
+                  .ILCSN(s_logisimNet157),
+                  .LA_23_10(s_logisimBus222[13:0]),
+                  .LSHADOW(s_logisimNet167),
+                  .MCA_9_0(s_logisimBus215[9:0]),
+                  .MCLK(s_logisimNet130),
+                  .NLCA_15_0(s_logisimBus127[15:0]),
+                  .PCR_15_0(s_logisimBus198[15:0]),
+                  .PONI(s_logisimNet184),
+                  .PR_15_0(s_logisimBus52[15:0]),
+                  .PTM(s_logisimNet185),
+                  .RB_15_0(s_logisimBus62[15:0]),
+                  .VEX(s_logisimNet195),
+                  .WR3(s_logisimNet151),
+                  .WR7(s_logisimNet156),
+                  .XR_15_0(s_logisimBus64[15:0]));
 
-   CGA_MIC   MIC (.ACONDN(s_logisimNet208),
-                  .ALUCLK(s_logisimNet197),
-                  .CD_15_0(s_logisimBus178[15:0]),
-                  .CFETCH(s_logisimNet124),
-                  .CLFFN(s_logisimNet239),
-                  .COND(s_logisimNet179),
-                  .CRY(s_logisimNet180),
-                  .CSALUI8(s_logisimNet110),
-                  .CSBIT20(s_logisimNet151),
-                  .CSBIT_15_0(s_logisimBus169[15:0]),
-                  .CSCOND(s_logisimNet140),
-                  .CSECOND(s_logisimNet221),
-                  .CSLOOP(s_logisimNet48),
-                  .CSMIS0(s_logisimNet92),
-                  .CSRASEL_1_0(s_logisimBus212[1:0]),
-                  .CSRBSEL_1_0(s_logisimBus184[1:0]),
-                  .CSRB_3_0(s_logisimBus139[3:0]),
-                  .CSTS_6_3(s_logisimBus193[3:0]),
-                  .CSVECT(s_logisimNet222),
-                  .CSXRF3(s_logisimNet192),
-                  .DEEP(s_logisimNet182),
-                  .DZD(s_logisimNet205),
-                  .EWCAN(s_logisimNet220),
-                  .F11(s_logisimNet161),
-                  .F15(s_logisimNet223),
-                  .ILCSN(s_logisimNet160),
-                  .IRQ(s_logisimNet177),
-                  .LAA_3_0(s_logisimBus204[3:0]),
-                  .LBA_3_0(s_logisimBus137[3:0]),
+   CGA_MIC   MIC (.ACONDN(s_logisimNet206),
+                  .ALUCLK(s_logisimNet194),
+                  .CD_15_0(s_logisimBus175[15:0]),
+                  .CFETCH(s_logisimNet121),
+                  .CLFFN(s_logisimNet236),
+                  .COND(s_logisimNet176),
+                  .CRY(s_logisimNet177),
+                  .CSALUI8(s_logisimNet107),
+                  .CSBIT20(s_logisimNet148),
+                  .CSBIT_15_0(s_logisimBus166[15:0]),
+                  .CSCOND(s_logisimNet137),
+                  .CSECOND(s_logisimNet218),
+                  .CSLOOP(s_logisimNet46),
+                  .CSMIS0(s_logisimNet89),
+                  .CSRASEL_1_0(s_logisimBus209[1:0]),
+                  .CSRBSEL_1_0(s_logisimBus181[1:0]),
+                  .CSRB_3_0(s_logisimBus136[3:0]),
+                  .CSTS_6_3(s_logisimBus190[3:0]),
+                  .CSVECT(s_logisimNet219),
+                  .CSXRF3(s_logisimNet189),
+                  .DEEP(s_logisimNet179),
+                  .DZD(s_logisimNet202),
+                  .EWCAN(s_logisimNet217),
+                  .F11(s_logisimNet158),
+                  .F15(s_logisimNet220),
+                  .ILCSN(s_logisimNet157),
+                  .IRQ(s_logisimNet174),
+                  .LAA_3_0(s_logisimBus201[3:0]),
+                  .LBA_3_0(s_logisimBus134[3:0]),
                   .LCZ(1'b0),
-                  .LCZN(s_logisimNet214),
-                  .LDIRV(s_logisimNet227),
-                  .LDLCN(s_logisimNet144),
-                  .LWCAN(s_logisimNet203),
-                  .MAPN(s_logisimNet229),
-                  .MA_12_0(s_logisimBus230[12:0]),
-                  .MCLK(s_logisimNet133),
-                  .MI(s_logisimNet206),
-                  .MRN(s_logisimNet105),
-                  .OOD(s_logisimNet150),
-                  .OVF(s_logisimNet172),
-                  .PIL_3_0(s_logisimBus152[3:0]),
-                  .PN(s_logisimNet165),
-                  .RESTR(s_logisimNet213),
-                  .RF_1_0(s_logisimBus128[1:0]),
-                  .SC_6_3(s_logisimBus236[3:0]),
-                  .SPARE(s_logisimNet142),
-                  .STP(s_logisimNet113),
-                  .TN(s_logisimNet235),
-                  .TRAPN(s_logisimNet199),
-                  .TVEC_3_0(s_logisimBus132[3:0]),
-                  .UPN(s_logisimNet207),
-                  .WCSN(s_logisimNet166),
-                  .ZF(s_logisimNet158));
+                  .LCZN(s_logisimNet211),
+                  .LDIRV(s_logisimNet224),
+                  .LDLCN(s_logisimNet141),
+                  .LWCAN(s_logisimNet200),
+                  .MAPN(s_logisimNet226),
+                  .MA_12_0(s_logisimBus227[12:0]),
+                  .MCLK(s_logisimNet130),
+                  .MI(s_logisimNet203),
+                  .MRN(s_logisimNet102),
+                  .OOD(s_logisimNet147),
+                  .OVF(s_logisimNet169),
+                  .PIL_3_0(s_logisimBus149[3:0]),
+                  .PN(s_logisimNet162),
+                  .RESTR(s_logisimNet210),
+                  .RF_1_0(s_logisimBus125[1:0]),
+                  .SC_6_3(s_logisimBus233[3:0]),
+                  .SPARE(s_logisimNet139),
+                  .STP(s_logisimNet110),
+                  .TN(s_logisimNet232),
+                  .TRAPN(s_logisimNet196),
+                  .TVEC_3_0(s_logisimBus129[3:0]),
+                  .UPN(s_logisimNet204),
+                  .WCSN(s_logisimNet163),
+                  .ZF(s_logisimNet155));
 
-   CGA_TESTMUX   TESTMUX (.CBRKN(s_logisimNet97),
-                          .CFETCH(s_logisimNet124),
-                          .COND(s_logisimNet179),
-                          .CRY(s_logisimNet180),
-                          .CSMREQ(s_logisimNet136),
-                          .DEEP(s_logisimNet182),
-                          .DSTOPN(s_logisimNet66),
-                          .DZD(s_logisimNet205),
-                          .F15(s_logisimNet223),
-                          .INDN(s_logisimNet123),
-                          .LCZN(s_logisimNet214),
-                          .LDIRV(s_logisimNet227),
-                          .MI(s_logisimNet206),
-                          .OOD(s_logisimNet150),
-                          .OVF(s_logisimNet172),
-                          .PN(s_logisimNet165),
-                          .PTM(s_logisimNet188),
-                          .PTREEOUT(s_logisimNet99),
-                          .PTSTN(s_logisimNet129),
-                          .RESTR(s_logisimNet213),
-                          .SC_6_3(s_logisimBus236[3:0]),
-                          .SGR(s_logisimNet191),
-                          .TEST_4_0(s_logisimBus96[4:0]),
-                          .TN(s_logisimNet235),
-                          .TSEL_2_0(s_logisimBus91[2:0]),
-                          .TVEC_3_0(s_logisimBus132[3:0]),
-                          .UPN(s_logisimNet207),
-                          .VACCN(s_logisimNet149),
-                          .VEX(s_logisimNet198),
-                          .WPN(s_logisimNet233),
-                          .WRITEN(s_logisimNet61),
-                          .XFETCHN(s_logisimNet209),
-                          .ZF(s_logisimNet158));
+   CGA_TESTMUX   TESTMUX (.CBRKN(s_logisimNet94),
+                          .CFETCH(s_logisimNet121),
+                          .COND(s_logisimNet176),
+                          .CRY(s_logisimNet177),
+                          .CSMREQ(s_logisimNet133),
+                          .DEEP(s_logisimNet179),
+                          .DSTOPN(s_logisimNet63),
+                          .DZD(s_logisimNet202),
+                          .F15(s_logisimNet220),
+                          .INDN(s_logisimNet120),
+                          .LCZN(s_logisimNet211),
+                          .LDIRV(s_logisimNet224),
+                          .MI(s_logisimNet203),
+                          .OOD(s_logisimNet147),
+                          .OVF(s_logisimNet169),
+                          .PN(s_logisimNet162),
+                          .PTM(s_logisimNet185),
+                          .PTREEOUT(s_logisimNet96),
+                          .PTSTN(s_logisimNet126),
+                          .RESTR(s_logisimNet210),
+                          .SC_6_3(s_logisimBus233[3:0]),
+                          .SGR(s_logisimNet188),
+                          .TEST_4_0(s_logisimBus93[4:0]),
+                          .TN(s_logisimNet232),
+                          .TSEL_2_0(s_logisimBus88[2:0]),
+                          .TVEC_3_0(s_logisimBus129[3:0]),
+                          .UPN(s_logisimNet204),
+                          .VACCN(s_logisimNet146),
+                          .VEX(s_logisimNet195),
+                          .WPN(s_logisimNet230),
+                          .WRITEN(s_logisimNet58),
+                          .XFETCHN(s_logisimNet205),
+                          .ZF(s_logisimNet155));
 
 endmodule

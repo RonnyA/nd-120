@@ -56,15 +56,15 @@
   <lib desc="#BFH-Praktika" name="9"/>
   <lib desc="#Input/Output-Extra" name="10"/>
   <lib desc="#Soc" name="11"/>
-  <lib desc="file#CGA_IDBCTL_.circ" name="12"/>
-  <lib desc="file#CGA_WRF_.circ" name="13"/>
-  <lib desc="file#CGA_MIC_.circ" name="14"/>
-  <lib desc="file#CGA_TRAP_.circ" name="15"/>
-  <lib desc="file#CGA_DCD_.circ" name="16"/>
-  <lib desc="file#CGA_ALU_.circ" name="17"/>
-  <lib desc="file#TESTMUX_.circ" name="18"/>
-  <lib desc="file#CGA_INTR_.circ" name="19"/>
-  <lib desc="file#CGA_MAC_.circ" name="20"/>
+  <lib desc="file#CGA_TRAP_.circ" name="12"/>
+  <lib desc="file#CGA_MIC_.circ" name="13"/>
+  <lib desc="file#CGA_WRF_.circ" name="14"/>
+  <lib desc="file#CGA_INTR_.circ" name="15"/>
+  <lib desc="file#TESTMUX_.circ" name="16"/>
+  <lib desc="file#CGA_MAC_.circ" name="17"/>
+  <lib desc="file#CGA_IDBCTL_.circ" name="18"/>
+  <lib desc="file#CGA_DCD_.circ" name="19"/>
+  <lib desc="file#CGA_ALU_.circ" name="20"/>
   <lib desc="file#CGA_HELPER.circ" name="21"/>
   <main name="CGA"/>
   <options>
@@ -286,6 +286,23 @@
       <a name="label" val="PT_15_9"/>
       <a name="width" val="7"/>
     </comp>
+    <comp lib="0" loc="(1390,10760)" name="Splitter">
+      <a name="bit1" val="0"/>
+      <a name="bit10" val="0"/>
+      <a name="bit11" val="0"/>
+      <a name="bit12" val="1"/>
+      <a name="bit13" val="1"/>
+      <a name="bit2" val="0"/>
+      <a name="bit3" val="0"/>
+      <a name="bit4" val="0"/>
+      <a name="bit5" val="0"/>
+      <a name="bit6" val="0"/>
+      <a name="bit7" val="0"/>
+      <a name="bit8" val="0"/>
+      <a name="bit9" val="0"/>
+      <a name="incoming" val="14"/>
+      <a name="spacing" val="3"/>
+    </comp>
     <comp lib="0" loc="(1390,7840)" name="Tunnel">
       <a name="facing" val="east"/>
       <a name="label" val="TCLK"/>
@@ -309,6 +326,10 @@
     <comp lib="0" loc="(1420,7640)" name="Tunnel">
       <a name="facing" val="east"/>
       <a name="label" val="ETRAPN"/>
+    </comp>
+    <comp lib="0" loc="(1460,10720)" name="Tunnel">
+      <a name="label" val="LA_21_10"/>
+      <a name="width" val="12"/>
     </comp>
     <comp lib="0" loc="(1470,7680)" name="Tunnel">
       <a name="facing" val="east"/>
@@ -567,6 +588,10 @@
     </comp>
     <comp lib="0" loc="(2710,10240)" name="Tunnel">
       <a name="label" val="WR7"/>
+    </comp>
+    <comp lib="0" loc="(2740,10360)" name="Tunnel">
+      <a name="label" val="EA_15_0"/>
+      <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(290,9820)" name="Tunnel">
       <a name="facing" val="east"/>
@@ -1834,7 +1859,7 @@
       <a name="spacing" val="4"/>
     </comp>
     <comp lib="0" loc="(590,4460)" name="Tunnel">
-      <a name="label" val="PT_9_15"/>
+      <a name="label" val="PT_15_9"/>
       <a name="width" val="7"/>
     </comp>
     <comp lib="0" loc="(600,3690)" name="Splitter">
@@ -2018,7 +2043,7 @@
       <a name="label" val="CD_15_0"/>
       <a name="width" val="16"/>
     </comp>
-    <comp lib="0" loc="(710,320)" name="Tunnel">
+    <comp lib="0" loc="(710,330)" name="Tunnel">
       <a name="label" val="CSCOMM_4_0"/>
       <a name="width" val="5"/>
     </comp>
@@ -2169,32 +2194,32 @@
     <comp lib="0" loc="(990,7840)" name="Tunnel">
       <a name="label" val="CBRKN"/>
     </comp>
-    <comp lib="12" loc="(2050,8440)" name="CGA_IDBCTL">
-      <a name="label" val="IDBCTL"/>
-    </comp>
-    <comp lib="13" loc="(2550,10200)" name="CGA_WRF">
-      <a name="label" val="WRF"/>
-    </comp>
-    <comp lib="14" loc="(780,9460)" name="CGA_MIC">
-      <a name="label" val="MIC"/>
-    </comp>
-    <comp lib="15" loc="(1730,7620)" name="CGA_TRAP">
+    <comp lib="12" loc="(1730,7620)" name="CGA_TRAP">
       <a name="label" val="TRAP"/>
     </comp>
-    <comp lib="16" loc="(660,7580)" name="CGA_DCD">
-      <a name="label" val="DCD"/>
+    <comp lib="13" loc="(780,9460)" name="CGA_MIC">
+      <a name="label" val="MIC"/>
     </comp>
-    <comp lib="17" loc="(1590,10050)" name="CGA_ALU">
-      <a name="label" val="ALU"/>
+    <comp lib="14" loc="(2550,10200)" name="CGA_WRF">
+      <a name="label" val="WRF"/>
     </comp>
-    <comp lib="18" loc="(960,11480)" name="CGA_TESTMUX">
-      <a name="label" val="TESTMUX"/>
-    </comp>
-    <comp lib="19" loc="(750,8460)" name="CGA_INTR">
+    <comp lib="15" loc="(750,8460)" name="CGA_INTR">
       <a name="label" val="INTR"/>
     </comp>
-    <comp lib="20" loc="(780,10710)" name="CGA_MAC">
+    <comp lib="16" loc="(960,11480)" name="CGA_TESTMUX">
+      <a name="label" val="TESTMUX"/>
+    </comp>
+    <comp lib="17" loc="(780,10710)" name="CGA_MAC">
       <a name="label" val="MAC"/>
+    </comp>
+    <comp lib="18" loc="(2050,8440)" name="CGA_IDBCTL">
+      <a name="label" val="IDBCTL"/>
+    </comp>
+    <comp lib="19" loc="(660,7580)" name="CGA_DCD">
+      <a name="label" val="DCD"/>
+    </comp>
+    <comp lib="20" loc="(1590,10050)" name="CGA_ALU">
+      <a name="label" val="ALU"/>
     </comp>
     <comp lib="21" loc="(680,6930)" name="BusDriver16">
       <a name="label" val="BD_FIDBO"/>
@@ -2248,6 +2273,9 @@
     <wire from="(110,7600)" to="(440,7600)"/>
     <wire from="(110,9920)" to="(560,9920)"/>
     <wire from="(1130,10190)" to="(1370,10190)"/>
+    <wire from="(1130,10750)" to="(1130,10780)"/>
+    <wire from="(1130,10750)" to="(1150,10750)"/>
+    <wire from="(1130,10780)" to="(1390,10780)"/>
     <wire from="(1160,10110)" to="(1370,10110)"/>
     <wire from="(1160,10270)" to="(1370,10270)"/>
     <wire from="(1160,10430)" to="(1370,10430)"/>
@@ -2282,6 +2310,7 @@
     <wire from="(1350,7660)" to="(1510,7660)"/>
     <wire from="(1380,8600)" to="(1380,8780)"/>
     <wire from="(1380,8780)" to="(1830,8780)"/>
+    <wire from="(1390,10760)" to="(1390,10780)"/>
     <wire from="(1390,7840)" to="(1510,7840)"/>
     <wire from="(1390,7880)" to="(1510,7880)"/>
     <wire from="(140,7680)" to="(440,7680)"/>
@@ -2289,6 +2318,7 @@
     <wire from="(140,7800)" to="(440,7800)"/>
     <wire from="(1400,8540)" to="(1400,8760)"/>
     <wire from="(1400,8760)" to="(1830,8760)"/>
+    <wire from="(1410,10720)" to="(1460,10720)"/>
     <wire from="(1420,7640)" to="(1510,7640)"/>
     <wire from="(1420,8480)" to="(1420,8740)"/>
     <wire from="(1420,8740)" to="(1830,8740)"/>
@@ -2397,6 +2427,7 @@
     <wire from="(2550,10300)" to="(2620,10300)"/>
     <wire from="(2550,10320)" to="(2600,10320)"/>
     <wire from="(2550,10340)" to="(2580,10340)"/>
+    <wire from="(2550,10360)" to="(2740,10360)"/>
     <wire from="(2580,10340)" to="(2580,11120)"/>
     <wire from="(260,10220)" to="(560,10220)"/>
     <wire from="(260,9720)" to="(560,9720)"/>
@@ -2975,7 +3006,7 @@
     <wire from="(760,8460)" to="(800,8460)"/>
     <wire from="(780,10710)" to="(890,10710)"/>
     <wire from="(780,10730)" to="(980,10730)"/>
-    <wire from="(780,10750)" to="(1150,10750)"/>
+    <wire from="(780,10750)" to="(1130,10750)"/>
     <wire from="(780,10770)" to="(920,10770)"/>
     <wire from="(780,10790)" to="(1040,10790)"/>
     <wire from="(780,10810)" to="(920,10810)"/>

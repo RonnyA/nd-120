@@ -35,7 +35,7 @@ module CGA_ALU( ALUCLK,
                 LDPILN,
                 MI,
                 OVF,
-                PIL,
+                PIL_3_0,
                 PONI,
                 PTM,
                 RB_15_0,
@@ -83,7 +83,7 @@ module CGA_ALU( ALUCLK,
    output        IONI;
    output        MI;
    output        OVF;
-   output [3:0]  PIL;
+   output [3:0]  PIL_3_0;
    output        PONI;
    output        PTM;
    output [15:0] RB_15_0;
@@ -295,7 +295,7 @@ module CGA_ALU( ALUCLK,
    assign IONI       = s_logisimBus50[15];
    assign MI         = s_logisimNet70;
    assign OVF        = s_logisimNet10;
-   assign PIL        = s_logisimBus9[3:0];
+   assign PIL_3_0    = s_logisimBus9[3:0];
    assign PONI       = s_logisimBus50[14];
    assign PTM        = s_logisimBus50[0];
    assign RB_15_0    = s_logisimBus88[15:0];

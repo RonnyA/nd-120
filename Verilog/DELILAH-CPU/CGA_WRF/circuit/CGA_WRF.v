@@ -11,6 +11,7 @@ module CGA_WRF( ALUCLK,
                 BDEST,
                 BR_15_0,
                 B_15_0,
+                EA_15_0,
                 LAA_3_0,
                 LBA_3_0,
                 NLCA_15_0,
@@ -39,6 +40,7 @@ module CGA_WRF( ALUCLK,
    output [15:0] A_15_0;
    output [15:0] BR_15_0;
    output [15:0] B_15_0;
+   output [15:0] EA_15_0;
    output [15:0] PR_15_0;
    output        WPN;
    output        WR3;
@@ -192,6 +194,7 @@ module CGA_WRF( ALUCLK,
    assign A_15_0  = s_logisimBus109[15:0];
    assign BR_15_0 = s_logisimBus53[15:0];
    assign B_15_0  = s_logisimBus83[15:0];
+   assign EA_15_0 = s_logisimBus100[15:0];
    assign PR_15_0 = s_logisimBus12[15:0];
    assign WPN     = s_logisimNet40;
    assign WR3     = s_logisimBus85[3];
@@ -443,6 +446,20 @@ module CGA_WRF( ALUCLK,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+   CGA_WRF_RBLOCK   RBLOCK (.ALUCLK(s_logisimNet4),
+                            .ALUCLKN(s_logisimNet112),
+                            .A_15_0(s_logisimBus109[15:0]),
+                            .BR_15_0(s_logisimBus53[15:0]),
+                            .B_15_0(s_logisimBus83[15:0]),
+                            .EA_15_0(s_logisimBus100[15:0]),
+                            .EB_15_0(s_logisimBus110[15:0]),
+                            .NLCA_15_0(s_logisimBus117[15:0]),
+                            .PR_15_0(s_logisimBus12[15:0]),
+                            .RB_15_0(s_logisimBus62[15:0]),
+                            .WR_15_0(s_logisimBus85[15:0]),
+                            .XFETCHN(s_logisimNet6),
+                            .XR_15_0(s_logisimBus84[15:0]));
+
    ND38GLP   LBA_HI (.A(s_logisimBus18[0]),
                      .B(s_logisimBus18[1]),
                      .C(s_logisimBus18[2]),
@@ -494,19 +511,5 @@ module CGA_WRF( ALUCLK,
                      .Z5(s_logisimNet123),
                      .Z6(s_logisimNet33),
                      .Z7(s_logisimNet69));
-
-   CGA_WRF_RBLOCK   RBLOCK (.ALUCLK(s_logisimNet4),
-                            .ALUCLKN(s_logisimNet112),
-                            .A_15_0(s_logisimBus109[15:0]),
-                            .BR_15_0(s_logisimBus53[15:0]),
-                            .B_15_0(s_logisimBus83[15:0]),
-                            .EA_15_0(s_logisimBus100[15:0]),
-                            .EB_15_0(s_logisimBus110[15:0]),
-                            .NLCA_15_0(s_logisimBus117[15:0]),
-                            .PR_15_0(s_logisimBus12[15:0]),
-                            .RB_15_0(s_logisimBus62[15:0]),
-                            .WR_15_0(s_logisimBus85[15:0]),
-                            .XFETCHN(s_logisimNet6),
-                            .XR_15_0(s_logisimBus84[15:0]));
 
 endmodule
