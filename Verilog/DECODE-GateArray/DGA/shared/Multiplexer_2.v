@@ -6,20 +6,11 @@
  *****************************************************************************/
 /* */
 
-module Multiplexer_2( input muxIn_0,
-                      input muxIn_1,                      
-                      input sel,
-                      output reg muxOut,
-                      input enable
-                      );
-   
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-    
-     // Logic for the 4-to-1 multiplexer
-    assign muxOut = (sel == 2'b00) ? muxIn_0 :
-                     muxIn_1 ; // Default case for select == 1'b1
-
-
+module Multiplexer_2( input wire enable,
+                      input wire muxIn_0,
+                      input wire muxIn_1,                      
+                      input wire sel,
+                      output wire muxOut
+                      );   
+      assign muxOut = (enable == 1'b0) ? 1'b0 : (sel ? muxIn_1 : muxIn_0);
 endmodule

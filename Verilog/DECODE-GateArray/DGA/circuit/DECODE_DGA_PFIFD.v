@@ -26,10 +26,10 @@ module DECODE_DGA_PFIFD( AD_7_0,
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [12:0] s_logisimBus139;
+   wire [12:0] s_logisimBus138;
    wire [12:0] s_logisimBus24;
    wire [7:0]  s_logisimBus54;
-   wire [7:0]  s_logisimBus86;
+   wire [7:0]  s_logisimBus85;
    wire        s_logisimNet0;
    wire        s_logisimNet1;
    wire        s_logisimNet10;
@@ -74,11 +74,10 @@ module DECODE_DGA_PFIFD( AD_7_0,
    wire        s_logisimNet135;
    wire        s_logisimNet136;
    wire        s_logisimNet137;
-   wire        s_logisimNet138;
+   wire        s_logisimNet139;
    wire        s_logisimNet14;
    wire        s_logisimNet140;
    wire        s_logisimNet141;
-   wire        s_logisimNet142;
    wire        s_logisimNet15;
    wire        s_logisimNet16;
    wire        s_logisimNet17;
@@ -154,7 +153,7 @@ module DECODE_DGA_PFIFD( AD_7_0,
    wire        s_logisimNet82;
    wire        s_logisimNet83;
    wire        s_logisimNet84;
-   wire        s_logisimNet85;
+   wire        s_logisimNet86;
    wire        s_logisimNet87;
    wire        s_logisimNet88;
    wire        s_logisimNet89;
@@ -177,9 +176,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus139[12:0] = WEU_12_0;
+   assign s_logisimBus138[12:0] = WEU_12_0;
    assign s_logisimBus24[12:0]  = WEL_12_0;
-   assign s_logisimBus86[7:0]   = IDBI_7_0;
+   assign s_logisimBus85[7:0]   = IDBI_7_0;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -191,9 +190,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
    *******************************************************************************/
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_1 (.clock(s_logisimBus24[4]),
-                .d(s_logisimNet79),
+                .d(s_logisimNet78),
                 .preset(1'b0),
-                .q(s_logisimNet74),
+                .q(s_logisimNet73),
                 .qBar(),
                 .reset(1'b0),
                 .tick(1'b1));
@@ -208,16 +207,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                 .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_3 (.clock(s_logisimBus139[4]),
-                .d(s_logisimNet121),
+      MEMORY_3 (.clock(s_logisimBus138[4]),
+                .d(s_logisimNet120),
                 .preset(1'b0),
-                .q(s_logisimNet117),
+                .q(s_logisimNet116),
                 .qBar(),
                 .reset(1'b0),
                 .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_4 (.clock(s_logisimBus139[4]),
+      MEMORY_4 (.clock(s_logisimBus138[4]),
                 .d(s_logisimNet45),
                 .preset(1'b0),
                 .q(s_logisimNet41),
@@ -226,16 +225,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                 .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_5 (.clock(s_logisimBus139[4]),
-                .d(s_logisimNet122),
+      MEMORY_5 (.clock(s_logisimBus138[4]),
+                .d(s_logisimNet121),
                 .preset(1'b0),
-                .q(s_logisimNet118),
+                .q(s_logisimNet117),
                 .qBar(),
                 .reset(1'b0),
                 .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_6 (.clock(s_logisimBus139[4]),
+      MEMORY_6 (.clock(s_logisimBus138[4]),
                 .d(s_logisimNet46),
                 .preset(1'b0),
                 .q(s_logisimNet42),
@@ -245,9 +244,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_7 (.clock(s_logisimBus24[4]),
-                .d(s_logisimNet80),
+                .d(s_logisimNet79),
                 .preset(1'b0),
-                .q(s_logisimNet75),
+                .q(s_logisimNet74),
                 .qBar(),
                 .reset(1'b0),
                 .tick(1'b1));
@@ -263,9 +262,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_9 (.clock(s_logisimBus24[5]),
-                .d(s_logisimNet74),
+                .d(s_logisimNet73),
                 .preset(1'b0),
-                .q(s_logisimNet76),
+                .q(s_logisimNet75),
                 .qBar(),
                 .reset(1'b0),
                 .tick(1'b1));
@@ -280,16 +279,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_11 (.clock(s_logisimBus139[5]),
-                 .d(s_logisimNet117),
+      MEMORY_11 (.clock(s_logisimBus138[5]),
+                 .d(s_logisimNet116),
                  .preset(1'b0),
-                 .q(s_logisimNet119),
+                 .q(s_logisimNet118),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_12 (.clock(s_logisimBus139[5]),
+      MEMORY_12 (.clock(s_logisimBus138[5]),
                  .d(s_logisimNet41),
                  .preset(1'b0),
                  .q(s_logisimNet43),
@@ -298,16 +297,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_13 (.clock(s_logisimBus139[5]),
-                 .d(s_logisimNet118),
+      MEMORY_13 (.clock(s_logisimBus138[5]),
+                 .d(s_logisimNet117),
                  .preset(1'b0),
-                 .q(s_logisimNet120),
+                 .q(s_logisimNet119),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_14 (.clock(s_logisimBus139[5]),
+      MEMORY_14 (.clock(s_logisimBus138[5]),
                  .d(s_logisimNet42),
                  .preset(1'b0),
                  .q(s_logisimNet44),
@@ -317,9 +316,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_15 (.clock(s_logisimBus24[5]),
-                 .d(s_logisimNet75),
+                 .d(s_logisimNet74),
                  .preset(1'b0),
-                 .q(s_logisimNet77),
+                 .q(s_logisimNet76),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -335,9 +334,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_17 (.clock(s_logisimBus24[6]),
-                 .d(s_logisimNet76),
+                 .d(s_logisimNet75),
                  .preset(1'b0),
-                 .q(s_logisimNet72),
+                 .q(s_logisimNet71),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -352,16 +351,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_19 (.clock(s_logisimBus139[6]),
-                 .d(s_logisimNet119),
+      MEMORY_19 (.clock(s_logisimBus138[6]),
+                 .d(s_logisimNet118),
                  .preset(1'b0),
-                 .q(s_logisimNet113),
+                 .q(s_logisimNet112),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_20 (.clock(s_logisimBus139[6]),
+      MEMORY_20 (.clock(s_logisimBus138[6]),
                  .d(s_logisimNet43),
                  .preset(1'b0),
                  .q(s_logisimNet38),
@@ -370,16 +369,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_21 (.clock(s_logisimBus139[6]),
-                 .d(s_logisimNet120),
+      MEMORY_21 (.clock(s_logisimBus138[6]),
+                 .d(s_logisimNet119),
                  .preset(1'b0),
-                 .q(s_logisimNet114),
+                 .q(s_logisimNet113),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_22 (.clock(s_logisimBus139[6]),
+      MEMORY_22 (.clock(s_logisimBus138[6]),
                  .d(s_logisimNet44),
                  .preset(1'b0),
                  .q(s_logisimNet39),
@@ -389,9 +388,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_23 (.clock(s_logisimBus24[6]),
-                 .d(s_logisimNet77),
+                 .d(s_logisimNet76),
                  .preset(1'b0),
-                 .q(s_logisimNet73),
+                 .q(s_logisimNet72),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -407,9 +406,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_25 (.clock(s_logisimBus24[7]),
-                 .d(s_logisimNet72),
+                 .d(s_logisimNet71),
                  .preset(1'b0),
-                 .q(s_logisimNet68),
+                 .q(s_logisimNet67),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -424,16 +423,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_27 (.clock(s_logisimBus139[7]),
-                 .d(s_logisimNet113),
+      MEMORY_27 (.clock(s_logisimBus138[7]),
+                 .d(s_logisimNet112),
                  .preset(1'b0),
-                 .q(s_logisimNet115),
+                 .q(s_logisimNet114),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_28 (.clock(s_logisimBus139[7]),
+      MEMORY_28 (.clock(s_logisimBus138[7]),
                  .d(s_logisimNet38),
                  .preset(1'b0),
                  .q(s_logisimNet40),
@@ -442,16 +441,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_29 (.clock(s_logisimBus139[7]),
-                 .d(s_logisimNet114),
+      MEMORY_29 (.clock(s_logisimBus138[7]),
+                 .d(s_logisimNet113),
                  .preset(1'b0),
-                 .q(s_logisimNet116),
+                 .q(s_logisimNet115),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_30 (.clock(s_logisimBus139[7]),
+      MEMORY_30 (.clock(s_logisimBus138[7]),
                  .d(s_logisimNet39),
                  .preset(1'b0),
                  .q(s_logisimNet35),
@@ -461,9 +460,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_31 (.clock(s_logisimBus24[7]),
-                 .d(s_logisimNet73),
+                 .d(s_logisimNet72),
                  .preset(1'b0),
-                 .q(s_logisimNet69),
+                 .q(s_logisimNet68),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -479,9 +478,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_33 (.clock(s_logisimBus24[8]),
-                 .d(s_logisimNet68),
+                 .d(s_logisimNet67),
                  .preset(1'b0),
-                 .q(s_logisimNet70),
+                 .q(s_logisimNet69),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -496,16 +495,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_35 (.clock(s_logisimBus139[8]),
-                 .d(s_logisimNet115),
+      MEMORY_35 (.clock(s_logisimBus138[8]),
+                 .d(s_logisimNet114),
                  .preset(1'b0),
-                 .q(s_logisimNet111),
+                 .q(s_logisimNet110),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_36 (.clock(s_logisimBus139[8]),
+      MEMORY_36 (.clock(s_logisimBus138[8]),
                  .d(s_logisimNet40),
                  .preset(1'b0),
                  .q(s_logisimNet36),
@@ -514,16 +513,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_37 (.clock(s_logisimBus139[8]),
-                 .d(s_logisimNet116),
+      MEMORY_37 (.clock(s_logisimBus138[8]),
+                 .d(s_logisimNet115),
                  .preset(1'b0),
-                 .q(s_logisimNet112),
+                 .q(s_logisimNet111),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_38 (.clock(s_logisimBus139[8]),
+      MEMORY_38 (.clock(s_logisimBus138[8]),
                  .d(s_logisimNet35),
                  .preset(1'b0),
                  .q(s_logisimNet37),
@@ -533,9 +532,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_39 (.clock(s_logisimBus24[8]),
-                 .d(s_logisimNet69),
+                 .d(s_logisimNet68),
                  .preset(1'b0),
-                 .q(s_logisimNet71),
+                 .q(s_logisimNet70),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -551,9 +550,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_41 (.clock(s_logisimBus24[9]),
-                 .d(s_logisimNet70),
+                 .d(s_logisimNet69),
                  .preset(1'b0),
-                 .q(s_logisimNet65),
+                 .q(s_logisimNet64),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -568,16 +567,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_43 (.clock(s_logisimBus139[9]),
-                 .d(s_logisimNet111),
+      MEMORY_43 (.clock(s_logisimBus138[9]),
+                 .d(s_logisimNet110),
                  .preset(1'b0),
-                 .q(s_logisimNet107),
+                 .q(s_logisimNet106),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_44 (.clock(s_logisimBus139[9]),
+      MEMORY_44 (.clock(s_logisimBus138[9]),
                  .d(s_logisimNet36),
                  .preset(1'b0),
                  .q(s_logisimNet31),
@@ -586,16 +585,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_45 (.clock(s_logisimBus139[9]),
-                 .d(s_logisimNet112),
+      MEMORY_45 (.clock(s_logisimBus138[9]),
+                 .d(s_logisimNet111),
                  .preset(1'b0),
-                 .q(s_logisimNet108),
+                 .q(s_logisimNet107),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_46 (.clock(s_logisimBus139[9]),
+      MEMORY_46 (.clock(s_logisimBus138[9]),
                  .d(s_logisimNet37),
                  .preset(1'b0),
                  .q(s_logisimNet32),
@@ -605,9 +604,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_47 (.clock(s_logisimBus24[9]),
-                 .d(s_logisimNet71),
+                 .d(s_logisimNet70),
                  .preset(1'b0),
-                 .q(s_logisimNet64),
+                 .q(s_logisimNet63),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -623,9 +622,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_49 (.clock(s_logisimBus24[10]),
-                 .d(s_logisimNet65),
+                 .d(s_logisimNet64),
                  .preset(1'b0),
-                 .q(s_logisimNet66),
+                 .q(s_logisimNet65),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -640,16 +639,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_51 (.clock(s_logisimBus139[10]),
-                 .d(s_logisimNet107),
+      MEMORY_51 (.clock(s_logisimBus138[10]),
+                 .d(s_logisimNet106),
                  .preset(1'b0),
-                 .q(s_logisimNet109),
+                 .q(s_logisimNet108),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_52 (.clock(s_logisimBus139[10]),
+      MEMORY_52 (.clock(s_logisimBus138[10]),
                  .d(s_logisimNet31),
                  .preset(1'b0),
                  .q(s_logisimNet33),
@@ -658,16 +657,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_53 (.clock(s_logisimBus139[10]),
-                 .d(s_logisimNet108),
+      MEMORY_53 (.clock(s_logisimBus138[10]),
+                 .d(s_logisimNet107),
                  .preset(1'b0),
-                 .q(s_logisimNet110),
+                 .q(s_logisimNet109),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_54 (.clock(s_logisimBus139[10]),
+      MEMORY_54 (.clock(s_logisimBus138[10]),
                  .d(s_logisimNet32),
                  .preset(1'b0),
                  .q(s_logisimNet34),
@@ -677,9 +676,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_55 (.clock(s_logisimBus24[10]),
-                 .d(s_logisimNet64),
+                 .d(s_logisimNet63),
                  .preset(1'b0),
-                 .q(s_logisimNet67),
+                 .q(s_logisimNet66),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -695,9 +694,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_57 (.clock(s_logisimBus24[11]),
-                 .d(s_logisimNet66),
+                 .d(s_logisimNet65),
                  .preset(1'b0),
-                 .q(s_logisimNet87),
+                 .q(s_logisimNet86),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -712,16 +711,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_59 (.clock(s_logisimBus139[11]),
-                 .d(s_logisimNet109),
+      MEMORY_59 (.clock(s_logisimBus138[11]),
+                 .d(s_logisimNet108),
                  .preset(1'b0),
-                 .q(s_logisimNet135),
+                 .q(s_logisimNet134),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_60 (.clock(s_logisimBus139[11]),
+      MEMORY_60 (.clock(s_logisimBus138[11]),
                  .d(s_logisimNet33),
                  .preset(1'b0),
                  .q(s_logisimNet55),
@@ -730,16 +729,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_61 (.clock(s_logisimBus139[11]),
-                 .d(s_logisimNet110),
+      MEMORY_61 (.clock(s_logisimBus138[11]),
+                 .d(s_logisimNet109),
                  .preset(1'b0),
-                 .q(s_logisimNet136),
+                 .q(s_logisimNet135),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_62 (.clock(s_logisimBus139[11]),
+      MEMORY_62 (.clock(s_logisimBus138[11]),
                  .d(s_logisimNet34),
                  .preset(1'b0),
                  .q(s_logisimNet56),
@@ -749,9 +748,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_63 (.clock(s_logisimBus24[11]),
-                 .d(s_logisimNet67),
+                 .d(s_logisimNet66),
                  .preset(1'b0),
-                 .q(s_logisimNet88),
+                 .q(s_logisimNet87),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -767,7 +766,7 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_65 (.clock(s_logisimBus24[12]),
-                 .d(s_logisimNet87),
+                 .d(s_logisimNet86),
                  .preset(1'b0),
                  .q(s_logisimBus54[1]),
                  .qBar(),
@@ -784,8 +783,8 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_67 (.clock(s_logisimNet58),
-                 .d(s_logisimNet135),
+      MEMORY_67 (.clock(s_logisimBus138[12]),
+                 .d(s_logisimNet134),
                  .preset(1'b0),
                  .q(s_logisimBus54[7]),
                  .qBar(),
@@ -793,7 +792,7 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_68 (.clock(s_logisimNet58),
+      MEMORY_68 (.clock(s_logisimBus138[12]),
                  .d(s_logisimNet55),
                  .preset(1'b0),
                  .q(s_logisimBus54[6]),
@@ -802,8 +801,8 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_69 (.clock(s_logisimNet58),
-                 .d(s_logisimNet136),
+      MEMORY_69 (.clock(s_logisimBus138[12]),
+                 .d(s_logisimNet135),
                  .preset(1'b0),
                  .q(s_logisimBus54[5]),
                  .qBar(),
@@ -811,7 +810,7 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_70 (.clock(s_logisimNet58),
+      MEMORY_70 (.clock(s_logisimBus138[12]),
                  .d(s_logisimNet56),
                  .preset(1'b0),
                  .q(s_logisimBus54[4]),
@@ -821,7 +820,7 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_71 (.clock(s_logisimBus24[12]),
-                 .d(s_logisimNet88),
+                 .d(s_logisimNet87),
                  .preset(1'b0),
                  .q(s_logisimBus54[3]),
                  .qBar(),
@@ -839,16 +838,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_73 (.clock(s_logisimBus24[0]),
-                 .d(s_logisimBus86[1]),
+                 .d(s_logisimBus85[1]),
                  .preset(1'b0),
-                 .q(s_logisimNet84),
+                 .q(s_logisimNet83),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_74 (.clock(s_logisimBus24[0]),
-                 .d(s_logisimBus86[0]),
+                 .d(s_logisimBus85[0]),
                  .preset(1'b0),
                  .q(s_logisimNet20),
                  .qBar(),
@@ -856,17 +855,17 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_75 (.clock(s_logisimBus139[0]),
-                 .d(s_logisimBus86[7]),
+      MEMORY_75 (.clock(s_logisimBus138[0]),
+                 .d(s_logisimBus85[7]),
                  .preset(1'b0),
-                 .q(s_logisimNet129),
+                 .q(s_logisimNet128),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_76 (.clock(s_logisimBus139[0]),
-                 .d(s_logisimBus86[6]),
+      MEMORY_76 (.clock(s_logisimBus138[0]),
+                 .d(s_logisimBus85[6]),
                  .preset(1'b0),
                  .q(s_logisimNet51),
                  .qBar(),
@@ -874,17 +873,17 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_77 (.clock(s_logisimBus139[0]),
-                 .d(s_logisimBus86[5]),
+      MEMORY_77 (.clock(s_logisimBus138[0]),
+                 .d(s_logisimBus85[5]),
                  .preset(1'b0),
-                 .q(s_logisimNet130),
+                 .q(s_logisimNet129),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_78 (.clock(s_logisimBus139[0]),
-                 .d(s_logisimBus86[4]),
+      MEMORY_78 (.clock(s_logisimBus138[0]),
+                 .d(s_logisimBus85[4]),
                  .preset(1'b0),
                  .q(s_logisimNet52),
                  .qBar(),
@@ -893,16 +892,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_79 (.clock(s_logisimBus24[0]),
-                 .d(s_logisimBus86[3]),
+                 .d(s_logisimBus85[3]),
                  .preset(1'b0),
-                 .q(s_logisimNet85),
+                 .q(s_logisimNet84),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_80 (.clock(s_logisimBus24[0]),
-                 .d(s_logisimBus86[2]),
+                 .d(s_logisimBus85[2]),
                  .preset(1'b0),
                  .q(s_logisimNet21),
                  .qBar(),
@@ -911,9 +910,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_81 (.clock(s_logisimBus24[1]),
-                 .d(s_logisimNet84),
+                 .d(s_logisimNet83),
                  .preset(1'b0),
-                 .q(s_logisimNet81),
+                 .q(s_logisimNet80),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -928,16 +927,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_83 (.clock(s_logisimBus139[1]),
-                 .d(s_logisimNet129),
+      MEMORY_83 (.clock(s_logisimBus138[1]),
+                 .d(s_logisimNet128),
                  .preset(1'b0),
-                 .q(s_logisimNet123),
+                 .q(s_logisimNet122),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_84 (.clock(s_logisimBus139[1]),
+      MEMORY_84 (.clock(s_logisimBus138[1]),
                  .d(s_logisimNet51),
                  .preset(1'b0),
                  .q(s_logisimNet47),
@@ -946,16 +945,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_85 (.clock(s_logisimBus139[1]),
-                 .d(s_logisimNet130),
+      MEMORY_85 (.clock(s_logisimBus138[1]),
+                 .d(s_logisimNet129),
                  .preset(1'b0),
-                 .q(s_logisimNet124),
+                 .q(s_logisimNet123),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_86 (.clock(s_logisimBus139[1]),
+      MEMORY_86 (.clock(s_logisimBus138[1]),
                  .d(s_logisimNet52),
                  .preset(1'b0),
                  .q(s_logisimNet48),
@@ -965,9 +964,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_87 (.clock(s_logisimBus24[1]),
-                 .d(s_logisimNet85),
+                 .d(s_logisimNet84),
                  .preset(1'b0),
-                 .q(s_logisimNet82),
+                 .q(s_logisimNet81),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -983,9 +982,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_89 (.clock(s_logisimBus24[2]),
-                 .d(s_logisimNet81),
+                 .d(s_logisimNet80),
                  .preset(1'b0),
-                 .q(s_logisimNet78),
+                 .q(s_logisimNet77),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -1000,16 +999,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_91 (.clock(s_logisimBus139[2]),
-                 .d(s_logisimNet123),
+      MEMORY_91 (.clock(s_logisimBus138[2]),
+                 .d(s_logisimNet122),
                  .preset(1'b0),
-                 .q(s_logisimNet125),
+                 .q(s_logisimNet124),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_92 (.clock(s_logisimBus139[2]),
+      MEMORY_92 (.clock(s_logisimBus138[2]),
                  .d(s_logisimNet47),
                  .preset(1'b0),
                  .q(s_logisimNet49),
@@ -1018,16 +1017,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_93 (.clock(s_logisimBus139[2]),
-                 .d(s_logisimNet124),
+      MEMORY_93 (.clock(s_logisimBus138[2]),
+                 .d(s_logisimNet123),
                  .preset(1'b0),
-                 .q(s_logisimNet126),
+                 .q(s_logisimNet125),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_94 (.clock(s_logisimBus139[2]),
+      MEMORY_94 (.clock(s_logisimBus138[2]),
                  .d(s_logisimNet48),
                  .preset(1'b0),
                  .q(s_logisimNet50),
@@ -1037,9 +1036,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_95 (.clock(s_logisimBus24[2]),
-                 .d(s_logisimNet82),
+                 .d(s_logisimNet81),
                  .preset(1'b0),
-                 .q(s_logisimNet83),
+                 .q(s_logisimNet82),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -1055,9 +1054,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_97 (.clock(s_logisimBus24[3]),
-                 .d(s_logisimNet78),
+                 .d(s_logisimNet77),
                  .preset(1'b0),
-                 .q(s_logisimNet79),
+                 .q(s_logisimNet78),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
@@ -1072,16 +1071,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_99 (.clock(s_logisimBus139[3]),
-                 .d(s_logisimNet125),
+      MEMORY_99 (.clock(s_logisimBus138[3]),
+                 .d(s_logisimNet124),
                  .preset(1'b0),
-                 .q(s_logisimNet121),
+                 .q(s_logisimNet120),
                  .qBar(),
                  .reset(1'b0),
                  .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_100 (.clock(s_logisimBus139[3]),
+      MEMORY_100 (.clock(s_logisimBus138[3]),
                   .d(s_logisimNet49),
                   .preset(1'b0),
                   .q(s_logisimNet45),
@@ -1090,16 +1089,16 @@ module DECODE_DGA_PFIFD( AD_7_0,
                   .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_101 (.clock(s_logisimBus139[3]),
-                  .d(s_logisimNet126),
+      MEMORY_101 (.clock(s_logisimBus138[3]),
+                  .d(s_logisimNet125),
                   .preset(1'b0),
-                  .q(s_logisimNet122),
+                  .q(s_logisimNet121),
                   .qBar(),
                   .reset(1'b0),
                   .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_102 (.clock(s_logisimBus139[3]),
+      MEMORY_102 (.clock(s_logisimBus138[3]),
                   .d(s_logisimNet50),
                   .preset(1'b0),
                   .q(s_logisimNet46),
@@ -1109,9 +1108,9 @@ module DECODE_DGA_PFIFD( AD_7_0,
 
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_103 (.clock(s_logisimBus24[3]),
-                  .d(s_logisimNet83),
+                  .d(s_logisimNet82),
                   .preset(1'b0),
-                  .q(s_logisimNet80),
+                  .q(s_logisimNet79),
                   .qBar(),
                   .reset(1'b0),
                   .tick(1'b1));

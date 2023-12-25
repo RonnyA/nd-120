@@ -411,7 +411,7 @@
     </comp>
     <comp lib="0" loc="(150,2020)" name="Pin">
       <a name="appearance" val="classic"/>
-      <a name="label" val="XDBN"/>
+      <a name="label" val="XBDN"/>
     </comp>
     <comp lib="0" loc="(150,2070)" name="Pin">
       <a name="appearance" val="classic"/>
@@ -1351,28 +1351,28 @@
     <comp lib="2" loc="(1580,5240)" name="Multiplexer"/>
     <comp lib="2" loc="(1580,5340)" name="Multiplexer"/>
     <comp lib="2" loc="(1580,5440)" name="Multiplexer"/>
-    <comp lib="8" loc="(1449,5013)" name="Text">
+    <comp lib="8" loc="(1445,5010)" name="Text">
       <a name="text" val="Still wont compile to HDL, needs to be fixed by hand"/>
     </comp>
-    <comp lib="8" loc="(1697,4983)" name="Text">
+    <comp lib="8" loc="(1695,4980)" name="Text">
       <a name="text" val="Redesignet circuit from original drawing, added second controlles buffer to control incomming signal from XI_3_0_I"/>
     </comp>
     <comp lib="8" loc="(180,2685)" name="Text">
       <a name="text" val="Internal signals OUT of DGA chip"/>
     </comp>
-    <comp lib="8" loc="(186,3973)" name="Text">
+    <comp lib="8" loc="(185,3970)" name="Text">
       <a name="text" val="Internal signals OUT of DGA chip"/>
     </comp>
     <comp lib="8" loc="(210,1565)" name="Text">
       <a name="text" val="External signals coming IN to the DGA chip"/>
     </comp>
-    <comp lib="8" loc="(218,5160)" name="Text">
+    <comp lib="8" loc="(215,5160)" name="Text">
       <a name="text" val="Internal signals IN and OUT of DGA chip"/>
     </comp>
     <comp lib="8" loc="(230,7130)" name="Text">
       <a name="text" val="Simplified the DGA design"/>
     </comp>
-    <comp lib="8" loc="(246,6803)" name="Text">
+    <comp lib="8" loc="(245,6800)" name="Text">
       <a name="text" val="Internal signals IN and OUT of DGA chip"/>
     </comp>
     <comp lib="8" loc="(250,1525)" name="Text">
@@ -1381,19 +1381,19 @@
     <comp lib="8" loc="(255,2645)" name="Text">
       <a name="text" val="PDF Page 4 -&gt; DECODE - DECODE_DGA- Sheet 3 of 6"/>
     </comp>
+    <comp lib="8" loc="(260,3930)" name="Text">
+      <a name="text" val="PDF Page 5 -&gt; DECODE - DECODE_DGA- Sheet 4 of 6"/>
+    </comp>
     <comp lib="8" loc="(260,60)" name="Text">
       <a name="text" val="PDF Page 2 -&gt; DECODE - DECODE_DGA- Sheet 1 of 6"/>
     </comp>
-    <comp lib="8" loc="(261,3933)" name="Text">
-      <a name="text" val="PDF Page 5 -&gt; DECODE - DECODE_DGA- Sheet 4 of 6"/>
-    </comp>
-    <comp lib="8" loc="(293,5120)" name="Text">
+    <comp lib="8" loc="(290,5120)" name="Text">
       <a name="text" val="PDF Page 6 -&gt; DECODE - DECODE_DGA- Sheet 5 of 6"/>
     </comp>
-    <comp lib="8" loc="(321,6763)" name="Text">
+    <comp lib="8" loc="(320,6760)" name="Text">
       <a name="text" val="PDF Page 7 -&gt; DECODE - DECODE_DGA- Sheet 6 of 6"/>
     </comp>
-    <comp lib="8" loc="(338,6057)" name="Text">
+    <comp lib="8" loc="(335,6055)" name="Text">
       <a name="text" val="Internal to external signals (sheet 5 of 6)"/>
     </comp>
     <comp loc="(1440,5080)" name="F091">
@@ -2938,7 +2938,7 @@
     </comp>
     <comp lib="0" loc="(2280,210)" name="Tunnel">
       <a name="facing" val="south"/>
-      <a name="label" val="WEU112"/>
+      <a name="label" val="WEU12"/>
     </comp>
     <comp lib="0" loc="(2330,2100)" name="Splitter">
       <a name="appear" val="right"/>

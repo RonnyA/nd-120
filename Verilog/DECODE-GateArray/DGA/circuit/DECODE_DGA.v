@@ -8,6 +8,7 @@
 
 module DECODE_DGA( XA_7_0,
                    XA_7_0_C,
+                   XBDN,
                    XBRN,
                    XC10,
                    XCLK,
@@ -18,7 +19,6 @@ module DECODE_DGA( XA_7_0,
                    XCRN,
                    XCSN,
                    XDAN,
-                   XDBN,
                    XDON,
                    XDTN,
                    XDVN,
@@ -86,13 +86,13 @@ module DECODE_DGA( XA_7_0,
    /*******************************************************************************
    ** The inputs are defined here                                                **
    *******************************************************************************/
+   input       XBDN;
    input       XBRN;
    input       XCLK;
    input       XCLO;
    input       XCON;
    input [4:0] XCO_4_0;
    input       XDAN;
-   input       XDBN;
    input       XEFN;
    input       XEON;
    input       XHIN;
@@ -303,11 +303,11 @@ module DECODE_DGA( XA_7_0,
    assign s_logisimBus42[1] = s_logisimNet2;
    assign s_logisimBus42[2] = s_logisimNet2;
    assign s_logisimBus42[3] = s_logisimNet2;
-   assign s_logisimBus74[4] = s_logisimNet22;
+   assign s_logisimBus74[4] = s_logisimNet21;
    assign s_logisimBus74[5] = s_logisimNet55;
    assign s_logisimBus74[6] = s_logisimNet3;
    assign s_logisimBus74[7] = s_logisimNet51;
-   assign s_logisimNet22    = s_logisimBus12[0];
+   assign s_logisimNet21    = s_logisimBus12[0];
    assign s_logisimNet3     = s_logisimBus12[2];
    assign s_logisimNet51    = s_logisimBus12[3];
    assign s_logisimNet55    = s_logisimBus12[1];
@@ -321,13 +321,13 @@ module DECODE_DGA( XA_7_0,
    assign s_logisimBus32[1:0] = XST_4_3;
    assign s_logisimBus5[3:0]  = XI_3_0_I;
    assign s_logisimBus78[4:0] = XCO_4_0;
-   assign s_logisimNet103     = XPDI;
-   assign s_logisimNet104     = XBRN;
-   assign s_logisimNet21      = XLCN;
+   assign s_logisimNet105     = XPDI;
+   assign s_logisimNet106     = XBRN;
+   assign s_logisimNet22      = XLCN;
    assign s_logisimNet23      = XS5N;
    assign s_logisimNet27      = XLON;
    assign s_logisimNet28      = XTON;
-   assign s_logisimNet52      = XDBN;
+   assign s_logisimNet52      = XBDN;
    assign s_logisimNet54      = XLSH;
    assign s_logisimNet59      = XCLK;
    assign s_logisimNet63      = XDAN;
@@ -353,22 +353,22 @@ module DECODE_DGA( XA_7_0,
    assign XCRN     = s_logisimNet71;
    assign XCSN     = s_logisimNet67;
    assign XDON     = s_logisimNet61;
-   assign XDTN     = s_logisimNet37;
+   assign XDTN     = s_logisimNet39;
    assign XDVN     = s_logisimNet9;
-   assign XECR     = s_logisimNet40;
+   assign XECR     = s_logisimNet38;
    assign XEMN     = s_logisimNet96;
    assign XEPN     = s_logisimNet89;
    assign XESN     = s_logisimNet70;
-   assign XEUN     = s_logisimNet38;
+   assign XEUN     = s_logisimNet40;
    assign XFEC     = s_logisimNet29;
-   assign XFMI     = s_logisimNet17;
+   assign XFMI     = s_logisimNet18;
    assign XFON     = s_logisimNet19;
    assign XFUN     = s_logisimNet31;
    assign XION     = s_logisimNet60;
    assign XI_3_0_C = s_logisimBus42[3:0];
    assign XI_3_0_O = s_logisimBus30[3:0];
    assign XLHN     = s_logisimNet45;
-   assign XMCL     = s_logisimNet101;
+   assign XMCL     = s_logisimNet99;
    assign XMRN     = s_logisimNet87;
    assign XOCN     = s_logisimNet49;
    assign XPAN     = s_logisimNet13;
@@ -376,21 +376,21 @@ module DECODE_DGA( XA_7_0,
    assign XPFN     = s_logisimNet81;
    assign XPIN     = s_logisimNet69;
    assign XPNN     = s_logisimNet41;
-   assign XPSC     = s_logisimNet105;
+   assign XPSC     = s_logisimNet104;
    assign XPSN     = s_logisimNet16;
    assign XRFN     = s_logisimNet73;
    assign XRIN     = s_logisimNet58;
-   assign XRQN     = s_logisimNet39;
+   assign XRQN     = s_logisimNet37;
    assign XRTN     = s_logisimNet44;
    assign XRUN     = s_logisimNet68;
    assign XRWN     = s_logisimNet57;
    assign XSCN     = s_logisimNet72;
-   assign XSHN     = s_logisimNet18;
+   assign XSHN     = s_logisimNet17;
    assign XSSN     = s_logisimNet50;
    assign XSTP     = s_logisimNet26;
    assign XSWN     = s_logisimNet43;
-   assign XTE0     = s_logisimNet99;
-   assign XTOT     = s_logisimNet46;
+   assign XTE0     = s_logisimNet101;
+   assign XTOT     = s_logisimNet47;
    assign XTRN     = s_logisimNet62;
    assign XVAL     = s_logisimNet88;
    assign XWHN     = s_logisimNet0;
@@ -400,32 +400,32 @@ module DECODE_DGA( XA_7_0,
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // Buffer
-   assign s_logisimBus8 = s_logisimBus56;
-
-   // Buffer
-   assign s_logisimNet92 = s_logisimNet94;
-
-   // NOT Gate
-   assign s_logisimNet4 = ~s_logisimNet92;
-
-   // Controlled Buffer
-   assign s_logisimBus83 = (s_logisimNet4) ? s_logisimBus8 : 8'bZ;
-
    // NOT Gate
    assign s_logisimNet2 = ~s_logisimNet89;
 
    // Controlled Buffer
-   assign s_logisimBus30[2] = (s_logisimNet2) ? s_logisimBus74[2] : 1'bZ;
+   assign s_logisimBus30[3] = (s_logisimNet2) ? s_logisimBus74[3] : 1'bZ;
 
    // Controlled Buffer
-   assign s_logisimBus30[3] = (s_logisimNet2) ? s_logisimBus74[3] : 1'bZ;
+   assign s_logisimBus30[2] = (s_logisimNet2) ? s_logisimBus74[2] : 1'bZ;
 
    // Controlled Buffer
    assign s_logisimBus30[1] = (s_logisimNet2) ? s_logisimBus74[1] : 1'bZ;
 
    // Controlled Buffer
    assign s_logisimBus30[0] = (s_logisimNet2) ? s_logisimBus74[0] : 1'bZ;
+
+   // Buffer
+   assign s_logisimNet92 = s_logisimNet94;
+
+   // Buffer
+   assign s_logisimBus8 = s_logisimBus56;
+
+   // NOT Gate
+   assign s_logisimNet4 = ~s_logisimNet92;
+
+   // Controlled Buffer
+   assign s_logisimBus83 = (s_logisimNet4) ? s_logisimBus8 : 8'bZ;
 
    /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -444,7 +444,7 @@ module DECODE_DGA( XA_7_0,
 
    Multiplexer_2   PLEXERS_3 (.enable(1'b1),
                               .muxIn_0(s_logisimBus5[1]),
-                              .muxIn_1(s_logisimNet106),
+                              .muxIn_1(s_logisimNet103),
                               .muxOut(s_logisimBus74[1]),
                               .sel(s_logisimNet2));
 
@@ -458,6 +458,9 @@ module DECODE_DGA( XA_7_0,
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
+
+   F091   A090 (.N01(),
+                .N02(s_logisimNet14));
 
    DECODE_DGA_PFIFC   PFIFC (.CLEAR(s_logisimNet97),
                              .EMPN(s_logisimNet96),
@@ -474,12 +477,12 @@ module DECODE_DGA( XA_7_0,
                          .CONTINUEN(s_logisimNet93),
                          .EMCLN(s_logisimNet90),
                          .IDB0(s_logisimNet85),
-                         .IDB1(s_logisimNet106),
+                         .IDB1(s_logisimNet103),
                          .IDB2(s_logisimNet100),
                          .LOADN(s_logisimNet27),
-                         .MCL(s_logisimNet101),
+                         .MCL(s_logisimNet99),
                          .PANN(s_logisimNet41),
-                         .PANOSC(s_logisimNet105),
+                         .PANOSC(s_logisimNet104),
                          .POWFAILN(s_logisimNet81),
                          .POWSENSE(s_logisimNet80),
                          .PRQN(s_logisimNet34),
@@ -493,9 +496,9 @@ module DECODE_DGA( XA_7_0,
                          .STARTN(s_logisimNet33),
                          .STOPN(s_logisimNet28),
                          .STPN(s_logisimNet26),
-                         .TEST0(s_logisimNet99),
+                         .TEST0(s_logisimNet101),
                          .TESTE(s_logisimNet75),
-                         .TOUT(s_logisimNet46));
+                         .TOUT(s_logisimNet47));
 
    DECODE_DGA_PFIFD   PFIFD (.AD_7_0(s_logisimBus56[7:0]),
                              .IDBI_7_0(s_logisimBus74[7:0]),
@@ -512,7 +515,7 @@ module DECODE_DGA( XA_7_0,
                            .EPANSN(s_logisimNet16),
                            .EPEAN(s_logisimNet13),
                            .EPESN(s_logisimNet86),
-                           .LCSN(s_logisimNet21),
+                           .LCSN(s_logisimNet22),
                            .PRQN(s_logisimNet34),
                            .RINRN(s_logisimNet58),
                            .RUARTN(s_logisimNet68),
@@ -521,10 +524,10 @@ module DECODE_DGA( XA_7_0,
                            .TRAALDN(s_logisimNet62),
                            .VAL(s_logisimNet88));
 
-   DECODE_DGA_COMM   COMM (.BRKN(s_logisimNet104),
+   DECODE_DGA_COMM   COMM (.BRKN(s_logisimNet106),
                            .CA10(s_logisimNet1),
                            .CCLRN(s_logisimNet71),
-                           .CEUARTN(s_logisimNet38),
+                           .CEUARTN(s_logisimNet40),
                            .CLEAR(s_logisimNet97),
                            .CLK1(s_logisimNet59),
                            .CLK2(s_logisimNet59),
@@ -533,31 +536,31 @@ module DECODE_DGA( XA_7_0,
                            .CSCOMM_4_0(s_logisimBus78[4:0]),
                            .CSMIS_1_0(s_logisimBus20[1:0]),
                            .DAPN(s_logisimNet63),
-                           .DTN(s_logisimNet37),
+                           .DTN(s_logisimNet39),
                            .DVACCN(s_logisimNet9),
-                           .ECREQ(s_logisimNet40),
+                           .ECREQ(s_logisimNet38),
                            .EMCLN(s_logisimNet90),
                            .EMPIDN(s_logisimNet69),
                            .EORFN(s_logisimNet77),
                            .ESTOFN(s_logisimNet70),
                            .FETCH(s_logisimNet29),
-                           .FMISS(s_logisimNet17),
+                           .FMISS(s_logisimNet18),
                            .FORMN(s_logisimNet19),
                            .HITN(s_logisimNet64),
                            .IDBI2(s_logisimBus74[2]),
                            .IDBI5(s_logisimNet55),
                            .IDBI7(s_logisimNet51),
-                           .IORQN(s_logisimNet39),
-                           .LCSN(s_logisimNet21),
+                           .IORQN(s_logisimNet37),
+                           .LCSN(s_logisimNet22),
                            .LDPANCN(s_logisimNet76),
                            .LHIT(s_logisimNet45),
                            .LSHADOW(s_logisimNet54),
                            .MREQ(s_logisimNet87),
-                           .PONI(s_logisimNet103),
+                           .PONI(s_logisimNet105),
                            .RESET(s_logisimNet36),
                            .RTN(s_logisimNet44),
                            .RWCSN(s_logisimNet57),
-                           .SHORTN(s_logisimNet18),
+                           .SHORTN(s_logisimNet17),
                            .SIOCN(s_logisimNet49),
                            .SLOWN(s_logisimNet43),
                            .SSEMAN(s_logisimNet50),
@@ -567,8 +570,5 @@ module DECODE_DGA( XA_7_0,
                            .UCLK(s_logisimNet7),
                            .WCHIMN(s_logisimNet0),
                            .WRITE(s_logisimNet48));
-
-   F091   A090 (.N01(),
-                .N02(s_logisimNet14));
 
 endmodule
