@@ -56,84 +56,6 @@
     <a name="circuit" val="DECODE_DGA"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1010,1000)" name="Tunnel">
       <a name="label" val="LDPANCN"/>
     </comp>
@@ -1353,6 +1275,11 @@
     <comp lib="2" loc="(1580,5440)" name="Multiplexer"/>
     <comp lib="8" loc="(1445,5010)" name="Text">
       <a name="text" val="Still wont compile to HDL, needs to be fixed by hand"/>
+    </comp>
+    <comp lib="8" loc="(1651,4920)" name="Text">
+      <a name="color" val="#ff2d36"/>
+      <a name="font" val="SansSerif bold 22"/>
+      <a name="text" val="FIX IN VERILOG"/>
     </comp>
     <comp lib="8" loc="(1695,4980)" name="Text">
       <a name="text" val="Redesignet circuit from original drawing, added second controlles buffer to control incomming signal from XI_3_0_I"/>
