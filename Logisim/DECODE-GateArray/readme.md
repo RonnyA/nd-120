@@ -10,8 +10,6 @@ The decoder diagrams are all in one file: ND_DGA
 
 ## Status of Logisim drawings from DGA Schematics PDF ##
 
-
-* DGA_POW + DGA needs to be finished drawing.
 * Helper circuits needs to be validated
 * All circuits needs to be tested
 
