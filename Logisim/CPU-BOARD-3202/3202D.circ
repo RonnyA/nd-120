@@ -125,6 +125,17 @@
       <mc/>
       <mc/>
       <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
+      <mc/>
     </boardmap>
     <comp lib="0" loc="(1050,6740)" name="Tunnel">
       <a name="facing" val="east"/>
@@ -1004,11 +1015,13 @@
       <a name="facing" val="east"/>
       <a name="label" val="CGNT50_n"/>
     </comp>
-    <comp lib="0" loc="(300,280)" name="Clock">
-      <a name="label" val="XTAL1_39_3216MHZ"/>
+    <comp lib="0" loc="(300,280)" name="Pin">
+      <a name="appearance" val="classic"/>
+      <a name="label" val="CLOCK_1"/>
     </comp>
-    <comp lib="0" loc="(300,320)" name="Clock">
-      <a name="label" val="XTAL2_35MHZ"/>
+    <comp lib="0" loc="(300,320)" name="Pin">
+      <a name="appearance" val="classic"/>
+      <a name="label" val="CLOCK_2"/>
     </comp>
     <comp lib="0" loc="(300,550)" name="Tunnel">
       <a name="label" val="PD1"/>
@@ -1022,8 +1035,9 @@
     <comp lib="0" loc="(300,670)" name="Tunnel">
       <a name="label" val="PD4"/>
     </comp>
-    <comp lib="0" loc="(300,7460)" name="Constant">
-      <a name="value" val="0xffffffffffffffff"/>
+    <comp lib="0" loc="(300,7460)" name="Tunnel">
+      <a name="facing" val="east"/>
+      <a name="label" val="CSBITS"/>
       <a name="width" val="64"/>
     </comp>
     <comp lib="0" loc="(320,3570)" name="Pin">
@@ -1169,27 +1183,27 @@
     <comp lib="0" loc="(350,320)" name="Tunnel">
       <a name="label" val="XTAL2"/>
     </comp>
-    <comp lib="0" loc="(410,2860)" name="Tunnel">
+    <comp lib="0" loc="(380,2890)" name="Tunnel">
+      <a name="facing" val="east"/>
+      <a name="label" val="CSBITS"/>
+      <a name="width" val="64"/>
+    </comp>
+    <comp lib="0" loc="(400,2770)" name="Tunnel">
       <a name="facing" val="east"/>
       <a name="label" val="TEST_4_0"/>
       <a name="width" val="5"/>
     </comp>
-    <comp lib="0" loc="(410,2910)" name="Pin">
+    <comp lib="0" loc="(400,2820)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="SW1_CONSOLE"/>
     </comp>
-    <comp lib="0" loc="(440,2810)" name="Tunnel">
+    <comp lib="0" loc="(430,2720)" name="Tunnel">
       <a name="facing" val="east"/>
       <a name="label" val="TP1_INTRQ_n"/>
     </comp>
     <comp lib="0" loc="(440,6450)" name="Tunnel">
       <a name="facing" val="east"/>
       <a name="label" val="BPERR_n"/>
-    </comp>
-    <comp lib="0" loc="(450,7430)" name="Tunnel">
-      <a name="facing" val="east"/>
-      <a name="label" val="CSBITS"/>
-      <a name="width" val="64"/>
     </comp>
     <comp lib="0" loc="(470,3200)" name="Tunnel">
       <a name="label" val="OSCCL_n"/>
@@ -1305,6 +1319,30 @@
       <a name="incoming" val="64"/>
       <a name="spacing" val="2"/>
     </comp>
+    <comp lib="0" loc="(550,2720)" name="Pin">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+      <a name="label" val="TP1_INTRQ_n"/>
+      <a name="output" val="true"/>
+    </comp>
+    <comp lib="0" loc="(550,2770)" name="Pin">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+      <a name="label" val="TEST_4_0"/>
+      <a name="output" val="true"/>
+      <a name="width" val="5"/>
+    </comp>
+    <comp lib="0" loc="(550,2820)" name="Tunnel">
+      <a name="label" val="SW1_CONSOLE"/>
+    </comp>
+    <comp lib="0" loc="(550,2890)" name="Pin">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+      <a name="label" val="CSBITS"/>
+      <a name="output" val="true"/>
+      <a name="radix" val="16"/>
+      <a name="width" val="64"/>
+    </comp>
     <comp lib="0" loc="(550,8000)" name="Splitter">
       <a name="bit0" val="4"/>
       <a name="bit1" val="3"/>
@@ -1336,22 +1374,6 @@
       <a name="fanout" val="16"/>
       <a name="incoming" val="16"/>
       <a name="spacing" val="2"/>
-    </comp>
-    <comp lib="0" loc="(560,2810)" name="Pin">
-      <a name="appearance" val="classic"/>
-      <a name="facing" val="west"/>
-      <a name="label" val="TP1_INTRQ_n"/>
-      <a name="output" val="true"/>
-    </comp>
-    <comp lib="0" loc="(560,2860)" name="Pin">
-      <a name="appearance" val="classic"/>
-      <a name="facing" val="west"/>
-      <a name="label" val="TEST_4_0"/>
-      <a name="output" val="true"/>
-      <a name="width" val="5"/>
-    </comp>
-    <comp lib="0" loc="(560,2910)" name="Tunnel">
-      <a name="label" val="SW1_CONSOLE"/>
     </comp>
     <comp lib="0" loc="(560,8100)" name="Splitter">
       <a name="bit0" val="3"/>
@@ -1888,6 +1910,18 @@
       <a name="halign" val="left"/>
       <a name="text" val="SHEET 1 of 50"/>
     </comp>
+    <comp lib="8" loc="(235,2635)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="ND120 CPU, MM&amp;M"/>
+    </comp>
+    <comp lib="8" loc="(235,2665)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="DELILAH TOP LEVEL"/>
+    </comp>
+    <comp lib="8" loc="(235,2685)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="TEST POINTS"/>
+    </comp>
     <comp lib="8" loc="(240,2975)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="ND120 CPU, MM&amp;M"/>
@@ -1920,19 +1954,7 @@
       <a name="halign" val="left"/>
       <a name="text" val="SHEET 3 of 50"/>
     </comp>
-    <comp lib="8" loc="(247,2726)" name="Text">
-      <a name="halign" val="left"/>
-      <a name="text" val="ND120 CPU, MM&amp;M"/>
-    </comp>
-    <comp lib="8" loc="(249,2757)" name="Text">
-      <a name="halign" val="left"/>
-      <a name="text" val="DELILAH TOP LEVEL"/>
-    </comp>
-    <comp lib="8" loc="(249,2777)" name="Text">
-      <a name="halign" val="left"/>
-      <a name="text" val="TEST POINTS"/>
-    </comp>
-    <comp lib="8" loc="(26,6249)" name="Text">
+    <comp lib="8" loc="(25,6245)" name="Text">
       <a name="color" val="#ff47d4"/>
       <a name="font" val="SansSerif bold 21"/>
       <a name="halign" val="left"/>
@@ -1954,14 +1976,22 @@
       <a name="halign" val="left"/>
       <a name="text" val="SHEET 4 of 50"/>
     </comp>
-    <comp lib="8" loc="(369,7379)" name="Text">
+    <comp lib="8" loc="(365,7375)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="HELPER LOGIC TO MAP CSBITS TO BUS SIGNALS"/>
     </comp>
-    <comp lib="8" loc="(440,325)" name="Text">
+    <comp lib="8" loc="(429,325)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="XTAL2_35MHZ"/>
+    </comp>
+    <comp lib="8" loc="(430,291)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="XTAL1_39_3216MHZ"/>
+    </comp>
+    <comp lib="8" loc="(617,311)" name="Text">
       <a name="color" val="#d62537"/>
       <a name="halign" val="left"/>
-      <a name="text" val="TODO: FIND OUT WHY THERE IS XTAL2 - AND HOW TO HANDLE IN VERILOG"/>
+      <a name="text" val="TODO: FIND OUT WHY THERE IS TWO DIFFERENT XTAL's  - AND HOW TO HANDLE IN VERILOG"/>
     </comp>
     <comp loc="(1010,510)" name="CYC_36">
       <a name="label" val="CYC"/>
@@ -2280,10 +2310,11 @@
     <wire from="(330,3280)" to="(440,3280)"/>
     <wire from="(330,3320)" to="(470,3320)"/>
     <wire from="(330,3400)" to="(470,3400)"/>
-    <wire from="(410,2860)" to="(560,2860)"/>
-    <wire from="(410,2910)" to="(560,2910)"/>
+    <wire from="(380,2890)" to="(550,2890)"/>
+    <wire from="(400,2770)" to="(550,2770)"/>
+    <wire from="(400,2820)" to="(550,2820)"/>
     <wire from="(410,5670)" to="(470,5670)"/>
-    <wire from="(440,2810)" to="(560,2810)"/>
+    <wire from="(430,2720)" to="(550,2720)"/>
     <wire from="(440,3240)" to="(440,3260)"/>
     <wire from="(440,3240)" to="(470,3240)"/>
     <wire from="(440,3260)" to="(610,3260)"/>
