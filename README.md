@@ -54,9 +54,18 @@ The source code is also for the L version.
 
 # 68705 #
 
-[ROM dump](Code/68705/readme.md) of the MC68705U3 (M6805 8-bit CPU, on-chip RAM, I/O and Timer)
+[ROM dump](Code/68705/readme.md)
 
-Big thanks to Matthieu Benoit for reading the data out of the chip.
+The ND-120/CX CPU Board has an on-board MC68705 CPU. 
+The front panel also has an MC68705 CPU, however this chip is not identical to the on on the 3202D CPU Board.
+
+The MC68705 is an MC 6805 8-bit CPU with on-chip RAM, I/O and Timer. [Motorola 68HC05](https://en.wikipedia.org/wiki/Motorola_68HC05)
+* P3 version = 28 pins, 2x 8 bits I/O ports, 1x 4 bit I/O port
+* U3 version = 40 pins, 4x 8 bits I/O ports
+
+* We don't (yet) have a ROM dump of the MC68705-U3 chip from the 3202D CPU Board.
+* We do have a ROM dump of the MC68705-P3 (from an ND-5000C panel controller).
+  *  Big thanks to Matthieu Benoit for reading the data out of the chip.
 
 # Schematic drawings #
 
