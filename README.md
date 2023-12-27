@@ -10,7 +10,7 @@ This repo contains:
 
 You can read more about this [CPU](https://www.ndwiki.org/wiki/3202) and much more in [NDWiki](https://www.ndwiki.org/) and the official website for [Norsk Data](http://sintran.com/)
 
-The goal of this repo is to re-create the scheamtics and create the HDL files so we can program an FPGA to run as the original ND-120 CPU Card.
+The goal of this repo is to re-create the schematics and create the HDL files so we can program an FPGA to run as the original ND-120 CPU Card.
 
 On the way to the FPGA code, there will be testable Logisim Circuits and Logisim code that can be converted and tested in C++ using Verilator.
 
@@ -23,7 +23,7 @@ For that the minimum requirements are:
 |--------------------------------|--------------|--------|--------|
 | [DELILAH CPU Gate Array (CGA)](DesignDocuments\DELILAH-CPU\readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
 | [NEC Decoder Gate Array (DGA)](DesignDocuments\DECODE-GateArray\readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
-| [ND 3202 CPU Board revision D](DesignDocuments/CPU-BOARD-3202/Readme.md) | Drawing not started | 
+| [ND 3202 CPU Board revision D](DesignDocuments/CPU-BOARD-3202/Readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
 
 In the CPU Board we will plug in the DELILAH CPU and the Decoder, and several other chips. 
 
