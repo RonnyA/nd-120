@@ -1980,15 +1980,15 @@
       <a name="halign" val="left"/>
       <a name="text" val="HELPER LOGIC TO MAP CSBITS TO BUS SIGNALS"/>
     </comp>
-    <comp lib="8" loc="(429,325)" name="Text">
+    <comp lib="8" loc="(425,325)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="XTAL2_35MHZ"/>
     </comp>
-    <comp lib="8" loc="(430,291)" name="Text">
+    <comp lib="8" loc="(430,290)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="XTAL1_39_3216MHZ"/>
     </comp>
-    <comp lib="8" loc="(617,311)" name="Text">
+    <comp lib="8" loc="(615,310)" name="Text">
       <a name="color" val="#d62537"/>
       <a name="halign" val="left"/>
       <a name="text" val="TODO: FIND OUT WHY THERE IS TWO DIFFERENT XTAL's  - AND HOW TO HANDLE IN VERILOG"/>
@@ -26932,21 +26932,31 @@ e6 63 0 0 3a 0 0 48
       <a name="output" val="true"/>
       <a name="tristate" val="true"/>
     </comp>
+    <comp lib="0" loc="(230,340)" name="Constant">
+      <a name="value" val="0x5"/>
+      <a name="width" val="3"/>
+    </comp>
     <comp lib="0" loc="(230,520)" name="Constant">
       <a name="value" val="0x0"/>
       <a name="width" val="5"/>
+    </comp>
+    <comp lib="0" loc="(270,340)" name="Splitter">
+      <a name="appear" val="right"/>
+      <a name="bit0" val="2"/>
+      <a name="bit2" val="0"/>
+      <a name="fanout" val="3"/>
+      <a name="incoming" val="3"/>
+      <a name="spacing" val="2"/>
     </comp>
     <comp lib="0" loc="(270,520)" name="Splitter">
       <a name="fanout" val="5"/>
       <a name="incoming" val="5"/>
       <a name="spacing" val="2"/>
     </comp>
-    <comp lib="0" loc="(330,300)" name="Power"/>
     <comp lib="0" loc="(330,890)" name="Constant">
       <a name="value" val="0xf"/>
       <a name="width" val="4"/>
     </comp>
-    <comp lib="0" loc="(350,300)" name="Power"/>
     <comp lib="0" loc="(360,720)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="CX_n"/>
@@ -27123,25 +27133,44 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="probably to be use for STRAP later?"/>
     </comp>
-    <comp lib="8" loc="(325,485)" name="Text">
+    <comp lib="8" loc="(297,424)" name="Text">
       <a name="halign" val="left"/>
-      <a name="text" val="STR8"/>
+      <a name="text" val="STR5"/>
     </comp>
-    <comp lib="8" loc="(330,440)" name="Text">
-      <a name="halign" val="left"/>
-      <a name="text" val="STR6"/>
-    </comp>
-    <comp lib="8" loc="(330,460)" name="Text">
-      <a name="halign" val="left"/>
-      <a name="text" val="STR7"/>
-    </comp>
-    <comp lib="8" loc="(330,505)" name="Text">
+    <comp lib="8" loc="(297,506)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="STR9"/>
     </comp>
-    <comp lib="8" loc="(335,400)" name="Text">
+    <comp lib="8" loc="(298,488)" name="Text">
       <a name="halign" val="left"/>
-      <a name="text" val="STR5"/>
+      <a name="text" val="STR8"/>
+    </comp>
+    <comp lib="8" loc="(299,448)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="STR6"/>
+    </comp>
+    <comp lib="8" loc="(299,467)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="STR7"/>
+    </comp>
+    <comp lib="8" loc="(436,133)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="ALD =&gt; INVERT BIT 0-3 (ALD), BIT 4-6 (PRINT RELEASE), BIT 7 (CX), BIT14 (PRINT NO )"/>
+    </comp>
+    <comp lib="8" loc="(581,166)" name="Text">
+      <a name="color" val="#1415ff"/>
+      <a name="halign" val="left"/>
+      <a name="text" val="BIT 15-13=101 = &gt; 3202"/>
+    </comp>
+    <comp lib="8" loc="(583,195)" name="Text">
+      <a name="color" val="#1415ff"/>
+      <a name="halign" val="left"/>
+      <a name="text" val="BIT 7==1 =&gt; HIGH SPEED"/>
+    </comp>
+    <comp lib="8" loc="(584,221)" name="Text">
+      <a name="color" val="#1415ff"/>
+      <a name="halign" val="left"/>
+      <a name="text" val="BIT 4-6=011 for version D"/>
     </comp>
     <comp lib="8" loc="(645,70)" name="Text">
       <a name="color" val="#216cff"/>
@@ -27156,6 +27185,15 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="ALD-SETTINGS = 0 (TH1)"/>
     </comp>
+    <comp lib="8" loc="(859,218)" name="Text">
+      <a name="color" val="#1415ff"/>
+      <a name="halign" val="left"/>
+      <a name="text" val="BIT 12-8=STR5-STR9"/>
+    </comp>
+    <comp lib="8" loc="(888,487)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="IDB8"/>
+    </comp>
     <comp lib="8" loc="(890,1120)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="IDB7"/>
@@ -27164,6 +27202,10 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="IDB15"/>
     </comp>
+    <comp lib="8" loc="(890,366)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="IDB14"/>
+    </comp>
     <comp lib="8" loc="(890,710)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="IDB7"/>
@@ -27171,10 +27213,6 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(895,1265)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="IDB0"/>
-    </comp>
-    <comp lib="8" loc="(895,485)" name="Text">
-      <a name="halign" val="left"/>
-      <a name="text" val="IDB14"/>
     </comp>
     <comp lib="8" loc="(895,855)" name="Text">
       <a name="halign" val="left"/>
@@ -27269,24 +27307,20 @@ e6 63 0 0 3a 0 0 48
     <wire from="(2110,630)" to="(2250,630)"/>
     <wire from="(220,670)" to="(220,780)"/>
     <wire from="(220,780)" to="(660,780)"/>
+    <wire from="(230,340)" to="(270,340)"/>
     <wire from="(230,520)" to="(270,520)"/>
-    <wire from="(290,430)" to="(320,430)"/>
+    <wire from="(290,350)" to="(660,350)"/>
+    <wire from="(290,370)" to="(660,370)"/>
+    <wire from="(290,390)" to="(660,390)"/>
+    <wire from="(290,430)" to="(560,430)"/>
     <wire from="(290,450)" to="(660,450)"/>
     <wire from="(290,470)" to="(660,470)"/>
     <wire from="(290,490)" to="(660,490)"/>
     <wire from="(290,510)" to="(660,510)"/>
-    <wire from="(320,410)" to="(320,430)"/>
-    <wire from="(320,410)" to="(660,410)"/>
-    <wire from="(330,300)" to="(330,350)"/>
-    <wire from="(330,350)" to="(660,350)"/>
     <wire from="(330,890)" to="(360,890)"/>
-    <wire from="(350,300)" to="(350,370)"/>
-    <wire from="(350,370)" to="(660,370)"/>
     <wire from="(360,720)" to="(660,720)"/>
     <wire from="(370,1010)" to="(1290,1010)"/>
     <wire from="(370,1040)" to="(1320,1040)"/>
-    <wire from="(370,300)" to="(370,390)"/>
-    <wire from="(370,390)" to="(660,390)"/>
     <wire from="(370,980)" to="(620,980)"/>
     <wire from="(380,820)" to="(660,820)"/>
     <wire from="(380,840)" to="(660,840)"/>
@@ -27308,6 +27342,8 @@ e6 63 0 0 3a 0 0 48
     <wire from="(550,1270)" to="(660,1270)"/>
     <wire from="(560,1230)" to="(560,1250)"/>
     <wire from="(560,1250)" to="(660,1250)"/>
+    <wire from="(560,410)" to="(560,430)"/>
+    <wire from="(560,410)" to="(660,410)"/>
     <wire from="(570,1210)" to="(570,1230)"/>
     <wire from="(570,1230)" to="(660,1230)"/>
     <wire from="(620,430)" to="(620,530)"/>
@@ -27570,6 +27606,10 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(155,85)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="UART &amp; IOR REG"/>
+    </comp>
+    <comp lib="8" loc="(1715,1045)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="Microcode reads the 4 low bits to register AB,BAUD"/>
     </comp>
     <comp lib="8" loc="(2095,535)" name="Text">
       <a name="halign" val="left"/>
