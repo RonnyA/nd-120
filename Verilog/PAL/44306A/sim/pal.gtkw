@@ -1,0 +1,45 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Thu Jan  4 19:16:01 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44306A/sim/waveform.vcd"
+[dumpfile_mtime] "Thu Jan  4 19:13:05 2024"
+[dumpfile_size] 2804
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44306A/sim/pal.gtkw"
+[timestart] 0
+[size] 2548 1359
+[pos] -71 -523
+*-5.456229 50 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 214
+[signals_width] 384
+[sst_expanded] 1
+[sst_vpaned_height] 420
+@28
+TOP.PAL_44306A.CA0
+TOP.PAL_44306A.WRITE
+TOP.PAL_44306A.DVACC_n
+TOP.PAL_44306A.RT_n
+TOP.PAL_44306A.WCHIM_n
+TOP.PAL_44306A.DOUBLE
+TOP.PAL_44306A.EMCL_n
+TOP.PAL_44306A.CC2_n
+TOP.PAL_44306A.WCA_n
+TOP.PAL_44306A.LSHADOW
+TOP.PAL_44306A.LAPA_n
+@200
+--- output --
+-
+@28
+TOP.PAL_44306A.LAPA_n
+TOP.PAL_44306A.EPT_n
+TOP.PAL_44306A.EPMAP_n
+TOP.PAL_44306A.EPTI_n
+TOP.PAL_44306A.EIPL_n
+TOP.PAL_44306A.EIPU_n
+@29
+TOP.PAL_44306A.EIPUR_n
+@28
+TOP.PAL_44306A.ECD_n
+[pattern_trace] 1
+[pattern_trace] 0
