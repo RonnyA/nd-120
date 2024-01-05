@@ -49,10 +49,10 @@ Standard is 4Mb memory configured contiguosly from address 0.
 |21G     |7856    | 16L8-12| 12ns      | 513035   | 44306A   | MMUCTL    | [A IMG](IMG/44306A.png)     | [A PDS](SRC/44306A.txt)      | [Converted.](../../Verilog/PAL/44306A/PAL_44306A.v) Needs more test |
 |13D     |8345    | 16L8-12| 12ns      | 513085   | 44307C   | CYCLK     | [C IMG](IMG/44307C.png)     | [C PDS](SRC/44307C.txt)      | [Converted.](../../Verilog/PAL/44307C/PAL_44307C.v) Needs more test |
 |3F      |46FA    | 16L8-12| 12ns      | 513085   | 44310D   | LBDIF     | [D IMG](IMG/44310D.png)     | [D PDS](SRC/44310D.txt)      | [Almost converted. Need to fix self-reference signals.](../../Verilog/PAL/44310D/PAL_44310D.v) |
-|5D      |59AF    | 16R4D  | 10ns      | 513060   | 44401B   | BTIM      | [B IMG](IMG/44401B.png)     | [B PDS](SRC/44401B.txt)  
+|5D      |59AF    | 16R4D  | 10ns      | 513060   | 44401B   | BTIM      | [B IMG](IMG/44401B.png)     | [B PDS](SRC/44401B.txt)      | [Almost converted. Need to fix self-reference signals.](../../Verilog/PAL/44401B/PAL_44401B.v) |
 |18F     |        | 16R4D  | 10ns      | 513060   | 44402D   | UBITS     | [D IMG](IMG/44402D.png)     | [D PDS](SRC/44402D.txt)  
-|14D     |        | 16R4D  | 10ns      | 513060   | 44403D   | CYIN0     | [C IMG](IMG/44403C.png) / [D IMG](IMG/44403D.png)    | [C PDS](SRC/44403C.txt) / Missing D 
-|15D     |        | 16R4D  | 10ns      | 513060   | 44404D   | CYIN1 NEW | [C IMG](IMG/44404C.png) / Missing D    | [C PDS](SRC/44404C.txt) / Missing D 
+|14D     |        | 16R4D  | 10ns      | 513060   | 44403D   | CYIN0     | [C IMG](IMG/44403C.png) / [D IMG](IMG/44403D.png)    | [C PDS](SRC/44403C.txt) / Missing D
+|15D     |        | 16R4D  | 10ns      | 513060   | 44404D   | CYIN1 NEW | [C IMG](IMG/44404C.png) / Missing D    | [C PDS](SRC/44404C.txt) / Missing D
 |19F     |OF93    | 16R4D  | 10ns      | 513060   | 44407A   | ERFIX     | [A IMG](IMG/44407A.png)     | [A PDS](SRC/44407A.txt)  
 |9G      |44C7    | 16R4D  | 10ns      | 513060   | 44445B   | CADEC     | [B IMG](IMG/44445B.png)     | [B PDS](SRC/44445B.txt)  
 |6G      |3EF5    | 16R4D  | 10ns      | 513060   | 44446B   | BADEC     | [B IMG](IMG/44446B.png)     | [B PDS](SRC/44446B.txt)  
