@@ -47,7 +47,7 @@ Standard is 4Mb memory configured contiguosly from address 0.
 |1C      |508A    | 16L8-12| 12ns      | 5130385  | 44304E   | LBC3      | [E IMG](IMG/44304E.png)     | [E PDS](SRC/44304E.txt)      | [Almost converted. Need to fix self-reference signals.](../../Verilog/PAL/44304E/PAL_44304E.v) |
 |15F     |        | 16L8-12| 12ns      | 513085   | 44305D   | CSCTL     | [D IMG](IMG/44305D.png)     | [D PDS](SRC/44305D.txt)      | [Converted.](../../Verilog/PAL/44305D/PAL_44305D.v) Needs more test |
 |21G     |7856    | 16L8-12| 12ns      | 513035   | 44306A   | MMUCTL    | [A IMG](IMG/44306A.png)     | [A PDS](SRC/44306A.txt)      | [Converted.](../../Verilog/PAL/44306A/PAL_44306A.v) Needs more test |
-|13D     |8345    | 16L8-12| 12ns      | 513085   | 44307C   | CYCLK     | [C IMG](IMG/44307C.png)     | [C PDS](SRC/44307C.txt)  
+|13D     |8345    | 16L8-12| 12ns      | 513085   | 44307C   | CYCLK     | [C IMG](IMG/44307C.png)     | [C PDS](SRC/44307C.txt)      | [Converted.](../../Verilog/PAL/44307C/PAL_44307C.v) Needs more test |
 |3F      |46FA    | 16L8-12| 12ns      | 513085   | 44310D   | LBDIF     | [D IMG](IMG/44310D.png)     | [D PDS](SRC/44310D.txt)  
 |5D      |59AF    | 16R4D  | 10ns      | 513060   | 44401B   | BTIM      | [B IMG](IMG/44401B.png)     | [B PDS](SRC/44401B.txt)  
 |18F     |        | 16R4D  | 10ns      | 513060   | 44402D   | UBITS     | [D IMG](IMG/44402D.png)     | [D PDS](SRC/44402D.txt)  
