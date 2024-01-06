@@ -61,6 +61,8 @@ int main(int argc, char **argv)
 
     int errCnt = 0;
 
+    top->CLK = 0;
+
     // Iterate through each test case
     //for (const auto& test : testCases) {
     for (int i=0;i<32;i++)
@@ -75,9 +77,9 @@ int main(int argc, char **argv)
         // /OE (Output enable)
         top->OE_n  = false;        
         // Assignments for input fields
-        top->CLK = clk;
-        top->LCS_n =clk;       
-
+        
+        top->LCS_n = !top->CLK;
+        //top->LCS_n =(j & 1<<0) !=0;       
 
         top->C4 = (i & 1<<4) !=0;
         top->C3 = (i & 1<<3) !=0;
@@ -95,11 +97,10 @@ int main(int argc, char **argv)
         sim_time += time_step; // Increment simulation time
 #endif        
 
-        top->CLK= clk;
 
         // /OE (Output enable)
         //top->OE_n  = true;
-        top->LCS_n =(j & 1<<1) !=0;        
+        top->CLK = !top->CLK;
         top->eval();
         
 

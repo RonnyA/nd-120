@@ -6,8 +6,8 @@ Replaces 44608 that has a pin RT_n (Assume this signal is now comming from somew
 */
 
 module PAL_44408B(
-    input CLK, C4, C3, C2, C1, C0, M1, M0, LCS_n, IDB2, OE_n,
-    output reg RWCS_n, OPCLCS_n, VEX, LDEXM_n
+    input CLK, input C4, input C3, input C2, input C1, input C0, input M1, input M0, input LCS_n, input IDB2, input OE_n,
+    output RWCS_n, output OPCLCS_n, output VEX, output LDEXM_n
 );
 
 // Inverted input signals
@@ -35,21 +35,13 @@ always @(posedge CLK) begin
 end
 
 // Tri-state control for outputs
-always @(*) begin
-    if (OE_n) begin
-        // High-impedance state when OE_n is high (active-low)
-        RWCS_n = 1'bz;
-        OPCLCS_n = 1'bz;
-        VEX = 1'bz;
-        LDEXM_n = 1'bz;
-    end else begin
-        // Drive outputs normally when OE_n is low
-        RWCS_n = ~RWCS_int;
-        OPCLCS_n = OPCLCS_n_int;
-        VEX = ~VEX_n_int;
-        LDEXM_n = ~LDEXM_int;
-    end
-end
+// High-impedance state when OE_n is high (active-low)
+
+assign RWCS_n = OE_n ? 1'bz : ~RWCS_int;
+assign OPCLCS_n = OE_n ? 1'bz : OPCLCS_n_int;
+assign VEX = OE_n ? 1'bz : ~VEX_n_int;
+assign LDEXM_n = OE_n ? 1'bz : ~LDEXM_int;
+        
 
 endmodule
 
