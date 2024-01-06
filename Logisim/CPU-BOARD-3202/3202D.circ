@@ -102,41 +102,6 @@
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="downloadFrequency" val="1.0"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(1050,6740)" name="Tunnel">
       <a name="facing" val="east"/>
       <a name="label" val="STP"/>
@@ -5669,6 +5634,10 @@
     <comp lib="8" loc="(1000,1090)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="BACT_n"/>
+    </comp>
+    <comp lib="8" loc="(1010,1231)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="EBD = Enable Bus Data (Enable LBD to BD Transciever)"/>
     </comp>
     <comp lib="8" loc="(1085,650)" name="Text">
       <a name="halign" val="left"/>
@@ -27133,41 +27102,41 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="probably to be use for STRAP later?"/>
     </comp>
-    <comp lib="8" loc="(297,424)" name="Text">
+    <comp lib="8" loc="(295,420)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="STR5"/>
     </comp>
-    <comp lib="8" loc="(297,506)" name="Text">
-      <a name="halign" val="left"/>
-      <a name="text" val="STR9"/>
-    </comp>
-    <comp lib="8" loc="(298,488)" name="Text">
-      <a name="halign" val="left"/>
-      <a name="text" val="STR8"/>
-    </comp>
-    <comp lib="8" loc="(299,448)" name="Text">
+    <comp lib="8" loc="(295,445)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="STR6"/>
     </comp>
-    <comp lib="8" loc="(299,467)" name="Text">
+    <comp lib="8" loc="(295,465)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="STR7"/>
     </comp>
-    <comp lib="8" loc="(436,133)" name="Text">
+    <comp lib="8" loc="(295,485)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="STR8"/>
+    </comp>
+    <comp lib="8" loc="(295,505)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="STR9"/>
+    </comp>
+    <comp lib="8" loc="(435,130)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="ALD =&gt; INVERT BIT 0-3 (ALD), BIT 4-6 (PRINT RELEASE), BIT 7 (CX), BIT14 (PRINT NO )"/>
     </comp>
-    <comp lib="8" loc="(581,166)" name="Text">
+    <comp lib="8" loc="(580,165)" name="Text">
       <a name="color" val="#1415ff"/>
       <a name="halign" val="left"/>
       <a name="text" val="BIT 15-13=101 = &gt; 3202"/>
     </comp>
-    <comp lib="8" loc="(583,195)" name="Text">
+    <comp lib="8" loc="(580,195)" name="Text">
       <a name="color" val="#1415ff"/>
       <a name="halign" val="left"/>
       <a name="text" val="BIT 7==1 =&gt; HIGH SPEED"/>
     </comp>
-    <comp lib="8" loc="(584,221)" name="Text">
+    <comp lib="8" loc="(580,220)" name="Text">
       <a name="color" val="#1415ff"/>
       <a name="halign" val="left"/>
       <a name="text" val="BIT 4-6=011 for version D"/>
@@ -27185,12 +27154,12 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="ALD-SETTINGS = 0 (TH1)"/>
     </comp>
-    <comp lib="8" loc="(859,218)" name="Text">
+    <comp lib="8" loc="(855,215)" name="Text">
       <a name="color" val="#1415ff"/>
       <a name="halign" val="left"/>
       <a name="text" val="BIT 12-8=STR5-STR9"/>
     </comp>
-    <comp lib="8" loc="(888,487)" name="Text">
+    <comp lib="8" loc="(885,485)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="IDB8"/>
     </comp>
@@ -27202,7 +27171,7 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="IDB15"/>
     </comp>
-    <comp lib="8" loc="(890,366)" name="Text">
+    <comp lib="8" loc="(890,365)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="IDB14"/>
     </comp>
