@@ -7,8 +7,8 @@
 // O3-O6 output is controlled by OE_n (HIGH signal means output is three-state)
 
 module PAL_44401B(
-    input OSC, CC2_n, CACT_n, CACT25_n, BDRY50_n, CGNT_n, CGNT50_n, TERM_n, IORQ_n, OE_n,
-    output EADR_n, EIOD_n, Q2_n, Q1_n, Q0_n, DAP_n, APR_n
+    input OSC, input CC2_n, input CACT_n, input CACT25_n, input BDRY50_n, input CGNT_n, input CGNT50_n, input TERM_n, input IORQ_n, input OE_n,
+    output EADR_n, output EIOD_n, output Q2_n, output Q1_n, output Q0_n, output DAP_n, output APR_n
 );
 
 // PCB 3202D sheet 6:
@@ -75,14 +75,16 @@ assign EADR_n = ~(
                   (CGNT & CGNT50_n));                        // address part for CPU cycle
 
 // Logic for DAP
-assign DAP_n = ~(
-                  (Q2_n & Q1_n & Q0_n & CACT & CACT25) |
+reg DAP;
 
-// TODO:  Feedback to public clock or circular logic: 'DAP_n'                
-// When DAP_n is included in the logic, the above error is shown.
-//                  (DAP & TERM_n & IORQ & CC2)
-                  (TERM_n & IORQ & CC2)
-                );
+always @(*) begin
+    if (Q2_n & Q1_n & Q0_n & CACT & CACT25)
+        DAP = 1'b1;
+    else if  ((TERM_n & IORQ & CC2) == 0)    
+        DAP = 1'b0;
+end
+
+assign DAP_n  = ~DAP;
 
 // Logic for EIOD_n (active-low)
 assign EIOD_n = ~(IORQ & Q2_n & Q1_n & Q0_n & CACT & CACT25 & BDRY50_n & CC2);

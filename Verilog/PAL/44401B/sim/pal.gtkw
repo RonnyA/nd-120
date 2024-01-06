@@ -1,27 +1,25 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Fri Jan  5 21:03:59 2024
+[*] Sat Jan  6 19:15:40 2024
 [*]
 [dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44401B/sim/waveform.vcd"
-[dumpfile_mtime] "Fri Jan  5 21:03:49 2024"
-[dumpfile_size] 2318
+[dumpfile_mtime] "Sat Jan  6 19:14:19 2024"
+[dumpfile_size] 2179
 [savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44401B/sim/pal.gtkw"
 [timestart] 0
-[size] 1629 973
+[size] 1493 726
 [pos] -1 -1
-*-5.456229 2 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-5.456229 137 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [sst_width] 214
 [signals_width] 384
 [sst_expanded] 1
-[sst_vpaned_height] 288
+[sst_vpaned_height] 196
 @28
 TOP.OSC
 TOP.CC2_n
 TOP.CACT_n
-@29
 TOP.CACT25_n
-@28
 TOP.BDRY50_n
 TOP.CGNT_n
 TOP.CGNT50_n
@@ -34,8 +32,8 @@ TOP.OE_n
 TOP.PAL_44401B.Q2
 TOP.PAL_44401B.Q1
 TOP.PAL_44401B.Q0
-TOP.DAP_n
-TOP.APR_n
+@29
+TOP.PAL_44401B.DAP
 @200
 --- output --
 @28
@@ -44,5 +42,7 @@ TOP.EIOD_n
 TOP.Q2_n
 TOP.Q1_n
 TOP.Q0_n
+TOP.DAP_n
+TOP.APR_n
 [pattern_trace] 1
 [pattern_trace] 0

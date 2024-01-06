@@ -57,6 +57,9 @@ int main(int argc, char **argv)
 
     int errCnt = 0;
 
+      top->CACT_n = true;
+      top->CACT25_n = true;
+
     // Iterate through each test case
     //for (const auto& test : testCases) {
     for (int i=0;i<32;i++)
@@ -72,12 +75,35 @@ int main(int argc, char **argv)
 
         top->OE_n  = false;
 
-        top->eval();
+        
         top->OSC = 1;
 
-        top->CACT_n = false;
-        top->CACT25_n = true;
+      
+       if (i==1)
+            top->CACT_n = false;
 
+        if (i==3)
+            top->CACT25_n = false;
+
+        if (i==9)
+        {
+            top-> TERM_n = true;
+            top->IORQ_n = false;
+            top->CC2_n = false;
+        }
+
+        if (i==11)
+        {
+            top->CACT_n = true;
+            top->CACT25_n = true;
+        }
+
+
+          if (i==13)
+           // top->IORQ_n = true;
+            top->CC2_n = true;
+
+        top->eval();
 /*
         top->CC0_n = (i & 1<<0) == 0;
         top->CC1_n = (i & 1<<1) == 0;
@@ -92,8 +118,9 @@ int main(int argc, char **argv)
 
         // /OE (Output enable)
         //top->OE_n  = true;
-        top->eval();
         top->OSC = 0;        
+        top->eval();
+        
 
 #ifdef DO_TRACE        
         m_trace->dump(sim_time);
