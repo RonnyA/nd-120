@@ -1,5 +1,9 @@
+// PAL16L8
+// JLB/CJTC 14AUG86
+// 44302B,11D,LBC1
+
 module PAL_44302B(
-    input Q0_n, Q2_n, CC2_n, BDRY25_n, BDRY50_n, CGNT_n, CGNT50_n, CACT_n, TERM_n, BGNT_n, RT_n, IORQ_n, TEST, 
+    input Q0_n, Q2_n, CC2_n, BDRY25_n, BDRY50_n, CGNT_n, CGNT50_n, CACT_n, TERM_n, BGNT_n, RT_n, IORQ_n,TEST, 
     output reg EMD_n, DSTB_n, BGNTCACT_n, CGNTCACT_n
 );
 
@@ -19,50 +23,61 @@ wire BGNT = ~BGNT_n;
 
 
 // Output signal logic (self reference)
-reg EMD_logic;
 reg EMD;
-
-// Output signal logic (active-high)
-reg CGNTCACT, BGNTCACT, DSTB;
 
 always @(*) begin
 
     if (!TEST) begin // Active-high TEST signal
         // Logic for EMD
-        EMD_logic = (Q2 & Q0 & CACT) |          // CPU CYCLE TO BUS SET 
-                (EMD & CACT) |                  //       "          HOLD
-                (CGNT & CGNT50) |               // CPU CYCLE TO MEM SET 
-                (EMD & RT & CC2 & TERM) |       // ) HOLD TERMS FOR 
-                (EMD & IORQ & CC2 & TERM);      // ) CPU READ, FETCH AND
-                                                // ) MAP CYCLES
 
+        /*  Orignal code that has "circular logic" and is not synthesizable
+            EMD = 
+                            (Q2 & Q0 & CACT)        |  // CPU CYCLE TO BUS SET 
+                            (EMD & CACT)            |  //       "          HOLD
+                            (CGNT & CGNT50)         |  // CPU CYCLE TO MEM SET 
+                            (EMD & RT & CC2 & TERM) |  // ) HOLD TERMS FOR 
+                            (EMD & IORQ & CC2 & TERM)  // ) CPU READ, FETCH AND
+                            );                         // ) MAP CYCLES
+        */
+
+        // Rewritten for handling of "circular logic"
+        if (
+            (Q2 & Q0 & CACT) |                       // CPU CYCLE TO BUS SET 
+            (CGNT & CGNT50))                         // CPU CYCLE TO MEM SET 
+                EMD = 1'b1;
+            else if (
+                (CACT == 0)              |           // CPU CYCLE TO BUS HOLD
+                (RT & CC2 & TERM == 0)   |           // ) HOLD TERMS FOR 
+                (IORQ & CC2 & TERM == 0)             // ) CPU READ, FETCH AND MAP CYCLES
+            )
+                EMD = 1'b0;
+        
+        
         // Logic for CGNTCACT
-        CGNTCACT = CGNT | CACT;
+        assign CGNTCACT_n = ~(CGNT | CACT);
 
         // Logic for BGNTCACT
-        BGNTCACT = BGNT | CACT;
+        assign BGNTCACT_n = ~(BGNT | CACT);
 
         // Logic for DSTB
-        DSTB = (CGNT & CACT & BDRY50 & BDRY25 & IORQ) | 
-               (CACT & IORQ & CC2);
+        assign DSTB_n = ~(  
+                            (CGNT)                          |  
+                            (CACT & BDRY50 & BDRY25 & IORQ) |  
+                            (CACT & IORQ & CC2)                // IOX CYCLE
+                            );
+
+        
+
     end else begin
-        // Set default values when TEST is active ( to prevent latch inference )
-        EMD = 1'b0;
-        CGNTCACT = 1'b0;
-        BGNTCACT = 1'b0;
-        DSTB = 1'b0;
-    end   
+        EMD = 1'b0;        
+        assign CGNTCACT_n = 1'b1;
+        assign BGNTCACT_n = 1'b1;
+        assign DSTB_n = 1'b1;
+    end 
 
-    EMD = EMD_logic;
+    assign EMD_n = ~EMD;  
+
 end
-
-
-
-// Assign negated outputs
-assign EMD_n = ~EMD;
-assign CGNTCACT_n = ~CGNTCACT;
-assign BGNTCACT_n = ~BGNTCACT;
-assign DSTB_n = ~DSTB;
 
 endmodule
 
