@@ -1,41 +1,56 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Tue Dec 12 11:37:24 2023
+[*] Sat Jan  6 21:06:34 2024
 [*]
-[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44303B/sim/waveform.vcd"
-[dumpfile_mtime] "Tue Dec 12 11:36:06 2023"
-[dumpfile_size] 1442
-[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44303B/sim/pal.gtkw"
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44304E/sim/waveform.vcd"
+[dumpfile_mtime] "Sat Jan  6 21:04:02 2024"
+[dumpfile_size] 1667
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44304E/sim/pal.gtkw"
 [timestart] 0
-[size] 1598 600
-[pos] 624 -357
-*-3.456229 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[size] 1254 846
+[pos] 468 -32
+*-4.456229 3 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
 [sst_width] 214
-[signals_width] 384
+[signals_width] 311
 [sst_expanded] 1
-[sst_vpaned_height] 152
+[sst_vpaned_height] 240
 @28
+TOP.CGNT_n
+TOP.BGNT_n
+TOP.BGNT50_n
+TOP.MWRITE_n
+TOP.BDAP50_n
+TOP.EBUS_n
+TOP.IBAPR_n
+TOP.GNT_n
 TOP.TEST
 @200
+--- internal --
+@28
+TOP.PAL_44304E.BGNT
+TOP.PAL_44304E.BGNT50
+TOP.PAL_44304E.BDAP50
+TOP.PAL_44304E.EBUS
+@201
 -
 @28
-TOP.CACT_n
-TOP.CGNT_n
-TOP.EADR_n
-TOP.BINPUT50_n
-TOP.MISO
-TOP.IOD_n
-TOP.WRITE
-TOP.BACT_n
+TOP.PAL_44304E.BACT_reg
 @200
 -
---- output --
--
 @28
-TOP.WBD_n
-TOP.CBWRITE_n
-TOP.WLBD_n
-@29
-TOP.CMWRITE_n
+TOP.PAL_44304E.EBADR_reg
+@200
+--- output --
+@28
+TOP.EBD_n
+TOP.CLKBD
+TOP.SAPR
+TOP.FAPR
+TOP.EBADR_b1
+TOP.BACT_n
+TOP.DBAPR
+@200
+-
 [pattern_trace] 1
 [pattern_trace] 0

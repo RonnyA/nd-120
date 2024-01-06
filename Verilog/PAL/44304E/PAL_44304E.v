@@ -1,20 +1,16 @@
-// 44304E - LOCAL DATA BUS CONTROL PAL
+// PAL16L8
+// CJTC 02SEP86
+// 44304E,1C,LBC3 - LOCAL DATA BUS CONTROL PAL
+
+
+// Note: Verilator doesnt like signal name "EBADR" therefore its named "EBADR_b1". I dont know why.
+
+// Note2: TEST is connectecd to signal PD3 that is always 0 on the PCB 3202D.
 
 module PAL_44304E(
-    input CGNT_n, BGNT_n, BGNT50_n, MWRITE_n, BDAP50_n, EBUS_n, IBAPR_n, GNT_n, TEST,
-    output reg EBD_n, 
-    output reg CLKBD,
-    output reg SAPR,
-    output reg FAPR,
-    output reg EBADR,
-    output reg BACT_n, 
-    output reg DBAPR
+    input CGNT_n, input BGNT_n, input BGNT50_n, input MWRITE_n, input BDAP50_n, input EBUS_n, input IBAPR_n, input GNT_n, input TEST,
+    output EBD_n,  output CLKBD, output SAPR, output FAPR, output EBADR_b1, output BACT_n, output DBAPR
 );
-
-
-// TODO: Should there be some "CLEAR" signal to reset all registers? ?
-// TODO: FIX SELF REFERENDE!!! EBDADR_n and BACT
-// TODO: WHAT IF TEST IS ACTIVE? (set default values to prevent latch inference)?
 
 // Inverted input signals
 wire BGNT = ~BGNT_n;
@@ -22,54 +18,73 @@ wire BGNT50 = ~BGNT50_n;
 wire BDAP50 = ~BDAP50_n;
 wire EBUS = ~EBUS_n;	
 
-// Output signal logic (self reference)
-reg BACT_logic; // Register to handle self-reference   
-reg BACT;
 
-reg EBADR_n_logic; // Register to handle self-reference
-reg EBADR_n;
+// Output signal logic (self reference)
+
+reg BACT_reg;
+reg EBADR_reg;
 
 always @(*) begin
+      if (!TEST) begin
 
-    if (!TEST) begin // Active-high TEST signal
+            // BACT - BUS ACTIVITY. LASTS FOR COMPLETE DMA TO LOCAL MEMORY
+            // CYCLE (ONLY ON MEMORY READ)
 
+            if (BGNT50 & MWRITE_n)        // Enable for data only after address
+                BACT_reg = 1'b1;              
+            else if (BDAP50 ==0)        // Hold after BDAP finished
+                BACT_reg = 1'b0;
 
-        // BACT - BUS ACTIVITY
-        BACT_logic =  (BGNT50 & MWRITE_n) |       // Enable for data only after address
-                       (BACT & BDAP50);           // Hold after BDAP finished
+                
+            // EBADR - ENABLE ADDRESS FROM BUS TO LOCAL MEMORY
+            if ((GNT_n & BGNT_n)==1)     // TURN ON AT BAPR WITH GNT
+                EBADR_reg = 1'b1;
+            else if (
+                    (IBAPR_n == 0) | // HOLD UNTIL BGNT AND GNT BOTH GONE                    
+                    (GNT_n == 0)
+            )
+                EBADR_reg = 1'b0;
 
-        // EBD - ENABLE BUS DATA
-        EBD_n =~( 
-                (EBUS & CGNT_n & GNT_n) |
-                (EBUS & BGNT) |
-                (EBUS & BACT)
-        );
-
-        // EBADR - ENABLE ADDRESS FROM BUS TO LOCAL MEMORY
-        EBADR_n_logic = (GNT_n & BGNT_n) |
-                (IBAPR_n & EBADR_n) |
-                (GNT_n & EBADR_n);
-
-
-        FAPR  = ~IBAPR_n;
-        SAPR = FAPR; 
-        DBAPR  = SAPR;
-
-        // CLKBD - CLOCK PULSE TO 648's
-        CLKBD = ~(
-                (~SAPR & BGNT50_n) |    // Clock addresses on delayed BAPR
-                (~SAPR & BDAP50_n) |    // Clock data 50ns after start of
-                (~SAPR & MWRITE_n)     // BGNT * BDAP on memory writes from DMA
-        );
-    end 
-
-    BACT = BACT_logic;
-    EBADR_n = EBADR_n_logic;
+        end else begin
+            BACT_reg = 1'b0;
+            EBADR_reg = 1'b0;
+        end
 end
 
-// Assign negated outputs
-assign BACT_n = ~BACT;
-assign EBADR = ~EBADR_n;
+
+assign EBADR_b1 = EBADR_reg;
+
+assign BACT_n = ~BACT_reg; // Output pin Y1_n (BACT_n) is not connected to anything. Sheet 12.
+
+
+
+// EBD - ENABLE BUS DATA. ENABLE LBD TO BD TRANSCEIVER
+// SHOULD BE DISABLED DURING CGNT * /BACT, IE DISABLE WHEN CPU
+// IS ACCESSING LOCAL MEMORY, EXCEPT WHEN TRANSCEIVER IS BEING USED
+// AS A REGISTER TO HOLD DATA FROM A PREVIOUS DMA MEMORY READ.
+
+assign EBD_n =~(TEST ? 1'b0 :        
+                            (EBUS & CGNT_n & GNT_n) |
+                            (EBUS & BGNT) |
+                            (EBUS & BACT_reg)
+                );
+
+
+// SLOW INVERSION
+assign FAPR = ~(TEST ? 1'b0 : IBAPR_n);
+assign SAPR = ~(TEST ? 1'b0 : ~FAPR); 
+assign DBAPR = ~(TEST ? 1'b0 : ~SAPR);
+
+    
+// CLKBD - CLOCK PULSE TO 648's
+assign CLKBD = TEST ? 1'b0 : 
+                            
+                            ~(
+                                    (~SAPR & BGNT50_n) |    // Clock addresses on delayed BAPR
+                                    (~SAPR & BDAP50_n) |    // Clock data 50ns after start of
+                                    (~SAPR & MWRITE_n)     // BGNT * BDAP on memory writes from DMA
+                            );
+
 
 
 endmodule

@@ -1,3 +1,8 @@
+// PAL16L8
+// CJTC 02SEP86
+// 44304E,1C,LBC3 - LOCAL DATA BUS CONTROL PAL
+
+
 #define DO_TRACE
 #include <iostream>
 #include <vector>
@@ -16,26 +21,10 @@
 struct TestCase {
     
     // Inputs
+    bool CGNT_n, BGNT_n, BGNT50_n, MWRITE_n, BDAP50_n, EBUS_n, IBAPR_n, GNT_n, TEST;
 
-    bool TEST;
-
-
-    bool CACT_n;
-    bool CGNT_n;
-    bool EADR_n;           // Address from CPU to Bus
-    bool BINPUT50_n;
-    bool MISO;
-    bool IOD_n;
-    bool WRITE;    
-    bool BACT_n;
-    
     //  Outputs
-
-    bool WBD_n;       // Write Bus Direction
-    bool CBWRITE_n;   // CPU Write cycle to Bus
-    bool WLBD_n;      // Write Local Bus Direction
-    bool CMWRITE_n;    // CPU Write to Local Memory
-
+    bool EBD_n,  CLKBD, SAPR, FAPR, EBADR_b1, BACT_n, DBAPR;
 
     std::string description; // Description of the test case
 };
@@ -71,15 +60,55 @@ int main(int argc, char **argv)
 
     int errCnt = 0;
 
+
+    top->GNT_n = true;
+    top->BGNT_n = true;
+    top->BGNT50_n = true;
+    top->MWRITE_n = true;
+    top->BDAP50_n = true;
+    top->EBUS_n = true;
+    top->IBAPR_n = true;
+    top->GNT_n = true;
+    top->TEST = false;
+
     // Iterate through each test case
-    for (const auto& test : testCases) {
-        std::cout << "Running " << test.description << std::endl;
+    //for (const auto& test : testCases) {
+     //   std::cout << "Running " << test.description << std::endl;
+     for (int i=0; i<32; i++) {
 
         // Assignments for input fields
 #if _later_        
         top->TEST = test.TEST;
      
 #endif
+        if (i==2)
+            top->GNT_n = false;
+
+        if (i==3)
+            top->BGNT50_n = false;
+
+        if (i==4)
+            top->BGNT_n = false;
+
+        if (i==5)
+            top->MWRITE_n = false;
+
+        if (i==6)
+            top->MWRITE_n = true;
+
+        if (i==9)
+            top->BDAP50_n = false;
+
+
+        if (i==10)
+        {
+            top->GNT_n = true;
+            top->BGNT_n = true;
+        }
+        
+        if (i==9)
+            top->IBAPR_n = false;
+
 
         top->eval();
 
