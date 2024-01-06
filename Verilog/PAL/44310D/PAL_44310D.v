@@ -1,8 +1,10 @@
-// 44310D,3F,LBDIF
+//PAL16L8
+//ADGD 13/8/86
+//44310D,3F,LBDIF
 
 module PAL_44310D(
-    input HIEN_n, BGNT_n, CGNT_n, LOEN_n, CGNT50_n, ECCR, BGNT50_n, BGNT75_n, BDAP50_n, MR_n, MWRITE50_n, BIOXE_n, REF100_n, RAS, 
-    output BCGNT50R_n, BDRY_n, BIOXL_n, RDATA
+    input HIEN_n, input BGNT_n, input CGNT_n, input LOEN_n, input CGNT50_n, input ECCR, input BGNT50_n, input BGNT75_n, input BDAP50_n, input MR_n, input MWRITE50_n, input BIOXE_n, input REF100_n, input RAS, 
+    output BCGNT50R_n, output BDRY_n, output BIOXL_n, output RDATA
 );
 
 
@@ -31,24 +33,24 @@ assign BCGNT50R_n = ~(
                     );
 
 // Logic for BDRY_n (active-low)
-assign BDRY_n = ~(
-                (MWRITE50_n & BDAP50 & BGNT & LOEN_n & HIEN_n & RAS_n)  | // BUS READ FROM LOCAL MEM
-                (MWRITE50 & BDAP50 & BGNT50 & BGNT)                     | // BUS WRITE TO LOCAL MEM
-                (BIOXL & ECCR)                                          | // IOX=ECCR
+reg BDRY;
+always @(*) begin
+  if (
+       (MWRITE50_n & BDAP50 & BGNT & LOEN_n & HIEN_n & RAS_n)  | // BUS READ FROM LOCAL MEM
+       (MWRITE50 & BDAP50 & BGNT50 & BGNT)                     | // BUS WRITE TO LOCAL MEM
+       (BIOXL & ECCR)                                          | // IOX=ECCR
+       (REF100)                                                |
+       (MWRITE50_n & BDAP50 & BGNT50_n & BGNT75)                 // LATE BDRY FOR 10MHZ DISK      
+     )
+        BDRY = 1'b1;
+  else if (
+                ((MR_n & BDAP50) == 0)                        | // HOLD TERM FOR MEMORY
+                ((MR_n & BIOXE) == 0)                           // HOLD TERM FOR IOX CYCLE
+          )
+            BDRY = 1'b0;
+end
 
-// Line removed to make it compile                
-// TODO: FIX error "Feedback to public clock or circular logic: 'BDRY_n'"                            
-//               (MR_n & ~BDRY_n & BDAP50)                               | // HOLD TERM FOR MEMORY
-
-// Line added to make it compile without warning that MR_not in use. Can be removed when line above works!
-                (MR_n &  BDAP50)                               | // HOLD TERM FOR MEMORY
-
-// Line removed to make it compile    
-// TODO: FIX error "Feedback to public clock or circular logic: 'BDRY_n'"                            
-//                (MR_n & ~BDRY_n & BIOXE)                                | // HOLD TERM FOR IOX CYCLE
-                (REF100)                                                |
-                (MWRITE50_n & BDAP50 & BGNT50_n & BGNT75)                 // LATE BDRY FOR 10MHZ DISK      
-               );
+assign BDRY_n = ~BDRY;
 
 // Logic for BIOXL_n (active-low)
 assign BIOXL_n = ~(BIOXE & BGNT_n & CGNT_n);

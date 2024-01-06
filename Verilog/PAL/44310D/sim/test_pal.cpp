@@ -51,6 +51,23 @@ int main(int argc, char **argv)
 
     int errCnt = 0;
 
+    top->HIEN_n =true;
+    top->BGNT_n =true; 
+    top->CGNT_n =true;
+    top->LOEN_n =true; 
+    top->CGNT50_n =true;
+    top->ECCR=false;
+    top->BGNT50_n =true;
+    top->BGNT75_n =true;
+    top->BDAP50_n =true; 
+    top->MR_n =true;
+    top->MWRITE50_n =true; 
+    top->BIOXE_n =true; 
+    top->REF100_n =true;
+    top->RAS=false;
+
+
+
     // Iterate through each test case
     //for (const auto& test : testCases) {
     for (int i=0;i<32;i++)
@@ -64,6 +81,28 @@ int main(int argc, char **argv)
         // Assignments for input fields
         //top->LCS_n =clk;       
 
+
+        //if (i==2)        
+            //top->MR_n =false;
+
+
+        if (i==2)        
+            top->BIOXE_n =false;
+
+        if (i==3)        
+            top->BDAP50_n =false;
+
+        if (i==4)
+            top->REF100_n = false;
+
+        if (i==6)
+            top->REF100_n = true;
+
+        //if (i==8)
+        //    top->MR_n = false;
+
+        if (i==9)        
+            top->BDAP50_n =true;
 
 
         top->eval();
