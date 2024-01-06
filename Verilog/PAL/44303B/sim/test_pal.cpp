@@ -52,10 +52,10 @@ int main(int argc, char **argv)
     // Create a collection of test cases
  std::vector<TestCase> testCases = {
     // TEST   CACT_n   CGNT_n   EADR_n   BINPUT50_n  MIS0   IOD_n   WRITE  BACT_n  WBD_n  CBWRITE_n  WLBD_n  CMWRITE_n  Description
-    {  true,  true,    true,    true,    true,       false, true,  false,  true,   true,  true,      true,   true,      "Test 1"},
-    {  false, true,    true,    false,   true,       false, true,  false,  true,   true,  true,      true,   true,      "Test 2"}, // EADR_n = 0
-    {  false, false,   true,    true,    true,       false, true,  false,  true,   true,  true,      true,   true,      "Test 3"}, // CACT_n = 0
-    {  false, true,    true,    true,    true,       false, true,  false,  true,   true,  true,      true,   true,      "Test 4"},
+    {  true,  false,   false,   true,    true,       false, true,  true,   true,   true,  true,      true,   true,      "Test 1"},
+    {  true,  false,   false,   false,   true,       false, true,  false,  true,   true,  true,      true,   true,      "Test 2"}, // EADR_n = 0
+    {  true,  false,   true,    true,    true,       false, true,  false,  true,   true,  true,      true,   true,      "Test 3"}, // CACT_n = 0
+    {  true,  true,    true,    true,    true,       false, true,  false,  true,   true,  true,      true,   true,      "Test 4"},
     {  false, true,    true,    true,    true,       false, true,  false,  true,   true,  true,      true,   true,      "Test 5"},
     {  false, true,    true,    true,    true,       false, true,  false,  true,   true,  true,      true,   true,      "Test 6"},
 

@@ -42,7 +42,7 @@ Standard is 4Mb memory configured contiguosly from address 0.
 
 |Pos. no.| 3202D Sheet |Checksum| Device | Max. delay| Stock no.| Reg. no. | Mnemonic  | PALASM Image                | PALASM SRC (PDS format)      | Converted to Verilog |
 |--------|-------------|--------|--------|-----------|----------|----------|-----------|-----------------------------|------------------------------|----------------------|
-|11D     | 12          |3B8B    | 16L8-12| 12ns      | 513035   | 44302B   | LBCL      | [B IMG](IMG/44302B.png)     | [B PDS](SRC/44302B.txt)      | [Converted.](../../Verilog/PAL/44302B/PAL_44302B.v) Needs more test |
+|11D     | 12          |3B8B    | 16L8-12| 12ns      | 513035   | 44302B   | LBC1      | [B IMG](IMG/44302B.png)     | [B PDS](SRC/44302B.txt)      | [Converted.](../../Verilog/PAL/44302B/PAL_44302B.v) Needs more test |
 |2C      | 12          |3932    | 16L8-12| 12ns      | 513085   | 44303B   | LBC2      | [B IMG](IMG/44303B.png)     | [B PDS](SRC/44303B.txt)      | [Converted.](../../Verilog/PAL/44303B/PAL_44303B.v) Needs more test |
 |1C      | 12          |508A    | 16L8-12| 12ns      | 5130385  | 44304E   | LBC3      | [E IMG](IMG/44304E.png)     | [E PDS](SRC/44304E.txt)      | [Almost converted. Need to fix self-reference signals.](../../Verilog/PAL/44304E/PAL_44304E.v) |
 |15F     | 18          |        | 16L8-12| 12ns      | 513085   | 44305D   | CSCTL     | [D IMG](IMG/44305D.png)     | [D PDS](SRC/44305D.txt)      | [Converted.](../../Verilog/PAL/44305D/PAL_44305D.v) Needs more test |
