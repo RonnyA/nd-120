@@ -1,0 +1,48 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Sat Jan  6 16:05:37 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44403C/sim/waveform.vcd"
+[dumpfile_mtime] "Sat Jan  6 16:03:53 2024"
+[dumpfile_size] 1993
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44403C/sim/pal.gtkw"
+[timestart] 0
+[size] 1629 973
+[pos] 37806 35346
+*-5.456229 42 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 214
+[signals_width] 384
+[sst_expanded] 1
+[sst_vpaned_height] 288
+@28
+TOP.PAL_44403C.CLK
+TOP.OE_n
+TOP.PAL_44403C.CSDELAY0
+TOP.PAL_44403C.CSDLY
+TOP.PAL_44403C.CSECOND
+TOP.PAL_44403C.CSLOOP
+TOP.PAL_44403C.ACOND_n
+TOP.PAL_44403C.MR_n
+TOP.PAL_44403C.LUA12
+TOP.PAL_44403C.MAP_n
+@200
+--- Internal --
+@28
+TOP.PAL_44403C.LCS
+@29
+TOP.PAL_44403C.MDLY
+@28
+TOP.PAL_44403C.DMA12
+TOP.PAL_44403C.DMAP
+@200
+--- output --
+@28
+TOP.PAL_44403C.SLCOND_n
+TOP.PAL_44403C.DMAP_n
+TOP.PAL_44403C.DMA12_n
+TOP.PAL_44403C.MDLY_n
+TOP.PAL_44403C.LCS_n
+TOP.PAL_44403C.DLY0_n
+[pattern_trace] 1
+[pattern_trace] 0
