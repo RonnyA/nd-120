@@ -1,4 +1,4 @@
-# Verilog code for PAL 44303B
+# Verilog code for PAL 44303B (LBC2)
 
 # Test program verification
 
