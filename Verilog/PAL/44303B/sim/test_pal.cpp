@@ -24,7 +24,7 @@ struct TestCase {
     bool CGNT_n;
     bool EADR_n;           // Address from CPU to Bus
     bool BINPUT50_n;
-    bool MISO;
+    bool MIS0;
     bool IOD_n;
     bool WRITE;    
     bool BACT_n;
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
 
     // Create a collection of test cases
  std::vector<TestCase> testCases = {
-    // TEST   CACT_n   CGNT_n   EADR_n   BINPUT50_n  MISO   IOD_n   WRITE  BACT_n  WBD_n  CBWRITE_n  WLBD_n  CMWRITE_n  Description
+    // TEST   CACT_n   CGNT_n   EADR_n   BINPUT50_n  MIS0   IOD_n   WRITE  BACT_n  WBD_n  CBWRITE_n  WLBD_n  CMWRITE_n  Description
     {  true,  true,    true,    true,    true,       false, true,  false,  true,   true,  true,      true,   true,      "Test 1"},
     {  false, true,    true,    false,   true,       false, true,  false,  true,   true,  true,      true,   true,      "Test 2"}, // EADR_n = 0
     {  false, false,   true,    true,    true,       false, true,  false,  true,   true,  true,      true,   true,      "Test 3"}, // CACT_n = 0
@@ -88,7 +88,7 @@ int main(int argc, char **argv)
         top->CGNT_n = test.CGNT_n;
         top->EADR_n = test.EADR_n;
         top->BINPUT50_n = test.BINPUT50_n;
-        top->MISO = test.MISO;
+        top->MIS0 = test.MIS0;
         top->IOD_n = test.IOD_n;
         top->WRITE = test.WRITE;
         top->BACT_n = test.BACT_n;

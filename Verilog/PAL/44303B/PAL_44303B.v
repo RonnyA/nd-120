@@ -1,9 +1,13 @@
+// PAL16L8
+// JLB/CITC 15AUG86
+// 44303B,2C,LBC2 - LOCAL DATA BUS CONTROL PAL
+
 module PAL_44303B(
     input CACT_n,
     input CGNT_n,
     input EADR_n,           // Address from CPU to Bus
     input BINPUT50_n,
-    input MISO,
+    input MIS0,
     input IOD_n,
     input WRITE,
     input TEST,
@@ -19,49 +23,57 @@ module PAL_44303B(
 wire CACT = ~CACT_n;
 wire CGNT = ~CGNT_n;
 wire EADR = ~EADR_n;
-wire BINPUT50 = ~BINPUT50_n;
 wire IOD = ~IOD_n;
 wire BACT = ~BACT_n;
 
-// Output signal logic (active-high)
-reg WBD, CBWRITE, WLBD, CMWRITE;
+wire CBWRITE = ~CBWRITE_n;
+wire CMWRITE = ~CMWRITE_n;
+
 
 always @(*) begin
     if (!TEST) begin // Active-high TEST signal
 
         // WBD - DIRECTION FROM LBD TO BD
-        WBD = EADR |                      // Address from CPU to Bus
-              CBWRITE |                   // CPU Write cycle to Bus
-              (IOD & MISO & BINPUT50) |   // Output part of IOX
-              BACT;                       // DMA Output cycle
+        assign WBD_n = ~(
+                            (EADR)                    |   // Address from CPU to Bus
+                            (CBWRITE)                 |   // CPU Write cycle to Bus
+                            (IOD & MIS0 & BINPUT50_n) |   // Output part of IOX
+                            (BACT)                      // DMA Output cycle
+        );
+                        
 
         // CBWRITE - CPU TO BUS WRITE. STARTS ONLY WHEN THE BUS IS GRANTED.
         //           LASTS UNTIL THE END OF THE BUS CYCLE.
-        CBWRITE = (WRITE & CACT) |
-                  (CBWRITE & CACT);
+
+        if (WRITE & CACT) 
+            CBWRITE_n = 1'b0;
+        else if (CACT==0)
+            CBWRITE_n = 1'b1;
+        
 
         // WLBD - DIRECTION FROM CD TO LBD
-        WLBD = CBWRITE |                  // CPU Write cycle to Bus
-               CMWRITE |                  // CPU Write cycle to Local Memory
-               (IOD & MISO & BINPUT50);   // Output part of IOX
+        assign WLBD_n = ~(
+                             CBWRITE |                  // CPU Write cycle to Bus
+                             CMWRITE |                  // CPU Write cycle to Local Memory
+                            (IOD & MIS0 & BINPUT50_n)   // Output part of IOX
+        );
 
         // CMWRITE - CPU WRITE TO LOCAL MEMORY.
-        CMWRITE = (WRITE & CGNT) |
-                  (CMWRITE & CGNT);
+        if (WRITE & CGNT)
+            CMWRITE_n = 1'b0;
+        else if (CGNT==0)
+            CMWRITE_n = 1'b1;
+
+
     end else begin
         // Default values when TEST is active
-        WBD = 1'b0;
-        CBWRITE = 1'b0;
-        WLBD = 1'b0;
-        CMWRITE = 1'b0;
+        assign WBD_n = 1'b1;
+        assign CBWRITE_n = 1'b1;
+        assign WLBD_n = 1'b1;
+        assign CMWRITE_n = 1'b1;
     end
 end
 
-// Assign negated outputs
-assign WBD_n = ~WBD;
-assign CBWRITE_n = ~CBWRITE;
-assign WLBD_n = ~WLBD;
-assign CMWRITE_n = ~CMWRITE;
 
 endmodule
 
