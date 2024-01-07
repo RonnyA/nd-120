@@ -10,11 +10,27 @@
 // O3-O6 output is controlled by OE_n (HIGH signal means output is three-state)
 
 module PAL_44403C(
-    input CLK, input CSDELAY0, input CSDLY, input CSECOND, input CSLOOP, input ACOND_n, input MR_n, input LUA12, input MAP_n, input OE_n,
-    output SLCOND_n, output DMAP_n, output DMA12_n, output MDLY_n, output LCS_n, output DLY0_n
+    input CLK,          // Clock signal
+    input OE_n,         // OUTPUT ENABLE (active-low) for Q0-Q3
+
+    input CSDELAY0,     // I0
+    input CSDLY,        // I1
+    input CSECOND,      // I2
+    input CSLOOP,       // I3
+    input ACOND_n,      // I4
+    input MR_n,         // I5
+    input LUA12,        // I6
+    input MAP_n,        // I7
+
+
+    output LCS_n,       // Q0_n
+    output MDLY_n,      // Q1_n
+    output DMA12_n,     // Q2_n
+    output DMAP_n,      // Q3_n
+
+    output DLY0_n,      // B0_n
+    output SLCOND_n     // B2_n    
 );
-
-
 
 // CLK and /OE impacts signals:
 //  Q0 = /LCS, Q1=/MDLY, Q2=/DMA12, Q3=/DMAP
