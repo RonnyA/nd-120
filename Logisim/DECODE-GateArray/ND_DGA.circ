@@ -1276,7 +1276,7 @@
     <comp lib="8" loc="(1445,5010)" name="Text">
       <a name="text" val="Still wont compile to HDL, needs to be fixed by hand"/>
     </comp>
-    <comp lib="8" loc="(1651,4920)" name="Text">
+    <comp lib="8" loc="(1650,4920)" name="Text">
       <a name="color" val="#ff2d36"/>
       <a name="font" val="SansSerif bold 22"/>
       <a name="text" val="FIX IN VERILOG"/>
@@ -7809,17 +7809,35 @@
     <comp lib="8" loc="(1330,5785)" name="Text">
       <a name="text" val="IDENT 37,1   - IOXT 37,3"/>
     </comp>
+    <comp lib="8" loc="(1446,479)" name="Text">
+      <a name="text" val="Command 24, CNEXT"/>
+    </comp>
+    <comp lib="8" loc="(1785,483)" name="Text">
+      <a name="text" val="Command 27, JMP &amp; CONTINUE"/>
+    </comp>
     <comp lib="8" loc="(1880,5720)" name="Text">
       <a name="text" val="RWCS 36,1"/>
     </comp>
+    <comp lib="8" loc="(2068,484)" name="Text">
+      <a name="text" val="Command 23 (+27), CJUMP"/>
+    </comp>
     <comp lib="8" loc="(2375,1210)" name="Text">
       <a name="text" val="IRT"/>
+    </comp>
+    <comp lib="8" loc="(2451,492)" name="Text">
+      <a name="text" val="Command 34, READ+EXAMINE"/>
+    </comp>
+    <comp lib="8" loc="(2458,464)" name="Text">
+      <a name="text" val="Command 30, AREAD Command"/>
     </comp>
     <comp lib="8" loc="(2495,1140)" name="Text">
       <a name="text" val="DT"/>
     </comp>
     <comp lib="8" loc="(2720,1210)" name="Text">
       <a name="text" val="FETCH"/>
+    </comp>
+    <comp lib="8" loc="(2807,479)" name="Text">
+      <a name="text" val="Command 32 &amp; 33  - AWRITE"/>
     </comp>
     <comp lib="8" loc="(2865,8070)" name="Text">
       <a name="text" val="HITN"/>
@@ -7829,6 +7847,18 @@
     </comp>
     <comp lib="8" loc="(3085,3135)" name="Text">
       <a name="text" val="ISLOWN"/>
+    </comp>
+    <comp lib="8" loc="(3115,370)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="Command 30 &amp; 31, AREAD"/>
+    </comp>
+    <comp lib="8" loc="(3115,391)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="Command 34 - READ &amp; EXAMINE"/>
+    </comp>
+    <comp lib="8" loc="(3118,415)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="Command 35 - WRITE &amp; DEPOSIT"/>
     </comp>
     <comp lib="8" loc="(3340,2925)" name="Text">
       <a name="text" val="IEMPIDN"/>
@@ -7845,14 +7875,23 @@
     <comp lib="8" loc="(3720,6600)" name="Text">
       <a name="text" val="VEXN"/>
     </comp>
+    <comp lib="8" loc="(3734,470)" name="Text">
+      <a name="text" val="Command 22,0 (IREAD,PT) and 1 (IREAD,APT) ZZ1 is always 1 "/>
+    </comp>
     <comp lib="8" loc="(3770,2965)" name="Text">
       <a name="text" val="ISIOCN"/>
     </comp>
     <comp lib="8" loc="(4145,3010)" name="Text">
       <a name="text" val="ICRLTIN"/>
     </comp>
+    <comp lib="8" loc="(4176,414)" name="Text">
+      <a name="text" val="Command 22,3 - CNEXT,NWP"/>
+    </comp>
     <comp lib="8" loc="(440,2285)" name="Text">
       <a name="text" val="Page 17 DECODE - DECODE_DGA_COMM - Sheet 2 of 4"/>
+    </comp>
+    <comp lib="8" loc="(4628,489)" name="Text">
+      <a name="text" val="Command 22,2 (MAP) and 3 (CNEXT.NWP) ZZ1 is always 1 "/>
     </comp>
     <comp lib="8" loc="(4660,5970)" name="Text">
       <a name="text" val="21,3 - LDEXM"/>
@@ -7862,6 +7901,10 @@
     </comp>
     <comp lib="8" loc="(510,4795)" name="Text">
       <a name="text" val="Page 18 DECODE - DECODE_DGA_COMM - Sheet 3 of 4"/>
+    </comp>
+    <comp lib="8" loc="(5100,405)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="Command 34 - READ &amp; EXAMINE"/>
     </comp>
     <comp lib="8" loc="(5120,2890)" name="Text">
       <a name="text" val="ILDPANC"/>
