@@ -56,7 +56,8 @@ Standard is 4Mb memory configured contiguosly from address 0.
 |19F     | 34          |OF93    | 16R4D  | 10ns      | 513060   | 44407A   | ERFIX     | [A IMG](IMG/44407A.png)     | [A PDS](SRC/44407A.txt)  
 |9G      | 45          |44C7    | 16R4D  | 10ns      | 513060   | 44445B   | CADEC     | [B IMG](IMG/44445B.png)     | [B PDS](SRC/44445B.txt)  
 |6G      | 45          |3EF5    | 16R4D  | 10ns      | 513060   | 44446B   | BADEC     | [B IMG](IMG/44446B.png)     | [B PDS](SRC/44446B.txt)  
-|22F     | 34          |        | 16R6D  | 10ns      | 513061   | 44408B   | VEXFIX    | [B IMG](IMG/44408B.png)     | [B PDS](SRC/44408B.txt)     | [Converted.](../../Verilog/PAL/44408B/PAL_44408B.v).  Tested! |
+|22F     | 34          |3160    | 16R4D  | 10ns      | 513060   | 44408B   | VEXFIX    | [B IMG](IMG/44408B.png)     | [B PDS](SRC/44408B.txt)     | [Converted.](../../Verilog/PAL/44408B/PAL_44408B.v).  Tested! |
+|_22F_   | 34          |        | 16R6D  | 10ns      | 513061   | 44608A   | VXFIX     | **Missing**                 | **Missing**                 | PAL 44608A replaces the 44408B in the schematic. We dont have PAL source. Until we do, use PAL 44408B and take RT_n signal from DGA |
 |12D     | 36          |7F40    | 16R6D  | 10ns      | 513061   | 44601B   | CYCFSM    | [B IMG](IMG/44601B.png)     | [B PDS](SRC/44601B.txt)  
 |10D     | 6           |6B08    | 16R8D  | 10ns      | 513062   | 44801A   | BARBA <-  | [A IMG](IMG/44801A.png)     | [A PDS](SRC/44801A.txt)  
 |5F      | 50          |605E    | 16R8D  | 10ns      | 513062   | 44803A   | RAMA      | [A IMG](IMG/44803A.png)     | [A PDS](SRC/44803A.txt)  
@@ -66,8 +67,12 @@ Standard is 4Mb memory configured contiguosly from address 0.
 |2F      | 46          |        | 16L8B  | 15ns      | 500827   | 45008B   | DATA      | [B IMG](IMG/45008B.png)     | [B PDS](SRC/45008B.txt)  
 |4F      | 47          |43ED    | 16L8B  | 15ns      | 500827   | 45009B   | ERROR     | [B IMG](IMG/45009B.png)     | [B PDS](SRC/45009B.txt)  
 |26H     | 34          |        | 16R4B  | 15ns      |          | 44511A   | LEVO      | [A IMG](IMG/44511A.png)     | [A PDS](SRC/44511A.txt)  
-          
-Note: 22F was  44608A/VXFIX, but has been replaced with 44408B/VEXFIX
+
+Note on 22F:
+* 22F was 44408B/VEXFIX and has been replaced with 44608A/VXFIX - but we are missing the PALASM source code for 44608A.
+* RT_n signal from DGA is from DECODE_DGA_COMM. Maybe the DGA wasnt fast enough to decode the signal ?
+* Decoded the HW description for RT_n inside DGA:
+** RT_n is low when One of the following command 23,24,27, 30,31, 32,33, 34, 35, 22.0, 22.1, 22.3 AND when LCS_n = HIGH (not active) (and is updated on CLK signal going low-high)
 
 ## 2MB
 
