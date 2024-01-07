@@ -51,8 +51,8 @@ Standard is 4Mb memory configured contiguosly from address 0.
 |3F      | 48          |46FA    | 16L8-12| 12ns      | 513085   | 44310D   | LBDIF     | [D IMG](IMG/44310D.png)     | [D PDS](SRC/44310D.txt)      | [Converted.](../../Verilog/PAL/44310D/PAL_44310D.v) Tested! |
 |5D      | 6           |59AF    | 16R4D  | 10ns      | 513060   | 44401B   | BTIM      | [B IMG](IMG/44401B.png)     | [B PDS](SRC/44401B.txt)      | [Converted.](../../Verilog/PAL/44401B/PAL_44401B.v). Needs more test |
 |18F     | 25          |        | 16R4D  | 10ns      | 513060   | 44402D   | UBITS     | [D IMG](IMG/44402D.png)     | [D PDS](SRC/44402D.txt)  
-|14D     | 36          |        | 16R4D  | 10ns      | 513060   | 44403D   | CYIN0     | [C IMG](IMG/44403C.png) / [D IMG](IMG/44403D.png)    | [C PDS](SRC/44403C.txt) / Missing D | [Converted C.](../../Verilog/PAL/44403C/PAL_44403C.v) Needs more test |
-|15D     | 36          |        | 16R4D  | 10ns      | 513060   | 44404D   | CYIN1 NEW | [C IMG](IMG/44404C.png) / Missing D    | [C PDS](SRC/44404C.txt) / Missing D
+|14D     | 36          |        | 16R4D  | 10ns      | 513060   | 44403D   | CYIN0     | [C IMG](IMG/44403C.png) / [D IMG](IMG/44403D.png)    | [C PDS](SRC/44403C.txt) / Missing D | [Converted C](../../Verilog/PAL/44403C/PAL_44403C.v) Needs more test |
+|15D     | 36          |        | 16R4D  | 10ns      | 513060   | 44404D   | CYIN1 NEW | [C IMG](IMG/44404C.png) / Missing D                  | [C PDS](SRC/44404C.txt) / Missing D | [Converted C](../../Verilog/PAL/44404C/PAL_44404C.v) Needs more test. Guessed at logics for D.. |
 |19F     | 34          |OF93    | 16R4D  | 10ns      | 513060   | 44407A   | ERFIX     | [A IMG](IMG/44407A.png)     | [A PDS](SRC/44407A.txt)  
 |9G      | 45          |44C7    | 16R4D  | 10ns      | 513060   | 44445B   | CADEC     | [B IMG](IMG/44445B.png)     | [B PDS](SRC/44445B.txt)  
 |6G      | 45          |3EF5    | 16R4D  | 10ns      | 513060   | 44446B   | BADEC     | [B IMG](IMG/44446B.png)     | [B PDS](SRC/44446B.txt)  
