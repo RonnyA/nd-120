@@ -1,20 +1,41 @@
 // 44401B,5D,BTIM
 // PAL16R4D (https://rocelec.widen.net/view/pdf/c6dwcslffz/VANTS00080-1.pdf)
 
+
+// PCB 3202D sheet 6:
+//
+// PAL input signal PD1 is connected to PAL OE_n (and PD1 to PD4 is ALWAYS 0/FALSE in the 3202 circuit board)
+//     input signal OSC is connectec to PAL CK pin
+
 // I/O 1,2,7, and 8 is not controlled by OE_n
 
 // Four D flip-flops controleed by CLK signal (and reads input to O3,O4,O5 and O6) when transision from LOW to HIGH.
 // O3-O6 output is controlled by OE_n (HIGH signal means output is three-state)
 
 module PAL_44401B(
-    input OSC, input CC2_n, input CACT_n, input CACT25_n, input BDRY50_n, input CGNT_n, input CGNT50_n, input TERM_n, input IORQ_n, input OE_n,
-    output EADR_n, output EIOD_n, output Q2_n, output Q1_n, output Q0_n, output DAP_n, output APR_n
-);
+    input CK, 
+    input OE_n,
 
-// PCB 3202D sheet 6:
-//
-// PAL input signal PD1 is connected to PAL OE_n
-//     input signal OSC is connectec to PAL CK pin
+    input CC2_n,        // I0
+    input CACT_n,       // I1
+    input CACT25_n,     // I2
+    input BDRY50_n,     // I3
+    input CGNT_n,       // I4
+    input CGNT50_n,     // I5
+    input TERM_n,       // I6   
+    input IORQ_n,       // I7
+
+
+    output Q0_n,        // Q0_n
+    output Q1_n,        // Q1_n
+    output Q2_n,        // Q2_n
+                        // Q3_n (not connected, no signal)
+
+    output APR_n,       // B0_n
+    output DAP_n,       // B1_n
+    output EIOD_n,      // B2_n
+    output EADR_n       // B3_n             
+);
 
 // Creating non-negated wires for active-low inputs
 wire CC2 = ~CC2_n;
@@ -34,7 +55,7 @@ reg Q0, Q1, Q2;
 
 
 // Flip-flop logic for Q0, Q1, Q2
-always @(posedge OSC) begin
+always @(posedge CK) begin
     Q0 <=
                     (CACT & Q2_n & Q1_n & Q0_n & CACT25_n) |
                     (Q2_n & Q1_n & Q0)                     |

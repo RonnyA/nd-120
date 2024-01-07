@@ -76,7 +76,7 @@ int main(int argc, char **argv)
         top->OE_n  = false;
 
         
-        top->OSC = 1;
+        top->CK = 1;
 
       
        if (i==1)
@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 
         // /OE (Output enable)
         //top->OE_n  = true;
-        top->OSC = 0;        
+        top->CK = 0;        
         top->eval();
         
 
