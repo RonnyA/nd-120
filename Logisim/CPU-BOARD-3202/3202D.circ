@@ -19366,6 +19366,10 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(1970,1425)" name="Text">
       <a name="text" val="CD is bi-directional"/>
     </comp>
+    <comp lib="8" loc="(2113,1203)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="EWC_n"/>
+    </comp>
     <comp lib="8" loc="(2170,1115)" name="Text">
       <a name="text" val="HIT1_n"/>
     </comp>
