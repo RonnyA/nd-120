@@ -15,17 +15,35 @@
 // PAL testcases
 struct TestCase {
     
-    // Test field
-    bool TEST;
 
     // Inputs
-    bool Q0_n, Q2_n, CC2_n, BDRY25_n, BDRY50_n, CGNT_n, CGNT50_n, CACT_n, TERM_n, BGNT_n, RT_n, IORQ_n;
-    
-    
+
+    //bool CK;       // Clock signal
+    //bool OE_n;     // OUTPUT ENABLE (active-low) for Q0-Q3
+
+    bool C4;       // I0 - CSCOMM4
+    bool C3;       // I1 - CSCOMM3
+    bool C2;       // I2 - CSCOMM2 
+    bool C1;       // I3 - CSCOMM1 
+    bool C0;       // I4 - CSCOMM0 
+    bool M1;       // I5 - CSMIS1
+    bool M0;       // I6 - CSMIS0  
+                   // I7 - (not connected)
+    bool LCS_n;    
+                   // B0_n - (not connected)
+    bool IDB2;     // B1_n - IDB2
+
+
     //  Outputs
 
-    bool EMD_n, DSTB_n, BGNTCACT_n, CGNTCACT_n;
-    
+    // These signals may have wrong Q pin description, as this is taken from the description of the PAL 444608 (VXFIX) which is a PAL16R6
+    // (Missing information on how 44408 was connected..)
+
+                    // Q0_n - (not connected)
+    bool LDEXM_n;   // Q1_n 
+    bool VEX;       // Q2_n
+    bool OPCLCS;    // Q3_n
+    bool RWCS_n ;   // Q4_n     
 
     std::string description; // Description of the test case
 };
@@ -61,7 +79,7 @@ int main(int argc, char **argv)
 
     int errCnt = 0;
 
-    top->CLK = 0;
+    top->CK = 0;
 
     // Iterate through each test case
     //for (const auto& test : testCases) {
@@ -78,7 +96,7 @@ int main(int argc, char **argv)
         top->OE_n  = false;        
         // Assignments for input fields
         
-        top->LCS_n = !top->CLK;
+        top->LCS_n = !top->CK;
         //top->LCS_n =(j & 1<<0) !=0;       
 
         top->C4 = (i & 1<<4) !=0;
@@ -100,7 +118,7 @@ int main(int argc, char **argv)
 
         // /OE (Output enable)
         //top->OE_n  = true;
-        top->CLK = !top->CLK;
+        top->CK = !top->CK;
         top->eval();
         
 
