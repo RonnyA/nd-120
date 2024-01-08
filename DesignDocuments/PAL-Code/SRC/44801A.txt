@@ -1,81 +1,73 @@
-PAL1i6R8
+PAL16R8
 JLB/CJTC 11AUG86
 44801A,10D, BARB
 
-OSC /CRQ /IORQ /MR /BRQSO /REFRQSO /BDRY25 /SEMRQ5SO0 NC9 GND
-fOE ?#CACT {GNT /TOD /REF /MEM /DOREF /ACT ‘SEM VCC
+OSC /CRQ /IORQ /MR /BRQ50 /REFRQ50 /BDRY25 /SEMRQ50 NC9 GND
+/OE /CACT /GNT /IOD /REF /MEM /DOREF /ACT /SEM VCC
 
-; CACT ~ CPU IS ACTIVE ON THE ND100 BUS
-CACT := CRQ * /REFRQSG * /BRQSO * /REF * /GNT * ‘SEM * /BDRY25 * IMR; 4
+; CACT - CPU IS ACTIVE ON THE ND100 BUS
 
-+ CRQ * /REFRQSO * DOREF * /REF * /GNT * /SEM * /BDRY25 * IMR ; 2
+CACT := CRQ * /REFRQ50 * /BRQ50 * /REF * /GNT * /SEM * /BDRY25 * /MR    ; 4
+      + CRQ * /REFRQ50 * DOREF  * /REF * /GNT * /SEM * /BDRY25 * /MR    ; 2
+      + CACT * /BDRY25 * /MR                                            ; HOLD     
+      + CRQ * SEM * /GNT * /BDRY25 * /MR                                ; SEMAPHORE
 
-+ CACT * /BDRY25 * /MR + HOLD
-+ CRQ * SEM * /GNT * /BDRY2S5 * /MR : SEMAPHORE
+; REF - REFRESH GRANT ON ND100 BUS
 
-; REF - REFRESH GRANT ON NDi00 BUS
-
-REF := REFRQSO * /CACT * /GNT * /SEM * /BDRY25 71
-+ REF * /BDRY25 | HOLD
-+ REFRQSO * MR , ALWAYS GRANT REFRESH DURING MR
+REF := REFRQ50 * /CACT * /GNT * /SEM * /BDRY25                          ; 1
+     + REF * /BDRY25                                                    ; HOLD
+     + REFRQ50 * MR                                                     ; ALWAYS GRANT REFRESH DURING MR
 
 ; GNT - GRANT ND100 BUS TO A DMA DEVICE OR EXTERNAL BUS CONTROLLER
-GNT := BRQSO * /REFRQSO * /CRQ * TREF * /CACT * /SEM * /BDRY25 * (MR: 3
-+ BRQSO * /REFRQSO * /DOREF * /REF * /CACT * (SEM * /BDRY25 * iMR , 3
-+ GNT * /BDRY25 * /MR ; HOLD
-+ BRQSO * SEM * GNT * /MR ; SEMAPHORE
 
-IOD - IO SIGNAL TO LAST FOR THE ENTIRE BUS CYCLE
+GNT := BRQ50 * /REFRQ50 * /CRQ   * /REF * /CACT * /SEM * /BDRY25 * /MR  ; 3
+     + BRQ50 * /REFRQ50 * /DOREF * /REF * /CACT * /SEM * /BDRY25 * /MR  ; 3
+     + GNT * /BDRY25 * /MR                                              ; HOLD
+     + BRQ50 * SEM * GNT * /MR                                          ; SEMAPHORE
 
-.
+; IOD - IO SIGNAL TO LAST FOR THE ENTIRE BUS CYCLE
 
-I0D := IORQ * CRQ * /REFRQSO * /BRQSO * /REF * /GNT * /SEM * /BDRY25 * /MR ; 4
-+ IORQ * CRQ * /REFRQSO * DOREF * {REF * /GNT * /SEM * /BDRY25 * /MR ; 2
-+ 10D * /BDRY25 * /MR ; HOLD
-+ TORQ * CRQ * SEM * /GNT * /BDRY25 * /MR ; SEMAPHORE
+IOD := IORQ * CRQ * /REFRQ50 * /BRQSO * /REF * /GNT * /SEM * /BDRY25 * /MR  ; 4
+     + IORQ * CRQ * /REFRQSO * DOREF  * /REF * /GNT * /SEM * /BDRY25 * /MR  ; 2
+     + IOD * /BDRY25 * /MR                                                  ; HOLD
+     + IORQ * CRQ * SEM * /GNT * /BDRY25 * /MR                              ; SEMAPHORE
 
-MEM ~ MEM SIGNAL TO LAST FOR ENTIRE BUS CYCLE
-GENERATES BMEM WHICH IS PRESENT ON REFRESH, CPU MEMORY AND DMA CYCLES
+; MEM - MEM SIGNAL TO LAST FOR ENTIRE BUS CYCLE
+; GENERATES BMEM WHICH IS PRESENT ON REFRESH, CPU MEMORY AND DMA CYCLES
 
-MEM ;= BRQSO * fIORQ * (10D * /BDRY25 * /MR
-
-+ BRQSO * 1CRQ * (10D * /BDRY25 * /MR
-
-+ BRQSO * {DOREF * /IO0D * /BDRY25 * /MR
-
-+ CRQ * {I0RQ * FIOD * /BDRY25 * /MR
-REFRQSO * /10D * ‘BDRY2S5
-
-+
-+ REFRQSO * MR
-+ MEM * /BDRY25 * /MR
+MEM := BRQ50   * /IORQ  *  /IOD * /BDRY25 * /MR
+     + BRQ50   * /CRQ   *  /IOD * /BDRY25 * /MR
+     + BRQ50   * /DOREF *  /IOD * /BDRY25 * /MR
+     + CRQ     * /IORQ  *  /IOD * /BDRY25 * /MR
+     + REFRQ50 *           /IOD * /BDRY25
+     + REFRQ50 * MR
+     + MEM * /BDRY25 * /MR
+     
 ; SEM - SEMAPHORE GRANT SIGNAL
-SEM := SEMRQSO * /MR * BDRY25
-+ SEM * /MR * /ACT
+
+SEM := SEMRQ50 * /MR * BDRY25
+     + SEM * /MR * /ACT
+
 ; ACT - BUS IS ACTIVE
 
 ACT := CACT * /BDRY25 * /MR
-+ GNT * /BDRY25 * /MR
+     + GNT  * /BDRY25 * /MR
+     + REF  * /BDRY25 * /MR
 
-+ REF * /BDRY25 * /MR
-
-DOREF - INDICATES THAT LAST BUS CYCLE WAS A REFRESH
+; DOREF - INDICATES THAT LAST BUS CYCLE WAS A REFRESH
 
 DOREF := REF * /MR * BDRY25
-+ DOREF * ‘MR * /CACT * /GNT * /REF
+       + DOREF * /MR * /CACT * /GNT * /REF
 
 DESCRIPTION
 
 ; PRIORITY:
-
-; 1. REFRESH
-
-: 2. CPU REQUEST AFTER A REFRESH
-; 3. BUS REQUEST
-
-: 4. CPU REQUEST
+;           1. REFRESH
+:           2. CPU REQUEST AFTER A REFRESH
+;           3. BUS REQUEST
+;           4. CPU REQUEST
 
 ; 26/2-87JLB: WRONG HOLD TERM IN IOD.
-
+;
 ; 180587 M3202B
-
+

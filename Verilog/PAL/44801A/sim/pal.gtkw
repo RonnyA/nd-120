@@ -1,0 +1,52 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Mon Jan  8 21:22:53 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44801A/sim/waveform.vcd"
+[dumpfile_mtime] "Mon Jan  8 21:22:49 2024"
+[dumpfile_size] 3058
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44801A/sim/pal.gtkw"
+[timestart] 0
+[size] 1480 711
+[pos] -1 -1
+*-6.456229 193 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 214
+[signals_width] 384
+[sst_expanded] 1
+[sst_vpaned_height] 188
+@28
+TOP.OE_n
+TOP.CK
+TOP.CRQ_n
+TOP.IORQ_n
+TOP.MR_n
+TOP.BRQ50_n
+TOP.REFRQ50_n
+TOP.BDRY25_n
+TOP.SEMRQ50_n
+@200
+--- internal --
+@28
+TOP.PAL_44801A.SEM_reg
+TOP.PAL_44801A.ACT_reg
+TOP.PAL_44801A.DOREF_reg
+TOP.PAL_44801A.MEM_reg
+TOP.PAL_44801A.REF_reg
+TOP.PAL_44801A.IOD_reg
+TOP.PAL_44801A.GNT_reg
+TOP.PAL_44801A.CACT_reg
+@200
+--- output --
+@28
+TOP.PAL_44801A.SEM_n
+TOP.PAL_44801A.ACT_n
+TOP.PAL_44801A.DOREF_n
+TOP.PAL_44801A.MEM_n
+TOP.PAL_44801A.REF_n
+TOP.PAL_44801A.IOD_n
+TOP.PAL_44801A.GNT_n
+@29
+TOP.PAL_44801A.CACT_n
+[pattern_trace] 1
+[pattern_trace] 0
