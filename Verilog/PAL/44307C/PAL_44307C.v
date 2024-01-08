@@ -1,8 +1,8 @@
 // 44307C,13D,CYCLK
 
 module PAL_44307C(
-    input TERM_n, CC0_n, CC1_n, CC2_n, CC3_n, FORM_n, BRK_n, RWCS_n, TRAP_n, VEX_n,
-    output MCLK, WRFSTB_n, CYD_n, EORF, UCLK_n, MAP, MACLK, ETRAP_n
+    input TERM_n, input CC0_n, input CC1_n, input CC2_n, input CC3_n, input FORM_n, input BRK_n, input RWCS_n, input TRAP_n, input VEX_n,
+    output MCLK, output WRFSTB_n, output CYD_n, output EORF, output UCLK_n, output MAP, output MACLK, output ETRAP_n
 );
 
 
