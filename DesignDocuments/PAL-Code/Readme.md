@@ -53,7 +53,7 @@ Standard is 4Mb memory configured contiguosly from address 0.
 |18F     | 25          |        | 16R4D  | 10ns      | 513060   | 44402D   | UBITS     | [D IMG](IMG/44402D.png)     | [D PDS](SRC/44402D.txt)      | [Converted.](../../Verilog/PAL/44402D/PAL_44402D.v). Needs more test |
 |14D     | 36          |        | 16R4D  | 10ns      | 513060   | 44403D   | CYIN0     | [C IMG](IMG/44403C.png) / [D IMG](IMG/44403D.png)    | [C PDS](SRC/44403C.txt) / Missing D | [Converted C](../../Verilog/PAL/44403C/PAL_44403C.v) Needs more test |
 |15D     | 36          |        | 16R4D  | 10ns      | 513060   | 44404D   | CYIN1 NEW | [C IMG](IMG/44404C.png) / Missing D                  | [C PDS](SRC/44404C.txt) / Missing D | [Converted C](../../Verilog/PAL/44404C/PAL_44404C.v) Needs more test. Guessed at logics for D.. |
-|19F     | 34          |OF93    | 16R4D  | 10ns      | 513060   | 44407A   | ERFIX     | [A IMG](IMG/44407A.png)     | [A PDS](SRC/44407A.txt)  
+|19F     | 34          |OF93    | 16R4D  | 10ns      | 513060   | 44407A   | ERFIX     | [A IMG](IMG/44407A.png)     | [A PDS](SRC/44407A.txt)      | [Converted.](../../Verilog/PAL/44407A/PAL_44407A.v) Tested! |
 |9G      | 45          |44C7    | 16R4D  | 10ns      | 513060   | 44445B   | CADEC     | [B IMG](IMG/44445B.png)     | [B PDS](SRC/44445B.txt)  
 |6G      | 45          |3EF5    | 16R4D  | 10ns      | 513060   | 44446B   | BADEC     | [B IMG](IMG/44446B.png)     | [B PDS](SRC/44446B.txt)  
 |22F     | 34          |3160    | 16R4D  | 10ns      | 513060   | 44408B   | VEXFIX    | [B IMG](IMG/44408B.png)     | [B PDS](SRC/44408B.txt)     | [Converted.](../../Verilog/PAL/44408B/PAL_44408B.v).  Tested! |
