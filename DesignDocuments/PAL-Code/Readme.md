@@ -55,7 +55,7 @@ Standard is 4Mb memory configured contiguosly from address 0.
 |15D     | 36          |        | 16R4D  | 10ns      | 513060   | 44404D   | CYIN1 NEW | [C IMG](IMG/44404C.png) / Missing D                  | [C PDS](SRC/44404C.txt) / Missing D | [Converted C](../../Verilog/PAL/44404C/PAL_44404C.v) Needs more test. Guessed at logics for D.. |
 |19F     | 34          |OF93    | 16R4D  | 10ns      | 513060   | 44407A   | ERFIX     | [A IMG](IMG/44407A.png)     | [A PDS](SRC/44407A.txt)      | [Converted.](../../Verilog/PAL/44407A/PAL_44407A.v) Tested! |
 |9G      | 45          |44C7    | 16R4D  | 10ns      | 513060   | 44445B   | CADEC     | [B IMG](IMG/44445B.png)     | [B PDS](SRC/44445B.txt)      | [Converted.](../../Verilog/PAL/44445B/PAL_44445B.v) Tested! |
-|6G      | 45          |3EF5    | 16R4D  | 10ns      | 513060   | 44446B   | BADEC     | [B IMG](IMG/44446B.png)     | [B PDS](SRC/44446B.txt)  
+|6G      | 45          |3EF5    | 16R4D  | 10ns      | 513060   | 44446B   | BADEC     | [B IMG](IMG/44446B.png)     | [B PDS](SRC/44446B.txt)      | [Converted.](../../Verilog/PAL/44446B/PAL_44446B.v) Tested! |
 |22F     | 34          |3160    | 16R4D  | 10ns      | 513060   | 44408B   | VEXFIX    | [B IMG](IMG/44408B.png)     | [B PDS](SRC/44408B.txt)     | [Converted.](../../Verilog/PAL/44408B/PAL_44408B.v).  Tested! |
 |_22F_   | 34          |        | 16R6D  | 10ns      | 513061   | 44608A   | VXFIX     | **Missing**                 | **Missing**                 | PAL 44608A replaces the 44408B in the schematic. We dont have PAL source. Until we do, use PAL 44408B and take RT_n signal from DGA |
 |12D     | 36          |7F40    | 16R6D  | 10ns      | 513061   | 44601B   | CYCFSM    | [B IMG](IMG/44601B.png)     | [B PDS](SRC/44601B.txt)  
