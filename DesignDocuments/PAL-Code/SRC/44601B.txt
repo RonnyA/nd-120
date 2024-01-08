@@ -1,277 +1,71 @@
-PAL1I6R6
+PAL16R6
 JLB 26NOV86
 44601B, 12D, CYCFSM
 
-osc #DLY1 /DLYQ CSDELAYO WAIT1 WAIT2
-
-fOE /SHORT /CC3 /CC2 /CC1
-
-'CGNTCACT HIT
-?CCO /TERM /CX /SLOW VCC
-
-/BRK GND
+OSC /DLY1 /DLY0 CSDELAY0 WAIT1 WAIT2 /CGNTCACT HIT /BRK GND
+/OE /SHORT /CC3 /CC2 /CC1 /CC0 /TERM /CX /SLOW VCC
 
 ; CYCLE CONTROL STATE COUNTER. FAST VERSION (ND-120/CX).
 
-cx := vec ;
+CX := VCC;  THIS IS THE FAST VERSION
 
-icc2
-icc2
-1CC2
-1CC2
-1cc2
 
-a
-3
+TERM := /CC3 * /CC2 * /CC1 * /CC0 * SHORT * /TERM * /DLY0 * /CSDELAY0   ; 50NS CYCLE
+      + /CC3 * /CC2 * /CC1 * CC0 * SHORT * /BRK * /DLY1 * /TERM         ; 75NS CYCLE
+      + /CC3 * /CC2 * /CC1 * CC0 * HIT * /BRK * /DLY1 * /TERM           ; 75NS CYCLE
+      + /CC3 * /CC2 * CC1 * CC0 * SHORT * /BRK  * /TERM                 ; 100NS CYCLE
+      + /CC3 * /CC2 * CC1 * CC0 * HIT * /BRK *  /TERM                   ; 100NS CYCLE
+      + /CC3 * CC2 * CC1 * CC0 * /BRK *  /TERM                          ; BRK CYCLE       (>200
+      + /CC3 * CC2 * /CC1 * CC0 * SLOW *  /TERM                         ; SLOW CYCLES INCL. FE
+      + CC3 * /CC2 * /CC1 * /CC0 * /TERM                                ; UART,LCS,RWCS CYCLES
 
-1CC3
-#cC3
-'cc3
-iCC3
-#CCc3
-#CC3
-#cc3
+CC3 := CC2 * /CC1 * /CC0 * /TERM                                        ; h+i+j+k+l+m+n+o
+     + CC3 * CC1 * /TERM * CC2
+     + CC3 * CC1 * /TERM * /CC2
+     + CC3 * CC0 * /TERM * CC2 * CC1
+     + CC3 * CC0 * /TERM * /CC2 * CC1
+     + CC3 * CC0 * /TERM * CC2 * /CC1
+     + CC3 * CC0 * /TERM * /CC2 * /CC1
 
-* * * % 4 HH
-t+ £ + &
+CC2 := /CC3 * CC2 * CC1 * /TERM                                        ; e+f+g+h+i+j+k
+     + CC2 * /CC1 * /TERM * CC3
+     + CC2 * /CC1 * /TERM * /CC3
+     + CC2 * CC0 * /TERM * CC3
+     + CC2 * CC0 * /TERM * /CC3
+     + /CC3 * /CC2 * CC1 * /CC0 * CGNTCACT * /TERM              ; d WAIT FOR BUS IF
+     + /CC3 * /CC2 * CC1 * /CC0 * /WAIT1 * /TERM                ; d WAIT1 and NOT
+     + /CC3 * /CC2 * CC1 * /CC0 * BRK * /TERM                   ; d BRK
 
-+ + + + + F +
+CC1 := /CC3 * /CC2 * CC0 * /TERM * CC1                          ; b+c+d+e+j+k+l+m
+     + /CC3 * /CC2 * CC0 * /TERM * /CC1
+     +  CC3 * CC2 * CC0 * /TERM * CC1
+     +  CC3 * CC2 * CC0 * /TERM * /CC1
+     +  CC1 * /CC0 * /TERM * CC2 * CC3
+     +  CC1 * /CC0 * /TERM * CC2 * /CC3
+     +  CC1 * /CC0 * /TERM * /CC2 * CC3
+     +  CC1 * /CC0 * /TERM * /CC2 * /CC3
 
-cco
-'TERM
-' TERM
-! TERM
-(TERM
-(TERM
-‘TERM
-
-icci *
-cci *
-cc1
-cco *
-cco *
-cco *
-cco x
-
-Q
-a
-wo
-i
-
-cc2 *
-cc3
-cc3
-cc3
-cc3
-cc3
-cc3
-
-*
-
-+ + +e oe He +
-+ 4+ £ 4 4
-
-Q
-Qo
-N
-i
-
-i TERM
-(TERM
-* CC1
-* CCl
-* CC1
-
-cc2 * CCO x
-cc2 * CCO *
-#CC3 * icCc2
-#cc3. * «/CC2
-#cc3 * iCC2
-
-+ + te +e eH He +
-
-?cc3 * fcc2 * CCO
-#cc3 * 4CC2 * CCO
-cc3 * CC2 * CCO *
-cc3 * CcC2 * cco *
-cc1i * iCCO * ITERM
-cc1i * iCcO * /TERM
-cci * #CCO * I TERM
-cci * iCCO * I TERM
-
-a
-Qo
-iy
-++ hee eee
-
-Q
-Q
-Ss
-W
-
-#CC3 * iCC2 * iCC1
-#cC3 * CC2 * CCi *
-cc3 * CC2 * iCCi *
-cc3 * fCC2 * CC1 *
-#cc3. * Cc2 * CCci *
-'cc3 * CC2 * CC1
-fcc3 * CC2 * CC1 *
-fCCc3 *
-
-+ + + + te te +
-*
+CC0 := /CC3 * /CC2 * /CC1 * /TERM                               ; a+b+f+i+j+m+N
+     + /CC3 * CC2 * CC1 * CC0 * /TERM
+     + CC3 * CC2 * /CC1 * /TERM
+     + CC3 * /CC2 * CC1 * /TERM
+     + /CC3 * CC2 * CC1 * /CC0 * CGNTCACT * /TERM               ; e WAIT FOR BUS OF LOC
+     + /CC3 * CC2 * CC1 * /CC0 * BRK * /TERM                    ; e MEM CYCLE TO FINISH
+     + /CC3 * CC2 * CC1 * /CC0 * /WAIT2 * /TERM                 ; e IF WAIT2 and NOT BRK
+     + /CC3 * /CC2 * CC1 * CC0 * CGNTCACT * /BRK * /TERM        ; e PREV WRITE
 
 DESCRIPTION
 
-060387 JLB:
-; 060387 JLB:
-; 070387 JLB:
-; 120387 JLB:
-, SHORT IN ON
-; 120387 JLB:
-: 180387 JLB:
-: 180387 JLB:
-; 180387 JLB:
-; 210387 JLB:
+; 060387 JLB: MOD’S FROM SLOW VERSION IMPLEMENTED.
+; 060387 JLB: 100 NS CYCLE MIN. NO BUFFERED WRITE.
+; 070387 JLB: 75 NS CYCLE MIN. NO BUFFERED WRITE.
+; 120387 JLB: IMPROVED HIT PATH. FORM REMOVED. HIT INPUT ON PIN 12.
+; SHORT IN ON PIN 4.
+; 120387 JLB: 50 NS CYCLE ON SHORT
+: 180387 JLB: MR GATED WITH WAIT1 OUTSIDE. NEW INPUT CSDELAY0.
+: 180387 JLB: BUFFERED WRITE.
+; 180387 JLB: 175NS SLOW & BRK CYCLES.
+; 210387 JLB: 200NS SLOW CYCLES.
 
-PIN 4.
-
-; 270487
-: 060887
-
-M3202B
-
-*
-
-*
-*
-*
-*
-*
-
-*
-
-*
-*
-*
-*
-*
-
-*
-*
-!
-!
-
-icc2 * CC1 * CCO * CGNTICACT *
-
-THIS IS THE FAST VERSION
-
-1 TERM
-
-cc2
-
-#cc2
-
-cc2 * cci
-fcc2 * CC1
-cc2 * CCL
-fcc2 * CCL
-
-#cc3 * CC2 * CCi * {TERM
-cc2 * /CCi * {TERM * CC3
-cc2 * iCC1 * /TERM *
-
-#CC3
-cc3
-
-#CC3
-
-#CCO * CGNTCACT * /TERM
-fCCO * IWAIT1 * i TERM
-#CCO * BRK * /TERM
-
-‘TERM * CC1
-‘TERM * /CC1
-TERM * CC1
-TERM * /CC1
-* CC2 * CC3
-* CcC2 * /CC3
-» #CC2 * CC3
-* 1€C2 * !CC3
-
-* fTERM
-
-cco * iTERM
-
-i TERM
-
-? TERM
-
-#CCO * /CGNTCACT *
-fccO * BRK * /TERM
-#ccO * /WAIT2 * /TERM
-
-(TERM
-
-SO NS CYCLE ON SHORT
-MR GATED WITH WAIT1 OUTSIDE. NEW INPUT CSDELAYO.
-
-BUFFERED WRITE.
-175NS SLOW & BRK CYCLES.
-
-200NS SLOW CYCLES,
-
-#cC1 * /CCO * SHORT * /TERM * /DLYO *
-#cci * CCO * SHORT * /BRK * /DLY1 * /TERM
-!CC1 * CCO * HIT * /BRK * /DEY1 * TERM
-cc1 * CCO * SHORT * /BRK * /TERM
-cci * CCO * HIT * {BRK *
-cc2 * cC1 * CCO * BRK * /TERM
-cc2 * #cci * CCO * SLOW * /TERM
-cc3 * #cC2 * /CC1 * /CCO * /TERM
-
-? TERM
-
-!BRK * /TERM
-
-MOD’S FROM SLOW VERSION IMPLEMENTED.
-100 NS CYCLE MIN. NO BUFFERED WRITE.
-75 NS CYCLE MIN. NO BUFFERED WRITE.
-IMPROVED HIT PATH. FORM REMOVED. HIT INPUT ON PIN 12.
-
-175NS BRK CYCLES.
-
-JLB: MAXIMIZED EQUATIONS TO MATCH CLOCK SKEW.
-
-'CSDELAYO ;SONS CYCLE
-
-.75NS CYCLE
-375NS CYCLE
-,100NS CYCLE
-,100NS CYCLE
-;BRK CYCLE (>200
-(SLOW CYCLES INCL. FE
-V;UART,LCS.RWCS CYCLES
-
-yhtit jtk+ltmtnto
-
-yetfegthti+ j+k
-
-;d WAIT FOR BUS IF
-:d WAITL AND NOT
-id BRK
-
-tb+ctdtet j+k+l+m
-
-yatbe+ft+it j+mtn
-
-;@ WAIT FOR BUS OR LOC
-MEM CYCLE TO FINISH
-IF WAIT2 AND NOT BRK
-PREV WRITE.
-
-ye
-se
-
-,e
-
+; 270487 M3202B
+; 060887 JLB: MAXIMIZED EQUATIONS TO MATCH CLOCK SKEW.
