@@ -5,7 +5,7 @@
 #include <ctime>
 #include <string>
 
-#include "VPAL_44801A.h"
+#include "VPAL_44803A.h"
 #include "verilated.h"
 
 #ifdef DO_TRACE
@@ -21,25 +21,27 @@ struct TestCase {
     //bool CK;       // Clock signal
     //bool OE_n;     // OUTPUT ENABLE (active-low) for Q0-Q5
 
-    bool CRQ_n;        // I0 - CRQ_n
-    bool IORQ_n;       // I1 - IORQ_n
+
+    bool LOEN_n;       // I0 - LOEN_n
+    bool RLRQ_n;       // I1 - RLRQ_n
     bool MR_n;         // I2 - MR_n 
-    bool BRQ50_n;      // I3 - BRQ50_n 
-    bool REFRQ50_n;    // I4 - REFRQ50_n 
-    bool BDRY25_n;     // I5 - BDRY25_n
+    bool CLRQ_n;       // I3 - CLRQ_n 
+    bool BLRQ50_n;     // I4 - BLRQ50_n 
+    bool SSEMA_n;      // I5 - BDRY25_n
     bool SEMRQ50_n;    // I6 - SEMRQ50_n
-    bool MOFF_n;       // I7 - MOFF_n                       
+//  bool n.c ;         // I7 - n.c.
 
-    // Outputs
 
-    bool SEM_n;       // Q0_n - SEM_n
-    bool ACT_n;       // Q1_n - ACT_n (n.c.)
-    bool DOREF_n;     // Q2_n - DOREF_n (n.c.)
-    bool MEM_n;       // Q3_n - MEM_n (n.c.)
-    bool REF_n;       // Q4_n - REF_n
-    bool IOD_n;       // Q5_n - IOD_n
-    bool GNT_n;       // Q6_n - GNT_n 
-    bool CACT_n;      // Q7_n - CACT_n
+    // outputs
+
+    bool RGNT_n;      // Q0_n - RGNT_n
+    bool CGNT_n;      // Q1_n - CGNT_n
+    bool BGNT_n;      // Q2_n - BGNT_n
+    bool LOEN25_n;    // Q3_n - LOEN25_n (n.c.)
+    bool LDR_n;       // Q4_n - LDR_n (n.c.)
+    bool CSEM_n;      // Q5_n - CSEM_n (n.c.)
+    bool BSEM_n;      // Q6_n - BSEM_n (n.c.)
+    bool BCGNT25;      // Q7_n - BCGNT25
 
     std::string description; // Description of the test case
 };
@@ -60,7 +62,7 @@ int main(int argc, char **argv)
 
 
     Verilated::commandArgs(argc, argv);
-    VPAL_44801A* top = new VPAL_44801A;
+    VPAL_44803A* top = new VPAL_44803A;
 
 #ifdef DO_TRACE
     VerilatedVcdC *m_trace = new VerilatedVcdC;    
@@ -78,12 +80,12 @@ int main(int argc, char **argv)
 
 
     // Set all inputs to 0
-    top->CRQ_n = 
-    top->IORQ_n =
+    top->LOEN_n =
+    top->RLRQ_n =
     top->MR_n =
-    top->BRQ50_n =
-    top->REFRQ50_n =
-    top->BDRY25_n =
+    top->CLRQ_n = 
+    top->BLRQ50_n = 
+    top->SSEMA_n = 
     top->SEMRQ50_n = true;
 
 
@@ -106,24 +108,24 @@ int main(int argc, char **argv)
         // REF
         if (i==3)
         {
-            top->REFRQ50_n = false;
-        }
-
-        if (i==4)
-        {
             top->MR_n = false;
         }
 
         if (i==4)
         {
-            top->MR_n = false;
+            top->LOEN_n = false;
+        }
+
+        if (i==5)
+        {
+            top->MR_n = true;
         }
 
 
         // IO
         if (i==7)
         {
-            top->IORQ_n = false;
+            top->RLRQ_n = false;
         }
 
         top->eval();
