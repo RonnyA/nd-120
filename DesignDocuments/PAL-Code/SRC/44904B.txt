@@ -2,44 +2,50 @@ PAL16R8
 CJTC 180587
 44904B,7G,SIZEIND
 
-CLK {MSIZEO /MSIZE1 /MOFF NCS NC6 NC7 NC8& NCS GND
-fOE fEHI /EMID /ELOW NCiS DBIT CBIT BBIT ABIT VCC
+CLK /MSIZE0 /MSIZE1 /MOFF NC5 NC6 NC7 NC8 NC9 GND
+/OE /EHI /EMID /ELOW NC15 DBIT CBIT BBIT ABIT VCC
 
 ; MEMORY SIZE INDICATOR FOR 0, 2, 4 OR 6 MB MEMORY ARRAYS
 
-EHI ;= EMID + ELOW * EHI + /ELOW * /EHI : ENABLE DIGIT 3
-EMID := ELOW * /EMID * /EHI ; ENABLE DIGIT 2
-ELOW := /ELOW * /EMID * EHT ; ENABLE DIGIT 1
-fABIT := MOFF
+EHI := EMID 
+     + ELOW * EHI 
+     + /ELOW * /EHI             ; ENABLE DIGIT 3
 
-+ MSIZEO * EMID
+EMID := ELOW * /EMID * /EHI     ; ENABLE DIGIT 2
 
-+ EHI
+ELOW := /ELOW * /EMID * EHT     ; ENABLE DIGIT 1
 
-+ ELOW
-{BBIT := MOFF
+/ABIT := MOFF
+       + MSIZE0 * EMID
+       + EHI
+       + ELOW
 
-+ ¢MSIZE1 * {MSIZEO * EMID
 
-+ MSIZE1 * MSIZEO * EMID
+/BBIT := MOFF
+       + /MSIZE1 * /MSIZEO * EMID
+       + MSIZE1 * MSIZEO * EMID
+       + EHI
+       + ELOW
 
-+ EHI
+/CBIT := /MSIZE1 * ELOW
+       + /MSIZE0 * ELOW
+       + EHI
+       + EMID
+       + MOFF
 
-+ ELOW
 
-iCBIT := /MSIZE1 * ELOW
-+ IMSIZEG * ELOW
-+ EHI
-+ EMID
-+ MOFF
-#DBIT := Vcc
+/DBIT := VCC
+
 DESCRIPTION
-MEMORY SIZE s1 so
-2MB F F
-4MB F T
-6MB T F
-1MB T T
-DIGIT ENABLE BITS : ELOW --> EMID --> EHT
 
-; 170687 CJTC/JLB: ADDED tMB INDICATION.
-
+                MEMORY SIZE     S1  S0
+                -----------     --  --
+                    2MB          F   F
+                    4MB          F   T
+                    6MB          T   F
+                    1MB          T   T
+
+
+DIGIT ENABLE BITS : ELOW --> EMID --> EHI
+
+; 170687 CJTC/JLB: ADDED 1MB INDICATION.
