@@ -61,7 +61,7 @@ Standard is 4Mb memory configured contiguosly from address 0.
 |12D     | 36          |7F40    | 16R6D  | 10ns      | 513061   | 44601B   | CYCFSM    | [B IMG](IMG/44601B.png)     | [B PDS](SRC/44601B.txt)      | [Converted.](../../Verilog/PAL/44601B/PAL_444601B.v) Needs more test |
 |10D     | 6           |6B08    | 16R8D  | 10ns      | 513062   | 44801A   | BARB      | [A IMG](IMG/44801A.png)     | [A PDS](SRC/44801A.txt)      | [Converted.](../../Verilog/PAL/44801A/PAL_44801A.v) Needs more test |
 |5F      | 50          |605E    | 16R8D  | 10ns      | 513062   | 44803A   | RAMA      | [A IMG](IMG/44803A.png)     | [A PDS](SRC/44803A.txt)      | [Converted.](../../Verilog/PAL/44803A/PAL_44803A.v) Needs more test |
-|6F      | 50          |        | 16R8B  | 15ns      | 500829   | 44902A   | RAMC      | [A IMG](IMG/44902A.png)     | [A PDS](SRC/44902A.txt)  
+|6F      | 50          |        | 16R8B  | 15ns      | 500829   | 44902A   | RAMC      | [A IMG](IMG/44902A.png)     | [A PDS](SRC/44902A.txt)      | [Converted.](../../Verilog/PAL/44902A/PAL_44902A.v) Needs more test |
 |7G      | 45          |48B4    | 16R8B  | 15ns      | 500829   | 44904B   | MSIZE     | [B IMG](IMG/44904B.png)     | [B PDS](SRC/44904B.txt)  
 |8D      | 6           |5963    | 16L8B  | 15ns      | 500827   | 45001B   | BPAR      | [B IMG](IMG/45001B.png)     | [B PDS](SRC/45001B.txt)  
 |2F      | 46          |        | 16L8B  | 15ns      | 500827   | 45008B   | DATA      | [B IMG](IMG/45008B.png)     | [B PDS](SRC/45008B.txt)  

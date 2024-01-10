@@ -1,114 +1,78 @@
-YPE
-
-LY ON
-
-ORY WR
-
-TER 1
-
 PAL16R8
-ADGD_ 13/8/86
+ADGD 13/8/86
+44902A,6F,RAMC (RAM CONTROL)
 
-nee B, PEC SF RAN
-
-osc oleae CGNT /BGNT /BDAP50 /MR /BGNT25 /CGNT25 /BDRY50 GND
+OSC /RGNT /CGNT /BGNT /BDAP50 /MR /BGNT25 /CGNT25 /BDRY50 GND
 /OE /HIEN /LOEN CAS RAS /QD /QC /QB /QA VCC
 
-30)1110 IDLE UNIT NEXT GNT OF ANY T
-QA := /QD * /QC * /QB * QA 31)1010
-+ /QD * /QC * /QB * /QA
-QD * /QC * QB * QA 32)1011 PAUSE UNTIL BDAP OCCURS (ON
+                                ; 0)1110 IDLE UNIT NEXT GNT OF ANY TYPE
+QA := /QD * /QC * /QB *  QA     ; 1)1010
+    + /QD * /QC * /QB * /QA
+    +  QD * /QC *  QB *  QA     ; 2)1011 PAUSE UNTIL BDAP OCCURS (ONLY ON
+    +  QD * /QC *  QB * /QA
+                                ; NO WAIT STATE ON CPU TO MEMORY WRITE
 
-+ QD * /QC * QB * /QA
+QB := QC * QB * QD                          ; 3) 1001
+    + QC * QB * /QD
+    + QC * /QB * QD
+    + QC * /QB * /QD
+    + QB * /QA * QC                         ; 4) 1000
+    + QB * /QA * /QC
+    + /QD * QA                              ; 5) 0000
+    + QB * BGNT25 * /BDAP50 * /MR * /BDRY50 ; 6) 0001
+                                            ; 7) 0011
+QC := /QD * QC * QB                         ; 8) 0010
+    + /QD * QC * /QB
+    + QC * /QB * QA                         ; OTHER STATES WILL GO TO IDLE AFTER 1
+    + QC * /QB * /QA
+    + QC * QA * QD
+    + QC * QA * /QD
+    + /QD * QB * /QA 
+    + QC * /RGNT * /CGNT25 * /BGNT25
 
-+
+QD := QC * QD * QB
+    + QC * /QD * QB
+    + QC * QD * /QB
+    + QC * /QD * /QB
+    + QB * /QA * QC
+    + QB * /QA * /QC
+    + QD * QA * QB
+    + QD * QA * /QB
 
-"| NO WAIT STATE ON CPU TO MEM
+/RAS := QC * QA * QB                        ; RAS=1,2,3,4,5,6
+      + QC * /QA * QB
+      + QC * QA * /QB
+      + QC * /QA * /QB
+      + /QD * QA * QD
+      + /QD * QA * /QD
+      + /QD * QB * QC
+      + /QD * QB * /QC
 
-ec * gB * QD 33) 1001
-ac * gp * /aD
-ac * /oB * ap
-a * /0B * /QD
+LOEN := /QC * /QB * /QA * QD                ; LOEN=3,4,5,6
+      + /QC * /QB * /QA * /QD
+      + QD * /QC * QA * QB
+      + QD * /QC * QA * /QB
 
-* /A * aC 34) 4000
-a * 70K * /aC
-/OD * QA 35) 0p00
-ap * BONTaS * /BDAP50 * /MR * /BDRYSO ;6)0001
+HIEN := QD * QB * /QA * QC                  ; HIEN=0,1,2,8
+      + QD * QB * /QA * /QC
+      + /QD * /QC * QB * QA
+      + /QD * /QC * QB * /QA
 
-37) 0011
+/CAS := QB * /QA * /RGNT                    ; CAS=4,5,6,7,8
+      + QD * QB * /RGNT                     ; CAS ON REFRESH=1,2,3,4,5
+      + QC * /QB * QA
+      + QC * /QB * /QA
+      + QC * QA * QD
+      + QC * QA * /QD
+      + /QD * RGNT
 
-/Qp * ac * OB ;8)0q10
-/QD * Qc * /oB
-ac * /QB * QA ;OTHER STATES WILL GO TO IDLE AF
-
-Qc * /QB * /QA
-Qc * QA * QD
-Qc * QA * /QD
-
-/QD * QB * /OA \
-ac * /RGNT * /CGNT25\ * pecnt25)
-
-QD * OB
-/QD * QB
-QD * /QB
-/QD * /0B
-/QA * QC
-/QA * /QC
-QA * QB
-QA * /QB
-
-/BAS := QC * QA * QB sRAS=7,2,3,4,5,6
-+ QC * /QA * gp
-+ oc * OA * /0B
-+ OC * /QA * /oB
-+ /QD * QA * QD
-+ /QD * GA * /aD
-+ /QD * QB * Qc
-+ /QD * QB * /QC
-
-LOEN := /QC * /QB * /QA * QD ;LOEN=3,4,5,6
-+ /QC * /QB * /QA * /QD
-+ QD * /QC * QA * OB
-+ QD * /QC * QA * /OB
-
-tee ee ead
-
-ac:
-
-++
-
-te eee
-
-teehee eet
-ee eee REE
-
-Sesessss
-
-HIEN := QD * QB * /QA * Qc ;HIEN=0,1,2,8
-+ QD * QB * /QA * /QC
-+ /QD * /QC * OB * QA
-+ /QD * /QC * OB * /QA
-
-/CAS := QB * /QA * /RGNT 3CAS=4,5,6,7,8
-2
-+ aD * apt eam 3CAS ON REFRESH=1,2,3,4,5
-+ ac * 703 *
-+ ac * /0B * 704
-+ Qc * QA * QD
-+ QC * QA * /QD
-+ /QD * RGNT
 DESCRIPTION
 
-3190387 JLB: RAS & CAS INVERTED.
-3190387 JLB: BGNT25 NEW INPUT. USED TO DELAY STATE MACHINE TURN ON 25NS ON
-3 BUS CYCLES.
-
-3230387 CJTC: CGNT25 NEW INPUT. USED TO DELAY STATE MACHINE TURN ON 25NS ON
+; 190387 JLB: RAS & CAS INVERTED.
+; 190387 JLB: BGNT25 NEW INPUT. USED TO DELAY STATE MACHINE TURN ON 25NS ON
+; BUS CYCLES.
+; 230387 CJTC: CGNT25 NEW INPUT. USED TO DELAY STATE MACHINE TURN ON 25NS ON
 ; CPU CYCLES.
-
 ; 020487 JLB: BDRY50 WILL GET US OUT OF THE WAIT STATE ON TIMEOUT.
-
 ; 180587 M3202B
-
 ; 060887 JLB: MAXIMIZE EQUATIONS WITH INTERNAL FEEDBACK TO MATCH CLOCK SKEW.
-

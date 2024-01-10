@@ -1,0 +1,39 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Wed Jan 10 11:15:27 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44902A/sim/waveform.vcd"
+[dumpfile_mtime] "Wed Jan 10 11:15:19 2024"
+[dumpfile_size] 3234
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/44902A/sim/pal.gtkw"
+[timestart] 0
+[size] 1763 711
+[pos] -1 -1
+*-6.456229 26 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 214
+[signals_width] 384
+[sst_expanded] 1
+[sst_vpaned_height] 188
+@28
+TOP.OE_n
+TOP.CK
+TOP.RGNT_n
+TOP.BDAP50_n
+TOP.MR_n
+TOP.BGNT25_n
+TOP.CGNT25_n
+TOP.BDRY50_n
+@200
+--- output --
+@28
+TOP.PAL_44902A.QA_n
+TOP.PAL_44902A.QB_n
+TOP.PAL_44902A.QC_n
+TOP.PAL_44902A.QD_n
+TOP.PAL_44902A.RAS
+TOP.PAL_44902A.CAS
+TOP.PAL_44902A.LOEN_n
+TOP.PAL_44902A.HIEN_n
+[pattern_trace] 1
+[pattern_trace] 0
