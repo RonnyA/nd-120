@@ -5,7 +5,7 @@
 //  RAM ARBITER
 
 // PAL16R8 FAMILY
-// PAL16R6 has 6 flip-flips, 8 inputs, and 2 input OR output (B0 and B1)
+// PAL16R8 has 8 flip-flips, 8 inputs and 8 outputs (negated from flip-flops with 3-state support)
 
 // https://rocelec.widen.net/view/pdf/c6dwcslffz/VANTS00080-1.pdf
 
@@ -48,7 +48,7 @@ wire SSEMA    = ~SSEMA_n;
 wire SEMRQ50  = ~SEMRQ50_n;
 
 
-// Negated reg signals as wires
+// Register signals as wires (to help with the equations)
 wire RGNT =  RGNT_reg;
 wire CGNT =  CGNT_reg; 
 wire BGNT =  BGNT_reg;
