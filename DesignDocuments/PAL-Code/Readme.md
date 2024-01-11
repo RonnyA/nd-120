@@ -66,7 +66,7 @@ Standard is 4Mb memory configured contiguosly from address 0.
 |8D      | 6           |5963    | 16L8B  | 15ns      | 500827   | 45001B   | BPAR      | [B IMG](IMG/45001B.png)     | [B PDS](SRC/45001B.txt)      | [Converted.](../../Verilog/PAL/45001B/PAL_45001B.v) Needs more test |
 |2F      | 46          |        | 16L8B  | 15ns      | 500827   | 45008B   | DATA      | [B IMG](IMG/45008B.png)     | [B PDS](SRC/45008B.txt)      | [Converted.](../../Verilog/PAL/45008B/PAL_45008B.v) Needs more test |
 |4F      | 47          |43ED    | 16L8B  | 15ns      | 500827   | 45009B   | ERROR     | [B IMG](IMG/45009B.png)     | [B PDS](SRC/45009B.txt)      | [Converted.](../../Verilog/PAL/45009B/PAL_45009B.v) Needs more test |
-|26H     | 34          |        | 16R4B  | 15ns      |          | 44511A   | LEVO      | [A IMG](IMG/44511A.png)     | [A PDS](SRC/44511A.txt)  
+|26H     | 34          |        | 16R4B  | 15ns      |          | 44511A   | LEVO      | [A IMG](IMG/44511A.png)     | [A PDS](SRC/44511A.txt)      | [Converted.](../../Verilog/PAL/44511A/PAL_44511A.v) Needs more test |
 
 Note on 22F:
 * 22F was 44408B/VEXFIX and has been replaced with 44608A/VXFIX - but we are missing the PALASM source code for 44608A.
