@@ -100,7 +100,7 @@ module TOP_3202D( BINT10_n,
    wire [2:0]  s_logisimBus4;
    wire [1:0]  s_logisimBus47;
    wire [1:0]  s_logisimBus50;
-   wire [7:0]  s_logisimBus53;
+   wire [7:0]  s_logisimBus54;
    wire [1:0]  s_logisimBus62;
    wire [1:0]  s_logisimBus63;
    wire [4:0]  s_logisimBus66;
@@ -309,7 +309,7 @@ module TOP_3202D( BINT10_n,
    wire        s_logisimNet5;
    wire        s_logisimNet51;
    wire        s_logisimNet52;
-   wire        s_logisimNet54;
+   wire        s_logisimNet53;
    wire        s_logisimNet55;
    wire        s_logisimNet56;
    wire        s_logisimNet57;
@@ -408,7 +408,7 @@ module TOP_3202D( BINT10_n,
    assign s_logisimBus81[7]  = s_logisimNet266;
    assign s_logisimBus81[8]  = s_logisimNet265;
    assign s_logisimBus81[9]  = s_logisimNet264;
-   assign s_logisimBus95[0]  = s_logisimNet162;
+   assign s_logisimBus95[0]  = s_logisimNet161;
    assign s_logisimBus95[1]  = s_logisimNet18;
    assign s_logisimBus95[2]  = s_logisimNet92;
    assign s_logisimBus95[3]  = s_logisimNet208;
@@ -421,7 +421,7 @@ module TOP_3202D( BINT10_n,
    assign s_logisimNet144    = s_logisimBus247[56];
    assign s_logisimNet15     = s_logisimBus247[52];
    assign s_logisimNet157    = s_logisimBus247[51];
-   assign s_logisimNet162    = s_logisimBus247[37];
+   assign s_logisimNet161    = s_logisimBus247[37];
    assign s_logisimNet18     = s_logisimBus247[38];
    assign s_logisimNet186    = s_logisimBus247[59];
    assign s_logisimNet188    = s_logisimBus247[30];
@@ -504,7 +504,7 @@ module TOP_3202D( BINT10_n,
    assign RUN_n       = s_logisimNet177;
    assign TEST_4_0    = s_logisimBus127[4:0];
    assign TP1_INTRQ_n = s_logisimNet57;
-   assign TXD         = s_logisimNet103;
+   assign TXD         = s_logisimNet104;
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
@@ -576,7 +576,7 @@ module TOP_3202D( BINT10_n,
                  .RRF_n(s_logisimNet187),
                  .RT_n(s_logisimNet172),
                  .RWCS_n(s_logisimNet142),
-                 .SHORT_n(s_logisimNet105),
+                 .SHORT_n(s_logisimNet106),
                  .SLOW_n(s_logisimNet121),
                  .TERM_n(s_logisimNet84),
                  .TRAP_n(s_logisimNet107),
@@ -625,7 +625,7 @@ module TOP_3202D( BINT10_n,
                .ECREQ(s_logisimNet175),
                .ECSR_n(s_logisimNet244),
                .EDO_n(s_logisimNet190),
-               .EMCL_n(s_logisimNet106),
+               .EMCL_n(s_logisimNet103),
                .EMPID_n(s_logisimNet204),
                .EORF_n(s_logisimNet179),
                .ESTOF_n(s_logisimNet189),
@@ -635,12 +635,12 @@ module TOP_3202D( BINT10_n,
                .HIT(s_logisimNet227),
                .I1P(s_logisimNet166),
                .ICONTIN_n(s_logisimNet211),
-               .IDB_15_8(s_logisimBus53[7:0]),
+               .IDB_15_8(s_logisimBus54[7:0]),
                .IDB_7_0_io(s_logisimBus170[7:0]),
                .ILOAD_n(s_logisimNet228),
                .INR_7_0(s_logisimBus210[7:0]),
                .IONI(s_logisimNet44),
-               .IORQ_n(s_logisimNet104),
+               .IORQ_n(s_logisimNet105),
                .ISTOP_n(s_logisimNet19),
                .LCS_n(s_logisimNet123),
                .LEV0(s_logisimNet93),
@@ -665,16 +665,16 @@ module TOP_3202D( BINT10_n,
                .RWCS_n(s_logisimNet142),
                .RXD(s_logisimNet64),
                .SEL5MS_n(s_logisimNet94),
-               .SHORT_n(s_logisimNet105),
+               .SHORT_n(s_logisimNet106),
                .SLOW_n(s_logisimNet121),
                .SSEMA_n(s_logisimNet192),
                .STOC_n(s_logisimNet205),
                .STP(s_logisimNet169),
                .SWMCL_n(s_logisimNet126),
                .TOUT(s_logisimNet195),
-               .TXD(s_logisimNet103),
+               .TXD(s_logisimNet104),
                .UCLK(s_logisimNet219),
-               .WCHIM_n(s_logisimNet54),
+               .WCHIM_n(s_logisimNet53),
                .WRITE(s_logisimNet242),
                .XTAL1(s_logisimNet224),
                .XTAL2(s_logisimNet25),
@@ -712,7 +712,7 @@ module TOP_3202D( BINT10_n,
                  .DVACC_n(s_logisimNet97),
                  .ECSR_n(s_logisimNet244),
                  .EDO_n(s_logisimNet190),
-                 .EMCL_n(s_logisimNet106),
+                 .EMCL_n(s_logisimNet103),
                  .EMPID_n(s_logisimNet204),
                  .EORF_n(s_logisimNet179),
                  .ESTOF_n(s_logisimNet189),
@@ -758,12 +758,12 @@ module TOP_3202D( BINT10_n,
                  .TRAP(s_logisimNet36),
                  .UCLK(s_logisimNet219),
                  .VEX(s_logisimNet138),
-                 .WCHIM_n(s_logisimNet54),
+                 .WCHIM_n(s_logisimNet53),
                  .WRFSTB(s_logisimNet143),
                  .WRITE(s_logisimNet242),
                  .logisimOutputBubbles(logisimOutputBubbles[2 : 2]));
 
-   MEM_43   MEM (.BDAP50_n(s_logisimNet161),
+   MEM_43   MEM (.BDAP50_n(s_logisimNet162),
                  .BDRY50_n(s_logisimNet250),
                  .BDRY_n(s_logisimNet33),
                  .BD_23_19_n(s_logisimBus174[4:0]),
@@ -808,7 +808,7 @@ module TOP_3202D( BINT10_n,
                  .logisimOutputBubbles(logisimOutputBubbles[5 : 3]));
 
    BIF_5   BIF (.BAPR_n(s_logisimNet132),
-                .BDAP50_n(s_logisimNet161),
+                .BDAP50_n(s_logisimNet162),
                 .BDAP_n(s_logisimNet251),
                 .BDRY50_n(s_logisimNet250),
                 .BDRY_n(s_logisimNet222),
