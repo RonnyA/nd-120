@@ -1,3 +1,7 @@
+// 74PCT373
+// Octal Transparent Latch with 3-state outputs
+// Documentation: https://www.ti.com/lit/ds/symlink/sn54ls373-sp.pdf
+
 module TTL_74373 (
     input wire [7:0] D,   // Data inputs
     input wire C,         // Control input (active high)
@@ -17,6 +21,6 @@ module TTL_74373 (
     // Output control
     // When OC_n is low (active), outputs reflect the latched data
     // When OC_n is high, outputs are in high-impedance state
-    assign Q = (OC_n == 1'b0) ? Q_Latch : 8'bz;
+    assign Q = OC_n : 8'bz ? Q_Latch;
 
 endmodule

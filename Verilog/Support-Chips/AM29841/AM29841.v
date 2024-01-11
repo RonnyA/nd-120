@@ -1,3 +1,7 @@
+// AM29841
+// Bus Driver 10 bit (D-Latch) with 3-state output
+// Documentation: https://www.alldatasheet.com/datasheet-pdf/pdf/107079/AMD/AM29841.html
+
 module AM29841 (
     input wire [9:0] D,   // 10 Bit Data inputs
     input wire C,         // Control input (active high)
