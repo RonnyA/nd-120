@@ -57,7 +57,7 @@ assign SPES = TEST ? 1'b0 :
             ~(
                 (BDRY50_n & BDRY75_n  ) 
               | (BDRY50   & BDRY75    ) 
-              | (BDRY50   & BDRY75    )
+              | (BDRY50_n & BDRY75    )
               | ( BLOCK25_n           )
               | ( EPEA                )
               | ( EPES                )
@@ -76,7 +76,7 @@ assign SPEA = TEST ? 1'b0 :
 // PARITY ERROR SIGNALS FROM BUS AND LOCAL MEMORY
 assign PARERR_n = TEST ? 1'b1 :
                 ~(
-                     (BDRY50 & BDRY75 & BPERR50 & MR_n) 
+                     (BDRY50 & BDRY75_n & BPERR50 & MR_n) 
                    | (LERR                           )
 );
 
@@ -88,16 +88,13 @@ always @(*) begin
     // BLOCK SIGNAL FOR PES AND PEA STROBE - BLOCK ON ERROR, RELEASE ON PEA READ
     if (TEST) 
         BLOCK_reg = 1'b0;    
-    else if ((BDRY50 & BDRY75_n & EPEA_n & EPES_n & MOR25_n & MR_n)  | (BDRY50 & BDRY75_n & EPEA_n & EPES_n & ~BPERR50_n & MR_n) == 1)             
+    else if ( ((BDRY50 & BDRY75_n & EPEA_n & EPES_n & MOR25 & MR_n)==1)  | ((BDRY50 & BDRY75_n & EPEA_n & EPES_n & BPERR50 & MR_n) == 1) )
             BLOCK_reg = 1'b1;
     else if ((EPEA_n & MR_n)== 0);
             BLOCK_reg = 0;
-    
-
 
     // REMOTE ERROR - LAST ERROR WAS FROM MEMORY ATTACHED TO THE ND100 BUS
     // WILL BE OVERRIDEN BY AN ERROR FROM LOCAL MEMORY (PERR1 AND PERR0)
-
   if (TEST) 
         RERR_reg = 1'b0;    
   else if ((
@@ -107,9 +104,6 @@ always @(*) begin
     RERR_reg = 1;
   else if ((LPERR_n & MR_n) == 0) // HOLD UNTIL A LOCAL MEMORY ERROR
     RERR_reg = 0;
-    
-                    
-
 
 end
 
