@@ -1,7 +1,7 @@
 VERILATOR = verilator
 
 PAL_CHIP = PAL_44403C
-VERILATOR_FLAGS = --trace -Wall --cc ../${PAL_CHIP}.v --exe test_pal.cpp $(SUPPRESS_FLAGS)  
+VERILATOR_FLAGS = --trace -Wall --cc ../../${PAL_CHIP}.v --exe test_pal.cpp $(SUPPRESS_FLAGS) 
 # Specify C++ source files here
 CPP_SOURCES = test_pal.cpp
 
