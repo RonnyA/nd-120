@@ -2,7 +2,7 @@
 // JLB/CJTC 11AUG86
 // 45001B, 8D, BPAR
 
-// PCB 3202D sheet 46:
+// PCB 3202D sheet 6:
 //
 
 // PAL 16L8
