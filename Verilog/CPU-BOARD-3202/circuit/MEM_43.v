@@ -312,10 +312,10 @@ module MEM_43( BDAP50_n,
    assign s_logisimNet63       = PS_n;
    assign s_logisimNet68       = BMEM_n;
    assign s_logisimNet70       = BIOXE_n;
-   assign s_logisimNet73       = BDAP50_n;
-   assign s_logisimNet74       = ECCR;
-   assign s_logisimNet75       = MOR_n;
-   assign s_logisimNet76       = BDRY50_n;
+   assign s_logisimNet73       = BDRY50_n;
+   assign s_logisimNet74       = BDAP50_n;
+   assign s_logisimNet75       = ECCR;
+   assign s_logisimNet76       = MOR_n;
    assign s_logisimNet84       = MR_n;
    assign s_logisimNet85       = REFRQ_n;
    assign s_logisimNet90       = RERR_n;
@@ -377,7 +377,7 @@ module MEM_43( BDAP50_n,
    MEM_LBDIF_48   LBDIF (.BCGNT25(s_logisimNet86),
                          .BCGNT50(s_logisimNet24),
                          .BCGNT50R_n(s_logisimNet29),
-                         .BDAP50_n(s_logisimNet73),
+                         .BDAP50_n(s_logisimNet74),
                          .BDRY_n(s_logisimNet31),
                          .BGNT25_n(s_logisimNet93),
                          .BGNT50_n(s_logisimNet89),
@@ -391,13 +391,13 @@ module MEM_43( BDAP50_n,
                          .CGNT25_n(s_logisimNet51),
                          .CGNT50_n(s_logisimNet26),
                          .CGNT_n(s_logisimNet107),
-                         .ECCR(s_logisimNet74),
+                         .ECCR(s_logisimNet75),
                          .GNT50_n(s_logisimNet32),
                          .GNT_n(s_logisimNet58),
                          .HIEN_n(s_logisimNet80),
                          .LOEN_n(s_logisimNet69),
                          .MOR25_n(s_logisimNet0),
-                         .MOR_n(s_logisimNet75),
+                         .MOR_n(s_logisimNet76),
                          .MR_n(s_logisimNet84),
                          .MWRITE50_n(s_logisimNet62),
                          .MWRITE_n(s_logisimNet13),
@@ -411,7 +411,7 @@ module MEM_43( BDAP50_n,
    MEM_DATA_46   DATA (.BCGNT50R_n(s_logisimNet29),
                        .BIOXL_n(s_logisimNet11),
                        .DD_17_0_io(s_logisimBus71[17:0]),
-                       .ECCR(s_logisimNet74),
+                       .ECCR(s_logisimNet75),
                        .HIEN_n(s_logisimNet80),
                        .HIERR(s_logisimNet83),
                        .LBD_15_0_io(s_logisimBus72[15:0]),
@@ -443,8 +443,8 @@ module MEM_43( BDAP50_n,
                          .RDATA25(s_logisimNet30),
                          .RERR_n(s_logisimNet90));
 
-   MEM_RAMC_50   RAMC (.BDAP50_n(s_logisimNet73),
-                       .BDRY50_n(s_logisimNet76),
+   MEM_RAMC_50   RAMC (.BDAP50_n(s_logisimNet74),
+                       .BDRY50_n(s_logisimNet73),
                        .BGNT25(s_logisimNet77),
                        .BGNT25_n(s_logisimNet93),
                        .BGNT_n(s_logisimNet25),

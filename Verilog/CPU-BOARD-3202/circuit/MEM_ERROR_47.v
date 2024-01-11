@@ -142,18 +142,18 @@ module MEM_ERROR_47( BCGNT50,
    ** Here all input connections are defined                                     **
    *******************************************************************************/
    assign s_logisimBus17[23:0] = LBD_23_0;
-   assign s_logisimNet11       = BLOCKL25;
-   assign s_logisimNet12       = PS_n;
+   assign s_logisimNet10       = PS_n;
+   assign s_logisimNet12       = BLOCKL25;
    assign s_logisimNet13       = PA_n;
    assign s_logisimNet14       = LERR_n;
    assign s_logisimNet15       = MR_n;
    assign s_logisimNet24       = CGNT50_n;
    assign s_logisimNet25       = CORR_n;
    assign s_logisimNet26       = LOERR;
-   assign s_logisimNet59       = RDATA25;
-   assign s_logisimNet60       = BCGNT50;
-   assign s_logisimNet61       = RERR_n;
-   assign s_logisimNet62       = PD4;
+   assign s_logisimNet59       = PD4;
+   assign s_logisimNet60       = RDATA25;
+   assign s_logisimNet61       = BCGNT50;
+   assign s_logisimNet62       = RERR_n;
    assign s_logisimNet68       = FETCH;
    assign s_logisimNet69       = HIERR;
 
@@ -208,17 +208,17 @@ module MEM_ERROR_47( BCGNT50,
                                    .B3_n(),
                                    .B4_n(),
                                    .B5_n(),
-                                   .I0(s_logisimNet59),
-                                   .I1(s_logisimNet11),
-                                   .I2(s_logisimNet60),
-                                   .I3(s_logisimNet12),
-                                   .I4(s_logisimNet61),
+                                   .I0(s_logisimNet60),
+                                   .I1(s_logisimNet12),
+                                   .I2(s_logisimNet61),
+                                   .I3(s_logisimNet10),
+                                   .I4(s_logisimNet62),
                                    .I5(s_logisimNet13),
-                                   .I6(s_logisimNet62),
+                                   .I6(s_logisimNet59),
                                    .I7(s_logisimNet14),
                                    .I8(1'b0),
                                    .I9(s_logisimNet15),
-                                   .Y0_n(s_logisimNet10),
+                                   .Y0_n(s_logisimNet11),
                                    .Y1_n(s_logisimNet18));
 
    TTL_74374   CHIP_4C_PEAL_HI (.CK(s_logisimNet18),
@@ -259,7 +259,7 @@ module MEM_ERROR_47( BCGNT50,
                                 .Q7(s_logisimBus16[1]),
                                 .Q8(s_logisimBus16[0]));
 
-   TTL_74374   CHIP_7C_PESL_HI (.CK(s_logisimNet10),
+   TTL_74374   CHIP_7C_PESL_HI (.CK(s_logisimNet11),
                                 .D1(s_logisimNet68),
                                 .D2(s_logisimNet24),
                                 .D3(s_logisimNet32),

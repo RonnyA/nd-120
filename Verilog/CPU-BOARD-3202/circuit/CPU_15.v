@@ -270,10 +270,10 @@ module CPU_15( ALUCLK,
    assign s_logisimNet4       = IBINT15_n;
    assign s_logisimNet40      = PD2;
    assign s_logisimNet41      = POWFAIL_n;
-   assign s_logisimNet42      = ETRAP_n;
-   assign s_logisimNet43      = WRFSTB;
-   assign s_logisimNet44      = MAP_n;
-   assign s_logisimNet45      = TERM_n;
+   assign s_logisimNet42      = TERM_n;
+   assign s_logisimNet43      = MAP_n;
+   assign s_logisimNet44      = ETRAP_n;
+   assign s_logisimNet45      = WRFSTB;
    assign s_logisimNet48      = WCHIM_n;
    assign s_logisimNet5       = IBINT10_n;
    assign s_logisimNet50      = IBINT12_n;
@@ -283,8 +283,8 @@ module CPU_15( ALUCLK,
    assign s_logisimNet58      = EMPID_n;
    assign s_logisimNet59      = EDO_n;
    assign s_logisimNet60      = RWCS_n;
-   assign s_logisimNet61      = STP;
-   assign s_logisimNet62      = WRITE;
+   assign s_logisimNet61      = WRITE;
+   assign s_logisimNet62      = STP;
    assign s_logisimNet63      = IOXERR_n;
    assign s_logisimNet64      = PARERR_n;
    assign s_logisimNet65      = ECSR_n;
@@ -343,7 +343,7 @@ module CPU_15( ALUCLK,
                        .DOUBLE(s_logisimNet85),
                        .ECCR(s_logisimNet78),
                        .ESTOF_n(s_logisimNet80),
-                       .ETRAP_n(s_logisimNet42),
+                       .ETRAP_n(s_logisimNet44),
                        .EWCA_n(s_logisimNet14),
                        .IBINT10_n(s_logisimNet5),
                        .IBINT11_n(s_logisimNet76),
@@ -358,7 +358,7 @@ module CPU_15( ALUCLK,
                        .LCS_n(s_logisimNet38),
                        .LEV0(s_logisimNet49),
                        .LSHADOW(s_logisimNet82),
-                       .MAP_n(s_logisimNet44),
+                       .MAP_n(s_logisimNet43),
                        .MCLK(s_logisimNet98),
                        .MOR_n(s_logisimNet3),
                        .MREQ_n(s_logisimNet47),
@@ -376,7 +376,7 @@ module CPU_15( ALUCLK,
                        .RRF_n(s_logisimNet37),
                        .RT_n(s_logisimNet0),
                        .RWCS_n(s_logisimNet35),
-                       .TERM_n(s_logisimNet45),
+                       .TERM_n(s_logisimNet42),
                        .TEST_4_0(s_logisimBus19[4:0]),
                        .TP1_INTRQ_n(s_logisimNet54),
                        .TRAP(s_logisimNet33),
@@ -384,7 +384,7 @@ module CPU_15( ALUCLK,
                        .VEX(s_logisimNet95),
                        .WCA_n(s_logisimNet88),
                        .WCS_n(s_logisimNet2),
-                       .WRFSTB(s_logisimNet43));
+                       .WRFSTB(s_logisimNet45));
 
    CPU_CS_16   CS (.BLCS_n(s_logisimNet10),
                    .BRK_n(s_logisimNet11),
@@ -403,7 +403,7 @@ module CPU_15( ALUCLK,
                    .PD1(s_logisimNet8),
                    .RF_1_0(s_logisimBus34[1:0]),
                    .RWCS_n(s_logisimNet35),
-                   .TERM_n(s_logisimNet45),
+                   .TERM_n(s_logisimNet42),
                    .WCA_n(s_logisimNet88),
                    .WCS_n(s_logisimNet2));
 
@@ -440,12 +440,12 @@ module CPU_15( ALUCLK,
                      .PPN_25_10_io(s_logisimBus70[15:0]),
                      .PT_15_0(s_logisimBus52[15:0]),
                      .RT_n(s_logisimNet0),
-                     .STP(s_logisimNet61),
+                     .STP(s_logisimNet62),
                      .SW1_CONSOLE(s_logisimNet57),
                      .UCLK(s_logisimNet72),
                      .WCA_n(s_logisimNet88),
                      .WCHIM_n(s_logisimNet48),
-                     .WRITE(s_logisimNet62),
+                     .WRITE(s_logisimNet61),
                      .logisimOutputBubbles(logisimOutputBubbles[0 : 0]));
 
    CPU_STOC_35   CPU_STOC (.CD_15_0(s_logisimBus12[15:0]),

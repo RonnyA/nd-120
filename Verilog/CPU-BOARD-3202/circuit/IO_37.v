@@ -318,22 +318,22 @@ module IO_37( BDRY50_n,
    assign BINT10_n   = s_logisimNet80;
    assign BINT12_n   = s_logisimNet21;
    assign BINT13_n   = s_logisimNet81;
-   assign CA10       = s_logisimNet42;
+   assign CA10       = s_logisimNet44;
    assign CCLR_n     = s_logisimNet73;
    assign CLEAR_n    = s_logisimNet78;
    assign CONSOLE_n  = s_logisimNet8;
    assign DP_5_1_n   = s_logisimBus54[4:0];
    assign DT_n       = s_logisimNet79;
-   assign DVACC_n    = s_logisimNet43;
+   assign DVACC_n    = s_logisimNet41;
    assign ECREQ      = s_logisimNet26;
    assign ECSR_n     = s_logisimNet7;
    assign EDO_n      = s_logisimNet87;
    assign EMCL_n     = s_logisimNet14;
-   assign EMPID_n    = s_logisimNet44;
+   assign EMPID_n    = s_logisimNet40;
    assign ESTOF_n    = s_logisimNet74;
    assign FETCH      = s_logisimNet60;
    assign FMISS      = s_logisimNet82;
-   assign FORM_n     = s_logisimNet40;
+   assign FORM_n     = s_logisimNet42;
    assign IDB_15_8   = s_logisimBus32[15:8];
    assign IDB_7_0_io = s_logisimBus32[7:0];
    assign IORQ_n     = s_logisimNet24;
@@ -341,7 +341,7 @@ module IO_37( BDRY50_n,
    assign MREQ_n     = s_logisimNet83;
    assign OSC        = s_logisimNet11;
    assign PAN_n      = s_logisimNet23;
-   assign PA_n       = s_logisimNet41;
+   assign PA_n       = s_logisimNet43;
    assign POWFAIL_n  = s_logisimNet49;
    assign PS_n       = s_logisimNet25;
    assign REFRQ_n    = s_logisimNet34;
@@ -417,7 +417,7 @@ module IO_37( BDRY50_n,
 
    IO_DCD_38   DCD (.BDRY50_n(s_logisimNet65),
                     .BRK_n(s_logisimNet93),
-                    .CA10(s_logisimNet42),
+                    .CA10(s_logisimNet44),
                     .CCLR_n(s_logisimNet73),
                     .CEUART_n(s_logisimNet30),
                     .CLEAR_n(s_logisimNet78),
@@ -427,19 +427,19 @@ module IO_37( BDRY50_n,
                     .CSMIS_1_0(s_logisimBus92[1:0]),
                     .DAP_n(s_logisimNet55),
                     .DT_n(s_logisimNet79),
-                    .DVACC_n(s_logisimNet43),
+                    .DVACC_n(s_logisimNet41),
                     .ECREQ(s_logisimNet26),
                     .ECSR_n(s_logisimNet7),
                     .EDO_n(s_logisimNet87),
                     .EIOR_n(s_logisimNet19),
-                    .EMPID_n(s_logisimNet44),
+                    .EMPID_n(s_logisimNet40),
                     .EMP_n(s_logisimNet64),
                     .EORF_n(s_logisimNet70),
                     .EPANS_n(s_logisimNet35),
                     .ESTOF_n(s_logisimNet74),
                     .FETCH(s_logisimNet60),
                     .FMISS(s_logisimNet82),
-                    .FORM_n(s_logisimNet40),
+                    .FORM_n(s_logisimNet42),
                     .FUL_n(s_logisimNet85),
                     .HIT(s_logisimNet63),
                     .ICONTIN_n(s_logisimNet77),
@@ -460,7 +460,7 @@ module IO_37( BDRY50_n,
                     .PANOSC(s_logisimNet91),
                     .PAN_n(s_logisimNet23),
                     .PA_7_0(s_logisimBus36[7:0]),
-                    .PA_n(s_logisimNet41),
+                    .PA_n(s_logisimNet43),
                     .PONI(s_logisimNet56),
                     .POWFAIL_n(s_logisimNet49),
                     .POWSENSE_n(s_logisimNet76),
