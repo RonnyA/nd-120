@@ -17,15 +17,16 @@ On the way to the FPGA code, there will be testable Logisim Circuits and Logisim
 
 #### Requirements ####
 
-For that the minimum requirements are:
+The minimum requirements are:
 
 | Component                      | Schematic    |  HDL   | Status | 
 |--------------------------------|--------------|--------|--------|
 | [DELILAH CPU Gate Array (CGA)](DesignDocuments\DELILAH-CPU\readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
 | [NEC Decoder Gate Array (DGA)](DesignDocuments\DECODE-GateArray\readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
 | [ND 3202 CPU Board revision D](DesignDocuments/CPU-BOARD-3202/Readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
+| [PAL Chips ](DesignDocuments/PAL-Code/Readme.md) | All PALASM code has been validated | Verilog and testcode created | QA on Verilog ongoing |
 
-In the CPU Board we will plug in the DELILAH CPU and the Decoder, and several other chips. 
+In the CPU Board we will plug in the DELILAH CPU and the Decoder, all PAL chips and several other support chips (74-series, RAM and UART,++)
 
 
 ### Stretch goals ###
