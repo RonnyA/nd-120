@@ -41,9 +41,9 @@
 | CPU/PROC          | PROCESSOR TOP LEVEL   | 32                 | CPU          |
 | CPU/PROC/CGA      | CPU GATE ARRAY        | 33                 | CPU          |
 | CPU/PROC/CMDDEC   | COMMANDS & IDB DECODE | 34                 | CPU          |
-| CPU/STOC          | IDB TO CD             | 35                 | CPU          |
+| CPU/STOC          | IDB TO CD             | 35                 | CPU          | [Verilog created](circuit/CPU_STOC_35.v)
 | **Cycle control**                                                              
-| CYC               | CYCLE CONTROL         | 36                 | CYC          | [Verilog created](circuit/CYC_36/readme.md)
+| CYC               | CYCLE CONTROL         | 36                 | CYC          | [Verilog created](circuit/CYC_36.v)  | [Test](circuit/CYC_36/readme.md)
 | **IO**                                                                         
 | IO                | IO TOP LEVEL          | 37                 | IO           |
 | IO/DCD            | IO DECODING           | 38                 | IO           |
