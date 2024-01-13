@@ -1,0 +1,50 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Sat Jan 13 14:46:12 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_PROC_CMDDEC_34/sim/waveform.vcd"
+[dumpfile_mtime] "Sat Jan 13 14:39:55 2024"
+[dumpfile_size] 425799
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_PROC_CMDDEC_34/sim/pal.gtkw"
+[timestart] 0
+[size] 2002 1057
+[pos] -291 8
+*-4.456229 802 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.CPU_PROC_CMDDEC_34.
+[sst_width] 214
+[signals_width] 384
+[sst_expanded] 1
+[sst_vpaned_height] 313
+@28
+TOP.CLK
+TOP.CGABRK_n
+@22
+TOP.CSCOMM_4_0[4:0]
+TOP.CSIDBS_4_0[4:0]
+@28
+TOP.CSMIS_1_0[1:0]
+TOP.IDB2
+TOP.LCS_n
+TOP.MREQ_n
+TOP.PD1
+@22
+TOP.PIL_3_0[3:0]
+@28
+TOP.WCA_n
+TOP.WRTRF
+@200
+--- output --
+@28
+TOP.BRK_n
+TOP.CUP
+TOP.CWR
+TOP.ERF_n
+TOP.LEV0
+TOP.OPCLCS
+TOP.RRF_n
+TOP.RWCS_n
+TOP.LDEXM_n
+TOP.VEX
+[pattern_trace] 1
+[pattern_trace] 0

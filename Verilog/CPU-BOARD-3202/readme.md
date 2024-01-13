@@ -40,10 +40,10 @@
 | CPU/MMU/WCA       | PPN TO CPN            | 31                 | CPU          |
 | CPU/PROC          | PROCESSOR TOP LEVEL   | 32                 | CPU          |
 | CPU/PROC/CGA      | CPU GATE ARRAY        | 33                 | CPU          |
-| CPU/PROC/CMDDEC   | COMMANDS & IDB DECODE | 34                 | CPU          |
-| CPU/STOC          | IDB TO CD             | 35                 | CPU          | [Verilog created](circuit/CPU_STOC_35.v) | [Test](circuit/CPU_STOC_35/readme.md)
+| CPU/PROC/CMDDEC   | COMMANDS & IDB DECODE | 34                 | CPU          | [Verilog created](circuit/CPU_PROC_CMDDEC_34.v) | [Test](circuit/CPU_PROC_CMDDEC_34/readme.md)
+| CPU/STOC          | IDB TO CD             | 35                 | CPU          | [Verilog created](circuit/CPU_STOC_35.v)        | [Test](circuit/CPU_STOC_35/readme.md)
 | **Cycle control**                                                              
-| CYC               | CYCLE CONTROL         | 36                 | CYC          | [Verilog created](circuit/CYC_36.v)  | [Test](circuit/CYC_36/readme.md)
+| CYC               | CYCLE CONTROL         | 36                 | CYC          | [Verilog created](circuit/CYC_36.v)             | [Test](circuit/CYC_36/readme.md)
 | **IO**                                                                         
 | IO                | IO TOP LEVEL          | 37                 | IO           |
 | IO/DCD            | IO DECODING           | 38                 | IO           |

@@ -1,210 +1,131 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CPU_PROC_CMDDEC_34                                           **
- **                                                                          **
- *****************************************************************************/
-
-module CPU_PROC_CMDDEC_34( BRK_n,
-                           CGABRK_n,
-                           CLK,
-                           CSCOMM_4_0,
-                           CSIDBS_4_0,
-                           CSMIS_1_0,
-                           CUP,
-                           CWR,
-                           ERF_n,
-                           IDB2,
-                           LCS_n,
-                           LEV0,
-                           MREQ_n,
-                           OPCLCS,
-                           PD1,
-                           PIL_3_0,
-                           RRF_n,
-                           RT_n,
-                           RWCS_n,
-                           VEX,
-                           WCA_n,
-                           WRTRF );
-
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input       CGABRK_n;
-   input       CLK;
-   input [4:0] CSCOMM_4_0;
-   input [4:0] CSIDBS_4_0;
-   input [1:0] CSMIS_1_0;
-   input       IDB2;
-   input       LCS_n;
-   input       MREQ_n;
-   input       PD1;
-   input [3:0] PIL_3_0;
-   input       WCA_n;
-   input       WRTRF;
-
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output BRK_n;
-   output CUP;
-   output CWR;
-   output ERF_n;
-   output LEV0;
-   output OPCLCS;
-   output RRF_n;
-   output RT_n;
-   output RWCS_n;
-   output VEX;
-
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-   wire [4:0] s_logisimBus12;
-   wire [4:0] s_logisimBus22;
-   wire [1:0] s_logisimBus27;
-   wire [3:0] s_logisimBus8;
-   wire       s_logisimNet0;
-   wire       s_logisimNet1;
-   wire       s_logisimNet10;
-   wire       s_logisimNet11;
-   wire       s_logisimNet13;
-   wire       s_logisimNet14;
-   wire       s_logisimNet15;
-   wire       s_logisimNet16;
-   wire       s_logisimNet17;
-   wire       s_logisimNet18;
-   wire       s_logisimNet19;
-   wire       s_logisimNet2;
-   wire       s_logisimNet20;
-   wire       s_logisimNet21;
-   wire       s_logisimNet23;
-   wire       s_logisimNet24;
-   wire       s_logisimNet25;
-   wire       s_logisimNet26;
-   wire       s_logisimNet28;
-   wire       s_logisimNet29;
-   wire       s_logisimNet3;
-   wire       s_logisimNet30;
-   wire       s_logisimNet31;
-   wire       s_logisimNet32;
-   wire       s_logisimNet33;
-   wire       s_logisimNet34;
-   wire       s_logisimNet35;
-   wire       s_logisimNet36;
-   wire       s_logisimNet37;
-   wire       s_logisimNet38;
-   wire       s_logisimNet39;
-   wire       s_logisimNet4;
-   wire       s_logisimNet5;
-   wire       s_logisimNet6;
-   wire       s_logisimNet7;
-   wire       s_logisimNet9;
-
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
-   /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
-   assign s_logisimBus12[4:0] = CSCOMM_4_0;
-   assign s_logisimBus22[4:0] = CSIDBS_4_0;
-   assign s_logisimBus27[1:0] = CSMIS_1_0;
-   assign s_logisimBus8[3:0]  = PIL_3_0;
-   assign s_logisimNet0       = CLK;
-   assign s_logisimNet10      = LCS_n;
-   assign s_logisimNet23      = IDB2;
-   assign s_logisimNet30      = CGABRK_n;
-   assign s_logisimNet38      = MREQ_n;
-   assign s_logisimNet39      = WCA_n;
-   assign s_logisimNet7       = PD1;
-   assign s_logisimNet9       = WRTRF;
-
-   /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
-   assign BRK_n  = s_logisimNet11;
-   assign CUP    = s_logisimNet19;
-   assign CWR    = s_logisimNet20;
-   assign ERF_n  = s_logisimNet33;
-   assign LEV0   = s_logisimNet21;
-   assign OPCLCS = s_logisimNet24;
-   assign RRF_n  = s_logisimNet32;
-   assign RT_n   = s_logisimNet26;
-   assign RWCS_n = s_logisimNet25;
-   assign VEX    = s_logisimNet18;
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** CPU/PROC/CMDDEC                                                       **
+** COMMAND & IDB DECODE                                                  **
+** SHEET 34 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 13-JAN-2024                                            **
+** Ronny Hansen                                                          **               
+***************************************************************************/
+module CPU_PROC_CMDDEC_34(    
+   input wire       CGABRK_n,
+   input wire       CLK,
+   input wire [4:0] CSCOMM_4_0,
+   input wire [4:0] CSIDBS_4_0,
+   input wire [1:0] CSMIS_1_0,
+   input wire       IDB2,
+   input wire       LCS_n,
+   input wire       MREQ_n,
+   input wire       PD1,
+   input wire [3:0] PIL_3_0,
+   input wire       WCA_n,
+   input wire       WRTRF,
+   
+   output wire BRK_n,
+   output wire CUP,
+   output wire CWR,
+   output wire ERF_n,
+   output wire LEV0,
+   output wire OPCLCS,
+   output wire RRF_n,
+//   output wire RT_n; // This signal is not in the PAL 44408B, but in the PAL 444608 (VXFIX). Use  RT_n signal from DGA until we find out what the 44608A does with this signal.
+   output wire RWCS_n,
+   output wire LDEXM_n, // This wire is not in the PAL 44408B, but in the PAL 444608 (VXFIX). Not sure what to do with this signal at the moment.. but brings it out here just in case..
+   output wire VEX 
+);
+ 
 
    /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   NAND_GATE #(.BubblesMask(2'b11))
-      GATES_1 (.input1(s_logisimNet30),
-               .input2(s_logisimNet18),
-               .result(s_logisimNet11));
+   //NAND_GATE #(.BubblesMask(2'b11))
+   //   GATES_1 (.input1(CGABRK_n),
+   //            .input2(VEX),
+   //            .result(BRK_n));
+
+   assign BRK_n = ~( ~CGABRK_n & ~VEX);
 
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   PAL_16R4D   PAL_44407_UERFIX (.B0_n(s_logisimNet33),
-                                 .B1_n(),
-                                 .B2_n(),
-                                 .B3_n(),
-                                 .CK(s_logisimNet0),
-                                 .I0(s_logisimBus22[0]),
-                                 .I1(s_logisimBus22[1]),
-                                 .I2(s_logisimBus22[2]),
-                                 .I3(s_logisimBus22[3]),
-                                 .I4(s_logisimBus22[4]),
-                                 .I5(s_logisimNet9),
-                                 .I6(s_logisimNet10),
-                                 .I7(1'b0),
-                                 .OE_n(s_logisimNet7),
-                                 .Q0_n(s_logisimNet32),
-                                 .Q1_n(),
-                                 .Q2_n(),
-                                 .Q3_n());
+   //    
+   PAL_44407A  PAL_44407_UERFIX ( 
+                                 .CK(CLK),                     // Clock signal
+                                 .OE_n(PD1),                   // OUTPUT ENABLE (active-low) for Q0-Q3
 
-   PAL_16R6D   PAL_444608_UVXFIX (.B0_n(),
-                                  .B1_n(s_logisimNet6),
-                                  .CK(s_logisimNet0),
-                                  .I0(s_logisimBus12[4]),
-                                  .I1(s_logisimBus12[3]),
-                                  .I2(s_logisimBus12[2]),
-                                  .I3(s_logisimBus12[1]),
-                                  .I4(s_logisimBus12[0]),
-                                  .I5(s_logisimBus27[1]),
-                                  .I6(s_logisimBus27[0]),
-                                  .I7(1'b0),
-                                  .OE_n(s_logisimNet7),
-                                  .Q0_n(),
-                                  .Q1_n(s_logisimNet31),
-                                  .Q2_n(s_logisimNet18),
-                                  .Q3_n(s_logisimNet24),
-                                  .Q4_n(s_logisimNet25),
-                                  .Q5_n(s_logisimNet26));
+                                 .ERF_n(ERF_n),                // B0_n - ERF_n                                                                  
+//                               .B1_n(),                      // B1_n - (not connected)
+//                               .B2_n(),                      // B2_n - (not connected)
+//                               .B3_n(),                      // B3_n - (not connected)
+                                 
+                                 .IDBS0(CSIDBS_4_0[0]),        // I0 - CSIDBS0
+                                 .IDBS1(CSIDBS_4_0[1]),        // I1 - CSIDBS1
+                                 .IDBS2(CSIDBS_4_0[2]),        // I2 - CSIDBS2
+                                 .IDBS3(CSIDBS_4_0[3]),        // I3 - CSIDBS3
+                                 .IDBS4(CSIDBS_4_0[4]),        // I4 - CSIDBS4
+                                 .WRTRF(WRTRF),                // I5 - WRTRF
+                                 .LCS_n(LCS_n),                // I6 - LCS_n
+//                               .I7(1'b0),                    // I7 is not connected
+                                 
+                                 .RRF_n(RRF_n)                 // Q0_n - RRF_n
+//                               .Q1_n(),                      // Q1_n - (not connected)
+//                               .Q2_n(),                      // Q2_n - (not connected)
+//                               .Q3_n()                       // Q3_n - (not connected)
+                                 );
 
-   PAL_16R4D   PAL_44511_ULEV0 (.B0_n(s_logisimNet20),
-                                .B1_n(),
-                                .B2_n(),
-                                .B3_n(s_logisimNet21),
-                                .CK(s_logisimNet0),
-                                .I0(s_logisimBus8[0]),
-                                .I1(s_logisimBus8[1]),
-                                .I2(s_logisimBus8[2]),
-                                .I3(s_logisimBus8[3]),
-                                .I4(s_logisimNet0),
-                                .I5(s_logisimNet38),
-                                .I6(s_logisimNet39),
-                                .I7(1'b0),
-                                .OE_n(s_logisimNet7),
-                                .Q0_n(s_logisimNet19),
-                                .Q1_n(),
-                                .Q2_n(),
-                                .Q3_n());
+   // PAL_44608_UVXFIX should replace 44408B, but we have no PALASM source for it
+   // Using the previois PAL_44408B instead   
+
+   // PAL_44408B VEXFIX
+   PAL_44408B   PAL_44408B_VEXFIX (
+                              .CK(CLK),              // Clock signal
+                              .OE_n(PD1),            // OUTPUT ENABLE (active-low) for Q0-Q5
+
+                              .C4(CSCOMM_4_0[4]),    // I0 - CSCOMM4 
+                              .C3(CSCOMM_4_0[3]),    // I1 - CSCOMM3
+                              .C2(CSCOMM_4_0[2]),    // I2 - CSCOMM2
+                              .C1(CSCOMM_4_0[1]),    // I3 - CSCOMM1
+                              .C0(CSCOMM_4_0[0]),    // I4 - CSCOMM0
+                              .M1(CSMIS_1_0[1]),     // I5 - CSMIS1
+                              .M0(CSMIS_1_0[0]),     // I6 - CSMIS0
+//                            .I7(1'b0),             // I7 is not connected
+                              
+                              .LCS_n(LCS_n),         // B0_n - LCS_n
+                              .IDB2(IDB2),           // B1_n - IDB2
+                              
+//                            .Q0_n(),               // Q0_n - (not connected)
+                              .LDEXM_n(LDEXM_n),     // Q1_n - LDEXM_n (not connected in n44608)
+                              .VEX(VEX),             // Q2_n - VEX//
+                              .OPCLCS(OPCLCS),       // Q3_n - OPCLCS
+                              .RWCS_n(RWCS_n)        // Q4_n - RWCS_n
+//                            .RT_n(RT_n)            // // Q5_n - RT_n (But only in 444608 VXFIX. Not in 44408B)//
+);       
+
+   // PAL_44511_ULEV0               
+   PAL_44511A   PAL_44511_ULEV0 (
+                            .CK(CLK),                // Clock signal
+                            .OE_n(PD1),              // OUTPUT ENABLE (active-low) for Q0-Q3
+
+                            .PIL0(PIL_3_0[0]),       // I0 - PIL0
+                            .PIL1(PIL_3_0[1]),       // I1 - PIL1
+                            .PIL2(PIL_3_0[2]),       // I2 - PIL2
+                            .PIL3(PIL_3_0[3]),       // I3 - PIL3
+                            .CLK(CLK),               // I4 - CLK (same signal as CK)
+                            .MREQ_n(MREQ_n),         // I5 - MREQ_n
+                            .WCA_n(WCA_n),           // I6 - WCA_n
+//                          .I7(1'b0),               // I7 is not connected
+
+                            .CUP(CUP),               // Q0_n - CUP
+//                          .Q1_n(),                 // Q1_n - (not connected)
+//                          .Q2_n(),                 // Q2_n - (not connected)
+//                          .Q3_n(),                 // Q3_n - (not connected)
+
+                            .CWR_n(CWR),             // B0_n - CWR_n   <== THIS LOOKS ODD, BUT IS CORRECT ACCORDING TO SCHEMATIC
+//                          .B1_n(),                 // B1_n - (not connected)
+//                          .B2_n(),                 // B2_n - (not connected)
+                            .LEV0(LEV0)              // B3_n - LEV0
+);
 
 endmodule
