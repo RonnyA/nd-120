@@ -9,6 +9,10 @@
 // Four D flip-flops controlled by CLK signal (and reads input to flip-flop O3,O4,O5 and O6) when transision from LOW to HIGH.
 // O3-O6 output is controlled by OE_n (HIGH signal means output is three-state)
 
+
+// CLK CSDELAY0 CSDLY CSECOND CSLOOP /ACOND /MR LUA12 /MAP GND
+// /OE /NC12 /SLCOND /DMAP /DMA12 /MDLY /LCS /NC18 /DLYO VCC
+
 module PAL_44403C(
     input CLK,          // Clock signal
     input OE_n,         // OUTPUT ENABLE (active-low) for Q0-Q3

@@ -22,13 +22,15 @@ module PAL_44404C(
     input LBA3,         // I5
     input LBA1,         // I6
     input LBA0,         // I7
+
+    output NOWRIT_n,    // Q0_n
+    output DLSHADOW,    // Q1_n (new output for 44404D)
+
+
     input RRF_n,        // B0_n
     input LSHADOW,      // B1_n (new input for 44404D)
     input SLCOND_n,     // B2_n
-    output DLY1_n,      // B3_n 
-    
-    output NOWRIT_n,    // Q0_n
-    output DLSHADOW     // Q1_n (new output for 44404D)
+    output DLY1_n      // B3_n     
 
     // pin Q2 and Q3 is not used in 44404C
 );
