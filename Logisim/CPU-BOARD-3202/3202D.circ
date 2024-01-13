@@ -5635,7 +5635,7 @@
       <a name="halign" val="left"/>
       <a name="text" val="BACT_n"/>
     </comp>
-    <comp lib="8" loc="(1010,1231)" name="Text">
+    <comp lib="8" loc="(1010,1230)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="EBD = Enable Bus Data (Enable LBD to BD Transciever)"/>
     </comp>
@@ -19366,7 +19366,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(1970,1425)" name="Text">
       <a name="text" val="CD is bi-directional"/>
     </comp>
-    <comp lib="8" loc="(2113,1203)" name="Text">
+    <comp lib="8" loc="(2110,1200)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="EWC_n"/>
     </comp>
@@ -23781,7 +23781,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(1265,710)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
-      <a name="text" val="The signals needs to be connected in Verilog"/>
+      <a name="text" val="The signals needs to be connected in Verilog (fixed)"/>
     </comp>
     <comp lib="8" loc="(1270,1440)" name="Text">
       <a name="text" val="DLY1_n"/>
@@ -23789,7 +23789,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(1345,1730)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
-      <a name="text" val="The signals needs to be connected in Verilog"/>
+      <a name="text" val="The signals needs to be connected in Verilog (fixed)"/>
     </comp>
     <comp lib="8" loc="(145,85)" name="Text">
       <a name="text" val="CYC"/>
@@ -23820,7 +23820,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(685,400)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
-      <a name="text" val="The signals needs to be connected in Verilog"/>
+      <a name="text" val="The signals needs to be connected in Verilog (fixed)"/>
     </comp>
     <comp lib="8" loc="(800,755)" name="Text">
       <a name="text" val="15D"/>
@@ -23831,7 +23831,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(845,875)" name="Text">
       <a name="color" val="#f71e25"/>
       <a name="halign" val="left"/>
-      <a name="text" val="The signals needs to be connected in Verilog"/>
+      <a name="text" val="The signals needs to be connected in Verilog (fixed)"/>
     </comp>
     <comp lib="8" loc="(960,100)" name="Text">
       <a name="color" val="#e61b23"/>
