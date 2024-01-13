@@ -23197,7 +23197,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(835,1140)" name="Text">
       <a name="color" val="#ff251f"/>
       <a name="halign" val="left"/>
-      <a name="text" val="Connect in VERILOG"/>
+      <a name="text" val="Connect in VERILOG (fixed)"/>
     </comp>
     <comp loc="(1010,400)" name="PAL_16R4D">
       <a name="label" val="PAL_44407_UERFIX"/>
