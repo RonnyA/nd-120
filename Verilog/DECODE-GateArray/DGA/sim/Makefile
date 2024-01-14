@@ -3,7 +3,13 @@ VERILATOR = verilator
 SUPPRESS_FLAGS = -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY -Wno-UNUSED -Wno-UNDRIVEN -Wno-WIDTH
 VERILATOR_FLAGS = --trace -Wall --cc ../circuit/DECODE_DGA.v --exe test_dga.cpp $(SUPPRESS_FLAGS)  
 
-DGA_COMPONENTS = --I../circuit --I../logisim  --I../shared
+VERILOG_ROOT = ../../../..
+S
+
+DGA_ROOT = ${VERILOG_ROOT}/DECODE-GateArray
+
+
+DGA_COMPONENTS = --${DGA_ROOT}/circuit --I../logisim  --I../shared
 
 CGA_COMPONENTS = --I../../CGA_ALU/circuit -I../../CGA_DCD/circuit -I../../CGA_IDBCTL/circuit -I../../CGA_INTR/circuit -I../../CGA_MAC/circuit -I../../CGA_MIC/circuit -I../../CGA_TESTMUX/circuit -I../../CGA_TRAP/circuit -I../../CGA_WRF/circuit
 SHARED_COMPONENTS =  -I../circuit --I../../shared/ndlib --I../../shared/logisim --I../../shared/gates 
