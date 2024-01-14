@@ -62,7 +62,7 @@ module F571( A,
    /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   Multiplexer_2   PLEXERS_1 (.enable(s_logisimNet2),
+   Multiplexer_2_w_enable   PLEXERS_1 (.enable(s_logisimNet2),
                               .muxIn_0(s_logisimNet3),
                               .muxIn_1(s_logisimNet4),
                               .muxOut(s_logisimNet5),
