@@ -11,7 +11,7 @@ VERILATOR_FLAGS = --trace -Wall --cc ../../${TOP_FILE}.v --exe test_code.cpp $(S
 CPP_SOURCES = test_code.cpp
 
 # Default target
-all: test_code run
+all: test_code run gtk
 
 test_code: $(CPP_SOURCES)
 	$(VERILATOR) $(VERILATOR_FLAGS) $(TOP_3202D_COMPONENTS)
