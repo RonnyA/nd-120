@@ -1,109 +1,64 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CPU_PROC_CGA_33                                              **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** CPU/PROC/CGA                                                          **
+** CPU GATE ARRAY                                                        **
+** SHEET 33 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 14-JAN-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
+/* verilator lint_off UNUSED */
 
-module CPU_PROC_CGA_33( ACOND_n,
-                        ALUCLK,
-                        BEDO_n,
-                        BEMPID_n,
-                        BSTP,
-                        CD_15_0,
-                        CGABRK_n,
-                        CSA_12_0,
-                        CSBITS,
-                        CSCA_9_0,
-                        DOUBLE,
-                        ECCR,
-                        ETRAP_n,
-                        EWCA_n,
-                        FIDB_15_0_io,
-                        IBINT10_n,
-                        IBINT11_n,
-                        IBINT12_n,
-                        IBINT13_n,
-                        IBINT15_n,
-                        INTRQ_n_tp1,
-                        IONI,
-                        IOXERR_n,
-                        LAA_3_0,
-                        LA_23_10,
-                        LBA_3_0,
-                        LCS_n,
-                        LSHADOW,
-                        MAP_n,
-                        MCLK,
-                        MOR_n,
-                        MR_n,
-                        PAN_n,
-                        PARERR_n,
-                        PCR_1_0,
-                        PIL_3_0,
-                        PONI,
-                        POWFAIL_n,
-                        PT_15_9,
-                        RF_1_0,
-                        TEST_4_0,
-                        TRAP_n,
-                        UCLK,
-                        WCS_n,
-                        WRTRF );
+module CPU_PROC_CGA_33( 
+   input        ALUCLK,
+   input        BEDO_n,
+   input        BEMPID_n,
+   input        BSTP,
+   input [15:0] CD_15_0,
+   input [63:0] CSBITS,
+   input        ETRAP_n,
+   input        EWCA_n,
+   input        IBINT10_n,
+   input        IBINT11_n,
+   input        IBINT12_n,
+   input        IBINT13_n,
+   input        IBINT15_n,
+   input        IOXERR_n,
+   input        LCS_n,
+   input        MAP_n,
+   input        MCLK,
+   input        MOR_n,
+   input        MR_n,
+   input        PAN_n,
+   input        PARERR_n,
+   input        POWFAIL_n,
+   input [6:0]  PT_15_9,
+   input        UCLK,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        ALUCLK;
-   input        BEDO_n;
-   input        BEMPID_n;
-   input        BSTP;
-   input [15:0] CD_15_0;
-   input [63:0] CSBITS;
-   input        ETRAP_n;
-   input        EWCA_n;
-   input        IBINT10_n;
-   input        IBINT11_n;
-   input        IBINT12_n;
-   input        IBINT13_n;
-   input        IBINT15_n;
-   input        IOXERR_n;
-   input        LCS_n;
-   input        MAP_n;
-   input        MCLK;
-   input        MOR_n;
-   input        MR_n;
-   input        PAN_n;
-   input        PARERR_n;
-   input        POWFAIL_n;
-   input [6:0]  PT_15_9;
-   input        UCLK;
+   // Outputs
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output        ACOND_n;
-   output        CGABRK_n;
-   output [12:0] CSA_12_0;
-   output [9:0]  CSCA_9_0;
-   output        DOUBLE;
-   output        ECCR;
-   output [15:0] FIDB_15_0_io;
-   output        INTRQ_n_tp1;
-   output        IONI;
-   output [3:0]  LAA_3_0;
-   output [13:0] LA_23_10;
-   output [3:0]  LBA_3_0;
-   output        LSHADOW;
-   output [1:0]  PCR_1_0;
-   output [3:0]  PIL_3_0;
-   output        PONI;
-   output [1:0]  RF_1_0;
-   output [4:0]  TEST_4_0;
-   output        TRAP_n;
-   output        WCS_n;
-   output        WRTRF;
+   output        ACOND_n,
+   output        CGABRK_n,
+   output [12:0] CSA_12_0,
+   output [9:0]  CSCA_9_0,
+   output        DOUBLE,
+   output        ECCR,
+   output [15:0] FIDB_15_0_io,
+   output        INTRQ_n_tp1,
+   output        IONI,
+   output [3:0]  LAA_3_0,
+   output [13:0] LA_23_10,
+   output [3:0]  LBA_3_0,
+   output        LSHADOW,
+   output [1:0]  PCR_1_0,
+   output [3:0]  PIL_3_0,
+   output        PONI,
+   output [1:0]  RF_1_0,
+   output [4:0]  TEST_4_0,
+   output        TRAP_n,
+   output        WCS_n,
+   output        WRTRF
+);
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -558,6 +513,7 @@ module CPU_PROC_CGA_33( ACOND_n,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+/*
    TTL_74374   CHIP_34G (.CK(s_logisimNet3),
                          .D1(1'b0),
                          .D2(1'b0),
@@ -576,5 +532,20 @@ module CPU_PROC_CGA_33( ACOND_n,
                          .Q6(s_logisimNet112),
                          .Q7(s_logisimNet23),
                          .Q8(s_logisimNet113));
+*/
+TTL_74374 CHIP_34G (
+    .CK(s_logisimNet3),
+    .D({s_logisimNet86, s_logisimNet34, s_logisimNet85, s_logisimNet33, s_logisimNet84, 3'b000}), // 8-bit D input, lower 3 bits unused
+    .OE_n(s_logisimNet72),
+    .Q({s_logisimNet113, s_logisimNet23, s_logisimNet112, s_logisimNet22, s_logisimNet111, 3'bzzz}) // 8-bit Q output, lower 3 bits ignored
+);
+
+
+CGA DELILAH (
+   .BDEST(s_logisimNet41)
+);
+
+
+
 
 endmodule
