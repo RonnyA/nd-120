@@ -1,0 +1,76 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Sat Jan 13 10:21:50 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CYC_36/sim/waveform.vcd"
+[dumpfile_mtime] "Sat Jan 13 10:21:40 2024"
+[dumpfile_size] 120640
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CYC_36/sim/pal.gtkw"
+[timestart] 0
+[size] 2002 1057
+[pos] -1 -1
+*-7.456229 417 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 214
+[signals_width] 384
+[sst_expanded] 1
+[sst_vpaned_height] 313
+@28
+TOP.OSC
+@200
+-
+@28
+TOP.ACOND_n
+TOP.BRK_n
+TOP.CGNTCACT_n
+TOP.CSALUI7
+TOP.CSALUI8
+TOP.CSALUM0
+TOP.CSALUM1
+TOP.CSDELAY0
+TOP.CSDELAY1
+TOP.CSDLY
+TOP.CSECOND
+TOP.CSLOOP
+TOP.FORM_n
+TOP.HIT
+@29
+TOP.IORQ_n
+@28
+TOP.LBA0
+TOP.LBA1
+TOP.LBA3
+TOP.LSHADOW
+TOP.LUA12
+TOP.MREQ_n
+TOP.MR_n
+TOP.PD1
+TOP.PD4
+TOP.RRF_n
+TOP.RT_n
+TOP.RWCS_n
+TOP.SHORT_n
+TOP.SLOW_n
+TOP.TRAP_n
+TOP.VEX
+@200
+--- output --
+@28
+TOP.ALUCLK
+TOP.CLK
+TOP.MACLK
+TOP.MCLK
+TOP.UCLK
+TOP.WRFSTB
+TOP.CYD
+@24
+TOP.CC_3_1_n[2:0]
+@28
+TOP.TERM_n
+TOP.MAP_n
+TOP.CX_n
+TOP.EORF_n
+TOP.ETRAP_n
+TOP.LCS_n
+[pattern_trace] 1
+[pattern_trace] 0

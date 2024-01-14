@@ -430,25 +430,25 @@ module DECODE_DGA( XA_7_0,
    /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   Multiplexer_2   PLEXERS_1 (.enable(1'b1),
+   Multiplexer_2   PLEXERS_1 (
                               .muxIn_0(s_logisimBus5[3]),
                               .muxIn_1(s_logisimNet14),
                               .muxOut(s_logisimBus74[3]),
                               .sel(s_logisimNet2));
 
-   Multiplexer_2   PLEXERS_2 (.enable(1'b1),
+   Multiplexer_2   PLEXERS_2 (
                               .muxIn_0(s_logisimBus5[2]),
                               .muxIn_1(s_logisimNet100),
                               .muxOut(s_logisimBus74[2]),
                               .sel(s_logisimNet2));
 
-   Multiplexer_2   PLEXERS_3 (.enable(1'b1),
+   Multiplexer_2   PLEXERS_3 (
                               .muxIn_0(s_logisimBus5[1]),
                               .muxIn_1(s_logisimNet103),
                               .muxOut(s_logisimBus74[1]),
                               .sel(s_logisimNet2));
 
-   Multiplexer_2   PLEXERS_4 (.enable(1'b1),
+   Multiplexer_2   PLEXERS_4 (
                               .muxIn_0(s_logisimBus5[0]),
                               .muxIn_1(s_logisimNet85),
                               .muxOut(s_logisimBus74[0]),

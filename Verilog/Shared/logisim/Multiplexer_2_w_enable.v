@@ -1,12 +1,12 @@
 /******************************************************************************
  **                                                                          **
- ** Component : Multiplexer_2                                                **
+ ** Component : Multiplexer_2_w_enable                                       **
  **                                                                          **
  ** Refactored 03.12.2023 Ronny Hansen                                       **
  *****************************************************************************/
 /* */
 
-module Multiplexer_2( input wire enable,
+module Multiplexer_2_w_enable( input wire enable,
                       input wire muxIn_0,
                       input wire muxIn_1,                      
                       input wire sel,

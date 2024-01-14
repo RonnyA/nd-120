@@ -1,17 +1,26 @@
-VERILATOR = verilator
-
 TOP_FILE = CPU_PROC_CMDDEC_34
 
 SUPPRESS_FLAGS = -Wno-WIDTH
 
-TOP_3202D_COMPONENTS = --I../../../circuit --I../../../logisim  --I../../../shared --I../../../../PAL
+# This is the path to the root of the verilog directory
+VERILOG_ROOT = ../../../..
 
-VERILATOR_FLAGS = --trace -Wall --cc ../../${TOP_FILE}.v --exe test_code.cpp $(SUPPRESS_FLAGS) 
+CPU_BOARD_ROOT = ${VERILOG_ROOT}/CPU-BOARD-3202/circuit
+
+SHARED_COMPONENTS = -I${VERILOG_ROOT}/shared/ndlib --I${VERILOG_ROOT}/shared/logisim --I${VERILOG_ROOT}/shared/support
+PAL_COMPONENTS = --I${VERILOG_ROOT}/PAL
+
+TOP_3202D_COMPONENTS = --I${CPU_BOARD_ROOT} ${SHARED_COMPONENTS} ${PAL_COMPONENTS}
+
+VERILATOR_FLAGS = --trace -Wall --cc ${CPU_BOARD_ROOT}/${TOP_FILE}.v --exe test_code.cpp $(SUPPRESS_FLAGS) 
+
+VERILATOR = verilator
+
 # Specify C++ source files here
 CPP_SOURCES = test_code.cpp
 
 # Default target
-all: test_code run
+all: test_code run gtk
 
 test_code: $(CPP_SOURCES)
 	$(VERILATOR) $(VERILATOR_FLAGS) $(TOP_3202D_COMPONENTS)
