@@ -1,0 +1,64 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Sun Jan 14 15:59:58 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_MAC/sim/waveform.vcd"
+[dumpfile_mtime] "Sun Jan 14 15:55:05 2024"
+[dumpfile_size] 274470
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_MAC/sim/cga_mac.gtkw"
+[timestart] 0
+[size] 1461 767
+[pos] -462 -168
+*-4.093659 55 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 214
+[signals_width] 258
+[sst_expanded] 1
+[sst_vpaned_height] 211
+@28
+TOP.MCLK
+@200
+-
+@22
+TOP.BR_15_0[15:0]
+TOP.CD_15_0[15:0]
+@28
+TOP.CMIS_1_0[1:0]
+@22
+TOP.CSCOMM_4_0[4:0]
+@28
+TOP.CSMREQ
+TOP.DOUBLE
+@22
+TOP.FIDBO_15_0[15:0]
+@28
+TOP.ILCSN
+TOP.PONI
+@22
+TOP.PR_15_0[15:0]
+@28
+TOP.PTM
+@22
+TOP.RB_15_0[15:0]
+@28
+TOP.WR3
+TOP.WR7
+@22
+TOP.XR_15_0[15:0]
+@200
+--- output --
+@201
+-
+@28
+TOP.ECCR
+@22
+TOP.LA_23_10[13:0]
+@28
+TOP.LSHADOW
+@22
+TOP.MCA_9_0[9:0]
+TOP.NLCA_15_0[15:0]
+TOP.PCR_15_0[15:0]
+@28
+TOP.VEX
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,43 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Sun Jan 14 16:14:17 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_WRF/sim/waveform.vcd"
+[dumpfile_mtime] "Sun Jan 14 16:12:03 2024"
+[dumpfile_size] 1013824
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_WRF/sim/cga_wrf.gtkw"
+[timestart] 0
+[size] 1000 600
+[pos] 1317 -212
+*-3.809866 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 214
+[signals_width] 150
+[sst_expanded] 1
+[sst_vpaned_height] 152
+@28
+TOP.ALUCLK
+TOP.BDEST
+@22
+TOP.LAA_3_0[3:0]
+TOP.LBA_3_0[3:0]
+TOP.NLCA_15_0[15:0]
+TOP.RB_15_0[15:0]
+@28
+TOP.XFETCHN
+@200
+--- output --
+@22
+TOP.A_15_0[15:0]
+TOP.BR_15_0[15:0]
+TOP.B_15_0[15:0]
+TOP.EA_15_0[15:0]
+TOP.PR_15_0[15:0]
+@28
+TOP.WPN
+TOP.WR3
+TOP.WR7
+@23
+TOP.XR_15_0[15:0]
+[pattern_trace] 1
+[pattern_trace] 0
