@@ -1,16 +1,17 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Sat Dec  9 18:38:21 2023
+[*] Mon Jan 15 09:00:00 2024
 [*]
 [dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA/sim/waveform.vcd"
-[dumpfile_mtime] "Sat Dec  9 18:37:59 2023"
-[dumpfile_size] 5254065
+[dumpfile_mtime] "Mon Jan 15 08:47:58 2024"
+[dumpfile_size] 5179542
 [savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA/sim/cga.gtkw"
 [timestart] 0
 [size] 1641 968
-[pos] 0 230
-*-6.286304 9 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] -1 -1
+*-6.286304 62 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
+[treeopen] TOP.CGA.
 [sst_width] 214
 [signals_width] 316
 [sst_expanded] 1
@@ -49,6 +50,15 @@ TOP.CGA.XSPARE
 TOP.CGA.XSTP
 TOP.CGA.XVTRAPN
 @22
+TOP.XFIDB_15_0_io[15:0]
+@23
+TOP.CGA.FIDBI_15_0[15:0]
+@22
+TOP.CGA.FIDBO_15_0[15:0]
+@28
+TOP.CGA.XPTSTN
+TOP.CGA.XEDON
+@22
 TOP.CGA.XCD_15_0[15:0]
 TOP.CGA.XCSALUI_8_0[8:0]
 @28
@@ -62,7 +72,6 @@ TOP.CGA.XCSIDBS_4_0[4:0]
 @28
 TOP.CGA.XCSMIS_1_0[1:0]
 TOP.CGA.XCSRASEL_1_0[1:0]
-@29
 TOP.CGA.XCSRBSEL_1_0[1:0]
 @22
 TOP.CGA.XCSRB_3_0[3:0]
@@ -74,12 +83,8 @@ TOP.CGA.XCSCOMM_4_0[4:0]
 TOP.CGA.XPT_9_15[6:0]
 @28
 TOP.CGA.XTSEL_2_0[2:0]
-@22
-TOP.CGA.XFIDB_15_0_IN[15:0]
 @200
 ---- OUT ---
-@22
-TOP.CGA.XFIDB_15_0_OUT[15:0]
 @28
 TOP.CGA.XACONDN
 TOP.CGA.XBRKN

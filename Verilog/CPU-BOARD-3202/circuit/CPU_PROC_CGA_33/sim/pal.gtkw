@@ -1,11 +1,11 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Sat Jan 13 10:21:50 2024
+[*] Mon Jan 15 20:34:01 2024
 [*]
-[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CYC_36/sim/waveform.vcd"
-[dumpfile_mtime] "Sat Jan 13 10:21:40 2024"
-[dumpfile_size] 120640
-[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CYC_36/sim/pal.gtkw"
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_PROC_CGA_33/sim/waveform.vcd"
+[dumpfile_mtime] "Mon Jan 15 20:30:23 2024"
+[dumpfile_size] 3025464
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_PROC_CGA_33/sim/pal.gtkw"
 [timestart] 0
 [size] 2002 1057
 [pos] -1 -1
@@ -16,61 +16,65 @@
 [sst_expanded] 1
 [sst_vpaned_height] 313
 @28
-TOP.OSC
-@200
--
+TOP.ALUCLK
+TOP.BEDO_n
+TOP.BEMPID_n
+TOP.BSTP
+@22
+TOP.CD_15_0[15:0]
+TOP.CSBITS[63:0]
 @28
-TOP.ACOND_n
-TOP.BRK_n
-TOP.CGNTCACT_n
-TOP.CSALUI7
-TOP.CSALUI8
-TOP.CSALUM0
-TOP.CSALUM1
-TOP.CSDELAY0
-TOP.CSDELAY1
-TOP.CSDLY
-TOP.CSECOND
-TOP.CSLOOP
-TOP.FORM_n
-TOP.HIT
-@29
-TOP.IORQ_n
-@28
-TOP.LBA0
-TOP.LBA1
-TOP.LBA3
-TOP.LSHADOW
-TOP.LUA12
-TOP.MREQ_n
+TOP.ETRAP_n
+TOP.EWCA_n
+TOP.IBINT10_n
+TOP.IBINT11_n
+TOP.IBINT12_n
+TOP.IBINT13_n
+TOP.IBINT15_n
+TOP.IOXERR_n
+TOP.LCS_n
+TOP.MAP_n
+TOP.MCLK
+TOP.MOR_n
 TOP.MR_n
-TOP.PD1
-TOP.PD4
-TOP.RRF_n
-TOP.RT_n
-TOP.RWCS_n
-TOP.SHORT_n
-TOP.SLOW_n
-TOP.TRAP_n
-TOP.VEX
+TOP.PAN_n
+TOP.PARERR_n
+TOP.POWFAIL_n
+@22
+TOP.PT_15_9[6:0]
+@28
+TOP.UCLK
 @200
 --- output --
 @28
-TOP.ALUCLK
-TOP.CLK
-TOP.MACLK
-TOP.MCLK
-TOP.UCLK
-TOP.WRFSTB
-TOP.CYD
-@24
-TOP.CC_3_1_n[2:0]
+TOP.ACOND_n
+TOP.CGABRK_n
+@22
+TOP.CSA_12_0[12:0]
+TOP.CSCA_9_0[9:0]
 @28
-TOP.TERM_n
-TOP.MAP_n
-TOP.CX_n
-TOP.EORF_n
-TOP.ETRAP_n
-TOP.LCS_n
+TOP.DOUBLE
+TOP.ECCR
+TOP.ERFN
+TOP.INTRQ_n_tp1
+TOP.IONI
+@22
+TOP.LAA_3_0[3:0]
+TOP.LA_23_10[13:0]
+@28
+TOP.LSHADOW
+TOP.PCR_1_0[1:0]
+@22
+TOP.PIL_3_0[3:0]
+@28
+TOP.PONI
+TOP.RF_1_0[1:0]
+@22
+TOP.TEST_4_0[4:0]
+@28
+TOP.TRAP_n
+TOP.WCS_n
+@29
+TOP.WRTRF
 [pattern_trace] 1
 [pattern_trace] 0

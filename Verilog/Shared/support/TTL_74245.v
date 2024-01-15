@@ -1,133 +1,34 @@
 /******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
  **                                                                          **
  ** Component : TTL_74245                                                    **
  **                                                                          **
+ ** Ronny Hansen 14.01.2024
  *****************************************************************************/
 
-module TTL_74245( A1,
-                  A2,
-                  A3,
-                  A4,
-                  A5,
-                  A6,
-                  A7,
-                  A8,
-                  B1,
-                  B2,
-                  B3,
-                  B4,
-                  B5,
-                  B6,
-                  B7,
-                  B8,
-                  DIR,
-                  G_n );
+module TTL_74245( 
+    input [7:0] A,       // A-side 8-bit port
+    inout [7:0] B,       // B-side 8-bit bidirectional port/bus
+    input DIR,           // Direction control
+    input OE_n           // Output enable
+);
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input A1;
-   input A2;
-   input A3;
-   input A4;
-   input A5;
-   input A6;
-   input A7;
-   input A8;
-   input DIR;
-   input G_n;
+reg [7:0] internalBus;
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output B1;
-   output B2;
-   output B3;
-   output B4;
-   output B5;
-   output B6;
-   output B7;
-   output B8;
+// Control the direction of data flow
+always @(*) begin
+    if (DIR) begin
+        internalBus = A; // Data flows from A to B
+    end else begin
+        internalBus = B; // Data flows from B to A
+    end
+end
 
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-   wire [7:0] s_logisimBus0;
-   wire [7:0] s_logisimBus13;
-   wire [7:0] s_logisimBus2;
-   wire [7:0] s_logisimBus23;
-   wire       s_logisimNet1;
-   wire       s_logisimNet10;
-   wire       s_logisimNet11;
-   wire       s_logisimNet12;
-   wire       s_logisimNet14;
-   wire       s_logisimNet15;
-   wire       s_logisimNet16;
-   wire       s_logisimNet17;
-   wire       s_logisimNet18;
-   wire       s_logisimNet19;
-   wire       s_logisimNet20;
-   wire       s_logisimNet21;
-   wire       s_logisimNet22;
-   wire       s_logisimNet3;
-   wire       s_logisimNet4;
-   wire       s_logisimNet5;
-   wire       s_logisimNet6;
-   wire       s_logisimNet7;
-   wire       s_logisimNet8;
-   wire       s_logisimNet9;
+// Assign the bidirectional bus with respect to OE
+assign B = (OE_n == 0 && DIR == 1) ? internalBus : 8'bz;
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
-   /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
-   assign s_logisimBus2[0] = A1;
-   assign s_logisimBus2[1] = A2;
-   assign s_logisimBus2[2] = A3;
-   assign s_logisimBus2[3] = A4;
-   assign s_logisimBus2[4] = A5;
-   assign s_logisimBus2[5] = A6;
-   assign s_logisimBus2[6] = A7;
-   assign s_logisimBus2[7] = A8;
-   assign s_logisimNet22   = G_n;
-   assign s_logisimNet3    = DIR;
-
-   /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
-   assign B1 = s_logisimBus23[0];
-   assign B2 = s_logisimBus23[1];
-   assign B3 = s_logisimBus23[2];
-   assign B4 = s_logisimBus23[3];
-   assign B5 = s_logisimBus23[4];
-   assign B6 = s_logisimBus23[5];
-   assign B7 = s_logisimBus23[6];
-   assign B8 = s_logisimBus23[7];
-
-   /*******************************************************************************
-   ** Here all in-lined components are defined                                   **
-   *******************************************************************************/
-
-   // Controlled Buffer
-   assign s_logisimBus0 = (s_logisimNet1) ? s_logisimBus13 : 8'bZ;
-
-   // Controlled Buffer
-   assign s_logisimBus23 = (s_logisimNet4) ? s_logisimBus13 : 8'bZ;
-
-   // NOT Gate
-   assign s_logisimNet4 = ~s_logisimNet22;
-
-   // Controlled Buffer
-
-   // Controlled Buffer
-   assign s_logisimBus13 = (s_logisimNet3) ? s_logisimBus2 : 8'bZ;
-
-   // NOT Gate
-   assign s_logisimNet1 = ~s_logisimNet3;
+// Output to A when receiving from B with respect to OE (OE_n==1 means "isolated". Don't write to A or B)
+assign A = (OE_n == 0 && DIR == 0) ? internalBus : 8'bz;
 
 endmodule
+
+

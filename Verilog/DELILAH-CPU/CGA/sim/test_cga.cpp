@@ -18,8 +18,6 @@ struct TestCase {
 	// bool XALUCLK;
 	// bool XMCLK;
 
-	bool     BDEST;
-	    
 	bool     XBINT10N;
 	bool     XBINT11N;
 	bool     XBINT12N;
@@ -67,11 +65,13 @@ struct TestCase {
 
 	uint8_t  XPT_9_15;
 	uint8_t  XTSEL_2_0; // Test selector
-	uint16_t XFIDB_15_0_IN; // On the real chip those pins are shared with XFIDB_15_0_OUT
+
+	//*****  INPUT AND OUPUT SIGNAL ****
+	uint16_t XFIDB_15_0_io; // Input and output pins
 
 	/*----------------  EXPECTED OUTOUT ----------------------*/
 
-	uint16_t    expected_XFIDB_15_0_OUT; // On the real chip those pins are shared with XFIDB_15_0_IN
+	uint16_t    expected_XFIDB_15_0_io; // Compare with signal XFIDB_15_0_io
 
 	bool        expected_XACONDN;
 	bool        expected_XBRKN;
@@ -113,14 +113,14 @@ int main(int argc, char** argv)
 	// 
 	// Create a collection of test cases
 	std::vector<TestCase> testCases = {
- 	  // BDEST  XBINT10N  XBINT11N  XBINT12N  XBINT13N  XBINT15N  XCSBIT20  XCSECOND  XCSLOOP  XCSSCOND  XCSVECT  XCSXRF3  XEDON  XEMPIDN  XETRAPN  XEWCAN  XFTRAPN  XILCSN  XIOXERRN  XMAPN  XMORN  XMRN  XPANN  XPARERRN  XPOWFAILN  XPTSTN  XSPARE  XSTP  XVTRAPN  XCD_15_0  XCSALUI_8_0  XCSALUM_1_0  XCSBIT_15_0  XCSCINSEL_1_0  XCSIDBS_4_0  XCSMIS_1_0  XCSRASEL_1_0  XCSRBSEL_1_0, XCSRB_3_0  XCSSST_1_0  XCSTS_6_3  XCSCOMM_4_0  XPT_9_15  XTSEL_2_0  XFIDB_15_0_IN  expected_XFIDB_15_0_OUT  expected_XACONDN  expected_XBRKN  expected_XDOUBLE  expected_XECCR  expected_XERFN  expected_XINTRQN  expected_XIONI  expected_XLSHADOW  expected_XPONI  expected_XTRAPN  expected_XWCSN  expected_XWRTRF  expected_XLAA_3_0  expected_XLA_23_10  expected_XLBA_3_0  expected_XMA_12_0  expected_XMCA_9_0  expected_XPCR_1_0  expected_XPIL_3_0  expected_XRF_1_0  expected_XTEST_4_0  Description
-		{false, true,     true,     true,     true,     true,     false,    false,    false,   false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 1"},
-		{false, true,     true,     true,     true,     true,     false,    false,    false,   false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 2"},
-		{false, true,     true,     true,     true,     true,     false,    false,    false,   false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 3"},
-		{false, true,     true,     true,     true,     true,     false,    false,    false,   false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 4"},
+ 	  // XBINT10N  XBINT11N  XBINT12N  XBINT13N  XBINT15N  XCSBIT20  XCSECOND  XCSLOOP  XCSSCOND  XCSVECT  XCSXRF3  XEDON  XEMPIDN  XETRAPN  XEWCAN  XFTRAPN  XILCSN  XIOXERRN  XMAPN  XMORN  XMRN  XPANN  XPARERRN  XPOWFAILN  XPTSTN  XSPARE  XSTP  XVTRAPN  XCD_15_0  XCSALUI_8_0  XCSALUM_1_0  XCSBIT_15_0  XCSCINSEL_1_0  XCSIDBS_4_0  XCSMIS_1_0  XCSRASEL_1_0  XCSRBSEL_1_0, XCSRB_3_0  XCSSST_1_0  XCSTS_6_3  XCSCOMM_4_0  XPT_9_15  XTSEL_2_0  XFIDB_15_0_IN  expected_XFIDB_15_0_OUT  expected_XACONDN  expected_XBRKN  expected_XDOUBLE  expected_XECCR  expected_XERFN  expected_XINTRQN  expected_XIONI  expected_XLSHADOW  expected_XPONI  expected_XTRAPN  expected_XWCSN  expected_XWRTRF  expected_XLAA_3_0  expected_XLA_23_10  expected_XLBA_3_0  expected_XMA_12_0  expected_XMCA_9_0  expected_XPCR_1_0  expected_XPIL_3_0  expected_XRF_1_0  expected_XTEST_4_0  Description
+		{true,     true,     true,     true,     true,     false,    false,    false,   false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 1"},
+		{true,     true,     true,     true,     true,     false,    false,    false,   false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 2"},
+		{true,     true,     true,     true,     true,     false,    false,    false,   false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 3"},
+		{true,     true,     true,     true,     true,     false,    false,    false,   false,    false,   false,   false, false,   true,    false,  true,    true,   true,      false, false, false, true, false,    true,       false,   false,  false, true,    0,        0,           0,           0,           0,               0,            0,          0,            0,         0,         0,           0,         0,            0,        0,         0,              0,                     true,            true,        true,           true,         true,         true,            true,         true,            true,        true,          true,         true,           0,               0,                0,             0,              0,             0,               0,               0,              0,             "Test 4"},
     };
-
-
+   
+   
 
 	Verilated::commandArgs(argc, argv);
 	VCGA* top = new VCGA;
@@ -154,7 +154,6 @@ int main(int argc, char** argv)
 
 				// Set up your module inputs based on the test case
 				
-				top->BDEST = test.BDEST;
 				top->XBINT10N = test.XBINT10N;
 				top->XBINT11N = test.XBINT11N;
 				top->XBINT12N = test.XBINT12N;
@@ -166,7 +165,7 @@ int main(int argc, char** argv)
 				top->XCSSCOND = test.XCSSCOND;
 				top->XCSVECT = test.XCSVECT;
 				top->XCSXRF3 = test.XCSXRF3;
-				top->XEDON = test.XEDON;
+				//top->XEDON = test.XEDON;
 				top->XEMPIDN = test.XEMPIDN;
 				top->XETRAPN = test.XETRAPN;
 				top->XEWCAN = test.XEWCAN;
@@ -198,13 +197,20 @@ int main(int argc, char** argv)
 				top->XCSCOMM_4_0 = test.XCSCOMM_4_0;
 				top->XPT_9_15 = test.XPT_9_15;
 				top->XTSEL_2_0 = test.XTSEL_2_0;
-				top->XFIDB_15_0_IN = test.XFIDB_15_0_IN;
+				top->XFIDB_15_0_io = test.XFIDB_15_0_io;
+
+				// Enable IDB!
+				top->XPTSTN = true;
+				//top->XEDON = true;
+				top->XEDON = !top->XEDON;
+				
+				top->XFIDB_15_0_io = 0xFFFF;
 
 				// Random fun
 				top->XCD_15_0 = cnt;	
 				top->XCSBIT_15_0 = cnt;
 				top->XCSALUI_8_0 =  cnt & 0x1FF;
-				top->XFIDB_15_0_IN = csidbs;
+				//top->XFIDB_15_0_io = csidbs;
 				top->XCSIDBS_4_0 = csidbs;
 
 				top->XMAPN = cnt & 0x1;
