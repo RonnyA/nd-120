@@ -10,13 +10,13 @@ This device is organized as two 4-bit buffers and drivers with separate output-e
 
 module TTL_74244( 
                input wire [3:0] A1,   // Data inputs (1A1-1A4)  
-               input wire G1_n;       // Output Enable for A1->Y1 (active low)
-               output wire [3:0] Y1,   // Data outputs (1Y1-1Y4) <= (1A1-1A4)
+               input wire G1_n,       // Output Enable for A1->Y1 (active low)
+               output wire [3:0] Y1,  // Data outputs (1Y1-1Y4) <= (1A1-1A4)
 
 
                input wire [3:0] A2,   // Data inputs (2A1-2A4)
-               input wire G2_n;       // Output Enable (active low)               
-               output wire [3:0] Y2,   // Data inputs  (2Y1-2Y4) <= (2A1-2A4)
+               input wire G2_n,       // Output Enable (active low)               
+               output wire [3:0] Y2   // Data inputs  (2Y1-2Y4) <= (2A1-2A4)
 );
 
 assign Y1 = G1_n ? 4'bz : A1; // If G1_n is high, output is high-impedance

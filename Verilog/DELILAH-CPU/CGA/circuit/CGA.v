@@ -6,7 +6,7 @@
  **                                                                          **
  *****************************************************************************/
 
-module CGA( BDEST,
+module CGA( 
             XACONDN,
             XALUCLK,
             XBINT10N,
@@ -79,7 +79,6 @@ module CGA( BDEST,
    /*******************************************************************************
    ** The inputs are defined here                                                **
    *******************************************************************************/
-   input        BDEST;
    input        XALUCLK;
    input        XBINT10N;
    input        XBINT11N;
@@ -263,7 +262,7 @@ module CGA( BDEST,
    wire        s_logisimNet140;
    wire        s_logisimNet141;
    wire        s_logisimNet143;
-   wire        s_logisimNet145;
+   wire        s_BDEST;
    wire        s_logisimNet146;
    wire        s_logisimNet147;
    wire        s_logisimNet148;
@@ -318,7 +317,6 @@ module CGA( BDEST,
    wire        s_logisimNet210;
    wire        s_logisimNet211;
    wire        s_logisimNet214;
-   wire        s_logisimNet216;
    wire        s_logisimNet217;
    wire        s_logisimNet218;
    wire        s_logisimNet219;
@@ -608,8 +606,7 @@ module CGA( BDEST,
    assign s_logisimNet137       = XCSSCOND;
    assign s_logisimNet138       = XFTRAPN;
    assign s_logisimNet139       = XSPARE;
-   assign s_logisimNet143       = XPANN;
-   assign s_logisimNet145       = BDEST;
+   assign s_logisimNet143       = XPANN;   
    assign s_logisimNet148       = XCSBIT20;
    assign s_logisimNet157       = XILCSN;
    assign s_logisimNet160       = XBINT12N;
@@ -670,7 +667,7 @@ module CGA( BDEST,
 
    CGA_ALU   ALU (.ALUCLK(s_logisimNet194),
                   .A_15_0(s_logisimBus161[15:0]),
-                  .BDEST(s_logisimNet216),
+                  .BDEST(s_BDEST),
                   .B_15_0(s_logisimBus112[15:0]),
                   .CD_15_0(s_logisimBus175[15:0]),
                   .CRY(s_logisimNet155),
@@ -750,7 +747,7 @@ module CGA( BDEST,
 
    CGA_WRF   WRF (.ALUCLK(s_logisimNet194),
                   .A_15_0(s_logisimBus161[15:0]),
-                  .BDEST(s_logisimNet145),
+                  .BDEST(s_BDEST),
                   .BR_15_0(s_logisimBus9[15:0]),
                   .B_15_0(s_logisimBus112[15:0]),
                   .EA_15_0(s_logisimBus221[15:0]),

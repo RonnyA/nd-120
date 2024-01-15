@@ -364,9 +364,6 @@
     <comp lib="0" loc="(1660,10070)" name="Tunnel">
       <a name="label" val="ZF"/>
     </comp>
-    <comp lib="0" loc="(1690,10190)" name="Tunnel">
-      <a name="label" val="BDEST"/>
-    </comp>
     <comp lib="0" loc="(1690,10230)" name="Tunnel">
       <a name="label" val="PTM"/>
     </comp>
@@ -478,10 +475,6 @@
     <comp lib="0" loc="(2140,8440)" name="Tunnel">
       <a name="label" val="FIDBI_15_0"/>
       <a name="width" val="16"/>
-    </comp>
-    <comp lib="0" loc="(2150,10200)" name="Pin">
-      <a name="appearance" val="classic"/>
-      <a name="label" val="BDEST"/>
     </comp>
     <comp lib="0" loc="(2150,10260)" name="Tunnel">
       <a name="facing" val="east"/>
@@ -2178,7 +2171,7 @@
     <wire from="(1590,10130)" to="(1870,10130)"/>
     <wire from="(1590,10150)" to="(1760,10150)"/>
     <wire from="(1590,10170)" to="(1610,10170)"/>
-    <wire from="(1590,10190)" to="(1690,10190)"/>
+    <wire from="(1590,10190)" to="(1680,10190)"/>
     <wire from="(1590,10210)" to="(1600,10210)"/>
     <wire from="(1590,10230)" to="(1690,10230)"/>
     <wire from="(1590,10250)" to="(1600,10250)"/>
@@ -2192,6 +2185,8 @@
     <wire from="(1630,8720)" to="(1830,8720)"/>
     <wire from="(1640,10350)" to="(1640,10550)"/>
     <wire from="(1640,10350)" to="(1690,10350)"/>
+    <wire from="(1680,10190)" to="(1680,10200)"/>
+    <wire from="(1680,10200)" to="(2330,10200)"/>
     <wire from="(170,7900)" to="(440,7900)"/>
     <wire from="(1730,7620)" to="(1890,7620)"/>
     <wire from="(1730,7640)" to="(1960,7640)"/>
@@ -2224,7 +2219,6 @@
     <wire from="(210,10770)" to="(560,10770)"/>
     <wire from="(210,10810)" to="(560,10810)"/>
     <wire from="(210,10850)" to="(560,10850)"/>
-    <wire from="(2150,10200)" to="(2330,10200)"/>
     <wire from="(2150,10260)" to="(2330,10260)"/>
     <wire from="(2160,10320)" to="(2330,10320)"/>
     <wire from="(220,10040)" to="(500,10040)"/>

@@ -288,7 +288,6 @@ module TOP_3202D( BINT10_n,
    wire        s_logisimNet272;
    wire        s_logisimNet273;
    wire        s_logisimNet29;
-   wire        s_logisimNet3;
    wire        s_logisimNet30;
    wire        s_logisimNet31;
    wire        s_logisimNet33;
@@ -514,10 +513,7 @@ module TOP_3202D( BINT10_n,
    assign  s_logisimNet6  =  1'b1;
 
 
-   // Power
-   assign  s_logisimNet3  =  1'b1;
-
-
+   
    // Buffer
    assign s_logisimNet177 = s_logisimNet169;
 
@@ -584,24 +580,32 @@ module TOP_3202D( BINT10_n,
                  .VEX(s_logisimNet138),
                  .WRFSTB(s_logisimNet143));
 
-   TTL_74244   CHIP_5C (.I0_1A1(s_logisimNet145),
-                        .I1_1A2(s_logisimNet37),
-                        .I2_1A3(s_logisimNet163),
-                        .I3_1A4(s_logisimNet3),
-                        .I4_2A1(1'b0),
-                        .I5_2A2(s_logisimNet251),
-                        .I6_2A3(s_logisimNet33),
-                        .I7_2A4(s_logisimNet132),
-                        .O0_1Y1(s_logisimNet111),
-                        .O1_1Y2(s_logisimNet232),
-                        .O2_1Y3(s_logisimNet199),
-                        .O3_1Y4(s_logisimNet181),
-                        .O4_2Y1(),
-                        .O5_2Y2(s_logisimNet113),
-                        .O6_2Y3(s_logisimNet56),
-                        .O7_2Y4(s_logisimNet153),
-                        .OE1_1G_n(s_logisimNet60),
-                        .OE2_2G_n(s_logisimNet60));
+
+
+   
+   // Input signals on C-PLUG goes via 5C
+
+
+   wire s_BPERR_n;  
+   assign s_BPERR_n = 1'b1;
+
+
+   TTL_74244   CHIP_5C (
+               // Input 
+
+               //   1A4 = BPERR_n    1A3 = BINPUT_n   1A2= SEMRQ_n    1A1 = BINT10_n
+                .A1({s_BPERR_n, s_logisimNet163,s_logisimNet37, s_logisimNet145}), // Mapping 4 separate signals to 1A4-1A1
+                .G1_n(s_logisimNet60),
+
+                // 2A4 = BAPR_n       2A3= BDRY_n     2A2 = BDAP_n     2A1= n.c.
+                .A2({s_logisimNet132, s_logisimNet33, s_logisimNet251, 1'b0}),   // Mapping 4 separate signals to 2A4-2A1
+                .G2_n(s_logisimNet60),
+
+
+               // Output
+               .Y1({s_logisimNet181, s_logisimNet199, s_logisimNet232, s_logisimNet111}), // Mapping 4 separate signals to 1Y4-1Y1
+               .Y2({s_logisimNet153, s_logisimNet56, s_logisimNet113, 1'bz}) // Mapping 4 separate signals to 1Y4-1Y1
+   );
 
    IO_37   IO (.BDRY50_n(s_logisimNet250),
                .BINT10_n(s_logisimNet206),
@@ -681,24 +685,24 @@ module TOP_3202D( BINT10_n,
                .XTR(s_logisimNet167),
                .logisimOutputBubbles(logisimOutputBubbles[1 : 0]));
 
-   TTL_74244   CHIP_33C (.I0_1A1(s_logisimNet88),
-                         .I1_1A2(s_logisimNet43),
-                         .I2_1A3(s_logisimNet217),
-                         .I3_1A4(s_logisimNet59),
-                         .I4_2A1(s_logisimNet5),
-                         .I5_2A2(s_logisimNet0),
-                         .I6_2A3(s_logisimNet101),
-                         .I7_2A4(s_logisimNet20),
-                         .O0_1Y1(s_logisimNet228),
-                         .O1_1Y2(s_logisimNet207),
-                         .O2_1Y3(s_logisimNet211),
-                         .O3_1Y4(s_logisimNet19),
-                         .O4_2Y1(s_logisimNet74),
-                         .O5_2Y2(s_logisimNet86),
-                         .O6_2Y3(s_logisimNet136),
-                         .O7_2Y4(s_logisimNet155),
-                         .OE1_1G_n(s_logisimNet60),
-                         .OE2_2G_n(s_logisimNet60));
+      // C-PLUG SIGNALS goes via 5C and 33C
+      TTL_74244   CHIP_33C (
+               // Input
+
+                //   1A4=STOP_n      1A3=CONTINUE_n   1A2=BREQ_n      1A1=LOAD_n
+                .A1({s_logisimNet59, s_logisimNet217,s_logisimNet43, s_logisimNet88}), // Mapping 4 separate signals to 1A4-1A1
+                .G1_n(s_logisimNet60),
+                //   2A4=BINT11_n    2A3=BINT12_n    2A2=BINT13_n    2A1=BINT15_n
+                .A2({s_logisimNet20, s_logisimNet101, s_logisimNet0, s_logisimNet5}),   // Mapping 4 separate signals to 2A4-2A1
+                .G2_n(s_logisimNet60),
+
+
+               // Output
+               .Y1({s_logisimNet19, s_logisimNet211, s_logisimNet207, s_logisimNet228}), // Mapping 4 separate signals to 1Y4-1Y1
+               .Y2({s_logisimNet155, s_logisimNet136, s_logisimNet86, s_logisimNet74}) // Mapping 4 separate signals to 1Y4-1Y1
+      );
+
+
 
    CPU_15   CPU (.ALUCLK(s_logisimNet243),
                  .CA10(s_logisimNet203),

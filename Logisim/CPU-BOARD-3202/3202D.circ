@@ -1923,7 +1923,7 @@
       <a name="color" val="#ff47d4"/>
       <a name="font" val="SansSerif bold 21"/>
       <a name="halign" val="left"/>
-      <a name="text" val="BUS C CONNECTOR NOT CREATED TO SAVE IO PORTS ON FPGA"/>
+      <a name="text" val="BUS C CONNECTOR NOT CREATED COMPLETE - TO SAVE IO PORTS ON FPGA"/>
     </comp>
     <comp lib="8" loc="(275,5385)" name="Text">
       <a name="halign" val="left"/>
@@ -22768,6 +22768,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="1" loc="(1550,2300)" name="Buffer">
       <a name="width" val="2"/>
     </comp>
+    <comp lib="1" loc="(290,770)" name="NOT Gate"/>
     <comp lib="1" loc="(590,1730)" name="Buffer"/>
     <comp lib="1" loc="(610,1670)" name="Buffer"/>
     <comp lib="1" loc="(620,1700)" name="Buffer"/>
@@ -22784,6 +22785,10 @@ e6 63 0 0 3a 0 0 48
       <a name="font" val="SansSerif bold 46"/>
       <a name="halign" val="left"/>
       <a name="text" val="CGA HERE!!!!"/>
+    </comp>
+    <comp lib="8" loc="(230,800)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="7F-Schmidt Trigger Inverted"/>
     </comp>
     <comp lib="8" loc="(75,115)" name="Text">
       <a name="halign" val="left"/>
@@ -22879,7 +22884,7 @@ e6 63 0 0 3a 0 0 48
     <wire from="(2130,1070)" to="(2350,1070)"/>
     <wire from="(2140,1120)" to="(2350,1120)"/>
     <wire from="(220,770)" to="(220,840)"/>
-    <wire from="(220,770)" to="(480,770)"/>
+    <wire from="(220,770)" to="(260,770)"/>
     <wire from="(220,840)" to="(270,840)"/>
     <wire from="(2230,1700)" to="(2370,1700)"/>
     <wire from="(2230,1730)" to="(2370,1730)"/>
@@ -22913,6 +22918,7 @@ e6 63 0 0 3a 0 0 48
     <wire from="(2310,1480)" to="(2310,1510)"/>
     <wire from="(2310,1480)" to="(2370,1480)"/>
     <wire from="(2310,1510)" to="(2370,1510)"/>
+    <wire from="(290,770)" to="(480,770)"/>
     <wire from="(320,320)" to="(490,320)"/>
     <wire from="(340,2030)" to="(390,2030)"/>
     <wire from="(340,670)" to="(530,670)"/>

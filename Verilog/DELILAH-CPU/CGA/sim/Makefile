@@ -24,7 +24,7 @@ VERILATOR = verilator
 CPP_SOURCES = ${TEST_PROGRAM}
 
 # Default target
-all: test_cga run
+all: test_cga run gtk
 
 test_cga: $(CPP_SOURCES)
 	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS)
