@@ -67,11 +67,13 @@ struct TestCase {
 
 	uint8_t  XPT_9_15;
 	uint8_t  XTSEL_2_0; // Test selector
-	uint16_t XFIDB_15_0_IN; // On the real chip those pins are shared with XFIDB_15_0_OUT
+
+	//*****  INPUT AND OUPUT SIGNAL ****
+	uint16_t XFIDB_15_0_io; // Input and output pins
 
 	/*----------------  EXPECTED OUTOUT ----------------------*/
 
-	uint16_t    expected_XFIDB_15_0_OUT; // On the real chip those pins are shared with XFIDB_15_0_IN
+	uint16_t    expected_XFIDB_15_0_io; // Compare with signal XFIDB_15_0_io
 
 	bool        expected_XACONDN;
 	bool        expected_XBRKN;
@@ -166,7 +168,7 @@ int main(int argc, char** argv)
 				top->XCSSCOND = test.XCSSCOND;
 				top->XCSVECT = test.XCSVECT;
 				top->XCSXRF3 = test.XCSXRF3;
-				top->XEDON = test.XEDON;
+				//top->XEDON = test.XEDON;
 				top->XEMPIDN = test.XEMPIDN;
 				top->XETRAPN = test.XETRAPN;
 				top->XEWCAN = test.XEWCAN;
@@ -198,13 +200,20 @@ int main(int argc, char** argv)
 				top->XCSCOMM_4_0 = test.XCSCOMM_4_0;
 				top->XPT_9_15 = test.XPT_9_15;
 				top->XTSEL_2_0 = test.XTSEL_2_0;
-				top->XFIDB_15_0_IN = test.XFIDB_15_0_IN;
+				top->XFIDB_15_0_io = test.XFIDB_15_0_io;
+
+				// Enable IDB!
+				top->XPTSTN = true;
+				//top->XEDON = true;
+				top->XEDON = !top->XEDON;
+				
+				top->XFIDB_15_0_io = 0xFFFF;
 
 				// Random fun
 				top->XCD_15_0 = cnt;	
 				top->XCSBIT_15_0 = cnt;
 				top->XCSALUI_8_0 =  cnt & 0x1FF;
-				top->XFIDB_15_0_IN = csidbs;
+				//top->XFIDB_15_0_io = csidbs;
 				top->XCSIDBS_4_0 = csidbs;
 
 				top->XMAPN = cnt & 0x1;

@@ -1,74 +1,43 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : BD4TU                                                        **
- **                                                                          **
- *****************************************************************************/
+/*******************************************************************************
+ ** Component : BD4TU                                                         **
+ **                                                                           **
+ ** Databufffer with 3-state                                                  **
+ ** Used in CGA (Sheet 5/10) page 6                                           **
+ **                                                                           **
+ ** In the drawings the read bufffer is connected to "PTREE1" for read-enable **
+ ** Which is connected to 1/HIGH. Not really sure what thus migth mean.       **
+ **                                                                           **
+ ** Ronny Hansen 14.01.2023                                                   **
+ ******************************************************************************/
 
-module BD4TU( A,
-              BUF_IN,
-              BUF_OUT,
-              EN,
-              TN,
-              ZI );
+module BD4TU( input wire A,
+              inout wire IO, // Buffer input/output            
+              input wire EN,  // Enable. H= READ from BUF to ZI, L= WRITE from A to BUF
+              input wire TN,  // Test ? Connected to PTSTN, which is always 1/HIGH
+              output wire ZI  //Z-INPUT
+);
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input A;
-   input BUF_IN;
-   input EN;
-   input TN;
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output BUF_OUT;
-   output ZI;
+   reg internalData; // Internal data register
 
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-   wire s_logisimNet0;
-   wire s_logisimNet1;
-   wire s_logisimNet2;
-   wire s_logisimNet3;
-   wire s_logisimNet4;
-   wire s_logisimNet5;
-   wire s_logisimNet6;
+    // Bidirectional data operation
+    assign IO = (EN == 1'b0) ? internalData : 1'bz;
+    
+    //assign ZI = BUF   
+   assign ZI = TN ?  ZI_REG : 1'bZ; // Probably the correct implementation ?
+   
+    always @* begin
+        if (EN == 1'b0) begin
+            // Write A to BUF
+            internalData = A;
+        end
+        else begin
+            // Read BUF to ZI (Verilog will read from the BUF wire even i we have set it to three-state (ie not driving it, but we can still read)
+            internalData = IO;
+        end
+    end
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
+  
 
-   /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
-   assign s_logisimNet1 = EN;
-   assign s_logisimNet2 = A;
-   assign s_logisimNet6 = BUF_IN;
-
-   /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
-   assign BUF_OUT = s_logisimNet5;
-   assign ZI      = s_logisimNet4;
-
-   /*******************************************************************************
-   ** Here all in-lined components are defined                                   **
-   *******************************************************************************/
-
-   // NOT Gate
-   assign s_logisimNet3 = ~s_logisimNet1;
-
-   // Controlled Buffer
-   assign s_logisimNet0 = (s_logisimNet3) ? s_logisimNet2 : 1'bZ;
-
-   // Controlled Buffer
-   assign s_logisimNet5 = (s_logisimNet3) ? s_logisimNet0 : 1'bZ;
-
-   // Controlled Buffer
-   assign s_logisimNet4 = (s_logisimNet1) ? s_logisimNet6 : 1'bZ;
 
 endmodule
