@@ -55,7 +55,8 @@ module IO_REG_41( BINT10_n,
    wire [7:0]  s_logisimBus59;
    wire [2:0]  s_PRINT_NO;
    wire [3:0]  s_ALD;
-   wire [15:0] s_IDB_15_0;
+   wire [15:0] s_IDB_15_0;   
+   wire [7:0]  s_INR_7_0;
    wire        s_IDB_15_0;
    wire        s_logisimNet1;
    wire        s_logisimNet10;
@@ -109,7 +110,8 @@ module IO_REG_41( BINT10_n,
    wire        s_logisimNet57;
    wire        s_logisimNet58;
    wire        s_logisimNet6;
-   wire        s_logisimNet61;
+   wire        s_DA_n;
+   wire        s_DA;
    wire        s_logisimNet63;
    wire        s_logisimNet64;
    wire        s_logisimNet65;
@@ -141,13 +143,13 @@ module IO_REG_41( BINT10_n,
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_INR[7:0]          = INR_7_0;
+   assign s_INR_7_0[7:0]      = INR_7_0;
    assign s_RINR_n            = RINR_n;
    assign s_logisimNet33      = SIOC_n;
    assign s_logisimNet41      = CX_n;
    assign s_logisimNet44      = TBMT_n;
    assign s_logisimNet45      = CLEAR_n;
-   assign s_logisimNet61      = DA_n;
+   assign s_DA_n              = DA_n;
    assign s_logisimNet7       = TRAALD_n;
 
    /*******************************************************************************
@@ -194,7 +196,7 @@ module IO_REG_41( BINT10_n,
    // Power
 
    // NOT Gate
-   assign s_logisimNet0 = ~s_logisimNet61;
+   assign s_DA = ~s_DA_n;
 
    // NOT Gate
    assign s_logisimNet20 = ~s_logisimNet2;
@@ -225,7 +227,7 @@ module IO_REG_41( BINT10_n,
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_4 (.input1(s_logisimNet18),
-               .input2(s_logisimNet0),
+               .input2(s_DA),
                .result(s_logisimNet63));
 
    NAND_GATE #(.BubblesMask(2'b00))
@@ -276,7 +278,7 @@ TTL_74273 CHIP_28A_IOC (
 
 
       // TTL_74244 CHIP_24A_INR (simplified..)
-      assign s_INR_IDB_7_0[7:0] = s_RINR_n  ? 8'bz : s_INR[7:0]; 
+      assign s_INR_IDB_7_0[7:0] = s_RINR_n  ? 8'bz : s_INR_7_0[7:0]; 
 
       // IDB bus 7:0 is shared between ALD and INR.. or Z state
       assign s_IDB_15_0[7:0] = !s_logisimNet7 ?  s_IDB_15_0[7:0] :  s_INR_IDB_7_0[7:0]; // if TRAALD_n is low, then the IDB[7:0] is driven by ALD if not its driven by INR
