@@ -55,7 +55,7 @@ module IO_PANCAL_40( CLEAR_n,
    wire [3:0]  s_logisimBus20;
    wire [1:0]  s_logisimBus3;
    wire [1:0]  s_logisimBus30;
-   wire [15:0] s_logisimBus48;
+   wire [15:0] s_IDB_15_0;
    wire [7:0]  s_logisimBus50;
    wire        s_logisimNet0;
    wire        s_logisimNet1;
@@ -92,7 +92,7 @@ module IO_PANCAL_40( CLEAR_n,
    wire        s_logisimNet43;
    wire        s_logisimNet44;
    wire        s_logisimNet45;
-   wire        s_logisimNet46;
+   wire        s_EPANS;
    wire        s_logisimNet49;
    wire        s_logisimNet5;
    wire        s_logisimNet6;
@@ -113,7 +113,7 @@ module IO_PANCAL_40( CLEAR_n,
    assign s_logisimNet39      = CLEAR_n;
    assign s_logisimNet4       = PONI;
    assign s_logisimNet45      = VAL;
-   assign s_logisimNet46      = EPANS;
+   assign s_EPANS             = EPANS;
    assign s_logisimNet5       = IONI;
    assign s_logisimNet6       = LHIT;
    assign s_logisimNet7       = LEV0;
@@ -124,7 +124,7 @@ module IO_PANCAL_40( CLEAR_n,
    ** Here all output connections are defined                                    **
    *******************************************************************************/
    assign DP_5_1_n = s_logisimBus19[4:0];
-   assign IDB_15_0 = s_logisimBus48[15:0];
+   assign IDB_15_0 = s_IDB_15_0[15:0];
    assign RMM_n    = s_logisimNet49;
    assign STAT_4_3 = s_logisimBus3[1:0];
 
@@ -143,42 +143,22 @@ module IO_PANCAL_40( CLEAR_n,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   TTL_74244   CHIP_33B (.I0_1A1(s_logisimBus20[0]),
-                         .I1_1A2(s_logisimBus20[1]),
-                         .I2_1A3(s_logisimBus20[2]),
-                         .I3_1A4(s_logisimBus20[3]),
-                         .I4_2A1(s_logisimNet45),
-                         .I5_2A2(s_logisimNet0),
-                         .I6_2A3(s_logisimNet29),
-                         .I7_2A4(s_logisimNet1),
-                         .O0_1Y1(s_logisimBus48[8]),
-                         .O1_1Y2(s_logisimBus48[9]),
-                         .O2_1Y3(s_logisimBus48[10]),
-                         .O3_1Y4(s_logisimBus48[11]),
-                         .O4_2Y1(s_logisimBus48[12]),
-                         .O5_2Y2(s_logisimBus48[13]),
-                         .O6_2Y3(s_logisimBus48[14]),
-                         .O7_2Y4(s_logisimBus48[15]),
-                         .OE1_1G_n(s_logisimNet46),
-                         .OE2_2G_n(s_logisimNet46));
 
-   TTL_74374   CHIP_32B (.CK(s_logisimNet44),
-                         .D1(s_logisimBus50[0]),
-                         .D2(s_logisimBus50[1]),
-                         .D3(s_logisimBus50[2]),
-                         .D4(s_logisimBus50[3]),
-                         .D5(s_logisimBus50[4]),
-                         .D6(s_logisimBus50[5]),
-                         .D7(s_logisimBus50[6]),
-                         .D8(s_logisimBus50[7]),
-                         .OE_n(s_logisimNet46),
-                         .Q1(s_logisimBus48[0]),
-                         .Q2(s_logisimBus48[1]),
-                         .Q3(s_logisimBus48[2]),
-                         .Q4(s_logisimBus48[3]),
-                         .Q5(s_logisimBus48[4]),
-                         .Q6(s_logisimBus48[5]),
-                         .Q7(s_logisimBus48[6]),
-                         .Q8(s_logisimBus48[7]));
+   // TTL_74244 CHIP_33B (simplified..)
+   assign s_IDB_15_0[15:8] = s_EPANS  ? 8'bz : {s_logisimNet1,s_logisimNet29,s_logisimNet0,s_logisimNet45,s_logisimBus20[3:1]};
+
+   
+// TTL_74374 CHIP_32B 
+   TTL_74374   CHIP_32B(
+                          .CK(s_logisimNet44),
+                          .OE_n(s_EPANS),
+                          .D(s_logisimBus50[7:0]),
+                          .Q(s_IDB_15_0[7:0])
+                       );
+
+// TODO:
+//  ADD  - MM58274  - Real Time Clock
+// ADD - MC68705 - 6805 Embedded CPU
+
 
 endmodule

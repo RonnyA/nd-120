@@ -32,7 +32,7 @@ module DECODE_DGA_POW( BDRY50N,
                        STARTN,
                        STOPN,
                        STPN,
-                       TEST0,
+                       TESTO,
                        TESTE,
                        TOUT );
 
@@ -70,7 +70,7 @@ module DECODE_DGA_POW( BDRY50N,
    output POWFAILN;
    output REFRQN;
    output STPN;
-   output TEST0;
+   output TESTO;
    output TOUT;
 
    /*******************************************************************************
@@ -214,8 +214,8 @@ module DECODE_DGA_POW( BDRY50N,
    assign PANOSC   = s_logisimNet0;
    assign POWFAILN = s_logisimNet18;
    assign REFRQN   = s_logisimNet43;
-   assign STPN     = s_logisimNet58;
-   assign TEST0    = s_logisimNet48;
+   assign STPN     = s_logisimNet58;   
+   assign TESTO    = s_logisimNet48;
    assign TOUT     = s_logisimNet99;
 
    /*******************************************************************************

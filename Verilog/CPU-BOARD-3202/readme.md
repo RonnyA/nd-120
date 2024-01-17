@@ -39,18 +39,18 @@
 | CPU/MMU/PTIDB     | PT TO IDB             | 30                 | CPU          |
 | CPU/MMU/WCA       | PPN TO CPN            | 31                 | CPU          |
 | CPU/PROC          | PROCESSOR TOP LEVEL   | 32                 | CPU          |
-| CPU/PROC/CGA      | CPU GATE ARRAY        | 33                 | CPU          |
+| CPU/PROC/CGA      | CPU GATE ARRAY        | 33                 | CPU          | [Verilog created](circuit/CPU_PROC_CGA_33.v)    | [Test](circuit/CPU_PROC_CGA_33/readme.md)
 | CPU/PROC/CMDDEC   | COMMANDS & IDB DECODE | 34                 | CPU          | [Verilog created](circuit/CPU_PROC_CMDDEC_34.v) | [Test](circuit/CPU_PROC_CMDDEC_34/readme.md)
 | CPU/STOC          | IDB TO CD             | 35                 | CPU          | [Verilog created](circuit/CPU_STOC_35.v)        | [Test](circuit/CPU_STOC_35/readme.md)
 | **Cycle control**                                                              
 | CYC               | CYCLE CONTROL         | 36                 | CYC          | [Verilog created](circuit/CYC_36.v)             | [Test](circuit/CYC_36/readme.md)
 | **IO**                                                                         
-| IO                | IO TOP LEVEL          | 37                 | IO           |
-| IO/DCD            | IO DECODING           | 38                 | IO           |
-| IO/DCD/DGA        | DECODE GATE ARRAY     | 39                 | IO           |
-| IO/PANCAL         | PANEL PROC & CALENDAR | 40                 | IO           |
-| IO/REG            | IOC, ALD & INR REGS   | 41                 | IO           |
-| IO/UART           | UART AND IOR REG      | 42                 | IO           |
+| IO                | IO TOP LEVEL          | 37                 | IO           | [Verilog created](circuit/IO_37.v)             | [Test](circuit/IO_37/readme.md)  - Need more test!
+| IO/DCD            | IO DECODING           | 38                 | IO           | [Verilog created](circuit/IO_DCD_38.v)         | [Test](circuit/IO_DCD_38/readme.md) - Connected DGA. Need more test! 
+| IO/DCD/DGA        | DECODE GATE ARRAY     | 39                 | IO           | Directly integrated in Sheet 38                | Sheet 39 has no code.
+| IO/PANCAL         | PANEL PROC & CALENDAR | 40                 | IO           | [Verilog created](circuit/IO_PANCAL_40.v)      | (test not create)
+| IO/REG            | IOC, ALD & INR REGS   | 41                 | IO           | [Verilog created](circuit/IO_REG_41.v)         | (test not create)  Need to fix IDB so that IDB_15_0 and IDB_7_0_io is the same bus
+| IO/UART           | UART AND IOR REG      | 42                 | IO           | [Verilog created](circuit/IOUART_42.v)         | (test not create)  Need to create the UART chip and test it. Also fix IDB IO bus
 | **Memory**                                                                     
 | MEM               | MEMORY TOP LEVEL      | 43                 | MEM          |
 | MEM/ADDR          | MEM ADDR MUX          | 44                 | MEM          |

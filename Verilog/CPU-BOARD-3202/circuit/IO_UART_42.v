@@ -155,28 +155,13 @@ module IO_UART_42( CEUART_n,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+
+  
    AM29C821   CHIP_33G (.CK(s_logisimNet37),
-                        .D0(s_logisimNet20),
-                        .D1(s_logisimNet4),
-                        .D2(s_logisimNet38),
-                        .D3(s_logisimNet1),
-                        .D4(s_logisimNet15),
-                        .D5(s_logisimBus11[4]),
-                        .D6(s_logisimBus11[3]),
-                        .D7(s_logisimBus11[2]),
-                        .D8(s_logisimBus11[1]),
-                        .D9(s_logisimBus11[0]),
                         .OE_n(s_logisimNet36),
-                        .Y0(s_logisimBus21[15]),
-                        .Y1(s_logisimBus21[14]),
-                        .Y2(s_logisimBus21[13]),
-                        .Y3(s_logisimBus21[12]),
-                        .Y4(s_logisimBus21[11]),
-                        .Y5(s_logisimBus21[4]),
-                        .Y6(s_logisimBus21[3]),
-                        .Y7(s_logisimBus21[2]),
-                        .Y8(s_logisimBus21[1]),
-                        .Y9(s_logisimBus21[0]));
+                        .D({s_logisimBus11[0], s_logisimBus11[1], s_logisimBus11[2], s_logisimBus11[3], s_logisimBus11[4], s_logisimNet15, s_logisimNet1,s_logisimNet38,s_logisimNet4,s_logisimNet20}),
+                        .Q({s_logisimBus21[15:11], s_logisimBus21[4:0]})
+                        );
 
    SC2661_UART   CHIP_32H (.A0(s_logisimBus18[0]),
                            .A1(s_logisimBus18[1]),

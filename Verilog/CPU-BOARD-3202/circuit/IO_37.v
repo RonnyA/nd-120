@@ -415,6 +415,10 @@ module IO_37( BDRY50_n,
                       .TXD(s_logisimNet89),
                       .XTR(s_logisimNet96));
 
+
+   wire s_EPAN_n; // not used output signal
+
+
    IO_DCD_38   DCD (.BDRY50_n(s_logisimNet65),
                     .BRK_n(s_logisimNet93),
                     .CA10(s_logisimNet44),
@@ -435,6 +439,7 @@ module IO_37( BDRY50_n,
                     .EMPID_n(s_logisimNet40),
                     .EMP_n(s_logisimNet64),
                     .EORF_n(s_logisimNet70),
+                    .EPAN_n(s_EPAN_n),              // <== EPAN NOT CONNECTED (maybe read from PAL?)
                     .EPANS_n(s_logisimNet35),
                     .ESTOF_n(s_logisimNet74),
                     .FETCH(s_logisimNet60),

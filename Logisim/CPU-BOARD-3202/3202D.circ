@@ -26070,6 +26070,7 @@ e6 63 0 0 3a 0 0 48
       <a name="label" val="XTAL2"/>
     </comp>
     <comp lib="0" loc="(400,1000)" name="Ground"/>
+    <comp lib="0" loc="(410,950)" name="Power"/>
     <comp lib="0" loc="(580,2460)" name="Tunnel">
       <a name="label" val="POWSENSE"/>
     </comp>
@@ -26153,6 +26154,7 @@ e6 63 0 0 3a 0 0 48
       <a name="text" val="IO/DCD"/>
     </comp>
     <comp lib="8" loc="(130,935)" name="Text">
+      <a name="color" val="#ff201c"/>
       <a name="halign" val="left"/>
       <a name="text" val="Estimated HIGH for 500useconds, before going low"/>
     </comp>
@@ -26370,7 +26372,6 @@ e6 63 0 0 3a 0 0 48
     <wire from="(330,650)" to="(570,650)"/>
     <wire from="(340,370)" to="(610,370)"/>
     <wire from="(360,690)" to="(690,690)"/>
-    <wire from="(400,970)" to="(400,1000)"/>
     <wire from="(400,970)" to="(410,970)"/>
     <wire from="(410,950)" to="(410,970)"/>
     <wire from="(410,970)" to="(640,970)"/>
