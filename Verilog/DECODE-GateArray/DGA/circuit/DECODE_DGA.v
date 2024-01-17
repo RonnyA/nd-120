@@ -38,7 +38,7 @@ module DECODE_DGA( XA_7_0,
                    XID_4_0,
                    XION,
                    XI_3_0_C,
-                   XI_3_0_I,
+                   XI_3_0_I,  // TODO: Merge into inout _io
                    XI_3_0_O,
                    XLCN,
                    XLHN,
@@ -49,7 +49,7 @@ module DECODE_DGA( XA_7_0,
                    XMRN,
                    XOCN,
                    XPAN,
-                   XPDI,
+                   XPOI,
                    XPEN,
                    XPFN,
                    XPIN,
@@ -73,7 +73,7 @@ module DECODE_DGA( XA_7_0,
                    XSTP,
                    XST_4_3,
                    XSWN,
-                   XTE0,
+                   XTEO,
                    XTES,
                    XTON,
                    XTOT,
@@ -103,7 +103,7 @@ module DECODE_DGA( XA_7_0,
    input       XLON;
    input       XLSH;
    input [1:0] XMI_1_0;
-   input       XPDI;
+   input       XPOI;
    input       XPOW;
    input       XPWC;
    input       XRMN;
@@ -160,7 +160,7 @@ module DECODE_DGA( XA_7_0,
    output       XSSN;
    output       XSTP;
    output       XSWN;
-   output       XTE0;
+   output       XTEO;
    output       XTOT;
    output       XTRN;
    output       XVAL;
@@ -321,7 +321,7 @@ module DECODE_DGA( XA_7_0,
    assign s_logisimBus32[1:0] = XST_4_3;
    assign s_logisimBus5[3:0]  = XI_3_0_I;
    assign s_logisimBus78[4:0] = XCO_4_0;
-   assign s_logisimNet105     = XPDI;
+   assign s_logisimNet105     = XPOI;
    assign s_logisimNet106     = XBRN;
    assign s_logisimNet22      = XLCN;
    assign s_logisimNet23      = XS5N;
@@ -389,7 +389,7 @@ module DECODE_DGA( XA_7_0,
    assign XSSN     = s_logisimNet50;
    assign XSTP     = s_logisimNet26;
    assign XSWN     = s_logisimNet43;
-   assign XTE0     = s_logisimNet101;
+   assign XTEO     = s_logisimNet101;
    assign XTOT     = s_logisimNet47;
    assign XTRN     = s_logisimNet62;
    assign XVAL     = s_logisimNet88;
@@ -496,7 +496,7 @@ module DECODE_DGA( XA_7_0,
                          .STARTN(s_logisimNet33),
                          .STOPN(s_logisimNet28),
                          .STPN(s_logisimNet26),
-                         .TEST0(s_logisimNet101),
+                         .TESTO(s_logisimNet101),
                          .TESTE(s_logisimNet75),
                          .TOUT(s_logisimNet47));
 

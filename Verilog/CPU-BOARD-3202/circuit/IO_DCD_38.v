@@ -26,6 +26,7 @@ module IO_DCD_38( BDRY50_n,
                   EMPID_n,
                   EMP_n,
                   EORF_n,
+                  EPAN_n,   // Signal on the DGA chip (not connected in sheet 39). Maybe replaced by a PAL signal ?
                   EPANS_n,
                   ESTOF_n,
                   FETCH,
@@ -164,6 +165,7 @@ module IO_DCD_38( BDRY50_n,
    output       VAL;
    output       WCHIM_n;
    output       WRITE;
+   output       EPAN_n;
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -348,8 +350,8 @@ module IO_DCD_38( BDRY50_n,
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // Ground
-   assign  s_logisimNet3  =  1'b0;
+   // HIGH (schematic is via a zener diode, not sure what this is about - estimated 500 uc delay - which may be used to reset CLOSC and PWCL signal)
+   assign  s_logisimNet3  =  1'b1;
 
 
    // NOT Gate
@@ -357,6 +359,8 @@ module IO_DCD_38( BDRY50_n,
 
    // NOT Gate
    assign s_logisimNet28 = ~s_logisimBus73[0];
+
+   
 
    /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -402,18 +406,124 @@ module IO_DCD_38( BDRY50_n,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   TTL_74393   CHIP_13C_1 (.A_n(s_logisimNet49),
-                           .CLR(s_logisimNet14),
+   TTL_74393   CHIP_13C_1 (.CLK_n(s_logisimNet49),
+                           .RESET(s_logisimNet14),
                            .QA(),
                            .QB(),
-                           .QC(s_logisimNet31),
+                           .QC(s_logisimNet31),  // Signal PPOSC leaving DCD (4.9152 Mhz clock for UART)
                            .QD(s_logisimNet53));
 
-   TTL_74393   CHIP_13C_2 (.A_n(s_logisimNet53),
-                           .CLR(s_logisimNet14),
+   TTL_74393   CHIP_13C_2 (.CLK_n(s_logisimNet53),
+                           .RESET(s_logisimNet14),
                            .QA(),
                            .QB(),
                            .QC(),
-                           .QD(s_logisimNet19));
+                           .QD(s_logisimNet19)  // Signal RTOSC going to DGA (153.6Khz)
+                           );
+
+
+   wire CLOSC;  // CLOSC
+   assign CLOSC = s_logisimNet14;
+
+   wire PWCL;
+   assign PWCL = ~SWMCL_n | OPCLCS;
+
+
+   wire TESTE;
+   assign TESTE = 1'b1;  // <=== TEST ENABLE (?) Must be 1 for normal operation
+
+   wire XTESTO;  
+   wire [7:0] s_XA_7_0_C_not_used;
+
+
+   DECODE_DGA  DGA(
+            /** INPUT **/
+
+            .XBDN(BDRY50_n),  
+            .XBRN(BRK_n),
+            .XCLK(CLK),
+            .XCLO(CLOSC),  
+            .XCON(ICONTIN_n),
+            .XCO_4_0(CSCOMM_4_0),
+            .XDAN(DAP_n),
+            .XEFN(REF_n),
+            .XEON(EORF_n),
+            .XHIN(~HIT),  // XHIT_n (negated)
+            .XIB_7_4(IDB_7_4),
+            .XID_4_0(CSIDBS_4_0),
+            .XI_3_0_I(IDB_3_0_io),
+            .XLCN(LCS_n),
+            .XLON(ILOAD_n),
+            .XLSH(LSHADOW),
+            .XMI_1_0(CSMIS_1_0),
+            .XPOI(PONI),   
+            .XPOW(POWSENSE_n), 
+            .XPWC(PWCL),
+            .XRMN(RMM_n),
+            .XRTO(s_logisimNet19),    // XRTOSC 
+            .XS5N(SEL5MS_n),
+            .XST_4_3(STAT_4_3),
+            .XTES(TESTE),                     
+            .XTON(ISTOP_n),
+            .XUCK(UCLK),
+
+            /** OUTPUT **/
+
+            .XA_7_0(PA_7_0),
+            .XA_7_0_C(s_XA_7_0_C_not_used),    // Not connected out ? Its the LOW/HIGH for all bits depending on the RMMN control signal (See DECODE_DGA)            
+            .XC10(CA10),
+            .XCLN(CLEAR_n),
+            .XCRN(CCLR_n),
+            .XCSN(ECSR_n),
+            .XDON(EDO_n),
+            .XDTN(DT_n),
+            .XDVN(DVACC_n),
+            .XECR(ECREQ),
+            .XEMN(EMP_n),
+            .XEPN(EPAN_n),
+            .XESN(ESTOF_n),
+            .XEUN(CEUART_n),
+            .XFEC(FETCH),
+            .XFMI(FMISS),
+            .XFON(FORM_n),
+            .XFUN(FUL_n),
+            .XION(EIOR_n),
+            .XI_3_0_C(),
+            .XI_3_0_O(),
+            .XLHN(LHIT),  
+            .XMCL(MCL),
+            .XMRN(MREQ_n),
+            .XOCN(SIOC_n),
+            .XPAN(PA_n),
+            .XPEN(PS_n),
+            .XPFN(POWFAIL_n),
+            .XPIN(EMPID_n),
+            .XPNN(PAN_n),
+            .XPSC(PANOSC),
+            .XPSN(EPANS_n),
+            .XRFN(REFRQ_n),
+            .XRIN(RINR_n),
+            .XRQN(IORQ_n),
+            .XRTN(RT_n),
+            .XRUN(RUART_n),
+            .XRWN(RWCS_n), // (NOT CONNECTED IN SHEET 39)
+            .XSCN(STOC_n),
+            .XSHN(SHORT_n),
+            .XSSN(SSEMA_n),
+            .XSTP(STP),
+            .XSWN(SLOW_n),
+            .XTEO(XTESTO),  // TEST OUTPUT (NOT CONNECTED IN SHEET 39)
+            .XTOT(TOUT),
+            .XTRN(TRAALD_n),
+            .XVAL(VAL),
+            .XWHN(WCHIM_n),
+            .XWRI(WRITE)                  
+
+   );
+
+
+ 
+
+
 
 endmodule
