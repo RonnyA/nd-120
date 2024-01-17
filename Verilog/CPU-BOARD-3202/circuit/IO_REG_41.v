@@ -44,24 +44,24 @@ module IO_REG_41( BINT10_n,
    output        CONSOLE_n;
    output        EMCL_n;
    output [15:0] IDB_15_0;
-   output [7:0]  IDB_7_0_io;
+   inout  [7:0]  IDB_7_0_io;
    output [1:0]  logisimOutputBubbles;
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [4:0]  s_logisimBus11;
-   wire [7:0]  s_logisimBus48;
+   wire [4:0]  s_STRAP2;
+   wire [7:0]  s_INR_IDB_7_0;
    wire [7:0]  s_logisimBus59;
-   wire [2:0]  s_logisimBus60;
-   wire [3:0]  s_logisimBus62;
-   wire [15:0] s_logisimBus78;
-   wire        s_logisimNet0;
+   wire [2:0]  s_PRINT_NO;
+   wire [3:0]  s_ALD;
+   wire [15:0] s_IDB_15_0;
+   wire        s_IDB_15_0;
    wire        s_logisimNet1;
    wire        s_logisimNet10;
    wire        s_logisimNet12;
    wire        s_logisimNet13;
-   wire        s_logisimNet14;
+   wire        s_RINR_n;
    wire        s_logisimNet15;
    wire        s_logisimNet16;
    wire        s_logisimNet17;
@@ -141,8 +141,8 @@ module IO_REG_41( BINT10_n,
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus59[7:0] = INR_7_0;
-   assign s_logisimNet14      = RINR_n;
+   assign s_INR[7:0]          = INR_7_0;
+   assign s_RINR_n            = RINR_n;
    assign s_logisimNet33      = SIOC_n;
    assign s_logisimNet41      = CX_n;
    assign s_logisimNet44      = TBMT_n;
@@ -158,8 +158,8 @@ module IO_REG_41( BINT10_n,
    assign BINT13_n   = s_logisimNet50;
    assign CONSOLE_n  = s_logisimNet77;
    assign EMCL_n     = s_logisimNet34;
-   assign IDB_15_0   = s_logisimBus78[15:0];
-   assign IDB_7_0_io = s_logisimBus78[7:0];
+   assign IDB_15_0   = s_IDB_15_0[15:0];
+   assign IDB_7_0_io = s_IDB_15_0[7:0];
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
@@ -177,16 +177,18 @@ module IO_REG_41( BINT10_n,
    assign  s_logisimNet39  =  1'b1;
 
 
-   // Constant
-   assign  s_logisimBus60[2:0]  =  3'b101;
 
 
-   // Constant
-   assign  s_logisimBus11[4:0]  =  {1'b0, 4'h0};
+   // Constant- ALD Regirster PCB
+   assign  s_PRINT_NO[2:0]  =  3'b101; // 101 == 3202D
 
 
-   // Constant
-   assign  s_logisimBus62[3:0]  =  4'hF;
+   // Constant for ALD register ECO Fixes
+   assign  s_STRAP2[4:0]  =  {5'b00000};  // STRAP9-STRAP5 (high bit is STRAP9, low bit is STRAP5)
+
+
+   // Constant for ALD settings. ALD boot switch
+   assign  s_ALD[3:0]  =  4'hF;
 
 
    // Power
@@ -236,16 +238,17 @@ module IO_REG_41( BINT10_n,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   TTL_74273   CHIP_28A_IOC (.CK(s_logisimNet33),
-                             .CL_n(s_logisimNet45),
-                             .D1(s_logisimBus78[7]),
-                             .D2(s_logisimBus78[6]),
-                             .D3(s_logisimBus78[5]),
-                             .D4(s_logisimBus78[4]),
-                             .D5(s_logisimBus78[3]),
-                             .D6(s_logisimBus78[2]),
-                             .D7(s_logisimBus78[1]),
-                             .D8(s_logisimBus78[0]),
+/*
+   TTL_74273   CHIP_28A_IOC (.CLK(s_logisimNet33),
+                             .CLR_n(s_logisimNet45),
+                             .D1(s_IDB_15_0[7]),
+                             .D2(s_IDB_15_0[6]),
+                             .D3(s_IDB_15_0[5]),
+                             .D4(s_IDB_15_0[4]),
+                             .D5(s_IDB_15_0[3]),
+                             .D6(s_IDB_15_0[2]),
+                             .D7(s_IDB_15_0[1]),
+                             .D8(s_IDB_15_0[0]),
                              .Q1(s_logisimNet49),
                              .Q2(s_logisimNet2),
                              .Q3(s_logisimNet34),
@@ -254,27 +257,32 @@ module IO_REG_41( BINT10_n,
                              .Q6(s_logisimNet1),
                              .Q7(s_logisimNet19),
                              .Q8(s_logisimNet42));
+*/
 
-   TTL_74244   CHIP_24A_INR (.I0_1A1(s_logisimBus59[7]),
-                             .I1_1A2(s_logisimBus59[6]),
-                             .I2_1A3(s_logisimBus59[5]),
-                             .I3_1A4(s_logisimBus59[4]),
-                             .I4_2A1(s_logisimBus59[3]),
-                             .I5_2A2(s_logisimBus59[2]),
-                             .I6_2A3(s_logisimBus59[1]),
-                             .I7_2A4(s_logisimBus59[0]),
-                             .O0_1Y1(s_logisimBus48[7]),
-                             .O1_1Y2(s_logisimBus48[6]),
-                             .O2_1Y3(s_logisimBus48[5]),
-                             .O3_1Y4(s_logisimBus48[4]),
-                             .O4_2Y1(s_logisimBus48[3]),
-                             .O5_2Y2(s_logisimBus48[2]),
-                             .O6_2Y3(s_logisimBus48[1]),
-                             .O7_2Y4(s_logisimBus48[0]),
-                             .OE1_1G_n(s_logisimNet14),
-                             .OE2_2G_n(s_logisimNet14));
+TTL_74273 CHIP_28A_IOC (
+    .CLK(s_logisimNet33),           // Clock input
+    .CLR_n(s_logisimNet45),         // Active low clear input
+    .D(s_IDB_15_0),             // 8-bit data input directly from the bus
+    .Q({s_logisimNet42,             // 8-bit output, bit 7 (Q8 - Corresponding to D8/MSB)
+        s_logisimNet19,             // 8-bit output, bit 6 (Q7)
+        s_logisimNet1,              // 8-bit output, bit 5 (Q6)
+        s_logisimNet9,              // 8-bit output, bit 4 (Q5)
+        s_logisimNet16,             // 8-bit output, bit 3 (Q4)
+        s_logisimNet34,             // 8-bit output, bit 2 (Q3)
+        s_logisimNet2,              // 8-bit output, bit 1 (Q2)
+        s_logisimNet49})            // 8-bit output, bit 0 (Q1 - Corresponding to D1/LSB)
+);
 
-   TTL_74244   CHIP_27A_STRAP (.I0_1A1(s_logisimBus60[2]),
+
+
+      // TTL_74244 CHIP_24A_INR (simplified..)
+      assign s_INR_IDB_7_0[7:0] = s_RINR_n  ? 8'bz : s_INR[7:0]; 
+
+      // IDB bus 7:0 is shared between ALD and INR.. or Z state
+      assign s_IDB_15_0[7:0] = !s_logisimNet7 ?  s_IDB_15_0[7:0] :  s_INR_IDB_7_0[7:0]; // if TRAALD_n is low, then the IDB[7:0] is driven by ALD if not its driven by INR
+
+/*
+      TTL_74244   CHIP_27A_STRAP (.I0_1A1(s_logisimBus60[2]),
                                .I1_1A2(s_logisimBus60[1]),
                                .I2_1A3(s_logisimBus60[0]),
                                .I3_1A4(s_logisimBus11[0]),
@@ -282,34 +290,82 @@ module IO_REG_41( BINT10_n,
                                .I5_2A2(s_logisimBus11[2]),
                                .I6_2A3(s_logisimBus11[3]),
                                .I7_2A4(s_logisimBus11[4]),
-                               .O0_1Y1(s_logisimBus78[15]),
-                               .O1_1Y2(s_logisimBus78[14]),
-                               .O2_1Y3(s_logisimBus78[13]),
-                               .O3_1Y4(s_logisimBus78[12]),
-                               .O4_2Y1(s_logisimBus78[11]),
-                               .O5_2Y2(s_logisimBus78[10]),
-                               .O6_2Y3(s_logisimBus78[9]),
-                               .O7_2Y4(s_logisimBus78[8]),
-                               .OE1_1G_n(s_logisimNet7),
+                               .O0_1Y1(s_IDB_15_0[15]),
+                               .O1_1Y2(s_IDB_15_0[14]),
+                               .O2_1Y3(s_IDB_15_0[13]),
+                               .O3_1Y4(s_IDB_15_0[12]),
+                               .O4_2Y1(s_IDB_15_0[11]),
+                               .O5_2Y2(s_IDB_15_0[10]),
+                               .O6_2Y3(s_IDB_15_0[9]),
+                               .O7_2Y4(s_IDB_15_0[8]),
+                               .OE1_1G_n(),
                                .OE2_2G_n(s_logisimNet7));
+*/
 
+  TTL_74244   CHIP_27A_STRAP (
+               // Input 
+
+               //        1A4                1A3                  1A2                  1A1 
+                .A1({s_STRAP2[0], s_PRINT_NO[0],s_PRINT_NO[1], s_PRINT_NO[2]}), // Mapping 4 separate signals to 1A4-1A1
+                .G1_n(s_logisimNet7),
+
+                //        2A4                2A3                  2A2                  2A1 
+                .A2(s_STRAP2[4:1]),   // Mapping 4 separate signals to 2A4-2A1
+                .G2_n(s_logisimNet7),
+
+
+               // Output
+               .Y1({s_IDB_15_0[12], s_IDB_15_0[13], s_IDB_15_0[14], s_IDB_15_0[15]}), // Mapping 4 separate signals to 1Y4-1Y1
+               .Y2({s_IDB_15_0[8], s_IDB_15_0[9], s_IDB_15_0[10], s_IDB_15_0[11]}) // Mapping 4 separate signals to 1Y4-1Y1
+   );
+
+   
+
+
+
+
+/*
    TTL_74244   CHIP_25A_ALD (.I0_1A1(s_logisimNet41),
                              .I1_1A2(s_logisimNet12),
                              .I2_1A3(s_logisimNet10),
                              .I3_1A4(s_logisimNet39),
-                             .I4_2A1(s_logisimBus62[3]),
-                             .I5_2A2(s_logisimBus62[2]),
-                             .I6_2A3(s_logisimBus62[1]),
-                             .I7_2A4(s_logisimBus62[0]),
-                             .O0_1Y1(s_logisimBus78[7]),
-                             .O1_1Y2(s_logisimBus78[6]),
-                             .O2_1Y3(s_logisimBus78[5]),
-                             .O3_1Y4(s_logisimBus78[4]),
-                             .O4_2Y1(s_logisimBus78[3]),
-                             .O5_2Y2(s_logisimBus78[2]),
-                             .O6_2Y3(s_logisimBus78[1]),
-                             .O7_2Y4(s_logisimBus78[0]),
+                             .I4_2A1(s_ALD[3]),
+                             .I5_2A2(s_ALD[2]),
+                             .I6_2A3(s_ALD[1]),
+                             .I7_2A4(s_ALD[0]),
+                             .O0_1Y1(s_IDB_15_0[7]),
+                             .O1_1Y2(s_IDB_15_0[6]),
+                             .O2_1Y3(s_IDB_15_0[5]),
+                             .O3_1Y4(s_IDB_15_0[4]),
+                             .O4_2Y1(s_IDB_15_0[3]),
+                             .O5_2Y2(s_IDB_15_0[2]),
+                             .O6_2Y3(s_IDB_15_0[1]),
+                             .O7_2Y4(s_IDB_15_0[0]),
                              .OE1_1G_n(s_logisimNet7),
                              .OE2_2G_n(s_logisimNet7));
+
+*/
+
+TTL_74244 CHIP_25A_ALD (
+    .A1({s_logisimNet39,     // I3_1A4 mapped to 1A4 (high bit)
+         s_logisimNet10,     // I2_1A3 mapped to 1A3
+         s_logisimNet12,     // I1_1A2 mapped to 1A2
+         s_logisimNet41}),   // I0_1A1 mapped to 1A1 (low bit)
+    .G1_n(s_logisimNet7),    // OE1_1G_n mapped to G1_n
+    .Y1({s_IDB_15_0[4],      // O3_1Y4 mapped from 1Y4 (high bit)
+         s_IDB_15_0[5],      // O2_1Y3 mapped from 1Y3
+         s_IDB_15_0[6],      // O1_1Y2 mapped from 1Y2
+         s_IDB_15_0[7]}),    // O0_1Y1 mapped from 1Y1 (low bit)
+    .A2({s_ALD[0],           // I7_2A4 mapped to 2A4 (high bit)
+         s_ALD[1],           // I6_2A3 mapped to 2A3
+         s_ALD[2],           // I5_2A2 mapped to 2A2
+         s_ALD[3]}),         // I4_2A1 mapped to 2A1 (low bit)
+    .G2_n(s_logisimNet7),    // OE2_2G_n mapped to G2_n
+    .Y2({s_IDB_15_0[0],      // O7_2Y4 mapped from 2Y4 (high bit)
+         s_IDB_15_0[1],      // O6_2Y3 mapped from 2Y3
+         s_IDB_15_0[2],      // O5_2Y2 mapped from 2Y2
+         s_IDB_15_0[3]})     // O4_2Y1 mapped from 2Y1 (low bit)
+);
+
 
 endmodule
