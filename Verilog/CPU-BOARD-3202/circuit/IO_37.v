@@ -435,6 +435,7 @@ module IO_37( BDRY50_n,
                     .EMPID_n(s_logisimNet40),
                     .EMP_n(s_logisimNet64),
                     .EORF_n(s_logisimNet70),
+                    .EPAN_n(1'1bz),              // <== EPAN NOT CONNECTED (maybe read from PAL?)
                     .EPANS_n(s_logisimNet35),
                     .ESTOF_n(s_logisimNet74),
                     .FETCH(s_logisimNet60),
