@@ -26153,6 +26153,7 @@ e6 63 0 0 3a 0 0 48
       <a name="text" val="IO/DCD"/>
     </comp>
     <comp lib="8" loc="(130,935)" name="Text">
+      <a name="color" val="#ff201c"/>
       <a name="halign" val="left"/>
       <a name="text" val="Estimated HIGH for 500useconds, before going low"/>
     </comp>
