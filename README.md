@@ -53,20 +53,24 @@ Functional Description, Instruction set, Microprogramming guide and more are in 
 The [Microcode](Code/Microcode/readme.md) dump is from a ND-120 3202 CPU Board is Version 14/L
 The source code is also for the L version.
 
-# 68705 #
+# Panel Controller - 6805 CPU CHIP #
 
 [ROM dump](Code/68705/readme.md)
 
-The ND-120/CX CPU Board has an on-board MC68705 CPU. 
-The front panel also has an MC68705 CPU, however this chip is not identical to the on on the 3202D CPU Board.
+The ND-120/CX CPU Board has an on-board MC68705-U3 CPU.
+
+The physical front panel also has an MC68705 CPU, however this chip is not identical to the on on the 3202D CPU Board - its an MC68705-P3 with fewer I/O pins.
 
 The MC68705 is an MC 6805 8-bit CPU with on-chip RAM, I/O and Timer. [Motorola 68HC05](https://en.wikipedia.org/wiki/Motorola_68HC05)
+
 * P3 version = 28 pins, 2x 8 bits I/O ports, 1x 4 bit I/O port
 * U3 version = 40 pins, 4x 8 bits I/O ports
 
-* We don't (yet) have a ROM dump of the MC68705-U3 chip from the 3202D CPU Board.
-* We do have a ROM dump of the MC68705-P3 (from an ND-5000C panel controller).
-  *  Big thanks to Matthieu Benoit for reading the data out of the chip.
+We have a ROM dumps from both the *MC68705-U3* chip (from the 3202D CPU Board) and the *MC68705-P3* (from an ND-5000C panel controller).
+
+**Big thanks to Matthieu Benoit for reading the data out of the chips**
+
+Reverse engineering has been done using the free SRE tool [GHIDRA](https://ghidra-sre.org/) from NSA.
 
 # Schematic drawings #
 
@@ -75,6 +79,7 @@ The MC68705 is an MC 6805 8-bit CPU with on-chip RAM, I/O and Timer. [Motorola 6
 All the Logisim files are stored in the [Logisim folder](Logisim/readme.md)
 
 ### Logisim Requirements ###
+
 You need to install the Logisim-Evolution design tool from [Logisim Evolution Repository](https://github.com/logisim-evolution/logisim-evolution)
 
 The Logisim diagrams has been drawn with [Version 3.8.0](https://github.com/logisim-evolution/logisim-evolution/releases/tag/v3.8.0)
@@ -87,10 +92,6 @@ Most Verilog files are generated from the Logisim drawings, using Logisim-Evolut
 
 All the Verilog files are stored in the [Verilog folder](Verilog/)
 
-
 ## Verilator ##
 
 To test the Verilog code using Verilator you need to install the [Verilator](https://www.veripool.org/verilator/) tool
-
-
-
