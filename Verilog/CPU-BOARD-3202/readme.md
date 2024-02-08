@@ -33,7 +33,7 @@
 | CPU/MMU           | MMU TOP LEVEL         | 24                 | CPU          |
 | CPU/MMU/CACHE     | CACHE                 | 25                 | CPU          |
 | CPU/MMU/CSR       | CACHE STATUS REG      | 26                 | CPU          |
-| CPU/MMU/HIT       | HIT DETECTION         | 27                 | CPU          |
+| CPU/MMU/HIT       | HIT DETECTION         | 27                 | CPU          | [Verilog created](circuit/CPU_MMU_HIT_27.v)    | [Test](circuit/CPU_MMU_HIT_27/readme.md)
 | CPU/MMU/PPNX      | PPN TO IDB            | 28                 | CPU          |
 | CPU/MMU/PT        | PAGE TABLES           | 29                 | CPU          |
 | CPU/MMU/PTIDB     | PT TO IDB             | 30                 | CPU          |

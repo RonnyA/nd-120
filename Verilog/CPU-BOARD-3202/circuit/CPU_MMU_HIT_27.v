@@ -1,33 +1,63 @@
 /******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
  **                                                                          **
  ** Component : CPU_MMU_HIT_27                                               **
  **                                                                          **
+ ** Refactored/Rewritten 08.02.2024 Ronny Hansen                             **
  *****************************************************************************/
 
-module CPU_MMU_HIT_27( CON_n,
-                       CPN_23_10,
-                       FMISS,
-                       HIT0_n,
-                       HIT1_n,
-                       LSHADOW,
-                       PPN_23_10 );
+module CPU_MMU_HIT_27( 
+                       input [13:0] PPN_23_10,
+                       input [13:0] CPN_23_10,                                                                     
+                       input        LSHADOW,
+                       input        FMISS,
+                       input        CON_n,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        CON_n;
-   input [13:0] CPN_23_10;
-   input        FMISS;
-   input        LSHADOW;
-   input [13:0] PPN_23_10;
+                       output wire HIT0_n,
+                       output wire HIT1_n
+                     );
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output HIT0_n;
-   output HIT1_n;
+
+
+
+// Register to store the calculated HIT value
+reg HIT0n_reg;
+reg HIT1n_reg;
+
+
+// Temporary signals for comparison
+reg [7:0] PPN_HI;
+reg [7:0] CPN_HI;
+
+
+// HIT0 is false if PPN_23_10[7:0] == CPN_23_10[7:0]
+always @(*) begin
+   HIT0n_reg = (PPN_23_10[7:0] == CPN_23_10[7:0]) ? 1'b0 : 1'b1;
+end
+
+
+// HIT0 is true if PPN_23_10[5:0] != CPN_23_10[5:0] and LSHADOW is false
+always @(*) begin
+   // Construct PPN_HI
+   PPN_HI[7:2] = PPN_23_10[5:0];
+   PPN_HI[1] = LSHADOW;
+   PPN_HI[0] = 1'b0;
+   
+   // Construct CPN_HI
+   CPN_HI[7:2] = CPN_23_10[5:0];
+   CPN_HI[1:0] = 2'b00; // Set both bits to 0
+
+   HIT1n_reg = (PPN_HI == CPN_HI) ? 1'b0 : 1'b1;
+end
+
+
+assign HIT0_n = CON_n ? 1'bz : HIT0n_reg;
+assign HIT1_n = FMISS ? 1'bz : HIT1n_reg;
+
+
+
+// Below is the original code from the Logisim generated file
+`ifdef _OLD_CODE_
+
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -126,5 +156,7 @@ module CPU_MMU_HIT_27( CON_n,
                          .A_7_0(s_logisimBus5[7:0]),
                          .B_7_0(s_logisimBus6[7:0]),
                          .E_n(s_logisimNet9));
+
+`endif
 
 endmodule
