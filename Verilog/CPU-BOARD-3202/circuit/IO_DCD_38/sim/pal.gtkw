@@ -1,22 +1,22 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Thu Feb  8 12:09:28 2024
+[*] Thu Feb  8 21:29:11 2024
 [*]
 [dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/IO_DCD_38/sim/waveform.vcd"
-[dumpfile_mtime] "Tue Feb  6 13:57:47 2024"
-[dumpfile_size] 370248
+[dumpfile_mtime] "Thu Feb  8 21:28:06 2024"
+[dumpfile_size] 370235
 [savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/IO_DCD_38/sim/pal.gtkw"
 [timestart] 0
-[size] 2148 3735
-[pos] 37110 35126
-*-4.456229 360 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[size] 2548 1359
+[pos] -1 -1
+*-4.456229 3684 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [treeopen] TOP.IO_DCD_38.
 [treeopen] TOP.IO_DCD_38.DGA.
 [sst_width] 214
 [signals_width] 384
 [sst_expanded] 1
-[sst_vpaned_height] 299
+[sst_vpaned_height] 100
 @200
 ---clock--
 @28
@@ -27,6 +27,8 @@ TOP.IO_DCD_38.XTAL2
 @200
 --- input --
 @28
+TOP.OSCCL_n
+TOP.IO_DCD_38.CLOSC
 TOP.IO_DCD_38.BDRY50_n
 TOP.IO_DCD_38.BRK_n
 @22
@@ -48,7 +50,6 @@ TOP.IO_DCD_38.LCS_n
 TOP.IO_DCD_38.LSHADOW
 TOP.IO_DCD_38.OC_1_0[1:0]
 TOP.IO_DCD_38.OPCLCS
-TOP.OSCCL_n
 TOP.IO_DCD_38.PONI
 TOP.IO_DCD_38.POWSENSE_n
 TOP.IO_DCD_38.REF_n

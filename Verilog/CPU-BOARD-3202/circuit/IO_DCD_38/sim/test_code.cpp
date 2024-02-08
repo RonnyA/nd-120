@@ -155,9 +155,7 @@ int main(int argc, char **argv)
                 top->CSCOMM_4_0 = cscomm;
                 top->CSMIS_1_0 = csmis;
                 
-
-
-        top->eval();
+                top->eval();
 
 
 #ifdef DO_TRACE        
