@@ -188,7 +188,7 @@ module IO_DCD_38( BDRY50_n,
    wire       s_logisimNet15;
    wire       s_logisimNet16;
    wire       s_logisimNet17;
-   wire       s_logisimNet19;
+   wire       s_XRTOSC;
    wire       s_logisimNet2;
    wire       s_logisimNet20;
    wire       s_logisimNet21;
@@ -200,7 +200,7 @@ module IO_DCD_38( BDRY50_n,
    wire       s_logisimNet27;
    wire       s_logisimNet28;
    wire       s_logisimNet3;
-   wire       s_logisimNet31;
+   wire       s_PPOSC;
    wire       s_logisimNet32;
    wire       s_logisimNet33;
    wire       s_logisimNet34;
@@ -219,7 +219,7 @@ module IO_DCD_38( BDRY50_n,
    wire       s_logisimNet46;
    wire       s_logisimNet47;
    wire       s_logisimNet48;
-   wire       s_logisimNet49;
+   wire       s_XTAL1;
    wire       s_logisimNet5;
    wire       s_logisimNet50;
    wire       s_logisimNet51;
@@ -281,7 +281,7 @@ module IO_DCD_38( BDRY50_n,
    assign s_logisimNet35      = REF_n;
    assign s_logisimNet39      = UCLK;
    assign s_logisimNet47      = SWMCL_n;
-   assign s_logisimNet49      = XTAL1;
+   assign s_XTAL1             = XTAL1;
    assign s_logisimNet50      = XTAL2;
    assign s_logisimNet54      = OSCCL_n;
    assign s_logisimNet58      = HIT;
@@ -327,7 +327,7 @@ module IO_DCD_38( BDRY50_n,
    assign PA_7_0    = s_logisimBus52[7:0];
    assign PA_n      = s_logisimNet12;
    assign POWFAIL_n = s_logisimNet55;
-   assign PPOSC     = s_logisimNet31;
+   assign PPOSC     = s_PPOSC;
    assign PS_n      = s_logisimNet78;
    assign REFRQ_n   = s_logisimNet1;
    assign RINR_n    = s_logisimNet38;
@@ -376,7 +376,7 @@ module IO_DCD_38( BDRY50_n,
                .result(s_logisimNet77));
 
    NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_3 (.input1(s_logisimNet49),
+      GATES_3 (.input1(s_XTAL1),
                .input2(s_logisimBus73[1]),
                .input3(s_logisimBus73[0]),
                .result(s_logisimNet23));
@@ -406,11 +406,11 @@ module IO_DCD_38( BDRY50_n,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   TTL_74393   CHIP_13C_1 (.CLK_n(s_logisimNet49),
+   TTL_74393   CHIP_13C_1 (.CLK_n(s_XTAL1),
                            .RESET(s_logisimNet14),
                            .QA(),
                            .QB(),
-                           .QC(s_logisimNet31),  // Signal PPOSC leaving DCD (4.9152 Mhz clock for UART)
+                           .QC(s_PPOSC),  // Signal PPOSC leaving DCD (4.9152 Mhz clock for UART)
                            .QD(s_logisimNet53));
 
    TTL_74393   CHIP_13C_2 (.CLK_n(s_logisimNet53),
@@ -418,7 +418,7 @@ module IO_DCD_38( BDRY50_n,
                            .QA(),
                            .QB(),
                            .QC(),
-                           .QD(s_logisimNet19)  // Signal RTOSC going to DGA (153.6Khz)
+                           .QD(s_XRTOSC)  // Signal RTOSC going to DGA (153.6Khz)
                            );
 
 
@@ -460,7 +460,7 @@ module IO_DCD_38( BDRY50_n,
             .XPOW(POWSENSE_n), 
             .XPWC(PWCL),
             .XRMN(RMM_n),
-            .XRTO(s_logisimNet19),    // XRTOSC 
+            .XRTO(s_XRTOSC),    // XRTOSC 
             .XS5N(SEL5MS_n),
             .XST_4_3(STAT_4_3),
             .XTES(TESTE),                     
