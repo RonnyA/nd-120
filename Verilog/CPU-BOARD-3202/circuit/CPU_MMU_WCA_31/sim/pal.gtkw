@@ -1,0 +1,29 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Sat Feb 10 20:01:06 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_MMU_WCA_31/sim/waveform.vcd"
+[dumpfile_mtime] "Sat Feb 10 19:54:49 2024"
+[dumpfile_size] 8715
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_MMU_WCA_31/sim/pal.gtkw"
+[timestart] 0
+[size] 2148 3735
+[pos] -1 -1
+*-4.456229 0 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 214
+[signals_width] 384
+[sst_expanded] 1
+[sst_vpaned_height] 299
+@200
+--- input --
+@22
+TOP.CPU_MMU_WCA_31.CPN_23_10[13:0]
+@28
+TOP.CPU_MMU_WCA_31.WCA_n
+@200
+--- output --
+@23
+TOP.CPU_MMU_WCA_31.PPN_23_10[13:0]
+[pattern_trace] 1
+[pattern_trace] 0

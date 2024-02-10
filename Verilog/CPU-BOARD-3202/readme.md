@@ -37,8 +37,8 @@
 | CPU/MMU/PPNX      | PPN TO IDB            | 28                 | CPU          |
 | CPU/MMU/PT        | PAGE TABLES           | 29                 | CPU          |
 | CPU/MMU/PTIDB     | PT TO IDB             | 30                 | CPU          |
-| CPU/MMU/WCA       | PPN TO CPN            | 31                 | CPU          |
-| CPU/PROC          | PROCESSOR TOP LEVEL   | 32                 | CPU          |
+| CPU/MMU/WCA       | PPN TO CPN            | 31                 | CPU          | [Verilog created](circuit/CPU_MMU_WCA_31.v)     | [Test](circuit/CPU_MMU_WCA_31/readme.md)
+| CPU/PROC          | PROCESSOR TOP LEVEL   | 32                 | CPU          | 
 | CPU/PROC/CGA      | CPU GATE ARRAY        | 33                 | CPU          | [Verilog created](circuit/CPU_PROC_CGA_33.v)    | [Test](circuit/CPU_PROC_CGA_33/readme.md)
 | CPU/PROC/CMDDEC   | COMMANDS & IDB DECODE | 34                 | CPU          | [Verilog created](circuit/CPU_PROC_CMDDEC_34.v) | [Test](circuit/CPU_PROC_CMDDEC_34/readme.md)
 | CPU/STOC          | IDB TO CD             | 35                 | CPU          | [Verilog created](circuit/CPU_STOC_35.v)        | [Test](circuit/CPU_STOC_35/readme.md)

@@ -1,25 +1,25 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CPU_MMU_WCA_31                                               **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** CPU/MMU/WCA                                                           **
+** PPN TO CPN                                                            **
+** SHEET 31 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 10-FEB-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CPU_MMU_WCA_31( CPN_23_10,
-                       PPN_23_10,
-                       WCA_n );
+module CPU_MMU_WCA_31(
+                        input  [13:0] CPN_23_10,
+                        input         WCA_n,
+                        output [13:0] PPN_23_10
+                      );
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input [13:0] PPN_23_10;
-   input        WCA_n;
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output [13:0] CPN_23_10;
+assign PPN_23_10 = WCA_n ? 14'b0 : CPN_23_10;
+
+
+// Below is the original code from the Logisim generated file
+`ifdef _OLD_CODE_
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -112,5 +112,6 @@ module CPU_MMU_WCA_31( CPN_23_10,
                          .O7_2Y4(s_logisimBus0[0]),
                          .OE1_1G_n(s_logisimNet5),
                          .OE2_2G_n(s_logisimNet5));
+`endif
 
 endmodule
