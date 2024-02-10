@@ -15,7 +15,7 @@ module CPU_MMU_WCA_31(
                       );
 
 
-assign PPN_23_10 = WCA_n ? 14'b0 : CPN_23_10;
+assign PPN_23_10 = WCA_n ? 14'bz : CPN_23_10;
 
 
 // Below is the original code from the Logisim generated file
