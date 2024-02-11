@@ -14,8 +14,8 @@ Chips for the 3202D board:
 | UART        | Microchip AY2661                                         | https://datasheetspdf.com/pdf-file/1412058/SMSC/COM2661-3/1 http://bitsavers.org/components/microchipTechnology/_dataBooks/1990_Microchip_Data_Book.pdf |Not started |
 | SIP1M9      | Local RAM page 49                                        | |
 | IDT6168A    | 16K (4Kx4) Static RAM                                    | |
-| IMS1403_25  | 16K x 1 Static RAM                                       | |
-| TMM2018D_25 | 16K Static RAM (Cache)                                   | |
+| IMS1403_25  | 16K x 1 Static RAM                                       | https://datasheetspdf.com/pdf-file/537395/Inmos/IMS1403/1 |
+| TMM2018D_25 | 2K x 8 Static RAM (Cache)                                | |
 | AM9150_20   | 1024 x 4 High-Speed Static R/W RAM                       | http://www.sintran.com/library/libother/extern/AM9150.pdf |
 | AM29C821    | Bus Driver 10 bits. Positive edge-triggered registeres with D-type flip-flops and 3-state| https://www.digikey.com/en/products/detail/rochester-electronics-llc/AM29C821-BLA/12095382 |
 | AM29841     | Bus Driver 10 bit (D-Latch) with 3-state output          | https://www.alldatasheet.com/datasheet-pdf/pdf/107079/AMD/AM29841.html | 
