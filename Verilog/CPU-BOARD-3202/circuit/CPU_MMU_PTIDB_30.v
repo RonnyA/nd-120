@@ -11,35 +11,40 @@
 // verilator lint_off ASSIGNDLY
 
 module CPU_MMU_PTIDB_30( 
-                        inout tri [15:0] IDB_15_0,      // Bidirectional IDB data bus (A)
-                        inout tri [15:0] PT_15_0,       // Bidirectional PT data bus  (B)
-                        input WRITE,                    // Direction: 0=Read from B,1=Write to B  (DIR)
-                        input EPTI_n                    // Enable PTI(negated)        (OE_n)                                    
+                        inout [15:0] IDB_15_0,      // Bidirectional IDB data bus (A)
+                        inout [15:0] PT_15_0,       // Bidirectional PT data bus  (B)
+                        input WRITE,                // Direction: 0=Read from B,1=Write to B  (DIR)
+                        input EPTI_n                // Enable PTI(negated)        (OE_n)                                    
                         );
 
 // This code replaces the original Logisim generated code with a simpler and more efficient implementation
 // It replaces two 74PCT245 chips (8-bit transceiver with 3-state outputs) with one 16 bit identical implementation.
 
-wire OE_n;
-wire DIR;
+reg OE_n;
+reg DIR;
 
 reg [15:0] A_reg;
 reg [15:0] B_reg;
 
 // Control OE and DIR directly with inputs for clarity
-assign OE_n = EPTI_n;
-assign DIR = WRITE;
+
 
 // Separate logic for read and write operations
 always @(*) begin
-   A_reg = #(10) IDB_15_0;
-   B_reg = #(10) PT_15_0;
+   OE_n <= EPTI_n;
+   DIR <= WRITE;
+
+   A_reg <= IDB_15_0;
+   B_reg <= PT_15_0;
 end
 
 // Drive logic for IDB_15_0 and PT_15_0
-assign IDB_15_0 = (!OE_n && !DIR) ? B_reg : 16'bz;
-assign PT_15_0 = (!OE_n && DIR) ? A_reg : 16'bz;
 
+// Set IDB to B value IF DIR=0 (read) else to 3-state
+assign IDB_15_0 =  OE_n ? 16'bz : DIR ? B_reg : 16'bz;
+
+// Set PT to A value IF DIR=1 (write) else to 3-state
+assign PT_15_0 = OE_n ? 16'bz : DIR ? A_reg : 16'bz;
 
 // Below is the original code from the Logisim generated file
 
