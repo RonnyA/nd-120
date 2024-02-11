@@ -20,28 +20,24 @@ module CPU_MMU_PTIDB_30(
 // This code replaces the original Logisim generated code with a simpler and more efficient implementation
 // It replaces two 74PCT245 chips (8-bit transceiver with 3-state outputs) with one 16 bit identical implementation.
 
-reg OE_n;
-reg DIR;
+logic OE_n;
+logic DIR;
 
-reg [15:0] A_reg;
-reg [15:0] B_reg;
+logic [15:0] A_reg;
+logic [15:0] B_reg;
 
-// Control OE and DIR directly with inputs for clarity
+always @* begin
+   OE_n <= #(16) EPTI_n;
+   DIR <= #(16) WRITE;
 
-
-// Separate logic for read and write operations
-always @(*) begin
-   OE_n <= EPTI_n;
-   DIR <= WRITE;
-
-   A_reg <= IDB_15_0;
-   B_reg <= PT_15_0;
+   A_reg <= #(10) IDB_15_0;
+   B_reg <= #(10) PT_15_0;
 end
 
 // Drive logic for IDB_15_0 and PT_15_0
 
 // Set IDB to B value IF DIR=0 (read) else to 3-state
-assign IDB_15_0 =  OE_n ? 16'bz : DIR ? B_reg : 16'bz;
+assign IDB_15_0 =  OE_n ? 16'bz : !DIR ? B_reg : 16'bz;
 
 // Set PT to A value IF DIR=1 (write) else to 3-state
 assign PT_15_0 = OE_n ? 16'bz : DIR ? A_reg : 16'bz;
