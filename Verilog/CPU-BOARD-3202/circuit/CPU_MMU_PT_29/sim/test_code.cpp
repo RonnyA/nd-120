@@ -5,7 +5,7 @@
 #include <ctime>
 #include <string>
 
-#include "VCPU_MMU_PTIDB_30.h"
+#include "VCPU_MMU_PT_29.h"
 #include "verilated.h"
 
 #ifdef DO_TRACE
@@ -15,24 +15,29 @@
 // PAL testcases
 struct TestCase {
     
-    // InOut
-    uint16_t IDB_15_0;     // Bidirectional IDB data bus (A)
-    uint16_t PT_15_0;       // Bidirectional PT data bus  (B)
-
     // Inputs
-    bool WRITE;               // Direction: 0=Read,1=Write  (DIR)
-    bool EPTI_n;              // Enable PTI (EPTI_n)    
+   bool      EPMAP_n;
+   bool      EPT_n;
+   uint16_t  LA_20_10;
+   bool      WCLIM_n;
+   bool      WMAP_n;
 
-    // Outputs
+   //inout
+   uint16_t  PPN_25_10;
+   uint16_t  PT_15_0;
+
+   // Outputs
+   
+   bool      WCINH_n;
     
-    std::string description; // Description of the test case
+  std::string description; // Description of the test case
 };
 
 
 #define MAX_SIM_TIME 20
 vluint64_t sim_time = 0;
-vluint64_t time_step = 10;
-vluint64_t s1 = 1;
+vluint64_t time_step = 5;
+
 
 int main(int argc, char **argv) 
 {
@@ -42,20 +47,21 @@ int main(int argc, char **argv)
     };
 
     Verilated::commandArgs(argc, argv);
-    VCPU_MMU_PTIDB_30* top = new VCPU_MMU_PTIDB_30;
-
+    VCPU_MMU_PT_29* top = new VCPU_MMU_PT_29;
     
 // Set default values
+   top->LA_20_10 = 0x0;
 
-   top->IDB_15_0 = 0x2222;
-   top->PT_15_0 = 0x1111;
-   top->EPTI_n = true; // disable output 
-   top->WRITE = true; //write to PT
+   top->EPMAP_n = false; //ENable chip 22g and 23g
+   top->EPT_n = true;
+   top->WCLIM_n = true;
+   top->WMAP_n = true;
 
+   
 #ifdef DO_TRACE
     VerilatedVcdC *m_trace = new VerilatedVcdC;    
     Verilated::traceEverOn(true);
-    top->trace(m_trace, 1); // 1 is the trace depth
+    top->trace(m_trace, 2); // 1 is the trace depth
     m_trace->open("waveform.vcd");
 #endif
     
@@ -68,45 +74,24 @@ int main(int argc, char **argv)
     //for (const auto& test : testCases) {
     //    std::cout << "Running " << test.description << std::endl;
 
-    for (int i=0xFA00; i<0xFA20; i++)
-    {                          
-        
-        if (i%3==0)
-        {
-            top->WRITE = !top->WRITE; // toggle DIR
-        }
+    for (int j=0; j<2; j++)
+    {
+        top->WMAP_n =j;
+        top->WCLIM_n =j;
+        top->WMAP_n =j;
 
-        top->IDB_15_0 = 0xFFF1;
-        top->PT_15_0 = 0xFFF0;
-
-        if (top->WRITE) 
-        {
-            // Write IDB to PT
-            top->IDB_15_0 = i;                       
-        }
-        else
-        {
-            // Read PT to  IDB 
-            top->PT_15_0 = i;            
-        }
-
-
-        if (i%10==0)
-        {
-           top->EPTI_n  = !top->EPTI_n ; // toggle EPTI_n // Enable PTI            
-        }
+        for (int i=0x0100; i<0x010F; i++)
+        {                          
+            top->LA_20_10 = i;
 
         top->eval();
         
 
 #ifdef DO_TRACE        
         m_trace->dump(sim_time);
-        sim_time += time_step; // Increment simulation time                    
+        sim_time += time_step; // Increment simulation time
 #endif
-
-        
-
-
+    }
 
         // Fix clock!!
       
