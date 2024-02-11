@@ -36,7 +36,7 @@
 | CPU/MMU/HIT       | HIT DETECTION         | 27                 | CPU          | [Verilog created](circuit/CPU_MMU_HIT_27.v)    | [Test](circuit/CPU_MMU_HIT_27/readme.md)
 | CPU/MMU/PPNX      | PPN TO IDB            | 28                 | CPU          |
 | CPU/MMU/PT        | PAGE TABLES           | 29                 | CPU          |
-| CPU/MMU/PTIDB     | PT TO IDB             | 30                 | CPU          |
+| CPU/MMU/PTIDB     | PT TO IDB             | 30                 | CPU          | [Verilog created](circuit/CPU_MMU_PTIDB_30.v)   | [Test](circuit/CPU_MMU_PTIDB_30/readme.md) (Bidirectional bus not working correctly in Verilator, maybe in FPGA?)
 | CPU/MMU/WCA       | PPN TO CPN            | 31                 | CPU          | [Verilog created](circuit/CPU_MMU_WCA_31.v)     | [Test](circuit/CPU_MMU_WCA_31/readme.md)
 | CPU/PROC          | PROCESSOR TOP LEVEL   | 32                 | CPU          | 
 | CPU/PROC/CGA      | CPU GATE ARRAY        | 33                 | CPU          | [Verilog created](circuit/CPU_PROC_CGA_33.v)    | [Test](circuit/CPU_PROC_CGA_33/readme.md)
