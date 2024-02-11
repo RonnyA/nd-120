@@ -1,62 +1,29 @@
 /******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
  ** Component : IMS1403_25                                                   **
- **                                                                          **
+ ** 16K x 1 Static RAM                                                       **
  *****************************************************************************/
 
-module IMS1403_25( A0_A13,
-                   CE_n,
-                   D,
-                   Q,
-                   W_n );
+module IMS1403_25( 
+   input [13:0] A0_A13,
+   input        CE_n,
+   input        D,
+   input        W_n,
+   output Q
+);
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input [13:0] A0_A13;
-   input        CE_n;
-   input        D;
-   input        W_n;
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output Q;
+  // Define the memory array
 
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-   wire [13:0] s_logisimBus2;
-   wire        s_logisimNet0;
-   wire        s_logisimNet1;
-   wire        s_logisimNet3;
-   wire        s_logisimNet4;
-   wire        s_logisimNet5;
+   /* verilator lint_off LITENDIAN */
+   reg [0:16383] memory;
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
+   /* verilator lint_on LITENDIAN */   
+   /* verilator lint_off LATCH */
+   always @* begin
+      if (!CE_n && !W_n)  // Chip enabled and Write Enabled
+         memory[A0_A13] = D;      
+   end
 
-   /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
-   assign s_logisimBus2[13:0] = A0_A13;
-   assign s_logisimNet0       = CE_n;
-   assign s_logisimNet3       = D;
-   assign s_logisimNet4       = W_n;
-
-   /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
-   assign Q = s_logisimNet1;
-
-   /*******************************************************************************
-   ** Here all in-lined components are defined                                   **
-   *******************************************************************************/
-
-   // NOT Gate
-   assign s_logisimNet5 = ~s_logisimNet4;
+   assign Q = CE_n ? 1'bz : W_n ? memory[A0_A13] : 1'bz; // Q is high impedance when W_n (write) is active   
 
 endmodule

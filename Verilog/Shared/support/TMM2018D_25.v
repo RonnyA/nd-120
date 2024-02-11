@@ -1,62 +1,32 @@
 /******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : TMM2018D_25                                                  **
- **                                                                          **
+ **  TMM2018D_25 | 16K bit Static RAM (Cache)                               **
  *****************************************************************************/
 
-module TMM2018D_25( A0_A10,
-                    CS_n,
-                    D0_D7,
-                    OE_n,
-                    W_n );
+module TMM2018D_25(
+   input [10:0] A0_A10,
+   input        CS_n,
+   input        OE_n,
+   input        W_n,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input [10:0] A0_A10;
-   input        CS_n;
-   input        OE_n;
-   input        W_n;
+   inout  [7:0] D0_D7
+   );
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output [7:0] D0_D7;
+ // Internal memory declaration
+reg [7:0] memory [0:2047]; // 2^11 addresses, each 8-bit wide
+reg [7:0] data_out; // Internal data register for output
 
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-   wire [7:0]  s_logisimBus2;
-   wire [10:0] s_logisimBus4;
-   wire        s_logisimNet0;
-   wire        s_logisimNet1;
-   wire        s_logisimNet3;
-   wire        s_logisimNet5;
+// Control the direction of the data bus
+assign D0_D7 = (!CS_n && !OE_n && W_n) ? data_out : 8'bz;
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
-   /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
-   assign s_logisimBus4[10:0] = A0_A10;
-   assign s_logisimNet0       = CS_n;
-   assign s_logisimNet3       = OE_n;
-   assign s_logisimNet5       = W_n;
-
-   /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
-   assign D0_D7 = s_logisimBus2[7:0];
-
-   /*******************************************************************************
-   ** Here all in-lined components are defined                                   **
-   *******************************************************************************/
-
-   // NOT Gate
-   assign s_logisimNet1 = ~s_logisimNet3;
+/* verilator lint_off LATCH */
+always @(*) begin
+   if (!CS_n) begin
+      if (!W_n) begin // Active low write enable
+         memory[A0_A10] = D0_D7;
+      end else begin
+         data_out = memory[A0_A10];
+      end    
+   end
+end
 
 endmodule
