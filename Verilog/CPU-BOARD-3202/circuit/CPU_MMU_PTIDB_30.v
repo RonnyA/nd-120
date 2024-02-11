@@ -1,3 +1,48 @@
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** CPU/MMU/PTIDB                                                         **
+** PT TO IDB                                                             **
+** SHEET 30 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 11-FEB-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
+
+// verilator lint_off ASSIGNDLY
+
+module CPU_MMU_PTIDB_30( 
+                        inout tri [15:0] IDB_15_0,      // Bidirectional IDB data bus (A)
+                        inout tri [15:0] PT_15_0,       // Bidirectional PT data bus  (B)
+                        input WRITE,                    // Direction: 0=Read from B,1=Write to B  (DIR)
+                        input EPTI_n                    // Enable PTI(negated)        (OE_n)                                    
+                        );
+
+// This code replaces the original Logisim generated code with a simpler and more efficient implementation
+// It replaces two 74PCT245 chips (8-bit transceiver with 3-state outputs) with one 16 bit identical implementation.
+
+wire OE_n;
+wire DIR;
+
+reg [15:0] A_reg;
+reg [15:0] B_reg;
+
+// Control OE and DIR directly with inputs for clarity
+assign OE_n = EPTI_n;
+assign DIR = WRITE;
+
+// Separate logic for read and write operations
+always @(*) begin
+   A_reg = #(10) IDB_15_0;
+   B_reg = #(10) PT_15_0;
+end
+
+// Drive logic for IDB_15_0 and PT_15_0
+assign IDB_15_0 = (!OE_n && !DIR) ? B_reg : 16'bz;
+assign PT_15_0 = (!OE_n && DIR) ? A_reg : 16'bz;
+
+
+// Below is the original code from the Logisim generated file
+
 /******************************************************************************
  ** Logisim-evolution goes FPGA automatic generated Verilog code             **
  ** https://github.com/logisim-evolution/                                    **
@@ -6,22 +51,7 @@
  **                                                                          **
  *****************************************************************************/
 
-module CPU_MMU_PTIDB_30( EPTI_n,
-                         IDB_15_0,
-                         PT_15_0,
-                         WRITE );
-
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        EPTI_n;
-   input [15:0] IDB_15_0;
-   input        WRITE;
-
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output [15:0] PT_15_0;
+`ifdef _OLD_CODE_
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -120,5 +150,7 @@ module CPU_MMU_PTIDB_30( EPTI_n,
                          .B8(s_logisimBus21[15]),
                          .DIR(s_logisimNet2),
                          .G_n(s_logisimNet11));
+
+`endif
 
 endmodule
