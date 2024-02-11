@@ -6,30 +6,20 @@
  **                                                                          **
  *****************************************************************************/
 
-module CPU_MMU_PT_29( EPMAP_n,
-                      EPT_n,
-                      LA_20_10,
-                      PPN_25_10_io,
-                      PT_15_0,
-                      WCINH_n,
-                      WCLIM_n,
-                      WMAP_n );
+module CPU_MMU_PT_29(
+   input [10:0] LA_20_10,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        EPMAP_n;
-   input        EPT_n;
-   input [10:0] LA_20_10;
-   input        WCLIM_n;
-   input        WMAP_n;
+   input        EPMAP_n,
+   input        EPT_n,   
+   input        WCLIM_n,
+   input        WMAP_n,
+   
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output [15:0] PPN_25_10_io;
-   output [15:0] PT_15_0;
-   output        WCINH_n;
+   inout [15:0] PPN_25_10, // Bidirectional
+   inout [15:0] PT_15_0,   // Bidirectional
+
+   output        WCINH_n                      
+   );
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -65,7 +55,7 @@ module CPU_MMU_PT_29( EPMAP_n,
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign PPN_25_10_io = s_logisimBus7[15:0];
+   assign PPN_25_10    = s_logisimBus7[15:0];
    assign PT_15_0      = s_logisimBus4[15:0];
    assign WCINH_n      = s_logisimNet15;
 
