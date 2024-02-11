@@ -1,8 +1,8 @@
-# CPU/MMU/PTIDB
+# CPU/MMU/PT
 
-PT TO IDB
+CACHE
 
-## CPU Board 3202D - Sheet 30
+## CPU Board 3202D - Sheet 29
 
 ### Test program verification
 

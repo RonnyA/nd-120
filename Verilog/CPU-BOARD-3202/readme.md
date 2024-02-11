@@ -33,9 +33,9 @@
 | CPU/MMU           | MMU TOP LEVEL         | 24                 | CPU          |
 | CPU/MMU/CACHE     | CACHE                 | 25                 | CPU          |
 | CPU/MMU/CSR       | CACHE STATUS REG      | 26                 | CPU          |
-| CPU/MMU/HIT       | HIT DETECTION         | 27                 | CPU          | [Verilog created](circuit/CPU_MMU_HIT_27.v)    | [Test](circuit/CPU_MMU_HIT_27/readme.md)
+| CPU/MMU/HIT       | HIT DETECTION         | 27                 | CPU          | [Verilog created](circuit/CPU_MMU_HIT_27.v)     | [Test](circuit/CPU_MMU_HIT_27/readme.md)
 | CPU/MMU/PPNX      | PPN TO IDB            | 28                 | CPU          |
-| CPU/MMU/PT        | PAGE TABLES           | 29                 | CPU          |
+| CPU/MMU/PT        | PAGE TABLES           | 29                 | CPU          | [Verilog created](circuit/CPU_MMU_PT_29.v)      | [Test](circuit/CPU_MMU_PT_29/readme.md) (More test!!)
 | CPU/MMU/PTIDB     | PT TO IDB             | 30                 | CPU          | [Verilog created](circuit/CPU_MMU_PTIDB_30.v)   | [Test](circuit/CPU_MMU_PTIDB_30/readme.md) (Bidirectional bus not working correctly in Verilator, maybe in FPGA?)
 | CPU/MMU/WCA       | PPN TO CPN            | 31                 | CPU          | [Verilog created](circuit/CPU_MMU_WCA_31.v)     | [Test](circuit/CPU_MMU_WCA_31/readme.md)
 | CPU/PROC          | PROCESSOR TOP LEVEL   | 32                 | CPU          | 
@@ -45,12 +45,12 @@
 | **Cycle control**                                                              
 | CYC               | CYCLE CONTROL         | 36                 | CYC          | [Verilog created](circuit/CYC_36.v)             | [Test](circuit/CYC_36/readme.md)
 | **IO**                                                                         
-| IO                | IO TOP LEVEL          | 37                 | IO           | [Verilog created](circuit/IO_37.v)             | [Test](circuit/IO_37/readme.md)  - Need more test!
-| IO/DCD            | IO DECODING           | 38                 | IO           | [Verilog created](circuit/IO_DCD_38.v)         | [Test](circuit/IO_DCD_38/readme.md) - Connected DGA. Need more test! 
-| IO/DCD/DGA        | DECODE GATE ARRAY     | 39                 | IO           | Directly integrated in Sheet 38                | Sheet 39 has no code.
-| IO/PANCAL         | PANEL PROC & CALENDAR | 40                 | IO           | [Verilog created](circuit/IO_PANCAL_40.v)      | (test not create)
-| IO/REG            | IOC, ALD & INR REGS   | 41                 | IO           | [Verilog created](circuit/IO_REG_41.v)         | (test not create)  Need to fix IDB so that IDB_15_0 and IDB_7_0_io is the same bus
-| IO/UART           | UART AND IOR REG      | 42                 | IO           | [Verilog created](circuit/IOUART_42.v)         | (test not create)  Need to create the UART chip and test it. Also fix IDB IO bus
+| IO                | IO TOP LEVEL          | 37                 | IO           | [Verilog created](circuit/IO_37.v)              | [Test](circuit/IO_37/readme.md)  - Need more test!
+| IO/DCD            | IO DECODING           | 38                 | IO           | [Verilog created](circuit/IO_DCD_38.v)          | [Test](circuit/IO_DCD_38/readme.md) - Connected DGA. Need more test! 
+| IO/DCD/DGA        | DECODE GATE ARRAY     | 39                 | IO           | Directly integrated in Sheet 38                 | Sheet 39 has no code.
+| IO/PANCAL         | PANEL PROC & CALENDAR | 40                 | IO           | [Verilog created](circuit/IO_PANCAL_40.v)       | (test not create)
+| IO/REG            | IOC, ALD & INR REGS   | 41                 | IO           | [Verilog created](circuit/IO_REG_41.v)          | (test not create)  Need to fix IDB so that IDB_15_0 and IDB_7_0_io is the same bus
+| IO/UART           | UART AND IOR REG      | 42                 | IO           | [Verilog created](circuit/IOUART_42.v)          | (test not create)  Need to create the UART chip and test it. Also fix IDB IO bus
 | **Memory**                                                                     
 | MEM               | MEMORY TOP LEVEL      | 43                 | MEM          |
 | MEM/ADDR          | MEM ADDR MUX          | 44                 | MEM          |
