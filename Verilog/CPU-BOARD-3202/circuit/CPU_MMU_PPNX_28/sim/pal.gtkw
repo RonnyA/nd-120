@@ -1,0 +1,50 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Wed Feb 14 17:51:42 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_MMU_PPNX_28/sim/waveform.vcd"
+[dumpfile_mtime] "Wed Feb 14 17:49:50 2024"
+[dumpfile_size] 3482
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_MMU_PPNX_28/sim/pal.gtkw"
+[timestart] 0
+[size] 2023 550
+[pos] 37229 35837
+*-4.456229 137 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 214
+[signals_width] 384
+[sst_expanded] 1
+[sst_vpaned_height] 72
+@200
+--- input --
+@28
+TOP.CPU_MMU_PPNX_28.EIPU_n
+TOP.CPU_MMU_PPNX_28.EIPL_n
+@200
+-DIR
+@29
+TOP.CPU_MMU_PPNX_28.ESTOF_n
+@200
+--- blank 7 high bit --
+@28
+TOP.CPU_MMU_PPNX_28.EIPUR_n
+@200
+--- internal --
+-
+@28
+TOP.CPU_MMU_PPNX_28.OE_L_n
+TOP.CPU_MMU_PPNX_28.OE_U_n
+TOP.CPU_MMU_PPNX_28.DIR
+@200
+--- bus --
+@22
+TOP.CPU_MMU_PPNX_28.IDB_reg[15:0]
+TOP.CPU_MMU_PPNX_28.PPN_reg[15:0]
+@200
+-
+--- output --
+@22
+TOP.CPU_MMU_PPNX_28.IDB_15_0[15:0]
+TOP.CPU_MMU_PPNX_28.PPN_25_10[15:0]
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,31 +1,106 @@
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** CPU/MMU/PPNX                                                          **
+** PPN TO IDB                                                            **
+** SHEET 28 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 14-FEB-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
+
+module CPU_MMU_PPNX_28( 
+   input EIPL_n,
+   input EIPUR_n,
+   input EIPU_n,
+   input ESTOF_n,
+
+   inout [15:0] IDB_15_0,
+   inout [15:0] PPN_25_10
+);   
+
+
+wire DIR = ESTOF_n;
+wire OE_U_n = EIPU_n;
+wire OE_L_n = EIPL_n;
+
+reg [15:0] PPN_reg;
+reg [15:0] IDB_reg;
+
+always @(*) begin
+   IDB_reg = IDB_15_0;
+   PPN_reg = PPN_25_10;
+
+   if (EIPUR_n==0)
+   begin
+      PPN_reg[15:8] = {7'b0,IDB_15_0[8]};
+      PPN_reg[7:0] = PPN_25_10[7:0]; 
+   end
+
+
+// 2x 74245 (CHIP 10B (UPPER) and 9B (LOWER))
+//always @(*) begin
+   
+
+   // Upper 8 bits - CHIP 10B
+   if (EIPU_n==0)
+   begin
+      if (DIR) begin
+         // Data flows from A to B
+         IDB_reg[15:8] = PPN_reg[15:8]; 
+      end else begin
+         // Data flows from B to A
+
+         if (EIPUR_n==0) begin
+            PPN_reg[15:8] = {7'b0,IDB_15_0[8]};
+         end else begin
+            PPN_reg[15:8] = IDB_15_0[15:8]; 
+         end
+      end
+   /*end else begin
+       PPN_reg[15:8] = PPN_25_10[15:8];
+       IDB_reg[15:8] = IDB_15_0[15:8];
+   */
+   end
+
+   // Lower 8 bits - CHIP 9B
+   if (EIPL_n==0)
+   begin
+      if (DIR) begin
+         IDB_reg[7:0] = PPN_reg[7:0]; // Data flows from A to B
+      end else begin
+         PPN_reg[7:0] = IDB_15_0[7:0]; // Data flows from B to A
+      end
+   /*
+   end else begin
+       PPN_reg[7:0] = PPN_25_10[7:0];
+       IDB_reg[7:0] = IDB_15_0[7:0];
+   */
+   end   
+end
+
+// Assign the bidirectional bus with respect to OE
+assign IDB_15_0 = IDB_reg;
+assign PPN_25_10 = PPN_reg;
+
+
+// Output to A when receiving from B with respect to OE (OE_n==1 means "isolated". Don't write to A or B)
+//assign A = (OE_n == 0 && DIR == 0) ? internalBus : 8'bz;
+
+
+
+
+
+// Below is the original code from the Logisim generated file
+
 /******************************************************************************
  ** Logisim-evolution goes FPGA automatic generated Verilog code             **
  ** https://github.com/logisim-evolution/                                    **
  **                                                                          **
- ** Component : CPU_MMU_PPNX_28                                              **
  **                                                                          **
  *****************************************************************************/
 
-module CPU_MMU_PPNX_28( EIPL_n,
-                        EIPUR_n,
-                        EIPU_n,
-                        ESTOF_n,
-                        IDB_15_0_io,
-                        PPN_25_10_io );
+`ifdef _OLD_CODE_
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input EIPL_n;
-   input EIPUR_n;
-   input EIPU_n;
-   input ESTOF_n;
-
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output [15:0] IDB_15_0_io;
-   output [15:0] PPN_25_10_io;
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -93,8 +168,8 @@ module CPU_MMU_PPNX_28( EIPL_n,
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign IDB_15_0_io  = s_logisimBus50[15:0];
-   assign PPN_25_10_io = s_logisimBus17[15:0];
+   assign IDB_15_0  = s_logisimBus50[15:0];
+   assign PPN_25_10 = s_logisimBus17[15:0];
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
@@ -164,5 +239,8 @@ module CPU_MMU_PPNX_28( EIPL_n,
                         .O7_2Y4(s_logisimBus17[8]),
                         .OE1_1G_n(s_logisimNet40),
                         .OE2_2G_n(s_logisimNet40));
+
+
+`endif
 
 endmodule
