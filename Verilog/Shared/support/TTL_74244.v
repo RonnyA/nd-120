@@ -1,6 +1,7 @@
 // 74LS244 (NONE negated outputs)
 // Octal Buffers and Line Drivers With 3-State Outputs
 // Documentation: https://www.ti.com/lit/ds/symlink/sn74ls244.pdf
+//                https://pdf1.alldatasheet.com/datasheet-pdf/view/51057/FAIRCHILD/74244.html
 
 /*
 This device is organized as two 4-bit buffers and drivers with separate output-enable (G) inputs. 
