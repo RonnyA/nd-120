@@ -1,0 +1,45 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Mon Feb 19 07:39:28 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_MMU_CSR_26/sim/waveform.vcd"
+[dumpfile_mtime] "Mon Feb 19 07:39:11 2024"
+[dumpfile_size] 1118
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_MMU_CSR_26/sim/pal.gtkw"
+[timestart] 0
+[size] 1701 611
+[pos] -1 -1
+*-4.456229 23 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 214
+[signals_width] 384
+[sst_expanded] 1
+[sst_vpaned_height] 141
+@200
+--- input --
+@28
+TOP.CPU_MMU_CSR_26.STP
+TOP.CPU_MMU_CSR_26.EMPID_n
+TOP.CPU_MMU_CSR_26.EDO_n
+TOP.CPU_MMU_CSR_26.LCS_n
+TOP.CPU_MMU_CSR_26.PD2
+@200
+-
+@28
+TOP.CPU_MMU_CSR_26.CUP
+TOP.CPU_MMU_CSR_26.CON
+@29
+TOP.CPU_MMU_CSR_26.ECSR_n
+@200
+--- output --
+@28
+TOP.CPU_MMU_CSR_26.BSTP
+TOP.CPU_MMU_CSR_26.BEMPID_n
+TOP.CPU_MMU_CSR_26.BEDO_n
+TOP.CPU_MMU_CSR_26.BLCS_n
+@200
+-
+@28
+TOP.CPU_MMU_CSR_26.IDB_3_0[3:0]
+[pattern_trace] 1
+[pattern_trace] 0
