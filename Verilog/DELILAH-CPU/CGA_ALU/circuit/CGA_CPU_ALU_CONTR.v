@@ -144,7 +144,6 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    wire       s_logisimNet126;
    wire       s_logisimNet127;
    wire       s_logisimNet128;
-   wire       s_logisimNet129;
    wire       s_logisimNet13;
    wire       s_logisimNet131;
    wire       s_logisimNet132;
@@ -241,7 +240,6 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    wire       s_logisimNet82;
    wire       s_logisimNet83;
    wire       s_logisimNet84;
-   wire       s_logisimNet85;
    wire       s_logisimNet86;
    wire       s_logisimNet88;
    wire       s_logisimNet89;
@@ -387,12 +385,7 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
    assign  s_logisimNet123  =  1'b1;
 
 
-   // NOT Gate
-   assign s_logisimNet129 = ~s_logisimNet94;
-
-   // NOT Gate
-   assign s_logisimNet85 = ~s_logisimNet67;
-
+   
    /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
@@ -764,8 +757,8 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
                     .QD(s_logisimNet72),
                     .QDN());
 
-   R81   CONTR_REG (.A(s_logisimNet129),
-                    .B(s_logisimNet85),
+   R81   CONTR_REG (.A(logisimNet94),
+                    .B(s_logisimNet67),
                     .C(s_logisimNet81),
                     .CP(s_logisimNet68),
                     .D(s_logisimNet103),
