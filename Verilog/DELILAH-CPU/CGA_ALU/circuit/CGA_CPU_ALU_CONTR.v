@@ -757,7 +757,7 @@ module CGA_CPU_ALU_CONTR( ALUCLK,
                     .QD(s_logisimNet72),
                     .QDN());
 
-   R81   CONTR_REG (.A(logisimNet94),
+   R81   CONTR_REG (.A(s_logisimNet94),
                     .B(s_logisimNet67),
                     .C(s_logisimNet81),
                     .CP(s_logisimNet68),
