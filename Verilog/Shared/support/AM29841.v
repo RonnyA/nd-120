@@ -14,7 +14,7 @@ module AM29841 (
     // Latch operation
     always @(*) begin
         if (C) begin
-            Q_Latch <= D;  // Transparent mode: Internal latch follows input
+            Q_Latch = D;  // Transparent mode: Internal latch follows input
         end
     end
 
