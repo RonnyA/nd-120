@@ -6,7 +6,7 @@
  *****************************************************************************/
 
 module TTL_74245( 
-    input [7:0] A,       // A-side 8-bit port
+    inout [7:0] A,       // A-side 8-bit port
     inout [7:0] B,       // B-side 8-bit bidirectional port/bus
     input DIR,           // Direction control
     input OE_n           // Output enable

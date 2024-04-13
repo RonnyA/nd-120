@@ -1,6 +1,6 @@
 TOP_FILE = CPU_PROC_CMDDEC_34
 
-SUPPRESS_FLAGS = -Wno-WIDTH
+SUPPRESS_FLAGS = -Wno-WIDTH -Wno-EOFNEWLINE
 
 # This is the path to the root of the verilog directory
 VERILOG_ROOT = ../../../..

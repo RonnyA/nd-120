@@ -28,12 +28,15 @@ module CPU_PROC_CMDDEC_34(
    output wire LEV0,
    output wire OPCLCS,
    output wire RRF_n,
-//   output wire RT_n; // This signal is not in the PAL 44408B, but in the PAL 444608 (VXFIX). Use  RT_n signal from DGA until we find out what the 44608A does with this signal.
+   output wire RT_n, // This signal is not in the PAL 44408B, but in the PAL 444608 (VXFIX). Use  RT_n signal from DGA until we find out what the 44608A does with this signal.
    output wire RWCS_n,
    output wire LDEXM_n, // This wire is not in the PAL 44408B, but in the PAL 444608 (VXFIX). Not sure what to do with this signal at the moment.. but brings it out here just in case..
    output wire VEX 
 );
  
+
+   assign RT_n = 1;
+   assign LDEXM_n = 1;
 
    /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -45,6 +48,7 @@ module CPU_PROC_CMDDEC_34(
 
    assign BRK_n = ~( ~CGABRK_n & ~VEX);
 
+   
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **

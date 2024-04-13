@@ -1,10 +1,12 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CPU_PROC_32                                                  **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** CPU/PROC                                                              **
+** PROCESSOR TOP LEVEL                                                   **
+** SHEET 32 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 13-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
 module CPU_PROC_32( ACOND_n,
                     ALUCLK,
@@ -54,7 +56,8 @@ module CPU_PROC_32( ACOND_n,
                     PT_15_9,
                     RF_1_0,
                     RRF_n,
-                    RT_n,
+                    RT_n,     // Use signal from DGA
+                    LDEXM_n,  // use signal from DGA
                     RWCS_n,
                     TERM_n,
                     TEST_4_0,
@@ -125,7 +128,8 @@ module CPU_PROC_32( ACOND_n,
    output        PONI;
    output [1:0]  RF_1_0;
    output        RRF_n;
-   output        RT_n;
+   output        RT_n;  // This signal is not in the PAL 44408B, but in the PAL 444608 (VXFIX). Use  RT_n signal from DGA until we find out what the 44608A does with this signal.
+   output        LDEXM_n;
    output        RWCS_n;
    output [4:0]  TEST_4_0;
    output        TP1_INTRQ_n;
@@ -220,6 +224,7 @@ module CPU_PROC_32( ACOND_n,
    wire        s_logisimNet159;
    wire        s_logisimNet16;
    wire        s_logisimNet160;
+   wire        s_ledexm;
    wire        s_logisimNet161;
    wire        s_logisimNet162;
    wire        s_logisimNet164;
@@ -514,6 +519,7 @@ module CPU_PROC_32( ACOND_n,
    assign RF_1_0      = s_logisimBus92[9:8];
    assign RRF_n       = s_logisimNet75;
    assign RT_n        = s_logisimNet160;
+   assign LDEXM_n     = s_ledexm;
    assign RWCS_n      = s_logisimNet117;
    assign TEST_4_0    = s_logisimBus103[4:0];
    assign TP1_INTRQ_n = s_logisimNet20;
@@ -543,28 +549,10 @@ module CPU_PROC_32( ACOND_n,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   AM29841   CHIP_25F (.D0(s_logisimBus24[0]),
-                       .D1(s_logisimBus24[1]),
-                       .D2(s_logisimBus24[2]),
-                       .D3(s_logisimBus24[3]),
-                       .D4(s_logisimBus24[4]),
-                       .D5(s_logisimBus24[5]),
-                       .D6(s_logisimBus24[6]),
-                       .D7(s_logisimBus24[7]),
-                       .D8(s_logisimBus24[8]),
-                       .D9(s_logisimBus24[9]),
-                       .LE(s_logisimNet157),
-                       .OE_n(s_logisimNet47),
-                       .Y0(s_logisimBus163[0]),
-                       .Y1(s_logisimBus163[1]),
-                       .Y2(s_logisimBus163[2]),
-                       .Y3(s_logisimBus163[3]),
-                       .Y4(s_logisimBus163[4]),
-                       .Y5(s_logisimBus163[5]),
-                       .Y6(s_logisimBus163[6]),
-                       .Y7(s_logisimBus163[7]),
-                       .Y8(s_logisimBus163[8]),
-                       .Y9(s_logisimBus163[9]));
+   AM29841   CHIP_25F (.D(s_logisimBus24),           
+                       .C(s_logisimNet157),
+                       .OC_n(s_logisimNet47),
+                       .Q(s_logisimBus163));
 
    CPU_PROC_CMDDEC_34   CMDDEC (.BRK_n(s_logisimNet159),
                                 .CGABRK_n(s_logisimNet10),
@@ -585,6 +573,7 @@ module CPU_PROC_32( ACOND_n,
                                 .RRF_n(s_logisimNet75),
                                 .RT_n(s_logisimNet160),
                                 .RWCS_n(s_logisimNet117),
+                                .LDEXM_n(s_ledexm),
                                 .VEX(s_logisimNet27),
                                 .WCA_n(s_logisimNet97),
                                 .WRTRF(s_logisimNet32));
@@ -595,24 +584,10 @@ module CPU_PROC_32( ACOND_n,
                            .OE_n(s_logisimNet32),
                            .W_n(s_logisimNet123));
 
-   TTL_74245   CHIP_32F (.A1(s_logisimBus15[0]),
-                         .A2(s_logisimBus15[1]),
-                         .A3(s_logisimBus15[2]),
-                         .A4(s_logisimBus15[3]),
-                         .A5(s_logisimBus15[4]),
-                         .A6(s_logisimBus15[5]),
-                         .A7(s_logisimBus15[6]),
-                         .A8(s_logisimBus15[7]),
-                         .B1(s_logisimBus122[0]),
-                         .B2(s_logisimBus122[1]),
-                         .B3(s_logisimBus122[2]),
-                         .B4(s_logisimBus122[3]),
-                         .B5(s_logisimBus122[4]),
-                         .B6(s_logisimBus122[5]),
-                         .B7(s_logisimBus122[6]),
-                         .B8(s_logisimBus122[7]),
+   TTL_74245   CHIP_32F (.A(s_logisimBus15[7:0]),
+                         .B(s_logisimBus122[7:0]),
                          .DIR(s_logisimNet43),
-                         .G_n(s_logisimNet91));
+                         .OE_n(s_logisimNet91));
 
    TMM2018D_25   CHIP_35F (.A0_A10(s_logisimBus92[10:0]),
                            .CS_n(s_logisimNet42),
@@ -620,24 +595,11 @@ module CPU_PROC_32( ACOND_n,
                            .OE_n(s_logisimNet32),
                            .W_n(s_logisimNet123));
 
-   TTL_74245   CHIP_33F (.A1(s_logisimBus15[8]),
-                         .A2(s_logisimBus15[9]),
-                         .A3(s_logisimBus15[10]),
-                         .A4(s_logisimBus15[11]),
-                         .A5(s_logisimBus15[12]),
-                         .A6(s_logisimBus15[13]),
-                         .A7(s_logisimBus15[14]),
-                         .A8(s_logisimBus15[15]),
-                         .B1(s_logisimBus122[8]),
-                         .B2(s_logisimBus122[9]),
-                         .B3(s_logisimBus122[10]),
-                         .B4(s_logisimBus122[11]),
-                         .B5(s_logisimBus122[12]),
-                         .B6(s_logisimBus122[13]),
-                         .B7(s_logisimBus122[14]),
-                         .B8(s_logisimBus122[15]),
+   TTL_74245   CHIP_33F (.A(s_logisimBus15[7:0]),
+                         .B(s_logisimBus122[7:0]),
                          .DIR(s_logisimNet43),
-                         .G_n(s_logisimNet91));
+                         .OE_n(s_logisimNet91));
+
 
    CPU_PROC_CGA_33   CGA (.ACOND_n(s_logisimNet40),
                           .ALUCLK(s_logisimNet12),
@@ -660,6 +622,7 @@ module CPU_PROC_32( ACOND_n,
                           .IBINT13_n(s_logisimNet14),
                           .IBINT15_n(s_logisimNet147),
                           .INTRQ_n_tp1(s_logisimNet20),
+                          .ERF_n(s_logisimNet42),
                           .IONI(s_logisimNet41),
                           .IOXERR_n(s_logisimNet11),
                           .LAA_3_0(s_logisimBus92[3:0]),

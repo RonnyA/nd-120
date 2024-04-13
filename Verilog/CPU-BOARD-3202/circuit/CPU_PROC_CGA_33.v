@@ -46,7 +46,7 @@ module CPU_PROC_CGA_33(
    output [9:0]  CSCA_9_0,
    output        DOUBLE,
    output        ECCR,
-   output        ERFN, // Not in use, its fetched from PAL 44407A, pin ERF_n (which seems to have the same logic..)   
+   output        ERF_n, // Not in use, its fetched from PAL 44407A, pin ERF_n (which seems to have the same logic..)   
    output        INTRQ_n_tp1,
    output        IONI,
    output [3:0]  LAA_3_0,
@@ -264,7 +264,7 @@ CGA DELILAH (
    .XBRKN(CGABRK_n),
    .XDOUBLE(DOUBLE),
    .XECCR(ECCR),
-   .XERFN (ERFN),  // Not in use (not connected) - Signals is instead fetched from PAL 44407A, pin ERF_n (which seems to have the same logic..)
+   .XERFN (ERF_n),  // Not in use (not connected) - Signals is instead fetched from PAL 44407A, pin ERF_n (which seems to have the same logic..)
    .XINTRQN(INTRQ_n_tp1),
    .XIONI(IONI),
    .XLAA_3_0(LAA_3_0),
