@@ -23,12 +23,12 @@
 | BIF/DPATH/PPNLBD  | BIF PPN to LBD        | 14                 | BIF          |
 | **CPU**                                                                       |
 | CPU               | TOP LEVEL             | 15                 | CPU          |
-| CPU/CS            | CONTROL STORE         | 16                 | CPU          | 
+| CPU/CS            | CONTROL STORE         | 16                 | CPU          | [Verilog created](circuit/CPU_CS_16.v)         | [Test](circuit/CPU_CS_16/readme.md)
 | CPU/CS/ACAL       | MICRO ADDR CALC       | 17                 | CPU          | [Verilog created](circuit/CPU_CS_ACAL_17.v)    | [Test](circuit/CPU_CS_ACAL_17/readme.md)
-| CPU/CS/CTL        | CS CONTROL            | 18                 | CPU          | [Verilog created](circuit/CPU_CS_CTL_18.v)    | [Test](circuit/CPU_CS_CTL_18/readme.md)
+| CPU/CS/CTL        | CS CONTROL            | 18                 | CPU          | [Verilog created](circuit/CPU_CS_CTL_18.v)     | [Test](circuit/CPU_CS_CTL_18/readme.md)
 | CPU/CS/PROM       | CS PROMS              | 19                 | CPU          | [Verilog created](circuit/CPU_CS_PROM_19.v)    | [Test](circuit/CPU_CS_PROM_19/readme.md)
-| CPU/CS/TCV        | CS TRANSCIEVERS       | 20                 | CPU          |
-| CPU/CS/WCS        | Register file         | 21-22              | CPU          | [Verilog created](circuit/CPU_CS_WCS_21_22.v)    | [Test](circuit/CPU_CS_WCS_21_22/readme.md)
+| CPU/CS/TCV        | CS TRANSCIEVERS       | 20                 | CPU          | [Verilog created](circuit/CPU_CS_PROM_19.v)    | [Test](circuit/CPU_CS_PROM_19/readme.md)
+| CPU/CS/WCS        | Register file         | 21-22              | CPU          | [Verilog created](circuit/CPU_CS_TCV_20.v)     | [Test](circuit/CPU_CS_TCV_20/readme.md)
 | CPU/LAPA          | LA TO PPN BUFF        | 23                 | CPU          |
 | CPU/MMU           | MMU TOP LEVEL         | 24                 | CPU          |
 | CPU/MMU/CACHE     | CACHE                 | 25                 | CPU          |

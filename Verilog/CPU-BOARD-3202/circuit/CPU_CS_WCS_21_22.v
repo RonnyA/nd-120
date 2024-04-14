@@ -2,7 +2,7 @@
 ** ND120 CPU, MM&M                                                       **
 ** CPU/CS/WCS                                                            **
 ** Writable Control Store                                                **
-** SHEET 22 of 50                                                        **
+** SHEET 21 and 22 of 50                                                 **
 **                                                                       ** 
 ** This module has 16 RAM CHIPS of type 16K (4Kx4) Static RAM for LUA    **
 ** (4KByte Microcode)                                                    ** 
