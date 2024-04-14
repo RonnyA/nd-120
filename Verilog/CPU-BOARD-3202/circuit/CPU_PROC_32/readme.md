@@ -3,6 +3,12 @@ Processor Top Level
 
 ## CPU Board 3202D - Sheet 32
 
-# Test program verification
+# (empty) Test program verification
 
 ![Screenshot from GTKWave](gtkwave.png)
+
+# Microcode CPU boot
+![Screenshot from GTKWave](gtkwave-microcode.png)
+
+# CPU starting program (opcodes)
+![Screenshot from GTKWave](gtkwave-opcodes.png)
