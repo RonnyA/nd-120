@@ -8455,7 +8455,7 @@
     </comp>
     <comp lib="0" loc="(360,640)" name="Pin">
       <a name="appearance" val="classic"/>
-      <a name="label" val="BRK"/>
+      <a name="label" val="BRK_n"/>
     </comp>
     <comp lib="0" loc="(360,670)" name="Pin">
       <a name="appearance" val="classic"/>

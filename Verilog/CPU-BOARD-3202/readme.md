@@ -25,7 +25,7 @@
 | CPU               | TOP LEVEL             | 15                 | CPU          |
 | CPU/CS            | CONTROL STORE         | 16                 | CPU          |
 | CPU/CS/ACAL       | MICRO ADDR CALC       | 17                 | CPU          | [Verilog created](circuit/CPU_CS_ACAL_17.v)    | [Test](circuit/CPU_CS_ACAL_17/readme.md)
-| CPU/CS/CTL        | CS CONTROL            | 18                 | CPU          |
+| CPU/CS/CTL        | CS CONTROL            | 18                 | CPU          | [Verilog created](circuit/CPU_CS_CTL_18.v)    | [Test](circuit/CPU_CS_CTL_18/readme.md)
 | CPU/CS/PROM       | CS PROMS              | 19                 | CPU          |
 | CPU/CS/TCV        | CS TRANSCIEVERS       | 20                 | CPU          |
 | CPU/CS/WCS        | Register file         | 21-22              | CPU          |

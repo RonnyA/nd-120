@@ -6,7 +6,7 @@
  **                                                                          **
  *****************************************************************************/
 
-module CPU_CS_CTL_18( BRK,
+module CPU_CS_CTL_18( BRK_n,
                       CC_3_1_n,
                       ECSL_n,
                       ELOW_n,
@@ -28,7 +28,7 @@ module CPU_CS_CTL_18( BRK,
    /*******************************************************************************
    ** The inputs are defined here                                                **
    *******************************************************************************/
-   input       BRK;
+   input       BRK_n;
    input [2:0] CC_3_1_n;
    input       FETCH;
    input       FORM_n;
@@ -64,19 +64,19 @@ module CPU_CS_CTL_18( BRK,
    wire       s_logisimNet11;
    wire       s_logisimNet12;
    wire       s_logisimNet13;
-   wire       s_logisimNet14;
+   wire       s_BRK_n;
    wire       s_logisimNet15;
    wire       s_logisimNet16;
    wire       s_logisimNet17;
    wire       s_logisimNet18;
    wire       s_logisimNet19;
    wire       s_logisimNet2;
-   wire       s_logisimNet20;
+   wire       s_LUA12;
    wire       s_logisimNet21;
    wire       s_logisimNet22;
    wire       s_logisimNet23;
    wire       s_logisimNet24;
-   wire       s_logisimNet25;
+   wire       s_WCA_n;
    wire       s_logisimNet26;
    wire       s_logisimNet27;
    wire       s_logisimNet28;
@@ -104,11 +104,11 @@ module CPU_CS_CTL_18( BRK,
    assign s_logisimBus6[2:0]  = CC_3_1_n;
    assign s_logisimNet1       = FETCH;
    assign s_logisimNet12      = WCS_n;
-   assign s_logisimNet14      = BRK;
+   assign s_BRK_n      = BRK_n;
    assign s_logisimNet2       = LCS_n;
-   assign s_logisimNet20      = LUA12;
+   assign s_LUA12             = LUA12;
    assign s_logisimNet21      = TERM_n;
-   assign s_logisimNet25      = WCA_n;
+   assign s_WCA_n             = WCA_n;
    assign s_logisimNet30      = FORM_n;
    assign s_logisimNet7       = RWCS_n;
 
@@ -126,30 +126,15 @@ module CPU_CS_CTL_18( BRK,
    /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_1 (.input1(s_logisimNet2),
-               .input2(s_logisimNet9),
-               .result(s_logisimNet17));
 
-   NOR_GATE #(.BubblesMask(2'b11))
-      GATES_2 (.input1(s_logisimBus33[0]),
-               .input2(s_logisimNet15),
-               .result(s_logisimBus31[0]));
 
-   NOR_GATE #(.BubblesMask(2'b11))
-      GATES_3 (.input1(s_logisimBus33[1]),
-               .input2(s_logisimNet15),
-               .result(s_logisimBus31[1]));
+   assign s_logisimNet17 = s_logisimNet2 & s_logisimNet9;
 
-   NOR_GATE #(.BubblesMask(2'b11))
-      GATES_4 (.input1(s_logisimBus33[2]),
-               .input2(s_logisimNet15),
-               .result(s_logisimBus31[2]));
 
-   NOR_GATE #(.BubblesMask(2'b11))
-      GATES_5 (.input1(s_logisimBus33[3]),
-               .input2(s_logisimNet15),
-               .result(s_logisimBus31[3]));
+   assign s_logisimBus31[0] = s_logisimBus33[0] & s_logisimNet15;
+   assign s_logisimBus31[1] = s_logisimBus33[1] & s_logisimNet15;
+   assign s_logisimBus31[2] = s_logisimBus33[2] & s_logisimNet15;
+   assign s_logisimBus31[3] = s_logisimBus33[3] & s_logisimNet15;
 
 
    /*******************************************************************************
@@ -157,37 +142,38 @@ module CPU_CS_CTL_18( BRK,
    *******************************************************************************/
 
    TTL_74139   CHIP_30B (.A1(s_logisimBus32[0]),
-                         .A2(s_logisimBus32[0]),
                          .B1(s_logisimBus32[1]),
-                         .B2(s_logisimBus32[1]),
                          .G1_n(s_logisimNet17),
-                         .G2_n(s_logisimNet11),
                          .Y1_0_n(s_logisimBus0[0]),
                          .Y1_1_n(s_logisimBus0[1]),
                          .Y1_2_n(s_logisimBus0[2]),
                          .Y1_3_n(s_logisimBus0[3]),
+
+                         .A2(s_logisimBus32[0]),
+                         .B2(s_logisimBus32[1]),                         
+                         .G2_n(s_logisimNet11),
                          .Y2_0_n(s_logisimBus33[0]),
                          .Y2_1_n(s_logisimBus33[1]),
                          .Y2_2_n(s_logisimBus33[2]),
                          .Y2_3_n(s_logisimBus33[3]));
 
-   PAL_16L8_12   PAL_44305_UCSCTL (.B0_n(s_logisimNet16),
-                                   .B1_n(s_logisimNet9),
-                                   .B2_n(s_logisimNet24),
-                                   .B3_n(s_logisimNet26),
-                                   .B4_n(),
-                                   .B5_n(),
-                                   .I0(s_logisimNet30),
-                                   .I1(s_logisimBus6[0]),
-                                   .I2(s_logisimBus6[1]),
-                                   .I3(s_logisimBus6[2]),
-                                   .I4(s_logisimNet2),
-                                   .I5(s_logisimNet7),
-                                   .I6(s_logisimNet12),
-                                   .I7(s_logisimNet1),
-                                   .I8(s_logisimNet14),
-                                   .I9(s_logisimNet21),
-                                   .Y0_n(s_logisimNet15),
-                                   .Y1_n(s_logisimNet11));
+   PAL_44305D PAL_44305_UCSCTL ( .ECSL_n(s_logisimNet16),
+                                 .EWCA_n(s_logisimNet9),
+                                 .EUPP_n(s_logisimNet24),
+                                 .ELOW_n(s_logisimNet26),
+                                 .WCA_n(s_WCA_n),
+                                 .LUA12(LUA12),
+                                 .FORM_n(s_logisimNet30),
+                                 .CC1_n(s_logisimBus6[0]),
+                                 .CC2_n(s_logisimBus6[1]),
+                                 .CC3_n(s_logisimBus6[2]),
+                                 .LCS_n(s_logisimNet2),
+                                 .RWCS_n(s_logisimNet7),
+                                 .WCS_n(s_logisimNet12),
+                                 .FETCH(s_logisimNet1),
+                                 .BRK_n(s_BRK_n),
+                                 .TERM_n(s_logisimNet21),
+                                 .WICA_n(s_logisimNet15),
+                                 .WCSTB_n(s_logisimNet11));
 
 endmodule
