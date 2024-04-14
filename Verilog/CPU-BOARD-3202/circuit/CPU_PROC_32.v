@@ -220,7 +220,7 @@ module CPU_PROC_32( ACOND_n,
    wire        s_logisimNet154;
    wire        s_logisimNet155;
    wire        s_logisimNet156;
-   wire        s_logisimNet157;
+   wire        s_MCLK;
    wire        s_logisimNet159;
    wire        s_logisimNet16;
    wire        s_logisimNet160;
@@ -287,7 +287,7 @@ module CPU_PROC_32( ACOND_n,
    wire        s_logisimNet44;
    wire        s_logisimNet45;
    wire        s_logisimNet46;
-   wire        s_logisimNet47;
+   wire        s_PD1;
    wire        s_logisimNet48;
    wire        s_logisimNet49;
    wire        s_logisimNet50;
@@ -297,7 +297,7 @@ module CPU_PROC_32( ACOND_n,
    wire        s_logisimNet54;
    wire        s_logisimNet55;
    wire        s_logisimNet56;
-   wire        s_logisimNet57;
+   wire        s_CLK;
    wire        s_logisimNet58;
    wire        s_logisimNet59;
    wire        s_logisimNet6;
@@ -477,16 +477,16 @@ module CPU_PROC_32( ACOND_n,
    assign s_logisimNet146       = BSTP;
    assign s_logisimNet147       = IBINT15_n;
    assign s_logisimNet154       = LCS_n;
-   assign s_logisimNet157       = MCLK;
+   assign s_MCLK                = MCLK;
    assign s_logisimNet162       = POWFAIL_n;
    assign s_logisimNet17        = PARERR_n;
    assign s_logisimNet3         = WRFSTB;
    assign s_logisimNet37        = PAN_n;
    assign s_logisimNet43        = BEDO_n;
-   assign s_logisimNet47        = PD1;
+   assign s_PD1                 = PD1;
    assign s_logisimNet53        = MREQ_n;
    assign s_logisimNet56        = TERM_n;
-   assign s_logisimNet57        = CLK;
+   assign s_CLK                 = CLK;
    assign s_logisimNet65        = MR_n;
    assign s_logisimNet66        = EWCA_n;
    assign s_logisimNet67        = IBINT12_n;
@@ -550,13 +550,13 @@ module CPU_PROC_32( ACOND_n,
    *******************************************************************************/
 
    AM29841   CHIP_25F (.D(s_logisimBus24),           
-                       .C(s_logisimNet157),
-                       .OC_n(s_logisimNet47),
-                       .Q(s_logisimBus163));
+                       .LE(s_MCLK),
+                       .OE_n(s_PD1),
+                       .Y(s_logisimBus163));
 
    CPU_PROC_CMDDEC_34   CMDDEC (.BRK_n(s_logisimNet159),
                                 .CGABRK_n(s_logisimNet10),
-                                .CLK(s_logisimNet57),
+                                .CLK(s_CLK),
                                 .CSCOMM_4_0(s_logisimBus114[4:0]),
                                 .CSIDBS_4_0(s_logisimBus90[4:0]),
                                 .CSMIS_1_0(s_logisimBus151[1:0]),
@@ -568,7 +568,7 @@ module CPU_PROC_32( ACOND_n,
                                 .LEV0(s_logisimNet118),
                                 .MREQ_n(s_logisimNet53),
                                 .OPCLCS(s_logisimNet74),
-                                .PD1(s_logisimNet47),
+                                .PD1(s_PD1),
                                 .PIL_3_0(s_logisimBus84[3:0]),
                                 .RRF_n(s_logisimNet75),
                                 .RT_n(s_logisimNet160),
@@ -631,7 +631,7 @@ module CPU_PROC_32( ACOND_n,
                           .LCS_n(s_logisimNet154),
                           .LSHADOW(s_logisimNet126),
                           .MAP_n(s_logisimNet13),
-                          .MCLK(s_logisimNet157),
+                          .MCLK(s_MCLK),
                           .MOR_n(s_logisimNet83),
                           .MR_n(s_logisimNet65),
                           .PAN_n(s_logisimNet37),

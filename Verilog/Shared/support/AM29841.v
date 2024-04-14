@@ -4,16 +4,18 @@
 
 module AM29841 (
     input wire [9:0] D,   // 10 Bit Data inputs
-    input wire C,         // Control input (active high)
-    input wire OC_n,      // Output Control (active low)
-    output wire [9:0] Q   // Outputs
+    input wire LE,         // Latch Enable
+    input wire OE_n,      // Output Enable
+    output wire [9:0] Y   // Outputs
 );
 
     reg [9:0] Q_Latch;  // Internal latch
 
     // Latch operation
-    always @(*) begin
-        if (C) begin
+    //always @(posedge LE or negedge LE or posedge D or negedge D) begin 
+    //always @(*) begin
+    always_latch begin
+        if (LE) begin
             Q_Latch = D;  // Transparent mode: Internal latch follows input
         end
     end
@@ -21,6 +23,6 @@ module AM29841 (
     // Output control
     // When OC_n is low (active), outputs reflect the latched data
     // When OC_n is high, outputs are in high-impedance state
-    assign Q = (OC_n == 1'b0) ? Q_Latch : 10'bz;
+    assign Y = OE_n ?  10'bz : Q_Latch;
 
 endmodule
