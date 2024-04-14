@@ -1,251 +1,258 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CPU_CS_WCS_21_22                                             **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** CPU/CS/WCS                                                            **
+** Writable Control Store                                                **
+** SHEET 22 of 50                                                        **
+**                                                                       ** 
+** This module has 16 RAM CHIPS of type 16K (4Kx4) Static RAM for LUA    **
+** (4KByte Microcode)                                                    ** 
+**                                                                       ** 
+** This module has 16 RAM CHIPS of type 16K (4Kx4) Static RAM for UUA    **
+** (4KByte for Writable Control Store?)                                  **
+**                                                                       ** 
+** Last reviewed: 14-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module CPU_CS_WCS_21_22( CSBITS_63_0_io,
-                         ELOW_n,
-                         EUPP_n,
-                         LUA_11_0,
-                         UUA_11_0,
-                         WU0_n,
-                         WU1_n,
-                         WU2_n,
-                         WU3_n,
-                         WW0_n,
-                         WW1_n,
-                         WW2_n,
-                         WW3_n );
+module CPU_CS_WCS_21_22( input [63:0] CSBITS_63_0,
+                         output [63:0] CSBITS_63_0_OUT,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        ELOW_n;
-   input        EUPP_n;
-   input [11:0] LUA_11_0;
-   input [11:0] UUA_11_0;
-   input        WU0_n;
-   input        WU1_n;
-   input        WU2_n;
-   input        WU3_n;
-   input        WW0_n;
-   input        WW1_n;
-   input        WW2_n;
-   input        WW3_n;
-
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output [63:0] CSBITS_63_0_io;
+                         input [11:0] LUA_11_0,
+                         input        ELOW_n,
+                         input        WW0_n,
+                         input        WW1_n,
+                         input        WW2_n,
+                         input        WW3_n,
+                         
+                         
+                         input [11:0] UUA_11_0,
+                         input        EUPP_n,
+                         input        WU0_n,
+                         input        WU1_n,
+                         input        WU2_n,
+                         input        WU3_n
+                        );
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [11:0] s_logisimBus1;
-   wire [11:0] s_logisimBus11;
-   wire [63:0] s_logisimBus45;
-   wire [63:0] s_logisimBus6;
-   wire        s_logisimNet0;
-   wire        s_logisimNet12;
-   wire        s_logisimNet15;
-   wire        s_logisimNet18;
-   wire        s_logisimNet2;
-   wire        s_logisimNet25;
-   wire        s_logisimNet29;
-   wire        s_logisimNet3;
-   wire        s_logisimNet4;
-   wire        s_logisimNet8;
+   wire [63:0] s_lua_csbits;
+   wire [11:0] s_lua_address;
+   wire        s_elow_n;
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
+   wire        s_ww3_n;
+   wire        s_ww2_n;
+   wire        s_ww1_n;
+   wire        s_ww0_n;
+
+   wire [63:0] s_uua_csbits;   
+   wire [11:0] s_uua_address;
+   wire        s_eupp_n;
+   wire        s_wu3_n;
+   wire        s_wu2_n;
+   wire        s_wu1_n;
+   wire        s_wu0_n;
+   
+   
 
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus11[11:0] = LUA_11_0;
-   assign s_logisimBus1[11:0]  = UUA_11_0;
-   assign s_logisimNet0        = WW2_n;
-   assign s_logisimNet12       = WU3_n;
-   assign s_logisimNet15       = WU2_n;
-   assign s_logisimNet18       = WW3_n;
-   assign s_logisimNet2        = ELOW_n;
-   assign s_logisimNet25       = WU1_n;
-   assign s_logisimNet29       = WW0_n;
-   assign s_logisimNet3        = WU0_n;
-   assign s_logisimNet4        = WW1_n;
-   assign s_logisimNet8        = EUPP_n;
+   
+   // LUA
+   assign s_lua_csbits[63:0]  = CSBITS_63_0;
+   assign s_lua_address[11:0] = LUA_11_0;
+
+   assign s_elow_n            = ELOW_n;  // Enable LUA RAM chips
+   assign s_ww0_n             = WW0_n;   // Enable write for LUA bits 15-0   
+   assign s_ww1_n             = WW1_n;   // Enable write for LUA bits 31-16
+   assign s_ww2_n             = WW2_n;   // Enable write for LUA bits 47-32
+   assign s_ww3_n             = WW3_n;   // Enable write for LUA bits 63-48
+
+
+   // UUA
+   assign s_uua_csbits[63:0]  = CSBITS_63_0;
+   assign s_uua_address[11:0] = UUA_11_0;
+
+   assign s_eupp_n            = EUPP_n; // Enable UUA RAM chips
+   assign s_wu0_n             = WU0_n;  // Enable write for UUA bits 15-0
+   assign s_wu1_n             = WU1_n;  // Enable write for UUA bits 31-16
+   assign s_wu2_n             = WU2_n;  // Enable write for UUA bits 47-32
+   assign s_wu3_n             = WU3_n;  // Enable write for UUA bits 63-48
+
+
+   
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign CSBITS_63_0_io = s_logisimBus6[63:0];
+   // ELOW_n = 0 means ENABLE LUA RAM CHIPS
+   // EUPP_n = 0 means ENABLE UUA RAM CHIPS
+
+  assign CSBITS_63_0_OUT = (!s_elow_n) ?  s_lua_csbits[63:0] : (!s_eupp_n) ? s_uua_csbits[63:0] : 64'bz;
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   IDT6168A_20   CHIP_16C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[63:60]),
-                           .WE_n(s_logisimNet18));
+   IDT6168A_20   CHIP_16C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[63:60]),
+                           .WE_n(s_ww3_n));
 
-   IDT6168A_20   CHIP_17C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[59:56]),
-                           .WE_n(s_logisimNet18));
+   IDT6168A_20   CHIP_17C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[59:56]),
+                           .WE_n(s_ww3_n));
 
-   IDT6168A_20   CHIP_18C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[55:52]),
-                           .WE_n(s_logisimNet18));
+   IDT6168A_20   CHIP_18C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[55:52]),
+                           .WE_n(s_ww3_n));
 
-   IDT6168A_20   CHIP_19C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[51:48]),
-                           .WE_n(s_logisimNet18));
+   IDT6168A_20   CHIP_19C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[51:48]),
+                           .WE_n(s_ww3_n));
 
-   IDT6168A_20   CHIP_16D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[63:60]),
-                           .WE_n(s_logisimNet12));
+   IDT6168A_20   CHIP_16D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[63:60]),
+                           .WE_n(s_wu3_n));
 
-   IDT6168A_20   CHIP_17D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[59:56]),
-                           .WE_n(s_logisimNet12));
+   IDT6168A_20   CHIP_17D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[59:56]),
+                           .WE_n(s_wu3_n));
 
-   IDT6168A_20   CHIP_18D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[55:52]),
-                           .WE_n(s_logisimNet12));
+   IDT6168A_20   CHIP_18D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[55:52]),
+                           .WE_n(s_wu3_n));
 
-   IDT6168A_20   CHIP_19D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[51:48]),
-                           .WE_n(s_logisimNet12));
+   IDT6168A_20   CHIP_19D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[51:48]),
+                           .WE_n(s_wu3_n));
 
-   IDT6168A_20   CHIP_20C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[47:44]),
-                           .WE_n(s_logisimNet0));
+   IDT6168A_20   CHIP_20C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[47:44]),
+                           .WE_n(s_ww2_n));
 
-   IDT6168A_20   CHIP_21C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[43:40]),
-                           .WE_n(s_logisimNet0));
+   IDT6168A_20   CHIP_21C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[43:40]),
+                           .WE_n(s_ww2_n));
 
-   IDT6168A_20   CHIP_22C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[39:36]),
-                           .WE_n(s_logisimNet0));
+   IDT6168A_20   CHIP_22C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[39:36]),
+                           .WE_n(s_ww2_n));
 
-   IDT6168A_20   CHIP_23C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[35:32]),
-                           .WE_n(s_logisimNet0));
+   IDT6168A_20   CHIP_23C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[35:32]),
+                           .WE_n(s_ww2_n));
 
-   IDT6168A_20   CHIP_20D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[47:44]),
-                           .WE_n(s_logisimNet15));
+   IDT6168A_20   CHIP_20D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[47:44]),
+                           .WE_n(s_wu2_n));
 
-   IDT6168A_20   CHIP_21D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[43:40]),
-                           .WE_n(s_logisimNet15));
+   IDT6168A_20   CHIP_21D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[43:40]),
+                           .WE_n(s_wu2_n));
 
-   IDT6168A_20   CHIP_22D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[39:36]),
-                           .WE_n(s_logisimNet15));
+   IDT6168A_20   CHIP_22D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[39:36]),
+                           .WE_n(s_wu2_n));
 
-   IDT6168A_20   CHIP_23D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[35:32]),
-                           .WE_n(s_logisimNet15));
+   IDT6168A_20   CHIP_23D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[35:32]),
+                           .WE_n(s_wu2_n));
 
-   IDT6168A_20   CHIP_24C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[31:28]),
-                           .WE_n(s_logisimNet4));
+   IDT6168A_20   CHIP_24C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[31:28]),
+                           .WE_n(s_ww1_n));
 
-   IDT6168A_20   CHIP_25C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[27:24]),
-                           .WE_n(s_logisimNet4));
+   IDT6168A_20   CHIP_25C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[27:24]),
+                           .WE_n(s_ww1_n));
 
-   IDT6168A_20   CHIP_26C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[23:20]),
-                           .WE_n(s_logisimNet4));
+   IDT6168A_20   CHIP_26C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[23:20]),
+                           .WE_n(s_ww1_n));
 
-   IDT6168A_20   CHIP_27C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[19:16]),
-                           .WE_n(s_logisimNet4));
+   IDT6168A_20   CHIP_27C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[19:16]),
+                           .WE_n(s_ww1_n));
 
-   IDT6168A_20   CHIP_24D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[31:28]),
-                           .WE_n(s_logisimNet25));
+   IDT6168A_20   CHIP_24D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[31:28]),
+                           .WE_n(s_wu1_n));
 
-   IDT6168A_20   CHIP_25D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[27:24]),
-                           .WE_n(s_logisimNet25));
+   IDT6168A_20   CHIP_25D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[27:24]),
+                           .WE_n(s_wu1_n));
 
-   IDT6168A_20   CHIP_26D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[23:20]),
-                           .WE_n(s_logisimNet25));
+   IDT6168A_20   CHIP_26D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[23:20]),
+                           .WE_n(s_wu1_n));
 
-   IDT6168A_20   CHIP_27D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[19:16]),
-                           .WE_n(s_logisimNet25));
+   IDT6168A_20   CHIP_27D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[19:16]),
+                           .WE_n(s_wu1_n));
 
-   IDT6168A_20   CHIP_28C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[15:12]),
-                           .WE_n(s_logisimNet29));
+   IDT6168A_20   CHIP_28C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[15:12]),
+                           .WE_n(s_ww0_n));
 
-   IDT6168A_20   CHIP_29C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[11:8]),
-                           .WE_n(s_logisimNet29));
+   IDT6168A_20   CHIP_29C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[11:8]),
+                           .WE_n(s_ww0_n));
 
-   IDT6168A_20   CHIP_30C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[7:4]),
-                           .WE_n(s_logisimNet29));
+   IDT6168A_20   CHIP_30C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[7:4]),
+                           .WE_n(s_ww0_n));
 
-   IDT6168A_20   CHIP_31C (.A_11_0(s_logisimBus11[11:0]),
-                           .CE_n(s_logisimNet2),
-                           .D_3_0(s_logisimBus6[3:0]),
-                           .WE_n(s_logisimNet29));
+   IDT6168A_20   CHIP_31C (.A_11_0(s_lua_address[11:0]),
+                           .CE_n(s_elow_n),
+                           .D_3_0(s_lua_csbits[3:0]),
+                           .WE_n(s_ww0_n));
 
-   IDT6168A_20   CHIP_28D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[15:12]),
-                           .WE_n(s_logisimNet3));
+   IDT6168A_20   CHIP_28D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[15:12]),
+                           .WE_n(s_wu0_n));
 
-   IDT6168A_20   CHIP_29D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[11:8]),
-                           .WE_n(s_logisimNet3));
+   IDT6168A_20   CHIP_29D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[11:8]),
+                           .WE_n(s_wu0_n));
 
-   IDT6168A_20   CHIP_30D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[7:4]),
-                           .WE_n(s_logisimNet3));
+   IDT6168A_20   CHIP_30D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[7:4]),
+                           .WE_n(s_wu0_n));
 
-   IDT6168A_20   CHIP_31D (.A_11_0(s_logisimBus1[11:0]),
-                           .CE_n(s_logisimNet8),
-                           .D_3_0(s_logisimBus45[3:0]),
-                           .WE_n(s_logisimNet3));
+   IDT6168A_20   CHIP_31D (.A_11_0(s_uua_address[11:0]),
+                           .CE_n(s_eupp_n),
+                           .D_3_0(s_uua_csbits[3:0]),
+                           .WE_n(s_wu0_n));
 
 endmodule
