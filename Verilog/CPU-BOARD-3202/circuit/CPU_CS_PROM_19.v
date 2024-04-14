@@ -6,63 +6,30 @@
  **                                                                          **
  *****************************************************************************/
 
-module CPU_CS_PROM_19( BLCS_n,
-                       IDB_15_0,
-                       LUA_12_0,
-                       RF_1_0 );
+module CPU_CS_PROM_19( input BLCS_n,         // Set to 0 to enable the output to IDB
+                       input [1:0]  RF_1_0,  // Selects which of the 4 16 bit's of the microcoe to fetch
+                       input [12:0] LUA_12_0, // Address of the microcode to fetch
+                       
+                       output [15:0] IDB_15_0 // The 16 bit microcode word
+                       );
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        BLCS_n;
-   input [12:0] LUA_12_0;
-   input [1:0]  RF_1_0;
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output [15:0] IDB_15_0;
+   wire [14:0] s_Address;
+   wire [15:0] s_databus;
 
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-   wire [14:0] s_logisimBus0;
-   wire [15:0] s_logisimBus2;
-   wire [15:0] s_logisimBus4;
-   wire        s_logisimNet1;
-   wire        s_logisimNet5;
+   assign s_Address[14:2] = LUA_12_0;
+   assign s_Address[1:0]  = RF_1_0;
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
-   /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
-   assign s_logisimBus0[14:2] = LUA_12_0;
-   assign s_logisimBus0[1:0]  = RF_1_0;
-   assign s_logisimNet5       = BLCS_n;
-
-   /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
-   assign IDB_15_0 = s_logisimBus2[15:0];
-
-   /*******************************************************************************
-   ** Here all in-lined components are defined                                   **
-   *******************************************************************************/
 
    // Controlled Buffer
-   assign s_logisimBus2 = (s_logisimNet1) ? s_logisimBus4 : 16'bZ;
+   assign IDB_15_0 = (BLCS_n) ? 16'bZ : s_databus;
 
-   // NOT Gate
-   assign s_logisimNet1 = ~s_logisimNet5;
 
    // ROM: CHIP_23B_45132
    reg[7:0] s_CHIP_23B_45132_reg;
       always @(*)
       begin
-         case (s_logisimBus0)
+         case (s_Address)
          {3'b000, 12'h000} : s_CHIP_23B_45132_reg = 8'h01;
          {3'b000, 12'h001} : s_CHIP_23B_45132_reg = 8'h29;
          {3'b000, 12'h002} : s_CHIP_23B_45132_reg = 8'h83;
@@ -18424,13 +18391,13 @@ module CPU_CS_PROM_19( BLCS_n,
       endcase
    end
 
-   assign s_logisimBus4[7:0] = s_CHIP_23B_45132_reg;
+   assign s_databus[7:0] = s_CHIP_23B_45132_reg;
 
    // ROM: CHIP_26B_45133
    reg[7:0] s_CHIP_26B_45133_reg;
       always @(*)
       begin
-         case (s_logisimBus0)
+         case (s_Address)
          {3'b000, 12'h000} : s_CHIP_26B_45133_reg = 8'hC4;
          {3'b000, 12'h003} : s_CHIP_26B_45133_reg = 8'h20;
          {3'b000, 12'h004} : s_CHIP_26B_45133_reg = 8'h60;
@@ -35333,6 +35300,6 @@ module CPU_CS_PROM_19( BLCS_n,
       endcase
    end
 
-   assign s_logisimBus4[15:8] = s_CHIP_26B_45133_reg;
+   assign s_databus[15:8] = s_CHIP_26B_45133_reg;
 
 endmodule
