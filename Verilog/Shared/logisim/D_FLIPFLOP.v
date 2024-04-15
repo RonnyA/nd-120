@@ -74,9 +74,12 @@ module D_FLIPFLOP( clock,
    *******************************************************************************/
    always @(posedge reset or posedge preset or posedge s_clock)
    begin
-      if (reset) s_currentState <= 1'b0;
-      else if (preset) s_currentState <= 1'b1;
-      else if (tick) s_currentState <= s_nextState;
+      if (reset) 
+         s_currentState <= 1'b0;
+      else if (preset)
+         s_currentState <= 1'b1;
+      else if (tick) 
+         s_currentState <= s_nextState;
    end
 
 endmodule

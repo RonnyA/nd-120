@@ -5,7 +5,7 @@
 #include <ctime>
 #include <string>
 
-#include "VCPU_CS_16.h"
+#include "VTOP_3202D.h"
 #include "verilated.h"
 
 #ifdef DO_TRACE
@@ -18,37 +18,39 @@ struct TestCase {
    /*******************************************************************************
    ** The inputs are defined here                                                **
    *******************************************************************************/
-   
-   uint16_t    IDB_15_0;
-   uint8_t     CC_3_1_n;
-   uint16_t    CSA_12_0;
-   uint16_t    CSCA_9_0;
-   uint8_t     RF_1_0;
-   bool        BLCS_n;
-   bool        BRK_n;
-   bool        CLK;
-   bool        FETCH;
-   bool        FORM_n;
-   bool        LCS_n;
-   bool        MACLK;
-   bool        PD1;
-   bool        RWCS_n;
-   bool        TERM_n;
-   bool        WCA_n;
-   bool        WCS_n;
-   
+   bool OC0;
+   bool OC1;
+   bool OSCCL_n;
+   bool BINT10_n;
+   bool BINT11_n;
+   bool BINT12_n;
+   bool BINT13_n;
+   bool BINT15_n;
+   bool BREQ_n;
+   bool CLOCK_1;
+   bool CLOCK_2;
+   bool CONSOLE_n;
+   bool CONTINUE_n;
+   bool EAUTO_n;
+   bool LOAD_n;
+   bool LOCK_n;
+   bool RXD;
+   bool STOP_n;
+   bool SW1_CONSOLE;
+   bool SWMCL_n;
+   bool XTR;
    
    /*******************************************************************************
    ** The outputs are defined here                                               **
    *******************************************************************************/
 
-   uint64_t  CSBITS;
-   bool      EWCA_n;
-   uint16_t  IDB_15_0_OUT;
-   uint16_t  LUA_12_0;
-
-   
-    
+   uint64_t CSBITS;
+   uint8_t  DP_5_1_n;
+   bool     RUN_n;
+   uint8_t  TEST_4_0;
+   bool     TP1_INTRQ_n;
+   bool     TXD;
+ 
   std::string description; // Description of the test case
 };
 
@@ -66,24 +68,8 @@ int main(int argc, char **argv)
     };
 
     Verilated::commandArgs(argc, argv);
-    VCPU_CS_16* top = new VCPU_CS_16;
+    VTOP_3202D* top = new VTOP_3202D;
     
-    // Set default values     
-    top->BLCS_n = true;
-    top->BRK_n = true;
-    top->CLK = false;
-    top->FETCH = false;
-    top->FORM_n = true;
-    top->LCS_n = true;
-    top->MACLK = true;
-    top->PD1 = false; // PD1 must be low to have normal functionality
-    top->RWCS_n = true;
-    top->TERM_n = true;
-    top->WCA_n = true;
-    top->WCS_n = true;
-
-
-    top->FETCH = true;  
 
 #ifdef DO_TRACE
     VerilatedVcdC *m_trace = new VerilatedVcdC;    
@@ -96,41 +82,37 @@ int main(int argc, char **argv)
 
     int errCnt = 0;
 
-    // Set defaults
+    top->CONSOLE_n = 
+    top->CONTINUE_n =
+    top->EAUTO_n =
+    top->LOAD_n =
+    top->LOCK_n =
+    top->STOP_n =   
+    top->SWMCL_n = 
+    top->BINT10_n =
+    top->BINT11_n =
+    top->BINT12_n =
+    top->BINT13_n = 
+    top->BINT15_n =
+    top->BREQ_n = true; //disabled
 
+    // Set defaults    
+    top->OSCCL_n = 1;
+    top->OC_1_0 = 0b11; // Choose clock input = XTAL1
+    top->CLOCK_2 = top->CLOCK_1=0;
     
 
     // Iterate through each test case
     //for (const auto& test : testCases) {
     //    std::cout << "Running " << test.description << std::endl;
 
-    int rf = 0;
-    int cnt=0;
 
-    // Only first 10 microcodes for test
-    for (int j=0;j<10;j++)
+
+    for (int ck =0;ck<512;ck++)
     {
-        top->WCS_n = false;
-        top->BLCS_n = false;
-        top->LCS_n = false;
         
-        top->CSA_12_0 = j;
-        top->CSCA_9_0 = j;                
+        top->CLOCK_2 = top->CLOCK_1;
 
-        // Load microcode from PROM to RAM
-        for (int part = 0;part <4; part++)
-        {
-            for (int ck =0;ck<1;ck++)
-            {
-                
-                
-                top->RF_1_0 = part;
-
-                
-                top->eval();
-            
-                    
-        
 
 #ifdef DO_TRACE        
         m_trace->dump(sim_time);
@@ -138,38 +120,9 @@ int main(int argc, char **argv)
 #endif
 
 
-                top->CLK = !top->CLK;
-                top->MACLK = top->CLK;
-            }
-        }
-
-    }
-
-    top->WCS_n =true;
-    top->BLCS_n = true; // Dont send PROM data out on IDB anymore
-    top->LCS_n = true;
-
-
-    for (int j=0; j<10; j++)
-    {
-        top->CSA_12_0 = j;
-        top->CSCA_9_0 = j;
-
-        for (int ck =0;ck<1;ck++)
-        {
-            top->MACLK = top->CLK;
-
-    
-
-            top->eval();
-
-            top->CLK = !top->CLK ;        
-
-#ifdef DO_TRACE        
-        m_trace->dump(sim_time);
-        sim_time += time_step; // Increment simulation time
-#endif
-
+        top->eval();
+        
+        top->CLOCK_1 = !top->CLOCK_1;
 
 
 #if __later__
@@ -199,7 +152,7 @@ if (top->CGNTCACT_n != test.CGNTCACT_n) {
         // if (errCnt>0) break; // exit for loop
 #endif      
 
-        }
+        
     }
 
 

@@ -82,7 +82,8 @@ module IO_37( BDRY50_n,
               XTAL1,
               XTAL2,
               XTR,
-              logisimOutputBubbles );
+              LED  // 0=RED,1=GREEN
+              );
 
    /*******************************************************************************
    ** The inputs are defined here                                                **
@@ -167,7 +168,7 @@ module IO_37( BDRY50_n,
    output       TXD;
    output       WCHIM_n;
    output       WRITE;
-   output [1:0] logisimOutputBubbles;
+   output [1:0] LED;
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -376,7 +377,7 @@ module IO_37( BDRY50_n,
                            .SIOC_n(s_logisimNet16),
                            .TBMT_n(s_logisimNet20),
                            .TRAALD_n(s_logisimNet10),
-                           .logisimOutputBubbles(logisimOutputBubbles[1 : 0]));
+                           .LED(LED[1:0]));
 
    IO_PANCAL_40   PANCAL (.CLEAR_n(s_logisimNet78),
                           .DP_5_1_n(s_logisimBus54[4:0]),

@@ -1,0 +1,100 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Mon Apr 15 13:45:41 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_15/sim/waveform.vcd"
+[dumpfile_mtime] "Mon Apr 15 13:38:28 2024"
+[dumpfile_size] 2779915
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_15/sim/pal.gtkw"
+[timestart] 0
+[size] 2548 1359
+[pos] 31 31
+*-4.456229 11 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.CPU_15.
+[treeopen] TOP.CPU_15.CS.
+[treeopen] TOP.CPU_15.PROC.
+[treeopen] TOP.CPU_15.PROC.CGA.
+[treeopen] TOP.CPU_15.PROC.CGA.DELILAH.
+[sst_width] 312
+[signals_width] 511
+[sst_expanded] 1
+[sst_vpaned_height] 725
+@200
+-clock
+@28
+TOP.CLK
+TOP.ALUCLK
+TOP.MACLK
+TOP.MCLK
+@200
+--- input --
+@22
+TOP.IDB_15_0[15:0]
+@28
+TOP.CC_3_1_n[2:0]
+TOP.CA10
+TOP.CCLR_n
+TOP.CYD
+TOP.DT_n
+TOP.DVACC_n
+TOP.ECSR_n
+TOP.EDO_n
+TOP.EMCL_n
+TOP.EMPID_n
+TOP.EORF_n
+TOP.ESTOF_n
+TOP.ETRAP_n
+TOP.FETCH
+TOP.FMISS
+TOP.FORM_n
+TOP.IBINT10_n
+TOP.IBINT11_n
+TOP.IBINT12_n
+TOP.IBINT13_n
+TOP.IBINT15_n
+TOP.IOXERR_n
+TOP.LCS_n
+TOP.MAP_n
+TOP.MOR_n
+TOP.MR_n
+TOP.PAN_n
+TOP.PARERR_n
+TOP.PD1
+TOP.PD1
+TOP.POWFAIL_n
+TOP.RT_n
+TOP.RWCS_n
+TOP.STOC_n
+TOP.STP
+TOP.SW1_CONSOLE
+TOP.TERM_n
+TOP.UCLK
+TOP.WCHIM_n
+TOP.WRFSTB
+TOP.WRITE
+@200
+--- output --
+@22
+TOP.TOPCSB[63:0]
+TOP.IDB_15_0_OUT[15:0]
+TOP.CA_9_0[9:0]
+TOP.LUA_12_0[12:0]
+TOP.LBA_3_0[3:0]
+@28
+TOP.PCR_1_0[1:0]
+@22
+TOP.PIL_3_0[3:0]
+TOP.PPN_23_10[13:0]
+@29
+TOP.LSHADOW
+@28
+TOP.OPCLCS
+TOP.PONI
+TOP.TRAP
+TOP.VEX
+TOP.TP1_INTRQ_n
+@22
+TOP.TEST_4_0[4:0]
+[pattern_trace] 1
+[pattern_trace] 0

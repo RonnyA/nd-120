@@ -5,7 +5,7 @@
 #include <ctime>
 #include <string>
 
-#include "VCPU_CS_16.h"
+#include "VCPU_15.h"
 #include "verilated.h"
 
 #ifdef DO_TRACE
@@ -14,40 +14,88 @@
 
 // PAL testcases
 struct TestCase {
-    
    /*******************************************************************************
    ** The inputs are defined here                                                **
+   *******************************************************************************/   
+   bool   CLK;
+   bool   ALUCLK;
+   bool   MACLK;
+   bool   MCLK;
+
+   uint8_t   CC_3_1_n;
+
+   bool   CA10;
+   bool   CCLR_n;
+   
+   bool   CYD;
+   bool   DT_n;
+   bool   DVACC_n;
+   bool   ECSR_n;
+   bool   EDO_n;
+   bool   EMCL_n;
+   bool   EMPID_n;
+   bool   EORF_n;
+   bool   ESTOF_n;
+   bool   ETRAP_n;
+   bool   FETCH;
+   bool   FMISS;
+   bool   FORM_n;
+   bool   IBINT10_n;
+   bool   IBINT11_n;
+   bool   IBINT12_n;
+   bool   IBINT13_n;
+   bool   IBINT15_n;
+   bool   IOXERR_n;
+   bool   LCS_n;
+   bool   MAP_n;
+   bool   MOR_n;
+   bool   MR_n;
+   bool   PAN_n;
+   bool   PARERR_n;
+   bool   PD1;
+   bool   PD2;
+   bool   POWFAIL_n;
+   bool   RT_n;
+   bool   RWCS_n;
+   bool   STOC_n;
+   bool   STP;
+   bool   SW1_CONSOLE;
+   bool   TERM_n;
+   bool   UCLK;
+   bool   WCHIM_n;
+   bool   WRFSTB;
+   bool   WRITE;
+   
+
+   /*******************************************************************************
+   ** The INOUT are defined here                                                **
    *******************************************************************************/
-   
-   uint16_t    IDB_15_0;
-   uint8_t     CC_3_1_n;
-   uint16_t    CSA_12_0;
-   uint16_t    CSCA_9_0;
-   uint8_t     RF_1_0;
-   bool        BLCS_n;
-   bool        BRK_n;
-   bool        CLK;
-   bool        FETCH;
-   bool        FORM_n;
-   bool        LCS_n;
-   bool        MACLK;
-   bool        PD1;
-   bool        RWCS_n;
-   bool        TERM_n;
-   bool        WCA_n;
-   bool        WCS_n;
-   
-   
+ 
+    uint16_t  CD_15_0;
+    uint16_t  IDB_15_0;
+
+    uint16_t  CD_15_0_OUT;
+    uint16_t  IDB_15_0_OUT
+
    /*******************************************************************************
    ** The outputs are defined here                                               **
    *******************************************************************************/
+    uint16_t  CA_9_0;
+    uint8_t   LBA_3_0;
+    uint16_t  LUA_12_0;
+           
+    uint8_t   PCR_1_0;
+    uint8_t   PIL_3_0;    
+    uint16_t  PPN_23_10;
+    uint8_t   TEST_4_0;
+    uint64_t  TOPCSB;
 
-   uint64_t  CSBITS;
-   bool      EWCA_n;
-   uint16_t  IDB_15_0_OUT;
-   uint16_t  LUA_12_0;
-
-   
+    bool LSHADOW;
+    bool OPCLCS;
+    bool PONI;           
+    bool TRAP;
+    bool VEX;
+    bool TP1_INTRQ_n;
     
   std::string description; // Description of the test case
 };
@@ -66,24 +114,11 @@ int main(int argc, char **argv)
     };
 
     Verilated::commandArgs(argc, argv);
-    VCPU_CS_16* top = new VCPU_CS_16;
+    VCPU_15* top = new VCPU_15;
     
     // Set default values     
-    top->BLCS_n = true;
-    top->BRK_n = true;
-    top->CLK = false;
-    top->FETCH = false;
-    top->FORM_n = true;
-    top->LCS_n = true;
-    top->MACLK = true;
-    top->PD1 = false; // PD1 must be low to have normal functionality
-    top->RWCS_n = true;
-    top->TERM_n = true;
-    top->WCA_n = true;
-    top->WCS_n = true;
-
-
-    top->FETCH = true;  
+   
+   
 
 #ifdef DO_TRACE
     VerilatedVcdC *m_trace = new VerilatedVcdC;    
@@ -104,33 +139,12 @@ int main(int argc, char **argv)
     //for (const auto& test : testCases) {
     //    std::cout << "Running " << test.description << std::endl;
 
-    int rf = 0;
-    int cnt=0;
 
-    // Only first 10 microcodes for test
-    for (int j=0;j<10;j++)
+
+    for (int ck =0;ck<512;ck++)
     {
-        top->WCS_n = false;
-        top->BLCS_n = false;
-        top->LCS_n = false;
-        
-        top->CSA_12_0 = j;
-        top->CSCA_9_0 = j;                
+        top->ALUCLK = top->MCLK = top->MACLK = top->CLK;
 
-        // Load microcode from PROM to RAM
-        for (int part = 0;part <4; part++)
-        {
-            for (int ck =0;ck<1;ck++)
-            {
-                
-                
-                top->RF_1_0 = part;
-
-                
-                top->eval();
-            
-                    
-        
 
 #ifdef DO_TRACE        
         m_trace->dump(sim_time);
@@ -138,38 +152,8 @@ int main(int argc, char **argv)
 #endif
 
 
-                top->CLK = !top->CLK;
-                top->MACLK = top->CLK;
-            }
-        }
-
-    }
-
-    top->WCS_n =true;
-    top->BLCS_n = true; // Dont send PROM data out on IDB anymore
-    top->LCS_n = true;
-
-
-    for (int j=0; j<10; j++)
-    {
-        top->CSA_12_0 = j;
-        top->CSCA_9_0 = j;
-
-        for (int ck =0;ck<1;ck++)
-        {
-            top->MACLK = top->CLK;
-
-    
-
-            top->eval();
-
-            top->CLK = !top->CLK ;        
-
-#ifdef DO_TRACE        
-        m_trace->dump(sim_time);
-        sim_time += time_step; // Increment simulation time
-#endif
-
+        top->eval();
+        top->CLK = !top->CLK ;        
 
 
 #if __later__
@@ -199,7 +183,7 @@ if (top->CGNTCACT_n != test.CGNTCACT_n) {
         // if (errCnt>0) break; // exit for loop
 #endif      
 
-        }
+        
     }
 
 

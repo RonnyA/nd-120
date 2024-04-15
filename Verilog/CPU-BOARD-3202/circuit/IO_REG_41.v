@@ -21,7 +21,8 @@ module IO_REG_41( BINT10_n,
                   SIOC_n,
                   TBMT_n,
                   TRAALD_n,
-                  logisimOutputBubbles );
+                  LED  // 0=RED,1=GREEN
+                  );
 
    /*******************************************************************************
    ** The inputs are defined here                                                **
@@ -45,7 +46,7 @@ module IO_REG_41( BINT10_n,
    output        EMCL_n;
    output [15:0] IDB_15_0;
    inout  [7:0]  IDB_7_0_io;
-   output [1:0]  logisimOutputBubbles;
+   output [1:0]  LED;
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -57,7 +58,7 @@ module IO_REG_41( BINT10_n,
    wire [3:0]  s_ALD;
    wire [15:0] s_IDB_15_0;   
    wire [7:0]  s_INR_7_0;
-   wire        s_IDB_15_0;
+//   wire        s_IDB_15_0;
    wire        s_logisimNet1;
    wire        s_logisimNet10;
    wire        s_logisimNet12;
@@ -202,10 +203,10 @@ module IO_REG_41( BINT10_n,
    assign s_logisimNet20 = ~s_logisimNet2;
 
    // LED: RED
-   assign logisimOutputBubbles[0] = s_logisimNet34;
+   assign LED[0] = s_logisimNet34;
 
    // LED: GREEN
-   assign logisimOutputBubbles[1] = s_logisimNet16;
+   assign LED[1] = s_logisimNet16;
 
    /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -264,7 +265,7 @@ module IO_REG_41( BINT10_n,
 TTL_74273 CHIP_28A_IOC (
     .CLK(s_logisimNet33),           // Clock input
     .CLR_n(s_logisimNet45),         // Active low clear input
-    .D(s_IDB_15_0),             // 8-bit data input directly from the bus
+    .D(s_IDB_15_0[7:0]),              // 8-bit data input directly from the bus
     .Q({s_logisimNet42,             // 8-bit output, bit 7 (Q8 - Corresponding to D8/MSB)
         s_logisimNet19,             // 8-bit output, bit 6 (Q7)
         s_logisimNet1,              // 8-bit output, bit 5 (Q6)

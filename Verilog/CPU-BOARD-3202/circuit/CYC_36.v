@@ -73,7 +73,7 @@ module CYC_36(
    wire       s_logisimNet14;
    // wire       s_DLSHADOW; // not used ??
    wire       s_logisimNet16;
-   wire       s_logisimNet17;
+   wire       s_mr_n;
    wire       s_logisimNet18;
    wire       s_logisimNet19;
    wire       s_logisimNet2;
@@ -145,7 +145,7 @@ module CYC_36(
    assign s_logisimNet12 = CSALUI8;
    assign s_logisimNet13 = LBA3;
    assign s_logisimNet14 = LBA0;
-   assign s_logisimNet17 = MR_n;
+   assign s_mr_n         = MR_n;
    assign s_logisimNet18 = CSDELAY0;
    assign s_FORM_n       = FORM_n;
    assign s_logisimNet26 = RWCS_n;
@@ -206,10 +206,14 @@ module CYC_36(
    /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
+   /*
    AND_GATE #(.BubblesMask(2'b00))
-      GATES_1 (.input1(s_logisimNet17),
+      GATES_1 (.input1(s_mr_n),
                .input2(s_logisimNet63),
                .result(s_logisimNet36));
+   */
+   
+   assign s_logisimNet36 = (s_mr_n & s_logisimNet63);
 
    NAND_GATE #(.BubblesMask(2'b00))
       GATES_2 (.input1(s_logisimNet31),
@@ -320,7 +324,7 @@ module CYC_36(
                                  .CSECOND(s_logisimNet8),      //I2
                                  .CSLOOP(s_logisimNet53),      //I3
                                  .ACOND_n(s_logisimNet9),      //I4   
-                                 .MR_n(s_logisimNet17),        //I5
+                                 .MR_n(s_mr_n),                //I5
                                  .LUA12(s_logisimNet10),       //I6
                                  .MAP_n(s_MAP_n),              //I7
 

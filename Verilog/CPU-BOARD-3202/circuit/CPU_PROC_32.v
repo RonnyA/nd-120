@@ -32,7 +32,8 @@ module CPU_PROC_32( ACOND_n,
                     IBINT12_n,
                     IBINT13_n,
                     IBINT15_n,
-                    IDB_15_0_io,
+                    IDB_15_0,
+                    IDB_15_0_OUT,
                     IONI,
                     IOXERR_n,
                     LA_23_10,
@@ -105,6 +106,14 @@ module CPU_PROC_32( ACOND_n,
    input        WRFSTB;
 
    /*******************************************************************************
+   ** The IN and OUT are define here                                            **
+   *******************************************************************************/
+   
+   // TODO: Give correct IDB signals to the chips
+   input  [15:0] IDB_15_0;
+   output [15:0] IDB_15_0_OUT;
+
+   /*******************************************************************************
    ** The outputs are defined here                                               **
    *******************************************************************************/
    output        ACOND_n;
@@ -115,8 +124,7 @@ module CPU_PROC_32( ACOND_n,
    output        CUP;
    output        CWR;
    output        DOUBLE;
-   output        ECCR;
-   output [15:0] IDB_15_0_io;
+   output        ECCR;   
    output        IONI;
    output [13:0] LA_23_10;
    output [3:0]  LBA_3_0;
@@ -506,7 +514,7 @@ module CPU_PROC_32( ACOND_n,
    assign CWR         = s_logisimNet76;
    assign DOUBLE      = s_logisimNet125;
    assign ECCR        = s_logisimNet85;
-   assign IDB_15_0_io = s_logisimBus15[15:0];
+   assign IDB_15_0_OUT = s_logisimBus15[15:0];
    assign IONI        = s_logisimNet41;
    assign LA_23_10    = s_logisimBus168[13:0];
    assign LBA_3_0     = s_logisimBus92[7:4];

@@ -1006,10 +1006,14 @@ module CGA_DCD( BRKN,
                 .input6(s_logisimBus268[0]),
                 .result(s_logisimNet85));
 
+/*
    NOR_GATE #(.BubblesMask(2'b00))
       GATES_56 (.input1(s_logisimNet184),
                 .input2(s_logisimNet7),
                 .result(s_logisimNet187));
+*/
+
+   assign s_logisimNet187 = ~(s_logisimNet184 |s_logisimNet7 );
 
    NAND_GATE_6_INPUTS #(.BubblesMask({2'b00, 4'h0}))
       GATES_57 (.input1(s_logisimNet82),

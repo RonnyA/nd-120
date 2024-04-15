@@ -1,20 +1,21 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Sun Apr 14 18:26:52 2024
+[*] Mon Apr 15 07:08:37 2024
 [*]
 [dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_CS_16/sim/waveform.vcd"
-[dumpfile_mtime] "Sun Apr 14 18:26:20 2024"
-[dumpfile_size] 193695
+[dumpfile_mtime] "Mon Apr 15 06:58:17 2024"
+[dumpfile_size] 29787
 [savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_CS_16/sim/pal.gtkw"
-[timestart] 283
+[timestart] 0
 [size] 2548 1359
-[pos] -276 31
-*-5.456229 344 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] -1 -1
+*-3.456229 42 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
+[treeopen] TOP.CPU_CS_16.
 [sst_width] 214
-[signals_width] 384
+[signals_width] 511
 [sst_expanded] 1
-[sst_vpaned_height] 100
+[sst_vpaned_height] 316
 @200
 -clock
 @28
@@ -33,7 +34,9 @@ TOP.CSCA_9_0[9:0]
 @28
 TOP.PD1
 TOP.FETCH
+@29
 TOP.BLCS_n
+@28
 TOP.BRK_n
 TOP.FORM_n
 TOP.LCS_n
@@ -49,10 +52,38 @@ TOP.EWCA_n
 @22
 TOP.CSBITS[63:0]
 TOP.IDB_15_0_OUT[15:0]
-@23
 TOP.LUA_12_0[12:0]
 @200
 -
+-**** DEBUG ****
 -
+@22
+TOP.CPU_CS_16.s_csbits_out_tcv[63:0]
+TOP.CPU_CS_16.s_csbits_out_wcs[63:0]
+@200
+-
+@22
+TOP.CPU_CS_16.s_IDB_15_0_prom_out[15:0]
+TOP.CPU_CS_16.s_IDB_15_0_tcv_in[15:0]
+TOP.CPU_CS_16.s_IDB_15_0_tcv_out[15:0]
+@28
+TOP.CPU_CS_16.TCV.EW_3_0_n[3:0]
+@200
+-wcs
+@28
+TOP.CPU_CS_16.WCS.WU0_n
+TOP.CPU_CS_16.WCS.WU1_n
+TOP.CPU_CS_16.WCS.WU2_n
+TOP.CPU_CS_16.WCS.WU3_n
+TOP.CPU_CS_16.WCS.WW0_n
+TOP.CPU_CS_16.WCS.WW1_n
+TOP.CPU_CS_16.WCS.WW2_n
+TOP.CPU_CS_16.WCS.WW3_n
+@200
+-CTL
+@22
+TOP.CPU_CS_16.CTL.WW_3_0_n[3:0]
+TOP.CPU_CS_16.CTL.WU_3_0_n[3:0]
+TOP.CPU_CS_16.CTL.EW_3_0_n[3:0]
 [pattern_trace] 1
 [pattern_trace] 0

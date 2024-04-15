@@ -1,79 +1,62 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : TOP_3202D                                                    **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** CPU                                                                   **
+** CPU TOP LEVEL                                                         **
+** SHEET 16 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 15-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module TOP_3202D( BINT10_n,
-                  BINT11_n,
-                  BINT12_n,
-                  BINT13_n,
-                  BINT15_n,
-                  BREQ_n,
-                  CLOCK_1,
-                  CLOCK_2,
-                  CONSOLE_n,
-                  CONTINUE_n,
-                  CSBITS,
-                  DP_5_1_n,
-                  EAUTO_n,
-                  LOAD_n,
-                  LOCK_n,
-                  OC0,
-                  OC1,
-                  OSCCL_n,
-                  RUN_n,
-                  RXD,
-                  STOP_n,
-                  SW1_CONSOLE,
-                  SWMCL_n,
-                  TEST_4_0,
-                  TP1_INTRQ_n,
-                  TXD,
-                  XTR,
-                  logisimOutputBubbles );
+//TODO: Missing MEM, BIF, IO and BUS Connectors A-B-C
 
+module TOP_3202D (
+   
    /*******************************************************************************
    ** The inputs are defined here                                                **
    *******************************************************************************/
-   input BINT10_n;
-   input BINT11_n;
-   input BINT12_n;
-   input BINT13_n;
-   input BINT15_n;
-   input BREQ_n;
-   input CLOCK_1;
-   input CLOCK_2;
-   input CONSOLE_n;
-   input CONTINUE_n;
-   input EAUTO_n;
-   input LOAD_n;
-   input LOCK_n;
-   input OC0;
-   input OC1;
-   input OSCCL_n;
-   input RXD;
-   input STOP_n;
-   input SW1_CONSOLE;
-   input SWMCL_n;
-   input XTR;
+   input BINT10_n,
+   input BINT11_n,
+   input BINT12_n,
+   input BINT13_n,
+   input BINT15_n,
+   input BREQ_n,
+   input CLOCK_1,
+   input CLOCK_2,
+   input CONSOLE_n,
+   input CONTINUE_n,
+   input EAUTO_n,
+   input LOAD_n,
+   input LOCK_n,
+   input OC_1_0, // TO IO OC_1_0
+   input OSCCL_n,
+   input RXD,
+   input STOP_n,
+   input SW1_CONSOLE,
+   input SWMCL_n,
+   input XTR,
+
 
    /*******************************************************************************
    ** The outputs are defined here                                               **
    *******************************************************************************/
-   output [63:0] CSBITS;
-   output [4:0]  DP_5_1_n;
-   output        RUN_n;
-   output [4:0]  TEST_4_0;
-   output        TP1_INTRQ_n;
-   output        TXD;
-   output [5:0]  logisimOutputBubbles;
+   output [63:0] CSBITS,
+   output [4:0]  DP_5_1_n,
+   output        RUN_n,
+   output [4:0]  TEST_4_0,
+   output        TP1_INTRQ_n,
+   output        TXD,
+   output [1:0]  LED // 0=RED,1=GREEN
+);
+
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
+   wire [15:0] s_idb_15_0_cpu_out;
+   wire [15:0] s_cd_15_0_cpu_out;
+   wire s_LDEXM_n;
+   
    wire [3:0]  s_logisimBus115;
    wire [15:0] s_logisimBus117;
    wire [9:0]  s_logisimBus118;
@@ -98,7 +81,7 @@ module TOP_3202D( BINT10_n,
    wire [15:0] s_logisimBus32;
    wire [15:0] s_logisimBus38;
    wire [2:0]  s_logisimBus4;
-   wire [1:0]  s_logisimBus47;
+   wire [1:0]  s_oc_1_0;
    wire [1:0]  s_logisimBus50;
    wire [7:0]  s_logisimBus54;
    wire [1:0]  s_logisimBus62;
@@ -473,8 +456,8 @@ module TOP_3202D( BINT10_n,
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus47[0] = OC0;
-   assign s_logisimBus47[1] = OC1;
+   
+   assign s_oc_1_0          = OC_1_0;
    assign s_logisimNet0     = BINT13_n;
    assign s_logisimNet101   = BINT12_n;
    assign s_logisimNet126   = SWMCL_n;
@@ -509,25 +492,21 @@ module TOP_3202D( BINT10_n,
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // Power
-   assign  s_logisimNet6  =  1'b1;
-
-
-   
+      
    // Buffer
    assign s_logisimNet177 = s_logisimNet169;
 
    // NOT Gate
-   assign s_logisimNet60 = ~s_logisimNet6;
+   assign s_logisimNet60 = 0'b1;
 
    // NOT Gate
-   assign s_logisimNet98 = ~s_logisimNet6;
+   assign s_logisimNet98 = 0'b1;
 
    // NOT Gate
-   assign s_logisimNet252 = ~s_logisimNet6;
+   assign s_logisimNet252 = 0'b1;
 
    // NOT Gate
-   assign s_logisimNet216 = ~s_logisimNet6;
+   assign s_logisimNet216 = 0'b1;
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
@@ -580,6 +559,71 @@ module TOP_3202D( BINT10_n,
                  .VEX(s_logisimNet138),
                  .WRFSTB(s_logisimNet143));
 
+   CPU_15   CPU (.ALUCLK(s_logisimNet243),
+                 .CA10(s_logisimNet203),
+                 .CA_9_0(s_logisimBus118[9:0]),
+                 .CCLR_n(s_logisimNet235),
+                 .CC_3_1_n(s_logisimBus4[2:0]),
+                 .CD_15_0(s_logisimBus38[15:0]),
+                 .CD_15_0_OUT(s_cd_15_0_cpu_out),
+                 .CLK(s_logisimNet218),
+                 .CYD(s_logisimNet27),
+                 .DT_n(s_logisimNet230),
+                 .DVACC_n(s_logisimNet97),
+                 .ECSR_n(s_logisimNet244),
+                 .EDO_n(s_logisimNet190),
+                 .EMCL_n(s_logisimNet103),
+                 .EMPID_n(s_logisimNet204),
+                 .EORF_n(s_logisimNet179),
+                 .ESTOF_n(s_logisimNet189),
+                 .ETRAP_n(s_logisimNet236),
+                 .FETCH(s_logisimNet152),
+                 .FMISS(s_logisimNet61),
+                 .FORM_n(s_logisimNet58),
+                 .IBINT10_n(s_logisimNet111),
+                 .IBINT11_n(s_logisimNet155),
+                 .IBINT12_n(s_logisimNet136),
+                 .IBINT13_n(s_logisimNet86),
+                 .IBINT15_n(s_logisimNet74),
+                 .IDB_15_0(s_logisimBus117[15:0]),
+                 .IDB_15_0_OUT(s_idb_15_0_cpu_out),
+                 .IOXERR_n(s_logisimNet176),
+                 .LBA_3_0(s_logisimBus75[3:0]),
+                 .LCS_n(s_logisimNet123),
+                 .LSHADOW(s_logisimNet125),
+                 .LUA_12_0(s_logisimBus14[12:0]),
+                 .MACLK(s_logisimNet129),
+                 .MAP_n(s_logisimNet69),
+                 .MCLK(s_logisimNet178),
+                 .MOR_n(s_logisimNet109),
+                 .MR_n(s_logisimNet130),
+                 .OPCLCS(s_logisimNet165),
+                 .PAN_n(s_logisimNet119),
+                 .PARERR_n(s_logisimNet249),
+                 .PCR_1_0(s_logisimBus209[1:0]),
+                 .PD1(s_logisimNet60),
+                 .PD2(s_logisimNet98),
+                 .PIL_3_0(s_logisimBus246[3:0]),
+                 .PONI(s_logisimNet17),
+                 .POWFAIL_n(s_logisimNet191),
+                 .PPN_23_10(s_logisimBus67[13:0]),
+                 .RT_n(s_logisimNet172),
+                 .RWCS_n(s_logisimNet142),
+                 .STOC_n(s_logisimNet205),
+                 .STP(s_logisimNet169),
+                 .SW1_CONSOLE(s_logisimNet48),
+                 .TERM_n(s_logisimNet84),
+                 .TEST_4_0(s_logisimBus127[4:0]),
+                 .TOPCSB(s_logisimBus247[63:0]),
+                 .TP1_INTRQ_n(s_logisimNet57),
+                 .TRAP(s_logisimNet36),
+                 .UCLK(s_logisimNet219),
+                 .VEX(s_logisimNet138),
+                 .WCHIM_n(s_logisimNet53),
+                 .WRFSTB(s_logisimNet143),
+                 .WRITE(s_logisimNet242),
+                 .LDEXM_n(s_LDEXM_n)
+                 );
 
 
    
@@ -588,6 +632,7 @@ module TOP_3202D( BINT10_n,
 
    wire s_BPERR_n;  
    assign s_BPERR_n = 1'b1;
+
 
 
    TTL_74244   CHIP_5C (
@@ -652,7 +697,7 @@ module TOP_3202D( BINT10_n,
                .LSHADOW(s_logisimNet125),
                .MCL(s_logisimNet120),
                .MREQ_n(s_logisimNet194),
-               .OC_1_0(s_logisimBus47[1:0]),
+               .OC_1_0(s_oc_1_0[1:0]),
                .OPCLCS(s_logisimNet165),
                .OSC(s_logisimNet168),
                .OSCCL_n(s_logisimNet233),
@@ -683,7 +728,8 @@ module TOP_3202D( BINT10_n,
                .XTAL1(s_logisimNet224),
                .XTAL2(s_logisimNet25),
                .XTR(s_logisimNet167),
-               .logisimOutputBubbles(logisimOutputBubbles[1 : 0]));
+               .LED(LED)
+               );
 
       // C-PLUG SIGNALS goes via 5C and 33C
       TTL_74244   CHIP_33C (
@@ -704,69 +750,7 @@ module TOP_3202D( BINT10_n,
 
 
 
-   CPU_15   CPU (.ALUCLK(s_logisimNet243),
-                 .CA10(s_logisimNet203),
-                 .CA_9_0(s_logisimBus118[9:0]),
-                 .CCLR_n(s_logisimNet235),
-                 .CC_3_1_n(s_logisimBus4[2:0]),
-                 .CD_15_0_io(s_logisimBus38[15:0]),
-                 .CLK(s_logisimNet218),
-                 .CYD(s_logisimNet27),
-                 .DT_n(s_logisimNet230),
-                 .DVACC_n(s_logisimNet97),
-                 .ECSR_n(s_logisimNet244),
-                 .EDO_n(s_logisimNet190),
-                 .EMCL_n(s_logisimNet103),
-                 .EMPID_n(s_logisimNet204),
-                 .EORF_n(s_logisimNet179),
-                 .ESTOF_n(s_logisimNet189),
-                 .ETRAP_n(s_logisimNet236),
-                 .FETCH(s_logisimNet152),
-                 .FMISS(s_logisimNet61),
-                 .FORM_n(s_logisimNet58),
-                 .IBINT10_n(s_logisimNet111),
-                 .IBINT11_n(s_logisimNet155),
-                 .IBINT12_n(s_logisimNet136),
-                 .IBINT13_n(s_logisimNet86),
-                 .IBINT15_n(s_logisimNet74),
-                 .IDB_15_0_io(s_logisimBus117[15:0]),
-                 .IOXERR_n(s_logisimNet176),
-                 .LBA_3_0(s_logisimBus75[3:0]),
-                 .LCS_n(s_logisimNet123),
-                 .LSHADOW(s_logisimNet125),
-                 .LUA_12_0(s_logisimBus14[12:0]),
-                 .MACLK(s_logisimNet129),
-                 .MAP_n(s_logisimNet69),
-                 .MCLK(s_logisimNet178),
-                 .MOR_n(s_logisimNet109),
-                 .MR_n(s_logisimNet130),
-                 .OPCLCS(s_logisimNet165),
-                 .PAN_n(s_logisimNet119),
-                 .PARERR_n(s_logisimNet249),
-                 .PCR_1_0(s_logisimBus209[1:0]),
-                 .PD1(s_logisimNet60),
-                 .PD2(s_logisimNet98),
-                 .PIL_3_0(s_logisimBus246[3:0]),
-                 .PONI(s_logisimNet17),
-                 .POWFAIL_n(s_logisimNet191),
-                 .PPN_23_10(s_logisimBus67[13:0]),
-                 .RT_n(s_logisimNet172),
-                 .RWCS_n(s_logisimNet142),
-                 .STOC_n(s_logisimNet205),
-                 .STP(s_logisimNet169),
-                 .SW1_CONSOLE(s_logisimNet48),
-                 .TERM_n(s_logisimNet84),
-                 .TEST_4_0(s_logisimBus127[4:0]),
-                 .TOPCSB(s_logisimBus247[63:0]),
-                 .TP1_INTRQ_n(s_logisimNet57),
-                 .TRAP(s_logisimNet36),
-                 .UCLK(s_logisimNet219),
-                 .VEX(s_logisimNet138),
-                 .WCHIM_n(s_logisimNet53),
-                 .WRFSTB(s_logisimNet143),
-                 .WRITE(s_logisimNet242),
-                 .logisimOutputBubbles(logisimOutputBubbles[2 : 2]));
-
+/*
    MEM_43   MEM (.BDAP50_n(s_logisimNet162),
                  .BDRY50_n(s_logisimNet250),
                  .BDRY_n(s_logisimNet33),
@@ -879,4 +863,5 @@ module TOP_3202D( BINT10_n,
                 .TOUT(s_logisimNet195),
                 .WRITE(s_logisimNet242));
 
+*/
 endmodule

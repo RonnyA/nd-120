@@ -1,155 +1,118 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CPU_15                                                       **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** CPU                                                                   **
+** CPU TOP LEVEL                                                         **
+** SHEET 16 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 15-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module CPU_15( ALUCLK,
-               CA10,
-               CA_9_0,
-               CCLR_n,
-               CC_3_1_n,
-               CD_15_0_io,
-               CLK,
-               CYD,
-               DT_n,
-               DVACC_n,
-               ECSR_n,
-               EDO_n,
-               EMCL_n,
-               EMPID_n,
-               EORF_n,
-               ESTOF_n,
-               ETRAP_n,
-               FETCH,
-               FMISS,
-               FORM_n,
-               IBINT10_n,
-               IBINT11_n,
-               IBINT12_n,
-               IBINT13_n,
-               IBINT15_n,
-               IDB_15_0_io,
-               IOXERR_n,
-               LBA_3_0,
-               LCS_n,
-               LSHADOW,
-               LUA_12_0,
-               MACLK,
-               MAP_n,
-               MCLK,
-               MOR_n,
-               MR_n,
-               OPCLCS,
-               PAN_n,
-               PARERR_n,
-               PCR_1_0,
-               PD1,
-               PD2,
-               PIL_3_0,
-               PONI,
-               POWFAIL_n,
-               PPN_23_10,
-               RT_n,
-               RWCS_n,
-               STOC_n,
-               STP,
-               SW1_CONSOLE,
-               TERM_n,
-               TEST_4_0,
-               TOPCSB,
-               TP1_INTRQ_n,
-               TRAP,
-               UCLK,
-               VEX,
-               WCHIM_n,
-               WRFSTB,
-               WRITE,
-               logisimOutputBubbles );
+//TODO: Missing MMU, LAPA, STOC and IN/OUT SIGNAL ASSIGN MUST BE VALIDATED.
+
+module CPU_15( 
 
    /*******************************************************************************
    ** The inputs are defined here                                                **
    *******************************************************************************/
-   input       ALUCLK;
-   input       CA10;
-   input       CCLR_n;
-   input [2:0] CC_3_1_n;
-   input       CLK;
-   input       CYD;
-   input       DT_n;
-   input       DVACC_n;
-   input       ECSR_n;
-   input       EDO_n;
-   input       EMCL_n;
-   input       EMPID_n;
-   input       EORF_n;
-   input       ESTOF_n;
-   input       ETRAP_n;
-   input       FETCH;
-   input       FMISS;
-   input       FORM_n;
-   input       IBINT10_n;
-   input       IBINT11_n;
-   input       IBINT12_n;
-   input       IBINT13_n;
-   input       IBINT15_n;
-   input       IOXERR_n;
-   input       LCS_n;
-   input       MACLK;
-   input       MAP_n;
-   input       MCLK;
-   input       MOR_n;
-   input       MR_n;
-   input       PAN_n;
-   input       PARERR_n;
-   input       PD1;
-   input       PD2;
-   input       POWFAIL_n;
-   input       RT_n;
-   input       RWCS_n;
-   input       STOC_n;
-   input       STP;
-   input       SW1_CONSOLE;
-   input       TERM_n;
-   input       UCLK;
-   input       WCHIM_n;
-   input       WRFSTB;
-   input       WRITE;
+   input       CLK,
+   input       MCLK,
+   input       MACLK,
+   input       ALUCLK,
+
+   input       CA10,
+   input       CCLR_n,
+   input [2:0] CC_3_1_n,
+   
+   input       CYD,
+   input       DT_n,
+   input       DVACC_n,
+   input       ECSR_n,
+   input       EDO_n,
+   input       EMCL_n,
+   input       EMPID_n,
+   input       EORF_n,
+   input       ESTOF_n,
+   input       ETRAP_n,
+   input       FETCH,
+   input       FMISS,
+   input       FORM_n,
+   input       IBINT10_n,
+   input       IBINT11_n,
+   input       IBINT12_n,
+   input       IBINT13_n,
+   input       IBINT15_n,
+   input       IOXERR_n,
+   input       LCS_n,   
+   input       MAP_n,   
+   input       MOR_n,
+   input       MR_n,
+   input       PAN_n,
+   input       PARERR_n,
+   input       PD1,
+   input       PD2,
+   input       POWFAIL_n,
+   input       RT_n,   
+   input       RWCS_n,
+   input       STOC_n,
+   input       STP,
+   input       SW1_CONSOLE,
+   input       TERM_n,
+   input       UCLK,
+   input       WCHIM_n,
+   input       WRFSTB,
+   input       WRITE,
+   
+   /*******************************************************************************
+   ** The signals with IN and OUT are defined here                               **
+   *******************************************************************************/
+
+   input  [15:0] CD_15_0,
+   output [15:0] CD_15_0_OUT,
+
+   input  [15:0] IDB_15_0,
+   output [15:0] IDB_15_0_OUT,
+
 
    /*******************************************************************************
    ** The outputs are defined here                                               **
    *******************************************************************************/
-   output [9:0]  CA_9_0;
-   output [15:0] CD_15_0_io;
-   output [15:0] IDB_15_0_io;
-   output [3:0]  LBA_3_0;
-   output        LSHADOW;
-   output [12:0] LUA_12_0;
-   output        OPCLCS;
-   output [1:0]  PCR_1_0;
-   output [3:0]  PIL_3_0;
-   output        PONI;
-   output [13:0] PPN_23_10;
-   output [4:0]  TEST_4_0;
-   output [63:0] TOPCSB;
-   output        TP1_INTRQ_n;
-   output        TRAP;
-   output        VEX;
-   output [0:0]  logisimOutputBubbles;
+   output [9:0]  CA_9_0,
+   output [3:0]  LBA_3_0,   
+   output [12:0] LUA_12_0,
+   output [1:0]  PCR_1_0,
+   output [3:0]  PIL_3_0,
+   output [13:0] PPN_23_10,
+   output [4:0]  TEST_4_0,
+   output [63:0] TOPCSB,
+
+   output        LSHADOW,
+   output        OPCLCS,   
+   output        PONI,
+   output        TP1_INTRQ_n,
+   output        TRAP,
+   output        VEX,
+   output        LDEXM_n
+   
+);
+
+   
+
+
+   
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
    wire [13:0] s_logisimBus1;
-   wire [15:0] s_logisimBus12;
+   wire [15:0] s_cd_15_0_OUT;
    wire [3:0]  s_logisimBus16;
    wire [63:0] s_logisimBus17;
    wire [13:0] s_logisimBus18;
    wire [4:0]  s_logisimBus19;
    wire [9:0]  s_logisimBus22;
-   wire [15:0] s_logisimBus23;
+   wire [15:0] s_IDB_15_0_proc_IN;
+   wire [15:0] s_IDB_15_0_proc_OUT;
    wire [2:0]  s_logisimBus29;
    wire [2:0]  s_logisimBus30;
    wire [1:0]  s_logisimBus34;
@@ -163,7 +126,11 @@ module CPU_15( ALUCLK,
    wire [3:0]  s_logisimBus75;
    wire [15:0] s_logisimBus84;
    wire [12:0] s_logisimBus89;
-   wire [15:0] s_logisimBus9;
+   
+   
+   wire [15:0] s_IDB_15_0_cs_IN;
+   wire [15:0] s_IDB_15_0_cs_OUT;
+
    wire        s_logisimNet0;
    wire        s_logisimNet10;
    wire        s_logisimNet11;
@@ -306,8 +273,12 @@ module CPU_15( ALUCLK,
    ** Here all output connections are defined                                    **
    *******************************************************************************/
    assign CA_9_0      = s_logisimBus69[9:0];
-   assign CD_15_0_io  = s_logisimBus12[15:0];
-   assign IDB_15_0_io = s_logisimBus23[15:0];
+   assign CD_15_0_OUT = s_cd_15_0_OUT[15:0];
+   
+   //TODO: Add assign of IDB out of this block based onIDB out from PROC or CS
+   assign IDB_15_0_OUT = s_IDB_15_0_proc_OUT[15:0];
+   
+   
    assign LBA_3_0     = s_logisimBus16[3:0];
    assign LSHADOW     = s_logisimNet82;
    assign LUA_12_0    = s_logisimBus89[12:0];
@@ -350,7 +321,8 @@ module CPU_15( ALUCLK,
                        .IBINT12_n(s_logisimNet50),
                        .IBINT13_n(s_logisimNet26),
                        .IBINT15_n(s_logisimNet4),
-                       .IDB_15_0_io(s_logisimBus23[15:0]),
+                       .IDB_15_0(s_IDB_15_0_proc_IN[15:0]),
+                       .IDB_15_0_OUT(s_IDB_15_0_proc_OUT[15:0]),
                        .IONI(s_logisimNet74),
                        .IOXERR_n(s_logisimNet63),
                        .LA_23_10(s_logisimBus1[13:0]),
@@ -384,29 +356,42 @@ module CPU_15( ALUCLK,
                        .VEX(s_logisimNet95),
                        .WCA_n(s_logisimNet88),
                        .WCS_n(s_logisimNet2),
-                       .WRFSTB(s_logisimNet45));
+                       .WRFSTB(s_logisimNet45),
+                       .LDEXM_n(LDEXM_n)
+                       );
 
-   CPU_CS_16   CS (.BLCS_n(s_logisimNet10),
+   CPU_CS_16   CS (
+                  /* Clock signals */
+                   .CLK(s_logisimNet71),
+                   .MACLK(s_logisimNet31),
+
+                   /* Test signals */
+                   .PD1(s_logisimNet8),
+
+                   /* Input signals */
+                   .IDB_15_0(s_IDB_15_0_cs_IN[15:0]),
+
+                   .BLCS_n(s_logisimNet10),
                    .BRK_n(s_logisimNet11),
                    .CC_3_1_n(s_logisimBus30[2:0]),
-                   .CLK(s_logisimNet71),
                    .CSA_12_0(s_logisimBus56[12:0]),
-                   .CSBITS_io(s_logisimBus17[63:0]),
                    .CSCA_9_0(s_logisimBus22[9:0]),
-                   .EWCA_n(s_logisimNet14),
                    .FETCH(s_logisimNet92),
-                   .FORM_n(s_logisimNet68),
-                   .IDB_15_0_io(s_logisimBus9[15:0]),
+                   .FORM_n(s_logisimNet68),                   
                    .LCS_n(s_logisimNet38),
-                   .LUA_12_0(s_logisimBus89[12:0]),
-                   .MACLK(s_logisimNet31),
-                   .PD1(s_logisimNet8),
                    .RF_1_0(s_logisimBus34[1:0]),
                    .RWCS_n(s_logisimNet35),
                    .TERM_n(s_logisimNet42),
                    .WCA_n(s_logisimNet88),
-                   .WCS_n(s_logisimNet2));
+                   .WCS_n(s_logisimNet2),
 
+                    /* OUTPUTS */
+                   .EWCA_n(s_logisimNet14),
+                   .CSBITS(s_logisimBus17[63:0]),
+                   .IDB_15_0_OUT(s_IDB_15_0_cs_OUT[15:0]),
+                   .LUA_12_0(s_logisimBus89[12:0])
+                   );
+/*
    CPU_MMU_24   MMU (.BEDO_n(s_logisimNet77),
                      .BEMPID_n(s_logisimNet55),
                      .BLCS_n(s_logisimNet10),
@@ -448,12 +433,13 @@ module CPU_15( ALUCLK,
                      .WRITE(s_logisimNet61),
                      .logisimOutputBubbles(logisimOutputBubbles[0 : 0]));
 
-   CPU_STOC_35   CPU_STOC (.CD_15_0(s_logisimBus12[15:0]),
-                           .IDB_15_0(s_logisimBus23[15:0]),
+   CPU_STOC_35   CPU_STOC (.CD_15_0(s_cd_15_0_OUT[15:0]),
+                           .IDB_15_0(s_IDB_15_0_proc_IN[15:0]),
                            .STOC_n(s_logisimNet51));
 
    CPU_LAPA_23   LAPA (.LAPA_n(s_logisimNet21),
                        .LA_23_10(s_logisimBus1[13:0]),
                        .PPN_23_10(s_logisimBus46[13:0]));
+*/
 
 endmodule

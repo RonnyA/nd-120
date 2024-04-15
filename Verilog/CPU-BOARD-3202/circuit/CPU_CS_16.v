@@ -39,13 +39,10 @@ module CPU_CS_16(
    output [12:0] LUA_12_0
    );
 
-
-
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
    wire [3:0]  s_ew_3_0_n;
-   wire [63:0] s_csbits;     // in to WCS from TCV
    wire [63:0] s_csbits_out_wcs; // out from WCS
    wire [63:0] s_csbits_out_tcv; // out from TCV
 
@@ -59,20 +56,33 @@ module CPU_CS_16(
 
    wire [11:0] s_uua;
    wire        s_elow_n;
-   wire        s_eupp_n;
    wire        s_ecsl_n;
+   wire        s_eupp_n;
+
+   // Select the input data for the TCV (s_IDB_15_0_tcv_in) based on the BLCS_n signal:
+   // - If BLCS_n is low, use data from the PROM (s_IDB_15_0_prom_out) for the TCV input.
+   // - If BLCS_n is high, use the normal IDB data (IDB_15_0).
+   assign s_IDB_15_0_tcv_in = BLCS_n ? IDB_15_0 : s_IDB_15_0_prom_out;
    
-   // TODO
-   assign s_IDB_15_0_tcv_in = 1 ? IDB_15_0 : s_IDB_15_0_prom_out;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign CSBITS    = s_csbits[63:0];
    assign LUA_12_0  = s_LUA_12_0[12:0];
 
-   // TODO
-   assign IDB_15_0_OUT = 1 ? s_IDB_15_0_prom_out[15:0] : s_IDB_15_0_tcv_out[15:0];
+   // Output data bus selection for IDB_15_0_OUT:
+   // - If BLCS_n is low (inactive high signal), output data is sourced from PROM.
+   // - Otherwise, check ECSL_n for TCV data control:
+   //   - If ECSL_n is low (inactive high signal), TCV data is output.
+   //   - If ECSL_n is high, output is set to high-impedance state (tri-state).
+   assign IDB_15_0_OUT = BLCS_n ? 
+                         (s_ecsl_n ? 16'bz : s_IDB_15_0_tcv_out[15:0]) : 
+                         s_IDB_15_0_prom_out[15:0];
+   
+
+
+   // CSBITS out from this module is always the bits from OUT from the WCS (which is also fed from the TCV)
+   assign CSBITS = s_csbits_out_wcs;
    
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
@@ -86,7 +96,9 @@ module CPU_CS_16(
                            .IDB_15_0(s_IDB_15_0_prom_out[15:0])
                           );
 
-   CPU_CS_WCS_21_22   WCS (.CSBITS_63_0(s_csbits[63:0]),
+   // CSBITS into WCS is always the CSBITS out from the TCV
+
+   CPU_CS_WCS_21_22   WCS (.CSBITS_63_0(s_csbits_out_tcv[63:0]),
                            .CSBITS_63_0_OUT(s_csbits_out_wcs[63:0]),
                            .ELOW_n(s_elow_n),
                            .EUPP_n(s_eupp_n),
@@ -101,7 +113,7 @@ module CPU_CS_16(
                            .WW2_n(s_ww3_0_n[2]),
                            .WW3_n(s_ww3_0_n[3]));
 
-   CPU_CS_TCV_20   TCV (.CSBITS(s_csbits[63:0]),
+   CPU_CS_TCV_20   TCV (.CSBITS(s_csbits_out_wcs[63:0]),
                         .CSBITS_OUT(s_csbits_out_tcv[63:0]),
                         .ECSL_n(s_ecsl_n),
                         .EW_3_0_n(s_ew_3_0_n[3:0]),

@@ -6,7 +6,7 @@
 | Page name         |                       | Sheet number       | Area         | Status                                      | Comment                                                                 |
 |-------------------|-----------------------|--------------------|--------------|---------------------------------------------|-------------------------------------------------------------------------|
 | **Main PCB**                              |
-| DELILAH TOP LEVEL | BLOCK DIAGRAM         | 1                  | D3202        |
+| DELILAH TOP LEVEL | BLOCK DIAGRAM         | 1                  | D3202        | [Verilog created](circuit/TOP_3202D.v)      | [Test](circuit/TOP_3202D/readme.md)
 | DELILAH TOP LEVEL | A PLUG                | 2                  | D3202        |
 | DELILAH TOP LEVEL | B PLUG                | 3                  | D3202        |
 | DELILAH TOP LEVEL | C PLUG                | 4                  | D3202        |
@@ -22,7 +22,7 @@
 | BIF/DPATH/PESPEA  | BIF PES & PEA         | 13                 | BIF          |
 | BIF/DPATH/PPNLBD  | BIF PPN to LBD        | 14                 | BIF          |
 | **CPU**                                                                       |
-| CPU               | TOP LEVEL             | 15                 | CPU          |
+| CPU               | TOP LEVEL             | 15                 | CPU          | [Verilog created](circuit/CPU_15.v)            | [Test](circuit/CPU_15/readme.md)
 | CPU/CS            | CONTROL STORE         | 16                 | CPU          | [Verilog created](circuit/CPU_CS_16.v)         | [Test](circuit/CPU_CS_16/readme.md)
 | CPU/CS/ACAL       | MICRO ADDR CALC       | 17                 | CPU          | [Verilog created](circuit/CPU_CS_ACAL_17.v)    | [Test](circuit/CPU_CS_ACAL_17/readme.md)
 | CPU/CS/CTL        | CS CONTROL            | 18                 | CPU          | [Verilog created](circuit/CPU_CS_CTL_18.v)     | [Test](circuit/CPU_CS_CTL_18/readme.md)

@@ -55,13 +55,13 @@ module CPU_CS_CTL_18( BRK_n,
    ** The wires are defined here                                                 **
    *******************************************************************************/
    wire [3:0] s_logisimBus0;
-   wire [3:0] s_logisimBus31;
+   wire [3:0] s_wu_3_0_n;
    wire [1:0] s_logisimBus32;
-   wire [3:0] s_logisimBus33;
+   wire [3:0] s_ww_3_0_n;
    wire [2:0] s_logisimBus6;
    wire       s_logisimNet1;
    wire       s_logisimNet10;
-   wire       s_logisimNet11;
+   wire       s_wcstb_n;
    wire       s_logisimNet12;
    wire       s_logisimNet13;
    wire       s_BRK_n;
@@ -120,8 +120,8 @@ module CPU_CS_CTL_18( BRK_n,
    assign EUPP_n   = s_logisimNet24;
    assign EWCA_n   = s_logisimNet9;
    assign EW_3_0_n = s_logisimBus0[3:0];
-   assign WU_3_0_n = s_logisimBus31[3:0];
-   assign WW_3_0_n = s_logisimBus33[3:0];
+   assign WU_3_0_n = s_wu_3_0_n[3:0];
+   assign WW_3_0_n = s_ww_3_0_n[3:0];
 
    /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -131,10 +131,10 @@ module CPU_CS_CTL_18( BRK_n,
    assign s_logisimNet17 = s_logisimNet2 & s_logisimNet9;
 
 
-   assign s_logisimBus31[0] = s_logisimBus33[0] & s_logisimNet15;
-   assign s_logisimBus31[1] = s_logisimBus33[1] & s_logisimNet15;
-   assign s_logisimBus31[2] = s_logisimBus33[2] & s_logisimNet15;
-   assign s_logisimBus31[3] = s_logisimBus33[3] & s_logisimNet15;
+   assign s_wu_3_0_n[0] = s_ww_3_0_n[0] & s_logisimNet15;
+   assign s_wu_3_0_n[1] = s_ww_3_0_n[1] & s_logisimNet15;
+   assign s_wu_3_0_n[2] = s_ww_3_0_n[2] & s_logisimNet15;
+   assign s_wu_3_0_n[3] = s_ww_3_0_n[3] & s_logisimNet15;
 
 
    /*******************************************************************************
@@ -151,11 +151,11 @@ module CPU_CS_CTL_18( BRK_n,
 
                          .A2(s_logisimBus32[0]),
                          .B2(s_logisimBus32[1]),                         
-                         .G2_n(s_logisimNet11),
-                         .Y2_0_n(s_logisimBus33[0]),
-                         .Y2_1_n(s_logisimBus33[1]),
-                         .Y2_2_n(s_logisimBus33[2]),
-                         .Y2_3_n(s_logisimBus33[3]));
+                         .G2_n(s_wcstb_n),
+                         .Y2_0_n(s_ww_3_0_n[0]),
+                         .Y2_1_n(s_ww_3_0_n[1]),
+                         .Y2_2_n(s_ww_3_0_n[2]),
+                         .Y2_3_n(s_ww_3_0_n[3]));
 
    PAL_44305D PAL_44305_UCSCTL ( .ECSL_n(s_logisimNet16),
                                  .EWCA_n(s_logisimNet9),
@@ -174,6 +174,6 @@ module CPU_CS_CTL_18( BRK_n,
                                  .BRK_n(s_BRK_n),
                                  .TERM_n(s_logisimNet21),
                                  .WICA_n(s_logisimNet15),
-                                 .WCSTB_n(s_logisimNet11));
+                                 .WCSTB_n(s_wcstb_n));
 
 endmodule
