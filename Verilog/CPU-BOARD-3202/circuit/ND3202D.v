@@ -10,8 +10,9 @@
 
 //TODO: Missing MEM, BIF, IO and BUS Connectors A-B-C
 
-module TOP_3202D (
-   
+module ND3202D (   
+   input sysclk, // System clock in FPGA
+   input sys_rst_n, // System reset in FPGA
    /*******************************************************************************
    ** The inputs are defined here                                                **
    *******************************************************************************/
@@ -46,7 +47,7 @@ module TOP_3202D (
    output [4:0]  TEST_4_0,
    output        TP1_INTRQ_n,
    output        TXD,
-   output [1:0]  LED // 0=RED,1=GREEN
+   output [4:0]  LED // 0=CPU RED,1=CPU GREEN, 2=LED4_RED_PARITY_ERROR, 3=LED_CPU_GRANT_INDICATOR, 4=LED_BUS_GRANT_INDICATOR
 );
 
 
@@ -58,7 +59,7 @@ module TOP_3202D (
    wire s_LDEXM_n;
    
    wire [3:0]  s_logisimBus115;
-   wire [15:0] s_logisimBus117;
+   wire [15:0] s_IDB_15_0_in;
    wire [9:0]  s_logisimBus118;
    wire [4:0]  s_logisimBus127;
    wire [4:0]  s_logisimBus133;
@@ -512,7 +513,10 @@ module TOP_3202D (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   CYC_36   CYC (.ACOND_n(s_logisimNet12),
+   CYC_36   CYC (
+                 .sysclk(sysclk), // System clock in FPGA
+                 .sys_rst_n(sys_rst_n), // System reset in FPGA
+                 .ACOND_n(s_logisimNet12),
                  .ALUCLK(s_logisimNet243),
                  .BRK_n(s_logisimNet164),
                  .CC_3_1_n(s_logisimBus4[2:0]),
@@ -559,12 +563,15 @@ module TOP_3202D (
                  .VEX(s_logisimNet138),
                  .WRFSTB(s_logisimNet143));
 
-   CPU_15   CPU (.ALUCLK(s_logisimNet243),
+   CPU_15   CPU (
+                 .sysclk(sysclk), // System clock in FPGA
+                 .sys_rst_n(sys_rst_n), // System reset in FPGA
+                 .ALUCLK(s_logisimNet243),
                  .CA10(s_logisimNet203),
                  .CA_9_0(s_logisimBus118[9:0]),
                  .CCLR_n(s_logisimNet235),
                  .CC_3_1_n(s_logisimBus4[2:0]),
-                 .CD_15_0(s_logisimBus38[15:0]),
+                 .CD_15_0_IN(s_logisimBus38[15:0]),
                  .CD_15_0_OUT(s_cd_15_0_cpu_out),
                  .CLK(s_logisimNet218),
                  .CYD(s_logisimNet27),
@@ -585,7 +592,7 @@ module TOP_3202D (
                  .IBINT12_n(s_logisimNet136),
                  .IBINT13_n(s_logisimNet86),
                  .IBINT15_n(s_logisimNet74),
-                 .IDB_15_0(s_logisimBus117[15:0]),
+                 .IDB_15_0_IN(s_IDB_15_0_in[15:0]),
                  .IDB_15_0_OUT(s_idb_15_0_cpu_out),
                  .IOXERR_n(s_logisimNet176),
                  .LBA_3_0(s_logisimBus75[3:0]),
@@ -652,7 +659,11 @@ module TOP_3202D (
                .Y2({s_logisimNet153, s_logisimNet56, s_logisimNet113, 1'bz}) // Mapping 4 separate signals to 1Y4-1Y1
    );
 
-   IO_37   IO (.BDRY50_n(s_logisimNet250),
+   IO_37   IO (
+               .sysclk(sysclk), // System clock in FPGA
+               .sys_rst_n(sys_rst_n), // System reset in FPGA
+               
+               .BDRY50_n(s_logisimNet250),
                .BINT10_n(s_logisimNet206),
                .BINT12_n(s_logisimNet193),
                .BINT13_n(s_logisimNet122),
@@ -728,7 +739,7 @@ module TOP_3202D (
                .XTAL1(s_logisimNet224),
                .XTAL2(s_logisimNet25),
                .XTR(s_logisimNet167),
-               .LED(LED)
+               .IOLED(LED[1:0])
                );
 
       // C-PLUG SIGNALS goes via 5C and 33C
@@ -749,9 +760,13 @@ module TOP_3202D (
       );
 
 
+/* TODO:
 
-/*
-   MEM_43   MEM (.BDAP50_n(s_logisimNet162),
+   MEM_43   MEM (
+                 .sysclk(sysclk),          // System clock in FPGA
+                 .sys_rst_n(sys_rst_n),    // System reset in FPGA
+
+                 .BDAP50_n(s_logisimNet162),
                  .BDRY50_n(s_logisimNet250),
                  .BDRY_n(s_logisimNet33),
                  .BD_23_19_n(s_logisimBus174[4:0]),
@@ -769,7 +784,8 @@ module TOP_3202D (
                  .GNT50_n(s_logisimNet154),
                  .GNT_n(s_logisimNet221),
                  .IBINPUT_n(s_logisimNet163),
-                 .IDB_15_0(s_logisimBus32[15:0]),
+                 .IDB_15_0_IN(s_logisimBus32[15:0]),
+                 .IDB_15_0_OUT(xxx),
                  .IORQ_n(s_logisimNet240),
                  .LBD_15_0_io(s_logisimBus173[15:0]),
                  .LBD_23_16(s_logisimBus21[7:0]),
@@ -792,10 +808,19 @@ module TOP_3202D (
                  .RERR_n(s_logisimNet147),
                  .SEMRQ50_n(s_logisimNet135),
                  .SSEMA_n(s_logisimNet192),
-                 .WRITE(s_logisimNet242),
-                 .logisimOutputBubbles(logisimOutputBubbles[5 : 3]));
+                 .WRITE(s_logisimNet242),                 
+                 .LED4(LED[2]),       // LED4_RED_PARITY_ERROR
+                 .LED_CPU_GI(LED[3]), // LED_CPU_GRANT_INDICATOR
+                 .LED_BUS_GI(LED[4])  // LED_BUS_GRANT_INDICATOR                 
+                 );
 
-   BIF_5   BIF (.BAPR_n(s_logisimNet132),
+
+
+   BIF_5   BIF(
+                .sysclk(sysclk), // System clock in FPGA
+                .sys_rst_n(sys_rst_n), // System reset in FPGA
+
+                .BAPR_n(s_logisimNet132),
                 .BDAP50_n(s_logisimNet162),
                 .BDAP_n(s_logisimNet251),
                 .BDRY50_n(s_logisimNet250),
@@ -811,7 +836,8 @@ module TOP_3202D (
                 .BREF_n(s_logisimNet131),
                 .CA_9_0(s_logisimBus118[9:0]),
                 .CC2_n(s_logisimNet82),
-                .CD_15_0_io(s_logisimBus90[15:0]),
+                .CD_15_0_IN(s_logisimBus90[15:0]),
+                .CD_15_0_OUT(xxxx),
                 .CGNCACT_n(s_logisimNet248),
                 .CGNT50_n(s_logisimNet55),
                 .CGNT_n(s_logisimNet148),
@@ -830,7 +856,8 @@ module TOP_3202D (
                 .IBINPUT_n(s_logisimNet199),
                 .IBPERR_n(s_logisimNet181),
                 .IBREQ_n(s_logisimNet207),
-                .IDB_15_0(s_logisimBus160[15:0]),
+                .IDB_15_0_IN(s_logisimBus160[15:0]),
+                .IDB_15_0_OUT(xxx),
                 .IORQ_n(s_logisimNet240),
                 .IOXERR_n(s_logisimNet176),
                 .ISEMRQ_n(s_logisimNet232),
@@ -864,4 +891,5 @@ module TOP_3202D (
                 .WRITE(s_logisimNet242));
 
 */
+
 endmodule
