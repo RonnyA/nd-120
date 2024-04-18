@@ -36,3 +36,10 @@ module PAL_16L8(
     output B4_n,        // B4_n             
     output B5_n         // B5_n             
 );
+
+
+// * TEMPLATE *
+
+assign B0_n = I0;
+
+endmodule
