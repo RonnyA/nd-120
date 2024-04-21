@@ -28,9 +28,9 @@ module BIF_DPATH_PPNLBD_14( CA_9_0,
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [9:0]  s_logisimBus17;
-   wire [23:0] s_logisimBus40;
-   wire [13:0] s_logisimBus42;
+   wire [9:0]  s_ca_9_0;
+   wire [23:0] s_lbd_23_0;
+   wire [13:0] s_ppn_23_10;
    wire        s_logisimNet0;
    wire        s_logisimNet1;
    wire        s_logisimNet10;
@@ -42,17 +42,17 @@ module BIF_DPATH_PPNLBD_14( CA_9_0,
    wire        s_logisimNet16;
    wire        s_logisimNet18;
    wire        s_logisimNet19;
-   wire        s_logisimNet2;
-   wire        s_logisimNet20;
-   wire        s_logisimNet21;
-   wire        s_logisimNet22;
-   wire        s_logisimNet23;
-   wire        s_logisimNet24;
-   wire        s_logisimNet25;
-   wire        s_logisimNet26;
-   wire        s_logisimNet27;
-   wire        s_logisimNet28;
-   wire        s_logisimNet29;
+   wire        s_eadr_n;
+   wire        s_eadr_n0;
+   wire        s_eadr_n1;
+   wire        s_eadr_n2;
+   wire        s_eadr_n3;
+   wire        s_eadr_n4;
+   wire        s_eadr_n5;
+   wire        s_eadr_n6;
+   wire        s_eadr_n7;
+   wire        s_eadr_n8;
+   wire        s_eadr_n9;
    wire        s_logisimNet3;
    wire        s_logisimNet30;
    wire        s_logisimNet31;
@@ -80,7 +80,7 @@ module BIF_DPATH_PPNLBD_14( CA_9_0,
    wire        s_logisimNet54;
    wire        s_logisimNet55;
    wire        s_logisimNet8;
-   wire        s_logisimNet9;
+   wire        s_ecreq;
 
    /*******************************************************************************
    ** The module functionality is described here                                 **
@@ -89,75 +89,38 @@ module BIF_DPATH_PPNLBD_14( CA_9_0,
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus17[9:0]  = CA_9_0;
-   assign s_logisimBus42[13:0] = PPN_23_10;
-   assign s_logisimNet2        = EADR_n;
-   assign s_logisimNet9        = ECREQ;
+   assign s_ca_9_0[9:0]     = CA_9_0;
+   assign s_ppn_23_10[13:0] = PPN_23_10;
+   assign s_eadr_n          = EADR_n;
+   assign s_ecreq           = ECREQ;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign LBD_23_0 = s_logisimBus40[23:0];
+   assign LBD_23_0 = s_lbd_23_0[23:0];
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   TTL_74374   CHIP_3B (.CK(s_logisimNet9),
-                        .D1(s_logisimBus42[13]),
-                        .D2(s_logisimBus42[12]),
-                        .D3(s_logisimBus42[11]),
-                        .D4(s_logisimBus42[10]),
-                        .D5(s_logisimBus42[9]),
-                        .D6(s_logisimBus42[8]),
-                        .D7(s_logisimBus42[7]),
-                        .D8(s_logisimBus42[6]),
-                        .OE_n(s_logisimNet2),
-                        .Q1(s_logisimBus40[23]),
-                        .Q2(s_logisimBus40[22]),
-                        .Q3(s_logisimBus40[21]),
-                        .Q4(s_logisimBus40[20]),
-                        .Q5(s_logisimBus40[19]),
-                        .Q6(s_logisimBus40[18]),
-                        .Q7(s_logisimBus40[17]),
-                        .Q8(s_logisimBus40[16]));
+   TTL_74374   CHIP_3B (.CK(s_ecreq),
+                        .OE_n(s_eadr_n),
+                        .D(s_ppn_23_10[13:6]),                        
+                        .Q(s_lbd_23_0[23:16])                        
+                        );
 
-   TTL_74374   CHIP_4B (.CK(s_logisimNet9),
-                        .D1(s_logisimBus42[5]),
-                        .D2(s_logisimBus42[4]),
-                        .D3(s_logisimBus42[3]),
-                        .D4(s_logisimBus42[2]),
-                        .D5(s_logisimBus42[1]),
-                        .D6(s_logisimBus42[0]),
-                        .D7(s_logisimBus17[9]),
-                        .D8(s_logisimBus17[8]),
-                        .OE_n(s_logisimNet2),
-                        .Q1(s_logisimBus40[15]),
-                        .Q2(s_logisimBus40[14]),
-                        .Q3(s_logisimBus40[13]),
-                        .Q4(s_logisimBus40[12]),
-                        .Q5(s_logisimBus40[11]),
-                        .Q6(s_logisimBus40[10]),
-                        .Q7(s_logisimBus40[9]),
-                        .Q8(s_logisimBus40[8]));
+   TTL_74374   CHIP_4B (.CK(s_ecreq),
+                        .D({s_ppn_23_10[5:0],s_ca_9_0[9:8]}),
+                        .OE_n(s_eadr_n),
+                        .Q(s_lbd_23_0[15:8])
+                        );
 
-   TTL_74374   CHIP_6C (.CK(s_logisimNet9),
-                        .D1(s_logisimBus17[7]),
-                        .D2(s_logisimBus17[6]),
-                        .D3(s_logisimBus17[5]),
-                        .D4(s_logisimBus17[4]),
-                        .D5(s_logisimBus17[3]),
-                        .D6(s_logisimBus17[2]),
-                        .D7(s_logisimBus17[1]),
-                        .D8(s_logisimBus17[0]),
-                        .OE_n(s_logisimNet2),
-                        .Q1(s_logisimBus40[7]),
-                        .Q2(s_logisimBus40[6]),
-                        .Q3(s_logisimBus40[5]),
-                        .Q4(s_logisimBus40[4]),
-                        .Q5(s_logisimBus40[3]),
-                        .Q6(s_logisimBus40[2]),
-                        .Q7(s_logisimBus40[1]),
-                        .Q8(s_logisimBus40[0]));
+   TTL_74374   CHIP_6C (.CK(s_ecreq),
+                        .OE_n(s_eadr_n),
+                        .D(s_ca_9_0[7:0]),                                                
+                        .Q(s_lbd_23_0[7:0])                        
+                        );
+
+         
 
 endmodule
