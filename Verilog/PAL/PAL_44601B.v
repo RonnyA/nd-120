@@ -43,6 +43,14 @@ module PAL_44601B(
 
 );
 
+// Internal registers
+reg TERM_reg;
+reg CC0_reg;
+reg CC1_reg;
+reg CC2_reg;
+reg CC3_reg;
+
+
 // negated input signals
 wire CSDELAY0_n = ~CSDELAY0;
 wire WAIT1_n = ~WAIT1;
@@ -57,13 +65,6 @@ wire CC3 = CC3_reg;
 wire CC2 = CC2_reg;
 wire CC1 = CC1_reg;
 wire CC0 = CC0_reg;
-
-// Internal registers
-reg TERM_reg;
-reg CC0_reg;
-reg CC1_reg;
-reg CC2_reg;
-reg CC3_reg;
 
 
 
