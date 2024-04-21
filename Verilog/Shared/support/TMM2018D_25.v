@@ -3,30 +3,55 @@
  *****************************************************************************/
 
 module TMM2018D_25(
-   input [10:0] A0_A10,
-   input        CS_n,
-   input        OE_n,
-   input        W_n,
+   input wire    clk, // Clock input (needed for BLOCK RAM)
+   input wire    reset_n, // FPGA Reset input (active low)
 
-   inout  [7:0] D0_D7
+   input wire [10:0] ADDRESS, // 11 bits address
+   input wire        CS_n,
+   input wire        OE_n,
+   input wire        W_n,
+   input wire [7:0]  D,
+   output reg [7:0]  D_OUT
    );
 
- // Internal memory declaration
-reg [7:0] memory [0:2047]; // 2^11 addresses, each 8-bit wide
-reg [7:0] data_out; // Internal data register for output
+integer i;
 
-// Control the direction of the data bus
-assign D0_D7 = (!CS_n && !OE_n && W_n) ? data_out : 8'bz;
+     
+/*******************************************************************************
+** Memory array using block RAM                                               **
+*******************************************************************************/
+(* ram_style = "block" *) reg [7:0] memory_array [0:2047]; // 2^11 addresses, each 8-bit wide
 
-/* verilator lint_off LATCH */
-always @(*) begin
-   if (!CS_n) begin
-      if (!W_n) begin // Active low write enable
-         memory[A0_A10] = D0_D7;
-      end else begin
-         data_out = memory[A0_A10];
-      end    
+   
+always @(posedge clk) begin
+
+   if (!reset_n) begin
+         /* verilator lint_off BLKSEQ */
+
+         // BLOCK RAM DOESNT SUPPORT INITIALISATION
+         
+         // Reset operation: set all memory locations to 0                
+         //for (i = 0; i < 2047; i = i + 1) begin
+         //   memory_array[i] = 8'b00000000; // none delayed initialisation
+         //end               
+         /* verilator lint_on BLKSEQ */
    end
-end
+
+   if (!CS_n) begin
+      if (!W_n) begin
+         // Write operation: active when chip is selected and write enable is low
+         memory_array[ADDRESS] <= D;
+         D_OUT = 8'bz; // High-impedance state after write
+      end else if (!OE_n) begin
+         // Read operation: active when chip is selected and output enable is low
+         D_OUT = memory_array[ADDRESS];
+      end        
+   end else begin
+      D_OUT = 8'bz; // High-impedance state when not selected
+   end        
+
+end    
+
 
 endmodule
+
