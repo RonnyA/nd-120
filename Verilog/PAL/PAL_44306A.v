@@ -2,7 +2,7 @@
 
 
 module PAL_44306A(
-    input CA0, WRITE, DVACC_n, RT_n, WCHIM_n, DOUBLE_n, EMCL_n, CC2_n, WCA_n, LSHADOW,
+    input CA0, WRITE, DVACC_n, RT_n, WCHIM_n, DOUBLE, EMCL_n, CC2_n, WCA_n, LSHADOW,
     output ECD_n, LAPA_n, EIPUR_n, EIPU_n, EIPL_n, EPTI_n, EPMAP_n, EPT_n
 );
 
@@ -10,7 +10,7 @@ module PAL_44306A(
 wire DVACC = ~DVACC_n;
 wire RT = ~RT_n;
 wire WCHIM = ~WCHIM_n;
-wire DOUBLE = ~DOUBLE_n;
+wire DOUBLE_n = ~DOUBLE;
 wire WCA = ~WCA_n;
 
 wire CA0_n = ~CA0;
