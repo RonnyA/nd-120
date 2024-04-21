@@ -38,10 +38,10 @@ module PAL_44408B(
     output LDEXM_n,  // Q1_n 
     output VEX,      // Q2_n
     output OPCLCS,   // Q3_n
-    output RWCS_n    // Q4_n
+    output RWCS_n,    // Q4_n
 
     // Pin in 444608 (VXFIX) but not in 44408B
-    //output RT_n      // Q5_n     
+    output RT_n      // Q5_n     
     
     
 );
@@ -78,6 +78,9 @@ assign OPCLCS = OE_n ? 1'bz : ~OPCLCS_n_int;
 assign VEX = OE_n ? 1'bz : ~VEX_n_int;
 assign LDEXM_n = OE_n ? 1'bz : ~LDEXM_int;
         
+
+// Unknown signal in this PAL, set high
+assign RT_n = 1'b1;
 
 endmodule
 
