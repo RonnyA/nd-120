@@ -1,11 +1,14 @@
 /******************************************************************************
  **                                                                          **
  **  IDT6168A                                                                **
- **  16K (4Kx4) Static RAM                                                   **
+ **  16K (4Kx4) Static RAM  (using BLOCK RAM)                                **
  **                                                                          **
  *****************************************************************************/
 
 module IDT6168A_20( 
+   input wire   clk,       // Clock input (BLOCK RAM MUST HAVE CLOCK)
+   input wire   reset_n,   // FPGA Reset input (active low) 
+
    input [11:0] A_11_0,    // Address input
    input        CE_n,      // Chip enable (active low)
    input        WE_n,      // Write enable (active low)
@@ -20,24 +23,21 @@ module IDT6168A_20(
    wire        s_ce_n;
    wire        s_we_n;
 
-   /*******************************************************************************
-   ** Here all input connections are defined                                     **
+ /*******************************************************************************
+   ** Signals                                                                    **
    *******************************************************************************/
-   assign s_address = A_11_0;
-   assign s_ce_n = CE_n;
-   assign s_we_n = WE_n;
+   reg [3:0] data_out;     // Output data register
+   wire [3:0] data_in;     // Input data from the bus
+   assign data_in = D_3_0; // Connect input data
+   assign D_3_0 = (!CE_n && WE_n) ? data_out : 4'bz; // Tristate logic for bidirectional data bus
 
+   
    /*******************************************************************************
-   ** Memory array                                                               **
+   ** Memory array using block RAM                                               **
    *******************************************************************************/
-   // Define a 4K x 4 bit memory array
-   reg [3:0] memory_array[0:4095];
+   (* ram_style = "block" *) reg [3:0] memory_array[0:4095];
 
-   /*******************************************************************************
-   ** Reading and Writing Logic                                                  **
-   *******************************************************************************/
-   // Bidirectional data bus handling
-   assign D_3_0 = (!s_ce_n && s_we_n) ? memory_array[s_address] : 4'bz;
+
 
    /*
     * In typical SRAM modules, write operations are enabled when the WE_n (Write Enable) signal is low (active low), 
@@ -46,11 +46,15 @@ module IDT6168A_20(
     * enabling continuous write operations during the active period.
     */
 
-   // Writing to the memory
-      always_latch @* begin
-      if (!s_ce_n && !s_we_n) begin
-         memory_array[s_address] = D_3_0;
+   always @(posedge clk) begin
+      if (!CE_n) begin
+         if (!WE_n) begin
+            memory_array[A_11_0] <= data_in;  // Write operation
+         end else begin
+            data_out <= memory_array[A_11_0]; // Read operation
+         end
       end
    end
+
 
 endmodule
