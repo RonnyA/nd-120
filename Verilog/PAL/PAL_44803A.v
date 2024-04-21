@@ -25,7 +25,7 @@ module PAL_44803A(
     input MR_n,         // I2 - MR_n 
     input CLRQ_n,       // I3 - CLRQ_n 
     input BLRQ50_n,     // I4 - BLRQ50_n 
-    input SSEMA_n,      // I5 - BDRY25_n
+    input SSEMA_n,      // I5 - SSEMA_n
     input SEMRQ50_n,    // I6 - SEMRQ50_n
 //  input n.c ,         // I7 - n.c.
 
