@@ -6,52 +6,30 @@
  **                                                                          **
  *****************************************************************************/
 
-module SC2661_UART( A0,
-                    A1,
-                    BRCLK,
-                    CE_n,
-                    CTS_n,
-                    DCD_n,
-                    DSR_n,
-                    DTR_n,
-                    D_7_0,
-                    READ_n,
-                    RESET,
-                    RTS_n,
-                    RXC_n,
-                    RXD,
-                    RXDRDY_n,
-                    TXC_n,
-                    TXD,
-                    TXDRDY_n,
-                    TXEMT_n );
+module SC2661_UART( 
+   input A0,
+   input A1,
+   input BRCLK,
+   input CE_n,
+   input CTS_n,
+   input DCD_n,
+   input DSR_n,
+   input READ_n,
+   input RESET,
+   input RXC_n,
+   input RXD,
+   input TXC_n,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input A0;
-   input A1;
-   input BRCLK;
-   input CE_n;
-   input CTS_n;
-   input DCD_n;
-   input DSR_n;
-   input READ_n;
-   input RESET;
-   input RXC_n;
-   input RXD;
-   input TXC_n;
+   inout [7:0] D_7_0,
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output       DTR_n;
-   output [7:0] D_7_0;
-   output       RTS_n;
-   output       RXDRDY_n;
-   output       TXD;
-   output       TXDRDY_n;
-   output       TXEMT_n;
+   output       DTR_n,
+   output       RTS_n,
+   output       RXDRDY_n,
+   output       TXD,
+   output       TXDRDY_n,
+   output       TXEMT_n
+);
+
 
    /*******************************************************************************
    ** The wires are defined here                                                 **

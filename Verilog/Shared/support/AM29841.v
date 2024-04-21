@@ -13,8 +13,8 @@ module AM29841 (
 
     // Latch operation
     //always @(posedge LE or negedge LE or posedge D or negedge D) begin 
-    //always @(*) begin
-    always_latch begin
+    always @(*) begin
+    //always_latch begin
         if (LE) begin
             Q_Latch = D;  // Transparent mode: Internal latch follows input
         end

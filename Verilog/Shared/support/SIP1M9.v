@@ -1,49 +1,56 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : SIP1M9                                                       **
- **                                                                          **
- *****************************************************************************/
+ /******************************************************************************
+** RAM CHIP 1 MBYTE (1024KB)                                                  **
+**                                                                            ** 
+** This ram has PARITY bit..                                                  **
+** THM91020 - http://norsk-data.com/library/libother/extern/THM91020.pdf      **
+** THM91070 - http://norsk-data.com/library/libother/extern/THM91070.pdf      **
+**                                                                            **
+** Last reviewed: 21-APRIL-2024                                               **
+** Ronny Hansen                                                               **               
+********************************************************************************/
 
-module SIP1M9( AA_9_0,
-               CAS9_n,
-               CAS_n,
-               D9,
-               DQ_8_1_io,
-               PRD_n,
-               Q9,
-               RAS_n,
-               W_n );
+// TODO: Implement access to real RAM inside FPGA
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input [9:0] AA_9_0;
-   input       CAS9_n;
-   input       CAS_n;
-   input       RAS_n;
-   input       W_n;
+module SIP1M9( 
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output       D9;
-   output [7:0] DQ_8_1_io;
-   output       PRD_n;
-   output       Q9;
+// Input signals
+input sysclk,      // System clock in FPGA
+input sys_rst_n,   // System reset in FPGA
 
+input [9:0] ADDRESS, // Address input
+input       CAS9_n,  // Column address strobe
+input       CAS_n,   // Column address strobe
+input       RAS_n,   // Row address strobe
+input       W_n,     // Read/Write signal
+
+
+// IN and OUT signals
+input  [7:0] D8, // DATA INPUT
+output [7:0] Q8, // DATA OUTPUT
+
+// Output signals
+output       D9, // DATA INPUT
+output       Q9, // DATA OUTPUT
+output       PRD_n
+
+);
+
+   
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [9:0] s_logisimBus3;
-   wire [7:0] s_logisimBus6;
-   wire       s_logisimNet0;
-   wire       s_logisimNet1;
-   wire       s_logisimNet2;
-   wire       s_logisimNet4;
-   wire       s_logisimNet5;
-   wire       s_logisimNet7;
+   wire [9:0] s_address;
+   
+   wire [7:0] s_D_7_0; // DATA IN
+   wire [7:0] s_Q_7_0; // DATA OUT (Q)
+
+   wire       s_d9;
+   wire       s_q9;
+
+   wire       s_cas_n;
+   wire       s_ras_n;
+   wire       s_cas9_n;
+   wire       s_W_n;
 
    /*******************************************************************************
    ** The module functionality is described here                                 **
@@ -52,30 +59,31 @@ module SIP1M9( AA_9_0,
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus3[9:0] = AA_9_0;
-   assign s_logisimNet2      = CAS_n;
-   assign s_logisimNet4      = RAS_n;
-   assign s_logisimNet5      = CAS9_n;
-   assign s_logisimNet7      = W_n;
+   assign s_address[9:0] = ADDRESS;
+   assign s_cas_n        = CAS_n;
+   assign s_ras_n        = RAS_n;
+   assign s_cas9_n       = CAS9_n;
+   assign s_W_n          = W_n;
+   assign s_D_7_0        = D8;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign D9        = s_logisimNet1;
-   assign DQ_8_1_io = s_logisimBus6[7:0];
-   assign PRD_n     = s_logisimNet0;
-   assign Q9        = s_logisimNet1;
+   assign D9        = s_d9;
+   assign Q9        = s_q9;
+
+   // TODO: Assign Q8 from some PSRAM or other RAM
+   assign Q8        = W_n ? 0 : 8'bZZZZZZZZ; // Data out is not valid when writing
+
+   assign PRD_n     = 1; // Not connected?
+   
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
    // Ground
-   assign  s_logisimNet1  =  1'b0;
-
-
-   // Power
-   assign  s_logisimNet0  =  1'b1;
+   assign  s_q9  =  1'b0;
 
 
 endmodule

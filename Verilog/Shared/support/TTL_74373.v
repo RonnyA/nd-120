@@ -14,7 +14,8 @@ module TTL_74373 (
  
     // Latch operation: latch data whenever C is high
     //always @(posedge C or negedge C or posedge D or negedge D) begin 
-    always_latch begin
+    always @(*) begin 
+    //always_latch begin
         if (C) begin
             Q_Latch = D;  // Transparent mode: Internal latch follows input
         end

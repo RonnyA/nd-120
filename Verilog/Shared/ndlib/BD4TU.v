@@ -18,24 +18,26 @@ module BD4TU( input wire A,
 );
 
 
-   reg internalData; // Internal data register
+    reg internalData; // Internal data register
+    reg ZI_REG; // ZI register
 
     // Bidirectional data operation
     assign IO = (EN == 1'b0) ? internalData : 1'bz;
-    
+
     //assign ZI = BUF   
-   assign ZI = TN ?  ZI_REG : 1'bZ; // Probably the correct implementation ?
+    assign ZI = TN ?  ZI_REG : 1'bZ; // Probably the correct implementation ?
    
     always @* begin
         if (EN == 1'b0) begin
             // Write A to BUF
-            internalData = A;
+            internalData <= A;
         end
         else begin
             // Read BUF to ZI (Verilog will read from the BUF wire even i we have set it to three-state (ie not driving it, but we can still read)
-            internalData = IO;
+            internalData <= IO;
         end
     end
+
 
   
 
