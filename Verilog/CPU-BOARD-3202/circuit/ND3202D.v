@@ -29,14 +29,14 @@ module ND3202D (
    input EAUTO_n,
    input LOAD_n,
    input LOCK_n,
-   input OC_1_0, // TO IO OC_1_0
+   input [1:0] OC_1_0, // TO IO OC_1_0
    input OSCCL_n,
    input RXD,
    input STOP_n,
    input SW1_CONSOLE,
    input SWMCL_n,
    input XTR,
-
+   input [2:0]  SEL_TESTMUX, // Selects testmux signals to output on TEST_4_0
 
    /*******************************************************************************
    ** The outputs are defined here                                               **
@@ -47,7 +47,7 @@ module ND3202D (
    output [4:0]  TEST_4_0,
    output        TP1_INTRQ_n,
    output        TXD,
-   output [4:0]  LED // 0=CPU RED,1=CPU GREEN, 2=LED4_RED_PARITY_ERROR, 3=LED_CPU_GRANT_INDICATOR, 4=LED_BUS_GRANT_INDICATOR
+   output [5:0]  LED // 0=CPU RED,1=CPU GREEN, 2=LED4_RED_PARITY_ERROR, 3=LED_CPU_GRANT_INDICATOR, 4=LED_BUS_GRANT_INDICATOR, 5=LED1 from MMU
 );
 
 
@@ -57,7 +57,15 @@ module ND3202D (
    wire [15:0] s_idb_15_0_cpu_out;
    wire [15:0] s_cd_15_0_cpu_out;
    wire s_LDEXM_n;
+
+
+   wire [15:0] s_idb_15_0_mem_in;
+   wire [15:0] s_idb_15_0_mem_out;
    
+
+   wire [15:0] s_lbd_15_0_out;
+
+
    wire [3:0]  s_logisimBus115;
    wire [15:0] s_IDB_15_0_in;
    wire [9:0]  s_logisimBus118;
@@ -68,18 +76,17 @@ module ND3202D (
    wire [1:0]  s_logisimBus146;
    wire [15:0] s_logisimBus160;
    wire [7:0]  s_logisimBus170;
-   wire [15:0] s_logisimBus173;
+   wire [15:0] s_lbd_15_0_in;
    wire [4:0]  s_logisimBus174;
    wire [8:0]  s_logisimBus185;
    wire [1:0]  s_logisimBus209;
-   wire [7:0]  s_logisimBus21;
-   wire [7:0]  s_logisimBus210;
+   wire [7:0]  s_lbd_23_16_in;   
    wire [1:0]  s_logisimBus223;
    wire [3:0]  s_logisimBus23;
    wire [3:0]  s_logisimBus246;
    wire [63:0] s_logisimBus247;
    wire [23:0] s_logisimBus28;
-   wire [15:0] s_logisimBus32;
+   
    wire [15:0] s_logisimBus38;
    wire [2:0]  s_logisimBus4;
    wire [1:0]  s_oc_1_0;
@@ -211,15 +218,15 @@ module ND3202D (
    wire        s_logisimNet213;
    wire        s_logisimNet214;
    wire        s_logisimNet215;
-   wire        s_logisimNet216;
+   wire        s_pd4;
    wire        s_logisimNet217;
-   wire        s_logisimNet218;
+   wire        s_clk;
    wire        s_logisimNet219;
    wire        s_logisimNet22;
    wire        s_logisimNet220;
    wire        s_logisimNet221;
    wire        s_logisimNet222;
-   wire        s_logisimNet224;
+   wire        s_xtal1;
    wire        s_logisimNet225;
    wire        s_logisimNet226;
    wire        s_logisimNet227;
@@ -244,10 +251,10 @@ module ND3202D (
    wire        s_logisimNet245;
    wire        s_logisimNet248;
    wire        s_logisimNet249;
-   wire        s_logisimNet25;
+   wire        s_xtal2;
    wire        s_logisimNet250;
    wire        s_logisimNet251;
-   wire        s_logisimNet252;
+   wire        s_pd3;
    wire        s_logisimNet253;
    wire        s_logisimNet254;
    wire        s_logisimNet255;
@@ -299,7 +306,7 @@ module ND3202D (
    wire        s_logisimNet58;
    wire        s_logisimNet59;
    wire        s_logisimNet6;
-   wire        s_logisimNet60;
+   wire        s_pd1;
    wire        s_logisimNet61;
    wire        s_logisimNet64;
    wire        s_logisimNet65;
@@ -329,7 +336,7 @@ module ND3202D (
    wire        s_logisimNet94;
    wire        s_logisimNet96;
    wire        s_logisimNet97;
-   wire        s_logisimNet98;
+   wire        s_pd2;
    wire        s_logisimNet99;
 
    /*******************************************************************************
@@ -468,10 +475,11 @@ module ND3202D (
    assign s_logisimNet180   = LOCK_n;
    assign s_logisimNet20    = BINT11_n;
    assign s_logisimNet217   = CONTINUE_n;
-   assign s_logisimNet224   = CLOCK_1;
+   assign s_xtal1           = CLOCK_1;
+   assign s_xtal2           = CLOCK_2;
    assign s_logisimNet231   = EAUTO_n;
    assign s_logisimNet233   = OSCCL_n;
-   assign s_logisimNet25    = CLOCK_2;
+
    assign s_logisimNet43    = BREQ_n;
    assign s_logisimNet48    = SW1_CONSOLE;
    assign s_logisimNet5     = BINT15_n;
@@ -497,31 +505,26 @@ module ND3202D (
    // Buffer
    assign s_logisimNet177 = s_logisimNet169;
 
-   // NOT Gate
-   assign s_logisimNet60 = 0'b1;
-
-   // NOT Gate
-   assign s_logisimNet98 = 0'b1;
-
-   // NOT Gate
-   assign s_logisimNet252 = 0'b1;
-
-   // NOT Gate
-   assign s_logisimNet216 = 0'b1;
+   // PD1-PD4 are always 0 during normal function
+   assign s_pd1 = 0;
+   assign s_pd2 = 0;
+   assign s_pd3 = 0;
+   assign s_pd4 = 0;
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
    CYC_36   CYC (
-                 .sysclk(sysclk), // System clock in FPGA
+                 .sysclk(sysclk),       // System clock in FPGA
                  .sys_rst_n(sys_rst_n), // System reset in FPGA
+
                  .ACOND_n(s_logisimNet12),
                  .ALUCLK(s_logisimNet243),
                  .BRK_n(s_logisimNet164),
                  .CC_3_1_n(s_logisimBus4[2:0]),
                  .CGNTCACT_n(s_logisimNet108),
-                 .CLK(s_logisimNet218),
+                 .CLK(s_clk),
                  .CSALUI7(s_logisimBus185[7]),
                  .CSALUI8(s_logisimBus185[8]),
                  .CSALUM0(s_logisimBus68[0]),
@@ -550,8 +553,8 @@ module ND3202D (
                  .MREQ_n(s_logisimNet194),
                  .MR_n(s_logisimNet130),
                  .OSC(s_logisimNet168),
-                 .PD1(s_logisimNet60),
-                 .PD4(s_logisimNet216),
+                 .PD1(s_pd1),
+                 .PD4(s_pd4),
                  .RRF_n(s_logisimNet187),
                  .RT_n(s_logisimNet172),
                  .RWCS_n(s_logisimNet142),
@@ -573,7 +576,7 @@ module ND3202D (
                  .CC_3_1_n(s_logisimBus4[2:0]),
                  .CD_15_0_IN(s_logisimBus38[15:0]),
                  .CD_15_0_OUT(s_cd_15_0_cpu_out),
-                 .CLK(s_logisimNet218),
+                 .CLK(s_clk),
                  .CYD(s_logisimNet27),
                  .DT_n(s_logisimNet230),
                  .DVACC_n(s_logisimNet97),
@@ -608,8 +611,8 @@ module ND3202D (
                  .PAN_n(s_logisimNet119),
                  .PARERR_n(s_logisimNet249),
                  .PCR_1_0(s_logisimBus209[1:0]),
-                 .PD1(s_logisimNet60),
-                 .PD2(s_logisimNet98),
+                 .PD1(s_pd1),
+                 .PD2(s_pd2),
                  .PIL_3_0(s_logisimBus246[3:0]),
                  .PONI(s_logisimNet17),
                  .POWFAIL_n(s_logisimNet191),
@@ -620,6 +623,7 @@ module ND3202D (
                  .STP(s_logisimNet169),
                  .SW1_CONSOLE(s_logisimNet48),
                  .TERM_n(s_logisimNet84),
+                 .SEL_TESTMUX(SEL_TESTMUX),
                  .TEST_4_0(s_logisimBus127[4:0]),
                  .TOPCSB(s_logisimBus247[63:0]),
                  .TP1_INTRQ_n(s_logisimNet57),
@@ -629,7 +633,8 @@ module ND3202D (
                  .WCHIM_n(s_logisimNet53),
                  .WRFSTB(s_logisimNet143),
                  .WRITE(s_logisimNet242),
-                 .LDEXM_n(s_LDEXM_n)
+                 .LDEXM_n(s_LDEXM_n),
+                 .LED1(LED[5])
                  );
 
 
@@ -639,6 +644,7 @@ module ND3202D (
 
    wire s_BPERR_n;  
    assign s_BPERR_n = 1'b1;
+   wire s_y2_0; //output bit0 CHIP_5C bus Y2
 
 
 
@@ -647,16 +653,16 @@ module ND3202D (
 
                //   1A4 = BPERR_n    1A3 = BINPUT_n   1A2= SEMRQ_n    1A1 = BINT10_n
                 .A1({s_BPERR_n, s_logisimNet163,s_logisimNet37, s_logisimNet145}), // Mapping 4 separate signals to 1A4-1A1
-                .G1_n(s_logisimNet60),
+                .G1_n(s_pd1),
 
                 // 2A4 = BAPR_n       2A3= BDRY_n     2A2 = BDAP_n     2A1= n.c.
                 .A2({s_logisimNet132, s_logisimNet33, s_logisimNet251, 1'b0}),   // Mapping 4 separate signals to 2A4-2A1
-                .G2_n(s_logisimNet60),
+                .G2_n(s_pd1),
 
 
                // Output
                .Y1({s_logisimNet181, s_logisimNet199, s_logisimNet232, s_logisimNet111}), // Mapping 4 separate signals to 1Y4-1Y1
-               .Y2({s_logisimNet153, s_logisimNet56, s_logisimNet113, 1'bz}) // Mapping 4 separate signals to 1Y4-1Y1
+               .Y2({s_logisimNet153, s_logisimNet56, s_logisimNet113, s_y2_0}) // Mapping 4 separate signals to 1Y4-1Y1
    );
 
    IO_37   IO (
@@ -671,7 +677,7 @@ module ND3202D (
                .CA10(s_logisimNet203),
                .CCLR_n(s_logisimNet235),
                .CLEAR_n(s_logisimNet183),
-               .CLK(s_logisimNet218),
+               .CLK(s_clk),
                .CONSOLE_n(s_logisimNet11),
                .CSCOMM_4_0(s_logisimBus133[4:0]),
                .CSIDBS_4_0(s_logisimBus95[4:0]),
@@ -698,7 +704,7 @@ module ND3202D (
                .IDB_15_8(s_logisimBus54[7:0]),
                .IDB_7_0_io(s_logisimBus170[7:0]),
                .ILOAD_n(s_logisimNet228),
-               .INR_7_0(s_logisimBus210[7:0]),
+               .INR_7_0(s_lbd_23_16_in[7:0]),
                .IONI(s_logisimNet44),
                .IORQ_n(s_logisimNet105),
                .ISTOP_n(s_logisimNet19),
@@ -736,8 +742,8 @@ module ND3202D (
                .UCLK(s_logisimNet219),
                .WCHIM_n(s_logisimNet53),
                .WRITE(s_logisimNet242),
-               .XTAL1(s_logisimNet224),
-               .XTAL2(s_logisimNet25),
+               .XTAL1(s_xtal1),
+               .XTAL2(s_xtal2),
                .XTR(s_logisimNet167),
                .IOLED(LED[1:0])
                );
@@ -748,10 +754,10 @@ module ND3202D (
 
                 //   1A4=STOP_n      1A3=CONTINUE_n   1A2=BREQ_n      1A1=LOAD_n
                 .A1({s_logisimNet59, s_logisimNet217,s_logisimNet43, s_logisimNet88}), // Mapping 4 separate signals to 1A4-1A1
-                .G1_n(s_logisimNet60),
+                .G1_n(s_pd1),
                 //   2A4=BINT11_n    2A3=BINT12_n    2A2=BINT13_n    2A1=BINT15_n
                 .A2({s_logisimNet20, s_logisimNet101, s_logisimNet0, s_logisimNet5}),   // Mapping 4 separate signals to 2A4-2A1
-                .G2_n(s_logisimNet60),
+                .G2_n(s_pd1),
 
 
                // Output
@@ -760,7 +766,6 @@ module ND3202D (
       );
 
 
-/* TODO:
 
    MEM_43   MEM (
                  .sysclk(sysclk),          // System clock in FPGA
@@ -783,12 +788,12 @@ module ND3202D (
                  .FETCH(s_logisimNet152),
                  .GNT50_n(s_logisimNet154),
                  .GNT_n(s_logisimNet221),
-                 .IBINPUT_n(s_logisimNet163),
-                 .IDB_15_0_IN(s_logisimBus32[15:0]),
-                 .IDB_15_0_OUT(xxx),
+                 .IBINPUT_n(s_logisimNet163),                    
+                 .IDB_15_0_OUT(s_idb_15_0_mem_out),  //TODO: connect
                  .IORQ_n(s_logisimNet240),
-                 .LBD_15_0_io(s_logisimBus173[15:0]),
-                 .LBD_23_16(s_logisimBus21[7:0]),
+                 .LBD_15_0_IN(s_lbd_15_0_in[15:0]),  //TODO: connect
+                 .LBD_15_0_OUT(s_lbd_15_0_out[15:0]), //TODO: connect
+                 .LBD_23_16_IN(s_lbd_23_16_in[7:0]),  //TODO: connect?
                  .LERR_n(s_logisimNet197),
                  .LPERR_n(s_logisimNet149),
                  .MOFF_n(s_logisimNet112),
@@ -798,9 +803,9 @@ module ND3202D (
                  .MWRITE_n(s_logisimNet196),
                  .OSC(s_logisimNet168),
                  .PA_n(s_logisimNet226),
-                 .PD1(s_logisimNet60),
-                 .PD3(s_logisimNet252),
-                 .PD4(s_logisimNet216),
+                 .PD1(s_pd1),
+                 .PD3(s_pd3),
+                 .PD4(s_pd4),
                  .PPN_23_19(s_logisimBus66[4:0]),
                  .PS_n(s_logisimNet156),
                  .REFRQ_n(s_logisimNet213),
@@ -814,6 +819,7 @@ module ND3202D (
                  .LED_BUS_GI(LED[4])  // LED_BUS_GRANT_INDICATOR                 
                  );
 
+/* TODO:
 
 
    BIF_5   BIF(
@@ -837,7 +843,7 @@ module ND3202D (
                 .CA_9_0(s_logisimBus118[9:0]),
                 .CC2_n(s_logisimNet82),
                 .CD_15_0_IN(s_logisimBus90[15:0]),
-                .CD_15_0_OUT(xxxx),
+                .CD_15_0_OUT(s_bif_cd_15_0_OUT),
                 .CGNCACT_n(s_logisimNet248),
                 .CGNT50_n(s_logisimNet55),
                 .CGNT_n(s_logisimNet148),
@@ -875,8 +881,8 @@ module ND3202D (
                 .OUTIDENT_n(s_logisimNet24),
                 .PARERR_n(s_logisimNet249),
                 .PA_n(s_logisimNet226),
-                .PD1(s_logisimNet60),
-                .PD3(s_logisimNet252),
+                .PD1(s_pd1),
+                .PD3(s_pd3),
                 .PPN_23_10(s_logisimBus67[13:0]),
                 .PS_n(s_logisimNet156),
                 .REFRQ_n(s_logisimNet213),
