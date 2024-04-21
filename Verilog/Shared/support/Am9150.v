@@ -25,43 +25,52 @@ http://www.sintran.com/library/libother/extern/AM9150.pdf
 
 */
 
-module Am9150 (
-    input wire [9:0] address,       // 10-bit address for 1024 locations
-    input wire [3:0] data_in,       // 4-bit data input (D0-D3)
-    output reg [3:0] data_out,      // 4-bit data output (Q0-Q3)
+module Am9150 (    
+    input wire        clk,          // Clock input (BLOCK RAM MUST HAVE CLOCK)
+    input wire  [9:0] address,      // 10-bit address for 1024 locations
+    input wire  [3:0] data_in,      // 4-bit data input (D0-D3)
+    output wire [3:0] data_out,     // 4-bit data output (Q0-Q3)
     input wire WRITE_ENABLE_n,      // /W - Write Enable (active low)
     input wire CHIP_SELECT_n,       // /S - Chip Select (active low)
     input wire OUTPUT_ENABLE_n,     // /G - Output Enable (active low)
     input wire RESET_n              // /R - Reset (active low)
 );
+    integer i;
 
-    // Memory array
-    reg [3:0] memory_array [0:1023];
+    reg [3:0] dataReg; // Output data
+
+   /*******************************************************************************
+   ** Memory array using block RAM                                               **
+   *******************************************************************************/
+   (* ram_style = "block" *) reg [3:0] memory_array [0:1023];        
 
     // Read, write and reset operations
-    always @(*) begin
+
+    always @(posedge clk) begin
+        if (!RESET_n) begin
+                // Reset operation: set all memory locations to 0                   
+
+                // NO CAN DO WITH BLOCK RAM!!
+
+                /* verilator lint_off BLKSEQ */                
+                //for (i = 0; i < 1024; i = i + 1) begin
+                //    memory_array[i] = 4'b0000;
+                //end
+                //data_out = 4'bz; // High-impedance state during reset
+                /* verilator lint_on BLKSEQ */
+        end
+
         if (!CHIP_SELECT_n) begin
-            if (!RESET_n) begin
-                // Reset operation: set all memory locations to 0
-                integer i;
-                for (i = 0; i < 1024; i = i + 1) begin
-                    memory_array[i] <= 4'b0000;
-                end
-            end else if (!WRITE_ENABLE_n) begin
-                // Write operation: active when chip is selected and write enable is low
-                memory_array[address] <= data_in;
+            if (!WRITE_ENABLE_n) begin                
+                memory_array[address] <= data_in;  // Write operation: active when chip is selected and write enable is low            
+            end else begin
+                dataReg <= memory_array[address]; // Read operation: active when chip is selected and output enable is low 
             end
         end
+        
     end
 
-    // Output data
-    always @(*) begin
-        if (!CHIP_SELECT_n && !OUTPUT_ENABLE_n && WRITE_ENABLE_n && RESET_n) begin
-            // Read operation: active when chip is selected and output enable is low
-            data_out <= memory_array[address];
-        end else begin
-            data_out <= 4'bz; // High-impedance state when not reading
-        end
-    end
+    // Read operation: active when chip is selected and output enable is low (and not writing or reset!)
+    assign data_out = (!CHIP_SELECT_n & !OUTPUT_ENABLE_n & WRITE_ENABLE_n & RESET_n) ? dataReg : 4'bz; // High-impedance state when not reading
 
 endmodule
