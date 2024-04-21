@@ -28,113 +28,54 @@ Each of these devices is produced with AMD's proprietary IMOX bipolar process, a
 */
 
 
-module AM29833A( input  CLK,
-                 input  CLR_n,
-                 output ERR_n,
-                 input  OER_n,
-                 input  OET_n,
-                 inout  PAR, // Parity bit
-                 inout  R0,
-                 inout  R1,
-                 inout  R2,
-                 inout  R3,
-                 inout  R4,
-                 inout  R5,
-                 inout  R6,
-                 inout  R7,
-                 inout  T0,
-                 inout  T1,
-                 inout  T2,
-                 inout  T3,
-                 inout  T4,
-                 inout  T5,
-                 inout  T6,
-                 inout  T7 
+module AM29833A( input  wire CLK,
+                 input  wire CLR_n,
+                 output wire ERR_n,
+                 input  wire OER_n,
+                 input  wire OET_n,
+                 input  wire PAR, // Parity bit (in)
+                 output wire PAR_OUT,  // Parity bit (out)
+                 input  wire [7:0] R,
+                 output wire [7:0] R_OUT,
+                 input  wire [7:0] T,
+                 output wire [7:0] T_OUT
 );
 
 
-reg r_port_reg[7:0];
-reg t_port_reg[7:0];
 
-reg error_flag_reg;
-reg parity_reg;
+    // Declare internal wires
+    wire [7:0] mux_out;
+    wire [8:0] parity_input;
+    wire parity_output;
+    wire error_flag;
 
-// temporary
-
-assign ERR_n = ~error_flag_reg;
-
-// Not complete yer..
-always @(*) begin
-    if (CLR_n == false) begin
-        error_flag_reg <= 1'b0;
-        
-    end
-    else if ( (OET_n == false) && (OER_n == true)) begin // TRANSMIT MODE (Transmits data from R port to T port, generating parity. Receive path is disabled.)
-        r_port_reg[0] <= R0;
-        r_port_reg[1] <= R1;
-        r_port_reg[2] <= R2;
-        r_port_reg[3] <= R3;
-        r_port_reg[4] <= R4;
-        r_port_reg[5] <= R5;
-        r_port_reg[6] <= R6;
-        r_port_reg[7] <= R7;
-
-        T0 <= r_port_reg[0];
-        T1 <= r_port_reg[1];
-        T2 <= r_port_reg[2];
-        T3 <= r_port_reg[3];
-        T4 <= r_port_reg[4];
-        T5 <= r_port_reg[5];
-        T6 <= r_port_reg[6];
-        T7 <= r_port_reg[7];
-
-        
-    end
-    else if ( (OET_n == true) && (OER_n == false)) begin // RECEIVE MODE (Transmits data drom T port to R port with parity test resulting in error flag. Transmit path is disabled.)
-        t_port_reg[0] <= T0;
-        t_port_reg[1] <= T1;
-        t_port_reg[2] <= T2;
-        t_port_reg[3] <= T3;
-        t_port_reg[4] <= T4;
-        t_port_reg[5] <= T5;
-        t_port_reg[6] <= T6;
-        t_port_reg[7] <= T7;
+    // Sequential logic for registers
+    reg [7:0] reg_R;
+    reg [7:0] reg_T;
 
 
-        R0 <= t_port_reg[0];
-        R1 <= t_port_reg[1];
-        R2 <= t_port_reg[2];
-        R3 <= t_port_reg[3];
-        R4 <= t_port_reg[4];
-        R5 <= t_port_reg[5];
-        R6 <= t_port_reg[6];
-        R7 <= t_port_reg[7];
-    end 
-    else if ( (OET_n == true) && (OER_n == true)) begin // Both transmitting and receiving paths are disabled
 
-        R0 = 1'bZ;
-        R1 = 1'bZ;
-        R2 = 1'bZ;
-        R3 = 1'bZ;
-        R4 = 1'bZ;
-        R5 = 1'bZ;
-        R6 = 1'bZ;
-        R7 = 1'bZ;
-
-
-        T0 = 1'bZ;
-        T1 = 1'bZ;
-        T2 = 1'bZ;
-        T3 = 1'bZ;
-        T4 = 1'bZ;
-        T5 = 1'bZ;
-        T6 = 1'bZ;
-        T7 = 1'bZ;
-    end
-
-
+ always @(posedge CLK or negedge CLR_n) begin
+        if (!CLR_n) begin
+            // Reset logic
+            reg_R <= 8'b0;
+            reg_T <= 8'b0;
+        end else begin
+            // Update registers with input
+            reg_R <= R;
+            reg_T <= T;            
+        end
 end
 
+
+assign R_OUT = (CLR_n & !OET_n & OER_n) ? reg_T : 8'bZ;  // RECEIVE MODE (Transmits data from T port to R port with parity test resulting in error flag. Transmit path is disabled.)
+assign T_OUT = (CLR_n & OET_n & !OER_n) ? reg_R : 8'bZ;  // TRANSMIT MODE (Transmits data from R port to T port, generating parity. Receive path is disabled.)
+
+
+// TODO: PARITY & ERROR
+
+assign ERR_n = 1; // Error flag logic to be implemented
+assign PAR_OUT = 0; // Error flag logic to be implemented
 
 
 
