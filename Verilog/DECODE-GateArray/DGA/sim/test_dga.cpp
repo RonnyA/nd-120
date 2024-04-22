@@ -28,9 +28,13 @@ struct TestCase {
    bool       XEFN;
    bool       XEON;
    bool       XHIN;
-   uint8_t    XIB_7_4;
-   uint8_t    XID_4_0;
-   uint8_t    XI_3_0_I;
+   uint8_t	  XIDB_7_0_IN;
+   //uint8_t    XIB_7_4;
+   //uint8_t    XI_3_0_I;
+
+   uint8_t    XID_4_0; // csidbs_4_0
+
+   
    bool       XLCN;
    bool       XLON;
    bool       XLSH;
@@ -67,8 +71,8 @@ struct TestCase {
    bool     expected_XFON;
    bool     expected_XFUN;
    bool     expected_XION;
-   uint8_t  expected_XI_3_0_C;
-   uint8_t  expected_XI_3_0_O;
+   //uint8_t  expected_XI_3_0_C;
+   uint8_t  expected_XIDB_3_0_OUT;
    bool     expected_XLHN;
    bool     expected_XMCL;
    bool     expected_XMRN;
@@ -115,12 +119,12 @@ int main(int argc, char** argv)
 	// 
 	// Create a collection of test cases
 std::vector<TestCase> testCases = {
-  // ---------------------------------------------------------- INPUTS------------------------------------------------------------------------------------------------------------------------------    ---------------------------------------------- EXPECTED OUTPUTS ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-  // XBRN   XCLO   XCON   XCO_4_0  XDAN   XBDN   XEFN   XEON  XHIN   XIB_7_4  XID_4_0  XI_3_0_I  XLCN   XLON   XLSH   XMI_1_0  XPOI   XPOW   XPWC   XRMN  XRTO   XS5N   XST_4_3  XTES    XTON  XUCK     expected_XA_7_0  expected_XA_7_0_C  expected_XC10  expected_XCLN  expected_XCRN  expected_XCSN  expected_XDON  expected_XDTN  expected_XDVN  expected_XECR  expected_XEMN  expected_XEPN  expected_XESN  expected_XEUN  expected_XFEC  expected_XFMI  expected_XFON  expected_XFUN  expected_XION  expected_XI_3_0_C  expected_XI_3_0_O  expected_XLHN  expected_XMCL  expected_XMRN  expected_XOCN  expected_XPAN  expected_XPEN  expected_XPFN  expected_XPIN  expected_XPNN  expected_XPSC  expected_XPSN  expected_XRFN  expected_XRIN  expected_XRQN  expected_XRTN  expected_XRUN  expected_XRWN  expected_XSCN  expected_XSHN  expected_XSSN  expected_XSTP  expected_XSWN  expected_XTE0  expected_XTOT  expected_XTRN  expected_XVAL  expected_XWHN  expected_XWRI  Description
-    {true,  false, false, 0,       true,  true,  true,  true, false, 0,       0,       0,        true,  true,  false, 0,       false, false, false, true, false, true,  0,       false,  true, false,   0,               0,                 true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          0,                 0,                 true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          "Test 1"},
-	{true,  false, false, 0,       true,  true,  true,  true, false, 0,       0,       0,        true,  true,  false, 0,       false, false, false, true, true, true,  0,       false,  true, false,   0,               0,                 true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          0,                 0,                 true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          "Test 1"},
-	{true,  false, false, 0,       true,  true,  true,  true, false, 0,       0,       0,        true,  true,  false, 0,       false, false, false, true, false, true,  0,       false,  true, false,   0,               0,                 true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          0,                 0,                 true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          "Test 1"},
-	{true,  false, false, 0,       true,  true,  true,  true, false, 0,       0,       0,        true,  true,  false, 0,       false, false, false, true, true, true,  0,       false,  true, false,   0,               0,                 true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          0,                 0,                 true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          "Test 1"}
+  // ---------------------------------------------------------- INPUTS------------------------------------------------------------------------------------------------------------------------    ---------------------------------------------- EXPECTED OUTPUTS ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  // XBRN   XCLO   XCON   XCO_4_0  XDAN   XBDN   XEFN   XEON  XHIN   XIDB_7_0_IN  XID_4_0  XLCN   XLON   XLSH   XMI_1_0  XPOI   XPOW   XPWC   XRMN  XRTO   XS5N   XST_4_3  XTES    XTON  XUCK     expected_XA_7_0  expected_XA_7_0_C  expected_XC10  expected_XCLN  expected_XCRN  expected_XCSN  expected_XDON  expected_XDTN  expected_XDVN  expected_XECR  expected_XEMN  expected_XEPN  expected_XESN  expected_XEUN  expected_XFEC  expected_XFMI  expected_XFON  expected_XFUN  expected_XION  expected_XIDB_3_0_OUT   expected_XLHN  expected_XMCL  expected_XMRN  expected_XOCN  expected_XPAN  expected_XPEN  expected_XPFN  expected_XPIN  expected_XPNN  expected_XPSC  expected_XPSN  expected_XRFN  expected_XRIN  expected_XRQN  expected_XRTN  expected_XRUN  expected_XRWN  expected_XSCN  expected_XSHN  expected_XSSN  expected_XSTP  expected_XSWN  expected_XTE0  expected_XTOT  expected_XTRN  expected_XVAL  expected_XWHN  expected_XWRI  Description
+    {true,  false, false, 0,       true,  true,  true,  true, false, 0,           0,       true,  true,  false, 0,       false, false, false, true, false, true,  0,       false,  true, false,   0,               0,                 true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          0,                      true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          "Test 1"},
+	{true,  false, false, 0,       true,  true,  true,  true, false, 0,           0,       true,  true,  false, 0,       false, false, false, true, true, true,   0,       false,  true, false,   0,               0,                 true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          0,                      true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          "Test 1"},
+	{true,  false, false, 0,       true,  true,  true,  true, false, 0,           0,       true,  true,  false, 0,       false, false, false, true, false, true,  0,       false,  true, false,   0,               0,                 true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          0,                      true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          "Test 1"},
+	{true,  false, false, 0,       true,  true,  true,  true, false, 0,           0,       true,  true,  false, 0,       false, false, false, true, true, true,   0,       false,  true, false,   0,               0,                 true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          0,                      true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          true,          "Test 1"}
 };
 
 
@@ -167,9 +171,8 @@ std::vector<TestCase> testCases = {
 				top->XEFN = test.XEFN;
 				top->XEON = test.XEON;
 				top->XHIN = test.XHIN;
-				top->XIB_7_4 = test.XIB_7_4;
-				top->XID_4_0 = test.XID_4_0;
-				top->XI_3_0_I = test.XI_3_0_I;
+				top->XIDB_7_0_IN = test.XIDB_7_0_IN;
+				top->XID_4_0 = test.XID_4_0;				
 				top->XLCN = test.XLCN;
 				top->XLON = test.XLON;
 				top->XLSH = test.XLSH;
@@ -185,7 +188,7 @@ std::vector<TestCase> testCases = {
 				top->XTON = test.XTON;
 				top->XUCK = test.XUCK;
 
-				// Trigger som response (fixe later with real tests)
+				// Test code to trigger some response (fix later with real tests)
 				top->XCO_4_0 = csidbs;
 				top->XMI_1_0 = csmis;
 
