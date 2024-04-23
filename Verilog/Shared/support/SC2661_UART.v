@@ -1,14 +1,12 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : SC2661_UART                                                  **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** SC2661_UART                                                           **
+**                                                                       ** 
+** Last reviewed: 21-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
 module SC2661_UART( 
-   input A0,
-   input A1,
+   input [1:0] ADDRESS,   
    input BRCLK,
    input CE_n,
    input CTS_n,
@@ -20,7 +18,8 @@ module SC2661_UART(
    input RXD,
    input TXC_n,
 
-   inout [7:0] D_7_0,
+   input  [7:0] D,
+   output [7:0] D_OUT,
 
    output       DTR_n,
    output       RTS_n,
@@ -34,7 +33,6 @@ module SC2661_UART(
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [7:0] s_logisimBus11;
    wire       s_logisimNet0;
    wire       s_logisimNet1;
    wire       s_logisimNet10;
@@ -54,6 +52,8 @@ module SC2661_UART(
    wire       s_logisimNet8;
    wire       s_logisimNet9;
 
+   wire [1:0] s_address;
+
    /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
@@ -65,8 +65,7 @@ module SC2661_UART(
    assign s_logisimNet1  = DCD_n;
    assign s_logisimNet12 = RESET;
    assign s_logisimNet13 = READ_n;
-   assign s_logisimNet14 = A0;
-   assign s_logisimNet15 = A1;
+   assign s_address      = ADDRESS;
    assign s_logisimNet16 = CE_n;
    assign s_logisimNet17 = BRCLK;
    assign s_logisimNet18 = RXC_n;
@@ -78,11 +77,14 @@ module SC2661_UART(
    ** Here all output connections are defined                                    **
    *******************************************************************************/
    assign DTR_n    = s_logisimNet6;
-   assign D_7_0    = s_logisimBus11[7:0];
+
    assign RTS_n    = s_logisimNet8;
    assign RXDRDY_n = s_logisimNet10;
    assign TXD      = s_logisimNet9;
    assign TXDRDY_n = s_logisimNet7;
    assign TXEMT_n  = s_logisimNet5;
 
+   reg [7:0] data_out;
+
+   assign D_OUT = (!CE_n & !READ_n) ? data_out :  8'bz;
 endmodule

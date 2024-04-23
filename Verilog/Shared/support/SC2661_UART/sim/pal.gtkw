@@ -1,0 +1,50 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Thu Apr 18 15:58:19 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/SC2661_UART/sim/waveform.vcd"
+[dumpfile_mtime] "Thu Apr 18 15:55:57 2024"
+[dumpfile_size] 6417
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/SC2661_UART/sim/pal.gtkw"
+[timestart] 0
+[size] 2548 1359
+[pos] 31 31
+*-4.456229 7 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 312
+[signals_width] 511
+[sst_expanded] 1
+[sst_vpaned_height] 726
+@200
+-clock
+@28
+TOP.BRCLK
+@200
+--- input --
+@28
+TOP.RXD
+TOP.A0
+TOP.A1
+TOP.CE_n
+TOP.CTS_n
+TOP.DCD_n
+TOP.DSR_n
+TOP.READ_n
+TOP.RESET
+TOP.RXC_n
+TOP.RXD
+@200
+--- in and out --
+@23
+TOP.D_7_0[7:0]
+@200
+--- output --
+@28
+TOP.DTR_n
+TOP.RTS_n
+TOP.RXDRDY_n
+TOP.TXD
+TOP.TXDRDY_n
+TOP.TXEMT_n
+[pattern_trace] 1
+[pattern_trace] 0
