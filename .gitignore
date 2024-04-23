@@ -2,3 +2,7 @@
 obj_dir/
 waveform.vcd
 .VSCodeCounter
+# ignore soft linked microcode files used for verilator
+Verilog/CPU-BOARD-3202/circuit/**/AM27256_45132L.hex
+Verilog/CPU-BOARD-3202/circuit/**/AM27256_45133L.hex
+
