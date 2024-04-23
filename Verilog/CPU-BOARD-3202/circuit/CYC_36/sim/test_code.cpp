@@ -27,8 +27,8 @@ struct TestCase {
     bool CSALUI8;
     bool CSALUM0;
     bool CSALUM1;
-    bool CSDELAY0;
-    bool CSDELAY1;
+    uint8_t CSDELAY_1_0;
+    
     bool CSDLY;
     bool CSECOND;
     bool CSLOOP;
@@ -108,19 +108,24 @@ int main(int argc, char **argv)
     
 
 
+
+
     int errCnt = 0;
 
    // Default Assignments for input fields
+    top->PD1 = top->PD4 = 0; // Enable PD1 and PD4 (output enable)
+
     top->ACOND_n =             
     top->BRK_n =
     top->CGNTCACT_n = true;
+
+    top->CSDELAY_1_0 = 0;
+
 
     top->CSALUI7 = 
     top->CSALUI8 = 
     top->CSALUM0 = 
     top->CSALUM1 = 
-    top->CSDELAY0 = 
-    top->CSDELAY1 = 
     top->CSDLY = 
     top->CSECOND = 
     top->CSLOOP = false;
@@ -155,6 +160,12 @@ int main(int argc, char **argv)
     //for (const auto& test : testCases) {
     //    std::cout << "Running " << test.description << std::endl;
 
+    // Master Reset
+
+    top->MR_n = false;
+
+    bool clk_has_been_high =false;
+
     for (int i=0; i<4096; i++)
     {
         top->OSC = !top->OSC; // Toggle OSC
@@ -165,14 +176,16 @@ int main(int argc, char **argv)
         top->CSALUM0 = (i & 1<<3)  != 0;        
 
 
+        
+        
+
         if (i==4)
             top->MREQ_n = false;
 
         if (i > 40)
         {
-            top->CSDELAY1 = (i & 1<<5)  != 0;
-            top->CSDELAY0 = (i & 1<<4)  != 0;
-        
+
+            top->CSDELAY_1_0 = (i & 1<<4)  != 0;                    
         }
 
         if (i==50)
@@ -186,6 +199,10 @@ int main(int argc, char **argv)
 
         top->eval();
 
+
+        if (top->CLK) clk_has_been_high= true;
+        if ((!top->CLK) && (clk_has_been_high))
+            top->MR_n =true; // keep "master reset" until CLK is toggled
 
 #ifdef DO_TRACE        
         m_trace->dump(sim_time);

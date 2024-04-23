@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Sat Jan 13 10:21:50 2024
+[*] Tue Apr 23 10:18:50 2024
 [*]
 [dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CYC_36/sim/waveform.vcd"
-[dumpfile_mtime] "Sat Jan 13 10:21:40 2024"
-[dumpfile_size] 120640
+[dumpfile_mtime] "Tue Apr 23 10:15:08 2024"
+[dumpfile_size] 88447
 [savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CYC_36/sim/pal.gtkw"
 [timestart] 0
 [size] 2002 1057
-[pos] -1 -1
-*-7.456229 417 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] -2351 -392
+*-7.456229 0 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [sst_width] 214
 [signals_width] 384
@@ -27,16 +27,15 @@ TOP.CSALUI7
 TOP.CSALUI8
 TOP.CSALUM0
 TOP.CSALUM1
-TOP.CSDELAY0
-TOP.CSDELAY1
+TOP.CSDELAY_1_0
+@29
 TOP.CSDLY
+@28
 TOP.CSECOND
 TOP.CSLOOP
 TOP.FORM_n
 TOP.HIT
-@29
 TOP.IORQ_n
-@28
 TOP.LBA0
 TOP.LBA1
 TOP.LBA3

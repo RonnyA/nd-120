@@ -57,18 +57,22 @@ wire MR = ~MR_n;
 wire MAP = ~MAP_n;
 wire LUA12_n = ~LUA12;
 
+wire s_dma12_n = ~DMA12;
+
 // Flip-flop logic for Q0, Q1, Q2 and Q3
 always @(posedge CLK) begin
 
     // Q0 flip-flop
     // Logic for LCS_n (active-low)
-    if (MR)
+    if (
+                (MR) 
+                | (s_dma12_n & LUA12_n & LCS)  // LCS FROM MR AND UNTIL MA12 HAS GONE HIGH AND                
+                | (DMA12 & LUA12 & LCS)        // I.E. LMA COUNTED FROM 0 to 8K.
+                | (s_dma12_n & LUA12 & LCS)
+    )
         LCS <= 1'b1;
-    else if (                                
-                (DMA12_n & LUA12_n == 0) | // LCS FROM MR AND UNTIL MA12 HAS GONE HIGH AND                
-                (DMA12 & LUA12  == 0)    | // I.E. LMA COUNTED FROM 0 to 8K.
-                (DMA12_n & LUA12 == 0)
-    ) LCS <= 1'b0;
+    else
+        LCS <= 1'b0;
     
 
     // Q1 flip-flop
@@ -87,7 +91,7 @@ end
 // Output logic for Q0_n, Q1_n, Q2_n
 assign LCS_n = OE_n ? 1'bz : ~LCS;
 assign MDLY_n = OE_n ? 1'bz : ~MDLY;
-assign DMA12_n = OE_n ? 1'bz : ~DMA12;
+assign DMA12_n = OE_n ? 1'bz : s_dma12_n;
 assign DMAP_n = OE_n ? 1'bz : ~DMAP;
 
 

@@ -1,6 +1,6 @@
 TOP_FILE = CYC_36
 
-SUPPRESS_FLAGS = -Wno-WIDTH
+SUPPRESS_FLAGS = -Wno-EOFNEWLINE 
 
 # This is the path to the root of the verilog directory
 VERILOG_ROOT = ../../../..
