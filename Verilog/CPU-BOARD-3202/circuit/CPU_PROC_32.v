@@ -8,14 +8,18 @@
 ** Ronny Hansen                                                          **               
 ***************************************************************************/
 
-module CPU_PROC_32( ACOND_n,
+module CPU_PROC_32( 
+                    sysclk, // System clock in FPGA
+                    sys_rst_n, // System reset in FPGA
+
+                    ACOND_n,
                     ALUCLK,
                     BEDO_n,
                     BEMPID_n,
                     BRK_n,
                     BSTP,
                     CA_9_0,
-                    CD_15_0,
+                    CD_15_0_IN,
                     CLK,
                     CSA_12_0,
                     CSBITS,
@@ -32,7 +36,7 @@ module CPU_PROC_32( ACOND_n,
                     IBINT12_n,
                     IBINT13_n,
                     IBINT15_n,
-                    IDB_15_0,
+                    IDB_15_0_IN,
                     IDB_15_0_OUT,
                     IONI,
                     IOXERR_n,
@@ -60,7 +64,7 @@ module CPU_PROC_32( ACOND_n,
                     RT_n,     // Use signal from DGA
                     LDEXM_n,  // use signal from DGA
                     RWCS_n,
-                    TERM_n,
+                    TERM_n,                    
                     TEST_4_0,
                     TP1_INTRQ_n,
                     TRAP,
@@ -68,16 +72,21 @@ module CPU_PROC_32( ACOND_n,
                     VEX,
                     WCA_n,
                     WCS_n,
-                    WRFSTB );
+                    WRFSTB,
+                    SEL_TESTMUX
+                    );
 
    /*******************************************************************************
    ** The inputs are defined here                                                **
    *******************************************************************************/
+   input sysclk;      // System clock in FPGA
+   input sys_rst_n;   // System reset in FPGA
+
    input        ALUCLK;
    input        BEDO_n;
    input        BEMPID_n;
    input        BSTP;
-   input [15:0] CD_15_0;
+   input [15:0] CD_15_0_IN;
    input        CLK;
    input [63:0] CSBITS;
    input        ESTOF_n;
@@ -104,13 +113,14 @@ module CPU_PROC_32( ACOND_n,
    input        UCLK;
    input        WCA_n;
    input        WRFSTB;
+   input [2:0]  SEL_TESTMUX; // Selects testmux signals to output on TEST_4_0
 
    /*******************************************************************************
    ** The IN and OUT are define here                                            **
    *******************************************************************************/
    
    // TODO: Give correct IDB signals to the chips
-   input  [15:0] IDB_15_0;
+   input  [15:0] IDB_15_0_IN;
    output [15:0] IDB_15_0_OUT;
 
    /*******************************************************************************
@@ -151,11 +161,24 @@ module CPU_PROC_32( ACOND_n,
    wire [4:0]  s_logisimBus103;
    wire [4:0]  s_logisimBus114;
    wire [63:0] s_logisimBus119;
-   wire [15:0] s_logisimBus122;
    wire [1:0]  s_logisimBus127;
-   wire [15:0] s_logisimBus138;
+   
+   wire [15:0] s_fidb_cga_IN;  // Out from B side of CHIP32 and 33, and IN to CGA
+   wire [15:0] s_fidb_cga_OUT; // Input signal to B side of CHIP32 and 33, and OUT from CGA
+
+   wire [15:0] s_fidb_A_IN; // Input signal to A side of CHIP32 and 33
+   wire [15:0] s_fidb_A_OUT; // Out from A side of CHIP32 and 33
+   wire [15:0] s_fidb_B_OUT; // Out from B side of CHIP32 and 33
+
+   wire [15:0] s_idb_erf_in; // 16 bit-input signal from RAM Chip34 and 35, controlled by ERF_n
+   wire [15:0] s_idb_erf_out; // 16 bit-output signal from RAM Chip34 and 35, controlled by ERF_n
+
+   wire [15:0] s_IDB_15_0_OUT;
+   wire IDB2; //IDB2 input signal to CMDDEC
+
+
    wire [6:0]  s_logisimBus144;
-   wire [15:0] s_logisimBus15;
+   
    wire [1:0]  s_logisimBus151;
    wire [1:0]  s_logisimBus152;
    wire [1:0]  s_logisimBus153;
@@ -199,7 +222,7 @@ module CPU_PROC_32( ACOND_n,
    wire        s_logisimNet12;
    wire        s_logisimNet120;
    wire        s_logisimNet121;
-   wire        s_logisimNet123;
+   wire        s_twrf_n;
    wire        s_logisimNet125;
    wire        s_logisimNet126;
    wire        s_logisimNet128;
@@ -282,7 +305,7 @@ module CPU_PROC_32( ACOND_n,
    wire        s_logisimNet29;
    wire        s_logisimNet3;
    wire        s_logisimNet31;
-   wire        s_logisimNet32;
+   wire        s_wrtrf;
    wire        s_logisimNet33;
    wire        s_logisimNet34;
    wire        s_logisimNet35;
@@ -290,7 +313,10 @@ module CPU_PROC_32( ACOND_n,
    wire        s_logisimNet39;
    wire        s_logisimNet40;
    wire        s_logisimNet41;
-   wire        s_logisimNet42;
+   wire        s_erf_n;
+   
+   wire        s_erf_n_org; // Original signal from CGA. Not used after fix has been applied
+
    wire        s_logisimNet43;
    wire        s_logisimNet44;
    wire        s_logisimNet45;
@@ -472,7 +498,7 @@ module CPU_PROC_32( ACOND_n,
    *******************************************************************************/
    assign s_logisimBus119[63:0] = CSBITS;
    assign s_logisimBus144[6:0]  = PT_15_9;
-   assign s_logisimBus25[15:0]  = CD_15_0;
+   assign s_logisimBus25[15:0]  = CD_15_0_IN;
    assign s_logisimNet108       = IBINT11_n;
    assign s_logisimNet109       = UCLK;
    assign s_logisimNet11        = IOXERR_n;
@@ -502,6 +528,26 @@ module CPU_PROC_32( ACOND_n,
    assign s_logisimNet91        = ESTOF_n;
    assign s_logisimNet97        = WCA_n;
 
+   
+
+   // s_twrf_n = low, write to memory from IDB
+   wire ram_read; // boolean to know if we are reading from RAM
+   assign ram_read = !s_erf_n & s_wrtrf & s_twrf_n; // Read from RAM
+
+   
+   assign s_fidb_A_IN = IDB_15_0_IN | (ram_read) ? s_idb_erf_out : 0;
+
+
+   assign s_fidb_cga_IN = s_fidb_B_OUT;
+
+   assign IDB2 = s_fidb_A_IN[2];   
+
+   assign s_idb_erf_in = IDB_15_0_IN | ((!ESTOF_n & !BEDO_n) ? s_fidb_A_OUT : 0); // Not 100% sure where data to the RAM may come from, so expect it to com from IDB and via Chip32F/33F
+   // LOGIC
+   assign IDB_15_0_OUT = ram_read ? s_idb_erf_out[15:0] : ( (!ESTOF_n & !BEDO_n) ? s_fidb_A_OUT[15:0] : 16'bz);
+   // OR
+   //assign IDB_15_0_OUT =  s_idb_erf_inout[15:0] |  s_fidb_A_OUT[15:0];
+
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
@@ -514,7 +560,7 @@ module CPU_PROC_32( ACOND_n,
    assign CWR         = s_logisimNet76;
    assign DOUBLE      = s_logisimNet125;
    assign ECCR        = s_logisimNet85;
-   assign IDB_15_0_OUT = s_logisimBus15[15:0];
+   
    assign IONI        = s_logisimNet41;
    assign LA_23_10    = s_logisimBus168[13:0];
    assign LBA_3_0     = s_logisimBus92[7:4];
@@ -547,10 +593,10 @@ module CPU_PROC_32( ACOND_n,
    ** Here all normal components are defined                                     **
    *******************************************************************************/
    NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_1 (.input1(s_logisimNet32),
+      GATES_1 (.input1(s_wrtrf),
                .input2(s_logisimNet3),
                .input3(s_logisimNet56),
-               .result(s_logisimNet123));
+               .result(s_twrf_n));
 
 
    /*******************************************************************************
@@ -570,8 +616,8 @@ module CPU_PROC_32( ACOND_n,
                                 .CSMIS_1_0(s_logisimBus151[1:0]),
                                 .CUP(s_logisimNet28),
                                 .CWR(s_logisimNet76),
-                                .ERF_n(s_logisimNet42),
-                                .IDB2(s_logisimBus15[2]),
+                                .ERF_n(s_erf_n), // output from PAL_44407_UERFIX
+                                .IDB2(IDB2),
                                 .LCS_n(s_logisimNet154),
                                 .LEV0(s_logisimNet118),
                                 .MREQ_n(s_logisimNet53),
@@ -584,29 +630,48 @@ module CPU_PROC_32( ACOND_n,
                                 .LDEXM_n(s_ledexm),
                                 .VEX(s_logisimNet27),
                                 .WCA_n(s_logisimNet97),
-                                .WRTRF(s_logisimNet32));
+                                .WRTRF(s_wrtrf));
 
-   TMM2018D_25   CHIP_34F (.A0_A10(s_logisimBus92[10:0]),
-                           .CS_n(s_logisimNet42),
-                           .D0_D7(s_logisimBus15[7:0]),
-                           .OE_n(s_logisimNet32),
-                           .W_n(s_logisimNet123));
-
-   TTL_74245   CHIP_32F (.A(s_logisimBus15[7:0]),
-                         .B(s_logisimBus122[7:0]),
+   TTL_74245   CHIP_32F (.A(s_fidb_A_IN[7:0]), // 
+                         .A_OUT(s_fidb_A_OUT[7:0]),
+                         .B(s_fidb_cga_OUT[7:0]),
+                         .B_OUT(s_fidb_B_OUT[7:0]),
                          .DIR(s_logisimNet43),
                          .OE_n(s_logisimNet91));
 
-   TMM2018D_25   CHIP_35F (.A0_A10(s_logisimBus92[10:0]),
-                           .CS_n(s_logisimNet42),
-                           .D0_D7(s_logisimBus15[15:8]),
-                           .OE_n(s_logisimNet32),
-                           .W_n(s_logisimNet123));
 
-   TTL_74245   CHIP_33F (.A(s_logisimBus15[7:0]),
-                         .B(s_logisimBus122[7:0]),
+   TTL_74245   CHIP_33F (.A(s_fidb_A_IN[15:8]),   
+                         .A_OUT(s_fidb_A_OUT[15:8]),
+                         .B(s_fidb_cga_OUT[15:8]),
+                         .B_OUT(s_fidb_B_OUT[15:8]),
                          .DIR(s_logisimNet43),
                          .OE_n(s_logisimNet91));
+
+
+   TMM2018D_25   CHIP_34F (
+                           .clk(sysclk), // System clock in FPGA
+                           .reset_n(sys_rst_n), // System reset in FPGA
+  
+                           .ADDRESS(s_logisimBus92[10:0]),
+                           .CS_n(s_erf_n),
+                           .D(s_idb_erf_in[7:0]),       // IN
+                           .D_OUT(s_idb_erf_out[7:0]),  // OUT
+                           .OE_n(s_wrtrf),
+                           .W_n(s_twrf_n));
+
+
+   TMM2018D_25   CHIP_35F (
+                           .clk(sysclk), // System clock in FPGA
+                           .reset_n(sys_rst_n), // System reset in FPGA
+
+                           .ADDRESS(s_logisimBus92[10:0]),
+                           .CS_n(s_erf_n),
+                           .D(s_idb_erf_in[15:8]),       // IN
+                           .D_OUT(s_idb_erf_out[15:8]),  // OUT
+                           .OE_n(s_wrtrf),
+                           .W_n(s_twrf_n));
+
+
 
 
    CPU_PROC_CGA_33   CGA (.ACOND_n(s_logisimNet40),
@@ -623,14 +688,15 @@ module CPU_PROC_32( ACOND_n,
                           .ECCR(s_logisimNet85),
                           .ETRAP_n(s_logisimNet110),
                           .EWCA_n(s_logisimNet66),
-                          .FIDB_15_0_io(s_logisimBus138[15:0]),
+                          .FIDB_15_0_IN(s_fidb_cga_IN[15:0]),
+                          .FIDB_15_0_OUT(s_fidb_cga_OUT[15:0]),
                           .IBINT10_n(s_logisimNet143),
                           .IBINT11_n(s_logisimNet108),
                           .IBINT12_n(s_logisimNet67),
                           .IBINT13_n(s_logisimNet14),
                           .IBINT15_n(s_logisimNet147),
                           .INTRQ_n_tp1(s_logisimNet20),
-                          .ERF_n(s_logisimNet42),
+                          .ERF_n(s_erf_n_org),  // original ERF_N from CGA (submodule DCD), fixed with PAL_44407_UERFIX (signal replaced, so wire is not used)
                           .IONI(s_logisimNet41),
                           .IOXERR_n(s_logisimNet11),
                           .LAA_3_0(s_logisimBus92[3:0]),
@@ -650,10 +716,11 @@ module CPU_PROC_32( ACOND_n,
                           .POWFAIL_n(s_logisimNet162),
                           .PT_15_9(s_logisimBus144[6:0]),
                           .RF_1_0(s_logisimBus92[9:8]),
+                          .SEL_TESTMUX(SEL_TESTMUX),
                           .TEST_4_0(s_logisimBus103[4:0]),
                           .TRAP_n(s_logisimNet39),
                           .UCLK(s_logisimNet109),
                           .WCS_n(s_logisimNet169),
-                          .WRTRF(s_logisimNet32));
+                          .WRTRF(s_wrtrf));
 
 endmodule
