@@ -24,7 +24,7 @@ The /W (/WE) input controls the normal read and write operations, and the /G (/O
 http://www.sintran.com/library/libother/extern/AM9150.pdf
 
 */
-module Am9150 (
+module Am9150_w_clock (
     input wire clk,                 // Clock input (not part of the original Am9150, but useful for simulation)
     input wire [9:0] address,       // 10-bit address for 1024 locations
     input wire [3:0] data_in,       // 4-bit data input (D0-D3)
@@ -34,20 +34,22 @@ module Am9150 (
     input wire OUTPUT_ENABLE_n,     // Output Enable (active low)
     input wire RESET_n              // Reset (active low)
 );
+    //integer i;
 
     // Memory array
-    reg [3:0] memory_array [0:1023];
+    reg [3:0] memory_array [1023:0];
 
     // Read, write and reset operations
     always @(posedge clk) begin
 
         if (!CHIP_SELECT_n) begin
             if (!RESET_n) begin
-                // Reset operation: set all memory locations to 0
-                integer i;
-                for (i = 0; i < 1024; i = i + 1) begin
-                    memory_array[i] <= 4'b0000;
-                end
+                // Reset operation: set all memory locations to 0                
+                // Doesnt work with block-ram.. 
+                // TODO: Need to find a way to reset the block-ram
+                //for (i = 0; i < 1024; i = i + 1) begin
+                //    memory_array[i] <= 4'b0000;
+                //end
             end else if (!WRITE_ENABLE_n) begin
                 // Write operation: active when chip is selected and write enable is low
                 memory_array[address] <= data_in;
