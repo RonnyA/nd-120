@@ -1,3 +1,14 @@
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** CPU/CS/PROM                                                           **
+** PROMS                                                                 **
+** SHEET 19 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 21-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
+
+
 module CPU_CS_PROM_19( 
                        input BLCS_n,         // Set to 0 to enable the output to IDB
                        input [1:0]  RF_1_0,  // Selects which of the 4 16 bit's of the microcoe to fetch
