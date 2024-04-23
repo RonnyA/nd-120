@@ -9,12 +9,16 @@
 ***************************************************************************/
 
 module CPU_CS_16( 
+
+   input sysclk, // System clock in FPGA
+   input sys_rst_n, // System reset in FPGA
+
    // Clock signals
    input        CLK,
    input        MACLK,
 
    // Input signals
-   input [15:0] IDB_15_0,
+   input [15:0] IDB_15_0_IN,
    input [1:0]  RF_1_0,
    input [2:0]  CC_3_1_n, //note: 3-1 (not 3-0)
    input [12:0] CSA_12_0,
@@ -62,7 +66,7 @@ module CPU_CS_16(
    // Select the input data for the TCV (s_IDB_15_0_tcv_in) based on the BLCS_n signal:
    // - If BLCS_n is low, use data from the PROM (s_IDB_15_0_prom_out) for the TCV input.
    // - If BLCS_n is high, use the normal IDB data (IDB_15_0).
-   assign s_IDB_15_0_tcv_in = BLCS_n ? IDB_15_0 : s_IDB_15_0_prom_out;
+   assign s_IDB_15_0_tcv_in = BLCS_n ? IDB_15_0_IN : s_IDB_15_0_prom_out;
    
 
    /*******************************************************************************
@@ -81,8 +85,8 @@ module CPU_CS_16(
    
 
 
-   // CSBITS out from this module is always the bits from OUT from the WCS (which is also fed from the TCV)
-   assign CSBITS = s_csbits_out_wcs;
+   // CSBITS out from this module is always the bits from OUT from the WCS/TCW (WCS is also feeding the TCV)
+   assign CSBITS = s_csbits_out_wcs | s_csbits_out_tcv;
    
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
@@ -93,12 +97,15 @@ module CPU_CS_16(
                            .RF_1_0(RF_1_0[1:0]),
                            .LUA_12_0(s_LUA_12_0[12:0]),
 
-                           .IDB_15_0(s_IDB_15_0_prom_out[15:0])
+                           .IDB_15_0_OUT(s_IDB_15_0_prom_out[15:0])
                           );
 
    // CSBITS into WCS is always the CSBITS out from the TCV
 
-   CPU_CS_WCS_21_22   WCS (.CSBITS_63_0(s_csbits_out_tcv[63:0]),
+   CPU_CS_WCS_21_22   WCS (
+                           .sysclk(sysclk),
+                           .sys_rst_n(sys_rst_n),
+                           .CSBITS_63_0(s_csbits_out_tcv[63:0]),
                            .CSBITS_63_0_OUT(s_csbits_out_wcs[63:0]),
                            .ELOW_n(s_elow_n),
                            .EUPP_n(s_eupp_n),
@@ -117,7 +124,7 @@ module CPU_CS_16(
                         .CSBITS_OUT(s_csbits_out_tcv[63:0]),
                         .ECSL_n(s_ecsl_n),
                         .EW_3_0_n(s_ew_3_0_n[3:0]),
-                        .IDB_15_0(s_IDB_15_0_tcv_in[15:0]),
+                        .IDB_15_0_IN(s_IDB_15_0_tcv_in[15:0]),
                         .IDB_15_0_OUT(s_IDB_15_0_tcv_out[15:0]),
                         .WCS_n(WCS_n));
 

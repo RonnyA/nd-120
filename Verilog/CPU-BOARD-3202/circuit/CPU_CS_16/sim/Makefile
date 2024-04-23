@@ -1,6 +1,9 @@
 TOP_FILE =  CPU_CS_16
 
-SUPPRESS_FLAGS = -Wno-WIDTH -Wno-UNUSED -Wno-UNDRIVEN -Wno-PINCONNECTEMPTY -Wno-WIDTH -Wno-UNOPTFLAT -Wno-EOFNEWLINE
+# Path from obj_dir to the microcode files
+MCDIR=../../../../../Code/Microcode
+
+SUPPRESS_FLAGS = -Wno-WIDTH -Wno-UNUSED -Wno-UNDRIVEN -Wno-PINCONNECTEMPTY -Wno-WIDTH -Wno-UNOPTFLAT -Wno-EOFNEWLINE -Wno-LATCH
 #SUPPRESS_FLAGS = -Wno-WIDTH -Wno-PINCONNECTEMPTY
 
 VERILOG_ROOT = ../../../..
@@ -30,10 +33,22 @@ test_code: $(CPP_SOURCES)
 	$(VERILATOR) $(VERILATOR_FLAGS) $(TOP_3202D_COMPONENTS)
 	cd obj_dir && make -f V$(TOP_FILE).mk V$(TOP_FILE)
 
+
+# This is needed to get the miceode files in the right place so the simulation can find them. Used by CPO_CS_PROM_19.v
+microcode:	
+	rm -f AM27256_45132L.hex
+	rm -f AM27256_45133L.hex
+	ln -s $(MCDIR)/AM27256_45132L.hex AM27256_45132L.hex
+	ln -s $(MCDIR)/AM27256_45133L.hex AM27256_45133L.hex
+	
+micro_clean:
+	rm -f AM27256_45132L.hex
+	rm -f AM27256_45133L.hex
+
 clean:
 	rm -rf obj_dir
 
-run: test_code
+run: test_code microcode
 	./obj_dir/V$(TOP_FILE)
 	
 gtk: run

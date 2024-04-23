@@ -97,6 +97,15 @@ int main(int argc, char **argv)
     int errCnt = 0;
 
     // Set defaults
+    top->sys_rst_n = true; // Assert disabled
+    top->sysclk = 0;
+    top->eval();
+
+    
+#ifdef DO_TRACE        
+        m_trace->dump(sim_time);
+        sim_time += time_step; // Increment simulation time
+#endif
 
     
 
@@ -126,7 +135,7 @@ int main(int argc, char **argv)
                 
                 top->RF_1_0 = part;
 
-                
+                top->sysclk=!top->sysclk;
                 top->eval();
             
                     
@@ -137,9 +146,15 @@ int main(int argc, char **argv)
         sim_time += time_step; // Increment simulation time
 #endif
 
-
+                top->sysclk=!top->sysclk;
                 top->CLK = !top->CLK;
                 top->MACLK = top->CLK;
+                top->eval();
+#ifdef DO_TRACE        
+        m_trace->dump(sim_time);
+        sim_time += time_step; // Increment simulation time
+#endif
+
             }
         }
 
