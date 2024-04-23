@@ -1,10 +1,14 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_IDBCTL                                                   **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** CPU GATE ARRAY - CGA - DELILAH                                        **
+**                                                                       **
+** CGA/IDBCTL - IDB Control Logic                                        **
+**                                                                       **
+** PDF page 97 of 108                                                    **
+**                                                                       ** 
+** Last reviewed: 23-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
+
 
 module CGA_IDBCTL( EPCRN,
                    EPGSN,
@@ -12,7 +16,7 @@ module CGA_IDBCTL( EPCRN,
                    EPICSN,
                    EPICVN,
                    FETCHN,
-                   FIDBI_15_0,
+                   FIDBI_15_0_OUT,
                    HIGSN,
                    LA_21_10,
                    LOGSN,
@@ -51,7 +55,7 @@ module CGA_IDBCTL( EPCRN,
    /*******************************************************************************
    ** The outputs are defined here                                               **
    *******************************************************************************/
-   output [15:0] FIDBI_15_0;
+   output [15:0] FIDBI_15_0_OUT;
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -207,7 +211,7 @@ module CGA_IDBCTL( EPCRN,
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign FIDBI_15_0 = s_logisimBus60[15:0];
+   assign FIDBI_15_0_OUT = s_logisimBus60[15:0];
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
