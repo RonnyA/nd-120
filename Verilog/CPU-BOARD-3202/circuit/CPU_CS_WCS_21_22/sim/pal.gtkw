@@ -1,26 +1,31 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Sun Apr 14 15:36:04 2024
+[*] Thu Apr 18 23:26:08 2024
 [*]
 [dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_CS_WCS_21_22/sim/waveform.vcd"
-[dumpfile_mtime] "Sun Apr 14 15:34:27 2024"
-[dumpfile_size] 61830
+[dumpfile_mtime] "Thu Apr 18 23:25:49 2024"
+[dumpfile_size] 78736
 [savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_CS_WCS_21_22/sim/pal.gtkw"
-[timestart] 177
+[timestart] 0
 [size] 2548 1359
 [pos] -1 -1
-*-8.456229 38 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-7.456229 180 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
+[treeopen] TOP.CPU_CS_WCS_21_22.
 [sst_width] 214
 [signals_width] 384
 [sst_expanded] 1
-[sst_vpaned_height] 100
+[sst_vpaned_height] 603
+@200
+-** FPGA **
+@28
+TOP.sysclk
+TOP.sys_rst_n
 @200
 --- input --
 -
 @22
 TOP.CPU_CS_WCS_21_22.CSBITS_63_0[63:0]
-@23
 TOP.CSBITS_63_0_OUT[63:0]
 @200
 -LUA
@@ -46,5 +51,27 @@ TOP.CPU_CS_WCS_21_22.s_wu3_n
 TOP.CPU_CS_WCS_21_22.s_wu2_n
 TOP.CPU_CS_WCS_21_22.s_wu1_n
 TOP.CPU_CS_WCS_21_22.s_wu0_n
+@200
+-lua
+@22
+TOP.CPU_CS_WCS_21_22.CHIP_19C.A_11_0[11:0]
+@28
+TOP.CPU_CS_WCS_21_22.CHIP_19C.CE_n
+@22
+TOP.CPU_CS_WCS_21_22.CHIP_19C.D_3_0[3:0]
+@28
+TOP.CPU_CS_WCS_21_22.CHIP_19C.WE_n
+TOP.CPU_CS_WCS_21_22.CHIP_19C.clk
+@200
+-ua
+@22
+TOP.CPU_CS_WCS_21_22.CHIP_19D.A_11_0[11:0]
+@28
+TOP.CPU_CS_WCS_21_22.CHIP_19D.CE_n
+@22
+TOP.CPU_CS_WCS_21_22.CHIP_19D.D_3_0[3:0]
+@28
+TOP.CPU_CS_WCS_21_22.CHIP_19D.WE_n
+TOP.CPU_CS_WCS_21_22.CHIP_19D.clk
 [pattern_trace] 1
 [pattern_trace] 0

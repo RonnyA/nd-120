@@ -14,24 +14,28 @@
 ** Ronny Hansen                                                          **               
 ***************************************************************************/
 
-module CPU_CS_WCS_21_22( input [63:0] CSBITS_63_0,
-                         output [63:0] CSBITS_63_0_OUT,
+module CPU_CS_WCS_21_22(                         
+                        input sysclk, // System clock in FPGA
+                        input sys_rst_n, // System reset in FPGA
 
-                         input [11:0] LUA_11_0,
-                         input        ELOW_n,
-                         input        WW0_n,
-                         input        WW1_n,
-                         input        WW2_n,
-                         input        WW3_n,
-                         
-                         
-                         input [11:0] UUA_11_0,
-                         input        EUPP_n,
-                         input        WU0_n,
-                         input        WU1_n,
-                         input        WU2_n,
-                         input        WU3_n
-                        );
+                        input  [63:0] CSBITS_63_0,
+                        output [63:0] CSBITS_63_0_OUT,
+
+                        input [11:0] LUA_11_0,
+                        input        ELOW_n,
+                        input        WW0_n,
+                        input        WW1_n,
+                        input        WW2_n,
+                        input        WW3_n,
+                        
+                        
+                        input [11:0] UUA_11_0,
+                        input        EUPP_n,
+                        input        WU0_n,
+                        input        WU1_n,
+                        input        WU2_n,
+                        input        WU3_n
+                    );
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -95,162 +99,258 @@ module CPU_CS_WCS_21_22( input [63:0] CSBITS_63_0,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   IDT6168A_20   CHIP_16C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_16C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[63:60]),
                            .WE_n(s_ww3_n));
 
-   IDT6168A_20   CHIP_17C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_17C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[59:56]),
                            .WE_n(s_ww3_n));
 
-   IDT6168A_20   CHIP_18C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_18C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[55:52]),
                            .WE_n(s_ww3_n));
 
-   IDT6168A_20   CHIP_19C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_19C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[51:48]),
                            .WE_n(s_ww3_n));
 
-   IDT6168A_20   CHIP_16D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_16D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[63:60]),
                            .WE_n(s_wu3_n));
 
-   IDT6168A_20   CHIP_17D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_17D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[59:56]),
                            .WE_n(s_wu3_n));
 
-   IDT6168A_20   CHIP_18D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_18D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[55:52]),
                            .WE_n(s_wu3_n));
 
-   IDT6168A_20   CHIP_19D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_19D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[51:48]),
                            .WE_n(s_wu3_n));
 
-   IDT6168A_20   CHIP_20C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_20C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[47:44]),
                            .WE_n(s_ww2_n));
 
-   IDT6168A_20   CHIP_21C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_21C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[43:40]),
                            .WE_n(s_ww2_n));
 
-   IDT6168A_20   CHIP_22C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_22C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[39:36]),
                            .WE_n(s_ww2_n));
 
-   IDT6168A_20   CHIP_23C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_23C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[35:32]),
                            .WE_n(s_ww2_n));
 
-   IDT6168A_20   CHIP_20D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_20D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[47:44]),
                            .WE_n(s_wu2_n));
 
-   IDT6168A_20   CHIP_21D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_21D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[43:40]),
                            .WE_n(s_wu2_n));
 
-   IDT6168A_20   CHIP_22D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_22D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[39:36]),
                            .WE_n(s_wu2_n));
 
-   IDT6168A_20   CHIP_23D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_23D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[35:32]),
                            .WE_n(s_wu2_n));
 
-   IDT6168A_20   CHIP_24C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_24C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[31:28]),
                            .WE_n(s_ww1_n));
 
-   IDT6168A_20   CHIP_25C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_25C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[27:24]),
                            .WE_n(s_ww1_n));
 
-   IDT6168A_20   CHIP_26C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_26C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[23:20]),
                            .WE_n(s_ww1_n));
 
-   IDT6168A_20   CHIP_27C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_27C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[19:16]),
                            .WE_n(s_ww1_n));
 
-   IDT6168A_20   CHIP_24D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_24D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[31:28]),
                            .WE_n(s_wu1_n));
 
-   IDT6168A_20   CHIP_25D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_25D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[27:24]),
                            .WE_n(s_wu1_n));
 
-   IDT6168A_20   CHIP_26D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_26D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[23:20]),
                            .WE_n(s_wu1_n));
 
-   IDT6168A_20   CHIP_27D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_27D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[19:16]),
                            .WE_n(s_wu1_n));
 
-   IDT6168A_20   CHIP_28C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_28C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[15:12]),
                            .WE_n(s_ww0_n));
 
-   IDT6168A_20   CHIP_29C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_29C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[11:8]),
                            .WE_n(s_ww0_n));
 
-   IDT6168A_20   CHIP_30C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_30C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[7:4]),
                            .WE_n(s_ww0_n));
 
-   IDT6168A_20   CHIP_31C (.A_11_0(s_lua_address[11:0]),
+   IDT6168A_20   CHIP_31C (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_lua_address[11:0]),
                            .CE_n(s_elow_n),
                            .D_3_0(s_lua_csbits[3:0]),
                            .WE_n(s_ww0_n));
 
-   IDT6168A_20   CHIP_28D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_28D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[15:12]),
                            .WE_n(s_wu0_n));
 
-   IDT6168A_20   CHIP_29D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_29D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[11:8]),
                            .WE_n(s_wu0_n));
 
-   IDT6168A_20   CHIP_30D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_30D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[7:4]),
                            .WE_n(s_wu0_n));
 
-   IDT6168A_20   CHIP_31D (.A_11_0(s_uua_address[11:0]),
+   IDT6168A_20   CHIP_31D (
+                           .clk(sysclk),
+                           .reset_n(sys_rst_n),
+                           .A_11_0(s_uua_address[11:0]),
                            .CE_n(s_eupp_n),
                            .D_3_0(s_uua_csbits[3:0]),
                            .WE_n(s_wu0_n));

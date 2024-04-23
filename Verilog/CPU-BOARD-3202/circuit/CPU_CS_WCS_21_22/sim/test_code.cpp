@@ -72,10 +72,8 @@ int main(int argc, char **argv)
 
     int errCnt = 0;
 
-    top->EUPP_n = false; // ENABLE UUA RAM
-    top->ELOW_n = false;  // ENABLE LUA RAM
-
-    top->WU0_n = top->WU1_n = top->WU2_n = top->WU3_n = 0; // DISABLE UUA WRITE
+    
+    top->WU0_n = top->WU1_n = top->WU2_n = top->WU3_n = 1; // DISABLE UUA WRITE
     top->WW0_n = top->WW1_n = top->WW2_n = top->WW3_n = 1; // DISABLE LUA WRITE
 
     // Iterate through each test case
@@ -85,53 +83,70 @@ int main(int argc, char **argv)
     // Test code writes 32 addressed to LUA and UUA. Output values while both are selected will be from LUA
     // Then reads the contents of UUA, 32 addresses
 
-    bool read;
+    bool write_phase;
+    
+    top->sys_rst_n = true; // Assert disabled
+    top->sysclk = 0;
+    top->eval();
 
+    
+#ifdef DO_TRACE        
+        m_trace->dump(sim_time);
+        sim_time += time_step; // Increment simulation time
+#endif
 
-    for (int x=0;x<2;x++)
+    for (int x=0;x<3;x++)
     {
+        write_phase = (x==0);
 
-        if (x==1)
+        if (write_phase) // Write phase
         {
-                top->EUPP_n = false; // ENABLE UUA RAM
-                top->ELOW_n = true;  // DISABLE  LUA RAM
+            top->EUPP_n = false; // ENABLE UUA RAM
+            top->ELOW_n = false;  // ENABLE LUA RAM
         }
-    for(int i=0;i<32;i++)
-    {
-        top->WU0_n = top->WU1_n = top->WU2_n = top->WU3_n = 1; // DISABLE UUA WRITE
-        top->WW0_n = top->WW1_n = top->WW2_n = top->WW3_n = 1; // DISABLE LUA WRITE
-        
-        top->UUA_11_0 = i;
-        top->LUA_11_0 = i;
-
-        for (int j=0; j<3; j++)
+        else
         {
-            read = !(j==1);
-            if (x==1) read = true;
+            top->EUPP_n = false; // ENABLE UUA RAM
+            top->ELOW_n = true;  // DISABLE  LUA RAM
+        }
 
-            top->CSBITS_63_0 =0;
+
+        for(int i=0;i<32;i++)
+        {
+            top->WU0_n = top->WU1_n = top->WU2_n = top->WU3_n = 1; // DISABLE UUA WRITE
+            top->WW0_n = top->WW1_n = top->WW2_n = top->WW3_n = 1; // DISABLE LUA WRITE
             
-            for (int part = 0;part<4;part++)
-            {
-                top->WW0_n = top->WW1_n = top->WW2_n = top->WW3_n = 1; // DISABLE LUA WRITE
-                top->WU0_n = top->WU1_n = top->WU2_n = top->WU3_n = 1; // DISABLE UUA WRITE
+            top->UUA_11_0 = i;
+            top->LUA_11_0 = i;
 
-                if (!read)
+            for (int j=0; j<3; j++)
+            {                
+
+                top->CSBITS_63_0 =0;
+                
+                for (int part = 0; part<4; part++)
                 {
-                    top->CSBITS_63_0 = (uint64_t)0xDEADBEAF & 0xFFFFFF00; 
-                    top->CSBITS_63_0 |=i;
+                    top->WW0_n = top->WW1_n = top->WW2_n = top->WW3_n = 1; // DISABLE LUA WRITE
+                    top->WU0_n = top->WU1_n = top->WU2_n = top->WU3_n = 1; // DISABLE UUA WRITE
 
-                    if (part == 0) top->WW0_n = 0;
-                    if (part == 1) top->WW1_n = 0;
-                    if (part == 2) top->WW2_n = 0;
-                    if (part == 3) top->WW3_n = 0;                    
+                    if (write_phase)
+                    {
+                        top->CSBITS_63_0 = (uint64_t)0xCAFEABBADEADBEAF & 0xFFFFFFFFFFFFFF00; 
+                        top->CSBITS_63_0 |=i;
 
-                    if (part == 0) top->WU0_n = 0;
-                    if (part == 1) top->WU1_n = 0;
-                    if (part == 2) top->WU2_n = 0;
-                    if (part == 3) top->WU3_n = 0;                    
+                        if (part == 0) top->WW0_n = 0;
+                        if (part == 1) top->WW1_n = 0;
+                        if (part == 2) top->WW2_n = 0;
+                        if (part == 3) top->WW3_n = 0;                    
 
-                }
+                        if (part == 0) top->WU0_n = 0;
+                        if (part == 1) top->WU1_n = 0;
+                        if (part == 2) top->WU2_n = 0;
+                        if (part == 3) top->WU3_n = 0;                    
+
+                    }
+
+                    top->sysclk  = !top->sysclk;
                 
 
         
@@ -145,6 +160,17 @@ int main(int argc, char **argv)
         m_trace->dump(sim_time);
         sim_time += time_step; // Increment simulation time
 #endif
+
+        top->sysclk  = !top->sysclk;
+        top->eval();
+
+#ifdef DO_TRACE        
+        m_trace->dump(sim_time);
+        sim_time += time_step; // Increment simulation time
+#endif
+
+
+
             }
         }
     }
