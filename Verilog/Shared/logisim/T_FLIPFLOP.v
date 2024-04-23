@@ -72,7 +72,8 @@ module T_FLIPFLOP( clock,
    /*******************************************************************************
    ** Here the actual state register is defined                                  **
    *******************************************************************************/
-   always @(posedge reset or posedge preset or posedge s_clock)
+   //always @(posedge reset or posedge preset or posedge s_clock) //Vivado doesnt like ASYNC RESET )
+   always @(posedge s_clock) //Vivado doesnt like ASYNC RESET )
    begin
       if (reset) s_currentState <= 1'b0;
       else if (preset) s_currentState <= 1'b1;

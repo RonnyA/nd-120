@@ -72,6 +72,7 @@ module D_FLIPFLOP( clock,
    /*******************************************************************************
    ** Here the actual state register is defined                                  **
    *******************************************************************************/
+   /* ASYNC RESET NOT REALLY WORKING IN FPGA
    always @(posedge reset or posedge preset or posedge s_clock)
    begin
       if (reset) 
@@ -79,6 +80,17 @@ module D_FLIPFLOP( clock,
       else if (preset)
          s_currentState <= 1'b1;
       else if (tick) 
+         s_currentState <= s_nextState;
+   end
+   */
+
+   always @(posedge s_clock)
+   begin
+      if (reset)
+         s_currentState <= 1'b0;
+      else if (preset)
+         s_currentState <= 1'b1;
+      else if (tick)
          s_currentState <= s_nextState;
    end
 

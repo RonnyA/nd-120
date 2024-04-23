@@ -31,7 +31,8 @@ module J_K_FLIPFLOP(
     wire s_nextState = (~s_currentState & j) | (s_currentState & ~k);
 
     // State update logic
-    always @(posedge reset or posedge preset or posedge s_clock) begin
+    //always @(posedge reset or posedge preset or posedge s_clock) begin (Vivado doesnt like ASYNC RESET )
+    always @(posedge s_clock ) begin
         if (reset)
             s_currentState <= 1'b0;
         else if (preset)
