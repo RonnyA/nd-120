@@ -1,10 +1,14 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_DCD                                                      **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** CPU GATE ARRAY - CGA - DELILAH                                        **
+**                                                                       **
+** CGA/DCD - Decoder
+**                                                                       **
+** Sheet 1-10 of 10                                                      **
+** PDF page 65-73 of 108                                                 **
+**                                                                       ** 
+** Last reviewed: 23-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
 module CGA_DCD( BRKN,
                 CBRKN,
@@ -25,7 +29,7 @@ module CGA_DCD( BRKN,
                 ERFN,
                 F15,
                 FETCHN,
-                FIDBO5,
+                FIDBO,
                 ILCSN,
                 INDN,
                 INTRQN,
@@ -57,7 +61,7 @@ module CGA_DCD( BRKN,
    input [4:0] CSIDBS_4_0;
    input [1:0] CSMIS_1_0;
    input       F15;
-   input       FIDBO5;
+   input       FIDBO;
    input       ILCSN;
    input       INTRQN;
    input       LSHADOW;
@@ -176,7 +180,7 @@ module CGA_DCD( BRKN,
    wire       s_logisimNet152;
    wire       s_logisimNet153;
    wire       s_logisimNet154;
-   wire       s_logisimNet155;
+   wire       s_fidbo;
    wire       s_logisimNet156;
    wire       s_logisimNet157;
    wire       s_logisimNet158;
@@ -385,7 +389,7 @@ module CGA_DCD( BRKN,
    assign s_logisimNet123      = MCLK;
    assign s_logisimNet143      = WPN;
    assign s_logisimNet153      = MRN;
-   assign s_logisimNet155      = FIDBO5;
+   assign s_fidbo              = FIDBO;
    assign s_logisimNet163      = CRY;
    assign s_logisimNet178      = F15;
    assign s_logisimNet220      = BRKN;
@@ -1464,7 +1468,7 @@ module CGA_DCD( BRKN,
                   .Z7(s_logisimNet261));
 
    SCAN_WITH_RESET_N   FD25 (.CLK(s_logisimNet123),
-                             .D(s_logisimNet155),
+                             .D(s_fidbo),
                              .Q(s_logisimNet16),
                              .QN(),
                              .R(s_logisimNet153),
