@@ -4,7 +4,7 @@
 ** CGA/DCD - Decoder
 **                                                                       **
 ** Sheet 1-10 of 10                                                      **
-** PDF page 65-73 of 108                                                 **
+** PDF page 65-73+75 of 108                                              **
 **                                                                       ** 
 ** Last reviewed: 23-APRIL-2024                                          **
 ** Ronny Hansen                                                          **               
