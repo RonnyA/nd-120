@@ -1,62 +1,56 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : IO_PANCAL_40                                                 **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** IO/PANCAL                                                             **
+** PANEL PROC & CALENDAR                                                 **
+** SHEET 40 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 21-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module IO_PANCAL_40( CLEAR_n,
-                     DP_5_1_n,
-                     EMP_n,
-                     EPANS,
-                     FUL_n,
-                     IDB_15_0,
-                     IONI,
-                     LEV0,
-                     LHIT,
-                     PANOSC,
-                     PA_7_0,
-                     PCR_1_0,
-                     PONI,
-                     RMM_n,
-                     STAT_4_3,
-                     VAL );
+// Statis: Module not working.
+// TODO: Implement logic for the MC68705 - 6805 Embedded CPU and the MM58274  - Real Time Clock
+
+module IO_PANCAL_40(
+   // Input signals
+   input       CLEAR_n,
+   input       EMP_n,
+   input       EPANS,
+   input       FUL_n,
+   input       IONI,
+   input       LEV0,
+   input       LHIT,
+   input       PANOSC,
+   input [7:0] PA_7_0,
+   input [1:0] PCR_1_0,
+   input       PONI,
+   input       VAL,
+
+   // Output and Input signals
+   input  [15:0] IDB_15_0_IN,
+   output [15:0] IDB_15_0_OUT,
+
+   // Output signals
+   output [4:0]  DP_5_1_n,  
+   output        RMM_n,
+   output [1:0]  STAT_4_3               
+);
 
    /*******************************************************************************
    ** The inputs are defined here                                                **
    *******************************************************************************/
-   input       CLEAR_n;
-   input       EMP_n;
-   input       EPANS;
-   input       FUL_n;
-   input       IONI;
-   input       LEV0;
-   input       LHIT;
-   input       PANOSC;
-   input [7:0] PA_7_0;
-   input [1:0] PCR_1_0;
-   input       PONI;
-   input       VAL;
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output [4:0]  DP_5_1_n;
-   output [15:0] IDB_15_0;
-   output        RMM_n;
-   output [1:0]  STAT_4_3;
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [4:0]  s_logisimBus19;
+   wire [4:0]  s_dp_5_1_n;
    wire [4:0]  s_logisimBus2;
    wire [3:0]  s_logisimBus20;
-   wire [1:0]  s_logisimBus3;
-   wire [1:0]  s_logisimBus30;
-   wire [15:0] s_IDB_15_0;
-   wire [7:0]  s_logisimBus50;
+   wire [1:0]  s_stat_4_3;
+   wire [1:0]  s_pcr_1_0;
+   wire [15:0] s_IDB_15_0_out;
+   wire [7:0]  s_pa_7_0;
    wire        s_logisimNet0;
    wire        s_logisimNet1;
    wire        s_logisimNet11;
@@ -90,15 +84,17 @@ module IO_PANCAL_40( CLEAR_n,
    wire        s_logisimNet41;
    wire        s_logisimNet42;
    wire        s_logisimNet43;
-   wire        s_logisimNet44;
+   wire        s_ck;
    wire        s_logisimNet45;
    wire        s_EPANS;
-   wire        s_logisimNet49;
+   wire        s_rmm_n;
    wire        s_logisimNet5;
    wire        s_logisimNet6;
    wire        s_logisimNet7;
    wire        s_logisimNet8;
    wire        s_logisimNet9;
+
+   wire [7:0] s_IDB_7_0_chip32_out;
 
    /*******************************************************************************
    ** The module functionality is described here                                 **
@@ -107,8 +103,8 @@ module IO_PANCAL_40( CLEAR_n,
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus30[1:0] = PCR_1_0;
-   assign s_logisimBus50[7:0] = PA_7_0;
+   assign s_pcr_1_0[1:0]      = PCR_1_0;
+   assign s_pa_7_0[7:0]       = PA_7_0;
    assign s_logisimNet29      = FUL_n;
    assign s_logisimNet39      = CLEAR_n;
    assign s_logisimNet4       = PONI;
@@ -123,10 +119,10 @@ module IO_PANCAL_40( CLEAR_n,
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign DP_5_1_n = s_logisimBus19[4:0];
-   assign IDB_15_0 = s_IDB_15_0[15:0];
-   assign RMM_n    = s_logisimNet49;
-   assign STAT_4_3 = s_logisimBus3[1:0];
+   assign DP_5_1_n         = s_dp_5_1_n[4:0];
+   assign IDB_15_0_OUT     = s_IDB_15_0_out[15:0];
+   assign RMM_n            = s_rmm_n;
+   assign STAT_4_3         = s_stat_4_3[1:0];
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
@@ -137,7 +133,7 @@ module IO_PANCAL_40( CLEAR_n,
 
 
    // NOT Gate
-   assign s_logisimBus19 = ~s_logisimBus2;
+   assign s_dp_5_1_n = ~s_logisimBus2;
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
@@ -145,20 +141,20 @@ module IO_PANCAL_40( CLEAR_n,
 
 
    // TTL_74244 CHIP_33B (simplified..)
-   assign s_IDB_15_0[15:8] = s_EPANS  ? 8'bz : {s_logisimNet1,s_logisimNet29,s_logisimNet0,s_logisimNet45,s_logisimBus20[3:1]};
+   assign s_IDB_15_0_out[15:8] = s_EPANS  ? 8'bz : {s_logisimNet1,s_logisimNet29,s_logisimNet0,s_logisimNet45,s_logisimBus20[3:1]};
 
    
 // TTL_74374 CHIP_32B 
    TTL_74374   CHIP_32B(
-                          .CK(s_logisimNet44),
+                          .CK(s_ck),
                           .OE_n(s_EPANS),
-                          .D(s_logisimBus50[7:0]),
-                          .Q(s_IDB_15_0[7:0])
+                          .D(s_pa_7_0[7:0]),
+                          .Q(s_IDB_7_0_chip32_out[7:0])
                        );
 
 // TODO:
 //  ADD  - MM58274  - Real Time Clock
 // ADD - MC68705 - 6805 Embedded CPU
 
-
+   assign IDB_15_0_OUT = 16'bz;  //TODO: or in s_IDB_7_0_chip32_out[7:0] 
 endmodule

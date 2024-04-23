@@ -1,187 +1,131 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : IO_37                                                        **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** IO                                                                    **
+** IO TOP LEVEL                                                          **
+** SHEET 37 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 21-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module IO_37( BDRY50_n,
-              BINT10_n,
-              BINT12_n,
-              BINT13_n,
-              BRK_n,
-              CA10,
-              CCLR_n,
-              CLEAR_n,
-              CLK,
-              CONSOLE_n,
-              CSCOMM_4_0,
-              CSIDBS_4_0,
-              CSMIS_1_0,
-              CX_n,
-              DAP_n,
-              DP_5_1_n,
-              DT_n,
-              DVACC_n,
-              EAUTO_n,
-              ECREQ,
-              ECSR_n,
-              EDO_n,
-              EMCL_n,
-              EMPID_n,
-              EORF_n,
-              ESTOF_n,
-              FETCH,
-              FMISS,
-              FORM_n,
-              HIT,
-              I1P,
-              ICONTIN_n,
-              IDB_15_8,
-              IDB_7_0_io,
-              ILOAD_n,
-              INR_7_0,
-              IONI,
-              IORQ_n,
-              ISTOP_n,
-              LCS_n,
-              LEV0,
-              LOCK_n,
-              LSHADOW,
-              MCL,
-              MREQ_n,
-              OC_1_0,
-              OPCLCS,
-              OSC,
-              OSCCL_n,
-              PAN_n,
-              PA_n,
-              PCR_1_0,
-              PONI,
-              POWFAIL_n,
-              POWSENSE_n,
-              PS_n,
-              REFRQ_n,
-              REF_n,
-              RT_n,
-              RWCS_n,
-              RXD,
-              SEL5MS_n,
-              SHORT_n,
-              SLOW_n,
-              SSEMA_n,
-              STOC_n,
-              STP,
-              SWMCL_n,
-              TOUT,
-              TXD,
-              UCLK,
-              WCHIM_n,
-              WRITE,
-              XTAL1,
-              XTAL2,
-              XTR,
-              LED  // 0=RED,1=GREEN
-              );
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input       BDRY50_n;
-   input       BRK_n;
-   input       CLK;
-   input [4:0] CSCOMM_4_0;
-   input [4:0] CSIDBS_4_0;
-   input [1:0] CSMIS_1_0;
-   input       CX_n;
-   input       DAP_n;
-   input       EAUTO_n;
-   input       EORF_n;
-   input       HIT;
-   input       I1P;
-   input       ICONTIN_n;
-   input       ILOAD_n;
-   input [7:0] INR_7_0;
-   input       IONI;
-   input       ISTOP_n;
-   input       LCS_n;
-   input       LEV0;
-   input       LOCK_n;
-   input       LSHADOW;
-   input [1:0] OC_1_0;
-   input       OPCLCS;
-   input       OSCCL_n;
-   input [1:0] PCR_1_0;
-   input       PONI;
-   input       POWSENSE_n;
-   input       REF_n;
-   input       RXD;
-   input       SEL5MS_n;
-   input       SWMCL_n;
-   input       UCLK;
-   input       XTAL1;
-   input       XTAL2;
-   input       XTR;
+module IO_37( 
+
+   input sysclk,      // System clock in FPGA
+   input sys_rst_n,   // System reset in FPGA
+
+   input [4:0] BAUD_RATE_SWITCH,
+   input       BDRY50_n,
+   input       BRK_n,
+   input       CLK,
+   input [4:0] CSCOMM_4_0,
+   input [4:0] CSIDBS_4_0,
+   input [1:0] CSMIS_1_0,
+   input       CX_n,
+   input       DAP_n,
+   input       EAUTO_n,
+   input       EORF_n,
+   input       HIT,
+   input       I1P,
+   input       ICONTIN_n,
+   input       ILOAD_n,
+   input [7:0] INR_7_0,
+   input       IONI,
+   input       ISTOP_n,
+   input       LCS_n,
+   input       LEV0,
+   input       LOCK_n,
+   input       LSHADOW,
+   input [1:0] OC_1_0,
+   input       OPCLCS,
+   input       OSCCL_n,
+   input [1:0] PCR_1_0,
+   input       PONI,
+   input       POWSENSE_n,
+   input       REF_n,
+   input       RXD,
+   input       SEL5MS_n,
+   input       SWMCL_n,
+   input       UCLK,
+   input       XTAL1,
+   input       XTAL2,
+   input       XTR,
+
+   // Input and Output signals
+   input  [15:0] IDB_15_0_IN,
+   output [15:0] IDB_15_0_OUT,
+   
+
+
 
    /*******************************************************************************
    ** The outputs are defined here                                               **
    *******************************************************************************/
-   output       BINT10_n;
-   output       BINT12_n;
-   output       BINT13_n;
-   output       CA10;
-   output       CCLR_n;
-   output       CLEAR_n;
-   output       CONSOLE_n;
-   output [4:0] DP_5_1_n;
-   output       DT_n;
-   output       DVACC_n;
-   output       ECREQ;
-   output       ECSR_n;
-   output       EDO_n;
-   output       EMCL_n;
-   output       EMPID_n;
-   output       ESTOF_n;
-   output       FETCH;
-   output       FMISS;
-   output       FORM_n;
-   output [7:0] IDB_15_8;
-   output [7:0] IDB_7_0_io;
-   output       IORQ_n;
-   output       MCL;
-   output       MREQ_n;
-   output       OSC;
-   output       PAN_n;
-   output       PA_n;
-   output       POWFAIL_n;
-   output       PS_n;
-   output       REFRQ_n;
-   output       RT_n;
-   output       RWCS_n;
-   output       SHORT_n;
-   output       SLOW_n;
-   output       SSEMA_n;
-   output       STOC_n;
-   output       STP;
-   output       TOUT;
-   output       TXD;
-   output       WCHIM_n;
-   output       WRITE;
-   output [1:0] LED;
+   output       BINT10_n,
+   output       BINT12_n,
+   output       BINT13_n,
+   output       CA10,
+   output       CCLR_n,
+   output       CLEAR_n,
+   output       CONSOLE_n,
+   output [4:0] DP_5_1_n,
+   output       DT_n,
+   output       DVACC_n,
+   output       ECREQ,
+   output       ECSR_n,
+   output       EDO_n,
+   output       EMCL_n,
+   output       EMPID_n,
+   output       ESTOF_n,
+   output       FETCH,
+   output       FMISS,
+   output       FORM_n,
+   output       IORQ_n,
+   output       MCL,
+   output       MREQ_n,
+   output       OSC,
+   output       PAN_n,
+   output       PA_n,
+   output       POWFAIL_n,
+   output       PS_n,
+   output       REFRQ_n,
+   output       RT_n,
+   output       RWCS_n,
+   output       SHORT_n,
+   output       SLOW_n,
+   output       SSEMA_n,
+   output       STOC_n,
+   output       STP,
+   output       TOUT,
+   output       TXD,
+   output       WCHIM_n,
+   output       WRITE,
+   output [1:0] IOLED // 0=RED,1=GREEN
+);
+
+   /*******************************************************************************
+   ** The inputs are defined here                                                **
+   *******************************************************************************/
+
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [15:0] s_logisimBus22;
+   wire [15:0] s_idb_15_0_uart_out;
+   wire [15:0] s_idb_15_0_pancal_out;
+   wire [15:0] s_idb_15_0_reg_out;
+
+   wire [15:0] s_idb_15_0_in;
+
+
    wire [7:0]  s_logisimBus27;
-   wire [15:0] s_logisimBus32;
+   
    wire [7:0]  s_logisimBus36;
    wire [1:0]  s_logisimBus46;
    wire [1:0]  s_logisimBus48;
    wire [4:0]  s_logisimBus53;
    wire [4:0]  s_logisimBus54;
-   wire [15:0] s_logisimBus57;
+
    wire [4:0]  s_logisimBus66;
    wire [1:0]  s_logisimBus68;
    wire [1:0]  s_logisimBus92;
@@ -259,7 +203,7 @@ module IO_37( BDRY50_n,
    wire        s_logisimNet86;
    wire        s_logisimNet87;
    wire        s_logisimNet88;
-   wire        s_logisimNet89;
+   wire        s_txd;
    wire        s_logisimNet9;
    wire        s_logisimNet90;
    wire        s_logisimNet91;
@@ -269,6 +213,7 @@ module IO_37( BDRY50_n,
    wire        s_logisimNet97;
    wire        s_logisimNet98;
    wire        s_logisimNet99;
+   wire  [3:0] s_idb_3_0_dcd_out; // output from DGA module (submodule dga_pow)
 
    /*******************************************************************************
    ** The module functionality is described here                                 **
@@ -335,8 +280,9 @@ module IO_37( BDRY50_n,
    assign FETCH      = s_logisimNet60;
    assign FMISS      = s_logisimNet82;
    assign FORM_n     = s_logisimNet42;
-   assign IDB_15_8   = s_logisimBus32[15:8];
-   assign IDB_7_0_io = s_logisimBus32[7:0];
+   
+   assign IDB_15_0_OUT   = s_idb_15_0_uart_out[15:0] | s_idb_15_0_pancal_out[15:0] | s_idb_15_0_reg_out[7:0];
+
    assign IORQ_n     = s_logisimNet24;
    assign MCL        = s_logisimNet50;
    assign MREQ_n     = s_logisimNet83;
@@ -354,7 +300,7 @@ module IO_37( BDRY50_n,
    assign STOC_n     = s_logisimNet39;
    assign STP        = s_logisimNet72;
    assign TOUT       = s_logisimNet61;
-   assign TXD        = s_logisimNet89;
+   assign TXD        = s_txd;
    assign WCHIM_n    = s_logisimNet99;
    assign WRITE      = s_logisimNet13;
 
@@ -362,6 +308,7 @@ module IO_37( BDRY50_n,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+   /*
    IO_REG_41   REG_MODULE (.BINT10_n(s_logisimNet80),
                            .BINT12_n(s_logisimNet21),
                            .BINT13_n(s_logisimNet81),
@@ -370,21 +317,22 @@ module IO_37( BDRY50_n,
                            .CX_n(s_logisimNet67),
                            .DA_n(s_logisimNet4),
                            .EMCL_n(s_logisimNet14),
-                           .IDB_15_0(s_logisimBus57[15:0]),
-                           .IDB_7_0_io(s_logisimBus27[7:0]),
+                           .IDB_15_0_IN(s_idb_15_0_in[15:0]),
+                           .IDB_15_0_OUT(s_idb_15_0_reg_out[15:0]),
                            .INR_7_0(s_logisimBus95[7:0]),
                            .RINR_n(s_logisimNet3),
                            .SIOC_n(s_logisimNet16),
                            .TBMT_n(s_logisimNet20),
                            .TRAALD_n(s_logisimNet10),
-                           .LED(LED[1:0]));
+                           .IOLED(IOLED[1:0]));
 
    IO_PANCAL_40   PANCAL (.CLEAR_n(s_logisimNet78),
                           .DP_5_1_n(s_logisimBus54[4:0]),
                           .EMP_n(s_logisimNet64),
                           .EPANS(s_logisimNet35),
                           .FUL_n(s_logisimNet85),
-                          .IDB_15_0(s_logisimBus32[15:0]),
+                          .IDB_15_0_IN(s_idb_15_0_in[15:0]),
+                          .IDB_15_0_OUT(s_idb_15_0_pancal_out[15:0]),
                           .IONI(s_logisimNet28),
                           .LEV0(s_logisimNet51),
                           .LHIT(s_logisimNet59),
@@ -396,14 +344,17 @@ module IO_37( BDRY50_n,
                           .STAT_4_3(s_logisimBus48[1:0]),
                           .VAL(s_logisimNet86));
 
-   IO_UART_42   UART (.CEUART_n(s_logisimNet30),
+   IO_UART_42   UART (
+                      .BAUD_RATE_SWITCH(BAUD_RATE_SWITCH),
+                      .CEUART_n(s_logisimNet30),
                       .CLK(s_logisimNet97),
                       .CONSOLE_n(s_logisimNet8),
                       .DA_n(s_logisimNet4),
                       .EAUTO_n(s_logisimNet12),
                       .EIOR_n(s_logisimNet19),
                       .I1P(s_logisimNet31),
-                      .IDB_15_0_io(s_logisimBus22[15:0]),
+                      .IDB_15_0_IN(s_idb_15_0_in[15:0]),
+                      .IDB_15_0_OUT(s_idb_15_0_uart_out[15:0]),
                       .LCS_n(s_logisimNet33),
                       .LOCK_n(s_logisimNet69),
                       .MIS_1_0(s_logisimBus92[1:0]),
@@ -413,10 +364,10 @@ module IO_37( BDRY50_n,
                       .RUART_n(s_logisimNet47),
                       .RXD(s_logisimNet88),
                       .TBMT_n(s_logisimNet20),
-                      .TXD(s_logisimNet89),
+                      .TXD(s_txd),
                       .XTR(s_logisimNet96));
 
-
+*/
    wire s_EPAN_n; // not used output signal
 
 
@@ -449,8 +400,9 @@ module IO_37( BDRY50_n,
                     .FUL_n(s_logisimNet85),
                     .HIT(s_logisimNet63),
                     .ICONTIN_n(s_logisimNet77),
-                    .IDB_3_0_io(s_logisimBus32[3:0]),
-                    .IDB_7_4(s_logisimBus32[7:4]),
+                    .IDB_7_0_IN(s_idb_15_0_in[7:0]),
+                    .IDB_3_0_OUT(s_idb_3_0_dcd_out[3:0]), // TODO: connect
+                    
                     .ILOAD_n(s_logisimNet45),
                     .IORQ_n(s_logisimNet24),
                     .ISTOP_n(s_logisimNet71),
