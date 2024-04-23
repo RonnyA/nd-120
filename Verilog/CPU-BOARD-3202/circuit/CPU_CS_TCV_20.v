@@ -9,12 +9,14 @@
 ***************************************************************************/
 
 module CPU_CS_TCV_20(
-                      input [63:0] CSBITS,
+                      input  [63:0] CSBITS,
                       output [63:0] CSBITS_OUT,
-                      input [15:0] IDB_15_0,
+
+                      input  [15:0] IDB_15_0_IN,
                       output [15:0] IDB_15_0_OUT,
-                      input ECSL_n,
-                      input WCS_n,
+
+                      input         ECSL_n,
+                      input         WCS_n,
                       input [3:0]   EW_3_0_n // output enable signals                                      
                       );
 
@@ -23,36 +25,69 @@ module CPU_CS_TCV_20(
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [15:0] s_csbits_15_0;
-   wire [15:0] s_csbits_31_16;
-   wire [15:0] s_csbits_47_32;
-   wire [15:0] s_csbits_63_48;
+   reg [63:0] regCSBITS;
+   reg [15:0] regIDB;
 
-   wire [15:0] s_idb_15_0_out;
+   reg [2:0] selector;
 
+   // WCS_n decides is its DIR-ection of the data from CSBITS => IDB or CSBITS <= IDB
 
-   // WCS_n decices is its DIR-ection of the data from CSBITS => IDB or CSBITS <= IDB
+   
+   always @(*) begin
+      
+      if (EW_3_0_n[0] == 0) begin         
+         selector = 1;
+      end else if (EW_3_0_n[1] == 0) begin         
+         selector = 2;
+      end else if (EW_3_0_n[2] == 0) begin         
+         selector = 3;
+      end else if (EW_3_0_n[3] == 0) begin         
+         selector = 4;
+      end else begin        
+         selector = 0;
+      end         
+   
 
-   // IDB IN
+      if (!WCS_n) begin
+         // Write to CSBITS from IDB               
+         case (selector)
+            1: regCSBITS[15:0]  = IDB_15_0_IN;
+            2: regCSBITS[31:16] = IDB_15_0_IN;
+            3: regCSBITS[47:32] = IDB_15_0_IN;
+            4: regCSBITS[63:48] = IDB_15_0_IN;
+         endcase
+
+      end else begin
+         // Write to IDB from CSBITS         
+
+         case (selector)
+            1: regIDB = CSBITS[15:0];
+            2: regIDB = CSBITS[31:16];
+            3: regIDB = CSBITS[47:32];
+            4: regIDB = CSBITS[63:48];            
+         endcase
+      end
+   end
+
 
    // Write to CSBITS from IDB
-   assign s_csbits_15_0  = (WCS_n & !EW_3_0_n[0]) ? IDB_15_0 : CSBITS[15:0];
-   assign s_csbits_31_16 = (WCS_n & !EW_3_0_n[1]) ? IDB_15_0 : CSBITS[31:16];
-   assign s_csbits_47_32 = (WCS_n & !EW_3_0_n[2]) ? IDB_15_0 : CSBITS[47:32]; 
-   assign s_csbits_63_48 = (WCS_n & !EW_3_0_n[3]) ? IDB_15_0 : CSBITS[63:48];
-
-   assign CSBITS_OUT = {s_csbits_63_48, s_csbits_47_32, s_csbits_31_16, s_csbits_15_0};
-
-   // Write to IDB from CSBITS
-   assign s_idb_15_0_out = EW_3_0_n[0] ? 16'bz : CSBITS[15:0];   
-   assign s_idb_15_0_out = EW_3_0_n[1] ? 16'bz : CSBITS[31:16];   
-   assign s_idb_15_0_out = EW_3_0_n[2] ? 16'bz : CSBITS[47:32];
-   assign s_idb_15_0_out = EW_3_0_n[3] ? 16'bz : CSBITS[63:48];
-
-   // ECSL_n decides if the data should be enabled out on the IDB bus   
-   assign IDB_15_0_OUT = ECSL_n ? 16'bz : s_idb_15_0_out;   
+   //assign s_csbits_15_0  = (!WCS_n & !EW_3_0_n[0]) ? IDB_15_0_IN : CSBITS[15:0];
+   //assign s_csbits_31_16 = (!WCS_n & !EW_3_0_n[1]) ? IDB_15_0_IN : CSBITS[31:16];
+   //assign s_csbits_47_32 = (!WCS_n & !EW_3_0_n[2]) ? IDB_15_0_IN : CSBITS[47:32]; 
+   //assign s_csbits_63_48 = (!WCS_n & !EW_3_0_n[3]) ? IDB_15_0_IN : CSBITS[63:48];
 
    
 
+   // Write to IDB from CSBITS
+   //assign regidb = EW_3_0_n[0] ? 16'bz : CSBITS[15:0];   
+   //assign regidb = EW_3_0_n[1] ? 16'bz : CSBITS[31:16];   
+   //assign regidb = EW_3_0_n[2] ? 16'bz : CSBITS[47:32];
+   //assign regidb = EW_3_0_n[3] ? 16'bz : CSBITS[63:48];
+ 
+
+
+   // ECSL_n decides if the data should be enabled out on the IDB bus   
+   assign IDB_15_0_OUT = (ECSL_n & !WCS_n) ? 16'bz : regIDB[15:0];   
+   assign CSBITS_OUT = regCSBITS;
 
 endmodule

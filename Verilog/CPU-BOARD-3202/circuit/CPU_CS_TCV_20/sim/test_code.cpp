@@ -19,7 +19,7 @@ struct TestCase {
    ** The inputs are defined here                                                **
    *******************************************************************************/
     uint64_t    CSBITS;
-    uint16_t    IDB_15_0;
+    uint16_t    IDB_15_0_IN;
     bool        ECSL_n;
     bool        WCS_n;
     uint8_t     EW_3_0_n; // output enable signals        
@@ -86,8 +86,17 @@ int main(int argc, char **argv)
             for (int b=0;b<4;b++)    
             {
                 top->EW_3_0_n = 0xF & ~(1<<b);
-                top->CSBITS = 0xFACECAFEDEADBEEF;
-                top->IDB_15_0 = j;
+                //top->CSBITS = 0xFACECAFEDEADBEEF;
+
+                top->CSBITS = 0;
+
+                
+                top->CSBITS |= 0x1111; 
+                top->CSBITS |= 0x2222L<<16L;
+                top->CSBITS |= 0x3333L<<32L;
+                top->CSBITS |= 0x4444L<<48L;
+
+                top->IDB_15_0_IN = j;
                 
 
         top->eval();
