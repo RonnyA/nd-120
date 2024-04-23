@@ -36,6 +36,10 @@ microcode:
 	ln -s $(MCDIR)/AM27256_45132L.hex AM27256_45132L.hex
 	ln -s $(MCDIR)/AM27256_45133L.hex AM27256_45133L.hex
 	
+micro_clean:
+	rm -f AM27256_45132L.hex
+	rm -f AM27256_45133L.hex
+
 
 test_code: $(CPP_SOURCES)
 	$(VERILATOR) $(VERILATOR_FLAGS) $(TOP_3202D_COMPONENTS)
