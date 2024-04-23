@@ -1,0 +1,86 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Mon Apr 22 10:09:00 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_MMU_24/sim/waveform.vcd"
+[dumpfile_mtime] "Mon Apr 22 10:03:22 2024"
+[dumpfile_size] 38356
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_MMU_24/sim/pal.gtkw"
+[timestart] 0
+[size] 1702 1113
+[pos] 5023 2550
+*-4.456229 11 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.CPU_MMU_24.
+[sst_width] 312
+[signals_width] 511
+[sst_expanded] 1
+[sst_vpaned_height] 574
+@200
+-clock
+--- input --
+@28
+TOP.CPU_MMU_24.CACHE.BRK_n
+@22
+TOP.CPU_MMU_24.CACHE.CA_10_0[10:0]
+@28
+TOP.CPU_MMU_24.CC2_n
+TOP.CPU_MMU_24.CCLR_n
+TOP.CPU_MMU_24.CUP
+TOP.CPU_MMU_24.CWR
+TOP.CPU_MMU_24.CYD
+TOP.CPU_MMU_24.DOUBLE
+TOP.CPU_MMU_24.DT_n
+TOP.CPU_MMU_24.DVACC_n
+TOP.CPU_MMU_24.ECSR_n
+TOP.CPU_MMU_24.EDO_n
+TOP.CPU_MMU_24.EMCL_n
+TOP.CPU_MMU_24.EMPID_n
+TOP.CPU_MMU_24.EORF_n
+TOP.CPU_MMU_24.ESTOF_n
+TOP.CPU_MMU_24.FMISS
+@22
+TOP.CPU_MMU_24.LA_20_10[10:0]
+@28
+TOP.CPU_MMU_24.LCS_n
+TOP.CPU_MMU_24.LSHADOW
+TOP.CPU_MMU_24.PD2
+TOP.CPU_MMU_24.RT_n
+TOP.CPU_MMU_24.STP
+TOP.CPU_MMU_24.SW1_CONSOLE
+TOP.CPU_MMU_24.UCLK
+TOP.CPU_MMU_24.WCHIM_n
+TOP.CPU_MMU_24.WRITE
+@200
+--- in and out --
+@22
+TOP.CPU_MMU_24.IDB_15_0_IN[15:0]
+TOP.CPU_MMU_24.IDB_15_0_OUT[15:0]
+@200
+-
+@22
+TOP.CPU_MMU_24.CD_15_0_IN[15:0]
+TOP.CPU_MMU_24.CD_15_0_OUT[15:0]
+@200
+-
+@22
+TOP.CPU_MMU_24.PPN_25_10_IN[15:0]
+TOP.CPU_MMU_24.PPN_25_10_OUT[15:0]
+@200
+--- output --
+@22
+TOP.IDB_15_0_OUT[15:0]
+@28
+TOP.CPU_MMU_24.BEDO_n
+TOP.CPU_MMU_24.BEMPID_n
+TOP.CPU_MMU_24.BLCS_n
+TOP.CPU_MMU_24.BSTP
+TOP.CPU_MMU_24.HIT
+TOP.CPU_MMU_24.LAPA_n
+@22
+TOP.CPU_MMU_24.PT_15_0_OUT[15:0]
+@28
+TOP.CPU_MMU_24.WCA_n
+TOP.CPU_MMU_24.LED1
+[pattern_trace] 1
+[pattern_trace] 0
