@@ -1,71 +1,47 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : BIF_BCTL_SYNC_8                                              **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** BIF/BCTL/SYNC                                                         **
+** BIF SYNC                                                              **
+** SHEET 8  of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 21-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module BIF_BCTL_SYNC_8( BDAP50_n,
-                        BDRY25_n,
-                        BDRY50_n,
-                        BDRY75_n,
-                        BINPUT50_n,
-                        BINPUT75_n,
-                        BLOCK25_n,
-                        BLOCK_n,
-                        BPERR50_n,
-                        BREQ50_n,
-                        CACT25_n,
-                        CACT_n,
-                        CLEAR_n,
-                        IBDAP_n,
-                        IBDRY_n,
-                        IBINPUT_n,
-                        IBPERR_n,
-                        IBREQ_n,
-                        ISEMRQ_n,
-                        MR_n,
-                        OSC,
-                        PD1,
-                        PD3,
-                        REFRQ50_n,
-                        REFRQ_n,
-                        SEMRQ50_n );
+module BIF_BCTL_SYNC_8( 
+   
+   // Inputs signals
+   input BLOCK_n,
+   input CACT_n,
+   input CLEAR_n,
+   input IBDAP_n,
+   input IBDRY_n,
+   input IBINPUT_n,
+   input IBPERR_n,
+   input IBREQ_n,
+   input ISEMRQ_n,
+   input OSC,
+   input PD1,
+   input PD3,
+   input REFRQ_n,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input BLOCK_n;
-   input CACT_n;
-   input CLEAR_n;
-   input IBDAP_n;
-   input IBDRY_n;
-   input IBINPUT_n;
-   input IBPERR_n;
-   input IBREQ_n;
-   input ISEMRQ_n;
-   input OSC;
-   input PD1;
-   input PD3;
-   input REFRQ_n;
+   // Output signals
+   output BDAP50_n,
+   output BDRY25_n,
+   output BDRY50_n,
+   output BDRY75_n,
+   output BINPUT50_n,
+   output BINPUT75_n,
+   output BLOCK25_n,
+   output BPERR50_n,
+   output BREQ50_n,
+   output CACT25_n,
+   output MR_n,
+   output REFRQ50_n,
+   output SEMRQ50_n
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output BDAP50_n;
-   output BDRY25_n;
-   output BDRY50_n;
-   output BDRY75_n;
-   output BINPUT50_n;
-   output BINPUT75_n;
-   output BLOCK25_n;
-   output BPERR50_n;
-   output BREQ50_n;
-   output CACT25_n;
-   output MR_n;
-   output REFRQ50_n;
-   output SEMRQ50_n;
+
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -79,7 +55,7 @@ module BIF_BCTL_SYNC_8( BDAP50_n,
    wire s_logisimNet14;
    wire s_logisimNet15;
    wire s_logisimNet16;
-   wire s_logisimNet17;
+   wire s_ibdap_n;
    wire s_logisimNet18;
    wire s_logisimNet19;
    wire s_logisimNet2;
@@ -104,6 +80,14 @@ module BIF_BCTL_SYNC_8( BDAP50_n,
    wire s_logisimNet8;
    wire s_logisimNet9;
 
+   wire [9:0] input_chip_3d;
+   wire [9:0] output_chip_3d;
+
+
+   wire [9:0] input_chip_4d;
+   wire [9:0] output_chip_4d;
+
+
    /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
@@ -111,7 +95,7 @@ module BIF_BCTL_SYNC_8( BDAP50_n,
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimNet17 = IBDAP_n;
+   assign s_ibdap_n = IBDAP_n;
    assign s_logisimNet18 = BLOCK_n;
    assign s_logisimNet19 = CACT_n;
    assign s_logisimNet2  = OSC;
@@ -146,7 +130,43 @@ module BIF_BCTL_SYNC_8( BDAP50_n,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   AM29C821   CHIP_4D (.CK(s_logisimNet2),
+
+   /* TODO ASSSIGN
+             .D0(s_logisimNet22),
+                       .D1(s_logisimNet23),
+                       .D2(s_logisimNet21),
+                       .D3(s_logisimNet24),
+                       .D4(s_logisimNet20),
+                       .D5(s_logisimNet25),
+                       .D6(s_logisimNet19),
+                       .D7(s_logisimNet7),
+                       .D8(s_ibdap_n),
+                       .D9(s_logisimNet18),
+                       
+                       .Y0(s_logisimNet26),
+                       .Y1(s_logisimNet27),
+                       .Y2(s_logisimNet28),
+                       .Y3(s_logisimNet29),
+                       .Y4(s_logisimNet30),
+                       .Y5(s_logisimNet0),
+                       .Y6(s_logisimNet6),
+                       .Y7(s_logisimNet31),
+                       .Y8(s_logisimNet32),
+                       .Y9(s_logisimNet16)
+
+*/
+
+      //  Bus Driver 10 bits. Positive edge-triggered registeres with D-type flip-flops and 3-state                       
+   AM29C821   CHIP_3D (
+                        .CK(s_logisimNet2),
+                        .OE_n(s_logisimNet5),
+                        .D(input_chip_3d),
+                        .Y(output_chip_3d)          
+                       );
+
+
+                       /* TODO ASSSIGN
+
                        .D0(s_logisimNet26),
                        .D1(s_logisimNet27),
                        .D2(s_logisimNet28),
@@ -157,7 +177,7 @@ module BIF_BCTL_SYNC_8( BDAP50_n,
                        .D7(s_logisimNet31),
                        .D8(s_logisimNet32),
                        .D9(s_logisimNet1),
-                       .OE_n(s_logisimNet3),
+                       
                        .Y0(s_logisimNet15),
                        .Y1(s_logisimNet13),
                        .Y2(s_logisimNet14),
@@ -167,29 +187,17 @@ module BIF_BCTL_SYNC_8( BDAP50_n,
                        .Y6(s_logisimNet9),
                        .Y7(s_logisimNet10),
                        .Y8(s_logisimNet11),
-                       .Y9(s_logisimNet12));
+                       .Y9(s_logisimNet12)
+                       */
 
-   AM29C821   CHIP_3D (.CK(s_logisimNet2),
-                       .D0(s_logisimNet22),
-                       .D1(s_logisimNet23),
-                       .D2(s_logisimNet21),
-                       .D3(s_logisimNet24),
-                       .D4(s_logisimNet20),
-                       .D5(s_logisimNet25),
-                       .D6(s_logisimNet19),
-                       .D7(s_logisimNet7),
-                       .D8(s_logisimNet17),
-                       .D9(s_logisimNet18),
-                       .OE_n(s_logisimNet5),
-                       .Y0(s_logisimNet26),
-                       .Y1(s_logisimNet27),
-                       .Y2(s_logisimNet28),
-                       .Y3(s_logisimNet29),
-                       .Y4(s_logisimNet30),
-                       .Y5(s_logisimNet0),
-                       .Y6(s_logisimNet6),
-                       .Y7(s_logisimNet31),
-                       .Y8(s_logisimNet32),
-                       .Y9(s_logisimNet16));
+
+   //  Bus Driver 10 bits. Positive edge-triggered registeres with D-type flip-flops and 3-state
+   AM29C821   CHIP_4D (
+                        .CK(s_logisimNet2),
+                        .OE_n(s_logisimNet3),
+                        .D(input_chip_4d),
+                        .Y(output_chip_4d)
+                       );
+
 
 endmodule
