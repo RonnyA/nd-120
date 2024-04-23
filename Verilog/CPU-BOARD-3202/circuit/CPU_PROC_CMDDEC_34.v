@@ -35,9 +35,6 @@ module CPU_PROC_CMDDEC_34(
 );
  
 
-   assign RT_n = 1;
-   assign LDEXM_n = 1;
-
    /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
@@ -103,8 +100,8 @@ module CPU_PROC_CMDDEC_34(
                               .LDEXM_n(LDEXM_n),     // Q1_n - LDEXM_n (not connected in n44608)
                               .VEX(VEX),             // Q2_n - VEX//
                               .OPCLCS(OPCLCS),       // Q3_n - OPCLCS
-                              .RWCS_n(RWCS_n)        // Q4_n - RWCS_n
-//                            .RT_n(RT_n)            // // Q5_n - RT_n (But only in 444608 VXFIX. Not in 44408B)//
+                              .RWCS_n(RWCS_n),        // Q4_n - RWCS_n
+                              .RT_n(RT_n)            // // Q5_n - RT_n (But only in 444608 VXFIX. Not in 44408B)//
 );       
 
    // PAL_44511_ULEV0               
