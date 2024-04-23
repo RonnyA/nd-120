@@ -35,8 +35,11 @@ module CPU_PROC_CGA_33(
    input [6:0]  PT_15_9,
    input        UCLK,
 
+   input [2:0]  SEL_TESTMUX, // Selects testmux signals to output on TEST_4_0
+
    // in and out
-   inout [15:0] FIDB_15_0_io,
+   input  [15:0] FIDB_15_0_IN,
+   output [15:0] FIDB_15_0_OUT,
 
    // Outputs
 
@@ -99,11 +102,21 @@ wire s_IBINT15_n;
                          .Q8(s_logisimNet113));
 */
 
+
+// Connect output signals to the wires
+wire [7:0] chip_34q;
+assign  s_IBINT10_n = chip_34q[7];
+assign  s_IBINT11_n = chip_34q[6];
+assign  s_IBINT12_n = chip_34q[5];
+assign  s_IBINT13_n = chip_34q[4];
+assign  s_IBINT15_n = chip_34q[3];
+
+
 TTL_74374 CHIP_34G (
     .CK(~ALUCLK), //7F (Smith with 1's complement) ?
     .D({IBINT10_n, IBINT11_n, IBINT12_n, IBINT13_n, IBINT15_n, 3'b000}), // 8-bit D input, lower 3 bits unused
     .OE_n('b0), // GND
-    .Q({s_IBINT10_n, s_IBINT11_n, s_IBINT12_n, s_IBINT13_n, s_IBINT15_n, 3'bzzz}) // 8-bit Q output, lower 3 bits ignored
+    .Q(chip_34q) // 8-bit Q output, lower 3 bits ignored      
 );
 
 
@@ -196,10 +209,6 @@ assign s_CSBIT_15_0 = CSBITS[15:0];
 
 // ************ END OF MICROCODE INPUTS ************
 
-
-wire [2:0]sel_testmux;
-assign sel_testmux = 2'b000; // Selects testmux signals to output
-
 CGA DELILAH (
 
 /************ INPUT SIGNALS ********************/     
@@ -238,7 +247,8 @@ CGA DELILAH (
    .XEMPIDN(BEMPID_n),
    .XETRAPN(ETRAP_n),
    .XEWCAN(EWCA_n),
-   .XFIDB_15_0_io(FIDB_15_0_io),
+   .XFIDB_15_0_IN(FIDB_15_0_IN),
+   .XFIDB_15_0_OUT(FIDB_15_0_OUT),
    .XFTRAPN(1'b1),
    .XVTRAPN(1'b1),
    .XILCSN(LCS_n),
@@ -255,7 +265,7 @@ CGA DELILAH (
    .XSPARE(1'b1),
    .XSTP(BSTP),
    .XTCLK(UCLK),
-   .XTSEL_2_0(sel_testmux), // Selects testmux signals to output
+   .XTSEL_2_0(SEL_TESTMUX), // Selects testmux signals to output
 
 
 /************ OUTPUT SIGNALS ********************/

@@ -24,7 +24,7 @@ module CGA_ALU( ALUCLK,
                 F11,
                 F15,
                 FIDBI_15_0,
-                FIDBO_15_0,
+                FIDBO_15_0_OUT,
                 IONI,
                 LAA_3_0,
                 LBA_3_0,
@@ -79,7 +79,7 @@ module CGA_ALU( ALUCLK,
    output        DOUBLE;
    output        F11;
    output        F15;
-   output [15:0] FIDBO_15_0;
+   output [15:0] FIDBO_15_0_OUT;
    output        IONI;
    output        MI;
    output        OVF;
@@ -98,7 +98,7 @@ module CGA_ALU( ALUCLK,
    wire [3:0]  s_logisimBus106;
    wire [15:0] s_logisimBus107;
    wire [15:0] s_logisimBus112;
-   wire [15:0] s_logisimBus118;
+   wire [15:0] s_fidbo_15_0_out;
    wire [15:0] s_logisimBus122;
    wire [15:0] s_logisimBus127;
    wire [1:0]  s_logisimBus128;
@@ -291,7 +291,7 @@ module CGA_ALU( ALUCLK,
    assign DOUBLE     = s_logisimBus50[13];
    assign F11        = s_logisimBus107[11];
    assign F15        = s_logisimBus107[15];
-   assign FIDBO_15_0 = s_logisimBus118[15:0];
+   assign FIDBO_15_0_OUT = s_fidbo_15_0_out[15:0];
    assign IONI       = s_logisimBus50[15];
    assign MI         = s_logisimNet70;
    assign OVF        = s_logisimNet10;
@@ -308,52 +308,52 @@ module CGA_ALU( ALUCLK,
    *******************************************************************************/
 
    // NOT Gate
-   assign s_logisimBus118[15] = ~s_logisimBus34[15];
+   assign s_fidbo_15_0_out[15] = ~s_logisimBus34[15];
 
    // NOT Gate
-   assign s_logisimBus118[14] = ~s_logisimBus34[14];
+   assign s_fidbo_15_0_out[14] = ~s_logisimBus34[14];
 
    // NOT Gate
-   assign s_logisimBus118[13] = ~s_logisimBus34[13];
+   assign s_fidbo_15_0_out[13] = ~s_logisimBus34[13];
 
    // NOT Gate
-   assign s_logisimBus118[12] = ~s_logisimBus34[12];
+   assign s_fidbo_15_0_out[12] = ~s_logisimBus34[12];
 
    // NOT Gate
-   assign s_logisimBus118[11] = ~s_logisimBus34[11];
+   assign s_fidbo_15_0_out[11] = ~s_logisimBus34[11];
 
    // NOT Gate
-   assign s_logisimBus118[10] = ~s_logisimBus34[10];
+   assign s_fidbo_15_0_out[10] = ~s_logisimBus34[10];
 
    // NOT Gate
-   assign s_logisimBus118[9] = ~s_logisimBus34[9];
+   assign s_fidbo_15_0_out[9] = ~s_logisimBus34[9];
 
    // NOT Gate
-   assign s_logisimBus118[8] = ~s_logisimBus34[8];
+   assign s_fidbo_15_0_out[8] = ~s_logisimBus34[8];
 
    // NOT Gate
-   assign s_logisimBus118[7] = ~s_logisimBus34[7];
+   assign s_fidbo_15_0_out[7] = ~s_logisimBus34[7];
 
    // NOT Gate
-   assign s_logisimBus118[6] = ~s_logisimBus34[6];
+   assign s_fidbo_15_0_out[6] = ~s_logisimBus34[6];
 
    // NOT Gate
-   assign s_logisimBus118[5] = ~s_logisimBus34[5];
+   assign s_fidbo_15_0_out[5] = ~s_logisimBus34[5];
 
    // NOT Gate
-   assign s_logisimBus118[4] = ~s_logisimBus34[4];
+   assign s_fidbo_15_0_out[4] = ~s_logisimBus34[4];
 
    // NOT Gate
-   assign s_logisimBus118[3] = ~s_logisimBus34[3];
+   assign s_fidbo_15_0_out[3] = ~s_logisimBus34[3];
 
    // NOT Gate
-   assign s_logisimBus118[2] = ~s_logisimBus34[2];
+   assign s_fidbo_15_0_out[2] = ~s_logisimBus34[2];
 
    // NOT Gate
-   assign s_logisimBus118[1] = ~s_logisimBus34[1];
+   assign s_fidbo_15_0_out[1] = ~s_logisimBus34[1];
 
    // NOT Gate
-   assign s_logisimBus118[0] = ~s_logisimBus34[0];
+   assign s_fidbo_15_0_out[0] = ~s_logisimBus34[0];
 
    // NOT Gate
    assign s_logisimNet63 = ~s_logisimNet8;
@@ -398,7 +398,7 @@ module CGA_ALU( ALUCLK,
    CGA_ALU_STS   ALU_STS (.ALUCLK(s_logisimNet121),
                           .CRY(s_logisimNet42),
                           .CSTS_1_0(s_logisimBus80[1:0]),
-                          .FIDBO_15_0(s_logisimBus118[15:0]),
+                          .FIDBO_15_0(s_fidbo_15_0_out[15:0]),
                           .LDPILN(s_logisimNet71),
                           .MI(s_logisimNet70),
                           .OVF(s_logisimNet10),
@@ -407,7 +407,7 @@ module CGA_ALU( ALUCLK,
    CGA_ALU_GPR   ALU_GPR (.ALUCLK(s_logisimNet121),
                           .CD_15_0(s_logisimBus122[15:0]),
                           .DGPR0N(s_logisimNet123),
-                          .FIDBO_15_0(s_logisimBus118[15:0]),
+                          .FIDBO_15_0(s_fidbo_15_0_out[15:0]),
                           .GPRC_2_0(s_logisimBus16[2:0]),
                           .GPRLI(s_logisimNet96),
                           .GPR_15_0(s_logisimBus112[15:0]));
@@ -422,7 +422,7 @@ module CGA_ALU( ALUCLK,
                           .CSBIT_15_0(s_logisimBus83[15:0]));
 
    CGA_ALU_SWAP   ALU_SWAP (.ALUCLK(s_logisimNet121),
-                            .FIDBO_15_0(s_logisimBus118[15:0]),
+                            .FIDBO_15_0(s_fidbo_15_0_out[15:0]),
                             .SW_15_0(s_logisimBus90[15:0]));
 
    MUX21LP   AARG0_MUX (.A(s_logisimBus105[3]),

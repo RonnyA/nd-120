@@ -41,7 +41,8 @@ module CGA(
             XERFN,
             XETRAPN,
             XEWCAN,
-            XFIDB_15_0_io,            
+            XFIDB_15_0_IN,
+            XFIDB_15_0_OUT,
             XFTRAPN,
             XILCSN,
             XINTRQN,
@@ -130,7 +131,8 @@ module CGA(
    /*******************************************************************************
    ** The outputs are defined here                                               **
    *******************************************************************************/
-   inout [15:0] XFIDB_15_0_io;
+   input  [15:0] XFIDB_15_0_IN;
+   output [15:0] XFIDB_15_0_OUT;
 
    /*******************************************************************************
    ** The outputs are defined here                                               **
@@ -191,7 +193,7 @@ module CGA(
    wire [4:0]  s_logisimBus187;
    wire [3:0]  s_logisimBus190;
    
-   wire [15:0] s_logisimBus193;
+   wire [15:0] s_xfidbi_15_0;
    wire [2:0]  s_logisimBus197;
    wire [15:0] s_logisimBus198;
    wire [3:0]  s_logisimBus201;
@@ -285,7 +287,7 @@ module CGA(
    wire        s_logisimNet170;
    wire        s_logisimNet171;
    wire        s_logisimNet172;
-   wire        s_logisimNet173;
+   wire        s_x_erf_n;
    wire        s_logisimNet174;
    wire        s_logisimNet176;
    wire        s_logisimNet177;
@@ -634,7 +636,7 @@ module CGA(
    assign XBRKN          = s_logisimNet135;
    assign XDOUBLE        = s_logisimNet128;
    assign XECCR          = s_logisimNet140;
-   assign XERFN          = s_logisimNet173;
+   assign XERFN          = s_x_erf_n;
    
    assign XINTRQN        = s_logisimNet165;
    assign XIONI          = s_logisimNet214;
@@ -683,7 +685,7 @@ module CGA(
                   .F11(s_logisimNet158),
                   .F15(s_logisimNet220),
                   .FIDBI_15_0(FIDBI_15_0[15:0]),
-                  .FIDBO_15_0(FIDBO_15_0[15:0]),
+                  .FIDBO_15_0_OUT(FIDBO_15_0[15:0]),
                   .IONI(s_logisimNet214),
                   .LAA_3_0(s_logisimBus201[3:0]),
                   .LBA_3_0(s_logisimBus134[3:0]),
@@ -731,7 +733,7 @@ module CGA(
                         .EPICSN(s_logisimNet1),
                         .EPICVN(s_logisimNet78),
                         .FETCHN(s_logisimNet122),
-                        .FIDBI_15_0(FIDBI_15_0[15:0]),
+                        .FIDBI_15_0_OUT(FIDBI_15_0[15:0]),
                         .HIGSN(s_logisimNet44),
                         .LA_21_10(s_logisimBus222[11:0]),
                         .LOGSN(s_logisimNet8),
@@ -743,7 +745,7 @@ module CGA(
                         .PICV_2_0(s_logisimBus142[2:0]),
                         .PVIOL(s_logisimNet71),
                         .VACCN(s_logisimNet146),
-                        .XFIDBI_15_0(s_logisimBus193[15:0]));
+                        .XFIDBI_15_0(s_xfidbi_15_0[15:0]));
 
    CGA_WRF   WRF (.ALUCLK(s_logisimNet194),
                   .A_15_0(s_logisimBus161[15:0]),
@@ -778,10 +780,10 @@ module CGA(
                   .EPIC(s_logisimNet79),
                   .EPICSN(s_logisimNet1),
                   .EPICVN(s_logisimNet78),
-                  .ERFN(s_logisimNet173),
+                  .ERFN(s_x_erf_n),
                   .F15(s_logisimNet220),
                   .FETCHN(s_logisimNet122),
-                  .FIDBO5(FIDBO_15_0[5]),
+                  .FIDBO(FIDBO_15_0[5]),
                   .ILCSN(s_logisimNet157),
                   .INDN(s_logisimNet120),
                   .INTRQN(s_logisimNet165),
@@ -808,8 +810,9 @@ module CGA(
                            .EN(s_logisimNet208),      // Enable = FALSE => A to IO, Enable=TRUE => IO to ZI
                            .TN(s_PTSTN),              // Test enable when LOW
                            .A_15_0(FIDBO_15_0),       // Data inputA (Connect to internal FIDBO data bus))     
-                           .IO_15_0(XFIDB_15_0_io),   // IN and OUT to XFIDB data bus (Connect to EXTERNAL _XFIDB_ data bus)                                                      
-                           .ZI_15_0(FIDBI_15_0)       // Z output  (Connect to internal XFIDBI data bus)
+                           .IO_15_0_IN(XFIDB_15_0_IN),     // IN and OUT to XFIDB data bus (Connect to EXTERNAL _XFIDB_ data bus)                                                      
+                           .IO_15_0_OUT(XFIDB_15_0_OUT),   // 
+                           .ZI_15_0(s_xfidbi_15_0)         // Z output  (Connect to internal XFIDBI data bus)
                            );
 
    CGA_INTR   INTR (.BINT10N(s_logisimNet73),

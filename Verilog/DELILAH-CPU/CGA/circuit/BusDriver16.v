@@ -16,11 +16,12 @@ module BusDriver16(
        input wire        EN,            // Enable = FALSE => A to IO, Enable=TRUE => IO to ZI
        input wire        TN,            // Test enable
 
-       input wire[15:0]  A_15_0,        // Data inputA (Connect to internal FIDBO data bus))         
+       input wire[15:0]   A_15_0,        // Data inputA (Connect to internal FIDBO data bus))         
 
-       inout wire[15:0]  IO_15_0,       // IN and OUT to XFIDB data bus (Connect to EXTERNAL _XFIDB_ data bus)
+       input wire[15:0]   IO_15_0_IN,    // IN and OUT to XFIDB data bus (Connect to EXTERNAL _XFIDB_ data bus)
+       output wire[15:0]  IO_15_0_OUT,   // 
 
-       output wire[15:0] ZI_15_0        // Z output  (Connect to internal XFIDBI data bus)
+       output wire[15:0]  ZI_15_0        // Z output  (Connect to internal XFIDBI data bus)
    );
 
    reg [15:0] IO_reg; // Internal data register
@@ -37,12 +38,12 @@ module BusDriver16(
       end
       else begin
          // Read IO to ZI 
-         ZI_reg = IO_15_0;
+         ZI_reg = IO_15_0_IN;
       end
    end
 
    // Bidirectional data operation
-   assign IO_15_0 = TN ? ((EN == 1'b0) ? IO_reg : 16'bz) : 16'bz;     
+   assign IO_15_0_OUT = TN ? ((EN == 1'b0) ? IO_reg : 16'bz) : 16'bz;     
    assign ZI_15_0 = ZI_reg;
 
 
