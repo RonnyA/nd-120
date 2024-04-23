@@ -9,28 +9,16 @@
 ***************************************************************************/
 
 
-module CPU_CS_ACAL_17( CLK,
-                       CSA_12_0,
-                       CSCA_9_0,
-                       LUA_12_0,
-                       MACLK,
-                       PD1,
-                       UUA_11_0 );
-
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        CLK;
-   input [12:0] CSA_12_0;
-   input [9:0]  CSCA_9_0;
-   input        MACLK;
-   input        PD1;
-
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output [12:0] LUA_12_0;
-   output [11:0] UUA_11_0;
+module CPU_CS_ACAL_17( 
+   input         CLK,
+   input [12:0]  CSA_12_0,
+   input [9:0]   CSCA_9_0,
+   input         MACLK,
+   input         PD1,
+   output [12:0] LUA_12_0,
+   output [11:0] UUA_11_0
+);
+   
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -69,7 +57,7 @@ module CPU_CS_ACAL_17( CLK,
    assign s_UUA[10] = q_lua_12_7[6];   
    assign s_UUA[9:0] = s_LUA12 ? s_UUA_chip_32g[9:0] : s_UUA_chip_31g[9:0];
 
-   /*** Outputs from Chip 30H  ***
+   /*** Outputs from Chip 30H  ***/
 
    /* Input data for chip 30H */
    assign s_D_chip30h[0] = s_CSA_12_0[12];
