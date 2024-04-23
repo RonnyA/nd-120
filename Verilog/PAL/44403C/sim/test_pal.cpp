@@ -59,8 +59,8 @@ int main(int argc, char **argv)
 
     top->MR_n = true;
     top->OE_n  = false;
-    top->DMA12_n = false;
-    top->LUA12 = true;
+    //top->DMA12_n = true; // output
+    top->LUA12 = false;
 
     // Iterate through each test case
     //for (const auto& test : testCases) {
@@ -82,6 +82,12 @@ int main(int argc, char **argv)
             top->MR_n = true;
 
         if (i==7)
+        {
+            
+            top->LUA12 = true;
+        }
+
+        if (i==9)
         {
             
             top->LUA12 = false;
