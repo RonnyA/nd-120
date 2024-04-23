@@ -1,164 +1,119 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : BIF_5                                                        **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** BIF/BCTL                                                              **
+** BUS INTERFACE                                                         **
+** SHEET 5  of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 21-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module BIF_5( BAPR_n,
-              BDAP50_n,
-              BDAP_n,
-              BDRY50_n,
-              BDRY_n,
-              BD_23_0_n_io,
-              BERROR_n,
-              BGNT50_n,
-              BGNT_n,
-              BINACK_n,
-              BINPUT_n,
-              BIOXE_n,
-              BMEM_n,
-              BREF_n,
-              CA_9_0,
-              CC2_n,
-              CD_15_0_io,
-              CGNCACT_n,
-              CGNT50_n,
-              CGNT_n,
-              CLEAR_n,
-              CRQ_n,
-              DAP_n,
-              DBAPR,
-              EBUS_n,
-              ECRQ,
-              FETCH,
-              GNT50_n,
-              GNT_n,
-              IBAPR_n,
-              IBDAP_n,
-              IBDRY_n,
-              IBINPUT_n,
-              IBPERR_n,
-              IBREQ_n,
-              IDB_15_0,
-              IORQ_n,
-              IOXERR_n,
-              ISEMRQ_n,
-              LBD_23_0_io,
-              LERR_n,
-              LPRERR_n,
-              MIS0,
-              MOFF_n,
-              MOR25_n,
-              MOR_n,
-              MR_n,
-              MWRITE_n,
-              OSC,
-              OUTGRANT_n,
-              OUTIDENT_n,
-              PARERR_n,
-              PA_n,
-              PD1,
-              PD3,
-              PPN_23_10,
-              PS_n,
-              REFRQ_n,
-              REF_n,
-              RERR_n,
-              RT_n,
-              SEMRQ50_n,
-              SEMRQ_n,
-              SSEMA_n,
-              TERM_n,
-              TOUT,
-              WRITE );
+// TODO: MAP IN and OUT signals for _io signals
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        BGNT50_n;
-   input        BGNT_n;
-   input [9:0]  CA_9_0;
-   input        CC2_n;
-   input        CGNT50_n;
-   input        CGNT_n;
-   input        CLEAR_n;
-   input        CRQ_n;
-   input        EBUS_n;
-   input        ECRQ;
-   input        FETCH;
-   input        GNT50_n;
-   input        IBAPR_n;
-   input        IBDAP_n;
-   input        IBDRY_n;
-   input        IBINPUT_n;
-   input        IBPERR_n;
-   input        IBREQ_n;
-   input        IORQ_n;
-   input        ISEMRQ_n;
-   input        LERR_n;
-   input        LPRERR_n;
-   input        MIS0;
-   input        MOFF_n;
-   input        MOR25_n;
-   input        MWRITE_n;
-   input        OSC;
-   input        PA_n;
-   input        PD1;
-   input        PD3;
-   input [13:0] PPN_23_10;
-   input        PS_n;
-   input        REFRQ_n;
-   input        RT_n;
-   input        SSEMA_n;
-   input        TERM_n;
-   input        TOUT;
-   input        WRITE;
+module BIF_5( 
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output        BAPR_n;
-   output        BDAP50_n;
-   output        BDAP_n;
-   output        BDRY50_n;
-   output        BDRY_n;
-   output [23:0] BD_23_0_n_io;
-   output        BERROR_n;
-   output        BINACK_n;
-   output        BINPUT_n;
-   output        BIOXE_n;
-   output        BMEM_n;
-   output        BREF_n;
-   output [15:0] CD_15_0_io;
-   output        CGNCACT_n;
-   output        DAP_n;
-   output        DBAPR;
-   output        GNT_n;
-   output [15:0] IDB_15_0;
-   output        IOXERR_n;
-   output [23:0] LBD_23_0_io;
-   output        MOR_n;
-   output        MR_n;
-   output        OUTGRANT_n;
-   output        OUTIDENT_n;
-   output        PARERR_n;
-   output        REF_n;
-   output        RERR_n;
-   output        SEMRQ50_n;
-   output        SEMRQ_n;
+    // FPGA signals
+    input        sysclk,      // System clock in FPGA
+    input        sys_rst_n,   // System reset in FPGA
+ 
+    // Inputs signals
 
+    input        BGNT50_n,
+    input        BGNT_n,
+    input [9:0]  CA_9_0,
+    input        CC2_n,
+    input        CGNT50_n,
+    input        CGNT_n,
+    input        CLEAR_n,
+    input        CRQ_n,
+    input        EBUS_n,
+    input        ECRQ,
+    input        FETCH,
+    input        GNT50_n,
+    input        IBAPR_n,
+    input        IBDAP_n,
+    input        IBDRY_n,
+    input        IBINPUT_n,
+    input        IBPERR_n,
+    input        IBREQ_n,
+    input        IORQ_n,
+    input        ISEMRQ_n,
+    input        LERR_n,
+    input        LPRERR_n,
+    input        MIS0,
+    input        MOFF_n,
+    input        MOR25_n,
+    input        MWRITE_n,
+    input        OSC,
+    input        PA_n,
+    input        PD1,
+    input        PD3,
+    input [13:0] PPN_23_10,
+    input        PS_n,
+    input        REFRQ_n,
+    input        RT_n,
+    input        SSEMA_n,
+    input        TERM_n,
+    input        TOUT,
+    input        WRITE,
+ 
+    // INPUTS and OUTPUTS here
+
+    inout  [23:0] BD_23_0_n_IN,
+    output [23:0] BD_23_0_n_OUT,
+
+    
+    input  [15:0] CD_15_0_IN,
+    output [15:0] CD_15_0_OUT,
+
+
+    input  [23:0] LBD_23_0_IN,
+    output [23:0] LBD_23_0_OUT,
+
+    // OUTPUT signals
+    output [15:0] IDB_15_0_OUT,
+
+
+    output        BAPR_n,
+    output        BDAP50_n,
+    output        BDAP_n,
+    output        BDRY50_n,
+    output        BDRY_n,    
+    output        BERROR_n,
+    output        BINACK_n,
+    output        BINPUT_n,
+    output        BIOXE_n,
+    output        BMEM_n,
+    output        BREF_n,
+    
+    output        CGNCACT_n,
+    output        DAP_n,
+    output        DBAPR,
+    output        GNT_n,
+    
+    output        IOXERR_n,    
+    output        MOR_n,
+    output        MR_n,
+    output        OUTGRANT_n,
+    output        OUTIDENT_n,
+    output        PARERR_n,
+    output        REF_n,
+    output        RERR_n,
+    output        SEMRQ50_n,
+    output        SEMRQ_n
+);
+
+   
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
    wire [13:0] s_logisimBus10;
    wire [2:0]  s_logisimBus13;
-   wire [15:0] s_logisimBus33;
-   wire [15:0] s_logisimBus34;
+   wire [15:0] s_cd_15_0_out;
+   wire [15:0] s_idb_15_0_out;
    wire [9:0]  s_logisimBus54;
-   wire [23:0] s_logisimBus68;
-   wire [23:0] s_logisimBus69;
+   wire [23:0] s_lbd_23_0_out;
+   wire [23:0] s_bd_23_0_n_out;
    wire        s_logisimNet0;
    wire        s_logisimNet1;
    wire        s_logisimNet11;
@@ -287,21 +242,21 @@ module BIF_5( BAPR_n,
    assign BDAP_n       = s_logisimNet30;
    assign BDRY50_n     = s_logisimNet15;
    assign BDRY_n       = s_logisimNet66;
-   assign BD_23_0_n_io = s_logisimBus69[23:0];
+   assign BD_23_0_n_OUT = s_bd_23_0_n_out[23:0];
    assign BERROR_n     = s_logisimNet62;
    assign BINACK_n     = s_logisimNet60;
    assign BINPUT_n     = s_logisimNet64;
    assign BIOXE_n      = s_logisimNet63;
    assign BMEM_n       = s_logisimNet47;
    assign BREF_n       = s_logisimNet50;
-   assign CD_15_0_io   = s_logisimBus33[15:0];
+   assign CD_15_0_OUT  = s_cd_15_0_out[15:0];
    assign CGNCACT_n    = s_logisimNet58;
    assign DAP_n        = s_logisimNet67;
    assign DBAPR        = s_logisimNet61;
    assign GNT_n        = s_logisimNet6;
-   assign IDB_15_0     = s_logisimBus34[15:0];
+   assign IDB_15_0_OUT = s_idb_15_0_out[15:0];
    assign IOXERR_n     = s_logisimNet71;
-   assign LBD_23_0_io  = s_logisimBus68[23:0];
+   assign LBD_23_0_OUT = s_lbd_23_0_out[23:0];
    assign MOR_n        = s_logisimNet72;
    assign MR_n         = s_logisimNet39;
    assign OUTGRANT_n   = s_logisimNet76;
@@ -319,7 +274,7 @@ module BIF_5( BAPR_n,
    BIF_DPATH_9   DPATH (.BDAP50_n(s_logisimNet23),
                         .BDRY25_n(s_logisimNet40),
                         .BDRY50_n(s_logisimNet15),
-                        .BD_23_0_n_io(s_logisimBus69[23:0]),
+                        .BD_23_0_n_io(s_bd_23_0_n_out[23:0]),
                         .BGNT50_n(s_logisimNet1),
                         .BGNT_n(s_logisimNet52),
                         .BINPUT50_n(s_logisimNet3),
@@ -327,7 +282,7 @@ module BIF_5( BAPR_n,
                         .CA_9_0(s_logisimBus54[9:0]),
                         .CBWRITE_n(s_logisimNet38),
                         .CC2_n(s_logisimNet19),
-                        .CD_15_0_io(s_logisimBus33[15:0]),
+                        .CD_15_0_io(s_cd_15_0_out[15:0]),
                         .CGNT50_n(s_logisimNet21),
                         .CGNTCACT_n(s_logisimNet58),
                         .CGNT_n(s_logisimNet27),
@@ -340,10 +295,10 @@ module BIF_5( BAPR_n,
                         .FETCH(s_logisimNet55),
                         .GNT_n(s_logisimNet6),
                         .IBAPR_n(s_logisimNet14),
-                        .IDB_15_0(s_logisimBus34[15:0]),
+                        .IDB_15_0_OUT(s_idb_15_0_out[15:0]),
                         .IOD_n(s_logisimNet37),
                         .IORQ_n(s_logisimNet22),
-                        .LBD_23_0_io(s_logisimBus68[23:0]),
+                        .LBD_23_0_io(s_lbd_23_0_out[23:0]),
                         .MIS0(s_logisimNet17),
                         .MWRITE_n(s_logisimNet48),
                         .PD1(s_logisimNet26),
