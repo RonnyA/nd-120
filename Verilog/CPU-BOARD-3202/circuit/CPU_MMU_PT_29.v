@@ -19,11 +19,11 @@ module CPU_MMU_PT_29(
    input        WCLIM_n,   // Write to RAM chip with 1 bit Data being PPN hi bit (bit ppn 25)
    input        WMAP_n,    // Write MAPPING signal
    
-   input  [15:0] PPN_25_10_IN, // Bidirectional
-   output [15:0] PPN_25_10_OUT, // Bidirectional
+   input  [15:0] PPN_25_10_IN, // Bidirectional (in)
+   output [15:0] PPN_25_10_OUT, // Bidirectional (out)
 
-   input  [15:0] PT_15_0_IN,   // Bidirectional
-   output [15:0] PT_15_0_OUT,   // Bidirectional
+   input  [15:0] PT_15_0_IN,   // Bidirectional (in)
+   output [15:0] PT_15_0_OUT,   // Bidirectional (out)
 
    output        WCINH_n                      
    );
@@ -36,11 +36,14 @@ module CPU_MMU_PT_29(
    wire [15:0] s_pt_15_0_out;
    wire [15:0] s_ppn_25_10_in;
    wire [15:0] s_ppn_25_10_out;
+
+   wire [15:0] s_ims_ppn_25_10_in; //PPN signal in to memory chip 20G (IMS1403_25)
    wire        s_wclim_n;
    wire        s_wcinh_n;
    wire        s_ept_n;
    wire        s_epmap_n;
    wire        s_wmap_n;
+   wire        s_gnd;
 
    /*******************************************************************************
    ** The module functionality is described here                                 **
@@ -55,8 +58,8 @@ module CPU_MMU_PT_29(
    assign s_epmap_n        = EPMAP_n;
    assign s_wmap_n         = WMAP_n;
 
-   assign s_ppn_25_10_in = PPN_25_10_IN;
-   assign s_pt_15_0_in   = PT_15_0_IN;
+   assign s_ppn_25_10_in  = PPN_25_10_IN;
+   assign s_pt_15_0_in    = PT_15_0_IN;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -64,6 +67,8 @@ module CPU_MMU_PT_29(
    assign PPN_25_10_OUT    = s_ppn_25_10_out[15:0];
    assign PT_15_0_OUT      = s_pt_15_0_out[15:0];
    assign WCINH_n          = s_wcinh_n;
+
+   assign s_ims_ppn_25_10_in =  s_ppn_25_10_in | s_ppn_25_10_out; // maybe do a conditional expression here to select which PPN to write to RAM chip 20G
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
@@ -140,9 +145,9 @@ module CPU_MMU_PT_29(
       IMS1403_25   CHIP_20G (
                               .clk(sysclk),
                               .reset_n(sys_rst_n),
-                              .ADDRESS(s_ppn_25_10[13:0]), // Addres bit s_ppn_25_10[14] not used.
+                              .ADDRESS(s_ims_ppn_25_10_in[13:0]), // Addres bit ppn_25_10[14] not used.
                               .CE_n(s_gnd),
-                              .D(s_ppn_25_10[15]),
+                              .D(s_ims_ppn_25_10_in[15]),
                               .Q(s_wcinh_n),
                               .W_n(s_wclim_n)
                               );
