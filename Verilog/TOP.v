@@ -1,3 +1,13 @@
+/**************************************************************************
+** ND120 CPU, MEMORY MANAGEMENT and MEMORY                               **
+**                                                                       **
+** TOP LEVEL FOR FPGA IMPLEMENTATION                                     **
+**                                                                       ** 
+** Last reviewed: 21-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
+
+
 module top (
     input sysclk,
     input btn1, // mapped to button 4 on the board (s1, not labled)
@@ -23,6 +33,9 @@ wire [1:0] oc_select;
 
 wire [1:0] s_SEL_TESTMUX;
 assign s_SEL_TESTMUX = 2'b00; // 00=TESTMUX=0
+
+wire [4:0] s_baud_rate_switch;
+assign s_baud_rate_switch = 5'b00000; // 00000=9600 baud
 
 // output wire from CPU
 wire [5:0] s_cpu_led; // LED  0=CPU RED, 1=CPU GREEN, 2=LED4_RED_PARITY_ERROR, 3=LED_CPU_GRANT_INDICATOR, 4=LED_BUS_GRANT_INDICATOR, 5=LED1 from MMU
@@ -76,6 +89,7 @@ ND3202D CPU_BOARD (
    .SWMCL_n(s_high),
    .XTR(s_low),
    .SEL_TESTMUX(s_SEL_TESTMUX),
+   .BAUD_RATE_SWITCH(s_baud_rate_switch), // 5 bits
 
     // outputs
    .CSBITS(s_csbits),
