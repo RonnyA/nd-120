@@ -1,10 +1,12 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : MEM_LBDIF_48                                                 **
- **                                                                          **
- *****************************************************************************/
+ /**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** MEM/LBDIF                                                             **
+** LOCAL BD CONTROL                                                      **
+** SHEET 48 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 21-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
 module MEM_LBDIF_48( BCGNT25,
                      BCGNT50,
@@ -191,6 +193,8 @@ module MEM_LBDIF_48( BCGNT25,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+/* TODO:
+
    AM29C821   CHIP_14F (.CK(s_logisimNet8),
                         .D0(s_logisimNet47),
                         .D1(s_logisimNet24),
@@ -237,7 +241,8 @@ module MEM_LBDIF_48( BCGNT25,
                         .Y8(s_logisimNet40),
                         .Y9(s_logisimNet11));
 
-   PAL_16L8_12   PAL_44310_ULBDIF (.B0_n(s_logisimNet31),
+
+   PAL_44310D   PAL_44310_ULBDIF (.B0_n(s_logisimNet31),
                                    .B1_n(s_logisimNet30),
                                    .B2_n(s_logisimNet17),
                                    .B3_n(s_logisimNet39),
@@ -255,5 +260,6 @@ module MEM_LBDIF_48( BCGNT25,
                                    .I9(s_logisimNet28),
                                    .Y0_n(s_logisimNet49),
                                    .Y1_n(s_logisimNet35));
+   */                                 
 
 endmodule

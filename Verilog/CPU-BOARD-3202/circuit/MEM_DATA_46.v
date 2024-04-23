@@ -1,51 +1,40 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : MEM_DATA_46                                                  **
- **                                                                          **
- *****************************************************************************/
+ /**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** MEM/DATA                                                              **
+** DATA & PARITY TCV                                                     **
+** SHEET 46 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 21-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module MEM_DATA_46( BCGNT50R_n,
-                    BIOXL_n,
-                    DD_17_0_io,
-                    ECCR,
-                    HIEN_n,
-                    HIERR,
-                    LBD_15_0_io,
-                    LERR_n,
-                    LOERR,
-                    LPERR_n,
-                    MR_n,
-                    MWRITE_n,
-                    PA_n,
-                    QD_n,
-                    RDATA,
-                    logisimOutputBubbles );
+module MEM_DATA_46(
+   // Input signals
+   input        BCGNT50R_n,
+   input        BIOXL_n,
+   input        ECCR,
+   input        HIEN_n,
+   
+   input        MR_n,
+   input        MWRITE_n,
+   input        PA_n,
+   input        QD_n,
+   input        RDATA,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        BCGNT50R_n;
-   input        BIOXL_n;
-   input        ECCR;
-   input        HIEN_n;
-   input [15:0] LBD_15_0_io;
-   input        MR_n;
-   input        MWRITE_n;
-   input        PA_n;
-   input        QD_n;
-   input        RDATA;
+   // IN and OUT signals
+   input  [15:0] LBD_15_0_IN,
+   output [15:0] LBD_15_0_OUT,
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output [17:0] DD_17_0_io;
-   output        HIERR;
-   output        LERR_n;
-   output        LOERR;
-   output        LPERR_n;
-   output [0:0]  logisimOutputBubbles;
+   // Output signals
+   output [17:0] DD_17_0_OUT,
+   output        HIERR,
+   output        LERR_n,
+   output        LOERR,
+   output        LPERR_n,
+   output        LED4 // LED4_RED_PARITY_ERROR
+);
+
+
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -92,7 +81,7 @@ module MEM_DATA_46( BCGNT50R_n,
    wire        s_logisimNet45;
    wire        s_logisimNet46;
    wire        s_logisimNet47;
-   wire        s_logisimNet48;
+   wire        s_led4;
    wire        s_logisimNet49;
    wire        s_logisimNet5;
    wire        s_logisimNet50;
@@ -128,7 +117,7 @@ module MEM_DATA_46( BCGNT50R_n,
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus15[15:0] = LBD_15_0_io;
+   assign s_logisimBus15[15:0] = LBD_15_0_IN;
    assign s_logisimNet0        = RDATA;
    assign s_logisimNet36       = BIOXL_n;
    assign s_logisimNet37       = BCGNT50R_n;
@@ -142,7 +131,7 @@ module MEM_DATA_46( BCGNT50R_n,
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign DD_17_0_io = s_logisimBus66[17:0];
+   assign DD_17_0_OUT = s_logisimBus66[17:0];
    assign HIERR      = s_logisimNet4;
    assign LERR_n     = s_logisimNet1;
    assign LOERR      = s_logisimNet35;
@@ -187,7 +176,7 @@ module MEM_DATA_46( BCGNT50R_n,
    assign s_logisimNet4 = ~s_logisimNet34;
 
    // LED: LED4_RED_PARITY_ERROR
-   assign logisimOutputBubbles[0] = s_logisimNet48;
+   assign LED4  = s_led4;
 
    /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -213,7 +202,7 @@ module MEM_DATA_46( BCGNT50R_n,
                 .k(s_logisimNet18),
                 .preset(s_logisimNet58),
                 .q(),
-                .qBar(s_logisimNet48),
+                .qBar(s_led4),
                 .reset(s_logisimNet16),
                 .tick(1'b1));
 
@@ -232,7 +221,8 @@ module MEM_DATA_46( BCGNT50R_n,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   PAL_16L8_12   PAL_45008_UDATA (.B0_n(s_logisimNet29),
+/* TODO:
+    PAL_45008   PAL_45008_UDATA (.B0_n(s_logisimNet29),
                                   .B1_n(s_logisimNet30),
                                   .B2_n(s_logisimNet57),
                                   .B3_n(s_logisimNet13),
@@ -250,51 +240,28 @@ module MEM_DATA_46( BCGNT50R_n,
                                   .I9(s_logisimNet68),
                                   .Y0_n(s_logisimNet3),
                                   .Y1_n(s_logisimNet20));
+*/
 
-   AM29833A   CHIP_1H (.CK(s_logisimNet0),
+/* TODO:
+
+   AM29833A   CHIP_1H (.CLK(s_logisimNet0),
                        .CLR_n(s_logisimNet30),
-                       .ERR_n(s_logisimNet2),
+                       .ERR_n(s_logisimNet2),  // output
                        .OER_n(s_logisimNet20),
                        .OET_n(s_logisimNet29),
-                       .PAR_io(s_logisimBus66[8]),
-                       .R0(s_logisimBus15[0]),
-                       .R1(s_logisimBus15[1]),
-                       .R2(s_logisimBus15[2]),
-                       .R3(s_logisimBus15[3]),
-                       .R4(s_logisimBus15[4]),
-                       .R5(s_logisimBus15[5]),
-                       .R6(s_logisimBus15[6]),
-                       .R7(s_logisimBus15[7]),
-                       .T0(s_logisimBus66[0]),
-                       .T1(s_logisimBus66[1]),
-                       .T2(s_logisimBus66[2]),
-                       .T3(s_logisimBus66[3]),
-                       .T4(s_logisimBus66[4]),
-                       .T5(s_logisimBus66[5]),
-                       .T6(s_logisimBus66[6]),
-                       .T7(s_logisimBus66[7]));
+                       .PAR(s_logisimBus66[8]), //inout
+                       .R(s_logisimBus15[7:0]), //inout
+                       .T(s_logisimBus66[7:0])  //inout 
+                       );
 
-   AM29833A   CHIP_2H (.CK(s_logisimNet0),
+   AM29833A   CHIP_2H (.CLK(s_logisimNet0),
                        .CLR_n(s_logisimNet30),
-                       .ERR_n(s_logisimNet34),
+                       .ERR_n(s_logisimNet34),  // output
                        .OER_n(s_logisimNet20),
                        .OET_n(s_logisimNet29),
-                       .PAR_io(s_logisimBus66[17]),
-                       .R0(s_logisimBus15[8]),
-                       .R1(s_logisimBus15[9]),
-                       .R2(s_logisimBus15[10]),
-                       .R3(s_logisimBus15[11]),
-                       .R4(s_logisimBus15[12]),
-                       .R5(s_logisimBus15[13]),
-                       .R6(s_logisimBus15[14]),
-                       .R7(s_logisimBus15[15]),
-                       .T0(s_logisimBus66[9]),
-                       .T1(s_logisimBus66[10]),
-                       .T2(s_logisimBus66[11]),
-                       .T3(s_logisimBus66[12]),
-                       .T4(s_logisimBus66[13]),
-                       .T5(s_logisimBus66[14]),
-                       .T6(s_logisimBus66[15]),
-                       .T7(s_logisimBus66[16]));
-
+                       .PAR(s_logisimBus66[17]), //inout
+                       .R(s_logisimBus15[15:8]), //inout
+                       .T(s_logisimBus66[16:9])  //inout                      
+                       );
+*/
 endmodule

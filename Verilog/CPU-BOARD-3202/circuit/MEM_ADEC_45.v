@@ -1,10 +1,13 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : MEM_ADEC_45                                                  **
- **                                                                          **
- *****************************************************************************/
+ /**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** MEM/ADEC                                                              **
+** ADDRESS DECODERS                                                      **
+** SHEET 45 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 21-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
+
 
 module MEM_ADEC_45( BANK_2_0,
                     BD19_n,
@@ -224,7 +227,8 @@ module MEM_ADEC_45( BANK_2_0,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   PAL_16R8D   PAL_44904_UMSIZE (.CK(s_logisimNet27),
+/* TODO:
+   PAL_44904B   PAL_44904_UMSIZE (.CK(s_logisimNet27),
                                  .I0(s_logisimNet42),
                                  .I1(s_logisimNet41),
                                  .I2(s_logisimNet51),
@@ -280,5 +284,5 @@ module MEM_ADEC_45( BANK_2_0,
                            .Q1_n(s_logisimNet37),
                            .Q2_n(s_logisimNet10),
                            .Q3_n(s_logisimNet38));
-
+*/
 endmodule

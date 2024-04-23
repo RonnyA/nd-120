@@ -1,91 +1,73 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : MEM_RAMC_50                                                  **
- **                                                                          **
- *****************************************************************************/
+ /**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** MEM/RAMC                                                              **
+** LOCAL RAM CONTROL                                                     **
+** SHEET 50 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 21-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module MEM_RAMC_50( BDAP50_n,
-                    BDRY50_n,
-                    BGNT25,
-                    BGNT25_n,
-                    BGNT_n,
-                    BLRQ50_n,
-                    CAS,
-                    CGNT25_n,
-                    CGNT_n,
-                    CLRQ_n,
-                    HIEN_n,
-                    LOEN_n,
-                    MR_n,
-                    OSC,
-                    PD1,
-                    PD3,
-                    QD_n,
-                    RAS,
-                    RGNT_n,
-                    RLRQ_n,
-                    SEMRQ50_n,
-                    SSEMA_n,
-                    logisimOutputBubbles );
+// TODO: Connect PAL chips
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input BDAP50_n;
-   input BDRY50_n;
-   input BGNT25_n;
-   input BLRQ50_n;
-   input CGNT25_n;
-   input CLRQ_n;
-   input MR_n;
-   input OSC;
-   input PD1;
-   input PD3;
-   input RLRQ_n;
-   input SEMRQ50_n;
-   input SSEMA_n;
+module MEM_RAMC_50(
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output       BGNT25;
-   output       BGNT_n;
-   output       CAS;
-   output       CGNT_n;
-   output       HIEN_n;
-   output       LOEN_n;
-   output       QD_n;
-   output       RAS;
-   output       RGNT_n;
-   output [1:0] logisimOutputBubbles;
+   // Input signals
+   input BDAP50_n,
+   input BDRY50_n,
+   input BGNT25_n,
+   input BLRQ50_n,
+   input CGNT25_n,
+   input CLRQ_n,
+   input MR_n,
+   input OSC,
+   input PD1,
+   input PD3,
+   input RLRQ_n,
+   input SEMRQ50_n,
+   input SSEMA_n,
+
+   // Output signals
+
+   output       BGNT25,
+   output       BGNT_n,
+   output       CAS,
+   output       CGNT_n,
+   output       HIEN_n,
+   output       LOEN_n,
+   output       QD_n,
+   output       RAS,
+   output       RGNT_n,
+   output       LED_CPU_GI, //LED_CPU_GRANT_INDICATOR,
+   output       LED_BUS_GI //LED_BUS_GRANT_INDICATOR
+);
+
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire s_logisimNet0;
-   wire s_logisimNet1;
-   wire s_logisimNet10;
-   wire s_logisimNet11;
-   wire s_logisimNet12;
-   wire s_logisimNet13;
-   wire s_logisimNet14;
-   wire s_logisimNet15;
-   wire s_logisimNet16;
-   wire s_logisimNet17;
-   wire s_logisimNet18;
-   wire s_logisimNet19;
-   wire s_logisimNet2;
-   wire s_logisimNet20;
-   wire s_logisimNet21;
-   wire s_logisimNet3;
-   wire s_logisimNet4;
-   wire s_logisimNet5;
-   wire s_logisimNet6;
-   wire s_logisimNet7;
-   wire s_logisimNet8;
-   wire s_logisimNet9;
+   wire s_loen_n;
+   wire s_bgnt_n;
+   wire s_rgnt_n;
+   wire s_mr_n;
+   wire s_bgnt25;
+   wire s_hien_n;
+   wire s_qd_n;
+   wire s_ras;
+   wire s_cas;
+   wire s_ssema_n;
+   wire s_semrq50_n;
+   wire s_rlrq_n;
+   wire s_bdap50_n;
+   wire s_clrq_n;
+   wire s_blrq50_n;
+   wire s_pd1;
+   wire s_cgnt_n;
+   wire s_osc;
+   wire s_cgnt25_n;
+   wire s_bdry50_n;
+   wire s_pd3;
+   wire s_bgnt25_n;
 
    /*******************************************************************************
    ** The module functionality is described here                                 **
@@ -94,83 +76,94 @@ module MEM_RAMC_50( BDAP50_n,
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimNet11 = MR_n;
-   assign s_logisimNet17 = SSEMA_n;
-   assign s_logisimNet18 = SEMRQ50_n;
-   assign s_logisimNet19 = RLRQ_n;
-   assign s_logisimNet2  = BDAP50_n;
-   assign s_logisimNet20 = CLRQ_n;
-   assign s_logisimNet21 = BLRQ50_n;
-   assign s_logisimNet3  = PD1;
-   assign s_logisimNet5  = OSC;
-   assign s_logisimNet6  = CGNT25_n;
-   assign s_logisimNet7  = BDRY50_n;
-   assign s_logisimNet8  = PD3;
-   assign s_logisimNet9  = BGNT25_n;
+   assign s_mr_n        = MR_n;
+   assign s_ssema_n     = SSEMA_n;
+   assign s_semrq50_n   = SEMRQ50_n;
+   assign s_rlrq_n      = RLRQ_n;
+   assign s_bdap50_n    = BDAP50_n;
+   assign s_clrq_n      = CLRQ_n;
+   assign s_blrq50_n    = BLRQ50_n;
+   assign s_pd1         = PD1;
+   assign s_osc         = OSC;
+   assign s_cgnt25_n    = CGNT25_n;
+   assign s_bdry50_n    = BDRY50_n;
+   assign s_pd3         = PD3;
+   assign s_bgnt25_n    = BGNT25_n;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign BGNT25 = s_logisimNet12;
-   assign BGNT_n = s_logisimNet1;
-   assign CAS    = s_logisimNet16;
-   assign CGNT_n = s_logisimNet4;
-   assign HIEN_n = s_logisimNet13;
-   assign LOEN_n = s_logisimNet0;
-   assign QD_n   = s_logisimNet14;
-   assign RAS    = s_logisimNet15;
-   assign RGNT_n = s_logisimNet10;
+   assign BGNT25 = s_bgnt25;
+   assign BGNT_n = s_bgnt_n;
+   assign CAS    = s_cas;
+   assign CGNT_n = s_cgnt_n;
+   assign HIEN_n = s_hien_n;
+   assign LOEN_n = s_loen_n;
+   assign QD_n   = s_qd_n;
+   assign RAS    = s_ras;
+   assign RGNT_n = s_rgnt_n;
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
    // LED: CPU_GRANT_INDICATOR
-   assign logisimOutputBubbles[0] = s_logisimNet4;
+   assign LED_CPU_GI = s_cgnt_n;
 
    // LED: BUS_GRANT_INDICATOR
-   assign logisimOutputBubbles[1] = s_logisimNet1;
+   assign LED_BUS_GI= s_bgnt_n;
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   PAL_16R8D   PAL_44803_URAMA (.CK(s_logisimNet5),
-                                .I0(s_logisimNet0),
-                                .I1(s_logisimNet19),
-                                .I2(s_logisimNet11),
-                                .I3(s_logisimNet20),
-                                .I4(s_logisimNet21),
-                                .I5(s_logisimNet17),
-                                .I6(s_logisimNet18),
-                                .I7(1'b0),
-                                .OE_n(s_logisimNet3),
-                                .Q0_n(s_logisimNet10),
-                                .Q1_n(s_logisimNet4),
-                                .Q2_n(s_logisimNet1),
-                                .Q3_n(),
-                                .Q4_n(),
-                                .Q5_n(),
-                                .Q6_n(),
-                                .Q7_n(s_logisimNet12));
 
-   PAL_16R8D   PAL_44902_URAMC (.CK(s_logisimNet5),
-                                .I0(s_logisimNet10),
-                                .I1(s_logisimNet4),
-                                .I2(s_logisimNet1),
-                                .I3(s_logisimNet2),
-                                .I4(s_logisimNet11),
-                                .I5(s_logisimNet9),
-                                .I6(s_logisimNet6),
-                                .I7(s_logisimNet7),
-                                .OE_n(s_logisimNet8),
-                                .Q0_n(),
-                                .Q1_n(),
-                                .Q2_n(),
-                                .Q3_n(s_logisimNet14),
-                                .Q4_n(s_logisimNet15),
-                                .Q5_n(s_logisimNet16),
-                                .Q6_n(s_logisimNet0),
-                                .Q7_n(s_logisimNet13));
+
+   PAL_44803A  PAL_44803_URAMA (
+                                 .CK(s_osc),
+                                 .OE_n(s_pd1),
+
+                                 .LOEN_n(s_loen_n),         // I0 - LOEN_n
+                                 .RLRQ_n(s_rlrq_n),         // I1 - RLRQ_n
+                                 .MR_n(s_mr_n),             // I2 - MR_n
+                                 .CLRQ_n(s_clrq_n),         // I3 - CLRQ_n
+                                 .BLRQ50_n(s_blrq50_n),     // I4 - BLRQ50_n
+                                 .SSEMA_n(s_ssema_n),       // I5 - SSEMA_n
+                                 .SEMRQ50_n(s_semrq50_n),   // I6 - SEMRQ50_n
+                                 //.I7(1'b0),               // I7 - (not connected)
+                                
+                                 .RGNT_n(s_rgnt_n),         // Q0_n - RGNT_n
+                                 .CGNT_n(s_cgnt_n),         // Q1_n - CGNT_n
+                                 .BGNT_n(s_bgnt_n),         // Q2_n - BGNT_n
+                                 .LOEN25_n(),               // Q3_n - LOEN25_n (n.c.)   
+                                 .LDR_n(),                  // Q4_n - LDR_n (n.c.)
+                                 .CSEM_n(),                 // Q5_n - CSEM_n (n.c.)
+                                 .BSEM_n(),                 // Q6_n - BSEM_n (n.c.)
+                                 .BCGNT25(s_bgnt25)         // Q7_n - BCGNT25
+   );
+
+    PAL_44902A PAL_44902_URAMC (
+                                 .CK(s_osc),
+                                 .OE_n(s_pd3),
+
+                                 .RGNT_n(s_rgnt_n),      // I0 - RGNT_n
+                                 //.CGNT_n(s_cgnt_n),    // I1 - CGNT_n (NOT USED!!)
+                                 //.BGNT_n(s_bgnt_n),    // I2 - BGNT_n (NOT USED!!)
+                                 .BDAP50_n(s_bdap50_n),  // I3 - BDAP50_n
+                                 .MR_n(s_mr_n),          // I4 - MR_n
+                                 .BGNT25_n(s_bgnt25_n),  // I5 - BGNT25_n
+                                 .CGNT25_n(s_cgnt25_n),  // I6 - CGNT25_n
+                                 .BDRY50_n(s_bdry50_n),  // I7 - BDRY50_n
+                                
+                                 .QA_n(),                // QA_n - not connected
+                                 .QB_n(),                // QB_n - not connected
+                                 .QC_n(),                // QC_n - not connected
+                                 .QD_n(s_qd_n),          // Q3_n - QD_n
+                                 .RAS(s_ras),            // Q4_n - RAS
+                                 .CAS(s_cas),            // Q5_n - CAS
+                                 .LOEN_n(s_loen_n),      // Q6_n - LOEN_n
+                                 .HIEN_n(s_hien_n)       // Q7_n - HIEN_n
+    );
+
 
 endmodule

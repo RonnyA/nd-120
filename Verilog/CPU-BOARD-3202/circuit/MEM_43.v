@@ -1,120 +1,87 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : MEM_43                                                       **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** MEM                                                                   **
+** MEMORY TOP LEVEL                                                      **
+** SHEET 43 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 21-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module MEM_43( BDAP50_n,
-               BDRY50_n,
-               BDRY_n,
-               BD_23_19_n,
-               BGNT50_n,
-               BGNT_n,
-               BIOXE_n,
-               BMEM_n,
-               CGNT50_n,
-               CGNT_n,
-               CRQ_n,
-               DBAPR,
-               ECCR,
-               ECREQ,
-               FETCH,
-               GNT50_n,
-               GNT_n,
-               IBINPUT_n,
-               IDB_15_0,
-               IORQ_n,
-               LBD_15_0_io,
-               LBD_23_16,
-               LERR_n,
-               LPERR_n,
-               MOFF_n,
-               MOR25_n,
-               MOR_n,
-               MR_n,
-               MWRITE_n,
-               OSC,
-               PA_n,
-               PD1,
-               PD3,
-               PD4,
-               PPN_23_19,
-               PS_n,
-               REFRQ_n,
-               REF_n,
-               RERR_n,
-               SEMRQ50_n,
-               SSEMA_n,
-               WRITE,
-               logisimOutputBubbles );
+module MEM_43( 
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        BDAP50_n;
-   input        BDRY50_n;
-   input [4:0]  BD_23_19_n;
-   input        BIOXE_n;
-   input        BMEM_n;
-   input        DBAPR;
-   input        ECCR;
-   input        ECREQ;
-   input        FETCH;
-   input        GNT_n;
-   input        IBINPUT_n;
-   input        IORQ_n;
-   input [15:0] LBD_15_0_io;
-   input [7:0]  LBD_23_16;
-   input        MOR_n;
-   input        MR_n;
-   input        OSC;
-   input        PA_n;
-   input        PD1;
-   input        PD3;
-   input        PD4;
-   input [4:0]  PPN_23_19;
-   input        PS_n;
-   input        REFRQ_n;
-   input        REF_n;
-   input        RERR_n;
-   input        SEMRQ50_n;
-   input        SSEMA_n;
-   input        WRITE;
+   // Input signals
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output        BDRY_n;
-   output        BGNT50_n;
-   output        BGNT_n;
-   output        CGNT50_n;
-   output        CGNT_n;
-   output        CRQ_n;
-   output        GNT50_n;
-   output [15:0] IDB_15_0;
-   output        LERR_n;
-   output        LPERR_n;
-   output        MOFF_n;
-   output        MOR25_n;
-   output        MWRITE_n;
-   output [2:0]  logisimOutputBubbles;
+   input sysclk,      // System clock in FPGA
+   input sys_rst_n,   // System reset in FPGA
+
+   input        BDAP50_n,
+   input        BDRY50_n,
+   input [4:0]  BD_23_19_n,
+   input        BIOXE_n,
+   input        BMEM_n,
+   input        DBAPR,
+   input        ECCR,
+   input        ECREQ,
+   input        FETCH,
+   input        GNT_n,
+   input        IBINPUT_n,
+   input        IORQ_n,
+   input [23:0] LBD_23_0_IN,
+   input [23:0] LBD_23_0_OUT,   
+   input        MOR_n,
+   input        MR_n,
+   input        OSC,
+   input        PA_n,
+   input        PD1,
+   input        PD3,
+   input        PD4,
+   input [4:0]  PPN_23_19,
+   input        PS_n,
+   input        REFRQ_n,
+   input        REF_n,
+   input        RERR_n,
+   input        SEMRQ50_n,
+   input        SSEMA_n,
+   input        WRITE,
+
+  
+   // Output signals
+  
+   output        BDRY_n,
+   output        BGNT50_n,
+   output        BGNT_n,
+   output        CGNT50_n,
+   output        CGNT_n,
+   output        CRQ_n,
+   output        GNT50_n,
+   output [15:0] IDB_15_0_OUT,
+   output        LERR_n,
+   output        LPERR_n,
+   output        MOFF_n,
+   output        MOR25_n,
+   output        MWRITE_n,
+   output        LED4,               // LED4_RED_PARITY_ERROR
+   output        LED_CPU_GI,         // LED_CPU_GRANT_INDICATOR
+   output        LED_BUS_GI          // LED_BUS_GRANT_INDICATOR
+);
+ 
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
    wire [4:0]  s_logisimBus101;
-   wire [4:0]  s_logisimBus104;
-   wire [7:0]  s_logisimBus12;
-   wire [17:0] s_logisimBus15;
-   wire [9:0]  s_logisimBus46;
+   wire [4:0]  s_logisimBus104;   
+   wire [17:0] s_dd_17_0_in;
+   wire [17:0] s_dd_17_0_out;
+   wire [9:0]  s_aa_9_0;
    wire [17:0] s_logisimBus71;
-   wire [15:0] s_logisimBus72;
-   wire [19:0] s_logisimBus82;
-   wire [2:0]  s_logisimBus88;
+   wire [23:0] s_lbd_23_0_in;   // RAM DATA 16 bits
+   wire [23:0] s_lbd_23_0_out;  // RAM DATA 16 bits
+   wire [19:0] s_lbd_19_0;
+   wire [2:0]  s_bank_2_0;
    wire [23:0] s_logisimBus9;
-   wire [15:0] s_logisimBus97;
+   wire [15:0] s_idb_15_0_out;
    wire        s_logisimNet0;
    wire        s_logisimNet1;
    wire        s_logisimNet10;
@@ -214,90 +181,15 @@ module MEM_43( BDAP50_n,
    wire        s_logisimNet96;
    wire        s_logisimNet98;
    wire        s_logisimNet99;
-
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
-   /*******************************************************************************
-   ** Here all wiring is defined                                                 **
-   *******************************************************************************/
-   assign s_logisimBus82[0]  = s_logisimNet17;
-   assign s_logisimBus82[10] = s_logisimNet8;
-   assign s_logisimBus82[11] = s_logisimNet42;
-   assign s_logisimBus82[12] = s_logisimNet20;
-   assign s_logisimBus82[13] = s_logisimNet56;
-   assign s_logisimBus82[14] = s_logisimNet4;
-   assign s_logisimBus82[15] = s_logisimNet38;
-   assign s_logisimBus82[16] = s_logisimNet21;
-   assign s_logisimBus82[17] = s_logisimNet57;
-   assign s_logisimBus82[18] = s_logisimNet5;
-   assign s_logisimBus82[19] = s_logisimNet39;
-   assign s_logisimBus82[1]  = s_logisimNet53;
-   assign s_logisimBus82[2]  = s_logisimNet6;
-   assign s_logisimBus82[3]  = s_logisimNet40;
-   assign s_logisimBus82[4]  = s_logisimNet18;
-   assign s_logisimBus82[5]  = s_logisimNet54;
-   assign s_logisimBus82[6]  = s_logisimNet7;
-   assign s_logisimBus82[7]  = s_logisimNet41;
-   assign s_logisimBus82[8]  = s_logisimNet19;
-   assign s_logisimBus82[9]  = s_logisimNet55;
-   assign s_logisimBus9[0]   = s_logisimNet17;
-   assign s_logisimBus9[10]  = s_logisimNet8;
-   assign s_logisimBus9[11]  = s_logisimNet42;
-   assign s_logisimBus9[12]  = s_logisimNet20;
-   assign s_logisimBus9[13]  = s_logisimNet56;
-   assign s_logisimBus9[14]  = s_logisimNet4;
-   assign s_logisimBus9[15]  = s_logisimNet38;
-   assign s_logisimBus9[16]  = s_logisimNet21;
-   assign s_logisimBus9[17]  = s_logisimNet57;
-   assign s_logisimBus9[18]  = s_logisimNet5;
-   assign s_logisimBus9[19]  = s_logisimNet39;
-   assign s_logisimBus9[1]   = s_logisimNet53;
-   assign s_logisimBus9[20]  = s_logisimNet78;
-   assign s_logisimBus9[21]  = s_logisimNet106;
-   assign s_logisimBus9[22]  = s_logisimNet16;
-   assign s_logisimBus9[23]  = s_logisimNet52;
-   assign s_logisimBus9[2]   = s_logisimNet6;
-   assign s_logisimBus9[3]   = s_logisimNet40;
-   assign s_logisimBus9[4]   = s_logisimNet18;
-   assign s_logisimBus9[5]   = s_logisimNet54;
-   assign s_logisimBus9[6]   = s_logisimNet7;
-   assign s_logisimBus9[7]   = s_logisimNet41;
-   assign s_logisimBus9[8]   = s_logisimNet19;
-   assign s_logisimBus9[9]   = s_logisimNet55;
-   assign s_logisimNet106    = s_logisimBus12[5];
-   assign s_logisimNet16     = s_logisimBus12[6];
-   assign s_logisimNet17     = s_logisimBus72[0];
-   assign s_logisimNet18     = s_logisimBus72[4];
-   assign s_logisimNet19     = s_logisimBus72[8];
-   assign s_logisimNet20     = s_logisimBus72[12];
-   assign s_logisimNet21     = s_logisimBus12[0];
-   assign s_logisimNet38     = s_logisimBus72[15];
-   assign s_logisimNet39     = s_logisimBus12[3];
-   assign s_logisimNet4      = s_logisimBus72[14];
-   assign s_logisimNet40     = s_logisimBus72[3];
-   assign s_logisimNet41     = s_logisimBus72[7];
-   assign s_logisimNet42     = s_logisimBus72[11];
-   assign s_logisimNet5      = s_logisimBus12[2];
-   assign s_logisimNet52     = s_logisimBus12[7];
-   assign s_logisimNet53     = s_logisimBus72[1];
-   assign s_logisimNet54     = s_logisimBus72[5];
-   assign s_logisimNet55     = s_logisimBus72[9];
-   assign s_logisimNet56     = s_logisimBus72[13];
-   assign s_logisimNet57     = s_logisimBus12[1];
-   assign s_logisimNet6      = s_logisimBus72[2];
-   assign s_logisimNet7      = s_logisimBus72[6];
-   assign s_logisimNet78     = s_logisimBus12[4];
-   assign s_logisimNet8      = s_logisimBus72[10];
+  
+  
 
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
    assign s_logisimBus101[4:0] = BD_23_19_n;
    assign s_logisimBus104[4:0] = PPN_23_19;
-   assign s_logisimBus12[7:0]  = LBD_23_16;
-   assign s_logisimBus72[15:0] = LBD_15_0_io;
+   assign s_lbd_23_0_in[23:0]  = LBD_23_0_IN;   
    assign s_logisimNet100      = IBINPUT_n;
    assign s_logisimNet102      = PD3;
    assign s_logisimNet103      = DBAPR;
@@ -334,7 +226,7 @@ module MEM_43( BDAP50_n,
    assign CGNT_n   = s_logisimNet107;
    assign CRQ_n    = s_logisimNet109;
    assign GNT50_n  = s_logisimNet32;
-   assign IDB_15_0 = s_logisimBus97[15:0];
+   assign IDB_15_0_OUT = s_idb_15_0_out[15:0];
    assign LERR_n   = s_logisimNet44;
    assign LPERR_n  = s_logisimNet60;
    assign MOFF_n   = s_logisimNet59;
@@ -345,7 +237,7 @@ module MEM_43( BDAP50_n,
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   MEM_ADEC_45   ADEC (.BANK_2_0(s_logisimBus88[2:0]),
+   MEM_ADEC_45   ADEC (.BANK_2_0(s_bank_2_0[2:0]),
                        .BD19_n(s_logisimBus101[0]),
                        .BD20_n(s_logisimBus101[1]),
                        .BD21_n(s_logisimBus101[2]),
@@ -410,11 +302,12 @@ module MEM_43( BDAP50_n,
 
    MEM_DATA_46   DATA (.BCGNT50R_n(s_logisimNet29),
                        .BIOXL_n(s_logisimNet11),
-                       .DD_17_0_io(s_logisimBus71[17:0]),
+                       .DD_17_0_OUT(s_logisimBus71[17:0]),
                        .ECCR(s_logisimNet75),
                        .HIEN_n(s_logisimNet80),
                        .HIERR(s_logisimNet83),
-                       .LBD_15_0_io(s_logisimBus72[15:0]),
+                       .LBD_15_0_IN(s_lbd_23_0_in[15:0]),
+                       .LBD_15_0_OUT(s_lbd_23_0_out[15:0]),
                        .LERR_n(s_logisimNet44),
                        .LOERR(s_logisimNet27),
                        .LPERR_n(s_logisimNet60),
@@ -423,7 +316,8 @@ module MEM_43( BDAP50_n,
                        .PA_n(s_logisimNet28),
                        .QD_n(s_logisimNet33),
                        .RDATA(s_logisimNet10),
-                       .logisimOutputBubbles(logisimOutputBubbles[0 : 0]));
+                       .LED4(LED4)
+                );
 
    MEM_ERROR_47   ERROR (.BCGNT50(s_logisimNet24),
                          .BLOCKL25(s_logisimNet14),
@@ -432,8 +326,8 @@ module MEM_43( BDAP50_n,
                          .CORR_n(s_logisimNet105),
                          .FETCH(s_logisimNet92),
                          .HIERR(s_logisimNet83),
-                         .IDB_15_0(s_logisimBus97[15:0]),
-                         .LBD_23_0(s_logisimBus9[23:0]),
+                         .IDB_15_0_OUT(s_idb_15_0_out[15:0]),
+                         .LBD_23_0_IN(s_lbd_23_0_in[23:0]),
                          .LERR_n(s_logisimNet44),
                          .LOERR(s_logisimNet27),
                          .MR_n(s_logisimNet84),
@@ -465,22 +359,28 @@ module MEM_43( BDAP50_n,
                        .RLRQ_n(s_logisimNet45),
                        .SEMRQ50_n(s_logisimNet50),
                        .SSEMA_n(s_logisimNet61),
-                       .logisimOutputBubbles(logisimOutputBubbles[2 : 1]));
+                       .LED_CPU_GI(LED_CPU_GI),
+                       .LED_BUS_GI(LED_BUS_GI)
+                       );
 
-   MEM_ADDR_44   ADDR (.AA_9_0(s_logisimBus46[9:0]),
+   MEM_ADDR_44   ADDR (.AA_9_0(s_aa_9_0[9:0]),
                        .BCGNT50(s_logisimNet24),
                        .HIEN_n(s_logisimNet80),
-                       .LBD_19_0(s_logisimBus82[19:0]),
+                       .LBD_19_0(s_lbd_23_0_in[19:0]),
                        .LOEN_n(s_logisimNet69),
                        .PD4(s_logisimNet98));
 
-   MEM_RAM_49   RAM (.AA_9_0(s_logisimBus46[9:0]),
-                     .BANK0(s_logisimBus88[0]),
-                     .BANK1(s_logisimBus88[1]),
-                     .BANK2(s_logisimBus88[2]),
+   MEM_RAM_49   RAM (
+                     .sysclk(sysclk),
+                     .sys_rst_n(sys_rst_n), 
+                     .AA_9_0(s_aa_9_0[9:0]),
+                     .BANK0(s_bank_2_0[0]),
+                     .BANK1(s_bank_2_0[1]),
+                     .BANK2(s_bank_2_0[2]),
                      .CAS(s_logisimNet43),
                      .CORR_n(s_logisimNet105),
-                     .DD_17_0_io(s_logisimBus15[17:0]),
+                     .DD_17_0_IN(s_dd_17_0_in[17:0]),
+                     .DD_17_0_OUT(s_dd_17_0_out[17:0]), //TODO: Connect
                      .MWRITE50_n(s_logisimNet62),
                      .RAS(s_logisimNet81));
 

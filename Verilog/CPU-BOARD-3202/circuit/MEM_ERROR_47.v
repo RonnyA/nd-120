@@ -1,281 +1,157 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : MEM_ERROR_47                                                 **
- **                                                                          **
- *****************************************************************************/
+ /**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** MEM/ERROR                                                             **
+** LOCAL PES & PEA                                                       **
+** SHEET 47 of 50                                                        **
+**                                                                       ** 
+** Last reviewed: 21-APRIL-2024                                          **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module MEM_ERROR_47( BCGNT50,
-                     BLOCKL25,
-                     BLOCKL_n,
-                     CGNT50_n,
-                     CORR_n,
-                     FETCH,
-                     HIERR,
-                     IDB_15_0,
-                     LBD_23_0,
-                     LERR_n,
-                     LOERR,
-                     MR_n,
-                     PA_n,
-                     PD4,
-                     PS_n,
-                     RDATA25,
-                     RERR_n );
+module MEM_ERROR_47( 
+   
+   // Input signals
+   
+   input        BCGNT50,
+   input        BLOCKL25,
+   input        CGNT50_n,
+   input        CORR_n,
+   input        FETCH,
+   input        HIERR,
+   input [23:0] LBD_23_0_IN,
+   input        LERR_n,
+   input        LOERR,
+   input        MR_n,
+   input        PA_n,
+   input        PD4,
+   input        PS_n,
+   input        RDATA25,
+   input        RERR_n,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        BCGNT50;
-   input        BLOCKL25;
-   input        CGNT50_n;
-   input        CORR_n;
-   input        FETCH;
-   input        HIERR;
-   input [23:0] LBD_23_0;
-   input        LERR_n;
-   input        LOERR;
-   input        MR_n;
-   input        PA_n;
-   input        PD4;
-   input        PS_n;
-   input        RDATA25;
-   input        RERR_n;
+   // Output signals
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output        BLOCKL_n;
-   output [15:0] IDB_15_0;
+   output        BLOCKL_n,
+   output [15:0] IDB_15_0_OUT
+   );
+
+
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [15:0] s_logisimBus16;
-   wire [23:0] s_logisimBus17;
-   wire [15:0] s_logisimBus31;
-   wire        s_logisimNet1;
-   wire        s_logisimNet10;
-   wire        s_logisimNet11;
-   wire        s_logisimNet12;
-   wire        s_logisimNet13;
-   wire        s_logisimNet14;
-   wire        s_logisimNet15;
-   wire        s_logisimNet18;
-   wire        s_logisimNet19;
-   wire        s_logisimNet2;
-   wire        s_logisimNet20;
-   wire        s_logisimNet21;
-   wire        s_logisimNet22;
-   wire        s_logisimNet23;
-   wire        s_logisimNet24;
-   wire        s_logisimNet25;
-   wire        s_logisimNet26;
-   wire        s_logisimNet27;
-   wire        s_logisimNet28;
-   wire        s_logisimNet29;
-   wire        s_logisimNet3;
-   wire        s_logisimNet30;
-   wire        s_logisimNet32;
-   wire        s_logisimNet33;
-   wire        s_logisimNet34;
-   wire        s_logisimNet35;
-   wire        s_logisimNet36;
-   wire        s_logisimNet37;
-   wire        s_logisimNet38;
-   wire        s_logisimNet39;
-   wire        s_logisimNet4;
-   wire        s_logisimNet40;
-   wire        s_logisimNet42;
-   wire        s_logisimNet45;
-   wire        s_logisimNet46;
-   wire        s_logisimNet47;
-   wire        s_logisimNet48;
-   wire        s_logisimNet49;
-   wire        s_logisimNet5;
-   wire        s_logisimNet50;
-   wire        s_logisimNet51;
-   wire        s_logisimNet52;
-   wire        s_logisimNet54;
-   wire        s_logisimNet55;
-   wire        s_logisimNet56;
-   wire        s_logisimNet57;
-   wire        s_logisimNet59;
-   wire        s_logisimNet6;
-   wire        s_logisimNet60;
-   wire        s_logisimNet61;
-   wire        s_logisimNet62;
-   wire        s_logisimNet63;
-   wire        s_logisimNet64;
-   wire        s_logisimNet65;
-   wire        s_logisimNet66;
-   wire        s_logisimNet67;
-   wire        s_logisimNet68;
-   wire        s_logisimNet69;
-   wire        s_logisimNet7;
-   wire        s_logisimNet70;
-   wire        s_logisimNet71;
-   wire        s_logisimNet72;
-   wire        s_logisimNet73;
-   wire        s_logisimNet74;
-   wire        s_logisimNet75;
-   wire        s_logisimNet76;
-   wire        s_logisimNet77;
-   wire        s_logisimNet78;
-   wire        s_logisimNet79;
-   wire        s_logisimNet8;
-   wire        s_logisimNet80;
-   wire        s_logisimNet81;
-   wire        s_logisimNet83;
-   wire        s_logisimNet84;
-   wire        s_logisimNet85;
-   wire        s_logisimNet86;
-   wire        s_logisimNet87;
-   wire        s_logisimNet9;
+   wire [15:0] s_pea_idb_15_0_out;
+   wire [23:0] s_lbd_23_0;
+   wire [15:0] s_pes_idb_15_0_out;
+   wire        s_ps_n;
+   wire        s_spesl;
+   wire        s_blockl25;
+   wire        s_pa_n;
+   wire        s_lerr_n;
+   wire        s_mr_n;
+   wire        s_speal;
+   wire        s_epesl_n;
+   wire        s_cgnt50_n;
+   wire        s_corr_n;
+   wire        s_loerr;
+   wire        s_epeal_n;
+   wire        s_pd4;
+   wire        s_rdata25;
+   wire        s_bcgnt50;
+   wire        s_rerr_n;
+   wire        s_blockl_n;
+   wire        s_fetch;
+   wire        s_hierr;
+   wire        s_power;
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
 
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus17[23:0] = LBD_23_0;
-   assign s_logisimNet10       = PS_n;
-   assign s_logisimNet12       = BLOCKL25;
-   assign s_logisimNet13       = PA_n;
-   assign s_logisimNet14       = LERR_n;
-   assign s_logisimNet15       = MR_n;
-   assign s_logisimNet24       = CGNT50_n;
-   assign s_logisimNet25       = CORR_n;
-   assign s_logisimNet26       = LOERR;
-   assign s_logisimNet59       = PD4;
-   assign s_logisimNet60       = RDATA25;
-   assign s_logisimNet61       = BCGNT50;
-   assign s_logisimNet62       = RERR_n;
-   assign s_logisimNet68       = FETCH;
-   assign s_logisimNet69       = HIERR;
+   assign s_lbd_23_0[23:0] = LBD_23_0_IN;
+   assign s_ps_n           = PS_n;
+   assign s_blockl25       = BLOCKL25;
+   assign s_pa_n           = PA_n;
+   assign s_lerr_n         = LERR_n;
+   assign s_mr_n           = MR_n;
+   assign s_cgnt50_n       = CGNT50_n;
+   assign s_corr_n         = CORR_n;
+   assign s_loerr          = LOERR;
+   assign s_pd4            = PD4;
+   assign s_rdata25        = RDATA25;
+   assign s_bcgnt50        = BCGNT50;
+   assign s_rerr_n         = RERR_n;
+   assign s_fetch          = FETCH;
+   assign s_hierr          = HIERR;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign BLOCKL_n = s_logisimNet67;
-   assign IDB_15_0 = s_logisimBus16[15:0];
+   assign BLOCKL_n         = s_blockl_n;
+
+   // OR together two 16-bit values (maybe use logic to detect which signal to use?)
+   assign IDB_15_0_OUT     = s_pea_idb_15_0_out[15:0] | s_pes_idb_15_0_out[15:0];   
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
    // Power
-   assign  s_logisimNet42  =  1'b1;
-
-
-   // Power
-   assign  s_logisimNet83  =  1'b1;
-
-
-   // Power
-   assign  s_logisimNet32  =  1'b1;
-
+   assign  s_power  =  1'b1;
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   TTL_74374   CHIP_3C_PESL_LO (.CK(s_logisimNet18),
-                                .D1(s_logisimBus17[23]),
-                                .D2(s_logisimBus17[22]),
-                                .D3(s_logisimBus17[21]),
-                                .D4(s_logisimBus17[20]),
-                                .D5(s_logisimBus17[19]),
-                                .D6(s_logisimBus17[18]),
-                                .D7(s_logisimBus17[17]),
-                                .D8(s_logisimBus17[16]),
-                                .OE_n(s_logisimNet23),
-                                .Q1(s_logisimBus31[7]),
-                                .Q2(s_logisimBus31[6]),
-                                .Q3(s_logisimBus31[5]),
-                                .Q4(s_logisimBus31[4]),
-                                .Q5(s_logisimBus31[3]),
-                                .Q6(s_logisimBus31[2]),
-                                .Q7(s_logisimBus31[1]),
-                                .Q8(s_logisimBus31[0]));
+   // PESL register
+   TTL_74374   CHIP_7C_PESL_HI (.CK(s_spesl),
+                                .D({s_fetch,s_cgnt50_n,s_power,s_power,s_power, s_corr_n,s_hierr,s_loerr}),
+                                .OE_n(s_epesl_n),
+                                .Q(s_pes_idb_15_0_out[15:8])
+                              );
 
-   PAL_16L8_12   PAL_45009_UERROR (.B0_n(s_logisimNet23),
-                                   .B1_n(s_logisimNet5),
-                                   .B2_n(s_logisimNet67),
-                                   .B3_n(),
-                                   .B4_n(),
-                                   .B5_n(),
-                                   .I0(s_logisimNet60),
-                                   .I1(s_logisimNet12),
-                                   .I2(s_logisimNet61),
-                                   .I3(s_logisimNet10),
-                                   .I4(s_logisimNet62),
-                                   .I5(s_logisimNet13),
-                                   .I6(s_logisimNet59),
-                                   .I7(s_logisimNet14),
-                                   .I8(1'b0),
-                                   .I9(s_logisimNet15),
-                                   .Y0_n(s_logisimNet11),
-                                   .Y1_n(s_logisimNet18));
+   TTL_74374   CHIP_3C_PESL_LO (.CK(s_speal),
+                                .D(s_lbd_23_0[23:16]),
+                                .OE_n(s_epesl_n),
+                                .Q(s_pes_idb_15_0_out[7:0])
+                                );
 
-   TTL_74374   CHIP_4C_PEAL_HI (.CK(s_logisimNet18),
-                                .D1(s_logisimBus17[15]),
-                                .D2(s_logisimBus17[14]),
-                                .D3(s_logisimBus17[13]),
-                                .D4(s_logisimBus17[12]),
-                                .D5(s_logisimBus17[11]),
-                                .D6(s_logisimBus17[10]),
-                                .D7(s_logisimBus17[9]),
-                                .D8(s_logisimBus17[8]),
-                                .OE_n(s_logisimNet5),
-                                .Q1(s_logisimBus16[15]),
-                                .Q2(s_logisimBus16[14]),
-                                .Q3(s_logisimBus16[13]),
-                                .Q4(s_logisimBus16[12]),
-                                .Q5(s_logisimBus16[11]),
-                                .Q6(s_logisimBus16[10]),
-                                .Q7(s_logisimBus16[9]),
-                                .Q8(s_logisimBus16[8]));
 
-   TTL_74374   CHIP_6D_PEAL_LO (.CK(s_logisimNet18),
-                                .D1(s_logisimBus17[7]),
-                                .D2(s_logisimBus17[6]),
-                                .D3(s_logisimBus17[5]),
-                                .D4(s_logisimBus17[4]),
-                                .D5(s_logisimBus17[3]),
-                                .D6(s_logisimBus17[2]),
-                                .D7(s_logisimBus17[1]),
-                                .D8(s_logisimBus17[0]),
-                                .OE_n(s_logisimNet5),
-                                .Q1(s_logisimBus16[7]),
-                                .Q2(s_logisimBus16[6]),
-                                .Q3(s_logisimBus16[5]),
-                                .Q4(s_logisimBus16[4]),
-                                .Q5(s_logisimBus16[3]),
-                                .Q6(s_logisimBus16[2]),
-                                .Q7(s_logisimBus16[1]),
-                                .Q8(s_logisimBus16[0]));
+   // PEAL register                                                              
+   TTL_74374   CHIP_4C_PEAL_HI (.CK(s_speal),
+                                .D(s_lbd_23_0[15:8]),
+                                .OE_n(s_epeal_n),
+                                .Q(s_pea_idb_15_0_out[15:8])
+                              );
 
-   TTL_74374   CHIP_7C_PESL_HI (.CK(s_logisimNet11),
-                                .D1(s_logisimNet68),
-                                .D2(s_logisimNet24),
-                                .D3(s_logisimNet32),
-                                .D4(s_logisimNet83),
-                                .D5(s_logisimNet42),
-                                .D6(s_logisimNet25),
-                                .D7(s_logisimNet69),
-                                .D8(s_logisimNet26),
-                                .OE_n(s_logisimNet23),
-                                .Q1(s_logisimBus31[15]),
-                                .Q2(s_logisimBus31[14]),
-                                .Q3(s_logisimBus31[13]),
-                                .Q4(s_logisimBus31[12]),
-                                .Q5(s_logisimBus31[11]),
-                                .Q6(s_logisimBus31[10]),
-                                .Q7(s_logisimBus31[9]),
-                                .Q8(s_logisimBus31[8]));
+   TTL_74374   CHIP_6D_PEAL_LO (.CK(s_speal),
+                                .D(s_lbd_23_0[7:0]),
+                                .OE_n(s_epeal_n),
+                                .Q(s_pea_idb_15_0_out[7:0])
+                                );
+
+   // Hardware patch via PAL 45009B                                
+
+   PAL_45009B   PAL_45009_UERROR ( 
+                                   .EPESL_n(s_epesl_n),           // B0_n - EPESL_n (clock to PEAL register)
+                                   .EPEAL_n(s_epeal_n),           // B1_n - EPEAL_n (/output enable to PEAL register)
+                                   .BLOCKL_n(s_blockl_n),         // B2_n - BLOCKL_n
+
+                                   .RDATA(s_rdata25),             // I0 - RDATA25 signal (doesnt match name)
+                                   .BLOCKL25_n(s_blockl25),       // I1 - BLOCKL25_n
+                                   .BCGNT50(s_bcgnt50),           // I2 - BCGNT50
+                                   .PS_n(s_ps_n),                 // I3 - PS_n
+                                   .RERR_n(s_rerr_n),             // I4 - RERR_n
+                                   .PA_n(s_pa_n),                 // I5 - PA_n
+                                   .TEST(s_pd4),                  // I6 - PD4
+                                   .LERR_n(s_lerr_n),             // I7 - LERR_n
+                                   //.I8(1'b0),                   // I8 - (not connected)
+                                   .MR_n(s_mr_n),                 // I9 - MR_n
+
+                                   .SPESL(s_spesl),        // Y0_n (OUT Only)
+                                   .SPEAL(s_speal)                   // Y1_n (OUT ONLY)
+                                   );
+
+
+
 
 endmodule
