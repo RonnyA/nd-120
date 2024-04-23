@@ -75,7 +75,7 @@ struct TestCase {
     uint16_t  IDB_15_0;
 
     uint16_t  CD_15_0_OUT;
-    uint16_t  IDB_15_0_OUT
+    uint16_t  IDB_15_0_OUT;
 
    /*******************************************************************************
    ** The outputs are defined here                                               **
@@ -132,7 +132,50 @@ int main(int argc, char **argv)
     int errCnt = 0;
 
     // Set defaults
+    top->CA10 =
+    top->CYD =
+    top->FETCH =
+    top->FMISS = false;
+     
 
+    top->CCLR_n =    
+    top->DT_n = 
+    top->DVACC_n = 
+    top->ECSR_n = 
+    top->EDO_n = 
+    top->EMCL_n = 
+    top->EMPID_n = 
+    top->EORF_n = 
+    top->ESTOF_n = 
+    top->ETRAP_n = 
+    top->FORM_n = 
+    top->IBINT10_n = 
+    top->IBINT11_n = 
+    top->IBINT12_n = 
+    top->IBINT13_n = 
+    top->IBINT15_n = 
+    top->IOXERR_n = 
+    top->LCS_n = 
+    top->MAP_n = 
+    top->MOR_n = 
+    top->MR_n = 
+    top->PAN_n = 
+    top->POWFAIL_n = 
+    top->RT_n = 
+    top->RWCS_n = 
+    top->STOC_n = 
+    top->TERM_n = 
+    top->WCHIM_n = 
+    top->PARERR_n = true;
+
+    top->PD1 =
+    top->PD2 = false;  // The PD pins must be low to make the circuit work
+    top->STP = 
+    top->SW1_CONSOLE = false;
+
+    top->UCLK  = 
+    top->WRFSTB  = 
+    top->WRITE = false;
     
 
     // Iterate through each test case
@@ -141,9 +184,13 @@ int main(int argc, char **argv)
 
 
 
-    for (int ck =0;ck<512;ck++)
+    top->MR_n = false; // MASTER RESET
+    for (int ck =0;ck<1024;ck++)
     {
         top->ALUCLK = top->MCLK = top->MACLK = top->CLK;
+
+        if (ck== 10)
+            top->MR_n = true; // MASTER RESET for 10 cycles
 
 
 #ifdef DO_TRACE        

@@ -2,7 +2,7 @@
 ** ND120 CPU, MM&M                                                       **
 ** CPU                                                                   **
 ** CPU TOP LEVEL                                                         **
-** SHEET 16 of 50                                                        **
+** SHEET 15 of 50                                                        **
 **                                                                       ** 
 ** Last reviewed: 15-APRIL-2024                                          **
 ** Ronny Hansen                                                          **               
@@ -11,6 +11,9 @@
 //TODO: Missing MMU, LAPA, STOC and IN/OUT SIGNAL ASSIGN MUST BE VALIDATED.
 
 module CPU_15( 
+
+   input sysclk, // System clock in FPGA
+   input sys_rst_n, // System reset in FPGA
 
    /*******************************************************************************
    ** The inputs are defined here                                                **
@@ -61,16 +64,16 @@ module CPU_15(
    input       UCLK,
    input       WCHIM_n,
    input       WRFSTB,
-   input       WRITE,
-   
+   input       WRITE,   
+   input [2:0]  SEL_TESTMUX, // Selects testmux signals to output on TEST_4_0
    /*******************************************************************************
    ** The signals with IN and OUT are defined here                               **
    *******************************************************************************/
 
-   input  [15:0] CD_15_0,
+   input  [15:0] CD_15_0_IN,
    output [15:0] CD_15_0_OUT,
 
-   input  [15:0] IDB_15_0,
+   input  [15:0] IDB_15_0_IN,
    output [15:0] IDB_15_0_OUT,
 
 
@@ -92,8 +95,9 @@ module CPU_15(
    output        TP1_INTRQ_n,
    output        TRAP,
    output        VEX,
-   output        LDEXM_n
-   
+   output        LDEXM_n,
+
+   output        LED1 // Cache enabled ?   
 );
 
    
@@ -104,107 +108,108 @@ module CPU_15(
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [13:0] s_logisimBus1;
-   wire [15:0] s_cd_15_0_OUT;
-   wire [3:0]  s_logisimBus16;
-   wire [63:0] s_logisimBus17;
-   wire [13:0] s_logisimBus18;
-   wire [4:0]  s_logisimBus19;
-   wire [9:0]  s_logisimBus22;
-   wire [15:0] s_IDB_15_0_proc_IN;
-   wire [15:0] s_IDB_15_0_proc_OUT;
-   wire [2:0]  s_logisimBus29;
-   wire [2:0]  s_logisimBus30;
-   wire [1:0]  s_logisimBus34;
-   wire [13:0] s_logisimBus46;
-   wire [15:0] s_logisimBus52;
-   wire [12:0] s_logisimBus56;
-   wire [10:0] s_logisimBus69;
-   wire [15:0] s_logisimBus7;
-   wire [15:0] s_logisimBus70;
-   wire [1:0]  s_logisimBus73;
-   wire [3:0]  s_logisimBus75;
-   wire [15:0] s_logisimBus84;
-   wire [12:0] s_logisimBus89;
+   wire [13:0] s_la_23_10;
+   wire [3:0]  s_lba_3_0;
+   wire [63:0] s_csbits;
+   wire [15:0] s_ppn_25_10;
+   wire [4:0]  s_test_4_0;
+   wire [9:0]  s_csca_9_0;
+   wire [2:0]  s_cc_3_1_n;   
+   wire [1:0]  s_rf_1_0;   
+   wire [15:0] s_pt_15_0;
+   wire [12:0] s_csa_12_0;
+   wire [10:0] s_ca_10_0;
+   wire [1:0]  s_pcr_1_0;
+   wire [3:0]  s_pil_3_0;
+   wire [12:0] s_lua_12_0;
+   wire [15:0] s_cd_15_0_in;
+   wire [15:0] s_cd_15_0_out;
+   wire [15:0] s_proc_IDB_15_0_in;
+   wire [15:0] s_proc_IDB_15_0_out;
+   wire [15:0] s_cs_IDB_15_0_in;
+   wire [15:0] s_cs_IDB_15_0_out;
    
-   
-   wire [15:0] s_IDB_15_0_cs_IN;
-   wire [15:0] s_IDB_15_0_cs_OUT;
+   wire        s_blcs_n;
+   wire        s_brk_n;
+   wire        s_rt_n;
+   wire        s_ewca_n;
+   wire        s_eorf_n;
+   wire        s_wcs_n;
+   wire        s_emcl_n;
+   wire        s_lapa_n;
+   wire        s_pan_n;
+   wire        s_aluclk;
+   wire        s_ibint13_n;
+   wire        s_cup;
+   wire        s_acond_n;
+   wire        s_mor_n;
+   wire        s_maclk;
+   wire        s_opclcs;
+   wire        s_trap;
+   wire        s_rrf_n;
+   wire        s_lcs_n;
+   wire        s_ibint15_n;
+   wire        s_pd2;
+   wire        s_powfail_n;
+   wire        s_term_n;
+   wire        s_map_n;
+   wire        s_etrap_n;
+   wire        s_wrfstb;
+   wire        s_mreq;
+   wire        s_wchim_n;
+   wire        s_lev0;
+   wire        s_ibint10_n;
+   wire        s_ibint12_n;
+   wire        s_stoc_n;
+   wire        s_cyd;
+   wire        s_tp1_intr1_n;
+   wire        s_bempid_n;
+   wire        s_sw1_console;
+   wire        s_empid_n;
+   wire        s_edo_n;
+   wire        s_cwr;
+   wire        s_rwcs_n;
+   wire        s_write;
+   wire        s_stp;
+   wire        s_ioxerr_n;
+   wire        s_parerr_n;
+   wire        s_ecsr_n;
+   wire        s_cc2_n;
+   wire        s_form_n;
+   wire        s_clk;
+   wire        s_uclk;
+   wire        s_ioni;
+   wire        s_ibint11_n;
+   wire        s_bedo_n;
+   wire        s_eccr;
+   wire        s_pd1;
+   wire        s_estof_n;
+   wire        s_hit;
+   wire        s_lshadow;
+   wire        s_poni;
+   wire        s_double;
+   wire        s_cclr_n;
+   wire        s_bstp;
+   wire        s_pd18;
+   wire        s_dt_n;
+   wire        s_fmiss;
+   wire        s_fetch;   
+   wire        s_vex;
+   wire        s_dvacc_n;
+   wire        s_mr_n;
+   wire        s_mclk;
+   wire        s_led1;
 
-   wire        s_logisimNet0;
-   wire        s_logisimNet10;
-   wire        s_logisimNet11;
-   wire        s_logisimNet13;
-   wire        s_logisimNet14;
-   wire        s_logisimNet15;
-   wire        s_logisimNet2;
-   wire        s_logisimNet20;
-   wire        s_logisimNet21;
-   wire        s_logisimNet24;
-   wire        s_logisimNet25;
-   wire        s_logisimNet26;
-   wire        s_logisimNet27;
-   wire        s_logisimNet28;
-   wire        s_logisimNet3;
-   wire        s_logisimNet31;
-   wire        s_logisimNet32;
-   wire        s_logisimNet33;
-   wire        s_logisimNet35;
-   wire        s_logisimNet36;
-   wire        s_logisimNet37;
-   wire        s_logisimNet38;
-   wire        s_logisimNet4;
-   wire        s_logisimNet40;
-   wire        s_logisimNet41;
-   wire        s_logisimNet42;
-   wire        s_logisimNet43;
-   wire        s_logisimNet44;
-   wire        s_logisimNet45;
-   wire        s_logisimNet47;
-   wire        s_logisimNet48;
-   wire        s_logisimNet49;
-   wire        s_logisimNet5;
-   wire        s_logisimNet50;
-   wire        s_logisimNet51;
-   wire        s_logisimNet53;
-   wire        s_logisimNet54;
-   wire        s_logisimNet55;
-   wire        s_logisimNet57;
-   wire        s_logisimNet58;
-   wire        s_logisimNet59;
-   wire        s_logisimNet6;
-   wire        s_logisimNet60;
-   wire        s_logisimNet61;
-   wire        s_logisimNet62;
-   wire        s_logisimNet63;
-   wire        s_logisimNet64;
-   wire        s_logisimNet65;
-   wire        s_logisimNet67;
-   wire        s_logisimNet68;
-   wire        s_logisimNet71;
-   wire        s_logisimNet72;
-   wire        s_logisimNet74;
-   wire        s_logisimNet76;
-   wire        s_logisimNet77;
-   wire        s_logisimNet78;
-   wire        s_logisimNet79;
-   wire        s_logisimNet8;
-   wire        s_logisimNet80;
-   wire        s_logisimNet81;
-   wire        s_logisimNet82;
-   wire        s_logisimNet83;
-   wire        s_logisimNet85;
-   wire        s_logisimNet86;
-   wire        s_logisimNet87;
-   wire        s_logisimNet88;
-   wire        s_logisimNet90;
-   wire        s_logisimNet91;
-   wire        s_logisimNet92;
-   wire        s_logisimNet93;
-   wire        s_logisimNet95;
-   wire        s_logisimNet96;
-   wire        s_logisimNet97;
-   wire        s_logisimNet98;
+   wire        [15:0] s_mmu_15_0_in;
+   wire        [15:0] s_mmu_15_0_out;
+
+   wire        [15:0] s_mmu_idb_15_0_in;
+   wire        [15:0] s_mmu_idb_15_0_out;
+
+   wire        [15:0] s_mmu_ppn_25_10_in;
+   wire        [15:0] s_mmu_ppn_25_10_out;
+
+   wire        [15:0] s_stoc_idb_15_0_in;
 
    /*******************************************************************************
    ** The module functionality is described here                                 **
@@ -213,233 +218,246 @@ module CPU_15(
    /*******************************************************************************
    ** Here all wiring is defined                                                 **
    *******************************************************************************/
-   assign s_logisimBus30[0] = s_logisimNet36;
-   assign s_logisimBus30[1] = s_logisimNet93;
-   assign s_logisimBus30[2] = s_logisimNet67;
-   assign s_logisimNet36    = s_logisimBus29[0];
-   assign s_logisimNet67    = s_logisimBus29[2];
-   assign s_logisimNet93    = s_logisimBus29[1];
-
+   assign s_cc2_n    = s_cc_3_1_n[2];
+   
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus29[2:0] = CC_3_1_n;
-   assign s_logisimBus69[10]  = CA10;
-   assign s_logisimNet13      = RT_n;
-   assign s_logisimNet15      = EORF_n;
-   assign s_logisimNet20      = EMCL_n;
-   assign s_logisimNet24      = PAN_n;
-   assign s_logisimNet25      = ALUCLK;
-   assign s_logisimNet26      = IBINT13_n;
-   assign s_logisimNet3       = MOR_n;
-   assign s_logisimNet31      = MACLK;
-   assign s_logisimNet38      = LCS_n;
-   assign s_logisimNet4       = IBINT15_n;
-   assign s_logisimNet40      = PD2;
-   assign s_logisimNet41      = POWFAIL_n;
-   assign s_logisimNet42      = TERM_n;
-   assign s_logisimNet43      = MAP_n;
-   assign s_logisimNet44      = ETRAP_n;
-   assign s_logisimNet45      = WRFSTB;
-   assign s_logisimNet48      = WCHIM_n;
-   assign s_logisimNet5       = IBINT10_n;
-   assign s_logisimNet50      = IBINT12_n;
-   assign s_logisimNet51      = STOC_n;
-   assign s_logisimNet53      = CYD;
-   assign s_logisimNet57      = SW1_CONSOLE;
-   assign s_logisimNet58      = EMPID_n;
-   assign s_logisimNet59      = EDO_n;
-   assign s_logisimNet60      = RWCS_n;
-   assign s_logisimNet61      = WRITE;
-   assign s_logisimNet62      = STP;
-   assign s_logisimNet63      = IOXERR_n;
-   assign s_logisimNet64      = PARERR_n;
-   assign s_logisimNet65      = ECSR_n;
-   assign s_logisimNet68      = FORM_n;
-   assign s_logisimNet71      = CLK;
-   assign s_logisimNet72      = UCLK;
-   assign s_logisimNet76      = IBINT11_n;
-   assign s_logisimNet8       = PD1;
-   assign s_logisimNet80      = ESTOF_n;
-   assign s_logisimNet86      = CCLR_n;
-   assign s_logisimNet90      = DT_n;
-   assign s_logisimNet91      = FMISS;
-   assign s_logisimNet92      = FETCH;
-   assign s_logisimNet96      = DVACC_n;
-   assign s_logisimNet97      = MR_n;
-   assign s_logisimNet98      = MCLK;
+   assign s_cc_3_1_n[2:0]     = CC_3_1_n;
+   assign s_ca_10_0[10]       = CA10;
+   assign s_rt_n              = RT_n;
+   assign s_eorf_n            = EORF_n;
+   assign s_emcl_n            = EMCL_n;
+   assign s_pan_n             = PAN_n;
+   assign s_aluclk            = ALUCLK;
+   assign s_ibint13_n         = IBINT13_n;
+   assign s_mor_n       = MOR_n;
+   assign s_maclk             = MACLK;
+   assign s_lcs_n             = LCS_n;
+   assign s_ibint15_n         = IBINT15_n;
+   assign s_pd2               = PD2;
+   assign s_powfail_n         = POWFAIL_n;
+   assign s_term_n            = TERM_n;
+   assign s_map_n             = MAP_n;
+   assign s_etrap_n           = ETRAP_n;
+   assign s_wrfstb            = WRFSTB;
+   assign s_wchim_n           = WCHIM_n;
+   assign s_ibint10_n         = IBINT10_n;
+   assign s_ibint12_n         = IBINT12_n;
+   assign s_stoc_n            = STOC_n;
+   assign s_cyd               = CYD;
+   assign s_sw1_console       = SW1_CONSOLE;
+   assign s_empid_n           = EMPID_n;
+   assign s_edo_n             = EDO_n;
+   assign s_rwcs_n            = RWCS_n;
+   assign s_write             = WRITE;
+   assign s_stp               = STP;
+   assign s_ioxerr_n          = IOXERR_n;
+   assign s_parerr_n          = PARERR_n;
+   assign s_ecsr_n            = ECSR_n;
+   assign s_form_n            = FORM_n;
+   assign s_clk               = CLK;
+   assign s_uclk              = UCLK;
+   assign s_ibint11_n         = IBINT11_n;
+   assign s_pd1               = PD1;
+   assign s_estof_n           = ESTOF_n;
+   assign s_cclr_n            = CCLR_n;
+   assign s_dt_n              = DT_n;
+   assign s_fmiss             = FMISS;
+   assign s_fetch             = FETCH;
+   assign s_dvacc_n           = DVACC_n;
+   assign s_mr_n              = MR_n;
+   assign s_mclk              = MCLK;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign CA_9_0      = s_logisimBus69[9:0];
-   assign CD_15_0_OUT = s_cd_15_0_OUT[15:0];
+   assign CA_9_0      = s_ca_10_0[9:0];
+   assign CD_15_0_OUT = s_cd_15_0_out[15:0];
    
    //TODO: Add assign of IDB out of this block based onIDB out from PROC or CS
-   assign IDB_15_0_OUT = s_IDB_15_0_proc_OUT[15:0];
+   assign IDB_15_0_OUT = s_proc_IDB_15_0_out[15:0] | s_cs_IDB_15_0_out[15:0] | s_mmu_idb_15_0_out[15:0];
    
+   assign s_stoc_idb_15_0_in =  s_proc_IDB_15_0_out[15:0] | s_cs_IDB_15_0_out[15:0] |  s_mmu_idb_15_0_out[15:0] |IDB_15_0_IN;
+
    
-   assign LBA_3_0     = s_logisimBus16[3:0];
-   assign LSHADOW     = s_logisimNet82;
-   assign LUA_12_0    = s_logisimBus89[12:0];
-   assign OPCLCS      = s_logisimNet32;
-   assign PCR_1_0     = s_logisimBus73[1:0];
-   assign PIL_3_0     = s_logisimBus75[3:0];
-   assign PONI        = s_logisimNet83;
-   assign PPN_23_10   = s_logisimBus18[13:0];
-   assign TEST_4_0    = s_logisimBus19[4:0];
-   assign TOPCSB      = s_logisimBus17[63:0];
-   assign TP1_INTRQ_n = s_logisimNet54;
-   assign TRAP        = s_logisimNet33;
-   assign VEX         = s_logisimNet95;
+   assign LBA_3_0     = s_lba_3_0[3:0];
+   assign LSHADOW     = s_lshadow;
+   assign LUA_12_0    = s_lua_12_0[12:0];
+   assign OPCLCS      = s_opclcs;
+   assign PCR_1_0     = s_pcr_1_0[1:0];
+   assign PIL_3_0     = s_pil_3_0[3:0];
+   assign PONI        = s_poni;
+   assign PPN_23_10   = s_ppn_25_10[13:0];
+   assign TEST_4_0    = s_test_4_0[4:0];
+   assign TOPCSB      = s_csbits[63:0];
+   assign TP1_INTRQ_n = s_tp1_intr1_n;
+   assign TRAP        = s_trap;
+   assign VEX         = s_vex;
+
+   assign LED1        = s_led1;
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   CPU_PROC_32   PROC (.ACOND_n(s_logisimNet28),
-                       .ALUCLK(s_logisimNet25),
-                       .BEDO_n(s_logisimNet77),
-                       .BEMPID_n(s_logisimNet55),
-                       .BRK_n(s_logisimNet11),
-                       .BSTP(s_logisimNet87),
-                       .CA_9_0(s_logisimBus69[9:0]),
-                       .CD_15_0(s_logisimBus84[15:0]),
-                       .CLK(s_logisimNet71),
-                       .CSA_12_0(s_logisimBus56[12:0]),
-                       .CSBITS(s_logisimBus17[63:0]),
-                       .CSCA_9_0(s_logisimBus22[9:0]),
-                       .CUP(s_logisimNet27),
-                       .CWR(s_logisimNet6),
-                       .DOUBLE(s_logisimNet85),
-                       .ECCR(s_logisimNet78),
-                       .ESTOF_n(s_logisimNet80),
-                       .ETRAP_n(s_logisimNet44),
-                       .EWCA_n(s_logisimNet14),
-                       .IBINT10_n(s_logisimNet5),
-                       .IBINT11_n(s_logisimNet76),
-                       .IBINT12_n(s_logisimNet50),
-                       .IBINT13_n(s_logisimNet26),
-                       .IBINT15_n(s_logisimNet4),
-                       .IDB_15_0(s_IDB_15_0_proc_IN[15:0]),
-                       .IDB_15_0_OUT(s_IDB_15_0_proc_OUT[15:0]),
-                       .IONI(s_logisimNet74),
-                       .IOXERR_n(s_logisimNet63),
-                       .LA_23_10(s_logisimBus1[13:0]),
-                       .LBA_3_0(s_logisimBus16[3:0]),
-                       .LCS_n(s_logisimNet38),
-                       .LEV0(s_logisimNet49),
-                       .LSHADOW(s_logisimNet82),
-                       .MAP_n(s_logisimNet43),
-                       .MCLK(s_logisimNet98),
-                       .MOR_n(s_logisimNet3),
-                       .MREQ_n(s_logisimNet47),
-                       .MR_n(s_logisimNet97),
-                       .OPCLCS(s_logisimNet32),
-                       .PAN_n(s_logisimNet24),
-                       .PARERR_n(s_logisimNet64),
-                       .PCR_1_0(s_logisimBus73[1:0]),
-                       .PD1(s_logisimNet8),
-                       .PIL_3_0(s_logisimBus75[3:0]),
-                       .PONI(s_logisimNet83),
-                       .POWFAIL_n(s_logisimNet41),
-                       .PT_15_9(s_logisimBus52[15:9]),
-                       .RF_1_0(s_logisimBus34[1:0]),
-                       .RRF_n(s_logisimNet37),
-                       .RT_n(s_logisimNet0),
-                       .RWCS_n(s_logisimNet35),
-                       .TERM_n(s_logisimNet42),
-                       .TEST_4_0(s_logisimBus19[4:0]),
-                       .TP1_INTRQ_n(s_logisimNet54),
-                       .TRAP(s_logisimNet33),
-                       .UCLK(s_logisimNet72),
-                       .VEX(s_logisimNet95),
-                       .WCA_n(s_logisimNet88),
-                       .WCS_n(s_logisimNet2),
-                       .WRFSTB(s_logisimNet45),
-                       .LDEXM_n(LDEXM_n)
+   CPU_PROC_32   PROC (
+                       .sysclk(sysclk), // System clock in FPGA
+                       .sys_rst_n(sys_rst_n), // System reset in FPGA
+                       
+                       .ACOND_n(s_acond_n), //TODO: not connected?
+                       .ALUCLK(s_aluclk),
+                       .BEDO_n(s_bedo_n),
+                       .BEMPID_n(s_bempid_n),
+                       .BRK_n(s_brk_n),
+                       .BSTP(s_bstp),
+                       .CA_9_0(s_ca_10_0[9:0]),
+                       .CD_15_0_IN(s_cd_15_0_in[15:0]),
+                       .CLK(s_clk),
+                       .CSA_12_0(s_csa_12_0[12:0]),
+                       .CSBITS(s_csbits[63:0]),
+                       .CSCA_9_0(s_csca_9_0[9:0]),
+                       .CUP(s_cup),
+                       .CWR(s_cwr),
+                       .DOUBLE(s_double),
+                       .ECCR(s_eccr), //TODO: not connected?
+                       .ESTOF_n(s_estof_n),
+                       .ETRAP_n(s_etrap_n),
+                       .EWCA_n(s_ewca_n),
+                       .IBINT10_n(s_ibint10_n),
+                       .IBINT11_n(s_ibint11_n),
+                       .IBINT12_n(s_ibint12_n),
+                       .IBINT13_n(s_ibint13_n),
+                       .IBINT15_n(s_ibint15_n),
+                       .IDB_15_0_IN(s_proc_IDB_15_0_in[15:0]),
+                       .IDB_15_0_OUT(s_proc_IDB_15_0_out[15:0]),
+                       .IONI(s_ioni), //TODO: not connected?
+                       .IOXERR_n(s_ioxerr_n),
+                       .LA_23_10(s_la_23_10[13:0]),
+                       .LBA_3_0(s_lba_3_0[3:0]),
+                       .LCS_n(s_lcs_n),
+                       .LEV0(s_lev0),
+                       .LSHADOW(s_lshadow),
+                       .MAP_n(s_map_n),
+                       .MCLK(s_mclk),
+                       .MOR_n(s_mor_n),
+                       .MREQ_n(s_mreq),  //TODO: not connected to anything?
+                       .MR_n(s_mr_n),
+                       .OPCLCS(s_opclcs),
+                       .PAN_n(s_pan_n),
+                       .PARERR_n(s_parerr_n),
+                       .PCR_1_0(s_pcr_1_0[1:0]),
+                       .PD1(s_pd1),
+                       .PIL_3_0(s_pil_3_0[3:0]),
+                       .PONI(s_poni),
+                       .POWFAIL_n(s_powfail_n),
+                       .PT_15_9(s_pt_15_0[15:9]),
+                       .RF_1_0(s_rf_1_0[1:0]),
+                       .RRF_n(s_rrf_n),   //TODO: not connected to anything?
+                       .RT_n(s_rt_n),
+                       .RWCS_n(s_rwcs_n),
+                       .TERM_n(s_term_n),
+                       .TEST_4_0(s_test_4_0[4:0]),
+                       .SEL_TESTMUX(SEL_TESTMUX),
+                       .TP1_INTRQ_n(s_tp1_intr1_n),
+                       .TRAP(s_trap),
+                       .UCLK(s_uclk),
+                       .VEX(s_vex),
+                       .WCA_n(s_pd18),
+                       .WCS_n(s_wcs_n),
+                       .WRFSTB(s_wrfstb),
+                       .LDEXM_n(LDEXM_n)                     
                        );
 
    CPU_CS_16   CS (
+                  .sysclk(sysclk),        // System clock in FPGA
+                  .sys_rst_n(sys_rst_n),  // System reset in FPGA
+
                   /* Clock signals */
-                   .CLK(s_logisimNet71),
-                   .MACLK(s_logisimNet31),
+                   .CLK(s_clk),
+                   .MACLK(s_maclk),
 
                    /* Test signals */
-                   .PD1(s_logisimNet8),
+                   .PD1(s_pd1),
 
                    /* Input signals */
-                   .IDB_15_0(s_IDB_15_0_cs_IN[15:0]),
+                   .IDB_15_0_IN(s_cs_IDB_15_0_in[15:0]),
 
-                   .BLCS_n(s_logisimNet10),
-                   .BRK_n(s_logisimNet11),
-                   .CC_3_1_n(s_logisimBus30[2:0]),
-                   .CSA_12_0(s_logisimBus56[12:0]),
-                   .CSCA_9_0(s_logisimBus22[9:0]),
-                   .FETCH(s_logisimNet92),
-                   .FORM_n(s_logisimNet68),                   
-                   .LCS_n(s_logisimNet38),
-                   .RF_1_0(s_logisimBus34[1:0]),
-                   .RWCS_n(s_logisimNet35),
-                   .TERM_n(s_logisimNet42),
-                   .WCA_n(s_logisimNet88),
-                   .WCS_n(s_logisimNet2),
+                   .BLCS_n(s_blcs_n),
+                   .BRK_n(s_brk_n),
+                   .CC_3_1_n(s_cc_3_1_n[2:0]),
+                   .CSA_12_0(s_csa_12_0[12:0]),
+                   .CSCA_9_0(s_csca_9_0[9:0]),
+                   .FETCH(s_fetch),
+                   .FORM_n(s_form_n),                   
+                   .LCS_n(s_lcs_n),
+                   .RF_1_0(s_rf_1_0[1:0]),
+                   .RWCS_n(s_rwcs_n),
+                   .TERM_n(s_term_n),
+                   .WCA_n(s_pd18),
+                   .WCS_n(s_wcs_n),
 
                     /* OUTPUTS */
-                   .EWCA_n(s_logisimNet14),
-                   .CSBITS(s_logisimBus17[63:0]),
-                   .IDB_15_0_OUT(s_IDB_15_0_cs_OUT[15:0]),
-                   .LUA_12_0(s_logisimBus89[12:0])
+                   .EWCA_n(s_ewca_n),
+                   .CSBITS(s_csbits[63:0]),
+                   .IDB_15_0_OUT(s_cs_IDB_15_0_out[15:0]),
+                   .LUA_12_0(s_lua_12_0[12:0])
                    );
 /*
-   CPU_MMU_24   MMU (.BEDO_n(s_logisimNet77),
-                     .BEMPID_n(s_logisimNet55),
-                     .BLCS_n(s_logisimNet10),
-                     .BRK_n(s_logisimNet11),
-                     .BSTP(s_logisimNet87),
-                     .CA_10_0(s_logisimBus69[10:0]),
-                     .CC2_n(s_logisimNet67),
-                     .CCLR_n(s_logisimNet86),
-                     .CD_15_0_io(s_logisimBus84[15:0]),
-                     .CUP(s_logisimNet27),
-                     .CWR(s_logisimNet6),
-                     .CYD(s_logisimNet53),
-                     .DOUBLE(s_logisimNet85),
-                     .DT_n(s_logisimNet90),
-                     .DVACC_n(s_logisimNet96),
-                     .ECSR_n(s_logisimNet65),
-                     .EDO_n(s_logisimNet59),
-                     .EMCL_n(s_logisimNet20),
-                     .EMPID_n(s_logisimNet58),
-                     .EORF_n(s_logisimNet15),
-                     .ESTOF_n(s_logisimNet80),
-                     .FMISS(s_logisimNet91),
-                     .HIT(s_logisimNet81),
-                     .IDB_15_0_io(s_logisimBus7[15:0]),
-                     .LAPA_n(s_logisimNet21),
-                     .LA_20_10(s_logisimBus1[10:0]),
-                     .LCS_n(s_logisimNet38),
-                     .LSHADOW(s_logisimNet82),
-                     .PD2(s_logisimNet40),
-                     .PPN_23_10_io(s_logisimBus18[13:0]),
-                     .PPN_25_10_io(s_logisimBus70[15:0]),
-                     .PT_15_0(s_logisimBus52[15:0]),
-                     .RT_n(s_logisimNet0),
-                     .STP(s_logisimNet62),
-                     .SW1_CONSOLE(s_logisimNet57),
-                     .UCLK(s_logisimNet72),
-                     .WCA_n(s_logisimNet88),
-                     .WCHIM_n(s_logisimNet48),
-                     .WRITE(s_logisimNet61),
-                     .logisimOutputBubbles(logisimOutputBubbles[0 : 0]));
+   CPU_MMU_24   MMU (
+                     .sysclk(sysclk),        // System clock in FPGA
+                     .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
-   CPU_STOC_35   CPU_STOC (.CD_15_0(s_cd_15_0_OUT[15:0]),
-                           .IDB_15_0(s_IDB_15_0_proc_IN[15:0]),
-                           .STOC_n(s_logisimNet51));
+                     .BEDO_n(s_bedo_n),
+                     .BEMPID_n(s_bempid_n),
+                     .BLCS_n(s_blcs_n),
+                     .BRK_n(s_brk_n),
+                     .BSTP(s_bstp),
+                     .CA_10_0(s_ca_10_0[10:0]),
+                     .CC2_n(s_cc2_n),
+                     .CCLR_n(s_cclr_n),
+                     .CD_15_0_IN(s_mmu_15_0_in[15:0]),
+                     .CD_15_0_OUT(s_mmu_15_0_out[15:0]),
+                     .CUP(s_cup),
+                     .CWR(s_cwr),
+                     .CYD(s_cyd),
+                     .DOUBLE(s_double),
+                     .DT_n(s_dt_n),
+                     .DVACC_n(s_dvacc_n),
+                     .ECSR_n(s_ecsr_n),
+                     .EDO_n(s_edo_n),
+                     .EMCL_n(s_emcl_n),
+                     .EMPID_n(s_empid_n),
+                     .EORF_n(s_eorf_n),
+                     .ESTOF_n(s_estof_n),
+                     .FMISS(s_fmiss),
+                     .HIT(s_hit),
+                     .IDB_15_0_IN(s_mmu_idb_15_0_in[15:0]),
+                     .IDB_15_0_OUT(s_mmu_idb_15_0_out[15:0]),
+                     .LAPA_n(s_lapa_n),
+                     .LA_20_10(s_la_23_10[10:0]),
+                     .LCS_n(s_lcs_n),
+                     .LSHADOW(s_lshadow),
+                     .PD2(s_pd2),
+                     .PPN_25_10_IN(s_mmu_ppn_25_10_in[15:0]),
+                     .PPN_25_10_OUT(s_mmu_ppn_25_10_out[15:0]),                     
+                     .PT_15_0_OUT(s_pt_15_0[15:0]),
+                     .RT_n(s_rt_n),
+                     .STP(s_stp),
+                     .SW1_CONSOLE(s_sw1_console),
+                     .UCLK(s_uclk),
+                     .WCA_n(s_pd18),
+                     .WCHIM_n(s_wchim_n),
+                     .WRITE(s_write),
+                     .LED1(s_led1)
+   );
 
-   CPU_LAPA_23   LAPA (.LAPA_n(s_logisimNet21),
-                       .LA_23_10(s_logisimBus1[13:0]),
-                       .PPN_23_10(s_logisimBus46[13:0]));
 */
 
+   // CPU_STOC_35.v is replaced by this line
+   assign s_cd_15_0_out[15:0] = s_stoc_n ? 16'bz : s_stoc_idb_15_0_in[15:0]; // If STOC_n is high, output is high-impedance
+
+   // CPU_LAPA_23.v is replaced by this line
+   assign s_ppn_25_10[15:0] = s_lapa_n ? 16'bz : {2'b0,s_la_23_10[13:0]};  // is s_lapa_n is high, output is high-impedance
+   // TODO: Or with other output ?
 endmodule
