@@ -36,7 +36,8 @@ struct TestCase {
    ** The inout are defined here                                                **
    *******************************************************************************/
 
-   uint8_t    D_7_0;
+   uint8_t    D;
+   uint8_t    D_OUT;
    
    /*******************************************************************************
    ** The outputs are defined here                                               **
@@ -81,8 +82,7 @@ int main(int argc, char **argv)
 
     int errCnt = 0;
 
-    top->A0 =
-    top->A1 =
+    top->ADDRESS =    
     top->BRCLK = // Baud rate clock
     top->RESET = 0;
 
@@ -90,34 +90,134 @@ int main(int argc, char **argv)
     top->CE_n =
     top->CTS_n =
     top->DCD_n =
-    top->DSR_n =
-    top->READ_n =    
+    top->DSR_n =    
     top->RXC_n =
     top->RXD = 
     top->TXC_n = true;
    
-    
+    top->READ_n = false; // default to read
 
     // Iterate through each test case
     //for (const auto& test : testCases) {
     //    std::cout << "Running " << test.description << std::endl;
 
+    uint8_t transmitChars = 5;
 
+    uint8_t clearChipAccess =0; // number of cycles until clear chip access
+    int transmitAt = 10;
+    int readtAt = 10000;
 
-    for (int ck =0;ck<512;ck++)
+    uint8_t txData = 0xA0;
+
+    for (int ck =0;ck<1000;ck++)
     {
-                
+
+        // loop data back to receiver
+        //top->RXD  = top->TXD;
+
+        // Reset chip
+        if (ck==0)
+        {
+            top->RESET = 1;
+        }
+        if (ck==3)
+        {
+            top->RESET = 0;
+        }
 
 
+
+        if (clearChipAccess>0)
+        {
+            clearChipAccess--;
+            if (clearChipAccess == 0)
+            {
+                clearChipAccess = false;
+                top->CE_n = 1; // not enabled
+                top->READ_n = 0; //Read
+                top->ADDRESS = 0;       
+                top->D = 0;        
+            }
+        }
+
+        // Enable Read received data
+        if ((top->RXDRDY_n==0) && (ck>5))
+        {
+            top->CE_n = 0;
+            top->READ_n = 0; //Read
+            top->ADDRESS = 0;      
+            readtAt = ck +1; // Read the data output from the chip one cycle later
+        }        
+
+        // Read received data from UART.
+        if (ck==readtAt)
+        {
+            uint8_t  data = top->D_OUT;
+            printf("Received data %x  (ck=%d)\r\n",data,ck);
+            if (transmitChars>0)
+            {
+                transmitChars--;
+                transmitAt = ck +10;                
+            } else  
+                break; // exit for loop
+
+            clearChipAccess = 1;
+        }
+
+
+    
+        if (ck==6)
+        {
+            top->ADDRESS = 3; //Command Register
+            top->READ_n = 1; //write
+            //top->D = 0b00111111; // Normal operation
+            top->D = 0b10111111; // Local loopback (The transmitter output is connected to the receiver input.)
+            //top->D = 0b11111111; // Remote loopback
+
+            top->CE_n = 0;
+            clearChipAccess = 1;
+        }
+
+
+        // trigger transmit transmit
+        if (ck==transmitAt)
+        {
+            top->ADDRESS = 0;
+            top->READ_n = 1; //write
+            top->D = txData;
+            txData++;
+            top->CE_n = 0;
+            clearChipAccess = 1;            
+        }
+
+
+        if (ck==1000)
+        {
+            top->ADDRESS = 0;
+            top->READ_n = 1; //write
+            top->D = 0x8F;
+            top->CE_n = 0;
+            clearChipAccess = 1;
+        }
+
+        
+        top->BRCLK = !top->BRCLK;
+        top->eval();                
+        
 #ifdef DO_TRACE        
         m_trace->dump(sim_time);
         sim_time += time_step; // Increment simulation time
 #endif
 
 
-        top->eval();
-        
         top->BRCLK = !top->BRCLK;
+        top->eval();        
+        
+
+#ifdef DO_TRACE        
+        m_trace->dump(sim_time);
+        sim_time += time_step; // Increment simulation time
+#endif
 
 
 #if __later__

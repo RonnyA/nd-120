@@ -1,15 +1,15 @@
 [*]
-[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Thu Apr 18 15:58:19 2024
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Wed Apr 24 07:37:11 2024
 [*]
 [dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/SC2661_UART/sim/waveform.vcd"
-[dumpfile_mtime] "Thu Apr 18 15:55:57 2024"
-[dumpfile_size] 6417
+[dumpfile_mtime] "Wed Apr 24 07:23:49 2024"
+[dumpfile_size] 9547
 [savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/SC2661_UART/sim/pal.gtkw"
-[timestart] 0
+[timestart] 385
 [size] 2548 1359
-[pos] 31 31
-*-4.456229 7 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] -1 -1
+*-5.656229 570 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [sst_width] 312
 [signals_width] 511
@@ -23,8 +23,6 @@ TOP.BRCLK
 --- input --
 @28
 TOP.RXD
-TOP.A0
-TOP.A1
 TOP.CE_n
 TOP.CTS_n
 TOP.DCD_n
@@ -33,11 +31,10 @@ TOP.READ_n
 TOP.RESET
 TOP.RXC_n
 TOP.RXD
+@22
+TOP.SC2661_UART.D[7:0]
 @200
 --- in and out --
-@23
-TOP.D_7_0[7:0]
-@200
 --- output --
 @28
 TOP.DTR_n
@@ -46,5 +43,23 @@ TOP.RXDRDY_n
 TOP.TXD
 TOP.TXDRDY_n
 TOP.TXEMT_n
+@22
+TOP.SC2661_UART.D_OUT[7:0]
+@200
+-** Internal **
+@28
+TOP.SC2661_UART.s_address[1:0]
+TOP.SC2661_UART.s_read_n
+@22
+TOP.SC2661_UART.regCommandRegister[7:0]
+TOP.SC2661_UART.regModeRegister[7:0]
+TOP.SC2661_UART.regReceiveHoldingRegister[7:0]
+TOP.SC2661_UART.regStatusRegister[7:0]
+TOP.SC2661_UART.s_data_in[7:0]
+TOP.SC2661_UART.regTransmitHoldingRegister[7:0]
+@28
+TOP.SC2661_UART.txBit
+TOP.SC2661_UART.txBitNumber[2:0]
+TOP.SC2661_UART.dataOut[7:0]
 [pattern_trace] 1
 [pattern_trace] 0
