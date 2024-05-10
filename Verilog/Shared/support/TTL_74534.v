@@ -117,28 +117,28 @@ module TTL_74534( CK,
    *******************************************************************************/
 
    // Controlled Inverter
-   assign s_logisimNet5 = (s_logisimNet4) ? ~s_logisimNet19 : 1'bZ;
+   assign s_logisimNet5 = (s_logisimNet4) ? ~s_logisimNet19 : 1'b0;
 
    // Controlled Inverter
-   assign s_logisimNet0 = (s_logisimNet4) ? ~s_logisimNet20 : 1'bZ;
+   assign s_logisimNet0 = (s_logisimNet4) ? ~s_logisimNet20 : 1'b0;
 
    // Controlled Inverter
-   assign s_logisimNet15 = (s_logisimNet4) ? ~s_logisimNet7 : 1'bZ;
+   assign s_logisimNet15 = (s_logisimNet4) ? ~s_logisimNet7 : 1'b0;
 
    // Controlled Inverter
-   assign s_logisimNet1 = (s_logisimNet4) ? ~s_logisimNet21 : 1'bZ;
+   assign s_logisimNet1 = (s_logisimNet4) ? ~s_logisimNet21 : 1'b0;
 
    // Controlled Inverter
-   assign s_logisimNet16 = (s_logisimNet4) ? ~s_logisimNet8 : 1'bZ;
+   assign s_logisimNet16 = (s_logisimNet4) ? ~s_logisimNet8 : 1'b0;
 
    // Controlled Inverter
-   assign s_logisimNet17 = (s_logisimNet4) ? ~s_logisimNet9 : 1'bZ;
+   assign s_logisimNet17 = (s_logisimNet4) ? ~s_logisimNet9 : 1'b0;
 
    // Controlled Inverter
-   assign s_logisimNet2 = (s_logisimNet4) ? ~s_logisimNet22 : 1'bZ;
+   assign s_logisimNet2 = (s_logisimNet4) ? ~s_logisimNet22 : 1'b0;
 
    // Controlled Inverter
-   assign s_logisimNet18 = (s_logisimNet4) ? ~s_logisimNet10 : 1'bZ;
+   assign s_logisimNet18 = (s_logisimNet4) ? ~s_logisimNet10 : 1'b0;
 
    // NOT Gate
    assign s_logisimNet4 = ~s_logisimNet6;

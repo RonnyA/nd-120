@@ -93,7 +93,7 @@ module CPU_CS_WCS_21_22(
    // ELOW_n = 0 means ENABLE LUA RAM CHIPS
    // EUPP_n = 0 means ENABLE UUA RAM CHIPS
 
-  assign CSBITS_63_0_OUT = (!s_elow_n) ?  s_lua_csbits[63:0] : (!s_eupp_n) ? s_uua_csbits[63:0] : 64'bz;
+  assign CSBITS_63_0_OUT = (!s_elow_n) ?  s_lua_csbits[63:0] : (!s_eupp_n) ? s_uua_csbits[63:0] : 64'b0;
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **

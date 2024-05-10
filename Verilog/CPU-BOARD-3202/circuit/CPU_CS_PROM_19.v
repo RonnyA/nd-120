@@ -39,7 +39,7 @@ module CPU_CS_PROM_19(
     assign s_databus[15:8] = rom_hi[s_Address];
 
     // Controlled Buffer
-    assign IDB_15_0_OUT = (BLCS_n) ? 16'bZ : s_databus;
+    assign IDB_15_0_OUT = (BLCS_n) ? 16'b0 : s_databus;
 
 
 endmodule

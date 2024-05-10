@@ -119,12 +119,12 @@ end
 
 // Tri-state control for Q outputs
 // Assigning outputs with three-state logic controlled by OE_n
-assign CX_n = OE_n ? 1'bz : 1'b0; // CX is always 1 in the fast version (CX_n = 0)
-assign TERM_n = OE_n ? 1'bz : ~TERM_reg;
-assign CC0_n = OE_n ? 1'bz : ~CC0_reg;
-assign CC1_n = OE_n ? 1'bz : ~CC1_reg;
-assign CC2_n = OE_n ? 1'bz : ~CC2_reg;
-assign CC3_n = OE_n ? 1'bz : ~CC3_reg;
+assign CX_n = OE_n ? 1'b0 : 1'b0; // CX is always 1 in the fast version (CX_n = 0)
+assign TERM_n = OE_n ? 1'b0 : ~TERM_reg;
+assign CC0_n = OE_n ? 1'b0 : ~CC0_reg;
+assign CC1_n = OE_n ? 1'b0 : ~CC1_reg;
+assign CC2_n = OE_n ? 1'b0 : ~CC2_reg;
+assign CC3_n = OE_n ? 1'b0 : ~CC3_reg;
 
 
 

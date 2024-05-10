@@ -63,7 +63,7 @@ module Am9150_w_clock (
             // Read operation: active when chip is selected and output enable is low
             data_out <= memory_array[address];
         end else begin
-            data_out <= 4'bz; // High-impedance state when not reading
+            data_out <= 4'b0; // High-impedance state when not reading
         end
     end
 

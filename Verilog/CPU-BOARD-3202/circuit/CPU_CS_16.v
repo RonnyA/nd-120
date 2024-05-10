@@ -80,7 +80,7 @@ module CPU_CS_16(
    //   - If ECSL_n is low (inactive high signal), TCV data is output.
    //   - If ECSL_n is high, output is set to high-impedance state (tri-state).
    assign IDB_15_0_OUT = BLCS_n ? 
-                         (s_ecsl_n ? 16'bz : s_IDB_15_0_tcv_out[15:0]) : 
+                         (s_ecsl_n ? 16'b0 : s_IDB_15_0_tcv_out[15:0]) : 
                          s_IDB_15_0_prom_out[15:0];
    
 

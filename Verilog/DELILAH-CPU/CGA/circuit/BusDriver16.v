@@ -28,8 +28,8 @@ module BusDriver16(
    reg [15:0] ZI_reg; // Internal data register
 
 
-   //assign ZI_15_0 = TN ?  IO_15_0 : 16'bZ; // Probably the correct implementation ? In test moode we should be isolated ?
-   //assign ZI_15_0 = TN ?  internalData : 16'bZ; // Probably the correct implementation ? In test moode we should be isolated ?
+   //assign ZI_15_0 = TN ?  IO_15_0 : 16'b0; // Probably the correct implementation ? In test moode we should be isolated ?
+   //assign ZI_15_0 = TN ?  internalData : 16'b0; // Probably the correct implementation ? In test moode we should be isolated ?
 
    always @(*) begin
       if (EN == 1'b0) begin
@@ -43,7 +43,7 @@ module BusDriver16(
    end
 
    // Bidirectional data operation
-   assign IO_15_0_OUT = TN ? ((EN == 1'b0) ? IO_reg : 16'bz) : 16'bz;     
+   assign IO_15_0_OUT = TN ? ((EN == 1'b0) ? IO_reg : 16'b0) : 16'b0;     
    assign ZI_15_0 = ZI_reg;
 
 

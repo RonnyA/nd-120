@@ -114,14 +114,14 @@ end
 // Tri-state control for Q outputs
 // Assigning outputs with three-state logic controlled by OE_n
 
-assign RGNT_n   = OE_n ? 1'bz : ~RGNT_reg;      
-assign CGNT_n   = OE_n ? 1'bz : ~CGNT_reg;
-assign BGNT_n   = OE_n ? 1'bz : ~BGNT_reg;
-assign LDR_n    = OE_n ? 1'bz : ~LDR_reg;
-assign CSEM_n   = OE_n ? 1'bz : ~CSEM_reg;
-assign BSEM_n   = OE_n ? 1'bz : ~BSEM_reg;
-assign LOEN25_n = OE_n ? 1'bz : ~LOEN25_reg;
-assign BCGNT25  = OE_n ? 1'bz : ~BCGNT25_n_reg;
+assign RGNT_n   = OE_n ? 1'b0 : ~RGNT_reg;      
+assign CGNT_n   = OE_n ? 1'b0 : ~CGNT_reg;
+assign BGNT_n   = OE_n ? 1'b0 : ~BGNT_reg;
+assign LDR_n    = OE_n ? 1'b0 : ~LDR_reg;
+assign CSEM_n   = OE_n ? 1'b0 : ~CSEM_reg;
+assign BSEM_n   = OE_n ? 1'b0 : ~BSEM_reg;
+assign LOEN25_n = OE_n ? 1'b0 : ~LOEN25_reg;
+assign BCGNT25  = OE_n ? 1'b0 : ~BCGNT25_n_reg;
 
 
 

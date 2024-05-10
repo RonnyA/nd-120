@@ -73,10 +73,10 @@ end
 // Tri-state control for outputs
 // High-impedance state when OE_n is high (active-low)
 
-assign RWCS_n = OE_n ? 1'bz : ~RWCS_int;
-assign OPCLCS = OE_n ? 1'bz : ~OPCLCS_n_int;
-assign VEX = OE_n ? 1'bz : ~VEX_n_int;
-assign LDEXM_n = OE_n ? 1'bz : ~LDEXM_int;
+assign RWCS_n = OE_n ? 1'b0 : ~RWCS_int;
+assign OPCLCS = OE_n ? 1'b0 : ~OPCLCS_n_int;
+assign VEX = OE_n ? 1'b0 : ~VEX_n_int;
+assign LDEXM_n = OE_n ? 1'b0 : ~LDEXM_int;
         
 
 // Unknown signal in this PAL, set high

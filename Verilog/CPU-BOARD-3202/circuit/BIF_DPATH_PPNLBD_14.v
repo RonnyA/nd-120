@@ -25,5 +25,5 @@ module BIF_DPATH_PPNLBD_14(
       Q_reg <= {PPN_23_10[13:0],CA_9_0[9:0]};
    end
 
-   assign LBD_23_0 = EADR_n ? 24'bz : Q_reg;   
+   assign LBD_23_0 = EADR_n ? 24'b0 : Q_reg;   
 endmodule

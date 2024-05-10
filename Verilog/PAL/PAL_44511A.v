@@ -73,8 +73,8 @@ always @(posedge CK) begin
 end
 
 // outputs
-assign CWR_n = OE_n ? 1'bz : ~CWR_reg;
-assign CUP   = OE_n ? 1'bz : ~CUP_n_reg;
+assign CWR_n = OE_n ? 1'b0 : ~CWR_reg;
+assign CUP   = OE_n ? 1'b0 : ~CUP_n_reg;
 
 
 endmodule

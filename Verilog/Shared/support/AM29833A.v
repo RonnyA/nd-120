@@ -68,8 +68,8 @@ module AM29833A( input  wire CLK,
 end
 
 
-assign R_OUT = (CLR_n & !OET_n & OER_n) ? reg_T : 8'bZ;  // RECEIVE MODE (Transmits data from T port to R port with parity test resulting in error flag. Transmit path is disabled.)
-assign T_OUT = (CLR_n & OET_n & !OER_n) ? reg_R : 8'bZ;  // TRANSMIT MODE (Transmits data from R port to T port, generating parity. Receive path is disabled.)
+assign R_OUT = (CLR_n & !OET_n & OER_n) ? reg_T : 8'b0;  // RECEIVE MODE (Transmits data from T port to R port with parity test resulting in error flag. Transmit path is disabled.)
+assign T_OUT = (CLR_n & OET_n & !OER_n) ? reg_R : 8'b0;  // TRANSMIT MODE (Transmits data from R port to T port, generating parity. Receive path is disabled.)
 
 
 // TODO: PARITY & ERROR

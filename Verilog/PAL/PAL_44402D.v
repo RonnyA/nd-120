@@ -85,13 +85,13 @@ end
 // Output logic for Q0_n, Q1_n, Q2_n
 
 // Q0
-assign NUBI_n = OE_n ? 1'bz : NUBI_n_reg;
+assign NUBI_n = OE_n ? 1'b0 : NUBI_n_reg;
 
 // Q1
-assign NUBD_n = OE_n ? 1'bz : NUBD_n_reg;
+assign NUBD_n = OE_n ? 1'b0 : NUBD_n_reg;
 
 // Q3
-assign IHIT_n = OE_n ? 1'bz : ~IHIT_reg;
+assign IHIT_n = OE_n ? 1'b0 : ~IHIT_reg;
 
 
 

@@ -41,13 +41,13 @@ always @(posedge clk) begin
       if (!W_n) begin
          // Write operation: active when chip is selected and write enable is low
          memory_array[ADDRESS] <= D;
-         D_OUT = 8'bz; // High-impedance state after write
+         D_OUT = 8'b0; // High-impedance state after write
       end else if (!OE_n) begin
          // Read operation: active when chip is selected and output enable is low
          D_OUT = memory_array[ADDRESS];
       end        
    end else begin
-      D_OUT = 8'bz; // High-impedance state when not selected
+      D_OUT = 8'b0; // High-impedance state when not selected
    end        
 
 end    

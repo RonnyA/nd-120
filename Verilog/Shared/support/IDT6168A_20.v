@@ -29,7 +29,7 @@ module IDT6168A_20(
    reg [3:0] data_out;     // Output data register
    wire [3:0] data_in;     // Input data from the bus
    assign data_in = D_3_0; // Connect input data
-   assign D_3_0 = (!CE_n && WE_n) ? data_out : 4'bz; // Tristate logic for bidirectional data bus
+   assign D_3_0 = (!CE_n && WE_n) ? data_out : 4'b0; // Tristate logic for bidirectional data bus
 
    
    /*******************************************************************************

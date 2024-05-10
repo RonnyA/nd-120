@@ -20,8 +20,8 @@ module TTL_74244(
                output wire [3:0] Y2   // Data inputs  (2Y1-2Y4) <= (2A1-2A4)
 );
 
-assign Y1 = G1_n ? 4'bz : A1; // If G1_n is high, output is high-impedance
-assign Y2 = G2_n ? 4'bz : A2; // If G2_n is high, output is high-impedance 
+assign Y1 = G1_n ? 4'b0 : A1; // If G1_n is high, output is high-impedance
+assign Y2 = G2_n ? 4'b0 : A2; // If G2_n is high, output is high-impedance 
 
 
 

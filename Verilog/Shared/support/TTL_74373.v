@@ -24,6 +24,6 @@ module TTL_74373 (
     // Output control
     // When OC_n is low (active), outputs reflect the latched data
     // When OC_n is high, outputs are in high-impedance state
-    assign Q = OC_n ? 8'bz : Q_Latch;
+    assign Q = OC_n ? 8'b0 : Q_Latch;
 
 endmodule

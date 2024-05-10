@@ -89,10 +89,10 @@ always @(posedge CLK) begin
 end
 
 // Output logic for Q0_n, Q1_n, Q2_n
-assign LCS_n = OE_n ? 1'bz : ~LCS;
-assign MDLY_n = OE_n ? 1'bz : ~MDLY;
-assign DMA12_n = OE_n ? 1'bz : s_dma12_n;
-assign DMAP_n = OE_n ? 1'bz : ~DMAP;
+assign LCS_n = OE_n ? 1'b0 : ~LCS;
+assign MDLY_n = OE_n ? 1'b0 : ~MDLY;
+assign DMA12_n = OE_n ? 1'b0 : s_dma12_n;
+assign DMAP_n = OE_n ? 1'b0 : ~DMAP;
 
 
 // B0 pin

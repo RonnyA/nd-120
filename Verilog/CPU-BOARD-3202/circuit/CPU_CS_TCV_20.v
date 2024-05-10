@@ -79,15 +79,15 @@ module CPU_CS_TCV_20(
    
 
    // Write to IDB from CSBITS
-   //assign regidb = EW_3_0_n[0] ? 16'bz : CSBITS[15:0];   
-   //assign regidb = EW_3_0_n[1] ? 16'bz : CSBITS[31:16];   
-   //assign regidb = EW_3_0_n[2] ? 16'bz : CSBITS[47:32];
-   //assign regidb = EW_3_0_n[3] ? 16'bz : CSBITS[63:48];
+   //assign regidb = EW_3_0_n[0] ? 16'b0 : CSBITS[15:0];   
+   //assign regidb = EW_3_0_n[1] ? 16'b0 : CSBITS[31:16];   
+   //assign regidb = EW_3_0_n[2] ? 16'b0 : CSBITS[47:32];
+   //assign regidb = EW_3_0_n[3] ? 16'b0 : CSBITS[63:48];
  
 
 
    // ECSL_n decides if the data should be enabled out on the IDB bus   
-   assign IDB_15_0_OUT = (ECSL_n & !WCS_n) ? 16'bz : regIDB[15:0];   
+   assign IDB_15_0_OUT = (ECSL_n & !WCS_n) ? 16'b0 : regIDB[15:0];   
    assign CSBITS_OUT = regCSBITS;
 
 endmodule

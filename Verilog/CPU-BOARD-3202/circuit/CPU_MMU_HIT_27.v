@@ -52,8 +52,8 @@ always @(*) begin
 end
 
 
-assign HIT0_n = CON_n ? 1'bz : HIT0n_reg;
-assign HIT1_n = FMISS ? 1'bz : HIT1n_reg;
+assign HIT0_n = CON_n ? 1'b0 : HIT0n_reg;
+assign HIT1_n = FMISS ? 1'b0 : HIT1n_reg;
 
 
 endmodule

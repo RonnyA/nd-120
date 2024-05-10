@@ -141,7 +141,7 @@ module IO_PANCAL_40(
 
 
    // TTL_74244 CHIP_33B (simplified..)
-   assign s_IDB_15_0_out[15:8] = s_EPANS  ? 8'bz : {s_logisimNet1,s_logisimNet29,s_logisimNet0,s_logisimNet45,s_logisimBus20[3:1]};
+   assign s_IDB_15_0_out[15:8] = s_EPANS  ? 8'b0 : {s_logisimNet1,s_logisimNet29,s_logisimNet0,s_logisimNet45,s_logisimBus20[3:1]};
 
    
 // TTL_74374 CHIP_32B 
@@ -156,5 +156,5 @@ module IO_PANCAL_40(
 //  ADD  - MM58274  - Real Time Clock
 // ADD - MC68705 - 6805 Embedded CPU
 
-   assign IDB_15_0_OUT = 16'bz;  //TODO: or in s_IDB_7_0_chip32_out[7:0] 
+   assign IDB_15_0_OUT = 16'b0;  //TODO: or in s_IDB_7_0_chip32_out[7:0] 
 endmodule

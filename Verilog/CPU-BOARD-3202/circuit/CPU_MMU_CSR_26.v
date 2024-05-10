@@ -33,13 +33,13 @@ module CPU_MMU_CSR_26(
 // Octal Buffers and Line Drivers With 3-State Outputs
 
 
-  assign BSTP = PD2 ? 1'bz : STP;
-  assign BEMPID_n = PD2 ? 1'bz : EMPID_n;
-  assign BEDO_n = PD2 ? 1'bz : EDO_n;
-  assign BLCS_n = PD2 ? 1'bz : LCS_n;
+  assign BSTP = PD2 ? 1'b0 : STP;
+  assign BEMPID_n = PD2 ? 1'b0 : EMPID_n;
+  assign BEDO_n = PD2 ? 1'b0 : EDO_n;
+  assign BLCS_n = PD2 ? 1'b0 : LCS_n;
 
   wire [3:0] idb = {1'b1, ~CON, CON, CUP};   
 
-  assign IDB_3_0 = ECSR_n ? 4'bz : idb;
+  assign IDB_3_0 = ECSR_n ? 4'b0 : idb;
 
 endmodule

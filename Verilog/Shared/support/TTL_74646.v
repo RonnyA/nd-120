@@ -131,13 +131,13 @@ module TTL_74646( A1,
    assign s_logisimNet19 = ~s_logisimNet14;
 
    // Controlled Inverter
-   assign s_logisimNet16 = (s_logisimNet3) ? ~s_logisimNet23 : 1'bZ;
+   assign s_logisimNet16 = (s_logisimNet3) ? ~s_logisimNet23 : 1'b0;
 
    // NOT Gate
    assign s_logisimNet12 = ~s_logisimNet10;
 
    // Controlled Inverter
-   assign s_logisimNet15 = (s_logisimNet8) ? ~s_logisimNet22 : 1'bZ;
+   assign s_logisimNet15 = (s_logisimNet8) ? ~s_logisimNet22 : 1'b0;
 
    // NOT Gate
    assign s_logisimNet0 = ~s_logisimNet7;

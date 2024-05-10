@@ -56,7 +56,7 @@ module Am9150 (
                 //for (i = 0; i < 1024; i = i + 1) begin
                 //    memory_array[i] = 4'b0000;
                 //end
-                //data_out = 4'bz; // High-impedance state during reset
+                //data_out = 4'b0; // High-impedance state during reset
                 /* verilator lint_on BLKSEQ */
         end
 
@@ -71,6 +71,6 @@ module Am9150 (
     end
 
     // Read operation: active when chip is selected and output enable is low (and not writing or reset!)
-    assign data_out = (!CHIP_SELECT_n & !OUTPUT_ENABLE_n & WRITE_ENABLE_n & RESET_n) ? dataReg : 4'bz; // High-impedance state when not reading
+    assign data_out = (!CHIP_SELECT_n & !OUTPUT_ENABLE_n & WRITE_ENABLE_n & RESET_n) ? dataReg : 4'b0; // High-impedance state when not reading
 
 endmodule

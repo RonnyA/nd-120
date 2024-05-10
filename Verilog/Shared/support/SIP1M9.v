@@ -73,7 +73,7 @@ output       PRD_n
    assign Q9        = s_q9;
 
    // TODO: Assign Q8 from some PSRAM or other RAM
-   assign Q8        = W_n ? 0 : 8'bZZZZZZZZ; // Data out is not valid when writing
+   assign Q8        = W_n ? 0 : 8'b0ZZZZZZZ; // Data out is not valid when writing
 
    assign PRD_n     = 1; // Not connected?
    

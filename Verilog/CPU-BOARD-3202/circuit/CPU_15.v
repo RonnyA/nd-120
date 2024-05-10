@@ -455,9 +455,9 @@ module CPU_15(
 */
 
    // CPU_STOC_35.v is replaced by this line
-   assign s_cd_15_0_out[15:0] = s_stoc_n ? 16'bz : s_stoc_idb_15_0_in[15:0]; // If STOC_n is high, output is high-impedance
+   assign s_cd_15_0_out[15:0] = s_stoc_n ? 16'b0 : s_stoc_idb_15_0_in[15:0]; // If STOC_n is high, output is high-impedance
 
    // CPU_LAPA_23.v is replaced by this line
-   assign s_ppn_25_10[15:0] = s_lapa_n ? 16'bz : {2'b0,s_la_23_10[13:0]};  // is s_lapa_n is high, output is high-impedance
+   assign s_ppn_25_10[15:0] = s_lapa_n ? 16'b0 : {2'b0,s_la_23_10[13:0]};  // is s_lapa_n is high, output is high-impedance
    // TODO: Or with other output ?
 endmodule

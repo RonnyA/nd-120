@@ -127,14 +127,14 @@ end
 
 // Tri-state control for Q outputs
 // Assigning outputs with three-state logic controlled by OE_n
-assign SEM_n = OE_n ? 1'bz : ~SEM_reg;
-assign ACT_n = OE_n ? 1'bz : ~ACT_reg;
-assign DOREF_n = OE_n ? 1'bz : ~DOREF_reg;
-assign MEM_n = OE_n ? 1'bz : ~MEM_reg;
-assign REF_n = OE_n ? 1'bz : ~REF_reg;
-assign IOD_n = OE_n ? 1'bz : ~IOD_reg;
-assign GNT_n = OE_n ? 1'bz : ~GNT_reg;
-assign CACT_n = OE_n ? 1'bz : ~CACT_reg;
+assign SEM_n = OE_n ? 1'b0 : ~SEM_reg;
+assign ACT_n = OE_n ? 1'b0 : ~ACT_reg;
+assign DOREF_n = OE_n ? 1'b0 : ~DOREF_reg;
+assign MEM_n = OE_n ? 1'b0 : ~MEM_reg;
+assign REF_n = OE_n ? 1'b0 : ~REF_reg;
+assign IOD_n = OE_n ? 1'b0 : ~IOD_reg;
+assign GNT_n = OE_n ? 1'b0 : ~GNT_reg;
+assign CACT_n = OE_n ? 1'b0 : ~CACT_reg;
 
 
 endmodule

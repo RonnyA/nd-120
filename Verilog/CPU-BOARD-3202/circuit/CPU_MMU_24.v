@@ -271,7 +271,7 @@ module CPU_MMU_24(
 
 
    // CPU_MMU_WCA_31.v is replaced by this line
-   assign s_cpn_23_10[13:0] = s_wca_n ? 14'bz : s_wca_ppn_23_10_in[13:0];  // is s_lapa_n is high, output is high-impedance
+   assign s_cpn_23_10[13:0] = s_wca_n ? 14'b0 : s_wca_ppn_23_10_in[13:0];  // is s_lapa_n is high, output is high-impedance
 
    CPU_MMU_CSR_26   CSR (.BEDO_n(s_bedo_n),
                          .BEMPID_n(s_bempid_n),

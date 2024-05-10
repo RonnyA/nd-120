@@ -87,7 +87,7 @@ assign PPN_25_10_OUT = PPN_reg;
 
 
 // Output to A when receiving from B with respect to OE (OE_n==1 means "isolated". Don't write to A or B)
-//assign A = (OE_n == 0 && DIR == 0) ? internalBus : 8'bz;
+//assign A = (OE_n == 0 && DIR == 0) ? internalBus : 8'b0;
 
 
 endmodule

@@ -25,7 +25,7 @@ module IMS1403_25(
 
    assign data_in = D; // Connect input data
 
-   assign Q  = (!CE_n && W_n) ? data_out : 1'bz;  //Q is high impedance when W_n (write) is active and when chip is not selected
+   assign Q  = (!CE_n && W_n) ? data_out : 1'b0;  //Q is high impedance when W_n (write) is active and when chip is not selected
 
 
 

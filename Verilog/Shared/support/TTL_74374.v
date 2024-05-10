@@ -18,7 +18,7 @@ module TTL_74374 (
     // Output control
     // When OC_n is low (active), outputs reflect the latched data
     // When OC_n is high, outputs are in high-impedance state
-    assign Q = OE_n ? 8'bz : Q_reg;
+    assign Q = OE_n ? 8'b0 : Q_reg;
     
 
 endmodule

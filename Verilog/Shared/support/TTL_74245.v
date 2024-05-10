@@ -28,10 +28,10 @@ always @(*) begin
 end
 
 // Assign the bidirectional bus with respect to OE
-assign B_OUT = (OE_n == 0 && DIR == 1) ? internalBus : 8'bz;
+assign B_OUT = (OE_n == 0 && DIR == 1) ? internalBus : 8'b0;
 
 // Output to A when receiving from B with respect to OE (OE_n==1 means "isolated". Don't write to A or B)
-assign A_OUT = (OE_n == 0 && DIR == 0) ? internalBus : 8'bz;
+assign A_OUT = (OE_n == 0 && DIR == 0) ? internalBus : 8'b0;
 
 endmodule
 

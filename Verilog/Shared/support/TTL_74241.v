@@ -112,27 +112,27 @@ module TTL_74241( I0_1A1,
    assign s_logisimNet0 = ~s_logisimNet10;
 
    // Controlled Buffer
-   assign s_logisimNet11 = (s_logisimNet0) ? s_logisimNet2 : 1'bZ;
+   assign s_logisimNet11 = (s_logisimNet0) ? s_logisimNet2 : 1'b0;
 
    // Controlled Buffer
-   assign s_logisimNet12 = (s_logisimNet0) ? s_logisimNet3 : 1'bZ;
+   assign s_logisimNet12 = (s_logisimNet0) ? s_logisimNet3 : 1'b0;
 
    // Controlled Buffer
-   assign s_logisimNet13 = (s_logisimNet0) ? s_logisimNet4 : 1'bZ;
+   assign s_logisimNet13 = (s_logisimNet0) ? s_logisimNet4 : 1'b0;
 
    // Controlled Buffer
-   assign s_logisimNet14 = (s_logisimNet0) ? s_logisimNet5 : 1'bZ;
+   assign s_logisimNet14 = (s_logisimNet0) ? s_logisimNet5 : 1'b0;
 
    // Controlled Buffer
-   assign s_logisimNet15 = (s_logisimNet1) ? s_logisimNet6 : 1'bZ;
+   assign s_logisimNet15 = (s_logisimNet1) ? s_logisimNet6 : 1'b0;
 
    // Controlled Buffer
-   assign s_logisimNet16 = (s_logisimNet1) ? s_logisimNet7 : 1'bZ;
+   assign s_logisimNet16 = (s_logisimNet1) ? s_logisimNet7 : 1'b0;
 
    // Controlled Buffer
-   assign s_logisimNet17 = (s_logisimNet1) ? s_logisimNet8 : 1'bZ;
+   assign s_logisimNet17 = (s_logisimNet1) ? s_logisimNet8 : 1'b0;
 
    // Controlled Buffer
-   assign s_logisimNet18 = (s_logisimNet1) ? s_logisimNet9 : 1'bZ;
+   assign s_logisimNet18 = (s_logisimNet1) ? s_logisimNet9 : 1'b0;
 
 endmodule

@@ -79,9 +79,9 @@ end
 
 
 // Output logic for Q0_n, Q1_n, Q2_n
-assign Q0_n = OE_n ? 1'bz : ~Q0;
-assign Q1_n = OE_n ? 1'bz : ~Q1;
-assign Q2_n = OE_n ? 1'bz : ~Q2;
+assign Q0_n = OE_n ? 1'b0 : ~Q0;
+assign Q1_n = OE_n ? 1'b0 : ~Q1;
+assign Q2_n = OE_n ? 1'b0 : ~Q2;
 
 
 // Logic for APR

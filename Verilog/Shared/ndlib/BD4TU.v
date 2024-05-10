@@ -22,10 +22,10 @@ module BD4TU( input wire A,
     reg ZI_REG; // ZI register
 
     // Bidirectional data operation
-    assign IO = (EN == 1'b0) ? internalData : 1'bz;
+    assign IO = (EN == 1'b0) ? internalData : 1'b0;
 
     //assign ZI = BUF   
-    assign ZI = TN ?  ZI_REG : 1'bZ; // Probably the correct implementation ?
+    assign ZI = TN ?  ZI_REG : 1'b0; // Probably the correct implementation ?
    
     always @* begin
         if (EN == 1'b0) begin

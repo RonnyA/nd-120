@@ -57,7 +57,7 @@ module TTL_74521( AB_n,
    assign s_logisimNet4 = ~s_logisimNet3;
 
    // Controlled Inverter
-   assign s_logisimNet2 = (s_logisimNet4) ? ~s_logisimNet5 : 1'bZ;
+   assign s_logisimNet2 = (s_logisimNet4) ? ~s_logisimNet5 : 1'b0;
 
    /*******************************************************************************
    ** Here all normal components are defined                                     **

@@ -544,7 +544,7 @@ module CPU_PROC_32(
 
    assign s_idb_erf_in = IDB_15_0_IN | ((!ESTOF_n & !BEDO_n) ? s_fidb_A_OUT : 0); // Not 100% sure where data to the RAM may come from, so expect it to com from IDB and via Chip32F/33F
    // LOGIC
-   assign IDB_15_0_OUT = ram_read ? s_idb_erf_out[15:0] : ( (!ESTOF_n & !BEDO_n) ? s_fidb_A_OUT[15:0] : 16'bz);
+   assign IDB_15_0_OUT = ram_read ? s_idb_erf_out[15:0] : ( (!ESTOF_n & !BEDO_n) ? s_fidb_A_OUT[15:0] : 16'b0);
    // OR
    //assign IDB_15_0_OUT =  s_idb_erf_inout[15:0] |  s_fidb_A_OUT[15:0];
 

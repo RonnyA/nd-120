@@ -34,8 +34,8 @@ module AM29861A(
    // TODO: This may need to be changed to avoid inout-pins
    // Tri-state logic for bidirectional bus
    // Transmitter driving
-   assign bus_T  = s_transmit ? R : 10'bz;
-   assign bus_R  = s_receive ? T : 10'bz;
+   assign bus_T  = s_transmit ? R : 10'b0;
+   assign bus_R  = s_receive ? T : 10'b0;
 
     // Connect internal signals to inout ports
     assign T = bus_T;

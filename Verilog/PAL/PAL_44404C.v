@@ -74,10 +74,10 @@ end
 
 // Output logic for Q0_n, Q1_n, Q2_n
 //Q0
-assign NOWRIT_n = OE_n ? 1'bz : ~NOWRIT;
+assign NOWRIT_n = OE_n ? 1'b0 : ~NOWRIT;
 
 // Q1
-assign DLSHADOW = OE_n ? 1'bz : DLSHADOW_reg;
+assign DLSHADOW = OE_n ? 1'b0 : DLSHADOW_reg;
 
 
 

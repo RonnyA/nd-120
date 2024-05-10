@@ -41,9 +41,9 @@ end
 // Drive logic for IDB_15_0 and PT_15_0
 
 // Set IDB to B value IF DIR=0 (read) else to 3-state
-assign IDB_15_0_OUT =  OE_n ? 16'bz : !DIR ? B_reg : 16'bz;
+assign IDB_15_0_OUT =  OE_n ? 16'b0 : !DIR ? B_reg : 16'b0;
 
 // Set PT to A value IF DIR=1 (write) else to 3-state
-assign PT_15_0_OUT = OE_n ? 16'bz : DIR ? A_reg : 16'bz;
+assign PT_15_0_OUT = OE_n ? 16'b0 : DIR ? A_reg : 16'b0;
 
 endmodule

@@ -49,7 +49,7 @@ end
 
 // Tri-state control for outputs
 // High-impedance state when OE_n is high (active-low)
-assign RRF_n = OE_n ? 1'bz : ~RRF_reg;
+assign RRF_n = OE_n ? 1'b0 : ~RRF_reg;
 
 
 // Logic for ERF_n (active-low)

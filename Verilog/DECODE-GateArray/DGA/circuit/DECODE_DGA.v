@@ -272,7 +272,7 @@ module DECODE_DGA(
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign XA_7_0   = s_xrm_n ? 8'bz : s_ad_7_0[7:0];
+   assign XA_7_0   = s_xrm_n ? 8'b0 : s_ad_7_0[7:0];
    // assign XA_7_0_C = s_logisimBus35[7:0]; - control signal, not used
 
    assign XC10     = s_logisimNet1;
@@ -294,7 +294,7 @@ module DECODE_DGA(
    assign XION     = s_logisimNet60;
    // assign XI_3_0_C = s_logisimBus42[3:0]; Control signal not used
    //assign XI_3_0_O = s_idb_3_0_out[3:0];
-   assign XIDB_3_0_OUT = !s_epan_n ? s_idb_3_0_out[3:0] : 4'bz;
+   assign XIDB_3_0_OUT = !s_epan_n ? s_idb_3_0_out[3:0] : 4'b0;
 
    assign XLHN     = s_logisimNet45;
    assign XMCL     = s_logisimNet99;

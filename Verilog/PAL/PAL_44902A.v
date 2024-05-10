@@ -151,14 +151,14 @@ end
 // Tri-state control for Q outputs
 // Assigning outputs with three-state logic controlled by OE_n
 
-assign QA_n   = OE_n ? 1'bz : ~QA_reg;    // Q0_n 
-assign QB_n   = OE_n ? 1'bz : ~QB_reg;    // Q1_n 
-assign QC_n   = OE_n ? 1'bz : ~QC_reg;    // Q2_n 
-assign QD_n   = OE_n ? 1'bz : ~QD_reg;    // Q3_n 
-assign RAS    = OE_n ? 1'bz : ~RAS_n_reg; // Q4_n 
-assign CAS    = OE_n ? 1'bz : ~CAS_n_reg; // Q5_n 
-assign LOEN_n = OE_n ? 1'bz : ~LOEN_reg;  // Q6_n
-assign HIEN_n = OE_n ? 1'bz : ~HIEN_reg;  // Q7_n
+assign QA_n   = OE_n ? 1'b0 : ~QA_reg;    // Q0_n 
+assign QB_n   = OE_n ? 1'b0 : ~QB_reg;    // Q1_n 
+assign QC_n   = OE_n ? 1'b0 : ~QC_reg;    // Q2_n 
+assign QD_n   = OE_n ? 1'b0 : ~QD_reg;    // Q3_n 
+assign RAS    = OE_n ? 1'b0 : ~RAS_n_reg; // Q4_n 
+assign CAS    = OE_n ? 1'b0 : ~CAS_n_reg; // Q5_n 
+assign LOEN_n = OE_n ? 1'b0 : ~LOEN_reg;  // Q6_n
+assign HIEN_n = OE_n ? 1'b0 : ~HIEN_reg;  // Q7_n
 
 // Debugging, if you want to se the 4-bit value of Q easier
 //assign Q = {QD, QC, QB, QA};

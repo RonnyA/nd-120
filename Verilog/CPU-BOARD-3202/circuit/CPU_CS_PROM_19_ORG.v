@@ -22,7 +22,7 @@ module CPU_CS_PROM_19_ORG( input BLCS_n,         // Set to 0 to enable the outpu
 
 
    // Controlled Buffer
-   assign IDB_15_0 = (BLCS_n) ? 16'bZ : s_databus;
+   assign IDB_15_0 = (BLCS_n) ? 16'b0 : s_databus;
 
 
    // ROM: CHIP_23B_45132

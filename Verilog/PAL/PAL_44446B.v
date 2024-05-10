@@ -65,10 +65,10 @@ end
 
 // Tri-state control for Q outputs
 // High-impedance state when OE_n is high (active-low)
-assign BANK2 = OE_n ? 1'bz : ~BANK2_n_reg;
-assign BANK1 = OE_n ? 1'bz : ~BANK1_n_reg;
-assign BANK0 = OE_n ? 1'bz : ~BANK0_n_reg;
-assign MWRITE_n = OE_n ? 1'bz : ~MWRITE_reg;
+assign BANK2 = OE_n ? 1'b0 : ~BANK2_n_reg;
+assign BANK1 = OE_n ? 1'b0 : ~BANK1_n_reg;
+assign BANK0 = OE_n ? 1'b0 : ~BANK0_n_reg;
+assign MWRITE_n = OE_n ? 1'b0 : ~MWRITE_reg;
 
 
 //**** Syncronous logic (always running) ****

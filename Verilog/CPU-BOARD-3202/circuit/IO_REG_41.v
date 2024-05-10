@@ -274,7 +274,7 @@ TTL_74273 CHIP_28A_IOC (
 
 
       // TTL_74244 CHIP_24A_INR (simplified..)
-      assign s_IDB_7_0_inr_out[7:0] = s_RINR_n  ? 8'bz : s_INR_7_0[7:0]; 
+      assign s_IDB_7_0_inr_out[7:0] = s_RINR_n  ? 8'b0 : s_INR_7_0[7:0]; 
 
       // IDB bus 7:0 is shared between ALD and INR.. or Z state
       assign s_IDB_15_0_out[7:0] = !s_traald_n ?  s_IDB_7_0_ald_out [7:0] :  s_IDB_7_0_inr_out[7:0]; // if TRAALD_n is low, then the IDB[7:0] is driven by ALD if not its driven by INR
