@@ -63,17 +63,23 @@ assign SPEAL =  ~(BCGNT50_n | BLOCKL25 | EPEAL | MR);
 assign EPESL_n = ~(PS & RERR_n);
 assign EPEAL_n= ~(PA & RERR_n);
 
+// BLOCKL condition
+wire set_condition = (RDATA & EPEAL_n & EPESL_n & LERR & MR_n);
+wire reset_condition = !(PA_n & MR_n);
 
 always @(*) begin
     if (!TEST) begin
 
-        // SET ON LOCAL ERROR
-        // HOLD TILL PEA READ
-        if ((RDATA & EPEAL_n & EPESL_n & LERR & MR_n)==1)
-            BLOCKL_reg = 1'b1;
-        else if ((PA_n & MR_n)==0)
-            BLOCKL_reg = 1'b0;
-
+        if (set_condition)
+            BLOCKL_reg = 1'b1;  // SET ON LOCAL ERROR
+        else if (reset_condition)
+            BLOCKL_reg = 1'b0;  // RESET IF PA_n & MR_n ARE NOT BOTH 1 (// HOLD TILL PEA READ)
+/*
+        BLOCKL_reg <=         
+              (RDATA & EPEAL_n & EPESL_n & LERR & MR_n) | // SET ON LOCAL ERROR    
+              (BLOCKL_reg & PA_n & MR_n)                  // HOLD TILL PEA READ                              
+              ;
+*/            
     end
 end
 
