@@ -153,9 +153,9 @@ module SC2661_UART(
    assign TXD              = s_txd;
    assign TXDRDY_n         = s_txrdy_n;
    assign TXEMT_n          = s_txemt_n;
-   assign D_OUT            = data_out;
+   assign D_OUT            = regDataOut;
 
-   reg [7:0] data_out;
+   reg [7:0] regDataOut;
 
    reg [7:0] regReceiveHoldingRegister;
    reg [7:0] regTransmitHoldingRegister;
@@ -204,70 +204,70 @@ module SC2661_UART(
          regTransmitHoldingRegister <= 8'b0;
          regStatusRegister <= 8'b0;
          regModeRegister <= 8'b0;
-         regCommandRegister <= 8'b0;         
+         regCommandRegister <= 8'b0;       
+         regDataOut <= 8'b0;
+         regDataInSendRegister <= 0;
          rxState <= RX_STATE_IDLE;
          txState <= TX_STATE_IDLE;
-      end
-   end
-          
-
-   // Read and Write to registers
-   always @(posedge BRCLK) begin
-      if (cmd_rxEnabled|cmd_txEnabled) begin // Only update status register SR2 if RX or TX is enabled
-         if ((regStatusRegister[6] == s_dcd_n) | (regStatusRegister[7] == s_dsr_n))
-            regStatusRegister[2] <= 1; // Detected change in DSR or DCD   //SR2: 0=Normal, 1=Change in /DSR or /DCD or transmit shift register is empty
-      end
-
-      regStatusRegister[6] <= !s_dcd_n; // DCD - 0=/DCD input is high. 1=/DCD input is low
-      regStatusRegister[7] <= !s_dsr_n; // DSR - 0=/DSR input is high. 1=/DSR input is low
-
-      if (!CE_n) begin // Chip enabled!
-         if (s_read_n) begin // write
-
-            case(s_address)
-               2'b00: begin
-                  //Write to transmit holding register
-                  regTransmitHoldingRegister <= s_data_in; // Write transmit holding register                         
-                  regDataInSendRegister <= 1; // Send data to transmitter                      
-                     
-               end
-
-               2'b01: regStatusRegister <= s_data_in;    // Write SYN1/SYN2/DLE registers
-               2'b10: regModeRegister <= s_data_in;      // Write mode register 1 and 2
-               2'b11: begin 
-                  regCommandRegister <= s_data_in;   // Write command register
-
-                  if (!cmd_rxEnabled)
-                     regStatusRegister[1] <= 0;     // 0=Receive Holding Register Empty (Cleared if RX is disabled)
-
-                  if (cmd_resetError) begin
-                     regStatusRegister[3] <= 0; // 0=Clear Parity Error
-                     regStatusRegister[4] <= 0; // 0=Clear Overrun Error
-                     regStatusRegister[5] <= 0; // 0=Clear Frame Error
-                  end
-               end
-            default: 
-                  ;  // Undefined state
-            endcase
-
-         end else begin // read
-            
-            case(s_address)
-               2'b00: begin
-                     data_out <= regReceiveHoldingRegister; // Read receive holding register  (data out)
-                     regStatusRegister[1] <= 0;             // 0=Receive Holding Register Empty
-               end
-               2'b01: begin
-                     data_out <= regStatusRegister;  // Read status register                     
-                     regStatusRegister[2]<= 0;     // Clear register SR2
-               end
-               2'b10: data_out <= regModeRegister; // Read mode register 1 and 2
-               2'b11: data_out <= regCommandRegister; // Read command register
-            default: 
-               data_out = 8'b0;  // Undefined state
-            endcase
+      end else begin         
+         // Read and Write to registers
+         
+         if (cmd_rxEnabled|cmd_txEnabled) begin // Only update status register SR2 if RX or TX is enabled
+            if ((regStatusRegister[6] == s_dcd_n) | (regStatusRegister[7] == s_dsr_n))
+               regStatusRegister[2] <= 1; // Detected change in DSR or DCD   //SR2: 0=Normal, 1=Change in /DSR or /DCD or transmit shift register is empty
          end
 
+         regStatusRegister[6] <= !s_dcd_n; // DCD - 0=/DCD input is high. 1=/DCD input is low
+         regStatusRegister[7] <= !s_dsr_n; // DSR - 0=/DSR input is high. 1=/DSR input is low
+
+         if (!CE_n) begin // Chip enabled!
+            if (s_read_n) begin // write
+
+               case(s_address)
+                  2'b00: begin
+                     //Write to transmit holding register
+                     regTransmitHoldingRegister <= s_data_in; // Write transmit holding register                         
+                     regDataInSendRegister <= 1; // Send data to transmitter                      
+
+                  end
+
+                  2'b01: regStatusRegister <= s_data_in;    // Write SYN1/SYN2/DLE registers
+                  2'b10: regModeRegister <= s_data_in;      // Write mode register 1 and 2
+                  2'b11: begin 
+                     regCommandRegister <= s_data_in;   // Write command register
+
+                     if (!cmd_rxEnabled)
+                        regStatusRegister[1] <= 0;     // 0=Receive Holding Register Empty (Cleared if RX is disabled)
+
+                     if (cmd_resetError) begin
+                        regStatusRegister[3] <= 0; // 0=Clear Parity Error
+                        regStatusRegister[4] <= 0; // 0=Clear Overrun Error
+                        regStatusRegister[5] <= 0; // 0=Clear Frame Error
+                     end
+                  end
+               default: 
+                     ;  // Undefined state
+               endcase
+
+            end else begin // read
+
+               case(s_address)
+                  2'b00: begin
+                        regDataOut <= regReceiveHoldingRegister; // Read receive holding register  (data out)
+                        regStatusRegister[1] <= 0;             // 0=Receive Holding Register Empty
+                  end
+                  2'b01: begin
+                        regDataOut <= regStatusRegister;  // Read status register                     
+                        regStatusRegister[2]<= 0;     // Clear register SR2
+                  end
+                  2'b10: regDataOut <= regModeRegister; // Read mode register 1 and 2
+                  2'b11: regDataOut <= regCommandRegister; // Read command register
+               default: 
+                  regDataOut = 8'b0;  // Undefined state
+               endcase
+            end
+
+         end
       end
    end
 
@@ -429,6 +429,6 @@ module SC2661_UART(
    end
 
 
-   assign D_OUT = (!CE_n & !READ_n) ? data_out :  8'b0;
+   assign D_OUT = (!CE_n & !READ_n) ? regDataOut :  8'b0;
 
 endmodule
