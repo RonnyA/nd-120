@@ -33,10 +33,10 @@ module J_K_FLIPFLOP(
     // State update logic
     //always @(posedge reset or posedge preset or posedge s_clock) begin (Vivado doesnt like ASYNC RESET )
     always @(posedge s_clock ) begin
-        if (reset)
-            s_currentState <= 1'b0;
-        else if (preset)
+        if (preset) // priority to pre-set
             s_currentState <= 1'b1;
+        else if (reset)
+            s_currentState <= 1'b0;
         else if (tick)
             s_currentState <= s_nextState;
     end

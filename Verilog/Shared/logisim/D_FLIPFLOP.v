@@ -86,10 +86,10 @@ module D_FLIPFLOP( clock,
 
    always @(posedge s_clock)
    begin
-      if (reset)
-         s_currentState <= 1'b0;
-      else if (preset)
-         s_currentState <= 1'b1;
+      if (preset)  
+        s_currentState <= 1'b1; // priority to pre-set
+      else if (reset)
+         s_currentState <= 1'b0;      
       else if (tick)
          s_currentState <= s_nextState;
    end
