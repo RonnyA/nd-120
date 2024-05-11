@@ -58,9 +58,9 @@ always @(posedge CK) begin
     LDEXM_int <= C4 & ~C3 & ~C2 & ~C1 & C0 & M1 & M0 & LCS_n; // COMMAND 21.3 (validated RH)
 
     // Logic for VEX
-    VEX_n_int <= LDEXM_int & ~IDB2 |       // CLEAR
-                 ~LDEXM_int & VEX_n_int |  // HOLD CLEAR
-                 LCS;                      // LCS
+    VEX_n_int <= (LDEXM_int & ~IDB2) |       // CLEAR
+                 (~LDEXM_int & VEX_n_int) |  // HOLD CLEAR
+                 LCS;                        // LCS
 
     // Logic for OPCLCS
     OPCLCS_n_int <= ~C4 | ~C3 | ~C2 | ~C1 | C0 | ~M1 | M0 | LCS; // COMMAND 36.2 (validated RH)
