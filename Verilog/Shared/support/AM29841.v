@@ -11,18 +11,16 @@ module AM29841 (
 
     reg [9:0] Q_Latch;  // Internal latch
 
-    // Latch operation
-    //always @(posedge LE or negedge LE or posedge D or negedge D) begin 
+    // Latch the data as long as LE is high
     always @(*) begin
-    //always_latch begin
         if (LE) begin
-            Q_Latch = D;  // Transparent mode: Internal latch follows input
+            Q_Latch = D; // Transparent mode: Internal latch follows input   
         end
     end
 
     // Output control
     // When OC_n is low (active), outputs reflect the latched data
-    // When OC_n is high, outputs are in high-impedance state
+    // When OC_n is high, outputs are in high-impedance state (zero output = high-impedance state, will be "or'ed" on higher level module)
     assign Y = OE_n ?  10'b0 : Q_Latch;
 
 endmodule
