@@ -41,6 +41,8 @@ module ND3202D (
    input [2:0] SEL_TESTMUX,      // Selects testmux signals to output on TEST_4_0
    input [4:0] BAUD_RATE_SWITCH, // Switch on the PCB to select baudrate
 
+   input POWSENSE_n, // Power sense signal from the PSU
+
    /*******************************************************************************
    ** The outputs are defined here                                               **
    *******************************************************************************/
@@ -365,7 +367,10 @@ LED7 (yellow)  - Bus grant
    assign s_pd2 = 0;
    assign s_pd3 = 0;
    assign s_pd4 = 0;
-
+   
+   
+   // Power sense
+   assign s_powsense_n = POWSENSE_n;
 
    // unknown signals // TODO: Identify the correct source of these signals
    assign s_acond_n = 1;
@@ -475,7 +480,7 @@ LED7 (yellow)  - Bus grant
                  .PD2(s_pd2),
                  .PIL_3_0(s_pil_3_0[3:0]),
                  .PONI(s_poni),
-                 .POWFAIL_n(s_powfail_n),
+                 .POWFAIL_n(s_powfail_n), // input powefail
                  .PPN_23_10(s_ppn_23_10[13:0]),
                  .RT_n(s_rt_n),
                  .RWCS_n(s_rwcs_n),
@@ -585,7 +590,7 @@ LED7 (yellow)  - Bus grant
                .PA_n(s_pa_n),
                .PCR_1_0(s_pcr_1_0[1:0]),
                .PONI(s_poni),
-               .POWFAIL_n(s_powfail_n),
+               .POWFAIL_n(s_powfail_n), // output powfail
                .POWSENSE_n(s_powsense_n),
                .PS_n(s_ps_n),
                .REFRQ_n(s_refreq_n),
@@ -740,7 +745,7 @@ LED7 (yellow)  - Bus grant
                 .MOFF_n(s_moff_n),
                 .MOR25_n(s_mor25_n),
                 .MOR_n(s_mor_n),
-                .MR_n(s_mr_n),
+                .MR_n(s_mr_n),  // Master Reset signal comes from BIF (submodule BCTL, sub-sub SYNC, 50 ns delay of CLEAR_n input signal)
                 .MWRITE_n(s_mwrite_n),
                 .OSC(s_osc),
                 .OUTGRANT_n(s_outgrant_n),
