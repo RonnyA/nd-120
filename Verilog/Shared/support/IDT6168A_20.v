@@ -12,7 +12,8 @@ module IDT6168A_20(
    input [11:0] A_11_0,    // Address input
    input        CE_n,      // Chip enable (active low)
    input        WE_n,      // Write enable (active low)
-   inout [3:0]  D_3_0      // Data input/output
+   input [3:0]  D_3_0_IN,  // Data input/output
+   output [3:0] D_3_0_OUT  // Data input/output
 );
 
    /*******************************************************************************
@@ -28,8 +29,8 @@ module IDT6168A_20(
    *******************************************************************************/
    reg [3:0] data_out;     // Output data register
    wire [3:0] data_in;     // Input data from the bus
-   assign data_in = D_3_0; // Connect input data
-   assign D_3_0 = (!CE_n && WE_n) ? data_out : 4'b0; // Tristate logic for bidirectional data bus
+   assign data_in = D_3_0_IN; // Connect input data
+   assign D_3_0_OUT = (!CE_n && WE_n) ? data_out : 4'b0; // Tristate logic for bidirectional data bus in chip, in FPGA use 0000 for no output.
 
    
    /*******************************************************************************
@@ -46,12 +47,13 @@ module IDT6168A_20(
     * enabling continuous write operations during the active period.
     */
 
+   /* verilator lint_off BLKSEQ */
    always @(posedge clk) begin
       if (!CE_n) begin
          if (!WE_n) begin
-            memory_array[A_11_0] <= data_in;  // Write operation
+            memory_array[A_11_0] = data_in;  // Write operation
          end else begin
-            data_out <= memory_array[A_11_0]; // Read operation
+            data_out = memory_array[A_11_0]; // Read operation
          end
       end
    end
