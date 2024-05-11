@@ -20,10 +20,10 @@ module LATCH(
    // LATCH
    always @* begin 
       if (ENABLE) begin
-         Q = D;
-      end        
+         Q = D; // When ENABLE is high, Q takes the value of the input
+      end
       // When ENABLE is low, Q retains its value
-
+      
       QN = ~Q; // Negate Q to get QN
    end
 
