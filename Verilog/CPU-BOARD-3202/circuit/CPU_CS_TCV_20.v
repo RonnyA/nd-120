@@ -25,48 +25,51 @@ module CPU_CS_TCV_20(
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   reg [63:0] regCSBITS;
-   reg [15:0] regIDB;
+   reg [63:0] regCSBITS;   
+   reg [15:0] regIDB_out;
 
-   reg [2:0] selector;
-
+   
    // WCS_n decides is its DIR-ection of the data from CSBITS => IDB or CSBITS <= IDB
-
+   wire DIR; //  DIR = H (A to B - CSBITS to IDB)  or DIR = L (B to A - IDB to CSBITS)
+   assign DIR = WCS_n;
    
    always @(*) begin
       
+      regIDB_out  = 0;
+      regCSBITS = 0;
+
       if (EW_3_0_n[0] == 0) begin         
-         selector = 1;
-      end else if (EW_3_0_n[1] == 0) begin         
-         selector = 2;
-      end else if (EW_3_0_n[2] == 0) begin         
-         selector = 3;
-      end else if (EW_3_0_n[3] == 0) begin         
-         selector = 4;
-      end else begin        
-         selector = 0;
+         if (DIR) begin 
+            regIDB_out = regIDB_out | CSBITS[15:0];
+         end else begin            
+            regCSBITS[15:0]  = IDB_15_0_IN;
+         end         
+      end
+      
+      if (EW_3_0_n[1] == 0) begin    
+         if (DIR) begin 
+            regIDB_out = regIDB_out | CSBITS[31:16];            
+         end else begin
+            regCSBITS[31:16]  = IDB_15_0_IN;
+         end         
+      end 
+      
+      if (EW_3_0_n[2] == 0) begin         
+         if (DIR) begin 
+            regIDB_out = regIDB_out | CSBITS[47:32];
+         end else begin
+            regCSBITS[47:32]  = IDB_15_0_IN;            
+         end         
+      end 
+      
+      if (EW_3_0_n[3] == 0) begin         
+         if (DIR) begin 
+            regIDB_out = regIDB_out |CSBITS[63:48];
+         end else begin
+            regCSBITS[63:48] = IDB_15_0_IN;            
+         end         
       end         
    
-
-      if (!WCS_n) begin
-         // Write to CSBITS from IDB               
-         case (selector)
-            1: regCSBITS[15:0]  = IDB_15_0_IN;
-            2: regCSBITS[31:16] = IDB_15_0_IN;
-            3: regCSBITS[47:32] = IDB_15_0_IN;
-            4: regCSBITS[63:48] = IDB_15_0_IN;
-         endcase
-
-      end else begin
-         // Write to IDB from CSBITS         
-
-         case (selector)
-            1: regIDB = CSBITS[15:0];
-            2: regIDB = CSBITS[31:16];
-            3: regIDB = CSBITS[47:32];
-            4: regIDB = CSBITS[63:48];            
-         endcase
-      end
    end
 
 
@@ -86,8 +89,13 @@ module CPU_CS_TCV_20(
  
 
 
-   // ECSL_n decides if the data should be enabled out on the IDB bus   
-   assign IDB_15_0_OUT = (ECSL_n & !WCS_n) ? 16'b0 : regIDB[15:0];   
-   assign CSBITS_OUT = regCSBITS;
+   // ECSL_n decides if the data should be enabled out (on the IDB bus and the CSBITS output bus)
+   //assign IDB_15_0_OUT = (ECSL_n & !WCS_n) ? 16'b0 : regIDB[15:0];   
+   assign IDB_15_0_OUT = (ECSL_n | !WCS_n) ? 16'b0 : regIDB_out[15:0];   
+
+   //assign CSBITS_OUT[63:0] = (ECSL_n & WCS_n) ? 64'b0 : regCSBITS[63:0];
+   //assign CSBITS_OUT[63:0] = (WCS_n) ? 64'b0 : regCSBITS[63:0];
+   assign CSBITS_OUT[63:0] = regCSBITS;
+   
 
 endmodule
