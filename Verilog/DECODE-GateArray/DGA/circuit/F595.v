@@ -4,6 +4,8 @@
  **                                                                          **
  ** R/S Latch with Gated input                                               **
  **                                                                          **
+ ** Truth table from REN_A12213XJ5V1UM00_OTH_19980801.pdf                    **
+ ** Page 6-214. Function RS-LATCH                                            **
  *****************************************************************************/
 
 module F595( 
@@ -15,37 +17,35 @@ module F595(
    output N02_QB // Qn
 );
 
-   reg Q_int;
+    /* verilator lint_off UNOPTFLAT */
 
-   wire s_signal_S;
-   wire s_signal_R;
+   reg regQ;
+   reg regQn;
 
-   
-   // G needs to be HIGH to allow S and R to be set
-   assign s_signal_S = H01_S & H03_G;
-   assign s_signal_R = H02_R & H03_G;
+   // Behavioral description of the R-S latch   
+   //always @(posedge H01_S, posedge H02_R, posedge H03_G) begin
 
+    /* verilator lint_off LATCH */
 
-   // Behavioral description of the R-S latch
-   always @(*) begin
-      if (s_signal_R && s_signal_S) begin
-          // Invalid state, typically both Q and Qn should be undefined
-          //Q_int = 1'bx;
-          //Qn_int = 1'bx;
-
-         // should be undefined.. but we need to define it 0
-          Q_int = 1'b0;          
-
-      end else if (s_signal_R) begin
-          Q_int = 1'b0;          
-      end else if (s_signal_S) begin
-          Q_int = 1'b1;          
-      end /*else begin
-          Q_int = Q_int; // Explicitly maintaining previous state (to avoid warning/error "not all control paths of combinational always assign a value")
-      end*/
+    always @* begin
+      if (H03_G) begin
+       if (H01_S & H02_R) begin              
+           regQ = 1'b1;          
+           regQn = 1'b1;                 
+       end else if (H02_R & !H01_S) begin
+           regQ = 1'b0;          
+           regQn = 1'b1;          
+       end else if (!H02_R & H01_S) begin
+           regQ = 1'b1;          
+           regQn = 1'b0;          
+       end /*else begin
+           regQ = regQ; // Explicitly maintaining previous state (to avoid warning/error "not all control paths of combinational always assign a value")
+           regQn = regQn;
+       end*/
+    end
   end
   
-  assign N01_Q = Q_int;
-  assign N02_QB = ~Q_int;
+  assign N01_Q = regQ;
+  assign N02_QB = regQn;
 
 endmodule

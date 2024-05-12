@@ -113,13 +113,17 @@ module DECODE_DGA(
    *******************************************************************************/
    wire [4:0]  s_csidbs_4_0;   
    wire [1:0]  s_xmi_1_0;
-   wire [12:0] s_wel_12_0;
+   
    wire [3:0]  s_idb_3_0_out;
    wire [1:0]  s_xst_4_3;      
    wire [7:0]  s_idb_7_0_in;
-   wire [12:0] s_weu_12_0;
+   
    wire [7:0]  s_ad_7_0;
    wire [4:0]  s_cscomm_4_0;   
+
+   // Replaced by FIFO
+   //wire [12:0] s_wel_12_0;
+   //wire [12:0] s_weu_12_0;
 
    wire        s_xwhn;
    wire        s_ca10;
@@ -313,6 +317,7 @@ module DECODE_DGA(
                 .N02(s_idb_3));
    /* verilator lint_on PINCONNECTEMPTY */                
 
+   /*
    DECODE_DGA_PFIFC   PFIFC (.CLEAR(s_xcln),
                              .EMPN(s_xemn),
                              .FULN(s_xfun),
@@ -320,6 +325,53 @@ module DECODE_DGA(
                              .RMMN(s_xrm_n),
                              .WEL_12_0(s_wel_12_0[12:0]),
                              .WEU_12_0(s_weu_12_0[12:0]));
+
+
+   DECODE_DGA_PFIFD   PFIFD (.AD_7_0(s_ad_7_0[7:0]),
+         .IDBI_7_0(s_idb_7_0_in[7:0]),
+         .WEL_12_0(s_wel_12_0[12:0]),
+         .WEU_12_0(s_weu_12_0[12:0]));
+
+
+   */
+   
+   // ****************************************************************************************************
+   // Instantiate the FIFO module that replace DECODE_DGA_PFIFD, DECODE_DGA_PFIFC and DECODE_DGA_PFIFC_DELAY
+   // ****************************************************************************************************
+   
+   // FIFO IN wires
+   wire fifo_rst = ~s_xcln;
+   wire fifo_wr_en = ~s_ldpanc_n;
+   wire fifo_rd_en = ~s_xrm_n;
+
+   wire [7:0] fifo_data_in = s_idb_7_0_in;
+
+   // FIFO out wires
+   wire [7:0] fifo_data_out;
+   assign s_ad_7_0 = fifo_data_out;
+
+   wire fifo_full;
+   wire fifo_empty;
+
+   assign s_xemn = fifo_empty;
+   assign s_xfun = fifo_full;
+
+   FIFO_8BIT #(
+      .DEPTH(13)  // Depth of the FIFO (maximum 16)
+  ) fifo_inst (
+      .rst(fifo_rst),
+      .wr_en(fifo_wr_en),
+      .rd_en(fifo_rd_en),
+      .data_in(fifo_data_in),
+      // out
+      .data_out(fifo_data_out),
+      .full(fifo_full),
+      .empty(fifo_empty)
+  );
+
+   // ****************************************************************************************************
+   // FIFO MODULE END
+   // ****************************************************************************************************
 
    DECODE_DGA_POW   POW (.BDRY50N(s_xbdn),
                          .CLEAR(s_xcln),
@@ -351,10 +403,6 @@ module DECODE_DGA(
                          .TESTE(s_xtes),
                          .TOUT(s_xtot));
 
-   DECODE_DGA_PFIFD   PFIFD (.AD_7_0(s_ad_7_0[7:0]),
-                             .IDBI_7_0(s_idb_7_0_in[7:0]),
-                             .WEL_12_0(s_wel_12_0[12:0]),
-                             .WEU_12_0(s_weu_12_0[12:0]));
 
    DECODE_DGA_IDBS   IDBS (.CLK0(s_xclk),
                            .CLK1(s_xclk),

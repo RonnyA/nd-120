@@ -17,44 +17,97 @@ struct TestCase {
     
 
     // Inputs
-   bool        BDRY50_n;
-   bool        BRK_n;
-   bool        CLK;
-   uint8_t     CSCOMM_4_0;
-   uint8_t     CSIDBS_4_0;
-   uint8_t     CSMIS_1_0;
-   bool        DAP_n;
-   bool        EORF_n;
-   bool        HIT;
-   bool        ICONTIN_n;
-   uint8_t     IDB_3_0_io;
-   uint8_t     IDB_7_4;
-   bool        ILOAD_n;
-   bool        ISTOP_n;
-   bool        LCS_n;
-   bool        LSHADOW;
-   uint8_t     OC_1_0;
-   bool        OPCLCS;
-   bool        OSCCL_n;
-   bool        PONI;
-   bool        POWSENSE_n;
-   bool        REF_n;
-   bool        RMM_n;
-   bool        SEL5MS_n;
-   uint8_t     STAT_4_3;
-   bool        SWMCL_n;
-   bool        UCLK;
-   bool        XTAL1;  // 38.3216 MHz
-   bool        XTAL2;  // 35 MHZ
-    
-    uint16_t IDB_15_0;             
-    bool STOC_n;      
-   
-    // Outputs
-   uint16_t CD_15_0;
-    
+   bool sysclk;      // System clock in FPGA
+   bool sys_rst_n;   // System reset in FPGA
 
-    std::string description; // Description of the test case
+   uint8_t CSCOMM_4_0;
+   uint8_t CSIDBS_4_0;
+   uint8_t CSMIS_1_0;
+   uint8_t OC_1_0;
+   uint8_t STAT_4_3;
+
+   
+   bool BDRY50_n;
+   bool BRK_n;
+   bool CLK;
+   bool DAP_n;
+   bool EORF_n;
+   bool HIT;
+   bool ICONTIN_n;
+   bool ILOAD_n;
+   bool ISTOP_n;
+   bool LCS_n;
+   bool LSHADOW;
+   bool OPCLCS;
+   bool OSCCL_n;
+   bool PONI;
+   bool POWSENSE_n;
+   bool REF_n;
+   bool RMM_n;
+   bool SEL5MS_n;
+   bool SWMCL_n;
+   bool UCLK;
+   bool XTAL1;  // 38.3216 MHz
+   bool XTAL2;  // 35 MHZ
+
+
+
+
+   // In and outs
+   uint8_t IDB_7_0_IN;
+   uint8_t IDB_7_0_OUT; 
+   
+    // Outputs   
+   uint8_t PA_7_0; // From FIFO direct to 68705 PanCal processor
+
+   bool  CA10;
+   bool  CCLR_n;
+   bool  CEUART_n;
+   bool  CLEAR_n;
+   bool  DT_n;
+   bool  DVACC_n;
+   bool  ECREQ;
+   bool  ECSR_n;
+   bool  EDO_n;
+   bool  EIOR_n;
+   bool  EMPID_n;
+   bool  EMP_n;
+   bool  EPANS_n;
+   bool  ESTOF_n;
+   bool  FETCH;
+   bool  FMISS;
+   bool  FORM_n;
+   bool  FUL_n;
+   bool  IORQ_n;
+   bool  LHIT;
+   bool  MCL;
+   bool  MREQ_n;
+   bool  OSC;
+   bool  PANOSC;
+   bool  PAN_n;   
+   bool  PA_n;
+   bool  POWFAIL_n;
+   bool  PPOSC;
+   bool  PS_n;
+   bool  REFRQ_n;
+   bool  RINR_n;
+   bool  RT_n;
+   bool  RUART_n;
+   bool  RWCS_n;  // (NOT CONNECTED IN SHEET 39) - find signal from one of the PAL's ??
+   bool  SHORT_n;
+   bool  SIOC_n;
+   bool  SLOW_n;
+   bool  SSEMA_n;
+   bool  STOC_n;
+   bool  STP;
+   bool  TOUT;
+   bool  TRAALD_n;
+   bool  VAL;
+   bool  WCHIM_n;
+   bool  WRITE;
+   bool  EPAN_n; // Signal on the DGA chip (not connected in sheet 39). Maybe replaced by a PAL signal ?      
+
+   std::string description; // Description of the test case
 };
 
 
@@ -147,10 +200,9 @@ int main(int argc, char **argv)
             for (int csmis=0; csmis<=3; csmis++)
             {
 
-                uint16_t idb;
+                uint16_t idb = 0xBA;
 
-                top->IDB_7_4 = (idb >> 4) & 0xF;
-                top->IDB_3_0_io = (idb & 0xF);
+                top->IDB_7_0_IN = idb;                
 
                 top->CSCOMM_4_0 = cscomm;
                 top->CSMIS_1_0 = csmis;

@@ -116,6 +116,81 @@ module FIFO_testbench;
         // Check the full and empty flags
         #10 $display("Full: %b, Empty: %b", full, empty);
 
+
+        
+        // Read the data back from the FIFO
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+        #10 rd_en = 1;
+        #10 rd_en = 0;
+
+        // Check the full and empty flags
+        #10 $display("Full: %b, Empty: %b", full, empty);
+
+
         // End of test
         #10 $finish;
     end

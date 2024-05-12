@@ -368,10 +368,14 @@ module DECODE_DGA_POW(
             .input2(s_logisimNet84),
             .result(s_logisimNet20));
 
+/*            
    NAND_GATE #(.BubblesMask(2'b00))
       A578 (.input1(s_stp_n),
             .input2(s_logisimNet41),
             .result(s_logisimNet54));
+*/
+   assign s_logisimNet54 = ~(s_stp_n & s_logisimNet41);
+   
 
    NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
       A579 (.input1(s_logisimNet76),
@@ -611,11 +615,14 @@ module DECODE_DGA_POW(
                 .N01_Q(),
                 .N02_QB(s_logisimNet98));
 
-   F595   A569 (.H01_S(s_logisimNet54),
-                .H02_R(s_powfail_n),
+   /*  H01_S signal loops back vis STPN from A571. Verilator doesnt like it, Vivado does not complain */
+   /* verilator lint_off UNOPTFLAT */  // <=== This didnt fix verilator lint error, so I added it into the F595 module for everyone..
+   F595   A569 (.H01_S(s_logisimNet54),                
+                .H02_R(s_powfail_n),                
                 .H03_G(s_logisimNet95),
                 .N01_Q(),
                 .N02_QB(s_logisimNet30));
+  /* verilator lint_on UNOPTFLAT */
 
    F595   A575 (.H01_S(s_logisimNet92),
                 .H02_R(s_logisimNet36),

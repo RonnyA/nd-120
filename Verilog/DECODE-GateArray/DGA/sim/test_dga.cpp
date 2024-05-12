@@ -188,7 +188,10 @@ std::vector<TestCase> testCases = {
 				top->XTON = test.XTON;
 				top->XUCK = test.XUCK;
 
+
 				// Test code to trigger some response (fix later with real tests)
+				top->XIDB_7_0_IN = csidbs;
+				
 				top->XCO_4_0 = csidbs;
 				top->XMI_1_0 = csmis;
 

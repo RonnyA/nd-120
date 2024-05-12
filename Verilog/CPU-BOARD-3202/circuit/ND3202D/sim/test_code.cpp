@@ -42,6 +42,10 @@ struct TestCase {
    bool SW1_CONSOLE;
    bool SWMCL_n;
    bool XTR;
+   uint8_t SEL_TESTMUX;      // Selects testmux signals to output on TEST_4_0
+   uint8_t BAUD_RATE_SWITCH; // Switch on the PCB to select baudrate
+
+   bool POWSENSE_n; // Power sense signal from the PSU
    
    /*******************************************************************************
    ** The outputs are defined here                                               **
@@ -97,7 +101,7 @@ int main(int argc, char **argv)
     top->BINT11_n =
     top->BINT12_n =
     top->BINT13_n = 
-    top->BINT15_n =
+    top->BINT15_n =    
     top->BREQ_n = true; //disabled
 
     // Set defaults    
@@ -117,6 +121,8 @@ int main(int argc, char **argv)
     top->sys_rst_n = false; // Assert RESET signal
     top->sysclk = 0;
   
+    //top->POWSENSE_n = true; // Power sense signal from the PSU
+
         top->eval();
 #ifdef DO_TRACE        
         m_trace->dump(sim_time);
@@ -124,13 +130,16 @@ int main(int argc, char **argv)
 #endif
 
 
-    for (int ck =0;ck<512;ck++)
+    for (int ck =0;ck<2048;ck++)
     {
 
         if (ck==3)
             top->sys_rst_n=true;  // run 3 clock cycles with reset asserted
 
-        
+
+        //if (ck==10)
+        //    top->POWSENSE_n = !top->POWSENSE_n; // Toggle POWSENSE signal
+
         top->sysclk = !top->sysclk; // Toggle clock
         top->CLOCK_1 = !top->CLOCK_1;
         top->CLOCK_2 = top->CLOCK_1;

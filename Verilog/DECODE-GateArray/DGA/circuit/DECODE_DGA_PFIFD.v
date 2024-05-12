@@ -32,6 +32,8 @@
  ** (identical to WEL, I assume added to make the signalstrength better)   
  *****************************************************************************/
 
+ /* NOT IN USE ANYMORE - REPLACED BY FIFO_8BIT.v
+
 module DECODE_DGA_PFIFD( 
    input [7:0]  IDBI_7_0,
    input [12:0] WEL_12_0,
@@ -41,9 +43,9 @@ module DECODE_DGA_PFIFD(
 );
 
 
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
+   
+   // The wires are defined here                                                 **
+   
    wire [12:0] s_weu_12_0;
    wire [12:0] s_wel_12_0;
    wire [7:0]  s_ad_7_0;
@@ -162,25 +164,21 @@ module DECODE_DGA_PFIFD(
    
    
    
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
+   
+   // The module functionality is described here                                 **
+   
 
-   /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
+   
+   // Here all input connections are defined                                     **
+   
    assign s_weu_12_0[12:0]    = WEU_12_0;
    assign s_wel_12_0[12:0]    = WEL_12_0;
    assign s_idbi_7_0[7:0]     = IDBI_7_0;
-
-   /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
+   
+   // Here all output connections are defined                                    **   
    assign AD_7_0 = s_ad_7_0[7:0];
-
-   /*******************************************************************************
-   ** Here all normal components are defined                                     **
-   *******************************************************************************/
+   
+   // Here all normal components are defined                                     **
    D_FLIPFLOP #(.invertClockEnable(0))
       MEMORY_1 (.clock(s_wel_12_0[4]),
                 .d(s_logisimNet78),
@@ -1119,3 +1117,4 @@ module DECODE_DGA_PFIFD(
 
 
 endmodule
+*/

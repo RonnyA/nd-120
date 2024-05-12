@@ -10,6 +10,10 @@ module FIFO_8BIT #(
     output empty              // FIFO empty flag
 );
 
+    /* verilator lint_off LATCH */
+    /* verilator lint_off BLKSEQ */
+    /* verilator lint_off UNOPTFLAT */
+
     // Calculate address width based on depth
     localparam ADDR_WIDTH = $clog2(DEPTH + 1);
 
@@ -19,7 +23,7 @@ module FIFO_8BIT #(
     reg [ADDR_WIDTH:0] fifo_count; // Counter for number of elements in the FIFO
 
     // Write operation
-    always @(*) begin
+    always @(posedge wr_en) begin
         if (wr_en && !full) begin
             mem[wr_ptr] = data_in;
             wr_ptr = (wr_ptr == (DEPTH - 1)) ? 0 : wr_ptr + 1;
@@ -27,10 +31,15 @@ module FIFO_8BIT #(
     end
 
     // Read operation
-    always @(*) begin
+    always @(posedge rd_en) begin
         if (rd_en && !empty) begin
             data_out = mem[rd_ptr];
-            rd_ptr = (rd_ptr == (DEPTH - 1)) ? 0 : rd_ptr + 1;
+            if (rd_ptr == DEPTH - 1)
+                rd_ptr = 0;
+            else
+                rd_ptr = rd_ptr + 1;
+
+            //rd_ptr = (rd_ptr == (DEPTH - 1)) ? 0 : rd_ptr + 1;
         end
     end
 

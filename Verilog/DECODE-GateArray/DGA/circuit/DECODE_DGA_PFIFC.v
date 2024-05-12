@@ -31,6 +31,8 @@
  ** (identical to WEL, I assume added to make the signalstrength better)   
  *****************************************************************************/
 
+/* NOT IN USE ANYMORE - REPLACED BY FIFO_8BIT.v
+
 module DECODE_DGA_PFIFC( 
    input CLEAR,
    input LDPANCN,
@@ -42,11 +44,8 @@ module DECODE_DGA_PFIFC(
    output [12:0] WEU_12_0
 );
 
-
-
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
+   
+   // The wires are defined here                                                 **   
    wire [12:0] s_weu_12_0;
    wire [12:0] s_wel_12_0;
    wire        s_logisimNet0;
@@ -155,9 +154,9 @@ module DECODE_DGA_PFIFC(
    wire        s_we_bit3_n;
    wire        s_a315_qb;
 
-   /*******************************************************************************
-   ** Here all wiring is defined                                                 **
-   *******************************************************************************/
+   
+   // Here all wiring is defined                                                 **
+   
    assign s_wel_12_0[0]  = s_we_bit0;
    assign s_wel_12_0[1]  = s_we_bit1;
    assign s_wel_12_0[2]  = s_we_bit2;
@@ -186,24 +185,24 @@ module DECODE_DGA_PFIFC(
    assign s_weu_12_0[11] = s_we_bit11;
    assign s_weu_12_0[12] = s_we_bit12;
 
-   /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
+   
+   // Here all input connections are defined                                     **
+   
    assign s_we_bit0_n    = LDPANCN;
    assign s_rmmn           = RMMN;
    assign s_clear_n        = ~CLEAR;
 
-   /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
+   
+   // Here all output connections are defined                                    **
+   
    assign EMPN     = s_emp_n;
    assign FULN     = s_ful_n;
    assign WEL_12_0 = s_wel_12_0[12:0];
    assign WEU_12_0 = s_weu_12_0[12:0];
 
-   /*******************************************************************************
-   ** Here all in-lined components are defined                                   **
-   *******************************************************************************/
+   
+   // Here all in-lined components are defined                                   **
+   
 
    // Signal WE BIT 0-12
    assign s_we_bit0 = ~s_we_bit0_n;
@@ -283,9 +282,9 @@ module DECODE_DGA_PFIFC(
    assign s_logisimNet7 = ~s_we_bit1;
 
    
-   /*******************************************************************************
-   ** Here all normal components are defined                                     **
-   *******************************************************************************/
+   
+   // Here all normal components are defined                                     
+   
    NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
       A292 (.input1(s_logisimNet7),
             .input2(s_a314_q),
@@ -514,9 +513,9 @@ module DECODE_DGA_PFIFC(
                 .result(s_logisimNet10));
 
 
-   /*******************************************************************************
-   ** Here all sub-circuits are defined                                          **
-   *******************************************************************************/
+   
+   // Here all sub-circuits are defined                                        
+   
 
    F595   A321 (.H01_S(s_logisimNet29),
                 .H02_R(s_logisimNet60),
@@ -636,3 +635,4 @@ module DECODE_DGA_PFIFC(
                                   .PIN_OUT(s_a309_out));
 
 endmodule
+*/

@@ -11,7 +11,7 @@
 ** Ronny Hansen                                                          **               
 ***************************************************************************/
 
-
+/* NOT IN USE ANYMORE - REPLACED BY FIFO_8BIT.v
 module DECODE_DGA_PFIFC_DELAY(
    input PIN_IN,
    output PIN_OUT 
@@ -39,3 +39,4 @@ module DECODE_DGA_PFIFC_DELAY(
    assign PIN_OUT = s_logisimNet1;
 
 endmodule
+*/

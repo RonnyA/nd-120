@@ -1,19 +1,19 @@
 [*]
-[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Thu Feb  8 21:29:11 2024
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Sun May 12 12:44:34 2024
 [*]
 [dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/IO_DCD_38/sim/waveform.vcd"
-[dumpfile_mtime] "Thu Feb  8 21:28:06 2024"
-[dumpfile_size] 370235
+[dumpfile_mtime] "Sun May 12 12:43:11 2024"
+[dumpfile_size] 231736
 [savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/IO_DCD_38/sim/pal.gtkw"
-[timestart] 0
+[timestart] 981
 [size] 2548 1359
 [pos] -1 -1
 *-4.456229 3684 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [treeopen] TOP.IO_DCD_38.
 [treeopen] TOP.IO_DCD_38.DGA.
-[sst_width] 214
+[sst_width] 297
 [signals_width] 384
 [sst_expanded] 1
 [sst_vpaned_height] 100
@@ -28,7 +28,6 @@ TOP.IO_DCD_38.XTAL2
 --- input --
 @28
 TOP.OSCCL_n
-TOP.IO_DCD_38.CLOSC
 TOP.IO_DCD_38.BDRY50_n
 TOP.IO_DCD_38.BRK_n
 @22
@@ -36,33 +35,34 @@ TOP.IO_DCD_38.CSCOMM_4_0[4:0]
 TOP.IO_DCD_38.CSIDBS_4_0[4:0]
 @28
 TOP.IO_DCD_38.CSMIS_1_0[1:0]
+TOP.IO_DCD_38.OC_1_0[1:0]
+TOP.IO_DCD_38.STAT_4_3[1:0]
 TOP.IO_DCD_38.DAP_n
 TOP.IO_DCD_38.EORF_n
 TOP.IO_DCD_38.HIT
 TOP.IO_DCD_38.ICONTIN_n
-@22
-TOP.IO_DCD_38.IDB_3_0_io[3:0]
-TOP.IO_DCD_38.IDB_7_4[3:0]
-@28
 TOP.IO_DCD_38.ILOAD_n
 TOP.IO_DCD_38.ISTOP_n
 TOP.IO_DCD_38.LCS_n
 TOP.IO_DCD_38.LSHADOW
-TOP.IO_DCD_38.OC_1_0[1:0]
 TOP.IO_DCD_38.OPCLCS
 TOP.IO_DCD_38.PONI
 TOP.IO_DCD_38.POWSENSE_n
 TOP.IO_DCD_38.REF_n
 TOP.IO_DCD_38.RMM_n
 TOP.IO_DCD_38.SEL5MS_n
-TOP.IO_DCD_38.STAT_4_3[1:0]
 TOP.IO_DCD_38.SWMCL_n
 @200
 --- out osc --
+@22
+TOP.IO_DCD_38.IDB_7_0_IN[7:0]
+@23
+TOP.IO_DCD_38.IDB_7_0_OUT[7:0]
+@200
+--- IN and OUT --
 @28
 TOP.IO_DCD_38.OSC
 TOP.IO_DCD_38.PPOSC
-@29
 TOP.IO_DCD_38.PANOSC
 @200
 --- output --

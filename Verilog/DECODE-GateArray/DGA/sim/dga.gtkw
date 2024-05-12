@@ -1,29 +1,27 @@
 [*]
-[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Mon Apr 22 05:56:41 2024
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Fri May 10 12:14:52 2024
 [*]
 [dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/sim/waveform.vcd"
-[dumpfile_mtime] "Mon Apr 22 05:55:54 2024"
-[dumpfile_size] 505086
+[dumpfile_mtime] "Fri May 10 12:11:18 2024"
+[dumpfile_size] 474652
 [savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/sim/dga.gtkw"
 [timestart] 0
 [size] 1641 968
 [pos] 870 210
-*-6.286304 9 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-4.786304 3 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
-[sst_width] 214
+[sst_width] 297
 [signals_width] 316
 [sst_expanded] 1
 [sst_vpaned_height] 281
+@200
+---- CLOCK ---
 @28
 TOP.DECODE_DGA.XCLK
-@201
----- CLOCK ---
 @200
 -
 ---- IN ---
-@22
-TOP.XIDB_7_0_IN[7:0]
 @28
 TOP.DECODE_DGA.XBRN
 TOP.DECODE_DGA.XCLO
@@ -49,10 +47,24 @@ TOP.DECODE_DGA.XS5N
 TOP.DECODE_DGA.XTES
 TOP.DECODE_DGA.XTON
 TOP.DECODE_DGA.XUCK
+@22
+TOP.XIDB_7_0_IN[7:0]
+@200
+---Internal--
+@22
+TOP.DECODE_DGA.s_idb_7_0_in[7:0]
+TOP.DECODE_DGA.s_wel_12_0[12:0]
+@23
+TOP.DECODE_DGA.s_weu_12_0[12:0]
 @200
 ---- OUT ---
 @22
 TOP.XIDB_3_0_OUT[3:0]
+@28
+TOP.DECODE_DGA.XEPN
+@200
+----------------------
+@22
 TOP.DECODE_DGA.XA_7_0[7:0]
 @28
 TOP.DECODE_DGA.XC10
@@ -71,10 +83,6 @@ TOP.DECODE_DGA.XFMI
 TOP.DECODE_DGA.XFON
 TOP.DECODE_DGA.XFUN
 TOP.DECODE_DGA.XION
-@22
-TOP.DECODE_DGA.XI_3_0_C[3:0]
-TOP.DECODE_DGA.XI_3_0_O[3:0]
-@28
 TOP.DECODE_DGA.XLHN
 TOP.DECODE_DGA.XMCL
 TOP.DECODE_DGA.XMRN
