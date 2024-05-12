@@ -76,27 +76,55 @@ int main(int argc, char **argv)
     int rf = 0;
     int cnt=0;
 
-    for (int j=0; j<512; j++)
+    for (int j=1; j<512; j++)
     {
-        for (int e=0;e<2;e++)        
+        for (int e=0;e<4;e++)        
         {
-            top->ECSL_n = (e==0); // read out on idb
-            top->WCS_n  = (e==0); // read out on idb
+            // Cycle e=0 => Write to internal 64 bit from IDB
+            // Cycle e=1 => Read from internal 64 bit to CSBITS
+            // Cycle e=2 => Disconnected
+            top->ECSL_n = (e==1); // read out on idb
+            top->WCS_n  = (e!=0); // read out on idb
+            
 
+            
             for (int b=0;b<4;b++)    
             {
-                top->EW_3_0_n = 0xF & ~(1<<b);
-                //top->CSBITS = 0xFACECAFEDEADBEEF;
-
-                top->CSBITS = 0;
-
-                
+                top->CSBITS = 0;                    
                 top->CSBITS |= 0x1111; 
                 top->CSBITS |= 0x2222L<<16L;
                 top->CSBITS |= 0x3333L<<32L;
                 top->CSBITS |= 0x4444L<<48L;
 
-                top->IDB_15_0_IN = j;
+                top->IDB_15_0_IN = (j*0x100)+b;
+
+
+                if (e==0)  // WRITE
+                {
+                    top->ECSL_n = true; // Disable output
+                    top->WCS_n = false; // Enable write
+
+                    top->EW_3_0_n = 0xF & ~(1<<b);
+                    //top->CSBITS = 0xFACECAFEDEADBEEF;
+
+                }
+                else if (e==1) // READ TO CSBITS
+                {
+                    top->ECSL_n = false; // Enable output
+                    top->WCS_n = false; // Disable write
+                    top->EW_3_0_n = 0x00;
+                }
+                else if (e==2) //READ TO IDB
+                {
+                    top->EW_3_0_n = 0xF & ~(1<<b);                    
+                    top->WCS_n = true; // Disable write                    
+                } 
+                else if (e==3) // DISCONNECT
+                {
+                    top->ECSL_n = true; // Disable output
+                    top->EW_3_0_n = 0xF & ~(1<<b);
+                }
+
                 
 
         top->eval();
