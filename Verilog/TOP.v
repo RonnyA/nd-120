@@ -23,6 +23,7 @@ module top (
 // helpers
 wire s_high;
 wire s_low;
+wire sys_rst_n;
 assign s_high = 1'b1;
 assign s_low = 1'b0;
 
@@ -62,11 +63,11 @@ assign led[1:0]=~s_cpu_led[1:0];  //  0=RED,1=GREEN
 assign led[2] = !s_run;
 assign led[3] = !s_cpu_led[3]; // LED CPU GRANT INDICATOR
 //assign led[4] = !s_cpu_led[4] // LED BUS GRANT INDICATOR
-assign led[3] = !uartRx;
+assign led[4] = !uartRx;
 assign led[5] = !uartTx;
 
 ND3202D CPU_BOARD (
-   .sysclk(sys_clk),
+   .sysclk(sysclk),
    .sys_rst_n(sys_rst_n),
    .BINT10_n(s_high),
    .BINT11_n(s_high),
