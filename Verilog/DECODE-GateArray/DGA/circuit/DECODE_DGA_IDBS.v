@@ -1,56 +1,35 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : DECODE_DGA_IDBS                                              **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 DGA (Decode Gate Array)                                         **
+** DECODE/DGA/IDBS                                                       **
+**                                                                       **
+** Page 14 DECODE - DECODE_DGA_IDBS Sheet 1 of 2                         **
+** Page 15 DECODE - DECODE_DGA_IDBS Sheet 2 of 2                         **
+**                                                                       **
+** Last reviewed: 11-MAY-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module DECODE_DGA_IDBS( CLK0,
-                        CLK1,
-                        CSIDBS_4_0,
-                        ECSRN,
-                        EDON,
-                        EIORN,
-                        EPANN,
-                        EPANSN,
-                        EPEAN,
-                        EPESN,
-                        LCSN,
-                        PRQN,
-                        RINRN,
-                        RUARTN,
-                        STAT3,
-                        STAT4,
-                        TRAALDN,
-                        VAL );
+module DECODE_DGA_IDBS( 
+   input       CLK0,
+   input       CLK1,
+   input [4:0] CSIDBS_4_0,
+   input       LCSN,
+   input       STAT3,
+   input       STAT4,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input       CLK0;
-   input       CLK1;
-   input [4:0] CSIDBS_4_0;
-   input       LCSN;
-   input       STAT3;
-   input       STAT4;
-
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output ECSRN;
-   output EDON;
-   output EIORN;
-   output EPANN;
-   output EPANSN;
-   output EPEAN;
-   output EPESN;
-   output PRQN;
-   output RINRN;
-   output RUARTN;
-   output TRAALDN;
-   output VAL;
-
+   output ECSRN,
+   output EDON,
+   output EIORN,
+   output EPANN,
+   output EPANSN,
+   output EPEAN,
+   output EPESN,
+   output PRQN,
+   output RINRN,
+   output RUARTN,
+   output TRAALDN,
+   output VAL 
+);
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
@@ -84,16 +63,16 @@ module DECODE_DGA_IDBS( CLK0,
    wire       s_logisimNet32;
    wire       s_logisimNet33;
    wire       s_logisimNet34;
-   wire       s_logisimNet35;
+   
    wire       s_logisimNet36;
-   wire       s_logisimNet37;
+   
    wire       s_logisimNet38;
    wire       s_logisimNet39;
    wire       s_logisimNet4;
    wire       s_logisimNet40;
    wire       s_logisimNet41;
    wire       s_logisimNet42;
-   wire       s_logisimNet43;
+   
    wire       s_logisimNet44;
    wire       s_logisimNet45;
    wire       s_logisimNet46;
@@ -101,8 +80,8 @@ module DECODE_DGA_IDBS( CLK0,
    wire       s_logisimNet49;
    wire       s_logisimNet5;
    wire       s_logisimNet50;
-   wire       s_logisimNet51;
-   wire       s_logisimNet52;
+   
+   
    wire       s_logisimNet53;
    wire       s_logisimNet54;
    wire       s_logisimNet55;

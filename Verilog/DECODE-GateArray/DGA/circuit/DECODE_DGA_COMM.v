@@ -1,117 +1,75 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : DECODE_DGA_COMM                                              **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 DGA (Decode Gate Array)                                         **
+** DGA (Decode Gate Array)                                               **
+**                                                                       ** 
+** Page 16 DECODE - DECODE_DGA_COMM - Sheet 1 of 4                       **                   
+** Page 17 DECODE - DECODE_DGA_COMM - Sheet 2 of 4                       ** 
+** Page 18 DECODE - DECODE_DGA_COMM - Sheet 3 of 4                       ** 
+** Page 19 DECODE - DECODE_DGA_COMM - Sheet 4 of 4                       ** 
+**                                                                       ** 
+** Last reviewed: 11-MAY-2024                                            **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module DECODE_DGA_COMM( BRKN,
-                        CA10,
-                        CCLRN,
-                        CEUARTN,
-                        CLEAR,
-                        CLK1,
-                        CLK2,
-                        CLK3,
-                        CLRTIN,
-                        CSCOMM_4_0,
-                        CSMIS_1_0,
-                        DAPN,
-                        DTN,
-                        DVACCN,
-                        ECREQ,
-                        EMCLN,
-                        EMPIDN,
-                        EORFN,
-                        ESTOFN,
-                        FETCH,
-                        FMISS,
-                        FORMN,
-                        HITN,
-                        IDBI2,
-                        IDBI5,
-                        IDBI7,
-                        IORQN,
-                        LCSN,
-                        LDPANCN,
-                        LHIT,
-                        LSHADOW,
-                        MREQ,
-                        PONI,
-                        RESET,
-                        RTN,
-                        RWCSN,
-                        SHORTN,
-                        SIOCN,
-                        SLOWN,
-                        SSEMAN,
-                        SSTOPN,
-                        STARTN,
-                        STOCN,
-                        UCLK,
-                        WCHIMN,
-                        WRITE );
+module DECODE_DGA_COMM( 
+   input       BRKN,
+   input       CLEAR,
+   input       CLK1,
+   input       CLK2,
+   input       CLK3,
+   input [4:0] CSCOMM_4_0,
+   input [1:0] CSMIS_1_0,
+   input       DAPN,
+   input       EORFN,
+   input       HITN,
+   input       IDBI2,
+   input       IDBI5,
+   input       IDBI7,
+   input       LCSN,
+   input       LSHADOW,
+   input       PONI,
+   input       UCLK,
+
+   output CA10,
+   output CCLRN,
+   output CEUARTN,
+   output CLRTIN,
+   output DTN,
+   output DVACCN,
+   output ECREQ,
+   output EMCLN,
+   output EMPIDN,
+   output ESTOFN,
+   output FETCH,
+   output FMISS,
+   output FORMN,
+   output IORQN,
+   output LDPANCN,
+   output LHIT,
+   output MREQ,
+   output RESET,
+   output RTN,
+   output RWCSN,
+   output SHORTN,
+   output SIOCN,
+   output SLOWN,
+   output SSEMAN,
+   output SSTOPN,
+   output STARTN,
+   output STOCN,
+   output WCHIMN,
+   output WRITE   
+);
 
    /*******************************************************************************
    ** The inputs are defined here                                                **
    *******************************************************************************/
-   input       BRKN;
-   input       CLEAR;
-   input       CLK1;
-   input       CLK2;
-   input       CLK3;
-   input [4:0] CSCOMM_4_0;
-   input [1:0] CSMIS_1_0;
-   input       DAPN;
-   input       EORFN;
-   input       HITN;
-   input       IDBI2;
-   input       IDBI5;
-   input       IDBI7;
-   input       LCSN;
-   input       LSHADOW;
-   input       PONI;
-   input       UCLK;
-
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output CA10;
-   output CCLRN;
-   output CEUARTN;
-   output CLRTIN;
-   output DTN;
-   output DVACCN;
-   output ECREQ;
-   output EMCLN;
-   output EMPIDN;
-   output ESTOFN;
-   output FETCH;
-   output FMISS;
-   output FORMN;
-   output IORQN;
-   output LDPANCN;
-   output LHIT;
-   output MREQ;
-   output RESET;
-   output RTN;
-   output RWCSN;
-   output SHORTN;
-   output SIOCN;
-   output SLOWN;
-   output SSEMAN;
-   output SSTOPN;
-   output STARTN;
-   output STOCN;
-   output WCHIMN;
-   output WRITE;
-
+ 
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
    wire [1:0] s_logisimBus1;
-   wire [4:0] s_logisimBus68;
+   wire [4:0] s_cscomm_4_0;
    wire       s_logisimNet0;
    wire       s_logisimNet10;
    wire       s_logisimNet100;
@@ -127,7 +85,7 @@ module DECODE_DGA_COMM( BRKN,
    wire       s_logisimNet11;
    wire       s_logisimNet110;
    wire       s_logisimNet111;
-   wire       s_logisimNet112;
+   
    wire       s_logisimNet113;
    wire       s_logisimNet114;
    wire       s_logisimNet115;
@@ -137,7 +95,7 @@ module DECODE_DGA_COMM( BRKN,
    wire       s_logisimNet119;
    wire       s_logisimNet12;
    wire       s_logisimNet120;
-   wire       s_logisimNet121;
+   
    wire       s_logisimNet122;
    wire       s_logisimNet123;
    wire       s_logisimNet124;
@@ -145,7 +103,7 @@ module DECODE_DGA_COMM( BRKN,
    wire       s_logisimNet126;
    wire       s_logisimNet127;
    wire       s_logisimNet128;
-   wire       s_logisimNet129;
+   
    wire       s_logisimNet13;
    wire       s_logisimNet130;
    wire       s_logisimNet131;
@@ -154,8 +112,8 @@ module DECODE_DGA_COMM( BRKN,
    wire       s_logisimNet134;
    wire       s_logisimNet135;
    wire       s_logisimNet136;
-   wire       s_logisimNet137;
-   wire       s_logisimNet138;
+   
+   
    wire       s_logisimNet139;
    wire       s_logisimNet14;
    wire       s_logisimNet140;
@@ -164,7 +122,7 @@ module DECODE_DGA_COMM( BRKN,
    wire       s_logisimNet143;
    wire       s_logisimNet144;
    wire       s_logisimNet145;
-   wire       s_logisimNet146;
+   
    wire       s_logisimNet147;
    wire       s_logisimNet148;
    wire       s_logisimNet149;
@@ -229,7 +187,7 @@ module DECODE_DGA_COMM( BRKN,
    wire       s_logisimNet67;
    wire       s_logisimNet69;
    wire       s_logisimNet7;
-   wire       s_logisimNet70;
+   
    wire       s_logisimNet71;
    wire       s_logisimNet72;
    wire       s_logisimNet73;
@@ -270,7 +228,7 @@ module DECODE_DGA_COMM( BRKN,
    ** Here all input connections are defined                                     **
    *******************************************************************************/
    assign s_logisimBus1[1:0]  = CSMIS_1_0;
-   assign s_logisimBus68[4:0] = CSCOMM_4_0;
+   assign s_cscomm_4_0[4:0] = CSCOMM_4_0;
    assign s_logisimNet114     = EORFN;
    assign s_logisimNet135     = DAPN;
    assign s_logisimNet139     = CLK1;
@@ -372,19 +330,19 @@ module DECODE_DGA_COMM( BRKN,
    assign s_logisimNet62 = ~s_logisimNet83;
 
    // NOT Gate
-   assign s_logisimNet118 = ~s_logisimBus68[0];
+   assign s_logisimNet118 = ~s_cscomm_4_0[0];
 
    // NOT Gate
-   assign s_logisimNet140 = ~s_logisimBus68[1];
+   assign s_logisimNet140 = ~s_cscomm_4_0[1];
 
    // NOT Gate
-   assign s_logisimNet134 = ~s_logisimBus68[2];
+   assign s_logisimNet134 = ~s_cscomm_4_0[2];
 
    // NOT Gate
-   assign s_logisimNet143 = ~s_logisimBus68[3];
+   assign s_logisimNet143 = ~s_cscomm_4_0[3];
 
    // NOT Gate
-   assign s_logisimNet132 = ~s_logisimBus68[4];
+   assign s_logisimNet132 = ~s_cscomm_4_0[4];
 
    // NOT Gate
    assign s_logisimNet145 = ~s_logisimBus1[0];
@@ -415,29 +373,29 @@ module DECODE_DGA_COMM( BRKN,
    NAND_GATE_8_INPUTS #(.BubblesMask(8'h00))
       A212 (.input1(s_logisimNet51),
             .input2(s_logisimBus1[1]),
-            .input3(s_logisimBus68[4]),
-            .input4(s_logisimBus68[3]),
-            .input5(s_logisimBus68[2]),
-            .input6(s_logisimBus68[1]),
-            .input7(s_logisimBus68[0]),
+            .input3(s_cscomm_4_0[4]),
+            .input4(s_cscomm_4_0[3]),
+            .input5(s_cscomm_4_0[2]),
+            .input6(s_cscomm_4_0[1]),
+            .input7(s_cscomm_4_0[0]),
             .input8(s_logisimNet141),
             .result(s_logisimNet9));
 
    NAND_GATE_8_INPUTS #(.BubblesMask(8'h00))
       A193 (.input1(s_logisimNet109),
             .input2(s_logisimBus1[0]),
-            .input3(s_logisimBus68[4]),
+            .input3(s_cscomm_4_0[4]),
             .input4(s_logisimNet143),
             .input5(s_logisimNet134),
             .input6(s_logisimNet140),
-            .input7(s_logisimBus68[0]),
+            .input7(s_cscomm_4_0[0]),
             .input8(s_logisimNet141),
             .result(s_logisimNet6));
 
    NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
-      A156 (.input1(s_logisimBus68[4]),
+      A156 (.input1(s_cscomm_4_0[4]),
             .input2(s_logisimNet143),
-            .input3(s_logisimBus68[2]),
+            .input3(s_cscomm_4_0[2]),
             .input4(s_logisimNet141),
             .result(s_logisimNet36));
 
@@ -451,20 +409,20 @@ module DECODE_DGA_COMM( BRKN,
             .result(s_logisimNet25));
 
    NAND_GATE_5_INPUTS #(.BubblesMask({1'b0, 4'h0}))
-      A150 (.input1(s_logisimBus68[4]),
+      A150 (.input1(s_cscomm_4_0[4]),
             .input2(s_logisimNet143),
-            .input3(s_logisimBus68[1]),
-            .input4(s_logisimBus68[0]),
+            .input3(s_cscomm_4_0[1]),
+            .input4(s_cscomm_4_0[0]),
             .input5(s_logisimNet141),
             .result(s_logisimNet16));
 
    NAND_GATE_8_INPUTS #(.BubblesMask(8'h00))
       A211 (.input1(s_logisimNet109),
             .input2(s_logisimBus1[0]),
-            .input3(s_logisimBus68[4]),
-            .input4(s_logisimBus68[3]),
-            .input5(s_logisimBus68[2]),
-            .input6(s_logisimBus68[1]),
+            .input3(s_cscomm_4_0[4]),
+            .input4(s_cscomm_4_0[3]),
+            .input5(s_cscomm_4_0[2]),
+            .input6(s_cscomm_4_0[1]),
             .input7(s_logisimNet118),
             .input8(s_logisimNet141),
             .result(s_logisimNet41));
@@ -472,15 +430,15 @@ module DECODE_DGA_COMM( BRKN,
    NAND_GATE_6_INPUTS #(.BubblesMask({2'b00, 4'h0}))
       A199 (.input1(s_logisimNet132),
             .input2(s_logisimNet143),
-            .input3(s_logisimBus68[2]),
+            .input3(s_cscomm_4_0[2]),
             .input4(s_logisimNet140),
-            .input5(s_logisimBus68[0]),
+            .input5(s_cscomm_4_0[0]),
             .input6(s_logisimNet141),
             .result(s_logisimNet115));
 
    NAND_GATE_5_INPUTS #(.BubblesMask({1'b0, 4'h0}))
-      A155 (.input1(s_logisimBus68[4]),
-            .input2(s_logisimBus68[3]),
+      A155 (.input1(s_cscomm_4_0[4]),
+            .input2(s_cscomm_4_0[3]),
             .input3(s_logisimNet134),
             .input4(s_logisimNet140),
             .input5(s_logisimNet141),
@@ -488,16 +446,16 @@ module DECODE_DGA_COMM( BRKN,
 
    NAND_GATE_6_INPUTS #(.BubblesMask({2'b00, 4'h0}))
       A191 (.input1(s_logisimNet132),
-            .input2(s_logisimBus68[3]),
-            .input3(s_logisimBus68[2]),
+            .input2(s_cscomm_4_0[3]),
+            .input3(s_cscomm_4_0[2]),
             .input4(s_logisimNet140),
             .input5(s_logisimNet118),
             .input6(s_logisimNet141),
             .result(s_logisimNet17));
 
    NAND_GATE_5_INPUTS #(.BubblesMask({1'b0, 4'h0}))
-      A152 (.input1(s_logisimBus68[4]),
-            .input2(s_logisimBus68[3]),
+      A152 (.input1(s_cscomm_4_0[4]),
+            .input2(s_cscomm_4_0[3]),
             .input3(s_logisimNet140),
             .input4(s_logisimNet118),
             .input5(s_logisimNet141),
@@ -506,8 +464,8 @@ module DECODE_DGA_COMM( BRKN,
    NAND_GATE_5_INPUTS #(.BubblesMask({1'b0, 4'h0}))
       A222 (.input1(s_logisimBus1[0]),
             .input2(s_logisimNet132),
-            .input3(s_logisimBus68[2]),
-            .input4(s_logisimBus68[1]),
+            .input3(s_cscomm_4_0[2]),
+            .input4(s_cscomm_4_0[1]),
             .input5(s_logisimNet141),
             .result(s_logisimNet3));
 
@@ -518,10 +476,10 @@ module DECODE_DGA_COMM( BRKN,
             .result(s_logisimNet101));
 
    NAND_GATE_6_INPUTS #(.BubblesMask({2'b00, 4'h0}))
-      A185 (.input1(s_logisimBus68[4]),
-            .input2(s_logisimBus68[3]),
-            .input3(s_logisimBus68[2]),
-            .input4(s_logisimBus68[1]),
+      A185 (.input1(s_cscomm_4_0[4]),
+            .input2(s_cscomm_4_0[3]),
+            .input3(s_cscomm_4_0[2]),
+            .input4(s_cscomm_4_0[1]),
             .input5(s_logisimNet118),
             .input6(s_logisimBus1[0]),
             .result(s_logisimNet11));
@@ -533,10 +491,10 @@ module DECODE_DGA_COMM( BRKN,
             .result(s_logisimNet55));
 
    NAND_GATE_5_INPUTS #(.BubblesMask({1'b0, 4'h0}))
-      A147 (.input1(s_logisimBus68[4]),
-            .input2(s_logisimBus68[3]),
+      A147 (.input1(s_cscomm_4_0[4]),
+            .input2(s_cscomm_4_0[3]),
             .input3(s_logisimNet134),
-            .input4(s_logisimBus68[1]),
+            .input4(s_cscomm_4_0[1]),
             .input5(s_logisimNet141),
             .result(s_logisimNet24));
 
@@ -556,9 +514,9 @@ module DECODE_DGA_COMM( BRKN,
    NAND_GATE_5_INPUTS #(.BubblesMask({1'b0, 4'h0}))
       A198 (.input1(s_logisimNet132),
             .input2(s_logisimNet143),
-            .input3(s_logisimBus68[2]),
+            .input3(s_cscomm_4_0[2]),
             .input4(s_logisimNet140),
-            .input5(s_logisimBus68[0]),
+            .input5(s_cscomm_4_0[0]),
             .result(s_logisimNet125));
 
    NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
@@ -568,8 +526,8 @@ module DECODE_DGA_COMM( BRKN,
             .result(s_logisimNet60));
 
    NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
-      A141 (.input1(s_logisimBus68[4]),
-            .input2(s_logisimBus68[3]),
+      A141 (.input1(s_cscomm_4_0[4]),
+            .input2(s_cscomm_4_0[3]),
             .input3(s_logisimNet140),
             .input4(s_logisimNet141),
             .result(s_logisimNet13));
@@ -637,9 +595,9 @@ module DECODE_DGA_COMM( BRKN,
 
    NAND_GATE_6_INPUTS #(.BubblesMask({2'b00, 4'h0}))
       A183 (.input1(s_logisimNet132),
-            .input2(s_logisimBus68[3]),
+            .input2(s_cscomm_4_0[3]),
             .input3(s_logisimNet134),
-            .input4(s_logisimBus68[1]),
+            .input4(s_cscomm_4_0[1]),
             .input5(s_logisimNet118),
             .input6(s_logisimNet141),
             .result(s_logisimNet0));
@@ -647,10 +605,10 @@ module DECODE_DGA_COMM( BRKN,
    NAND_GATE_8_INPUTS #(.BubblesMask(8'h00))
       A145 (.input1(s_logisimNet77),
             .input2(s_logisimNet109),
-            .input3(s_logisimBus68[4]),
+            .input3(s_cscomm_4_0[4]),
             .input4(s_logisimNet143),
             .input5(s_logisimNet134),
-            .input6(s_logisimBus68[1]),
+            .input6(s_cscomm_4_0[1]),
             .input7(s_logisimNet118),
             .input8(s_logisimNet141),
             .result(s_logisimNet64));
@@ -668,7 +626,7 @@ module DECODE_DGA_COMM( BRKN,
 
    NAND_GATE_5_INPUTS #(.BubblesMask({1'b0, 4'h0}))
       A229 (.input1(s_logisimNet132),
-            .input2(s_logisimBus68[2]),
+            .input2(s_cscomm_4_0[2]),
             .input3(s_logisimNet140),
             .input4(s_logisimNet118),
             .input5(s_logisimNet141),
@@ -677,9 +635,9 @@ module DECODE_DGA_COMM( BRKN,
    NAND_GATE_6_INPUTS #(.BubblesMask({2'b00, 4'h0}))
       A182 (.input1(s_logisimNet132),
             .input2(s_logisimNet143),
-            .input3(s_logisimBus68[2]),
-            .input4(s_logisimBus68[1]),
-            .input5(s_logisimBus68[0]),
+            .input3(s_cscomm_4_0[2]),
+            .input4(s_cscomm_4_0[1]),
+            .input5(s_cscomm_4_0[0]),
             .input6(s_logisimNet141),
             .result(s_logisimNet42));
 
@@ -699,20 +657,20 @@ module DECODE_DGA_COMM( BRKN,
    NAND_GATE_8_INPUTS #(.BubblesMask(8'h00))
       A142 (.input1(s_logisimBus1[0]),
             .input2(s_logisimBus1[1]),
-            .input3(s_logisimBus68[4]),
+            .input3(s_cscomm_4_0[4]),
             .input4(s_logisimNet143),
             .input5(s_logisimNet134),
-            .input6(s_logisimBus68[1]),
+            .input6(s_cscomm_4_0[1]),
             .input7(s_logisimNet118),
             .input8(s_logisimNet141),
             .result(s_logisimNet58));
 
    NAND_GATE_6_INPUTS #(.BubblesMask({2'b00, 4'h0}))
       A184 (.input1(s_logisimNet132),
-            .input2(s_logisimBus68[3]),
-            .input3(s_logisimBus68[2]),
+            .input2(s_cscomm_4_0[3]),
+            .input3(s_cscomm_4_0[2]),
             .input4(s_logisimNet140),
-            .input5(s_logisimBus68[0]),
+            .input5(s_cscomm_4_0[0]),
             .input6(s_logisimNet141),
             .result(s_logisimNet54));
 
@@ -735,10 +693,10 @@ module DECODE_DGA_COMM( BRKN,
    NAND_GATE_8_INPUTS #(.BubblesMask(8'h00))
       A143 (.input1(s_logisimNet77),
             .input2(s_logisimBus1[1]),
-            .input3(s_logisimBus68[4]),
+            .input3(s_cscomm_4_0[4]),
             .input4(s_logisimNet143),
             .input5(s_logisimNet134),
-            .input6(s_logisimBus68[1]),
+            .input6(s_cscomm_4_0[1]),
             .input7(s_logisimNet118),
             .input8(s_logisimNet141),
             .result(s_logisimNet63));
@@ -746,18 +704,18 @@ module DECODE_DGA_COMM( BRKN,
    NAND_GATE_8_INPUTS #(.BubblesMask(8'h00))
       A180 (.input1(s_logisimNet145),
             .input2(s_logisimNet109),
-            .input3(s_logisimBus68[4]),
+            .input3(s_cscomm_4_0[4]),
             .input4(s_logisimNet143),
             .input5(s_logisimNet134),
             .input6(s_logisimNet140),
-            .input7(s_logisimBus68[0]),
+            .input7(s_cscomm_4_0[0]),
             .input8(s_logisimNet141),
             .result(s_logisimNet127));
 
    NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
       A219 (.input1(s_logisimNet132),
-            .input2(s_logisimBus68[3]),
-            .input3(s_logisimBus68[2]),
+            .input2(s_cscomm_4_0[3]),
+            .input3(s_cscomm_4_0[2]),
             .input4(s_logisimNet141),
             .result(s_logisimNet93));
 
@@ -768,11 +726,11 @@ module DECODE_DGA_COMM( BRKN,
             .result(s_logisimNet80));
 
    NAND_GATE_6_INPUTS #(.BubblesMask({2'b00, 4'h0}))
-      A144 (.input1(s_logisimBus68[4]),
-            .input2(s_logisimBus68[3]),
-            .input3(s_logisimBus68[2]),
+      A144 (.input1(s_cscomm_4_0[4]),
+            .input2(s_cscomm_4_0[3]),
+            .input3(s_cscomm_4_0[2]),
             .input4(s_logisimNet140),
-            .input5(s_logisimBus68[0]),
+            .input5(s_cscomm_4_0[0]),
             .input6(s_logisimNet141),
             .result(s_logisimNet84));
 
@@ -786,8 +744,8 @@ module DECODE_DGA_COMM( BRKN,
             .input2(s_logisimBus1[1]),
             .input3(s_logisimNet132),
             .input4(s_logisimNet143),
-            .input5(s_logisimBus68[2]),
-            .input6(s_logisimBus68[1]),
+            .input5(s_cscomm_4_0[2]),
+            .input6(s_cscomm_4_0[1]),
             .input7(s_logisimNet118),
             .input8(s_logisimNet141),
             .result(s_logisimNet15));
@@ -795,11 +753,11 @@ module DECODE_DGA_COMM( BRKN,
    NAND_GATE_8_INPUTS #(.BubblesMask(8'h00))
       A213 (.input1(s_logisimBus1[1]),
             .input2(s_logisimBus1[0]),
-            .input3(s_logisimBus68[4]),
+            .input3(s_cscomm_4_0[4]),
             .input4(s_logisimNet143),
             .input5(s_logisimNet134),
             .input6(s_logisimNet140),
-            .input7(s_logisimBus68[0]),
+            .input7(s_cscomm_4_0[0]),
             .input8(s_logisimNet141),
             .result(s_logisimNet98));
 
@@ -813,10 +771,10 @@ module DECODE_DGA_COMM( BRKN,
 
    NAND_GATE_6_INPUTS #(.BubblesMask({2'b00, 4'h0}))
       A190 (.input1(s_logisimNet132),
-            .input2(s_logisimBus68[3]),
+            .input2(s_cscomm_4_0[3]),
             .input3(s_logisimNet134),
-            .input4(s_logisimBus68[1]),
-            .input5(s_logisimBus68[0]),
+            .input4(s_cscomm_4_0[1]),
+            .input5(s_cscomm_4_0[0]),
             .input6(s_logisimNet141),
             .result(s_logisimNet76));
 
@@ -830,9 +788,9 @@ module DECODE_DGA_COMM( BRKN,
       A215 (.input1(s_logisimNet8),
             .input2(s_logisimBus1[1]),
             .input3(s_logisimBus1[0]),
-            .input4(s_logisimBus68[4]),
-            .input5(s_logisimBus68[3]),
-            .input6(s_logisimBus68[2]),
+            .input4(s_cscomm_4_0[4]),
+            .input5(s_cscomm_4_0[3]),
+            .input6(s_cscomm_4_0[2]),
             .input7(s_logisimNet140),
             .input8(s_logisimNet141),
             .result(s_logisimNet142));
@@ -861,11 +819,11 @@ module DECODE_DGA_COMM( BRKN,
    NAND_GATE_8_INPUTS #(.BubblesMask(8'h00))
       A189 (.input1(s_logisimNet145),
             .input2(s_logisimBus1[1]),
-            .input3(s_logisimBus68[4]),
+            .input3(s_cscomm_4_0[4]),
             .input4(s_logisimNet143),
             .input5(s_logisimNet134),
             .input6(s_logisimNet140),
-            .input7(s_logisimBus68[0]),
+            .input7(s_cscomm_4_0[0]),
             .input8(s_logisimNet141),
             .result(s_logisimNet81));
 

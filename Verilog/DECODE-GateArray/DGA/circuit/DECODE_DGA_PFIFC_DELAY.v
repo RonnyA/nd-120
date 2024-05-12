@@ -1,27 +1,22 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : DECODE_DGA_PFIFC_DELAY                                       **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 DGA                                                             **
+** DECODE/DGA/PFIFC/DELAY                                                **
+**                                                                       **
+** Page 13 DECODE - DECODE_DGA_PFIFC_DELAY Sheet 1 of 1                  **
+**                                                                       **
+** 7x F111. Switching speed avg 0.2 ns (min 0.1 -> max 0.3 ns) pr buffer **
+** calculated delay = 7*0.2ns = 1.4 ns                                   **
+**                                                                       **
+** Last reviewed: 12-MAY-2024                                            **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module DECODE_DGA_PFIFC_DELAY( PIN_IN,
-                               PIN_OUT );
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input PIN_IN;
+module DECODE_DGA_PFIFC_DELAY(
+   input PIN_IN,
+   output PIN_OUT 
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output PIN_OUT;
-
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
    wire s_logisimNet0;
    wire s_logisimNet1;
    wire s_logisimNet2;
@@ -31,43 +26,16 @@ module DECODE_DGA_PFIFC_DELAY( PIN_IN,
    wire s_logisimNet6;
    wire s_logisimNet7;
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
-   /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
    assign s_logisimNet6 = PIN_IN;
 
-   /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
-   assign PIN_OUT = s_logisimNet1;
-
-   /*******************************************************************************
-   ** Here all in-lined components are defined                                   **
-   *******************************************************************************/
-
-   // Buffer
    assign s_logisimNet7 = s_logisimNet6;
-
-   // Buffer
    assign s_logisimNet4 = s_logisimNet7;
-
-   // Buffer
    assign s_logisimNet5 = s_logisimNet4;
-
-   // Buffer
    assign s_logisimNet2 = s_logisimNet5;
-
-   // Buffer
    assign s_logisimNet3 = s_logisimNet2;
-
-   // Buffer
    assign s_logisimNet0 = s_logisimNet3;
-
-   // Buffer
    assign s_logisimNet1 = s_logisimNet0;
+
+   assign PIN_OUT = s_logisimNet1;
 
 endmodule
