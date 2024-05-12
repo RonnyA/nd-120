@@ -9,6 +9,9 @@
 ***************************************************************************/
 
 module IO_DCD_38( 
+   input sysclk,      // System clock in FPGA
+   input sys_rst_n,   // System reset in FPGA
+
    input       BDRY50_n,
    input       BRK_n,
    input       CLK,
@@ -40,7 +43,7 @@ module IO_DCD_38(
    input       XTAL2,
 
    input  [7:0] IDB_7_0_IN,
-   output [3:0] IDB_3_0_OUT,
+   output [7:0] IDB_7_0_OUT,
 
 
    output       CA10,
@@ -77,7 +80,7 @@ module IO_DCD_38(
    output       RINR_n,
    output       RT_n,
    output       RUART_n,
-   output       RWCS_n,
+   output       RWCS_n,  // (NOT CONNECTED IN SHEET 39) - find signal from one of the PAL's ??
    output       SHORT_n,
    output       SIOC_n,
    output       SLOW_n,
@@ -96,193 +99,208 @@ module IO_DCD_38(
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [4:0] s_logisimBus18;
-   
+   wire [1:0] s_csmis_1_0;
+   wire [1:0] s_oc_1_0;
+   wire [1:0] s_stat_4_3;
+   wire [3:0] s_dga_idb_3_0_out;
+   wire [4:0] s_cscomm_4_0;
+   wire [4:0] s_csidbs_4_0;
    wire [7:0] s_IDB_7_0_in;
    wire [7:0] s_IDB_7_0_out;
-
    wire [7:0] s_pa_7_0;
-   wire [4:0] s_logisimBus56;
-   wire [1:0] s_logisimBus57;
-   wire [1:0] s_logisimBus64;
-   wire [1:0] s_oc_1_0;
-   wire       s_logisimNet0;
-   wire       s_logisimNet1;
-   wire       s_logisimNet10;
-   wire       s_logisimNet11;
-   wire       s_logisimNet12;
-   wire       s_logisimNet13;
-   wire       s_logisimNet14;
-   wire       s_logisimNet15;
-   wire       s_logisimNet16;
-   wire       s_logisimNet17;
-   wire       s_XRTOSC;
-   wire       s_logisimNet2;
-   wire       s_logisimNet20;
-   wire       s_logisimNet21;
-   wire       s_logisimNet22;
-   wire       s_and_to_osc;
-   wire       s_logisimNet24;
-   wire       s_logisimNet25;
-   wire       s_powsense;
-   wire       s_logisimNet27;
-   wire       s_oc0;
-   wire       s_oc0_n;
-   wire       s_oc1;
-   wire       s_high;
-   wire       s_PPOSC;
-   wire       s_logisimNet32;
-   wire       s_powsense_n;
-   wire       s_logisimNet34;
-   wire       s_logisimNet35;
-   wire       s_logisimNet36;
-   wire       s_logisimNet37;
-   wire       s_logisimNet38;
-   wire       s_logisimNet39;
-   wire       s_logisimNet4;
-   wire       s_osc;
-   wire       s_logisimNet41;
-   wire       s_logisimNet42;
-   wire       s_logisimNet43;
-   wire       s_logisimNet44;
-   wire       s_logisimNet45;
-   wire       s_logisimNet46;
-   wire       s_logisimNet47;
-   wire       s_logisimNet48;
-   wire       s_XTAL1;
-   wire       s_logisimNet5;
-   wire       s_XTAL2;
-   wire       s_logisimNet51;
-   wire       s_logisimNet53;
-   wire       s_logisimNet54;
-   wire       s_logisimNet55;
-   wire       s_logisimNet58;
-   wire       s_logisimNet59;
-   wire       s_logisimNet6;
-   wire       s_logisimNet60;
-   wire       s_logisimNet61;
-   wire       s_logisimNet62;
-   wire       s_logisimNet63;
-   wire       s_logisimNet65;
-   wire       s_logisimNet66;
-   wire       s_logisimNet67;
-   wire       s_logisimNet68;
-   wire       s_logisimNet69;
-   wire       s_logisimNet7;
-   wire       s_logisimNet70;
-   wire       s_logisimNet71;
-   wire       s_logisimNet72;
-   wire       s_logisimNet74;
-   wire       s_logisimNet75;
-   wire       s_logisimNet76;
-   wire       s_logisimNet77;
-   wire       s_logisimNet78;
-   wire       s_logisimNet79;
-   wire       s_logisimNet8;
-   wire       s_clk; // bus IOTIM B
-   wire       s_lshadow;
-   wire       s_logisimNet82;
-   wire       s_logisimNet83;
-   wire       s_logisimNet84;
-   wire       s_logisimNet85;
-   wire       s_logisimNet86;
-   wire       s_logisimNet87;
-   wire       s_logisimNet9;
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
+   wire       s_bdry50_n;
+   wire       s_brk_n;
+   wire       s_ca10;
+   wire       s_cclr_n;
+   wire       s_ceuart_n;
+   wire       s_clear_n;
+   wire       s_clk; // bus IOTIM B
+   wire       s_closc;
+   wire       s_dap_n;
+   wire       s_div_16;
+   wire       s_dt_n;
+   wire       s_dvacc_n;
+   wire       s_ecreq;
+   wire       s_ecsr_n;
+   wire       s_edo_n;
+   wire       s_eior_n;
+   wire       s_emp_n;   
+   wire       s_empid_n;
+   wire       s_eorf_n;
+   wire       s_epan_n;
+   wire       s_epans_n;
+   wire       s_estof_n;
+   wire       s_fetch;
+   wire       s_fmiss;
+   wire       s_form_n;
+   wire       s_ful_n;
+   wire       s_gated_swmcl_n;
+   wire       s_hit;
+   wire       s_icontin_n;
+   wire       s_iload_n;
+   wire       s_ioreq_n;
+   wire       s_istop_n;   
+   wire       s_lcs_n;
+   wire       s_lhit;
+   wire       s_lshadow;
+   wire       s_mcl;
+   wire       s_mreq_n;
+   wire       s_oc0_n;
+   wire       s_oc0;
+   wire       s_oc1_and_xtal2_n;
+   wire       s_oc1;
+   wire       s_opclcs;
+   wire       s_osc_inp1;
+   wire       s_osc_inp2;
+   wire       s_osc;
+   wire       s_oscccl_n;
+   wire       s_pa_n;
+   wire       s_pan_n;
+   wire       s_panosc;
+   wire       s_poni;
+   wire       s_power_on_zener;
+   wire       s_powfail_n;
+   wire       s_powsense_n;
+   wire       s_powsense;
+   wire       s_pposc;
+   wire       s_ps_n;
+   wire       s_pwcl;
+   wire       s_ref_n;
+   wire       s_refrq_n;
+   wire       s_rinr_n;
+   wire       s_rmm_n;
+   wire       s_rt_n;
+   wire       s_ruart_n;
+   wire       s_rwcs_n;
+   wire       s_sel5ms_n;
+   wire       s_short_n;
+   wire       s_sioc_n;
+   wire       s_slow_n;
+   wire       s_ssema_n;
+   wire       s_stoc_n;
+   wire       s_stp;
+   wire       s_swmcl_n;
+   wire       s_tout;
+   wire       s_traald_n;
+   wire       s_uclk;
+   wire       s_val;
+   wire       s_wchim_n;
+   wire       s_write;
+   wire       s_XRTOSC;
+   wire       s_XTAL1;
+   wire       s_XTAL2;
+   
+
 
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus18[4:0] = CSCOMM_4_0;
-   
-   assign s_IDB_7_0_in[3:0] = IDB_7_0_IN;
 
-   assign s_logisimBus56[4:0] = CSIDBS_4_0;
-   assign s_logisimBus57[1:0] = STAT_4_3;
-   assign s_logisimBus64[1:0] = CSMIS_1_0;
+   // BUS signals
+   assign s_csmis_1_0[1:0]    = CSMIS_1_0;
+   assign s_stat_4_3[1:0]     = STAT_4_3;
+   assign s_csidbs_4_0[4:0]   = CSIDBS_4_0;
+   assign s_cscomm_4_0[4:0]   = CSCOMM_4_0;      
    assign s_oc_1_0[1:0]       = OC_1_0;
-   assign s_logisimNet10      = BRK_n;
-   assign s_logisimNet16      = ICONTIN_n;
-   assign s_logisimNet17      = BDRY50_n;
+   assign s_IDB_7_0_in[7:0]   = IDB_7_0_IN[7:0];
+
+   // Signals
+   assign s_bdry50_n          = BDRY50_n;
+   assign s_brk_n             = BRK_n;
+   assign s_clk               = CLK;
+   assign s_dap_n             = DAP_n;
+   assign s_eorf_n            = EORF_n;
+   assign s_hit               = HIT;
+   assign s_icontin_n         = ICONTIN_n;
+   assign s_iload_n           = ILOAD_n;
+   assign s_istop_n           = ISTOP_n;
+   assign s_lcs_n             = LCS_n;
+   assign s_lshadow           = LSHADOW;
+   assign s_opclcs            = OPCLCS;
+   assign s_oscccl_n          = OSCCL_n;
+   assign s_poni              = PONI;
    assign s_powsense_n        = POWSENSE_n;
-   assign s_logisimNet34      = LCS_n;
-   assign s_logisimNet35      = REF_n;
-   assign s_logisimNet39      = UCLK;
-   assign s_logisimNet47      = SWMCL_n;
+   assign s_ref_n             = REF_n;
+   assign s_rmm_n             = RMM_n;
+   assign s_sel5ms_n          = SEL5MS_n;
+   assign s_swmcl_n           = SWMCL_n; // Software Master Clear (MCL) negated
+   assign s_uclk              = UCLK;
    assign s_XTAL1             = XTAL1;
    assign s_XTAL2             = XTAL2;
-   assign s_logisimNet54      = OSCCL_n;
-   assign s_logisimNet58      = HIT;
-   assign s_logisimNet59      = PONI;
-   assign s_logisimNet6       = OPCLCS;
-   assign s_logisimNet60      = ISTOP_n;
-   assign s_logisimNet62      = RMM_n;
-   assign s_logisimNet63      = DAP_n;
-   assign s_logisimNet74      = SEL5MS_n;
-   assign s_logisimNet76      = EORF_n;
-   assign s_clk               = CLK;
-   assign s_lshadow           = LSHADOW;
-   assign s_logisimNet9       = ILOAD_n;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign CA10      = s_logisimNet11;
-   assign CCLR_n    = s_logisimNet85;
-   assign CEUART_n  = s_logisimNet65;
-   assign CLEAR_n   = s_logisimNet0;
-   assign DT_n      = s_logisimNet36;
-   assign DVACC_n   = s_logisimNet42;
-   assign ECREQ     = s_logisimNet41;
-   assign ECSR_n    = s_logisimNet68;
-   assign EDO_n     = s_logisimNet83;
-   assign EIOR_n    = s_logisimNet82;
-   assign EMPID_n   = s_logisimNet43;
-   assign EMP_n     = s_logisimNet69;
-   assign EPANS_n   = s_logisimNet5;
-   assign ESTOF_n   = s_logisimNet24;
-   assign FETCH     = s_logisimNet20;
-   assign FMISS     = s_logisimNet84;
-   assign FORM_n    = s_logisimNet44;
-   assign FUL_n     = s_logisimNet4;
-   assign IORQ_n    = s_logisimNet86;
-   assign LHIT      = s_logisimNet87;
-   assign MCL       = s_logisimNet75;
-   assign MREQ_n    = s_logisimNet70;
+   assign CA10      = s_ca10;
+   assign CCLR_n    = s_cclr_n;
+   assign CEUART_n  = s_ceuart_n;
+   assign CLEAR_n   = s_clear_n;
+   assign DT_n      = s_dt_n;
+   assign DVACC_n   = s_dvacc_n;
+   assign ECREQ     = s_ecreq;
+   assign ECSR_n    = s_ecsr_n;
+   assign EDO_n     = s_edo_n;
+   assign EIOR_n    = s_eior_n;
+   assign EMP_n     = s_emp_n;
+   assign EMPID_n   = s_empid_n;
+   assign EPAN_n    = s_epan_n;
+   assign EPANS_n   = s_epans_n;
+   assign ESTOF_n   = s_estof_n;
+   assign FETCH     = s_fetch;
+   assign FMISS     = s_fmiss;
+   assign FORM_n    = s_form_n;
+   assign FUL_n     = s_ful_n;
+   assign IORQ_n    = s_ioreq_n;
+   assign LHIT      = s_lhit;
+   assign MCL       = s_mcl;
+   assign MREQ_n    = s_mreq_n;
    assign OSC       = s_osc;
-   assign PANOSC    = s_logisimNet51;
-   assign PAN_n     = s_logisimNet67;
    assign PA_7_0    = s_pa_7_0[7:0];
-   assign PA_n      = s_logisimNet12;
-   assign POWFAIL_n = s_logisimNet55;
-   assign PPOSC     = s_PPOSC;
-   assign PS_n      = s_logisimNet78;
-   assign REFRQ_n   = s_logisimNet1;
-   assign RINR_n    = s_logisimNet38;
-   assign RT_n      = s_logisimNet37;
-   assign RUART_n   = s_logisimNet66;
-   assign RWCS_n    = s_logisimNet45;
-   assign SHORT_n   = s_logisimNet25;
-   assign SIOC_n    = s_logisimNet13;
-   assign SLOW_n    = s_logisimNet2;
-   assign SSEMA_n   = s_logisimNet71;
-   assign STOC_n    = s_logisimNet46;
-   assign STP       = s_logisimNet79;
-   assign TOUT      = s_logisimNet21;
-   assign TRAALD_n  = s_logisimNet32;
-   assign VAL       = s_logisimNet27;
-   assign WCHIM_n   = s_logisimNet72;
-   assign WRITE     = s_logisimNet22;
+   assign PA_n      = s_pa_n;
+   assign PAN_n     = s_pan_n;
+   assign PANOSC    = s_panosc;
+   assign POWFAIL_n = s_powfail_n;
+   assign PPOSC     = s_pposc;
+   assign PS_n      = s_ps_n;
+   assign REFRQ_n   = s_refrq_n;
+   assign RINR_n    = s_rinr_n;
+   assign RT_n      = s_rt_n;
+   assign RUART_n   = s_ruart_n;
+   assign RWCS_n    = s_rwcs_n;
+   assign SHORT_n   = s_short_n;
+   assign SIOC_n    = s_sioc_n;
+   assign SLOW_n    = s_slow_n;
+   assign SSEMA_n   = s_ssema_n;
+   assign STOC_n    = s_stoc_n;
+   assign STP       = s_stp;
+   assign TOUT      = s_tout;
+   assign TRAALD_n  = s_traald_n;
+   assign VAL       = s_val;
+   assign WCHIM_n   = s_wchim_n;
+   assign WRITE     = s_write;
+   
+
+   // IDB[7:0] out = IDB[7:0] in (Except if EPAN_n is low, then IDB out is the IDB 3-0 from the DGA chip)
+
+   // Assign the upper 4 bits directly from the input to the output
+   assign s_IDB_7_0_out[7:4] = s_IDB_7_0_in[7:4];
+
+   // Conditionally assign the lower 4 bits based on the state of EPAN_n
+   assign s_IDB_7_0_out[3:0] = s_epan_n ? s_IDB_7_0_in[3:0] : s_dga_idb_3_0_out[3:0];
+
+   // Connect the intermediate signal to the final output
+   assign IDB_7_0_OUT = s_IDB_7_0_out;
+
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // HIGH (schematic is via a zener diode, not sure what this is about - estimated 500 uc delay - which may be used to reset CLOSC and PWCL signal)
-   assign  s_high  =  1'b1;
+   // Power-on-zener  (schematic shows a zener diode circuit, that after anlysis needs 10ms to go from 0V to 3.3V - based on the 10nF capacitor and 1k resistor)
+   // Needs 10ms to go from 0V to 3.3V - or ~400 clock cyles at 40MHz
+   
+   assign  s_power_on_zener  =  regPowerOnClear;
 
 
    // NOT Gate
@@ -293,33 +311,70 @@ module IO_DCD_38(
    assign s_oc0_n = ~s_oc0;
    assign s_oc1   = s_oc_1_0[1];
    
+   
+   // Power On Clear - 10ms delay
+   reg regPowerOnClear;
+   reg [10:0] regPowerOnDelay;
 
-   /*******************************************************************************
-   ** Here all normal components are defined                                     **
-   *******************************************************************************/
+   always @(posedge sysclk)                           
+   begin
+      if (sys_rst_n == 1'b0) begin
+         regPowerOnClear <= 0; // Start with 0, and then set to 1 after 10ms delay
+         regPowerOnDelay <= 0;
+      end else begin
+         if (regPowerOnClear == 0) begin
+            if (regPowerOnDelay> 400) begin // 400 clock cycles at 40MHz = 1000 at 100 Mhz
+               regPowerOnClear <= 1;
+            end else begin
+               regPowerOnDelay <= regPowerOnDelay + 1;
+            end
+         end
+      end
+   end
 
-   assign s_osc          = ~(s_and_to_osc & s_logisimNet48);
-   assign s_logisimNet77 = ~(s_high & s_logisimNet47);
-   assign s_and_to_osc   = ~(s_XTAL1 & s_oc1 & s_oc0);
-   assign s_logisimNet15 = ~(s_oc1 & s_XTAL2);
-   assign s_logisimNet14 = ~(s_logisimNet54 & s_high);
-   assign s_logisimNet48 = ~(s_oc0_n & s_logisimNet15);
-   assign s_logisimNet8  = s_logisimNet77 | s_logisimNet6;
+   
+   // Test signals
+   wire TESTE;
+   assign TESTE = 1'b1;  // <=== TEST ENABLE (?) Must be 1 for normal operation
 
+   //wire XTESTO;  
+
+
+
+   /***************
+   ** Components **
+   ****************/
+
+   
+   
+   // Calculate OSC signal
+   assign s_osc_inp1          = ~(s_XTAL1 & s_oc1 & s_oc0); // Chip 10F
+   assign s_osc_inp2          = ~(s_oc0_n & s_oc1_and_xtal2_n);
+   assign s_osc               = ~(s_osc_inp1 & s_osc_inp2);
+   assign s_oc1_and_xtal2_n   = ~(s_oc1 & s_XTAL2);  // The AND is done in a 74321 chip (Positive NAND Schmitt Trigger)
+
+   // Calculate CLOSC signal   
+   assign s_closc             = ~(s_oscccl_n & s_power_on_zener);
+   
+   // Calculate PWCL signal
+   assign s_gated_swmcl_n     = ~(s_power_on_zener & s_swmcl_n);   
+   assign s_pwcl              = s_gated_swmcl_n | s_opclcs;
+
+   
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
    TTL_74393   CHIP_13C_1 (.CLK_n(s_XTAL1),
-                           .RESET(s_logisimNet14),
+                           .RESET(s_closc),
                            .QA(),
                            .QB(),
-                           .QC(s_PPOSC),  // Signal PPOSC leaving DCD (4.9152 Mhz clock for UART)
-                           .QD(s_logisimNet53));
+                           .QC(s_pposc),  // Signal PPOSC leaving DCD (4.9152 Mhz clock for UART) (Div8)
+                           .QD(s_div_16));
 
-   TTL_74393   CHIP_13C_2 (.CLK_n(s_logisimNet53),
-                           .RESET(s_logisimNet14),
+   TTL_74393   CHIP_13C_2 (.CLK_n(s_div_16),
+                           .RESET(s_closc),
                            .QA(),
                            .QB(),
                            .QC(),
@@ -327,107 +382,95 @@ module IO_DCD_38(
                            );
 
 
-   wire CLOSC;  // CLOSC
-   assign CLOSC = s_logisimNet14;
 
-   wire PWCL;
-   assign PWCL = ~SWMCL_n | OPCLCS;
-
-
-   wire TESTE;
-   assign TESTE = 1'b1;  // <=== TEST ENABLE (?) Must be 1 for normal operation
-
-   wire XTESTO;  
    
 
 
    DECODE_DGA  DGA(
             /** INPUT **/
 
-            .XBDN(BDRY50_n),  
-            .XBRN(BRK_n),
-            .XCLK(CLK),
-            .XCLO(CLOSC),  
-            .XCON(ICONTIN_n),
-            .XCO_4_0(CSCOMM_4_0),
-            .XDAN(DAP_n),
-            .XEFN(REF_n),
-            .XEON(EORF_n),
-            .XHIN(~HIT),  // XHIT_n (negated)
-            .XID_4_0(CSIDBS_4_0),
-            .XIDB_7_0_IN(IDB_7_0_IN),
-            .XIDB_3_0_OUT(IDB_3_0_OUT),
+            .XBDN(s_bdry50_n),  
+            .XBRN(s_brk_n),
+            .XCLK(s_clk),
+            .XCLO(s_closc),  
+            .XCON(s_icontin_n),
+            .XCO_4_0(s_cscomm_4_0),
+            .XDAN(s_dap_n),
+            .XEFN(s_ref_n),
+            .XEON(s_eorf_n),
+            .XHIN(~s_hit),  // XHIT_n (negated)
+            .XID_4_0(s_csidbs_4_0),
             
-            .XLCN(LCS_n),
-            .XLON(ILOAD_n),
-            .XLSH(LSHADOW),
-            .XMI_1_0(CSMIS_1_0),
-            .XPOI(PONI),   
-            .XPOW(POWSENSE_n), 
-            .XPWC(PWCL),
-            .XRMN(RMM_n),
+            .XLCN(s_lcs_n),
+            .XLON(s_iload_n),
+            .XLSH(s_lshadow),
+            .XMI_1_0(s_csmis_1_0),
+            .XPOI(s_poni),   
+            .XPOW(s_powsense), 
+            .XPWC(s_pwcl),
+            .XRMN(s_rmm_n),
             .XRTO(s_XRTOSC),    // XRTOSC 
-            .XS5N(SEL5MS_n),
-            .XST_4_3(STAT_4_3),
+            .XS5N(s_sel5ms_n),
+            .XST_4_3(s_stat_4_3),
             .XTES(TESTE),                     
-            .XTON(ISTOP_n),
-            .XUCK(UCLK),
+            .XTON(s_istop_n),
+            .XUCK(s_uclk),
 
+            // IDB IN and OUT
+            .XIDB_7_0_IN(s_IDB_7_0_in),
+            .XIDB_3_0_OUT(s_dga_idb_3_0_out),            
+ 
             /** OUTPUT **/
             .XA_7_0(s_pa_7_0),            
-            .XC10(CA10),
-            .XCLN(CLEAR_n),
-            .XCRN(CCLR_n),
-            .XCSN(ECSR_n),
-            .XDON(EDO_n),
-            .XDTN(DT_n),
-            .XDVN(DVACC_n),
-            .XECR(ECREQ),
-            .XEMN(EMP_n),
-            .XEPN(EPAN_n),
-            .XESN(ESTOF_n),
-            .XEUN(CEUART_n),
-            .XFEC(FETCH),
-            .XFMI(FMISS),
-            .XFON(FORM_n),
-            .XFUN(FUL_n),
-            .XION(EIOR_n),
-            .XI_3_0_C(),
-            .XI_3_0_O(),
-            .XLHN(LHIT),  
-            .XMCL(MCL),
-            .XMRN(MREQ_n),
-            .XOCN(SIOC_n),
-            .XPAN(PA_n),
-            .XPEN(PS_n),
-            .XPFN(POWFAIL_n),
-            .XPIN(EMPID_n),
-            .XPNN(PAN_n),
-            .XPSC(PANOSC),
-            .XPSN(EPANS_n),
-            .XRFN(REFRQ_n),
-            .XRIN(RINR_n),
-            .XRQN(IORQ_n),
-            .XRTN(RT_n),
-            .XRUN(RUART_n),
-            .XRWN(RWCS_n), // (NOT CONNECTED IN SHEET 39)
-            .XSCN(STOC_n),
-            .XSHN(SHORT_n),
-            .XSSN(SSEMA_n),
-            .XSTP(STP),
-            .XSWN(SLOW_n),
-            .XTEO(XTESTO),  // TEST OUTPUT (NOT CONNECTED IN SHEET 39)
-            .XTOT(TOUT),
-            .XTRN(TRAALD_n),
-            .XVAL(VAL),
-            .XWHN(WCHIM_n),
-            .XWRI(WRITE)                  
+            .XC10(s_ca10),
+            .XCLN(s_clear_n),
+            .XCRN(s_cclr_n),
+            .XCSN(s_ecsr_n),
+            .XDON(s_edo_n),
+            .XDTN(s_dt_n),
+            .XDVN(s_dvacc_n),
+            .XECR(s_ecreq),
+            .XEMN(s_emp_n),
+            .XEPN(s_epan_n),
+            .XESN(s_estof_n),
+            .XEUN(s_ceuart_n),
+            .XFEC(s_fetch),
+            .XFMI(s_fmiss),
+            .XFON(s_form_n),
+            .XFUN(s_ful_n),
+            .XION(s_eior_n),
+//            .XI_3_0_C(),
+//            .XI_3_0_O(),
+            .XLHN(s_lhit),  
+            .XMCL(s_mcl),
+            .XMRN(s_mreq_n),
+            .XOCN(s_sioc_n),
+            .XPAN(s_pa_n),
+            .XPEN(s_ps_n),
+            .XPFN(s_powfail_n),
+            .XPIN(s_empid_n),
+            .XPNN(s_pan_n),
+            .XPSC(s_panosc),
+            .XPSN(s_epans_n),
+            .XRFN(s_refrq_n),
+            .XRIN(s_rinr_n),
+            .XRQN(s_ioreq_n),
+            .XRTN(s_rt_n),
+            .XRUN(s_ruart_n),
+            .XRWN(s_rwcs_n), // (NOT CONNECTED IN SHEET 39)
+            .XSCN(s_stoc_n),
+            .XSHN(s_short_n),
+            .XSSN(s_ssema_n),
+            .XSTP(s_stp),
+            .XSWN(s_slow_n),
+            //.XTEO(XTESTO),  
+            .XTEO(), // TEST OUTPUT (NOT CONNECTED IN SHEET 39)
+            .XTOT(s_tout),
+            .XTRN(s_traald_n),
+            .XVAL(s_val),
+            .XWHN(s_wchim_n),
+            .XWRI(s_write)                  
 
    );
-
-
- 
-
-
-
+   
 endmodule
