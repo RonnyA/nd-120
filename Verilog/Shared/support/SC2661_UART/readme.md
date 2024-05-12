@@ -1,8 +1,6 @@
-# CPU
+# SC2661 UART
 
-DELILAH TOP LEVEL, CPU BOARD
-
-## CPU Board 3202D - Sheet 1
+The SC2661 is a UART (Universal Asynchronous Receiver/Transmitter) chip
 
 ### Test program verification
 
