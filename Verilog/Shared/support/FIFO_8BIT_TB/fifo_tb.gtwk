@@ -1,0 +1,29 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Sun May 12 11:14:37 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/FIFO/fifo_tb.vcd"
+[dumpfile_mtime] "Sun May 12 11:13:36 2024"
+[dumpfile_size] 946
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/FIFO/fifo_tb.gtwk.gtkw"
+[timestart] 0
+[size] 1769 1198
+[pos] -1 -1
+*-4.427045 -1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+[treeopen] FIFO_testbench.
+[sst_width] 297
+[signals_width] 134
+[sst_expanded] 1
+[sst_vpaned_height] 358
+@22
+FIFO_testbench.data_in[7:0]
+FIFO_testbench.data_out[7:0]
+@28
+FIFO_testbench.empty
+FIFO_testbench.full
+FIFO_testbench.rd_en
+FIFO_testbench.rst
+@29
+FIFO_testbench.wr_en
+[pattern_trace] 1
+[pattern_trace] 0
