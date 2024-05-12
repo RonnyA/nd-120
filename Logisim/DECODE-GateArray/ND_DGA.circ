@@ -1872,6 +1872,9 @@
       <a name="label" val="CLRTIN"/>
     </comp>
     <comp lib="0" loc="(3310,1920)" name="Ground"/>
+    <comp lib="0" loc="(3310,2040)" name="Pin">
+      <a name="appearance" val="classic"/>
+    </comp>
     <comp lib="0" loc="(3350,4440)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="SEL5MSN"/>
@@ -2034,7 +2037,6 @@
     <comp lib="1" loc="(340,1320)" name="NOT Gate"/>
     <comp lib="1" loc="(3540,4680)" name="NOR Gate">
       <a name="label" val="A636"/>
-      <a name="size" val="30"/>
     </comp>
     <comp lib="1" loc="(370,950)" name="NOT Gate"/>
     <comp lib="1" loc="(450,230)" name="NOT Gate">
@@ -4200,9 +4202,6 @@
     </comp>
     <comp lib="8" loc="(1800,995)" name="Text">
       <a name="text" val="WEL2"/>
-    </comp>
-    <comp lib="8" loc="(355,70)" name="Text">
-      <a name="text" val="Page 12 DECODE - DECODE_DGA_PFIFC Sheet 1 of 1"/>
     </comp>
     <comp loc="(1150,1040)" name="F595">
       <a name="label" val="A321"/>

@@ -19348,7 +19348,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(1120,1225)" name="Text">
       <a name="text" val="CPN is bi-directional"/>
     </comp>
-    <comp lib="8" loc="(137,83)" name="Text">
+    <comp lib="8" loc="(135,80)" name="Text">
       <a name="text" val="CACHE"/>
     </comp>
     <comp lib="8" loc="(170,115)" name="Text">
@@ -20298,10 +20298,10 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(230,125)" name="Text">
       <a name="text" val="PAGE TABLES"/>
     </comp>
-    <comp lib="8" loc="(232,158)" name="Text">
+    <comp lib="8" loc="(230,155)" name="Text">
       <a name="text" val="SHEET 29 of 50"/>
     </comp>
-    <comp lib="8" loc="(232,95)" name="Text">
+    <comp lib="8" loc="(230,95)" name="Text">
       <a name="text" val="CPU/MMU/PT"/>
     </comp>
     <comp lib="8" loc="(265,70)" name="Text">
@@ -26156,7 +26156,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(130,935)" name="Text">
       <a name="color" val="#ff201c"/>
       <a name="halign" val="left"/>
-      <a name="text" val="Estimated HIGH for 500useconds, before going low"/>
+      <a name="text" val="Needs 10ms to go from 0V to 3.3V - or ~400 clock cyles at 40MHz"/>
     </comp>
     <comp lib="8" loc="(140,965)" name="Text">
       <a name="halign" val="left"/>
