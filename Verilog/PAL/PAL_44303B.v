@@ -1,23 +1,34 @@
-// PAL16L8
+// PAL16L8_12
 // JLB/CITC 15AUG86
 // 44303B,2C,LBC2 - LOCAL DATA BUS CONTROL PAL
 
-module PAL_44303B(
-    input CACT_n,
-    input CGNT_n,
-    input EADR_n,           // Address from CPU to Bus
-    input BINPUT50_n,
-    input MIS0,
-    input IOD_n,
-    input WRITE,
-    input TEST,
-    input BACT_n,
-    
-    output WBD_n,       // Write Bus Direction
-    output CBWRITE_n,   // CPU Write cycle to Bus
-    output WLBD_n,      // Write Local Bus Direction
-    output CMWRITE_n    // CPU Write to Local Memory
+module PAL_44303B(   
+    input CACT_n,        // I0                          
+    input CGNT_n,        // I1                          
+    input EADR_n,        // I2 - Address from CPU to Bus
+    input BINPUT50_n,    // I3                          
+    input MIS0,          // I4                          
+    input IOD_n,         // I5                          
+    input WRITE,         // I6                          
+    input TEST,          // I7 - PD1                    
+    //input I8           // I8                          
+    input BACT_n,        // I9                          
+
+    output WBD_n,       // Y0_n - Write Bus Direction    
+    output CBWRITE_n,   // Y1_n - CPU Write cycle to Bus 
+
+    output WLBD_n,      // B0_n - Write Local Bus Direction
+    output CMWRITE_n    // B1_n - CPU Write to Local Memory
+
+    /* Not connected
+    output    // B2_n 
+    output    // B3_n 
+    output    // B4_n 
+    output    // B5_n         
+    */
 );
+
+
 
 // Inverted input signals
 wire CACT = ~CACT_n;

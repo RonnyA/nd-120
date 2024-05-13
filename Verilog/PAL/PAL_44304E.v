@@ -8,9 +8,29 @@
 // Note2: TEST is connectecd to signal PD3 that is always 0 on the PCB 3202D.
 
 module PAL_44304E(
-    input CGNT_n, input BGNT_n, input BGNT50_n, input MWRITE_n, input BDAP50_n, input EBUS_n, input IBAPR_n, input GNT_n, input TEST,
-    output EBD_n,  output CLKBD, output SAPR, output FAPR, output EBADR_b1, output BACT_n, output DBAPR
+    input CGNT_n,       // I0                  
+    input BGNT_n,       // I1                  
+    input BGNT50_n,     // I2                  
+    input MWRITE_n,     // I3                  
+    input BDAP50_n,     // I4                  
+    input EBUS_n,       // I5                  
+    input IBAPR_n,      // I6                  
+    input GNT_n,        // I7                  
+    input TEST,         // I8 - PD3            
+    //input I9          // I9                  
+                        
+    output DBAPR,       // Y0_n  
+    //output Y1_n,      // Y1_n  
+              
+    output BACT_n,      // B0_n 
+    output EBADR_b1,    // B1_n 
+    output FAPR,        // B2_n 
+    output SAPR,        // B3_n 
+    output CLKBD,       // B4_n 
+    output EBD_n        // B5_n         
 );
+
+
 
 // Inverted input signals
 wire BGNT = ~BGNT_n;

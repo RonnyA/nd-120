@@ -3,9 +3,29 @@
 // 44302B,11D,LBC1
 
 module PAL_44302B(
-    input Q0_n, input Q2_n, input CC2_n, input BDRY25_n, input BDRY50_n, input CGNT_n, input CGNT50_n, input CACT_n, input TERM_n, input BGNT_n, input RT_n, input IORQ_n, input TEST, 
-    output EMD_n, output DSTB_n, output BGNTCACT_n, output CGNTCACT_n
+    input Q0_n,         // I0
+    input Q2_n,         // I1
+    input CC2_n,        // I2
+    input BDRY25_n,     // I3
+    input BDRY50_n,     // I4
+    input CGNT_n,       // I5
+    input CGNT50_n,     // I6
+    input CACT_n,       // I7
+    input TERM_n,       // I8
+    input BGNT_n,       // I9
+
+    output BGNTCACT_n,  // Y0_n 
+    output CGNTCACT_n,  // Y1_n 
+
+    output EMD_n,       // B0_n 
+    output DSTB_n,      // B1_n 
+    //input B2_n        // B2_n 
+    input TEST,         // B3_n  (PD3)
+    input IORQ_n,       // B4_n 
+    input RT_n          // B5_n         
 );
+
+
 
 // Inverted input signals
 wire Q0 = ~Q0_n;
