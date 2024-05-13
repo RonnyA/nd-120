@@ -56,11 +56,12 @@ wire CSDELAY0_n = ~CSDELAY0;
 wire WAIT1_n = ~WAIT1;
 wire CGNTCACT = ~CGNTCACT_n;
 wire BRK = ~BRK_n;
+wire WAIT2_n = ~WAIT2;	
 
 wire SHORT = ~SHORT_n;
 wire SLOW = ~SLOW_n;
 
-// Negated reg signals as wires
+// Reg signals as wires
 wire CC3 = CC3_reg;
 wire CC2 = CC2_reg;
 wire CC1 = CC1_reg;
@@ -112,10 +113,17 @@ always @(posedge CK) begin
                | (CC3 & CC2_n & CC1 & TERM_n)
                | (CC3_n & CC2 & CC1 & CC0_n & CGNTCACT_n & TERM_n)                          // e WAIT FOR BUS OF LOC
                | (CC3_n & CC2 & CC1 & CC0_n & BRK & TERM_n)                                 // e MEM CYCLE TO FINISH
-               | (CC3_n & CC2 & CC1 & CC0_n & WAIT2 & TERM_n)                               // e IF WAIT2 and NOT BRK
+               | (CC3_n & CC2 & CC1 & CC0_n & WAIT2_n & TERM_n)                               // e IF WAIT2 and NOT BRK
                | (CC3_n & CC2_n & CC1 & CC0 & CGNTCACT & BRK_n * TERM_n);                   // e PREV WRITE
 
+
+
+    
 end
+
+    /* DEBUG */
+    /* verilator lint_off UNUSEDSIGNAL */
+wire[3:0] ccReg = {CC3, CC2, CC1, CC0};
 
 // Tri-state control for Q outputs
 // Assigning outputs with three-state logic controlled by OE_n
