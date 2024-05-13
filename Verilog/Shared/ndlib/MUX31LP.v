@@ -1,9 +1,8 @@
 /******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
  **                                                                          **
  ** Component : MUX31LP                                                      **
  **                                                                          **
+ ** Manually cleaned up from logisim generator that creates wires not used.. **
  *****************************************************************************/
 
 module MUX31LP( input A,
@@ -13,54 +12,29 @@ module MUX31LP( input A,
                 input D2,
                 output ZN );
 
+   wire [1:0] s_select;
+   wire       s_d0;
+   wire       s_d1;
+   wire       s_d2;         
 
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-   wire [1:0] s_logisimBus0;
-   wire       s_logisimNet1;
-   wire       s_logisimNet2;
-   wire       s_logisimNet3;
-   wire       s_logisimNet4;
-   wire       s_logisimNet5;
-   wire       s_logisimNet6;
-   wire       s_logisimNet7;
+   wire       s_muxout;   
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
+   assign s_select[0]   = A;
+   assign s_select[1]   = B;
+   assign s_d0          = D0;   
+   assign s_d1          = D1;
+   assign s_d2          = D2;
 
-   /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
-   assign s_logisimBus0[0] = A;
-   assign s_logisimBus0[1] = B;
-   assign s_logisimNet1    = D0;
-   assign s_logisimNet2    = D2;
-   assign s_logisimNet7    = D1;
+   assign ZN = ~s_muxout;
 
-   /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
-   assign ZN = s_logisimNet6;
 
-   /*******************************************************************************
-   ** Here all in-lined components are defined                                   **
-   *******************************************************************************/
-
-   // NOT Gate
-   assign s_logisimNet6 = ~s_logisimNet5;
-
-   /*******************************************************************************
-   ** Here all normal components are defined                                     **
-   *******************************************************************************/
    Multiplexer_4   PLEXERS_1 (
-                              .muxIn_0(s_logisimNet1),
-                              .muxIn_1(s_logisimNet7),
-                              .muxIn_2(s_logisimNet2),
-                              .muxIn_3(s_logisimNet2),
-                              .muxOut(s_logisimNet5),
-                              .sel(s_logisimBus0[1:0]));
+                              .muxIn_0(s_d0),
+                              .muxIn_1(s_d1),
+                              .muxIn_2(s_d2),
+                              .muxIn_3(s_d2),
+                              .muxOut(s_muxout),
+                              .sel(s_select[1:0]));
 
 
 endmodule
