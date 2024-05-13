@@ -1,72 +1,55 @@
 /******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
  ** Component : F571                                                         **
- **                                                                          **
+ ** 2 TO 1 MULTIPLEXER                                                       **
  *****************************************************************************/
 
-module F571( A,
-             D0,
-             D1,
-             ENB_N,
-             Y );
+module F571(
+   input A,
+   input D0,
+   input D1,
+   input ENB_N,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input A;
-   input D0;
-   input D1;
-   input ENB_N;
-
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output Y;
+   output Y
+);
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire s_logisimNet0;
-   wire s_logisimNet1;
-   wire s_logisimNet2;
-   wire s_logisimNet3;
-   wire s_logisimNet4;
-   wire s_logisimNet5;
-
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
+   wire s_enb_n;
+   wire s_A;
+   wire s_enb;
+   wire s_d0;
+   wire s_d1;
+   wire s_y;
 
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimNet0 = ENB_N;
-   assign s_logisimNet1 = A;
-   assign s_logisimNet3 = D0;
-   assign s_logisimNet4 = D1;
+   assign s_enb_n    = ENB_N;
+   assign s_A        = A;
+   assign s_d0       = D0;
+   assign s_d1       = D1;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign Y = s_logisimNet5;
+   assign Y = s_y;
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
    // NOT Gate
-   assign s_logisimNet2 = ~s_logisimNet0;
+   assign s_enb = ~s_enb_n;
 
    /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   Multiplexer_2_w_enable   PLEXERS_1 (.enable(s_logisimNet2),
-                              .muxIn_0(s_logisimNet3),
-                              .muxIn_1(s_logisimNet4),
-                              .muxOut(s_logisimNet5),
-                              .sel(s_logisimNet1));
+   Multiplexer_2_w_enable   PLEXERS_1 (.enable(s_enb),
+                              .muxIn_0(s_d0),
+                              .muxIn_1(s_d1),
+                              .muxOut(s_y),
+                              .sel(s_A));
 
 
 endmodule
