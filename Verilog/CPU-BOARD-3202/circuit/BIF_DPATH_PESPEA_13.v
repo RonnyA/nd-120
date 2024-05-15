@@ -10,7 +10,7 @@
 
 module BIF_DPATH_PESPEA_13
 ( 
-   input [23:0] BD_23_0_n,
+   input [23:0] BD_23_0_n_IN,
    input        EPEA_n,
    input        EPES_n,
    input        FETCH,
@@ -18,7 +18,7 @@ module BIF_DPATH_PESPEA_13
    input        SPEA,
    input        SPES,
 
-   output [15:0] IDB_15_0;   
+   output [15:0] IDB_15_0_OUT
 );
 
    
@@ -26,9 +26,11 @@ module BIF_DPATH_PESPEA_13
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [15:0] s_idb_15_0;
-   wire [23:0] s_bd_23_0_n;
-   wire [15:0] s_bd_23_0_n2;
+      wire [23:0] s_bd_23_0_n_in;
+   wire [15:0] s_idb_15_0_out;
+
+   wire [15:0] s_pea_idb_15_0_out;
+   wire [15:0] s_pes_idb_15_0_out;
 
 
    wire [7:0] chip12D;
@@ -38,22 +40,23 @@ module BIF_DPATH_PESPEA_13
    wire        s_spea;
    wire        s_spes;
    wire        s_gnt_n;
+   wire        s_fetch_n;  
 
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_bd_23_0_n[23:0]   = BD_23_0_n;
-   assign s_epea_n            = EPEA_n;
-   assign s_epes_n            = EPES_n;
-   assign s_spea              = SPEA;
-   assign s_spes              = SPES;
-   assign s_gnt_n             = GNT_n;
-   assign s_fetch_n           = ~FETCH;
+   assign s_bd_23_0_n_in[23:0]   = BD_23_0_n_IN[23:0];
+   assign s_epea_n               = EPEA_n;
+   assign s_epes_n               = EPES_n;
+   assign s_spea                 = SPEA;
+   assign s_spes                 = SPES;
+   assign s_gnt_n                = GNT_n;
+   assign s_fetch_n              = ~FETCH;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign IDB_15_0 = s_idb_15_0[15:0];
+   assign IDB_15_0_OUT = s_idb_15_0_out[15:0];
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
@@ -63,13 +66,15 @@ module BIF_DPATH_PESPEA_13
    //  PEA (Parity Error Address).  The PEA register is a 16-bit register that contains the address of the last byte that caused a parity error.  The
    //  PEA register is loaded with the address of the last byte that caused a parity error when the parity error is detected.  
    
+   
+   assign s_idb_15_0_out = s_pea_idb_15_0_out | s_pes_idb_15_0_out;
 
    TTL_74534   CHIP_9A 
    (
       .CK(s_spea),
       .OE_n(s_epea_n),
-      .D(s_bd_23_0_n[15:8]),
-      .Q_n(s_idb_15_0[15:8])                        
+      .D(s_bd_23_0_n_in[15:8]),
+      .Q_n(s_pea_idb_15_0_out[15:8])                        
    );
 
 
@@ -77,8 +82,8 @@ module BIF_DPATH_PESPEA_13
    (
       .CK(s_spea),
       .OE_n(s_epea_n),
-      .D(s_bd_23_0_n[7:0]),
-      .Q_n(s_idb_15_0[7:0])                        
+      .D(s_bd_23_0_n_in[7:0]),
+      .Q_n(s_pea_idb_15_0_out[7:0])                        
    );
 
 
@@ -86,7 +91,7 @@ module BIF_DPATH_PESPEA_13
 
    assign chip12D[7]   = s_fetch_n;
    assign chip12D[6]   = s_gnt_n;
-   assign chip12D[5:0] = s_bd_23_0_n[21:16];
+   assign chip12D[5:0] = s_bd_23_0_n_in[21:16];
 
    /// Read PES register
    /// PES (Parity Error Status). The PES register is a 16-bit register that contains the status of the last parity error detected.  
@@ -109,15 +114,15 @@ module BIF_DPATH_PESPEA_13
       .CK(s_spes),
       .OE_n(s_epes_n),
       .D(chip12D[7:0]),
-      .Q_n(s_idb_15_0[15:8])                        
+      .Q_n(s_pes_idb_15_0_out[15:8])                        
    );
    
    TTL_74534   CHIP_10A 
    (
       .CK(s_spea),
       .OE_n(s_epes_n),
-      .D(s_bd_23_0_n[23:16]),
-      .Q_n(s_idb_15_0[7:0])                        
+      .D(s_bd_23_0_n_in[23:16]),
+      .Q_n(s_pes_idb_15_0_out[7:0])                        
    );
 
 endmodule
