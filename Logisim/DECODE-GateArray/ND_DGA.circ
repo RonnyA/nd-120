@@ -1872,9 +1872,6 @@
       <a name="label" val="CLRTIN"/>
     </comp>
     <comp lib="0" loc="(3310,1920)" name="Ground"/>
-    <comp lib="0" loc="(3310,2040)" name="Pin">
-      <a name="appearance" val="classic"/>
-    </comp>
     <comp lib="0" loc="(3350,4440)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="SEL5MSN"/>
