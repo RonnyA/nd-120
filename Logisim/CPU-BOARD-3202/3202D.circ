@@ -2705,7 +2705,7 @@
     <comp lib="0" loc="(2340,820)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
-      <a name="label" val="CGNCACT_n"/>
+      <a name="label" val="CGNTCACT_n"/>
       <a name="output" val="true"/>
     </comp>
     <comp lib="0" loc="(2340,860)" name="Pin">
