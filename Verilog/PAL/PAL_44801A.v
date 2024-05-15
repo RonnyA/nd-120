@@ -18,26 +18,26 @@
 
 
 module PAL_44801A(
-    input CK,           // Clock signal
-    input OE_n,         // OUTPUT ENABLE (active-low) for Q0-Q5
+    input CK,           // Clock signal                         
+    input OE_n,         // OUTPUT ENABLE (active-low) for Q0-Q5 
 
-    input CRQ_n,        // I0 - CRQ_n
-    input IORQ_n,       // I1 - IORQ_n
-    input MR_n,         // I2 - MR_n 
-    input BRQ50_n,      // I3 - BRQ50_n 
-    input REFRQ50_n,    // I4 - REFRQ50_n 
-    input BDRY25_n,     // I5 - BDRY25_n
-    input SEMRQ50_n,    // I6 - SEMRQ50_n
-//  input MOFF_n,       // I7 - MOFF_n                       
-
-    output SEM_n,       // Q0_n - SEM_n
-    output ACT_n,       // Q1_n - ACT_n (n.c.)
-    output DOREF_n,     // Q2_n - DOREF_n (n.c.)
-    output MEM_n,       // Q3_n - MEM_n (n.c.)
-    output REF_n,       // Q4_n - REF_n
-    output IOD_n,       // Q5_n - IOD_n
-    output GNT_n,       // Q6_n - GNT_n 
-    output CACT_n       // Q7_n - CACT_n
+    input CRQ_n,        // I0 - CRQ_n      
+    input IORQ_n,       // I1 - IORQ_n     
+    input MR_n,         // I2 - MR_n       
+    input BRQ50_n,      // I3 - BRQ50_n    
+    input REFRQ50_n,    // I4 - REFRQ50_n  
+    input BDRY25_n,     // I5 - BDRY25_n   
+    input SEMRQ50_n,    // I6 - SEMRQ50_n  
+    input MOFF_n,       // I7 - MOFF_n  (not used)                     
+                        
+    output SEM_n,       // Q0_n - SEM_n          
+    output ACT_n,       // Q1_n - ACT_n (n.c.)   
+    output DOREF_n,     // Q2_n - DOREF_n (n.c.) 
+    output MEM_n,       // Q3_n - MEM_n (n.c.)   
+    output REF_n,       // Q4_n - REF_n          
+    output IOD_n,       // Q5_n - IOD_n          
+    output GNT_n,       // Q6_n - GNT_n          
+    output CACT_n       // Q7_n - CACT_n         
 
 );
 

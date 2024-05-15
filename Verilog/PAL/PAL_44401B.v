@@ -16,24 +16,24 @@ module PAL_44401B(
     input CK, 
     input OE_n,
 
-    input CC2_n,        // I0
-    input CACT_n,       // I1
-    input CACT25_n,     // I2
-    input BDRY50_n,     // I3
-    input CGNT_n,       // I4
-    input CGNT50_n,     // I5
+    input CC2_n,        // I0 
+    input CACT_n,       // I1 
+    input CACT25_n,     // I2 
+    input BDRY50_n,     // I3 
+    input CGNT_n,       // I4 
+    input CGNT50_n,     // I5 
     input TERM_n,       // I6   
-    input IORQ_n,       // I7
+    input IORQ_n,       // I7 
 
 
-    output Q0_n,        // Q0_n
-    output Q1_n,        // Q1_n
-    output Q2_n,        // Q2_n
-                        // Q3_n (not connected, no signal)
+    output Q0_n,        // Q0_n                            
+    output Q1_n,        // Q1_n                            
+    output Q2_n,        // Q2_n                            
+                        // Q3_n (not connected, no signal) 
 
-    output APR_n,       // B0_n
-    output DAP_n,       // B1_n
-    output EIOD_n,      // B2_n
+    output APR_n,       // B0_n 
+    output DAP_n,       // B1_n 
+    output EIOD_n,      // B2_n 
     output EADR_n       // B3_n             
 );
 

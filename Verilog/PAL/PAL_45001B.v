@@ -15,27 +15,27 @@
 
 module PAL_45001B(
 
-    input BDRY50_n,           // I0 - BDRY50_n
-    input BDRY75_n,           // I1 - BDRY75_n
-    input BLOCK25_n,          // I2 - BLOCK25_n
-    input BPERR50_n,          // I3 - BPERR50_n
-    input DBAPR_n,            // I4 - DBAPR_n
-    input MOR25_n,            // I5 - MOR25_n
-    input LPERR_n,            // I6 - LPERR_n
-    input MR_n,               // I7 - MR_n
-    input EPES_n,             // I8 - EPES_n
-    input EPEA_n,             // I9 - EPEA_n
-
-
-    output SPEA,              // Y0_n (OUT Only)
-    output SPES,              // Y1_n (OUT ONLY)
-    
-    output BLOCK_n,           // B0_n - BLOCK_n
-    output PARERR_n,          // B1_n - PARERR_n
-    output RERR_n,            // B2_n
-    //inout B3_n,             // B3_n - (n.c.)
-    input  TEST,              // B4_n - PD3
-    input  LERR_n             // B5_n  
+    input BDRY50_n,           // I0 - BDRY50_n  
+    input BDRY75_n,           // I1 - BDRY75_n  
+    input BLOCK25_n,          // I2 - BLOCK25_n 
+    input BPERR50_n,          // I3 - BPERR50_n 
+    input DBAPR_n,            // I4 - DBAPR_n   
+    input MOR25_n,            // I5 - MOR25_n   
+    input LPERR_n,            // I6 - LPERR_n   
+    input MR_n,               // I7 - MR_n      
+    input EPES_n,             // I8 - EPES_n    
+    input EPEA_n,             // I9 - EPEA_n    
+                              
+                              
+    output SPEA,              // Y0_n (OUT Only)      
+    output SPES,              // Y1_n (OUT ONLY)      
+                                                      
+    output BLOCK_n,           // B0_n - BLOCK_n (out) 
+    output PARERR_n,          // B1_n - PARERR_n (out)
+    output RERR_n,            // B2_n                 
+    //inout B3_n,             // B3_n - (n.c.)        
+    input  TEST,              // B4_n - PD3           
+    input  LERR_n             // B5_n                 
 );                        
 
 
