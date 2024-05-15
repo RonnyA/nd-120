@@ -15,9 +15,8 @@ module TTL_74534(
 
 
    wire s_ck;
-   wire s_oe_n;
-   wire [7:0] s_d;
-   wire [7:0] s_q_n;
+   wire s_oe_n;   
+   wire [7:0] s_d_n;
 
    reg [7:0] regQ_n;
 
