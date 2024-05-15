@@ -31,6 +31,7 @@ module BIF_DPATH_BDLBD_10(
    wire [23:0] s_lbd_23_0_out;
    wire [23:0] s_bd_23_0_n_in;
    wire [23:0] s_bd_23_0_n_out;
+
    wire        s_ebadr;
    wire        s_ebadr0;
    wire        s_ebadr1;
@@ -72,6 +73,7 @@ module BIF_DPATH_BDLBD_10(
    assign LBD_23_0_OUT           = s_lbd_23_0_out[23:0];
    assign BD_23_0_n_OUT          = s_bd_23_0_n_out[23:0];
 
+  
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
@@ -98,11 +100,11 @@ module BIF_DPATH_BDLBD_10(
 
    TTL_74648   CHIP_5A 
    (
-      .A_IN(s_bd_23_0_n_in[7:0]),
-      .A_OUT_n(s_bd_23_0_n_out[7:0]),
+      .A_IN(s_bd_23_0_n_in[15:8]),
+      .A_OUT_n(s_bd_23_0_n_out[15:8]),
 
-      .B_IN(s_lbd_23_0_in[7:0]),
-      .B_OUT_n(s_lbd_23_0_out[7:0]),
+      .B_IN(s_lbd_23_0_in[15:8]),
+      .B_OUT_n(s_lbd_23_0_out[15:8]),
 
       
       .CLKAB(s_clkbd),
