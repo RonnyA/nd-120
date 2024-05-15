@@ -18,40 +18,61 @@ module ND3202D (
    /*******************************************************************************
    ** The inputs are defined here                                                **
    *******************************************************************************/
-   input BINT10_n,
-   input BINT11_n,
-   input BINT12_n,
-   input BINT13_n,
-   input BINT15_n,
-   input BREQ_n,
-   input CLOCK_1,
-   input CLOCK_2,
-   input CONSOLE_n,
-   input CONTINUE_n,
-   input EAUTO_n,
-   input LOAD_n,
-   input LOCK_n,
-   input [1:0] OC_1_0, // TO IO OC_1_0
-   input OSCCL_n,
-   input RXD,
-   input STOP_n,
-   input SW1_CONSOLE,
-   input SWMCL_n,
-   input XTR,
+
+   input CLOCK_1,  // XTAL1 = 39.3216MHZ
+   input CLOCK_2,  // XTAL2 = 35 MHZ (for slow operations?)
+
+
+
+
+   /* FROM C-PLUG */
+   input LOAD_n,        // Input signal from "C PLUG", signal B12 - LOAD_n
+   input BREQ_n,        // Input signal from "C PLUG", signal C12 - BREQ_n   
+   input CONTINUE_n,    // Input signal from "C PLUG", signal B15 - CONTINUE_n
+   input STOP_n,        // Input signal from "C PLUG", signal B16 - STOP_n
+
+   input BINT10_n,      // Input signal from "C PLUG", signal A15 - BINT10_n               
+   input BINT11_n,      // Input signal from "C PLUG", signal C15 - BINT11_n               
+   input BINT12_n,      // Input signal from "C PLUG", signal A16 - BINT12_n               
+   input BINT13_n,      // Input signal from "C PLUG", signal C16 - BINT13_n               
+   input BINT15_n,      // Input signal from "C PLUG", signal C17 - BINT15_n               
+   
+   input POWSENSE_n,    // Input signal from "C PLUG", signals A29,B29,C29 - POWSENSE_n (Power sense signal from the PSU?)
+   
+   /* FROM A-PLUG */
+   input OSCCL_n,       // Input signal from "A PLUG", signal B3 - OSCCL_n                => (TO IO OSCCL_n)
+   input [1:0] OC_1_0,  // Input signal from "A PLUG", signal C6 (OC0) and A6 (OC1)       => (TO IO OC_1_0)
+   input XTR,           // Input signal from "A PLUG", signal B4/C23 - XTR                => (TO IO XTR)
+   input LOCK_n,        // Input signal from "A PLUG", signal B12 - LOCK_n 
+   input CONSOLE_n,     // Input signal from "A PLUG", signal C21/C30 - CONSOLE_n
+   input SWMCL_n,       // Input signal from "A PLUG", signal C16 - SWMCL_n (Switch SW3 on the PCB 3202D might lock this to GND?)      
+   input EAUTO_n,       // Input signal from "A PLUG", signal C19 - EAUTO_n
+   input RXD,           // Input signal from "A PLUG", signal C8 - RXD (to the UART RXD)
+
+   // Some other signals from A-PLUG to consider ?
+   // LOAD_n => SWLD_n
+   // 
+
+   /* Configuration switches */
+   input SW1_CONSOLE,            // Switch on the console (on/off)
    input [2:0] SEL_TESTMUX,      // Selects testmux signals to output on TEST_4_0
    input [4:0] BAUD_RATE_SWITCH, // Switch on the PCB to select baudrate
-
-   input POWSENSE_n, // Power sense signal from the PSU
 
    /*******************************************************************************
    ** The outputs are defined here                                               **
    *******************************************************************************/
-   output [63:0] CSBITS,
+   output        TXD,      // Output signal to "A PLUG", signal A10 (D2N) and C7 (TXD) (from the UART TXD)
+   output        RUN_n,    // Output signal to "A PLUG", signal C10 (RUN_n) (from the CPU)
+
+   // Microcode Control signals - 64bit
+   output [63:0] CSBITS,   
+
+   // Test signals
    output [4:0]  DP_5_1_n,
-   output        RUN_n,
    output [4:0]  TEST_4_0,
    output        TP1_INTRQ_n,
-   output        TXD,
+
+   // Led signals
    output [5:0]  LED // 0=CPU RED,1=CPU GREEN, 2=LED4_RED_PARITY_ERROR, 3=LED_CPU_GRANT_INDICATOR, 4=LED_BUS_GRANT_INDICATOR, 5=LED1 from MMU
 );
 
@@ -109,8 +130,7 @@ LED7 (yellow)  - Bus grant
    wire [15:0] s_cpu_cd_15_0_out;
    wire [15:0] s_cpu_cd_15_0_in;
 
-   // IDB bus
-   wire [15:0] s_bif_idb_15_0_in;
+   // IDB bus   
    wire [15:0] s_bif_idb_15_0_out;
 
    wire [15:0] s_cpu_IDB_15_0_in;
@@ -132,7 +152,8 @@ LED7 (yellow)  - Bus grant
    wire [23:0] s_bif_lbd_23_0_out;
 
    // BD ?
-   wire [23:0] s_bif_bd_23_0_n_IN;
+   wire [23:0] s_bif_bd_23_0_n_in;
+   wire [23:0] s_bif_bd_23_0_n_out;
    
    // CSBITS
    wire [63:0] s_csbits;
@@ -163,8 +184,7 @@ LED7 (yellow)  - Bus grant
    wire        s_brk_n;
    wire        s_ca10;
    wire        s_cc2_n;
-   wire        s_cclr_n;
-   wire        s_cgncact_n;
+   wire        s_cclr_n;   
    wire        s_cgnt_n;
    wire        s_cgnt50_n;
    wire        s_cgntcact_n;
@@ -348,11 +368,12 @@ LED7 (yellow)  - Bus grant
 
    // IDB BUS connections
 /*
-   assign s_bif_idb_15_0_in   = s_cpu_IDB_15_0_out | s_io_IDB_15_0_out | s_mem_IDB_15_0_out | s_uart_IDB_15_0_out;
+   ---assign s_bif_idb_15_0_in   = s_cpu_IDB_15_0_out | s_io_IDB_15_0_out | s_mem_IDB_15_0_out | s_uart_IDB_15_0_out;
+   */
    assign s_cpu_IDB_15_0_in   = s_bif_idb_15_0_out | s_io_IDB_15_0_out | s_mem_IDB_15_0_out | s_uart_IDB_15_0_out;
    assign s_io_IDB_15_0_in    = s_bif_idb_15_0_out | s_cpu_IDB_15_0_out| s_mem_IDB_15_0_out | s_uart_IDB_15_0_out;
    assign s_uart_IDB_15_0_in  = s_bif_idb_15_0_out | s_io_IDB_15_0_out | s_mem_IDB_15_0_out | s_cpu_IDB_15_0_out;
-*/
+
 
    // LBD BUS connections   
    assign s_mem_lbd_23_0_in  [23:0]  = s_bif_lbd_23_0_out[23:0];
@@ -376,6 +397,7 @@ LED7 (yellow)  - Bus grant
    assign s_acond_n = 1;
    assign s_brk_n = 1;
    assign s_inr_7_0 = 8'b0;
+   
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
@@ -389,7 +411,7 @@ LED7 (yellow)  - Bus grant
                  .ALUCLK(s_aluclk),
                  .BRK_n(s_brk_n),
                  .CC_3_1_n(s_cc_3_1_n[2:0]),
-                 .CGNTCACT_n(s_cgntcact_n),
+                 .CGNTCACT_n(s_cgntcact_n), // Goes to PAL 44601 (output from PAL 44302B -LBC1 - 11D)
                  .CLK(s_clk),
                  .CSALUI7(s_csalui_8_0[7]),
                  .CSALUI8(s_csalui_8_0[8]),
@@ -447,7 +469,7 @@ LED7 (yellow)  - Bus grant
                  .DVACC_n(s_dvacc_n),
                  .ECSR_n(s_ecsr_n),
                  .EDO_n(s_edo_n),
-                 .EMCL_n(s_emcl_n),
+                 .EMCL_n(s_emcl_n), // input
                  .EMPID_n(s_empid_n),
                  .EORF_n(s_eorf_n),
                  .ESTOF_n(s_estof_n),
@@ -508,8 +530,9 @@ LED7 (yellow)  - Bus grant
 
 
    wire s_BPERR_n;  
-   assign s_BPERR_n = 1'b1;
-   wire s_y2_0; //output bit0 CHIP_5C bus Y2 (not used)
+   assign s_BPERR_n = 1'b1; // DISABLE BUS PARITY ERROR
+   
+   wire s_y2_0; //output CHIP_5C pin 2Y1 (not used)
 
 
 
@@ -559,7 +582,7 @@ LED7 (yellow)  - Bus grant
                .ECREQ(s_ecreq),
                .ECSR_n(s_ecsr_n),
                .EDO_n(s_edo_n),
-               .EMCL_n(s_emcl_n),
+               .EMCL_n(s_emcl_n), // output
                .EMPID_n(s_empid_n),
                .EORF_n(s_eorf_n),
                .ESTOF_n(s_estof_n),
@@ -688,8 +711,8 @@ LED7 (yellow)  - Bus grant
 
 
 
-/* 
-                  TODO:LATER ADD BUS INTERFACE
+
+//                  TODO:LATER ADD BUS INTERFACE
 
    BIF_5   BIF(
                 .sysclk(sysclk), // System clock in FPGA
@@ -700,8 +723,8 @@ LED7 (yellow)  - Bus grant
                 .BDAP_n(s_bdap_n),
                 .BDRY50_n(s_bdry50_n),
                 .BDRY_n(s_bdry_n),
-                .BD_23_0_n_IN(s_bif_bd_23_0_n_IN[23:0]),  // NEEDS FIXIN
-                .BD_23_0_n_OUT(s_bif_bd_23_0_n_OUT[23:0]),  // NEEDS FIXIN
+                .BD_23_0_n_IN(s_bif_bd_23_0_n_in[23:0]),  // NEEDS FIXIN
+                .BD_23_0_n_OUT(s_bif_bd_23_0_n_out[23:0]),  // NEEDS FIXIN
                 .BERROR_n(s_berror_n),
                 .BGNT50_n(s_bgnt50_n),
                 .BGNT_n(s_bgnt_n),
@@ -714,7 +737,7 @@ LED7 (yellow)  - Bus grant
                 .CC2_n(s_cc2_n),
                 .CD_15_0_IN(s_bif_cd_15_0_in[15:0]),   // NEEDS FIXINg
                 .CD_15_0_OUT(s_bif_cd_15_0_out[15:0]),       // NEEDS fixing
-                .CGNCACT_n(s_cgncact_n),
+                .CGNTCACT_n(s_cgntcact_n),
                 .CGNT50_n(s_cgnt50_n),
                 .CGNT_n(s_cgnt_n),
                 .CLEAR_n(s_clear_n),
@@ -732,7 +755,6 @@ LED7 (yellow)  - Bus grant
                 .IBINPUT_n(s_ibinput_n),
                 .IBPERR_n(s_ibperr_n),
                 .IBREQ_n(s_ibreq_n),   
-                .IDB_15_0_IN(s_bif_idb_15_0_in[15:0]),      
                 .IDB_15_0_OUT(s_bif_idb_15_0_out[15:0]),    
                 .IORQ_n(s_iorq_n),
                 .IOXERR_n(s_ioxerr_n),
@@ -767,6 +789,5 @@ LED7 (yellow)  - Bus grant
                 .TOUT(s_tout),
                 .WRITE(s_write));
 
-*/
 
 endmodule
