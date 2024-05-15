@@ -1,138 +1,22 @@
 /******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
  ** Component : TTL_74241                                                    **
- **                                                                          **
+ ** buffers with TTL-compatible CMOS inputs and 3-state outputs              **
+ ** https://www.ti.com/product/SN74ABT241A                                   **
  *****************************************************************************/
 
-module TTL_74241( I0_1A1,
-                  I1_1A2,
-                  I2_1A3,
-                  I3_1A4,
-                  I4_2A1,
-                  I5_2A2,
-                  I6_2A3,
-                  I7_2A4,
-                  O0_1Y1,
-                  O1_1Y2,
-                  O2_1Y3,
-                  O3_1Y4,
-                  O4_2Y1,
-                  O5_2Y2,
-                  O6_2Y3,
-                  O7_2Y4,
-                  OE1_1G_n,
-                  OE2_2G );
+module TTL_74241
+(  
+   input  [3:0] A1,
+   output [3:0] Y1,
+   input        G1_n,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input I0_1A1;
-   input I1_1A2;
-   input I2_1A3;
-   input I3_1A4;
-   input I4_2A1;
-   input I5_2A2;
-   input I6_2A3;
-   input I7_2A4;
-   input OE1_1G_n;
-   input OE2_2G;
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output O0_1Y1;
-   output O1_1Y2;
-   output O2_1Y3;
-   output O3_1Y4;
-   output O4_2Y1;
-   output O5_2Y2;
-   output O6_2Y3;
-   output O7_2Y4;
-
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-   wire s_logisimNet0;
-   wire s_logisimNet1;
-   wire s_logisimNet10;
-   wire s_logisimNet11;
-   wire s_logisimNet12;
-   wire s_logisimNet13;
-   wire s_logisimNet14;
-   wire s_logisimNet15;
-   wire s_logisimNet16;
-   wire s_logisimNet17;
-   wire s_logisimNet18;
-   wire s_logisimNet2;
-   wire s_logisimNet3;
-   wire s_logisimNet4;
-   wire s_logisimNet5;
-   wire s_logisimNet6;
-   wire s_logisimNet7;
-   wire s_logisimNet8;
-   wire s_logisimNet9;
-
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
-   /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
-   assign s_logisimNet1  = OE2_2G;
-   assign s_logisimNet10 = OE1_1G_n;
-   assign s_logisimNet2  = I0_1A1;
-   assign s_logisimNet3  = I1_1A2;
-   assign s_logisimNet4  = I2_1A3;
-   assign s_logisimNet5  = I3_1A4;
-   assign s_logisimNet6  = I4_2A1;
-   assign s_logisimNet7  = I5_2A2;
-   assign s_logisimNet8  = I6_2A3;
-   assign s_logisimNet9  = I7_2A4;
-
-   /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
-   assign O0_1Y1 = s_logisimNet11;
-   assign O1_1Y2 = s_logisimNet12;
-   assign O2_1Y3 = s_logisimNet13;
-   assign O3_1Y4 = s_logisimNet14;
-   assign O4_2Y1 = s_logisimNet15;
-   assign O5_2Y2 = s_logisimNet16;
-   assign O6_2Y3 = s_logisimNet17;
-   assign O7_2Y4 = s_logisimNet18;
-
-   /*******************************************************************************
-   ** Here all in-lined components are defined                                   **
-   *******************************************************************************/
-
-   // NOT Gate
-   assign s_logisimNet0 = ~s_logisimNet10;
-
-   // Controlled Buffer
-   assign s_logisimNet11 = (s_logisimNet0) ? s_logisimNet2 : 1'b0;
-
-   // Controlled Buffer
-   assign s_logisimNet12 = (s_logisimNet0) ? s_logisimNet3 : 1'b0;
-
-   // Controlled Buffer
-   assign s_logisimNet13 = (s_logisimNet0) ? s_logisimNet4 : 1'b0;
-
-   // Controlled Buffer
-   assign s_logisimNet14 = (s_logisimNet0) ? s_logisimNet5 : 1'b0;
-
-   // Controlled Buffer
-   assign s_logisimNet15 = (s_logisimNet1) ? s_logisimNet6 : 1'b0;
-
-   // Controlled Buffer
-   assign s_logisimNet16 = (s_logisimNet1) ? s_logisimNet7 : 1'b0;
-
-   // Controlled Buffer
-   assign s_logisimNet17 = (s_logisimNet1) ? s_logisimNet8 : 1'b0;
-
-   // Controlled Buffer
-   assign s_logisimNet18 = (s_logisimNet1) ? s_logisimNet9 : 1'b0;
+   input  [3:0] A2,
+   output [3:0] Y2,
+   input        G2
+);
+ 
+   assign Y1[3:0] = G1_n ? 4'b0     : A1[3:0];
+   assign Y2[3:0] = G2   ? A2[3:0]  : 4'b0;
 
 endmodule
