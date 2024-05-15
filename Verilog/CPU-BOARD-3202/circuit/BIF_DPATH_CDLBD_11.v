@@ -33,8 +33,12 @@ reg [15:0] regCD;
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
+   wire [15:0] s_cd_15_0_in;
    wire [15:0] s_cd_15_0_out;
+
    wire [15:0] s_lbd_15_0_in;
+   wire [15:0] s_lbd_15_0_out;
+
    wire        s_wlbd;
    wire        s_ecreq;
    wire        s_dstb_n;
@@ -54,7 +58,7 @@ reg [15:0] regCD;
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign CD_15_0_OUT [15:0]  = EMD_n ? 16'b1 : s_cd_15_0_out [15:0]; // pull CD_15_0 high is EMD_n is high    
+   assign CD_15_0_OUT [15:0]  = EMD_n ? 16'b1 : s_cd_15_0_out [15:0]; // pull CD_15_0 high if EMD_n is high (3state)
    assign LBD_15_0_OUT[15:0]  = s_lbd_15_0_out[15:0];
    
 
