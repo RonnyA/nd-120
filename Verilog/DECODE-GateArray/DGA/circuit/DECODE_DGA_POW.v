@@ -51,7 +51,7 @@ module DECODE_DGA_POW(
    wire s_a633_qb;
    wire s_logisimNet11;
    wire s_logisimNet12;
-   wire s_logisimNet13;
+   wire s_powsense;
    wire s_logisimNet14;
    wire s_logisimNet15;
    wire s_logisimNet16;
@@ -60,24 +60,24 @@ module DECODE_DGA_POW(
    wire s_logisimNet19;
    wire s_logisimNet2;
    wire s_logisimNet20;
-   wire s_logisimNet21;
-   wire s_logisimNet22;
-   wire s_logisimNet23;
+   wire s_ref_n;
+   wire s_rtosc;
+   wire s_closc;
    wire s_logisimNet24;
    wire s_idb1;
    wire s_logisimNet26;
    wire s_logisimNet27;
    wire s_logisimNet28;
-   wire s_logisimNet29;
+   wire s_emcl_n;
    wire s_logisimNet3;
    wire s_logisimNet30;
    wire s_mcl;
    wire s_logisimNet32;
-   wire s_logisimNet33;
+   wire s_bdry50_n;
    wire s_logisimNet34;
    wire s_logisimNet35;
    wire s_logisimNet36;
-   wire s_logisimNet37;
+   wire s_sel5ms_n;
    wire s_logisimNet38;
    wire s_logisimNet39;
    wire s_logisimNet4;
@@ -92,7 +92,7 @@ module DECODE_DGA_POW(
    wire s_testo;
    wire s_logisimNet49;
    wire s_logisimNet5;
-   wire s_logisimNet50;
+   wire s_prq_n;
    wire s_logisimNet51;
    wire s_logisimNet52;
    wire s_logisimNet53;
@@ -103,8 +103,8 @@ module DECODE_DGA_POW(
    wire s_stp_n;
    wire s_logisimNet59;
    wire s_logisimNet6;
-   wire s_logisimNet60;
-   wire s_logisimNet61;
+   wire s_continue_n;
+   wire s_load_n;
    wire s_logisimNet62;
    wire s_logisimNet63;
    wire s_logisimNet64;
@@ -117,25 +117,25 @@ module DECODE_DGA_POW(
    wire s_logisimNet70;
    wire s_logisimNet71;
    wire s_logisimNet72;
-   wire s_logisimNet73;
-   wire s_logisimNet74;
+   wire s_pwcl;
+   wire s_test_enable;
    wire s_logisimNet75;
    wire s_logisimNet76;
    wire s_logisimNet77;
    wire s_logisimNet78;
-   wire s_logisimNet79;
+   wire s_sstop_n;
    wire s_logisimNet8;
    wire s_logisimNet80;
    wire s_logisimNet81;
    wire s_logisimNet82;
    wire s_idb0;
-   wire s_logisimNet84;
-   wire s_logisimNet85;
-   wire s_logisimNet86;
+   wire s_reset;
+   wire s_stop_n;
+   wire s_start_n;
    wire s_idb2;
    wire s_pan_n;
    wire s_logisimNet89;
-   wire s_logisimNet9;
+   wire s_clrti_n;
    wire s_logisimNet90;
    wire s_logisimNet91;
    wire s_logisimNet92;
@@ -150,23 +150,23 @@ module DECODE_DGA_POW(
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimNet13 = POWSENSE;
-   assign s_logisimNet21 = REFN;
-   assign s_logisimNet22 = RTOSC;
-   assign s_logisimNet23 = CLOSC;
-   assign s_logisimNet29 = EMCLN;
-   assign s_logisimNet33 = BDRY50N;
-   assign s_logisimNet37 = SEL5MSN;
-   assign s_logisimNet50 = PRQN;
-   assign s_logisimNet60 = CONTINUEN;
-   assign s_logisimNet61 = LOADN;
-   assign s_logisimNet73 = PWCL;
-   assign s_logisimNet74 = TESTE;
-   assign s_logisimNet79 = SSTOPN;
-   assign s_logisimNet84 = RESET;
-   assign s_logisimNet85 = STOPN;
-   assign s_logisimNet86 = STARTN;
-   assign s_logisimNet9  = CLRTIN;
+   assign s_powsense    = POWSENSE;
+   assign s_ref_n       = REFN;
+   assign s_rtosc       = RTOSC;
+   assign s_closc       = CLOSC;
+   assign s_emcl_n      = EMCLN;
+   assign s_bdry50_n    = BDRY50N;
+   assign s_sel5ms_n    = SEL5MSN;
+   assign s_prq_n       = PRQN;
+   assign s_continue_n  = CONTINUEN;
+   assign s_load_n      = LOADN;
+   assign s_pwcl        = PWCL;
+   assign s_test_enable = TESTE;
+   assign s_sstop_n     = SSTOPN;
+   assign s_reset       = RESET;
+   assign s_stop_n      = STOPN;
+   assign s_start_n     = STARTN;
+   assign s_clrti_n     = CLRTIN;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -228,16 +228,16 @@ module DECODE_DGA_POW(
    assign s_clear = ~s_logisimNet30;
 
    // NOT Gate
-   assign s_logisimNet5 = ~s_logisimNet86;
+   assign s_logisimNet5 = ~s_start_n;
 
    // NOT Gate
-   assign s_logisimNet42 = ~s_logisimNet9;
+   assign s_logisimNet42 = ~s_clrti_n;
 
    // NOT Gate
    assign s_logisimNet44 = ~s_logisimNet95;
 
    // NOT Gate
-   assign s_logisimNet80 = ~s_logisimNet9;
+   assign s_logisimNet80 = ~s_clrti_n;
 
    // NOT Gate
    assign s_logisimNet82 = ~s_logisimNet95;
@@ -252,16 +252,16 @@ module DECODE_DGA_POW(
    assign s_logisimNet55 = ~s_powfail;
 
    // NOT Gate
-   assign s_logisimNet41 = ~s_logisimNet73;
+   assign s_logisimNet41 = ~s_pwcl;
 
    // NOT Gate
    assign s_powfail_n = ~s_powfail;
 
    // NOT Gate
-   assign s_logisimNet92 = ~s_logisimNet60;
+   assign s_logisimNet92 = ~s_continue_n;
 
    // NOT Gate: A504
-   assign s_logisimNet90 = ~s_logisimNet61;
+   assign s_logisimNet90 = ~s_load_n;
 
    // NOT Gate
    assign s_logisimNet78 = ~s_logisimNet27;
@@ -270,7 +270,7 @@ module DECODE_DGA_POW(
    assign s_logisimNet16 = ~s_logisimNet1;
 
    // NOT Gate
-   assign s_logisimNet64 = ~s_logisimNet50;
+   assign s_logisimNet64 = ~s_prq_n;
 
    // NOT Gate
    assign s_logisimNet46 = ~s_logisimNet53;
@@ -297,7 +297,7 @@ module DECODE_DGA_POW(
 
    NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
       A599 (.input1(s_logisimNet46),
-            .input2(s_logisimNet50),
+            .input2(s_prq_n),
             .input3(s_logisimNet72),
             .input4(s_logisimNet98),
             .result(s_logisimNet67));
@@ -309,9 +309,9 @@ module DECODE_DGA_POW(
             .result(s_logisimNet11));
 
    NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      A580 (.input1(s_logisimNet79),
+      A580 (.input1(s_sstop_n),
             .input2(s_logisimNet30),
-            .input3(s_logisimNet85),
+            .input3(s_stop_n),
             .result(s_logisimNet34));
 
    NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
@@ -327,7 +327,7 @@ module DECODE_DGA_POW(
             .input3(s_logisimNet27),
             .input4(s_logisimNet72),
             .input5(s_logisimNet1),
-            .input6(s_logisimNet50),
+            .input6(s_prq_n),
             .input7(s_logisimNet53),
             .input8(s_stp_n),
             .result(s_logisimNet91));
@@ -347,25 +347,25 @@ module DECODE_DGA_POW(
             .result(s_idb0));
 
    NAND_GATE #(.BubblesMask(2'b00))
-      A595 (.input1(s_logisimNet79),
+      A595 (.input1(s_sstop_n),
             .input2(s_logisimNet91),
             .result(s_pan_n));
 
    NAND_GATE #(.BubblesMask(2'b00))
-      A573 (.input1(s_logisimNet29),
+      A573 (.input1(s_emcl_n),
             .input2(s_logisimNet30),
             .result(s_mcl));
 
    NOR_GATE #(.BubblesMask(2'b00))
-      A611 (.input1(s_logisimNet13),
-            .input2(s_logisimNet73),
+      A611 (.input1(s_powsense),
+            .input2(s_pwcl),
             .result(s_logisimNet68));
 
    assign s_tout = ~(s_a631_q | s_a633_qb);
 
    NOR_GATE #(.BubblesMask(2'b00))
-      A635 (.input1(s_logisimNet23),
-            .input2(s_logisimNet84),
+      A635 (.input1(s_closc),
+            .input2(s_reset),
             .result(s_logisimNet20));
 
 /*            
@@ -379,7 +379,7 @@ module DECODE_DGA_POW(
 
    NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
       A579 (.input1(s_logisimNet76),
-            .input2(s_logisimNet9),
+            .input2(s_clrti_n),
             .input3(s_logisimNet40),
             .result(s_logisimNet36));
 
@@ -445,14 +445,14 @@ module DECODE_DGA_POW(
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   F714   A623 (.H01_T(s_logisimNet22),
+   F714   A623 (.H01_T(s_rtosc),
                 .H02_R(s_logisimNet8),
                 .H03_S(s_logisimNet3),
                 .N01_Q(),
                 .N02_QB(s_logisimNet69));
 
-   F714   A633 (.H01_T(s_logisimNet22),
-                .H02_R(s_logisimNet23),
+   F714   A633 (.H01_T(s_rtosc),
+                .H02_R(s_closc),
                 .H03_S(s_logisimNet15),
                 .N01_Q(),
                 .N02_QB(s_a633_qb));
@@ -461,7 +461,7 @@ module DECODE_DGA_POW(
                  .N02());
 
    F714   A596 (.H01_T(s_logisimNet26),
-                .H02_R(s_logisimNet13),
+                .H02_R(s_powsense),
                 .H03_S(s_logisimNet12),
                 .N01_Q(),
                 .N02_QB(s_logisimNet63));
@@ -473,13 +473,13 @@ module DECODE_DGA_POW(
                 .N02_QB(s_logisimNet93));
 
    F714   A629 (.H01_T(s_a633_qb),
-                .H02_R(s_logisimNet23),
+                .H02_R(s_closc),
                 .H03_S(s_logisimNet15),
                 .N01_Q(),
                 .N02_QB(s_panosc));
 
    F714   A602 (.H01_T(s_logisimNet63),
-                .H02_R(s_logisimNet13),
+                .H02_R(s_powsense),
                 .H03_S(s_logisimNet12),
                 .N01_Q(),
                 .N02_QB(s_logisimNet94));
@@ -491,7 +491,7 @@ module DECODE_DGA_POW(
                 .N02_QB(s_logisimNet47));
 
    F595   A570 (.H01_S(s_stp_n),
-                .H02_R(s_logisimNet73),
+                .H02_R(s_pwcl),
                 .H03_G(s_logisimNet95),
                 .N01_Q(),
                 .N02_QB(s_logisimNet75));
@@ -503,7 +503,7 @@ module DECODE_DGA_POW(
                 .N02_QB(s_stp_n));
 
    F714   A593 (.H01_T(s_logisimNet94),
-                .H02_R(s_logisimNet13),
+                .H02_R(s_powsense),
                 .H03_S(s_logisimNet12),
                 .N01_Q(),
                 .N02_QB(s_logisimNet56));
@@ -518,7 +518,7 @@ module DECODE_DGA_POW(
                 .N02(s_logisimNet96));
 
    F714   A594 (.H01_T(s_logisimNet56),
-                .H02_R(s_logisimNet13),
+                .H02_R(s_powsense),
                 .H03_S(s_logisimNet12),
                 .N01_Q(),
                 .N02_QB(s_logisimNet51));
@@ -532,7 +532,7 @@ module DECODE_DGA_POW(
    F617   A630 (.H01_D(s_logisimNet96),
                 .H02_C(s_a633_qb),
                 .H03_RB(s_logisimNet17),
-                .H04_SB(s_logisimNet21),
+                .H04_SB(s_ref_n),
                 .N01_Q(s_refrq_n),
                 .N02_QB());
 
@@ -543,7 +543,7 @@ module DECODE_DGA_POW(
                 .N02_QB(s_testo));
 
    F714   A591 (.H01_T(s_logisimNet51),
-                .H02_R(s_logisimNet13),
+                .H02_R(s_powsense),
                 .H03_S(s_logisimNet12),
                 .N01_Q(),
                 .N02_QB(s_logisimNet89));
@@ -555,7 +555,7 @@ module DECODE_DGA_POW(
                 .N02_QB(s_logisimNet14));
 
    F714   A605 (.H01_T(s_logisimNet89),
-                .H02_R(s_logisimNet13),
+                .H02_R(s_powsense),
                 .H03_S(s_logisimNet12),
                 .N01_Q(),
                 .N02_QB(s_logisimNet70));
@@ -563,13 +563,13 @@ module DECODE_DGA_POW(
    F617   A631 (.H01_D(s_refrq_n),
                 .H02_C(s_a633_qb),
                 .H03_RB(s_logisimNet17),
-                .H04_SB(s_logisimNet33),
+                .H04_SB(s_bdry50_n),
                 .N01_Q(s_a631_q),
                 .N02_QB());
 
-   F571   A620 (.A(s_logisimNet74),
+   F571   A620 (.A(s_test_enable),
                 .D0(s_testo),
-                .D1(s_logisimNet22),
+                .D1(s_rtosc),
                 .ENB_N(s_logisimNet3),
                 .Y(s_logisimNet77));
 
@@ -585,7 +585,7 @@ module DECODE_DGA_POW(
                 .N01_Q(),
                 .N02_QB(s_logisimNet39));
 
-   F571   A625 (.A(s_logisimNet37),
+   F571   A625 (.A(s_sel5ms_n),
                 .D0(s_logisimNet24),
                 .D1(s_logisimNet45),
                 .ENB_N(s_logisimNet38),
@@ -597,9 +597,9 @@ module DECODE_DGA_POW(
    F103   A628 (.F_IN(s_logisimNet20),
                 .F_OUT(s_logisimNet8));
 
-   F571   A601 (.A(s_logisimNet74),
+   F571   A601 (.A(s_test_enable),
                 .D0(s_logisimNet62),
-                .D1(s_logisimNet22),
+                .D1(s_rtosc),
                 .ENB_N(s_logisimNet12),
                 .Y(s_logisimNet26));
 
