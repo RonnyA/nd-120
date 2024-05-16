@@ -4,156 +4,88 @@
 ** PROCESSOR TOP LEVEL                                                   **
 ** SHEET 32 of 50                                                        **
 **                                                                       ** 
-** Last reviewed: 13-APRIL-2024                                          **
+** Last reviewed: 12-MAY-2024                                          **
 ** Ronny Hansen                                                          **               
 ***************************************************************************/
 
 module CPU_PROC_32( 
-                    sysclk, // System clock in FPGA
-                    sys_rst_n, // System reset in FPGA
+   input sysclk,      // System clock in FPGA
+   input sys_rst_n,   // System reset in FPGA
 
-                    ACOND_n,
-                    ALUCLK,
-                    BEDO_n,
-                    BEMPID_n,
-                    BRK_n,
-                    BSTP,
-                    CA_9_0,
-                    CD_15_0_IN,
-                    CLK,
-                    CSA_12_0,
-                    CSBITS,
-                    CSCA_9_0,
-                    CUP,
-                    CWR,
-                    DOUBLE,
-                    ECCR,
-                    ESTOF_n,
-                    ETRAP_n,
-                    EWCA_n,
-                    IBINT10_n,
-                    IBINT11_n,
-                    IBINT12_n,
-                    IBINT13_n,
-                    IBINT15_n,
-                    IDB_15_0_IN,
-                    IDB_15_0_OUT,
-                    IONI,
-                    IOXERR_n,
-                    LA_23_10,
-                    LBA_3_0,
-                    LCS_n,
-                    LEV0,
-                    LSHADOW,
-                    MAP_n,
-                    MCLK,
-                    MOR_n,
-                    MREQ_n,
-                    MR_n,
-                    OPCLCS,
-                    PAN_n,
-                    PARERR_n,
-                    PCR_1_0,
-                    PD1,
-                    PIL_3_0,
-                    PONI,
-                    POWFAIL_n,
-                    PT_15_9,
-                    RF_1_0,
-                    RRF_n,
-                    RT_n,     // Use signal from DGA
-                    LDEXM_n,  // use signal from DGA
-                    RWCS_n,
-                    TERM_n,                    
-                    TEST_4_0,
-                    TP1_INTRQ_n,
-                    TRAP,
-                    UCLK,
-                    VEX,
-                    WCA_n,
-                    WCS_n,
-                    WRFSTB,
-                    SEL_TESTMUX
-                    );
-
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input sysclk;      // System clock in FPGA
-   input sys_rst_n;   // System reset in FPGA
-
-   input        ALUCLK;
-   input        BEDO_n;
-   input        BEMPID_n;
-   input        BSTP;
-   input [15:0] CD_15_0_IN;
-   input        CLK;
-   input [63:0] CSBITS;
-   input        ESTOF_n;
-   input        ETRAP_n;
-   input        EWCA_n;
-   input        IBINT10_n;
-   input        IBINT11_n;
-   input        IBINT12_n;
-   input        IBINT13_n;
-   input        IBINT15_n;
-   input        IOXERR_n;
-   input        LCS_n;
-   input        MAP_n;
-   input        MCLK;
-   input        MOR_n;
-   input        MREQ_n;
-   input        MR_n;
-   input        PAN_n;
-   input        PARERR_n;
-   input        PD1;
-   input        POWFAIL_n;
-   input [6:0]  PT_15_9;
-   input        TERM_n;
-   input        UCLK;
-   input        WCA_n;
-   input        WRFSTB;
-   input [2:0]  SEL_TESTMUX; // Selects testmux signals to output on TEST_4_0
+   input        ALUCLK,
+   input        BEDO_n,
+   input        BEMPID_n,
+   input        BSTP,
+   input [15:0] CD_15_0_IN,
+   input        CLK,
+   input [63:0] CSBITS,
+   input        ESTOF_n,
+   input        ETRAP_n,
+   input        EWCA_n,
+   input        IBINT10_n,
+   input        IBINT11_n,
+   input        IBINT12_n,
+   input        IBINT13_n,
+   input        IBINT15_n,
+   input        IOXERR_n,
+   input        LCS_n,
+   input        MAP_n,
+   input        MCLK,
+   input        MOR_n,
+   input        MREQ_n,
+   input        MR_n,
+   input        PAN_n,
+   input        PARERR_n,
+   input        PD1,
+   input        POWFAIL_n,
+   input [6:0]  PT_15_9,
+   input        TERM_n,
+   input        UCLK,
+   input        WCA_n,
+   input        WRFSTB,
+   input [2:0]  SEL_TESTMUX, // Selects testmux signals to output on TEST_4_0
 
    /*******************************************************************************
    ** The IN and OUT are define here                                            **
    *******************************************************************************/
    
    // TODO: Give correct IDB signals to the chips
-   input  [15:0] IDB_15_0_IN;
-   output [15:0] IDB_15_0_OUT;
+   input  [15:0] IDB_15_0_IN,
+   output [15:0] IDB_15_0_OUT,
 
    /*******************************************************************************
    ** The outputs are defined here                                               **
    *******************************************************************************/
-   output        ACOND_n;
-   output        BRK_n;
-   output [9:0]  CA_9_0;
-   output [12:0] CSA_12_0;
-   output [9:0]  CSCA_9_0;
-   output        CUP;
-   output        CWR;
-   output        DOUBLE;
-   output        ECCR;   
-   output        IONI;
-   output [13:0] LA_23_10;
-   output [3:0]  LBA_3_0;
-   output        LEV0;
-   output        LSHADOW;
-   output        OPCLCS;
-   output [1:0]  PCR_1_0;
-   output [3:0]  PIL_3_0;
-   output        PONI;
-   output [1:0]  RF_1_0;
-   output        RRF_n;
-   output        RT_n;  // This signal is not in the PAL 44408B, but in the PAL 444608 (VXFIX). Use  RT_n signal from DGA until we find out what the 44608A does with this signal.
-   output        LDEXM_n;
-   output        RWCS_n;
-   output [4:0]  TEST_4_0;
-   output        TP1_INTRQ_n;
-   output        TRAP;
-   output        VEX;
-   output        WCS_n;
+   output        ACOND_n,
+   output        BRK_n,
+   output [9:0]  CA_9_0,
+   output [12:0] CSA_12_0,
+   output [9:0]  CSCA_9_0,
+   output        CUP,
+   output        CWR,
+   output        DOUBLE,
+   output        ECCR,   
+   output        IONI,
+   output [13:0] LA_23_10,
+   output [3:0]  LBA_3_0,
+   output        LEV0,
+   output        LSHADOW,
+   output        OPCLCS,
+   output [1:0]  PCR_1_0,
+   output [3:0]  PIL_3_0,
+   output        PONI,
+   output [1:0]  RF_1_0,
+   output        RRF_n,
+   output        RT_n,  // This signal is not in the PAL 44408B, but in the PAL 444608 (VXFIX). Use  RT_n signal from DGA until we find out what the 44608A does with this signal.
+   output        LDEXM_n,  // use signal from DGA
+   output        RWCS_n,
+   output [4:0]  TEST_4_0,
+   output        TP1_INTRQ_n,
+   output        TRAP,
+   output        VEX,
+   output        WCS_n
+);
+ 
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -217,7 +149,7 @@ module CPU_PROC_32(
    wire        s_logisimNet113;
    wire        s_logisimNet115;
    wire        s_logisimNet116;
-   wire        s_logisimNet117;
+   wire        s_rwcs_n;
    wire        s_logisimNet118;
    wire        s_logisimNet12;
    wire        s_logisimNet120;
@@ -574,7 +506,7 @@ module CPU_PROC_32(
    assign RRF_n       = s_logisimNet75;
    assign RT_n        = s_logisimNet160;
    assign LDEXM_n     = s_ledexm;
-   assign RWCS_n      = s_logisimNet117;
+   assign RWCS_n      = s_rwcs_n;
    assign TEST_4_0    = s_logisimBus103[4:0];
    assign TP1_INTRQ_n = s_logisimNet20;
    assign TRAP        = s_logisimNet39;
@@ -626,7 +558,7 @@ module CPU_PROC_32(
                                 .PIL_3_0(s_logisimBus84[3:0]),
                                 .RRF_n(s_logisimNet75),
                                 .RT_n(s_logisimNet160),
-                                .RWCS_n(s_logisimNet117),
+                                .RWCS_n(s_rwcs_n),
                                 .LDEXM_n(s_ledexm),
                                 .VEX(s_logisimNet27),
                                 .WCA_n(s_logisimNet97),
