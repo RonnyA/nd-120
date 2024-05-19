@@ -21,52 +21,60 @@
 // Note: Not all functionality is implemented. Just enough to have a simple UART interface for the ND-120 CPU
 
 module SC2661_UART( 
-   input [1:0] ADDRESS,   
-   input BRCLK,  //Baud rate clock - Comes from the IO_DCD module. 4.9152Mhz
-   input CE_n,
-   input CTS_n,
-   input DCD_n,
-   input DSR_n,
-   input READ_n,
-   input RESET,
-   input RXC_n,
-   input RXD,
-   input TXC_n,
+   input [1:0] ADDRESS, // Address lines (used to select internal EPCI registers)
+   input BRCLK,         // Baud rate clock - Comes from the IO_DCD module. 4.9152Mhz
+   input CE_n,          // Chip enable (negated)
+   input CTS_n,         // Clear to send (negated)
+   input DCD_n,         // Data Carrier Detect (negated)
+   input DSR_n,         // Data Set Ready (negated)
+   input READ_n,        // Write /Read
+   input RESET,         // Reset - A high on this performs a master reset of the chip
+   input RXC_n,         // Receiver Clock (used for SYNC, and not implemented)
+   input RXD,           // Receive Data
+   input TXC_n,         // Transmitter Clock (used for SYNC, and not implemented)
 
    input  [7:0] D,
    output [7:0] D_OUT,
 
-   output       DTR_n,
-   output       RTS_n,
-   output       RXDRDY_n,
-   output       TXD,
-   output       TXDRDY_n,
-   output       TXEMT_n
+   output       DTR_n,     // Data Terminal Ready
+   output       RTS_n,     // Request to Send
+   output       RXDRDY_n,  // Receive Data Ready (complement of status register bit SR1)
+   output       TXD,       // Transmit Data
+   output       TXDRDY_n,  // Transmit Data Ready
+   output       TXEMT_n    // Transmit Empty (complement of status register bit SR2)
 );
 
 
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire       s_txc_n;
-   wire       s_dcd_n;
-   wire       s_rxrdy_n;
-   wire       s_reset;
-   wire       s_read_n;
-   wire       s_ce_n;
+
+   /* verilator lint_off UNUSEDSIGNAL */
    wire       s_brkclk;
+   wire       s_txc_n;
    wire       s_rxc_n;
-   wire       s_dsr_n;
    wire       s_cts_n;
-   wire       s_rxd;
-   wire       s_txemt_n;
+   /* verilator lint_on UNUSEDSIGNAL */
+   
+   wire       s_ce_n;
+   
+   wire       s_dcd_n;
+   wire       s_dsr_n;
    wire       s_dtr_n;
-   wire       s_txrdy_n;
+   wire       s_read_n;
+   wire       s_reset;
    wire       s_rts_n;
+   
+   wire       s_rxd;
+   wire       s_rxrdy_n;
+   
    wire       s_txd;
-   wire [7:0] s_data_in;
+   wire       s_txemt_n;
+   wire       s_txrdy_n;
 
    wire [1:0] s_address;
+   wire [7:0] s_data_in;
+   
 
 
    /*******************************************************************************
@@ -76,13 +84,17 @@ module SC2661_UART(
    wire        cmd_txEnabled;
    wire        cmd_forceDTRLow;
    wire        cmd_rxEnabled;
-   wire        cmd_CR3;
+   
+   /* verilator lint_off UNUSEDSIGNAL */
+   wire        cmd_CR3;   // ASYNC: 0=Normal, 1=Force Break. SYNC: 0=Normal, 1=Send DLE (not implemented)   
+   /* verilator lint_on UNUSEDSIGNAL */
+
    wire        cmd_resetError;
    wire        cmd_forceRTSLow;
    wire [1:0]  cmd_OperatingMode;
    
-   localparam cmd_OperatingMode_NORMAL = 2'b00;
-   localparam cmd_OperatingMode_ASYNC = 2'b01;
+   //localparam cmd_OperatingMode_NORMAL = 2'b00; // not used..in code.. yet
+   //localparam cmd_OperatingMode_ASYNC = 2'b01;  // not used..in code.. yet
    localparam cmd_OperatingMode_LocalLoopback = 2'b10;
    localparam cmd_OperatingMode_RemoteLoopback = 2'b11;
 
@@ -122,26 +134,22 @@ module SC2661_UART(
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_txc_n          = TXC_n;
-   assign s_dcd_n          = DCD_n;
-   assign s_reset          = RESET;
-   assign s_read_n         = READ_n;
    assign s_address        = ADDRESS;
-   assign s_ce_n           = CE_n;
    assign s_brkclk         = BRCLK;
-   assign s_rxc_n          = RXC_n;
-   assign s_dsr_n          = DSR_n;
+   assign s_ce_n           = CE_n;
    assign s_cts_n          = CTS_n;
-   assign s_rxd            = RXD;
    assign s_data_in        = D;
-
-   
-
+   assign s_dcd_n          = DCD_n;
+   assign s_dsr_n          = DSR_n;
+   assign s_read_n         = READ_n;
+   assign s_reset          = RESET;
+   assign s_rxc_n          = RXC_n;
+   assign s_rxd            = RXD;
+   assign s_txc_n          = TXC_n;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-
    
    // output pins
    assign s_dtr_n= !cmd_forceDTRLow;
@@ -152,8 +160,8 @@ module SC2661_UART(
    assign RXDRDY_n         = s_rxrdy_n;
    assign TXD              = s_txd;
    assign TXDRDY_n         = s_txrdy_n;
-   assign TXEMT_n          = s_txemt_n;
-   assign D_OUT            = regDataOut;
+   assign TXEMT_n          = s_txemt_n;   
+   assign D_OUT            = (!s_ce_n & !s_read_n) ? regDataOut :  8'b0;
 
    reg [7:0] regDataOut;
 
@@ -351,8 +359,7 @@ module SC2661_UART(
   // Transmitter local variables
   reg [3:0] txState = 0;
   reg [24:0] txCounter = 0;  
-  reg [2:0] txBitNumber = 0;
-  reg [3:0] txByteCounter = 0;
+  reg [2:0] txBitNumber = 0;  
   reg txBit =0;
   reg regDataInSendRegister=0; // 1=Data in send register (=>TxEmpty =0)
 
@@ -373,8 +380,7 @@ module SC2661_UART(
                  if (regDataInSendRegister) begin
                      regStatusRegister[0] <= 0;      // 0=Transmit Holding Register BUSY
                      txState <= TX_STATE_START_BIT;
-                     txCounter <= 0;
-                     txByteCounter <= 0;
+                     txCounter <= 0;                     
                  end else begin
                      txBit <= 1;
                  end
@@ -427,8 +433,6 @@ module SC2661_UART(
          
       end
    end
-
-
-   assign D_OUT = (!CE_n & !READ_n) ? regDataOut :  8'b0;
+   
 
 endmodule
