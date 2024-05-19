@@ -1,0 +1,47 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Sun May 19 15:55:03 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/TTL_74139/sim/waveform.vcd"
+[dumpfile_mtime] "Sun May 19 15:52:08 2024"
+[dumpfile_size] 1107
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/TTL_74139/sim/pal.gtkw"
+[timestart] 0
+[size] 2548 1359
+[pos] -1 -1
+*-5.656229 22 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 312
+[signals_width] 511
+[sst_expanded] 1
+[sst_vpaned_height] 726
+@200
+-** Block 1 **
+---input--
+@28
+TOP.TTL_74139.A1
+TOP.TTL_74139.B1
+TOP.TTL_74139.G1_n
+@200
+--- output --
+@28
+TOP.TTL_74139.Y1_0_n
+TOP.TTL_74139.Y1_1_n
+TOP.TTL_74139.Y1_2_n
+TOP.TTL_74139.Y1_3_n
+@200
+-** Block 2 **
+---input--
+@28
+TOP.TTL_74139.B1
+TOP.TTL_74139.B2
+TOP.TTL_74139.G2_n
+@200
+---output--
+@28
+TOP.TTL_74139.Y2_0_n
+TOP.TTL_74139.Y2_1_n
+TOP.TTL_74139.Y2_2_n
+TOP.TTL_74139.Y2_3_n
+[pattern_trace] 1
+[pattern_trace] 0
