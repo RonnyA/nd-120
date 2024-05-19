@@ -1,8 +1,28 @@
-// PAL 44305D - CSCTL - CONTROL STORE CONTROL 
+// PAL16L8
+// JLB 26NOV86
+// PAL 44305D,15F,CSCTL (CONTROL STORE CONTROL)
 
 module PAL_44305D(
-    input FORM_n, CC1_n, CC2_n, CC3_n, LCS_n, RWCS_n, WCS_n, FETCH, BRK_n, LUA12, WCA_n, TERM_n,
-    output WICA_n, WCSTB_n, ECSL_n, EWCA_n, EUPP_n, ELOW_n
+    input  FORM_n,      // I0
+    input  CC1_n,       // I1 - Cycle Control 1 (b+c+d+e+j+k+l+m)
+    input  CC2_n,       // I2 - Cycle control 2 (e+f+g+h+i+j+k)
+    input  CC3_n,       // I3 - Cycle Control 3 (h+i+j+k+l+m+n+o)
+    input  LCS_n,       // I4 - Load Control Store (negated)
+    input  RWCS_n,      // I5 - Read/Write Control Store (low=write)
+    input  WCS_n,       // I6 - Write Control Store (negated)
+    input  FETCH,       // I7 - Fetch
+    input  BRK_n,       // I8 - 
+    input  TERM_n,      // I9 - 
+
+    output WICA_n,      // Y0_n - 
+    output WCSTB_n,     // Y1_n 
+
+    output ECSL_n,       // B0_n 
+    output EWCA_n,       // B1_n 
+    output EUPP_n,       // B2_n 
+    output ELOW_n,       // B3_n 
+    input  WCA_n,        // B4_n 
+    input  LUA12         // B5_n         
 );
 
 // Inverted input signals for active-high usage
@@ -38,7 +58,8 @@ assign EWCA_n = ~((RWCS & CC3_n & CC2 & TERM_n) |      // ENABLE WCA REG. IN MIC
 // Logic for EUPP_n (active-low)
 assign EUPP_n = ~(LUA12 |                            // NORMAL ADDRESSING
                   (WCA & FETCH) |                    // WRITE INTO MICROINSTRUCTION CACHE
-                  (FETCH & CC1_n & CC2_n & CC3_n & TERM_n)); // ENABLE IN THE FIRST 50NS + HOLD TIME = 7SNS
+                  (FETCH & CC1_n & CC2_n & CC3_n & TERM_n) // ENABLE IN THE FIRST 50NS 
+                  );                                       // + HOLD TIME = 75NS
 
 // Logic for ELOW_n (active-low)
 assign ELOW_n = ~((LUA12_n & FETCH_n) |                   // NORMAL ADDRESSING. ON FETCH EITHER MI
