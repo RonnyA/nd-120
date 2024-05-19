@@ -1,0 +1,47 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Sun May 19 13:07:35 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/IO_REG_41/sim/waveform.vcd"
+[dumpfile_mtime] "Sun May 19 13:03:33 2024"
+[dumpfile_size] 3600
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/IO_REG_41/sim/pal.gtkw"
+[timestart] 0
+[size] 2148 3735
+[pos] -1 -1
+*-4.456229 15 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 297
+[signals_width] 384
+[sst_expanded] 1
+[sst_vpaned_height] 295
+@200
+---clock--
+@28
+TOP.IO_REG_41.SIOC_n
+@200
+--- input --
+--- out osc --
+@22
+TOP.IO_REG_41.IDB_7_0_IN[7:0]
+TOP.IO_REG_41.INR_7_0[7:0]
+@28
+TOP.IO_REG_41.CLEAR_n
+TOP.IO_REG_41.CX_n
+TOP.IO_REG_41.DA_n
+TOP.IO_REG_41.RINR_n
+TOP.IO_REG_41.TBMT_n
+TOP.IO_REG_41.TRAALD_n
+@200
+--- output --
+@22
+TOP.IO_REG_41.IDB_15_0_OUT[15:0]
+@28
+TOP.IO_REG_41.BINT10_n
+TOP.IO_REG_41.BINT12_n
+TOP.IO_REG_41.BINT13_n
+TOP.IO_REG_41.CONSOLE_n
+TOP.IO_REG_41.EMCL_n
+TOP.IO_REG_41.IOLED[1:0]
+[pattern_trace] 1
+[pattern_trace] 0

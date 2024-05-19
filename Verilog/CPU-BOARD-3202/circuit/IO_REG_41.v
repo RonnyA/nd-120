@@ -21,7 +21,7 @@ module IO_REG_41(
 
 
    // Input and output signals
-   input  [15:0] IDB_15_0_IN,
+   input  [7:0]  IDB_7_0_IN,
    output [15:0] IDB_15_0_OUT,
 
    // Output signals
@@ -37,99 +37,49 @@ module IO_REG_41(
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [4:0]  s_STRAP2;
    
-   wire [7:0]  s_logisimBus59;
-   wire [2:0]  s_PRINT_NO;
+      
+   wire [2:0]  s_print_no;
    wire [3:0]  s_ALD;
 
-   wire [7:0]  s_INR_7_0;
+   wire [7:0]  s_inr_7_0;
 
-   wire [15:0] s_IDB_15_0_in;
-   wire [15:0] s_IDB_15_0_out;
-   wire [7:0]  s_IDB_7_0_inr_out;
-   wire [7:0]  s_IDB_7_0_ald_out;
+   wire [7:0]  s_idb_7_0_in;
+   wire [7:0]  s_ioc_idb_7_0_in;
+   
+   wire [15:0] s_idb_15_0_out;
+   wire [7:0]  s_idb_7_0_inr_out;
+   wire [15:0] s_idb_15_0_ald_out;
 
 
-   wire s_traald_n;
+   wire        s_bint10_n;
+   wire        s_bint12_n;
+   wire        s_bint13_n;
+   wire        s_clear_n;
+   wire        s_console_io;
+   wire        s_cx_n;
+   wire        s_da;      
+   wire        s_ioc_0;
+   wire        s_ioc_1;
+   wire        s_ioc_2;
+   wire        s_ioc_3;
+   wire        s_led2_red_n;
+   wire        s_led3_green_n;
+   wire        s_rinr_n;
+   wire        s_scons_n; 
+   wire        s_sioc_n;
+   wire        s_strap_5;
+   wire        s_strap_6;
+   wire        s_strap_7;
+   wire        s_strap_8;
+   wire        s_strap_9;
+   wire        s_tbmt;
+   wire        s_traald_n;   
 
-   wire        s_logisimNet1;
-   wire        s_logisimNet10;
-   wire        s_logisimNet12;
-   wire        s_logisimNet13;
-   wire        s_RINR_n;
-   wire        s_logisimNet15;
-   wire        s_logisimNet16;
-   wire        s_logisimNet17;
-   wire        s_logisimNet18;
-   wire        s_logisimNet19;
-   wire        s_logisimNet2;
-   wire        s_logisimNet20;
-   wire        s_logisimNet21;
-   wire        s_logisimNet22;
-   wire        s_logisimNet23;
-   wire        s_logisimNet24;
-   wire        s_logisimNet25;
-   wire        s_logisimNet26;
-   wire        s_logisimNet27;
-   wire        s_logisimNet28;
-   wire        s_logisimNet29;
-   wire        s_logisimNet3;
-   wire        s_logisimNet30;
-   wire        s_logisimNet31;
-   wire        s_logisimNet32;
-   wire        s_logisimNet33;
-   wire        s_logisimNet34;
-   wire        s_logisimNet35;
-   wire        s_logisimNet36;
-   wire        s_logisimNet37;
-   wire        s_logisimNet38;
-   wire        s_logisimNet39;
-   wire        s_logisimNet4;
-   wire        s_logisimNet41;
-   wire        s_logisimNet42;
-   wire        s_logisimNet43;
-   wire        s_logisimNet44;
-   wire        s_logisimNet45;
-   wire        s_logisimNet46;
-   wire        s_logisimNet47;
-   wire        s_logisimNet49;
-   wire        s_logisimNet5;
-   wire        s_logisimNet50;
-   wire        s_logisimNet51;
-   wire        s_logisimNet52;
-   wire        s_logisimNet53;
-   wire        s_logisimNet54;
-   wire        s_logisimNet55;
-   wire        s_logisimNet56;
-   wire        s_logisimNet57;
-   wire        s_logisimNet58;
-   wire        s_logisimNet6;
-   wire        s_DA_n;
-   wire        s_DA;
-   wire        s_logisimNet63;
-   wire        s_logisimNet64;
-   wire        s_logisimNet65;
-   wire        s_logisimNet66;
-   wire        s_logisimNet67;
-   wire        s_logisimNet68;
-   wire        s_logisimNet69;
-   wire        s_logisimNet7;
-   wire        s_logisimNet70;
-   wire        s_logisimNet71;
-   wire        s_logisimNet72;
-   wire        s_logisimNet73;
-   wire        s_logisimNet74;
-   wire        s_logisimNet75;
-   wire        s_logisimNet76;
-   wire        s_logisimNet77;
-   wire        s_logisimNet79;
-   wire        s_logisimNet80;
-   wire        s_logisimNet81;
-   wire        s_logisimNet82;
-   wire        s_logisimNet83;
-   wire        s_logisimNet84;
-   wire        s_logisimNet9;
+   /* verilator lint_off UNUSEDSIGNAL */
+   wire        s_reset;
+   /* verilator lint_on UNUSEDSIGNAL */
+
 
    /*******************************************************************************
    ** The module functionality is described here                                 **
@@ -138,232 +88,185 @@ module IO_REG_41(
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_INR_7_0[7:0]      = INR_7_0;
-   assign s_RINR_n            = RINR_n;
-   assign s_logisimNet33      = SIOC_n;
-   assign s_logisimNet41      = CX_n;
-   assign s_logisimNet44      = TBMT_n;
-   assign s_logisimNet45      = CLEAR_n;
-   assign s_DA_n              = DA_n;
+   assign s_inr_7_0[7:0]      = INR_7_0;
+   assign s_rinr_n            = RINR_n;
+   assign s_sioc_n            = SIOC_n;
+   assign s_cx_n              = CX_n;
+   assign s_tbmt              = !TBMT_n;
+   assign s_clear_n           = CLEAR_n;
+   assign s_da                = !DA_n;
    assign s_traald_n          = TRAALD_n;
-   assign s_IDB_15_0_in       = IDB_15_0_IN;
+   assign s_idb_7_0_in        = IDB_7_0_IN;
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign BINT10_n      = s_logisimNet17;
-   assign BINT12_n      = s_logisimNet63;
-   assign BINT13_n      = s_logisimNet50;
-   assign CONSOLE_n     = s_logisimNet77;
-   assign EMCL_n        = s_logisimNet34;
-   assign IDB_15_0_OUT  = s_IDB_15_0_out[15:0];
+   assign BINT10_n            = s_bint10_n;
+   assign BINT12_n            = s_bint12_n;
+   assign BINT13_n            = s_bint13_n;
+   assign CONSOLE_n           = s_scons_n;
+   assign EMCL_n              = s_led2_red_n;
+   assign IDB_15_0_OUT        = s_idb_15_0_out[15:0];
    
 
    /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // Ground
-   assign  s_logisimNet12  =  1'b0;
+   assign s_ioc_idb_7_0_in[7:0] = s_idb_7_0_in[7:0] | s_idb_7_0_inr_out[7:0] | s_idb_15_0_ald_out[7:0];
 
 
-   // Power
-   assign  s_logisimNet10  =  1'b1;
+   // PRINT VERSION = 011 FOR VERSION D
+   assign  s_print_no[2:0]  =  3'b011; // 011 == 3202D
 
 
-   // Power
-   assign  s_logisimNet39  =  1'b1;
-
-
-
-
-   // Constant- ALD Regirster PCB
-   assign  s_PRINT_NO[2:0]  =  3'b101; // 101 == 3202D
-
-
-   // Constant for ALD register ECO Fixes
-   assign  s_STRAP2[4:0]  =  {5'b00000};  // STRAP9-STRAP5 (high bit is STRAP9, low bit is STRAP5)
+   // Constant for ALD register ECO Fixes // Set to ECO 100-785. Strap on 6,8 and 9
+   // Setting a physical strap enables pull low/0 else its pulled high.
+   assign  s_strap_9  = 1'b0;  // STRAP9 => IDB8
+   assign  s_strap_8  = 1'b0;  // STRAP8 => IDB9
+   assign  s_strap_7  = 1'b1;  // STRAP7 => IDB10
+   assign  s_strap_6  = 1'b0;  // STRAP6 => IDB11
+   assign  s_strap_5  = 1'b1;  // STRAP5 => IDB12
 
 
    // Constant for ALD settings. ALD boot switch
-   assign  s_ALD[3:0]  =  4'hF;
+   assign  s_ALD[3:0]  =  4'b0101; // 1111 == ALD boot switch for 
 
 
-   // Power
-
-   // NOT Gate
-   assign s_DA = ~s_DA_n;
-
-   // NOT Gate
-   assign s_logisimNet20 = ~s_logisimNet2;
-
+   
    // LED: RED
-   assign IOLED[0] = s_logisimNet34;
+   assign IOLED[0] = s_led2_red_n;
 
    // LED: GREEN
-   assign IOLED[1] = s_logisimNet16;
+   assign IOLED[1] = s_led3_green_n;
 
    /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_1 (.input1(s_logisimNet2),
-               .input2(s_logisimNet19),
-               .result(s_logisimNet18));
+   assign s_console_io = s_scons_n & s_ioc_1;
+   assign s_bint13_n = ~(s_ioc_3 & s_ioc_0);
+   assign s_bint10_n = ~(s_ioc_2 & s_tbmt);
+   assign s_bint12_n = ~(s_console_io & s_da);
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_2 (.input1(s_logisimNet9),
-               .input2(s_logisimNet42),
-               .result(s_logisimNet50));
-
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_3 (.input1(s_logisimNet1),
-               .input2(s_logisimNet44),
-               .result(s_logisimNet17));
-
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_4 (.input1(s_logisimNet18),
-               .input2(s_DA),
-               .result(s_logisimNet63));
-
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_5 (.input1(s_logisimNet20),
-               .input2(s_logisimNet20),
-               .result(s_logisimNet77));
-
-
+   
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-/*
-   TTL_74273   CHIP_28A_IOC (.CLK(s_logisimNet33),
-                             .CLR_n(s_logisimNet45),
-                             .D1(s_IDB_15_0_in[7]),
-                             .D2(s_IDB_15_0_in[6]),
-                             .D3(s_IDB_15_0_in[5]),
-                             .D4(s_IDB_15_0_in[4]),
-                             .D5(s_IDB_15_0_in[3]),
-                             .D6(s_IDB_15_0_in[2]),
-                             .D7(s_IDB_15_0_in[1]),
-                             .D8(s_IDB_15_0_in[0]),
-                             .Q1(s_logisimNet49),
-                             .Q2(s_logisimNet2),
-                             .Q3(s_logisimNet34),
-                             .Q4(s_logisimNet16),
-                             .Q5(s_logisimNet9),
-                             .Q6(s_logisimNet1),
-                             .Q7(s_logisimNet19),
-                             .Q8(s_logisimNet42));
-*/
-
-TTL_74273 CHIP_28A_IOC (
-    .CLK(s_logisimNet33),           // Clock input
-    .CLR_n(s_logisimNet45),         // Active low clear input
-    .D(s_IDB_15_0_in[7:0]),         // 8-bit data input directly from the bus
-    .Q({s_logisimNet42,             // 8-bit output, bit 7 (Q8 - Corresponding to D8/MSB)
-        s_logisimNet19,             // 8-bit output, bit 6 (Q7)
-        s_logisimNet1,              // 8-bit output, bit 5 (Q6)
-        s_logisimNet9,              // 8-bit output, bit 4 (Q5)
-        s_logisimNet16,             // 8-bit output, bit 3 (Q4)
-        s_logisimNet34,             // 8-bit output, bit 2 (Q3)
-        s_logisimNet2,              // 8-bit output, bit 1 (Q2)
-        s_logisimNet49})            // 8-bit output, bit 0 (Q1 - Corresponding to D1/LSB)
-);
+   TTL_74273 CHIP_28A_IOC 
+   (
+      .CLK(s_sioc_n),            // Clock input
+      .CLR_n(s_clear_n),         // Active low clear input
+      .D(s_ioc_idb_7_0_in[7:0]), // 8-bit data input directly from the bus (which is a combination of IDB, ALD and INR)
+      .Q(
+         {  
+            s_reset,              // 8-bit output, bit 0 (Q1) - Corresponding to IDB7/MSB)  - signal is not used it seems..   
+            s_scons_n,            // 8-bit output, bit 1 (Q2)                                
+            s_led2_red_n,         // 8-bit output, bit 2 (Q3)                                
+            s_led3_green_n,       // 8-bit output, bit 3 (Q4)                                
+            s_ioc_3,              // 8-bit output, bit 4 (Q5)                                
+            s_ioc_2,              // 8-bit output, bit 5 (Q6)                                
+            s_ioc_1,              // 8-bit output, bit 6 (Q7)                                
+            s_ioc_0               // 8-bit output, bit 7 (Q8) - Corresponding to IDB0/LSB)      
+         })                       
+   );
 
 
 
       // TTL_74244 CHIP_24A_INR (simplified..)
-      assign s_IDB_7_0_inr_out[7:0] = s_RINR_n  ? 8'b0 : s_INR_7_0[7:0]; 
+      assign s_idb_7_0_inr_out[7:0] = s_rinr_n  ? 8'b0 : s_inr_7_0[7:0]; 
 
       // IDB bus 7:0 is shared between ALD and INR.. or Z state
-      assign s_IDB_15_0_out[7:0] = !s_traald_n ?  s_IDB_7_0_ald_out [7:0] :  s_IDB_7_0_inr_out[7:0]; // if TRAALD_n is low, then the IDB[7:0] is driven by ALD if not its driven by INR
-
-/*
-      TTL_74244   CHIP_27A_STRAP (.I0_1A1(s_logisimBus60[2]),
-                               .I1_1A2(s_logisimBus60[1]),
-                               .I2_1A3(s_logisimBus60[0]),
-                               .I3_1A4(s_logisimBus11[0]),
-                               .I4_2A1(s_logisimBus11[1]),
-                               .I5_2A2(s_logisimBus11[2]),
-                               .I6_2A3(s_logisimBus11[3]),
-                               .I7_2A4(s_logisimBus11[4]),
-                               .O0_1Y1(s_IDB_15_0_in[15]),
-                               .O1_1Y2(s_IDB_15_0_in[14]),
-                               .O2_1Y3(s_IDB_15_0_in[13]),
-                               .O3_1Y4(s_IDB_15_0_in[12]),
-                               .O4_2Y1(s_IDB_15_0_in[11]),
-                               .O5_2Y2(s_IDB_15_0_in[10]),
-                               .O6_2Y3(s_IDB_15_0_in[9]),
-                               .O7_2Y4(s_IDB_15_0_in[8]),
-                               .OE1_1G_n(),
-                               .OE2_2G_n(s_logisimNet7));
-*/
-
-  TTL_74244   CHIP_27A_STRAP (
-               // Input 
-
-               //        1A4                1A3                  1A2                  1A1 
-                .A1({s_STRAP2[0], s_PRINT_NO[0],s_PRINT_NO[1], s_PRINT_NO[2]}), // Mapping 4 separate signals to 1A4-1A1
-                .G1_n(s_logisimNet7),
-
-                //        2A4                2A3                  2A2                  2A1 
-                .A2(s_STRAP2[4:1]),   // Mapping 4 separate signals to 2A4-2A1
-                .G2_n(s_logisimNet7),
+      assign s_idb_15_0_out[7:0]  = s_idb_15_0_ald_out  [7:0] | s_idb_7_0_inr_out[7:0];
+      assign s_idb_15_0_out[15:8] = s_idb_15_0_ald_out [15:8]; 
 
 
-               // Output
-               .Y1({s_IDB_15_0_in[12], s_IDB_15_0_in[13], s_IDB_15_0_in[14], s_IDB_15_0_in[15]}), // Mapping 4 separate signals to 1Y4-1Y1
-               .Y2({s_IDB_15_0_in[8], s_IDB_15_0_in[9], s_IDB_15_0_in[10], s_IDB_15_0_in[11]}) // Mapping 4 separate signals to 1Y4-1Y1
+
+ // ALD register, STRAP bits  + CX and print version
+  TTL_74244   CHIP_27A_STRAP 
+  (
+      // Input 
+      //        1A4                1A3                  1A2                  1A1 
+      .A1({s_strap_5,              1'b1,                1'b1,                1'b1}),
+      .G1_n(s_traald_n),
+
+      //        2A4                2A3                  2A2                  2A1 
+      .A2({s_strap_9,              s_strap_8,           s_strap_7,           s_strap_6}),   
+      .G2_n(s_traald_n),
+
+
+      // Output
+      .Y1({s_idb_15_0_ald_out[12], s_idb_15_0_ald_out[13], s_idb_15_0_ald_out[14], s_idb_15_0_ald_out[15]}),
+      .Y2({s_idb_15_0_ald_out[8], s_idb_15_0_ald_out[9], s_idb_15_0_ald_out[10], s_idb_15_0_ald_out[11]}) 
    );
 
-   
+
+   TTL_74244 CHIP_25A_ALD 
+   (
+      // Input 
+      //        1A1                1A2                  1A3                  1A4 
+      .A1({   s_cx_n,              s_print_no[2],       s_print_no[1],       s_print_no[0]}), 
+      .G1_n(s_traald_n),
+
+      //        2A1                2A2                  2A3                  2A4 
+      .A2({  s_ALD[3],             s_ALD[2],            s_ALD[1],            s_ALD[0]}),   
+      .G2_n(s_traald_n),
 
 
+      // Output
+      .Y1({s_idb_15_0_ald_out[7], s_idb_15_0_ald_out[6], s_idb_15_0_ald_out[5], s_idb_15_0_ald_out[4]}),
+      .Y2({s_idb_15_0_ald_out[3], s_idb_15_0_ald_out[2], s_idb_15_0_ald_out[1], s_idb_15_0_ald_out[0]}) 
+   );
+
+endmodule
 
 
 /*
-   TTL_74244   CHIP_25A_ALD (.I0_1A1(s_logisimNet41),
-                             .I1_1A2(s_logisimNet12),
-                             .I2_1A3(s_logisimNet10),
-                             .I3_1A4(s_logisimNet39),
-                             .I4_2A1(s_ALD[3]),
-                             .I5_2A2(s_ALD[2]),
-                             .I6_2A3(s_ALD[1]),
-                             .I7_2A4(s_ALD[0]),
-                             .O0_1Y1(s_IDB_15_0_in[7]),
-                             .O1_1Y2(s_IDB_15_0_in[6]),
-                             .O2_1Y3(s_IDB_15_0_in[5]),
-                             .O3_1Y4(s_IDB_15_0_in[4]),
-                             .O4_2Y1(s_IDB_15_0_in[3]),
-                             .O5_2Y2(s_IDB_15_0_in[2]),
-                             .O6_2Y3(s_IDB_15_0_in[1]),
-                             .O7_2Y4(s_IDB_15_0_in[0]),
-                             .OE1_1G_n(s_logisimNet7),
-                             .OE2_2G_n(s_logisimNet7));
+
+(Mapped from ND-110 and ND-120 microcode (they are identical)
+
++--------+------------------+-------------------+-----------------------------------------------------------------------
+|SWITCH  | ALD VECTOR (hex) | ALD VALUE (octal) | DESCRIPTION
++--------+------------------+-------------------+-----------------------------------------------------------------------
+|15      |     x0           | 0                 | (Note 2)
+|14      |     x1           | 1560              | Switch setting 14 -  BPUN load from floppy (1560) and run (*3)
+|13      |     x2           | 20500             | Bootstrap load from Winchester disk (500) and run (*3)
+|12      |     x3           | 21540             | Bootstrap load from SMD disk (1540,) and run (*3)
+|11      |     x4           | 400               | BPUN load from paper tape (400) and run (*3)
+|10      |     x5           | 1600              | BPUN load from HDLC (1600) and run (*3)
+|9       |     x6           | 21560             | Run (*3) (No load)
+|8       |     x7           | 0                 | Run (*3) (No load)
+|7       |     x8           | 100000            | (Note 2)
+|6       |     x9           | 101560            | Binary load from 1560 (SCSI boot use this setting..?)
+|5       |     xA           | 120500            | Mass storage from 500
+|4       |     xB           | 121540            | Mass storage from 1540 (SMD disk)
+|3       |     xC           | 100400            | Binary load from 400 (paper tape reader)
+|2       |     xD           | 101600            | Switch setting 2 -  Binary load from 1600 (HDLC)
+|1       |     xE           | 121560            |
+|0       |     xF           | 100000            |
++--------+------------------+-------------------+-----------------------------------------------------------------------
+                      
+Note 1: The action will be taken if
+      a. $ or & (without preceding value) has been typed on the console in OPCOM mode
+      b. The [LOAD] button has been pressed  
+      c. The power has been restored and the keyswitch in the lock positon, but the standby power has been lost (extended power failure).
+
+Note 2: No load. The CPU is put in STOP made.
+
+Note 3: Run from address 20.
+
+Note 4:
+The content of the internal register I12 reflects the ALD settings.
+
+ALD switch settings 8 to 15 specify load and run, settings 2 to 7 specify load only. 
+ALD settings 4, 5, 12 and 13 specify a bootstrap load from a disk. 
+All other settings expect BPUN format. 
+
+The start address is always the power fail restart address (20).
+
+
+* Load from an operator specified address
+To specify a bootstrap load set bit 13 of the device address to 1 (i.e. if the device address is 1550 enter 21550&)
+
 
 */
-
-TTL_74244 CHIP_25A_ALD (
-    .A1({s_logisimNet39,     // I3_1A4 mapped to 1A4 (high bit)
-         s_logisimNet10,     // I2_1A3 mapped to 1A3
-         s_logisimNet12,     // I1_1A2 mapped to 1A2
-         s_logisimNet41}),   // I0_1A1 mapped to 1A1 (low bit)
-    .G1_n(s_logisimNet7),    // OE1_1G_n mapped to G1_n
-    .Y1({s_IDB_7_0_ald_out[4],      // O3_1Y4 mapped from 1Y4 (high bit)
-         s_IDB_7_0_ald_out[5],      // O2_1Y3 mapped from 1Y3
-         s_IDB_7_0_ald_out[6],      // O1_1Y2 mapped from 1Y2
-         s_IDB_7_0_ald_out[7]}),    // O0_1Y1 mapped from 1Y1 (low bit)
-    .A2({s_ALD[0],           // I7_2A4 mapped to 2A4 (high bit)
-         s_ALD[1],           // I6_2A3 mapped to 2A3
-         s_ALD[2],           // I5_2A2 mapped to 2A2
-         s_ALD[3]}),         // I4_2A1 mapped to 2A1 (low bit)
-    .G2_n(s_logisimNet7),    // OE2_2G_n mapped to G2_n
-    .Y2({s_IDB_7_0_ald_out[0],      // O7_2Y4 mapped from 2Y4 (high bit)
-         s_IDB_7_0_ald_out[1],      // O6_2Y3 mapped from 2Y3
-         s_IDB_7_0_ald_out[2],      // O5_2Y2 mapped from 2Y2
-         s_IDB_7_0_ald_out[3]})     // O4_2Y1 mapped from 2Y1 (low bit)
-);
-
-
-endmodule
