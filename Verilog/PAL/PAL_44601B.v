@@ -36,10 +36,10 @@ module PAL_44601B(
 
     output CX_n,        // Q0_n - CX_n
     output TERM_n,      // Q1_n - TERM_n
-    output CC0_n,       // Q2_n - BANK0
-    output CC1_n,       // Q3_n - MWRITE_n
-    output CC2_n,       // Q4_n - MWRITE_n
-    output CC3_n        // Q5_n - MWRITE_n
+    output CC0_n,       // Q2_n - Cycle Control 0
+    output CC1_n,       // Q3_n - Cycle Control 1
+    output CC2_n,       // Q4_n - Cycle Control 2
+    output CC3_n        // Q5_n - Cycle Control 3
 
 );
 
@@ -127,7 +127,7 @@ wire[3:0] ccReg = {CC3, CC2, CC1, CC0};
 
 // Tri-state control for Q outputs
 // Assigning outputs with three-state logic controlled by OE_n
-assign CX_n = OE_n ? 1'b0 : 1'b0; // CX is always 1 in the fast version (CX_n = 0)
+assign CX_n = 1'b0; // CX is always 1 in the fast version (CX_n = 0)
 assign TERM_n = OE_n ? 1'b0 : ~TERM_reg;
 assign CC0_n = OE_n ? 1'b0 : ~CC0_reg;
 assign CC1_n = OE_n ? 1'b0 : ~CC1_reg;
