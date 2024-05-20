@@ -19,18 +19,23 @@ module IDT6168A_20(
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [11:0] s_address;
-   wire [3:0]  s_databus; // 4 bit wide databus
+   wire [11:0] s_address;   
    wire        s_ce_n;
    wire        s_we_n;
 
- /*******************************************************************************
-   ** Signals                                                                    **
+  /*******************************************************************************
+   ** Signals                                                                   **
    *******************************************************************************/
    reg [3:0] data_out;     // Output data register
    wire [3:0] data_in;     // Input data from the bus
+
+   assign s_ce_n = CE_n;
+   assign s_we_n = WE_n;
+   assign s_address = A_11_0;
    assign data_in = D_3_0_IN; // Connect input data
-   assign D_3_0_OUT = (!CE_n && WE_n) ? data_out : 4'b0; // Tristate logic for bidirectional data bus in chip, in FPGA use 0000 for no output.
+
+   // OUTPUT
+   assign D_3_0_OUT = (!s_ce_n && s_we_n) ? data_out : 4'b0; // Tristate logic for bidirectional data bus in chip, in FPGA use 0000 for no output.
 
    
    /*******************************************************************************
@@ -49,11 +54,13 @@ module IDT6168A_20(
 
    /* verilator lint_off BLKSEQ */
    always @(posedge clk) begin
-      if (!CE_n) begin
-         if (!WE_n) begin
-            memory_array[A_11_0] = data_in;  // Write operation
+      if (reset_n == 1'b0) begin
+         memory_array[s_address] <= 4'b0; // Reset memory array //TODO: Need to reset the whole array
+      end else if (!s_ce_n) begin
+         if (!s_we_n) begin
+            memory_array[s_address] = data_in;  // Write operation
          end else begin
-            data_out = memory_array[A_11_0]; // Read operation
+            data_out = memory_array[s_address]; // Read operation
          end
       end
    end
