@@ -343,18 +343,15 @@ module DECODE_DGA(
    wire fifo_rst = ~s_xcln;
    wire fifo_wr_en = ~s_ldpanc_n;
    wire fifo_rd_en = ~s_xrm_n;
-
-   wire [7:0] fifo_data_in = s_idb_7_0_in;
-
-   // FIFO out wires
-   wire [7:0] fifo_data_out;
-   assign s_ad_7_0 = fifo_data_out;
-
+  
+   // FIFO OUT wires
    wire fifo_full;
    wire fifo_empty;
+   
+   assign s_xfun = ~fifo_full;
+   assign s_xemn = ~fifo_empty;
 
-   assign s_xemn = fifo_empty;
-   assign s_xfun = fifo_full;
+   assign fifo_full= 0;
 
    FIFO_8BIT #(
       .DEPTH(13)  // Depth of the FIFO (maximum 16)
@@ -362,10 +359,10 @@ module DECODE_DGA(
       .rst(fifo_rst),
       .wr_en(fifo_wr_en),
       .rd_en(fifo_rd_en),
-      .data_in(fifo_data_in),
+      .data_in(s_idb_7_0_in),
       // out
-      .data_out(fifo_data_out),
-      .full(fifo_full),
+      .data_out(s_ad_7_0),
+      .full(fifo_full),            
       .empty(fifo_empty)
   );
 

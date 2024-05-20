@@ -46,106 +46,92 @@ module DECODE_DGA_POW(
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire s_panosc;
-   wire s_logisimNet1;
-   wire s_a633_qb;
-   wire s_logisimNet11;
-   wire s_logisimNet12;
-   wire s_powsense;
-   wire s_logisimNet14;
-   wire s_logisimNet15;
-   wire s_logisimNet16;
-   wire s_logisimNet17;
-   wire s_powfail_n;
-   wire s_logisimNet19;
-   wire s_logisimNet2;
-   wire s_logisimNet20;
-   wire s_ref_n;
-   wire s_rtosc;
-   wire s_closc;
-   wire s_logisimNet24;
-   wire s_idb1;
-   wire s_logisimNet26;
-   wire s_logisimNet27;
-   wire s_logisimNet28;
-   wire s_emcl_n;
-   wire s_logisimNet3;
-   wire s_logisimNet30;
-   wire s_mcl;
-   wire s_logisimNet32;
-   wire s_bdry50_n;
-   wire s_logisimNet34;
-   wire s_logisimNet35;
-   wire s_logisimNet36;
-   wire s_sel5ms_n;
-   wire s_logisimNet38;
-   wire s_logisimNet39;
-   wire s_logisimNet4;
-   wire s_logisimNet40;
-   wire s_logisimNet41;
-   wire s_logisimNet42;
-   wire s_refrq_n;
-   wire s_logisimNet44;
-   wire s_logisimNet45;
-   wire s_logisimNet46;
-   wire s_logisimNet47;
-   wire s_testo;
-   wire s_logisimNet49;
-   wire s_logisimNet5;
-   wire s_prq_n;
-   wire s_logisimNet51;
-   wire s_logisimNet52;
-   wire s_logisimNet53;
-   wire s_logisimNet54;
-   wire s_logisimNet55;
-   wire s_logisimNet56;
+   wire a580_nand_out;
+   wire a590_nand_out;
+   wire a592_nand_out;
+   wire a597_nand_out;
+   wire a598_nand_out;
+   wire a599_nand_out;
+   wire a609_nand_out;
+   wire s_a578_out_n;   
+   wire s_a579_out_n;
+   wire s_a591_q_n;
+   wire s_a593_q_n;
+   wire s_a594_q_n;
+   wire s_a596_q_n;
+   wire s_a601_y;
+   wire s_a602_q_n;
+   wire s_a605_q_n;   
+   wire s_a616_q;
+   wire s_a617_q_n;
+   wire s_a618_q_n;
+   wire s_a618_q;
+   wire s_a620_y;
+   wire s_a621_q_n;   
+   wire s_a622_q_n;
+   wire s_a623_q_n;
+   wire s_a624_q_n;
+   wire s_a625_y;
+   wire s_a626_q_n;
+   wire s_a627_q_n;   
    wire s_a631_q;
-   wire s_stp_n;
-   wire s_logisimNet59;
-   wire s_logisimNet6;
-   wire s_continue_n;
-   wire s_load_n;
-   wire s_logisimNet62;
-   wire s_logisimNet63;
-   wire s_logisimNet64;
-   wire s_logisimNet65;
+   wire s_a632_q_n;
+   wire s_a634_q_n;
+   wire s_bdry50_n;
+   wire s_clear_n;
    wire s_clear;
-   wire s_logisimNet67;
-   wire s_logisimNet68;
-   wire s_logisimNet69;
-   wire s_logisimNet7;
-   wire s_logisimNet70;
-   wire s_logisimNet71;
-   wire s_logisimNet72;
-   wire s_pwcl;
-   wire s_test_enable;
-   wire s_logisimNet75;
-   wire s_logisimNet76;
-   wire s_logisimNet77;
-   wire s_logisimNet78;
-   wire s_sstop_n;
-   wire s_logisimNet8;
-   wire s_logisimNet80;
-   wire s_logisimNet81;
-   wire s_logisimNet82;
-   wire s_idb0;
-   wire s_reset;
-   wire s_stop_n;
-   wire s_start_n;
-   wire s_idb2;
-   wire s_pan_n;
-   wire s_logisimNet89;
+   wire s_closc;
    wire s_clrti_n;
-   wire s_logisimNet90;
-   wire s_logisimNet91;
-   wire s_logisimNet92;
-   wire s_logisimNet93;
-   wire s_logisimNet94;
-   wire s_logisimNet95;
-   wire s_logisimNet96;
+   wire s_clrti;
+   wire s_conn_n;
+   wire s_conn;
+   wire s_continue_n;
+   wire s_continue;
+   wire s_emcl_n;   
+   wire s_esload_n;
+   wire s_gnd;
+   wire s_idb0;
+   wire s_idb1;
+   wire s_idb2;
+   wire s_load_n;   
+   wire s_load;
+   wire s_lod_n;   
+   wire s_lrst;
+   wire s_mcl_n;
+   wire s_mcl;
+   wire s_pan_n;
+   wire s_panosc;
+   wire s_powfail_n;
    wire s_powfail;
-   wire s_logisimNet98;
+   wire s_pows_n;
+   wire s_powsense;
+   wire s_prq_n;
+   wire s_prq;
+   wire s_pwcl_n;      
+   wire s_pwcl;
+   wire s_ref_n;
+   wire s_refrq_n;
+   wire s_rescl_n;
+   wire s_rescl;
+   wire s_reset;
+   wire s_rfclk;
+   wire s_rst_n;
+   wire s_rtc_n;
+   wire s_rtc;
+   wire s_rtosc;
+   wire s_sel5ms_n;
+   wire s_sstop_n;
+   wire s_start_n;
+   wire s_start;
+   wire s_stop_n;
+   wire s_stp_n;
+   wire s_stp;
+   wire s_test_enable;
+   wire s_testo;
    wire s_tout;
+   wire s_vcc;
+   wire s_zz0;
+   wire s_zz1;
 
    /*******************************************************************************
    ** Here all input connections are defined                                     **
@@ -188,256 +174,132 @@ module DECODE_DGA_POW(
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // Ground
-   assign  s_logisimNet19  =  1'b0;
+   // Ground and power
+   assign  s_gnd  =  1'b0;
+   assign  s_vcc  =  1'b1;
 
-
-   // Power
-   assign  s_logisimNet17  =  1'b1;
-
-
-   // Ground
-   assign  s_logisimNet12  =  1'b0;
-
-
-   // Ground
-   assign  s_logisimNet49  =  1'b0;
-
-
-   // Ground
-   assign  s_logisimNet2  =  1'b0;
-
-
-   // Ground
-   assign  s_logisimNet38  =  1'b0;
-
-
-   // Ground
-   assign  s_logisimNet3  =  1'b0;
-
-
-   // Ground
-   assign  s_logisimNet15  =  1'b0;
-
-
-   // Power
-   assign  s_logisimNet6  =  1'b1;
-
-
-   // NOT Gate
-   assign s_clear = ~s_logisimNet30;
-
-   // NOT Gate
-   assign s_logisimNet5 = ~s_start_n;
-
-   // NOT Gate
-   assign s_logisimNet42 = ~s_clrti_n;
-
-   // NOT Gate
-   assign s_logisimNet44 = ~s_logisimNet95;
-
-   // NOT Gate
-   assign s_logisimNet80 = ~s_clrti_n;
-
-   // NOT Gate
-   assign s_logisimNet82 = ~s_logisimNet95;
-
-   // NOT Gate
-   assign s_logisimNet76 = ~s_mcl;
-
-   // NOT Gate
-   assign s_logisimNet71 = ~s_logisimNet68;
-
-   // NOT Gate
-   assign s_logisimNet55 = ~s_powfail;
-
-   // NOT Gate
-   assign s_logisimNet41 = ~s_pwcl;
-
-   // NOT Gate
-   assign s_powfail_n = ~s_powfail;
-
-   // NOT Gate
-   assign s_logisimNet92 = ~s_continue_n;
-
-   // NOT Gate: A504
-   assign s_logisimNet90 = ~s_load_n;
-
-   // NOT Gate
-   assign s_logisimNet78 = ~s_logisimNet27;
-
-   // NOT Gate
-   assign s_logisimNet16 = ~s_logisimNet1;
-
-   // NOT Gate
-   assign s_logisimNet64 = ~s_prq_n;
-
-   // NOT Gate
-   assign s_logisimNet46 = ~s_logisimNet53;
+   // NOT Gate's
+   assign s_clear       = ~s_clear_n;
+   assign s_start       = ~s_start_n;
+   assign s_clrti       = ~s_clrti_n;
+   assign s_mcl_n       = ~s_mcl;   
+   assign s_pwcl_n      = ~s_pwcl;
+   assign s_powfail_n   = ~s_powfail;
+   assign s_continue    = ~s_continue_n;
+   assign s_load        = ~s_load_n;
+   assign s_conn        = ~s_conn_n;   
+   assign s_prq         = ~s_prq_n;
+   assign s_rtc         = ~s_rtc_n;
 
    /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      A597 (.input1(s_logisimNet27),
-            .input2(s_logisimNet72),
-            .input3(s_logisimNet64),
-            .result(s_logisimNet59));
 
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      A609 (.input1(s_logisimNet27),
-            .input2(s_logisimNet72),
-            .input3(s_logisimNet16),
-            .result(s_logisimNet65));
-
-   NAND_GATE #(.BubblesMask(2'b00))
-      A598 (.input1(s_logisimNet98),
-            .input2(s_logisimNet78),
-            .result(s_logisimNet52));
-
-   NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
-      A599 (.input1(s_logisimNet46),
-            .input2(s_prq_n),
-            .input3(s_logisimNet72),
-            .input4(s_logisimNet98),
-            .result(s_logisimNet67));
-
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      A590 (.input1(s_logisimNet16),
-            .input2(s_logisimNet72),
-            .input3(s_logisimNet98),
-            .result(s_logisimNet11));
-
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      A580 (.input1(s_sstop_n),
-            .input2(s_logisimNet30),
-            .input3(s_stop_n),
-            .result(s_logisimNet34));
-
-   NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
-      A606 (.input1(s_logisimNet72),
-            .input2(s_logisimNet27),
-            .input3(s_logisimNet98),
-            .input4(s_logisimNet76),
-            .result(s_idb2));
-
-   NAND_GATE_8_INPUTS #(.BubblesMask(8'h00))
-      A592 (.input1(s_logisimNet76),
-            .input2(s_logisimNet98),
-            .input3(s_logisimNet27),
-            .input4(s_logisimNet72),
-            .input5(s_logisimNet1),
-            .input6(s_prq_n),
-            .input7(s_logisimNet53),
-            .input8(s_stp_n),
-            .result(s_logisimNet91));
-
-   NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
-      A603 (.input1(s_logisimNet59),
-            .input2(s_logisimNet98),
-            .input3(s_logisimNet76),
-            .input4(s_logisimNet65),
-            .result(s_idb1));
-
-   NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
-      A604 (.input1(s_logisimNet76),
-            .input2(s_logisimNet52),
-            .input3(s_logisimNet67),
-            .input4(s_logisimNet11),
-            .result(s_idb0));
-
-   NAND_GATE #(.BubblesMask(2'b00))
-      A595 (.input1(s_sstop_n),
-            .input2(s_logisimNet91),
-            .result(s_pan_n));
-
-   NAND_GATE #(.BubblesMask(2'b00))
-      A573 (.input1(s_emcl_n),
-            .input2(s_logisimNet30),
-            .result(s_mcl));
-
-   NOR_GATE #(.BubblesMask(2'b00))
-      A611 (.input1(s_powsense),
-            .input2(s_pwcl),
-            .result(s_logisimNet68));
-
-   assign s_tout = ~(s_a631_q | s_a633_qb);
-
-   NOR_GATE #(.BubblesMask(2'b00))
-      A635 (.input1(s_closc),
-            .input2(s_reset),
-            .result(s_logisimNet20));
-
-/*            
-   NAND_GATE #(.BubblesMask(2'b00))
-      A578 (.input1(s_stp_n),
-            .input2(s_logisimNet41),
-            .result(s_logisimNet54));
-*/
-   assign s_logisimNet54 = ~(s_stp_n & s_logisimNet41);
+   // A597 NAND_GATE_3_INPUTS
+   assign a597_nand_out = ~(s_conn_n & s_lod_n & s_prq);
    
+   //A609 NAND_GATE_3_INPUTS
+   assign a609_nand_out = ~(s_conn_n & s_lod_n & s_zz0);
 
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      A579 (.input1(s_logisimNet76),
-            .input2(s_clrti_n),
-            .input3(s_logisimNet40),
-            .result(s_logisimNet36));
+   // A598 NAND_GATE
+   assign a598_nand_out = ~(s_rst_n & s_conn);
+
+   // A599 NAND_GATE_4_INPUTS
+   assign a599_nand_out = ~(s_rtc & s_prq_n & s_lod_n & s_rst_n);
+
+   // A590 NAND_GATE_3_INPUTS
+   assign a590_nand_out = ~(s_zz0 & s_lod_n & s_rst_n);
+
+   // A580 NAND_GATE_3_INPUTS
+   assign a580_nand_out = ~(s_sstop_n & s_clear_n & s_stop_n);
+
+   // A606 NAND_GATE_4_INPUTS
+   assign s_idb2 = ~(s_lod_n & s_conn_n & s_rst_n & s_mcl_n);
+
+   //A592 NAND_GATE_8_INPUTS
+   assign a592_nand_out = ~(s_mcl_n & s_rst_n & s_conn_n & s_lod_n & s_zz1 & s_prq_n & s_rtc_n & s_stp_n);
+
+   // A603 NAND_GATE_4_INPUTS
+   assign s_idb1 = ~(a597_nand_out & s_rst_n & s_mcl_n & a609_nand_out);
+
+   // A604 NAND_GATE_4_INPUTS
+   assign s_idb0 = ~(s_mcl_n & a598_nand_out & a599_nand_out & a590_nand_out);
+
+   // A595 NAND_GATE
+   assign s_pan_n = ~(s_sstop_n & a592_nand_out);
+
+   //A573 NAND_GATE
+   assign s_mcl = ~(s_emcl_n & s_clear_n);
+
+   // A611 NOR_GATE
+   assign s_pows_n = ~(s_powsense | s_pwcl);
+
+   assign s_tout = ~(s_a631_q | s_rfclk);
+
+   // A635 NOR_GATE
+   assign s_rescl_n = ~(s_closc | s_reset);
+
+   // A578 NAND_GATE
+   assign s_a578_out_n = ~(s_stp_n & s_pwcl_n);
+      
+   // A579 NAND_GATE_3_INPUTS
+   assign s_a579_out_n = ~(s_mcl_n & s_clrti_n & s_stp);
 
    J_K_FLIPFLOP #(.invertClockEnable(0))
-      A616 (.clock(s_logisimNet39),
-            .j(s_logisimNet28),
-            .k(s_logisimNet6),
-            .preset(s_logisimNet2),
-            .q(s_logisimNet35),
+      A616 (.clock(s_a624_q_n),
+            .j(s_a618_q_n),
+            .k(s_vcc),
+            .preset(s_gnd),
+            .q(s_a616_q),
             .qBar(),
-            .reset(s_logisimNet8),
+            .reset(s_rescl),
             .tick(1'b1));
 
    J_K_FLIPFLOP #(.invertClockEnable(0))
-      A618 (.clock(s_logisimNet39),
-            .j(s_logisimNet35),
-            .k(s_logisimNet6),
-            .preset(s_logisimNet2),
-            .q(s_logisimNet32),
-            .qBar(s_logisimNet28),
-            .reset(s_logisimNet8),
+      A618 (.clock(s_a624_q_n),
+            .j(s_a616_q),
+            .k(s_vcc),
+            .preset(s_gnd),
+            .q(s_a618_q),
+            .qBar(s_a618_q_n),
+            .reset(s_rescl),
             .tick(1'b1));
 
    J_K_FLIPFLOP #(.invertClockEnable(0))
-      A617 (.clock(s_logisimNet39),
-            .j(s_logisimNet32),
-            .k(s_logisimNet32),
-            .preset(s_logisimNet2),
+      A617 (.clock(s_a624_q_n),
+            .j(s_a618_q),
+            .k(s_a618_q),
+            .preset(s_gnd),
             .q(),
-            .qBar(s_logisimNet24),
-            .reset(s_logisimNet8),
+            .qBar(s_a617_q_n),
+            .reset(s_rescl),
             .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      A572 (.clock(s_logisimNet30),
-            .d(s_logisimNet75),
-            .preset(s_logisimNet42),
+      A572 (.clock(s_clear_n),
+            .d(s_esload_n),
+            .preset(s_clrti),
             .q(),
-            .qBar(s_logisimNet4),
-            .reset(s_logisimNet44),
+            .qBar(s_lrst),
+            .reset(s_zz0), //negated zz1
             .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      A577 (.clock(s_logisimNet62),
-            .d(s_logisimNet19),
-            .preset(s_logisimNet80),
-            .q(s_logisimNet53),
+      A577 (.clock(s_a625_y),
+            .d(s_gnd),
+            .preset(s_clrti),
+            .q(s_rtc_n),
             .qBar(),
-            .reset(s_logisimNet82),
+            .reset(s_zz0), //negated zz1
             .tick(1'b1));
 
    D_FLIPFLOP #(.invertClockEnable(0))
-      A600 (.clock(s_logisimNet70),
-            .d(s_logisimNet49),
-            .preset(s_logisimNet71),
+      A600 (.clock(s_a605_q_n),
+            .d(s_gnd),
+            .preset(~s_pows_n),
             .q(s_powfail),
             .qBar(),
-            .reset(s_logisimNet55),
+            .reset(~s_powfail),  // Q signal (POWFAIL) is fed back to reset (which has negated input in the original drawing)
             .tick(1'b1));
 
 
@@ -446,123 +308,122 @@ module DECODE_DGA_POW(
    *******************************************************************************/
 
    F714   A623 (.H01_T(s_rtosc),
-                .H02_R(s_logisimNet8),
-                .H03_S(s_logisimNet3),
+                .H02_R(s_rescl),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet69));
+                .N02_QB(s_a623_q_n));
 
    F714   A633 (.H01_T(s_rtosc),
                 .H02_R(s_closc),
-                .H03_S(s_logisimNet15),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_a633_qb));
+                .N02_QB(s_rfclk));
 
-   F091   A613B (.N01(s_logisimNet95),
-                 .N02());
 
-   F714   A596 (.H01_T(s_logisimNet26),
+   // Connected all F091 (A637 and A613) to this F091
+   F091   A613B (.N01(s_zz1),  // N01 = Always 1
+                 .N02(s_zz0)); // N02 = Always 0
+
+   F714   A596 (.H01_T(s_a601_y),
                 .H02_R(s_powsense),
-                .H03_S(s_logisimNet12),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet63));
+                .N02_QB(s_a596_q_n));
 
-   F714   A632 (.H01_T(s_logisimNet69),
-                .H02_R(s_logisimNet8),
-                .H03_S(s_logisimNet3),
+   F714   A632 (.H01_T(s_a623_q_n),
+                .H02_R(s_rescl),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet93));
+                .N02_QB(s_a632_q_n));
 
-   F714   A629 (.H01_T(s_a633_qb),
+   F714   A629 (.H01_T(s_rfclk),
                 .H02_R(s_closc),
-                .H03_S(s_logisimNet15),
+                .H03_S(s_gnd),
                 .N01_Q(),
                 .N02_QB(s_panosc));
 
-   F714   A602 (.H01_T(s_logisimNet63),
+   F714   A602 (.H01_T(s_a596_q_n),
                 .H02_R(s_powsense),
-                .H03_S(s_logisimNet12),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet94));
+                .N02_QB(s_a602_q_n));
 
-   F714   A634 (.H01_T(s_logisimNet93),
-                .H02_R(s_logisimNet8),
-                .H03_S(s_logisimNet3),
+   F714   A634 (.H01_T(s_a632_q_n),
+                .H02_R(s_rescl),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet47));
+                .N02_QB(s_a634_q_n));
 
    F595   A570 (.H01_S(s_stp_n),
                 .H02_R(s_pwcl),
-                .H03_G(s_logisimNet95),
+                .H03_G(s_zz1),
                 .N01_Q(),
-                .N02_QB(s_logisimNet75));
+                .N02_QB(s_esload_n));
 
-   F595   A571 (.H01_S(s_logisimNet34),
-                .H02_R(s_logisimNet5),
-                .H03_G(s_logisimNet95),
-                .N01_Q(s_logisimNet40),
+   F595   A571 (.H01_S(a580_nand_out),
+                .H02_R(s_start),
+                .H03_G(s_zz1),
+                .N01_Q(s_stp), 
                 .N02_QB(s_stp_n));
 
-   F714   A593 (.H01_T(s_logisimNet94),
+   F714   A593 (.H01_T(s_a602_q_n),
                 .H02_R(s_powsense),
-                .H03_S(s_logisimNet12),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet56));
+                .N02_QB(s_a593_q_n));
 
-   F714   A621 (.H01_T(s_logisimNet47),
-                .H02_R(s_logisimNet8),
-                .H03_S(s_logisimNet3),
+   F714   A621 (.H01_T(s_a634_q_n),
+                .H02_R(s_rescl),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet81));
+                .N02_QB(s_a621_q_n));
 
-   F091   A637 (.N01(),
-                .N02(s_logisimNet96));
-
-   F714   A594 (.H01_T(s_logisimNet56),
+   F714   A594 (.H01_T(s_a593_q_n),
                 .H02_R(s_powsense),
-                .H03_S(s_logisimNet12),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet51));
+                .N02_QB(s_a594_q_n));
 
-   F714   A622 (.H01_T(s_logisimNet81),
-                .H02_R(s_logisimNet8),
-                .H03_S(s_logisimNet3),
+   F714   A622 (.H01_T(s_a621_q_n),
+                .H02_R(s_rescl),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet7));
+                .N02_QB(s_a622_q_n));
 
-   F617   A630 (.H01_D(s_logisimNet96),
-                .H02_C(s_a633_qb),
-                .H03_RB(s_logisimNet17),
+   F617   A630 (.H01_D(s_zz0),
+                .H02_C(s_rfclk),
+                .H03_RB(s_gnd),
                 .H04_SB(s_ref_n),
                 .N01_Q(s_refrq_n),
                 .N02_QB());
 
-   F714   A619 (.H01_T(s_logisimNet7),
-                .H02_R(s_logisimNet8),
-                .H03_S(s_logisimNet3),
+   F714   A619 (.H01_T(s_a622_q_n),
+                .H02_R(s_rescl),
+                .H03_S(s_gnd),
                 .N01_Q(),
                 .N02_QB(s_testo));
 
-   F714   A591 (.H01_T(s_logisimNet51),
+   F714   A591 (.H01_T(s_a594_q_n),
                 .H02_R(s_powsense),
-                .H03_S(s_logisimNet12),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet89));
+                .N02_QB(s_a591_q_n));
 
-   F714   A627 (.H01_T(s_logisimNet24),
-                .H02_R(s_logisimNet8),
-                .H03_S(s_logisimNet2),
+   F714   A627 (.H01_T(s_a617_q_n),
+                .H02_R(s_rescl),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet14));
+                .N02_QB(s_a627_q_n));
 
-   F714   A605 (.H01_T(s_logisimNet89),
+   F714   A605 (.H01_T(s_a591_q_n),
                 .H02_R(s_powsense),
-                .H03_S(s_logisimNet12),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet70));
+                .N02_QB(s_a605_q_n));
 
    F617   A631 (.H01_D(s_refrq_n),
-                .H02_C(s_a633_qb),
-                .H03_RB(s_logisimNet17),
+                .H02_C(s_rfclk),
+                .H03_RB(s_gnd),
                 .H04_SB(s_bdry50_n),
                 .N01_Q(s_a631_q),
                 .N02_QB());
@@ -570,64 +431,61 @@ module DECODE_DGA_POW(
    F571   A620 (.A(s_test_enable),
                 .D0(s_testo),
                 .D1(s_rtosc),
-                .ENB_N(s_logisimNet3),
-                .Y(s_logisimNet77));
+                .ENB_N(s_gnd),
+                .Y(s_a620_y));
 
-   F714   A626 (.H01_T(s_logisimNet14),
-                .H02_R(s_logisimNet8),
-                .H03_S(s_logisimNet2),
+   F714   A626 (.H01_T(s_a627_q_n),
+                .H02_R(s_rescl),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet45));
+                .N02_QB(s_a626_q_n));
 
-   F714   A624 (.H01_T(s_logisimNet77),
-                .H02_R(s_logisimNet8),
-                .H03_S(s_logisimNet3),
+   F714   A624 (.H01_T(s_a620_y),
+                .H02_R(s_rescl),
+                .H03_S(s_gnd),
                 .N01_Q(),
-                .N02_QB(s_logisimNet39));
+                .N02_QB(s_a624_q_n));
 
    F571   A625 (.A(s_sel5ms_n),
-                .D0(s_logisimNet24),
-                .D1(s_logisimNet45),
-                .ENB_N(s_logisimNet38),
-                .Y(s_logisimNet62));
+                .D0(s_a617_q_n),
+                .D1(s_a626_q_n),
+                .ENB_N(s_gnd),
+                .Y(s_a625_y));
 
-   F091   A613 (.N01(s_logisimNet1),
-                .N02());
-
-   F103   A628 (.F_IN(s_logisimNet20),
-                .F_OUT(s_logisimNet8));
+   F103   A628 (.F_IN(s_rescl_n),
+                .F_OUT(s_rescl));
 
    F571   A601 (.A(s_test_enable),
-                .D0(s_logisimNet62),
+                .D0(s_a625_y),
                 .D1(s_rtosc),
-                .ENB_N(s_logisimNet12),
-                .Y(s_logisimNet26));
+                .ENB_N(s_gnd),
+                .Y(s_a601_y));
 
-   F595   A576 (.H01_S(s_logisimNet90),
-                .H02_R(s_logisimNet36),
-                .H03_G(s_logisimNet95),
+   F595   A576 (.H01_S(s_load),
+                .H02_R(s_a579_out_n),
+                .H03_G(s_zz1),
                 .N01_Q(),
-                .N02_QB(s_logisimNet72));
+                .N02_QB(s_lod_n));
 
-   F595   A574 (.H01_S(s_logisimNet4),
-                .H02_R(s_logisimNet36),
-                .H03_G(s_logisimNet95),
+   F595   A574 (.H01_S(s_lrst),
+                .H02_R(s_a579_out_n),
+                .H03_G(s_zz1),
                 .N01_Q(),
-                .N02_QB(s_logisimNet98));
+                .N02_QB(s_rst_n));
 
    /*  H01_S signal loops back vis STPN from A571. Verilator doesnt like it, Vivado does not complain */
    /* verilator lint_off UNOPTFLAT */  // <=== This didnt fix verilator lint error, so I added it into the F595 module for everyone..
-   F595   A569 (.H01_S(s_logisimNet54),                
+   F595   A569 (.H01_S(s_a578_out_n),                
                 .H02_R(s_powfail_n),                
-                .H03_G(s_logisimNet95),
+                .H03_G(s_zz1),
                 .N01_Q(),
-                .N02_QB(s_logisimNet30));
-  /* verilator lint_on UNOPTFLAT */
+                .N02_QB(s_clear_n));
+   /* verilator lint_on UNOPTFLAT */
 
-   F595   A575 (.H01_S(s_logisimNet92),
-                .H02_R(s_logisimNet36),
-                .H03_G(s_logisimNet95),
+   F595   A575 (.H01_S(s_continue),
+                .H02_R(s_a579_out_n),
+                .H03_G(s_zz1),
                 .N01_Q(),
-                .N02_QB(s_logisimNet27));
+                .N02_QB(s_conn_n));
 
 endmodule
