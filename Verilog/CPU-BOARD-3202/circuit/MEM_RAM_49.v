@@ -54,7 +54,7 @@ module MEM_RAM_49(
    // output
    wire [17:0] s_dd_17_0_out;     // shared output signal depending on bank
    wire [17:0] s_dd_17_0_parity; // parity signals (calculation across all banks)
-   wire        s_corr;
+   wire        s_corr_n;
 
    // BANK0   
    wire [17:0] s_dd_17_0_b0_out; // DD out from bank 0
@@ -128,7 +128,7 @@ module MEM_RAM_49(
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign CORR_n       = ~s_corr;
+   assign CORR_n       = s_corr_n;
    assign DD_17_0_OUT  = s_dd_17_0_out[17:0];
 
    /*******************************************************************************
@@ -154,7 +154,7 @@ module MEM_RAM_49(
    assign s_dd_17_0_parity[17]   = q9_b1h | q9_b2h | q9_b0h;
 
    // Calculate CORR ? (in the doc for these RAM chips it seems this pin is not connected..)
-   assign s_corr = !prd_n_b2l | !prd_n_b1l | !prd_n_b0l | !prd_n_b0h | !prd_n_b1h | !prd_n_b2h;
+   assign s_corr_n = (prd_n_b2l & prd_n_b1l & prd_n_b0l & prd_n_b0h & prd_n_b1h & prd_n_b2h);
 
 
    // Connect input D9 to output Q9
