@@ -42,30 +42,22 @@ module CPU_CS_CTL_18(
    wire [1:0] s_rf_1_0;
    wire [3:0] s_ww_3_0_n;
    wire [2:0] s_cc_3_1_n;
-   wire       s_fetch;
-   wire       s_wcstb_n;
-   wire       s_wcs_n;   
-   wire       s_BRK_n;
-   wire       s_wica_n;
-   wire       s_ecsl_n;
+   wire       s_brk_n;
    wire       s_ecsd_n;      
-   wire       s_lcs_n;
-   wire       s_LUA12;
-   wire       s_term_n;
-   wire       s_eupp_n;
-   wire       s_WCA_n;
+   wire       s_ecsl_n;
    wire       s_elow_n;
-   wire       s_logisimNet3;
-   wire       s_form_n;
-   wire       s_logisimNet34;
-   wire       s_logisimNet35;
-   wire       s_logisimNet36;
-   wire       s_logisimNet37;
-   wire       s_logisimNet4;
-   wire       s_logisimNet5;
-   wire       s_rwcs_n;
-   wire       s_logisimNet8;
+   wire       s_eupp_n;
    wire       s_ewca_n;
+   wire       s_fetch;
+   wire       s_form_n;
+   wire       s_lcs_n;
+   wire       s_lua12;
+   wire       s_rwcs_n;
+   wire       s_term_n;
+   wire       s_WCA_n;
+   wire       s_wcs_n;   
+   wire       s_wcstb_n;
+   wire       s_wica_n;
 
    /*******************************************************************************
    ** Here all input connections are defined                                     **
@@ -74,9 +66,9 @@ module CPU_CS_CTL_18(
    assign s_cc_3_1_n[2:0]     = CC_3_1_n;
    assign s_fetch             = FETCH;
    assign s_wcs_n             = WCS_n;
-   assign s_BRK_n             = BRK_n;
+   assign s_brk_n             = BRK_n;
    assign s_lcs_n             = LCS_n;
-   assign s_LUA12             = LUA12;
+   assign s_lua12             = LUA12;
    assign s_term_n            = TERM_n;
    assign s_WCA_n             = WCA_n;
    assign s_form_n            = FORM_n;
@@ -98,6 +90,7 @@ module CPU_CS_CTL_18(
    *******************************************************************************/
    assign s_ecsd_n = s_lcs_n & s_ewca_n;
 
+   // Simplified logic for WU_3_0_n, a NOR chip with negated inputs is in reality an AND chip
    assign s_wu_3_0_n[0] = s_ww_3_0_n[0] & s_wica_n;
    assign s_wu_3_0_n[1] = s_ww_3_0_n[1] & s_wica_n;
    assign s_wu_3_0_n[2] = s_ww_3_0_n[2] & s_wica_n;
@@ -107,6 +100,8 @@ module CPU_CS_CTL_18(
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
+
+  // Note! EW_3_0_n will only be enbled when ECSL_n is gone high - and the PAL 44305D signal EWCA_n is also high.
 
    TTL_74139   CHIP_30B (.A1(s_rf_1_0[0]),
                          .B1(s_rf_1_0[1]),
@@ -129,7 +124,7 @@ module CPU_CS_CTL_18(
                                  .EUPP_n(s_eupp_n),
                                  .ELOW_n(s_elow_n),
                                  .WCA_n(s_WCA_n),
-                                 .LUA12(LUA12),
+                                 .LUA12(s_lua12),
                                  .FORM_n(s_form_n),
                                  .CC1_n(s_cc_3_1_n[0]),
                                  .CC2_n(s_cc_3_1_n[1]),
@@ -138,7 +133,7 @@ module CPU_CS_CTL_18(
                                  .RWCS_n(s_rwcs_n),
                                  .WCS_n(s_wcs_n),
                                  .FETCH(s_fetch),
-                                 .BRK_n(s_BRK_n),
+                                 .BRK_n(s_brk_n),
                                  .TERM_n(s_term_n),
                                  .WICA_n(s_wica_n),
                                  .WCSTB_n(s_wcstb_n));
