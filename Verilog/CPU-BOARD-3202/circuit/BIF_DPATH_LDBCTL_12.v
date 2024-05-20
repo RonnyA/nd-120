@@ -65,8 +65,7 @@ module BIF_DPATH_LDBCTL_12(
    wire s_cgnt_n;
    wire s_cgnt50_n;
    wire s_cgntcact_n;
-   wire s_clkbd;
-   wire s_cmwrite;
+   wire s_clkbd;   
    wire s_dbapr;
    wire s_dstb_n;   
    wire s_eadr_n;
@@ -77,8 +76,7 @@ module BIF_DPATH_LDBCTL_12(
    wire s_gnt_n;
    wire s_ibapr_n;
    wire s_iod_n;
-   wire s_iorq_n;
-   wire s_iorq_n;
+   wire s_iorq_n;   
    wire s_mis0;
    wire s_mwrite_n;
    wire s_pd1;
@@ -159,13 +157,13 @@ module BIF_DPATH_LDBCTL_12(
          .WBD_n(s_wbd_n),             // Y0_n - Write Bus Direction    
          .CBWRITE_n(s_wlbd_n),        // Y1_n - CPU Write cycle to Bus 
 
-         .WLBD_n(s_cbwrite_n),        // B0_n - Write Local Bus Direction
-         .CMWRITE_n(s_cmwrite)        // B1_n - CPU Write to Local Memory (not connected, just used internal in PAL)
+         .WLBD_n(s_cbwrite_n),        // B0_n - Write Local Bus Direction         
+         .CMWRITE_n()                 // B1_n - CPU Write to Local Memory (not connected, just used internal in PAL)
       );
 
       PAL_44302B   PAL_44302_ULBC1 
       (
-         .Q0_n(s_q0_n),       // I0
+         .Q0_n(s_q0_n),              // I0
          .Q2_n(s_q2_n),              // I1
          .CC2_n(s_cc2_n),            // I2
          .BDRY25_n(s_bdry25_n),      // I3
@@ -180,7 +178,7 @@ module BIF_DPATH_LDBCTL_12(
          .CGNTCACT_n(s_cgntcact_n),  // Y1_n
 
          .EMD_n(s_emd_n),              // B0_n
-         .BDSTB_n1_n(s_dstb_n),        // B1_n
+         .DSTB_n(s_dstb_n),            // B1_n
          //.B2_n(),                    // B2_n
          .TEST(s_pd3),  //PD3          // B3_n
          .IORQ_n(s_iorq_n),            // B4_n
@@ -206,8 +204,8 @@ module BIF_DPATH_LDBCTL_12(
 
          .BACT_n(s_bact_n),   // B0_n 
          .EBADR_b1(s_ebadr),  // B1_n 
-         //.FAPR(),           // B2_n 
-         //.SAPR(),           // B3_n 
+         .FAPR(),             // B2_n  - not in use
+         .SAPR(),             // B3_n  - not in use
          .CLKBD(s_clkbd),     // B4_n 
          .EBD_n(s_ebd_n)      // B5_n  
       );
