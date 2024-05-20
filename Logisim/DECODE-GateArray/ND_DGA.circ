@@ -2083,6 +2083,11 @@
     <comp lib="8" loc="(1160,1205)" name="Text">
       <a name="text" val="CLEARN"/>
     </comp>
+    <comp lib="8" loc="(1201,2323)" name="Text">
+      <a name="color" val="#d60e0c"/>
+      <a name="font" val="SansSerif bold 22"/>
+      <a name="text" val="TODO: WHY IS ZZ1 inverted and sent to NAND gates. It will never be 1.."/>
+    </comp>
     <comp lib="8" loc="(1470,4330)" name="Text">
       <a name="text" val="A616, A618 and A617 = F774 (JK Flip Flop with R,S)"/>
     </comp>
@@ -2136,6 +2141,9 @@
     </comp>
     <comp lib="8" loc="(580,220)" name="Text">
       <a name="text" val="LOAD"/>
+    </comp>
+    <comp lib="8" loc="(597,2312)" name="Text">
+      <a name="text" val="ZZ1"/>
     </comp>
     <comp lib="8" loc="(635,585)" name="Text">
       <a name="text" val="CLRTIN"/>
@@ -5571,6 +5579,7 @@
     <comp lib="1" loc="(3940,1540)" name="NAND Gate">
       <a name="facing" val="south"/>
       <a name="inputs" val="6"/>
+      <a name="label" val="A257"/>
       <a name="size" val="70"/>
     </comp>
     <comp lib="1" loc="(4150,460)" name="NAND Gate">
@@ -5582,6 +5591,7 @@
     <comp lib="1" loc="(4430,1540)" name="NAND Gate">
       <a name="facing" val="south"/>
       <a name="inputs" val="6"/>
+      <a name="label" val="A274"/>
       <a name="size" val="70"/>
     </comp>
     <comp lib="1" loc="(4560,460)" name="NAND Gate">
