@@ -150,14 +150,8 @@ module MEM_RAM_49(
 
 
    // Parity calculation across all banks
-   assign s_dd_17_0_parity[8] = q9_b1l;
-   assign s_dd_17_0_parity[17] = q9_b1h;
-
-   assign s_dd_17_0_parity[8] = q9_b2l;
-   assign s_dd_17_0_parity[17] = q9_b2h;
-  
-   assign s_dd_17_0_parity[8] = q9_b0l;
-   assign s_dd_17_0_parity[17] = q9_b0h;
+   assign s_dd_17_0_parity[8]    = q9_b1l | q9_b2l | q9_b0l;
+   assign s_dd_17_0_parity[17]   = q9_b1h | q9_b2h | q9_b0h;
 
    // Calculate CORR ? (in the doc for these RAM chips it seems this pin is not connected..)
    assign s_corr = !prd_n_b2l | !prd_n_b1l | !prd_n_b0l | !prd_n_b0h | !prd_n_b1h | !prd_n_b2h;
