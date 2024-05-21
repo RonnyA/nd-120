@@ -29,7 +29,7 @@ input  [7:0] D8, // DATA INPUT
 output [7:0] Q8, // DATA OUTPUT
 
 // Output signals
-output       D9, // DATA INPUT
+input        D9, // DATA INPUT
 output       Q9, // DATA OUTPUT
 output       PRD_n
 
@@ -65,15 +65,16 @@ output       PRD_n
    assign s_cas9_n       = CAS9_n;
    assign s_W_n          = W_n;
    assign s_D_7_0        = D8;
-
+   assign s_d9           = D9;
    /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign D9        = s_d9;
+   
    assign Q9        = s_q9;
+   
 
    // TODO: Assign Q8 from some PSRAM or other RAM
-   assign Q8        = W_n ? 0 : 8'b0ZZZZZZZ; // Data out is not valid when writing
+   assign Q8        = W_n ? 8'b00000000 : 8'b00000000; // Data out is not valid when writing
 
    assign PRD_n     = 1; // Not connected?
    
