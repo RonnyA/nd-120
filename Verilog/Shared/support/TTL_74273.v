@@ -1,7 +1,13 @@
-// 74273
-// OCTAL D-TYPE FLIP-FLOP WITH CLEAR
-//
-// Documentation:  https://www.ti.com/lit/ds/symlink/sn54ls273-sp.pdf
+/**************************************************************************
+** 74273                                                                 **
+** OCTAL D-TYPE FLIP-FLOP WITH COMMON CLOCK AND ASYNCHRONOUS CLEAR       **
+** (NONE NEGATING)                                                       **
+**                                                                       **
+** Documentation:  https://www.ti.com/lit/ds/symlink/sn54ls273-sp.pdf    **
+**                                                                       **
+** Last reviewed: 25-MAY-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
 
 module TTL_74273 (
