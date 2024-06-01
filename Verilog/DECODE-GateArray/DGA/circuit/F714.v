@@ -1,75 +1,82 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : F714                                                         **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 DGA (Decode Gate Array)                                         **
+** DECODE/DGA                                                            **
+**                                                                       **
+** NEC F714 - T Flip-Flop with R, S                                      **
+**                                                                       **
+** Last reviewed: 20-MAY-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module F714( H01_T,
-             H02_R,
-             H03_S,
-             N01_Q,
-             N02_QB );
+module F714
+( 
+   input H01_T,   // Toggle
+   input H02_R,   // Reset
+   input H03_S,   // Set
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input H01_T;
-   input H02_R;
-   input H03_S;
+   output N01_Q,
+   output N02_QB
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output N01_Q;
-   output N02_QB;
 
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-   wire s_logisimNet0;
-   wire s_logisimNet1;
-   wire s_logisimNet2;
-   wire s_logisimNet3;
-   wire s_logisimNet4;
-   wire s_logisimNet5;
+reg regQ;
+reg reqQ_n;
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
+// Wires
+wire s_t;
+wire s_r;
+wire s_s;
 
-   /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
-   assign s_logisimNet2 = H02_R;
-   assign s_logisimNet4 = H01_T;
-   assign s_logisimNet5 = H03_S;
 
-   /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
-   assign N01_Q  = s_logisimNet0;
-   assign N02_QB = s_logisimNet1;
+// Assign inputs
+assign s_t     = H01_T;
+assign s_r     = H02_R;
+assign s_s     = H03_S;
 
-   /*******************************************************************************
-   ** Here all in-lined components are defined                                   **
-   *******************************************************************************/
 
-   // NOT Gate
-   assign s_logisimNet3 = ~s_logisimNet4;
+// Assign outputs
+assign N01_Q   = regQ;
+assign N02_QB  = reqQ_n;
 
-   /*******************************************************************************
-   ** Here all normal components are defined                                     **
-   *******************************************************************************/
-   T_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_1 (.clock(s_logisimNet4),
-                .preset(s_logisimNet5),
-                .q(s_logisimNet0),
-                .qBar(s_logisimNet1),
-                .reset(s_logisimNet2),
-                .t(s_logisimNet3),
-                .tick(1'b1));
 
+always @(posedge s_t or posedge s_r or posedge s_s) begin      
+   if (s_r | s_s)  begin
+      if (!s_s & s_r) begin // reset
+         regQ   <= 1'b0;
+         reqQ_n <= 1'b1;
+      end else if (s_s & !s_r) begin // set 
+         regQ   <= 1'b1;
+         reqQ_n <= 1'b0;
+      end else begin /* s_rb & s_sb */  
+         regQ   <= 1'b1;
+         reqQ_n <= 1'b1;
+      end
+   end else begin
+      if (s_t) begin
+
+         reqQ_n <=  regQ;
+         regQ   <= ~regQ;
+         
+      end
+   end
+end
 
 endmodule
+
+
+/* 
+
+TRUTH TABLE
+===========
+
+| T       | R | S | Q | QB |
+|---------|---|---|---|----|
+| posedge | 0 | 0 | Invert | 
+| negedge | 0 | 0 |  Hold  |
+|   X     | 1 | 0 | 0 | 1  |
+|   X     | 0 | 1 | 1 | 0  |
+|   X     | 1 | 1 | 1 | 1  |  <= prohibition
+
+X=irrelevant
+
+*/

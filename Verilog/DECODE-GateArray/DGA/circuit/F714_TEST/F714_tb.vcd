@@ -1,0 +1,123 @@
+$date
+	Sat Jun  1 21:35:19 2024
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1ns
+$end
+$scope module F714_testbench $end
+$var wire 1 ! N02_QB $end
+$var wire 1 " N01_Q $end
+$var reg 1 # H01_T $end
+$var reg 1 $ H02_R $end
+$var reg 1 % H03_S $end
+$scope module uut $end
+$var wire 1 # H01_T $end
+$var wire 1 $ H02_R $end
+$var wire 1 % H03_S $end
+$var wire 1 " N01_Q $end
+$var wire 1 ! N02_QB $end
+$var wire 1 & s_r $end
+$var wire 1 ' s_s $end
+$var wire 1 ( s_t $end
+$var reg 1 ) regQ $end
+$var reg 1 * reqQ_n $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+$dumpvars
+x*
+x)
+0(
+0'
+0&
+0%
+0$
+0#
+x"
+x!
+$end
+#10
+1!
+1*
+0"
+0)
+1&
+1$
+#30
+0&
+0$
+#40
+0!
+0*
+1"
+1)
+1'
+1%
+#50
+0'
+0%
+#60
+0"
+0)
+1!
+1*
+1(
+1#
+#80
+0(
+0#
+#90
+1"
+1)
+0!
+0*
+1(
+1#
+#110
+0(
+0#
+#120
+1!
+1*
+1'
+1%
+1&
+1$
+#130
+0'
+0%
+0&
+0$
+#140
+1'
+1%
+1&
+1$
+#150
+0'
+0%
+0&
+0$
+#180
+0"
+0)
+1(
+1#
+#200
+0(
+0#
+#210
+1"
+1)
+0!
+0*
+1(
+1#
+#230
+0(
+0#
+#240

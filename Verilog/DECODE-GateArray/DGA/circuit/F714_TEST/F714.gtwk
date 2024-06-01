@@ -1,0 +1,28 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Tue May 28 07:31:54 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/F714_TEST/F714_tb.vcd"
+[dumpfile_mtime] "Tue May 28 07:29:09 2024"
+[dumpfile_size] 1232
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/F714_TEST/F714.gtwk"
+[timestart] 0
+[size] 2182 600
+[pos] -1 -1
+*0.000000 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+[treeopen] F714_testbench.
+[sst_width] 297
+[signals_width] 110
+[sst_expanded] 1
+[sst_vpaned_height] 149
+@28
+F714_testbench.H01_T
+F714_testbench.H02_R
+F714_testbench.H03_S
+@200
+-*** out **
+@28
+F714_testbench.N01_Q
+F714_testbench.N02_QB
+[pattern_trace] 1
+[pattern_trace] 0
