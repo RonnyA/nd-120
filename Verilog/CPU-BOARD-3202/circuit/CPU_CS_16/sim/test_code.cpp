@@ -52,6 +52,13 @@ struct TestCase {
   std::string description; // Description of the test case
 };
 
+// Reading Microcode from ROM to RAM
+// Address 0x000000 : ROM: 0x200000830029C401
+// Address 0x000001 : ROM: 0x2000002A00006018
+// ...
+// Address 0x001fff : ROM: 0x0000000000100FFF  // Last address-1 of ROM, CSA bit 12 bit is 1
+// Address 0x002000 : ROM: 0x0000000000000000  // Last address of ROM, CSA bit 12 bit is 0
+
 
 #define MAX_SIM_TIME 20
 vluint64_t sim_time = 0;
@@ -77,13 +84,13 @@ int main(int argc, char **argv)
     top->LCS_n = true;
     top->MACLK = true;
     top->PD1 = false; // PD1 must be low to have normal functionality
-    top->RWCS_n = true;
+    
     top->TERM_n = true;
     top->WCA_n = true;
     top->WCS_n = true;
 
 
-    top->FETCH = true;  
+    
 
 #ifdef DO_TRACE
     VerilatedVcdC *m_trace = new VerilatedVcdC;    
@@ -116,26 +123,66 @@ int main(int argc, char **argv)
     int rf = 0;
     int cnt=0;
 
-    // Only first 10 microcodes for test
-    for (int j=0;j<10;j++)
-    {
-        top->WCS_n = false;
-        top->BLCS_n = false;
-        top->LCS_n = false;
+    int MAX_MICROCODES = 10; // Only first 10 microcodes for test
+
+    ;
+    top->LCS_n = false; // enable Load Control Store
+    
+
+   // Ensure signals are set appropriately before writing
+    top->RWCS_n = 0;  //  Enable write to Controls store
+    top->FETCH = 1;
+    top->WCA_n = 0;
+    top->TERM_n = 0;
+
+    top->WCS_n = false;
+    top->BLCS_n = false;
         
-        top->CSA_12_0 = j;
-        top->CSCA_9_0 = j;                
+    uint16_t csa;
+
+    for (int phase=0;phase<3;phase++)
+    {
+      for (int j=0;j<MAX_MICROCODES;j++)
+      {            
+            csa = j;
+            top->CSCA_9_0 = j;
+
+        if (phase == 0) // Read microcode from ROM (microcodes 0 to MAX)
+        {
+          //
+        }
+        else if (phase == 1) // Read microcode from ROM (the last microcodes trigger address bit 12 to 1 and then to 0)
+        {           
+            csa |= 1<<12; // Set bit 12 so PAL thinks we are getting cloe to the end of the ROM
+            
+            //top->CSCA_9_0 = j;         
+            top->CSCA_9_0 = 0;
+        }
+        else if (phase == 2) // Read microcode from RAM (microcodes 0 to MAX) (lcs_n should now be high)
+        {
+            top->RWCS_n = 1;  // Enable read mode
+            top->LCS_n = true; // "Load command store" done
+
+            top->WCS_n = true;
+            top->BLCS_n = true;
+
+
+            top->FETCH = 0;
+            top->TERM_n = 1;
+        }
+      
 
         // Load microcode from PROM to RAM
         for (int part = 0;part <4; part++)
         {
             for (int ck =0;ck<1;ck++)
             {
-                
-                
                 top->RF_1_0 = part;
 
                 top->sysclk=!top->sysclk;
+                top->CSA_12_0 = csa;
+                printf("CSA_12_0: %d\n", csa);
+
                 top->eval();
             
                     
@@ -157,7 +204,7 @@ int main(int argc, char **argv)
 
             }
         }
-
+      }
     }
 
     top->WCS_n =true;

@@ -101,13 +101,13 @@ int main(int argc, char **argv)
 
         if (write_phase) // Write phase
         {
-            top->EUPP_n = false; // ENABLE UUA RAM
-            top->ELOW_n = false;  // ENABLE LUA RAM
+            //top->EUPP_n = false;  // ENABLE UUA RAM (upper)
+            top->ELOW_n = false;    // ENABLE LUA RAM (lowe)
         }
         else
         {
-            top->EUPP_n = false; // ENABLE UUA RAM
-            top->ELOW_n = true;  // DISABLE  LUA RAM
+            top->EUPP_n = false; // ENABLE UUA RAM (upper)
+            top->ELOW_n = true;  // DISABLE  LUA RAM (lower)
         }
 
 
@@ -138,12 +138,12 @@ int main(int argc, char **argv)
                         if (part == 1) top->WW1_n = 0;
                         if (part == 2) top->WW2_n = 0;
                         if (part == 3) top->WW3_n = 0;                    
-
+/*
                         if (part == 0) top->WU0_n = 0;
                         if (part == 1) top->WU1_n = 0;
                         if (part == 2) top->WU2_n = 0;
                         if (part == 3) top->WU3_n = 0;                    
-
+*/
                     }
 
                     top->sysclk  = !top->sysclk;

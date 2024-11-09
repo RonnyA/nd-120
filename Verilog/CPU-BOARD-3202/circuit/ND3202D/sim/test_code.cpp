@@ -105,7 +105,7 @@ int main(int argc, char **argv)
     top->BREQ_n = true; //disabled
 
     // Set defaults    
-    top->OSCCL_n = 1;
+    top->OSCCL_n = 1; // Oscillator clock (XTAL1/256) = 153.6KHz
     top->OC_1_0 = 0b11; // Choose clock input = XTAL1
     
     
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
     top->sys_rst_n = false; // Assert RESET signal
     top->sysclk = 0;
   
-    //top->POWSENSE_n = true; // Power sense signal from the PSU
+    top->POWSENSE_n = false; // Power sense signal from the PSU (signal that we have power!)
 
         top->eval();
 #ifdef DO_TRACE        
@@ -130,8 +130,12 @@ int main(int argc, char **argv)
 #endif
 
 
-    for (int ck =0;ck<2048;ck++)
+    for (int ck =0;ck<1024*10;ck++)
     {
+        if ((ck % 10)==0) //OSSCL comes from "A plug". (need to identify the frequency of this signal)
+        {
+            top->OSCCL_n = !top->OSCCL_n; // Toggle oscillator clock
+        }
 
         if (ck==3)
             top->sys_rst_n=true;  // run 3 clock cycles with reset asserted
@@ -143,6 +147,7 @@ int main(int argc, char **argv)
         top->sysclk = !top->sysclk; // Toggle clock
         top->CLOCK_1 = !top->CLOCK_1;
         top->CLOCK_2 = top->CLOCK_1;
+        
         
         top->eval();
 #ifdef DO_TRACE        
