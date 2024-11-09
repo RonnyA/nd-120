@@ -3,18 +3,18 @@
 ** CPU/CS/WCS                                                            **
 ** Writable Control Store                                                **
 ** SHEET 21 and 22 of 50                                                 **
-**                                                                       ** 
+**                                                                       **
 ** This module has 16 RAM CHIPS of type 16K (4Kx4) Static RAM for LUA    **
-** (4KByte Microcode)                                                    ** 
-**                                                                       ** 
+** (4KByte Microcode)                                                    **
+**                                                                       **
 ** This module has 16 RAM CHIPS of type 16K (4Kx4) Static RAM for UUA    **
 ** (4KByte for Writable Control Store?)                                  **
-**                                                                       ** 
-** Last reviewed: 12-MAY-2024                                          **
-** Ronny Hansen                                                          **               
+**                                                                       **
+** Last reviewed: 9-NOV-2024                                             **
+** Ronny Hansen                                                          **
 ***************************************************************************/
 
-module CPU_CS_WCS_21_22(                         
+module CPU_CS_WCS_21_22(
                         input sysclk, // System clock in FPGA
                         input sys_rst_n, // System reset in FPGA
 
@@ -27,8 +27,8 @@ module CPU_CS_WCS_21_22(
                         input        WW1_n,
                         input        WW2_n,
                         input        WW3_n,
-                        
-                        
+
+
                         input [11:0] UUA_11_0,
                         input        EUPP_n,
                         input        WU0_n,
@@ -50,27 +50,27 @@ module CPU_CS_WCS_21_22(
    wire        s_ww1_n;
    wire        s_ww0_n;
 
-   wire [63:0] s_uua_csbits_in;   
-   wire [63:0] s_uua_csbits_out;   
+   wire [63:0] s_uua_csbits_in;
+   wire [63:0] s_uua_csbits_out;
    wire [11:0] s_uua_address;
    wire        s_eupp_n;
    wire        s_wu3_n;
    wire        s_wu2_n;
    wire        s_wu1_n;
    wire        s_wu0_n;
-   
-   
+
+
 
    /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   
+
    // LUA
    assign s_lua_csbits_in[63:0] = CSBITS_63_0;
    assign s_lua_address[11:0]   = LUA_11_0;
 
    assign s_elow_n              = ELOW_n;  // Enable LUA RAM chips
-   assign s_ww0_n               = WW0_n;   // Enable write for LUA bits 15-0   
+   assign s_ww0_n               = WW0_n;   // Enable write for LUA bits 15-0
    assign s_ww1_n               = WW1_n;   // Enable write for LUA bits 31-16
    assign s_ww2_n               = WW2_n;   // Enable write for LUA bits 47-32
    assign s_ww3_n               = WW3_n;   // Enable write for LUA bits 63-48
@@ -85,9 +85,9 @@ module CPU_CS_WCS_21_22(
    assign s_wu1_n               = WU1_n;  // Enable write for UUA bits 31-16
    assign s_wu2_n               = WU2_n;  // Enable write for UUA bits 47-32
    assign s_wu3_n               = WU3_n;  // Enable write for UUA bits 63-48
-                              
 
-   
+
+
 
    /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -95,7 +95,10 @@ module CPU_CS_WCS_21_22(
    // ELOW_n = 0 means ENABLE LUA RAM CHIPS
    // EUPP_n = 0 means ENABLE UUA RAM CHIPS
 
-  assign CSBITS_63_0_OUT = (!s_elow_n) ?  s_lua_csbits_out[63:0] : (!s_eupp_n) ? s_uua_csbits_out[63:0] : 64'b0;
+   // mux data out?
+  //assign CSBITS_63_0_OUT = (!s_elow_n) ?  s_lua_csbits_out[63:0] : (!s_eupp_n) ? s_uua_csbits_out[63:0] : 64'b0;
+   // or data out
+  assign CSBITS_63_0_OUT = s_lua_csbits_out[63:0] | s_uua_csbits_out[63:0];
 
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
