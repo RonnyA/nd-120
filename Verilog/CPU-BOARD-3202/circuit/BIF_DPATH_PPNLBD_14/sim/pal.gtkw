@@ -1,0 +1,38 @@
+[*]
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Sat Nov  9 17:30:46 2024
+[*]
+[dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/BIF_DPATH_PPNLBD_14/sim/waveform.vcd"
+[dumpfile_mtime] "Sat Nov  9 17:30:32 2024"
+[dumpfile_size] 3035
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/BIF_DPATH_PPNLBD_14/sim/pal.gtkw"
+[timestart] 0
+[size] 2148 3735
+[pos] -1 -1
+*-4.456229 15 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[sst_width] 297
+[signals_width] 384
+[sst_expanded] 1
+[sst_vpaned_height] 295
+@200
+---clock--
+@28
+TOP.BIF_DPATH_PPNLBD_14.ECREQ
+@200
+--- input --
+@28
+TOP.BIF_DPATH_PPNLBD_14.EADR_n
+@200
+-
+@23
+TOP.BIF_DPATH_PPNLBD_14.CA_9_0[9:0]
+@22
+TOP.BIF_DPATH_PPNLBD_14.PPN_23_10[13:0]
+@200
+--- out osc --
+--- output --
+@22
+TOP.BIF_DPATH_PPNLBD_14.LBD_23_0_OUT[23:0]
+[pattern_trace] 1
+[pattern_trace] 0
