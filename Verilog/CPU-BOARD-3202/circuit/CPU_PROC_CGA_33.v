@@ -3,13 +3,13 @@
 ** CPU/PROC/CGA                                                          **
 ** CPU GATE ARRAY                                                        **
 ** SHEET 33 of 50                                                        **
-**                                                                       ** 
-** Last reviewed: 14-JAN-2024                                            **
+**                                                                       **
+** Last reviewed: 09-NOV-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 /* verilator lint_off UNUSED */
 
-module CPU_PROC_CGA_33( 
+module CPU_PROC_CGA_33(
    input        ALUCLK,
    input        BEDO_n,
    input        BEMPID_n,
@@ -49,7 +49,7 @@ module CPU_PROC_CGA_33(
    output [9:0]  CSCA_9_0,
    output        DOUBLE,
    output        ECCR,
-   output        ERF_n, // Not in use, its fetched from PAL 44407A, pin ERF_n (which seems to have the same logic..)   
+   output        ERF_n, // Not in use, its fetched from PAL 44407A, pin ERF_n (which seems to have the same logic..)
    output        INTRQ_n_tp1,
    output        IONI,
    output [3:0]  LAA_3_0,
@@ -65,8 +65,8 @@ module CPU_PROC_CGA_33(
    output        WCS_n,
    output        WRTRF
 );
- 
- 
+
+
    /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
@@ -74,55 +74,29 @@ module CPU_PROC_CGA_33(
 
 
 // Wire's out from the CHIP_34G
-wire s_IBINT10_n;
-wire s_IBINT11_n;
-wire s_IBINT12_n;
-wire s_IBINT13_n;
-wire s_IBINT15_n;
-
-
-/*
-   TTL_74374   CHIP_34G (.CK(s_logisimNet3),
-                         .D1(1'b0),
-                         .D2(1'b0),
-                         .D3(1'b0),
-                         .D4(s_logisimNet84),
-                         .D5(s_logisimNet33),
-                         .D6(s_logisimNet85),
-                         .D7(s_logisimNet34),
-                         .D8(s_logisimNet86),
-                         .OE_n(s_logisimNet72),
-                         .Q1(),
-                         .Q2(),
-                         .Q3(),
-                         .Q4(s_logisimNet111),
-                         .Q5(s_logisimNet22),
-                         .Q6(s_logisimNet112),
-                         .Q7(s_logisimNet23),
-                         .Q8(s_logisimNet113));
-*/
+wire s_bint10_n;
+wire s_bint11_n;
+wire s_bint12_n;
+wire s_bint13_n;
+wire s_bint15_n;
 
 
 // Connect output signals to the wires
 wire [7:0] chip_34q;
-assign  s_IBINT10_n = chip_34q[7];
-assign  s_IBINT11_n = chip_34q[6];
-assign  s_IBINT12_n = chip_34q[5];
-assign  s_IBINT13_n = chip_34q[4];
-assign  s_IBINT15_n = chip_34q[3];
+assign  s_bint10_n = chip_34q[7];
+assign  s_bint11_n = chip_34q[6];
+assign  s_bint12_n = chip_34q[5];
+assign  s_bint13_n = chip_34q[4];
+assign  s_bint15_n = chip_34q[3];
+// bit 2-0 are not used
 
 
 TTL_74374 CHIP_34G (
     .CK(~ALUCLK), //7F (Smith with 1's complement) ?
     .D({IBINT10_n, IBINT11_n, IBINT12_n, IBINT13_n, IBINT15_n, 3'b000}), // 8-bit D input, lower 3 bits unused
-    .OE_n('b0), // GND
-    .Q(chip_34q) // 8-bit Q output, lower 3 bits ignored      
+    .OE_n(1'b0), // GND
+    .Q(chip_34q) // 8-bit Q output, lower 3 bits ignored
 );
-
-
-
-
-  
 
 
 // *************** MICROCODE INPUTS ***************
@@ -211,13 +185,13 @@ assign s_CSBIT_15_0 = CSBITS[15:0];
 
 CGA DELILAH (
 
-/************ INPUT SIGNALS ********************/     
+/************ INPUT SIGNALS ********************/
    .XALUCLK(ALUCLK),
-   .XBINT10N(s_IBINT10_n),
-   .XBINT11N(s_IBINT11_n),
-   .XBINT12N(s_IBINT12_n),
-   .XBINT13N(s_IBINT13_n),
-   .XBINT15N(s_IBINT15_n),
+   .XBINT10N(s_bint10_n),
+   .XBINT11N(s_bint11_n),
+   .XBINT12N(s_bint12_n),
+   .XBINT13N(s_bint13_n),
+   .XBINT15N(s_bint15_n),
    .XCD_15_0(CD_15_0),
 
    // *** CSBITS 63-0 (ND-120/CX 64-bit Microcode input to CGA) ***
@@ -242,7 +216,7 @@ CGA DELILAH (
    .XCSRB_3_0(s_CSRB_3_0),
    .XCSBIT_15_0(s_CSBIT_15_0),
    // *** CSBITS 63-0 (END) ***
-   
+
    .XEDON(BEDO_n),
    .XEMPIDN(BEMPID_n),
    .XETRAPN(ETRAP_n),
