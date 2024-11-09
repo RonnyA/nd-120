@@ -14,49 +14,92 @@
 
 // PAL testcases
 struct TestCase {
-
-    // Inputs
-   bool       BDRY50_n;
-   bool       BRK_n;
-   bool       CLK;
-   uint8_t    CSCOMM_4_0;
-   uint8_t    CSIDBS_4_0;
-   uint8_t    CSMIS_1_0;
-   bool       CX_n;
-   bool       DAP_n;
-   bool       EAUTO_n;
-   bool       EORF_n;
-   bool       HIT;
-   bool       I1P;
-   bool       ICONTIN_n;
-   bool       ILOAD_n;
-   uint8_t    INR_7_0;
-   bool       IONI;
-   bool       ISTOP_n;
-   bool       LCS_n;
-   bool       LEV0;
-   bool       LOCK_n;
-   bool       LSHADOW;
-   uint8_t    OC_1_0;
-   bool       OPCLCS;
-   bool       OSCCL_n;
-   uint8_t    PCR_1_0;
-   bool       PONI;
-   bool       POWSENSE_n;
-   bool       REF_n;
-   bool       RXD;
-   bool       SEL5MS_n;
-   bool       SWMCL_n;
-   bool       UCLK;
-   bool       XTAL1;
-   bool       XTAL2;
-   bool       XTR;
+               
+    // Inputs  
+    uint8_t     BAUD_RATE_SWITCH;
+    bool        BDRY50_n;
+    bool        BRK_n;
+    bool        CLK;
+    uint8_t     CSCOMM_4_0;
+    uint8_t     CSIDBS_4_0;
+    uint8_t     CSMIS_1_0;
+    bool        CX_n;
+    bool        DAP_n;
+    bool        EAUTO_n;
+    bool        EORF_n;
+    bool        HIT;
+    bool        I1P;
+    bool        ICONTIN_n;
+    bool        ILOAD_n;
+    uint8_t     INR_7_0;
+    bool        IONI;
+    bool        ISTOP_n;
+    bool        LCS_n;
+    bool        LEV0;
+    bool        LOCK_n;
+    bool        LSHADOW;
+    uint8_t     OC_1_0;
+    bool        OPCLCS;
+    bool        OSCCL_n;
+    uint8_t     PCR_1_0;
+    bool        PONI;
+    bool        POWSENSE_n;
+    bool        REF_n;
+    bool        RXD;
+    bool        SEL5MS_n;
+    bool        SWMCL_n;
+    bool        UCLK;
+    bool        XTAL1;
+    bool        XTAL2;
+    bool        XTR;
+    bool        CONSOLE_n;
   
    
-    // Outputs
-   uint16_t CD_15_0;
-    
+    // Input and Output signals
+    uint16_t    IDB_15_0_IN;
+    uint16_t    IDB_15_0_OUT;
 
+    // Outputs
+    uint8_t     DP_5_1_n; 
+    uint8_t     IOLED; // 0=RED;1=GREEN
+    bool        BINT10_n;
+    bool        BINT12_n;
+    bool        BINT13_n;
+    bool        CA10;
+    bool        CCLR_n;
+    bool        CLEAR_n;      
+    bool        DT_n;
+    bool        DVACC_n;
+    bool        ECREQ;
+    bool        ECSR_n;
+    bool        EDO_n;
+    bool        EMCL_n;
+    bool        EMPID_n;
+    bool        ESTOF_n;
+    bool        FETCH;
+    bool        FMISS;
+    bool        FORM_n;
+    bool        IORQ_n;
+    bool        MCL;
+    bool        MREQ_n;
+    bool        OSC;
+    bool        PAN_n;
+    bool        PA_n;
+    bool        POWFAIL_n;
+    bool        PS_n;
+    bool        REFRQ_n;
+    bool        RT_n;
+    bool        RWCS_n;
+    bool        SHORT_n;
+    bool        SLOW_n;
+    bool        SSEMA_n;
+    bool        STOC_n;
+    bool        STP;
+    bool        TOUT;
+    bool        TXD;
+    bool        WCHIM_n;
+    bool        WRITE;
+      
     std::string description; // Description of the test case
 };
 
@@ -100,7 +143,8 @@ int main(int argc, char **argv)
    top->POWSENSE_n =
    top->REF_n =
    top->SEL5MS_n =
-   top->SWMCL_n = true;
+   top->SWMCL_n =
+   top->CONSOLE_n = true;
    
       
    top->LEV0 = true; // Level 0
