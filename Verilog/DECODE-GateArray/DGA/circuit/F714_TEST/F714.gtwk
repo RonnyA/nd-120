@@ -1,28 +1,53 @@
 [*]
 [*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
-[*] Tue May 28 07:31:54 2024
+[*] Sat Nov  9 17:01:05 2024
 [*]
 [dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/F714_TEST/F714_tb.vcd"
-[dumpfile_mtime] "Tue May 28 07:29:09 2024"
-[dumpfile_size] 1232
+[dumpfile_mtime] "Sat Nov  9 17:00:05 2024"
+[dumpfile_size] 871
 [savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/F714_TEST/F714.gtwk"
 [timestart] 0
 [size] 2182 600
 [pos] -1 -1
-*0.000000 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-[treeopen] F714_testbench.
+*-5.700000 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+[markername] AA
+[markername] BB
+[markername] CC
+[markername] DD
+[markername] EE
+[markername] FF
+[markername] GG
+[markername] HH
+[markername] II
+[markername] JJ
+[markername] KK
+[markername] LL
+[markername] MM
+[markername] NN
+[markername] OO
+[markername] PP
+[markername] QQ
+[markername] RR
+[markername] SS
+[markername] TT
+[markername] UU
+[markername] VV
+[markername] WW
+[markername] XX
+[markername] YY
+[markername] ZZ
+[treeopen] F714_tb.
 [sst_width] 297
 [signals_width] 110
 [sst_expanded] 1
 [sst_vpaned_height] 149
-@28
-F714_testbench.H01_T
-F714_testbench.H02_R
-F714_testbench.H03_S
 @200
 -*** out **
 @28
-F714_testbench.N01_Q
-F714_testbench.N02_QB
+F714_tb.uut.H01_T
+F714_tb.uut.H02_R
+F714_tb.uut.H03_S
+F714_tb.uut.N01_Q
+F714_tb.uut.N02_QB
 [pattern_trace] 1
 [pattern_trace] 0

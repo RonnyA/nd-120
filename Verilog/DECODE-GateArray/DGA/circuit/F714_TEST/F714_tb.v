@@ -1,6 +1,6 @@
 `timescale 1ns/1ns
 
-module F714_testbench;
+module F714_tb;
 
   // Inputs
   reg H01_T;
@@ -22,12 +22,12 @@ module F714_testbench;
 
   initial begin
     $dumpfile("F714_tb.vcd");
-    $dumpvars(0, F714_testbench);
+    $dumpvars(0, F714_tb);
 
 
     // Initialize inputs
     H01_T = 0;
-    H02_R = 0;    
+    H02_R = 0;
     H03_S = 0;
 
     // Apply reset
@@ -79,7 +79,7 @@ module F714_testbench;
     H02_R = 0;
     H03_S = 0;
     #20;
-    
+
     // Test toggle condition #3
     #10;
     H02_R = 0;
