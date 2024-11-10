@@ -4,7 +4,8 @@ TEST_PROGRAM = test_wrf.cpp
 TEST_FOLDER = ${TOP_FILE}
 
 #SUPPRESS_FLAGS = -Wno-PINCONNECTEMPTY -Wno-UNUSED -Wno-UNDRIVEN -Wno-WIDTH -Wno-LATCH
-SUPPRESS_FLAGS = -Wno-LATCH
+SUPPRESS_FLAGS = -Wno-LATCH -Wno-WIDTHEXPAND
+
 
 # This is the path to the root of the verilog directory
 VERILOG_ROOT = ../../..
