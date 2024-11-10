@@ -37,8 +37,6 @@ module CGA_WRF (
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-
-  wire        s_aluclk_n;
   wire        s_aluclk;
   wire        s_bdest;
   wire        s_hi_z0;
@@ -191,9 +189,6 @@ module CGA_WRF (
 
   // NOT Gate
   assign s_lba_3_n         = ~s_lba_3_0[3];
-
-  // NOT Gate
-  assign s_aluclk_n        = ~s_aluclk;
 
   // NOT Gate
   assign s_eb_15_0[8]      = ~s_lba_hi_z0;
@@ -428,8 +423,7 @@ module CGA_WRF (
    *******************************************************************************/
 
   CGA_WRF_RBLOCK RBLOCK (
-      .ALUCLK(s_aluclk),
-      .ALUCLKN(s_aluclk_n),
+      .ALUCLK(s_aluclk),      
       .A_15_0(s_a_15_0_out[15:0]),
       .BR_15_0(s_br_15_0_out[15:0]),
       .B_15_0(s_b_15_0_out[15:0]),

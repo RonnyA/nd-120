@@ -1,165 +1,91 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA                                                          **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CPU, MM&M                                                       **
+** CGA                                                                   **
+** CGA TOP LEVEL                                                         **
+**                                                                       ** 
+** Last reviewed: 20-MAY-2024                                            **
+** Ronny Hansen                                                          **               
+***************************************************************************/
 
-module CGA( 
-            XACONDN,
-            XALUCLK,
-            XBINT10N,
-            XBINT11N,
-            XBINT12N,
-            XBINT13N,
-            XBINT15N,
-            XBRKN,
-            XCD_15_0,
-            XCSALUI_8_0,
-            XCSALUM_1_0,
-            XCSBIT20,
-            XCSBIT_15_0,
-            XCSCINSEL_1_0,
-            XCSCOMM_4_0,
-            XCSECOND,
-            XCSIDBS_4_0,
-            XCSLOOP,
-            XCSMIS_1_0,
-            XCSRASEL_1_0,
-            XCSRBSEL_1_0,
-            XCSRB_3_0,
-            XCSSCOND,
-            XCSSST_1_0,
-            XCSTS_6_3,
-            XCSVECT,
-            XCSXRF3,
-            XDOUBLE,
-            XECCR,
-            XEDON,
-            XEMPIDN,
-            XERFN,
-            XETRAPN,
-            XEWCAN,
-            XFIDB_15_0_IN,
-            XFIDB_15_0_OUT,
-            XFTRAPN,
-            XILCSN,
-            XINTRQN,
-            XIONI,
-            XIOXERRN,
-            XLAA_3_0,
-            XLA_23_10,
-            XLBA_3_0,
-            XLSHADOW,
-            XMAPN,
-            XMA_12_0,
-            XMCA_9_0,
-            XMCLK,
-            XMORN,
-            XMRN,
-            XPANN,
-            XPARERRN,
-            XPCR_1_0,
-            XPIL_3_0,
-            XPONI,
-            XPOWFAILN,
-            XPTSTN,
-            XPT_9_15,
-            XRF_1_0,
-            XSPARE,
-            XSTP,
-            XTCLK,
-            XTEST_4_0,
-            XTRAPN,
-            XTSEL_2_0,
-            XVTRAPN,
-            XWCSN,
-            XWRTRF );
-
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        XALUCLK;
-   input        XBINT10N;
-   input        XBINT11N;
-   input        XBINT12N;
-   input        XBINT13N;
-   input        XBINT15N;
-   input [15:0] XCD_15_0;
-   input [8:0]  XCSALUI_8_0;
-   input [1:0]  XCSALUM_1_0;
-   input        XCSBIT20;
-   input [15:0] XCSBIT_15_0;
-   input [1:0]  XCSCINSEL_1_0;
-   input [4:0]  XCSCOMM_4_0;
-   input        XCSECOND;
-   input [4:0]  XCSIDBS_4_0;
-   input        XCSLOOP;
-   input [1:0]  XCSMIS_1_0;
-   input [1:0]  XCSRASEL_1_0;
-   input [1:0]  XCSRBSEL_1_0;
-   input [3:0]  XCSRB_3_0;
-   input        XCSSCOND;
-   input [1:0]  XCSSST_1_0;
-   input [3:0]  XCSTS_6_3;
-   input        XCSVECT;
-   input        XCSXRF3;
-   input        XEDON;
-   input        XEMPIDN;
-   input        XETRAPN;
-   input        XEWCAN;
-   
-   input        XFTRAPN;
-   input        XILCSN;
-   input        XIOXERRN;
-   input        XMAPN;
-   input        XMCLK;
-   input        XMORN;
-   input        XMRN;
-   input        XPANN;
-   input        XPARERRN;
-   input        XPOWFAILN;
-   input        XPTSTN;
-   input [6:0]  XPT_9_15;
-   input        XSPARE;
-   input        XSTP;
-   input        XTCLK;
-   input [2:0]  XTSEL_2_0;
-   input        XVTRAPN;
-
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   input  [15:0] XFIDB_15_0_IN;
-   output [15:0] XFIDB_15_0_OUT;
-
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output        XACONDN;
-   output        XBRKN;
-   output        XDOUBLE;
-   output        XECCR;
-   output        XERFN;   
-   output        XINTRQN;
-   output        XIONI;
-   output [3:0]  XLAA_3_0;
-   output [13:0] XLA_23_10;
-   output [3:0]  XLBA_3_0;
-   output        XLSHADOW;
-   output [12:0] XMA_12_0;
-   output [9:0]  XMCA_9_0;
-   output [1:0]  XPCR_1_0;
-   output [3:0]  XPIL_3_0;
-   output        XPONI;
-   output [1:0]  XRF_1_0;
-   output [4:0]  XTEST_4_0;
-   output        XTRAPN;
-   output        XWCSN;
-   output        XWRTRF;
+module CGA
+( 
+    // Input signals
+    input        XALUCLK,
+    input        XBINT10N,
+    input        XBINT11N,
+    input        XBINT12N,
+    input        XBINT13N,
+    input        XBINT15N,
+    input [15:0] XCD_15_0,
+    input [8:0]  XCSALUI_8_0,
+    input [1:0]  XCSALUM_1_0,
+    input        XCSBIT20,
+    input [15:0] XCSBIT_15_0,
+    input [1:0]  XCSCINSEL_1_0,
+    input [4:0]  XCSCOMM_4_0,
+    input        XCSECOND,
+    input [4:0]  XCSIDBS_4_0,
+    input        XCSLOOP,
+    input [1:0]  XCSMIS_1_0,
+    input [1:0]  XCSRASEL_1_0,
+    input [1:0]  XCSRBSEL_1_0,
+    input [3:0]  XCSRB_3_0,
+    input        XCSSCOND,
+    input [1:0]  XCSSST_1_0,
+    input [3:0]  XCSTS_6_3,
+    input        XCSVECT,
+    input        XCSXRF3,
+    input        XEDON,
+    input        XEMPIDN,
+    input        XETRAPN,
+    input        XEWCAN,   
+    input        XFTRAPN,
+    input        XILCSN,
+    input        XIOXERRN,
+    input        XMAPN,
+    input        XMCLK,
+    input        XMORN,
+    input        XMRN,
+    input        XPANN,
+    input        XPARERRN,
+    input        XPOWFAILN,
+    input        XPTSTN,
+    input [6:0]  XPT_9_15,
+    input        XSPARE,
+    input        XSTP,
+    input        XTCLK,
+    input [2:0]  XTSEL_2_0,
+    input        XVTRAPN,
 
 
+    // Input and output signals
+    input  [15:0] XFIDB_15_0_IN,
+    output [15:0] XFIDB_15_0_OUT,
+
+    // Output signals
+    output        XACONDN,
+    output        XBRKN,
+    output        XDOUBLE,
+    output        XECCR,
+    output        XERFN,   
+    output        XINTRQN,
+    output        XIONI,
+    output [3:0]  XLAA_3_0,
+    output [13:0] XLA_23_10,
+    output [3:0]  XLBA_3_0,
+    output        XLSHADOW,
+    output [12:0] XMA_12_0,
+    output [9:0]  XMCA_9_0,
+    output [1:0]  XPCR_1_0,
+    output [3:0]  XPIL_3_0,
+    output        XPONI,
+    output [1:0]  XRF_1_0,
+    output [4:0]  XTEST_4_0,
+    output        XTRAPN,
+    output        XWCSN,
+    output        XWRTRF
+);
+       
    // IDB BUS
    wire [15:0] FIDBI_15_0;
    wire [15:0] FIDBO_15_0;
@@ -270,8 +196,7 @@ module CGA(
    wire        s_logisimNet148;
    wire        s_logisimNet150;
    wire        s_logisimNet151;
-   wire        s_logisimNet153;
-   wire        s_logisimNet154;
+   wire        s_logisimNet153;   
    wire        s_logisimNet155;
    wire        s_logisimNet156;
    wire        s_logisimNet157;
