@@ -150,6 +150,7 @@ module CGA_WRF_RBLOCK_PREG (
 
   // verilator lint_off UNUSED
   // verilator lint_off UNDRIVEN
+  // verilator lint_off PINCONNECTEMPTY
 
   // Register P(7:0) (Clocked on s_aluclk)
   R81P R_P_0_7 (

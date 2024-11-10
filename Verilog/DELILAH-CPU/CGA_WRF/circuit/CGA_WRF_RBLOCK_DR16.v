@@ -47,6 +47,7 @@ module CGA_WRF_RBLOCK_DR16 (
 
   // verilator lint_off UNUSED
   // verilator lint_off UNDRIVEN
+  // verilator lint_off PINCONNECTEMPTY
 
   SCAN_FF R15 (
       .CLK(s_aluclk),

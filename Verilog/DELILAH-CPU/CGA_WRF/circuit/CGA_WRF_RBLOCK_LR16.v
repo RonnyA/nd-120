@@ -144,6 +144,7 @@ module CGA_WRF_RBLOCK_LR16 (
 
   // verilator lint_off UNUSED
   // verilator lint_off UNDRIVEN
+  // verilator lint_off PINCONNECTEMPTY
 
   R81P R_15_8 (
       .A (s_ir_15_0[15]),
@@ -233,7 +234,7 @@ module CGA_WRF_RBLOCK_LR16 (
       .QH (s_lr_15_0_out[8]),
       .QHN()
   );
-
+  
 
   L8 L_7_0 (
       .A  (s_ir_15_0[7]),
