@@ -81,7 +81,9 @@ module MEM_43 (
   wire [19:0] s_lbd_19_0;
   wire [23:0] s_lbd_23_0_in;  // RAM DATA 16 bits
   wire [23:0] s_lbd_23_0_out;  // RAM DATA 16 bits
-  wire [23:0] s_logisimBus9;
+
+
+  // TODO: Check what s_lbd_23_0_out and s_dd_17_0_out should be OR'ed with ?
 
   wire        s_bcgnt25;
   wire        s_bcgnt50;
