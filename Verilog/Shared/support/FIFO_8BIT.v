@@ -11,7 +11,7 @@
 // https://verilator.org/guide/latest/warnings.html#cmdoption-arg-BLKANDNBLK
 
 module FIFO_8BIT #(
-    parameter byte DEPTH = 13  // Depth of the FIFO (maximum 16, default 13)
+    parameter integer DEPTH = 13  // Depth of the FIFO (maximum 16, default 13)
 ) (
     input            rst,       // Asynchronous reset
     input            wr_en,     // Write enable
@@ -27,9 +27,9 @@ module FIFO_8BIT #(
   /* verilator lint_off UNOPTFLAT */
 
   // Calculate address width based on depth
-  localparam int AddressWidth = $clog2(DEPTH + 1);
+  localparam integer AddressWidth = $clog2(DEPTH + 1);
 
-  reg [7:0] mem[DEPTH-1];  // Memory array
+  reg [7:0] mem[DEPTH-1:0];  // Memory array
   reg [AddressWidth-1:0] wr_ptr;  // Write pointer
   reg [AddressWidth-1:0] rd_ptr;  // Read pointer
   reg [AddressWidth:0] fifo_count;  // Counter for number of elements in the FIFO
