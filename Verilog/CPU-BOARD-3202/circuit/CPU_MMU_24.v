@@ -59,7 +59,7 @@ module CPU_MMU_24 (
     output        LAPA_n,
     output [15:0] PT_15_0_OUT,
     output        WCA_n,
-    output        LED1          // Cache enabled ?
+    output        LED1          //! Cache enabled ?
 );
 
 
@@ -260,7 +260,7 @@ module CPU_MMU_24 (
       .ESTOF_n(s_estof_n),
       .IDB_15_0_IN(s_ppnx_idb_15_0_in[15:0]),
       .IDB_15_0_OUT(s_ppnx_idb_15_0_out[15:0]),
-      .PPN_25_10_IN(s_ppnx_ppn_25_10_in[15:0]),  //s_logisimBus7?
+      .PPN_25_10_IN(s_ppnx_ppn_25_10_in[15:0]),
       .PPN_25_10_OUT(s_ppnx_ppn_25_10_out[15:0])
   );
 
