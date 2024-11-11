@@ -12,44 +12,44 @@
 ***************************************************************************/
 
 
-module F595( 
-   input H01_S, // Set
-   input H02_R, // Reset
-   input H03_G, // Gate Enable
+module F595 (
+    input H01_S,  // Set
+    input H02_R,  // Reset
+    input H03_G,  // Gate Enable
 
-   output N01_Q, // Q
-   output N02_QB // Qn
+    output N01_Q,  // Q
+    output N02_QB  // Qn
 );
 
-    /* verilator lint_off UNOPTFLAT */
+  /* verilator lint_off UNOPTFLAT */
 
-   reg regQ;
-   reg regQn;
+  reg regQ;
+  reg regQn;
 
-   // Behavioral description of the R-S latch   
-   //always @(posedge H01_S, posedge H02_R, posedge H03_G) begin
+  // Behavioral description of the R-S latch
+  //always @(posedge H01_S, posedge H02_R, posedge H03_G) begin
 
-    /* verilator lint_off LATCH */
+  /* verilator lint_off LATCH */
 
-    always @* begin
-      if (H03_G) begin
-       if (H01_S & H02_R) begin              
-           regQ = 1'b1;          
-           regQn = 1'b1;                 
-       end else if (H02_R & !H01_S) begin
-           regQ = 1'b0;          
-           regQn = 1'b1;          
-       end else if (!H02_R & H01_S) begin
-           regQ = 1'b1;          
-           regQn = 1'b0;          
-       end /*else begin
+  always @* begin
+    if (H03_G) begin
+      if (H01_S & H02_R) begin
+        regQ  = 1'b1;
+        regQn = 1'b1;
+      end else if (H02_R & !H01_S) begin
+        regQ  = 1'b0;
+        regQn = 1'b1;
+      end else if (!H02_R & H01_S) begin
+        regQ  = 1'b1;
+        regQn = 1'b0;
+      end  /*else begin
            regQ = regQ; // Explicitly maintaining previous state (to avoid warning/error "not all control paths of combinational always assign a value")
            regQn = regQn;
        end*/
     end
   end
-  
-  assign N01_Q = regQ;
+
+  assign N01_Q  = regQ;
   assign N02_QB = regQn;
 
 endmodule

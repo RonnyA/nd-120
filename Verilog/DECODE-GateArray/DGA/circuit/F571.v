@@ -8,40 +8,42 @@
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
-module F571(
-   input A,
-   input D0,
-   input D1,
-   input ENB_N,
+module F571 (
+    input A,
+    input D0,
+    input D1,
+    input ENB_N,
 
-   output Y
+    output Y
 );
 
-   wire s_enb_n;
-   wire s_A;
-   wire s_enb;
-   wire s_d0;
-   wire s_d1;
-   wire s_y;
+  wire s_enb_n;
+  wire s_A;
+  wire s_enb;
+  wire s_d0;
+  wire s_d1;
+  wire s_y;
 
 
-   // Assign inputs
-   assign s_enb_n    = ENB_N;
-   assign s_A        = A;
-   assign s_d0       = D0;
-   assign s_d1       = D1;
+  // Assign inputs
+  assign s_enb_n = ENB_N;
+  assign s_A     = A;
+  assign s_d0    = D0;
+  assign s_d1    = D1;
 
-   // Assign outputs
-   assign Y = s_y;
+  // Assign outputs
+  assign Y       = s_y;
 
-   // Implementation
-   assign s_enb = ~s_enb_n;
+  // Implementation
+  assign s_enb   = ~s_enb_n;
 
-   Multiplexer_2_w_enable   PLEXERS_1 (.enable(s_enb),
-                              .muxIn_0(s_d0),
-                              .muxIn_1(s_d1),
-                              .muxOut(s_y),
-                              .sel(s_A));
+  Multiplexer_2_w_enable PLEXERS_1 (
+      .enable(s_enb),
+      .muxIn_0(s_d0),
+      .muxIn_1(s_d1),
+      .muxOut(s_y),
+      .sel(s_A)
+  );
 
 
 endmodule

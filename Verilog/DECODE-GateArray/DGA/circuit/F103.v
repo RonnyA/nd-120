@@ -8,12 +8,11 @@
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
-module F103
-( 
-   input F_IN,
-   output F_OUT 
+module F103 (
+    input  F_IN,
+    output F_OUT
 );
 
-   assign F_OUT = ~F_IN;
+  assign F_OUT = ~F_IN;
 
 endmodule
