@@ -23,7 +23,7 @@
 
 module ND120_TOP (
     input  wire       sysclk,  //! System Clock
-    input  wire       btn1,    //! Button 1, mapped to S1 (not labeled) on the board
+    input  wire       btn1,    //! Button 1, mapped to S1 (not labeled) on the board - connected to sys_rst_n
     input  wire       btn2,    //! Button 2, mapped to S2 (not labeled) on the board
     output wire [5:0] led,     //! 6-bit output for controlling LEDs
     input  wire       uartRx,  //! UART Receive pin
