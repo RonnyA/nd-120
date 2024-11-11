@@ -52,13 +52,13 @@ module ND120_TOP (
 
   // output wire from CPU
 
-  wire [5:0] s_cpu_led;  //! 6 bit LED signals 
-  //!   0=CPU RED
-  //!   1=CPU GREEN
-  //!   2=LED4_RED_PARITY_ERROR
-  //!   3=LED_CPU_GRANT_INDICATOR
-  //!   4=LED_BUS_GRANT_INDICATOR
-  //!   5=LED1 from MMU
+  wire [5:0] s_cpu_led;  // 6 bit LED signals
+  //   0=CPU RED
+  //   1=CPU GREEN
+  //   2=LED4_RED_PARITY_ERROR
+  //   3=LED_CPU_GRANT_INDICATOR
+  //   4=LED_BUS_GRANT_INDICATOR
+  //   5=LED1 from MMU
 
   wire s_run;  //! RUN: 1=CPU is running, 0=OPCOM mode
   wire [4:0] s_test_4_0;  //! Test pads

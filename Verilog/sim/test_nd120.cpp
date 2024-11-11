@@ -95,6 +95,7 @@ int main(int argc, char **argv)
 
 	const auto &test = testCases[0];
 	uint8_t led = 0;
+	uint8_t new_led = 0;
 
   // LED bits
   //!   0=CPU RED
@@ -115,11 +116,12 @@ int main(int argc, char **argv)
 
 		top->sysclk = !top->sysclk;
 		top->eval();		
-		if (top->led != led)
-		{
-			uint8_t changed = top->led ^ led; // identify changed leds
-			printf("LED changed to %2X\r\n",top->led);
-			led = top->led;
+		new_led = top->led ^ 0x3F; // bits are negated, active low
+		if (new_led!= led)
+		{			
+			uint8_t changed = new_led ^ led; // identify changed leds
+			printf("LED changed to 0x%2X\r\n",new_led);
+			led = new_led;
 			DumpLedInfo(led, changed);
 
 		}
