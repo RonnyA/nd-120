@@ -44,129 +44,111 @@ module MEM_ADEC_45 (
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-  wire [2:0] s_logisimBus39;
-  wire       s_logisimNet0;
-  wire       s_logisimNet1;
-  wire       s_logisimNet10;
-  wire       s_logisimNet11;
-  wire       s_logisimNet12;
-  wire       s_logisimNet13;
-  wire       s_logisimNet14;
-  wire       s_logisimNet15;
-  wire       s_logisimNet16;
-  wire       s_logisimNet17;
-  wire       s_logisimNet18;
-  wire       s_logisimNet19;
-  wire       s_logisimNet2;
-  wire       s_logisimNet20;
-  wire       s_logisimNet21;
-  wire       s_logisimNet22;
-  wire       s_logisimNet23;
-  wire       s_logisimNet24;
-  wire       s_logisimNet25;
-  wire       s_logisimNet26;
-  wire       s_logisimNet27;
-  wire       s_logisimNet28;
-  wire       s_logisimNet29;
-  wire       s_logisimNet3;
-  wire       s_logisimNet30;
-  wire       s_logisimNet31;
-  wire       s_logisimNet32;
-  wire       s_logisimNet33;
-  wire       s_logisimNet34;
-  wire       s_logisimNet35;
-  wire       s_logisimNet36;
-  wire       s_logisimNet37;
-  wire       s_logisimNet38;
-  wire       s_logisimNet4;
-  wire       s_logisimNet40;
-  wire       s_logisimNet41;
-  wire       s_logisimNet42;
-  wire       s_logisimNet43;
-  wire       s_logisimNet44;
-  wire       s_logisimNet45;
-  wire       s_logisimNet46;
-  wire       s_logisimNet47;
-  wire       s_logisimNet48;
-  wire       s_logisimNet49;
-  wire       s_logisimNet5;
-  wire       s_logisimNet50;
-  wire       s_logisimNet51;
-  wire       s_logisimNet52;
-  wire       s_logisimNet53;
-  wire       s_logisimNet54;
-  wire       s_logisimNet6;
-  wire       s_logisimNet7;
-  wire       s_logisimNet8;
-  wire       s_logisimNet9;
+  wire [2:0] s_bank_2_0_out;
+  wire       s_abit;
+  wire       s_aok;
+  wire       s_bank0;
+  wire       s_bank1;
+  wire       s_bank2;
+  wire       s_bbit;
+  wire       s_bd19_n;
+  wire       s_bd20_n;
+  wire       s_bd21_n;
+  wire       s_bd22_n;
+  wire       s_bd23_n;
+  wire       s_bgnt_n;
+  wire       s_bgnt;
+  wire       s_blrq_n_out;
+  wire       s_bmem_n;
+  wire       s_cbit;
+  wire       s_cgnt_n;
+  wire       s_clrq_n_out;
+  wire       s_crq_n_out;
+  wire       s_dbapr;
+  wire       s_dbit;
+  wire       s_ddbapr;
+  wire       s_ecreq;
+  wire       s_ehiseg_n;
+  wire       s_elowseg_n;
+  wire       s_emidseg_n;
+  wire       s_gnd;
+  wire       s_ibinput_n;
+  wire       s_iorq_n;
+  wire       s_moff_n;
+  wire       s_msize0_n;
+  wire       s_msize1_n;
+  wire       s_mwrite_n_out;
+  wire       s_mwrite_n;
+  wire       s_pal_44904_clk;
+  wire       s_pd4;
+  wire       s_power;
+  wire       s_ppn19;
+  wire       s_ppn20;
+  wire       s_ppn21;
+  wire       s_ppn22;
+  wire       s_ppn23;
+  wire       s_refrq_n;
+  wire       s_rgnt_n;
+  wire       s_rgnt;
+  wire       s_rlrq_n_out;
+  wire       s_write;
 
-  /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-  assign s_logisimNet0  = ECREQ;
-  assign s_logisimNet11 = BD20_n;
-  assign s_logisimNet12 = BD22_n;
-  assign s_logisimNet18 = BD23_n;
-  assign s_logisimNet19 = BD19_n;
-  assign s_logisimNet21 = BMEM_n;
-  assign s_logisimNet24 = BGNT_n;
-  assign s_logisimNet25 = PD4;
-  assign s_logisimNet28 = CGNT_n;
-  assign s_logisimNet3  = WRITE;
-  assign s_logisimNet33 = IORQ_n;
-  assign s_logisimNet34 = PPN19;
-  assign s_logisimNet35 = PPN21;
-  assign s_logisimNet36 = PPN23;
-  assign s_logisimNet4  = PPN20;
-  assign s_logisimNet45 = IBINPUT_n;
-  assign s_logisimNet46 = REFRQ_n;
-  assign s_logisimNet5  = PPN22;
-  assign s_logisimNet6  = DBAPR;
-  assign s_logisimNet7  = RGNT_n;
-  assign s_logisimNet8  = BD21_n;
+  assign s_bd19_n = BD19_n;
+  assign s_bd20_n = BD20_n;
+  assign s_bd21_n  = BD21_n;
+  assign s_bd22_n = BD22_n;
+  assign s_bd23_n = BD23_n;
+  assign s_bgnt_n = BGNT_n;
+  assign s_bmem_n = BMEM_n;
+  assign s_cgnt_n = CGNT_n;
+  assign s_dbapr  = DBAPR;
+  assign s_ecreq  = ECREQ;
+  assign s_ibinput_n = IBINPUT_n;
+  assign s_iorq_n = IORQ_n;
+  assign s_pd4 = PD4;
+  assign s_ppn19 = PPN19;
+  assign s_ppn20  = PPN20;
+  assign s_ppn21 = PPN21;
+  assign s_ppn22  = PPN22;
+  assign s_ppn23 = PPN23;
+  assign s_refrq_n = REFRQ_n;
+  assign s_rgnt_n  = RGNT_n;
+  assign s_write  = WRITE;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-  assign BANK_2_0 = s_logisimBus39[2:0];
-  assign BLRQ_n   = s_logisimNet2;
-  assign CLRQ_n   = s_logisimNet23;
-  assign CRQ_n    = s_logisimNet22;
-  assign MOFF_n   = s_logisimNet51;
-  assign MWRITE_n = s_logisimNet40;
-  assign RLRQ_n   = s_logisimNet43;
+  assign BANK_2_0 = s_bank_2_0_out[2:0];
+  assign BLRQ_n   = s_blrq_n_out;
+  assign CLRQ_n   = s_clrq_n_out;
+  assign CRQ_n    = s_crq_n_out;
+  assign MOFF_n   = s_moff_n;
+  assign MWRITE_n = s_mwrite_n_out;
+  assign RLRQ_n   = s_rlrq_n_out;
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
   // Power
-  assign  s_logisimNet32  =  1'b1;
+  assign  s_power  =  1'b1;
 
-
-  // Constant
-  assign  s_logisimNet51  =  1'b1;
-
-
-  // Power
-  assign  s_logisimNet16  =  1'b1;
-
+  // Constant: MOFF is pulled high with RN18 to POWER. 
+  // But there is a switch (SW2: Memory OFF, normal position = down) that can be set to turn memory off (see PDF page 45)
+  assign  s_moff_n  =  1'b1;
 
   // NOT Gate
-  assign s_logisimNet1 = ~s_logisimNet24;
+  assign s_bgnt = ~s_bgnt_n;
 
   // NOT Gate
-  assign s_logisimNet44 = ~s_logisimNet32;
+  assign s_rgnt = ~s_rgnt_n;
 
   // NOT Gate
-  assign s_logisimNet30 = ~s_logisimNet7;
-
-  // NOT Gate
-  assign s_logisimNet47 = ~s_logisimNet16;
+  assign s_gnd =  1'b0;
 
   /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -174,24 +156,24 @@ module MEM_ADEC_45 (
   D_FLIPFLOP #(
       .invertClockEnable(0)
   ) MEMORY_1 (
-      .clock(s_logisimNet20),
-      .d(s_logisimNet9),
-      .preset(s_logisimNet44),
+      .clock(s_ddbapr),
+      .d(s_aok),
+      .preset(s_gnd),
       .q(),
-      .qBar(s_logisimNet2),
-      .reset(s_logisimNet1),
+      .qBar(s_blrq_n_out),
+      .reset(s_bgnt),
       .tick(1'b1)
   );
 
   D_FLIPFLOP #(
       .invertClockEnable(0)
   ) MEMORY_2 (
-      .clock(s_logisimNet46),
-      .d(s_logisimNet16),
-      .preset(s_logisimNet47),
-      .q(s_logisimNet27),
-      .qBar(s_logisimNet43),
-      .reset(s_logisimNet30),
+      .clock(s_refrq_n),
+      .d(s_power),
+      .preset(s_gnd),
+      .q(s_pal_44904_clk),
+      .qBar(s_rlrq_n_out),
+      .reset(s_rgnt),
       .tick(1'b1)
   );
 
@@ -200,62 +182,93 @@ module MEM_ADEC_45 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  /* TODO:
-   PAL_44904B   PAL_44904_UMSIZE (.CK(s_logisimNet27),
-                                 .I0(s_logisimNet42),
-                                 .I1(s_logisimNet41),
-                                 .I2(s_logisimNet51),
-                                 .I3(1'b0),
-                                 .I4(1'b0),
-                                 .I5(1'b0),
-                                 .I6(1'b0),
-                                 .I7(1'b0),
-                                 .OE_n(s_logisimNet25),
-                                 .Q0_n(s_logisimNet13),
-                                 .Q1_n(s_logisimNet52),
-                                 .Q2_n(s_logisimNet14),
-                                 .Q3_n(s_logisimNet53),
-                                 .Q4_n(),
-                                 .Q5_n(s_logisimNet26),
-                                 .Q6_n(s_logisimNet48),
-                                 .Q7_n(s_logisimNet31));
+  /* Not implemented (maybe later)
 
-   PAL_16R4D   PAL_UCADEC (.B0_n(s_logisimNet42),
-                           .B1_n(s_logisimNet23),
-                           .B2_n(s_logisimNet22),
-                           .B3_n(s_logisimNet15),
-                           .CK(s_logisimNet0),
-                           .I0(s_logisimNet3),
-                           .I1(s_logisimNet33),
-                           .I2(s_logisimNet51),
-                           .I3(s_logisimNet34),
-                           .I4(s_logisimNet4),
-                           .I5(s_logisimNet35),
-                           .I6(s_logisimNet5),
-                           .I7(s_logisimNet36),
-                           .OE_n(s_logisimNet28),
-                           .Q0_n(s_logisimBus39[2]),
-                           .Q1_n(s_logisimBus39[1]),
-                           .Q2_n(s_logisimBus39[0]),
-                           .Q3_n(s_logisimNet40));
+        * 74LS248 that maps A-D bit signals to LCD
+        * 3 segment LCD (HP5082_7433) that shows upper limit:
+            * 000 - memory off (SW2)
+            * 100 - 2M Bytes onboard memory
+            * 200 - 4M Bytes onboard memor
+            * 300 - 6M Bytes onboard memory
+  */
 
-   PAL_16R4D   PAL_UBADEC (.B0_n(s_logisimNet9),
-                           .B1_n(s_logisimNet20),
-                           .B2_n(s_logisimNet41),
-                           .B3_n(s_logisimNet17),
-                           .CK(s_logisimNet6),
-                           .I0(s_logisimNet6),
-                           .I1(s_logisimNet51),
-                           .I2(s_logisimNet45),
-                           .I3(s_logisimNet21),
-                           .I4(s_logisimNet11),
-                           .I5(s_logisimNet8),
-                           .I6(s_logisimNet12),
-                           .I7(s_logisimNet18),
-                           .OE_n(s_logisimNet24),
-                           .Q0_n(s_logisimNet54),
-                           .Q1_n(s_logisimNet37),
-                           .Q2_n(s_logisimNet10),
-                           .Q3_n(s_logisimNet38));
-*/
+
+  // PAL_44904_UMSIZE, chip 7G
+  PAL_44904B PAL_44904_UMSIZE (
+      .CK  (s_pal_44904_clk),
+      .OE_n(s_pd4),
+
+      .MSIZE0_n(s_msize0_n),  // I0 - MSIZE0_n
+      .MSIZE1_n(s_msize1_n),  // I1 - MSIZE1_n
+      .MOFF_n  (s_moff_n),    // I2 - MOFF_n
+      //.I3(1'b0),        // I3 - (n.c.)
+      //.I4(1'b0),        // I4 - (n.c.)
+      //.I5(1'b0),        // I5 - (n.c.)
+      //.I6(1'b0),        // I6 - (n.c.)
+      //.I7(1'b0),        // I7 - (n.c.)
+
+
+      // Output to segement
+      .ABIT(s_abit),  // Q0_n - ABIT
+      .BBIT(s_bbit),  // Q1_n - BBIT
+      .CBIT(s_cbit),  // Q2_n - CBIT
+      .DBIT(s_dbit),  // Q3_n - DBIT
+      //.Q4_n(),            // Q4_n - (n.c.)
+      .ELOW_n(s_elowseg_n),  // Q5_n - ELOWSG_n
+      .EMID_n(s_emidseg_n),  // Q6_n - EMIDSEG_n
+      .EHI_n(s_ehiseg_n)  // Q7_n - EHISEG_n
+  );
+
+  // PAL_UCADEC, chip 9G
+  PAL_44445B PAL_UCADEC (
+      .CK  (s_ecreq),
+      .OE_n(s_cgnt_n),
+
+      .WRITE (s_write),   // I0 - WRITE
+      .IORQ_n(s_iorq_n),  // I1 - IORQ_n
+      .MOFF_n(s_moff_n),  // I2 - MOFF_n
+      //.PPN19  (s_ppn19),   // I3 - PPN19  // Not in use in logic. Uncomment when needed
+      .PPN20 (s_ppn20),   // I4 - PPN20
+      .PPN21 (s_ppn21),   // I5 - PPN21
+      .PPN22 (s_ppn22),   // I6 - PPN22
+      .PPN23 (s_ppn23),   // I7 - PPN23
+
+      .MSIZE0_n(s_msize0_n),    // BB0_n - MSIZE0_n (not connected?)
+      .CLRQ_n  (s_clrq_n_out),  // B1_n - CLRQ_n
+      .CRQ_n   (s_crq_n_out),   // B2_n - CRQ_n
+      .ECREQ   (s_ecreq),       // B3_n - ECREQ
+
+
+      .BANK2   (s_bank_2_0_out[2]),  // Q0_n - BANK2
+      .BANK1   (s_bank_2_0_out[1]),  // Q1_n - BANK1
+      .BANK0   (s_bank_2_0_out[0]),  // Q2_n - BANK0
+      .MWRITE_n(s_mwrite_n_out)      // Q3_n - MWRITE_n
+  );
+
+  // PAL_UBADEC, chip 6G
+  PAL_44446B PAL_UBADEC (
+      .CK  (s_dbapr),
+      .OE_n(s_bgnt_n),
+
+      .DBAPR   (s_dbapr),      // I0 - DBAPR
+      .MOFF_n  (s_moff_n),     // I1 - MOFF_n
+      .BINPUT_n(s_ibinput_n),  // I2 - IBINPUT_n
+      .BMEM_n  (s_bmem_n),     // I3 - BMEM_n
+      .BD20_n  (s_bd20_n),     // I4 - BD20_n
+      .BD21_n  (s_bd21_n),     // I5 - BD21_n
+      .BD22_n  (s_bd22_n),     // I6 - BD22_n
+      .BD23_n  (s_bd23_n),     // I7 - BD23_n
+
+      .AOK     (s_aok),      // OUTPUT B0_n - AOK
+      .DDBAPR_n(s_ddbapr),   // OUTPUT B1_n - DDBAPR_n
+      .MSIZE1_n(s_msize1_n), // OUTPUT B2_n - MSIZE1_n (not connected? Set to 1, so MSIZE1 is 0)
+      //.B3_n    (),            // not in use
+
+      .BANK2(s_bank2),  // OUTPUT Q0_n - BANK2
+      .BANK1(s_bank1),  // OUTPUT Q1_n - BANK1
+      .BANK0(s_bank0),  // OUTPUT Q2_n - BANK0
+      .MWRITE_n(s_mwrite_n)  // OUTPUT Q3_n - MWRITE
+  );
+
+
 endmodule

@@ -4,173 +4,93 @@
 ** MEM ADDR MUX                                                          **
 ** SHEET 44 of 50                                                        **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 11-NOV-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module MEM_ADDR_44 (
-    input        BCGNT50,
-    input        HIEN_n,
-    input [19:0] LBD_19_0,
-    input        LOEN_n,
-    input        PD4,
+    input [19:0] LBD_19_0,  //! LBD  20 bits (including parity 2 bits)
 
-    output [9:0] AA_9_0
+    input BCGNT50, //! Bus cycle grant 50ns delayed CLOCK signal to latch LOW or HIGH bits from memory to AA_9_0
+    input LOEN_n,  //! LOEN_n - Low address bits enable (active low)
+    input HIEN_n,  //! HIEN_n - High address bits enable (active low)
+
+    input PD4,  //! PD4 - Always true
+
+    output [9:0] AA_9_0  //! Output - 10 bits of LBD (including parity in bit 10)- 10 but input to MEM/RAM
 );
 
 
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-  wire [ 9:0] s_logisimBus20;
-  wire [19:0] s_logisimBus41;
-  wire        s_logisimNet0;
-  wire        s_logisimNet1;
-  wire        s_logisimNet10;
-  wire        s_logisimNet11;
-  wire        s_logisimNet12;
-  wire        s_logisimNet13;
-  wire        s_logisimNet14;
-  wire        s_logisimNet15;
-  wire        s_logisimNet16;
-  wire        s_logisimNet17;
-  wire        s_logisimNet18;
-  wire        s_logisimNet19;
-  wire        s_logisimNet2;
-  wire        s_logisimNet21;
-  wire        s_logisimNet22;
-  wire        s_logisimNet23;
-  wire        s_logisimNet24;
-  wire        s_logisimNet25;
-  wire        s_logisimNet26;
-  wire        s_logisimNet27;
-  wire        s_logisimNet28;
-  wire        s_logisimNet29;
-  wire        s_logisimNet3;
-  wire        s_logisimNet30;
-  wire        s_logisimNet31;
-  wire        s_logisimNet32;
-  wire        s_logisimNet33;
-  wire        s_logisimNet34;
-  wire        s_logisimNet35;
-  wire        s_logisimNet36;
-  wire        s_logisimNet37;
-  wire        s_logisimNet38;
-  wire        s_logisimNet39;
-  wire        s_logisimNet4;
-  wire        s_logisimNet40;
-  wire        s_logisimNet42;
-  wire        s_logisimNet43;
-  wire        s_logisimNet44;
-  wire        s_logisimNet45;
-  wire        s_logisimNet46;
-  wire        s_logisimNet5;
-  wire        s_logisimNet6;
-  wire        s_logisimNet7;
-  wire        s_logisimNet8;
-  wire        s_logisimNet9;
+  wire [9:0] s_aa_9_0_out;
 
-  /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
+  wire [9:0] s_lbd_lo_in;
+  wire [9:0] s_lbd_lo_out;
+
+  wire [9:0] s_lbd_hi_in;
+  wire [9:0] s_lbd_hi_out;
+
+  wire [9:0] s_data_10;  // or'ed together output values from 3H and 4H
+
+  wire       s_bcgnt50;
+  wire       s_hien_n;
+  wire       s_loen_n;
+  wire       s_pd4;
+  wire       s_power;
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-  assign s_logisimBus41[19:0] = LBD_19_0;
-  assign s_logisimNet13       = LOEN_n;
-  assign s_logisimNet22       = BCGNT50;
-  assign s_logisimNet23       = HIEN_n;
-  assign s_logisimNet40       = PD4;
+  assign s_bcgnt50   = BCGNT50;
+  assign s_hien_n    = HIEN_n;
+  assign s_loen_n    = LOEN_n;
+  assign s_pd4       = PD4;
+
+  assign s_lbd_lo_in = {LBD_19_0[18], LBD_19_0[8:0]};
+  assign s_lbd_hi_in = {LBD_19_0[19], LBD_19_0[17:9]};
+  assign s_data_10   = s_lbd_lo_out | s_lbd_hi_out;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-  assign AA_9_0               = s_logisimBus20[9:0];
+  assign AA_9_0      = s_aa_9_0_out[9:0];
+
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
   // Power
-  assign s_logisimNet14       = 1'b1;
+  assign s_power     = 1'b1;
 
 
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  /* TODO:
+  AM29861A CHIP_5H (
+      .OER_n(s_power),  // Read tied to power through a 2.2Kohm resistor pulling it high.
+      .OET_n(s_pd4),
+      .D_IN(s_data_10),
+      .D_OUT(),  // Not connected, as there is nevere read from Y output D
+      .Y_IN(),  // Not connected, as there is nevere read from Y output D
+      .Y_OUT(s_aa_9_0_out)
+  );
 
-   AM29861A   CHIP_5H (.OER_n(s_logisimNet14),
-                       .OET_n(s_logisimNet40),
-                       .R0(s_logisimNet12),
-                       .R1(s_logisimNet11),
-                       .R2(s_logisimNet2),
-                       .R3(s_logisimNet10),
-                       .R4(s_logisimNet9),
-                       .R5(s_logisimNet8),
-                       .R6(s_logisimNet7),
-                       .R7(s_logisimNet6),
-                       .R8(s_logisimNet16),
-                       .R9(s_logisimNet17),
-                       .T0(s_logisimBus20[0]),
-                       .T1(s_logisimBus20[1]),
-                       .T2(s_logisimBus20[2]),
-                       .T3(s_logisimBus20[3]),
-                       .T4(s_logisimBus20[4]),
-                       .T5(s_logisimBus20[5]),
-                       .T6(s_logisimBus20[6]),
-                       .T7(s_logisimBus20[7]),
-                       .T8(s_logisimBus20[8]),
-                       .T9(s_logisimBus20[9]));
+  AM29C821 CHIP_3H_ROW_ADDRESS (
+      .CK(s_bcgnt50),
+      .D(s_lbd_lo_in),
+      .OE_n(s_loen_n),
+      .Y(s_lbd_lo_out)
+  );
 
-   AM29C821   CHIP_3H_ROW_ADDRESS (.CK(s_logisimNet22),
-                                   .D0(s_logisimBus41[0]),
-                                   .D1(s_logisimBus41[1]),
-                                   .D2(s_logisimBus41[2]),
-                                   .D3(s_logisimBus41[3]),
-                                   .D4(s_logisimBus41[4]),
-                                   .D5(s_logisimBus41[5]),
-                                   .D6(s_logisimBus41[6]),
-                                   .D7(s_logisimBus41[7]),
-                                   .D8(s_logisimBus41[8]),
-                                   .D9(s_logisimBus41[18]),
-                                   .OE_n(s_logisimNet13),
-                                   .Y0(),
-                                   .Y1(),
-                                   .Y2(),
-                                   .Y3(),
-                                   .Y4(),
-                                   .Y5(),
-                                   .Y6(),
-                                   .Y7(),
-                                   .Y8(),
-                                   .Y9());
-
-   AM29C821   CHIP_4H_COL_ADDRESS (.CK(s_logisimNet22),
-                                   .D0(s_logisimBus41[9]),
-                                   .D1(s_logisimBus41[10]),
-                                   .D2(s_logisimBus41[11]),
-                                   .D3(s_logisimBus41[12]),
-                                   .D4(s_logisimBus41[13]),
-                                   .D5(s_logisimBus41[14]),
-                                   .D6(s_logisimBus41[15]),
-                                   .D7(s_logisimBus41[16]),
-                                   .D8(s_logisimBus41[17]),
-                                   .D9(s_logisimBus41[19]),
-                                   .OE_n(s_logisimNet23),
-                                   .Y0(s_logisimNet12),
-                                   .Y1(s_logisimNet11),
-                                   .Y2(s_logisimNet2),
-                                   .Y3(s_logisimNet10),
-                                   .Y4(s_logisimNet9),
-                                   .Y5(s_logisimNet8),
-                                   .Y6(s_logisimNet7),
-                                   .Y7(s_logisimNet6),
-                                   .Y8(s_logisimNet16),
-                                   .Y9(s_logisimNet17));
-
-   */
+  AM29C821 CHIP_4H_COL_ADDRESS (
+      .CK(s_bcgnt50),
+      .D(s_lbd_hi_in),
+      .OE_n(s_hien_n),
+      .Y(s_lbd_hi_out)
+  );
 
 endmodule

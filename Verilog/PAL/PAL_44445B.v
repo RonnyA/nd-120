@@ -69,12 +69,12 @@ module PAL_44445B (
 
 
   //**** Syncronous logic (always running) ****
+  // Note: comments from original printout was "chopped of" in the PALASM print, thats why they are semi-missing
 
   // Logic for CLRQ_n (active-low)
   assign CLRQ_n = ~(
-                    (ECREQ & IORQ_n & PPN23_n & PPN22_n & PPN21_n & PPN20_n & MOFF_n) | // EACH LINE R
-                                                                                        // TO ALLOW MA
-
+      (ECREQ & IORQ_n & PPN23_n & PPN22_n & PPN21_n & PPN20_n & MOFF_n) | // EACH LINE R
+      // TO ALLOW MA
       (ECREQ & IORQ_n & PPN23_n & PPN22_n & PPN21_n & PPN20 & MOFF_n)  // IN THE ADDR
                                                                        // THE 4MB (2M
                                                                        // NEED NO HOL

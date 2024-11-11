@@ -3,24 +3,26 @@
 //44310D,3F,LBDIF
 
 module PAL_44310D (
-    input  HIEN_n,
-    input  BGNT_n,
-    input  CGNT_n,
-    input  LOEN_n,
-    input  CGNT50_n,
-    input  ECCR,
-    input  BGNT50_n,
-    input  BGNT75_n,
-    input  BDAP50_n,
-    input  MR_n,
-    input  MWRITE50_n,
-    input  BIOXE_n,
-    input  REF100_n,
-    input  RAS,
-    output BCGNT50R_n,
-    output BDRY_n,
-    output BIOXL_n,
-    output RDATA
+    input  HIEN_n,    //! I0
+    input  BGNT_n,    //! I1
+    input  CGNT_n,    //! I2
+    input  LOEN_n,    //! I3
+    input  CGNT50_n,  //! I4
+    input  ECCR,      //! I5
+    input  BGNT50_n,  //! I6
+    input  BGNT75_n,  //! I7
+    input  BDAP50_n,  //! I8
+    input  MR_n,      //! I9
+
+    output BDRY_n,     //! B0
+    output BIOXL_n,    //! B1
+    input  RAS,        //! B2
+    input  REF100_n,   //! B3
+    input  BIOXE_n,    //! B4
+    input  MWRITE50_n, //! B5
+
+    output BCGNT50R_n, //! Y0
+    output RDATA       //! Y1
 );
 
 

@@ -4,7 +4,7 @@
 ** MEMORY TOP LEVEL                                                      **
 ** SHEET 43 of 50                                                        **
 **                                                                       **
-** Last reviewed: 10-NOVL-2024                                           **
+** Last reviewed: 11-NOV-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -264,7 +264,7 @@ module MEM_43 (
       .PD4(s_pd4),
       .RAS(s_ras),
       .RDATA(s_rdata),
-      .RDATA25_n(s_rdata25),
+      .RDATA25(s_rdata25),
       .REF_n(s_ref_n)
   );
 

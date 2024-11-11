@@ -23,7 +23,7 @@ module PAL_44446B (
     input BD23_n,    //! I7 - BD23_n
 
     output AOK,       //! B0_n - AOK
-    output DDBAPR_n,  //! B1_n - DDBAPR_n 
+    output DDBAPR_n,  //! B1_n - DDBAPR_n
     output MSIZE1_n,  //! B2_n - MSIZE1_n (not connected?)
     //  input  BD19_n,      //! B3_n - BD19_n (not in use)
 

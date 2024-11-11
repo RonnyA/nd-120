@@ -31,14 +31,14 @@ module PAL_44904B (
     //input i6,      //! I6 - (n.c.)
     //input i7,      //! I7 - (n.c.)
 
-    output ABIT,    //! Q0_n - ABIT
-    output BBIT,    //! Q1_n - BBIT
-    output CBIT,    //! Q2_n - CBIT
-    output DBIT,    //! Q3_n - DBIT
+    output ABIT,    //! Q0_n - ABIT // 7-Segmen A-bit
+    output BBIT,    //! Q1_n - BBIT // 7-Segmen B-bit
+    output CBIT,    //! Q2_n - CBIT // 7-Segmen C-bit
+    output DBIT,    //! Q3_n - DBIT // 7-Segmen D-bit
     //output Q4_n,  //! Q4_n - (n.c.)
-    output ELOW_n,  //! Q5_n - ELOWSG_n
-    output EMID_n,  //! Q6_n - EMIDSEG_n
-    output EHI_n    //! Q7_n - EHISEG_n
+    output ELOW_n,  //! Q5_n - ELOWSG_n (Enable LOW segment)
+    output EMID_n,  //! Q6_n - EMIDSEG_n (Enable MID-Segment)
+    output EHI_n    //! Q7_n - EHISEG_n (Eneble HI-Segment)
 
     //,output wire [3:0]  Q  // Enable to Debug to watch the value of Q change  
 );

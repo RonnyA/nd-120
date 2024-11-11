@@ -9,219 +9,282 @@
 ***************************************************************************/
 
 module MEM_LBDIF_48 (
-    input BCGNT25,
-    input BDAP50_n,
-    input BGNT_n,
-    input BIOXE_n,
-    input BLOCKL_n,
-    input BLRQ_n,
-    input CGNT_n,
-    input ECCR,
-    input GNT_n,
-    input HIEN_n,
-    input LOEN_n,
-    input MOR_n,
-    input MR_n,
-    input MWRITE_n,
-    input OSC,
-    input PD4,
-    input RAS,
-    input REF_n,
+    input BCGNT25,   //! Input BCGNT25
+    input BDAP50_n,  //! Input BDAP50_n
+    input BGNT_n,    //! Input BGNT_n
+    input BIOXE_n,   //! Input BIOXE_n
+    input BLOCKL_n,  //! Input BLOCKL_n
+    input BLRQ_n,    //! Input BLRQ_n
+    input CGNT_n,    //! Input CGNT_n
+    input ECCR,      //! Input ECCR
+    input GNT_n,     //! Input GNT_n
+    input HIEN_n,    //! Input HIEN_n
+    input LOEN_n,    //! Input LOEN_n
+    input MOR_n,     //! Input MOR_n - Memory Off
+    input MR_n,      //! Input MR_n
+    input MWRITE_n,  //! Input MWRITE_n
+    input OSC,       //! Input OSC
+    input PD4,       //! Input PD4
+    input RAS,       //! Input RAS
+    input REF_n,     //! Input REF_n
 
-    output BCGNT50,
-    output BCGNT50R_n,
-    output BDRY_n,
-    output BGNT25_n,
-    output BGNT50_n,
-    output BIOXL_n,
-    output BLOCKL25_n,
-    output BLRQ50_n,
-    output CGNT25_n,
-    output CGNT50_n,
-    output GNT50_n,
-    output MOR25_n,
-    output MWRITE50_n,
-    output RDATA,
-    output RDATA25_n
+    output BCGNT50,     //! Output BCGNT50 (BCGNT delayed 50 ns)
+    output BCGNT50R_n,  //! Output BCGNT50R_n
+    output BDRY_n,      //! Output BDRY_n
+    output BGNT25_n,    //! Output BGNT25_n (BGNT25_n, BGNT_n delayed 25 ns)
+    output BGNT50_n,    //! Output BGNT50_n (BGNT50_n, BGNT_n delayed 25 ns)
+    output BIOXL_n,     //! Output BIOXL_n
+    output BLOCKL25_n,  //! Output BLOCKL25_n
+    output BLRQ50_n,    //! Output BLRQ50_n
+    output CGNT25_n,    //! Output CGNT25_n
+    output CGNT50_n,    //! Output CGNT50_n
+    output GNT50_n,     //! Output GNT50_n
+    output MOR25_n,     //! Output MOR25_n
+    output MWRITE50_n,  //! Output MWRITE50_n
+    output RDATA,       //! Output RDATA
+    output RDATA25      //! Output RDATA25
 );
 
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-  wire s_logisimNet0;
-  wire s_logisimNet1;
-  wire s_logisimNet10;
-  wire s_logisimNet11;
-  wire s_logisimNet12;
-  wire s_logisimNet13;
-  wire s_logisimNet14;
-  wire s_logisimNet15;
-  wire s_logisimNet16;
-  wire s_logisimNet17;
-  wire s_logisimNet18;
-  wire s_logisimNet19;
-  wire s_logisimNet2;
-  wire s_logisimNet20;
-  wire s_logisimNet21;
-  wire s_logisimNet22;
-  wire s_logisimNet23;
-  wire s_logisimNet24;
-  wire s_logisimNet25;
-  wire s_logisimNet26;
-  wire s_logisimNet27;
-  wire s_logisimNet28;
-  wire s_logisimNet29;
-  wire s_logisimNet3;
-  wire s_logisimNet30;
-  wire s_logisimNet31;
-  wire s_logisimNet32;
-  wire s_logisimNet33;
-  wire s_logisimNet34;
-  wire s_logisimNet35;
-  wire s_logisimNet36;
-  wire s_logisimNet37;
-  wire s_logisimNet38;
-  wire s_logisimNet39;
-  wire s_logisimNet4;
-  wire s_logisimNet40;
-  wire s_logisimNet41;
-  wire s_logisimNet42;
-  wire s_logisimNet43;
-  wire s_logisimNet44;
-  wire s_logisimNet45;
-  wire s_logisimNet46;
-  wire s_logisimNet47;
-  wire s_logisimNet48;
-  wire s_logisimNet49;
-  wire s_logisimNet5;
-  wire s_logisimNet6;
-  wire s_logisimNet7;
-  wire s_logisimNet8;
-  wire s_logisimNet9;
+  wire s_13f_y0;
+  wire s_14f_y1;
+  wire s_14f_y3;
+  wire s_14f_y4;
+  wire s_14f_y5;
+  wire s_14f_y8;
+  wire s_bcgnt25;
+  wire s_bcgnt50_out;
+  wire s_bcgnt50r_n_out;
+  wire s_bdap50_n;
+  wire s_bdry_n_out;
+  wire s_bgnt_n;
+  wire s_bgnt50_n_out;
+  wire s_bgnt50_n;
+  wire s_bgnt75_n;
+  wire s_bioxe_n;
+  wire s_bioxl_n_out;
+  wire s_blockl_n;
+  wire s_blockl25_n_out;
+  wire s_blrq_n;
+  wire s_blrq50_n_out;
+  wire s_cgnt_n;
+  wire s_cgnt25_n_out;
+  wire s_cgnt50_n_out;
+  wire s_eccr;
+  wire s_gnt_n;
+  wire s_gnt50_n_out;
+  wire s_hien_n;
+  wire s_loen_n;
+  wire s_mor_n;
+  wire s_mor25_n_out;
+  wire s_mr_n;
+  wire s_mwrite_n;
+  wire s_mwrite50_n;
+  wire s_osc;
+  wire s_pd4;
+  wire s_ras;
+  wire s_rdata_out;
+  wire s_rdata25_out;
+  wire s_ref_100_n;
+  wire s_ref_n;
 
-  /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
+  wire [9:0] chip13_d;
+  wire [9:0] chip13_y;
+
+  wire [9:0] chip14_d;
+  wire [9:0] chip14_y;
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-  assign s_logisimNet0  = HIEN_n;
-  assign s_logisimNet15 = PD4;
-  assign s_logisimNet18 = ECCR;
-  assign s_logisimNet2  = LOEN_n;
-  assign s_logisimNet21 = BLRQ_n;
-  assign s_logisimNet24 = MWRITE_n;
-  assign s_logisimNet25 = REF_n;
-  assign s_logisimNet26 = MOR_n;
-  assign s_logisimNet27 = BGNT_n;
-  assign s_logisimNet28 = MR_n;
-  assign s_logisimNet4  = BIOXE_n;
-  assign s_logisimNet42 = BDAP50_n;
-  assign s_logisimNet44 = BCGNT25;
-  assign s_logisimNet45 = RAS;
-  assign s_logisimNet47 = BLOCKL_n;
-  assign s_logisimNet48 = GNT_n;
-  assign s_logisimNet8  = OSC;
-  assign s_logisimNet9  = CGNT_n;
+  assign s_hien_n       = HIEN_n;
+  assign s_pd4          = PD4;
+  assign s_eccr         = ECCR;
+  assign s_loen_n       = LOEN_n;
+  assign s_blrq_n       = BLRQ_n;
+  assign s_mwrite_n     = MWRITE_n;
+  assign s_ref_n        = REF_n;
+  assign s_mor_n        = MOR_n;
+  assign s_bgnt_n       = BGNT_n;
+  assign s_mr_n         = MR_n;
+  assign s_bioxe_n      = BIOXE_n;
+  assign s_bdap50_n     = BDAP50_n;
+  assign s_bcgnt25      = BCGNT25;
+  assign s_ras          = RAS;
+  assign s_blockl_n     = BLOCKL_n;
+  assign s_gnt_n        = GNT_n;
+  assign s_osc          = OSC;
+  assign s_cgnt_n       = CGNT_n;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-  assign BCGNT50        = s_logisimNet11;
-  assign BCGNT50R_n     = s_logisimNet49;
-  assign BDRY_n         = s_logisimNet46;
-  assign BGNT25_n       = s_logisimNet14;
-  assign BGNT50_n       = s_logisimNet6;
-  assign BIOXL_n        = s_logisimNet30;
-  assign BLOCKL25_n     = s_logisimNet34;
-  assign BLRQ50_n       = s_logisimNet43;
-  assign CGNT25_n       = s_logisimNet3;
-  assign CGNT50_n       = s_logisimNet38;
-  assign GNT50_n        = s_logisimNet33;
-  assign MOR25_n        = s_logisimNet32;
-  assign MWRITE50_n     = s_logisimNet23;
-  assign RDATA          = s_logisimNet35;
-  assign RDATA25_n      = s_logisimNet29;
-
-  /*******************************************************************************
-   ** Here all in-lined components are defined                                   **
-   *******************************************************************************/
-
-  // Buffer
-  assign s_logisimNet46 = s_logisimNet31;
+  assign BCGNT50        = s_bcgnt50_out;
+  assign BCGNT50R_n     = s_bcgnt50r_n_out;
+  assign BDRY_n         = s_bdry_n_out;
+  assign BGNT25_n       = s_bgnt50_n_out;
+  assign BGNT50_n       = s_bgnt50_n;
+  assign BIOXL_n        = s_bioxl_n_out;
+  assign BLOCKL25_n     = s_blockl25_n_out;
+  assign BLRQ50_n       = s_blrq50_n_out;
+  assign CGNT25_n       = s_cgnt25_n_out;
+  assign CGNT50_n       = s_cgnt50_n_out;
+  assign GNT50_n        = s_gnt50_n_out;
+  assign MOR25_n        = s_mor25_n_out;
+  assign MWRITE50_n     = s_mwrite50_n;
+  assign RDATA          = s_rdata_out;
+  assign RDATA25        = s_rdata25_out;
 
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  /* TODO:
+  /************ CHIP 13F ************/
 
-   AM29C821   CHIP_14F (.CK(s_logisimNet8),
-                        .D0(s_logisimNet47),
-                        .D1(s_logisimNet24),
-                        .D2(s_logisimNet7),
-                        .D3(s_logisimNet25),
-                        .D4(s_logisimNet41),
-                        .D5(s_logisimNet10),
-                        .D6(s_logisimNet37),
-                        .D7(s_logisimNet26),
-                        .D8(s_logisimNet48),
-                        .D9(s_logisimNet12),
-                        .OE_n(s_logisimNet15),
-                        .Y0(s_logisimNet34),
-                        .Y1(s_logisimNet7),
-                        .Y2(s_logisimNet23),
-                        .Y3(s_logisimNet13),
-                        .Y4(s_logisimNet16),
-                        .Y5(s_logisimNet5),
-                        .Y6(s_logisimNet20),
-                        .Y7(s_logisimNet32),
-                        .Y8(s_logisimNet22),
-                        .Y9(s_logisimNet33));
+  /*
 
-   AM29C821   CHIP_13F (.CK(s_logisimNet8),
-                        .D0(s_logisimNet21),
-                        .D1(s_logisimNet36),
-                        .D2(s_logisimNet35),
-                        .D3(1'b0),
-                        .D4(s_logisimNet9),
-                        .D5(s_logisimNet3),
-                        .D6(s_logisimNet27),
-                        .D7(s_logisimNet14),
-                        .D8(s_logisimNet6),
-                        .D9(s_logisimNet44),
-                        .OE_n(s_logisimNet15),
-                        .Y0(s_logisimNet36),
-                        .Y1(s_logisimNet43),
-                        .Y2(s_logisimNet29),
-                        .Y3(),
-                        .Y4(s_logisimNet3),
-                        .Y5(s_logisimNet38),
-                        .Y6(s_logisimNet14),
-                        .Y7(s_logisimNet6),
-                        .Y8(s_logisimNet40),
-                        .Y9(s_logisimNet11));
+      // Input
+      .D0(s_blrq_n),
+      .D1(s_13f_y0),
+      .D2(s_rdata_out),
+      .D3(1'b0), // n.c.
+      .D4(s_cgnt_n),
+      .D5(s_cgnt25_n_out),
+      .D6(s_bgnt_n),
+      .D7(s_bgnt50_n_out),
+      .D8(s_bgnt50_n),
+      .D9(s_bcgnt25),
+
+      // Output
+      .Y0(s_13f_y0),
+      .Y1(s_blrq50_n_out),
+      .Y2(s_rdata25_out),
+      .Y3(),
+      .Y4(s_cgnt25_n_out),
+      .Y5(s_cgnt50_n_out),
+      .Y6(s_bgnt50_n_out),
+      .Y7(s_bgnt50_n),
+      .Y8(s_bgnt75_n),
+      .Y9(s_bcgnt50_out)
+
+  */
+
+  // D - 10 Input signals
+  assign chip13_d[0]    = s_blrq_n;
+  assign chip13_d[1]    = s_13f_y0;
+  assign chip13_d[2]    = s_rdata_out;
+  assign chip13_d[3]    = 1'b0;
+  assign chip13_d[4]    = s_cgnt_n;
+  assign chip13_d[5]    = s_cgnt25_n_out;  // y4 looped back
+  assign chip13_d[6]    = s_bgnt_n;
+  assign chip13_d[7]    = s_bgnt50_n_out;  // y6 looped back
+  assign chip13_d[8]    = s_bgnt50_n;  // y7 looped back
+  assign chip13_d[9]    = s_bcgnt25;
+
+  // Y - 10 Output signals
+  assign s_13f_y0       = chip13_y[0];
+  assign s_blrq50_n_out = chip13_y[1];
+  assign s_rdata25_out  = chip13_y[2];
+  //assign nc  = chip13_y[3];
+  assign s_cgnt25_n_out = chip13_y[4];
+  assign s_cgnt50_n_out = chip13_y[5];
+  assign s_bgnt50_n_out = chip13_y[6];
+  assign s_bgnt50_n     = chip13_y[7];
+  assign s_bgnt75_n     = chip13_y[8];
+  assign s_bcgnt50_out  = chip13_y[9];
+
+  AM29C821 CHIP_13F (
+      .CK(s_osc),
+      .OE_n(s_pd4),
+      .D(chip13_d),
+      .Y(chip13_y)
+  );
 
 
-   PAL_44310D   PAL_44310_ULBDIF (.B0_n(s_logisimNet31),
-                                   .B1_n(s_logisimNet30),
-                                   .B2_n(s_logisimNet17),
-                                   .B3_n(s_logisimNet39),
-                                   .B4_n(s_logisimNet1),
-                                   .B5_n(s_logisimNet19),
-                                   .I0(s_logisimNet0),
-                                   .I1(s_logisimNet27),
-                                   .I2(s_logisimNet9),
-                                   .I3(s_logisimNet2),
-                                   .I4(s_logisimNet38),
-                                   .I5(s_logisimNet18),
-                                   .I6(s_logisimNet6),
-                                   .I7(s_logisimNet40),
-                                   .I8(s_logisimNet42),
-                                   .I9(s_logisimNet28),
-                                   .Y0_n(s_logisimNet49),
-                                   .Y1_n(s_logisimNet35));
-   */
+
+  /************ CHIP 14F ************/
+  /*
+      .D0  (s_blockl_n),
+      .D1  (s_mwrite_n),
+      .D2  (s_14f_y1),
+      .D3  (s_ref_n),
+      .D4  (s_14f_y3),
+      .D5  (s_14f_y4),
+      .D6  (s_14f_y5),
+      .D7  (s_mor_n),
+      .D8  (s_gnt_n),
+      .D9  (s_14f_y8),
+
+      .Y0  (s_blockl25_n_out),
+      .Y1  (s_14f_y1),
+      .Y2  (s_mwrite50_n),
+      .Y3  (s_14f_y3),
+      .Y4  (s_14f_y4),
+      .Y5  (s_14f_y5),
+      .Y6  (s_ref_100_n),
+      .Y7  (s_mor25_n_out),
+      .Y8  (s_14f_y8),
+      .Y9  (s_gnt50_n_out)
+    */
+  assign chip14_d[0]      = s_blockl_n;
+  assign chip14_d[1]      = s_mwrite_n;
+  assign chip14_d[2]      = s_14f_y1;
+  assign chip14_d[3]      = s_ref_n;
+  assign chip14_d[4]      = s_14f_y3;  // y3
+  assign chip14_d[5]      = s_14f_y4;  // y4
+  assign chip14_d[6]      = s_14f_y5;  // y5
+  assign chip14_d[7]      = s_mor_n;
+  assign chip14_d[8]      = s_gnt_n;
+  assign chip14_d[9]      = s_14f_y8;  // y8
+
+
+  assign s_blockl25_n_out = chip14_y[0];
+  assign s_14f_y1         = chip14_y[1];
+  assign s_mwrite50_n     = chip14_y[2];
+  assign s_14f_y3         = chip14_y[3];
+  assign s_14f_y4         = chip14_y[4];
+  assign s_14f_y5         = chip14_y[5];
+  assign s_ref_100_n      = chip14_y[6];
+  assign s_mor25_n_out    = chip14_y[7];
+  assign s_14f_y8         = chip14_y[8];
+  assign s_gnt50_n_out    = chip14_y[9];
+
+  AM29C821 CHIP_14F (
+      .CK(s_osc),
+      .OE_n(s_pd4),
+      .D(chip14_d),
+      .Y(chip14_y)
+  );
+
+  /************ PAL chip 3F ************/
+
+  PAL_44310D PAL_44310_ULBDIF (
+
+      // Inputs
+      .HIEN_n  (s_hien_n),        // I0
+      .BGNT_n  (s_bgnt_n),        // I1
+      .CGNT_n  (s_cgnt_n),        // I2
+      .LOEN_n  (s_loen_n),        // I3
+      .CGNT50_n(s_cgnt50_n_out),  // I4
+      .ECCR    (s_eccr),          // I5
+      .BGNT50_n(s_bgnt50_n),      // I6
+      .BGNT75_n(s_bgnt75_n),      // I7
+      .BDAP50_n(s_bdap50_n),      // I8
+      .MR_n    (s_mr_n),          // I9
+
+      .BDRY_n    (s_bdry_n_out),   // B0 Output
+      .BIOXL_n   (s_bioxl_n_out),  // B1 Output
+      .RAS       (s_ras),          // B2
+      .REF100_n  (s_ref_100_n),    // B3
+      .BIOXE_n   (s_bioxe_n),      // B4
+      .MWRITE50_n(s_mwrite50_n),   // B5
+
+
+      .BCGNT50R_n(s_bcgnt50r_n_out),  // Y0 Output
+      .RDATA     (s_rdata_out)        // Y1 Output
+  );
+
 
 endmodule
