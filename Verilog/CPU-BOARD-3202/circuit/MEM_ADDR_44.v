@@ -1,117 +1,107 @@
- /**************************************************************************
+/**************************************************************************
 ** ND120 CPU, MM&M                                                       **
 ** MEM/ADDR                                                              **
 ** MEM ADDR MUX                                                          **
 ** SHEET 44 of 50                                                        **
-**                                                                       ** 
+**                                                                       **
 ** Last reviewed: 21-APRIL-2024                                          **
-** Ronny Hansen                                                          **               
+** Ronny Hansen                                                          **
 ***************************************************************************/
 
-module MEM_ADDR_44( AA_9_0,
-                    BCGNT50,
-                    HIEN_n,
-                    LBD_19_0,
-                    LOEN_n,
-                    PD4 );
+module MEM_ADDR_44 (
+    input        BCGNT50,
+    input        HIEN_n,
+    input [19:0] LBD_19_0,
+    input        LOEN_n,
+    input        PD4,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        BCGNT50;
-   input        HIEN_n;
-   input [19:0] LBD_19_0;
-   input        LOEN_n;
-   input        PD4;
+    output [9:0] AA_9_0
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output [9:0] AA_9_0;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [9:0]  s_logisimBus20;
-   wire [19:0] s_logisimBus41;
-   wire        s_logisimNet0;
-   wire        s_logisimNet1;
-   wire        s_logisimNet10;
-   wire        s_logisimNet11;
-   wire        s_logisimNet12;
-   wire        s_logisimNet13;
-   wire        s_logisimNet14;
-   wire        s_logisimNet15;
-   wire        s_logisimNet16;
-   wire        s_logisimNet17;
-   wire        s_logisimNet18;
-   wire        s_logisimNet19;
-   wire        s_logisimNet2;
-   wire        s_logisimNet21;
-   wire        s_logisimNet22;
-   wire        s_logisimNet23;
-   wire        s_logisimNet24;
-   wire        s_logisimNet25;
-   wire        s_logisimNet26;
-   wire        s_logisimNet27;
-   wire        s_logisimNet28;
-   wire        s_logisimNet29;
-   wire        s_logisimNet3;
-   wire        s_logisimNet30;
-   wire        s_logisimNet31;
-   wire        s_logisimNet32;
-   wire        s_logisimNet33;
-   wire        s_logisimNet34;
-   wire        s_logisimNet35;
-   wire        s_logisimNet36;
-   wire        s_logisimNet37;
-   wire        s_logisimNet38;
-   wire        s_logisimNet39;
-   wire        s_logisimNet4;
-   wire        s_logisimNet40;
-   wire        s_logisimNet42;
-   wire        s_logisimNet43;
-   wire        s_logisimNet44;
-   wire        s_logisimNet45;
-   wire        s_logisimNet46;
-   wire        s_logisimNet5;
-   wire        s_logisimNet6;
-   wire        s_logisimNet7;
-   wire        s_logisimNet8;
-   wire        s_logisimNet9;
+  wire [ 9:0] s_logisimBus20;
+  wire [19:0] s_logisimBus41;
+  wire        s_logisimNet0;
+  wire        s_logisimNet1;
+  wire        s_logisimNet10;
+  wire        s_logisimNet11;
+  wire        s_logisimNet12;
+  wire        s_logisimNet13;
+  wire        s_logisimNet14;
+  wire        s_logisimNet15;
+  wire        s_logisimNet16;
+  wire        s_logisimNet17;
+  wire        s_logisimNet18;
+  wire        s_logisimNet19;
+  wire        s_logisimNet2;
+  wire        s_logisimNet21;
+  wire        s_logisimNet22;
+  wire        s_logisimNet23;
+  wire        s_logisimNet24;
+  wire        s_logisimNet25;
+  wire        s_logisimNet26;
+  wire        s_logisimNet27;
+  wire        s_logisimNet28;
+  wire        s_logisimNet29;
+  wire        s_logisimNet3;
+  wire        s_logisimNet30;
+  wire        s_logisimNet31;
+  wire        s_logisimNet32;
+  wire        s_logisimNet33;
+  wire        s_logisimNet34;
+  wire        s_logisimNet35;
+  wire        s_logisimNet36;
+  wire        s_logisimNet37;
+  wire        s_logisimNet38;
+  wire        s_logisimNet39;
+  wire        s_logisimNet4;
+  wire        s_logisimNet40;
+  wire        s_logisimNet42;
+  wire        s_logisimNet43;
+  wire        s_logisimNet44;
+  wire        s_logisimNet45;
+  wire        s_logisimNet46;
+  wire        s_logisimNet5;
+  wire        s_logisimNet6;
+  wire        s_logisimNet7;
+  wire        s_logisimNet8;
+  wire        s_logisimNet9;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus41[19:0] = LBD_19_0;
-   assign s_logisimNet13       = LOEN_n;
-   assign s_logisimNet22       = BCGNT50;
-   assign s_logisimNet23       = HIEN_n;
-   assign s_logisimNet40       = PD4;
+  assign s_logisimBus41[19:0] = LBD_19_0;
+  assign s_logisimNet13       = LOEN_n;
+  assign s_logisimNet22       = BCGNT50;
+  assign s_logisimNet23       = HIEN_n;
+  assign s_logisimNet40       = PD4;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign AA_9_0 = s_logisimBus20[9:0];
+  assign AA_9_0               = s_logisimBus20[9:0];
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // Power
-   assign  s_logisimNet14  =  1'b1;
+  // Power
+  assign s_logisimNet14       = 1'b1;
 
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   /* TODO:
-   
+  /* TODO:
+
    AM29861A   CHIP_5H (.OER_n(s_logisimNet14),
                        .OET_n(s_logisimNet40),
                        .R0(s_logisimNet12),
@@ -181,6 +171,6 @@ module MEM_ADDR_44( AA_9_0,
                                    .Y8(s_logisimNet16),
                                    .Y9(s_logisimNet17));
 
-   */                                 
+   */
 
 endmodule

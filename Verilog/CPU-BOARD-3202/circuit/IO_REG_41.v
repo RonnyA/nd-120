@@ -3,220 +3,227 @@
 ** IO/REG                                                                **
 ** IOC, ALD & INR REGS                                                   **
 ** SHEET 41 of 50                                                        **
-**                                                                       ** 
+**                                                                       **
 ** Last reviewed: 21-APRIL-2024                                          **
-** Ronny Hansen                                                          **               
+** Ronny Hansen                                                          **
 ***************************************************************************/
-module IO_REG_41(
+module IO_REG_41 (
 
-   // Input signals
-   input       CLEAR_n,
-   input       CX_n,
-   input       DA_n,
-   input [7:0] INR_7_0,
-   input       RINR_n,
-   input       SIOC_n,
-   input       TBMT_n,
-   input       TRAALD_n,
+    // Input signals
+    input       CLEAR_n,
+    input       CX_n,
+    input       DA_n,
+    input [7:0] INR_7_0,
+    input       RINR_n,
+    input       SIOC_n,
+    input       TBMT_n,
+    input       TRAALD_n,
 
 
-   // Input and output signals
-   input  [7:0]  IDB_7_0_IN,
-   output [15:0] IDB_15_0_OUT,
+    // Input and output signals
+    input  [ 7:0] IDB_7_0_IN,
+    output [15:0] IDB_15_0_OUT,
 
-   // Output signals
-   output        BINT10_n,
-   output        BINT12_n,
-   output        BINT13_n,
-   output        CONSOLE_n,
-   output        EMCL_n,
-   output [1:0]  IOLED // 0=RED,1=GREEN   
+    // Output signals
+    output       BINT10_n,
+    output       BINT12_n,
+    output       BINT13_n,
+    output       CONSOLE_n,
+    output       EMCL_n,
+    output [1:0] IOLED       // 0=RED,1=GREEN
 );
 
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   
-      
-   wire [2:0]  s_print_no;
-   wire [3:0]  s_ALD;
-
-   wire [7:0]  s_inr_7_0;
-
-   wire [7:0]  s_idb_7_0_in;
-   wire [7:0]  s_ioc_idb_7_0_in;
-   
-   wire [15:0] s_idb_15_0_out;
-   wire [7:0]  s_idb_7_0_inr_out;
-   wire [15:0] s_idb_15_0_ald_out;
 
 
-   wire        s_bint10_n;
-   wire        s_bint12_n;
-   wire        s_bint13_n;
-   wire        s_clear_n;
-   wire        s_console_io;
-   wire        s_cx_n;
-   wire        s_da;      
-   wire        s_ioc_0;
-   wire        s_ioc_1;
-   wire        s_ioc_2;
-   wire        s_ioc_3;
-   wire        s_led2_red_n;
-   wire        s_led3_green_n;
-   wire        s_rinr_n;
-   wire        s_scons_n; 
-   wire        s_sioc_n;
-   wire        s_strap_5;
-   wire        s_strap_6;
-   wire        s_strap_7;
-   wire        s_strap_8;
-   wire        s_strap_9;
-   wire        s_tbmt;
-   wire        s_traald_n;   
+  wire [ 2:0] s_print_no;
+  wire [ 3:0] s_ALD;
 
-   /* verilator lint_off UNUSEDSIGNAL */
-   wire        s_reset;
-   /* verilator lint_on UNUSEDSIGNAL */
+  wire [ 7:0] s_inr_7_0;
+
+  wire [ 7:0] s_idb_7_0_in;
+  wire [ 7:0] s_ioc_idb_7_0_in;
+
+  wire [15:0] s_idb_15_0_out;
+  wire [ 7:0] s_idb_7_0_inr_out;
+  wire [15:0] s_idb_15_0_ald_out;
 
 
-   /*******************************************************************************
+  wire        s_bint10_n;
+  wire        s_bint12_n;
+  wire        s_bint13_n;
+  wire        s_clear_n;
+  wire        s_console_io;
+  wire        s_cx_n;
+  wire        s_da;
+  wire        s_ioc_0;
+  wire        s_ioc_1;
+  wire        s_ioc_2;
+  wire        s_ioc_3;
+  wire        s_led2_red_n;
+  wire        s_led3_green_n;
+  wire        s_rinr_n;
+  wire        s_scons_n;
+  wire        s_sioc_n;
+  wire        s_strap_5;
+  wire        s_strap_6;
+  wire        s_strap_7;
+  wire        s_strap_8;
+  wire        s_strap_9;
+  wire        s_tbmt;
+  wire        s_traald_n;
+
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire        s_reset;
+  /* verilator lint_on UNUSEDSIGNAL */
+
+
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_inr_7_0[7:0]      = INR_7_0;
-   assign s_rinr_n            = RINR_n;
-   assign s_sioc_n            = SIOC_n;
-   assign s_cx_n              = CX_n;
-   assign s_tbmt              = !TBMT_n;
-   assign s_clear_n           = CLEAR_n;
-   assign s_da                = !DA_n;
-   assign s_traald_n          = TRAALD_n;
-   assign s_idb_7_0_in        = IDB_7_0_IN;
+  assign s_inr_7_0[7:0] = INR_7_0;
+  assign s_rinr_n = RINR_n;
+  assign s_sioc_n = SIOC_n;
+  assign s_cx_n = CX_n;
+  assign s_tbmt = !TBMT_n;
+  assign s_clear_n = CLEAR_n;
+  assign s_da = !DA_n;
+  assign s_traald_n = TRAALD_n;
+  assign s_idb_7_0_in = IDB_7_0_IN;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign BINT10_n            = s_bint10_n;
-   assign BINT12_n            = s_bint12_n;
-   assign BINT13_n            = s_bint13_n;
-   assign CONSOLE_n           = s_scons_n;
-   assign EMCL_n              = s_led2_red_n;
-   assign IDB_15_0_OUT        = s_idb_15_0_out[15:0];
-   
+  assign BINT10_n = s_bint10_n;
+  assign BINT12_n = s_bint12_n;
+  assign BINT13_n = s_bint13_n;
+  assign CONSOLE_n = s_scons_n;
+  assign EMCL_n = s_led2_red_n;
+  assign IDB_15_0_OUT = s_idb_15_0_out[15:0];
 
-   /*******************************************************************************
+
+  /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   assign s_ioc_idb_7_0_in[7:0] = s_idb_7_0_in[7:0] | s_idb_7_0_inr_out[7:0] | s_idb_15_0_ald_out[7:0];
+  assign s_ioc_idb_7_0_in[7:0] = s_idb_7_0_in[7:0] | s_idb_7_0_inr_out[7:0] | s_idb_15_0_ald_out[7:0];
 
 
-   // PRINT VERSION = 011 FOR VERSION D
-   assign  s_print_no[2:0]  =  3'b011; // 011 == 3202D
+  // PRINT VERSION = 011 FOR VERSION D
+  assign s_print_no[2:0] = 3'b011;  // 011 == 3202D
 
 
-   // Constant for ALD register ECO Fixes // Set to ECO 100-785. Strap on 6,8 and 9
-   // Setting a physical strap enables pull low/0 else its pulled high.
-   assign  s_strap_9  = 1'b0;  // STRAP9 => IDB8
-   assign  s_strap_8  = 1'b0;  // STRAP8 => IDB9
-   assign  s_strap_7  = 1'b1;  // STRAP7 => IDB10
-   assign  s_strap_6  = 1'b0;  // STRAP6 => IDB11
-   assign  s_strap_5  = 1'b1;  // STRAP5 => IDB12
+  // Constant for ALD register ECO Fixes // Set to ECO 100-785. Strap on 6,8 and 9
+  // Setting a physical strap enables pull low/0 else its pulled high.
+  assign s_strap_9 = 1'b0;  // STRAP9 => IDB8
+  assign s_strap_8 = 1'b0;  // STRAP8 => IDB9
+  assign s_strap_7 = 1'b1;  // STRAP7 => IDB10
+  assign s_strap_6 = 1'b0;  // STRAP6 => IDB11
+  assign s_strap_5 = 1'b1;  // STRAP5 => IDB12
 
 
-   // Constant for ALD settings. ALD boot switch
-   assign  s_ALD[3:0]  =  4'b0101; // 1111 == ALD boot switch for 
+  // Constant for ALD settings. ALD boot switch
+  assign s_ALD[3:0] = 4'b0101;  // 1111 == ALD boot switch for
 
 
-   
-   // LED: RED
-   assign IOLED[0] = s_led2_red_n;
 
-   // LED: GREEN
-   assign IOLED[1] = s_led3_green_n;
+  // LED: RED
+  assign IOLED[0] = s_led2_red_n;
 
-   /*******************************************************************************
+  // LED: GREEN
+  assign IOLED[1] = s_led3_green_n;
+
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   assign s_console_io = s_scons_n & s_ioc_1;
-   assign s_bint13_n = ~(s_ioc_3 & s_ioc_0);
-   assign s_bint10_n = ~(s_ioc_2 & s_tbmt);
-   assign s_bint12_n = ~(s_console_io & s_da);
+  assign s_console_io = s_scons_n & s_ioc_1;
+  assign s_bint13_n = ~(s_ioc_3 & s_ioc_0);
+  assign s_bint10_n = ~(s_ioc_2 & s_tbmt);
+  assign s_bint12_n = ~(s_console_io & s_da);
 
-   
-   /*******************************************************************************
+
+  /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   TTL_74273 CHIP_28A_IOC 
-   (
-      .CLK(s_sioc_n),            // Clock input
-      .CLR_n(s_clear_n),         // Active low clear input
+  TTL_74273 CHIP_28A_IOC (
+      .CLK(s_sioc_n),  // Clock input
+      .CLR_n(s_clear_n),  // Active low clear input
       .D(s_ioc_idb_7_0_in[7:0]), // 8-bit data input directly from the bus (which is a combination of IDB, ALD and INR)
-      .Q(
-         {  
-            s_reset,              // 8-bit output, bit 0 (Q1) - Corresponding to IDB7/MSB)  - signal is not used it seems..   
-            s_scons_n,            // 8-bit output, bit 1 (Q2)                                
-            s_led2_red_n,         // 8-bit output, bit 2 (Q3)                                
-            s_led3_green_n,       // 8-bit output, bit 3 (Q4)                                
-            s_ioc_3,              // 8-bit output, bit 4 (Q5)                                
-            s_ioc_2,              // 8-bit output, bit 5 (Q6)                                
-            s_ioc_1,              // 8-bit output, bit 6 (Q7)                                
-            s_ioc_0               // 8-bit output, bit 7 (Q8) - Corresponding to IDB0/LSB)      
-         })                       
-   );
+      .Q({
+        s_reset,              // 8-bit output, bit 0 (Q1) - Corresponding to IDB7/MSB)  - signal is not used it seems..
+        s_scons_n,  // 8-bit output, bit 1 (Q2)
+        s_led2_red_n,  // 8-bit output, bit 2 (Q3)
+        s_led3_green_n,  // 8-bit output, bit 3 (Q4)
+        s_ioc_3,  // 8-bit output, bit 4 (Q5)
+        s_ioc_2,  // 8-bit output, bit 5 (Q6)
+        s_ioc_1,  // 8-bit output, bit 6 (Q7)
+        s_ioc_0  // 8-bit output, bit 7 (Q8) - Corresponding to IDB0/LSB)
+      })
+  );
 
 
 
-      // TTL_74244 CHIP_24A_INR (simplified..)
-      assign s_idb_7_0_inr_out[7:0] = s_rinr_n  ? 8'b0 : s_inr_7_0[7:0]; 
+  // TTL_74244 CHIP_24A_INR (simplified..)
+  assign s_idb_7_0_inr_out[7:0] = s_rinr_n ? 8'b0 : s_inr_7_0[7:0];
 
-      // IDB bus 7:0 is shared between ALD and INR.. or Z state
-      assign s_idb_15_0_out[7:0]  = s_idb_15_0_ald_out  [7:0] | s_idb_7_0_inr_out[7:0];
-      assign s_idb_15_0_out[15:8] = s_idb_15_0_ald_out [15:8]; 
+  // IDB bus 7:0 is shared between ALD and INR.. or Z state
+  assign s_idb_15_0_out[7:0] = s_idb_15_0_ald_out[7:0] | s_idb_7_0_inr_out[7:0];
+  assign s_idb_15_0_out[15:8] = s_idb_15_0_ald_out[15:8];
 
 
 
- // ALD register, STRAP bits  + CX and print version
-  TTL_74244   CHIP_27A_STRAP 
-  (
-      // Input 
-      //        1A4                1A3                  1A2                  1A1 
-      .A1({s_strap_5,              1'b1,                1'b1,                1'b1}),
+  // ALD register, STRAP bits  + CX and print version
+  TTL_74244 CHIP_27A_STRAP (
+      // Input
+      //        1A4                1A3                  1A2                  1A1
+      .A1  ({s_strap_5, 1'b1, 1'b1, 1'b1}),
       .G1_n(s_traald_n),
 
-      //        2A4                2A3                  2A2                  2A1 
-      .A2({s_strap_9,              s_strap_8,           s_strap_7,           s_strap_6}),   
+      //        2A4                2A3                  2A2                  2A1
+      .A2  ({s_strap_9, s_strap_8, s_strap_7, s_strap_6}),
       .G2_n(s_traald_n),
 
 
       // Output
-      .Y1({s_idb_15_0_ald_out[12], s_idb_15_0_ald_out[13], s_idb_15_0_ald_out[14], s_idb_15_0_ald_out[15]}),
-      .Y2({s_idb_15_0_ald_out[8], s_idb_15_0_ald_out[9], s_idb_15_0_ald_out[10], s_idb_15_0_ald_out[11]}) 
-   );
+      .Y1({
+        s_idb_15_0_ald_out[12],
+        s_idb_15_0_ald_out[13],
+        s_idb_15_0_ald_out[14],
+        s_idb_15_0_ald_out[15]
+      }),
+      .Y2({
+        s_idb_15_0_ald_out[8], s_idb_15_0_ald_out[9], s_idb_15_0_ald_out[10], s_idb_15_0_ald_out[11]
+      })
+  );
 
 
-   TTL_74244 CHIP_25A_ALD 
-   (
-      // Input 
-      //        1A1                1A2                  1A3                  1A4 
-      .A1({   s_cx_n,              s_print_no[2],       s_print_no[1],       s_print_no[0]}), 
+  TTL_74244 CHIP_25A_ALD (
+      // Input
+      //        1A1                1A2                  1A3                  1A4
+      .A1  ({s_cx_n, s_print_no[2], s_print_no[1], s_print_no[0]}),
       .G1_n(s_traald_n),
 
-      //        2A1                2A2                  2A3                  2A4 
-      .A2({  s_ALD[3],             s_ALD[2],            s_ALD[1],            s_ALD[0]}),   
+      //        2A1                2A2                  2A3                  2A4
+      .A2  ({s_ALD[3], s_ALD[2], s_ALD[1], s_ALD[0]}),
       .G2_n(s_traald_n),
 
 
       // Output
-      .Y1({s_idb_15_0_ald_out[7], s_idb_15_0_ald_out[6], s_idb_15_0_ald_out[5], s_idb_15_0_ald_out[4]}),
-      .Y2({s_idb_15_0_ald_out[3], s_idb_15_0_ald_out[2], s_idb_15_0_ald_out[1], s_idb_15_0_ald_out[0]}) 
-   );
+      .Y1({
+        s_idb_15_0_ald_out[7], s_idb_15_0_ald_out[6], s_idb_15_0_ald_out[5], s_idb_15_0_ald_out[4]
+      }),
+      .Y2({
+        s_idb_15_0_ald_out[3], s_idb_15_0_ald_out[2], s_idb_15_0_ald_out[1], s_idb_15_0_ald_out[0]
+      })
+  );
 
 endmodule
 
@@ -245,10 +252,10 @@ endmodule
 |1       |     xE           | 121560            |
 |0       |     xF           | 100000            |
 +--------+------------------+-------------------+-----------------------------------------------------------------------
-                      
+
 Note 1: The action will be taken if
       a. $ or & (without preceding value) has been typed on the console in OPCOM mode
-      b. The [LOAD] button has been pressed  
+      b. The [LOAD] button has been pressed
       c. The power has been restored and the keyswitch in the lock positon, but the standby power has been lost (extended power failure).
 
 Note 2: No load. The CPU is put in STOP made.
@@ -258,9 +265,9 @@ Note 3: Run from address 20.
 Note 4:
 The content of the internal register I12 reflects the ALD settings.
 
-ALD switch settings 8 to 15 specify load and run, settings 2 to 7 specify load only. 
-ALD settings 4, 5, 12 and 13 specify a bootstrap load from a disk. 
-All other settings expect BPUN format. 
+ALD switch settings 8 to 15 specify load and run, settings 2 to 7 specify load only.
+ALD settings 4, 5, 12 and 13 specify a bootstrap load from a disk.
+All other settings expect BPUN format.
 
 The start address is always the power fail restart address (20).
 
