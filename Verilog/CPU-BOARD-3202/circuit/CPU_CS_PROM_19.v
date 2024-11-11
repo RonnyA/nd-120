@@ -27,12 +27,12 @@ module CPU_CS_PROM_19 (
 
 
   (* ROM_STYLE="BLOCK" *)
-  reg [7:0] rom_lo[32767];  // 32K x 8 bit ROM (LO 8 bits)
+  reg [7:0] rom_lo[32767:0];  // 32K x 8 bit ROM (LO 8 bits)
   initial $readmemh("AM27256_45132L.hex", rom_lo, 0, 32767);
 
 
   (* ROM_STYLE="BLOCK" *)
-  reg [7:0] rom_hi[32767];  // 32K x 8 bit ROM (HI 8 bits)
+  reg [7:0] rom_hi[3276:0];  // 32K x 8 bit ROM (HI 8 bits)
   initial $readmemh("AM27256_45133L.hex", rom_hi, 0, 32767);
 
   assign s_databus[7:0] = rom_lo[s_Address];
