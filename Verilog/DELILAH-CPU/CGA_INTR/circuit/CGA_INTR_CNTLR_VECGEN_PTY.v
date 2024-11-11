@@ -1,66 +1,64 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_INTR_CNTLR_VECGEN_PTY                                    **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/INTR/CNTLR/VECGEN/PTY                                            **
+** VECTOR GENERATOR                                                      **
+**                                                                       **
+** Page 83                                                               **
+** SHEET 1 of 1                                                          **
+**                                                                       **
+** Last reviewed: 11-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_INTR_CNTLR_VECGEN_PTY( HIDET,
-                                  HIVEC,
-                                  LODET,
-                                  LOVEC,
-                                  MIREQ_15_0_N );
+module CGA_INTR_CNTLR_VECGEN_PTY (
+    input [15:0] MIREQ_15_0_N,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input [15:0] MIREQ_15_0_N;
+    output       HIDET,
+    output [2:0] HIVEC,
+    output       LODET,
+    output [2:0] LOVEC
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output       HIDET;
-   output [2:0] HIVEC;
-   output       LODET;
-   output [2:0] LOVEC;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [15:0] s_logisimBus0;
-   wire [2:0]  s_logisimBus4;
-   wire [2:0]  s_logisimBus5;
-   wire        s_logisimNet3;
-   wire        s_logisimNet6;
+  wire [15:0] s_mireq_15_0_n;
+  wire [ 2:0] s_hivec_out;
+  wire [ 2:0] s_lovec_out;
+  wire        s_hidet_out;
+  wire        s_lodet_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus0[15:0] = MIREQ_15_0_N;
+  assign s_mireq_15_0_n[15:0] = MIREQ_15_0_N;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign HIDET = s_logisimNet3;
-   assign HIVEC = s_logisimBus4[2:0];
-   assign LODET = s_logisimNet6;
-   assign LOVEC = s_logisimBus5[2:0];
+  assign HIDET = s_hidet_out;
+  assign HIVEC = s_hivec_out[2:0];
+  assign LODET = s_lodet_out;
+  assign LOVEC = s_lovec_out[2:0];
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   CGA_INTR_CNTLR_VECGEN_PTY_PTYENC   PTYENC_HI (.DET(s_logisimNet3),
-                                                 .RN(s_logisimBus0[15:8]),
-                                                 .V_2_0(s_logisimBus4[2:0]));
+  CGA_INTR_CNTLR_VECGEN_PTY_PTYENC PTYENC_HI (
+      .DET(s_hidet_out),
+      .RN(s_mireq_15_0_n[15:8]),
+      .V_2_0(s_hivec_out[2:0])
+  );
 
-   CGA_INTR_CNTLR_VECGEN_PTY_PTYENC   PTYENC_LO (.DET(s_logisimNet6),
-                                                 .RN(s_logisimBus0[7:0]),
-                                                 .V_2_0(s_logisimBus5[2:0]));
+  CGA_INTR_CNTLR_VECGEN_PTY_PTYENC PTYENC_LO (
+      .DET(s_lodet_out),
+      .RN(s_mireq_15_0_n[7:0]),
+      .V_2_0(s_lovec_out[2:0])
+  );
 
 endmodule
