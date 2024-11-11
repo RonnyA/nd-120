@@ -1,7 +1,6 @@
+# ND-120 CPU
 
-# ND-120 CPU #
-
-## Content ##
+## Content
 
 This repo contains:
 
@@ -15,45 +14,41 @@ The goal of this repo is to re-create the schematics and create the HDL files so
 On the way to the FPGA code, there will be testable Logisim Circuits and Logisim code that can be converted and tested in C++ using Verilator.
 
 
-#### Requirements ####
+## Requirements
 
-The minimum requirements are:
+The minimum requirements to make the CPU work is:
 
-| Component                      | Schematic    |  HDL   | Status | 
-|--------------------------------|--------------|--------|--------|
-| [DELILAH CPU Gate Array (CGA)](DesignDocuments\DELILAH-CPU\readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
-| [NEC Decoder Gate Array (DGA)](DesignDocuments\DECODE-GateArray\readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
-| [ND 3202 CPU Board revision D](DesignDocuments/CPU-BOARD-3202/Readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
-| [PAL Chips ](DesignDocuments/PAL-Code/Readme.md) | All PALASM code has been validated | Verilog and testcode created | QA on Verilog ongoing |
+| Component                                                                   | Schematic                          |  HDL                         | Status                          | 
+|-----------------------------------------------------------------------------|------------------------------------|------------------------------|---------------------------------|
+| [DELILAH CPU Gate Array (CGA)](DesignDocuments\DELILAH-CPU\readme.md)       | Completed                          | Logisim generated Verilog    | QA on schematic/Verilog ongoing |
+| [NEC Decoder Gate Array (DGA)](DesignDocuments\DECODE-GateArray\readme.md)  | Completed                          | Logisim generated Verilog    | QA on schematic/Verilog ongoing |
+| [ND 3202 CPU Board revision D](DesignDocuments/CPU-BOARD-3202/Readme.md)    | Completed                          | Logisim generated Verilog    | QA on schematic/Verilog ongoing |
+| [PAL Chips ](DesignDocuments/PAL-Code/Readme.md)                            | All PALASM code has been validated | Verilog and testcode created | QA on Verilog ongoing           |
 
 In the CPU Board we will plug in the DELILAH CPU and the Decoder, all PAL chips and several other support chips (74-series, RAM and UART,++)
 
 
-### Stretch goals ###
+## Stretch goals
 
 Design and implement I/O devices for reading and writing files from FLASH memory simulating the device.
 
 * Floppy 
 * Hard Drive
 
-
-
-# Design documents
+## Design documents
 
 All the design documents are in the [Design Documents](DesignDocuments/Readme.md) folder.
 
-# Norsk Data documents
+## Norsk Data documents
 
 Functional Description, Instruction set, Microprogramming guide and more are in the [NorskData-Doc](NorskData-Doc/Readme.md) folder.
 
-
-
-# Microcode #
+## Microcode 
 
 The [Microcode](Code/Microcode/readme.md) dump is from a ND-120 3202 CPU Board is Version 14/L
 The source code is also for the L version.
 
-# Panel Controller - 6805 CPU CHIP #
+## Panel Controller - 6805 CPU CHIP
 
 [ROM dump](Code/68705/readme.md)
 
@@ -72,26 +67,26 @@ We have a ROM dumps from both the *MC68705-U3* chip (from the 3202D CPU Board) a
 
 Reverse engineering has been done using the free SRE tool [GHIDRA](https://ghidra-sre.org/) from NSA.
 
-# Schematic drawings #
+## Schematic drawings
 
-## Logisim ##
+### Logisim 
 
 All the Logisim files are stored in the [Logisim folder](Logisim/readme.md)
 
-### Logisim Requirements ###
+#### Logisim Requirements
 
 You need to install the Logisim-Evolution design tool from [Logisim Evolution Repository](https://github.com/logisim-evolution/logisim-evolution)
 
 The Logisim diagrams has been drawn with [Version 3.8.0](https://github.com/logisim-evolution/logisim-evolution/releases/tag/v3.8.0)
 
-# FPGA #
+## FPGA 
 
-## Verilog ##
+### Verilog 
 
 Most Verilog files are generated from the Logisim drawings, using Logisim-Evolution FPGA tools.
 
 All the Verilog files are stored in the [Verilog folder](Verilog/)
 
-## Verilator ##
+### Verilator
 
 To test the Verilog code using Verilator you need to install the [Verilator](https://www.veripool.org/verilator/) tool
