@@ -1,6 +1,6 @@
 /**************************************************************************
 ** ND120 CGA (CPU Gate Array / DELILAH)                                  **
-** DECODE/DGA/PFIFD (FIFO DATA)                                          **
+** /CGA/ALU/SHIFT                                                        **
 **                                                                       **
 ** Page 49                                                               **
 ** SHEET 1 of 1                                                          **
