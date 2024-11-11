@@ -16,62 +16,62 @@
 // PAL input signal PD1 is connected to PAL OE_n pin
 //     input signal OSC is connectec to PAL CK pin
 
-module PAL_44803A(
-    input CK,           // Clock signal
-    input OE_n,         // OUTPUT ENABLE (active-low) for Q0-Q5
+module PAL_44803A (
+    input CK,   //! Clock signal
+    input OE_n, //! OUTPUT ENABLE (active-low) for Q0-Q5
 
-    input LOEN_n,       // I0 - LOEN_n
-    input RLRQ_n,       // I1 - RLRQ_n
-    input MR_n,         // I2 - MR_n 
-    input CLRQ_n,       // I3 - CLRQ_n 
-    input BLRQ50_n,     // I4 - BLRQ50_n 
-    input SSEMA_n,      // I5 - SSEMA_n
-    input SEMRQ50_n,    // I6 - SEMRQ50_n
-//  input n.c ,         // I7 - n.c.
+    input LOEN_n,    //! I0 - LOEN_n
+    input RLRQ_n,    //! I1 - RLRQ_n
+    input MR_n,      //! I2 - MR_n
+    input CLRQ_n,    //! I3 - CLRQ_n
+    input BLRQ50_n,  //! I4 - BLRQ50_n
+    input SSEMA_n,   //! I5 - SSEMA_n
+    input SEMRQ50_n, //! I6 - SEMRQ50_n
+    //  input n.c ,         //! I7 - n.c.
 
-    output RGNT_n,      // Q0_n - RGNT_n
-    output CGNT_n,      // Q1_n - CGNT_n
-    output BGNT_n,      // Q2_n - BGNT_n
-    output LOEN25_n,    // Q3_n - LOEN25_n (n.c.)
-    output LDR_n,       // Q4_n - LDR_n (n.c.)
-    output CSEM_n,      // Q5_n - CSEM_n (n.c.)
-    output BSEM_n,      // Q6_n - BSEM_n (n.c.)
-    output BCGNT25      // Q7_n - BCGNT25
+    output RGNT_n,    //! Q0_n - RGNT_n
+    output CGNT_n,    //! Q1_n - CGNT_n
+    output BGNT_n,    //! Q2_n - BGNT_n
+    output LOEN25_n,  //! Q3_n - LOEN25_n (n.c.)
+    output LDR_n,     //! Q4_n - LDR_n (n.c.)
+    output CSEM_n,    //! Q5_n - CSEM_n (n.c.)
+    output BSEM_n,    //! Q6_n - BSEM_n (n.c.)
+    output BCGNT25    //! Q7_n - BCGNT25
 );
 
-// negated input signals
-wire LOEN     = ~LOEN_n;   
-wire RLRQ     = ~RLRQ_n;   
-wire CLRQ     = ~CLRQ_n;
-wire BLRQ50   = ~BLRQ50_n;
-wire SSEMA    = ~SSEMA_n; 
-wire SEMRQ50  = ~SEMRQ50_n;
+  // negated input signals
+  wire LOEN = ~LOEN_n;
+  wire RLRQ = ~RLRQ_n;
+  wire CLRQ = ~CLRQ_n;
+  wire BLRQ50 = ~BLRQ50_n;
+  wire SSEMA = ~SSEMA_n;
+  wire SEMRQ50 = ~SEMRQ50_n;
 
 
-// Register signals as wires (to help with the equations)
-wire RGNT =  RGNT_reg;
-wire CGNT =  CGNT_reg; 
-wire BGNT =  BGNT_reg;
-wire LDR =  LDR_reg;
-wire CSEM =  CSEM_reg;
-wire BSEM =  BSEM_reg;
-wire LOEN25 =  LOEN25_reg;
+  // Register signals as wires (to help with the equations)
+  wire RGNT = RGNT_reg;
+  wire CGNT = CGNT_reg;
+  wire BGNT = BGNT_reg;
+  wire LDR = LDR_reg;
+  wire CSEM = CSEM_reg;
+  wire BSEM = BSEM_reg;
+  wire LOEN25 = LOEN25_reg;
 
 
-// Internal registers
-reg RGNT_reg;
-reg CGNT_reg; 
-reg BGNT_reg;
-reg LDR_reg;
-reg CSEM_reg;
-reg BSEM_reg;
-reg LOEN25_reg;
-reg BCGNT25_n_reg;
+  // Internal registers
+  reg  RGNT_reg;
+  reg  CGNT_reg;
+  reg  BGNT_reg;
+  reg  LDR_reg;
+  reg  CSEM_reg;
+  reg  BSEM_reg;
+  reg  LOEN25_reg;
+  reg  BCGNT25_n_reg;
 
 
 
-//**** Sequential logic triggered on the rising edge of CLK ****
-always @(posedge CK) begin       
+  //**** Sequential logic triggered on the rising edge of CLK ****
+  always @(posedge CK) begin
 
     RGNT_reg <=   (RLRQ & CSEM_n & BSEM_n & RGNT_n & CGNT_n & BGNT_n)
                 | (RGNT & LOEN_n & LOEN25_n)
@@ -92,8 +92,7 @@ always @(posedge CK) begin
                 | (BGNT & LOEN & LOEN25 & MR_n)
                 | (BGNT & LOEN & LOEN25_n & MR_n);
 
-    LDR_reg <=    RGNT
-               | (LDR & CGNT_n & BGNT_n);
+    LDR_reg <= RGNT | (LDR & CGNT_n & BGNT_n);
 
     CSEM_reg <=   (MR_n & SSEMA & CGNT)
                 | (MR_n & CSEM & LOEN25 & LOEN)
@@ -109,19 +108,19 @@ always @(posedge CK) begin
 
     BCGNT25_n_reg <= BGNT_n & CGNT_n;
 
-end
+  end
 
-// Tri-state control for Q outputs
-// Assigning outputs with three-state logic controlled by OE_n
+  // Tri-state control for Q outputs
+  // Assigning outputs with three-state logic controlled by OE_n
 
-assign RGNT_n   = OE_n ? 1'b0 : ~RGNT_reg;      
-assign CGNT_n   = OE_n ? 1'b0 : ~CGNT_reg;
-assign BGNT_n   = OE_n ? 1'b0 : ~BGNT_reg;
-assign LDR_n    = OE_n ? 1'b0 : ~LDR_reg;
-assign CSEM_n   = OE_n ? 1'b0 : ~CSEM_reg;
-assign BSEM_n   = OE_n ? 1'b0 : ~BSEM_reg;
-assign LOEN25_n = OE_n ? 1'b0 : ~LOEN25_reg;
-assign BCGNT25  = OE_n ? 1'b0 : ~BCGNT25_n_reg;
+  assign RGNT_n   = OE_n ? 1'b0 : ~RGNT_reg;
+  assign CGNT_n   = OE_n ? 1'b0 : ~CGNT_reg;
+  assign BGNT_n   = OE_n ? 1'b0 : ~BGNT_reg;
+  assign LDR_n    = OE_n ? 1'b0 : ~LDR_reg;
+  assign CSEM_n   = OE_n ? 1'b0 : ~CSEM_reg;
+  assign BSEM_n   = OE_n ? 1'b0 : ~BSEM_reg;
+  assign LOEN25_n = OE_n ? 1'b0 : ~LOEN25_reg;
+  assign BCGNT25  = OE_n ? 1'b0 : ~BCGNT25_n_reg;
 
 
 

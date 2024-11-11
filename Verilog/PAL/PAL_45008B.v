@@ -13,98 +13,86 @@
 // PAL16RL8 (https://rocelec.widen.net/view/pdf/c6dwcslffz/VANTS00080-1.pdf)
 
 
-module PAL_45008B(
+module PAL_45008B (
 
-    input MWRITE_n,           // I0 - MWRITE_n
-    input SWDIS_n,            // I1 - SWDIS_n
-    input LBD0,               // I2 - LBD0
-    input LBD1,               // I3 - LBD1
-    input LBD3,               // I4 - LBD3
-    input LBD4,               // I5 - LBD4
-    input BIOXL_n,            // I6 - BIOXL_n
-    input ECCR,               // I7 - ECCR
-    input BCGNT50R_n,         // I8 - BCGNT50R_n
-    // input HIEN_n,             // I9 - EPEA_n  (NOT USED!)
-
-
-    output DIS_n,             // Y0_n (OUT Only)
-    output OER_n,             // Y1_n (OUT ONLY)
-    
-    output OET_n,             // B0_n - OET_n
-    output CLRERR_n,          // B1_n - CLRERR_n
-    output DISB_n,            // B2_n - DISB_n (n.c.)
-    output TST_n,             // B3_n - TST_n (n.c)
-    input  QD_n,              // B4_n - PD3
-    input  MR_n               // B5_n - MR_n
-);                        
+    input MWRITE_n,   //! I0 - MWRITE_n
+    input SWDIS_n,    //! I1 - SWDIS_n
+    input LBD0,       //! I2 - LBD0
+    input LBD1,       //! I3 - LBD1
+    input LBD3,       //! I4 - LBD3
+    input LBD4,       //! I5 - LBD4
+    input BIOXL_n,    //! I6 - BIOXL_n
+    input ECCR,       //! I7 - ECCR
+    input BCGNT50R_n, //! I8 - BCGNT50R_n
+    // input HIEN_n,  //! I9 - EPEA_n  (NOT USED!)
 
 
-// Creating non-negated wires for active-low inputs
- wire MWRITE = ~MWRITE_n;
- wire SWDIS = ~SWDIS_n;
- //wire LBD0_n = ~LBD0;
- //wire LBD1_n = ~LBD1;
- //wire LBD3_n = ~LBD3;
- //wire LBD4_n = ~LBD4;
- wire BIOXL = ~BIOXL_n;
- wire ECCR_n = ~ECCR;
- wire BCGNT50R = ~BCGNT50R_n;
- //wire HIEN = ~HIEN_n;
- wire QD = ~QD_n;
- wire MR = ~MR_n;
+    output DIS_n,  //! Y0_n (OUT Only)
+    output OER_n,  //! Y1_n (OUT ONLY)
 
-
-// ON WRITE TO MEMORY
-assign OET_n = ~(MWRITE);
-
-// ON READ FROM MEMORY AFTER THE ADDRESS PE
-// ON WRITE IN TEST MODE BOTH OER AND OET S
-assign OER_n = ~(
-                   (BCGNT50R)
-                 | (TST & MWRITE) 
+    output OET_n,     //! B0_n - OET_n
+    output CLRERR_n,  //! B1_n - CLRERR_n
+    output DISB_n,    //! B2_n - DISB_n (n.c.)
+    output TST_n,     //! B3_n - TST_n (n.c)
+    input  QD_n,      //! B4_n - PD3
+    input  MR_n       //! B5_n - MR_n
 );
 
 
-// CLEAR PARITY ERROR ON MR, READING EPESL
-assign CLRERR_n = ~(  
-                      MR 
-                    | BCGNT50R_n 
-                    | DISB 
-                    | QD
-);
+  // Creating non-negated wires for active-low inputs
+  wire MWRITE = ~MWRITE_n;
+  wire SWDIS = ~SWDIS_n;
+  //wire LBD0_n = ~LBD0;
+  //wire LBD1_n = ~LBD1;
+  //wire LBD3_n = ~LBD3;
+  //wire LBD4_n = ~LBD4;
+  wire BIOXL = ~BIOXL_n;
+  wire ECCR_n = ~ECCR;
+  wire BCGNT50R = ~BCGNT50R_n;
+  //wire HIEN = ~HIEN_n;
+  wire QD = ~QD_n;
+  wire MR = ~MR_n;
 
 
-// DIS logic
-assign DIS_n = ~(
-                    DISB 
-                  | SWDIS
-);
+  // ON WRITE TO MEMORY
+  assign OET_n = ~(MWRITE);
 
-reg DISB_reg;
-reg TST_reg;
-wire TST = TST_reg;
-wire DISB = DISB_reg;
+  // ON READ FROM MEMORY AFTER THE ADDRESS PE
+  // ON WRITE IN TEST MODE BOTH OER AND OET S
+  assign OER_n = ~((BCGNT50R) | (TST & MWRITE));
 
 
-always @(*) begin
-
-    // SET IF LDB3=1 AND IOX=ECCR    
-    if ((LBD3 & BIOXL & ECCR)==1)
-        DISB_reg = 1'b1;
-    else if (((MR_n & BIOXL_n)==0) | ((MR_n & ECCR_n)) == 0) // HOLD UNTIL NEXT IOX=ECCR
-        DISB_reg = 1'b0;
-
-    // SET IF ANY OF LBD0,1,4 AND IOX=ECCR    
-    if ( ((LBD0 & BIOXL & ECCR)==1) | ((LBD1 & BIOXL & ECCR)== 1) | ((LBD4 & BIOXL & ECCR)==1) )
-        TST_reg = 1'b1;
-    else if ( ((MR_n & BIOXL)==0) | ((MR_n & ECCR_n)==0) ) // HOLD UNTIL NEXT IOX=ECCR
-        TST_reg = 1'b0;
-
-end
+  // CLEAR PARITY ERROR ON MR, READING EPESL
+  assign CLRERR_n = ~(MR | BCGNT50R_n | DISB | QD);
 
 
-assign DISB_n = ~DISB_reg;
-assign TST_n = ~TST_reg;
+  // DIS logic
+  assign DIS_n = ~(DISB | SWDIS);
+
+  reg  DISB_reg;
+  reg  TST_reg;
+  wire TST = TST_reg;
+  wire DISB = DISB_reg;
+
+
+  always @(*) begin
+
+    // SET IF LDB3=1 AND IOX=ECCR
+    if ((LBD3 & BIOXL & ECCR) == 1) DISB_reg = 1'b1;
+    else if (((MR_n & BIOXL_n) == 0) | ((MR_n & ECCR_n)) == 0)  // HOLD UNTIL NEXT IOX=ECCR
+      DISB_reg = 1'b0;
+
+    // SET IF ANY OF LBD0,1,4 AND IOX=ECCR
+    if (((LBD0 & BIOXL & ECCR) == 1) | ((LBD1 & BIOXL & ECCR) == 1) | ((LBD4 & BIOXL & ECCR) == 1))
+      TST_reg = 1'b1;
+    else if (((MR_n & BIOXL) == 0) | ((MR_n & ECCR_n) == 0))  // HOLD UNTIL NEXT IOX=ECCR
+      TST_reg = 1'b0;
+
+  end
+
+
+  assign DISB_n = ~DISB_reg;
+  assign TST_n  = ~TST_reg;
 
 endmodule
 
