@@ -5147,19 +5147,19 @@
     <comp lib="4" loc="(560,2210)" name="D Flip-Flop">
       <a name="appearance" val="logisim_evolution"/>
     </comp>
-    <comp lib="8" loc="(1403,1716)" name="Text">
+    <comp lib="8" loc="(1400,1715)" name="Text">
       <a name="text" val="CSMIS = Shift Mode = 0=Arithm, 1=ROT, 2=IN, 3=LIN"/>
     </comp>
-    <comp lib="8" loc="(1415,1689)" name="Text">
-      <a name="text" val="CSCINSEL = Carry In Select = 0: 0=1,  1=1, 2=C, 3=GPR0"/>
-    </comp>
-    <comp lib="8" loc="(1417,1654)" name="Text">
+    <comp lib="8" loc="(1415,1650)" name="Text">
       <a name="text" val="CSSTS =  0=HOLD,1=SET C O Q, 2=SET M, 3=LOAD STS"/>
     </comp>
-    <comp lib="8" loc="(1518,4808)" name="Text">
+    <comp lib="8" loc="(1415,1685)" name="Text">
+      <a name="text" val="CSCINSEL = Carry In Select = 0: 0=1,  1=1, 2=C, 3=GPR0"/>
+    </comp>
+    <comp lib="8" loc="(1515,4805)" name="Text">
       <a name="text" val="Calculates ALU Source"/>
     </comp>
-    <comp lib="8" loc="(1528,4343)" name="Text">
+    <comp lib="8" loc="(1525,4340)" name="Text">
       <a name="text" val="Calulates ALU Function"/>
     </comp>
     <comp lib="8" loc="(1785,525)" name="Text">
@@ -5183,7 +5183,7 @@
     <comp lib="8" loc="(2220,2405)" name="Text">
       <a name="text" val="CINSEL1"/>
     </comp>
-    <comp lib="8" loc="(2339,2457)" name="Text">
+    <comp lib="8" loc="(2335,2455)" name="Text">
       <a name="text" val="STS6= STS.Carry"/>
     </comp>
     <comp lib="8" loc="(2375,2550)" name="Text">
@@ -5192,7 +5192,7 @@
     <comp lib="8" loc="(2375,2595)" name="Text">
       <a name="text" val="CSTS1"/>
     </comp>
-    <comp lib="8" loc="(2655,2586)" name="Text">
+    <comp lib="8" loc="(2655,2585)" name="Text">
       <a name="text" val="Controls STS bits 4-5-6-7"/>
     </comp>
     <comp lib="8" loc="(2755,1565)" name="Text">
@@ -5204,15 +5204,15 @@
     <comp lib="8" loc="(2760,1650)" name="Text">
       <a name="text" val="GPRC2"/>
     </comp>
-    <comp lib="8" loc="(3030,1528)" name="Text">
+    <comp lib="8" loc="(3030,1525)" name="Text">
       <a name="text" val="GPR Commands: 0=??  010=FMU"/>
     </comp>
-    <comp lib="8" loc="(530,2054)" name="Text">
+    <comp lib="8" loc="(530,2050)" name="Text">
       <a name="color" val="#e60c59"/>
       <a name="font" val="SansSerif bold 20"/>
       <a name="text" val="SHOULD BE LATCH Gated by LDIRV!!!"/>
     </comp>
-    <comp lib="8" loc="(556,2918)" name="Text">
+    <comp lib="8" loc="(555,2915)" name="Text">
       <a name="text" val="CSCALUM = ALU.MODE = 0=uShift, 1=FMU (multiply) 2=FDV (div) 3=IR Shift"/>
     </comp>
     <comp lib="8" loc="(935,2095)" name="Text">
@@ -9091,34 +9091,34 @@
     <comp lib="4" loc="(3490,3730)" name="D Flip-Flop">
       <a name="appearance" val="logisim_evolution"/>
     </comp>
-    <comp lib="8" loc="(2365,4252)" name="Text">
+    <comp lib="8" loc="(2365,4250)" name="Text">
       <a name="text" val="GPRC = 000 = LOAD FIDB 15_0"/>
     </comp>
-    <comp lib="8" loc="(2365,4468)" name="Text">
-      <a name="text" val="alu 876 = 11x  =&gt; GPRC = 011 shift left"/>
-    </comp>
-    <comp lib="8" loc="(2367,4275)" name="Text">
+    <comp lib="8" loc="(2365,4275)" name="Text">
       <a name="text" val="GPRC = 001 = LOAD CD 15_0"/>
     </comp>
-    <comp lib="8" loc="(2372,4443)" name="Text">
+    <comp lib="8" loc="(2365,4465)" name="Text">
+      <a name="text" val="alu 876 = 11x  =&gt; GPRC = 011 shift left"/>
+    </comp>
+    <comp lib="8" loc="(2370,4440)" name="Text">
       <a name="text" val="alu 876 = 10x  =&gt; GPRC = 010 shift right "/>
     </comp>
-    <comp lib="8" loc="(2379,4346)" name="Text">
+    <comp lib="8" loc="(2375,4345)" name="Text">
       <a name="text" val="GPRC = 011 =&gt;  GPR SHIFT LEFT, GPRLI =&gt; GPR bit 0"/>
     </comp>
-    <comp lib="8" loc="(2379,4494)" name="Text">
+    <comp lib="8" loc="(2375,4490)" name="Text">
       <a name="text" val="alu 876 = 00x  =&gt; GPRC = 110 ?? no shift "/>
     </comp>
-    <comp lib="8" loc="(2388,4522)" name="Text">
+    <comp lib="8" loc="(2385,4520)" name="Text">
       <a name="text" val="alu 876 = 01x  =&gt; GPRC = 111 ?? no shift..  "/>
     </comp>
-    <comp lib="8" loc="(2442,4310)" name="Text">
+    <comp lib="8" loc="(2440,4310)" name="Text">
       <a name="text" val="GPRC = 010 = FMU = MULTIPLY=&gt; GPR SHIFT RIGHT"/>
     </comp>
     <comp lib="8" loc="(2495,3985)" name="Text">
       <a name="text" val="GPRC0"/>
     </comp>
-    <comp lib="8" loc="(2538,4113)" name="Text">
+    <comp lib="8" loc="(2535,4110)" name="Text">
       <a name="text" val="GPR LEFT SHIFT INPUT BIT 0"/>
     </comp>
     <comp lib="8" loc="(2540,4010)" name="Text">
@@ -29018,6 +29018,7 @@
     <wire from="(360,250)" to="(390,250)"/>
     <wire from="(370,330)" to="(370,400)"/>
     <wire from="(370,330)" to="(390,330)"/>
+    <wire from="(410,260)" to="(410,300)"/>
     <wire from="(430,240)" to="(480,240)"/>
     <wire from="(430,320)" to="(480,320)"/>
     <wire from="(480,250)" to="(480,320)"/>
@@ -31217,7 +31218,7 @@
     </comp>
     <comp lib="0" loc="(310,500)" name="Pin">
       <a name="appearance" val="NewPins"/>
-      <a name="label" val="FIDB_15_7_2_0"/>
+      <a name="label" val="FIDBO_15_7_2_0"/>
       <a name="radix" val="16"/>
       <a name="width" val="16"/>
     </comp>
@@ -31343,7 +31344,6 @@
     <wire from="(720,270)" to="(810,270)"/>
     <wire from="(720,290)" to="(860,290)"/>
     <wire from="(720,310)" to="(810,310)"/>
-    <wire from="(720,330)" to="(730,330)"/>
     <wire from="(720,350)" to="(810,350)"/>
     <wire from="(720,390)" to="(810,390)"/>
     <wire from="(720,410)" to="(860,410)"/>
@@ -33976,7 +33976,6 @@
     <wire from="(1070,3740)" to="(1100,3740)"/>
     <wire from="(1070,4010)" to="(1180,4010)"/>
     <wire from="(1070,4030)" to="(1160,4030)"/>
-    <wire from="(1070,4050)" to="(1080,4050)"/>
     <wire from="(1070,4070)" to="(1110,4070)"/>
     <wire from="(1070,4090)" to="(1130,4090)"/>
     <wire from="(1070,4320)" to="(1320,4320)"/>
@@ -37478,11 +37477,11 @@
     <a name="circuit" val="CGA_MIC_WCAREG"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
-    <comp lib="0" loc="(1040,340)" name="Pin">
+    <comp lib="0" loc="(1030,360)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="LCSN"/>
     </comp>
-    <comp lib="0" loc="(1280,330)" name="Pin">
+    <comp lib="0" loc="(1270,350)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
       <a name="label" val="WCSN"/>
@@ -37537,7 +37536,7 @@
       <a name="radix" val="16"/>
       <a name="width" val="13"/>
     </comp>
-    <comp lib="1" loc="(1170,330)" name="NOR Gate">
+    <comp lib="1" loc="(1160,350)" name="NOR Gate">
       <a name="negate0" val="true"/>
       <a name="negate1" val="true"/>
       <a name="size" val="30"/>
@@ -37603,11 +37602,10 @@
     <wire from="(1000,1170)" to="(1420,1170)"/>
     <wire from="(1000,990)" to="(1000,1040)"/>
     <wire from="(1000,990)" to="(1290,990)"/>
-    <wire from="(1040,340)" to="(1120,340)"/>
-    <wire from="(1170,330)" to="(1280,330)"/>
+    <wire from="(1030,360)" to="(1110,360)"/>
+    <wire from="(1160,350)" to="(1270,350)"/>
     <wire from="(1240,1040)" to="(1290,1040)"/>
-    <wire from="(1240,1060)" to="(1290,1060)"/>
-    <wire from="(1290,1060)" to="(1290,1560)"/>
+    <wire from="(1290,1040)" to="(1290,1560)"/>
     <wire from="(1290,1560)" to="(4660,1560)"/>
     <wire from="(1290,990)" to="(1290,1040)"/>
     <wire from="(1370,1080)" to="(1440,1080)"/>
@@ -37622,8 +37620,7 @@
     <wire from="(1420,990)" to="(1420,1040)"/>
     <wire from="(1420,990)" to="(1710,990)"/>
     <wire from="(1660,1040)" to="(1710,1040)"/>
-    <wire from="(1660,1060)" to="(1710,1060)"/>
-    <wire from="(1710,1060)" to="(1710,1530)"/>
+    <wire from="(1710,1040)" to="(1710,1530)"/>
     <wire from="(1710,1530)" to="(4750,1530)"/>
     <wire from="(1710,990)" to="(1710,1040)"/>
     <wire from="(1760,1080)" to="(1830,1080)"/>
@@ -37638,8 +37635,7 @@
     <wire from="(1810,990)" to="(1810,1040)"/>
     <wire from="(1810,990)" to="(2100,990)"/>
     <wire from="(2050,1040)" to="(2100,1040)"/>
-    <wire from="(2050,1060)" to="(2100,1060)"/>
-    <wire from="(2100,1060)" to="(2100,1500)"/>
+    <wire from="(2100,1040)" to="(2100,1500)"/>
     <wire from="(2100,1500)" to="(4840,1500)"/>
     <wire from="(2100,990)" to="(2100,1040)"/>
     <wire from="(2140,1080)" to="(2210,1080)"/>
@@ -37656,8 +37652,7 @@
     <wire from="(220,340)" to="(250,340)"/>
     <wire from="(220,380)" to="(360,380)"/>
     <wire from="(2430,1040)" to="(2480,1040)"/>
-    <wire from="(2430,1060)" to="(2480,1060)"/>
-    <wire from="(2480,1060)" to="(2480,1470)"/>
+    <wire from="(2480,1040)" to="(2480,1470)"/>
     <wire from="(2480,1470)" to="(4930,1470)"/>
     <wire from="(2480,990)" to="(2480,1040)"/>
     <wire from="(2520,1080)" to="(2600,1080)"/>
@@ -37673,8 +37668,7 @@
     <wire from="(2580,990)" to="(2870,990)"/>
     <wire from="(280,340)" to="(590,340)"/>
     <wire from="(2820,1040)" to="(2870,1040)"/>
-    <wire from="(2820,1060)" to="(2870,1060)"/>
-    <wire from="(2870,1060)" to="(2870,1440)"/>
+    <wire from="(2870,1040)" to="(2870,1440)"/>
     <wire from="(2870,1440)" to="(5020,1440)"/>
     <wire from="(2870,990)" to="(2870,1040)"/>
     <wire from="(290,550)" to="(460,550)"/>
@@ -37690,8 +37684,7 @@
     <wire from="(2980,990)" to="(2980,1040)"/>
     <wire from="(2980,990)" to="(3270,990)"/>
     <wire from="(3220,1040)" to="(3270,1040)"/>
-    <wire from="(3220,1060)" to="(3270,1060)"/>
-    <wire from="(3270,1060)" to="(3270,1410)"/>
+    <wire from="(3270,1040)" to="(3270,1410)"/>
     <wire from="(3270,1410)" to="(5110,1410)"/>
     <wire from="(3270,990)" to="(3270,1040)"/>
     <wire from="(3320,1080)" to="(3390,1080)"/>
@@ -37709,8 +37702,7 @@
     <wire from="(360,380)" to="(360,1170)"/>
     <wire from="(360,380)" to="(630,380)"/>
     <wire from="(3610,1040)" to="(3660,1040)"/>
-    <wire from="(3610,1060)" to="(3660,1060)"/>
-    <wire from="(3660,1060)" to="(3660,1380)"/>
+    <wire from="(3660,1040)" to="(3660,1380)"/>
     <wire from="(3660,1380)" to="(5200,1380)"/>
     <wire from="(3660,990)" to="(3660,1040)"/>
     <wire from="(3750,1080)" to="(3820,1080)"/>
@@ -37725,8 +37717,7 @@
     <wire from="(3800,990)" to="(3800,1040)"/>
     <wire from="(3800,990)" to="(4090,990)"/>
     <wire from="(4040,1040)" to="(4090,1040)"/>
-    <wire from="(4040,1060)" to="(4090,1060)"/>
-    <wire from="(4090,1060)" to="(4090,1350)"/>
+    <wire from="(4090,1040)" to="(4090,1350)"/>
     <wire from="(4090,1350)" to="(5290,1350)"/>
     <wire from="(4090,990)" to="(4090,1040)"/>
     <wire from="(4130,1080)" to="(4200,1080)"/>
@@ -37741,8 +37732,7 @@
     <wire from="(4180,990)" to="(4180,1040)"/>
     <wire from="(4180,990)" to="(4470,990)"/>
     <wire from="(4420,1040)" to="(4470,1040)"/>
-    <wire from="(4420,1060)" to="(4470,1060)"/>
-    <wire from="(4470,1060)" to="(4470,1320)"/>
+    <wire from="(4470,1040)" to="(4470,1320)"/>
     <wire from="(4470,1320)" to="(5380,1320)"/>
     <wire from="(4470,990)" to="(4470,1040)"/>
     <wire from="(4540,1060)" to="(4590,1060)"/>
@@ -37774,9 +37764,8 @@
     <wire from="(480,800)" to="(4920,800)"/>
     <wire from="(480,820)" to="(5350,820)"/>
     <wire from="(4810,1040)" to="(4860,1040)"/>
-    <wire from="(4810,1060)" to="(4860,1060)"/>
     <wire from="(4840,1500)" to="(4840,1620)"/>
-    <wire from="(4860,1060)" to="(4860,1290)"/>
+    <wire from="(4860,1040)" to="(4860,1290)"/>
     <wire from="(4860,1290)" to="(5470,1290)"/>
     <wire from="(4860,990)" to="(4860,1040)"/>
     <wire from="(4920,1080)" to="(4990,1080)"/>
@@ -37795,8 +37784,7 @@
     <wire from="(5110,1410)" to="(5110,1620)"/>
     <wire from="(5200,1380)" to="(5200,1620)"/>
     <wire from="(5210,1040)" to="(5260,1040)"/>
-    <wire from="(5210,1060)" to="(5260,1060)"/>
-    <wire from="(5260,1060)" to="(5260,1260)"/>
+    <wire from="(5260,1040)" to="(5260,1260)"/>
     <wire from="(5260,1260)" to="(5560,1260)"/>
     <wire from="(5260,990)" to="(5260,1040)"/>
     <wire from="(5290,1350)" to="(5290,1620)"/>
@@ -37813,8 +37801,7 @@
     <wire from="(5470,1290)" to="(5470,1620)"/>
     <wire from="(5560,1260)" to="(5560,1620)"/>
     <wire from="(5600,1040)" to="(5650,1040)"/>
-    <wire from="(5600,1060)" to="(5650,1060)"/>
-    <wire from="(5650,1060)" to="(5650,1620)"/>
+    <wire from="(5650,1040)" to="(5650,1620)"/>
     <wire from="(5650,990)" to="(5650,1040)"/>
     <wire from="(5660,1640)" to="(5660,1700)"/>
     <wire from="(5660,1700)" to="(5780,1700)"/>
@@ -37837,9 +37824,9 @@
     <wire from="(620,990)" to="(620,1040)"/>
     <wire from="(620,990)" to="(910,990)"/>
     <wire from="(850,320)" to="(900,320)"/>
+    <wire from="(850,340)" to="(1110,340)"/>
     <wire from="(860,1040)" to="(910,1040)"/>
     <wire from="(900,270)" to="(900,320)"/>
-    <wire from="(900,320)" to="(1120,320)"/>
     <wire from="(910,1040)" to="(910,1590)"/>
     <wire from="(910,1590)" to="(4570,1590)"/>
     <wire from="(910,990)" to="(910,1040)"/>
@@ -39717,6 +39704,10 @@
     <comp lib="0" loc="(1310,350)" name="Power"/>
     <comp lib="0" loc="(1510,450)" name="Ground"/>
     <comp lib="0" loc="(2030,410)" name="Splitter">
+      <a name="bit0" val="3"/>
+      <a name="bit1" val="2"/>
+      <a name="bit2" val="1"/>
+      <a name="bit3" val="0"/>
       <a name="facing" val="west"/>
       <a name="fanout" val="4"/>
       <a name="incoming" val="4"/>

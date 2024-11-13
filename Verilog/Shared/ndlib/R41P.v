@@ -86,7 +86,7 @@ module R41P( A,
    /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_1 (.clock(s_logisimNet8),
                 .d(s_logisimNet9),
                 .preset(1'b0),
@@ -95,7 +95,7 @@ module R41P( A,
                 .reset(1'b0),
                 .tick(1'b1));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_2 (.clock(s_logisimNet8),
                 .d(s_logisimNet10),
                 .preset(1'b0),
@@ -104,7 +104,7 @@ module R41P( A,
                 .reset(1'b0),
                 .tick(1'b1));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_3 (.clock(s_logisimNet8),
                 .d(s_logisimNet11),
                 .preset(1'b0),
@@ -113,7 +113,7 @@ module R41P( A,
                 .reset(1'b0),
                 .tick(1'b1));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_4 (.clock(s_logisimNet8),
                 .d(s_logisimNet12),
                 .preset(1'b0),

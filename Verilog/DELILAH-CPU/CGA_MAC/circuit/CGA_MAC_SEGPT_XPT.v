@@ -1,115 +1,113 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_MAC_SEGPT_XPT                                            **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/MAC/SEGPT/XPT                                                    **
+** XPT                                                                   **
+**                                                                       **
+** Page 38                                                               **
+** SHEET 1 of 1                                                          **
+**                                                                       **
+** Last reviewed: 10-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_MAC_SEGPT_XPT( EXMN,
-                          FIDBO_2_0,
-                          LLDEXM,
-                          MCLKN,
-                          PEX,
-                          VEX,
-                          XPT_1_0 );
+module CGA_MAC_SEGPT_XPT (
+    input       EXMN,
+    input [2:0] FIDBO_2_0,
+    input       LLDEXM,
+    input       MCLKN,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input       EXMN;
-   input [2:0] FIDBO_2_0;
-   input       LLDEXM;
-   input       MCLKN;
+    output       PEX,
+    output       VEX,
+    output [1:0] XPT_1_0
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output       PEX;
-   output       VEX;
-   output [1:0] XPT_1_0;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [1:0] s_logisimBus1;
-   wire [2:0] s_logisimBus2;
-   wire       s_logisimNet0;
-   wire       s_logisimNet10;
-   wire       s_logisimNet11;
-   wire       s_logisimNet12;
-   wire       s_logisimNet13;
-   wire       s_logisimNet14;
-   wire       s_logisimNet15;
-   wire       s_logisimNet3;
-   wire       s_logisimNet4;
-   wire       s_logisimNet5;
-   wire       s_logisimNet6;
-   wire       s_logisimNet7;
-   wire       s_logisimNet8;
-   wire       s_logisimNet9;
+  wire [1:0] s_xpt_1_0_out;
+  wire [2:0] s_fidbo_2_0;
+  wire       s_exm_n;
+  wire       s_exm;
+  wire       s_gates1_out;
+  wire       s_lldexm;
+  wire       s_mclk_n;
+  wire       s_pex_out;
+  wire       s_vex_out;
+  wire       s_xpt_qc_n;
+  wire       s_xpt_qc;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus2[2:0] = FIDBO_2_0;
-   assign s_logisimNet12     = MCLKN;
-   assign s_logisimNet13     = LLDEXM;
-   assign s_logisimNet15     = EXMN;
+  assign s_fidbo_2_0[2:0] = FIDBO_2_0;
+  assign s_mclk_n         = MCLKN;
+  assign s_lldexm         = LLDEXM;
+  assign s_exm_n          = EXMN;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign PEX     = s_logisimNet8;
-   assign VEX     = s_logisimNet7;
-   assign XPT_1_0 = s_logisimBus1[1:0];
+  assign PEX              = s_pex_out;
+  assign VEX              = s_vex_out;
+  assign XPT_1_0          = s_xpt_1_0_out[1:0];
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // NOT Gate
-   assign s_logisimNet3 = ~s_logisimNet15;
+  // NOT Gate
+  assign s_exm            = ~s_exm_n;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_1 (.input1(s_logisimNet12),
-               .input2(s_logisimNet13),
-               .result(s_logisimNet14));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_1 (
+      .input1(s_mclk_n),
+      .input2(s_lldexm),
+      .result(s_gates1_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_2 (.input1(s_logisimNet3),
-               .input2(s_logisimNet0),
-               .result(s_logisimNet7));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_2 (
+      .input1(s_exm),
+      .input2(s_xpt_qc),
+      .result(s_vex_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_3 (.input1(s_logisimNet6),
-               .input2(s_logisimNet3),
-               .result(s_logisimNet8));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_3 (
+      .input1(s_xpt_qc_n),
+      .input2(s_exm),
+      .result(s_pex_out)
+  );
 
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   L4   XPT_L (.A(s_logisimBus2[0]),
-               .B(s_logisimBus2[1]),
-               .C(s_logisimBus2[2]),
-               .D(1'b0),
-               .L(s_logisimNet14),
-               .QA(s_logisimBus1[0]),
-               .QAN(),
-               .QB(s_logisimBus1[1]),
-               .QBN(),
-               .QC(s_logisimNet0),
-               .QCN(s_logisimNet6),
-               .QD(),
-               .QDN());
+  L4 XPT_L (
+      .A  (s_fidbo_2_0[0]),
+      .B  (s_fidbo_2_0[1]),
+      .C  (s_fidbo_2_0[2]),
+      .D  (1'b0),
+      .L  (s_gates1_out),
+      .QA (s_xpt_1_0_out[0]),
+      .QAN(),
+      .QB (s_xpt_1_0_out[1]),
+      .QBN(),
+      .QC (s_xpt_qc),
+      .QCN(s_xpt_qc_n),
+      .QD (),
+      .QDN()
+  );
 
 endmodule

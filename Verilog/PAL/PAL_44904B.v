@@ -40,7 +40,7 @@ module PAL_44904B (
     output EMID_n,  //! Q6_n - EMIDSEG_n (Enable MID-Segment)
     output EHI_n    //! Q7_n - EHISEG_n (Eneble HI-Segment)
 
-    //,output wire [3:0]  Q  // Enable to Debug to watch the value of Q change  
+    //,output wire [3:0]  Q  // Enable to Debug to watch the value of Q change
 );
 
   // negated input signals (not used signals are commented out)
@@ -88,13 +88,13 @@ module PAL_44904B (
   // Tri-state control for Q outputs
   // Assigning outputs with three-state logic controlled by OE_n
 
-  assign ABIT   = OE_n ? 1'b0 : ~ABIT_n_reg;  // Q0_n 
-  assign BBIT   = OE_n ? 1'b0 : ~BBIT_n_reg;  // Q1_n 
-  assign CBIT   = OE_n ? 1'b0 : ~CBIT_n_reg;  // Q2_n 
-  assign DBIT   = OE_n ? 1'b0 : ~DBIT_n_reg;  // Q3_n 
+  assign ABIT   = OE_n ? 1'b0 : ~ABIT_n_reg;  // Q0_n
+  assign BBIT   = OE_n ? 1'b0 : ~BBIT_n_reg;  // Q1_n
+  assign CBIT   = OE_n ? 1'b0 : ~CBIT_n_reg;  // Q2_n
+  assign DBIT   = OE_n ? 1'b0 : ~DBIT_n_reg;  // Q3_n
                                               // Q4_n
-  assign EHI_n  = OE_n ? 1'b0 : ~EHI_reg;  // Q5_n 
-  assign EMID_n = OE_n ? 1'b0 : ~EMID_reg;  // Q6_n 
+  assign EHI_n  = OE_n ? 1'b0 : ~EHI_reg;  // Q5_n
+  assign EMID_n = OE_n ? 1'b0 : ~EMID_reg;  // Q6_n
   assign ELOW_n = OE_n ? 1'b0 : ~ELOW_reg;  // Q7_n
 
 

@@ -1,1118 +1,1079 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_MIC                                                      **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/MIC                                                              **
+** MIC                                                                   **
+**                                                                       **
+** Page 9-13                                                             **
+** SHEET 1 of 4                                                          **
+**                                                                       **
+** Last reviewed: 10-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_MIC( ACONDN,
-                ALUCLK,
-                CD_15_0,
-                CFETCH,
-                CLFFN,
-                COND,
-                CRY,
-                CSALUI8,
-                CSBIT20,
-                CSBIT_15_0,
-                CSCOND,
-                CSECOND,
-                CSLOOP,
-                CSMIS0,
-                CSRASEL_1_0,
-                CSRBSEL_1_0,
-                CSRB_3_0,
-                CSTS_6_3,
-                CSVECT,
-                CSXRF3,
-                DEEP,
-                DZD,
-                EWCAN,
-                F11,
-                F15,
-                ILCSN,
-                IRQ,
-                LAA_3_0,
-                LBA_3_0,
-                LCZ,
-                LCZN,
-                LDIRV,
-                LDLCN,
-                LWCAN,
-                MAPN,
-                MA_12_0,
-                MCLK,
-                MI,
-                MRN,
-                OOD,
-                OVF,
-                PIL_3_0,
-                PN,
-                RESTR,
-                RF_1_0,
-                SC_6_3,
-                SPARE,
-                STP,
-                TN,
-                TRAPN,
-                TVEC_3_0,
-                UPN,
-                WCSN,
-                ZF );
+module CGA_MIC (
+    input        ALUCLK,
+    input [15:0] CD_15_0,
+    input        CFETCH,
+    input        CLFFN,
+    input        CRY,
+    input        CSALUI8,
+    input        CSBIT20,
+    input [15:0] CSBIT_15_0,
+    input        CSCOND,
+    input        CSECOND,
+    input        CSLOOP,
+    input        CSMIS0,
+    input [ 1:0] CSRASEL_1_0,
+    input [ 1:0] CSRBSEL_1_0,
+    input [ 3:0] CSRB_3_0,
+    input [ 3:0] CSTS_6_3,
+    input        CSVECT,
+    input        CSXRF3,
+    input        EWCAN,
+    input        F11,
+    input        F15,
+    input        ILCSN,
+    input        IRQ,
+    input        LCZ,
+    input        LDIRV,
+    input        LDLCN,
+    input        LWCAN,
+    input        MAPN,
+    input        MCLK,
+    input        MI,
+    input        MRN,
+    input        OVF,
+    input [ 3:0] PIL_3_0,
+    input        RESTR,
+    input        SPARE,
+    input        STP,
+    input        TRAPN,
+    input [ 3:0] TVEC_3_0,
+    input        ZF,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        ALUCLK;
-   input [15:0] CD_15_0;
-   input        CFETCH;
-   input        CLFFN;
-   input        CRY;
-   input        CSALUI8;
-   input        CSBIT20;
-   input [15:0] CSBIT_15_0;
-   input        CSCOND;
-   input        CSECOND;
-   input        CSLOOP;
-   input        CSMIS0;
-   input [1:0]  CSRASEL_1_0;
-   input [1:0]  CSRBSEL_1_0;
-   input [3:0]  CSRB_3_0;
-   input [3:0]  CSTS_6_3;
-   input        CSVECT;
-   input        CSXRF3;
-   input        EWCAN;
-   input        F11;
-   input        F15;
-   input        ILCSN;
-   input        IRQ;
-   input        LCZ;
-   input        LDIRV;
-   input        LDLCN;
-   input        LWCAN;
-   input        MAPN;
-   input        MCLK;
-   input        MI;
-   input        MRN;
-   input        OVF;
-   input [3:0]  PIL_3_0;
-   input        RESTR;
-   input        SPARE;
-   input        STP;
-   input        TRAPN;
-   input [3:0]  TVEC_3_0;
-   input        ZF;
+    output        ACONDN,
+    output        COND,
+    output        DEEP,
+    output        DZD,
+    output [ 3:0] LAA_3_0,
+    output [ 3:0] LBA_3_0,
+    output        LCZN,
+    output [12:0] MA_12_0,
+    output        OOD,
+    output        PN,
+    output [ 1:0] RF_1_0,
+    output [ 3:0] SC_6_3,
+    output        TN,
+    output        UPN,
+    output        WCSN
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output        ACONDN;
-   output        COND;
-   output        DEEP;
-   output        DZD;
-   output [3:0]  LAA_3_0;
-   output [3:0]  LBA_3_0;
-   output        LCZN;
-   output [12:0] MA_12_0;
-   output        OOD;
-   output        PN;
-   output [1:0]  RF_1_0;
-   output [3:0]  SC_6_3;
-   output        TN;
-   output        UPN;
-   output        WCSN;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [12:0] s_logisimBus118;
-   wire [3:0]  s_logisimBus126;
-   wire [1:0]  s_logisimBus138;
-   wire [1:0]  s_logisimBus142;
-   wire [15:0] s_logisimBus147;
-   wire [11:0] s_logisimBus150;
-   wire [1:0]  s_logisimBus153;
-   wire [12:0] s_logisimBus159;
-   wire [3:0]  s_logisimBus176;
-   wire [6:0]  s_logisimBus195;
-   wire [15:0] s_logisimBus20;
-   wire [3:0]  s_logisimBus201;
-   wire [3:0]  s_logisimBus204;
-   wire [12:0] s_logisimBus21;
-   wire [1:0]  s_logisimBus216;
-   wire [3:0]  s_logisimBus222;
-   wire [3:0]  s_logisimBus225;
-   wire [3:0]  s_logisimBus231;
-   wire [3:0]  s_logisimBus232;
-   wire [3:0]  s_logisimBus236;
-   wire [3:0]  s_logisimBus240;
-   wire [3:0]  s_logisimBus251;
-   wire [12:0] s_logisimBus32;
-   wire [3:0]  s_logisimBus41;
-   wire [12:0] s_logisimBus57;
-   wire [3:0]  s_logisimBus6;
-   wire [3:0]  s_logisimBus73;
-   wire [12:0] s_logisimBus77;
-   wire        s_logisimNet0;
-   wire        s_logisimNet1;
-   wire        s_logisimNet10;
-   wire        s_logisimNet100;
-   wire        s_logisimNet101;
-   wire        s_logisimNet102;
-   wire        s_logisimNet103;
-   wire        s_logisimNet104;
-   wire        s_logisimNet105;
-   wire        s_logisimNet106;
-   wire        s_logisimNet107;
-   wire        s_logisimNet108;
-   wire        s_logisimNet109;
-   wire        s_logisimNet11;
-   wire        s_logisimNet110;
-   wire        s_logisimNet111;
-   wire        s_logisimNet112;
-   wire        s_logisimNet113;
-   wire        s_logisimNet114;
-   wire        s_logisimNet115;
-   wire        s_logisimNet116;
-   wire        s_logisimNet117;
-   wire        s_logisimNet119;
-   wire        s_logisimNet12;
-   wire        s_logisimNet120;
-   wire        s_logisimNet121;
-   wire        s_logisimNet122;
-   wire        s_logisimNet123;
-   wire        s_logisimNet124;
-   wire        s_logisimNet125;
-   wire        s_logisimNet127;
-   wire        s_logisimNet128;
-   wire        s_logisimNet129;
-   wire        s_logisimNet13;
-   wire        s_logisimNet130;
-   wire        s_logisimNet131;
-   wire        s_logisimNet132;
-   wire        s_logisimNet133;
-   wire        s_logisimNet134;
-   wire        s_logisimNet135;
-   wire        s_logisimNet136;
-   wire        s_logisimNet137;
-   wire        s_logisimNet139;
-   wire        s_logisimNet14;
-   wire        s_logisimNet140;
-   wire        s_logisimNet141;
-   wire        s_logisimNet143;
-   wire        s_logisimNet144;
-   wire        s_logisimNet145;
-   wire        s_logisimNet146;
-   wire        s_logisimNet148;
-   wire        s_logisimNet149;
-   wire        s_logisimNet15;
-   wire        s_logisimNet151;
-   wire        s_logisimNet152;
-   wire        s_logisimNet154;
-   wire        s_logisimNet155;
-   wire        s_logisimNet156;
-   wire        s_logisimNet157;
-   wire        s_logisimNet158;
-   wire        s_logisimNet16;
-   wire        s_logisimNet160;
-   wire        s_logisimNet161;
-   wire        s_logisimNet162;
-   wire        s_logisimNet163;
-   wire        s_logisimNet164;
-   wire        s_logisimNet165;
-   wire        s_logisimNet166;
-   wire        s_logisimNet167;
-   wire        s_logisimNet168;
-   wire        s_logisimNet169;
-   wire        s_logisimNet17;
-   wire        s_logisimNet170;
-   wire        s_logisimNet171;
-   wire        s_logisimNet172;
-   wire        s_logisimNet173;
-   wire        s_logisimNet174;
-   wire        s_logisimNet175;
-   wire        s_logisimNet177;
-   wire        s_logisimNet178;
-   wire        s_logisimNet179;
-   wire        s_logisimNet18;
-   wire        s_logisimNet180;
-   wire        s_logisimNet181;
-   wire        s_logisimNet182;
-   wire        s_logisimNet183;
-   wire        s_logisimNet184;
-   wire        s_logisimNet185;
-   wire        s_logisimNet186;
-   wire        s_logisimNet187;
-   wire        s_logisimNet188;
-   wire        s_logisimNet189;
-   wire        s_logisimNet19;
-   wire        s_logisimNet190;
-   wire        s_logisimNet191;
-   wire        s_logisimNet192;
-   wire        s_logisimNet193;
-   wire        s_logisimNet194;
-   wire        s_logisimNet196;
-   wire        s_logisimNet197;
-   wire        s_logisimNet198;
-   wire        s_logisimNet199;
-   wire        s_logisimNet2;
-   wire        s_logisimNet200;
-   wire        s_logisimNet202;
-   wire        s_logisimNet203;
-   wire        s_logisimNet205;
-   wire        s_logisimNet206;
-   wire        s_logisimNet207;
-   wire        s_logisimNet208;
-   wire        s_logisimNet209;
-   wire        s_logisimNet210;
-   wire        s_logisimNet211;
-   wire        s_logisimNet212;
-   wire        s_logisimNet213;
-   wire        s_logisimNet214;
-   wire        s_logisimNet215;
-   wire        s_logisimNet217;
-   wire        s_logisimNet218;
-   wire        s_logisimNet219;
-   wire        s_logisimNet22;
-   wire        s_logisimNet220;
-   wire        s_logisimNet221;
-   wire        s_logisimNet223;
-   wire        s_logisimNet224;
-   wire        s_logisimNet226;
-   wire        s_logisimNet227;
-   wire        s_logisimNet228;
-   wire        s_logisimNet229;
-   wire        s_logisimNet23;
-   wire        s_logisimNet230;
-   wire        s_logisimNet233;
-   wire        s_logisimNet234;
-   wire        s_logisimNet235;
-   wire        s_logisimNet237;
-   wire        s_logisimNet238;
-   wire        s_logisimNet239;
-   wire        s_logisimNet24;
-   wire        s_logisimNet241;
-   wire        s_logisimNet242;
-   wire        s_logisimNet243;
-   wire        s_logisimNet244;
-   wire        s_logisimNet245;
-   wire        s_logisimNet246;
-   wire        s_logisimNet247;
-   wire        s_logisimNet248;
-   wire        s_logisimNet249;
-   wire        s_logisimNet25;
-   wire        s_logisimNet250;
-   wire        s_logisimNet252;
-   wire        s_logisimNet253;
-   wire        s_logisimNet254;
-   wire        s_logisimNet26;
-   wire        s_logisimNet27;
-   wire        s_logisimNet28;
-   wire        s_logisimNet29;
-   wire        s_logisimNet3;
-   wire        s_logisimNet30;
-   wire        s_logisimNet31;
-   wire        s_logisimNet33;
-   wire        s_logisimNet34;
-   wire        s_logisimNet35;
-   wire        s_logisimNet36;
-   wire        s_logisimNet37;
-   wire        s_logisimNet38;
-   wire        s_logisimNet39;
-   wire        s_logisimNet4;
-   wire        s_logisimNet40;
-   wire        s_logisimNet42;
-   wire        s_logisimNet43;
-   wire        s_logisimNet44;
-   wire        s_logisimNet45;
-   wire        s_logisimNet46;
-   wire        s_logisimNet47;
-   wire        s_logisimNet48;
-   wire        s_logisimNet49;
-   wire        s_logisimNet5;
-   wire        s_logisimNet50;
-   wire        s_logisimNet51;
-   wire        s_logisimNet52;
-   wire        s_logisimNet53;
-   wire        s_logisimNet54;
-   wire        s_logisimNet55;
-   wire        s_logisimNet56;
-   wire        s_logisimNet58;
-   wire        s_logisimNet59;
-   wire        s_logisimNet60;
-   wire        s_logisimNet61;
-   wire        s_logisimNet62;
-   wire        s_logisimNet63;
-   wire        s_logisimNet64;
-   wire        s_logisimNet65;
-   wire        s_logisimNet66;
-   wire        s_logisimNet67;
-   wire        s_logisimNet68;
-   wire        s_logisimNet69;
-   wire        s_logisimNet7;
-   wire        s_logisimNet70;
-   wire        s_logisimNet71;
-   wire        s_logisimNet72;
-   wire        s_logisimNet74;
-   wire        s_logisimNet75;
-   wire        s_logisimNet76;
-   wire        s_logisimNet78;
-   wire        s_logisimNet79;
-   wire        s_logisimNet8;
-   wire        s_logisimNet80;
-   wire        s_logisimNet81;
-   wire        s_logisimNet82;
-   wire        s_logisimNet83;
-   wire        s_logisimNet84;
-   wire        s_logisimNet85;
-   wire        s_logisimNet86;
-   wire        s_logisimNet87;
-   wire        s_logisimNet88;
-   wire        s_logisimNet89;
-   wire        s_logisimNet9;
-   wire        s_logisimNet90;
-   wire        s_logisimNet91;
-   wire        s_logisimNet92;
-   wire        s_logisimNet93;
-   wire        s_logisimNet94;
-   wire        s_logisimNet95;
-   wire        s_logisimNet96;
-   wire        s_logisimNet97;
-   wire        s_logisimNet98;
-   wire        s_logisimNet99;
+  wire [ 1:0] s_csrasel_1_0;
+  wire [ 1:0] s_csrbsel_1_0;
+  wire [ 1:0] s_cswan_1_0;
+  wire [ 1:0] s_rf_1_0_out;
+  wire [ 3:0] s_csbit_15_12;
+  wire [ 3:0] s_csbit_3_0;
+  wire [ 3:0] s_csrb_3_0;
+  wire [ 3:0] s_csts_6_3;
+  wire [ 3:0] s_fs_6_3;
+  wire [ 3:0] s_jmp_3_0;
+  wire [ 3:0] s_laa_3_0_out;
+  wire [ 3:0] s_lba_3_0_out;
+  wire [ 3:0] s_lc_3_0;
+  wire [ 3:0] s_lcc_3_0;
+  wire [ 3:0] s_pil_3_0;
+  wire [ 3:0] s_sc_6_3_out;
+  wire [ 3:0] s_tsel_3_0;
+  wire [ 3:0] s_tvec_3_0;
+  wire [ 6:0] s_ir_6_0;
+  wire [12:0] s_iw_12_0;
+  wire [12:0] s_ma_12_0_out;
+  wire [12:0] s_next_12_0;
+  wire [12:0] s_ret_12_0;
+  wire [12:0] s_w_12_0;
+  wire [12:0] s_wca_12_0;
+  wire [15:0] s_cd_15_0;
+  wire [15:0] s_csbit_15_0;
 
-   /*******************************************************************************
+  wire        s_acond_n_out;
+  wire        s_aluclk;
+  wire        s_carry_in;
+  wire        s_cfetch;
+  wire        s_clff_n;
+  wire        s_clff;
+  wire        s_cond_n;
+  wire        s_cond;
+  wire        s_cry;
+  wire        s_csalui8;
+  wire        s_csbit_0;
+  wire        s_csbit_1;
+  wire        s_csbit_10;
+  wire        s_csbit_11;
+  wire        s_csbit_12;
+  wire        s_csbit_13;
+  wire        s_csbit_14;
+  wire        s_csbit_15;
+  wire        s_csbit_2;
+  wire        s_csbit_3;
+  wire        s_csbit_4;
+  wire        s_csbit_5;
+  wire        s_csbit_6;
+  wire        s_csbit_7;
+  wire        s_csbit_8;
+  wire        s_csbit_9;
+  wire        s_csbit20;
+  wire        s_cscond;
+  wire        s_csecond_n;
+  wire        s_csecond;
+  wire        s_csloop_n;
+  wire        s_csloop;
+  wire        s_csmis0;
+  wire        s_csrasel1_n;
+  wire        s_csvect_n;
+  wire        s_csvect;
+  wire        s_csxrf3_n;
+  wire        s_csxrf3;
+  wire        s_deep_out;
+  wire        s_dzd_out;
+  wire        s_dzd_signal;
+  wire        s_dzdff_q;
+  wire        s_ewca_n;
+  wire        s_f11;
+  wire        s_f15;
+  wire        s_gates10_out;
+  wire        s_gates11_out;
+  wire        s_gates12_out;
+  wire        s_gates13_out;
+  wire        s_gates14_out;
+  wire        s_gates15_out;
+  wire        s_gates16_out;
+  wire        s_gates18_out;
+  wire        s_gates19_out;
+  wire        s_gates20_out;
+  wire        s_gates21_out;
+  wire        s_gates22_out;
+  wire        s_gates25_out;
+  wire        s_gates28_out;
+  wire        s_gates29_out;
+  wire        s_gates3_out;
+  wire        s_gates4_out;
+  wire        s_gates5_out;
+  wire        s_gates6_out;
+  wire        s_gates8_out;
+  wire        s_gates9_out;
+  wire        s_gnd;
+  wire        s_ialui8_clocked_qn;
+  wire        s_icd_4;
+  wire        s_icd_5;
+  wire        s_irq;
+  wire        s_iwan0or1;
+  wire        s_laa_0_n_out;
+  wire        s_laa_1_n_out;
+  wire        s_laa_2_n_out;
+  wire        s_laa_3_n_out;
+  wire        s_laa0_signal;
+  wire        s_laa1_signal;
+  wire        s_laa2_signal;
+  wire        s_laa3_d2_input;
+  wire        s_laa3_signal;
+  wire        s_lba_0_n_out;
+  wire        s_lba_1_n_out;
+  wire        s_lba_2_n_out;
+  wire        s_lba_3_n_out;
+  wire        s_lba0_signal;
+  wire        s_lba1_signal;
+  wire        s_lba2_signal;
+  wire        s_lba3_signal;
+  wire        s_lc_hi_con;
+  wire        s_lcc_eq_lc;
+  wire        s_lcs_n;
+  wire        s_lcs;
+  wire        s_lcsn_nand_ewcan;
+  wire        s_lcz_n_out;
+  wire        s_lcz_out;
+  wire        s_lcz;
+  wire        s_ldirv;
+  wire        s_ldlc_n; 
+  wire        s_loop;
+  wire        s_lwca_n;
+  wire        s_map_n;
+  wire        s_mclk_n;
+  wire        s_mclk_n1;
+  wire        s_mclk;
+  wire        s_mi;
+  wire        s_mrn;
+  wire        s_ood_out;
+  wire        s_ood_signal;
+  wire        s_oodff_q;
+  wire        s_ovf;
+  wire        s_p_n_out;
+  wire        s_power;
+  wire        s_restr;
+  wire        s_rf0_in_a;
+  wire        s_rf1_in_a;
+  wire        s_sc_1_n_out;
+  wire        s_sc_2_n_out;
+  wire        s_sc_3_n_out;
+  wire        s_spare;
+  wire        s_stp;
+  wire        s_t_n_out;
+  wire        s_trap_n;
+  wire        s_up_n_out;
+  wire        s_up_out;
+  wire        s_wcs_n_out;
+  wire        s_zf;
+  wire        s_zfff_q_out;
+
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all wiring is defined                                                 **
    *******************************************************************************/
-   assign s_logisimBus150[0]  = s_logisimNet76;
-   assign s_logisimBus150[10] = s_logisimNet46;
-   assign s_logisimBus150[11] = s_logisimNet156;
-   assign s_logisimBus150[1]  = s_logisimNet179;
-   assign s_logisimBus150[2]  = s_logisimNet107;
-   assign s_logisimBus150[3]  = s_logisimNet139;
-   assign s_logisimBus150[4]  = s_logisimNet106;
-   assign s_logisimBus150[5]  = s_logisimNet187;
-   assign s_logisimBus150[6]  = s_logisimNet239;
-   assign s_logisimBus150[7]  = s_logisimNet79;
-   assign s_logisimBus150[8]  = s_logisimNet173;
-   assign s_logisimBus150[9]  = s_logisimNet226;
-   assign s_logisimBus231[0]  = s_logisimNet76;
-   assign s_logisimBus231[1]  = s_logisimNet179;
-   assign s_logisimBus231[2]  = s_logisimNet107;
-   assign s_logisimBus231[3]  = s_logisimNet139;
-   assign s_logisimBus251[0]  = s_logisimNet242;
-   assign s_logisimBus251[1]  = s_logisimNet82;
-   assign s_logisimBus251[2]  = s_logisimNet175;
-   assign s_logisimBus251[3]  = s_logisimNet228;
-   assign s_logisimNet106     = s_logisimBus147[4];
-   assign s_logisimNet107     = s_logisimBus147[2];
-   assign s_logisimNet139     = s_logisimBus147[3];
-   assign s_logisimNet156     = s_logisimBus147[11];
-   assign s_logisimNet173     = s_logisimBus147[8];
-   assign s_logisimNet175     = s_logisimBus147[14];
-   assign s_logisimNet179     = s_logisimBus147[1];
-   assign s_logisimNet187     = s_logisimBus147[5];
-   assign s_logisimNet226     = s_logisimBus147[9];
-   assign s_logisimNet228     = s_logisimBus147[15];
-   assign s_logisimNet239     = s_logisimBus147[6];
-   assign s_logisimNet242     = s_logisimBus147[12];
-   assign s_logisimNet46      = s_logisimBus147[10];
-   assign s_logisimNet76      = s_logisimBus147[0];
-   assign s_logisimNet79      = s_logisimBus147[7];
-   assign s_logisimNet82      = s_logisimBus147[13];
 
-   /*******************************************************************************
+  assign s_csbit_3_0[0]     = s_csbit_0;
+  assign s_csbit_3_0[1]     = s_csbit_1;
+  assign s_csbit_3_0[2]     = s_csbit_2;
+  assign s_csbit_3_0[3]     = s_csbit_3;
+  assign s_csbit_15_12[0]   = s_csbit_12;
+  assign s_csbit_15_12[1]   = s_csbit_13;
+  assign s_csbit_15_12[2]   = s_csbit_14;
+  assign s_csbit_15_12[3]   = s_csbit_15;
+
+  assign s_csbit_0          = s_csbit_15_0[0];
+  assign s_csbit_1          = s_csbit_15_0[1];
+  assign s_csbit_2          = s_csbit_15_0[2];
+  assign s_csbit_3          = s_csbit_15_0[3];
+  assign s_csbit_4          = s_csbit_15_0[4];
+  assign s_csbit_5          = s_csbit_15_0[5];
+  assign s_csbit_6          = s_csbit_15_0[6];
+  assign s_csbit_7          = s_csbit_15_0[7];
+  assign s_csbit_8          = s_csbit_15_0[8];
+  assign s_csbit_9          = s_csbit_15_0[9];
+  assign s_csbit_10         = s_csbit_15_0[10];
+  assign s_csbit_11         = s_csbit_15_0[11];
+  assign s_csbit_12         = s_csbit_15_0[12];
+  assign s_csbit_13         = s_csbit_15_0[13];
+  assign s_csbit_14         = s_csbit_15_0[14];
+  assign s_csbit_15         = s_csbit_15_0[15];
+
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus126[3:0]  = CSTS_6_3;
-   assign s_logisimBus138[1:0]  = CSRASEL_1_0;
-   assign s_logisimBus142[1:0]  = CSRBSEL_1_0;
-   assign s_logisimBus147[15:0] = CSBIT_15_0;
-   assign s_logisimBus204[3:0]  = PIL_3_0;
-   assign s_logisimBus20[15:0]  = CD_15_0;
-   assign s_logisimBus225[3:0]  = CSRB_3_0;
-   assign s_logisimBus236[3:0]  = TVEC_3_0;
-   assign s_logisimNet100       = CSECOND;
-   assign s_logisimNet113       = LCZ;
-   assign s_logisimNet114       = EWCAN;
-   assign s_logisimNet120       = ALUCLK;
-   assign s_logisimNet124       = CSXRF3;
-   assign s_logisimNet129       = CLFFN;
-   assign s_logisimNet143       = F15;
-   assign s_logisimNet155       = LDLCN;
-   assign s_logisimNet162       = OVF;
-   assign s_logisimNet168       = MAPN;
-   assign s_logisimNet172       = MCLK;
-   assign s_logisimNet183       = CSBIT20;
-   assign s_logisimNet189       = IRQ;
-   assign s_logisimNet192       = CSMIS0;
-   assign s_logisimNet206       = CSCOND;
-   assign s_logisimNet219       = CRY;
-   assign s_logisimNet230       = SPARE;
-   assign s_logisimNet248       = RESTR;
-   assign s_logisimNet253       = STP;
-   assign s_logisimNet254       = ILCSN;
-   assign s_logisimNet26        = ZF;
-   assign s_logisimNet27        = F11;
-   assign s_logisimNet44        = CSALUI8;
-   assign s_logisimNet53        = MI;
-   assign s_logisimNet56        = MRN;
-   assign s_logisimNet69        = TRAPN;
-   assign s_logisimNet70        = CSLOOP;
-   assign s_logisimNet8         = LDIRV;
-   assign s_logisimNet81        = LWCAN;
-   assign s_logisimNet92        = CFETCH;
-   assign s_logisimNet93        = CSVECT;
+  assign s_aluclk           = ALUCLK;
+  assign s_cd_15_0[15:0]    = CD_15_0;
+  assign s_cfetch           = CFETCH;
+  assign s_clff_n           = CLFFN;
+  assign s_cry              = CRY;
+  assign s_csalui8          = CSALUI8;
+  assign s_csbit_15_0[15:0] = CSBIT_15_0;
+  assign s_csbit20          = CSBIT20;
+  assign s_cscond           = CSCOND;
+  assign s_csecond          = CSECOND;
+  assign s_csloop           = CSLOOP;
+  assign s_csmis0           = CSMIS0;
+  assign s_csrasel_1_0[1:0] = CSRASEL_1_0;
+  assign s_csrb_3_0[3:0]    = CSRB_3_0;
+  assign s_csrbsel_1_0[1:0] = CSRBSEL_1_0;
+  assign s_csts_6_3[3:0]    = CSTS_6_3;
+  assign s_csvect           = CSVECT;
+  assign s_csxrf3           = CSXRF3;
+  assign s_ewca_n           = EWCAN;
+  assign s_f11              = F11;
+  assign s_f15              = F15;
+  assign s_irq              = IRQ;
 
-   /*******************************************************************************
+  // In the schematic it goes through 2 inverting buffers, here we go direct. Not sure if its to get a small delay?
+  assign s_lcs_n            = ILCSN;
+
+  assign s_lcz              = LCZ;
+  assign s_ldirv            = LDIRV;
+  assign s_ldlc_n           = LDLCN;
+  assign s_lwca_n           = LWCAN;
+  assign s_map_n            = MAPN;
+  assign s_mclk             = MCLK;
+  assign s_mi               = MI;
+  assign s_mrn              = MRN;
+  assign s_ovf              = OVF;
+  assign s_pil_3_0[3:0]     = PIL_3_0;
+  assign s_restr            = RESTR;
+  assign s_spare            = SPARE;
+  assign s_stp              = STP;
+  assign s_trap_n           = TRAPN;
+  assign s_tvec_3_0[3:0]    = TVEC_3_0;
+  assign s_zf               = ZF;
+
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign ACONDN  = s_logisimNet37;
-   assign COND    = s_logisimNet116;
-   assign DEEP    = s_logisimNet148;
-   assign DZD     = s_logisimNet2;
-   assign LAA_3_0 = s_logisimBus6[3:0];
-   assign LBA_3_0 = s_logisimBus222[3:0];
-   assign LCZN    = s_logisimNet43;
-   assign MA_12_0 = s_logisimBus77[12:0];
-   assign OOD     = s_logisimNet29;
-   assign PN      = s_logisimNet99;
-   assign RF_1_0  = s_logisimBus153[1:0];
-   assign SC_6_3  = s_logisimBus73[3:0];
-   assign TN      = s_logisimNet90;
-   assign UPN     = s_logisimNet17;
-   assign WCSN    = s_logisimNet221;
+  assign ACONDN             = s_acond_n_out;
+  assign COND               = s_cond;
+  assign DEEP               = s_deep_out;
+  assign DZD                = s_dzd_out;
+  assign LAA_3_0            = s_laa_3_0_out[3:0];
+  assign LBA_3_0            = s_lba_3_0_out[3:0];
+  assign LCZN               = s_lcz_n_out;
+  assign MA_12_0            = s_ma_12_0_out[12:0];
+  assign OOD                = s_ood_out;
+  assign PN                 = s_p_n_out;
+  assign RF_1_0             = s_rf_1_0_out[1:0];
+  assign SC_6_3             = s_sc_6_3_out[3:0];
+  assign TN                 = s_t_n_out;
+  assign UPN                = s_up_n_out;
+  assign WCSN               = s_wcs_n_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // Power
-   assign  s_logisimNet188  =  1'b1;
+  // Power
+  assign s_power            = 1'b1;
+
+  // Ground
+  assign s_gnd              = 1'b0;
+
+  // NOT Gate
+  assign s_clff             = ~s_clff_n;
+  assign s_csecond_n        = ~s_csecond;
+  assign s_csloop_n         = ~s_csloop;
+  assign s_csrasel1_n       = ~s_csrasel_1_0[1];
+  assign s_csvect_n         = ~s_csvect;
+  assign s_csxrf3_n         = ~s_csxrf3;
+  assign s_lcs              = ~s_lcs_n;
+
+  assign s_laa_3_0_out[0]   = ~s_laa_0_n_out;
+  assign s_laa_3_0_out[1]   = ~s_laa_1_n_out;
+  assign s_laa_3_0_out[2]   = ~s_laa_2_n_out;
+  assign s_laa_3_0_out[3]   = ~s_laa_3_n_out;
+
+  assign s_lba_3_0_out[0]   = ~s_lba_0_n_out;
+  assign s_lba_3_0_out[1]   = ~s_lba_1_n_out;
+  assign s_lba_3_0_out[2]   = ~s_lba_2_n_out;
+  assign s_lba_3_0_out[3]   = ~s_lba_3_n_out;
+
+  assign s_lcz_out          = ~s_lcz_n_out;
+  assign s_mclk_n           = ~s_mclk;
+  assign s_mclk_n1          = ~s_mclk;
+  assign s_sc_6_3_out[1]    = ~s_sc_1_n_out;
+  assign s_sc_6_3_out[2]    = ~s_sc_2_n_out;
+  assign s_sc_6_3_out[3]    = ~s_sc_3_n_out;
+  assign s_up_n_out         = ~s_up_out;
 
 
-   // Power
-   assign  s_logisimNet68  =  1'b1;
 
-
-   // Ground
-   assign  s_logisimNet31  =  1'b0;
-
-
-   // Ground
-   assign  s_logisimNet13  =  1'b0;
-
-
-   // Ground
-   assign  s_logisimNet45  =  1'b0;
-
-
-   // NOT Gate
-   assign s_logisimNet48 = ~s_logisimNet70;
-
-   // NOT Gate
-   assign s_logisimNet17 = ~s_logisimNet59;
-
-   // NOT Gate
-   assign s_logisimNet146 = ~s_logisimNet100;
-
-   // NOT Gate
-   assign s_logisimNet34 = ~s_logisimNet17;
-
-   // NOT Gate
-   assign s_logisimNet16 = ~s_logisimNet172;
-
-   // NOT Gate
-   assign s_logisimNet137 = ~s_logisimNet172;
-
-   // NOT Gate
-   assign s_logisimNet224 = ~s_logisimNet43;
-
-   // NOT Gate
-   assign s_logisimBus73[3] = ~s_logisimNet196;
-
-   // NOT Gate
-   assign s_logisimBus73[2] = ~s_logisimNet243;
-
-   // NOT Gate
-   assign s_logisimBus73[1] = ~s_logisimNet60;
-
-   // NOT Gate
-   assign s_logisimNet154 = ~s_logisimNet129;
-
-   // NOT Gate
-   assign s_logisimBus6[0] = ~s_logisimNet161;
-
-   // NOT Gate
-   assign s_logisimBus6[1] = ~s_logisimNet25;
-
-   // NOT Gate
-   assign s_logisimBus6[2] = ~s_logisimNet212;
-
-   // NOT Gate
-   assign s_logisimBus6[3] = ~s_logisimNet128;
-
-   // NOT Gate
-   assign s_logisimBus222[0] = ~s_logisimNet197;
-
-   // NOT Gate
-   assign s_logisimBus222[1] = ~s_logisimNet109;
-
-   // NOT Gate
-   assign s_logisimBus222[2] = ~s_logisimNet244;
-
-   // NOT Gate
-   assign s_logisimBus222[3] = ~s_logisimNet177;
-
-   // NOT Gate
-   assign s_logisimNet28 = ~s_logisimNet129;
-
-   // NOT Gate
-   assign s_logisimNet38 = ~s_logisimNet200;
-
-   // NOT Gate
-   assign s_logisimNet223 = ~s_logisimBus138[1];
-
-   // NOT Gate
-   assign s_logisimNet247 = ~s_logisimNet124;
-
-   // NOT Gate
-   assign s_logisimNet123 = ~s_logisimNet93;
-
-   // NOT Gate
-   assign s_logisimNet61 = ~s_logisimNet254;
-
-   // NOT Gate
-   assign s_logisimNet200 = ~s_logisimNet61;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   OR_GATE #(.BubblesMask(2'b00))
-      GATES_1 (.input1(s_logisimBus216[1]),
-               .input2(s_logisimBus216[0]),
-               .result(s_logisimNet47));
+  OR_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_1 (
+      .input1(s_cswan_1_0[1]),
+      .input2(s_cswan_1_0[0]),
+      .result(s_iwan0or1)
+  );
 
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_2 (.input1(s_logisimNet47),
-               .input2(s_logisimNet38),
-               .input3(s_logisimNet188),
-               .result(s_logisimNet205));
+  NAND_GATE_3_INPUTS #(
+      .BubblesMask(3'b000)
+  ) GATES_2 (
+      .input1(s_iwan0or1),
+      .input2(s_lcs),
+      .input3(s_power),
+      .result(s_carry_in)
+  );
 
-   NOR_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_3 (.input1(s_logisimNet22),
-               .input2(s_logisimNet202),
-               .input3(s_logisimNet28),
-               .result(s_logisimNet95));
+  NOR_GATE_3_INPUTS #(
+      .BubblesMask(3'b000)
+  ) GATES_3 (
+      .input1(s_icd_4),
+      .input2(s_icd_5),
+      .input3(s_clff),
+      .result(s_gates3_out)
+  );
 
-   OR_GATE #(.BubblesMask(2'b00))
-      GATES_4 (.input1(s_logisimNet55),
-               .input2(s_logisimNet34),
-               .result(s_logisimNet164));
+  OR_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_4 (
+      .input1(s_lc_hi_con),
+      .input2(s_up_out),
+      .result(s_gates4_out)
+  );
 
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_5 (.input1(s_logisimNet200),
-               .input2(s_logisimNet48),
-               .input3(s_logisimNet146),
-               .result(s_logisimNet121));
+  NAND_GATE_3_INPUTS #(
+      .BubblesMask(3'b000)
+  ) GATES_5 (
+      .input1(s_lcs_n),
+      .input2(s_csloop_n),
+      .input3(s_csecond_n),
+      .result(s_gates5_out)
+  );
 
-   AND_GATE_4_INPUTS #(.BubblesMask(4'h0))
-      GATES_6 (.input1(s_logisimNet23),
-               .input2(s_logisimNet48),
-               .input3(s_logisimNet200),
-               .input4(s_logisimNet100),
-               .result(s_logisimNet103));
+  AND_GATE_4_INPUTS #(
+      .BubblesMask(4'h0)
+  ) GATES_6 (
+      .input1(s_cond_n),
+      .input2(s_csloop_n),
+      .input3(s_lcs_n),
+      .input4(s_csecond),
+      .result(s_gates6_out)
+  );
 
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_7 (.input1(s_logisimNet164),
-               .input2(s_logisimNet171),
-               .input3(s_logisimNet68),
-               .result(s_logisimNet99));
+  NAND_GATE_3_INPUTS #(
+      .BubblesMask(3'b000)
+  ) GATES_7 (
+      .input1(s_gates4_out),
+      .input2(s_loop),
+      .input3(s_power),
+      .result(s_p_n_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_8 (.input1(s_logisimNet23),
-               .input2(s_logisimNet121),
-               .result(s_logisimNet15));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_8 (
+      .input1(s_cond_n),
+      .input2(s_gates5_out),
+      .result(s_gates8_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_9 (.input1(s_logisimNet15),
-               .input2(s_logisimBus126[3]),
-               .result(s_logisimNet132));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_9 (
+      .input1(s_gates8_out),
+      .input2(s_csts_6_3[3]),
+      .result(s_gates9_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_10 (.input1(s_logisimNet103),
-                .input2(s_logisimBus201[3]),
-                .result(s_logisimNet252));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_10 (
+      .input1(s_gates6_out),
+      .input2(s_fs_6_3[3]),
+      .result(s_gates10_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_11 (.input1(s_logisimNet15),
-                .input2(s_logisimBus126[2]),
-                .result(s_logisimNet191));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_11 (
+      .input1(s_gates8_out),
+      .input2(s_csts_6_3[2]),
+      .result(s_gates11_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_12 (.input1(s_logisimNet103),
-                .input2(s_logisimBus201[2]),
-                .result(s_logisimNet98));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_12 (
+      .input1(s_gates6_out),
+      .input2(s_fs_6_3[2]),
+      .result(s_gates12_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_13 (.input1(s_logisimNet15),
-                .input2(s_logisimBus126[1]),
-                .result(s_logisimNet235));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_13 (
+      .input1(s_gates8_out),
+      .input2(s_csts_6_3[1]),
+      .result(s_gates13_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_14 (.input1(s_logisimNet103),
-                .input2(s_logisimBus201[1]),
-                .result(s_logisimNet166));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_14 (
+      .input1(s_gates6_out),
+      .input2(s_fs_6_3[1]),
+      .result(s_gates14_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_15 (.input1(s_logisimNet15),
-                .input2(s_logisimBus126[0]),
-                .result(s_logisimNet33));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_15 (
+      .input1(s_gates8_out),
+      .input2(s_csts_6_3[0]),
+      .result(s_gates15_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_16 (.input1(s_logisimNet103),
-                .input2(s_logisimBus201[0]),
-                .result(s_logisimNet214));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_16 (
+      .input1(s_gates6_out),
+      .input2(s_fs_6_3[0]),
+      .result(s_gates16_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_17 (.input1(s_logisimNet95),
-                .input2(s_logisimNet74),
-                .result(s_logisimNet43));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_17 (
+      .input1(s_gates3_out),
+      .input2(s_lcc_eq_lc),
+      .result(s_lcz_n_out)
+  );
 
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_18 (.input1(s_logisimNet200),
-                .input2(s_logisimNet23),
-                .input3(s_logisimNet70),
-                .result(s_logisimNet4));
+  NAND_GATE_3_INPUTS #(
+      .BubblesMask(3'b000)
+  ) GATES_18 (
+      .input1(s_lcs_n),
+      .input2(s_cond_n),
+      .input3(s_csloop),
+      .result(s_gates18_out)
+  );
 
-   NOR_GATE #(.BubblesMask(2'b00))
-      GATES_19 (.input1(s_logisimNet132),
-                .input2(s_logisimNet252),
-                .result(s_logisimNet101));
+  NOR_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_19 (
+      .input1(s_gates9_out),
+      .input2(s_gates10_out),
+      .result(s_gates19_out)
+  );
 
-   NOR_GATE #(.BubblesMask(2'b00))
-      GATES_20 (.input1(s_logisimNet191),
-                .input2(s_logisimNet98),
-                .result(s_logisimNet169));
+  NOR_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_20 (
+      .input1(s_gates11_out),
+      .input2(s_gates12_out),
+      .result(s_gates20_out)
+  );
 
-   NOR_GATE #(.BubblesMask(2'b00))
-      GATES_21 (.input1(s_logisimNet235),
-                .input2(s_logisimNet166),
-                .result(s_logisimNet127));
+  NOR_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_21 (
+      .input1(s_gates13_out),
+      .input2(s_gates14_out),
+      .result(s_gates21_out)
+  );
 
-   NOR_GATE #(.BubblesMask(2'b00))
-      GATES_22 (.input1(s_logisimNet33),
-                .input2(s_logisimNet214),
-                .result(s_logisimNet67));
+  NOR_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_22 (
+      .input1(s_gates15_out),
+      .input2(s_gates16_out),
+      .result(s_gates22_out)
+  );
 
-   NOR_GATE #(.BubblesMask(2'b11))
-      GATES_23 (.input1(s_logisimNet200),
-                .input2(s_logisimNet101),
-                .result(s_logisimNet196));
+  NOR_GATE #(
+      .BubblesMask(2'b11)
+  ) GATES_23 (
+      .input1(s_lcs_n),
+      .input2(s_gates19_out),
+      .result(s_sc_3_n_out)
+  );
 
-   NOR_GATE #(.BubblesMask(2'b11))
-      GATES_24 (.input1(s_logisimNet4),
-                .input2(s_logisimNet169),
-                .result(s_logisimNet243));
+  NOR_GATE #(
+      .BubblesMask(2'b11)
+  ) GATES_24 (
+      .input1(s_gates18_out),
+      .input2(s_gates20_out),
+      .result(s_sc_2_n_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_25 (.input1(s_logisimNet51),
-                .input2(s_logisimNet26),
-                .result(s_logisimNet112));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_25 (
+      .input1(s_zfff_q_out),
+      .input2(s_zf),
+      .result(s_gates25_out)
+  );
 
-   NOR_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_26 (.input1(s_logisimNet112),
-                .input2(s_logisimNet2),
-                .input3(s_logisimNet31),
-                .result(s_logisimNet193));
+  NOR_GATE_3_INPUTS #(
+      .BubblesMask(3'b000)
+  ) GATES_26 (
+      .input1(s_gates25_out),
+      .input2(s_dzd_out),
+      .input3(s_gnd),
+      .result(s_dzd_signal)
+  );
 
-   NOR_GATE #(.BubblesMask(2'b00))
-      GATES_27 (.input1(s_logisimNet29),
-                .input2(s_logisimNet53),
-                .result(s_logisimNet157));
+  NOR_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_27 (
+      .input1(s_ood_out),
+      .input2(s_mi),
+      .result(s_ood_signal)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_28 (.input1(s_logisimBus138[0]),
-                .input2(s_logisimNet124),
-                .result(s_logisimNet217));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_28 (
+      .input1(s_csrasel_1_0[0]),
+      .input2(s_csxrf3),
+      .result(s_gates28_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_29 (.input1(s_logisimNet124),
-                .input2(s_logisimNet223),
-                .result(s_logisimNet135));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_29 (
+      .input1(s_csxrf3),
+      .input2(s_csrasel1_n),
+      .result(s_gates29_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_30 (.input1(s_logisimNet247),
-                .input2(s_logisimBus195[6]),
-                .result(s_logisimNet234));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_30 (
+      .input1(s_csxrf3_n),
+      .input2(s_ir_6_0[6]),
+      .result(s_laa3_d2_input)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_31 (.input1(s_logisimNet200),
-                .input2(s_logisimNet114),
-                .result(s_logisimNet186));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_31 (
+      .input1(s_lcs_n),
+      .input2(s_ewca_n),
+      .result(s_lcsn_nand_ewcan)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_32 (.clock(s_logisimNet172),
-                 .d(s_logisimNet23),
-                 .preset(1'b0),
-                 .q(),
-                 .qBar(s_logisimNet116),
-                 .reset(1'b0),
-                 .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_32 (
+      .clock(s_mclk),
+      .d(s_cond_n),
+      .preset(1'b0),
+      .q(),
+      .qBar(s_cond),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_33 (.clock(s_logisimNet172),
-                 .d(s_logisimNet70),
-                 .preset(1'b0),
-                 .q(s_logisimNet171),
-                 .qBar(),
-                 .reset(1'b0),
-                 .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_33 (
+      .clock(s_mclk),
+      .d(s_csloop),
+      .preset(1'b0),
+      .q(s_loop),
+      .qBar(),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(1))
-      MEMORY_34 (.clock(s_logisimNet172),
-                 .d(s_logisimNet67),
-                 .preset(1'b0),
-                 .q(s_logisimNet60),
-                 .qBar(),
-                 .reset(1'b0),
-                 .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(1)
+  ) MEMORY_34 (
+      .clock(s_mclk),
+      .d(s_gates22_out),
+      .preset(1'b0),
+      .q(s_sc_1_n_out),
+      .qBar(),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_35 (.clock(s_logisimNet172),
-                 .d(s_logisimNet26),
-                 .preset(1'b0),
-                 .q(s_logisimNet51),
-                 .qBar(),
-                 .reset(s_logisimNet154),
-                 .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_35 (
+      .clock(s_mclk),
+      .d(s_zf),
+      .preset(1'b0),
+      .q(s_zfff_q_out),
+      .qBar(),
+      .reset(s_clff),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_36 (.clock(s_logisimNet172),
-                 .d(s_logisimNet44),
-                 .preset(1'b0),
-                 .q(),
-                 .qBar(s_logisimNet149),
-                 .reset(1'b0),
-                 .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_36 (
+      .clock(s_mclk),
+      .d(s_csalui8),
+      .preset(1'b0),
+      .q(),
+      .qBar(s_ialui8_clocked_qn),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(1))
-      MEMORY_37 (.clock(s_logisimNet172),
-                 .d(s_logisimNet127),
-                 .preset(1'b0),
-                 .q(),
-                 .qBar(s_logisimBus73[0]),
-                 .reset(1'b0),
-                 .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(1)
+  ) MEMORY_37 (
+      .clock(s_mclk),
+      .d(s_gates21_out),
+      .preset(1'b0),
+      .q(),
+      .qBar(s_sc_6_3_out[0]),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_38 (.clock(s_logisimNet172),
-                 .d(s_logisimNet135),
-                 .preset(1'b0),
-                 .q(s_logisimNet208),
-                 .qBar(),
-                 .reset(1'b0),
-                 .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_38 (
+      .clock(s_mclk),
+      .d(s_gates29_out),
+      .preset(1'b0),
+      .q(s_rf1_in_a),
+      .qBar(),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_39 (.clock(s_logisimNet172),
-                 .d(s_logisimNet217),
-                 .preset(1'b0),
-                 .q(s_logisimNet185),
-                 .qBar(),
-                 .reset(1'b0),
-                 .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_39 (
+      .clock(s_mclk),
+      .d(s_gates28_out),
+      .preset(1'b0),
+      .q(s_rf0_in_a),
+      .qBar(),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   CGA_MIC_INCOUNT   MIC_INCOUNT (.CD0(s_logisimBus20[0]),
-                                  .CD1(s_logisimBus20[1]),
-                                  .CSWAN0(s_logisimBus216[0]),
-                                  .CSWAN1(s_logisimBus216[1]),
-                                  .EC(s_logisimNet38),
-                                  .LWCAN(s_logisimNet81),
-                                  .MCLK(s_logisimNet172),
-                                  .MRN(s_logisimNet56));
+  CGA_MIC_INCOUNT MIC_INCOUNT (
+      .CD0(s_cd_15_0[0]),
+      .CD1(s_cd_15_0[1]),
+      .CSWAN0(s_cswan_1_0[0]),
+      .CSWAN1(s_cswan_1_0[1]),
+      .EC(s_lcs),
+      .LWCAN(s_lwca_n),
+      .MCLK(s_mclk),
+      .MRN(s_mrn)
+  );
 
-   M169C   LC_HI (.A(s_logisimBus20[4]),
-                  .B(s_logisimBus20[5]),
-                  .C(s_logisimBus20[5]),
-                  .CON(s_logisimNet55),
-                  .CP(s_logisimNet172),
-                  .D(s_logisimBus20[5]),
-                  .NL(s_logisimNet155),
-                  .PN(s_logisimNet99),
-                  .QA(s_logisimNet22),
-                  .QB(s_logisimNet202),
-                  .QC(s_logisimNet215),
-                  .QD(s_logisimNet59),
-                  .TN(s_logisimNet90),
-                  .UP(s_logisimNet34));
+  M169C LC_HI (
+      .CP(s_mclk),
 
-   M169C   LC_LO (.A(s_logisimBus20[0]),
-                  .B(s_logisimBus20[1]),
-                  .C(s_logisimBus20[2]),
-                  .CON(s_logisimNet90),
-                  .CP(s_logisimNet172),
-                  .D(s_logisimBus20[3]),
-                  .NL(s_logisimNet155),
-                  .PN(s_logisimNet99),
-                  .QA(s_logisimBus240[0]),
-                  .QB(s_logisimBus240[1]),
-                  .QC(s_logisimBus240[2]),
-                  .QD(s_logisimBus240[3]),
-                  .TN(s_logisimNet45),
-                  .UP(s_logisimNet34));
+      .A(s_cd_15_0[4]),
+      .B(s_cd_15_0[5]),
+      .C(s_cd_15_0[5]),
+      .D(s_cd_15_0[5]),
 
-   MUX21L   M_RF1 (.A(s_logisimNet208),
-                   .B(s_logisimBus216[1]),
-                   .S(s_logisimNet186),
-                   .ZN(s_logisimBus153[1]));
+      .CON(s_lc_hi_con),
 
-   MUX21L   M_RF0 (.A(s_logisimNet185),
-                   .B(s_logisimBus216[0]),
-                   .S(s_logisimNet186),
-                   .ZN(s_logisimBus153[0]));
+      .NL(s_ldlc_n),
+      .PN(s_p_n_out),
 
-   MUX34P   ILC_MUX (.A(s_logisimNet192),
-                     .B(s_logisimNet123),
-                     .D00(s_logisimBus195[0]),
-                     .D01(s_logisimBus195[1]),
-                     .D02(s_logisimBus195[2]),
-                     .D03(s_logisimBus195[3]),
-                     .D10(s_logisimBus6[0]),
-                     .D11(s_logisimBus6[1]),
-                     .D12(s_logisimBus6[2]),
-                     .D13(s_logisimBus6[3]),
-                     .D20(s_logisimBus231[0]),
-                     .D21(s_logisimBus231[1]),
-                     .D22(s_logisimBus231[2]),
-                     .D23(s_logisimBus231[3]),
-                     .Z0(s_logisimBus232[0]),
-                     .Z1(s_logisimBus232[1]),
-                     .Z2(s_logisimBus232[2]),
-                     .Z3(s_logisimBus232[3]));
+      .QA(s_icd_4),
+      .QB(s_icd_5),
+      .QC(),
+      .QD(s_up_out),
 
-   L8   IRLATCH (.A(s_logisimBus20[0]),
-                 .B(s_logisimBus20[1]),
-                 .C(s_logisimBus20[2]),
-                 .D(s_logisimBus20[3]),
-                 .E(s_logisimBus20[4]),
-                 .F(s_logisimBus20[5]),
-                 .G(s_logisimBus20[6]),
-                 .H(1'b0),
-                 .L(s_logisimNet8),
-                 .QA(s_logisimBus195[0]),
-                 .QAN(),
-                 .QB(s_logisimBus195[1]),
-                 .QBN(),
-                 .QC(s_logisimBus195[2]),
-                 .QCN(),
-                 .QD(s_logisimBus195[3]),
-                 .QDN(),
-                 .QE(s_logisimBus195[4]),
-                 .QEN(),
-                 .QF(s_logisimBus195[5]),
-                 .QFN(),
-                 .QG(s_logisimBus195[6]),
-                 .QGN(),
-                 .QH(),
-                 .QHN());
+      .TN(s_t_n_out),
+      .UP(s_up_out)
+  );
 
-   CGA_MIC_CONDREG   CONDREG (.ACONDN(s_logisimNet37),
-                              .CSBIT_11_0(s_logisimBus150[11:0]),
-                              .CSSCOND(s_logisimNet206),
-                              .FS_6_3(s_logisimBus201[3:0]),
-                              .LCC_3_0(s_logisimBus176[3:0]),
-                              .LCSN(s_logisimNet200),
-                              .MCLK(s_logisimNet172),
-                              .TSEL_3_0(s_logisimBus41[3:0]));
+  M169C LC_LO (
+      .CP(s_mclk),
 
-   MUX41P   M_LAA_2 (.A(s_logisimBus138[0]),
-                     .B(s_logisimBus138[1]),
-                     .D0(s_logisimBus251[1]),
-                     .D1(s_logisimBus204[1]),
-                     .D2(s_logisimBus195[5]),
-                     .D3(s_logisimBus240[2]),
-                     .Z(s_logisimNet71));
+      .A(s_cd_15_0[0]),
+      .B(s_cd_15_0[1]),
+      .C(s_cd_15_0[2]),
+      .D(s_cd_15_0[3]),
 
-   CMP4   LC_CMP (.A0(s_logisimBus176[0]),
-                  .A1(s_logisimBus176[1]),
-                  .A2(s_logisimBus176[2]),
-                  .A3(s_logisimBus176[3]),
-                  .AEB(s_logisimNet74),
-                  .AGB(),
-                  .ALB(),
-                  .B0(s_logisimBus240[0]),
-                  .B1(s_logisimBus240[1]),
-                  .B2(s_logisimBus240[2]),
-                  .B3(s_logisimBus240[3]));
+      .CON(s_t_n_out),
 
-   CGA_MIC_IINC   MIC_IINC (.CIN(s_logisimNet205),
-                            .IW_12_0(s_logisimBus57[12:0]),
-                            .NEXT_12_0(s_logisimBus118[12:0]));
+      .NL(s_ldlc_n),
+      .PN(s_p_n_out),
 
-   MUX41P   M_LAA_1 (.A(s_logisimBus138[0]),
-                     .B(s_logisimBus138[1]),
-                     .D0(s_logisimBus251[2]),
-                     .D1(s_logisimBus204[2]),
-                     .D2(s_logisimBus195[4]),
-                     .D3(s_logisimBus240[1]),
-                     .Z(s_logisimNet40));
+      .QA(s_lc_3_0[0]),
+      .QB(s_lc_3_0[1]),
+      .QC(s_lc_3_0[2]),
+      .QD(s_lc_3_0[3]),
 
-   CGA_MIC_STACK   MIC_STACK (.DEEP(s_logisimNet148),
-                              .MCLK(s_logisimNet172),
-                              .NEXT_12_0(s_logisimBus118[12:0]),
-                              .RET_12_0(s_logisimBus32[12:0]),
-                              .SC3(1'b0),
-                              .SC4(1'b0),
-                              .SCLKN(s_logisimNet137));
+      .TN(s_gnd),
+      .UP(s_up_out)
+  );
 
-   MUX41P   M_LAA_0 (.A(s_logisimBus138[0]),
-                     .B(s_logisimBus138[1]),
-                     .D0(s_logisimBus251[3]),
-                     .D1(s_logisimBus204[3]),
-                     .D2(s_logisimBus195[3]),
-                     .D3(s_logisimBus240[0]),
-                     .Z(s_logisimNet65));
+  MUX21L M_RF1 (
+      .A (s_rf1_in_a),
+      .B (s_cswan_1_0[1]),
+      .S (s_lcsn_nand_ewcan),
+      .ZN(s_rf_1_0_out[1])
+  );
 
-   R41P   LAA_REG (.A(s_logisimNet65),
-                   .B(s_logisimNet40),
-                   .C(s_logisimNet71),
-                   .CP(s_logisimNet172),
-                   .D(s_logisimNet190),
-                   .QA(),
-                   .QAN(s_logisimNet161),
-                   .QB(),
-                   .QBN(s_logisimNet25),
-                   .QC(),
-                   .QCN(s_logisimNet212),
-                   .QD(),
-                   .QDN(s_logisimNet128));
+  MUX21L M_RF0 (
+      .A (s_rf0_in_a),
+      .B (s_cswan_1_0[0]),
+      .S (s_lcsn_nand_ewcan),
+      .ZN(s_rf_1_0_out[0])
+  );
 
-   CGA_MIC_MASEL   MIC_MASEL (.CSBIT20(s_logisimNet183),
-                              .CSBIT_11_0(s_logisimBus150[11:0]),
-                              .IW_12_0(s_logisimBus57[12:0]),
-                              .JMP_3_0(s_logisimBus232[3:0]),
-                              .MCLK(s_logisimNet172),
-                              .MCLKN(s_logisimNet16),
-                              .MRN(s_logisimNet56),
-                              .NEXT_12_0(s_logisimBus118[12:0]),
-                              .RET_12_0(s_logisimBus32[12:0]),
-                              .SC5(s_logisimBus73[2]),
-                              .SC6(s_logisimBus73[3]),
-                              .W_12_0(s_logisimBus159[12:0]));
+  MUX34P ILC_MUX (
+      .A  (s_csmis0),
+      .B  (s_csvect_n),
+      .D00(s_ir_6_0[0]),
+      .D01(s_ir_6_0[1]),
+      .D02(s_ir_6_0[2]),
+      .D03(s_ir_6_0[3]),
+      .D10(s_laa_3_0_out[0]),
+      .D11(s_laa_3_0_out[1]),
+      .D12(s_laa_3_0_out[2]),
+      .D13(s_laa_3_0_out[3]),
+      .D20(s_csbit_3_0[0]),
+      .D21(s_csbit_3_0[1]),
+      .D22(s_csbit_3_0[2]),
+      .D23(s_csbit_3_0[3]),
+      .Z0 (s_jmp_3_0[0]),
+      .Z1 (s_jmp_3_0[1]),
+      .Z2 (s_jmp_3_0[2]),
+      .Z3 (s_jmp_3_0[3])
+  );
 
-   SCAN_WITH_SET_N   OOD_FF (.CLK(s_logisimNet172),
-                             .D(s_logisimNet157),
-                             .Q(s_logisimNet97),
-                             .QN(s_logisimNet29),
-                             .S(s_logisimNet129),
-                             .TE(s_logisimNet149),
-                             .TI(s_logisimNet97));
+  L8 IRLATCH (
+      .A  (s_cd_15_0[0]),
+      .B  (s_cd_15_0[1]),
+      .C  (s_cd_15_0[2]),
+      .D  (s_cd_15_0[3]),
+      .E  (s_cd_15_0[4]),
+      .F  (s_cd_15_0[5]),
+      .G  (s_cd_15_0[6]),
+      .H  (1'b0),
+      .L  (s_ldirv),
+      .QA (s_ir_6_0[0]),
+      .QAN(),
+      .QB (s_ir_6_0[1]),
+      .QBN(),
+      .QC (s_ir_6_0[2]),
+      .QCN(),
+      .QD (s_ir_6_0[3]),
+      .QDN(),
+      .QE (s_ir_6_0[4]),
+      .QEN(),
+      .QF (s_ir_6_0[5]),
+      .QFN(),
+      .QG (s_ir_6_0[6]),
+      .QGN(),
+      .QH (),
+      .QHN()
+  );
 
-   SCAN_WITH_SET_N   DZD_FF (.CLK(s_logisimNet172),
-                             .D(s_logisimNet193),
-                             .Q(s_logisimNet83),
-                             .QN(s_logisimNet2),
-                             .S(s_logisimNet129),
-                             .TE(s_logisimNet149),
-                             .TI(s_logisimNet83));
+  CGA_MIC_CONDREG CONDREG (
+      .ACONDN(s_acond_n_out),
+      .CSBIT_11_0(s_csbit_15_0[11:0]),
+      .CSSCOND(s_cscond),
+      .FS_6_3(s_fs_6_3[3:0]),
+      .LCC_3_0(s_lcc_3_0[3:0]),
+      .LCSN(s_lcs_n),
+      .MCLK(s_mclk),
+      .TSEL_3_0(s_tsel_3_0[3:0])
+  );
 
-   MUX41P   M_LBA_3 (.A(s_logisimBus142[0]),
-                     .B(s_logisimBus142[1]),
-                     .D0(s_logisimBus225[3]),
-                     .D1(s_logisimNet13),
-                     .D2(s_logisimNet13),
-                     .D3(s_logisimBus240[3]),
-                     .Z(s_logisimNet3));
+  MUX41P M_LAA_2 (
+      .A (s_csrasel_1_0[0]),
+      .B (s_csrasel_1_0[1]),
+      .D0(s_csbit_15_12[1]),
+      .D1(s_pil_3_0[1]),
+      .D2(s_ir_6_0[5]),
+      .D3(s_lc_3_0[2]),
+      .Z (s_laa2_signal)
+  );
 
-   MUX41P   M_LBA_2 (.A(s_logisimBus142[0]),
-                     .B(s_logisimBus142[1]),
-                     .D0(s_logisimBus225[2]),
-                     .D1(s_logisimBus195[2]),
-                     .D2(s_logisimBus195[5]),
-                     .D3(s_logisimBus240[2]),
-                     .Z(s_logisimNet63));
+  CMP4 LC_CMP (
+      .A0 (s_lcc_3_0[0]),
+      .A1 (s_lcc_3_0[1]),
+      .A2 (s_lcc_3_0[2]),
+      .A3 (s_lcc_3_0[3]),
+      .AEB(s_lcc_eq_lc),
+      .AGB(),
+      .ALB(),
+      .B0 (s_lc_3_0[0]),
+      .B1 (s_lc_3_0[1]),
+      .B2 (s_lc_3_0[2]),
+      .B3 (s_lc_3_0[3])
+  );
 
-   CGA_MIC_WCAREG   MIC_WCAREG (.CD_15_0(s_logisimBus20[15:0]),
-                                .LCSN(s_logisimNet200),
-                                .LWCAN(s_logisimNet81),
-                                .MCLK(s_logisimNet172),
-                                .WCA_12_0(s_logisimBus21[12:0]),
-                                .WCSN(s_logisimNet221));
+  CGA_MIC_IINC MIC_IINC (
+      .CIN(s_carry_in),
+      .IW_12_0(s_iw_12_0[12:0]),
+      .NEXT_12_0(s_next_12_0[12:0])
+  );
 
-   MUX41P   M_LBA_1 (.A(s_logisimBus142[0]),
-                     .B(s_logisimBus142[1]),
-                     .D0(s_logisimBus225[1]),
-                     .D1(s_logisimBus195[1]),
-                     .D2(s_logisimBus195[4]),
-                     .D3(s_logisimBus240[1]),
-                     .Z(s_logisimNet0));
+  MUX41P M_LAA_1 (
+      .A (s_csrasel_1_0[0]),
+      .B (s_csrasel_1_0[1]),
+      .D0(s_csbit_15_12[2]),
+      .D1(s_pil_3_0[2]),
+      .D2(s_ir_6_0[4]),
+      .D3(s_lc_3_0[1]),
+      .Z (s_laa1_signal)
+  );
 
-   CGA_MIC_IPOS   MIC_IPOS (.CD_15_0(s_logisimBus20[15:0]),
-                            .EWCAN(s_logisimNet114),
-                            .MAPN(s_logisimNet168),
-                            .MA_12_0(s_logisimBus77[12:0]),
-                            .TRAPN(s_logisimNet69),
-                            .TVEC_3_0(s_logisimBus236[3:0]),
-                            .WCA_12_0(s_logisimBus21[12:0]),
-                            .W_12_0(s_logisimBus159[12:0]));
+  CGA_MIC_STACK MIC_STACK (
+      .DEEP(s_deep_out),
+      .MCLK(s_mclk),
+      .NEXT_12_0(s_next_12_0[12:0]),
+      .RET_12_0(s_ret_12_0[12:0]),
+      .SC3(1'b0),
+      .SC4(1'b0),
+      .SCLKN(s_mclk_n1)
+  );
 
-   MUX41P   M_LBA_0 (.A(s_logisimBus142[0]),
-                     .B(s_logisimBus142[1]),
-                     .D0(s_logisimBus225[0]),
-                     .D1(s_logisimBus195[0]),
-                     .D2(s_logisimBus195[3]),
-                     .D3(s_logisimBus240[0]),
-                     .Z(s_logisimNet24));
+  MUX41P M_LAA_0 (
+      .A (s_csrasel_1_0[0]),
+      .B (s_csrasel_1_0[1]),
+      .D0(s_csbit_15_12[3]),
+      .D1(s_pil_3_0[3]),
+      .D2(s_ir_6_0[3]),
+      .D3(s_lc_3_0[0]),
+      .Z (s_laa0_signal)
+  );
 
-   R41P   LBA_REG (.A(s_logisimNet24),
-                   .B(s_logisimNet0),
-                   .C(s_logisimNet63),
-                   .CP(s_logisimNet172),
-                   .D(s_logisimNet3),
-                   .QA(),
-                   .QAN(s_logisimNet197),
-                   .QB(),
-                   .QBN(s_logisimNet109),
-                   .QC(),
-                   .QCN(s_logisimNet244),
-                   .QD(),
-                   .QDN(s_logisimNet177));
+  R41P LAA_REG (
+      .CP(s_mclk),
 
-   CGA_MIC_CSEL   CSEL (.ALUCLK(s_logisimNet120),
-                        .CFETCH(s_logisimNet92),
-                        .COND(s_logisimNet116),
-                        .CONDN(s_logisimNet23),
-                        .CRY(s_logisimNet219),
-                        .DZD(s_logisimNet2),
-                        .F11(s_logisimNet27),
-                        .F15(s_logisimNet143),
-                        .IRQ(s_logisimNet189),
-                        .LCZ(s_logisimNet113),
-                        .OOD(s_logisimNet29),
-                        .OVF(s_logisimNet162),
-                        .RESTR(s_logisimNet248),
-                        .SPARE(s_logisimNet230),
-                        .STP(s_logisimNet253),
-                        .TSEL_3_0(s_logisimBus41[3:0]),
-                        .ZF(s_logisimNet26));
+      .A(s_laa0_signal),
+      .B(s_laa1_signal),
+      .C(s_laa2_signal),
+      .D(s_laa3_signal),
 
-   MUX41P   M_LAA_3 (.A(s_logisimBus138[0]),
-                     .B(s_logisimBus138[1]),
-                     .D0(s_logisimBus251[0]),
-                     .D1(s_logisimBus204[0]),
-                     .D2(s_logisimNet234),
-                     .D3(s_logisimBus240[3]),
-                     .Z(s_logisimNet190));
+      .QA (),
+      .QAN(s_laa_0_n_out),
+      .QB (),
+      .QBN(s_laa_1_n_out),
+      .QC (),
+      .QCN(s_laa_2_n_out),
+      .QD (),
+      .QDN(s_laa_3_n_out)
+  );
+
+  CGA_MIC_MASEL MIC_MASEL (
+      .CSBIT20(s_csbit20),
+      .CSBIT_11_0(s_csbit_15_0[11:0]),
+      .IW_12_0(s_iw_12_0[12:0]),
+      .JMP_3_0(s_jmp_3_0[3:0]),
+      .MCLK(s_mclk),
+      .MCLKN(s_mclk_n),
+      .MRN(s_mrn),
+      .NEXT_12_0(s_next_12_0[12:0]),
+      .RET_12_0(s_ret_12_0[12:0]),
+      .SC5(s_sc_6_3_out[2]),
+      .SC6(s_sc_6_3_out[3]),
+      .W_12_0(s_w_12_0[12:0])
+  );
+
+  SCAN_WITH_SET_N OOD_FF (
+      .CLK(s_mclk),
+      .D  (s_ood_signal),
+      .Q  (s_oodff_q),
+      .QN (s_ood_out),
+      .S  (s_clff_n),
+      .TE (s_ialui8_clocked_qn),
+      .TI (s_oodff_q)
+  );
+
+  SCAN_WITH_SET_N DZD_FF (
+      .CLK(s_mclk),
+      .D  (s_dzd_signal),
+      .Q  (s_dzdff_q),
+      .QN (s_dzd_out),
+      .S  (s_clff_n),
+      .TE (s_ialui8_clocked_qn),
+      .TI (s_dzdff_q)
+  );
+
+  MUX41P M_LBA_3 (
+      .A (s_csrbsel_1_0[0]),
+      .B (s_csrbsel_1_0[1]),
+      .D0(s_csrb_3_0[3]),
+      .D1(s_gnd),
+      .D2(s_gnd),
+      .D3(s_lc_3_0[3]),
+      .Z (s_lba3_signal)
+  );
+
+  MUX41P M_LBA_2 (
+      .A (s_csrbsel_1_0[0]),
+      .B (s_csrbsel_1_0[1]),
+      .D0(s_csrb_3_0[2]),
+      .D1(s_ir_6_0[2]),
+      .D2(s_ir_6_0[5]),
+      .D3(s_lc_3_0[2]),
+      .Z (s_lba2_signal)
+  );
+
+  CGA_MIC_WCAREG MIC_WCAREG (
+      .CD_15_0(s_cd_15_0[15:0]),
+      .LCSN(s_lcs_n),
+      .LWCAN(s_lwca_n),
+      .MCLK(s_mclk),
+      .WCA_12_0(s_wca_12_0[12:0]),
+      .WCSN(s_wcs_n_out)
+  );
+
+  MUX41P M_LBA_1 (
+      .A (s_csrbsel_1_0[0]),
+      .B (s_csrbsel_1_0[1]),
+      .D0(s_csrb_3_0[1]),
+      .D1(s_ir_6_0[1]),
+      .D2(s_ir_6_0[4]),
+      .D3(s_lc_3_0[1]),
+      .Z (s_lba1_signal)
+  );
+
+  CGA_MIC_IPOS MIC_IPOS (
+      .CD_15_0(s_cd_15_0[15:0]),
+      .EWCAN(s_ewca_n),
+      .MAPN(s_map_n),
+      .MA_12_0(s_ma_12_0_out[12:0]),
+      .TRAPN(s_trap_n),
+      .TVEC_3_0(s_tvec_3_0[3:0]),
+      .WCA_12_0(s_wca_12_0[12:0]),
+      .W_12_0(s_w_12_0[12:0])
+  );
+
+  MUX41P M_LBA_0 (
+      .A (s_csrbsel_1_0[0]),
+      .B (s_csrbsel_1_0[1]),
+      .D0(s_csrb_3_0[0]),
+      .D1(s_ir_6_0[0]),
+      .D2(s_ir_6_0[3]),
+      .D3(s_lc_3_0[0]),
+      .Z (s_lba0_signal)
+  );
+
+  R41P LBA_REG (
+      .CP(s_mclk),
+
+      .A(s_lba0_signal),
+      .B(s_lba1_signal),
+      .C(s_lba2_signal),
+      .D(s_lba3_signal),
+
+      .QA (),
+      .QAN(s_lba_0_n_out),
+      .QB (),
+      .QBN(s_lba_1_n_out),
+      .QC (),
+      .QCN(s_lba_2_n_out),
+      .QD (),
+      .QDN(s_lba_3_n_out)
+  );
+
+  CGA_MIC_CSEL CSEL (
+      .ALUCLK(s_aluclk),
+      .CFETCH(s_cfetch),
+      .COND(s_cond),
+      .CONDN(s_cond_n),
+      .CRY(s_cry),
+      .DZD(s_dzd_out),
+      .F11(s_f11),
+      .F15(s_f15),
+      .IRQ(s_irq),
+      .LCZ(s_lcz),
+      .OOD(s_ood_out),
+      .OVF(s_ovf),
+      .RESTR(s_restr),
+      .SPARE(s_spare),
+      .STP(s_stp),
+      .TSEL_3_0(s_tsel_3_0[3:0]),
+      .ZF(s_zf)
+  );
+
+  MUX41P M_LAA_3 (
+      .A (s_csrasel_1_0[0]),
+      .B (s_csrasel_1_0[1]),
+      .D0(s_csbit_15_12[0]),
+      .D1(s_pil_3_0[0]),
+      .D2(s_laa3_d2_input),
+      .D3(s_lc_3_0[3]),
+      .Z (s_laa3_signal)
+  );
 
 endmodule

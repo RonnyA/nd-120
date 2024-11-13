@@ -154,7 +154,7 @@ module MEM_ADEC_45 (
    ** Here all normal components are defined                                     **
    *******************************************************************************/
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) MEMORY_1 (
       .clock(s_ddbapr),
       .d(s_aok),
@@ -166,7 +166,7 @@ module MEM_ADEC_45 (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) MEMORY_2 (
       .clock(s_refrq_n),
       .d(s_power),

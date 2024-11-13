@@ -6,3 +6,8 @@ waveform.vcd
 Verilog/CPU-BOARD-3202/circuit/**/AM27256_45132L.hex
 Verilog/CPU-BOARD-3202/circuit/**/AM27256_45133L.hex
 
+Verilog/.vscode/*
+Verilog/Verilog_pnr.json
+Verilog/Verilog.fs
+Verilog/Verilog.json
+Verilog/teroshdl-settings.json

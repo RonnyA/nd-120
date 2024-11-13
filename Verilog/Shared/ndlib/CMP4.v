@@ -1,92 +1,82 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CMP4                                                         **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 Shared                                                          **
+**                                                                       **
+** Component: CMP4 (4 bit comparator)                                    **
+**                                                                       **
+** Last reviewed: 9-NOV-2024                                             **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CMP4( A0,
-             A1,
-             A2,
-             A3,
-             AEB,
-             AGB,
-             ALB,
-             B0,
-             B1,
-             B2,
-             B3 );
+module CMP4 (
+    input A0,  //! A bit 0
+    input A1,  //! A bit 1
+    input A2,  //! A bit 2
+    input A3,  //! A bit 3
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input A0;
-   input A1;
-   input A2;
-   input A3;
-   input B0;
-   input B1;
-   input B2;
-   input B3;
+    input B0,  //! B bit 0
+    input B1,  //! B bit 1
+    input B2,  //! B bit 2
+    input B3,  //! B bit 3
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output AEB;
-   output AGB;
-   output ALB;
+    output AEB,  //! A EQUAL B
+    output AGB,  //! A GREATER THEN B
+    output ALB   //! A LESS THAN B
+);
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [3:0] s_logisimBus3;
-   wire [3:0] s_logisimBus4;
-   wire       s_logisimNet0;
-   wire       s_logisimNet1;
-   wire       s_logisimNet10;
-   wire       s_logisimNet11;
-   wire       s_logisimNet12;
-   wire       s_logisimNet2;
-   wire       s_logisimNet5;
-   wire       s_logisimNet6;
-   wire       s_logisimNet7;
-   wire       s_logisimNet8;
-   wire       s_logisimNet9;
+  wire [3:0] s_data_A;
+  wire [3:0] s_data_B;
+  wire       s_agb_out;
+  wire       s_alb_out;
+  wire       s_logisimNet10;
+  wire       s_logisimNet11;
+  wire       s_logisimNet12;
+  wire       s_aeb_out;
+  wire       s_logisimNet5;
+  wire       s_logisimNet6;
+  wire       s_logisimNet7;
+  wire       s_logisimNet8;
+  wire       s_logisimNet9;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus3[0] = A0;
-   assign s_logisimBus3[1] = A1;
-   assign s_logisimBus3[2] = A2;
-   assign s_logisimBus3[3] = A3;
-   assign s_logisimBus4[0] = B0;
-   assign s_logisimBus4[1] = B1;
-   assign s_logisimBus4[2] = B2;
-   assign s_logisimBus4[3] = B3;
+  assign s_data_A[0] = A0;
+  assign s_data_A[1] = A1;
+  assign s_data_A[2] = A2;
+  assign s_data_A[3] = A3;
 
-   /*******************************************************************************
+  assign s_data_B[0] = B0;
+  assign s_data_B[1] = B1;
+  assign s_data_B[2] = B2;
+  assign s_data_B[3] = B3;
+
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign AEB = s_logisimNet2;
-   assign AGB = s_logisimNet0;
-   assign ALB = s_logisimNet1;
+  assign AEB = s_aeb_out;
+  assign AGB = s_agb_out;
+  assign ALB = s_alb_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   Comparator #(.nrOfBits(4),
-                .twosComplement(1))
-      ARITH_1 (.aEqualsB(s_logisimNet2),
-               .aGreaterThanB(s_logisimNet0),
-               .aLessThanB(s_logisimNet1),
-               .dataA(s_logisimBus3[3:0]),
-               .dataB(s_logisimBus4[3:0]));
+  Comparator #(
+      .nrOfBits(4),
+      .twosComplement(1)
+  ) ARITH_1 (
+      .aEqualsB(s_aeb_out),
+      .aGreaterThanB(s_agb_out),
+      .aLessThanB(s_alb_out),
+      .dataA(s_data_A[3:0]),
+      .dataB(s_data_B[3:0])
+  );
 
 
 endmodule

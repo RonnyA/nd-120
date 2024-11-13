@@ -122,7 +122,7 @@ module SR44( A,
                               .muxOut(s_logisimNet14),
                               .sel(s_logisimNet5));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_5 (.clock(s_logisimNet2),
                 .d(s_logisimNet6),
                 .preset(1'b0),
@@ -131,7 +131,7 @@ module SR44( A,
                 .reset(1'b0),
                 .tick(1'b1));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_6 (.clock(s_logisimNet2),
                 .d(s_logisimNet13),
                 .preset(1'b0),
@@ -140,7 +140,7 @@ module SR44( A,
                 .reset(1'b0),
                 .tick(1'b1));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_7 (.clock(s_logisimNet2),
                 .d(s_logisimNet7),
                 .preset(1'b0),
@@ -149,7 +149,7 @@ module SR44( A,
                 .reset(1'b0),
                 .tick(1'b1));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_8 (.clock(s_logisimNet2),
                 .d(s_logisimNet14),
                 .preset(1'b0),

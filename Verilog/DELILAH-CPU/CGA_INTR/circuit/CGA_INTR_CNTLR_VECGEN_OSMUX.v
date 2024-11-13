@@ -1,134 +1,148 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_INTR_CNTLR_VECGEN_OSMUX                                  **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/INTR/CNTLR/VECGEN/osmux                                          **
+** osmux                                                                 **
+**                                                                       **
+** Page 89                                                               **
+** SHEET 1 of 1                                                          **
+**                                                                       **
+** Last reviewed: 10-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_INTR_CNTLR_VECGEN_OSMUX( HIGSN,
-                                    HISTAT_2_0,
-                                    LOGSN,
-                                    LOSTAT_2_0,
-                                    OESN,
-                                    PICS_2_0 );
+module CGA_INTR_CNTLR_VECGEN_OSMUX (
+    input       HIGSN,
+    input [2:0] HISTAT_2_0,
+    input       LOGSN,
+    input [2:0] LOSTAT_2_0,
+    input       OESN,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input       HIGSN;
-   input [2:0] HISTAT_2_0;
-   input       LOGSN;
-   input [2:0] LOSTAT_2_0;
-   input       OESN;
+    output [2:0] PICS_2_0
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output [2:0] PICS_2_0;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [2:0] s_logisimBus13;
-   wire [2:0] s_logisimBus14;
-   wire [2:0] s_logisimBus8;
-   wire       s_logisimNet0;
-   wire       s_logisimNet1;
-   wire       s_logisimNet10;
-   wire       s_logisimNet11;
-   wire       s_logisimNet12;
-   wire       s_logisimNet15;
-   wire       s_logisimNet16;
-   wire       s_logisimNet17;
-   wire       s_logisimNet18;
-   wire       s_logisimNet19;
-   wire       s_logisimNet2;
-   wire       s_logisimNet20;
-   wire       s_logisimNet21;
-   wire       s_logisimNet22;
-   wire       s_logisimNet3;
-   wire       s_logisimNet4;
-   wire       s_logisimNet5;
-   wire       s_logisimNet6;
-   wire       s_logisimNet7;
-   wire       s_logisimNet9;
+  wire [2:0] s_histat_2_0;
+  wire [2:0] s_lostat_2_0;
+  wire [2:0] s_pics_2_0_out;
+  wire       s_gates10_out;
+  wire       s_gates11_out;
+  wire       s_gates2_out;
+  wire       s_gates3_out;
+  wire       s_gates5_out;
+  wire       s_gates6_out;
+  wire       s_gates7_out;
+  wire       s_gates8_out;
+  wire       s_higs_n;
+  wire       s_logs_n;
+  wire       s_oes_n;
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus13[2:0] = HISTAT_2_0;
-   assign s_logisimBus14[2:0] = LOSTAT_2_0;
-   assign s_logisimNet12      = HIGSN;
-   assign s_logisimNet16      = LOGSN;
-   assign s_logisimNet6       = OESN;
+  assign s_histat_2_0[2:0] = HISTAT_2_0;
+  assign s_lostat_2_0[2:0] = LOSTAT_2_0;
+  assign s_higs_n          = HIGSN;
+  assign s_logs_n          = LOGSN;
+  assign s_oes_n           = OESN;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign PICS_2_0 = s_logisimBus8[2:0];
+  assign PICS_2_0          = s_pics_2_0_out[2:0];
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   OR_GATE #(.BubblesMask(2'b11))
-      GATES_1 (.input1(s_logisimNet7),
-               .input2(s_logisimNet21),
-               .result(s_logisimBus8[1]));
+  OR_GATE #(
+      .BubblesMask(2'b11)
+  ) GATES_1 (
+      .input1(s_gates10_out),
+      .input2(s_gates11_out),
+      .result(s_pics_2_0_out[1])
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_2 (.input1(s_logisimNet2),
-               .input2(s_logisimBus13[0]),
-               .result(s_logisimNet0));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_2 (
+      .input1(s_gates5_out),
+      .input2(s_histat_2_0[0]),
+      .result(s_gates2_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_3 (.input1(s_logisimNet4),
-               .input2(s_logisimBus14[0]),
-               .result(s_logisimNet18));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_3 (
+      .input1(s_gates6_out),
+      .input2(s_lostat_2_0[0]),
+      .result(s_gates3_out)
+  );
 
-   OR_GATE #(.BubblesMask(2'b11))
-      GATES_4 (.input1(s_logisimNet0),
-               .input2(s_logisimNet18),
-               .result(s_logisimBus8[0]));
+  OR_GATE #(
+      .BubblesMask(2'b11)
+  ) GATES_4 (
+      .input1(s_gates2_out),
+      .input2(s_gates3_out),
+      .result(s_pics_2_0_out[0])
+  );
 
-   AND_GATE #(.BubblesMask(2'b11))
-      GATES_5 (.input1(s_logisimNet12),
-               .input2(s_logisimNet6),
-               .result(s_logisimNet2));
+  AND_GATE #(
+      .BubblesMask(2'b11)
+  ) GATES_5 (
+      .input1(s_higs_n),
+      .input2(s_oes_n),
+      .result(s_gates5_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b11))
-      GATES_6 (.input1(s_logisimNet6),
-               .input2(s_logisimNet16),
-               .result(s_logisimNet4));
+  AND_GATE #(
+      .BubblesMask(2'b11)
+  ) GATES_6 (
+      .input1(s_oes_n),
+      .input2(s_logs_n),
+      .result(s_gates6_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_7 (.input1(s_logisimNet2),
-               .input2(s_logisimBus13[2]),
-               .result(s_logisimNet5));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_7 (
+      .input1(s_gates5_out),
+      .input2(s_histat_2_0[2]),
+      .result(s_gates7_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_8 (.input1(s_logisimNet4),
-               .input2(s_logisimBus14[2]),
-               .result(s_logisimNet22));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_8 (
+      .input1(s_gates6_out),
+      .input2(s_lostat_2_0[2]),
+      .result(s_gates8_out)
+  );
 
-   OR_GATE #(.BubblesMask(2'b11))
-      GATES_9 (.input1(s_logisimNet5),
-               .input2(s_logisimNet22),
-               .result(s_logisimBus8[2]));
+  OR_GATE #(
+      .BubblesMask(2'b11)
+  ) GATES_9 (
+      .input1(s_gates7_out),
+      .input2(s_gates8_out),
+      .result(s_pics_2_0_out[2])
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_10 (.input1(s_logisimNet2),
-                .input2(s_logisimBus13[1]),
-                .result(s_logisimNet7));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_10 (
+      .input1(s_gates5_out),
+      .input2(s_histat_2_0[1]),
+      .result(s_gates10_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_11 (.input1(s_logisimNet4),
-                .input2(s_logisimBus14[1]),
-                .result(s_logisimNet21));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_11 (
+      .input1(s_gates6_out),
+      .input2(s_lostat_2_0[1]),
+      .result(s_gates11_out)
+  );
 
 
 endmodule

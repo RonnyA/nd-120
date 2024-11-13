@@ -1,185 +1,173 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_INTR_CNTLR_VECGEN                                        **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/INTR/CNTLR/VECGEN                                                **
+** Vector Generator                                                      **
+**                                                                       **
+** Page 83                                                               **
+** SHEET 1 of 1                                                          **
+**                                                                       **
+** Last reviewed: 10-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_INTR_CNTLR_VECGEN( FIDBO3,
-                              FIDBO4,
-                              FIDBO_2_0,
-                              G,
-                              HIDET,
-                              HIF,
-                              HIGSN,
-                              HIVEC_2_0,
-                              HIVGES,
-                              HX_2_0,
-                              HX_2_0_N,
-                              LODET,
-                              LOF,
-                              LOGSN,
-                              LOVEC_2_0,
-                              LOVGES,
-                              LX_2_0,
-                              LX_2_0_N,
-                              MCLK,
-                              MIREQ_15_0_N,
-                              N,
-                              OESN,
-                              PICS_2_0 );
+module CGA_INTR_CNTLR_VECGEN (
+    input        FIDBO3,
+    input        FIDBO4,
+    input [ 2:0] FIDBO_2_0,
+    input        G,
+    input        HIF,
+    input        HIGSN,
+    input        LOF,
+    input        LOGSN,
+    input        MCLK,
+    input [15:0] MIREQ_15_0_N,
+    input        N,
+    input        OESN,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        FIDBO3;
-   input        FIDBO4;
-   input [2:0]  FIDBO_2_0;
-   input        G;
-   input        HIF;
-   input        HIGSN;
-   input        LOF;
-   input        LOGSN;
-   input        MCLK;
-   input [15:0] MIREQ_15_0_N;
-   input        N;
-   input        OESN;
+    output       HIDET,
+    output [2:0] HIVEC_2_0,
+    output       HIVGES,
+    output [2:0] HX_2_0,
+    output [2:0] HX_2_0_N,
+    output       LODET,
+    output [2:0] LOVEC_2_0,
+    output       LOVGES,
+    output [2:0] LX_2_0,
+    output [2:0] LX_2_0_N,
+    output [2:0] PICS_2_0
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output       HIDET;
-   output [2:0] HIVEC_2_0;
-   output       HIVGES;
-   output [2:0] HX_2_0;
-   output [2:0] HX_2_0_N;
-   output       LODET;
-   output [2:0] LOVEC_2_0;
-   output       LOVGES;
-   output [2:0] LX_2_0;
-   output [2:0] LX_2_0_N;
-   output [2:0] PICS_2_0;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [2:0]  s_logisimBus1;
-   wire [2:0]  s_logisimBus11;
-   wire [2:0]  s_logisimBus14;
-   wire [2:0]  s_logisimBus15;
-   wire [2:0]  s_logisimBus16;
-   wire [2:0]  s_logisimBus17;
-   wire [2:0]  s_logisimBus18;
-   wire [2:0]  s_logisimBus19;
-   wire [2:0]  s_logisimBus2;
-   wire [2:0]  s_logisimBus3;
-   wire [2:0]  s_logisimBus6;
-   wire [15:0] s_logisimBus7;
-   wire [2:0]  s_logisimBus9;
-   wire        s_logisimNet0;
-   wire        s_logisimNet10;
-   wire        s_logisimNet12;
-   wire        s_logisimNet13;
-   wire        s_logisimNet20;
-   wire        s_logisimNet21;
-   wire        s_logisimNet22;
-   wire        s_logisimNet23;
-   wire        s_logisimNet24;
-   wire        s_logisimNet25;
-   wire        s_logisimNet26;
-   wire        s_logisimNet4;
-   wire        s_logisimNet5;
-   wire        s_logisimNet8;
+  wire [ 2:0] s_fidbo_2_0;
+  wire [ 2:0] s_hisin2_0;
+  wire [ 2:0] s_histat_2_0;
+  wire [ 2:0] s_hivec_2_0_out;
+  wire [ 2:0] s_hx_2_0_n_out;
+  wire [ 2:0] s_hx_2_0_out;
+  wire [ 2:0] s_losin_2_0;
+  wire [ 2:0] s_lostat_2_0;
+  wire [ 2:0] s_lovec_2_0_out;
+  wire [ 2:0] s_lx_2_0_n_out;
+  wire [ 2:0] s_lx_2_0_out;
+  wire [ 2:0] s_pics_2_0_out;
+  wire [15:0] s_mireq_15_0_n;
+  wire        s_fidbo3;
+  wire        s_fidbo4;
+  wire        s_g;
+  wire        s_hidet_out;
+  wire        s_hif;
+  wire        s_higs_n;
+  wire        s_hivges_n_out;
+  wire        s_lodet_out;
+  wire        s_lof;
+  wire        s_logs_n;
+  wire        s_lovges_out;
+  wire        s_mclk;
+  wire        s_n;
+  wire        s_oes_n;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus7[15:0] = MIREQ_15_0_N;
-   assign s_logisimBus9[2:0]  = FIDBO_2_0;
-   assign s_logisimNet0       = MCLK;
-   assign s_logisimNet10      = OESN;
-   assign s_logisimNet13      = LOF;
-   assign s_logisimNet20      = HIF;
-   assign s_logisimNet21      = G;
-   assign s_logisimNet22      = FIDBO3;
-   assign s_logisimNet23      = FIDBO4;
-   assign s_logisimNet4       = N;
-   assign s_logisimNet5       = HIGSN;
-   assign s_logisimNet8       = LOGSN;
+  assign s_fidbo_2_0[2:0]     = FIDBO_2_0;
+  assign s_mireq_15_0_n[15:0] = MIREQ_15_0_N;
+  assign s_fidbo3             = FIDBO3;
+  assign s_fidbo4             = FIDBO4;
+  assign s_g                  = G;
+  assign s_hif                = HIF;
+  assign s_higs_n             = HIGSN;
+  assign s_lof                = LOF;
+  assign s_logs_n             = LOGSN;
+  assign s_mclk               = MCLK;
+  assign s_n                  = N;
+  assign s_oes_n              = OESN;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign HIDET     = s_logisimNet25;
-   assign HIVEC_2_0 = s_logisimBus3[2:0];
-   assign HIVGES    = s_logisimNet24;
-   assign HX_2_0    = s_logisimBus16[2:0];
-   assign HX_2_0_N  = s_logisimBus18[2:0];
-   assign LODET     = s_logisimNet26;
-   assign LOVEC_2_0 = s_logisimBus11[2:0];
-   assign LOVGES    = s_logisimNet12;
-   assign LX_2_0    = s_logisimBus17[2:0];
-   assign LX_2_0_N  = s_logisimBus19[2:0];
-   assign PICS_2_0  = s_logisimBus15[2:0];
+  assign HIDET                = s_hidet_out;
+  assign HIVEC_2_0            = s_hivec_2_0_out[2:0];
+  assign HIVGES               = s_hivges_n_out;
+  assign HX_2_0               = s_hx_2_0_out[2:0];
+  assign HX_2_0_N             = s_hx_2_0_n_out[2:0];
+  assign LODET                = s_lodet_out;
+  assign LOVEC_2_0            = s_lovec_2_0_out[2:0];
+  assign LOVGES               = s_lovges_out;
+  assign LX_2_0               = s_lx_2_0_out[2:0];
+  assign LX_2_0_N             = s_lx_2_0_n_out[2:0];
+  assign PICS_2_0             = s_pics_2_0_out[2:0];
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   CGA_INTR_CNTLR_VECGEN_VHR   VHR (.HIVEC_2_0(s_logisimBus3[2:0]),
-                                    .HX_2_0(s_logisimBus16[2:0]),
-                                    .HX_2_0_N(s_logisimBus18[2:0]),
-                                    .LOVEC_2_0(s_logisimBus11[2:0]),
-                                    .LX_2_0(s_logisimBus17[2:0]),
-                                    .LX_2_0_N(s_logisimBus19[2:0]),
-                                    .MCLK(s_logisimNet0),
-                                    .N(s_logisimNet4));
+  CGA_INTR_CNTLR_VECGEN_VHR VHR (
+      .HIVEC_2_0(s_hivec_2_0_out[2:0]),
+      .HX_2_0(s_hx_2_0_out[2:0]),
+      .HX_2_0_N(s_hx_2_0_n_out[2:0]),
+      .LOVEC_2_0(s_lovec_2_0_out[2:0]),
+      .LX_2_0(s_lx_2_0_out[2:0]),
+      .LX_2_0_N(s_lx_2_0_n_out[2:0]),
+      .MCLK(s_mclk),
+      .N(s_n)
+  );
 
-   CGA_INTR_CNTLR_VECGEN_ISMUX   ISMUX (.FIDBO_2_0(s_logisimBus9[2:0]),
-                                        .HIGSN(s_logisimNet5),
-                                        .HISIN_2_0(s_logisimBus2[2:0]),
-                                        .HISTAT_2_0(s_logisimBus6[2:0]),
-                                        .LOGSN(s_logisimNet8),
-                                        .LOSIN_2_0(s_logisimBus14[2:0]),
-                                        .LOSTAT_2_0(s_logisimBus1[2:0]),
-                                        .OESN(s_logisimNet10));
+  CGA_INTR_CNTLR_VECGEN_ISMUX ISMUX (
+      .FIDBO_2_0(s_fidbo_2_0[2:0]),
+      .HIGSN(s_higs_n),
+      .HISIN_2_0(s_hisin2_0[2:0]),
+      .HISTAT_2_0(s_histat_2_0[2:0]),
+      .LOGSN(s_logs_n),
+      .LOSIN_2_0(s_losin_2_0[2:0]),
+      .LOSTAT_2_0(s_lostat_2_0[2:0]),
+      .OESN(s_oes_n)
+  );
 
-   CGA_INTR_CNTLR_VECGEN_CMP   CMP (.HISTAT_2_0(s_logisimBus6[2:0]),
-                                    .HIVEC_2_0(s_logisimBus3[2:0]),
-                                    .HIVGES(s_logisimNet24),
-                                    .LOSTAT_2_0(s_logisimBus1[2:0]),
-                                    .LOVEC_2_0(s_logisimBus11[2:0]),
-                                    .LOVGES(s_logisimNet12));
+  CGA_INTR_CNTLR_VECGEN_CMP CMP (
+      .HISTAT_2_0(s_histat_2_0[2:0]),
+      .HIVEC_2_0(s_hivec_2_0_out[2:0]),
+      .HIVGES(s_hivges_n_out),
+      .LOSTAT_2_0(s_lostat_2_0[2:0]),
+      .LOVEC_2_0(s_lovec_2_0_out[2:0]),
+      .LOVGES(s_lovges_out)
+  );
 
-   CGA_INTR_CNTLR_VECGEN_STAT   STAT (.FIDBO3(s_logisimNet22),
-                                      .FIDBO4(s_logisimNet23),
-                                      .G(s_logisimNet21),
-                                      .HIF(s_logisimNet20),
-                                      .HISIN_2_0(s_logisimBus2[2:0]),
-                                      .HISTAT_2_0(s_logisimBus6[2:0]),
-                                      .HIVEC_2_0(s_logisimBus3[2:0]),
-                                      .LOF(s_logisimNet13),
-                                      .LOSIN_2_0(s_logisimBus14[2:0]),
-                                      .LOSTAT_2_0(s_logisimBus1[2:0]),
-                                      .LOVEC_2_0(s_logisimBus11[2:0]),
-                                      .MCLK(s_logisimNet0));
+  CGA_INTR_CNTLR_VECGEN_STAT STAT (
+      .FIDBO3(s_fidbo3),
+      .FIDBO4(s_fidbo4),
+      .G(s_g),
+      .HIF(s_hif),
+      .HISIN_2_0(s_hisin2_0[2:0]),
+      .HISTAT_2_0(s_histat_2_0[2:0]),
+      .HIVEC_2_0(s_hivec_2_0_out[2:0]),
+      .LOF(s_lof),
+      .LOSIN_2_0(s_losin_2_0[2:0]),
+      .LOSTAT_2_0(s_lostat_2_0[2:0]),
+      .LOVEC_2_0(s_lovec_2_0_out[2:0]),
+      .MCLK(s_mclk)
+  );
 
-   CGA_INTR_CNTLR_VECGEN_OSMUX   OSMUX (.HIGSN(s_logisimNet5),
-                                        .HISTAT_2_0(s_logisimBus6[2:0]),
-                                        .LOGSN(s_logisimNet8),
-                                        .LOSTAT_2_0(s_logisimBus1[2:0]),
-                                        .OESN(s_logisimNet10),
-                                        .PICS_2_0(s_logisimBus15[2:0]));
+  CGA_INTR_CNTLR_VECGEN_OSMUX OSMUX (
+      .HIGSN(s_higs_n),
+      .HISTAT_2_0(s_histat_2_0[2:0]),
+      .LOGSN(s_logs_n),
+      .LOSTAT_2_0(s_lostat_2_0[2:0]),
+      .OESN(s_oes_n),
+      .PICS_2_0(s_pics_2_0_out[2:0])
+  );
 
-   CGA_INTR_CNTLR_VECGEN_PTY   PTY (.HIDET(s_logisimNet25),
-                                    .HIVEC(s_logisimBus3[2:0]),
-                                    .LODET(s_logisimNet26),
-                                    .LOVEC(s_logisimBus11[2:0]),
-                                    .MIREQ_15_0_N(s_logisimBus7[15:0]));
+  CGA_INTR_CNTLR_VECGEN_PTY PTY (
+      .HIDET(s_hidet_out),
+      .HIVEC(s_hivec_2_0_out[2:0]),
+      .LODET(s_lodet_out),
+      .LOVEC(s_lovec_2_0_out[2:0]),
+      .MIREQ_15_0_N(s_mireq_15_0_n[15:0])
+  );
 
 endmodule

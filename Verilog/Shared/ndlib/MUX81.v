@@ -1,99 +1,81 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : MUX81                                                        **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 Shared                                                          **
+**                                                                       **
+** Component: MUX81                                                      **
+**                                                                       **
+** Last reviewed: 9-NOV-2024                                             **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module MUX81( A,
-              B,
-              C,
-              D0,
-              D1,
-              D2,
-              D3,
-              D4,
-              D5,
-              D6,
-              D7,
-              Z );
+module MUX81 (
+    input A,
+    input B,
+    input C,
+    input D0,
+    input D1,
+    input D2,
+    input D3,
+    input D4,
+    input D5,
+    input D6,
+    input D7,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input A;
-   input B;
-   input C;
-   input D0;
-   input D1;
-   input D2;
-   input D3;
-   input D4;
-   input D5;
-   input D6;
-   input D7;
+    output Z
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output Z;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [2:0] s_logisimBus6;
-   wire       s_logisimNet0;
-   wire       s_logisimNet1;
-   wire       s_logisimNet10;
-   wire       s_logisimNet11;
-   wire       s_logisimNet12;
-   wire       s_logisimNet2;
-   wire       s_logisimNet3;
-   wire       s_logisimNet4;
-   wire       s_logisimNet5;
-   wire       s_logisimNet7;
-   wire       s_logisimNet8;
-   wire       s_logisimNet9;
+  wire [2:0] s_selector;
+  wire       s_d0;
+  wire       s_d1;
+  wire       s_d2;
+  wire       s_d3;
+  wire       s_d4;
+  wire       s_d5;
+  wire       s_d6;
+  wire       s_d7;
+  wire       s_mux_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus6[0] = A;
-   assign s_logisimBus6[1] = B;
-   assign s_logisimBus6[2] = C;
-   assign s_logisimNet0    = D2;
-   assign s_logisimNet1    = D5;
-   assign s_logisimNet11   = D3;
-   assign s_logisimNet4    = D4;
-   assign s_logisimNet5    = D1;
-   assign s_logisimNet7    = D0;
-   assign s_logisimNet8    = D7;
-   assign s_logisimNet9    = D6;
+  assign s_selector[0] = A;
+  assign s_selector[1] = B;
+  assign s_selector[2] = C;
+  assign s_d0    = D0;
+  assign s_d1    = D1;
+  assign s_d2    = D2;
+  assign s_d3    = D3;
+  assign s_d4    = D4;
+  assign s_d5    = D5;
+  assign s_d6    = D6;
+  assign s_d7    = D7;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign Z = s_logisimNet10;
+  assign Z = s_mux_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   Multiplexer_8   PLEXERS_1 (
-                              .muxIn_0(s_logisimNet7),
-                              .muxIn_1(s_logisimNet5),
-                              .muxIn_2(s_logisimNet0),
-                              .muxIn_3(s_logisimNet11),
-                              .muxIn_4(s_logisimNet4),
-                              .muxIn_5(s_logisimNet1),
-                              .muxIn_6(s_logisimNet9),
-                              .muxIn_7(s_logisimNet8),
-                              .muxOut(s_logisimNet10),
-                              .sel(s_logisimBus6[2:0]));
+  Multiplexer_8 PLEXERS_1 (
+      .muxIn_0(s_d0),
+      .muxIn_1(s_d1),
+      .muxIn_2(s_d2),
+      .muxIn_3(s_d3),
+      .muxIn_4(s_d4),
+      .muxIn_5(s_d5),
+      .muxIn_6(s_d6),
+      .muxIn_7(s_d7),
+      .muxOut(s_mux_out),
+      .sel(s_selector[2:0])
+  );
 
 
 endmodule

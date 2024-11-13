@@ -1,121 +1,131 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_INTR_CNTLR_IRGEL_LOGEL                                   **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/INTR/CNTLR/IRGEL/LOGEL                                           **
+** LOGEL                                                                 **
+**                                                                       **
+** Page 94                                                               **
+** SHEET 1 of 1                                                          **
+**                                                                       **
+** Last reviewed: 10-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_INTR_CNTLR_IRGEL_LOGEL( FIDB04,
-                                   L,
-                                   LIENABN,
-                                   LOGAS,
-                                   LOGSN,
-                                   M,
-                                   MCLK,
-                                   N );
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input FIDB04;
-   input L;
-   input LIENABN;
-   input LOGAS;
-   input M;
-   input MCLK;
-   input N;
+module CGA_INTR_CNTLR_IRGEL_LOGEL (
+    input FIDB04,
+    input L,
+    input LIENABN,
+    input LOGAS,
+    input M,
+    input MCLK,
+    input N,
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output LOGSN;
+    output LOGSN
+);
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire s_logisimNet0;
-   wire s_logisimNet1;
-   wire s_logisimNet10;
-   wire s_logisimNet11;
-   wire s_logisimNet12;
-   wire s_logisimNet13;
-   wire s_logisimNet2;
-   wire s_logisimNet3;
-   wire s_logisimNet4;
-   wire s_logisimNet5;
-   wire s_logisimNet6;
-   wire s_logisimNet7;
-   wire s_logisimNet8;
-   wire s_logisimNet9;
+  wire s_d;
+  wire s_fidbo4;
+  wire s_l_n;
+  wire s_l;
+  wire s_lienab_n;
+  wire s_logas;
+  wire s_logs_n_out;
+  wire s_m;
+  wire s_mclk;
+  wire s_n;
+  wire s_nand_fidbo4_l_m;
+  wire s_nand_lienabn_n;
+  wire s_nand_ln_m_logsn;
+  wire s_nand_logas_n;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimNet10 = FIDB04;
-   assign s_logisimNet11 = LOGAS;
-   assign s_logisimNet12 = LIENABN;
-   assign s_logisimNet2  = M;
-   assign s_logisimNet4  = N;
-   assign s_logisimNet7  = MCLK;
-   assign s_logisimNet8  = L;
+  assign s_fidbo4 = FIDB04;
+  assign s_l = L;
+  assign s_lienab_n = LIENABN;
+  assign s_logas = LOGAS;
+  assign s_m = M;
+  assign s_mclk = MCLK;
+  assign s_n = N;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign LOGSN = s_logisimNet1;
+  assign LOGSN = s_logs_n_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // NOT Gate
-   assign s_logisimNet3 = ~s_logisimNet8;
+  // NOT Gate
+  assign s_l_n = ~s_l;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_1 (.input1(s_logisimNet10),
-               .input2(s_logisimNet8),
-               .input3(s_logisimNet2),
-               .result(s_logisimNet5));
+  NAND_GATE_3_INPUTS #(
+      .BubblesMask(3'b000)
+  ) GATES_1 (
+      .input1(s_fidbo4),
+      .input2(s_l),
+      .input3(s_m),
+      .result(s_nand_fidbo4_l_m)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_2 (.input1(s_logisimNet11),
-               .input2(s_logisimNet4),
-               .result(s_logisimNet0));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_2 (
+      .input1(s_logas),
+      .input2(s_n),
+      .result(s_nand_logas_n)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_3 (.input1(s_logisimNet12),
-               .input2(s_logisimNet4),
-               .result(s_logisimNet9));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_3 (
+      .input1(s_lienab_n),
+      .input2(s_n),
+      .result(s_nand_lienabn_n)
+  );
 
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_4 (.input1(s_logisimNet3),
-               .input2(s_logisimNet2),
-               .input3(s_logisimNet1),
-               .result(s_logisimNet6));
+  NAND_GATE_3_INPUTS #(
+      .BubblesMask(3'b000)
+  ) GATES_4 (
+      .input1(s_l_n),
+      .input2(s_m),
+      .input3(s_logs_n_out),
+      .result(s_nand_ln_m_logsn)
+  );
 
-   OR_GATE_4_INPUTS #(.BubblesMask(4'hF))
-      GATES_5 (.input1(s_logisimNet5),
-               .input2(s_logisimNet0),
-               .input3(s_logisimNet9),
-               .input4(s_logisimNet6),
-               .result(s_logisimNet13));
+  OR_GATE_4_INPUTS #(
+      .BubblesMask(4'hF)
+  ) GATES_5 (
+      .input1(s_nand_fidbo4_l_m),
+      .input2(s_nand_logas_n),
+      .input3(s_nand_lienabn_n),
+      .input4(s_nand_ln_m_logsn),
+      .result(s_d)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_6 (.clock(s_logisimNet7),
-                .d(s_logisimNet13),
-                .preset(1'b0),
-                .q(s_logisimNet1),
-                .qBar(),
-                .reset(1'b0),
-                .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_6 (
+      .clock(s_mclk),
+      .d(s_d),
+      .preset(1'b0),
+      .q(s_logs_n_out),
+      .qBar(),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
 
 endmodule

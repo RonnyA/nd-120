@@ -1,326 +1,306 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_ALU_OUTMUX_IDBS                                          **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/ALU/OUTMUX/IDBS                                                  **
+** IDBS MUX                                                              **
+**                                                                       **
+** Page 55                                                               **
+** SHEET 1 of 1                                                          **
+**                                                                       **
+** Last reviewed: 10-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_ALU_OUTMUX_IDBS( ALUCLK,
-                            ALUD2N,
-                            CSIDBS_4_0,
-                            EA,
-                            EAARG,
-                            EABARG,
-                            EARG,
-                            EBARG,
-                            EBMG,
-                            EDBR,
-                            EF,
-                            EFIDB,
-                            EGPRH,
-                            EGPRL,
-                            EGPRS,
-                            ESTS,
-                            ESWAP );
+module CGA_ALU_OUTMUX_IDBS (
+    input       ALUCLK,
+    input       ALUD2N,
+    input [4:0] CSIDBS_4_0,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input       ALUCLK;
-   input       ALUD2N;
-   input [4:0] CSIDBS_4_0;
+    output EA,
+    output EAARG,
+    output EABARG,
+    output EARG,
+    output EBARG,
+    output EBMG,
+    output EDBR,
+    output EF,
+    output EFIDB,
+    output EGPRH,
+    output EGPRL,
+    output EGPRS,
+    output ESTS,
+    output ESWAP
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output EA;
-   output EAARG;
-   output EABARG;
-   output EARG;
-   output EBARG;
-   output EBMG;
-   output EDBR;
-   output EF;
-   output EFIDB;
-   output EGPRH;
-   output EGPRL;
-   output EGPRS;
-   output ESTS;
-   output ESWAP;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [4:0] s_logisimBus37;
-   wire       s_logisimNet0;
-   wire       s_logisimNet1;
-   wire       s_logisimNet10;
-   wire       s_logisimNet11;
-   wire       s_logisimNet12;
-   wire       s_logisimNet13;
-   wire       s_logisimNet14;
-   wire       s_logisimNet15;
-   wire       s_logisimNet16;
-   wire       s_logisimNet17;
-   wire       s_logisimNet18;
-   wire       s_logisimNet19;
-   wire       s_logisimNet2;
-   wire       s_logisimNet20;
-   wire       s_logisimNet21;
-   wire       s_logisimNet22;
-   wire       s_logisimNet23;
-   wire       s_logisimNet24;
-   wire       s_logisimNet25;
-   wire       s_logisimNet26;
-   wire       s_logisimNet27;
-   wire       s_logisimNet28;
-   wire       s_logisimNet29;
-   wire       s_logisimNet3;
-   wire       s_logisimNet30;
-   wire       s_logisimNet31;
-   wire       s_logisimNet32;
-   wire       s_logisimNet33;
-   wire       s_logisimNet34;
-   wire       s_logisimNet35;
-   wire       s_logisimNet36;
-   wire       s_logisimNet38;
-   wire       s_logisimNet39;
-   wire       s_logisimNet4;
-   wire       s_logisimNet40;
-   wire       s_logisimNet41;
-   wire       s_logisimNet42;
-   wire       s_logisimNet43;
-   wire       s_logisimNet44;
-   wire       s_logisimNet45;
-   wire       s_logisimNet46;
-   wire       s_logisimNet47;
-   wire       s_logisimNet48;
-   wire       s_logisimNet49;
-   wire       s_logisimNet5;
-   wire       s_logisimNet50;
-   wire       s_logisimNet51;
-   wire       s_logisimNet52;
-   wire       s_logisimNet53;
-   wire       s_logisimNet6;
-   wire       s_logisimNet7;
-   wire       s_logisimNet8;
-   wire       s_logisimNet9;
+  wire [4:0] s_csidbs_4_0;
+  wire       _ef_n_out;
+  wire       s_aluclk;
+  wire       s_alud2_n;
+  wire       s_alud2;
+  wire       s_and_csidbs4n_csidbs3;
+  wire       s_and_idbs3n_idbs4n;
+  wire       s_csidbs0_n;
+  wire       s_csidbs2_n;
+  wire       s_csidbs3_n;
+  wire       s_csidbs4_n;
+  wire       s_ea_n_out;
+  wire       s_ea_out;
+  wire       s_eaarg_n_out;
+  wire       s_eaarg_out;
+  wire       s_eabarg_out;
+  wire       s_earg_n_out;
+  wire       s_earg_out;
+  wire       s_ebarg_out;
+  wire       s_ebmg_n_out;
+  wire       s_ebmg_out;
+  wire       s_edbr_n_out;
+  wire       s_edbr_out;
+  wire       s_edidb_n_out;
+  wire       s_edidb_out;
+  wire       s_ef_out;
+  wire       s_egprh_out;
+  wire       s_egprl_out;
+  wire       s_egprs_out;
+  wire       s_ests_n_out;
+  wire       s_ests_out;
+  wire       s_eswap_n_out;
+  wire       s_eswap_out;
+  wire       s_r1_a;
+  wire       s_r1_b;
+  wire       s_r1_c;
+  wire       s_r1_d;
+  wire       s_r1_e;
+  wire       s_r1_f;
+  wire       s_r1_g;
+  wire       s_r1_h;
+  wire       s_r1_qan_out;
+  wire       s_r2_a;
+  wire       s_r2_b_n;
+  wire       s_r2_b;
+  wire       s_r2_c;
+  wire       s_r2_d;
+  wire       s_r2_e;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus37[4:0] = CSIDBS_4_0;
-   assign s_logisimNet16      = ALUCLK;
-   assign s_logisimNet34      = ALUD2N;
+  assign s_csidbs_4_0[4:0] = CSIDBS_4_0;
+  assign s_aluclk          = ALUCLK;
+  assign s_alud2_n         = ALUD2N;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign EA     = s_logisimNet19;
-   assign EAARG  = s_logisimNet47;
-   assign EABARG = s_logisimNet40;
-   assign EARG   = s_logisimNet3;
-   assign EBARG  = s_logisimNet27;
-   assign EBMG   = s_logisimNet22;
-   assign EDBR   = s_logisimNet36;
-   assign EF     = s_logisimNet30;
-   assign EFIDB  = s_logisimNet48;
-   assign EGPRH  = s_logisimNet28;
-   assign EGPRL  = s_logisimNet41;
-   assign EGPRS  = s_logisimNet29;
-   assign ESTS   = s_logisimNet21;
-   assign ESWAP  = s_logisimNet11;
+  assign EA                = s_ea_out;
+  assign EAARG             = s_eaarg_out;
+  assign EABARG            = s_eabarg_out;
+  assign EARG              = s_earg_out;
+  assign EBARG             = s_ebarg_out;
+  assign EBMG              = s_ebmg_out;
+  assign EDBR              = s_edbr_out;
+  assign EF                = s_ef_out;
+  assign EFIDB             = s_edidb_out;
+  assign EGPRH             = s_egprh_out;
+  assign EGPRL             = s_egprl_out;
+  assign EGPRS             = s_egprs_out;
+  assign ESTS              = s_ests_out;
+  assign ESWAP             = s_eswap_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // NOT Gate
-   assign s_logisimNet20 = ~s_logisimNet9;
+  // NOT Gate
+  assign s_r2_b_n          = ~s_r2_b;
+  assign s_eaarg_out       = ~s_eaarg_n_out;
+  assign s_edidb_out       = ~s_edidb_n_out;
+  assign s_earg_out        = ~s_earg_n_out;
+  assign s_ests_out        = ~s_ests_n_out;
+  assign s_eswap_out       = ~s_eswap_n_out;
+  assign s_ebmg_out        = ~s_ebmg_n_out;
+  assign s_edbr_out        = ~s_edbr_n_out;
+  assign s_alud2           = ~s_alud2_n;
+  assign s_ea_out          = ~s_ea_n_out;
+  assign s_ef_out          = ~_ef_n_out;
+  assign s_csidbs4_n       = ~s_csidbs_4_0[4];
+  assign s_csidbs3_n       = ~s_csidbs_4_0[3];
+  assign s_csidbs2_n       = ~s_csidbs_4_0[2];
+  assign s_csidbs0_n       = ~s_csidbs_4_0[0];
 
-   // NOT Gate
-   assign s_logisimNet47 = ~s_logisimNet31;
-
-   // NOT Gate
-   assign s_logisimNet48 = ~s_logisimNet32;
-
-   // NOT Gate
-   assign s_logisimNet3 = ~s_logisimNet42;
-
-   // NOT Gate
-   assign s_logisimNet21 = ~s_logisimNet43;
-
-   // NOT Gate
-   assign s_logisimNet11 = ~s_logisimNet44;
-
-   // NOT Gate
-   assign s_logisimNet22 = ~s_logisimNet45;
-
-   // NOT Gate
-   assign s_logisimNet36 = ~s_logisimNet46;
-
-   // NOT Gate
-   assign s_logisimNet14 = ~s_logisimNet34;
-
-   // NOT Gate
-   assign s_logisimNet19 = ~s_logisimNet0;
-
-   // NOT Gate
-   assign s_logisimNet30 = ~s_logisimNet1;
-
-   // NOT Gate
-   assign s_logisimNet26 = ~s_logisimBus37[4];
-
-   // NOT Gate
-   assign s_logisimNet6 = ~s_logisimBus37[3];
-
-   // NOT Gate
-   assign s_logisimNet5 = ~s_logisimBus37[2];
-
-   // NOT Gate
-   assign s_logisimNet35 = ~s_logisimBus37[0];
-
-   // NOT Gate
-   assign s_logisimNet25 = ~s_logisimBus37[3];
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_1 (.input1(s_logisimNet4),
-               .input2(s_logisimNet7),
-               .result(s_logisimNet9));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_1 (
+      .input1(s_r1_g),
+      .input2(s_r2_a),
+      .result(s_r2_b)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_2 (.input1(s_logisimNet24),
-               .input2(s_logisimNet2),
-               .result(s_logisimNet12));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_2 (
+      .input1(s_r1_c),
+      .input2(s_r2_e),
+      .result(s_r2_d)
+  );
 
-   NAND_GATE_8_INPUTS #(.BubblesMask(8'h00))
-      GATES_3 (.input1(s_logisimNet23),
-               .input2(s_logisimNet24),
-               .input3(s_logisimNet18),
-               .input4(s_logisimNet8),
-               .input5(s_logisimNet15),
-               .input6(s_logisimNet17),
-               .input7(s_logisimNet20),
-               .input8(s_logisimNet2),
-               .result(s_logisimNet33));
+  NAND_GATE_8_INPUTS #(
+      .BubblesMask(8'h00)
+  ) GATES_3 (
+      .input1(s_r1_b),
+      .input2(s_r1_c),
+      .input3(s_r1_d),
+      .input4(s_r1_e),
+      .input5(s_r1_f),
+      .input6(s_r1_h),
+      .input7(s_r2_b_n),
+      .input8(s_r2_e),
+      .result(s_r2_c)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_4 (.input1(s_logisimNet14),
-               .input2(s_logisimNet10),
-               .result(s_logisimNet0));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_4 (
+      .input1(s_alud2),
+      .input2(s_r1_qan_out),
+      .result(s_ea_n_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_5 (.input1(s_logisimNet34),
-               .input2(s_logisimNet10),
-               .result(s_logisimNet1));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_5 (
+      .input1(s_alud2_n),
+      .input2(s_r1_qan_out),
+      .result(_ef_n_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_6 (.input1(s_logisimNet26),
-               .input2(s_logisimBus37[3]),
-               .result(s_logisimNet38));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_6 (
+      .input1(s_csidbs4_n),
+      .input2(s_csidbs_4_0[3]),
+      .result(s_and_csidbs4n_csidbs3)
+  );
 
-   NAND_GATE_5_INPUTS #(.BubblesMask({1'b0, 4'h0}))
-      GATES_7 (.input1(s_logisimBus37[4]),
-               .input2(s_logisimNet6),
-               .input3(s_logisimNet5),
-               .input4(s_logisimBus37[1]),
-               .input5(s_logisimNet35),
-               .result(s_logisimNet2));
+  NAND_GATE_5_INPUTS #(
+      .BubblesMask({1'b0, 4'h0})
+  ) GATES_7 (
+      .input1(s_csidbs_4_0[4]),
+      .input2(s_csidbs3_n),
+      .input3(s_csidbs2_n),
+      .input4(s_csidbs_4_0[1]),
+      .input5(s_csidbs0_n),
+      .result(s_r2_e)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_8 (.input1(s_logisimNet25),
-               .input2(s_logisimNet26),
-               .result(s_logisimNet39));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_8 (
+      .input1(s_csidbs3_n),
+      .input2(s_csidbs4_n),
+      .result(s_and_idbs3n_idbs4n)
+  );
 
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   ND38GLP   IDBS_G2 (.A(s_logisimBus37[0]),
-                      .B(s_logisimBus37[1]),
-                      .C(s_logisimBus37[2]),
-                      .G(s_logisimNet38),
-                      .Z0(s_logisimNet4),
-                      .Z1(s_logisimNet17),
-                      .Z2(),
-                      .Z3(),
-                      .Z4(s_logisimNet7),
-                      .Z5(),
-                      .Z6(),
-                      .Z7());
+  ND38GLP IDBS_G1 (
+      .A (s_csidbs_4_0[0]),
+      .B (s_csidbs_4_0[1]),
+      .C (s_csidbs_4_0[2]),
+      .G (s_and_idbs3n_idbs4n),
+      .Z0(s_r1_a),
+      .Z1(s_r1_b),
+      .Z2(s_r1_c),
+      .Z3(s_r1_d),
+      .Z4(s_r1_e),
+      .Z5(),
+      .Z6(s_r1_f),
+      .Z7()
+  );
 
-   ND38GLP   IDBS_G1 (.A(s_logisimBus37[0]),
-                      .B(s_logisimBus37[1]),
-                      .C(s_logisimBus37[2]),
-                      .G(s_logisimNet39),
-                      .Z0(s_logisimNet13),
-                      .Z1(s_logisimNet23),
-                      .Z2(s_logisimNet24),
-                      .Z3(s_logisimNet18),
-                      .Z4(s_logisimNet8),
-                      .Z5(),
-                      .Z6(s_logisimNet15),
-                      .Z7());
+  ND38GLP IDBS_G2 (
+      .A (s_csidbs_4_0[0]),
+      .B (s_csidbs_4_0[1]),
+      .C (s_csidbs_4_0[2]),
+      .G (s_and_csidbs4n_csidbs3),
+      .Z0(s_r1_g),
+      .Z1(s_r1_h),
+      .Z2(),
+      .Z3(),
+      .Z4(s_r2_a),
+      .Z5(),
+      .Z6(),
+      .Z7()
+  );
 
-   R81P   IDBS_R2 (.A(s_logisimNet7),
-                   .B(s_logisimNet9),
-                   .C(s_logisimNet33),
-                   .CP(s_logisimNet16),
-                   .D(s_logisimNet12),
-                   .E(s_logisimNet2),
-                   .F(1'b0),
-                   .G(1'b0),
-                   .H(1'b0),
-                   .QA(s_logisimNet31),
-                   .QAN(),
-                   .QB(s_logisimNet40),
-                   .QBN(),
-                   .QC(s_logisimNet32),
-                   .QCN(),
-                   .QD(s_logisimNet41),
-                   .QDN(),
-                   .QE(),
-                   .QEN(s_logisimNet29),
-                   .QF(),
-                   .QFN(),
-                   .QG(),
-                   .QGN(),
-                   .QH(),
-                   .QHN());
 
-   R81P   IDBS_R1 (.A(s_logisimNet13),
-                   .B(s_logisimNet23),
-                   .C(s_logisimNet24),
-                   .CP(s_logisimNet16),
-                   .D(s_logisimNet18),
-                   .E(s_logisimNet8),
-                   .F(s_logisimNet15),
-                   .G(s_logisimNet4),
-                   .H(s_logisimNet17),
-                   .QA(),
-                   .QAN(s_logisimNet10),
-                   .QB(s_logisimNet45),
-                   .QBN(),
-                   .QC(),
-                   .QCN(s_logisimNet28),
-                   .QD(s_logisimNet46),
-                   .QDN(),
-                   .QE(s_logisimNet42),
-                   .QEN(),
-                   .QF(s_logisimNet43),
-                   .QFN(),
-                   .QG(),
-                   .QGN(s_logisimNet27),
-                   .QH(s_logisimNet44),
-                   .QHN());
+  R81P IDBS_R1 (
+      .CP (s_aluclk),
+      .A  (s_r1_a),
+      .B  (s_r1_b),
+      .C  (s_r1_c),
+      .D  (s_r1_d),
+      .E  (s_r1_e),
+      .F  (s_r1_f),
+      .G  (s_r1_g),
+      .H  (s_r1_h),
+      .QA (),
+      .QAN(s_r1_qan_out),
+      .QB (s_ebmg_n_out),
+      .QBN(),
+      .QC (),
+      .QCN(s_egprh_out),
+      .QD (s_edbr_n_out),
+      .QDN(),
+      .QE (s_earg_n_out),
+      .QEN(),
+      .QF (s_ests_n_out),
+      .QFN(),
+      .QG (),
+      .QGN(s_ebarg_out),
+      .QH (s_eswap_n_out),
+      .QHN()
+  );
+
+
+  R81P IDBS_R2 (
+      .CP (s_aluclk),
+      .A  (s_r2_a),
+      .B  (s_r2_b),
+      .C  (s_r2_c),
+      .D  (s_r2_d),
+      .E  (s_r2_e),
+      .F  (1'b0),
+      .G  (1'b0),
+      .H  (1'b0),
+      .QA (s_eaarg_n_out),
+      .QAN(),
+      .QB (s_eabarg_out),
+      .QBN(),
+      .QC (s_edidb_n_out),
+      .QCN(),
+      .QD (s_egprl_out),
+      .QDN(),
+      .QE (),
+      .QEN(s_egprs_out),
+      .QF (),
+      .QFN(),
+      .QG (),
+      .QGN(),
+      .QH (),
+      .QHN()
+  );
+
 
 endmodule

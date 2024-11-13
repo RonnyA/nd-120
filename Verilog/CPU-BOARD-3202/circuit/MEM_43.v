@@ -75,15 +75,20 @@ module MEM_43 (
   wire [ 4:0] s_bus_ppn;
   wire [ 9:0] s_aa_9_0;
   wire [15:0] s_idb_15_0_out;
+
+  wire [17:0] s_bus_dd_in;
   wire [17:0] s_bus_dd_out;
-  wire [17:0] s_dd_17_0_in;
-  wire [17:0] s_dd_17_0_out;
+
+  wire [17:0] s_dd_17_0_in;  // INPUT TO MEM_DATA
+  wire [17:0] s_dd_17_0_out; // OUTPUT FROM MEM_DATA
+
   wire [19:0] s_lbd_19_0;
+
   wire [23:0] s_lbd_23_0_in;  // RAM DATA 16 bits
   wire [23:0] s_lbd_23_0_out;  // RAM DATA 16 bits
 
 
-  // TODO: Check what s_lbd_23_0_out and s_dd_17_0_out should be OR'ed with ?
+  // TODO: Check that lbd_23_16 (in) and lbd_15_0 (in-out) is behaving as expected
 
   wire        s_bcgnt25;
   wire        s_bcgnt50;
@@ -199,6 +204,13 @@ module MEM_43 (
   assign MOR25_n             = s_mor25_n;
   assign MWRITE_n            = s_mwrite_n;
 
+
+  /*******************************************************************************
+   ** Here all internal busses are connected                                     **
+   *******************************************************************************/
+  assign s_bus_dd_in = s_dd_17_0_out;
+  assign s_dd_17_0_in = s_bus_dd_out;
+
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
@@ -273,6 +285,7 @@ module MEM_43 (
   MEM_DATA_46 DATA (
       .BCGNT50R_n(s_bcgnt50r_n),
       .BIOXL_n(s_bioxl_n),
+      .DD_17_0_IN(s_bus_dd_in[17:0]),
       .DD_17_0_OUT(s_bus_dd_out[17:0]),
       .ECCR(s_eccr),
       .HIEN_n(s_hien_n),

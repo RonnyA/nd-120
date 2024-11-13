@@ -134,7 +134,7 @@ module R81P( A,
    /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_1 (.clock(s_logisimNet0),
                 .d(s_logisimNet17),
                 .preset(1'b0),
@@ -143,7 +143,7 @@ module R81P( A,
                 .reset(1'b0),
                 .tick(1'b1));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_2 (.clock(s_logisimNet0),
                 .d(s_logisimNet18),
                 .preset(1'b0),
@@ -152,7 +152,7 @@ module R81P( A,
                 .reset(1'b0),
                 .tick(1'b1));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_3 (.clock(s_logisimNet0),
                 .d(s_logisimNet19),
                 .preset(1'b0),
@@ -161,7 +161,7 @@ module R81P( A,
                 .reset(1'b0),
                 .tick(1'b1));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_4 (.clock(s_logisimNet0),
                 .d(s_logisimNet20),
                 .preset(1'b0),
@@ -170,7 +170,7 @@ module R81P( A,
                 .reset(1'b0),
                 .tick(1'b1));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_5 (.clock(s_logisimNet0),
                 .d(s_logisimNet21),
                 .preset(1'b0),
@@ -179,7 +179,7 @@ module R81P( A,
                 .reset(1'b0),
                 .tick(1'b1));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_6 (.clock(s_logisimNet0),
                 .d(s_logisimNet22),
                 .preset(1'b0),
@@ -188,7 +188,7 @@ module R81P( A,
                 .reset(1'b0),
                 .tick(1'b1));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_7 (.clock(s_logisimNet0),
                 .d(s_logisimNet23),
                 .preset(1'b0),
@@ -197,7 +197,7 @@ module R81P( A,
                 .reset(1'b0),
                 .tick(1'b1));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_8 (.clock(s_logisimNet0),
                 .d(s_logisimNet24),
                 .preset(1'b0),

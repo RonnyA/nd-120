@@ -16,7 +16,7 @@
 module PAL_45008B (
 
     input MWRITE_n,   //! I0 - MWRITE_n
-    input SWDIS_n,    //! I1 - SWDIS_n
+    input SWDIS_n,    //! I1 - SWDIS_n (SW4 - Parity disable, normal position = down.
     input LBD0,       //! I2 - LBD0
     input LBD1,       //! I3 - LBD1
     input LBD3,       //! I4 - LBD3
@@ -27,8 +27,8 @@ module PAL_45008B (
     // input HIEN_n,  //! I9 - EPEA_n  (NOT USED!)
 
 
-    output DIS_n,  //! Y0_n (OUT Only)
-    output OER_n,  //! Y1_n (OUT ONLY)
+    output DIS_n,  //! Y0_n DIS_n (OUT Only)
+    output OER_n,  //! Y1_n OER_n (OUT ONLY)
 
     output OET_n,     //! B0_n - OET_n
     output CLRERR_n,  //! B1_n - CLRERR_n

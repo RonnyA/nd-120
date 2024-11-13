@@ -1,339 +1,354 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_TRAP_TVGEN                                               **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/TRAP/TVGEN                                                       **
+** Trap Vector Generator (?)                                             **
+**                                                                       **
+** Page 104                                                              **
+** SHEET 1 of 1                                                          **
+**                                                                       **
+** Last reviewed: 10-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_TRAP_TVGEN( DSTOPN,
-                       FTRAPN,
-                       IFETCH,
-                       IFETCHN,
-                       IIND,
-                       IINDN,
-                       INTRQ,
-                       IPCR_1_0,
-                       IPCR_1_0_N,
-                       IPT_15_9,
-                       IPT_15_9_N,
-                       IWRITE,
-                       IWRITEN,
-                       PAN,
-                       PONI,
-                       PVIOL,
-                       RESTR,
-                       TCLK,
-                       TVEC_3_0,
-                       VACC,
-                       VTRAPN );
+module CGA_TRAP_TVGEN (
+    input       DSTOPN,
+    input       FTRAPN,
+    input       IFETCH,
+    input       IFETCHN,
+    input       IIND,
+    input       IINDN,
+    input       INTRQ,
+    input [1:0] IPCR_1_0,
+    input [1:0] IPCR_1_0_N,
+    input [6:0] IPT_15_9,
+    input [6:0] IPT_15_9_N,
+    input       IWRITE,
+    input       IWRITEN,
+    input       PAN,
+    input       PONI,
+    input       TCLK,
+    input       VACC,
+    input       VTRAPN,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input       DSTOPN;
-   input       FTRAPN;
-   input       IFETCH;
-   input       IFETCHN;
-   input       IIND;
-   input       IINDN;
-   input       INTRQ;
-   input [1:0] IPCR_1_0;
-   input [1:0] IPCR_1_0_N;
-   input [6:0] IPT_15_9;
-   input [6:0] IPT_15_9_N;
-   input       IWRITE;
-   input       IWRITEN;
-   input       PAN;
-   input       PONI;
-   input       TCLK;
-   input       VACC;
-   input       VTRAPN;
+    output       PVIOL,
+    output       RESTR,
+    output [3:0] TVEC_3_0
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output       PVIOL;
-   output       RESTR;
-   output [3:0] TVEC_3_0;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [6:0] s_logisimBus23;
-   wire [1:0] s_logisimBus40;
-   wire [6:0] s_logisimBus49;
-   wire [3:0] s_logisimBus54;
-   wire [1:0] s_logisimBus8;
-   wire       s_logisimNet0;
-   wire       s_logisimNet1;
-   wire       s_logisimNet10;
-   wire       s_logisimNet11;
-   wire       s_logisimNet12;
-   wire       s_logisimNet13;
-   wire       s_logisimNet14;
-   wire       s_logisimNet15;
-   wire       s_logisimNet16;
-   wire       s_logisimNet17;
-   wire       s_logisimNet18;
-   wire       s_logisimNet19;
-   wire       s_logisimNet2;
-   wire       s_logisimNet20;
-   wire       s_logisimNet21;
-   wire       s_logisimNet22;
-   wire       s_logisimNet24;
-   wire       s_logisimNet25;
-   wire       s_logisimNet26;
-   wire       s_logisimNet27;
-   wire       s_logisimNet28;
-   wire       s_logisimNet29;
-   wire       s_logisimNet3;
-   wire       s_logisimNet30;
-   wire       s_logisimNet31;
-   wire       s_logisimNet32;
-   wire       s_logisimNet33;
-   wire       s_logisimNet34;
-   wire       s_logisimNet35;
-   wire       s_logisimNet36;
-   wire       s_logisimNet37;
-   wire       s_logisimNet38;
-   wire       s_logisimNet39;
-   wire       s_logisimNet4;
-   wire       s_logisimNet41;
-   wire       s_logisimNet42;
-   wire       s_logisimNet43;
-   wire       s_logisimNet44;
-   wire       s_logisimNet45;
-   wire       s_logisimNet46;
-   wire       s_logisimNet47;
-   wire       s_logisimNet48;
-   wire       s_logisimNet5;
-   wire       s_logisimNet50;
-   wire       s_logisimNet51;
-   wire       s_logisimNet52;
-   wire       s_logisimNet53;
-   wire       s_logisimNet55;
-   wire       s_logisimNet56;
-   wire       s_logisimNet57;
-   wire       s_logisimNet58;
-   wire       s_logisimNet6;
-   wire       s_logisimNet7;
-   wire       s_logisimNet9;
+  wire [6:0] s_ipt_15_9;
+  wire [1:0] s_ipcr_1_0_n;
+  wire [6:0] s_ipt_15_9_n;
+  wire [3:0] s_tvec_3_0_out;
+  wire [1:0] s_ipcr_1_0;
+  wire       s_dstop_n;
+  wire       s_fpvn_out;
+  wire       s_ftrap_n;
+  wire       s_gates1_out;
+  wire       s_gates10_out;
+  wire       s_gates3_out;
+  wire       s_gates9_out;
+  wire       s_ifetch_n;
+  wire       s_ifetch;
+  wire       s_iind_n;
+  wire       s_iind;
+  wire       s_intrq;
+  wire       s_ipvn_out;
+  wire       s_iwrite_n;
+  wire       s_iwrite;
+  wire       s_pan;
+  wire       s_pgf_out;
+  wire       s_pgfn_out;
+  wire       s_pgu_out;
+  wire       s_pgun_out;
+  wire       s_poni;
+  wire       s_pviol_out;
+  wire       s_rd1n_out;
+  wire       s_rd2n_out;
+  wire       s_rd3n_out;
+  wire       s_restr_out;
+  wire       s_rpvn_out;
+  wire       s_rv1n_out;
+  wire       s_rv2n_out;
+  wire       s_rv3n_out;
+  wire       s_tclk;
+  wire       s_vacc;
+  wire       s_vtrap_n;
+  wire       s_wip_out;
+  wire       s_wipn_out;
+  wire       s_wpvn_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus23[6:0] = IPT_15_9;
-   assign s_logisimBus40[1:0] = IPCR_1_0_N;
-   assign s_logisimBus49[6:0] = IPT_15_9_N;
-   assign s_logisimBus8[1:0]  = IPCR_1_0;
-   assign s_logisimNet13      = IFETCH;
-   assign s_logisimNet15      = TCLK;
-   assign s_logisimNet19      = IWRITE;
-   assign s_logisimNet24      = IFETCHN;
-   assign s_logisimNet34      = VTRAPN;
-   assign s_logisimNet36      = DSTOPN;
-   assign s_logisimNet38      = IWRITEN;
-   assign s_logisimNet42      = IIND;
-   assign s_logisimNet44      = PONI;
-   assign s_logisimNet5       = IINDN;
-   assign s_logisimNet51      = FTRAPN;
-   assign s_logisimNet52      = INTRQ;
-   assign s_logisimNet57      = PAN;
-   assign s_logisimNet6       = VACC;
+  assign s_dstop_n         = DSTOPN;
+  assign s_ftrap_n         = FTRAPN;
+  assign s_ifetch          = IFETCH;
+  assign s_ifetch_n        = IFETCHN;
+  assign s_iind            = IIND;
+  assign s_iind_n          = IINDN;
+  assign s_intrq           = INTRQ;
+  assign s_ipcr_1_0_n[1:0] = IPCR_1_0_N;
+  assign s_ipcr_1_0[1:0]   = IPCR_1_0;
+  assign s_ipt_15_9_n[6:0] = IPT_15_9_N;
+  assign s_ipt_15_9[6:0]   = IPT_15_9;
+  assign s_iwrite          = IWRITE;
+  assign s_iwrite_n        = IWRITEN;
+  assign s_pan             = PAN;
+  assign s_poni            = PONI;
+  assign s_tclk            = TCLK;
+  assign s_vacc            = VACC;
+  assign s_vtrap_n         = VTRAPN;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign PVIOL    = s_logisimNet41;
-   assign RESTR    = s_logisimNet11;
-   assign TVEC_3_0 = s_logisimBus54[3:0];
+  assign PVIOL             = s_pviol_out;
+  assign RESTR             = s_restr_out;
+  assign TVEC_3_0          = s_tvec_3_0_out[3:0];
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // NOT Gate
-   assign s_logisimNet48 = ~s_logisimNet4;
+  // NOT Gate
+  assign s_pgf_out         = ~s_pgfn_out;
+  assign s_pgu_out         = ~s_pgun_out;
+  assign s_wip_out         = ~s_wipn_out;
 
-   // NOT Gate
-   assign s_logisimNet43 = ~s_logisimNet56;
-
-   // NOT Gate
-   assign s_logisimNet29 = ~s_logisimNet46;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   OR_GATE_8_INPUTS #(.BubblesMask(8'hFF))
-      GATES_1 (.input1(s_logisimNet4),
-               .input2(s_logisimNet32),
-               .input3(s_logisimNet47),
-               .input4(s_logisimNet22),
-               .input5(s_logisimNet21),
-               .input6(s_logisimNet12),
-               .input7(s_logisimNet14),
-               .input8(s_logisimNet17),
-               .result(s_logisimNet55));
+  OR_GATE_8_INPUTS #(
+      .BubblesMask(8'hFF)
+  ) GATES_1 (
+      .input1(s_pgfn_out),
+      .input2(s_wpvn_out),
+      .input3(s_ipvn_out),
+      .input4(s_fpvn_out),
+      .input5(s_rpvn_out),
+      .input6(s_rv1n_out),
+      .input7(s_rv2n_out),
+      .input8(s_rv3n_out),
+      .result(s_gates1_out)
+  );
 
-   OR_GATE_5_INPUTS #(.BubblesMask({1'b1, 4'hF}))
-      GATES_2 (.input1(s_logisimNet4),
-               .input2(s_logisimNet32),
-               .input3(s_logisimNet47),
-               .input4(s_logisimNet22),
-               .input5(s_logisimNet21),
-               .result(s_logisimNet41));
+  OR_GATE_5_INPUTS #(
+      .BubblesMask({1'b1, 4'hF})
+  ) GATES_2 (
+      .input1(s_pgfn_out),
+      .input2(s_wpvn_out),
+      .input3(s_ipvn_out),
+      .input4(s_fpvn_out),
+      .input5(s_rpvn_out),
+      .result(s_pviol_out)
+  );
 
-   OR_GATE_3_INPUTS #(.BubblesMask(3'b111))
-      GATES_3 (.input1(s_logisimNet17),
-               .input2(s_logisimNet14),
-               .input3(s_logisimNet12),
-               .result(s_logisimNet53));
+  OR_GATE_3_INPUTS #(
+      .BubblesMask(3'b111)
+  ) GATES_3 (
+      .input1(s_rv3n_out),
+      .input2(s_rv2n_out),
+      .input3(s_rv1n_out),
+      .result(s_gates3_out)
+  );
 
-   NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
-      WIPN (.input1(s_logisimNet6),
-            .input2(s_logisimNet19),
-            .input3(s_logisimBus23[6]),
-            .input4(s_logisimBus49[3]),
-            .result(s_logisimNet46));
+  NAND_GATE_4_INPUTS #(
+      .BubblesMask(4'h0)
+  ) WIPN (
+      .input1(s_vacc),
+      .input2(s_iwrite),
+      .input3(s_ipt_15_9[6]),
+      .input4(s_ipt_15_9_n[3]),
+      .result(s_wipn_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      PGUN (.input1(s_logisimNet6),
-            .input2(s_logisimBus49[2]),
-            .result(s_logisimNet56));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) PGUN (
+      .input1(s_vacc),
+      .input2(s_ipt_15_9_n[2]),
+      .result(s_pgun_out)
+  );
 
-   NAND_GATE_5_INPUTS #(.BubblesMask({1'b0, 4'h0}))
-      RD1N (.input1(s_logisimNet6),
-            .input2(s_logisimNet13),
-            .input3(s_logisimBus23[4]),
-            .input4(s_logisimBus49[1]),
-            .input5(s_logisimBus8[1]),
-            .result(s_logisimNet10));
+  NAND_GATE_5_INPUTS #(
+      .BubblesMask({1'b0, 4'h0})
+  ) RD1N (
+      .input1(s_vacc),
+      .input2(s_ifetch),
+      .input3(s_ipt_15_9[4]),
+      .input4(s_ipt_15_9_n[1]),
+      .input5(s_ipcr_1_0[1]),
+      .result(s_rd1n_out)
+  );
 
-   NAND_GATE_6_INPUTS #(.BubblesMask({2'b00, 4'h0}))
-      RD2N (.input1(s_logisimNet6),
-            .input2(s_logisimNet13),
-            .input3(s_logisimBus23[4]),
-            .input4(s_logisimBus49[1]),
-            .input5(s_logisimBus49[0]),
-            .input6(s_logisimBus8[0]),
-            .result(s_logisimNet37));
+  NAND_GATE_6_INPUTS #(
+      .BubblesMask({2'b00, 4'h0})
+  ) RD2N (
+      .input1(s_vacc),
+      .input2(s_ifetch),
+      .input3(s_ipt_15_9[4]),
+      .input4(s_ipt_15_9_n[1]),
+      .input5(s_ipt_15_9_n[0]),
+      .input6(s_ipcr_1_0[0]),
+      .result(s_rd2n_out)
+  );
 
-   NAND_GATE_6_INPUTS #(.BubblesMask({2'b00, 4'h0}))
-      RD3N (.input1(s_logisimNet6),
-            .input2(s_logisimNet13),
-            .input3(s_logisimBus23[4]),
-            .input4(s_logisimBus49[0]),
-            .input5(s_logisimBus8[1]),
-            .input6(s_logisimBus8[0]),
-            .result(s_logisimNet30));
+  NAND_GATE_6_INPUTS #(
+      .BubblesMask({2'b00, 4'h0})
+  ) RD3N (
+      .input1(s_vacc),
+      .input2(s_ifetch),
+      .input3(s_ipt_15_9[4]),
+      .input4(s_ipt_15_9_n[0]),
+      .input5(s_ipcr_1_0[1]),
+      .input6(s_ipcr_1_0[0]),
+      .result(s_rd3n_out)
+  );
 
-   OR_GATE_5_INPUTS #(.BubblesMask({1'b1, 4'hF}))
-      GATES_9 (.input1(s_logisimNet46),
-               .input2(s_logisimNet56),
-               .input3(s_logisimNet10),
-               .input4(s_logisimNet37),
-               .input5(s_logisimNet30),
-               .result(s_logisimNet45));
+  OR_GATE_5_INPUTS #(
+      .BubblesMask({1'b1, 4'hF})
+  ) GATES_9 (
+      .input1(s_wipn_out),
+      .input2(s_pgun_out),
+      .input3(s_rd1n_out),
+      .input4(s_rd2n_out),
+      .input5(s_rd3n_out),
+      .result(s_gates9_out)
+  );
 
-   OR_GATE_3_INPUTS #(.BubblesMask(3'b111))
-      GATES_10 (.input1(s_logisimNet30),
-                .input2(s_logisimNet37),
-                .input3(s_logisimNet10),
-                .result(s_logisimNet58));
+  OR_GATE_3_INPUTS #(
+      .BubblesMask(3'b111)
+  ) GATES_10 (
+      .input1(s_rd3n_out),
+      .input2(s_rd2n_out),
+      .input3(s_rd1n_out),
+      .result(s_gates10_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_11 (.input1(s_logisimBus40[1]),
-                .input2(s_logisimNet44),
-                .result(s_logisimNet11));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_11 (
+      .input1(s_ipcr_1_0_n[1]),
+      .input2(s_poni),
+      .result(s_restr_out)
+  );
 
-   NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
-      PGFN (.input1(s_logisimNet6),
-            .input2(s_logisimBus49[6]),
-            .input3(s_logisimBus49[5]),
-            .input4(s_logisimBus49[4]),
-            .result(s_logisimNet4));
+  NAND_GATE_4_INPUTS #(
+      .BubblesMask(4'h0)
+  ) PGFN (
+      .input1(s_vacc),
+      .input2(s_ipt_15_9_n[6]),
+      .input3(s_ipt_15_9_n[5]),
+      .input4(s_ipt_15_9_n[4]),
+      .result(s_pgfn_out)
+  );
 
-   NAND_GATE_5_INPUTS #(.BubblesMask({1'b0, 4'h0}))
-      WPVN (.input1(s_logisimNet6),
-            .input2(s_logisimNet19),
-            .input3(s_logisimNet5),
-            .input4(s_logisimNet24),
-            .input5(s_logisimBus49[6]),
-            .result(s_logisimNet32));
+  NAND_GATE_5_INPUTS #(
+      .BubblesMask({1'b0, 4'h0})
+  ) WPVN (
+      .input1(s_vacc),
+      .input2(s_iwrite),
+      .input3(s_iind_n),
+      .input4(s_ifetch_n),
+      .input5(s_ipt_15_9_n[6]),
+      .result(s_wpvn_out)
+  );
 
-   NAND_GATE_6_INPUTS #(.BubblesMask({2'b00, 4'h0}))
-      IPVN (.input1(s_logisimNet6),
-            .input2(s_logisimNet38),
-            .input3(s_logisimNet42),
-            .input4(s_logisimNet24),
-            .input5(s_logisimBus49[5]),
-            .input6(s_logisimBus49[4]),
-            .result(s_logisimNet47));
+  NAND_GATE_6_INPUTS #(
+      .BubblesMask({2'b00, 4'h0})
+  ) IPVN (
+      .input1(s_vacc),
+      .input2(s_iwrite_n),
+      .input3(s_iind),
+      .input4(s_ifetch_n),
+      .input5(s_ipt_15_9_n[5]),
+      .input6(s_ipt_15_9_n[4]),
+      .result(s_ipvn_out)
+  );
 
-   NAND_GATE_5_INPUTS #(.BubblesMask({1'b0, 4'h0}))
-      FPVN (.input1(s_logisimNet6),
-            .input2(s_logisimNet38),
-            .input3(s_logisimNet5),
-            .input4(s_logisimNet13),
-            .input5(s_logisimBus49[4]),
-            .result(s_logisimNet22));
+  NAND_GATE_5_INPUTS #(
+      .BubblesMask({1'b0, 4'h0})
+  ) FPVN (
+      .input1(s_vacc),
+      .input2(s_iwrite_n),
+      .input3(s_iind_n),
+      .input4(s_ifetch),
+      .input5(s_ipt_15_9_n[4]),
+      .result(s_fpvn_out)
+  );
 
-   NAND_GATE_5_INPUTS #(.BubblesMask({1'b0, 4'h0}))
-      RPVN (.input1(s_logisimNet6),
-            .input2(s_logisimNet38),
-            .input3(s_logisimNet5),
-            .input4(s_logisimNet24),
-            .input5(s_logisimBus49[5]),
-            .result(s_logisimNet21));
+  NAND_GATE_5_INPUTS #(
+      .BubblesMask({1'b0, 4'h0})
+  ) RPVN (
+      .input1(s_vacc),
+      .input2(s_iwrite_n),
+      .input3(s_iind_n),
+      .input4(s_ifetch_n),
+      .input5(s_ipt_15_9_n[5]),
+      .result(s_rpvn_out)
+  );
 
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      RV1N (.input1(s_logisimNet6),
-            .input2(s_logisimBus23[1]),
-            .input3(s_logisimBus40[1]),
-            .result(s_logisimNet12));
+  NAND_GATE_3_INPUTS #(
+      .BubblesMask(3'b000)
+  ) RV1N (
+      .input1(s_vacc),
+      .input2(s_ipt_15_9[1]),
+      .input3(s_ipcr_1_0_n[1]),
+      .result(s_rv1n_out)
+  );
 
-   NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
-      RV2N (.input1(s_logisimNet6),
-            .input2(s_logisimBus23[0]),
-            .input3(s_logisimBus40[1]),
-            .input4(s_logisimBus40[0]),
-            .result(s_logisimNet14));
+  NAND_GATE_4_INPUTS #(
+      .BubblesMask(4'h0)
+  ) RV2N (
+      .input1(s_vacc),
+      .input2(s_ipt_15_9[0]),
+      .input3(s_ipcr_1_0_n[1]),
+      .input4(s_ipcr_1_0_n[0]),
+      .result(s_rv2n_out)
+  );
 
-   NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
-      RV3N (.input1(s_logisimNet6),
-            .input2(s_logisimBus23[1]),
-            .input3(s_logisimBus23[0]),
-            .input4(s_logisimBus40[0]),
-            .result(s_logisimNet17));
+  NAND_GATE_4_INPUTS #(
+      .BubblesMask(4'h0)
+  ) RV3N (
+      .input1(s_vacc),
+      .input2(s_ipt_15_9[1]),
+      .input3(s_ipt_15_9[0]),
+      .input4(s_ipcr_1_0_n[0]),
+      .result(s_rv3n_out)
+  );
 
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   CGA_TRAP_TVGEN_P2   TRAP_TVGEN (.DSTOPN(s_logisimNet36),
-                                   .FTRAPN(s_logisimNet51),
-                                   .IFETCH(s_logisimNet13),
-                                   .INTRQ(s_logisimNet52),
-                                   .LEV1(s_logisimNet55),
-                                   .LEV2(s_logisimNet45),
-                                   .PAN(s_logisimNet57),
-                                   .PGF(s_logisimNet48),
-                                   .PGU(s_logisimNet43),
-                                   .PGUN(s_logisimNet56),
-                                   .PVIOL(s_logisimNet41),
-                                   .RD(s_logisimNet58),
-                                   .RV(s_logisimNet53),
-                                   .TCLK(s_logisimNet15),
-                                   .TVEC_3_0(s_logisimBus54[3:0]),
-                                   .VACC(s_logisimNet6),
-                                   .VTRAPN(s_logisimNet34),
-                                   .WIP(s_logisimNet29),
-                                   .WIPN(s_logisimNet46));
+  CGA_TRAP_TVGEN_P2 TRAP_TVGEN (
+      .DSTOPN(s_dstop_n),
+      .FTRAPN(s_ftrap_n),
+      .IFETCH(s_ifetch),
+      .INTRQ(s_intrq),
+      .LEV1(s_gates1_out),
+      .LEV2(s_gates9_out),
+      .PAN(s_pan),
+      .PGF(s_pgf_out),
+      .PGU(s_pgu_out),
+      .PGUN(s_pgun_out),
+      .PVIOL(s_pviol_out),
+      .RD(s_gates10_out),
+      .RV(s_gates3_out),
+      .TCLK(s_tclk),
+      .TVEC_3_0(s_tvec_3_0_out[3:0]),
+      .VACC(s_vacc),
+      .VTRAPN(s_vtrap_n),
+      .WIP(s_wip_out),
+      .WIPN(s_wipn_out)
+  );
 
 endmodule

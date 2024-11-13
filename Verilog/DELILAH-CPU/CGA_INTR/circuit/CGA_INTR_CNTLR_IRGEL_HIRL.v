@@ -1,178 +1,184 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_INTR_CNTLR_IRGEL_HIRL                                    **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/INTR/CNTLR/IRGEL/HIRL                                            **
+** HIRL                                                                  **
+**                                                                       **
+** Page 91                                                               **
+** SHEET 1 of 1                                                          **
+**                                                                       **
+** Last reviewed: 10-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_INTR_CNTLR_IRGEL_HIRL( D,
-                                  E,
-                                  H,
-                                  HIDET,
-                                  HIENABN,
-                                  HIGAS,
-                                  HIGSN,
-                                  HIPASSALL,
-                                  HIRQ,
-                                  HIVEC_2_0,
-                                  HIVGES,
-                                  HVE,
-                                  MCLK,
-                                  PD,
-                                  RDN,
-                                  S );
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input       D;
-   input       E;
-   input       H;
-   input       HIDET;
-   input       HIGSN;
-   input [2:0] HIVEC_2_0;
-   input       HIVGES;
-   input       MCLK;
-   input       S;
+module CGA_INTR_CNTLR_IRGEL_HIRL (
+    input       D,
+    input       E,
+    input       H,
+    input       HIDET,
+    input       HIGSN,
+    input [2:0] HIVEC_2_0,
+    input       HIVGES,
+    input       MCLK,
+    input       S,
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output HIENABN;
-   output HIGAS;
-   output HIPASSALL;
-   output HIRQ;
-   output HVE;
-   output PD;
-   output RDN;
+    output HIENABN,
+    output HIGAS,
+    output HIPASSALL,
+    output HIRQ,
+    output HVE,
+    output PD,
+    output RDN
+);
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [2:0] s_logisimBus3;
-   wire       s_logisimNet0;
-   wire       s_logisimNet1;
-   wire       s_logisimNet10;
-   wire       s_logisimNet11;
-   wire       s_logisimNet12;
-   wire       s_logisimNet13;
-   wire       s_logisimNet14;
-   wire       s_logisimNet15;
-   wire       s_logisimNet16;
-   wire       s_logisimNet17;
-   wire       s_logisimNet18;
-   wire       s_logisimNet19;
-   wire       s_logisimNet2;
-   wire       s_logisimNet20;
-   wire       s_logisimNet21;
-   wire       s_logisimNet22;
-   wire       s_logisimNet23;
-   wire       s_logisimNet24;
-   wire       s_logisimNet4;
-   wire       s_logisimNet5;
-   wire       s_logisimNet6;
-   wire       s_logisimNet7;
-   wire       s_logisimNet8;
-   wire       s_logisimNet9;
+  wire [2:0] s_hivec_2_0;
+  wire       s_d;
+  wire       s_e;
+  wire       s_h;
+  wire       s_hidet_nand_hivges;
+  wire       s_hidet;
+  wire       s_hidis_n;
+  wire       s_hienab_n_out;
+  wire       s_higas_n_out;
+  wire       s_higas_out;
+  wire       s_higs_n;
+  wire       s_hipassall_n_out;
+  wire       s_hipassall_out;
+  wire       s_hirq_out;
+  wire       s_hivges;
+  wire       s_hve_out;
+  wire       s_int_req_q;
+  wire       s_int_req_qn;
+  wire       s_mclk;
+  wire       s_pd_out;
+  wire       s_rd_n;
+  wire       s_s;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus3[2:0] = HIVEC_2_0;
-   assign s_logisimNet10     = D;
-   assign s_logisimNet11     = HIVGES;
-   assign s_logisimNet12     = S;
-   assign s_logisimNet16     = HIDET;
-   assign s_logisimNet21     = H;
-   assign s_logisimNet22     = E;
-   assign s_logisimNet5      = MCLK;
-   assign s_logisimNet9      = HIGSN;
+  assign s_hivec_2_0[2:0] = HIVEC_2_0;
+  assign s_d              = D;
+  assign s_hivges         = HIVGES;
+  assign s_s              = S;
+  assign s_hidet          = HIDET;
+  assign s_h              = H;
+  assign s_e              = E;
+  assign s_mclk           = MCLK;
+  assign s_higs_n         = HIGSN;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign HIENABN   = s_logisimNet0;
-   assign HIGAS     = s_logisimNet8;
-   assign HIPASSALL = s_logisimNet19;
-   assign HIRQ      = s_logisimNet15;
-   assign HVE       = s_logisimNet6;
-   assign PD        = s_logisimNet18;
-   assign RDN       = s_logisimNet20;
+  assign HIENABN          = s_hienab_n_out;
+  assign HIGAS            = s_higas_out;
+  assign HIPASSALL        = s_hipassall_out;
+  assign HIRQ             = s_hirq_out;
+  assign HVE              = s_hve_out;
+  assign PD               = s_pd_out;
+  assign RDN              = s_rd_n;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // NOT Gate
-   assign s_logisimNet8 = ~s_logisimNet1;
+  // NOT Gate
+  assign s_higas_out      = ~s_higas_n_out;
 
-   // NOT Gate
-   assign s_logisimNet19 = ~s_logisimNet2;
+  // NOT Gate
+  assign s_hipassall_out  = ~s_hipassall_n_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   NAND_GATE_4_INPUTS #(.BubblesMask(4'h0))
-      GATES_1 (.input1(s_logisimNet6),
-               .input2(s_logisimBus3[2]),
-               .input3(s_logisimBus3[1]),
-               .input4(s_logisimBus3[0]),
-               .result(s_logisimNet1));
+  NAND_GATE_4_INPUTS #(
+      .BubblesMask(4'h0)
+  ) GATES_1 (
+      .input1(s_hve_out),
+      .input2(s_hivec_2_0[2]),
+      .input3(s_hivec_2_0[1]),
+      .input4(s_hivec_2_0[0]),
+      .result(s_higas_n_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_2 (.input1(s_logisimNet16),
-               .input2(s_logisimNet11),
-               .result(s_logisimNet14));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_2 (
+      .input1(s_hidet),
+      .input2(s_hivges),
+      .result(s_hidet_nand_hivges)
+  );
 
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_3 (.input1(s_logisimNet11),
-               .input2(s_logisimNet16),
-               .input3(s_logisimNet7),
-               .result(s_logisimNet2));
+  NAND_GATE_3_INPUTS #(
+      .BubblesMask(3'b000)
+  ) GATES_3 (
+      .input1(s_hivges),
+      .input2(s_hidet),
+      .input3(s_hidis_n),
+      .result(s_hipassall_n_out)
+  );
 
-   OR_GATE #(.BubblesMask(2'b11))
-      GATES_4 (.input1(s_logisimNet9),
-               .input2(s_logisimNet14),
-               .result(s_logisimNet18));
+  OR_GATE #(
+      .BubblesMask(2'b11)
+  ) GATES_4 (
+      .input1(s_higs_n),
+      .input2(s_hidet_nand_hivges),
+      .result(s_pd_out)
+  );
 
-   NOR_GATE_3_INPUTS #(.BubblesMask(3'b111))
-      GATES_5 (.input1(s_logisimNet7),
-               .input2(s_logisimNet9),
-               .input3(s_logisimNet14),
-               .result(s_logisimNet20));
+  NOR_GATE_3_INPUTS #(
+      .BubblesMask(3'b111)
+  ) GATES_5 (
+      .input1(s_hidis_n),
+      .input2(s_higs_n),
+      .input3(s_hidet_nand_hivges),
+      .result(s_rd_n)
+  );
 
-   AND_GATE #(.BubblesMask(2'b11))
-      GATES_6 (.input1(s_logisimNet2),
-               .input2(s_logisimNet24),
-               .result(s_logisimNet15));
+  AND_GATE #(
+      .BubblesMask(2'b11)
+  ) GATES_6 (
+      .input1(s_hipassall_n_out),
+      .input2(s_int_req_qn),
+      .result(s_hirq_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b11))
-      GATES_7 (.input1(s_logisimNet2),
-               .input2(s_logisimNet12),
-               .result(s_logisimNet6));
+  AND_GATE #(
+      .BubblesMask(2'b11)
+  ) GATES_7 (
+      .input1(s_hipassall_n_out),
+      .input2(s_s),
+      .result(s_hve_out)
+  );
 
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   SCAN_FF   STATUS_OVERFLOW_FF (.CLK(s_logisimNet5),
-                                 .D(s_logisimNet7),
-                                 .Q(s_logisimNet7),
-                                 .QN(s_logisimNet0),
-                                 .TE(s_logisimNet21),
-                                 .TI(s_logisimNet1));
+  SCAN_FF STATUS_OVERFLOW_FF (
+      .CLK(s_mclk),
+      .D  (s_hidis_n),
+      .Q  (s_hidis_n),
+      .QN (s_hienab_n_out),
+      .TE (s_h),
+      .TI (s_higas_n_out)
+  );
 
-   SCAN_FF   INT_REQ_ENABLE_FF (.CLK(s_logisimNet5),
-                                .D(s_logisimNet22),
-                                .Q(s_logisimNet4),
-                                .QN(s_logisimNet24),
-                                .TE(s_logisimNet10),
-                                .TI(s_logisimNet4));
+  SCAN_FF INT_REQ_ENABLE_FF (
+      .CLK(s_mclk),
+      .D  (s_e),
+      .Q  (s_int_req_q),
+      .QN (s_int_req_qn),
+      .TE (s_d),
+      .TI (s_int_req_q)
+  );
 
 endmodule

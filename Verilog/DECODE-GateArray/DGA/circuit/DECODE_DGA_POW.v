@@ -9,6 +9,7 @@
 ** Last reviewed: 12-MAY-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
+
 module DECODE_DGA_POW (
     input BDRY50N,
     input CLOSC,
@@ -136,23 +137,23 @@ module DECODE_DGA_POW (
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-  assign s_powsense = POWSENSE;
-  assign s_ref_n = REFN;
-  assign s_rtosc = RTOSC;
-  assign s_closc = CLOSC;
-  assign s_emcl_n = EMCLN;
   assign s_bdry50_n = BDRY50N;
-  assign s_sel5ms_n = SEL5MSN;
-  assign s_prq_n = PRQN;
-  assign s_continue_n = CONTINUEN;
-  assign s_load_n = LOADN;
-  assign s_pwcl = PWCL;
-  assign s_test_enable = TESTE;
-  assign s_sstop_n = SSTOPN;
-  assign s_reset = RESET;
-  assign s_stop_n = STOPN;
-  assign s_start_n = STARTN;
+  assign s_closc = CLOSC;
   assign s_clrti_n = CLRTIN;
+  assign s_continue_n = CONTINUEN;
+  assign s_emcl_n = EMCLN;
+  assign s_load_n = LOADN;
+  assign s_powsense = POWSENSE;
+  assign s_prq_n = PRQN;
+  assign s_pwcl = PWCL;
+  assign s_ref_n = REFN;
+  assign s_reset = RESET;
+  assign s_rtosc = RTOSC;
+  assign s_sel5ms_n = SEL5MSN;
+  assign s_sstop_n = SSTOPN;
+  assign s_start_n = STARTN;
+  assign s_stop_n = STOPN;
+  assign s_test_enable = TESTE;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -180,16 +181,16 @@ module DECODE_DGA_POW (
 
   // NOT Gate's
   assign s_clear = ~s_clear_n;
-  assign s_start = ~s_start_n;
   assign s_clrti = ~s_clrti_n;
-  assign s_mcl_n = ~s_mcl;
-  assign s_pwcl_n = ~s_pwcl;
-  assign s_powfail_n = ~s_powfail;
+  assign s_conn = ~s_conn_n;
   assign s_continue = ~s_continue_n;
   assign s_load = ~s_load_n;
-  assign s_conn = ~s_conn_n;
+  assign s_mcl_n = ~s_mcl;
+  assign s_powfail_n = ~s_powfail;
   assign s_prq = ~s_prq_n;
+  assign s_pwcl_n = ~s_pwcl;
   assign s_rtc = ~s_rtc_n;
+  assign s_start = ~s_start_n;
 
   /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -246,7 +247,7 @@ module DECODE_DGA_POW (
   assign s_a579_out_n = ~(s_mcl_n & s_clrti_n & s_stp);
 
   J_K_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) A616 (
       .clock(s_a624_q_n),
       .j(s_a618_q_n),
@@ -259,7 +260,7 @@ module DECODE_DGA_POW (
   );
 
   J_K_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) A618 (
       .clock(s_a624_q_n),
       .j(s_a616_q),
@@ -272,7 +273,7 @@ module DECODE_DGA_POW (
   );
 
   J_K_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) A617 (
       .clock(s_a624_q_n),
       .j(s_a618_q),
@@ -285,7 +286,7 @@ module DECODE_DGA_POW (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) A572 (
       .clock(s_clear_n),
       .d(s_esload_n),
@@ -297,7 +298,7 @@ module DECODE_DGA_POW (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) A577 (
       .clock(s_a625_y),
       .d(s_gnd),
@@ -309,7 +310,7 @@ module DECODE_DGA_POW (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) A600 (
       .clock(s_a605_q_n),
       .d(s_gnd),

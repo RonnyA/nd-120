@@ -25,13 +25,15 @@ module MEM_DATA_46 (
     input  [15:0] LBD_15_0_IN,
     output [15:0] LBD_15_0_OUT,
 
-    // Output signals
+    output [17:0] DD_17_0_IN,
     output [17:0] DD_17_0_OUT,
-    output        HIERR,
-    output        LERR_n,
-    output        LOERR,
-    output        LPERR_n,
-    output        LED4          //! LED4_RED_PARITY_ERROR
+
+    // Output signals
+    output HIERR,
+    output LERR_n,
+    output LOERR,
+    output LPERR_n,
+    output LED4      //! LED4_RED_PARITY_ERROR
 );
 
 
@@ -39,144 +41,81 @@ module MEM_DATA_46 (
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-  wire [15:0] s_logisimBus15;
-  wire [17:0] s_logisimBus66;
-  wire        s_logisimNet0;
-  wire        s_logisimNet1;
-  wire        s_logisimNet10;
-  wire        s_logisimNet11;
-  wire        s_logisimNet12;
-  wire        s_logisimNet13;
-  wire        s_logisimNet14;
-  wire        s_logisimNet16;
-  wire        s_logisimNet17;
-  wire        s_logisimNet18;
-  wire        s_logisimNet2;
-  wire        s_logisimNet20;
-  wire        s_logisimNet21;
-  wire        s_logisimNet22;
-  wire        s_logisimNet23;
-  wire        s_logisimNet24;
-  wire        s_logisimNet25;
-  wire        s_logisimNet26;
-  wire        s_logisimNet27;
-  wire        s_logisimNet28;
-  wire        s_logisimNet29;
-  wire        s_logisimNet3;
-  wire        s_logisimNet30;
-  wire        s_logisimNet32;
-  wire        s_logisimNet33;
-  wire        s_logisimNet34;
-  wire        s_logisimNet35;
-  wire        s_logisimNet36;
-  wire        s_logisimNet37;
-  wire        s_logisimNet38;
-  wire        s_logisimNet39;
-  wire        s_logisimNet4;
-  wire        s_logisimNet40;
-  wire        s_logisimNet41;
-  wire        s_logisimNet42;
-  wire        s_logisimNet43;
-  wire        s_logisimNet44;
-  wire        s_logisimNet45;
-  wire        s_logisimNet46;
-  wire        s_logisimNet47;
+  wire [15:0] s_lbd_15_0_in;
+  wire [15:0] s_lbd_15_0_out;
+  wire [17:0] s_dd_17_0_in;
+  wire [17:0] s_dd_17_0_out;
+  wire        s_bcgnt50r_n;
+  wire        s_bioxl_n;
+  wire        s_clr_14_8j;
+  wire        s_clr_15_8j;
+  wire        s_clr_n;
+  wire        s_clrerr_n;
+  wire        s_dis_n;
+  wire        s_eccr;
+  wire        s_gnd;
+  wire        s_hien_n;
+  wire        s_hierr_n_out;
+  wire        s_hierr_out;
   wire        s_led4;
-  wire        s_logisimNet49;
-  wire        s_logisimNet5;
-  wire        s_logisimNet50;
-  wire        s_logisimNet51;
-  wire        s_logisimNet52;
-  wire        s_logisimNet53;
-  wire        s_logisimNet54;
-  wire        s_logisimNet55;
-  wire        s_logisimNet56;
-  wire        s_logisimNet57;
-  wire        s_logisimNet58;
-  wire        s_logisimNet59;
-  wire        s_logisimNet6;
-  wire        s_logisimNet60;
-  wire        s_logisimNet61;
-  wire        s_logisimNet62;
-  wire        s_logisimNet63;
-  wire        s_logisimNet64;
-  wire        s_logisimNet65;
-  wire        s_logisimNet67;
-  wire        s_logisimNet68;
-  wire        s_logisimNet69;
-  wire        s_logisimNet70;
-  wire        s_logisimNet71;
-  wire        s_logisimNet72;
-  wire        s_logisimNet73;
-  wire        s_logisimNet9;
-
-  /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
+  wire        s_lerr_n_out;
+  wire        s_loerr_n_out;
+  wire        s_loerr_out;
+  wire        s_lperr_n_out;
+  wire        s_mr_n;
+  wire        s_mwrite_n;
+  wire        s_nor_mrn_pan;
+  wire        s_oer_n;
+  wire        s_oet_n;
+  wire        s_pa_n;
+  wire        s_pd3;
+  wire        s_power;
+  wire        s_qd_n;
+  wire        s_rdata;
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-  assign s_logisimBus15[15:0] = LBD_15_0_IN;
-  assign s_logisimNet0        = RDATA;
-  assign s_logisimNet36       = BIOXL_n;
-  assign s_logisimNet37       = BCGNT50R_n;
-  assign s_logisimNet38       = PA_n;
-  assign s_logisimNet47       = QD_n;
-  assign s_logisimNet5        = MR_n;
-  assign s_logisimNet67       = ECCR;
-  assign s_logisimNet68       = HIEN_n;
-  assign s_logisimNet73       = MWRITE_n;
+  assign s_lbd_15_0_in[15:0] = LBD_15_0_IN;
+  assign s_dd_17_0_in[17:0]  = DD_17_0_IN;
+  assign s_rdata             = RDATA;
+  assign s_bioxl_n           = BIOXL_n;
+  assign s_bcgnt50r_n        = BCGNT50R_n;
+  assign s_pa_n              = PA_n;
+  assign s_qd_n              = QD_n;
+  assign s_mr_n              = MR_n;
+  assign s_eccr              = ECCR;
+  assign s_hien_n            = HIEN_n;
+  assign s_mwrite_n          = MWRITE_n;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-  assign DD_17_0_OUT          = s_logisimBus66[17:0];
-  assign HIERR                = s_logisimNet4;
-  assign LERR_n               = s_logisimNet1;
-  assign LOERR                = s_logisimNet35;
-  assign LPERR_n              = s_logisimNet45;
+  assign DD_17_0_OUT         = s_dd_17_0_out[17:0];
+  assign HIERR               = s_hierr_out;
+  assign LERR_n              = s_lerr_n_out;
+  assign LOERR               = s_loerr_out;
+  assign LPERR_n             = s_lperr_n_out;
+  assign LBD_15_0_OUT        = s_lbd_15_0_out[15:0];
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
   // Ground
-  assign s_logisimNet18       = 1'b0;
-
-
-  // Ground
-  assign s_logisimNet46       = 1'b0;
-
+  assign s_gnd               = 1'b0;
 
   // Power
-  assign s_logisimNet6        = 1'b1;
-
-
-  // Constant
-  assign s_logisimNet50       = 1'b1;
-
+  assign s_power             = 1'b1;
 
   // NOT Gate
-  assign s_logisimNet16       = ~s_logisimNet65;
-
-  // NOT Gate
-  assign s_logisimNet21       = ~s_logisimNet51;
-
-  // NOT Gate
-  assign s_logisimNet58       = ~s_logisimNet6;
-
-  // NOT Gate
-  assign s_logisimNet49       = ~s_logisimNet6;
-
-  // NOT Gate
-  assign s_logisimNet35       = ~s_logisimNet2;
-
-  // NOT Gate
-  assign s_logisimNet4        = ~s_logisimNet34;
+  assign s_clr_15_8j         = ~s_clr_n;
+  assign s_clr_14_8j         = ~s_nor_mrn_pan;
+  assign s_loerr_out         = ~s_loerr_n_out;
+  assign s_hierr_out         = ~s_hierr_n_out;
 
   // LED: LED4_RED_PARITY_ERROR
-  assign LED4                 = s_led4;
+  assign LED4                = s_led4;
 
   /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -184,50 +123,50 @@ module MEM_DATA_46 (
   NOR_GATE #(
       .BubblesMask(2'b11)
   ) GATES_1 (
-      .input1(s_logisimNet3),
-      .input2(s_logisimNet5),
-      .result(s_logisimNet65)
+      .input1(s_dis_n),
+      .input2(s_mr_n),
+      .result(s_clr_n)
   );
 
   NOR_GATE #(
       .BubblesMask(2'b11)
   ) GATES_2 (
-      .input1(s_logisimNet5),
-      .input2(s_logisimNet38),
-      .result(s_logisimNet51)
+      .input1(s_mr_n),
+      .input2(s_pa_n),
+      .result(s_nor_mrn_pan)
   );
 
   NOR_GATE #(
       .BubblesMask(2'b00)
   ) GATES_3 (
-      .input1(s_logisimNet35),
-      .input2(s_logisimNet4),
-      .result(s_logisimNet1)
+      .input1(s_loerr_out),
+      .input2(s_hierr_out),
+      .result(s_lerr_n_out)
   );
 
   J_K_FLIPFLOP #(
-      .invertClockEnable(1)
+      .InvertClockEnable(1)
   ) MEMORY_4 (
-      .clock(s_logisimNet1),
-      .j(s_logisimNet6),
-      .k(s_logisimNet18),
-      .preset(s_logisimNet58),
+      .clock(s_lerr_n_out),
+      .j(s_power),
+      .k(s_gnd),
+      .preset(s_gnd),
       .q(),
       .qBar(s_led4),
-      .reset(s_logisimNet16),
+      .reset(s_clr_15_8j),
       .tick(1'b1)
   );
 
   J_K_FLIPFLOP #(
-      .invertClockEnable(1)
+      .InvertClockEnable(1)
   ) MEMORY_5 (
-      .clock(s_logisimNet1),
-      .j(s_logisimNet6),
-      .k(s_logisimNet46),
-      .preset(s_logisimNet49),
+      .clock(s_lerr_n_out),
+      .j(s_power),
+      .k(s_gnd),
+      .preset(s_gnd),
       .q(),
-      .qBar(s_logisimNet45),
-      .reset(s_logisimNet21),
+      .qBar(s_lperr_n_out),
+      .reset(s_clr_14_8j),
       .tick(1'b1)
   );
 
@@ -236,47 +175,83 @@ module MEM_DATA_46 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  /* TODO:
-    PAL_45008   PAL_45008_UDATA (.B0_n(s_logisimNet29),
-                                  .B1_n(s_logisimNet30),
-                                  .B2_n(s_logisimNet57),
-                                  .B3_n(s_logisimNet13),
-                                  .B4_n(s_logisimNet44),
-                                  .B5_n(s_logisimNet17),
-                                  .I0(s_logisimNet73),
-                                  .I1(s_logisimNet50),
-                                  .I2(s_logisimBus15[0]),
-                                  .I3(s_logisimBus15[1]),
-                                  .I4(s_logisimBus15[3]),
-                                  .I5(s_logisimBus15[4]),
-                                  .I6(s_logisimNet36),
-                                  .I7(s_logisimNet67),
-                                  .I8(s_logisimNet37),
-                                  .I9(s_logisimNet68),
-                                  .Y0_n(s_logisimNet3),
-                                  .Y1_n(s_logisimNet20));
-*/
 
-  /* TODO:
+  PAL_45008B PAL_45008_UDATA (
+      .MWRITE_n(s_mwrite_n),  //! I0 - MWRITE_n
+      .SWDIS_n   (s_gnd),       //! I1 - SWDIS_n (SW4 - Parity disable, normal position = down. HERE: Disabled!)
+      .LBD0(s_lbd_15_0_in[0]),  //! I2 - LBD0
+      .LBD1(s_lbd_15_0_in[1]),  //! I3 - LBD1
+      .LBD3(s_lbd_15_0_in[3]),  //! I4 - LBD3
+      .LBD4(s_lbd_15_0_in[4]),  //! I5 - LBD4
+      .BIOXL_n(s_bioxl_n),  //! I6 - BIOXL_n
+      .ECCR(s_eccr),  //! I7 - ECCR
+      .BCGNT50R_n(s_bcgnt50r_n),  //! I8 - BCGNT50R_n
+      //.HIEN_n(s_hien_n),  //! I9 - EPEA_n  (NOT USED!)
 
-   AM29833A   CHIP_1H (.CLK(s_logisimNet0),
-                       .CLR_n(s_logisimNet30),
-                       .ERR_n(s_logisimNet2),  // output
-                       .OER_n(s_logisimNet20),
-                       .OET_n(s_logisimNet29),
-                       .PAR(s_logisimBus66[8]), //inout
-                       .R(s_logisimBus15[7:0]), //inout
-                       .T(s_logisimBus66[7:0])  //inout
-                       );
+      .DIS_n(s_dis_n),  //! DIS_n Y0_n (OUT Only)
+      .OER_n(s_oer_n),  //! OER_n Y1_n (OUT ONLY)
 
-   AM29833A   CHIP_2H (.CLK(s_logisimNet0),
-                       .CLR_n(s_logisimNet30),
-                       .ERR_n(s_logisimNet34),  // output
-                       .OER_n(s_logisimNet20),
-                       .OET_n(s_logisimNet29),
-                       .PAR(s_logisimBus66[17]), //inout
-                       .R(s_logisimBus15[15:8]), //inout
-                       .T(s_logisimBus66[16:9])  //inout
-                       );
-*/
+      .OET_n   (s_oet_n),     //! B0_n - OET_n
+      .CLRERR_n(s_clrerr_n),  //! B1_n - CLRERR_n
+      .DISB_n  (),            //! B2_n - DISB_n (n.c)
+      .TST_n   (),            //! B3_n - TST_n (n.c.)
+      .QD_n    (s_pd3),       //! B4_n - PD3
+      .MR_n    (s_mr_n)       //! B5_n - MR_n
+  );
+
+
+
+  AM29833A CHIP_1H (
+      .CLK(s_rdata),
+      .CLR_n(s_clrerr_n),
+      .ERR_n(s_loerr_n_out),  // output (pulled high) // TODO: Fix pull up when output is not enabled
+      .OER_n(s_oer_n),
+      .OET_n(s_oet_n),
+
+      // PARITY IN
+      .PAR(s_dd_17_0_in[8]),
+
+      // PARITY OUT
+      .PAR_OUT(s_dd_17_0_out[8]),
+
+      // R IN
+      .R(s_lbd_15_0_in[7:0]),
+
+      // R out
+      .R_OUT(s_lbd_15_0_out[7:0]),
+
+      // T in
+      .T(s_dd_17_0_in[7:0]),
+
+      // T out + T[8] = PAR // TODO: Pull high when OET is disabled
+      .T_OUT(s_dd_17_0_out[7:0])
+  );
+
+  AM29833A CHIP_2H (
+      .CLK(s_rdata),
+      .CLR_n(s_clrerr_n),
+      .ERR_n  (s_hierr_n_out),        // output (pulled high) // TODO: Fix pull up when output is not enabled
+      .OER_n(s_oer_n),
+      .OET_n(s_oet_n),
+
+      // PARITY in
+      .PAR(s_dd_17_0_in[17]),
+
+      // PARITY out
+      .PAR_OUT(s_dd_17_0_out[17]),
+
+      // R in
+      .R(s_lbd_15_0_in[15:8]),
+
+      // R out
+      .R_OUT(s_lbd_15_0_out[15:8]),
+
+      // T in
+      .T(s_dd_17_0_in[16:9]),
+
+      // T out + T[17] = PAR  // TODO: Pull high when OET is disabled
+      .T_OUT(s_dd_17_0_out[16:9])
+
+  );
+
 endmodule

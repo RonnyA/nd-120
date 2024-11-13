@@ -92,7 +92,7 @@ module SCAN_WITH_RESET_N( CLK,
                .input2(s_logisimNet3),
                .result(s_logisimNet5));
 
-   D_FLIPFLOP #(.invertClockEnable(0))
+   D_FLIPFLOP #(.InvertClockEnable(0))
       MEMORY_4 (.clock(s_logisimNet4),
                 .d(s_logisimNet5),
                 .preset(1'b0),

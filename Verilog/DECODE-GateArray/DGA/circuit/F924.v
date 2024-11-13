@@ -66,7 +66,7 @@ module F924 (
 
   // Implementation
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) MEMORY_1 (
       .clock(s_clock),
       .d(s_d0),
@@ -78,7 +78,7 @@ module F924 (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) MEMORY_2 (
       .clock(s_clock),
       .d(s_d1),
@@ -90,7 +90,7 @@ module F924 (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) MEMORY_3 (
       .clock(s_clock),
       .d(s_d2),
@@ -102,7 +102,7 @@ module F924 (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) MEMORY_4 (
       .clock(s_clock),
       .d(s_d3),

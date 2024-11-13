@@ -1,107 +1,117 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_INTR_CNTLR_IRQ_MASK_MASKBIT                              **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/INTR/CNTLR/IRQ/MASK/MASKBIT                                      **
+** IRQ MASK BIT                                                          **
+**                                                                       **
+** Page 80                                                               **
+** SHEET 1 of 1                                                          **
+**                                                                       **
+** Last reviewed: 10-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_INTR_CNTLR_IRQ_MASK_MASKBIT( CLOCK,
-                                        DATAIN,
-                                        DCDA,
-                                        DCDB,
-                                        DCDCN,
-                                        MSK,
-                                        MSKN );
+module CGA_INTR_CNTLR_IRQ_MASK_MASKBIT (
+    input CLOCK,
+    input DATAIN,
+    input DCDA,
+    input DCDB,
+    input DCDCN,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input CLOCK;
-   input DATAIN;
-   input DCDA;
-   input DCDB;
-   input DCDCN;
+    output MSK,
+    output MSKN
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output MSK;
-   output MSKN;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire s_logisimNet0;
-   wire s_logisimNet1;
-   wire s_logisimNet10;
-   wire s_logisimNet11;
-   wire s_logisimNet2;
-   wire s_logisimNet3;
-   wire s_logisimNet4;
-   wire s_logisimNet5;
-   wire s_logisimNet6;
-   wire s_logisimNet7;
-   wire s_logisimNet8;
-   wire s_logisimNet9;
+  wire s_dcdc_n;
+  wire s_msk_n_out;
+  wire s_datain;
+  wire s_datain_nand_dcdb;
+  wire s_or_3signals;
+  wire s_msk_nand_dcda;
+  wire s_clock;
+  wire s_dcdb_nand_mskn_nand_dcdcn;
+  wire s_msk_out;
+  wire s_dcdb;
+  wire s_d_input;
+  wire s_dcda;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimNet0  = DCDCN;
-   assign s_logisimNet10 = DATAIN;
-   assign s_logisimNet4  = CLOCK;
-   assign s_logisimNet7  = DCDB;
-   assign s_logisimNet9  = DCDA;
+  assign s_dcdc_n = DCDCN;
+  assign s_datain = DATAIN;
+  assign s_clock = CLOCK;
+  assign s_dcdb = DCDB;
+  assign s_dcda = DCDA;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign MSK  = s_logisimNet6;
-   assign MSKN = s_logisimNet1;
+  assign MSK = s_msk_out;
+  assign MSKN = s_msk_n_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_1 (.input1(s_logisimNet6),
-               .input2(s_logisimNet9),
-               .result(s_logisimNet3));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_1 (
+      .input1(s_msk_out),
+      .input2(s_dcda),
+      .result(s_msk_nand_dcda)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_2 (.input1(s_logisimNet10),
-               .input2(s_logisimNet7),
-               .result(s_logisimNet11));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_2 (
+      .input1(s_datain),
+      .input2(s_dcdb),
+      .result(s_datain_nand_dcdb)
+  );
 
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_3 (.input1(s_logisimNet7),
-               .input2(s_logisimNet1),
-               .input3(s_logisimNet0),
-               .result(s_logisimNet5));
+  NAND_GATE_3_INPUTS #(
+      .BubblesMask(3'b000)
+  ) GATES_3 (
+      .input1(s_dcdb),
+      .input2(s_msk_n_out),
+      .input3(s_dcdc_n),
+      .result(s_dcdb_nand_mskn_nand_dcdcn)
+  );
 
-   OR_GATE_3_INPUTS #(.BubblesMask(3'b111))
-      GATES_4 (.input1(s_logisimNet3),
-               .input2(s_logisimNet11),
-               .input3(s_logisimNet5),
-               .result(s_logisimNet2));
+  OR_GATE_3_INPUTS #(
+      .BubblesMask(3'b111)
+  ) GATES_4 (
+      .input1(s_msk_nand_dcda),
+      .input2(s_datain_nand_dcdb),
+      .input3(s_dcdb_nand_mskn_nand_dcdcn),
+      .result(s_or_3signals)
+  );
 
-   XNOR_GATE_ONEHOT #(.BubblesMask(2'b00))
-      GATES_5 (.input1(s_logisimNet2),
-               .input2(s_logisimNet0),
-               .result(s_logisimNet8));
+  XNOR_GATE_ONEHOT #(
+      .BubblesMask(2'b00)
+  ) GATES_5 (
+      .input1(s_or_3signals),
+      .input2(s_dcdc_n),
+      .result(s_d_input)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_6 (.clock(s_logisimNet4),
-                .d(s_logisimNet8),
-                .preset(1'b0),
-                .q(s_logisimNet1),
-                .qBar(s_logisimNet6),
-                .reset(1'b0),
-                .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_6 (
+      .clock(s_clock),
+      .d(s_d_input),
+      .preset(1'b0),
+      .q(s_msk_n_out),
+      .qBar(s_msk_out),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
 
 endmodule

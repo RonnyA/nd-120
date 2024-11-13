@@ -1,241 +1,257 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_MIC_CONDREG                                              **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/MIC/CONDREG                                                      **
+** CONDITION REGISTER                                                    **
+**                                                                       **
+** Page 15                                                               **
+** SHEET 1 of 1                                                          **
+**                                                                       **
+** Last reviewed: 10-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_MIC_CONDREG( ACONDN,
-                        CSBIT_11_0,
-                        CSSCOND,
-                        FS_6_3,
-                        LCC_3_0,
-                        LCSN,
-                        MCLK,
-                        TSEL_3_0 );
+module CGA_MIC_CONDREG (
+    input [11:0] CSBIT_11_0,
+    input        CSSCOND,
+    input        LCSN,
+    input        MCLK,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input [11:0] CSBIT_11_0;
-   input        CSSCOND;
-   input        LCSN;
-   input        MCLK;
+    output       ACONDN,
+    output [3:0] FS_6_3,
+    output [3:0] LCC_3_0,
+    output [3:0] TSEL_3_0
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output       ACONDN;
-   output [3:0] FS_6_3;
-   output [3:0] LCC_3_0;
-   output [3:0] TSEL_3_0;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [3:0]  s_logisimBus16;
-   wire [3:0]  s_logisimBus26;
-   wire [11:0] s_logisimBus30;
-   wire [3:0]  s_logisimBus33;
-   wire        s_logisimNet0;
-   wire        s_logisimNet1;
-   wire        s_logisimNet10;
-   wire        s_logisimNet11;
-   wire        s_logisimNet12;
-   wire        s_logisimNet13;
-   wire        s_logisimNet14;
-   wire        s_logisimNet15;
-   wire        s_logisimNet17;
-   wire        s_logisimNet18;
-   wire        s_logisimNet19;
-   wire        s_logisimNet2;
-   wire        s_logisimNet20;
-   wire        s_logisimNet21;
-   wire        s_logisimNet22;
-   wire        s_logisimNet23;
-   wire        s_logisimNet24;
-   wire        s_logisimNet25;
-   wire        s_logisimNet27;
-   wire        s_logisimNet28;
-   wire        s_logisimNet29;
-   wire        s_logisimNet3;
-   wire        s_logisimNet31;
-   wire        s_logisimNet32;
-   wire        s_logisimNet34;
-   wire        s_logisimNet35;
-   wire        s_logisimNet36;
-   wire        s_logisimNet37;
-   wire        s_logisimNet38;
-   wire        s_logisimNet39;
-   wire        s_logisimNet4;
-   wire        s_logisimNet40;
-   wire        s_logisimNet5;
-   wire        s_logisimNet6;
-   wire        s_logisimNet7;
-   wire        s_logisimNet8;
-   wire        s_logisimNet9;
+  wire [ 3:0] s_fc_6_3_out;
+  wire [ 3:0] s_lcc_3_0_out;
+  wire [11:0] s_csbit_11_0;
+  wire [ 3:0] s_tsel_3_0_out;
+  wire        s_acond_n_out;
+  wire        s_csbit4_q;
+  wire        s_csbit5_q;
+  wire        s_csbit6_q;
+  wire        s_csbit7_q;
+  wire        s_cscond_n;
+  wire        s_csscond;
+  wire        s_gates3_out;
+  wire        s_gates4_out;
+  wire        s_gates7_out;
+  wire        s_lcs_n;
+  wire        s_mclk;
+  wire        s_tsel_3_0_n_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus30[11:0] = CSBIT_11_0;
-   assign s_logisimNet29       = CSSCOND;
-   assign s_logisimNet5        = LCSN;
-   assign s_logisimNet7        = MCLK;
+  assign s_csbit_11_0[11:0] = CSBIT_11_0;
+  assign s_csscond          = CSSCOND;
+  assign s_lcs_n            = LCSN;
+  assign s_mclk             = MCLK;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign ACONDN   = s_logisimNet39;
-   assign FS_6_3   = s_logisimBus16[3:0];
-   assign LCC_3_0  = s_logisimBus26[3:0];
-   assign TSEL_3_0 = s_logisimBus33[3:0];
+  assign ACONDN             = s_acond_n_out;
+  assign FS_6_3             = s_fc_6_3_out[3:0];
+  assign LCC_3_0            = s_lcc_3_0_out[3:0];
+  assign TSEL_3_0           = s_tsel_3_0_out[3:0];
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // NOT Gate
-   assign s_logisimNet1 = ~s_logisimNet29;
+  // NOT Gate
+  assign s_cscond_n         = ~s_csscond;
 
-   // NOT Gate
-   assign s_logisimBus33[0] = ~s_logisimNet9;
+  // NOT Gate
+  assign s_tsel_3_0_out[0]  = ~s_tsel_3_0_n_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_1 (.input1(s_logisimNet5),
-               .input2(s_logisimNet4),
-               .result(s_logisimBus33[3]));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_1 (
+      .input1(s_lcs_n),
+      .input2(s_csbit7_q),
+      .result(s_tsel_3_0_out[3])
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_2 (.input1(s_logisimNet5),
-               .input2(s_logisimNet6),
-               .result(s_logisimBus33[2]));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_2 (
+      .input1(s_lcs_n),
+      .input2(s_csbit6_q),
+      .result(s_tsel_3_0_out[2])
+  );
 
-   XNOR_GATE_ONEHOT #(.BubblesMask(2'b00))
-      GATES_3 (.input1(s_logisimBus33[2]),
-               .input2(s_logisimBus33[1]),
-               .result(s_logisimNet36));
+  XNOR_GATE_ONEHOT #(
+      .BubblesMask(2'b00)
+  ) GATES_3 (
+      .input1(s_tsel_3_0_out[2]),
+      .input2(s_tsel_3_0_out[1]),
+      .result(s_gates3_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_4 (.input1(s_logisimNet36),
-               .input2(s_logisimNet21),
-               .result(s_logisimNet18));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_4 (
+      .input1(s_gates3_out),
+      .input2(s_gates7_out),
+      .result(s_gates4_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_5 (.input1(s_logisimNet18),
-               .input2(s_logisimBus33[3]),
-               .result(s_logisimNet39));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_5 (
+      .input1(s_gates4_out),
+      .input2(s_tsel_3_0_out[3]),
+      .result(s_acond_n_out)
+  );
 
-   AND_GATE #(.BubblesMask(2'b00))
-      GATES_6 (.input1(s_logisimNet5),
-               .input2(s_logisimNet19),
-               .result(s_logisimBus33[1]));
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_6 (
+      .input1(s_lcs_n),
+      .input2(s_csbit5_q),
+      .result(s_tsel_3_0_out[1])
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_7 (.input1(s_logisimBus33[1]),
-               .input2(s_logisimNet9),
-               .result(s_logisimNet21));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_7 (
+      .input1(s_tsel_3_0_out[1]),
+      .input2(s_tsel_3_0_n_out),
+      .result(s_gates7_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_8 (.input1(s_logisimNet5),
-               .input2(s_logisimNet17),
-               .result(s_logisimNet9));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_8 (
+      .input1(s_lcs_n),
+      .input2(s_csbit4_q),
+      .result(s_tsel_3_0_n_out)
+  );
 
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
+  SCAN_FF CSBIT11 (
+      .CLK(s_mclk),
+      .D  (s_csbit_11_0[11]),
+      .Q  (s_lcc_3_0_out[3]),
+      .QN (),
+      .TE (s_cscond_n),
+      .TI (s_lcc_3_0_out[3])
+  );
 
-   SCAN_FF   CSBIT10 (.CLK(s_logisimNet7),
-                      .D(s_logisimBus30[10]),
-                      .Q(s_logisimBus26[2]),
-                      .QN(),
-                      .TE(s_logisimNet1),
-                      .TI(s_logisimBus26[2]));
+  SCAN_FF CSBIT10 (
+      .CLK(s_mclk),
+      .D  (s_csbit_11_0[10]),
+      .Q  (s_lcc_3_0_out[2]),
+      .QN (),
+      .TE (s_cscond_n),
+      .TI (s_lcc_3_0_out[2])
+  );
 
-   SCAN_FF   CSBIT9 (.CLK(s_logisimNet7),
-                     .D(s_logisimBus30[9]),
-                     .Q(s_logisimBus26[1]),
-                     .QN(),
-                     .TE(s_logisimNet1),
-                     .TI(s_logisimBus26[1]));
+  SCAN_FF CSBIT9 (
+      .CLK(s_mclk),
+      .D  (s_csbit_11_0[9]),
+      .Q  (s_lcc_3_0_out[1]),
+      .QN (),
+      .TE (s_cscond_n),
+      .TI (s_lcc_3_0_out[1])
+  );
 
-   SCAN_FF   CSBIT8 (.CLK(s_logisimNet7),
-                     .D(s_logisimBus30[8]),
-                     .Q(s_logisimBus26[0]),
-                     .QN(),
-                     .TE(s_logisimNet1),
-                     .TI(s_logisimBus26[0]));
+  SCAN_FF CSBIT8 (
+      .CLK(s_mclk),
+      .D  (s_csbit_11_0[8]),
+      .Q  (s_lcc_3_0_out[0]),
+      .QN (),
+      .TE (s_cscond_n),
+      .TI (s_lcc_3_0_out[0])
+  );
 
-   SCAN_FF   CSBIT7 (.CLK(s_logisimNet7),
-                     .D(s_logisimBus30[7]),
-                     .Q(),
-                     .QN(s_logisimNet4),
-                     .TE(s_logisimNet1),
-                     .TI(s_logisimNet4));
+  SCAN_FF CSBIT7 (
+      .CLK(s_mclk),
+      .D  (s_csbit_11_0[7]),
+      .Q  (),
+      .QN (s_csbit7_q),
+      .TE (s_cscond_n),
+      .TI (s_csbit7_q)
+  );
 
-   SCAN_FF   CSBIT6 (.CLK(s_logisimNet7),
-                     .D(s_logisimBus30[6]),
-                     .Q(s_logisimNet6),
-                     .QN(),
-                     .TE(s_logisimNet1),
-                     .TI(s_logisimNet6));
+  SCAN_FF CSBIT6 (
+      .CLK(s_mclk),
+      .D  (s_csbit_11_0[6]),
+      .Q  (s_csbit6_q),
+      .QN (),
+      .TE (s_cscond_n),
+      .TI (s_csbit6_q)
+  );
 
-   SCAN_FF   CSBIT5 (.CLK(s_logisimNet7),
-                     .D(s_logisimBus30[5]),
-                     .Q(s_logisimNet19),
-                     .QN(),
-                     .TE(s_logisimNet1),
-                     .TI(s_logisimNet19));
+  SCAN_FF CSBIT5 (
+      .CLK(s_mclk),
+      .D  (s_csbit_11_0[5]),
+      .Q  (s_csbit5_q),
+      .QN (),
+      .TE (s_cscond_n),
+      .TI (s_csbit5_q)
+  );
 
-   SCAN_FF   CSBIT4 (.CLK(s_logisimNet7),
-                     .D(s_logisimBus30[4]),
-                     .Q(s_logisimNet17),
-                     .QN(),
-                     .TE(s_logisimNet1),
-                     .TI(s_logisimNet17));
+  SCAN_FF CSBIT4 (
+      .CLK(s_mclk),
+      .D  (s_csbit_11_0[4]),
+      .Q  (s_csbit4_q),
+      .QN (),
+      .TE (s_cscond_n),
+      .TI (s_csbit4_q)
+  );
 
-   SCAN_FF   CSBIT3 (.CLK(s_logisimNet7),
-                     .D(s_logisimBus30[3]),
-                     .Q(s_logisimBus16[3]),
-                     .QN(),
-                     .TE(s_logisimNet1),
-                     .TI(s_logisimBus16[3]));
+  SCAN_FF CSBIT3 (
+      .CLK(s_mclk),
+      .D  (s_csbit_11_0[3]),
+      .Q  (s_fc_6_3_out[3]),
+      .QN (),
+      .TE (s_cscond_n),
+      .TI (s_fc_6_3_out[3])
+  );
 
-   SCAN_FF   CSBIT2 (.CLK(s_logisimNet7),
-                     .D(s_logisimBus30[2]),
-                     .Q(s_logisimBus16[2]),
-                     .QN(),
-                     .TE(s_logisimNet1),
-                     .TI(s_logisimBus16[2]));
+  SCAN_FF CSBIT2 (
+      .CLK(s_mclk),
+      .D  (s_csbit_11_0[2]),
+      .Q  (s_fc_6_3_out[2]),
+      .QN (),
+      .TE (s_cscond_n),
+      .TI (s_fc_6_3_out[2])
+  );
 
-   SCAN_FF   CSBIT1 (.CLK(s_logisimNet7),
-                     .D(s_logisimBus30[1]),
-                     .Q(s_logisimBus16[1]),
-                     .QN(),
-                     .TE(s_logisimNet1),
-                     .TI(s_logisimBus16[1]));
+  SCAN_FF CSBIT1 (
+      .CLK(s_mclk),
+      .D  (s_csbit_11_0[1]),
+      .Q  (s_fc_6_3_out[1]),
+      .QN (),
+      .TE (s_cscond_n),
+      .TI (s_fc_6_3_out[1])
+  );
 
-   SCAN_FF   CSBIT0 (.CLK(s_logisimNet7),
-                     .D(s_logisimBus30[0]),
-                     .Q(s_logisimBus16[0]),
-                     .QN(),
-                     .TE(s_logisimNet1),
-                     .TI(s_logisimBus16[0]));
+  SCAN_FF CSBIT0 (
+      .CLK(s_mclk),
+      .D  (s_csbit_11_0[0]),
+      .Q  (s_fc_6_3_out[0]),
+      .QN (),
+      .TE (s_cscond_n),
+      .TI (s_fc_6_3_out[0])
+  );
 
-   SCAN_FF   CSBIT11 (.CLK(s_logisimNet7),
-                      .D(s_logisimBus30[11]),
-                      .Q(s_logisimBus26[3]),
-                      .QN(),
-                      .TE(s_logisimNet1),
-                      .TI(s_logisimBus26[3]));
+
 
 endmodule

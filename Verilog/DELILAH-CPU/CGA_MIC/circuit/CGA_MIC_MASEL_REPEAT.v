@@ -1,205 +1,215 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_MIC_MASEL_REPEAT                                         **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/MIC/MASEL/REPEAT                                                 **
+** REPEAT                                                                **
+**                                                                       **
+** Page n                                                                **
+** SHEET 1 of n                                                          **
+**                                                                       **
+** Last reviewed: 10-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_MIC_MASEL_REPEAT( IW_12_0,
-                             MCLK,
-                             MPN,
-                             REP_12_0 );
+module CGA_MIC_MASEL_REPEAT (
+    input MCLK,
+    input MPN,
+    input [12:0] REP_12_0,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input        MCLK;
-   input        MPN;
-   input [12:0] REP_12_0;
+    output [12:0] IW_12_0
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output [12:0] IW_12_0;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [12:0] s_logisimBus22;
-   wire [12:0] s_logisimBus30;
-   wire        s_logisimNet0;
-   wire        s_logisimNet1;
-   wire        s_logisimNet10;
-   wire        s_logisimNet11;
-   wire        s_logisimNet12;
-   wire        s_logisimNet13;
-   wire        s_logisimNet14;
-   wire        s_logisimNet15;
-   wire        s_logisimNet16;
-   wire        s_logisimNet17;
-   wire        s_logisimNet18;
-   wire        s_logisimNet19;
-   wire        s_logisimNet2;
-   wire        s_logisimNet20;
-   wire        s_logisimNet21;
-   wire        s_logisimNet23;
-   wire        s_logisimNet24;
-   wire        s_logisimNet25;
-   wire        s_logisimNet26;
-   wire        s_logisimNet27;
-   wire        s_logisimNet28;
-   wire        s_logisimNet29;
-   wire        s_logisimNet3;
-   wire        s_logisimNet4;
-   wire        s_logisimNet5;
-   wire        s_logisimNet6;
-   wire        s_logisimNet7;
-   wire        s_logisimNet8;
-   wire        s_logisimNet9;
+  wire [12:0] s_iw_12_0_out;
+  wire [12:0] s_rep_12_0;
+  wire        s_mclk;
+  wire        s_mp_n;
+  wire        s_mp;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus30[12:0] = REP_12_0;
-   assign s_logisimNet29       = MPN;
-   assign s_logisimNet6        = MCLK;
+  assign s_rep_12_0[12:0] = REP_12_0;
+  assign s_mp_n           = MPN;
+  assign s_mclk           = MCLK;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign IW_12_0 = s_logisimBus22[12:0];
+  assign IW_12_0          = s_iw_12_0_out[12:0];
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // NOT Gate
-   assign s_logisimNet3 = ~s_logisimNet29;
+  // NOT Gate
+  assign s_mp             = ~s_mp_n;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   D_FLIPFLOP #(.invertClockEnable(0))
-      IWFF8 (.clock(s_logisimNet6),
-             .d(s_logisimBus30[8]),
-             .preset(1'b0),
-             .q(s_logisimBus22[8]),
-             .qBar(),
-             .reset(s_logisimNet3),
-             .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) IWFF12 (
+      .clock(s_mclk),
+      .d(s_rep_12_0[12]),
+      .preset(1'b0),
+      .q(s_iw_12_0_out[12]),
+      .qBar(),
+      .reset(s_mp),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      IWFF7 (.clock(s_logisimNet6),
-             .d(s_logisimBus30[7]),
-             .preset(1'b0),
-             .q(s_logisimBus22[7]),
-             .qBar(),
-             .reset(s_logisimNet3),
-             .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) IWFF11 (
+      .clock(s_mclk),
+      .d(s_rep_12_0[11]),
+      .preset(1'b0),
+      .q(s_iw_12_0_out[11]),
+      .qBar(),
+      .reset(s_mp),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      IWFF6 (.clock(s_logisimNet6),
-             .d(s_logisimBus30[6]),
-             .preset(1'b0),
-             .q(s_logisimBus22[6]),
-             .qBar(),
-             .reset(s_logisimNet3),
-             .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) IWFF10 (
+      .clock(s_mclk),
+      .d(s_rep_12_0[10]),
+      .preset(1'b0),
+      .q(s_iw_12_0_out[10]),
+      .qBar(),
+      .reset(s_mp),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      IWFF5 (.clock(s_logisimNet6),
-             .d(s_logisimBus30[5]),
-             .preset(1'b0),
-             .q(s_logisimBus22[5]),
-             .qBar(),
-             .reset(s_logisimNet3),
-             .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) IWFF9 (
+      .clock(s_mclk),
+      .d(s_rep_12_0[9]),
+      .preset(1'b0),
+      .q(s_iw_12_0_out[9]),
+      .qBar(),
+      .reset(s_mp),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      IWFF4 (.clock(s_logisimNet6),
-             .d(s_logisimBus30[4]),
-             .preset(1'b0),
-             .q(s_logisimBus22[4]),
-             .qBar(),
-             .reset(s_logisimNet3),
-             .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) IWFF8 (
+      .clock(s_mclk),
+      .d(s_rep_12_0[8]),
+      .preset(1'b0),
+      .q(s_iw_12_0_out[8]),
+      .qBar(),
+      .reset(s_mp),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      IWFF3 (.clock(s_logisimNet6),
-             .d(s_logisimBus30[3]),
-             .preset(1'b0),
-             .q(s_logisimBus22[3]),
-             .qBar(),
-             .reset(s_logisimNet3),
-             .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) IWFF7 (
+      .clock(s_mclk),
+      .d(s_rep_12_0[7]),
+      .preset(1'b0),
+      .q(s_iw_12_0_out[7]),
+      .qBar(),
+      .reset(s_mp),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      IWFF2 (.clock(s_logisimNet6),
-             .d(s_logisimBus30[2]),
-             .preset(1'b0),
-             .q(s_logisimBus22[2]),
-             .qBar(),
-             .reset(s_logisimNet3),
-             .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) IWFF6 (
+      .clock(s_mclk),
+      .d(s_rep_12_0[6]),
+      .preset(1'b0),
+      .q(s_iw_12_0_out[6]),
+      .qBar(),
+      .reset(s_mp),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      IWFF1 (.clock(s_logisimNet6),
-             .d(s_logisimBus30[1]),
-             .preset(1'b0),
-             .q(s_logisimBus22[1]),
-             .qBar(),
-             .reset(s_logisimNet3),
-             .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) IWFF5 (
+      .clock(s_mclk),
+      .d(s_rep_12_0[5]),
+      .preset(1'b0),
+      .q(s_iw_12_0_out[5]),
+      .qBar(),
+      .reset(s_mp),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      IWFF0 (.clock(s_logisimNet6),
-             .d(s_logisimBus30[0]),
-             .preset(1'b0),
-             .q(s_logisimBus22[0]),
-             .qBar(),
-             .reset(s_logisimNet3),
-             .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) IWFF4 (
+      .clock(s_mclk),
+      .d(s_rep_12_0[4]),
+      .preset(1'b0),
+      .q(s_iw_12_0_out[4]),
+      .qBar(),
+      .reset(s_mp),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      IWFF12 (.clock(s_logisimNet6),
-              .d(s_logisimBus30[12]),
-              .preset(1'b0),
-              .q(s_logisimBus22[12]),
-              .qBar(),
-              .reset(s_logisimNet3),
-              .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) IWFF3 (
+      .clock(s_mclk),
+      .d(s_rep_12_0[3]),
+      .preset(1'b0),
+      .q(s_iw_12_0_out[3]),
+      .qBar(),
+      .reset(s_mp),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      IWFF11 (.clock(s_logisimNet6),
-              .d(s_logisimBus30[11]),
-              .preset(1'b0),
-              .q(s_logisimBus22[11]),
-              .qBar(),
-              .reset(s_logisimNet3),
-              .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) IWFF2 (
+      .clock(s_mclk),
+      .d(s_rep_12_0[2]),
+      .preset(1'b0),
+      .q(s_iw_12_0_out[2]),
+      .qBar(),
+      .reset(s_mp),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      IWFF10 (.clock(s_logisimNet6),
-              .d(s_logisimBus30[10]),
-              .preset(1'b0),
-              .q(s_logisimBus22[10]),
-              .qBar(),
-              .reset(s_logisimNet3),
-              .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) IWFF1 (
+      .clock(s_mclk),
+      .d(s_rep_12_0[1]),
+      .preset(1'b0),
+      .q(s_iw_12_0_out[1]),
+      .qBar(),
+      .reset(s_mp),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      IWFF9 (.clock(s_logisimNet6),
-             .d(s_logisimBus30[9]),
-             .preset(1'b0),
-             .q(s_logisimBus22[9]),
-             .qBar(),
-             .reset(s_logisimNet3),
-             .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) IWFF0 (
+      .clock(s_mclk),
+      .d(s_rep_12_0[0]),
+      .preset(1'b0),
+      .q(s_iw_12_0_out[0]),
+      .qBar(),
+      .reset(s_mp),
+      .tick(1'b1)
+  );
+
+
 
 
 endmodule

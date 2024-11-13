@@ -957,7 +957,7 @@ module DECODE_DGA_COMM (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) MEMORY_63 (
       .clock(s_clk1),
       .d(s_a153_nand_out),
@@ -969,7 +969,7 @@ module DECODE_DGA_COMM (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) A226 (
       .clock(s_clk2),
       .d(s_a221_y),
@@ -981,7 +981,7 @@ module DECODE_DGA_COMM (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) A232 (
       .clock(s_clk1),
       .d(s_a236_y),
@@ -993,7 +993,7 @@ module DECODE_DGA_COMM (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) MEMORY_66 (
       .clock(s_clk3),
       .d(s_208_y),
@@ -1005,7 +1005,7 @@ module DECODE_DGA_COMM (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) A227 (
       .clock(s_clk2),
       .d(s_a220_nand_out),
@@ -1017,7 +1017,7 @@ module DECODE_DGA_COMM (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) MEMORY_68 (
       .clock(s_clk3),
       .d(s_a201_y),
@@ -1029,7 +1029,7 @@ module DECODE_DGA_COMM (
   );
 
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) A204 (
       .clock(s_clk3_n),
       .d(s_a189_nand_out),

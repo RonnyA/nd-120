@@ -1,218 +1,123 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_TRAP_TBUF                                                **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/TRAP/TBUF                                                        **
+** TRAP BUFFERS                                                          **
+**                                                                       **
+** Page 101                                                              **
+** SHEET 1 of 1                                                          **
+**                                                                       **
+** Last reviewed: 10-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_TRAP_TBUF( FETCHN,
-                      IFETCH,
-                      IFETCHN,
-                      IIND,
-                      IINDN,
-                      INDN,
-                      INTRQ,
-                      INTRQN,
-                      IPCR_1_0,
-                      IPCR_1_0_N,
-                      IPT_15_9,
-                      IPT_15_9_N,
-                      IWRITE,
-                      IWRITEN,
-                      PAN,
-                      PANN,
-                      PCR_1_0,
-                      PT_15_9,
-                      VACC,
-                      VACCN,
-                      WRITEN );
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input       FETCHN;
-   input       INDN;
-   input       INTRQN;
-   input       PANN;
-   input [1:0] PCR_1_0;
-   input [6:0] PT_15_9;
-   input       VACCN;
-   input       WRITEN;
+module CGA_TRAP_TBUF (
+    input       FETCHN,   //! FETCH_n (Fetch instruction, negate)
+    input       INDN,     //! IDN_n
+    input       INTRQN,   //! INTRQ_n
+    input       PANN,     //! PAN_n
+    input [1:0] PCR_1_0,  //! PCR[1:0]
+    input [6:0] PT_15_9,  //! PT[15:9]
+    input       VACCN,    //! VACC_n
+    input       WRITEN,   //! WRITE_n
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output       IFETCH;
-   output       IFETCHN;
-   output       IIND;
-   output       IINDN;
-   output       INTRQ;
-   output [1:0] IPCR_1_0;
-   output [1:0] IPCR_1_0_N;
-   output [6:0] IPT_15_9;
-   output [6:0] IPT_15_9_N;
-   output       IWRITE;
-   output       IWRITEN;
-   output       PAN;
-   output       VACC;
+    output       IFETCH,
+    output       IFETCHN,
+    output       IIND,
+    output       IINDN,
+    output       INTRQ,
+    output [1:0] IPCR_1_0,
+    output [1:0] IPCR_1_0_N,
+    output [6:0] IPT_15_9,
+    output [6:0] IPT_15_9_N,
+    output       IWRITE,
+    output       IWRITEN,
+    output       PAN,
+    output       VACC
+);
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [1:0] s_logisimBus12;
-   wire [6:0] s_logisimBus26;
-   wire [6:0] s_logisimBus32;
-   wire [1:0] s_logisimBus37;
-   wire [1:0] s_logisimBus38;
-   wire [6:0] s_logisimBus39;
-   wire       s_logisimNet0;
-   wire       s_logisimNet1;
-   wire       s_logisimNet10;
-   wire       s_logisimNet11;
-   wire       s_logisimNet13;
-   wire       s_logisimNet14;
-   wire       s_logisimNet15;
-   wire       s_logisimNet16;
-   wire       s_logisimNet17;
-   wire       s_logisimNet18;
-   wire       s_logisimNet19;
-   wire       s_logisimNet2;
-   wire       s_logisimNet20;
-   wire       s_logisimNet21;
-   wire       s_logisimNet22;
-   wire       s_logisimNet23;
-   wire       s_logisimNet24;
-   wire       s_logisimNet25;
-   wire       s_logisimNet27;
-   wire       s_logisimNet28;
-   wire       s_logisimNet29;
-   wire       s_logisimNet3;
-   wire       s_logisimNet30;
-   wire       s_logisimNet31;
-   wire       s_logisimNet33;
-   wire       s_logisimNet34;
-   wire       s_logisimNet35;
-   wire       s_logisimNet36;
-   wire       s_logisimNet4;
-   wire       s_logisimNet40;
-   wire       s_logisimNet41;
-   wire       s_logisimNet42;
-   wire       s_logisimNet43;
-   wire       s_logisimNet44;
-   wire       s_logisimNet5;
-   wire       s_logisimNet6;
-   wire       s_logisimNet7;
-   wire       s_logisimNet8;
-   wire       s_logisimNet9;
+  wire [1:0] s_ipcr_1_0_out;
+  wire [6:0] s_ipt_15_9_out;
+  wire [6:0] s_ipt_15_9_n_out;
+  wire [1:0] s_ipcr_1_0_n_out;
+  wire [1:0] s_pcr_1_0;
+  wire [6:0] s_pt_15_9;
+  wire       s_fetch_n;
+  wire       s_ifetch_n_out;
+  wire       s_ifetch_out;
+  wire       s_iind_n_out;
+  wire       s_iind_out;
+  wire       s_ind_n;
+  wire       s_intrq_n;
+  wire       s_intrq_out;
+  wire       s_iwrite_n_out;
+  wire       s_iwrite_out;
+  wire       s_pan_n;
+  wire       s_pan_out;
+  wire       s_vacc_n;
+  wire       s_vacc;
+  wire       s_write_n;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimBus38[1:0] = PCR_1_0;
-   assign s_logisimBus39[6:0] = PT_15_9;
-   assign s_logisimNet33      = PANN;
-   assign s_logisimNet34      = VACCN;
-   assign s_logisimNet35      = INDN;
-   assign s_logisimNet4       = INTRQN;
-   assign s_logisimNet5       = FETCHN;
-   assign s_logisimNet6       = WRITEN;
+  assign s_pcr_1_0[1:0]        = PCR_1_0[1:0];
+  assign s_pt_15_9[6:0]        = PT_15_9[6:0];
+  assign s_pan_n               = PANN;
+  assign s_vacc_n              = VACCN;
+  assign s_ind_n               = INDN;
+  assign s_intrq_n             = INTRQN;
+  assign s_fetch_n             = FETCHN;
+  assign s_write_n             = WRITEN;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign IFETCH     = s_logisimNet16;
-   assign IFETCHN    = s_logisimNet24;
-   assign IIND       = s_logisimNet3;
-   assign IINDN      = s_logisimNet43;
-   assign INTRQ      = s_logisimNet2;
-   assign IPCR_1_0   = s_logisimBus12[1:0];
-   assign IPCR_1_0_N = s_logisimBus37[1:0];
-   assign IPT_15_9   = s_logisimBus26[6:0];
-   assign IPT_15_9_N = s_logisimBus32[6:0];
-   assign IWRITE     = s_logisimNet17;
-   assign IWRITEN    = s_logisimNet25;
-   assign PAN        = s_logisimNet27;
-   assign VACC       = s_logisimNet28;
+  assign IFETCH                = s_ifetch_out;
+  assign IFETCHN               = s_ifetch_n_out;
+  assign IIND                  = s_iind_out;
+  assign IINDN                 = s_iind_n_out;
+  assign INTRQ                 = s_intrq_out;
+  assign IPCR_1_0[1:0]         = s_ipcr_1_0_out[1:0];
+  assign IPCR_1_0_N[1:0]       = s_ipcr_1_0_n_out[1:0];
+  assign IPT_15_9[6:0]         = s_ipt_15_9_out[6:0];
+  assign IPT_15_9_N[6:0]       = s_ipt_15_9_n_out[6:0];
+  assign IWRITE                = s_iwrite_out;
+  assign IWRITEN               = s_iwrite_n_out;
+  assign PAN                   = s_pan_out;
+  assign VACC                  = s_vacc;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // NOT Gate
-   assign s_logisimBus37[1] = ~s_logisimBus38[1];
+  // NOT Gate
+  assign s_ifetch_n_out        = ~s_ifetch_out;
+  assign s_ifetch_out          = ~s_fetch_n;
+  assign s_iind_n_out          = ~s_iind_out;
+  assign s_iind_out            = ~s_ind_n;
+  assign s_intrq_out           = ~s_intrq_n;
 
-   // NOT Gate
-   assign s_logisimNet2 = ~s_logisimNet4;
+  assign s_ipcr_1_0_n_out[1:0] = ~s_pcr_1_0[1:0];
+  assign s_ipcr_1_0_out[1:0]   = ~s_ipcr_1_0_n_out[1:0];
 
-   // NOT Gate
-   assign s_logisimNet27 = ~s_logisimNet33;
+  assign s_ipt_15_9_n_out[6:0] = ~s_pt_15_9[6:0];
 
-   // NOT Gate
-   assign s_logisimNet28 = ~s_logisimNet34;
+  assign s_ipt_15_9_out[0]     = ~s_ipt_15_9_n_out[0];
+  assign s_ipt_15_9_out[1]     = ~s_ipt_15_9_n_out[1];
+  assign s_ipt_15_9_out[4]     = ~s_ipt_15_9_n_out[4];
+  assign s_ipt_15_9_out[6]     = ~s_ipt_15_9_n_out[6];
 
-   // NOT Gate
-   assign s_logisimNet16 = ~s_logisimNet5;
-
-   // NOT Gate
-   assign s_logisimNet17 = ~s_logisimNet6;
-
-   // NOT Gate
-   assign s_logisimNet3 = ~s_logisimNet35;
-
-   // NOT Gate
-   assign s_logisimBus32[3] = ~s_logisimBus39[3];
-
-   // NOT Gate
-   assign s_logisimBus32[0] = ~s_logisimBus39[0];
-
-   // NOT Gate
-   assign s_logisimBus32[6] = ~s_logisimBus39[6];
-
-   // NOT Gate
-   assign s_logisimBus12[1] = ~s_logisimBus37[1];
-
-   // NOT Gate
-   assign s_logisimNet43 = ~s_logisimNet3;
-
-   // NOT Gate
-   assign s_logisimBus26[6] = ~s_logisimBus32[6];
-
-   // NOT Gate
-   assign s_logisimBus32[2] = ~s_logisimBus39[2];
-
-   // NOT Gate
-   assign s_logisimBus26[0] = ~s_logisimBus32[0];
-
-   // NOT Gate
-   assign s_logisimNet24 = ~s_logisimNet16;
-
-   // NOT Gate
-   assign s_logisimNet25 = ~s_logisimNet17;
-
-   // NOT Gate
-   assign s_logisimBus37[0] = ~s_logisimBus38[0];
-
-   // NOT Gate
-   assign s_logisimBus32[5] = ~s_logisimBus39[5];
-
-   // NOT Gate
-   assign s_logisimBus12[0] = ~s_logisimBus37[0];
-
-   // NOT Gate
-   assign s_logisimBus32[4] = ~s_logisimBus39[4];
-
-   // NOT Gate
-   assign s_logisimBus32[1] = ~s_logisimBus39[1];
-
-   // NOT Gate
-   assign s_logisimBus26[4] = ~s_logisimBus32[4];
-
-   // NOT Gate
-   assign s_logisimBus26[1] = ~s_logisimBus32[1];
+  assign s_iwrite_n_out        = ~s_iwrite_out;
+  assign s_iwrite_out          = ~s_write_n;
+  assign s_pan_out             = ~s_pan_n;
+  assign s_vacc                = ~s_vacc_n;
 
 endmodule

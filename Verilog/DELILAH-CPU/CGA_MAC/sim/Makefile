@@ -3,7 +3,7 @@ TOP_FILE = CGA_MAC
 TEST_PROGRAM = test_mac.cpp
 TEST_FOLDER = ${TOP_FILE}
 
-SUPPRESS_FLAGS = -Wno-PINCONNECTEMPTY -Wno-UNUSED -Wno-UNDRIVEN -Wno-WIDTH
+SUPPRESS_FLAGS = -Wno-PINCONNECTEMPTY -Wno-UNUSED -Wno-UNDRIVEN -Wno-WIDTH -Wno-LATCH
 
 # This is the path to the root of the verilog directory
 VERILOG_ROOT = ../../..

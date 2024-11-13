@@ -5,7 +5,7 @@
 ** Page 50                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 11-NOV-2024                                            **
+** Last reviewed: 10-NOV-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -75,7 +75,7 @@ module CGA_ALU_GPR (
    ** Here all normal components are defined                                     **
    *******************************************************************************/
   D_FLIPFLOP #(
-      .invertClockEnable(0)
+      .InvertClockEnable(0)
   ) MEMORY_1 (
       .clock(s_aluclk),
       .d(s_dgpr0_n_out),

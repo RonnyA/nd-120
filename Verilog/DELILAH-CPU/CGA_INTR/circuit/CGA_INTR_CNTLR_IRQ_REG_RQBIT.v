@@ -1,107 +1,116 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : CGA_INTR_CNTLR_IRQ_REG_RQBIT                                 **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 CGA (CPU Gate Array / DELILAH)                                  **
+** /CGA/INTR/CNTLR/IRQ/REG/RQBIT                                         **
+** INTERRUPT CONTROLLER REGISTER Q BIT                                   **
+**                                                                       **
+** Page 78                                                               **
+** SHEET 1 of 1                                                          **
+**                                                                       **
+** Last reviewed: 10-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module CGA_INTR_CNTLR_IRQ_REG_RQBIT( CLR,
-                                     CP,
-                                     CPN,
-                                     INR,
-                                     PN );
+module CGA_INTR_CNTLR_IRQ_REG_RQBIT (
+    input CLR,
+    input CP,
+    input CPN,
+    input PN,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input CLR;
-   input CP;
-   input CPN;
-   input PN;
+    output INR
+);
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output INR;
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire s_logisimNet0;
-   wire s_logisimNet1;
-   wire s_logisimNet10;
-   wire s_logisimNet11;
-   wire s_logisimNet2;
-   wire s_logisimNet3;
-   wire s_logisimNet4;
-   wire s_logisimNet5;
-   wire s_logisimNet6;
-   wire s_logisimNet7;
-   wire s_logisimNet8;
-   wire s_logisimNet9;
+  wire s_clr_n;
+  wire s_clr;
+  wire s_cp_n;
+  wire s_cp;
+  wire s_cpn_nand_clr;
+  wire s_d;
+  wire s_ff_nand_n_out;
+  wire s_ff_nand_out;
+  wire s_ff_or_out;
+  wire s_inr_out;
+  wire s_p_n;
+  wire s_p;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimNet0  = CLR;
-   assign s_logisimNet1  = CP;
-   assign s_logisimNet10 = PN;
-   assign s_logisimNet8  = CPN;
+  assign s_clr = CLR;
+  assign s_cp = CP;
+  assign s_p_n = PN;
+  assign s_cp_n = CPN;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign INR = s_logisimNet11;
+  assign INR = s_inr_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-   // NOT Gate
-   assign s_logisimNet3 = ~s_logisimNet0;
+  // NOT Gate
+  assign s_clr_n = ~s_clr;
 
-   // NOT Gate
-   assign s_logisimNet4 = ~s_logisimNet10;
+  // NOT Gate
+  assign s_p = ~s_p_n;
 
-   // NOT Gate
-   assign s_logisimNet5 = ~s_logisimNet2;
+  // NOT Gate
+  assign s_ff_nand_n_out = ~s_ff_nand_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   OR_GATE #(.BubblesMask(2'b00))
-      GATES_1 (.input1(s_logisimNet4),
-               .input2(s_logisimNet5),
-               .result(s_logisimNet6));
+  OR_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_1 (
+      .input1(s_p),
+      .input2(s_ff_nand_n_out),
+      .result(s_ff_or_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_2 (.input1(s_logisimNet6),
-               .input2(s_logisimNet7),
-               .result(s_logisimNet2));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_2 (
+      .input1(s_ff_or_out),
+      .input2(s_cpn_nand_clr),
+      .result(s_ff_nand_out)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_3 (.input1(s_logisimNet6),
-               .input2(s_logisimNet3),
-               .result(s_logisimNet9));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_3 (
+      .input1(s_ff_or_out),
+      .input2(s_clr_n),
+      .result(s_d)
+  );
 
-   NAND_GATE #(.BubblesMask(2'b00))
-      GATES_4 (.input1(s_logisimNet8),
-               .input2(s_logisimNet0),
-               .result(s_logisimNet7));
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_4 (
+      .input1(s_cp_n),
+      .input2(s_clr),
+      .result(s_cpn_nand_clr)
+  );
 
-   D_FLIPFLOP #(.invertClockEnable(0))
-      MEMORY_5 (.clock(s_logisimNet1),
-                .d(s_logisimNet9),
-                .preset(1'b0),
-                .q(),
-                .qBar(s_logisimNet11),
-                .reset(1'b0),
-                .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_5 (
+      .clock(s_cp),
+      .d(s_d),
+      .preset(1'b0),
+      .q(),
+      .qBar(s_inr_out),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
 
 endmodule
