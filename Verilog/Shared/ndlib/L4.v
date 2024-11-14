@@ -1,110 +1,98 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : L4                                                           **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 Shared                                                          **
+**                                                                       **
+** Component L4 (4-bit latch)                                            **
+**                                                                       **
+** Last reviewed: 11-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-module L4( A,
-           B,
-           C,
-           D,
-           L,
-           QA,
-           QAN,
-           QB,
-           QBN,
-           QC,
-           QCN,
-           QD,
-           QDN );
+module L4 (
+    input L,
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input A;
-   input B;
-   input C;
-   input D;
-   input L;
+    input A,
+    input B,
+    input C,
+    input D,
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output QA;
-   output QAN;
-   output QB;
-   output QBN;
-   output QC;
-   output QCN;
-   output QD;
-   output QDN;
+    output QA,
+    output QAN,
+    output QB,
+    output QBN,
+    output QC,
+    output QCN,
+    output QD,
+    output QDN
+);
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire s_logisimNet0;
-   wire s_logisimNet1;
-   wire s_logisimNet10;
-   wire s_logisimNet11;
-   wire s_logisimNet12;
-   wire s_logisimNet2;
-   wire s_logisimNet3;
-   wire s_logisimNet4;
-   wire s_logisimNet5;
-   wire s_logisimNet6;
-   wire s_logisimNet7;
-   wire s_logisimNet8;
-   wire s_logisimNet9;
+  wire s_a;
+  wire s_b;
+  wire s_qc_n_out;
+  wire s_qd_out;
+  wire s_qd_n_out;
+  wire s_c;
+  wire s_d;
+  wire s_l;
+  wire s_qa_out;
+  wire s_qa_n_out;
+  wire s_qb_out;
+  wire s_qb_n_out;
+  wire s_qc_out;
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimNet0 = A;
-   assign s_logisimNet1 = B;
-   assign s_logisimNet2 = C;
-   assign s_logisimNet3 = D;
-   assign s_logisimNet4 = L;
+  assign s_a = A;
+  assign s_b = B;
+  assign s_c = C;
+  assign s_d = D;
+  assign s_l = L;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign QA  = s_logisimNet5;
-   assign QAN = s_logisimNet6;
-   assign QB  = s_logisimNet7;
-   assign QBN = s_logisimNet8;
-   assign QC  = s_logisimNet9;
-   assign QCN = s_logisimNet10;
-   assign QD  = s_logisimNet11;
-   assign QDN = s_logisimNet12;
+  assign QA  = s_qa_out;
+  assign QAN = s_qa_n_out;
+  assign QB  = s_qb_out;
+  assign QBN = s_qb_n_out;
+  assign QC  = s_qc_out;
+  assign QCN = s_qc_n_out;
+  assign QD  = s_qd_out;
+  assign QDN = s_qd_n_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-   LATCH   L0 (.D(s_logisimNet0),
-               .ENABLE(s_logisimNet4),
-               .Q(s_logisimNet5),
-               .QN(s_logisimNet6));
+  LATCH L0 (
+      .D(s_a),
+      .ENABLE(s_l),
+      .Q(s_qa_out),
+      .QN(s_qa_n_out)
+  );
 
-   LATCH   L1 (.D(s_logisimNet1),
-               .ENABLE(s_logisimNet4),
-               .Q(s_logisimNet7),
-               .QN(s_logisimNet8));
+  LATCH L1 (
+      .D(s_b),
+      .ENABLE(s_l),
+      .Q(s_qb_out),
+      .QN(s_qb_n_out)
+  );
 
-   LATCH   L2 (.D(s_logisimNet2),
-               .ENABLE(s_logisimNet4),
-               .Q(s_logisimNet9),
-               .QN(s_logisimNet10));
+  LATCH L2 (
+      .D(s_c),
+      .ENABLE(s_l),
+      .Q(s_qc_out),
+      .QN(s_qc_n_out)
+  );
 
-   LATCH   L3 (.D(s_logisimNet3),
-               .ENABLE(s_logisimNet4),
-               .Q(s_logisimNet11),
-               .QN(s_logisimNet12));
+  LATCH L3 (
+      .D(s_d),
+      .ENABLE(s_l),
+      .Q(s_qd_out),
+      .QN(s_qd_n_out)
+  );
 
 endmodule

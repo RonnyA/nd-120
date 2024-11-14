@@ -34,25 +34,23 @@ module MUX34P (
    ** The wires are defined here                                                 **
    *******************************************************************************/
   wire [1:0] s_selector;
-  wire       s_d12;
-  wire       s_d13;
-  wire       s_gnd;
-  wire       s_d22;
-  wire       s_d23;
-  wire       s_logisimNet13;
-  wire       s_muxout_3;
-  wire       s_muxout_4;
-  wire       s_d02;
-  wire       s_d03;
-  wire       s_logisimNet20;
-  wire       s_muxout_1;
-  wire       s_muxout_2;
-  wire       s_d10;
-  wire       s_d11;
   wire       s_d00;
   wire       s_d01;
+  wire       s_d02;
+  wire       s_d03;
+  wire       s_d10;
+  wire       s_d11;
+  wire       s_d12;
+  wire       s_d13;
   wire       s_d20;
   wire       s_d21;
+  wire       s_d22;
+  wire       s_d23;
+  wire       s_gnd;
+  wire       s_muxout_1;
+  wire       s_muxout_2;
+  wire       s_muxout_3;
+  wire       s_muxout_4;
 
   /*******************************************************************************
    ** The module functionality is described here                                 **

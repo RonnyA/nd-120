@@ -20,41 +20,37 @@ module SCAN_FF (
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-  wire s_logisimNet0;
-  wire s_logisimNet1;
-  wire s_logisimNet2;
-  wire s_logisimNet3;
-  wire s_logisimNet4;
-  wire s_logisimNet5;
-  wire s_logisimNet6;
-  wire s_logisimNet7;
-  wire s_logisimNet8;
-  wire s_logisimNet9;
-
-  /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
+  wire s_te;
+  wire s_gates1_out;
+  wire s_gates2_out;
+  wire s_clk;
+  wire s_gates3_out;
+  wire s_q_out;
+  wire s_qn_out;
+  wire s_d;
+  wire s_ti;
+  wire s_te_n;
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-  assign s_logisimNet0 = TE;
-  assign s_logisimNet3 = CLK;
-  assign s_logisimNet7 = D;
-  assign s_logisimNet8 = TI;
+  assign s_te = TE;
+  assign s_clk = CLK;
+  assign s_d = D;
+  assign s_ti = TI;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-  assign Q = s_logisimNet5;
-  assign QN = s_logisimNet6;
+  assign Q = s_q_out;
+  assign QN = s_qn_out;
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
   // NOT Gate
-  assign s_logisimNet9 = ~s_logisimNet0;
+  assign s_te_n = ~s_te;
 
   /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -62,35 +58,35 @@ module SCAN_FF (
   AND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_1 (
-      .input1(s_logisimNet7),
-      .input2(s_logisimNet9),
-      .result(s_logisimNet1)
+      .input1(s_d),
+      .input2(s_te_n),
+      .result(s_gates1_out)
   );
 
   AND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_2 (
-      .input1(s_logisimNet0),
-      .input2(s_logisimNet8),
-      .result(s_logisimNet2)
+      .input1(s_te),
+      .input2(s_ti),
+      .result(s_gates2_out)
   );
 
   OR_GATE #(
       .BubblesMask(2'b00)
   ) GATES_3 (
-      .input1(s_logisimNet1),
-      .input2(s_logisimNet2),
-      .result(s_logisimNet4)
+      .input1(s_gates1_out),
+      .input2(s_gates2_out),
+      .result(s_gates3_out)
   );
 
   D_FLIPFLOP #(
       .InvertClockEnable(0)
   ) MEMORY_4 (
-      .clock(s_logisimNet3),
-      .d(s_logisimNet4),
+      .clock(s_clk),
+      .d(s_gates3_out),
       .preset(1'b0),
-      .q(s_logisimNet5),
-      .qBar(s_logisimNet6),
+      .q(s_q_out),
+      .qBar(s_qn_out),
       .reset(1'b0),
       .tick(1'b1)
   );

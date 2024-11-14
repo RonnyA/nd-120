@@ -1,162 +1,154 @@
-/******************************************************************************
- ** Logisim-evolution goes FPGA automatic generated Verilog code             **
- ** https://github.com/logisim-evolution/                                    **
- **                                                                          **
- ** Component : SR44                                                         **
- **                                                                          **
- *****************************************************************************/
 
-module SR44( A,
-             B,
-             C,
-             CP,
-             D,
-             L,
-             QA,
-             QAN,
-             QB,
-             QBN,
-             QC,
-             QCN,
-             QD,
-             QDN,
-             SI );
+/**************************************************************************
+** ND120 Shared                                                          **
+**                                                                       **
+** Component SR44                                                        **
+**                                                                       **
+** Last reviewed: 11-NOV-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
 
-   /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
-   input A;
-   input B;
-   input C;
-   input CP;
-   input D;
-   input L;
-   input SI;
+module SR44 (
+    input A,
+    input B,
+    input C,
+    input CP,
+    input D,
+    input L,
+    input SI,
 
-   /*******************************************************************************
-   ** The outputs are defined here                                               **
-   *******************************************************************************/
-   output QA;
-   output QAN;
-   output QB;
-   output QBN;
-   output QC;
-   output QCN;
-   output QD;
-   output QDN;
 
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-   wire s_logisimNet0;
-   wire s_logisimNet1;
-   wire s_logisimNet10;
-   wire s_logisimNet11;
-   wire s_logisimNet12;
-   wire s_logisimNet13;
-   wire s_logisimNet14;
-   wire s_logisimNet15;
-   wire s_logisimNet16;
-   wire s_logisimNet17;
-   wire s_logisimNet18;
-   wire s_logisimNet2;
-   wire s_logisimNet3;
-   wire s_logisimNet4;
-   wire s_logisimNet5;
-   wire s_logisimNet6;
-   wire s_logisimNet7;
-   wire s_logisimNet8;
-   wire s_logisimNet9;
+    output QA,
+    output QAN,
+    output QB,
+    output QBN,
+    output QC,
+    output QCN,
+    output QD,
+    output QDN
+);
 
-   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
+  wire s_qa_out;
+  wire s_qc_out;
+  wire s_qb_n_out;
+  wire s_qd_out;
+  wire s_qd_n_out;
+  wire s_plex2_out;
+  wire s_plex4_out;
+  wire s_b;
+  wire s_d;
+  wire s_qa_n_out;
+  wire s_qc_n_out;
+  wire s_cp;
+  wire s_qb_out;
+  wire s_si;
+  wire s_l;
+  wire s_plex1_out;
+  wire s_plex3_out;
+  wire s_c;
+  wire s_a;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-   assign s_logisimNet15 = B;
-   assign s_logisimNet16 = D;
-   assign s_logisimNet2  = CP;
-   assign s_logisimNet4  = SI;
-   assign s_logisimNet5  = L;
-   assign s_logisimNet8  = C;
-   assign s_logisimNet9  = A;
+  assign s_a  = A;
+  assign s_b  = B;
+  assign s_c  = C;
+  assign s_cp = CP;
+  assign s_d  = D;
+  assign s_l  = L;
+  assign s_si = SI;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-   assign QA  = s_logisimNet0;
-   assign QAN = s_logisimNet17;
-   assign QB  = s_logisimNet3;
-   assign QBN = s_logisimNet10;
-   assign QC  = s_logisimNet1;
-   assign QCN = s_logisimNet18;
-   assign QD  = s_logisimNet11;
-   assign QDN = s_logisimNet12;
+  assign QA   = s_qa_out;
+  assign QAN  = s_qa_n_out;
+  assign QB   = s_qb_out;
+  assign QBN  = s_qb_n_out;
+  assign QC   = s_qc_out;
+  assign QCN  = s_qc_n_out;
+  assign QD   = s_qd_out;
+  assign QDN  = s_qd_n_out;
 
-   /*******************************************************************************
+  /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-   Multiplexer_2   PLEXERS_1 (
-                              .muxIn_0(s_logisimNet4),
-                              .muxIn_1(s_logisimNet9),
-                              .muxOut(s_logisimNet6),
-                              .sel(s_logisimNet5));
+  Multiplexer_2 PLEXERS_1 (
+      .muxIn_0(s_si),
+      .muxIn_1(s_a),
+      .muxOut(s_plex1_out),
+      .sel(s_l)
+  );
 
-   Multiplexer_2   PLEXERS_2 (
-                              .muxIn_0(s_logisimNet0),
-                              .muxIn_1(s_logisimNet15),
-                              .muxOut(s_logisimNet13),
-                              .sel(s_logisimNet5));
+  Multiplexer_2 PLEXERS_2 (
+      .muxIn_0(s_qa_out),
+      .muxIn_1(s_b),
+      .muxOut(s_plex2_out),
+      .sel(s_l)
+  );
 
-   Multiplexer_2   PLEXERS_3 (
-                              .muxIn_0(s_logisimNet3),
-                              .muxIn_1(s_logisimNet8),
-                              .muxOut(s_logisimNet7),
-                              .sel(s_logisimNet5));
+  Multiplexer_2 PLEXERS_3 (
+      .muxIn_0(s_qb_out),
+      .muxIn_1(s_c),
+      .muxOut(s_plex3_out),
+      .sel(s_l)
+  );
 
-   Multiplexer_2   PLEXERS_4 (
-                              .muxIn_0(s_logisimNet1),
-                              .muxIn_1(s_logisimNet16),
-                              .muxOut(s_logisimNet14),
-                              .sel(s_logisimNet5));
+  Multiplexer_2 PLEXERS_4 (
+      .muxIn_0(s_qc_out),
+      .muxIn_1(s_d),
+      .muxOut(s_plex4_out),
+      .sel(s_l)
+  );
 
-   D_FLIPFLOP #(.InvertClockEnable(0))
-      MEMORY_5 (.clock(s_logisimNet2),
-                .d(s_logisimNet6),
-                .preset(1'b0),
-                .q(s_logisimNet0),
-                .qBar(s_logisimNet17),
-                .reset(1'b0),
-                .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_5 (
+      .clock(s_cp),
+      .d(s_plex1_out),
+      .preset(1'b0),
+      .q(s_qa_out),
+      .qBar(s_qa_n_out),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.InvertClockEnable(0))
-      MEMORY_6 (.clock(s_logisimNet2),
-                .d(s_logisimNet13),
-                .preset(1'b0),
-                .q(s_logisimNet3),
-                .qBar(s_logisimNet10),
-                .reset(1'b0),
-                .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_6 (
+      .clock(s_cp),
+      .d(s_plex2_out),
+      .preset(1'b0),
+      .q(s_qb_out),
+      .qBar(s_qb_n_out),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.InvertClockEnable(0))
-      MEMORY_7 (.clock(s_logisimNet2),
-                .d(s_logisimNet7),
-                .preset(1'b0),
-                .q(s_logisimNet1),
-                .qBar(s_logisimNet18),
-                .reset(1'b0),
-                .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_7 (
+      .clock(s_cp),
+      .d(s_plex3_out),
+      .preset(1'b0),
+      .q(s_qc_out),
+      .qBar(s_qc_n_out),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
-   D_FLIPFLOP #(.InvertClockEnable(0))
-      MEMORY_8 (.clock(s_logisimNet2),
-                .d(s_logisimNet14),
-                .preset(1'b0),
-                .q(s_logisimNet11),
-                .qBar(s_logisimNet12),
-                .reset(1'b0),
-                .tick(1'b1));
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_8 (
+      .clock(s_cp),
+      .d(s_plex4_out),
+      .preset(1'b0),
+      .q(s_qd_out),
+      .qBar(s_qd_n_out),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
 
 endmodule

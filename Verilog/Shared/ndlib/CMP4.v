@@ -28,21 +28,9 @@ module CMP4 (
    *******************************************************************************/
   wire [3:0] s_data_A;
   wire [3:0] s_data_B;
+  wire       s_aeb_out;
   wire       s_agb_out;
   wire       s_alb_out;
-  wire       s_logisimNet10;
-  wire       s_logisimNet11;
-  wire       s_logisimNet12;
-  wire       s_aeb_out;
-  wire       s_logisimNet5;
-  wire       s_logisimNet6;
-  wire       s_logisimNet7;
-  wire       s_logisimNet8;
-  wire       s_logisimNet9;
-
-  /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **

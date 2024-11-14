@@ -4,7 +4,7 @@
 ** /CGA/ALU/DBR                                                          **
 ** DBR REGISTER (Data Bus Register)                                      **
 **                                                                       **
-** Page 53                                                               **
+** Page 52                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
 ** Last reviewed: 10-NOV-2024                                            **
@@ -27,43 +27,7 @@ module CGA_ALU_DBR (
   wire [15:0] s_cd_15_0;
   wire        s_aluclk;
   wire        s_lddbr;
-  wire        s_logisimNet10;
-  wire        s_logisimNet11;
-  wire        s_logisimNet12;
-  wire        s_logisimNet13;
-  wire        s_logisimNet14;
-  wire        s_logisimNet15;
-  wire        s_logisimNet16;
-  wire        s_logisimNet17;
-  wire        s_logisimNet18;
-  wire        s_logisimNet19;
-  wire        s_logisimNet2;
-  wire        s_logisimNet21;
-  wire        s_logisimNet22;
-  wire        s_logisimNet23;
-  wire        s_logisimNet24;
-  wire        s_logisimNet25;
-  wire        s_logisimNet26;
-  wire        s_logisimNet27;
-  wire        s_logisimNet28;
-  wire        s_logisimNet29;
-  wire        s_logisimNet3;
-  wire        s_logisimNet30;
-  wire        s_logisimNet31;
   wire        s_lddbr_n;
-  wire        s_logisimNet33;
-  wire        s_logisimNet34;
-  wire        s_logisimNet35;
-  wire        s_logisimNet4;
-  wire        s_logisimNet5;
-  wire        s_logisimNet6;
-  wire        s_logisimNet7;
-  wire        s_logisimNet8;
-  wire        s_logisimNet9;
-
-  /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **

@@ -3,8 +3,8 @@
 ** /CGA/MIC/STACK/BIT                                                    **
 ** BIT                                                                   **
 **                                                                       **
-** Page n                                                                **
-** SHEET 1 of n                                                          **
+** Page 17                                                               **
+** SHEET 1 of 1                                                          **
 **                                                                       **
 ** Last reviewed: 10-NOV-2024                                            **
 ** Ronny Hansen                                                          **
@@ -20,36 +20,35 @@ module CGA_MIC_STACK_BIT (
     input S4S3N,
     input STIN,
 
-
     output STOUT
 );
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-  wire s_logisimNet0;
-  wire s_logisimNet1;
-  wire s_logisimNet10;
-  wire s_logisimNet11;
-  wire s_logisimNet12;
-  wire s_logisimNet13;
-  wire s_logisimNet14;
-  wire s_logisimNet15;
-  wire s_logisimNet16;
-  wire s_logisimNet17;
-  wire s_logisimNet18;
-  wire s_logisimNet19;
-  wire s_logisimNet2;
-  wire s_logisimNet20;
-  wire s_logisimNet21;
-  wire s_logisimNet22;
-  wire s_logisimNet23;
-  wire s_logisimNet3;
-  wire s_logisimNet4;
-  wire s_logisimNet5;
-  wire s_logisimNet6;
-  wire s_logisimNet7;
-  wire s_logisimNet8;
-  wire s_logisimNet9;
+  wire s_sr44_1_qa_out;
+  wire s_sr44_1_qc_n_out;
+  wire s_ff_sti_n_q_out;
+  wire s_s3n;
+  wire s_sr44_1_qd_n_out;
+  wire s_gates3_out;
+  wire s_gates2_out;
+  wire s_s3;
+  wire s_gates10_out;
+  wire s_clkn;
+  wire s_gates7_out;
+  wire s_s4n_s3n;
+  wire s_gates5_out;
+  wire s_gates1_out;
+  wire s_clk;
+  wire s_sti_n;
+  wire s_gates8_out;
+  wire s_gates6_out;
+  wire s_gates9_out;
+  wire s_load;
+  wire s_sr44_1_qb_n_out;
+  wire s_sr44_1_qd_out;
+  wire s_gates4_out;
+  wire s_s4_s3n;
 
   /*******************************************************************************
    ** The module functionality is described here                                 **
@@ -58,19 +57,19 @@ module CGA_MIC_STACK_BIT (
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-  assign s_logisimNet11 = S3N;
-  assign s_logisimNet15 = S3;
-  assign s_logisimNet17 = CLKN;
-  assign s_logisimNet19 = S4NS3N;
-  assign s_logisimNet21 = CLK;
-  assign s_logisimNet22 = STIN;
-  assign s_logisimNet5 = LOAD;
-  assign s_logisimNet9 = S4S3N;
+  assign s_s3n = S3N;
+  assign s_s3 = S3;
+  assign s_clkn = CLKN;
+  assign s_s4n_s3n = S4NS3N;
+  assign s_clk = CLK;
+  assign s_sti_n = STIN;
+  assign s_load = LOAD;
+  assign s_s4_s3n = S4S3N;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-  assign STOUT = s_logisimNet0;
+  assign STOUT = s_sr44_1_qa_out;
 
   /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -78,91 +77,91 @@ module CGA_MIC_STACK_BIT (
   NAND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_1 (
-      .input1(s_logisimNet10),
-      .input2(s_logisimNet9),
-      .result(s_logisimNet20)
+      .input1(s_ff_sti_n_q_out),
+      .input2(s_s4_s3n),
+      .result(s_gates1_out)
   );
 
   NAND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_2 (
-      .input1(s_logisimNet0),
-      .input2(s_logisimNet19),
-      .result(s_logisimNet14)
+      .input1(s_sr44_1_qa_out),
+      .input2(s_s4n_s3n),
+      .result(s_gates2_out)
   );
 
   OR_GATE #(
       .BubblesMask(2'b00)
   ) GATES_3 (
-      .input1(s_logisimNet6),
-      .input2(s_logisimNet11),
-      .result(s_logisimNet13)
+      .input1(s_sr44_1_qb_n_out),
+      .input2(s_s3n),
+      .result(s_gates3_out)
   );
 
   OR_GATE #(
       .BubblesMask(2'b00)
   ) GATES_4 (
-      .input1(s_logisimNet15),
-      .input2(s_logisimNet6),
-      .result(s_logisimNet8)
+      .input1(s_s3),
+      .input2(s_sr44_1_qb_n_out),
+      .result(s_gates4_out)
   );
 
   OR_GATE #(
       .BubblesMask(2'b00)
   ) GATES_5 (
-      .input1(s_logisimNet11),
-      .input2(s_logisimNet1),
-      .result(s_logisimNet2)
+      .input1(s_s3n),
+      .input2(s_sr44_1_qc_n_out),
+      .result(s_gates5_out)
   );
 
   OR_GATE #(
       .BubblesMask(2'b00)
   ) GATES_6 (
-      .input1(s_logisimNet15),
-      .input2(s_logisimNet1),
-      .result(s_logisimNet3)
+      .input1(s_s3),
+      .input2(s_sr44_1_qc_n_out),
+      .result(s_gates6_out)
   );
 
   OR_GATE #(
       .BubblesMask(2'b00)
   ) GATES_7 (
-      .input1(s_logisimNet11),
-      .input2(s_logisimNet12),
-      .result(s_logisimNet18)
+      .input1(s_s3n),
+      .input2(s_sr44_1_qd_n_out),
+      .result(s_gates7_out)
   );
 
   NAND_GATE_3_INPUTS #(
       .BubblesMask(3'b000)
   ) GATES_8 (
-      .input1(s_logisimNet13),
-      .input2(s_logisimNet20),
-      .input3(s_logisimNet14),
-      .result(s_logisimNet23)
+      .input1(s_gates3_out),
+      .input2(s_gates1_out),
+      .input3(s_gates2_out),
+      .result(s_gates8_out)
   );
 
   NAND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_9 (
-      .input1(s_logisimNet8),
-      .input2(s_logisimNet2),
-      .result(s_logisimNet4)
+      .input1(s_gates4_out),
+      .input2(s_gates5_out),
+      .result(s_gates9_out)
   );
 
   NAND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_10 (
-      .input1(s_logisimNet3),
-      .input2(s_logisimNet18),
-      .result(s_logisimNet16)
+      .input1(s_gates6_out),
+      .input2(s_gates7_out),
+      .result(s_gates10_out)
   );
 
   D_FLIPFLOP #(
       .InvertClockEnable(0)
   ) MEMORY_11 (
-      .clock(s_logisimNet21),
-      .d(s_logisimNet22),
+      .clock(s_clk),
+      .d(s_sti_n),
       .preset(1'b0),
-      .q(s_logisimNet10),
+      .q(s_ff_sti_n_q_out),
       .qBar(),
       .reset(1'b0),
       .tick(1'b1)
@@ -174,21 +173,23 @@ module CGA_MIC_STACK_BIT (
    *******************************************************************************/
 
   SR44 SR44_1 (
-      .A  (s_logisimNet23),
-      .B  (s_logisimNet4),
-      .C  (s_logisimNet16),
-      .CP (s_logisimNet17),
-      .D  (s_logisimNet7),
-      .L  (s_logisimNet5),
-      .QA (s_logisimNet0),
+      .CP(s_clkn),
+      .L (s_load),
+
+      .A(s_gates8_out),
+      .B(s_gates9_out),
+      .C(s_gates10_out),
+      .D(s_sr44_1_qd_out),
+
+      .QA (s_sr44_1_qa_out),
       .QAN(),
       .QB (),
-      .QBN(s_logisimNet6),
+      .QBN(s_sr44_1_qb_n_out),
       .QC (),
-      .QCN(s_logisimNet1),
-      .QD (s_logisimNet7),
-      .QDN(s_logisimNet12),
-      .SI (s_logisimNet10)
+      .QCN(s_sr44_1_qc_n_out),
+      .QD (s_sr44_1_qd_out),
+      .QDN(s_sr44_1_qd_n_out),
+      .SI (s_ff_sti_n_q_out)
   );
 
 endmodule
