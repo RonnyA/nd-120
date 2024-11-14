@@ -773,9 +773,9 @@ module CGA (
   BusDriver16 BD_FIDBO (
       .EN(sx_edo_n),  // Enable = FALSE => A to IO, Enable=TRUE => IO to ZI
       .TN(sx_ptst_n),  // Test enable when LOW
-      .A_15_0(FIDBO_15_0),  // Data inputA (Connect to internal FIDBO data bus))     
-      .IO_15_0_IN(XFIDB_15_0_IN),     // IN and OUT to XFIDB data bus (Connect to EXTERNAL _XFIDB_ data bus)                                                      
-      .IO_15_0_OUT(XFIDB_15_0_OUT),  // 
+      .A_15_0(FIDBO_15_0),  // Data inputA (Connect to internal FIDBO data bus))
+      .IO_15_0_IN(XFIDB_15_0_IN),     // IN and OUT to XFIDB data bus (Connect to EXTERNAL _XFIDB_ data bus)
+      .IO_15_0_OUT(XFIDB_15_0_OUT),  //
       .ZI_15_0(s_xfidbi_15_0)  // Z output  (Connect to internal XFIDBI data bus)
   );
 
