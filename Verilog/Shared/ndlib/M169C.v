@@ -1,7 +1,9 @@
 /**************************************************************************
 ** ND120 Shared                                                          **
 **                                                                       **
-** M169C                                                                 **
+** M169C - 74LS169 - Synchronous 4-biy up/down binary counters           **
+**                                                                       **
+** https://www.ti.com/lit/ds/symlink/sn74als169b.pdf                     **
 **                                                                       **
 ** Last reviewed: 9-NOV-2024                                             **
 ** Ronny Hansen                                                          **

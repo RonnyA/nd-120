@@ -1,20 +1,29 @@
 /**************************************************************************
 ** ND120 Shared                                                          **
 **                                                                       **
-** SCAN FLIP-FLOP                                                        **
+** SCAN FLIP-FLOP (Also known as FDIS in the DELILAH schematics)         **
+**                                                                       **
+** Positive edge triggered D flip-flop with scan                         **
+** Its a D flip-flop with a 2-input multiplexer on the D input           **
+**                                                                       **
+** When TE (test enable) input is negated,                               **
+** the circuit behaves like an ordinary D flip-flop.                     **
+**                                                                       **
+** When TE is asserted,                                                  **
+** it takes its data from TI (test input) instead of from D.             **
 **                                                                       **
 ** Last reviewed: 9-NOV-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module SCAN_FF (
-    input CLK,
-    input D,
-    input TE,
-    input TI,
+    input CLK,  //! Clock (positive triggered)
+    input D,    //! D input
+    input TE,   //! Test enable
+    input TI,   //! Test input
 
-    output Q,
-    output QN
+    output Q,  //! Q output
+    output QN  //! Q_n output
 );
 
   /*******************************************************************************

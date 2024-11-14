@@ -1,7 +1,7 @@
 /**************************************************************************
 ** ND120                                                                 **
 **                                                                       **
-** Component : ND38GHP                                                   **
+** Component : ND38GHP  (3-to-8 decoder)                                 **
 **                                                                       **
 ** Last reviewed: 11-NOV-2024                                            **
 ** Ronny Hansen                                                          **

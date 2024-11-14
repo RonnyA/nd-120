@@ -1,7 +1,7 @@
 /**************************************************************************
 ** ND120 Shared                                                          **
 **                                                                       **
-** Component : R81                                                       **
+** Component : R81 (8-bit register. Latched on RISING EDGE)              **
 **                                                                       **
 ** Last reviewed: 11-NOV-2024                                            **
 ** Ronny Hansen                                                          **
