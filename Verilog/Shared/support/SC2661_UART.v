@@ -95,8 +95,8 @@ module SC2661_UART (
 
   //localparam cmd_OperatingMode_NORMAL = 2'b00; // not used..in code.. yet
   //localparam cmd_OperatingMode_ASYNC = 2'b01;  // not used..in code.. yet
-  localparam cmd_OperatingMode_LocalLoopback = 2'b10;
-  localparam cmd_OperatingMode_RemoteLoopback = 2'b11;
+  localparam logic [1:0] cmd_OperatingMode_LocalLoopback = 2'b10;
+  localparam logic [1:0] cmd_OperatingMode_RemoteLoopback = 2'b11;
 
 
 
@@ -110,67 +110,87 @@ module SC2661_UART (
    ** State machine for the receiver and transmitter                             **
    *******************************************************************************/
 
-  localparam RX_STATE_IDLE = 0;
-  localparam RX_STATE_START_BIT = 1;
-  localparam RX_STATE_READ_WAIT = 2;
-  localparam RX_STATE_READ = 3;
-  localparam RX_STATE_STOP_BIT = 5;
-  localparam RX_STATE_DONE = 6;
+  localparam logic [2:0] RX_STATE_IDLE = 3'b000;  // 0 
+  localparam logic [2:0] RX_STATE_START_BIT = 3'b001;  // 1
+  localparam logic [2:0] RX_STATE_READ_WAIT = 3'b010;  // 2
+  localparam logic [2:0] RX_STATE_READ = 3'b011;  // 3
+  localparam logic [2:0] RX_STATE_STOP_BIT = 3'b101;  // 4
+  localparam logic [2:0] RX_STATE_DONE = 3'b110;  // 5
 
-  localparam TX_STATE_IDLE = 0;
-  localparam TX_STATE_START_BIT = 1;
-  localparam TX_STATE_WRITE = 2;
-  localparam TX_STATE_STOP_BIT = 3;
-  localparam TX_STATE_DONE = 4;
+  localparam logic [2:0] TX_STATE_IDLE = 3'b000;  //  0 
+  localparam logic [2:0] TX_STATE_START_BIT = 3'b001;  // 1
+  localparam logic [2:0] TX_STATE_WRITE = 3'b010;  // 2
+  localparam logic [2:0] TX_STATE_STOP_BIT = 3'b011;  // 3
+  localparam logic [2:0] TX_STATE_DONE = 3'b100;  //  4
 
 
   //Later, refactor clock to use higher FPGA clock to allow for 115200 baud rate.
   //localparam DELAY_FRAMES = 42; //  4.915.200  (100Mhz) / 115200 Baud rate
 
-  localparam DELAY_FRAMES = 16;  // 4.915.200 / 9600 = 512; // use 256 frames for 19.200 baud.
-  localparam HALF_DELAY_WAIT = (DELAY_FRAMES / 2);
+  //  localparam integer DELAY_FRAMES = 16;  // 4.915.200 / 9600 = 512; // use 256 frames for 19.200 baud.
+  //  localparam integer HALF_DELAY_WAIT = (DELAY_FRAMES / 2);
 
+  localparam logic [31:0] DELAY_FRAMES = 32'd16;  // 16 frames
+  localparam logic [31:0] HALF_DELAY_WAIT = (DELAY_FRAMES >> 1);  // Equivalent to DELAY_FRAMES / 2
+
+
+  // Chip Registers
+  reg  [ 7:0] regDataOut;
+  reg  [ 7:0] regReceiveHoldingRegister;
+  reg  [ 7:0] regTransmitHoldingRegister;
+  reg  [ 7:0] regStatusRegister;
+  reg  [ 7:0] regModeRegister;
+  reg  [ 7:0] regCommandRegister;
+
+
+  // Transmitter local variables
+  reg  [ 2:0] txState;
+  reg  [31:0] txCounter;
+  reg  [ 2:0] txBitNumber;
+  reg         txBit;
+  reg         regDataInSendRegister;  // 1=Data in send register (=>TxEmpty =0)
+
+  // Receiver local variables
+  reg  [ 2:0] rxState = 0;
+  reg  [31:0] rxCounter = 0;
+  reg  [ 2:0] rxBitNumber = 0;
+
+  wire        receiver_input;
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
   assign s_address = ADDRESS;
-  assign s_brkclk  = BRCLK;
-  assign s_ce_n    = CE_n;
-  assign s_cts_n   = CTS_n;
+  assign s_brkclk = BRCLK;
+  assign s_ce_n = CE_n;
+  assign s_cts_n = CTS_n;
   assign s_data_in = D;
-  assign s_dcd_n   = DCD_n;
-  assign s_dsr_n   = DSR_n;
-  assign s_read_n  = READ_n;
-  assign s_reset   = RESET;
-  assign s_rxc_n   = RXC_n;
-  assign s_rxd     = RXD;
-  assign s_txc_n   = TXC_n;
+  assign s_dcd_n = DCD_n;
+  assign s_dsr_n = DSR_n;
+  assign s_read_n = READ_n;
+  assign s_reset = RESET;
+  assign s_rxc_n = RXC_n;
+  assign s_rxd = RXD;
+  assign s_txc_n = TXC_n;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
 
   // output pins
-  assign s_dtr_n   = !cmd_forceDTRLow;
-  assign s_rts_n   = !cmd_forceRTSLow;
+  assign s_dtr_n = !cmd_forceDTRLow;
+  assign s_rts_n = !cmd_forceRTSLow;
 
-  assign DTR_n     = s_dtr_n;
-  assign RTS_n     = s_rts_n;
-  assign RXDRDY_n  = s_rxrdy_n;
-  assign TXD       = s_txd;
-  assign TXDRDY_n  = s_txrdy_n;
-  assign TXEMT_n   = s_txemt_n;
-  assign D_OUT     = (!s_ce_n & !s_read_n) ? regDataOut : 8'b0;
+  assign DTR_n = s_dtr_n;
+  assign RTS_n = s_rts_n;
+  assign RXDRDY_n = s_rxrdy_n;
+  assign TXD = s_txd;
+  assign TXDRDY_n = s_txrdy_n;
+  assign TXEMT_n = s_txemt_n;
 
-  reg [7:0] regDataOut;
 
-  reg [7:0] regReceiveHoldingRegister;
-  reg [7:0] regTransmitHoldingRegister;
-  reg [7:0] regStatusRegister;
-  reg [7:0] regModeRegister;
-  reg [7:0] regCommandRegister;
 
+  assign D_OUT = (!s_ce_n & !s_read_n) ? regDataOut : 8'b0;
   /*
     /TxRDY
 
@@ -204,7 +224,6 @@ module SC2661_UART (
   assign cmd_forceRTSLow     = regCommandRegister[5];      // 0 = Force /RTS output high, 1= Force /RTS output low
   assign cmd_OperatingMode   = regCommandRegister[7:6];    // Operating Mode bits. 00 = Normal operation, 01= Async (Automatic Echo mode), Synch: SYN AND/OR DLE STRIPPING MODE, 01 = LOCAL LOOPBACK, 11=REMOTE LOOPBACK
 
-
   // Clear everything on reset
   always @(posedge BRCLK) begin
     if (s_reset) begin
@@ -217,7 +236,11 @@ module SC2661_UART (
       regDataInSendRegister <= 0;
       rxState <= RX_STATE_IDLE;
       txState <= TX_STATE_IDLE;
-    end else begin
+    end
+  end
+
+  always @(posedge BRCLK) begin
+    if (!s_reset) begin
       // Read and Write to registers
 
       if (cmd_rxEnabled|cmd_txEnabled) begin // Only update status register SR2 if RX or TX is enabled
@@ -277,13 +300,6 @@ module SC2661_UART (
     end
   end
 
-  // Receiver local variables
-  reg [3:0] rxState = 0;
-  reg [12:0] rxCounter = 0;
-  reg [2:0] rxBitNumber = 0;
-
-  wire receiver_input;
-
   // In Local Loopback - The transmitter output is connected to the receiver input.
   assign receiver_input = (cmd_OperatingMode == cmd_OperatingMode_LocalLoopback) ? s_txd : s_rxd;
 
@@ -292,72 +308,73 @@ module SC2661_UART (
   // The 68661 is conditioned to receiver data when the DCD input is Low and the RxEN bit in the commands register is true.
   // In this code we just receive when the RxEN bit is set. (Ignore DCD input)
   always @(posedge BRCLK) begin
-    if (!cmd_rxEnabled) begin
-      rxState <= RX_STATE_IDLE;
-    end else begin
-      case (rxState)
-        RX_STATE_IDLE: begin
-          if (receiver_input == 0) begin
-            if (regStatusRegister[1] == 1) begin
-              regStatusRegister[4] <= 1;  // Overrun: 0=Normal, 1=Overrun
+    if (!s_reset) begin
+      if (!cmd_rxEnabled) begin
+        rxState <= RX_STATE_IDLE;
+      end else begin
+        case (rxState)
+          RX_STATE_IDLE: begin
+            if (receiver_input == 0) begin
+              if (regStatusRegister[1] == 1) begin
+                regStatusRegister[4] <= 1;  // Overrun: 0=Normal, 1=Overrun
+              end
+
+              regStatusRegister[1] <= 0;  // Clear status register bit RxRDY  -- SET OVERRUN?
+              rxState              <= RX_STATE_START_BIT;
+              rxCounter            <= 1;
+              rxBitNumber          <= 0;
             end
-
-            regStatusRegister[1] <= 0;  // Clear status register bit RxRDY  -- SET OVERRUN?
-            rxState              <= RX_STATE_START_BIT;
-            rxCounter            <= 1;
-            rxBitNumber          <= 0;
           end
-        end
-        RX_STATE_START_BIT: begin
-          if (rxCounter == HALF_DELAY_WAIT) begin
-            rxState   <= RX_STATE_READ_WAIT;
+          RX_STATE_START_BIT: begin
+            if (rxCounter == HALF_DELAY_WAIT) begin
+              rxState   <= RX_STATE_READ_WAIT;
+              rxCounter <= 1;
+            end else rxCounter <= rxCounter + 1;
+          end
+          RX_STATE_READ_WAIT: begin
+            rxCounter <= rxCounter + 1;
+            if ((rxCounter + 1) == DELAY_FRAMES) begin
+              rxState <= RX_STATE_READ;
+            end
+          end
+          RX_STATE_READ: begin
             rxCounter <= 1;
-          end else rxCounter <= rxCounter + 1;
-        end
-        RX_STATE_READ_WAIT: begin
-          rxCounter <= rxCounter + 1;
-          if ((rxCounter + 1) == DELAY_FRAMES) begin
-            rxState <= RX_STATE_READ;
+            regReceiveHoldingRegister <= {
+              receiver_input, regReceiveHoldingRegister[7:1]
+            };  // Shift right and insert s_rxt at MSB.
+            rxBitNumber <= rxBitNumber + 1;
+            if (rxBitNumber == 3'b111) rxState <= RX_STATE_STOP_BIT;
+            else rxState <= RX_STATE_READ_WAIT;
           end
-        end
-        RX_STATE_READ: begin
-          rxCounter <= 1;
-          regReceiveHoldingRegister <= {
-            receiver_input, regReceiveHoldingRegister[7:1]
-          };  // Shift right and insert s_rxt at MSB.
-          rxBitNumber <= rxBitNumber + 1;
-          if (rxBitNumber == 3'b111) rxState <= RX_STATE_STOP_BIT;
-          else rxState <= RX_STATE_READ_WAIT;
-        end
-        RX_STATE_STOP_BIT: begin
-          rxCounter <= rxCounter + 1;
-          if ((rxCounter + 1) == DELAY_FRAMES) begin
-            rxState <= RX_STATE_DONE;
-            rxCounter <= 0;
-            regStatusRegister[1] <= 1;  // Set TXRDY
+          RX_STATE_STOP_BIT: begin
+            rxCounter <= rxCounter + 1;
+            if ((rxCounter + 1) == DELAY_FRAMES) begin
+              rxState <= RX_STATE_DONE;
+              rxCounter <= 0;
+              regStatusRegister[1] <= 1;  // Set RXRDY
+            end
           end
-        end
 
-        RX_STATE_DONE: begin
-          rxState <= RX_STATE_IDLE;
-          if (cmd_OperatingMode == cmd_OperatingMode_RemoteLoopback) begin
-            // Data assembled by the receiver are automatically placed in the
-            // transmit holding register and retransmitted by the transmitter on the TxD output.
+          RX_STATE_DONE: begin
+            rxState <= RX_STATE_IDLE;
+            if (cmd_OperatingMode == cmd_OperatingMode_RemoteLoopback) begin
+              // Data assembled by the receiver are automatically placed in the
+              // transmit holding register and retransmitted by the transmitter on the TxD output.
 
-            regTransmitHoldingRegister <= regReceiveHoldingRegister; // Write transmit holding register
-            regDataInSendRegister <= 1;  // Send data to transmitter
+              regTransmitHoldingRegister <= regReceiveHoldingRegister; // Write transmit holding register
+              regDataInSendRegister <= 1;  // Send data to transmitter
+            end
           end
-        end
-      endcase
+
+          default: begin
+            rxState <= RX_STATE_IDLE;  // Very unexpected, go to IDLE
+          end
+
+        endcase
+      end
     end
   end
 
-  // Transmitter local variables
-  reg [3:0] txState;
-  reg [24:0] txCounter;
-  reg [2:0] txBitNumber;
-  reg txBit;
-  reg regDataInSendRegister;  // 1=Data in send register (=>TxEmpty =0)
 
   assign s_txd = txBit;
 
@@ -367,66 +384,68 @@ module SC2661_UART (
   // The EPCI is conditioned to transmit data when the CTS input is Low and the TxEN command register bit is set.
   // In this code we just transmit when the TxEN command register bit is set. (Ignore CTS input)
   always @(posedge BRCLK) begin
-    if (!cmd_txEnabled) begin
-      txState <= TX_STATE_IDLE;
-      txBit <= 1;
-      txBitNumber <= 0;
-      regDataInSendRegister <= 0;
-      txCounter <= 0;
-    end else begin
-      case (txState)
-        TX_STATE_IDLE: begin
-          if (regDataInSendRegister) begin
-            regStatusRegister[0] <= 0;  // 0=Transmit Holding Register BUSY
-            txState              <= TX_STATE_START_BIT;
-            txCounter            <= 0;
-          end else begin
-            txBit <= 1;
-          end
-        end
-
-        TX_STATE_START_BIT: begin
-          txBit <= 0;
-          if ((txCounter + 1) == DELAY_FRAMES) begin
-            txState <= TX_STATE_WRITE;
-            txBitNumber <= 0;
-            txCounter <= 0;
-          end else txCounter <= txCounter + 1;
-        end
-
-        TX_STATE_WRITE: begin
-          txBit <= regTransmitHoldingRegister[txBitNumber];
-          if ((txCounter + 1) == DELAY_FRAMES) begin
-            if (txBitNumber == 3'b111) begin
-              txState <= TX_STATE_STOP_BIT;
+    if (!s_reset) begin
+      if (!cmd_txEnabled) begin
+        txState <= TX_STATE_IDLE;
+        txBit <= 1;
+        txBitNumber <= 0;
+        regDataInSendRegister <= 0;
+        txCounter <= 0;
+      end else begin
+        case (txState)
+          TX_STATE_IDLE: begin
+            if (regDataInSendRegister) begin
+              regStatusRegister[0] <= 0;  // 0=Transmit Holding Register BUSY
+              txState              <= TX_STATE_START_BIT;
+              txCounter            <= 0;
             end else begin
-              txState <= TX_STATE_WRITE;
-              txBitNumber <= txBitNumber + 1;
+              txBit <= 1;
             end
-            txCounter <= 0;
-          end else txCounter <= txCounter + 1;
-        end
+          end
 
-        TX_STATE_STOP_BIT: begin
-          txBit <= 1;
-          if ((txCounter + 1) == DELAY_FRAMES) begin
-            txState   <= TX_STATE_DONE;
-            txCounter <= 0;
-          end else txCounter <= txCounter + 1;
-        end
+          TX_STATE_START_BIT: begin
+            txBit <= 0;
+            if ((txCounter + 1) == DELAY_FRAMES) begin
+              txState <= TX_STATE_WRITE;
+              txBitNumber <= 0;
+              txCounter <= 0;
+            end else txCounter <= txCounter + 1;
+          end
 
-        TX_STATE_DONE: begin
-          regDataInSendRegister <= 0;
-          regStatusRegister[0] <= 1;  //1=Transmit Holding Register Empty
-          regStatusRegister[2] <= 1;  // TxEMT: 1=Transmit shift register empty
-          txState <= TX_STATE_IDLE;
-        end
+          TX_STATE_WRITE: begin
+            txBit <= regTransmitHoldingRegister[txBitNumber];
+            if ((txCounter + 1) == DELAY_FRAMES) begin
+              if (txBitNumber == 3'b111) begin
+                txState <= TX_STATE_STOP_BIT;
+              end else begin
+                txState <= TX_STATE_WRITE;
+                txBitNumber <= txBitNumber + 1;
+              end
+              txCounter <= 0;
+            end else txCounter <= txCounter + 1;
+          end
 
-      endcase
+          TX_STATE_STOP_BIT: begin
+            txBit <= 1;
+            if ((txCounter + 1) == DELAY_FRAMES) begin
+              txState   <= TX_STATE_DONE;
+              txCounter <= 0;
+            end else txCounter <= txCounter + 1;
+          end
 
+          TX_STATE_DONE: begin
+            regDataInSendRegister <= 0;
+            regStatusRegister[0] <= 1;  //1=Transmit Holding Register Empty
+            regStatusRegister[2] <= 1;  // TxEMT: 1=Transmit shift register empty
+            txState <= TX_STATE_IDLE;
+          end
 
+          default: begin
+            txState <= TX_STATE_IDLE;  // Very unexpected, go to IDLE
+          end
 
-
+        endcase
+      end
     end
   end
 
