@@ -2,7 +2,7 @@
 ** FIFO 8 bit                                                            **
 **                                                                       **
 **                                                                       **
-** Last reviewed: 9-NOV-2024                                            **
+** Last reviewed: 11-NOV-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -13,6 +13,7 @@
 module FIFO_8BIT #(
     parameter integer DEPTH = 13  // Depth of the FIFO (maximum 16, default 13)
 ) (
+    input            clk,       // Clock
     input            rst,       // Asynchronous reset
     input            wr_en,     // Write enable
     input            rd_en,     // Read enable
@@ -34,24 +35,31 @@ module FIFO_8BIT #(
   reg [AddressWidth-1:0] rd_ptr;  // Read pointer
   reg [AddressWidth:0] fifo_count;  // Counter for number of elements in the FIFO
 
-  always @(posedge rd_en or posedge wr_en or posedge rst) begin
+  always @(posedge clk or posedge rst) begin
+    //always @(posedge rd_en or posedge wr_en or posedge rst) begin
     if (rst) begin
-      wr_ptr = 0;
-      rd_ptr = 0;
-      data_out = 8'b0;
-      fifo_count = 0;
-    end else if (wr_en && !full) begin
-      mem[wr_ptr] <= data_in;
-      wr_ptr <= (wr_ptr == (DEPTH - 1)) ? 0 : wr_ptr + 1;
-      fifo_count <= fifo_count + 1;
-    end else if (rd_en) begin
-      if (!empty) begin
-        data_out <= mem[rd_ptr];
-        rd_ptr <= (rd_ptr == (DEPTH - 1)) ? 0 : rd_ptr + 1;
-        fifo_count <= fifo_count - 1;
-      end else begin
-        data_out <= 8'b0;
+      wr_ptr <= 0;
+      rd_ptr <= 0;
+      data_out <= 8'b0;
+      fifo_count <= 0;
+    end else begin
+
+      if (wr_en && !full) begin
+        mem[wr_ptr] <= data_in;
+        wr_ptr <= (wr_ptr == (DEPTH - 1)) ? 0 : wr_ptr + 1;
+        fifo_count <= fifo_count + 1;
       end
+
+      if (rd_en) begin
+        if (!empty) begin
+          data_out <= mem[rd_ptr];
+          rd_ptr <= (rd_ptr == (DEPTH - 1)) ? 0 : rd_ptr + 1;
+          fifo_count <= fifo_count - 1;
+        end else begin
+          data_out <= 8'b0;
+        end
+      end
+
     end
   end
 

@@ -202,7 +202,7 @@ module DECODE_DGA (
   wire       s_xrm_n;
   wire       s_xrto;
   wire       s_xemn;
-  wire       s_xcln;
+  wire       s_xcl_n;
   wire       s_xmcl;
   wire       s_xdvn;
 
@@ -257,7 +257,7 @@ module DECODE_DGA (
   assign XIDB_3_0_OUT[3:0] = !s_epan_n ? s_idb_3_0_out[3:0] : XIDB_7_0_IN[3:0];
 
   assign XC10              = s_ca10;
-  assign XCLN              = s_xcln;
+  assign XCLN              = s_xcl_n;
   assign XCRN              = s_xcrn;
   assign XCSN              = s_xcsn;
   assign XDON              = s_xdon;
@@ -345,7 +345,8 @@ module DECODE_DGA (
   // ***********************************************************************************************************
 
   // FIFO IN wires
-  wire fifo_rst = ~s_xcln;
+  wire fifo_rst = ~s_xcl_n;
+  wire fifo_clk = s_xclk;
   wire fifo_wr_en = ~s_ldpanc_n;
   wire fifo_rd_en = ~s_xrm_n;
 
@@ -361,6 +362,7 @@ module DECODE_DGA (
   FIFO_8BIT #(
       .DEPTH(13)  // Depth of the FIFO (maximum 16)
   ) fifo_inst (
+      .clk(fifo_clk),
       .rst(fifo_rst),
       .wr_en(fifo_wr_en),
       .rd_en(fifo_rd_en),
@@ -377,7 +379,7 @@ module DECODE_DGA (
 
   DECODE_DGA_POW POW (
       .BDRY50N(s_xbdn),
-      .CLEAR(s_xcln),
+      .CLEAR(s_xcl_n),
       .CLOSC(s_xclo),
       .CLRTIN(s_clrtin),
       .CONTINUEN(s_xcon),
@@ -434,7 +436,7 @@ module DECODE_DGA (
       .CA10(s_ca10),
       .CCLRN(s_xcrn),
       .CEUARTN(s_xeun),
-      .CLEAR(s_xcln),
+      .CLEAR(s_xcl_n),
       .CLK1(s_xclk),
       .CLK2(s_xclk),
       .CLK3(s_xclk),
