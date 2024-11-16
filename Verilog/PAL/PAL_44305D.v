@@ -14,15 +14,16 @@ module PAL_44305D (
     input BRK_n,   //! I8 -
     input TERM_n,  //! I9 -
 
-    output WICA_n,  //! Y0_n -
-    output WCSTB_n, //! Y1_n -
+    output WICA_n,  //! Y0_n - WRITE PULSE TO MICROINSTRUCTION CACHE
+    output WCSTB_n, //! Y1_n - (e+f) WRITE PULSE TO WRITEABLE | (m+n) WRITE PULSE DURING LOAD CONTROL
 
-    output ECSL_n,  //! B0_n
-    output EWCA_n,  //! B1_n
-    output EUPP_n,  //! B2_n
-    output ELOW_n,  //! B3_n
-    input  WCA_n,   //! B4_n
-    input  LUA12    //! B5_n
+    output ECSL_n,  //! Enable Control Stroe (CSL negated)  B0_n - READ CONTROL STORE HOLD | HOLD OVERLAP WITH EWCA_n
+    output EWCA_n,  //! Enable WCA reg in mic ont MA        B1_n - ENABLE WCA REG. IN MIC ONTO MA |  AVOID BLIP ON NEXT CYCLE
+    output EUPP_n,  //! Enable Upper                        B2_n - NORMAL ADDRESSING | WRITE INTO MICROINSTRUCTION CACHE | ENABLE IN THE FIRST 50NS 
+    output ELOW_n,  //! Enable Low                          B3_n - NORMAL ADDRESSING. ON FETCH EITHER MI |  ENABLE ACCORDING TO LUA12 BEFORE FETCH | OR A MAP IS USED. |  DO A MAP | ON BRK: USE BANK SELECTED BY LUA12.
+
+    input WCA_n,  //! B4_n - WRITE INTO MICROINSTRUCTION CACHE (negated)
+    input LUA12   //! B5_n
 );
 
   // Inverted input signals for active-high usage
@@ -44,30 +45,30 @@ module PAL_44305D (
   assign WICA_n = ~(WCA & FETCH & TERM_n);  // WRITE PULSE TO MICROINSTRUCTION CACHE
 
   // Logic for WCSTB_n (active-low)
-  assign WCSTB_n = ~((CC3_n & CC2 & CC1 & WCS & RWCS) |  // e+f WRITE PULSE TO WRITEABLE
-      (CC3 & CC2_n & CC1 & LCS));  // m+n WRITE PULSE DURING LOAD CONTROL
+  assign WCSTB_n = ~((CC3_n & CC2 & CC1 & WCS & RWCS) |     // e+f WRITE PULSE TO WRITEABLE
+      (CC3 & CC2_n & CC1 & LCS));                           // m+n WRITE PULSE DURING LOAD CONTROL
 
   // Logic for ECSL_n (active-low)
-  assign ECSL_n = ~((RWCS & WCS_n & CC3 & TERM_n) |  // READ CONTROL STORE HOLD
-      (RWCS & WCS_n & CC1_n & CC2 & TERM_n));  // HOLD OVERLAP WITH EWCA_n
+  assign ECSL_n = ~((RWCS & WCS_n & CC3 & TERM_n) |     // READ CONTROL STORE HOLD
+      (RWCS & WCS_n & CC1_n & CC2 & TERM_n));           // HOLD OVERLAP WITH EWCA_n
 
   // Logic for EWCA_n (active-low)
-  assign EWCA_n = ~((RWCS & CC3_n & CC2 & TERM_n) |  // ENABLE WCA REG. IN MIC ONTO MA
-      (RWCS & CC3_n & CC1 & TERM_n));  // AVOID BLIP ON NEXT CYCLE
+  assign EWCA_n = ~((RWCS & CC3_n & CC2 & TERM_n) |     // ENABLE WCA REG. IN MIC ONTO MA
+      (RWCS & CC3_n & CC1 & TERM_n));                  // AVOID BLIP ON NEXT CYCLE
 
   // Logic for EUPP_n (active-low)
-  assign EUPP_n = ~(LUA12 |  // NORMAL ADDRESSING
-      (WCA & FETCH) |  // WRITE INTO MICROINSTRUCTION CACHE
-      (FETCH & CC1_n & CC2_n & CC3_n & TERM_n)  // ENABLE IN THE FIRST 50NS 
+  assign EUPP_n = ~(LUA12 |                     // NORMAL ADDRESSING
+      (WCA & FETCH) |                           // WRITE INTO MICROINSTRUCTION CACHE
+      (FETCH & CC1_n & CC2_n & CC3_n & TERM_n)  // ENABLE IN THE FIRST 50NS
       );  // + HOLD TIME = 75NS
 
   // Logic for ELOW_n (active-low)
-  assign ELOW_n = ~((LUA12_n & FETCH_n) |  // NORMAL ADDRESSING. ON FETCH EITHER MI
-      (LUA12_n & TERM) |  // ENABLE ACCORDING TO LUA12 BEFORE FETCH
-      (FORM & BRK_n & CC2 & TERM_n) |  // OR A MAP IS USED.
-      (FORM & BRK_n & CC3 & TERM_n) |  // DO A MAP
-      (LUA12_n & BRK & CC2 & TERM_n) |  // ON BRK: USE BANK SELECTED BY LUA12.
-      (LUA12_n & BRK & CC3 & TERM_n));  // 
+  assign ELOW_n = ~((LUA12_n & FETCH_n) |   // NORMAL ADDRESSING. ON FETCH EITHER MI
+      (LUA12_n & TERM) |                    // ENABLE ACCORDING TO LUA12 BEFORE FETCH
+      (FORM & BRK_n & CC2 & TERM_n) |       // OR A MAP IS USED.
+      (FORM & BRK_n & CC3 & TERM_n) |       // DO A MAP
+      (LUA12_n & BRK & CC2 & TERM_n) |      // ON BRK: USE BANK SELECTED BY LUA12.
+      (LUA12_n & BRK & CC3 & TERM_n));      //
 
 endmodule
 
