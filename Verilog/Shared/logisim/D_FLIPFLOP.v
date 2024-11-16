@@ -12,13 +12,14 @@
 module D_FLIPFLOP #(
     parameter integer InvertClockEnable = 1
 )(
-    input clock,
-    input d,
-    input preset,
-    input reset,
-    input tick,
-    output q,
-    output qBar
+    input clock,     //! Clock
+    input d,         //! D inpit (DATA)
+    input preset,    //! PRESET - Active-high, sets Q to 1 when asserted
+    input reset,     //! RESET - Active-high, sets Q to 0 when asserted
+    input tick,      //! Tick (not used, needs to be refactored out)
+
+    output q,        //! Q out
+    output qBar      //! QBar out
 );
 
    /*******************************************************************************
@@ -31,6 +32,7 @@ module D_FLIPFLOP #(
    ** The registers are defined here                                             **
    *******************************************************************************/
    reg s_currentState;
+
 
    /*******************************************************************************
    ** The module functionality is described here                                 **
@@ -51,10 +53,6 @@ module D_FLIPFLOP #(
       s_currentState = 0;
    end
 
-   /*******************************************************************************
-   ** Here the update logic is defined                                           **
-   *******************************************************************************/
-   assign s_nextState  =  d;
 
    /*******************************************************************************
    ** Here the actual state register is defined                                  **
@@ -71,14 +69,15 @@ module D_FLIPFLOP #(
    end
    */
 
-   always @(posedge s_clock)
+   always @(posedge s_clock or posedge preset or posedge reset)
    begin
-      if (preset)
-        s_currentState <= 1'b1; // priority to pre-set
-      else if (reset)
-         s_currentState <= 1'b0;
-      else if (tick)
-         s_currentState <= s_nextState;
+      if (preset) begin
+        s_currentState <= 1'b1; // Asynchronous preset (set q = 1)
+      end else if (reset) begin
+         s_currentState <= 1'b0; // Asynchronous reset (set q = 0)
+      end else begin
+         s_currentState <= d; // Synchronous D latch on clock edge
+      end
    end
 
 endmodule
