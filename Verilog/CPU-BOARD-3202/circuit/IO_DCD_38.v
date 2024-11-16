@@ -308,7 +308,11 @@ module IO_DCD_38 (
   // Power-on-zener  (schematic shows a zener diode circuit, that after anlysis needs 14 uSec to go from logic high to low - based on the 10nF capacitor and 1k resistor)
   // At 40Mhz that is 567 clock cycles
 
-  assign s_power_on_zener   = regPowerOnClear;
+   // Power On Clear - 10ms delay
+   reg regPowerOnClear;
+   reg [10:0] regPowerOnDelay;
+
+   assign s_power_on_zener   = regPowerOnClear;
 
 
   // NOT Gate
@@ -319,18 +323,16 @@ module IO_DCD_38 (
   assign s_oc0_n            = ~s_oc0;
   assign s_oc1              = s_oc_1_0[1];
 
-  // Power On Clear - 10ms delay
-  reg regPowerOnClear;
-  reg [10:0] regPowerOnDelay;
+
 
   always @(posedge sysclk) begin
     if (sys_rst_n == 1'b0) begin
-      regPowerOnClear <= 1;  // Start with 1, and then set to 0 after 14us delay
+      regPowerOnClear <= 0;  // Start with 1, and then set to 0 after 14us delay
       regPowerOnDelay <= 0;
     end else begin
-      if (regPowerOnClear == 1) begin
-        if (regPowerOnDelay > 567) begin  //its 1418 clock cycles if we have 100MHZ
-          regPowerOnClear <= 0;
+      if (regPowerOnClear == 0) begin
+        if (regPowerOnDelay > 10) begin  //its 1418 clock cycles if we have 100MHZ- 575?. Make it easy for debugging cnt = 10
+          regPowerOnClear <= 1;
         end else begin
           regPowerOnDelay <= regPowerOnDelay + 1;
         end
