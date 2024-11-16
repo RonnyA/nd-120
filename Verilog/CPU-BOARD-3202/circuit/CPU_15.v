@@ -195,7 +195,7 @@ module CPU_15 (
   wire        s_double;
   wire        s_cclr_n;
   wire        s_bstp;
-  wire        s_pd18;
+  wire        s_wca_n;
   wire        s_dt_n;
   wire        s_fmiss;
   wire        s_fetch;
@@ -280,7 +280,7 @@ module CPU_15 (
   assign CA_9_0 = s_ca_10_0[9:0];
   assign CD_15_0_OUT = s_cd_15_0_out[15:0];
 
-  //TODO: Add assign of IDB out of this block based onIDB out from PROC or CS
+  //TODO: Add assign of IDB out of this block based on IDB out from PROC or CS
   assign IDB_15_0_OUT =
       s_proc_IDB_15_0_out[15:0] |
       s_cs_IDB_15_0_out[15:0]   |
@@ -291,6 +291,9 @@ module CPU_15 (
       s_cs_IDB_15_0_out[15:0]   |
       s_mmu_idb_15_0_out[15:0]  |
       IDB_15_0_IN;
+
+  assign s_cs_IDB_15_0_in = s_proc_IDB_15_0_out[15:0] | s_mmu_idb_15_0_out[15:0] | IDB_15_0_IN;
+
 
   assign LBA_3_0 = s_lba_3_0[3:0];
   assign LSHADOW = s_lshadow;
@@ -311,6 +314,17 @@ module CPU_15 (
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
+
+
+  /****** CPU_STOC_35.v is replaced by this line below ******/
+  // If STOC_n is high, output is high-impedance
+  assign s_cd_15_0_out[15:0] = s_stoc_n ? 16'b0 : s_stoc_idb_15_0_in[15:0];
+
+  /****** CPU_LAPA_23.v is replaced by this line below ******/
+  // is s_lapa_n is high, output is high-impedance
+  assign s_ppn_25_10[15:0] = s_lapa_n ? 16'b0 : {2'b0, s_la_23_10[13:0]};
+  // TODO: Or with other output ?
+
 
   CPU_PROC_32 PROC (
       .sysclk(sysclk),  // System clock in FPGA
@@ -374,7 +388,7 @@ module CPU_15 (
       .TRAP(s_trap),
       .UCLK(s_uclk),
       .VEX(s_vex),
-      .WCA_n(s_pd18),
+      .WCA_n(s_wca_n),
       .WCS_n(s_wcs_n),
       .WRFSTB(s_wrfstb),
       .LDEXM_n(LDEXM_n)
@@ -405,7 +419,7 @@ module CPU_15 (
       .RF_1_0(s_rf_1_0[1:0]),
       .RWCS_n(s_rwcs_n),
       .TERM_n(s_term_n),
-      .WCA_n(s_pd18),
+      .WCA_n(s_wca_n),
       .WCS_n(s_wcs_n),
 
       /* OUTPUTS */
@@ -457,7 +471,7 @@ module CPU_15 (
       .STP(s_stp),
       .SW1_CONSOLE(s_sw1_console),
       .UCLK(s_uclk),
-      .WCA_n(s_pd18),
+      .WCA_n(s_wca_n),
       .WCHIM_n(s_wchim_n),
       .WRITE(s_write),
       .LED1(s_led1)
@@ -465,13 +479,4 @@ module CPU_15 (
 
 
 
-  // CPU_STOC_35.v is replaced by this line
-
-  // If STOC_n is high, output is high-impedance
-  assign s_cd_15_0_out[15:0] = s_stoc_n ? 16'b0 : s_stoc_idb_15_0_in[15:0];
-
-  // CPU_LAPA_23.v is replaced by this line
-  // is s_lapa_n is high, output is high-impedance
-  assign s_ppn_25_10[15:0]   = s_lapa_n ? 16'b0 : {2'b0, s_la_23_10[13:0]};
-  // TODO: Or with other output ?
 endmodule
