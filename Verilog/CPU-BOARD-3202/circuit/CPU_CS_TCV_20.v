@@ -9,15 +9,15 @@
 ***************************************************************************/
 
 module CPU_CS_TCV_20 (
-    input  [63:0] CSBITS,
-    output [63:0] CSBITS_OUT,
+    input [63:0] CSBITS,  //! 64 bits CSBITS (input when reading from CSBITS to IDB OUT)
+    output [63:0] CSBITS_OUT,     //! 64 bits CSBITS (output when IDB IN writes a 16 bit part to the CSBITS)
 
-    input  [15:0] IDB_15_0_IN,
-    output [15:0] IDB_15_0_OUT,
+    input  [15:0] IDB_15_0_IN,  //! 16 bit IDB IN (when writing to CSBITS)
+    output [15:0] IDB_15_0_OUT, //! 16 bits IDB OUT (when reading a 16 bit word from CSBITS)
 
-    input       ECSL_n,
-    input       WCS_n,
-    input [3:0] EW_3_0_n  // output enable signals
+    input ECSL_n,                 //! When asserted (low), IDB 15:0 is connected to IDB 15:0. Source PAL_44305D, CPU_CS_CTL_18. Comment in the PAL source says "ECSL HOLD IN g AND h cycles"
+    input WCS_n,  //! Write Control Store (negated)
+    input [3:0] EW_3_0_n          //! Enable Word (4 bits, where the enabled word (0-3) has its bit set to 0. Chooses which 16 bits of the 64 bits CSBITS that is read or written
 );
 
 
@@ -36,11 +36,12 @@ module CPU_CS_TCV_20 (
   always @(*) begin
 
     regIDB_out = 0;
-    regCSBITS  = 0;
+    //regCSBITS  = 0;
 
     if (EW_3_0_n[0] == 0) begin
       if (DIR) begin
-        regIDB_out = regIDB_out | CSBITS[15:0];
+        //regIDB_out = regIDB_out | CSBITS[15:0];
+        regIDB_out = CSBITS[15:0];
       end else begin
         regCSBITS[15:0] = IDB_15_0_IN;
       end
@@ -48,7 +49,8 @@ module CPU_CS_TCV_20 (
 
     if (EW_3_0_n[1] == 0) begin
       if (DIR) begin
-        regIDB_out = regIDB_out | CSBITS[31:16];
+        //regIDB_out = regIDB_out | CSBITS[31:16];
+        regIDB_out = CSBITS[31:16];
       end else begin
         regCSBITS[31:16] = IDB_15_0_IN;
       end
@@ -56,7 +58,8 @@ module CPU_CS_TCV_20 (
 
     if (EW_3_0_n[2] == 0) begin
       if (DIR) begin
-        regIDB_out = regIDB_out | CSBITS[47:32];
+        //regIDB_out = regIDB_out | CSBITS[47:32];
+        regIDB_out = CSBITS[47:32];
       end else begin
         regCSBITS[47:32] = IDB_15_0_IN;
       end
@@ -64,7 +67,8 @@ module CPU_CS_TCV_20 (
 
     if (EW_3_0_n[3] == 0) begin
       if (DIR) begin
-        regIDB_out = regIDB_out | CSBITS[63:48];
+        //regIDB_out = regIDB_out | CSBITS[63:48];
+        regIDB_out = CSBITS[63:48];
       end else begin
         regCSBITS[63:48] = IDB_15_0_IN;
       end
