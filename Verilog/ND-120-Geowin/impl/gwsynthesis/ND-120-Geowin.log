@@ -1,0 +1,848 @@
+GowinSynthesis start
+Running parser ...
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_5.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_BCTL_6.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_BCTL_BDRV_7.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_BCTL_SYNC_8.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_9.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_BDLBD_10.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_CDLBD_11.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_LDBCTL_12.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_PESPEA_13.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_PPNLBD_14.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_15.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_16.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_ACAL_17.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_CTL_18.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_PROM_19.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_TCV_20.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_WCS_21_22.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_24.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_CACHE_25.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_CSR_26.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_HIT_27.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_PPNX_28.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_PTIDB_30.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_PT_29.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_32.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_CGA_33.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_CMDDEC_34.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CYC_36.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_37.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_DCD_38.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_PANCAL_40.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_REG_41.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_UART_42.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_43.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADDR_44.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADEC_45.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ERROR_47.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_LBDIF_48.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_RAMC_50.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_RAM_49.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA_COMM.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA_IDBS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA_PFIFC.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA_PFIFC_DELAY.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA_PFIFD.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA_POW.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F091.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F103.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F571.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F595.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F617.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F714.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F924.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA\circuit\BusDriver16.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA\circuit\CGA.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_ARG.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_DBR.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_GPR.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_OUTMUX.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_OUTMUX_IDBS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_OUTMUX_SEL8.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_QREG.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_RALU_LOGOP.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_RALU_MUX216L.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_SHIFT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_SMUX.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_STS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_SWAP.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_CPU_ALU_CONTR.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_CPU_ALU_OUTMUX_SEL7.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_CPU_ALU_RALU.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_CPU_ALU_RMUX.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_DCD\circuit\CGA_DCD.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_IDBCTL\circuit\CGA_IDBCTL.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_IDBCTL\circuit\CGA_IDBCTL_PGSREG.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_IDBCTL\circuit\CGA_IDBCTL_SEL6.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_CLR.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_CLR_CLRBIT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRGEL.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRGEL_HIGEL.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRGEL_HIRL.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRGEL_LOGEL.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRGEL_LORL.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRGEL_VMUX.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_MASK.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_MASK_MASKBIT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_MREQ.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_MDCD.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_CMP.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_CMP_MAGCMP.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_ISMUX.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_OSMUX.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_PTY.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_PTY_PTYENC.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_STAT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_STAT_SBIT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_VHR.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_IRSRC.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_ADD.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_AP09.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_APOS_CALCA.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_APOS_INC.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_DECODE.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_FASTADD.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_LA1025.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_LASEL.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_PTSEL.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT_PCR.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT_SEG.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT_XPT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_CONDREG.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_CSEL.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_IINC.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_INCOUNT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_IPOS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_MASEL.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_MASEL_REPEAT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_STACK.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_STACK_BIT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_STACK_BIT12.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_WCAREG.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TESTMUX\circuit\CGA_TESTMUX.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_BRKDET.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_TBUF.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_TVGEN.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_TVGEN_P2.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_WRF\circuit\CGA_WRF.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_WRF\circuit\CGA_WRF_RBLOCK.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_WRF\circuit\CGA_WRF_RBLOCK_DR16.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_WRF\circuit\CGA_WRF_RBLOCK_LR16.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_WRF\circuit\CGA_WRF_RBLOCK_PREG.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_WRF\circuit\CGA_WRF_RBLOCK_SEL16.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\ND120_TOP.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44302B.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44303B.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44304E.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44305D.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44306A.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44307C.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44310D.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44401B.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44402D.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44403C.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44404C.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44407A.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44408B.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44445B.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44446B.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44511A.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44601B.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44801A.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44803A.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44902A.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44904B.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_45001B.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_45008B.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_45009B.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\AND_GATE.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\AND_GATE_3_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\AND_GATE_4_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\AND_GATE_6_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Adder.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Comparator.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\D_FLIPFLOP.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Decoder_8.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\FullAdder.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\J_K_FLIPFLOP.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Multiplexer_2.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Multiplexer_2_w_enable.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Multiplexer_4.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Multiplexer_8.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Multiplexer_bus_2.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_3_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_4_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_5_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_6_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_7_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_8_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE_3_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE_4_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_3_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_4_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_5_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_6_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_7_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_8_INPUTS.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\XNOR_GATE_ONEHOT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\XOR_GATE_ONEHOT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\A02.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\CMP4.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\L4.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\L8.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\LATCH.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\M169C.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX21L.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX21LP.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX24P.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX31LP.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX34P.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX41P.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX81.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\ND38GHP.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\ND38GLP.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\R41P.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\R81.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\R81P.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\RMUX_Gates.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\SCAN_FF.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\SCAN_WITH_RESET_N.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\SCAN_WITH_SET_N.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\SR44.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\AM29833A.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\AM29841.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\AM29861A.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\AM29C821.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\Am9150.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\FIFO_8BIT.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\IDT6168A_20.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\IMS1403_25.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v'
+Undeclared symbol 'regReceiveHoldingRegister_out', assumed default net type 'wire'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":58)
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SIP1M9.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TMM2018D_25.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74139.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74241.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74244.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74245.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74273.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74373.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74374.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74393.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74534.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74646.v'
+Analyzing Verilog file 'E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74648.v'
+Compiling module 'ND120_TOP'("E:\Dev\Repos\Ronny\nd-120\Verilog\ND120_TOP.v":24)
+Compiling module 'ND3202D'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":15)
+WARN  (EX3073) : Port 'MDLY_n' remains unconnected for this instance("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CYC_36.v":287)
+WARN  (EX3073) : Port 'NOWRIT_n' remains unconnected for this instance("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CYC_36.v":310)
+Compiling module 'CYC_36'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CYC_36.v":12)
+Compiling module 'PAL_44601B'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44601B.v":21)
+Compiling module 'PAL_44307C'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44307C.v":12)
+Compiling module 'PAL_44403C'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44403C.v":16)
+Compiling module 'PAL_44404C'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44404C.v":13)
+Compiling module 'CPU_15'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_15.v":18)
+Compiling module 'CPU_PROC_32'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_32.v":13)
+Compiling module 'AM29841'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\AM29841.v":5)
+WARN  (EX2420) : Latch inferred for net 'Q_Latch[9]'; We do not recommend the use of latches in FPGA designs, as they may lead to timing problems("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\AM29841.v":19)
+Compiling module 'CPU_PROC_CMDDEC_34'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_CMDDEC_34.v":10)
+Compiling module 'PAL_44407A'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44407A.v":10)
+Compiling module 'PAL_44408B'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44408B.v":19)
+Compiling module 'PAL_44511A'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44511A.v":19)
+Compiling module 'TTL_74245'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74245.v":8)
+Compiling module 'TMM2018D_25'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TMM2018D_25.v":5)
+Extracting RAM for identifier 'memory_array'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TMM2018D_25.v":23)
+Compiling module 'CPU_PROC_CGA_33'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_CGA_33.v":12)
+Compiling module 'TTL_74374'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74374.v":5)
+Compiling module 'CGA'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA\circuit\CGA.v":13)
+Compiling module 'CGA_ALU'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU.v":14)
+Compiling module 'D_FLIPFLOP(InvertClockEnable=0)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\D_FLIPFLOP.v":12)
+Compiling module 'CGA_CPU_ALU_RALU'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_CPU_ALU_RALU.v":13)
+Compiling module 'NAND_GATE(BubblesMask=2'b00)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":9)
+Compiling module 'NAND_GATE_3_INPUTS(BubblesMask=3'b000)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_3_INPUTS.v":9)
+Compiling module 'NAND_GATE_4_INPUTS(BubblesMask=4'h0)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_4_INPUTS.v":9)
+Compiling module 'NAND_GATE_8_INPUTS(BubblesMask=8'h00)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_8_INPUTS.v":9)
+Compiling module 'AND_GATE(BubblesMask=2'b00)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\AND_GATE.v":9)
+Compiling module 'NAND_GATE_6_INPUTS(BubblesMask=65'b00000000000000000000000000000000000000000000000000000000000000000)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_6_INPUTS.v":9)
+Compiling module 'Adder(extendedBits=17,nrOfBits=16)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Adder.v":7)
+Compiling module 'CGA_ALU_RALU_MUX216L'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_RALU_MUX216L.v":13)
+Compiling module 'MUX21LP'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX21LP.v":7)
+Compiling module 'Multiplexer_2'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Multiplexer_2.v":9)
+Compiling module 'CGA_ALU_RALU_LOGOP'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_RALU_LOGOP.v":13)
+Compiling module 'MUX41P'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX41P.v":8)
+Compiling module 'Multiplexer_4'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Multiplexer_4.v":8)
+Compiling module 'CGA_ALU_SHIFT'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_SHIFT.v":12)
+Compiling module 'MUX31LP'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX31LP.v":8)
+Compiling module 'CGA_ALU_STS'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_STS.v":14)
+Compiling module 'R41P'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\R41P.v":10)
+Compiling module 'SCAN_FF'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\SCAN_FF.v":19)
+Compiling module 'OR_GATE(BubblesMask=2'b00)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":9)
+Compiling module 'CGA_ALU_GPR'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_GPR.v":12)
+Compiling module 'CGA_ALU_DBR'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_DBR.v":15)
+Compiling module 'CGA_ALU_ARG'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_ARG.v":14)
+Compiling module 'R81'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\R81.v":10)
+Compiling module 'CGA_ALU_SWAP'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_SWAP.v":14)
+Compiling module 'CGA_ALU_OUTMUX'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_OUTMUX.v":13)
+Compiling module 'CGA_ALU_OUTMUX_SEL8'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_OUTMUX_SEL8.v":14)
+Compiling module 'CGA_CPU_ALU_OUTMUX_SEL7'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_CPU_ALU_OUTMUX_SEL7.v":13)
+Compiling module 'OR_GATE_7_INPUTS(BubblesMask=65'b00000000000000000000000000000000000000000000000000000000001111111)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_7_INPUTS.v":9)
+Compiling module 'CGA_ALU_OUTMUX_IDBS'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_OUTMUX_IDBS.v":13)
+Compiling module 'NAND_GATE_5_INPUTS(BubblesMask=65'b00000000000000000000000000000000000000000000000000000000000000000)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_5_INPUTS.v":9)
+Compiling module 'ND38GLP'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\ND38GLP.v":12)
+Compiling module 'Decoder_8'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Decoder_8.v":7)
+Compiling module 'R81P'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\R81P.v":11)
+Compiling module 'CGA_ALU_QREG'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_QREG.v":13)
+Compiling module 'CGA_CPU_ALU_RMUX'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_CPU_ALU_RMUX.v":13)
+Compiling module 'RMUX_Gates'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\RMUX_Gates.v":11)
+Compiling module 'NOR_GATE(BubblesMask=2'b00)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE.v":9)
+Compiling module 'CGA_ALU_SMUX'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_SMUX.v":13)
+Compiling module 'CGA_CPU_ALU_CONTR'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_CPU_ALU_CONTR.v":13)
+Compiling module 'NOR_GATE_3_INPUTS(BubblesMask=3'b000)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE_3_INPUTS.v":9)
+WARN  (EX1998) : Net 's_power' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_CPU_ALU_CONTR.v":157)
+Compiling module 'CGA_TRAP'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP.v":14)
+Compiling module 'CGA_TRAP_TVGEN'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_TVGEN.v":13)
+Compiling module 'OR_GATE_8_INPUTS(BubblesMask=8'hFF)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_8_INPUTS.v":9)
+Compiling module 'OR_GATE_5_INPUTS(BubblesMask=65'b00000000000000000000000000000000000000000000000000000000000011111)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_5_INPUTS.v":9)
+Compiling module 'OR_GATE_3_INPUTS(BubblesMask=3'b111)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_3_INPUTS.v":9)
+Compiling module 'CGA_TRAP_TVGEN_P2'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_TVGEN_P2.v":13)
+Compiling module 'CGA_TRAP_BRKDET'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_BRKDET.v":13)
+Compiling module 'AND_GATE_3_INPUTS(BubblesMask=3'b000)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\AND_GATE_3_INPUTS.v":9)
+Compiling module 'OR_GATE_4_INPUTS(BubblesMask=4'hF)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_4_INPUTS.v":9)
+Compiling module 'NOR_GATE(BubblesMask=2'b11)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE.v":9)
+Compiling module 'NAND_GATE(BubblesMask=2'b11)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":9)
+Compiling module 'NAND_GATE_3_INPUTS(BubblesMask=3'b111)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_3_INPUTS.v":9)
+Compiling module 'AND_GATE_4_INPUTS(BubblesMask=4'h0)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\AND_GATE_4_INPUTS.v":9)
+Compiling module 'A02'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\A02.v":21)
+Compiling module 'CGA_TRAP_TBUF'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_TBUF.v":14)
+WARN  (EX1998) : Net 's_ipt_15_9_out[5]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_TBUF.v":43)
+Compiling module 'CGA_IDBCTL'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_IDBCTL\circuit\CGA_IDBCTL.v":13)
+Compiling module 'CGA_IDBCTL_SEL6'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_IDBCTL\circuit\CGA_IDBCTL_SEL6.v":13)
+Compiling module 'CGA_IDBCTL_PGSREG'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_IDBCTL\circuit\CGA_IDBCTL_PGSREG.v":14)
+Compiling module 'CGA_WRF'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_WRF\circuit\CGA_WRF.v":12)
+Compiling module 'CGA_WRF_RBLOCK'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_WRF\circuit\CGA_WRF_RBLOCK.v":12)
+Compiling module 'CGA_WRF_RBLOCK_DR16'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_WRF\circuit\CGA_WRF_RBLOCK_DR16.v":12)
+Compiling module 'CGA_WRF_RBLOCK_PREG'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_WRF\circuit\CGA_WRF_RBLOCK_PREG.v":11)
+Compiling module 'L8'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\L8.v":11)
+Compiling module 'LATCH'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\LATCH.v":7)
+WARN  (EX2420) : Latch inferred for net 'Q'; We do not recommend the use of latches in FPGA designs, as they may lead to timing problems("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\LATCH.v":28)
+Compiling module 'CGA_WRF_RBLOCK_LR16'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_WRF\circuit\CGA_WRF_RBLOCK_LR16.v":12)
+Compiling module 'MUX24P'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX24P.v":1)
+Compiling module 'CGA_WRF_RBLOCK_SEL16'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_WRF\circuit\CGA_WRF_RBLOCK_SEL16.v":12)
+Compiling module 'CGA_DCD'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_DCD\circuit\CGA_DCD.v":13)
+Compiling module 'OR_GATE(BubblesMask=2'b11)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":9)
+Compiling module 'OR_GATE_6_INPUTS(BubblesMask=65'b00000000000000000000000000000000000000000000000000000000000111111)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_6_INPUTS.v":9)
+Compiling module 'NOR_GATE_4_INPUTS(BubblesMask=4'hF)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE_4_INPUTS.v":9)
+Compiling module 'OR_GATE_4_INPUTS(BubblesMask=4'h0)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_4_INPUTS.v":9)
+Compiling module 'NAND_GATE_7_INPUTS(BubblesMask=65'b00000000000000000000000000000000000000000000000000000000000000000)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_7_INPUTS.v":9)
+Compiling module 'ND38GHP'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\ND38GHP.v":11)
+Compiling module 'SCAN_WITH_RESET_N'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\SCAN_WITH_RESET_N.v":12)
+Compiling module 'BusDriver16'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA\circuit\BusDriver16.v":15)
+WARN  (EX2420) : Latch inferred for net 'IO_reg[15]'; We do not recommend the use of latches in FPGA designs, as they may lead to timing problems("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA\circuit\BusDriver16.v":43)
+Compiling module 'CGA_INTR'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR.v":13)
+Compiling module 'CGA_INTR_CNTLR'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR.v":12)
+Compiling module 'Multiplexer_bus_2(nrOfBits=16)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Multiplexer_bus_2.v":7)
+Compiling module 'CGA_INTR_CNTLR_VECGEN'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN.v":13)
+Compiling module 'CGA_INTR_CNTLR_VECGEN_VHR'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_VHR.v":13)
+Compiling module 'CGA_INTR_CNTLR_VECGEN_ISMUX'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_ISMUX.v":13)
+Compiling module 'AND_GATE(BubblesMask=2'b11)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\AND_GATE.v":9)
+Compiling module 'CGA_INTR_CNTLR_VECGEN_CMP'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_CMP.v":13)
+Compiling module 'CGA_INTR_CNTLR_VECGEN_CMP_MAGCMP'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_CMP_MAGCMP.v":13)
+Compiling module 'NOR_GATE_3_INPUTS(BubblesMask=3'b111)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE_3_INPUTS.v":9)
+Compiling module 'CGA_INTR_CNTLR_VECGEN_STAT'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_STAT.v":14)
+Compiling module 'XNOR_GATE_ONEHOT(BubblesMask=2'b00)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\XNOR_GATE_ONEHOT.v":9)
+Compiling module 'CGA_INTR_CNTLR_VECGEN_STAT_SBIT'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_STAT_SBIT.v":13)
+Compiling module 'CGA_INTR_CNTLR_VECGEN_OSMUX'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_OSMUX.v":13)
+Compiling module 'CGA_INTR_CNTLR_VECGEN_PTY'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_PTY.v":13)
+Compiling module 'CGA_INTR_CNTLR_VECGEN_PTY_PTYENC'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_VECGEN_PTY_PTYENC.v":13)
+Compiling module 'NOR_GATE_4_INPUTS(BubblesMask=4'h0)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE_4_INPUTS.v":9)
+Compiling module 'AND_GATE_3_INPUTS(BubblesMask=3'b111)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\AND_GATE_3_INPUTS.v":9)
+Compiling module 'CGA_INTR_CNTLR_CLR'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_CLR.v":14)
+Compiling module 'CGA_INTR_CNTLR_CLR_CLRBIT'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_CLR_CLRBIT.v":13)
+Compiling module 'CGA_INTR_CNTLR_IRGEL'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRGEL.v":13)
+Compiling module 'CGA_INTR_CNTLR_IRGEL_HIGEL'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRGEL_HIGEL.v":13)
+Compiling module 'CGA_INTR_CNTLR_IRGEL_VMUX'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRGEL_VMUX.v":13)
+Compiling module 'CGA_INTR_CNTLR_IRGEL_LOGEL'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRGEL_LOGEL.v":14)
+Compiling module 'CGA_INTR_CNTLR_IRGEL_HIRL'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRGEL_HIRL.v":14)
+Compiling module 'CGA_INTR_CNTLR_IRGEL_LORL'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRGEL_LORL.v":16)
+Compiling module 'CGA_INTR_CNTLR_MDCD'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_MDCD.v":13)
+Compiling module 'CGA_INTR_CNTLR_IRQ'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ.v":13)
+Compiling module 'CGA_INTR_CNTLR_IRQ_REG'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG.v":13)
+Compiling module 'CGA_INTR_CNTLR_IRQ_REG_RQBIT'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":13)
+Compiling module 'CGA_INTR_CNTLR_IRQ_MASK'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_MASK.v":13)
+Compiling module 'CGA_INTR_CNTLR_IRQ_MASK_MASKBIT'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_MASK_MASKBIT.v":13)
+Compiling module 'CGA_INTR_CNTLR_IRQ_MREQ'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_MREQ.v":14)
+Compiling module 'CGA_INTR_IRSRC'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_IRSRC.v":13)
+Compiling module 'CGA_MAC'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC.v":13)
+Compiling module 'CGA_MAC_AP09'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_AP09.v":13)
+Compiling module 'CGA_MAC_APOS_CALCA'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_APOS_CALCA.v":13)
+Compiling module 'CGA_MAC_APOS_INC'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_APOS_INC.v":13)
+Compiling module 'FullAdder(extendedBits=2)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\FullAdder.v":9)
+Compiling module 'CGA_MAC_SEGPT'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT.v":14)
+Compiling module 'CGA_MAC_SEGPT_XPT'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT_XPT.v":13)
+Compiling module 'L4'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\L4.v":10)
+Compiling module 'CGA_MAC_SEGPT_SEG'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT_SEG.v":12)
+Compiling module 'CGA_MAC_SEGPT_PCR'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT_PCR.v":14)
+WARN  (EX1998) : Net 's_pcr_14_12_10_9_n_out[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT_PCR.v":27)
+WARN  (EX1998) : Net 's_pcr_15_7_2_0_out[6]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT_PCR.v":28)
+WARN  (EX1998) : Net 's_fidbo_15_7_2_0[6]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT.v":41)
+Compiling module 'CGA_MAC_PTSEL'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_PTSEL.v":13)
+Compiling module 'J_K_FLIPFLOP(InvertClockEnable=0)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\J_K_FLIPFLOP.v":10)
+Compiling module 'CGA_MAC_LASEL'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_LASEL.v":13)
+Compiling module 'CGA_MAC_LA1025'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_LA1025.v":13)
+Compiling module 'CGA_MAC_DECODE'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_DECODE.v":13)
+Compiling module 'CGA_MAC_ADD'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_ADD.v":13)
+Compiling module 'CGA_MAC_FASTADD'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_FASTADD.v":13)
+Compiling module 'Adder(extendedBits=9,nrOfBits=8)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Adder.v":7)
+WARN  (EX1998) : Net 's_cd_7_0[7]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_ADD.v":32)
+Compiling module 'CGA_MIC'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC.v":13)
+Compiling module 'D_FLIPFLOP'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\D_FLIPFLOP.v":12)
+Compiling module 'CGA_MIC_INCOUNT'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_INCOUNT.v":13)
+Compiling module 'XOR_GATE_ONEHOT(BubblesMask=2'b00)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\XOR_GATE_ONEHOT.v":9)
+Compiling module 'M169C'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\M169C.v":12)
+Compiling module 'AND_GATE_6_INPUTS(BubblesMask=65'b00000000000000000000000000000000000000000000000000000000000000000)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\AND_GATE_6_INPUTS.v":9)
+Compiling module 'MUX21L'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX21L.v":10)
+Compiling module 'MUX34P'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX34P.v":10)
+Compiling module 'CGA_MIC_CONDREG'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_CONDREG.v":13)
+Compiling module 'CMP4'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\CMP4.v":10)
+Compiling module 'Comparator(nrOfBits=4)'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Comparator.v":9)
+Compiling module 'CGA_MIC_IINC'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_IINC.v":13)
+Compiling module 'CGA_MIC_STACK'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_STACK.v":13)
+Compiling module 'CGA_MIC_STACK_BIT'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_STACK_BIT.v":13)
+Compiling module 'SR44'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\SR44.v":11)
+Compiling module 'CGA_MIC_STACK_BIT12'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_STACK_BIT12.v":14)
+Compiling module 'CGA_MIC_MASEL'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_MASEL.v":13)
+Compiling module 'CGA_MIC_MASEL_REPEAT'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_MASEL_REPEAT.v":13)
+Compiling module 'SCAN_WITH_SET_N'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\SCAN_WITH_SET_N.v":10)
+Compiling module 'CGA_MIC_WCAREG'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_WCAREG.v":13)
+Compiling module 'CGA_MIC_IPOS'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_IPOS.v":13)
+Compiling module 'CGA_MIC_CSEL'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_CSEL.v":13)
+Compiling module 'Multiplexer_8'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Multiplexer_8.v":7)
+Compiling module 'CGA_TESTMUX'("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TESTMUX\circuit\CGA_TESTMUX.v":13)
+Compiling module 'MUX81'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\MUX81.v":10)
+Compiling module 'CPU_CS_16'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_16.v":11)
+Compiling module 'CPU_CS_PROM_19'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_PROM_19.v":13)
+WARN  (EX1998) : Net 's_databus[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_PROM_19.v":23)
+Compiling module 'CPU_CS_WCS_21_22'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_WCS_21_22.v":17)
+Compiling module 'IDT6168A_20'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\IDT6168A_20.v":8)
+Extracting RAM for identifier 'memory_array'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\IDT6168A_20.v":20)
+Compiling module 'CPU_CS_TCV_20'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_TCV_20.v":11)
+Compiling module 'CPU_CS_CTL_18'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_CTL_18.v":11)
+Compiling module 'TTL_74139'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74139.v":9)
+Compiling module 'PAL_44305D'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44305D.v":5)
+Compiling module 'CPU_CS_ACAL_17'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_ACAL_17.v":12)
+Compiling module 'TTL_74373'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74373.v":5)
+WARN  (EX2420) : Latch inferred for net 'Q_Latch[7]'; We do not recommend the use of latches in FPGA designs, as they may lead to timing problems("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74373.v":22)
+Compiling module 'CPU_MMU_24'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_24.v":11)
+Compiling module 'CPU_MMU_HIT_27'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_HIT_27.v":12)
+Compiling module 'CPU_MMU_PPNX_28'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_PPNX_28.v":11)
+Compiling module 'CPU_MMU_PTIDB_30'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_PTIDB_30.v":13)
+Compiling module 'CPU_MMU_CSR_26'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_CSR_26.v":10)
+Compiling module 'CPU_MMU_CACHE_25'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_CACHE_25.v":12)
+Compiling module 'PAL_44402D'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44402D.v":22)
+Compiling module 'Am9150'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\Am9150.v":28)
+Extracting RAM for identifier 'memory_array'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\Am9150.v":45)
+WARN  (EX1998) : Net 's_21f_in[3]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_CACHE_25.v":85)
+Compiling module 'PAL_44306A'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44306A.v":4)
+Compiling module 'CPU_MMU_PT_29'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_PT_29.v":11)
+Compiling module 'IMS1403_25'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\IMS1403_25.v":6)
+WARN  (EX1998) : Net 's_idb_15_0_out[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_24.v":70)
+WARN  (EX1998) : Net 's_pt_15_0_out[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_24.v":71)
+WARN  (EX1998) : Net 's_ppn_25_10_out[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_24.v":126)
+WARN  (EX1998) : Net 's_pt_ppn_25_10_in[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_24.v":130)
+WARN  (EX1998) : Net 's_ppnx_ppn_25_10_in[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_24.v":149)
+WARN  (EX1998) : Net 's_cd_15_0_in[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_15.v":130)
+WARN  (EX1998) : Net 's_proc_IDB_15_0_in[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_15.v":132)
+WARN  (EX1998) : Net 's_cs_IDB_15_0_in[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_15.v":134)
+WARN  (EX1998) : Net 's_mreq' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_15.v":163)
+WARN  (EX1998) : Net 's_mmu_15_0_in[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_15.v":208)
+WARN  (EX1998) : Net 's_mmu_idb_15_0_in[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_15.v":211)
+WARN  (EX1998) : Net 's_mmu_ppn_25_10_in[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_15.v":214)
+Compiling module 'TTL_74244'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74244.v":12)
+Compiling module 'IO_37'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_37.v":12)
+Compiling module 'IO_REG_41'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_REG_41.v":10)
+Compiling module 'TTL_74273'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74273.v":13)
+Compiling module 'IO_PANCAL_40'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_PANCAL_40.v":14)
+Compiling module 'IO_UART_42'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_UART_42.v":12)
+Compiling module 'AM29C821'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\AM29C821.v":16)
+Compiling module 'SC2661_UART'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":10)
+WARN  (EX3791) : Expression size 8 truncated to fit in target size 1("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":58)
+Compiling module 'IO_DCD_38'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_DCD_38.v":11)
+WARN  (EX3791) : Expression size 12 truncated to fit in target size 11("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_DCD_38.v":335)
+Compiling module 'TTL_74393'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74393.v":6)
+WARN  (EX3791) : Expression size 5 truncated to fit in target size 4("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74393.v":24)
+Compiling module 'DECODE_DGA'("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA.v":17)
+Compiling module 'F091'("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F091.v":10)
+Compiling module 'FIFO_8BIT'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\FIFO_8BIT.v":13)
+Extracting RAM for identifier 'mem'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\FIFO_8BIT.v":33)
+WARN  (EX3791) : Expression size 5 truncated to fit in target size 4("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\FIFO_8BIT.v":49)
+WARN  (EX3791) : Expression size 6 truncated to fit in target size 5("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\FIFO_8BIT.v":50)
+WARN  (EX3791) : Expression size 5 truncated to fit in target size 4("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\FIFO_8BIT.v":56)
+WARN  (EX3791) : Expression size 32 truncated to fit in target size 5("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\FIFO_8BIT.v":57)
+Compiling module 'DECODE_DGA_POW'("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA_POW.v":13)
+Compiling module 'F714'("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F714.v":11)
+WARN  (EX2666) : Clock signal 's_t' cannot be used as a data signal("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F714.v":54)
+Compiling module 'F595'("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F595.v":15)
+WARN  (EX2420) : Latch inferred for net 'regQ'; We do not recommend the use of latches in FPGA designs, as they may lead to timing problems("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F595.v":50)
+Compiling module 'F617'("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F617.v":14)
+WARN  (EX3779) : 's_d' should be on the sensitivity list. Signal missing is added and assuming complete sensitivity list specified. RTL design and post-synthesis netlist simulations may differ as a result("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F617.v":48)
+WARN  (EX3779) : 's_d' should be on the sensitivity list. Signal missing is added and assuming complete sensitivity list specified. RTL design and post-synthesis netlist simulations may differ as a result("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F617.v":49)
+Compiling module 'F571'("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F571.v":11)
+Compiling module 'Multiplexer_2_w_enable'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\Multiplexer_2_w_enable.v":9)
+Compiling module 'F103'("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F103.v":11)
+Compiling module 'DECODE_DGA_IDBS'("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA_IDBS.v":15)
+Compiling module 'F924'("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\F924.v":11)
+Compiling module 'DECODE_DGA_COMM'("E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA_COMM.v":16)
+WARN  (EX3670) : Actual bit length 5 differs from formal bit length 4 for port 'BAUD_RATE_SWITCH'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":576)
+Compiling module 'MEM_43'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_43.v":11)
+Compiling module 'MEM_ADEC_45'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADEC_45.v":12)
+Compiling module 'PAL_44904B'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44904B.v":21)
+Compiling module 'PAL_44445B'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44445B.v":11)
+Compiling module 'PAL_44446B'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44446B.v":12)
+Compiling module 'MEM_LBDIF_48'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_LBDIF_48.v":11)
+Compiling module 'PAL_44310D'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44310D.v":5)
+WARN  (EX2420) : Latch inferred for net 'BDRY'; We do not recommend the use of latches in FPGA designs, as they may lead to timing problems("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44310D.v":65)
+Compiling module 'MEM_DATA_46'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":11)
+Compiling module 'J_K_FLIPFLOP'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\J_K_FLIPFLOP.v":10)
+Compiling module 'PAL_45008B'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_45008B.v":16)
+WARN  (EX2420) : Latch inferred for net 'DISB_reg'; We do not recommend the use of latches in FPGA designs, as they may lead to timing problems("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_45008B.v":91)
+Compiling module 'AM29833A'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\AM29833A.v":31)
+WARN  (EX1998) : Net 's_pd3' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":71)
+Compiling module 'MEM_ERROR_47'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ERROR_47.v":11)
+Compiling module 'PAL_45009B'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_45009B.v":16)
+WARN  (EX2420) : Latch inferred for net 'BLOCKL_reg'; We do not recommend the use of latches in FPGA designs, as they may lead to timing problems("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_45009B.v":83)
+Compiling module 'MEM_RAMC_50'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_RAMC_50.v":13)
+Compiling module 'PAL_44803A'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44803A.v":19)
+Compiling module 'PAL_44902A'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44902A.v":20)
+Compiling module 'MEM_ADDR_44'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADDR_44.v":11)
+Compiling module 'AM29861A'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\AM29861A.v":15)
+WARN  (EX2565) : Input 'Y_IN[9]' on this instance is undriven. Assigning to 0, simulation mismatch possible. Please assign the input or remove the declaration("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADDR_44.v":80)
+WARN  (EX2565) : Input 'Y_IN[8]' on this instance is undriven. Assigning to 0, simulation mismatch possible. Please assign the input or remove the declaration("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADDR_44.v":80)
+WARN  (EX2565) : Input 'Y_IN[7]' on this instance is undriven. Assigning to 0, simulation mismatch possible. Please assign the input or remove the declaration("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADDR_44.v":80)
+WARN  (EX2565) : Input 'Y_IN[6]' on this instance is undriven. Assigning to 0, simulation mismatch possible. Please assign the input or remove the declaration("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADDR_44.v":80)
+WARN  (EX2565) : Input 'Y_IN[5]' on this instance is undriven. Assigning to 0, simulation mismatch possible. Please assign the input or remove the declaration("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADDR_44.v":80)
+WARN  (EX2565) : Input 'Y_IN[4]' on this instance is undriven. Assigning to 0, simulation mismatch possible. Please assign the input or remove the declaration("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADDR_44.v":80)
+WARN  (EX2565) : Input 'Y_IN[3]' on this instance is undriven. Assigning to 0, simulation mismatch possible. Please assign the input or remove the declaration("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADDR_44.v":80)
+WARN  (EX2565) : Input 'Y_IN[2]' on this instance is undriven. Assigning to 0, simulation mismatch possible. Please assign the input or remove the declaration("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADDR_44.v":80)
+WARN  (EX2565) : Input 'Y_IN[1]' on this instance is undriven. Assigning to 0, simulation mismatch possible. Please assign the input or remove the declaration("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADDR_44.v":80)
+WARN  (EX2565) : Input 'Y_IN[0]' on this instance is undriven. Assigning to 0, simulation mismatch possible. Please assign the input or remove the declaration("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_ADDR_44.v":80)
+Compiling module 'MEM_RAM_49'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_RAM_49.v":16)
+Compiling module 'SIP1M9'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SIP1M9.v":14)
+WARN  (EX1998) : Net 's_dd_17_0_parity[16]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_RAM_49.v":56)
+WARN  (EX1998) : Net 's_dd_17_0_b0_out[17]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_RAM_49.v":60)
+WARN  (EX1998) : Net 's_dd_17_0_b1_out[17]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_RAM_49.v":76)
+WARN  (EX1998) : Net 's_dd_17_0_b2_out[17]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_RAM_49.v":91)
+WARN  (EX1998) : Net 's_bcgnt25' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_43.v":93)
+Compiling module 'BIF_5'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_5.v":11)
+Compiling module 'BIF_DPATH_9'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_9.v":12)
+Compiling module 'BIF_DPATH_PPNLBD_14'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_PPNLBD_14.v":11)
+Compiling module 'BIF_DPATH_CDLBD_11'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_CDLBD_11.v":11)
+Compiling module 'TTL_74646'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74646.v":11)
+Compiling module 'BIF_DPATH_BDLBD_10'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_BDLBD_10.v":10)
+Compiling module 'TTL_74648'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74648.v":11)
+WARN  (EX3791) : Expression size 16 truncated to fit in target size 8("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74648.v":68)
+WARN  (EX3791) : Expression size 16 truncated to fit in target size 8("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74648.v":72)
+WARN  (EX3791) : Expression size 16 truncated to fit in target size 8("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74648.v":89)
+WARN  (EX3791) : Expression size 16 truncated to fit in target size 8("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74648.v":105)
+Compiling module 'BIF_DPATH_PESPEA_13'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_PESPEA_13.v":11)
+Compiling module 'TTL_74534'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74534.v":8)
+Compiling module 'BIF_DPATH_LDBCTL_12'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_LDBCTL_12.v":11)
+Compiling module 'PAL_44303B'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44303B.v":5)
+WARN  (EX2420) : Latch inferred for net 'CBWRITE'; We do not recommend the use of latches in FPGA designs, as they may lead to timing problems("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44303B.v":55)
+Compiling module 'PAL_44302B'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44302B.v":5)
+WARN  (EX2420) : Latch inferred for net 'EMD'; We do not recommend the use of latches in FPGA designs, as they may lead to timing problems("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44302B.v":71)
+Compiling module 'PAL_44304E'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44304E.v":10)
+WARN  (EX2420) : Latch inferred for net 'BACT_reg'; We do not recommend the use of latches in FPGA designs, as they may lead to timing problems("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44304E.v":70)
+WARN  (EX1998) : Net 's_lbd_23_0_in[23]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_9.v":84)
+WARN  (EX1998) : Net 's_cdlbd_lbd_23_0_out[23]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_DPATH_9.v":89)
+Compiling module 'BIF_BCTL_6'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_BCTL_6.v":11)
+Compiling module 'PAL_44801A'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44801A.v":20)
+Compiling module 'PAL_44401B'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44401B.v":15)
+WARN  (EX2420) : Latch inferred for net 'DAP'; We do not recommend the use of latches in FPGA designs, as they may lead to timing problems("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44401B.v":106)
+Compiling module 'PAL_45001B'("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_45001B.v":16)
+WARN  (EX2420) : Latch inferred for net 'RERR_reg'; We do not recommend the use of latches in FPGA designs, as they may lead to timing problems("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_45001B.v":95)
+Compiling module 'BIF_BCTL_BDRV_7'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_BCTL_BDRV_7.v":10)
+Compiling module 'TTL_74241'("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\TTL_74241.v":7)
+Compiling module 'BIF_BCTL_SYNC_8'("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_BCTL_SYNC_8.v":11)
+WARN  (EX1998) : Net 's_test_n' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_BCTL_6.v":161)
+WARN  (EX1998) : Net 's_bd_23_19_n[4]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":110)
+WARN  (EX1998) : Net 's_ppn_23_19[4]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":114)
+WARN  (EX1998) : Net 's_uart_IDB_15_0_out[15]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":147)
+WARN  (EX1998) : Net 's_mem_lbd_23_0_out[23]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":151)
+WARN  (EX1998) : Net 's_bif_bd_23_0_n_in[23]' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":157)
+WARN  (EX1998) : Net 's_cc2_n' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":190)
+WARN  (EX1998) : Net 's_ebus_n' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":207)
+WARN  (EX1998) : Net 's_eccr' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":208)
+WARN  (EX1998) : Net 's_ecrq_n' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":210)
+WARN  (EX1998) : Net 's_hit' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":225)
+WARN  (EX1998) : Net 's_i1p' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":226)
+WARN  (EX1998) : Net 's_ioni' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":240)
+WARN  (EX1998) : Net 's_lev0' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":248)
+WARN  (EX1998) : Net 's_lprerr_n' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":252)
+WARN  (EX1998) : Net 's_lua12' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":254)
+WARN  (EX1998) : Net 's_mis0' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":259)
+WARN  (EX1998) : Net 's_refrq_n' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":284)
+WARN  (EX1998) : Net 's_rrf_n' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":287)
+WARN  (EX1998) : Net 's_sel5ms_n' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":292)
+WARN  (EX1998) : Net 's_trap_n' does not have a driver("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v":305)
+NOTE  (EX0101) : Current top module is "ND120_TOP"
+WARN  (EX0211) : The output port "D_OUT[7]" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":24)
+WARN  (EX0211) : The output port "D_OUT[6]" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":24)
+WARN  (EX0211) : The output port "D_OUT[5]" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":24)
+WARN  (EX0211) : The output port "D_OUT[4]" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":24)
+WARN  (EX0211) : The output port "D_OUT[3]" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":24)
+WARN  (EX0211) : The output port "D_OUT[2]" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":24)
+WARN  (EX0211) : The output port "D_OUT[1]" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":24)
+WARN  (EX0211) : The output port "D_OUT[0]" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":24)
+WARN  (EX0211) : The output port "DTR_n" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":26)
+WARN  (EX0211) : The output port "RTS_n" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":27)
+WARN  (EX0211) : The output port "RXDRDY_n" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":28)
+WARN  (EX0211) : The output port "TXD" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":29)
+WARN  (EX0211) : The output port "TXDRDY_n" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":30)
+WARN  (EX0211) : The output port "TXEMT_n" of module "SC2661_UART" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\SC2661_UART.v":31)
+WARN  (EX0211) : The output port "DD_17_0_IN[17]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[16]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[15]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[14]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[13]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[12]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[11]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[10]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[9]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[8]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[7]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[6]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[5]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[4]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[3]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[2]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[1]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (EX0211) : The output port "DD_17_0_IN[0]" of module "MEM_DATA_46" has no driver, assigning undriven bits to Z, simulation mismatch possible("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_DATA_46.v":28)
+WARN  (AG0100) : Find logical loop signal : "n11"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_6_INPUTS.v":66)
+WARN  (AG0100) : Find logical loop signal : "n12"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_6_INPUTS.v":67)
+WARN  (AG0100) : Find logical loop signal : "n13"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_6_INPUTS.v":68)
+WARN  (AG0100) : Find logical loop signal : "n14"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_6_INPUTS.v":69)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_6_INPUTS.v":69)
+WARN  (AG0100) : Find logical loop signal : "EXMN"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_DECODE.v":153)
+WARN  (AG0100) : Find logical loop signal : "s_exm_n"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT.v":124)
+WARN  (AG0100) : Find logical loop signal : "s_exm_n"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT_XPT.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_exm"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT_XPT.v":63)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\AND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\AND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "VEX"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT_XPT.v":55)
+WARN  (AG0100) : Find logical loop signal : "VEX"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_SEGPT.v":135)
+WARN  (AG0100) : Find logical loop signal : "VEX"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC.v":141)
+WARN  (AG0100) : Find logical loop signal : "s_vex"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_DCD\circuit\CGA_DCD.v":256)
+WARN  (AG0100) : Find logical loop signal : "s_vex_n"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_DCD\circuit\CGA_DCD.v":339)
+WARN  (AG0100) : Find logical loop signal : "s_realInput5"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_6_INPUTS.v":58)
+WARN  (AG0100) : Find logical loop signal : "n13"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_6_INPUTS.v":68)
+WARN  (AG0100) : Find logical loop signal : "n14"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_6_INPUTS.v":69)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_6_INPUTS.v":69)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_vacc_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_DCD\circuit\CGA_DCD.v":319)
+WARN  (AG0100) : Find logical loop signal : "VACCN"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_DCD\circuit\CGA_DCD.v":286)
+WARN  (AG0100) : Find logical loop signal : "s_vacc_n"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP.v":94)
+WARN  (AG0100) : Find logical loop signal : "s_vacc_n"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_TBUF.v":74)
+WARN  (AG0100) : Find logical loop signal : "s_vacc"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_TBUF.v":121)
+WARN  (AG0100) : Find logical loop signal : "VACC"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_TBUF.v":95)
+WARN  (AG0100) : Find logical loop signal : "s_vacc"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_BRKDET.v":101)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_3_INPUTS.v":45)
+WARN  (AG0100) : Find logical loop signal : "n7"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_3_INPUTS.v":53)
+WARN  (AG0100) : Find logical loop signal : "n8"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_3_INPUTS.v":54)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_3_INPUTS.v":54)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_4_INPUTS.v":48)
+WARN  (AG0100) : Find logical loop signal : "n8"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_4_INPUTS.v":57)
+WARN  (AG0100) : Find logical loop signal : "n9"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_4_INPUTS.v":58)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE_4_INPUTS.v":59)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE_3_INPUTS.v":46)
+WARN  (AG0100) : Find logical loop signal : "n7"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE_3_INPUTS.v":53)
+WARN  (AG0100) : Find logical loop signal : "n8"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE_3_INPUTS.v":54)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE_3_INPUTS.v":54)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NOR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "BRKN"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_BRKDET.v":107)
+WARN  (AG0100) : Find logical loop signal : "BRKN"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP.v":101)
+WARN  (AG0100) : Find logical loop signal : "XBRKN"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA\circuit\CGA.v":591)
+WARN  (AG0100) : Find logical loop signal : "n4"("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_CMDDEC_34.v":46)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_CMDDEC_34.v":46)
+WARN  (AG0100) : Find logical loop signal : "BRK_n"("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_CMDDEC_34.v":46)
+WARN  (AG0100) : Find logical loop signal : "BRK_n"("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_32.v":267)
+WARN  (AG0100) : Find logical loop signal : "s_brk_n"("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_CTL_18.v":69)
+WARN  (AG0100) : Find logical loop signal : "n56"("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44305D.v":67)
+WARN  (AG0100) : Find logical loop signal : "n61"("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44305D.v":68)
+WARN  (AG0100) : Find logical loop signal : "n62"("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44305D.v":68)
+WARN  (AG0100) : Find logical loop signal : "n63"("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44305D.v":68)
+WARN  (AG0100) : Find logical loop signal : "n67"("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44305D.v":69)
+WARN  (AG0100) : Find logical loop signal : "n71"("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44305D.v":70)
+WARN  (AG0100) : Find logical loop signal : "ELOW_n"("E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44305D.v":70)
+WARN  (AG0100) : Find logical loop signal : "ELOW_n"("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_CTL_18.v":81)
+WARN  (AG0100) : Find logical loop signal : "s_elow_n"("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_WCS_21_22.v":72)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\IDT6168A_20.v":31)
+WARN  (AG0100) : Find logical loop signal : "n81"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\IDT6168A_20.v":46)
+WARN  (AG0100) : Find logical loop signal : "D_3_0_OUT[1]"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\support\IDT6168A_20.v":46)
+WARN  (AG0100) : Find logical loop signal : "CSBITS_63_0_OUT[33]"("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_WCS_21_22.v":101)
+WARN  (AG0100) : Find logical loop signal : "CSBITS[33]"("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_16.v":89)
+WARN  (AG0100) : Find logical loop signal : "s_csbits[33]"("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_32.v":202)
+WARN  (AG0100) : Find logical loop signal : "s_CSCOMM_4_0[1]"("E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_CGA_33.v":146)
+WARN  (AG0100) : Find logical loop signal : "sx_cscomm_4_0[1]"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA\circuit\CGA.v":543)
+WARN  (AG0100) : Find logical loop signal : "s_cscomm1"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA\circuit\CGA.v":445)
+WARN  (AG0100) : Find logical loop signal : "s_cscomm_4_0[1]"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA\circuit\CGA.v":439)
+WARN  (AG0100) : Find logical loop signal : "s_cscomm_4_0[1]"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC.v":118)
+WARN  (AG0100) : Find logical loop signal : "s_cscomm_4_0[1]"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_DECODE.v":141)
+WARN  (AG0100) : Find logical loop signal : "s_cscomm_1"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC_DECODE.v":184)
+WARN  (AG0100) : Find logical loop signal : "s_realInput3"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_6_INPUTS.v":56)
+WARN  (AG0100) : Find logical loop signal : "n11"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE_6_INPUTS.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0100) : Find logical loop signal : "s_realInput2"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":43)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\OR_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_realInput1"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":42)
+WARN  (AG0100) : Find logical loop signal : "n6"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "result"("E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\logisim\NAND_GATE.v":49)
+WARN  (AG0100) : Find logical loop signal : "s_ff_nand_n_out"("E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR_CNTLR_IRQ_REG_RQBIT.v":66)
+WARN  (AG0101) : The netlist is not one directed acyclic graph
+[5%] Running netlist conversion ...
+WARN  (CV0016) : Input btn2 is unused("E:\Dev\Repos\Ronny\nd-120\Verilog\ND120_TOP.v":27)
+Running device independent optimization ...
+[10%] Optimizing Phase 0 completed
+[15%] Optimizing Phase 1 completed
