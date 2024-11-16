@@ -36,7 +36,7 @@ module BIF_BCTL_SYNC_8 (
     output BPERR50_n,
     output BREQ50_n,
     output CACT25_n,
-    output MR_n,
+    output MR_n,      //! Master Reset (negated)
     output REFRQ50_n,
     output SEMRQ50_n
 );
