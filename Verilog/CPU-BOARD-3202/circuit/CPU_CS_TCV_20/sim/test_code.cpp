@@ -96,7 +96,7 @@ int main(int argc, char **argv)
                 top->CSBITS |= 0x3333L<<32L;
                 top->CSBITS |= 0x4444L<<48L;
 
-                top->IDB_15_0_IN = (j*0x100)+b;
+                top->IDB_15_0_IN = (j*0xA1D0)+b;
 
 
                 if (e==0)  // WRITE
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
                 {
                     top->ECSL_n = false; // Enable output
                     top->WCS_n = false; // Disable write
-                    top->EW_3_0_n = 0x00;
+                    top->EW_3_0_n = 0xFF;
                 }
                 else if (e==2) //READ TO IDB
                 {
