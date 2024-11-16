@@ -122,24 +122,24 @@ module CPU_CS_CTL_18 (
   );
 
   PAL_44305D PAL_44305_UCSCTL (
-      .ECSL_n (s_ecsl_n),
-      .EWCA_n (s_ewca_n),
-      .EUPP_n (s_eupp_n),
-      .ELOW_n (s_elow_n),
-      .WCA_n  (s_WCA_n),
-      .LUA12  (s_lua12),
-      .FORM_n (s_form_n),
-      .CC1_n  (s_cc_3_1_n[0]),
-      .CC2_n  (s_cc_3_1_n[1]),
-      .CC3_n  (s_cc_3_1_n[2]),
-      .LCS_n  (s_lcs_n),
-      .RWCS_n (s_rwcs_n),
-      .WCS_n  (s_wcs_n),
-      .FETCH  (s_fetch),
-      .BRK_n  (s_brk_n),
-      .TERM_n (s_term_n),
-      .WICA_n (s_wica_n),
-      .WCSTB_n(s_wcstb_n)
+      .FORM_n (s_form_n),       //! input FORM_n - I0
+      .CC1_n  (s_cc_3_1_n[0]),  //! input CC1_n  - I1 - Cycle Control 1 (b+c+d+e+j+k+l+m)
+      .CC2_n  (s_cc_3_1_n[1]),  //! input CC2_n  - I2 - Cycle control 2 (e+f+g+h+i+j+k)
+      .CC3_n  (s_cc_3_1_n[2]),  //! input CC3_n  - I3 - Cycle Control 3 (h+i+j+k+l+m+n+o)
+      .LCS_n  (s_lcs_n),        //! input LCS_n  - I4 - Load Control Store (negated)
+      .RWCS_n (s_rwcs_n),       //! input RWCS_n - I5 - Read/Write Control Store (low=write)
+      .WCS_n  (s_wcs_n),        //! input WCS_n  - I6 - Write Control Store (negated)
+      .FETCH  (s_fetch),        //! input FETCH  - I7 - Fetch
+      .BRK_n  (s_brk_n),        //! input BRK_n  - I8 -
+      .TERM_n (s_term_n),       //! input TERM_n - I9 -
+      .WICA_n (s_wica_n),       //! output Y0_n - WICA_n
+      .WCSTB_n(s_wcstb_n),      //! output Y1_n - WCSTB_n
+      .ECSL_n (s_ecsl_n),       //! output B0_n - ECSL_n
+      .EWCA_n (s_ewca_n),       //! output B1_n - EWCA_n
+      .EUPP_n (s_eupp_n),       //! output B2_n - EUPP_n
+      .ELOW_n (s_elow_n),       //! output B3_n - ELOW_n
+      .WCA_n  (s_WCA_n),        //! input B4_n WCA_n
+      .LUA12  (s_lua12)         //! input B5_n LUA12
   );
 
 endmodule
