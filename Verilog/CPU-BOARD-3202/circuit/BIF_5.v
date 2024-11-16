@@ -58,8 +58,8 @@ module BIF_5 (
 
     // INPUTS and OUTPUTS here
 
-    input  [23:0] BD_23_0_n_IN,
-    output [23:0] BD_23_0_n_OUT,
+    input  [23:0] BD_23_0_n_IN,   //! BUS Data/Address 24 bit IN (negated)
+    output [23:0] BD_23_0_n_OUT,  //! BUS Data/Address 24 bit OUT (negated)
 
 
     input  [15:0] CD_15_0_IN,
@@ -73,17 +73,17 @@ module BIF_5 (
     output [15:0] IDB_15_0_OUT,
 
 
-    output BAPR_n,
-    output BDAP50_n,
-    output BDAP_n,
-    output BDRY50_n,
-    output BDRY_n,
-    output BERROR_n,
-    output BINACK_n,
-    output BINPUT_n,
-    output BIOXE_n,
-    output BMEM_n,
-    output BREF_n,
+    output BAPR_n,    //! Bus Address Present (negated)
+    output BDAP50_n,  //! Bus Data Present (negated) - Delayed 50ns
+    output BDAP_n,    //! Bus Data Present (negated)
+    output BDRY50_n,  //! Bus Data Ready (negated) - Delayed 50ns
+    output BDRY_n,    //! Bus Data Ready (negated)
+    output BERROR_n,  //! Bus Error
+    output BINACK_n,  //! Bus Input Acknowledge
+    output BINPUT_n,  //! Bus Input
+    output BIOXE_n,   //! Bus IOX Enabled (negated)
+    output BMEM_n,    //! Bus MEM enabled (negated)
+    output BREF_n,    //! Bus 
 
     output CGNTCACT_n,
     output DAP_n,
@@ -92,9 +92,9 @@ module BIF_5 (
 
     output IOXERR_n,
     output MOR_n,
-    output MR_n,
-    output OUTGRANT_n,
-    output OUTIDENT_n,
+    output MR_n,        //! Master Reset (negated)
+    output OUTGRANT_n,  //! Bus OUTGRANT (negated)
+    output OUTIDENT_n,  //! Bus OUTIDENT (negated)
     output PARERR_n,
     output REF_n,
     output RERR_n,
