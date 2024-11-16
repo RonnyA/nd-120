@@ -222,7 +222,7 @@ module BIF_BCTL_6 (
   assign IOD_n       = s_iod_n;
   assign IOXERR_n    = s_ioxerr_n;
   assign MOR_n       = s_mor_n;
-  assign MR_n        = s_mr_n;
+  assign MR_n        = s_mr_n;                  //! Master Reset (negated)
   assign OUTGRANT_n  = s_outgrant_n;
   assign OUTIDENT_n  = s_outident_n;
   assign PARERR_n    = s_parerr_n;
