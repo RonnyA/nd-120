@@ -1000,7 +1000,7 @@ module DECODE_DGA_COMM (
       .preset(1'b0),
       .q(s_emcl_n),
       .qBar(),
-      .reset(s_clear_n),
+      .reset(s_clear),
       .tick(1'b1)
   );
 
@@ -1024,7 +1024,7 @@ module DECODE_DGA_COMM (
       .preset(1'b0),
       .q(s_reset),
       .qBar(),
-      .reset(s_clear_n),
+      .reset(s_clear),
       .tick(1'b1)
   );
 
