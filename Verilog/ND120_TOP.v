@@ -44,8 +44,8 @@ module ND120_TOP (
   wire clk2;  //! Clock Signal 2
   wire [1:0] oc_select;
 
-  wire [1:0] s_SEL_TESTMUX;
-  assign s_SEL_TESTMUX = 2'b00;  // 00=TESTMUX=0
+  wire [2:0] s_SEL_TESTMUX;
+  assign s_SEL_TESTMUX = 2'b000;  // 00=TESTMUX=0
 
   wire [4:0] s_baud_rate_switch;
   assign s_baud_rate_switch = 5'b00000;  // 00000=9600 baud
