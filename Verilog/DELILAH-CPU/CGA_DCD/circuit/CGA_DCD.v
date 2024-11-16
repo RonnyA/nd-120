@@ -1509,7 +1509,7 @@ module CGA_DCD (
   SCAN_WITH_RESET_N FD25 (
       .CLK(s_mclk),
       .D  (s_fidbo5),
-      .R  (s_mr_n),
+      .R_n (s_mr_n),
       .TE(s_sioc_n),
       .TI(s_emcl_n),
       .Q (s_emcl_n),

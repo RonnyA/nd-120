@@ -12,7 +12,7 @@
 module SCAN_WITH_RESET_N (
     input CLK,
     input D,
-    input R,
+    input R_n,
     input TE,
     input TI,
 
@@ -41,7 +41,7 @@ module SCAN_WITH_RESET_N (
    *******************************************************************************/
   assign s_clk = CLK;
   assign s_d = D;
-  assign s_r = R;
+  assign s_r = R_n;
   assign s_te = TE;
   assign s_ti = TI;
 
@@ -94,7 +94,7 @@ module SCAN_WITH_RESET_N (
       .preset(1'b0),
       .q(s_q_out),
       .qBar(s_qn_out),
-      .reset(s_r_n),
+      .reset(s_r),
       .tick(1'b1)
   );
 

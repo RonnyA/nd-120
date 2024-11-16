@@ -10,7 +10,7 @@
 module SCAN_WITH_SET_N (
     input CLK,
     input D,
-    input S,
+    input S_n,
     input TE,
     input TI,
 
@@ -40,7 +40,7 @@ module SCAN_WITH_SET_N (
   assign s_te = TE;
   assign s_ti = TI;
   assign s_clk = CLK;
-  assign s_s = S;
+  assign s_s = S_n;
   assign s_d = D;
 
   /*******************************************************************************

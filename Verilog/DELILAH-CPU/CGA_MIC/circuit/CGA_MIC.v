@@ -197,7 +197,7 @@ module CGA_MIC (
   wire        s_lcz_out;
   wire        s_lcz;
   wire        s_ldirv;
-  wire        s_ldlc_n; 
+  wire        s_ldlc_n;
   wire        s_loop;
   wire        s_lwca_n;
   wire        s_map_n;
@@ -953,7 +953,7 @@ module CGA_MIC (
       .D  (s_ood_signal),
       .Q  (s_oodff_q),
       .QN (s_ood_out),
-      .S  (s_clff_n),
+      .S_n(s_clff_n),
       .TE (s_ialui8_clocked_qn),
       .TI (s_oodff_q)
   );
@@ -963,7 +963,7 @@ module CGA_MIC (
       .D  (s_dzd_signal),
       .Q  (s_dzdff_q),
       .QN (s_dzd_out),
-      .S  (s_clff_n),
+      .S_n(s_clff_n),
       .TE (s_ialui8_clocked_qn),
       .TI (s_dzdff_q)
   );
