@@ -18,20 +18,33 @@ module CPU_CS_16 (
     input MACLK,
 
     // Input signals
-    input [15:0] IDB_15_0_IN,
+    input [15:0] IDB_15_0_IN,  //! IDB 15 bit input
     input [1:0] RF_1_0,
-    input [2:0] CC_3_1_n,  //note: 3-1 (not 3-0)
-    input [12:0] CSA_12_0,
-    input [9:0] CSCA_9_0,
+    input [2:0] CC_3_1_n,  // note: 3-1 (not 3-0)
+    input [12:0] CSA_12_0,  //! XMA_12_0 from CGA (Delilah) (MA_12_0 from CGA.MIC) <= Microcode address, 13 bits.
+    input [9:0] CSCA_9_0, //! Source CGA.XMCA_9_0, source MAC.MCA_9_0, sourcr MAC_AP09.MCA_9_0, source CALCA.MCA9_0 <= Input ICA.Bits [15:0] but only when MCLK is low. Almost the same as LCA15_0, exectp LCA_15_0 is locked in a register on clock lo-hi
 
-    input PD1,
-    input FETCH,
+    input PD1,   //! P Disable1 - Always 0 during normal operations
+    input FETCH, //! Fetch command 
 
-    input BLCS_n,
+    // FETCH: Source DECODE_DGA_COMM.FETCH, when Microcode command is:
+    // 27 (JMP and CONTINUE)
+    // 23+27 (C JMP)
+    // 30 (AREAD COMMAND)
+    // 32 & 33 (AWRITE)
+    // 30 & 31 (AREAD)
+    // 34 (READ & EXAMINE)
+    // 35 (WRITE & DEPOSIT)
+    // 22.0 (IREAD PT)
+    // 22.1 (READ APT)
+    // 22.3 (CNEXT.NWP)
+    // 22.2 (MAP)
+
+    input BLCS_n,   //! Buffered LCS_n (same as LCS_n)
     input BRK_n,
     input FORM_n,
-    input LCS_n,
-    input RWCS_n,
+    input LCS_n,    //! Load Control Store (Negated)
+    input RWCS_n,   //! Read/Write Control Store (low=write)
     input TERM_n,
     input WCA_n,
     input WCS_n,
