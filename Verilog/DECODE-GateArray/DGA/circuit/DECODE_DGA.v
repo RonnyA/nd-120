@@ -206,6 +206,8 @@ module DECODE_DGA (
   wire       s_xmcl;
   wire       s_xdvn;
 
+  wire       s_clear;
+
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
@@ -308,7 +310,7 @@ module DECODE_DGA (
    *******************************************************************************/
 
   assign s_idb_3_0_out     = {s_idb_3, s_idb_2, s_idb_1, s_idb_0};
-
+  assign s_xcl_n           = ~s_clear;
 
 
   /*******************************************************************************
@@ -379,7 +381,7 @@ module DECODE_DGA (
 
   DECODE_DGA_POW POW (
       .BDRY50N(s_xbdn),
-      .CLEAR(s_xcl_n),
+      .CLEAR(s_clear),
       .CLOSC(s_xclo),
       .CLRTIN(s_clrtin),
       .CONTINUEN(s_xcon),
