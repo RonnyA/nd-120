@@ -8,7 +8,7 @@
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
-//TODO: Missing MEM, BIF, IO and BUS Connectors A-B-C
+//TODO: Missing BUS Connectors A-B-C
 
 
 
@@ -65,11 +65,7 @@ module ND3202D (
     output RUN_n,  // Output signal to "A PLUG", signal C10 (RUN_n) (from the CPU)
     output [4:0]  DP_5_1_n,       // Output signal to "A PLUG", signal DP~5_1 "Display signals" (C25,C26, C27, C28, C29)
 
-
     output [63:0] CSBITS,  // Microcode Control signals - 64bit (for debugging)
-
-
-
 
     output [4:0] TEST_4_0,    // Test point signals  - 5 bits
     output       TP1_INTRQ_n, // Test point signal TP1 - INTRQ_n
@@ -394,6 +390,9 @@ LED7 (yellow)  - Bus grant
   assign s_pd3 = 0;
   assign s_pd4 = 0;
 
+
+  // LUA12 to Cycle Controller
+  assign s_lua12 = s_lua_12_0[12];
 
   // Power sense
   assign s_powsense_n = POWSENSE_n;
