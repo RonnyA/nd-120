@@ -22,25 +22,24 @@ module PAL_44601B (
     input CK,   // Clock signal
     input OE_n, // OUTPUT ENABLE (active-low) for Q0-Q5
 
-    input DLY1_n,      //! I0 - DLY1_n
-    input DLY0_n,      //! I1 - DLY0_n
-    input CSDELAY0,    //! I2 - CSDELAY0
+    input DLY1_n,      //! I0 - DLY1_n    //! DLY1_ (Ouput from PAL 44404 DLY1_n (B3)
+    input DLY0_n,      //! I1 - DLY0_n    //! DLY0_ (Ouput from PAL 44403 DLY0_n (B0)
+    input CSDELAY0,    //! I2 - CSDELAY0  //! CSDELAY0 (CSBITS #26 - DELAY 0)
     input WAIT1,       //! I3 - WAIT1
     input WAIT2,       //! I4 - WAIT2
     input CGNTCACT_n,  //! I5 - CGNTCACT_n
-    input HIT,         //! I6 - HIT
-    input BRK_n,       //! I7 - BRK_n
+    input HIT,         //! I6 - HIT    - Cache hit
+    input BRK_n,       //! I7 - BRK_n  - BREAK Cycle
 
-    input SLOW_n,  //! B0_n - SLOW_n
-    input SHORT_n, //! B1_n - SHORT_n
+    input SLOW_n,  //! B0_n - SLOW_n   - SLOW Cycle
+    input SHORT_n, //! B1_n - SHORT_n  - SHORT Cycle
 
-    output CX_n,    //! Q0_n - CX_n
-    output TERM_n,  //! Q1_n - TERM_n
-    output CC0_n,   //! Q2_n - Cycle Control 0
-    output CC1_n,   //! Q3_n - Cycle Control 1
-    output CC2_n,   //! Q4_n - Cycle Control 2
-    output CC3_n    //! Q5_n - Cycle Control 3
-
+    output CX_n,    //! Q0_n - CX_n    - CX is always 1 in the fast version (CX_n = 0)
+    output TERM_n,  //! Q1_n - TERM_n  (Trigger clock signal that latches CS input signals and more)
+    output CC0_n,   //! Q2_n - Cycle Control 0 (negated)
+    output CC1_n,   //! Q3_n - Cycle Control 1 (negated)
+    output CC2_n,   //! Q4_n - Cycle Control 2 (negated)
+    output CC3_n    //! Q5_n - Cycle Control 3 (negated)
 );
 
   // Internal registers
@@ -68,18 +67,16 @@ module PAL_44601B (
   wire CC0 = CC0_reg;
 
 
-
   //**** Sequential logic triggered on the rising edge of CLK ****
   always @(posedge CK) begin
-
-    TERM_reg <=   (CC3_n & CC2_n & CC1_n & CC0_n & SHORT & TERM_n & DLY0_n & CSDELAY0_n)    // 50NS CYCLE
-    | (CC3_n & CC2_n & CC1_n & CC0 & SHORT & BRK_n & DLY1_n & TERM_n)  // 75NS CYCLE
-    | (CC3_n & CC2_n & CC1_n & CC0 & HIT & BRK_n & DLY1_n & TERM_n)  // 75NS CYCLE
-    | (CC3_n & CC2_n & CC1 & CC0 & SHORT & BRK_n & TERM_n)  // 100NS CYCLE
-    | (CC3_n & CC2_n & CC1 & CC0 & HIT & BRK_n & TERM_n)  // 100NS CYCLE
-    | (CC3_n & CC2 & CC1 & CC0 & BRK & TERM_n)  // BRK CYCLE  (>200
-    | (CC3_n & CC2 & CC1_n & CC0 & SLOW & TERM_n)  // SLOW CYCLES INCL. FE
-    | (CC3 & CC2_n & CC1_n & CC0_n & TERM_n);  //; UART, LCS, RWCS CYCLES
+    TERM_reg <=   (CC3_n & CC2_n  & CC1_n   & CC0_n   & SHORT   & TERM_n  & DLY0_n & CSDELAY0_n)  // 50NS CYCLE  '0000
+                | (CC3_n & CC2_n  & CC1_n   & CC0     & SHORT   & BRK_n   & DLY1_n & TERM_n)      // 75NS CYCLE  '0001
+                | (CC3_n & CC2_n  & CC1_n   & CC0     & HIT     & BRK_n   & DLY1_n & TERM_n)      // 75NS CYCLE  '0001
+                | (CC3_n & CC2_n  & CC1     & CC0     & SHORT   & BRK_n   & TERM_n)  // 100NS CYCLE
+                | (CC3_n & CC2_n  & CC1     & CC0     & HIT     & BRK_n   & TERM_n)  // 100NS CYCLE
+                | (CC3_n & CC2    & CC1     & CC0     & BRK     & TERM_n)  // BRK CYCLE  (>200
+                | (CC3_n & CC2    & CC1_n   & CC0     & SLOW    & TERM_n)  // SLOW CYCLES INCL. FE
+                | (CC3   & CC2_n  & CC1_n   & CC0_n   & TERM_n);  //; UART, LCS, RWCS CYCLES
 
     CC3_reg <= (CC2 & CC1_n & CC0_n & TERM_n)  // h+i+j+k+l+m+n+o
     | (CC3 & CC1 &  TERM_n & CC2)
@@ -115,7 +112,6 @@ module PAL_44601B (
     | (CC3_n & CC2 & CC1 & CC0_n & BRK & TERM_n)  // e MEM CYCLE TO FINISH
     | (CC3_n & CC2 & CC1 & CC0_n & WAIT2_n & TERM_n)  // e IF WAIT2 and NOT BRK
     | (CC3_n & CC2_n & CC1 & CC0 & CGNTCACT & BRK_n * TERM_n);  // e PREV WRITE
-
 
   end
 
