@@ -36,17 +36,19 @@ module IMS1403_25(
    ** Memory array using block RAM                                               **
    *******************************************************************************/
    (* ram_style = "block" *) reg [16383:0] memory_array;
-   
-     
+
+
    always @(posedge clk) begin
 
       if (!reset_n) begin
             /* verilator lint_off BLKANDNBLK */ 
             /* verilator lint_off BLKSEQ */
-            // Reset operation: set all memory locations to 0                
-            for (i = 0; i < 16383; i = i + 1) begin
-               memory_array[i] = 1'b0; // none delayed initialisation
-            end               
+
+            //TODO: Find a reset method that VIVADO likes
+            // Reset operation: set all memory locations to 0
+            //for (i = 0; i < 16383; i = i + 1) begin
+            ///  memory_array[i] = 1'b0; // none delayed initialisation
+            //end
             /* verilator lint_on BLKSEQ */
       end
 
