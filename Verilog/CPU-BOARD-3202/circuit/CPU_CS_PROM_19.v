@@ -8,6 +8,7 @@
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
+//`define GOWIN // Uncomment this for Gowin platform
 
 module CPU_CS_PROM_19 (
     input        BLCS_n,   // Set to 0 to enable the output to IDB
@@ -25,7 +26,12 @@ module CPU_CS_PROM_19 (
 
   // AM27256_45132L = Contains the LO 8 bits (0-7) AM27256_45133L = Contains the HI 8 bits (8-15)
 
-
+  /*
+`ifdef GOWIN
+   // Use SPI flash for Gowin FPGAs
+  assign s_databus = 0;
+`else
+*/
   (* ROM_STYLE="BLOCK" *)
   reg [7:0] rom_lo[32767:0];  // 32K x 8 bit ROM (LO 8 bits)
   initial $readmemh("AM27256_45132L.hex", rom_lo, 0, 32767);
@@ -35,9 +41,12 @@ module CPU_CS_PROM_19 (
   reg [7:0] rom_hi[32767:0];  // 32K x 8 bit ROM (HI 8 bits)
   initial $readmemh("AM27256_45133L.hex", rom_hi, 0, 32767);
 
-  assign s_databus[7:0] = rom_lo[s_Address];
+  assign s_databus[7:0]  = rom_lo[s_Address];
   assign s_databus[15:8] = rom_hi[s_Address];
 
+  /*
+`endif
+*/
   // Controlled Buffer
   assign IDB_15_0_OUT = (BLCS_n) ? 16'b0 : s_databus;
 
