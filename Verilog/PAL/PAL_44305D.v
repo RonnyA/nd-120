@@ -10,20 +10,20 @@ module PAL_44305D (
     input LCS_n,   //! I4 - Load Control Store (negated)
     input RWCS_n,  //! I5 - Read/Write Control Store (low=write)
     input WCS_n,   //! I6 - Write Control Store (negated)
-    input FETCH,   //! I7 - Fetch
-    input BRK_n,   //! I8 -
-    input TERM_n,  //! I9 -
+    input FETCH,   //! I7 - Fetch macrocode
+    input BRK_n,   //! I8 - Break signal, active low, used to interrupt normal operation for debugging or error handling.
+    input TERM_n,  //! I9 - Terminate signal, active-low
 
     output WICA_n,  //! Y0_n - WRITE PULSE TO MICROINSTRUCTION CACHE
     output WCSTB_n, //! Y1_n - (e+f) WRITE PULSE TO WRITEABLE | (m+n) WRITE PULSE DURING LOAD CONTROL
 
-    output ECSL_n,  //! Enable Control Stroe (CSL negated)  B0_n - READ CONTROL STORE HOLD | HOLD OVERLAP WITH EWCA_n
-    output EWCA_n,  //! Enable WCA reg in mic ont MA        B1_n - ENABLE WCA REG. IN MIC ONTO MA |  AVOID BLIP ON NEXT CYCLE
+    output ECSL_n,  //! Enable Control Store LOWER (CSL negated)  B0_n - READ CONTROL STORE HOLD | HOLD OVERLAP WITH EWCA_n
+    output EWCA_n,  //! Enable WCA reg in mic onto MA       B1_n - ENABLE WCA REG. IN MIC ONTO MA |  AVOID BLIP ON NEXT CYCLE
     output EUPP_n,  //! Enable Upper                        B2_n - NORMAL ADDRESSING | WRITE INTO MICROINSTRUCTION CACHE | ENABLE IN THE FIRST 50NS 
     output ELOW_n,  //! Enable Low                          B3_n - NORMAL ADDRESSING. ON FETCH EITHER MI |  ENABLE ACCORDING TO LUA12 BEFORE FETCH | OR A MAP IS USED. |  DO A MAP | ON BRK: USE BANK SELECTED BY LUA12.
 
     input WCA_n,  //! B4_n - WRITE INTO MICROINSTRUCTION CACHE (negated)
-    input LUA12   //! B5_n
+    input LUA12   //! B5_n - Low Unit Address. Select RAM bank (0=lower,1=upper)
 );
 
   // Inverted input signals for active-high usage
