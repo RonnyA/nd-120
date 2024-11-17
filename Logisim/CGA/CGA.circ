@@ -30228,7 +30228,7 @@
     <comp lib="0" loc="(2260,60)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="facing" val="west"/>
-      <a name="label" val="MCA_15_0"/>
+      <a name="label" val="MCA_9_0"/>
       <a name="output" val="true"/>
       <a name="radix" val="16"/>
       <a name="width" val="10"/>
