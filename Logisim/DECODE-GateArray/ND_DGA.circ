@@ -2083,7 +2083,7 @@
     <comp lib="8" loc="(1160,1205)" name="Text">
       <a name="text" val="CLEARN"/>
     </comp>
-    <comp lib="8" loc="(1201,2323)" name="Text">
+    <comp lib="8" loc="(1200,2320)" name="Text">
       <a name="color" val="#d60e0c"/>
       <a name="font" val="SansSerif bold 22"/>
       <a name="text" val="TODO: WHY IS ZZ1 inverted and sent to NAND gates. It will never be 1.."/>
@@ -2142,7 +2142,7 @@
     <comp lib="8" loc="(580,220)" name="Text">
       <a name="text" val="LOAD"/>
     </comp>
-    <comp lib="8" loc="(597,2312)" name="Text">
+    <comp lib="8" loc="(595,2310)" name="Text">
       <a name="text" val="ZZ1"/>
     </comp>
     <comp lib="8" loc="(635,585)" name="Text">
@@ -7683,9 +7683,6 @@
       <a name="label" val="A184"/>
       <a name="size" val="70"/>
     </comp>
-    <comp lib="1" loc="(4290,4090)" name="NOT Gate">
-      <a name="facing" val="north"/>
-    </comp>
     <comp lib="1" loc="(4350,980)" name="NAND Gate">
       <a name="facing" val="south"/>
       <a name="inputs" val="6"/>
@@ -7805,9 +7802,6 @@
       <a name="size" val="70"/>
     </comp>
     <comp lib="1" loc="(6300,2890)" name="NOT Gate"/>
-    <comp lib="1" loc="(6310,4090)" name="NOT Gate">
-      <a name="facing" val="north"/>
-    </comp>
     <comp lib="1" loc="(6320,3230)" name="NOT Gate">
       <a name="label" val="A197"/>
     </comp>
@@ -8679,8 +8673,7 @@
     <wire from="(4260,5010)" to="(4260,5150)"/>
     <wire from="(4260,5150)" to="(4340,5150)"/>
     <wire from="(4270,2540)" to="(4270,2650)"/>
-    <wire from="(4290,3980)" to="(4290,4090)"/>
-    <wire from="(4290,4120)" to="(4290,4160)"/>
+    <wire from="(4290,3980)" to="(4290,4160)"/>
     <wire from="(4290,4160)" to="(6310,4160)"/>
     <wire from="(4310,5010)" to="(4310,5120)"/>
     <wire from="(4310,5120)" to="(4360,5120)"/>
@@ -9003,8 +8996,7 @@
     <wire from="(6240,3970)" to="(6280,3970)"/>
     <wire from="(6300,2540)" to="(6300,2680)"/>
     <wire from="(6300,2890)" to="(6330,2890)"/>
-    <wire from="(6310,3980)" to="(6310,4090)"/>
-    <wire from="(6310,4120)" to="(6310,4160)"/>
+    <wire from="(6310,3980)" to="(6310,4160)"/>
     <wire from="(6320,3230)" to="(6430,3230)"/>
     <wire from="(6340,3930)" to="(6390,3930)"/>
     <wire from="(6370,2540)" to="(6370,2700)"/>
