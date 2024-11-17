@@ -5,65 +5,50 @@
  **                                                                          **
  *****************************************************************************/
 
-module IDT6168A_20( 
-   input wire   clk,       // Clock input (BLOCK RAM MUST HAVE CLOCK)
-   input wire   reset_n,   // FPGA Reset input (active low) 
+module IDT6168A_20 (
+    input wire clk,     // Clock input (BLOCK RAM MUST HAVE CLOCK)
+    input wire reset_n, // Active-low reset
 
-   input [11:0] A_11_0,    // Address input
-   input        CE_n,      // Chip enable (active low)
-   input        WE_n,      // Write enable (active low)
-   input [3:0]  D_3_0_IN,  // Data input/output
-   output [3:0] D_3_0_OUT  // Data input/output
+    input  wire [11:0] A_11_0,    // Address input
+    input  wire        CE_n,      // Chip enable (active low)
+    input  wire        WE_n,      // Write enable (active low)
+    input  wire [ 3:0] D_3_0_IN,  // Data input for write
+    output wire [ 3:0] D_3_0_OUT  // Data output for read
 );
 
-   /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-   wire [11:0] s_address;   
-   wire        s_ce_n;
-   wire        s_we_n;
+  // Memory array using block RAM, 4K x 4-bit
+  (* ram_style = "block" *)reg [ 3:0] memory_array[0:4095];
 
-  /*******************************************************************************
-   ** Signals                                                                   **
-   *******************************************************************************/
-   reg [3:0] data_out;     // Output data register
-   wire [3:0] data_in;     // Input data from the bus
+  // Internal registers for address and data
+  reg [11:0] s_address;
+  reg [ 3:0] data_in;
+  reg [ 3:0] data_out;
 
-   assign s_ce_n = CE_n;
-   assign s_we_n = WE_n;
-   assign s_address = A_11_0;
-   assign data_in = D_3_0_IN; // Connect input data
-
-   // OUTPUT
-   assign D_3_0_OUT = (!s_ce_n && s_we_n) ? data_out : 4'b0; // Tristate logic for bidirectional data bus in chip, in FPGA use 0000 for no output.
-
-   
-   /*******************************************************************************
-   ** Memory array using block RAM                                               **
-   *******************************************************************************/
-   (* ram_style = "block" *) reg [3:0] memory_array[0:4095];
-
-
-
-   /*
-    * In typical SRAM modules, write operations are enabled when the WE_n (Write Enable) signal is low (active low), 
-    * and it's more appropriate to trigger the write operation with the signal's level rather than its edge. 
-    * This is because SRAM is usually designed to accept data as long as WE_n is low and the chip enable (CE_n) is also low, 
+     /*
+    * In typical SRAM modules, write operations are enabled when the WE_n (Write Enable) signal is low (active low),
+    * and it's more appropriate to trigger the write operation with the signal's level rather than its edge.
+    * This is because SRAM is usually designed to accept data as long as WE_n is low and the chip enable (CE_n) is also low,
     * enabling continuous write operations during the active period.
     */
+  always @(posedge clk) begin
+    if (!reset_n) begin
+      // Reset only data_out to prevent read conflicts during reset
+      data_out <= 4'b0;
+    end else if (!CE_n) begin
+      s_address <= A_11_0;
+      data_in   <= D_3_0_IN;
 
-   /* verilator lint_off BLKSEQ */
-   always @(posedge clk) begin
-      if (reset_n == 1'b0) begin
-         memory_array[s_address] <= 4'b0; // Reset memory array //TODO: Need to reset the whole array
-      end else if (!s_ce_n) begin
-         if (!s_we_n) begin
-            memory_array[s_address] = data_in;  // Write operation
-         end else begin
-            data_out = memory_array[s_address]; // Read operation
-         end
+      if (!WE_n) begin
+        // Write operation
+        memory_array[s_address] <= data_in;
+      end else begin
+        // Read operation
+        data_out <= memory_array[s_address];
       end
-   end
+    end
+  end
 
+  // Connect the output to data_out when reading
+  assign D_3_0_OUT = (!CE_n && WE_n) ? data_out : 4'b0000;
 
 endmodule
