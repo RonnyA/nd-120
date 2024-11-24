@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA (
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
     // Input signals
     input        XALUCLK,
     input        XBINT10N,
@@ -835,6 +838,9 @@ module CGA (
   );
 
   CGA_MIC MIC (
+      .sysclk(sysclk),  // System clock in FPGA
+      .sys_rst_n(sys_rst_n),  // System reset in FPGA
+
       .ACONDN(sx_acond_n_out),
       .ALUCLK(sx_aluclk),
       .CD_15_0(s_cd_15_0[15:0]),

@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_MIC (
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
     input        ALUCLK,
     input [15:0] CD_15_0,
     input        CFETCH,
@@ -144,27 +147,27 @@ module CGA_MIC (
   wire        s_ewca_n;
   wire        s_f11;
   wire        s_f15;
-  wire        s_gates10_out;
-  wire        s_gates11_out;
-  wire        s_gates12_out;
-  wire        s_gates13_out;
-  wire        s_gates14_out;
-  wire        s_gates15_out;
-  wire        s_gates16_out;
+  wire        s_fs6_efalse;
+  wire        s_csts5_etrue;
+  wire        s_fs5_efalse;
+  wire        s_csts4_etrue;
+  wire        s_fs4_efalse;
+  wire        s_csts3_etrue;
+  wire        s_fs3_efalse;
   wire        s_gates18_out;
   wire        s_gates19_out;
   wire        s_gates20_out;
-  wire        s_gates21_out;
-  wire        s_gates22_out;
+  wire        s_csfs_4;
+  wire        s_csfs_3;
   wire        s_gates25_out;
   wire        s_gates28_out;
   wire        s_gates29_out;
   wire        s_gates3_out;
   wire        s_gates4_out;
   wire        s_gates5_out;
-  wire        s_gates6_out;
-  wire        s_gates8_out;
-  wire        s_gates9_out;
+  wire        s_efalse;
+  wire        s_etrue;
+  wire        s_csts6_etrue;
   wire        s_gnd;
   wire        s_ialui8_clocked_qn;
   wire        s_icd_4;
@@ -202,7 +205,8 @@ module CGA_MIC (
   wire        s_lwca_n;
   wire        s_map_n;
   wire        s_mclk_n;
-  wire        s_mclk_n1;
+  wire        s_sclk_n;
+  wire        s_clk_sc34;  // Clock signal for flip-flop carrying SC3 and SC4 signal
   wire        s_mclk;
   wire        s_mi;
   wire        s_mrn;
@@ -215,9 +219,10 @@ module CGA_MIC (
   wire        s_restr;
   wire        s_rf0_in_a;
   wire        s_rf1_in_a;
-  wire        s_sc_1_n_out;
-  wire        s_sc_2_n_out;
-  wire        s_sc_3_n_out;
+  wire        s_sc_3_out;
+  wire        s_sc_4_out;
+  wire        s_sc_5_n_out;
+  wire        s_sc_6_n_out;
   wire        s_spare;
   wire        s_stp;
   wire        s_t_n_out;
@@ -357,11 +362,14 @@ module CGA_MIC (
   assign s_lba_3_0_out[3]   = ~s_lba_3_n_out;
 
   assign s_lcz_out          = ~s_lcz_n_out;
-  assign s_mclk_n           = ~s_mclk;
-  assign s_mclk_n1          = ~s_mclk;
-  assign s_sc_6_3_out[1]    = ~s_sc_1_n_out;
-  assign s_sc_6_3_out[2]    = ~s_sc_2_n_out;
-  assign s_sc_6_3_out[3]    = ~s_sc_3_n_out;
+  assign s_mclk_n           = ~s_mclk;  // MASEL  clock (negated MCLK)
+  assign s_sclk_n           = ~s_mclk;  // STACK CLOCK (nedgated MCLK)
+  assign s_clk_sc34         = ~s_mclk;  // Will be nagated at the chip level
+
+  assign s_sc_6_3_out[0]    = s_sc_3_out;
+  assign s_sc_6_3_out[1]    = s_sc_4_out;
+  assign s_sc_6_3_out[2]    = ~s_sc_5_n_out;
+  assign s_sc_6_3_out[3]    = ~s_sc_6_n_out;
   assign s_up_n_out         = ~s_up_out;
 
 
@@ -419,7 +427,7 @@ module CGA_MIC (
       .input2(s_csloop_n),
       .input3(s_lcs_n),
       .input4(s_csecond),
-      .result(s_gates6_out)
+      .result(s_efalse)
   );
 
   NAND_GATE_3_INPUTS #(
@@ -436,71 +444,71 @@ module CGA_MIC (
   ) GATES_8 (
       .input1(s_cond_n),
       .input2(s_gates5_out),
-      .result(s_gates8_out)
+      .result(s_etrue)
   );
 
   AND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_9 (
-      .input1(s_gates8_out),
+      .input1(s_etrue),
       .input2(s_csts_6_3[3]),
-      .result(s_gates9_out)
+      .result(s_csts6_etrue)
   );
 
   AND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_10 (
-      .input1(s_gates6_out),
+      .input1(s_efalse),
       .input2(s_fs_6_3[3]),
-      .result(s_gates10_out)
+      .result(s_fs6_efalse)
   );
 
   AND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_11 (
-      .input1(s_gates8_out),
+      .input1(s_etrue),
       .input2(s_csts_6_3[2]),
-      .result(s_gates11_out)
+      .result(s_csts5_etrue)
   );
 
   AND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_12 (
-      .input1(s_gates6_out),
+      .input1(s_efalse),
       .input2(s_fs_6_3[2]),
-      .result(s_gates12_out)
+      .result(s_fs5_efalse)
   );
 
   AND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_13 (
-      .input1(s_gates8_out),
+      .input1(s_etrue),
       .input2(s_csts_6_3[1]),
-      .result(s_gates13_out)
+      .result(s_csts4_etrue)
   );
 
   AND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_14 (
-      .input1(s_gates6_out),
+      .input1(s_efalse),
       .input2(s_fs_6_3[1]),
-      .result(s_gates14_out)
+      .result(s_fs4_efalse)
   );
 
   AND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_15 (
-      .input1(s_gates8_out),
+      .input1(s_etrue),
       .input2(s_csts_6_3[0]),
-      .result(s_gates15_out)
+      .result(s_csts3_etrue)
   );
 
   AND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_16 (
-      .input1(s_gates6_out),
+      .input1(s_efalse),
       .input2(s_fs_6_3[0]),
-      .result(s_gates16_out)
+      .result(s_fs3_efalse)
   );
 
   NAND_GATE #(
@@ -523,33 +531,33 @@ module CGA_MIC (
   NOR_GATE #(
       .BubblesMask(2'b00)
   ) GATES_19 (
-      .input1(s_gates9_out),
-      .input2(s_gates10_out),
+      .input1(s_csts6_etrue),
+      .input2(s_fs6_efalse),
       .result(s_gates19_out)
   );
 
   NOR_GATE #(
       .BubblesMask(2'b00)
   ) GATES_20 (
-      .input1(s_gates11_out),
-      .input2(s_gates12_out),
+      .input1(s_csts5_etrue),
+      .input2(s_fs5_efalse),
       .result(s_gates20_out)
   );
 
   NOR_GATE #(
       .BubblesMask(2'b00)
   ) GATES_21 (
-      .input1(s_gates13_out),
-      .input2(s_gates14_out),
-      .result(s_gates21_out)
+      .input1(s_csts4_etrue),
+      .input2(s_fs4_efalse),
+      .result(s_csfs_4)
   );
 
   NOR_GATE #(
       .BubblesMask(2'b00)
   ) GATES_22 (
-      .input1(s_gates15_out),
-      .input2(s_gates16_out),
-      .result(s_gates22_out)
+      .input1(s_csts3_etrue),
+      .input2(s_fs3_efalse),
+      .result(s_csfs_3)
   );
 
   NOR_GATE #(
@@ -557,7 +565,7 @@ module CGA_MIC (
   ) GATES_23 (
       .input1(s_lcs_n),
       .input2(s_gates19_out),
-      .result(s_sc_3_n_out)
+      .result(s_sc_6_n_out)
   );
 
   NOR_GATE #(
@@ -565,7 +573,7 @@ module CGA_MIC (
   ) GATES_24 (
       .input1(s_gates18_out),
       .input2(s_gates20_out),
-      .result(s_sc_2_n_out)
+      .result(s_sc_5_n_out)
   );
 
   AND_GATE #(
@@ -652,11 +660,11 @@ module CGA_MIC (
   D_FLIPFLOP #(
       .InvertClockEnable(1)
   ) MEMORY_34 (
-      .clock(s_mclk),
-      .d(s_gates22_out),
+      .clock(s_clk_sc34),
+      .d(s_csfs_3),
       .preset(1'b0),
-      .q(s_sc_1_n_out),
-      .qBar(),
+      .q(),
+      .qBar(s_sc_3_out),
       .reset(1'b0),
       .tick(1'b1)
   );
@@ -688,11 +696,11 @@ module CGA_MIC (
   D_FLIPFLOP #(
       .InvertClockEnable(1)
   ) MEMORY_37 (
-      .clock(s_mclk),
-      .d(s_gates21_out),
+      .clock(s_clk_sc34),
+      .d(s_csfs_4),
       .preset(1'b0),
       .q(),
-      .qBar(s_sc_6_3_out[0]),
+      .qBar(s_sc_4_out),
       .reset(1'b0),
       .tick(1'b1)
   );
@@ -896,13 +904,17 @@ module CGA_MIC (
   );
 
   CGA_MIC_STACK MIC_STACK (
-      .DEEP(s_deep_out),
-      .MCLK(s_mclk),
+      // Input
+      .MCLK (s_mclk),
+      .SCLKN(s_sclk_n), //Stack Clock (Negated MCLK)
+
+      .SC3      (s_sc_6_3_out[0]),   // SC[4:3] values - 00:HOLD, 01:POP, 10:LOAD, 11:PUSH
+      .SC4      (s_sc_6_3_out[1]),   //
       .NEXT_12_0(s_next_12_0[12:0]),
-      .RET_12_0(s_ret_12_0[12:0]),
-      .SC3(1'b0),
-      .SC4(1'b0),
-      .SCLKN(s_mclk_n1)
+
+      // Output
+      .DEEP(s_deep_out),
+      .RET_12_0(s_ret_12_0[12:0])
   );
 
   MUX41P M_LAA_0 (
@@ -934,6 +946,8 @@ module CGA_MIC (
   );
 
   CGA_MIC_MASEL MIC_MASEL (
+      .sysclk(sysclk),  // System clock in FPGA
+      .sys_rst_n(sys_rst_n),  // System reset in FPGA
       .CSBIT20(s_csbit20),
       .CSBIT_11_0(s_csbit_15_0[11:0]),
       .IW_12_0(s_iw_12_0[12:0]),
