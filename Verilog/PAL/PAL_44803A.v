@@ -39,6 +39,18 @@ module PAL_44803A (
     output BCGNT25    //! Q7_n - BCGNT25
 );
 
+
+  // Internal registers
+  reg  RGNT_reg;
+  reg  CGNT_reg;
+  reg  BGNT_reg;
+  reg  LDR_reg;
+  reg  CSEM_reg;
+  reg  BSEM_reg;
+  reg  LOEN25_reg;
+  reg  BCGNT25_n_reg;
+
+
   // negated input signals
   wire LOEN = ~LOEN_n;
   wire RLRQ = ~RLRQ_n;
@@ -57,16 +69,6 @@ module PAL_44803A (
   wire BSEM = BSEM_reg;
   wire LOEN25 = LOEN25_reg;
 
-
-  // Internal registers
-  reg  RGNT_reg;
-  reg  CGNT_reg;
-  reg  BGNT_reg;
-  reg  LDR_reg;
-  reg  CSEM_reg;
-  reg  BSEM_reg;
-  reg  LOEN25_reg;
-  reg  BCGNT25_n_reg;
 
 
 
