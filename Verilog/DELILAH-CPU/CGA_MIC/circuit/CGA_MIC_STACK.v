@@ -12,10 +12,10 @@
 
 module CGA_MIC_STACK (
     input        MCLK,
-    input [12:0] NEXT_12_0,
-    input        SC3,
-    input        SC4,
     input        SCLKN,
+    input        SC3,            //! SC[4:3] values - 00:HOLD, 01:POP, 10:LOAD, 11:PUSH
+    input        SC4,
+    input [12:0] NEXT_12_0,
 
     output        DEEP,
     output [12:0] RET_12_0  //! Return Microcode Address (13 bits)
@@ -31,8 +31,8 @@ module CGA_MIC_STACK (
   wire        s_gates1_out;
   wire        s_gates2_n;
   wire        s_gates2_out;
-  wire        s_gates3_n;
-  wire        s_gates3_out;
+  wire        s_load;
+  wire        s_load_n;
   wire        s_mclk;
   wire        s_sc3_n;
   wire        s_sc3;
@@ -64,7 +64,7 @@ module CGA_MIC_STACK (
   assign s_sc4_n           = ~s_sc4;
   assign s_gates1_n        = ~s_gates1_out;
   assign s_gates2_n        = ~s_gates2_out;
-  assign s_gates3_n        = ~s_gates3_out;
+  assign s_load        = ~s_load_n;
 
   /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -90,7 +90,7 @@ module CGA_MIC_STACK (
   ) GATES_3 (
       .input1(s_sc3_n),
       .input2(s_sc4_n),
-      .result(s_gates3_out)
+      .result(s_load_n)
   );
 
 
@@ -101,7 +101,7 @@ module CGA_MIC_STACK (
   CGA_MIC_STACK_BIT Bit11 (
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
-      .LOAD(s_gates3_n),
+      .LOAD(s_load),
       .S3(s_sc3),
       .S3N(s_sc3_n),
       .S4NS3N(s_gates2_n),
@@ -113,7 +113,7 @@ module CGA_MIC_STACK (
   CGA_MIC_STACK_BIT Bit10 (
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
-      .LOAD(s_gates3_n),
+      .LOAD(s_load),
       .S3(s_sc3),
       .S3N(s_sc3_n),
       .S4NS3N(s_gates2_n),
@@ -125,7 +125,7 @@ module CGA_MIC_STACK (
   CGA_MIC_STACK_BIT Bit9 (
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
-      .LOAD(s_gates3_n),
+      .LOAD(s_load),
       .S3(s_sc3),
       .S3N(s_sc3_n),
       .S4NS3N(s_gates2_n),
@@ -137,7 +137,7 @@ module CGA_MIC_STACK (
   CGA_MIC_STACK_BIT Bit8 (
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
-      .LOAD(s_gates3_n),
+      .LOAD(s_load),
       .S3(s_sc3),
       .S3N(s_sc3_n),
       .S4NS3N(s_gates2_n),
@@ -149,7 +149,7 @@ module CGA_MIC_STACK (
   CGA_MIC_STACK_BIT Bit7 (
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
-      .LOAD(s_gates3_n),
+      .LOAD(s_load),
       .S3(s_sc3),
       .S3N(s_sc3_n),
       .S4NS3N(s_gates2_n),
@@ -161,7 +161,7 @@ module CGA_MIC_STACK (
   CGA_MIC_STACK_BIT Bit6 (
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
-      .LOAD(s_gates3_n),
+      .LOAD(s_load),
       .S3(s_sc3),
       .S3N(s_sc3_n),
       .S4NS3N(s_gates2_n),
@@ -173,7 +173,7 @@ module CGA_MIC_STACK (
   CGA_MIC_STACK_BIT Bit5 (
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
-      .LOAD(s_gates3_n),
+      .LOAD(s_load),
       .S3(s_sc3),
       .S3N(s_sc3_n),
       .S4NS3N(s_gates2_n),
@@ -185,7 +185,7 @@ module CGA_MIC_STACK (
   CGA_MIC_STACK_BIT Bit4 (
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
-      .LOAD(s_gates3_n),
+      .LOAD(s_load),
       .S3(s_sc3),
       .S3N(s_sc3_n),
       .S4NS3N(s_gates2_n),
@@ -197,7 +197,7 @@ module CGA_MIC_STACK (
   CGA_MIC_STACK_BIT Bit3 (
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
-      .LOAD(s_gates3_n),
+      .LOAD(s_load),
       .S3(s_sc3),
       .S3N(s_sc3_n),
       .S4NS3N(s_gates2_n),
@@ -209,7 +209,7 @@ module CGA_MIC_STACK (
   CGA_MIC_STACK_BIT Bit2 (
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
-      .LOAD(s_gates3_n),
+      .LOAD(s_load),
       .S3(s_sc3),
       .S3N(s_sc3_n),
       .S4NS3N(s_gates2_n),
@@ -221,7 +221,7 @@ module CGA_MIC_STACK (
   CGA_MIC_STACK_BIT Bit1 (
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
-      .LOAD(s_gates3_n),
+      .LOAD(s_load),
       .S3(s_sc3),
       .S3N(s_sc3_n),
       .S4NS3N(s_gates2_n),
@@ -233,7 +233,7 @@ module CGA_MIC_STACK (
   CGA_MIC_STACK_BIT Bit0 (
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
-      .LOAD(s_gates3_n),
+      .LOAD(s_load),
       .S3(s_sc3),
       .S3N(s_sc3_n),
       .S4NS3N(s_gates2_n),
@@ -244,7 +244,7 @@ module CGA_MIC_STACK (
 
   CGA_MIC_STACK_BIT12 Bit12 (
       .DEEP(s_deep_out),
-      .LOAD(s_gates3_n),
+      .LOAD(s_load),
       .MCLK(s_mclk),
       .S3(s_sc3),
       .S3N(s_sc3_n),
