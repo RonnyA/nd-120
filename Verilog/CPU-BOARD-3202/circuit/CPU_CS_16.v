@@ -99,7 +99,10 @@ module CPU_CS_16 (
 
 
   // CSBITS out from this module is always the bits from OUT from the WCS/TCW (WCS is also feeding the TCV)
-  assign CSBITS = s_csbits_out_wcs | s_csbits_out_tcv;
+  //assign CSBITS = s_csbits_out_wcs | s_csbits_out_tcv;
+
+    // CSBITS out is only from the writable-control-store
+    assign CSBITS = s_csbits_out_wcs;
 
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
