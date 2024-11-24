@@ -4,31 +4,31 @@
 
 
 // 10 Bit input signals (I0-I9)
-// 
+//
 
 //   /TERM /CC0 /CC1 /CC2 /CC3 /FORM /BRK /RWCS /TRAP GND
 //   VEX /MACLK /MAP /ETRAP UCLK /EORF CYD WRFSTB /MCLK VCC
 
 module PAL_44307C(
-    input TERM_n,    // I0
-    input CC0_n,     // I1
-    input CC1_n,     // I2
-    input CC2_n,     // I3
-    input CC3_n,     // I4
-    input FORM_n,    // I5
-    input BRK_n,     // I6
-    input RWCS_n,    // I7
-    input TRAP_n,    // I8
-    input VEX,       // I9
+    input TERM_n,    //! I0
+    input CC0_n,     //! I1
+    input CC1_n,     //! I2
+    input CC2_n,     //! I3
+    input CC3_n,     //! I4
+    input FORM_n,    //! I5
+    input BRK_n,     //! I6
+    input RWCS_n,    //! I7
+    input TRAP_n,    //! I8
+    input VEX,       //! I9
 
-    output MCLK_n,   // Y0_n - MCLK_n
-    output MACLK_n,  // Y1_n - MACLK_n
-    output WRFSTB,   // B0_n - WRFSTB
-    output CYD,      // B1_n - CYD_n
-    output EORF_n,   // B2_n - EORF_n
-    output UCLK,     // B3_n - UCLK
-    output ETRAP_n,  // B4_n - MAP_n
-    output MAP_n     // B5_n - MAP_n        
+    output MCLK_n,   //! Y0_n - MCLK_n    Main Clock ?
+    output MACLK_n,  //! Y1_n - MACLK_n   Memory Access Clock ?
+    output WRFSTB,   //! B0_n - WRFSTB    Write Strobe ?
+    output CYD,      //! B1_n - CYD_n     Cycle Done ?
+    output EORF_n,   //! B2_n - EORF_n    End of Read Flag ? (Miscellaneous write pulse)
+    output UCLK,     //! B3_n - UCLK      Update Clock ? (A universal clock signal for memory requests)
+    output ETRAP_n,  //! B4_n - ETRAP_n   Enable Trap signals
+    output MAP_n     //! B5_n - MAP_n
 );
 
 

@@ -67,7 +67,7 @@ module PAL_44403C (
     if (
         (MR)
         | (s_dma12_n & LUA12_n & LCS)  // LCS FROM MR AND UNTIL MA12 HAS GONE HIGH AND
-        | (DMA12 & LUA12 & LCS)  // I.E. LMA COUNTED FROM 0 to 8K.
+        | (DMA12 & LUA12 & LCS)        // I.E. LMA COUNTED FROM 0 to 8K.
         | (s_dma12_n & LUA12 & LCS))
       LCS <= 1'b1;
     else LCS <= 1'b0;

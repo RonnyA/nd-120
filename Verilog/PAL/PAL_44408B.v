@@ -55,7 +55,7 @@ module PAL_44408B (
   // Sequential logic triggered on the rising edge of CLK
   always @(posedge CK) begin
     // Logic for LDEXM
-    LDEXM_int <= C4 & ~C3 & ~C2 & ~C1 & C0 & M1 & M0 & LCS_n;  // COMMAND 21.3 (validated RH)
+    LDEXM_int <= C4 & ~C3 & ~C2 & ~C1 & C0 & M1 & M0 & LCS_n;  // COMMAND 21.3 LDEXM (validated RH) (Load examine mode in MAC function.)
 
     // Logic for VEX
     VEX_n_int <= (LDEXM_int & ~IDB2) |  // CLEAR
@@ -63,10 +63,10 @@ module PAL_44408B (
     LCS;  // LCS
 
     // Logic for OPCLCS
-    OPCLCS_n_int <= ~C4 | ~C3 | ~C2 | ~C1 | C0 | ~M1 | M0 | LCS;  // COMMAND 36.2 (validated RH)
+    OPCLCS_n_int <= ~C4 | ~C3 | ~C2 | ~C1 | C0 | ~M1 | M0 | LCS;  // COMMAND 36.2 LCS (validated RH) - Load control store from PROM. and perform a Master Clear
 
     // Logic for RWCS
-    RWCS_int <= C4 & C3 & C2 & C1 & ~C0 & ~M1 & M0 & LCS_n;  // COMMAND 36.1 (validated RH)
+    RWCS_int <= C4 & C3 & C2 & C1 & ~C0 & ~M1 & M0 & LCS_n;  // COMMAND 36.1 RWCS(validated RH) - Read/write control store as addressed by ADCS command
 
   end
 
