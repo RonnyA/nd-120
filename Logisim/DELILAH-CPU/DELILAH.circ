@@ -56,16 +56,16 @@
   <lib desc="#BFH-Praktika" name="9"/>
   <lib desc="#Input/Output-Extra" name="10"/>
   <lib desc="#Soc" name="11"/>
-  <lib desc="file#CGA_IDBCTL_.circ" name="12"/>
-  <lib desc="file#TESTMUX_.circ" name="13"/>
-  <lib desc="file#CGA_TRAP_.circ" name="14"/>
-  <lib desc="file#CGA_MAC_.circ" name="15"/>
-  <lib desc="file#CGA_ALU_.circ" name="16"/>
-  <lib desc="file#CGA_HELPER.circ" name="17"/>
-  <lib desc="file#CGA_MIC_.circ" name="18"/>
-  <lib desc="file#CGA_INTR_.circ" name="19"/>
-  <lib desc="file#CGA_DCD_.circ" name="20"/>
-  <lib desc="file#CGA_WRF_.circ" name="21"/>
+  <lib desc="file#CGA_DCD_.circ" name="12"/>
+  <lib desc="file#CGA_IDBCTL_.circ" name="13"/>
+  <lib desc="file#CGA_ALU_.circ" name="14"/>
+  <lib desc="file#CGA_INTR_.circ" name="15"/>
+  <lib desc="file#CGA_WRF_.circ" name="16"/>
+  <lib desc="file#CGA_MAC_.circ" name="17"/>
+  <lib desc="file#TESTMUX_.circ" name="18"/>
+  <lib desc="file#CGA_MIC_.circ" name="19"/>
+  <lib desc="file#CGA_TRAP_.circ" name="20"/>
+  <lib desc="file#CGA_HELPER.circ" name="21"/>
   <main name="CGA"/>
   <options>
     <a name="gateUndefined" val="ignore"/>
@@ -341,7 +341,7 @@
       <a name="label" val="SGR"/>
     </comp>
     <comp lib="0" loc="(1600,10050)" name="Tunnel">
-      <a name="label" val="CRY"/>
+      <a name="label" val="ZF"/>
     </comp>
     <comp lib="0" loc="(1600,10210)" name="Tunnel">
       <a name="label" val="MI"/>
@@ -364,7 +364,7 @@
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(1660,10070)" name="Tunnel">
-      <a name="label" val="ZF"/>
+      <a name="label" val="CRY"/>
     </comp>
     <comp lib="0" loc="(1690,10190)" name="Tunnel">
       <a name="label" val="BDEST"/>
@@ -2194,35 +2194,35 @@
     <comp lib="0" loc="(990,7840)" name="Tunnel">
       <a name="label" val="CBRKN"/>
     </comp>
-    <comp lib="12" loc="(2050,8440)" name="CGA_IDBCTL">
-      <a name="label" val="IDBCTL"/>
-    </comp>
-    <comp lib="13" loc="(960,11480)" name="CGA_TESTMUX">
-      <a name="label" val="TESTMUX"/>
-    </comp>
-    <comp lib="14" loc="(1730,7620)" name="CGA_TRAP">
-      <a name="label" val="TRAP"/>
-    </comp>
-    <comp lib="15" loc="(780,10710)" name="CGA_MAC">
-      <a name="label" val="MAC"/>
-    </comp>
-    <comp lib="16" loc="(1590,10050)" name="CGA_ALU">
-      <a name="label" val="ALU"/>
-    </comp>
-    <comp lib="17" loc="(680,6930)" name="BusDriver16">
-      <a name="label" val="BD_FIDBO"/>
-    </comp>
-    <comp lib="18" loc="(780,9460)" name="CGA_MIC">
-      <a name="label" val="MIC"/>
-    </comp>
-    <comp lib="19" loc="(750,8460)" name="CGA_INTR">
-      <a name="label" val="INTR"/>
-    </comp>
-    <comp lib="20" loc="(660,7580)" name="CGA_DCD">
+    <comp lib="12" loc="(660,7580)" name="CGA_DCD">
       <a name="label" val="DCD"/>
     </comp>
-    <comp lib="21" loc="(2550,10200)" name="CGA_WRF">
+    <comp lib="13" loc="(2050,8440)" name="CGA_IDBCTL">
+      <a name="label" val="IDBCTL"/>
+    </comp>
+    <comp lib="14" loc="(1590,10050)" name="CGA_ALU">
+      <a name="label" val="ALU"/>
+    </comp>
+    <comp lib="15" loc="(750,8460)" name="CGA_INTR">
+      <a name="label" val="INTR"/>
+    </comp>
+    <comp lib="16" loc="(2550,10200)" name="CGA_WRF">
       <a name="label" val="WRF"/>
+    </comp>
+    <comp lib="17" loc="(780,10710)" name="CGA_MAC">
+      <a name="label" val="MAC"/>
+    </comp>
+    <comp lib="18" loc="(960,11480)" name="CGA_TESTMUX">
+      <a name="label" val="TESTMUX"/>
+    </comp>
+    <comp lib="19" loc="(780,9460)" name="CGA_MIC">
+      <a name="label" val="MIC"/>
+    </comp>
+    <comp lib="20" loc="(1730,7620)" name="CGA_TRAP">
+      <a name="label" val="TRAP"/>
+    </comp>
+    <comp lib="21" loc="(680,6930)" name="BusDriver16">
+      <a name="label" val="BD_FIDBO"/>
     </comp>
     <comp lib="8" loc="(1275,11155)" name="Text">
       <a name="text" val="WILL SHOW RED AS THERE IS LATCHES THAT IS &quot;UNDEFINED&quot; UNTIL USED"/>

@@ -734,8 +734,7 @@ module CGA (
       .CBRKN(s_cbrk_n),
       .CFETCH(s_cfetch),
       .CLFFN(s_clff_n),
-      .CLIRQN(s_clirq_n),
-      .CRY(s_zf),
+      .CLIRQN(s_clirq_n),      
       .CSCOMM_4_0(s_cscomm_4_0[4:0]),
       .CSIDBS_4_0(s_csidbs_4_0[4:0]),
       .CSMIS_1_0(s_csmis_1_0[1:0]),
@@ -770,7 +769,8 @@ module CGA (
       .WRITEN(s_write_n),
       .WRTRF(sx_wrtrf_out),
       .XFETCHN(s_xfetch_n),
-      .ZF(s_cry)
+      .CRY(s_cry),
+      .ZF(s_zf)
   );
 
   BusDriver16 BD_FIDBO (
@@ -847,7 +847,7 @@ module CGA (
       .CFETCH(s_cfetch),
       .CLFFN(s_clff_n),
       .COND(s_cond),
-      .CRY(s_zf),
+      .CRY(s_cry),
       .CSALUI8(s_csalui8),
       .CSBIT20(sx_csbit20),
       .CSBIT_15_0(s_csbit_15_0[15:0]),
@@ -894,14 +894,14 @@ module CGA (
       .TVEC_3_0(s_tvec_3_0[3:0]),
       .UPN(s_up_n),
       .WCSN(sx_wcs_n_out),
-      .ZF(s_cry)
+      .ZF(s_zf)
   );
 
   CGA_TESTMUX TESTMUX (
       .CBRKN(s_cbrk_n),
       .CFETCH(s_cfetch),
       .COND(s_cond),
-      .CRY(s_zf),
+      .CRY(s_cry),
       .CSMREQ(s_csmreq),
       .DEEP(s_deep),
       .DSTOPN(s_dstop_n),
@@ -930,7 +930,7 @@ module CGA (
       .WPN(s_wp_n),
       .WRITEN(s_write_n),
       .XFETCHN(s_xfetch_n),
-      .ZF(s_cry)
+      .ZF(s_zf)
   );
 
 endmodule
