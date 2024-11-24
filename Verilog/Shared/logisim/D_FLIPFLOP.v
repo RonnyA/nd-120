@@ -13,7 +13,7 @@ module D_FLIPFLOP #(
     parameter integer InvertClockEnable = 1
 )(
     input clock,     //! Clock
-    input d,         //! D inpit (DATA)
+    input d,         //! D input (DATA)
     input preset,    //! PRESET - Active-high, sets Q to 1 when asserted
     input reset,     //! RESET - Active-high, sets Q to 0 when asserted
     input tick,      //! Tick (not used, needs to be refactored out)
