@@ -71,13 +71,6 @@ module CYC_36 (
   wire [1:0] s_csdelay_1_0;
   wire [2:0] s_cc_3_1_n;
 
-  // not used - uncomment if needed in the future
-  // wire       s_dlshadow;
-  // wire       s_DMA12_n;
-  // wire       S_DMAP_n;
-  // wire       s_nowrite_n;
-  // wire       s_MDLY_n;
-
   wire       c_csdly;
   wire       s_acond_n;
   wire       s_aluclk;
@@ -275,15 +268,13 @@ module CYC_36 (
       .MAP_n   (s_map_n),           //I7
 
       //Q0-Q3 (clocked and 3-state)
-      .LCS_n(s_lcs_n),  //Q0_n
-      //.MDLY_n(s_MDLY_n),          //Q1_n  (not used)
-      //.DMA12_n(s_DMA12_n),        //Q2_n  (not used)
-      //.DMA12_n(),                 //Q2_n  (not used)
-      //.DMAP_n(s_DMAP_n),          //Q3_n  (not used)
+      .LCS_n(s_lcs_n),      //Q0_n
+      .MDLY_n(),            //Q1_n  (not used)
+      .DMA12_n(),           //Q2_n  (not used)
+      .DMAP_n(),            //Q3_n  (not used)
 
       .DLY0_n  (s_dly0_n),   //B0_n
       .SLCOND_n(s_slcond_n)  //B2_n
-
   );
 
   PAL_44404C PAL_44404_UCYIN1 (
@@ -300,8 +291,8 @@ module CYC_36 (
       .LBA0    (s_lba0),            //I7
 
       //Q0-Q3 (clocked and 3-state)
-      //.NOWRIT_n(s_nowrite_n),     //Q0_n (not used)
-      //.DLSHADOW(s_dlshadow),      //Q1_n (not used)
+      .NOWRIT_n(),            // Q0_n (not used)
+      .DLSHADOW(),            // Q1_n (not used)
 
       .RRF_n   (s_RRF_n),     // B0_n
       .LSHADOW (s_lshadow),   // B1_n
