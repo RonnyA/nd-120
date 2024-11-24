@@ -10,6 +10,9 @@
 /* verilator lint_off UNUSED */
 
 module CPU_PROC_CGA_33 (
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
     input        ALUCLK,
     input        BEDO_n,
     input        BEMPID_n,
@@ -189,9 +192,11 @@ module CPU_PROC_CGA_33 (
   // ************ END OF MICROCODE INPUTS ************
 
   CGA DELILAH (
+      .sysclk(sysclk),  // System clock in FPGA
+      .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
       /************ INPUT SIGNALS ********************/
-      .XALUCLK (ALUCLK),
+      .XALUCLK(ALUCLK),
       .XBINT10N(s_bint10_n),
       .XBINT11N(s_bint11_n),
       .XBINT12N(s_bint12_n),
