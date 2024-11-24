@@ -98,7 +98,7 @@ module CPU_15 (
     output OPCLCS,
     output PONI,
     output TP1_INTRQ_n,
-    output TRAP,
+    output TRAPN,
     output VEX,
     output LDEXM_n,
 
@@ -150,7 +150,7 @@ module CPU_15 (
   wire        s_mor_n;
   wire        s_maclk;
   wire        s_opclcs;
-  wire        s_trap;
+  wire        s_trap_n;
   wire        s_rrf_n;
   wire        s_lcs_n;
   wire        s_ibint15_n;
@@ -306,7 +306,7 @@ module CPU_15 (
   assign TEST_4_0 = s_test_4_0[4:0];
   assign TOPCSB = s_csbits[63:0];
   assign TP1_INTRQ_n = s_tp1_intr1_n;
-  assign TRAP = s_trap;
+  assign TRAPN = s_trap_n;
   assign VEX = s_vex;
 
   assign LED1 = s_led1;
@@ -385,7 +385,7 @@ module CPU_15 (
       .TEST_4_0(s_test_4_0[4:0]),
       .SEL_TESTMUX(SEL_TESTMUX),
       .TP1_INTRQ_n(s_tp1_intr1_n),
-      .TRAP(s_trap),
+      .TRAPN(s_trap_n), // TRAP_n output
       .UCLK(s_uclk),
       .VEX(s_vex),
       .WCA_n(s_wca_n),

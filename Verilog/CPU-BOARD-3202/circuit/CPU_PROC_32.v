@@ -83,7 +83,7 @@ module CPU_PROC_32 (
     output RWCS_n,
     output [4:0] TEST_4_0,
     output TP1_INTRQ_n,
-    output TRAP,
+    output TRAPN,
     output VEX,
     output WCS_n
 );
@@ -173,7 +173,7 @@ module CPU_PROC_32 (
   wire        s_rwcs_n;
   wire        s_term_n;
   wire        s_tp1_intrq_n;
-  wire        s_trap;
+  wire        s_trap_n_out;
   wire        s_twrf_n;
   wire        s_uclk;
   wire        s_vex;
@@ -288,7 +288,7 @@ module CPU_PROC_32 (
   assign RWCS_n = s_rwcs_n;
   assign TEST_4_0 = s_test_4_0[4:0];
   assign TP1_INTRQ_n = s_tp1_intrq_n;
-  assign TRAP = s_trap;
+  assign TRAPN = s_trap_n_out;
   assign VEX = s_vex;
   assign WCS_n = s_wcs_n;
 
@@ -385,6 +385,9 @@ module CPU_PROC_32 (
 
 
   CPU_PROC_CGA_33 CGA (
+      .sysclk(sysclk),  // System clock in FPGA
+      .sys_rst_n(sys_rst_n),  // System reset in FPGA
+
       .ACOND_n(s_acond_n),
       .ALUCLK(s_aluclk),
       .BEDO_n(s_bedo_n),
@@ -429,7 +432,7 @@ module CPU_PROC_32 (
       .RF_1_0(s_rf_1_0),
       .SEL_TESTMUX(SEL_TESTMUX),
       .TEST_4_0(s_test_4_0[4:0]),
-      .TRAP_n(s_trap),
+      .TRAP_n(s_trap_n_out),
       .UCLK(s_uclk),
       .WCS_n(s_wcs_n),
       .WRTRF(s_wrtrf)
