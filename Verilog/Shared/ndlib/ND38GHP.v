@@ -3,7 +3,7 @@
 **                                                                       **
 ** Component : ND38GHP  (3-to-8 decoder)                                 **
 **                                                                       **
-** Last reviewed: 11-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -12,7 +12,7 @@ module ND38GHP (
     input A,
     input B,
     input C,
-    input G,
+    input GN,
 
     output Z0,
     output Z1,
@@ -56,7 +56,7 @@ module ND38GHP (
   assign s_sel[0] = A;
   assign s_sel[1] = B;
   assign s_sel[2] = C;
-  assign s_g    = G;
+  assign s_g    = ~GN;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -74,14 +74,14 @@ module ND38GHP (
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-  assign s_z0_out = ~s_out0;
-  assign s_z1_out = ~s_out1;
-  assign s_z2_out = ~s_out2;
-  assign s_z3_out = ~s_out3;
-  assign s_z4_out = ~s_out4;
-  assign s_z5_out = ~s_out5;
-  assign s_z6_out = ~s_out6;
-  assign s_z7_out = ~s_out7;
+  assign s_z0_out = s_out0;
+  assign s_z1_out = s_out1;
+  assign s_z2_out = s_out2;
+  assign s_z3_out = s_out3;
+  assign s_z4_out = s_out4;
+  assign s_z5_out = s_out5;
+  assign s_z6_out = s_out6;
+  assign s_z7_out = s_out7;
 
   /*******************************************************************************
    ** Here all normal components are defined                                     **
