@@ -6,7 +6,7 @@
 ** Page 43                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -68,164 +68,181 @@ module CGA_ALU_QREG (
   MUX41P MUXQ15 (
       .A (s_qsel_1_0[0]),
       .B (s_qsel_1_0[1]),
-      .D0(s_q_15_0_out[7]),
-      .D1(s_f_15_0[15]),
-      .D2(s_q_15_0_out[6]),
-      .D3(s_q_15_0_out[8]),
-      .Z (s_mux_z_7)
-  );
 
-  MUX41P MUXQ10 (
-      .A (s_qsel_1_0[0]),
-      .B (s_qsel_1_0[1]),
-      .D0(s_q_15_0_out[2]),
-      .D1(s_f_15_0[10]),
-      .D2(s_q_15_0_out[1]),
-      .D3(s_q_15_0_out[3]),
-      .Z (s_mux_z_2)
-  );
-
-  MUX41P MUXQ9 (
-      .A (s_qsel_1_0[0]),
-      .B (s_qsel_1_0[1]),
-      .D0(s_q_15_0_out[1]),
-      .D1(s_f_15_0[9]),
-      .D2(s_q_15_0_out[0]),
-      .D3(s_q_15_0_out[2]),
-      .Z (s_mux_z_1)
-  );
-
-  MUX41P MUXQ8 (
-      .A (s_qsel_1_0[0]),
-      .B (s_qsel_1_0[1]),
-      .D0(s_q_15_0_out[0]),
-      .D1(s_f_15_0[8]),
-      .D2(s_q_15_0_out[15]),
-      .D3(s_q_15_0_out[1]),
-      .Z (s_mux_z_0)
-  );
-
-  MUX41P MUXQ7 (
-      .A (s_qsel_1_0[0]),
-      .B (s_qsel_1_0[1]),
       .D0(s_q_15_0_out[15]),
-      .D1(s_f_15_0[7]),
+      .D1(s_f_15_0[15]),
       .D2(s_q_15_0_out[14]),
       .D3(s_q_15_0_out[0]),
       .Z (s_mux_z_15)
   );
 
-  MUX41P MUXQ6 (
+  MUX41P MUXQ14 (
       .A (s_qsel_1_0[0]),
       .B (s_qsel_1_0[1]),
+
       .D0(s_q_15_0_out[14]),
-      .D1(s_f_15_0[6]),
+      .D1(s_f_15_0[14]),
       .D2(s_q_15_0_out[13]),
       .D3(s_q_15_0_out[15]),
       .Z (s_mux_z_14)
   );
-
-  MUX41P MUXQ5 (
+  MUX41P MUXQ13 (
       .A (s_qsel_1_0[0]),
       .B (s_qsel_1_0[1]),
+
       .D0(s_q_15_0_out[13]),
-      .D1(s_f_15_0[5]),
+      .D1(s_f_15_0[13]),
       .D2(s_q_15_0_out[12]),
       .D3(s_q_15_0_out[14]),
       .Z (s_mux_z_13)
   );
 
-  MUX41P MUXQ4 (
+  MUX41P MUXQ12 (
       .A (s_qsel_1_0[0]),
       .B (s_qsel_1_0[1]),
       .D0(s_q_15_0_out[12]),
-      .D1(s_f_15_0[4]),
+      .D1(s_f_15_0[12]),
       .D2(s_q_15_0_out[11]),
       .D3(s_q_15_0_out[13]),
       .Z (s_mux_z_12)
   );
 
-  MUX41P MUXQ3 (
+  MUX41P MUXQ11 (
       .A (s_qsel_1_0[0]),
       .B (s_qsel_1_0[1]),
+
       .D0(s_q_15_0_out[11]),
-      .D1(s_f_15_0[3]),
+      .D1(s_f_15_0[11]),
       .D2(s_q_15_0_out[10]),
       .D3(s_q_15_0_out[12]),
       .Z (s_mux_z_11)
   );
 
-  MUX41P MUXQ2 (
+  MUX41P MUXQ10 (
       .A (s_qsel_1_0[0]),
       .B (s_qsel_1_0[1]),
+
       .D0(s_q_15_0_out[10]),
-      .D1(s_f_15_0[2]),
+      .D1(s_f_15_0[10]),
       .D2(s_q_15_0_out[9]),
       .D3(s_q_15_0_out[11]),
       .Z (s_mux_z_10)
   );
 
-  MUX41P MUXQ1 (
+  MUX41P MUXQ9 (
       .A (s_qsel_1_0[0]),
       .B (s_qsel_1_0[1]),
+
       .D0(s_q_15_0_out[9]),
-      .D1(s_f_15_0[1]),
+      .D1(s_f_15_0[9]),
       .D2(s_q_15_0_out[8]),
       .D3(s_q_15_0_out[10]),
       .Z (s_mux_z_9)
   );
 
-  MUX41P MUXQ14 (
+  MUX41P MUXQ8 (
       .A (s_qsel_1_0[0]),
       .B (s_qsel_1_0[1]),
+
+      .D0(s_q_15_0_out[8]),
+      .D1(s_f_15_0[8]),
+      .D2(s_q_15_0_out[7]),
+      .D3(s_q_15_0_out[9]),
+      .Z (s_mux_z_8)
+  );
+
+  MUX41P MUXQ7 (
+      .A (s_qsel_1_0[0]),
+      .B (s_qsel_1_0[1]),
+
+      .D0(s_q_15_0_out[7]),
+      .D1(s_f_15_0[7]),
+      .D2(s_q_15_0_out[6]),
+      .D3(s_q_15_0_out[8]),
+      .Z (s_mux_z_7)
+  );
+
+  MUX41P MUXQ6 (
+      .A (s_qsel_1_0[0]),
+      .B (s_qsel_1_0[1]),
+
       .D0(s_q_15_0_out[6]),
-      .D1(s_f_15_0[14]),
+      .D1(s_f_15_0[6]),
       .D2(s_q_15_0_out[5]),
       .D3(s_q_15_0_out[7]),
       .Z (s_mux_z_6)
   );
 
-  MUX41P MUXQ0 (
+  MUX41P MUXQ5 (
       .A (s_qsel_1_0[0]),
       .B (s_qsel_1_0[1]),
-      .D0(s_q_15_0_out[8]),
-      .D1(s_f_15_0[0]),
-      .D2(s_qli),
-      .D3(s_q_15_0_out[9]),
-      .Z (s_mux_z_8)
-  );
 
-  MUX41P MUXQ13 (
-      .A (s_qsel_1_0[0]),
-      .B (s_qsel_1_0[1]),
       .D0(s_q_15_0_out[5]),
-      .D1(s_f_15_0[13]),
+      .D1(s_f_15_0[5]),
       .D2(s_q_15_0_out[4]),
       .D3(s_q_15_0_out[6]),
       .Z (s_mux_z_5)
   );
 
-  MUX41P MUXQ12 (
+  MUX41P MUXQ4 (
       .A (s_qsel_1_0[0]),
       .B (s_qsel_1_0[1]),
+
       .D0(s_q_15_0_out[4]),
-      .D1(s_f_15_0[12]),
+      .D1(s_f_15_0[4]),
       .D2(s_q_15_0_out[3]),
       .D3(s_q_15_0_out[5]),
       .Z (s_mux_z_4)
   );
 
-  MUX41P MUXQ11 (
+  MUX41P MUXQ3 (
       .A (s_qsel_1_0[0]),
       .B (s_qsel_1_0[1]),
+
       .D0(s_q_15_0_out[3]),
-      .D1(s_f_15_0[11]),
+      .D1(s_f_15_0[3]),
       .D2(s_q_15_0_out[2]),
       .D3(s_q_15_0_out[4]),
       .Z (s_mux_z_3)
   );
 
-  R81P REG_Q_LO (
+  MUX41P MUXQ2 (
+      .A (s_qsel_1_0[0]),
+      .B (s_qsel_1_0[1]),
+
+      .D0(s_q_15_0_out[2]),
+      .D1(s_f_15_0[2]),
+      .D2(s_q_15_0_out[1]),
+      .D3(s_q_15_0_out[3]),
+      .Z (s_mux_z_2)
+  );
+
+  MUX41P MUXQ1 (
+      .A (s_qsel_1_0[0]),
+      .B (s_qsel_1_0[1]),
+
+      .D0(s_q_15_0_out[1]),
+      .D1(s_f_15_0[1]),
+      .D2(s_q_15_0_out[0]),
+      .D3(s_q_15_0_out[2]),
+      .Z (s_mux_z_1)
+  );
+
+
+
+  MUX41P MUXQ0 (
+      .A (s_qsel_1_0[0]),
+      .B (s_qsel_1_0[1]),
+      .D0(s_q_15_0_out[0]),
+      .D1(s_f_15_0[0]),
+      .D2(s_qli),
+      .D3(s_q_15_0_out[1]),
+      .Z (s_mux_z_0)
+  );
+
+
+
+  R81P REG_Q_HI (
       .CP(s_aluclk),
 
       .A(s_mux_z_15),
@@ -255,7 +272,7 @@ module CGA_ALU_QREG (
       .QHN()
   );
 
-  R81P REG_Q_HI (
+  R81P REG_Q_LO (
       .CP(s_aluclk),
 
       .A(s_mux_z_7),
