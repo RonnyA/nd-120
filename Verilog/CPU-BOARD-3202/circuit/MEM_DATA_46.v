@@ -4,7 +4,7 @@
 ** DATA & PARITY TCV                                                     **
 ** SHEET 46 of 50                                                        **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -68,7 +68,6 @@ module MEM_DATA_46 (
   wire        s_oer_n;
   wire        s_oet_n;
   wire        s_pa_n;
-  wire        s_pd3;
   wire        s_power;
   wire        s_qd_n;
   wire        s_rdata;
@@ -195,7 +194,7 @@ module MEM_DATA_46 (
       .CLRERR_n(s_clrerr_n),  //! B1_n - CLRERR_n
       .DISB_n  (),            //! B2_n - DISB_n (n.c)
       .TST_n   (),            //! B3_n - TST_n (n.c.)
-      .QD_n    (s_pd3),       //! B4_n - PD3
+      .QD_n    (s_qd_n),      //! B4_n - QD_n
       .MR_n    (s_mr_n)       //! B5_n - MR_n
   );
 
