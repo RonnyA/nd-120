@@ -1,20 +1,20 @@
 [*]
-[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Tue Dec  5 20:36:44 2023
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Wed Nov 27 09:44:38 2024
 [*]
 [dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_DCD/sim/waveform.vcd"
-[dumpfile_mtime] "Tue Dec  5 20:17:40 2023"
-[dumpfile_size] 72447
-[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_DCD/sim/dcd.gktw.gtkw"
+[dumpfile_mtime] "Wed Nov 27 09:44:09 2024"
+[dumpfile_size] 82629
+[savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_DCD/sim/dcd.gtkw"
 [timestart] 0
-[size] 1641 968
-[pos] -1133 230
-*-6.286304 9 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[size] 2560 1355
+[pos] 0 207
+*-7.186304 875 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
-[sst_width] 214
+[sst_width] 297
 [signals_width] 316
 [sst_expanded] 1
-[sst_vpaned_height] 281
+[sst_vpaned_height] 418
 @28
 TOP.CGA_DCD.MCLK
 @22
@@ -22,7 +22,6 @@ TOP.CGA_DCD.CSCOMM_4_0[4:0]
 TOP.CGA_DCD.CSIDBS_4_0[4:0]
 @28
 TOP.CGA_DCD.CSMIS_1_0[1:0]
-TOP.CGA_DCD.ILCSN
 TOP.CGA_DCD.BRKN
 TOP.CGA_DCD.MRN
 TOP.CGA_DCD.PONI
@@ -30,6 +29,8 @@ TOP.CGA_DCD.VEX
 TOP.CGA_DCD.FIDBO5
 TOP.CGA_DCD.LSHADOW
 TOP.CGA_DCD.INTRQN
+@29
+TOP.CGA_DCD.LCSN
 @200
 -
 @28
@@ -63,7 +64,6 @@ TOP.CGA_DCD.EPGSN
 TOP.CGA_DCD.EPCRN
 TOP.CGA_DCD.EPICVN
 TOP.CGA_DCD.EPICSN
-@29
 TOP.CGA_DCD.ERFN
 [pattern_trace] 1
 [pattern_trace] 0

@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
-[*] Wed Apr 24 07:37:11 2024
+[*] Sun Dec  1 15:05:51 2024
 [*]
 [dumpfile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/SC2661_UART/sim/waveform.vcd"
-[dumpfile_mtime] "Wed Apr 24 07:23:49 2024"
-[dumpfile_size] 9547
+[dumpfile_mtime] "Sun Dec  1 15:05:26 2024"
+[dumpfile_size] 28031
 [savefile] "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/SC2661_UART/sim/pal.gtkw"
-[timestart] 385
-[size] 2548 1359
+[timestart] 0
+[size] 2543 1359
 [pos] -1 -1
-*-5.656229 570 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-6.556230 60 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [sst_width] 312
 [signals_width] 511
@@ -49,17 +49,30 @@ TOP.SC2661_UART.D_OUT[7:0]
 -** Internal **
 @28
 TOP.SC2661_UART.s_address[1:0]
+TOP.SC2661_UART.txState[2:0]
 TOP.SC2661_UART.s_read_n
 @22
 TOP.SC2661_UART.regCommandRegister[7:0]
 TOP.SC2661_UART.regModeRegister[7:0]
 TOP.SC2661_UART.regReceiveHoldingRegister[7:0]
 TOP.SC2661_UART.regStatusRegister[7:0]
-TOP.SC2661_UART.s_data_in[7:0]
 TOP.SC2661_UART.regTransmitHoldingRegister[7:0]
 @28
 TOP.SC2661_UART.txBit
+@24
 TOP.SC2661_UART.txBitNumber[2:0]
-TOP.SC2661_UART.dataOut[7:0]
+@22
+TOP.SC2661_UART.s_data_in[7:0]
+@200
+---debug--
+@24
+TOP.SC2661_UART.regADDR[1:0]
+@25
+TOP.SC2661_UART.s_address[1:0]
+@22
+TOP.SC2661_UART.regDATA[7:0]
+@28
+TOP.SC2661_UART.regLatched
+TOP.SC2661_UART.cmd_txEnabled
 [pattern_trace] 1
 [pattern_trace] 0
