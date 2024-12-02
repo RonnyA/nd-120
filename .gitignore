@@ -2,9 +2,11 @@
 obj_dir/
 waveform.vcd
 .VSCodeCounter
-# ignore soft linked microcode files used for verilator
+# ignore soft linked microcode files used for verilator (Files lives only in Code/Microcode)
 Verilog/CPU-BOARD-3202/circuit/**/AM27256_45132L.hex
 Verilog/CPU-BOARD-3202/circuit/**/AM27256_45133L.hex
+Verilog/sim/AM27256_45132L.hex
+Verilog/sim/AM27256_45133L.hex
 
 Verilog/.vscode/*
 Verilog/Verilog_pnr.json
