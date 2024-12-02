@@ -6,7 +6,7 @@
 ** Page 41                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -25,8 +25,8 @@ module CGA_ALU (
     input [ 1:0] CSSST_1_0,
     input [15:0] EA_15_0,
     input [15:0] FIDBI_15_0,
-    input [ 3:0] LAA_3_0,
-    input [ 3:0] LBA_3_0,
+    input [ 3:0] LAA_3_0,  //! A Operand. CSBITS [15:12]
+    input [ 3:0] LBA_3_0,  //! B Operand. CSBITS [19:16]
     input        LCZN,
     input        LDDBRN,
     input        LDGPRN,
@@ -99,18 +99,10 @@ module CGA_ALU (
   wire        s_alui8n;
   wire        s_bdest_out;
   wire        s_carry_in;
-  wire        s_cd_10;
-  wire        s_cd_9;
   wire        s_cry_out;
   wire        s_dgpr0_n;
   wire        s_fsel;
   wire        s_gprli;
-  wire        s_laa_1;
-  wire        s_laa_2;
-  wire        s_laa_3;
-  wire        s_lba_0;
-  wire        s_lba_1;
-  wire        s_lba_2;
   wire        s_lcz_n;
   wire        s_lddbr_n;
   wire        s_ldgpr_n;
@@ -129,51 +121,26 @@ module CGA_ALU (
   wire        s_sb;
   wire        s_sel_idbs2;
   wire        s_sgr_out;
-  wire        s_sts_10;
-  wire        s_sts_11;
-  wire        s_sts_8;
-  wire        s_sts_9;
   wire        s_up_n;
   wire        s_xfetch_n;
   wire        s_zf_out;
 
   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
-  /*******************************************************************************
    ** Here all wiring is defined                                                 **
    *******************************************************************************/
-  assign s_cd_10                = s_cd_15_0[10];
-  assign s_cd_10_9[0]           = s_cd_9;
-  assign s_cd_10_9[1]           = s_cd_10;
-  assign s_cd_9                 = s_cd_15_0[9];
-  assign s_laa_1                = s_laa_3_0[1];
-  assign s_laa_2                = s_laa_3_0[2];
-  assign s_laa_3                = s_laa_3_0[3];
-  assign s_laa_3_1[0]           = s_laa_1;
-  assign s_laa_3_1[1]           = s_laa_2;
-  assign s_laa_3_1[2]           = s_laa_3;
-  assign s_lba_0                = s_lba_3_0[0];
-  assign s_lba_1                = s_lba_3_0[1];
-  assign s_lba_2                = s_lba_3_0[2];
-  assign s_lba_2_0[0]           = s_lba_0;
-  assign s_lba_2_0[1]           = s_lba_1;
-  assign s_lba_2_0[2]           = s_lba_2;
-  assign s_pil_3_0_out[0]       = s_sts_8;
-  assign s_pil_3_0_out[1]       = s_sts_9;
-  assign s_pil_3_0_out[2]       = s_sts_10;
-  assign s_pil_3_0_out[3]       = s_sts_11;
-  assign s_sts_10               = s_sts_15_0[10];
-  assign s_sts_11               = s_sts_15_0[11];
-  assign s_sts_8                = s_sts_15_0[8];
-  assign s_sts_9                = s_sts_15_0[9];
+  assign s_cd_10_9[1:0]         = s_cd_15_0[10:9];
+  assign s_pil_3_0_out[3:0]     = s_sts_15_0[11:8];
+
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
   assign s_lba_3_0[3:0]         = LBA_3_0;
+  assign s_lba_2_0[2:0]         = LBA_3_0[2:0];
+
   assign s_laa_3_0[3:0]         = LAA_3_0;
+  assign s_laa_3_1[2:0]         = LAA_3_0[3:1];
+
   assign s_cd_15_0[15:0]        = CD_15_0;
   assign s_cssst_1_0[1:0]       = CSSST_1_0;
   assign s_csalui_8_0[8:0]      = CSALUI_8_0;
@@ -316,6 +283,7 @@ module CGA_ALU (
   );
 
   CGA_ALU_OUTMUX ALU_OUTMUX (
+       // Input
       .AARG0(s_aarg0),
       .ALUCLK(s_aluclk),
       .ALUD2N(s_alud2_n),
@@ -323,16 +291,18 @@ module CGA_ALU (
       .A_15_0(s_a_15_0[15:0]),
       .CSIDBS_4_0(s_csidbs4_0[4:0]),
       .DBR_15_0(s_dbr_15_0[15:0]),
-      .D_15_0(s_d_15_0[15:0]),
       .EA_15_0(s_ea_15_0[15:0]),
       .FIDBI_15_0(s_fidbi_15_0[15:0]),
       .F_15_0(s_f_15_0[15:0]),
       .GPR_15_0(s_grp_15_0[15:0]),
-      .G_15_0(s_g_15_0[15:0]),
       .LAA_3_1(s_laa_3_1[2:0]),
       .LBA_2_0(s_lba_2_0[2:0]),
       .STS_15_0(s_sts_15_0[15:0]),
-      .SW_15_0(s_sw_15_0[15:0])
+      .SW_15_0(s_sw_15_0[15:0]),
+
+      //Output
+      .G_15_0(s_g_15_0[15:0]),
+      .D_15_0(s_d_15_0[15:0])
   );
 
   CGA_ALU_QREG ALU_QREG (
