@@ -8,7 +8,7 @@
 ** Page 14 DECODE - DECODE_DGA_IDBS Sheet 1 of 2                         **
 ** Page 15 DECODE - DECODE_DGA_IDBS Sheet 2 of 2                         **
 **                                                                       **
-** Last reviewed: 11-MAY-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -264,7 +264,7 @@ module DECODE_DGA_IDBS (
    */
 
   //A256 NAND_GATE_4_INPUTS = n001n, 2=GPR,3=DBR,22=GPR_SE,23=PGS
-  assign s_a256_nand_out = s_csidbs_3_n & s_csidbs_2_n & s_csidbs_4_0[1] & s_lcs_n;
+  assign s_a256_nand_out = ~(s_csidbs_3_n & s_csidbs_2_n & s_csidbs_4_0[1] & s_lcs_n);
 
   /*
    NAND_GATE_8_INPUTS #(.BubblesMask(8'h00))
@@ -279,8 +279,8 @@ module DECODE_DGA_IDBS (
             .result(s_a249_nand_out));
    */
 
-  // A249 NAND_GATE_8_INPUTS   
-  assign s_a249_nand_out = s_a264_nand_out & s_a263_nand_out & s_a250_nand_out & s_a256_nand_out & s_a261_nand_out & s_a269_nand_out & s_a255_nand_out & s_zz1;
+  // A249 NAND_GATE_8_INPUTS
+  assign s_a249_nand_out = ~(s_a264_nand_out & s_a263_nand_out & s_a250_nand_out & s_a256_nand_out & s_a261_nand_out & s_a269_nand_out & s_a255_nand_out & s_zz1);
 
   /*
    NAND_GATE_6_INPUTS #(.BubblesMask({2'b00, 4'h0}))
@@ -448,7 +448,7 @@ module DECODE_DGA_IDBS (
                 .result(s_input1_a284));
    */
   // A AND_GATE_4_INPUTS
-  assign s_input1_a284 = s_zz1 & s_stat_4 & s_lcs_n & s_riwr;
+  assign s_input1_a284 = (s_zz1 & s_stat_4 & s_lcs_n & s_riwr);
 
   /*
    AND_GATE_3_INPUTS #(.BubblesMask(3'b000))
@@ -458,7 +458,7 @@ module DECODE_DGA_IDBS (
                 .result(s_input1_a285));
    */
   // A AND_GATE_3_INPUTS
-  assign s_input1_a285 = s_dstat3 & s_stat_3 & s_lcs_n;
+  assign s_input1_a285 = (s_dstat3 & s_stat_3 & s_lcs_n);
 
   /*
    AND_GATE_3_INPUTS #(.BubblesMask(3'b000))
@@ -469,7 +469,7 @@ module DECODE_DGA_IDBS (
    */
 
   // AND_GATE_3_INPUTS
-  assign s_input2_a285 = s_stat_3 & s_lcs_n & s_prq;
+  assign s_input2_a285 = (s_stat_3 & s_lcs_n & s_prq);
 
   /*
    AND_GATE_4_INPUTS #(.BubblesMask(4'h0))
@@ -481,7 +481,7 @@ module DECODE_DGA_IDBS (
 
    */
   // AND_GATE_4_INPUTS
-  assign s_input1_a283 = s_stat_3 & s_dstat3_n & s_a260_nand_out & s_lcs_n;
+  assign s_input1_a283 = (s_stat_3 & s_dstat3_n & s_a260_nand_out & s_lcs_n);
 
   /*
    AND_GATE_4_INPUTS #(.BubblesMask(4'h0))
@@ -492,7 +492,7 @@ module DECODE_DGA_IDBS (
                 .result(s_input2_a283));
    */
   // AND_GATE_4_INPUTS
-  assign s_input2_a283 = s_zz1 & s_a260_nand_out & s_prq & s_lcs_n;
+  assign s_input2_a283 = (s_zz1 & s_a260_nand_out & s_prq & s_lcs_n);
 
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
