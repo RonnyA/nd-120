@@ -1,3 +1,12 @@
+/**********************************************************************************************************
+** ND120 PALASM CODE CONVERTED TO VERILOG                                                                **
+**                                                                                                       **
+** Component PAL 44407A                                                                                  **
+**                                                                                                       **
+** Last reviewed: 1-DEC-2024                                                                             **
+** Ronny Hansen                                                                                          **
+***********************************************************************************************************/
+
 // PAL16R4
 // JLB 25FEB87
 // 44407A,19F ,ERFFIX
@@ -13,17 +22,17 @@ module PAL_44407A (
 
     input IDBS0,  //! I0 - CSIDBS0
     input IDBS1,  //! I1 - CSIDBS1
-    input IDBS2,  //! I2 - CSIDBS2 
+    input IDBS2,  //! I2 - CSIDBS2
     input IDBS3,  //! I3 - CSIDBS3
-    input IDBS4,  //! I4 - CSIDBS4 
-    input WRTRF,  //! I5 - WRTRF
+    input IDBS4,  //! I4 - CSIDBS4
+    input WRTRF,  //! I5 - WRTRF (Write to registry file)
     input LCS_n,  //! I6 - LCS_n
                   //! I7 - (not connected)
 
-    output ERF_n,  //! B0_n - ERF_n
+    output ERF_n,  //! B0_n - ERF_n ((WRTRF or RRF) negated) - Enables RAM chips 34F and 35F in CPU_PROC_32.v for read or write of REG
                    //! B1_n - (not connected)
 
-    output RRF_n  //! Q0_n - RRF_n
+    output RRF_n  //! Q0_n - RRF_n  (CSIDBS source 5, REG)
                   //! Q2_n - (not connected)
                   //! Q3_n - (not connected)
                   //! Q4_n - (not connected)
@@ -53,7 +62,7 @@ module PAL_44407A (
 
 
   // Logic for ERF_n (active-low)
-  assign ERF_n = ~(RRF_reg | WRTRF);
+  assign ERF_n = OE_n ? 1'b0 : ~(RRF_reg | WRTRF);
 
 endmodule
 
