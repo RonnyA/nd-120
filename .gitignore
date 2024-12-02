@@ -13,3 +13,5 @@ Verilog/Verilog_pnr.json
 Verilog/Verilog.fs
 Verilog/Verilog.json
 Verilog/teroshdl-settings.json
+Verilog/ND-120-Gowin/impl/*
+Verilog/ND-120-Gowin/x-impl/*
