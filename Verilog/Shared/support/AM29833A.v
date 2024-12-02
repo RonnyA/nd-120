@@ -1,6 +1,21 @@
-// AM29833A
-// PARITY BUS TRANSCEIVERS
-// Documentation: https://pdf1.alldatasheet.com/datasheet-pdf/view/165880/AMD/AM29833A.html
+
+/**********************************************************************************
+** ND120 Shared                                                                  **
+**                                                                               **
+** Module AM29833A                                                               **
+**                                                                               **
+** PARITY BUS TRANSCEIVERS                                                       **
+** Documentation:                                                                **
+** https://pdf1.alldatasheet.com/datasheet-pdf/view/165880/AMD/AM29833A.html     **
+**                                                                               **
+**                                                                               **
+** Last reviewed: 1-DEC-2024                                                     **
+** Ronny Hansen                                                                  **
+***********************************************************************************/
+
+
+
+
 
 // Used on 3202D - Sheet 46 - MEM_DATA
 
@@ -31,11 +46,11 @@ Each of these devices is produced with AMD's proprietary IMOX bipolar process, a
 module AM29833A (
     input  wire       CLK,      //! Clock
     input  wire       CLR_n,    //! Clear
-    output wire       ERR_n,    //! Parity Error
+    output reg        ERR_n,    //! Parity Error
     input  wire       OER_n,    //! Output enable (negated) R
     input  wire       OET_n,    //! Output enable (negated) T
     input  wire       PAR,      //! Parity bit (in)
-    output wire       PAR_OUT,  //! Parity bit (out)
+    output reg        PAR_OUT,  //! Parity bit (out)
     input  wire [7:0] R,        //! R in
     output wire [7:0] R_OUT,    //! R out
     input  wire [7:0] T,        //! T in
@@ -43,12 +58,6 @@ module AM29833A (
 );
 
 
-
-  // Declare internal wires
-  wire [7:0] mux_out;
-  wire [8:0] parity_input;
-  wire parity_output;
-  wire error_flag;
 
   // Sequential logic for registers
   reg [7:0] reg_R;
@@ -73,12 +82,34 @@ module AM29833A (
   assign T_OUT = (CLR_n & OET_n & !OER_n) ? reg_R : 8'b0;  // TRANSMIT MODE (Transmits data from R port to T port, generating parity. Receive path is disabled.)
 
 
-  // TODO: PARITY & ERROR
+  // Calculate parity (odd parity)
+  wire calculated_parity;
+  assign calculated_parity = ^reg_R;  // XOR all bits in reg_R for odd parity
 
-  assign ERR_n = 1;  // Error flag logic to be implemented
-  assign PAR_OUT = 0;  // Parity flag logic to be implemented
 
 
+  //assign ERR_n = 1;  // Error flag logic to be implemented
+  //assign PAR_OUT = 0;  // Parity flag logic to be implemented
+
+  // Parity output for transmit mode
+  always @(*) begin
+    if (!OER_n && OET_n) begin
+      // Transmit mode: Generate parity based on reg_R
+      PAR_OUT = calculated_parity;
+    end else begin
+      PAR_OUT = 1'b0;  // High impedance when not transmitting (here meaning 0)
+    end
+  end
+
+  // Error flag for receive mode
+  always @(*) begin
+    if (!OET_n && OER_n) begin
+      // Receive mode: Compare calculated parity with input parity
+      ERR_n = !(calculated_parity == PAR);  // Active low error flag
+    end else begin
+      ERR_n = 1'b1;  // High impedance when not receiving (here meaning '1' since ERR_n is active low)
+    end
+  end
 
 endmodule
 
