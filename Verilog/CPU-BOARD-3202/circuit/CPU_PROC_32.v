@@ -6,7 +6,7 @@
 ** PROCESSOR TOP LEVEL                                                   **
 ** SHEET 32 of 50                                                        **
 **                                                                       **
-** Last reviewed: 18-MAY-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -78,7 +78,7 @@ module CPU_PROC_32 (
     output PONI,
     output [1:0] RF_1_0,
     output RRF_n,
-    output RT_n,     //! This signal is not in the PAL 44408B, but in the PAL 444608 (VXFIX). Use  RT_n signal from DGA until we find out what the 44608A does with this signal.
+    output RT_n,     //! This signal is not in the PAL 44408B, but in the PAL 444608 (VXFIX). TODO: Use RT_n signal from DGA until we find out what the 44608A does with this signal.
     output LDEXM_n,  //! use signal from DGA
     output RWCS_n,
     output [4:0] TEST_4_0,
@@ -99,9 +99,11 @@ module CPU_PROC_32 (
   wire [15:0] s_fidb_cga_IN;  // Out from B side of CHIP32 and 33, and IN to CGA
   wire [15:0] s_fidb_cga_OUT;  // Input signal to B side of CHIP32 and 33, and OUT from CGA
 
-  wire [15:0] s_fidb_A_IN;  // Input signal to A side of CHIP32 and 33
-  wire [15:0] s_fidb_A_OUT;  // Out from A side of CHIP32 and 33
-  wire [15:0] s_fidb_B_OUT;  // Out from B side of CHIP32 and 33
+  wire [15:0] s_tx_idb_A_IN;  // Input signal to A side of CHIP32 and 33 (transcievers)
+  wire [15:0] s_tx_idb_A_OUT;  // Out from A side of CHIP32 and 33  (transcievers)
+
+  wire [15:0] s_tx_idb_B_IN;  //  Input signal to B side of CHIP32 and 33 (transcievers)
+  wire [15:0] s_tx_idb_B_OUT;  // Out from B side of CHIP32 and 33  (transcievers)
 
   wire [15:0] s_idb_erf_in;  // 16 bit-input signal from RAM Chip34 and 35, controlled by ERF_n
   wire [15:0] s_idb_erf_out;  // 16 bit-output signal from RAM Chip34 and 35, controlled by ERF_n
@@ -142,7 +144,7 @@ module CPU_PROC_32 (
   wire        s_double;
   wire        s_eccr;
   wire        s_erf_n_org;  // Original signal from CGA. Not used after fix has been applied
-  wire        s_erf_n;
+  wire        s_erf_n; // New signal, includ PAL fix to enable when CSIDBS = 5, REG
   wire        s_estof_n;
   wire        s_etrap_n;
   wire        s_ewca_n;
@@ -192,48 +194,52 @@ module CPU_PROC_32 (
   /*******************************************************************************
    ** Here all wiring is defined                                                 **
    *******************************************************************************/
-  assign s_cscomm_4_0[4:0]  = s_csbits[36:32];
-  assign s_csidbs_4_0[4:0]  = s_csbits[41:37];
-  assign s_csmis_1_0[1:0]   = s_csbits[43:42];
+  assign s_cscomm_4_0[4:0]   = s_csbits[36:32];
+  assign s_csidbs_4_0[4:0]   = s_csbits[41:37];
+  assign s_csmis_1_0[1:0]    = s_csbits[43:42];
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-  assign s_csbits[63:0]     = CSBITS;
-  assign s_pt_15_9[6:0]     = PT_15_9;
-  assign s_cd_15_0_in[15:0] = CD_15_0_IN;
-  assign s_ibint11_n        = IBINT11_n;
-  assign s_uclk             = UCLK;
-  assign s_ioxerr_n         = IOXERR_n;
-  assign s_etrap_n          = ETRAP_n;
-  assign s_aluclk           = ALUCLK;
-  assign s_map_n            = MAP_n;
-  assign s_ibint13_n        = IBINT13_n;
-  assign s_ibint10_n        = IBINT10_n;
-  assign s_bempid_n         = BEMPID_n;
-  assign s_bstp             = BSTP;
-  assign s_ibint15_n        = IBINT15_n;
-  assign s_lcs_n            = LCS_n;
-  assign s_mclk             = MCLK;
-  assign s_powfail_n        = POWFAIL_n;
-  assign s_parerr_n         = PARERR_n;
-  assign s_wrfstb           = WRFSTB;
-  assign s_pan_n            = PAN_n;
-  assign s_bedo_n           = BEDO_n;
-  assign s_pd1              = PD1;
-  assign s_mreq_n           = MREQ_n;
-  assign s_term_n           = TERM_n;
-  assign s_clk              = CLK;
-  assign s_mr_n             = MR_n;
-  assign s_ewca_n           = EWCA_n;
-  assign s_ibint12_n        = IBINT12_n;
-  assign s_mor_n            = MOR_n;
-  assign s_estof_n          = ESTOF_n;
-  assign s_wca_n            = WCA_n;
+  assign s_csbits[63:0]      = CSBITS;
+  assign s_pt_15_9[6:0]      = PT_15_9;
+  assign s_cd_15_0_in[15:0]  = CD_15_0_IN;
+  assign s_ibint11_n         = IBINT11_n;
+  assign s_uclk              = UCLK;
+  assign s_ioxerr_n          = IOXERR_n;
+  assign s_etrap_n           = ETRAP_n;
+  assign s_aluclk            = ALUCLK;
+  assign s_map_n             = MAP_n;
+  assign s_ibint13_n         = IBINT13_n;
+  assign s_ibint10_n         = IBINT10_n;
+  assign s_bempid_n          = BEMPID_n;
+  assign s_bstp              = BSTP;
+  assign s_ibint15_n         = IBINT15_n;
+  assign s_lcs_n             = LCS_n;
+  assign s_mclk              = MCLK;
+  assign s_powfail_n         = POWFAIL_n;
+  assign s_parerr_n          = PARERR_n;
+  assign s_wrfstb            = WRFSTB;
+  assign s_pan_n             = PAN_n;
+  assign s_bedo_n            = BEDO_n;
+  assign s_pd1               = PD1;
+  assign s_mreq_n            = MREQ_n;
+  assign s_term_n            = TERM_n;
+  assign s_clk               = CLK;
+  assign s_mr_n              = MR_n;
+  assign s_ewca_n            = EWCA_n;
+  assign s_ibint12_n         = IBINT12_n;
+  assign s_mor_n             = MOR_n;
+  assign s_estof_n           = ESTOF_n;
+  assign s_wca_n             = WCA_n;
 
 
 
   // s_twrf_n = low, write to memory from IDB
+  /* 
+
+    REMOVED, making it easy with OR only 
+
   wire ram_read;  // boolean to know if we are reading from RAM
   assign ram_read = !s_erf_n & s_wrtrf & s_twrf_n;  // Read from RAM
 
@@ -252,45 +258,59 @@ module CPU_PROC_32 (
   assign IDB_15_0_OUT = ram_read ? s_idb_erf_out[15:0] : ( (!ESTOF_n & !BEDO_n) ? s_fidb_A_OUT[15:0] : 16'b0);
   // use OR to combine singals
   //assign IDB_15_0_OUT =  s_idb_erf_inout[15:0] |  s_fidb_A_OUT[15:0];
+*/
 
-  assign s_address_10_0[10] = 1'b0;  // Ground
+
+  // Connect CGA IDB with CHIP32/33 IDB
+  assign s_tx_idb_B_IN       = s_fidb_cga_OUT;
+  assign s_fidb_cga_IN       = s_tx_idb_B_OUT;
+
+  // Connect incomming IDB signal to Transciever and RAM chips
+
+  assign s_tx_idb_A_IN       = IDB_15_0_IN | s_idb_erf_out;
+  assign IDB_15_0_OUT        = s_idb_erf_out[15:0] | s_tx_idb_A_OUT[15:0];
+  assign s_idb_erf_in        = IDB_15_0_IN | s_tx_idb_A_OUT;
+
+  assign s_idb2              = s_tx_idb_A_IN[2];
+
+  assign s_address_10_0[10]  = 1'b0;  // Ground
   assign s_address_10_0[9:8] = s_rf_1_0[1:0];
   assign s_address_10_0[7:4] = s_lba_3_0[3:0];
   assign s_address_10_0[3:0] = s_laa_3_0[3:0];
 
-  assign s_twrf_n = ~(s_wrtrf & s_wrfstb & s_term_n);
+  assign s_twrf_n            = ~(s_wrtrf & s_wrfstb & s_term_n);
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-  assign ACOND_n = s_acond_n;
-  assign BRK_n = s_brk_n;
-  assign CA_9_0 = s_ca_9_0[9:0];
-  assign CSA_12_0 = s_csa_12_0[12:0];
-  assign CSCA_9_0 = s_csca_9_0[9:0];
-  assign CUP = s_cup;
-  assign CWR = s_cwr;
-  assign DOUBLE = s_double;
-  assign ECCR = s_eccr;
-  assign IONI = s_ioni;
-  assign LA_23_10 = s_la_23_10[13:0];
-  assign LBA_3_0 = s_lba_3_0;
-  assign LEV0 = s_lev0;
-  assign LSHADOW = s_lshadow;
-  assign OPCLCS = s_opclcs;
-  assign PCR_1_0 = s_pcr_1_0[1:0];
-  assign PIL_3_0 = s_pil_3_0[3:0];
-  assign PONI = s_poni;
-  assign RF_1_0 = s_rf_1_0[1:0];
-  assign RRF_n = s_rrf_n;
-  assign RT_n = s_rt_n;
-  assign LDEXM_n = s_ledexm;
-  assign RWCS_n = s_rwcs_n;
-  assign TEST_4_0 = s_test_4_0[4:0];
-  assign TP1_INTRQ_n = s_tp1_intrq_n;
-  assign TRAPN = s_trap_n_out;
-  assign VEX = s_vex;
-  assign WCS_n = s_wcs_n;
+  assign ACOND_n             = s_acond_n;
+  assign BRK_n               = s_brk_n;
+  assign CA_9_0              = s_ca_9_0[9:0];
+  assign CSA_12_0            = s_csa_12_0[12:0];
+  assign CSCA_9_0            = s_csca_9_0[9:0];
+  assign CUP                 = s_cup;
+  assign CWR                 = s_cwr;
+  assign DOUBLE              = s_double;
+  assign ECCR                = s_eccr;
+  assign IONI                = s_ioni;
+  assign LA_23_10            = s_la_23_10[13:0];
+  assign LBA_3_0             = s_lba_3_0;
+  assign LEV0                = s_lev0;
+  assign LSHADOW             = s_lshadow;
+  assign OPCLCS              = s_opclcs;
+  assign PCR_1_0             = s_pcr_1_0[1:0];
+  assign PIL_3_0             = s_pil_3_0[3:0];
+  assign PONI                = s_poni;
+  assign RF_1_0              = s_rf_1_0[1:0];
+  assign RRF_n               = s_rrf_n;
+  assign RT_n                = s_rt_n;
+  assign LDEXM_n             = s_ledexm;
+  assign RWCS_n              = s_rwcs_n;
+  assign TEST_4_0            = s_test_4_0[4:0];
+  assign TP1_INTRQ_n         = s_tp1_intrq_n;
+  assign TRAPN               = s_trap_n_out;
+  assign VEX                 = s_vex;
+  assign WCS_n               = s_wcs_n;
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
@@ -337,25 +357,25 @@ module CPU_PROC_32 (
   );
 
   TTL_74245 CHIP_32F (
-      .A(s_fidb_A_IN[7:0]),  //
-      .A_OUT(s_fidb_A_OUT[7:0]),
+      .A(s_tx_idb_A_IN[7:0]),  //
+      .A_OUT(s_tx_idb_A_OUT[7:0]),
       .B(s_fidb_cga_OUT[7:0]),
-      .B_OUT(s_fidb_B_OUT[7:0]),
+      .B_OUT(s_tx_idb_B_OUT[7:0]),
       .DIR(s_bedo_n),
       .OE_n(s_estof_n)
   );
 
 
   TTL_74245 CHIP_33F (
-      .A(s_fidb_A_IN[15:8]),
-      .A_OUT(s_fidb_A_OUT[15:8]),
+      .A(s_tx_idb_A_IN[15:8]),
+      .A_OUT(s_tx_idb_A_OUT[15:8]),
       .B(s_fidb_cga_OUT[15:8]),
-      .B_OUT(s_fidb_B_OUT[15:8]),
+      .B_OUT(s_tx_idb_B_OUT[15:8]),
       .DIR(s_bedo_n),
       .OE_n(s_estof_n)
   );
 
-
+ /*
   TMM2018D_25 CHIP_34F (
       .clk(sysclk),  // System clock in FPGA
       .reset_n(sys_rst_n),  // System reset in FPGA
@@ -380,8 +400,22 @@ module CPU_PROC_32 (
       .OE_n   (s_wrtrf),
       .W_n    (s_twrf_n)
   );
+  */
+  (* ram_style = "block" *) reg [15:0] registerBlock[0:2047];  // 2^11 addresses, each 8-bit wide
 
+  always@(posedge sysclk, negedge s_twrf_n)
+  begin
+    if (!s_erf_n) begin
+        if (!s_twrf_n) begin
+            // Write operation: active when chip is selected and write enable is low
+            registerBlock[s_address_10_0[10:0]] <= s_idb_erf_in;
+        end
+    end
+  end
 
+  // s_erf_n <= CHIP SELECT active low (Enable Register File negated)
+  // s_twrf_n = 0 <== WRITE TO registerBlock. s_twrf_n == 1, READ FROM registerBlock
+  assign s_idb_erf_out = s_erf_n ? 16'b0 : s_twrf_n ? registerBlock[s_address_10_0[10:0]] : 16'b0;
 
 
   CPU_PROC_CGA_33 CGA (
@@ -432,7 +466,7 @@ module CPU_PROC_32 (
       .RF_1_0(s_rf_1_0),
       .SEL_TESTMUX(SEL_TESTMUX),
       .TEST_4_0(s_test_4_0[4:0]),
-      .TRAP_n(s_trap_n_out),
+      .TRAP_n(s_trap_n_out), // output
       .UCLK(s_uclk),
       .WCS_n(s_wcs_n),
       .WRTRF(s_wrtrf)
