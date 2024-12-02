@@ -4,7 +4,7 @@
 ** MMU TOP LEVEL                                                         **
 ** SHEET 24 of 50                                                        **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -68,7 +68,6 @@ module CPU_MMU_24 (
    *******************************************************************************/
   wire [10:0] s_la_20_10;
   wire [15:0] s_idb_15_0_out;
-  wire [15:0] s_pt_15_0_out;
 
   wire [13:0] s_cpn_23_10;
   wire [10:0] s_ca_10_0;
@@ -123,17 +122,23 @@ module CPU_MMU_24 (
 
   // PPN
   wire [15:0] s_ppn_25_10_in;
-  wire [15:0] s_ppn_25_10_out;
 
   // PT
+  // PT PPN
   wire [15:0] s_pt_ppn_25_10_out;
   wire [15:0] s_pt_ppn_25_10_in;
 
-  // CPN
-  wire [13:0] s_cpn_23_10_cache_out;
+  // PT PT
+  wire [15:0] s_pt_pt_15_0_out;
+  wire [15:0] s_pt_pt_15_0_in;
 
-  wire [15:0] s_cd_15_0_cache_in;
-  wire [15:0] s_cd_15_0_cache_out;
+
+
+  // CPN
+  wire [13:0] s_cache_cpn_23_10_out;
+
+  wire [15:0] s_cache_cd_15_0_in;
+  wire [15:0] s_cache_cd_15_0_out;
 
   // PTIDB
   wire [15:0] s_ptidb_pt_15_0_in;
@@ -159,8 +164,6 @@ module CPU_MMU_24 (
    ** Here all input connections are defined                                     **
    *******************************************************************************/
 
-  assign s_ptidb_idb_15_0_in = IDB_15_0_IN;
-  assign s_ppnx_idb_15_0_in = IDB_15_0_IN;
 
   assign s_la_20_10[10:0] = LA_20_10;
   assign s_ca_10_0[10:0] = CA_10_0;
@@ -190,7 +193,7 @@ module CPU_MMU_24 (
   assign s_write = WRITE;
   assign s_lshadow = LSHADOW;
   assign s_ppn_25_10_in = PPN_25_10_IN;
-  assign s_cd_15_0_cache_in = CD_15_0_IN;
+  assign s_cache_cd_15_0_in = CD_15_0_IN;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -199,41 +202,43 @@ module CPU_MMU_24 (
   assign BEMPID_n = s_bempid_n;
   assign BLCS_n = s_blcs_n;
   assign BSTP = s_bstp;
-  assign CD_15_0_OUT = s_cd_15_0_cache_out[15:0];
+  assign CD_15_0_OUT = s_cache_cd_15_0_out[15:0];
   assign HIT = s_hit;
   assign IDB_15_0_OUT = s_idb_15_0_out[15:0];
   assign LAPA_n = s_lapa_n;
-  assign PPN_25_10_OUT = s_ppn_25_10_out[15:0];
-  assign PT_15_0_OUT = s_pt_15_0_out[15:0] | s_ptidb_pt_15_0_out;
+  assign PPN_25_10_OUT = s_pt_ppn_25_10_out | s_ppnx_ppn_25_10_out;
+  assign PT_15_0_OUT = s_pt_pt_15_0_out[15:0] | s_ptidb_pt_15_0_out;
   assign WCA_n = s_wca_n;
   assign LED1 = s_led1;
 
+  // Connect PT[15:0] between PT and PDIDB components
+  assign s_pt_pt_15_0_in = s_ptidb_pt_15_0_out;
+  assign s_ptidb_pt_15_0_in = s_pt_pt_15_0_out;
+
+  // Connect PPN INPUT signals from PPN IN or with (PT or PPNX out)
+  assign s_pt_ppn_25_10_in = s_ppn_25_10_in | s_ppnx_ppn_25_10_out;
+  assign s_ppnx_ppn_25_10_in = s_ppn_25_10_in | s_pt_ppn_25_10_out;
+
+  // Assign input and output signals for IDB
+  assign s_ptidb_idb_15_0_in = IDB_15_0_IN;
+  assign s_ppnx_idb_15_0_in = IDB_15_0_IN;
+
+  assign s_idb_15_0_out[15:0] =
+        s_ppnx_idb_15_0_out  |
+        s_ptidb_idb_15_0_out |
+        {12'b0, s_csr_idb_3_0_out[3:0]};
+
+
   // BUS SIGNALS
   assign s_wca_ppn_23_10_in =
-         s_ppn_25_10_in[13:0] |
-         s_ppnx_ppn_25_10_out[13:0] |
-         s_pt_ppn_25_10_out[13:0];
+         s_ppn_25_10_in[13:0]       | // Input to module
+         s_ppnx_ppn_25_10_out[13:0] |  // output from PPNX module
+         s_pt_ppn_25_10_out[13:0];     // output from PPN module
 
   /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-  /*
-   OR_GATE #(.BubblesMask(2'b00))
-      GATES_1 (.input1(s_wchim_n),
-               .input2(s_eorf_n),
-               .result(s_wclim_n));
-   */
-
   assign s_wclim_n = s_wchim_n | s_eorf_n;
-
-  /*
-   NAND_GATE_3_INPUTS #(.BubblesMask(3'b000))
-      GATES_2 (.input1(s_lshadow),
-               .input2(s_write),
-               .input3(s_cyd),
-               .result(s_wmap_n));
-   */
-
   assign s_wmap_n = ~(s_lshadow & s_write & s_cyd);
 
   /*******************************************************************************
@@ -267,7 +272,7 @@ module CPU_MMU_24 (
   //TODO:  Maybe refactor to one line ?
   CPU_MMU_PTIDB_30 PTIDB (
       .EPTI_n(s_epti_n),
-      .IDB_15_0_IN(s_ptidb_pt_15_0_in[15:0]),
+      .IDB_15_0_IN(s_ptidb_idb_15_0_in[15:0]),
       .IDB_15_0_OUT(s_ptidb_idb_15_0_out[15:0]),
       .PT_15_0_IN(s_ptidb_pt_15_0_in),
       .PT_15_0_OUT(s_ptidb_pt_15_0_out),
@@ -304,12 +309,12 @@ module CPU_MMU_24 (
       .BRK_n(s_brk_n),
       .CA_10_0(s_ca_10_0[10:0]),
       .CCLR_n(s_cclr_n),
-      .CD_15_0_IN(s_cd_15_0_cache_in),
-      .CD_15_0_OUT(s_cd_15_0_cache_out),
+      .CD_15_0_IN(s_cache_cd_15_0_in),
+      .CD_15_0_OUT(s_cache_cd_15_0_out),
       .CON(s_con),
       .CON_n(s_con_n),
       .CPN_23_10_IN(s_cpn_23_10[13:0]),
-      .CPN_23_10_OUT(s_cpn_23_10_cache_out[13:0]),
+      .CPN_23_10_OUT(s_cache_cpn_23_10_out[13:0]),
 
       .CWR(s_cwr),
       .CYD(s_cyd),
@@ -358,8 +363,8 @@ module CPU_MMU_24 (
       .LA_20_10(s_la_20_10[10:0]),
       .PPN_25_10_IN(s_pt_ppn_25_10_in[15:0]),
       .PPN_25_10_OUT(s_pt_ppn_25_10_out[15:0]),
-      .PT_15_0_IN(s_ptidb_pt_15_0_out),
-      .PT_15_0_OUT(s_ptidb_pt_15_0_in),
+      .PT_15_0_IN(s_pt_pt_15_0_in),
+      .PT_15_0_OUT(s_pt_pt_15_0_out),
       .WCINH_n(s_wcinh_n),
       .WCLIM_n(s_wclim_n),
       .WMAP_n(s_wmap_n)
