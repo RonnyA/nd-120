@@ -6,11 +6,14 @@
 ** Page 19                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module CGA_MIC_MASEL (
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
     input        CSBIT20,
     input [11:0] CSBIT_11_0,
     input [ 3:0] JMP_3_0,
@@ -65,6 +68,8 @@ module CGA_MIC_MASEL (
    *******************************************************************************/
   assign IW_12_0            = s_iw_12_0_out[12:0];
   assign W_12_0             = s_w_12_0_out[12:0];
+
+  reg [12:0] dRep12;
 
   /*******************************************************************************
    ** Here all normal components are defined                                     **
@@ -247,11 +252,27 @@ module CGA_MIC_MASEL (
       .QHN()
   );
 
+  always @(negedge sysclk) begin
+    if (!sys_rst_n) begin
+        dRep12[12:0] <=0;
+    end else begin
+        dRep12[12:0] <= s_rep_12_0[12:0];
+    end
+  end
+
+  wire rptClock;
+  assign rptClock = s_mclk;
+
+
   CGA_MIC_MASEL_REPEAT MASEL_REPEAT (
+      .SC6(SC6),
+      .SC5(SC5),
       .IW_12_0(s_iw_12_0_out[12:0]),
-      .MCLK(s_mclk),
+      //.MCLK(s_mclk),
+      .MCLK(rptClock),
       .MPN(s_mr_n),
       .REP_12_0(s_rep_12_0[12:0])
+      //.REP_12_0(dRep12[12:0])
   );
 
 endmodule
