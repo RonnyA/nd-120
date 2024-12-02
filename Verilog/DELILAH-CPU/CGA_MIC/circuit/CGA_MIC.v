@@ -6,7 +6,7 @@
 ** Page 9-13                                                             **
 ** SHEET 1 of 4                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -37,7 +37,6 @@ module CGA_MIC (
     input        F15,
     input        ILCSN,
     input        IRQ,
-    input        LCZ,
     input        LDIRV,
     input        LDLCN,
     input        LWCAN,
@@ -112,22 +111,6 @@ module CGA_MIC (
   wire        s_cond;
   wire        s_cry;
   wire        s_csalui8;
-  wire        s_csbit_0;
-  wire        s_csbit_1;
-  wire        s_csbit_10;
-  wire        s_csbit_11;
-  wire        s_csbit_12;
-  wire        s_csbit_13;
-  wire        s_csbit_14;
-  wire        s_csbit_15;
-  wire        s_csbit_2;
-  wire        s_csbit_3;
-  wire        s_csbit_4;
-  wire        s_csbit_5;
-  wire        s_csbit_6;
-  wire        s_csbit_7;
-  wire        s_csbit_8;
-  wire        s_csbit_9;
   wire        s_csbit20;
   wire        s_cscond;
   wire        s_csecond_n;
@@ -197,7 +180,6 @@ module CGA_MIC (
   wire        s_lcs;
   wire        s_lcsn_nand_ewcan;
   wire        s_lcz_n_out;
-  wire        s_lcz_out;
   wire        s_lcz;
   wire        s_ldirv;
   wire        s_ldlc_n;
@@ -241,31 +223,9 @@ module CGA_MIC (
    ** Here all wiring is defined                                                 **
    *******************************************************************************/
 
-  assign s_csbit_3_0[0]     = s_csbit_0;
-  assign s_csbit_3_0[1]     = s_csbit_1;
-  assign s_csbit_3_0[2]     = s_csbit_2;
-  assign s_csbit_3_0[3]     = s_csbit_3;
-  assign s_csbit_15_12[0]   = s_csbit_12;
-  assign s_csbit_15_12[1]   = s_csbit_13;
-  assign s_csbit_15_12[2]   = s_csbit_14;
-  assign s_csbit_15_12[3]   = s_csbit_15;
+  assign s_csbit_3_0[3:0]   = s_csbit_15_0[3:0];
+  assign s_csbit_15_12[3:0] = s_csbit_15_0[15:12];
 
-  assign s_csbit_0          = s_csbit_15_0[0];
-  assign s_csbit_1          = s_csbit_15_0[1];
-  assign s_csbit_2          = s_csbit_15_0[2];
-  assign s_csbit_3          = s_csbit_15_0[3];
-  assign s_csbit_4          = s_csbit_15_0[4];
-  assign s_csbit_5          = s_csbit_15_0[5];
-  assign s_csbit_6          = s_csbit_15_0[6];
-  assign s_csbit_7          = s_csbit_15_0[7];
-  assign s_csbit_8          = s_csbit_15_0[8];
-  assign s_csbit_9          = s_csbit_15_0[9];
-  assign s_csbit_10         = s_csbit_15_0[10];
-  assign s_csbit_11         = s_csbit_15_0[11];
-  assign s_csbit_12         = s_csbit_15_0[12];
-  assign s_csbit_13         = s_csbit_15_0[13];
-  assign s_csbit_14         = s_csbit_15_0[14];
-  assign s_csbit_15         = s_csbit_15_0[15];
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
@@ -296,7 +256,6 @@ module CGA_MIC (
   // In the schematic it goes through 2 inverting buffers, here we go direct. Not sure if its to get a small delay?
   assign s_lcs_n            = ILCSN;
 
-  assign s_lcz              = LCZ;
   assign s_ldirv            = LDIRV;
   assign s_ldlc_n           = LDLCN;
   assign s_lwca_n           = LWCAN;
@@ -361,7 +320,7 @@ module CGA_MIC (
   assign s_lba_3_0_out[2]   = ~s_lba_2_n_out;
   assign s_lba_3_0_out[3]   = ~s_lba_3_n_out;
 
-  assign s_lcz_out          = ~s_lcz_n_out;
+  assign s_lcz          = ~s_lcz_n_out;
   assign s_mclk_n           = ~s_mclk;  // MASEL  clock (negated MCLK)
   assign s_sclk_n           = ~s_mclk;  // STACK CLOCK (nedgated MCLK)
   assign s_clk_sc34         = ~s_mclk;  // Will be nagated at the chip level
@@ -863,65 +822,42 @@ module CGA_MIC (
       .TSEL_3_0(s_tsel_3_0[3:0])
   );
 
-  MUX41P M_LAA_2 (
+  // A Operand
+  /********* LAA 3:0 ************/
+  MUX41P M_LAA_3 (
       .A (s_csrasel_1_0[0]),
       .B (s_csrasel_1_0[1]),
-      .D0(s_csbit_15_12[1]),
-      .D1(s_pil_3_0[1]),
-      .D2(s_ir_6_0[5]),
-      .D3(s_lc_3_0[2]),
-      .Z (s_laa2_signal)
+      .D0(s_csbit_15_12[3]),
+      .D1(s_pil_3_0[3]),
+      .D2(s_laa3_d2_input),
+      .D3(s_lc_3_0[3]),
+      .Z (s_laa3_signal)
   );
 
-  CMP4 LC_CMP (
-      .A0 (s_lcc_3_0[0]),
-      .A1 (s_lcc_3_0[1]),
-      .A2 (s_lcc_3_0[2]),
-      .A3 (s_lcc_3_0[3]),
-      .AEB(s_lcc_eq_lc),
-      .AGB(),
-      .ALB(),
-      .B0 (s_lc_3_0[0]),
-      .B1 (s_lc_3_0[1]),
-      .B2 (s_lc_3_0[2]),
-      .B3 (s_lc_3_0[3])
-  );
-
-  CGA_MIC_IINC MIC_IINC (
-      .CIN(s_carry_in),
-      .IW_12_0(s_iw_12_0[12:0]),
-      .NEXT_12_0(s_next_12_0[12:0])
-  );
-
-  MUX41P M_LAA_1 (
+  MUX41P M_LAA_2 (
       .A (s_csrasel_1_0[0]),
       .B (s_csrasel_1_0[1]),
       .D0(s_csbit_15_12[2]),
       .D1(s_pil_3_0[2]),
+      .D2(s_ir_6_0[5]),
+      .D3(s_lc_3_0[2]),
+      .Z (s_laa2_signal)
+  );
+  MUX41P M_LAA_1 (
+      .A (s_csrasel_1_0[0]),
+      .B (s_csrasel_1_0[1]),
+      .D0(s_csbit_15_12[1]),
+      .D1(s_pil_3_0[1]),
       .D2(s_ir_6_0[4]),
       .D3(s_lc_3_0[1]),
       .Z (s_laa1_signal)
   );
 
-  CGA_MIC_STACK MIC_STACK (
-      // Input
-      .MCLK (s_mclk),
-      .SCLKN(s_sclk_n), //Stack Clock (Negated MCLK)
-
-      .SC3      (s_sc_6_3_out[0]),   // SC[4:3] values - 00:HOLD, 01:POP, 10:LOAD, 11:PUSH
-      .SC4      (s_sc_6_3_out[1]),   //
-      .NEXT_12_0(s_next_12_0[12:0]),
-
-      // Output
-      .DEEP(s_deep_out),
-      .RET_12_0(s_ret_12_0[12:0])
-  );
-
   MUX41P M_LAA_0 (
       .A (s_csrasel_1_0[0]),
       .B (s_csrasel_1_0[1]),
-      .D0(s_csbit_15_12[3]),
-      .D1(s_pil_3_0[3]),
+      .D0(s_csbit_15_12[0]),
+      .D1(s_pil_3_0[0]),
       .D2(s_ir_6_0[3]),
       .D3(s_lc_3_0[0]),
       .Z (s_laa0_signal)
@@ -944,6 +880,106 @@ module CGA_MIC (
       .QD (),
       .QDN(s_laa_3_n_out)
   );
+
+
+  // B Operand
+  /********** LBA 3:0 **************/
+  MUX41P M_LBA_3 (
+      .A (s_csrbsel_1_0[0]),
+      .B (s_csrbsel_1_0[1]),
+      .D0(s_csrb_3_0[3]),
+      .D1(s_gnd),
+      .D2(s_gnd),
+      .D3(s_lc_3_0[3]),
+      .Z (s_lba3_signal)
+  );
+
+  MUX41P M_LBA_2 (
+      .A (s_csrbsel_1_0[0]),
+      .B (s_csrbsel_1_0[1]),
+      .D0(s_csrb_3_0[2]),
+      .D1(s_ir_6_0[2]),
+      .D2(s_ir_6_0[5]),
+      .D3(s_lc_3_0[2]),
+      .Z (s_lba2_signal)
+  );
+
+  MUX41P M_LBA_1 (
+      .A (s_csrbsel_1_0[0]),
+      .B (s_csrbsel_1_0[1]),
+      .D0(s_csrb_3_0[1]),
+      .D1(s_ir_6_0[1]),
+      .D2(s_ir_6_0[4]),
+      .D3(s_lc_3_0[1]),
+      .Z (s_lba1_signal)
+  );
+
+  MUX41P M_LBA_0 (
+      .A (s_csrbsel_1_0[0]),
+      .B (s_csrbsel_1_0[1]),
+      .D0(s_csrb_3_0[0]),
+      .D1(s_ir_6_0[0]),
+      .D2(s_ir_6_0[3]),
+      .D3(s_lc_3_0[0]),
+      .Z (s_lba0_signal)
+  );
+
+  R41P LBA_REG (
+      .CP(s_mclk),
+
+      .A(s_lba0_signal),
+      .B(s_lba1_signal),
+      .C(s_lba2_signal),
+      .D(s_lba3_signal),
+
+      .QA (),
+      .QAN(s_lba_0_n_out),
+      .QB (),
+      .QBN(s_lba_1_n_out),
+      .QC (),
+      .QCN(s_lba_2_n_out),
+      .QD (),
+      .QDN(s_lba_3_n_out)
+  );
+
+  /*********/
+
+  CMP4 LC_CMP (
+      .A0 (s_lcc_3_0[0]),
+      .A1 (s_lcc_3_0[1]),
+      .A2 (s_lcc_3_0[2]),
+      .A3 (s_lcc_3_0[3]),
+      .AEB(s_lcc_eq_lc),
+      .AGB(),
+      .ALB(),
+      .B0 (s_lc_3_0[0]),
+      .B1 (s_lc_3_0[1]),
+      .B2 (s_lc_3_0[2]),
+      .B3 (s_lc_3_0[3])
+  );
+
+  CGA_MIC_IINC MIC_IINC (
+      .CIN(s_carry_in),
+      .IW_12_0(s_iw_12_0[12:0]),
+      .NEXT_12_0(s_next_12_0[12:0])
+  );
+
+
+  CGA_MIC_STACK MIC_STACK (
+      // Input
+      .MCLK (s_mclk),
+      .SCLKN(s_sclk_n), //Stack Clock (Negated MCLK)
+
+      .SC3      (s_sc_6_3_out[0]),   // SC[4:3] values - 00:HOLD, 01:POP, 10:LOAD, 11:PUSH
+      .SC4      (s_sc_6_3_out[1]),   //
+      .NEXT_12_0(s_next_12_0[12:0]),
+
+      // Output
+      .DEEP(s_deep_out),
+      .RET_12_0(s_ret_12_0[12:0])
+  );
+
+
 
   CGA_MIC_MASEL MIC_MASEL (
       .sysclk(sysclk),  // System clock in FPGA
@@ -982,25 +1018,7 @@ module CGA_MIC (
       .TI (s_dzdff_q)
   );
 
-  MUX41P M_LBA_3 (
-      .A (s_csrbsel_1_0[0]),
-      .B (s_csrbsel_1_0[1]),
-      .D0(s_csrb_3_0[3]),
-      .D1(s_gnd),
-      .D2(s_gnd),
-      .D3(s_lc_3_0[3]),
-      .Z (s_lba3_signal)
-  );
 
-  MUX41P M_LBA_2 (
-      .A (s_csrbsel_1_0[0]),
-      .B (s_csrbsel_1_0[1]),
-      .D0(s_csrb_3_0[2]),
-      .D1(s_ir_6_0[2]),
-      .D2(s_ir_6_0[5]),
-      .D3(s_lc_3_0[2]),
-      .Z (s_lba2_signal)
-  );
 
   CGA_MIC_WCAREG MIC_WCAREG (
       .CD_15_0(s_cd_15_0[15:0]),
@@ -1011,15 +1029,6 @@ module CGA_MIC (
       .WCSN(s_wcs_n_out)
   );
 
-  MUX41P M_LBA_1 (
-      .A (s_csrbsel_1_0[0]),
-      .B (s_csrbsel_1_0[1]),
-      .D0(s_csrb_3_0[1]),
-      .D1(s_ir_6_0[1]),
-      .D2(s_ir_6_0[4]),
-      .D3(s_lc_3_0[1]),
-      .Z (s_lba1_signal)
-  );
 
   CGA_MIC_IPOS MIC_IPOS (
       .CD_15_0(s_cd_15_0[15:0]),
@@ -1032,33 +1041,7 @@ module CGA_MIC (
       .W_12_0(s_w_12_0[12:0])
   );
 
-  MUX41P M_LBA_0 (
-      .A (s_csrbsel_1_0[0]),
-      .B (s_csrbsel_1_0[1]),
-      .D0(s_csrb_3_0[0]),
-      .D1(s_ir_6_0[0]),
-      .D2(s_ir_6_0[3]),
-      .D3(s_lc_3_0[0]),
-      .Z (s_lba0_signal)
-  );
 
-  R41P LBA_REG (
-      .CP(s_mclk),
-
-      .A(s_lba0_signal),
-      .B(s_lba1_signal),
-      .C(s_lba2_signal),
-      .D(s_lba3_signal),
-
-      .QA (),
-      .QAN(s_lba_0_n_out),
-      .QB (),
-      .QBN(s_lba_1_n_out),
-      .QC (),
-      .QCN(s_lba_2_n_out),
-      .QD (),
-      .QDN(s_lba_3_n_out)
-  );
 
   CGA_MIC_CSEL CSEL (
       .ALUCLK(s_aluclk),
@@ -1080,14 +1063,6 @@ module CGA_MIC (
       .ZF(s_zf)
   );
 
-  MUX41P M_LAA_3 (
-      .A (s_csrasel_1_0[0]),
-      .B (s_csrasel_1_0[1]),
-      .D0(s_csbit_15_12[0]),
-      .D1(s_pil_3_0[0]),
-      .D2(s_laa3_d2_input),
-      .D3(s_lc_3_0[3]),
-      .Z (s_laa3_signal)
-  );
+
 
 endmodule
