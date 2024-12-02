@@ -47,8 +47,8 @@ module ND120_TOP (
   wire [2:0] s_SEL_TESTMUX;
   assign s_SEL_TESTMUX = 2'b000;  // 00=TESTMUX=0
 
-  wire [4:0] s_baud_rate_switch;
-  assign s_baud_rate_switch = 5'b00000;  // 00000=9600 baud
+  wire [3:0] s_baud_rate_switch;
+  assign s_baud_rate_switch = 4'b1000;  // 8=9600 baud (ref BAUDV page 158 in microcode)
 
   // output wire from CPU
 
@@ -73,6 +73,7 @@ module ND120_TOP (
   assign oc_select = 2'b11;  // 11= Choose clock input = XTAL1 (full speed)
 
   // Assign som lights to the LED's (Inverted because the nano is led's are active low)
+  //assign led[5:0] =5'b0;
 
   assign led[1:0] = ~s_cpu_led[1:0];  //  0=RED,1=GREEN
   assign led[2] = !s_run;
@@ -80,6 +81,7 @@ module ND120_TOP (
   //assign led[4] = !s_cpu_led[4] // LED BUS GRANT INDICATOR
   assign led[4] = !uartRx;
   assign led[5] = !uartTx;
+
 
   ND3202D CPU_BOARD (
       .sysclk(sysclk),
@@ -93,11 +95,11 @@ module ND120_TOP (
       .CONTINUE_n(s_high),
       .STOP_n(s_high),
 
-      .BINT10_n(s_high),
-      .BINT11_n(s_high),
-      .BINT12_n(s_high),
-      .BINT13_n(s_high),
-      .BINT15_n(s_high),
+      .BINT10_n(1'b1),
+      .BINT11_n(1'b1),
+      .BINT12_n(1'b1),
+      .BINT13_n(1'b1),
+      .BINT15_n(1'b1),
 
       .POWSENSE_n(s_high),
 
@@ -114,7 +116,7 @@ module ND120_TOP (
       /* Configuration switches */
       .SW1_CONSOLE(s_high),
       .SEL_TESTMUX(s_SEL_TESTMUX),
-      .BAUD_RATE_SWITCH(s_baud_rate_switch),  // 5 bits
+      .BAUD_RATE_SWITCH(s_baud_rate_switch),  // 4 bits
 
       // outputs
       .CSBITS(s_csbits),
