@@ -4,7 +4,7 @@
 ** COMMAND & IDB DECODE                                                  **
 ** SHEET 34 of 50                                                        **
 **                                                                       **
-** Last reviewed: 13-JAN-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module CPU_PROC_CMDDEC_34 (
@@ -19,7 +19,7 @@ module CPU_PROC_CMDDEC_34 (
     input wire       PD1,
     input wire [3:0] PIL_3_0,
     input wire       WCA_n,
-    input wire       WRTRF,
+    input wire       WRTRF,  //! Write to Registry File (enable flag)
 
     output wire BRK_n,
     output wire CUP,
