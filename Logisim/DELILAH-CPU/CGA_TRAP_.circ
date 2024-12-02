@@ -96,28 +96,6 @@
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="downloadBoard" val="BASYS3"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(120,1080)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="PONI"/>
@@ -1309,8 +1287,14 @@
       <a name="label" val="IFETCH"/>
     </comp>
     <comp lib="0" loc="(1310,350)" name="Power"/>
+    <comp lib="0" loc="(1390,1020)" name="Ground"/>
+    <comp lib="0" loc="(1390,770)" name="Ground"/>
     <comp lib="0" loc="(1510,450)" name="Ground"/>
     <comp lib="0" loc="(2030,410)" name="Splitter">
+      <a name="bit0" val="3"/>
+      <a name="bit1" val="2"/>
+      <a name="bit2" val="1"/>
+      <a name="bit3" val="0"/>
       <a name="facing" val="west"/>
       <a name="fanout" val="4"/>
       <a name="incoming" val="4"/>
@@ -1321,6 +1305,7 @@
       <a name="facing" val="west"/>
       <a name="label" val="TVEC_3_0"/>
       <a name="output" val="true"/>
+      <a name="radix" val="8"/>
       <a name="width" val="4"/>
     </comp>
     <comp lib="0" loc="(310,1180)" name="Pin">
@@ -1550,9 +1535,15 @@
     <wire from="(1370,450)" to="(1440,450)"/>
     <wire from="(1370,800)" to="(1370,1050)"/>
     <wire from="(1370,800)" to="(1440,800)"/>
+    <wire from="(1390,1010)" to="(1390,1020)"/>
+    <wire from="(1390,1010)" to="(1420,1010)"/>
+    <wire from="(1390,760)" to="(1390,770)"/>
+    <wire from="(1390,760)" to="(1420,760)"/>
     <wire from="(1410,350)" to="(1410,370)"/>
     <wire from="(1410,350)" to="(1510,350)"/>
+    <wire from="(1410,370)" to="(1410,400)"/>
     <wire from="(1410,370)" to="(1420,370)"/>
+    <wire from="(1410,400)" to="(1420,400)"/>
     <wire from="(1440,1020)" to="(1440,1050)"/>
     <wire from="(1440,410)" to="(1440,450)"/>
     <wire from="(1440,770)" to="(1440,800)"/>
