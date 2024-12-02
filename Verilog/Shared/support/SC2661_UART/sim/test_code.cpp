@@ -86,6 +86,7 @@ int main(int argc, char **argv)
     top->BRCLK = // Baud rate clock
     top->RESET = 0;
 
+    top->sys_rst_n = 1; //no FPGA system reset signal just yet...
     
     top->CE_n =
     top->CTS_n =
@@ -202,6 +203,7 @@ int main(int argc, char **argv)
 
         
         top->BRCLK = !top->BRCLK;
+        top->sysclk = top->BRCLK;
         top->eval();                
         
 #ifdef DO_TRACE        
@@ -211,6 +213,7 @@ int main(int argc, char **argv)
 
 
         top->BRCLK = !top->BRCLK;
+        top->sysclk = top->BRCLK;
         top->eval();        
         
 
