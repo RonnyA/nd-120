@@ -4,7 +4,7 @@
 ** WRF: Register File                                                    **
 ** (PDF page 64)                                                         **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -45,6 +45,17 @@ module CGA_WRF_RBLOCK_DR16 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+
+  reg [15:0] regFF;
+  always @(posedge s_aluclk) begin
+    if (s_wr & s_aluclk) begin
+        regFF <= s_rb_15_0[15:0];
+    end
+  end
+
+  assign s_reg_15_0_out = regFF;
+
+/*
   // verilator lint_off UNUSED
   // verilator lint_off UNDRIVEN
   // verilator lint_off PINCONNECTEMPTY
@@ -192,5 +203,5 @@ module CGA_WRF_RBLOCK_DR16 (
       .TE (s_wr),
       .TI (s_rb_15_0[0])
   );
-
+*/
 endmodule
