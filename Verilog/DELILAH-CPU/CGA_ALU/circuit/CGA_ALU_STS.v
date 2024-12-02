@@ -6,7 +6,7 @@
 ** Page 51                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -126,6 +126,16 @@ module CGA_ALU_STS (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+  MUX41P STS7_MUX (
+      .A (s_csts_1_n),
+      .B (s_csts_0_n),
+      .D0(s_fidbo_15_0[7]),
+      .D1(s_sts_15_0_out[7]),
+      .D2(s_mi),
+      .D3(s_sts_15_0_out[7]),
+      .Z (s_ists_7)
+  );
+
   MUX31LP STS6_MUX (
       .A (s_csts_1_n),
       .B (s_csts_0_n),
@@ -153,15 +163,7 @@ module CGA_ALU_STS (
       .ZN(s_ists_4)
   );
 
-  MUX41P STS7_MUX (
-      .A (s_csts_1_n),
-      .B (s_csts_0_n),
-      .D0(s_fidbo_15_0[7]),
-      .D1(s_sts_15_0_out[7]),
-      .D2(s_mi),
-      .D3(s_sts_15_0_out[7]),
-      .Z (s_ists_7)
-  );
+
 
   R41P STS_REG_MID (
       .CP (s_aluclk),
