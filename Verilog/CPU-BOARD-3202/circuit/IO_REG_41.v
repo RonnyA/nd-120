@@ -4,7 +4,7 @@
 ** IOC, ALD & INR REGS                                                   **
 ** SHEET 41 of 50                                                        **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module IO_REG_41 (
@@ -158,14 +158,15 @@ module IO_REG_41 (
       .CLR_n(s_clear_n),  // Active low clear input
       .D(s_ioc_idb_7_0_in[7:0]), // 8-bit data input directly from the bus (which is a combination of IDB, ALD and INR)
       .Q({
-        s_reset,              // 8-bit output, bit 0 (Q1) - Corresponding to IDB7/MSB)  - signal is not used it seems..
-        s_scons_n,  // 8-bit output, bit 1 (Q2)
-        s_led2_red_n,  // 8-bit output, bit 2 (Q3)
-        s_led3_green_n,  // 8-bit output, bit 3 (Q4)
-        s_ioc_3,  // 8-bit output, bit 4 (Q5)
-        s_ioc_2,  // 8-bit output, bit 5 (Q6)
-        s_ioc_1,  // 8-bit output, bit 6 (Q7)
-        s_ioc_0  // 8-bit output, bit 7 (Q8) - Corresponding to IDB0/LSB)
+        s_reset,           // 8-bit output, bit 7 (Q1) - (Reset real time clock.)
+        s_scons_n,         // 8-bit output, bit 6 (Q2) - (Set terminal #1 in OPCOM (console), as opposed to normal)
+        s_led2_red_n,      // 8-bit output, bit 5 (Q3) -> EMCL_n (Enable master clear: red LED ON1)
+        s_led3_green_n,    // 8-bit output, bit 4 (Q4) - (Initialisation completed: green LED on1)
+
+        s_ioc_3,  // 8-bit output, bit 3 (Q5) - (clock interrupt generated from RTC trap handler.)
+        s_ioc_2,  // 8-bit output, bit 2 (Q6) - (enable output interrupt on level 10, from terminal #1 ->UART transmit buffer empty)
+        s_ioc_1,  // 8-bit output, bit 1 (Q7) - (enable input interrupt on level 12, from terminal #1 -> UART data available)
+        s_ioc_0   // 8-bit output, bit 0 (Q8) - (enable clock interrupt on level 13.)
       })
   );
 
