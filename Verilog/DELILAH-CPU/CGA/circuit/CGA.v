@@ -6,7 +6,7 @@
 ** Page 2-9                                                              **
 ** SHEET 1 of 8                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -63,7 +63,7 @@ module CGA (
     input        XVTRAPN,
 
 
-    // Input and output signals
+    // Input and output signals connected to BUS Driver
     input  [15:0] XFIDB_15_0_IN,
     output [15:0] XFIDB_15_0_OUT,
 
@@ -91,9 +91,7 @@ module CGA (
     output        XWRTRF
 );
 
-  // IDB BUS //TODO: Make sure IDB signals is correctly used
-  wire [15:0] FIDBI_15_0;
-  wire [15:0] FIDBO_15_0;
+
 
   /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -155,221 +153,173 @@ module CGA (
   wire [15:0] s_br_15_0;
   wire [ 4:0] sx_test_4_0_out;
   wire [ 1:0] sx_cssst_1_0;
-  wire        s_pt14;
-  wire        s_epics_n;
-  wire        s_csalui7;
-  wire        sx_mrn;
-  wire        s_cd9;
-  wire        s_cd1;
-  wire        s_epicmask_n;
-  wire        s_csalui0;
-  wire        s_csalui8;
-  wire        s_csbit3;
-  wire        s_csbit11;
-  wire        s_csrb0;
-  wire        sx_stp;
-  wire        sx_vtrap_n;
-  wire        s_pt13;
-  wire        s_csbit7;
-  wire        s_csbit15;
-  wire        sx_mor_n;
-  wire        s_csalum1;
-  wire        sx_powfail_n;
-  wire        s_cd3;
-  wire        s_ind_n;
-  wire        s_cfetch;
-  wire        s_fetch_n;
-  wire        s_cd2;
-  wire        s_cd10;
-  wire        sx_ptst_n;
-  wire        sx_double_out;
-  wire        s_cd11;
-  wire        sx_mclk;
-  wire        sx_ioxerr_n;
-  wire        s_csmreq;
-  wire        sx_brk_n_out;
-  wire        sx_csscond;
-  wire        sx_ftrap_n;
-  wire        sx_spare;
-  wire        s_pt10;
-  wire        sx_eccr_out;
-  wire        s_ldlc_n;
-  wire        sx_pan_n;
   wire        s_BDEST;
-  wire        s_vacc_n;
-  wire        s_ood;
-  wire        sx_csbit20;
-  wire        s_ldgpr_n;
-  wire        s_wr3;
-  wire        s_cscomm4;
-  wire        s_cry;
-  wire        s_wr7;
-  wire        sx_ilcs_n;
-  wire        s_f11;
-  wire        s_csts3;
-  wire        sx_bint12_n;
-  wire        s_pn;
-  wire        sx_wcs_n_out;
-  wire        sx_intrq_n_out;
-  wire        sx_lshadow_out;
-  wire        s_ovf;
-  wire        s_pt15;
-  wire        sx_etrap_n;
-  wire        sx_bint11_n;
-  wire        sx_parerr_n;
-  wire        sx_erf_n;
-  wire        s_irq;
-  wire        s_cond;
-  wire        s_zf;
-  wire        sx_tclk;
-  wire        s_deep;
-  wire        s_tsel2;
-  wire        s_ldpil_n;
-  wire        s_lddbr_n;
-  wire        sx_poni_out;
-  wire        s_ptm;
-  wire        s_sgr;
-  wire        sx_csxrf3;
-  wire        s_cscomm0;
-  wire        s_z;
-  wire        sx_aluclk;
-  wire        s_vex;
-  wire        sx_trap_n_out;
-  wire        sx_empid_n;
-  wire        s_csbit0;
-  wire        s_csidbs1;
-  wire        s_lwca_n;
-  wire        s_dzd;
-  wire        s_mi;
-  wire        s_up_n;
-  wire        s_xfetch_n;
-  wire        sx_acond_n_out;
-  wire        sx_edo_n;
-  wire        s_epgs_n;
-  wire        s_restr;
-  wire        s_lcz_n;
-  wire        sx_ioni_out;
-  wire        sx_ewca_n;
-  wire        sx_csecond;
-  wire        sx_csvect;
-  wire        s_cscinsel1;
-  wire        s_f15;
-  wire        sx_wrtrf_out;
-  wire        s_ldirv;
-  wire        sx_bint13_n;
-  wire        sx_map_n;
-  wire        s_tsel0;
-  wire        s_wp_n;
-  wire        s_t_n;
+  wire        s_cbrk_n;
+  wire        s_cfetch;
   wire        s_clff_n;
+  wire        s_clirq_n;
+  wire        s_cond;
+  wire        s_cry;
+  wire        s_csalui0;
+  wire        s_csalui1;
+  wire        s_csalui2;
+  wire        s_csalui3;
+  wire        s_csalui4;
+  wire        s_csalui5;
+  wire        s_csalui6;
+  wire        s_csalui7;
+  wire        s_csalui8;
+  wire        s_csalum0;
+  wire        s_csalum1;
+  wire        s_csbit0;
+  wire        s_csbit1;
+  wire        s_csbit10;
+  wire        s_csbit11;
+  wire        s_csbit12;
+  wire        s_csbit13;
+  wire        s_csbit14;
+  wire        s_csbit15;
+  wire        s_csbit2;
+  wire        s_csbit3;
+  wire        s_csbit4;
+  wire        s_csbit5;
+  wire        s_csbit6;
+  wire        s_csbit7;
+  wire        s_csbit8;
+  wire        s_csbit9;
+  wire        s_cscinsel0;
+  wire        s_cscinsel1;
+  wire        s_cscomm0;
+  wire        s_cscomm1;
+  wire        s_cscomm2;
+  wire        s_cscomm3;
+  wire        s_cscomm4;
+  wire        s_csidbs0;
+  wire        s_csidbs1;
+  wire        s_csidbs2;
+  wire        s_csidbs3;
+  wire        s_csidbs4;
+  wire        s_csmi0;
+  wire        s_csmi1;
+  wire        s_csmreq;
+  wire        s_csrasel0;
+  wire        s_csrasel1;
+  wire        s_csrb0;
+  wire        s_csrb1;
+  wire        s_csrb2;
+  wire        s_csrb3;
+  wire        s_csrbsel0;
+  wire        s_csrbsel1;
+  wire        s_cssst0;
+  wire        s_cssst1;
+  wire        s_csts3;
+  wire        s_csts4;
+  wire        s_csts5;
+  wire        s_csts6;
+  wire        s_deep;
+  wire        s_dstop_n;
+  wire        s_dzd;
+  wire        s_epcr_n;
+  wire        s_epgs_n;
+  wire        s_epic;
+  wire        s_epicmask_n;
+  wire        s_epics_n;
+  wire        s_epicv_n;
+  wire        s_f11;
+  wire        s_f15;
+  wire        s_fetch_n;
+  wire        s_higs_n;
+  wire        s_ind_n;
+  wire        s_irq;
+  wire        s_lcz_n;
+  wire        s_lddbr_n;
+  wire        s_ldgpr_n;
+  wire        s_ldirv;
+  wire        s_ldlc_n;
+  wire        s_ldpil_n;
+  wire        s_logs_n;
+  wire        s_lwca_n;
+  wire        s_mi;
+  wire        s_ood;
+  wire        s_ovf;
+  wire        s_pd;
+  wire        s_pn;
+  wire        s_power;
+  wire        s_pt10;
+  wire        s_pt11;
+  wire        s_pt12;
+  wire        s_pt13;
+  wire        s_pt14;
+  wire        s_pt15;
+  wire        s_pt9;
+  wire        s_ptm;
+  wire        s_pviol;
+  wire        s_restr;
+  wire        s_sgr;
+  wire        s_t_n;
+  wire        s_tsel0;
+  wire        s_tsel1;
+  wire        s_tsel2;
+  wire        s_up_n;
+  wire        s_vacc_n;
+  wire        s_vex;
+  wire        s_wp_n;
+  wire        s_wr3;
+  wire        s_wr7;
+  wire        s_write_n;
+  wire        s_xfetch_n;
+  wire        s_z;
+  wire        s_zf;
+  wire        sx_acond_n_out;
+  wire        sx_aluclk;
+  wire        sx_bint10_n;
+  wire        sx_bint11_n;
+  wire        sx_bint12_n;
+  wire        sx_bint13_n;
+  wire        sx_bint15_n;
+  wire        sx_brk_n_out;
+  wire        sx_csbit20;
+  wire        sx_csecond;
+  wire        sx_csloop;
+  wire        sx_csscond;
+  wire        sx_csvect;
+  wire        sx_csxrf3;
+  wire        sx_double_out;
+  wire        sx_eccr_out;
+  wire        sx_edo_n;
+  wire        sx_empid_n;
+  wire        sx_erf_n;
+  wire        sx_etrap_n;
+  wire        sx_ewca_n;
+  wire        sx_ftrap_n;
+  wire        sx_ilcs_n;
+  wire        sx_intrq_n_out;
+  wire        sx_ioni_out;
+  wire        sx_ioxerr_n;
+  wire        sx_lshadow_out;
+  wire        sx_map_n;
+  wire        sx_mclk;
+  wire        sx_mor_n;
+  wire        sx_mrn;
+  wire        sx_pan_n;
+  wire        sx_parerr_n;
   wire        sx_pcr0;
   wire        sx_pcr1;
-  wire        s_cd14;
-  wire        s_csmi1;
-  wire        s_cd6;
-  wire        s_clirq_n;
-  wire        s_pd;
-  wire        s_csbit8;
-  wire        s_csrasel0;
-  wire        s_cscomm1;
-  wire        s_epcr_n;
-  wire        s_csts6;
-  wire        s_cd7;
-  wire        s_cd15;
-  wire        s_csidbs2;
-  wire        s_csrb1;
-  wire        s_csalui5;
-  wire        s_csalum0;
-  wire        s_csalui6;
-  wire        s_csbit1;
-  wire        s_csbit9;
-  wire        s_higs_n;
-  wire        s_tsel1;
-  wire        sx_csloop;
-  wire        s_csbit4;
-  wire        s_csbit12;
-  wire        s_pt12;
-  wire        s_cssst0;
-  wire        s_pt11;
-  wire        s_csbit5;
-  wire        s_csbit13;
-  wire        s_pt9;
-  wire        s_csalui4;
-  wire        s_write_n;
-  wire        s_cd0;
-  wire        s_csalui2;
-  wire        s_cd8;
-  wire        s_csidbs3;
-  wire        s_dstop_n;
-  wire        s_cscomm3;
-  wire        s_csrbsel1;
-  wire        sx_bint15_n;
-  wire        s_cd12;
-  wire        s_cscinsel0;
-  wire        s_cd4;
-  wire        s_pviol;
-  wire        s_csidbs4;
-  wire        sx_bint10_n;
-  wire        s_csrb3;
-  wire        s_csalui3;
-  wire        s_csbit6;
-  wire        s_csbit14;
-  wire        s_epicv_n;
-  wire        s_epic;
-  wire        s_logs_n;
-  wire        s_csts4;
-  wire        s_csrasel1;
-  wire        s_csrbsel0;
-  wire        s_csbit2;
-  wire        s_csbit10;
-  wire        s_csalui1;
-  wire        s_csrb2;
-  wire        s_csmi0;
-  wire        s_cd5;
-  wire        s_cd13;
-  wire        s_csidbs0;
-  wire        s_cbrk_n;
-  wire        s_csts5;
-  wire        s_power;
-  wire        s_cscomm2;
-  wire        s_cssst1;
+  wire        sx_poni_out;
+  wire        sx_powfail_n;
+  wire        sx_ptst_n;
+  wire        sx_spare;
+  wire        sx_stp;
+  wire        sx_tclk;
+  wire        sx_trap_n_out;
+  wire        sx_vtrap_n;
+  wire        sx_wcs_n_out;
+  wire        sx_wrtrf_out;
 
   /*******************************************************************************
    ** Here all wiring is defined                                                 **
    *******************************************************************************/
-  assign s_cd_15_0[0]        = s_cd0;
-  assign s_cd_15_0[1]        = s_cd1;
-  assign s_cd_15_0[2]        = s_cd2;
-  assign s_cd_15_0[3]        = s_cd3;
-  assign s_cd_15_0[4]        = s_cd4;
-  assign s_cd_15_0[5]        = s_cd5;
-  assign s_cd_15_0[6]        = s_cd6;
-  assign s_cd_15_0[7]        = s_cd7;
-  assign s_cd_15_0[8]        = s_cd8;
-  assign s_cd_15_0[9]        = s_cd9;
-  assign s_cd_15_0[10]       = s_cd10;
-  assign s_cd_15_0[11]       = s_cd11;
-  assign s_cd_15_0[12]       = s_cd12;
-  assign s_cd_15_0[13]       = s_cd13;
-  assign s_cd_15_0[14]       = s_cd14;
-  assign s_cd_15_0[15]       = s_cd15;
-
-  assign s_cd0               = sx_cd_15_0[0];
-  assign s_cd1               = sx_cd_15_0[1];
-  assign s_cd2               = sx_cd_15_0[2];
-  assign s_cd3               = sx_cd_15_0[3];
-  assign s_cd4               = sx_cd_15_0[4];
-  assign s_cd5               = sx_cd_15_0[5];
-  assign s_cd6               = sx_cd_15_0[6];
-  assign s_cd7               = sx_cd_15_0[7];
-  assign s_cd8               = sx_cd_15_0[8];
-  assign s_cd9               = sx_cd_15_0[9];
-  assign s_cd10              = sx_cd_15_0[10];
-  assign s_cd11              = sx_cd_15_0[11];
-  assign s_cd12              = sx_cd_15_0[12];
-  assign s_cd13              = sx_cd_15_0[13];
-  assign s_cd14              = sx_cd_15_0[14];
-  assign s_cd15              = sx_cd_15_0[15];
+  assign s_cd_15_0[15:0]        = sx_cd_15_0[15:0];
 
   assign s_csalui_8_0[0]     = s_csalui0;
   assign s_csalui_8_0[1]     = s_csalui1;
@@ -619,10 +569,58 @@ module CGA (
   // Power
   assign s_power             = 1'b1;
 
+  // IDB bus mapping
+
+  wire [15:0] s_FIDBO_15_0;
+  wire [15:0] s_FIDBI_15_0;
+
+  wire [15:0] s_alu_IDB_15_0_IN;
+  wire [15:0] s_alu_IDB_15_0_OUT;
+
+  wire [15:0] s_idbctl_IDB_15_0_IN;
+  wire [15:0] s_idbctl_IDB_15_0_OUT;
+
+  wire [15:0] s_int_IDB_15_0_IN;
+  wire [15:0] s_mac_IDB_15_0_IN;
+
+  wire s_dcd_fidbo5;
+
+  // Assign FIDBO bus to DCD, INT and MAC
+  assign s_dcd_fidbo5         = s_FIDBO_15_0[5];
+  assign s_int_IDB_15_0_IN    = s_FIDBO_15_0;
+  assign s_mac_IDB_15_0_IN    = s_FIDBO_15_0;
+
+  // IDBCTL input comes from BusDriver signal s_xfidbi_15_0
+  assign s_idbctl_IDB_15_0_IN = s_xfidbi_15_0;
+
+  // FIDBI bus comes out of IDBCTL
+  assign s_FIDBI_15_0         = s_idbctl_IDB_15_0_OUT;
+
+  // ALU reads FIDBI from IDBCTL
+  assign s_alu_IDB_15_0_IN    = s_FIDBI_15_0;
+
+  // Input signal to Bus Driver is an OR of all output signals from ALU | IDBCTL
+  assign s_FIDBO_15_0         = s_alu_IDB_15_0_OUT | s_idbctl_IDB_15_0_OUT;
+
+
+
 
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
+
+
+  BusDriver16 BD_FIDBO (
+      .EN(sx_edo_n),  // Enable = FALSE => A to IO, Enable=TRUE => IO to A
+      .TN(sx_ptst_n),  // Test enable when LOW
+
+      .A_15_0_IN(s_FIDBO_15_0),    // Data inputA (Connect to internal FIDBO data bus))
+      .A_15_0_OUT(s_xfidbi_15_0),  // A output  (Connect to internal XFIDBI data bus)
+
+      .IO_15_0_IN(XFIDB_15_0_IN),    // IN from XFIDB data bus (Connect to EXTERNAL _XFIDB_ data bus)
+      .IO_15_0_OUT(XFIDB_15_0_OUT)   // Out to XFIDB data bus (Connect to EXTERNAL _XFIDB_ data bus)
+  );
+
 
   CGA_ALU ALU (
       .ALUCLK(sx_aluclk),
@@ -642,8 +640,8 @@ module CGA (
       .EA_15_0(s_ea_15_0[15:0]),
       .F11(s_f11),
       .F15(s_f15),
-      .FIDBI_15_0(FIDBI_15_0[15:0]),
-      .FIDBO_15_0_OUT(FIDBO_15_0[15:0]),
+      .FIDBI_15_0(s_alu_IDB_15_0_IN),
+      .FIDBO_15_0_OUT(s_alu_IDB_15_0_OUT),
       .IONI(sx_ioni_out),
       .LAA_3_0(sx_laa_3_0_out[3:0]),
       .LBA_3_0(sx_lba_3_0_out[3:0]),
@@ -695,7 +693,6 @@ module CGA (
       .EPICSN(s_epics_n),
       .EPICVN(s_epicv_n),
       .FETCHN(s_fetch_n),
-      .FIDBI_15_0_OUT(FIDBI_15_0[15:0]),
       .HIGSN(s_higs_n),
       .LA_21_10(sx_la_23_10_out[11:0]),
       .LOGSN(s_logs_n),
@@ -707,7 +704,8 @@ module CGA (
       .PICV_2_0(s_picv_2_0[2:0]),
       .PVIOL(s_pviol),
       .VACCN(s_vacc_n),
-      .XFIDBI_15_0(s_xfidbi_15_0[15:0])
+      .XFIDBI_15_0(s_idbctl_IDB_15_0_IN[15:0]),
+      .FIDBI_15_0_OUT(s_idbctl_IDB_15_0_OUT[15:0])
   );
 
   CGA_WRF WRF (
@@ -734,7 +732,7 @@ module CGA (
       .CBRKN(s_cbrk_n),
       .CFETCH(s_cfetch),
       .CLFFN(s_clff_n),
-      .CLIRQN(s_clirq_n),      
+      .CLIRQN(s_clirq_n),
       .CSCOMM_4_0(s_cscomm_4_0[4:0]),
       .CSIDBS_4_0(s_csidbs_4_0[4:0]),
       .CSMIS_1_0(s_csmis_1_0[1:0]),
@@ -748,7 +746,7 @@ module CGA (
       .ERFN(sx_erf_n),
       .F15(s_f15),
       .FETCHN(s_fetch_n),
-      .FIDBO5(FIDBO_15_0[5]),
+      .FIDBO5(s_dcd_fidbo5),
       .LCSN(sx_ilcs_n),
       .INDN(s_ind_n),
       .INTRQN(sx_intrq_n_out),
@@ -773,15 +771,6 @@ module CGA (
       .ZF(s_zf)
   );
 
-  BusDriver16 BD_FIDBO (
-      .EN(sx_edo_n),  // Enable = FALSE => A to IO, Enable=TRUE => IO to ZI
-      .TN(sx_ptst_n),  // Test enable when LOW
-      .A_15_0(FIDBO_15_0),  // Data inputA (Connect to internal FIDBO data bus))
-      .IO_15_0_IN(XFIDB_15_0_IN),     // IN and OUT to XFIDB data bus (Connect to EXTERNAL _XFIDB_ data bus)
-      .IO_15_0_OUT(XFIDB_15_0_OUT),  //
-      .ZI_15_0(s_xfidbi_15_0)  // Z output  (Connect to internal XFIDBI data bus)
-  );
-
   CGA_INTR INTR (
       .BINT10N(sx_bint10_n),
       .BINT11N(sx_bint11_n),
@@ -792,7 +781,7 @@ module CGA (
       .EMPIDN(sx_empid_n),
       .EPIC(s_epic),
       .EPICMASKN(s_epicmask_n),
-      .FIDBO_15_0(FIDBO_15_0[15:0]),
+      .FIDBO_15_0(s_int_IDB_15_0_IN[15:0]),
       .HIGSN(s_higs_n),
       .INTRQN(sx_intrq_n_out),
       .IOXERRN(sx_ioxerr_n),
@@ -819,7 +808,7 @@ module CGA (
       .CSMREQ(s_csmreq),
       .DOUBLE(sx_double_out),
       .ECCR(sx_eccr_out),
-      .FIDBO_15_0(FIDBO_15_0[15:0]),
+      .FIDBO_15_0(s_mac_IDB_15_0_IN[15:0]),
       .ILCSN(sx_ilcs_n),
       .LA_23_10(sx_la_23_10_out[13:0]),
       .LSHADOW(sx_lshadow_out),
@@ -870,7 +859,6 @@ module CGA (
       .IRQ(s_irq),
       .LAA_3_0(sx_laa_3_0_out[3:0]),
       .LBA_3_0(sx_lba_3_0_out[3:0]),
-      .LCZ(1'b0),
       .LCZN(s_lcz_n),
       .LDIRV(s_ldirv),
       .LDLCN(s_ldlc_n),
