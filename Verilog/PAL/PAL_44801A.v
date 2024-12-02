@@ -1,3 +1,12 @@
+/**********************************************************************************************************
+** ND120 PALASM CODE CONVERTED TO VERILOG                                                                **
+**                                                                                                       **
+** Component PAL 44801A                                                                                  **
+**                                                                                                       **
+** Last reviewed: 1-DEC-2024                                                                             **
+** Ronny Hansen                                                                                          **
+***********************************************************************************************************/
+
 // PAL16R8
 // JLB/CJTC 11AUG86
 // 44801A,10D, BARB
@@ -41,6 +50,16 @@ module PAL_44801A (
 
 );
 
+  // Internal registers
+  reg  SEM_reg;
+  reg  ACT_reg;
+  reg  DOREF_reg;
+  reg  MEM_reg;
+  reg  REF_reg;
+  reg  IOD_reg;
+  reg  GNT_reg;
+  reg  CACT_reg;
+
   // negated input signals
   wire CRQ = ~CRQ_n;
   wire IORQ = ~IORQ_n;
@@ -59,19 +78,6 @@ module PAL_44801A (
   wire IOD = IOD_reg;
   wire GNT = GNT_reg;
   wire CACT = CACT_reg;
-
-
-
-  // Internal registers
-  reg  SEM_reg;
-  reg  ACT_reg;
-  reg  DOREF_reg;
-  reg  MEM_reg;
-  reg  REF_reg;
-  reg  IOD_reg;
-  reg  GNT_reg;
-  reg  CACT_reg;
-
 
 
   //**** Sequential logic triggered on the rising edge of CLK ****
