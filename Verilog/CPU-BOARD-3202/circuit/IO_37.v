@@ -4,7 +4,7 @@
 ** IO TOP LEVEL                                                          **
 ** SHEET 37 of 50                                                        **
 **                                                                       **
-** Last reviewed: 9-NOVEMBER-2024                                        **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -352,6 +352,9 @@ module IO_37(
 
    IO_UART_42   UART
    (
+      .sysclk(sysclk), // System clock in FPGA
+      .sys_rst_n(sys_rst_n), // System reset in FPGA
+
       .BAUD_RATE_SWITCH(BAUD_RATE_SWITCH),
       .CEUART_n(s_ceuart_n),
       .CLK(s_clk),

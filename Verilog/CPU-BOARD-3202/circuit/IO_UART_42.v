@@ -10,6 +10,8 @@
 
 
 module IO_UART_42 (
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
 
     // Input signals
     input CEUART_n,
@@ -134,6 +136,9 @@ module IO_UART_42 (
   );
 
   SC2661_UART CHIP_32H (
+      .sysclk(sysclk),  // System clock in FPGA
+      .sys_rst_n(sys_rst_n),  // System reset in FPGA
+
       .ADDRESS(s_mis_1_0[1:0]),
 
       .BRCLK(s_pposc),
