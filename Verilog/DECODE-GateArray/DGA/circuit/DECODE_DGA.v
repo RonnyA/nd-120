@@ -9,7 +9,7 @@
 ** PDF Page 6 -> DECODE - DECODE_DGA- Sheet 5 of 6                       **
 ** PDF Page 7 -> DECODE - DECODE_DGA- Sheet 6 of 6                       **
 **                                                                       **
-** Last reviewed: 09-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -381,7 +381,7 @@ module DECODE_DGA (
 
   DECODE_DGA_POW POW (
       .BDRY50N(s_xbdn),
-      .CLEAR(s_clear),
+      .CLEAR(s_clear),  //output
       .CLOSC(s_xclo),
       .CLRTIN(s_clrtin),
       .CONTINUEN(s_xcon),
@@ -438,7 +438,7 @@ module DECODE_DGA (
       .CA10(s_ca10),
       .CCLRN(s_xcrn),
       .CEUARTN(s_xeun),
-      .CLEAR(s_xcl_n),
+      .CLEAR(s_clear),
       .CLK1(s_xclk),
       .CLK2(s_xclk),
       .CLK3(s_xclk),
