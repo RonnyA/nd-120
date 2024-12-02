@@ -17,7 +17,7 @@ struct TestCase {
 
 	uint8_t CSCOMM_4_0;
 	uint8_t CSMIS_1_0;
-	bool ILCSN;
+	bool LCSN;
 	bool F15;
 	bool ZF;
 	bool CRY;
@@ -108,9 +108,10 @@ int main(int argc, char** argv)
 
 
 	const auto& test = testCases[0];
-	for (int cnt = 0; cnt < 32; cnt++)
+	for (int cscomm = 0; cscomm < 32; cscomm++)
 	{
-		for (int csidbs = 0; csidbs < 32; csidbs++)
+		int csidbs = cscomm;
+		//for (int csidbs = 0; csidbs < 32; csidbs++)
 		{
 
 			for (int csmis = 0; csmis < 4; csmis++)
@@ -122,7 +123,7 @@ int main(int argc, char** argv)
 				// Set up your module inputs based on the test case
 				top->CSCOMM_4_0 = test.CSCOMM_4_0;
 				top->CSMIS_1_0 = test.CSMIS_1_0;
-				top->ILCSN = test.ILCSN;
+				top->LCSN = test.LCSN;
 				top->F15 = test.F15;
 				top->ZF = test.ZF;
 				top->CRY = test.CRY;
@@ -141,8 +142,8 @@ int main(int argc, char** argv)
 				// Set input SELECTION
 
 				top->MCLK = 0;
-				top->CSCOMM_4_0 = cnt;     // 0-31, loop test
-				top->CSIDBS_4_0 = csidbs;  // 0-31, loop test
+				top->CSCOMM_4_0 = cscomm;     // 0-31, loop test
+				top->CSIDBS_4_0 = csidbs;  // 0-31, loop test  // values ONLY used for EPCRN, and needs to be '10101' (0x15,oct 25) = IDB Source = PCR (E_PCR_n)
 				top->CSMIS_1_0 = csmis;    // 0-3, loop test
 				top->eval();
 
