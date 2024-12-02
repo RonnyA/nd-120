@@ -6,7 +6,7 @@
 ** Page 78                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -110,67 +110,67 @@ module CGA_INTR_CNTLR_IRQ_REG (
   );
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_8 (
-      .CLR(s_irq_15_0_n[8]),
+      .CLR(s_clrq_15_0[8]),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[8]),
-      .PN (s_clrq_15_0[8])
+      .PN (s_irq_15_0_n[8])
   );
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_9 (
-      .CLR(s_irq_15_0_n[9]),
+      .CLR(s_clrq_15_0[9]),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[9]),
-      .PN (s_clrq_15_0[9])
+      .PN (s_irq_15_0_n[9])
   );
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_10 (
-      .CLR(s_irq_15_0_n[10]),
+      .CLR(s_clrq_15_0[10]),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[10]),
-      .PN (s_clrq_15_0[10])
+      .PN (s_irq_15_0_n[10])
   );
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_11 (
-      .CLR(s_irq_15_0_n[11]),
+      .CLR(s_clrq_15_0[11]),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[11]),
-      .PN (s_clrq_15_0[11])
+      .PN (s_irq_15_0_n[11])
   );
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_12 (
-      .CLR(s_irq_15_0_n[12]),
+      .CLR(s_clrq_15_0[12]),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[12]),
-      .PN (s_clrq_15_0[12])
+      .PN (s_irq_15_0_n[12])
   );
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_13 (
-      .CLR(s_irq_15_0_n[13]),
+      .CLR(s_clrq_15_0[13]),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[13]),
-      .PN (s_clrq_15_0[13])
+      .PN (s_irq_15_0_n[13])
   );
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_14 (
-      .CLR(s_irq_15_0_n[14]),
+      .CLR(s_clrq_15_0[14]),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[14]),
-      .PN (s_clrq_15_0[14])
+      .PN (s_irq_15_0_n[14])
   );
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_15 (
-      .CLR(s_irq_15_0_n[15]),
+      .CLR(s_clrq_15_0[15]),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[15]),
-      .PN (s_clrq_15_0[15])
+      .PN (s_irq_15_0_n[15])
   );
 
 
