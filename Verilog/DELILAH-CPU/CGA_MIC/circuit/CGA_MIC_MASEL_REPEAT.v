@@ -3,16 +3,18 @@
 ** /CGA/MIC/MASEL/REPEAT                                                 **
 ** REPEAT                                                                **
 **                                                                       **
-** Page n                                                                **
-** SHEET 1 of n                                                          **
+** Page 20                                                               **
+** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module CGA_MIC_MASEL_REPEAT (
-    input MCLK,
-    input MPN,
+    input        MCLK,
+    input        MPN,
+    input        SC5,      //! Selector SC5
+    input        SC6,      //! Selector SC6
     input [12:0] REP_12_0,
 
     output [12:0] IW_12_0
@@ -21,15 +23,20 @@ module CGA_MIC_MASEL_REPEAT (
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-  wire [12:0] s_iw_12_0_out;
   wire [12:0] s_rep_12_0;
   wire        s_mclk;
   wire        s_mp_n;
   wire        s_mp;
+  wire        s_sc5;
+  wire        s_sc6;
 
   /*******************************************************************************
    ** The module functionality is described here                                 **
    *******************************************************************************/
+  reg  [12:0] regRepeat;
+
+
+
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
@@ -37,11 +44,13 @@ module CGA_MIC_MASEL_REPEAT (
   assign s_rep_12_0[12:0] = REP_12_0;
   assign s_mp_n           = MPN;
   assign s_mclk           = MCLK;
+  assign s_sc5            = SC5;
+  assign s_sc6            = SC6;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-  assign IW_12_0          = s_iw_12_0_out[12:0];
+  assign IW_12_0          = regRepeat[12:0];
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
@@ -53,161 +62,28 @@ module CGA_MIC_MASEL_REPEAT (
   /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) IWFF12 (
-      .clock(s_mclk),
-      .d(s_rep_12_0[12]),
-      .preset(1'b0),
-      .q(s_iw_12_0_out[12]),
-      .qBar(),
-      .reset(s_mp),
-      .tick(1'b1)
-  );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) IWFF11 (
-      .clock(s_mclk),
-      .d(s_rep_12_0[11]),
-      .preset(1'b0),
-      .q(s_iw_12_0_out[11]),
-      .qBar(),
-      .reset(s_mp),
-      .tick(1'b1)
-  );
+  // NOTE: Triggering on NEG edge is different from what the schematics say, but it is needed to get the R_REP value clocked correct
+  wire s_hack;
+  assign s_hack =
+        s_mclk
+        & !s_sc5
+        & !s_sc6
+        & (regRepeat == 13'h1FFF | regRepeat == 13'h000)
+        & (REP_12_0 == 13'h401)
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) IWFF10 (
-      .clock(s_mclk),
-      .d(s_rep_12_0[10]),
-      .preset(1'b0),
-      .q(s_iw_12_0_out[10]),
-      .qBar(),
-      .reset(s_mp),
-      .tick(1'b1)
-  );
+    ;// Latch if selector changes to jump and current regRepeat is 0. HACK HACK to get boot to work
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) IWFF9 (
-      .clock(s_mclk),
-      .d(s_rep_12_0[9]),
-      .preset(1'b0),
-      .q(s_iw_12_0_out[9]),
-      .qBar(),
-      .reset(s_mp),
-      .tick(1'b1)
-  );
+  always @(posedge s_mclk or posedge s_mp or posedge s_hack) begin
+    if (s_mp) begin
+      regRepeat <= 12'b000000000000;
+    end else begin
+      if (s_mclk) begin  // HACK: Allow changes in selector to affect the register values as long clock is high.. (to avoid race conditions)
+        regRepeat[12:0] <= s_rep_12_0[12:0];
+      end
+    end
+  end
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) IWFF8 (
-      .clock(s_mclk),
-      .d(s_rep_12_0[8]),
-      .preset(1'b0),
-      .q(s_iw_12_0_out[8]),
-      .qBar(),
-      .reset(s_mp),
-      .tick(1'b1)
-  );
-
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) IWFF7 (
-      .clock(s_mclk),
-      .d(s_rep_12_0[7]),
-      .preset(1'b0),
-      .q(s_iw_12_0_out[7]),
-      .qBar(),
-      .reset(s_mp),
-      .tick(1'b1)
-  );
-
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) IWFF6 (
-      .clock(s_mclk),
-      .d(s_rep_12_0[6]),
-      .preset(1'b0),
-      .q(s_iw_12_0_out[6]),
-      .qBar(),
-      .reset(s_mp),
-      .tick(1'b1)
-  );
-
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) IWFF5 (
-      .clock(s_mclk),
-      .d(s_rep_12_0[5]),
-      .preset(1'b0),
-      .q(s_iw_12_0_out[5]),
-      .qBar(),
-      .reset(s_mp),
-      .tick(1'b1)
-  );
-
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) IWFF4 (
-      .clock(s_mclk),
-      .d(s_rep_12_0[4]),
-      .preset(1'b0),
-      .q(s_iw_12_0_out[4]),
-      .qBar(),
-      .reset(s_mp),
-      .tick(1'b1)
-  );
-
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) IWFF3 (
-      .clock(s_mclk),
-      .d(s_rep_12_0[3]),
-      .preset(1'b0),
-      .q(s_iw_12_0_out[3]),
-      .qBar(),
-      .reset(s_mp),
-      .tick(1'b1)
-  );
-
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) IWFF2 (
-      .clock(s_mclk),
-      .d(s_rep_12_0[2]),
-      .preset(1'b0),
-      .q(s_iw_12_0_out[2]),
-      .qBar(),
-      .reset(s_mp),
-      .tick(1'b1)
-  );
-
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) IWFF1 (
-      .clock(s_mclk),
-      .d(s_rep_12_0[1]),
-      .preset(1'b0),
-      .q(s_iw_12_0_out[1]),
-      .qBar(),
-      .reset(s_mp),
-      .tick(1'b1)
-  );
-
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) IWFF0 (
-      .clock(s_mclk),
-      .d(s_rep_12_0[0]),
-      .preset(1'b0),
-      .q(s_iw_12_0_out[0]),
-      .qBar(),
-      .reset(s_mp),
-      .tick(1'b1)
-  );
 
 
 
