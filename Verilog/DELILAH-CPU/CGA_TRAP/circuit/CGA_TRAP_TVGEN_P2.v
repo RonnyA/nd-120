@@ -3,10 +3,10 @@
 ** /CGA/TRAP/TVGEN/P2                                                    **
 ** P2                                                                    **
 **                                                                       **
-** Page n                                                                **
-** SHEET 1 of n                                                          **
+** Page 104                                                              **
+** SHEET 2 of 2                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -229,6 +229,7 @@ module CGA_TRAP_TVGEN_P2 (
       .result(s_gates11_out)
   );
 
+  //TVEC 0
   Multiplexer_4 PLEXERS_12 (
       .muxIn_0(s_l3v0_n),
       .muxIn_1(s_l2v0_n),
@@ -238,6 +239,7 @@ module CGA_TRAP_TVGEN_P2 (
       .sel(s_mux_selector[1:0])
   );
 
+  // TVEC 2
   Multiplexer_4 PLEXERS_13 (
       .muxIn_0(s_gnd),
       .muxIn_1(s_l2v2_n),
@@ -247,6 +249,7 @@ module CGA_TRAP_TVGEN_P2 (
       .sel(s_mux_selector[1:0])
   );
 
+  // TVEC 1
   Multiplexer_4 PLEXERS_14 (
       .muxIn_0(s_l3v1_n),
       .muxIn_1(s_l2v1_n),
