@@ -1,5 +1,4 @@
 // TODO:
-// TODO: Missing MMU, LAPA, STOC and IN/OUT SIGNAL ASSIGN MUST BE VALIDATED.
 //  s_rt_n - also output from CPU_PROC_32. Validate which to use, from PROC or PCB top module. For now, use PROC
 //  s_rwcs_n - als output from CPU_PROC_32. Validate which to use, from PROC or PCB top module. For now, use PROC
 
@@ -9,7 +8,7 @@
 ** CPU TOP LEVEL                                                         **
 ** SHEET 15 of 50                                                        **
 **                                                                       **
-** Last reviewed: 15-APRIL-2024                                          **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -127,8 +126,8 @@ module CPU_15 (
   wire [ 1:0] s_pcr_1_0;
   wire [ 3:0] s_pil_3_0;
   wire [12:0] s_lua_12_0;
-  wire [15:0] s_cd_15_0_in;
-  wire [15:0] s_cd_15_0_out;
+  wire [15:0] s_stoc_cd_15_0_out;
+  wire [15:0] s_proc_cd_15_0_in;
   wire [15:0] s_proc_IDB_15_0_in;
   wire [15:0] s_proc_IDB_15_0_out;
   wire [15:0] s_cs_IDB_15_0_in;
@@ -205,8 +204,8 @@ module CPU_15 (
   wire        s_mclk;
   wire        s_led1;
 
-  wire [15:0] s_mmu_15_0_in;
-  wire [15:0] s_mmu_15_0_out;
+  wire [15:0] s_mmu_cd_15_0_in;
+  wire [15:0] s_mmu_cd_15_0_out;
 
   wire [15:0] s_mmu_idb_15_0_in;
   wire [15:0] s_mmu_idb_15_0_out;
@@ -278,9 +277,8 @@ module CPU_15 (
    ** Here all output connections are defined                                    **
    *******************************************************************************/
   assign CA_9_0 = s_ca_10_0[9:0];
-  assign CD_15_0_OUT = s_cd_15_0_out[15:0];
-
-  //TODO: Add assign of IDB out of this block based on IDB out from PROC or CS
+  assign CD_15_0_OUT = s_stoc_cd_15_0_out[15:0];
+  
   assign IDB_15_0_OUT =
       s_proc_IDB_15_0_out[15:0] |
       s_cs_IDB_15_0_out[15:0]   |
@@ -291,6 +289,14 @@ module CPU_15 (
       s_cs_IDB_15_0_out[15:0]   |
       s_mmu_idb_15_0_out[15:0]  |
       IDB_15_0_IN;
+
+  assign s_proc_IDB_15_0_in[15:0]  =
+    s_cs_IDB_15_0_out[15:0]   |
+    s_mmu_idb_15_0_out[15:0]  |
+    IDB_15_0_IN[15:0];
+
+  assign s_proc_cd_15_0_in = s_stoc_cd_15_0_out| s_mmu_cd_15_0_out;
+  assign s_mmu_cd_15_0_in = s_stoc_cd_15_0_out;
 
   assign s_cs_IDB_15_0_in = s_proc_IDB_15_0_out[15:0] | s_mmu_idb_15_0_out[15:0] | IDB_15_0_IN;
 
@@ -318,7 +324,8 @@ module CPU_15 (
 
   /****** CPU_STOC_35.v is replaced by this line below ******/
   // If STOC_n is high, output is high-impedance
-  assign s_cd_15_0_out[15:0] = s_stoc_n ? 16'b0 : s_stoc_idb_15_0_in[15:0];
+  // (Its a buffer, so it only forwards data from IDB to STOC_cd_15_out)
+  assign s_stoc_cd_15_0_out[15:0] = s_stoc_n ? 16'b0 : s_stoc_idb_15_0_in[15:0];
 
   /****** CPU_LAPA_23.v is replaced by this line below ******/
   // is s_lapa_n is high, output is high-impedance
@@ -337,7 +344,7 @@ module CPU_15 (
       .BRK_n(s_brk_n),
       .BSTP(s_bstp),
       .CA_9_0(s_ca_10_0[9:0]),
-      .CD_15_0_IN(s_cd_15_0_in[15:0]),
+      .CD_15_0_IN(s_proc_cd_15_0_in[15:0]),
       .CLK(s_clk),
       .CSA_12_0(s_csa_12_0[12:0]),
       .CSBITS(s_csbits[63:0]),
@@ -441,8 +448,8 @@ module CPU_15 (
       .CA_10_0(s_ca_10_0[10:0]),
       .CC2_n(s_cc2_n),
       .CCLR_n(s_cclr_n),
-      .CD_15_0_IN(s_mmu_15_0_in[15:0]),
-      .CD_15_0_OUT(s_mmu_15_0_out[15:0]),
+      .CD_15_0_IN(s_mmu_cd_15_0_in[15:0]),
+      .CD_15_0_OUT(s_mmu_cd_15_0_out[15:0]),
       .CUP(s_cup),
       .CWR(s_cwr),
       .CYD(s_cyd),
