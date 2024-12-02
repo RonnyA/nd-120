@@ -9,7 +9,7 @@
 ** Page 18 DECODE - DECODE_DGA_COMM - Sheet 3 of 4                       **
 ** Page 19 DECODE - DECODE_DGA_COMM - Sheet 4 of 4                       **
 **                                                                       **
-** Last reviewed: 09-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -992,17 +992,6 @@ module DECODE_DGA_COMM (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_66 (
-      .clock(s_clk3),
-      .d(s_208_y),
-      .preset(1'b0),
-      .q(s_emcl_n),
-      .qBar(),
-      .reset(s_clear),
-      .tick(1'b1)
-  );
 
   D_FLIPFLOP #(
       .InvertClockEnable(0)
@@ -1153,6 +1142,37 @@ module DECODE_DGA_COMM (
       .ENB_N(s_gnd),
       .Y(s_208_y)
   );
+
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_66 (
+      .clock(s_clk3),
+      .d(s_208_y),
+      .preset(1'b0),
+      .q(s_emcl_n),
+      .qBar(),
+      .reset(s_clear),
+      .tick(1'b1)
+  );
+
+/* REFACTOR EMCL_n logic to avoid race condition */
+/* refactor removed as original code worked...
+
+  reg regEMCL_n;
+  assign s_emcl_n = regEMCL_n;
+
+  // Normally POSEDGE CLK3, but to avoid race we latch on the negative edge. EMCL_n is not time sensitve inside the opcode
+  always@(negedge s_clk3, posedge s_clear)
+  begin
+    if (s_clear) begin
+        regEMCL_n <= 0;
+    end else begin
+        if (s_sioc_n == 1'b0) begin
+            regEMCL_n <= s_idbi5;
+        end
+    end
+  end
+*/
 
   F924 A188 (
       .C_H05  (s_clk3),
