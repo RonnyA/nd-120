@@ -641,7 +641,7 @@
     </comp>
     <comp lib="0" loc="(320,320)" name="Pin">
       <a name="appearance" val="classic"/>
-      <a name="label" val="G"/>
+      <a name="label" val="GN"/>
     </comp>
     <comp lib="0" loc="(450,270)" name="Splitter">
       <a name="appear" val="right"/>
@@ -650,14 +650,7 @@
       <a name="incoming" val="3"/>
       <a name="spacing" val="5"/>
     </comp>
-    <comp lib="1" loc="(1240,220)" name="NOT Gate"/>
-    <comp lib="1" loc="(1240,260)" name="NOT Gate"/>
-    <comp lib="1" loc="(1240,300)" name="NOT Gate"/>
-    <comp lib="1" loc="(1240,340)" name="NOT Gate"/>
-    <comp lib="1" loc="(1240,380)" name="NOT Gate"/>
-    <comp lib="1" loc="(1240,420)" name="NOT Gate"/>
-    <comp lib="1" loc="(1240,460)" name="NOT Gate"/>
-    <comp lib="1" loc="(1240,500)" name="NOT Gate"/>
+    <comp lib="1" loc="(470,320)" name="NOT Gate"/>
     <comp lib="2" loc="(680,320)" name="Decoder">
       <a name="select" val="3"/>
       <a name="selloc" val="tr"/>
@@ -665,26 +658,25 @@
     <comp lib="8" loc="(235,75)" name="Text">
       <a name="text" val="3 to 8 decoder"/>
     </comp>
-    <comp lib="8" loc="(365,550)" name="Text">
-      <a name="text" val="TODO: Similar to the ND38GLP.. what is different ?"/>
+    <comp lib="8" loc="(270,540)" name="Text">
+      <a name="text" val="Similar to the ND38GLP.. what is different ?"/>
+    </comp>
+    <comp lib="8" loc="(315,585)" name="Text">
+      <a name="text" val="GN is negated enable"/>
+    </comp>
+    <comp lib="8" loc="(325,620)" name="Text">
+      <a name="text" val="Output is NOT negated"/>
     </comp>
     <wire from="(1000,340)" to="(1000,350)"/>
-    <wire from="(1000,340)" to="(1210,340)"/>
+    <wire from="(1000,340)" to="(1330,340)"/>
     <wire from="(1000,360)" to="(1000,380)"/>
-    <wire from="(1000,380)" to="(1210,380)"/>
-    <wire from="(1240,220)" to="(1330,220)"/>
-    <wire from="(1240,260)" to="(1330,260)"/>
-    <wire from="(1240,300)" to="(1330,300)"/>
-    <wire from="(1240,340)" to="(1330,340)"/>
-    <wire from="(1240,380)" to="(1330,380)"/>
-    <wire from="(1240,420)" to="(1330,420)"/>
-    <wire from="(1240,460)" to="(1330,460)"/>
-    <wire from="(1240,500)" to="(1330,500)"/>
+    <wire from="(1000,380)" to="(1330,380)"/>
     <wire from="(320,160)" to="(430,160)"/>
     <wire from="(320,210)" to="(430,210)"/>
     <wire from="(320,260)" to="(430,260)"/>
-    <wire from="(320,320)" to="(670,320)"/>
+    <wire from="(320,320)" to="(440,320)"/>
     <wire from="(450,270)" to="(680,270)"/>
+    <wire from="(470,320)" to="(670,320)"/>
     <wire from="(680,270)" to="(680,320)"/>
     <wire from="(700,320)" to="(940,320)"/>
     <wire from="(700,330)" to="(960,330)"/>
@@ -694,18 +686,18 @@
     <wire from="(700,370)" to="(980,370)"/>
     <wire from="(700,380)" to="(960,380)"/>
     <wire from="(700,390)" to="(940,390)"/>
-    <wire from="(940,220)" to="(1210,220)"/>
+    <wire from="(940,220)" to="(1330,220)"/>
     <wire from="(940,220)" to="(940,320)"/>
     <wire from="(940,390)" to="(940,500)"/>
-    <wire from="(940,500)" to="(1210,500)"/>
-    <wire from="(960,260)" to="(1210,260)"/>
+    <wire from="(940,500)" to="(1330,500)"/>
+    <wire from="(960,260)" to="(1330,260)"/>
     <wire from="(960,260)" to="(960,330)"/>
     <wire from="(960,380)" to="(960,460)"/>
-    <wire from="(960,460)" to="(1210,460)"/>
-    <wire from="(980,300)" to="(1210,300)"/>
+    <wire from="(960,460)" to="(1330,460)"/>
+    <wire from="(980,300)" to="(1330,300)"/>
     <wire from="(980,300)" to="(980,340)"/>
     <wire from="(980,370)" to="(980,420)"/>
-    <wire from="(980,420)" to="(1210,420)"/>
+    <wire from="(980,420)" to="(1330,420)"/>
   </circuit>
   <circuit name="LATCH">
     <a name="appearance" val="logisim_evolution"/>
@@ -1298,7 +1290,7 @@
     <comp lib="8" loc="(415,215)" name="Text">
       <a name="text" val="WAS: This is different from MUX21L in that its not NEGATED"/>
     </comp>
-    <comp lib="8" loc="(499,262)" name="Text">
+    <comp lib="8" loc="(495,260)" name="Text">
       <a name="text" val="Chnaged 04.12.2023 - Its used in CGA_ALU mostly, and there it is definitively negated"/>
     </comp>
     <wire from="(300,320)" to="(400,320)"/>
