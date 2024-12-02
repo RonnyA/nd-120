@@ -4,12 +4,9 @@
 ** CPU TOP LEVEL                                                         **
 ** SHEET 16 of 50                                                        **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
-
-//TODO: Missing BUS Connectors A-B-C
-
 
 
 module ND3202D (
@@ -56,7 +53,7 @@ module ND3202D (
     /* Configuration switches */
     input       SW1_CONSOLE,      // Switch on the console (on/off)
     input [2:0] SEL_TESTMUX,      // Selects testmux signals to output on TEST_4_0
-    input [4:0] BAUD_RATE_SWITCH, // Switch on the PCB to select baudrate
+    input [3:0] BAUD_RATE_SWITCH, // TH2 - 'BAUD RATE CONTROL' Switch on the PCB to select baudrate
 
     /*******************************************************************************
    ** The outputs are defined here                                               **
@@ -299,7 +296,6 @@ LED7 (yellow)  - Bus grant
   wire        s_term_n;
   wire        s_tout;
   wire        s_trap_n;
-  wire        s_trap;
   wire        s_txd;
   wire        s_uclk;
   wire        s_vex;
@@ -397,9 +393,9 @@ LED7 (yellow)  - Bus grant
   // Power sense
   assign s_powsense_n = POWSENSE_n;
 
-  // unknown signals // TODO: Identify the correct source of these signals
+  // TODO: Identify the correct source of these signals
   assign s_acond_n = 1;
-  assign s_brk_n = 1;
+  assign s_brk_n = 1; // removing this makes the microcode NOT start after its loaded into DRAM
   assign s_inr_7_0 = 8'b0;
 
   // Or together the BIF and MEM bdry signals. Since they are negated we must first negate them to get the correct meaning
@@ -407,6 +403,7 @@ LED7 (yellow)  - Bus grant
 
   // But we can simplify using De Morgan's law: ~(~A | ~B) = A & B
   assign s_bdry_n = (s_bif_bdry_n & s_mem_bdry_n);
+
 
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
@@ -433,7 +430,7 @@ LED7 (yellow)  - Bus grant
       .CX_n(s_cx_n),
       .CYD(s_cyd),
       .EORF_n(s_eorf_n),
-      .ETRAP_n(s_etrap_n),
+      .ETRAP_n(s_etrap_n), // output
       .FORM_n(s_form_n),
       .HIT(s_hit),
       .IORQ_n(s_iorq_n),
@@ -457,7 +454,7 @@ LED7 (yellow)  - Bus grant
       .SHORT_n(s_short_n),
       .SLOW_n(s_slow_n),
       .TERM_n(s_term_n),
-      .TRAP_n(s_trap_n),
+      .TRAP_n(s_trap_n), // TRAP input signal input
       .UCLK(s_uclk),
       .VEX(s_vex),
       .WRFSTB(s_wrfstb)
@@ -483,7 +480,7 @@ LED7 (yellow)  - Bus grant
       .EMPID_n(s_empid_n),
       .EORF_n(s_eorf_n),
       .ESTOF_n(s_estof_n),
-      .ETRAP_n(s_etrap_n),
+      .ETRAP_n(s_etrap_n),  // input
       .FETCH(s_fetch),
       .FMISS(s_fmiss),
       .FORM_n(s_form_n),
@@ -524,7 +521,7 @@ LED7 (yellow)  - Bus grant
       .TEST_4_0(s_test_4_0[4:0]),
       .TOPCSB(s_csbits[63:0]),
       .TP1_INTRQ_n(s_rp1_intrq_n),
-      .TRAP(s_trap),
+      .TRAPN(s_trap_n),  //out
       .UCLK(s_uclk),
       .VEX(s_vex),
       .WCHIM_n(s_wchim_n),
