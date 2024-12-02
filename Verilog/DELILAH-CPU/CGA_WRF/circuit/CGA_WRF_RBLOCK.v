@@ -10,19 +10,23 @@
 
 
 module CGA_WRF_RBLOCK (
-    input        ALUCLK,
-    input [15:0] EA_15_0,
-    input [15:0] EB_15_0,
-    input [15:0] NLCA_15_0,
-    input [15:0] RB_15_0,
-    input [15:0] WR_15_0,
-    input        XFETCHN,
+    input        ALUCLK,   //! To clock the operation
 
-    output [15:0] A_15_0,
-    output [15:0] BR_15_0,
-    output [15:0] B_15_0,
-    output [15:0] PR_15_0,
-    output [15:0] XR_15_0
+    input [15:0] EA_15_0,  //! Enable A (source) for read. 16 bits to select register.
+    input [15:0] EB_15_0,  //! Enable B (dest) for read. 16 bits to select register.
+
+    input [15:0] RB_15_0,  //! Register B DATA (Destination) for WRITE. 16 bits to select register(s)
+    input [15:0] WR_15_0,  //! Register B DATA (select) for WRITE. 16 bits to select register(s)
+
+    input [15:0] NLCA_15_0, //! Input to P register (B=Reg2 which is P)
+    input        XFETCHN,   //! Input to P register
+
+    output [15:0] A_15_0,   //! DATA iutput 16 bit A, from register selected by EA_15_0
+    output [15:0] B_15_0,   //! DATA output 16 bit B, from register selected by EB_15_0
+
+    output [15:0] PR_15_0,  //! Direct output from P register (register #2)
+    output [15:0] BR_15_0,  //! Direct output from B register (register #3)
+    output [15:0] XR_15_0   //! Direct output from B register (register #7)
 );
 
   /*******************************************************************************
