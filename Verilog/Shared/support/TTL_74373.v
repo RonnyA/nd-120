@@ -1,6 +1,15 @@
-// 74PCT373
-// Octal D-TYPE Transparent Latch with 3-state outputs
-// Documentation: https://www.ti.com/lit/ds/symlink/sn54ls373-sp.pdf
+/**************************************************************************
+** ND120 Shared                                                          **
+**                                                                       **
+** Module 74PCT373                                                       **
+**                                                                       **
+** Octal D-TYPE Transparent Latch with 3-state outputs                   **
+** Documentation: https://www.ti.com/lit/ds/symlink/sn54ls373-sp.pdf     **
+**                                                                       **
+** Last reviewed: 1-DEC-2024                                             **
+** Ronny Hansen                                                          **
+***************************************************************************/
+
 
 module TTL_74373 (
     input wire [7:0] D,   // Data inputs
@@ -11,13 +20,15 @@ module TTL_74373 (
 
     reg [7:0] Q_Latch;  // Internal latch
 
- 
+
     // Latch operation: latch data whenever C is high
-    //always @(posedge C or negedge C or posedge D or negedge D) begin 
+    //always @(posedge C or negedge C or posedge D or negedge D) begin
     always @(*) begin 
     //always_latch begin
         if (C) begin
             Q_Latch = D;  // Transparent mode: Internal latch follows input
+        end else begin
+            Q_Latch = Q_Latch; // Explicit latch in hope of synth keeping silent (nope.. no change.. dont know how to make Vivado happy)
         end
     end
 
