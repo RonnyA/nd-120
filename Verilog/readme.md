@@ -4,6 +4,8 @@ The Verilog code has been split into subfolder matching the structure of the Log
 
 ## Status
 
+Verilator is able to successfully compile and execute microcode load, and continue executing "Master Clear" until finished.
+
 | Folder                                         | Status Logisim           |  Status Verilog                                | Status Vivado                         | Comment    |
 |------------------------------------------------|--------------------------|------------------------------------------------|---------------------------------------|------------|
 | [DELILAH-CPU](CPU-BOARD-3202/readme.md)        | Logisim drawing complete | Verilog compiles - Missing a lot of testcases  | Syntehesis OK, implementation fails   | CGA        |
@@ -32,3 +34,18 @@ Note: When all modules are merged, number of files and number of lines will be r
 |------------|-------|---------------|-------------------|-------------|-------------|
 | 21.05.2024 | 262	 |    69,237	 |  10,453	         | 6,721	   |  86,411     |
 | 11.11.2024 | 263   |    69,686	 |  10,210	         | 6,807       |  86,703     |
+| 28.11.2024 | 264   |    69,731     |   9,853           | 6,694       |  86,278     |
+
+# CPU Boot process
+
+* Some delay to reset all components
+* Loads Microcode first 32KB (low)
+* Loads Microcode next 32KB (high)
+* Starts at microcode address 0 (Master Clear/Power Clear)
+* Jumps to MACL
+* Clears/Initializes internal registers and sets up UART
+* Runs self-test program for CPU, Test 1-8
+
+## Test program verification
+
+![Screenshot from GTKWave](gtkwave.png)
