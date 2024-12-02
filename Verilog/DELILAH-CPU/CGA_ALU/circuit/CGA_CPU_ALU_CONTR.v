@@ -241,6 +241,7 @@ module CGA_CPU_ALU_CONTR (
 
   // Ground
   assign s_gnd               = 1'b0;
+  assign s_power             = 1'b1;
 
 
   // NOT Gate
