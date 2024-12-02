@@ -4,34 +4,64 @@
 ** WRF: Register File                                                    **
 ** (PDF page 59)                                                         **
 **                                                                       **
-** Last reviewed: 09-NOV-2024                                            **
+** Last reviewed: 1-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 
+//! @title CPU internal 'Register File' - Read and Write operations on 16 registers
+//! @author Ronny Hansen
+
+//! Register 0 (Z),
+//! Register 1 (D),
+//! Register 2 (P),
+//! Register 3 (B),
+//! Register 4 (L),
+//! Register 5 (A),
+//! Register 6 (T),
+//! Register 7 (X),
+//! Register 8 (STS),
+//! (internal registers)
+//! Register 9 (R1),
+//! Register 10 (R2),
+//! Register 11 (R3),
+//! Register 12 (R4),
+//! Register 13 (R5),
+//! Register 14 (R6),
+//! Register 15 (R7)
+
 module CGA_WRF (
 
     // Input signals
-    input        ALUCLK,
-    input        BDEST,
-    input [ 3:0] LAA_3_0,
-    input [ 3:0] LBA_3_0,
-    input [15:0] NLCA_15_0,
-    input [15:0] RB_15_0,
-    input        XFETCHN,
+    input       ALUCLK,   //! Clock
+    input       BDEST,    //! B is destination (enable write to B from 'RB_15_0' on ALUCLK)
+    input [3:0] LAA_3_0,  //! 4 bits to select A (source), for 16 different registers.
+    input [3:0] LBA_3_0,  //! 4 bits to select B (destination), for 16 different registers.
+
+    input [15:0] RB_15_0,    //! Register B DATA (Destination) for WRITE. 16 bits to select register(s)
+
+    input [15:0] NLCA_15_0,  //! Input to P register (B=Reg2 which is P)
+    input        XFETCHN,    //! Input to P register
+
 
     // Output signals
-    output [15:0] A_15_0,
-    output [15:0] BR_15_0,
-    output [15:0] B_15_0,
-    output [15:0] EA_15_0,
-    output [15:0] PR_15_0,
-    output        WPN,
-    output        WR3,
-    output        WR7,
-    output [15:0] XR_15_0
+    output [15:0] EA_15_0,  //! Enable A (source) bits for read. 16 bits to select register.
+
+    output WPN,  //! Enable write to WR2 Negated (P register) (from WR_15_0)
+    output WR3,  //! Enable write to WR3 (B register) (from WR_15_0)
+    output WR7,  //! Enable write to WR7 (X register) (from WR_15_0)
+
+
+    output [15:0] A_15_0,  //! DATA output 16 bit A, from register selected by LAA_3_0 
+    output [15:0] B_15_0,  //! DATA output 16 bit B, from register selected by LBA_3_0 
+
+    output [15:0] PR_15_0,  //! Direct output from P register (register #2)
+    output [15:0] BR_15_0,  //! Direct output from B register (register #3)
+    output [15:0] XR_15_0   //! Direct output from B register (register #7)
+
 
 );
+
 
 
   /*******************************************************************************
