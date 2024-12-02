@@ -1,3 +1,12 @@
+/**********************************************************************************************************
+** ND120 PALASM CODE CONVERTED TO VERILOG                                                                **
+**                                                                                                       **
+** Component PAL 45008B                                                                                  **
+**                                                                                                       **
+** Last reviewed: 1-DEC-2024                                                                             **
+** Ronny Hansen                                                                                          **
+***********************************************************************************************************/
+
 // PAL16L8
 // ADGD 18/8/86
 // 45008B, 2F, DATA
@@ -34,7 +43,7 @@ module PAL_45008B (
     output CLRERR_n,  //! B1_n - CLRERR_n
     output DISB_n,    //! B2_n - DISB_n (n.c.)
     output TST_n,     //! B3_n - TST_n (n.c)
-    input  QD_n,      //! B4_n - PD3
+    input  QD_n,      //! B4_n - QD_n
     input  MR_n       //! B5_n - MR_n
 );
 
@@ -110,6 +119,6 @@ DESCRIPTION
 ; 180587 M3202B
 ; 091087 B CJTC: AM29833 ARE GIVING ERROR OUTPUT EVEN BEFORE CLOCKED.
 ;                QD GOES INACTIVE ON 6, JUST BEFORE RDATA THUS STOPPING
-;   
+;
 
 */
