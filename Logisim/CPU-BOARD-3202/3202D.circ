@@ -21635,6 +21635,10 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="IDB7"/>
     </comp>
+    <comp lib="8" loc="(2147,1002)" name="Text">
+      <a name="halign" val="left"/>
+      <a name="text" val="Register Block 16 words, 11 bits address"/>
+    </comp>
     <comp lib="8" loc="(2360,130)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="FIDB0"/>
