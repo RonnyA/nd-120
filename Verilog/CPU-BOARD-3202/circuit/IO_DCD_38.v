@@ -361,7 +361,7 @@ module IO_DCD_38 (
   // The AND is done in a 74321 chip (Positive NAND Schmitt Trigger)
   assign s_oc1_and_xtal2_n = ~(s_oc1 & s_XTAL2);
 
-  // Calculate CLOSC signal
+  // Calculate CLOSC signal (Clear Oscillator)
   assign s_closc = ~(s_oscccl_n & s_power_on_zener);
 
   // Calculate PWCL signal
