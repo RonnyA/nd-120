@@ -6807,7 +6807,7 @@
       <a name="facing" val="south"/>
       <a name="label" val="M1N"/>
     </comp>
-    <comp lib="0" loc="(3400,4010)" name="Pin">
+    <comp lib="0" loc="(3400,4100)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="facing" val="north"/>
       <a name="label" val="SIOCN"/>
@@ -8471,8 +8471,10 @@
     <wire from="(3400,2970)" to="(3810,2970)"/>
     <wire from="(3400,300)" to="(3450,300)"/>
     <wire from="(3400,3510)" to="(3400,3970)"/>
-    <wire from="(3400,3970)" to="(3400,4010)"/>
+    <wire from="(3400,3970)" to="(3400,4080)"/>
     <wire from="(3400,3970)" to="(3710,3970)"/>
+    <wire from="(3400,4080)" to="(3400,4100)"/>
+    <wire from="(3400,4080)" to="(5420,4080)"/>
     <wire from="(3410,2540)" to="(3410,2610)"/>
     <wire from="(3410,2680)" to="(3410,2710)"/>
     <wire from="(3410,2680)" to="(3520,2680)"/>
@@ -8882,6 +8884,8 @@
     <wire from="(5340,3120)" to="(5340,3140)"/>
     <wire from="(5380,2540)" to="(5380,2700)"/>
     <wire from="(5390,5010)" to="(5390,5150)"/>
+    <wire from="(5420,3970)" to="(5420,4080)"/>
+    <wire from="(5420,3970)" to="(5730,3970)"/>
     <wire from="(5460,5010)" to="(5460,5170)"/>
     <wire from="(5550,2540)" to="(5550,2680)"/>
     <wire from="(5550,2680)" to="(5630,2680)"/>
