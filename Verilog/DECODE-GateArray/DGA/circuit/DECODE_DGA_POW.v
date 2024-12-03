@@ -12,7 +12,7 @@
 
 module DECODE_DGA_POW (
     input BDRY50N,
-    input CLOSC,
+    input CLOSC,  //! Clear Oscilator signal (From IO_DCD_38) - Is 1 during a very short time at power-on. Then goes to 0 and stays there.
     input CLRTIN,
     input CONTINUEN,
     input EMCLN,
@@ -72,7 +72,7 @@ module DECODE_DGA_POW (
   wire s_a622_q_n;
   wire s_a623_q_n;
   wire s_a624_q_n;
-  wire s_a625_y;
+  wire s_ms20;
   wire s_a626_q_n;
   wire s_a627_q_n;
   wire s_a631_q;
@@ -300,7 +300,7 @@ module DECODE_DGA_POW (
   D_FLIPFLOP #(
       .InvertClockEnable(0)
   ) A577 (
-      .clock(s_a625_y),
+      .clock(s_ms20),
       .d(s_gnd),
       .preset(s_clrti),
       .q(s_rtc_n),
@@ -516,7 +516,7 @@ module DECODE_DGA_POW (
       .D0(s_a617_q_n),
       .D1(s_a626_q_n),
       .ENB_N(s_gnd),
-      .Y(s_a625_y)
+      .Y(s_ms20)
   );
 
   F103 A628 (
@@ -526,7 +526,7 @@ module DECODE_DGA_POW (
 
   F571 A601 (
       .A(s_test_enable),
-      .D0(s_a625_y),
+      .D0(s_ms20),
       .D1(s_rtosc),
       .ENB_N(s_gnd),
       .Y(s_a601_y)
