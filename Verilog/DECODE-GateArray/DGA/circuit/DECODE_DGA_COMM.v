@@ -1191,9 +1191,9 @@ module DECODE_DGA_COMM (
   );
 
   F571 A201 (
-      .A(1'b0),
       .D0(s_idbi7),
       .D1(s_reset),
+      .A(s_sioc_n),
       .ENB_N(s_gnd),
       .Y(s_a201_y)
   );
