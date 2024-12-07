@@ -15,7 +15,7 @@ TERM := /CC3 * /CC2 * /CC1 * /CC0 * SHORT * /TERM * /DLY0 * /CSDELAY0   ; 50NS C
       + /CC3 * /CC2 * /CC1 * CC0 * HIT * /BRK * /DLY1 * /TERM           ; 75NS CYCLE
       + /CC3 * /CC2 * CC1 * CC0 * SHORT * /BRK  * /TERM                 ; 100NS CYCLE
       + /CC3 * /CC2 * CC1 * CC0 * HIT * /BRK *  /TERM                   ; 100NS CYCLE
-      + /CC3 * CC2 * CC1 * CC0 * /BRK *  /TERM                          ; BRK CYCLE       (>200
+      + /CC3 * CC2 * CC1 * CC0 *  BRK *  /TERM                          ; BRK CYCLE       (>200
       + /CC3 * CC2 * /CC1 * CC0 * SLOW *  /TERM                         ; SLOW CYCLES INCL. FE
       + CC3 * /CC2 * /CC1 * /CC0 * /TERM                                ; UART,LCS,RWCS CYCLES
 
