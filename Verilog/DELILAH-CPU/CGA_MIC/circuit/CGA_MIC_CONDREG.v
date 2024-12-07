@@ -34,6 +34,7 @@ module CGA_MIC_CONDREG (
   wire        s_csbit5_q;
   wire        s_csbit6_q;
   wire        s_csbit7_q;
+  wire        s_csbit7_qn;
   wire        s_cscond_n;
   wire        s_csscond;
   wire        s_gates3_out;
@@ -80,7 +81,7 @@ module CGA_MIC_CONDREG (
       .BubblesMask(2'b00)
   ) GATES_1 (
       .input1(s_lcs_n),
-      .input2(s_csbit7_q),
+      .input2(s_csbit7_qn),
       .result(s_tsel_3_0_out[3])
   );
 
@@ -183,8 +184,8 @@ module CGA_MIC_CONDREG (
   SCAN_FF CSBIT7 (
       .CLK(s_mclk),
       .D  (s_csbit_11_0[7]),
-      .Q  (),
-      .QN (s_csbit7_q),
+      .Q  (s_csbit7_q),
+      .QN (s_csbit7_qn),
       .TE (s_cscond_n),
       .TI (s_csbit7_q)
   );
