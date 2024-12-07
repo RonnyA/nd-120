@@ -3,7 +3,7 @@
 **                                                                       **
 ** Component: MUX34P                                                     **
 **                                                                       **
-** Last reviewed: 9-NOV-2024                                             **
+** Last reviewed: 7-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -97,7 +97,7 @@ module MUX34P (
       .muxIn_0(s_d00),
       .muxIn_1(s_d10),
       .muxIn_2(s_d20),
-      .muxIn_3(s_gnd),
+      .muxIn_3(s_d20),
       .muxOut(s_muxout_1),
       .sel(s_selector[1:0])
   );
@@ -106,7 +106,7 @@ module MUX34P (
       .muxIn_0(s_d01),
       .muxIn_1(s_d11),
       .muxIn_2(s_d21),
-      .muxIn_3(s_gnd),
+      .muxIn_3(s_d21),
       .muxOut(s_muxout_2),
       .sel(s_selector[1:0])
   );
@@ -115,7 +115,7 @@ module MUX34P (
       .muxIn_0(s_d02),
       .muxIn_1(s_d12),
       .muxIn_2(s_d22),
-      .muxIn_3(s_gnd),
+      .muxIn_3(s_d22),
       .muxOut(s_muxout_3),
       .sel(s_selector[1:0])
   );
@@ -124,7 +124,7 @@ module MUX34P (
       .muxIn_0(s_d03),
       .muxIn_1(s_d13),
       .muxIn_2(s_d23),
-      .muxIn_3(s_gnd),
+      .muxIn_3(s_d23),
       .muxOut(s_muxout_4),
       .sel(s_selector[1:0])
   );
