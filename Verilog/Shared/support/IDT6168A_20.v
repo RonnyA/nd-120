@@ -1,9 +1,14 @@
-/******************************************************************************
- **                                                                          **
- **  IDT6168A                                                                **
- **  16K (4Kx4) Static RAM  (using BLOCK RAM)                                **
- **                                                                          **
- *****************************************************************************/
+/**************************************************************************
+** ND120 Shared                                                          **
+**                                                                       **
+**  IDT6168A                                                             **
+**  16K (4Kx4) Static RAM  (using BLOCK RAM)                             **
+**                                                                       **
+** Last reviewed: 7-DEC-2024                                             **
+** Ronny Hansen                                                          **
+***************************************************************************/
+
+
 
 module IDT6168A_20 (
     input wire clk,     // Clock input (BLOCK RAM MUST HAVE CLOCK)
@@ -20,7 +25,6 @@ module IDT6168A_20 (
   (* ram_style = "block" *)reg [ 3:0] memory_array[0:4095];
 
   // Internal registers for address and data
-  reg [11:0] s_address;
   reg [ 3:0] data_in;
   reg [ 3:0] data_out;
 
@@ -35,15 +39,14 @@ module IDT6168A_20 (
       // Reset only data_out to prevent read conflicts during reset
       data_out <= 4'b0;
     end else if (!CE_n) begin
-      s_address <= A_11_0;
       data_in   <= D_3_0_IN;
 
       if (!WE_n) begin
         // Write operation
-        memory_array[s_address] <= data_in;
+        memory_array[A_11_0] <= data_in;
       end else begin
         // Read operation
-        data_out <= memory_array[s_address];
+        data_out <= memory_array[A_11_0];
       end
     end
   end
