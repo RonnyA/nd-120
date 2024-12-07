@@ -6,7 +6,10 @@
  ** (INVERTING)                                                              **
  **                                                                          **
  ** DOC: https://www.ti.com/lit/ds/symlink/sn54as646.pdf                     **
- *****************************************************************************/
+ **                                                                          **
+ ** Last reviewed: 7-DEC-2024                                                **
+ ** Ronny Hansen                                                             **
+ ******************************************************************************/
 
 module TTL_74648 (
     input [7:0] A_IN,
@@ -86,7 +89,7 @@ A_OUT:
 
   // s_sba = 0 => Real Time B to A
   // s_sba = 1 => Register  B to A
-  assign A_OUT_n = !s_oe_n ? 8'b0 : !s_dir ? ((!s_sba) ? b_in_n : regB) : 8'b0;
+  assign A_OUT_n = !s_oe_n ? 8'b0 : !s_dir ? ((!s_sba) ? ~b_in_n : regB) : 8'b0;
 
 
   /*
@@ -102,6 +105,6 @@ B_OUT:
 
   // s_sab = 0 => Real Time A to B
   // s_sab = 1 => Register  A to B
-  assign B_OUT_n = !s_oe_n ? 8'b0 : s_dir ? ((!s_sab) ? a_in_n : regA) : 8'b0;
+  assign B_OUT_n = !s_oe_n ? 8'b0 : s_dir ? ((!s_sab) ? ~a_in_n : regA) : 8'b0;
 
 endmodule
