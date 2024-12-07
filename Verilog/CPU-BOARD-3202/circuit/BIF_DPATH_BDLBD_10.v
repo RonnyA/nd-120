@@ -4,7 +4,7 @@
 ** BIF BD TO LBD                                                         **
 ** SHEET 10 of 50                                                        **
 **                                                                       **
-** Last reviewed: 13-MAY-2024                                            **
+** Last reviewed: 7-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module BIF_DPATH_BDLBD_10 (
@@ -71,7 +71,7 @@ module BIF_DPATH_BDLBD_10 (
    ** Here all output connections are defined                                    **
    *******************************************************************************/
   assign LBD_23_0_OUT         = s_lbd_23_0_out[23:0];
-  assign BD_23_0_n_OUT        = s_bd_23_0_n_out[23:0];
+  assign BD_23_0_n_OUT        = (!s_ebd_n & !s_wbd_n) ? s_bd_23_0_n_out[23:0] : ~24'b0; // If chip enabled and direction is B to A, read from chip. Else set HIGH (negated 0)
 
 
   /*******************************************************************************
