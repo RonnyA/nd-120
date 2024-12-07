@@ -320,7 +320,7 @@ module CGA_MIC (
   assign s_lba_3_0_out[2]   = ~s_lba_2_n_out;
   assign s_lba_3_0_out[3]   = ~s_lba_3_n_out;
 
-  assign s_lcz          = ~s_lcz_n_out;
+  assign s_lcz              = ~s_lcz_n_out;
   assign s_mclk_n           = ~s_mclk;  // MASEL  clock (negated MCLK)
   assign s_sclk_n           = ~s_mclk;  // STACK CLOCK (nedgated MCLK)
   assign s_clk_sc34         = ~s_mclk;  // Will be nagated at the chip level
@@ -592,17 +592,6 @@ module CGA_MIC (
       .result(s_lcsn_nand_ewcan)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_32 (
-      .clock(s_mclk),
-      .d(s_cond_n),
-      .preset(1'b0),
-      .q(),
-      .qBar(s_cond),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
 
   D_FLIPFLOP #(
       .InvertClockEnable(0)
@@ -812,14 +801,17 @@ module CGA_MIC (
   );
 
   CGA_MIC_CONDREG CONDREG (
-      .ACONDN(s_acond_n_out),
+        // Input
       .CSBIT_11_0(s_csbit_15_0[11:0]),
       .CSSCOND(s_cscond),
-      .FS_6_3(s_fs_6_3[3:0]),
-      .LCC_3_0(s_lcc_3_0[3:0]),
       .LCSN(s_lcs_n),
       .MCLK(s_mclk),
-      .TSEL_3_0(s_tsel_3_0[3:0])
+
+      // Output
+      .LCC_3_0(s_lcc_3_0[3:0]),
+      .FS_6_3(s_fs_6_3[3:0]),
+      .TSEL_3_0(s_tsel_3_0[3:0]),
+      .ACONDN(s_acond_n_out)
   );
 
   // A Operand
@@ -1044,10 +1036,10 @@ module CGA_MIC (
 
 
   CGA_MIC_CSEL CSEL (
+      // Input
       .ALUCLK(s_aluclk),
       .CFETCH(s_cfetch),
       .COND(s_cond),
-      .CONDN(s_cond_n),
       .CRY(s_cry),
       .DZD(s_dzd_out),
       .F11(s_f11),
@@ -1060,9 +1052,22 @@ module CGA_MIC (
       .SPARE(s_spare),
       .STP(s_stp),
       .TSEL_3_0(s_tsel_3_0[3:0]),
-      .ZF(s_zf)
+      .ZF(s_zf),
+
+      // Output
+      .CONDN(s_cond_n)
   );
 
-
+  D_FLIPFLOP #(
+      .InvertClockEnable(0)
+  ) MEMORY_32 (
+      .clock(s_mclk),
+      .d(s_cond_n),
+      .preset(1'b0),
+      .q(),
+      .qBar(s_cond),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
 endmodule
