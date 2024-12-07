@@ -111,7 +111,7 @@ module PAL_44601B (
     | (CC3_n & CC2 & CC1 & CC0_n & CGNTCACT_n & TERM_n)                          // e WAIT FOR BUS OF LOC
     | (CC3_n & CC2 & CC1 & CC0_n & BRK & TERM_n)  // e MEM CYCLE TO FINISH
     | (CC3_n & CC2 & CC1 & CC0_n & WAIT2_n & TERM_n)  // e IF WAIT2 and NOT BRK
-    | (CC3_n & CC2_n & CC1 & CC0 & CGNTCACT & BRK_n * TERM_n);  // e PREV WRITE
+    | (CC3_n & CC2_n & CC1 & CC0 & CGNTCACT & BRK_n & TERM_n);  // e PREV WRITE
 
   end
 
