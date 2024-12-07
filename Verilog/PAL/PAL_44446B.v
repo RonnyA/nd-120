@@ -80,7 +80,7 @@ module PAL_44446B (
   assign DDBAPR_n = DBAPR_n;
 
 
-  // MSIZE1 is always low (GND)
+  // MSIZE1 is always low (GND) => MSIZE1_n is always HIGH
   assign MSIZE1_n = 1;  // Active-low representation of a constant low signal
 
 
