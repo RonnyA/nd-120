@@ -119,9 +119,7 @@ int main(int argc, char **argv)
 	//!   5=LED1 from MMU
 
 	top->btn1 = false; // sys_rst_n = 0
-
 	top->uartRx = 1; // MARK
-
 	int cnt = 0;
 
 	while (true)
@@ -137,13 +135,14 @@ int main(int argc, char **argv)
 		top->sysclk = !top->sysclk;
 
 		new_led = top->led ^ 0x3F; // bits are negated, active low
-		if (new_led != led)
+		//if (new_led != led)
+		if (false)
 		{
 			uint8_t changed = new_led ^ led; // identify changed leds
 
 			changed &= ~(1 << 4 | 1 << 3); // dont log cpu & bus grant
 
-			printf("LED changed to 0x%2X\r\n", new_led);
+			//printf("LED changed to 0x%2X\r\n", new_led);
 			led = new_led;
 			DumpLedInfo(led, changed);
 		}
@@ -159,7 +158,7 @@ int main(int argc, char **argv)
 
 			if (n > 0)
 			{
-				printf("You pressed: %x\n", ch);
+				//printf("You pressed: %x\n", ch);				
 
 				txData = (int)ch;
 				txEnabled = true;
@@ -180,9 +179,11 @@ int main(int argc, char **argv)
 				switch (txDataBit)
 				{
 				case 0:
-					txTicks = DELAY_FRAMES; // Start bit
+					txTicks = DELAY_FRAMES-1; // Start bit
 					top->uartRx = 0;
-					printf("TX[%x] %c\r\n", txData, txData);
+					txOnes = 0;
+					if (txData==0x0a) txData=0x0d; //LF, not CR
+					//printf("TX[%02X] %c\r\n", txData, txData);
 					break;
 				case 1:
 				case 2:
@@ -201,24 +202,26 @@ int main(int argc, char **argv)
 						top->uartRx = 0;
 					}
 					txData >>=1;
-					txTicks = DELAY_FRAMES;
+					txTicks = DELAY_FRAMES-1;
 					break;
 				case 8: // Parity
+					top->uartRx = 0;
 					// Calculate even parity: set top->uartRx to 1 if txOnes is odd, 0 if even
-            		top->uartRx = (txOnes % 2) ? 1 : 0; // Even parity calculation
+            		//top->uartRx = (txOnes % 2) ? 0 : 1; // Even parity calculation
+					txTicks = DELAY_FRAMES-1;
 					break;
 				case 9: // stop bits
 				case 10: // stop bits
-					txTicks = DELAY_FRAMES;
 					top->uartRx = 1; // MARK!
+					txTicks = DELAY_FRAMES-1;					
 					break;
-				case 11:					
+				case 11:									   
 					txData = 0;
 					txEnabled = false;
 					break;
 				}
 
-				printf("TX[%d] %d\r\n", txDataBit, top->uartRx);
+				//printf("TX[%d] %d\r\n", txDataBit, top->uartRx);
 
 				txDataBit++;
 			}
@@ -244,7 +247,7 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				printf("RX[%d] %d\r\n", rxDataBit, top->uartTx);
+				//printf("RX[%d] %d\r\n", rxDataBit, top->uartTx);
 
 				switch (rxDataBit)
 				{
@@ -267,16 +270,19 @@ int main(int argc, char **argv)
 						rxOnes ++; // for parity check
 						rxData |= (1 << (rxDataBit - 1));
 					}
-					rxTicks = DELAY_FRAMES;
+					rxTicks = DELAY_FRAMES-1;
 					break;
 				case 8: // Parity
+					rxTicks = DELAY_FRAMES-1;
 					break;
 				case 9: // stop bits
 				case 10: // stop bits
-					rxTicks = DELAY_FRAMES;
+					rxTicks = DELAY_FRAMES-1;
 					break;
 				case 11:
-					printf("Received %d\r\n", rxData);
+					//printf("Received 0x%02X '%c'\r\n", rxData, rxData);
+					printf("%c",rxData);
+					fflush(stdout);
 
 					rxData = 0;
 					rxEnabled = false;
@@ -285,14 +291,14 @@ int main(int argc, char **argv)
 				rxDataBit++;
 			}
 
-			top->eval();
-			top->sysclk = !top->sysclk;
 		}
 
-#ifdef DO_TRACE
-		m_trace->dump(sim_time);
-		sim_time += time_step; // Increment simulation time
-#endif
+		//sim_time += time_step; // Increment simulation time
+
+		top->eval();
+		top->sysclk = !top->sysclk;
+
+		//sim_time += time_step; // Increment simulation time
 	}
 
 #ifdef DO_TRACE
