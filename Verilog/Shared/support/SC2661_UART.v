@@ -247,7 +247,7 @@ module SC2661_UART (
 
       regReceiveHoldingRegister <= 8'b0;
       regTransmitHoldingRegister <= 8'b0;
-      regStatusRegister <= 8'b0;
+      regStatusRegister <= 8'b00000001; // TX empty
       regModeRegister <= 8'b0;
       regCommandRegister <= 8'b0;
       regDataOut <= 8'b0;
@@ -281,7 +281,7 @@ module SC2661_UART (
 
 
         if (s_read_n) begin  // write
-          $display("Time: %0t | UART Write=> Address: %h | Data: %h", $time, s_address, D);
+          //$display("Time: %0t | UART Write=> Address: %h | Data: %h", $time, s_address, D);
           case (s_address)
             2'b00: begin
               //Write to transmit holding register
@@ -322,7 +322,7 @@ module SC2661_UART (
             2'b11:   regDataOut <= regCommandRegister;  // Read command register
             default: regDataOut = 8'b0;  // Undefined state
           endcase
-          $display("Time: %0t | UART READ <= Address: %h | Data: %h", $time, s_address, regDataOut);
+          //$display("Time: %0t | UART READ <= Address: %h | Data: %h", $time, s_address, regDataOut);
         end
 
       end
@@ -350,7 +350,7 @@ module SC2661_UART (
               end
 
               rxState              <= RX_STATE_START_BIT;
-              $display("-> RX START BIT");
+              //$display("-> RX START BIT");
 
               regReceiveHoldingRegister <=0;
               rxCounter            <= 1;
@@ -360,7 +360,7 @@ module SC2661_UART (
           RX_STATE_START_BIT: begin
             if (rxCounter == HALF_DELAY_WAIT) begin
               rxState   <= RX_STATE_READ_WAIT;
-              $display("-> RX READ WAIT");
+              //$display("-> RX READ WAIT");
               rxCounter <= 1;
             end else rxCounter <= rxCounter + 1;
           end
@@ -368,7 +368,7 @@ module SC2661_UART (
             rxCounter <= rxCounter + 1;
             if ((rxCounter + 1) == DELAY_FRAMES) begin
               rxState <= RX_STATE_READ;
-              $display("-> RX STATE READ");
+              //$display("-> RX STATE READ");
             end
           end
           RX_STATE_READ: begin
@@ -377,21 +377,21 @@ module SC2661_UART (
               receiver_input, regReceiveHoldingRegister[7:1]
             };  // Shift right and insert s_rxt at MSB.
             rxBitNumber <= rxBitNumber + 1;
-            $display("-> RX STATE READ bit %d",receiver_input);
+            //$display("-> RX STATE READ bit %d",receiver_input);
 
             if (rxBitNumber == 3'b111) begin
               rxState <= RX_STATE_STOP_BIT;
-              $display("-> RX STATE STOP BIT");
+              //$display("-> RX STATE STOP BIT");
             end else begin
               rxState <= RX_STATE_READ_WAIT;
-              $display("-> RX STATE READ WAIT");
+              //$display("-> RX STATE READ WAIT");
             end
           end
           RX_STATE_STOP_BIT: begin
             rxCounter <= rxCounter + 1;
             if ((rxCounter + 1) == DELAY_FRAMES) begin
               rxState <= RX_STATE_DONE;
-              $display("-> RX STATE DONE");
+              //$display("-> RX STATE DONE");
               rxCounter <= 0;
               regStatusRegister[1] <= 1;  // Set RXRDY
             end
@@ -399,14 +399,14 @@ module SC2661_UART (
 
           RX_STATE_DONE: begin
             rxState <= RX_STATE_IDLE;
-            $display("-> RX STATE IDLE %h", regReceiveHoldingRegister);
-            $display("-> RX READY_n FLAG %d",  s_rxrdy_n);
+            //$display("-> RX STATE IDLE %h", regReceiveHoldingRegister);
+            //$display("-> RX READY_n FLAG %d",  s_rxrdy_n);
 
             // LOOPBACK?
             if (cmd_OperatingMode == cmd_OperatingMode_RemoteLoopback) begin
               // Data assembled by the receiver are automatically placed in the
               // transmit holding register and retransmitted by the transmitter on the TxD output.
-              $display("RX -> TX LOOPBACK");
+              //$display("RX -> TX LOOPBACK");
               regTransmitHoldingRegister <= regReceiveHoldingRegister; // Write rx holding register
               regDataInSendRegister <= 1;  // Send data to transmitter
             end
@@ -445,6 +445,7 @@ module SC2661_UART (
               txCounter            <= 0;
             end else begin
               txBit <= 1;
+              regStatusRegister[0] <= 1; // tx empty
             end
           end
 
