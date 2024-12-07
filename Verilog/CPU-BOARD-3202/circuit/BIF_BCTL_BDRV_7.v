@@ -4,7 +4,7 @@
 ** BUS DRIVER                                                            **
 ** SHEET 7 of 50                                                         **
 **                                                                       **
-** Last reviewed: 13-MAY-2024                                            **
+** Last reviewed: 7-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module BIF_BCTL_BDRV_7 (
@@ -234,13 +234,11 @@ module BIF_BCTL_BDRV_7 (
   wire [3:0] s_A2 = {s_berror_n, s_gnd, s_mem_n, s_iod_n};
   wire [3:0] s_Y2;
 
-  // pull IOXERR_n high if TOUT is low (giving 3 state output on 74241-Y2)
+  // pull IOXERR_n, MOR_n,BERROR_n and BDRY_n high if TOUT is low (giving 3 state output on 74241-Y2)
   assign s_ioxerr_n = s_tout ? s_Y2[0] : 1'b1;
-
-  // pull MOR_n high if TOUT is low (giving 3 state output on 74241-Y2)
   assign s_mor_n    = s_tout ? s_Y2[1] : 1'b1;
-  assign s_berror_n = s_Y2[2];
-  assign s_bdry_n   = s_Y2[3];
+  assign s_berror_n = s_tout ? s_Y2[2] : 1'b1;
+  assign s_bdry_n   = s_tout ? s_Y2[3] : 1'b1;
 
 
   TTL_74241 CHIP_3A (
