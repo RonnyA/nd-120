@@ -54,6 +54,7 @@
   <lib desc="#TCL" name="7"/>
   <lib desc="#Base" name="8">
     <tool name="Text Tool">
+      <a name="color" val="#ff2a57"/>
       <a name="halign" val="left"/>
     </tool>
   </lib>
@@ -77,6 +78,7 @@
     <tool lib="8" name="Edit Tool"/>
     <tool lib="8" name="Wiring Tool"/>
     <tool lib="8" name="Text Tool">
+      <a name="color" val="#ff2a57"/>
       <a name="halign" val="left"/>
     </tool>
     <sep/>
@@ -4127,6 +4129,11 @@
     <comp lib="8" loc="(1190,420)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="n.c."/>
+    </comp>
+    <comp lib="8" loc="(1500,424)" name="Text">
+      <a name="color" val="#ff2a57"/>
+      <a name="halign" val="left"/>
+      <a name="text" val="Needs to be PULLED HIGH when in 3state"/>
     </comp>
     <comp lib="8" loc="(160,115)" name="Text">
       <a name="text" val="SHEET 7 of 50"/>
@@ -19257,6 +19264,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="0" loc="(230,400)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="CA_10_0"/>
+      <a name="radix" val="16"/>
       <a name="width" val="11"/>
     </comp>
     <comp lib="0" loc="(2350,1420)" name="Pin">
@@ -21635,7 +21643,7 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="IDB7"/>
     </comp>
-    <comp lib="8" loc="(2147,1002)" name="Text">
+    <comp lib="8" loc="(2145,1000)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="Register Block 16 words, 11 bits address"/>
     </comp>

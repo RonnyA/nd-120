@@ -170,6 +170,10 @@
     <comp lib="0" loc="(1390,3620)" name="Tunnel">
       <a name="label" val="CIN"/>
     </comp>
+    <comp lib="0" loc="(1410,1190)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
     <comp lib="0" loc="(1410,3920)" name="Power"/>
     <comp lib="0" loc="(1420,6620)" name="Pin">
       <a name="appearance" val="NewPins"/>
@@ -389,6 +393,7 @@
     <comp lib="0" loc="(330,130)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="CSBIT_15_0"/>
+      <a name="radix" val="16"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(330,6410)" name="Tunnel">
@@ -730,6 +735,10 @@
       <a name="incoming" val="12"/>
       <a name="spacing" val="2"/>
     </comp>
+    <comp lib="0" loc="(930,1020)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
     <comp lib="0" loc="(950,110)" name="Tunnel">
       <a name="label" val="CSBIT_3_0"/>
       <a name="width" val="4"/>
@@ -737,6 +746,10 @@
     <comp lib="0" loc="(970,370)" name="Tunnel">
       <a name="label" val="CSBIT_11_0"/>
       <a name="width" val="12"/>
+    </comp>
+    <comp lib="0" loc="(980,1200)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
     </comp>
     <comp lib="0" loc="(990,1370)" name="Tunnel">
       <a name="label" val="LCSN"/>
@@ -1416,13 +1429,15 @@
     <wire from="(1350,860)" to="(1350,940)"/>
     <wire from="(1350,860)" to="(1450,860)"/>
     <wire from="(1360,1300)" to="(1360,1310)"/>
-    <wire from="(1360,1300)" to="(1370,1300)"/>
     <wire from="(1360,4530)" to="(1380,4530)"/>
-    <wire from="(1370,1240)" to="(1470,1240)"/>
+    <wire from="(1370,1240)" to="(1390,1240)"/>
     <wire from="(1370,1260)" to="(1590,1260)"/>
     <wire from="(1370,1280)" to="(1450,1280)"/>
     <wire from="(1370,1300)" to="(1440,1300)"/>
     <wire from="(1370,3980)" to="(1520,3980)"/>
+    <wire from="(1390,1190)" to="(1390,1240)"/>
+    <wire from="(1390,1190)" to="(1410,1190)"/>
+    <wire from="(1390,1240)" to="(1470,1240)"/>
     <wire from="(1390,4240)" to="(1410,4240)"/>
     <wire from="(1390,4260)" to="(1410,4260)"/>
     <wire from="(1390,4280)" to="(1410,4280)"/>
@@ -1877,7 +1892,7 @@
     <wire from="(480,1120)" to="(960,1120)"/>
     <wire from="(480,1150)" to="(990,1150)"/>
     <wire from="(480,1180)" to="(1020,1180)"/>
-    <wire from="(480,1240)" to="(1150,1240)"/>
+    <wire from="(480,1240)" to="(940,1240)"/>
     <wire from="(480,1300)" to="(690,1300)"/>
     <wire from="(480,3670)" to="(480,3700)"/>
     <wire from="(480,3670)" to="(500,3670)"/>
@@ -1958,7 +1973,7 @@
     <wire from="(640,4320)" to="(850,4320)"/>
     <wire from="(650,1010)" to="(650,1080)"/>
     <wire from="(650,1010)" to="(680,1010)"/>
-    <wire from="(650,1080)" to="(1450,1080)"/>
+    <wire from="(650,1080)" to="(910,1080)"/>
     <wire from="(650,650)" to="(1650,650)"/>
     <wire from="(650,650)" to="(650,810)"/>
     <wire from="(650,6560)" to="(650,6680)"/>
@@ -2096,6 +2111,9 @@
     <wire from="(900,2280)" to="(900,2310)"/>
     <wire from="(900,2280)" to="(980,2280)"/>
     <wire from="(900,710)" to="(1040,710)"/>
+    <wire from="(910,1020)" to="(910,1080)"/>
+    <wire from="(910,1020)" to="(930,1020)"/>
+    <wire from="(910,1080)" to="(1450,1080)"/>
     <wire from="(910,2670)" to="(910,3170)"/>
     <wire from="(910,2670)" to="(990,2670)"/>
     <wire from="(920,110)" to="(950,110)"/>
@@ -2104,6 +2122,9 @@
     <wire from="(920,370)" to="(970,370)"/>
     <wire from="(920,6420)" to="(920,6660)"/>
     <wire from="(920,6660)" to="(960,6660)"/>
+    <wire from="(940,1200)" to="(940,1240)"/>
+    <wire from="(940,1200)" to="(980,1200)"/>
+    <wire from="(940,1240)" to="(1150,1240)"/>
     <wire from="(960,2730)" to="(960,2950)"/>
     <wire from="(960,2730)" to="(990,2730)"/>
     <wire from="(960,840)" to="(960,870)"/>
@@ -2299,6 +2320,7 @@
     <comp lib="0" loc="(200,330)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="CSBIT_11_0"/>
+      <a name="radix" val="16"/>
       <a name="width" val="12"/>
     </comp>
     <comp lib="0" loc="(2000,970)" name="Splitter">
@@ -2503,7 +2525,7 @@
     <wire from="(1930,900)" to="(1980,900)"/>
     <wire from="(1980,730)" to="(1980,810)"/>
     <wire from="(1980,730)" to="(2060,730)"/>
-    <wire from="(1980,810)" to="(2310,810)"/>
+    <wire from="(1980,810)" to="(2330,810)"/>
     <wire from="(200,330)" to="(370,330)"/>
     <wire from="(2000,630)" to="(2000,750)"/>
     <wire from="(2000,630)" to="(2380,630)"/>
@@ -2518,13 +2540,14 @@
     <wire from="(2190,1070)" to="(2270,1070)"/>
     <wire from="(2270,1070)" to="(2270,1120)"/>
     <wire from="(2270,1070)" to="(2650,1070)"/>
+    <wire from="(2280,690)" to="(2330,690)"/>
     <wire from="(2280,710)" to="(2310,710)"/>
     <wire from="(2290,1180)" to="(2290,1290)"/>
     <wire from="(2290,1290)" to="(2290,1700)"/>
     <wire from="(2290,1290)" to="(3700,1290)"/>
     <wire from="(2290,1700)" to="(2840,1700)"/>
-    <wire from="(2310,710)" to="(2310,810)"/>
-    <wire from="(2310,810)" to="(2310,1120)"/>
+    <wire from="(2310,710)" to="(2310,1120)"/>
+    <wire from="(2330,690)" to="(2330,810)"/>
     <wire from="(2360,730)" to="(2360,810)"/>
     <wire from="(2360,730)" to="(2440,730)"/>
     <wire from="(2360,810)" to="(2690,810)"/>
@@ -3935,6 +3958,7 @@
     <comp lib="0" loc="(350,240)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="CSBIT_11_0"/>
+      <a name="radix" val="16"/>
       <a name="width" val="12"/>
     </comp>
     <comp lib="0" loc="(3690,1720)" name="Splitter">

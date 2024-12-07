@@ -1295,6 +1295,8 @@
     <comp lib="1" loc="(1720,5340)" name="Controlled Buffer"/>
     <comp lib="1" loc="(1720,5440)" name="Controlled Buffer"/>
     <comp lib="1" loc="(270,7030)" name="Buffer"/>
+    <comp lib="1" loc="(290,6550)" name="NOT Gate"/>
+    <comp lib="1" loc="(290,6600)" name="NOT Gate"/>
     <comp lib="1" loc="(310,6890)" name="Buffer">
       <a name="width" val="8"/>
     </comp>
@@ -1557,8 +1559,8 @@
     <wire from="(190,6370)" to="(380,6370)"/>
     <wire from="(190,6430)" to="(380,6430)"/>
     <wire from="(190,6490)" to="(380,6490)"/>
-    <wire from="(190,6550)" to="(380,6550)"/>
-    <wire from="(190,6600)" to="(380,6600)"/>
+    <wire from="(190,6550)" to="(260,6550)"/>
+    <wire from="(190,6600)" to="(260,6600)"/>
     <wire from="(1920,1350)" to="(1940,1350)"/>
     <wire from="(1940,1350)" to="(1940,1430)"/>
     <wire from="(1940,1430)" to="(1960,1430)"/>
@@ -1589,6 +1591,8 @@
     <wire from="(280,2310)" to="(280,2340)"/>
     <wire from="(280,2310)" to="(540,2310)"/>
     <wire from="(280,2340)" to="(310,2340)"/>
+    <wire from="(290,6550)" to="(380,6550)"/>
+    <wire from="(290,6600)" to="(380,6600)"/>
     <wire from="(310,1620)" to="(310,1630)"/>
     <wire from="(310,1630)" to="(310,1650)"/>
     <wire from="(310,1630)" to="(390,1630)"/>
@@ -7913,6 +7917,9 @@
     </comp>
     <comp lib="8" loc="(3770,2965)" name="Text">
       <a name="text" val="ISIOCN"/>
+    </comp>
+    <comp lib="8" loc="(3823,8614)" name="Text">
+      <a name="text" val="Enable CPU Reqest"/>
     </comp>
     <comp lib="8" loc="(4145,3010)" name="Text">
       <a name="text" val="ICRLTIN"/>

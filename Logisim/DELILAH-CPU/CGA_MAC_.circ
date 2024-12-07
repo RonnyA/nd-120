@@ -96,34 +96,13 @@
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="downloadBoard" val="BASYS3"/>
     <a name="simulationFrequency" val="1.0"/>
-    <boardmap boardname="BASYS3">
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-      <mc/>
-    </boardmap>
     <comp lib="0" loc="(170,260)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="PONI"/>
+    </comp>
+    <comp lib="0" loc="(1710,650)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
     </comp>
     <comp lib="0" loc="(180,130)" name="Pin">
       <a name="appearance" val="NewPins"/>
@@ -142,6 +121,7 @@
     <comp lib="0" loc="(180,330)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="CMIS_1_0"/>
+      <a name="radix" val="8"/>
       <a name="width" val="2"/>
     </comp>
     <comp lib="0" loc="(180,430)" name="Pin">
@@ -197,7 +177,12 @@
     <comp lib="0" loc="(200,380)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="CSCOMM_4_0"/>
+      <a name="radix" val="8"/>
       <a name="width" val="5"/>
+    </comp>
+    <comp lib="0" loc="(2150,630)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
     </comp>
     <comp lib="0" loc="(3180,1300)" name="Pin">
       <a name="appearance" val="NewPins"/>
@@ -330,11 +315,14 @@
     <wire from="(1650,1330)" to="(1650,1340)"/>
     <wire from="(1650,1330)" to="(2060,1330)"/>
     <wire from="(1650,280)" to="(1650,710)"/>
-    <wire from="(1650,710)" to="(1690,710)"/>
+    <wire from="(1650,710)" to="(1670,710)"/>
     <wire from="(1650,810)" to="(1650,1100)"/>
     <wire from="(1650,810)" to="(1690,810)"/>
     <wire from="(1670,1350)" to="(1670,1360)"/>
     <wire from="(1670,1350)" to="(3180,1350)"/>
+    <wire from="(1670,650)" to="(1670,710)"/>
+    <wire from="(1670,650)" to="(1710,650)"/>
+    <wire from="(1670,710)" to="(1690,710)"/>
     <wire from="(170,260)" to="(1480,260)"/>
     <wire from="(180,130)" to="(280,130)"/>
     <wire from="(180,170)" to="(200,170)"/>
@@ -347,7 +335,7 @@
     <wire from="(180,750)" to="(290,750)"/>
     <wire from="(190,210)" to="(190,280)"/>
     <wire from="(190,280)" to="(1650,280)"/>
-    <wire from="(1910,710)" to="(2530,710)"/>
+    <wire from="(1910,710)" to="(2090,710)"/>
     <wire from="(1910,730)" to="(2040,730)"/>
     <wire from="(1910,750)" to="(2090,750)"/>
     <wire from="(1910,770)" to="(2490,770)"/>
@@ -378,6 +366,9 @@
     <wire from="(2070,1020)" to="(2120,1020)"/>
     <wire from="(2070,810)" to="(2070,1020)"/>
     <wire from="(2070,810)" to="(3180,810)"/>
+    <wire from="(2090,630)" to="(2090,710)"/>
+    <wire from="(2090,630)" to="(2150,630)"/>
+    <wire from="(2090,710)" to="(2530,710)"/>
     <wire from="(2090,750)" to="(2090,960)"/>
     <wire from="(2090,750)" to="(2600,750)"/>
     <wire from="(2090,960)" to="(2120,960)"/>
@@ -543,8 +534,9 @@
       <a name="output" val="true"/>
     </comp>
     <comp lib="0" loc="(210,660)" name="Pin">
-      <a name="appearance" val="classic"/>
+      <a name="appearance" val="NewPins"/>
       <a name="label" val="CSCOMM_4_0"/>
+      <a name="radix" val="8"/>
       <a name="width" val="5"/>
     </comp>
     <comp lib="0" loc="(260,660)" name="Splitter">
@@ -4755,7 +4747,6 @@
     <comp lib="0" loc="(170,370)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="FIDBO_15_0"/>
-      <a name="radix" val="16"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(170,750)" name="Pin">
@@ -6535,7 +6526,7 @@
       <a name="facing" val="west"/>
       <a name="radix" val="16"/>
     </comp>
-    <comp lib="8" loc="(723,247)" name="Text">
+    <comp lib="8" loc="(720,245)" name="Text">
       <a name="text" val="MAC UNDER TEST"/>
     </comp>
     <comp loc="(850,340)" name="CGA_MAC"/>
