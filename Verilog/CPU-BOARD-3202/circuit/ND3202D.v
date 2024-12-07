@@ -100,14 +100,14 @@ LED7 (yellow)  - Bus grant
   wire [ 3:0] s_lba_3_0;
   wire [ 3:0] s_pil_3_0;
 
-  wire [ 4:0] s_bd_23_19_n;
+  wire [ 4:0] s_ram_bd_23_19_n;
   wire [ 4:0] s_cscomm_4_0;
   wire [ 4:0] s_csidbs_4_0;
   wire [ 4:0] s_dp_5_1_n;
   wire [ 4:0] s_ppn_23_19;
   wire [ 4:0] s_test_4_0;
 
-  wire [ 7:0] s_inr_7_0;
+  wire [ 7:0] s_inr_7_0; //! INR signals from CONNECTOR B.
 
   wire [ 8:0] s_csalui_8_0;
 
@@ -155,7 +155,7 @@ LED7 (yellow)  - Bus grant
 
 
   // Wires!
-  wire        s_acond_n;
+  wire        s_acond_n; //! Output from CGA_MIC_CONDREG. CGA.XACONDN
   wire        s_aluclk;
   wire        s_bapr_n;
   wire        s_bdap_n;
@@ -376,6 +376,13 @@ LED7 (yellow)  - Bus grant
   assign s_mem_lbd_23_0_in[23:0] = s_bif_lbd_23_0_out[23:0];
   assign s_bif_lbd_23_0_in[23:0] = s_mem_lbd_23_0_out[23:0];
 
+  // TODO: BD_n connections ?
+  // Bif BD_23_0 comes from BIF_DPATH_9
+  // BD & LBD in and out of BIF
+
+
+  //TODO: // assign s_bif_bd_23_0_n_in = ??
+  assign s_ram_bd_23_19_n[4:0] = s_bif_bd_23_0_n_out[23:19]; // for address decoding 
 
   // Buffer
   assign s_run_n = s_stp;
@@ -393,10 +400,7 @@ LED7 (yellow)  - Bus grant
   // Power sense
   assign s_powsense_n = POWSENSE_n;
 
-  // TODO: Identify the correct source of these signals
-  assign s_acond_n = 1;
-  assign s_brk_n = 1; // removing this makes the microcode NOT start after its loaded into DRAM
-  assign s_inr_7_0 = 8'b0;
+  assign s_inr_7_0 = 8'b0; 
 
   // Or together the BIF and MEM bdry signals. Since they are negated we must first negate them to get the correct meaning
   // assign s_bdry_n = ~(~s_bif_bdry_n | ~s_mem_bdry_n);
@@ -443,7 +447,7 @@ LED7 (yellow)  - Bus grant
       .MACLK(s_maclk),
       .MAP_n(s_map_n),
       .MCLK(s_mclk),
-      .MREQ_n(s_mreq_n),
+      .MREQ_n(s_mreq_n), // Input
       .MR_n(s_mr_n),
       .OSC(s_osc),
       .PD1(s_pd1),
@@ -459,6 +463,7 @@ LED7 (yellow)  - Bus grant
       .VEX(s_vex),
       .WRFSTB(s_wrfstb)
   );
+
 
   CPU_15 CPU (
       .sysclk(sysclk),  // System clock in FPGA
@@ -528,7 +533,9 @@ LED7 (yellow)  - Bus grant
       .WRFSTB(s_wrfstb),
       .WRITE(s_write),
       .LDEXM_n(s_LDEXM_n),
-      .LED1(LED[5])
+      .LED1(LED[5]),
+      .ACOND_n(s_acond_n), // output ACOND_n from CGA_MIC_CONDREG
+      .BRK_n(s_brk_n)     // Output BRK signal from TRAP/INTR
   );
 
 
@@ -615,7 +622,7 @@ LED7 (yellow)  - Bus grant
       .LOCK_n(s_lock_n),
       .LSHADOW(s_lshadow),
       .MCL(s_mcl),
-      .MREQ_n(s_mreq_n),
+      .MREQ_n(s_mreq_n), // Output (from DGA)
       .OC_1_0(s_oc_1_0[1:0]),
       .OPCLCS(s_opclcs),
       .OSC(s_osc),
@@ -682,7 +689,7 @@ LED7 (yellow)  - Bus grant
       .BDAP50_n    (s_bdap50_n),
       .BDRY50_n    (s_bdry50_n),
       .BDRY_n      (s_mem_bdry_n),
-      .BD_23_19_n  (s_bd_23_19_n[4:0]),
+      .BD_23_19_n  (s_ram_bd_23_19_n[4:0]),
       .BGNT50_n    (s_bgnt50_n),
       .BGNT_n      (s_bgnt_n),
       .BIOXE_n     (s_bioxe_n),

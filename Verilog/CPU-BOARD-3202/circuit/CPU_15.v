@@ -100,6 +100,8 @@ module CPU_15 (
     output TRAPN,
     output VEX,
     output LDEXM_n,
+    output ACOND_n,
+    output BRK_n,
 
     output LED1  // Cache enabled ?
 );
@@ -314,6 +316,8 @@ module CPU_15 (
   assign TP1_INTRQ_n = s_tp1_intr1_n;
   assign TRAPN = s_trap_n;
   assign VEX = s_vex;
+  assign ACOND_n = s_acond_n;
+  assign BRK_n = s_brk_n;
 
   assign LED1 = s_led1;
 
@@ -337,7 +341,7 @@ module CPU_15 (
       .sysclk(sysclk),  // System clock in FPGA
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
-      .ACOND_n(s_acond_n),  //TODO: connected to ?
+      .ACOND_n(s_acond_n),  //Output: connected to top and then CYC
       .ALUCLK(s_aluclk),
       .BEDO_n(s_bedo_n),
       .BEMPID_n(s_bempid_n),
