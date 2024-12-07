@@ -6,7 +6,7 @@
 ** PROCESSOR TOP LEVEL                                                   **
 ** SHEET 32 of 50                                                        **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 7-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -59,7 +59,7 @@ module CPU_PROC_32 (
    ** The outputs are defined here                                               **
    *******************************************************************************/
     output ACOND_n,
-    output BRK_n,
+    output BRK_n,  //! BRK signal from TRAP module
     output [9:0] CA_9_0,
     output [12:0] CSA_12_0,
     output [9:0] CSCA_9_0,
@@ -331,7 +331,7 @@ module CPU_PROC_32 (
   );
 
   CPU_PROC_CMDDEC_34 CMDDEC (
-      .BRK_n(s_brk_n),
+      .BRK_n(s_brk_n), // output
       .CGABRK_n(s_cgabrk_n),
       .CLK(s_clk),
       .CSCOMM_4_0(s_cscomm_4_0[4:0]),
@@ -401,7 +401,8 @@ module CPU_PROC_32 (
       .W_n    (s_twrf_n)
   );
   */
-  (* ram_style = "block" *) reg [15:0] registerBlock[0:2047];  // 2^11 addresses, each 8-bit wide
+  //2x RAM 2^11 addresses, Each 8-bit wide. Converted to one 16 bits wide
+  (* ram_style = "block" *) reg [15:0] registerBlock[0:2047];
 
   always@(posedge sysclk, negedge s_twrf_n)
   begin
