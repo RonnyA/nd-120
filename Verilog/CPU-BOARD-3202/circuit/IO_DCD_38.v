@@ -4,7 +4,7 @@
 ** IO DECODING                                                           **
 ** SHEET 38 of 50                                                        **
 **                                                                       **
-** Last reviewed: 9-NOV-2024                                             **
+** Last reviewed: 7-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -471,7 +471,7 @@ module IO_DCD_38 (
       .XSCN(s_stoc_n),
       .XSHN(s_short_n),
       .XSSN(s_ssema_n),
-      .XSTP(s_stp),
+      .XSTP(s_stp), // output (STP indicates the Stop flip-flop is set) (from DGA_POW)
       .XSWN(s_slow_n),
       //.XTEO(XTESTO),
       .XTEO(),  // TEST OUTPUT (NOT CONNECTED IN SHEET 39)
