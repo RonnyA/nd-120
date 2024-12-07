@@ -146,7 +146,7 @@ module DECODE_DGA (
   wire       s_xlcn;
   wire       s_xs5n;
   wire       s_sstop_n;
-  wire       s_xstp;
+  wire       s_stp_n;
   wire       s_xlon;
   wire       s_xton;
   wire       s_xfec;
@@ -295,7 +295,7 @@ module DECODE_DGA (
   assign XSCN              = s_xscn;
   assign XSHN              = s_xshn;
   assign XSSN              = s_xssn;
-  assign XSTP              = s_xstp;
+  assign XSTP              = ~s_stp_n;
   assign XSWN              = s_xswn;
   assign XTEO              = s_xteo;
   assign XTOT              = s_xtot;
@@ -391,7 +391,7 @@ module DECODE_DGA (
       .IDB2(s_idb_2),  // out
       .LOADN(s_xlon),
       .MCL(s_xmcl),
-      .PANN(s_xpnn),
+      .PANN(s_xpnn), // out
       .PANOSC(s_xpsc),
       .POWFAILN(s_xpfn),
       .POWSENSE(s_xpow),
@@ -405,7 +405,7 @@ module DECODE_DGA (
       .SSTOPN(s_sstop_n),
       .STARTN(s_start_n),
       .STOPN(s_xton),
-      .STPN(s_xstp),
+      .STPN(s_stp_n),
       .TESTO(s_xteo),
       .TESTE(s_xtes),
       .TOUT(s_xtot)

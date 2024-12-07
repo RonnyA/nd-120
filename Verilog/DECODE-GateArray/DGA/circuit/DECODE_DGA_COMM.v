@@ -85,6 +85,7 @@ module DECODE_DGA_COMM (
   wire       s_a153_nand_out;
   wire       s_a155_nand_out;
   wire       s_a156_nand_out;
+  wire       s_a158_nand_out;
   wire       s_a162_nand_out;
   wire       s_a166_nand_out;
   wire       s_a167_nand_out;
@@ -93,12 +94,10 @@ module DECODE_DGA_COMM (
   wire       s_a177_nand_out;
   wire       s_a185_nand_out;
   wire       s_a189_nand_out;
-  wire       s_a191_nand_out;
+  wire       s_isstop_n;
   wire       s_a192_nand_out;
   wire       s_a193_nand_out;
   wire       s_a196_nand_out;
-  wire       s_a196_nand_out4;
-  wire       s_a196_nand_out9;
   wire       s_a199_nand_out;
   wire       s_a201_y;
   wire       s_a204_q;
@@ -107,27 +106,26 @@ module DECODE_DGA_COMM (
   wire       s_a212_nand_out;
   wire       s_a213_nand_out;
   wire       s_a214_q0;
-  wire       s_a214_q3n;
   wire       s_a215_nand_out;
   wire       s_a216_nand_out;
   wire       s_a216_nand_out5;
+  wire       s_a217_nand_out;
   wire       s_a218_nand_out;
-  wire       s_a218_nand_out1;
-  wire       s_a218_nand_out6;
-  wire       s_a218_nand_out7;
-  wire       s_a218_nand_out8;
   wire       s_a219_nand_out;
   wire       s_a220_nand_out;
   wire       s_a221_y;
   wire       s_a222_nand_out;
+  wire       s_a223_nand_out;
   wire       s_a224_nand_out;
   wire       s_a226_q_n;
   wire       s_a226_q;
+  wire       s_a228_nand_out;
   wire       s_a229_nand_out;
   wire       s_a233_nand_out;
   wire       s_a235_nand_out;
   wire       s_a236_y;
-  wire       s_a242_nand_out;
+  wire       s_a238_nand_out;
+  wire       s_a242_and_out;
   wire       s_a243_nand_out;
   wire       s_a245_nand_out;
   wire       s_brk_n;
@@ -171,6 +169,7 @@ module DECODE_DGA_COMM (
   wire       s_iempid_n;
   wire       s_ildpanc_n;
   wire       s_iorq_n;
+  wire       s_iorq;
   wire       s_isioc_n;
   wire       s_islow_n;
   wire       s_istart_n;
@@ -192,6 +191,7 @@ module DECODE_DGA_COMM (
   wire       s_sioc_n;
   wire       s_slow_n;
   wire       s_ssema_n;
+  wire       s_ssema;
   wire       s_sstop_n;
   wire       s_start_n;
   wire       s_stoc_n;
@@ -412,7 +412,7 @@ module DECODE_DGA_COMM (
       .input4(s_cscomm_1_n),
       .input5(s_cscomm_0_n),
       .input6(s_lcs_n),
-      .result(s_a191_nand_out)
+      .result(s_isstop_n)
   );
 
   NAND_GATE_5_INPUTS #(
@@ -443,7 +443,7 @@ module DECODE_DGA_COMM (
       .input1(s_a147_nand_out),
       .input2(s_a141_nand_out),
       .input3(s_a145_nand_out),
-      .result(s_a218_nand_out1)
+      .result(s_a158_nand_out)
   );
 
   NAND_GATE_6_INPUTS #(
@@ -464,7 +464,7 @@ module DECODE_DGA_COMM (
       .input1(s_brk_n),
       .input2(s_lshadow_n),
       .input3(s_erof),
-      .result(s_a242_nand_out)
+      .result(s_a242_and_out)
   );
 
   NAND_GATE_5_INPUTS #(
@@ -486,7 +486,7 @@ module DECODE_DGA_COMM (
       .input3(s_cscomm_2_n),
       .input4(s_cscomm_1_n),
       .input5(s_lcs_n),
-      .result(s_a218_nand_out8)
+      .result(s_a223_nand_out)
   );
 
   NAND_GATE #(
@@ -535,7 +535,7 @@ module DECODE_DGA_COMM (
       .input3(s_cscomm_2_n),
       .input4(s_cscomm_1_n),
       .input5(s_lcs_n),
-      .result(s_a196_nand_out9)
+      .result(s_a228_nand_out)
   );
 
   AND_GATE #(
@@ -551,7 +551,7 @@ module DECODE_DGA_COMM (
   ) A233 (
       .input1(s_a140_q3),
       .input2(s_hit_n),
-      .input3(s_a242_nand_out),
+      .input3(s_a242_and_out),
       .result(s_a233_nand_out)
   );
 
@@ -559,15 +559,15 @@ module DECODE_DGA_COMM (
       .BubblesMask(2'b00)
   ) A238 (
       .input1(s_write),
-      .input2(s_a242_nand_out),
-      .result(s_a218_nand_out7)
+      .input2(s_a242_and_out),
+      .result(s_a238_nand_out)
   );
 
   NAND_GATE #(
       .BubblesMask(2'b00)
   ) A235 (
       .input1(s_erof),
-      .input2(s_a214_q3n),
+      .input2(s_iorq),
       .result(s_a235_nand_out)
   );
 
@@ -582,7 +582,7 @@ module DECODE_DGA_COMM (
   NAND_GATE #(
       .BubblesMask(2'b00)
   ) A243 (
-      .input1(s_a214_q3n),
+      .input1(s_iorq),
       .input2(s_dap),
       .result(s_a243_nand_out)
   );
@@ -608,7 +608,7 @@ module DECODE_DGA_COMM (
       .BubblesMask(3'b000)
   ) A239 (
       .input1(s_a233_nand_out),
-      .input2(s_a218_nand_out7),
+      .input2(s_a238_nand_out),
       .input3(s_a235_nand_out),
       .result(s_ecrq)
   );
@@ -652,10 +652,10 @@ module DECODE_DGA_COMM (
   ) A216 (
       .input1(s_zz1),
       .input2(s_a222_nand_out),
-      .input3(s_a218_nand_out8),
-      .input4(s_a196_nand_out9),
+      .input3(s_a223_nand_out),
+      .input4(s_a228_nand_out),
       .input5(s_a229_nand_out),
-      .input6(s_a218_nand_out6),
+      .input6(s_a217_nand_out),
       .input7(s_a218_nand_out),
       .input8(s_a219_nand_out),
       .result(s_a216_nand_out)
@@ -700,7 +700,7 @@ module DECODE_DGA_COMM (
       .input3(s_cscomm_1_n),
       .input4(s_cscomm_0_n),
       .input5(s_lcs_n),
-      .result(s_a218_nand_out6)
+      .result(s_a217_nand_out)
   );
 
   NAND_GATE_8_INPUTS #(
@@ -913,7 +913,7 @@ module DECODE_DGA_COMM (
       .BubblesMask(2'b00)
   ) A172 (
       .input1(s_lcs_n),
-      .input2(s_a196_nand_out4),
+      .input2(s_ssema),
       .result(s_a172_nand_out)
   );
 
@@ -950,7 +950,7 @@ module DECODE_DGA_COMM (
   NAND_GATE_3_INPUTS #(
       .BubblesMask(3'b000)
   ) A192 (
-      .input1(s_a196_nand_out4),
+      .input1(s_ssema),
       .input2(s_mreq),
       .input3(s_lcs_n),
       .result(s_a192_nand_out)
@@ -1037,13 +1037,13 @@ module DECODE_DGA_COMM (
   F924 A181 (
       .C_H05  (s_clk3),
       .D0_H01 (s_vcc),
-      .D1_H02 (s_a191_nand_out),
+      .D1_H02 (s_isstop_n),
       .D2_H03 (s_a199_nand_out),
       .D3_H04 (s_a206_nand_out),
       .N01_Q0 (),
       .N02_Q1 (s_sstop_n),
       .N03_Q2 (s_ceuart_n),
-      .N04_Q3 (s_a196_nand_out4),
+      .N04_Q3 (s_ssema),
       .N05_Q0B(),
       .N06_Q1B(),
       .N07_Q2B(),
@@ -1063,14 +1063,14 @@ module DECODE_DGA_COMM (
       .N05_Q0B(),
       .N06_Q1B(s_short_n),
       .N07_Q2B(),
-      .N08_Q3B(s_a214_q3n)
+      .N08_Q3B(s_iorq)
   );
 
   F924 A140 (
       .C_H05  (s_clk2),
       .D0_H01 (s_a162_nand_out),
       .D1_H02 (s_vcc),
-      .D2_H03 (s_a218_nand_out1),
+      .D2_H03 (s_a158_nand_out),
       .D3_H04 (s_a149_nand_out),
       .N01_Q0 (s_fetch),
       .N02_Q1 (),
