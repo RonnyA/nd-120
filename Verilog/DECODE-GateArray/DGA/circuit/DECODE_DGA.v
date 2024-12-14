@@ -9,7 +9,7 @@
 ** PDF Page 6 -> DECODE - DECODE_DGA- Sheet 5 of 6                       **
 ** PDF Page 7 -> DECODE - DECODE_DGA- Sheet 6 of 6                       **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -380,106 +380,119 @@ module DECODE_DGA (
   // ****************************************************************************************************
 
   DECODE_DGA_POW POW (
+      // Inputs
       .BDRY50N(s_xbdn),
-      .CLEAR(s_clear),  //output
       .CLOSC(s_xclo),
       .CLRTIN(s_clrtin),
       .CONTINUEN(s_xcon),
       .EMCLN(s_emcln),
-      .IDB0(s_idb_0),  // out
-      .IDB1(s_idb_1),  // out
-      .IDB2(s_idb_2),  // out
       .LOADN(s_xlon),
-      .MCL(s_xmcl),
-      .PANN(s_xpnn), // out
-      .PANOSC(s_xpsc),
-      .POWFAILN(s_xpfn),
       .POWSENSE(s_xpow),
       .PRQN(s_prq_n),
       .PWCL(s_xpwc),
       .REFN(s_xefn),
-      .REFRQN(s_xrfn),
       .RESET(s_reset),
       .RTOSC(s_xrto),
       .SEL5MSN(s_xs5n),
       .SSTOPN(s_sstop_n),
       .STARTN(s_start_n),
       .STOPN(s_xton),
+      .TESTE(s_xtes),
+
+      // Outputs
+      .CLEAR(s_clear),
+      .IDB0(s_idb_0),
+      .IDB1(s_idb_1),
+      .IDB2(s_idb_2),
+      .MCL(s_xmcl),
+      .PANN(s_xpnn),
+      .PANOSC(s_xpsc),
+      .POWFAILN(s_xpfn),
+      .REFRQN(s_xrfn),
       .STPN(s_stp_n),
       .TESTO(s_xteo),
-      .TESTE(s_xtes),
       .TOUT(s_xtot)
   );
 
 
+  // Decode SOURCE signal for IDB bus
   DECODE_DGA_IDBS IDBS (
-      .CLK0(s_xclk),
-      .CLK1(s_xclk),
-      .CSIDBS_4_0(s_csidbs_4_0[4:0]),
-      .ECSRN(s_xcsn),
-      .EDON(s_xdon),
-      .EIORN(s_xion),
-      .EPANN(s_epan_n),
-      .EPANSN(s_xpsn),
-      .EPEAN(s_xpan),
-      .EPESN(s_xpen),
-      .LCSN(s_xlcn),
-      .PRQN(s_prq_n),
-      .RINRN(s_xrin),
-      .RUARTN(s_xrun),
-      .STAT3(s_xst_4_3[0]),
-      .STAT4(s_xst_4_3[1]),
-      .TRAALDN(s_xtrn),
-      .VAL(s_xval)
-  );
+    // Clock inputs
+    .CLK0(s_xclk),           // Clock input 0
+    .CLK1(s_xclk),           // Clock input 1
+
+    // Control/Status inputs
+    .CSIDBS_4_0(s_csidbs_4_0[4:0]),  // 5-bit control input
+    .LCSN(s_xlcn),           // Load Control Store
+    .STAT3(s_xst_4_3[0]),    // Status bit 4 from PANEL/CALENDAR CPU 68705
+    .STAT4(s_xst_4_3[1]),    // Status bit 4 from PANEL/CALENDAR CPU 68705
+
+    // Status/Control outputs
+    .ECSRN(s_xcsn),          // Enable Cache Status Register (CSR) - 24
+    .EDON(s_xdon),           // Enable DO signal (multiple IDB sources) - 0,1,2,3,4,6,10,11,14,25,36
+    .EIORN(s_xion),          // Enable IO register from UART etc -16
+    .EPANN(s_epan_n),        // Enable Panel Interrupt Vector - 27
+    .EPANSN(s_xpsn),         // Enable Panel Status register (MIPANS/MAPANS - 20/21
+    .EPEAN(s_xpan),          // Enable Parity Error address (PEA) - 12
+    .EPESN(s_xpen),          // Enable Parity Error Status & Address (PES) -13
+    .RINRN(s_xrin),          // Read Installation Number (RINR) - 35
+    .RUARTN(s_xrun),         // Read UART - 37
+    .TRAALDN(s_xtrn),        // Read Automatic Load Descriptor and print-status (ALD) - 26 ('TRA ALD' opcode)
+
+    .PRQN(s_prq_n),          // Panel Request (Read MIPANS)
+    .VAL(s_xval)             // Panel Interrupt (Panel Status Register bit 12 on read)
+);
 
   DECODE_DGA_COMM COMM (
-      .BRKN(s_xbrn),
-      .CA10(s_ca10),
+      // Inputs
+      .BRKN(s_xbrn),         //! Break signal
+      .CA10(s_ca10),         //! Cache address bit 10
+      .CLEAR(s_clear),       //! Clear signal
+      .CLK1(s_xclk),         //! Clock input 1
+      .CLK2(s_xclk),         //! Clock input 2
+      .CLK3(s_xclk),         //! Clock input 3
+      .CLRTIN(s_clrtin),     //! Clear Real Time Clock
+      .CSCOMM_4_0(s_cscomm_4_0[4:0]), //! Microcode Command 4:0
+      .CSMIS_1_0(s_xmi_1_0[1:0]),     //! Microcode Misc signal 1:0
+      .EMCLN(s_emcln),       //! Enable Master Clear
+      .FETCH(s_xfec),        //! Fetch cycle active
+      .FMISS(s_xfmi),        //! Cache miss during fetch
+      .IDBI2(s_idb_7_0_in[2]), //! Internal data bus input bit 2
+      .IDBI5(s_idb_7_0_in[5]), //! Internal data bus input bit 5
+      .IDBI7(s_idb_7_0_in[7]), //! Internal data bus input bit 7
+      .LCSN(s_xlcn),         //! Load Control Store
+      .LHIT(s_xlhn),         //! Cache hit during load
+      .LSHADOW(s_xlsh),      //! Load shadow 
+      .PONI(s_xpoi),         //! Memory Management On
+      .RESET(s_reset),       //! Reset signal
+      .SSTOPN(s_sstop_n),    //! Set Stop Flip-Flop
+      .STARTN(s_start_n),    //! Start signal
+      .UCLK(s_uclk),         //! U clock
+      .WRITE(s_xwri),        //! Write cycle active
+
+      // Outputs
       .CCLRN(s_xcrn),
       .CEUARTN(s_xeun),
-      .CLEAR(s_clear),
-      .CLK1(s_xclk),
-      .CLK2(s_xclk),
-      .CLK3(s_xclk),
-      .CLRTIN(s_clrtin),
-      .CSCOMM_4_0(s_cscomm_4_0[4:0]),
-      .CSMIS_1_0(s_xmi_1_0[1:0]),
       .DAPN(s_xdan),
       .DTN(s_xdtn),
       .DVACCN(s_xdvn),
       .ECREQ(s_xecr),
-      .EMCLN(s_emcln),
       .EMPIDN(s_xpin),
       .EORFN(s_xeon),
       .ESTOFN(s_xesn),
-      .FETCH(s_xfec),
-      .FMISS(s_xfmi),
       .FORMN(s_xfon),
       .HITN(s_xhin),
-      .IDBI2(s_idb_7_0_in[2]),
-      .IDBI5(s_idb_7_0_in[5]),
-      .IDBI7(s_idb_7_0_in[7]),
       .IORQN(s_xrqn),
-      .LCSN(s_xlcn),
       .LDPANCN(s_ldpanc_n),
-      .LHIT(s_xlhn),
-      .LSHADOW(s_xlsh),
       .MREQ(s_xmrn),
-      .PONI(s_xpoi),
-      .RESET(s_reset),
       .RTN(s_xrtn),
       .RWCSN(s_xrwn),
       .SHORTN(s_xshn),
       .SIOCN(s_xocn),
       .SLOWN(s_xswn),
       .SSEMAN(s_xssn),
-      .SSTOPN(s_sstop_n),
-      .STARTN(s_start_n),
       .STOCN(s_xscn),
-      .UCLK(s_uclk),
-      .WCHIMN(s_xwhn),
-      .WRITE(s_xwri)
+      .WCHIMN(s_xwhn)
   );
 
 endmodule
