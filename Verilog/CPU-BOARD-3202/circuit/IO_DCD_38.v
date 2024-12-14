@@ -4,7 +4,7 @@
 ** IO DECODING                                                           **
 ** SHEET 38 of 50                                                        **
 **                                                                       **
-** Last reviewed: 7-DEC-2024                                             **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -35,7 +35,7 @@ module IO_DCD_38 (
     input       REF_n,
     input       RMM_n,
     input       SEL5MS_n,
-    input [1:0] STAT_4_3,
+    input [1:0] STAT_4_3,  //! Status bits 4 and 3 from PANEL/CALENDAR CPU 68705
     input       SWMCL_n,
     input       UCLK,
     input       XTAL1,
@@ -437,7 +437,7 @@ module IO_DCD_38 (
       .XCRN(s_cclr_n),
       .XCSN(s_ecsr_n),
       .XDON(s_edo_n),
-      .XDTN(s_dt_n),
+      .XDTN(s_dt_n), // Output from DGA_COMM when EXAMINE, DEPOSIT, AREAD, READ or WRITE
       .XDVN(s_dvacc_n),
       .XECR(s_ecreq),
       .XEMN(s_emp_n),
