@@ -105,7 +105,9 @@ int main(int argc, char **argv)
 
 	int rxCnt = 0;
 
-	for (long cnt = 0; cnt < 2000000; cnt++)
+	int hashReceived = 0;
+
+	for (long cnt = 0; cnt < 1800000; cnt++)
 	{
 		if (cnt == 100)
 		{
@@ -160,7 +162,7 @@ int main(int argc, char **argv)
 				case 0:
 					txTicks = DELAY_FRAMES - 1; // Start bit
 					top->uartRx = 0;
-					printf("TX[%x] %c\r\n", txData, txData);
+					// printf("TX[%x] %c\r\n", txData, txData);
 					break;
 				case 1:
 				case 2:
@@ -198,7 +200,7 @@ int main(int argc, char **argv)
 					break;
 				}
 
-				//printf("TX[%d] %d\r\n", txDataBit, top->uartRx);
+				// printf("TX[%d] %d\r\n", txDataBit, top->uartRx);
 
 				txDataBit++;
 			}
@@ -224,7 +226,7 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				//printf("RX[%d] %d\r\n", rxDataBit, top->uartTx);
+				// printf("RX[%d] %d\r\n", rxDataBit, top->uartTx);
 
 				switch (rxDataBit)
 				{
@@ -261,40 +263,85 @@ int main(int argc, char **argv)
 
 					if (rxData == 35) // #
 					{
-						rxCnt = 1;
+						if (hashReceived == 0)
+							rxCnt = 1;
+
+						hashReceived++;
 					}
+					else if (rxData == 0x20) // space
+					{
+						if (hashReceived == 1)
+							rxCnt = 100;
+						else
+							rxCnt = 1;
+					}
+
 					else
 						rxCnt++;
 
 					if (true)
 					{
 						txData = 0;
-
+#if 0 // IO						
 						switch (rxCnt)
 						{
 						case 1:
-							txData = (char)'5'; // examine memory at #5
+							txData = (char)'I'; // IO Read
 							break;
 						case 2:
+							txData = (char)'O';
+							break;
+						case 3:
 							txData = (char)'/';
 							break;
-						case 10:
-							txData = (char)'1';
+						}
+#endif						
+
+#if true
+						switch (rxCnt)
+						{
+						case 1:
+							txData = (char)'7'; // examine/write memory at #77777 (0x7FFF)
 							break;
-						case 11:
-							txData = (char)'2';
+						case 2:
+							txData = (char)'7';
 							break;
-						case 12:
+						case 3:
+							txData = (char)'7';
+							break;
+						case 4:
+							txData = (char)'7';
+							break;
+						case 5:
+							txData = (char)'7';
+							break;
+						case 6:
+							txData = (char)'/';
+							break;
+
+						case 100:
+							txData = (char)'7';
+							break;
+						case 101:
+							txData = (char)'6';
+							break;
+						case 102:
+							txData = (char)'5';
+							break;
+						case 103:
+							txData = (char)'4';
+							break;
+						case 104:
 							txData = (char)'3';
 							break;
-						case 13:
+						case 105:
 							txData = (char)0x0D; // LF
 							break;
 						default:
 							break;
 						}
-						
 
+#endif
 						if (txData > 0)
 						{
 							// Send DATA!
