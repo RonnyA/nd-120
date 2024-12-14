@@ -4,45 +4,47 @@
 ** LOCAL BD CONTROL                                                      **
 ** SHEET 48 of 50                                                        **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module MEM_LBDIF_48 (
-    input BCGNT25,   //! Input BCGNT25
-    input BDAP50_n,  //! Input BDAP50_n
-    input BGNT_n,    //! Input BGNT_n
-    input BIOXE_n,   //! Input BIOXE_n
-    input BLOCKL_n,  //! Input BLOCKL_n
-    input BLRQ_n,    //! Input BLRQ_n
-    input CGNT_n,    //! Input CGNT_n
-    input ECCR,      //! Input ECCR
-    input GNT_n,     //! Input GNT_n
-    input HIEN_n,    //! Input HIEN_n
-    input LOEN_n,    //! Input LOEN_n
-    input MOR_n,     //! Input MOR_n - Memory Off
-    input MR_n,      //! Input MR_n
-    input MWRITE_n,  //! Input MWRITE_n
-    input OSC,       //! Input OSC
-    input PD4,       //! Input PD4
-    input RAS,       //! Input RAS
-    input REF_n,     //! Input REF_n
+    // Input signals
+    input BCGNT25,   //! Bus cycle grant (Delayed 25ns)
+    input BDAP50_n,  //! Bus Data Present (Delayed 50ns)
+    input BGNT_n,    //! Bus Grant
+    input BIOXE_n,   //! Bus IOX Enable
+    input BLOCKL_n,  //! Bus Block
+    input BLRQ_n,    //! Bus Load Request
+    input CGNT_n,    //! Bus CPU Grant
+    input ECCR,      //! Bus ECC Request
+    input GNT_n,     //! Bus Grant
+    input HIEN_n,    //! High address bits enable
+    input LOEN_n,    //! Low address bits enable
+    input MOR_n,     //! Memory Error
+    input MR_n,      //! Master Reset
+    input MWRITE_n,  //! Memory Write
+    input OSC,       //! Oscillator
+    input PD4,       //! Power Down 4
+    input RAS,       //! Row Address Strobe
+    input REF_n,     //! Refresh Request
 
-    output BCGNT50,     //! Output BCGNT50 (BCGNT delayed 50 ns)
-    output BCGNT50R_n,  //! Output BCGNT50R_n
-    output BDRY_n,      //! Output BDRY_n
-    output BGNT25_n,    //! Output BGNT25_n (BGNT25_n, BGNT_n delayed 25 ns)
-    output BGNT50_n,    //! Output BGNT50_n (BGNT50_n, BGNT_n delayed 25 ns)
-    output BIOXL_n,     //! Output BIOXL_n
-    output BLOCKL25_n,  //! Output BLOCKL25_n
-    output BLRQ50_n,    //! Output BLRQ50_n
-    output CGNT25_n,    //! Output CGNT25_n
-    output CGNT50_n,    //! Output CGNT50_n
-    output GNT50_n,     //! Output GNT50_n
-    output MOR25_n,     //! Output MOR25_n
-    output MWRITE50_n,  //! Output MWRITE50_n
-    output RDATA,       //! Output RDATA
-    output RDATA25      //! Output RDATA25
+    // Output signals
+    output BCGNT50,     //! Bus cycle grant (Delayed 50ns)
+    output BCGNT50R_n,  //! Bus cycle grant (Delayed 50ns)
+    output BDRY_n,      //! Bus Data Ready
+    output BGNT25_n,    //! Bus Grant (Delayed 25ns)
+    output BGNT50_n,    //! Bus Grant (Delayed 50ns)
+    output BIOXL_n,     //! Bus IOX Enable
+    output BLOCKL25_n,  //! Bus Block
+    output BLRQ50_n,    //! Bus Load Request
+    output CGNT25_n,    //! Bus CPU Grant (Delayed 25ns)
+    output CGNT50_n,    //! Bus CPU Grant (Delayed 50ns)
+    output GNT50_n,     //! Bus Grant (Delayed 50ns)
+    output MOR25_n,     //! Memory Error (Delayed 25ns)
+    output MWRITE50_n,  //! Memory Write (Delayed 50ns)
+    output RDATA,       //! Read Data
+    output RDATA25      //! Read Data (Delayed 25ns)
 );
 
   /*******************************************************************************
