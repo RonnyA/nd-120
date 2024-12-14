@@ -6,7 +6,7 @@
 ** Page 31                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -404,11 +404,12 @@ module CGA_MAC_AP09 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  A02 ICA0A (
-      .A(s_hold),
-      .B(s_psel),
+  // ICA - 0
+  A02 ICA0A (      
+      .A(s_lca_15_0_out[0]),
+      .B(s_hold),
       .C(s_pr_15_0[0]),
-      .D(s_lca_15_0_out[0]),
+      .D(s_psel),
       .Z(s_ica0a_n)
   );
 
@@ -420,11 +421,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica0b_n)
   );
 
+ // ICA - 1
   A02 ICA1A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[1]),
+      .B(s_hold),
       .C(s_pr_15_0[1]),
-      .D(s_lca_15_0_out[1]),
+      .D(s_psel),
       .Z(s_ica1a_n)
   );
 
@@ -436,11 +438,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica1b_n)
   );
 
+// ICA - 2
   A02 ICA2A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[2]),
+      .B(s_hold),
       .C(s_pr_15_0[2]),
-      .D(s_lca_15_0_out[2]),
+      .D(s_psel),
       .Z(s_ica2a_n)
   );
 
@@ -452,11 +455,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica2b_n)
   );
 
+// ICA - 3
   A02 ICA3A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[3]),
+      .B(s_hold),
       .C(s_pr_15_0[3]),
-      .D(s_lca_15_0_out[3]),
+      .D(s_psel),
       .Z(s_ica3a_n)
   );
 
@@ -468,11 +472,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica3b_n)
   );
 
+// ICA - 4
   A02 ICA4A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[4]),
+      .B(s_hold),
       .C(s_pr_15_0[4]),
-      .D(s_cdsel),
+      .D(s_psel),
       .Z(s_ica4a_n)
   );
 
@@ -480,15 +485,16 @@ module CGA_MAC_AP09 (
       .A(s_addsel),
       .B(s_add_15_0[4]),
       .C(s_cd_15_0[4]),
-      .D(s_lca_15_0_out[4]),
+      .D(s_cdsel),
       .Z(s_ica4b_n)
   );
 
+// ICA - 5
   A02 ICA5A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[5]),
+      .B(s_hold),
       .C(s_pr_15_0[5]),
-      .D(s_lca_15_0_out[5]),
+      .D(s_psel),
       .Z(s_ica5a_n)
   );
 
@@ -500,11 +506,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica5b_n)
   );
 
+// ICA - 6
   A02 ICA6A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[6]),
+      .B(s_hold),
       .C(s_pr_15_0[6]),
-      .D(s_lca_15_0_out[6]),
+      .D(s_psel),
       .Z(s_ica6a_n)
   );
 
@@ -516,11 +523,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica6b_n)
   );
 
+  // ICA - 7
   A02 ICA7A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[7]),
+      .B(s_hold),
       .C(s_pr_15_0[7]),
-      .D(s_lca_15_0_out[7]),
+      .D(s_psel),
       .Z(s_ica7a_n)
   );
 
@@ -532,11 +540,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica7b_n)
   );
 
+// ICA - 8
   A02 ICA8A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[8]),
+      .B(s_hold),
       .C(s_pr_15_0[8]),
-      .D(s_lca_15_0_out[8]),
+      .D(s_psel),
       .Z(s_ica8a_n)
   );
 
@@ -548,11 +557,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica8b_n)
   );
 
+// ICA - 9
   A02 ICA9A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[9]),
+      .B(s_hold),
       .C(s_pr_15_0[9]),
-      .D(s_lca_15_0_out[9]),
+      .D(s_psel),
       .Z(s_ica9a_n)
   );
 
@@ -564,11 +574,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica9b_n)
   );
 
+// ICA - 10
   A02 ICA10A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[10]),
+      .B(s_hold),
       .C(s_pr_15_0[10]),
-      .D(s_lca_15_0_out[10]),
+      .D(s_psel),
       .Z(s_ica10a_n)
   );
 
@@ -580,11 +591,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica10b_n)
   );
 
+// ICA - 11
   A02 ICA11A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[11]),
+      .B(s_hold),
       .C(s_pr_15_0[11]),
-      .D(s_lca_15_0_out[11]),
+      .D(s_psel),
       .Z(s_ica11a_n)
   );
 
@@ -596,11 +608,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica11b_n)
   );
 
+// ICA - 12
   A02 ICA12A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[12]),
+      .B(s_hold),
       .C(s_pr_15_0[12]),
-      .D(s_lca_15_0_out[12]),
+      .D(s_psel),
       .Z(s_ica12a_n)
   );
 
@@ -612,11 +625,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica12b_n)
   );
 
+// ICA - 13
   A02 ICA13A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[13]),
+      .B(s_hold),
       .C(s_pr_15_0[13]),
-      .D(s_lca_15_0_out[13]),
+      .D(s_psel),
       .Z(s_ica13a_n)
   );
 
@@ -628,11 +642,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica13b_n)
   );
 
+// ICA - 14
   A02 ICA14A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[14]),
+      .B(s_hold),
       .C(s_pr_15_0[14]),
-      .D(s_lca_15_0_out[14]),
+      .D(s_psel),
       .Z(s_ica14a_n)
   );
 
@@ -644,11 +659,12 @@ module CGA_MAC_AP09 (
       .Z(s_ica14b_n)
   );
 
+// ICA - 15
   A02 ICA15A (
-      .A(s_hold),
-      .B(s_psel),
+      .A(s_lca_15_0_out[15]),
+      .B(s_hold),
       .C(s_pr_15_0[15]),
-      .D(s_lca_15_0_out[15]),
+      .D(s_psel),
       .Z(s_ica15a_n)
   );
 
@@ -660,6 +676,7 @@ module CGA_MAC_AP09 (
       .Z(s_ica15b_n)
   );
 
+ // CALC A
   CGA_MAC_APOS_CALCA CALCA (
       .ECCR(s_eccr_out),
       .ECCRHIN(s_eccrhi_n),
@@ -669,6 +686,7 @@ module CGA_MAC_AP09 (
       .MCLK(s_mclk)
   );
 
+  // A INC
   CGA_MAC_APOS_INC AINC (
       .LCA_15_0 (s_lca_15_0_out[15:0]),
       .NLCA_15_0(s_nlca_15_0_out[15:0])
