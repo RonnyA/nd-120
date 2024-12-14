@@ -1,3 +1,13 @@
+/**********************************************************************************************************
+** ND120 PALASM CODE CONVERTED TO VERILOG                                                                **
+**                                                                                                       **
+** Component PAL 44445B                                                                                  **
+**                                                                                                       **
+** Last reviewed: 14-DEC-2024                                                                            **
+** Ronny Hansen                                                                                          **
+***********************************************************************************************************/
+
+
 // PAL16R4
 // ADGD 18/8/86
 // 44445B,9G,CADEC
@@ -12,9 +22,9 @@ module PAL_44445B (
     input CK,   //! Clock signal
     input OE_n, //! OUTPUT ENABLE (active-low) for Q0-Q3
 
-    input WRITE,   //! I0 - WRITE
-    input IORQ_n,  //! I1 - IORQ_n
-    input MOFF_n,  //! I2 - MOFF_n
+    input WRITE,   //! I0 - WRITE - Write to memory
+    input IORQ_n,  //! I1 - IORQ_n - IO Request
+    input MOFF_n,  //! I2 - MOFF_n - Memory Off
     //  input PPN19,        //! I3 - PPN19  // Not in use in logic. Uncomment when needed.
     input PPN20,   //! I4 - PPN20
     input PPN21,   //! I5 - PPN21
@@ -65,7 +75,7 @@ module PAL_44445B (
   assign BANK2 = OE_n ? 1'b0 : ~BANK2_n_reg;
   assign BANK1 = OE_n ? 1'b0 : ~BANK1_n_reg;
   assign BANK0 = OE_n ? 1'b0 : ~BANK0_n_reg;
-  assign MWRITE_n = OE_n ? 1'b0 : ~MWRITE_reg;
+  assign MWRITE_n = OE_n ? 1'b1 : ~MWRITE_reg; // High-Z gives 1 (signal is negated)
 
 
   //**** Syncronous logic (always running) ****
@@ -87,6 +97,6 @@ module PAL_44445B (
 
 
   // MSIZE0 is always high (VCC)
-  assign MSIZE0_n = 0;  // Active-low representation of a constant high signal
+  assign MSIZE0_n = 0;  // Output 0 (Signal is negated)
 
 endmodule

@@ -1,3 +1,12 @@
+/**********************************************************************************************************
+** ND120 PALASM CODE CONVERTED TO VERILOG                                                                **
+**                                                                                                       **
+** Component PAL 44302B                                                                                  **
+**                                                                                                       **
+** Last reviewed: 14-DEC-2024                                                                            **
+** Ronny Hansen                                                                                          **
+***********************************************************************************************************/
+
 // PAL16L8
 // JLB/CJTC 14AUG86
 // 44302B,11D,LBC1
@@ -5,24 +14,24 @@
 module PAL_44302B (
     input Q0_n,      //! I0
     input Q2_n,      //! I1
-    input CC2_n,     //! I2
-    input BDRY25_n,  //! I3
-    input BDRY50_n,  //! I4
-    input CGNT_n,    //! I5
-    input CGNT50_n,  //! I6
-    input CACT_n,    //! I7
-    input TERM_n,    //! I8
-    input BGNT_n,    //! I9
+    input CC2_n,     //! I2 - Cycle Control bit 2
+    input BDRY25_n,  //! I3 - Bus Data Ready (25ns delayed)
+    input BDRY50_n,  //! I4 - Bus Data Ready (50ns delayed)
+    input CGNT_n,    //! I5 - CPU Grant
+    input CGNT50_n,  //! I6 - CPU Grant (50ns delayed)
+    input CACT_n,    //! I7 - CPU Active
+    input TERM_n,    //! I8 - Terminate Cycle
+    input BGNT_n,    //! I9 - Bus Grant
 
-    output BGNTCACT_n,  //! Y0_n
-    output CGNTCACT_n,  //! Y1_n
+    output BGNTCACT_n,  //! Y0_n - Combined BUS Grant/CPU Active signal
+    output CGNTCACT_n,  //! Y1_n - Combined CPU Grant/Active signal
 
-    output EMD_n,   //! B0_n
-    output DSTB_n,  //! B1_n
+    output EMD_n,   //! B0_n - Enable Data Path between CD and LBD
+    output DSTB_n,  //! B1_n - Data Strobe
     //input B2_n        //! B2_n
     input  TEST,    //! B3_n  (PD3)
-    input  IORQ_n,  //! B4_n
-    input  RT_n     //! B5_n
+    input  IORQ_n,  //! B4_n - IO Request
+    input  RT_n     //! B5_n - Return
 );
 
 
@@ -60,25 +69,26 @@ module PAL_44302B (
 
     // Rewritten for handling of "circular logic"
     if ((Q2 & Q0 & CACT) |  // CPU CYCLE TO BUS SET
-        (CGNT & CGNT50))  // CPU CYCLE TO MEM SET
+        (CGNT & CGNT50))    // CPU CYCLE TO MEM SET
       EMD = 1'b1;
-    else if ((CACT == 0) |  // CPU CYCLE TO BUS HOLD
-        (RT & CC2 & TERM == 0) |  // ) HOLD TERMS FOR
-        (IORQ & CC2 & TERM == 0)  // ) CPU READ, FETCH AND MAP CYCLES
-        )
+    else if ((
+         (CACT)                  // CPU CYCLE TO BUS HOLD
+      | ((RT & CC2 & TERM_n))    // ) HOLD TERMS FOR
+      | ((IORQ & CC2 & TERM_n))  // ) CPU READ, FETCH AND MAP CYCLES
+        ) == 0)
       EMD = 1'b0;
 
   end
 
   // Logic for CGNTCACT
-  assign CGNTCACT_n = TEST ? 1'b1 : ~(CGNT | CACT);
+  assign CGNTCACT_n = TEST ? 1'b1 : ~(CGNT | CACT); //! CGNTCACT_n - Combined CPU Grant/Active signal
 
   // Logic for BGNTCACT
-  assign BGNTCACT_n = TEST ? 1'b1 : ~(BGNT | CACT);
+  assign BGNTCACT_n = TEST ? 1'b1 : ~(BGNT | CACT); //! BGNTCACT_n - Combined BUS Grant/Active signal 
 
   // Logic for DSTB
   assign DSTB_n = TEST ? 1'b1 :
-                    ~(  
+                    ~(
                         (CGNT)                          |
                         (CACT & BDRY50 & BDRY25 & IORQ) |
                         (CACT & IORQ & CC2)                // IOX CYCLE

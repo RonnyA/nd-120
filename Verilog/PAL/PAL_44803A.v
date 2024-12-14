@@ -1,3 +1,13 @@
+/**********************************************************************************************************
+** ND120 PALASM CODE CONVERTED TO VERILOG                                                                **
+**                                                                                                       **
+** Component PAL 44803A                                                                                  **
+**                                                                                                       **
+** Last reviewed: 14-DEC-2024                                                                            **
+** Ronny Hansen                                                                                          **
+***********************************************************************************************************/
+
+
 // PAL16R8
 // ADGD/13/8/86
 // 44803A,5F,RAMA
@@ -30,8 +40,8 @@ module PAL_44803A (
     //  input n.c ,         //! I7 - n.c.
 
     output RGNT_n,    //! Q0_n - RGNT_n
-    output CGNT_n,    //! Q1_n - CGNT_n
-    output BGNT_n,    //! Q2_n - BGNT_n
+    output CGNT_n,    //! Q1_n - CGNT_n (CPU Grant)
+    output BGNT_n,    //! Q2_n - BGNT_n (BUS Grant)
     output LOEN25_n,  //! Q3_n - LOEN25_n (n.c.)
     output LDR_n,     //! Q4_n - LDR_n (n.c.)
     output CSEM_n,    //! Q5_n - CSEM_n (n.c.)
@@ -75,34 +85,35 @@ module PAL_44803A (
   //**** Sequential logic triggered on the rising edge of CLK ****
   always @(posedge CK) begin
 
-    RGNT_reg <=   (RLRQ & CSEM_n & BSEM_n & RGNT_n & CGNT_n & BGNT_n)
-                | (RGNT & LOEN_n & LOEN25_n)
+    RGNT_reg <=   (RLRQ & CSEM_n & BSEM_n & RGNT_n & CGNT_n & BGNT_n)  // RLRQ HIGEST PRIORITY
+                | (RGNT & LOEN_n & LOEN25_n)                           // HOLD TO END OF DRAM CYCLE
                 | (RGNT & LOEN & LOEN25)
                 | (RGNT & LOEN & LOEN25_n);
 
-    CGNT_reg <=   (MR_n & CSEM_n & BSEM_n & CLRQ & BLRQ50_n & RLRQ_n & RGNT_n & CGNT_n & BGNT_n)
-                | (MR_n & CSEM_n & BSEM_n & LDR & RLRQ_n & CLRQ & RGNT_n & CGNT_n & BGNT_n)
-                | (MR_n & CSEM & BSEM_n & CLRQ & RGNT_n & CGNT_n & BGNT_n)
+    CGNT_reg <=   (MR_n & CSEM_n & BSEM_n & CLRQ & BLRQ50_n & RLRQ_n & RGNT_n & CGNT_n & BGNT_n) // CLRQ ALONE
+                | (MR_n & CSEM_n & BSEM_n & LDR & RLRQ_n & CLRQ & RGNT_n & CGNT_n & BGNT_n)      // CLRQ * LAST DONE REFRESH
+                | (MR_n & CSEM & BSEM_n & CLRQ & RGNT_n & CGNT_n & BGNT_n)                       // CLRQ WITH SEMAPHORE
                 | (CGNT & LOEN_n & LOEN25_n & MR_n)
                 | (CGNT & LOEN & LOEN25 & MR_n)
                 | (CGNT & LOEN & LOEN25_n & MR_n);
 
-    BGNT_reg <=   (MR_n & CSEM_n & BSEM_n & RLRQ_n & CLRQ_n & BLRQ50 & RGNT_n & CGNT_n & BGNT_n)
-                | (MR_n & CSEM_n & BSEM_n & LDR_n & RLRQ_n & BLRQ50 & RGNT_n & CGNT_n & BGNT_n)
-                | (MR_n & CSEM_n & BSEM & BLRQ50 & RGNT_n & CGNT_n & BGNT_n)
+    BGNT_reg <=   (MR_n & CSEM_n & BSEM_n & RLRQ_n & CLRQ_n & BLRQ50 & RGNT_n & CGNT_n & BGNT_n)  // BLRQ ALONE
+                | (MR_n & CSEM_n & BSEM_n & LDR_n & RLRQ_n & BLRQ50 & RGNT_n & CGNT_n & BGNT_n)   // BLRQ * N..?
+                | (MR_n & CSEM_n & BSEM & BLRQ50 & RGNT_n & CGNT_n & BGNT_n)                      // BLRQ WITH ..?
                 | (BGNT & LOEN_n & LOEN25_n & MR_n)
                 | (BGNT & LOEN & LOEN25 & MR_n)
                 | (BGNT & LOEN & LOEN25_n & MR_n);
 
-    LDR_reg <= RGNT | (LDR & CGNT_n & BGNT_n);
+    LDR_reg <=     RGNT                     // SET ON REFRESH
+                | (LDR & CGNT_n & BGNT_n);  // HOLD UNTIL NEXT B OR C-GNT
 
-    CSEM_reg <=   (MR_n & SSEMA & CGNT)
-                | (MR_n & CSEM & LOEN25 & LOEN)
+    CSEM_reg <=   (MR_n & SSEMA & CGNT)                 // SET ON SSEMA
+                | (MR_n & CSEM & LOEN25 & LOEN)         // HOLD UNTIL END OF 2ND. CGNT
                 | (MR_n & CSEM & LOEN25 & LOEN_n)
                 | (MR_n & CSEM & LOEN25_n & LOEN_n);
 
-    BSEM_reg <=   (MR_n & SEMRQ50 & BGNT)
-                | (MR_n & BSEM & LOEN25 & LOEN)
+    BSEM_reg <=   (MR_n & SEMRQ50 & BGNT)              // SET ON SEMRQ50*BGNT
+                | (MR_n & BSEM & LOEN25 & LOEN)        // HOLD UNTIL END OF 2ND. BGNT
                 | (MR_n & BSEM & LOEN25 & LOEN_n)
                 | (MR_n & BSEM & LOEN25_n & LOEN_n);
 

@@ -3,7 +3,7 @@
 **                                                                                                       **
 ** Component PAL 44801A                                                                                  **
 **                                                                                                       **
-** Last reviewed: 1-DEC-2024                                                                             **
+** Last reviewed: 14-DEC-2024                                                                            **
 ** Ronny Hansen                                                                                          **
 ***********************************************************************************************************/
 
@@ -30,23 +30,23 @@ module PAL_44801A (
     input CK,   //! Clock signal
     input OE_n, //! OUTPUT ENABLE (active-low) for Q0-Q5 
 
-    input CRQ_n,      //! I0 - CRQ_n
-    input IORQ_n,     //! I1 - IORQ_n
-    input MR_n,       //! I2 - MR_n
-    input BRQ50_n,    //! I3 - BRQ50_n
-    input REFRQ50_n,  //! I4 - REFRQ50_n
-    input BDRY25_n,   //! I5 - BDRY25_n
-    input SEMRQ50_n,  //! I6 - SEMRQ50_n
-    input MOFF_n,     //! I7 - MOFF_n  (not used)
+    input CRQ_n,      //! I0 - CRQ_n (CPU Request)
+    input IORQ_n,     //! I1 - IORQ_n (IO Request)
+    input MR_n,       //! I2 - MR_n (Master Reset)
+    input BRQ50_n,    //! I3 - BRQ50_n (Bus Request (50ns delayed))
+    input REFRQ50_n,  //! I4 - REFRQ50_n (Refresh Request (50ns delayed))
+    input BDRY25_n,   //! I5 - BDRY25_n (Bus Data Ready (25ns delayed))
+    input SEMRQ50_n,  //! I6 - SEMRQ50_n (Semaphore Request (50ns delayed))
+    input MOFF_n,     //! I7 - MOFF_n  (not used) (Memory OFF)
 
-    output SEM_n,    //! Q0_n - SEM_n
-    output ACT_n,    //! Q1_n - ACT_n (n.c.)
-    output DOREF_n,  //! Q2_n - DOREF_n (n.c.)
-    output MEM_n,    //! Q3_n - MEM_n (n.c.)
-    output REF_n,    //! Q4_n - REF_n
-    output IOD_n,    //! Q5_n - IOD_n
-    output GNT_n,    //! Q6_n - GNT_n
-    output CACT_n    //! Q7_n - CACT_n
+    output SEM_n,    //! Q0_n - SEM_n  (SEMAPHORE GRANT SIGNAL)
+    output ACT_n,    //! Q1_n - ACT_n (n.c.) (BUS IS ACTIVE)
+    output DOREF_n,  //! Q2_n - DOREF_n (n.c.) (INDICATES THAT LAST BUS CYCLE WAS A REFRESH)
+    output MEM_n,    //! Q3_n - MEM_n (n.c.) (MEM SIGNAL TO LAST FOR ENTIRE BUS CYCLE)
+    output REF_n,    //! Q4_n - REF_n  (REFRESH GRANT ON ND100 BUS)
+    output IOD_n,    //! Q5_n - IOD_n  (IO SIGNAL TO LAST FOR THE ENTIRE BUS CYCLE)
+    output GNT_n,    //! Q6_n - GNT_n  (GRANT ND100 BUS TO A DMA DEVICE OR EXTERNAL BUS CONTROLLER)
+    output CACT_n    //! Q7_n - CACT_n (CPU IS ACTIVE ON THE ND100 BUS)
 
 );
 

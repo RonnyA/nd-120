@@ -1,3 +1,12 @@
+/**********************************************************************************************************
+** ND120 PALASM CODE CONVERTED TO VERILOG                                                                **
+**                                                                                                       **
+** Component PAL 44307C                                                                                  **
+**                                                                                                       **
+** Last reviewed: 14-DEC-2024                                                                            **
+** Ronny Hansen                                                                                          **
+***********************************************************************************************************/
+
 // PAL16L8
 // JLB 26NOV86
 // 44307C,13D,CYCLK
@@ -10,16 +19,16 @@
 //   VEX /MACLK /MAP /ETRAP UCLK /EORF CYD WRFSTB /MCLK VCC
 
 module PAL_44307C(
-    input TERM_n,    //! I0
-    input CC0_n,     //! I1
-    input CC1_n,     //! I2
-    input CC2_n,     //! I3
-    input CC3_n,     //! I4
-    input FORM_n,    //! I5
-    input BRK_n,     //! I6
-    input RWCS_n,    //! I7
-    input TRAP_n,    //! I8
-    input VEX,       //! I9
+    input TERM_n,    //! I0 Bus Cycle Terminate
+    input CC0_n,     //! I1 Cycle Clock 0
+    input CC1_n,     //! I2 Cycle Clock 1
+    input CC2_n,     //! I3 Cycle Clock 2
+    input CC3_n,     //! I4 Cycle Clock 3
+    input FORM_n,    //! I5 Form
+    input BRK_n,     //! I6 Break
+    input RWCS_n,    //! I7 Read Write Cycle Start
+    input TRAP_n,    //! I8 Trap
+    input VEX,       //! I9 Vector Exception (Disable Traps)
 
     output MCLK_n,   //! Y0_n - MCLK_n    Main Clock ?
     output MACLK_n,  //! Y1_n - MACLK_n   Memory Access Clock ?
@@ -54,12 +63,12 @@ assign MCLK_n = ~(
 assign WRFSTB = ~(CC3 | CC2 | CC1 | CC0_n | TERM); // b ON 75NS CYCLES TO PROVIDE A WRITE PU
 
 // Logic for CYD_n (active-low)
-assign CYD = ~( 
+assign CYD = ~(
                   (CC3)         | // d + e + f WRITE PULSE USED IN WMAP AND WCA
-                  (CC1_n)       | 
+                  (CC1_n)       |
                   (CC2_n & CC0) |
                   (TERM)
-); 
+);
 
 // Logic for EORF
 assign EORF_n = ~(CC3_n & CC2_n & CC1 & CC0_n & TERM_n); // d MISC WRITE PULSE.
@@ -71,7 +80,7 @@ assign UCLK = ~(
                  (CC1_n) |
                  (CC0_n) |
                  (TERM)
-); 
+);
 
 // Logic for MAP
 assign MAP_n = ~(FORM & BRK_n & CC2 & TERM_n); // MUST NOT COME BEFORE ALL SHORT CYCLES

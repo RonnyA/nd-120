@@ -1,3 +1,13 @@
+/**********************************************************************************************************
+** ND120 PALASM CODE CONVERTED TO VERILOG                                                                **
+**                                                                                                       **
+** Component PAL 44304E                                                                                  **
+**                                                                                                       **
+** Last reviewed: 7-DEC-2024                                                                             **
+** Ronny Hansen                                                                                          **
+***********************************************************************************************************/
+
+
 // PAL16L8
 // CJTC 02SEP86
 // 44304E,1C,LBC3 - LOCAL DATA BUS CONTROL PAL
@@ -6,6 +16,7 @@
 // Note: Verilator doesnt like signal name "EBADR" therefore its named "EBADR_b1". I dont know why.
 
 // Note2: TEST is connectecd to signal PD3 that is always 0 on the PCB 3202D.
+// Note3: Code for TEST removed for clarity as its NEVER used
 
 module PAL_44304E (
     input CGNT_n,    //! I0
@@ -22,12 +33,12 @@ module PAL_44304E (
     output DBAPR,  //! Y0_n
     //output Y1_n,      //! Y1_n
 
-    output BACT_n,    //! B0_n
-    output EBADR_b1,  //! B1_n
+    output BACT_n,    //! B0_n BUS Activity
+    output EBADR_b1,  //! B1_n Enable Address from BUS to Local Memory
     output FAPR,      //! B2_n
     output SAPR,      //! B3_n
-    output CLKBD,     //! B4_n
-    output EBD_n      //! B5_n
+    output CLKBD,     //! B4_n Clock BD
+    output EBD_n      //! B5_n Enable Bus Data
 );
 
 
@@ -37,7 +48,7 @@ module PAL_44304E (
   wire BGNT50 = ~BGNT50_n;
   wire BDAP50 = ~BDAP50_n;
   wire EBUS = ~EBUS_n;
-
+  wire SAPR_n = ~SAPR;
 
   // Output signal logic (self reference)
 
@@ -45,28 +56,23 @@ module PAL_44304E (
   reg  EBADR_reg;
 
   always @(*) begin
-    if (!TEST) begin
 
-      // BACT - BUS ACTIVITY. LASTS FOR COMPLETE DMA TO LOCAL MEMORY
-      // CYCLE (ONLY ON MEMORY READ)
+    // BACT - BUS ACTIVITY. LASTS FOR COMPLETE DMA TO LOCAL MEMORY
+    // CYCLE (ONLY ON MEMORY READ)
 
-      if (BGNT50 & MWRITE_n)  // Enable for data only after address
-        BACT_reg = 1'b1;
-      else if (BDAP50 == 0)  // Hold after BDAP finished
-        BACT_reg = 1'b0;
+    if (BGNT50 & MWRITE_n)  // Enable for data only after address
+      BACT_reg = 1'b1;
+    else if (BDAP50 == 0)  // Hold after BDAP finished
+      BACT_reg = 1'b0;
 
 
-      // EBADR - ENABLE ADDRESS FROM BUS TO LOCAL MEMORY
-      if ((GNT_n & BGNT_n) == 1)  // TURN ON AT BAPR WITH GNT
-        EBADR_reg = 1'b1;
-      else if ((IBAPR_n == 0) |  // HOLD UNTIL BGNT AND GNT BOTH GONE
-          (GNT_n == 0))
-        EBADR_reg = 1'b0;
-
-    end else begin
-      BACT_reg  = 1'b0;
+    // EBADR - ENABLE ADDRESS FROM BUS TO LOCAL MEMORY
+    if ((GNT_n & BGNT_n) == 1)  // TURN ON AT BAPR WITH GNT
+      EBADR_reg = 1'b1;
+    else if ((IBAPR_n == 0) |  // HOLD UNTIL BGNT AND GNT BOTH GONE
+        (GNT_n == 0))
       EBADR_reg = 1'b0;
-    end
+
   end
 
 
@@ -81,19 +87,24 @@ module PAL_44304E (
   // IS ACCESSING LOCAL MEMORY, EXCEPT WHEN TRANSCEIVER IS BEING USED
   // AS A REGISTER TO HOLD DATA FROM A PREVIOUS DMA MEMORY READ.
 
-  assign EBD_n = ~(TEST ? 1'b0 : (EBUS & CGNT_n & GNT_n) | (EBUS & BGNT) | (EBUS & BACT_reg));
+  assign EBD_n = ~(
+      (EBUS & CGNT_n & GNT_n) |
+      (EBUS & BGNT) |
+      (EBUS & BACT_reg)
+      );
 
 
   // SLOW INVERSION
-  assign FAPR = ~(TEST ? 1'b0 : IBAPR_n);
-  assign SAPR = ~(TEST ? 1'b0 : ~FAPR);
-  assign DBAPR = ~(TEST ? 1'b0 : ~SAPR);
+  assign FAPR = ~(IBAPR_n);
+  assign SAPR = FAPR;
+  assign DBAPR = SAPR;
 
 
   // CLKBD - CLOCK PULSE TO 648's
-  assign CLKBD = TEST ? 1'b0 : ~((~SAPR & BGNT50_n) |  // Clock addresses on delayed BAPR
-      (~SAPR & BDAP50_n) |  // Clock data 50ns after start of
-      (~SAPR & MWRITE_n)  // BGNT * BDAP on memory writes from DMA
+  assign CLKBD = ~(
+      (SAPR_n & BGNT50_n) |  // Clock addresses on delayed BAPR
+      (SAPR_n & BDAP50_n) |  // Clock data 50ns after start of
+      (SAPR_n & MWRITE_n)  // BGNT * BDAP on memory writes from DMA
       );
 
 

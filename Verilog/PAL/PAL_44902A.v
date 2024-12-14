@@ -1,3 +1,13 @@
+/**********************************************************************************************************
+** ND120 PALASM CODE CONVERTED TO VERILOG                                                                **
+**                                                                                                       **
+** Component PAL 44902A                                                                                  **
+**                                                                                                       **
+** Last reviewed: 14-DEC-2024                                                                            **
+** Ronny Hansen                                                                                          **
+***********************************************************************************************************/
+
+
 // PAL16R8
 // ADGD 13/8/86
 // 44902A,6F,RAMC (RAM CONTROL)
@@ -21,37 +31,36 @@ module PAL_44902A (
     input CK,   //! Clock signal
     input OE_n, //! OUTPUT ENABLE (active-low) for Q0-Q5
 
-    input RGNT_n,    //! I0 - RGNT_n
+    input RGNT_n,    //! I0 - RGNT_n (RAM Grant)
     //input CGNT_n,       //! I1 - CGNT_n (NOT USED!!)
     //input BGNT_n,       //! I2 - BGNT_n (NOT USED!!)
     input BDAP50_n,  //! I3 - BDAP50_n 
     input MR_n,      //! I4 - MR_n 
-    input BGNT25_n,  //! I5 - BGNT25_n
-    input CGNT25_n,  //! I6 - CGNT25_n
-    input BDRY50_n,  //! I7 - BDRY50_n
+    input BGNT25_n,  //! I5 - BGNT25_n (Bus Grant 25ns delayed)
+    input CGNT25_n,  //! I6 - CGNT25_n (CPU Grant 25ns delayed)
+    input BDRY50_n,  //! I7 - BDRY50_n (Bus Data Ready 50ns delayed)
 
     output QA_n,    //! Q0_n - QA_n (n.c.)
     output QB_n,    //! Q1_n - QB_n (n.c.)
     output QC_n,    //! Q2_n - QC_n (n.c.)
     output QD_n,    //! Q3_n - QD_n
-    output RAS,     //! Q4_n - RAS
+    output RAS,     //! Q4_n - RAS (RAM Row Address Strobe)
     output CAS,     //! Q5_n - CAS
     output LOEN_n,  //! Q6_n - LOEN_n
     output HIEN_n   //! Q7_n - HIEN_n
-
-    //,output wire [3:0]  Q  // Enable to Debug to watch the value of Q change  
 );
 
   // negated input signals (not used signals are commented out)
   wire RGNT = ~RGNT_n;  // I0 - RGNT_n
   //wire CGNT = ~CGNT_n,       // I1 - CGNT_n
-  //wire BGNT = ~BGNT_n,       // I2 - BGNT_n 
-  //wire BDAP50 = ~BDAP50_n,   // I3 - BDAP50_n 
-  //wire MR = ~MR_n,           // I4 - MR_n 
+  //wire BGNT = ~BGNT_n,       // I2 - BGNT_n
+  //wire BDAP50 = ~BDAP50_n,   // I3 - BDAP50_n
+  //wire MR = ~MR_n,           // I4 - MR_n
   wire BGNT25 = ~BGNT25_n;  // I5 - BGNT25_n
   //wire CGNT25 = ~CGNT25_n,   // I6 - CGNT25_n
   //wire BDRY50 = ~BDRY50_n,   // I7 - BDRY50_n
 
+  wire [3:0]  Q;  // Enable to Debug to watch the value of Q change
 
   // Internal registers
   reg  QA_reg;  // Q0_n - QA_n (n.c.)
@@ -80,29 +89,35 @@ module PAL_44902A (
 
 
     // Logic for QA, QB, QC, QD
+    QA_reg <=
+         (QD_n & QC_n & QB_n & QA)           //  0) 1110 IDLE UNIT NEXT GNT OF ANY TYPE
+      | ( QD_n & QC_n & QB_n & QA_n )        //  1) 1010
+      | ( QD   & QC_n & QB   & QA   )        //  2) 1011 PAUSE UNTIL BDAP OCCURS (ONLY ON
+      | ( QD & QC_n & QB & QA_n);            // NO WAIT STATE ON CPU TO MEMORY WRITE
 
-    //  0)1110 IDLE UNIT NEXT GNT OF ANY TYPE
-    QA_reg <= (QD_n & QC_n & QB_n & QA)  //  1)1010
-    | ( QD_n & QC_n & QB_n & QA_n ) 
-              | ( QD   & QC_n & QB   & QA   )                   //  2)1011 PAUSE UNTIL BDAP OCCURS (ONLY ON
-    | (QD & QC_n & QB & QA_n);
-    // NO WAIT STATE ON CPU TO MEMORY WRITE
-
-    QB_reg <= (QC & QB & QD)  // 3) 1001
-    | (QC & QB & QD_n) | (QC & QB_n & QD) | (QC & QB_n & QD_n) | (QB & QA_n & QC)  // 4) 1000
-    | (QB & QA_n & QC_n) | (QD_n & QA)  // 5) 0000
+    QB_reg <=
+      (QC & QB & QD)         // 3) 1001
+    | (QC & QB & QD_n)       //
+    | (QC & QB_n & QD)       //
+    | (QC & QB_n & QD_n)     //
+    | (QB & QA_n & QC)       // 4) 1000
+    | (QB & QA_n & QC_n)     //
+    | (QD_n & QA)            // 5) 0000
     | (QB & BGNT25 & BDAP50_n & MR_n & BDRY50_n);  // 6) 0001
                                                    // 7) 0011
 
-    QC_reg <= (QD_n & QC & QB)  // 8) 0010
-    | (QD_n & QC & QB_n) | (QC & QB_n & QA)  // OTHER STATES WILL GO TO IDLE AFTER 1
+    QC_reg <=
+      (QD_n  & QC   & QB    )   // 8) 0010
+    | (QD_n  & QC   & QB_n  )
+    | (QC    & QB_n & QA    )   // OTHER STATES WILL GO TO IDLE AFTER 1
     | ( QC   & QB_n & QA_n  )
     | ( QC   & QA   & QD    )
     | ( QC   & QA   & QD_n  )
     | ( QD_n & QB   & QA_n  )
     | ( QC   & RGNT_n & CGNT25_n & BGNT25_n );
 
-    QD_reg <=  ( QC & QD   & QB    )
+    QD_reg <=
+      ( QC & QD   & QB    )
     | ( QC & QD_n & QB    )
     | ( QC & QD   & QB_n  )
     | ( QC & QD_n & QB_n  )
@@ -112,8 +127,9 @@ module PAL_44902A (
     | ( QD & QA   & QB_n  );
 
     // Logic for RAS_n, CAS_n, HIEN_n, LOEN_n (active-low)
-    RAS_n_reg <= (QC & QA & QB)  // RAS=1,2,3,4,5,6
-    | ( QC   & QA_n & QB   ) 
+    RAS_n_reg <=               // RAS=1,2,3,4,5,6
+      ( QC   & QA   & QB   )
+    | ( QC   & QA_n & QB   )
     | ( QC   & QA   & QB_n )
     | ( QC   & QA_n & QB_n )
     | ( QD_n & QA   & QD   )
@@ -121,15 +137,26 @@ module PAL_44902A (
     | ( QD_n & QB   & QC   )
     | ( QD_n & QB   & QC_n );
 
-    LOEN_reg <= (QC_n & QB_n & QA_n & QD_n)  // LOEN=3,4,5,6
-    | (QC_n & QB_n & QA_n & QD_n) | (QD & QC_n & QA & QB) | (QD & QC_n & QA & QB_n);
+    LOEN_reg <=  // LOEN=3,4,5,6
+      (QC_n & QB_n & QA_n & QD)
+    | (QC_n & QB_n & QA_n & QD_n)
+    | (QD   & QC_n & QA & QB)
+    | (QD   & QC_n & QA & QB_n);
 
-    HIEN_reg <= (QD & QB_n & QA_n & QC)  // HIEN=0,1,2,8
-    | (QD & QB_n & QA_n & QC_n) | (QD_n & QC_n & QB & QA) | (QD_n & QC_n & QB & QA_n);
+    HIEN_reg <= // HIEN=0,1,2,8
+      (QD   & QB   & QA_n & QC)
+    | (QD   & QB   & QA_n & QC_n)
+    | (QD_n & QC_n & QB & QA)
+    | (QD_n & QC_n & QB & QA_n);
 
-    CAS_n_reg <= (QB & QA_n & RGNT_n)  // CAS=4,5,6,7,8
+    CAS_n_reg <= // CAS=4,5,6,7,8
+      (QB & QA_n & RGNT_n)
     | (QD & QB & RGNT_n)  // CAS ON REFRESH=1,2,3,4,5
-    | (QC & QB_n & QA) | (QC & QB_n & QA_n) | (QC & QA & QD) | (QC & QA & QD_n) | (QD_n & RGNT);
+    | (QC & QB_n & QA)
+    | (QC & QB_n & QA_n)
+    | (QC & QA & QD)
+    | (QC & QA & QD_n)
+    | (QD_n & RGNT);
 
 
 
@@ -148,7 +175,7 @@ module PAL_44902A (
   assign HIEN_n = OE_n ? 1'b0 : ~HIEN_reg;  // Q7_n
 
   // Debugging, if you want to se the 4-bit value of Q easier
-  //assign Q = {QD, QC, QB, QA};
+  assign Q = {QD, QC, QB, QA};
 
 endmodule
 
