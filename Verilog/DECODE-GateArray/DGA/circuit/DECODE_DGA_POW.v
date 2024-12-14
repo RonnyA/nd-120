@@ -6,42 +6,43 @@
 **  Page 9 DECODE - DECODE_DGA_POW- Sheet 2 of 3                         **
 **  Page 10 DECODE - DECODE_DGA_POW- Sheet 3 of 3                        **
 **                                                                       **
-** Last reviewed: 12-MAY-2024                                            **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module DECODE_DGA_POW (
+    // Inputs
     input BDRY50N,
-    input CLOSC,  //! Clear Oscilator signal (From IO_DCD_38) - Is 1 during a very short time at power-on. Then goes to 0 and stays there.
-    input CLRTIN,
-    input CONTINUEN,
-    input EMCLN,
-    input LOADN,
-    input POWSENSE,
-    input PRQN,
-    input PWCL,
-    input REFN,
-    input RESET,
-    input RTOSC,
-    input SEL5MSN,
-    input SSTOPN,
-    input STARTN,
-    input STOPN,
-    input TESTE,
+    input CLOSC,        //! Clear Oscilator signal (From IO_DCD_38) - Is 1 during a very short time at power-on. Then goes to 0 and stays there.
+    input CLRTIN,       //! Clear Real Time Clock
+    input CONTINUEN,    //! Continue Enable
+    input EMCLN,        //! Enable Master Clear
+    input LOADN,        //! Load
+    input POWSENSE,     //! Power Sense. If high, power is good. If low, will trigger POWFAILN after some clock cycles. (1.2s delay?)
+    input PRQN,         //! Panel Request
+    input PWCL,         //! Power Control
+    input REFN,         //! Refresh
+    input RESET,        //! Reset
+    input RTOSC,        //! Real Time Oscillator
+    input SEL5MSN,  //! Select 5ms (if active will trigger RTC after 5 ms, not 20ms)
+    input SSTOPN,   //! Set Stop Flip-Flop (When next FETCH is performed the microcproram is forced to microaddress 16 (Panel Interrupt) - Microcode command 14
+    input STARTN,   //! Start
+    input STOPN,    //! Stop
+    input TESTE,    //! Test Enable
 
-    //*************
-    output CLEAR,
-    output IDB0,
-    output IDB1,
-    output IDB2,
-    output MCL,
-    output PANN,
-    output PANOSC,
-    output POWFAILN,
-    output REFRQN,
-    output STPN,
-    output TESTO,
-    output TOUT
+    // Outputs
+    output CLEAR,     //! Clear signal
+    output IDB0,      //! IDB 0
+    output IDB1,      //! IDB 1
+    output IDB2,      //! IDB 2
+    output MCL,       //! Master Clear
+    output PANN,      //! Panel Interrupt Vector
+    output PANOSC,    //! Panel Oscillator
+    output POWFAILN,  //! Power Fail
+    output REFRQN,    //! Refresh Request
+    output STPN,      //! Stop
+    output TESTO,     //! Test Output
+    output TOUT       //! Time Out
 );
 
   /*******************************************************************************
@@ -440,7 +441,7 @@ module DECODE_DGA_POW (
   F617 A630 (
       .H01_D (s_zz0),
       .H02_C (s_rfclk),
-      .H03_RB(s_gnd),
+      .H03_RB(s_vcc),
       .H04_SB(s_ref_n),
       .N01_Q (s_refrq_n),
       .N02_QB()
@@ -481,7 +482,7 @@ module DECODE_DGA_POW (
   F617 A631 (
       .H01_D (s_refrq_n),
       .H02_C (s_rfclk),
-      .H03_RB(s_gnd),
+      .H03_RB(s_vcc),
       .H04_SB(s_bdry50_n),
       .N01_Q (s_a631_q),
       .N02_QB()
