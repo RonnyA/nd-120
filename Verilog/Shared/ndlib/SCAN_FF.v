@@ -68,12 +68,19 @@ module SCAN_FF (
   assign s_ti_and_te = (s_ti & s_te);
   assign s_ff_d_input = s_d_and_te_n | s_ti_and_te;
 
-  
+    // TODO: Change to use fpga clock for triggering instead of latch
+  reg delayedD;
+  always@(s_ff_d_input)
+  begin
+    delayedD <= s_ff_d_input;
+  end
+
   D_FLIPFLOP #(
       .InvertClockEnable(0)
   ) MEMORY_4 (
       .clock(s_clk),
-      .d(s_ff_d_input),
+      //.d(s_ff_d_input),
+      .d(delayedD),
       .preset(1'b0),
       .q(s_q_out),
       .qBar(s_qn_out),

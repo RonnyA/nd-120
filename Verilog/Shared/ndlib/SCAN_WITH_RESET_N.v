@@ -27,7 +27,7 @@ module SCAN_WITH_RESET_N (
   wire s_d;
   wire s_gates1_out;
   wire s_gates2_out;
-  wire s_gates3_out;
+  wire s_ff_d_input;
   wire s_q_out;
   wire s_qn_out;
   wire s_r_n;
@@ -83,14 +83,22 @@ module SCAN_WITH_RESET_N (
   ) GATES_3 (
       .input1(s_gates1_out),
       .input2(s_gates2_out),
-      .result(s_gates3_out)
+      .result(s_ff_d_input)
   );
+
+  // TODO: Change to use fpga clock for triggering instead of latch
+  reg delayedD;
+  always@(s_ff_d_input)
+  begin
+    delayedD <= s_ff_d_input;
+  end
 
   D_FLIPFLOP #(
       .InvertClockEnable(0)
   ) MEMORY_4 (
       .clock(s_clk),
-      .d(s_gates3_out),
+      //.d(s_gates3_out),
+      .d(delayedD),
       .preset(1'b0),
       .q(s_q_out),
       .qBar(s_qn_out),
