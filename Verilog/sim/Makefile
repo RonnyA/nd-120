@@ -31,6 +31,9 @@ run: test_nd120
 	./obj_dir/VND120_TOP
 
 gtk: run
-	gtkwave waveform.vcd top_3202d.gtkw &
+    # The signal file can be very big, >1GB so use optimizing.
+    # Use the -g or --giga flag to enable dynamically compressed memory handling, which allows GTKWave to load large VCD files without running out of memory.
+	# Use the -o or --optimize flag to convert VCD files to FST directly from the command line when opening them with GTKWave. (require 'vcd2fst' installed)
+	gtkwave -g waveform.vcd top_3202d.gtkw &
 
 .PHONY: all clean
