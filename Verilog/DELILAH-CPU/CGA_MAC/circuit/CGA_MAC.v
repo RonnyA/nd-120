@@ -6,7 +6,7 @@
 ** Page 24                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -21,11 +21,11 @@ module CGA_MAC (
     input        WR7,
     input [ 1:0] CMIS_1_0,    //! Microcode: Misc  (2 bits)
     input [ 4:0] CSCOMM_4_0,  //! Microcode: Commands (5 bits)
-    input [15:0] BR_15_0,     //! B Register
+    input [15:0] RB_15_0,     //! Microcode Register B
     input [15:0] CD_15_0,
     input [15:0] FIDBO_15_0,  //! FIDBO output from previous stage
-    input [15:0] PR_15_0,     //! P Register
-    input [15:0] RB_15_0,     //! B Register
+    input [15:0] PR_15_0,     //! ALU P Register
+    input [15:0] BR_15_0,     //! ALU B Register
     input [15:0] XR_15_0,     //! X Register
 
 
@@ -153,24 +153,28 @@ module CGA_MAC (
    *******************************************************************************/
 
   CGA_MAC_AP09 MAC_AP09 (
+      // Inputs
       .ADDSEL(a_addsel),
-      .ADD_15_0(s_add_15_0[15:0]),
       .CDSEL(s_cdsel),
       .CD_15_0(s_cd_15_0[15:0]),
-      .ECCR(s_eccr_out),
       .ECCRHIN(s_eccrhi_n),
       .HOLD(s_hold),
       .ICA_15_0(s_ica_15_0[15:0]),
-      .LCA_15_0(s_lca_15_0[15:0]),
-      .MCA_9_0(s_mca_9_0_out[9:0]),
       .MCLK(s_mclk),
       .NLCASEL(s_nlcasel),
-      .NLCA_15_0(s_nlca_15_0_out[15:0]),
       .PR_15_0(s_pr_15_0[15:0]),
-      .PSEL(s_psel)
+      .PSEL(s_psel),
+
+      // Outputs
+      .ADD_15_0(s_add_15_0[15:0]),
+      .ECCR(s_eccr_out),
+      .LCA_15_0(s_lca_15_0[15:0]),
+      .MCA_9_0(s_mca_9_0_out[9:0]),
+      .NLCA_15_0(s_nlca_15_0_out[15:0])
   );
 
   CGA_MAC_SEGPT MAC_SEGPT (
+      // Inputs
       .EXMN(s_exm_n),
       .FIDBO_15_0(s_fidbo_15_0[15:0]),
       .LLDEXM(s_lldexm),
@@ -180,6 +184,8 @@ module CGA_MAC (
       .PCR_14_13_10_9_N(s_pcr_14_13_10_9_n[15:0]),
       .PCR_15_7_2_0(s_pcr_15_0_out[15:0]),
       .PEX(s_pex),
+
+      // Outputs
       .SEGZN(s_segz_n),
       .SEG_7_0(s_seg_7_0[7:0]),
       .VEX(s_vex_out),
@@ -187,17 +193,21 @@ module CGA_MAC (
   );
 
   CGA_MAC_PTSEL MAC_PTSEL (
+      // Inputs
       .MCLK(s_mclk),
       .PONI(s_poni),
       .PTM(s_ptm),
       .SAPT(s_sapt),
+
+      // Outputs
       .SELPTN(s_selpt_n),
       .SPTN(s_sptn)
   );
 
   CGA_MAC_LASEL MAC_LASEL (
+      // Inputs
       .A10(s_a10),
-      .A1617(s_a1617),
+      .A1617(s_a1617), 
       .A1619(s_a1619),
       .A1819(s_a1819),
       .B1819(s_b1819),
@@ -211,17 +221,20 @@ module CGA_MAC (
       .EXMN(s_exm_n),
       .F1617(s_f1617),
       .ICA_15_8(s_ica_15_0[15:0]),
-      .LSHADOW(s_lshadow_out),
       .MCLK(s_mclk),
       .PCR_15_7_2_0(s_pcr_15_0_out[15:0]),
-      .PEX(s_pex),
       .PONI(s_poni),
-      .SEGZN(s_segz_n),
+
+      // Outputs
+      .LSHADOW(s_lshadow_out),
+      .PEX(s_pex),
+      .SEGZN(s_segz_n), 
       .SELPTN(s_selpt_n),
       .VEX(s_vex_out)
   );
 
   CGA_MAC_LA1025 MAC_LA1025 (
+      // Inputs
       .A10(s_a10),
       .A1617(s_a1617),
       .A1619(s_a1619),
@@ -235,27 +248,34 @@ module CGA_MAC (
       .ECCRHIN(s_eccrhi_n),
       .F1617(s_f1617),
       .ICA_15_0(s_ica_15_0[15:0]),
-      .LA_23_10(s_la_23_10_out[13:0]),
       .MCLK(s_mclk),
       .PCR_15_0(s_pcr_15_0_out[15:0]),
       .PCR_15_0_N(s_pcr_14_13_10_9_n[15:0]),
       .SEG_7_0(s_seg_7_0[7:0]),
-      .XPT_1_0(s_xpt_1_0[1:0])
+      .XPT_1_0(s_xpt_1_0[1:0]),
+
+      // Outputs  
+      .LA_23_10(s_la_23_10_out[13:0])
   );
 
   CGA_MAC_DECODE MAC_DECODE (
+      // Inputs
+      .CSCOMM_4_0(s_cscomm_4_0[4:0]),
+      .CSMIS_1_0(s_cmis_1_0[1:0]),
+      .LCSN(s_lcs_n),
+      .MCLK(s_mclk),
+      .WR3(s_wr3),
+      .WR7(s_wr7),
+
+      // Outputs
       .ADDSEL(a_addsel),
       .CDS(s_cds),
       .CDSEL(s_cdsel),
-      .CSCOMM_4_0(s_cscomm_4_0[4:0]),
-      .CSMIS_1_0(s_cmis_1_0[1:0]),
       .EXMN(s_exm_n),
       .HOLD(s_hold),
-      .LCSN(s_lcs_n),
       .LLDEXM(s_lldexm),
       .LLDPCR(s_lldpcr),
       .LLDSEG(s_lldseg),
-      .MCLK(s_mclk),
       .NLCASEL(s_nlcasel),
       .PB(s_pb),
       .PLCA(s_plca),
@@ -263,23 +283,28 @@ module CGA_MAC (
       .PSEL(s_psel),
       .PX(s_px),
       .SAPT(s_sapt),
-      .SPTN(s_sptn),
-      .WR3(s_wr3),
-      .WR7(s_wr7)
+      .SPTN(s_sptn)
   );
 
   CGA_MAC_ADD MAC_ADD (
-      .ADD_15_0(s_add_15_0[15:0]),
-      .BR_15_0(s_br_15_0[15:0]),
-      .CDS(s_cds),
-      .CD_15_0(s_cd_15_0[15:0]),
-      .LCA_15_0(s_lca_15_0[15:0]),
+      // Inputs bus data
+      .BR_15_0(s_br_15_0[15:0]), // B register from ALU
+      .RB_15_0(s_rb_15_0[15:0]), // Microcode Register B
+      .XR_15_0(s_xr_15_0[15:0]), // X register from ALU
+      .LCA_15_0(s_lca_15_0[15:0]),  // ALU Load Control Address
+
+      // Input bus select
       .PB(s_pb),
-      .PLCA(s_plca),
       .PRB(s_prb),
       .PX(s_px),
-      .RB_15_0(s_rb_15_0[15:0]),
-      .XR_15_0(s_xr_15_0[15:0])
+      .PLCA(s_plca),
+
+      // Input add bus data and select
+      .CD_15_0(s_cd_15_0[15:0]), // CPU data
+      .CDS(s_cds),
+
+      // Outputs
+      .ADD_15_0(s_add_15_0[15:0]) // ALU Addition result
   );
 
 endmodule
