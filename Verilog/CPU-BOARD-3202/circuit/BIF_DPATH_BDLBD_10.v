@@ -4,22 +4,22 @@
 ** BIF BD TO LBD                                                         **
 ** SHEET 10 of 50                                                        **
 **                                                                       **
-** Last reviewed: 7-DEC-2024                                             **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module BIF_DPATH_BDLBD_10 (
-    input  [23:0] BD_23_0_n_IN,
-    output [23:0] BD_23_0_n_OUT,
+    input  [23:0] BD_23_0_n_IN,  //! Bus Data IN
+    output [23:0] BD_23_0_n_OUT, //! Bus Data OUT
 
-    input  [23:0] LBD_23_0_IN,
-    output [23:0] LBD_23_0_OUT,
+    input  [23:0] LBD_23_0_IN,  //! Local Bus Data IN
+    output [23:0] LBD_23_0_OUT, //! Local Bus Data OUT
 
-    input BGNTCACT_n,
-    input BGNT_n,
-    input CLKBD,
-    input EBADR,
-    input EBD_n,
-    input WBD_n
+    input BGNTCACT_n,  //! Bus Grant Control Active
+    input BGNT_n,      //! Bus GRant
+    input CLKBD,       //! Clock BD
+    input EBADR,       //! Enable Address from Bus to Local Memory
+    input EBD_n,       //! Enable Bus Data (Enable LBD to BD transceiver).
+    input WBD_n        //! Write Bus Data
 );
 
 
@@ -58,20 +58,20 @@ module BIF_DPATH_BDLBD_10 (
    ** Here all input connections are defined                                     **
    *******************************************************************************/
   assign s_bd_23_0_n_in[23:0] = BD_23_0_n_IN[23:0];
-  assign s_lbd_23_0_in[23:0]  = LBD_23_0_IN[23:0];
+  assign s_lbd_23_0_in[23:0] = LBD_23_0_IN[23:0];
 
-  assign s_ebadr              = EBADR;
-  assign s_ebd_n              = EBD_n;
-  assign s_wbd_n              = WBD_n;
-  assign s_clkbd              = CLKBD;
-  assign s_bgntcact_n         = BGNTCACT_n;
-  assign s_bgnt_n             = BGNT_n;
+  assign s_ebadr = EBADR;
+  assign s_ebd_n = EBD_n;
+  assign s_wbd_n = WBD_n;
+  assign s_clkbd = CLKBD;
+  assign s_bgntcact_n = BGNTCACT_n;
+  assign s_bgnt_n = BGNT_n;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-  assign LBD_23_0_OUT         = s_lbd_23_0_out[23:0];
-  assign BD_23_0_n_OUT        = (!s_ebd_n & !s_wbd_n) ? s_bd_23_0_n_out[23:0] : ~24'b0; // If chip enabled and direction is B to A, read from chip. Else set HIGH (negated 0)
+  assign LBD_23_0_OUT = (!s_ebd_n) ? s_lbd_23_0_out[23:0] : 24'b0;
+  assign BD_23_0_n_OUT        = (!s_ebd_n) ? s_bd_23_0_n_out[23:0] : ~24'b0; // If chip enabled and direction is B to A, read from chip. Else set disconnect from bus (negated..)
 
 
   /*******************************************************************************
