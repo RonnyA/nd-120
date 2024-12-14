@@ -8,30 +8,31 @@
 ** Page 14 DECODE - DECODE_DGA_IDBS Sheet 1 of 2                         **
 ** Page 15 DECODE - DECODE_DGA_IDBS Sheet 2 of 2                         **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module DECODE_DGA_IDBS (
-    input       CLK0,
-    input       CLK1,
-    input [4:0] CSIDBS_4_0,
-    input       LCSN,
-    input       STAT3,
-    input       STAT4,
+    input       CLK0,        //! Clock input 0
+    input       CLK1,        //! Clock input 1
+    input [4:0] CSIDBS_4_0,  //! Microcode IDB Source select
+    input       LCSN,        //! Load Control Store
+    input       STAT3,       //! Status bit 4 from PANEL/CALENDAR CPU 68705
+    input       STAT4,       //! Status bit 4 from PANEL/CALENDAR CPU 68705
 
-    output ECSRN,
-    output EDON,
-    output EIORN,
-    output EPANN,
-    output EPANSN,
-    output EPEAN,
-    output EPESN,
-    output PRQN,
-    output RINRN,
-    output RUARTN,
-    output TRAALDN,
-    output VAL
+    output ECSRN,   //! Enable Cache Status Register (CSR) - 24
+    output EDON,    //! Enable DO signal (multiple IDB sources) - 0,1,2,3,4,6,10,11,14,25,36
+    output EIORN,   //! Enable IO register from UART etc -16
+    output EPANN,   //! Enable Panel Interrupt Vector - 27
+    output EPANSN,  //! Enable Panel Status register (MIPANS/MAPANS - 20/21
+    output EPEAN,   //! Enable Parity Error address (PEA) - 12
+    output EPESN,   //! Enable Parity Error Status & Address (PES) -13
+    output RINRN,   //! Read Installation Number (RINR) - 35
+    output RUARTN,  //! Read UART - 37
+    output TRAALDN, //! Read Automatic Load Descriptor and print-status (ALD) - 26
+
+    output PRQN,  //! Panel Request (Read MIPANS)
+    output VAL    //! Panel Interrupt (Panel Status Register bit 12 on read)
 );
   /*******************************************************************************
    ** The wires are defined here                                                 **
