@@ -4,40 +4,37 @@
 ** LOCAL RAM CONTROL                                                     **
 ** SHEET 50 of 50                                                        **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
-
-// TODO: Connect PAL chips
 
 module MEM_RAMC_50 (
 
     // Input signals
-    input BDAP50_n,
-    input BDRY50_n,
-    input BGNT25_n,
-    input BLRQ50_n,
-    input CGNT25_n,
-    input CLRQ_n,
-    input MR_n,
-    input OSC,
-    input PD1,
-    input PD3,
-    input RLRQ_n,
-    input SEMRQ50_n,
-    input SSEMA_n,
+    input BDAP50_n,   //! BUS DAta Present
+    input BDRY50_n,   //! BUS Data ReadY
+    input BGNT25_n,   //! BUS Grant (Delayed 25 ns)
+    input BLRQ50_n,   //! Bus Load Request (Delayed 50ns)
+    input CGNT25_n,   //! CPU Grant (Delayed 25 ns)
+    input CLRQ_n,     //! Bus Clear Request
+    input MR_n,       //! Master Reset (negated)
+    input OSC,        //! Oscillator
+    input PD1,        //! Power Down 1
+    input PD3,        //! Power Down 3
+    input RLRQ_n,     //! RAM Load Request
+    input SEMRQ50_n,  //! Bus Semaphore Request (Delayed 50ns)
+    input SSEMA_n,    //! Bus Semaphore Enable
 
     // Output signals
-
-    output BGNT25,
-    output BGNT_n,
-    output CAS,
-    output CGNT_n,
-    output HIEN_n,
-    output LOEN_n,
-    output QD_n,
-    output RAS,
-    output RGNT_n,
+    output BCGNT25,     //! CPU Grant (Delayed 25ns)
+    output BGNT_n,      //! Bus Grant
+    output RAS,         //! Row Address Strobe
+    output CAS,         //! Column Address Strobe
+    output CGNT_n,      //! Bus CPU Grant
+    output HIEN_n,      //! High address bits enable
+    output LOEN_n,      //! Low address bits enable
+    output QD_n,        //! Clock D signal
+    output RGNT_n,      //! RAM Grant
     output LED_CPU_GI,  //! LED_CPU_GRANT_INDICATOR
     output LED_BUS_GI   //! LED_BUS_GRANT_INDICATOR
 );
@@ -50,7 +47,7 @@ module MEM_RAMC_50 (
   wire s_bgnt_n;
   wire s_rgnt_n;
   wire s_mr_n;
-  wire s_bgnt25;
+  wire s_bcgnt25;
   wire s_hien_n;
   wire s_qd_n;
   wire s_ras;
@@ -93,7 +90,7 @@ module MEM_RAMC_50 (
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-  assign BGNT25      = s_bgnt25;
+  assign BCGNT25     = s_bcgnt25;
   assign BGNT_n      = s_bgnt_n;
   assign CAS         = s_cas;
   assign CGNT_n      = s_cgnt_n;
@@ -139,16 +136,16 @@ module MEM_RAMC_50 (
       .LDR_n   (),          // Q4_n - LDR_n (n.c.)
       .CSEM_n  (),          // Q5_n - CSEM_n (n.c.)
       .BSEM_n  (),          // Q6_n - BSEM_n (n.c.)
-      .BCGNT25 (s_bgnt25)   // Q7_n - BCGNT25
+      .BCGNT25 (s_bcgnt25)  // Q7_n - BCGNT25
   );
 
   PAL_44902A PAL_44902_URAMC (
       .CK  (s_osc),
       .OE_n(s_pd3),
 
-      .RGNT_n  (s_rgnt_n),    // I0 - RGNT_n
-      //.CGNT_n(s_cgnt_n),    // I1 - CGNT_n (NOT USED!!)
-      //.BGNT_n(s_bgnt_n),    // I2 - BGNT_n (NOT USED!!)
+      .RGNT_n  (s_rgnt_n),    // I0 - RGNT_n (RAM Grant)
+      //.CGNT_n(s_cgnt_n),    // I1 - CGNT_n (NOT USED EXTERN!!) (CPU Grant)
+      //.BGNT_n(s_bgnt_n),    // I2 - BGNT_n (NOT USED EXTERN!!) (BUS Grant)
       .BDAP50_n(s_bdap50_n),  // I3 - BDAP50_n
       .MR_n    (s_mr_n),      // I4 - MR_n
       .BGNT25_n(s_bgnt25_n),  // I5 - BGNT25_n
