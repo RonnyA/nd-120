@@ -14,6 +14,26 @@ The goal of this repo is to re-create the schematics and create the HDL files so
 On the way to the FPGA code, there will be testable Logisim Circuits and Logisim code that can be converted and tested in C++ using Verilator.
 
 
+## History
+
+Compressed history of the work progress:
+
+| Date               | Description
+|--------------------|-------------------------------------------------------------------------------------------------------------------------------------
+| 11. March 2023     | Received Design Documentation from Lasse Bockelie
+| 21. August 2023    | Logisim Drawings completed for DGA and DELILAH/CGA
+| 03. December 2023  | Using Logisim drawings to start generate Verilog files for DGA and CGA
+| 12. December 2023  | Starting to consolidate all information about PAL chips (PNG for PALASM code, OCR to TXT and write Verilog version of PAL code)
+| 26. December 2023  | Logisim drawings of CPU Board 3202D completed
+| 27. December 2023  | Using Logisim drawings to start generate Verilog files for CPU Board 3202D
+| 11. January 2024   | Most PALASM code has been ported to Verilog
+| January-June 2024  | Adding support chips, refactoring and bugfixing. Adding tests and test results
+| June-November 2024 | No work done
+| 9. November 2024   | Starting up again after a long break. Cleaning up code, refactoring and testing. Connecting everything together.
+| 20. November 2024  | Verilator - Microcode is loaded from ROM to DRAM. MACL microcode starts but fail on STACK operations, and fails on COND operations.
+| 13. December 2024  | Verilator - Microcode MACL starts, CPU test code runs. OPCOM is initialized and communication over UART works.
+
+
 ## Requirements
 
 The minimum requirements to make the CPU work is:

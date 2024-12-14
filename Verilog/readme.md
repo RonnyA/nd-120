@@ -14,6 +14,14 @@ Verilator is able to successfully compile and execute microcode load, and contin
 | [PAL](../DesignDocuments/PAL-Code/readme.md)   | No logisim, PALASM source| Verilog compiles - Missing a lot of testcases  | Syntehesis OK, implementation fails   | Hand converted PALASM to Verilog for all PAL's |
 | [Shared](Shared/readme.md)                     |                          | Verilog compiles - Missing a lot of testcases  | Syntehesis OK, implementation fails   | Shared code between the CPU, DGA and 3202D CPU board. Mix of converted logisim and manually created modules |
 
+
+## Run Verilog code using Verilator
+
+There are two folders with test code for verilator
+
+ * sim - contains a simple test of the ND120_TOP module. Saves signal traces to file and is used to verify the Verilog code using GTKWave
+ * runsim - Starts the simulation and runs the microcode load and self-test program. After self test it will enable OPCOM for communication with the CPU.
+
 ## Verilog code status
 
 | Folder           | # of Verilog Files       | Lines of Verilog code  |
@@ -45,6 +53,9 @@ Note: When all modules are merged, number of files and number of lines will be r
 * Jumps to MACL
 * Clears/Initializes internal registers and sets up UART
 * Runs self-test program for CPU, Test 1-8
+
+* Depending on the input from the PANEL keylock it will either try to automatic load code from storage depending on ALD settings 
+* - or go to OPCOM mode where one can communicate with the CPU via UART
 
 ## Test program verification
 
