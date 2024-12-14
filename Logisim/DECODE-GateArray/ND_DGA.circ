@@ -2087,11 +2087,6 @@
     <comp lib="8" loc="(1160,1205)" name="Text">
       <a name="text" val="CLEARN"/>
     </comp>
-    <comp lib="8" loc="(1200,2320)" name="Text">
-      <a name="color" val="#d60e0c"/>
-      <a name="font" val="SansSerif bold 22"/>
-      <a name="text" val="TODO: WHY IS ZZ1 inverted and sent to NAND gates. It will never be 1.."/>
-    </comp>
     <comp lib="8" loc="(1470,4330)" name="Text">
       <a name="text" val="A616, A618 and A617 = F774 (JK Flip Flop with R,S)"/>
     </comp>
@@ -2100,6 +2095,15 @@
     </comp>
     <comp lib="8" loc="(1600,1195)" name="Text">
       <a name="text" val="START"/>
+    </comp>
+    <comp lib="8" loc="(1721,2376)" name="Text">
+      <a name="text" val="Via PANVC at 003760"/>
+    </comp>
+    <comp lib="8" loc="(1804,2404)" name="Text">
+      <a name="text" val="And are read when there is a PANEL Trap"/>
+    </comp>
+    <comp lib="8" loc="(1836,2348)" name="Text">
+      <a name="text" val="IDB[2:0] values are mapped to microcode functions"/>
     </comp>
     <comp lib="8" loc="(1855,205)" name="Text">
       <a name="text" val="CLEARN"/>
@@ -2142,6 +2146,27 @@
     </comp>
     <comp lib="8" loc="(510,4080)" name="Text">
       <a name="text" val="F103 = INVERTER"/>
+    </comp>
+    <comp lib="8" loc="(519,3228)" name="Text">
+      <a name="text" val="Stop"/>
+    </comp>
+    <comp lib="8" loc="(533,2694)" name="Text">
+      <a name="text" val="Load"/>
+    </comp>
+    <comp lib="8" loc="(550,2539)" name="Text">
+      <a name="text" val="Restart"/>
+    </comp>
+    <comp lib="8" loc="(554,2624)" name="Text">
+      <a name="text" val="Continue"/>
+    </comp>
+    <comp lib="8" loc="(559,2890)" name="Text">
+      <a name="text" val="Panel Request)"/>
+    </comp>
+    <comp lib="8" loc="(563,2449)" name="Text">
+      <a name="text" val="Master Clear"/>
+    </comp>
+    <comp lib="8" loc="(567,2974)" name="Text">
+      <a name="text" val="Real Time Clock"/>
     </comp>
     <comp lib="8" loc="(580,220)" name="Text">
       <a name="text" val="LOAD"/>
@@ -5639,11 +5664,20 @@
       <a name="inputs" val="4"/>
       <a name="size" val="70"/>
     </comp>
+    <comp lib="8" loc="(1443,478)" name="Text">
+      <a name="text" val="0=ALU,1=BMG,2=GPR"/>
+    </comp>
     <comp lib="8" loc="(1570,1710)" name="Text">
       <a name="text" val="26 -  ALD"/>
     </comp>
+    <comp lib="8" loc="(1758,472)" name="Text">
+      <a name="text" val="2=GPR,4=ARG,6=STS"/>
+    </comp>
     <comp lib="8" loc="(1980,1695)" name="Text">
       <a name="text" val="27 -  PANEL"/>
+    </comp>
+    <comp lib="8" loc="(2034,512)" name="Text">
+      <a name="text" val="14=AARG, 10=BARG,11=SWAP,10=BARG"/>
     </comp>
     <comp lib="8" loc="(2200,3765)" name="Text">
       <a name="text" val="PRQ"/>
@@ -5666,7 +5700,7 @@
     <comp lib="8" loc="(2220,3665)" name="Text">
       <a name="text" val="DSTAT3N"/>
     </comp>
-    <comp lib="8" loc="(2325,480)" name="Text">
+    <comp lib="8" loc="(2303,473)" name="Text">
       <a name="text" val="2 - GPR, 3- DBR"/>
     </comp>
     <comp lib="8" loc="(2365,1670)" name="Text">
@@ -7918,7 +7952,7 @@
     <comp lib="8" loc="(3770,2965)" name="Text">
       <a name="text" val="ISIOCN"/>
     </comp>
-    <comp lib="8" loc="(3823,8614)" name="Text">
+    <comp lib="8" loc="(3820,8610)" name="Text">
       <a name="text" val="Enable CPU Reqest"/>
     </comp>
     <comp lib="8" loc="(4145,3010)" name="Text">
@@ -7944,7 +7978,7 @@
     </comp>
     <comp lib="8" loc="(5100,405)" name="Text">
       <a name="halign" val="left"/>
-      <a name="text" val="Command 34 - READ &amp; EXAMINE"/>
+      <a name="text" val="Command 35 - WRITE &amp; DEPOSIT"/>
     </comp>
     <comp lib="8" loc="(5120,2890)" name="Text">
       <a name="text" val="ILDPANC"/>
