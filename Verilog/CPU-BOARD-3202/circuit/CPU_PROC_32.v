@@ -1,12 +1,10 @@
-// TODO: Validate that the IDB in and out signals are mapped correctly!
-
 /**************************************************************************
 ** ND120 CPU, MM&M                                                       **
 ** CPU/PROC                                                              **
 ** PROCESSOR TOP LEVEL                                                   **
 ** SHEET 32 of 50                                                        **
 **                                                                       **
-** Last reviewed: 7-DEC-2024                                             **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -420,55 +418,59 @@ module CPU_PROC_32 (
 
 
   CPU_PROC_CGA_33 CGA (
-      .sysclk(sysclk),  // System clock in FPGA
-      .sys_rst_n(sys_rst_n),  // System reset in FPGA
+      // System signals
+      .sysclk(sysclk),          // input
+      .sys_rst_n(sys_rst_n),    // input
 
-      .ACOND_n(s_acond_n),
+      // Inputs
       .ALUCLK(s_aluclk),
       .BEDO_n(s_bedo_n),
       .BEMPID_n(s_bempid_n),
       .BSTP(s_bstp),
       .CD_15_0(s_cd_15_0_in[15:0]),
-      .CGABRK_n(s_cgabrk_n),
-      .CSA_12_0(s_csa_12_0[12:0]),
       .CSBITS(s_csbits[63:0]),
-      .CSCA_9_0(s_csca_9_0[9:0]),
-      .DOUBLE(s_double),
-      .ECCR(s_eccr),
       .ETRAP_n(s_etrap_n),
       .EWCA_n(s_ewca_n),
       .FIDB_15_0_IN(s_fidb_cga_IN[15:0]),
-      .FIDB_15_0_OUT(s_fidb_cga_OUT[15:0]),
       .IBINT10_n(s_ibint10_n),
       .IBINT11_n(s_ibint11_n),
       .IBINT12_n(s_ibint12_n),
       .IBINT13_n(s_ibint13_n),
       .IBINT15_n(s_ibint15_n),
-      .INTRQ_n_tp1(s_tp1_intrq_n),
-      .ERF_n(s_erf_n_org),  // original ERF_N from CGA (submodule DCD), fixed with PAL_44407_UERFIX (signal replaced, so wire is not used)
-      .IONI(s_ioni),
       .IOXERR_n(s_ioxerr_n),
-      .LAA_3_0(s_laa_3_0[3:0]),
-      .LA_23_10(s_la_23_10[13:0]),
-      .LBA_3_0(s_lba_3_0[3:0]),
       .LCS_n(s_lcs_n),
-      .LSHADOW(s_lshadow),
       .MAP_n(s_map_n),
       .MCLK(s_mclk),
       .MOR_n(s_mor_n),
       .MR_n(s_mr_n),
       .PAN_n(s_pan_n),
       .PARERR_n(s_parerr_n),
+      .POWFAIL_n(s_powfail_n),
+      .PT_15_9(s_pt_15_9[6:0]),
+      .SEL_TESTMUX(SEL_TESTMUX),
+      .UCLK(s_uclk),
+
+      // Outputs
+      .ACOND_n(s_acond_n),
+      .CGABRK_n(s_cgabrk_n),
+      .CSA_12_0(s_csa_12_0[12:0]),
+      .CSCA_9_0(s_csca_9_0[9:0]),
+      .DOUBLE(s_double),
+      .ECCR(s_eccr),
+      .ERF_n(s_erf_n_org),
+      .FIDB_15_0_OUT(s_fidb_cga_OUT[15:0]),
+      .INTRQ_n_tp1(s_tp1_intrq_n),
+      .IONI(s_ioni),
+      .LAA_3_0(s_laa_3_0[3:0]),
+      .LA_23_10(s_la_23_10[13:0]),
+      .LBA_3_0(s_lba_3_0[3:0]),
+      .LSHADOW(s_lshadow),
       .PCR_1_0(s_pcr_1_0[1:0]),
       .PIL_3_0(s_pil_3_0[3:0]),
       .PONI(s_poni),
-      .POWFAIL_n(s_powfail_n),
-      .PT_15_9(s_pt_15_9[6:0]),
       .RF_1_0(s_rf_1_0),
-      .SEL_TESTMUX(SEL_TESTMUX),
       .TEST_4_0(s_test_4_0[4:0]),
-      .TRAP_n(s_trap_n_out), // output
-      .UCLK(s_uclk),
+      .TRAP_n(s_trap_n_out),
       .WCS_n(s_wcs_n),
       .WRTRF(s_wrtrf)
   );
