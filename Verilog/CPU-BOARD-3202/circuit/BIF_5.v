@@ -4,7 +4,7 @@
 ** BUS INTERFACE                                                         **
 ** SHEET 5  of 50                                                        **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -16,90 +16,89 @@ module BIF_5 (
 
     // Inputs signals
 
-    input       BGNT50_n,
-    input       BGNT_n,
-    input [9:0] CA_9_0,
-    input       CC2_n,
-    input       CGNT50_n,
-    input       CGNT_n,
-    input       CLEAR_n,
-    input       CRQ_n,
-    input       EBUS_n,
-    input       ECRQ,
-    input       FETCH,
-    input       GNT50_n,
-    input       IBAPR_n,
-    input       IBDAP_n,
-    input       IBDRY_n,
-    input       IBINPUT_n,
-    input       IBPERR_n,
-    input       IBREQ_n,
-    input       IORQ_n,
-    input       ISEMRQ_n,
-    input       LERR_n,
-    input       LPRERR_n,
-    input       MIS0,
-    input       MOFF_n,
-    input       MOR25_n,
-    input       MWRITE_n,
-    input       OSC,
-    input       PA_n,
-    input       PD1,
-    input       PD3,
-    input       PS_n,
-    input       REFRQ_n,
-    input       RT_n,
-    input       SSEMA_n,
-    input       TERM_n,
-    input       TOUT,
-    input       WRITE,
+    input       BGNT50_n,   //! Bus Grant (Delayed 50ns)
+    input       BGNT_n,     //! Bus Grant
+    input [9:0] CA_9_0,     //! CPU Address
+    input       CC2_n,      //! CPU Cycle Control bit 2
+    input       CGNT50_n,   //! Bus Grant (Delayed 50ns)
+    input       CGNT_n,     //! Bus Grant
+    input       CLEAR_n,    //! Clear
+    input       CRQ_n,      //! CPU Request
+    input       EBUS_n,     //! Enable Bus
+    input       ECREQ,      //! Enable CPU Request
+    input       FETCH,      //! Fetch
+    input       GNT50_n,    //! Grant (Delayed 50ns)
+    input       IBAPR_n,    //! Input Bus Address Parity Register
+    input       IBDAP_n,    //! Input Bus Data Present
+    input       IBDRY_n,    //! Input Bus Data Ready
+    input       IBINPUT_n,  //! Input Bus Input
+    input       IBPERR_n,   //! Input Bus Parity Error
+    input       IBREQ_n,    //! Input Bus Request
+    input       IORQ_n,     //! Input Bus Request
+    input       ISEMRQ_n,   //! Input Bus Semaphore Request
+    input       LERR_n,     //! Local Error
+    input       LPRERR_n,   //! Local Parity Error
+    input       MIS0,       //! Microcode: Miscellaneous bit 0
+    input       MOFF_n,     //! Memory Off
+    input       MOR25_n,    //! Memory Error (25ns delayed)
+    input       MWRITE_n,   //! Memory Write
+    input       OSC,        //! Oscillator
+    input       PA_n,       //
+    input       PD1,        //! Power Down 1
+    input       PD3,        //! Power Down 3
+    input       PS_n,       // 
+    input       REFRQ_n,    //! Refresh Request
+    input       RT_n,       //! Return
+    input       SSEMA_n,    //
+    input       TERM_n,     //! Terminate Cycle
+    input       TOUT,       //! Timeout
+    input       WRITE,      //! Write
 
     input [13:0] PPN_23_10,
 
     // INPUTS and OUTPUTS here
 
-    input  [23:0] BD_23_0_n_IN,   //! BUS Data/Address 24 bit IN (negated)
-    output [23:0] BD_23_0_n_OUT,  //! BUS Data/Address 24 bit OUT (negated)
+    input  [23:0] BD_23_0_n_IN,  //! BUS Data/Address 24 bit IN
+    output [23:0] BD_23_0_n_OUT, //! BUS Data/Address 24 bit OUT
 
 
-    input  [15:0] CD_15_0_IN,
-    output [15:0] CD_15_0_OUT,
+    input  [15:0] CD_15_0_IN,  //! CPU Data 16 bit IN
+    output [15:0] CD_15_0_OUT, //! CPU Data 16 bit OUT
 
 
-    input  [23:0] LBD_23_0_IN,
-    output [23:0] LBD_23_0_OUT,
+    input  [23:0] LBD_23_0_IN,  //! Local Bus Data 24 bit IN
+    output [23:0] LBD_23_0_OUT, //! Local Bus Data 24 bit OUT
 
     // OUTPUT signals
-    output [15:0] IDB_15_0_OUT,
+    output [15:0] IDB_15_0_OUT,  //! Internal Bus Data (IBD) 16 bit OUT
 
 
-    output BAPR_n,    //! Bus Address Present (negated)
-    output BDAP50_n,  //! Bus Data Present (negated) - Delayed 50ns
-    output BDAP_n,    //! Bus Data Present (negated)
-    output BDRY50_n,  //! Bus Data Ready (negated) - Delayed 50ns
-    output BDRY_n,    //! Bus Data Ready (negated)
+    output BAPR_n,    //! Bus Address Present
+    output BDAP50_n,  //! Bus Data Present (Delayed 50ns)
+    output BDAP_n,    //! Bus Data Present
+    output BDRY50_n,  //! Bus Data Ready (Delayed 50ns)
+    output BDRY_n,    //! Bus Data Ready
     output BERROR_n,  //! Bus Error
     output BINACK_n,  //! Bus Input Acknowledge
     output BINPUT_n,  //! Bus Input
-    output BIOXE_n,   //! Bus IOX Enabled (negated)
-    output BMEM_n,    //! Bus MEM enabled (negated)
-    output BREF_n,    //! Bus 
+    output BIOXE_n,   //! Bus IOX Enabled
+    output BMEM_n,    //! Bus MEM enabled
+    output BREF_n,    //! Bus Refresh
 
-    output CGNTCACT_n,
-    output DAP_n,
-    output DBAPR,
-    output GNT_n,
-
-    output IOXERR_n,
-    output MOR_n,
-    output MR_n,        //! Master Reset (negated)
-    output OUTGRANT_n,  //! Bus OUTGRANT (negated)
-    output OUTIDENT_n,  //! Bus OUTIDENT (negated)
-    output PARERR_n,
-    output REF_n,
-    output RERR_n,
-    output SEMRQ50_n,
-    output SEMRQ_n
+    output CGNTCACT_n,  //! Combined CPU Grant/Active signal
+    output DAP_n,       //! Data Address Present
+    output DBAPR,       //! Data Bus Address Parity Register
+    output GNT_n,       //! Grant
+    output IOXERR_n,    //! IOX Error
+    output MOR_n,       //! Memory Error
+    output MR_n,        //! Master Reset
+    output OUTGRANT_n,  //! Bus OUTGRANT
+    output OUTIDENT_n,  //! Bus OUTIDENT
+    output PARERR_n,    //! Parity Error
+    output REF_n,       //! Refresh
+    output RERR_n,      //! Refresh Error
+    output SEMRQ50_n,   //! Semaphore Request (Delayed 50ns)
+    output SEMRQ_n      //! Semaphore Request
 );
 
 
@@ -150,7 +149,7 @@ module BIF_5 (
   wire        s_dbapr_n;
   wire        s_eaddr_n;
   wire        s_ebus_n;
-  wire        s_ecrq;
+  wire        s_ecreq;
   wire        s_epea_n;
   wire        s_epes_n;
   wire        s_fetch;
@@ -213,7 +212,7 @@ module BIF_5 (
   assign s_clear_n            = CLEAR_n;
   assign s_crq_n              = CRQ_n;
   assign s_ebus_n             = EBUS_n;
-  assign s_ecrq               = ECRQ;
+  assign s_ecreq              = ECREQ;
   assign s_fetch              = FETCH;
   assign s_gnt50_n            = GNT50_n;
   assign s_ibapr_n            = IBAPR_n;
@@ -282,119 +281,120 @@ module BIF_5 (
    *******************************************************************************/
 
   BIF_DPATH_9 DPATH (
-      .BDAP50_n(s_bdap50_n),
-      .BDRY25_n(s_bdry25_n),
-      .BDRY50_n(s_bdry50_n),
+      // Outputs
+      .BDAP50_n     (s_bdap50_n),             // Bus Data Present (50ns delayed)
+      .BDRY25_n     (s_bdry25_n),             // Bus Data Ready (25ns delayed)
+      .BDRY50_n     (s_bdry50_n),             // Bus Data Ready (50ns delayed)
+      .BD_23_0_n_OUT(s_bd_23_0_n_out[23:0]),  // Bus Data/Address
+      .LBD_23_0_OUT (s_lbd_23_0_out[23:0]),   // Local Bus Data
+      .CD_15_0_OUT  (s_cd_15_0_out[15:0]),    // CPU Data
+      .IDB_15_0_OUT (s_idb_15_0_out[15:0]),   // Internal Bus Data
+      .CGNTCACT_n   (s_cgntcact_n),           // Combined Grant/Active
+      .DBAPR        (s_dbapr_n),              // Data Bus Address Present
+      .SPEA         (s_spea),                 // Signal to latch PEA
+      .SPES         (s_spes),                 // Signal to latch PES
 
-      .BD_23_0_n_IN (s_bd_23_0_n_in[23:0]),
-      .BD_23_0_n_OUT(s_bd_23_0_n_out[23:0]),
-
-      .LBD_23_0_IN (s_lbd_23_0_in[23:0]),
-      .LBD_23_0_OUT(s_lbd_23_0_out[23:0]),
-
-      .CD_15_0_IN (s_cd_15_0_in[15:0]),
-      .CD_15_0_OUT(s_cd_15_0_out[15:0]),
-
-
-      .BGNT50_n(s_bgnt50_n),
-      .BGNT_n(s_bgnt_n),
-      .BINPUT50_n(s_binput50_n),
-      .CACT_n(s_cact_n),
-      .CA_9_0(s_ca_9_0[9:0]),
-      .CBWRITE_n(s_cbwrite_n),
-      .CC2_n(s_cc2_n),
-      .CGNT50_n(s_cgnt50_n),
-      .CGNTCACT_n(s_cgntcact_n),
-      .CGNT_n(s_cgnt_n),
-      .DBAPR(s_dbapr_n),
-      .EADDR_n(s_eaddr_n),
-      .EBUS_n(s_ebus_n),
-      .ECREQ(s_ecrq),
-      .EPEA_n(s_epea_n),
-      .EPES_n(s_epes_n),
-      .FETCH(s_fetch),
-      .GNT_n(s_gnt_n),
-      .IBAPR_n(s_ibapr_n),
-      .IDB_15_0_OUT(s_idb_15_0_out[15:0]),
-      .IOD_n(s_iod_n),
-      .IORQ_n(s_ioreq_n),
-      .MIS0(s_mis0),
-      .MWRITE_n(s_mwrite_n),
-      .PD1(s_pd1),
-      .PD3(s_pd3),
-      .PPN_23_10(s_ppn_23_10[13:0]),
-      .Q0_n(s_q_2_0_n[0]),
-      .Q2_n(s_q_2_0_n[2]),
-      .RT_n(s_rt_n),
-      .SPEA(s_spea),
-      .SPES(s_spes),
-      .TERM_n(s_term_n),
-      .WRITE(s_write)
+      // Inputs
+      .BD_23_0_n_IN(s_bd_23_0_n_in[23:0]),  // Bus Data/Address
+      .LBD_23_0_IN (s_lbd_23_0_in[23:0]),   // Local Bus Data
+      .CD_15_0_IN  (s_cd_15_0_in[15:0]),    // CPU Data
+      .BGNT50_n    (s_bgnt50_n),            // Bus Grant (50ns delayed)
+      .BGNT_n      (s_bgnt_n),              // Bus Grant
+      .BINPUT50_n  (s_binput50_n),          // Bus Input (50ns delayed)
+      .CACT_n      (s_cact_n),              // CPU Active
+      .CA_9_0      (s_ca_9_0[9:0]),         // CPU Address
+      .CBWRITE_n   (s_cbwrite_n),           // CPU Bus Write
+      .CC2_n       (s_cc2_n),               // Cycle Clock 2
+      .CGNT50_n    (s_cgnt50_n),            // CPU Grant (50ns delayed)
+      .CGNT_n      (s_cgnt_n),              // CPU Grant
+      .EADDR_n     (s_eaddr_n),             // Error Address
+      .EBUS_n      (s_ebus_n),              // Enable Bus
+      .ECREQ       (s_ecreq),               // EnableCPU Request
+      .EPEA_n      (s_epea_n),              // Enable PEA
+      .EPES_n      (s_epes_n),              // Enable PES
+      .FETCH       (s_fetch),               // Fetch cycle
+      .GNT_n       (s_gnt_n),               // Grant
+      .IBAPR_n     (s_ibapr_n),             // Input Bus Address Present
+      .IOD_n       (s_iod_n),               // I/O Data
+      .IORQ_n      (s_ioreq_n),             // I/O Request
+      .MIS0        (s_mis0),                // Miscellaneous 0
+      .MWRITE_n    (s_mwrite_n),            // Memory Write
+      .PD1         (s_pd1),                 // Power Down 1
+      .PD3         (s_pd3),                 // Power Down 3
+      .PPN_23_10   (s_ppn_23_10[13:0]),     // Physical Page Number
+      .Q0_n        (s_q_2_0_n[0]),          // State bit 0
+      .Q2_n        (s_q_2_0_n[2]),          // State bit 2
+      .RT_n        (s_rt_n),                // Return
+      .TERM_n      (s_term_n),              // Terminate
+      .WRITE       (s_write)                // Write cycle
   );
 
   BIF_BCTL_6 BCTL (
-      .BAPR_n(s_bapr_n),
-      .BDAP50_n(s_bdap50_n),
-      .BDAP_n(s_bdap_n),
-      .BDRY25_n(s_bdry25_n),
-      .BDRY50_n(s_bdry50_n),
-      .BDRY_n(s_bdry_n),
-      .BERROR_n(s_berror_n),
-      .BINACK_n(s_binack_n),
-      .BINPUT50_n(s_binput50_n),
-      .BINPUT_n(s_binput_n),
-      .BIOXE_n(s_bioxe_n),
-      .BMEM_n(s_bmem_n),
-      .BREF_n(s_bref_n),
-      .CACT_n(s_cact_n),
-      .CBWRITE_n(s_cbwrite_n),
-      .CC2_n(s_cc2_n),
-      .CGNT50_n(s_cgnt50_n),
-      .CGNT_n(s_cgnt_n),
-      .CLEAR_n(s_clear_n),
-      .CRQ_n(s_crq_n),
-      .DAP_n(s_dap_n),
-      .DBAPR(s_dbapr_n),
-      .EADR_n(s_eaddr_n),
-      .EPEA_n(s_epea_n),
-      .EPES_n(s_epes_n),
-      .GNT50_n(s_gnt50_n),
-      .GNT_n(s_gnt_n),
-      .IBDAP_n(s_ibdap_n),
-      .IBDRY_n(s_ibdry_n),
-      .IBINPUT_n(s_ibinput_n),
-      .IBPERR_n(s_ibperr_n),
-      .IBREQ_n(s_ibreq_n),
-      .IOD_n(s_iod_n),
-      .IORQ_n(s_ioreq_n),
-      .IOXERR_n(s_ioxerr_n),
-      .ISEMRQ_n(s_isemreq_n),
-      .LERR_n(s_lerr_n),
-      .LPERR_n(s_lprerr_n),
-      .MIS0(s_mis0),
-      .MOFF_n(s_moff_n),
-      .MOR25_n(s_mor25_n),
-      .MOR_n(s_mor_n),
-      .MR_n(s_mr_n),
-      .OSC(s_osc),
-      .OUTGRANT_n(s_outgrant_n),
-      .OUTIDENT_n(s_outident_n),
-      .PARERR_n(s_parerr_n),
-      .PA_n(s_pa_n),
-      .PD1(s_pd1),
-      .PD3(s_pd3),
-      .PS_n(s_ps_n),
-      .Q_2_0_n(s_q_2_0_n[2:0]),
-      .REFRQ_n(s_refrq_n),
-      .REF_n(s_ref_n),
-      .RERR_n(s_rerr_n),
-      .SEMRQ50_n(s_semrq50_n),
-      .SEMRQ_n(s_semrq_n),
-      .SPEA(s_spea),
-      .SPES(s_spes),
-      .SSEMA_n(s_ssema_n),
-      .TERM_n(s_term_n),
-      .TOUT(s_tout)
+      // Outputs
+      .BAPR_n    (s_bapr_n),      // Bus Address Present
+      .BDAP50_n  (s_bdap50_n),    // Bus Data Present (50ns delayed)
+      .BDAP_n    (s_bdap_n),      // Bus Data Present
+      .BDRY25_n  (s_bdry25_n),    // Bus Data Ready (25ns delayed)
+      .BDRY50_n  (s_bdry50_n),    // Bus Data Ready (50ns delayed)
+      .BDRY_n    (s_bdry_n),      // Bus Data Ready
+      .BERROR_n  (s_berror_n),    // Bus Error
+      .BINACK_n  (s_binack_n),    // Bus Input Acknowledge
+      .BINPUT_n  (s_binput_n),    // Bus Input
+      .BIOXE_n   (s_bioxe_n),     // Bus I/O Execute
+      .BMEM_n    (s_bmem_n),      // Bus Memory
+      .BREF_n    (s_bref_n),      // Bus Refresh
+      .DAP_n     (s_dap_n),       // Data Present
+      .IOXERR_n  (s_ioxerr_n),    // I/O Execute Error
+      .MOR25_n   (s_mor25_n),     // Memory Operation Ready (25ns delayed)
+      .MOR_n     (s_mor_n),       // Memory Operation Ready
+      .MR_n      (s_mr_n),        // Memory Ready
+      .OUTGRANT_n(s_outgrant_n),  // Output Grant
+      .OUTIDENT_n(s_outident_n),  // Output Identify
+      .PARERR_n  (s_parerr_n),    // Parity Error
+      .REF_n     (s_ref_n),       // Refresh
+      .RERR_n    (s_rerr_n),      // Read Error
+      .SEMRQ50_n (s_semrq50_n),   // Semaphore Request (50ns delayed)
+      .SEMRQ_n   (s_semrq_n),     // Semaphore Request
+      .SPEA      (s_spea),        // Signal to latch PEA
+      .SPES      (s_spes),        // Signal to latch PES
+
+      // Inputs
+      .BINPUT50_n(s_binput50_n),    // Bus Input (50ns delayed)
+      .CACT_n    (s_cact_n),        // CPU Active
+      .CBWRITE_n (s_cbwrite_n),     // CPU Bus Write
+      .CC2_n     (s_cc2_n),         // Cycle Clock 2
+      .CGNT50_n  (s_cgnt50_n),      // CPU Grant (50ns delayed)
+      .CGNT_n    (s_cgnt_n),        // CPU Grant
+      .CLEAR_n   (s_clear_n),       // Clear
+      .CRQ_n     (s_crq_n),         // CPU Request
+      .DBAPR     (s_dbapr_n),       // Data Bus Address Present
+      .EADR_n    (s_eaddr_n),       // Error Address
+      .EPEA_n    (s_epea_n),        // Enable PEA
+      .EPES_n    (s_epes_n),        // Enable PES
+      .GNT50_n   (s_gnt50_n),       // Grant (50ns delayed)
+      .GNT_n     (s_gnt_n),         // Grant
+      .IBDAP_n   (s_ibdap_n),       // Input Bus Data Present
+      .IBDRY_n   (s_ibdry_n),       // Input Bus Data Ready
+      .IBINPUT_n (s_ibinput_n),     // Input Bus Input
+      .IBPERR_n  (s_ibperr_n),      // Input Bus Parity Error
+      .IBREQ_n   (s_ibreq_n),       // Input Bus Request
+      .IOD_n     (s_iod_n),         // IO SIGNAL TO LAST FOR THE ENTIRE BUS CYCLE
+      .IORQ_n    (s_ioreq_n),       // I/O Request
+      .ISEMRQ_n  (s_isemreq_n),     // Input Semaphore Request
+      .LERR_n    (s_lerr_n),        // Local Error
+      .LPERR_n   (s_lprerr_n),      // Local Parity Error
+      .MIS0      (s_mis0),          // Miscellaneous 0
+      .MOFF_n    (s_moff_n),        // Memory Off
+      .OSC       (s_osc),           // Oscillator
+      .PA_n      (s_pa_n),          // Parity Error Address (PEA)
+      .PD1       (s_pd1),           // Power Down 1
+      .PD3       (s_pd3),           // Power Down 3
+      .PS_n      (s_ps_n),          // Parity Error Signal (PES)
+      .Q_2_0_n   (s_q_2_0_n[2:0]),  // State bits [2:0]
+      .REFRQ_n   (s_refrq_n),       // Refresh Request
+      .SSEMA_n   (s_ssema_n),       // Semaphore Semaphore
+      .TERM_n    (s_term_n),        // Terminate Cycle
+      .TOUT      (s_tout)           // Timeout
   );
 
 endmodule
