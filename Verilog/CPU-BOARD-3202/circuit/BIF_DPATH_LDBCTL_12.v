@@ -4,7 +4,7 @@
 ** IO DECODING                                                           **
 ** SHEET 12 of 50                                                        **
 **                                                                       **
-** Last reviewed: 13-MAY-2024                                            **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -19,7 +19,7 @@ module BIF_DPATH_LDBCTL_12 (
     input CC2_n,
     input CGNT50_n,
     input CGNT_n,
-    input EADR_n,
+    input EADR_n, //! Address from CPU to BUS
     input EBUS_n,
     input GNT_n,
     input IBAPR_n,
@@ -35,17 +35,17 @@ module BIF_DPATH_LDBCTL_12 (
     input TERM_n,
     input WRITE,
 
-    output BGNTCACT,
-    output CBWRITE_n,
-    output CGNTCACT_n,
+    output BGNTCACT,  //! Bus Grant OR CPU Active
+    output CBWRITE_n,  //! CPU Write cycle to bus
+    output CGNTCACT_n,  //! CPU Grant OR CPU Active
     output CLKBD,
     output DBAPR,
     output DSTB_n,
     output EBADR,
     output EBD_n,
-    output EMD_n,
-    output WBD_n,
-    output WLBD_n
+    output EMD_n,  //! Enable Memory LBD to CD bus
+    output WBD_n,  //! Direction from LBD to BD (LBD to BD transceiver)
+    output WLBD_n  //! Direction from CD to LBD (LBD to BD transceiver)
 );
 
   /*******************************************************************************
@@ -154,9 +154,9 @@ module BIF_DPATH_LDBCTL_12 (
       .BACT_n    (s_bact_n),      // I9
 
       .WBD_n    (s_wbd_n),  // Y0_n - Write Bus Direction
-      .CBWRITE_n(s_wlbd_n), // Y1_n - CPU Write cycle to Bus
+      .CBWRITE_n(s_cbwrite_n), // Y1_n - CPU Write cycle to Bus
 
-      .WLBD_n(s_cbwrite_n),  // B0_n - Write Local Bus Direction
+      .WLBD_n(s_wlbd_n),  // B0_n - Write Local Bus Direction
       .CMWRITE_n()  // B1_n - CPU Write to Local Memory (not connected, just used internal in PAL)
   );
 
@@ -199,7 +199,7 @@ module BIF_DPATH_LDBCTL_12 (
       .DBAPR(s_dbapr),  // Y0_n
       //.Y1_n()            // Y1_n
 
-      .BACT_n  (s_bact_n),  // B0_n
+      .BACT_n  (s_bact_n),  // B0_n  DMA Output Cycle
       .EBADR_b1(s_ebadr),   // B1_n
       .FAPR    (),          // B2_n  - not in use
       .SAPR    (),          // B3_n  - not in use
