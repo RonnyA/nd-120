@@ -10,16 +10,15 @@
 
 module MEM_DATA_46 (
     // Input signals
-    input BCGNT50R_n,
-    input BIOXL_n,
-    input ECCR,
-    input HIEN_n,
-
-    input MR_n,
-    input MWRITE_n,
-    input PA_n,
-    input QD_n,
-    input RDATA,
+    input BCGNT50R_n,  //! Bus CPU Grant on read from memory after the address
+    input BIOXL_n,     //! Bus IOX Enable
+    input ECCR,        //! Bus ECC Request
+    input HIEN_n,      //! High address bits enable
+    input MR_n,        //! Master reset
+    input MWRITE_n,    //! Memory Write
+    input PA_n,        //! Parity Error Address (PEA)
+    input QD_n,        //! Parity Error Signal (PES)
+    input RDATA,       //! Read Data
 
     // IN and OUT signals
     input  [15:0] LBD_15_0_IN,
@@ -29,11 +28,11 @@ module MEM_DATA_46 (
     output [17:0] DD_17_0_OUT,
 
     // Output signals
-    output HIERR,
-    output LERR_n,
-    output LOERR,
-    output LPERR_n,
-    output LED4      //! LED4_RED_PARITY_ERROR
+    output HIERR,       //! High address bits error
+    output LOERR,       //! Low address bits error
+    output LERR_n,      //! Local error
+    output LPERR_n,     //! Local parity error
+    output LED4         //! LED4_RED_PARITY_ERROR
 );
 
 
