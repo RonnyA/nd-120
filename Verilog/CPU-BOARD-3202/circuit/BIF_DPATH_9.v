@@ -4,65 +4,62 @@
    ** BIF DATA PATH                                                         **
    ** SHEET 9 of 5 0                                                        **
    **                                                                       **
-   ** Last reviewed: 13-MAY-2024                                            **
+   ** Last reviewed: 14-DEC-2024                                            **
    ** Ronny Hansen                                                          **
    ***************************************************************************/
 
-
 module BIF_DPATH_9 (
     // Input signals
-    input [ 9:0] CA_9_0,
-    input [13:0] PPN_23_10,
+    input [ 9:0] CA_9_0,    //! Control Store Address
+    input [13:0] PPN_23_10, //! Physical Page Number
 
-    input BDAP50_n,
-    input BDRY25_n,
-    input BDRY50_n,
-    input BGNT_n,
-    input BGNT50_n,
-    input BINPUT50_n,
-    input CACT_n,
-    input CC2_n,
-    input CGNT_n,
-    input CGNT50_n,
-    input EADDR_n,
-    input EBUS_n,
-    input ECREQ,
-    input EPEA_n,
-    input EPES_n,
-    input FETCH,
-    input GNT_n,
-    input IBAPR_n,
-    input IOD_n,
-    input IORQ_n,
-    input MIS0,
-    input MWRITE_n,
-    input PD1,
-    input PD3,
-    input Q0_n,
-    input Q2_n,
-    input RT_n,
-    input SPEA,
-    input SPES,
-    input TERM_n,
-    input WRITE,
+    input BDAP50_n,    //! Bus Data Address Present (50ns delayed)
+    input BDRY25_n,    //! Bus Data Ready (25ns delayed)
+    input BDRY50_n,    //! Bus Data Ready (50ns delayed)
+    input BGNT_n,      //! Bus Grant
+    input BGNT50_n,    //! Bus Grant (50ns delayed)
+    input BINPUT50_n,  //! Bus Input (50ns delayed)
+    input CACT_n,      //! CPU Active
+    input CC2_n,       //! Cpu Cycle bit 2
+    input CGNT_n,      //! Bus Grant
+    input CGNT50_n,    //! Bus Grant (50ns delayed)
+    input EADDR_n,     //! Enable External Address
+    input EBUS_n,      //! Enable External Bus
+    input ECREQ,       //! Enable CPU Request
+    input EPEA_n,      //! Enable PEA register
+    input EPES_n,      //! Enable PES register
+    input FETCH,       //! Fetch
+    input GNT_n,       //! Grant
+    input IBAPR_n,     //! Bus Address Present
+    input IOD_n,       //! IO SIGNAL TO LAST FOR THE ENTIRE BUS CYCLE
+    input IORQ_n,      //! Input/Output Request
+    input MIS0,        //! Miscellaneous bit 0
+    input MWRITE_n,    //! Memory Write
+    input PD1,         //! Power Down 1
+    input PD3,         //! Power Down 3
+    input Q0_n,        //
+    input Q2_n,        //
+    input RT_n,        //! RT_n - Return
+    input SPEA,        //! SPEA - Signal PEA Load
+    input SPES,        //! SPES - Signal PES Load
+    input TERM_n,      //! TERM_n - Terminate
+    input WRITE,       //! WRITE - Write
 
     // In-Out signals
-    input  [15:0] CD_15_0_IN,
-    output [15:0] CD_15_0_OUT,
+    input  [15:0] CD_15_0_IN,  //! CPU Data IN
+    output [15:0] CD_15_0_OUT, //! CPU Data OUT
 
-    input  [23:0] BD_23_0_n_IN,
-    output [23:0] BD_23_0_n_OUT,
+    input  [23:0] BD_23_0_n_IN,  //! Bus Data IN
+    output [23:0] BD_23_0_n_OUT, //! Bus Data OUT
 
-    input  [23:0] LBD_23_0_IN,
-    output [23:0] LBD_23_0_OUT,
-
+    input  [23:0] LBD_23_0_IN,  //! Local Bus Data IN
+    output [23:0] LBD_23_0_OUT, //! Local Bus Data OUT
 
     // Output signals
-    output CBWRITE_n,
-    output CGNTCACT_n,
-    output DBAPR,
-
-    output [15:0] IDB_15_0_OUT
+    output        CBWRITE_n,    //! CPU Write cycle to Bus
+    output        CGNTCACT_n,   //! Combined CPU Grant/Active signal
+    output        DBAPR,        //! Data Bus Address Present
+    output [15:0] IDB_15_0_OUT  //! Internal Data Bus OUT
 );
 
   /*******************************************************************************
@@ -90,10 +87,6 @@ module BIF_DPATH_9 (
 
   wire [23:0] s_bdlbd_lbd_23_0_in;
   wire [23:0] s_bdlbd_lbd_23_0_out;
-
-
-
-
 
   wire        s_bdap50_n;
   wire        s_bdry25_n;
@@ -192,6 +185,7 @@ module BIF_DPATH_9 (
 
 
   // Or together output signals of the LBD_23_OUT from the different modules.
+  assign s_lbd_23_0_in        = LBD_23_0_IN;
   assign s_lbd_23_0_out       = s_ppnlbd_lbd_23_0_out | s_cdlbd_lbd_23_0_out | s_bdlbd_lbd_23_0_out;
 
   assign s_cdlbd_lbd_23_0_in  = s_lbd_23_0_in | s_ppnlbd_lbd_23_0_out | s_bdlbd_lbd_23_0_out;
@@ -202,70 +196,76 @@ module BIF_DPATH_9 (
    *******************************************************************************/
 
   BIF_DPATH_PPNLBD_14 PPNLBD (
+      // Inputs
       .CA_9_0(s_ca_9_0[9:0]),
       .EADR_n(s_eaddr_n),
       .ECREQ(s_ecreq),
-      .LBD_23_0_OUT(s_ppnlbd_lbd_23_0_out[23:0]),
-      .PPN_23_10(s_ppn_23_10[13:0])
+      .PPN_23_10(s_ppn_23_10[13:0]),
+
+      // Outputs
+      .LBD_23_0_OUT(s_ppnlbd_lbd_23_0_out[23:0])
   );
 
   BIF_DPATH_CDLBD_11 CDLBD (
+      // Inputs
       .CD_15_0_IN(s_cd_15_0_in[15:0]),
-      .CD_15_0_OUT(s_cd_15_0_out[15:0]),
       .DSTB_n(s_dstb_n),
       .ECREQ(s_ecreq),
       .EMD_n(s_emd_n),
       .LBD_15_0_IN(s_cdlbd_lbd_23_0_in[15:0]),
-      .LBD_15_0_OUT(s_cdlbd_lbd_23_0_out[15:0]),
-      .WLBD_n(s_wlbd_n)
+      .WLBD_n(s_wlbd_n),
+
+      // Outputs
+      .CD_15_0_OUT (s_cd_15_0_out[15:0]),
+      .LBD_15_0_OUT(s_cdlbd_lbd_23_0_out[15:0])
   );
 
   BIF_DPATH_BDLBD_10 BDLBD (
-      .BD_23_0_n_IN(s_bd_23_0_n_in[23:0]),
+      // Bus signals
+      .BD_23_0_n_IN (s_bd_23_0_n_in[23:0]),
       .BD_23_0_n_OUT(s_bd_23_0_n_out[23:0]),
-      .LBD_23_0_IN(s_bdlbd_lbd_23_0_in[23:0]),
-      .LBD_23_0_OUT(s_bdlbd_lbd_23_0_out[23:0]),
+      .LBD_23_0_IN  (s_bdlbd_lbd_23_0_in[23:0]),
+      .LBD_23_0_OUT (s_bdlbd_lbd_23_0_out[23:0]),
+
+      // Inputs
       .BGNTCACT_n(s_bgntcact_n),
       .BGNT_n(s_bgnt_n),
       .CLKBD(s_clkbd),
       .EBADR(s_ebadr),
       .EBD_n(s_ebd_n),
+
+      // Outputs
       .WBD_n(s_wbd_n)
   );
 
   BIF_DPATH_PESPEA_13 PESPEA (
+      // Inputs
       .BD_23_0_n_IN(s_bd_23_0_n_in[23:0]),
       .EPEA_n(s_epea_n),
       .EPES_n(s_epes_n),
       .FETCH(s_fetch),
       .GNT_n(s_gnt_n),
+
+      // Outputs
       .SPEA(s_spea),
       .SPES(s_spes),
       .IDB_15_0_OUT(s_idb_15_0_out[15:0])
   );
 
   BIF_DPATH_LDBCTL_12 LDBCTL (
+      // Inputs
       .BDAP50_n(s_bdap50_n),
       .BDRY25_n(s_bdry25_n),
       .BDRY50_n(s_bdry50_n),
       .BGNT50_n(s_bgnt50_n),
-      .BGNTCACT(s_bgntcact_n),
       .BGNT_n(s_bgnt_n),
       .BINPUT50_n(s_binput50_n),
       .CACT_n(s_cact_n),
-      .CBWRITE_n(s_cbwrite_n),
       .CC2_n(s_cc2_n),
       .CGNT50_n(s_cgnt50_n),
-      .CGNTCACT_n(s_cgntcact_n),
       .CGNT_n(s_cgnt_n),
       .CLKBD(s_clkbd),
-      .DBAPR(s_dbapr),
-      .DSTB_n(s_dstb_n),
-      .EADR_n(s_eaddr_n),
-      .EBADR(s_ebadr),
-      .EBD_n(s_ebd_n),
       .EBUS_n(s_ebus_n),
-      .EMD_n(s_emd_n),
       .GNT_n(s_gnt_n),
       .IBAPR_n(s_ibapr_n),
       .IOD_n(s_iod_n),
@@ -278,9 +278,20 @@ module BIF_DPATH_9 (
       .Q2_n(s_q2_n),
       .RT_n(s_rt_n),
       .TERM_n(s_term_n),
+      .WRITE(s_write),
+
+      // Outputs
+      .BGNTCACT(s_bgntcact_n),
+      .CBWRITE_n(s_cbwrite_n),
+      .CGNTCACT_n(s_cgntcact_n),
+      .DBAPR(s_dbapr),
+      .DSTB_n(s_dstb_n),
+      .EADR_n(s_eaddr_n),
+      .EBADR(s_ebadr),
+      .EBD_n(s_ebd_n),
+      .EMD_n(s_emd_n),
       .WBD_n(s_wbd_n),
-      .WLBD_n(s_wlbd_n),
-      .WRITE(s_write)
+      .WLBD_n(s_wlbd_n)
   );
 
 endmodule
