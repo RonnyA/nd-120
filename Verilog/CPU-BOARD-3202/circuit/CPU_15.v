@@ -69,6 +69,7 @@ module CPU_15 (
     input       WCHIM_n,
     input       WRFSTB,
     input       WRITE,
+    input       MREQ_n,
     input [2:0] SEL_TESTMUX,  // Selects testmux signals to output on TEST_4_0
     /*******************************************************************************
    ** The signals with IN and OUT are defined here                               **
@@ -102,6 +103,9 @@ module CPU_15 (
     output LDEXM_n,
     output ACOND_n,
     output BRK_n,
+    output IONI,
+    output RRF_n,
+    output ECCR,
 
     output LED1  // Cache enabled ?
 );
@@ -161,7 +165,7 @@ module CPU_15 (
   wire        s_map_n;
   wire        s_etrap_n;
   wire        s_wrfstb;
-  wire        s_mreq;
+  wire        s_mreq_n;
   wire        s_wchim_n;
   wire        s_lev0;
   wire        s_ibint10_n;
@@ -205,6 +209,10 @@ module CPU_15 (
   wire        s_mr_n;
   wire        s_mclk;
   wire        s_led1;
+
+
+  wire [15:0] s_cpu_cd_15_0_in;
+  wire [15:0] s_cpu_cd_15_0_out;
 
   wire [15:0] s_mmu_cd_15_0_in;
   wire [15:0] s_mmu_cd_15_0_out;
@@ -274,13 +282,18 @@ module CPU_15 (
   assign s_dvacc_n = DVACC_n;
   assign s_mr_n = MR_n;
   assign s_mclk = MCLK;
+  assign s_mreq_n = MREQ_n;
+
+  assign s_cpu_cd_15_0_in  = CD_15_0_IN;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
   assign CA_9_0 = s_ca_10_0[9:0];
-  assign CD_15_0_OUT = s_stoc_cd_15_0_out[15:0];
-  
+  assign CD_15_0_OUT = s_cpu_cd_15_0_out[15:0];
+
+
+  // OR together "z" signals to create a common bus for IDB_15_0
   assign IDB_15_0_OUT =
       s_proc_IDB_15_0_out[15:0] |
       s_cs_IDB_15_0_out[15:0]   |
@@ -297,12 +310,17 @@ module CPU_15 (
     s_mmu_idb_15_0_out[15:0]  |
     IDB_15_0_IN[15:0];
 
-  assign s_proc_cd_15_0_in = s_stoc_cd_15_0_out| s_mmu_cd_15_0_out;
-  assign s_mmu_cd_15_0_in = s_stoc_cd_15_0_out;
-
   assign s_cs_IDB_15_0_in = s_proc_IDB_15_0_out[15:0] | s_mmu_idb_15_0_out[15:0] | IDB_15_0_IN;
 
+  // OR together "z" signals to create a common bus for CD_15_0
+  assign s_proc_cd_15_0_in = s_stoc_cd_15_0_out| s_mmu_cd_15_0_out | s_cpu_cd_15_0_in;
+  assign s_mmu_cd_15_0_in = s_stoc_cd_15_0_out | s_cpu_cd_15_0_in;
 
+
+  assign s_cpu_cd_15_0_out = s_stoc_cd_15_0_out | s_mmu_cd_15_0_out;
+  assign s_cpu_cd_15_0_out = s_cpu_cd_15_0_out;
+
+  // other signals
   assign LBA_3_0 = s_lba_3_0[3:0];
   assign LSHADOW = s_lshadow;
   assign LUA_12_0 = s_lua_12_0[12:0];
@@ -318,6 +336,9 @@ module CPU_15 (
   assign VEX = s_vex;
   assign ACOND_n = s_acond_n;
   assign BRK_n = s_brk_n;
+  assign IONI = s_ioni;
+  assign RRF_n = s_rrf_n;
+  assign ECCR  = s_eccr;
 
   assign LED1 = s_led1;
 
@@ -356,7 +377,7 @@ module CPU_15 (
       .CUP(s_cup),
       .CWR(s_cwr),
       .DOUBLE(s_double),
-      .ECCR(s_eccr),  //TODO: connected to?
+      .ECCR(s_eccr),  //Output 
       .ESTOF_n(s_estof_n),
       .ETRAP_n(s_etrap_n),
       .EWCA_n(s_ewca_n),
@@ -367,7 +388,7 @@ module CPU_15 (
       .IBINT15_n(s_ibint15_n),
       .IDB_15_0_IN(s_proc_IDB_15_0_in[15:0]),
       .IDB_15_0_OUT(s_proc_IDB_15_0_out[15:0]),
-      .IONI(s_ioni),  //TODO: not connected?
+      .IONI(s_ioni),  //Output
       .IOXERR_n(s_ioxerr_n),
       .LA_23_10(s_la_23_10[13:0]),
       .LBA_3_0(s_lba_3_0[3:0]),
@@ -377,7 +398,7 @@ module CPU_15 (
       .MAP_n(s_map_n),
       .MCLK(s_mclk),
       .MOR_n(s_mor_n),
-      .MREQ_n(s_mreq),  //TODO: not connected to anything?
+      .MREQ_n(s_mreq_n),  //Input 
       .MR_n(s_mr_n),
       .OPCLCS(s_opclcs),
       .PAN_n(s_pan_n),
@@ -389,7 +410,7 @@ module CPU_15 (
       .POWFAIL_n(s_powfail_n),
       .PT_15_9(s_pt_15_0[15:9]),
       .RF_1_0(s_rf_1_0[1:0]),
-      .RRF_n(s_rrf_n),  //TODO: not connected to anything?
+      .RRF_n(s_rrf_n),  //Output
       .RT_n(s_rt_n),
       .RWCS_n(s_rwcs_n),
       .TERM_n(s_term_n),
