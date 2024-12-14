@@ -11,7 +11,7 @@
 **                                                                       **
 ** TOP LEVEL FOR FPGA IMPLEMENTATION                                     **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -22,15 +22,17 @@
 //! TOP LEVEL FOR FPGA IMPLEMENTATION OF ND-3202D CPU BOARD
 
 module ND120_TOP (
-    input  wire       sysclk,  //! System Clock
-    input  wire       btn1,    //! Button 1, mapped to S1 (not labeled) on the board - connected to sys_rst_n
-    input  wire       btn2,    //! Button 2, mapped to S2 (not labeled) on the board
-    output wire [5:0] led,     //! 6-bit output for controlling LEDs
-    input  wire       uartRx,  //! UART Receive pin
-    output wire       uartTx   //! UART Transmit pin
+    input wire sysclk,    //! System Clock
+    input wire btn1,      //! Button 1, mapped to S1 (not labeled) on the board - connected to sys_rst_n
+    input wire btn2,      //! Button 2, mapped to S2 (not labeled) on the board
+    input wire uartRx,    //! UART Receive pin
+
+    // Outputs
+    output wire uartTx,    //! UART Transmit pin
+    output wire [5:0] led  //! 6-bit output for controlling LEDs
 );
 
-  //TODO: Add signals for BUS interface
+  //TODO: Add signals for BUS-C interface on module input and output (to connect to peripherals as tape-reader)
 
   // helpers
   wire s_high;
@@ -90,42 +92,42 @@ module ND120_TOP (
       .CLOCK_2(clk1),  // XTAL2 = 35 MHZ (for slow operations?)
 
       // Signal from C-PLUG
-      .LOAD_n(s_high),
-      .BREQ_n(s_high),
-      .CONTINUE_n(s_high),
-      .STOP_n(s_high),
+      .LOAD_n(s_high),  //! Load button
+      .BREQ_n(s_high),  //! Bus Request
+      .CONTINUE_n(s_high),  //! Continue button
+      .STOP_n(s_high),  //! Stop button
 
-      .BINT10_n(1'b1),
-      .BINT11_n(1'b1),
-      .BINT12_n(1'b1),
-      .BINT13_n(1'b1),
-      .BINT15_n(1'b1),
+      .BINT10_n(1'b1),  //! Bus Interrupt 10
+      .BINT11_n(1'b1),  //! Bus Interrupt 11
+      .BINT12_n(1'b1),  //! Bus Interrupt 12
+      .BINT13_n(1'b1),  //! Bus Interrupt 13
+      .BINT15_n(1'b1),  //! Bus Interrupt 15
 
-      .POWSENSE_n(s_high),
+      .POWSENSE_n(s_high),  //! Power Sense
 
       // Signals from A-PLUG
-      .OSCCL_n(s_high),
-      .OC_1_0(oc_select),
-      .XTR(s_low),
-      .LOCK_n(s_high),
-      .CONSOLE_n(s_high),
-      .SWMCL_n(s_high),
-      .EAUTO_n(s_high),
-      .RXD(uartRx),
+      .OSCCL_n  (s_high),     //! Oscillator Clock
+      .OC_1_0   (oc_select),  //! Oscillator Clock Select
+      .XTR      (s_low),      //! External Transmit/Receive Clock (not used)
+      .LOCK_n   (s_high),     //! Lock signal (fromn key)
+      .CONSOLE_n(s_high),     //! Console signal (from key)
+      .SWMCL_n  (s_high),     //! Software Master Clear (MCL)
+      .EAUTO_n  (s_high),     //! External Auto
+      .RXD      (uartRx),     //! UART Receive
 
       /* Configuration switches */
-      .SW1_CONSOLE(s_high),
-      .SEL_TESTMUX(s_SEL_TESTMUX),
-      .BAUD_RATE_SWITCH(s_baud_rate_switch),  // 4 bits
+      .SW1_CONSOLE     (s_high),             //! Console switch
+      .SEL_TESTMUX     (s_SEL_TESTMUX),      //! Test MUX (select signals to test pads)
+      .BAUD_RATE_SWITCH(s_baud_rate_switch), //! Baud rate switch
 
       // outputs
-      .CSBITS(s_csbits),
-      .DP_5_1_n(s_dp_5_1_n),
-      .RUN_n(s_run),
-      .TEST_4_0(s_test_4_0),
-      .TP1_INTRQ_n(s_tp1_intrq_n),
-      .TXD(uartTx),
-      .LED(s_cpu_led[5:0])  // 6 bit LED signals
+      .CSBITS     (s_csbits),       //! Microcode CPU BITS
+      .DP_5_1_n   (s_dp_5_1_n),     //! Data Path 5-1
+      .RUN_n      (s_run),          //! Run
+      .TEST_4_0   (s_test_4_0),     //! Test pads
+      .TP1_INTRQ_n(s_tp1_intrq_n),  //! TP1 Interrupt
+      .TXD        (uartTx),         //! UART Transmit
+      .LED        (s_cpu_led[5:0])  //! 6 bit LED signals
   );
 
 endmodule
