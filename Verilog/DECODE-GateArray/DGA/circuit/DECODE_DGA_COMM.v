@@ -14,53 +14,53 @@
 ***************************************************************************/
 
 module DECODE_DGA_COMM (
-    input       BRKN,
-    input       CLEAR,
-    input       CLK1,
-    input       CLK2,
-    input       CLK3,
-    input [4:0] CSCOMM_4_0,
-    input [1:0] CSMIS_1_0,
-    input       DAPN,
-    input       EORFN,
-    input       HITN,
-    input       IDBI2,
-    input       IDBI5,
-    input       IDBI7,
-    input       LCSN,
-    input       LSHADOW,
-    input       PONI,
-    input       UCLK,
+    input       BRKN,         //! Break signal
+    input       CLEAR,        //! Clear signal
+    input       CLK1,         //! Clock input 1
+    input       CLK2,         //! Clock input 2
+    input       CLK3,         //! Clock input 3
+    input [4:0] CSCOMM_4_0,   //! Microcode Command 4:0
+    input [1:0] CSMIS_1_0,    //! Microcode Misc signal 1:0
+    input       DAPN,         //! Data Address
+    input       EORFN,        //! Enable Output Register
+    input       HITN,         //! Cache Hit
+    input       IDBI2,        //! Internal data bus input bit 2
+    input       IDBI5,        //! Internal data bus input bit 5
+    input       IDBI7,        //! Internal data bus input bit 7
+    input       LCSN,         //! Load Control Store
+    input       LSHADOW,      //! Load shadow
+    input       PONI,         //! Memory Management On
+    input       UCLK,         //! U clock
 
-    output CA10,
-    output CCLRN,
-    output CEUARTN,
-    output CLRTIN,
-    output DTN,
-    output DVACCN,
-    output ECREQ,
-    output EMCLN,
-    output EMPIDN,
-    output ESTOFN,
-    output FETCH,
-    output FMISS,
-    output FORMN,
-    output IORQN,
-    output LDPANCN,
-    output LHIT,
-    output MREQ,
-    output RESET,
-    output RTN,
-    output RWCSN,
-    output SHORTN,
-    output SIOCN,
-    output SLOWN,
-    output SSEMAN,
-    output SSTOPN,
-    output STARTN,
-    output STOCN,
-    output WCHIMN,
-    output WRITE
+    output CA10,         //! Control Store address bit 10
+    output CCLRN,        //! Cache Clear
+    output CEUARTN,      //! Enable UART
+    output CLRTIN,       //! Clear Real Time Clock
+    output DTN,          //! Data Transfer
+    output DVACCN,       //! Data Valid
+    output ECREQ,        //! Enable CPU Request
+    output EMCLN,        //! Enable Master Clear    
+    output EMPIDN,       //! Enable MPID - Set bits in the micro—P10 (Priority Interrupt Detect) register in the PIC. Command #12
+    output ESTOFN,       //! Enable Store Overflow
+    output FETCH,        //! Fetch cycle active
+    output FMISS,        //! Cache miss during fetch
+    output FORMN,        //! Form number
+    output IORQN,        //! I/O Request
+    output LDPANCN,      //! Load Panel Control
+    output LHIT,         //! Load Hit
+    output MREQ,         //! Memory Request
+    output RESET,        //! Reset signal
+    output RTN,          //! Return
+    output RWCSN,        //! Read Write Control Store
+    output SHORTN,       //! Short cycle active
+    output SIOCN,        //! Serial I/O Control
+    output SLOWN,        //! Slow cycle active
+    output SSEMAN,       //! Serial Semaphore
+    output SSTOPN,       //! Set Stop Flip-Flop
+    output STARTN,       //! Start signal
+    output STOCN,        //! Stop signal
+    output WCHIMN,       //! Write Cache Miss
+    output WRITE         //! Write Cycle Active
 );
 
   /*******************************************************************************
@@ -71,7 +71,7 @@ module DECODE_DGA_COMM (
 
   wire       a_a237_nand_out;
   wire       s_208_y;
-  wire       s_a140_q3;
+  wire       s_rt;
   wire       s_a141_nand_out;
   wire       s_a142_nand_out;
   wire       s_a143_nand_out;
@@ -79,13 +79,13 @@ module DECODE_DGA_COMM (
   wire       s_a145_nand_out;
   wire       s_a147_nand_out;
   wire       s_a148_nand_out;
-  wire       s_a149_nand_out;
+  wire       s_irt;
   wire       s_a150_nand_out;
   wire       s_a152_nand_out;
   wire       s_a153_nand_out;
   wire       s_a155_nand_out;
   wire       s_a156_nand_out;
-  wire       s_a158_nand_out;
+  wire       s_dt;
   wire       s_a162_nand_out;
   wire       s_a166_nand_out;
   wire       s_a167_nand_out;
@@ -352,7 +352,7 @@ module DECODE_DGA_COMM (
       .input4(s_a152_nand_out),
       .input5(s_a150_nand_out),
       .input6(s_a155_nand_out),
-      .result(s_a149_nand_out)
+      .result(s_irt)
   );
 
   NAND_GATE_5_INPUTS #(
@@ -443,7 +443,7 @@ module DECODE_DGA_COMM (
       .input1(s_a147_nand_out),
       .input2(s_a141_nand_out),
       .input3(s_a145_nand_out),
-      .result(s_a158_nand_out)
+      .result(s_dt)
   );
 
   NAND_GATE_6_INPUTS #(
@@ -542,14 +542,14 @@ module DECODE_DGA_COMM (
       .BubblesMask(2'b00)
   ) A246 (
       .input1(s_lshadow),
-      .input2(s_a140_q3),
+      .input2(s_rt),
       .result(s_estof_n)
   );
 
   NAND_GATE_3_INPUTS #(
       .BubblesMask(3'b000)
   ) A233 (
-      .input1(s_a140_q3),
+      .input1(s_rt),
       .input2(s_hit_n),
       .input3(s_a242_and_out),
       .result(s_a233_nand_out)
@@ -574,7 +574,7 @@ module DECODE_DGA_COMM (
   NAND_GATE #(
       .BubblesMask(2'b00)
   ) A245 (
-      .input1(s_a140_q3),
+      .input1(s_rt),
       .input2(s_lshadow_n),
       .result(s_a245_nand_out)
   );
@@ -1070,12 +1070,12 @@ module DECODE_DGA_COMM (
       .C_H05  (s_clk2),
       .D0_H01 (s_a162_nand_out),
       .D1_H02 (s_vcc),
-      .D2_H03 (s_a158_nand_out),
-      .D3_H04 (s_a149_nand_out),
+      .D2_H03 (s_dt),
+      .D3_H04 (s_irt),
       .N01_Q0 (s_fetch),
       .N02_Q1 (),
       .N03_Q2 (),
-      .N04_Q3 (s_a140_q3),
+      .N04_Q3 (s_rt),
       .N05_Q0B(),
       .N06_Q1B(),
       .N07_Q2B(s_dt_n),
@@ -1096,7 +1096,7 @@ module DECODE_DGA_COMM (
   );
 
   F571 A236 (
-      .A(s_a140_q3),
+      .A(s_rt),
       .D0(s_lhit_n),
       .D1(s_hit_n),
       .ENB_N(s_gnd),
