@@ -89,7 +89,7 @@ A_OUT:
 
   // s_sba = 0 => Real Time B to A
   // s_sba = 1 => Register  B to A
-  assign A_OUT_n = !s_oe_n ? 8'b0 : !s_dir ? ((!s_sba) ? ~b_in_n : regB) : 8'b0;
+  assign A_OUT_n = !s_oe_n ? 8'b0 : !s_dir ? ((!s_sba) ? ~b_in_n : ~regB) : 8'b0;
 
 
   /*
@@ -105,6 +105,6 @@ B_OUT:
 
   // s_sab = 0 => Real Time A to B
   // s_sab = 1 => Register  A to B
-  assign B_OUT_n = !s_oe_n ? 8'b0 : s_dir ? ((!s_sab) ? ~a_in_n : regA) : 8'b0;
+  assign B_OUT_n = !s_oe_n ? 8'b0 : s_dir ? ((!s_sab) ? ~a_in_n : ~regA) : 8'b0;
 
 endmodule
