@@ -6,9 +6,12 @@
  ** (None inverting)                                                         **
  **                                                                          **
  ** DOC: https://www.ti.com/lit/ds/symlink/sn54as646.pdf                     **
+**                                                                           **
+ ** Last reviewed: 14-DEC-2024                                               **
+ ** Ronny Hansen                                                             **
  *****************************************************************************/
 
-module TTL_74646( 
+module TTL_74646(
    input[7:0] A_IN,
    input[7:0] B_IN,
    input CLKAB,
@@ -58,17 +61,33 @@ module TTL_74646(
    reg [7:0] regA;
    reg [7:0] regB;
 
+   reg [7:0] regA_Delayed;
+   reg [7:0] regB_Delayed;
+
+
+   always@(A_IN)
+   begin
+      regA_Delayed <= A_IN;
+   end
+
+   always@(B_IN, SBA)
+   begin
+      regB_Delayed <= B_IN;
+   end
+
    always @(posedge s_clkab )
    begin
-      regA <= A_IN;
+      //regA <= A_IN; //Capture directly input signal
+      regA <= regA_Delayed; //Capture delayed input signal
    end
 
    always @(posedge s_clkba )
    begin
-      regB <= B_IN;
+      //regB <= B_IN;  //Capture directly input signal
+      regB <= regB_Delayed; //Capture delayed input signal
    end
 
-   
+
 /*
 A_OUT:
    If OE_n is not active (low), the output is 0.
@@ -78,11 +97,11 @@ A_OUT:
       If SBA is 1, A_OUT gets stored data from regB.
 
 */
-   // sdir = 0 => B => A   
+   // sdir = 0 => B => A
 
    // s_sba = 0 => Real Time B to A
    // s_sba = 1 => Register  B to A
-   assign A_OUT = !s_oe_n ? 8'b0 : !s_dir ?  ((!s_sba) ? B_IN : regB) : 8'b0;
+   assign A_OUT = s_oe_n ? 8'b0 : !s_dir ?  ((!s_sba) ? B_IN : regB) : 8'b0;
    
 
 /*
@@ -98,6 +117,6 @@ B_OUT:
 
    // s_sab = 0 => Real Time A to B
    // s_sab = 1 => Register  A to B
-   assign B_OUT = !s_oe_n ? 8'b0 : s_dir ?  ((!s_sab) ? A_IN : regA) : 8'b0;
+   assign B_OUT = s_oe_n ? 8'b0 : s_dir ?  ((!s_sab) ? A_IN : regA) : 8'b0;
 
 endmodule
