@@ -6,24 +6,27 @@
 ** Page 29                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module CGA_MAC_ADD (
-    input [15:0] BR_15_0,
-    input        CDS,
-    input [15:0] CD_15_0,
-    input [15:0] LCA_15_0,
-    input        PB,
-    input        PLCA,
-    input        PRB,
-    input        PX,
-    input [15:0] RB_15_0,
-    input [15:0] XR_15_0,
+    input [15:0] BR_15_0,   //! B register from ALU
+    input [15:0] RB_15_0,   //! Microcode Register B
+    input [15:0] XR_15_0,   //! X register from ALU
+    input [15:0] LCA_15_0,  //! ALU Load Control Address
+
+    input        PB,        //! Select ALU register B
+    input        PRB,       //! Select Microcode register B
+    input        PX,        //! Select ALU register X
+    input        PLCA,      //! Select ALU Load Control Address
 
 
-    output [15:0] ADD_15_0
+    // Special: Add CD if PLCA is low
+    input [15:0] CD_15_0,   //! CPU data added to the selected register
+    input        CDS,       //! If false all 16 bits of CD is added. If false, only the low 8 bits are added.
+
+    output [15:0] ADD_15_0  //! MAC Addition result
 );
 
   /*******************************************************************************
@@ -38,18 +41,20 @@ module CGA_MAC_ADD (
   wire [15:0] s_add_15_0_out;
   wire [15:0] s_br_15_0;
   wire [15:0] s_prp_15_0;
+
   wire        s_cd_2;
   wire        s_cds_n;
-  wire        s_cds_nand_cd7;
   wire        s_cds;
+  wire        s_cde_enable;
+  wire        s_cdsn_nand_cd8;
+  wire        s_cdsn_nand_cd9;
   wire        s_cdsn_nand_cd10;
   wire        s_cdsn_nand_cd11;
   wire        s_cdsn_nand_cd12;
   wire        s_cdsn_nand_cd13;
   wire        s_cdsn_nand_cd14;
   wire        s_cdsn_nand_cd15;
-  wire        s_cdsn_nand_cd8;
-  wire        s_cdsn_nand_cd9; 
+
   wire        s_pb;
   wire        s_plca;
   wire        s_prb;
@@ -254,7 +259,7 @@ module CGA_MAC_ADD (
   ) GATES_17 (
       .input1(s_cd_15_0[7]),
       .input2(s_cds),
-      .result(s_cds_nand_cd7)
+      .result(s_cde_enable)
   );
 
 
@@ -328,7 +333,7 @@ module CGA_MAC_ADD (
       .BubblesMask(2'b00)
   ) GATES_27 (
       .input1(s_cdsn_nand_cd8),
-      .input2(s_cds_nand_cd7),
+      .input2(s_cde_enable),
       .result(s_cde_15_8[0])
   );
 
@@ -336,7 +341,7 @@ module CGA_MAC_ADD (
       .BubblesMask(2'b00)
   ) GATES_28 (
       .input1(s_cdsn_nand_cd9),
-      .input2(s_cds_nand_cd7),
+      .input2(s_cde_enable),
       .result(s_cde_15_8[1])
   );
 
@@ -344,7 +349,7 @@ module CGA_MAC_ADD (
       .BubblesMask(2'b00)
   ) GATES_29 (
       .input1(s_cdsn_nand_cd10),
-      .input2(s_cds_nand_cd7),
+      .input2(s_cde_enable),
       .result(s_cde_15_8[2])
   );
 
@@ -352,7 +357,7 @@ module CGA_MAC_ADD (
       .BubblesMask(2'b00)
   ) GATES_30 (
       .input1(s_cdsn_nand_cd11),
-      .input2(s_cds_nand_cd7),
+      .input2(s_cde_enable),
       .result(s_cde_15_8[3])
   );
 
@@ -360,7 +365,7 @@ module CGA_MAC_ADD (
       .BubblesMask(2'b00)
   ) GATES_31 (
       .input1(s_cdsn_nand_cd12),
-      .input2(s_cds_nand_cd7),
+      .input2(s_cde_enable),
       .result(s_cde_15_8[4])
   );
 
@@ -368,7 +373,7 @@ module CGA_MAC_ADD (
       .BubblesMask(2'b00)
   ) GATES_32 (
       .input1(s_cdsn_nand_cd13),
-      .input2(s_cds_nand_cd7),
+      .input2(s_cde_enable),
       .result(s_cde_15_8[5])
   );
 
@@ -376,7 +381,7 @@ module CGA_MAC_ADD (
       .BubblesMask(2'b00)
   ) GATES_33 (
       .input1(s_cdsn_nand_cd14),
-      .input2(s_cds_nand_cd7),
+      .input2(s_cde_enable),
       .result(s_cde_15_8[6])
   );
 
@@ -384,7 +389,7 @@ module CGA_MAC_ADD (
       .BubblesMask(2'b00)
   ) GATES_34 (
       .input1(s_cdsn_nand_cd15),
-      .input2(s_cds_nand_cd7),
+      .input2(s_cde_enable),
       .result(s_cde_15_8[7])
   );
 
