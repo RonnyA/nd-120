@@ -1,0 +1,1 @@
+yosys -s nd-120.ys -v 3 --trace --debug
