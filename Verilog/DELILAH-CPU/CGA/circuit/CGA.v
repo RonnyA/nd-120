@@ -6,15 +6,16 @@
 ** Page 2-9                                                              **
 ** SHEET 1 of 8                                                          **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module CGA (
+    // System input signals
     input sysclk,    // System clock in FPGA
     input sys_rst_n, // System reset in FPGA
 
-    // Input signals
+    // Control and data inputs
     input        XALUCLK,
     input        XBINT10N,
     input        XBINT11N,
@@ -61,13 +62,10 @@ module CGA (
     input        XTCLK,
     input [ 2:0] XTSEL_2_0,
     input        XVTRAPN,
+    input [15:0] XFIDB_15_0_IN,
 
 
-    // Input and output signals connected to BUS Driver
-    input  [15:0] XFIDB_15_0_IN,
-    output [15:0] XFIDB_15_0_OUT,
-
-    // Output signals
+    // Control and data outputs
     output        XACONDN,
     output        XBRKN,
     output        XDOUBLE,
@@ -88,7 +86,8 @@ module CGA (
     output [ 4:0] XTEST_4_0,
     output        XTRAPN,
     output        XWCSN,
-    output        XWRTRF
+    output        XWRTRF,
+    output [15:0] XFIDB_15_0_OUT
 );
 
 
@@ -319,7 +318,7 @@ module CGA (
   /*******************************************************************************
    ** Here all wiring is defined                                                 **
    *******************************************************************************/
-  assign s_cd_15_0[15:0]        = sx_cd_15_0[15:0];
+  assign s_cd_15_0[15:0]     = sx_cd_15_0[15:0];
 
   assign s_csalui_8_0[0]     = s_csalui0;
   assign s_csalui_8_0[1]     = s_csalui1;
@@ -612,13 +611,13 @@ module CGA (
 
   BusDriver16 BD_FIDBO (
       .EN(sx_edo_n),  // Enable = FALSE => A to IO, Enable=TRUE => IO to A
-      .TN(sx_ptst_n),  // Test enable when LOW
+      .TN(sx_ptst_n), // Test enable when LOW
 
-      .A_15_0_IN(s_FIDBO_15_0),    // Data inputA (Connect to internal FIDBO data bus))
-      .A_15_0_OUT(s_xfidbi_15_0),  // A output  (Connect to internal XFIDBI data bus)
+      .A_15_0_IN (s_FIDBO_15_0),  // Data inputA (Connect to internal FIDBO data bus))
+      .A_15_0_OUT(s_xfidbi_15_0), // A output  (Connect to internal XFIDBI data bus)
 
-      .IO_15_0_IN(XFIDB_15_0_IN),    // IN from XFIDB data bus (Connect to EXTERNAL _XFIDB_ data bus)
-      .IO_15_0_OUT(XFIDB_15_0_OUT)   // Out to XFIDB data bus (Connect to EXTERNAL _XFIDB_ data bus)
+      .IO_15_0_IN(XFIDB_15_0_IN),  // IN from XFIDB data bus (Connect to EXTERNAL _XFIDB_ data bus)
+      .IO_15_0_OUT(XFIDB_15_0_OUT)  // Out to XFIDB data bus (Connect to EXTERNAL _XFIDB_ data bus)
   );
 
 
@@ -801,29 +800,35 @@ module CGA (
   );
 
   CGA_MAC MAC (
-      .BR_15_0(s_br_15_0[15:0]),
-      .CD_15_0(s_cd_15_0[15:0]),
-      .CMIS_1_0(s_csmis_1_0[1:0]),
-      .CSCOMM_4_0(s_cscomm_4_0[4:0]),
-      .CSMREQ(s_csmreq),
-      .DOUBLE(sx_double_out),
-      .ECCR(sx_eccr_out),
-      .FIDBO_15_0(s_mac_IDB_15_0_IN[15:0]),
-      .ILCSN(sx_ilcs_n),
-      .LA_23_10(sx_la_23_10_out[13:0]),
-      .LSHADOW(sx_lshadow_out),
-      .MCA_9_0(sx_mca_9_0_out[9:0]),
-      .MCLK(sx_mclk),
-      .NLCA_15_0(s_nlca_15_0[15:0]),
-      .PCR_15_0(s_pcr_15_0[15:0]),
-      .PONI(sx_poni_out),
-      .PR_15_0(s_pr_15_0[15:0]),
-      .PTM(s_ptm),
-      .RB_15_0(s_rb_15_0[15:0]),
-      .VEX(s_vex),
-      .WR3(s_wr3),
-      .WR7(s_wr7),
-      .XR_15_0(s_xr_15_0[15:0])
+
+      // MAC Module port grouping
+
+      // Inputs
+      .MCLK      (sx_mclk),                  // Clock input
+      .CD_15_0   (s_cd_15_0[15:0]),          // 16-bit cpu-data input
+      .CMIS_1_0  (s_csmis_1_0[1:0]),         // 2-bit misc control input
+      .CSCOMM_4_0(s_cscomm_4_0[4:0]),        // 5-bit command input
+      .CSMREQ    (s_csmreq),                 // Control signal input
+      .DOUBLE    (sx_double_out),            // Double word flag input
+      .FIDBO_15_0(s_mac_IDB_15_0_IN[15:0]),  // 16-bit IDB input
+      .ILCSN     (sx_ilcs_n),                // Load Control Store
+      .LSHADOW   (sx_lshadow_out),           // Load Shadow
+      .PCR_15_0  (s_pcr_15_0[15:0]),         // 16-bit PCR input
+      .PONI      (sx_poni_out),              // Memoy Management on Flag
+      .PR_15_0   (s_pr_15_0[15:0]),          // 16-bit PR input
+      .PTM       (s_ptm),                    // Page Table Flag
+      .VEX       (s_vex),                    // Vector exception input
+      .WR3       (s_wr3),                    // Write control 3 input
+      .WR7       (s_wr7),                    // Write control 7 input
+
+      // Outputs
+      .BR_15_0  (s_br_15_0[15:0]),        // 16-bit B-register output
+      .ECCR     (sx_eccr_out),            // ECC result output
+      .LA_23_10 (sx_la_23_10_out[13:0]),  // 14-bit address output
+      .MCA_9_0  (sx_mca_9_0_out[9:0]),    // 10-bit MCA output
+      .NLCA_15_0(s_nlca_15_0[15:0]),      // 16-bit NLCA output
+      .RB_15_0  (s_rb_15_0[15:0]),        // 16-bit RB
+      .XR_15_0  (s_xr_15_0[15:0])         // 16-bit X-register output
   );
 
   CGA_MIC MIC (
