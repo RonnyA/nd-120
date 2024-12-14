@@ -4,20 +4,20 @@
 ** MEM ADDR MUX                                                          **
 ** SHEET 44 of 50                                                        **
 **                                                                       **
-** Last reviewed: 11-NOV-2024                                            **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module MEM_ADDR_44 (
-    input [19:0] LBD_19_0,  //! LBD  20 bits (including parity 2 bits)
+    // Input
+    input [19:0] LBD_19_0,  //! Local Bus Address and Data - 20 bits (including parity 2 bits)
+    input BCGNT50,          //! Bus cycle grant 50ns delayed CLOCK signal to latch LOW or HIGH bits from memory to AA_9_0
+    input LOEN_n,           //! Low address bits enable
+    input HIEN_n,           //! High address bits enable
+    input PD4,              //! Power down 4
 
-    input BCGNT50, //! Bus cycle grant 50ns delayed CLOCK signal to latch LOW or HIGH bits from memory to AA_9_0
-    input LOEN_n,  //! LOEN_n - Low address bits enable (active low)
-    input HIEN_n,  //! HIEN_n - High address bits enable (active low)
-
-    input PD4,  //! PD4 - Always true
-
-    output [9:0] AA_9_0  //! Output - 10 bits of LBD (including parity in bit 10)- 10 but input to MEM/RAM
+    // Output signals
+    output [9:0] AA_9_0     //! 10 bits of LBD (including parity in bit 10)- 10 bit input to MEM/RAM
 );
 
 
@@ -48,8 +48,15 @@ module MEM_ADDR_44 (
   assign s_loen_n    = LOEN_n;
   assign s_pd4       = PD4;
 
-  assign s_lbd_lo_in = {LBD_19_0[18], LBD_19_0[8:0]};
-  assign s_lbd_hi_in = {LBD_19_0[19], LBD_19_0[17:9]};
+  // Original code did split the LBD a strang way on bit 18 and 19
+  // Unknow why..
+  //assign s_lbd_lo_in = {LBD_19_0[18], LBD_19_0[8:0]};
+  //assign s_lbd_hi_in = {LBD_19_0[19], LBD_19_0[17:9]};
+
+  // But here we use the 20-bit address as it is
+  assign s_lbd_lo_in = LBD_19_0[9:0];
+  assign s_lbd_hi_in = LBD_19_0[19:10];
+
   assign s_data_10   = s_lbd_lo_out | s_lbd_hi_out;
 
   /*******************************************************************************
