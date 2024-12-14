@@ -4,7 +4,7 @@
 ** IOC, ALD & INR REGS                                                   **
 ** SHEET 41 of 50                                                        **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module IO_REG_41 (
@@ -130,7 +130,7 @@ module IO_REG_41 (
 
 
   // Constant for ALD settings. ALD boot switch
-  assign s_ALD[3:0] = 4'b0101;  // 1111 == ALD boot switch for
+  assign s_ALD[3:0] = 4'b0100;  //  0100 (4) == ALD boot switch for 400 (paper tape reader).
 
 
 
