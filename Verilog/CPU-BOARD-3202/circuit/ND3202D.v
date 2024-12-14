@@ -8,6 +8,7 @@
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
+// Onboard 4MB RAM (controlled by PAL 44446B)
 
 module ND3202D (
     input sysclk,    // System clock in FPGA
@@ -51,8 +52,8 @@ module ND3202D (
     //
 
     /* Configuration switches */
-    input       SW1_CONSOLE,      // Switch on the console (on/off)
-    input [2:0] SEL_TESTMUX,      // Selects testmux signals to output on TEST_4_0
+    input SW1_CONSOLE,  // Switch on the console (on/off)
+    input [2:0] SEL_TESTMUX,  // Selects testmux signals to output on TEST_4_0
     input [3:0] BAUD_RATE_SWITCH, // TH2 - 'BAUD RATE CONTROL' Switch on the PCB to select baudrate
 
     /*******************************************************************************
@@ -107,7 +108,7 @@ LED7 (yellow)  - Bus grant
   wire [ 4:0] s_ppn_23_19;
   wire [ 4:0] s_test_4_0;
 
-  wire [ 7:0] s_inr_7_0; //! INR signals from CONNECTOR B.
+  wire [ 7:0] s_inr_7_0;  //! INR signals from CONNECTOR B.
 
   wire [ 8:0] s_csalui_8_0;
 
@@ -155,7 +156,7 @@ LED7 (yellow)  - Bus grant
 
 
   // Wires!
-  wire        s_acond_n; //! Output from CGA_MIC_CONDREG. CGA.XACONDN
+  wire        s_acond_n;  //! Output from CGA_MIC_CONDREG. CGA.XACONDN
   wire        s_aluclk;
   wire        s_bapr_n;
   wire        s_bdap_n;
@@ -200,9 +201,6 @@ LED7 (yellow)  - Bus grant
   wire        s_ebus_n;
   wire        s_eccr;
   wire        s_ecreq;
-  wire        s_ecrq_n;
-  wire        s_ecrq_n5;
-  wire        s_ecrq_n9;
   wire        s_ecsr_n;
   wire        s_edo_n;
   wire        s_emcl_n;
@@ -273,7 +271,6 @@ LED7 (yellow)  - Bus grant
   wire        s_powsense_n;
   wire        s_ps_n;
   wire        s_ref_n;
-  wire        s_refreq_n;
   wire        s_refrq_n;
   wire        s_rerr_n;
   wire        s_rp1_intrq_n;
@@ -382,7 +379,7 @@ LED7 (yellow)  - Bus grant
 
 
   //TODO: // assign s_bif_bd_23_0_n_in = ??
-  assign s_ram_bd_23_19_n[4:0] = s_bif_bd_23_0_n_out[23:19]; // for address decoding 
+  assign s_ram_bd_23_19_n[4:0] = s_bif_bd_23_0_n_out[23:19];  // for address decoding 
 
   // Buffer
   assign s_run_n = s_stp;
@@ -400,7 +397,7 @@ LED7 (yellow)  - Bus grant
   // Power sense
   assign s_powsense_n = POWSENSE_n;
 
-  assign s_inr_7_0 = 8'b0; 
+  assign s_inr_7_0 = 8'b0;
 
   // Or together the BIF and MEM bdry signals. Since they are negated we must first negate them to get the correct meaning
   // assign s_bdry_n = ~(~s_bif_bdry_n | ~s_mem_bdry_n);
@@ -417,11 +414,10 @@ LED7 (yellow)  - Bus grant
       .sysclk   (sysclk),    // System clock in FPGA
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
+      // INPUTS
       .ACOND_n(s_acond_n),
-      .ALUCLK(s_aluclk),
       .BRK_n(s_brk_n),
       .CC_3_1_n(s_cc_3_1_n[2:0]),
-      .CGNTCACT_n(s_cgntcact_n),  // Goes to PAL 44601 (output from PAL 44302B -LBC1 - 11D)
       .CLK(s_clk),
       .CSALUI7(s_csalui_8_0[7]),
       .CSALUI8(s_csalui_8_0[8]),
@@ -432,9 +428,7 @@ LED7 (yellow)  - Bus grant
       .CSECOND(s_csbits[23]),
       .CSLOOP(s_csbits[22]),
       .CX_n(s_cx_n),
-      .CYD(s_cyd),
       .EORF_n(s_eorf_n),
-      .ETRAP_n(s_etrap_n), // output
       .FORM_n(s_form_n),
       .HIT(s_hit),
       .IORQ_n(s_iorq_n),
@@ -444,37 +438,43 @@ LED7 (yellow)  - Bus grant
       .LCS_n(s_lcs_n),
       .LSHADOW(s_lshadow),
       .LUA12(s_lua12),
-      .MACLK(s_maclk),
       .MAP_n(s_map_n),
-      .MCLK(s_mclk),
-      .MREQ_n(s_mreq_n), // Input
-      .MR_n(s_mr_n),
+      .MREQ_n(s_mreq_n),  // Input
       .OSC(s_osc),
       .PD1(s_pd1),
       .PD4(s_pd4),
-      .RRF_n(s_rrf_n),
       .RT_n(s_rt_n),
       .RWCS_n(s_rwcs_n),
       .SHORT_n(s_short_n),
-      .SLOW_n(s_slow_n),
-      .TERM_n(s_term_n),
-      .TRAP_n(s_trap_n), // TRAP input signal input
+      .SLOW_n(s_slow_n),  // input
+      .TRAP_n(s_trap_n),  // TRAP input signal input
       .UCLK(s_uclk),
+
+      // OUTPUTS
+      .ALUCLK(s_aluclk),
+      .CGNTCACT_n(s_cgntcact_n),  // Goes to PAL 44601 (output from PAL 44302B -LBC1 - 11D)
+      .CYD(s_cyd),
+      .ETRAP_n(s_etrap_n),  // output
+      .MACLK(s_maclk),
+      .MCLK(s_mclk),
+      .MR_n(s_mr_n),
+      .RRF_n(s_rrf_n),
+      .TERM_n(s_term_n),
       .VEX(s_vex),
       .WRFSTB(s_wrfstb)
   );
 
 
   CPU_15 CPU (
+      // FPGA system inputs
       .sysclk(sysclk),  // System clock in FPGA
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
+
+      // CPU inputs
       .ALUCLK(s_aluclk),
       .CA10(s_ca10),
-      .CA_9_0(s_ca_9_0[9:0]),
       .CCLR_n(s_cclr_n),
       .CC_3_1_n(s_cc_3_1_n[2:0]),
-      .CD_15_0_IN(s_cpu_cd_15_0_in[15:0]),
-      .CD_15_0_OUT(s_cpu_cd_15_0_out[15:0]),
       .CLK(s_clk),
       .CYD(s_cyd),
       .DT_n(s_dt_n),
@@ -494,13 +494,9 @@ LED7 (yellow)  - Bus grant
       .IBINT12_n(s_ibint12_n),
       .IBINT13_n(s_ibint13_n),
       .IBINT15_n(s_ibint15_n),
-      .IDB_15_0_IN(s_cpu_idb_15_0_in[15:0]),
-      .IDB_15_0_OUT(s_cpu_idb_15_0_out[15:0]),
       .IOXERR_n(s_ioxerr_n),
-      .LBA_3_0(s_lba_3_0[3:0]),
       .LCS_n(s_lcs_n),
       .LSHADOW(s_lshadow),
-      .LUA_12_0(s_lua_12_0[12:0]),
       .MACLK(s_maclk),
       .MAP_n(s_map_n),
       .MCLK(s_mclk),
@@ -509,13 +505,10 @@ LED7 (yellow)  - Bus grant
       .OPCLCS(s_opclcs),
       .PAN_n(s_pan_n),
       .PARERR_n(s_parerr_n),
-      .PCR_1_0(s_pcr_1_0[1:0]),
       .PD1(s_pd1),
       .PD2(s_pd2),
-      .PIL_3_0(s_pil_3_0[3:0]),
       .PONI(s_poni),
       .POWFAIL_n(s_powfail_n),  // input powefail
-      .PPN_23_10(s_ppn_23_10[13:0]),
       .RT_n(s_rt_n),
       .RWCS_n(s_rwcs_n),
       .STOC_n(s_stoc_n),
@@ -523,19 +516,37 @@ LED7 (yellow)  - Bus grant
       .SW1_CONSOLE(s_sw1_console),
       .TERM_n(s_term_n),
       .SEL_TESTMUX(SEL_TESTMUX),
-      .TEST_4_0(s_test_4_0[4:0]),
-      .TOPCSB(s_csbits[63:0]),
-      .TP1_INTRQ_n(s_rp1_intrq_n),
-      .TRAPN(s_trap_n),  //out
       .UCLK(s_uclk),
       .VEX(s_vex),
       .WCHIM_n(s_wchim_n),
       .WRFSTB(s_wrfstb),
       .WRITE(s_write),
-      .LDEXM_n(s_LDEXM_n),
-      .LED1(LED[5]),
-      .ACOND_n(s_acond_n), // output ACOND_n from CGA_MIC_CONDREG
-      .BRK_n(s_brk_n)     // Output BRK signal from TRAP/INTR
+      .MREQ_n(s_mreq_n),  // Input
+
+      // Bus inputs
+      .CD_15_0_IN (s_cpu_cd_15_0_in[15:0]),
+      .IDB_15_0_IN(s_cpu_idb_15_0_in[15:0]),
+
+      // CPU outputs
+      .CA_9_0      (s_ca_9_0[9:0]),
+      .CD_15_0_OUT (s_cpu_cd_15_0_out[15:0]),
+      .IDB_15_0_OUT(s_cpu_idb_15_0_out[15:0]),
+      .LBA_3_0     (s_lba_3_0[3:0]),
+      .LUA_12_0    (s_lua_12_0[12:0]),
+      .PCR_1_0     (s_pcr_1_0[1:0]),
+      .PIL_3_0     (s_pil_3_0[3:0]),
+      .PPN_23_10   (s_ppn_23_10[13:0]),
+      .TEST_4_0    (s_test_4_0[4:0]),
+      .TOPCSB      (s_csbits[63:0]),
+      .TP1_INTRQ_n (s_rp1_intrq_n),
+      .TRAPN       (s_trap_n),                  //out
+      .LDEXM_n     (s_LDEXM_n),
+      .LED1        (LED[5]),
+      .ACOND_n     (s_acond_n),                 // output ACOND_n from CGA_MIC_CONDREG
+      .BRK_n       (s_brk_n),                   // Output BRK signal from TRAP/INTR
+      .IONI        (s_ioni),                    // Output IONI signal from CPU
+      .RRF_n       (s_rrf_n),                   // Output RRF signal from CPU to CYCLE
+      .ECCR        (s_eccr)                     // Output ECCR signal from CPU to RAM
   );
 
 
@@ -597,7 +608,7 @@ LED7 (yellow)  - Bus grant
       .DT_n(s_dt_n),
       .DVACC_n(s_dvacc_n),
       .EAUTO_n(s_eauto_n),
-      .ECREQ(s_ecreq),
+      .ECREQ(s_ecreq),  // OUTPUT
       .ECSR_n(s_ecsr_n),
       .EDO_n(s_edo_n),
       .EMCL_n(s_emcl_n),  // output
@@ -614,7 +625,7 @@ LED7 (yellow)  - Bus grant
       .IDB_15_0_OUT(s_io_idb_15_0_out),
       .ILOAD_n(s_iload_n),
       .INR_7_0(s_inr_7_0[7:0]),
-      .IONI(s_ioni),
+      .IONI(s_ioni),  // Input
       .IORQ_n(s_iorq_n),
       .ISTOP_n(s_istop_n),
       .LCS_n(s_lcs_n),
@@ -622,7 +633,7 @@ LED7 (yellow)  - Bus grant
       .LOCK_n(s_lock_n),
       .LSHADOW(s_lshadow),
       .MCL(s_mcl),
-      .MREQ_n(s_mreq_n), // Output (from DGA)
+      .MREQ_n(s_mreq_n),  // Output (from DGA)
       .OC_1_0(s_oc_1_0[1:0]),
       .OPCLCS(s_opclcs),
       .OSC(s_osc),
@@ -634,14 +645,14 @@ LED7 (yellow)  - Bus grant
       .POWFAIL_n(s_powfail_n),  // output powfail
       .POWSENSE_n(s_powsense_n),
       .PS_n(s_ps_n),
-      .REFRQ_n(s_refreq_n),
+      .REFRQ_n(s_refrq_n),
       .REF_n(s_ref_n),
       .RT_n(s_rt_n),
       .RWCS_n(s_rwcs_n),
       .RXD(s_rxd),
       .SEL5MS_n(s_sel5ms_n),
       .SHORT_n(s_short_n),
-      .SLOW_n(s_slow_n),
+      .SLOW_n(s_slow_n),  // output
       .SSEMA_n(s_ssema_n),
       .STOC_n(s_stoc_n),
       .STP(s_stp),
@@ -686,48 +697,51 @@ LED7 (yellow)  - Bus grant
       .sysclk   (sysclk),    // System clock in FPGA
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
-      .BDAP50_n    (s_bdap50_n),
-      .BDRY50_n    (s_bdry50_n),
-      .BDRY_n      (s_mem_bdry_n),
-      .BD_23_19_n  (s_ram_bd_23_19_n[4:0]),
-      .BGNT50_n    (s_bgnt50_n),
-      .BGNT_n      (s_bgnt_n),
-      .BIOXE_n     (s_bioxe_n),
-      .BMEM_n      (s_bmem_n),
-      .CGNT50_n    (s_cgnt50_n),
-      .CGNT_n      (s_cgnt_n),
-      .CRQ_n       (s_crq_n),
-      .DBAPR       (s_dbapr),
-      .ECCR        (s_eccr),
-      .ECREQ       (s_ecreq),
-      .FETCH       (s_fetch),
-      .GNT50_n     (s_gnt50_n),
-      .GNT_n       (s_gnt_n),
-      .IBINPUT_n   (s_ibinput_n),
-      .IDB_15_0_OUT(s_mem_idb_15_0_out),
-      .IORQ_n      (s_iorq_n),
-      .LBD_23_0_IN (s_mem_lbd_23_0_in[23:0]),
-      .LBD_23_0_OUT(s_mem_lbd_23_0_out[23:0]),
-      .LERR_n      (s_lerr_n),
-      .LPERR_n     (s_lperr_n),
-      .MOFF_n      (s_moff_n),
-      .MOR25_n     (s_mor25_n),
-      .MOR_n       (s_mor_n),
-      .MR_n        (s_mr_n),
-      .MWRITE_n    (s_mwrite_n),
-      .OSC         (s_osc),
-      .PA_n        (s_pa_n),
-      .PD1         (s_pd1),
-      .PD3         (s_pd3),
-      .PD4         (s_pd4),
-      .PPN_23_19   (s_ppn_23_19[4:0]),
-      .PS_n        (s_ps_n),
-      .REFRQ_n     (s_refrq_n),
-      .REF_n       (s_ref_n),
-      .RERR_n      (s_rerr_n),
-      .SEMRQ50_n   (s_semrq50_n),
-      .SSEMA_n     (s_ssema_n),
-      .WRITE       (s_write),
+      // INPUTS
+      .BDAP50_n   (s_bdap50_n),               //  Bus Data Present (50 ns delay)
+      .BDRY50_n   (s_bdry50_n),               //  Bus Data Ready (50 ns delay)
+      .BD_23_19_n (s_ram_bd_23_19_n[4:0]),    //  bus address bits for decoding
+      .BGNT50_n   (s_bgnt50_n),               //  Bus grant signal from BIF
+      .BIOXE_n    (s_bioxe_n),                //  Bus IOX signal
+      .BMEM_n     (s_bmem_n),                 //  Bus MEMORY signal
+      .CGNT50_n   (s_cgnt50_n),               //  CPU grant signal
+      .CGNT_n     (s_cgnt_n),                 //  CPU grant signal
+      .CRQ_n      (s_crq_n),                  //  CPU request signal
+      .DBAPR      (s_dbapr),                  //  Bus Address Present
+      .ECCR       (s_eccr),                   //
+      .ECREQ      (s_ecreq),                  //
+      .FETCH      (s_fetch),                  //  Fetch signal from CPU
+      .GNT50_n    (s_gnt50_n),                //  Grant (50 ns delay)
+      .GNT_n      (s_gnt_n),                  //  Grant
+      .IBINPUT_n  (s_ibinput_n),              //  Bus Input (data FROM bus)
+      .IORQ_n     (s_iorq_n),                 //  IO request signal
+      .LBD_23_0_IN(s_mem_lbd_23_0_in[23:0]),  //  local bus data
+      .MOFF_n     (s_moff_n),                 //  Memory off signal
+      .MOR25_n    (s_mor25_n),                //  Memory Error (25 ns delay)
+      .MOR_n      (s_mor_n),                  //  Memory Error
+      .MR_n       (s_mr_n),                   //  Master Reset
+      .MWRITE_n   (s_mwrite_n),               //  Memory write signal
+      .OSC        (s_osc),                    //  Oscillator signal
+      .PA_n       (s_pa_n),                   //  Panel Active
+      .PD1        (s_pd1),                    //  Pull-down 1
+      .PD3        (s_pd3),                    //  Pull-down 3
+      .PD4        (s_pd4),                    //  Pull-down 4
+      .PPN_23_19  (s_ppn_23_19[4:0]),         //  Physical Page Number
+      .PS_n       (s_ps_n),                   //  Panel select signal
+      .REFRQ_n    (s_refrq_n),                //  Refresh request signal
+      .REF_n      (s_ref_n),                  //  Refresh signal
+      .SEMRQ50_n  (s_semrq50_n),              //  Semaphore request signal (50 ns delay)
+      .SSEMA_n    (s_ssema_n),                //  System semaphore signal
+      .WRITE      (s_write),                  //  Write cycle
+
+      // OUTPUTS
+      .BDRY_n      (s_mem_bdry_n),              // Bus Data Ready
+      .BGNT_n      (s_bgnt_n),                  // Bus Grant
+      .IDB_15_0_OUT(s_mem_idb_15_0_out),        // Internal Data Bus
+      .LBD_23_0_OUT(s_mem_lbd_23_0_out[23:0]),  // Local bus
+      .LERR_n      (s_lerr_n),                  // Local Error
+      .LPERR_n     (s_lperr_n),                 // Local Parity Error
+      .RERR_n      (s_rerr_n),                  // Read error
       .LED4        (LED[2]),                    // LED4_RED_PARITY_ERROR
       .LED_CPU_GI  (LED[3]),                    // LED_CPU_GRANT_INDICATOR
       .LED_BUS_GI  (LED[4])                     // LED_BUS_GRANT_INDICATOR
@@ -737,13 +751,11 @@ LED7 (yellow)  - Bus grant
       .sysclk(sysclk),  // System clock in FPGA
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
+      // INPUTS
       .BAPR_n(s_bapr_n),
       .BDAP50_n(s_bdap50_n),
       .BDAP_n(s_bdap_n),
       .BDRY50_n(s_bdry50_n),
-      .BDRY_n(s_bif_bdry_n),
-      .BD_23_0_n_IN(s_bif_bd_23_0_n_in[23:0]),  // NEEDS FIXIN
-      .BD_23_0_n_OUT(s_bif_bd_23_0_n_out[23:0]),  // NEEDS FIXIN
       .BERROR_n(s_berror_n),
       .BGNT50_n(s_bgnt50_n),
       .BGNT_n(s_bgnt_n),
@@ -752,10 +764,8 @@ LED7 (yellow)  - Bus grant
       .BIOXE_n(s_bioxe_n),
       .BMEM_n(s_bmem_n),
       .BREF_n(s_bref_n),
-      .CA_9_0(s_ca_9_0[9:0]),
+      .CA_9_0(s_ca_9_0[9:0]),  //! Control Store address 9:0
       .CC2_n(s_cc2_n),
-      .CD_15_0_IN(s_bif_cd_15_0_in[15:0]),  // NEEDS FIXINg
-      .CD_15_0_OUT(s_bif_cd_15_0_out[15:0]),  // NEEDS fixing
       .CGNTCACT_n(s_cgntcact_n),
       .CGNT50_n(s_cgnt50_n),
       .CGNT_n(s_cgnt_n),
@@ -764,7 +774,7 @@ LED7 (yellow)  - Bus grant
       .DAP_n(s_dap_n),
       .DBAPR(s_dbapr),
       .EBUS_n(s_ebus_n),
-      .ECRQ(s_ecrq_n),
+      .ECREQ(s_ecreq),
       .FETCH(s_fetch),
       .GNT50_n(s_gnt50_n),
       .GNT_n(s_gnt_n),
@@ -774,12 +784,9 @@ LED7 (yellow)  - Bus grant
       .IBINPUT_n(s_ibinput_n),
       .IBPERR_n(s_ibperr_n),
       .IBREQ_n(s_ibreq_n),
-      .IDB_15_0_OUT(s_bif_idb_15_0_out[15:0]),
       .IORQ_n(s_iorq_n),
       .IOXERR_n(s_ioxerr_n),
       .ISEMRQ_n(s_isemrq_n),
-      .LBD_23_0_IN(s_bif_lbd_23_0_in[23:0]),
-      .LBD_23_0_OUT(s_bif_lbd_23_0_out[23:0]),
       .LERR_n(s_lerr_n),
       .LPRERR_n(s_lprerr_n),
       .MIS0(s_mis0),
@@ -795,7 +802,6 @@ LED7 (yellow)  - Bus grant
       .PA_n(s_pa_n),
       .PD1(s_pd1),
       .PD3(s_pd3),
-      .PPN_23_10(s_ppn_23_10[13:0]),
       .PS_n(s_ps_n),
       .REFRQ_n(s_refrq_n),
       .REF_n(s_ref_n),
@@ -806,7 +812,26 @@ LED7 (yellow)  - Bus grant
       .SSEMA_n(s_ssema_n),
       .TERM_n(s_term_n),
       .TOUT(s_tout),
-      .WRITE(s_write)
+      .WRITE(s_write),
+
+      // BIF output signals
+      .BDRY_n(s_bif_bdry_n),  // BIF Data Ready
+
+      // BUS Signals
+
+      .PPN_23_10(s_ppn_23_10[13:0]),  // input
+
+      .BD_23_0_n_OUT(s_bif_bd_23_0_n_out[23:0]),
+      .BD_23_0_n_IN (s_bif_bd_23_0_n_in[23:0]),
+
+      .CD_15_0_IN (s_bif_cd_15_0_in[15:0]),
+      .CD_15_0_OUT(s_bif_cd_15_0_out[15:0]),
+
+      .IDB_15_0_OUT(s_bif_idb_15_0_out[15:0]),  // IDB bus output
+
+      .LBD_23_0_IN (s_bif_lbd_23_0_in[23:0]),
+      .LBD_23_0_OUT(s_bif_lbd_23_0_out[23:0])  // LBD bus output
+
   );
 
 
