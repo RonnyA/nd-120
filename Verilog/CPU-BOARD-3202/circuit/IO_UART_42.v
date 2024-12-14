@@ -4,49 +4,47 @@
 ** UART & IOR REG                                                        **
 ** SHEET 42 of 50                                                        **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 
 module IO_UART_42 (
-    input sysclk,    // System clock in FPGA
-    input sys_rst_n, // System reset in FPGA
+    input sysclk,    //! System clock in FPGA
+    input sys_rst_n, //! System reset in FPGA
 
     // Input signals
-    input CEUART_n,
-    input CLK,
-    input CONSOLE_n,
-    input EAUTO_n,
-    input EIOR_n,
-
-    input       LCS_n,
-    input       LOCK_n,
-    input [1:0] MIS_1_0,
-    input       PPOSC,
-    input       RUART_n,
-
-    input XTR,
+    input       CEUART_n,   //! Chip Enable UART
+    input       CLK,        //! Clock
+    input       CONSOLE_n,  //! Console signal
+    input       EAUTO_n,    //! External Auto signal
+    input       EIOR_n,     //! Enable I/O Read
+    input       LCS_n,      //! Load Control Store
+    input       LOCK_n,     //! Lock signal
+    input [1:0] MIS_1_0,    //! Microcode Misc signal 1:0
+    input       PPOSC,      //! Panel Oscillator
+    input       RUART_n,    //! Read UART (HIGH=Write UART)
+    input       XTR,        //! External Transmit/Receive Clock (not used)
 
     // RS232 RX/TX signals
-    input  RXD,
-    output TXD,
+    input  RXD,  //! RS232 Receive
+    output TXD,  //! RS232 Transmit
 
     // Current loop signals
-    input  I1P,
-    output O1P,
-    output O2P,
+    input  I1P,  //! Current Loop Input 1
+    output O1P,  //! Current Loop Output 1
+    output O2P,  //! Current Loop Output 2
 
     // Baud rate settings
-    input [3:0] BAUD_RATE_SWITCH,
+    input [3:0] BAUD_RATE_SWITCH,  //! Baud rate switch
 
     // Output and Input signals
-    input  [ 7:0] IDB_7_0_IN,
-    output [15:0] IDB_15_0_OUT,
+    input  [ 7:0] IDB_7_0_IN,   //! Internal Data Bus 7:0 IN
+    output [15:0] IDB_15_0_OUT, //! Internal Data Bus 15:0 OUT
 
     // Output signals
-    output DA_n,
-    output TBMT_n
+    output DA_n,   //! Data Available
+    output TBMT_n  //! Transmit Buffer Empty
 
 );
 
