@@ -2643,7 +2643,7 @@
     </comp>
     <comp lib="0" loc="(1820,780)" name="Pin">
       <a name="appearance" val="classic"/>
-      <a name="label" val="ECRQ"/>
+      <a name="label" val="ECREQ"/>
     </comp>
     <comp lib="0" loc="(1820,800)" name="Pin">
       <a name="appearance" val="classic"/>
@@ -4130,7 +4130,7 @@
       <a name="halign" val="left"/>
       <a name="text" val="n.c."/>
     </comp>
-    <comp lib="8" loc="(1500,424)" name="Text">
+    <comp lib="8" loc="(1500,420)" name="Text">
       <a name="color" val="#ff2a57"/>
       <a name="halign" val="left"/>
       <a name="text" val="Needs to be PULLED HIGH when in 3state"/>
@@ -6280,6 +6280,7 @@
       <a name="facing" val="west"/>
       <a name="label" val="LBD_23_0"/>
       <a name="output" val="true"/>
+      <a name="radix" val="16"/>
       <a name="tristate" val="true"/>
       <a name="width" val="24"/>
     </comp>
@@ -28300,7 +28301,7 @@ e6 63 0 0 3a 0 0 48
       <a name="label" val="BGNT25"/>
     </comp>
     <comp lib="0" loc="(3330,940)" name="Pin">
-      <a name="appearance" val="classic"/>
+      <a name="appearance" val="NewPins"/>
       <a name="facing" val="west"/>
       <a name="label" val="IDB_15_0"/>
       <a name="output" val="true"/>
@@ -28754,16 +28755,18 @@ e6 63 0 0 3a 0 0 48
       <a name="spacing" val="2"/>
     </comp>
     <comp lib="0" loc="(2080,1100)" name="Pin">
-      <a name="appearance" val="classic"/>
+      <a name="appearance" val="NewPins"/>
       <a name="facing" val="west"/>
       <a name="label" val="AA_9_0"/>
       <a name="output" val="true"/>
+      <a name="radix" val="16"/>
       <a name="tristate" val="true"/>
       <a name="width" val="10"/>
     </comp>
     <comp lib="0" loc="(220,340)" name="Pin">
-      <a name="appearance" val="classic"/>
+      <a name="appearance" val="NewPins"/>
       <a name="label" val="LBD_19_0"/>
+      <a name="radix" val="16"/>
       <a name="width" val="20"/>
     </comp>
     <comp lib="0" loc="(230,810)" name="Pin">
@@ -31195,7 +31198,7 @@ e6 63 0 0 3a 0 0 48
     <comp lib="0" loc="(1210,1030)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
-      <a name="label" val="BGNT25"/>
+      <a name="label" val="BCGNT25"/>
       <a name="output" val="true"/>
       <a name="tristate" val="true"/>
     </comp>
