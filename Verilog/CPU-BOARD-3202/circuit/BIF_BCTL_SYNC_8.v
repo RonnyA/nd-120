@@ -4,41 +4,41 @@
 ** BIF SYNC                                                              **
 ** SHEET 8 of 50                                                         **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module BIF_BCTL_SYNC_8 (
 
     // Inputs signals
-    input BLOCK_n,
-    input CACT_n,
-    input CLEAR_n,
-    input IBDAP_n,
-    input IBDRY_n,
-    input IBINPUT_n,
-    input IBPERR_n,
-    input IBREQ_n,
-    input ISEMRQ_n,
-    input OSC,
-    input PD1,
-    input PD3,
-    input REFRQ_n,
+    input BLOCK_n,    //! BLOCK_n - Bus Block
+    input CACT_n,     //! CACT_n - CPU Active
+    input CLEAR_n,    //! CLEAR_n - Clear
+    input IBDAP_n,    //! IBDAP_n - Bus Data Address Present
+    input IBDRY_n,    //! IBDRY_n - Bus Data Ready
+    input IBINPUT_n,  //! IBINPUT_n - Bus Input
+    input IBPERR_n,   //! IBPERR_n - Bus Parity Error
+    input IBREQ_n,    //! IBREQ_n - Bus Request
+    input ISEMRQ_n,   //! ISEMRQ_n - Semaphore Request
+    input OSC,        //! OSC - Oscillator
+    input PD1,        //! PD1 - Power Down 1
+    input PD3,        //! PD3 - Power Down 3
+    input REFRQ_n,    //! REFRQ_n - Refresh Request
 
     // Output signals
-    output BDAP50_n,
-    output BDRY25_n,
-    output BDRY50_n,
-    output BDRY75_n,
-    output BINPUT50_n,
-    output BINPUT75_n,
-    output BLOCK25_n,
-    output BPERR50_n,
-    output BREQ50_n,
-    output CACT25_n,
-    output MR_n,      //! Master Reset (negated)
-    output REFRQ50_n,
-    output SEMRQ50_n
+    output BDAP50_n,    //! BDAP50_n - Bus Data Address Present (50ns delayed)
+    output BDRY25_n,    //! BDRY25_n - Bus Data Ready (25ns delayed)
+    output BDRY50_n,    //! BDRY50_n - Bus Data Ready (50ns delayed)
+    output BDRY75_n,    //! BDRY75_n - Bus Data Ready (75ns delayed)
+    output BINPUT50_n,  //! BINPUT50_n - Bus Input (50ns delayed)
+    output BINPUT75_n,  //! BINPUT75_n - Bus Input (75ns delayed)
+    output BLOCK25_n,   //! BLOCK25_n - Bus Block (25ns delayed)
+    output BPERR50_n,   //! BPERR50_n - Bus Parity Error (50ns delayed)
+    output BREQ50_n,    //! BREQ50_n - Bus Request (50ns delayed)
+    output CACT25_n,    //! CACT25_n - CPU Active (25ns delayed)
+    output MR_n,        //! Master Reset
+    output REFRQ50_n,   //! REFRQ50_n - Refresh Request (50ns delayed)
+    output SEMRQ50_n    //! SEMRQ50_n - Semaphore Request (50ns delayed)
 );
 
   /*******************************************************************************
