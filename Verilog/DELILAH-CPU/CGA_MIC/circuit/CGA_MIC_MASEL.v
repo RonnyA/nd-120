@@ -6,7 +6,7 @@
 ** Page 19                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 14-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -252,7 +252,8 @@ module CGA_MIC_MASEL (
       .QHN()
   );
 
-  always @(negedge sysclk) begin
+  //always @(negedge sysclk) begin
+  always @(posedge sysclk) begin
     if (!sys_rst_n) begin
         dRep12[12:0] <=0;
     end else begin
