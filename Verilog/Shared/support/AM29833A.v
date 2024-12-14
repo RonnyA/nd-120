@@ -9,7 +9,7 @@
 ** https://pdf1.alldatasheet.com/datasheet-pdf/view/165880/AMD/AM29833A.html     **
 **                                                                               **
 **                                                                               **
-** Last reviewed: 1-DEC-2024                                                     **
+** Last reviewed: 14-DEC-2024                                                    **
 ** Ronny Hansen                                                                  **
 ***********************************************************************************/
 
@@ -44,8 +44,8 @@ Each of these devices is produced with AMD's proprietary IMOX bipolar process, a
 
 
 module AM29833A (
-    input  wire       CLK,      //! Clock
-    input  wire       CLR_n,    //! Clear
+    input  wire       CLK,      //! Clock for parity error
+    input  wire       CLR_n,    //! Clear error
     output reg        ERR_n,    //! Parity Error
     input  wire       OER_n,    //! Output enable (negated) R
     input  wire       OET_n,    //! Output enable (negated) T
@@ -60,56 +60,47 @@ module AM29833A (
 
 
   // Sequential logic for registers
-  reg [7:0] reg_R;
-  reg [7:0] reg_T;
+  //always @(posedge CLK or negedge CLR_n) begin
 
-
-
-  always @(posedge CLK or negedge CLR_n) begin
+  //TODO: Do we need to handle CLR_n specific with a clock signal ?
+  always @(posedge CLK) begin
     if (!CLR_n) begin
       // Reset logic
-      reg_R <= 8'b0;
-      reg_T <= 8'b0;
+      ERR_n <= 1;
     end else begin
-      // Update registers with input
-      reg_R <= R;
-      reg_T <= T;
+      if (!OET_n && OER_n) begin
+        // Receive mode: Compare calculated parity with input parity  
+        ERR_n <= !(calculated_parity == PAR);  // Active low error flag
+      end else begin
+        ERR_n <= 1'b1;  // High impedance when not receiving (here meaning '1' since ERR_n is active low)
+      end
     end
+
+    // Parity output for transmit mode
+    if (!OER_n && OET_n) begin
+      // Transmit mode: Generate parity based on R
+      PAR_OUT = calculated_parity;
+    end else begin
+      PAR_OUT = 1'b0;  // High impedance when not transmitting (here meaning 0)
+    end
+
   end
 
 
-  assign R_OUT = (CLR_n & !OET_n & OER_n) ? reg_T : 8'b0;  // RECEIVE MODE (Transmits data from T port to R port with parity test resulting in error flag. Transmit path is disabled.)
-  assign T_OUT = (CLR_n & OET_n & !OER_n) ? reg_R : 8'b0;  // TRANSMIT MODE (Transmits data from R port to T port, generating parity. Receive path is disabled.)
+
+  assign R_OUT = (OET_n & !OER_n) ? T : 8'b0;  // RECEIVE MODE (Transmits data from T port to R port with parity test resulting in error flag. Transmit path is disabled.)
+  assign T_OUT = (!OET_n & OER_n) ? R : 8'b0;  // TRANSMIT MODE (Transmits data from R port to T port, generating parity. Receive path is disabled.)
 
 
   // Calculate parity (odd parity)
   wire calculated_parity;
-  assign calculated_parity = ^reg_R;  // XOR all bits in reg_R for odd parity
-
+  assign calculated_parity = ^R;  // XOR all bits in reg_R for odd parity
 
 
   //assign ERR_n = 1;  // Error flag logic to be implemented
   //assign PAR_OUT = 0;  // Parity flag logic to be implemented
 
-  // Parity output for transmit mode
-  always @(*) begin
-    if (!OER_n && OET_n) begin
-      // Transmit mode: Generate parity based on reg_R
-      PAR_OUT = calculated_parity;
-    end else begin
-      PAR_OUT = 1'b0;  // High impedance when not transmitting (here meaning 0)
-    end
-  end
 
-  // Error flag for receive mode
-  always @(*) begin
-    if (!OET_n && OER_n) begin
-      // Receive mode: Compare calculated parity with input parity
-      ERR_n = !(calculated_parity == PAR);  // Active low error flag
-    end else begin
-      ERR_n = 1'b1;  // High impedance when not receiving (here meaning '1' since ERR_n is active low)
-    end
-  end
 
 endmodule
 
