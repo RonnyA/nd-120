@@ -4,3 +4,6 @@ plugins:
 
 title: Norsk Data ND-120 CPU Board
 description: Contains original ND-120 design documents, Logisim drawings of the design. Verilog code that behaves like the original ND-120 3202D CPU Board
+
+toc: true
+toc_position: left
