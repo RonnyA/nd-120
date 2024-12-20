@@ -4,7 +4,7 @@
 ** PROCESSOR TOP LEVEL                                                   **
 ** SHEET 32 of 50                                                        **
 **                                                                       **
-** Last reviewed: 14-DEC-2024                                            **
+** Last reviewed: 20-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -322,55 +322,67 @@ module CPU_PROC_32 (
    *******************************************************************************/
 
   AM29841 CHIP_25F (
+      // Input signals
       .D(s_csca_9_0),
       .LE(s_mclk),
       .OE_n(s_pd1),
+
+      // Output signals
       .Y(s_ca_9_0)
   );
 
   CPU_PROC_CMDDEC_34 CMDDEC (
-      .BRK_n(s_brk_n), // output
+      // Inputs
       .CGABRK_n(s_cgabrk_n),
       .CLK(s_clk),
       .CSCOMM_4_0(s_cscomm_4_0[4:0]),
       .CSIDBS_4_0(s_csidbs_4_0[4:0]),
       .CSMIS_1_0(s_csmis_1_0[1:0]),
-      .CUP(s_cup),
-      .CWR(s_cwr),
-      .ERF_n(s_erf_n),  // output from PAL_44407_UERFIX
       .IDB2(s_idb2),
       .LCS_n(s_lcs_n),
-      .LEV0(s_lev0),
       .MREQ_n(s_mreq_n),
-      .OPCLCS(s_opclcs),
       .PD1(s_pd1),
+      .WCA_n(s_wca_n),
+      .WRTRF(s_wrtrf),
+
+      // Outputs
+      .BRK_n(s_brk_n),
+      .CUP(s_cup),
+      .CWR(s_cwr),
+      .ERF_n(s_erf_n),
+      .LDEXM_n(s_ledexm),
+      .LEV0(s_lev0),
+      .OPCLCS(s_opclcs),
       .PIL_3_0(s_pil_3_0[3:0]),
       .RRF_n(s_rrf_n),
       .RT_n(s_rt_n),
       .RWCS_n(s_rwcs_n),
-      .LDEXM_n(s_ledexm),
-      .VEX(s_vex),
-      .WCA_n(s_wca_n),
-      .WRTRF(s_wrtrf)
+      .VEX(s_vex)
   );
 
   TTL_74245 CHIP_32F (
-      .A(s_tx_idb_A_IN[7:0]),  //
-      .A_OUT(s_tx_idb_A_OUT[7:0]),
+      // Input signals
+      .A(s_tx_idb_A_IN[7:0]),
       .B(s_fidb_cga_OUT[7:0]),
-      .B_OUT(s_tx_idb_B_OUT[7:0]),
       .DIR(s_bedo_n),
-      .OE_n(s_estof_n)
+      .OE_n(s_estof_n),
+
+      // Output signals
+      .A_OUT(s_tx_idb_A_OUT[7:0]),
+      .B_OUT(s_tx_idb_B_OUT[7:0])
   );
 
 
   TTL_74245 CHIP_33F (
+      // Input signals
       .A(s_tx_idb_A_IN[15:8]),
-      .A_OUT(s_tx_idb_A_OUT[15:8]),
       .B(s_fidb_cga_OUT[15:8]),
-      .B_OUT(s_tx_idb_B_OUT[15:8]),
       .DIR(s_bedo_n),
-      .OE_n(s_estof_n)
+      .OE_n(s_estof_n),
+
+      // Output signals
+      .A_OUT(s_tx_idb_A_OUT[15:8]),
+      .B_OUT(s_tx_idb_B_OUT[15:8])
   );
 
  /*
