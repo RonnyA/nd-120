@@ -101,7 +101,7 @@ module CPU_PROC_CMDDEC_34 (
       .VEX    (VEX),      // Q2_n - VEX//
       .OPCLCS (OPCLCS),   // Q3_n - OPCLCS
       .RWCS_n (RWCS_n),   // Q4_n - RWCS_n
-      .RT_n   (RT_n)      // Q5_n - RT_n (But only in 444608 VXFIX. Not in 44408B)//
+      .RT_n   (RT_n)      // Q5_n - RT_n (But only in 444608 VXFIX. Not in 44408B)// DONT USE SIGNAG FROM 44408 as its fixed high!
   );
 
   // PAL_44511_ULEV0
