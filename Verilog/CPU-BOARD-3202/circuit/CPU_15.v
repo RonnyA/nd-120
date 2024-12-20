@@ -8,7 +8,7 @@
 ** CPU TOP LEVEL                                                         **
 ** SHEET 15 of 50                                                        **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 20-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -239,7 +239,7 @@ module CPU_15 (
    *******************************************************************************/
   assign s_cc_3_1_n[2:0] = CC_3_1_n;
   assign s_ca_10_0[10] = CA10;
-  //assign s_rt_n              = RT_n; // Use signal from PROC
+  assign s_rt_n              = RT_n; // Use incomming RT_n signal (DONT use signal out from PROC as we are missing the latest code for the latest PAL)
   assign s_eorf_n = EORF_n;
   assign s_emcl_n = EMCL_n;
   assign s_pan_n = PAN_n;
@@ -305,6 +305,13 @@ module CPU_15 (
       s_mmu_idb_15_0_out[15:0]  |
       IDB_15_0_IN;
 
+  assign s_mmu_idb_15_0_in =
+      s_proc_IDB_15_0_out[15:0] |
+      s_cs_IDB_15_0_out[15:0]   |
+//      s_stoc_idb_15_0_out[15:0]  | (signal doesnt exist)
+      IDB_15_0_IN;
+
+
   assign s_proc_IDB_15_0_in[15:0]  =
     s_cs_IDB_15_0_out[15:0]   |
     s_mmu_idb_15_0_out[15:0]  |
@@ -355,7 +362,8 @@ module CPU_15 (
   /****** CPU_LAPA_23.v is replaced by this line below ******/
   // is s_lapa_n is high, output is high-impedance
   assign s_ppn_25_10[15:0] = s_lapa_n ? 16'b0 : {2'b0, s_la_23_10[13:0]};
-  // TODO: Or with other output ?
+
+  assign s_mmu_ppn_25_10_in = s_ppn_25_10; // PPN Input to MMU
 
 
   CPU_PROC_32 PROC (
@@ -411,7 +419,8 @@ module CPU_15 (
       .PT_15_9(s_pt_15_0[15:9]),
       .RF_1_0(s_rf_1_0[1:0]),
       .RRF_n(s_rrf_n),  //Output
-      .RT_n(s_rt_n),
+      //.RT_n(s_rt_n),
+      .RT_n(), // Dont use this output signal as its locked to 1. 
       .RWCS_n(s_rwcs_n),
       .TERM_n(s_term_n),
       .TEST_4_0(s_test_4_0[4:0]),
