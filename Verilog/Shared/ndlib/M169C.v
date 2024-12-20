@@ -1,30 +1,30 @@
 /**************************************************************************
 ** ND120 Shared                                                          **
 **                                                                       **
-** M169C - 74LS169 - Synchronous 4-biy up/down binary counters           **
+** M169C - 74LS169 - Synchronous 4-bit up/down binary counters           **
 **                                                                       **
 ** https://www.ti.com/lit/ds/symlink/sn74als169b.pdf                     **
 **                                                                       **
-** Last reviewed: 9-NOV-2024                                             **
+** Last reviewed: 20-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module M169C (
-    input A,
-    input B,
-    input C,
-    input CP,
-    input D,
-    input NL,
-    input PN,
-    input TN,
-    input UP,
+    input A,   //! Input A
+    input B,   //! Input B
+    input C,   //! Input C
+    input D,   //! Input D
+    input CP,  //! Clock Pulse
+    input NL,  //! Load Next
+    input PN,  //! Enable P
+    input TN,  //! Enable T
+    input UP,  //! Up/Down (1=Up, 0=Down)
 
-    output CON,
-    output QA,
-    output QB,
-    output QC,
-    output QD
+    output CON,  //! Count is Zero
+    output QA,   //! Output A
+    output QB,   //! Output B
+    output QC,   //! Output C
+    output QD    //! Output D
 );
 
   /*******************************************************************************
@@ -40,10 +40,10 @@ module M169C (
   wire s_gates27_out;
   wire s_ff_out_qc;
   wire s_gates24_out;
-  wire s_gates6_out;
+  wire s_qd_nl;
   wire s_ff_out_qb;
   wire s_gates18_out;
-  wire s_gates9_out;
+  wire s_qb_zero;
   wire s_gates15_out;
   wire s_gates22_out;
   wire s_gates33_out;
@@ -51,8 +51,8 @@ module M169C (
   wire s_ff_out_qd;
   wire s_gates7_out;
   wire s_gates19_out;
-  wire s_gates20_out;
-  wire s_ff_out_qa;
+  wire s_qan_up;
+  wire s_ff_qa_q;
   wire s_gates13_out;
   wire s_gates26_out;
   wire s_gates5_out;
@@ -60,29 +60,29 @@ module M169C (
   wire s_gates35_out;
   wire s_gates16_out;
   wire s_gates17_out;
-  wire s_gates8_out;
+  wire s_qa_zero;
   wire s_gates30_n_out;
-  wire s_gates10_out;
-  wire s_gates21_out;
-  wire s_gates11_out;
+  wire s_qc_zero;
+  wire s_qa_down;
+  wire s_qd_zero;
   wire s_gates3_out;
   wire s_gates28_out;
-  wire s_gates1_out;
+  wire s_qa_nl;
   wire s_gates14_out;
   wire s_gates25_out;
-  wire s_gates4_out;
+  wire s_qc_nl;
   wire s_gates32_out;
   wire s_gates30_out;
   wire s_gates29_n_out;
   wire s_gates23_out;
   wire s_gates31_n_out;
   wire s_gates29_out;
-  wire s_gates2_out;
+  wire s_qb_nl;
   wire s_gates31_out;
   wire s_nl_n;
   wire s_nl;
   wire s_p_n;
-  wire s_qa_n_out;
+  wire s_ff_qa_qn;
   wire s_qa_out;
   wire s_qb_n_out;
   wire s_qb_out;
@@ -131,7 +131,7 @@ module M169C (
   assign s_gates29_n_out = ~s_gates29_out;
   assign s_gates30_n_out = ~s_gates30_out;
   assign s_gates31_n_out = ~s_gates31_out;
-  assign s_qa_out        = ~s_qa_n_out;
+  assign s_qa_out        = ~s_ff_qa_qn;
   assign s_qb_out        = ~s_qb_n_out;
   assign s_qc_out        = ~s_qc_n_out;
   assign s_qd_out        = ~s_qd_n_out;
@@ -144,69 +144,73 @@ module M169C (
    *******************************************************************************/
   AND_GATE #(
       .BubblesMask(2'b00)
-  ) GATES_1 (
-      .input1(s_ff_out_qa),
+  ) AND_QA_NL (
+      .input1(s_ff_qa_q),
       .input2(s_nl),
-      .result(s_gates1_out)
+      .result(s_qa_nl)
   );
 
   AND_GATE #(
       .BubblesMask(2'b00)
-  ) GATES_2 (
+  ) AND_QB_NL (
       .input1(s_ff_out_qb),
       .input2(s_nl),
-      .result(s_gates2_out)
+      .result(s_qb_nl)
   );
+
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) AND_QC_NL (
+      .input1(s_ff_out_qc),
+      .input2(s_nl),
+      .result(s_qc_nl)
+  );
+
+  AND_GATE #(
+      .BubblesMask(2'b00)
+  ) AND_QD_NL (
+      .input1(s_ff_out_qd),
+      .input2(s_nl),
+      .result(s_qd_nl)
+  );
+
 
   AND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_3 (
       .input1(s_gates35_out),
-      .input2(s_gates8_out),
+      .input2(s_qa_zero),
       .result(s_gates3_out)
   );
 
-  AND_GATE #(
-      .BubblesMask(2'b00)
-  ) GATES_4 (
-      .input1(s_ff_out_qc),
-      .input2(s_nl),
-      .result(s_gates4_out)
-  );
 
   AND_GATE_3_INPUTS #(
       .BubblesMask(3'b000)
   ) GATES_5 (
       .input1(s_gates35_out),
-      .input2(s_gates8_out),
-      .input3(s_gates9_out),
+      .input2(s_qa_zero),
+      .input3(s_qb_zero),
       .result(s_gates5_out)
   );
 
-  AND_GATE #(
-      .BubblesMask(2'b00)
-  ) GATES_6 (
-      .input1(s_ff_out_qd),
-      .input2(s_nl),
-      .result(s_gates6_out)
-  );
+
 
   AND_GATE_4_INPUTS #(
       .BubblesMask(4'h0)
   ) GATES_7 (
       .input1(s_gates35_out),
-      .input2(s_gates8_out),
-      .input3(s_gates9_out),
-      .input4(s_gates10_out),
+      .input2(s_qa_zero),
+      .input3(s_qb_zero),
+      .input4(s_qc_zero),
       .result(s_gates7_out)
   );
 
   NOR_GATE #(
       .BubblesMask(2'b00)
   ) GATES_8 (
-      .input1(s_gates20_out),
-      .input2(s_gates21_out),
-      .result(s_gates8_out)
+      .input1(s_qan_up),
+      .input2(s_qa_down),
+      .result(s_qa_zero)   // QA is zero
   );
 
   NOR_GATE #(
@@ -214,7 +218,7 @@ module M169C (
   ) GATES_9 (
       .input1(s_gates22_out),
       .input2(s_gates23_out),
-      .result(s_gates9_out)
+      .result(s_qb_zero)
   );
 
   NOR_GATE #(
@@ -222,7 +226,7 @@ module M169C (
   ) GATES_10 (
       .input1(s_gates24_out),
       .input2(s_gates25_out),
-      .result(s_gates10_out)
+      .result(s_qc_zero)
   );
 
   NOR_GATE #(
@@ -230,13 +234,13 @@ module M169C (
   ) GATES_11 (
       .input1(s_gates26_out),
       .input2(s_gates27_out),
-      .result(s_gates11_out)
+      .result(s_qd_zero)
   );
 
   XOR_GATE_ONEHOT #(
       .BubblesMask(2'b00)
   ) GATES_12 (
-      .input1(s_gates1_out),
+      .input1(s_qa_nl),
       .input2(s_gates35_out),
       .result(s_gates12_out)
   );
@@ -252,7 +256,7 @@ module M169C (
   XOR_GATE_ONEHOT #(
       .BubblesMask(2'b00)
   ) GATES_14 (
-      .input1(s_gates2_out),
+      .input1(s_qb_nl),
       .input2(s_gates3_out),
       .result(s_gates14_out)
   );
@@ -268,7 +272,7 @@ module M169C (
   XOR_GATE_ONEHOT #(
       .BubblesMask(2'b00)
   ) GATES_16 (
-      .input1(s_gates4_out),
+      .input1(s_qc_nl),
       .input2(s_gates5_out),
       .result(s_gates16_out)
   );
@@ -284,7 +288,7 @@ module M169C (
   XOR_GATE_ONEHOT #(
       .BubblesMask(2'b00)
   ) GATES_18 (
-      .input1(s_gates6_out),
+      .input1(s_qd_nl),
       .input2(s_gates7_out),
       .result(s_gates18_out)
   );
@@ -299,18 +303,18 @@ module M169C (
 
   AND_GATE #(
       .BubblesMask(2'b00)
-  ) GATES_20 (
+  ) AND_QAN_UP (
       .input1(s_up),
-      .input2(s_qa_n_out),
-      .result(s_gates20_out)
+      .input2(s_ff_qa_qn),
+      .result(s_qan_up)
   );
 
   AND_GATE #(
       .BubblesMask(2'b00)
-  ) GATES_21 (
+  ) AND_QA_UPN (  // AND_QA_UPN
       .input1(s_up_n),
-      .input2(s_ff_out_qa),
-      .result(s_gates21_out)
+      .input2(s_ff_qa_q),
+      .result(s_qa_down)
   );
 
   AND_GATE #(
@@ -396,12 +400,12 @@ module M169C (
   AND_GATE_6_INPUTS #(
       .BubblesMask({2'b00, 4'h0})
   ) GATES_32 (
-      .input1(s_gates11_out),
-      .input2(s_gates10_out),
-      .input3(s_gates9_out),
-      .input4(s_t),
-      .input5(s_up),
-      .input6(1'b1),
+      .input1(s_qd_zero),
+      .input2(s_qc_zero),
+      .input3(s_qb_zero),
+      .input4(s_qa_zero),
+      .input5(s_t),
+      .input6(s_up),
       .result(s_gates32_out)
   );
 
@@ -410,10 +414,10 @@ module M169C (
   ) GATES_33 (
       .input1(s_up_n),
       .input2(s_t),
-      .input3(s_gates8_out),
-      .input4(s_gates9_out),
-      .input5(s_gates10_out),
-      .input6(s_gates11_out),
+      .input3(s_qa_zero),
+      .input4(s_qb_zero),
+      .input5(s_qc_zero),
+      .input6(s_qd_zero),
       .result(s_gates33_out)
   );
 
@@ -440,8 +444,8 @@ module M169C (
       .clock(s_cp),
       .d(s_gates28_n_out),
       .preset(1'b0),
-      .q(s_ff_out_qa),
-      .qBar(s_qa_n_out),
+      .q(s_ff_qa_q),
+      .qBar(s_ff_qa_qn),
       .reset(1'b0),
       .tick(1'b1)
   );
