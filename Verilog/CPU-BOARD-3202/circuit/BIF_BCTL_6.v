@@ -4,74 +4,74 @@
 ** BIF CONTROL                                                           **
 ** SHEET 6 of 50                                                         **
 **                                                                       **
-** Last reviewed: 13-MAY-2024                                            **
+** Last reviewed: 20-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module BIF_BCTL_6 (
-    input CBWRITE_n,
-    input CC2_n,
-    input CGNT50_n,
-    input CGNT_n,
-    input CLEAR_n,
-    input CRQ_n,
-    input DBAPR,
-    input GNT50_n,
-    input IBDAP_n,
-    input IBDRY_n,
-    input IBINPUT_n,
-    input IBPERR_n,
-    input IBREQ_n,
-    input IORQ_n,
-    input ISEMRQ_n,
-    input LERR_n,
-    input LPERR_n,
-    input MIS0,
-    input MOFF_n,
-    input MOR25_n,
-    input OSC,
-    input PA_n,
-    input PD1,
-    input PD3,
-    input PS_n,
-    input REFRQ_n,
-    input SSEMA_n,
-    input TERM_n,
-    input TOUT,
+    input CBWRITE_n,  //! CPU Bus Write
+    input CC2_n,      //! Cycle Counter bit 2
+    input CGNT50_n,   //! Grant 50ns delayed
+    input CGNT_n,     //! CPU Grant
+    input CLEAR_n,    //! Clear
+    input CRQ_n,      //! CPU Request
+    input DBAPR,      //! Data Bus Address Parity register
+    input GNT50_n,    //! Grant 50ns delayed
+    input IBDAP_n,    //! Input Bus Address Present
+    input IBDRY_n,    //! Input Bus Data Ready
+    input IBINPUT_n,  //! Input Bus Input (0=Input, 1=Output)
+    input IBPERR_n,   //! Input Bus Parity Error
+    input IBREQ_n,    //! Input Bus Request
+    input IORQ_n,     //! Input I/O Request
+    input ISEMRQ_n,   //! Input Semaphore Request
+    input LERR_n,     //! Local Error
+    input LPERR_n,    //! Local Parity Error
+    input MIS0,       //! Miscellaneous 0
+    input MOFF_n,     //! Memory Off
+    input MOR25_n,    //! Memory Operation Ready 25ns delayed
+    input OSC,        //! Oscillator
+    input PA_n,       //! Parity Error Address (PEA)
+    input PD1,        //! Power Down 1
+    input PD3,        //! Power Down 3
+    input PS_n,       //! Parity Error Signal (PES)
+    input REFRQ_n,    //! Refresh Request
+    input SSEMA_n,    //! Semaphore
+    input TERM_n,     //! Terminate Bus Cycle
+    input TOUT,       //! Timeout
 
-    output       BAPR_n,
-    output       BDAP50_n,
-    output       BDAP_n,
-    output       BDRY25_n,
-    output       BDRY50_n,
-    output       BDRY_n,
-    output       BERROR_n,
-    output       BINACK_n,
-    output       BINPUT50_n,
-    output       BINPUT_n,
-    output       BIOXE_n,
-    output       BMEM_n,
-    output       BREF_n,
-    output       CACT_n,
-    output       DAP_n,
-    output       EADR_n,
-    output       EPEA_n,
-    output       EPES_n,
-    output       GNT_n,
-    output       IOD_n,
-    output       IOXERR_n,
-    output       MOR_n,
-    output       MR_n,
-    output       OUTGRANT_n,
-    output       OUTIDENT_n,
-    output       PARERR_n,
-    output [2:0] Q_2_0_n,
-    output       REF_n,
-    output       RERR_n,
-    output       SEMRQ50_n,
-    output       SEMRQ_n,
-    output       SPEA,
-    output       SPES
+    output       BAPR_n,      //! Bus Address Present
+    output       BDAP50_n,    //! Bus Data Present 50ns delayed
+    output       BDAP_n,      //! Bus Data Present Data
+    output       BDRY25_n,    //! Bus Data Ready 25ns delayed
+    output       BDRY50_n,    //! Bus Data Ready 50ns delayed
+    output       BDRY_n,      //! Bus Data Ready
+    output       BERROR_n,    //! Bus Error
+    output       BINACK_n,    //! Bus Input Acknowledge
+    output       BINPUT50_n,  //! Bus Input 50ns delayed
+    output       BINPUT_n,    //! Bus Input
+    output       BIOXE_n,     //! Bus I/O Execute
+    output       BMEM_n,      //! Bus Memory
+    output       BREF_n,      //! Bus Refresh
+    output       CACT_n,      //! CPU Active
+    output       DAP_n,       //! Data Present
+    output       EADR_n,      //! Enable Address
+    output       EPEA_n,      //! Enable PEA
+    output       EPES_n,      //! Enable PES
+    output       GNT_n,       //! Grant
+    output       IOD_n,       //! I/O signal to last for the entire bus cycle
+    output       IOXERR_n,    //! I/O Execute Error
+    output       MOR_n,       //! Memory Error
+    output       MR_n,        //! Master Reset
+    output       OUTGRANT_n,  //! Output Grant
+    output       OUTIDENT_n,  //! Output Identity
+    output       PARERR_n,    //! Parity Error
+    output [2:0] Q_2_0_n,     //! State bits 0-2
+    output       REF_n,       //! Refresh
+    output       RERR_n,      //! Refresh Error
+    output       SEMRQ50_n,   //! Semaphore Request 50ns delayed
+    output       SEMRQ_n,     //! Semaphore Request
+    output       SPEA,        //! Signal PEA
+    output       SPES         //! Signal PES
 );
 
   /*******************************************************************************
@@ -140,7 +140,6 @@ module BIF_BCTL_6 (
   wire       s_semrq_n;
   wire       s_spea;
   wire       s_spes;
-  wire       s_bgntcact_n;
   wire       s_binput75_n;
   wire       s_block_n;
   wire       s_bperr50_n;
@@ -159,10 +158,6 @@ module BIF_BCTL_6 (
   wire       s_sem_n;
   wire       s_ioerr_n;
   wire       s_test_n;
-
-  /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
@@ -222,7 +217,7 @@ module BIF_BCTL_6 (
   assign IOD_n       = s_iod_n;
   assign IOXERR_n    = s_ioxerr_n;
   assign MOR_n       = s_mor_n;
-  assign MR_n        = s_mr_n;                  //! Master Reset (negated)
+  assign MR_n        = s_mr_n;  //! Master Reset (negated)
   assign OUTGRANT_n  = s_outgrant_n;
   assign OUTIDENT_n  = s_outident_n;
   assign PARERR_n    = s_parerr_n;
@@ -257,6 +252,15 @@ module BIF_BCTL_6 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+  /*
+   * Bus arbitration PAL for the ND120 CPU system.
+   * Handles arbitration between CPU requests, I/O requests, refresh requests, and semaphore requests.
+   * Takes inputs like CPU request (CRQ_n), I/O request (IORQ_n), bus request (BRQ50_n), refresh request (REFRQ50_n),
+   * and semaphore request (SEMRQ50_n) to generate appropriate grant and control signals.
+   * Outputs include semaphore control (SEM_n), refresh control (REF_n), I/O data control (IOD_n),
+   * bus grant (GNT_n) and CPU active (CACT_n) signals to coordinate bus access.
+   * Uses a clock input (CK) and output enable (OE_n) to control timing of state changes.
+   */
   PAL_44801A PAL_44801_UBARB (
       .CK  (s_osc),  // Clock signal
       .OE_n(s_pd3),  // OUTPUT ENABLE (active-low) for Q0-Q5
@@ -280,6 +284,14 @@ module BIF_BCTL_6 (
       .CACT_n (s_cact_n)   // Q7_n - CACT_n
   );
 
+  /*
+   * Bus timing control PAL for the ND120 CPU system.
+   * Manages bus cycle timing and control signal generation based on CPU activity,
+   * bus data ready, and grant signals. Generates state bits (Q0-Q2) to track bus 
+   * cycle phases and control signals for address present (APR_n), data present (DAP_n),
+   * I/O data enable (EIOD_n) and address enable (EADR_n). Uses delayed versions of
+   * control signals (CACT25_n, BDRY50_n, CGNT50_n) for proper timing relationships.
+   */
   PAL_44401B PAL_44401_UBTIM (
       .CK  (s_osc),
       .OE_n(s_pd1),
@@ -304,6 +316,14 @@ module BIF_BCTL_6 (
       .EADR_n(s_eadr_n)   // B3_n
   );
 
+  /*
+   * Bus parity and error handling PAL for the ND120 CPU system.
+   * Monitors bus timing signals and error conditions to detect parity errors
+   * and other faults during data transfers. Generates error signals (PARERR_n, RERR_n)
+   * and control signals (SPEA, SPES) to handle error conditions. Also provides
+   * bus blocking capability (BLOCK_n) and local error reporting (LERR_n).
+   * Includes test functionality and interfaces with memory operation ready signals.
+   */
   PAL_45001B PAL_45001_UBPAR (
       .BDRY50_n (s_bdry50_n),   // I0 - BDRY50_n
       .BDRY75_n (s_bdry75_n),   // I1 - BDRY75_n
@@ -327,68 +347,92 @@ module BIF_BCTL_6 (
       .LERR_n  (s_lerr_n)     // B5_n
   );
 
+
+  /*
+   * Bus driver module for the ND120 CPU bus interface.
+   * Handles bus signal generation and timing for data transfers.
+   * Takes various control signals like address present, CPU active, and memory signals
+   * as inputs to generate properly timed bus control signals.
+   * Manages bus handshaking through data ready/present signals, handles I/O operations,
+   * memory access, semaphore requests, and error conditions.
+   * Provides multiple delayed versions of key signals for proper bus timing.
+   */
   BIF_BCTL_BDRV_7 BDRV (
-      .APR_n(s_apr_n),
-      .BAPR_n(s_bapr_n),
-      .BDAP_n(s_bdap_n),
-      .BDRY25_n(s_bdry25_n),
-      .BDRY50_n(s_bdry50_n),
-      .BDRY_n(s_bdry_n),
-      .BERROR_n(s_berror_n),
-      .BINACK_n(s_binack_n),
-      .BINPUT75_n(s_binput75_n),
-      .BINPUT_n(s_binput_n),
-      .BIOXE_n(s_bioxe_n),
-      .BMEM_n(s_bmem_n),
-      .BREF_n(s_bref_n),
-      .CACT_n(s_cact_n),
-      .CBWRITE_n(s_cbwrite_n),
-      .DAP_n(s_dap_n),
-      .EIOD_n(s_eiod_n),
-      .GNT50_n(s_gnt50_n),
-      .IBDRY_n(s_ibdry_n),
-      .IBREQ_n(s_ibreq_n),
-      .IOD_n(s_iod_n),
-      .IOXERR_n(s_ioxerr_n),
-      .MEM_n(s_mem_n),
-      .MIS0(s_mis0),
-      .MOR_n(s_mor_n),
-      .OUTGRANT_n(s_outgrant_n),
-      .OUTIDENT_n(s_outident_n),
-      .REF_n(s_ref_n),
-      .SEMRQ_n(s_semrq_n),
-      .SEM_n(s_sem_n),
-      .SSEMA_n(s_ssema_n),
-      .TOUT(s_tout)
+      // Input signals
+      .APR_n    (s_apr_n),      // Address Present
+      .CACT_n   (s_cact_n),     // CPU Active
+      .CBWRITE_n(s_cbwrite_n),  // CPU Bus Write
+      .EIOD_n   (s_eiod_n),     // Enable I/O Data
+      .GNT50_n  (s_gnt50_n),    // Grant (50ns delayed)
+      .IBDRY_n  (s_ibdry_n),    // Input Bus Data Ready
+      .IBREQ_n  (s_ibreq_n),    // Input Bus Request
+      .IOD_n    (s_iod_n),      // IO D signal
+      .MEM_n    (s_mem_n),      // Memory
+      .MIS0     (s_mis0),       // Microcode Misc 0 bit
+      .MOR_n    (s_mor_n),      // Memory Error
+      .REF_n    (s_ref_n),      // Refresh
+      .SSEMA_n  (s_ssema_n),    // Semaphore
+
+      // Output signals
+      .BAPR_n    (s_bapr_n),      // Bus Address Present
+      .BDAP_n    (s_bdap_n),      // Bus Data Present
+      .BDRY25_n  (s_bdry25_n),    // Bus Data Ready (25ns delayed)
+      .BDRY50_n  (s_bdry50_n),    // Bus Data Ready (50ns delayed)
+      .BDRY_n    (s_bdry_n),      // Bus Data Ready
+      .BERROR_n  (s_berror_n),    // Bus Error
+      .BINACK_n  (s_binack_n),    // Bus Input Acknowledge
+      .BINPUT75_n(s_binput75_n),  // Bus Input (75ns delayed)
+      .BINPUT_n  (s_binput_n),    // Bus Input
+      .BIOXE_n   (s_bioxe_n),     // Bus I/O Execute
+      .BMEM_n    (s_bmem_n),      // Bus Memory
+      .BREF_n    (s_bref_n),      // Bus Refresh
+      .DAP_n     (s_dap_n),       // Data Present
+      .IOXERR_n  (s_ioxerr_n),    // I/O Execute Error
+      .OUTGRANT_n(s_outgrant_n),  // Output Grant
+      .OUTIDENT_n(s_outident_n),  // Output Identify
+      .SEMRQ_n   (s_semrq_n),     // Semaphore Request
+      .SEM_n     (s_sem_n),       // Semaphore
+      .TOUT      (s_tout)         // Timeout
   );
 
+
+  /*
+   * Synchronization module for the ND120 CPU bus interface.
+   * Handles timing and synchronization of various bus control signals.
+   * Generates delayed versions of key bus signals (25ns, 50ns, 75ns) 
+   * for proper bus timing and handshaking.
+   * Also handles reset, refresh and CPU active signal synchronization.
+   */
   BIF_BCTL_SYNC_8 SYNC (
-      .BDAP50_n(s_bdap50_n),
-      .BDRY25_n(s_bdry25_n),
-      .BDRY50_n(s_bdry50_n),
-      .BDRY75_n(s_bdry75_n),
-      .BINPUT50_n(s_binput50_n),
-      .BINPUT75_n(s_binput75_n),
-      .BLOCK25_n(s_block25_n),
-      .BLOCK_n(s_block_n),
-      .BPERR50_n(s_bperr50_n),
-      .BREQ50_n(s_brq50_n),
-      .CACT25_n(s_cact25_n),
-      .CACT_n(s_cact_n),
-      .CLEAR_n(s_clear_n),
-      .IBDAP_n(s_ibdap_n),
-      .IBDRY_n(s_ibdry_n),
-      .IBINPUT_n(s_ibinput_n),
-      .IBPERR_n(s_ibperr_n),
-      .IBREQ_n(s_ibreq_n),
-      .ISEMRQ_n(s_isemrq_n),
-      .MR_n(s_mr_n),
-      .OSC(s_osc),
-      .PD1(s_pd1),
-      .PD3(s_pd3),
-      .REFRQ50_n(s_refrq50_n),
-      .REFRQ_n(s_refrq_n),
-      .SEMRQ50_n(s_semrq50_n)
+      // Inputs
+      .CLEAR_n  (s_clear_n),    // Clear signal
+      .IBDAP_n  (s_ibdap_n),    // Input Bus Data Present
+      .IBDRY_n  (s_ibdry_n),    // Input Bus Data Ready
+      .IBINPUT_n(s_ibinput_n),  // Input Bus Input
+      .IBPERR_n (s_ibperr_n),   // Input Bus Parity Error
+      .IBREQ_n  (s_ibreq_n),    // Input Bus Request
+      .ISEMRQ_n (s_isemrq_n),   // Input Semaphore Request
+      .MR_n     (s_mr_n),       // Master Reset
+      .OSC      (s_osc),        // Oscillator
+      .PD1      (s_pd1),        // Pull-down 1
+      .PD3      (s_pd3),        // Pull-down 3
+      .REFRQ_n  (s_refrq_n),    // Refresh Request
+
+      // Outputs
+      .BDAP50_n  (s_bdap50_n),    // Bus Data Present (50ns delayed)
+      .BDRY25_n  (s_bdry25_n),    // Bus Data Ready (25ns delayed)
+      .BDRY50_n  (s_bdry50_n),    // Bus Data Ready (50ns delayed)
+      .BDRY75_n  (s_bdry75_n),    // Bus Data Ready (75ns delayed)
+      .BINPUT50_n(s_binput50_n),  // Bus Input (50ns delayed)
+      .BINPUT75_n(s_binput75_n),  // Bus Input (75ns delayed)
+      .BLOCK25_n (s_block25_n),   // Block (25ns delayed)
+      .BLOCK_n   (s_block_n),     // Block
+      .BPERR50_n (s_bperr50_n),   // Bus Parity Error (50ns delayed)
+      .BREQ50_n  (s_brq50_n),     // Bus Request (50ns delayed)
+      .CACT25_n  (s_cact25_n),    // CPU Active (25ns delayed)
+      .CACT_n    (s_cact_n),      // CPU Active
+      .REFRQ50_n (s_refrq50_n),   // Refresh Request (50ns delayed)
+      .SEMRQ50_n (s_semrq50_n)    // Semaphore Request (50ns delayed)
   );
 
 endmodule
