@@ -693,6 +693,11 @@ module CGA_MIC (
       .MRN(s_mrn)
   );
 
+  // Debug
+  wire [5:0] loop_counter;
+  assign loop_counter[5:0] = {s_icd_5, s_icd_4,s_lc_3_0[3],s_lc_3_0[2],s_lc_3_0[1],s_lc_3_0[0]};
+
+
   M169C LC_HI (
       .CP(s_mclk),
 
@@ -976,9 +981,10 @@ module CGA_MIC (
   CGA_MIC_MASEL MIC_MASEL (
       .sysclk(sysclk),  // System clock in FPGA
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
+
+      // Input signals
       .CSBIT20(s_csbit20),
       .CSBIT_11_0(s_csbit_15_0[11:0]),
-      .IW_12_0(s_iw_12_0[12:0]),
       .JMP_3_0(s_jmp_3_0[3:0]),
       .MCLK(s_mclk),
       .MCLKN(s_mclk_n),
@@ -987,6 +993,9 @@ module CGA_MIC (
       .RET_12_0(s_ret_12_0[12:0]),
       .SC5(s_sc_6_3_out[2]),
       .SC6(s_sc_6_3_out[3]),
+
+      // Output signals
+      .IW_12_0(s_iw_12_0[12:0]),
       .W_12_0(s_w_12_0[12:0])
   );
 
@@ -1023,14 +1032,17 @@ module CGA_MIC (
 
 
   CGA_MIC_IPOS MIC_IPOS (
+      // Inputs
       .CD_15_0(s_cd_15_0[15:0]),
       .EWCAN(s_ewca_n),
       .MAPN(s_map_n),
-      .MA_12_0(s_ma_12_0_out[12:0]),
       .TRAPN(s_trap_n),
       .TVEC_3_0(s_tvec_3_0[3:0]),
       .WCA_12_0(s_wca_12_0[12:0]),
-      .W_12_0(s_w_12_0[12:0])
+      .W_12_0(s_w_12_0[12:0]),
+
+      // Outputs
+      .MA_12_0(s_ma_12_0_out[12:0])
   );
 
 
