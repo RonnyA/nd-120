@@ -96,17 +96,13 @@ module M169C (
   wire s_up;
 
   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
-  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
   assign s_a             = A;
   assign s_b             = B;
   assign s_c             = C;
-  assign s_cp            = CP;
   assign s_d             = D;
+  assign s_cp            = CP;
   assign s_nl            = NL;
   assign s_p_n           = PN;
   assign s_t_n           = TN;
