@@ -680,6 +680,7 @@
     <comp lib="0" loc="(680,2500)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="CD_15_0"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(720,2050)" name="Splitter">
