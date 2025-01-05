@@ -101,7 +101,7 @@ module CPU_15 (
     output TRAPN,
     output VEX,
     output LDEXM_n,
-    output ACOND_n,
+    output ACOND_n, //! ACOND is the output of the condition register.
     output BRK_n,
     output IONI,
     output RRF_n,
