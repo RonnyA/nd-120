@@ -238,10 +238,11 @@ module SC2661_UART (
   reg regCommandExecuted;  // Flag set when read/write operation has been executed
 
 
+  wire uart_sysclk = ~sysclk;
 
   // Clear everything on reset
   //always @(posedge RESET or posedge BRCLK) begin
-  always @(posedge sysclk) begin
+  always @(posedge uart_sysclk) begin
     if (RESET | !sys_rst_n) begin
       //$display("Time: %0t | UART RESET!", $time);  //  debug
 
@@ -258,7 +259,7 @@ module SC2661_UART (
     end
   end
 
-  always @(posedge sysclk) begin
+  always @(posedge uart_sysclk) begin
     // Latch Address and Data
     if (CE_n) begin
       regCommandExecuted <= 0;  // Clear signal that address & data is latched
@@ -336,7 +337,7 @@ module SC2661_UART (
   // ----------------------
   // The 68661 is conditioned to receiver data when the DCD input is Low and the RxEN bit in the commands register is true.
   // In this code we just receive when the RxEN bit is set. (Ignore DCD input)
-  always @(posedge sysclk) begin
+  always @(posedge uart_sysclk) begin
     if (!s_reset) begin
       if (!cmd_rxEnabled) begin
         rxState <= RX_STATE_IDLE;
@@ -428,7 +429,7 @@ module SC2661_UART (
   // -------------------------
   // The EPCI is conditioned to transmit data when the CTS input is Low and the TxEN command register bit is set.
   // In this code we just transmit when the TxEN command register bit is set. (Ignore CTS input)
-  always @(posedge sysclk) begin
+  always @(posedge uart_sysclk) begin
     if (!s_reset) begin
       if (!cmd_txEnabled) begin
         txState <= TX_STATE_IDLE;
