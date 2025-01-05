@@ -64,8 +64,6 @@ module CGA_ALU (
   wire [ 1:0] s_csts_1_0;
   wire [ 1:0] s_qsel_1_0;
   wire [ 2:0] s_gprc_2_0;
-  wire [ 2:0] s_laa_3_1;
-  wire [ 2:0] s_lba_2_0;
   wire [ 3:0] s_laa_3_0;
   wire [ 3:0] s_lba_3_0;
   wire [ 3:0] s_pil_3_0_out;
@@ -136,10 +134,8 @@ module CGA_ALU (
    ** Here all input connections are defined                                     **
    *******************************************************************************/
   assign s_lba_3_0[3:0]         = LBA_3_0;
-  assign s_lba_2_0[2:0]         = LBA_3_0[2:0];
-
   assign s_laa_3_0[3:0]         = LAA_3_0;
-  assign s_laa_3_1[2:0]         = LAA_3_0[3:1];
+
 
   assign s_cd_15_0[15:0]        = CD_15_0;
   assign s_cssst_1_0[1:0]       = CSSST_1_0;
@@ -295,8 +291,8 @@ module CGA_ALU (
       .FIDBI_15_0(s_fidbi_15_0[15:0]),
       .F_15_0(s_f_15_0[15:0]),
       .GPR_15_0(s_grp_15_0[15:0]),
-      .LAA_3_1(s_laa_3_1[2:0]),
-      .LBA_2_0(s_lba_2_0[2:0]),
+      .LAA_3_1(s_laa_3_0[3:1]),
+      .LBA_2_0(s_lba_3_0[2:0]),
       .STS_15_0(s_sts_15_0[15:0]),
       .SW_15_0(s_sw_15_0[15:0]),
 
