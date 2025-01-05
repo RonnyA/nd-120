@@ -33,8 +33,12 @@ module IDT6168A_20 (
     * and it's more appropriate to trigger the write operation with the signal's level rather than its edge.
     * This is because SRAM is usually designed to accept data as long as WE_n is low and the chip enable (CE_n) is also low,
     * enabling continuous write operations during the active period.
+
+    * NOTE 1: Not using WE_n as a latching signal, but rely on clk signal
+    *
+    * NOTE 2: SRAM shouldupdate output ASAP when address changes and not wait for clock edge. But that doesnt work in the Verilator testbench, I assume race conditions..
     */
-  always @(posedge clk) begin
+  always @(negedge clk) begin
     if (!reset_n) begin
       // Reset only data_out to prevent read conflicts during reset
       data_out <= 4'b0;
