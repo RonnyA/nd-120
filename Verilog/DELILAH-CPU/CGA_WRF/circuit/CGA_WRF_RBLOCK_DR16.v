@@ -48,7 +48,8 @@ module CGA_WRF_RBLOCK_DR16 (
 
   reg [15:0] regFF;
   always @(posedge s_aluclk) begin
-    if (s_wr & s_aluclk) begin
+    //if (s_wr & s_aluclk) begin
+    if (s_wr) begin
         regFF <= s_rb_15_0[15:0];
     end
   end
