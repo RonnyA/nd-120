@@ -148,16 +148,11 @@ module BIF_BCTL_6 (
   wire       s_act_n;
   wire       s_dore_n;
   wire       s_mem_n;
-  wire       s_iord_n;
-  wire       s_gnt;
-  wire       s_memr_n;
   wire       s_cact25_n;
   wire       s_eiod_n;
   wire       s_brq50_n;
   wire       s_refrq50_n;
   wire       s_sem_n;
-  wire       s_ioerr_n;
-  wire       s_test_n;
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
@@ -325,26 +320,26 @@ module BIF_BCTL_6 (
    * Includes test functionality and interfaces with memory operation ready signals.
    */
   PAL_45001B PAL_45001_UBPAR (
-      .BDRY50_n (s_bdry50_n),   // I0 - BDRY50_n
-      .BDRY75_n (s_bdry75_n),   // I1 - BDRY75_n
-      .BLOCK25_n(s_block25_n),  // I2 - BLOCK25_n
-      .BPERR50_n(s_bperr50_n),  // I3 - BPERR50_n
-      .DBAPR_n  (s_dbapr),      // I4 - DBAPR_n
-      .MOR25_n  (s_mor25_n),    // I5 - MOR25_n
-      .LPERR_n  (s_lperr_n),    // I6 - LPERR_n
-      .MR_n     (s_mr_n),       // I7 - MR_n
-      .EPES_n   (s_epes_n),     // I8 - EPES_n
-      .EPEA_n   (s_epea_n),     // I9 - EPEA_n
+      .BDRY50_n (s_bdry50_n),   // I0 - BDRY50_n Bus Data Ready 50ns delayed
+      .BDRY75_n (s_bdry75_n),   // I1 - BDRY75_n Bus Data Ready 75ns delayed
+      .BLOCK25_n(s_block25_n),  // I2 - BLOCK25_n Block 25ns delayed
+      .BPERR50_n(s_bperr50_n),  // I3 - BPERR50_n Bus Parity Error 50ns delayed
+      .DBAPR_n  (s_dbapr),      // I4 - DBAPR_n Data Bus Address Present
+      .MOR25_n  (s_mor25_n),    // I5 - MOR25_n Memory Error 25ns delayed
+      .LPERR_n  (s_lperr_n),    // I6 - LPERR_n Local Parity Error
+      .MR_n     (s_mr_n),       // I7 - MR_n Master Reset
+      .EPES_n   (s_epes_n),     // I8 - EPES_n Enable Parity Error Status Word (read)
+      .EPEA_n   (s_epea_n),     // I9 - EPEA_n Enable Parity Error Address (read)
 
-      .SPEA(s_spea),  // Y0_n (OUT Only)
-      .SPES(s_spes),  // Y1_n (OUT ONLY)
+      .SPEA(s_spea),  // Y0_n (OUT Only) Strobe Parity Error Address (PEA) (write)
+      .SPES(s_spes),  // Y1_n (OUT ONLY) Strobe Parity Error Status Word (PES) (write)
 
-      .BLOCK_n (s_block_n),   // B0_n - BLOCK_n (out)
-      .PARERR_n(s_parerr_n),  // B1_n - PARERR_n (out)
-      .RERR_n  (s_rerr_n),    // B2_n
-      //.B3_n(s_test_n),         // B3_n - (n.c.)
-      .TEST    (s_test_n),    // B4_n - TEST
-      .LERR_n  (s_lerr_n)     // B5_n
+      .BLOCK_n (s_block_n),   // B0_n - BLOCK_n (out) Block signal for PES and PEA strobe
+      .PARERR_n(s_parerr_n),  // B1_n - PARERR_n (out) Parity Error signal from bus and local memory
+      .RERR_n  (s_rerr_n),    // B2_n - RERR_n (out) Refresh Error signal
+      //.B3_n(),              // B3_n - (n.c.)
+      .TEST    (s_pd3),       // B4_n - TEST
+      .LERR_n  (s_lerr_n)     // B5_n - LERR_n (out) Local Error signal
   );
 
 
