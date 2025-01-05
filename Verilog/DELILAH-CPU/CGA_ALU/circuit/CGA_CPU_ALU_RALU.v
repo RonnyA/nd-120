@@ -6,23 +6,23 @@
 ** Page 46                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 20-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 **************************************************************************/
 
 module CGA_CPU_ALU_RALU (
-    input        ALUI4,
-    input        CI,       //! Carry IN
-    input        FSEL,
-    input        LOG,
-    input        RSN,
+    input        ALUI4,    //! ALU Instruction - bit 4
+    input        CI,       //! Carry IN (1=carry in)
+    input        FSEL,     //! Function Select (1=Logic function (XOR), 0=OR/AND/NOT)
+    input        LOG,      //! Logical Operation (1=Logic function (AND/OR). 0=ADD/SUB)
+    input        RSN,      //! RS (1=Subtract. 0=Add)
     input [15:0] RN_15_0,  //! R(15:0) negated
     input [15:0] S_15_0,   //! S(15:0)
 
-    output        CRY,
-    output [15:0] F_15_0,
+    output        CRY,     //! Carry Out
+    output [15:0] F_15_0,  //! Function Result (15:0)
     output        OVF,     //! Overflow Flag
-    output        SGR,
+    output        SGR,     //! Sign Greater Than
     output        ZF       //! Zero Flag
 );
 
@@ -65,10 +65,6 @@ module CGA_CPU_ALU_RALU (
   wire        s_zf_part8_11;
 
   /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
-  /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
   assign s_s_15_0[15:0]     = S_15_0;
@@ -96,7 +92,7 @@ module CGA_CPU_ALU_RALU (
   assign s_a_15_n           = ~s_a_15_0[15];
   assign s_b_15_n           = ~s_b_15_0[15];
   assign s_f_15_n           = ~s_f_15_0_out[15];
-  assign s_f_15_0_out[15:0] = ~s_fn_15_0[15:0]; 
+  assign s_f_15_0_out[15:0] = ~s_fn_15_0[15:0];
   assign s_log_n            = ~s_log;
   assign s_r_15_0           = ~s_rn_15_0;
   assign s_sn_15_0          = ~s_s_15_0;
@@ -230,14 +226,14 @@ module CGA_CPU_ALU_RALU (
       .S(s_rs_n),
       .F_15_0(s_r_15_0[15:0]),
       .T_15_0(s_rn_15_0[15:0]),
-      .O_15_0(s_a_15_0[15:0]) // out
+      .O_15_0(s_a_15_0[15:0])  // out
   );
 
   CGA_ALU_RALU_MUX216L SN_S_MUX (
       .S(s_alui4),
       .F_15_0(s_s_15_0[15:0]),
       .T_15_0(s_sn_15_0[15:0]),
-      .O_15_0(s_b_15_0[15:0]) // out
+      .O_15_0(s_b_15_0[15:0])  // out
   );
 
   CGA_ALU_RALU_LOGOP LOGOP (
@@ -245,14 +241,14 @@ module CGA_CPU_ALU_RALU (
       .FSEL(s_fsel),
       .A_15_0(s_a_15_0[15:0]),
       .S_15_0(s_s_15_0[15:0]),
-      .LF_15_0(s_lf_15_0[15:0]) // out
+      .LF_15_0(s_lf_15_0[15:0])  // out
   );
 
   CGA_ALU_RALU_MUX216L AF_LF_MUX (
       .S(s_log),
       .F_15_0(s_lf_15_0[15:0]),
       .T_15_0(s_af_15_0[15:0]),
-      .O_15_0(s_fn_15_0[15:0]) // out
+      .O_15_0(s_fn_15_0[15:0])  // out
   );
 
 endmodule
