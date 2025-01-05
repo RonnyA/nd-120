@@ -23,10 +23,10 @@ module CGA_MAC_ADD (
 
 
     // Special: Add CD if PLCA is low
-    input [15:0] CD_15_0,   //! CPU data added to the selected register
-    input        CDS,       //! If false all 16 bits of CD is added. If false, only the low 8 bits are added.
+    input [15:0] CD_15_0,   //! CPU data (Added to the selected register)
+    input        CDS,       //! If false all 16 bits of CD is added. If true, only the low 8 bits are added.
 
-    output [15:0] ADD_15_0  //! MAC Addition result
+    output [15:0] ADD_15_0  //! Addition result output
 );
 
   /*******************************************************************************
@@ -42,7 +42,6 @@ module CGA_MAC_ADD (
   wire [15:0] s_br_15_0;
   wire [15:0] s_prp_15_0;
 
-  wire        s_cd_2;
   wire        s_cds_n;
   wire        s_cds;
   wire        s_cde_enable;
