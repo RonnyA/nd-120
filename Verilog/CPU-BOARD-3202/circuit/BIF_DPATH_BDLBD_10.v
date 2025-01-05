@@ -32,27 +32,12 @@ module BIF_DPATH_BDLBD_10 (
   wire [23:0] s_bd_23_0_n_in;
   wire [23:0] s_bd_23_0_n_out;
 
+  wire        s_bgnt_n;
+  wire        s_bgntcact_n;
+  wire        s_clkbd;
   wire        s_ebadr;
-  wire        s_ebadr0;
-  wire        s_ebadr1;
-  wire        s_ebadr2;
-  wire        s_ebadr3;
   wire        s_ebd_n;
   wire        s_wbd_n;
-  wire        s_ebadr9;
-  wire        s_clkbd;
-  wire        s_clkbd0;
-  wire        s_clkbd1;
-  wire        s_clkbd2;
-  wire        s_clkbd3;
-  wire        s_clkbd4;
-  wire        s_clkbd5;
-  wire        s_clkbd6;
-  wire        s_clkbd7;
-  wire        s_clkbd8;
-  wire        s_clkbd9;
-  wire        s_bgntcact_n;
-  wire        s_bgnt_n;
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
