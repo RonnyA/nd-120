@@ -6,7 +6,7 @@
 ** Page 103                                                              **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 19-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -139,8 +139,8 @@ module CGA_TRAP_BRKDET (
       .BubblesMask(3'b000)
   ) WIP (
       .input1(s_gates2_out),
-      .input2(s_ipt_15_9[6]),
-      .input3(s_ipt_15_9[3]),
+      .input2(s_ipt_15_9[6]),  // IPT 15 3
+      .input3(s_ipt_15_9_n[3]),  // IPT 12n
       .result(s_wip_out)
   );
 
@@ -167,8 +167,8 @@ module CGA_TRAP_BRKDET (
       .BubblesMask(3'b000)
   ) RD2 (
       .input1(s_gates4_out),
-      .input2(s_ipt_15_9_n[1]),
-      .input3(s_ipt_15_9_n[0]),
+      .input2(s_ipt_15_9_n[1]), //IPT 10n
+      .input3(s_ipt_15_9_n[0]), //IPT 9n
       .result(s_rd2_out)
   );
 
