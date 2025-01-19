@@ -6,7 +6,7 @@
 ** Page 100                                                              **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 19-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -141,10 +141,10 @@ module CGA_TRAP (
       .IFETCHN(s_ifetch_n),
       .IINDN(s_iind_n),
       .INTRQ(s_intrq),
-      .IPCR_1_0(s_ipcr_1_0_n[1:0]),
-      .IPCR_1_0_N(s_ipcr_1_0[1:0]),
-      .IPT_15_9(s_ipt_15_9_n[6:0]),
-      .IPT_15_9_N(s_ipt_15_9[6:0]),
+      .IPCR_1_0(s_ipcr_1_0[1:0]),
+      .IPCR_1_0_N(s_ipcr_1_0_n[1:0]),
+      .IPT_15_9(s_ipt_15_9[6:0]),
+      .IPT_15_9_N(s_ipt_15_9_n[6:0]),
       .IWRITE(s_iwrite),
       .IWRITEN(s_iwrite_n),
       .TRAPN(s_trap_n_out),
@@ -161,10 +161,10 @@ module CGA_TRAP (
       .INDN(s_ind_n),
       .INTRQ(s_intrq),
       .INTRQN(s_intrq_n),
-      .IPCR_1_0(s_ipcr_1_0_n[1:0]),
-      .IPCR_1_0_N(s_ipcr_1_0[1:0]),
-      .IPT_15_9(s_ipt_15_9_n[6:0]),
-      .IPT_15_9_N(s_ipt_15_9[6:0]),
+      .IPCR_1_0(s_ipcr_1_0[1:0]),
+      .IPCR_1_0_N(s_ipcr_1_0_n[1:0]),
+      .IPT_15_9(s_ipt_15_9[6:0]),
+      .IPT_15_9_N(s_ipt_15_9_n[6:0]),
       .IWRITE(s_iwrite),
       .IWRITEN(s_iwrite_n),
       .PAN(s_pan),
