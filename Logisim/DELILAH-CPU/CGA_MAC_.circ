@@ -96,6 +96,11 @@
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="downloadBoard" val="BASYS3"/>
     <a name="simulationFrequency" val="1.0"/>
+    <comp lib="0" loc="(1190,1240)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+      <a name="radix" val="8"/>
+    </comp>
     <comp lib="0" loc="(170,260)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="PONI"/>
@@ -147,7 +152,7 @@
     <comp lib="0" loc="(200,1290)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="CD_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(200,1350)" name="Pin">
@@ -159,7 +164,7 @@
     <comp lib="0" loc="(200,1400)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="XR_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(200,1440)" name="Pin">
@@ -183,6 +188,25 @@
     <comp lib="0" loc="(2150,630)" name="Probe">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
+    </comp>
+    <comp lib="0" loc="(2230,680)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+      <a name="radix" val="16"/>
+    </comp>
+    <comp lib="0" loc="(2380,670)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+      <a name="radix" val="16"/>
+    </comp>
+    <comp lib="0" loc="(2450,670)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
+    <comp lib="0" loc="(2670,850)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+      <a name="radix" val="8"/>
     </comp>
     <comp lib="0" loc="(3180,1300)" name="Pin">
       <a name="appearance" val="NewPins"/>
@@ -217,7 +241,7 @@
       <a name="facing" val="west"/>
       <a name="label" val="LA_23_10"/>
       <a name="output" val="true"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="14"/>
     </comp>
     <comp lib="0" loc="(3220,670)" name="Pin">
@@ -273,6 +297,8 @@
     <wire from="(1040,790)" to="(1040,1340)"/>
     <wire from="(1130,1290)" to="(1130,1520)"/>
     <wire from="(1130,1520)" to="(1230,1520)"/>
+    <wire from="(1150,1240)" to="(1150,1330)"/>
+    <wire from="(1150,1240)" to="(1190,1240)"/>
     <wire from="(1150,1330)" to="(1150,1460)"/>
     <wire from="(1150,1460)" to="(1230,1460)"/>
     <wire from="(1150,1480)" to="(1150,1580)"/>
@@ -338,8 +364,8 @@
     <wire from="(1910,710)" to="(2090,710)"/>
     <wire from="(1910,730)" to="(2040,730)"/>
     <wire from="(1910,750)" to="(2090,750)"/>
-    <wire from="(1910,770)" to="(2490,770)"/>
-    <wire from="(1910,790)" to="(2550,790)"/>
+    <wire from="(1910,770)" to="(2440,770)"/>
+    <wire from="(1910,790)" to="(2170,790)"/>
     <wire from="(1910,810)" to="(2070,810)"/>
     <wire from="(1910,830)" to="(2050,830)"/>
     <wire from="(1920,440)" to="(2030,440)"/>
@@ -370,12 +396,18 @@
     <wire from="(2090,630)" to="(2150,630)"/>
     <wire from="(2090,710)" to="(2530,710)"/>
     <wire from="(2090,750)" to="(2090,960)"/>
-    <wire from="(2090,750)" to="(2600,750)"/>
+    <wire from="(2090,750)" to="(2320,750)"/>
     <wire from="(2090,960)" to="(2120,960)"/>
+    <wire from="(2170,680)" to="(2170,790)"/>
+    <wire from="(2170,680)" to="(2230,680)"/>
+    <wire from="(2170,790)" to="(2550,790)"/>
     <wire from="(230,1440)" to="(230,1470)"/>
     <wire from="(230,1470)" to="(700,1470)"/>
     <wire from="(230,1500)" to="(230,1590)"/>
     <wire from="(230,1590)" to="(1170,1590)"/>
+    <wire from="(2320,670)" to="(2320,750)"/>
+    <wire from="(2320,670)" to="(2380,670)"/>
+    <wire from="(2320,750)" to="(2600,750)"/>
     <wire from="(2340,1000)" to="(2640,1000)"/>
     <wire from="(2340,1020)" to="(2640,1020)"/>
     <wire from="(2340,1040)" to="(2640,1040)"/>
@@ -392,12 +424,15 @@
     <wire from="(2360,1460)" to="(3160,1460)"/>
     <wire from="(240,1400)" to="(240,1490)"/>
     <wire from="(240,1490)" to="(700,1490)"/>
+    <wire from="(2440,670)" to="(2440,770)"/>
+    <wire from="(2440,670)" to="(2450,670)"/>
+    <wire from="(2440,770)" to="(2490,770)"/>
     <wire from="(2490,1200)" to="(2640,1200)"/>
     <wire from="(2490,770)" to="(2490,1200)"/>
     <wire from="(250,1350)" to="(250,1450)"/>
     <wire from="(250,1450)" to="(700,1450)"/>
     <wire from="(2510,920)" to="(2510,1330)"/>
-    <wire from="(2510,920)" to="(2640,920)"/>
+    <wire from="(2510,920)" to="(2620,920)"/>
     <wire from="(2530,1160)" to="(2640,1160)"/>
     <wire from="(2530,710)" to="(2530,1160)"/>
     <wire from="(2550,1220)" to="(2640,1220)"/>
@@ -407,6 +442,9 @@
     <wire from="(2600,1180)" to="(2640,1180)"/>
     <wire from="(2600,750)" to="(2600,1180)"/>
     <wire from="(2600,750)" to="(3230,750)"/>
+    <wire from="(2620,850)" to="(2620,920)"/>
+    <wire from="(2620,850)" to="(2670,850)"/>
+    <wire from="(2620,920)" to="(2640,920)"/>
     <wire from="(270,1290)" to="(270,1330)"/>
     <wire from="(270,1330)" to="(270,1580)"/>
     <wire from="(270,1330)" to="(700,1330)"/>
@@ -1712,7 +1750,7 @@
     <comp lib="0" loc="(4470,3910)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="CD_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(4510,3700)" name="Splitter">
@@ -1727,12 +1765,12 @@
     <comp lib="0" loc="(4910,3780)" name="Probe">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
     </comp>
     <comp lib="0" loc="(4930,3630)" name="Probe">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
     </comp>
     <comp lib="0" loc="(5040,2090)" name="Splitter">
       <a name="facing" val="west"/>
@@ -1749,7 +1787,7 @@
       <a name="facing" val="west"/>
       <a name="label" val="ADD_15_0"/>
       <a name="output" val="true"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(640,4730)" name="Pin">
@@ -1771,7 +1809,7 @@
     <comp lib="0" loc="(640,4970)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="RB_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(640,5020)" name="Pin">
@@ -1783,13 +1821,13 @@
     <comp lib="0" loc="(640,5060)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="XR_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(640,5100)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="LCA_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="1" loc="(4170,1440)" name="OR Gate">
@@ -2909,7 +2947,7 @@
       <a name="facing" val="west"/>
       <a name="label" val="ICA_15_0"/>
       <a name="output" val="true"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(4310,5350)" name="Pin">
@@ -2973,19 +3011,19 @@
     <comp lib="0" loc="(710,5730)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="PR_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(710,5770)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="ADD_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(710,5810)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="CD_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(830,5440)" name="Tunnel">
@@ -3535,7 +3573,7 @@
     <wire from="(3490,3270)" to="(3910,3270)"/>
     <wire from="(3490,3600)" to="(3490,3920)"/>
     <wire from="(3490,3600)" to="(3910,3600)"/>
-    <wire from="(3490,390)" to="(3490,1020)"/>
+    <wire from="(3490,390)" to="(3490,710)"/>
     <wire from="(3490,390)" to="(3900,390)"/>
     <wire from="(3490,3920)" to="(3490,4240)"/>
     <wire from="(3490,3920)" to="(3910,3920)"/>
@@ -3546,6 +3584,8 @@
     <wire from="(3490,4890)" to="(3490,5210)"/>
     <wire from="(3490,4890)" to="(3910,4890)"/>
     <wire from="(3490,5210)" to="(3910,5210)"/>
+    <wire from="(3490,710)" to="(3490,1020)"/>
+    <wire from="(3490,710)" to="(3900,710)"/>
     <wire from="(3530,5630)" to="(3530,5740)"/>
     <wire from="(3530,5630)" to="(4060,5630)"/>
     <wire from="(3580,4970)" to="(3660,4970)"/>
@@ -3647,8 +3687,10 @@
     <wire from="(3700,3810)" to="(3760,3810)"/>
     <wire from="(3700,4130)" to="(3700,4450)"/>
     <wire from="(3700,4130)" to="(3760,4130)"/>
-    <wire from="(3700,4450)" to="(3700,5100)"/>
+    <wire from="(3700,4450)" to="(3700,4780)"/>
     <wire from="(3700,4450)" to="(3760,4450)"/>
+    <wire from="(3700,4780)" to="(3700,5100)"/>
+    <wire from="(3700,4780)" to="(3760,4780)"/>
     <wire from="(3700,5100)" to="(3760,5100)"/>
     <wire from="(3700,600)" to="(3700,910)"/>
     <wire from="(3700,600)" to="(3750,600)"/>
@@ -5816,6 +5858,198 @@
     </comp>
     <comp lib="8" loc="(190,80)" name="Text">
       <a name="text" val="Page 40 - CGA_MAC_LA1025"/>
+    </comp>
+    <comp lib="8" loc="(2115,205)" name="Text">
+      <a name="text" val="ICA6"/>
+    </comp>
+    <comp lib="8" loc="(2115,225)" name="Text">
+      <a name="text" val="BB10"/>
+    </comp>
+    <comp lib="8" loc="(2125,405)" name="Text">
+      <a name="text" val="ICA5"/>
+    </comp>
+    <comp lib="8" loc="(2130,1015)" name="Text">
+      <a name="text" val="ICA2"/>
+    </comp>
+    <comp lib="8" loc="(2130,1035)" name="Text">
+      <a name="text" val="BB10"/>
+    </comp>
+    <comp lib="8" loc="(2130,425)" name="Text">
+      <a name="text" val="BB10"/>
+    </comp>
+    <comp lib="8" loc="(2130,615)" name="Text">
+      <a name="text" val="ICA4"/>
+    </comp>
+    <comp lib="8" loc="(2130,635)" name="Text">
+      <a name="text" val="BB10"/>
+    </comp>
+    <comp lib="8" loc="(2130,815)" name="Text">
+      <a name="text" val="ICA3"/>
+    </comp>
+    <comp lib="8" loc="(2130,835)" name="Text">
+      <a name="text" val="BB10"/>
+    </comp>
+    <comp lib="8" loc="(2140,1215)" name="Text">
+      <a name="text" val="ICA1"/>
+    </comp>
+    <comp lib="8" loc="(2140,1235)" name="Text">
+      <a name="text" val="BB10"/>
+    </comp>
+    <comp lib="8" loc="(2205,2990)" name="Text">
+      <a name="text" val="A1619"/>
+    </comp>
+    <comp lib="8" loc="(2210,185)" name="Text">
+      <a name="text" val="A10"/>
+    </comp>
+    <comp lib="8" loc="(2210,2845)" name="Text">
+      <a name="text" val="A10"/>
+    </comp>
+    <comp lib="8" loc="(2210,2975)" name="Text">
+      <a name="text" val="PCR11"/>
+    </comp>
+    <comp lib="8" loc="(2210,3010)" name="Text">
+      <a name="text" val="SEG0"/>
+    </comp>
+    <comp lib="8" loc="(2210,3030)" name="Text">
+      <a name="text" val="A1617"/>
+    </comp>
+    <comp lib="8" loc="(2215,165)" name="Text">
+      <a name="text" val="ICA5"/>
+    </comp>
+    <comp lib="8" loc="(2215,2315)" name="Text">
+      <a name="text" val="A10"/>
+    </comp>
+    <comp lib="8" loc="(2215,2825)" name="Text">
+      <a name="text" val="ICA6"/>
+    </comp>
+    <comp lib="8" loc="(2215,2865)" name="Text">
+      <a name="text" val="ICA7"/>
+    </comp>
+    <comp lib="8" loc="(2215,2885)" name="Text">
+      <a name="text" val="BB10"/>
+    </comp>
+    <comp lib="8" loc="(2215,365)" name="Text">
+      <a name="text" val="ICA4"/>
+    </comp>
+    <comp lib="8" loc="(2215,385)" name="Text">
+      <a name="text" val="A10"/>
+    </comp>
+    <comp lib="8" loc="(2215,595)" name="Text">
+      <a name="text" val="A10"/>
+    </comp>
+    <comp lib="8" loc="(2215,795)" name="Text">
+      <a name="text" val="A10"/>
+    </comp>
+    <comp lib="8" loc="(2220,2295)" name="Text">
+      <a name="text" val="ICA7"/>
+    </comp>
+    <comp lib="8" loc="(2220,2335)" name="Text">
+      <a name="text" val="ICA8"/>
+    </comp>
+    <comp lib="8" loc="(2220,2355)" name="Text">
+      <a name="text" val="BB10"/>
+    </comp>
+    <comp lib="8" loc="(2220,3130)" name="Text">
+      <a name="text" val="PCR9"/>
+    </comp>
+    <comp lib="8" loc="(2220,3150)" name="Text">
+      <a name="text" val="D1617"/>
+    </comp>
+    <comp lib="8" loc="(2220,575)" name="Text">
+      <a name="text" val="ICA3"/>
+    </comp>
+    <comp lib="8" loc="(2220,775)" name="Text">
+      <a name="text" val="ICA2"/>
+    </comp>
+    <comp lib="8" loc="(2220,995)" name="Text">
+      <a name="text" val="A10"/>
+    </comp>
+    <comp lib="8" loc="(2225,2465)" name="Text">
+      <a name="text" val="A1619"/>
+    </comp>
+    <comp lib="8" loc="(2225,3170)" name="Text">
+      <a name="text" val="PCR7"/>
+    </comp>
+    <comp lib="8" loc="(2225,3190)" name="Text">
+      <a name="text" val="E1617"/>
+    </comp>
+    <comp lib="8" loc="(2225,975)" name="Text">
+      <a name="text" val="ICA1"/>
+    </comp>
+    <comp lib="8" loc="(2230,1195)" name="Text">
+      <a name="text" val="A10"/>
+    </comp>
+    <comp lib="8" loc="(2230,2445)" name="Text">
+      <a name="text" val="PCR12"/>
+    </comp>
+    <comp lib="8" loc="(2230,2485)" name="Text">
+      <a name="text" val="SEG1"/>
+    </comp>
+    <comp lib="8" loc="(2230,2505)" name="Text">
+      <a name="text" val="A1617"/>
+    </comp>
+    <comp lib="8" loc="(2235,1175)" name="Text">
+      <a name="text" val="ICA0"/>
+    </comp>
+    <comp lib="8" loc="(2240,2605)" name="Text">
+      <a name="text" val="PCR10"/>
+    </comp>
+    <comp lib="8" loc="(2240,2625)" name="Text">
+      <a name="text" val="D1617"/>
+    </comp>
+    <comp lib="8" loc="(2245,2645)" name="Text">
+      <a name="text" val="PCR8"/>
+    </comp>
+    <comp lib="8" loc="(2245,2665)" name="Text">
+      <a name="text" val="E1617"/>
+    </comp>
+    <comp lib="8" loc="(2260,310)" name="Text">
+      <a name="text" val="C10"/>
+    </comp>
+    <comp lib="8" loc="(2265,505)" name="Text">
+      <a name="text" val="C10"/>
+    </comp>
+    <comp lib="8" loc="(2265,715)" name="Text">
+      <a name="text" val="C10"/>
+    </comp>
+    <comp lib="8" loc="(2265,925)" name="Text">
+      <a name="text" val="C10"/>
+    </comp>
+    <comp lib="8" loc="(2270,1125)" name="Text">
+      <a name="text" val="C10"/>
+    </comp>
+    <comp lib="8" loc="(2270,1325)" name="Text">
+      <a name="text" val="C10"/>
+    </comp>
+    <comp lib="8" loc="(2270,275)" name="Text">
+      <a name="text" val="ICA15"/>
+    </comp>
+    <comp lib="8" loc="(2270,470)" name="Text">
+      <a name="text" val="ICA14"/>
+    </comp>
+    <comp lib="8" loc="(2275,1285)" name="Text">
+      <a name="text" val="ICA10"/>
+    </comp>
+    <comp lib="8" loc="(2275,680)" name="Text">
+      <a name="text" val="ICA13"/>
+    </comp>
+    <comp lib="8" loc="(2275,885)" name="Text">
+      <a name="text" val="ICA12"/>
+    </comp>
+    <comp lib="8" loc="(2280,1085)" name="Text">
+      <a name="text" val="ICA11"/>
+    </comp>
+    <comp lib="8" loc="(2300,2765)" name="Text">
+      <a name="text" val="F1617"/>
+    </comp>
+    <comp lib="8" loc="(2305,2725)" name="Text">
+      <a name="text" val="XPT1"/>
+    </comp>
+    <comp lib="8" loc="(2340,3295)" name="Text">
+      <a name="text" val="F1617"/>
+    </comp>
+    <comp lib="8" loc="(2345,3250)" name="Text">
+      <a name="text" val="XPT0"/>
     </comp>
     <comp lib="8" loc="(2640,2130)" name="Text">
       <a name="text" val="ILA23N"/>
