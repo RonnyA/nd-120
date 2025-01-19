@@ -24,16 +24,18 @@ module CPU_MMU_PTIDB_30 (
   // This code replaces the original Logisim generated code with a simpler and more efficient implementation
   // It replaces two 74PCT245 chips (8-bit transceiver with 3-state outputs) with one 16 bit identical implementation.
 
-  reg OE_n;
-  reg DIR;
+  wire OE_n;
+  wire DIR;
+
+  assign OE_n  = EPTI_n;
+  assign DIR   = WRITE;
+
 
   reg [15:0] A_reg;
   reg [15:0] B_reg;
 
-  always @* begin
-    OE_n  = EPTI_n;
-    DIR   = WRITE;
-
+  always @(*) 
+  begin
     A_reg = IDB_15_0_IN;
     B_reg = PT_15_0_IN;
   end
