@@ -81,7 +81,7 @@ module CGA (
     output [ 9:0] XMCA_9_0,
     output [ 1:0] XPCR_1_0,
     output [ 3:0] XPIL_3_0,
-    output        XPONI,
+    output        XPONI,     //! Memory Protection ON, PONI=1
     output [ 1:0] XRF_1_0,
     output [ 4:0] XTEST_4_0,
     output        XTRAPN,
@@ -621,13 +621,17 @@ module CGA (
   );
 
 
+  // This module represents the Arithmetic Logic Unit (ALU) of the CPU,
+  // which performs various arithmetic and logical operations.
+  // It takes input signals for clock, operands, and control signals,
+  // and produces output signals indicating the results of the operations,
+  // including flags for carry, overflow, and specific operation results.
   CGA_ALU ALU (
+      // Input signals
       .ALUCLK(sx_aluclk),
       .A_15_0(s_a_15_0[15:0]),
-      .BDEST(s_BDEST),
       .B_15_0(s_b_15_0[15:0]),
       .CD_15_0(s_cd_15_0[15:0]),
-      .CRY(s_cry),
       .CSALUI_8_0(s_csalui_8_0[8:0]),
       .CSALUM_1_0(s_csalum_1_0[1:0]),
       .CSBIT_15_0(s_csbit_15_0[15:0]),
@@ -635,20 +639,26 @@ module CGA (
       .CSIDBS_4_0(s_csidbs_4_0[4:0]),
       .CSMIS_1_0(s_csmis_1_0[1:0]),
       .CSSST_1_0(s_cssst_1_0[1:0]),
-      .DOUBLE(sx_double_out),
       .EA_15_0(s_ea_15_0[15:0]),
-      .F11(s_f11),
-      .F15(s_f15),
       .FIDBI_15_0(s_alu_IDB_15_0_IN),
-      .FIDBO_15_0_OUT(s_alu_IDB_15_0_OUT),
-      .IONI(sx_ioni_out),
-      .LAA_3_0(sx_laa_3_0_out[3:0]),
-      .LBA_3_0(sx_lba_3_0_out[3:0]),
+      .LAA_3_0(sx_laa_3_0_out[3:0]),  //! A Operand. CSBITS [15:12]
+      .LBA_3_0(sx_lba_3_0_out[3:0]),  //! B Operand. CSBITS [19:16]
       .LCZN(s_lcz_n),
       .LDDBRN(s_lddbr_n),
       .LDGPRN(s_ldgpr_n),
       .LDIRV(s_ldirv),
       .LDPILN(s_ldpil_n),
+      .UPN(s_up_n),
+      .XFETCHN(s_xfetch_n),
+
+      // Output signals
+      .BDEST(s_BDEST),
+      .CRY(s_cry),
+      .DOUBLE(sx_double_out),
+      .F11(s_f11),
+      .F15(s_f15),
+      .FIDBO_15_0_OUT(s_alu_IDB_15_0_OUT),
+      .IONI(sx_ioni_out),
       .MI(s_mi),
       .OVF(s_ovf),
       .PIL_3_0(sx_pil_3_0_out[3:0]),
@@ -656,14 +666,17 @@ module CGA (
       .PTM(s_ptm),
       .RB_15_0(s_rb_15_0[15:0]),
       .SGR(s_sgr),
-      .UPN(s_up_n),
-      .XFETCHN(s_xfetch_n),
       .Z(s_z),
       .ZF(s_zf)
   );
 
+  // This module handles trap conditions in the CPU, managing various input signals
+  // related to interrupts and exceptions.
+  // It processes these signals to generate appropriate output signals
+  // that indicate the status of the trap conditions, including break signals,
+  // violation indicators, and trap requests.
   CGA_TRAP TRAP (
-      .BRKN(sx_brk_n_out),
+      // Input signals
       .CBRKN(s_cbrk_n),
       .DSTOPN(s_dstop_n),
       .ETRAPN(sx_etrap_n),
@@ -675,17 +688,24 @@ module CGA (
       .PCR_1_0(sx_pcr_1_0_out[1:0]),
       .PONI(sx_poni_out),
       .PT_15_9(s_pt_15_9[6:0]),
-      .PVIOL(s_pviol),
-      .RESTR(s_restr),
       .TCLK(sx_tclk),
-      .TRAPN(sx_trap_n_out),
-      .TVEC_3_0(s_tvec_3_0[3:0]),
       .VACCN(s_vacc_n),
       .VTRAPN(sx_vtrap_n),
-      .WRITEN(s_write_n)
+      .WRITEN(s_write_n),
+
+      // Output signals
+      .BRKN(sx_brk_n_out),
+      .PVIOL(s_pviol),
+      .RESTR(s_restr),
+      .TRAPN(sx_trap_n_out),
+      .TVEC_3_0(s_tvec_3_0[3:0])
   );
 
+  // This module, IDBCTL, manages the control logic for the IDB (Input Data Buffer) in the CPU Gate Array.
+  // It processes various input signals related to control and status, including fetch signals,
+  // mask signals, and violation indicators, and produces an output signal for the IDB.
   CGA_IDBCTL IDBCTL (
+      // Input signals
       .EPCRN(s_epcr_n),
       .EPGSN(s_epgs_n),
       .EPICMASKN(s_epicmask_n),
@@ -704,37 +724,71 @@ module CGA (
       .PVIOL(s_pviol),
       .VACCN(s_vacc_n),
       .XFIDBI_15_0(s_idbctl_IDB_15_0_IN[15:0]),
+
+      // Output signals
       .FIDBI_15_0_OUT(s_idbctl_IDB_15_0_OUT[15:0])
   );
 
+  // The CGA_WRF module is responsible for managing the write functionality of the CPU's registers.
+  // It takes in clock signals, destination flags, and data for register selection and writing.
+  // Outputs from this module include enable signals for reading from source registers,
+  // write enable signals for specific registers, and the data contents of selected registers.
   CGA_WRF WRF (
-      .ALUCLK(sx_aluclk),
-      .A_15_0(s_a_15_0[15:0]),
-      .BDEST(s_BDEST),
-      .BR_15_0(s_br_15_0[15:0]),
-      .B_15_0(s_b_15_0[15:0]),
-      .EA_15_0(s_ea_15_0[15:0]),
-      .LAA_3_0(sx_laa_3_0_out[3:0]),
-      .LBA_3_0(sx_lba_3_0_out[3:0]),
-      .NLCA_15_0(s_nlca_15_0[15:0]),
-      .PR_15_0(s_pr_15_0[15:0]),
-      .RB_15_0(s_rb_15_0[15:0]),
-      .WPN(s_wp_n),
-      .WR3(s_wr3),
-      .WR7(s_wr7),
-      .XFETCHN(s_xfetch_n),
-      .XR_15_0(s_xr_15_0[15:0])
+      // Input signals
+      .ALUCLK(sx_aluclk),          // Clock signal for the ALU
+      .BDEST(s_BDEST),             // Flag indicating if B is the destination for writing
+      .LAA_3_0(sx_laa_3_0_out[3:0]), // Selector for source register A
+      .LBA_3_0(sx_lba_3_0_out[3:0]), // Selector for destination register B
+      .NLCA_15_0(s_nlca_15_0[15:0]), // Data input for register #2 (P register)
+      .RB_15_0(s_rb_15_0[15:0]),     // Data input for destination register B
+      .XFETCHN(s_xfetch_n),          // Fetch signal for the P register
+
+      // Output signals
+      .EA_15_0(s_ea_15_0[15:0]),    // Enable signal for reading from source register A
+      .WPN(s_wp_n),                  // Write enable signal for register #2 (P register), negated
+      .WR3(s_wr3),                   // Write enable signal for register #3 (B register)
+      .WR7(s_wr7),                   // Write enable signal for register #7 (X register)
+
+      .A_15_0(s_a_15_0[15:0]),       // Data output from source register A
+      .B_15_0(s_b_15_0[15:0]),       // Data output from destination register B
+
+      .PR_15_0(s_pr_15_0[15:0]),     // Direct data output from P register
+      .BR_15_0(s_br_15_0[15:0]),     // Direct data output from B register
+      .XR_15_0(s_xr_15_0[15:0])      // Direct data output from X register
   );
 
+  // The CGA_DCD module is a decoder within the DELILAH CPU's gate array. It interprets control signals,
+  // decodes instructions, and manages the execution flow. It receives various status and control inputs,
+  // and based on these, it generates the necessary control outputs to drive other parts of the CPU.
+
+  // Input signals
   CGA_DCD DCD (
+      // Input signals
+      .sysclk(sysclk),                          // System clock in FPGA
+      .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
       .BRKN(sx_brk_n_out),
+      .CRY(s_cry),
+      .CSCOMM_4_0(s_cscomm_4_0[4:0]),
+      .CSIDBS_4_0(s_csidbs_4_0[4:0]),
+      .CSMIS_1_0(s_csmis_1_0[1:0]),
+      .F15(s_f15),
+      .FIDBO5(s_dcd_fidbo5),
+      .INTRQN(sx_intrq_n_out),
+      .LCSN(sx_ilcs_n),
+      .LSHADOW(sx_lshadow_out),
+      .MCLK(sx_mclk),
+      .MRN(sx_mrn),
+      .PONI(sx_poni_out),
+      .SGR(s_sgr),
+      .VEX(s_vex),
+      .ZF(s_zf),
+
+      // Output signals
       .CBRKN(s_cbrk_n),
       .CFETCH(s_cfetch),
       .CLFFN(s_clff_n),
       .CLIRQN(s_clirq_n),
-      .CSCOMM_4_0(s_cscomm_4_0[4:0]),
-      .CSIDBS_4_0(s_csidbs_4_0[4:0]),
-      .CSMIS_1_0(s_csmis_1_0[1:0]),
       .CSMREQ(s_csmreq),
       .DSTOPN(s_dstop_n),
       .EPCRN(s_epcr_n),
@@ -743,151 +797,154 @@ module CGA (
       .EPICSN(s_epics_n),
       .EPICVN(s_epicv_n),
       .ERFN(sx_erf_n),
-      .F15(s_f15),
       .FETCHN(s_fetch_n),
-      .FIDBO5(s_dcd_fidbo5),
-      .LCSN(sx_ilcs_n),
       .INDN(s_ind_n),
-      .INTRQN(sx_intrq_n_out),
       .LDDBRN(s_lddbr_n),
       .LDGPRN(s_ldgpr_n),
       .LDIRV(s_ldirv),
       .LDLCN(s_ldlc_n),
       .LDPILN(s_ldpil_n),
-      .LSHADOW(sx_lshadow_out),
       .LWCAN(s_lwca_n),
-      .MCLK(sx_mclk),
-      .MRN(sx_mrn),
-      .PONI(sx_poni_out),
-      .SGR(s_sgr),
       .VACCN(s_vacc_n),
-      .VEX(s_vex),
       .WPN(s_wp_n),
       .WRITEN(s_write_n),
       .WRTRF(sx_wrtrf_out),
-      .XFETCHN(s_xfetch_n),
-      .CRY(s_cry),
-      .ZF(s_zf)
+      .XFETCHN(s_xfetch_n)
   );
+  // The CGA_INTR module is responsible for handling interrupt requests and related control signals within the DELILAH CPU. It processes various interrupt signals, manages interrupt masking, and provides status outputs that influence the CPU's response to different interrupt conditions.
 
+  // Input signals to the CGA_INTR module
   CGA_INTR INTR (
-      .BINT10N(sx_bint10_n),
-      .BINT11N(sx_bint11_n),
-      .BINT12N(sx_bint12_n),
-      .BINT13N(sx_bint13_n),
-      .BINT15N(sx_bint15_n),
-      .CLIRQN(s_clirq_n),
-      .EMPIDN(sx_empid_n),
-      .EPIC(s_epic),
-      .EPICMASKN(s_epicmask_n),
-      .FIDBO_15_0(s_int_IDB_15_0_IN[15:0]),
-      .HIGSN(s_higs_n),
-      .INTRQN(sx_intrq_n_out),
-      .IOXERRN(sx_ioxerr_n),
-      .IRQ(s_irq),
-      .LAA_3_0(sx_laa_3_0_out[3:0]),
-      .LOGSN(s_logs_n),
-      .MCLK(sx_mclk),
-      .NORN(sx_mor_n),
-      .PANN(sx_pan_n),
-      .PARERRN(sx_parerr_n),
-      .PD(s_pd),
-      .PICMASK_15_0(s_picmask_15_0[15:0]),
-      .PICS_2_0(s_pics_2_0[2:0]),
-      .PICV_2_0(s_picv_2_0[2:0]),
-      .POWFAILN(sx_powfail_n),
-      .Z(s_z)
+      .BINT10N(sx_bint10_n),       // Bus Interrupt 10, active low
+      .BINT11N(sx_bint11_n),       // Bus Interrupt 11, active low
+      .BINT12N(sx_bint12_n),       // Bus Interrupt 12, active low
+      .BINT13N(sx_bint13_n),       // Bus Interrupt 13, active low
+      .BINT15N(sx_bint15_n),       // Bus Interrupt 15, active low
+      .CLIRQN(s_clirq_n),          // Clear Interrupt Request, active low
+      .EMPIDN(sx_empid_n),         // EMP Interrupt Disable, active low
+      .EPIC(s_epic),               // Enable PIC (Programmable Interrupt Controller) signal
+      .FIDBO_15_0(s_int_IDB_15_0_IN[15:0]), // FIDB, 16-bit
+      .IOXERRN(sx_ioxerr_n),       // IO Exception Error, active low
+      .LAA_3_0(sx_laa_3_0_out[3:0]), // Latched Address A, 4-bit
+      .MCLK(sx_mclk),              // Master Clock
+      .MORN(sx_mor_n),             // MOR signal, active low (Memory Error)
+      .PANN(sx_pan_n),             // PAN signal, active low (Panel Interrupt)
+      .PARERRN(sx_parerr_n),       // Parity Error, active low
+      .POWFAILN(sx_powfail_n),     // Power Failure, active low
+      .Z(s_z),                     // Error flag from ALU
+
+      // Output signals from the CGA_INTR module
+      .EPICMASKN(s_epicmask_n),    // EPIC Mask, active low
+      .HIGSN(s_higs_n),            // High Speed signal, active low
+      .INTRQN(sx_intrq_n_out),     // Interrupt Request, active low
+      .IRQ(s_irq),                 // Interrupt Request
+      .LOGSN(s_logs_n),            // Logical Segment Number, active low
+      .PD(s_pd),                   // Power Down signal
+      .PICMASK_15_0(s_picmask_15_0[15:0]), // PIC Mask, 16-bit
+      .PICS_2_0(s_pics_2_0[2:0]), // PIC Select, 3-bit
+      .PICV_2_0(s_picv_2_0[2:0])  // PIC Vector, 3-bit
   );
 
+  // The CGA_MAC module is a part of the DELILAH CPU's gate array,
+  // which is responsible for arithmetic computations and control logic.
+  // It takes various control signals, data paths,
+  // and clock inputs to perform its operations and
+  // outputs the results along with status signals.
+
+  // Input signals to the CGA_MAC module
   CGA_MAC MAC (
+      // Input signals to the CGA_MAC module
+      .CSMREQ       (s_csmreq),                // Chip Select for MAC, active high
+      .DOUBLE       (sx_double_out),           // Double Precision Control
+      .ILCSN        (sx_ilcs_n),               // Instruction Load Control Signal, active low
+      .MCLK         (sx_mclk),                 // Master Clock
+      .PONI         (sx_poni_out),             // Memory Protection ON, PONI=1
+      .PTM          (s_ptm),                   // Processor Test Mode
+      .WR3          (s_wr3),                   // Write Control Signal 3
+      .WR7          (s_wr7),                   // Write Control Signal 7
+      .CMIS_1_0     (s_csmis_1_0[1:0]),       // Microcode: Misc (2 bits)
+      .CSCOMM_4_0   (s_cscomm_4_0[4:0]),      // Microcode: Commands (5 bits)
+      .RB_15_0      (s_rb_15_0[15:0]),        // Microcode Register B
+      .CD_15_0      (s_cd_15_0[15:0]),        // Code/Data Selector
+      .FIDBO_15_0   (s_mac_IDB_15_0_IN[15:0]),// FIDBO output from previous stage
+      .PR_15_0      (s_pr_15_0[15:0]),        // ALU P Register
+      .BR_15_0      (s_br_15_0[15:0]),        // ALU B Register
+      .XR_15_0      (s_xr_15_0[15:0]),        // X Register
 
-      // MAC Module port grouping
-
-      // Inputs
-      .MCLK      (sx_mclk),                  // Clock input
-      .CD_15_0   (s_cd_15_0[15:0]),          // 16-bit cpu-data input
-      .CMIS_1_0  (s_csmis_1_0[1:0]),         // 2-bit misc control input
-      .CSCOMM_4_0(s_cscomm_4_0[4:0]),        // 5-bit command input
-      .CSMREQ    (s_csmreq),                 // Control signal input
-      .DOUBLE    (sx_double_out),            // Double word flag input
-      .FIDBO_15_0(s_mac_IDB_15_0_IN[15:0]),  // 16-bit IDB input
-      .ILCSN     (sx_ilcs_n),                // Load Control Store
-      .LSHADOW   (sx_lshadow_out),           // Load Shadow
-      .PCR_15_0  (s_pcr_15_0[15:0]),         // 16-bit PCR input
-      .PONI      (sx_poni_out),              // Memoy Management on Flag
-      .PR_15_0   (s_pr_15_0[15:0]),          // 16-bit PR input
-      .PTM       (s_ptm),                    // Page Table Flag
-      .VEX       (s_vex),                    // Vector exception input
-      .WR3       (s_wr3),                    // Write control 3 input
-      .WR7       (s_wr7),                    // Write control 7 input
-
-      // Outputs
-      .BR_15_0  (s_br_15_0[15:0]),        // 16-bit B-register output
-      .ECCR     (sx_eccr_out),            // ECC result output
-      .LA_23_10 (sx_la_23_10_out[13:0]),  // 14-bit address output
-      .MCA_9_0  (sx_mca_9_0_out[9:0]),    // 10-bit MCA output
-      .NLCA_15_0(s_nlca_15_0[15:0]),      // 16-bit NLCA output
-      .RB_15_0  (s_rb_15_0[15:0]),        // 16-bit RB
-      .XR_15_0  (s_xr_15_0[15:0])         // 16-bit X-register output
+      // Output signals from the CGA_MAC module
+      .ECCR         (sx_eccr_out),             // Error Correction Code Register
+      .LA_23_10     (sx_la_23_10_out[13:0]),   // Latch Address bits 23 to 10
+      .LSHADOW      (sx_lshadow_out),          // Latch SHADOW signal
+      .MCA_9_0      (sx_mca_9_0_out[9:0]),     // Microcode Address bits 9 to 0
+      .NLCA_15_0    (s_nlca_15_0[15:0]),       // Next Latch Address bits 15 to 0
+      .PCR_15_0     (s_pcr_15_0[15:0]),        // Program Counter Register bits 15 to 0
+      .VEX          (s_vex)                    // Violation Exception
   );
 
-  CGA_MIC MIC (
-      .sysclk(sysclk),  // System clock in FPGA
-      .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
-      .ACONDN(sx_acond_n_out),
-      .ALUCLK(sx_aluclk),
-      .CD_15_0(s_cd_15_0[15:0]),
-      .CFETCH(s_cfetch),
-      .CLFFN(s_clff_n),
-      .COND(s_cond),
-      .CRY(s_cry),
-      .CSALUI8(s_csalui8),
-      .CSBIT20(sx_csbit20),
-      .CSBIT_15_0(s_csbit_15_0[15:0]),
-      .CSCOND(sx_csscond),
-      .CSECOND(sx_csecond),
-      .CSLOOP(sx_csloop),
-      .CSMIS0(s_csmi0),
-      .CSRASEL_1_0(s_csrasel_1_0[1:0]),
-      .CSRBSEL_1_0(s_csrbsel_1_0[1:0]),
-      .CSRB_3_0(s_csrb_3_0[3:0]),
-      .CSTS_6_3(s_csts_6_3[3:0]),
-      .CSVECT(sx_csvect),
-      .CSXRF3(sx_csxrf3),
-      .DEEP(s_deep),
-      .DZD(s_dzd),
-      .EWCAN(sx_ewca_n),
-      .F11(s_f11),
-      .F15(s_f15),
-      .ILCSN(sx_ilcs_n),
-      .IRQ(s_irq),
-      .LAA_3_0(sx_laa_3_0_out[3:0]),
-      .LBA_3_0(sx_lba_3_0_out[3:0]),
-      .LCZN(s_lcz_n),
-      .LDIRV(s_ldirv),
-      .LDLCN(s_ldlc_n),
-      .LWCAN(s_lwca_n),
-      .MAPN(sx_map_n),
-      .MA_12_0(sx_ma_12_0_out[12:0]),
-      .MCLK(sx_mclk),
-      .MI(s_mi),
-      .MRN(sx_mrn),
-      .OOD(s_ood),
-      .OVF(s_ovf),
-      .PIL_3_0(sx_pil_3_0_out[3:0]),
-      .PN(s_pn),
-      .RESTR(s_restr),
-      .RF_1_0(sx_rf_1_0_out[1:0]),
-      .SC_6_3(s_sc_6_3[3:0]),
-      .SPARE(sx_spare),
-      .STP(sx_stp),
-      .TN(s_t_n),
-      .TRAPN(sx_trap_n_out),
-      .TVEC_3_0(s_tvec_3_0[3:0]),
-      .UPN(s_up_n),
-      .WCSN(sx_wcs_n_out),
-      .ZF(s_zf)
+  // The CGA_MIC module is responsible for the microinstruction control within the DELILAH CPU's gate array.
+  // It interprets various control and status signals to generate microinstructions that dictate the CPU's behavior.
+  CGA_MIC MIC (
+      // Input signals
+      .sysclk(sysclk),                          // System clock in FPGA
+      .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+      
+      .ALUCLK(sx_aluclk),                       // ALU Clock
+      .CD_15_0(s_cd_15_0[15:0]),               // Code/Data Selector
+      .CFETCH(s_cfetch),                        // Control Fetch
+      .CLFFN(s_clff_n),                         // Clear Flip-Flop, active low      
+      .CRY(s_cry),                              // Carry
+      .CSALUI8(s_csalui8),                      // Control Store ALU Immediate Bit 8
+      .CSBIT20(sx_csbit20),                     // Control Store Bit 20
+      .CSBIT_15_0(s_csbit_15_0[15:0]),         // Control Store Bits [15:0]
+      .CSCOND(sx_csscond),                      // Control Store Conditional
+      .CSECOND(sx_csecond),                     // Control Store Second
+      .CSLOOP(sx_csloop),                       // Control Store Loop
+      .CSMIS0(s_csmi0),                         // Control Store Misc Bit 0
+      .CSRASEL_1_0(s_csrasel_1_0[1:0]),        // Control Store RA Select
+      .CSRBSEL_1_0(s_csrbsel_1_0[1:0]),        // Control Store RB Select
+      .CSRB_3_0(s_csrb_3_0[3:0]),              // Control Store RB Bits [3:0]
+      .CSTS_6_3(s_csts_6_3[3:0]),              // Control Store TS Bits [6:3]
+      .CSVECT(sx_csvect),                       // Control Store Vector
+      .CSXRF3(sx_csxrf3),                       // Control Store XRF Bit 3
+      .EWCAN(sx_ewca_n),                        // Early Write Cancel, active low
+      .F11(s_f11),                              // Flag Bit 11
+      .F15(s_f15),                              // Flag Bit 15
+      .ILCSN(sx_ilcs_n),                        // Internal Load Control Store, active low
+      .IRQ(s_irq),                              // Interrupt Request
+      .LDIRV(s_ldirv),                          // Load direction vector
+      .LDLCN(s_ldlc_n),                         // Load LCN
+      .LWCAN(s_lwca_n),                         // Latch WCA
+      .MAPN(sx_map_n),                          // MAP Opcode
+      .MCLK(sx_mclk),                           // Master Clock
+      .MI(s_mi),                                // STS M bit
+      .MRN(sx_mrn),                             // Memory Read, active low
+      .OVF(s_ovf),                              // Overflow
+      .PIL_3_0(sx_pil_3_0_out[3:0]),            // Processor Interrupt Level Bits [3:0]
+      .RESTR(s_restr),                          //
+      .SPARE(sx_spare),                         // Spare
+      .STP(sx_stp),                             // Stop
+      .TRAPN(sx_trap_n_out),                    // Trap, active low
+      .TVEC_3_0(s_tvec_3_0[3:0]),               // Trap Vector Bits [3:0]
+      .ZF(s_zf),                                // Zero Flag
+
+      // Output
+      .ACONDN(sx_acond_n_out),                  // Abort Condition, active low
+      .COND(s_cond),                            // Condition
+      .DEEP(s_deep),                            // Deep
+      .DZD(s_dzd),                              // Divide by Zero Detected
+      .LAA_3_0(sx_laa_3_0_out[3:0]),            // Latched Address A Bits [3:0]
+      .LBA_3_0(sx_lba_3_0_out[3:0]),            // Latched Address B Bits [3:0]
+      .LCZN(s_lcz_n),                           // Loop Counter not Zero
+      .MA_12_0(sx_ma_12_0_out[12:0]),           // Micro Address Bits [12:0]
+      .OOD(s_ood),                              //
+      .PN(s_pn),                                //
+      .RF_1_0(sx_rf_1_0_out[1:0]),              //
+      .SC_6_3(s_sc_6_3[3:0]),                   // Special Condition Bits [6:3]
+      .TN(s_t_n),                               // Test Negative
+      .UPN(s_up_n),                             // Update Negative, active low
+      .WCSN(sx_wcs_n_out)                       // Write Control Store, active low
   );
 
   CGA_TESTMUX TESTMUX (
