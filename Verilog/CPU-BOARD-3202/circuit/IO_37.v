@@ -40,7 +40,7 @@ module IO_37(
    input       OPCLCS,
    input       OSCCL_n,
    input [1:0] PCR_1_0,
-   input       PONI,
+   input       PONI,         //! Memory Protection ON, PONI=1
    input       POWSENSE_n,
    input       REF_n,
    input       RXD,
