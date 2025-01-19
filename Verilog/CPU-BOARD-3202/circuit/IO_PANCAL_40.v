@@ -21,9 +21,9 @@ module IO_PANCAL_40 (
     input       LEV0,
     input       LHIT,
     input       PANOSC,
-    input [7:0] PA_7_0,   // Data from FIFO in DGA
+    input [7:0] PA_7_0,   //! Data from FIFO in DGA
     input [1:0] PCR_1_0,
-    input       PONI,
+    input       PONI,     //! Memory Protection ON, PONI=1
     input       VAL,
 
     // Output and Input signals
