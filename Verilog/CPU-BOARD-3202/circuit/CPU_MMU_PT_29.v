@@ -19,8 +19,8 @@ module CPU_MMU_PT_29 (
     input WCLIM_n,  //! Write to RAM chip with 1 bit Data being PPN hi bit (bit ppn 25)
     input WMAP_n,   //! Write MAPPING signal
 
-    input  [15:0] PPN_25_10_IN,  //! Bidirectional PPN (in)
-    output [15:0] PPN_25_10_OUT, //! Bidirectional PPN (out)
+    input  [15:0] PPN_25_10_IN,  //! Physical Page Number (PPN) Bidirectional PPN (in) (bit 23-10 in the calculated physical address)
+    output [15:0] PPN_25_10_OUT, //! Physical Page Number (PPN) Bidirectional PPN (out) (bit 23-10 in the calculated physical address)
 
     input  [15:0] PT_15_0_IN,  //! Bidirectional PT (in)
     output [15:0] PT_15_0_OUT, //! Bidirectional PT (out)
@@ -85,7 +85,7 @@ module CPU_MMU_PT_29 (
   /**** Page Table - PT_25_10 ****/
 
   // PT_25_18 (hi part of PPN_25_10)
-  TMM2018D_25 CHIP_24G (
+  TMM2018D_25 #(.INSTANCE_NAME("CHIP_24G")) CHIP_24G (
       .clk(sysclk),
       .reset_n(sys_rst_n),
 
@@ -99,7 +99,7 @@ module CPU_MMU_PT_29 (
 
 
   // PT_17_10 (lo part of PT_25_10)
-  TMM2018D_25 CHIP_25G (
+  TMM2018D_25 #(.INSTANCE_NAME("CHIP_25G")) CHIP_25G (
       .clk(sysclk),
       .reset_n(sys_rst_n),
 
@@ -111,10 +111,10 @@ module CPU_MMU_PT_29 (
       .W_n(s_wmap_n)
   );
 
-  /**** PPN tabler - PPN_25_10 ****/
+  /**** PPN table - PPN_25_10 ****/
 
   // PPN_25_18 (hi part of PPN_25_10)
-  TMM2018D_25 CHIP_22G (
+  TMM2018D_25 #(.INSTANCE_NAME("CHIP_22G")) CHIP_22G (
       .clk(sysclk),
       .reset_n(sys_rst_n),
 
@@ -128,7 +128,7 @@ module CPU_MMU_PT_29 (
 
 
   // PPN_17_10 (lo part of PPN_25_10)
-  TMM2018D_25 CHIP_23G (
+  TMM2018D_25 #(.INSTANCE_NAME("CHIP_23G")) CHIP_23G (
       .clk(sysclk),
       .reset_n(sys_rst_n),
 
@@ -140,16 +140,11 @@ module CPU_MMU_PT_29 (
       .W_n(s_wmap_n)
   );
 
-
-
-
-
-
   // PPN adressing into RAM chip with 1 bit Data being PPN hi bit (bit ppn 25). Write to RAM when WCLIM_n is low
   IMS1403_25 CHIP_20G (
       .clk(sysclk),
       .reset_n(sys_rst_n),
-      .ADDRESS(s_ims_ppn_25_10_in[13:0]),  // Addres bit ppn_25_10[14] not used.
+      .ADDRESS(s_ims_ppn_25_10_in[13:0]),  // Address bit ppn_25_10[14] not used.
       .CE_n(s_gnd),
       .D(s_ims_ppn_25_10_in[15]),
       .Q(s_wcinh_n),
