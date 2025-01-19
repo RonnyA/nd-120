@@ -6,7 +6,7 @@
 ** Page 104                                                              **
 ** SHEET 2 of 2                                                          **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 19-JAN-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -229,18 +229,9 @@ module CGA_TRAP_TVGEN_P2 (
       .result(s_gates11_out)
   );
 
-  //TVEC 0
-  Multiplexer_4 PLEXERS_12 (
-      .muxIn_0(s_l3v0_n),
-      .muxIn_1(s_l2v0_n),
-      .muxIn_2(s_l1v0_n),
-      .muxIn_3(1'b0),
-      .muxOut(s_tvec0_n),
-      .sel(s_mux_selector[1:0])
-  );
 
   // TVEC 2
-  Multiplexer_4 PLEXERS_13 (
+  Multiplexer_4 TVEC2_MUX (
       .muxIn_0(s_gnd),
       .muxIn_1(s_l2v2_n),
       .muxIn_2(s_power),
@@ -250,7 +241,7 @@ module CGA_TRAP_TVGEN_P2 (
   );
 
   // TVEC 1
-  Multiplexer_4 PLEXERS_14 (
+  Multiplexer_4 TVEC1_MUX (
       .muxIn_0(s_l3v1_n),
       .muxIn_1(s_l2v1_n),
       .muxIn_2(s_l1v1_n),
@@ -259,9 +250,19 @@ module CGA_TRAP_TVGEN_P2 (
       .sel(s_mux_selector[1:0])
   );
 
+  //TVEC 0
+  Multiplexer_4 TVEC0_MUX (
+      .muxIn_0(s_l3v0_n),
+      .muxIn_1(s_l2v0_n),
+      .muxIn_2(s_l1v0_n),
+      .muxIn_3(1'b0),
+      .muxOut(s_tvec0_n),
+      .sel(s_mux_selector[1:0])
+  );
+
   D_FLIPFLOP #(
       .InvertClockEnable(0)
-  ) MEMORY_15 (
+  ) L1V0_FF (
       .clock(s_tclk),
       .d(s_gates9_out),
       .preset(1'b0),
@@ -273,7 +274,7 @@ module CGA_TRAP_TVGEN_P2 (
 
   D_FLIPFLOP #(
       .InvertClockEnable(0)
-  ) MEMORY_16 (
+  ) L2V2_FF (
       .clock(s_tclk),
       .d(s_gates8_out),
       .preset(1'b0),
@@ -285,7 +286,7 @@ module CGA_TRAP_TVGEN_P2 (
 
   D_FLIPFLOP #(
       .InvertClockEnable(0)
-  ) MEMORY_17 (
+  ) L3V1_FF (
       .clock(s_tclk),
       .d(s_gates5_out),
       .preset(1'b0),
@@ -297,7 +298,7 @@ module CGA_TRAP_TVGEN_P2 (
 
   D_FLIPFLOP #(
       .InvertClockEnable(0)
-  ) MEMORY_18 (
+  ) L2V1_FF (
       .clock(s_tclk),
       .d(s_gates7_out),
       .preset(1'b0),
@@ -309,7 +310,7 @@ module CGA_TRAP_TVGEN_P2 (
 
   D_FLIPFLOP #(
       .InvertClockEnable(0)
-  ) MEMORY_19 (
+  ) L1V1_FF (
       .clock(s_tclk),
       .d(s_pgf),
       .preset(1'b0),
@@ -321,7 +322,7 @@ module CGA_TRAP_TVGEN_P2 (
 
   D_FLIPFLOP #(
       .InvertClockEnable(0)
-  ) MEMORY_20 (
+  ) L3V0_FF (
       .clock(s_tclk),
       .d(s_gates10_out),
       .preset(1'b0),
@@ -333,7 +334,7 @@ module CGA_TRAP_TVGEN_P2 (
 
   D_FLIPFLOP #(
       .InvertClockEnable(0)
-  ) MEMORY_21 (
+  ) L2V0_FF (
       .clock(s_tclk),
       .d(s_gates11_out),
       .preset(1'b0),
