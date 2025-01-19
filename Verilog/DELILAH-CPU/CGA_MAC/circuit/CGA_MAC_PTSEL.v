@@ -12,7 +12,7 @@
 
 module CGA_MAC_PTSEL (
     input MCLK,
-    input PONI,
+    input PONI, //! Memory Protection ON, PONI=1
     input PTM,
     input SAPT,
     input SPTN,
