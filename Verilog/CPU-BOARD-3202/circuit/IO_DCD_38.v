@@ -30,7 +30,7 @@ module IO_DCD_38 (
     input [1:0] OC_1_0,
     input       OPCLCS,
     input       OSCCL_n,
-    input       PONI,
+    input       PONI,   //! Memory Protection ON, PONI=1
     input       POWSENSE_n,
     input       REF_n,
     input       RMM_n,
