@@ -21,7 +21,8 @@
 //! @author Ronny Hansen
 //! TOP LEVEL FOR FPGA IMPLEMENTATION OF ND-3202D CPU BOARD
 
-module ND120_TOP (
+module ND120_TOP
+(
     input wire sysclk,    //! System Clock
     input wire btn1,      //! Button 1, mapped to S1 (not labeled) on the board - connected to sys_rst_n
     input wire btn2,      //! Button 2, mapped to S2 (not labeled) on the board
