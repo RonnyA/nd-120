@@ -119,8 +119,15 @@ int main(int argc, char **argv)
 	// Access MEM->RAM fields via rootp 
 	auto& ram_low = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__CHIP_15H__DOT__sdram;
 	auto& ram_high = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__CHIP_15J__DOT__sdram;	
-	char *fname = strdup("INSTRUCTION-B.BPUN"); // strdup creates a modifiable copy
-	loadfile(fname, 0,  &ram_low[0], &ram_high[0]);
+
+	
+	
+	  // Use provided filename if exists, otherwise default to "INSTRUCTION-B.BPUN"
+    char *default_filename = strdup("INSTRUCTION-B.BPUN"); // strdup creates a modifiable copy
+    char *filename = (argc > 1) ? argv[1] : default_filename;
+
+
+	loadfile(filename, 0,  &ram_low[0], &ram_high[0]);
 
 
 	// LED bits
