@@ -5,7 +5,7 @@
 **                                                                       **
 ** Documentation:  https://www.ti.com/lit/ds/symlink/sn54ls273-sp.pdf    **
 **                                                                       **
-** Last reviewed: 25-MAY-2024                                            **
+** Last reviewed: 26-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -18,7 +18,8 @@ module TTL_74273 (
 );
 
     // Flip-flop logic
-    always @(posedge CLK or negedge CLR_n) begin
+    always @(posedge CLK ) //or negedge CLR_n)
+    begin
         if (!CLR_n) begin
             Q <= 8'b0;     // Reset output to 0 when clr_n is low
         end else begin
