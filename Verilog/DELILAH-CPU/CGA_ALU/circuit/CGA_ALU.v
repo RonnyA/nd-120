@@ -6,12 +6,15 @@
 ** Page 41                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 29-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 
 module CGA_ALU (
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
     input        ALUCLK,
     input [15:0] A_15_0,
     input [15:0] B_15_0,
@@ -279,6 +282,10 @@ module CGA_ALU (
   );
 
   CGA_ALU_OUTMUX ALU_OUTMUX (
+      // FPGA system clock
+      .sysclk(sysclk),  // System clock in FPGA
+      .sys_rst_n(sys_rst_n),  // System reset in FPGA
+
        // Input
       .AARG0(s_aarg0),
       .ALUCLK(s_aluclk),
