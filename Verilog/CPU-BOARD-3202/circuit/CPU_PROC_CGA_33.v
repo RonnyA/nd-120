@@ -4,72 +4,72 @@
 ** CPU GATE ARRAY                                                        **
 ** SHEET 33 of 50                                                        **
 **                                                                       **
-** Last reviewed: 09-NOV-2024                                            **
+** Last reviewed: 19-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 /* verilator lint_off UNUSED */
 
 module CPU_PROC_CGA_33 (
-    input sysclk,    // System clock in FPGA
-    input sys_rst_n, // System reset in FPGA
+    input sysclk,    //! System clock in FPGA
+    input sys_rst_n, //! System reset in FPGA
 
-    input        ALUCLK,
-    input        BEDO_n,
-    input        BEMPID_n,
-    input        BSTP,
-    input [15:0] CD_15_0,
-    input [63:0] CSBITS,
-    input        ETRAP_n,
-    input        EWCA_n,
-    input        IBINT10_n,
-    input        IBINT11_n,
-    input        IBINT12_n,
-    input        IBINT13_n,
-    input        IBINT15_n,
-    input        IOXERR_n,
-    input        LCS_n,
-    input        MAP_n,
-    input        MCLK,
-    input        MOR_n,
-    input        MR_n,
-    input        PAN_n,
-    input        PARERR_n,
-    input        POWFAIL_n,
-    input [ 6:0] PT_15_9,
-    input        UCLK,
+    input        ALUCLK,      //! ALU clock signal
+    input        BEDO_n,      //! Bus Error Data Output, active low
+    input        BEMPID_n,    //! Bus Empty ID, active low
+    input        BSTP,        //! Bus Stop signal
+    input [15:0] CD_15_0,     //! Command/Data bus
+    input [63:0] CSBITS,      //! Control Store Bits
+    input        ETRAP_n,     //! External Trap, active low
+    input        EWCA_n,      //! External Write Cache Acknowledge, active low
+    input        IBINT10_n,   //! Internal Bus Interrupt 10, active low
+    input        IBINT11_n,   //! Internal Bus Interrupt 11, active low
+    input        IBINT12_n,   //! Internal Bus Interrupt 12, active low
+    input        IBINT13_n,   //! Internal Bus Interrupt 13, active low
+    input        IBINT15_n,   //! Internal Bus Interrupt 15, active low
+    input        IOXERR_n,    //! I/O Error, active low
+    input        LCS_n,       //! Local Chip Select, active low
+    input        MAP_n,       //! Memory Access Protection, active low
+    input        MCLK,        //! Main Clock
+    input        MOR_n,       //! Memory Operation Ready, active low
+    input        MR_n,        //! Memory Read, active low
+    input        PAN_n,       //! Parity Error, active low
+    input        PARERR_n,    //! Parity Error, active low
+    input        POWFAIL_n,   //! Power Fail, active low
+    input [ 6:0] PT_15_9,     //! Page Table bits
+    input        UCLK,        //! User Clock
 
-    input [2:0] SEL_TESTMUX,  // Selects testmux signals to output on TEST_4_0
+    input [2:0] SEL_TESTMUX,  //! Selects testmux signals to output on TEST_4_0
 
     // in and out
-    input  [15:0] FIDB_15_0_IN,
-    output [15:0] FIDB_15_0_OUT,
+    input  [15:0] FIDB_15_0_IN,  //! FIDB input bus
+    output [15:0] FIDB_15_0_OUT, //! FIDB output bus
 
     // Outputs
 
-    output        ACOND_n,
-    output        CGABRK_n,
-    output [12:0] CSA_12_0,
-    output [ 9:0] CSCA_9_0,
-    output        DOUBLE,
-    output        ECCR,
+    output        ACOND_n,    //! ALU Condition, active low
+    output        CGABRK_n,   //! CGA Break, active low
+    output [12:0] CSA_12_0,   //! Control Store Address
+    output [ 9:0] CSCA_9_0,   //! Control Store Cache Address
+    output        DOUBLE,     //! Double precision operation
+    output        ECCR,       //! Error Correction Code Ready
 
     //ERF_n - not in use, its fetched from PAL 44407A, pin ERF_n (which seems to have the same logic..)
-    output ERF_n,
+    output ERF_n,             //! Error Flag, active low
 
-    output        INTRQ_n_tp1,
-    output        IONI,
-    output [ 3:0] LAA_3_0,
-    output [13:0] LA_23_10,
-    output [ 3:0] LBA_3_0,
-    output        LSHADOW,
-    output [ 1:0] PCR_1_0,
-    output [ 3:0] PIL_3_0,
-    output        PONI,
-    output [ 1:0] RF_1_0,
-    output [ 4:0] TEST_4_0,
-    output        TRAP_n,
-    output        WCS_n,
-    output        WRTRF
+    output        INTRQ_n_tp1, //! Interrupt Request, active low, test point 1
+    output        IONI,        //! I/O Non-Maskable Interrupt
+    output [ 3:0] LAA_3_0,     //! Local Address A
+    output [13:0] LA_23_10,    //! Local Address
+    output [ 3:0] LBA_3_0,     //! Local Bus Address
+    output        LSHADOW,     //! Shadow Register Load
+    output [ 1:0] PCR_1_0,     //! Processor Control Register
+    output [ 3:0] PIL_3_0,     //! Processor Interrupt Level
+    output        PONI,        //! Memory Protection ON, PONI=1
+    output [ 1:0] RF_1_0,      //! Register File
+    output [ 4:0] TEST_4_0,    //! Test output
+    output        TRAP_n,      //! Trap, active low
+    output        WCS_n,       //! Write Control Store, active low
+    output        WRTRF        //! Write Register File
 );
 
 
