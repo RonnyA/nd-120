@@ -3,7 +3,7 @@
 **                                                                                                       **
 ** Component PAL 44801A                                                                                  **
 **                                                                                                       **
-** Last reviewed: 14-DEC-2024                                                                            **
+** Last reviewed: 19-JAN-2025                                                                            **
 ** Ronny Hansen                                                                                          **
 ***********************************************************************************************************/
 
@@ -108,6 +108,7 @@ module PAL_44801A (
 
     // MEM - MEM SIGNAL TO LAST FOR ENTIRE BUS CYCLE
     // GENERATES BMEM WHICH IS PRESENT ON REFRESH, CPU MEMORY AND DMA CYCLES
+    /*
     MEM_reg <= (BRQ50 & IORQ_n   & IOD_n & BDRY25_n & MR_n)
              | (BRQ50 & CRQ_n    & IOD_n & BDRY25_n & MR_n)
              | (BRQ50 & DOREF_n  & IOD_n & BDRY25_n & MR_n)
@@ -115,6 +116,26 @@ module PAL_44801A (
              | (REFRQ50          & IOD_n & BDRY25_n)
              | (REFRQ50 & MR)
              | (MEM & BDRY25_n & MR_n);
+    */
+    if
+    (
+               (BRQ50 & IORQ_n   & IOD_n & BDRY25_n & MR_n)
+             | (BRQ50 & CRQ_n    & IOD_n & BDRY25_n & MR_n)
+             | (BRQ50 & DOREF_n  & IOD_n & BDRY25_n & MR_n)
+             | (CRQ   & IORQ_n   & IOD_n & BDRY25_n & MR_n)
+             | (REFRQ50          & IOD_n & BDRY25_n)
+             | (REFRQ50 & MR)
+    )
+    begin
+      MEM_reg <= 1;
+    end
+    else
+    begin
+      if (!(BDRY25_n & MR_n))
+      begin
+        MEM_reg <=0;
+      end
+    end
 
     // SEM - SEMAPHORE GRANT SIGNAL
     SEM_reg <= (SEMRQ50 & MR_n & BDRY25) | (SEM & MR_n & ACT_n);

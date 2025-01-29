@@ -643,6 +643,10 @@
     <a name="circuit" val="CGA_INTR_CNTLR"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
+    <comp lib="0" loc="(1020,440)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
     <comp lib="0" loc="(1030,270)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -814,6 +818,7 @@
     <comp lib="0" loc="(280,950)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="LAA_3_0"/>
+      <a name="radix" val="10unsigned"/>
       <a name="width" val="4"/>
     </comp>
     <comp lib="0" loc="(280,990)" name="Pin">
@@ -1113,7 +1118,9 @@
     <wire from="(960,710)" to="(1050,710)"/>
     <wire from="(960,710)" to="(960,940)"/>
     <wire from="(960,940)" to="(1960,940)"/>
-    <wire from="(980,250)" to="(980,550)"/>
+    <wire from="(980,250)" to="(980,440)"/>
+    <wire from="(980,440)" to="(1020,440)"/>
+    <wire from="(980,440)" to="(980,550)"/>
     <wire from="(980,550)" to="(1050,550)"/>
     <wire from="(980,750)" to="(1050,750)"/>
     <wire from="(980,750)" to="(980,920)"/>
@@ -6049,6 +6056,7 @@
     <comp lib="0" loc="(230,170)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="LAA_3_0"/>
+      <a name="radix" val="10unsigned"/>
       <a name="width" val="4"/>
     </comp>
     <comp lib="0" loc="(2300,1850)" name="Tunnel">

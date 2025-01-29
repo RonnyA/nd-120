@@ -348,6 +348,7 @@
     <comp lib="0" loc="(420,320)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="CSCOMM_4_0"/>
+      <a name="radix" val="8"/>
       <a name="width" val="5"/>
     </comp>
     <comp lib="0" loc="(420,440)" name="Pin">
@@ -1148,6 +1149,9 @@
     <comp lib="8" loc="(1700,1160)" name="Text">
       <a name="text" val="Page 67 - Sheet 3 of 10"/>
     </comp>
+    <comp lib="8" loc="(1732,2029)" name="Text">
+      <a name="text" val="COMM 23 and 24 -&gt; CJMP"/>
+    </comp>
     <comp lib="8" loc="(1835,785)" name="Text">
       <a name="text" val="MIS0"/>
     </comp>
@@ -1168,6 +1172,9 @@
     </comp>
     <comp lib="8" loc="(2455,1920)" name="Text">
       <a name="text" val="IF15N"/>
+    </comp>
+    <comp lib="8" loc="(2480,4200)" name="Text">
+      <a name="text" val="COMM, CONTINUE (27,3)"/>
     </comp>
     <comp lib="8" loc="(2540,1920)" name="Text">
       <a name="text" val="IF15"/>

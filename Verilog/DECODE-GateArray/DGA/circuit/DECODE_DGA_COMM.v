@@ -9,7 +9,7 @@
 ** Page 18 DECODE - DECODE_DGA_COMM - Sheet 3 of 4                       **
 ** Page 19 DECODE - DECODE_DGA_COMM - Sheet 4 of 4                       **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 19-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -29,7 +29,7 @@ module DECODE_DGA_COMM (
     input       IDBI7,        //! Internal data bus input bit 7
     input       LCSN,         //! Load Control Store
     input       LSHADOW,      //! Load shadow
-    input       PONI,         //! Memory Management On
+    input       PONI,         //! Memory Protection ON, PONI=1
     input       UCLK,         //! U clock
 
     output CA10,         //! Control Store address bit 10
@@ -39,8 +39,8 @@ module DECODE_DGA_COMM (
     output DTN,          //! Data Transfer
     output DVACCN,       //! Data Valid
     output ECREQ,        //! Enable CPU Request
-    output EMCLN,        //! Enable Master Clear    
-    output EMPIDN,       //! Enable MPID - Set bits in the micro—P10 (Priority Interrupt Detect) register in the PIC. Command #12
+    output EMCLN,        //! Enable Master Clear
+    output EMPIDN,       //! Enable MPID - Set bits in the micro—PID (Priority Interrupt Detect) register in the PIC. Command #012. "set mask reg: inh all ints"
     output ESTOFN,       //! Enable Store Overflow
     output FETCH,        //! Fetch cycle active
     output FMISS,        //! Cache miss during fetch
@@ -624,11 +624,11 @@ module DECODE_DGA_COMM (
   NAND_GATE_6_INPUTS #(
       .BubblesMask({2'b00, 4'h0})
   ) A183 (
-      .input1(s_cscomm_4_n),
-      .input2(s_cscomm_4_0[3]),
-      .input3(s_cscomm_2_n),
-      .input4(s_cscomm_4_0[1]),
-      .input5(s_cscomm_0_n),
+      .input1(s_cscomm_4_n),       // 0
+      .input2(s_cscomm_4_0[3]),    // 1
+      .input3(s_cscomm_2_n),       // 0
+      .input4(s_cscomm_4_0[1]),    // 1
+      .input5(s_cscomm_0_n),       // 0  = 01010 = 0xA = 10d = EPIC.LDMPIE (set mask reg: inh all ints)
       .input6(s_lcs_n),
       .result(s_iempid_n)
   );

@@ -6,7 +6,7 @@
 ** Page 9-13                                                             **
 ** SHEET 1 of 4                                                          **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 19-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -14,60 +14,60 @@ module CGA_MIC (
     input sysclk,    // System clock in FPGA
     input sys_rst_n, // System reset in FPGA
 
-    input        ALUCLK,
-    input [15:0] CD_15_0,
-    input        CFETCH,
-    input        CLFFN,
-    input        CRY,
-    input        CSALUI8,
-    input        CSBIT20,
-    input [15:0] CSBIT_15_0,
-    input        CSCOND,
-    input        CSECOND,
-    input        CSLOOP,
-    input        CSMIS0,
-    input [ 1:0] CSRASEL_1_0,
-    input [ 1:0] CSRBSEL_1_0,
-    input [ 3:0] CSRB_3_0,
-    input [ 3:0] CSTS_6_3,
-    input        CSVECT,
-    input        CSXRF3,
-    input        EWCAN,
-    input        F11,
-    input        F15,
-    input        ILCSN,
-    input        IRQ,
-    input        LDIRV,
-    input        LDLCN,
-    input        LWCAN,
-    input        MAPN,
-    input        MCLK,
-    input        MI,
-    input        MRN,
-    input        OVF,
-    input [ 3:0] PIL_3_0,
-    input        RESTR,
-    input        SPARE,
-    input        STP,
-    input        TRAPN,
-    input [ 3:0] TVEC_3_0,
-    input        ZF,
+    input        ALUCLK,       //! ALU clock signal
+    input [15:0] CD_15_0,      //! Data bus for communication
+    input        CFETCH,       //! Control signal for fetch operation
+    input        CLFFN,        //! Clear flag function
+    input        CRY,          //! Carry flag input
+    input        CSALUI8,      //! ALU immediate operation control
+    input        CSBIT20,      //! Control signal for bit 20
+    input [15:0] CSBIT_15_0,   //! Control signals for bits 15 to 0
+    input        CSCOND,       //! Conditional execution control
+    input        CSECOND,      //! Control signal for Enable Condition
+    input        CSLOOP,       //! Loop control signal
+    input        CSMIS0,       //! Control signal for miscellaneous operation bit 0
+    input [ 1:0] CSRASEL_1_0,  //! Register A select control
+    input [ 1:0] CSRBSEL_1_0,  //! Register B select control
+    input [ 3:0] CSRB_3_0,     //! Control signals for register B bits 3 to 0
+    input [ 3:0] CSTS_6_3,     //! Status control signals bits 6 to 3
+    input        CSVECT,       //! Vector control signal
+    input        CSXRF3,       //! Cross-reference control signal 3
+    input        EWCAN,        //! Enable write control
+    input        F11,          //! Bit F11
+    input        F15,          //! Bit F15
+    input        ILCSN,        //! Internal Load Control Store (negated)
+    input        IRQ,          //! Interrupt request signal
+    input        LDIRV,        //! Load direction vector
+    input        LDLCN,        //! Load LCN
+    input        LWCAN,        //! Latch WCA
+    input        MAPN,         //! MAP Opcode
+    input        MCLK,         //! Main clock signal
+    input        MI,           //! M bit
+    input        MRN,          //! Memory read
+    input        OVF,          //! Overflow flag
+    input [ 3:0] PIL_3_0,      //! Priority interrupt level bits 3 to 0
+    input        RESTR,        //!
+    input        SPARE,        //! Spare signal for future use
+    input        STP,          //! Stop control signal
+    input        TRAPN,        //! Trap signal (negated)
+    input [ 3:0] TVEC_3_0,     //! Trap vector bits 3 to 0
+    input        ZF,           //! Zero flag
 
-    output        ACONDN,
-    output        COND,
-    output        DEEP,
-    output        DZD,
-    output [ 3:0] LAA_3_0,
-    output [ 3:0] LBA_3_0,
-    output        LCZN,
-    output [12:0] MA_12_0,
-    output        OOD,
-    output        PN,
-    output [ 1:0] RF_1_0,
-    output [ 3:0] SC_6_3,
-    output        TN,
-    output        UPN,
-    output        WCSN
+    output        ACONDN,      //! Active condition
+    output        COND,        //! Condition output signal
+    output        DEEP,        //!
+    output        DZD,         //! Divide by zero detection
+    output [ 3:0] LAA_3_0,     //! Load address A bits 3 to 0
+    output [ 3:0] LBA_3_0,     //! Load address B bits 3 to 0
+    output        LCZN,        //! Load condition zero not
+    output [12:0] MA_12_0,     //! Memory address bits 12 to 0
+    output        OOD,         //! Out of data signal
+    output        PN,          //! Parity not signal
+    output [ 1:0] RF_1_0,      //! Register file bits 1 to 0
+    output [ 3:0] SC_6_3,      //! Status control bits 6 to 3
+    output        TN,          //! Trap not signal
+    output        UPN,         //! Update not signal
+    output        WCSN         //! Write control signal not
 );
 
   /*******************************************************************************
@@ -330,7 +330,6 @@ module CGA_MIC (
   assign s_sc_6_3_out[2]    = ~s_sc_5_n_out;
   assign s_sc_6_3_out[3]    = ~s_sc_6_n_out;
   assign s_up_n_out         = ~s_up_out;
-
 
 
   /*******************************************************************************
@@ -693,6 +692,11 @@ module CGA_MIC (
       .MRN(s_mrn)
   );
 
+  // Debug
+  wire [5:0] loop_counter;
+  assign loop_counter[5:0] = {s_icd_5, s_icd_4,s_lc_3_0[3],s_lc_3_0[2],s_lc_3_0[1],s_lc_3_0[0]};
+
+
   M169C LC_HI (
       .CP(s_mclk),
 
@@ -976,9 +980,10 @@ module CGA_MIC (
   CGA_MIC_MASEL MIC_MASEL (
       .sysclk(sysclk),  // System clock in FPGA
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
+
+      // Input signals
       .CSBIT20(s_csbit20),
       .CSBIT_11_0(s_csbit_15_0[11:0]),
-      .IW_12_0(s_iw_12_0[12:0]),
       .JMP_3_0(s_jmp_3_0[3:0]),
       .MCLK(s_mclk),
       .MCLKN(s_mclk_n),
@@ -987,6 +992,9 @@ module CGA_MIC (
       .RET_12_0(s_ret_12_0[12:0]),
       .SC5(s_sc_6_3_out[2]),
       .SC6(s_sc_6_3_out[3]),
+
+      // Output signals
+      .IW_12_0(s_iw_12_0[12:0]),
       .W_12_0(s_w_12_0[12:0])
   );
 
@@ -1023,14 +1031,17 @@ module CGA_MIC (
 
 
   CGA_MIC_IPOS MIC_IPOS (
+      // Inputs
       .CD_15_0(s_cd_15_0[15:0]),
       .EWCAN(s_ewca_n),
       .MAPN(s_map_n),
-      .MA_12_0(s_ma_12_0_out[12:0]),
       .TRAPN(s_trap_n),
       .TVEC_3_0(s_tvec_3_0[3:0]),
       .WCA_12_0(s_wca_12_0[12:0]),
-      .W_12_0(s_w_12_0[12:0])
+      .W_12_0(s_w_12_0[12:0]),
+
+      // Outputs
+      .MA_12_0(s_ma_12_0_out[12:0])
   );
 
 

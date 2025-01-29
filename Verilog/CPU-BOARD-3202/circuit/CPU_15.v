@@ -8,7 +8,7 @@
 ** CPU TOP LEVEL                                                         **
 ** SHEET 15 of 50                                                        **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 20-DEC-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -94,20 +94,20 @@ module CPU_15 (
     output [ 4:0] TEST_4_0,
     output [63:0] TOPCSB,
 
-    output LSHADOW,
-    output OPCLCS,
-    output PONI,
-    output TP1_INTRQ_n,
-    output TRAPN,
-    output VEX,
-    output LDEXM_n,
-    output ACOND_n,
-    output BRK_n,
-    output IONI,
-    output RRF_n,
-    output ECCR,
+    output LSHADOW,      //! Latch Shadow signal
+    output OPCLCS,       //! COMMAND 36.2 LCS - Load control store from PROM and perform a Master Clear
+    output PONI,         //! Memory Protection ON, PONI=1
+    output TP1_INTRQ_n,  //! Testpoint1 - Interrupt Request
+    output TRAPN,        //! Enable TRAP signal
+    output VEX,          //! Vector Exception
+    output LDEXM_n,      //! Load Examine Mode
+    output ACOND_n,      //! ACOND is the output of the condition register.
+    output BRK_n,        //! CPU Break Signal
+    output IONI,         //! Interrupt System ON
+    output RRF_n,        //! Output RRF signal from CPU to CYCLE
+    output ECCR,         //! ECC Register Detected for IOX
 
-    output LED1  // Cache enabled ?
+    output LED1         //! Cache enabled ?
 );
 
 
@@ -121,7 +121,7 @@ module CPU_15 (
   wire [13:0] s_la_23_10;
   wire [ 3:0] s_lba_3_0;
   wire [63:0] s_csbits;
-  wire [15:0] s_ppn_25_10;
+  wire [15:0] s_lapa_ppn_25_10;
   wire [ 4:0] s_test_4_0;
   wire [ 9:0] s_csca_9_0;
   wire [ 2:0] s_cc_3_1_n;
@@ -223,6 +223,8 @@ module CPU_15 (
   wire [15:0] s_mmu_ppn_25_10_in;
   wire [15:0] s_mmu_ppn_25_10_out;
 
+  wire [15:0] s_cpu_ppn_25_10_out;
+
   wire [15:0] s_stoc_idb_15_0_in;
 
   /*******************************************************************************
@@ -239,7 +241,7 @@ module CPU_15 (
    *******************************************************************************/
   assign s_cc_3_1_n[2:0] = CC_3_1_n;
   assign s_ca_10_0[10] = CA10;
-  //assign s_rt_n              = RT_n; // Use signal from PROC
+  assign s_rt_n              = RT_n; // Use incomming RT_n signal (DONT use signal out from PROC as we are missing the latest code for the latest PAL)
   assign s_eorf_n = EORF_n;
   assign s_emcl_n = EMCL_n;
   assign s_pan_n = PAN_n;
@@ -284,7 +286,7 @@ module CPU_15 (
   assign s_mclk = MCLK;
   assign s_mreq_n = MREQ_n;
 
-  assign s_cpu_cd_15_0_in  = CD_15_0_IN;
+  assign s_cpu_cd_15_0_in = CD_15_0_IN;
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -305,6 +307,11 @@ module CPU_15 (
       s_mmu_idb_15_0_out[15:0]  |
       IDB_15_0_IN;
 
+  assign s_mmu_idb_15_0_in = s_proc_IDB_15_0_out[15:0] | s_cs_IDB_15_0_out[15:0] |
+      //      s_stoc_idb_15_0_out[15:0]  | (signal doesnt exist)
+      IDB_15_0_IN;
+
+
   assign s_proc_IDB_15_0_in[15:0]  =
     s_cs_IDB_15_0_out[15:0]   |
     s_mmu_idb_15_0_out[15:0]  |
@@ -313,7 +320,7 @@ module CPU_15 (
   assign s_cs_IDB_15_0_in = s_proc_IDB_15_0_out[15:0] | s_mmu_idb_15_0_out[15:0] | IDB_15_0_IN;
 
   // OR together "z" signals to create a common bus for CD_15_0
-  assign s_proc_cd_15_0_in = s_stoc_cd_15_0_out| s_mmu_cd_15_0_out | s_cpu_cd_15_0_in;
+  assign s_proc_cd_15_0_in = s_stoc_cd_15_0_out | s_mmu_cd_15_0_out | s_cpu_cd_15_0_in;
   assign s_mmu_cd_15_0_in = s_stoc_cd_15_0_out | s_cpu_cd_15_0_in;
 
 
@@ -328,7 +335,7 @@ module CPU_15 (
   assign PCR_1_0 = s_pcr_1_0[1:0];
   assign PIL_3_0 = s_pil_3_0[3:0];
   assign PONI = s_poni;
-  assign PPN_23_10 = s_ppn_25_10[13:0];
+  assign PPN_23_10 = s_cpu_ppn_25_10_out[13:0];
   assign TEST_4_0 = s_test_4_0[4:0];
   assign TOPCSB = s_csbits[63:0];
   assign TP1_INTRQ_n = s_tp1_intr1_n;
@@ -338,7 +345,7 @@ module CPU_15 (
   assign BRK_n = s_brk_n;
   assign IONI = s_ioni;
   assign RRF_n = s_rrf_n;
-  assign ECCR  = s_eccr;
+  assign ECCR = s_eccr;
 
   assign LED1 = s_led1;
 
@@ -354,9 +361,11 @@ module CPU_15 (
 
   /****** CPU_LAPA_23.v is replaced by this line below ******/
   // is s_lapa_n is high, output is high-impedance
-  assign s_ppn_25_10[15:0] = s_lapa_n ? 16'b0 : {2'b0, s_la_23_10[13:0]};
-  // TODO: Or with other output ?
+  assign s_lapa_ppn_25_10[15:0] = s_lapa_n ? 16'b0 : {2'b0, s_la_23_10[13:0]};
 
+  assign s_mmu_ppn_25_10_in = s_lapa_ppn_25_10;  // PPN Input to MMU
+
+  assign s_cpu_ppn_25_10_out[15:0] = s_lapa_ppn_25_10 | s_mmu_ppn_25_10_out;
 
   CPU_PROC_32 PROC (
       .sysclk(sysclk),  // System clock in FPGA
@@ -411,13 +420,14 @@ module CPU_15 (
       .PT_15_9(s_pt_15_0[15:9]),
       .RF_1_0(s_rf_1_0[1:0]),
       .RRF_n(s_rrf_n),  //Output
-      .RT_n(s_rt_n),
+      //.RT_n(s_rt_n),
+      .RT_n(),  // Dont use this output signal as its locked to 1. 
       .RWCS_n(s_rwcs_n),
       .TERM_n(s_term_n),
       .TEST_4_0(s_test_4_0[4:0]),
       .SEL_TESTMUX(SEL_TESTMUX),
       .TP1_INTRQ_n(s_tp1_intr1_n),
-      .TRAPN(s_trap_n), // TRAP_n output
+      .TRAPN(s_trap_n),  // TRAP_n output
       .UCLK(s_uclk),
       .VEX(s_vex),
       .WCA_n(s_wca_n),

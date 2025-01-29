@@ -6,53 +6,59 @@
 ** Sheet 1-10 of 10                                                      **
 ** PDF page 65-73+75 of 108                                              **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 19-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module CGA_DCD (
-    input       BRKN,
-    input       CRY,
-    input [4:0] CSCOMM_4_0,
-    input [4:0] CSIDBS_4_0,
-    input [1:0] CSMIS_1_0,
-    input       F15,
-    input       FIDBO5,
-    input       LCSN,
-    input       INTRQN,
-    input       LSHADOW,
-    input       MCLK,
-    input       MRN,
-    input       PONI,
-    input       SGR,
-    input       VEX,
-    input       WPN,
-    input       ZF,
+     // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
 
-    output CBRKN,
-    output CFETCH,
-    output CLFFN,
-    output CLIRQN,
-    output CSMREQ,
-    output DSTOPN,
-    output EPCRN,
-    output EPGSN,
-    output EPIC,
-    output EPICSN,
-    output EPICVN,
-    output ERFN,
-    output FETCHN,
-    output INDN,
-    output LDDBRN,
-    output LDGPRN,
-    output LDIRV,
-    output LDLCN,
-    output LDPILN,
-    output LWCAN,
-    output VACCN,
-    output WRITEN,
-    output WRTRF,
-    output XFETCHN
+    // Input signals
+    input       BRKN,         //! Break signal
+    input       CRY,          //! Carry flag
+    input [4:0] CSCOMM_4_0,   //! Command control signals
+    input [4:0] CSIDBS_4_0,   //! IDB control signals
+    input [1:0] CSMIS_1_0,    //! MIS control signals
+    input       F15,          //! Flag F15 (Bit 15 in F is 1)
+    input       FIDBO5,       //! FIDB Output signal 5
+    input       LCSN,         //! LCS negated signal (Load Control Store)
+    input       INTRQN,       //! Interrupt request negated
+    input       LSHADOW,      //! Shadow latch signal
+    input       MCLK,         //! Main clock
+    input       MRN,          //! MR negated signal
+    input       PONI,         //! Memory Protection ON, PONI=1
+    input       SGR,          //! Segment register
+    input       VEX,          //! Violation exception
+    input       WPN,          //! Write protect negated
+    input       ZF,           //! Zero flag
+
+    // Output signal
+    output CBRKN,            //! CBRK negated
+    output CFETCH,           //! Command fetch
+    output CLFFN,            //! Clear FF negated
+    output CLIRQN,           //! Clear interrupt request negated
+    output CSMREQ,           //! CSM request
+    output DSTOPN,           //! DSTOP negated
+    output EPCRN,            //! EPCR negated
+    output EPGSN,            //! EPGS negated
+    output EPIC,             //! EPIC signal
+    output EPICSN,           //! EPICS negated
+    output EPICVN,           //! EPICV negated
+    output ERFN,             //! ERF negated
+    output FETCHN,           //! Fetch negated
+    output INDN,             //! IND negated
+    output LDDBRN,           //! Latch DBR negated
+    output LDGPRN,           //! Latch GPR negated
+    output LDIRV,            //! Load IRV
+    output LDLCN,            //! Load LCN
+    output LDPILN,           //! Load PIL negated
+    output LWCAN,            //! Latch WCA negated
+    output VACCN,            //! Violation access negated
+    output WRITEN,           //! Write enable negated
+    output WRTRF,            //! Write TRF
+    output XFETCHN           //! XFETCH negated
 );
 
   /*******************************************************************************
@@ -212,7 +218,7 @@ module CGA_DCD (
   wire       s_poni;
   wire       s_sgr;
   wire       s_sioc_n;
-  wire       s_vacc_n_group;
+  wire       s_dvacc_n_group;
   wire       s_vacc_n_out;
   wire       s_vacc;
   wire       s_vacc1;
@@ -1571,7 +1577,7 @@ module CGA_DCD (
       .input1(s_dvacc1),
       .input2(s_dvacc2),
       .input3(s_dvacc3),
-      .result(s_vacc_n_group)
+      .result(s_dvacc_n_group)
   );
 
 
@@ -1579,7 +1585,7 @@ module CGA_DCD (
       .InvertClockEnable(0)
   ) MEMORY_100 (
       .clock(s_mclk),
-      .d(s_vacc_n_group),
+      .d(s_dvacc_n_group),
       .preset(1'b0),
       .q(),
       .qBar(s_dvacc_n),

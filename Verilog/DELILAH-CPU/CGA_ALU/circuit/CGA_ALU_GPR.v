@@ -5,7 +5,7 @@
 ** Page 50                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 20-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -256,8 +256,16 @@ module CGA_ALU_GPR (
 
   /*** FF for DGPR0_n ***/
 
+// Need to add a delayed latch here, as there is in the SCAN_FF's to not loose bit 0
+// TODO: Convert to FF clocked with FPGA main clock
+
+  reg s_gpr0m_delayed; 
+  always@(s_gpr0m)
+  begin
+    s_gpr0m_delayed <= s_gpr0m;
+  end
   MUX21LP GPR0M21 (
-      .A (s_gpr0m),
+      .A (s_gpr0m_delayed),
       .B (s_gpr_15_0_out[0]),
       .S (s_gprc_2_0[2]),
       .ZN(s_dgpr0_n_out)

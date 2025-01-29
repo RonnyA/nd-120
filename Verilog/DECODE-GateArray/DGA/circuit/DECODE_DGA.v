@@ -462,8 +462,8 @@ module DECODE_DGA (
       .IDBI7(s_idb_7_0_in[7]), //! Internal data bus input bit 7
       .LCSN(s_xlcn),         //! Load Control Store
       .LHIT(s_xlhn),         //! Cache hit during load
-      .LSHADOW(s_xlsh),      //! Load shadow 
-      .PONI(s_xpoi),         //! Memory Management On
+      .LSHADOW(s_xlsh),      //! Load shadow
+      .PONI(s_xpoi),         //! Memory Protection ON, PONI=1
       .RESET(s_reset),       //! Reset signal
       .SSTOPN(s_sstop_n),    //! Set Stop Flip-Flop
       .STARTN(s_start_n),    //! Start signal

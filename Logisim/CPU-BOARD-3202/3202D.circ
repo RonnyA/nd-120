@@ -8046,12 +8046,14 @@
       <a name="facing" val="west"/>
       <a name="label" val="LUA_12_0"/>
       <a name="output" val="true"/>
+      <a name="radix" val="8"/>
       <a name="tristate" val="true"/>
       <a name="width" val="13"/>
     </comp>
     <comp lib="0" loc="(270,520)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="CSA_12_0"/>
+      <a name="radix" val="8"/>
       <a name="width" val="13"/>
     </comp>
     <comp lib="0" loc="(310,1280)" name="Pin">
@@ -8211,7 +8213,7 @@
       <a name="text" val="CPU/CS/ACAL"/>
     </comp>
     <comp lib="8" loc="(155,135)" name="Text">
-      <a name="text" val="SHEET 18 of 50"/>
+      <a name="text" val="SHEET 17 of 50"/>
     </comp>
     <comp lib="8" loc="(170,105)" name="Text">
       <a name="text" val="MICRO ADDR CALC"/>

@@ -1,5 +1,14 @@
-// 44306A,21G,MMUCTL - MMU CONTROL LOGIC
+/**********************************************************************************************************
+** ND120 PALASM CODE CONVERTED TO VERILOG                                                                **
+**                                                                                                       **
+** Component PAL 44306A                                                                                  **
+**                                                                                                       **
+** Last reviewed: 19-JAN-2025                                                                            **
+** Ronny Hansen                                                                                          **
+**
+***********************************************************************************************************/
 
+// 44306A,21G,MMUCTL - MMU CONTROL LOGIC
 
 module PAL_44306A (
     input CA0,
@@ -62,18 +71,25 @@ module PAL_44306A (
       (LSHADOW & EMCL_n & DOUBLE_n) |  // ENABLE ONLY WHEN IN SHADOW
       (LSHADOW & EMCL_n & CA0_n));  // DISABLE WHEN IN SEX MODE WE ARE READ/FETCHING ADDRESSES
 
-  // Logic for EPMAP_n (active-low)
-  assign EPMAP_n = ~((WCHIM_n & DVACC_n & WRITE_n) |  // DISABLE WHEN WRITING THE CACHE INHIBIT MAP
+  // Logic for EPMAP_n (active-low) - Enable PAGE MAP RAM (PPN23-10) in PT module
+  assign EPMAP_n = ~
+  (
+      (WCHIM_n & DVACC_n & WRITE_n)   |  // DISABLE WHEN WRITING THE CACHE INHIBIT MAP
       (WCHIM_n & DVACC_n & LSHADOW_n) |  // DISABLE WHEN VIRTUAL ACCESS IS DISABLED
-      (WCHIM_n & DVACC_n & DOUBLE_n) |  // ACCESSING SHADOW MEMORY
-      (WCHIM_n & DVACC_n & CA0) |  // DISABLE ON SHADOW MEMORY WRITE IN SEX MODE
-      (WCHIM_n & LSHADOW & WRITE_n) |  // ADDRESSES
-      (WCHIM_n & LSHADOW & DOUBLE_n) | (WCHIM_n & LSHADOW & CA0));
+      (WCHIM_n & DVACC_n & DOUBLE_n)  |  // ACCESSING SHADOW MEMORY
+      (WCHIM_n & DVACC_n & CA0)       |  // DISABLE ON SHADOW MEMORY WRITE IN SEX MODE
+      (WCHIM_n & LSHADOW & WRITE_n)   |  // ADDRESSES
+      (WCHIM_n & LSHADOW & DOUBLE_n)  |
+      (WCHIM_n & LSHADOW & CA0)
+);
 
-  // Logic for EPT_n (active-low)
-  assign EPT_n = ~((WRITE_n & EMCL_n) |  // DISABLE ON EMCL OR
-      (LSHADOW_n & EMCL_n) |  // WRITING IN OTHER HALF
-      (DOUBLE_n & EMCL_n) |  // WHEN IN SEX MODE
-      (CA0_n & EMCL_n));
+  // Logic for EPT_n (active-low) - Enable "Page Table" RAM in PT module
+  assign EPT_n = ~
+  (
+    (WRITE_n & EMCL_n)   |  // DISABLE ON EMCL OR
+    (LSHADOW_n & EMCL_n) |  // WRITING IN OTHER HALF
+    (DOUBLE_n & EMCL_n)  |  // WHEN IN SEX MODE
+    (CA0_n & EMCL_n)
+  );
 
 endmodule

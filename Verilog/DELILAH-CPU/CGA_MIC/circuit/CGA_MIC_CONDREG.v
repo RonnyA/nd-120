@@ -6,20 +6,20 @@
 ** Page 15                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 20-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module CGA_MIC_CONDREG (
-    input [11:0] CSBIT_11_0,
-    input        CSSCOND,
-    input        LCSN,
-    input        MCLK,
+    input [11:0] CSBIT_11_0,  //! Microcode bits 11:0
+    input        CSSCOND,  //! Microcode "SCOND" - COND) sets a 4-bit condition-code to be tested on a later occasion.
+    input LCSN,  //! Load Control Store
+    input MCLK,  //! Master Clock
 
-    output       ACONDN,
-    output [3:0] FS_6_3,
-    output [3:0] LCC_3_0,
-    output [3:0] TSEL_3_0
+    output       ACONDN,    //! ACOND - ACOND is the output of the condition register. Input to PAL 44403 in Cycle Control to control DLY0 signal
+    output [3:0] FS_6_3,  //! False Select. CSBIT 3:0
+    output [3:0] LCC_3_0,  //! Loop Counter Compare (?)  CSBIT 11:8
+    output [3:0] TSEL_3_0  //! Test Select. CSBIT 7:4
 );
 
   /*******************************************************************************

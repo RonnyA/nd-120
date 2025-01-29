@@ -187,7 +187,24 @@
     <comp lib="0" loc="(240,560)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="PT_15_9"/>
+      <a name="radix" val="8"/>
       <a name="width" val="7"/>
+    </comp>
+    <comp lib="0" loc="(740,480)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
+    <comp lib="0" loc="(770,510)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
+    <comp lib="0" loc="(810,530)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+    </comp>
+    <comp lib="0" loc="(870,530)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
     </comp>
     <comp lib="8" loc="(230,35)" name="Text">
       <a name="text" val="Page 100 - /CGA/TRAP - Implemented, not tested"/>
@@ -278,10 +295,10 @@
     <wire from="(410,680)" to="(470,680)"/>
     <wire from="(430,700)" to="(430,800)"/>
     <wire from="(430,700)" to="(470,700)"/>
-    <wire from="(690,560)" to="(1050,560)"/>
-    <wire from="(690,580)" to="(1010,580)"/>
-    <wire from="(690,600)" to="(980,600)"/>
-    <wire from="(690,620)" to="(940,620)"/>
+    <wire from="(690,560)" to="(720,560)"/>
+    <wire from="(690,580)" to="(760,580)"/>
+    <wire from="(690,600)" to="(790,600)"/>
+    <wire from="(690,620)" to="(850,620)"/>
     <wire from="(690,640)" to="(820,640)"/>
     <wire from="(690,660)" to="(800,660)"/>
     <wire from="(690,680)" to="(920,680)"/>
@@ -292,15 +309,24 @@
     <wire from="(690,780)" to="(720,780)"/>
     <wire from="(690,800)" to="(780,800)"/>
     <wire from="(720,1300)" to="(1310,1300)"/>
+    <wire from="(720,480)" to="(720,560)"/>
+    <wire from="(720,480)" to="(740,480)"/>
+    <wire from="(720,560)" to="(1050,560)"/>
     <wire from="(720,780)" to="(720,1300)"/>
     <wire from="(740,1200)" to="(1310,1200)"/>
     <wire from="(740,740)" to="(1190,740)"/>
     <wire from="(740,740)" to="(740,1200)"/>
     <wire from="(760,1180)" to="(1310,1180)"/>
+    <wire from="(760,510)" to="(760,580)"/>
+    <wire from="(760,510)" to="(770,510)"/>
+    <wire from="(760,580)" to="(1010,580)"/>
     <wire from="(760,720)" to="(760,1180)"/>
     <wire from="(780,1160)" to="(1310,1160)"/>
     <wire from="(780,800)" to="(1160,800)"/>
     <wire from="(780,800)" to="(780,1160)"/>
+    <wire from="(790,530)" to="(790,600)"/>
+    <wire from="(790,530)" to="(810,530)"/>
+    <wire from="(790,600)" to="(980,600)"/>
     <wire from="(800,1140)" to="(1310,1140)"/>
     <wire from="(800,660)" to="(1130,660)"/>
     <wire from="(800,660)" to="(800,1140)"/>
@@ -310,6 +336,9 @@
     <wire from="(840,1100)" to="(1310,1100)"/>
     <wire from="(840,700)" to="(1090,700)"/>
     <wire from="(840,700)" to="(840,1100)"/>
+    <wire from="(850,530)" to="(850,620)"/>
+    <wire from="(850,530)" to="(870,530)"/>
+    <wire from="(850,620)" to="(940,620)"/>
     <wire from="(920,1060)" to="(1310,1060)"/>
     <wire from="(920,680)" to="(1070,680)"/>
     <wire from="(920,680)" to="(920,1060)"/>
@@ -979,6 +1008,11 @@
     </comp>
     <comp lib="8" loc="(695,1095)" name="Text">
       <a name="text" val="RPVN"/>
+    </comp>
+    <comp lib="8" loc="(881,1031)" name="Text">
+      <a name="halign" val="right"/>
+      <a name="text" val="RING_0"/>
+      <a name="valign" val="bottom"/>
     </comp>
     <comp loc="(3280,1080)" name="CGA_TRAP_TVGEN_P2">
       <a name="label" val="TRAP_TVGEN"/>
@@ -1929,8 +1963,8 @@
     <wire from="(1350,1400)" to="(1420,1400)"/>
     <wire from="(1350,200)" to="(1350,1080)"/>
     <wire from="(1350,200)" to="(2500,200)"/>
-    <wire from="(1370,230)" to="(1370,1080)"/>
-    <wire from="(1370,230)" to="(2500,230)"/>
+    <wire from="(1370,350)" to="(1370,1080)"/>
+    <wire from="(1370,350)" to="(2500,350)"/>
     <wire from="(1390,780)" to="(1390,920)"/>
     <wire from="(1390,780)" to="(1500,780)"/>
     <wire from="(1400,1430)" to="(1400,1450)"/>
@@ -2019,14 +2053,14 @@
     <wire from="(270,200)" to="(1350,200)"/>
     <wire from="(270,210)" to="(2500,210)"/>
     <wire from="(270,220)" to="(2500,220)"/>
-    <wire from="(270,230)" to="(1370,230)"/>
+    <wire from="(270,230)" to="(2500,230)"/>
     <wire from="(270,240)" to="(2500,240)"/>
     <wire from="(270,250)" to="(930,250)"/>
     <wire from="(270,260)" to="(1020,260)"/>
     <wire from="(270,320)" to="(440,320)"/>
     <wire from="(270,330)" to="(640,330)"/>
     <wire from="(270,340)" to="(520,340)"/>
-    <wire from="(270,350)" to="(2500,350)"/>
+    <wire from="(270,350)" to="(1370,350)"/>
     <wire from="(270,360)" to="(660,360)"/>
     <wire from="(270,370)" to="(750,370)"/>
     <wire from="(270,380)" to="(840,380)"/>

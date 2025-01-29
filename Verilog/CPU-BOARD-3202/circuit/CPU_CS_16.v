@@ -109,22 +109,24 @@ module CPU_CS_16 (
    *******************************************************************************/
 
   CPU_CS_PROM_19 PROM (
+      // Input signals
       .BLCS_n  (BLCS_n),
       .RF_1_0  (RF_1_0[1:0]),
       .LUA_12_0(s_LUA_12_0[12:0]),
 
+      // Output signals
       .IDB_15_0_OUT(s_IDB_15_0_prom_out[15:0])
   );
 
   // CSBITS into WCS is always the CSBITS out from the TCV
 
   CPU_CS_WCS_21_22 WCS (
+      // Input signals
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
       .CSBITS_63_0(s_csbits_out_tcv[63:0]),
-      .CSBITS_63_0_OUT(s_csbits_out_wcs[63:0]),
       .ELOW_n(s_elow_n),
-      .EUPP_n(s_eupp_n),
+      .EUPP_n(s_eupp_n), 
       .LUA_11_0(s_LUA_12_0[11:0]),
       .UUA_11_0(s_uua[11:0]),
       .WU0_n(s_WU_3_0_n[0]),
@@ -134,27 +136,30 @@ module CPU_CS_16 (
       .WW0_n(s_ww3_0_n[0]),
       .WW1_n(s_ww3_0_n[1]),
       .WW2_n(s_ww3_0_n[2]),
-      .WW3_n(s_ww3_0_n[3])
+      .WW3_n(s_ww3_0_n[3]),
+
+      // Output signals
+      .CSBITS_63_0_OUT(s_csbits_out_wcs[63:0])
   );
 
   CPU_CS_TCV_20 TCV (
+      // Input signals
       .CSBITS(s_csbits_out_wcs[63:0]),
-      .CSBITS_OUT(s_csbits_out_tcv[63:0]),
       .ECSL_n(s_ecsl_n),
       .EW_3_0_n(s_ew_3_0_n[3:0]),
       .IDB_15_0_IN(s_IDB_15_0_tcv_in[15:0]),
-      .IDB_15_0_OUT(s_IDB_15_0_tcv_out[15:0]),
-      .WCS_n(WCS_n)
+      .WCS_n(WCS_n),
+
+      // Output signals  
+      .CSBITS_OUT(s_csbits_out_tcv[63:0]),
+      .IDB_15_0_OUT(s_IDB_15_0_tcv_out[15:0])
   );
 
   CPU_CS_CTL_18 CTL (
+      // Input signals
       .BRK_n(BRK_n),
-      .CC_3_1_n(CC_3_1_n[2:0]),
-      .ECSL_n(s_ecsl_n),
-      .ELOW_n(s_elow_n),
-      .EUPP_n(s_eupp_n),
+      .CC_3_1_n(CC_3_1_n[2:0]), 
       .EWCA_n(EWCA_n),
-      .EW_3_0_n(s_ew_3_0_n[3:0]),
       .FETCH(FETCH),
       .FORM_n(FORM_n),
       .LCS_n(LCS_n),
@@ -164,17 +169,25 @@ module CPU_CS_16 (
       .TERM_n(TERM_n),
       .WCA_n(WCA_n),
       .WCS_n(WCS_n),
+
+      // Output signals
+      .ECSL_n(s_ecsl_n),
+      .ELOW_n(s_elow_n), 
+      .EUPP_n(s_eupp_n),
+      .EW_3_0_n(s_ew_3_0_n[3:0]),
       .WU_3_0_n(s_WU_3_0_n[3:0]),
       .WW_3_0_n(s_ww3_0_n[3:0])
   );
 
   CPU_CS_ACAL_17 ACAL (
+      // Input signals
       .CLK(CLK),
       .CSA_12_0(CSA_12_0[12:0]),
       .CSCA_9_0(CSCA_9_0[9:0]),
-      .LUA_12_0(s_LUA_12_0[12:0]),
       .MACLK(MACLK),
       .PD1(PD1),
+      // Output signals
+      .LUA_12_0(s_LUA_12_0[12:0]),
       .UUA_11_0(s_uua[11:0])
   );
 

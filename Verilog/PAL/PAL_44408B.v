@@ -1,6 +1,16 @@
-// PAL16R4 
-// JLB/CJTC 17MAR87 
-// 44408B,22F,VEXFIX 
+/**********************************************************************************************************
+** ND120 PALASM CODE CONVERTED TO VERILOG                                                                **
+**                                                                                                       **
+** Component PAL 44608A                                                                                  **
+**                                                                                                       **
+** Last reviewed: 19-JAN-2025                                                                            **
+** Ronny Hansen                                                                                          **
+**
+***********************************************************************************************************/
+
+// PAL16R4
+// JLB/CJTC 17MAR87
+// 44408B,22F,VEXFIX
 
 
 // PCB 3202D sheet 34:
@@ -36,7 +46,7 @@ module PAL_44408B (
 
     // Q0_n - (not connected)
     output LDEXM_n,  //! Q1_n - Command 21.3
-    output VEX,      //! Q2_n - ?
+    output VEX,      //! Q2_n - Violation Exception
     output OPCLCS,   //! Q3_n - Command 36.2 (LCS)
     output RWCS_n,   //! Q4_n - Command 36.1 (RWCS)
 
@@ -57,11 +67,29 @@ module PAL_44408B (
     // Logic for LDEXM
     LDEXM_int <= C4 & ~C3 & ~C2 & ~C1 & C0 & M1 & M0 & LCS_n;  // COMMAND 21.3 LDEXM (validated RH) (Load examine mode in MAC function.)
 
-    // Logic for VEX
-    VEX_n_int <= (LDEXM_int & ~IDB2) |  // CLEAR
-    (~LDEXM_int & VEX_n_int) |  // HOLD CLEAR
-    LCS;  // LCS
+      // VEX Logic
+    if ((LDEXM_int && ~IDB2) || (~LDEXM_int && VEX_n_int) || LCS)
+    begin
+      VEX_n_int <= 1'b1; // Set /VEX to 1
+    end else begin
+      VEX_n_int <= 1'b0; // Default: Set /VEX to 0
+    end
 
+  /*
+      if ((LDEXM_int && IDB2n) | (LCS)) begin
+          VEX_n_int <= 1'b1; // Clear
+      end else if (LDEXM_int) begin
+          VEX_n_int <= 1'b0;  // Hold clear
+      end
+  */
+  /*
+    // Logic for VEX
+    VEX_n_int <= (
+        (LDEXM_int & IDB2n) |  // CLEAR
+        (~LDEXM_int & VEX_n_int) |  // HOLD CLEAR
+        (LCS)  // LCS
+    );
+    */
     // Logic for OPCLCS
     OPCLCS_n_int <= ~C4 | ~C3 | ~C2 | ~C1 | C0 | ~M1 | M0 | LCS;  // COMMAND 36.2 LCS (validated RH) - Load control store from PROM. and perform a Master Clear
 
@@ -87,7 +115,7 @@ endmodule
 
 
 /*
-DESCRIPTION 
+DESCRIPTION
 
 ; 180587 M3202B
 ; 150687 RWCS SIGNAL TOO SLOW FROM NEC G.A. MUST BE DONE IN A PAL.

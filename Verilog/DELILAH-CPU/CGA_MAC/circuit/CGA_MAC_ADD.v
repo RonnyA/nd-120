@@ -6,7 +6,7 @@
 ** Page 29                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 14-DEC-2024                                            **
+** Last reviewed: 20-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -23,10 +23,10 @@ module CGA_MAC_ADD (
 
 
     // Special: Add CD if PLCA is low
-    input [15:0] CD_15_0,   //! CPU data added to the selected register
-    input        CDS,       //! If false all 16 bits of CD is added. If false, only the low 8 bits are added.
+    input [15:0] CD_15_0,   //! CPU data (Added to the selected register)
+    input        CDS,       //! If false all 16 bits of CD is added. If true, only the low 8 bits are added.
 
-    output [15:0] ADD_15_0  //! MAC Addition result
+    output [15:0] ADD_15_0  //! Addition result output
 );
 
   /*******************************************************************************
@@ -42,7 +42,6 @@ module CGA_MAC_ADD (
   wire [15:0] s_br_15_0;
   wire [15:0] s_prp_15_0;
 
-  wire        s_cd_2;
   wire        s_cds_n;
   wire        s_cds;
   wire        s_cde_enable;
@@ -98,6 +97,7 @@ module CGA_MAC_ADD (
   assign s_xr_15_0[15:0]  = XR_15_0;
   assign s_rb_15_0[15:0]  = RB_15_0;
   assign s_cd_15_0[15:0]  = CD_15_0;
+  assign s_cd_7_0[7:0]    = CD_15_0[7:0];
   assign s_lca_15_0[15:0] = LCA_15_0;
   assign s_br_15_0[15:0]  = BR_15_0;
   assign s_pb             = PB;
@@ -105,6 +105,7 @@ module CGA_MAC_ADD (
   assign s_prb            = PRB;
   assign s_cds            = CDS;
   assign s_px             = PX;
+  
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -671,12 +672,15 @@ module CGA_MAC_ADD (
       .Z(s_prp0_b_n)
   );
 
-  // Fastadd  
+  // Fastadd
   CGA_MAC_FASTADD FASTADD (
-      .ADD_15_0(s_add_15_0_out[15:0]),
-      .CDE_15_8(s_cde_15_8[7:0]),
+      // Inputs
       .CD_7_0  (s_cd_7_0[7:0]),
-      .PRP_15_0(s_prp_15_0[15:0])
+      .CDE_15_8(s_cde_15_8[7:0]),
+      .PRP_15_0(s_prp_15_0[15:0]),
+
+      // Outputs
+      .ADD_15_0(s_add_15_0_out[15:0])
   );
 
 endmodule

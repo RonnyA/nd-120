@@ -21,7 +21,8 @@
 //! @author Ronny Hansen
 //! TOP LEVEL FOR FPGA IMPLEMENTATION OF ND-3202D CPU BOARD
 
-module ND120_TOP (
+module ND120_TOP
+(
     input wire sysclk,    //! System Clock
     input wire btn1,      //! Button 1, mapped to S1 (not labeled) on the board - connected to sys_rst_n
     input wire btn2,      //! Button 2, mapped to S2 (not labeled) on the board
@@ -68,6 +69,8 @@ module ND120_TOP (
   wire s_tp1_intrq_n;
   wire [63:0] s_csbits;  //! Microcode CPU BITS
 
+  reg [32:0] clockTicks;
+
   // TODO: Modify clock ?
   assign clk1 = sysclk;  // XTAL1 = 39.3216MHZ
   assign clk2 = sysclk;  // XTAL2 = 35 MHZ (for slow operations?)
@@ -83,6 +86,12 @@ module ND120_TOP (
   //assign led[4] = !s_cpu_led[4] // LED BUS GRANT INDICATOR
   assign led[4] = !uartRx;
   assign led[5] = !uartTx;
+
+  // For debugging: shows # of clockticks in GTKWave if needed
+  always@(posedge sysclk)
+  begin
+    clockTicks <= clockTicks+1;
+  end
 
 
   ND3202D CPU_BOARD (

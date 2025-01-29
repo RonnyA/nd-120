@@ -6,38 +6,38 @@
 ** Sheet 1 of 1                                                          **
 ** PDF page 74                                                           **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 26-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module CGA_INTR (
-    input        BINT10N,
-    input        BINT11N,
-    input        BINT12N,
-    input        BINT13N,
-    input        BINT15N,
-    input        CLIRQN,
-    input        EMPIDN,
-    input        EPIC,
-    input [15:0] FIDBO_15_0,
-    input        IOXERRN,
-    input [ 3:0] LAA_3_0,
-    input        MCLK,
-    input        NORN,
-    input        PANN,
-    input        PARERRN,
-    input        POWFAILN,
-    input        Z,
+    input        BINT10N,          //! Bus Interrupt 10, active low
+    input        BINT11N,          //! Bus Interrupt 11, active low
+    input        BINT12N,          //! Bus Interrupt 12, active low
+    input        BINT13N,          //! Bus Interrupt 13, active low
+    input        BINT15N,          //! Bus Interrupt 15, active low
+    input        CLIRQN,           //! Clear Interrupt Request, active low
+    input        EMPIDN,           //! Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints)
+    input        EPIC,             //! Enable PIC (Programmable Interrupt Controller) signal
+    input [15:0] FIDBO_15_0,       //! FIDB , 16-bit
+    input        IOXERRN,          //! IO Exception Error, active low
+    input [ 3:0] LAA_3_0,          //! Latched Address A, 4-bit
+    input        MCLK,             //! Master Clock
+    input        MORN,             //! MOR signal, active low (Memory Error)
+    input        PANN,             //! PAN signal, active low (Panel Interrupt)
+    input        PARERRN,          //! Parity Error, active low
+    input        POWFAILN,         //! Power Failure, active low
+    input        Z,                //! Error flag from ALU
 
-    output        EPICMASKN,
-    output        HIGSN,
-    output        INTRQN,
-    output        IRQ,
-    output        LOGSN,
-    output        PD,
-    output [15:0] PICMASK_15_0,
-    output [ 2:0] PICS_2_0,
-    output [ 2:0] PICV_2_0
+    output        EPICMASKN,       //! EPIC Mask, active low
+    output        HIGSN,           //! High Speed signal, active low
+    output        INTRQN,          //! Interrupt Request, active low
+    output        IRQ,             //! Interrupt Request
+    output        LOGSN,           //! Logical Segment Number, active low
+    output        PD,              //! Power Down signal
+    output [15:0] PICMASK_15_0,    //! PIC Mask, 16-bit
+    output [ 2:0] PICS_2_0,        //! PIC Select, 3-bit
+    output [ 2:0] PICV_2_0         //! PIC Vector, 3-bit
 );
 
   /*******************************************************************************
@@ -78,6 +78,8 @@ module CGA_INTR (
    ** The module functionality is described here                                 **
    *******************************************************************************/
 
+   reg [3:0] regLAA_3_0;
+
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
@@ -91,9 +93,12 @@ module CGA_INTR (
   assign s_epic             = EPIC;
   assign s_fidbo_15_0[15:0] = FIDBO_15_0;
   assign s_ioxerr_n         = IOXERRN;
-  assign s_laa_3_0[3:0]     = LAA_3_0;
+
+  //assign s_laa_3_0[3:0]     = LAA_3_0;
+  assign s_laa_3_0[3:0]     = regLAA_3_0;
+
   assign s_mclk             = MCLK;
-  assign s_nor_n            = NORN;
+  assign s_nor_n            = 1; //TODO: Fix MORN;
   assign s_pan_n            = PANN;
   assign s_parerr_n         = PARERRN;
   assign s_powfail_n        = POWFAILN;
@@ -115,6 +120,13 @@ module CGA_INTR (
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
+
+  // Need to add delay to changing of LAA_3_0 so that if it changes when MCLK changes we dont get the "new and wrong value"
+  // TODO: Review if this can be solved with rising edge on sysclk
+  always @(LAA_3_0)
+  begin
+    regLAA_3_0 <= LAA_3_0;
+  end
 
   // NOT Gate
   assign s_irq_out          = ~s_irq_n_out;

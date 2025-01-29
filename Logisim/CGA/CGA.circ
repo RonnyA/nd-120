@@ -26750,6 +26750,7 @@
     <comp lib="0" loc="(210,660)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="label" val="CSCOMM_4_0"/>
+      <a name="radix" val="8"/>
       <a name="width" val="5"/>
     </comp>
     <comp lib="0" loc="(260,660)" name="Splitter">
@@ -27925,7 +27926,7 @@
     <comp lib="0" loc="(4470,3910)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="CD_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(4510,3700)" name="Splitter">
@@ -27942,12 +27943,27 @@
       <a name="fanout" val="8"/>
       <a name="incoming" val="8"/>
     </comp>
+    <comp lib="0" loc="(5560,3540)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+      <a name="radix" val="8"/>
+    </comp>
+    <comp lib="0" loc="(5570,3600)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+      <a name="radix" val="8"/>
+    </comp>
+    <comp lib="0" loc="(5610,3650)" name="Probe">
+      <a name="appearance" val="classic"/>
+      <a name="facing" val="west"/>
+      <a name="radix" val="8"/>
+    </comp>
     <comp lib="0" loc="(5920,3690)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="facing" val="west"/>
       <a name="label" val="ADD_15_0"/>
       <a name="output" val="true"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(640,4730)" name="Pin">
@@ -27969,25 +27985,25 @@
     <comp lib="0" loc="(640,4970)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="RB_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(640,5020)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="BR_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(640,5060)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="XR_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="0" loc="(640,5100)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="LCA_15_0"/>
-      <a name="radix" val="16"/>
+      <a name="radix" val="8"/>
       <a name="width" val="16"/>
     </comp>
     <comp lib="1" loc="(4170,1440)" name="OR Gate">
@@ -28668,7 +28684,7 @@
     <wire from="(4320,3580)" to="(4340,3580)"/>
     <wire from="(4360,3570)" to="(4370,3570)"/>
     <wire from="(4370,3570)" to="(4370,3730)"/>
-    <wire from="(4370,3730)" to="(5640,3730)"/>
+    <wire from="(4370,3730)" to="(5460,3730)"/>
     <wire from="(4450,3950)" to="(4800,3950)"/>
     <wire from="(4470,3910)" to="(4480,3910)"/>
     <wire from="(4480,3700)" to="(4480,3910)"/>
@@ -28696,7 +28712,7 @@
     <wire from="(4570,3690)" to="(4570,3700)"/>
     <wire from="(4570,3700)" to="(4660,3700)"/>
     <wire from="(4580,3530)" to="(4580,3690)"/>
-    <wire from="(4580,3690)" to="(5640,3690)"/>
+    <wire from="(4580,3690)" to="(5580,3690)"/>
     <wire from="(4590,1460)" to="(4590,3620)"/>
     <wire from="(4590,1460)" to="(4730,1460)"/>
     <wire from="(4600,1550)" to="(4600,3630)"/>
@@ -28794,7 +28810,16 @@
     <wire from="(4970,2100)" to="(5020,2100)"/>
     <wire from="(5040,2090)" to="(5100,2090)"/>
     <wire from="(5100,2090)" to="(5100,3710)"/>
-    <wire from="(5100,3710)" to="(5640,3710)"/>
+    <wire from="(5100,3710)" to="(5520,3710)"/>
+    <wire from="(5460,3540)" to="(5460,3730)"/>
+    <wire from="(5460,3540)" to="(5560,3540)"/>
+    <wire from="(5460,3730)" to="(5640,3730)"/>
+    <wire from="(5520,3600)" to="(5520,3710)"/>
+    <wire from="(5520,3600)" to="(5570,3600)"/>
+    <wire from="(5520,3710)" to="(5640,3710)"/>
+    <wire from="(5580,3650)" to="(5580,3690)"/>
+    <wire from="(5580,3650)" to="(5610,3650)"/>
+    <wire from="(5580,3690)" to="(5640,3690)"/>
     <wire from="(5860,3690)" to="(5920,3690)"/>
     <wire from="(640,4730)" to="(710,4730)"/>
     <wire from="(640,4770)" to="(890,4770)"/>

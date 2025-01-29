@@ -6,7 +6,7 @@
 ** Page 101                                                              **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 19-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -109,11 +109,7 @@ module CGA_TRAP_TBUF (
   assign s_ipcr_1_0_out[1:0]   = ~s_ipcr_1_0_n_out[1:0];
 
   assign s_ipt_15_9_n_out[6:0] = ~s_pt_15_9[6:0];
-
-  assign s_ipt_15_9_out[0]     = ~s_ipt_15_9_n_out[0];
-  assign s_ipt_15_9_out[1]     = ~s_ipt_15_9_n_out[1];
-  assign s_ipt_15_9_out[4]     = ~s_ipt_15_9_n_out[4];
-  assign s_ipt_15_9_out[6]     = ~s_ipt_15_9_n_out[6];
+  assign s_ipt_15_9_out[6:0]   = ~s_ipt_15_9_n_out[6:0];
 
   assign s_iwrite_n_out        = ~s_iwrite_out;
   assign s_iwrite_out          = ~s_write_n;

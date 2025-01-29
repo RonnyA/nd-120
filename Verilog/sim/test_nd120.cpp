@@ -6,11 +6,16 @@
 #include <string>
 
 #include "VND120_TOP.h"
+#include "VND120_TOP___024root.h"  // Root-level details for updating RAM directly
 #include "verilated.h"
 
 #ifdef DO_TRACE
 #include <verilated_vcd_c.h>
 #endif
+
+// BPUN load file logic
+void loadfile(char *fn, int off,  uint8_t *low_array, uint8_t *high_array);
+
 
 // DECODE_DGA testcases
 struct TestCase
@@ -88,6 +93,14 @@ int main(int argc, char **argv)
 	top->trace(m_trace, 1); // 1 is the trace depth
 	m_trace->open("waveform.vcd");
 #endif
+
+
+	// Load data
+	// Access MEM->RAM fields via rootp 
+	auto& ram_low = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__CHIP_15H__DOT__sdram;
+	auto& ram_high = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__CHIP_15J__DOT__sdram;	
+	char *fname = strdup("INSTRUCTION-B.BPUN"); // strdup creates a modifiable copy
+	loadfile(fname, 0,  &ram_low[0], &ram_high[0]);
 
 	uint8_t led = 0;
 	uint8_t new_led = 0;
@@ -297,7 +310,20 @@ int main(int argc, char **argv)
 						}
 #endif						
 
-#if true
+
+#if 1 // RUN						
+						switch (rxCnt)
+						{
+						case 1:
+							txData = (char)'0'; // Run from address 0
+							break;
+						case 2:
+							txData = (char)'!';
+							break;
+						}
+#endif		
+
+#if 0 // examine memory
 						switch (rxCnt)
 						{
 						case 1:
@@ -387,4 +413,118 @@ int main(int argc, char **argv)
 
 	delete top;
 	return 0;
+}
+
+
+
+
+/****************************** BPUN **********************/
+
+
+
+static int mlp;
+
+static int
+gb(FILE *f)
+{
+	int w;
+
+	if (f == NULL) return 00;
+		
+	w = getc(f) & 0377;
+	return w;
+}
+
+static int
+gw(FILE *f)
+{
+	int c = gb(f);
+	return (c << 8) | gb(f);
+}
+
+
+/*
+ * Bootable (BPUN) tape format.
+ * Disks can use it as well with a max of 64 words data.  In this case 
+ * the bytes are stored in the LSB of the words from beginning of disk.
+ * 1kw block should be read at address 0 in memory.
+ *
+ * A bootable tape consists of nine segments, named A-I.
+ *
+ * A - Any chars not including '!'
+ * B - (optional) octal number terminated by CR (LF ignored).
+ * C - (optional) octal number terminated by '!'.
+ * D - A '!' delimeter
+ * E - Block start address (in memory), two byte, MSB first.
+ * F - Word count in G section, two byte, MSB first.
+ * G - Words as counted in F section.
+ * H - Checksum of G section, one word.
+ * I - Action code.  If non-zero, start at address in B, otherwise nothing.
+ */
+
+void loadfile(char *fn, int off,  uint8_t *low_array, uint8_t *high_array)
+{
+	int B, C, E, F, H, I;
+	int w, i, rv;
+	unsigned short s;
+	FILE *f;
+
+	if ((f = fopen(fn, "r")) == 0)
+	{
+		printf("Unable to open file %s\r\n",fn);
+		return;
+	}
+
+#if 0
+	rv = SCPE_OK;
+	if (sim_switches & SWMASK('D')) {	/* read file from disk */
+		mlp = 0;
+		for (i = 0; i < 1024; i++) {
+			/* images have MSB first */
+			s = (getc(f) & 0377) << 8;
+			s |= getc(f) & 0377;
+			pwrmem(i, s, PM_CPU);
+		}
+		f = NULL;
+	}
+#endif
+
+	/* read B/C section */
+	for (B = C = 0;(w = gb(f) & 0177) != '!'; ) {
+		switch (w) {
+		case '\n':
+			continue;
+		case '\r':
+			B = C, C = 0;
+			break;
+		case '0': case '1': case '2': case '3': 
+		case '4': case '5': case '6': case '7': 
+			C = (C << 3) | (w - '0');
+			break;
+		default:
+			B = C = 0;
+		}
+	}
+
+
+	printf("B address    %06o\n", B);
+	printf("C address    %06o\n", C);
+//	regP = B;
+	printf("Load address %06o\n", E = gw(f));
+	printf("Word count   %06o\n", F = gw(f));
+	for (i = s = 0; i < F; i++) {
+		int data16 = gw(f);
+		low_array[E+i] = data16 & 0xFF;
+		high_array[E+i] = (data16 >>8) & 0xFF;
+		
+		s += data16;
+	}
+	printf("Checksum     %06o\n", H = gw(f));
+	if (H != s)
+		printf("Bad checksum: %06o != %06o\n", H, s);
+	printf("Execute	     %06o\n", I = gw(f));
+	printf("Words read   %06o\n", i);
+//	ald = 0300;	/* from tape reader */
+//	return rv;
+	fclose(f);
 }

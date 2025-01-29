@@ -6,11 +6,15 @@
 ** Page 55                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 29-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module CGA_ALU_OUTMUX (
+    // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
     input        AARG0,
     input        ALUCLK,
     input        ALUD2N,
@@ -219,6 +223,8 @@ module CGA_ALU_OUTMUX (
   /*******************************************************************************
    ** Here all wiring is defined                                                 **
    *******************************************************************************/
+  // Enable DMUX 0-15
+
   assign s_e_dmux0[0]       = s_ebmg;
   assign s_e_dmux0[1]       = s_edbr;
   assign s_e_dmux0[2]       = s_earg;
@@ -236,60 +242,6 @@ module CGA_ALU_OUTMUX (
   assign s_e_dmux1[5]       = s_efidb;
   assign s_e_dmux1[6]       = s_egprl;
   assign s_e_dmux1[7]       = s_ebarg;
-
-  assign s_e_dmux10[0]      = s_ebmg;
-  assign s_e_dmux10[1]      = s_edbr;
-  assign s_e_dmux10[2]      = s_earg;
-  assign s_e_dmux10[3]      = s_ests;
-  assign s_e_dmux10[4]      = s_eswap;
-  assign s_e_dmux10[5]      = s_efidb;
-  assign s_e_dmux10[6]      = s_egprh;
-  assign s_e_dmux10[7]      = s_egprs;
-
-  assign s_e_dmux11[0]      = s_ebmg;
-  assign s_e_dmux11[1]      = s_edbr;
-  assign s_e_dmux11[2]      = s_earg;
-  assign s_e_dmux11[3]      = s_ests;
-  assign s_e_dmux11[4]      = s_eswap;
-  assign s_e_dmux11[5]      = s_efidb;
-  assign s_e_dmux11[6]      = s_egprh;
-  assign s_e_dmux11[7]      = s_egprs;
-
-  assign s_e_dmux12[0]      = s_ebmg;
-  assign s_e_dmux12[1]      = s_edbr;
-  assign s_e_dmux12[2]      = s_earg;
-  assign s_e_dmux12[3]      = s_ests;
-  assign s_e_dmux12[4]      = s_eswap;
-  assign s_e_dmux12[5]      = s_efidb;
-  assign s_e_dmux12[6]      = s_egprh;
-  assign s_e_dmux12[7]      = s_egprs;
-
-  assign s_e_dmux13[0]      = s_ebmg;
-  assign s_e_dmux13[1]      = s_edbr;
-  assign s_e_dmux13[2]      = s_earg;
-  assign s_e_dmux13[3]      = s_ests;
-  assign s_e_dmux13[4]      = s_eswap;
-  assign s_e_dmux13[5]      = s_efidb;
-  assign s_e_dmux13[6]      = s_egprh;
-  assign s_e_dmux13[7]      = s_egprs;
-
-  assign s_e_dmux14[0]      = s_ebmg;
-  assign s_e_dmux14[1]      = s_edbr;
-  assign s_e_dmux14[2]      = s_earg;
-  assign s_e_dmux14[3]      = s_ests;
-  assign s_e_dmux14[4]      = s_eswap;
-  assign s_e_dmux14[5]      = s_efidb;
-  assign s_e_dmux14[6]      = s_egprh;
-  assign s_e_dmux14[7]      = s_egprs;
-
-  assign s_e_dmux15[0]      = s_ebmg;
-  assign s_e_dmux15[1]      = s_edbr;
-  assign s_e_dmux15[2]      = s_earg;
-  assign s_e_dmux15[3]      = s_ests;
-  assign s_e_dmux15[4]      = s_eswap;
-  assign s_e_dmux15[5]      = s_efidb;
-  assign s_e_dmux15[6]      = s_egprh;
-  assign s_e_dmux15[7]      = s_egprs;
 
   assign s_e_dmux2[0]       = s_ebmg;
   assign s_e_dmux2[1]       = s_edbr;
@@ -362,6 +314,62 @@ module CGA_ALU_OUTMUX (
   assign s_e_dmux9[6]       = s_egprh;
   assign s_e_dmux9[7]       = s_egprs;
 
+  assign s_e_dmux10[0]      = s_ebmg;
+  assign s_e_dmux10[1]      = s_edbr;
+  assign s_e_dmux10[2]      = s_earg;
+  assign s_e_dmux10[3]      = s_ests;
+  assign s_e_dmux10[4]      = s_eswap;
+  assign s_e_dmux10[5]      = s_efidb;
+  assign s_e_dmux10[6]      = s_egprh;
+  assign s_e_dmux10[7]      = s_egprs;
+
+  assign s_e_dmux11[0]      = s_ebmg;
+  assign s_e_dmux11[1]      = s_edbr;
+  assign s_e_dmux11[2]      = s_earg;
+  assign s_e_dmux11[3]      = s_ests;
+  assign s_e_dmux11[4]      = s_eswap;
+  assign s_e_dmux11[5]      = s_efidb;
+  assign s_e_dmux11[6]      = s_egprh;
+  assign s_e_dmux11[7]      = s_egprs;
+
+  assign s_e_dmux12[0]      = s_ebmg;
+  assign s_e_dmux12[1]      = s_edbr;
+  assign s_e_dmux12[2]      = s_earg;
+  assign s_e_dmux12[3]      = s_ests;
+  assign s_e_dmux12[4]      = s_eswap;
+  assign s_e_dmux12[5]      = s_efidb;
+  assign s_e_dmux12[6]      = s_egprh;
+  assign s_e_dmux12[7]      = s_egprs;
+
+  assign s_e_dmux13[0]      = s_ebmg;
+  assign s_e_dmux13[1]      = s_edbr;
+  assign s_e_dmux13[2]      = s_earg;
+  assign s_e_dmux13[3]      = s_ests;
+  assign s_e_dmux13[4]      = s_eswap;
+  assign s_e_dmux13[5]      = s_efidb;
+  assign s_e_dmux13[6]      = s_egprh;
+  assign s_e_dmux13[7]      = s_egprs;
+
+  assign s_e_dmux14[0]      = s_ebmg;
+  assign s_e_dmux14[1]      = s_edbr;
+  assign s_e_dmux14[2]      = s_earg;
+  assign s_e_dmux14[3]      = s_ests;
+  assign s_e_dmux14[4]      = s_eswap;
+  assign s_e_dmux14[5]      = s_efidb;
+  assign s_e_dmux14[6]      = s_egprh;
+  assign s_e_dmux14[7]      = s_egprs;
+
+  assign s_e_dmux15[0]      = s_ebmg;
+  assign s_e_dmux15[1]      = s_edbr;
+  assign s_e_dmux15[2]      = s_earg;
+  assign s_e_dmux15[3]      = s_ests;
+  assign s_e_dmux15[4]      = s_eswap;
+  assign s_e_dmux15[5]      = s_efidb;
+  assign s_e_dmux15[6]      = s_egprh;
+  assign s_e_dmux15[7]      = s_egprs;
+
+
+  // SIGNAL DMUX 0-15
   assign s_si_dmux0[0]      = s_ea_0;
   assign s_si_dmux0[1]      = s_dbr_0;
   assign s_si_dmux0[2]      = s_arg_0;
@@ -379,60 +387,6 @@ module CGA_ALU_OUTMUX (
   assign s_si_dmux1[5]      = s_fidbi_1;
   assign s_si_dmux1[6]      = s_gpr_1;
   assign s_si_dmux1[7]      = s_lba_1;
-
-  assign s_si_dmux10[0]     = s_ea_10;
-  assign s_si_dmux10[1]     = s_dbr_10;
-  assign s_si_dmux10[2]     = s_arg_10;
-  assign s_si_dmux10[3]     = s_sts_10;
-  assign s_si_dmux10[4]     = s_sw_10;
-  assign s_si_dmux10[5]     = s_fidbi_10;
-  assign s_si_dmux10[6]     = s_gpr_10;
-  assign s_si_dmux10[7]     = s_gpr_7;
-
-  assign s_si_dmux11[0]     = s_ea_11;
-  assign s_si_dmux11[1]     = s_dbr_11;
-  assign s_si_dmux11[2]     = s_arg_11;
-  assign s_si_dmux11[3]     = s_sts_11;
-  assign s_si_dmux11[4]     = s_sw_11;
-  assign s_si_dmux11[5]     = s_fidbi_11;
-  assign s_si_dmux11[6]     = s_gpr_11;
-  assign s_si_dmux11[7]     = s_gpr_7;
-
-  assign s_si_dmux12[0]     = s_ea_12;
-  assign s_si_dmux12[1]     = s_dbr_12;
-  assign s_si_dmux12[2]     = s_arg_12;
-  assign s_si_dmux12[3]     = s_sts_12;
-  assign s_si_dmux12[4]     = s_sw_12;
-  assign s_si_dmux12[5]     = s_fidbi_12;
-  assign s_si_dmux12[6]     = s_gpr_12;
-  assign s_si_dmux12[7]     = s_gpr_7;
-
-  assign s_si_dmux13[0]     = s_ea_13;
-  assign s_si_dmux13[1]     = s_dbr_13;
-  assign s_si_dmux13[2]     = s_arg_13;
-  assign s_si_dmux13[3]     = s_sts_13;
-  assign s_si_dmux13[4]     = s_sw_13;
-  assign s_si_dmux13[5]     = s_fidbi_13;
-  assign s_si_dmux13[6]     = s_gpr_13;
-  assign s_si_dmux13[7]     = s_gpr_7;
-
-  assign s_si_dmux14[0]     = s_ea_14;
-  assign s_si_dmux14[1]     = s_dbr_14;
-  assign s_si_dmux14[2]     = s_arg_14;
-  assign s_si_dmux14[3]     = s_sts_14;
-  assign s_si_dmux14[4]     = s_sw_14;
-  assign s_si_dmux14[5]     = s_fidbi_14;
-  assign s_si_dmux14[6]     = s_gpr_14;
-  assign s_si_dmux14[7]     = s_gpr_7;
-
-  assign s_si_dmux15[0]     = s_ea_15;
-  assign s_si_dmux15[1]     = s_dbr_15;
-  assign s_si_dmux15[2]     = s_arg_15;
-  assign s_si_dmux15[3]     = s_sts_15;
-  assign s_si_dmux15[4]     = s_sw_15;
-  assign s_si_dmux15[5]     = s_fidbi_15;
-  assign s_si_dmux15[6]     = s_gpr_15;
-  assign s_si_dmux15[7]     = s_gpr_7;
 
   assign s_si_dmux2[0]      = s_ea_2;
   assign s_si_dmux2[1]      = s_dbr_2;
@@ -478,8 +432,8 @@ module CGA_ALU_OUTMUX (
   assign s_si_dmux6[5]      = s_fidbi_6;
   assign s_si_dmux6[6]      = s_gpr_6;
   assign s_si_dmux6[7]      = s_laa_3;
-  assign s_si_dmux7[0]      = s_ea_7;
 
+  assign s_si_dmux7[0]      = s_ea_7;
   assign s_si_dmux7[1]      = s_dbr_7;
   assign s_si_dmux7[2]      = s_arg_7;
   assign s_si_dmux7[3]      = s_sts_7;
@@ -493,8 +447,8 @@ module CGA_ALU_OUTMUX (
   assign s_si_dmux8[3]      = s_sts_8;
   assign s_si_dmux8[4]      = s_sw_8;
   assign s_si_dmux8[5]      = s_fidbi_8;
-  assign s_si_dmux8[6]      = s_gpr_8;
-  assign s_si_dmux8[7]      = s_gpr_7;
+  assign s_si_dmux8[6]      = s_gpr_8; // GPR
+  assign s_si_dmux8[7]      = s_gpr_7; // GPR Sign extended
 
   assign s_si_dmux9[0]      = s_ea_9;
   assign s_si_dmux9[1]      = s_dbr_9;
@@ -502,9 +456,64 @@ module CGA_ALU_OUTMUX (
   assign s_si_dmux9[3]      = s_sts_9;
   assign s_si_dmux9[4]      = s_sw_9;
   assign s_si_dmux9[5]      = s_fidbi_9;
-  assign s_si_dmux9[6]      = s_gpr_9;
-  assign s_si_dmux9[7]      = s_gpr_7;
+  assign s_si_dmux9[6]      = s_gpr_9; // GPR
+  assign s_si_dmux9[7]      = s_gpr_7; // GPR Sign extended
 
+  assign s_si_dmux10[0]     = s_ea_10;
+  assign s_si_dmux10[1]     = s_dbr_10;
+  assign s_si_dmux10[2]     = s_arg_10;
+  assign s_si_dmux10[3]     = s_sts_10;
+  assign s_si_dmux10[4]     = s_sw_10;
+  assign s_si_dmux10[5]     = s_fidbi_10;
+  assign s_si_dmux10[6]     = s_gpr_10; // GPR
+  assign s_si_dmux10[7]     = s_gpr_7;  // GPR Sign extended
+
+  assign s_si_dmux11[0]     = s_ea_11;
+  assign s_si_dmux11[1]     = s_dbr_11;
+  assign s_si_dmux11[2]     = s_arg_11;
+  assign s_si_dmux11[3]     = s_sts_11;
+  assign s_si_dmux11[4]     = s_sw_11;
+  assign s_si_dmux11[5]     = s_fidbi_11;
+  assign s_si_dmux11[6]     = s_gpr_11;
+  assign s_si_dmux11[7]     = s_gpr_7;   // GPR Sign extended
+
+  assign s_si_dmux12[0]     = s_ea_12;
+  assign s_si_dmux12[1]     = s_dbr_12;
+  assign s_si_dmux12[2]     = s_arg_12;
+  assign s_si_dmux12[3]     = s_sts_12;
+  assign s_si_dmux12[4]     = s_sw_12;
+  assign s_si_dmux12[5]     = s_fidbi_12;
+  assign s_si_dmux12[6]     = s_gpr_12;
+  assign s_si_dmux12[7]     = s_gpr_7;   // GPR Sign extended
+
+  assign s_si_dmux13[0]     = s_ea_13;
+  assign s_si_dmux13[1]     = s_dbr_13;
+  assign s_si_dmux13[2]     = s_arg_13;
+  assign s_si_dmux13[3]     = s_sts_13;
+  assign s_si_dmux13[4]     = s_sw_13;
+  assign s_si_dmux13[5]     = s_fidbi_13;
+  assign s_si_dmux13[6]     = s_gpr_13;
+  assign s_si_dmux13[7]     = s_gpr_7;  // GPR Sign extended
+
+  assign s_si_dmux14[0]     = s_ea_14;
+  assign s_si_dmux14[1]     = s_dbr_14;
+  assign s_si_dmux14[2]     = s_arg_14;
+  assign s_si_dmux14[3]     = s_sts_14;
+  assign s_si_dmux14[4]     = s_sw_14;
+  assign s_si_dmux14[5]     = s_fidbi_14;
+  assign s_si_dmux14[6]     = s_gpr_14;
+  assign s_si_dmux14[7]     = s_gpr_7;  // GPR Sign extended
+
+  assign s_si_dmux15[0]     = s_ea_15;
+  assign s_si_dmux15[1]     = s_dbr_15;
+  assign s_si_dmux15[2]     = s_arg_15;
+  assign s_si_dmux15[3]     = s_sts_15;
+  assign s_si_dmux15[4]     = s_sw_15;
+  assign s_si_dmux15[5]     = s_fidbi_15;
+  assign s_si_dmux15[6]     = s_gpr_15;
+  assign s_si_dmux15[7]     = s_gpr_7;  // GPR Sign extended
+
+  
   assign s_arg_0            = s_arg_15_0[0];
   assign s_arg_1            = s_arg_15_0[1];
   assign s_arg_2            = s_arg_15_0[2];
@@ -909,15 +918,16 @@ module CGA_ALU_OUTMUX (
       .SI_7_0(s_si_dmux0[7:0])
   );
 
-  CGA_ALU_OUTMUX_IDBS OUTMUX_IDBS (
+  CGA_ALU_OUTMUX_IDBS OUTMUX_IDBS
+  (
       .ALUCLK(s_aluclk),
       .ALUD2N(s_alud2n),
       .CSIDBS_4_0(s_csidbs_4_0[4:0]),
       .EA(s_ea),
       .EAARG(s_eaarg),
+      .EBARG(s_ebarg),
       .EABARG(s_eabarg),
       .EARG(s_earg),
-      .EBARG(s_ebarg),
       .EBMG(s_ebmg),
       .EDBR(s_edbr),
       .EF(s_ef),

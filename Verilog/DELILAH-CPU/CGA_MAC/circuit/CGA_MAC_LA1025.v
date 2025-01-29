@@ -6,7 +6,7 @@
 ** Page 40                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 19-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -17,8 +17,8 @@ module CGA_MAC_LA1025 (
     input        A1819,
     input        B1819,
     input        B1821,
-    input        BB10,
-    input        C10,
+    input        BB10,        //! no PONI + DOUBLE + SHADOW + MREQ
+    input        C10,         //! no PONI + DOUBLE + SHADOW + not MREQ 
     input        D1617,
     input        E1617,
     input        F1617,
@@ -38,6 +38,7 @@ module CGA_MAC_LA1025 (
    ** The wires are defined here                                                 **
    *******************************************************************************/
   wire [15:0] s_ica_15_0;
+  wire [15:0] s_ica_input;
   wire [13:0] s_la_23_10_out;
   wire [15:0] s_pcr_15_0;
   wire [ 1:0] s_xpt_1_0;
@@ -50,29 +51,29 @@ module CGA_MAC_LA1025 (
   wire        s_b1819;
   wire        s_b1821;
   wire        s_bb10;
-  wire        s_c10_nand_ica10;
-  wire        s_c10_nand_ica11;
-  wire        s_c10_nand_ica12;
-  wire        s_c10_nand_ica13;
-  wire        s_c10_nand_ica14;
-  wire        s_c10_nand_ica15;
+  wire        s_ila10_b;
+  wire        s_ila11_b;
+  wire        s_ila12_b;
+  wire        s_ila13_b;
+  wire        s_ila14_b;
+  wire        s_ila15_b;
   wire        s_c10;
   wire        s_d1617;
   wire        s_e1617;
   wire        s_eccrhi_n_out;
-  wire        s_f1617_nand_xpt0;
-  wire        s_f1617_nand_xpt1;
+  wire        s_ila16_d_z;
+  wire        s_ila17_d_z;
   wire        s_f1617;
   wire        s_ica_10_n;
   wire        s_ica_9_n;
-  wire        s_ica0_1_z;
-  wire        s_ica1_2_z;
-  wire        s_ica2_3_z;
-  wire        s_ica3_4_z;
-  wire        s_ica4_5_z;
-  wire        s_ica5_6_z;
+  wire        s_ila10_a;
+  wire        s_ila11_a;
+  wire        s_ila12_a;
+  wire        s_ila13_a;
+  wire        s_ila14_a;
+  wire        s_ila15_a;
   wire        s_ica6_7_z;
-  wire        s_ica7_8_z;
+  wire        s_ila17_a_z;
   wire        s_ila10;
   wire        s_ila11;
   wire        s_ila12;
@@ -105,7 +106,10 @@ module CGA_MAC_LA1025 (
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-  assign s_ica_15_0[15:0]   = ICA_15_0;
+
+
+  //assign s_ica_15_0[15:0]   = ICA_15_0;
+  assign s_ica_input[15:0]   = ICA_15_0;
   assign s_pcr_15_0[15:0]   = PCR_15_0;
   assign s_xpt_1_0[1:0]     = XPT_1_0;
   assign s_seg_7_0[7:0]     = SEG_7_0;
@@ -138,169 +142,191 @@ module CGA_MAC_LA1025 (
   assign s_ica_10_n         = ~s_ica_15_0[10];
 
   /*******************************************************************************
-   ** Here all normal components are defined                                     **
+   ** Implementation                                                            **
    *******************************************************************************/
-  NAND_GATE #(
-      .BubblesMask(2'b00)
-  ) GATES_1 (
-      .input1(s_xpt_1_0[1]),
-      .input2(s_f1617),
-      .result(s_f1617_nand_xpt1)
-  );
+
+   // Need to delay the ICA signal change
+   // TODO: Review to see if the delay can be latched on posedge sysclk
+   reg [15:0] regICA;
+
+   always@(s_ica_input)
+   begin
+     regICA <= s_ica_input;
+   end
+   assign s_ica_15_0 = regICA;
+   
+  // *** ILA 23 ***
 
   NAND_GATE #(
       .BubblesMask(2'b00)
-  ) GATES_2 (
-      .input1(s_xpt_1_0[0]),
-      .input2(s_f1617),
-      .result(s_f1617_nand_xpt0)
-  );
-
-  NAND_GATE #(
-      .BubblesMask(2'b00)
-  ) GATES_7 (
-      .input1(s_ica_15_0[15]),
-      .input2(s_c10),
-      .result(s_c10_nand_ica15)
-  );
-
-  NAND_GATE #(
-      .BubblesMask(2'b00)
-  ) GATES_8 (
-      .input1(s_ica_15_0[14]),
-      .input2(s_c10),
-      .result(s_c10_nand_ica14)
-  );
-
-  NAND_GATE #(
-      .BubblesMask(2'b00)
-  ) GATES_9 (
-      .input1(s_ica_15_0[13]),
-      .input2(s_c10),
-      .result(s_c10_nand_ica13)
-  );
-
-  NAND_GATE #(
-      .BubblesMask(2'b00)
-  ) GATES_10 (
-      .input1(s_ica_15_0[12]),
-      .input2(s_c10),
-      .result(s_c10_nand_ica12)
-  );
-
-  NAND_GATE #(
-      .BubblesMask(2'b00)
-  ) GATES_3 (
-      .input1(s_ica_15_0[11]),
-      .input2(s_c10),
-      .result(s_c10_nand_ica11)
-  );
-
-
-  NAND_GATE #(
-      .BubblesMask(2'b00)
-  ) GATES_4 (
-      .input1(s_ica_15_0[10]),
-      .input2(s_c10),
-      .result(s_c10_nand_ica10)
-  );
-
-  /** ILA **/
-
-  NAND_GATE #(
-      .BubblesMask(2'b00)
-  ) GATES_5 (
+  ) ILA23_NAND (
       .input1(s_seg_7_0[7]),
       .input2(s_a1617),
       .result(s_ila23_n)
   );
 
+  // *** ILA 22 ***
+
   NAND_GATE #(
       .BubblesMask(2'b00)
-  ) GATES_6 (
+  ) ILA22_NAND (
       .input1(s_seg_7_0[6]),
       .input2(s_a1617),
       .result(s_ila22_n)
   );
 
+  // *** ILA 21 ***
+
   NAND_GATE #(
       .BubblesMask(2'b00)
-  ) GATES_11 (
+  ) ILA21_NAND (
       .input1(s_seg_7_0[5]),
       .input2(s_b1821),
       .result(s_ila21_n)
   );
 
+  // *** ILA 20 ***
+
   NAND_GATE #(
       .BubblesMask(2'b00)
-  ) GATES_12 (
+  ) ILA20_NAND (
       .input1(s_seg_7_0[4]),
       .input2(s_b1821),
       .result(s_ila20_n)
   );
 
-  OR_GATE #(
-      .BubblesMask(2'b11)
-  ) GATES_13 (
-      .input1(s_ica1_2_z),
-      .input2(s_c10_nand_ica11),
-      .result(s_ila11)
+  // *** ILA 19 ***
+
+  A02 ILA19A (
+      .A(s_a1619),
+      .B(s_pcr_15_0_n[14]),  // PCR 14n
+      .C(s_seg_7_0[3]),      // SEG 3
+      .D(s_b1821),
+      .Z(s_ila19_a_z)
+  );
+
+  A02 ILA19B (
+      .A(s_ica_10_n),        // ICA 10n
+      .B(s_a1819),
+      .C(s_pcr_15_0_n[10]),  // PCR 10n
+      .D(s_b1819),
+      .Z(s_ila19_b_z)
   );
 
   OR_GATE #(
       .BubblesMask(2'b11)
-  ) GATES_14 (
-      .input1(s_ica0_1_z),
-      .input2(s_c10_nand_ica10),
-      .result(s_ila10)
-  );
-
-  OR_GATE #(
-      .BubblesMask(2'b11)
-  ) GATES_15 (
+  ) ILA19_OR (
       .input1(s_ila19_a_z),
       .input2(s_ila19_b_z),
       .result(s_ila19)
   );
 
+  // *** ILA 18 ***
+
+  A02 ILA18A (
+      .A(s_a1619),
+      .B(s_pcr_15_0_n[13]),  // PCR 13n
+      .C(s_pcr_15_0_n[9]),   // PCR 9n
+      .D(s_b1819),
+      .Z(s_ila18_a_z)
+  );
+
+  A02 ILA18B (
+      .A(s_seg_7_0[2]),  // SEG 2
+      .B(s_b1821),
+      .C(s_ica_9_n),  // ICA 9n
+      .D(s_a1819),
+      .Z(s_ila18_b_z)
+  );
+
   OR_GATE #(
       .BubblesMask(2'b11)
-  ) GATES_16 (
+  ) ILA18_OR (
       .input1(s_ila18_a_z),
       .input2(s_ila18_b_z),
       .result(s_ila18)
   );
 
-  OR_GATE #(
-      .BubblesMask(2'b11)
-  ) GATES_17 (
-      .input1(s_ica5_6_z),
-      .input2(s_c10_nand_ica15),
-      .result(s_ila15)
+  // *** ILA 17 ***
+
+
+  A02 ILA17A (
+      .A(s_ica_15_0[7]),
+      .B(s_a10),
+      .C(s_ica_15_0[8]),
+      .D(s_bb10),
+      .Z(s_ila17_a_z)
   );
 
-  OR_GATE #(
-      .BubblesMask(2'b11)
-  ) GATES_18 (
-      .input1(s_ica4_5_z),
-      .input2(s_c10_nand_ica14),
-      .result(s_ila14)
+  A02 ILA17B (
+      .A(s_pcr_15_0[12]),  // PCR 12
+      .B(s_a1619),
+      .C(s_seg_7_0[1]),    // SEG 1
+      .D(s_a1617),
+      .Z(s_ila17_b_z)
   );
 
-  OR_GATE #(
-      .BubblesMask(2'b11)
-  ) GATES_19 (
-      .input1(s_ica3_4_z),
-      .input2(s_c10_nand_ica13),
-      .result(s_ila13)
+  A02 ILA17C (
+      .A(s_pcr_15_0[10]),  // PCR 10
+      .B(s_d1617),
+      .C(s_pcr_15_0[8]),   // PCR 8
+      .D(s_e1617),
+      .Z(s_ila17_c_z)
   );
 
-  OR_GATE #(
-      .BubblesMask(2'b11)
-  ) GATES_20 (
-      .input1(s_ica2_3_z),
-      .input2(s_c10_nand_ica12),
-      .result(s_ila12)
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) ILA17D (
+      .input1(s_xpt_1_0[1]),  // XPT 1
+      .input2(s_f1617),
+      .result(s_ila17_d_z)
+  );
+
+
+  OR_GATE_4_INPUTS #(
+      .BubblesMask(4'hF)
+  ) ILA17_OR (
+      .input1(s_ila17_a_z),
+      .input2(s_ila17_b_z),
+      .input3(s_ila17_c_z),
+      .input4(s_ila17_d_z),
+      .result(s_ila17)
+  );
+
+  // *** ILA 16 ***
+
+  A02 ILA16A (
+      .A(s_ica_15_0[6]),  // ICA 6
+      .B(s_a10),
+      .C(s_ica_15_0[7]),  // ICA 7
+      .D(s_bb10),
+      .Z(s_ica6_7_z)
+  );
+
+  A02 ILA16B (
+      .A(s_pcr_15_0[11]),  // PCR 11
+      .B(s_a1619),
+      .C(s_seg_7_0[0]),    // SEG 0
+      .D(s_a1617),
+      .Z(s_ila16_b_z)
+  );
+
+
+  A02 ILA16C (
+      .A(s_pcr_15_0[9]),  //PCR 9
+      .B(s_d1617),
+      .C(s_pcr_15_0[7]),  // PCR 7
+      .D(s_e1617),
+      .Z(s_ila16_c_z)
+  );
+
+
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) ILA16D (
+      .input1(s_xpt_1_0[0]),  // XPT 0
+      .input2(s_f1617),
+      .result(s_ila16_d_z)
   );
 
   OR_GATE_4_INPUTS #(
@@ -309,19 +335,182 @@ module CGA_MAC_LA1025 (
       .input1(s_ica6_7_z),
       .input2(s_ila16_b_z),
       .input3(s_ila16_c_z),
-      .input4(s_f1617_nand_xpt0),
+      .input4(s_ila16_d_z),
       .result(s_ila16)
   );
 
-  OR_GATE_4_INPUTS #(
-      .BubblesMask(4'hF)
-  ) GATES_22 (
-      .input1(s_ica7_8_z),
-      .input2(s_ila17_b_z),
-      .input3(s_ila17_c_z),
-      .input4(s_f1617_nand_xpt1),
-      .result(s_ila17)
+
+  // *** ILA 15 ***
+
+  A02 ILA15A (
+      .A(s_ica_15_0[5]),
+      .B(s_a10),
+      .C(s_ica_15_0[6]),
+      .D(s_bb10),
+      .Z(s_ila15_a)
   );
+
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) ILA15B (
+      .input1(s_ica_15_0[15]),
+      .input2(s_c10),
+      .result(s_ila15_b)
+  );
+
+
+  OR_GATE #(
+      .BubblesMask(2'b11)
+  ) ILA15_OR (
+      .input1(s_ila15_a),
+      .input2(s_ila15_b),
+      .result(s_ila15)
+  );
+
+
+  // *** ILA 14 ***
+  A02 ILA14A (
+      .A(s_ica_15_0[4]),
+      .B(s_a10),
+      .C(s_ica_15_0[5]),
+      .D(s_bb10),
+      .Z(s_ila14_a)
+  );
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) ILA14B (
+      .input1(s_ica_15_0[14]),
+      .input2(s_c10),
+      .result(s_ila14_b)
+  );
+
+  OR_GATE #(
+      .BubblesMask(2'b11)
+  ) ILA14_OR (
+      .input1(s_ila14_a),
+      .input2(s_ila14_b),
+      .result(s_ila14)
+  );
+
+  // *** ILA 13 ***
+
+  A02 ILA13A (
+      .A(s_ica_15_0[3]),
+      .B(s_a10),
+      .C(s_ica_15_0[4]),
+      .D(s_bb10),
+      .Z(s_ila13_a)
+  );
+
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) ILA13B (
+      .input1(s_ica_15_0[13]),
+      .input2(s_c10),
+      .result(s_ila13_b)
+  );
+
+  OR_GATE #(
+      .BubblesMask(2'b11)
+  ) ILA13_OR (
+      .input1(s_ila13_a),
+      .input2(s_ila13_b),
+      .result(s_ila13)
+  );
+
+  // *** ILA 12 ***
+
+  A02 ILA12A (
+      .A(s_ica_15_0[2]),
+      .B(s_a10),
+      .C(s_ica_15_0[3]),
+      .D(s_bb10),
+      .Z(s_ila12_a)
+  );
+
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) ILA12B (
+      .input1(s_ica_15_0[12]),
+      .input2(s_c10),
+      .result(s_ila12_b)
+  );
+
+  OR_GATE #(
+      .BubblesMask(2'b11)
+  ) ILA12_OR (
+      .input1(s_ila12_a),
+      .input2(s_ila12_b),
+      .result(s_ila12)
+  );
+
+
+  // *** ILA 11 ***
+
+  A02 ILA11A (
+      .A(s_ica_15_0[1]),
+      .B(s_a10),
+      .C(s_ica_15_0[2]),
+      .D(s_bb10),
+      .Z(s_ila11_a)
+  );
+
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_3 (
+      .input1(s_ica_15_0[11]),
+      .input2(s_c10),
+      .result(s_ila11_b)
+  );
+
+  OR_GATE #(
+      .BubblesMask(2'b11)
+  ) ILA11_OR (
+      .input1(s_ila11_a),
+      .input2(s_ila11_b),
+      .result(s_ila11)
+  );
+
+
+  // *** ILA 10 ***
+
+  A02 ILA10A (
+      .A(s_ica_15_0[0]),
+      .B(s_a10),
+      .C(s_ica_15_0[1]),
+      .D(s_bb10),
+      .Z(s_ila10_a)
+  );
+
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) ILA10B (
+      .input1(s_ica_15_0[10]),
+      .input2(s_c10),
+      .result(s_ila10_b)
+  );
+
+  OR_GATE #(
+      .BubblesMask(2'b11)
+  ) ILA10_OR (
+      .input1(s_ila10_a),
+      .input2(s_ila10_b),
+      .result(s_ila10)
+  );
+
+  // *******************
+
+
+
+
+
+
+
+
+
+
+
+
 
   NAND_GATE_6_INPUTS #(
       .BubblesMask({2'b00, 4'h0})
@@ -336,147 +525,12 @@ module CGA_MAC_LA1025 (
   );
 
 
-  /*******************************************************************************
-   ** Here all sub-circuits are defined                                          **
-   *******************************************************************************/
 
 
-  /** ICA **/
-  A02 ILA17A (
-      .A(s_ica_15_0[7]),
-      .B(s_a10),
-      .C(s_ica_15_0[8]),
-      .D(s_bb10),
-      .Z(s_ica7_8_z)
-  );
-
-  A02 ILA16A (
-      .A(s_ica_15_0[6]),
-      .B(s_a10),
-      .C(s_ica_15_0[7]),
-      .D(s_bb10),
-      .Z(s_ica6_7_z)
-  );
-
-  A02 ILA15A (
-      .A(s_ica_15_0[5]),
-      .B(s_a10),
-      .C(s_ica_15_0[6]),
-      .D(s_bb10),
-      .Z(s_ica5_6_z)
-  );
-
-  A02 ILA14A (
-      .A(s_ica_15_0[4]),
-      .B(s_a10),
-      .C(s_ica_15_0[5]),
-      .D(s_bb10),
-      .Z(s_ica4_5_z)
-  );
-
-  A02 ILA13A (
-      .A(s_ica_15_0[3]),
-      .B(s_a10),
-      .C(s_ica_15_0[4]),
-      .D(s_bb10),
-      .Z(s_ica3_4_z)
-  );
-
-  A02 ILA12A (
-      .A(s_ica_15_0[2]),
-      .B(s_a10),
-      .C(s_ica_15_0[3]),
-      .D(s_bb10),
-      .Z(s_ica2_3_z)
-  );
-
-  A02 ILA11A (
-      .A(s_ica_15_0[1]),
-      .B(s_a10),
-      .C(s_ica_15_0[2]),
-      .D(s_bb10),
-      .Z(s_ica1_2_z)
-  );
-
-  A02 ILA10A (
-      .A(s_ica_15_0[0]),
-      .B(s_a10),
-      .C(s_ica_15_0[1]),
-      .D(s_bb10),
-      .Z(s_ica0_1_z)
-  );
+  // *** LATCHES ***
 
 
-  /** PCR **/
-  A02 ILA17B (
-      .A(s_pcr_15_0[12]),
-      .B(s_a1619),
-      .C(s_seg_7_0[1]),
-      .D(s_a1617),
-      .Z(s_ila17_b_z)
-  );
-
-  A02 ILA16B (
-      .A(s_pcr_15_0[11]),
-      .B(s_a1619),
-      .C(s_seg_7_0[0]),
-      .D(s_a1617),
-      .Z(s_ila16_b_z)
-  );
-
-  A02 ILA17C (
-      .A(s_pcr_15_0[10]),
-      .B(s_d1617),
-      .C(s_pcr_15_0[8]),
-      .D(s_e1617),
-      .Z(s_ila17_c_z)
-  );
-
-  A02 ILA16C (
-      .A(s_pcr_15_0[9]),
-      .B(s_d1617),
-      .C(s_pcr_15_0[7]),
-      .D(s_e1617),
-      .Z(s_ila16_c_z)
-  );
-
-
-  /********/
-
-  A02 ILA19A (
-      .A(s_a1619),
-      .B(s_pcr_15_0_n[14]),
-      .C(s_seg_7_0[3]),
-      .D(s_b1821),
-      .Z(s_ila19_a_z)
-  );
-
-  A02 ILA19B (
-      .A(s_ica_10_n),
-      .B(s_a1819),
-      .C(s_pcr_15_0_n[10]),
-      .D(s_b1819),
-      .Z(s_ila19_b_z)
-  );
-
-
-  A02 ILA18A (
-      .A(s_a1619),
-      .B(s_pcr_15_0_n[13]),
-      .C(s_pcr_15_0_n[9]),
-      .D(s_b1819),
-      .Z(s_ila18_a_z)
-  );
-
-  A02 ILA18B (
-      .A(s_seg_7_0[2]),
-      .B(s_b1821),
-      .C(s_ica_9_n),
-      .D(s_a1819),
-      .Z(s_ila18_b_z)
-  );
-
-
+  // ** HIGH-LATCH (LA_23-18)**
   R81 R_LA_H (
       .CP(s_mclk),
 
@@ -506,6 +560,7 @@ module CGA_MAC_LA1025 (
       .QHN()
   );
 
+  // ** LOW-LATCH (LA_17-10)**
   R81 R_LA_L (
       .CP(s_mclk),
 

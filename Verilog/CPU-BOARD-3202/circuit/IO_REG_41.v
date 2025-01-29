@@ -4,7 +4,7 @@
 ** IOC, ALD & INR REGS                                                   **
 ** SHEET 41 of 50                                                        **
 **                                                                       **
-** Last reviewed: 14-DEC-2024                                            **
+** Last reviewed: 19-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module IO_REG_41 (
@@ -63,7 +63,7 @@ module IO_REG_41 (
   wire        s_ioc_1;
   wire        s_ioc_2;
   wire        s_ioc_3;
-  wire        s_led2_red_n;
+  wire        s_emcl_n;
   wire        s_led3_green_n;
   wire        s_rinr_n;
   wire        s_scons_n;
@@ -105,7 +105,7 @@ module IO_REG_41 (
   assign BINT12_n = s_bint12_n;
   assign BINT13_n = s_bint13_n;
   assign CONSOLE_n = s_scons_n;
-  assign EMCL_n = s_led2_red_n;
+  assign EMCL_n = s_emcl_n;
   assign IDB_15_0_OUT = s_idb_15_0_out[15:0];
 
 
@@ -129,15 +129,15 @@ module IO_REG_41 (
   assign s_strap_5 = 1'b1;  // STRAP5 => IDB12
 
 
-  // Constant for ALD settings. ALD boot switch
+  // Constant for ALD settings. ALD boot switch (for options, see comment at end of this file)
   assign s_ALD[3:0] = 4'b0100;  //  0100 (4) == ALD boot switch for 400 (paper tape reader).
 
 
 
-  // LED: RED
-  assign IOLED[0] = s_led2_red_n;
+  // CPU BOARD LED: RED (Will light up run while MASTER CLEAR is running)
+  assign IOLED[0] = s_emcl_n;
 
-  // LED: GREEN
+  // CPU BOARD LED: GREEN (Will light up green)
   assign IOLED[1] = s_led3_green_n;
 
   /*******************************************************************************
@@ -153,14 +153,17 @@ module IO_REG_41 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+
+   // NOTE: CHIP_28A_IOC CLK() signal has been negated to get code to work. This is different than the original drawings
+
   TTL_74273 CHIP_28A_IOC (
-      .CLK(s_sioc_n),  // Clock input
+      .CLK(~s_sioc_n),  // Clock input (in drawings using s_sioc_n, but had to invert to get the correct behaviour)
       .CLR_n(s_clear_n),  // Active low clear input
       .D(s_ioc_idb_7_0_in[7:0]), // 8-bit data input directly from the bus (which is a combination of IDB, ALD and INR)
       .Q({
         s_reset,           // 8-bit output, bit 7 (Q1) - (Reset real time clock.)
         s_scons_n,         // 8-bit output, bit 6 (Q2) - (Set terminal #1 in OPCOM (console), as opposed to normal)
-        s_led2_red_n,      // 8-bit output, bit 5 (Q3) -> EMCL_n (Enable master clear: red LED ON1)
+        s_emcl_n,      // 8-bit output, bit 5 (Q3) -> EMCL_n (Enable master clear: red LED ON1)
         s_led3_green_n,    // 8-bit output, bit 4 (Q4) - (Initialisation completed: green LED on1)
 
         s_ioc_3,  // 8-bit output, bit 3 (Q5) - (clock interrupt generated from RTC trap handler.)
@@ -169,7 +172,6 @@ module IO_REG_41 (
         s_ioc_0   // 8-bit output, bit 0 (Q8) - (enable clock interrupt on level 13.)
       })
   );
-
 
 
   // TTL_74244 CHIP_24A_INR (simplified..)

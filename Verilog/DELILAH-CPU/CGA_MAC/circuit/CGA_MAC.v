@@ -29,13 +29,13 @@ module CGA_MAC (
     input [15:0] XR_15_0,     //! X Register
 
 
-    output        ECCR,
-    output [13:0] LA_23_10,
-    output        LSHADOW,
-    output [ 9:0] MCA_9_0,
-    output [15:0] NLCA_15_0,
-    output [15:0] PCR_15_0,
-    output        VEX
+    output        ECCR,        //! Error Correction Code Register
+    output [13:0] LA_23_10,    //! Latch Address bits 23 to 10
+    output        LSHADOW,     //! Latch SHADOW signal
+    output [ 9:0] MCA_9_0,     //! Microcode Address bits 9 to 0
+    output [15:0] NLCA_15_0,   //! Next Latch Address bits 15 to 0
+    output [15:0] PCR_15_0,    //! Program Counter Register bits 15 to 0
+    output        VEX          //! Vector EXecute signal
 );
 
   /*******************************************************************************
@@ -207,7 +207,7 @@ module CGA_MAC (
   CGA_MAC_LASEL MAC_LASEL (
       // Inputs
       .A10(s_a10),
-      .A1617(s_a1617), 
+      .A1617(s_a1617),
       .A1619(s_a1619),
       .A1819(s_a1819),
       .B1819(s_b1819),
@@ -228,7 +228,7 @@ module CGA_MAC (
       // Outputs
       .LSHADOW(s_lshadow_out),
       .PEX(s_pex),
-      .SEGZN(s_segz_n), 
+      .SEGZN(s_segz_n),
       .SELPTN(s_selpt_n),
       .VEX(s_vex_out)
   );
@@ -254,7 +254,7 @@ module CGA_MAC (
       .SEG_7_0(s_seg_7_0[7:0]),
       .XPT_1_0(s_xpt_1_0[1:0]),
 
-      // Outputs  
+      // Outputs 
       .LA_23_10(s_la_23_10_out[13:0])
   );
 

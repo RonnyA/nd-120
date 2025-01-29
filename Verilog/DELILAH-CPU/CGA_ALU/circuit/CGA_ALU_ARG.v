@@ -2,7 +2,7 @@
 /**************************************************************************
 ** ND120 CGA (CPU Gate Array / DELILAH)                                  **
 ** /CGA/ALU/ARG                                                          **
-** A REGISTER                                                            **
+** ARG REGISTER                                                          **
 **                                                                       **
 ** Page 53                                                               **
 ** SHEET 1 of 1                                                          **
@@ -34,12 +34,21 @@ module CGA_ALU_ARG (
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-  assign ARG_15_0            = s_arg_15_0_out[15:0];
+  //assign ARG_15_0            = s_arg_15_0_out[15:0];
+   assign ARG_15_0            = regArg;
 
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+  reg [15:0] regArg;
+
+  always @(posedge s_aluclk) begin
+    regArg <= s_csbits_15_0;
+  end
+
+
+/*
   R81 ARG_HI_REG (
       .CP(s_aluclk),
 
@@ -98,7 +107,7 @@ module CGA_ALU_ARG (
       .QH (s_arg_15_0_out[0]),
       .QHN()
   );
-
+*/
 
 
 endmodule

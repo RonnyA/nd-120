@@ -4,7 +4,7 @@
 ** CACHE STATUS REGISER                                                  **
 ** SHEET 26 of 50                                                        **
 **                                                                       **
-** Last reviewed: 19-FEB-2024                                            **
+** Last reviewed: 29-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module CPU_MMU_CSR_26 (
@@ -12,11 +12,11 @@ module CPU_MMU_CSR_26 (
     input EMPID_n,
     input EDO_n,
     input LCS_n,  //! Load Control Store
-    input PD2,  // OE1_1G_n  //! P Disable2 - Always 0
+    input PD2,    //! Power Down 2
 
     input CUP,    //! Cache Updated (CUP) goes to IDB0 when ECSR_n is low 
     input CON,    //! Cache ON (CON) goes to IDB1 when ECSR_n is low. CON_n goes to IDB2
-    input ECSR_n, // OE2_2G_n //! Enable Cache Status Reg
+    input ECSR_n, //! Enable Cache Status Reg
 
     // IF PD2 goes active to 1, then all B-signals goes to high-impediance aka 0)
     output BSTP,      //! Buffered STP 

@@ -4,7 +4,7 @@
 ** MMU TOP LEVEL                                                         **
 ** SHEET 24 of 50                                                        **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 29-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -49,17 +49,16 @@ module CPU_MMU_24 (
     input  [15:0] PPN_25_10_IN,
     output [15:0] PPN_25_10_OUT,
 
-    output BEDO_n,
-    output BEMPID_n,
-    output BLCS_n,
-    output BSTP,
+    output BEDO_n,      //! Buffered Enable IDB "data out" from CGA
+    output BEMPID_n,    //! Buffered EMPID - Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints)
+    output BLCS_n,      //! Bus LCS (Load Control Store)
+    output BSTP,        //! Bus Stop
 
-    output HIT,
-
-    output        LAPA_n,
-    output [15:0] PT_15_0_OUT,
-    output        WCA_n,
-    output        LED1          //! Cache enabled ?
+    output HIT,                //! Cache hit signal, indicates a successful cache lookup
+    output LAPA_n,             //! Latch Page Address, controls latching of the page address
+    output [15:0] PT_15_0_OUT, //! Page Table data output, contains the page table entry data
+    output WCA_n,              //! Write Cache Address, controls writing to the cache address register
+    output LED1                //! Cache enabled ?
 );
 
 
@@ -212,7 +211,7 @@ module CPU_MMU_24 (
   assign LED1 = s_led1;
 
   // Connect PT[15:0] between PT and PDIDB components
-  assign s_pt_pt_15_0_in = s_ptidb_pt_15_0_out;
+  assign s_pt_pt_15_0_in = s_ptidb_pt_15_0_out | s_ptidb_idb_15_0_in;
   assign s_ptidb_pt_15_0_in = s_pt_pt_15_0_out;
 
   // Connect PPN INPUT signals from PPN IN or with (PT or PPNX out)
@@ -355,19 +354,25 @@ module CPU_MMU_24 (
   );
 
   CPU_MMU_PT_29 PT (
-      .sysclk   (sysclk),    // System clock in FPGA
-      .sys_rst_n(sys_rst_n), // System reset in FPGA
+    // Inputs
+    .sysclk(sysclk),           // System clock in FPGA
+    .sys_rst_n(sys_rst_n),     // System reset in FPGA
 
-      .EPMAP_n(s_epmap_n),
-      .EPT_n(s_ept_n),
-      .LA_20_10(s_la_20_10[10:0]),
-      .PPN_25_10_IN(s_pt_ppn_25_10_in[15:0]),
-      .PPN_25_10_OUT(s_pt_ppn_25_10_out[15:0]),
-      .PT_15_0_IN(s_pt_pt_15_0_in),
-      .PT_15_0_OUT(s_pt_pt_15_0_out),
-      .WCINH_n(s_wcinh_n),
-      .WCLIM_n(s_wclim_n),
-      .WMAP_n(s_wmap_n)
+    .LA_20_10(s_la_20_10[10:0]), // 11 bit addressing into PT chips
+    .EPMAP_n(s_epmap_n),       // Enable EPMAP chips (Extended map?)
+    .EPT_n(s_ept_n),           // Enable PT chips (Chip select for PT chips)  
+    .WCLIM_n(s_wclim_n),       // Write to RAM chip with 1 bit Data being PPN hi bit (bit ppn 25)
+    .WMAP_n(s_wmap_n),         // Write MAPPING signal
+
+    // In-out signals
+    .PPN_25_10_IN(s_pt_ppn_25_10_in[15:0]), // Bidirectional PPN (in)
+    .PPN_25_10_OUT(s_pt_ppn_25_10_out[15:0]), // Bidirectional PPN (out)
+
+    .PT_15_0_IN(s_pt_pt_15_0_in), // Bidirectional PT (in)
+    .PT_15_0_OUT(s_pt_pt_15_0_out), // Bidirectional PT (out)
+
+    // Outputs
+    .WCINH_n(s_wcinh_n)         // Write control inhibit (active low)
   );
 
 endmodule

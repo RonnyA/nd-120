@@ -6,32 +6,32 @@
 ** Page 42                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 20-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module CGA_CPU_ALU_CONTR (
-    input       ALUCLK,
-    input [1:0] CD_10_9,
-    input       CRY,
-    input [8:0] CSALUI_8_0,
-    input [1:0] CSALUM_1_0,
-    input [1:0] CSCINSEL_1_0,
-    input [1:0] CSMIS_1_0,
-    input [1:0] CSSST_1_0,
-    input       DGPR0N,
-    input       F0,
-    input       F15,
-    input       GPR0,
-    input       LCZN,
-    input       LDGPRN,
-    input       LDIRV,
-    input       Q0,
-    input       Q15,
-    input       STS6,
-    input       STS7,
-    input       UPN,
-    input       XFETCHN,
+    input ALUCLK,                 //! ALU Clock
+    input [1:0] CD_10_9,          //! CPU Data 10:9
+    input CRY,                    //! ALU Carry
+    input [8:0] CSALUI_8_0,       //! ALU Instruction
+    input [1:0] CSALUM_1_0,       //! ALU Mode
+    input [1:0] CSCINSEL_1_0,     //! Carry In Select (00: Carry In, 01: Carry In Not, 10: Carry In Not, 11: Carry In)
+    input [1:0] CSMIS_1_0,        //! Control Store - MIS
+    input [1:0] CSSST_1_0,        //! Control Store - STSS  (00=Hold STS, 01=Enable Set C O Q, 10=Enable set M, 11=Load STS)
+    input DGPR0N,                 //! GPR0 Not
+    input F0,                     //! F bit 0
+    input F15,                    //! F bit 15
+    input GPR0,                   //! GPR bit 0
+    input LCZN,                   //! Loop Counter Not
+    input LDGPRN,                 //! Load GPR
+    input LDIRV,                  //! Load Instruction Register (MIC)
+    input Q0,                     //! Q0
+    input Q15,                    //! Q15
+    input STS6,                   //! STS bit 6 (Carry Flag - C) - SSC
+    input STS7,                   //! STS bit 7 (Multishift Flag - M) - SSM
+    input UPN,                    //! Up
+    input XFETCHN,                //! XFetch
 
     output       ALUD2N,
     output       ALUI4,
@@ -115,11 +115,11 @@ module CGA_CPU_ALU_CONTR (
   wire       s_gates29_out;
   wire       s_gates3_out;
   wire       s_gates30_out;
-  wire       s_gates31_out;
-  wire       s_gates32_out;
-  wire       s_gates33_out;
+  wire       s_gates_31_out;
+  wire       s_gates_32_out;
+  wire       s_gates_33_out;
   wire       s_gates34_out;
-  wire       s_gates35_out;
+  wire       s_gates_35_out;
   wire       s_gates39_out;
   wire       s_gates4_out;
   wire       s_gates41_out;
@@ -397,7 +397,7 @@ module CGA_CPU_ALU_CONTR (
   NAND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_16 (
-      .input1(1'b1),
+      .input1(s_alui6),
       .input2(s_f0),
       .result(s_gates16_out)
   );
@@ -517,29 +517,9 @@ module CGA_CPU_ALU_CONTR (
       .result(s_gates30_out)
   );
 
-  NAND_GATE #(
-      .BubblesMask(2'b00)
-  ) GATES_31 (
-      .input1(s_cry),
-      .input2(s_gates20_out),
-      .result(s_gates31_out)
-  );
 
-  NAND_GATE #(
-      .BubblesMask(2'b00)
-  ) GATES_32 (
-      .input1(s_gates23_out),
-      .input2(s_gates21_out),
-      .result(s_gates32_out)
-  );
 
-  NAND_GATE #(
-      .BubblesMask(2'b00)
-  ) GATES_33 (
-      .input1(s_f15),
-      .input2(s_gates22_out),
-      .result(s_gates33_out)
-  );
+
 
   NAND_GATE #(
       .BubblesMask(2'b00)
@@ -549,29 +529,56 @@ module CGA_CPU_ALU_CONTR (
       .result(s_gates34_out)
   );
 
+
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_36 (
+      .input1(s_gates_35_out),
+      .input2(s_gates34_out),
+      .result(s_qli_out)
+  );
+
+  /** RRI GATES **/
+
   NAND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_35 (
       .input1(s_sts7),
       .input2(s_gates24_out),
-      .result(s_gates35_out)
+      .result(s_gates_35_out)
   );
 
   NAND_GATE #(
       .BubblesMask(2'b00)
-  ) GATES_36 (
-      .input1(s_gates35_out),
-      .input2(s_gates34_out),
-      .result(s_qli_out)
+  ) GATES_31 (
+      .input1(s_cry),
+      .input2(s_gates20_out),
+      .result(s_gates_31_out)
+  );
+
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_32 (
+      .input1(s_gates23_out),
+      .input2(s_gates21_out),
+      .result(s_gates_32_out)
+  );
+
+  NAND_GATE #(
+      .BubblesMask(2'b00)
+  ) GATES_33 (
+      .input1(s_f15),
+      .input2(s_gates22_out),
+      .result(s_gates_33_out)
   );
 
   NAND_GATE_4_INPUTS #(
       .BubblesMask(4'h0)
   ) GATES_37 (
-      .input1(s_gates35_out),
-      .input2(s_gates31_out),
-      .input3(s_gates32_out),
-      .input4(s_gates33_out),
+      .input1(s_gates_35_out),
+      .input2(s_gates_31_out),
+      .input3(s_gates_32_out),
+      .input4(s_gates_33_out),
       .result(s_rri_out)
   );
 

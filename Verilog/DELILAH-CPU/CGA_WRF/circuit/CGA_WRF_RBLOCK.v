@@ -4,7 +4,7 @@
 ** WRF: Register File Block                                              **
 ** (PDF page 60)                                                         **
 **                                                                       **
-** Last reviewed: 09-NOV-2024                                            **
+** Last reviewed: 19-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -337,7 +337,7 @@ module CGA_WRF_RBLOCK (
   wire        s_reg9_r1_8;
   wire        s_reg9_r1_9;
   wire        s_xfetch_n;
-  
+
   /*******************************************************************************
    ** Here all wiring is defined                                                 **
    *******************************************************************************/
@@ -459,7 +459,6 @@ module CGA_WRF_RBLOCK (
   assign s_sel6_in_15_0[13]  = s_reg13_r5_6;
   assign s_sel6_in_15_0[14]  = s_reg14_r6_6;
   assign s_sel6_in_15_0[15]  = s_reg15_r7_6;
-  
 
   assign s_sel7_in_15_0[0]   = s_reg0_z_7;
   assign s_sel7_in_15_0[1]   = s_reg1_d_7;
@@ -854,7 +853,7 @@ module CGA_WRF_RBLOCK (
   assign s_reg13_r5_7        = s_reg13_r5_15_0[7];
   assign s_reg13_r5_8        = s_reg13_r5_15_0[8];
   assign s_reg13_r5_9        = s_reg13_r5_15_0[9];
-  
+
   assign s_reg14_r6_0        = s_reg14_r6_15_0[0];
   assign s_reg14_r6_1        = s_reg14_r6_15_0[1];
   assign s_reg14_r6_10       = s_reg14_r6_15_0[10];
@@ -978,11 +977,14 @@ module CGA_WRF_RBLOCK (
 
   // Register 7 (X)
   CGA_WRF_RBLOCK_LR16 X_REG_7 (
-      .ALUCLK(s_aluclk),
-      .LR_15_0(s_xr_15_0_out[15:0]),
-      .RB_15_0(s_rb_15_0[15:0]),
-      .R_15_0(s_reg7_x_15_0[15:0]),
-      .WR(s_wr_15_0[7])
+    // Input signals
+    .ALUCLK(s_aluclk),
+    .RB_15_0(s_rb_15_0[15:0]),
+    .WR(s_wr_15_0[7]),
+
+    // Output signals
+    .LR_15_0(s_xr_15_0_out[15:0]),
+    .R_15_0(s_reg7_x_15_0[15:0])
   );
 
   // Register 8 (STS)

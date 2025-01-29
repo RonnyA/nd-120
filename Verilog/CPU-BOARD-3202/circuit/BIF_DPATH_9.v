@@ -197,13 +197,13 @@ module BIF_DPATH_9 (
 
   BIF_DPATH_PPNLBD_14 PPNLBD (
       // Inputs
-      .CA_9_0(s_ca_9_0[9:0]),
-      .EADR_n(s_eaddr_n),
-      .ECREQ(s_ecreq),
-      .PPN_23_10(s_ppn_23_10[13:0]),
+      .CA_9_0(s_ca_9_0[9:0]),           // 10-bit address
+      .EADR_n(s_eaddr_n),               // Address enable (active low)
+      .ECREQ(s_ecreq),                  // Enable CPU Request
+      .PPN_23_10(s_ppn_23_10[13:0]),    // Physical Page Number (PPN)
 
       // Outputs
-      .LBD_23_0_OUT(s_ppnlbd_lbd_23_0_out[23:0])
+      .LBD_23_0_OUT(s_ppnlbd_lbd_23_0_out[23:0]) //24-bit  Local Bus Data OUT
   );
 
   BIF_DPATH_CDLBD_11 CDLBD (

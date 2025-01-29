@@ -4,22 +4,22 @@
 ** BUS INTERFACE                                                         **
 ** SHEET 5  of 50                                                        **
 **                                                                       **
-** Last reviewed: 14-DEC-2024                                            **
+** Last reviewed: 20-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module BIF_5 (
 
     // FPGA signals
-    input sysclk,    // System clock in FPGA
-    input sys_rst_n, // System reset in FPGA
+    input sysclk,    //! System clock in FPGA
+    input sys_rst_n, //! System reset in FPGA
 
     // Inputs signals
 
     input       BGNT50_n,   //! Bus Grant (Delayed 50ns)
     input       BGNT_n,     //! Bus Grant
     input [9:0] CA_9_0,     //! CPU Address
-    input       CC2_n,      //! CPU Cycle Control bit 2
+    input       CC2_n,      //! CPU Cycle Counter bit 2
     input       CGNT50_n,   //! Bus Grant (Delayed 50ns)
     input       CGNT_n,     //! Bus Grant
     input       CLEAR_n,    //! Clear
@@ -43,14 +43,14 @@ module BIF_5 (
     input       MOR25_n,    //! Memory Error (25ns delayed)
     input       MWRITE_n,   //! Memory Write
     input       OSC,        //! Oscillator
-    input       PA_n,       //
+    input       PA_n,       //! Parity Error Address (PEA)
     input       PD1,        //! Power Down 1
     input       PD3,        //! Power Down 3
-    input       PS_n,       // 
+    input       PS_n,       //! Parity Error Signal (PES)
     input       REFRQ_n,    //! Refresh Request
     input       RT_n,       //! Return
-    input       SSEMA_n,    //
-    input       TERM_n,     //! Terminate Cycle
+    input       SSEMA_n,    //! Semaphore
+    input       TERM_n,     //! Terminate Bus Cycle
     input       TOUT,       //! Timeout
     input       WRITE,      //! Write
 
@@ -86,8 +86,8 @@ module BIF_5 (
     output BREF_n,    //! Bus Refresh
 
     output CGNTCACT_n,  //! Combined CPU Grant/Active signal
-    output DAP_n,       //! Data Address Present
-    output DBAPR,       //! Data Bus Address Parity Register
+    output DAP_n,       //! Data Present
+    output DBAPR,       //! Data Bus Address Present
     output GNT_n,       //! Grant
     output IOXERR_n,    //! IOX Error
     output MOR_n,       //! Memory Error
@@ -280,6 +280,20 @@ module BIF_5 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+  /*
+   * BIF_DPATH_9 - Bus Interface Data Path Module
+   *
+   * This module handles the data path operations for the ND120 CPU bus interface.
+   * It manages data transfers between the CPU, local bus, and system bus, including:
+   * - Bus data and address routing
+   * - CPU data transfers
+   * - Internal bus data handling
+   * - Control signal generation for bus operations
+   * - Physical page number handling
+   * - Error and status signal management
+   * The module coordinates timing and control signals to ensure proper data flow
+   * between different bus interfaces while maintaining signal integrity.
+   */
   BIF_DPATH_9 DPATH (
       // Outputs
       .BDAP50_n     (s_bdap50_n),             // Bus Data Present (50ns delayed)
@@ -329,6 +343,15 @@ module BIF_5 (
       .WRITE       (s_write)                // Write cycle
   );
 
+  /*
+   * BIF_BCTL_6 - Bus Interface Control Module
+   *
+   * This module handles bus control and timing for the ND120 CPU bus interface.
+   * It manages bus transactions including data transfers, error handling,
+   * semaphore operations, and refresh cycles. The module generates control
+   * signals for bus operations and monitors status signals to coordinate
+   * communication between the CPU and external devices.
+   */
   BIF_BCTL_6 BCTL (
       // Outputs
       .BAPR_n    (s_bapr_n),      // Bus Address Present

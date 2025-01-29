@@ -293,6 +293,7 @@
     <comp lib="0" loc="(290,790)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="label" val="LBA_3_0"/>
+      <a name="radix" val="16"/>
       <a name="width" val="4"/>
     </comp>
     <comp lib="0" loc="(320,1300)" name="Splitter">

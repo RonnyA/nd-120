@@ -5,7 +5,7 @@
 ** THM91020 - http://norsk-data.com/library/libother/extern/THM91020.pdf      **
 ** THM91070 - http://norsk-data.com/library/libother/extern/THM91070.pdf      **
 **                                                                            **
-** Last reviewed: 14-DEC-2024                                                 **
+** Last reviewed: 29-JAN-2025                                                 **
 ** Ronny Hansen                                                               **
 ********************************************************************************/
 
@@ -24,25 +24,27 @@ module SIP1M9 (
     input       W_n,      //! Read/Write signal
 
 
-    // IN and OUT signals
-    input [7:0] D8,  //! DATA INPUT
-    input       D9,  //! DATA INPUT
+    // Input signals
+    input [7:0] D8,  //! DATA INPUT (8-bit)
+    input       D9,  //! DATA INPUT (1-bit)
 
     // Output signals
-    output reg [7:0] Q8,    //! DATA OUTPUT
-    output reg       Q9,    //! DATA OUTPUT
-    output           PRD_n  //! Parity bit
+    output [7:0] Q8,    //! DATA OUTPUT (8-bit)
+    output       Q9,    //! DATA OUTPUT (1-bit)
+    output       PRD_n  //! Parity bit
 
 );
 
   //(* ram_style = "block" *)reg  [7:0] sdram                     [0:65534];
   //(* ram_style = "block" *)reg        sdram_9                   [0:65534];
 
-(* ram_style = "block" *)reg  [7:0] sdram                     [0:1048575];  //1MB
-(* ram_style = "block" *)reg        sdram_9                   [0:1048575];  //1Mbit
+  (* ram_style = "block" *)reg  [7:0] sdram                     [0:1048575];  //1MB
+  (* ram_style = "block" *)reg        sdram_9                   [0:1048575];  //1Mbit
 
   reg  [9:0] hi_address;
 
+  reg  [7:0] reg_Q8;
+  reg        reg_Q9;
 
   /*******************************************************************************
    ** The wires are defined here                                                 **
@@ -57,11 +59,6 @@ module SIP1M9 (
   wire       s_ras_n;
   wire       s_cas9_n;
   wire       s_W_n;
-
-  /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
@@ -77,7 +74,7 @@ module SIP1M9 (
    *******************************************************************************/
 
 
-  wire [19:0] sip_address = {hi_address[9:0], s_address[9:0]};
+  wire [19:0] sip_address = (CAS_n == 0) ? {hi_address[9:0], s_address[9:0]} : 20'b0;
 
   always @(negedge RAS_n) begin
     hi_address <= s_address[9:0];
@@ -86,28 +83,32 @@ module SIP1M9 (
   always @(negedge CAS_n) begin
     if (!RAS_n) begin
       if (s_W_n) begin  // read
-        Q8 <= sdram[sip_address];
-        Q9 <= sdram_9[sip_address];
-
-        if (sdram[sip_address] != 0) begin
-          //$display("RAM READ Address %05h Value %4h", sip_address,sdram[sip_address]);
-        end
+        reg_Q8 <= sdram[sip_address];
+        reg_Q9 <= sdram_9[sip_address];
       end else begin  // write
         sdram[sip_address]   <= D8;
         sdram_9[sip_address] <= D9;
-        //$display("RAM WRITE Address %05h Value %4h (%02h / %02h)", sip_address, D8, hi_address, s_address);
       end
     end
   end
 
-  // TODO: Assign Q8 from some PSRAM or other RAM
-  //assign Q8        = W_n ? 8'b00000011 : 8'b00000000; // Data out is not valid when writing
 
-  assign PRD_n = 1;  // Not connected?
+  // Data out is valid as long as CAS is active (and its read, not write)
+  assign Q8 = ((CAS_n == 0) && (s_W_n)) ? reg_Q8 : 8'b00000000;
+  assign Q9 = ((CAS_n == 0) && (s_W_n)) ? reg_Q9 : 0;
 
 
-  /*******************************************************************************
-   ** Here all in-lined components are defined                                   **
-   *******************************************************************************/
-  
+  // Even Parity Logic
+  assign PRD_n = ~(
+    Q8[0] ^
+    Q8[1] ^
+    Q8[2] ^
+    Q8[3] ^
+    Q8[4] ^
+    Q8[5] ^
+    Q8[6] ^
+    Q8[7] ^
+    Q9
+  );
+
 endmodule

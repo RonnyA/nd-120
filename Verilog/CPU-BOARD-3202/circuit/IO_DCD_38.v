@@ -30,7 +30,7 @@ module IO_DCD_38 (
     input [1:0] OC_1_0,
     input       OPCLCS,
     input       OSCCL_n,
-    input       PONI,
+    input       PONI,   //! Memory Protection ON, PONI=1
     input       POWSENSE_n,
     input       REF_n,
     input       RMM_n,
@@ -292,10 +292,13 @@ module IO_DCD_38 (
   // IDB[7:0] out = IDB[7:0] in (Except if EPAN_n is low, then IDB out is the IDB 3-0 from the DGA chip)
 
   // Assign the upper 4 bits directly from the input to the output
-  assign s_IDB_7_0_out[7:4] = s_IDB_7_0_in[7:4];
+  // WRONG! assign s_IDB_7_0_out[7:4] = s_IDB_7_0_in[7:4];
+
+  // Assign to 0 as its not output
+  assign s_IDB_7_0_out[7:4] = 4'b0; 
 
   // Conditionally assign the lower 4 bits based on the state of EPAN_n
-  assign s_IDB_7_0_out[3:0] = s_epan_n ? s_IDB_7_0_in[3:0] : s_dga_idb_3_0_out[3:0];
+  assign s_IDB_7_0_out[3:0] = s_epan_n ? 4'b0 : s_dga_idb_3_0_out[3:0];
 
   // Connect the intermediate signal to the final output
   assign IDB_7_0_OUT        = s_IDB_7_0_out;

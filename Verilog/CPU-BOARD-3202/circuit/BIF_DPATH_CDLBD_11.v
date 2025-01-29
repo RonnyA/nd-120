@@ -4,30 +4,26 @@
 ** BIF CD TO LBD                                                         **
 ** SHEET 11 of 50                                                        **
 **                                                                       **
-** Last reviewed: 13-MAY-2024                                            **
+** Last reviewed: 20-DEC-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module BIF_DPATH_CDLBD_11 (
-    input DSTB_n,
-    input ECREQ,
-    input EMD_n,
+    input DSTB_n,  //! Data Strobe
+    input ECREQ,   //! Enable CPU Request
+    input EMD_n,   //! Enable Memory
+    input WLBD_n,  //! Write Local Bus Data
 
-    input WLBD_n,
+    input  [15:0] LBD_15_0_IN,  //! Local Bus Data Input (16 bits)
+    output [15:0] LBD_15_0_OUT, //! Local Bus Data Output (16 bits)
 
-    input  [15:0] LBD_15_0_IN,
-    output [15:0] LBD_15_0_OUT,
-
-    input  [15:0] CD_15_0_IN,
-    output [15:0] CD_15_0_OUT
+    input  [15:0] CD_15_0_IN,  //! CPU Data Input (16 bits)
+    output [15:0] CD_15_0_OUT  //! CPU Data Output (16 bits)
 );
 
 
   // Seems like the signal CD15-0 is pulled high if the B port on the 74AS646 is in high state
   // Which happens when signal EMD_n is high
-
-  reg  [15:0] regLBD;
-  reg  [15:0] regCD;
 
 
   /*******************************************************************************
