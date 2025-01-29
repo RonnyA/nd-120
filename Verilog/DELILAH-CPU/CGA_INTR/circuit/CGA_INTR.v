@@ -17,7 +17,7 @@ module CGA_INTR (
     input        BINT13N,          //! Bus Interrupt 13, active low
     input        BINT15N,          //! Bus Interrupt 15, active low
     input        CLIRQN,           //! Clear Interrupt Request, active low
-    input        EMPIDN,           //! EMP Interrupt Disable, active low
+    input        EMPIDN,           //! Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints)
     input        EPIC,             //! Enable PIC (Programmable Interrupt Controller) signal
     input [15:0] FIDBO_15_0,       //! FIDB , 16-bit
     input        IOXERRN,          //! IO Exception Error, active low
