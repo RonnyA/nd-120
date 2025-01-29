@@ -4,7 +4,7 @@
 **  IDT6168A                                                             **
 **  16K (4Kx4) Static RAM  (using BLOCK RAM)                             **
 **                                                                       **
-** Last reviewed: 7-DEC-2024                                             **
+** Last reviewed: 29-JAN-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -27,6 +27,9 @@ module IDT6168A_20 (
   // Internal registers for address and data
   reg [ 3:0] data_in;
   reg [ 3:0] data_out;
+  reg regCE_n;
+  wire s_CE_n;
+  assign s_CE_n = regCE_n;
 
      /*
     * In typical SRAM modules, write operations are enabled when the WE_n (Write Enable) signal is low (active low),
@@ -38,24 +41,29 @@ module IDT6168A_20 (
     *
     * NOTE 2: SRAM shouldupdate output ASAP when address changes and not wait for clock edge. But that doesnt work in the Verilator testbench, I assume race conditions..
     */
-  always @(negedge clk) begin
-    if (!reset_n) begin
-      // Reset only data_out to prevent read conflicts during reset
-      data_out <= 4'b0;
-    end else if (!CE_n) begin
-      data_in   <= D_3_0_IN;
+    always @(negedge clk)
+    //always @(posedge clk)
+    begin
+      regCE_n <= CE_n;
 
-      if (!WE_n) begin
-        // Write operation
-        memory_array[A_11_0] <= data_in;
-      end else begin
-        // Read operation
-        data_out <= memory_array[A_11_0];
+      if (!reset_n)
+      begin
+        // Reset only data_out to prevent read conflicts during reset
+        data_out <= 4'b0;
+      end else if (!CE_n) begin
+        data_in   <= D_3_0_IN;
+
+        if (!WE_n) begin
+          // Write operation
+          memory_array[A_11_0] <= data_in;
+        end else begin
+          // Read operation
+          data_out <= memory_array[A_11_0];
+        end
       end
-    end
   end
 
   // Connect the output to data_out when reading
-  assign D_3_0_OUT = (!CE_n && WE_n) ? data_out : 4'b0000;
+  assign D_3_0_OUT = (!s_CE_n && WE_n) ? data_out : 4'b0000;
 
 endmodule
