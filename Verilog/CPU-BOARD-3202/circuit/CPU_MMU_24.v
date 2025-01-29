@@ -4,7 +4,7 @@
 ** MMU TOP LEVEL                                                         **
 ** SHEET 24 of 50                                                        **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 29-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -49,17 +49,16 @@ module CPU_MMU_24 (
     input  [15:0] PPN_25_10_IN,
     output [15:0] PPN_25_10_OUT,
 
-    output BEDO_n,      //! Bus Error Data Out, active low
-    output BEMPID_n,    //! Bus EMPID negated (Error Processor ID)
-    output BLCS_n,      //! Bus LCS negated (Load Control Store)
+    output BEDO_n,      //! Buffered Enable IDB "data out" from CGA
+    output BEMPID_n,    //! Buffered EMPID - Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints)
+    output BLCS_n,      //! Bus LCS (Load Control Store)
     output BSTP,        //! Bus Stop
 
-    output HIT,             //! Cache hit signal, indicates a successful cache lookup
-
-    output LAPA_n,          //! Latch Page Address negated, controls latching of the page address
+    output HIT,                //! Cache hit signal, indicates a successful cache lookup
+    output LAPA_n,             //! Latch Page Address, controls latching of the page address
     output [15:0] PT_15_0_OUT, //! Page Table data output, contains the page table entry data
-    output WCA_n,           //! Write Cache Address negated, controls writing to the cache address register
-    output        LED1          //! Cache enabled ?
+    output WCA_n,              //! Write Cache Address, controls writing to the cache address register
+    output LED1                //! Cache enabled ?
 );
 
 
