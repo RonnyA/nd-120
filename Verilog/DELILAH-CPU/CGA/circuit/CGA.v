@@ -6,7 +6,7 @@
 ** Page 2-9                                                              **
 ** SHEET 1 of 8                                                          **
 **                                                                       **
-** Last reviewed: 14-DEC-2024                                            **
+** Last reviewed: 29-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -41,7 +41,7 @@ module CGA (
     input [ 3:0] XCSTS_6_3,
     input        XCSVECT,
     input        XCSXRF3,
-    input        XEDON,
+    input        XEDON,       //! Enable IDB "data out" from CGA
     input        XEMPIDN,
     input        XETRAPN,
     input        XEWCAN,
@@ -627,6 +627,10 @@ module CGA (
   // and produces output signals indicating the results of the operations,
   // including flags for carry, overflow, and specific operation results.
   CGA_ALU ALU (
+      // FPGA system clock
+      .sysclk(sysclk),  // System clock in FPGA
+      .sys_rst_n(sys_rst_n),  // System reset in FPGA
+
       // Input signals
       .ALUCLK(sx_aluclk),
       .A_15_0(s_a_15_0[15:0]),
@@ -821,7 +825,7 @@ module CGA (
       .BINT13N(sx_bint13_n),       // Bus Interrupt 13, active low
       .BINT15N(sx_bint15_n),       // Bus Interrupt 15, active low
       .CLIRQN(s_clirq_n),          // Clear Interrupt Request, active low
-      .EMPIDN(sx_empid_n),         // EMP Interrupt Disable, active low
+      .EMPIDN(sx_empid_n),         // Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints)
       .EPIC(s_epic),               // Enable PIC (Programmable Interrupt Controller) signal
       .FIDBO_15_0(s_int_IDB_15_0_IN[15:0]), // FIDB, 16-bit
       .IOXERRN(sx_ioxerr_n),       // IO Exception Error, active low
