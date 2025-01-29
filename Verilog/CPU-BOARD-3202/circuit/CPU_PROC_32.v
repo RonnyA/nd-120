@@ -4,7 +4,7 @@
 ** PROCESSOR TOP LEVEL                                                   **
 ** SHEET 32 of 50                                                        **
 **                                                                       **
-** Last reviewed: 20-DEC-2024                                            **
+** Last reviewed: 29-JAN-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -13,8 +13,8 @@ module CPU_PROC_32 (
     input sys_rst_n, // System reset in FPGA
 
     input        ALUCLK,      //! ALU clock
-    input        BEDO_n,      //! Buffered EDO (EDO = Enable DO signal (multiple IDB sources))
-    input        BEMPID_n,    //! Buffered EMPID_n (EMPID = Enable Microcode Program ID)
+    input        BEDO_n,      //! Buffered Enable IDB "data out" from CGA
+    input        BEMPID_n,    //! Buffered EMPID - Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints)
     input        BSTP,        //! Buffered STP (STP = Stop)
     input [15:0] CD_15_0_IN,  //! CPU Data 15-0
     input        CLK,         //! Clock
@@ -445,8 +445,8 @@ module CPU_PROC_32 (
 
       // Inputs
       .ALUCLK(s_aluclk),                     // ALU clock signal
-      .BEDO_n(s_bedo_n),                     // Buffered Enable DO signal
-      .BEMPID_n(s_bempid_n),                 // Buffered Enable Microcode Program ID
+      .BEDO_n(s_bedo_n),                     // Buffered Enable IDB "data out" from CGA
+      .BEMPID_n(s_bempid_n),                 // Buffered EMPID - Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints)
       .BSTP(s_bstp),                         // Buffered Stop signal
       .CD_15_0(s_cd_15_0_in[15:0]),          // CPU Data bus 15-0
       .CSBITS(s_csbits[63:0]),               // Control Store Bits for microcode
