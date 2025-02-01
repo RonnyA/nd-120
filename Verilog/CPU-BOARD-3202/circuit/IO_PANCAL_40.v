@@ -45,7 +45,6 @@ module IO_PANCAL_40 (
    *******************************************************************************/
   wire [ 4:0] s_dp_5_1_n;
   wire [ 4:0] s_ground_bus;
-  wire [ 3:0] s_bus_4_bit;
   wire [ 4:0] s_stat_4_0;
   wire [ 1:0] s_pcr_1_0;
   wire [15:0] s_idb_15_0_out;
@@ -60,16 +59,11 @@ module IO_PANCAL_40 (
   wire        s_lev0;
   wire        s_emp_n;
   wire        s_panos;
-  wire        s_ck;
   wire        s_rmm_n;
   wire [15:0] s_idb_15_0_chip_out;
 
   wire        s_pres;
   wire        s_read;
-
-  /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **

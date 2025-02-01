@@ -105,19 +105,15 @@ LED7 (yellow)  - Bus grant
   wire [ 4:0] s_cscomm_4_0;
   wire [ 4:0] s_csidbs_4_0;
   wire [ 4:0] s_dp_5_1_n;
-  wire [ 4:0] s_ppn_23_19;
-  wire [ 4:0] s_test_4_0;
+  
+  wire [13:0] s_ppn_23_10;
 
+  wire [ 4:0] s_test_4_0;
   wire [ 7:0] s_inr_7_0;  //! INR signals from CONNECTOR B.
 
   wire [ 8:0] s_csalui_8_0;
-
   wire [ 9:0] s_ca_9_0;
-
-
   wire [12:0] s_lua_12_0;
-
-  wire [13:0] s_ppn_23_10;
 
   // CD BUS
   wire [15:0] s_bif_cd_15_0_in;
@@ -136,9 +132,6 @@ LED7 (yellow)  - Bus grant
   wire [15:0] s_io_idb_15_0_out;
 
   wire [15:0] s_mem_idb_15_0_out;
-
-  wire [15:0] s_uart_IDB_15_0_in;
-  wire [15:0] s_uart_IDB_15_0_out;
 
   // LBD BUS
   wire [23:0] s_mem_lbd_23_0_in;
@@ -214,7 +207,6 @@ LED7 (yellow)  - Bus grant
   wire        s_gnt_n;
   wire        s_gnt50_n;
   wire        s_hit;
-  wire        s_i1p;
   wire        s_ibapr_n;
   wire        s_ibdap_n;
   wire        s_ibdry_n;
@@ -247,7 +239,6 @@ LED7 (yellow)  - Bus grant
   wire        s_map_n;
   wire        s_mcl;
   wire        s_mclk;
-  wire        s_mis0;
   wire        s_moff_n;
   wire        s_mor_n;
   wire        s_mor25_n;
@@ -365,21 +356,17 @@ LED7 (yellow)  - Bus grant
   assign s_cpu_cd_15_0_in = s_bif_cd_15_0_out;
 
   // IDB BUS connections
-  assign s_cpu_idb_15_0_in   = s_bif_idb_15_0_out       | s_io_idb_15_0_out        | s_mem_idb_15_0_out       | s_uart_IDB_15_0_out;
-  assign s_io_idb_7_0_in     = s_bif_idb_15_0_out[7:0]  | s_cpu_idb_15_0_out[7:0]  | s_mem_idb_15_0_out[7:0]  | s_uart_IDB_15_0_out[7:0];
-  assign s_uart_IDB_15_0_in  = s_bif_idb_15_0_out       | s_io_idb_15_0_out        | s_mem_idb_15_0_out       | s_cpu_idb_15_0_out;
+  assign s_cpu_idb_15_0_in = s_bif_idb_15_0_out | s_io_idb_15_0_out | s_mem_idb_15_0_out;
+  assign s_io_idb_7_0_in     = s_bif_idb_15_0_out[7:0]  | s_cpu_idb_15_0_out[7:0]  | s_mem_idb_15_0_out[7:0];
 
   // LBD BUS connections
   assign s_mem_lbd_23_0_in[23:0] = s_bif_lbd_23_0_out[23:0];
   assign s_bif_lbd_23_0_in[23:0] = s_mem_lbd_23_0_out[23:0];
 
-  // TODO: BD_n connections ?
+
   // Bif BD_23_0 comes from BIF_DPATH_9
   // BD & LBD in and out of BIF
-
-
-  //TODO: // assign s_bif_bd_23_0_n_in = ??
-  assign s_ram_bd_23_19_n[4:0] = s_bif_bd_23_0_n_out[23:19];  // for address decoding 
+  assign s_ram_bd_23_19_n[4:0] = s_bif_bd_23_0_n_out[23:19];  // for address decoding
 
   // Buffer
   assign s_run_n = s_stp;
@@ -394,16 +381,37 @@ LED7 (yellow)  - Bus grant
   // LUA12 to Cycle Controller
   assign s_lua12 = s_lua_12_0[12];
 
-  // Power sense
-  assign s_powsense_n = POWSENSE_n;
 
   assign s_inr_7_0 = 8'b0;
 
   // Or together the BIF and MEM bdry signals. Since they are negated we must first negate them to get the correct meaning
   // assign s_bdry_n = ~(~s_bif_bdry_n | ~s_mem_bdry_n);
 
-  // But we can simplify using De Morgan's law: ~(~A | ~B) = A & B
+  // But we can simplify using De Morgan's law: ~(~A | ~B) => A & B
   assign s_bdry_n = (s_bif_bdry_n & s_mem_bdry_n);
+
+  // Cpu Cycle Clock
+  assign s_cc2_n = s_cc_3_1_n[1];
+
+  // Missing signal sources?
+  assign s_lprerr_n = 1; // Dont activate the LPRERR signal (source unknown Jan 2025) LOCAL PARITY EROR, so probably MEM is source
+
+
+  // ********************************************
+  // ****  Bus B connector (TRACE BUS)       ****
+  // ********************************************
+  assign s_ebus_n = 1;  // Connect to B3 when needed (3202D pdf sheet 3)
+  assign s_sel5ms_n = 1; // B14 (SEL5MS~) Pulled high via 1Kohm. (3202D pdf sheet 3) - Select 5ms (if active will trigger RTC after 5 ms, not 20ms)
+
+  // ********************************************
+  // ****  Bus C connector (ND BUS)          ****
+  // ********************************************
+
+  assign s_powsense_n = POWSENSE_n;    // Power sense
+  assign s_bif_bd_23_0_n_in = 24'b111111111111111111111111; // Bus address and data from bus. Pulled high.
+  // for C connector connected physically to the FPGA, connect signals 's_bif_bd_23_0_n_out' for output (or use pins with 2 directions)
+
+
 
 
   /*******************************************************************************
@@ -546,7 +554,9 @@ LED7 (yellow)  - Bus grant
       .BRK_n       (s_brk_n),                   // Output BRK signal from TRAP/INTR
       .IONI        (s_ioni),                    // Output IONI signal from CPU
       .RRF_n       (s_rrf_n),                   // Output RRF signal from CPU to CYCLE
-      .ECCR        (s_eccr)                     // Output ECCR signal from CPU to RAM
+      .ECCR        (s_eccr),                    // Output ECCR signal from CPU to RAM
+      .HIT         (s_hit),                     // Cache hit
+      .LEV0        (s_lev0)                     // Level 0 active
   );
 
 
@@ -583,89 +593,95 @@ LED7 (yellow)  - Bus grant
   );
 
 
-  IO_37 IO (
-      .sysclk(sysclk),  // System clock in FPGA
-      .sys_rst_n(sys_rst_n),  // System reset in FPGA
+  IO_37 IO
+  (
+    // FPGA system signals
+    .sysclk(sysclk),  // System clock in FPGA
+    .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
-      .BAUD_RATE_SWITCH(BAUD_RATE_SWITCH),
+    // Input Signals
+    .BAUD_RATE_SWITCH(BAUD_RATE_SWITCH),
+    .BDRY50_n(s_bdry50_n),
+    .BRK_n(s_brk_n),
+    .CLK(s_clk),
+    .CONSOLE_n(s_console_n),
+    .CSCOMM_4_0(s_cscomm_4_0[4:0]),
+    .CSIDBS_4_0(s_csidbs_4_0[4:0]),
+    .CSMIS_1_0(s_csmis_1_0[1:0]),
+    .CX_n(s_cx_n),
+    .DAP_n(s_dap_n),
+    .EAUTO_n(s_eauto_n),
+    .EORF_n(s_eorf_n),
+    .HIT(s_hit),
+    .ICONTIN_n(s_icontin_n),
+    .ILOAD_n(s_iload_n),
+    .INR_7_0(s_inr_7_0[7:0]),
+    .IONI(s_ioni),
+    .ISTOP_n(s_istop_n),
+    .LCS_n(s_lcs_n),
+    .LEV0(s_lev0),
+    .LOCK_n(s_lock_n),
+    .LSHADOW(s_lshadow),
+    .OC_1_0(s_oc_1_0[1:0]),
+    .OPCLCS(s_opclcs),
+    .OSCCL_n(s_osccl_n),
+    .PCR_1_0(s_pcr_1_0[1:0]),
+    .PONI(s_poni),
+    .POWSENSE_n(s_powsense_n),
+    .REF_n(s_ref_n),
+    .RXD(s_rxd),
+    .SEL5MS_n(s_sel5ms_n),
+    .SWMCL_n(s_swmcl_n),
+    .UCLK(s_uclk),
+    .XTAL1(s_xtal1),
+    .XTAL2(s_xtal2),
+    .XTR(s_xtr),
 
-      .BDRY50_n(s_bdry50_n),
-      .BINT10_n(s_io_bint10_n),
-      .BINT12_n(s_io_bint12_n),
-      .BINT13_n(s_io_bint13_n),
-      .BRK_n(s_brk_n),
-      .CA10(s_ca10),
-      .CCLR_n(s_cclr_n),
-      .CLEAR_n(s_clear_n),
-      .CLK(s_clk),
-      .CONSOLE_n(s_console_n),  //
-      .CSCOMM_4_0(s_cscomm_4_0[4:0]),
-      .CSIDBS_4_0(s_csidbs_4_0[4:0]),
-      .CSMIS_1_0(s_csmis_1_0[1:0]),
-      .CX_n(s_cx_n),
-      .DAP_n(s_dap_n),
-      .DP_5_1_n(s_dp_5_1_n[4:0]),
-      .DT_n(s_dt_n),
-      .DVACC_n(s_dvacc_n),
-      .EAUTO_n(s_eauto_n),
-      .ECREQ(s_ecreq),  // OUTPUT
-      .ECSR_n(s_ecsr_n),
-      .EDO_n(s_edo_n),
-      .EMCL_n(s_emcl_n),  // output
-      .EMPID_n(s_empid_n),
-      .EORF_n(s_eorf_n),
-      .ESTOF_n(s_estof_n),
-      .FETCH(s_fetch),
-      .FMISS(s_fmiss),
-      .FORM_n(s_form_n),
-      .HIT(s_hit),
-      .I1P(s_i1p),
-      .ICONTIN_n(s_icontin_n),
-      .IDB_7_0_IN(s_io_idb_7_0_in),
-      .IDB_15_0_OUT(s_io_idb_15_0_out),
-      .ILOAD_n(s_iload_n),
-      .INR_7_0(s_inr_7_0[7:0]),
-      .IONI(s_ioni),  // Input
-      .IORQ_n(s_iorq_n),
-      .ISTOP_n(s_istop_n),
-      .LCS_n(s_lcs_n),
-      .LEV0(s_lev0),
-      .LOCK_n(s_lock_n),
-      .LSHADOW(s_lshadow),
-      .MCL(s_mcl),
-      .MREQ_n(s_mreq_n),  // Output (from DGA)
-      .OC_1_0(s_oc_1_0[1:0]),
-      .OPCLCS(s_opclcs),
-      .OSC(s_osc),
-      .OSCCL_n(s_osccl_n),
-      .PAN_n(s_pan_n),
-      .PA_n(s_pa_n),
-      .PCR_1_0(s_pcr_1_0[1:0]),
-      .PONI(s_poni),
-      .POWFAIL_n(s_powfail_n),  // output powfail
-      .POWSENSE_n(s_powsense_n),
-      .PS_n(s_ps_n),
-      .REFRQ_n(s_refrq_n),
-      .REF_n(s_ref_n),
-      .RT_n(s_rt_n),
-      .RWCS_n(s_rwcs_n),
-      .RXD(s_rxd),
-      .SEL5MS_n(s_sel5ms_n),
-      .SHORT_n(s_short_n),
-      .SLOW_n(s_slow_n),  // output
-      .SSEMA_n(s_ssema_n),
-      .STOC_n(s_stoc_n),
-      .STP(s_stp),
-      .SWMCL_n(s_swmcl_n),
-      .TOUT(s_tout),
-      .TXD(s_txd),
-      .UCLK(s_uclk),
-      .WCHIM_n(s_wchim_n),
-      .WRITE(s_write),
-      .XTAL1(s_xtal1),
-      .XTAL2(s_xtal2),
-      .XTR(s_xtr),
-      .IOLED(LED[1:0])
+
+    //  Input and Output Bus
+    .IDB_7_0_IN  (s_io_idb_7_0_in),
+    .IDB_15_0_OUT(s_io_idb_15_0_out),
+
+    // Output Signals
+    .BINT10_n(s_io_bint10_n),
+    .BINT12_n(s_io_bint12_n),
+    .BINT13_n(s_io_bint13_n),
+    .CA10(s_ca10),
+    .CCLR_n(s_cclr_n),
+    .CLEAR_n(s_clear_n),
+    .DP_5_1_n(s_dp_5_1_n[4:0]),
+    .DT_n(s_dt_n),
+    .DVACC_n(s_dvacc_n),
+    .ECREQ(s_ecreq),
+    .ECSR_n(s_ecsr_n),
+    .EDO_n(s_edo_n),
+    .EMCL_n(s_emcl_n),
+    .EMPID_n(s_empid_n),
+    .ESTOF_n(s_estof_n),
+    .FETCH(s_fetch),
+    .FMISS(s_fmiss),
+    .FORM_n(s_form_n),
+    .IORQ_n(s_iorq_n),
+    .MCL(s_mcl),
+    .MREQ_n(s_mreq_n),
+    .OSC(s_osc),
+    .PAN_n(s_pan_n),
+    .PA_n(s_pa_n),
+    .POWFAIL_n(s_powfail_n),
+    .PS_n(s_ps_n),
+    .REFRQ_n(s_refrq_n),
+    .RT_n(s_rt_n),
+    .RWCS_n(s_rwcs_n),
+    .SHORT_n(s_short_n),
+    .SLOW_n(s_slow_n),
+    .SSEMA_n(s_ssema_n),
+    .STOC_n(s_stoc_n),
+    .STP(s_stp),
+    .TOUT(s_tout),
+    .TXD(s_txd),
+    .WCHIM_n(s_wchim_n),
+    .WRITE(s_write),
+    .IOLED(LED[1:0])
   );
 
   // C-PLUG SIGNALS goes via 5C and 33C
@@ -726,7 +742,7 @@ LED7 (yellow)  - Bus grant
       .PD1        (s_pd1),                    //  Pull-down 1
       .PD3        (s_pd3),                    //  Pull-down 3
       .PD4        (s_pd4),                    //  Pull-down 4
-      .PPN_23_19  (s_ppn_23_19[4:0]),         //  Physical Page Number
+      .PPN_23_19  (s_ppn_23_10[13:8]),        //  Physical Page Number
       .PS_n       (s_ps_n),                   //  Panel select signal
       .REFRQ_n    (s_refrq_n),                //  Refresh request signal
       .REF_n      (s_ref_n),                  //  Refresh signal
@@ -752,75 +768,74 @@ LED7 (yellow)  - Bus grant
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
       // INPUTS
-      .BAPR_n(s_bapr_n),
-      .BDAP50_n(s_bdap50_n),
-      .BDAP_n(s_bdap_n),
-      .BDRY50_n(s_bdry50_n),
-      .BERROR_n(s_berror_n),
-      .BGNT50_n(s_bgnt50_n),
-      .BGNT_n(s_bgnt_n),
-      .BINACK_n(s_binack_n),
-      .BINPUT_n(s_binput_n),
-      .BIOXE_n(s_bioxe_n),
-      .BMEM_n(s_bmem_n),
-      .BREF_n(s_bref_n),
-      .CA_9_0(s_ca_9_0[9:0]),  //! Control Store address 9:0
-      .CC2_n(s_cc2_n),
-      .CGNTCACT_n(s_cgntcact_n),
-      .CGNT50_n(s_cgnt50_n),
-      .CGNT_n(s_cgnt_n),
-      .CLEAR_n(s_clear_n),
-      .CRQ_n(s_crq_n),
-      .DAP_n(s_dap_n),
-      .DBAPR(s_dbapr),
-      .EBUS_n(s_ebus_n),
-      .ECREQ(s_ecreq),
-      .FETCH(s_fetch),
-      .GNT50_n(s_gnt50_n),
-      .GNT_n(s_gnt_n),
-      .IBAPR_n(s_ibapr_n),
-      .IBDAP_n(s_ibdap_n),
-      .IBDRY_n(s_ibdry_n),
-      .IBINPUT_n(s_ibinput_n),
-      .IBPERR_n(s_ibperr_n),
-      .IBREQ_n(s_ibreq_n),
-      .IORQ_n(s_iorq_n),
-      .IOXERR_n(s_ioxerr_n),
-      .ISEMRQ_n(s_isemrq_n),
-      .LERR_n(s_lerr_n),
-      .LPRERR_n(s_lprerr_n),
-      .MIS0(s_mis0),
-      .MOFF_n(s_moff_n),
-      .MOR25_n(s_mor25_n),
-      .MOR_n(s_mor_n),
-      .MR_n(s_mr_n),  // Master Reset signal comes from BIF (submodule BCTL, sub-sub SYNC, 50 ns delay of CLEAR_n input signal)
-      .MWRITE_n(s_mwrite_n),
-      .OSC(s_osc),
-      .OUTGRANT_n(s_outgrant_n),
-      .OUTIDENT_n(s_outident_n),
-      .PARERR_n(s_parerr_n),
-      .PA_n(s_pa_n),
-      .PD1(s_pd1),
-      .PD3(s_pd3),
-      .PS_n(s_ps_n),
-      .REFRQ_n(s_refrq_n),
-      .REF_n(s_ref_n),
-      .RERR_n(s_rerr_n),
-      .RT_n(s_rt_n),
-      .SEMRQ50_n(s_semrq50_n),
-      .SEMRQ_n(s_semrq_n),
-      .SSEMA_n(s_ssema_n),
-      .TERM_n(s_term_n),
-      .TOUT(s_tout),
-      .WRITE(s_write),
+      .BGNT50_n (s_bgnt50_n),        // Bus Grant (Delayed 50ns)
+      .BGNT_n   (s_bgnt_n),          // Bus Grant
+      .CA_9_0   (s_ca_9_0[9:0]),     // Control Store Address 9:0
+      .CC2_n    (s_cc2_n),           // CPU Cycle Counter 2
+      .CGNT50_n (s_cgnt50_n),        // CPU Grant (Delayed 50ns)
+      .CGNT_n   (s_cgnt_n),          // CPU Grant
+      .CLEAR_n  (s_clear_n),         // Clear
+      .CRQ_n    (s_crq_n),           // CPU Request
+      .EBUS_n   (s_ebus_n),          // External Bus
+      .ECREQ    (s_ecreq),           // ECC Request
+      .FETCH    (s_fetch),           // Fetch
+      .GNT50_n  (s_gnt50_n),         // Grant (Delayed 50ns)
+      .IBAPR_n  (s_ibapr_n),         // Input Bus Address Parity Register
+      .IBDAP_n  (s_ibdap_n),         // Input Bus Data Present
+      .IBDRY_n  (s_ibdry_n),         // Input Bus Data Ready
+      .IBINPUT_n(s_ibinput_n),       // Input Bus Input
+      .IBPERR_n (s_ibperr_n),        // Input Bus Parity Error
+      .IBREQ_n  (s_ibreq_n),         // Input Bus Request
+      .IORQ_n   (s_iorq_n),          // IO Request
+      .ISEMRQ_n (s_isemrq_n),        // Input Bus Semaphore Request
+      .LERR_n   (s_lerr_n),          // Local Error
+      .LPRERR_n (s_lprerr_n),        // Local Parity Error
+      .MIS0     (s_csmis_1_0[0]),    // Miscellaneous Signal 0
+      .MOFF_n   (s_moff_n),          // Memory Off
+      .MOR25_n  (s_mor25_n),         // Memory Request (Delayed 25ns)
+      .MWRITE_n (s_mwrite_n),        // Memory Write
+      .OSC      (s_osc),             // Oscillator
+      .PA_n     (s_pa_n),            // Panel Active
+      .PD1      (s_pd1),             // Pull-down 1
+      .PD3      (s_pd3),             // Pull-down 3
+      .PS_n     (s_ps_n),            // Panel Select
+      .REFRQ_n  (s_refrq_n),         // Refresh Request
+      .RT_n     (s_rt_n),            // Real Time
+      .SSEMA_n  (s_ssema_n),         // System Semaphore
+      .TERM_n   (s_term_n),          // Terminate
+      .TOUT     (s_tout),            // Timeout
+      .WRITE    (s_write),           // Write
+      .PPN_23_10(s_ppn_23_10[13:0]), // Physical Page Number
 
-      // BIF output signals
-      .BDRY_n(s_bif_bdry_n),  // BIF Data Ready
+      // OUTPUTS
+      .BAPR_n    (s_bapr_n),      // Bus Address Present
+      .BDAP50_n  (s_bdap50_n),    // Bus Data Present (Delayed 50ns)
+      .BDAP_n    (s_bdap_n),      // Bus Data Present
+      .BDRY50_n  (s_bdry50_n),    // Bus Data Ready (Delayed 50ns)
+      .BDRY_n    (s_bif_bdry_n),  // Bus Data Ready
+      .BERROR_n  (s_berror_n),    // Bus Error
+      .BINACK_n  (s_binack_n),    // Bus Input Acknowledge
+      .BINPUT_n  (s_binput_n),    // Bus Input
+      .BIOXE_n   (s_bioxe_n),     // Bus IOX Enable
+      .BMEM_n    (s_bmem_n),      // Bus Memory Enable
+      .BREF_n    (s_bref_n),      // Bus Refresh
+      .CGNTCACT_n(s_cgntcact_n),  // Combined CPU Grant/Active signal
+      .DAP_n     (s_dap_n),       // Data Present
+      .DBAPR     (s_dbapr),       // Data Bus Address Present
+      .GNT_n     (s_gnt_n),       // Grant
+      .IOXERR_n  (s_ioxerr_n),    // IOX Error
+      .MOR_n     (s_mor_n),       // Memory Error
+      .MR_n      (s_mr_n),        // Master Reset
+      .OUTGRANT_n(s_outgrant_n),  // Output Grant
+      .OUTIDENT_n(s_outident_n),  // Output Identifier
+      .PARERR_n  (s_parerr_n),    // Parity Error
+      .REF_n     (s_ref_n),       // Refresh
+      .RERR_n    (s_rerr_n),      // Read Error
+      .SEMRQ50_n (s_semrq50_n),   // Semaphore Request (Delayed 50ns)
+      .SEMRQ_n   (s_semrq_n),     // Semaphore Request
+
 
       // BUS Signals
-
-      .PPN_23_10(s_ppn_23_10[13:0]),  // input
-
       .BD_23_0_n_OUT(s_bif_bd_23_0_n_out[23:0]),
       .BD_23_0_n_IN (s_bif_bd_23_0_n_in[23:0]),
 

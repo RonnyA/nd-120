@@ -30,11 +30,6 @@ module IO_UART_42 (
     input  RXD,  //! RS232 Receive
     output TXD,  //! RS232 Transmit
 
-    // Current loop signals
-    input  I1P,  //! Current Loop Input 1
-    output O1P,  //! Current Loop Output 1
-    output O2P,  //! Current Loop Output 2
-
     // Baud rate settings
     input [3:0] BAUD_RATE_SWITCH,  //! Baud rate switch
 
@@ -66,7 +61,6 @@ module IO_UART_42 (
   wire        s_eauto_n;
   wire        s_eiorn_n;
   wire        s_gnd;
-  wire        s_i1p;
   wire        s_lcs_n;
   wire        s_lock_n;
   wire        s_pposc;
@@ -85,7 +79,6 @@ module IO_UART_42 (
    ** Here all input connections are defined                                     **
    *******************************************************************************/
   assign s_mis_1_0[1:0]          = MIS_1_0;
-  assign s_i1p                   = I1P;
   assign s_lock_n                = LOCK_n;
   assign s_ceuart_n              = CEUART_n;
   assign s_xtr                   = XTR;
@@ -108,8 +101,6 @@ module IO_UART_42 (
   assign s_io_idb_15_0_out[10:5] = 6'b0;
 
   assign TXD                     = s_txd;
-  assign O1P                     = s_txd;
-  assign O2P                     = s_txd;
 
   // Both DA and TBMT are pulled high
   // DA_n (or /RXRDY from UART) signal is only valid when the receiver is enabled
@@ -123,7 +114,7 @@ module IO_UART_42 (
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
   assign s_gnd                   = 1'b0;
-  assign s_rx                    = s_i1p | s_rxd;
+  assign s_rx                    = s_rxd;
 
 
   AM29C821 CHIP_33G (

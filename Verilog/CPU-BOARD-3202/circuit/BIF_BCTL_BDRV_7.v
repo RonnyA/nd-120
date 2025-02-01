@@ -240,6 +240,10 @@ module BIF_BCTL_BDRV_7 (
   assign s_berror_n = s_tout ? s_Y2[2] : 1'b1;
   assign s_bdry_n   = s_tout ? s_Y2[3] : 1'b1;
 
+  // The following 2 lines is to make LINTER quiet as s_Y1[3] is unused/not connected
+  (* keep = "true", DONT_TOUCH = "true" *) wire unused_s_Y1_bit;
+  assign unused_s_Y1_bit = s_Y1[3];
+
 
   TTL_74241 CHIP_3A (
       .A1  (s_A1[3:0]),

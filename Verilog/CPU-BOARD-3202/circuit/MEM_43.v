@@ -82,10 +82,8 @@ module MEM_43 (
   wire [17:0] s_ram_dd_17_0_in;  // INPUT TO MEM_DATA
   wire [17:0] s_ram_dd_17_0_out;  // OUTPUT FROM MEM_DATA
 
-  wire [19:0] s_lbd_19_0;
-
   wire [23:0] s_lbd_23_0_in;  // RAM DATA 16 bits and ADDRESS 24 bits
-  wire [23:0] s_lbd_23_0_out;  // RAM DATA 16 bits
+  wire [15:0] s_lbd_15_0_out;  // RAM DATA 16 bits
 
   wire        s_bcgnt50;
   wire        s_bcgnt50r_n;
@@ -156,7 +154,7 @@ module MEM_43 (
    *******************************************************************************/
   assign s_bus_bd[4:0]       = BD_23_19_n;
   assign s_bus_ppn[4:0]      = PPN_23_19;
-  assign s_lbd_23_0_in[23:0] = LBD_23_0_IN;
+  assign s_lbd_23_0_in[23:0] = LBD_23_0_IN[23:0];
   assign s_ibinput_n         = IBINPUT_n;
   assign s_pd3               = PD3;
   assign s_dbapr             = DBAPR;
@@ -199,7 +197,7 @@ module MEM_43 (
   assign MOFF_n              = s_moff_n;
   assign MOR25_n             = s_mor25_n;
   assign MWRITE_n            = s_mwrite_n;
-  assign LBD_23_0_OUT        = s_lbd_23_0_out;
+  assign LBD_23_0_OUT        = {8'b00000000, s_lbd_15_0_out};
 
 
   /*******************************************************************************
@@ -315,7 +313,7 @@ module MEM_43 (
       // Output signals
       .DD_17_0_OUT(s_data_dd_out[17:0]),
       .HIERR(s_hierr),
-      .LBD_15_0_OUT(s_lbd_23_0_out[15:0]),
+      .LBD_15_0_OUT(s_lbd_15_0_out[15:0]),
       .LED4(LED4),
       .LERR_n(s_lerr_n),
       .LOERR(s_loerr),

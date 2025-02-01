@@ -52,7 +52,6 @@ module SIP1M9 (
   wire [9:0] s_address;
 
   wire [7:0] s_D_7_0;  // DATA IN
-  wire [7:0] s_Q_7_0;  // DATA OUT (Q)
 
   wire       s_d9;
   wire       s_cas_n;

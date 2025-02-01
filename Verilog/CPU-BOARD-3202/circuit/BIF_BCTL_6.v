@@ -145,8 +145,6 @@ module BIF_BCTL_6 (
   wire       s_bperr50_n;
   wire       s_block25_n;
   wire       s_bdry75_n;
-  wire       s_act_n;
-  wire       s_dore_n;
   wire       s_mem_n;
   wire       s_cact25_n;
   wire       s_eiod_n;
@@ -270,9 +268,9 @@ module BIF_BCTL_6 (
       .MOFF_n   (s_moff_n),     // I7 - MOFF_n
 
       .SEM_n  (s_sem_n),   // Q0_n - SEM_n
-      .ACT_n  (s_act_n),   // Q1_n - ACT_n (n.c.)
-      .DOREF_n(s_dore_n),  // Q2_n - DOREF_n (n.c.)
-      .MEM_n  (s_mem_n),   // Q3_n - MEM_n (n.c.)
+      .ACT_n  (),          // Q1_n - ACT_n (n.c.)
+      .DOREF_n(),          // Q2_n - DOREF_n (n.c.)
+      .MEM_n  (s_mem_n),   // Q3_n - MEM_n
       .REF_n  (s_ref_n),   // Q4_n - REF_n
       .IOD_n  (s_iod_n),   // Q5_n - IOD_n
       .GNT_n  (s_gnt_n),   // Q6_n - GNT_n

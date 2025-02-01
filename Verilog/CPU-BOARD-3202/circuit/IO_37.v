@@ -18,6 +18,7 @@ module IO_37(
    input       BDRY50_n,
    input       BRK_n,
    input       CLK,
+   input       CONSOLE_n,
    input [4:0] CSCOMM_4_0,
    input [4:0] CSIDBS_4_0,
    input [1:0] CSMIS_1_0,
@@ -26,7 +27,6 @@ module IO_37(
    input       EAUTO_n,
    input       EORF_n,
    input       HIT,
-   input       I1P,
    input       ICONTIN_n,
    input       ILOAD_n,
    input [7:0] INR_7_0,
@@ -50,7 +50,6 @@ module IO_37(
    input       XTAL1,
    input       XTAL2,
    input       XTR,
-   input       CONSOLE_n,
 
    // Input and Output signals
    input  [7:0]  IDB_7_0_IN,
@@ -143,7 +142,6 @@ module IO_37(
    wire        s_swmcl_n;
    wire        s_rinr_n;
    wire        s_ceuart_n;
-   wire        s_i1p;
    wire        s_lcs_n;
    wire        s_refrq_n;
    wire        s_epans_n;
@@ -229,7 +227,6 @@ module IO_37(
    assign s_xtal2             = XTAL2;
    assign s_ioni              = IONI;
    assign s_swmcl_n           = SWMCL_n;
-   assign s_i1p               = I1P;
    assign s_lcs_n             = LCS_n;
    assign s_ref_n             = REF_n;
    assign s_uclk              = UCLK;
@@ -355,33 +352,33 @@ module IO_37(
       .sysclk(sysclk), // System clock in FPGA
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
-      .BAUD_RATE_SWITCH(BAUD_RATE_SWITCH),
+      // Input signals
       .CEUART_n(s_ceuart_n),
       .CLK(s_clk),
       .CONSOLE_n(s_uart_console_n),
-      .DA_n(s_da_n),
       .EAUTO_n(s_eauto_n),
       .EIOR_n(s_eior_n),
-      .I1P(s_i1p),
-      .IDB_7_0_IN(s_idb_7_0_in[7:0]),
-      .IDB_15_0_OUT(s_idb_15_0_uart_out[15:0]),
       .LCS_n(s_lcs_n),
       .LOCK_n(s_lock_n),
       .MIS_1_0(s_csmis_1_0[1:0]),
-
-      /* verilator lint_off PINMISSING */
-      /* verilator lint_off PINCONNECTEMPTY */
-      .O1P(), //O1P is unused
-      .O2P(), //O2P is unused
-      /* verilator lint_on PINCONNECTEMPTY */
-      /* verilator lint_on PINMISSING */
-
       .PPOSC(s_pposc),
       .RUART_n(s_ruart_n),
+      .XTR(s_xtr),
+
+      // RS232 RX/TX signals
       .RXD(s_rxd),
-      .TBMT_n(s_tbmt_n),
       .TXD(s_txd),
-      .XTR(s_xtr)
+
+      // Baud dare settings
+      .BAUD_RATE_SWITCH(BAUD_RATE_SWITCH),
+
+      // Input and output signals
+      .IDB_7_0_IN(s_idb_7_0_in[7:0]),
+      .IDB_15_0_OUT(s_idb_15_0_uart_out[15:0]),
+
+      // Output signals
+       .DA_n(s_da_n),
+      .TBMT_n(s_tbmt_n)
    );
 
 

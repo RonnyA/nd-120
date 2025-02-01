@@ -106,6 +106,8 @@ module CPU_15 (
     output IONI,         //! Interrupt System ON
     output RRF_n,        //! Output RRF signal from CPU to CYCLE
     output ECCR,         //! ECC Register Detected for IOX
+    output HIT,          //! Cache hit
+    output LEV0,         //! Level 0 active
 
     output LED1         //! Cache enabled ?
 );
@@ -346,6 +348,8 @@ module CPU_15 (
   assign IONI = s_ioni;
   assign RRF_n = s_rrf_n;
   assign ECCR = s_eccr;
+  assign HIT = s_hit;
+  assign LEV0 = s_lev0;
 
   assign LED1 = s_led1;
 

@@ -58,20 +58,17 @@ module CPU_MMU_CACHE_25 (
   wire [10:0] s_ca_10_0;
   wire [ 1:0] s_hit_1_0_n;
   wire        s_wca_n;
-  wire        s_led1;
   wire        s_brk_n;
   wire        s_wcinh_n;
   wire        s_used_n;
   wire        s_con;
   wire        s_con_n;
   wire        s_cclr_n;
-  wire        s_oubi;
   wire        s_hit;
   wire        s_dt_n;
   wire        s_lshadow;
   wire        s_cyd;
   wire        s_cwr;
-  wire        s_oubd;
   wire        s_uclk;
   wire        s_rt_n;
   wire        s_pd2;
@@ -202,6 +199,8 @@ module CPU_MMU_CACHE_25 (
       //.Q2_n(), // Not connected
       .IHIT_n()  //.Q3_n(s_ihit) // IHIT_n not connected
   );
+
+  assign s_21f_in[3:2] = 2'b00;
 
   Am9150 CHIP_21F (
       .clk            (sysclk),          // Clock input (BLOCK RAM MUST HAVE CLOCK)

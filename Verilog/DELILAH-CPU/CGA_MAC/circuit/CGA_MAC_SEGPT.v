@@ -78,6 +78,7 @@ module CGA_MAC_SEGPT (
   assign s_fidbo_15_7_2_0[0]  = s_fidbo_0;
   assign s_fidbo_15_7_2_0[1]  = s_fidbo_1;
   assign s_fidbo_15_7_2_0[2]  = s_fidbo_2;
+  assign s_fidbo_15_7_2_0[6:3] = 4'b0000; // Make sure bits are set to avoid LINTER issues
   assign s_fidbo_15_7_2_0[7]  = s_fidbo_7;
   assign s_fidbo_15_7_2_0[8]  = s_fidbo_8;
   assign s_fidbo_15_7_2_0[9]  = s_fidbo_9;

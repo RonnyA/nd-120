@@ -24,7 +24,7 @@ module MEM_DATA_46 (
     input  [15:0] LBD_15_0_IN,
     output [15:0] LBD_15_0_OUT,
 
-    output [17:0] DD_17_0_IN,
+    input  [17:0] DD_17_0_IN,
     output [17:0] DD_17_0_OUT,
 
     // Output signals
