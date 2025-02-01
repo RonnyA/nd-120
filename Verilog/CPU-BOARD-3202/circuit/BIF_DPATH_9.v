@@ -82,8 +82,8 @@ module BIF_DPATH_9 (
 
   wire [23:0] s_ppnlbd_lbd_23_0_out;
 
-  wire [23:0] s_cdlbd_lbd_23_0_in;
-  wire [23:0] s_cdlbd_lbd_23_0_out;
+  wire [15:0] s_cdlbd_lbd_15_0_in;
+  wire [15:0] s_cdlbd_lbd_15_0_out;
 
   wire [23:0] s_bdlbd_lbd_23_0_in;
   wire [23:0] s_bdlbd_lbd_23_0_out;
@@ -186,10 +186,10 @@ module BIF_DPATH_9 (
 
   // Or together output signals of the LBD_23_OUT from the different modules.
   assign s_lbd_23_0_in        = LBD_23_0_IN;
-  assign s_lbd_23_0_out       = s_ppnlbd_lbd_23_0_out | s_cdlbd_lbd_23_0_out | s_bdlbd_lbd_23_0_out;
+  assign s_lbd_23_0_out       = s_ppnlbd_lbd_23_0_out | s_cdlbd_lbd_15_0_out | s_bdlbd_lbd_23_0_out;
 
-  assign s_cdlbd_lbd_23_0_in  = s_lbd_23_0_in | s_ppnlbd_lbd_23_0_out | s_bdlbd_lbd_23_0_out;
-  assign s_bdlbd_lbd_23_0_in  = s_lbd_23_0_in | s_ppnlbd_lbd_23_0_out | s_cdlbd_lbd_23_0_out;
+  assign s_cdlbd_lbd_15_0_in  = s_lbd_23_0_in[15:0] | s_ppnlbd_lbd_23_0_out[15:0] | s_bdlbd_lbd_23_0_out[15:0];
+  assign s_bdlbd_lbd_23_0_in  = s_lbd_23_0_in[23:0] | s_ppnlbd_lbd_23_0_out[23:0] | s_cdlbd_lbd_15_0_out[15:0];
 
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
@@ -212,12 +212,12 @@ module BIF_DPATH_9 (
       .DSTB_n(s_dstb_n),
       .ECREQ(s_ecreq),
       .EMD_n(s_emd_n),
-      .LBD_15_0_IN(s_cdlbd_lbd_23_0_in[15:0]),
+      .LBD_15_0_IN(s_cdlbd_lbd_15_0_in[15:0]),
       .WLBD_n(s_wlbd_n),
 
       // Outputs
       .CD_15_0_OUT (s_cd_15_0_out[15:0]),
-      .LBD_15_0_OUT(s_cdlbd_lbd_23_0_out[15:0])
+      .LBD_15_0_OUT(s_cdlbd_lbd_15_0_out[15:0])
   );
 
   BIF_DPATH_BDLBD_10 BDLBD (
