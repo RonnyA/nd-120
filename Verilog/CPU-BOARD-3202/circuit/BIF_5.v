@@ -34,7 +34,7 @@ module BIF_5 (
     input       IBINPUT_n,  //! Input Bus Input
     input       IBPERR_n,   //! Input Bus Parity Error
     input       IBREQ_n,    //! Input Bus Request
-    input       IORQ_n,     //! Input Bus Request
+    input       IORQ_n,     //! IO Request
     input       ISEMRQ_n,   //! Input Bus Semaphore Request
     input       LERR_n,     //! Local Error
     input       LPRERR_n,   //! Local Parity Error
