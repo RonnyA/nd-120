@@ -6,7 +6,7 @@
 ** Page 33                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 01-FEB-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -16,6 +16,11 @@ module CGA_MAC_APOS_INC (
     output [15:0] NLCA_15_0
 );
 
+  // New implementation using Verilog arithmetic
+assign NLCA_15_0 = LCA_15_0 + 16'd1;
+
+
+`ifdef _OLD_WAY_
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
@@ -253,5 +258,6 @@ module CGA_MAC_APOS_INC (
       .result(s_nlca_15_0_out[15])
   );
 
+  `endif
 
 endmodule

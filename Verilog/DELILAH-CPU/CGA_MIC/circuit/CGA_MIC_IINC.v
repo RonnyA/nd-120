@@ -6,7 +6,7 @@
 ** Page 16                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 01-FEB-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -16,6 +16,13 @@ module CGA_MIC_IINC (
 
     output [12:0] NEXT_12_0
 );
+
+  // Use Verilog arithmetic to perform the increment.
+  // When CIN is 1, the instruction is incremented by one;
+  // when CIN is 0, the instruction remains unchanged.
+  assign NEXT_12_0 = IW_12_0 + CIN;
+
+`ifdef _OLD_WAY_
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
@@ -213,6 +220,6 @@ module CGA_MIC_IINC (
       .result(s_next_12_0_out[12])
   );
 
-
+  `endif
 
 endmodule
