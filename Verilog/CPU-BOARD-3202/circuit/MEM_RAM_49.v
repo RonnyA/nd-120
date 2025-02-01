@@ -53,7 +53,6 @@ module MEM_RAM_49 (
 
   // output
   wire [17:0] s_dd_17_0_out;  // shared output signal depending on bank
-  wire [17:0] s_dd_17_0_parity;  // parity signals (calculation across all banks)
   wire        s_corr_n;
 
   // BANK0
@@ -136,7 +135,7 @@ module MEM_RAM_49 (
    *******************************************************************************/
 
   // or together all 3 banks
-  assign s_dd_17_0_out = s_dd_17_0_b0_out | s_dd_17_0_b1_out | s_dd_17_0_b2_out | s_dd_17_0_parity;
+  assign s_dd_17_0_out = s_dd_17_0_b0_out | s_dd_17_0_b1_out | s_dd_17_0_b2_out;
 
   assign s_ras_b0 = ~(s_ras & s_bank0);
   assign s_cas_b0 = ~(s_bank0 & s_cas);
@@ -147,11 +146,6 @@ module MEM_RAM_49 (
 
   assign s_ras_b2 = ~(s_ras & s_bank2);
   assign s_cas_b2 = ~(s_bank2 & s_cas);
-
-
-  // Parity calculation across all banks
-  assign s_dd_17_0_parity[8] = q9_b1l | q9_b2l | q9_b0l;
-  assign s_dd_17_0_parity[17] = q9_b1h | q9_b2h | q9_b0h;
 
   // Calculate CORR ? (in the doc for these RAM chips it seems this pin is not connected..)
   assign s_corr_n = (prd_n_b2l & prd_n_b1l & prd_n_b0l & prd_n_b0h & prd_n_b1h & prd_n_b2h);
@@ -174,7 +168,7 @@ module MEM_RAM_49 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  // **************** BANK 9 ****************
+  // **************** BANK 0 ****************
 
   SIP1M9 CHIP_15H (
       .sysclk(sysclk),
@@ -195,6 +189,8 @@ module MEM_RAM_49 (
       .W_n(s_mwrite50_n)
   );
 
+  assign s_dd_17_0_b0_out[8] = d9_b0l | q9_b0l;
+
   SIP1M9 CHIP_15J (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
@@ -214,6 +210,7 @@ module MEM_RAM_49 (
       .W_n(s_mwrite50_n)
   );
 
+  assign s_dd_17_0_b0_out[17] = d9_b0h | q9_b0h;
 
 
   // **************** BANK 1 ****************
@@ -237,6 +234,8 @@ module MEM_RAM_49 (
       .W_n(s_mwrite50_n)
   );
 
+  assign s_dd_17_0_b1_out[8] = d9_b1l | q9_b1l;
+
   SIP1M9 CHIP_15L (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
@@ -255,6 +254,8 @@ module MEM_RAM_49 (
 
       .W_n(s_mwrite50_n)
   );
+
+  assign s_dd_17_0_b1_out[17] = d9_b1h | q9_b1h;
 
   // **************** BANK 2 ****************
 
@@ -277,6 +278,8 @@ module MEM_RAM_49 (
       .W_n(s_mwrite50_n)
   );
 
+  assign s_dd_17_0_b2_out[8] = d9_b2l | q9_b2l;
+
   SIP1M9 CHIP_15N (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
@@ -296,6 +299,6 @@ module MEM_RAM_49 (
       .W_n(s_mwrite50_n)
   );
 
-
+  assign s_dd_17_0_b2_out[17] = d9_b2h | q9_b2h;
 
 endmodule
