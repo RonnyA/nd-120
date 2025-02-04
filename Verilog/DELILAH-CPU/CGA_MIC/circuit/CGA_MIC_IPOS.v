@@ -6,7 +6,7 @@
 ** Page 22                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 02-FEB-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -78,6 +78,11 @@ module CGA_MIC_IPOS (
   assign s_ewca           = ~s_ewca_n;
   assign mux_selector[1]  = ~s_gates2_out;
   assign mux_selector[0]  = ~s_gates3_out;
+
+  // Code to make LINTER not complain about bits not read in CD 5:0
+  // TODO-MAYBE: Refactor code to not have CD_15_0 but CD_15_6, and remove this "hack"
+  (* keep = "true", DONT_TOUCH = "true" *) wire [5:0] unused_CD_bits;
+  assign unused_CD_bits[5:0] = s_cd_15_0[5:0];
 
   /*******************************************************************************
    ** Here all normal components are defined                                     **

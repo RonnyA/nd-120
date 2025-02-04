@@ -6,7 +6,7 @@
 ** Page 24                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 14-DEC-2024                                            **
+** Last reviewed: 02-FEB-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -54,7 +54,6 @@ module CGA_MAC (
   wire [15:0] s_ica_15_0;
   wire [15:0] s_lca_15_0;
   wire [15:0] s_nlca_15_0_out;
-  wire [15:0] s_pcr_14_13_10_9_n;
   wire [15:0] s_pcr_15_0_out;
   wire [15:0] s_pr_15_0;
   wire [15:0] s_rb_15_0;
@@ -181,11 +180,10 @@ module CGA_MAC (
       .LLDPCR(s_lldpcr),
       .LLDSEG(s_lldseg),
       .MCLK(s_mclk),
-      .PCR_14_13_10_9_N(s_pcr_14_13_10_9_n[15:0]),
-      .PCR_15_7_2_0(s_pcr_15_0_out[15:0]),
-      .PEX(s_pex),
 
       // Outputs
+      .PCR_15_0(s_pcr_15_0_out[15:0]),
+      .PEX(s_pex),
       .SEGZN(s_segz_n),
       .SEG_7_0(s_seg_7_0[7:0]),
       .VEX(s_vex_out),
@@ -220,9 +218,9 @@ module CGA_MAC (
       .E1617(s_e1617),
       .EXMN(s_exm_n),
       .F1617(s_f1617),
-      .ICA_15_8(s_ica_15_0[15:0]),
+      .ICA_15_8(s_ica_15_0[15:8]),
       .MCLK(s_mclk),
-      .PCR_15_7_2_0(s_pcr_15_0_out[15:0]),
+      .PCR_2_0(s_pcr_15_0_out[2:0]),
       .PONI(s_poni),
 
       // Outputs
@@ -250,7 +248,6 @@ module CGA_MAC (
       .ICA_15_0(s_ica_15_0[15:0]),
       .MCLK(s_mclk),
       .PCR_15_0(s_pcr_15_0_out[15:0]),
-      .PCR_15_0_N(s_pcr_14_13_10_9_n[15:0]),
       .SEG_7_0(s_seg_7_0[7:0]),
       .XPT_1_0(s_xpt_1_0[1:0]),
 

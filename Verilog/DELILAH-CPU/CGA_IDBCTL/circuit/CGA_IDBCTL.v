@@ -5,7 +5,7 @@
 **                                                                       **
 ** PDF page 97 of 108                                                    **
 **                                                                       **
-** Last reviewed: 9-NOV-2024                                             **
+** Last reviewed: 02-FEB-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -110,6 +110,11 @@ module CGA_IDBCTL (
   assign s_epins[4]           = ~s_epicmask_n;
   assign s_epins[5]           = (s_epicmask_n & s_epicv_n & s_epics_n & s_epcr_n & s_epgs_n);
 
+
+  // Code to make LINTER not complaing about bits not read in PCR 6:3
+  (* keep = "true", DONT_TOUCH = "true" *) wire [4:0] unused_PCR_bits;
+  assign unused_PCR_bits[4:0] = s_pcr_15_0[6:3];
+
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
@@ -179,7 +184,27 @@ module CGA_IDBCTL (
       .V(1'b0)
   );
 
+  CGA_IDBCTL_SEL6 IDB9 (
+      .D(s_xfidbi_15_0[9]),
+      .D0(s_fidbi_15_0_out[9]),
+      .E_PINS(s_epins[5:0]),
+      .M(s_picmask_15_0[9]),
+      .PCR(s_pcr_15_0[9]),
+      .PGS(s_pgs_11_0[9]),
+      .S(s_gnd),
+      .V(s_gnd)
+  );
 
+  CGA_IDBCTL_SEL6 IDB8 (
+      .D(s_xfidbi_15_0[8]),
+      .D0(s_fidbi_15_0_out[8]),
+      .E_PINS(s_epins[5:0]),
+      .M(s_picmask_15_0[8]),
+      .PCR(s_pcr_15_0[8]),
+      .PGS(s_pgs_11_0[8]),
+      .S(s_gnd),
+      .V(s_gnd)
+  );
 
   CGA_IDBCTL_SEL6 IDB7 (
       .D(s_xfidbi_15_0[7]),
@@ -225,26 +250,26 @@ module CGA_IDBCTL (
       .V(s_gnd)
   );
 
-  CGA_IDBCTL_SEL6 IDB9 (
-      .D(s_xfidbi_15_0[9]),
-      .D0(s_fidbi_15_0_out[9]),
+  CGA_IDBCTL_SEL6 IDB3 (
+      .D(s_xfidbi_15_0[3]),
+      .D0(s_fidbi_15_0_out[3]),
       .E_PINS(s_epins[5:0]),
-      .M(s_picmask_15_0[9]),
-      .PCR(s_pcr_15_0[9]),
-      .PGS(s_pgs_11_0[9]),
-      .S(s_gnd),
-      .V(s_gnd)
+      .M(s_picmask_15_0[3]),
+      .PCR(s_gnd),
+      .PGS(s_pgs_11_0[3]),
+      .S(s_higs_n),
+      .V(s_pdf)
   );
 
-  CGA_IDBCTL_SEL6 IDB8 (
-      .D(s_xfidbi_15_0[8]),
-      .D0(s_fidbi_15_0_out[8]),
+  CGA_IDBCTL_SEL6 IDB2 (
+      .D(s_xfidbi_15_0[2]),
+      .D0(s_fidbi_15_0_out[2]),
       .E_PINS(s_epins[5:0]),
-      .M(s_picmask_15_0[8]),
-      .PCR(s_pcr_15_0[8]),
-      .PGS(s_pgs_11_0[8]),
-      .S(s_gnd),
-      .V(s_gnd)
+      .M(s_picmask_15_0[2]),
+      .PCR(s_pcr_15_0[2]),
+      .PGS(s_pgs_11_0[2]),
+      .S(s_pics_2_0[2]),
+      .V(s_picv_2_0[2])
   );
 
   CGA_IDBCTL_SEL6 IDB1 (
@@ -269,27 +294,7 @@ module CGA_IDBCTL (
       .V(s_picv_2_0[0])
   );
 
-  CGA_IDBCTL_SEL6 IDB3 (
-      .D(s_xfidbi_15_0[3]),
-      .D0(s_fidbi_15_0_out[3]),
-      .E_PINS(s_epins[5:0]),
-      .M(s_picmask_15_0[3]),
-      .PCR(s_gnd),
-      .PGS(s_pgs_11_0[3]),
-      .S(s_higs_n),
-      .V(s_pdf)
-  );
 
-  CGA_IDBCTL_SEL6 IDB2 (
-      .D(s_xfidbi_15_0[2]),
-      .D0(s_fidbi_15_0_out[2]),
-      .E_PINS(s_epins[5:0]),
-      .M(s_picmask_15_0[2]),
-      .PCR(s_pcr_15_0[2]),
-      .PGS(s_pgs_11_0[2]),
-      .S(s_pics_2_0[2]),
-      .V(s_picv_2_0[2])
-  );
 
   CGA_IDBCTL_PGSREG PGSREG (
       .FETCHN(s_fetch_n),

@@ -6,7 +6,7 @@
 ** Page 9-13                                                             **
 ** SHEET 1 of 4                                                          **
 **                                                                       **
-** Last reviewed: 19-DEC-2024                                            **
+** Last reviewed: 02-FEB-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -692,8 +692,8 @@ module CGA_MIC (
       .MRN(s_mrn)
   );
 
-  // Debug
-  wire [5:0] loop_counter;
+  // Debug (to see the value of the loop counter when debugging micro-code)
+  (* keep = "true", DONT_TOUCH = "true" *)  wire [5:0] loop_counter;
   assign loop_counter[5:0] = {s_icd_5, s_icd_4,s_lc_3_0[3],s_lc_3_0[2],s_lc_3_0[1],s_lc_3_0[0]};
 
 

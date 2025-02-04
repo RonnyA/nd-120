@@ -4,7 +4,7 @@
 ** BUS INTERFACE                                                         **
 ** SHEET 5  of 50                                                        **
 **                                                                       **
-** Last reviewed: 20-DEC-2024                                            **
+** Last reviewed: 02-FEB-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -342,6 +342,9 @@ module BIF_5 (
       .TERM_n      (s_term_n),              // Terminate
       .WRITE       (s_write)                // Write cycle
   );
+
+  (* keep = "true", DONT_TOUCH = "true" *) wire unused_s_Q1_bit;
+  assign unused_s_Q1_bit = s_q_2_0_n[1];
 
   /*
    * BIF_BCTL_6 - Bus Interface Control Module

@@ -6,7 +6,7 @@
 ** Page 21                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 02-FEB-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -40,6 +40,11 @@ module CGA_MIC_WCAREG (
   assign s_mclk          = MCLK;
   assign s_lcs_n         = LCSN;
   assign s_lwca_n        = LWCAN;
+
+  // Code to make LINTER _not_ complain about bits not read in CD bits 1:0
+  (* keep = "true", DONT_TOUCH = "true" *) wire [1:0] unused_CD_bits;
+  assign unused_CD_bits[1:0] = s_cd_15_0[1:0];
+
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **

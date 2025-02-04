@@ -6,9 +6,13 @@
 ** Page 40                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 19-JAN-2025                                            **
+** Last reviewed: 02-FEB-2025                                            **
 ** Ronny Hansen                                                          **
+**                                                                       **
+** 02-FEB-2025 - Refactored and removed input bus PCR_15_0_N.            **
+**               (Use bus PCR_15_0 only)                                 **
 ***************************************************************************/
+
 
 module CGA_MAC_LA1025 (
     input        A10,
@@ -18,14 +22,13 @@ module CGA_MAC_LA1025 (
     input        B1819,
     input        B1821,
     input        BB10,        //! no PONI + DOUBLE + SHADOW + MREQ
-    input        C10,         //! no PONI + DOUBLE + SHADOW + not MREQ 
+    input        C10,         //! no PONI + DOUBLE + SHADOW + not MREQ
     input        D1617,
     input        E1617,
     input        F1617,
     input [15:0] ICA_15_0,
     input        MCLK,
     input [15:0] PCR_15_0,
-    input [15:0] PCR_15_0_N,
     input [ 7:0] SEG_7_0,
     input [ 1:0] XPT_1_0,
 
@@ -43,7 +46,6 @@ module CGA_MAC_LA1025 (
   wire [15:0] s_pcr_15_0;
   wire [ 1:0] s_xpt_1_0;
   wire [ 7:0] s_seg_7_0;
-  wire [15:0] s_pcr_15_0_n;
   wire        s_a10;
   wire        s_a1617;
   wire        s_a1619;
@@ -113,7 +115,6 @@ module CGA_MAC_LA1025 (
   assign s_pcr_15_0[15:0]   = PCR_15_0;
   assign s_xpt_1_0[1:0]     = XPT_1_0;
   assign s_seg_7_0[7:0]     = SEG_7_0;
-  assign s_pcr_15_0_n[15:0] = PCR_15_0_N;
   assign s_a10              = A10;
   assign s_a1617            = A1617;
   assign s_a1619            = A1619;
@@ -140,6 +141,12 @@ module CGA_MAC_LA1025 (
   // NOT Gate
   assign s_ica_9_n          = ~s_ica_15_0[9];
   assign s_ica_10_n         = ~s_ica_15_0[10];
+
+
+  // Code to make LINTER _not_ complain about bits not read in PCR bits 15 and 6:0
+  (* keep = "true", DONT_TOUCH = "true" *) wire [7:0] unused_PCR_bits;
+  assign unused_PCR_bits[7:0] = { s_pcr_15_0[15], s_pcr_15_0[6:0]};
+
 
   /*******************************************************************************
    ** Implementation                                                            **
@@ -199,7 +206,7 @@ module CGA_MAC_LA1025 (
 
   A02 ILA19A (
       .A(s_a1619),
-      .B(s_pcr_15_0_n[14]),  // PCR 14n
+      .B(~s_pcr_15_0[14]),  // PCR 14n
       .C(s_seg_7_0[3]),      // SEG 3
       .D(s_b1821),
       .Z(s_ila19_a_z)
@@ -208,7 +215,7 @@ module CGA_MAC_LA1025 (
   A02 ILA19B (
       .A(s_ica_10_n),        // ICA 10n
       .B(s_a1819),
-      .C(s_pcr_15_0_n[10]),  // PCR 10n
+      .C(~s_pcr_15_0[10]),   // PCR 10n
       .D(s_b1819),
       .Z(s_ila19_b_z)
   );
@@ -225,8 +232,8 @@ module CGA_MAC_LA1025 (
 
   A02 ILA18A (
       .A(s_a1619),
-      .B(s_pcr_15_0_n[13]),  // PCR 13n
-      .C(s_pcr_15_0_n[9]),   // PCR 9n
+      .B(~s_pcr_15_0[13]),  // PCR 13n
+      .C(~s_pcr_15_0[9]),   // PCR 9n
       .D(s_b1819),
       .Z(s_ila18_a_z)
   );

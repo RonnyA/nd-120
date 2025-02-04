@@ -6,7 +6,7 @@
 ** Page 19                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 14-DEC-2024                                            **
+** Last reviewed: 02-FEB-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -70,6 +70,11 @@ module CGA_MIC_MASEL (
   assign W_12_0             = s_w_12_0_out[12:0];
 
   reg [12:0] dRep12;
+
+  // Code to make LINTER _not_ complain about bits not read in CSBIITS bits 3:0
+  (* keep = "true", DONT_TOUCH = "true" *) wire [3:0] unused_CSBITS_bits;
+  assign unused_CSBITS_bits[3:0] = s_csbit_11_0[3:0];
+
 
   /*******************************************************************************
    ** Here all normal components are defined                                     **
