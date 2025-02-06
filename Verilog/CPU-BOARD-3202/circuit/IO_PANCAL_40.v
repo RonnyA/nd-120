@@ -100,8 +100,7 @@ module IO_PANCAL_40 (
   assign s_dp_5_1_n    = ~s_ground_bus;  // Signals coming from 68705 - add in logic later
 
   // Code to make LINTER not complaing about bits _not_ read because we have not yet implemented MC68705 CPU
-  (* keep = "true", DONT_TOUCH = "true" *) wire [7:0] unused_cpu_bits;
-  assign unused_cpu_bits[7:0] = {s_pcr_1_0, s_poni, s_ioni, s_lhit, s_lev0, s_emp_n, s_panos,s_clear_n};
+  (* keep = "true", DONT_TOUCH = "true" *) wire [8:0] unused_cpu_bits = {s_pcr_1_0, s_poni, s_ioni, s_lhit, s_lev0, s_emp_n, s_panos,s_clear_n};
 
 
   /*******************************************************************************
