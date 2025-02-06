@@ -6,7 +6,7 @@
 ** Page 103                                                              **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 19-JAN-2025                                            **
+** Last reviewed: 2-FEB-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -115,6 +115,10 @@ module CGA_TRAP_BRKDET (
   assign s_vtrap           = ~s_vtrap_n;
   assign s_cbrk            = ~s_cbrk_n;
 
+    // Code to make LINTER not complaing about bits not read in IPT 14:11
+  (* keep = "true", DONT_TOUCH = "true" *) wire [3:0] unused_ipt_bits;
+  assign unused_ipt_bits[3:0] = s_ipt_15_9[5:2];
+
   /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
@@ -184,8 +188,8 @@ module CGA_TRAP_BRKDET (
       .BubblesMask(3'b000)
   ) RV3 (
       .input1(s_gates7_out),
-      .input2(s_ipt_15_9[1]),
-      .input3(s_ipt_15_9[0]),
+      .input2(s_ipt_15_9[1]),  //IPT 10
+      .input3(s_ipt_15_9[0]),  //IPT 9
       .result(s_rv3_out)
   );
 
@@ -361,9 +365,9 @@ module CGA_TRAP_BRKDET (
   );
 
   A02 A02_4 (
-      .A(s_ipt_15_9[0]),
+      .A(s_ipt_15_9[0]),  //IPT 9
       .B(s_gates24_out),
-      .C(s_ipt_15_9[1]),
+      .C(s_ipt_15_9[1]),  //IPT 10
       .D(s_gates23_out),
       .Z(s_a02_4_z_out)
   );

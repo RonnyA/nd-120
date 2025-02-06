@@ -4,7 +4,7 @@
 ** PROCESSOR TOP LEVEL                                                   **
 ** SHEET 32 of 50                                                        **
 **                                                                       **
-** Last reviewed: 29-JAN-2025                                            **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -136,7 +136,6 @@ module CPU_PROC_32 (
   wire        s_cwr;
   wire        s_double;
   wire        s_eccr;
-  wire        s_erf_n_cga;  // Original signal from CGA. Not used after fix has been applied
   wire        s_erf_n; // New signal, includ PAL fix to enable when CSIDBS = 5, REG (Read Register File)
   wire        s_estof_n;
   wire        s_etrap_n;
@@ -364,26 +363,28 @@ module CPU_PROC_32 (
 
   TTL_74245 CHIP_32F (
       // Input signals
-      .A(s_tx_idb_A_IN[7:0]),
-      .B(s_fidb_cga_OUT[7:0]),
       .DIR(s_bedo_n),
       .OE_n(s_estof_n),
 
-      // Output signals
+      // Input and Output bus
+      .A(s_tx_idb_A_IN[7:0]),
       .A_OUT(s_tx_idb_A_OUT[7:0]),
+
+      .B(s_tx_idb_B_IN[7:0]),
       .B_OUT(s_tx_idb_B_OUT[7:0])
   );
 
 
   TTL_74245 CHIP_33F (
       // Input signals
-      .A(s_tx_idb_A_IN[15:8]),
-      .B(s_fidb_cga_OUT[15:8]),
       .DIR(s_bedo_n),
       .OE_n(s_estof_n),
 
-      // Output signals
+      // Input and Output bus signals
+      .A(s_tx_idb_A_IN[15:8]),
       .A_OUT(s_tx_idb_A_OUT[15:8]),
+
+      .B(s_tx_idb_B_IN[15:8]),
       .B_OUT(s_tx_idb_B_OUT[15:8])
   );
 
@@ -416,7 +417,8 @@ module CPU_PROC_32 (
   //2x RAM 2^11 addresses, Each 8-bit wide. Converted to one 16 bits wide
   (* ram_style = "block" *) reg [15:0] registerBlock[0:2047];
 
-  always @(posedge sysclk, negedge s_twrf_n)
+
+  always @(posedge sysclk) // or negedge s_twrf_n)
   begin
     if (!s_erf_n) begin
       if (!s_twrf_n) begin
@@ -478,7 +480,7 @@ module CPU_PROC_32 (
       .CSCA_9_0(s_csca_9_0[9:0]),           // Control Store Cache Address 9-0
       .DOUBLE(s_double),                    // Double signal
       .ECCR(s_eccr),                        // ECC Register Detected
-      .ERF_n(s_erf_n_cga),                  // Enable Register File original signal fromn CGA
+      .ERF_n(),                             // Enable Register File original signal fromn CGA (Original signal from CGA. Not used after fix has been applied)
       .FIDB_15_0_OUT(s_fidb_cga_OUT[15:0]), // Output from B side of CHIP32 and 33
       .INTRQ_n_tp1(s_tp1_intrq_n),          // Interrupt Request Test Point 1
       .IONI(s_ioni),                        // Interrupt System ON

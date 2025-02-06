@@ -4,7 +4,7 @@
 **                                                                       **
 ** NEC F714 - T Flip-Flop with R, S                                      **
 **                                                                       **
-** Last reviewed: 9-NOV-2024                                             **
+** Last reviewed: 2-FEB-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -23,14 +23,14 @@ module F714 (
 
   // Wires
   wire s_t;
-  wire s_r;
-  wire s_s;
+  wire s_reset;
+  wire s_set;
 
 
   // Assign inputs
   assign s_t    = H01_T;
-  assign s_r    = H02_R;
-  assign s_s    = H03_S;
+  assign s_reset    = H02_R;
+  assign s_set    = H03_S;
 
 
   // Assign outputs
@@ -38,12 +38,13 @@ module F714 (
   assign N02_QB = reqQ_n;
 
 
-  always @(posedge s_t or posedge s_r or posedge s_s) begin
-    if (s_r | s_s) begin
-      if (!s_s & s_r) begin  // reset
+  always @(posedge s_t or posedge s_reset or posedge s_set) begin
+    if (s_reset | s_set) begin
+      // forced clear or set
+      if (!s_set & s_reset) begin  // reset
         regQ   <= 1'b0;
         reqQ_n <= 1'b1;
-      end else if (s_s & !s_r) begin  // set
+      end else if (s_set & !s_reset) begin  // set
         regQ   <= 1'b1;
         reqQ_n <= 1'b0;
       end else begin  /* s_rb & s_sb */
@@ -52,10 +53,8 @@ module F714 (
       end
     end else begin
       if (s_t) begin
-
         reqQ_n <= regQ;
         regQ   <= ~regQ;
-
       end
     end
   end

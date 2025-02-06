@@ -4,7 +4,7 @@
 ** PANEL PROC & CALENDAR                                                 **
 ** SHEET 40 of 50                                                        **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -99,6 +99,11 @@ module IO_PANCAL_40 (
   // NOT Gate
   assign s_dp_5_1_n    = ~s_ground_bus;  // Signals coming from 68705 - add in logic later
 
+  // Code to make LINTER not complaing about bits _not_ read because we have not yet implemented MC68705 CPU
+  (* keep = "true", DONT_TOUCH = "true" *) wire [7:0] unused_cpu_bits;
+  assign unused_cpu_bits[7:0] = {s_pcr_1_0, s_poni, s_ioni, s_lhit, s_lev0, s_emp_n, s_panos,s_clear_n};
+
+
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
@@ -166,10 +171,10 @@ module IO_PANCAL_40 (
   assign s_read = 0;  // READ signal pb6
   // pb5 =stat4
   // pb4 =stat3
-  assign s_rmm_n = 1;  // RMM signal pb3
+  assign s_rmm_n = 1;  // RMM signal pb3 (not active!)
   // pb2 = roclk_n (not connected to anything/not used)
   // pb1 = wrclk_n (not connected to anything/not used)
-  assign s_wmm_n = 1;  // WMM signal pb0
+  assign s_wmm_n = 1;  // WMM signal pb0 (not active)
 
   // *** PORT C *** (output)
 

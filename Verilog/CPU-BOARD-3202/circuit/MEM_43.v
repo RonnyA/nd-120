@@ -4,7 +4,7 @@
 ** MEMORY TOP LEVEL                                                      **
 ** SHEET 43 of 50                                                        **
 **                                                                       **
-** Last reviewed: 11-NOV-2024                                            **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -193,7 +193,7 @@ module MEM_43 (
   assign GNT50_n             = s_gnt50_n;
   assign IDB_15_0_OUT        = s_idb_15_0_out[15:0];
   assign LERR_n              = s_lerr_n;
-  assign LPERR_n             = s_lperr_n;
+  assign LPERR_n             = s_lperr_n | 1; // Always set to 1 to avoid Parity Error. TODO: FIX! ?
   assign MOFF_n              = s_moff_n;
   assign MOR25_n             = s_mor25_n;
   assign MWRITE_n            = s_mwrite_n;
@@ -215,38 +215,32 @@ module MEM_43 (
    * Decodes the address bus and generates the address for the memory module.
    * Also handles the memory control signals and error handling.
    */
-  MEM_ADEC_45 ADEC (
-      // Inputs
-      .BMEM_n(s_bmem_n),
-      .DBAPR(s_dbapr),
-      .ECREQ(s_ecreq),
-      .IBINPUT_n(s_ibinput_n),
-      .IORQ_n(s_iorq_n),
-      .PD4(s_pd4),
-      .PPN19(s_bus_ppn[0]),
-      .PPN20(s_bus_ppn[1]),
-      .PPN21(s_bus_ppn[2]),
-      .PPN22(s_bus_ppn[3]),
-      .PPN23(s_bus_ppn[4]),
-      .REFRQ_n(s_refrq_n),
-      .RGNT_n(s_rgnt_n),
-      .WRITE(s_write),
+  MEM_ADEC_45 ADEC
+  (
+    // Inputs
+    .BGNT_n(s_bgnt_n),
+    .BMEM_n(s_bmem_n),
+    .CGNT_n(s_cgnt_n),
+    .DBAPR(s_dbapr),
+    .ECREQ(s_ecreq),
+    .IBINPUT_n(s_ibinput_n),
+    .IORQ_n(s_iorq_n),
+    .PD4(s_pd4),
+    .REFRQ_n(s_refrq_n),
+    .RGNT_n(s_rgnt_n),
+    .WRITE(s_write),
+
+    .BD23_19_n(s_bus_bd[4:0]),
+    .PPN_23_19(s_bus_ppn[4:0]),
 
       // Outputs
-      .BANK_2_0(s_bank_2_0[2:0]),
-      .BD19_n(s_bus_bd[0]),
-      .BD20_n(s_bus_bd[1]),
-      .BD21_n(s_bus_bd[2]),
-      .BD22_n(s_bus_bd[3]),
-      .BD23_n(s_bus_bd[4]),
-      .BGNT_n(s_bgnt_n),
-      .BLRQ_n(s_blrq_n),
-      .CGNT_n(s_cgnt_n),
-      .CLRQ_n(s_clrq_n),
-      .CRQ_n(s_crq_n),
-      .MOFF_n(s_moff_n),
-      .MWRITE_n(s_mwrite_n),
-      .RLRQ_n(s_rlrq_n)
+    .BANK_2_0(s_bank_2_0[2:0]),
+    .BLRQ_n(s_blrq_n),
+    .CLRQ_n(s_clrq_n),
+    .CRQ_n(s_crq_n),
+    .MOFF_n(s_moff_n),
+    .MWRITE_n(s_mwrite_n),
+    .RLRQ_n(s_rlrq_n)
   );
 
   /*

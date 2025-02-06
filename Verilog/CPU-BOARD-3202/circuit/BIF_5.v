@@ -37,7 +37,7 @@ module BIF_5 (
     input       IORQ_n,     //! IO Request
     input       ISEMRQ_n,   //! Input Bus Semaphore Request
     input       LERR_n,     //! Local Error
-    input       LPRERR_n,   //! Local Parity Error
+    input       LPERR_n,    //! Local Parity Error
     input       MIS0,       //! Microcode: Miscellaneous bit 0
     input       MOFF_n,     //! Memory Off
     input       MOR25_n,    //! Memory Error (25ns delayed)
@@ -166,7 +166,7 @@ module BIF_5 (
   wire        s_ioxerr_n;
   wire        s_isemreq_n;
   wire        s_lerr_n;
-  wire        s_lprerr_n;
+  wire        s_lperr_n;
   wire        s_mis0;
   wire        s_moff_n;
   wire        s_mor_n;
@@ -224,7 +224,7 @@ module BIF_5 (
   assign s_ioreq_n            = IORQ_n;
   assign s_isemreq_n          = ISEMRQ_n;
   assign s_lerr_n             = LERR_n;
-  assign s_lprerr_n           = LPRERR_n;
+  assign s_lperr_n            = LPERR_n;
   assign s_mis0               = MIS0;
   assign s_moff_n             = MOFF_n;
   assign s_mor25_n            = MOR25_n;
@@ -408,7 +408,7 @@ module BIF_5 (
       .IORQ_n    (s_ioreq_n),       // I/O Request
       .ISEMRQ_n  (s_isemreq_n),     // Input Semaphore Request
       .LERR_n    (s_lerr_n),        // Local Error
-      .LPERR_n   (s_lprerr_n),      // Local Parity Error
+      .LPERR_n   (s_lperr_n),       // Local Parity Error
       .MIS0      (s_mis0),          // Miscellaneous 0
       .MOFF_n    (s_moff_n),        // Memory Off
       .OSC       (s_osc),           // Oscillator

@@ -8,7 +8,7 @@
 ** CPU TOP LEVEL                                                         **
 ** SHEET 15 of 50                                                        **
 **                                                                       **
-** Last reviewed: 20-DEC-2024                                             **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -128,7 +128,7 @@ module CPU_15 (
   wire [ 9:0] s_csca_9_0;
   wire [ 2:0] s_cc_3_1_n;
   wire [ 1:0] s_rf_1_0;
-  wire [15:0] s_pt_15_0;
+  wire [ 6:0] s_pt_15_9;
   wire [12:0] s_csa_12_0;
   wire [10:0] s_ca_10_0;
   wire [ 1:0] s_pcr_1_0;
@@ -225,7 +225,7 @@ module CPU_15 (
   wire [15:0] s_mmu_ppn_25_10_in;
   wire [15:0] s_mmu_ppn_25_10_out;
 
-  wire [15:0] s_cpu_ppn_25_10_out;
+  wire [13:0] s_cpu_ppn_23_10_out;
 
   wire [15:0] s_stoc_idb_15_0_in;
 
@@ -290,6 +290,8 @@ module CPU_15 (
 
   assign s_cpu_cd_15_0_in = CD_15_0_IN;
 
+
+
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
@@ -337,7 +339,7 @@ module CPU_15 (
   assign PCR_1_0 = s_pcr_1_0[1:0];
   assign PIL_3_0 = s_pil_3_0[3:0];
   assign PONI = s_poni;
-  assign PPN_23_10 = s_cpu_ppn_25_10_out[13:0];
+  assign PPN_23_10 = s_cpu_ppn_23_10_out[13:0];
   assign TEST_4_0 = s_test_4_0[4:0];
   assign TOPCSB = s_csbits[63:0];
   assign TP1_INTRQ_n = s_tp1_intr1_n;
@@ -369,75 +371,86 @@ module CPU_15 (
 
   assign s_mmu_ppn_25_10_in = s_lapa_ppn_25_10;  // PPN Input to MMU
 
-  assign s_cpu_ppn_25_10_out[15:0] = s_lapa_ppn_25_10 | s_mmu_ppn_25_10_out;
+  assign s_cpu_ppn_23_10_out[13:0] = s_lapa_ppn_25_10[13:0] | s_mmu_ppn_25_10_out[13:0];
 
-  CPU_PROC_32 PROC (
-      .sysclk(sysclk),  // System clock in FPGA
-      .sys_rst_n(sys_rst_n),  // System reset in FPGA
+  // Code to make LINTER not complaing about bits _not_ read in s_mmu_ppn_25_10_out 15:14
+  (* keep = "true", DONT_TOUCH = "true" *) wire [1:0] unused_MMU_PPN_bits;
+  assign unused_MMU_PPN_bits[1:0] =  s_mmu_ppn_25_10_out[15:14];
 
-      .ACOND_n(s_acond_n),  //Output: connected to top and then CYC
-      .ALUCLK(s_aluclk),
-      .BEDO_n(s_bedo_n),
-      .BEMPID_n(s_bempid_n),
-      .BRK_n(s_brk_n),
-      .BSTP(s_bstp),
-      .CA_9_0(s_ca_10_0[9:0]),
-      .CD_15_0_IN(s_proc_cd_15_0_in[15:0]),
-      .CLK(s_clk),
-      .CSA_12_0(s_csa_12_0[12:0]),
-      .CSBITS(s_csbits[63:0]),
-      .CSCA_9_0(s_csca_9_0[9:0]),
-      .CUP(s_cup),
-      .CWR(s_cwr),
-      .DOUBLE(s_double),
-      .ECCR(s_eccr),  //Output 
-      .ESTOF_n(s_estof_n),
-      .ETRAP_n(s_etrap_n),
-      .EWCA_n(s_ewca_n),
-      .IBINT10_n(s_ibint10_n),
-      .IBINT11_n(s_ibint11_n),
-      .IBINT12_n(s_ibint12_n),
-      .IBINT13_n(s_ibint13_n),
-      .IBINT15_n(s_ibint15_n),
-      .IDB_15_0_IN(s_proc_IDB_15_0_in[15:0]),
-      .IDB_15_0_OUT(s_proc_IDB_15_0_out[15:0]),
-      .IONI(s_ioni),  //Output
-      .IOXERR_n(s_ioxerr_n),
-      .LA_23_10(s_la_23_10[13:0]),
-      .LBA_3_0(s_lba_3_0[3:0]),
-      .LCS_n(s_lcs_n),
-      .LEV0(s_lev0),
-      .LSHADOW(s_lshadow),
-      .MAP_n(s_map_n),
-      .MCLK(s_mclk),
-      .MOR_n(s_mor_n),
-      .MREQ_n(s_mreq_n),  //Input 
-      .MR_n(s_mr_n),
-      .OPCLCS(s_opclcs),
-      .PAN_n(s_pan_n),
-      .PARERR_n(s_parerr_n),
-      .PCR_1_0(s_pcr_1_0[1:0]),
-      .PD1(s_pd1),
-      .PIL_3_0(s_pil_3_0[3:0]),
-      .PONI(s_poni),
-      .POWFAIL_n(s_powfail_n),
-      .PT_15_9(s_pt_15_0[15:9]),
-      .RF_1_0(s_rf_1_0[1:0]),
-      .RRF_n(s_rrf_n),  //Output
-      //.RT_n(s_rt_n),
-      .RT_n(),  // Dont use this output signal as its locked to 1. 
-      .RWCS_n(s_rwcs_n),
-      .TERM_n(s_term_n),
-      .TEST_4_0(s_test_4_0[4:0]),
-      .SEL_TESTMUX(SEL_TESTMUX),
-      .TP1_INTRQ_n(s_tp1_intr1_n),
-      .TRAPN(s_trap_n),  // TRAP_n output
-      .UCLK(s_uclk),
-      .VEX(s_vex),
-      .WCA_n(s_wca_n),
-      .WCS_n(s_wcs_n),
-      .WRFSTB(s_wrfstb),
-      .LDEXM_n(LDEXM_n)
+
+  CPU_PROC_32 PROC
+  (
+    .sysclk(sysclk),  // System clock in FPGA
+    .sys_rst_n(sys_rst_n),  // System reset in FPGA
+
+    // Input signals
+    .ALUCLK(s_aluclk),
+    .BEDO_n(s_bedo_n),
+    .BEMPID_n(s_bempid_n),
+    .CD_15_0_IN(s_proc_cd_15_0_in[15:0]),
+    .CLK(s_clk),
+    .CSBITS(s_csbits[63:0]),
+    .CSCA_9_0(s_csca_9_0[9:0]),
+    .ESTOF_n(s_estof_n),
+    .ETRAP_n(s_etrap_n),
+    .EWCA_n(s_ewca_n),
+    .IBINT10_n(s_ibint10_n),
+    .IBINT11_n(s_ibint11_n),
+    .IBINT12_n(s_ibint12_n),
+    .IBINT13_n(s_ibint13_n),
+    .IBINT15_n(s_ibint15_n),
+    .IOXERR_n(s_ioxerr_n),
+    .LCS_n(s_lcs_n),
+    .MAP_n(s_map_n),
+    .MCLK(s_mclk),
+    .MOR_n(s_mor_n),
+    .MREQ_n(s_mreq_n),
+    .MR_n(s_mr_n),
+    .PAN_n(s_pan_n),
+    .PARERR_n(s_parerr_n),
+    .PD1(s_pd1),
+    .POWFAIL_n(s_powfail_n),
+    .PT_15_9(s_pt_15_9[6:0]),  // Page Table bits 15:9 in to CGA/Delilah
+    .TERM_n(s_term_n),
+    .SEL_TESTMUX(SEL_TESTMUX),
+    .UCLK(s_uclk),
+    .WCA_n(s_wca_n),
+    .WRFSTB(s_wrfstb),
+
+    // Input and output bus signals
+    .IDB_15_0_IN(s_proc_IDB_15_0_in[15:0]),
+    .IDB_15_0_OUT(s_proc_IDB_15_0_out[15:0]),
+
+    // Output Signals
+    .BSTP(s_bstp),
+    .ACOND_n(s_acond_n),  //Output: connected to top and then CYC
+    .BRK_n(s_brk_n),
+    .CA_9_0(s_ca_10_0[9:0]),
+    .CSA_12_0(s_csa_12_0[12:0]),
+    .CUP(s_cup),
+    .CWR(s_cwr),
+    .DOUBLE(s_double),
+    .ECCR(s_eccr),  //Output 
+    .IONI(s_ioni),  //Output
+    .LA_23_10(s_la_23_10[13:0]),
+    .LBA_3_0(s_lba_3_0[3:0]),
+    .LEV0(s_lev0),
+    .LSHADOW(s_lshadow),
+    .OPCLCS(s_opclcs),
+    .PCR_1_0(s_pcr_1_0[1:0]),
+    .PIL_3_0(s_pil_3_0[3:0]),
+    .PONI(s_poni),
+    .RF_1_0(s_rf_1_0[1:0]),
+    .RRF_n(s_rrf_n),  //Output
+    .RT_n(),  // Dont use this output signal as its locked to 1/HIGH
+
+    .LDEXM_n(LDEXM_n),
+    .RWCS_n(s_rwcs_n),
+    .TEST_4_0(s_test_4_0[4:0]),
+    .TP1_INTRQ_n(s_tp1_intr1_n),
+    .TRAPN(s_trap_n),  // TRAP_n output
+    .VEX(s_vex),
+    .WCS_n(s_wcs_n)
   );
 
   CPU_CS_16 CS (
@@ -475,52 +488,62 @@ module CPU_15 (
       .LUA_12_0(s_lua_12_0[12:0])
   );
 
-  CPU_MMU_24 MMU (
-      .sysclk   (sysclk),    // System clock in FPGA
-      .sys_rst_n(sys_rst_n), // System reset in FPGA
+  CPU_MMU_24 MMU
+  (
+    // FPGA system signals
+    .sysclk   (sysclk),    // System clock in FPGA
+    .sys_rst_n(sys_rst_n), // System reset in FPGA
 
-      .BEDO_n(s_bedo_n),
-      .BEMPID_n(s_bempid_n),
-      .BLCS_n(s_blcs_n),
-      .BRK_n(s_brk_n),
-      .BSTP(s_bstp),
-      .CA_10_0(s_ca_10_0[10:0]),
-      .CC2_n(s_cc2_n),
-      .CCLR_n(s_cclr_n),
-      .CD_15_0_IN(s_mmu_cd_15_0_in[15:0]),
-      .CD_15_0_OUT(s_mmu_cd_15_0_out[15:0]),
-      .CUP(s_cup),
-      .CWR(s_cwr),
-      .CYD(s_cyd),
-      .DOUBLE(s_double),
-      .DT_n(s_dt_n),
-      .DVACC_n(s_dvacc_n),
-      .ECSR_n(s_ecsr_n),
-      .EDO_n(s_edo_n),
-      .EMCL_n(s_emcl_n),
-      .EMPID_n(s_empid_n),
-      .EORF_n(s_eorf_n),
-      .ESTOF_n(s_estof_n),
-      .FMISS(s_fmiss),
-      .HIT(s_hit),
-      .IDB_15_0_IN(s_mmu_idb_15_0_in[15:0]),
-      .IDB_15_0_OUT(s_mmu_idb_15_0_out[15:0]),
-      .LAPA_n(s_lapa_n),
-      .LA_20_10(s_la_23_10[10:0]),
-      .LCS_n(s_lcs_n),
-      .LSHADOW(s_lshadow),
-      .PD2(s_pd2),
-      .PPN_25_10_IN(s_mmu_ppn_25_10_in[15:0]),
-      .PPN_25_10_OUT(s_mmu_ppn_25_10_out[15:0]),
-      .PT_15_0_OUT(s_pt_15_0[15:0]),
-      .RT_n(s_rt_n),
-      .STP(s_stp),
-      .SW1_CONSOLE(s_sw1_console),
-      .UCLK(s_uclk),
-      .WCA_n(s_wca_n),
-      .WCHIM_n(s_wchim_n),
-      .WRITE(s_write),
-      .LED1(s_led1)
+    // Input signals
+    .BRK_n(s_brk_n),
+    .CA_10_0(s_ca_10_0[10:0]),
+    .CC2_n(s_cc2_n),
+    .CCLR_n(s_cclr_n),
+    .CUP(s_cup),
+    .CWR(s_cwr),
+    .CYD(s_cyd),
+    .DOUBLE(s_double),
+    .DT_n(s_dt_n),
+    .DVACC_n(s_dvacc_n),
+    .ECSR_n(s_ecsr_n),
+    .EDO_n(s_edo_n),
+    .EMCL_n(s_emcl_n),
+    .EMPID_n(s_empid_n),
+    .EORF_n(s_eorf_n),
+    .ESTOF_n(s_estof_n),
+    .FMISS(s_fmiss),
+    .LA_20_10(s_la_23_10[10:0]),
+    .LCS_n(s_lcs_n),
+    .LSHADOW(s_lshadow),
+    .PD2(s_pd2),
+    .RT_n(s_rt_n),
+    .STP(s_stp),
+    .SW1_CONSOLE(s_sw1_console),
+    .UCLK(s_uclk),
+    .WCHIM_n(s_wchim_n),
+    .WRITE(s_write),
+
+    // Bus signals
+    .IDB_15_0_IN(s_mmu_idb_15_0_in[15:0]),
+    .IDB_15_0_OUT(s_mmu_idb_15_0_out[15:0]),
+
+    .CD_15_0_IN(s_mmu_cd_15_0_in[15:0]),
+    .CD_15_0_OUT(s_mmu_cd_15_0_out[15:0]),
+
+    .PPN_25_10_IN(s_mmu_ppn_25_10_in[15:0]),
+    .PPN_25_10_OUT(s_mmu_ppn_25_10_out[15:0]),
+
+    // Output signals
+    .BEDO_n(s_bedo_n),
+    .BEMPID_n(s_bempid_n),
+    .BLCS_n(s_blcs_n),
+    .BSTP(s_bstp),
+
+    .HIT(s_hit),
+    .LAPA_n(s_lapa_n),
+    .PT_15_9_OUT(s_pt_15_9[6:0]),
+    .WCA_n(s_wca_n),
+    .LED1(s_led1)
   );
 
 

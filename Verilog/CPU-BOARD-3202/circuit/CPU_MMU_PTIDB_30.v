@@ -4,21 +4,21 @@
 ** PT TO IDB                                                             **
 ** SHEET 30 of 50                                                        **
 **                                                                       **
-** Last reviewed: 11-FEB-2024                                            **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 // verilator lint_off ASSIGNDLY
 
 module CPU_MMU_PTIDB_30 (
-    input  [15:0] IDB_15_0_IN,  // IDB in and
-    output [15:0] IDB_15_0_OUT, //             out
+  input WRITE,  // Direction: 0=Read from B,1=Write to B  (DIR)
+  input EPTI_n, // Enable PTI(negated)        (OE_n)
 
-    inout  [15:0] PT_15_0_IN,  //PT data bus  (B) in and out
-    output [15:0] PT_15_0_OUT, //
+  input  [15:0] IDB_15_0_IN,  // IDB in and
+  output [15:0] IDB_15_0_OUT, //             out
 
-    input WRITE,  // Direction: 0=Read from B,1=Write to B  (DIR)
-    input EPTI_n  // Enable PTI(negated)        (OE_n)
+  input  [15:0] PT_15_0_IN,  //PT data bus  (B) in and out
+  output [15:0] PT_15_0_OUT  //
 );
 
   // This code replaces the original Logisim generated code with a simpler and more efficient implementation

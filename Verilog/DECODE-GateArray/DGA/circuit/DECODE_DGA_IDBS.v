@@ -8,7 +8,7 @@
 ** Page 14 DECODE - DECODE_DGA_IDBS Sheet 1 of 2                         **
 ** Page 15 DECODE - DECODE_DGA_IDBS Sheet 2 of 2                         **
 **                                                                       **
-** Last reviewed: 14-DEC-2024                                            **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -27,7 +27,7 @@ module DECODE_DGA_IDBS (
     output EPANSN,  //! Enable Panel Status register (MIPANS/MAPANS - 20/21
     output EPEAN,   //! Enable Parity Error address (PEA) - 12
     output EPESN,   //! Enable Parity Error Status & Address (PES) -13
-    output RINRN,   //! Read Installation Number (RINR) - 35
+    output RINRN,   //! Read Installation Number from B-PLUG (RINR) - IDBS=35
     output RUARTN,  //! Read UART - 37
     output TRAALDN, //! Read Automatic Load Descriptor and print-status (ALD) - 26
 

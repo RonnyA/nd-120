@@ -4,7 +4,7 @@
 ** CACHE                                                                 **
 ** SHEET 29 of 50                                                        **
 **                                                                       **
-** Last reviewed: 20-APRIL-2024                                          **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -69,6 +69,11 @@ module CPU_MMU_PT_29 (
   assign WCINH_n = s_wcinh_n;
 
   assign s_ims_ppn_25_10_in =  s_ppn_25_10_in | s_ppn_25_10_out; // maybe do a conditional expression here to select which PPN to write to RAM chip 20G
+
+  // Code to make LINTER not complaing about bits _not_ read in s_ims_ppn_25_10_in bit 14
+  (* keep = "true", DONT_TOUCH = "true" *) wire unused_IMS_PPN_bit;
+  assign unused_IMS_PPN_bit = s_ims_ppn_25_10_in[14];
+
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **

@@ -4,7 +4,7 @@
 ** LOCAL BD CONTROL                                                      **
 ** SHEET 48 of 50                                                        **
 **                                                                       **
-** Last reviewed: 14-DEC-2024                                            **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -189,13 +189,18 @@ module MEM_LBDIF_48 (
   assign s_13f_y0       = chip13_y[0];
   assign s_blrq50_n_out = chip13_y[1];
   assign s_rdata25_out  = chip13_y[2];
-  //assign nc  = chip13_y[3];
+
+  // Unused wire, this to keep LINTER happy and not complaining about chip13_y[3] bit not read
+  (* keep = "true", DONT_TOUCH = "true" *) wire notused_chip13y3 = chip13_y[3];
+
   assign s_cgnt25_n_out = chip13_y[4];
   assign s_cgnt50_n_out = chip13_y[5];
   assign s_bgnt50_n_out = chip13_y[6];
   assign s_bgnt50_n     = chip13_y[7];
   assign s_bgnt75_n     = chip13_y[8];
   assign s_bcgnt50_out  = chip13_y[9];
+
+
 
   AM29C821 CHIP_13F (
       .CK(s_osc),

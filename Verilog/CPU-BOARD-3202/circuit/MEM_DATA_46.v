@@ -4,7 +4,7 @@
 ** DATA & PARITY TCV                                                     **
 ** SHEET 46 of 50                                                        **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -13,7 +13,7 @@ module MEM_DATA_46 (
     input BCGNT50R_n,  //! Bus CPU Grant on read from memory after the address
     input BIOXL_n,     //! Bus IOX Enable
     input ECCR,        //! Bus ECC Request
-    input HIEN_n,      //! High address bits enable
+    input HIEN_n,      //! High address bits enable (not used)
     input MR_n,        //! Master reset
     input MWRITE_n,    //! Memory Write
     input PA_n,        //! Parity Error Address (PEA)
@@ -52,8 +52,7 @@ module MEM_DATA_46 (
   wire        s_clrerr_n;
   wire        s_dis_n;
   wire        s_eccr;
-  wire        s_gnd;
-  wire        s_hien_n;
+  wire        s_gnd;  
   wire        s_hierr_n_out;
   wire        s_hierr_out;
   wire        s_led4;
@@ -70,6 +69,9 @@ module MEM_DATA_46 (
   wire        s_power;
   wire        s_qd_n;
   wire        s_rdata;
+
+  // Unused wires, this to keep LINTER happy and not complaining about bits not read
+  (* keep = "true", DONT_TOUCH = "true" *) wire s_hien_n;
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **

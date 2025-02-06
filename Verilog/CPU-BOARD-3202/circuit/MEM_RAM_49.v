@@ -4,7 +4,7 @@
 ** LOCAL RAM                                                             **
 ** SHEET 49 of 50                                                        **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -61,15 +61,9 @@ module MEM_RAM_49 (
   wire        s_ras_b0;
   wire        s_cas_b0;
 
-
   wire        prd_n_b0l;
   wire        prd_n_b0h;
 
-  wire        d9_b0l;
-  wire        d9_b0h;
-
-  wire        q9_b0l;
-  wire        q9_b0h;
 
   // BANK1
   wire [17:0] s_dd_17_0_b1_out;  // DD out from bank 1
@@ -80,12 +74,6 @@ module MEM_RAM_49 (
   wire        prd_n_b1l;
   wire        prd_n_b1h;
 
-  wire        d9_b1l;
-  wire        d9_b1h;
-
-  wire        q9_b1l;
-  wire        q9_b1h;
-
   // BANK2
   wire [17:0] s_dd_17_0_b2_out;  // DD out from bank 2
   wire        s_bank2;
@@ -94,15 +82,6 @@ module MEM_RAM_49 (
 
   wire        prd_n_b2l;
   wire        prd_n_b2h;
-
-  wire        d9_b2l;
-  wire        d9_b2h;
-
-  wire        q9_b2l;
-  wire        q9_b2h;
-
-
-
 
 
   /*******************************************************************************
@@ -150,20 +129,6 @@ module MEM_RAM_49 (
   // Calculate CORR ? (in the doc for these RAM chips it seems this pin is not connected..)
   assign s_corr_n = (prd_n_b2l & prd_n_b1l & prd_n_b0l & prd_n_b0h & prd_n_b1h & prd_n_b2h);
 
-
-  // Connect input D9 to output Q9
-  assign d9_b0l = q9_b0l;
-  assign d9_b0h = q9_b0h;
-
-
-  assign d9_b1l = q9_b1l;
-  assign d9_b1h = q9_b1h;
-
-
-  assign d9_b2l = q9_b2l;
-  assign d9_b2h = q9_b2h;
-
-
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
@@ -183,13 +148,11 @@ module MEM_RAM_49 (
       .Q8(s_dd_17_0_b0_out[7:0]),
       .PRD_n(prd_n_b0l),
 
-      .D9(d9_b0l),
-      .Q9(q9_b0l),
+      .D9(s_dd_17_0_in[8]),
+      .Q9(s_dd_17_0_b0_out[8]),
 
       .W_n(s_mwrite50_n)
   );
-
-  assign s_dd_17_0_b0_out[8] = d9_b0l | q9_b0l;
 
   SIP1M9 CHIP_15J (
       .sysclk(sysclk),
@@ -204,14 +167,11 @@ module MEM_RAM_49 (
       .Q8(s_dd_17_0_b0_out[16:9]),
       .PRD_n(prd_n_b0h),
 
-      .D9(d9_b0h),
-      .Q9(q9_b0h),
+      .D9(s_dd_17_0_in[17]),
+      .Q9(s_dd_17_0_b0_out[17]),
 
       .W_n(s_mwrite50_n)
   );
-
-  assign s_dd_17_0_b0_out[17] = d9_b0h | q9_b0h;
-
 
   // **************** BANK 1 ****************
 
@@ -228,13 +188,11 @@ module MEM_RAM_49 (
       .Q8(s_dd_17_0_b1_out[7:0]),
       .PRD_n(prd_n_b1l),
 
-      .D9(d9_b1l),
-      .Q9(q9_b1l),
+      .D9(s_dd_17_0_in[8]),
+      .Q9(s_dd_17_0_b1_out[8]),
 
       .W_n(s_mwrite50_n)
   );
-
-  assign s_dd_17_0_b1_out[8] = d9_b1l | q9_b1l;
 
   SIP1M9 CHIP_15L (
       .sysclk(sysclk),
@@ -249,13 +207,12 @@ module MEM_RAM_49 (
       .Q8(s_dd_17_0_b1_out[16:9]),
 
       .PRD_n(prd_n_b1h),
-      .D9(d9_b1h),
-      .Q9(q9_b1h),
+      .D9(s_dd_17_0_in[17]),
+      .Q9(s_dd_17_0_b1_out[17]),
 
       .W_n(s_mwrite50_n)
   );
 
-  assign s_dd_17_0_b1_out[17] = d9_b1h | q9_b1h;
 
   // **************** BANK 2 ****************
 
@@ -272,13 +229,12 @@ module MEM_RAM_49 (
       .Q8(s_dd_17_0_b2_out[7:0]),
 
       .PRD_n(prd_n_b2l),
-      .D9(d9_b2l),
-      .Q9(q9_b2l),
+      .D9(s_dd_17_0_in[8]),
+      .Q9(s_dd_17_0_b2_out[8]),
 
       .W_n(s_mwrite50_n)
   );
 
-  assign s_dd_17_0_b2_out[8] = d9_b2l | q9_b2l;
 
   SIP1M9 CHIP_15N (
       .sysclk(sysclk),
@@ -293,12 +249,11 @@ module MEM_RAM_49 (
       .Q8(s_dd_17_0_b2_out[16:9]),
 
       .PRD_n(prd_n_b2h),
-      .D9(d9_b2h),
-      .Q9(q9_b2h),
+      .D9(s_dd_17_0_in[17]),
+      .Q9(s_dd_17_0_b2_out[17]),
 
       .W_n(s_mwrite50_n)
   );
 
-  assign s_dd_17_0_b2_out[17] = d9_b2h | q9_b2h;
 
 endmodule

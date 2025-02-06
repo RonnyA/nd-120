@@ -5,7 +5,7 @@
 ** THM91020 - http://norsk-data.com/library/libother/extern/THM91020.pdf      **
 ** THM91070 - http://norsk-data.com/library/libother/extern/THM91070.pdf      **
 **                                                                            **
-** Last reviewed: 29-JAN-2025                                                 **
+** Last reviewed: 2-FEB-2025                                                  **
 ** Ronny Hansen                                                               **
 ********************************************************************************/
 
@@ -51,8 +51,6 @@ module SIP1M9 (
    *******************************************************************************/
   wire [9:0] s_address;
 
-  wire [7:0] s_D_7_0;  // DATA IN
-
   wire       s_d9;
   wire       s_cas_n;
   wire       s_ras_n;
@@ -66,7 +64,6 @@ module SIP1M9 (
   assign s_ras_n        = RAS_n;
   assign s_cas9_n       = CAS9_n;
   assign s_W_n          = W_n;
-  assign s_D_7_0        = D8;
   assign s_d9           = D9;
   /*******************************************************************************
    ** Here all output connections are defined                                    **

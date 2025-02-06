@@ -4,7 +4,7 @@
 ** MICRO ADDR CALC UNIT                                                  **
 ** SHEET 17 of 50                                                        **
 **                                                                       **
-** Last reviewed: 14-APRIL-2024                                          **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -57,6 +57,11 @@ module CPU_CS_ACAL_17 (
   // s_q_chip30h_7_0[3];
   // s_q_chip30h_7_0[4];
   // s_q_chip30h_7_0[7];
+
+    // Code to make LINTER _not_ complain about bits not read in PCR bits 15 and 6:0
+  (* keep = "true", DONT_TOUCH = "true" *) wire [2:0] unused_CHIP30h_bits;
+  assign unused_CHIP30h_bits = { s_q_chip30h_7_0[7],s_q_chip30h_7_0[4],s_q_chip30h_7_0[3] };
+
 
   assign s_uua[11]          = s_q_chip30h_7_0[5];
   assign s_uua[10]          = s_q_chip30h_7_0[6];

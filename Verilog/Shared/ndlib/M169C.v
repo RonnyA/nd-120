@@ -5,7 +5,7 @@
 **                                                                       **
 ** https://www.ti.com/lit/ds/symlink/sn74als169b.pdf                     **
 **                                                                       **
-** Last reviewed: 20-DEC-2024                                            **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -34,7 +34,6 @@ module M169C (
   wire s_b;
   wire s_c;
   wire s_con_out;
-  wire s_cp_n;
   wire s_cp;
   wire s_d;
   wire s_gates27_out;
@@ -122,7 +121,6 @@ module M169C (
    *******************************************************************************/
 
   // NOT Gate
-  assign s_cp_n          = ~s_cp;
   assign s_gates28_n_out = ~s_gates28_out;
   assign s_gates29_n_out = ~s_gates29_out;
   assign s_gates30_n_out = ~s_gates30_out;

@@ -1,10 +1,10 @@
 /**************************************************************************
 ** ND120 CPU, MM&M                                                       **
 ** CPU/MMU/CACHE                                                         **
-** PPN TO IDB                                                            **
+** CACHE                                                                 **
 ** SHEET 25 of 50                                                        **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -113,6 +113,11 @@ module CPU_MMU_CACHE_25 (
 
   assign CPN_23_10_OUT = s_CPN_25_10_OUT[13:0];
 
+
+  // Code to make LINTER not complaing about bits not read in CPN 25:10 (which is none-existsing)
+  (* keep = "true", DONT_TOUCH = "true" *) wire [1:0] unused_CPN_bits;
+  assign unused_CPN_bits[1:0] =  s_CPN_25_10_OUT[15:14];
+
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
@@ -152,26 +157,38 @@ module CPU_MMU_CACHE_25 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  TMM2018D_25 CHIP_23F (
-      .clk    (sysclk),               // Clock input (BLOCK RAM MUST HAVE CLOCK)
-      .reset_n(sys_rst_n),            // FPGA Reset input (active low)
-      .ADDRESS(s_ca_10_0[10:0]),
-      .CS_n   (s_ecd_n),
-      .D      (CD_15_0_IN[15:8]),
-      .D_OUT  (s_cd_15_0_out[15:8]),
-      .OE_n   (s_gnd),
-      .W_n    (s_wca_n)
+  //  16K bit Static RAM  (2KByte)
+  TMM2018D_25 CHIP_23F
+  (
+    .clk    (sysclk),               // Clock input (BLOCK RAM MUST HAVE CLOCK)
+    .reset_n(sys_rst_n),            // FPGA Reset input (active low)
+
+    // Input signals
+    .ADDRESS(s_ca_10_0[10:0]),
+    .CS_n   (s_ecd_n),
+    .OE_n   (s_gnd),
+    .W_n    (s_wca_n),
+
+    // Bus data in and out
+    .D      (CD_15_0_IN[15:8]),
+    .D_OUT  (s_cd_15_0_out[15:8])
   );
 
-  TMM2018D_25 CHIP_24F (
-      .clk    (sysclk),              // Clock input (BLOCK RAM MUST HAVE CLOCK)
-      .reset_n(sys_rst_n),           // FPGA Reset input (active low)
-      .ADDRESS(s_ca_10_0[10:0]),
-      .CS_n   (s_ecd_n),
-      .D      (CD_15_0_IN[7:0]),
-      .D_OUT  (s_cd_15_0_out[7:0]),
-      .OE_n   (s_gnd),
-      .W_n    (s_wca_n)
+  //  16K bit Static RAM  (2KByte)
+  TMM2018D_25 CHIP_24F
+  (
+    .clk    (sysclk),              // Clock input (BLOCK RAM MUST HAVE CLOCK)
+    .reset_n(sys_rst_n),           // FPGA Reset input (active low)
+
+     // Input signals
+    .ADDRESS(s_ca_10_0[10:0]),
+    .CS_n   (s_ecd_n),
+    .OE_n   (s_gnd),
+    .W_n    (s_wca_n),
+
+    // Bus data in and out
+    .D      (CD_15_0_IN[7:0]),
+    .D_OUT  (s_cd_15_0_out[7:0])
   );
 
   PAL_44402D PAL_44402_UBITS (  // PAL16R4D
@@ -202,39 +219,59 @@ module CPU_MMU_CACHE_25 (
 
   assign s_21f_in[3:2] = 2'b00;
 
-  Am9150 CHIP_21F (
+// Code to make LINTER _not_ complain about bits not read in s_21f_out bits 3 and 2
+  (* keep = "true", DONT_TOUCH = "true" *) wire [1:0] unused_21f_out_bits;
+  assign unused_21f_out_bits[1:0] = s_21f_out[3:2];
+
+  // 4KBit * 4 DYNAMIC RAM
+  Am9150 CHIP_21F
+  (
       .clk            (sysclk),          // Clock input (BLOCK RAM MUST HAVE CLOCK)
       .address        (s_ca_10_0[9:0]),
-      .data_in        (s_21f_in),
       .OUTPUT_ENABLE_n(s_gnd),
-      .data_out       (s_21f_out),
       .RESET_n        (s_cclr_n),
       .CHIP_SELECT_n  (s_gnd),
-      .WRITE_ENABLE_n (s_wca_n)
+      .WRITE_ENABLE_n (s_wca_n),
+
+      .data_in        (s_21f_in[3:0]),
+      .data_out       (s_21f_out[3:0])
   );
 
-  TMM2018D_25 CHIP_16F (
-      .clk(sysclk),  // Clock input (BLOCK RAM MUST HAVE CLOCK)
-      .reset_n(sys_rst_n),  // FPGA Reset input (active low)
-      .ADDRESS(s_ca_10_0[10:0]),
-      .CS_n(s_pd2),
-      .D({
-        2'b00, CPN_23_10_IN[13:8]
-      }),  // bit D0 and D1 is not connected (we need only 6 bits) for CPN 23-18
-      .D_OUT(s_CPN_25_10_OUT[15:8]),
-      .OE_n(s_gnd),
-      .W_n(s_wca_n)
+  //  16K bit Static RAM  (2KByte)
+  TMM2018D_25 CHIP_16F
+  (
+    .clk(sysclk),  // Clock input (BLOCK RAM MUST HAVE CLOCK)
+    .reset_n(sys_rst_n),  // FPGA Reset input (active low)
+
+     // Input signals
+    .ADDRESS(s_ca_10_0[10:0]),
+    .CS_n(s_pd2),
+    .OE_n(s_gnd),
+    .W_n(s_wca_n),
+
+    // Bus data in and out
+    .D({
+    2'b00, CPN_23_10_IN[13:8]
+    }),  // bit D0 and D1 is not connected (we need only 6 bits) for CPN 23-18
+    .D_OUT(s_CPN_25_10_OUT[15:8]) // CPN 25:10. CPN 25 and 24 is none existsting and not connected in the schema.
   );
 
-  TMM2018D_25 CHIP_20F (
-      .clk    (sysclk),                // Clock input (BLOCK RAM MUST HAVE CLOCK)
-      .reset_n(sys_rst_n),             // FPGA Reset input (active low)
-      .ADDRESS(s_ca_10_0[10:0]),
-      .CS_n   (s_pd2),
-      .D      (CPN_23_10_IN[7:0]),
-      .D_OUT  (s_CPN_25_10_OUT[7:0]),  // CPN 17-10
-      .OE_n   (s_gnd),
-      .W_n    (s_wca_n)
+  //  16K bit Static RAM  (2KByte)
+  TMM2018D_25 CHIP_20F
+  (
+    .clk    (sysclk),                // Clock input (BLOCK RAM MUST HAVE CLOCK)
+    .reset_n(sys_rst_n),             // FPGA Reset input (active low)
+
+    // Input signals
+    .ADDRESS(s_ca_10_0[10:0]),
+    .CS_n   (s_pd2),
+    .OE_n   (s_gnd),
+    .W_n    (s_wca_n),
+
+      // Bus data in and out
+    .D      (CPN_23_10_IN[7:0]),
+    .D_OUT  (s_CPN_25_10_OUT[7:0])  // CPN 17-10
+
   );
 
 endmodule

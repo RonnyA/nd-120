@@ -4,38 +4,79 @@
 ** CPU TOP LEVEL                                                         **
 ** SHEET 16 of 50                                                        **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 // Onboard 4MB RAM (controlled by PAL 44446B)
 
 module ND3202D (
-    input sysclk,    // System clock in FPGA
-    input sys_rst_n, // System reset in FPGA
-    /*******************************************************************************
-   ** The inputs are defined here                                                **
-   *******************************************************************************/
+    input sysclk,    //! System clock in FPGA
+    input sys_rst_n, //! System reset in FPGA
 
-    input CLOCK_1,  // XTAL1 = 39.3216MHZ
-    input CLOCK_2,  // XTAL2 = 35 MHZ (for slow operations?)
+   /***************************************************
+    ** CLOCK SIGNALS                                  *
+    ***************************************************/
+
+    input CLOCK_1,  //! XTAL1 = 39.3216MHZ
+    input CLOCK_2,  //! XTAL2 = 35 MHZ (for slow operations?)
 
 
-
+   /***************************************************
+    *   BACKPLANE C-PLUG                              *
+    ***************************************************/
 
     /* FROM C-PLUG */
-    input LOAD_n,      // Input signal from "C PLUG", signal B12 - LOAD_n
-    input BREQ_n,      // Input signal from "C PLUG", signal C12 - BREQ_n
-    input CONTINUE_n,  // Input signal from "C PLUG", signal B15 - CONTINUE_n
-    input STOP_n,      // Input signal from "C PLUG", signal B16 - STOP_n
+    input LOAD_n,      //! Input signal from "C PLUG", signal B12 - LOAD_n
+    input BREQ_n,      //! Input signal from "C PLUG", signal C12 - BREQ_n
+    input CONTINUE_n,  //! Input signal from "C PLUG", signal B15 - CONTINUE_n
+    input STOP_n,      //! Input signal from "C PLUG", signal B16 - STOP_n
 
-    input BINT10_n,  // Input signal from "C PLUG", signal A15 - BINT10_n
-    input BINT11_n,  // Input signal from "C PLUG", signal C15 - BINT11_n
-    input BINT12_n,  // Input signal from "C PLUG", signal A16 - BINT12_n
-    input BINT13_n,  // Input signal from "C PLUG", signal C16 - BINT13_n
-    input BINT15_n,  // Input signal from "C PLUG", signal C17 - BINT15_n
+    input BINT10_n,  //! Input signal from "C PLUG", signal A15 - BINT10_n
+    input BINT11_n,  //! Input signal from "C PLUG", signal C15 - BINT11_n
+    input BINT12_n,  //! Input signal from "C PLUG", signal A16 - BINT12_n
+    input BINT13_n,  //! Input signal from "C PLUG", signal C16 - BINT13_n
+    input BINT15_n,  //! Input signal from "C PLUG", signal C17 - BINT15_n
 
-    input POWSENSE_n,    // Input signal from "C PLUG", signals A29,B29,C29 - POWSENSE_n (Power sense signal from the PSU?)
+    input POWSENSE_n,    //! Input signal from "C PLUG", signals A29,B29,C29 - POWSENSE_n (Power sense signal from the PSU?)
+
+    /* TO C-PLUG */
+    output BREF_n,      //! Output-signal to "C PLIG", signal B12 BREF~
+    output BERROR_n,    //! Output-signal to "C PLIG", signal B21 BERROR~
+    output BINACK_n,    //! Output-signal to "C PLIG", signal B19 BINACK~
+    output BIOEX_n,     //! Output-signal to "C PLIG", signal C19 BIOXE~
+    output BMEM_n,      //! Output-signal to "C PLIG", signal C28 BMEM~
+    output OUTGRANT_n,  //! Output-signal to "C PLIG", signal C23 OUTGRANT~
+    output OUTIDEN_n,   //! Output-signal to "C PLIG", signal C22 OUTIDENT~
+    output MCL,         //! Output-signal to "C PLIG", signal B20 MCL~ (after negation)
+
+
+   /***************************************************
+    *   BACKPLANE B-PLUG                              *
+    ***************************************************/
+
+    /* FROM B plug */
+    input   [7:0] INR_7_0,     //! INR 7:0
+    input         EBUS,        //! EBUS B-B3 (pulled high)
+    input         SEL5MS_n,    //! SEL5MS if active will trigger RTC after 5 ms, not 20ms)
+
+
+    /* TO B-PLUG */
+    output  [3:0] PIL,         // XPIL3=B-C8, PIL2=B-B12. PIL1=B-B10, PIL0=B-B9
+    output [12:0] LUA_12_0,    // XLUA 12:0
+    output [15:0] IDB_15_0,    // XIDB
+    output  [4:0] CSCOMM_4_0,  //
+    output  [1:0] MIS_1_0,     // MIS1=B-C14, MIS0=B-A14
+    output [15:0] CD_15_0,     // CD 15:0   (In the circuit board you strap so that the output to the XIDB15-0 signal is either IDB or LBD) See page 3 in the 3202D schematic)
+    output [15:0] LBD_15_0,    // LBD 15:10 (In the circuit board you strap so that the output to the XIDB15-0 signal is either IDB or LBD) See page 3 in the 3202D schematic)
+    output [13:0] LA_23_10,    // XLA 23:10
+    output  [9:0] CA_9_0,      // XCA  9:0
+
+
+
+   /***************************************************
+    *   BACKPLANE C-PLUG                              *
+    ***************************************************/
 
     /* FROM A-PLUG */
     input OSCCL_n,       // Input signal from "A PLUG", signal B3 - OSCCL_n                => (TO IO OSCCL_n)
@@ -51,9 +92,11 @@ module ND3202D (
     // LOAD_n => SWLD_n
     //
 
-    /* Configuration switches */
-    input SW1_CONSOLE,  // Switch on the console (on/off)
-    input [2:0] SEL_TESTMUX,  // Selects testmux signals to output on TEST_4_0
+   /***************************************************
+    *   CONFIGURATION SWITCHES                        *
+    ***************************************************/
+    input SW1_CONSOLE,            // Switch on the console (on/off)
+    input [2:0] SEL_TESTMUX,      // Selects testmux signals to output on TEST_4_0
     input [3:0] BAUD_RATE_SWITCH, // TH2 - 'BAUD RATE CONTROL' Switch on the PCB to select baudrate
 
     /*******************************************************************************
@@ -157,20 +200,15 @@ LED7 (yellow)  - Bus grant
   wire        s_bdry_n;
   wire        s_bif_bdry_n;
   wire        s_mem_bdry_n;
-  wire        s_bdry50_n;
-  wire        s_berror_n;
+  wire        s_bdry50_n;  
   wire        s_bgnt_n;
-  wire        s_bgnt50_n;
-  wire        s_binack_n;
+  wire        s_bgnt50_n;  
   wire        s_binput_n;
   wire        s_bint10_n;
   wire        s_bint11_n;
   wire        s_bint12_n;
   wire        s_bint13_n;
   wire        s_bint15_n;
-  wire        s_bioxe_n;
-  wire        s_bmem_n;
-  wire        s_bref_n;
   wire        s_breq_n;
   wire        s_brk_n;
   wire        s_ca10;
@@ -226,18 +264,14 @@ LED7 (yellow)  - Bus grant
   wire        s_isemrq_n;
   wire        s_istop_n;
   wire        s_lcs_n;
-  wire        s_LDEXM_n;
   wire        s_lerr_n;
   wire        s_lev0;
   wire        s_load_n;
   wire        s_lock_n;
   wire        s_lperr_n;
-  wire        s_lprerr_n;
   wire        s_lshadow;
-  wire        s_lua12;
   wire        s_maclk;
   wire        s_map_n;
-  wire        s_mcl;
   wire        s_mclk;
   wire        s_moff_n;
   wire        s_mor_n;
@@ -248,8 +282,6 @@ LED7 (yellow)  - Bus grant
   wire        s_opclcs;
   wire        s_osc;
   wire        s_osccl_n;
-  wire        s_outgrant_n;
-  wire        s_outident_n;
   wire        s_pa_n;
   wire        s_pan_n;
   wire        s_parerr_n;
@@ -297,6 +329,12 @@ LED7 (yellow)  - Bus grant
   wire        s_io_bint10_n;
   wire        s_io_bint12_n;
   wire        s_io_bint13_n;
+
+
+
+  // Code to make LINTER not complaing about bits _not_ read in s_LDEXM_n
+  // TODO-CLEANUP: Signal not connected and should probably be refactored away
+  (* keep = "true", DONT_TOUCH = "true" *) wire s_LDEXM_n;
 
 
   /*******************************************************************************
@@ -357,7 +395,7 @@ LED7 (yellow)  - Bus grant
 
   // IDB BUS connections
   assign s_cpu_idb_15_0_in = s_bif_idb_15_0_out | s_io_idb_15_0_out | s_mem_idb_15_0_out;
-  assign s_io_idb_7_0_in     = s_bif_idb_15_0_out[7:0]  | s_cpu_idb_15_0_out[7:0]  | s_mem_idb_15_0_out[7:0];
+  assign s_io_idb_7_0_in   = s_bif_idb_15_0_out[7:0]  | s_cpu_idb_15_0_out[7:0]  | s_mem_idb_15_0_out[7:0];
 
   // LBD BUS connections
   assign s_mem_lbd_23_0_in[23:0] = s_bif_lbd_23_0_out[23:0];
@@ -371,18 +409,13 @@ LED7 (yellow)  - Bus grant
   // Buffer
   assign s_run_n = s_stp;
 
-  // PD1-PD4 are always 0 during normal function
+  // PD1-PD4 (Power down) are always 0 during normal function
   assign s_pd1 = 0;
   assign s_pd2 = 0;
   assign s_pd3 = 0;
   assign s_pd4 = 0;
 
-
-  // LUA12 to Cycle Controller
-  assign s_lua12 = s_lua_12_0[12];
-
-
-  assign s_inr_7_0 = 8'b0;
+  
 
   // Or together the BIF and MEM bdry signals. Since they are negated we must first negate them to get the correct meaning
   // assign s_bdry_n = ~(~s_bif_bdry_n | ~s_mem_bdry_n);
@@ -393,15 +426,23 @@ LED7 (yellow)  - Bus grant
   // Cpu Cycle Clock
   assign s_cc2_n = s_cc_3_1_n[1];
 
-  // Missing signal sources?
-  assign s_lprerr_n = 1; // Dont activate the LPRERR signal (source unknown Jan 2025) LOCAL PARITY EROR, so probably MEM is source
-
 
   // ********************************************
   // ****  Bus B connector (TRACE BUS)       ****
   // ********************************************
-  assign s_ebus_n = 1;  // Connect to B3 when needed (3202D pdf sheet 3)
-  assign s_sel5ms_n = 1; // B14 (SEL5MS~) Pulled high via 1Kohm. (3202D pdf sheet 3) - Select 5ms (if active will trigger RTC after 5 ms, not 20ms)
+  assign s_ebus_n = ~EBUS;
+  assign s_sel5ms_n = SEL5MS_n; // B14 (SEL5MS~) Pulled high via 1Kohm. (3202D pdf sheet 3) - Select 5ms (if active will trigger RTC after 5 ms, not 20ms)
+  assign s_inr_7_0 = INR_7_0;
+
+  assign PIL = s_pil_3_0;
+  assign LUA_12_0 =  s_lua_12_0;
+  assign IDB_15_0 =  s_bif_idb_15_0_out | s_io_idb_15_0_out | s_mem_idb_15_0_out | s_cpu_idb_15_0_out;
+  assign CSCOMM_4_0 = s_cscomm_4_0;
+  assign MIS_1_0 = s_csmis_1_0;
+  assign CD_15_0 = s_cpu_cd_15_0_in;
+  assign LBD_15_0 = s_bif_lbd_23_0_out | s_mem_lbd_23_0_out;
+  assign LA_23_10 = 13'b0; //TODO: Where is the LA signal ??
+  assign CA_9_0 =s_ca_9_0;
 
   // ********************************************
   // ****  Bus C connector (ND BUS)          ****
@@ -411,7 +452,37 @@ LED7 (yellow)  - Bus grant
   assign s_bif_bd_23_0_n_in = 24'b111111111111111111111111; // Bus address and data from bus. Pulled high.
   // for C connector connected physically to the FPGA, connect signals 's_bif_bd_23_0_n_out' for output (or use pins with 2 directions)
 
+    // Connect to C-bus output-signal B12 BREF~
+  wire s_bref_n;
+  assign BREF_n = s_bref_n;
 
+   // Connect to C-bus output-signal B21 BERROR~
+  wire s_berror_n;
+  assign BERROR_n = s_berror_n;
+
+   // Connect to C-bus output-signal B19 BINACK~
+  wire s_binack_n;
+  assign BINACK_n =s_binack_n;
+
+  // Connect to C-bus output-signal C19 BIOXE~
+  wire s_bioxe_n;
+  assign BIOEX_n = s_bioxe_n;
+
+  // Connect to C-bus output-signal C28 BMEM~
+  wire s_bmem_n;
+  assign BMEM_n = s_bmem_n;
+
+  // Connect to C-bus output-signal C23 OUTGRANT~
+  wire s_outgrant_n;
+  assign OUTGRANT_n = s_outgrant_n;
+
+  // Connect to C-bus output-signal C22 OUTIDENT~
+  wire s_outident_n;
+  assign OUTIDEN_n = s_outident_n;
+
+  // Connect to C-bus output-signal B20 MCL~ (after negation)
+  wire s_mcl;
+  assign  MCL = ~s_mcl;
 
 
   /*******************************************************************************
@@ -445,7 +516,7 @@ LED7 (yellow)  - Bus grant
       .LBA3(s_lba_3_0[3]),
       .LCS_n(s_lcs_n),
       .LSHADOW(s_lshadow),
-      .LUA12(s_lua12),
+      .LUA12(s_lua_12_0[12]),
       .MAP_n(s_map_n),
       .MREQ_n(s_mreq_n),  // Input
       .OSC(s_osc),
@@ -789,7 +860,7 @@ LED7 (yellow)  - Bus grant
       .IORQ_n   (s_iorq_n),          // IO Request
       .ISEMRQ_n (s_isemrq_n),        // Input Bus Semaphore Request
       .LERR_n   (s_lerr_n),          // Local Error
-      .LPRERR_n (s_lprerr_n),        // Local Parity Error
+      .LPERR_n  (s_lperr_n),        // Local Parity Error
       .MIS0     (s_csmis_1_0[0]),    // Miscellaneous Signal 0
       .MOFF_n   (s_moff_n),          // Memory Off
       .MOR25_n  (s_mor25_n),         // Memory Request (Delayed 25ns)

@@ -4,7 +4,7 @@
 ** IOC, ALD & INR REGS                                                   **
 ** SHEET 41 of 50                                                        **
 **                                                                       **
-** Last reviewed: 19-JAN-2025                                            **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module IO_REG_41 (
@@ -77,7 +77,7 @@ module IO_REG_41 (
   wire        s_traald_n;
 
   /* verilator lint_off UNUSEDSIGNAL */
-  wire        s_reset;
+  (* keep = "true", DONT_TOUCH = "true" *) wire s_reset;
   /* verilator lint_on UNUSEDSIGNAL */
 
 
@@ -134,10 +134,10 @@ module IO_REG_41 (
 
 
 
-  // CPU BOARD LED: RED (Will light up run while MASTER CLEAR is running)
+  // CPU BOARD LED: RED (Will light up run while MASTER CLEAR is running) active low
   assign IOLED[0] = s_emcl_n;
 
-  // CPU BOARD LED: GREEN (Will light up green)
+  // CPU BOARD LED: GREEN (Will light up green) active low
   assign IOLED[1] = s_led3_green_n;
 
   /*******************************************************************************
@@ -163,7 +163,7 @@ module IO_REG_41 (
       .Q({
         s_reset,           // 8-bit output, bit 7 (Q1) - (Reset real time clock.)
         s_scons_n,         // 8-bit output, bit 6 (Q2) - (Set terminal #1 in OPCOM (console), as opposed to normal)
-        s_emcl_n,      // 8-bit output, bit 5 (Q3) -> EMCL_n (Enable master clear: red LED ON1)
+        s_emcl_n,          // 8-bit output, bit 5 (Q3) -> EMCL_n (Enable master clear: red LED ON1)
         s_led3_green_n,    // 8-bit output, bit 4 (Q4) - (Initialisation completed: green LED on1)
 
         s_ioc_3,  // 8-bit output, bit 3 (Q5) - (clock interrupt generated from RTC trap handler.)

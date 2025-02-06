@@ -9,7 +9,7 @@
 ** Page 18 DECODE - DECODE_DGA_COMM - Sheet 3 of 4                       **
 ** Page 19 DECODE - DECODE_DGA_COMM - Sheet 4 of 4                       **
 **                                                                       **
-** Last reviewed: 19-JAN-2025                                            **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -132,7 +132,6 @@ module DECODE_DGA_COMM (
   wire       s_ca10;
   wire       s_cclr_n;
   wire       s_ceuart_n;
-  wire       s_clear_n;
   wire       s_clear;
   wire       s_clk1;
   wire       s_clk2;
@@ -272,10 +271,6 @@ module DECODE_DGA_COMM (
 
   // NOT Gate
   assign s_erof            = ~s_erof_n;
-
-  // NOT Gate
-  assign s_clear_n         = ~s_clear;
-
 
   // Negated CSCOMM
   assign s_cscomm_0_n      = ~s_cscomm_4_0[0];

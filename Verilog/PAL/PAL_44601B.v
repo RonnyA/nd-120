@@ -1,3 +1,12 @@
+/**********************************************************************************************************
+** ND120 PALASM CODE CONVERTED TO VERILOG                                                                **
+**                                                                                                       **
+** Component PAL 44601B                                                                                  **
+**                                                                                                       **
+** Last reviewed: 2-FEB-2025                                                                             **
+** Ronny Hansen                                                                                          **
+***********************************************************************************************************/
+
 // PAL16R6
 // JLB 26NOV86
 // 44601B, 12D, CYCFSM
@@ -117,7 +126,7 @@ module PAL_44601B (
 
   /* DEBUG */
   /* verilator lint_off UNUSEDSIGNAL */
-  wire [3:0] ccReg = {CC3, CC2, CC1, CC0};
+  (* keep = "true", DONT_TOUCH = "true" *) wire [3:0] ccReg = {CC3, CC2, CC1, CC0};
 
   // Tri-state control for Q outputs
   // Assigning outputs with three-state logic controlled by OE_n

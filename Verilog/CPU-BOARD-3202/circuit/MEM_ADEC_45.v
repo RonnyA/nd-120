@@ -4,17 +4,12 @@
 ** ADDRESS DECODERS                                                      **
 ** SHEET 45 of 50                                                        **
 **                                                                       **
-** Last reviewed: 21-APRIL-2024                                          **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 
 module MEM_ADEC_45 (
-    input BD19_n,
-    input BD20_n,
-    input BD21_n,
-    input BD22_n,
-    input BD23_n,
     input BGNT_n,
     input BMEM_n,
     input CGNT_n,
@@ -23,14 +18,12 @@ module MEM_ADEC_45 (
     input IBINPUT_n,
     input IORQ_n,
     input PD4,
-    input PPN19,
-    input PPN20,
-    input PPN21,
-    input PPN22,
-    input PPN23,
     input REFRQ_n,
     input RGNT_n,
     input WRITE,
+
+    input [4:0] BD23_19_n,
+    input [4:0] PPN_23_19,
 
     output [2:0] BANK_2_0,
     output BLRQ_n,
@@ -45,13 +38,11 @@ module MEM_ADEC_45 (
    ** The wires are defined here                                                 **
    *******************************************************************************/
   wire [2:0] s_bank_2_0_out;
+  wire [2:0] s_uc_bank_2_0;
+  wire [2:0] s_ub_bank_2_0;
   wire       s_abit;
   wire       s_aok;
-  wire       s_bank0;
-  wire       s_bank1;
-  wire       s_bank2;
-  wire       s_bbit;
-  wire       s_bd19_n;
+  wire       s_bbit;  
   wire       s_bd20_n;
   wire       s_bd21_n;
   wire       s_bd22_n;
@@ -78,11 +69,11 @@ module MEM_ADEC_45 (
   wire       s_msize0_n;
   wire       s_msize1_n;
   wire       s_mwrite_n_out;
-  wire       s_mwrite_n;
+  wire       s_uc_mwrite_n;
+  wire       s_ub_mwrite_n;
   wire       s_pal_44904_clk;
   wire       s_pd4;
-  wire       s_power;
-  wire       s_ppn19;
+  wire       s_power;  
   wire       s_ppn20;
   wire       s_ppn21;
   wire       s_ppn22;
@@ -93,15 +84,27 @@ module MEM_ADEC_45 (
   wire       s_rlrq_n_out;
   wire       s_write;
 
+  // Unused wires, this to keep LINTER happy and not complaining about bits not read
+  (* keep = "true", DONT_TOUCH = "true" *) wire s_ppn19;
+  (* keep = "true", DONT_TOUCH = "true" *) wire s_bd19_n;
 
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
-  assign s_bd19_n = BD19_n;
-  assign s_bd20_n = BD20_n;
-  assign s_bd21_n  = BD21_n;
-  assign s_bd22_n = BD22_n;
-  assign s_bd23_n = BD23_n;
+  assign s_bd23_n = BD23_19_n[4];
+  assign s_bd22_n = BD23_19_n[3];
+  assign s_bd21_n = BD23_19_n[2];
+  assign s_bd20_n = BD23_19_n[1];
+  assign s_bd19_n = BD23_19_n[0];
+
+
+  assign s_ppn23 = PPN_23_19[4];
+  assign s_ppn22 = PPN_23_19[3];
+  assign s_ppn21 = PPN_23_19[2];
+  assign s_ppn20 = PPN_23_19[1];
+  assign s_ppn19 = PPN_23_19[0];
+
+  
   assign s_bgnt_n = BGNT_n;
   assign s_bmem_n = BMEM_n;
   assign s_cgnt_n = CGNT_n;
@@ -110,11 +113,6 @@ module MEM_ADEC_45 (
   assign s_ibinput_n = IBINPUT_n;
   assign s_iorq_n = IORQ_n;
   assign s_pd4 = PD4;
-  assign s_ppn19 = PPN19;
-  assign s_ppn20  = PPN20;
-  assign s_ppn21 = PPN21;
-  assign s_ppn22  = PPN22;
-  assign s_ppn23 = PPN23;
   assign s_refrq_n = REFRQ_n;
   assign s_rgnt_n  = RGNT_n;
   assign s_write  = WRITE;
@@ -133,6 +131,10 @@ module MEM_ADEC_45 (
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
+
+  // Pulled high when CGNT_n and BGNT_n both are high
+  assign s_bank_2_0_out = (~s_bgnt_n & ~s_cgnt_n) ? 3'b111 : (s_uc_bank_2_0 | s_ub_bank_2_0);
+  assign s_mwrite_n_out = (~s_bgnt_n & ~s_cgnt_n) ? 1 : (s_uc_mwrite_n | s_ub_mwrite_n);
 
   // Power
   assign  s_power  =  1'b1;
@@ -191,7 +193,8 @@ module MEM_ADEC_45 (
             * 200 - 4M Bytes onboard memor
             * 300 - 6M Bytes onboard memory
   */
-
+  (* keep = "true", DONT_TOUCH = "true" *)  wire[6:0] unused_lcd_bits
+    = { s_abit, s_bbit, s_cbit, s_dbit, s_elowseg_n, s_emidseg_n,s_ehiseg_n};
 
   // PAL_44904_UMSIZE, chip 7G
   PAL_44904B PAL_44904_UMSIZE (
@@ -220,6 +223,7 @@ module MEM_ADEC_45 (
   );
 
   // PAL_UCADEC, chip 9G
+  // CPU Address Decode and CPU Local Request
   PAL_44445B PAL_UCADEC (
       .CK  (s_ecreq),
       .OE_n(s_cgnt_n),
@@ -239,13 +243,14 @@ module MEM_ADEC_45 (
       .ECREQ   (s_ecreq),       // B3_n - ECREQ
 
 
-      .BANK2   (s_bank_2_0_out[2]),  // Q0_n - BANK2
-      .BANK1   (s_bank_2_0_out[1]),  // Q1_n - BANK1
-      .BANK0   (s_bank_2_0_out[0]),  // Q2_n - BANK0
-      .MWRITE_n(s_mwrite_n_out)      // Q3_n - MWRITE_n
+      .BANK2   (s_uc_bank_2_0[2]),  // Q0_n - BANK2
+      .BANK1   (s_uc_bank_2_0[1]),  // Q1_n - BANK1
+      .BANK0   (s_uc_bank_2_0[0]),  // Q2_n - BANK0
+      .MWRITE_n(s_uc_mwrite_n)      // Q3_n - MWRITE_n
   );
 
   // PAL_UBADEC, chip 6G
+  // BUS Address Decode and Bus Local Request
   PAL_44446B PAL_UBADEC (
       .CK  (s_dbapr),
       .OE_n(s_bgnt_n),
@@ -264,10 +269,10 @@ module MEM_ADEC_45 (
       .MSIZE1_n(s_msize1_n), // OUTPUT B2_n - MSIZE1_n (not connected? Set to 1, so MSIZE1 is 0)
       //.B3_n    (),            // not in use
 
-      .BANK2(s_bank2),  // OUTPUT Q0_n - BANK2
-      .BANK1(s_bank1),  // OUTPUT Q1_n - BANK1
-      .BANK0(s_bank0),  // OUTPUT Q2_n - BANK0
-      .MWRITE_n(s_mwrite_n)  // OUTPUT Q3_n - MWRITE
+      .BANK2   (s_ub_bank_2_0[2]),  // Q0_n - BANK2
+      .BANK1   (s_ub_bank_2_0[1]),  // Q1_n - BANK1
+      .BANK0   (s_ub_bank_2_0[0]),  // Q2_n - BANK0
+      .MWRITE_n(s_ub_mwrite_n)      // Q3_n-  MWRITE_n
   );
 
 

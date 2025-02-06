@@ -1,3 +1,13 @@
+/**********************************************************************************************************
+** ND120 PALASM CODE CONVERTED TO VERILOG                                                                **
+**                                                                                                       **
+** Component PAL 44401B                                                                                  **
+**                                                                                                       **
+** Last reviewed: 2-FEB-2025                                                                             **
+** Ronny Hansen                                                                                          **
+***********************************************************************************************************/
+
+
 // 44401B,5D,BTIM
 // PAL16R4D (https://rocelec.widen.net/view/pdf/c6dwcslffz/VANTS00080-1.pdf)
 
@@ -13,28 +23,28 @@
 // O3-O6 output is controlled by OE_n (HIGH signal means output is three-state)
 
 module PAL_44401B(
-    input CK, 
+    input CK,
     input OE_n,
 
-    input CC2_n,        // I0 
-    input CACT_n,       // I1 
-    input CACT25_n,     // I2 
-    input BDRY50_n,     // I3 
-    input CGNT_n,       // I4 
-    input CGNT50_n,     // I5 
-    input TERM_n,       // I6   
-    input IORQ_n,       // I7 
+    input CC2_n,        // I0
+    input CACT_n,       // I1
+    input CACT25_n,     // I2
+    input BDRY50_n,     // I3
+    input CGNT_n,       // I4
+    input CGNT50_n,     // I5
+    input TERM_n,       // I6
+    input IORQ_n,       // I7
 
 
-    output Q0_n,        // Q0_n                            
-    output Q1_n,        // Q1_n                            
-    output Q2_n,        // Q2_n                            
-                        // Q3_n (not connected, no signal) 
+    output Q0_n,        // Q0_n
+    output Q1_n,        // Q1_n
+    output Q2_n,        // Q2_n
+                        // Q3_n (not connected, no signal)
 
-    output APR_n,       // B0_n 
-    output DAP_n,       // B1_n 
-    output EIOD_n,      // B2_n 
-    output EADR_n       // B3_n             
+    output APR_n,       // B0_n
+    output DAP_n,       // B1_n
+    output EIOD_n,      // B2_n
+    output EADR_n       // B3_n
 );
 
 // Creating non-negated wires for active-low inputs
@@ -45,9 +55,9 @@ wire CGNT = ~CGNT_n;
 wire IORQ = ~IORQ_n;
 
 
-// Temporary removed because of "unused" warning. 
+// Temporary removed because of "unused" warning.
 // Which is related to " Feedback to public clock or circular logic: 'DAP_n'"
-//wire DAP = ~DAP_n;	
+//wire DAP = ~DAP_n;
 
 
 // Logic for Q0, Q1, Q2
@@ -61,20 +71,20 @@ always @(posedge CK) begin
                     (Q2_n & Q1_n & Q0)                     |
                     (Q2 & Q1 & Q0)                         |
                     (Q2 & Q1 & Q0_n);
-            
+
 
     Q1 <=
                     (Q2_n & Q0 & Q1)   |
                     (Q2_n & Q0 & Q1_n) |
                     (Q1 & Q0_n & Q2)   |
                     (Q1 & Q0_n & Q2_n);
-              
 
-    Q2 <= 
+
+    Q2 <=
                     (Q1 & Q0_n & Q2)   |
                     (Q1 & Q0_n & Q2_n) |
                     (Q2 & Q0 & Q1)     |
-                    (Q2 & Q0 & Q1_n);            
+                    (Q2 & Q0 & Q1_n);
 end
 
 
@@ -98,10 +108,11 @@ assign EADR_n = ~(
 // Logic for DAP
 reg DAP;
 
-always @(*) begin
+always @(*) 
+begin
     if (Q2_n & Q1_n & Q0_n & CACT & CACT25)
         DAP = 1'b1;
-    else if  ((TERM_n & IORQ & CC2) == 0)    
+    else if  ((TERM_n & IORQ & CC2) == 0)
         DAP = 1'b0;
 end
 
@@ -128,9 +139,9 @@ DESCRIPTION
 ;                                                                              |
 ;                        (t)001                                                |
 ;                                                                              |
-;                        |-----(u)-----(v)-----(w)-----(x)-----(y)-----(z)---->| 
+;                        |-----(u)-----(v)-----(w)-----(x)-----(y)-----(z)---->|
 ;                             O11     010     110     111     101     100
-                 
+
 ; 010387 JLB: EIOD TOO SOON, ONLY 15NS SETUP FOR BD BEFORE BIOXE.
 ; WOULD NOT LOAD FROM FLOPPY. EIOD FRONT FLANK DELAYED 25NS.
 

@@ -4,7 +4,7 @@
 ** MMU TOP LEVEL                                                         **
 ** SHEET 24 of 50                                                        **
 **                                                                       **
-** Last reviewed: 29-JAN-2025                                            **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -12,53 +12,52 @@ module CPU_MMU_24 (
     input sysclk,    // System clock in FPGA
     input sys_rst_n, // System reset in FPGA
 
-    input        BRK_n,
-    input [10:0] CA_10_0,
-    input        CC2_n,
-    input        CCLR_n,
-    input        CUP,
-    input        CWR,
-    input        CYD,
-    input        DOUBLE,
-    input        DT_n,
-    input        DVACC_n,
-    input        ECSR_n,
-    input        EDO_n,
-    input        EMCL_n,
-    input        EMPID_n,
-    input        EORF_n,
-    input        ESTOF_n,
-    input        FMISS,
-    input [10:0] LA_20_10,
-    input        LCS_n,
-    input        LSHADOW,
-    input        PD2,
-    input        RT_n,
-    input        STP,
-    input        SW1_CONSOLE,
-    input        UCLK,
-    input        WCHIM_n,
-    input        WRITE,
+    input        BRK_n,          //! CPU Break signal
+    input [10:0] CA_10_0,        //! Cache address, 11 bits
+    input        CC2_n,          //! Cycle clock 2
+    input        CCLR_n,         //! Cache clear
+    input        CUP,            //! Cache updated
+    input        CWR,            //! Cache write
+    input        CYD,            //! Cycle done
+    input        DOUBLE,         //! Extended Adressing Mode (SEXI)
+    input        DT_n,           //! Data transfer
+    input        DVACC_n,        //! Data valid acknowledge
+    input        ECSR_n,         //! Enable cache status register
+    input        EDO_n,          //! Enable data output
+    input        EMCL_n,         //! Enable master clear
+    input        EMPID_n,        //! Interrupt disable
+    input        EORF_n,         //! End of Read Flag
+    input        ESTOF_n,        //! Enable store of Fault
+    input        FMISS,          //! Force miss
+    input [10:0] LA_20_10,       //! Logical address, 11 bits
+    input        LCS_n,          //! Load control store
+    input        LSHADOW,        //! Load shadow signal
+    input        PD2,            //! Power down 2
+    input        RT_n,           //! Return
+    input        STP,            //! Stop signal
+    input        SW1_CONSOLE,    //! Switch on the console (on/off)
+    input        UCLK,           //! User clock
+    input        WCHIM_n,        //! Write cache inhibit
+    input        WRITE,          //! Write enable
 
-    input  [15:0] IDB_15_0_IN,
-    output [15:0] IDB_15_0_OUT,
+    input  [15:0] IDB_15_0_IN,   //! Internal data bus input, 16 bits
+    output [15:0] IDB_15_0_OUT,  //! Internal data bus output, 16 bits
 
-    input  [15:0] CD_15_0_IN,
-    output [15:0] CD_15_0_OUT,
+    input  [15:0] CD_15_0_IN,    //! Cache data input, 16 bits
+    output [15:0] CD_15_0_OUT,   //! Cache data output, 16 bits
 
-    input  [15:0] PPN_25_10_IN,
-    output [15:0] PPN_25_10_OUT,
+    input  [15:0] PPN_25_10_IN,  //! Physical page number input, 16 bits
+    output [15:0] PPN_25_10_OUT, //! Physical page number output, 16 bits
 
-    output BEDO_n,      //! Buffered Enable IDB "data out" from CGA
-    output BEMPID_n,    //! Buffered EMPID - Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints)
-    output BLCS_n,      //! Bus LCS (Load Control Store)
-    output BSTP,        //! Bus Stop
-
-    output HIT,                //! Cache hit signal, indicates a successful cache lookup
-    output LAPA_n,             //! Latch Page Address, controls latching of the page address
-    output [15:0] PT_15_0_OUT, //! Page Table data output, contains the page table entry data
-    output WCA_n,              //! Write Cache Address, controls writing to the cache address register
-    output LED1                //! Cache enabled ?
+    output BEDO_n,               //! Buffered Enable IDB "data out" from CGA
+    output BEMPID_n,             //! Buffered EMPID - Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints)
+    output BLCS_n,               //! Bus LCS (Load Control Store)
+    output BSTP,                 //! Bus Stop
+    output HIT,                  //! Cache hit signal, indicates a successful cache lookup
+    output LAPA_n,               //! Latch Page Address, controls latching of the page address
+    output [6:0] PT_15_9_OUT,    //! Page Table data output, top 7 bits
+    output WCA_n,                //! Write Cache Address, controls writing to the cache address register
+    output LED1                  //! Cache enabled ?
 );
 
 
@@ -68,7 +67,7 @@ module CPU_MMU_24 (
   wire [10:0] s_la_20_10;
   wire [15:0] s_idb_15_0_out;
 
-  wire [13:0] s_cpn_23_10;
+  wire [13:0] s_hit_cpn_23_10_in;
   wire [10:0] s_ca_10_0;
 
   wire [ 1:0] s_hit_1_0_n;
@@ -135,6 +134,7 @@ module CPU_MMU_24 (
 
   // CPN
   wire [13:0] s_cache_cpn_23_10_out;
+  wire [13:0] s_cache_cpn_23_10_in;
 
   wire [15:0] s_cache_cd_15_0_in;
   wire [15:0] s_cache_cd_15_0_out;
@@ -155,6 +155,7 @@ module CPU_MMU_24 (
 
   // WCA
   wire [13:0] s_wca_ppn_23_10_in;
+  wire [13:0] s_wca_cpn_23_10_out;
 
   // CSR
   wire [ 3:0] s_csr_idb_3_0_out;
@@ -206,7 +207,7 @@ module CPU_MMU_24 (
   assign IDB_15_0_OUT = s_idb_15_0_out[15:0];
   assign LAPA_n = s_lapa_n;
   assign PPN_25_10_OUT = s_pt_ppn_25_10_out | s_ppnx_ppn_25_10_out;
-  assign PT_15_0_OUT = s_pt_pt_15_0_out[15:0] | s_ptidb_pt_15_0_out;
+  assign PT_15_9_OUT = s_pt_pt_15_0_out[15:9] | s_ptidb_pt_15_0_out[15:9];
   assign WCA_n = s_wca_n;
   assign LED1 = s_led1;
 
@@ -244,94 +245,160 @@ module CPU_MMU_24 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  CPU_MMU_HIT_27 MMU_HIT (  // IN
-      .CPN_23_10_IN(s_cpn_23_10[13:0]),
-      .PPN_23_10_IN(s_ppn_25_10_in[13:0]),
+  // HIT DETECTOR MODULE: This module, CPU_MMU_HIT_27, is responsible for determining cache hit status.
+  // It compares the provided physical page number (PPN) and cache page number (CPN) inputs to detect
+  // if there is a match, indicating a cache hit. The module takes in 14-bit inputs for both PPN and CPN,
+  // along with control signals LSHADOW, FMISS, and CON_n. It outputs two signals, HIT0_n and HIT1_n,
+  // which represent the negated hit status for different conditions. A low output on these signals
+  // indicates a cache hit, while a high output indicates a miss.
+  CPU_MMU_HIT_27 MMU_HIT
+  (
+    // Input signals
+    .CPN_23_10_IN(s_hit_cpn_23_10_in[13:0]),
+    .PPN_23_10_IN(s_ppn_25_10_in[13:0]),
 
-      .LSHADOW(s_lshadow),
-      .FMISS  (s_fmiss),
-      .CON_n  (s_con_n),
+    .LSHADOW(s_lshadow),
+    .FMISS  (s_fmiss),
+    .CON_n  (s_con_n),
 
-      // OUT
-      .HIT0_n(s_hit_1_0_n[0]),
-      .HIT1_n(s_hit_1_0_n[1])
+    // Output signals
+    .HIT0_n(s_hit_1_0_n[0]),
+    .HIT1_n(s_hit_1_0_n[1])
   );
 
-  CPU_MMU_PPNX_28 PPNX (
-      .EIPL_n(s_eipl_n),
-      .EIPUR_n(s_eipur_n),
-      .EIPU_n(s_eipu_n),
-      .ESTOF_n(s_estof_n),
-      .IDB_15_0_IN(s_ppnx_idb_15_0_in[15:0]),
-      .IDB_15_0_OUT(s_ppnx_idb_15_0_out[15:0]),
-      .PPN_25_10_IN(s_ppnx_ppn_25_10_in[15:0]),
-      .PPN_25_10_OUT(s_ppnx_ppn_25_10_out[15:0])
+  // The CPU_MMU_PPNX_28 module is responsible for handling the translation and manipulation
+  // of the Physical Page Number (PPN) and the Internal Data Bus (IDB) signals. It takes in
+  // control signals such as EIPL_n, EIPUR_n, EIPU_n, and ESTOF_n to determine the direction
+  // and conditions under which data is transferred between the PPN and IDB. The module
+  // outputs the modified PPN and IDB values, facilitating the interaction between the
+  // memory management unit and other components of the CPU.
+  CPU_MMU_PPNX_28 PPNX
+  (
+    // Input signals
+    .EIPL_n(s_eipl_n),
+    .EIPUR_n(s_eipur_n),
+    .EIPU_n(s_eipu_n),
+    .ESTOF_n(s_estof_n),
+
+     // Bus signals (in and out)
+    .IDB_15_0_IN(s_ppnx_idb_15_0_in[15:0]),
+    .IDB_15_0_OUT(s_ppnx_idb_15_0_out[15:0]),
+
+    .PPN_25_10_IN(s_ppnx_ppn_25_10_in[15:0]),
+    .PPN_25_10_OUT(s_ppnx_ppn_25_10_out[15:0])
   );
 
-  //TODO:  Maybe refactor to one line ?
-  CPU_MMU_PTIDB_30 PTIDB (
-      .EPTI_n(s_epti_n),
-      .IDB_15_0_IN(s_ptidb_idb_15_0_in[15:0]),
-      .IDB_15_0_OUT(s_ptidb_idb_15_0_out[15:0]),
-      .PT_15_0_IN(s_ptidb_pt_15_0_in),
-      .PT_15_0_OUT(s_ptidb_pt_15_0_out),
-      .WRITE(s_write)
+  // The CPU_MMU_PTIDB_30 module is responsible for interfacing between the Page Table (PT) and the Internal Data Bus (IDB).
+  // It manages the data flow between these components, allowing for the reading and writing of page table entries.
+  // The module takes in control signals such as EPTI_n and WRITE to determine the operation mode, and it handles
+  // 16-bit data inputs and outputs for both the IDB and PT. This module is crucial for maintaining the integrity
+  // and efficiency of memory management operations within the CPU.
+  CPU_MMU_PTIDB_30 PTIDB
+  (
+    .WRITE(s_write), // Direction
+    .EPTI_n(s_epti_n), // Output enable
+
+    // Bus signals (in and out)
+    .IDB_15_0_IN(s_ptidb_idb_15_0_in[15:0]),
+    .IDB_15_0_OUT(s_ptidb_idb_15_0_out[15:0]),
+
+    .PT_15_0_IN(s_ptidb_pt_15_0_in),
+    .PT_15_0_OUT(s_ptidb_pt_15_0_out)
   );
 
 
 
   // CPU_MMU_WCA_31.v is replaced by this line
-
   // if s_lapa_n is high, output is high-impedance
-  assign s_cpn_23_10[13:0] = s_wca_n ? 14'b0 : s_wca_ppn_23_10_in[13:0];
+  assign s_wca_cpn_23_10_out[13:0] = s_wca_n ? 14'b0 : s_wca_ppn_23_10_in[13:0];
 
-  CPU_MMU_CSR_26 CSR (
-      .BEDO_n(s_bedo_n),
-      .BEMPID_n(s_bempid_n),
-      .BLCS_n(s_blcs_n),
-      .BSTP(s_bstp),
-      .CON(s_con),
-      .CUP(s_cup),
-      .ECSR_n(s_ecsr_n),
-      .EDO_n(s_edo_n),
-      .EMPID_n(s_empid_n),
-      .IDB_3_0(s_csr_idb_3_0_out[3:0]),
-      .LCS_n(s_lcs_n),
-      .PD2(s_pd2),
-      .STP(s_stp)
+  // Combine the CPN output from WCA and CACHE
+  assign s_hit_cpn_23_10_in = s_wca_cpn_23_10_out | s_cache_cpn_23_10_out;
+
+  // Assign the correct bits to the CACHE cpn in bits
+  assign s_cache_cpn_23_10_in = s_wca_cpn_23_10_out;
+
+  // Cache Status Register (CSR)
+  //
+  // The CPU_MMU_CSR_26 module serves as the Cache Status Register (CSR) within the Memory Management Unit (MMU).
+  // It is responsible for managing and outputting various status signals related to cache operations.
+  // The module takes several input signals, including STP, EMPID_n, EDO_n, LCS_n, PD2, CUP, CON, and ECSR_n,
+  // which represent different control and status conditions of the CPU and cache system.
+  // Based on these inputs, the CSR module generates output signals such as BSTP, BEMPID_n, BEDO_n, BLCS_n,
+  // and a 4-bit IDB output (IDB_3_0), which are used to control and monitor the cache's behavior and status.
+  CPU_MMU_CSR_26 CSR
+  (
+    // Input signals
+    .STP(s_stp),
+    .EMPID_n(s_empid_n),
+    .EDO_n(s_edo_n),
+    .LCS_n(s_lcs_n),
+    .PD2(s_pd2),
+
+    .CUP(s_cup),
+    .CON(s_con),
+    .ECSR_n(s_ecsr_n),
+
+    // Output signals
+    .BSTP(s_bstp),
+    .BEMPID_n(s_bempid_n),
+    .BEDO_n(s_bedo_n),
+    .BLCS_n(s_blcs_n),
+    .IDB_3_0(s_csr_idb_3_0_out[3:0])
   );
 
-  CPU_MMU_CACHE_25 CACHE (
-      .sysclk   (sysclk),    // System clock in FPGA
-      .sys_rst_n(sys_rst_n), // System reset in FPGA
+  // Cache
+  //
+  // The CPU_MMU_CACHE_25 module is responsible for managing the cache operations within the Memory Management Unit (MMU).
+  // It interfaces with various input signals such as system clock, reset, and control signals like BRK_n, CWR, and FMISS,
+  // which are crucial for cache control and data flow. The module handles both input and output bus signals, including
+  // CD_15_0 and CPN_23_10, to facilitate data transfer between the cache and other components. Additionally, it generates
+  // output signals like CON, HIT, and LED1, which indicate the cache's operational status and hit/miss results. This module
+  // plays a vital role in optimizing memory access times by storing frequently accessed data, thereby improving overall
+  // system performance.
+  CPU_MMU_CACHE_25 CACHE
+  (
+    .sysclk   (sysclk),    // System clock in FPGA
+    .sys_rst_n(sys_rst_n), // System reset in FPGA
 
-      .BRK_n(s_brk_n),
-      .CA_10_0(s_ca_10_0[10:0]),
-      .CCLR_n(s_cclr_n),
-      .CD_15_0_IN(s_cache_cd_15_0_in),
-      .CD_15_0_OUT(s_cache_cd_15_0_out),
-      .CON(s_con),
-      .CON_n(s_con_n),
-      .CPN_23_10_IN(s_cpn_23_10[13:0]),
-      .CPN_23_10_OUT(s_cache_cpn_23_10_out[13:0]),
+    // Input signals
+    .BRK_n(s_brk_n),
+    .CA_10_0(s_ca_10_0[10:0]),
+    .CCLR_n(s_cclr_n),
+    .CWR(s_cwr),
+    .CYD(s_cyd),
+    .DT_n(s_dt_n),
+    .ECD_n(s_ecd_n),
+    .FMISS(s_fmiss),
+    .HIT_1_0_n(s_hit_1_0_n[1:0]),
+    .LSHADOW(s_lshadow),
+    .PD2(s_pd2),
+    .RT_n(s_rt_n),
+    .SW1_CONSOLE(s_sw1_console),
+    .UCLK(s_uclk),
+    .WCINH_n(s_wcinh_n),
 
-      .CWR(s_cwr),
-      .CYD(s_cyd),
-      .DT_n(s_dt_n),
-      .ECD_n(s_ecd_n),
-      .FMISS(s_fmiss),
-      .HIT(s_hit),
-      .HIT_1_0_n(s_hit_1_0_n[1:0]),
-      .LSHADOW(s_lshadow),
-      .PD2(s_pd2),
-      .RT_n(s_rt_n),
-      .SW1_CONSOLE(s_sw1_console),
-      .UCLK(s_uclk),
-      .WCA_n(s_wca_n),
-      .WCINH_n(s_wcinh_n),
-      .LED1(s_led1)
+    // Bus signals (in and out)
+    .CD_15_0_IN(s_cache_cd_15_0_in),
+    .CD_15_0_OUT(s_cache_cd_15_0_out),
+
+    .CPN_23_10_IN(s_cache_cpn_23_10_in[13:0]),
+    .CPN_23_10_OUT(s_cache_cpn_23_10_out[13:0]),
+
+    // Output signals
+    .CON(s_con),
+    .CON_n(s_con_n),
+    .HIT(s_hit),
+    .WCA_n(s_wca_n),
+    .LED1(s_led1)
   );
 
+  // The PAL_44306A module, labeled as PAL_44306_UNOCTL, is a programmable array logic component
+  // that manages various control signals within the Memory Management Unit (MMU). It takes multiple
+  // input signals, such as cache address, write enable, and data valid acknowledge, to generate
+  // specific output control signals. These outputs, like ECD_n and LAPA_n, are crucial for coordinating
+  // the operations of the MMU, including enabling or disabling certain functions and managing data flow.
+  // The module plays a key role in ensuring the correct sequencing and control of memory operations.
   PAL_44306A PAL_44306_UNOCTL (
       .EIPUR_n(s_eipur_n),     //B0
       .EIPU_n (s_eipu_n),      //B1
@@ -353,18 +420,26 @@ module CPU_MMU_24 (
       .LAPA_n (s_lapa_n)       //Y1
   );
 
-  CPU_MMU_PT_29 PT (
+  // Page Table (PT)
+  //
+  // This module, CPU_MMU_PT_29, is responsible for managing the Page Table (PT) operations within the Memory Management Unit (MMU).
+  // It interfaces with the system clock and reset signals to ensure synchronized operations.
+  // The module handles 11-bit addressing for PT chips, enabling or disabling the EPMAP and PT chips based on control signals.
+  // It manages write operations to RAM chips, specifically targeting the high bit of the Page Physical Number (PPN).
+  // The module also processes bidirectional signals for both PPN and PT data buses, facilitating data flow in and out.
+  // Additionally, it outputs a write control inhibit signal, which is active low, to regulate write operations.
+  CPU_MMU_PT_29 PT
+  (
     // Inputs
-    .sysclk(sysclk),           // System clock in FPGA
-    .sys_rst_n(sys_rst_n),     // System reset in FPGA
-
+    .sysclk(sysclk),             // System clock in FPGA
+    .sys_rst_n(sys_rst_n),       // System reset in FPGA
     .LA_20_10(s_la_20_10[10:0]), // 11 bit addressing into PT chips
-    .EPMAP_n(s_epmap_n),       // Enable EPMAP chips (Extended map?)
-    .EPT_n(s_ept_n),           // Enable PT chips (Chip select for PT chips)  
-    .WCLIM_n(s_wclim_n),       // Write to RAM chip with 1 bit Data being PPN hi bit (bit ppn 25)
-    .WMAP_n(s_wmap_n),         // Write MAPPING signal
+    .EPMAP_n(s_epmap_n),         // Enable EPMAP chips (Extended map?)
+    .EPT_n(s_ept_n),             // Enable PT chips (Chip select for PT chips)
+    .WCLIM_n(s_wclim_n),         // Write to RAM chip with 1 bit Data being PPN hi bit (bit ppn 25)
+    .WMAP_n(s_wmap_n),           // Write MAPPING signal
 
-    // In-out signals
+    // Bus signals (in and out)
     .PPN_25_10_IN(s_pt_ppn_25_10_in[15:0]), // Bidirectional PPN (in)
     .PPN_25_10_OUT(s_pt_ppn_25_10_out[15:0]), // Bidirectional PPN (out)
 

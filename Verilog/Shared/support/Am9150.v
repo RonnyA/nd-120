@@ -33,7 +33,7 @@
 **                                                                                                                            **
 **  http://www.sintran.com/library/libother/extern/AM9150.pdf                                                                 **
 **                                                                                                                            **
-** Last reviewed: 1-DEC-2024                                                                                                  **
+** Last reviewed: 2-FEB-2025                                                                                                  **
 ** Ronny Hansen                                                                                                               **
 ********************************************************************************************************************************/
 
@@ -56,8 +56,8 @@ module Am9150 (
   (* ram_style = "block" *) reg [3:0] memory_array[0:1023];
 
   // Read, write and reset operations
-
-  always @(posedge clk, negedge CHIP_SELECT_n) begin
+  always @(posedge clk) // or negedge CHIP_SELECT_n)
+  begin
     //if (!RESET_n) begin
       // Reset operation: set all memory locations to 0
 

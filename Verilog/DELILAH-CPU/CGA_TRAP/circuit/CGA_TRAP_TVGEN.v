@@ -6,7 +6,7 @@
 ** Page 104                                                              **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 2-FEB-2024                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -121,6 +121,11 @@ module CGA_TRAP_TVGEN (
   assign s_pgf_out         = ~s_pgfn_out;
   assign s_pgu_out         = ~s_pgun_out;
   assign s_wip_out         = ~s_wipn_out;
+
+
+  // Code to make LINTER not complaing about bits _not_ read in IPT 14,12:11
+  (* keep = "true", DONT_TOUCH = "true" *) wire [2:0] unused_ipt_bits;
+  assign unused_ipt_bits[2:0] = {s_ipt_15_9[5], s_ipt_15_9[3:2]};
 
   /*******************************************************************************
    ** Here all normal components are defined                                     **

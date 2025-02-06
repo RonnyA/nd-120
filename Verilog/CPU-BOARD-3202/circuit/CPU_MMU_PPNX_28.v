@@ -4,32 +4,32 @@
 ** PPN TO IDB                                                            **
 ** SHEET 28 of 50                                                        **
 **                                                                       **
-** Last reviewed: 14-FEB-2024                                            **
+** Last reviewed: 2-FEB-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
-module CPU_MMU_PPNX_28 (
-    input EIPL_n,
-    input EIPUR_n,
-    input EIPU_n,
-    input ESTOF_n,
+module CPU_MMU_PPNX_28 (  
+  input EIPU_n,   //! Enable IDB upper bits
+  input EIPL_n,   //! Enable IDB lower bits
+  input ESTOF_n,  //! Input signal for direction control (PPN<->IDB)
 
-    input  [15:0] IDB_15_0_IN,
-    output [15:0] IDB_15_0_OUT,
+  input EIPUR_n,  //! Mask away the PROTECT BITS in PPN (PPN 25:19 == 000000)
 
-    input  [15:0] PPN_25_10_IN,
-    output [15:0] PPN_25_10_OUT
+  input  [15:0] IDB_15_0_IN,
+  output [15:0] IDB_15_0_OUT,
+
+  input  [15:0] PPN_25_10_IN,
+  output [15:0] PPN_25_10_OUT
 );
 
 
   wire DIR = ESTOF_n;
-  wire OE_U_n = EIPU_n;
-  wire OE_L_n = EIPL_n;
 
   reg [15:0] PPN_reg;
   reg [15:0] IDB_reg;
 
-  always @(*) begin
+  always @(*)
+  begin
     IDB_reg = IDB_15_0_IN;
     PPN_reg = PPN_25_10_IN;
 

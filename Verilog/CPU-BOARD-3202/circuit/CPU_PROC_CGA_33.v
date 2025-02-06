@@ -4,7 +4,7 @@
 ** CPU GATE ARRAY                                                        **
 ** SHEET 33 of 50                                                        **
 **                                                                       **
-** Last reviewed: 19-JAN-2025                                            **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 /* verilator lint_off UNUSED */
@@ -95,6 +95,10 @@ module CPU_PROC_CGA_33 (
   assign s_bint13_n = chip_34q[4];
   assign s_bint15_n = chip_34q[3];
   // bit 2-0 are not used
+
+  // Code to make LINTER not complaing about bits _not_ read in chip_34q 2:0
+  (* keep = "true", DONT_TOUCH = "true" *) wire [2:0] unused_34q_bits;
+  assign unused_34q_bits[2:0] =  chip_34q[2:0];
 
 
   TTL_74374 CHIP_34G (

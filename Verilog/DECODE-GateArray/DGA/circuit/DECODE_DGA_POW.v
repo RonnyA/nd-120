@@ -6,7 +6,7 @@
 **  Page 9 DECODE - DECODE_DGA_POW- Sheet 2 of 3                         **
 **  Page 10 DECODE - DECODE_DGA_POW- Sheet 3 of 3                        **
 **                                                                       **
-** Last reviewed: 14-DEC-2024                                            **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -236,6 +236,7 @@ module DECODE_DGA_POW (
   // A611 NOR_GATE
   assign s_pows_n = ~(s_powsense | s_pwcl);
 
+  // A636 NOR GATE
   assign s_tout = ~(s_a631_q | s_rfclk);
 
   // A635 NOR_GATE
@@ -347,8 +348,8 @@ module DECODE_DGA_POW (
   // Connected all F091 (A637 and A613) to this F091
   F091 A613B (
       .N01(s_zz1),  // N01 = Always 1
-      .N02(s_zz0)
-  );  // N02 = Always 0
+      .N02(s_zz0)   // N02 = Always 0
+  );  
 
   F714 A596 (
       .H01_T (s_a601_y),
@@ -447,6 +448,15 @@ module DECODE_DGA_POW (
       .N02_QB()
   );
 
+  F617 A631 (
+      .H01_D (s_refrq_n),
+      .H02_C (s_rfclk),
+      .H03_RB(s_vcc),
+      .H04_SB(s_bdry50_n),
+      .N01_Q (s_a631_q),
+      .N02_QB()
+  );
+
   F714 A619 (
       .H01_T (s_a622_q_n),
       .H02_R (s_rescl),
@@ -479,14 +489,6 @@ module DECODE_DGA_POW (
       .N02_QB(s_a605_q_n)
   );
 
-  F617 A631 (
-      .H01_D (s_refrq_n),
-      .H02_C (s_rfclk),
-      .H03_RB(s_vcc),
-      .H04_SB(s_bdry50_n),
-      .N01_Q (s_a631_q),
-      .N02_QB()
-  );
 
   F571 A620 (
       .A(s_test_enable),
