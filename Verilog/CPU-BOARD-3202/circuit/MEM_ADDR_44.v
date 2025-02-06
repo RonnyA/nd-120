@@ -4,7 +4,7 @@
 ** MEM ADDR MUX                                                          **
 ** SHEET 44 of 50                                                        **
 **                                                                       **
-** Last reviewed: 14-DEC-2024                                            **
+** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -81,8 +81,8 @@ module MEM_ADDR_44 (
       .OER_n(s_power),  // Read tied to power through a 2.2Kohm resistor pulling it high.
       .OET_n(s_pd4),
       .D_IN(s_data_10),
-      .D_OUT(),  // Not connected, as there is nevere read from Y output D
-      .Y_IN(),  // Not connected, as there is nevere read from Y output D
+      .D_OUT(),      // Not connected, as there is nevere read from Y output D
+      .Y_IN(10'b0),  // Not connected, as there is nevere read from Y output D
       .Y_OUT(s_aa_9_0_out)
   );
 
