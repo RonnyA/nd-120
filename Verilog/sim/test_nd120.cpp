@@ -116,11 +116,29 @@ int main(int argc, char **argv)
 	top->btn1 = false; // sys_rst_n = 0
 	top->uartRx = 1;   // MARK!
 
-	int rxCnt = 0;
+	int txOffset = 0;
 
 	int hashReceived = 0;
+	int readyReceived = 0;
 
-	for (long cnt = 0; cnt < 1800000; cnt++)
+	long startTrace = 4777683;
+	//long startTrace = 0;
+	//long maxTicks = 5000000;
+	long maxTicks = startTrace + 5500000;
+
+	// Boot commands
+	const char *cmdBOOT ="0!\0";
+	const char *cmdIOR ="IO/";
+	const char *cmdEXAMINE = "77777/76543\r";
+
+	// INSTRUCTION COMMANDS
+	const char *cmdHELP ="HELP,,,\r";
+	const char *cmdBYTE ="BYTE\r";
+	
+
+	const char *cmdP=0;
+
+	for (long cnt = 0; cnt <maxTicks; cnt++)
 	{
 		if (cnt == 100)
 		{
@@ -130,17 +148,19 @@ int main(int argc, char **argv)
 		top->eval();
 		top->sysclk = !top->sysclk;
 
-		new_led = top->led ^ 0x3F; // bits are negated, active low
+#if _do_the_led_
+		new_led = top->led ^ 0x3F; // bits are negated, active low		
 		if (new_led != led)
 		{
 			uint8_t changed = new_led ^ led; // identify changed leds
 
-			changed &= ~(1 << 4 | 1 << 3); // dont log cpu & bus grant
+			changed &= ~(1 << 4 | 1 << 3 |  1<<5 ); // dont log cpu & bus grant and MMU
 
 			// printf("LED changed to 0x%2X\r\n", new_led);
 			led = new_led;
 			DumpLedInfo(led, changed);
 		}
+#endif
 
 		/*************************** TRANSMIT UART DATA *************************************/
 
@@ -175,7 +195,7 @@ int main(int argc, char **argv)
 				case 0:
 					txTicks = DELAY_FRAMES - 1; // Start bit
 					top->uartRx = 0;
-					// printf("TX[%x] %c\r\n", txData, txData);
+					//printf("TX[%x] %c\r\n", txData, txData);
 					break;
 				case 1:
 				case 2:
@@ -239,7 +259,7 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				// printf("RX[%d] %d\r\n", rxDataBit, top->uartTx);
+				//printf("RX[%d] %d\r\n", rxDataBit, top->uartTx);
 
 				switch (rxDataBit)
 				{
@@ -272,102 +292,86 @@ int main(int argc, char **argv)
 					rxTicks = DELAY_FRAMES;
 					break;
 				case 11:
-					printf("Received 0x%02X '%c'\r\n", rxData, (char)rxData);
-
-					if (rxData == 35) // #
+					//if (rxData != 0) 
 					{
-						if (hashReceived == 0)
-							rxCnt = 1;
-
-						hashReceived++;
-					}
-					else if (rxData == 0x20) // space
-					{
-						if (hashReceived == 1)
-							rxCnt = 100;
-						else
-							rxCnt = 1;
-					}
-
-					else
-						rxCnt++;
-
-					if (true)
-					{
+						printf("%c",(char)rxData);
+					
 						txData = 0;
-#if 0 // IO						
-						switch (rxCnt)
+						
+						if (rxData == (int)'#') // #
 						{
-						case 1:
-							txData = (char)'I'; // IO Read
-							break;
-						case 2:
-							txData = (char)'O';
-							break;
-						case 3:
-							txData = (char)'/';
-							break;
+							if (hashReceived == 0)
+								txOffset = 1;
+
+							hashReceived++;
 						}
-#endif						
-
-
-#if 1 // RUN						
-						switch (rxCnt)
+						else if (rxData == (int)'>') 
 						{
-						case 1:
-							txData = (char)'0'; // Run from address 0
-							break;
-						case 2:
-							txData = (char)'!';
-							break;
+							printf("Ready at %ld\r\n",cnt);
+
+							if (readyReceived == 0)
+								txOffset = 200; // START SENDING COMMAND
+
+							readyReceived++;
 						}
-#endif		
-
-#if 0 // examine memory
-						switch (rxCnt)
+						else if (rxData == (int)' ') // space
 						{
-						case 1:
-							txData = (char)'7'; // examine/write memory at #77777 (0x7FFF)
-							break;
-						case 2:
-							txData = (char)'7';
-							break;
-						case 3:
-							txData = (char)'7';
-							break;
-						case 4:
-							txData = (char)'7';
-							break;
-						case 5:
-							txData = (char)'7';
-							break;
-						case 6:
-							txData = (char)'/';
-							break;
+							if (hashReceived == 1)
+								txOffset = 100; // Send data AFTER first HASH, and AFTER first space
+							else
+								txOffset = 1;
+						}
+						else
+						{
+							if (txOffset>0)
+								txOffset++;
+						}
+	
+						
+						//printf("[%d] Received 0x%02X '%c'\r\n", txOffset, rxData, (char)rxData);
+						fflush(stdout);
 
-						case 100:
-							txData = (char)'7';
-							break;
-						case 101:
-							txData = (char)'6';
-							break;
-						case 102:
-							txData = (char)'5';
-							break;
-						case 103:
-							txData = (char)'4';
-							break;
-						case 104:
-							txData = (char)'3';
-							break;
-						case 105:
-							txData = (char)0x0D; // LF
-							break;
-						default:
-							break;
+						// Send COMMAND to OPCOM after first # ahas been received
+						if (txOffset ==1)
+						{
+							printf("OPCOM command: %s\r\n", cmdBOOT);
+							cmdP = cmdBOOT;
 						}
 
-#endif
+						// Send DATA after # and SPACE
+						if (txOffset == 100)
+						{
+							//printf("Setting DATA: %s", dbgCommand);
+							cmdP = 0;
+						}
+
+						// Send COMMAND to CONFIGURE after ">"
+						if (txOffset == 200) 
+						{
+							printf("Setting command: %s", cmdHELP);
+							cmdP = cmdHELP;
+						}
+
+						if (cmdP != 0)
+						{
+							if (*cmdP == '\0')
+							{
+								cmdP = 0;
+							}
+							else
+							{
+								// Print the current character
+								txData = (char)*cmdP;
+								
+								// Move to the next character
+								cmdP++;
+
+								//printf("%d-%c\r\n",rxCnt, (char)txData);
+							}
+
+						}
+
+
 						if (txData > 0)
 						{
 							// Send DATA!
@@ -376,10 +380,10 @@ int main(int argc, char **argv)
 							txTicks = 0;
 							txOnes = 0;
 						}
-					}
-
+				}
 					rxData = 0;
 					rxEnabled = false;
+
 					break;
 				}
 				rxDataBit++;
@@ -387,16 +391,22 @@ int main(int argc, char **argv)
 		}
 
 #ifdef DO_TRACE
-		m_trace->dump(sim_time);
-		sim_time += time_step; // Increment simulation time
+		if (cnt >startTrace)
+		{
+			m_trace->dump(sim_time);
+			sim_time += time_step; // Increment simulation time
+		}
 #endif
 
 		top->eval();
 		top->sysclk = !top->sysclk;
 
 #ifdef DO_TRACE
-		m_trace->dump(sim_time);
-		sim_time += time_step; // Increment simulation time
+		if (cnt >startTrace)
+		{
+			m_trace->dump(sim_time);
+			sim_time += time_step; // Increment simulation time
+		}
 #endif
 	}
 
