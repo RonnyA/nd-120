@@ -6,7 +6,7 @@
 ** Page 9-13                                                             **
 ** SHEET 1 of 4                                                          **
 **                                                                       **
-** Last reviewed: 02-FEB-2025                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -755,53 +755,65 @@ module CGA_MIC (
       .ZN(s_rf_1_0_out[0])
   );
 
-  MUX34P ILC_MUX (
-      .A  (s_csmis0),
-      .B  (s_csvect_n),
-      .D00(s_ir_6_0[0]),
-      .D01(s_ir_6_0[1]),
-      .D02(s_ir_6_0[2]),
-      .D03(s_ir_6_0[3]),
-      .D10(s_laa_3_0_out[0]),
-      .D11(s_laa_3_0_out[1]),
-      .D12(s_laa_3_0_out[2]),
-      .D13(s_laa_3_0_out[3]),
-      .D20(s_csbit_3_0[0]),
-      .D21(s_csbit_3_0[1]),
-      .D22(s_csbit_3_0[2]),
-      .D23(s_csbit_3_0[3]),
-      .Z0 (s_jmp_3_0[0]),
-      .Z1 (s_jmp_3_0[1]),
-      .Z2 (s_jmp_3_0[2]),
-      .Z3 (s_jmp_3_0[3])
+  MUX34P ILC_MUX
+  (
+    // Input signals
+    .A  (s_csmis0),
+    .B  (s_csvect_n),
+    .D00(s_ir_6_0[0]),
+    .D01(s_ir_6_0[1]),
+    .D02(s_ir_6_0[2]),
+    .D03(s_ir_6_0[3]),
+    .D10(s_laa_3_0_out[0]),
+    .D11(s_laa_3_0_out[1]),
+    .D12(s_laa_3_0_out[2]),
+    .D13(s_laa_3_0_out[3]),
+    .D20(s_csbit_3_0[0]),
+    .D21(s_csbit_3_0[1]),
+    .D22(s_csbit_3_0[2]),
+    .D23(s_csbit_3_0[3]),
+
+    // Output signals
+    .Z0 (s_jmp_3_0[0]),
+    .Z1 (s_jmp_3_0[1]),
+    .Z2 (s_jmp_3_0[2]),
+    .Z3 (s_jmp_3_0[3])
   );
 
-  L8 IRLATCH (
-      .A  (s_cd_15_0[0]),
-      .B  (s_cd_15_0[1]),
-      .C  (s_cd_15_0[2]),
-      .D  (s_cd_15_0[3]),
-      .E  (s_cd_15_0[4]),
-      .F  (s_cd_15_0[5]),
-      .G  (s_cd_15_0[6]),
-      .H  (1'b0),
-      .L  (s_ldirv),
-      .QA (s_ir_6_0[0]),
-      .QAN(),
-      .QB (s_ir_6_0[1]),
-      .QBN(),
-      .QC (s_ir_6_0[2]),
-      .QCN(),
-      .QD (s_ir_6_0[3]),
-      .QDN(),
-      .QE (s_ir_6_0[4]),
-      .QEN(),
-      .QF (s_ir_6_0[5]),
-      .QFN(),
-      .QG (s_ir_6_0[6]),
-      .QGN(),
-      .QH (),
-      .QHN()
+  L8 IRLATCH
+  (
+    // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    .L  (s_ldirv),
+    // Input signals
+    .A  (s_cd_15_0[0]),
+    .B  (s_cd_15_0[1]),
+    .C  (s_cd_15_0[2]),
+    .D  (s_cd_15_0[3]),
+    .E  (s_cd_15_0[4]),
+    .F  (s_cd_15_0[5]),
+    .G  (s_cd_15_0[6]),
+    .H  (1'b0),
+
+    // Output signals
+    .QA (s_ir_6_0[0]),
+    .QAN(),
+    .QB (s_ir_6_0[1]),
+    .QBN(),
+    .QC (s_ir_6_0[2]),
+    .QCN(),
+    .QD (s_ir_6_0[3]),
+    .QDN(),
+    .QE (s_ir_6_0[4]),
+    .QEN(),
+    .QF (s_ir_6_0[5]),
+    .QFN(),
+    .QG (s_ir_6_0[6]),
+    .QGN(),
+    .QH (),
+    .QHN()
   );
 
   CGA_MIC_CONDREG CONDREG (

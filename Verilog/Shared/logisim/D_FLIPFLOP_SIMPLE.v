@@ -1,7 +1,7 @@
 
 /**************************************************************************
 ** ND120 SHARED CODE                                                     **
-** D FLIP-FLOP                                                           **
+** D FLIP-FLOP (Wihtout SET or RESET)                                    **
 **                                                                       **
 **                                                                       **
 ** Last reviewed: 9-FEB-2025                                             **
@@ -9,14 +9,9 @@
 ***************************************************************************/
 
 
-module D_FLIPFLOP #(
-    parameter integer InvertClockEnable = 1
-)(
+module D_FLIPFLOP_SIMPLE (
     input clock,     //! Clock
     input d,         //! D input (DATA)
-    input preset,    //! PRESET - Active-high, sets Q to 1 when asserted
-    input reset,     //! RESET - Active-high, sets Q to 0 when asserted
-    input tick,      //! Tick (not used, needs to be refactored out)
 
     output q,        //! Q out
     output qBar      //! QBar out
@@ -37,7 +32,6 @@ module D_FLIPFLOP #(
    *******************************************************************************/
    assign q        = s_currentState;
    assign qBar     = ~(s_currentState);
-   assign s_clock  = (InvertClockEnable == 0) ? clock : ~clock;
 
    /*******************************************************************************
    ** Here the initial register value is defined; for simulation only            **
@@ -47,21 +41,9 @@ module D_FLIPFLOP #(
       s_currentState = 0;
    end
 
-   always @(posedge s_clock or posedge preset or posedge reset)
-   //always @(posedge s_clock) // use this for SYNC logic. FPGA is not so happy for async reset logic. Doing this breaks the ND-120 CPU. So no go!
+   always @(posedge clock)
    begin
-      /*
-      if (preset) begin
-        s_currentState <= 1'b1; // Asynchronous preset (set q = 1)
-      end else if (reset) begin
-         s_currentState <= 1'b0; // Asynchronous reset (set q = 0)
-      end else begin
-         s_currentState <= d; // Synchronous D latch on clock edge
-      end
-      */
-      s_currentState <= preset ? 1'b1 :
-                        reset  ? 1'b0 :
-                        d;
+      s_currentState <= d;
    end
 
 endmodule

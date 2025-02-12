@@ -6,11 +6,16 @@
 ** Page 24                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 02-FEB-2025                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module CGA_MAC (
+    // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
+    // Input signals
     input        CSMREQ,
     input        DOUBLE,
     input        ILCSN,       //! Instruction Load Control Signal
@@ -29,6 +34,7 @@ module CGA_MAC (
     input [15:0] XR_15_0,     //! X Register
 
 
+    // Output signals
     output        ECCR,        //! Error Correction Code Register
     output [13:0] LA_23_10,    //! Latch Address bits 23 to 10
     output        LSHADOW,     //! Latch SHADOW signal
@@ -151,43 +157,53 @@ module CGA_MAC (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  CGA_MAC_AP09 MAC_AP09 (
-      // Inputs
-      .ADDSEL(a_addsel),
-      .CDSEL(s_cdsel),
-      .CD_15_0(s_cd_15_0[15:0]),
-      .ECCRHIN(s_eccrhi_n),
-      .HOLD(s_hold),
-      .ICA_15_0(s_ica_15_0[15:0]),
-      .MCLK(s_mclk),
-      .NLCASEL(s_nlcasel),
-      .PR_15_0(s_pr_15_0[15:0]),
-      .PSEL(s_psel),
+  CGA_MAC_AP09 MAC_AP09
+  (
+    // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
 
-      // Outputs
-      .ADD_15_0(s_add_15_0[15:0]),
-      .ECCR(s_eccr_out),
-      .LCA_15_0(s_lca_15_0[15:0]),
-      .MCA_9_0(s_mca_9_0_out[9:0]),
-      .NLCA_15_0(s_nlca_15_0_out[15:0])
+    // Inputs
+    .ADDSEL(a_addsel),
+    .CDSEL(s_cdsel),
+    .CD_15_0(s_cd_15_0[15:0]),
+    .ECCRHIN(s_eccrhi_n),
+    .HOLD(s_hold),
+    .ICA_15_0(s_ica_15_0[15:0]),
+    .MCLK(s_mclk),
+    .NLCASEL(s_nlcasel),
+    .PR_15_0(s_pr_15_0[15:0]),
+    .PSEL(s_psel),
+
+    // Outputs
+    .ADD_15_0(s_add_15_0[15:0]),
+    .ECCR(s_eccr_out),
+    .LCA_15_0(s_lca_15_0[15:0]),
+    .MCA_9_0(s_mca_9_0_out[9:0]),
+    .NLCA_15_0(s_nlca_15_0_out[15:0])
   );
 
-  CGA_MAC_SEGPT MAC_SEGPT (
-      // Inputs
-      .EXMN(s_exm_n),
-      .FIDBO_15_0(s_fidbo_15_0[15:0]),
-      .LLDEXM(s_lldexm),
-      .LLDPCR(s_lldpcr),
-      .LLDSEG(s_lldseg),
-      .MCLK(s_mclk),
+  CGA_MAC_SEGPT MAC_SEGPT
+  (
+    // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
 
-      // Outputs
-      .PCR_15_0(s_pcr_15_0_out[15:0]),
-      .PEX(s_pex),
-      .SEGZN(s_segz_n),
-      .SEG_7_0(s_seg_7_0[7:0]),
-      .VEX(s_vex_out),
-      .XPT_1_0(s_xpt_1_0[1:0])
+    // Inputs
+    .EXMN(s_exm_n),
+    .FIDBO_15_0(s_fidbo_15_0[15:0]),
+    .LLDEXM(s_lldexm),
+    .LLDPCR(s_lldpcr),
+    .LLDSEG(s_lldseg),
+    .MCLK(s_mclk),
+
+    // Outputs
+    .PCR_15_0(s_pcr_15_0_out[15:0]),
+    .PEX(s_pex),
+    .SEGZN(s_segz_n),
+    .SEG_7_0(s_seg_7_0[7:0]),
+    .VEX(s_vex_out),
+    .XPT_1_0(s_xpt_1_0[1:0])
   );
 
   CGA_MAC_PTSEL MAC_PTSEL (

@@ -3,7 +3,7 @@
 **                                                                         **
 ** The SC2661 is a UART (Universal Asynchronous Receiver/Transmitter) chip **
 **                                                                         **
-** Last reviewed: 1-DEC-2024                                               **
+** Last reviewed: 9-FEB-2025                                               **
 ** Ronny Hansen                                                            **
 *****************************************************************************/
 
@@ -229,7 +229,7 @@ module SC2661_UART (
   assign cmd_txEnabled       = regCommandRegister[0];      // Transmit Control bit: 0 = Disable transmitter, 1 = Enable transmitter
   assign cmd_forceDTRLow     = regCommandRegister[1];      // 0 = Force /DTR output high, 1= Force /DTR output low
   assign cmd_rxEnabled       = regCommandRegister[2];      // Receive Control bit: 0 = Disable receiver, 1 = Enable receiver
-  assign cmd_CR3 = regCommandRegister[3];
+  assign cmd_CR3             = regCommandRegister[3];      // Not used?
   assign cmd_resetError      = regCommandRegister[4];      // 1=Reset error flag in status (FE;OD; PE/DLE detect), 0=normal (no effect?)
   assign cmd_forceRTSLow     = regCommandRegister[5];      // 0 = Force /RTS output high, 1= Force /RTS output low
   assign cmd_OperatingMode   = regCommandRegister[7:6];    // Operating Mode bits. 00 = Normal operation, 01= Async (Automatic Echo mode), Synch: SYN AND/OR DLE STRIPPING MODE, 01 = LOCAL LOOPBACK, 11=REMOTE LOOPBACK
@@ -240,261 +240,257 @@ module SC2661_UART (
 
   wire uart_sysclk = ~sysclk;
 
+  assign s_txd = txBit;
+
   // Clear everything on reset
   //always @(posedge RESET or posedge BRCLK) begin
   always @(posedge uart_sysclk) begin
+
+    // Reset UART ?
     if (RESET | !sys_rst_n) begin
-      //$display("Time: %0t | UART RESET!", $time);  //  debug
+        //$display("Time: %0t | UART RESET!", $time);  //  debug
 
-      regReceiveHoldingRegister <= 8'b0;
-      regTransmitHoldingRegister <= 8'b0;
-      regStatusRegister <= 8'b00000001; // TX empty
-      regModeRegister <= 8'b0;
-      regCommandRegister <= 8'b0;
-      regDataOut <= 8'b0;
-      regDataInSendRegister <= 0;
-      rxState <= RX_STATE_IDLE;
-      txState <= TX_STATE_IDLE;
-      regCommandExecuted <=0;
-    end
-  end
-
-  always @(posedge uart_sysclk) begin
-    // Latch Address and Data
-    if (CE_n) begin
-      regCommandExecuted <= 0;  // Clear signal that address & data is latched
-    end else begin
-
-
-  // Writing and reading register
-  //always @(negedge CPU_CLOCK) begin
-  //always @(posedge sysclk) begin
-
-    if (!RESET && !CE_n && !regCommandExecuted) begin  // _NOT RESET_ AND _CHIP ENABLED_ (and command not already executed)        
-        // Read and Write to registers
-        if (cmd_rxEnabled|cmd_txEnabled) begin // Only update status register SR2 if RX or TX is enabled
-          if ((regStatusRegister[6] == s_dcd_n) | (regStatusRegister[7] == s_dsr_n))
-            regStatusRegister[2] <= 1; // Detected change in DSR or DCD   //SR2: 0=Normal, 1=Change in /DSR or /DCD or transmit shift register is empty
-        end
-
-        regStatusRegister[6] <= !s_dcd_n;  // DCD - 0=/DCD input is high. 1=/DCD input is low
-        regStatusRegister[7] <= !s_dsr_n;  // DSR - 0=/DSR input is high. 1=/DSR input is low
-
-
-        if (s_read_n) begin  // write
-          //$display("Time: %0t | UART Write=> Address: %h | Data: %h", $time, s_address, D);
-          case (s_address)
-            2'b00: begin
-              //Write to transmit holding register
-              regTransmitHoldingRegister <= s_data_in;  // Write transmit holding register
-              regDataInSendRegister <= 1;  // Send data to transmitter
-
-            end
-
-            2'b01:   regStatusRegister <= s_data_in;  // Write SYN1/SYN2/DLE registers
-            2'b10:   regModeRegister <= s_data_in;  // Write mode register 1 and 2
-            2'b11: begin
-              regCommandRegister <= s_data_in;  // Write command register
-
-              if (!cmd_rxEnabled)
-                regStatusRegister[1] <= 0;     // 0=Receive Holding Register Empty (Cleared if RX is disabled)
-
-              if (cmd_resetError) begin
-                regStatusRegister[3] <= 0;  // 0=Clear Parity Error
-                regStatusRegister[4] <= 0;  // 0=Clear Overrun Error
-                regStatusRegister[5] <= 0;  // 0=Clear Frame Error
-              end
-            end
-            default: ;  // Undefined state
-          endcase
-
-        end else begin  // read
-
-          case (s_address)
-            2'b00: begin
-              regDataOut <= regReceiveHoldingRegister;  // Read receive holding register  (data out)
-              regStatusRegister[1] <= 0;  // 0=Receive Holding Register Empty
-            end
-            2'b01: begin
-              regDataOut <= regStatusRegister;  // Read status register
-              regStatusRegister[2] <= 0;  // Clear register SR2
-            end
-            2'b10:   regDataOut <= regModeRegister;  // Read mode register 1 and 2
-            2'b11:   regDataOut <= regCommandRegister;  // Read command register
-            default: regDataOut = 8'b0;  // Undefined state
-          endcase
-          //$display("Time: %0t | UART READ <= Address: %h | Data: %h", $time, s_address, regDataOut);
-        end
-
-      end
-      // Mark thie command as executed until next Chip Select
-      regCommandExecuted <=1;
-    end
-  end
-
-
-  // Receiver state machine
-  // ----------------------
-  // The 68661 is conditioned to receiver data when the DCD input is Low and the RxEN bit in the commands register is true.
-  // In this code we just receive when the RxEN bit is set. (Ignore DCD input)
-  always @(posedge uart_sysclk) begin
-    if (!s_reset) begin
-      if (!cmd_rxEnabled) begin
+        regReceiveHoldingRegister <= 8'b0;
+        regTransmitHoldingRegister <= 8'b0;
+        regStatusRegister <= 8'b00000001; // TX empty
+        regModeRegister <= 8'b0;
+        regCommandRegister <= 8'b0;
+        regDataOut <= 8'b0;
+        regDataInSendRegister <= 0;
         rxState <= RX_STATE_IDLE;
+        txState <= TX_STATE_IDLE;
+        regCommandExecuted <=0;
+        txBit <= 1; // After reset, set TX signl to MARK
       end else begin
-        case (rxState)
-          RX_STATE_IDLE: begin
-            if (receiver_input == 0) begin
-              if (regStatusRegister[1] == 1) begin
-                //regStatusRegister[1] <= 0;  // Clear status register bit RxRDY  -- SET OVERRUN?
-                regStatusRegister[4] <= 1;  // Overrun: 0=Normal, 1=Overrun
-              end
+      // Latch Address and Data
+        if (CE_n) begin
+          // Chip is not enabled
+          regCommandExecuted <= 0;  // Clear signal that address & data is latched
+        end else begin
 
-              rxState              <= RX_STATE_START_BIT;
-              //$display("-> RX START BIT");
-
-              regReceiveHoldingRegister <=0;
-              rxCounter            <= 1;
-              rxBitNumber          <= 0;
+          //if (!RESET && !CE_n && !regCommandExecuted) begin  // _NOT RESET_ AND _CHIP ENABLED_ (and command not already executed)        
+          if (!regCommandExecuted) begin
+            // Read and Write to registers
+            if (cmd_rxEnabled|cmd_txEnabled) begin // Only update status register SR2 if RX or TX is enabled              
+                if ((regStatusRegister[6] == s_dcd_n) | (regStatusRegister[7] == s_dsr_n))
+                regStatusRegister[2] <= 1; // Detected change in DSR or DCD   //SR2: 0=Normal, 1=Change in /DSR or /DCD or transmit shift register is empty
             end
-          end
-          RX_STATE_START_BIT: begin
-            if (rxCounter == HALF_DELAY_WAIT) begin
-              rxState   <= RX_STATE_READ_WAIT;
-              //$display("-> RX READ WAIT");
-              rxCounter <= 1;
-            end else rxCounter <= rxCounter + 1;
-          end
-          RX_STATE_READ_WAIT: begin
-            rxCounter <= rxCounter + 1;
-            if ((rxCounter + 1) == DELAY_FRAMES) begin
-              rxState <= RX_STATE_READ;
-              //$display("-> RX STATE READ");
-            end
-          end
-          RX_STATE_READ: begin
-            rxCounter <= 1;
-            regReceiveHoldingRegister <= {
-              receiver_input, regReceiveHoldingRegister[7:1]
-            };  // Shift right and insert s_rxt at MSB.
-            rxBitNumber <= rxBitNumber + 1;
-            //$display("-> RX STATE READ bit %d",receiver_input);
 
-            if (rxBitNumber == 3'b111) begin
-              rxState <= RX_STATE_STOP_BIT;
-              //$display("-> RX STATE STOP BIT");
+            regStatusRegister[6] <= !s_dcd_n;  // DCD - 0=/DCD input is high. 1=/DCD input is low
+            regStatusRegister[7] <= !s_dsr_n;  // DSR - 0=/DSR input is high. 1=/DSR input is low
+
+
+            if (s_read_n) begin  // write to registers
+              //$display("Time: %0t | UART Write=> Address: %h | Data: %h", $time, s_address, D);
+
+              case (s_address)
+                2'b00: begin
+                  //Write to transmit holding register
+                  regTransmitHoldingRegister <= s_data_in;  // Write transmit holding register
+                  regDataInSendRegister <= 1;  // Send data to transmitter
+                end
+
+                2'b01: begin
+                  regStatusRegister <= s_data_in;  // Write SYN1/SYN2/DLE registers
+                end
+
+                2'b10: begin
+                  regModeRegister <= s_data_in;  // Write mode register 1 and 2
+                end
+
+                2'b11: begin
+                  regCommandRegister <= s_data_in;  // Write command register
+
+                  if (!cmd_rxEnabled) begin
+                    regStatusRegister[1] <= 0;     // 0=Receive Holding Register Empty (Cleared if RX is disabled)
+                  end
+
+                  if (cmd_resetError)
+                  begin
+                    regStatusRegister[3] <= 0;  // 0=Clear Parity Error
+                    regStatusRegister[4] <= 0;  // 0=Clear Overrun Error
+                    regStatusRegister[5] <= 0;  // 0=Clear Frame Error
+                  end
+                end
+                  default: ;  // Undefined state
+              endcase
             end else begin
-              rxState <= RX_STATE_READ_WAIT;
-              //$display("-> RX STATE READ WAIT");
-            end
-          end
-          RX_STATE_STOP_BIT: begin
-            rxCounter <= rxCounter + 1;
-            if ((rxCounter + 1) == DELAY_FRAMES) begin
-              rxState <= RX_STATE_DONE;
-              //$display("-> RX STATE DONE");
-              rxCounter <= 0;
-              regStatusRegister[1] <= 1;  // Set RXRDY
-            end
-          end
+              // read
+              regDataOut <=
+                  (s_address == 2'b00) ? regReceiveHoldingRegister :
+                  (s_address == 2'b01) ? regStatusRegister         :
+                  (s_address == 2'b10) ? regModeRegister           :
+                  (s_address == 2'b11) ? regCommandRegister        : 8'b0;
 
-          RX_STATE_DONE: begin
-            rxState <= RX_STATE_IDLE;
-            //$display("-> RX STATE IDLE %h", regReceiveHoldingRegister);
-            //$display("-> RX READY_n FLAG %d",  s_rxrdy_n);
-
-            // LOOPBACK?
-            if (cmd_OperatingMode == cmd_OperatingMode_RemoteLoopback) begin
-              // Data assembled by the receiver are automatically placed in the
-              // transmit holding register and retransmitted by the transmitter on the TxD output.
-              //$display("RX -> TX LOOPBACK");
-              regTransmitHoldingRegister <= regReceiveHoldingRegister; // Write rx holding register
-              regDataInSendRegister <= 1;  // Send data to transmitter
+              case (s_address)
+                  2'b00: begin
+                    //regDataOut = regReceiveHoldingRegister;  // Read receive holding register  (data out)
+                    regStatusRegister[1] <= 0;  // 0=Receive Holding Register Empty
+                  end
+                  2'b01: begin
+                    //regDataOut = regStatusRegister;  // Read status register
+                    regStatusRegister[2] <= 0;  // Clear register SR2
+                  end
+                  //2'b10:   regDataOut = regModeRegister;  // Read mode register 1 and 2
+                  //2'b11:   regDataOut = regCommandRegister;  // Read command register
+                  default: ;  // Undefined state
+              endcase
+              //$display("Time: %0t | UART READ <= Address: %h | Data: %h", $time, s_address, regDataOut);
             end
           end
 
-          default: begin
-            rxState <= RX_STATE_IDLE;  // Very unexpected, go to IDLE
-          end
-        endcase
-      end
-    end
-  end
+          // Mark this command as executed until next Chip Select
+          regCommandExecuted <=1;
+        end
 
 
-  assign s_txd = txBit;
 
+        // Receiver state machine
+        // ----------------------
+        // The 68661 is conditioned to receiver data when the DCD input is Low and the RxEN bit in the commands register is true.
+        // In this code we just receive when the RxEN bit is set. (Ignore DCD input)
+        if (!cmd_rxEnabled) begin
+          rxState <= RX_STATE_IDLE;
+        end else begin
+          case (rxState)
+            RX_STATE_IDLE: begin
+              if (receiver_input == 0) begin
+                if (regStatusRegister[1] == 1) begin
+                  //regStatusRegister[1] <= 0;  // Clear status register bit RxRDY  -- SET OVERRUN?
+                  regStatusRegister[4] <= 1;  // Overrun: 0=Normal, 1=Overrun
+                end
+
+                rxState              <= RX_STATE_START_BIT;
+                //$display("-> RX START BIT");
+
+                regReceiveHoldingRegister <=0;
+                rxCounter            <= 1;
+                rxBitNumber          <= 0;
+              end
+            end
+            RX_STATE_START_BIT: begin
+              if (rxCounter == HALF_DELAY_WAIT) begin
+                rxState   <= RX_STATE_READ_WAIT;
+                //$display("-> RX READ WAIT");
+                rxCounter <= 1;
+              end else rxCounter <= rxCounter + 1;
+            end
+            RX_STATE_READ_WAIT: begin
+              rxCounter <= rxCounter + 1;
+              if ((rxCounter + 1) == DELAY_FRAMES) begin
+                rxState <= RX_STATE_READ;
+                //$display("-> RX STATE READ");
+              end
+            end
+            RX_STATE_READ: begin
+              rxCounter <= 1;
+              regReceiveHoldingRegister <= {
+                receiver_input, regReceiveHoldingRegister[7:1]
+              };  // Shift right and insert s_rxt at MSB.
+              rxBitNumber <= rxBitNumber + 1;
+              //$display("-> RX STATE READ bit %d",receiver_input);
+
+              if (rxBitNumber == 3'b111) begin
+                rxState <= RX_STATE_STOP_BIT;
+                //$display("-> RX STATE STOP BIT");
+              end else begin
+                rxState <= RX_STATE_READ_WAIT;
+                //$display("-> RX STATE READ WAIT");
+              end
+            end
+            RX_STATE_STOP_BIT: begin
+              rxCounter <= rxCounter + 1;
+              if ((rxCounter + 1) == DELAY_FRAMES) begin
+                rxState <= RX_STATE_DONE;
+                //$display("-> RX STATE DONE");
+                rxCounter <= 0;
+                regStatusRegister[1] <= 1;  // Set RXRDY
+              end
+            end
+            RX_STATE_DONE: begin
+              rxState <= RX_STATE_IDLE;
+              //$display("-> RX STATE IDLE %h", regReceiveHoldingRegister);
+              //$display("-> RX READY_n FLAG %d",  s_rxrdy_n);
+
+              // LOOPBACK?
+              if (cmd_OperatingMode == cmd_OperatingMode_RemoteLoopback) begin
+                // Data assembled by the receiver are automatically placed in the
+                // transmit holding register and retransmitted by the transmitter on the TxD output.
+                //$display("RX -> TX LOOPBACK");
+                regTransmitHoldingRegister <= regReceiveHoldingRegister; // Write rx holding register
+                regDataInSendRegister <= 1;  // Send data to transmitter
+              end
+            end
+            default: begin
+              rxState <= RX_STATE_IDLE;  // Very unexpected, go to IDLE
+            end
+          endcase
+        end
+  
 
   // Transmitter state machine
   // -------------------------
   // The EPCI is conditioned to transmit data when the CTS input is Low and the TxEN command register bit is set.
   // In this code we just transmit when the TxEN command register bit is set. (Ignore CTS input)
-  always @(posedge uart_sysclk) begin
-    if (!s_reset) begin
-      if (!cmd_txEnabled) begin
-        txState <= TX_STATE_IDLE;
-        txBit <= 1;
-        txBitNumber <= 0;
-        regDataInSendRegister <= 0;
-        txCounter <= 0;
-      end else begin
-        case (txState)
-          TX_STATE_IDLE: begin
-            if (regDataInSendRegister) begin
-              regStatusRegister[0] <= 0;  // 0=Transmit Holding Register BUSY
-              txState              <= TX_STATE_START_BIT;
-              txCounter            <= 0;
-            end else begin
-              txBit <= 1;
-              regStatusRegister[0] <= 1; // tx empty
-            end
-          end
 
-          TX_STATE_START_BIT: begin
-            txBit <= 0;
-            if ((txCounter + 1) == DELAY_FRAMES) begin
-              txState <= TX_STATE_WRITE;
-              txBitNumber <= 0;
-              txCounter <= 0;
-            end else txCounter <= txCounter + 1;
-          end
-
-          TX_STATE_WRITE: begin
-            txBit <= regTransmitHoldingRegister[txBitNumber];
-            if ((txCounter + 1) == DELAY_FRAMES) begin
-              if (txBitNumber == 3'b111) begin
-                txState <= TX_STATE_STOP_BIT;
+    
+        if (!cmd_txEnabled) begin
+          txState <= TX_STATE_IDLE;
+          txBit <= 1;
+          txBitNumber <= 0;
+          regDataInSendRegister <= 0;
+          txCounter <= 0;
+        end else begin
+          case (txState)
+            TX_STATE_IDLE: begin
+              if (regDataInSendRegister) begin
+                regStatusRegister[0] <= 0;  // 0=Transmit Holding Register BUSY
+                txState              <= TX_STATE_START_BIT;
+                txCounter            <= 0;
               end else begin
-                txState <= TX_STATE_WRITE;
-                txBitNumber <= txBitNumber + 1;
+                txBit <= 1;
+                regStatusRegister[0] <= 1; // tx empty
               end
-              txCounter <= 0;
-            end else txCounter <= txCounter + 1;
-          end
-
-          TX_STATE_STOP_BIT: begin
-            txBit <= 1;
-            if ((txCounter + 1) == DELAY_FRAMES) begin
-              txState   <= TX_STATE_DONE;
-              txCounter <= 0;
-            end else txCounter <= txCounter + 1;
-          end
-
-          TX_STATE_DONE: begin
-            regDataInSendRegister <= 0;
-            regStatusRegister[0] <= 1;  //1=Transmit Holding Register Empty
-            regStatusRegister[2] <= 1;  // TxEMT: 1=Transmit shift register empty
-            txState <= TX_STATE_IDLE;
-          end
-
-          default: begin
-            txState <= TX_STATE_IDLE;  // Very unexpected, go to IDLE
-          end
-
-        endcase
-      end
+            end
+            TX_STATE_START_BIT: begin
+              txBit <= 0;
+              if ((txCounter + 1) == DELAY_FRAMES) begin
+                txState <= TX_STATE_WRITE;
+                txBitNumber <= 0;
+                txCounter <= 0;
+              end else txCounter <= txCounter + 1;
+            end
+            TX_STATE_WRITE: begin
+              txBit <= regTransmitHoldingRegister[txBitNumber];
+              if ((txCounter + 1) == DELAY_FRAMES) begin
+                if (txBitNumber == 3'b111) begin
+                  txState <= TX_STATE_STOP_BIT;
+                end else begin
+                  txState <= TX_STATE_WRITE;
+                  txBitNumber <= txBitNumber + 1;
+                end
+                txCounter <= 0;
+              end else txCounter <= txCounter + 1;
+            end
+            TX_STATE_STOP_BIT: begin
+              txBit <= 1;
+              if ((txCounter + 1) == DELAY_FRAMES) begin
+                txState   <= TX_STATE_DONE;
+                txCounter <= 0;
+              end else txCounter <= txCounter + 1;
+            end
+            TX_STATE_DONE: begin
+              regDataInSendRegister <= 0;
+              regStatusRegister[0] <= 1;  //1=Transmit Holding Register Empty
+              regStatusRegister[2] <= 1;  // TxEMT: 1=Transmit shift register empty
+              txState <= TX_STATE_IDLE;
+            end
+            default: begin
+              txState <= TX_STATE_IDLE;  // Very unexpected, go to IDLE
+            end
+          endcase
+        end
     end
   end
-
 
 endmodule

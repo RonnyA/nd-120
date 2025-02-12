@@ -11,7 +11,7 @@
 **                                                                       **
 ** TOP LEVEL FOR FPGA IMPLEMENTATION                                     **
 **                                                                       **
-** Last reviewed: 14-DEC-2024                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -119,6 +119,9 @@ module ND120_TOP
 
       .POWSENSE_n(s_high),  // Power Sense
 
+      .BD_23_0_n_IN(24'b111111111111111111111111), // Bus address and data from bus. Pulled high
+      .BD_23_0_n_OUT(),
+
       // Signals from CPU board to C-PLUG
       .BREF_n(),      // Output-signal to "C PLIG", signal B12 BREF~
       .BERROR_n(),    // Output-signal to "C PLIG", signal B21 BERROR~
@@ -132,8 +135,8 @@ module ND120_TOP
 
       // Signals from B-PLUG to CPU Board
       .INR_7_0(installation_number), // INR 7:0, signal B-> B15, B4, B5, B17, B8, B7, B13, B6. (Installation number, read using IDB Source = 035)
-      .EBUS(1),       // EBUS, signal B-B3 (Pulled high with through resistor network RN13)
-      .SEL5MS_n(1),   // SEL 5ms, signal B-B14 (Pulled high with 1kohm resistor R4)
+      .EBUS(1'b0),     // EBUS, signal B-B3 (Pulled high with through resistor network RN13)
+      .SEL5MS_n(1'b1), // SEL 5ms, signal B-B14 (Pulled high with 1kohm resistor R4)
 
       // Signals from CPU to B-PLUG
       .PIL(),         // XPIL3=B-C8, PIL2=B-B12. PIL1=B-B10, PIL0=B-B9

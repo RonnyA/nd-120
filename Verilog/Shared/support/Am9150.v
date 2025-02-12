@@ -50,13 +50,16 @@ module Am9150 (
   //integer i;
 
 
+  reg  [3:0] data4bit;
+
   /*******************************************************************************
    ** Memory array using block RAM                                               **
    *******************************************************************************/
-  (* ram_style = "block" *) reg [3:0] memory_array[0:1023];
+  (* ram_style = "block" *) reg [3:0] am_memory_array[0:1023];
+
 
   // Read, write and reset operations
-  always @(posedge clk) // or negedge CHIP_SELECT_n)
+  always @(posedge clk) // or negedge CHIP_SELECT_n)0
   begin
     //if (!RESET_n) begin
       // Reset operation: set all memory locations to 0
@@ -73,11 +76,15 @@ module Am9150 (
 
     if (!CHIP_SELECT_n && !WRITE_ENABLE_n) begin
       // Write operation: active when chip is selected and write enable is low
-      memory_array[address] <= data_in;
+      am_memory_array[address] <= data_in;
     end
+
+    data4bit <= am_memory_array[address];
+    //data_out <= (!CHIP_SELECT_n & !OUTPUT_ENABLE_n & WRITE_ENABLE_n & RESET_n) ?  am_memory_array[address] : 4'b0; // High-impedance state when not reading
   end
 
   // Read operation: active when chip is selected and output enable is low (and not writing or reset!)
-  assign data_out = (!CHIP_SELECT_n & !OUTPUT_ENABLE_n & WRITE_ENABLE_n & RESET_n) ?  memory_array[address] : 4'b0; // High-impedance state when not reading
+  //assign data_out = (!CHIP_SELECT_n & !OUTPUT_ENABLE_n & WRITE_ENABLE_n & RESET_n) ?  data4bit : 4'b0; // High-impedance state when not reading
+  assign data_out = (!CHIP_SELECT_n & !OUTPUT_ENABLE_n & WRITE_ENABLE_n & RESET_n) ?  am_memory_array[address] : 4'b0; // High-impedance state when not reading
 
 endmodule

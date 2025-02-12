@@ -36,166 +36,44 @@ module R81 (
     output QH,
     output QHN
 );
-  /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-  wire s_cp;
-  wire s_qb_n_out;
-  wire s_qe_n_out;
-  wire s_qf_out;
-  wire s_qf_n_out;
-  wire s_qg_out;
-  wire s_qg_n_out;
-  wire s_qh_out;
-  wire s_qh_n_out;
-  wire s_a;
-  wire s_b;
-  wire s_c;
-  wire s_qa_out;
-  wire s_d;
-  wire s_e;
-  wire s_f;
-  wire s_g;
-  wire s_h;
-  wire s_qa_n_out;
-  wire s_qb_out;
-  wire s_qc_out;
-  wire s_qc_n_out;
-  wire s_qd_out;
-  wire s_qd_n_out;
-  wire s_qe_out;
 
-  /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
-  assign s_cp = CP;
-  assign s_a  = A;
-  assign s_b  = B;
-  assign s_c  = C;
-  assign s_d  = D;
-  assign s_e  = E;
-  assign s_f  = F;
-  assign s_g  = G;
-  assign s_h  = H;
 
-  /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
-  assign QA   = s_qa_out;
-  assign QAN  = s_qa_n_out;
-  assign QB   = s_qb_out;
-  assign QBN  = s_qb_n_out;
-  assign QC   = s_qc_out;
-  assign QCN  = s_qc_n_out;
-  assign QD   = s_qd_out;
-  assign QDN  = s_qd_n_out;
-  assign QE   = s_qe_out;
-  assign QEN  = s_qe_n_out;
-  assign QF   = s_qf_out;
-  assign QFN  = s_qf_n_out;
-  assign QG   = s_qg_out;
-  assign QGN  = s_qg_n_out;
-  assign QH   = s_qh_out;
-  assign QHN  = s_qh_n_out;
 
-  /*******************************************************************************
-   ** Here all normal components are defined                                     **
-   *******************************************************************************/
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_1 (
-      .clock(s_cp),
-      .d(s_a),
-      .preset(1'b0),
-      .q(s_qa_out),
-      .qBar(s_qa_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+reg [7:0] reg8bit;
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_2 (
-      .clock(s_cp),
-      .d(s_b),
-      .preset(1'b0),
-      .q(s_qb_out),
-      .qBar(s_qb_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+assign QA   = reg8bit[0];
+assign QAN  = ~reg8bit[0];
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_3 (
-      .clock(s_cp),
-      .d(s_c),
-      .preset(1'b0),
-      .q(s_qc_out),
-      .qBar(s_qc_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+assign QB   = reg8bit[1];
+assign QBN  = ~reg8bit[1];
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_4 (
-      .clock(s_cp),
-      .d(s_d),
-      .preset(1'b0),
-      .q(s_qd_out),
-      .qBar(s_qd_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+assign QC   = reg8bit[2];
+assign QCN  = ~reg8bit[2];
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_5 (
-      .clock(s_cp),
-      .d(s_e),
-      .preset(1'b0),
-      .q(s_qe_out),
-      .qBar(s_qe_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+assign QD   = reg8bit[3];
+assign QDN  = ~reg8bit[3];
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_6 (
-      .clock(s_cp),
-      .d(s_f),
-      .preset(1'b0),
-      .q(s_qf_out),
-      .qBar(s_qf_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+assign QE   = reg8bit[4];
+assign QEN  = ~reg8bit[4];
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_7 (
-      .clock(s_cp),
-      .d(s_g),
-      .preset(1'b0),
-      .q(s_qg_out),
-      .qBar(s_qg_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+assign QF   = reg8bit[5];
+assign QFN  = ~reg8bit[5];
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_8 (
-      .clock(s_cp),
-      .d(s_h),
-      .preset(1'b0),
-      .q(s_qh_out),
-      .qBar(s_qh_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+assign QG   = reg8bit[6];
+assign QGN  = ~reg8bit[6];
 
+assign QH   = reg8bit[7];
+assign QHN  = ~reg8bit[7];
+
+always @(posedge CP) begin
+    reg8bit[0] <= A;
+    reg8bit[1] <= B;
+    reg8bit[2] <= C;
+    reg8bit[3] <= D;
+    reg8bit[4] <= E;
+    reg8bit[5] <= F;
+    reg8bit[6] <= G;
+    reg8bit[7] <= H;
+end
 
 endmodule

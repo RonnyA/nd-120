@@ -6,7 +6,7 @@
 ** Sheet 1-10 of 10                                                      **
 ** PDF page 65-73+75 of 108                                              **
 **                                                                       **
-** Last reviewed: 19-JAN-2025                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -373,7 +373,7 @@ module CGA_DCD (
   );
 
 
-  R81P COMM_MIS_REG (
+  R81 COMM_MIS_REG (
       .CP(s_mclk),
 
       .A(s_cscomm_4_0[0]),

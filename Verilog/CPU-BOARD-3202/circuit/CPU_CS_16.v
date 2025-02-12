@@ -4,14 +4,14 @@
 ** CONTROL STORE                                                         **
 ** SHEET 16 of 50                                                        **
 **                                                                       **
-** Last reviewed: 14-APRIL-2024                                          **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module CPU_CS_16 (
-
-    input sysclk,    // System clock in FPGA
-    input sys_rst_n, // System reset in FPGA
+    // System Input signals
+    input sysclk,    //! System clock in FPGA
+    input sys_rst_n, //! System reset in FPGA
 
     // Clock signals
     input CLK,
@@ -109,6 +109,9 @@ module CPU_CS_16 (
    *******************************************************************************/
 
   CPU_CS_PROM_19 PROM (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+
       // Input signals
       .BLCS_n  (BLCS_n),
       .RF_1_0  (RF_1_0[1:0]),
@@ -126,7 +129,7 @@ module CPU_CS_16 (
       .sys_rst_n(sys_rst_n),
       .CSBITS_63_0(s_csbits_out_tcv[63:0]),
       .ELOW_n(s_elow_n),
-      .EUPP_n(s_eupp_n), 
+      .EUPP_n(s_eupp_n),
       .LUA_11_0(s_LUA_12_0[11:0]),
       .UUA_11_0(s_uua[11:0]),
       .WU0_n(s_WU_3_0_n[0]),
@@ -150,7 +153,7 @@ module CPU_CS_16 (
       .IDB_15_0_IN(s_IDB_15_0_tcv_in[15:0]),
       .WCS_n(WCS_n),
 
-      // Output signals  
+      // Output signals
       .CSBITS_OUT(s_csbits_out_tcv[63:0]),
       .IDB_15_0_OUT(s_IDB_15_0_tcv_out[15:0])
   );
@@ -158,7 +161,7 @@ module CPU_CS_16 (
   CPU_CS_CTL_18 CTL (
       // Input signals
       .BRK_n(BRK_n),
-      .CC_3_1_n(CC_3_1_n[2:0]), 
+      .CC_3_1_n(CC_3_1_n[2:0]),
       .EWCA_n(EWCA_n),
       .FETCH(FETCH),
       .FORM_n(FORM_n),
@@ -172,7 +175,7 @@ module CPU_CS_16 (
 
       // Output signals
       .ECSL_n(s_ecsl_n),
-      .ELOW_n(s_elow_n), 
+      .ELOW_n(s_elow_n),
       .EUPP_n(s_eupp_n),
       .EW_3_0_n(s_ew_3_0_n[3:0]),
       .WU_3_0_n(s_WU_3_0_n[3:0]),

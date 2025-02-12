@@ -6,7 +6,7 @@
 ** Page 55                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -245,7 +245,7 @@ module CGA_ALU_OUTMUX_IDBS (
   );
 
 
-  R81P IDBS_R1 (
+  R81 IDBS_R1 (
       .CP (s_aluclk),
       .A  (s_r1_a),
       .B  (s_r1_b),
@@ -274,7 +274,7 @@ module CGA_ALU_OUTMUX_IDBS (
   );
 
 
-  R81P IDBS_R2 (
+  R81 IDBS_R2 (
       .CP (s_aluclk),
       .A  (s_r2_a),
       .B  (s_r2_b),

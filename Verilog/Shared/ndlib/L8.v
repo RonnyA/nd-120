@@ -3,13 +3,18 @@
 **                                                                       **
 ** Component L8 (8-bit latch)                                            **
 **                                                                       **
-** Last reviewed: 11-NOV-2024                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 
 module L8 (
-    input L,
+    // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
+
+    input L, //! LATCH ENABLE
 
     input A,
     input B,
@@ -38,126 +43,44 @@ module L8 (
     output QHN
 );
 
-  /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-  wire s_h;
-  wire s_a;
-  wire s_qh_out;
-  wire s_qh_n_out;
-  wire s_qg_out;
-  wire s_qg_n_out;
-  wire s_qf_out;
-  wire s_qf_n_out;
-  wire s_qe_out;
-  wire s_qe_n_out;
-  wire s_qd_out;
-  wire s_qd_n_out;
-  wire s_b;
-  wire s_qc_out;
-  wire s_qc_n_out;
-  wire s_qb_out;
-  wire s_qb_n_out;
-  wire s_qa_out;
-  wire s_c;
-  wire s_d;
-  wire s_e;
-  wire s_f;
-  wire s_g;
-  wire s_qa_n_out;
-  wire s_l;
+reg [7:0] reg8bit;
 
-  /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
-  assign s_a = A;
-  assign s_b = B;
-  assign s_c = C;
-  assign s_d = D;
-  assign s_e = E;
-  assign s_f = F;
-  assign s_g = G;
-  assign s_h = H;
-  assign s_l = L;
+assign QA   = reg8bit[0];
+assign QAN  = ~reg8bit[0];
 
-  /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
-  assign QA  = s_qa_out;
-  assign QAN = s_qa_n_out;
-  assign QB  = s_qb_out;
-  assign QBN = s_qb_n_out;
-  assign QC  = s_qc_out;
-  assign QCN = s_qc_n_out;
-  assign QD  = s_qd_out;
-  assign QDN = s_qd_n_out;
-  assign QE  = s_qe_out;
-  assign QEN = s_qe_n_out;
-  assign QF  = s_qf_out;
-  assign QFN = s_qf_n_out;
-  assign QG  = s_qg_out;
-  assign QGN = s_qg_n_out;
-  assign QH  = s_qh_out;
-  assign QHN = s_qh_n_out;
+assign QB   = reg8bit[1];
+assign QBN  = ~reg8bit[1];
 
-  /*******************************************************************************
-   ** Here all sub-circuits are defined                                          **
-   *******************************************************************************/
+assign QC   = reg8bit[2];
+assign QCN  = ~reg8bit[2];
 
-  LATCH L7 (
-      .D(s_h),
-      .ENABLE(s_l),
-      .Q(s_qh_out),
-      .QN(s_qh_n_out)
-  );
+assign QD   = reg8bit[3];
+assign QDN  = ~reg8bit[3];
 
-  LATCH L0 (
-      .D(s_a),
-      .ENABLE(s_l),
-      .Q(s_qa_out),
-      .QN(s_qa_n_out)
-  );
+assign QE   = reg8bit[4];
+assign QEN  = ~reg8bit[4];
 
-  LATCH L1 (
-      .D(s_b),
-      .ENABLE(s_l),
-      .Q(s_qb_out),
-      .QN(s_qb_n_out)
-  );
+assign QF   = reg8bit[5];
+assign QFN  = ~reg8bit[5];
 
-  LATCH L2 (
-      .D(s_c),
-      .ENABLE(s_l),
-      .Q(s_qc_out),
-      .QN(s_qc_n_out)
-  );
+assign QG   = reg8bit[6];
+assign QGN  = ~reg8bit[6];
 
-  LATCH L3 (
-      .D(s_d),
-      .ENABLE(s_l),
-      .Q(s_qd_out),
-      .QN(s_qd_n_out)
-  );
+assign QH   = reg8bit[7];
+assign QHN  = ~reg8bit[7];
 
-  LATCH L4 (
-      .D(s_e),
-      .ENABLE(s_l),
-      .Q(s_qe_out),
-      .QN(s_qe_n_out)
-  );
 
-  LATCH L5 (
-      .D(s_f),
-      .ENABLE(s_l),
-      .Q(s_qf_out),
-      .QN(s_qf_n_out)
-  );
-
-  LATCH L6 (
-      .D(s_g),
-      .ENABLE(s_l),
-      .Q(s_qg_out),
-      .QN(s_qg_n_out)
-  );
+always @(posedge sysclk) begin
+    if (L) begin
+        reg8bit[0] <= A;
+        reg8bit[1] <= B;
+        reg8bit[2] <= C;
+        reg8bit[3] <= D;
+        reg8bit[4] <= E;
+        reg8bit[5] <= F;
+        reg8bit[6] <= G;
+        reg8bit[7] <= H;
+    end
+end
 
 endmodule

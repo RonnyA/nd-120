@@ -3,16 +3,17 @@
 **                                                                                    **
 ** Component : R81P (8 bit flip flop with Q and QN outputs. Latched on rising edge)   **
 **                                                                                    **
-** Last reviewed: 11-NOV-2024                                                         **
+** Last reviewed: 9-FEB-2025                                                          **
 ** Ronny Hansen                                                                       **
 ****************************************************************************************/
 
 
 module R81P (
+    input CP,
+
     input A,
     input B,
     input C,
-    input CP,
     input D,
     input E,
     input F,
@@ -37,9 +38,47 @@ module R81P (
     output QHN
 );
 
-  /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
+
+reg [7:0] reg8bit;
+
+assign QA   = reg8bit[0];
+assign QAN  = ~reg8bit[0];
+
+assign QB   = reg8bit[1];
+assign QBN  = ~reg8bit[1];
+
+assign QC   = reg8bit[2];
+assign QCN  = ~reg8bit[2];
+
+assign QD   = reg8bit[3];
+assign QDN  = ~reg8bit[3];
+
+assign QE   = reg8bit[4];
+assign QEN  = ~reg8bit[4];
+
+assign QF   = reg8bit[5];
+assign QFN  = ~reg8bit[5];
+
+assign QG   = reg8bit[6];
+assign QGN  = ~reg8bit[6];
+
+assign QH   = reg8bit[7];
+assign QHN  = ~reg8bit[7];
+
+always @(posedge CP) begin
+    reg8bit[0] <= A;
+    reg8bit[1] <= B;
+    reg8bit[2] <= C;
+    reg8bit[3] <= D;
+    reg8bit[4] <= E;
+    reg8bit[5] <= F;
+    reg8bit[6] <= G;
+    reg8bit[7] <= H;
+
+end
+
+/*
+
   wire s_cp;
   wire s_qe_n_out;
   wire s_qh_n_out;
@@ -66,13 +105,6 @@ module R81P (
   wire s_qg_n_out;
   wire s_qh_out;
 
-  /*******************************************************************************
-   ** The module functionality is described here                                 **
-   *******************************************************************************/
-
-  /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
   assign s_cp = CP;
   assign s_a  = A;
   assign s_b  = B;
@@ -83,9 +115,6 @@ module R81P (
   assign s_g  = G;
   assign s_h  = H;
 
-  /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
   assign QA   = s_qa_out;
   assign QAN  = s_qa_n_out;
   assign QB   = s_qb_out;
@@ -103,104 +132,63 @@ module R81P (
   assign QH   = s_qh_out;
   assign QHN  = s_qh_n_out;
 
-  /*******************************************************************************
-   ** Here all normal components are defined                                     **
-   *******************************************************************************/
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_1 (
+
+   D_FLIPFLOP_SIMPLE MEMORY_1 (
       .clock(s_cp),
       .d(s_a),
-      .preset(1'b0),
       .q(s_qa_out),
-      .qBar(s_qa_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
+      .qBar(s_qa_n_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_2 (
+  D_FLIPFLOP_SIMPLE MEMORY_2 (
       .clock(s_cp),
       .d(s_b),
-      .preset(1'b0),
       .q(s_qb_out),
-      .qBar(s_qb_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
+      .qBar(s_qb_n_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_3 (
+  D_FLIPFLOP_SIMPLE  MEMORY_3 (
       .clock(s_cp),
       .d(s_c),
-      .preset(1'b0),
       .q(s_qc_out),
-      .qBar(s_qc_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
+      .qBar(s_qc_n_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_4 (
+  D_FLIPFLOP_SIMPLE MEMORY_4 (
       .clock(s_cp),
       .d(s_d),
-      .preset(1'b0),
       .q(s_qd_out),
-      .qBar(s_qd_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
+      .qBar(s_qd_n_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_5 (
+  D_FLIPFLOP_SIMPLE MEMORY_5 (
       .clock(s_cp),
       .d(s_e),
-      .preset(1'b0),
       .q(s_qe_out),
-      .qBar(s_qe_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
+      .qBar(s_qe_n_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_6 (
+  D_FLIPFLOP_SIMPLE MEMORY_6 (
       .clock(s_cp),
       .d(s_f),
-      .preset(1'b0),
       .q(s_qf_out),
-      .qBar(s_qf_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
+      .qBar(s_qf_n_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_7 (
+  D_FLIPFLOP_SIMPLE MEMORY_7 (
       .clock(s_cp),
       .d(s_g),
-      .preset(1'b0),
       .q(s_qg_out),
-      .qBar(s_qg_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
+      .qBar(s_qg_n_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_8 (
+  D_FLIPFLOP_SIMPLE MEMORY_8 (
       .clock(s_cp),
       .d(s_h),
-      .preset(1'b0),
       .q(s_qh_out),
-      .qBar(s_qh_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
+      .qBar(s_qh_n_out)
   );
 
+*/
 
 endmodule

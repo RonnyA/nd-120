@@ -6,14 +6,20 @@
 ** Page 36                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module CGA_MAC_SEGPT_SEG (
+    // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
+    // Input signals
     input [7:0] FIDBO_7_0,
     input       LLDSEG,
     input       MCLKN,
 
+    // Output signal
     output       SEGZN,
     output [7:0] SEG_7_0
 );
@@ -73,32 +79,37 @@ module CGA_MAC_SEGPT_SEG (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  L8 SEG_L (
-      .A  (s_fidbo_7_0[0]),
-      .B  (s_fidbo_7_0[1]),
-      .C  (s_fidbo_7_0[2]),
-      .D  (s_fidbo_7_0[3]),
-      .E  (s_fidbo_7_0[4]),
-      .F  (s_fidbo_7_0[5]),
-      .G  (s_fidbo_7_0[6]),
-      .H  (s_fidbo_7_0[7]),
-      .L  (s_gates2_out),
-      .QA (s_seg_7_0_out[0]),
-      .QAN(s_seg_7_0_n_out[0]),
-      .QB (s_seg_7_0_out[1]),
-      .QBN(s_seg_7_0_n_out[1]),
-      .QC (s_seg_7_0_out[2]),
-      .QCN(s_seg_7_0_n_out[2]),
-      .QD (s_seg_7_0_out[3]),
-      .QDN(s_seg_7_0_n_out[3]),
-      .QE (s_seg_7_0_out[4]),
-      .QEN(s_seg_7_0_n_out[4]),
-      .QF (s_seg_7_0_out[5]),
-      .QFN(s_seg_7_0_n_out[5]),
-      .QG (s_seg_7_0_out[6]),
-      .QGN(s_seg_7_0_n_out[6]),
-      .QH (s_seg_7_0_out[7]),
-      .QHN(s_seg_7_0_n_out[7])
+  L8 SEG_L
+  (
+    // Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    .A  (s_fidbo_7_0[0]),
+    .B  (s_fidbo_7_0[1]),
+    .C  (s_fidbo_7_0[2]),
+    .D  (s_fidbo_7_0[3]),
+    .E  (s_fidbo_7_0[4]),
+    .F  (s_fidbo_7_0[5]),
+    .G  (s_fidbo_7_0[6]),
+    .H  (s_fidbo_7_0[7]),
+    .L  (s_gates2_out),
+    .QA (s_seg_7_0_out[0]),
+    .QAN(s_seg_7_0_n_out[0]),
+    .QB (s_seg_7_0_out[1]),
+    .QBN(s_seg_7_0_n_out[1]),
+    .QC (s_seg_7_0_out[2]),
+    .QCN(s_seg_7_0_n_out[2]),
+    .QD (s_seg_7_0_out[3]),
+    .QDN(s_seg_7_0_n_out[3]),
+    .QE (s_seg_7_0_out[4]),
+    .QEN(s_seg_7_0_n_out[4]),
+    .QF (s_seg_7_0_out[5]),
+    .QFN(s_seg_7_0_n_out[5]),
+    .QG (s_seg_7_0_out[6]),
+    .QGN(s_seg_7_0_n_out[6]),
+    .QH (s_seg_7_0_out[7]),
+    .QHN(s_seg_7_0_n_out[7])
   );
 
 endmodule

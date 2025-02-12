@@ -6,16 +6,22 @@
 ** Page 38                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module CGA_MAC_SEGPT_XPT (
+    // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
+    // Input signals
     input       EXMN,
     input [2:0] FIDBO_2_0,
     input       LLDEXM,
     input       MCLKN,
 
+    // Output signals
     output       PEX,
     output       VEX,
     output [1:0] XPT_1_0
@@ -94,20 +100,28 @@ module CGA_MAC_SEGPT_XPT (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  L4 XPT_L (
-      .A  (s_fidbo_2_0[0]),
-      .B  (s_fidbo_2_0[1]),
-      .C  (s_fidbo_2_0[2]),
-      .D  (1'b0),
-      .L  (s_gates1_out),
-      .QA (s_xpt_1_0_out[0]),
-      .QAN(),
-      .QB (s_xpt_1_0_out[1]),
-      .QBN(),
-      .QC (s_xpt_qc),
-      .QCN(s_xpt_qc_n),
-      .QD (),
-      .QDN()
+  L4 XPT_L
+  (
+    // Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    // Input signals
+    .L  (s_gates1_out),
+    .A  (s_fidbo_2_0[0]),
+    .B  (s_fidbo_2_0[1]),
+    .C  (s_fidbo_2_0[2]),
+    .D  (1'b0),
+
+    //Output signals
+    .QA (s_xpt_1_0_out[0]),
+    .QAN(),
+    .QB (s_xpt_1_0_out[1]),
+    .QBN(),
+    .QC (s_xpt_qc),
+    .QCN(s_xpt_qc_n),
+    .QD (),
+    .QDN()
   );
 
 endmodule

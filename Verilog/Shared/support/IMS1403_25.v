@@ -5,7 +5,7 @@
 ** Component : IMS1403_25                                                **
 ** 16K x 1 Static RAM                                                    **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -41,7 +41,7 @@ module IMS1403_25 (
   /*******************************************************************************
    ** Memory array using block RAM                                               **
    *******************************************************************************/
-  (* ram_style = "block" *) reg memory_array[0:16383];
+  (* ram_style = "block" *) reg ims_memory_array[0:16383];
 
 
   always @(posedge clk) begin
@@ -59,9 +59,9 @@ module IMS1403_25 (
     end else begin
       if (!CE_n) begin
         if (!W_n) begin
-          memory_array[ADDRESS] <= data_in;  // Write operation
+          ims_memory_array[ADDRESS] <= data_in;  // Write operation
         end else begin
-          data_out <= memory_array[ADDRESS];  // Read operation
+          data_out <= ims_memory_array[ADDRESS];  // Read operation
         end
       end
     end

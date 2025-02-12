@@ -6,7 +6,7 @@
 ** Page 2-9                                                              **
 ** SHEET 1 of 8                                                          **
 **                                                                       **
-** Last reviewed: 29-JAN-2025                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -737,28 +737,33 @@ module CGA (
   // It takes in clock signals, destination flags, and data for register selection and writing.
   // Outputs from this module include enable signals for reading from source registers,
   // write enable signals for specific registers, and the data contents of selected registers.
-  CGA_WRF WRF (
-      // Input signals
-      .ALUCLK(sx_aluclk),          // Clock signal for the ALU
-      .BDEST(s_BDEST),             // Flag indicating if B is the destination for writing
-      .LAA_3_0(sx_laa_3_0_out[3:0]), // Selector for source register A
-      .LBA_3_0(sx_lba_3_0_out[3:0]), // Selector for destination register B
-      .NLCA_15_0(s_nlca_15_0[15:0]), // Data input for register #2 (P register)
-      .RB_15_0(s_rb_15_0[15:0]),     // Data input for destination register B
-      .XFETCHN(s_xfetch_n),          // Fetch signal for the P register
+  CGA_WRF WRF
+  (
+    // System Input signals
+   .sysclk(sysclk),                          // System clock in FPGA
+   .sys_rst_n(sys_rst_n),                    // System reset in FPGA
 
-      // Output signals
-      .EA_15_0(s_ea_15_0[15:0]),    // Enable signal for reading from source register A
-      .WPN(s_wp_n),                  // Write enable signal for register #2 (P register), negated
-      .WR3(s_wr3),                   // Write enable signal for register #3 (B register)
-      .WR7(s_wr7),                   // Write enable signal for register #7 (X register)
+   // Input signals
+    .ALUCLK(sx_aluclk),          // Clock signal for the ALU
+    .BDEST(s_BDEST),             // Flag indicating if B is the destination for writing
+    .LAA_3_0(sx_laa_3_0_out[3:0]), // Selector for source register A
+    .LBA_3_0(sx_lba_3_0_out[3:0]), // Selector for destination register B
+    .NLCA_15_0(s_nlca_15_0[15:0]), // Data input for register #2 (P register)
+    .RB_15_0(s_rb_15_0[15:0]),     // Data input for destination register B
+    .XFETCHN(s_xfetch_n),          // Fetch signal for the P register
 
-      .A_15_0(s_a_15_0[15:0]),       // Data output from source register A
-      .B_15_0(s_b_15_0[15:0]),       // Data output from destination register B
+    // Output signals
+    .EA_15_0(s_ea_15_0[15:0]),    // Enable signal for reading from source register A
+    .WPN(s_wp_n),                  // Write enable signal for register #2 (P register), negated
+    .WR3(s_wr3),                   // Write enable signal for register #3 (B register)
+    .WR7(s_wr7),                   // Write enable signal for register #7 (X register)
 
-      .PR_15_0(s_pr_15_0[15:0]),     // Direct data output from P register
-      .BR_15_0(s_br_15_0[15:0]),     // Direct data output from B register
-      .XR_15_0(s_xr_15_0[15:0])      // Direct data output from X register
+    .A_15_0(s_a_15_0[15:0]),       // Data output from source register A
+    .B_15_0(s_b_15_0[15:0]),       // Data output from destination register B
+
+    .PR_15_0(s_pr_15_0[15:0]),     // Direct data output from P register
+    .BR_15_0(s_br_15_0[15:0]),     // Direct data output from B register
+    .XR_15_0(s_xr_15_0[15:0])      // Direct data output from X register
   );
 
   // The CGA_DCD module is a decoder within the DELILAH CPU's gate array. It interprets control signals,
@@ -856,33 +861,38 @@ module CGA (
   // outputs the results along with status signals.
 
   // Input signals to the CGA_MAC module
-  CGA_MAC MAC (
-      // Input signals to the CGA_MAC module
-      .CSMREQ       (s_csmreq),                // Chip Select for MAC, active high
-      .DOUBLE       (sx_double_out),           // Double Precision Control
-      .ILCSN        (sx_ilcs_n),               // Instruction Load Control Signal, active low
-      .MCLK         (sx_mclk),                 // Master Clock
-      .PONI         (sx_poni_out),             // Memory Protection ON, PONI=1
-      .PTM          (s_ptm),                   // Processor Test Mode
-      .WR3          (s_wr3),                   // Write Control Signal 3
-      .WR7          (s_wr7),                   // Write Control Signal 7
-      .CMIS_1_0     (s_csmis_1_0[1:0]),       // Microcode: Misc (2 bits)
-      .CSCOMM_4_0   (s_cscomm_4_0[4:0]),      // Microcode: Commands (5 bits)
-      .RB_15_0      (s_rb_15_0[15:0]),        // Microcode Register B
-      .CD_15_0      (s_cd_15_0[15:0]),        // Code/Data Selector
-      .FIDBO_15_0   (s_mac_IDB_15_0_IN[15:0]),// FIDBO output from previous stage
-      .PR_15_0      (s_pr_15_0[15:0]),        // ALU P Register
-      .BR_15_0      (s_br_15_0[15:0]),        // ALU B Register
-      .XR_15_0      (s_xr_15_0[15:0]),        // X Register
+  CGA_MAC MAC
+  (
+      // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
 
-      // Output signals from the CGA_MAC module
-      .ECCR         (sx_eccr_out),             // Error Correction Code Register
-      .LA_23_10     (sx_la_23_10_out[13:0]),   // Latch Address bits 23 to 10
-      .LSHADOW      (sx_lshadow_out),          // Latch SHADOW signal
-      .MCA_9_0      (sx_mca_9_0_out[9:0]),     // Microcode Address bits 9 to 0
-      .NLCA_15_0    (s_nlca_15_0[15:0]),       // Next Latch Address bits 15 to 0
-      .PCR_15_0     (s_pcr_15_0[15:0]),        // Program Counter Register bits 15 to 0
-      .VEX          (s_vex)                    // Violation Exception
+    // Input signals to the CGA_MAC module
+    .CSMREQ       (s_csmreq),                // Chip Select for MAC, active high
+    .DOUBLE       (sx_double_out),           // Double Precision Control
+    .ILCSN        (sx_ilcs_n),               // Instruction Load Control Signal, active low
+    .MCLK         (sx_mclk),                 // Master Clock
+    .PONI         (sx_poni_out),             // Memory Protection ON, PONI=1
+    .PTM          (s_ptm),                   // Processor Test Mode
+    .WR3          (s_wr3),                   // Write Control Signal 3
+    .WR7          (s_wr7),                   // Write Control Signal 7
+    .CMIS_1_0     (s_csmis_1_0[1:0]),       // Microcode: Misc (2 bits)
+    .CSCOMM_4_0   (s_cscomm_4_0[4:0]),      // Microcode: Commands (5 bits)
+    .RB_15_0      (s_rb_15_0[15:0]),        // Microcode Register B
+    .CD_15_0      (s_cd_15_0[15:0]),        // Code/Data Selector
+    .FIDBO_15_0   (s_mac_IDB_15_0_IN[15:0]),// FIDBO output from previous stage
+    .PR_15_0      (s_pr_15_0[15:0]),        // ALU P Register
+    .BR_15_0      (s_br_15_0[15:0]),        // ALU B Register
+    .XR_15_0      (s_xr_15_0[15:0]),        // X Register
+
+    // Output signals from the CGA_MAC module
+    .ECCR         (sx_eccr_out),             // Error Correction Code Register
+    .LA_23_10     (sx_la_23_10_out[13:0]),   // Latch Address bits 23 to 10
+    .LSHADOW      (sx_lshadow_out),          // Latch SHADOW signal
+    .MCA_9_0      (sx_mca_9_0_out[9:0]),     // Microcode Address bits 9 to 0
+    .NLCA_15_0    (s_nlca_15_0[15:0]),       // Next Latch Address bits 15 to 0
+    .PCR_15_0     (s_pcr_15_0[15:0]),        // Program Counter Register bits 15 to 0
+    .VEX          (s_vex)                    // Violation Exception
   );
 
 

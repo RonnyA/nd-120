@@ -4,7 +4,7 @@
 ** WRF: Register File                                                    **
 ** (PDF page 59)                                                         **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -31,6 +31,11 @@
 //! Register 15 (R7)
 
 module CGA_WRF (
+    // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
+
 
     // Input signals
     input       ALUCLK,   //! Clock
@@ -452,19 +457,24 @@ module CGA_WRF (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  CGA_WRF_RBLOCK RBLOCK (
-      .ALUCLK(s_aluclk),
-      .A_15_0(s_a_15_0_out[15:0]),
-      .BR_15_0(s_br_15_0_out[15:0]),
-      .B_15_0(s_b_15_0_out[15:0]),
-      .EA_15_0(s_ea_15_0_out[15:0]),
-      .EB_15_0(s_eb_15_0[15:0]),
-      .NLCA_15_0(s_nlca_15_0[15:0]),
-      .PR_15_0(s_pr_15_0_out[15:0]),
-      .RB_15_0(s_rb_15_0[15:0]),
-      .WR_15_0(s_wr_15_0[15:0]),
-      .XFETCHN(s_xfetch_n),
-      .XR_15_0(s_xr_15_0_out[15:0])
+  CGA_WRF_RBLOCK RBLOCK
+  (
+    // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    .ALUCLK(s_aluclk),
+    .A_15_0(s_a_15_0_out[15:0]),
+    .BR_15_0(s_br_15_0_out[15:0]),
+    .B_15_0(s_b_15_0_out[15:0]),
+    .EA_15_0(s_ea_15_0_out[15:0]),
+    .EB_15_0(s_eb_15_0[15:0]),
+    .NLCA_15_0(s_nlca_15_0[15:0]),
+    .PR_15_0(s_pr_15_0_out[15:0]),
+    .RB_15_0(s_rb_15_0[15:0]),
+    .WR_15_0(s_wr_15_0[15:0]),
+    .XFETCHN(s_xfetch_n),
+    .XR_15_0(s_xr_15_0_out[15:0])
   );
 
 

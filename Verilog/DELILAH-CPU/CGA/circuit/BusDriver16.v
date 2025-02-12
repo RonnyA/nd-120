@@ -6,7 +6,7 @@
 **                                                                       **
 ** SHEET 4 of 8 (Page 5 in PDF)                                          **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 6-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -26,13 +26,11 @@ module BusDriver16 (
   reg [15:0] IO_reg;  // Internal data register
   reg [15:0] A_reg;  // Internal data register
 
-  wire s_enable = ~EN;
-
   //assign ZI_15_0 = TN ?  IO_15_0 : 16'b0; // Probably the correct implementation ? In test moode we should be isolated ?
   //assign ZI_15_0 = TN ?  internalData : 16'b0; // Probably the correct implementation ? In test moode we should be isolated ?
 
   always @(EN, TN, A_15_0_IN, IO_15_0_IN) begin
-    if (s_enable) begin
+    if (!EN) begin
       // Write A to IO
       IO_reg <= A_15_0_IN;
     end else begin
@@ -42,7 +40,7 @@ module BusDriver16 (
   end
 
   // Bidirectional data operation
-  assign IO_15_0_OUT = TN ? ((s_enable) ? IO_reg : 16'b0) : 16'b0;
+  assign IO_15_0_OUT = TN ? ((!EN) ? IO_reg : 16'b0) : 16'b0;
   assign A_15_0_OUT  = IO_15_0_IN; //A_reg; // A is always read from IO
 
 endmodule

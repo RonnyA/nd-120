@@ -4,12 +4,16 @@
 ** WRF: Register File                                                    **
 ** (PDF page 63)                                                         **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 
 module CGA_WRF_RBLOCK_LR16 (
+    // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
     input        ALUCLK,
     input [15:0] RB_15_0,
     input        WR,
@@ -146,7 +150,7 @@ module CGA_WRF_RBLOCK_LR16 (
   // verilator lint_off UNDRIVEN
   // verilator lint_off PINCONNECTEMPTY
 
-  R81P R_15_8 (
+  R81 R_15_8 (
       .A (s_ir_15_0[15]),
       .B (s_ir_15_0[14]),
       .C (s_ir_15_0[13]),
@@ -175,7 +179,7 @@ module CGA_WRF_RBLOCK_LR16 (
       .QHN()
   );
 
-  R81P R_7_0 (
+  R81 R_7_0 (
       .A(s_ir_15_0[7]),
       .B(s_ir_15_0[6]),
       .C(s_ir_15_0[5]),
@@ -207,61 +211,75 @@ module CGA_WRF_RBLOCK_LR16 (
 
   /* IR15-0 LATCHED to LR(15:0) LREG. To the right of the schematich diagram on page 63 */
   /* Latch signal (s_lreg_latch) = /ALUCLK * WR (s_aluclk_n & s_wr)                     */
-  L8 L_15_8 (
-      .A  (s_ir_15_0[15]),
-      .B  (s_ir_15_0[14]),
-      .C  (s_ir_15_0[13]),
-      .D  (s_ir_15_0[12]),
-      .E  (s_ir_15_0[11]),
-      .F  (s_ir_15_0[10]),
-      .G  (s_ir_15_0[9]),
-      .H  (s_ir_15_0[8]),
-      .L  (s_lreg_latch),
-      .QA (s_lr_15_0_out[15]),
-      .QAN(),
-      .QB (s_lr_15_0_out[14]),
-      .QBN(),
-      .QC (s_lr_15_0_out[13]),
-      .QCN(),
-      .QD (s_lr_15_0_out[12]),
-      .QDN(),
-      .QE (s_lr_15_0_out[11]),
-      .QEN(),
-      .QF (s_lr_15_0_out[10]),
-      .QFN(),
-      .QG (s_lr_15_0_out[9]),
-      .QGN(),
-      .QH (s_lr_15_0_out[8]),
-      .QHN()
-  );
-  
+  L8 L_15_8
+  (
+    // Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
 
-  L8 L_7_0 (
-      .A  (s_ir_15_0[7]),
-      .B  (s_ir_15_0[6]),
-      .C  (s_ir_15_0[5]),
-      .D  (s_ir_15_0[4]),
-      .E  (s_ir_15_0[3]),
-      .F  (s_ir_15_0[2]),
-      .G  (s_ir_15_0[1]),
-      .H  (s_ir_15_0[0]),
-      .L  (s_lreg_latch),
-      .QA (s_lr_15_0_out[7]),
-      .QAN(),
-      .QB (s_lr_15_0_out[6]),
-      .QBN(),
-      .QC (s_lr_15_0_out[5]),
-      .QCN(),
-      .QD (s_lr_15_0_out[4]),
-      .QDN(),
-      .QE (s_lr_15_0_out[3]),
-      .QEN(),
-      .QF (s_lr_15_0_out[2]),
-      .QFN(),
-      .QG (s_lr_15_0_out[1]),
-      .QGN(),
-      .QH (s_lr_15_0_out[0]),
-      .QHN()
+    .L  (s_lreg_latch),
+
+    .A  (s_ir_15_0[15]),
+    .B  (s_ir_15_0[14]),
+    .C  (s_ir_15_0[13]),
+    .D  (s_ir_15_0[12]),
+    .E  (s_ir_15_0[11]),
+    .F  (s_ir_15_0[10]),
+    .G  (s_ir_15_0[9]),
+    .H  (s_ir_15_0[8]),
+
+    .QA (s_lr_15_0_out[15]),
+    .QAN(),
+    .QB (s_lr_15_0_out[14]),
+    .QBN(),
+    .QC (s_lr_15_0_out[13]),
+    .QCN(),
+    .QD (s_lr_15_0_out[12]),
+    .QDN(),
+    .QE (s_lr_15_0_out[11]),
+    .QEN(),
+    .QF (s_lr_15_0_out[10]),
+    .QFN(),
+    .QG (s_lr_15_0_out[9]),
+    .QGN(),
+    .QH (s_lr_15_0_out[8]),
+    .QHN()
+  );
+
+
+  L8 L_7_0
+  (
+    // Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    .L  (s_lreg_latch),
+
+    .A  (s_ir_15_0[7]),
+    .B  (s_ir_15_0[6]),
+    .C  (s_ir_15_0[5]),
+    .D  (s_ir_15_0[4]),
+    .E  (s_ir_15_0[3]),
+    .F  (s_ir_15_0[2]),
+    .G  (s_ir_15_0[1]),
+    .H  (s_ir_15_0[0]),
+
+    .QA (s_lr_15_0_out[7]),
+    .QAN(),
+    .QB (s_lr_15_0_out[6]),
+    .QBN(),
+    .QC (s_lr_15_0_out[5]),
+    .QCN(),
+    .QD (s_lr_15_0_out[4]),
+    .QDN(),
+    .QE (s_lr_15_0_out[3]),
+    .QEN(),
+    .QF (s_lr_15_0_out[2]),
+    .QFN(),
+    .QG (s_lr_15_0_out[1]),
+    .QGN(),
+    .QH (s_lr_15_0_out[0]),
+    .QHN()
   );
 
 endmodule

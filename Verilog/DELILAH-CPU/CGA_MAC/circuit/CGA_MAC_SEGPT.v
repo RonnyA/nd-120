@@ -6,7 +6,7 @@
 ** Page 35                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 02-FEB-2025                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 **                                                                       **
 ** 02-FEB-2025 - Refactored and merged output PCR_14_13_10_9_N and       **
@@ -15,6 +15,11 @@
 
 
 module CGA_MAC_SEGPT (
+    // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
+    // Input signals
     input        EXMN,
     input [15:0] FIDBO_15_0,
     input        LLDEXM,
@@ -22,6 +27,7 @@ module CGA_MAC_SEGPT (
     input        LLDSEG,
     input        MCLK,
 
+    // Output signals
     output [15:0] PCR_15_0,
     output        PEX,
     output        SEGZN,
@@ -83,6 +89,10 @@ module CGA_MAC_SEGPT (
 
   CGA_MAC_SEGPT_XPT XPT
   (
+    // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
     // Input signals
     .EXMN(s_exm_n),
     .FIDBO_2_0(s_fidbo_15_0[2:0]),
@@ -97,6 +107,10 @@ module CGA_MAC_SEGPT (
 
   CGA_MAC_SEGPT_SEG SEG
   (
+    // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
     // Input signals
     .FIDBO_7_0(s_fidbo_15_0[7:0]),
     .LLDSEG(s_lldseg),
@@ -109,6 +123,9 @@ module CGA_MAC_SEGPT (
 
   CGA_MAC_SEGPT_PCR PCR
   (
+    // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
     // Input signals
     .FIDBO_15_0(s_fidbo_15_0[15:0]),
     .LLDPCR(s_lldpcr),

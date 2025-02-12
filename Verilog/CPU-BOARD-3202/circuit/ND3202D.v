@@ -40,6 +40,11 @@ module ND3202D (
 
     input POWSENSE_n,    //! Input signal from "C PLUG", signals A29,B29,C29 - POWSENSE_n (Power sense signal from the PSU?)
 
+
+    /* BUS BD to and from C-PLUG */
+    input  [23:0] BD_23_0_n_IN,
+    output [23:0] BD_23_0_n_OUT,
+
     /* TO C-PLUG */
     output BREF_n,      //! Output-signal to "C PLIG", signal B12 BREF~
     output BERROR_n,    //! Output-signal to "C PLIG", signal B21 BERROR~
@@ -440,7 +445,7 @@ LED7 (yellow)  - Bus grant
   assign CSCOMM_4_0 = s_cscomm_4_0;
   assign MIS_1_0 = s_csmis_1_0;
   assign CD_15_0 = s_cpu_cd_15_0_in;
-  assign LBD_15_0 = s_bif_lbd_23_0_out | s_mem_lbd_23_0_out;
+  assign LBD_15_0 = s_bif_lbd_23_0_out[15:0] | s_mem_lbd_23_0_out[15:0];
   assign LA_23_10 = 13'b0; //TODO: Where is the LA signal ??
   assign CA_9_0 =s_ca_9_0;
 
@@ -449,8 +454,8 @@ LED7 (yellow)  - Bus grant
   // ********************************************
 
   assign s_powsense_n = POWSENSE_n;    // Power sense
-  assign s_bif_bd_23_0_n_in = 24'b111111111111111111111111; // Bus address and data from bus. Pulled high.
-  // for C connector connected physically to the FPGA, connect signals 's_bif_bd_23_0_n_out' for output (or use pins with 2 directions)
+  assign s_bif_bd_23_0_n_in = BD_23_0_n_IN;
+  assign BD_23_0_n_OUT = s_bif_bd_23_0_n_out;
 
     // Connect to C-bus output-signal B12 BREF~
   wire s_bref_n;
@@ -638,7 +643,7 @@ LED7 (yellow)  - Bus grant
   wire s_BPERR_n;
   assign s_BPERR_n = 1'b1;  // DISABLE BUS PARITY ERROR
 
-  wire s_y2_0;  //output CHIP_5C pin 2Y1 (not used)
+  (* keep = "true", DONT_TOUCH = "true" *) wire s_y2_0;  //output CHIP_5C pin 2Y1 (not used)
 
 
 
@@ -742,7 +747,7 @@ LED7 (yellow)  - Bus grant
     .PS_n(s_ps_n),
     .REFRQ_n(s_refrq_n),
     .RT_n(s_rt_n),
-    .RWCS_n(s_rwcs_n),
+    .RWCS_n(), // removed as output, use signal from PROC(PAL 44305) not DGA. PAL Fixes the decoding to include correct MIS signals which DGA forgot.
     .SHORT_n(s_short_n),
     .SLOW_n(s_slow_n),
     .SSEMA_n(s_ssema_n),
@@ -813,7 +818,7 @@ LED7 (yellow)  - Bus grant
       .PD1        (s_pd1),                    //  Pull-down 1
       .PD3        (s_pd3),                    //  Pull-down 3
       .PD4        (s_pd4),                    //  Pull-down 4
-      .PPN_23_19  (s_ppn_23_10[13:8]),        //  Physical Page Number
+      .PPN_23_19  (s_ppn_23_10[13:9]),        //  Physical Page Number
       .PS_n       (s_ps_n),                   //  Panel select signal
       .REFRQ_n    (s_refrq_n),                //  Refresh request signal
       .REF_n      (s_ref_n),                  //  Refresh signal

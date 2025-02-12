@@ -4,12 +4,17 @@
 ** WRF: Register File Block                                              **
 ** (PDF page 60)                                                         **
 **                                                                       **
-** Last reviewed: 19-JAN-2025                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 
 module CGA_WRF_RBLOCK (
+    // System input signals
+    input sysclk,    //! System clock in FPGA
+    input sys_rst_n, //! System reset in FPGA
+
+    // Input signals
     input        ALUCLK,   //! To clock the operation
 
     input [15:0] EA_15_0,  //! Enable A (source) for read. 16 bits to select register.
@@ -21,6 +26,7 @@ module CGA_WRF_RBLOCK (
     input [15:0] NLCA_15_0, //! Input to P register (B=Reg2 which is P)
     input        XFETCHN,   //! Input to P register
 
+    // Output signals
     output [15:0] A_15_0,   //! DATA iutput 16 bit A, from register selected by EA_15_0
     output [15:0] B_15_0,   //! DATA output 16 bit B, from register selected by EB_15_0
 
@@ -931,24 +937,35 @@ module CGA_WRF_RBLOCK (
   );
 
   // Register 2 (P)
-  CGA_WRF_RBLOCK_PREG P_REG_2 (
-      .ALUCLK(s_aluclk),
-      .ALUCLKN(s_aluclk_n),
-      .NLCA_15_0(s_ncla_15_0[15:0]),
-      .PR_15_0(s_pr_15_0_out[15:0]),
-      .P_15_0(s_reg2_p_15_0[15:0]),
-      .RB_15_0(s_rb_15_0[15:0]),
-      .WR2(s_wr_15_0[2]),
-      .XFETCHN(s_xfetch_n)
+  CGA_WRF_RBLOCK_PREG P_REG_2
+  (
+    // Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+
+    .ALUCLK(s_aluclk),
+    .ALUCLKN(s_aluclk_n),
+    .NLCA_15_0(s_ncla_15_0[15:0]),
+    .PR_15_0(s_pr_15_0_out[15:0]),
+    .P_15_0(s_reg2_p_15_0[15:0]),
+    .RB_15_0(s_rb_15_0[15:0]),
+    .WR2(s_wr_15_0[2]),
+    .XFETCHN(s_xfetch_n)
   );
 
   // Register 3 (B)
-  CGA_WRF_RBLOCK_LR16 B_REG_3 (
-      .ALUCLK(s_aluclk),
-      .LR_15_0(s_br_15_0_out[15:0]),
-      .RB_15_0(s_rb_15_0[15:0]),
-      .R_15_0(s_reg3_b_15_0[15:0]),
-      .WR(s_wr_15_0[3])
+  CGA_WRF_RBLOCK_LR16 B_REG_3
+  (
+    // Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    .ALUCLK(s_aluclk),
+    .LR_15_0(s_br_15_0_out[15:0]),
+    .RB_15_0(s_rb_15_0[15:0]),
+    .R_15_0(s_reg3_b_15_0[15:0]),
+    .WR(s_wr_15_0[3])
   );
 
   // Register 4 (L)
@@ -976,7 +993,12 @@ module CGA_WRF_RBLOCK (
   );
 
   // Register 7 (X)
-  CGA_WRF_RBLOCK_LR16 X_REG_7 (
+  CGA_WRF_RBLOCK_LR16 X_REG_7 
+  (
+    // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
     // Input signals
     .ALUCLK(s_aluclk),
     .RB_15_0(s_rb_15_0[15:0]),

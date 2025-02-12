@@ -242,7 +242,7 @@ module CGA_ALU_QREG (
 
 
 
-  R81P REG_Q_HI (
+  R81 REG_Q_HI (
       .CP(s_aluclk),
 
       .A(s_mux_z_15),
@@ -272,7 +272,7 @@ module CGA_ALU_QREG (
       .QHN()
   );
 
-  R81P REG_Q_LO (
+  R81 REG_Q_LO (
       .CP(s_aluclk),
 
       .A(s_mux_z_7),

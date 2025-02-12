@@ -22,7 +22,7 @@ module IDT6168A_20 (
 );
 
   // Memory array using block RAM, 4K x 4-bit
-  (* ram_style = "block" *)reg [ 3:0] memory_array[0:4095];
+  (* ram_style = "block" *)reg [ 3:0] idt_memory_array[0:4095];
 
   // Internal registers for address and data
   reg [ 3:0] data_in;
@@ -55,10 +55,10 @@ module IDT6168A_20 (
 
         if (!WE_n) begin
           // Write operation
-          memory_array[A_11_0] <= data_in;
+          idt_memory_array[A_11_0] <= data_in;
         end else begin
           // Read operation
-          data_out <= memory_array[A_11_0];
+          data_out <= idt_memory_array[A_11_0];
         end
       end
   end

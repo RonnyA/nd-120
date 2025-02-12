@@ -1,7 +1,3 @@
-// TODO:
-//  s_rt_n - also output from CPU_PROC_32. Validate which to use, from PROC or PCB top module. For now, use PROC
-//  s_rwcs_n - als output from CPU_PROC_32. Validate which to use, from PROC or PCB top module. For now, use PROC
-
 /**************************************************************************
 ** ND120 CPU, MM&M                                                       **
 ** CPU                                                                   **
@@ -60,7 +56,6 @@ module CPU_15 (
     input       PD2,
     input       POWFAIL_n,
     input       RT_n,
-    input       RWCS_n,
     input       STOC_n,
     input       STP,
     input       SW1_CONSOLE,
@@ -94,6 +89,8 @@ module CPU_15 (
     output [ 4:0] TEST_4_0,
     output [63:0] TOPCSB,
 
+    output RWCS_n,
+
     output LSHADOW,      //! Latch Shadow signal
     output OPCLCS,       //! COMMAND 36.2 LCS - Load control store from PROM and perform a Master Clear
     output PONI,         //! Memory Protection ON, PONI=1
@@ -113,7 +110,10 @@ module CPU_15 (
 );
 
 
-
+// NOTE on signals s_rt_n and s_rwcs_m
+//
+//  s_rt_n - also output from CPU_PROC_32. Use from PCB top module as we dont have the latest code for PAL 44608A that generates this signal
+//  s_rwcs_n - also output from CPU_PROC_32. Use from from PROC - PAL in PROC fixes decoding of the RWCS command
 
 
 
@@ -243,7 +243,7 @@ module CPU_15 (
    *******************************************************************************/
   assign s_cc_3_1_n[2:0] = CC_3_1_n;
   assign s_ca_10_0[10] = CA10;
-  assign s_rt_n              = RT_n; // Use incomming RT_n signal (DONT use signal out from PROC as we are missing the latest code for the latest PAL)
+  assign s_rt_n   = RT_n; // Use incomming RT_n signal (DONT use signal out from PROC as we are missing the latest code for the latest PAL)
   assign s_eorf_n = EORF_n;
   assign s_emcl_n = EMCL_n;
   assign s_pan_n = PAN_n;
@@ -332,6 +332,9 @@ module CPU_15 (
   assign s_cpu_cd_15_0_out = s_cpu_cd_15_0_out;
 
   // other signals
+
+  assign RWCS_n = s_rwcs_n;
+
   assign LBA_3_0 = s_lba_3_0[3:0];
   assign LSHADOW = s_lshadow;
   assign LUA_12_0 = s_lua_12_0[12:0];
@@ -442,10 +445,10 @@ module CPU_15 (
     .PONI(s_poni),
     .RF_1_0(s_rf_1_0[1:0]),
     .RRF_n(s_rrf_n),  //Output
-    .RT_n(),  // Dont use this output signal as its locked to 1/HIGH
+    .RT_n(),  // Dont use this output signal as its locked to 1/HIGH (missing latest PALASM code for 44608A)
 
     .LDEXM_n(LDEXM_n),
-    .RWCS_n(s_rwcs_n),
+    .RWCS_n(s_rwcs_n),  // RWCS signal fixed in PAL. Was wrongly decoded in DGA
     .TEST_4_0(s_test_4_0[4:0]),
     .TP1_INTRQ_n(s_tp1_intr1_n),
     .TRAPN(s_trap_n),  // TRAP_n output

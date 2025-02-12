@@ -6,7 +6,7 @@
 ** Page 37                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 02-FEB-2025                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 **                                                                       **
 ** 02-FEB-2025 - Refactored and renamed FIDBO_15_7_2_0 to FIDBO_15_0     **
@@ -16,10 +16,16 @@
 
 
 module CGA_MAC_SEGPT_PCR (
+    // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
+    // Input signals
     input [15:0] FIDBO_15_0,
     input        LLDPCR,
     input        MCLKN,
 
+    // Output signals
     output [15:0] PCR_15_0
 );
 
@@ -68,49 +74,60 @@ module CGA_MAC_SEGPT_PCR (
    *******************************************************************************/
 
   L8 PCR_HI (
-      .A  (s_fidbo_15_0[15]),
-      .B  (s_fidbo_15_0[14]),
-      .C  (s_fidbo_15_0[13]),
-      .D  (s_fidbo_15_0[12]),
-      .E  (s_fidbo_15_0[11]),
-      .F  (s_fidbo_15_0[10]),
-      .G  (s_fidbo_15_0[9]),
-      .H  (s_fidbo_15_0[8]),
-      .L  (s_gates1_out),
-      .QA (s_pcr_15_0_out[15]),
-      .QAN(),
-      .QB (s_pcr_15_0_out[14]),
-      .QBN(),
-      .QC (s_pcr_15_0_out[13]),
-      .QCN(),
-      .QD (s_pcr_15_0_out[12]),
-      .QDN(),
-      .QE (s_pcr_15_0_out[11]),
-      .QEN(),
-      .QF (s_pcr_15_0_out[10]),
-      .QFN(),
-      .QG (s_pcr_15_0_out[9]),
-      .QGN(),
-      .QH (s_pcr_15_0_out[8]),
-      .QHN()
+    // Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    .A  (s_fidbo_15_0[15]),
+    .B  (s_fidbo_15_0[14]),
+    .C  (s_fidbo_15_0[13]),
+    .D  (s_fidbo_15_0[12]),
+    .E  (s_fidbo_15_0[11]),
+    .F  (s_fidbo_15_0[10]),
+    .G  (s_fidbo_15_0[9]),
+    .H  (s_fidbo_15_0[8]),
+    .L  (s_gates1_out),
+    .QA (s_pcr_15_0_out[15]),
+    .QAN(),
+    .QB (s_pcr_15_0_out[14]),
+    .QBN(),
+    .QC (s_pcr_15_0_out[13]),
+    .QCN(),
+    .QD (s_pcr_15_0_out[12]),
+    .QDN(),
+    .QE (s_pcr_15_0_out[11]),
+    .QEN(),
+    .QF (s_pcr_15_0_out[10]),
+    .QFN(),
+    .QG (s_pcr_15_0_out[9]),
+    .QGN(),
+    .QH (s_pcr_15_0_out[8]),
+    .QHN()
   );
 
 
 
-  L4 PCR_LO (
-      .A  (s_fidbo_15_0[7]),
-      .B  (s_fidbo_15_0[2]),
-      .C  (s_fidbo_15_0[1]),
-      .D  (s_fidbo_15_0[0]),
-      .L  (s_gates1_out),
-      .QA (s_pcr_15_0_out[7]),
-      .QAN(),
-      .QB (s_pcr_15_0_out[2]),
-      .QBN(),
-      .QC (s_pcr_15_0_out[1]),
-      .QCN(),
-      .QD (s_pcr_15_0_out[0]),
-      .QDN()
+  L4 PCR_LO
+  (
+    // Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    .L  (s_gates1_out),
+
+    .A  (s_fidbo_15_0[7]),
+    .B  (s_fidbo_15_0[2]),
+    .C  (s_fidbo_15_0[1]),
+    .D  (s_fidbo_15_0[0]),
+
+    .QA (s_pcr_15_0_out[7]),
+    .QAN(),
+    .QB (s_pcr_15_0_out[2]),
+    .QBN(),
+    .QC (s_pcr_15_0_out[1]),
+    .QCN(),
+    .QD (s_pcr_15_0_out[0]),
+    .QDN()
   );
 
 endmodule

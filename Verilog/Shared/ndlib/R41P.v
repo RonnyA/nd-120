@@ -3,7 +3,7 @@
 **                                                                       **
 ** Component : R41P                                                      **
 **                                                                       **
-** Last reviewed: 11-NOV-2024                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -25,94 +25,28 @@ module R41P (
     output QDN
 );
 
-  /*******************************************************************************
-   ** The wires are defined here                                                 **
-   *******************************************************************************/
-  wire s_qd_out;
-  wire s_qd_n_out;
-  wire s_b;
-  wire s_c;
-  wire s_d;
-  wire s_qa_out;
-  wire s_qa_n_out;
-  wire s_qb_out;
-  wire s_qb_n_out;
-  wire s_qc_out;
-  wire s_qc_n_out;
-  wire s_cp;
-  wire s_a;
 
-  /*******************************************************************************
-   ** Here all input connections are defined                                     **
-   *******************************************************************************/
-  assign s_a  = A;
-  assign s_b  = B;
-  assign s_c  = C;
-  assign s_cp = CP;
-  assign s_d  = D;
 
-  /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
-  assign QA   = s_qa_out;
-  assign QAN  = s_qa_n_out;
-  assign QB   = s_qb_out;
-  assign QBN  = s_qb_n_out;
-  assign QC   = s_qc_out;
-  assign QCN  = s_qc_n_out;
-  assign QD   = s_qd_out;
-  assign QDN  = s_qd_n_out;
+reg [3:0] reg8bit;
 
-  /*******************************************************************************
-   ** Here all normal components are defined                                     **
-   *******************************************************************************/
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_1 (
-      .clock(s_cp),
-      .d(s_a),
-      .preset(1'b0),
-      .q(s_qa_out),
-      .qBar(s_qa_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+assign QA   = reg8bit[0];
+assign QAN  = ~reg8bit[0];
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_2 (
-      .clock(s_cp),
-      .d(s_b),
-      .preset(1'b0),
-      .q(s_qb_out),
-      .qBar(s_qb_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+assign QB   = reg8bit[1];
+assign QBN  = ~reg8bit[1];
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_3 (
-      .clock(s_cp),
-      .d(s_c),
-      .preset(1'b0),
-      .q(s_qc_out),
-      .qBar(s_qc_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+assign QC   = reg8bit[2];
+assign QCN  = ~reg8bit[2];
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_4 (
-      .clock(s_cp),
-      .d(s_d),
-      .preset(1'b0),
-      .q(s_qd_out),
-      .qBar(s_qd_n_out),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+assign QD   = reg8bit[3];
+assign QDN  = ~reg8bit[3];
 
+always @(posedge CP) begin
+    reg8bit[0] <= A;
+    reg8bit[1] <= B;
+    reg8bit[2] <= C;
+    reg8bit[3] <= D;
+end
 
 endmodule
+

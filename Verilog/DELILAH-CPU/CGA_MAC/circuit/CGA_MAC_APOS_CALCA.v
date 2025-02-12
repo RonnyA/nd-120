@@ -12,17 +12,23 @@
 ** Page 32                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 20-DEC-2024                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 // 
 
 module CGA_MAC_APOS_CALCA (
+     // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
+    // Input signals
     input        ECCRHIN,   //! ECCR HI (ECCR Hi bits valid)
     input [15:0] ICA_15_0,  //! CPU Address Input (16 bits)
     input        MCLK,      //! Memory Clock
 
+    // Output signals
     output        ECCR,      //! DECODE "TRR ECCR" = IOX 100115
     output [15:0] LCA_15_0,  //! Local Address Output (16 bits)
     output [ 9:0] MCA_9_0    //! Memory Address Output (10 bits)
@@ -190,64 +196,73 @@ module CGA_MAC_APOS_CALCA (
       .QHN()
   );
 
-  L8 L_LO (
-      .L(s_mclk_n),
+  L8 L_LO 
+  (
+    // Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
 
-      .A(s_ica_15_0[0]),
-      .B(s_ica_15_0[1]),
-      .C(s_ica_15_0[2]),
-      .D(s_ica_15_0[3]),
-      .E(s_ica_15_0[4]),
-      .F(s_ica_15_0[5]),
-      .G(s_ica_15_0[6]),
-      .H(s_ica_15_0[7]),
+    .L(s_mclk_n),
 
-      .QA (s_mca_9_0_out[0]),
-      .QAN(),
-      .QB (s_mca_9_0_out[1]),
-      .QBN(),
-      .QC (s_mca_9_0_out[2]),
-      .QCN(),
-      .QD (s_mca_9_0_out[3]),
-      .QDN(),
-      .QE (s_mca_9_0_out[4]),
-      .QEN(),
-      .QF (s_mca_9_0_out[5]),
-      .QFN(),
-      .QG (s_mca_9_0_out[6]),
-      .QGN(),
-      .QH (s_mca_9_0_out[7]),
-      .QHN()
-  );
+    .A(s_ica_15_0[0]),
+    .B(s_ica_15_0[1]),
+    .C(s_ica_15_0[2]),
+    .D(s_ica_15_0[3]),
+    .E(s_ica_15_0[4]),
+    .F(s_ica_15_0[5]),
+    .G(s_ica_15_0[6]),
+    .H(s_ica_15_0[7]),
+
+    .QA (s_mca_9_0_out[0]),
+    .QAN(),
+    .QB (s_mca_9_0_out[1]),
+    .QBN(),
+    .QC (s_mca_9_0_out[2]),
+    .QCN(),
+    .QD (s_mca_9_0_out[3]),
+    .QDN(),
+    .QE (s_mca_9_0_out[4]),
+    .QEN(),
+    .QF (s_mca_9_0_out[5]),
+    .QFN(),
+    .QG (s_mca_9_0_out[6]),
+    .QGN(),
+    .QH (s_mca_9_0_out[7]),
+    .QHN()
+);
 
   L8 L_HI (
-      .L(s_mclk_n),
+    // Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
 
-      .A(s_ica_15_0[8]),
-      .B(s_ica_15_0[9]),
-      .C(s_ica_15_0[10]),
-      .D(s_ica_15_0[11]),
-      .E(s_ica_15_0[12]),
-      .F(s_ica_15_0[13]),
-      .G(s_ica_15_0[14]),
-      .H(s_ica_15_0[15]),
+    .L(s_mclk_n),
 
-      .QA (s_mca_9_0_out[8]),
-      .QAN(),
-      .QB (s_mca_9_0_out[9]),
-      .QBN(),
-      .QC (s_mca_10),
-      .QCN(),
-      .QD (s_mca_11),
-      .QDN(),
-      .QE (s_mca_12),
-      .QEN(),
-      .QF (s_mca13),
-      .QFN(),
-      .QG (s_mca14),
-      .QGN(),
-      .QH (s_mca15),
-      .QHN()
+    .A(s_ica_15_0[8]),
+    .B(s_ica_15_0[9]),
+    .C(s_ica_15_0[10]),
+    .D(s_ica_15_0[11]),
+    .E(s_ica_15_0[12]),
+    .F(s_ica_15_0[13]),
+    .G(s_ica_15_0[14]),
+    .H(s_ica_15_0[15]),
+
+    .QA (s_mca_9_0_out[8]),
+    .QAN(),
+    .QB (s_mca_9_0_out[9]),
+    .QBN(),
+    .QC (s_mca_10),
+    .QCN(),
+    .QD (s_mca_11),
+    .QDN(),
+    .QE (s_mca_12),
+    .QEN(),
+    .QF (s_mca13),
+    .QFN(),
+    .QG (s_mca14),
+    .QGN(),
+    .QH (s_mca15),
+    .QHN()
   );
 
 endmodule

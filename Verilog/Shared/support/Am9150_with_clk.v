@@ -37,7 +37,8 @@ module Am9150_w_clock (
     //integer i;
 
     // Memory array
-    reg [3:0] memory_array [1023:0];
+    (* ROM_STYLE="BLOCK" *)
+    reg [3:0] amc_memory_array [1023:0];
 
     // Read, write and reset operations
     always @(posedge clk) begin
@@ -52,7 +53,7 @@ module Am9150_w_clock (
                 //end
             end else if (!WRITE_ENABLE_n) begin
                 // Write operation: active when chip is selected and write enable is low
-                memory_array[address] <= data_in;
+                amc_memory_array[address] <= data_in;
             end
         end
     end
@@ -61,7 +62,7 @@ module Am9150_w_clock (
     always @(posedge clk) begin
         if (!CHIP_SELECT_n && !OUTPUT_ENABLE_n && WRITE_ENABLE_n && RESET_n) begin
             // Read operation: active when chip is selected and output enable is low
-            data_out <= memory_array[address];
+            data_out <= amc_memory_array[address];
         end else begin
             data_out <= 4'b0; // High-impedance state when not reading
         end

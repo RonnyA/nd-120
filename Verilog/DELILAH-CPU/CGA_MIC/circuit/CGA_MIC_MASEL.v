@@ -6,7 +6,7 @@
 ** Page 19                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 02-FEB-2025                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -201,60 +201,78 @@ module CGA_MIC_MASEL (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  L8 WL_HI (
-      .A  (s_rep_12_0[12]),
-      .B  (s_rep_12_0[11]),
-      .C  (s_rep_12_0[10]),
-      .D  (s_rep_12_0[9]),
-      .E  (s_rep_12_0[8]),
-      .F  (s_rep_12_0[7]),
-      .G  (s_rep_12_0[6]),
-      .H  (s_rep_12_0[5]),
-      .L  (s_mclk_n),
-      .QA (s_w_12_0_out[12]),
-      .QAN(),
-      .QB (s_w_12_0_out[11]),
-      .QBN(),
-      .QC (s_w_12_0_out[10]),
-      .QCN(),
-      .QD (s_w_12_0_out[9]),
-      .QDN(),
-      .QE (s_w_12_0_out[8]),
-      .QEN(),
-      .QF (s_w_12_0_out[7]),
-      .QFN(),
-      .QG (s_w_12_0_out[6]),
-      .QGN(),
-      .QH (s_w_12_0_out[5]),
-      .QHN()
+  L8 WL_HI
+  (
+    // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    // Input signals
+    .L  (s_mclk_n),
+
+    .A  (s_rep_12_0[12]),
+    .B  (s_rep_12_0[11]),
+    .C  (s_rep_12_0[10]),
+    .D  (s_rep_12_0[9]),
+    .E  (s_rep_12_0[8]),
+    .F  (s_rep_12_0[7]),
+    .G  (s_rep_12_0[6]),
+    .H  (s_rep_12_0[5]),
+
+    // Output signals
+    .QA (s_w_12_0_out[12]),
+    .QAN(),
+    .QB (s_w_12_0_out[11]),
+    .QBN(),
+    .QC (s_w_12_0_out[10]),
+    .QCN(),
+    .QD (s_w_12_0_out[9]),
+    .QDN(),
+    .QE (s_w_12_0_out[8]),
+    .QEN(),
+    .QF (s_w_12_0_out[7]),
+    .QFN(),
+    .QG (s_w_12_0_out[6]),
+    .QGN(),
+    .QH (s_w_12_0_out[5]),
+    .QHN()
   );
 
-  L8 WL_LO (
-      .A  (s_rep_12_0[4]),
-      .B  (s_rep_12_0[3]),
-      .C  (s_rep_12_0[2]),
-      .D  (s_rep_12_0[1]),
-      .E  (s_rep_12_0[0]),
-      .F  (1'b0),
-      .G  (1'b0),
-      .H  (1'b0),
-      .L  (s_mclk_n),
-      .QA (s_w_12_0_out[4]),
-      .QAN(),
-      .QB (s_w_12_0_out[3]),
-      .QBN(),
-      .QC (s_w_12_0_out[2]),
-      .QCN(),
-      .QD (s_w_12_0_out[1]),
-      .QDN(),
-      .QE (s_w_12_0_out[0]),
-      .QEN(),
-      .QF (),
-      .QFN(),
-      .QG (),
-      .QGN(),
-      .QH (),
-      .QHN()
+  L8 WL_LO
+  (
+    // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    // Input signals
+    .L  (s_mclk_n),
+
+    .A  (s_rep_12_0[4]),
+    .B  (s_rep_12_0[3]),
+    .C  (s_rep_12_0[2]),
+    .D  (s_rep_12_0[1]),
+    .E  (s_rep_12_0[0]),
+    .F  (1'b0),
+    .G  (1'b0),
+    .H  (1'b0),
+
+    // Output signals
+    .QA (s_w_12_0_out[4]),
+    .QAN(),
+    .QB (s_w_12_0_out[3]),
+    .QBN(),
+    .QC (s_w_12_0_out[2]),
+    .QCN(),
+    .QD (s_w_12_0_out[1]),
+    .QDN(),
+    .QE (s_w_12_0_out[0]),
+    .QEN(),
+    .QF (),
+    .QFN(),
+    .QG (),
+    .QGN(),
+    .QH (),
+    .QHN()
   );
 
   //always @(negedge sysclk) begin

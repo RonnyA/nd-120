@@ -11,6 +11,11 @@
 ***************************************************************************/
 
 module CGA_MAC_AP09 (
+    // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
+    // Input signals
     input        ADDSEL,
     input [15:0] ADD_15_0,
     input        CDSEL,
@@ -22,6 +27,7 @@ module CGA_MAC_AP09 (
     input [15:0] PR_15_0,
     input        PSEL,
 
+    // Output signals
     output        ECCR,
     output [15:0] ICA_15_0,
     output [15:0] LCA_15_0,
@@ -677,13 +683,19 @@ module CGA_MAC_AP09 (
   );
 
  // CALC A
-  CGA_MAC_APOS_CALCA CALCA (
-      .ECCR(s_eccr_out),
-      .ECCRHIN(s_eccrhi_n),
-      .ICA_15_0(s_ica_15_0_out[15:0]),
-      .LCA_15_0(s_lca_15_0_out[15:0]),
-      .MCA_9_0(s_mca_9_0_out[9:0]),
-      .MCLK(s_mclk)
+  CGA_MAC_APOS_CALCA CALCA
+  (
+    // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    .MCLK(s_mclk),
+
+    .ECCR(s_eccr_out),
+    .ECCRHIN(s_eccrhi_n),
+    .ICA_15_0(s_ica_15_0_out[15:0]),
+    .LCA_15_0(s_lca_15_0_out[15:0]),
+    .MCA_9_0(s_mca_9_0_out[9:0])
   );
 
   // A INC

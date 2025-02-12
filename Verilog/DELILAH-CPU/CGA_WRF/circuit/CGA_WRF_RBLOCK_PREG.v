@@ -4,11 +4,15 @@
 ** WRF: Register File                                                    **
 ** (PDF page 62)                                                         **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 9-FEB-2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module CGA_WRF_RBLOCK_PREG (
+    // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
     input        ALUCLK,
     input        ALUCLKN,
     input [15:0] NLCA_15_0,
@@ -153,7 +157,7 @@ module CGA_WRF_RBLOCK_PREG (
   // verilator lint_off PINCONNECTEMPTY
 
   // Register P(7:0) (Clocked on s_aluclk)
-  R81P R_P_0_7 (
+  R81 R_P_0_7 (
       .A(s_ip0_n),
       .B(s_ip1_n),
       .C(s_ip2_n),
@@ -184,35 +188,77 @@ module CGA_WRF_RBLOCK_PREG (
   );
 
   // Latch P(7:0) (Latched on s_aluclk_n)
-  L8 L_PR_7_0 (
-      .A  (s_ip0_n),
-      .B  (s_ip1_n),
-      .C  (s_ip2_n),
-      .D  (s_ip3_n),
-      .E  (s_ip4_n),
-      .F  (s_ip5_n),
-      .G  (s_ip6_n),
-      .H  (s_ip7_n),
-      .L  (s_aluclk_n),
-      .QA (),
-      .QAN(s_pr_15_0_out[0]),
-      .QB (),
-      .QBN(s_pr_15_0_out[1]),
-      .QC (),
-      .QCN(s_pr_15_0_out[2]),
-      .QD (),
-      .QDN(s_pr_15_0_out[3]),
-      .QE (),
-      .QEN(s_pr_15_0_out[4]),
-      .QF (),
-      .QFN(s_pr_15_0_out[5]),
-      .QG (),
-      .QGN(s_pr_15_0_out[6]),
-      .QH (),
-      .QHN(s_pr_15_0_out[7])
+  L8 L_PR_7_0
+  (
+    // Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    .L  (s_aluclk_n),
+
+    .A  (s_ip0_n),
+    .B  (s_ip1_n),
+    .C  (s_ip2_n),
+    .D  (s_ip3_n),
+    .E  (s_ip4_n),
+    .F  (s_ip5_n),
+    .G  (s_ip6_n),
+    .H  (s_ip7_n),
+
+    .QA (),
+    .QAN(s_pr_15_0_out[0]),
+    .QB (),
+    .QBN(s_pr_15_0_out[1]),
+    .QC (),
+    .QCN(s_pr_15_0_out[2]),
+    .QD (),
+    .QDN(s_pr_15_0_out[3]),
+    .QE (),
+    .QEN(s_pr_15_0_out[4]),
+    .QF (),
+    .QFN(s_pr_15_0_out[5]),
+    .QG (),
+    .QGN(s_pr_15_0_out[6]),
+    .QH (),
+    .QHN(s_pr_15_0_out[7])
   );
 
   /* Bits 8-15, right side on the schematic diagram page 62 */
+
+  L8 L_PR_8_15
+  (
+    // Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    .L(s_aluclk_n),
+
+    .A(s_ip8_n),
+    .B(s_ip9_n),
+    .C(s_ip10_n),
+    .D(s_ip11_n),
+    .E(s_ip12_n),
+    .F(s_ip13_n),
+    .G(s_ip14_n),
+    .H(s_ip15_n),
+
+    .QA (),
+    .QAN(s_pr_15_0_out[8]),
+    .QB (),
+    .QBN(s_pr_15_0_out[9]),
+    .QC (),
+    .QCN(s_pr_15_0_out[10]),
+    .QD (),
+    .QDN(s_pr_15_0_out[11]),
+    .QE (),
+    .QEN(s_pr_15_0_out[12]),
+    .QF (),
+    .QFN(s_pr_15_0_out[13]),
+    .QG (),
+    .QGN(s_pr_15_0_out[14]),
+    .QH (),
+    .QHN(s_pr_15_0_out[15])
+  );
 
   MUX31LP R8 (
       .A (s_xfetch),
@@ -286,7 +332,7 @@ module CGA_WRF_RBLOCK_PREG (
       .ZN(s_ip15_n)
   );
 
-  R81P R_P_8_15 (
+  R81 R_P_8_15 (
       .A(s_ip8_n),
       .B(s_ip9_n),
       .C(s_ip10_n),
@@ -316,34 +362,6 @@ module CGA_WRF_RBLOCK_PREG (
       .QHN(s_p_15_0_out[15])
   );
 
-  L8 L_PR_8_15 (
-      .A(s_ip8_n),
-      .B(s_ip9_n),
-      .C(s_ip10_n),
-      .D(s_ip11_n),
-      .E(s_ip12_n),
-      .F(s_ip13_n),
-      .G(s_ip14_n),
-      .H(s_ip15_n),
 
-      .L(s_aluclk_n),
-
-      .QA (),
-      .QAN(s_pr_15_0_out[8]),
-      .QB (),
-      .QBN(s_pr_15_0_out[9]),
-      .QC (),
-      .QCN(s_pr_15_0_out[10]),
-      .QD (),
-      .QDN(s_pr_15_0_out[11]),
-      .QE (),
-      .QEN(s_pr_15_0_out[12]),
-      .QF (),
-      .QFN(s_pr_15_0_out[13]),
-      .QG (),
-      .QGN(s_pr_15_0_out[14]),
-      .QH (),
-      .QHN(s_pr_15_0_out[15])
-  );
 
 endmodule

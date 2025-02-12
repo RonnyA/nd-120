@@ -57,7 +57,7 @@ module AM29833A (
     output wire [7:0] T_OUT     //! T out
 );
 
-
+  wire calculated_parity;
 
   // Sequential logic for registers
   //always @(posedge CLK or negedge CLR_n) begin
@@ -93,7 +93,6 @@ module AM29833A (
 
 
   // Calculate parity (odd parity)
-  wire calculated_parity;
   assign calculated_parity = ^R;  // XOR all bits in reg_R for odd parity
 
 
