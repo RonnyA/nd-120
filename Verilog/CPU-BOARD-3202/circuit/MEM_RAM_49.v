@@ -135,26 +135,36 @@ module MEM_RAM_49 (
 
   // **************** BANK 0 ****************
 
-  SIP1M9 CHIP_15H (
-      .sysclk(sysclk),
-      .sys_rst_n(sys_rst_n),
+// TODO: Make the ram size definition working based on FPGA board.
+// Configure RAM size for 3202D board.
+// .ramSize: 0=disabled, 1=64KWord, 2=1Mword
+//
+// Note: There seems to be some problems detecting correct RAMSIZE as there is no INRQ defined for undefined RAM.
+// Maybe the solution is to trigger RAM parity error..
 
-      .ADDRESS(s_address[9:0]),
-      .CAS9_n (s_cas_b0),
-      .CAS_n  (s_cas_b0),
-      .RAS_n  (s_ras_b0),
+  localparam integer RamSize = 2;
 
-      .D8(s_dd_17_0_in[7:0]),
-      .Q8(s_dd_17_0_b0_out[7:0]),
-      .PRD_n(prd_n_b0l),
+  SIP1M9  #(.ramSize(RamSize)) CHIP_15H
+  (
+    .sysclk(sysclk),
+    .sys_rst_n(sys_rst_n),
 
-      .D9(s_dd_17_0_in[8]),
-      .Q9(s_dd_17_0_b0_out[8]),
+    .ADDRESS(s_address[9:0]),
+    .CAS9_n (s_cas_b0),
+    .CAS_n  (s_cas_b0),
+    .RAS_n  (s_ras_b0),
 
-      .W_n(s_mwrite50_n)
+    .D8(s_dd_17_0_in[7:0]),
+    .Q8(s_dd_17_0_b0_out[7:0]),
+    .PRD_n(prd_n_b0l),
+
+    .D9(s_dd_17_0_in[8]),
+    .Q9(s_dd_17_0_b0_out[8]),
+
+    .W_n(s_mwrite50_n)
   );
 
-  SIP1M9 CHIP_15J (
+  SIP1M9 #(.ramSize(RamSize)) CHIP_15J (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
 
@@ -175,7 +185,7 @@ module MEM_RAM_49 (
 
   // **************** BANK 1 ****************
 
-  SIP1M9 CHIP_15K (
+  SIP1M9 #(.ramSize(RamSize)) CHIP_15K (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
 
@@ -194,7 +204,7 @@ module MEM_RAM_49 (
       .W_n(s_mwrite50_n)
   );
 
-  SIP1M9 CHIP_15L (
+  SIP1M9 #(.ramSize(RamSize)) CHIP_15L (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
 
@@ -216,7 +226,7 @@ module MEM_RAM_49 (
 
   // **************** BANK 2 ****************
 
-  SIP1M9 CHIP_15M (
+  SIP1M9 #(.ramSize(RamSize)) CHIP_15M (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
 
@@ -236,7 +246,7 @@ module MEM_RAM_49 (
   );
 
 
-  SIP1M9 CHIP_15N (
+  SIP1M9 #(.ramSize(RamSize)) CHIP_15N (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
 
