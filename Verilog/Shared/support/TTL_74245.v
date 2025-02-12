@@ -16,22 +16,16 @@ module TTL_74245(
     input OE_n           // Output enable
 );
 
-reg [7:0] internalBus;
+    wire [7:0] internalBus;
 
-// Control the direction of data flow
-always @(*) begin
-    if (DIR) begin
-        internalBus = A; // Data flows from A to B
-    end else begin
-        internalBus = B; // Data flows from B to A
-    end
-end
+    assign internalBus = DIR ? A : B; // DIR = 1 =>Data flows from A to B, else Data flows from B to A
 
-// Assign the bidirectional bus with respect to OE
-assign B_OUT = (OE_n == 0 && DIR == 1) ? internalBus : 8'b0;
 
-// Output to A when receiving from B with respect to OE (OE_n==1 means "isolated". Don't write to A or B)
-assign A_OUT = (OE_n == 0 && DIR == 0) ? internalBus : 8'b0;
+    // Assign the bidirectional bus with respect to OE
+    assign B_OUT = (OE_n == 0 && DIR == 1) ? internalBus : 8'b0;
+
+    // Output to A when receiving from B with respect to OE (OE_n==1 means "isolated". Don't write to A or B)
+    assign A_OUT = (OE_n == 0 && DIR == 0) ? internalBus : 8'b0;
 
 endmodule
 
