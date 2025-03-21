@@ -1,3 +1,6 @@
+// Run SIMULATOR 
+// Runs the FPGA CPU in the console and lets you do console input and output via keyboard
+
 // #define DO_TRACE
 #include <iostream>
 #include <vector>
@@ -16,6 +19,9 @@
 #ifdef DO_TRACE
 #include <verilated_vcd_c.h>
 #endif
+
+#include "NDBus.h"
+#include "NDDevices.h"
 
 // Save the original terminal settings
 struct termios orig_termios;
@@ -111,6 +117,8 @@ int main(int argc, char **argv)
 	Verilated::commandArgs(argc, argv);
 	VND120_TOP *top = new VND120_TOP;
 
+	addDevices();
+
 	uint8_t led = 0;
 	uint8_t new_led = 0;
 
@@ -142,8 +150,28 @@ int main(int argc, char **argv)
 
 	top->btn1 = false; // sys_rst_n = 0
 	top->uartRx = 1; // MARK
-	int cnt = 0;
+	
 
+	// Default values for BUS INTERFACE (BIF) input
+	top->BD_23_0_n_IN = 0xFFFFFF; // Default to pulled-high
+	top->BREQ_n = 1;
+	top->BINT10_n = 1;
+	top->BINT11_n = 1;
+	top->BINT12_n = 1;
+	top->BINT13_n = 1;
+	top->BINT15_n = 1;
+	top->POWSENSE_n = 1;
+	
+	// Bus signaling defaults (off)
+	top->SEMRQ_n_IN = 1;
+	top->BINPUT_n_IN = 1;
+	top->BDAP_n_IN = 1;
+		//top->BPERR_n = 1; // BUS PARITY ERROR (disabled  TOP module)
+	top->BDRY_n_IN = 1;
+	top->BAPR_n_IN = 1;
+
+
+	int cnt = 0;
 	while (true)
 	{
 		cnt++;
@@ -155,6 +183,8 @@ int main(int argc, char **argv)
 
 		top->eval();
 		top->sysclk = !top->sysclk;
+
+		proccess_bif_signal(top);
 
 		new_led = top->led ^ 0x3F; // bits are negated, active low
 		//if (new_led != led)
