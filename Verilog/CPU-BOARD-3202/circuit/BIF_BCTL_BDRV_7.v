@@ -4,44 +4,56 @@
 ** BUS DRIVER                                                            **
 ** SHEET 7 of 50                                                         **
 **                                                                       **
-** Last reviewed: 7-DEC-2024                                             **
+** Last reviewed: 22-MAR-2024                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
-module BIF_BCTL_BDRV_7 (
-    input APR_n,
-    input BDRY25_n,
-    input BDRY50_n,
-    input BINPUT75_n,
-    input CACT_n,
-    input CBWRITE_n,
-    input DAP_n,
-    input EIOD_n,
-    input GNT50_n,
-    input IBDRY_n,
-    input IBREQ_n,
-    input IOD_n,
-    input MEM_n,
-    input MIS0,
-    input REF_n,
-    input SEM_n,
-    input SSEMA_n,
-    input TOUT,
 
-    output BAPR_n,
-    output BDAP_n,
-    output BDRY_n,
-    output BERROR_n,
-    output BINACK_n,
-    output BINPUT_n,
-    output BIOXE_n,
-    output BMEM_n,
-    output BREF_n,
-    output IOXERR_n,
-    output MOR_n,
-    output OUTGRANT_n,
-    output OUTIDENT_n,
-    output SEMRQ_n
+module BIF_BCTL_BDRV_7 (
+    input APR_n,       //! Address Present
+    input BDRY25_n,    //! Bus Data Ready (25ns delayed)
+    input BDRY50_n,    //! Bus Data Ready (50ns delayed)
+    input BINPUT75_n,  //! Bus Input (75ns delayed)
+    input CACT_n,      //! CPU Active
+    input CBWRITE_n,   //! CPU Bus Write
+    input DAP_n,       //! Data Present
+    input EIOD_n,      //! Enable I/O Data
+    input GNT50_n,     //! Grant (50ns delayed)
+    input IBDRY_n,     //! Input Bus Data Ready
+    input IBREQ_n,     //! Input Bus Request
+    input IOD_n,       //! IO D signal
+    input MEM_n,       //! Memory
+    input MIS0,        //! Microcode Misc 0 bit
+    input REF_n,       //! Refresh
+    input SEM_n,       //! Semaphore
+    input SSEMA_n,     //! Semaphore
+    input TOUT,        //! Timeout
+
+    output BAPR_n,     //! Bus Address Present
+    output BDAP_n,     //! Bus Data Present
+    output BDRY_n,     //! Bus Data Ready
+    output BERROR_n,   //! Bus Error
+    output BINACK_n,   //! Bus Input Acknowledge
+    output BINPUT_n,   //! Bus Input
+    output BIOXE_n,    //! Bus I/O Execute
+    output BMEM_n,     //! Bus MEMory Reference 
+    output BREF_n,     //! Bus Refresh
+    output IOXERR_n,   //! I/O Execute Error
+    output MOR_n,      //! Memory Error
+    output OUTGRANT_n, //! Output Grant
+    output OUTIDENT_n, //! Output Identify
+    output SEMRQ_n     //! Semaphore Request
 );
+
+
+// ND-06.016.01.PDF page 140
+//
+// BMEM_N serves two important functions.
+// It enables the memory system for further operations and ”freezes” the DMA request status on the DMA controllers
+// (0=Read from MEM to BUS)
+//
+// The ”freezing” of the DMA request status is done to ensure a stabilized test condition for the INGRANT/OUTGRANT search chain.
+// (It might happen that a DMA controller activates its request simultaneously with the reception of INGRANT.)
+// That is, leading edge of BMEM_n is the last chance for a DMA request to be served by the current INGRANT/OUTGRANT search.
 
 
   /*******************************************************************************
@@ -221,38 +233,26 @@ module BIF_BCTL_BDRV_7 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  wire [3:0] s_A1 = {1'b0, s_binput75_n, s_mis0_n, s_mis0};
-  wire [3:0] s_Y1;
+   // Refactored away the 74F241 CHIP 3A into logic
 
   // pull OUTIDENT_n high if EIOD_n is high (giving 3 state output on 74241-Y1)
-  assign s_outident_n = s_eiod_n ? 1'b1 : s_Y1[0];
+  assign s_outident_n = s_eiod_n ? 1'b1 : s_mis0; // PULL UP
 
-  assign s_bioxe_n = s_Y1[1];
-  assign s_binack_n = s_Y1[2];
+  // Changed from the original schematic - Pull BIOXE and BINACK high instead of three-state. Maybe there are some pull-up resisters somewhere else?
+  // pull BIOXE_n high if EOID_n is high (giving 3 state output on 74241-Y1)
+  assign s_bioxe_n = s_eiod_n ? 1'b1 : s_mis0_n; // No pull up here.. somewhere else ??
+
+  // pull BINACK_n high if EOID_n is high (giving 3 state output on 74241-Y1)
+  assign s_binack_n =  s_eiod_n ? 1'b1 : s_binput75_n; // No pull up here.. somewhere else ??
+ 
   // 4th output of 74241-Y1 is not connected
 
-  wire [3:0] s_A2 = {s_berror_n, s_gnd, s_mem_n, s_iod_n};
-  wire [3:0] s_Y2;
-
   // pull IOXERR_n, MOR_n,BERROR_n and BDRY_n high if TOUT is low (giving 3 state output on 74241-Y2)
-  assign s_ioxerr_n = s_tout ? s_Y2[0] : 1'b1;
-  assign s_mor_n    = s_tout ? s_Y2[1] : 1'b1;
-  assign s_berror_n = s_tout ? s_Y2[2] : 1'b1;
-  assign s_bdry_n   = s_tout ? s_Y2[3] : 1'b1;
-
-  // The following 2 lines is to make LINTER quiet as s_Y1[3] is unused/not connected
-  (* keep = "true", DONT_TOUCH = "true" *) wire unused_s_Y1_bit;
-  assign unused_s_Y1_bit = s_Y1[3];
+  assign s_ioxerr_n = s_tout ? s_iod_n : 1'b1;  // PULL UP
+  assign s_mor_n    = s_tout ? s_mem_n : 1'b1;  // PULL UP
+  assign s_berror_n = s_tout ? s_gnd : 1'b1;    // No pull up here.. somewhere else ??
+  assign s_bdry_n   = s_tout ? s_berror_n: 1'b1;// No pull up here.. somewhere else ??
 
 
-  TTL_74241 CHIP_3A (
-      .A1  (s_A1[3:0]),
-      .Y1  (s_Y1),
-      .G1_n(s_eiod_n),
-
-      .A2(s_A2[3:0]),
-      .Y2(s_Y2),
-      .G2(s_tout)
-  );
 
 endmodule
