@@ -4,7 +4,7 @@
 ** CPU TOP LEVEL                                                         **
 ** SHEET 16 of 50                                                        **
 **                                                                       **
-** Last reviewed: 2-FEB-2025                                             **
+** Last reviewed: 22-MAR-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -28,7 +28,7 @@ module ND3202D (
 
     /* FROM C-PLUG */
     input LOAD_n,      //! Input signal from "C PLUG", signal B12 - LOAD_n
-    input BREQ_n,      //! Input signal from "C PLUG", signal C12 - BREQ_n
+    input BREQ_n,      //! Input signal from "C PLUG", signal C12 - BREQ_n (DMA BUS Request)
     input CONTINUE_n,  //! Input signal from "C PLUG", signal B15 - CONTINUE_n
     input STOP_n,      //! Input signal from "C PLUG", signal B16 - STOP_n
 
@@ -36,23 +36,40 @@ module ND3202D (
     input BINT11_n,  //! Input signal from "C PLUG", signal C15 - BINT11_n
     input BINT12_n,  //! Input signal from "C PLUG", signal A16 - BINT12_n
     input BINT13_n,  //! Input signal from "C PLUG", signal C16 - BINT13_n
-    input BINT15_n,  //! Input signal from "C PLUG", signal C17 - BINT15_n
-
+    input BINT15_n,  //! Input signal from "C PLUG", signal C17 - BINT15_n    
     input POWSENSE_n,    //! Input signal from "C PLUG", signals A29,B29,C29 - POWSENSE_n (Power sense signal from the PSU?)
 
 
-    /* BUS BD to and from C-PLUG */
+    /* BUS BD to and from C-PLUG  - Bidirectional Address and Data*/
     input  [23:0] BD_23_0_n_IN,
     output [23:0] BD_23_0_n_OUT,
+
+    /* Bidirectional signals */
+    input  SEMRQ_n_IN,    //! Input-signal from "C PLUG", signal A17 SEMREQ~ (SEMaphore REQest)
+    output SEMRQ_n_OUT,   //! Output-signal to "C PLUG", signal A17 SEMREQ~ (SEMaphore REQest)
+
+    input  BINPUT_n_IN,    //! Input-signal from "C PLUG", signal A18 BINPUT~ (Bus INPUT)
+    output BINPUT_n_OUT,   //! Output-signal to "C PLUG", signal A18 BINPUT~ (Bus INPUT)
+
+    input  BDAP_n_IN,    //! Input-signal from "C PLUG", signal C18 BDAP~ (Bus DAta Present)
+    output BDAP_n_OUT,   //! Output-signal to "C PLUG", signal C18 BDAP~ (Bus DAta Present)
+
+    input  BDRY_n_IN,    //! Input-signal from "C PLUG", signal A19 BDRY~ (Bus Data ReadY)
+    output BDRY_n_OUT,   //! Output-signal to "C PLUG", signal A19 BDRY~ (Bus Data ReadY)
+
+    input  BAPR_n_IN,    //! Input-signal from "C PLUG", signal A20 BAPR~ (Bus Address PResent)
+    output BAPR_n_OUT,   //! Output-signal to "C PLUG", signal A20 BAPR~ (Bus Address PResent)
+
+
 
     /* TO C-PLUG */
     output BREF_n,      //! Output-signal to "C PLIG", signal B12 BREF~
     output BERROR_n,    //! Output-signal to "C PLIG", signal B21 BERROR~
     output BINACK_n,    //! Output-signal to "C PLIG", signal B19 BINACK~
-    output BIOEX_n,     //! Output-signal to "C PLIG", signal C19 BIOXE~
+    output BIOXE_n,     //! Output-signal to "C PLIG", signal C19 BIOXE~
     output BMEM_n,      //! Output-signal to "C PLIG", signal C28 BMEM~
-    output OUTGRANT_n,  //! Output-signal to "C PLIG", signal C23 OUTGRANT~
-    output OUTIDEN_n,   //! Output-signal to "C PLIG", signal C22 OUTIDENT~
+    output OUTGRANT_n,  //! Output-signal to "C PLIG", signal C23 OUTGRANT~ (After BREQ request)
+    output OUTIDENT_n,   //! Output-signal to "C PLIG", signal C22 OUTIDENT~
     output MCL,         //! Output-signal to "C PLIG", signal B20 MCL~ (after negation)
 
 
@@ -117,7 +134,7 @@ module ND3202D (
     output       TP1_INTRQ_n, // Test point signal TP1 - INTRQ_n
 
     // Led signals
-    output [5:0]  LED // 0=CPU RED,1=CPU GREEN, 2=LED4_RED_PARITY_ERROR, 3=LED_CPU_GRANT_INDICATOR, 4=LED_BUS_GRANT_INDICATOR, 5=LED1 from MMU
+    output [6:0]  LED // 0=CPU RED,1=CPU GREEN, 2=LED4_RED_PARITY_ERROR, 3=LED_CPU_GRANT_INDICATOR, 4=LED_BUS_GRANT_INDICATOR, 5=LED1 from MMU 6=LED5_RED_DISABLE_PARITY
 );
 
   /*
@@ -131,6 +148,8 @@ LED5 (red)     - Parity error disabled
 LED6 (green)   - CPU grant
 LED7 (yellow)  - Bus grant
 
+TODO: Sort bits on output LED to match led numbering
+
 */
 
 
@@ -141,6 +160,7 @@ LED7 (yellow)  - Bus grant
   wire [ 1:0] s_csalum_1_0;
   wire [ 1:0] s_csdelay_1_0;
   wire [ 1:0] s_csmis_1_0;
+  wire [ 1:0] s_mis_1_0; //Clocked MIS signal PDF page 3, A7 (on raising CLK signal)
   wire [ 1:0] s_oc_1_0;
   wire [ 1:0] s_pcr_1_0;
 
@@ -197,18 +217,21 @@ LED7 (yellow)  - Bus grant
 
 
   // Wires!
-  wire        s_acond_n;  //! Output from CGA_MIC_CONDREG. CGA.XACONDN
+  wire        s_acond_n;  // Output from CGA_MIC_CONDREG. CGA.XACONDN
   wire        s_aluclk;
-  wire        s_bapr_n;
-  wire        s_bdap_n;
+  wire        s_bapr_n_in;
+  wire        s_bapr_n_out;
+  wire        s_bdap_n_in;
+  wire        s_bdap_n_out;
   wire        s_bdap50_n;
-  wire        s_bdry_n;
-  wire        s_bif_bdry_n;
-  wire        s_mem_bdry_n;
-  wire        s_bdry50_n;  
+  wire        s_bdry_n_in;
+  wire        s_bdry_n_out;
+  wire        s_bdry50_n;
   wire        s_bgnt_n;
-  wire        s_bgnt50_n;  
-  wire        s_binput_n;
+  wire        s_bgnt50_n;
+  wire        s_bif_bdry_n; // BDRY signal out from BIF module
+  wire        s_binput_n_in;
+  wire        s_binput_n_out;
   wire        s_bint10_n;
   wire        s_bint11_n;
   wire        s_bint12_n;
@@ -263,6 +286,9 @@ LED7 (yellow)  - Bus grant
   wire        s_ibreq_n;
   wire        s_icontin_n;
   wire        s_iload_n;
+  wire        s_io_bint10_n;
+  wire        s_io_bint12_n;
+  wire        s_io_bint13_n;
   wire        s_ioni;
   wire        s_iorq_n;
   wire        s_ioxerr_n;
@@ -278,6 +304,7 @@ LED7 (yellow)  - Bus grant
   wire        s_maclk;
   wire        s_map_n;
   wire        s_mclk;
+  wire        s_mem_bdry_n; // BDRY signal out from MEM module
   wire        s_moff_n;
   wire        s_mor_n;
   wire        s_mor25_n;
@@ -308,7 +335,8 @@ LED7 (yellow)  - Bus grant
   wire        s_rwcs_n;
   wire        s_rxd;
   wire        s_sel5ms_n;
-  wire        s_semrq_n;
+  wire        s_semrq_n_in;
+  wire        s_semrq_n_out;
   wire        s_semrq50_n;
   wire        s_short_n;
   wire        s_slow_n;
@@ -331,11 +359,6 @@ LED7 (yellow)  - Bus grant
   wire        s_xtal2;
   wire        s_xtr;
 
-  wire        s_io_bint10_n;
-  wire        s_io_bint12_n;
-  wire        s_io_bint13_n;
-
-
 
   // Code to make LINTER not complaing about bits _not_ read in s_LDEXM_n
   // TODO-CLEANUP: Signal not connected and should probably be refactored away
@@ -355,14 +378,17 @@ LED7 (yellow)  - Bus grant
 
 
 
+
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
 
-  assign s_bint10_n       = ~(!BINT10_n | !s_io_bint10_n);  // or together with signals from IO interface (IOC chip output) (but must first be negated to get the correct meaning)
+   // Apply De Morgan's law: ~(!A | !B) => A & B
+
+  assign s_bint10_n =(BINT10_n & s_io_bint10_n);  // or together with signals from IO interface (IOC chip output) (but must first be negated to get the correct meaning) output PDF page 41
   assign s_bint11_n = BINT11_n;
-  assign s_bint12_n = ~(!BINT12_n | !s_io_bint12_n);
-  assign s_bint13_n = ~(!BINT13_n | !s_io_bint13_n);
+  assign s_bint12_n = (BINT12_n & s_io_bint12_n);
+  assign s_bint13_n = (BINT13_n & s_io_bint13_n);
   assign s_bint15_n = BINT15_n;
   assign s_breq_n = BREQ_n;
   assign s_console_n = CONSOLE_n;
@@ -380,15 +406,25 @@ LED7 (yellow)  - Bus grant
   assign s_xtal2 = CLOCK_2;
   assign s_xtr = XTR;
 
+
+  assign s_bdap_n_in = BDAP_n_IN;
+  assign s_bdry_n_in = BDRY_n_IN;
+  assign s_bapr_n_in = BAPR_n_IN;
+  assign s_binput_n_in = BINPUT_n_IN;
+  assign s_semrq_n_in = SEMRQ_n_IN;
+
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-  assign CSBITS = s_csbits[63:0];
-  assign DP_5_1_n = s_dp_5_1_n[4:0];
-  assign RUN_n = s_run_n;
-  assign TEST_4_0 = s_test_4_0[4:0];
+  assign CSBITS      = s_csbits[63:0];
+  assign DP_5_1_n    = s_dp_5_1_n[4:0];
+  assign RUN_n       = s_run_n;
+  assign TEST_4_0    = s_test_4_0[4:0];
   assign TP1_INTRQ_n = s_rp1_intrq_n;
-  assign TXD = s_txd;
+  assign TXD         = s_txd;
+
+
+
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
@@ -420,13 +456,21 @@ LED7 (yellow)  - Bus grant
   assign s_pd3 = 0;
   assign s_pd4 = 0;
 
-  
 
   // Or together the BIF and MEM bdry signals. Since they are negated we must first negate them to get the correct meaning
-  // assign s_bdry_n = ~(~s_bif_bdry_n | ~s_mem_bdry_n);
+  // assign s_bdry_n_out = ~(~s_bif_bdry_n | ~s_mem_bdry_n);
 
   // But we can simplify using De Morgan's law: ~(~A | ~B) => A & B
-  assign s_bdry_n = (s_bif_bdry_n & s_mem_bdry_n);
+
+  assign s_bdry_n_out = (s_bif_bdry_n & s_mem_bdry_n);
+
+
+  // Combined IO signals input to chip 5C 
+  // (if one (or both) of IN or OUT is low, that means the combined signal is low)
+
+
+
+
 
   // Cpu Cycle Clock
   assign s_cc2_n = s_cc_3_1_n[1];
@@ -435,6 +479,9 @@ LED7 (yellow)  - Bus grant
   // ********************************************
   // ****  Bus B connector (TRACE BUS)       ****
   // ********************************************
+
+
+  
   assign s_ebus_n = ~EBUS;
   assign s_sel5ms_n = SEL5MS_n; // B14 (SEL5MS~) Pulled high via 1Kohm. (3202D pdf sheet 3) - Select 5ms (if active will trigger RTC after 5 ms, not 20ms)
   assign s_inr_7_0 = INR_7_0;
@@ -443,11 +490,22 @@ LED7 (yellow)  - Bus grant
   assign LUA_12_0 =  s_lua_12_0;
   assign IDB_15_0 =  s_bif_idb_15_0_out | s_io_idb_15_0_out | s_mem_idb_15_0_out | s_cpu_idb_15_0_out;
   assign CSCOMM_4_0 = s_cscomm_4_0;
-  assign MIS_1_0 = s_csmis_1_0;
+  assign MIS_1_0 = s_mis_1_0;
   assign CD_15_0 = s_cpu_cd_15_0_in;
   assign LBD_15_0 = s_bif_lbd_23_0_out[15:0] | s_mem_lbd_23_0_out[15:0];
   assign LA_23_10 = 13'b0; //TODO: Where is the LA signal ??
   assign CA_9_0 =s_ca_9_0;
+
+  /* CHIP 21A 74LS374 */
+  // CLock the CSMIS signal to MIS
+  reg [1:0] regMIS_1_0;
+
+
+  always@(posedge s_clk)
+  begin
+    regMIS_1_0 <= s_csmis_1_0;
+  end
+  assign s_mis_1_0 = regMIS_1_0;
 
   // ********************************************
   // ****  Bus C connector (ND BUS)          ****
@@ -456,6 +514,12 @@ LED7 (yellow)  - Bus grant
   assign s_powsense_n = POWSENSE_n;    // Power sense
   assign s_bif_bd_23_0_n_in = BD_23_0_n_IN;
   assign BD_23_0_n_OUT = s_bif_bd_23_0_n_out;
+
+  assign SEMRQ_n_OUT  = s_semrq_n_out;
+  assign BINPUT_n_OUT = s_binput_n_out;
+  assign BDAP_n_OUT   = s_bdap_n_out;
+  assign BDRY_n_OUT   = s_bdry_n_out;
+  assign BAPR_n_OUT   = s_bapr_n_out;
 
     // Connect to C-bus output-signal B12 BREF~
   wire s_bref_n;
@@ -471,7 +535,7 @@ LED7 (yellow)  - Bus grant
 
   // Connect to C-bus output-signal C19 BIOXE~
   wire s_bioxe_n;
-  assign BIOEX_n = s_bioxe_n;
+  assign BIOXE_n =  s_bioxe_n;
 
   // Connect to C-bus output-signal C28 BMEM~
   wire s_bmem_n;
@@ -483,7 +547,7 @@ LED7 (yellow)  - Bus grant
 
   // Connect to C-bus output-signal C22 OUTIDENT~
   wire s_outident_n;
-  assign OUTIDEN_n = s_outident_n;
+  assign OUTIDENT_n = s_outident_n;
 
   // Connect to C-bus output-signal B20 MCL~ (after negation)
   wire s_mcl;
@@ -638,35 +702,21 @@ LED7 (yellow)  - Bus grant
 
 
   // Input signals on C-PLUG goes via 5C
+ 
 
+  // Refactored CHIP 5C (ignoring s_pd1 as its always 0)
 
-  wire s_BPERR_n;
-  assign s_BPERR_n = 1'b1;  // DISABLE BUS PARITY ERROR
+  // A1 => Y1
+  assign s_ibperr_n = 1'b1; // DISABLE BUS PARITY ERROR
 
-  (* keep = "true", DONT_TOUCH = "true" *) wire s_y2_0;  //output CHIP_5C pin 2Y1 (not used)
+  assign s_ibinput_n = (s_binput_n_out & s_binput_n_in);
+  assign s_isemrq_n = (s_semrq_n_out & s_semrq_n_in);
+  assign s_ibint10_n =(s_binput_n_out & s_binput_n_in);
 
-
-
-  TTL_74244 CHIP_5C (
-      // Input
-
-      //   1A4 = BPERR_n    1A3 = BINPUT_n   1A2= SEMRQ_n    1A1 = BINT10_n
-      .A1({
-        s_BPERR_n, s_binput_n, s_semrq_n, s_bint10_n
-      }),  // Mapping 4 separate signals to 1A4-1A1
-      .G1_n(s_pd1),
-
-      // 2A4 = BAPR_n       2A3= BDRY_n     2A2 = BDAP_n     2A1= n.c.
-      .A2  ({s_bapr_n, s_bdry_n, s_bdap_n, 1'b0}),  // Mapping 4 separate signals to 2A4-2A1
-      .G2_n(s_pd1),
-
-
-      // Output
-      .Y1({
-        s_ibperr_n, s_ibinput_n, s_isemrq_n, s_ibint10_n
-      }),  // Mapping 4 separate signals to 1Y4-1Y1
-      .Y2({s_ibapr_n, s_ibdry_n, s_ibdap_n, s_y2_0})  // Mapping 4 separate signals to 1Y4-1Y1
-  );
+  // A2 => Y2
+  assign s_ibapr_n = (s_bapr_n_out & s_bapr_n_in);
+  assign s_ibdry_n = (s_bdry_n_out & s_bdry_n_in);
+  assign s_ibdap_n = (s_bdap_n_out & s_bdap_n_in);
 
 
   IO_37 IO
@@ -684,6 +734,7 @@ LED7 (yellow)  - Bus grant
     .CSCOMM_4_0(s_cscomm_4_0[4:0]),
     .CSIDBS_4_0(s_csidbs_4_0[4:0]),
     .CSMIS_1_0(s_csmis_1_0[1:0]),
+    .MIS_1_0(s_mis_1_0[1:0]),
     .CX_n(s_cx_n),
     .DAP_n(s_dap_n),
     .EAUTO_n(s_eauto_n),
@@ -713,8 +764,7 @@ LED7 (yellow)  - Bus grant
     .XTAL2(s_xtal2),
     .XTR(s_xtr),
 
-
-    //  Input and Output Bus
+     //  Input and Output Bus
     .IDB_7_0_IN  (s_io_idb_7_0_in),
     .IDB_15_0_OUT(s_io_idb_15_0_out),
 
@@ -761,6 +811,7 @@ LED7 (yellow)  - Bus grant
   );
 
   // C-PLUG SIGNALS goes via 5C and 33C
+  /*
   TTL_74244 CHIP_33C (
       // Input
 
@@ -782,8 +833,14 @@ LED7 (yellow)  - Bus grant
         s_ibint11_n, s_ibint12_n, s_ibint13_n, s_ibint15_n
       })  // Mapping 4 separate signals to 1Y4-1Y1
   );
+*/
 
+  // Refactored chipt 33C (ignoring s_pd1 as its always 0)
+  assign {s_istop_n, s_icontin_n, s_ibreq_n, s_iload_n}
+    = {s_stop_n, s_continue_n, s_breq_n, s_load_n};
 
+  assign {s_ibint11_n, s_ibint12_n, s_ibint13_n, s_ibint15_n}
+    = {s_bint11_n, s_bint12_n, s_bint13_n, s_bint15_n};
 
   MEM_43 MEM (
       .sysclk   (sysclk),    // System clock in FPGA
@@ -834,7 +891,8 @@ LED7 (yellow)  - Bus grant
       .LERR_n      (s_lerr_n),                  // Local Error
       .LPERR_n     (s_lperr_n),                 // Local Parity Error
       .RERR_n      (s_rerr_n),                  // Read error
-      .LED4        (LED[2]),                    // LED4_RED_PARITY_ERROR
+      .LED4        (LED[2]),                    // LED4_RED_PARITY_ERROR (1=ON)
+      .LED5        (LED[6]),                    // LED5_RED_DISABLE_PARITY (1=ON)
       .LED_CPU_GI  (LED[3]),                    // LED_CPU_GRANT_INDICATOR
       .LED_BUS_GI  (LED[4])                     // LED_BUS_GRANT_INDICATOR
   );
@@ -856,7 +914,7 @@ LED7 (yellow)  - Bus grant
       .ECREQ    (s_ecreq),           // ECC Request
       .FETCH    (s_fetch),           // Fetch
       .GNT50_n  (s_gnt50_n),         // Grant (Delayed 50ns)
-      .IBAPR_n  (s_ibapr_n),         // Input Bus Address Parity Register
+      .IBAPR_n  (s_ibapr_n),         // Input Bus Address Present
       .IBDAP_n  (s_ibdap_n),         // Input Bus Data Present
       .IBDRY_n  (s_ibdry_n),         // Input Bus Data Ready
       .IBINPUT_n(s_ibinput_n),       // Input Bus Input
@@ -865,8 +923,8 @@ LED7 (yellow)  - Bus grant
       .IORQ_n   (s_iorq_n),          // IO Request
       .ISEMRQ_n (s_isemrq_n),        // Input Bus Semaphore Request
       .LERR_n   (s_lerr_n),          // Local Error
-      .LPERR_n  (s_lperr_n),        // Local Parity Error
-      .MIS0     (s_csmis_1_0[0]),    // Miscellaneous Signal 0
+      .LPERR_n  (s_lperr_n),         // Local Parity Error
+      .MIS0     (s_mis_1_0[0]),      // Miscellaneous Signal 0 (from flip-flop chip 21A)
       .MOFF_n   (s_moff_n),          // Memory Off
       .MOR25_n  (s_mor25_n),         // Memory Request (Delayed 25ns)
       .MWRITE_n (s_mwrite_n),        // Memory Write
@@ -884,22 +942,22 @@ LED7 (yellow)  - Bus grant
       .PPN_23_10(s_ppn_23_10[13:0]), // Physical Page Number
 
       // OUTPUTS
-      .BAPR_n    (s_bapr_n),      // Bus Address Present
+      .BAPR_n    (s_bapr_n_out),  // Bus Address Present
       .BDAP50_n  (s_bdap50_n),    // Bus Data Present (Delayed 50ns)
-      .BDAP_n    (s_bdap_n),      // Bus Data Present
+      .BDAP_n    (s_bdap_n_out),  // Bus Data Present
       .BDRY50_n  (s_bdry50_n),    // Bus Data Ready (Delayed 50ns)
       .BDRY_n    (s_bif_bdry_n),  // Bus Data Ready
       .BERROR_n  (s_berror_n),    // Bus Error
       .BINACK_n  (s_binack_n),    // Bus Input Acknowledge
-      .BINPUT_n  (s_binput_n),    // Bus Input
+      .BINPUT_n  (s_binput_n_out),    // Bus Input
       .BIOXE_n   (s_bioxe_n),     // Bus IOX Enable
       .BMEM_n    (s_bmem_n),      // Bus Memory Enable
       .BREF_n    (s_bref_n),      // Bus Refresh
       .CGNTCACT_n(s_cgntcact_n),  // Combined CPU Grant/Active signal
       .DAP_n     (s_dap_n),       // Data Present
-      .DBAPR     (s_dbapr),       // Data Bus Address Present
+      .DBAPR     (s_dbapr),       // Data Present
       .GNT_n     (s_gnt_n),       // Grant
-      .IOXERR_n  (s_ioxerr_n),    // IOX Error
+      .IOXERR_n  (s_ioxerr_n),    // IOX Error  
       .MOR_n     (s_mor_n),       // Memory Error
       .MR_n      (s_mr_n),        // Master Reset
       .OUTGRANT_n(s_outgrant_n),  // Output Grant
@@ -908,7 +966,7 @@ LED7 (yellow)  - Bus grant
       .REF_n     (s_ref_n),       // Refresh
       .RERR_n    (s_rerr_n),      // Read Error
       .SEMRQ50_n (s_semrq50_n),   // Semaphore Request (Delayed 50ns)
-      .SEMRQ_n   (s_semrq_n),     // Semaphore Request
+      .SEMRQ_n   (s_semrq_n_out),     // Semaphore Request
 
 
       // BUS Signals
