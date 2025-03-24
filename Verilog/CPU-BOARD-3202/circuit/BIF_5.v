@@ -4,7 +4,7 @@
 ** BUS INTERFACE                                                         **
 ** SHEET 5  of 50                                                        **
 **                                                                       **
-** Last reviewed: 02-FEB-2025                                            **
+** Last reviewed: 22-MAR-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -28,7 +28,7 @@ module BIF_5 (
     input       ECREQ,      //! Enable CPU Request
     input       FETCH,      //! Fetch
     input       GNT50_n,    //! Grant (Delayed 50ns)
-    input       IBAPR_n,    //! Input Bus Address Parity Register
+    input       IBAPR_n,    //! Input Bus Address Present
     input       IBDAP_n,    //! Input Bus Data Present
     input       IBDRY_n,    //! Input Bus Data Ready
     input       IBINPUT_n,  //! Input Bus Input
@@ -299,8 +299,6 @@ module BIF_5 (
       .BDAP50_n     (s_bdap50_n),             // Bus Data Present (50ns delayed)
       .BDRY25_n     (s_bdry25_n),             // Bus Data Ready (25ns delayed)
       .BDRY50_n     (s_bdry50_n),             // Bus Data Ready (50ns delayed)
-      .BD_23_0_n_OUT(s_bd_23_0_n_out[23:0]),  // Bus Data/Address
-      .LBD_23_0_OUT (s_lbd_23_0_out[23:0]),   // Local Bus Data
       .CD_15_0_OUT  (s_cd_15_0_out[15:0]),    // CPU Data
       .IDB_15_0_OUT (s_idb_15_0_out[15:0]),   // Internal Bus Data
       .CGNTCACT_n   (s_cgntcact_n),           // Combined Grant/Active
@@ -308,9 +306,14 @@ module BIF_5 (
       .SPEA         (s_spea),                 // Signal to latch PEA
       .SPES         (s_spes),                 // Signal to latch PES
 
-      // Inputs
+      // Bus data in and out
       .BD_23_0_n_IN(s_bd_23_0_n_in[23:0]),  // Bus Data/Address
+      .BD_23_0_n_OUT(s_bd_23_0_n_out[23:0]),  // Bus Data/Address
+
       .LBD_23_0_IN (s_lbd_23_0_in[23:0]),   // Local Bus Data
+      .LBD_23_0_OUT (s_lbd_23_0_out[23:0]),   // Local Bus Data
+
+      // Inputs
       .CD_15_0_IN  (s_cd_15_0_in[15:0]),    // CPU Data
       .BGNT50_n    (s_bgnt50_n),            // Bus Grant (50ns delayed)
       .BGNT_n      (s_bgnt_n),              // Bus Grant
@@ -367,7 +370,7 @@ module BIF_5 (
       .BINACK_n  (s_binack_n),    // Bus Input Acknowledge
       .BINPUT_n  (s_binput_n),    // Bus Input
       .BIOXE_n   (s_bioxe_n),     // Bus I/O Execute
-      .BMEM_n    (s_bmem_n),      // Bus Memory
+      .BMEM_n    (s_bmem_n),      // Bus MEMory Reference
       .BREF_n    (s_bref_n),      // Bus Refresh
       .DAP_n     (s_dap_n),       // Data Present
       .IOXERR_n  (s_ioxerr_n),    // I/O Execute Error

@@ -4,7 +4,7 @@
 ** BIF CONTROL                                                           **
 ** SHEET 6 of 50                                                         **
 **                                                                       **
-** Last reviewed: 20-DEC-2024                                            **
+** Last reviewed: 22-MAR-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -15,7 +15,7 @@ module BIF_BCTL_6 (
     input CGNT_n,     //! CPU Grant
     input CLEAR_n,    //! Clear
     input CRQ_n,      //! CPU Request
-    input DBAPR,      //! Data Bus Address Parity register
+    input DBAPR,      //! Data Bus Address Present
     input GNT50_n,    //! Grant 50ns delayed
     input IBDAP_n,    //! Input Bus Address Present
     input IBDRY_n,    //! Input Bus Data Ready
@@ -50,7 +50,7 @@ module BIF_BCTL_6 (
     output       BINPUT50_n,  //! Bus Input 50ns delayed
     output       BINPUT_n,    //! Bus Input
     output       BIOXE_n,     //! Bus I/O Execute
-    output       BMEM_n,      //! Bus Memory
+    output       BMEM_n,      //! Bus MEMory Reference
     output       BREF_n,      //! Bus Refresh
     output       CACT_n,      //! CPU Active
     output       DAP_n,       //! Data Present
@@ -322,7 +322,7 @@ module BIF_BCTL_6 (
       .BDRY75_n (s_bdry75_n),   // I1 - BDRY75_n Bus Data Ready 75ns delayed
       .BLOCK25_n(s_block25_n),  // I2 - BLOCK25_n Block 25ns delayed
       .BPERR50_n(s_bperr50_n),  // I3 - BPERR50_n Bus Parity Error 50ns delayed
-      .DBAPR_n  (s_dbapr),      // I4 - DBAPR_n Data Bus Address Present
+      .DBAPR_n  (s_dbapr),      // I4 - DBAPR_n Data Bus Address Present (input)
       .MOR25_n  (s_mor25_n),    // I5 - MOR25_n Memory Error 25ns delayed
       .LPERR_n  (s_lperr_n),    // I6 - LPERR_n Local Parity Error
       .MR_n     (s_mr_n),       // I7 - MR_n Master Reset
@@ -352,40 +352,40 @@ module BIF_BCTL_6 (
    */
   BIF_BCTL_BDRV_7 BDRV (
       // Input signals
-      .APR_n    (s_apr_n),      // Address Present
-      .CACT_n   (s_cact_n),     // CPU Active
-      .CBWRITE_n(s_cbwrite_n),  // CPU Bus Write
-      .EIOD_n   (s_eiod_n),     // Enable I/O Data
-      .GNT50_n  (s_gnt50_n),    // Grant (50ns delayed)
-      .IBDRY_n  (s_ibdry_n),    // Input Bus Data Ready
-      .IBREQ_n  (s_ibreq_n),    // Input Bus Request
-      .IOD_n    (s_iod_n),      // IO D signal
-      .MEM_n    (s_mem_n),      // Memory
-      .MIS0     (s_mis0),       // Microcode Misc 0 bit
-      .MOR_n    (s_mor_n),      // Memory Error
-      .REF_n    (s_ref_n),      // Refresh
-      .SSEMA_n  (s_ssema_n),    // Semaphore
+      .APR_n      (s_apr_n),      // Address Present
+      .BDRY25_n   (s_bdry25_n),   // Bus Data Ready (25ns delayed)
+      .BDRY50_n   (s_bdry50_n),   // Bus Data Ready (50ns delayed)
+      .BINPUT75_n (s_binput75_n), // Bus Input (75ns delayed)
+      .CACT_n     (s_cact_n),     // CPU Active
+      .CBWRITE_n  (s_cbwrite_n),  // CPU Bus Write
+      .DAP_n      (s_dap_n),      // Data Present
+      .EIOD_n     (s_eiod_n),     // Enable I/O Data
+      .GNT50_n    (s_gnt50_n),    // Grant (50ns delayed)
+      .IBDRY_n    (s_ibdry_n),    // Input Bus Data Ready
+      .IBREQ_n    (s_ibreq_n),    // Input Bus Request
+      .IOD_n      (s_iod_n),      // IO D signal
+      .MEM_n      (s_mem_n),      // Memory
+      .MIS0       (s_mis0),       // Microcode Misc 0 bit
+      .REF_n      (s_ref_n),      // Refresh
+      .SEM_n      (s_sem_n),      // Semaphore
+      .SSEMA_n    (s_ssema_n),    // Semaphore
+      .TOUT       (s_tout),       // Timeout
 
       // Output signals
-      .BAPR_n    (s_bapr_n),      // Bus Address Present
-      .BDAP_n    (s_bdap_n),      // Bus Data Present
-      .BDRY25_n  (s_bdry25_n),    // Bus Data Ready (25ns delayed)
-      .BDRY50_n  (s_bdry50_n),    // Bus Data Ready (50ns delayed)
-      .BDRY_n    (s_bdry_n),      // Bus Data Ready
-      .BERROR_n  (s_berror_n),    // Bus Error
-      .BINACK_n  (s_binack_n),    // Bus Input Acknowledge
-      .BINPUT75_n(s_binput75_n),  // Bus Input (75ns delayed)
-      .BINPUT_n  (s_binput_n),    // Bus Input
-      .BIOXE_n   (s_bioxe_n),     // Bus I/O Execute
-      .BMEM_n    (s_bmem_n),      // Bus Memory
-      .BREF_n    (s_bref_n),      // Bus Refresh
-      .DAP_n     (s_dap_n),       // Data Present
-      .IOXERR_n  (s_ioxerr_n),    // I/O Execute Error
-      .OUTGRANT_n(s_outgrant_n),  // Output Grant
-      .OUTIDENT_n(s_outident_n),  // Output Identify
-      .SEMRQ_n   (s_semrq_n),     // Semaphore Request
-      .SEM_n     (s_sem_n),       // Semaphore
-      .TOUT      (s_tout)         // Timeout
+      .BAPR_n     (s_bapr_n),      // Bus Address Present
+      .BDAP_n     (s_bdap_n),      // Bus Data Present
+      .BDRY_n     (s_bdry_n),      // Bus Data Ready
+      .BERROR_n   (s_berror_n),    // Bus Error
+      .BINACK_n   (s_binack_n),    // Bus Input Acknowledge
+      .BINPUT_n   (s_binput_n),    // Bus Input
+      .BIOXE_n    (s_bioxe_n),     // Bus I/O Execute
+      .BMEM_n     (s_bmem_n),      // Bus Memory
+      .BREF_n     (s_bref_n),      // Bus Refresh
+      .IOXERR_n   (s_ioxerr_n),    // I/O Execute Error
+      .MOR_n      (s_mor_n),       // Memory Error
+      .OUTGRANT_n (s_outgrant_n),  // Output Grant
+      .OUTIDENT_n (s_outident_n),  // Output Identify
+      .SEMRQ_n    (s_semrq_n)      // Semaphore Request
   );
 
 
