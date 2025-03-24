@@ -1,3 +1,14 @@
+/**************************************************************************
+** ND BUS BIF INTERFACE IMPLEMENTATION                                   **
+**                                                                       **
+** Processing of BIF signals                                             **
+** Creation of ND BUS Devices                                            **
+**                                                                       **
+**                                                                       **
+** Last reviewed: 22-MAR-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
+
 #include "NDBus.h"
 #include "NDDevices.h"
 
@@ -21,6 +32,8 @@ int prev_bmem_n = 0;
 int prev_outident_n = 0;
 int prev_binack_n = 0;
 int prev_bdry_n_out = 0;
+
+uint16_t idcode = 0;
 
 BIF_State bifState = BIF_State::IDLE;
 
@@ -57,12 +70,63 @@ void proccess_bif_signal(VND120_TOP *top)
 	// Nedgative edge of OUTIDENT (Check which controller that has an INTERRUPT)
 	if ((top->OUTIDENT_n == 0) && (prev_outident_n == 1))
 	{
+		uint16_t idlevel = 0;
+
+
+		switch(bus_address)
+		{
+			case 004:
+				idlevel =10;
+				break;
+			case 011:
+				idlevel =11;
+				break;
+			case 022:
+				idlevel =12;
+				break;
+			case 043:
+				idlevel =13;
+				break;
+			default:
+				printf("Invalid IDENT level 0x%x\r\n",bus_address);
+			break;
+		}
+
+			
+
+
 		// Try to identify which device has interrupt
+		idcode = deviceManager.IDENT(idlevel);
+		printf("IDENT LVL[%d]=%d\r\n", idlevel,idcode);
+
+
+		if (idcode >0)
+		{
+			if (DEBUG_BIF) printf("Activating BINPUT !\n");
+			top->BINPUT_n_IN = 0; // Tell cpu this address is READ (so we need to put data on the bus), then wait for the BINACK signal
+
+			top->BD_23_0_n_IN = (~idcode) & 0xFFFFFF;
+			//top->BDRY_n_IN = 0;
+		}
 	}
+
+	if ((top->OUTIDENT_n == 1) && (prev_outident_n == 0))
+	{
+		// Clear idcode
+		if (idcode >0)
+		{
+			printf("Clearing OUTIDENT code %o\r\n",idcode);
+			idcode = 0;
+			top->BINPUT_n_IN = 1;
+			top->BDRY_n_IN = 1;
+		}
+	}
+
 
 	// Negative edge of BDRY_n_OUT tells us that data is valid on the bus
 	if ((top->BDRY_n_OUT == 0) && (prev_bdry_n_out == 1))
-	{
+	{		
+
 		if (bifState != BIF_State::IDLE)
 		{
 			// nope?
@@ -111,6 +175,12 @@ void proccess_bif_signal(VND120_TOP *top)
 			top->BD_23_0_n_IN = (~deviceManager.Read(bus_address)) & 0xFFFFFF;
 			top->BDRY_n_IN = 0;
 		}
+		else if (idcode>0)
+		{
+			printf("Setting IDCODE %d\r\n",idcode);
+			top->BD_23_0_n_IN = (~idcode) & 0xFFFFFF;
+			top->BDRY_n_IN = 0;
+		}
 	}
 
 	// Positive edge of BIOXE (clear BDRY signal)
@@ -137,7 +207,12 @@ void proccess_bif_signal(VND120_TOP *top)
 	}
 	
 	// Tick deviceManager
-	deviceManager.Tick();
+	uint16_t interruptBits = deviceManager.Tick();
+
+	top->BINT10_n = !((interruptBits & 1<<10) == 1);
+	top->BINT11_n = !((interruptBits & 1<<11) == 1);
+	top->BINT12_n = !((interruptBits & 1<<12) == 1);
+	top->BINT13_n = !((interruptBits & 1<<13) == 1);
 
 	// Update signals
 	prev_bapr_n = top->BAPR_n_OUT;

@@ -1,3 +1,14 @@
+/**************************************************************************
+** ND BUS BIF INTERFACE DEFINITIONS                                      **
+**                                                                       **
+** Processing of BIF signals                                             **
+** Creation of ND BUS Devices                                            **
+**                                                                       **
+**                                                                       **
+** Last reviewed: 22-MAR-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
+
 
 #include <iostream>
 #include <vector>

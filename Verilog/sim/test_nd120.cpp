@@ -1,5 +1,20 @@
-// GTKWave helper program
-// Simulates the CPU partially by execiting pre-defined commands, generating GTKWave signal file
+/**************************************************************************
+** ND120 SIMULATOR & DEBUGGER MODULE                                     **
+**                                                                       **
+** Steps the Verilator TOP module                                        **
+**                                                                       **
+** GTKWave helper program                                                **
+** Simulates the CPU partially by execiting pre-defined commands,        **
+** generating GTKWave signal file                                        **
+**                                                                       **
+** Used for debugging the Verilog code                                   **
+**                                                                       **
+** Can load INITIAL BPUN directly into memory                            **
+**                                                                       **
+** Last reviewed: 22-MAR-2024                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
+
 
 #define DO_TRACE
 #include <iostream>
@@ -20,21 +35,7 @@
 #include "NDDevices.h"
 
 // BPUN load file logic
-void loadfile(char *fn, int off, uint8_t *low_array, uint8_t *high_array);
-
-// DECODE_DGA testcases
-struct TestCase
-{
-	bool sysclk; // System Clock
-	bool btn1;	 // Button 1, mapped to S1 (not labeled) on the board
-	bool btn2;	 // Button 2, mapped to S2 (not labeled) on the board
-
-	uint8_t led; // 6-bit output for controlling LEDs
-	bool uartRx; // UART Receive pin
-	bool uartT;	 // UART Transmit pin
-
-	std::string description; // Description of the test case
-};
+void loadfile(char *fn, int off, uint8_t *low_array, uint8_t *low_array9, uint8_t *high_array, uint8_t *high_array9);
 
 // Array of descriptions corresponding to each LED flag
 const char *LED_DESCRIPTION[6] = {
@@ -92,9 +93,8 @@ int main(int argc, char **argv)
 	Verilated::commandArgs(argc, argv);
 	VND120_TOP *top = new VND120_TOP;
 
-	//addDevices();
-
-	// Create papertape object
+	// Create ND Bus devices
+	addDevices();
 
 #ifdef DO_TRACE
 	VerilatedVcdC *m_trace = new VerilatedVcdC;
@@ -106,9 +106,12 @@ int main(int argc, char **argv)
 	// Load data
 	// Access MEM->RAM fields via rootp
 	auto &ram_low = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__CHIP_15H__DOT__sdram;
+	auto &ram_low_9 = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__CHIP_15H__DOT__sdram_9;
+
 	auto &ram_high = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__CHIP_15J__DOT__sdram;
+	auto &ram_high_9 = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__CHIP_15J__DOT__sdram_9;
 	char *fname = strdup("INSTRUCTION-B.BPUN"); // strdup creates a modifiable copy
-	loadfile(fname, 0, &ram_low[0], &ram_high[0]);
+	loadfile(fname, 0, &ram_low[0], &ram_low_9[0], &ram_high[0], &ram_high_9[0]);
 
 	uint8_t led = 0;
 	uint8_t new_led = 0;
@@ -132,15 +135,22 @@ int main(int argc, char **argv)
 	// long startTrace = 2390000; // STAR
 	// long maxTicks = startTrace + 500000;
 
-	long startTrace = 755472; // OPCOM READY after selftest
-							  // long startTrace = 2207832; // READY AFTER BOOT from 0!
+	//long startTrace = 755472; // OPCOM READY after selftest
+							  
+	long startTrace = 2207832; // READY AFTER BOOT from 0!
 	// long startTrace = 4777683;
 	// long startTrace = 0;
-	// long maxTicks = 2000000;
-	// long maxTicks = startTrace + 5500000; // 5.5M
-	// long maxTicks = startTrace + 1000000; // 1M
+	//long startTrace = 10000000; // 10 mill
 
-	long maxTicks = startTrace + 200000; // 200K
+	// long maxTicks = 2000000;
+
+	
+	// long maxTicks = startTrace + 200000; // 200K (good for boot)
+	long maxTicks = startTrace + 1000000; // 1M
+	// long maxTicks = startTrace + 2000000; // 2M
+	// long maxTicks = startTrace + 5500000; // 5.5M
+
+	
 
 	// Boot commands
 	const char *cmdBOOT = "0!\0"; // Start program in RAM at address 0
@@ -373,8 +383,8 @@ int main(int argc, char **argv)
 						// Send COMMAND to OPCOM after first # ahas been received
 						if (txOffset == 1)
 						{
-							printf("OPCOM command: %s at %ld\r\n", cmdLOAD, cnt);
-							cmdP = cmdLOAD;
+							printf("OPCOM command: %s at %ld\r\n", cmdBOOT, cnt);
+							cmdP = cmdBOOT;
 						}
 
 						// Send DATA after # and SPACE
@@ -485,6 +495,21 @@ gw(FILE *f)
 	return (c << 8) | gb(f);
 }
 
+
+// Return 1 if 8 bit parity is EVEN
+ushort calc_parity(uint16_t val)
+{
+	ushort parity = 0;
+
+    for (int i = 0; i < 8; i++)
+    {
+        parity ^= (val & 1);
+        val >>= 1;
+    }
+    return parity == 0 ? 1 : 0; // Even parity returns 1, odd returns 0
+}
+
+
 /*
  * Bootable (BPUN) tape format.
  * Disks can use it as well with a max of 64 words data.  In this case
@@ -504,7 +529,7 @@ gw(FILE *f)
  * I - Action code.  If non-zero, start at address in B, otherwise nothing.
  */
 
-void loadfile(char *fn, int off, uint8_t *low_array, uint8_t *high_array)
+ void loadfile(char *fn, int off, uint8_t *low_array,uint8_t *low_array9, uint8_t *high_array, uint8_t *high_array9)
 {
 	int B, C, E, F, H, I;
 	int w, i, rv;
@@ -566,6 +591,9 @@ void loadfile(char *fn, int off, uint8_t *low_array, uint8_t *high_array)
 		int data16 = gw(f);
 		low_array[E + i] = data16 & 0xFF;
 		high_array[E + i] = (data16 >> 8) & 0xFF;
+
+		low_array9[E+i] = calc_parity(low_array[E+i]);
+		high_array9[E+i] = calc_parity(high_array[E+i]);
 
 		s += data16;
 	}
