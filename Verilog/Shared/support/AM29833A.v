@@ -9,7 +9,7 @@
 ** https://pdf1.alldatasheet.com/datasheet-pdf/view/165880/AMD/AM29833A.html     **
 **                                                                               **
 **                                                                               **
-** Last reviewed: 14-DEC-2024                                                    **
+** Last reviewed: 22-MAR-2025                                                    **
 ** Ronny Hansen                                                                  **
 ***********************************************************************************/
 
@@ -46,60 +46,58 @@ Each of these devices is produced with AMD's proprietary IMOX bipolar process, a
 module AM29833A (
     input  wire       CLK,      //! Clock for parity error
     input  wire       CLR_n,    //! Clear error
-    output reg        ERR_n,    //! Parity Error
+    output wire       ERR_n,    //! Parity Error
     input  wire       OER_n,    //! Output enable (negated) R
     input  wire       OET_n,    //! Output enable (negated) T
     input  wire       PAR,      //! Parity bit (in)
-    output reg        PAR_OUT,  //! Parity bit (out)
+    output wire       PAR_OUT,  //! Parity bit (0=ODD,1=EVEN)
     input  wire [7:0] R,        //! R in
     output wire [7:0] R_OUT,    //! R out
     input  wire [7:0] T,        //! T in
     output wire [7:0] T_OUT     //! T out
 );
 
-  wire calculated_parity;
+  reg regERR;
 
-  // Sequential logic for registers
-  //always @(posedge CLK or negedge CLR_n) begin
+  // Transmit Mode: Transmits data from R port to T port. Generating parity. Receive path is disabled.
+  wire TransmitMode;
+  assign TransmitMode = !OET_n & OER_n;
 
-  //TODO: Do we need to handle CLR_n specific with a clock signal ?
-  always @(posedge CLK) begin
-    if (!CLR_n) begin
-      // Reset logic
-      ERR_n <= 1;
-    end else begin
-      if (!OET_n && OER_n) begin
-        // Receive mode: Compare calculated parity with input parity  
-        ERR_n <= !(calculated_parity == PAR);  // Active low error flag
-      end else begin
-        ERR_n <= 1'b1;  // High impedance when not receiving (here meaning '1' since ERR_n is active low)
-      end
+  // Receive Mode: Transmits data from T port to R port with parity test resulting in error flag. Transmit path is disabled
+  wire ReceiveMode;
+  assign ReceiveMode = OET_n & !OER_n;
+
+  // Both OET_n is low and OER_n is low
+  wire ResetMode;
+  assign ResetMode = !OET_n & !OER_n;
+
+  // Data path
+  assign T_OUT = (TransmitMode) ? R : 8'b0;  // TRANSMIT MODE
+  //assign R_OUT = (ReceiveMode) ? T : 8'b0;   // RECEIVE MODE
+  assign R_OUT = (ReceiveMode) ? T : 8'b0;   // RECEIVE MODE
+
+  // In receivemode PAR_OUT is high-impediance (we use 0 for that here)
+  //
+  // ^ (in Verilig) is XOR giving 0=if even, 1=if odd.
+  // Invert this so that the PAR signal is according to Am29833A documentation: PAR=L on ODD and PAR=H on EVEN
+  assign PAR_OUT = (!ReceiveMode) ? ~(^R) : 1'b0;
+
+  // ERR register logic (latched on CLK)
+  always @(posedge CLK or negedge CLR_n) begin
+    if (!CLR_n)
+    begin
+      // Clear error flag
+      regERR <= 1'b0;
     end
-
-    // Parity output for transmit mode
-    if (!OER_n && OET_n) begin
-      // Transmit mode: Generate parity based on R
-      PAR_OUT = calculated_parity;
-    end else begin
-      PAR_OUT = 1'b0;  // High impedance when not transmitting (here meaning 0)
+    else if (!ReceiveMode) // Defaul to transmit mode if ReceiveMode is not active
+    begin
+        // Store error flag if even parity detected, and error is not already set
+        regERR <= ~(^{T, PAR}); // Parity check on T input + incoming PAR. If those 9 bits is EVEN we have an error      
     end
-
   end
 
-
-
-  assign R_OUT = (OET_n & !OER_n) ? T : 8'b0;  // RECEIVE MODE (Transmits data from T port to R port with parity test resulting in error flag. Transmit path is disabled.)
-  assign T_OUT = (!OET_n & OER_n) ? R : 8'b0;  // TRANSMIT MODE (Transmits data from R port to T port, generating parity. Receive path is disabled.)
-
-
-  // Calculate parity (odd parity)
-  assign calculated_parity = ^R;  // XOR all bits in reg_R for odd parity
-
-
-  //assign ERR_n = 1;  // Error flag logic to be implemented
-  //assign PAR_OUT = 0;  // Parity flag logic to be implemented
-
-
+  // ERR output logic (open-collector style)
+  assign ERR_n = regERR ? 1'b0 : 1'b1; //open collector is here resulting in an 1 when there is no error
 
 endmodule
 

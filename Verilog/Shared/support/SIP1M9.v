@@ -31,9 +31,11 @@ module SIP1M9 (
     // Output signals
     output [7:0] Q8,    //! DATA OUTPUT (8-bit)
     output       Q9,    //! DATA OUTPUT (1-bit)
-    output       PRD_n  //! Parity bit
+    output       PRD_n  //! Parity Data Output
 
 );
+
+  wire parity_calculation;
 
   // Parameters are declared here
   parameter ramSize = 0; // 0 = Disabled, 1=64KB, 2=1MB
@@ -90,6 +92,12 @@ module SIP1M9 (
 
 
   // Even Parity Logic
+    // ^ (in Verilig) is XOR giving 0=if even, 1=if odd.
+  // Invert this so that the PAR signal is according to Am29833A documentation: PAR=L on ODD and PAR=H on EVEN
+  assign parity_calculation =  (^{Q8, Q9});
+
+  assign PRD_n = ((CAS_n == 0) && (W_n))  ? parity_calculation : 1;
+  /*
   assign PRD_n = ~(
     Q8[0] ^
     Q8[1] ^
@@ -101,5 +109,6 @@ module SIP1M9 (
     Q8[7] ^
     Q9
   );
+  */
 
 endmodule
