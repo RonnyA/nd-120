@@ -18,7 +18,8 @@
 | ALB |  | CMP4 | A LESS THAN B |
 | ALUCLK | CPU_PROC_32, CPU_PROC_CGA_33, CGA_CPU_ALU_CONTR, CGA_MIC, CGA_WRF, CGA_WRF_RBLOCK |  | ALU clock, ALU clock signal, Clock, To clock the operation |
 | ALUI4 | CGA_CPU_ALU_RALU |  | ALU Instruction - bit 4 |
-| AOK |  | PAL_44446B | B0_n - AOK |
+| AOK |  | PAL_44446B | B0_n - AOK  (Address OK) |
+| APR_n | BIF_BCTL_BDRV_7 |  | Address Present |
 | B | M169C |  | Input B |
 | B_15_0 [15:0] |  | CGA_WRF, CGA_WRF_RBLOCK | DATA output 16 bit B, from register selected by LBA_3_0 , DATA output 16 bit B, from register selected by EB_15_0 |
 | B0 | CMP4 |  | B bit 0 |
@@ -31,41 +32,49 @@
 | BANK0 |  | PAL_44445B, PAL_44446B | Q2_n - BANK0 |
 | BANK1 |  | PAL_44445B, PAL_44446B | Q1_n - BANK1 |
 | BANK2 |  | PAL_44445B, PAL_44446B | Q0_n - BANK2 |
-| BAPR_n |  | BIF_5, BIF_BCTL_6 | Bus Address Present |
+| BAPR_n |  | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7 | Bus Address Present |
+| BAPR_n_IN | ND120_TOP, ND3202D |  | Input-signal from "C PLUG", signal A20 BAPR~ (Bus Address PResent) |
+| BAPR_n_OUT |  | ND120_TOP, ND3202D | Output-signal to "C PLUG", signal A20 BAPR~ (Bus Address PResent) |
 | BAUD_RATE_SWITCH [3:0] | IO_UART_42 |  | Baud rate switch |
 | BB10 | CGA_MAC_LA1025 |  | no PONI + DOUBLE + SHADOW + MREQ |
 | BBIT |  | PAL_44904B | Q1_n - BBIT  7-Segmen B-bit |
 | BCGNT25 | MEM_LBDIF_48 | PAL_44803A, MEM_RAMC_50 | Q7_n - BCGNT25, Bus cycle grant (Delayed 25ns), CPU Grant (Delayed 25ns) |
 | BCGNT50 | PAL_45009B, MEM_ADDR_44 | MEM_LBDIF_48 | I2 - BCGNT50, Bus cycle grant 50ns delayed CLOCK signal to latch LOW or HIGH bits from memory to AA_9_0, Bus cycle grant (Delayed 50ns) |
-| BCGNT50R_n | PAL_45008B, MEM_DATA_46 | PAL_44310D, MEM_LBDIF_48 | Y0, I8 - BCGNT50R_n, Bus CPU Grant on read from memory after the address, Bus cycle grant (Delayed 50ns) |
-| BD_23_0_n_IN [23:0] | BIF_5, BIF_DPATH_9, BIF_DPATH_BDLBD_10 |  | BUS Data/Address 24 bit IN, Bus Data IN |
-| BD_23_0_n_OUT [23:0] |  | BIF_5, BIF_DPATH_9, BIF_DPATH_BDLBD_10 | BUS Data/Address 24 bit OUT, Bus Data OUT |
+| BCGNT50R_n | PAL_45008B, MEM_DATA_46 | PAL_44310D, MEM_LBDIF_48 | Y0, I8 - BCGNT50R_n, Bus CPU Grant on read from memory after the address (from 50 ns after GNT on read cycle), Bus cycle grant (Delayed 50ns) |
+| BD_23_0_n_IN [23:0] | ND120_TOP, BIF_5, BIF_DPATH_9, BIF_DPATH_BDLBD_10 |  | BUS DATA & ADDRESS IN (Pulled high), BUS Data/Address 24 bit IN, Bus Data IN |
+| BD_23_0_n_OUT [23:0] |  | ND120_TOP, BIF_5, BIF_DPATH_9, BIF_DPATH_BDLBD_10 | BUS DATA & ADDRESS OUT (Pulled high), BUS Data/Address 24 bit OUT, Bus Data OUT |
 | BD_23_19_n [4:0] | MEM_43 |  | Bus Data and Address (bits 23:19 negated) |
 | BD19_n | PAL_44446B |  | B3_n - BD19_n (not in use) |
 | BD20_n | PAL_44446B |  | I4 - BD20_n |
 | BD21_n | PAL_44446B |  | I5 - BD21_n |
 | BD22_n | PAL_44446B |  | I6 - BD22_n |
 | BD23_n | PAL_44446B |  | I7 - BD23_n |
-| BDAP_n |  | BIF_5, BIF_BCTL_6 | Bus Data Present, Bus Data Present Data |
+| BDAP_n |  | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7 | Bus Data Present, Bus Data Present Data |
+| BDAP_n_IN | ND120_TOP, ND3202D |  | Input-signal from "C PLUG", signal C18 BDAP~ (Bus DAta Present) |
+| BDAP_n_OUT |  | ND120_TOP, ND3202D | Output-signal to "C PLUG", signal C18 BDAP~ (Bus DAta Present) |
 | BDAP50_n | PAL_44304E, PAL_44310D, PAL_44902A, BIF_DPATH_9, MEM_43, MEM_LBDIF_48, MEM_RAMC_50 | BIF_5, BIF_BCTL_6, BIF_BCTL_SYNC_8 | I4, I8, I3 - BDAP50_n , Bus Data Present (Delayed 50ns), Bus Data Present 50ns delayed, BDAP50_n - Bus Data Address Present (50ns delayed), Bus Data Address Present (50ns delayed), BUS DAta Present |
 | BDEST | CGA_WRF |  | B is destination (enable write to B from 'RB_15_0' on ALUCLK) |
-| BDRY_n |  | PAL_44310D, BIF_5, BIF_BCTL_6, MEM_43, MEM_LBDIF_48 | B0, Bus Data Ready |
-| BDRY25_n | PAL_44302B, PAL_44801A, BIF_DPATH_9 | BIF_BCTL_6, BIF_BCTL_SYNC_8 | I3 - Bus Data Ready (25ns delayed), I5 - BDRY25_n (Bus Data Ready (25ns delayed)), Bus Data Ready 25ns delayed, BDRY25_n - Bus Data Ready (25ns delayed), Bus Data Ready (25ns delayed) |
-| BDRY50_n | PAL_44302B, PAL_44902A, PAL_45001B, BIF_DPATH_9, MEM_43, MEM_RAMC_50 | BIF_5, BIF_BCTL_6, BIF_BCTL_SYNC_8 | I4 - Bus Data Ready (50ns delayed), I7 - BDRY50_n (Bus Data Ready 50ns delayed), I0 - BDRY50_n, Bus Data Ready (Delayed 50ns), Bus Data Ready 50ns delayed, BDRY50_n - Bus Data Ready (50ns delayed), Bus Data Ready (50ns delayed), BUS Data ReadY |
+| BDRY_n |  | PAL_44310D, BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7, MEM_43, MEM_LBDIF_48 | B0, Bus Data Ready |
+| BDRY_n_IN | ND120_TOP, ND3202D |  | Input-signal from "C PLUG", signal A19 BDRY~ (Bus Data ReadY) |
+| BDRY_n_OUT |  | ND120_TOP, ND3202D | Output-signal to "C PLUG", signal A19 BDRY~ (Bus Data ReadY) |
+| BDRY25_n | PAL_44302B, PAL_44801A, BIF_BCTL_BDRV_7, BIF_DPATH_9 | BIF_BCTL_6, BIF_BCTL_SYNC_8 | I3 - Bus Data Ready (25ns delayed), I5 - BDRY25_n (Bus Data Ready (25ns delayed)), Bus Data Ready 25ns delayed, Bus Data Ready (25ns delayed), BDRY25_n - Bus Data Ready (25ns delayed) |
+| BDRY50_n | PAL_44302B, PAL_44902A, PAL_45001B, BIF_BCTL_BDRV_7, BIF_DPATH_9, MEM_43, MEM_RAMC_50 | BIF_5, BIF_BCTL_6, BIF_BCTL_SYNC_8 | I4 - Bus Data Ready (50ns delayed), I7 - BDRY50_n (Bus Data Ready 50ns delayed), I0 - BDRY50_n, Bus Data Ready (Delayed 50ns), Bus Data Ready 50ns delayed, Bus Data Ready (50ns delayed), BDRY50_n - Bus Data Ready (50ns delayed), BUS Data ReadY |
 | BDRY75_n | PAL_45001B | BIF_BCTL_SYNC_8 | I1 - BDRY75_n, BDRY75_n - Bus Data Ready (75ns delayed) |
 | BEDO_n | CPU_PROC_32, CPU_PROC_CGA_33 | CPU_MMU_24, CPU_MMU_CSR_26 | Buffered Enable IDB "data out" from CGA, Buffered EDO_n, Bus Error Data Output, active low |
 | BEMPID_n | CPU_PROC_32, CPU_PROC_CGA_33 | CPU_MMU_24, CPU_MMU_CSR_26 | Buffered EMPID - Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints), Buffered EMPID_n, Bus Empty ID, active low |
-| BERROR_n |  | BIF_5, BIF_BCTL_6, ND3202D | Bus Error, Output-signal to "C PLIG", signal B21 BERROR~ |
+| BERROR_n |  | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7, ND3202D | Bus Error, Output-signal to "C PLIG", signal B21 BERROR~ |
 | BGNT_n | PAL_44302B, PAL_44304E, PAL_44310D, PAL_44902A, BIF_5, BIF_DPATH_9, BIF_DPATH_BDLBD_10, MEM_LBDIF_48 | PAL_44803A, MEM_43, MEM_RAMC_50 | I9 - Bus Grant, I1, Q2_n - BGNT_n (BUS Grant), I2 - BGNT_n (NOT USED!!), Bus Grant |
 | BGNT25_n | PAL_44902A, MEM_RAMC_50 | MEM_LBDIF_48 | I5 - BGNT25_n (Bus Grant 25ns delayed), Bus Grant (Delayed 25ns), BUS Grant (Delayed 25 ns) |
 | BGNT50_n | PAL_44304E, PAL_44310D, BIF_5, BIF_DPATH_9 | MEM_43, MEM_LBDIF_48 | I2, I6, Bus Grant (Delayed 50ns), Bus Grant (50ns delayed) |
 | BGNT75_n | PAL_44310D |  | I7 |
 | BGNTCACT |  | BIF_DPATH_LDBCTL_12 | Bus Grant OR CPU Active |
 | BGNTCACT_n | BIF_DPATH_BDLBD_10 | PAL_44302B | Y0_n - Combined BUS Grant/CPU Active signal, Bus Grant Control Active |
-| BINACK_n |  | BIF_5, BIF_BCTL_6, ND3202D | Bus Input Acknowledge, Output-signal to "C PLIG", signal B19 BINACK~ |
-| BINPUT_n | PAL_44446B | BIF_5, BIF_BCTL_6 | I2 - IBINPUT_n, Bus Input |
+| BINACK_n |  | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7, ND3202D | Bus Input Acknowledge, Output-signal to "C PLIG", signal B19 BINACK~ |
+| BINPUT_n | PAL_44446B | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7 | I2 - IBINPUT_n (Bus Input), Bus Input |
+| BINPUT_n_IN | ND120_TOP, ND3202D |  | Input-signal from "C PLUG", signal A18 BINPUT~ (Bus Address PResent), Input-signal from "C PLUG", signal A18 BINPUT~ (Bus INPUT) |
+| BINPUT_n_OUT |  | ND120_TOP, ND3202D | Output-signal to "C PLUG", signal A18 BINPUT~ (Bus Address PResent), Output-signal to "C PLUG", signal A18 BINPUT~ (Bus INPUT) |
 | BINPUT50_n | PAL_44303B, BIF_DPATH_9 | BIF_BCTL_6, BIF_BCTL_SYNC_8 | I3, Bus Input 50ns delayed, BINPUT50_n - Bus Input (50ns delayed), Bus Input (50ns delayed) |
-| BINPUT75_n |  | BIF_BCTL_SYNC_8 | BINPUT75_n - Bus Input (75ns delayed) |
+| BINPUT75_n | BIF_BCTL_BDRV_7 | BIF_BCTL_SYNC_8 | Bus Input (75ns delayed), BINPUT75_n - Bus Input (75ns delayed) |
 | BINT10_n | ND3202D |  | Input signal from "C PLUG", signal A15 - BINT10_n |
 | BINT10N | CGA_INTR |  | Bus Interrupt 10, active low |
 | BINT11_n | ND3202D |  | Input signal from "C PLUG", signal C15 - BINT11_n |
@@ -74,10 +83,9 @@
 | BINT12N | CGA_INTR |  | Bus Interrupt 12, active low |
 | BINT13_n | ND3202D |  | Input signal from "C PLUG", signal C16 - BINT13_n |
 | BINT13N | CGA_INTR |  | Bus Interrupt 13, active low |
-| BINT15_n | ND3202D |  | Input signal from "C PLUG", signal C17 - BINT15_n |
+| BINT15_n | ND3202D |  | Input signal from "C PLUG", signal C17 - BINT15_n     |
 | BINT15N | CGA_INTR |  | Bus Interrupt 15, active low |
-| BIOEX_n |  | ND3202D | Output-signal to "C PLIG", signal C19 BIOXE~ |
-| BIOXE_n | PAL_44310D, MEM_43, MEM_LBDIF_48 | BIF_5, BIF_BCTL_6 | B4, Bus IOX Enabled, Bus I/O Execute, BUS IOX Enable |
+| BIOXE_n | PAL_44310D, MEM_43, MEM_LBDIF_48 | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7, ND3202D | B4, Bus IOX Enabled, Bus I/O Execute, BUS IOX Enable, Output-signal to "C PLIG", signal C19 BIOXE~ |
 | BIOXL_n | PAL_45008B, MEM_DATA_46 | PAL_44310D, MEM_LBDIF_48 | B1, I6 - BIOXL_n, Bus IOX Enable |
 | BLCS_n | CPU_CS_16 | CPU_MMU_24, CPU_MMU_CSR_26 | Buffered LCS_n (same as LCS_n), Bus LCS (Load Control Store), Buffered LCS_n |
 | BLOCK_n | BIF_BCTL_SYNC_8 | PAL_45001B | B0_n - BLOCK_n (out), BLOCK_n - Bus Block |
@@ -86,11 +94,11 @@
 | BLOCKL25_n | PAL_45009B | MEM_LBDIF_48 | I1 - BLOCKL25_n, Bus Block |
 | BLRQ_n | MEM_LBDIF_48 |  | Bus Load Request |
 | BLRQ50_n | PAL_44803A, MEM_RAMC_50 | MEM_LBDIF_48 | I4 - BLRQ50_n, Bus Load Request, Bus Load Request (Delayed 50ns) |
-| BMEM_n | PAL_44446B, MEM_43 | BIF_5, BIF_BCTL_6, ND3202D | I3 - BMEM_n, Bus MEM enabled, Bus Memory, BUS MEMORY Enable, Output-signal to "C PLIG", signal C28 BMEM~ |
+| BMEM_n | PAL_44446B, MEM_43 | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7, ND3202D | I3 - BMEM_n, Bus MEM enabled, Bus MEMory Reference, Bus MEMory Reference , BUS MEMORY Enable, Output-signal to "C PLIG", signal C28 BMEM~ |
 | BPERR50_n | PAL_45001B | BIF_BCTL_SYNC_8 | I3 - BPERR50_n, BPERR50_n - Bus Parity Error (50ns delayed) |
 | BR_15_0 [15:0] | CGA_MAC, CGA_MAC_ADD | CGA_WRF, CGA_WRF_RBLOCK | ALU B Register, B register from ALU, Direct output from B register (register #3) |
-| BREF_n |  | BIF_5, BIF_BCTL_6, ND3202D | Bus Refresh, Output-signal to "C PLIG", signal B12 BREF~ |
-| BREQ_n | ND3202D |  | Input signal from "C PLUG", signal C12 - BREQ_n |
+| BREF_n |  | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7, ND3202D | Bus Refresh, Output-signal to "C PLIG", signal B12 BREF~ |
+| BREQ_n | ND3202D |  | Input signal from "C PLUG", signal C12 - BREQ_n (DMA BUS Request) |
 | BREQ50_n |  | BIF_BCTL_SYNC_8 | BREQ50_n - Bus Request (50ns delayed) |
 | BRK_n | PAL_44305D, PAL_44307C, PAL_44601B, CPU_MMU_24 | CPU_15, CPU_PROC_32 | I8 - Break signal, active low, used to interrupt normal operation for debugging or error handling., I6 Break, I7 - BRK_n  - BREAK Cycle, CPU Break Signal, Break |
 | BRKN | DECODE_DGA_COMM, CGA_DCD |  | Break signal |
@@ -109,14 +117,14 @@
 | CA_10_0 [10:0] | CPU_MMU_24 |  | Cache address, 11 bits |
 | CA_9_0 [9:0] | BIF_5, BIF_DPATH_9 | CPU_PROC_32 | CPU Address, Control Store Address, CPU Address 9-0 |
 | CA10 |  | DECODE_DGA_COMM | Control Store address bit 10 |
-| CACT_n | PAL_44302B, PAL_44303B, BIF_BCTL_SYNC_8, BIF_DPATH_9 | PAL_44801A, BIF_BCTL_6 | I7 - CPU Active, I0, Q7_n - CACT_n (CPU IS ACTIVE ON THE ND100 BUS), CPU Active, CACT_n - CPU Active |
+| CACT_n | PAL_44302B, PAL_44303B, BIF_BCTL_BDRV_7, BIF_BCTL_SYNC_8, BIF_DPATH_9 | PAL_44801A, BIF_BCTL_6 | I7 - CPU Active, I0, Q7_n - CACT_n (CPU IS ACTIVE ON THE ND100 BUS), CPU Active, CACT_n - CPU Active |
 | CACT25_n |  | BIF_BCTL_SYNC_8 | CACT25_n - CPU Active (25ns delayed) |
 | CAS |  | PAL_44902A, MEM_RAMC_50 | Q5_n - CAS, Column Address Strobe |
 | CAS_n | SIP1M9 |  | Column address strobe |
 | CAS9_n | SIP1M9 |  | Column address strobe |
 | CBIT |  | PAL_44904B | Q2_n - CBIT  7-Segmen C-bit |
 | CBRKN |  | CGA_DCD | CBRK negated |
-| CBWRITE_n | BIF_BCTL_6 | PAL_44303B, BIF_DPATH_9, BIF_DPATH_LDBCTL_12 | Y1_n - CPU Write cycle to Bus, CPU Bus Write, CPU Write cycle to Bus |
+| CBWRITE_n | BIF_BCTL_6, BIF_BCTL_BDRV_7 | PAL_44303B, BIF_DPATH_9, BIF_DPATH_LDBCTL_12 | Y1_n - CPU Write cycle to Bus, CPU Bus Write, CPU Write cycle to Bus |
 | CC0_n | PAL_44307C | PAL_44601B | I1 Cycle Clock 0, Q2_n - Cycle Control 0 (negated) |
 | CC1_n | PAL_44305D, PAL_44307C | PAL_44601B | I1 - Cycle Control 1 (b+c+d+e+j+k+l+m), I2 Cycle Clock 1, Q3_n - Cycle Control 1 (negated) |
 | CC2_n | PAL_44302B, PAL_44305D, PAL_44307C, BIF_5, BIF_BCTL_6, BIF_DPATH_9, CPU_MMU_24 | PAL_44601B | I2 - Cycle Control bit 2, I2 - Cycle control 2 (e+f+g+h+i+j+k), I3 Cycle Clock 2, Q4_n - Cycle Control 2 (negated), CPU Cycle Counter bit 2, Cycle Counter bit 2, Cpu Cycle bit 2, Cycle clock 2 |
@@ -181,16 +189,16 @@
 | CSBITS_OUT [63:0] |  | CPU_CS_TCV_20 | 64 bits CSBITS (output when IDB IN writes a 16 bit part to the CSBITS) |
 | CSCA_9_0 [9:0] | CPU_CS_16 | CPU_PROC_32, CPU_PROC_CGA_33 | Source CGA.XMCA_9_0, source MAC.MCA_9_0, sourcr MAC_AP09.MCA_9_0, source CALCA.MCA9_0 <= Input ICA.Bits [15:0] but only when MCLK is low. Almost the same as LCA15_0, exectp LCA_15_0 is locked in a register on clock lo-hi, Control Store Cache Address 9-0, Control Store Cache Address |
 | CSCINSEL_1_0 [1:0] | CGA_CPU_ALU_CONTR |  | Carry In Select (00: Carry In, 01: Carry In Not, 10: Carry In Not, 11: Carry In) |
-| CSCOMM_4_0 [4:0] | DECODE_DGA_COMM, CGA_DCD, CGA_MAC |  | Microcode Command 4:0, Command control signals, Microcode: Commands (5 bits) |
+| CSCOMM_4_0 [4:0] | IO_37, DECODE_DGA_COMM, CGA_DCD, CGA_MAC |  | Control Store Command (5 bits), Microcode Command 4:0, Command control signals, Microcode: Commands (5 bits) |
 | CSCOND | CGA_MIC |  | Conditional execution control |
 | CSDELAY0 | PAL_44403C, PAL_44601B |  | I0, I2 - CSDELAY0   CSDELAY0 (CSBITS #26 - DELAY 0) |
 | CSDELAY1 | PAL_44404C |  | I0 |
 | CSDLY | PAL_44403C |  | I1 |
 | CSECOND | PAL_44403C, CGA_MIC |  | I2, Control signal for Enable Condition |
 | CSEM_n |  | PAL_44803A | Q5_n - CSEM_n (n.c.) |
-| CSIDBS_4_0 [4:0] | DECODE_DGA_IDBS, CGA_DCD |  | Microcode IDB Source select, IDB control signals |
+| CSIDBS_4_0 [4:0] | IO_37, DECODE_DGA_IDBS, CGA_DCD |  | Control Store IDB Source (5 bits), Microcode IDB Source select, IDB control signals |
 | CSLOOP | PAL_44403C, CGA_MIC |  | I3, Loop control signal |
-| CSMIS_1_0 [1:0] | DECODE_DGA_COMM, CGA_CPU_ALU_CONTR, CGA_DCD |  | Microcode Misc signal 1:0, Control Store - MIS, MIS control signals |
+| CSMIS_1_0 [1:0] | IO_37, DECODE_DGA_COMM, CGA_CPU_ALU_CONTR, CGA_DCD |  | Control Store MIS signal (2 bits), Microcode Misc signal 1:0, Control Store - MIS, MIS control signals |
 | CSMIS0 | CGA_MIC |  | Control signal for miscellaneous operation bit 0 |
 | CSMREQ |  | CGA_DCD | CSM request |
 | CSRASEL_1_0 [1:0] | CGA_MIC |  | Register A select control |
@@ -214,12 +222,12 @@
 | D8 [7:0] | SIP1M9 |  | DATA INPUT (8-bit) |
 | D9 | SIP1M9 |  | DATA INPUT (1-bit) |
 | DA_n |  | IO_UART_42 | Data Available |
-| DAP_n |  | BIF_5, BIF_BCTL_6 | Data Present |
+| DAP_n | BIF_BCTL_BDRV_7 | BIF_5, BIF_BCTL_6 | Data Present |
 | DAPN | DECODE_DGA_COMM |  | Data Address |
-| DBAPR | PAL_44446B, BIF_BCTL_6, MEM_43 | PAL_44304E, BIF_5, BIF_DPATH_9 | Y0_n, I0 - DBAPR, Data Bus Address Present, Data Bus Address Parity register, BUS Address Present |
+| DBAPR | PAL_44446B, BIF_BCTL_6, MEM_43 | PAL_44304E, BIF_5, BIF_DPATH_9 | Y0_n (Delayed Data Bus Address Present), I0 - DBAPR (Data Bus Address PResent), Data Bus Address Present, BUS Address Present |
 | DBAPR_n | PAL_45001B |  | I4 - DBAPR_n |
 | DBIT |  | PAL_44904B | Q3_n - DBIT  7-Segmen D-bit |
-| DDBAPR_n |  | PAL_44446B | B1_n - DDBAPR_n |
+| DDBAPR |  | PAL_44446B | B1_n - DDBAPR (Delayed Data Bus Address Present) |
 | DEEP |  | CGA_MIC | output        DZD,          Divide by zero detection |
 | DGPR0N | CGA_CPU_ALU_CONTR |  | GPR0 Not |
 | DIN_15_8 [7:0] | CGA_INTR_CNTLR_CLR |  | input [7:0] DIN_7_0,       |
@@ -245,7 +253,7 @@
 | EB_15_0 [15:0] | CGA_WRF_RBLOCK |  | Enable B (dest) for read. 16 bits to select register. |
 | EBADR | BIF_DPATH_BDLBD_10 |  | Enable Address from Bus to Local Memory |
 | EBADR_b1 |  | PAL_44304E | B1_n Enable Address from BUS to Local Memory |
-| EBD_n | BIF_DPATH_BDLBD_10 | PAL_44304E | B5_n Enable Bus Data, Enable Bus Data (Enable LBD to BD transceiver). |
+| EBD_n | BIF_DPATH_BDLBD_10 | PAL_44304E | B5_n Enable Bus Data (Enable LBD to BD transceiver), Enable Bus Data (Enable LBD to BD transceiver). |
 | EBUS | ND3202D |  | EBUS B-B3 (pulled high) |
 | EBUS_n | PAL_44304E, BIF_5, BIF_DPATH_9 |  | I5, Enable Bus, Enable External Bus |
 | ECCR | PAL_44310D, PAL_45008B, MEM_43, MEM_DATA_46, MEM_LBDIF_48 | CPU_15, CPU_PROC_32, CPU_PROC_CGA_33, CGA_MAC, CGA_MAC_APOS_CALCA | I5, I7 - ECCR, ECC Register Detected for IOX, ECC Register Detected (IOX 100115), Error Correction Code Ready, BUS ECC Request, Error Correction Code Register, DECODE "TRR ECCR" = IOX 100115 |
@@ -257,6 +265,7 @@
 | EDO_n | CPU_MMU_24 |  | Enable data output |
 | EDON |  | DECODE_DGA_IDBS | Enable DO signal (multiple IDB sources) - 0,1,2,3,4,6,10,11,14,25,36 |
 | EHI_n |  | PAL_44904B | Q7_n - EHISEG_n (Eneble HI-Segment) |
+| EIOD_n | BIF_BCTL_BDRV_7 |  | Enable I/O Data |
 | EIOR_n | IO_UART_42 |  | Enable I/O Read |
 | EIORN |  | DECODE_DGA_IDBS | Enable IO register from UART etc -16 |
 | EIPL_n | CPU_MMU_PPNX_28 |  | Enable IDB lower bits |
@@ -315,7 +324,7 @@
 | FS_6_3 [3:0] |  | CGA_MIC_CONDREG | False Select. CSBIT 3:0 |
 | FSEL | CGA_CPU_ALU_RALU |  | Function Select (1=Logic function (XOR), 0=OR/AND/NOT) |
 | GNT_n | PAL_44304E, BIF_DPATH_9, MEM_43, MEM_LBDIF_48 | PAL_44801A, BIF_5, BIF_BCTL_6 | I7, Q6_n - GNT_n  (GRANT ND100 BUS TO A DMA DEVICE OR EXTERNAL BUS CONTROLLER), Grant, Bus Grant |
-| GNT50_n | BIF_5, BIF_BCTL_6 | MEM_43, MEM_LBDIF_48 | Grant (Delayed 50ns), Grant 50ns delayed, CPU Grant (Delayed 50ns), Bus Grant (Delayed 50ns) |
+| GNT50_n | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7 | MEM_43, MEM_LBDIF_48 | Grant (Delayed 50ns), Grant 50ns delayed, Grant (50ns delayed), CPU Grant (Delayed 50ns), Bus Grant (Delayed 50ns) |
 | GPR0 | CGA_CPU_ALU_CONTR |  | GPR bit 0 |
 | HIEN_n | PAL_44310D, PAL_45008B, MEM_ADDR_44, MEM_DATA_46, MEM_LBDIF_48 | PAL_44902A, MEM_RAMC_50 | I0, Q7_n - HIEN_n, I9 - EPEA_n  (NOT USED!), High address bits enable, High address bits enable (not used) |
 | HIERR |  | MEM_DATA_46 | High address bits error |
@@ -336,9 +345,9 @@
 | I7 | PAL_44511A |  | I7 - (not connected) |
 | I8 | PAL_44303B |  | I8 |
 | I9 | PAL_44304E |  | I9 |
-| IBAPR_n | PAL_44304E, BIF_5, BIF_DPATH_9 |  | I6, Input Bus Address Parity Register, Bus Address Present |
+| IBAPR_n | PAL_44304E, BIF_5, BIF_DPATH_9 |  | I6 (Input Data Bus Address Present), Input Bus Address Present, Bus Address Present |
 | IBDAP_n | BIF_5, BIF_BCTL_6, BIF_BCTL_SYNC_8 |  | Input Bus Data Present, Input Bus Address Present, IBDAP_n - Bus Data Address Present |
-| IBDRY_n | BIF_5, BIF_BCTL_6, BIF_BCTL_SYNC_8 |  | Input Bus Data Ready, IBDRY_n - Bus Data Ready |
+| IBDRY_n | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7, BIF_BCTL_SYNC_8 |  | Input Bus Data Ready, IBDRY_n - Bus Data Ready |
 | IBINPUT_n | BIF_5, BIF_BCTL_6, BIF_BCTL_SYNC_8, MEM_43 |  | Input Bus Input, Input Bus Input (0=Input, 1=Output), IBINPUT_n - Bus Input, Bus Input Enable |
 | IBINT10_n | CPU_PROC_32, CPU_PROC_CGA_33 |  | Input Interrupt 10, Internal Bus Interrupt 10, active low |
 | IBINT11_n | CPU_PROC_32, CPU_PROC_CGA_33 |  | Input Interrupt 11, Internal Bus Interrupt 11, active low |
@@ -346,7 +355,7 @@
 | IBINT13_n | CPU_PROC_32, CPU_PROC_CGA_33 |  | Input Interrupt 13, Internal Bus Interrupt 13, active low |
 | IBINT15_n | CPU_PROC_32, CPU_PROC_CGA_33 |  | Input Interrupt 15, Internal Bus Interrupt 15, active low |
 | IBPERR_n | BIF_5, BIF_BCTL_6, BIF_BCTL_SYNC_8 |  | Input Bus Parity Error, IBPERR_n - Bus Parity Error |
-| IBREQ_n | BIF_5, BIF_BCTL_6, BIF_BCTL_SYNC_8 |  | Input Bus Request, IBREQ_n - Bus Request |
+| IBREQ_n | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7, BIF_BCTL_SYNC_8 |  | Input Bus Request, IBREQ_n - Bus Request |
 | ICA_15_0 [15:0] | CGA_MAC_APOS_CALCA |  | CPU Address Input (16 bits) |
 | IDB_15_0_IN [15:0] | CPU_CS_16, CPU_CS_TCV_20, CPU_MMU_24, CPU_PROC_32 |  | IDB 15 bit input, 16 bit IDB IN (when writing to CSBITS), Internal data bus input, 16 bits, Input IDB 15-0 |
 | IDB_15_0_OUT [15:0] |  | BIF_5, BIF_DPATH_9, CPU_CS_TCV_20, CPU_MMU_24, CPU_PROC_32, IO_UART_42, MEM_43 | Internal Bus Data (IBD) 16 bit OUT, Internal Data Bus OUT, 16 bits IDB OUT (when reading a 16 bit word from CSBITS), Internal data bus output, 16 bits, Output IDB 15-0, Internal Data Bus 15:0 OUT, Bus Data 15:0 |
@@ -368,11 +377,11 @@
 | INR_7_0 [7:0] | ND3202D |  | INR 7:0 |
 | INTRQ_n_tp1 |  | CPU_PROC_CGA_33 | Interrupt Request, active low, test point 1 |
 | INTRQN | CGA_DCD, CGA_TRAP_TBUF | CGA_INTR | Interrupt request negated, Interrupt Request, active low, INTRQ_n |
-| IOD_n | PAL_44303B, BIF_DPATH_9 | PAL_44801A, BIF_BCTL_6 | I5, Q5_n - IOD_n  (IO SIGNAL TO LAST FOR THE ENTIRE BUS CYCLE), I/O signal to last for the entire bus cycle, IO SIGNAL TO LAST FOR THE ENTIRE BUS CYCLE |
+| IOD_n | PAL_44303B, BIF_BCTL_BDRV_7, BIF_DPATH_9 | PAL_44801A, BIF_BCTL_6 | I5, Q5_n - IOD_n  (IO SIGNAL TO LAST FOR THE ENTIRE BUS CYCLE), I/O signal to last for the entire bus cycle, IO D signal, IO SIGNAL TO LAST FOR THE ENTIRE BUS CYCLE |
 | IONI |  | CPU_15, CPU_PROC_32, CPU_PROC_CGA_33 | Interrupt System ON, I/O Non-Maskable Interrupt |
 | IORQ_n | PAL_44302B, PAL_44445B, PAL_44801A, BIF_5, BIF_BCTL_6, BIF_DPATH_9, MEM_43 |  | B4_n - IO Request, I1 - IORQ_n - IO Request, I1 - IORQ_n (IO Request), IO Request, Input I/O Request, Input/Output Request, Bus Input/Output Request |
 | IORQN |  | DECODE_DGA_COMM | I/O Request |
-| IOXERR_n | CPU_PROC_32, CPU_PROC_CGA_33 | BIF_5, BIF_BCTL_6 | IOX Error, I/O Execute Error, I/O Error, active low |
+| IOXERR_n | CPU_PROC_32, CPU_PROC_CGA_33 | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7 | IOX Error, I/O Execute Error, I/O Error, active low |
 | IOXERRN | CGA_INTR |  | IO Exception Error, active low |
 | IRQ | CGA_MIC | CGA_INTR | Interrupt Request, Interrupt request signal |
 | ISEMRQ_n | BIF_5, BIF_BCTL_6, BIF_BCTL_SYNC_8 |  | Input Bus Semaphore Request, Input Semaphore Request, ISEMRQ_n - Semaphore Request |
@@ -408,11 +417,12 @@
 | LDPANCN |  | DECODE_DGA_COMM | Load Panel Control |
 | LDPILN |  | CGA_DCD | Load PIL negated |
 | LDR_n |  | PAL_44803A | Q4_n - LDR_n (n.c.) |
-| led [5:0] |  | ND120_TOP | 6-bit output for controlling LEDs |
+| led [6:0] |  | ND120_TOP | 7-bit output for controlling LEDs |
 | LED_BUS_GI |  | MEM_RAMC_50 | LED_BUS_GRANT_INDICATOR |
 | LED_CPU_GI |  | MEM_43, MEM_RAMC_50 | LED_CPU_GRANT_INDICATOR |
 | LED1 |  | CPU_15, CPU_MMU_24 | Cache enabled ? |
-| LED4 |  | MEM_43, MEM_DATA_46 | LED4_RED_PARITY_ERROR |
+| LED4 |  | MEM_43, MEM_DATA_46 | LED4_RED_PARITY_ERROR, LED4_RED_PARITY_ERROR (1=ON) |
+| LED5 |  | MEM_43, MEM_DATA_46 | LED5_RED_DISABLE_PARITY, LED5_DISABLE_PARTITY (1=ON) |
 | LERR_n | PAL_45001B, PAL_45009B, BIF_5, BIF_BCTL_6 | MEM_43, MEM_DATA_46 | B5_n, I7 - LERR_n, Local Error |
 | LEV0 |  | PAL_44511A, CPU_15, CPU_PROC_32 | B3_n - LEV0, Level 0 active, Level 0 |
 | LHIT |  | DECODE_DGA_COMM | Load Hit |
@@ -443,12 +453,12 @@
 | MCLK | CPU_PROC_32, CPU_PROC_CGA_33, CGA_DCD, CGA_INTR, CGA_MAC, CGA_MAC_APOS_CALCA, CGA_MIC, CGA_MIC_CONDREG |  | Clock, Main Clock, Master Clock, Memory Clock, Main clock signal |
 | MCLK_n |  | PAL_44307C | Y0_n - MCLK_n    Main Clock ? |
 | MDLY_n |  | PAL_44403C | Q1_n |
-| MEM_n |  | PAL_44801A | Q3_n - MEM_n (n.c.) (MEM SIGNAL TO LAST FOR ENTIRE BUS CYCLE) |
+| MEM_n | BIF_BCTL_BDRV_7 | PAL_44801A | Q3_n - MEM_n (n.c.) (MEM SIGNAL TO LAST FOR ENTIRE BUS CYCLE), Memory |
 | MI | CGA_MIC |  | M bit |
-| MIS_1_0 [1:0] | IO_UART_42 |  | Microcode Misc signal 1:0 |
-| MIS0 | PAL_44303B, BIF_5, BIF_BCTL_6, BIF_DPATH_9 |  | I4, Microcode: Miscellaneous bit 0, Miscellaneous 0, Miscellaneous bit 0 |
-| MOFF_n | PAL_44445B, PAL_44446B, PAL_44801A, PAL_44904B, BIF_5, BIF_BCTL_6 | MEM_43 | I2 - MOFF_n - Memory Off, I1 - MOFF_n, I7 - MOFF_n  (not used) (Memory OFF), I2 - MOFF_n, Memory Off |
-| MOR_n | CPU_PROC_32, CPU_PROC_CGA_33, MEM_43, MEM_LBDIF_48 | BIF_5, BIF_BCTL_6 | Memory Error, Memory Operation Ready, active low |
+| MIS_1_0 [1:0] | IO_37, IO_UART_42 |  | Clocked CSMIS (2 bits), Microcode Misc signal 1:0 |
+| MIS0 | PAL_44303B, BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7, BIF_DPATH_9 |  | I4, Microcode: Miscellaneous bit 0, Miscellaneous 0, Microcode Misc 0 bit, Miscellaneous bit 0 |
+| MOFF_n | PAL_44445B, PAL_44446B, PAL_44801A, PAL_44904B, BIF_5, BIF_BCTL_6 | MEM_43 | I2 - MOFF_n - Memory Off, I1 - MOFF_n (memory OFF), I7 - MOFF_n  (not used) (Memory OFF), I2 - MOFF_n, Memory Off |
+| MOR_n | CPU_PROC_32, CPU_PROC_CGA_33, MEM_43, MEM_LBDIF_48 | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7 | Memory Error, Memory Operation Ready, active low |
 | MOR25_n | PAL_45001B, BIF_5, BIF_BCTL_6 | MEM_43, MEM_LBDIF_48 | I5 - MOR25_n, Memory Error (25ns delayed), Memory Operation Ready 25ns delayed, Memory Request (Delayed 25ns), Memory Error (Delayed 25ns) |
 | MORN | CGA_INTR |  | MOR signal, active low (Memory Error) |
 | MR_n | PAL_44310D, PAL_44403C, PAL_44801A, PAL_44803A, PAL_44902A, PAL_45001B, PAL_45008B, PAL_45009B, CPU_PROC_32, CPU_PROC_CGA_33, MEM_43, MEM_DATA_46, MEM_LBDIF_48, MEM_RAMC_50 | BIF_5, BIF_BCTL_6, BIF_BCTL_SYNC_8 | I9, I5, I2 - MR_n (Master Reset), I2 - MR_n, I4 - MR_n , I7 - MR_n, B5_n - MR_n, I9 - MR_n, Master Reset, Memory Read, active low, Master Reset (negated) |
@@ -473,9 +483,8 @@
 | OSC | BIF_5, BIF_BCTL_6, BIF_BCTL_SYNC_8, MEM_43, MEM_LBDIF_48, MEM_RAMC_50 |  | Oscillator, OSC - Oscillator |
 | OUBD | PAL_44402D |  | B3_n (Signal input from CHIP 21F) |
 | OUBI | PAL_44402D |  | B2_n (Signal input from CHIP 21F) |
-| OUTGRANT_n |  | BIF_5, BIF_BCTL_6, ND3202D | Bus OUTGRANT, Output Grant, Output-signal to "C PLIG", signal C23 OUTGRANT~ |
-| OUTIDEN_n |  | ND3202D | Output-signal to "C PLIG", signal C22 OUTIDENT~ |
-| OUTIDENT_n |  | BIF_5, BIF_BCTL_6 | Bus OUTIDENT, Output Identity |
+| OUTGRANT_n |  | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7, ND3202D | Bus OUTGRANT, Output Grant, Output-signal to "C PLIG", signal C23 OUTGRANT~ (After BREQ request) |
+| OUTIDENT_n |  | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7, ND3202D | Bus OUTIDENT, Output Identity, Output Identify, Output-signal to "C PLIG", signal C22 OUTIDENT~ |
 | OVF | CGA_MIC | CGA_CPU_ALU_RALU | Overflow Flag |
 | PA_7_0 [7:0] | IO_PANCAL_40 |  | Data from FIFO in DGA |
 | PA_n | PAL_45009B, BIF_5, BIF_BCTL_6, MEM_43, MEM_DATA_46 |  | I5 - PA_n, Parity Error Address (PEA) |
@@ -483,7 +492,7 @@
 | PANN | CGA_INTR, CGA_TRAP_TBUF | DECODE_DGA_POW | Panel Interrupt Vector, PAN signal, active low (Panel Interrupt), PAN_n |
 | PANOSC |  | DECODE_DGA_POW | Panel Oscillator |
 | PAR | AM29833A |  | Parity bit (in) |
-| PAR_OUT |  | AM29833A | Parity bit (out) |
+| PAR_OUT |  | AM29833A | Parity bit (0=ODD,1=EVEN) |
 | PARERR_n | CPU_PROC_32, CPU_PROC_CGA_33 | PAL_45001B, BIF_5, BIF_BCTL_6 | B1_n - PARERR_n (out), Parity Error, Parity Error, active low |
 | PARERRN | CGA_INTR |  | Parity Error, active low |
 | PB | CGA_MAC_ADD |  | Select ALU register B |
@@ -521,7 +530,7 @@
 | PPOSC | IO_UART_42 |  | Panel Oscillator |
 | PR_15_0 [15:0] | CGA_MAC | CGA_WRF, CGA_WRF_RBLOCK | ALU P Register, Direct output from P register (register #2) |
 | PRB | CGA_MAC_ADD |  | Select Microcode register B |
-| PRD_n |  | SIP1M9 | Parity bit |
+| PRD_n |  | SIP1M9 | Parity Data Output |
 | PRQN | DECODE_DGA_POW | DECODE_DGA_IDBS | Panel Request (Read MIPANS), Panel Request |
 | PS_n | PAL_45009B, BIF_5, BIF_BCTL_6, MEM_43 |  | I3 - PS_n, Parity Error Signal (PES) |
 | PT_15_0_IN [15:0] | CPU_MMU_PT_29 |  | Bidirectional PT (in) |
@@ -558,7 +567,7 @@
 | RB_15_0 [15:0] | CGA_MAC, CGA_MAC_ADD, CGA_WRF, CGA_WRF_RBLOCK |  | Microcode Register B, Register B DATA (Destination) for WRITE. 16 bits to select register(s) |
 | RDATA | PAL_45009B, MEM_DATA_46 | PAL_44310D, MEM_LBDIF_48 | Y1, I0 - RDATA25 signal (doesnt match name), Read Data |
 | RDATA25 |  | MEM_LBDIF_48 | Read Data (Delayed 25ns) |
-| REF_n | MEM_43, MEM_LBDIF_48 | PAL_44801A, BIF_5, BIF_BCTL_6 | Q4_n - REF_n  (REFRESH GRANT ON ND100 BUS), Refresh, Refresh Request |
+| REF_n | BIF_BCTL_BDRV_7, MEM_43, MEM_LBDIF_48 | PAL_44801A, BIF_5, BIF_BCTL_6 | Q4_n - REF_n  (REFRESH GRANT ON ND100 BUS), Refresh, Refresh Request |
 | REF100_n | PAL_44310D |  | B3 |
 | REFN | DECODE_DGA_POW |  | Refresh |
 | REFRQ_n | BIF_5, BIF_BCTL_6, BIF_BCTL_SYNC_8, MEM_43 |  | Refresh Request, REFRQ_n - Refresh Request |
@@ -592,8 +601,10 @@
 | SEL_TESTMUX [2:0] | CPU_PROC_32, CPU_PROC_CGA_33 |  | Selects testmux signals to output on TEST_4_0 |
 | SEL5MS_n | ND3202D |  | SEL5MS if active will trigger RTC after 5 ms, not 20ms) |
 | SEL5MSN | DECODE_DGA_POW |  | Select 5ms (if active will trigger RTC after 5 ms, not 20ms) |
-| SEM_n |  | PAL_44801A | Q0_n - SEM_n  (SEMAPHORE GRANT SIGNAL) |
-| SEMRQ_n |  | BIF_5, BIF_BCTL_6 | Semaphore Request |
+| SEM_n | BIF_BCTL_BDRV_7 | PAL_44801A | Q0_n - SEM_n  (SEMAPHORE GRANT SIGNAL), Semaphore |
+| SEMRQ_n |  | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7 | Semaphore Request |
+| SEMRQ_n_IN | ND120_TOP, ND3202D |  | Input-signal from "C PLUG", signal A17 SEMREQ~ (Bus Address PResent), Input-signal from "C PLUG", signal A17 SEMREQ~ (SEMaphore REQest) |
+| SEMRQ_n_OUT |  | ND120_TOP, ND3202D | Output-signal to "C PLUG", signal A17 SEMREQ~ (Bus Address PResent), Output-signal to "C PLUG", signal A17 SEMREQ~ (SEMaphore REQest) |
 | SEMRQ50_n | PAL_44801A, PAL_44803A, MEM_43, MEM_RAMC_50 | BIF_5, BIF_BCTL_6, BIF_BCTL_SYNC_8 | I6 - SEMRQ50_n (Semaphore Request (50ns delayed)), I6 - SEMRQ50_n, Semaphore Request (Delayed 50ns), Semaphore Request 50ns delayed, SEMRQ50_n - Semaphore Request (50ns delayed), Semaphore Request, Bus Semaphore Request (Delayed 50ns) |
 | SGR | CGA_DCD | CGA_CPU_ALU_RALU | Sign Greater Than, Segment register |
 | SHORT_n | PAL_44601B |  | B1_n - SHORT_n  - SHORT Cycle |
@@ -606,7 +617,7 @@
 | SPEAL |  | PAL_45009B | Y1_n (OUT ONLY) |
 | SPES | BIF_DPATH_9 | PAL_45001B, BIF_BCTL_6 | Y1_n (OUT ONLY), Signal PES, SPES - Signal PES Load |
 | SPESL |  | PAL_45009B | Y0_n (OUT Only) |
-| SSEMA_n | PAL_44803A, BIF_5, BIF_BCTL_6, MEM_43, MEM_RAMC_50 |  | I5 - SSEMA_n, Semaphore, Bus Semaphore Enable |
+| SSEMA_n | PAL_44803A, BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7, MEM_43, MEM_RAMC_50 |  | I5 - SSEMA_n, Semaphore, Bus Semaphore Enable |
 | SSEMAN |  | DECODE_DGA_COMM | Serial Semaphore |
 | SSTOPN | DECODE_DGA_POW | DECODE_DGA_COMM | Set Stop Flip-Flop, Set Stop Flip-Flop (When next FETCH is performed the microcproram is forced to microaddress 16 (Panel Interrupt) - Microcode command 14 |
 | STARTN | DECODE_DGA_POW | DECODE_DGA_COMM | Start signal, Start |
@@ -621,7 +632,7 @@
 | STS6 | CGA_CPU_ALU_CONTR |  | STS bit 6 (Carry Flag - C) - SSC |
 | STS7 | CGA_CPU_ALU_CONTR |  | STS bit 7 (Multishift Flag - M) - SSM |
 | SW1_CONSOLE | CPU_MMU_24 |  | Switch on the console (on/off) |
-| SWDIS_n | PAL_45008B |  | I1 - SWDIS_n (SW4 - Parity disable, normal position = down. |
+| SWDIS_n | PAL_45008B |  | I1 - SWDIS_n (SW4 - Parity disable, normal position = down.) |
 | sys_rst_n | BIF_5, CPU_CS_16, CPU_CS_PROM_19, CPU_MMU_PT_29, CPU_PROC_CGA_33, IO_UART_42, ND3202D, SIP1M9, CGA_WRF_RBLOCK |  | System reset in FPGA |
 | sysclk | ND120_TOP, BIF_5, CPU_CS_16, CPU_CS_PROM_19, CPU_MMU_PT_29, CPU_PROC_CGA_33, IO_UART_42, ND3202D, SIP1M9, CGA_WRF_RBLOCK |  | System Clock, System clock in FPGA |
 | T [7:0] | AM29833A |  | T in |
@@ -636,7 +647,7 @@
 | TESTO |  | DECODE_DGA_POW | Test Output |
 | TI | SCAN_FF |  | T Input |
 | TN | M169C | CGA_MIC | Enable T, Trap not signal |
-| TOUT | BIF_5, BIF_BCTL_6 | DECODE_DGA_POW | Timeout, Time Out |
+| TOUT | BIF_5, BIF_BCTL_6, BIF_BCTL_BDRV_7 | DECODE_DGA_POW | Timeout, Time Out |
 | TP1_INTRQ_n |  | CPU_15, CPU_PROC_32 | Testpoint1 - Interrupt Request, Test point TP1 Interrupt Request |
 | TRAALDN |  | DECODE_DGA_IDBS | Read Automatic Load Descriptor and print-status (ALD) - 26 |
 | TRAP_n | PAL_44307C | CPU_PROC_CGA_33 | I8 Trap, Trap, active low |
