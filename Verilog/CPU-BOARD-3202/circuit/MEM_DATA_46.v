@@ -4,13 +4,13 @@
 ** DATA & PARITY TCV                                                     **
 ** SHEET 46 of 50                                                        **
 **                                                                       **
-** Last reviewed: 2-FEB-2025                                             **
+** Last reviewed: 22-MAR-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
 module MEM_DATA_46 (
     // Input signals
-    input BCGNT50R_n,  //! Bus CPU Grant on read from memory after the address
+    input BCGNT50R_n,  //! Bus CPU Grant on read from memory after the address (from 50 ns after GNT on read cycle)
     input BIOXL_n,     //! Bus IOX Enable
     input ECCR,        //! Bus ECC Request
     input HIEN_n,      //! High address bits enable (not used)
@@ -32,7 +32,8 @@ module MEM_DATA_46 (
     output LOERR,       //! Low address bits error
     output LERR_n,      //! Local error
     output LPERR_n,     //! Local parity error
-    output LED4         //! LED4_RED_PARITY_ERROR
+    output LED4,        //! LED4_RED_PARITY_ERROR (1=ON)
+    output LED5         //! LED5_DISABLE_PARTITY (1=ON)
 );
 
 
@@ -111,12 +112,14 @@ module MEM_DATA_46 (
   // NOT Gate
   assign s_clr_15_8j         = ~s_clr_n;
   assign s_clr_14_8j         = ~s_nor_mrn_pan;
-  assign s_loerr_out         = ~s_loerr_n_out;
-  assign s_hierr_out         = ~s_hierr_n_out;
+
+  assign s_loerr_out         = s_oet_n ? 0 : ~s_loerr_n_out; // Pulled to 0 if s_oet_n is not 0 
+  assign s_hierr_out         = s_oet_n ? 0 : ~s_hierr_n_out; // Pulled to 0 if s_oet_n is not 0
 
   // LED: LED4_RED_PARITY_ERROR
-  assign LED4                = s_led4;
-
+  assign LED4                = ~s_led4;
+  // LED: LED5_DISABLE_PARITY
+  assign LED5                = ~s_dis_n;
   /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
@@ -136,6 +139,7 @@ module MEM_DATA_46 (
       .result(s_nor_mrn_pan)
   );
 
+  /*
   NOR_GATE #(
       .BubblesMask(2'b00)
   ) GATES_3 (
@@ -143,6 +147,8 @@ module MEM_DATA_46 (
       .input2(s_hierr_out),
       .result(s_lerr_n_out)
   );
+  */
+  assign s_lerr_n_out= ~(s_loerr_out | s_hierr_out);
 
   J_K_FLIPFLOP #(
       .InvertClockEnable(1)
@@ -152,7 +158,7 @@ module MEM_DATA_46 (
       .k(s_gnd),
       .preset(s_gnd),
       .q(),
-      .qBar(s_led4),
+      .qBar(s_led4), // LED4 PARITY ERROR
       .reset(s_clr_15_8j),
       .tick(1'b1)
   );
@@ -188,7 +194,7 @@ module MEM_DATA_46 (
       .BCGNT50R_n(s_bcgnt50r_n),  //! I8 - BCGNT50R_n
       //.HIEN_n(s_hien_n),  //! I9 - EPEA_n  (NOT USED!)
 
-      .DIS_n(s_dis_n),  //! DIS_n Y0_n (OUT Only)
+      .DIS_n(s_dis_n),  //! DIS_n Y0_n (OUT Only) (LED5 Disable Parity)
       .OER_n(s_oer_n),  //! OER_n Y1_n (OUT ONLY)
 
       .OET_n   (s_oet_n),     //! B0_n - OET_n

@@ -4,7 +4,7 @@
 ** MEMORY TOP LEVEL                                                      **
 ** SHEET 43 of 50                                                        **
 **                                                                       **
-** Last reviewed: 2-FEB-2025                                             **
+** Last reviewed: 22-MAR-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -62,6 +62,7 @@ module MEM_43 (
     output        MOR25_n,       //! Memory Request (Delayed 25ns)
     output        MWRITE_n,      //! Memory Write
     output        LED4,          //! LED4_RED_PARITY_ERROR
+    output        LED5,          //! LED5_RED_DISABLE_PARITY
     output        LED_CPU_GI,    //! LED_CPU_GRANT_INDICATOR
     output        LED_BUS_GI     // LED_BUS_GRANT_INDICATOR
 );
@@ -309,6 +310,7 @@ module MEM_43 (
       .HIERR(s_hierr),
       .LBD_15_0_OUT(s_lbd_15_0_out[15:0]),
       .LED4(LED4),
+      .LED5(LED5),
       .LERR_n(s_lerr_n),
       .LOERR(s_loerr),
       .LPERR_n(s_lperr_n)
