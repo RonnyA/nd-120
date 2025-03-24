@@ -29622,6 +29622,10 @@ e6 63 0 0 3a 0 0 48
       <a name="appearance" val="logisim_evolution"/>
       <a name="trigger" val="falling"/>
     </comp>
+    <comp lib="5" loc="(1600,1550)" name="LED">
+      <a name="active" val="false"/>
+      <a name="label" val="LED5_DISABLE_PARITY"/>
+    </comp>
     <comp lib="5" loc="(2200,1670)" name="LED">
       <a name="active" val="false"/>
       <a name="label" val="LED4_RED_PARITY_ERROR"/>
@@ -29696,6 +29700,11 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="LBD7"/>
     </comp>
+    <comp lib="8" loc="(1606,1588)" name="Text">
+      <a name="color" val="#ff2a57"/>
+      <a name="halign" val="left"/>
+      <a name="text" val="Active low"/>
+    </comp>
     <comp lib="8" loc="(1830,535)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="DD0"/>
@@ -29711,6 +29720,11 @@ e6 63 0 0 3a 0 0 48
     <comp lib="8" loc="(1835,955)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="DD9"/>
+    </comp>
+    <comp lib="8" loc="(2236,1700)" name="Text">
+      <a name="color" val="#ff2a57"/>
+      <a name="halign" val="left"/>
+      <a name="text" val="Active low"/>
     </comp>
     <comp lib="8" loc="(435,1445)" name="Text">
       <a name="color" val="#ff18c4"/>
@@ -29763,7 +29777,9 @@ e6 63 0 0 3a 0 0 48
     <wire from="(1410,1180)" to="(1610,1180)"/>
     <wire from="(1410,760)" to="(1410,1180)"/>
     <wire from="(1410,760)" to="(1610,760)"/>
-    <wire from="(1520,1390)" to="(1520,1700)"/>
+    <wire from="(1520,1390)" to="(1520,1550)"/>
+    <wire from="(1520,1550)" to="(1520,1700)"/>
+    <wire from="(1520,1550)" to="(1600,1550)"/>
     <wire from="(1520,1700)" to="(1660,1700)"/>
     <wire from="(1520,1740)" to="(1520,2010)"/>
     <wire from="(1520,1740)" to="(1660,1740)"/>
@@ -31981,6 +31997,7 @@ e6 63 0 0 3a 0 0 48
     <a name="circuit" val="AM29833A"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
     <a name="simulationFrequency" val="1.0"/>
+    <comp lib="0" loc="(1080,1420)" name="Power"/>
     <comp lib="0" loc="(1180,1400)" name="Pin">
       <a name="appearance" val="classic"/>
       <a name="facing" val="west"/>
@@ -32210,7 +32227,8 @@ e6 63 0 0 3a 0 0 48
     <wire from="(1030,840)" to="(1180,840)"/>
     <wire from="(1030,880)" to="(1030,920)"/>
     <wire from="(1030,920)" to="(1180,920)"/>
-    <wire from="(1140,1440)" to="(1180,1440)"/>
+    <wire from="(1080,1420)" to="(1080,1440)"/>
+    <wire from="(1080,1440)" to="(1180,1440)"/>
     <wire from="(1150,1400)" to="(1180,1400)"/>
     <wire from="(330,1020)" to="(410,1020)"/>
     <wire from="(330,1170)" to="(370,1170)"/>
