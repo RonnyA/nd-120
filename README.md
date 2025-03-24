@@ -33,6 +33,7 @@ Compressed history of the work progress:
 | 20. November 2024  | Verilator - Microcode is loaded from ROM to DRAM. MACL microcode starts but fail on STACK operations, and fails on COND operations.
 | 13. December 2024  | Verilator - Microcode MACL starts, CPU test code runs. OPCOM is initialized and communication over UART works.
 | 29. Januar 2025    | Verilator - Testprogram 'INSTRUCTION-B.BPUN' (204384B 83.11.01) loads and starts. 7 out of 14 tests succeed.
+| 22. Mars   2025    | Verilator & C++ - Interface with ND BUS via BIF module to C connector. Added support for Papertape reader and Floppy PIO written in C++
 
 
 ## Requirements
