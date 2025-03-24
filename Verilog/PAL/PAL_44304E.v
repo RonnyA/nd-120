@@ -3,7 +3,7 @@
 **                                                                                                       **
 ** Component PAL 44304E                                                                                  **
 **                                                                                                       **
-** Last reviewed: 7-DEC-2024                                                                             **
+** Last reviewed: 22-MAR-2025                                                                            **
 ** Ronny Hansen                                                                                          **
 ***********************************************************************************************************/
 
@@ -25,20 +25,20 @@ module PAL_44304E (
     input MWRITE_n,  //! I3
     input BDAP50_n,  //! I4
     input EBUS_n,    //! I5
-    input IBAPR_n,   //! I6
+    input IBAPR_n,   //! I6 (Input Data Bus Address Present)
     input GNT_n,     //! I7
     input TEST,      //! I8 - PD3
-    //input I9          //! I9
+    //input I9       //! I9
 
-    output DBAPR,  //! Y0_n
-    //output Y1_n,      //! Y1_n
+    output DBAPR,     //! Y0_n (Delayed Data Bus Address Present)
+    //output Y1_n,    //! Y1_n
 
     output BACT_n,    //! B0_n BUS Activity
     output EBADR_b1,  //! B1_n Enable Address from BUS to Local Memory
     output FAPR,      //! B2_n
     output SAPR,      //! B3_n
     output CLKBD,     //! B4_n Clock BD
-    output EBD_n      //! B5_n Enable Bus Data
+    output EBD_n      //! B5_n Enable Bus Data (Enable LBD to BD transceiver)
 );
 
 
@@ -53,30 +53,26 @@ module PAL_44304E (
   // Output signal logic (self reference)
 
   reg  BACT_reg;
-  reg  EBADR_reg;
+  reg  EBADR_n_reg;
 
   always @(*) begin
 
     // BACT - BUS ACTIVITY. LASTS FOR COMPLETE DMA TO LOCAL MEMORY
     // CYCLE (ONLY ON MEMORY READ)
 
-    if (BGNT50 & MWRITE_n)  // Enable for data only after address
-      BACT_reg = 1'b1;
-    else if (BDAP50 == 0)  // Hold after BDAP finished
-      BACT_reg = 1'b0;
+    BACT_reg = (BGNT50 & MWRITE_n)
+           |   (BACT_reg & BDAP50);
 
 
     // EBADR - ENABLE ADDRESS FROM BUS TO LOCAL MEMORY
-    if ((GNT_n & BGNT_n) == 1)  // TURN ON AT BAPR WITH GNT
-      EBADR_reg = 1'b1;
-    else if ((IBAPR_n == 0) |  // HOLD UNTIL BGNT AND GNT BOTH GONE
-        (GNT_n == 0))
-      EBADR_reg = 1'b0;
+    EBADR_n_reg = (GNT_n & BGNT_n)       // TURN ON AT BAPR WITH GNT
+             | (IBAPR_n & EBADR_n_reg)   // HOLD UNTIL BGNT AND GNT BOTH GONE
+             | (GNT_n & EBADR_n_reg);
 
   end
 
 
-  assign EBADR_b1 = EBADR_reg;
+  assign EBADR_b1 = ~EBADR_n_reg;
 
   assign BACT_n = ~BACT_reg;  // Output pin Y1_n (BACT_n) is not connected to anything. Sheet 12.
 
@@ -95,6 +91,7 @@ module PAL_44304E (
 
 
   // SLOW INVERSION
+  // TODO: Introduce a few nanoseconds delay - IBAPR -- SAPR => DBAPR (??)
   assign FAPR = ~(IBAPR_n);
   assign SAPR = FAPR;
   assign DBAPR = SAPR;

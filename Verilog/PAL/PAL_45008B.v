@@ -3,7 +3,7 @@
 **                                                                                                       **
 ** Component PAL 45008B                                                                                  **
 **                                                                                                       **
-** Last reviewed: 1-DEC-2024                                                                             **
+** Last reviewed: 22-MAR-2025                                                                            **
 ** Ronny Hansen                                                                                          **
 ***********************************************************************************************************/
 
@@ -25,7 +25,7 @@
 module PAL_45008B (
 
     input MWRITE_n,   //! I0 - MWRITE_n
-    input SWDIS_n,    //! I1 - SWDIS_n (SW4 - Parity disable, normal position = down.
+    input SWDIS_n,    //! I1 - SWDIS_n (SW4 - Parity disable, normal position = down.)
     input LBD0,       //! I2 - LBD0
     input LBD1,       //! I3 - LBD1
     input LBD3,       //! I4 - LBD3

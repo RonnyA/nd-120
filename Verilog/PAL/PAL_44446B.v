@@ -3,7 +3,7 @@
 **                                                                                                       **
 ** Component PAL 44446B                                                                                  **
 **                                                                                                       **
-** Last reviewed: 2-FEB-2025                                                                             **
+** Last reviewed: 22-MAR-2025                                                                            **
 ** Ronny Hansen                                                                                          **
 ***********************************************************************************************************/
 
@@ -23,17 +23,17 @@ module PAL_44446B (
     input CK,   //! Clock signal (connected to DBAPR)
     input OE_n, //! OUTPUT ENABLE (active-low) for Q0-Q3 (connected to BGNT_n)
 
-    input DBAPR,     //! I0 - DBAPR
-    input MOFF_n,    //! I1 - MOFF_n
-    input BINPUT_n,  //! I2 - IBINPUT_n
+    input DBAPR,     //! I0 - DBAPR (Data Bus Address PResent)
+    input MOFF_n,    //! I1 - MOFF_n (memory OFF)
+    input BINPUT_n,  //! I2 - IBINPUT_n (Bus Input)
     input BMEM_n,    //! I3 - BMEM_n
     input BD20_n,    //! I4 - BD20_n
     input BD21_n,    //! I5 - BD21_n
     input BD22_n,    //! I6 - BD22_n
     input BD23_n,    //! I7 - BD23_n
 
-    output AOK,       //! B0_n - AOK
-    output DDBAPR_n,  //! B1_n - DDBAPR_n
+    output AOK,       //! B0_n - AOK  (Address OK)
+    output DDBAPR,    //! B1_n - DDBAPR (Delayed Data Bus Address Present)
     output MSIZE1_n,  //! B2_n - MSIZE1_n (not connected?)
     //  input  BD19_n,      //! B3_n - BD19_n (not in use)
 
@@ -44,7 +44,6 @@ module PAL_44446B (
 );
 
   // Inverted input signals
-  wire DBAPR_n = ~DBAPR;
   wire BD20 = ~BD20_n;
   wire BD21 = ~BD21_n;
   wire BD22 = ~BD22_n;
@@ -80,14 +79,13 @@ module PAL_44446B (
   assign BANK0 = OE_n ? 1'b0 : ~BANK0_n_reg;
   assign MWRITE_n = OE_n ? 1'b0 : ~MWRITE_reg;
 
-
   //**** Syncronous logic (always running) ****
 
   // Logic for AOK
   assign AOK = ~(BMEM_n | BD23 | BD22 | BD21 | MOFF);  // 4 MB
 
   // Logic for DDBAPR_n (active-low)
-  assign DDBAPR_n = DBAPR_n;
+  assign DDBAPR = DBAPR;
 
 
   // MSIZE1 is always low (GND) => MSIZE1_n is always HIGH

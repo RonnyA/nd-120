@@ -3,7 +3,7 @@
 **                                                                                                       **
 ** Component PAL 44801A                                                                                  **
 **                                                                                                       **
-** Last reviewed: 19-JAN-2025                                                                            **
+** Last reviewed: 22-MAR-2025                                                                            **
 ** Ronny Hansen                                                                                          **
 ***********************************************************************************************************/
 
@@ -84,10 +84,11 @@ module PAL_44801A (
   always @(posedge CK) begin
 
     // CACT - CPU IS ACTIVE ON THE ND100 BUS
-    CACT_reg <= (CRQ & REFRQ50_n & BRQ50_n & REF_n & GNT_n & SEM_n & BDRY25_n & MR_n)  // 4
-    | (CRQ & REFRQ50_n & DOREF_n & REF_n & GNT_n & SEM_n & BDRY25_n & MR_n)  // 2
-    | (CACT & BDRY25_n & MR_n)  // HOLD
-    | (CRQ & SEM & GNT_n & BDRY25_n & MR_n);  // SEMAPHORE
+    CACT_reg <=
+                    (CRQ  & REFRQ50_n & BRQ50_n & REF_n & GNT_n & SEM_n & BDRY25_n & MR_n)  // 4
+                  | (CRQ  & REFRQ50_n & DOREF_n & REF_n & GNT_n & SEM_n & BDRY25_n & MR_n)  // 2
+                  | (CACT & BDRY25_n & MR_n)  // HOLD
+                  | (CRQ  & SEM & GNT_n & BDRY25_n & MR_n);  // SEMAPHORE
 
     // REF - REFRESH GRANT ON ND100 BUS
     REF_reg <= (REFRQ50 & CACT_n & GNT_n & SEM_n & BDRY25_n)  // 1
@@ -108,34 +109,14 @@ module PAL_44801A (
 
     // MEM - MEM SIGNAL TO LAST FOR ENTIRE BUS CYCLE
     // GENERATES BMEM WHICH IS PRESENT ON REFRESH, CPU MEMORY AND DMA CYCLES
-    /*
-    MEM_reg <= (BRQ50 & IORQ_n   & IOD_n & BDRY25_n & MR_n)
+    MEM_reg <=
+     (BRQ50 & IORQ_n   & IOD_n & BDRY25_n & MR_n)
              | (BRQ50 & CRQ_n    & IOD_n & BDRY25_n & MR_n)
              | (BRQ50 & DOREF_n  & IOD_n & BDRY25_n & MR_n)
              | (CRQ   & IORQ_n   & IOD_n & BDRY25_n & MR_n)
              | (REFRQ50          & IOD_n & BDRY25_n)
              | (REFRQ50 & MR)
              | (MEM & BDRY25_n & MR_n);
-    */
-    if
-    (
-               (BRQ50 & IORQ_n   & IOD_n & BDRY25_n & MR_n)
-             | (BRQ50 & CRQ_n    & IOD_n & BDRY25_n & MR_n)
-             | (BRQ50 & DOREF_n  & IOD_n & BDRY25_n & MR_n)
-             | (CRQ   & IORQ_n   & IOD_n & BDRY25_n & MR_n)
-             | (REFRQ50          & IOD_n & BDRY25_n)
-             | (REFRQ50 & MR)
-    )
-    begin
-      MEM_reg <= 1;
-    end
-    else
-    begin
-      if (!(BDRY25_n & MR_n))
-      begin
-        MEM_reg <=0;
-      end
-    end
 
     // SEM - SEMAPHORE GRANT SIGNAL
     SEM_reg <= (SEMRQ50 & MR_n & BDRY25) | (SEM & MR_n & ACT_n);
