@@ -3,10 +3,13 @@
 ** /CGA/INTR/CNTLR/IRQ                                                   **
 ** IRQ                                                                   **
 **                                                                       **
+** Interrupt latches                                                     **
+** Mask register                                                         **
+**                                                                       **
 ** Page 79                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 10-NOV-2024                                            **
+** Last reviewed: 23-MAR-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 

@@ -9,7 +9,7 @@
 ** PDF Page 6 -> DECODE - DECODE_DGA- Sheet 5 of 6                       **
 ** PDF Page 7 -> DECODE - DECODE_DGA- Sheet 6 of 6                       **
 **                                                                       **
-** Last reviewed: 14-DEC-2024                                            **
+** Last reviewed: 22-MAR-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -469,6 +469,7 @@ module DECODE_DGA (
       .STARTN(s_start_n),    //! Start signal
       .UCLK(s_uclk),         //! U clock
       .WRITE(s_xwri),        //! Write cycle active
+      .EORFN(s_xeon),        //! Enable Output Register
 
       // Outputs
       .CCLRN(s_xcrn),
@@ -477,8 +478,7 @@ module DECODE_DGA (
       .DTN(s_xdtn),
       .DVACCN(s_xdvn),
       .ECREQ(s_xecr),
-      .EMPIDN(s_xpin),
-      .EORFN(s_xeon),
+      .EMPIDN(s_xpin),        //! CSCOMM=12, SMPID -  Set bits in the micro—P10 (Priority Interrupt Detect) register in the PIC.
       .ESTOFN(s_xesn),
       .FORMN(s_xfon),
       .HITN(s_xhin),

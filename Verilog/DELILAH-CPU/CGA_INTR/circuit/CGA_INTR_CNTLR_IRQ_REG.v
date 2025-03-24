@@ -3,10 +3,12 @@
 ** /CGA/INTR/CNTLR/IRQ/REG                                               **
 ** INTERRUPT CONTROLLER REGISTER                                         **
 **                                                                       **
+**                                                                       **
+** Interrupt latches                                                     **
 ** Page 78                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 23-MAR-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 

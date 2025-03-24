@@ -4,7 +4,7 @@
 ** ADDRESS DECODERS                                                      **
 ** SHEET 45 of 50                                                        **
 **                                                                       **
-** Last reviewed: 2-FEB-2025                                             **
+** Last reviewed: 22-MAR-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -133,15 +133,15 @@ module MEM_ADEC_45 (
    *******************************************************************************/
 
   // Pulled high when CGNT_n and BGNT_n both are high
-  assign s_bank_2_0_out = (~s_bgnt_n & ~s_cgnt_n) ? 3'b111 : (s_uc_bank_2_0 | s_ub_bank_2_0);
-  assign s_mwrite_n_out = (~s_bgnt_n & ~s_cgnt_n) ? 1 : (s_uc_mwrite_n | s_ub_mwrite_n);
+  assign s_bank_2_0_out =   (~s_bgnt_n & ~s_cgnt_n) ? 3'b111 : (s_uc_bank_2_0 | s_ub_bank_2_0);
+  assign s_mwrite_n_out =  (~s_bgnt_n & ~s_cgnt_n) ? 1 : (~s_bgnt_n & s_ub_mwrite_n) | (~s_cgnt_n & s_uc_mwrite_n);
 
   // Power
   assign  s_power  =  1'b1;
 
   // Constant: MOFF is pulled high with RN18 to POWER. 
   // But there is a switch (SW2: Memory OFF, normal position = down) that can be set to turn memory off (see PDF page 45)
-  assign  s_moff_n  =  1'b1;
+  assign  s_moff_n  =  1'b1; // set this to 0 if you want to sent all memory requests to the NDBUS
 
   // NOT Gate
   assign s_bgnt = ~s_bgnt_n;
@@ -264,9 +264,9 @@ module MEM_ADEC_45 (
       .BD22_n  (s_bd22_n),     // I6 - BD22_n
       .BD23_n  (s_bd23_n),     // I7 - BD23_n
 
-      .AOK     (s_aok),      // OUTPUT B0_n - AOK
-      .DDBAPR_n(s_ddbapr),   // OUTPUT B1_n - DDBAPR_n
-      .MSIZE1_n(s_msize1_n), // OUTPUT B2_n - MSIZE1_n (not connected? Set to 1, so MSIZE1 is 0)
+      .AOK      (s_aok),        // OUTPUT B0_n - AOK
+      .DDBAPR   (s_ddbapr),     // OUTPUT B1_n - DDBAPR_n
+      .MSIZE1_n (s_msize1_n),   // OUTPUT B2_n - MSIZE1_n (not connected? Set to 1, so MSIZE1 is 0)
       //.B3_n    (),            // not in use
 
       .BANK2   (s_ub_bank_2_0[2]),  // Q0_n - BANK2
