@@ -4,7 +4,7 @@
 ** IO TOP LEVEL                                                          **
 ** SHEET 37 of 50                                                        **
 **                                                                       **
-** Last reviewed: 1-DEC-2024                                             **
+** Last reviewed: 22-MAR-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -19,9 +19,10 @@ module IO_37(
    input       BRK_n,
    input       CLK,
    input       CONSOLE_n,
-   input [4:0] CSCOMM_4_0,
-   input [4:0] CSIDBS_4_0,
-   input [1:0] CSMIS_1_0,
+   input [4:0] CSCOMM_4_0,  //! Control Store Command (5 bits)
+   input [4:0] CSIDBS_4_0,  //! Control Store IDB Source (5 bits)
+   input [1:0] CSMIS_1_0,   //! Control Store MIS signal (2 bits)
+   input [1:0] MIS_1_0,     //! Clocked CSMIS (2 bits)
    input       CX_n,
    input       DAP_n,
    input       EAUTO_n,
@@ -121,6 +122,7 @@ module IO_37(
 
    wire [4:0]  s_csidbs_4_0;
    wire [1:0]  s_pcr_1_0;
+   wire [1:0]  s_mis_1_0;
    wire [1:0]  s_csmis_1_0;
    wire [7:0]  s_inr_7_0;
    wire        s_traald_n;
@@ -218,6 +220,7 @@ module IO_37(
    assign s_cscomm_4_0[4:0]   = CSCOMM_4_0;
    assign s_csidbs_4_0[4:0]   = CSIDBS_4_0;
    assign s_csmis_1_0[1:0]    = CSMIS_1_0;
+   assign s_mis_1_0[1:0]      = MIS_1_0;
    assign s_idb_7_0_in[7:0]   = IDB_7_0_IN[7:0];
    assign s_inr_7_0[7:0]      = INR_7_0[7:0];
    assign s_oc_1_0[1:0]       = OC_1_0;
@@ -360,7 +363,7 @@ module IO_37(
       .EIOR_n(s_eior_n),
       .LCS_n(s_lcs_n),
       .LOCK_n(s_lock_n),
-      .MIS_1_0(s_csmis_1_0[1:0]),
+      .MIS_1_0(s_mis_1_0[1:0]),
       .PPOSC(s_pposc),
       .RUART_n(s_ruart_n),
       .XTR(s_xtr),
