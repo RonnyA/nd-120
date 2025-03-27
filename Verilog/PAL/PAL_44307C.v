@@ -3,7 +3,7 @@
 **                                                                                                       **
 ** Component PAL 44307C                                                                                  **
 **                                                                                                       **
-** Last reviewed: 14-DEC-2024                                                                            **
+** Last reviewed: 22-MAR-2025                                                                            **
 ** Ronny Hansen                                                                                          **
 ***********************************************************************************************************/
 
@@ -31,7 +31,7 @@ module PAL_44307C(
     input VEX,       //! I9 Vector Exception (Disable Traps)
 
     output MCLK_n,   //! Y0_n - MCLK_n    Main Clock ?
-    output MACLK_n,  //! Y1_n - MACLK_n   Memory Access Clock ?
+    output MACLK_n,  //! Y1_n - MACLK_n   Memory Access Clock (MAP CLOCK)
     output WRFSTB,   //! B0_n - WRFSTB    Write Strobe ?
     output CYD,      //! B1_n - CYD_n     Cycle Done ?
     output EORF_n,   //! B2_n - EORF_n    End of Read Flag ? (Miscellaneous write pulse)
