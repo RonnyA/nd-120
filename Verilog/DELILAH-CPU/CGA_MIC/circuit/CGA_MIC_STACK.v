@@ -3,6 +3,8 @@
 ** /CGA/MIC/STACK                                                        **
 ** Microcode STACK                                                       **
 **                                                                       **
+** Modelled after 74S482                                                 **
+**                                                                       **
 ** Page 17                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **

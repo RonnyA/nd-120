@@ -6,7 +6,7 @@
 ** Page 42                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 20-DEC-2024                                            **
+** Last reviewed: 22-MAR-2025                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -33,27 +33,27 @@ module CGA_CPU_ALU_CONTR (
     input UPN,                    //! Up
     input XFETCHN,                //! XFetch
 
-    output       ALUD2N,
-    output       ALUI4,
-    output       ALUI7,
-    output       ALUI8N,
-    output       BDEST,
-    output       CI,
-    output [1:0] CSTS_1_0,
-    output       FSEL,
-    output [2:0] GPRC_2_0,
-    output       GPRLI,
-    output       LOG,
-    output       MI,
-    output       QLI,
-    output [1:0] QSEL_1_0,
-    output       RA,
-    output       RD,
-    output       RLI,
-    output       RRI,
-    output       RSN,
-    output       SA,
-    output       SB
+    output       ALUD2N,    //! ALU Data 2, active low signal
+    output       ALUI4,     //! ALU Instruction bit 4 output
+    output       ALUI7,     //! ALU Instruction bit 7 output
+    output       ALUI8N,    //! ALU Instruction bit 8, active low output
+    output       BDEST,     //! Bus Destination control signal
+    output       CI,        //! Carry In signal for ALU operations
+    output [1:0] CSTS_1_0,  //! Control Store status outputs (2-bit)
+    output       FSEL,      //! Function Select signal
+    output [2:0] GPRC_2_0,  //! General-Purpose Register Code (3-bit)
+    output       GPRLI,     //! General-Purpose Register Load Indicator
+    output       LOG,       //! Logic/Operation control signal
+    output       MI,        //! Microinstruction/Memory interface indicator
+    output       QLI,       //! Q Register Load Indicator
+    output [1:0] QSEL_1_0,  //! Q Register Select control signals (2-bit)
+    output       RA,        //! Register A control signal
+    output       RD,        //! Register D control (or Read) signal
+    output       RLI,       //! Register Load Indicator signal
+    output       RRI,       //! Register Right Immediate control signal
+    output       RSN,       //! Register Source Negative flag
+    output       SA,        //! Source A selector for ALU operations
+    output       SB         //! Source B selector for ALU operations
 );
   /*******************************************************************************
    ** The wires are defined here                                                 **
