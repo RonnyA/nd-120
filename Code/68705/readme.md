@@ -22,18 +22,28 @@ Sheet 40 of the CPU Board has the MC68705 connectins
 
 [Binary PROM dump from MC68705-U3 on ND-120 CPU Board](MC68705U3_35C.BIN)
 
+### U3 Analysis of functionality
+
+[Analysis of the code in the PROM](U3/Analysis-U3.md)
+
+### U3 Analysis of commands
+
+[Analysis of commands and responses](U3/Commands-U3.md)
+
 ### U3 Dissasembly
 
 PROM dump reverse engineered with Ghidra
 
-[68705-U3 Dissassembly PDF](U3-Dissassembly.pdf)
+[68705-U3 Dissassembly PDF](U3/U3-Dissassembly.pdf)
 
 ### U3 C code
 
 Reverse engineered C code (draft)
-[68705-U3 as C code](u3.c)
+[68705-U3 as C code](U3/C-code-u3.md)
 
-## The ND-5000C PANEL - MC68705-R3
+-----
+
+## The ND-5000C PANEL - MC68705-P3
 
 ![Panel Operator including display](ND-5000C-PANEL.png)
 
@@ -50,22 +60,31 @@ Reference NORSK-DATA.COM:
 * [324147 - PCB 1844 - Telefix/Driver Comson](http://www.norsk-data.com/hardware/nd-other/nd-324147.html)
 * [CY7C401 - FIFO](http://www.norsk-data.com/library/libother/extern/CY7C401.pdf)
 
-### R3 PROM
+### P3 PROM
 
-[Binary PROM dump from MC68705-R3](ND-5000C-MC68705P3.BIN)
+[Binary PROM dump from MC68705-R3](P3/ND-5000C-MC68705P3.BIN)
+
+
+### P3 Analysis
+
+[Analysis of the code in the R3 PROM](P3/Analysis.md)
+
 
 ### R3 Dissasembly
 
 PROM dump reverse engineered with Ghidra
 
-[68705-P3 Dissassembly PDF](P3-Dissassembly.pdf)
+[68705-P3 Dissassembly PDF](P3/P3-Dissassembly.pdf)
 
 ### R3 C code
 
 Reverse engineered C code (draft)
-[68705-P3 as C code](p3.c)
+[68705-P3 as C code](P3/C-code-p3.md)
 
-## 6805 CPU doc
+
+-----
+
+# 6805 CPU doc
 
 * MC68705P3, 18 page PDF - [MC68705PR 8-BIT EPROM Microcomputer Unit](6805/MC68705P3.PDF)
 * 6805P_Oct84, 15 page PDF - [MC68(7)05P SERIES 8-BIT MICROCOMPUTERS](6805/6805P_Oct84.PDF)

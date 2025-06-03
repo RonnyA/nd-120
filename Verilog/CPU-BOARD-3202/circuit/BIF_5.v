@@ -301,7 +301,7 @@ module BIF_5 (
       .BDRY50_n     (s_bdry50_n),             // Bus Data Ready (50ns delayed)
       .CD_15_0_OUT  (s_cd_15_0_out[15:0]),    // CPU Data
       .IDB_15_0_OUT (s_idb_15_0_out[15:0]),   // Internal Bus Data
-      .CGNTCACT_n   (s_cgntcact_n),           // Combined Grant/Active
+      .CGNTCACT_n   (s_cgntcact_n),           // Combined Grant/Active signal
       .DBAPR        (s_dbapr_n),              // Data Bus Address Present
       .SPEA         (s_spea),                 // Signal to latch PEA
       .SPES         (s_spes),                 // Signal to latch PES

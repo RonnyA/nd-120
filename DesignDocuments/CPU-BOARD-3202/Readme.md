@@ -12,8 +12,8 @@ Chips for the 3202D board:
 |-------------|----------------------------------------------------------|-------------------------------------------------------------------------------|---------------------------|
 | 27256       | 32KB EPROM with ND-120 microcode (23B + 26B)             | https://www.futurlec.com/Memory/27256_Datasheet.shtml                         | EPROM content secured     |
 | UART        | Microchip AY2661                                         | https://datasheetspdf.com/pdf-file/1412058/SMSC/COM2661-3/1 http://bitsavers.org/components/microchipTechnology/_dataBooks/1990_Microchip_Data_Book.pdf |Not started |
-| SIP1M9      | Local RAM page 49                                        | |
-| IDT6168A    | 16K (4Kx4) Static RAM                                    | |
+| SIP1M9      | Local RAM page 49                                        | | Implemented using BLOCK RAM |
+| IDT6168A    | 16K (4Kx4) Static RAM                                    | https://www.alldatasheet.com/datasheet-pdf/view/65830/IDT/IDT6168.html | Implemented using BLOCK RAM |
 | IMS1403_25  | 16K x 1 Static RAM                                       | https://datasheetspdf.com/pdf-file/537395/Inmos/IMS1403/1 |
 | TMM2018D_25 | 2K x 8 Static RAM (Cache)                                | |
 | AM9150_20   | 1024 x 4 High-Speed Static R/W RAM                       | http://www.sintran.com/library/libother/extern/AM9150.pdf |

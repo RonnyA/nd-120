@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ND-100 Front Panel Display</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #2a2a2a;
+            margin: 0;
+            padding: 20px;
+            color: white;
+        }
+        
+        .panel-container {
+            background-color: #1a1a1a;
+            border: 3px solid #666;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .panel-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        
+        .display-panel {
+            background-color: #000;
+            border: 2px solid #444;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .function-section {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            background-color: #111;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        .function-item {
+            text-align: center;
+            color: #0f0;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .function-display {
+            width: 80px;
+            height: 40px;
+            background-color: #000;
+            border: 1px solid #333;
+            margin: 5px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0f0;
+            font-size: 14px;
+        }
+        
+        .lower-section {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .address-section, .data-section {
+            flex: 1;
+            background-color: #111;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        .scale-markers {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .scale-markers.top {
+            margin-top: 10px;
+        }
+        
+        .scale-markers.bottom {
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .bit-15 { background-color: white; color: black; padding: 1px 2px; }
+        .bit-14-12 { background-color: white; color: black; padding: 1px 2px; }
+        .bit-11-9 { background-color: #666; color: white; padding: 1px 2px; }
+        .bit-8-6 { background-color: white; color: black; padding: 1px 2px; }
+        .bit-5-3 { background-color: #666; color: white; padding: 1px 2px; }
+        .bit-2-0 { background-color: white; color: black; padding: 1px 2px; }
+        
+        .seven-seg-container {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        
+        .seven-seg-group {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .seven-seg {
+            position: relative;
+            width: 30px;
+            height: 50px;
+        }
+        
+        .seven-seg-single {
+            position: relative;
+            width: 25px;
+            height: 40px;
+        }
+        
+        .segment {
+            position: absolute;
+            background-color: #333;
+            transition: background-color 0.2s;
+        }
+        
+        .segment.on {
+            background-color: #ff6600;
+            box-shadow: 0 0 5px #ff6600;
+        }
+        
+        /* Horizontal segments */
+        .seg-a, .seg-d, .seg-g {
+            width: 20px;
+            height: 3px;
+            left: 5px;
+        }
+        
+        .seg-a { top: 2px; }
+        .seg-g { top: 24px; }
+        .seg-d { top: 45px; }
+        
+        /* Vertical segments */
+        .seg-b, .seg-c, .seg-e, .seg-f {
+            width: 3px;
+            height: 18px;
+        }
+        
+        .seg-b { top: 5px; right: 2px; }
+        .seg-c { top: 27px; right: 2px; }
+        .seg-e { top: 27px; left: 2px; }
+        .seg-f { top: 5px; left: 2px; }
+        
+        /* Single digit adjustments */
+        .seven-seg-single .seg-a,
+        .seven-seg-single .seg-d,
+        .seven-seg-single .seg-g {
+            width: 16px;
+            left: 4px;
+        }
+        
+        .seven-seg-single .seg-g {
+            top: 19px;
+        }
+        
+        .seven-seg-single .seg-d {
+            top: 36px;
+        }
+        
+        .seven-seg-single .seg-b,
+        .seven-seg-single .seg-c,
+        .seven-seg-single .seg-e,
+        .seven-seg-single .seg-f {
+            height: 14px;
+        }
+        
+        .seven-seg-single .seg-c {
+            top: 22px;
+        }
+        
+        .colon {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 50px;
+            margin: 0 5px;
+        }
+        
+        .colon-dot {
+            width: 3px;
+            height: 3px;
+            background-color: #ff6600;
+            border-radius: 50%;
+            margin: 3px 0;
+        }
+        
+        .section-label {
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #ccc;
+            margin-top: 10px;
+        }
+        
+        .address-labels {
+            display: flex;
+            justify-content: space-around;
+            font-size: 10px;
+            color: #999;
+            margin-top: 5px;
+        }
+        
+        .controls-info {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #222;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        
+        .control-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #1a1a1a;
+            border: 2px solid #444;
+            border-radius: 5px;
+        }
+        
+        .controls-row {
+            display: flex;
+            gap: 30px;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        
+        .button-section, .key-section, .indicator-section {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .button-section h4, .key-section h4, .indicator-section h4 {
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        
+        .panel-button {
+            background-color: #333;
+            border: 2px solid #666;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .panel-button:hover {
+            background-color: #555;
+            border-color: #888;
+        }
+        
+        .panel-button:active {
+            background-color: #777;
+            transform: translateY(1px);
+        }
+        
+        .key-positions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .key-positions label {
+            color: #ccc;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .key-positions input[type="radio"] {
+            margin-right: 8px;
+        }
+        
+        .indicator-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .led {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid #333;
+        }
+        
+        .led.green {
+            background-color: #0f0;
+            box-shadow: 0 0 8px #0f0;
+        }
+        
+        .led.amber {
+            background-color: #ff6600;
+            box-shadow: 0 0 8px #ff6600;
+        }
+        
+        .led.red {
+            background-color: #f00;
+            box-shadow: 0 0 8px #f00;
+        }
+        
+        .led.off {
+            background-color: #333;
+            box-shadow: none;
+        }
+        
+        .indicator span {
+            color: #ccc;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .system-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #222;
+            border-radius: 5px;
+        }
+        
+        .system-info h4 {
+            color: #fff;
+            margin-bottom: 15px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .info-section {
+            color: #ccc;
+            font-size: 12px;
+        }
+        
+        .info-section strong {
+            color: #fff;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .info-section ul {
+            margin: 0;
+            padding-left: 15px;
+        }
+        
+        .info-section li {
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel-container">
+        <div class="panel-title">ND-100 Front Panel Display</div>
+        
+        <div class="display-panel">
+            <!-- Function Section -->
+            <div class="function-section">
+                <div class="function-item">
+                    <div class="function-display">UTIL</div>
+                    <div>UTIL</div>
+                </div>
+                <div class="function-item">
+                    <div class="function-display">HIT</div>
+                    <div>HIT</div>
+                </div>
+                <div class="function-item">
+                    <div class="function-display">RING</div>
+                    <div>RING</div>
+                </div>
+                <div class="function-item">
+                    <div class="function-display">MODE</div>
+                    <div>MODE</div>
+                </div>
+            </div>
+            
+            <div class="lower-section">
+                <!-- Address Section -->
+                <div class="address-section">
+                    <div class="scale-markers top">
+                        <span class="bit-15">15</span>
+                        <span class="bit-14-12">14</span>
+                        <span class="bit-14-12">13</span>
+                        <span class="bit-14-12">12</span>
+                        <span class="bit-11-9">11</span>
+                        <span class="bit-11-9">10</span>
+                        <span class="bit-11-9">9</span>
+                        <span class="bit-8-6">8</span>
+                        <span class="bit-8-6">7</span>
+                        <span class="bit-8-6">6</span>
+                        <span class="bit-5-3">5</span>
+                        <span class="bit-5-3">4</span>
+                        <span class="bit-5-3">3</span>
+                        <span class="bit-2-0">2</span>
+                        <span class="bit-2-0">1</span>
+                        <span class="bit-2-0">0</span>
+                    </div>
+                    
+                    <div class="seven-seg-container">
+                        <div class="seven-seg-group">
+                            <div class="seven-seg" id="addr-d1">
+                                <div class="segment seg-a on"></div>
+                                <div class="segment seg-b on"></div>
+                                <div class="segment seg-c on"></div>
+                                <div class="segment seg-d on"></div>
+                                <div class="segment seg-e on"></div>
+                                <div class="segment seg-f on"></div>
+                                <div class="segment seg-g on"></div>
+                            </div>
+                            <div class="seven-seg" id="addr-d2">
+                                <div class="segment seg-a on"></div>
+                                <div class="segment seg-b on"></div>
+                                <div class="segment seg-c on"></div>
+                                <div class="segment seg-d on"></div>
+                                <div class="segment seg-e on"></div>
+                                <div class="segment seg-f on"></div>
+                                <div class="segment seg-g on"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="colon">
+                            <div class="colon-dot"></div>
+                            <div class="colon-dot"></div>
+                        </div>
+                        
+                        <div class="seven-seg-group">
+                            <div class="seven-seg" id="addr-d3">
+                                <div class="segment seg-a on"></div>
+                                <div class="segment seg-b on"></div>
+                                <div class="segment seg-c on"></div>
+                                <div class="segment seg-d on"></div>
+                                <div class="segment seg-e on"></div>
+                                <div class="segment seg-f on"></div>
+                                <div class="segment seg-g on"></div>
+                            </div>
+                            <div class="seven-seg" id="addr-d4">
+                                <div class="segment seg-a on"></div>
+                                <div class="segment seg-b on"></div>
+                                <div class="segment seg-c on"></div>
+                                <div class="segment seg-d on"></div>
+                                <div class="segment seg-e on"></div>
+                                <div class="segment seg-f on"></div>
+                                <div class="segment seg-g on"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="colon">
+                            <div class="colon-dot"></div>
+                            <div class="colon-dot"></div>
+                        </div>
+                        
+                        <div class="seven-seg-group">
+                            <div class="seven-seg" id="addr-d5">
+                                <div class="segment seg-a on"></div>
+                                <div class="segment seg-b on"></div>
+                                <div class="segment seg-c on"></div>
+                                <div class="segment seg-d on"></div>
+                                <div class="segment seg-e on"></div>
+                                <div class="segment seg-f on"></div>
+                                <div class="segment seg-g on"></div>
+                            </div>
+                            <div class="seven-seg" id="addr-d6">
+                                <div class="segment seg-a on"></div>
+                                <div class="segment seg-b on"></div>
+                                <div class="segment seg-c on"></div>
+                                <div class="segment seg-d on"></div>
+                                <div class="segment seg-e on"></div>
+                                <div class="segment seg-f on"></div>
+                                <div class="segment seg-g on"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="colon">
+                            <div class="colon-dot"></div>
+                            <div class="colon-dot"></div>
+                        </div>
+                        
+                        <div class="seven-seg-group">
+                            <div class="seven-seg" id="addr-d7">
+                                <div class="segment seg-a on"></div>
+                                <div class="segment seg-b on"></div>
+                                <div class="segment seg-c on"></div>
+                                <div class="segment seg-d on"></div>
+                                <div class="segment seg-e on"></div>
+                                <div class="segment seg-f on"></div>
+                                <div class="segment seg-g on"></div>
+                            </div>
+                            <div class="seven-seg" id="addr-d8">
+                                <div class="segment seg-a on"></div>
+                                <div class="segment seg-b on"></div>
+                                <div class="segment seg-c on"></div>
+                                <div class="segment seg-d on"></div>
+                                <div class="segment seg-e on"></div>
+                                <div class="segment seg-f on"></div>
+                                <div class="segment seg-g on"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="address-labels">
+                        <span>DAY</span>
+                        <span>HR</span>
+                        <span>MIN</span>
+                        <span>SEC</span>
+                    </div>
+                    
+                    <div class="section-label">ADDRESS</div>
+                </div>
+                
+                <!-- Data Section -->
+                <div class="data-section">
+                    <div class="scale-markers top">
+                        <span class="bit-15">15</span>
+                        <span class="bit-14-12">14</span>
+                        <span class="bit-14-12">13</span>
+                        <span class="bit-14-12">12</span>
+                        <span class="bit-11-9">11</span>
+                        <span class="bit-11-9">10</span>
+                        <span class="bit-11-9">9</span>
+                        <span class="bit-8-6">8</span>
+                        <span class="bit-8-6">7</span>
+                        <span class="bit-8-6">6</span>
+                        <span class="bit-5-3">5</span>
+                        <span class="bit-5-3">4</span>
+                        <span class="bit-5-3">3</span>
+                        <span class="bit-2-0">2</span>
+                        <span class="bit-2-0">1</span>
+                        <span class="bit-2-0">0</span>
+                    </div>
+                    
+                    <div class="seven-seg-container">
+                        <div class="seven-seg-single" id="data-d1">
+                            <div class="segment seg-a on"></div>
+                            <div class="segment seg-b on"></div>
+                            <div class="segment seg-c on"></div>
+                            <div class="segment seg-d on"></div>
+                            <div class="segment seg-e on"></div>
+                            <div class="segment seg-f on"></div>
+                            <div class="segment seg-g on"></div>
+                        </div>
+                        <div class="seven-seg-single" id="data-d2">
+                            <div class="segment seg-a on"></div>
+                            <div class="segment seg-b on"></div>
+                            <div class="segment seg-c on"></div>
+                            <div class="segment seg-d on"></div>
+                            <div class="segment seg-e on"></div>
+                            <div class="segment seg-f on"></div>
+                            <div class="segment seg-g on"></div>
+                        </div>
+                        <div class="seven-seg-single" id="data-d3">
+                            <div class="segment seg-a on"></div>
+                            <div class="segment seg-b on"></div>
+                            <div class="segment seg-c on"></div>
+                            <div class="segment seg-d on"></div>
+                            <div class="segment seg-e on"></div>
+                            <div class="segment seg-f on"></div>
+                            <div class="segment seg-g on"></div>
+                        </div>
+                        <div class="seven-seg-single" id="data-d4">
+                            <div class="segment seg-a on"></div>
+                            <div class="segment seg-b on"></div>
+                            <div class="segment seg-c on"></div>
+                            <div class="segment seg-d on"></div>
+                            <div class="segment seg-e on"></div>
+                            <div class="segment seg-f on"></div>
+                            <div class="segment seg-g on"></div>
+                        </div>
+                        <div class="seven-seg-single" id="data-d5">
+                            <div class="segment seg-a on"></div>
+                            <div class="segment seg-b on"></div>
+                            <div class="segment seg-c on"></div>
+                            <div class="segment seg-d on"></div>
+                            <div class="segment seg-e on"></div>
+                            <div class="segment seg-f on"></div>
+                            <div class="segment seg-g on"></div>
+                        </div>
+                        <div class="seven-seg-single" id="data-d6">
+                            <div class="segment seg-a on"></div>
+                            <div class="segment seg-b on"></div>
+                            <div class="segment seg-c on"></div>
+                            <div class="segment seg-d on"></div>
+                            <div class="segment seg-e on"></div>
+                            <div class="segment seg-f on"></div>
+                            <div class="segment seg-g on"></div>
+                        </div>
+                        <div class="seven-seg-single" id="data-d7">
+                            <div class="segment seg-a on"></div>
+                            <div class="segment seg-b on"></div>
+                            <div class="segment seg-c on"></div>
+                            <div class="segment seg-d on"></div>
+                            <div class="segment seg-e on"></div>
+                            <div class="segment seg-f on"></div>
+                            <div class="segment seg-g on"></div>
+                        </div>
+                        <div class="seven-seg-single" id="data-d8">
+                            <div class="segment seg-a on"></div>
+                            <div class="segment seg-b on"></div>
+                            <div class="segment seg-c on"></div>
+                            <div class="segment seg-d on"></div>
+                            <div class="segment seg-e on"></div>
+                            <div class="segment seg-f on"></div>
+                            <div class="segment seg-g on"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="scale-markers bottom">
+                        <span class="bit-8-6">7</span>
+                        <span class="bit-8-6">6</span>
+                        <span class="bit-5-3">5</span>
+                        <span class="bit-5-3">4</span>
+                        <span class="bit-5-3">3</span>
+                        <span class="bit-2-0">2</span>
+                        <span class="bit-2-0">1</span>
+                        <span class="bit-2-0">0</span>
+                    </div>
+                    
+                    <div class="section-label">DATA</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Control Panel Section -->
+        <div class="control-panel">
+            <div class="panel-title">Control Panel & Status Indicators</div>
+            
+            <div class="controls-row">
+                <!-- Push Buttons -->
+                <div class="button-section">
+                    <h4>Control Buttons</h4>
+                    <div class="button-grid">
+                        <button class="panel-button" id="mcl-btn">MCL</button>
+                        <button class="panel-button" id="stop-btn">STOP</button>
+                        <button class="panel-button" id="load-btn">LOAD</button>
+                        <button class="panel-button" id="opcom-btn">OPCOM</button>
+                        <button class="panel-button" id="continue-btn">CONTINUE</button>
+                    </div>
+                </div>
+                
+                <!-- Key Lock -->
+                <div class="key-section">
+                    <h4>Panel Lock Key</h4>
+                    <div class="key-positions">
+                        <label><input type="radio" name="keylock" value="lock" checked> LOCK</label>
+                        <label><input type="radio" name="keylock" value="on"> ON</label>
+                        <label><input type="radio" name="keylock" value="standby"> STAND-BY</label>
+                    </div>
+                </div>
+                
+                <!-- Status Indicators -->
+                <div class="indicator-section">
+                    <h4>Status Indicators</h4>
+                    <div class="indicator-grid">
+                        <div class="indicator" id="power-led">
+                            <div class="led green"></div>
+                            <span>POWER ON</span>
+                        </div>
+                        <div class="indicator" id="run-led">
+                            <div class="led green"></div>
+                            <span>RUN</span>
+                        </div>
+                        <div class="indicator" id="opcom-led">
+                            <div class="led amber"></div>
+                            <span>OPCOM</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="system-info">
+            <h4>68705P3 Panel Processor Communication:</h4>
+            <div class="info-grid">
+                <div class="info-section">
+                    <strong>Interrupt System:</strong>
+                    <ul>
+                        <li>20ms timer interrupt from ND-120 CPU</li>
+                        <li>Panel button interrupts to CPU via 68705P3</li>
+                        <li>PANC/PANS register interface</li>
+                        <li>Button state monitoring via PORTA</li>
+                    </ul>
+                </div>
+                <div class="info-section">
+                    <strong>Control Signals:</strong>
+                    <ul>
+                        <li>LOAD_n signal (C-B12, A-C15)</li>
+                        <li>CONTINUE_n signal (C-B15)</li>
+                        <li>STOP_n signal (C-B16, A-C17)</li>
+                        <li>Panel lock key position sensing</li>
+                    </ul>
+                </div>
+                <div class="info-section">
+                    <strong>Status Monitoring:</strong>
+                    <ul>
+                        <li>Master Clear (MCL) button processing</li>
+                        <li>OPCOM mode activation</li>
+                        <li>System state indicator control</li>
+                        <li>Display refresh and updates</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to set a digit in 7-segment display
+        function setSevenSegDigit(containerId, digit) {
+            const container = document.getElementById(containerId);
+            const segments = container.querySelectorAll('.segment');
+            
+            // Clear all segments first
+            segments.forEach(seg => seg.classList.remove('on'));
+            
+            // Digit patterns (a,b,c,d,e,f,g)
+            const patterns = {
+                '0': [1,1,1,1,1,1,0],
+                '1': [0,1,1,0,0,0,0],
+                '2': [1,1,0,1,1,0,1],
+                '3': [1,1,1,1,0,0,1],
+                '4': [0,1,1,0,0,1,1],
+                '5': [1,0,1,1,0,1,1],
+                '6': [1,0,1,1,1,1,1],
+                '7': [1,1,1,0,0,0,0],
+                '8': [1,1,1,1,1,1,1],
+                '9': [1,1,1,1,0,1,1],
+                'A': [1,1,1,0,1,1,1],
+                'B': [0,0,1,1,1,1,1],
+                'C': [1,0,0,1,1,1,0],
+                'D': [0,1,1,1,1,0,1],
+                'E': [1,0,0,1,1,1,1],
+                'F': [1,0,0,0,1,1,1],
+                ' ': [0,0,0,0,0,0,0]
+            };
+            
+            const pattern = patterns[digit.toString().toUpperCase()];
+            if (pattern) {
+                const segNames = ['seg-a', 'seg-b', 'seg-c', 'seg-d', 'seg-e', 'seg-f', 'seg-g'];
+                pattern.forEach((state, index) => {
+                    if (state) {
+                        container.querySelector('.' + segNames[index]).classList.add('on');
+                    }
+                });
+            }
+        }
+        
+        // Example: Set current time
+        function updateClock() {
+            const now = new Date();
+            const day = now.getDate().toString().padStart(2, '0');
+            const hour = now.getHours().toString().padStart(2, '0');
+            const min = now.getMinutes().toString().padStart(2, '0');
+            const sec = now.getSeconds().toString().padStart(2, '0');
+            
+            setSevenSegDigit('addr-d1', day[0]);
+            setSevenSegDigit('addr-d2', day[1]);
+            setSevenSegDigit('addr-d3', hour[0]);
+            setSevenSegDigit('addr-d4', hour[1]);
+            setSevenSegDigit('addr-d5', min[0]);
+            setSevenSegDigit('addr-d6', min[1]);
+            setSevenSegDigit('addr-d7', sec[0]);
+            setSevenSegDigit('addr-d8', sec[1]);
+        }
+        
+        // Example: Set hex data value
+        function setDataValue(hexValue) {
+            const hex = hexValue.toString(16).toUpperCase().padStart(8, '0');
+            for (let i = 0; i < 8; i++) {
+                setSevenSegDigit(`data-d${i+1}`, hex[i]);
+            }
+        }
+        
+        // Initialize with current time and example data
+        updateClock();
+        setDataValue(0x12345678);
+        
+        // Update clock every second
+        setInterval(updateClock, 1000);
+        
+        // Button click handlers
+        document.getElementById('mcl-btn').addEventListener('click', function() {
+            console.log('MCL (Master Clear) button pressed');
+            // Simulate master clear - reset displays
+            for (let i = 1; i <= 8; i++) {
+                setSevenSegDigit(`addr-d${i}`, '0');
+                setSevenSegDigit(`data-d${i}`, '0');
+            }
+            // Flash indicators
+            document.getElementById('run-led').querySelector('.led').classList.add('off');
+            setTimeout(() => {
+                document.getElementById('run-led').querySelector('.led').classList.remove('off');
+            }, 1000);
+        });
+        
+        document.getElementById('stop-btn').addEventListener('click', function() {
+            console.log('STOP button pressed');
+            document.getElementById('run-led').querySelector('.led').classList.add('off');
+        });
+        
+        document.getElementById('load-btn').addEventListener('click', function() {
+            console.log('LOAD button pressed');
+            // Simulate loading - show some activity
+            setDataValue(0xA5A5A5A5);
+        });
+        
+        document.getElementById('opcom-btn').addEventListener('click', function() {
+            console.log('OPCOM button pressed');
+            const opcomLed = document.getElementById('opcom-led').querySelector('.led');
+            opcomLed.classList.toggle('off');
+        });
+        
+        document.getElementById('continue-btn').addEventListener('click', function() {
+            console.log('CONTINUE button pressed');
+            document.getElementById('run-led').querySelector('.led').classList.remove('off');
+        });
+        
+        // Key lock position handler
+        document.querySelectorAll('input[name="keylock"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                console.log(`Key lock position: ${this.value}`);
+                if (this.value === 'lock') {
+                    // Disable all buttons
+                    document.querySelectorAll('.panel-button').forEach(btn => {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                    });
+                } else {
+                    // Enable buttons
+                    document.querySelectorAll('.panel-button').forEach(btn => {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    });
+                }
+                
+                if (this.value === 'standby') {
+                    document.getElementById('power-led').querySelector('.led').classList.add('off');
+                } else {
+                    document.getElementById('power-led').querySelector('.led').classList.remove('off');
+                }
+            });
+        });
+        
+        // Initialize with locked state
+        document.querySelectorAll('.panel-button').forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+        });
+    </script>
+</body>
+</html>

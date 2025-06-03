@@ -1,0 +1,421 @@
+/*
+ * MC68705 Panel/Calendar Controller - ND-100 System Integration
+ * 
+ * This controller handles panel display, RTC operations, and CPU performance monitoring
+ * for the ND-100 computer system. It interfaces with the DGA (Delilah Gate Array) CPU
+ * to provide real-time system status and utilization statistics.
+ */
+
+#include <stdint.h>
+
+// =============================================================================
+// HARDWARE REGISTER DEFINITIONS
+// =============================================================================
+
+// MC68705 Hardware Registers
+#define PORTA   (*(volatile uint8_t*)0x0000)
+#define PORTB   (*(volatile uint8_t*)0x0001) 
+#define PORTC   (*(volatile uint8_t*)0x0002)
+#define PORTD   (*(volatile uint8_t*)0x0003)
+#define DDRA    (*(volatile uint8_t*)0x0004)
+#define DDRB    (*(volatile uint8_t*)0x0005)
+#define DDRC    (*(volatile uint8_t*)0x0006)
+#define DDRD    (*(volatile uint8_t*)0x0007)
+#define TDR     (*(volatile uint8_t*)0x0008)  // Timer Data Register
+#define TCR     (*(volatile uint8_t*)0x0009)  // Timer Control Register  
+#define MR      (*(volatile uint8_t*)0x000A)  // Misc Register
+#define PCR     (*(volatile uint8_t*)0x000B)  // Program Control Register
+
+// ND-100 System Status Signals (Port D)
+#define PORTD_EMP_ENABLE        0x80  // Bit 7: /EMP_n from DGA (Enable Memory Protection/Command Latch)
+#define PORTD_LHIT_CACHE        0x40  // Bit 6: LHIT (Load Hit - Cache Hit indicator)
+#define PORTD_INTERRUPT_ON      0x08  // Bit 3: IONI (Interrupt System ON)
+#define PORTD_MEMORY_PROT_ON    0x04  // Bit 2: PONI (Memory Protection ON)
+#define PORTD_PCR_RING_MASK     0x03  // Bits 1-0: PCR Ring Level (0-3)
+
+// PCR Ring Levels (Privilege Levels)
+typedef enum {
+    RING_0_USER     = 0,  // User programs (least privileged)
+    RING_1_SYSTEM   = 1,  // System services
+    RING_2_KERNEL   = 2,  // Kernel operations  
+    RING_3_SUPERVISOR = 3 // Supervisor mode (most privileged)
+} cpu_ring_level_t;
+
+// =============================================================================
+// MEMORY MAP AND SYSTEM VARIABLES
+// =============================================================================
+
+// Display Character Data (4 characters for panel display)
+typedef struct {
+    uint8_t char0;      // 0x10 - Display character 0
+    uint8_t char1;      // 0x11 - Display character 1  
+    uint8_t char2;      // 0x12 - Display character 2
+    uint8_t char3;      // 0x13 - Display character 3
+} display_chars_t;
+
+// RTC Date/Time Data
+typedef struct {
+    uint8_t seconds;    // 0x14 - RTC seconds
+    uint8_t minutes;    // 0x15 - RTC minutes
+    uint8_t hours;      // 0x16 - RTC hours
+    uint8_t day;        // 0x17 - RTC day
+    uint8_t month;      // 0x18 - RTC month
+} rtc_datetime_t;
+
+// CPU Performance Monitoring Data
+typedef struct {
+    uint8_t cpu_status_flags;      // 0x19 - CPU status: PONI/IONI/Ring/Level
+    uint8_t system_config;         // 0x1A - System configuration flags
+    uint8_t utilization_control;   // 0x1B - CPU utilization control flags
+    uint8_t command_byte;          // 0x1C - Last received PANC command
+    uint8_t utilization_param1;    // 0x1D - Utilization calculation parameter 1
+    uint8_t utilization_param2;    // 0x1E - Utilization calculation parameter 2
+    uint8_t emp_timeout_counter;   // 0x1F - /EMP_n signal timeout counter
+} cpu_monitoring_t;
+
+// CPU Utilization Tracking (updated by 1200Hz timer interrupt)
+typedef struct {
+    uint8_t level_counters[8];     // 0x20-0x27 - Time spent in each interrupt level
+    uint8_t ring_counters[4];      // Ring 0-3 time accumulation
+    uint8_t cache_hit_stats;       // LHIT cache performance statistics
+    uint8_t interrupt_stats;       // IONI interrupt system activity
+} cpu_utilization_t;
+
+// 7-Segment Display Data (converted from characters)
+typedef struct {
+    uint8_t segment_data[8];       // 0x52-0x59 - 7-segment encoded display data
+} segment_display_t;
+
+// Timer and Statistical Processing
+typedef struct {
+    uint8_t sample_counter_16;     // 0x5B - 16-sample period counter (13.3ms windows)
+    uint8_t window_counter_200;    // 0x5C - 200-window counter (167ms periods)
+    uint8_t statistics_cycle;      // 0x5D - Statistics cycle counter (333ms)
+    uint8_t utilization_buffer[15]; // 0x61-0x6F - CPU utilization calculation buffer
+} timing_control_t;
+
+// =============================================================================
+// CPU PERFORMANCE MONITORING FUNCTIONS
+// =============================================================================
+
+/**
+ * Read current CPU status from DGA (Delilah Gate Array) via Port D
+ * Called every 1200Hz timer interrupt for real-time monitoring
+ */
+void Read_DGA_CPU_Status_Update_Cache_Stats(void) {
+    uint8_t current_cpu_status;
+    
+    // Sample current CPU state from DGA
+    current_cpu_status = PORTD;
+    cpu_monitoring.cpu_status_flags = current_cpu_status;
+    
+    // Extract CPU Ring level from PCR bits 1-0 (privilege level 0-3)
+    uint8_t current_ring = current_cpu_status & PORTD_PCR_RING_MASK;
+    
+    // Map Ring level to bit position for accumulation
+    // Ring 0 (user) = bit 0, Ring 3 (supervisor) = bit 3
+    uint8_t ring_bit_mask = (current_cpu_status & PORTD_PCR_RING_MASK) << 2;
+    
+    // Update Ring utilization statistics if Memory Protection is ON
+    if (current_cpu_status & PORTD_MEMORY_PROT_ON) {
+        // PONI = TRUE: CPU is actively executing protected code
+        // Add current ring level to accumulation mask
+        cpu_monitoring.cpu_status_flags |= PCR_ring_lookup_table[current_ring];
+    }
+    
+    /* CPU Performance Analysis:
+     * - Ring 0 (User): Application programs, least privileged
+     * - Ring 1 (System): System services and libraries  
+     * - Ring 2 (Kernel): Operating system kernel operations
+     * - Ring 3 (Supervisor): Hardware control, most privileged
+     * 
+     * Higher ring numbers indicate more critical system activity
+     */
+}
+
+/**
+ * Update CPU status tracking including interrupt and cache statistics
+ * Processes IONI (Interrupt System) and LHIT (Cache Hit) signals
+ */
+void Update_CPU_Performance_Counters(void) {
+    uint8_t status_mask = ~timing_control.utilization_buffer[0x0F];
+    
+    // Update CPU status accumulator with current Ring/Level data
+    timing_control.utilization_buffer[0x00] = 
+        (status_mask & timing_control.utilization_buffer[0x00]) | 
+        cpu_monitoring.cpu_status_flags;
+    
+    // Store updated status for next cycle
+    cpu_monitoring.cpu_status_flags = timing_control.utilization_buffer[0x00];
+}
+
+/**
+ * 1200Hz Timer Interrupt Handler - CPU Performance Sampling
+ * Provides real-time CPU utilization, cache performance, and system monitoring
+ */
+void TIMER_INTERRUPT_CPU_Monitor(void) {
+    // Reset timer for next 1200Hz interrupt (833 microsecond period)
+    TDR = 3;
+    TCR &= 0x7F;  // Clear timer interrupt flag
+    
+    // Sample current CPU status from DGA (Delilah Gate Array)
+    Read_DGA_CPU_Status_Update_Cache_Stats();
+    
+    // Update performance counters and statistics
+    Update_CPU_Performance_Counters();
+    
+    // Check if additional CPU monitoring is enabled
+    if (cpu_monitoring.utilization_control & 0x02) {
+        Sample_Additional_CPU_Metrics();
+    }
+    
+    // 16-sample period processing (13.3ms windows)
+    timing_control.sample_counter_16--;
+    if (timing_control.sample_counter_16 == 0) {
+        Process_CPU_Utilization_Window();      // Calculate utilization for 16 samples
+        timing_control.sample_counter_16 = 0x10;
+    }
+    
+    // 200-window period processing (167ms statistical periods)
+    timing_control.window_counter_200--;
+    if (timing_control.window_counter_200 == 0) {
+        timing_control.window_counter_200 = 200;
+        
+        // 2-cycle statistics processing (333ms final averaging)
+        timing_control.statistics_cycle--;
+        if (timing_control.statistics_cycle == 0) {
+            timing_control.statistics_cycle = 2;
+            Update_RTC_And_CPU_Statistics();   // Update time and finalize CPU stats
+        }
+    }
+}
+
+/**
+ * Process CPU utilization for Ring 0 (idle/user) vs Ring 1-3 (system/kernel)
+ * This function implements the core CPU busy/idle calculation
+ */
+void Calculate_CPU_Ring_Utilization(void) {
+    uint8_t ring_accumulator = 0;
+    uint8_t shift_count, temp_value;
+    
+    // Initialize with current ring data if utilization tracking enabled
+    if (cpu_monitoring.utilization_control & 0x08) {
+        ring_accumulator = rtc_datetime.hours;  // Ring data from status
+    }
+    
+    // Perform multi-precision bit shifting for accurate percentage calculation
+    shift_count = cpu_monitoring.utilization_param2;
+    if (shift_count != 0) {
+        do {
+            // 24-bit right shift operation for high-precision math
+            temp_value = ring_accumulator >> 1;
+            rtc_datetime.month = (rtc_datetime.month >> 1) | (rtc_datetime.day << 7);
+            rtc_datetime.day = (rtc_datetime.day >> 1) | (ring_accumulator << 7);
+            ring_accumulator = temp_value;
+            shift_count--;
+        } while (shift_count != 0);
+    }
+    
+    // Extract fractional part for percentage calculation
+    uint8_t fraction_bits = rtc_datetime.month & 0x0F;
+    rtc_datetime.day = 0;
+    rtc_datetime.month = 0;
+    
+    // Convert to percentage representation (bit positions = percentage)
+    uint8_t bit_position = 1;
+    do {
+        temp_value = rtc_datetime.month >> 7;
+        rtc_datetime.month = (rtc_datetime.month << 1) | bit_position;
+        bit_position = rtc_datetime.day >> 7;
+        rtc_datetime.day = (rtc_datetime.day << 1) | temp_value;
+        fraction_bits--;
+    } while (fraction_bits > 0);
+    
+    /* CPU Utilization Calculation:
+     * Ring 0 time = User/idle processing
+     * Ring 1-3 time = System/kernel processing  
+     * CPU Busy % = (Ring 1-3 time) / (Total time) * 100
+     * System Load = Ring 2-3 time (kernel/supervisor operations)
+     */
+}
+
+/**
+ * Statistical processing for CPU utilization data
+ * Handles idle vs busy time accumulation and percentage calculation
+ */
+void Process_CPU_Utilization_Statistics(void) {
+    uint8_t idle_accumulator = 0;
+    uint8_t busy_accumulator;
+    
+    // Process Ring 0 (user/idle) time accumulation
+    if (cpu_monitoring.utilization_param1 & 0x10) {
+        idle_accumulator = ~timing_control.utilization_buffer[0x0F] & 
+                          timing_control.utilization_buffer[0x0E];
+    }
+    
+    // Process Ring 1-3 (system/busy) time accumulation
+    busy_accumulator = timing_control.utilization_buffer[0x07];
+    if (cpu_monitoring.utilization_param1 & 0x08) {
+        busy_accumulator = (~timing_control.utilization_buffer[0x0F] | 
+                           timing_control.utilization_buffer[0x0E]) & 
+                           timing_control.utilization_buffer[0x07];
+    }
+    
+    // Combine idle and busy measurements for final utilization
+    busy_accumulator |= idle_accumulator;
+    timing_control.utilization_buffer[0x0E] = busy_accumulator;
+    timing_control.utilization_buffer[0x07] = busy_accumulator;
+    
+    /* Final CPU Statistics:
+     * - Ring 0 time: User programs and idle
+     * - Ring 1-3 time: System, kernel, supervisor operations
+     * - Cache performance: LHIT signal analysis
+     * - Interrupt load: IONI activity measurement
+     */
+}
+
+// =============================================================================
+// DGA COMMAND INTERFACE (/EMP_n SIGNAL PROCESSING)
+// =============================================================================
+
+/**
+ * Main command processing loop triggered by DGA /EMP_n signal
+ * /EMP_n (Enable Memory Protection) from DGA indicates command ready
+ */
+void RESET(void) {
+    uint8_t i, delay_outer, delay_inner;
+    
+    // Phase 1: Clear all user RAM (0x10 to 0x8F = 128 bytes)
+    for (i = 0x7F; i >= 0; i--) {
+        *((uint8_t*)(i + 0x10)) = 0;
+    }
+    
+    // Phase 2: Initialize CPU monitoring system
+    timing_control.sample_counter_16    = 0x10;   // 16-sample periods (13.3ms)
+    timing_control.window_counter_200   = 200;    // 200-window cycles (167ms)
+    timing_control.statistics_cycle     = 2;      // 2-cycle statistics (333ms)
+    cpu_monitoring.utilization_control  = 0x80;   // Enable CPU monitoring
+    
+    // Phase 3: Configure I/O ports for ND-100 interface
+    DDRA = 0x00;    // Port A: INPUT  (IDB interface from DGA)
+    PORTB = 0x2F;   // Port B: 0010 1111 (RTC control signals)
+    DDRB = 0xFF;    // Port B: OUTPUT
+    PORTC = 0xF8;   // Port C: 1111 1000 (RTC data interface)  
+    DDRC = 0xFF;    // Port C: OUTPUT
+    DDRD = 0x00;    // Port D: INPUT  (DGA status: EMP_n, LHIT, IONI, PONI, Ring)
+    
+    // Phase 4: Initialize RTC controller (MM58274)
+    Initialize_RTC_Controller();
+    
+    // Phase 5: Configure 1200Hz timer for CPU performance monitoring
+    // External clock (38.4kHz) with /32 prescaler = 1200Hz sampling rate
+    TCR = 0x35;     // Timer: External clock, /32 prescaler, interrupts enabled
+    TDR = 3;        // Timer reload value
+    MR = 0x7F;      // Miscellaneous register setup
+    
+    cpu_monitoring.system_config = 0;  // Clear system configuration
+    
+    // Phase 6: Enter main DGA command processing loop
+    while (1) {
+        // Wait for /EMP_n signal from DGA (Delilah Gate Array) CPU
+        cpu_monitoring.emp_timeout_counter = 0xFF;
+        PORTB &= 0xEF;  // Clear command ready signal
+        
+        // Poll for /EMP_n signal (Port D bit 7) with timeout
+        do {
+            if (PORTD & PORTD_EMP_ENABLE) {  // /EMP_n signal from DGA detected
+                goto process_dga_commands;
+            }
+            cpu_monitoring.emp_timeout_counter--;
+        } while (cpu_monitoring.emp_timeout_counter != 0);
+        
+        // Timeout occurred, continue monitoring
+        continue;
+        
+process_dga_commands:
+        // Process PANC commands from DGA while /EMP_n signal is active
+        do {
+            // Step 1: Parse PANC command from ND-100 CPU via IDB
+            Parse_PANC_Command_From_DGA();
+            
+            // Step 2: Clear working buffer (RAM 0x27-0x46) 
+            for (i = 0x1F; i >= 0; i--) {
+                *((uint8_t*)(i + 0x27)) = 0;
+            }
+            
+            // Step 3: Load 7-segment display character data from ROM
+            Load_Display_Character_Data_From_ROM();
+            
+            // Step 4: Process display data in multiple phases for panel indicators
+            // Phase 1: Process with parameters 0x40, 4
+            segment_display.mask_value = 0x40;
+            segment_display.shift_count = 4;
+            Process_Panel_Display_Data_Phase();
+            Format_7Segment_Display_Output();
+            
+            // Phase 2: Process with parameters 0x20, 2  
+            segment_display.mask_value = 0x20;
+            segment_display.shift_count = 2;
+            Process_Panel_Display_Data_Phase();
+            
+            // Step 5: Update RTC interface (MM58274 communication)
+            Update_RTC_Interface_MM58274();
+            
+            // Phase 3: Process with parameters 0x10, 1
+            segment_display.mask_value = 0x10;
+            segment_display.shift_count = 1;
+            Process_Panel_Display_Data_Phase();
+            
+            // Step 6: Synchronize with 1200Hz CPU monitoring timer
+            PORTB &= 0xDF;  // Clear sync bit
+            while (TDR != 3) {
+                // Wait for timer reload (1200Hz sync with CPU sampling)
+            }
+            
+            // Step 7: Exchange utilization data with DGA via IDB  
+            Exchange_CPU_Stats_With_DGA();
+            
+        } while (PORTD & PORTD_EMP_ENABLE);  // Continue while /EMP_n active
+        
+        // Step 8: Inter-command delay (320 clock cycles)
+        delay_outer = 0x20;  // 32 outer loops
+        do {
+            delay_inner = 10;  // 10 inner loops = 320 total cycles  
+            do {
+                delay_inner--;
+            } while (delay_inner != 0);
+            delay_outer--;
+        } while (delay_outer != 0);
+        
+        // Return to wait for next /EMP_n signal from DGA
+    }
+}
+
+// =============================================================================
+// SYSTEM INTEGRATION SUMMARY
+// =============================================================================
+
+/* ND-100 SYSTEM INTEGRATION:
+ *
+ * DGA (Delilah Gate Array) CPU Interface:
+ * - /EMP_n signal: Command latch enable from DGA to panel controller
+ * - IDB[7:0]: Bidirectional data bus for PANC protocol
+ * - PORTD monitoring: Real-time CPU status (Ring, Level, Cache, Interrupts)
+ *
+ * CPU Performance Monitoring (1200Hz sampling):
+ * - Ring 0: User programs and idle time measurement
+ * - Ring 1-3: System/kernel/supervisor activity tracking  
+ * - LHIT: Cache hit performance statistics
+ * - IONI: Interrupt system activity monitoring
+ * - PONI: Memory protection status tracking
+ *
+ * Panel Display Output:
+ * - DISP1-5: 7-segment display control for operator panel
+ * - STAT[4:0]: Status bits to IDB[11:8] for system monitoring
+ * - Real-time CPU utilization and system status display
+ *
+ * Real-Time Clock (MM58274):
+ * - Hardware time/date management independent of CPU
+ * - Calendar functions for system logging and operations
+ * - Synchronized with ND-100 system time base (1979 epoch)
+ */
