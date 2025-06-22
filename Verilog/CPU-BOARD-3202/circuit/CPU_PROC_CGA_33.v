@@ -28,7 +28,7 @@ module CPU_PROC_CGA_33 (
     input        IBINT15_n,   //! Internal Bus Interrupt 15, active low
     input        IOXERR_n,    //! I/O Error, active low
     input        LCS_n,       //! Local Chip Select, active low
-    input        MAP_n,       //! Memory Access Protection, active low
+    input        MAP_n,       //! Memory Address Present signal
     input        MCLK,        //! Main Clock
     input        MOR_n,       //! Memory Operation Ready, active low
     input        MR_n,        //! Memory Read, active low
