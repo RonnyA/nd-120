@@ -29,7 +29,7 @@ module CPU_PROC_32 (
     input        IBINT15_n,   //! Input Interrupt 15
     input        IOXERR_n,    //! IOX Error
     input        LCS_n,       //! LCS_n (LCS = Load Control Store)
-    input        MAP_n,       //! MAP_n (MAP = Enable Map)
+    input        MAP_n,       //! Memory Address Present signal
     input        MCLK,        //! Clock
     input        MOR_n,       //! Memory Error
     input        MREQ_n,      //! Memory Request
@@ -462,7 +462,7 @@ module CPU_PROC_32 (
       .IBINT15_n(s_ibint15_n),               // Input Bus Interrupt 15
       .IOXERR_n(s_ioxerr_n),                 // IOX Error signal
       .LCS_n(s_lcs_n),                       // Load Control Store signal
-      .MAP_n(s_map_n),                       // Enable Map signal
+      .MAP_n(s_map_n),                       // Memory Address Present signal
       .MCLK(s_mclk),                         // Master Clock signal
       .MOR_n(s_mor_n),                       // Memory Error signal
       .MR_n(s_mr_n),                         // Master Reset signal
@@ -484,10 +484,10 @@ module CPU_PROC_32 (
       .FIDB_15_0_OUT(s_fidb_cga_OUT[15:0]), // Output from B side of CHIP32 and 33
       .INTRQ_n_tp1(s_tp1_intrq_n),          // Interrupt Request Test Point 1
       .IONI(s_ioni),                        // Interrupt System ON
-      .LAA_3_0(s_laa_3_0[3:0]),             // Local Address A 3-0
-      .LA_23_10(s_la_23_10[13:0]),          // Local Address 23-10
+      .LAA_3_0(s_laa_3_0[3:0]),             // A Operand
       .LBA_3_0(s_lba_3_0[3:0]),             // B Operand
-      .LSHADOW(s_lshadow),                  // Latch Shadow signal
+      .LA_23_10(s_la_23_10[13:0]),          // Local Address - bits 23-10
+      .LSHADOW(s_lshadow),                  // Latch Shadow Memory signal
       .PCR_1_0(s_pcr_1_0[1:0]),             // Paging Control Register 1-0
       .PIL_3_0(s_pil_3_0[3:0]),             // Current Program Level
       .PONI(s_poni),                        // Memory Management ON
