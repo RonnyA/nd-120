@@ -374,8 +374,8 @@ module BIF_5 (
       .BREF_n    (s_bref_n),      // Bus Refresh
       .DAP_n     (s_dap_n),       // Data Present
       .IOXERR_n  (s_ioxerr_n),    // I/O Execute Error
-      .MOR25_n   (s_mor25_n),     // Memory Operation Ready (25ns delayed)
-      .MOR_n     (s_mor_n),       // Memory Operation Ready
+      .MOR25_n   (s_mor25_n),     // Memory Error (25ns delayed)
+      .MOR_n     (s_mor_n),       // Memory Error
       .MR_n      (s_mr_n),        // Memory Ready
       .OUTGRANT_n(s_outgrant_n),  // Output Grant
       .OUTIDENT_n(s_outident_n),  // Output Identify
