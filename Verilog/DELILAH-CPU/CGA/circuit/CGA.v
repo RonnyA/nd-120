@@ -930,7 +930,7 @@ module CGA (
       .LDIRV(s_ldirv),                          // Load direction vector
       .LDLCN(s_ldlc_n),                         // Load LCN
       .LWCAN(s_lwca_n),                         // Latch WCA
-      .MAPN(sx_map_n),                          // MAP Opcode
+      .MAPN(sx_map_n),                          // Memory Address Present signal
       .MCLK(sx_mclk),                           // Master Clock
       .MI(s_mi),                                // STS M bit
       .MRN(sx_mrn),                             // Memory Read, active low
@@ -951,7 +951,7 @@ module CGA (
       .LAA_3_0(sx_laa_3_0_out[3:0]),            // Latched Address A Bits [3:0]
       .LBA_3_0(sx_lba_3_0_out[3:0]),            // Latched Address B Bits [3:0]
       .LCZN(s_lcz_n),                           // Loop Counter not Zero
-      .MA_12_0(sx_ma_12_0_out[12:0]),           // Micro Address Bits [12:0]
+      .MA_12_0(sx_ma_12_0_out[12:0]),           // Memory Address Bits [12:0] (for Control Store)
       .OOD(s_ood),                              //
       .PN(s_pn),                                //
       .RF_1_0(sx_rf_1_0_out[1:0]),              //
