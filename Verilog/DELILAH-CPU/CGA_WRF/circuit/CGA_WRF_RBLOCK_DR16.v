@@ -10,10 +10,16 @@
 
 
 module CGA_WRF_RBLOCK_DR16 (
+    // System input signals
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
+    // Input signals
     input        ALUCLK,
     input [15:0] RB_15_0,
     input        WR,
 
+    // Output signals
     output [15:0] REG_15_0
 );
 
@@ -45,10 +51,8 @@ module CGA_WRF_RBLOCK_DR16 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-
   reg [15:0] regFF;
   always @(posedge s_aluclk) begin
-    //if (s_wr & s_aluclk) begin
     if (s_wr) begin
         regFF <= s_rb_15_0[15:0];
     end
@@ -56,7 +60,7 @@ module CGA_WRF_RBLOCK_DR16 (
 
   assign s_reg_15_0_out = regFF;
 
-/*
+  /*
   // verilator lint_off UNUSED
   // verilator lint_off UNDRIVEN
   // verilator lint_off PINCONNECTEMPTY
