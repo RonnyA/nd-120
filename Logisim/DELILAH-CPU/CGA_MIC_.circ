@@ -1181,6 +1181,9 @@
     <comp lib="8" loc="(3420,5320)" name="Text">
       <a name="text" val="IR4"/>
     </comp>
+    <comp lib="8" loc="(3475,2089)" name="Text">
+      <a name="text" val="Write Control Store Address - 13-bit address for writing to control store"/>
+    </comp>
     <comp lib="8" loc="(3475,5320)" name="Text">
       <a name="text" val="IR1"/>
     </comp>
@@ -1189,6 +1192,9 @@
     </comp>
     <comp lib="8" loc="(365,7240)" name="Text">
       <a name="text" val="IR = Instruction Register (Current MacroInstruction)"/>
+    </comp>
+    <comp lib="8" loc="(3675,2059)" name="Text">
+      <a name="text" val="Working Address"/>
     </comp>
     <comp lib="8" loc="(3825,5530)" name="Text">
       <a name="text" val="LC0"/>
@@ -1201,6 +1207,9 @@
     </comp>
     <comp lib="8" loc="(3940,5730)" name="Text">
       <a name="text" val="CSRB0"/>
+    </comp>
+    <comp lib="8" loc="(4179,2041)" name="Text">
+      <a name="text" val="Microcode Address"/>
     </comp>
     <comp lib="8" loc="(4625,6365)" name="Text">
       <a name="text" val="LBA2"/>
@@ -4240,6 +4249,9 @@
     </comp>
     <comp lib="8" loc="(410,1470)" name="Text">
       <a name="text" val="B"/>
+    </comp>
+    <comp lib="8" loc="(4326,2457)" name="Text">
+      <a name="text" val="Working Address"/>
     </comp>
     <comp lib="8" loc="(595,1085)" name="Text">
       <a name="text" val="NEXT0"/>

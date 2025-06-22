@@ -30993,6 +30993,11 @@ e6 63 0 0 3a 0 0 48
       <a name="halign" val="left"/>
       <a name="text" val="The signals needs to be connected in Verilog"/>
     </comp>
+    <comp lib="8" loc="(3188,698)" name="Text">
+      <a name="color" val="#ff2a57"/>
+      <a name="halign" val="left"/>
+      <a name="text" val="CORR_n is saved into PES register, bit 10."/>
+    </comp>
     <comp lib="8" loc="(3190,680)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="Re-Architected the CORR_n signal bus"/>
