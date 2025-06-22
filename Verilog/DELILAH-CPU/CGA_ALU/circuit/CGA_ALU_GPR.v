@@ -16,7 +16,7 @@ module CGA_ALU_GPR (
     input [ 2:0] GPRC_2_0,
     input        GPRLI,
 
-    output        DGPR0N,
+    output        DGPR0N,  //! Detect GPR0 is set. 
     output [15:0] GPR_15_0
 );
 
