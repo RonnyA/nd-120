@@ -21,11 +21,11 @@ module CPU_CS_16 (
     input [15:0] IDB_15_0_IN,  //! IDB 15 bit input
     input [1:0] RF_1_0,
     input [2:0] CC_3_1_n,  // note: 3-1 (not 3-0)
-    input [12:0] CSA_12_0,  //! XMA_12_0 from CGA (Delilah) (MA_12_0 from CGA.MIC) <= Microcode address, 13 bits.
-    input [9:0] CSCA_9_0, //! Source CGA.XMCA_9_0, source MAC.MCA_9_0, sourcr MAC_AP09.MCA_9_0, source CALCA.MCA9_0 <= Input ICA.Bits [15:0] but only when MCLK is low. Almost the same as LCA15_0, exectp LCA_15_0 is locked in a register on clock lo-hi
+    input [12:0] CSA_12_0,  //! XMA_12_0 from CGA (Delilah) (MA_12_0 from CGA.MIC) <= Memory Address Bits (for Control Store)
+    input [9:0] CSCA_9_0, //! Source CGA.XMCA_9_0, source MAC.MCA_9_0, source MAC_AP09.MCA_9_0, source CALCA.MCA9_0 <= Input ICA.Bits [15:0] but only when MCLK is low. Almost the same as LCA15_0, execpt LCA_15_0 is locked in a register on clock lo-hi
 
     input PD1,   //! P Disable1 - Always 0 during normal operations
-    input FETCH, //! Fetch command 
+    input FETCH, //! Fetch command
 
     // FETCH: Source DECODE_DGA_COMM.FETCH, when Microcode command is:
     // 27 (JMP and CONTINUE)
@@ -38,7 +38,7 @@ module CPU_CS_16 (
     // 22.0 (IREAD PT)
     // 22.1 (READ APT)
     // 22.3 (CNEXT.NWP)
-    // 22.2 (MAP)
+    // 22.2 (MAP) - Address control store mapped as when FETCH. Used in Execute Register instruction (IDB contains instruction).
 
     input BLCS_n,   //! Buffered LCS_n (same as LCS_n)
     input BRK_n,
@@ -50,10 +50,10 @@ module CPU_CS_16 (
     input WCS_n,
 
     // Output signals
-    output        EWCA_n,
-    output [63:0] CSBITS,
-    output [15:0] IDB_15_0_OUT,
-    output [12:0] LUA_12_0
+    output        EWCA_n,         //! Enable Write Control Store Address - Active low signal to enable writing to control store address
+    output [63:0] CSBITS,         //! Control Store Bits - 64-bit output containing the control store data/instructions
+    output [15:0] IDB_15_0_OUT,   //! Instruction Data Bus Output - 16-bit output bus for instruction data
+    output [12:0] LUA_12_0        //! Load Upper Address - 13-bit output for upper address bits of control store
 );
 
   /*******************************************************************************
