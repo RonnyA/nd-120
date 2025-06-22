@@ -6,7 +6,7 @@
 ** Page 19                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 9-FEB-2025                                             **
+** Last reviewed: 22-MARCH 2025                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -29,6 +29,13 @@ module CGA_MIC_MASEL (
     output [12:0] W_12_0
 );
 
+localparam [1:0] SEL_JUMP   = 2'b00;
+localparam [1:0] SEL_RETURN = 2'b01;
+localparam [1:0] SEL_NEXT   = 2'b10;
+localparam [1:0] SEL_REPEAT = 2'b11;
+
+
+
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
@@ -39,7 +46,7 @@ module CGA_MIC_MASEL (
   wire [12:0] s_w_12_0_out;
   wire [12:0] s_iw_12_0_out;
   wire [ 3:0] s_jmp_3_0;
-  wire [12:0] s_rep_12_0;
+  //wire [12:0] s_rep_12_0;
   wire        s_csbit20;
   wire        s_mclk_n;
   wire        s_mclk;
@@ -63,22 +70,80 @@ module CGA_MIC_MASEL (
   assign s_csbit20          = CSBIT20;
   assign s_mr_n             = MRN;
 
+  wire [12:0] s_jmpaddr_12_0;
+  assign s_jmpaddr_12_0 = {s_csbit_11_0[11:4], s_jmp_3_0[3:0]};
+
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
-  assign IW_12_0            = s_iw_12_0_out[12:0];
-  assign W_12_0             = s_w_12_0_out[12:0];
+  // assign IW_12_0            = s_iw_12_0_out[12:0];
+  //assign W_12_0             = s_w_12_0_out[12:0];
 
-  reg [12:0] dRep12;
+  assign IW_12_0            = regIW;
+  assign W_12_0             = regW;
+
+
+  reg [12:0] regREP;
+
+  reg [12:0] regW;
+  reg [12:0] regIW;
 
   // Code to make LINTER _not_ complain about bits not read in CSBIITS bits 3:0
   (* keep = "true", DONT_TOUCH = "true" *) wire [3:0] unused_CSBITS_bits;
   assign unused_CSBITS_bits[3:0] = s_csbit_11_0[3:0];
 
+  always @(*) begin
+    case (s_mux_selector)
+        SEL_JUMP: begin
+            // handle jump
+            regREP = s_jmpaddr_12_0;
+        end
+        SEL_RETURN: begin
+            // handle return
+            regREP = s_ret_12_0;
+        end
+        SEL_NEXT: begin
+            // handle next
+            regREP = s_next_12_0;
+        end
+        SEL_REPEAT: begin
+            // handle repeat
+            regREP = IW_12_0;
+        end
+        default: begin
+            // optional: handle invalid case
+        end
+    endcase
+  end
+
+  // LATCH regREP to W as long as MCLKN is active
+  // Is used by IPOS to create the MA_12_0 address to microcode RAM
+  always @(*) begin
+    if (s_mclk_n) begin
+      regW = regREP;
+    end
+  end
+
+
+  // On rising clock edge load REP into IW
+  // IW goes back to IINC to calculate next address (which is then input to stack module)
+  always @(posedge s_mclk or negedge s_mr_n) begin
+    if (!s_mr_n) begin
+        regIW <= 0;
+    end else begin
+      regIW <= regREP;
+    end
+  end
+
+
 
   /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
+   /*
+
+   reg [12:0] dRep12;
+
   Multiplexer_4 PLEXERS_1 (
       .muxIn_0(s_csbit_11_0[11]),
       .muxIn_1(s_ret_12_0[11]),
@@ -196,11 +261,12 @@ module CGA_MIC_MASEL (
       .sel(s_mux_selector[1:0])
   );
 
+*/
 
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
-
+/*
   L8 WL_HI
   (
     // System Input signals
@@ -295,8 +361,10 @@ module CGA_MIC_MASEL (
       //.MCLK(s_mclk),
       .MCLK(rptClock),
       .MPN(s_mr_n),
-      .REP_12_0(s_rep_12_0[12:0])
+      .REP_12_0(s_w_12_0_out)
+      //.REP_12_0(s_rep_12_0[12:0])
       //.REP_12_0(dRep12[12:0])
   );
+  */
 
 endmodule
