@@ -64,16 +64,17 @@ module CGA_MIC_MASEL_REPEAT (
    *******************************************************************************/
 
   // NOTE: Triggering on NEG edge is different from what the schematics say, but it is needed to get the R_REP value clocked correct
+  
   wire s_hack;
   assign s_hack =
         s_mclk
         & !s_sc5
         & !s_sc6
-        & (regRepeat == 13'h1FFF | regRepeat == 13'h000)
-        & (REP_12_0 == 13'h401)
+        //& (regRepeat == 13'h1FFF | regRepeat == 13'h000)
+        //& (REP_12_0 == 13'h401)
 
     ;// Latch if selector changes to jump and current regRepeat is 0. HACK HACK to get boot to work
-
+/*
   always @(posedge s_mclk or posedge s_mp or posedge s_hack) begin
     if (s_mp) begin
       regRepeat <= 12'b000000000000;
@@ -83,7 +84,17 @@ module CGA_MIC_MASEL_REPEAT (
       end
     end
   end
+*/  
 
+  always @(posedge s_mclk) begin // or posedge s_mp) begin
+    if (s_mp) begin
+      regRepeat <= 12'b000000000000;
+    end else begin
+      if (s_mclk) begin
+        regRepeat[12:0] <= s_rep_12_0[12:0];
+      end
+    end
+  end
 
 
 
