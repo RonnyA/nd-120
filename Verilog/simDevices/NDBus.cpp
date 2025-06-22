@@ -173,13 +173,15 @@ void proccess_bif_signal(VND120_TOP *top)
 		if (bifState == BIF_State::READ)
 		{
 			top->BD_23_0_n_IN = (~deviceManager.Read(bus_address)) & 0xFFFFFF;
+			top->BDAP_n_IN = 0; // DATA Present
 			top->BDRY_n_IN = 0;
 		}
 		else if (idcode>0)
 		{
 			printf("Setting IDCODE %d\r\n",idcode);
 			top->BD_23_0_n_IN = (~idcode) & 0xFFFFFF;
-			top->BDRY_n_IN = 0;
+			top->BDAP_n_IN = 0; // DATA Present
+			top->BDRY_n_IN = 0; //
 		}
 	}
 
@@ -189,6 +191,7 @@ void proccess_bif_signal(VND120_TOP *top)
 		if (DEBUG_BIF) printf("BIOXE exit!\n");
 
 		top->BDRY_n_IN = 1;
+		top->BDAP_n_IN = 1;
 		top->BINPUT_n_IN = 1;
 		top->BD_23_0_n_IN = 0xFFFFFF; // Clear (set to high, which means 0)
 		bifState = BIF_State::IDLE;
@@ -231,3 +234,19 @@ void addDevices()
 	// Add the FloppyPIO at octal 1560-1567
 	deviceManager.AddDevice(DeviceType::FloppyPIO, 0);
 }
+
+
+/*
+Norsk Data ND-06.026,1 EN
+
+PAGE 126 (143 in pdf)
+
+A CPU memory read or write cycle is started by an internal signal requesting the bus.
+When the bus arbiter grants the request /BMEM, the bus cycle can begin. 
+The CPU sets /BINPUT false (high) for a memory read cycle and true (low) for a memory write cycle. 
+The 24-bit physical memory adcress is strobed onto the bus (/BAPR).
+
+When valid data is available on the bus, the data source (memory card for read cycle; CPU for write) acknowledges with BDAP. 
+The memory card closes by the memory cycle by signaling with /BDRY that data has been transfered.
+
+*/
