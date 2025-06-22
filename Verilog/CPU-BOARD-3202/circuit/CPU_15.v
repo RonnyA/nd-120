@@ -18,79 +18,78 @@ module CPU_15 (
     /*******************************************************************************
    ** The inputs are defined here                                                **
    *******************************************************************************/
-    input CLK,
-    input MCLK,
-    input MACLK,
-    input ALUCLK,
+    input CLK,          //! Main system clock
+    input MCLK,         //! Memory clock
+    input MACLK,        //! Memory access clock
+    input ALUCLK,       //! ALU clock
 
-    input       CA10,
-    input       CCLR_n,
-    input [2:0] CC_3_1_n,
+    input       CA10,         //! Cache address bit 10
+    input       CCLR_n,       //! Cache clear
+    input [2:0] CC_3_1_n,     //! Cache control bits 3:1
 
-    input       CYD,
-    input       DT_n,
-    input       DVACC_n,
-    input       ECSR_n,
-    input       EDO_n,
-    input       EMCL_n,
-    input       EMPID_n,
-    input       EORF_n,
-    input       ESTOF_n,
-    input       ETRAP_n,
-    input       FETCH,
-    input       FMISS,
-    input       FORM_n,
-    input       IBINT10_n,
-    input       IBINT11_n,
-    input       IBINT12_n,
-    input       IBINT13_n,
-    input       IBINT15_n,
-    input       IOXERR_n,
-    input       LCS_n,
-    input       MAP_n,
-    input       MOR_n,
-    input       MR_n,
-    input       PAN_n,
-    input       PARERR_n,
-    input       PD1,
-    input       PD2,
-    input       POWFAIL_n,
-    input       RT_n,
-    input       STOC_n,
-    input       STP,
-    input       SW1_CONSOLE,
-    input       TERM_n,
-    input       UCLK,
-    input       WCHIM_n,
-    input       WRFSTB,
-    input       WRITE,
-    input       MREQ_n,
-    input [2:0] SEL_TESTMUX,  // Selects testmux signals to output on TEST_4_0
+    input       CYD,          //! Cycle done signal
+    input       DT_n,         //! Data transfer
+    input       DVACC_n,      //! Data valid access
+    input       ECSR_n,       //! Enable control store read
+    input       EDO_n,        //! Enable data out
+    input       EMCL_n,       //! Enable master clear
+    input       EMPID_n,      //! Enable memory parity interrupt disable
+    input       EORF_n,       //! Enable output register file
+    input       ESTOF_n,      //! Enable store overflow
+    input       ETRAP_n,      //! Enable trap
+    input       FETCH,        //! Instruction fetch cycle
+    input       FMISS,        //! Cache fetch miss
+    input       FORM_n,       //! Format instruction
+    input       IBINT10_n,    //! Interrupt bus 10
+    input       IBINT11_n,    //! Interrupt bus 11
+    input       IBINT12_n,    //! Interrupt bus 12
+    input       IBINT13_n,    //! Interrupt bus 13
+    input       IBINT15_n,    //! Interrupt bus 15
+    input       IOXERR_n,     //! I/O transfer error
+    input       LCS_n,        //! Load control store
+    input       MAP_n,        //! Memory Address Present (MAP microcode address)
+    input       MOR_n,        //! Memory Error
+    input       MR_n,         //! Memory read
+    input       PAN_n,        //! Page address not valid
+    input       PARERR_n,     //! Parity error
+    input       PD1,          //! Phase detector 1
+    input       PD2,          //! Phase detector 2
+    input       POWFAIL_n,    //! Power failure detected
+    input       RT_n,         //! Reset trap
+    input       STOC_n,       //! Store overflow check
+    input       STP,          //! Stop signal
+    input       SW1_CONSOLE,  //! Console switch 1 state
+    input       TERM_n,       //! Terminal signal
+    input       UCLK,         //! Microcode clock
+    input       WCHIM_n,      //! Write cache hit memory
+    input       WRFSTB,       //! Write register file strobe
+    input       WRITE,        //! Write cycle active
+    input       MREQ_n,       //! Memory request
+    input [2:0] SEL_TESTMUX,  //! Selects testmux signals to output on TEST_4_0
     /*******************************************************************************
    ** The signals with IN and OUT are defined here                               **
    *******************************************************************************/
 
-    input  [15:0] CD_15_0_IN,
-    output [15:0] CD_15_0_OUT,
+    input  [15:0] CD_15_0_IN,    //! Cache Data Bus Input - 16-bit data bus for transferring data between cache and CPU
+    output [15:0] CD_15_0_OUT,   //! Cache Data Bus Output - 16-bit data bus for transferring data from CPU to cache
 
-    input  [15:0] IDB_15_0_IN,
-    output [15:0] IDB_15_0_OUT,
+    input  [15:0] IDB_15_0_IN,   //! Instruction Data Bus Input - 16-bit bidirectional bus for transferring instructions and data between CPU components
+    output [15:0] IDB_15_0_OUT,  //! Instruction Data Bus Output - 16-bit bidirectional bus for transferring instructions and data from CPU components
 
 
     /*******************************************************************************
    ** The outputs are defined here                                               **
    *******************************************************************************/
-    output [ 9:0] CA_9_0,
-    output [ 3:0] LBA_3_0,
-    output [12:0] LUA_12_0,
-    output [ 1:0] PCR_1_0,
-    output [ 3:0] PIL_3_0,
-    output [13:0] PPN_23_10,
-    output [ 4:0] TEST_4_0,
-    output [63:0] TOPCSB,
+    output [ 9:0] CA_9_0,      //! Cache Address - 10-bit address for cache access
+    output [ 3:0] LBA_3_0,     //! Latched Address B bits
+    output [12:0] LUA_12_0,    //! Load Upper Address - 13-bit output for upper address bits of control store
+    output [ 1:0] PCR_1_0,     //! Paging Control Register - 2-bit register for paging control
+    output [ 3:0] PIL_3_0,     //! Priority Interrupt Level - 4-bit interrupt priority level
+    output [13:0] PPN_23_10,   //! Physical Page Number - 14-bit page number for memory mapping
+    output [ 4:0] TEST_4_0,    //! Test Points - 5-bit test signals for debugging
+    output [63:0] TOPCSB,      //! Top Control Store Bits - 64-bit microcode control signals
 
-    output RWCS_n,
-
+    output RWCS_n,       //! COMMAND 36.1 RWCS - Read/write control store as addressed by ADCS command
     output LSHADOW,      //! Latch Shadow signal
     output OPCLCS,       //! COMMAND 36.2 LCS - Load control store from PROM and perform a Master Clear
     output PONI,         //! Memory Protection ON, PONI=1
@@ -105,8 +104,8 @@ module CPU_15 (
     output ECCR,         //! ECC Register Detected for IOX
     output HIT,          //! Cache hit
     output LEV0,         //! Level 0 active
-
-    output LED1         //! Cache enabled ?
+    output LED1,         //! Cache enabled ?
+    output [12:0] CSA_12_0      //! Microcode Address (for debugging)
 );
 
 
@@ -357,6 +356,7 @@ module CPU_15 (
   assign LEV0 = s_lev0;
 
   assign LED1 = s_led1;
+  assign CSA_12_0 = s_csa_12_0;
 
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
