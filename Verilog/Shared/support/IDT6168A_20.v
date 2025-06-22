@@ -9,7 +9,39 @@
 ***************************************************************************/
 
 
+/*
 
+The IDT6168 is a 16,384-bit high-speed static RAM organized as 4K x 4.
+It is fabricated using IDT’s high-performance, high-reliability CMOS technology.
+This state-of-the-art technology, combined with innovative circuit design techniques,
+provides a cost-effective approach forhigh-speed memory applications.Access times as fast 15ns are available.
+
+The circuit also offers areduced power standby mode.
+When CS goes HIGH, the circuit willautomatically go to, and remain in, a standby mode as long as CS remainsHIGH.
+
+This capability provides significant system-level power and coolingsavings.
+The low-power (LA) version also offers a battery backup dataretention  capability  where  the  circuit  typically
+consumes only 1μW operating off a 2V battery. 
+
+All inputs and outputs of the IDT6168 areTTL-compatible and operate from a single 5V supply.
+The IDT6168 is packaged in either a space saving 20-pin, 300-milceramic or plastic DIP or a 20-pin LCC providing 
+high board-level packing densities.
+
+Military grade product is manufactured in compliance with the latest revision of MIL-STD-883, Class B,
+making it ideally suited tomilitary temperature applications demanding the highest level of performance and reliability.
+
+
+High-speed (equal access and cycle time)
+  –   Military: 25/45ns (max.)
+  –   Industrial: 25ns (max.)
+  –   Commercial: 15/20/25ns (max.)
+
+Documentation: https://www.alldatasheet.com/datasheet-pdf/view/65830/IDT/IDT6168.html
+
+
+NOTE!! The access time is not immediate, meaning it takes 15-20 nanoseconds after the address has changed for the data to become valid on the output.
+
+*/
 module IDT6168A_20 (
     input wire clk,     // Clock input (BLOCK RAM MUST HAVE CLOCK)
     input wire reset_n, // Active-low reset
@@ -64,6 +96,7 @@ module IDT6168A_20 (
   end
 
   // Connect the output to data_out when reading
+  //assign D_3_0_OUT = (!s_CE_n && WE_n) ? idt_memory_array[A_11_0] : 4'b0000;
   assign D_3_0_OUT = (!s_CE_n && WE_n) ? data_out : 4'b0000;
 
 endmodule
