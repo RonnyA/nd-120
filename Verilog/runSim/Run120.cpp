@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 
 	// Use provided filename if exists, otherwise default to "INSTRUCTION-B.BPUN"
 	// char *default_filename = strdup("INSTRUCTION-B.BPUN"); // strdup creates a modifiable copy
-	char *default_filename = strdup("fs.BPUN"); // strdup creates a modifiable copy
+	char *default_filename = strdup("DEBUG.BPUN"); // strdup creates a modifiable copy
 	char *filename = (argc > 1) ? argv[1] : default_filename;
 	
 	loadfile(filename, 0, &ram_low[0], &ram_low_9[0], &ram_high[0], &ram_high_9[0]);
