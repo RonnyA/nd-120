@@ -137,16 +137,20 @@ int main(int argc, char **argv)
 
 	//long startTrace = 755472; // OPCOM READY after selftest
 							  
-	long startTrace = 2207832; // READY AFTER BOOT from 0!
+	//long startTrace = 2207832; // READY AFTER BOOT from 0!
 	// long startTrace = 4777683;
-	// long startTrace = 0;
+	//long startTrace = 0;
 	//long startTrace = 10000000; // 10 mill
 
-	// long maxTicks = 2000000;
+	long startTrace = (7808519-200); // DYNAMIC OVERFLOW BIT NOT SET. SHOULD HAVE BEEN "MPY" FAILED (MPY2OP) 
 
-	
-	// long maxTicks = startTrace + 200000; // 200K (good for boot)
-	long maxTicks = startTrace + 1000000; // 1M
+	//long maxTicks = 2000000;
+
+	//long maxTicks = 755472; // OPCOM READY after selftest
+
+
+	long maxTicks = startTrace + 200000; // 200K (good for boot)
+	//long maxTicks = startTrace + 1000000; // 1M
 	// long maxTicks = startTrace + 2000000; // 2M
 	// long maxTicks = startTrace + 5500000; // 5.5M
 
@@ -161,7 +165,7 @@ int main(int argc, char **argv)
 	// INSTRUCTION COMMANDS
 	const char *cmdHELP = "HELP,,,\r";
 	const char *cmdBYTE = "BYTE\r";
-	const char *cmdPRIV = "PRIV\r";
+	const char *cmdTESTCommand = "MEM\r"; //"PRIV\r";
 
 	const char *cmdP = 0;
 
@@ -188,6 +192,14 @@ int main(int argc, char **argv)
 		if (cnt == 100)
 		{
 			top->btn1 = true; // sys_rst_n = 1 // disable reset
+		}
+
+		top->DEBUGFLAG =0;
+		if ((top->CSA_12_0 >= 07200) && (top->CSA_12_0 < 07240))
+		{
+			// MPY - OPCODE 120000
+			//printf("[%ld] MPY - %o\r\n",cnt, top->CSA_12_0);
+			top->DEBUGFLAG =1;
 		}
 
 		top->eval();
@@ -348,6 +360,9 @@ int main(int argc, char **argv)
 						// if (rxData == (int)'*')
 						//	printf("STAR at %ld\r\n",cnt);
 
+						if (rxData == (int)'"')
+							printf(" '' at %ld\r\n",cnt);
+
 						if (rxData == (int)'#') // #
 						{
 							if (hashReceived == 0)
@@ -397,8 +412,9 @@ int main(int argc, char **argv)
 						// Send COMMAND to CONFIGURE after ">"
 						if (txOffset == 200)
 						{
-							printf("Setting command: %s", cmdPRIV);
-							cmdP = cmdPRIV;
+							printf("Setting command: %s", cmdTESTCommand);
+							cmdP = cmdTESTCommand;
+							//startTrace = cnt; // start tracing from command!
 						}
 
 						if (cmdP != 0)
