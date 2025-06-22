@@ -209,47 +209,48 @@ module CYC_36 (
       .OE_n(s_pd4),  //OE_n
 
       //I0-I7
-      .DLY1_n    (s_dly1_n),          //I0
-      .DLY0_n    (s_dly0_n),          //I1
-      .CSDELAY0  (s_csdelay_1_0[0]),  //I2
-      .WAIT1     (s_wait1),           //I3
-      .WAIT2     (s_wait2),           //I4
-      .CGNTCACT_n(s_cgntcact_n),      //I5
-      .HIT       (s_hit),             //I6
-      .BRK_n     (s_brk_n),           //I7
+      .DLY1_n    (s_dly1_n),          //I0 - Delay 1 signal
+      .DLY0_n    (s_dly0_n),          //I1 - Delay 0 signal
+      .CSDELAY0  (s_csdelay_1_0[0]),  //I2 - Control Store Delay bit 0
+      .WAIT1     (s_wait1),           //I3 - Wait state 1 (memory read & !lshadow)
+      .WAIT2     (s_wait2),           //I4 - Wait state 2 (!IO request & !reset/lshadow)
+      .CGNTCACT_n(s_cgntcact_n),      //I5 - CGNTCACT_n - Combined CPU Grant/Active signal
+      .HIT       (s_hit),             //I6 - Cache hit signal
+      .BRK_n     (s_brk_n),           //I7 - Break signal, active low
 
       // B0-B1
       .SLOW_n (s_slow_n),  //B0
       .SHORT_n(s_short_n), //B1
 
+      // Output signals
       //Q0-Q5 (clocked and 3-state)
-      .CX_n  (s_cx_n),         //Q0
-      .TERM_n(s_term_n),       //Q1
-      .CC0_n (s_cc0_n),        //Q2
-      .CC1_n (s_cc_3_1_n[0]),  //Q3
-      .CC2_n (s_cc_3_1_n[1]),  //Q4
-      .CC3_n (s_cc_3_1_n[2])   //Q5
+      .CX_n  (s_cx_n),         //Q0 0=FAST VERSION/CX, 1=SLOW
+      .TERM_n(s_term_n),       //Q1 Terminate Bus Cycle
+      .CC0_n (s_cc0_n),        //Q2 Cycle Control 0
+      .CC1_n (s_cc_3_1_n[0]),  //Q3 Cycle Control 1
+      .CC2_n (s_cc_3_1_n[1]),  //Q4 Cycle Control 2
+      .CC3_n (s_cc_3_1_n[2])   //Q5 Cycle Control 3
   );
 
   PAL_44307C PAL_44307_UCYCLK (
-      .TERM_n (s_term_n),       // I0
-      .CC0_n  (s_cc0_n),        // I1
-      .CC1_n  (s_cc_3_1_n[0]),  // I2
-      .CC2_n  (s_cc_3_1_n[1]),  // I3
-      .CC3_n  (s_cc_3_1_n[2]),  // I4
-      .FORM_n (s_form_n),       // I5
-      .BRK_n  (s_brk_n),        // I6
-      .RWCS_n (s_rwcs_n),       // I7
-      .TRAP_n (s_trap_n),       // I8
-      .VEX    (s_vex),          // I9
-      .MCLK_n (s_mclk_n),       // Y0_n
-      .MACLK_n(s_maclk_n),      // Y1_n
-      .WRFSTB (s_wrfstb),       // B0_n
-      .CYD    (s_cyd),          // B1_n
-      .EORF_n (s_eorf_n),       // B2_n
-      .UCLK   (s_uclk),         // B3_n
-      .ETRAP_n(s_etrap_n),      // B4_n
-      .MAP_n  (s_map_n)         // B5_n
+      .TERM_n (s_term_n),       // I0  - Terminate bus cycle
+      .CC0_n  (s_cc0_n),        // I1  - Cycle Control bit 0
+      .CC1_n  (s_cc_3_1_n[0]),  // I2  - Cycle Control bit 1
+      .CC2_n  (s_cc_3_1_n[1]),  // I3  - Cycle Control bit 2
+      .CC3_n  (s_cc_3_1_n[2]),  // I4  - Cycle Control bit 3
+      .FORM_n (s_form_n),       // I5  - Format signal for instruction decoding
+      .BRK_n  (s_brk_n),        // I6  - Break signal for debugging
+      .RWCS_n (s_rwcs_n),       // I7  - Read/Write Control Store signal
+      .TRAP_n (s_trap_n),       // I8  - Trap condition signal
+      .VEX    (s_vex),          // I9  - Vector Exception signal (disable traps)
+      .MCLK_n (s_mclk_n),       // Y0_n - Memory Clock output (active low)
+      .MACLK_n(s_maclk_n),      // Y1_n - Memory Address Clock output (active low)
+      .WRFSTB (s_wrfstb),       // B0_n - Write Fast Strobe signal
+      .CYD    (s_cyd),          // B1_n - Cycle Done indicator
+      .EORF_n (s_eorf_n),       // B2_n - End Of Read Format signal (active low)
+      .UCLK   (s_uclk),         // B3_n - Microcode Clock signal
+      .ETRAP_n(s_etrap_n),      // B4_n - Enable Trap signal - Disabled during t and a cycles and VEX
+      .MAP_n  (s_map_n)         // B5_n - Memory Address Present signal
   );
 
   /* verilator lint_off PINMISSING */
