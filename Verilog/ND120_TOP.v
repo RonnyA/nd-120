@@ -28,9 +28,12 @@ module ND120_TOP
     input wire btn2,      //! Button 2, mapped to S2 (not labeled) on the board
     input wire uartRx,    //! UART Receive pin
 
+    input wire DEBUGFLAG,  // DEBUG FLAG
+    
     // Outputs
-    output wire uartTx,    //! UART Transmit pin
-    output wire [6:0] led, //! 7-bit output for controlling LEDs
+    output wire uartTx,           //! UART Transmit pin
+    output wire [6:0] led,        //! 7-bit output for controlling LEDs
+    output wire [12:0] CSA_12_0,  //! Microcode Address (for debugging)
 
 
     // Signal from C-PLUG to CPU Board
@@ -238,6 +241,7 @@ module ND120_TOP
       .CSBITS     (s_csbits),       // Microcode CPU BITS
       .TEST_4_0   (s_test_4_0),     // Test pads
       .TP1_INTRQ_n(s_tp1_intrq_n),  // TP1 Interrupt
+      .CSA_12_0    (CSA_12_0),      // Microcode Address (for debugging)
       .LED        (s_cpu_led[5:0])  // 6 bit LED signals
   );
 
