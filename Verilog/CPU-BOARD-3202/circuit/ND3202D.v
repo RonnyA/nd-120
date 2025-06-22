@@ -86,8 +86,8 @@ module ND3202D (
     /* TO B-PLUG */
     output  [3:0] PIL,         // XPIL3=B-C8, PIL2=B-B12. PIL1=B-B10, PIL0=B-B9
     output [12:0] LUA_12_0,    // XLUA 12:0
-    output [15:0] IDB_15_0,    // XIDB
-    output  [4:0] CSCOMM_4_0,  //
+    output [15:0] IDB_15_0,    // XIDB - Instruction Data Bus, 16-bit bidirectional bus used for transferring instructions and data between CPU components
+    output  [4:0] CSCOMM_4_0,  // Control Store Commands - 5-bit signal carrying microcode command bits to control CPU operations
     output  [1:0] MIS_1_0,     // MIS1=B-C14, MIS0=B-A14
     output [15:0] CD_15_0,     // CD 15:0   (In the circuit board you strap so that the output to the XIDB15-0 signal is either IDB or LBD) See page 3 in the 3202D schematic)
     output [15:0] LBD_15_0,    // LBD 15:10 (In the circuit board you strap so that the output to the XIDB15-0 signal is either IDB or LBD) See page 3 in the 3202D schematic)
@@ -128,10 +128,11 @@ module ND3202D (
     output RUN_n,  // Output signal to "A PLUG", signal C10 (RUN_n) (from the CPU)
     output [4:0]  DP_5_1_n,       // Output signal to "A PLUG", signal DP~5_1 "Display signals" (C25,C26, C27, C28, C29)
 
-    output [63:0] CSBITS,  // Microcode Control signals - 64bit (for debugging)
+    output [63:0] CSBITS,  //! Microcode Control signals - 64bit (for debugging)
 
-    output [4:0] TEST_4_0,    // Test point signals  - 5 bits
-    output       TP1_INTRQ_n, // Test point signal TP1 - INTRQ_n
+    output [4:0] TEST_4_0,    //! Test point signals  - 5 bits
+    output       TP1_INTRQ_n, //! Test point signal TP1 - INTRQ_n
+    output [12:0] CSA_12_0,    //! Microcode Address (for debugging)
 
     // Led signals
     output [6:0]  LED // 0=CPU RED,1=CPU GREEN, 2=LED4_RED_PARITY_ERROR, 3=LED_CPU_GRANT_INDICATOR, 4=LED_BUS_GRANT_INDICATOR, 5=LED1 from MMU 6=LED5_RED_DISABLE_PARITY
@@ -696,7 +697,8 @@ TODO: Sort bits on output LED to match led numbering
       .RRF_n       (s_rrf_n),                   // Output RRF signal from CPU to CYCLE
       .ECCR        (s_eccr),                    // Output ECCR signal from CPU to RAM
       .HIT         (s_hit),                     // Cache hit
-      .LEV0        (s_lev0)                     // Level 0 active
+      .LEV0        (s_lev0),                    // Level 0 active
+      .CSA_12_0    (CSA_12_0)                   // Microcode Address (for debugging)
   );
 
 
