@@ -211,6 +211,11 @@ module CGA_ALU (
    *******************************************************************************/
 
   CGA_CPU_ALU_RALU ALU_RALU (
+      // FPGA system clock
+      .sysclk(sysclk),  // System clock in FPGA
+      .sys_rst_n(sys_rst_n),  // System reset in FPGA
+
+      // Input signals
       .ALUI4(s_alui4),
       .CI(s_carry_in),
       .CRY(s_cry_out),
