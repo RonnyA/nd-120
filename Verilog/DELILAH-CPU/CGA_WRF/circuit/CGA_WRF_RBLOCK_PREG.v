@@ -1,7 +1,7 @@
 /**************************************************************************
 ** ND120 CPU, MM&M                                                       **
 ** CGA/WRF/RBLOCK/PREG                                                   **
-** WRF: Register File                                                    **
+** WRF: Working Register File                                            **
 ** (PDF page 62)                                                         **
 **                                                                       **
 ** Last reviewed: 9-FEB-2025                                             **
