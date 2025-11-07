@@ -2,7 +2,8 @@ VERILATOR = verilator
 
 SUPPRESS_FLAGS = -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY -Wno-UNUSED -Wno-UNDRIVEN -Wno-WIDTH -Wno-EOFNEWLINE -Wno-LATCH
 
-VERILATOR_FLAGS = --trace -Wall --cc ../ND120_TOP.v  $(SUPPRESS_FLAGS) 
+# Enable larger RAM (1MB) for Verilator simulation instead of FPGA's 4KB
+VERILATOR_FLAGS = --trace -Wall --cc ../ND120_TOP.v  $(SUPPRESS_FLAGS) -DVERILATOR_SIM 
 
 #TOP_3202D_COMPONENTS = --I../circuit -I../../Shared/logisim   -I../../Shared/ndlib  -I../../Shared/support
 TOP_3202D_COMPONENTS =  -I../Shared/logisim   -I../Shared/ndlib  -I../Shared/support -I../CPU-BOARD-3202/circuit

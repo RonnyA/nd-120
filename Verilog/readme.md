@@ -22,6 +22,21 @@ There are two folders with test code for verilator
  * sim - contains a simple test of the ND120_TOP module. Saves signal traces to file and is used to verify the Verilog code using GTKWave
  * runsim - Starts the simulation and runs the microcode load and self-test program. After self test it will enable OPCOM for communication with the CPU.
 
+### RAM Configuration for Verilator vs FPGA
+
+The design uses different RAM sizes for Verilator simulation vs FPGA synthesis:
+
+- **Verilator Simulation**: 6MB RAM (6×1MB = `ramSize=2`)
+  - Full memory for running complete programs
+  - Enabled by `-DVERILATOR_SIM` flag in Makefiles (already configured in `sim/Makefile` and `runSim/Makefile`)
+
+- **FPGA Synthesis**: 24KB RAM (6×4KB = `ramSize=3`)
+  - Reduced size to fit in FPGA BRAM (xc7a35t has only 100 RAMB18 blocks)
+  - 6MB would require 3496 RAMB18 blocks (35× device capacity)
+  - Sufficient for testing CPU logic and small programs
+
+The configuration is automatic based on compile-time defines in `MEM_RAM_49.v`. No manual changes needed.
+
 ## Verilog code status
 
 | Folder           | # of Verilog Files       | Lines of Verilog code  |
