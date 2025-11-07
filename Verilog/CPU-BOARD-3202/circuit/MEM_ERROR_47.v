@@ -12,6 +12,8 @@ module MEM_ERROR_47 (
 
     // Input signals
 
+    input        OSC,        // Clock input (added for FPGA synthesis)
+
     input        BCGNT50,
     input        BLOCKL25,
     input        CGNT50_n,
@@ -42,6 +44,7 @@ module MEM_ERROR_47 (
   wire [15:0] s_pea_idb_15_0_out;
   wire [23:0] s_lbd_23_0;
   wire [15:0] s_pes_idb_15_0_out;
+  wire        s_osc;
   wire        s_ps_n;
   wire        s_spesl;
   wire        s_blockl25;
@@ -67,6 +70,7 @@ module MEM_ERROR_47 (
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
+  assign s_osc            = OSC;
   assign s_lbd_23_0[23:0] = LBD_23_0_IN;
   assign s_ps_n           = PS_n;
   assign s_blockl25       = BLOCKL25;
@@ -136,6 +140,8 @@ module MEM_ERROR_47 (
   // Hardware patch via PAL 45009B
 
   PAL_45009B PAL_45009_UERROR (
+      .CK      (s_osc),       // Clock (added for FPGA synthesis)
+
       .EPESL_n (s_epesl_n),  // B0_n - EPESL_n (clock to PEAL register)
       .EPEAL_n (s_epeal_n),  // B1_n - EPEAL_n (/output enable to PEAL register)
       .BLOCKL_n(s_blockl_n), // B2_n - BLOCKL_n

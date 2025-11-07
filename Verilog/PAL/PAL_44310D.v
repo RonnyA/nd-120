@@ -13,7 +13,12 @@
 //ADGD 13/8/86
 //44310D,3F,LBDIF
 
+// NOTE: PAL16L8 is purely combinational in the original hardware.
+// Clock input added for FPGA synthesis to eliminate latch inference.
+
 module PAL_44310D (
+    input  CK,        //! Clock input (added for FPGA synthesis)
+
     input  HIEN_n,    //! I0
     input  BGNT_n,    //! I1
     input  CGNT_n,    //! I2
@@ -61,18 +66,20 @@ module PAL_44310D (
       );
 
   // Logic for BDRY_n (active-low)
+  // Converted from latch to edge-triggered flip-flop for FPGA synthesis
   reg BDRY;
-  always @(*) begin
+  always @(posedge CK) begin
     if ((MWRITE50_n & BDAP50 & BGNT & LOEN_n & HIEN_n & RAS_n) |  // BUS READ FROM LOCAL MEM
         (MWRITE50 & BDAP50 & BGNT50 & BGNT) |  // BUS WRITE TO LOCAL MEM
         (BIOXL & ECCR) |  // IOX=ECCR
         (REF100) | (MWRITE50_n & BDAP50 & BGNT50_n & BGNT75)  // LATE BDRY FOR 10MHZ DISK
         )
-      BDRY = 1'b1;
+      BDRY <= 1'b1;
     else if (((MR_n & BDAP50) == 0) |  // HOLD TERM FOR MEMORY
         ((MR_n & BIOXE) == 0)  // HOLD TERM FOR IOX CYCLE
         )
-      BDRY = 1'b0;
+      BDRY <= 1'b0;
+    // else: BDRY maintains its value (explicit in FF, no latch needed)
   end
 
   assign BDRY_n = ~BDRY;

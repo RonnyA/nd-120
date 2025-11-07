@@ -318,6 +318,8 @@ module BIF_BCTL_6 (
    * Includes test functionality and interfaces with memory operation ready signals.
    */
   PAL_45001B PAL_45001_UBPAR (
+      .CK       (s_osc),        // Clock (added for FPGA synthesis)
+
       .BDRY50_n (s_bdry50_n),   // I0 - BDRY50_n Bus Data Ready 50ns delayed
       .BDRY75_n (s_bdry75_n),   // I1 - BDRY75_n Bus Data Ready 75ns delayed
       .BLOCK25_n(s_block25_n),  // I2 - BLOCK25_n Block 25ns delayed

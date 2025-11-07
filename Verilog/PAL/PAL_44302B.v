@@ -11,7 +11,12 @@
 // JLB/CJTC 14AUG86
 // 44302B,11D,LBC1
 
+// NOTE: PAL16L8 is purely combinational in the original hardware.
+// Clock input added for FPGA synthesis to eliminate latch inference.
+
 module PAL_44302B (
+    input CK,        //! Clock input (added for FPGA synthesis)
+
     input Q0_n,      //! I0
     input Q2_n,      //! I1
     input CC2_n,     //! I2 - Cycle Control bit 2
@@ -52,17 +57,18 @@ module PAL_44302B (
 
 
   // Output signal logic (self reference)
+  // Converted from latch to edge-triggered flip-flop for FPGA synthesis
   reg  EMD;
 
-  always @(*) begin
+  always @(posedge CK) begin
     // Logic for EMD
 
     /*  Orignal code that has "circular logic" and is not synthesizable
         EMD =
-                        (Q2 & Q0 & CACT)        |  // CPU CYCLE TO BUS SET 
+                        (Q2 & Q0 & CACT)        |  // CPU CYCLE TO BUS SET
                         (EMD & CACT)            |  //       "          HOLD
-                        (CGNT & CGNT50)         |  // CPU CYCLE TO MEM SET 
-                        (EMD & RT & CC2 & TERM) |  // ) HOLD TERMS FOR 
+                        (CGNT & CGNT50)         |  // CPU CYCLE TO MEM SET
+                        (EMD & RT & CC2 & TERM) |  // ) HOLD TERMS FOR
                         (EMD & IORQ & CC2 & TERM)  // ) CPU READ, FETCH AND
                         );                         // ) MAP CYCLES
     */
@@ -70,13 +76,14 @@ module PAL_44302B (
     // Rewritten for handling of "circular logic"
     if ((Q2 & Q0 & CACT) |  // CPU CYCLE TO BUS SET
         (CGNT & CGNT50))    // CPU CYCLE TO MEM SET
-      EMD = 1'b1;
+      EMD <= 1'b1;
     else if ((
          (CACT)                  // CPU CYCLE TO BUS HOLD
       | ((RT & CC2 & TERM_n))    // ) HOLD TERMS FOR
       | ((IORQ & CC2 & TERM_n))  // ) CPU READ, FETCH AND MAP CYCLES
         ) == 0)
-      EMD = 1'b0;
+      EMD <= 1'b0;
+    // else: EMD maintains its value (explicit in FF, no latch needed)
 
   end
 

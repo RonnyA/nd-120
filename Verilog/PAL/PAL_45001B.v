@@ -20,9 +20,11 @@
 //
 // PAL16RL8 (https://rocelec.widen.net/view/pdf/c6dwcslffz/VANTS00080-1.pdf)
 
-
+// NOTE: PAL16L8 is purely combinational in the original hardware.
+// Clock input added for FPGA synthesis to eliminate latch inference.
 
 module PAL_45001B (
+    input CK,         //! Clock input (added for FPGA synthesis)
 
     input BDRY50_n,   //! I0 - BDRY50_n
     input BDRY75_n,   //! I1 - BDRY75_n
@@ -83,23 +85,26 @@ module PAL_45001B (
   reg BLOCK_reg;
   reg RERR_reg;
 
-  always @(*) begin
+  // Converted from latch to edge-triggered flip-flop for FPGA synthesis
+  always @(posedge CK) begin
     // BLOCK SIGNAL FOR PES AND PEA STROBE - BLOCK ON ERROR, RELEASE ON PEA READ
-    if (TEST) BLOCK_reg = 1'b0;
+    if (TEST) BLOCK_reg <= 1'b0;
     else if ( ((BDRY50 & BDRY75_n & EPEA_n & EPES_n & MOR25 & MR_n)==1)  | ((BDRY50 & BDRY75_n & EPEA_n & EPES_n & BPERR50 & MR_n) == 1) )
-      BLOCK_reg = 1'b1;
-    else if ((EPEA_n & MR_n) == 0);
-    BLOCK_reg = 0;
+      BLOCK_reg <= 1'b1;
+    else if ((EPEA_n & MR_n) == 0)
+      BLOCK_reg <= 0;
+    // else: BLOCK_reg maintains its value (explicit in FF, no latch needed)
 
     // REMOTE ERROR - LAST ERROR WAS FROM MEMORY ATTACHED TO THE ND100 BUS
     // WILL BE OVERRIDEN BY AN ERROR FROM LOCAL MEMORY (PERR1 AND PERR0)
-    if (TEST) RERR_reg = 1'b0;
-    else if (((BPERR50 & MR_n)  // SET REMOTE ERROR ON BUS PARITY ERROR)  
+    if (TEST) RERR_reg <= 1'b0;
+    else if (((BPERR50 & MR_n)  // SET REMOTE ERROR ON BUS PARITY ERROR)
         | (MOR25 & MR_n)  // LOCAL ERROR HAS PRIORITY
         ) == 1)
-      RERR_reg = 1;
+      RERR_reg <= 1;
     else if ((LPERR_n & MR_n) == 0)  // HOLD UNTIL A LOCAL MEMORY ERROR
-      RERR_reg = 0;
+      RERR_reg <= 0;
+    // else: RERR_reg maintains its value (explicit in FF, no latch needed)
 
   end
 

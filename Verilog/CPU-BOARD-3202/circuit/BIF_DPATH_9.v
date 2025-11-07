@@ -9,6 +9,9 @@
    ***************************************************************************/
 
 module BIF_DPATH_9 (
+    // Clock signal
+    input OSC,         //! Clock input (added for FPGA synthesis)
+
     // Input signals
     input [ 9:0] CA_9_0,    //! Control Store Address
     input [13:0] PPN_23_10, //! Physical Page Number
@@ -65,6 +68,8 @@ module BIF_DPATH_9 (
   /*******************************************************************************
       ** The wires are defined here                                                 **
       *******************************************************************************/
+  wire        s_osc;
+
   wire [ 9:0] s_ca_9_0;
 
   wire [13:0] s_ppn_23_10;
@@ -134,6 +139,7 @@ module BIF_DPATH_9 (
   /*******************************************************************************
   ** Here all input connections are defined                                     **
   *******************************************************************************/
+  assign s_osc                = OSC;
   assign s_ppn_23_10[13:0]    = PPN_23_10;
   assign s_ca_9_0[9:0]        = CA_9_0;
   assign s_eaddr_n            = EADDR_n;
@@ -253,6 +259,9 @@ module BIF_DPATH_9 (
   );
 
   BIF_DPATH_LDBCTL_12 LDBCTL (
+      // Clock (added for FPGA synthesis)
+      .OSC(s_osc),
+
       // Inputs
       .BDAP50_n(s_bdap50_n),
       .BDRY25_n(s_bdry25_n),

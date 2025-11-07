@@ -9,6 +9,8 @@
 ***************************************************************************/
 
 module BIF_DPATH_LDBCTL_12 (
+    input OSC,       //! Clock input (added for FPGA synthesis)
+
     input BDAP50_n,
     input BDRY25_n,
     input BDRY50_n,
@@ -51,6 +53,7 @@ module BIF_DPATH_LDBCTL_12 (
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
+  wire s_osc;
   wire s_bact_n;
   wire s_bdap50_n;
   wire s_bdry25_n;
@@ -96,6 +99,7 @@ module BIF_DPATH_LDBCTL_12 (
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
+  assign s_osc        = OSC;
   assign s_bdap50_n   = BDAP50_n;
   assign s_bdry25_n   = BDRY25_n;
   assign s_bdry50_n   = BDRY50_n;
@@ -142,6 +146,8 @@ module BIF_DPATH_LDBCTL_12 (
    *******************************************************************************/
 
   PAL_44303B PAL_44303_ULBC2 (
+      .CK        (s_osc),         // Clock (added for FPGA synthesis)
+
       .CACT_n    (s_cact_n),      // I0
       .CGNT_n    (s_cgnt_n),      // I1
       .EADR_n    (s_eadr_n),      // I2 - Address from CPU to Bus
@@ -161,6 +167,8 @@ module BIF_DPATH_LDBCTL_12 (
   );
 
   PAL_44302B PAL_44302_ULBC1 (
+      .CK      (s_osc),       // Clock (added for FPGA synthesis)
+
       .Q0_n    (s_q0_n),      // I0
       .Q2_n    (s_q2_n),      // I1
       .CC2_n   (s_cc2_n),     // I2

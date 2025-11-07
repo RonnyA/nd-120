@@ -107,10 +107,12 @@ module CPU_CS_ACAL_17 (
 
 
 
-  TTL_74373 CHIP_30H (
-      .C(s_maclk),
+  // Changed from TTL_74373 (latch) to TTL_74374 (edge-triggered FF)
+  // to eliminate latch inference warning and improve FPGA synthesis
+  TTL_74374 CHIP_30H (
+      .CK(s_maclk),         // Was .C (transparent), now .CK (edge-triggered)
       .D(s_d_chip30h_7_0[7:0]),
-      .OC_n(s_pd1),
+      .OE_n(s_pd1),         // Was .OC_n, now .OE_n
       .Q(s_q_chip30h_7_0[7:0])
   );
 

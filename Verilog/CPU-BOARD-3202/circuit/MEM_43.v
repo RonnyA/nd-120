@@ -321,6 +321,9 @@ module MEM_43 (
    * Handles memory error detection and reporting.
    */
   MEM_ERROR_47 ERROR (
+      // Clock (added for FPGA synthesis)
+      .OSC(s_osc),
+
       // Input signals
       .BCGNT50(s_bcgnt50),
       .BLOCKL25(s_blockl25),

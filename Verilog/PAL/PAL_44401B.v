@@ -105,15 +105,17 @@ assign EADR_n = ~(
                   (Q2_n & Q1_n & Q0_n & CACT & CACT25_n) |   // s
                   (CGNT & CGNT50_n));                        // address part for CPU cycle
 
-// Logic for DAP
+// Logic for DAP - converted from latch to edge-triggered flip-flop
+// to eliminate latch inference warning and improve FPGA synthesis
 reg DAP;
 
-always @(*) 
+always @(posedge CK)
 begin
     if (Q2_n & Q1_n & Q0_n & CACT & CACT25)
-        DAP = 1'b1;
+        DAP <= 1'b1;
     else if  ((TERM_n & IORQ & CC2) == 0)
-        DAP = 1'b0;
+        DAP <= 1'b0;
+    // else: DAP maintains its value (explicit in FF, no latch needed)
 end
 
 assign DAP_n  = ~DAP;

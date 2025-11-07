@@ -295,6 +295,9 @@ module BIF_5 (
    * between different bus interfaces while maintaining signal integrity.
    */
   BIF_DPATH_9 DPATH (
+      // Clock (added for FPGA synthesis)
+      .OSC         (s_osc),                   // Oscillator clock
+
       // Outputs
       .BDAP50_n     (s_bdap50_n),             // Bus Data Present (50ns delayed)
       .BDRY25_n     (s_bdry25_n),             // Bus Data Ready (25ns delayed)

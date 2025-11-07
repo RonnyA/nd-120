@@ -12,7 +12,12 @@
 // JLB/CITC 15AUG86
 // 44303B,2C,LBC2 - LOCAL DATA BUS CONTROL PAL
 
+// NOTE: PAL16L8 is purely combinational in the original hardware.
+// Clock input added for FPGA synthesis to eliminate latch inference.
+
 module PAL_44303B (
+    input CK,          //! Clock input (added for FPGA synthesis)
+
     input CACT_n,      //! I0
     input CGNT_n,      //! I1
     input EADR_n,      //! I2 - Address from CPU to Bus
@@ -50,18 +55,20 @@ module PAL_44303B (
   reg  CBWRITE;
   reg  CMWRITE;
 
-
-  always @(*) begin
+  // Converted from latch to edge-triggered flip-flop for FPGA synthesis
+  always @(posedge CK) begin
 
     // CBWRITE - CPU TO BUS WRITE. STARTS ONLY WHEN THE BUS IS GRANTED.
     //           LASTS UNTIL THE END OF THE BUS CYCLE.
-    if (WRITE & CACT) CBWRITE = 1'b1;
-    else if (CACT == 0) CBWRITE = 1'b0;
+    if (WRITE & CACT) CBWRITE <= 1'b1;
+    else if (CACT == 0) CBWRITE <= 1'b0;
+    // else: CBWRITE maintains its value (explicit in FF, no latch needed)
 
     // (CMWRITE) - CPU WRITE TO LOCAL MEMORY. LASTS UNTIL END OF MEMORY CYCLE.
     //             ON BUFFERED WRITE.
-    if (WRITE & CGNT) CMWRITE = 1'b1;
-    else if (CGNT == 0) CMWRITE = 1'b0;
+    if (WRITE & CGNT) CMWRITE <= 1'b1;
+    else if (CGNT == 0) CMWRITE <= 1'b0;
+    // else: CMWRITE maintains its value (explicit in FF, no latch needed)
   end
 
 

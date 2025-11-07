@@ -268,6 +268,8 @@ module MEM_LBDIF_48 (
   /************ PAL chip 3F ************/
 
   PAL_44310D PAL_44310_ULBDIF (
+      // Clock (added for FPGA synthesis)
+      .CK      (s_osc),           // Clock
 
       // Inputs
       .HIEN_n  (s_hien_n),        // I0

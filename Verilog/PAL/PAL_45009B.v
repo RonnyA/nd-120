@@ -22,8 +22,12 @@
 //
 // PAL16RL8 (https://rocelec.widen.net/view/pdf/c6dwcslffz/VANTS00080-1.pdf)
 
+// NOTE: PAL16L8 is purely combinational in the original hardware.
+// Clock input added for FPGA synthesis to eliminate latch inference.
 
 module PAL_45009B (
+    input CK,          //! Clock input (added for FPGA synthesis)
+
     input RDATA,       //! I0 - RDATA25 signal (doesnt match name)
     input BLOCKL25_n,  //! I1 - BLOCKL25_n
     input BCGNT50,     //! I2 - BCGNT50
@@ -73,16 +77,17 @@ module PAL_45009B (
   assign EPESL_n = ~(PS & RERR_n);
   assign EPEAL_n = ~(PA & RERR_n);
 
-  // BLOCKL condition
+  // BLOCKL condition - converted from latch to edge-triggered flip-flop for FPGA synthesis
   wire set_condition = (RDATA & EPEAL_n & EPESL_n & LERR & MR_n);
   wire reset_condition = !(PA_n & MR_n);
 
-  always @(*) begin
+  always @(posedge CK) begin
     if (!TEST) begin
 
-      if (set_condition) BLOCKL_reg = 1'b1;  // SET ON LOCAL ERROR
+      if (set_condition) BLOCKL_reg <= 1'b1;  // SET ON LOCAL ERROR
       else if (reset_condition)
-        BLOCKL_reg = 1'b0;  // RESET IF PA_n & MR_n ARE NOT BOTH 1 (// HOLD TILL PEA READ)
+        BLOCKL_reg <= 1'b0;  // RESET IF PA_n & MR_n ARE NOT BOTH 1 (// HOLD TILL PEA READ)
+      // else: BLOCKL_reg maintains its value (explicit in FF, no latch needed)
       /*
         BLOCKL_reg <=
               (RDATA & EPEAL_n & EPESL_n & LERR & MR_n) | // SET ON LOCAL ERROR
