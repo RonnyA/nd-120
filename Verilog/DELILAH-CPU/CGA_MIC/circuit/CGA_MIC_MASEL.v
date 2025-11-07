@@ -71,7 +71,8 @@ localparam [1:0] SEL_REPEAT = 2'b11;
   assign s_mr_n             = MRN;
 
   wire [12:0] s_jmpaddr_12_0;
-  assign s_jmpaddr_12_0 = {s_csbit_11_0[11:4], s_jmp_3_0[3:0]};
+  // Fixed: Added s_csbit20 as bit 12 for complete 13-bit assignment
+  assign s_jmpaddr_12_0 = {s_csbit20, s_csbit_11_0[11:4], s_jmp_3_0[3:0]};
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -117,9 +118,12 @@ localparam [1:0] SEL_REPEAT = 2'b11;
 
   // LATCH regREP to W as long as MCLKN is active
   // Is used by IPOS to create the MA_12_0 address to microcode RAM
+  // Fixed: Converted latch to combinational logic - when s_mclk_n is low, use registered value
   always @(*) begin
     if (s_mclk_n) begin
-      regW = regREP;
+      regW = regREP;  // Transparent when clock is high
+    end else begin
+      regW = regIW;   // Use registered value when clock is low (holds last captured value)
     end
   end
 

@@ -193,6 +193,8 @@ module BIF_DPATH_LDBCTL_12 (
   );
 
   PAL_44304E PAL_44304_ULBC3 (
+      .CK      (s_osc),       // Clock (added for FPGA synthesis)
+
       .CGNT_n  (s_cgnt_n),    // I0
       .BGNT_n  (s_bgnt_n),    // I1
       .BGNT50_n(s_bgnt50_n),  // I2

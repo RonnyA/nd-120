@@ -33,10 +33,11 @@ module CPU_CS_TCV_20 (
   wire DIR;  //  DIR = H (A to B - CSBITS to IDB)  or DIR = L (B to A - IDB to CSBITS)
   assign DIR = WCS_n;
 
+  // Fixed: Initialize all signals to prevent latch inference
   always @(*) begin
 
-    regIDB_out = 0;
-    //regCSBITS  = 0;
+    regIDB_out = 16'b0;
+    regCSBITS  = CSBITS;  // Default to pass-through input value
 
     if (EW_3_0_n[0] == 0) begin
       if (DIR) begin

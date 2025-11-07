@@ -27,26 +27,23 @@ module F595 (
   reg regQn;
 
   // Behavioral description of the R-S latch
-  //always @(posedge H01_S, posedge H02_R, posedge H03_G) begin
+  // Converted from gated latch to edge-triggered flip-flop for FPGA synthesis
+  // Captures state on rising edge of gate signal (when latch would become transparent)
 
   /* verilator lint_off LATCH */
 
-  always @* begin
-    if (H03_G) begin
-      if (H01_S & H02_R) begin
-        regQ  = 1'b1;
-        regQn = 1'b1;
-      end else if (H02_R & !H01_S) begin
-        regQ  = 1'b0;
-        regQn = 1'b1;
-      end else if (!H02_R & H01_S) begin
-        regQ  = 1'b1;
-        regQn = 1'b0;
-      end  /*else begin
-           regQ = regQ; // Explicitly maintaining previous state (to avoid warning/error "not all control paths of combinational always assign a value")
-           regQn = regQn;
-       end*/
+  always @(posedge H03_G) begin
+    if (H01_S & H02_R) begin
+      regQ  <= 1'b1;
+      regQn <= 1'b1;
+    end else if (H02_R & !H01_S) begin
+      regQ  <= 1'b0;
+      regQn <= 1'b1;
+    end else if (!H02_R & H01_S) begin
+      regQ  <= 1'b1;
+      regQn <= 1'b0;
     end
+    // else: hold previous value (implicit in edge-triggered flip-flop)
   end
 
   assign N01_Q  = regQ;

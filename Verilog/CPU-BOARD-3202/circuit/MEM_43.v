@@ -292,6 +292,8 @@ module MEM_43 (
    * Handles data transfer between the memory and the CPU.
    */
   MEM_DATA_46 DATA (
+      .OSC(s_osc),  // Clock (added for FPGA synthesis)
+
       // Input signals
       .BCGNT50R_n(s_bcgnt50r_n),
       .BIOXL_n(s_bioxl_n),

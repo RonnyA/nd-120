@@ -12,6 +12,8 @@
 // CJTC 02SEP86
 // 44304E,1C,LBC3 - LOCAL DATA BUS CONTROL PAL
 
+// NOTE: PAL16L8 is purely combinational in the original hardware.
+// Clock input added for FPGA synthesis to eliminate combinatorial loops.
 
 // Note: Verilator doesnt like signal name "EBADR" therefore its named "EBADR_b1". I dont know why.
 
@@ -19,6 +21,8 @@
 // Note3: Code for TEST removed for clarity as its NEVER used
 
 module PAL_44304E (
+    input CK,        //! Clock input (added for FPGA synthesis)
+
     input CGNT_n,    //! I0
     input BGNT_n,    //! I1
     input BGNT50_n,  //! I2
@@ -50,24 +54,29 @@ module PAL_44304E (
   wire EBUS = ~EBUS_n;
   wire SAPR_n = ~SAPR;
 
-  // Output signal logic (self reference)
+  // Output signal logic
+  // Converted from combinatorial loops to edge-triggered flip-flops for FPGA synthesis
 
   reg  BACT_reg;
   reg  EBADR_n_reg;
 
-  always @(*) begin
+  always @(posedge CK) begin
 
     // BACT - BUS ACTIVITY. LASTS FOR COMPLETE DMA TO LOCAL MEMORY
     // CYCLE (ONLY ON MEMORY READ)
-
-    BACT_reg = (BGNT50 & MWRITE_n)
-           |   (BACT_reg & BDAP50);
+    if (BGNT50 & MWRITE_n)
+      BACT_reg <= 1'b1;
+    else if (!BDAP50)
+      BACT_reg <= 1'b0;
+    // else: BACT_reg maintains its value
 
 
     // EBADR - ENABLE ADDRESS FROM BUS TO LOCAL MEMORY
-    EBADR_n_reg = (GNT_n & BGNT_n)       // TURN ON AT BAPR WITH GNT
-             | (IBAPR_n & EBADR_n_reg)   // HOLD UNTIL BGNT AND GNT BOTH GONE
-             | (GNT_n & EBADR_n_reg);
+    if (GNT_n & BGNT_n)       // TURN ON AT BAPR WITH GNT
+      EBADR_n_reg <= 1'b1;
+    else if (!IBAPR_n & !GNT_n)  // HOLD UNTIL BGNT AND GNT BOTH GONE
+      EBADR_n_reg <= 1'b0;
+    // else: EBADR_n_reg maintains its value
 
   end
 
