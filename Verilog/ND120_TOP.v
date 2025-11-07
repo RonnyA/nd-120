@@ -32,9 +32,8 @@ module ND120_TOP
     
     // Outputs
     output wire uartTx,           //! UART Transmit pin
-    output wire [6:0] led         //! 7-bit output for controlling LEDs
-    // DEBUG: Commented out to reduce pin count for xc7a35tcpg236
-    // output wire [12:0] CSA_12_0  //! Microcode Address (for debugging)
+    output wire [6:0] led,        //! 7-bit output for controlling LEDs
+    output wire [12:0] CSA_12_0,  //! Microcode Address (for debugging)
 
 
     // Signal from C-PLUG to CPU Board
@@ -53,9 +52,8 @@ module ND120_TOP
 
 
     // BUS INTERFACE data in and out
-    input wire [23:0] BD_23_0_n_IN   //! BUS DATA & ADDRESS IN (Pulled high)
-    // DEBUG: Commented out to fit xc7a35tcpg236 (saves 24 pins!)
-    // output wire [23:0] BD_23_0_n_OUT //! BUS DATA & ADDRESS OUT (Pulled high)
+    input wire [23:0] BD_23_0_n_IN,   //! BUS DATA & ADDRESS IN (Pulled high)
+    output wire [23:0] BD_23_0_n_OUT, //! BUS DATA & ADDRESS OUT (Pulled high)
 
      /* Bidirectional signals */
     input  SEMRQ_n_IN,    //! Input-signal from "C PLUG", signal A17 SEMREQ~ (Bus Address PResent)
@@ -178,8 +176,7 @@ module ND120_TOP
       .POWSENSE_n(POWSENSE_n),  // Power Sense
 
       .BD_23_0_n_IN(BD_23_0_n_IN), // Bus address and data from bus. Pulled high
-      // DEBUG: BD_23_0_n_OUT commented out to save 24 pins for xc7a35tcpg236
-      // .BD_23_0_n_OUT(BD_23_0_n_OUT),
+      .BD_23_0_n_OUT(BD_23_0_n_OUT),
 
       // Bidirectional signals
       .SEMRQ_n_IN(SEMRQ_n_IN),     //! Input-signal from "C PLUG", signal A17 SEMREQ~ (SEMaphore REQest)
@@ -246,8 +243,7 @@ module ND120_TOP
       .CSBITS     (s_csbits),       // Microcode CPU BITS
       .TEST_4_0   (s_test_4_0),     // Test pads
       .TP1_INTRQ_n(s_tp1_intrq_n),  // TP1 Interrupt
-      // DEBUG: Commented out to reduce pin count
-      // .CSA_12_0    (CSA_12_0),      // Microcode Address (for debugging)
+      .CSA_12_0    (CSA_12_0),      // Microcode Address (for debugging)
       .LED        (s_cpu_led[6:0])  // 7 bit LED signals (was [5:0], now matches ND3202D)
   );
 
