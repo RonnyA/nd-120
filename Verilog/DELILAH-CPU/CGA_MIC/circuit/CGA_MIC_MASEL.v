@@ -79,14 +79,13 @@ localparam [1:0] SEL_REPEAT = 2'b11;
   // assign IW_12_0            = s_iw_12_0_out[12:0];
   //assign W_12_0             = s_w_12_0_out[12:0];
 
-  assign IW_12_0            = regIW;
-  assign W_12_0             = regW;
-
-
+  // Register declarations (moved before assign to avoid synthesis warning)
   reg [12:0] regREP;
-
   reg [12:0] regW;
   reg [12:0] regIW;
+
+  assign IW_12_0            = regIW;
+  assign W_12_0             = regW;
 
   // Code to make LINTER _not_ complain about bits not read in CSBIITS bits 3:0
   (* keep = "true", DONT_TOUCH = "true" *) wire [3:0] unused_CSBITS_bits;

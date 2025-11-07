@@ -63,6 +63,12 @@ module PAL_45008B (
   wire MR = ~MR_n;
 
 
+  // Register and wire declarations (moved before assign to avoid synthesis warning)
+  reg  DISB_reg;
+  reg  TST_reg;
+  wire TST = TST_reg;
+  wire DISB = DISB_reg;
+
   // ON WRITE TO MEMORY
   assign OET_n = ~(MWRITE);
 
@@ -77,11 +83,6 @@ module PAL_45008B (
 
   // DIS logic
   assign DIS_n = ~(DISB | SWDIS);
-
-  reg  DISB_reg;
-  reg  TST_reg;
-  wire TST = TST_reg;
-  wire DISB = DISB_reg;
 
 
   always @(*) begin

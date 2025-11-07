@@ -137,12 +137,16 @@ module MEM_RAM_49 (
 
 // TODO: Make the ram size definition working based on FPGA board.
 // Configure RAM size for 3202D board.
-// .ramSize: 0=disabled, 1=64KWord, 2=1Mword
+// .ramSize: 0=disabled, 1=64KWord, 2=1Mword, 3=4KWord
 //
 // Note: There seems to be some problems detecting correct RAMSIZE as there is no INRQ defined for undefined RAM.
 // Maybe the solution is to trigger RAM parity error..
+//
+// VIVADO FIX: Changed from ramSize=2 (1MB×6=6MB) to ramSize=3 (4KB×6=24KB)
+// to fit in FPGA BRAM for synthesis. 6MB exceeds device BRAM capacity.
+// For production with external memory, restore to ramSize=2.
 
-  localparam integer RamSize = 2;
+  localparam integer RamSize = 3;  // Was: 2 (1MB). Now: 3 (4KB) for FPGA testing
 
   SIP1M9  #(.ramSize(RamSize)) CHIP_15H
   (

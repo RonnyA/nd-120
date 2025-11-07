@@ -112,13 +112,14 @@ module ND120_TOP
 
   // output wire from CPU
 
-  wire [5:0] s_cpu_led;  // 6 bit LED signals
+  wire [6:0] s_cpu_led;  // 7 bit LED signals (ND3202D outputs 7 bits)
   //   0=CPU RED
   //   1=CPU GREEN
   //   2=LED4_RED_PARITY_ERROR
   //   3=LED_CPU_GRANT_INDICATOR
   //   4=LED_BUS_GRANT_INDICATOR
   //   5=LED1 from MMU
+  //   6=LED5_RED_DISABLE_PARITY
 
   wire s_run;  // RUN: 1=CPU is running, 0=OPCOM mode
   (* keep = "true", DONT_TOUCH = "true" *)  wire [4:0] s_test_4_0;  // Test pads
@@ -142,6 +143,7 @@ module ND120_TOP
   assign led[3] = !s_cpu_led[3]; // LED CPU GRANT INDICATOR
   assign led[4] = !s_cpu_led[4]; // LED BUS GRANT INDICATOR
   assign led[5] = !s_cpu_led[5]; // LED1 from MMU
+  assign led[6] = !s_cpu_led[6]; // LED5 RED DISABLE PARITY
 
   //assign led[4] = !uartRx;
   //assign led[5] = !uartTx;
@@ -242,7 +244,7 @@ module ND120_TOP
       .TEST_4_0   (s_test_4_0),     // Test pads
       .TP1_INTRQ_n(s_tp1_intrq_n),  // TP1 Interrupt
       .CSA_12_0    (CSA_12_0),      // Microcode Address (for debugging)
-      .LED        (s_cpu_led[5:0])  // 6 bit LED signals
+      .LED        (s_cpu_led[6:0])  // 7 bit LED signals (was [5:0], now matches ND3202D)
   );
 
 endmodule

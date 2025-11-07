@@ -39,19 +39,17 @@ module F714 (
 
 
   always @(posedge s_t or posedge s_reset or posedge s_set) begin
-    if (s_reset | s_set) begin
-      // forced clear or set
-      if (!s_set & s_reset) begin  // reset
-        regQ   <= 1'b0;
-        reqQ_n <= 1'b1;
-      end else if (s_set & !s_reset) begin  // set
-        regQ   <= 1'b1;
-        reqQ_n <= 1'b0;
-      end else begin  /* s_rb & s_sb */
-        regQ   <= 1'b1;
-        reqQ_n <= 1'b1;
-      end
+    // Prioritized: RESET has priority over SET to avoid synthesis warning
+    if (s_reset) begin
+      // Reset has highest priority
+      regQ   <= 1'b0;
+      reqQ_n <= 1'b1;
+    end else if (s_set) begin
+      // Set has second priority
+      regQ   <= 1'b1;
+      reqQ_n <= 1'b0;
     end else begin
+      // Normal toggle operation on clock edge
       if (s_t) begin
         reqQ_n <= regQ;
         regQ   <= ~regQ;

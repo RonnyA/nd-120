@@ -38,13 +38,14 @@ module SIP1M9 (
   wire parity_calculation;
 
   // Parameters are declared here
-  parameter ramSize = 0; // 0 = Disabled, 1=64KB, 2=1MB
+  parameter ramSize = 0; // 0 = Disabled, 1=64KB, 2=1MB, 3=4KB (for FPGA BRAM testing)
 
-  
-// Convert ramSize into a memory depth. 
+
+// Convert ramSize into a memory depth.
 // Feel free to tweak default 1 if "disabled" should do something else.
-  localparam integer MEM_DEPTH = (ramSize == 2) ? 1048575 :   // 1 MB
-                                 (ramSize == 1) ? 65535   :   // 64 KB
+  localparam integer MEM_DEPTH = (ramSize == 2) ? 1048575 :   // 1 MB (too large for FPGA BRAM)
+                                 (ramSize == 1) ? 65535   :   // 64 KB (still too large for small FPGAs)
+                                 (ramSize == 3) ? 4095    :   // 4 KB (fits in BRAM for testing)
                                                   1;          // Disabled = 1 word (or 0, if desired)
 
 // Now use that for your memory declarations.
