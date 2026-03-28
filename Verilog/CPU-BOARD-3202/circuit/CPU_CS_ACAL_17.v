@@ -107,14 +107,23 @@ module CPU_CS_ACAL_17 (
 
 
 
-  // Changed from TTL_74373 (latch) to TTL_74374 (edge-triggered FF)
-  // to eliminate latch inference warning and improve FPGA synthesis
-  TTL_74374 CHIP_30H (
-      .CK(s_maclk),         // Was .C (transparent), now .CK (edge-triggered)
+`ifdef VERILATOR_SIM
+  // Transparent latch (original behavior for simulation)
+  TTL_74373 CHIP_30H (
+      .C(s_maclk),
       .D(s_d_chip30h_7_0[7:0]),
-      .OE_n(s_pd1),         // Was .OC_n, now .OE_n
+      .OC_n(s_pd1),
       .Q(s_q_chip30h_7_0[7:0])
   );
+`else
+  // Edge-triggered FF (FPGA synthesis)
+  TTL_74374 CHIP_30H (
+      .CK(s_maclk),
+      .D(s_d_chip30h_7_0[7:0]),
+      .OE_n(s_pd1),
+      .Q(s_q_chip30h_7_0[7:0])
+  );
+`endif
 
   AM29841 CHIP_31F (
       .D(s_csa_12_0[9:0]),

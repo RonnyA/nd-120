@@ -2,8 +2,20 @@ VERILATOR = verilator
 
 SUPPRESS_FLAGS = -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY -Wno-UNUSED -Wno-UNDRIVEN -Wno-WIDTH -Wno-EOFNEWLINE -Wno-LATCH
 
+# USE_LATCHES: Set to 1 (default) for transparent latch behavior (original hardware).
+#              Set to 0 for edge-triggered flip-flop behavior (FPGA mode).
+USE_LATCHES ?= 1
+
 # Enable larger RAM (1MB) for Verilator simulation instead of FPGA's 4KB
-VERILATOR_FLAGS = --trace -Wall --cc ../ND120_TOP.v  $(SUPPRESS_FLAGS) -DVERILATOR_SIM 
+SIM_DEFINES = -DVERILATOR_SIM
+ifeq ($(USE_LATCHES),1)
+  # Nothing extra needed - VERILATOR_SIM activates latch mode in all modules
+else
+  # Override: remove VERILATOR_SIM so modules use FPGA flip-flop mode
+  SIM_DEFINES =
+endif
+
+VERILATOR_FLAGS = --trace -Wall --cc ../ND120_TOP.v  $(SUPPRESS_FLAGS) $(SIM_DEFINES)
 
 #TOP_3202D_COMPONENTS = --I../circuit -I../../Shared/logisim   -I../../Shared/ndlib  -I../../Shared/support
 TOP_3202D_COMPONENTS =  -I../Shared/logisim   -I../Shared/ndlib  -I../Shared/support -I../CPU-BOARD-3202/circuit

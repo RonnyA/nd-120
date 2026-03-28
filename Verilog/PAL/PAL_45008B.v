@@ -88,23 +88,33 @@ module PAL_45008B (
   assign DIS_n = ~(DISB | SWDIS);
 
 
-  // Converted from latch to edge-triggered flip-flop for FPGA synthesis
+`ifdef VERILATOR_SIM
+  // Transparent latch (original behavior for simulation)
+  /* verilator lint_off LATCH */
+  always @(*) begin
+    if ((LBD3 & BIOXL & ECCR) == 1) DISB_reg = 1'b1;
+    else if (((MR_n & BIOXL_n) == 0) | ((MR_n & ECCR_n)) == 0)
+      DISB_reg = 1'b0;
+
+    if (((LBD0 & BIOXL & ECCR) == 1) | ((LBD1 & BIOXL & ECCR) == 1) | ((LBD4 & BIOXL & ECCR) == 1))
+      TST_reg = 1'b1;
+    else if (((MR_n & BIOXL) == 0) | ((MR_n & ECCR_n) == 0))
+      TST_reg = 1'b0;
+  end
+  /* verilator lint_on LATCH */
+`else
+  // Edge-triggered flip-flop (FPGA synthesis)
   always @(posedge CK) begin
-
-    // SET IF LDB3=1 AND IOX=ECCR
     if ((LBD3 & BIOXL & ECCR) == 1) DISB_reg <= 1'b1;
-    else if (((MR_n & BIOXL_n) == 0) | ((MR_n & ECCR_n)) == 0)  // HOLD UNTIL NEXT IOX=ECCR
+    else if (((MR_n & BIOXL_n) == 0) | ((MR_n & ECCR_n)) == 0)
       DISB_reg <= 1'b0;
-    // else: DISB_reg maintains its value
 
-    // SET IF ANY OF LBD0,1,4 AND IOX=ECCR
     if (((LBD0 & BIOXL & ECCR) == 1) | ((LBD1 & BIOXL & ECCR) == 1) | ((LBD4 & BIOXL & ECCR) == 1))
       TST_reg <= 1'b1;
-    else if (((MR_n & BIOXL) == 0) | ((MR_n & ECCR_n) == 0))  // HOLD UNTIL NEXT IOX=ECCR
+    else if (((MR_n & BIOXL) == 0) | ((MR_n & ECCR_n) == 0))
       TST_reg <= 1'b0;
-    // else: TST_reg maintains its value
-
   end
+`endif
 
 
   assign DISB_n = ~DISB_reg;

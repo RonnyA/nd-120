@@ -66,21 +66,37 @@ module PAL_44310D (
       );
 
   // Logic for BDRY_n (active-low)
-  // Converted from latch to edge-triggered flip-flop for FPGA synthesis
   reg BDRY;
-  always @(posedge CK) begin
+
+`ifdef VERILATOR_SIM
+  // Transparent latch (original behavior for simulation)
+  /* verilator lint_off LATCH */
+  always @(*) begin
     if ((MWRITE50_n & BDAP50 & BGNT & LOEN_n & HIEN_n & RAS_n) |  // BUS READ FROM LOCAL MEM
         (MWRITE50 & BDAP50 & BGNT50 & BGNT) |  // BUS WRITE TO LOCAL MEM
         (BIOXL & ECCR) |  // IOX=ECCR
         (REF100) | (MWRITE50_n & BDAP50 & BGNT50_n & BGNT75)  // LATE BDRY FOR 10MHZ DISK
         )
-      BDRY <= 1'b1;
+      BDRY = 1'b1;
     else if (((MR_n & BDAP50) == 0) |  // HOLD TERM FOR MEMORY
         ((MR_n & BIOXE) == 0)  // HOLD TERM FOR IOX CYCLE
         )
-      BDRY <= 1'b0;
-    // else: BDRY maintains its value (explicit in FF, no latch needed)
+      BDRY = 1'b0;
   end
+  /* verilator lint_on LATCH */
+`else
+  // Edge-triggered flip-flop (FPGA synthesis)
+  always @(posedge CK) begin
+    if ((MWRITE50_n & BDAP50 & BGNT & LOEN_n & HIEN_n & RAS_n) |
+        (MWRITE50 & BDAP50 & BGNT50 & BGNT) |
+        (BIOXL & ECCR) |
+        (REF100) | (MWRITE50_n & BDAP50 & BGNT50_n & BGNT75))
+      BDRY <= 1'b1;
+    else if (((MR_n & BDAP50) == 0) |
+        ((MR_n & BIOXE) == 0))
+      BDRY <= 1'b0;
+  end
+`endif
 
   assign BDRY_n = ~BDRY;
 

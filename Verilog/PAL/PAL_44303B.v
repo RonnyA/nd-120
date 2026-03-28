@@ -55,21 +55,27 @@ module PAL_44303B (
   reg  CBWRITE;
   reg  CMWRITE;
 
-  // Converted from latch to edge-triggered flip-flop for FPGA synthesis
-  always @(posedge CK) begin
+`ifdef VERILATOR_SIM
+  // Transparent latch (original behavior for simulation)
+  /* verilator lint_off LATCH */
+  always @(*) begin
+    if (WRITE & CACT) CBWRITE = 1'b1;
+    else if (CACT == 0) CBWRITE = 1'b0;
 
-    // CBWRITE - CPU TO BUS WRITE. STARTS ONLY WHEN THE BUS IS GRANTED.
-    //           LASTS UNTIL THE END OF THE BUS CYCLE.
+    if (WRITE & CGNT) CMWRITE = 1'b1;
+    else if (CGNT == 0) CMWRITE = 1'b0;
+  end
+  /* verilator lint_on LATCH */
+`else
+  // Edge-triggered flip-flop (FPGA synthesis)
+  always @(posedge CK) begin
     if (WRITE & CACT) CBWRITE <= 1'b1;
     else if (CACT == 0) CBWRITE <= 1'b0;
-    // else: CBWRITE maintains its value (explicit in FF, no latch needed)
 
-    // (CMWRITE) - CPU WRITE TO LOCAL MEMORY. LASTS UNTIL END OF MEMORY CYCLE.
-    //             ON BUFFERED WRITE.
     if (WRITE & CGNT) CMWRITE <= 1'b1;
     else if (CGNT == 0) CMWRITE <= 1'b0;
-    // else: CMWRITE maintains its value (explicit in FF, no latch needed)
   end
+`endif
 
 
   // LBD TO BD TRANCEIVER

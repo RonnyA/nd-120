@@ -77,25 +77,31 @@ module PAL_45009B (
   assign EPESL_n = ~(PS & RERR_n);
   assign EPEAL_n = ~(PA & RERR_n);
 
-  // BLOCKL condition - converted from latch to edge-triggered flip-flop for FPGA synthesis
+  // BLOCKL condition
   wire set_condition = (RDATA & EPEAL_n & EPESL_n & LERR & MR_n);
   wire reset_condition = !(PA_n & MR_n);
 
-  always @(posedge CK) begin
+`ifdef VERILATOR_SIM
+  // Transparent latch (original behavior for simulation)
+  /* verilator lint_off LATCH */
+  always @(*) begin
     if (!TEST) begin
-
-      if (set_condition) BLOCKL_reg <= 1'b1;  // SET ON LOCAL ERROR
+      if (set_condition) BLOCKL_reg = 1'b1;  // SET ON LOCAL ERROR
       else if (reset_condition)
-        BLOCKL_reg <= 1'b0;  // RESET IF PA_n & MR_n ARE NOT BOTH 1 (// HOLD TILL PEA READ)
-      // else: BLOCKL_reg maintains its value (explicit in FF, no latch needed)
-      /*
-        BLOCKL_reg <=
-              (RDATA & EPEAL_n & EPESL_n & LERR & MR_n) | // SET ON LOCAL ERROR
-              (BLOCKL_reg & PA_n & MR_n)                  // HOLD TILL PEA READ
-              ;
-*/
+        BLOCKL_reg = 1'b0;  // HOLD TILL PEA READ
     end
   end
+  /* verilator lint_on LATCH */
+`else
+  // Edge-triggered flip-flop (FPGA synthesis)
+  always @(posedge CK) begin
+    if (!TEST) begin
+      if (set_condition) BLOCKL_reg <= 1'b1;
+      else if (reset_condition)
+        BLOCKL_reg <= 1'b0;
+    end
+  end
+`endif
 
   assign BLOCKL_n = ~BLOCKL_reg;
 

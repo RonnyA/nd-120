@@ -19,9 +19,13 @@ module AM29841 (
 
     // FPGA_MODE: Set to 1 for edge-triggered operation (FPGA synthesis)
     //            Set to 0 for transparent latch operation (original behavior)
-    parameter FPGA_MODE = 1;  // Default to FF mode for better synthesis
+`ifdef VERILATOR_SIM
+    parameter FPGA_MODE = 0;  // Simulation: use transparent latch (original behavior)
+`else
+    parameter FPGA_MODE = 1;  // FPGA: use edge-triggered FF for synthesis
+`endif
 
-    reg [9:0] Q_reg;  // Internal register/latch
+    reg [9:0] Q_reg = 10'b0;  // Internal register/latch with initial value for FPGA
 
     generate
         if (FPGA_MODE == 1) begin : gen_flipflop

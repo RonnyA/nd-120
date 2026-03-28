@@ -57,23 +57,26 @@ module PAL_44302B (
 
 
   // Output signal logic (self reference)
-  // Converted from latch to edge-triggered flip-flop for FPGA synthesis
   reg  EMD;
 
+`ifdef VERILATOR_SIM
+  // Transparent latch (original behavior for simulation)
+  /* verilator lint_off LATCH */
+  always @(*) begin
+    if ((Q2 & Q0 & CACT) |  // CPU CYCLE TO BUS SET
+        (CGNT & CGNT50))    // CPU CYCLE TO MEM SET
+      EMD = 1'b1;
+    else if ((
+         (CACT)                  // CPU CYCLE TO BUS HOLD
+      | ((RT & CC2 & TERM_n))    // ) HOLD TERMS FOR
+      | ((IORQ & CC2 & TERM_n))  // ) CPU READ, FETCH AND MAP CYCLES
+        ) == 0)
+      EMD = 1'b0;
+  end
+  /* verilator lint_on LATCH */
+`else
+  // Edge-triggered flip-flop (FPGA synthesis)
   always @(posedge CK) begin
-    // Logic for EMD
-
-    /*  Orignal code that has "circular logic" and is not synthesizable
-        EMD =
-                        (Q2 & Q0 & CACT)        |  // CPU CYCLE TO BUS SET
-                        (EMD & CACT)            |  //       "          HOLD
-                        (CGNT & CGNT50)         |  // CPU CYCLE TO MEM SET
-                        (EMD & RT & CC2 & TERM) |  // ) HOLD TERMS FOR
-                        (EMD & IORQ & CC2 & TERM)  // ) CPU READ, FETCH AND
-                        );                         // ) MAP CYCLES
-    */
-
-    // Rewritten for handling of "circular logic"
     if ((Q2 & Q0 & CACT) |  // CPU CYCLE TO BUS SET
         (CGNT & CGNT50))    // CPU CYCLE TO MEM SET
       EMD <= 1'b1;
@@ -83,9 +86,8 @@ module PAL_44302B (
       | ((IORQ & CC2 & TERM_n))  // ) CPU READ, FETCH AND MAP CYCLES
         ) == 0)
       EMD <= 1'b0;
-    // else: EMD maintains its value (explicit in FF, no latch needed)
-
   end
+`endif
 
   // Logic for CGNTCACT
   assign CGNTCACT_n = TEST ? 1'b1 : ~(CGNT | CACT); //! CGNTCACT_n - Combined CPU Grant/Active signal

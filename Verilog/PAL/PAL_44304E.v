@@ -54,31 +54,37 @@ module PAL_44304E (
   wire EBUS = ~EBUS_n;
   wire SAPR_n = ~SAPR;
 
-  // Output signal logic
-  // Converted from combinatorial loops to edge-triggered flip-flops for FPGA synthesis
+  // Output signal logic (self reference)
 
   reg  BACT_reg;
   reg  EBADR_n_reg;
 
-  always @(posedge CK) begin
+`ifdef VERILATOR_SIM
+  // Transparent latch (original behavior for simulation)
+  /* verilator lint_off LATCH */
+  always @(*) begin
+    BACT_reg = (BGNT50 & MWRITE_n)
+           |   (BACT_reg & BDAP50);
 
-    // BACT - BUS ACTIVITY. LASTS FOR COMPLETE DMA TO LOCAL MEMORY
-    // CYCLE (ONLY ON MEMORY READ)
+    EBADR_n_reg = (GNT_n & BGNT_n)
+             | (IBAPR_n & EBADR_n_reg)
+             | (GNT_n & EBADR_n_reg);
+  end
+  /* verilator lint_on LATCH */
+`else
+  // Edge-triggered flip-flop (FPGA synthesis)
+  always @(posedge CK) begin
     if (BGNT50 & MWRITE_n)
       BACT_reg <= 1'b1;
     else if (!BDAP50)
       BACT_reg <= 1'b0;
-    // else: BACT_reg maintains its value
 
-
-    // EBADR - ENABLE ADDRESS FROM BUS TO LOCAL MEMORY
-    if (GNT_n & BGNT_n)       // TURN ON AT BAPR WITH GNT
+    if (GNT_n & BGNT_n)
       EBADR_n_reg <= 1'b1;
-    else if (!IBAPR_n & !GNT_n)  // HOLD UNTIL BGNT AND GNT BOTH GONE
+    else if (!IBAPR_n & !GNT_n)
       EBADR_n_reg <= 1'b0;
-    // else: EBADR_n_reg maintains its value
-
   end
+`endif
 
 
   assign EBADR_b1 = ~EBADR_n_reg;
