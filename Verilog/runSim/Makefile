@@ -1,6 +1,6 @@
 VERILATOR = verilator
 
-SUPPRESS_FLAGS = -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY -Wno-UNUSED -Wno-UNDRIVEN -Wno-WIDTH -Wno-EOFNEWLINE -Wno-LATCH
+SUPPRESS_FLAGS = -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY -Wno-UNUSED -Wno-UNDRIVEN -Wno-WIDTH -Wno-EOFNEWLINE -Wno-LATCH -Wno-SYNCASYNCNET
 
 # USE_LATCHES: Set to 1 (default) for transparent latch behavior (original hardware).
 #              Set to 0 for edge-triggered flip-flop behavior (FPGA mode).
