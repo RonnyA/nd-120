@@ -26,6 +26,7 @@
 
 module PAL_45008B (
     input CK,         //! Clock input (added for FPGA synthesis)
+    input sys_rst_n,  //! System reset (active low, for FPGA synthesis)
 
     input MWRITE_n,   //! I0 - MWRITE_n
     input SWDIS_n,    //! I1 - SWDIS_n (SW4 - Parity disable, normal position = down.)
@@ -104,15 +105,20 @@ module PAL_45008B (
   /* verilator lint_on LATCH */
 `else
   // Edge-triggered flip-flop (FPGA synthesis)
-  always @(posedge CK) begin
-    if ((LBD3 & BIOXL & ECCR) == 1) DISB_reg <= 1'b1;
-    else if (((MR_n & BIOXL_n) == 0) | ((MR_n & ECCR_n)) == 0)
+  always @(posedge CK or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
       DISB_reg <= 1'b0;
-
-    if (((LBD0 & BIOXL & ECCR) == 1) | ((LBD1 & BIOXL & ECCR) == 1) | ((LBD4 & BIOXL & ECCR) == 1))
-      TST_reg <= 1'b1;
-    else if (((MR_n & BIOXL) == 0) | ((MR_n & ECCR_n) == 0))
       TST_reg <= 1'b0;
+    end else begin
+      if ((LBD3 & BIOXL & ECCR) == 1) DISB_reg <= 1'b1;
+      else if (((MR_n & BIOXL_n) == 0) | ((MR_n & ECCR_n)) == 0)
+        DISB_reg <= 1'b0;
+
+      if (((LBD0 & BIOXL & ECCR) == 1) | ((LBD1 & BIOXL & ECCR) == 1) | ((LBD4 & BIOXL & ECCR) == 1))
+        TST_reg <= 1'b1;
+      else if (((MR_n & BIOXL) == 0) | ((MR_n & ECCR_n) == 0))
+        TST_reg <= 1'b0;
+    end
   end
 `endif
 

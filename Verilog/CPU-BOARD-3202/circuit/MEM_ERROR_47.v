@@ -13,6 +13,7 @@ module MEM_ERROR_47 (
     // Input signals
 
     input        OSC,        // Clock input (added for FPGA synthesis)
+    input        sys_rst_n,  // System reset (active low, for FPGA synthesis)
 
     input        BCGNT50,
     input        BLOCKL25,
@@ -141,6 +142,7 @@ module MEM_ERROR_47 (
 
   PAL_45009B PAL_45009_UERROR (
       .CK      (s_osc),       // Clock (added for FPGA synthesis)
+      .sys_rst_n(sys_rst_n),  // System reset (for FPGA synthesis)
 
       .EPESL_n (s_epesl_n),  // B0_n - EPESL_n (clock to PEAL register)
       .EPEAL_n (s_epeal_n),  // B1_n - EPEAL_n (/output enable to PEAL register)

@@ -17,6 +17,7 @@
 
 module PAL_44303B (
     input CK,          //! Clock input (added for FPGA synthesis)
+    input sys_rst_n,   //! System reset (active low, for FPGA synthesis)
 
     input CACT_n,      //! I0
     input CGNT_n,      //! I1
@@ -68,12 +69,17 @@ module PAL_44303B (
   /* verilator lint_on LATCH */
 `else
   // Edge-triggered flip-flop (FPGA synthesis)
-  always @(posedge CK) begin
-    if (WRITE & CACT) CBWRITE <= 1'b1;
-    else if (CACT == 0) CBWRITE <= 1'b0;
+  always @(posedge CK or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
+      CBWRITE <= 1'b0;
+      CMWRITE <= 1'b0;
+    end else begin
+      if (WRITE & CACT) CBWRITE <= 1'b1;
+      else if (CACT == 0) CBWRITE <= 1'b0;
 
-    if (WRITE & CGNT) CMWRITE <= 1'b1;
-    else if (CGNT == 0) CMWRITE <= 1'b0;
+      if (WRITE & CGNT) CMWRITE <= 1'b1;
+      else if (CGNT == 0) CMWRITE <= 1'b0;
+    end
   end
 `endif
 

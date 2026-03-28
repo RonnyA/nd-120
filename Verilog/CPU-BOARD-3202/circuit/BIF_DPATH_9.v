@@ -11,6 +11,7 @@
 module BIF_DPATH_9 (
     // Clock signal
     input OSC,         //! Clock input (added for FPGA synthesis)
+    input sys_rst_n,   //! System reset (active low, for FPGA synthesis)
 
     // Input signals
     input [ 9:0] CA_9_0,    //! Control Store Address
@@ -259,8 +260,9 @@ module BIF_DPATH_9 (
   );
 
   BIF_DPATH_LDBCTL_12 LDBCTL (
-      // Clock (added for FPGA synthesis)
+      // Clock and reset (added for FPGA synthesis)
       .OSC(s_osc),
+      .sys_rst_n(sys_rst_n),
 
       // Inputs
       .BDAP50_n(s_bdap50_n),

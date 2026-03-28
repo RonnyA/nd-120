@@ -10,6 +10,7 @@
 
 module MEM_DATA_46 (
     input OSC,         //! Clock input (added for FPGA synthesis)
+    input sys_rst_n,   //! System reset (active low, for FPGA synthesis)
 
     // Input signals
     input BCGNT50R_n,  //! Bus CPU Grant on read from memory after the address (from 50 ns after GNT on read cycle)
@@ -188,6 +189,7 @@ module MEM_DATA_46 (
 
   PAL_45008B PAL_45008_UDATA (
       .CK      (s_osc),         //! Clock (added for FPGA synthesis)
+      .sys_rst_n(sys_rst_n),    //! System reset (for FPGA synthesis)
 
       .MWRITE_n(s_mwrite_n),  //! I0 - MWRITE_n
       .SWDIS_n   (s_gnd),       //! I1 - SWDIS_n (SW4 - Parity disable, normal position = down. HERE: Disabled!)

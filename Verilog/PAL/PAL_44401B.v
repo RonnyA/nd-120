@@ -24,6 +24,7 @@
 
 module PAL_44401B(
     input CK,
+    input sys_rst_n, //! System reset (active low, for FPGA synthesis)
     input OE_n,
 
     input CC2_n,        // I0
@@ -121,9 +122,11 @@ end
 /* verilator lint_on LATCH */
 `else
 // Edge-triggered flip-flop (FPGA synthesis)
-always @(posedge CK)
+always @(posedge CK or negedge sys_rst_n)
 begin
-    if (Q2_n & Q1_n & Q0_n & CACT & CACT25)
+    if (!sys_rst_n)
+        DAP <= 1'b0;
+    else if (Q2_n & Q1_n & Q0_n & CACT & CACT25)
         DAP <= 1'b1;
     else if  ((TERM_n & IORQ & CC2) == 0)
         DAP <= 1'b0;

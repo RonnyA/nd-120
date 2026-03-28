@@ -10,6 +10,7 @@
 
 module BIF_DPATH_LDBCTL_12 (
     input OSC,       //! Clock input (added for FPGA synthesis)
+    input sys_rst_n, //! System reset (active low, for FPGA synthesis)
 
     input BDAP50_n,
     input BDRY25_n,
@@ -147,6 +148,7 @@ module BIF_DPATH_LDBCTL_12 (
 
   PAL_44303B PAL_44303_ULBC2 (
       .CK        (s_osc),         // Clock (added for FPGA synthesis)
+      .sys_rst_n (sys_rst_n),     // System reset (for FPGA synthesis)
 
       .CACT_n    (s_cact_n),      // I0
       .CGNT_n    (s_cgnt_n),      // I1
@@ -168,6 +170,7 @@ module BIF_DPATH_LDBCTL_12 (
 
   PAL_44302B PAL_44302_ULBC1 (
       .CK      (s_osc),       // Clock (added for FPGA synthesis)
+      .sys_rst_n(sys_rst_n),  // System reset (for FPGA synthesis)
 
       .Q0_n    (s_q0_n),      // I0
       .Q2_n    (s_q2_n),      // I1
@@ -194,6 +197,7 @@ module BIF_DPATH_LDBCTL_12 (
 
   PAL_44304E PAL_44304_ULBC3 (
       .CK      (s_osc),       // Clock (added for FPGA synthesis)
+      .sys_rst_n(sys_rst_n),  // System reset (for FPGA synthesis)
 
       .CGNT_n  (s_cgnt_n),    // I0
       .BGNT_n  (s_bgnt_n),    // I1

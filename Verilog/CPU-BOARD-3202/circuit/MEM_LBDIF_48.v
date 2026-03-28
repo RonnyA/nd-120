@@ -25,6 +25,7 @@ module MEM_LBDIF_48 (
     input MR_n,      //! Master Reset
     input MWRITE_n,  //! Memory Write
     input OSC,       //! Oscillator
+    input sys_rst_n, //! System reset (active low, for FPGA synthesis)
     input PD4,       //! Power Down 4
     input RAS,       //! Row Address Strobe
     input REF_n,     //! Refresh Request
@@ -268,8 +269,9 @@ module MEM_LBDIF_48 (
   /************ PAL chip 3F ************/
 
   PAL_44310D PAL_44310_ULBDIF (
-      // Clock (added for FPGA synthesis)
+      // Clock and reset (added for FPGA synthesis)
       .CK      (s_osc),           // Clock
+      .sys_rst_n(sys_rst_n),      // System reset
 
       // Inputs
       .HIEN_n  (s_hien_n),        // I0

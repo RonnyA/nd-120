@@ -27,6 +27,7 @@
 
 module PAL_45009B (
     input CK,          //! Clock input (added for FPGA synthesis)
+    input sys_rst_n,   //! System reset (active low, for FPGA synthesis)
 
     input RDATA,       //! I0 - RDATA25 signal (doesnt match name)
     input BLOCKL25_n,  //! I1 - BLOCKL25_n
@@ -94,8 +95,10 @@ module PAL_45009B (
   /* verilator lint_on LATCH */
 `else
   // Edge-triggered flip-flop (FPGA synthesis)
-  always @(posedge CK) begin
-    if (!TEST) begin
+  always @(posedge CK or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
+      BLOCKL_reg <= 1'b0;
+    end else if (!TEST) begin
       if (set_condition) BLOCKL_reg <= 1'b1;
       else if (reset_condition)
         BLOCKL_reg <= 1'b0;

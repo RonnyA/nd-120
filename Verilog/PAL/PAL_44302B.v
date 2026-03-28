@@ -16,6 +16,7 @@
 
 module PAL_44302B (
     input CK,        //! Clock input (added for FPGA synthesis)
+    input sys_rst_n, //! System reset (active low, for FPGA synthesis)
 
     input Q0_n,      //! I0
     input Q2_n,      //! I1
@@ -76,16 +77,20 @@ module PAL_44302B (
   /* verilator lint_on LATCH */
 `else
   // Edge-triggered flip-flop (FPGA synthesis)
-  always @(posedge CK) begin
-    if ((Q2 & Q0 & CACT) |  // CPU CYCLE TO BUS SET
-        (CGNT & CGNT50))    // CPU CYCLE TO MEM SET
-      EMD <= 1'b1;
-    else if ((
-         (CACT)                  // CPU CYCLE TO BUS HOLD
-      | ((RT & CC2 & TERM_n))    // ) HOLD TERMS FOR
-      | ((IORQ & CC2 & TERM_n))  // ) CPU READ, FETCH AND MAP CYCLES
-        ) == 0)
+  always @(posedge CK or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
       EMD <= 1'b0;
+    end else begin
+      if ((Q2 & Q0 & CACT) |  // CPU CYCLE TO BUS SET
+          (CGNT & CGNT50))    // CPU CYCLE TO MEM SET
+        EMD <= 1'b1;
+      else if ((
+           (CACT)                  // CPU CYCLE TO BUS HOLD
+        | ((RT & CC2 & TERM_n))    // ) HOLD TERMS FOR
+        | ((IORQ & CC2 & TERM_n))  // ) CPU READ, FETCH AND MAP CYCLES
+          ) == 0)
+        EMD <= 1'b0;
+    end
   end
 `endif
 
