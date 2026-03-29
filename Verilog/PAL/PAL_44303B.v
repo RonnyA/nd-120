@@ -56,7 +56,7 @@ module PAL_44303B (
   reg  CBWRITE;
   reg  CMWRITE;
 
-`ifdef VERILATOR_SIM
+`ifdef USE_TRANSPARENT_LATCHES
   // Transparent latch (original behavior for simulation)
   /* verilator lint_off LATCH */
   always @(*) begin

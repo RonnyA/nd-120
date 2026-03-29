@@ -107,7 +107,7 @@ module CPU_CS_ACAL_17 (
 
 
 
-`ifdef VERILATOR_SIM
+`ifdef USE_TRANSPARENT_LATCHES
   // Transparent latch (original behavior for simulation)
   TTL_74373 CHIP_30H (
       .C(s_maclk),

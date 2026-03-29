@@ -17,71 +17,70 @@
 
 
 
+// Define USE_TRANSPARENT_LATCHES for latch behavior in PALs.
+// Active when: VERILATOR_SIM is set (sim build) AND FPGA_FF_MODE is NOT set.
+// This allows sim builds to test FF mode with: make compile USE_LATCHES=0
+`ifdef VERILATOR_SIM
+  `ifndef FPGA_FF_MODE
+    `define USE_TRANSPARENT_LATCHES
+  `endif
+`endif
+
 //! @title ND120 CPU, MEMORY MANAGEMENT and MEMORY.
 //! @author Ronny Hansen
 //! TOP LEVEL FOR FPGA IMPLEMENTATION OF ND-3202D CPU BOARD
 
 module ND120_TOP
 (
+    // Core FPGA pins (always present)
     input wire sysclk,    //! System Clock
-    input wire btn1,      //! Button 1, mapped to S1 (not labeled) on the board - connected to sys_rst_n
-    input wire btn2,      //! Button 2, mapped to S2 (not labeled) on the board
+    input wire btn1,      //! Button 1 - connected to sys_rst_n
+    input wire btn2,      //! Button 2
     input wire uartRx,    //! UART Receive pin
+    output wire uartTx,   //! UART Transmit pin
+    output wire [5:0] led //! 6-bit output for controlling LEDs
 
+`ifdef VERILATOR_SIM
+    // Simulation-only ports: full bus interface for device emulation
+    ,
     input wire DEBUGFLAG,  // DEBUG FLAG
-    
-    // Outputs
-    output wire uartTx,           //! UART Transmit pin
-    output wire [6:0] led,        //! 7-bit output for controlling LEDs
     output wire [12:0] CSA_12_0,  //! Microcode Address (for debugging)
 
-
-    // Signal from C-PLUG to CPU Board
-    //input wire LOAD_n,      // Load button  C-B12, A-C15
-    input wire BREQ_n,      // Bus Request  C-C12
-    //input wire CONTINUE_n,  // Continue button C-B15
-    //input wire STOP_n,      // Stop button C-B16, A-C17
-
-    input wire BINT10_n,  // Bus Interrupt 10 C-A15
-    input wire BINT11_n,  // Bus Interrupt 11 C-C15
-    input wire BINT12_n,  // Bus Interrupt 12 C-A16
-    input wire BINT13_n,  // Bus Interrupt 13 C-A16
-    input wire BINT15_n,  // Bus Interrupt 15 C-C17
-
+    // C-PLUG bus signals
+    input wire BREQ_n,      // Bus Request
+    input wire BINT10_n,    // Bus Interrupt 10
+    input wire BINT11_n,    // Bus Interrupt 11
+    input wire BINT12_n,    // Bus Interrupt 12
+    input wire BINT13_n,    // Bus Interrupt 13
+    input wire BINT15_n,    // Bus Interrupt 15
     input wire POWSENSE_n,  // Power Sense
 
+    // BUS data in/out
+    input wire [23:0] BD_23_0_n_IN,
+    output wire [23:0] BD_23_0_n_OUT,
 
-    // BUS INTERFACE data in and out
-    input wire [23:0] BD_23_0_n_IN,   //! BUS DATA & ADDRESS IN (Pulled high)
-    output wire [23:0] BD_23_0_n_OUT, //! BUS DATA & ADDRESS OUT (Pulled high)
+    // Bidirectional bus signals
+    input  SEMRQ_n_IN,
+    output SEMRQ_n_OUT,
+    input  BINPUT_n_IN,
+    output BINPUT_n_OUT,
+    input  BDAP_n_IN,
+    output BDAP_n_OUT,
+    input  BDRY_n_IN,
+    output BDRY_n_OUT,
+    input  BAPR_n_IN,
+    output BAPR_n_OUT,
 
-     /* Bidirectional signals */
-    input  SEMRQ_n_IN,    //! Input-signal from "C PLUG", signal A17 SEMREQ~ (Bus Address PResent)
-    output SEMRQ_n_OUT,   //! Output-signal to "C PLUG", signal A17 SEMREQ~ (Bus Address PResent)
-
-    input  BINPUT_n_IN,    //! Input-signal from "C PLUG", signal A18 BINPUT~ (Bus Address PResent)
-    output BINPUT_n_OUT,   //! Output-signal to "C PLUG", signal A18 BINPUT~ (Bus Address PResent)
-
-    input  BDAP_n_IN,    //! Input-signal from "C PLUG", signal C18 BDAP~ (Bus DAta Present)
-    output BDAP_n_OUT,   //! Output-signal to "C PLUG", signal C18 BDAP~ (Bus DAta Present)
-
-    input  BDRY_n_IN,    //! Input-signal from "C PLUG", signal A19 BDRY~ (Bus Data ReadY)
-    output BDRY_n_OUT,   //! Output-signal to "C PLUG", signal A19 BDRY~ (Bus Data ReadY)
-
-    input  BAPR_n_IN,    //! Input-signal from "C PLUG", signal A20 BAPR~ (Bus Address PResent)
-    output BAPR_n_OUT,   //! Output-signal to "C PLUG", signal A20 BAPR~ (Bus Address PResent)
-
-
-    // Signals from CPU board to C-PLUG
-
-    output wire  BREF_n,      // Output-signal to "C PLIG", signal B12 BREF~
-    output wire  BERROR_n,    // Output-signal to "C PLIG", signal B21 BERROR~
-    output wire  BINACK_n,    // Output-signal to "C PLIG", signal B19 BINACK~
-    output wire  BIOXE_n,     // Output-signal to "C PLIG", signal C19 BIOXE~
-    output wire  BMEM_n,      // Output-signal to "C PLIG", signal C28 BMEM~
-    output wire  OUTGRANT_n,  // Output-signal to "C PLIG", signal C23 OUTGRANT~
-    output wire  OUTIDENT_n,   // Output-signal to "C PLIG", signal C22 OUTIDENT~
-    output wire  MCL          // Output-signal to "C PLIG", signal B20 MCL~ (after negation)
+    // Bus control outputs
+    output wire BREF_n,
+    output wire BERROR_n,
+    output wire BINACK_n,
+    output wire BIOXE_n,
+    output wire BMEM_n,
+    output wire OUTGRANT_n,
+    output wire OUTIDENT_n,
+    output wire MCL
+`endif
 );
  
 
@@ -89,9 +88,44 @@ module ND120_TOP
   *    ND-100 BUS Wires                         *
   ***********************************************/
 
+`ifndef VERILATOR_SIM
+  // FPGA mode: bus signals tied to safe defaults (no external bus)
+  wire DEBUGFLAG = 1'b0;
+  wire [12:0] CSA_12_0;
+
+  wire BREQ_n = 1'b1;
+  wire BINT10_n = 1'b1;
+  wire BINT11_n = 1'b1;
+  wire BINT12_n = 1'b1;
+  wire BINT13_n = 1'b1;
+  wire BINT15_n = 1'b1;
+  wire POWSENSE_n = 1'b1;
+
+  wire [23:0] BD_23_0_n_IN = 24'hFFFFFF;  // Pulled high (inactive)
+  wire [23:0] BD_23_0_n_OUT;
+
+  wire SEMRQ_n_IN = 1'b1;
+  wire SEMRQ_n_OUT;
+  wire BINPUT_n_IN = 1'b1;
+  wire BINPUT_n_OUT;
+  wire BDAP_n_IN = 1'b1;
+  wire BDAP_n_OUT;
+  wire BDRY_n_IN = 1'b1;
+  wire BDRY_n_OUT;
+  wire BAPR_n_IN = 1'b1;
+  wire BAPR_n_OUT;
+
+  wire BREF_n;
+  wire BERROR_n;
+  wire BINACK_n;
+  wire BIOXE_n;
+  wire BMEM_n;
+  wire OUTGRANT_n;
+  wire OUTIDENT_n;
+  wire MCL;
+`endif
 
   // Installation number.
-  // TODO: Find out what is valid values
   wire [7:0] installation_number = 8'd123;
 
   // helpers
@@ -143,7 +177,6 @@ module ND120_TOP
   assign led[3] = !s_cpu_led[3]; // LED CPU GRANT INDICATOR
   assign led[4] = !s_cpu_led[4]; // LED BUS GRANT INDICATOR
   assign led[5] = !s_cpu_led[5]; // LED1 from MMU
-  assign led[6] = !s_cpu_led[6]; // LED5 RED DISABLE PARITY
 
   //assign led[4] = !uartRx;
   //assign led[5] = !uartTx;

@@ -86,7 +86,7 @@ module PAL_45001B (
   reg BLOCK_reg;
   reg RERR_reg;
 
-`ifdef VERILATOR_SIM
+`ifdef USE_TRANSPARENT_LATCHES
   // Transparent latch (original behavior for simulation)
   /* verilator lint_off LATCH */
   always @(*) begin

@@ -32,7 +32,7 @@ module F595 (
 
   /* verilator lint_off LATCH */
 
-`ifdef VERILATOR_SIM
+`ifdef USE_TRANSPARENT_LATCHES
   // Transparent gated latch (original behavior)
   always @* begin
     if (H03_G) begin

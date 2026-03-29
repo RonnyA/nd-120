@@ -82,7 +82,7 @@ module PAL_45009B (
   wire set_condition = (RDATA & EPEAL_n & EPESL_n & LERR & MR_n);
   wire reset_condition = !(PA_n & MR_n);
 
-`ifdef VERILATOR_SIM
+`ifdef USE_TRANSPARENT_LATCHES
   // Transparent latch (original behavior for simulation)
   /* verilator lint_off LATCH */
   always @(*) begin

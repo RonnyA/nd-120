@@ -69,7 +69,7 @@ module PAL_44310D (
   // Logic for BDRY_n (active-low)
   reg BDRY;
 
-`ifdef VERILATOR_SIM
+`ifdef USE_TRANSPARENT_LATCHES
   // Transparent latch (original behavior for simulation)
   /* verilator lint_off LATCH */
   always @(*) begin

@@ -16,7 +16,7 @@ module LATCH (
 
   // FPGA_MODE: Set to 1 for edge-triggered operation (FPGA synthesis)
   //            Set to 0 for transparent latch operation (original behavior)
-`ifdef VERILATOR_SIM
+`ifdef USE_TRANSPARENT_LATCHES
   parameter FPGA_MODE = 0;  // Simulation: use transparent latch (original behavior)
 `else
   parameter FPGA_MODE = 1;  // FPGA: use edge-triggered FF for synthesis

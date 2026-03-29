@@ -60,7 +60,7 @@ module PAL_44302B (
   // Output signal logic (self reference)
   reg  EMD;
 
-`ifdef VERILATOR_SIM
+`ifdef USE_TRANSPARENT_LATCHES
   // Transparent latch (original behavior for simulation)
   /* verilator lint_off LATCH */
   always @(*) begin

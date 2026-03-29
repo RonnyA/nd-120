@@ -8,11 +8,8 @@ USE_LATCHES ?= 1
 
 # Enable larger RAM (1MB) for Verilator simulation instead of FPGA's 4KB
 SIM_DEFINES = -DVERILATOR_SIM
-ifeq ($(USE_LATCHES),1)
-  # Nothing extra needed - VERILATOR_SIM activates latch mode in all modules
-else
-  # Override: remove VERILATOR_SIM so modules use FPGA flip-flop mode
-  SIM_DEFINES =
+ifeq ($(USE_LATCHES),0)
+  SIM_DEFINES += -DFPGA_FF_MODE
 endif
 
 VERILATOR_FLAGS = --trace -Wall --cc ../ND120_TOP.v $(SUPPRESS_FLAGS) $(SIM_DEFINES)
