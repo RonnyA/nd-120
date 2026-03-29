@@ -16,7 +16,7 @@ module TTL_74374 (
     input wire OE_n,      // Output Control (active low)
     output wire [7:0] Q   // Outputs
 );
-    reg [7:0] Q_reg;  // Internal register
+    reg [7:0] Q_reg = 8'b0;  // Internal register with initial value for FPGA
 
     // Latch operation on rising edge of CK
     always @(posedge CK) begin

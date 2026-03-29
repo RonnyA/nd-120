@@ -3,7 +3,7 @@
 <Project>
     <Template>FPGA</Template>
     <Version>5</Version>
-    <Device name="GW1NR-9C" pn="GW1NR-LV9QN88C6/I5">gw1nr9c-000</Device>
+    <Device name="GW2AR-18C" pn="GW2AR-LV18QN88C8/I7">gw2ar18c-000</Device>
     <FileList>
         <File path="E:/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/BIF_5.v" type="file.verilog" enable="1"/>
         <File path="E:/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/BIF_BCTL_6.v" type="file.verilog" enable="1"/>

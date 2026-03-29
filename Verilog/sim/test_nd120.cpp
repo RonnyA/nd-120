@@ -139,18 +139,18 @@ int main(int argc, char **argv)
 							  
 	//long startTrace = 2207832; // READY AFTER BOOT from 0!
 	// long startTrace = 4777683;
-	//long startTrace = 0;
+	long startTrace = 0;
 	//long startTrace = 10000000; // 10 mill
 
-	long startTrace = (7808519-200); // DYNAMIC OVERFLOW BIT NOT SET. SHOULD HAVE BEEN "MPY" FAILED (MPY2OP) 
+	//long startTrace = (7808519-200); // DYNAMIC OVERFLOW BIT NOT SET. SHOULD HAVE BEEN "MPY" FAILED (MPY2OP) 
 
 	//long maxTicks = 2000000;
 
 	//long maxTicks = 755472; // OPCOM READY after selftest
 
 
-	long maxTicks = startTrace + 200000; // 200K (good for boot)
-	//long maxTicks = startTrace + 1000000; // 1M
+	//long maxTicks = startTrace + 200000; // 200K (good for boot)
+	long maxTicks = startTrace + 1000000; // 1M
 	// long maxTicks = startTrace + 2000000; // 2M
 	// long maxTicks = startTrace + 5500000; // 5.5M
 

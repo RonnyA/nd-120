@@ -11,6 +11,9 @@
 **************************************************************************/
 
 module CGA_CPU_ALU_RALU (
+    input sysclk,    // System clock in FPGA
+    input sys_rst_n, // System reset in FPGA
+
     input        ALUI4,    //! ALU Instruction - bit 4
     input        CI,       //! Carry IN (1=carry in)
     input        FSEL,     //! Function Select (1=Logic function (XOR), 0=OR/AND/NOT)
