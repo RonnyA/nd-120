@@ -1,0 +1,453 @@
+# ND-120 Simulation Devices
+
+This directory contains C++ implementations of peripheral devices that interface with the ND-120 CPU simulation through the Norsk Data Bus (ND BUS). These devices are integrated into the Verilator simulation and provide essential I/O capabilities for running the CPU self-test programs and bootstrapping the system.
+
+## Overview
+
+The simulation device framework allows the Verilog CPU to interact with I/O devices through memory-mapped registers, just as the real ND-120 hardware did. The devices respond to bus signals, handle interrupts, and provide timing-accurate behavior using delayed I/O callbacks.
+
+### Architecture
+
+```
+┌─────────────────────┐
+│   Verilator CPU     │
+│    (ND120_TOP)      │
+└──────────┬──────────┘
+           │
+     ND BUS Interface
+    (BAPR, BIOXE, etc.)
+           │
+┌──────────┴──────────┐
+│   NDBus.cpp         │  ← Bus Protocol Handler
+│   proccess_bif()    │
+└──────────┬──────────┘
+           │
+┌──────────┴──────────┐
+│  DeviceManager      │  ← Device Coordinator
+└──────────┬──────────┘
+           │
+     ┌─────┴────┬───────────┬────────────┐
+     │          │           │            │
+┌────┴────┐ ┌───┴─────┐ ┌───┴──────┐ ┌───┴────┐
+│PaperTape│ │FloppyPIO│ │FloppyDMA │ │Future  │
+│ Reader  │ │         │ │  (TBD)   │ │Devices │
+└─────────┘ └─────────┘ └──────────┘ └────────┘
+```
+
+## Core Components
+
+### DeviceManager
+
+The `DeviceManager` class coordinates all simulated devices:
+
+- **Device Registration**: Adds devices with specific thumbwheel settings (hardware configuration)
+- **Address Routing**: Routes memory reads/writes to the correct device based on address ranges
+- **Interrupt Handling**: Collects interrupt signals from all devices (levels 10-13)
+- **Tick Management**: Updates all devices every CPU clock cycle
+- **IDENT Processing**: Identifies which device triggered an interrupt
+
+**Key Methods:**
+- `AddDevice(DeviceType, thumbweel)` - Register a new device
+- `Read(address)` - Read from device register
+- `Write(address, value)` - Write to device register
+- `IDENT(level)` - Identify interrupt source
+- `Tick()` - Update all devices (called every CPU cycle)
+
+### NDBus Interface
+
+The `NDBus.cpp` module bridges the Verilog CPU and C++ devices by monitoring bus signals:
+
+**Bus Signals Monitored:**
+- `BAPR_n` - Bus Address Present (address strobe)
+- `BIOXE_n` - Bus IOX Enable (I/O transaction)
+- `BMEM_n` - Bus Memory Enable (memory transaction)
+- `BDRY_n` - Bus Data Ready
+- `BINPUT_n` - Bus Input (direction: 0=read, 1=write)
+- `BINACK_n` - Bus Input Acknowledge
+- `OUTIDENT_n` - Interrupt identify request
+- `BINT10_n` to `BINT13_n` - Interrupt level signals
+
+**Bus Cycle States:**
+- `IDLE` - No transaction in progress
+- `READ` - Device read operation
+- `WRITE` - Device write operation
+
+## Devices
+
+### 1. Paper Tape Reader
+
+The paper tape reader simulates a high-speed paper tape device used for loading programs in BPUN (Binary Paper tape Universal Norsk data) format.
+
+**Configuration:**
+| Thumbwheel | Address Range | Interrupt Level | IDENT Code |
+|------------|---------------|-----------------|------------|
+| 0          | 0400-0403     | 12              | 02 (octal) |
+| 1          | 0404-0407     | 12              | 022 (octal)|
+
+**Registers:**
+
+| Address | Access | Name | Description |
+|---------|--------|------|-------------|
+| +0      | Read   | RDR  | Read Data Register (8-bit character) |
+| +1      | Write  | WDB  | Write Data Buffer (not used in reader) |
+| +2      | Read   | RSR  | Read Status Register |
+| +3      | Write  | WCWD | Write Control Word |
+
+**Status Register (RSR) Bits:**
+- Bit 0: Interrupt Enabled
+- Bit 2: Read Active
+- Bit 3: Ready For Transfer (data available)
+
+**Control Word (WCWD) Bits:**
+- Bit 0: Enable Interrupt
+- Bit 2: Read Active (trigger read)
+- Bit 3: Ready For Transfer
+- Bit 4: Device Clear (reset device)
+
+**File Operations:**
+- Reads from file: `INSTRUCTION-B.BPUN` (hardcoded)
+- Sequential byte-by-byte reading
+- Automatic EOF detection
+
+**Timing:**
+- Synchronous operation (no delay simulation)
+- Data available immediately after read request
+
+---
+
+### 2. Floppy Disk Controller (PIO Mode)
+
+Full implementation of the Norsk Data Floppy Disk Controller using Programmed I/O (PIO) data transfer. Based on the ND-11.015.01 Floppy Disk Controller 3027 specification.
+
+**Configuration:**
+| Thumbwheel | Address Range | Interrupt Level | IDENT Code |
+|------------|---------------|-----------------|------------|
+| 0          | 01560-01567   | 11              | 021 (octal)|
+| 1          | 01570-01577   | 11              | 022 (octal)|
+
+**Registers:**
+
+| Address | Access | Name  | Description |
+|---------|--------|-------|-------------|
+| +0      | Read   | RDBUF | Read Data Buffer (16-bit word) |
+| +1      | Write  | WDBUF | Write Data Buffer (16-bit word) |
+| +2      | Read   | RSR1  | Read Status Register 1 |
+| +3      | Write  | WCWD  | Write Control Word |
+| +4      | Read   | RSR2  | Read Status Register 2 (Error flags) |
+| +5      | Write  | WDAD  | Write Drive Address / Write Difference |
+| +6      | Read   | RTST  | Read Test Data |
+| +7      | Write  | WSCT  | Write Sector / Write Test Byte |
+
+**Status Register 1 (RSR1) Bits:**
+- Bit 1: Interrupt Enabled
+- Bit 2: Device Busy
+- Bit 3: Device Ready For Transfer
+- Bit 4: Inclusive OR of all error bits in RSR2
+- Bit 5: Deleted Record (sector marked as deleted)
+- Bit 6: Read/Write Complete
+- Bit 7: Seek Complete
+- Bit 8: Timeout (~1.5 seconds)
+
+**Status Register 2 (RSR2) - Error Flags:**
+- Bit 8: Drive Not Ready
+- Bit 9: Write Protected
+- Bit 11: Sector Missing (CHS address not found)
+- Bit 12: CRC Error
+- Bit 14: Data Overrun
+
+**Control Word (WCWD) Commands:**
+- Bit 1: Enable Interrupt
+- Bit 2: Autoload (load boot sector from track 0, sector 1)
+- Bit 3: Test Mode
+- Bit 4: Device Clear
+- Bit 5: Clear Interface Buffer Address
+- Bit 6: Enable Timeout
+- **Command bits (8-15):**
+  - Bit 8: Format Track
+  - Bit 9: Write Data
+  - Bit 10: Write Deleted Data
+  - Bit 11: Read ID
+  - Bit 12: Read Data
+  - Bit 13: Seek
+  - Bit 14: Recalibrate
+  - Bit 15: Control Reset
+
+**Drive Address (WDAD) Register:**
+
+*Mode Bit = 1 (Write Drive Address):*
+- Bits 8-10: Drive Address (0, 1, or 2)
+- Bit 11: Deselect Drives
+- Bits 14-15: Format Select
+  - 0 or 1: 128 bytes/sector, 26 sectors/track (IBM 3740)
+  - 2: 256 bytes/sector, 15 sectors/track (IBM 3600)
+  - 3: 512 bytes/sector, 8 sectors/track (IBM System 32)
+
+*Mode Bit = 0 (Write Difference):*
+- Bits 8-14: Track difference (0-76)
+- Bit 15: Direction (0=out/lower, 1=in/higher)
+
+**Sector Register (WSCT):**
+- Bits 8-14: Sector Number (1-32, 0 not allowed)
+- Bit 15: Auto-increment sector after read/write
+
+**Supported Commands:**
+
+1. **Format Track** - Writes entire track with default data pattern
+2. **Write Data** - Writes sector data from buffer to disk
+3. **Write Deleted Data** - Writes sector with deleted data mark
+4. **Read ID** - Reads sector ID field (track, sector, format info)
+5. **Read Data** - Reads sector data into buffer
+6. **Seek** - Positions head to specified track
+7. **Recalibrate** - Returns head to track 0
+8. **Control Reset** - Resets controller (no interrupt)
+
+**Data Buffer:**
+- 1024 words (2048 bytes) internal buffer
+- Circular buffer with auto-wrap at 1023 words
+- Buffer pointer reset via WCWD bit 5
+
+**File Operations:**
+- Reads from file: `FLOPPY.IMG`
+- Sector size: Configurable (128, 256, or 512 bytes)
+- Track range: 0-76 (77 tracks)
+- Sector addressing: CHS (Cylinder-Head-Sector)
+
+**Timing:**
+- All commands use delayed I/O callbacks
+- Delay: 3000 CPU ticks (`IODELAY_FLOPPY`)
+- Simulates mechanical seek time and rotational latency
+
+**Boot Sequence:**
+- Autoload (WCWD bit 2) loads 388-byte boot program
+- Boot program stored in `floppy_boot[]` array (FLO-MON monitor)
+- Automatically positions to track 0, sector 1
+
+**Test Support:**
+- Test Mode (WCWD bit 3) enables test byte read/write
+- RTST register reads/modifies buffer with test pattern
+- Supports FLOPPY-FU-1986F.BPUN diagnostic program
+
+---
+
+### 3. Floppy Disk Controller (DMA Mode)
+
+**Status: NOT IMPLEMENTED (Stub only)**
+
+The DMA floppy controller would use Direct Memory Access to transfer data without CPU intervention. Currently returns dummy data (0xBBBB).
+
+**Configuration:**
+| Thumbwheel | Address Range | Interrupt Level | IDENT Code |
+|------------|---------------|-----------------|------------|
+| 0          | 01560-01567   | 11              | 021 (octal)|
+| 1          | 01570-01577   | 11              | 022 (octal)|
+
+---
+
+## Interrupt System
+
+### Interrupt Levels
+
+The ND-120 supports 4 I/O interrupt levels:
+
+| Level | IDENT Address | Typical Devices |
+|-------|---------------|-----------------|
+| 10    | 004           | Future devices  |
+| 11    | 011           | Floppy disks    |
+| 12    | 022           | Paper tape      |
+| 13    | 043           | Future devices  |
+
+### Interrupt Flow
+
+1. Device sets interrupt bit for its level
+2. `DeviceManager::Tick()` returns combined interrupt bits
+3. `NDBus` drives `BINT10_n` to `BINT13_n` signals
+4. CPU detects interrupt and issues `OUTIDENT_n` strobe
+5. `DeviceManager::IDENT()` queries each device
+6. Device with active interrupt returns its IDENT code
+7. CPU reads IDENT code from bus and vectors to handler
+
+### Delayed I/O
+
+Devices use delayed I/O callbacks to simulate realistic timing:
+
+```cpp
+QueueIODelay(ticks, callback, parameter, irq_level)
+```
+
+**Predefined Delays:**
+- `IODELAY_TERMINAL`: 1000 ticks
+- `IODELAY_FLOPPY`: 3000 ticks
+- `IODELAY_HDD`: 100 ticks
+- `IODELAY_SLOW`: 100 ticks
+
+When the delay expires, the callback is invoked and can optionally generate an interrupt.
+
+---
+
+## Usage
+
+### Adding Devices
+
+Devices are added in `addDevices()` in `NDBus.cpp`:
+
+```cpp
+void addDevices()
+{
+    // Add Paper Tape Reader at address 0400 (thumbwheel = 0)
+    deviceManager.AddDevice(DeviceType::PaperTape, 0);
+
+    // Add Floppy Disk at address 01560 (thumbwheel = 0)
+    deviceManager.AddDevice(DeviceType::FloppyPIO, 0);
+}
+```
+
+### Thumbwheel Settings
+
+The thumbwheel parameter configures device addressing and identification:
+- **0**: Primary device (standard addresses)
+- **1**: Secondary device (alternate addresses)
+
+This allows multiple devices of the same type on different addresses.
+
+### Integration with Verilator
+
+The devices are integrated into the main simulation loop:
+
+```cpp
+// In main simulation loop (Run120.cpp)
+void proccess_bif_signal(top);  // Called every clock cycle
+```
+
+This function:
+1. Monitors bus signals for transactions
+2. Routes read/write operations to devices
+3. Handles interrupt identification
+4. Updates interrupt lines to CPU
+
+---
+
+## File Requirements
+
+### Paper Tape Files
+
+**Format:** BPUN (Binary Paper tape Universal Norsk data)
+- 8-bit characters
+- Sequential byte stream
+- Big-endian 16-bit words (high byte first)
+
+**Required File:**
+- `INSTRUCTION-B.BPUN` - Test program loader
+
+### Floppy Disk Images
+
+**Format:** Raw binary sector image
+- Direct sector-by-sector dump
+- No filesystem metadata
+- Size depends on format (128/256/512 bytes per sector × sectors × tracks)
+
+**Required File:**
+- `FLOPPY.IMG` - Bootable floppy image
+
+**Layout:**
+```
+Track 0, Sector 1: Boot sector (FLO-MON monitor)
+Remaining sectors: File system or program data
+```
+
+---
+
+## Debugging
+
+### Debug Flags
+
+Enable debugging output by defining these macros in `NDDevices.h`:
+
+```cpp
+#define DEBUG_PT              // Paper tape operations
+#define DEBUG_FLOPPY_PIO      // Floppy PIO operations
+#define DEBUG_FLOPPY_DMA      // Floppy DMA operations
+#define DEBUG_DATATRANSFER_PIO // PIO data transfer details
+#define DEBUG_DETAIL          // Detailed operation logs
+#define DEBUG_INTERRUPT       // Interrupt handling
+```
+
+Set in `NDBus.h`:
+```cpp
+#define DEBUG_BIF 1  // Bus interface debugging
+```
+
+### Debug Output
+
+Example output with debugging enabled:
+
+```
+-> BAPR 1560 READ
+Floppy PIO Reading from address: 1560 value: 0
+BIOXE_n START
+Activating BINPUT !
+BINACK_n !
+Generating interrupt at level 11
+IDENT LVL[11]=21
+```
+
+---
+
+## Implementation Notes
+
+### Limitations
+
+1. **No DMA Support**: Only PIO mode floppy is implemented
+2. **Single Drive**: Floppy controller supports drive 0 only
+3. **Deleted Sectors**: Tracked in memory array, not persisted to disk
+4. **No Write Protection Check**: File system permission not validated
+5. **Fixed Filenames**: Paper tape and floppy use hardcoded filenames
+
+### Future Enhancements
+
+Planned devices and features:
+
+- **FloppyDMA**: Complete DMA implementation
+- **Hard Disk (SMD)**: Storage Module Device controller
+- **SCSI Controller**: Modern storage interface
+- **Terminal/UART**: Serial console device
+- **Ethernet**: Network interface
+- **Tape Drive**: Magnetic tape backup
+
+### Testing
+
+The floppy implementation has been tested with:
+- **FLOPPY-FU-1986F.BPUN**: Comprehensive floppy diagnostic
+  - Interface buffer test
+  - Format decoder test
+  - Test mode operations
+  - Bootstrap PROM test
+  - Disk operations test
+
+Test results show successful operation for all implemented features.
+
+---
+
+## Technical References
+
+### Documentation
+
+- **ND-06.026.1 EN**: ND-100 Computer Reference Manual (Bus specification)
+- **ND-11.015.01**: Floppy Disk Controller 3027 (May 1982)
+- **ND-11.012.01**: Floppy Disk System
+
+### Register Specifications
+
+All register layouts and bit definitions are taken from original Norsk Data documentation. The implementation closely follows the hardware behavior described in these manuals.
+
+---
+
+## File Summary
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `NDDevices.h` | 607 | Device class definitions, register structures |
+| `NDDevices.cpp` | 1134 | Device implementations (PaperTape, FloppyPIO) |
+| `NDBus.h` | 28 | Bus interface declarations |
+| `NDBus.cpp` | 252 | Bus protocol handler, signal processing |
+
+**Total:** ~2000 lines of C++ code implementing complete I/O device simulation.
