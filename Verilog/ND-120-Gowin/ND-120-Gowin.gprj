@@ -53,9 +53,7 @@
         <File path="E:/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/DECODE_DGA.v" type="file.verilog" enable="1"/>
         <File path="E:/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/DECODE_DGA_COMM.v" type="file.verilog" enable="1"/>
         <File path="E:/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/DECODE_DGA_IDBS.v" type="file.verilog" enable="1"/>
-        <File path="E:/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/DECODE_DGA_PFIFC.v" type="file.verilog" enable="1"/>
-        <File path="E:/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/DECODE_DGA_PFIFC_DELAY.v" type="file.verilog" enable="1"/>
-        <File path="E:/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/DECODE_DGA_PFIFD.v" type="file.verilog" enable="1"/>
+
         <File path="E:/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/DECODE_DGA_POW.v" type="file.verilog" enable="1"/>
         <File path="E:/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/F091.v" type="file.verilog" enable="1"/>
         <File path="E:/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/F103.v" type="file.verilog" enable="1"/>
