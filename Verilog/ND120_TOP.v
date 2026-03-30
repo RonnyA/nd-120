@@ -38,7 +38,11 @@ module ND120_TOP
     input wire btn2,      //! Button 2
     input wire uartRx,    //! UART Receive pin
     output wire uartTx,   //! UART Transmit pin
-    output wire [5:0] led //! 6-bit output for controlling LEDs
+    output wire [5:0] led, //! 6-bit output for controlling LEDs
+
+    // 7-segment display (active LOW, Basys3)
+    output wire [6:0] seg,  //! 7-segment segments (a-g, active LOW)
+    output wire [3:0] an    //! 7-segment digit anodes (active LOW)
 
 `ifdef VERILATOR_SIM
     // Simulation-only ports: full bus interface for device emulation
@@ -169,6 +173,10 @@ module ND120_TOP
   assign s_debug_uartRx = uartRx;
   assign s_debug_cpu_led = s_cpu_led;
 
+  // MAC (Memory Access Controller) address debug wires
+  (* mark_debug = "true" *) wire [13:0] s_debug_la_23_10;  // LA 23:10
+  (* mark_debug = "true" *) wire [9:0]  s_debug_ca_9_0;    // CA 9:0
+
   (* keep = "true", DONT_TOUCH = "true" *)  wire [4:0] s_test_4_0;  // Test pads
   (* keep = "true", DONT_TOUCH = "true" *)  wire [4:0] s_dp_5_1_n;  // Datapath 5-1
   (* keep = "true", DONT_TOUCH = "true" *)  wire s_tp1_intrq_n;     // TP1 INTRQ_n
@@ -206,6 +214,22 @@ module ND120_TOP
     clockTicks <= clockTicks + 1;
   end
 
+  // 7-segment display: shows CPU addresses in hex.
+  // SW1 (btn2) selects what to display:
+  //   SW1 OFF (DOWN): MIC address = CSA_12_0 (microcode address, 13 bits)
+  //   SW1 ON  (UP):   MAC address = LA_23_10 (memory logical address, 14 bits)
+  // If display shows changing values, the CPU is executing.
+  // If stuck at 0000, the CPU is not running.
+  wire [15:0] seg_display_value = btn2
+      ? {2'b0, s_debug_la_23_10}
+      : {3'b0, CSA_12_0};
+
+  SevenSegDebug SEVEN_SEG (
+      .clk(sysclk),
+      .value(seg_display_value),
+      .seg(seg),
+      .an(an)
+  );
 
   ND3202D CPU_BOARD (
       .sysclk(sysclk),
@@ -266,8 +290,8 @@ module ND120_TOP
       .MIS_1_0(),     // MIS1=B-C14, MIS0=B-A14
       .CD_15_0(),     // CD 15:0
       .LBD_15_0(),    // LBD 15:0
-      .LA_23_10(),    // XLA 23:10
-      .CA_9_0(),      // CA 9:0
+      .LA_23_10(s_debug_la_23_10),  // XLA 23:10 (MAC upper address)
+      .CA_9_0(s_debug_ca_9_0),     // CA 9:0 (MAC lower address)
 
 
       // Signals from A-PLUG to CPU board
