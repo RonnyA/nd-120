@@ -69,19 +69,25 @@ module PAL_44601B (
   wire SHORT = ~SHORT_n;
   wire SLOW = ~SLOW_n;
 
-  // Reg signals as wires
+  // Internal register-direct wires -- avoids combinational loop through output ports.
+  // In the real PAL16R6, registered outputs feed back internally before the output buffer.
+  wire s_term_n_int = ~TERM_reg;  // Internal TERM_n (same value, no output port loop)
   wire CC3 = CC3_reg;
   wire CC2 = CC2_reg;
   wire CC1 = CC1_reg;
   wire CC0 = CC0_reg;
+  wire s_cc3_n_int = ~CC3_reg;
+  wire s_cc2_n_int = ~CC2_reg;
+  wire s_cc1_n_int = ~CC1_reg;
+  wire s_cc0_n_int = ~CC0_reg;
 
   wire CC0_COMMON;
 
    // Statement both in CC0=1 and CC0=0
   assign CC0_COMMON =
-      (CC3_n & CC2_n & CC1_n & TERM_n)  // a+b+f+i+j+m+N
-    | (CC3 & CC2 & CC1_n & TERM_n)
-    | (CC3 & CC2_n & CC1 & TERM_n);
+      (s_cc3_n_int & s_cc2_n_int & s_cc1_n_int & s_term_n_int)  // a+b+f+i+j+m+N
+    | (CC3 & CC2 & s_cc1_n_int & s_term_n_int)
+    | (CC3 & s_cc2_n_int & CC1 & s_term_n_int);
 
 
 
@@ -93,25 +99,25 @@ module PAL_44601B (
   *********************************************************/
 
   /*
-    TERM_reg <=   (CC3_n & CC2_n  & CC1_n   & CC0_n   & SHORT   & TERM_n  & DLY0_n & CSDELAY0_n)  // 50NS CYCLE  '0000
-                | (CC3_n & CC2_n  & CC1_n   & CC0     & SHORT   & BRK_n   & DLY1_n & TERM_n)      // 75NS CYCLE  '0001
-                | (CC3_n & CC2_n  & CC1_n   & CC0     & HIT     & BRK_n   & DLY1_n & TERM_n)      // 75NS CYCLE  '0001
-                | (CC3_n & CC2_n  & CC1     & CC0     & SHORT   & BRK_n   & TERM_n)  // 100NS CYCLE
-                | (CC3_n & CC2_n  & CC1     & CC0     & HIT     & BRK_n   & TERM_n)  // 100NS CYCLE
-                | (CC3_n & CC2    & CC1     & CC0     & BRK     & TERM_n)  // BRK CYCLE  (>200
-                | (CC3_n & CC2    & CC1_n   & CC0     & SLOW    & TERM_n)  // SLOW CYCLES INCL. FE
-                | (CC3   & CC2_n  & CC1_n   & CC0_n   & TERM_n);  //; UART, LCS, RWCS CYCLES
+    TERM_reg <=   (s_cc3_n_int & s_cc2_n_int  & s_cc1_n_int   & s_cc0_n_int   & SHORT   & s_term_n_int  & DLY0_n & CSDELAY0_n)  // 50NS CYCLE  '0000
+                | (s_cc3_n_int & s_cc2_n_int  & s_cc1_n_int   & CC0     & SHORT   & BRK_n   & DLY1_n & s_term_n_int)      // 75NS CYCLE  '0001
+                | (s_cc3_n_int & s_cc2_n_int  & s_cc1_n_int   & CC0     & HIT     & BRK_n   & DLY1_n & s_term_n_int)      // 75NS CYCLE  '0001
+                | (s_cc3_n_int & s_cc2_n_int  & CC1     & CC0     & SHORT   & BRK_n   & s_term_n_int)  // 100NS CYCLE
+                | (s_cc3_n_int & s_cc2_n_int  & CC1     & CC0     & HIT     & BRK_n   & s_term_n_int)  // 100NS CYCLE
+                | (s_cc3_n_int & CC2    & CC1     & CC0     & BRK     & s_term_n_int)  // BRK CYCLE  (>200
+                | (s_cc3_n_int & CC2    & s_cc1_n_int   & CC0     & SLOW    & s_term_n_int)  // SLOW CYCLES INCL. FE
+                | (CC3   & s_cc2_n_int  & s_cc1_n_int   & s_cc0_n_int   & s_term_n_int);  //; UART, LCS, RWCS CYCLES
   */
 
-  if (TERM_n) begin
-    TERM_reg <=   (CC3_n & CC2_n  & CC1_n   & CC0_n   & SHORT   & DLY0_n & CSDELAY0_n)  // 50NS CYCLE  '0000
-                | (CC3_n & CC2_n  & CC1_n   & CC0     & SHORT   & BRK_n   & DLY1_n )    // 75NS CYCLE  '0001
-                | (CC3_n & CC2_n  & CC1_n   & CC0     & HIT     & BRK_n   & DLY1_n )    // 75NS CYCLE  '0001
-                | (CC3_n & CC2_n  & CC1     & CC0     & SHORT   & BRK_n   )             // 100NS CYCLE
-                | (CC3_n & CC2_n  & CC1     & CC0     & HIT     & BRK_n   )             // 100NS CYCLE
-                | (CC3_n & CC2    & CC1     & CC0     & BRK     )                       // BRK CYCLE  (>200
-                | (CC3_n & CC2    & CC1_n   & CC0     & SLOW    )                       // SLOW CYCLES INCL. FE
-                | (CC3   & CC2_n  & CC1_n   & CC0_n   );                                //; UART, LCS, RWCS CYCLES
+  if (s_term_n_int) begin
+    TERM_reg <=   (s_cc3_n_int & s_cc2_n_int  & s_cc1_n_int   & s_cc0_n_int   & SHORT   & DLY0_n & CSDELAY0_n)  // 50NS CYCLE  '0000
+                | (s_cc3_n_int & s_cc2_n_int  & s_cc1_n_int   & CC0     & SHORT   & BRK_n   & DLY1_n )    // 75NS CYCLE  '0001
+                | (s_cc3_n_int & s_cc2_n_int  & s_cc1_n_int   & CC0     & HIT     & BRK_n   & DLY1_n )    // 75NS CYCLE  '0001
+                | (s_cc3_n_int & s_cc2_n_int  & CC1     & CC0     & SHORT   & BRK_n   )             // 100NS CYCLE
+                | (s_cc3_n_int & s_cc2_n_int  & CC1     & CC0     & HIT     & BRK_n   )             // 100NS CYCLE
+                | (s_cc3_n_int & CC2    & CC1     & CC0     & BRK     )                       // BRK CYCLE  (>200
+                | (s_cc3_n_int & CC2    & s_cc1_n_int   & CC0     & SLOW    )                       // SLOW CYCLES INCL. FE
+                | (CC3   & s_cc2_n_int  & s_cc1_n_int   & s_cc0_n_int   );                                //; UART, LCS, RWCS CYCLES
   end else begin
     TERM_reg <= 1'b0;
   end
@@ -123,25 +129,25 @@ module PAL_44601B (
   *********************************************************/
 
   /*
-    CC3_reg <= (CC2 & CC1_n & CC0_n & TERM_n)  // h+i+j+k+l+m+n+o
-    | (CC3 & CC1 &  TERM_n & CC2)
-    | (CC3 & CC1 &  TERM_n & CC2_n)
-    | (CC3 & CC0 &  TERM_n & CC2 & CC1)
-    | (CC3 & CC0 &  TERM_n & CC2_n & CC1)
-    | (CC3 & CC0 &  TERM_n & CC2 & CC1_n)
-    | (CC3 & CC0 &  TERM_n & CC2_n & CC1_n);
+    CC3_reg <= (CC2 & s_cc1_n_int & s_cc0_n_int & s_term_n_int)  // h+i+j+k+l+m+n+o
+    | (CC3 & CC1 &  s_term_n_int & CC2)
+    | (CC3 & CC1 &  s_term_n_int & s_cc2_n_int)
+    | (CC3 & CC0 &  s_term_n_int & CC2 & CC1)
+    | (CC3 & CC0 &  s_term_n_int & s_cc2_n_int & CC1)
+    | (CC3 & CC0 &  s_term_n_int & CC2 & s_cc1_n_int)
+    | (CC3 & CC0 &  s_term_n_int & s_cc2_n_int & s_cc1_n_int);
   */
 
-    if (CC2 & CC1_n & CC0_n & TERM_n) begin
+    if (CC2 & s_cc1_n_int & s_cc0_n_int & s_term_n_int) begin
       CC3_reg <= 1'b1;
     end else begin
       if (CC3_reg) begin
-        CC3_reg  <= ( CC1 &  TERM_n & CC2)
-                  | ( CC1 &  TERM_n & CC2_n)
-                  | ( CC0 &  TERM_n & CC2 & CC1)
-                  | ( CC0 &  TERM_n & CC2_n & CC1)
-                  | ( CC0 &  TERM_n & CC2 & CC1_n)
-                  | ( CC0 &  TERM_n & CC2_n & CC1_n);
+        CC3_reg  <= ( CC1 &  s_term_n_int & CC2)
+                  | ( CC1 &  s_term_n_int & s_cc2_n_int)
+                  | ( CC0 &  s_term_n_int & CC2 & CC1)
+                  | ( CC0 &  s_term_n_int & s_cc2_n_int & CC1)
+                  | ( CC0 &  s_term_n_int & CC2 & s_cc1_n_int)
+                  | ( CC0 &  s_term_n_int & s_cc2_n_int & s_cc1_n_int);
       end
     end
 
@@ -150,28 +156,28 @@ module PAL_44601B (
   *********************************************************/
 
 /*
-    CC2_reg <= (CC3_n & CC2 & CC1 & TERM_n)  // e+f+g+h+i+j+k
-    | (CC2 & CC1_n & TERM_n & CC3)
-    | (CC2 & CC1_n & TERM_n & CC3_n)
-    | (CC2 & CC0 & TERM_n & CC3)
-    | (CC2 & CC0 & TERM_n & CC3_n)
-    | (CC3_n & CC2_n & CC1 & CC0_n & CGNTCACT & TERM_n)  // d WAIT FOR BUS IF
-    | (CC3_n & CC2_n & CC1 & CC0_n & WAIT1_n & TERM_n)  // d WAIT1 and NOT
-    | (CC3_n & CC2_n & CC1 & CC0_n & BRK & TERM_n);  // d BRK
+    CC2_reg <= (s_cc3_n_int & CC2 & CC1 & s_term_n_int)  // e+f+g+h+i+j+k
+    | (CC2 & s_cc1_n_int & s_term_n_int & CC3)
+    | (CC2 & s_cc1_n_int & s_term_n_int & s_cc3_n_int)
+    | (CC2 & CC0 & s_term_n_int & CC3)
+    | (CC2 & CC0 & s_term_n_int & s_cc3_n_int)
+    | (s_cc3_n_int & s_cc2_n_int & CC1 & s_cc0_n_int & CGNTCACT & s_term_n_int)  // d WAIT FOR BUS IF
+    | (s_cc3_n_int & s_cc2_n_int & CC1 & s_cc0_n_int & WAIT1_n & s_term_n_int)  // d WAIT1 and NOT
+    | (s_cc3_n_int & s_cc2_n_int & CC1 & s_cc0_n_int & BRK & s_term_n_int);  // d BRK
 */
 
     if (CC2) begin
       CC2_reg <=
-        (CC3_n & CC1 & TERM_n)  // e+f+g+h+i+j+k
-      | ( CC1_n & TERM_n & CC3)
-      | ( CC1_n & TERM_n & CC3_n)
-      | ( CC0 & TERM_n & CC3)
-      | ( CC0 & TERM_n & CC3_n);
+        (s_cc3_n_int & CC1 & s_term_n_int)  // e+f+g+h+i+j+k
+      | ( s_cc1_n_int & s_term_n_int & CC3)
+      | ( s_cc1_n_int & s_term_n_int & s_cc3_n_int)
+      | ( CC0 & s_term_n_int & CC3)
+      | ( CC0 & s_term_n_int & s_cc3_n_int);
     end else begin
       CC2_reg <=
-        (CC3_n & CC1 & CC0_n & CGNTCACT & TERM_n)  // d WAIT FOR BUS IF
-      | (CC3_n & CC1 & CC0_n & WAIT1_n & TERM_n)  // d WAIT1 and NOT
-      | (CC3_n & CC1 & CC0_n & BRK & TERM_n);  // d BRK
+        (s_cc3_n_int & CC1 & s_cc0_n_int & CGNTCACT & s_term_n_int)  // d WAIT FOR BUS IF
+      | (s_cc3_n_int & CC1 & s_cc0_n_int & WAIT1_n & s_term_n_int)  // d WAIT1 and NOT
+      | (s_cc3_n_int & CC1 & s_cc0_n_int & BRK & s_term_n_int);  // d BRK
     end
 
   /********************************************************
@@ -179,26 +185,26 @@ module PAL_44601B (
   *********************************************************/
 
 /*
-    CC1_reg <= (CC3_n & CC2_n & CC0 & TERM_n & CC1)  // b+c+d+e+j+k+l+m
-    | (CC3_n & CC2_n & CC0 & TERM_n & CC1_n)
-    | (CC3 & CC2 & CC0 & TERM_n & CC1)
-    | (CC3 & CC2 & CC0 & TERM_n & CC1_n)
-    | (CC1 & CC0_n & TERM_n & CC2 & CC3)
-    | (CC1 & CC0_n & TERM_n & CC2 & CC3_n)
-    | (CC1 & CC0_n & TERM_n & CC2_n & CC3)
-    | (CC1 & CC0_n & TERM_n & CC2_n & CC3_n);
+    CC1_reg <= (s_cc3_n_int & s_cc2_n_int & CC0 & s_term_n_int & CC1)  // b+c+d+e+j+k+l+m
+    | (s_cc3_n_int & s_cc2_n_int & CC0 & s_term_n_int & s_cc1_n_int)
+    | (CC3 & CC2 & CC0 & s_term_n_int & CC1)
+    | (CC3 & CC2 & CC0 & s_term_n_int & s_cc1_n_int)
+    | (CC1 & s_cc0_n_int & s_term_n_int & CC2 & CC3)
+    | (CC1 & s_cc0_n_int & s_term_n_int & CC2 & s_cc3_n_int)
+    | (CC1 & s_cc0_n_int & s_term_n_int & s_cc2_n_int & CC3)
+    | (CC1 & s_cc0_n_int & s_term_n_int & s_cc2_n_int & s_cc3_n_int);
 */
     if (CC1) begin
-      CC1_reg <= (CC3_n & CC2_n & CC0 & TERM_n)  // b+c+d+e+j+k+l+m
-    | (CC3 & CC2 & CC0 & TERM_n)
-    | (CC0_n & TERM_n & CC2 & CC3)
-    | (CC0_n & TERM_n & CC2 & CC3_n)
-    | (CC0_n & TERM_n & CC2_n & CC3)
-    | (CC0_n & TERM_n & CC2_n & CC3_n);
+      CC1_reg <= (s_cc3_n_int & s_cc2_n_int & CC0 & s_term_n_int)  // b+c+d+e+j+k+l+m
+    | (CC3 & CC2 & CC0 & s_term_n_int)
+    | (s_cc0_n_int & s_term_n_int & CC2 & CC3)
+    | (s_cc0_n_int & s_term_n_int & CC2 & s_cc3_n_int)
+    | (s_cc0_n_int & s_term_n_int & s_cc2_n_int & CC3)
+    | (s_cc0_n_int & s_term_n_int & s_cc2_n_int & s_cc3_n_int);
     end else begin
       CC1_reg <=
-      | (CC3_n & CC2_n & CC0 & TERM_n)
-      | (CC3 & CC2 & CC0 & TERM_n);
+      | (s_cc3_n_int & s_cc2_n_int & CC0 & s_term_n_int)
+      | (CC3 & CC2 & CC0 & s_term_n_int);
     end
 
 
@@ -207,14 +213,14 @@ module PAL_44601B (
   *********************************************************/
 
     /*
-    CC0_reg <= (CC3_n & CC2_n & CC1_n & TERM_n)  // a+b+f+i+j+m+N
-    | (CC3_n & CC2 & CC1 & CC0 & TERM_n)
-    | (CC3 & CC2 & CC1_n & TERM_n)
-    | (CC3 & CC2_n & CC1 & TERM_n)
-    | (CC3_n & CC2 & CC1 & CC0_n & CGNTCACT_n & TERM_n)                          // e WAIT FOR BUS OF LOC
-    | (CC3_n & CC2 & CC1 & CC0_n & BRK & TERM_n)  // e MEM CYCLE TO FINISH
-    | (CC3_n & CC2 & CC1 & CC0_n & WAIT2_n & TERM_n)  // e IF WAIT2 and NOT BRK
-    | (CC3_n & CC2_n & CC1 & CC0 & CGNTCACT & BRK_n & TERM_n);  // e PREV WRITE
+    CC0_reg <= (s_cc3_n_int & s_cc2_n_int & s_cc1_n_int & s_term_n_int)  // a+b+f+i+j+m+N
+    | (s_cc3_n_int & CC2 & CC1 & CC0 & s_term_n_int)
+    | (CC3 & CC2 & s_cc1_n_int & s_term_n_int)
+    | (CC3 & s_cc2_n_int & CC1 & s_term_n_int)
+    | (s_cc3_n_int & CC2 & CC1 & s_cc0_n_int & CGNTCACT_n & s_term_n_int)                          // e WAIT FOR BUS OF LOC
+    | (s_cc3_n_int & CC2 & CC1 & s_cc0_n_int & BRK & s_term_n_int)  // e MEM CYCLE TO FINISH
+    | (s_cc3_n_int & CC2 & CC1 & s_cc0_n_int & WAIT2_n & s_term_n_int)  // e IF WAIT2 and NOT BRK
+    | (s_cc3_n_int & s_cc2_n_int & CC1 & CC0 & CGNTCACT & BRK_n & s_term_n_int);  // e PREV WRITE
 */
 
 
@@ -222,14 +228,14 @@ module PAL_44601B (
     if (CC0) begin
       CC0_reg <=
            CC0_COMMON
-        | (CC3_n & CC2 & CC1 & TERM_n)
-        | (CC3_n & CC2_n & CC1 & CGNTCACT & BRK_n & TERM_n);  // e PREV WRITE
+        | (s_cc3_n_int & CC2 & CC1 & s_term_n_int)
+        | (s_cc3_n_int & s_cc2_n_int & CC1 & CGNTCACT & BRK_n & s_term_n_int);  // e PREV WRITE
     end else begin
       CC0_reg <=
           CC0_COMMON
-        | (CC3_n & CC2 & CC1 & CGNTCACT_n & TERM_n)                          // e WAIT FOR BUS OF LOC
-        | (CC3_n & CC2 & CC1 & BRK & TERM_n)  // e MEM CYCLE TO FINISH
-        | (CC3_n & CC2 & CC1 & WAIT2_n & TERM_n);  // e IF WAIT2 and NOT BRK
+        | (s_cc3_n_int & CC2 & CC1 & CGNTCACT_n & s_term_n_int)                          // e WAIT FOR BUS OF LOC
+        | (s_cc3_n_int & CC2 & CC1 & BRK & s_term_n_int)  // e MEM CYCLE TO FINISH
+        | (s_cc3_n_int & CC2 & CC1 & WAIT2_n & s_term_n_int);  // e IF WAIT2 and NOT BRK
     end
 
   end
