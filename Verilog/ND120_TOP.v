@@ -176,7 +176,9 @@ module ND120_TOP
   assign led[2] = !s_run;
   assign led[3] = !s_cpu_led[3]; // LED CPU GRANT INDICATOR
   assign led[4] = !s_cpu_led[4]; // LED BUS GRANT INDICATOR
-  assign led[5] = !s_cpu_led[5]; // LED1 from MMU
+  assign led[5] = clockTicks[26]; // Heartbeat ~1.5Hz (100MHz / 2^27)
+  // To restore LED1 from MMU, replace the line above with:
+  //   assign led[5] = !s_cpu_led[5]; // LED1 from MMU
 
   //assign led[4] = !uartRx;
   //assign led[5] = !uartTx;
