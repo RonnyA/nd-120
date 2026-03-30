@@ -169,24 +169,28 @@ module ND120_TOP
   assign sys_rst_n = btn1;
   assign oc_select = 2'b11;  // 11= Choose clock input = XTAL1 (full speed)
 
-  // Assign som lights to the LED's (Inverted because the nano is led's are active low)
-  //assign led[5:0] =5'b0;
+  // LED assignments for FPGA debug
+  // Basys3: LEDs are ACTIVE HIGH (1=ON). LD0 is rightmost.
+  // Tang Nano: LEDs are ACTIVE LOW (0=ON) -- invert if targeting Tang Nano.
+  //
+  // LD0 = led[0] = CPU RED LED        (ON = error/halt)
+  // LD1 = led[1] = CPU GREEN LED      (ON = running)
+  // LD2 = led[2] = RUN indicator      (ON = CPU running, OFF = OPCOM)
+  // LD3 = led[3] = sys_rst_n state    (ON = reset released, OFF = in reset)
+  // LD4 = led[4] = UART TX activity   (blinks when transmitting)
+  // LD5 = led[5] = Heartbeat          (blinks ~1.5Hz if clock running)
 
-  assign led[1:0] = ~s_cpu_led[1:0];  //  0=RED,1=GREEN
-  assign led[2] = !s_run;
-  assign led[3] = !s_cpu_led[3]; // LED CPU GRANT INDICATOR
-  assign led[4] = !s_cpu_led[4]; // LED BUS GRANT INDICATOR
-  assign led[5] = clockTicks[26]; // Heartbeat ~1.5Hz (100MHz / 2^27)
-  // To restore LED1 from MMU, replace the line above with:
-  //   assign led[5] = !s_cpu_led[5]; // LED1 from MMU
+  assign led[0] = s_cpu_led[0];        // CPU RED (active high for Basys3)
+  assign led[1] = s_cpu_led[1];        // CPU GREEN
+  assign led[2] = ~s_run;              // ON when CPU running (s_run is active low)
+  assign led[3] = sys_rst_n;           // ON when reset released
+  assign led[4] = ~uartTx;             // ON when UART TX active (TX is normally high/mark)
+  assign led[5] = clockTicks[26];      // Heartbeat ~1.5Hz at 100MHz
 
-  //assign led[4] = !uartRx;
-  //assign led[5] = !uartTx;
-
-  // For debugging: shows # of clockticks in GTKWave if needed
-  always@(posedge sysclk)
+  // Free-running clock counter (no reset needed)
+  always @(posedge sysclk)
   begin
-    clockTicks <= clockTicks+1;
+    clockTicks <= clockTicks + 1;
   end
 
 
