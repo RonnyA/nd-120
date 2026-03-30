@@ -49,11 +49,9 @@ module F714 (
       regQ   <= 1'b1;
       reqQ_n <= 1'b0;
     end else begin
-      // Normal toggle operation on clock edge
-      if (s_t) begin
-        reqQ_n <= regQ;
-        regQ   <= ~regQ;
-      end
+      // Toggle on posedge s_t (s_t is guaranteed high here)
+      reqQ_n <= regQ;
+      regQ   <= ~regQ;
     end
   end
 
