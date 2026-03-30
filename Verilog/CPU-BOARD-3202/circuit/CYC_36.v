@@ -57,6 +57,7 @@ module CYC_36 (
     output WRFSTB,
     output CYD,
     output [2:0] CC_3_1_n,
+    output CC0_n,          // Cycle Control bit 0 (added for debug)
     output TERM_n,
     output MAP_n,
     output CX_n,
@@ -75,7 +76,7 @@ module CYC_36 (
   wire       s_acond_n;
   wire       s_aluclk;
   wire       s_brk_n;
-  wire       s_cc0_n;
+  (* mark_debug = "true" *) wire s_cc0_n;
   wire       s_cgntcact_n;
   wire       s_clk;
   wire       s_csalui7;
@@ -169,6 +170,7 @@ module CYC_36 (
    *******************************************************************************/
   assign ALUCLK              = s_aluclk;
   assign CC_3_1_n            = s_cc_3_1_n[2:0];
+  assign CC0_n               = s_cc0_n;
   assign CLK                 = s_clk;
   assign CX_n                = s_cx_n;
   assign CYD                 = s_cyd;

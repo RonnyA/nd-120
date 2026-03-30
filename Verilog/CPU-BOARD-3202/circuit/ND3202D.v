@@ -135,7 +135,12 @@ module ND3202D (
     output [12:0] CSA_12_0,    //! Microcode Address (for debugging)
 
     // Led signals
-    output [6:0]  LED // 0=CPU RED,1=CPU GREEN, 2=LED4_RED_PARITY_ERROR, 3=LED_CPU_GRANT_INDICATOR, 4=LED_BUS_GRANT_INDICATOR, 5=LED1 from MMU 6=LED5_RED_DISABLE_PARITY
+    output [6:0]  LED, // 0=CPU RED,1=CPU GREEN, 2=LED4_RED_PARITY_ERROR, 3=LED_CPU_GRANT_INDICATOR, 4=LED_BUS_GRANT_INDICATOR, 5=LED1 from MMU 6=LED5_RED_DISABLE_PARITY
+
+    // Debug outputs for FPGA
+    output [4:0] DEBUG_CC_TERM,  // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
+    output       DEBUG_MCLK,     // Memory clock
+    output       DEBUG_LCS_n     // LCS_n: 0=loading microcode, 1=microcode loaded
 );
 
   /*
@@ -166,6 +171,12 @@ TODO: Sort bits on output LED to match led numbering
   wire [ 1:0] s_pcr_1_0;
 
   wire [ 2:0] s_cc_3_1_n;
+  wire        s_cc0_n;
+
+  // Debug output: {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
+  assign DEBUG_CC_TERM = {s_term_n, s_cc_3_1_n[2:0], s_cc0_n};
+  assign DEBUG_MCLK = s_mclk;
+  assign DEBUG_LCS_n = s_lcs_n;
 
   wire [ 3:0] s_lba_3_0;
   wire [ 3:0] s_pil_3_0;
@@ -567,6 +578,7 @@ TODO: Sort bits on output LED to match led numbering
       .ACOND_n(s_acond_n),
       .BRK_n(s_brk_n),
       .CC_3_1_n(s_cc_3_1_n[2:0]),
+      .CC0_n(s_cc0_n),
       .CLK(s_clk),
       .CSALUI7(s_csalui_8_0[7]),
       .CSALUI8(s_csalui_8_0[8]),

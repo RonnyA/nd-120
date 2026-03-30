@@ -38,7 +38,7 @@ module ND120_TOP
     input wire btn2,      //! Button 2
     input wire uartRx,    //! UART Receive pin
     output wire uartTx,   //! UART Transmit pin
-    output wire [5:0] led, //! 6-bit output for controlling LEDs
+    output wire [15:0] led, //! 16 LEDs on Basys3 (LD0-LD15)
 
     // 7-segment display (active LOW, Basys3)
     output wire [6:0] seg,  //! 7-segment segments (a-g, active LOW)
@@ -177,6 +177,11 @@ module ND120_TOP
   (* mark_debug = "true" *) wire [13:0] s_debug_la_23_10;  // LA 23:10
   (* mark_debug = "true" *) wire [9:0]  s_debug_ca_9_0;    // CA 9:0
 
+  // Cycle state machine debug
+  (* mark_debug = "true" *) wire [4:0] s_debug_cc_term;    // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
+  (* mark_debug = "true" *) wire       s_debug_mclk;       // Memory clock
+  (* mark_debug = "true" *) wire       s_debug_lcs_n;      // LCS_n: 0=loading, 1=loaded
+
   (* keep = "true", DONT_TOUCH = "true" *)  wire [4:0] s_test_4_0;  // Test pads
   (* keep = "true", DONT_TOUCH = "true" *)  wire [4:0] s_dp_5_1_n;  // Datapath 5-1
   (* keep = "true", DONT_TOUCH = "true" *)  wire s_tp1_intrq_n;     // TP1 INTRQ_n
@@ -201,12 +206,25 @@ module ND120_TOP
   // LD4 = led[4] = UART TX activity   (blinks when transmitting)
   // LD5 = led[5] = Heartbeat          (blinks ~1.5Hz if clock running)
 
-  assign led[0] = s_cpu_led[0];        // CPU RED (active high for Basys3)
-  assign led[1] = s_cpu_led[1];        // CPU GREEN
-  assign led[2] = ~s_run;              // ON when CPU running (s_run is active low)
-  assign led[3] = sys_rst_n;           // ON when reset released
-  assign led[4] = ~uartTx;             // ON when UART TX active (TX is normally high/mark)
-  assign led[5] = clockTicks[26];      // Heartbeat ~1.5Hz at 100MHz
+  // RIGHT SIDE: CPU status (LD0-LD5)
+  assign led[0]  = s_cpu_led[0];       // LD0:  CPU RED
+  assign led[1]  = s_cpu_led[1];       // LD1:  CPU GREEN
+  assign led[2]  = ~s_run;             // LD2:  ON when CPU running
+  assign led[3]  = sys_rst_n;          // LD3:  ON when reset released
+  assign led[4]  = ~uartTx;            // LD4:  UART TX activity
+  assign led[5]  = clockTicks[26];     // LD5:  Heartbeat ~1.5Hz
+  assign led[6]  = s_debug_mclk;       // LD6:  Memory clock
+  assign led[7]  = ~s_debug_lcs_n;    // LD7:  LCS (ON=microcode loaded)
+  assign led[8]  = 1'b0;              // LD8:  (spare)
+  assign led[9]  = 1'b0;              // LD9:  (spare)
+  assign led[10] = 1'b0;              // LD10: (spare)
+
+  // LEFT SIDE: Cycle state machine (LD11-LD15)
+  assign led[11] = ~s_debug_cc_term[0]; // LD11: CC0  (inverted: ON=active)
+  assign led[12] = ~s_debug_cc_term[1]; // LD12: CC1
+  assign led[13] = ~s_debug_cc_term[2]; // LD13: CC2
+  assign led[14] = ~s_debug_cc_term[3]; // LD14: CC3
+  assign led[15] = ~s_debug_cc_term[4]; // LD15: TERM (leftmost)
 
   // Free-running clock counter (no reset needed)
   always @(posedge sysclk)
@@ -320,7 +338,10 @@ module ND120_TOP
       .TEST_4_0   (s_test_4_0),     // Test pads
       .TP1_INTRQ_n(s_tp1_intrq_n),  // TP1 Interrupt
       .CSA_12_0    (CSA_12_0),      // Microcode Address (for debugging)
-      .LED        (s_cpu_led[6:0])  // 7 bit LED signals (was [5:0], now matches ND3202D)
+      .LED        (s_cpu_led[6:0]),  // 7 bit LED signals
+      .DEBUG_CC_TERM(s_debug_cc_term), // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
+      .DEBUG_MCLK(s_debug_mclk),      // Memory clock
+      .DEBUG_LCS_n(s_debug_lcs_n)     // LCS_n: 0=loading, 1=loaded
   );
 
 endmodule
