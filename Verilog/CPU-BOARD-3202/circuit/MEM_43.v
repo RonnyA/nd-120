@@ -267,6 +267,7 @@ module MEM_43 (
       .MR_n(s_mr_n),
       .MWRITE_n(s_mwrite_n),
       .OSC(s_osc),
+      .sys_rst_n(sys_rst_n),
       .PD4(s_pd4),
       .REF_n(s_ref_n),
 
@@ -292,6 +293,9 @@ module MEM_43 (
    * Handles data transfer between the memory and the CPU.
    */
   MEM_DATA_46 DATA (
+      .OSC(s_osc),  // Clock (added for FPGA synthesis)
+      .sys_rst_n(sys_rst_n),  // System reset (for FPGA synthesis)
+
       // Input signals
       .BCGNT50R_n(s_bcgnt50r_n),
       .BIOXL_n(s_bioxl_n),
@@ -321,6 +325,10 @@ module MEM_43 (
    * Handles memory error detection and reporting.
    */
   MEM_ERROR_47 ERROR (
+      // Clock and reset (added for FPGA synthesis)
+      .OSC(s_osc),
+      .sys_rst_n(sys_rst_n),
+
       // Input signals
       .BCGNT50(s_bcgnt50),
       .BLOCKL25(s_blockl25),

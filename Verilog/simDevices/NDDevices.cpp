@@ -63,7 +63,7 @@ PaperTape::PaperTape(uint8_t thumbweel) : NDDevice(thumbweel)
 void PaperTape::Reset()
 {
     // Reset reader. Rewind paper
-    if (papertapeFile > 0)
+    if (papertapeFile != NULL)
     {
         // fseek(papertapeFile,0,SEEK_SET);
         rewind(papertapeFile);
@@ -78,10 +78,10 @@ uint16_t PaperTape::Tick()
 
 PaperTape::~PaperTape()
 {
-    if (papertapeFile > 0)
+    if (papertapeFile != NULL)
     {
         fclose(papertapeFile);
-        papertapeFile = 0;
+        papertapeFile = NULL;
     }
 }
 
@@ -610,7 +610,7 @@ void FloppyPIO::ExecuteGo(DriveCommand command)
     // TODO: Implement support for multiple drives
     // IODevice* device = GetIODevice(unit);
 
-    if (floppyFile < 0 || selectedDrive < 0)
+    if (floppyFile == NULL || selectedDrive < 0)
     {
         RSR2.bits.driveNotReady = 1;
         RSR1.bits.deviceBusy = 0;

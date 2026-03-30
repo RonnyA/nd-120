@@ -13,50 +13,64 @@ The goal of this repo is to re-create the schematics and create the HDL files so
 
 On the way to the FPGA code, there will be testable Logisim Circuits and Logisim code that can be converted and tested in C++ using Verilator.
 
+## Current Status
+
+**Simulation Results:**
+- Microcode loads successfully (64KB ROM)
+- Master Clear (MACL) executes
+- CPU self-test: **7 out of 14 tests passing**
+- UART communication operational
+- OPCOM (operator communication) functional
+
+**FPGA Status:**
+- Synthesis passes, implementation requires optimization
+
+## Quick Start
+
+```powershell
+cd Verilog\sim
+make clean
+make all  # Compiles, runs, and opens GTKWave
+```
+
+**Prerequisites:** [Verilator](https://www.veripool.org/verilator/), GTKWave (optional), Windows with PowerShell
+
+See [BUILDING.md](BUILDING.md) for detailed build and test instructions.
+
+## Requirements
+
+The minimum requirements to make the CPU work:
+
+| Component | Schematic | HDL | Status |
+|-----------|-----------|-----|--------|
+| [DELILAH CPU Gate Array (CGA)](DesignDocuments\DELILAH-CPU\readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
+| [NEC Decoder Gate Array (DGA)](DesignDocuments\DECODE-GateArray\readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
+| [ND 3202 CPU Board revision D](DesignDocuments/CPU-BOARD-3202/Readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
+| [PAL Chips](DesignDocuments/PAL-Code/Readme.md) | All PALASM code has been validated | Verilog and testcode created | QA on Verilog ongoing |
+
+In the CPU Board we will plug in the DELILAH CPU and the Decoder, all PAL chips and several other support chips (74-series, RAM and UART).
 
 ## History
 
 Compressed history of the work progress:
 
-| Date               | Description
-|--------------------|-------------------------------------------------------------------------------------------------------------------------------------
-| 11. March 2023     | Received Design Documentation from Lasse Bockelie
-| 21. August 2023    | Logisim Drawings completed for DGA and DELILAH/CGA
-| 03. December 2023  | Using Logisim drawings to start generate Verilog files for DGA and CGA
-| 12. December 2023  | Starting to consolidate all information about PAL chips (PNG for PALASM code, OCR to TXT and write Verilog version of PAL code)
-| 26. December 2023  | Logisim drawings of CPU Board 3202D completed
-| 27. December 2023  | Using Logisim drawings to start generate Verilog files for CPU Board 3202D
-| 11. January 2024   | Most PALASM code has been ported to Verilog
-| January-June 2024  | Adding support chips, refactoring and bugfixing. Adding tests and test results
-| June-November 2024 | No work done
-| 9. November 2024   | Starting up again after a long break. Cleaning up code, refactoring and testing. Connecting everything together.
-| 20. November 2024  | Verilator - Microcode is loaded from ROM to DRAM. MACL microcode starts but fail on STACK operations, and fails on COND operations.
-| 13. December 2024  | Verilator - Microcode MACL starts, CPU test code runs. OPCOM is initialized and communication over UART works.
-| 29. Januar 2025    | Verilator - Testprogram 'INSTRUCTION-B.BPUN' (204384B 83.11.01) loads and starts. 7 out of 14 tests succeed.
-| 22. Mars   2025    | Verilator & C++ - Interface with ND BUS via BIF module to C connector. Added support for Papertape reader and Floppy PIO written in C++
-| 1. June 2025       | Reverse engineered the ROM chips for the panel controller's with help of Ghidra and Claude.AI
-
-
-## Requirements
-
-The minimum requirements to make the CPU work is:
-
-| Component                                                                   | Schematic                          |  HDL                         | Status                          | 
-|-----------------------------------------------------------------------------|------------------------------------|------------------------------|---------------------------------|
-| [DELILAH CPU Gate Array (CGA)](DesignDocuments\DELILAH-CPU\readme.md)       | Completed                          | Logisim generated Verilog    | QA on schematic/Verilog ongoing |
-| [NEC Decoder Gate Array (DGA)](DesignDocuments\DECODE-GateArray\readme.md)  | Completed                          | Logisim generated Verilog    | QA on schematic/Verilog ongoing |
-| [ND 3202 CPU Board revision D](DesignDocuments/CPU-BOARD-3202/Readme.md)    | Completed                          | Logisim generated Verilog    | QA on schematic/Verilog ongoing |
-| [PAL Chips ](DesignDocuments/PAL-Code/Readme.md)                            | All PALASM code has been validated | Verilog and testcode created | QA on Verilog ongoing           |
-
-In the CPU Board we will plug in the DELILAH CPU and the Decoder, all PAL chips and several other support chips (74-series, RAM and UART,++)
-
-
-## Stretch goals
-
-Design and implement I/O devices for reading and writing files from FLASH memory simulating the device.
-
-* Floppy 
-* Hard Drive
+| Date | Description |
+|------|-------------|
+| 11. March 2023 | Received Design Documentation from Lasse Bockelie |
+| 21. August 2023 | Logisim Drawings completed for DGA and DELILAH/CGA |
+| 03. December 2023 | Using Logisim drawings to start generate Verilog files for DGA and CGA |
+| 12. December 2023 | Starting to consolidate all information about PAL chips (PNG for PALASM code, OCR to TXT and write Verilog version of PAL code) |
+| 26. December 2023 | Logisim drawings of CPU Board 3202D completed |
+| 27. December 2023 | Using Logisim drawings to start generate Verilog files for CPU Board 3202D |
+| 11. January 2024 | Most PALASM code has been ported to Verilog |
+| January-June 2024 | Adding support chips, refactoring and bugfixing. Adding tests and test results |
+| June-November 2024 | No work done |
+| 9. November 2024 | Starting up again after a long break. Cleaning up code, refactoring and testing. Connecting everything together. |
+| 20. November 2024 | Verilator - Microcode is loaded from ROM to DRAM. MACL microcode starts but fail on STACK operations, and fails on COND operations. |
+| 13. December 2024 | Verilator - Microcode MACL starts, CPU test code runs. OPCOM is initialized and communication over UART works. |
+| 29. Januar 2025 | Verilator - Testprogram 'INSTRUCTION-B.BPUN' (204384B 83.11.01) loads and starts. 7 out of 14 tests succeed. |
+| 22. Mars 2025 | Verilator & C++ - Interface with ND BUS via BIF module to C connector. Added support for Papertape reader and Floppy PIO written in C++ |
+| 1. June 2025 | Reverse engineered the ROM chips for the panel controller's with help of Ghidra and Claude.AI |
 
 ## Design documents
 
@@ -66,7 +80,7 @@ All the design documents are in the [Design Documents](DesignDocuments/Readme.md
 
 Functional Description, Instruction set, Microprogramming guide and more are in the [NorskData-Doc](NorskData-Doc/Readme.md) folder.
 
-## Microcode 
+## Microcode
 
 The [Microcode](Code/Microcode/readme.md) dump is from a ND-120 3202 CPU Board is Version 14/L
 The source code is also for the L version.
@@ -92,7 +106,7 @@ Reverse engineering has been done using the free SRE tool [GHIDRA](https://ghidr
 
 ## Schematic drawings
 
-### Logisim 
+### Logisim
 
 All the Logisim files are stored in the [Logisim folder](Logisim/readme.md)
 
@@ -102,9 +116,9 @@ You need to install the Logisim-Evolution design tool from [Logisim Evolution Re
 
 The Logisim diagrams has been drawn with [Version 3.8.0](https://github.com/logisim-evolution/logisim-evolution/releases/tag/v3.8.0)
 
-## FPGA 
+## FPGA
 
-### Verilog 
+### Verilog
 
 Most Verilog files are generated from the Logisim drawings, using Logisim-Evolution FPGA tools.
 
@@ -113,3 +127,19 @@ All the Verilog files are stored in the [Verilog folder](Verilog/)
 ### Verilator
 
 To test the Verilog code using Verilator you need to install the [Verilator](https://www.veripool.org/verilator/) tool
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [BUILDING.md](BUILDING.md) | Build instructions, testing, and troubleshooting |
+| [DEVELOPMENT.md](DEVELOPMENT.md) | Project history, architecture, and contribution guide |
+| [HARDWARE.md](HARDWARE.md) | Hardware specifications and component details |
+
+## Acknowledgments
+
+- **Lasse Bockelie** - Provided original 1988 design documentation
+- **Matthieu Benoit** - ROM chip reading and data extraction
+- **NDWiki Community** - Comprehensive ND-120 documentation
+- **GHIDRA Team** - Reverse engineering tools
+- **Claude.AI** - Analysis assistance

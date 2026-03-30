@@ -12,7 +12,13 @@
 // JLB/CITC 15AUG86
 // 44303B,2C,LBC2 - LOCAL DATA BUS CONTROL PAL
 
+// NOTE: PAL16L8 is purely combinational in the original hardware.
+// Clock input added for FPGA synthesis to eliminate latch inference.
+
 module PAL_44303B (
+    input CK,          //! Clock input (added for FPGA synthesis)
+    input sys_rst_n,   //! System reset (active low, for FPGA synthesis)
+
     input CACT_n,      //! I0
     input CGNT_n,      //! I1
     input EADR_n,      //! I2 - Address from CPU to Bus
@@ -50,19 +56,32 @@ module PAL_44303B (
   reg  CBWRITE;
   reg  CMWRITE;
 
-
+`ifdef USE_TRANSPARENT_LATCHES
+  // Transparent latch (original behavior for simulation)
+  /* verilator lint_off LATCH */
   always @(*) begin
-
-    // CBWRITE - CPU TO BUS WRITE. STARTS ONLY WHEN THE BUS IS GRANTED.
-    //           LASTS UNTIL THE END OF THE BUS CYCLE.
     if (WRITE & CACT) CBWRITE = 1'b1;
     else if (CACT == 0) CBWRITE = 1'b0;
 
-    // (CMWRITE) - CPU WRITE TO LOCAL MEMORY. LASTS UNTIL END OF MEMORY CYCLE.
-    //             ON BUFFERED WRITE.
     if (WRITE & CGNT) CMWRITE = 1'b1;
     else if (CGNT == 0) CMWRITE = 1'b0;
   end
+  /* verilator lint_on LATCH */
+`else
+  // Edge-triggered flip-flop (FPGA synthesis)
+  always @(posedge CK or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
+      CBWRITE <= 1'b0;
+      CMWRITE <= 1'b0;
+    end else begin
+      if (WRITE & CACT) CBWRITE <= 1'b1;
+      else if (CACT == 0) CBWRITE <= 1'b0;
+
+      if (WRITE & CGNT) CMWRITE <= 1'b1;
+      else if (CGNT == 0) CMWRITE <= 1'b0;
+    end
+  end
+`endif
 
 
   // LBD TO BD TRANCEIVER

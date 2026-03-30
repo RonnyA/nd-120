@@ -11,7 +11,13 @@
 // JLB/CJTC 14AUG86
 // 44302B,11D,LBC1
 
+// NOTE: PAL16L8 is purely combinational in the original hardware.
+// Clock input added for FPGA synthesis to eliminate latch inference.
+
 module PAL_44302B (
+    input CK,        //! Clock input (added for FPGA synthesis)
+    input sys_rst_n, //! System reset (active low, for FPGA synthesis)
+
     input Q0_n,      //! I0
     input Q2_n,      //! I1
     input CC2_n,     //! I2 - Cycle Control bit 2
@@ -54,20 +60,10 @@ module PAL_44302B (
   // Output signal logic (self reference)
   reg  EMD;
 
+`ifdef USE_TRANSPARENT_LATCHES
+  // Transparent latch (original behavior for simulation)
+  /* verilator lint_off LATCH */
   always @(*) begin
-    // Logic for EMD
-
-    /*  Orignal code that has "circular logic" and is not synthesizable
-        EMD =
-                        (Q2 & Q0 & CACT)        |  // CPU CYCLE TO BUS SET 
-                        (EMD & CACT)            |  //       "          HOLD
-                        (CGNT & CGNT50)         |  // CPU CYCLE TO MEM SET 
-                        (EMD & RT & CC2 & TERM) |  // ) HOLD TERMS FOR 
-                        (EMD & IORQ & CC2 & TERM)  // ) CPU READ, FETCH AND
-                        );                         // ) MAP CYCLES
-    */
-
-    // Rewritten for handling of "circular logic"
     if ((Q2 & Q0 & CACT) |  // CPU CYCLE TO BUS SET
         (CGNT & CGNT50))    // CPU CYCLE TO MEM SET
       EMD = 1'b1;
@@ -77,8 +73,26 @@ module PAL_44302B (
       | ((IORQ & CC2 & TERM_n))  // ) CPU READ, FETCH AND MAP CYCLES
         ) == 0)
       EMD = 1'b0;
-
   end
+  /* verilator lint_on LATCH */
+`else
+  // Edge-triggered flip-flop (FPGA synthesis)
+  always @(posedge CK or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
+      EMD <= 1'b0;
+    end else begin
+      if ((Q2 & Q0 & CACT) |  // CPU CYCLE TO BUS SET
+          (CGNT & CGNT50))    // CPU CYCLE TO MEM SET
+        EMD <= 1'b1;
+      else if ((
+           (CACT)                  // CPU CYCLE TO BUS HOLD
+        | ((RT & CC2 & TERM_n))    // ) HOLD TERMS FOR
+        | ((IORQ & CC2 & TERM_n))  // ) CPU READ, FETCH AND MAP CYCLES
+          ) == 0)
+        EMD <= 1'b0;
+    end
+  end
+`endif
 
   // Logic for CGNTCACT
   assign CGNTCACT_n = TEST ? 1'b1 : ~(CGNT | CACT); //! CGNTCACT_n - Combined CPU Grant/Active signal

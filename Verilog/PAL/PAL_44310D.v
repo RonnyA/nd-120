@@ -13,7 +13,13 @@
 //ADGD 13/8/86
 //44310D,3F,LBDIF
 
+// NOTE: PAL16L8 is purely combinational in the original hardware.
+// Clock input added for FPGA synthesis to eliminate latch inference.
+
 module PAL_44310D (
+    input  CK,        //! Clock input (added for FPGA synthesis)
+    input  sys_rst_n, //! System reset (active low, for FPGA synthesis)
+
     input  HIEN_n,    //! I0
     input  BGNT_n,    //! I1
     input  CGNT_n,    //! I2
@@ -62,6 +68,10 @@ module PAL_44310D (
 
   // Logic for BDRY_n (active-low)
   reg BDRY;
+
+`ifdef USE_TRANSPARENT_LATCHES
+  // Transparent latch (original behavior for simulation)
+  /* verilator lint_off LATCH */
   always @(*) begin
     if ((MWRITE50_n & BDAP50 & BGNT & LOEN_n & HIEN_n & RAS_n) |  // BUS READ FROM LOCAL MEM
         (MWRITE50 & BDAP50 & BGNT50 & BGNT) |  // BUS WRITE TO LOCAL MEM
@@ -74,6 +84,24 @@ module PAL_44310D (
         )
       BDRY = 1'b0;
   end
+  /* verilator lint_on LATCH */
+`else
+  // Edge-triggered flip-flop (FPGA synthesis)
+  always @(posedge CK or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
+      BDRY <= 1'b0;
+    end else begin
+      if ((MWRITE50_n & BDAP50 & BGNT & LOEN_n & HIEN_n & RAS_n) |
+          (MWRITE50 & BDAP50 & BGNT50 & BGNT) |
+          (BIOXL & ECCR) |
+          (REF100) | (MWRITE50_n & BDAP50 & BGNT50_n & BGNT75))
+        BDRY <= 1'b1;
+      else if (((MR_n & BDAP50) == 0) |
+          ((MR_n & BIOXE) == 0))
+        BDRY <= 1'b0;
+    end
+  end
+`endif
 
   assign BDRY_n = ~BDRY;
 

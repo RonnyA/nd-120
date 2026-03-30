@@ -9,6 +9,9 @@
 ***************************************************************************/
 
 module MEM_DATA_46 (
+    input OSC,         //! Clock input (added for FPGA synthesis)
+    input sys_rst_n,   //! System reset (active low, for FPGA synthesis)
+
     // Input signals
     input BCGNT50R_n,  //! Bus CPU Grant on read from memory after the address (from 50 ns after GNT on read cycle)
     input BIOXL_n,     //! Bus IOX Enable
@@ -41,6 +44,7 @@ module MEM_DATA_46 (
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
+  wire        s_osc;
   wire [15:0] s_lbd_15_0_in;
   wire [15:0] s_lbd_15_0_out;
   wire [17:0] s_dd_17_0_in;
@@ -77,6 +81,7 @@ module MEM_DATA_46 (
   /*******************************************************************************
    ** Here all input connections are defined                                     **
    *******************************************************************************/
+  assign s_osc               = OSC;
   assign s_lbd_15_0_in[15:0] = LBD_15_0_IN;
   assign s_dd_17_0_in[17:0]  = DD_17_0_IN;
   assign s_rdata             = RDATA;
@@ -183,6 +188,9 @@ module MEM_DATA_46 (
 
 
   PAL_45008B PAL_45008_UDATA (
+      .CK      (s_osc),         //! Clock (added for FPGA synthesis)
+      .sys_rst_n(sys_rst_n),    //! System reset (for FPGA synthesis)
+
       .MWRITE_n(s_mwrite_n),  //! I0 - MWRITE_n
       .SWDIS_n   (s_gnd),       //! I1 - SWDIS_n (SW4 - Parity disable, normal position = down. HERE: Disabled!)
       .LBD0(s_lbd_15_0_in[0]),  //! I2 - LBD0

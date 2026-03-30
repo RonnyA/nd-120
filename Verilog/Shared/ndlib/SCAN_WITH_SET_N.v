@@ -93,7 +93,7 @@ module SCAN_WITH_SET_N (
 
 
 
-  D_FLIPFLOP #(
+  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) MEMORY_4 (
       .clock(s_clk),

@@ -287,7 +287,7 @@ module DECODE_DGA_POW (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
+  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) A572 (
       .clock(s_clear_n),
@@ -299,7 +299,7 @@ module DECODE_DGA_POW (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
+  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) A577 (
       .clock(s_ms20),
@@ -311,7 +311,7 @@ module DECODE_DGA_POW (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
+  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) A600 (
       .clock(s_a605_q_n),

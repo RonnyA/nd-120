@@ -35,26 +35,30 @@ module CPU_CS_PROM_19 (
 
 `else
 
-  (* ROM_STYLE="BLOCK" *)
-  reg [7:0] rom_lo[32767:0];  // 32K x 8 bit ROM (LO 8 bits)
-  initial $readmemh("AM27256_45132L.hex", rom_lo, 0, 32767);
+  // Xilinx: ram_style forces BRAM inference for ROM
+  // Gowin: syn_ramstyle for block RAM inference
+  (* ram_style = "block", syn_ramstyle = "block_ram" *)
+  reg [7:0] rom_lo[0:32767];  // 32K x 8 bit ROM (LO 8 bits)
+  initial $readmemh("AM27256_45132L.hex", rom_lo);
 
-
-  (* ROM_STYLE="BLOCK" *)
-  reg [7:0] rom_hi[32767:0];  // 32K x 8 bit ROM (HI 8 bits)
-  initial $readmemh("AM27256_45133L.hex", rom_hi, 0, 32767);
+  (* ram_style = "block", syn_ramstyle = "block_ram" *)
+  reg [7:0] rom_hi[0:32767];  // 32K x 8 bit ROM (HI 8 bits)
+  initial $readmemh("AM27256_45133L.hex", rom_hi);
 `endif
+
+  // Registered ROM read - clean pattern for BRAM inference.
+  // Two-stage pipeline: register address, then read data.
+  // This gives Vivado/Gowin the output register needed for BRAM.
+  reg [14:0] s_addr_reg;
 
   always @(posedge sysclk) begin
     `ifdef GOWIN
       // Use SPI flash for Gowin FPGAs
       regData <= 0;
-
     `else
-
-      regData[7:0]  <= rom_lo[s_Address];
-      regData[15:8] <= rom_hi[s_Address];
-
+      s_addr_reg    <= s_Address;
+      regData[7:0]  <= rom_lo[s_addr_reg];
+      regData[15:8] <= rom_hi[s_addr_reg];
     `endif
   end
 

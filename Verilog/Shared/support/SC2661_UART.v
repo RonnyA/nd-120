@@ -128,14 +128,28 @@ module SC2661_UART (
   localparam TX_STATE_DONE = 3'b100;  //  4
 
 
-  //Later, refactor clock to use higher FPGA clock to allow for 115200 baud rate.
-  //localparam DELAY_FRAMES = 42; //  4.915.200  (100Mhz) / 115200 Baud rate
+  // Baud rate timing: DELAY_FRAMES = clock cycles per bit
+  // Set via defines in Makefile/project:
+  //   -DBOARD_CLK_FREQ=100000000 -DUART_BAUD_RATE=115200
+  //
+  // Examples:
+  //   100 MHz / 115200 = 868 (Basys3/Arty)
+  //    27 MHz / 115200 = 234 (Tang Nano 9K/20K)
+  //    50 MHz / 115200 = 434 (50 MHz board)
 
-  //  localparam integer DELAY_FRAMES = 16;  // 4.915.200 / 9600 = 512; // use 256 frames for 19.200 baud.
-  //  localparam integer HALF_DELAY_WAIT = (DELAY_FRAMES / 2);
+`ifndef BOARD_CLK_FREQ
+  `define BOARD_CLK_FREQ 100_000_000  // Default: 100 MHz (Basys3/Arty)
+`endif
+`ifndef UART_BAUD_RATE
+  `define UART_BAUD_RATE 115_200      // Default: 115200 baud
+`endif
 
-  localparam DELAY_FRAMES = 32'd16;  // 16 frames
-  localparam HALF_DELAY_WAIT = (DELAY_FRAMES >> 1);  // Equivalent to DELAY_FRAMES / 2
+`ifdef VERILATOR_SIM
+  localparam DELAY_FRAMES = 32'd16;   // Fast for simulation
+`else
+  localparam DELAY_FRAMES = `BOARD_CLK_FREQ / `UART_BAUD_RATE;
+`endif
+  localparam HALF_DELAY_WAIT = (DELAY_FRAMES >> 1);
 
 
   // Chip Registers

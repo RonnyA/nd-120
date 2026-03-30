@@ -13,7 +13,15 @@
 // Or even better, refactor to use one continious RAM in FPGA chip, and use BANK bits as a way to select which bank to use.
 // Alternative: Use BLOCK ram to give 64KB/128KB - enough to run test code.
 
-module MEM_RAM_49 (
+module MEM_RAM_49 #(
+    // RAM size configuration: 0=disabled, 1=64KB, 2=1MB, 3=4KB
+    // Default to 3 (4KB) for FPGA synthesis, override to 2 (1MB) for Verilator
+`ifdef VERILATOR_SIM
+    parameter integer RAM_SIZE = 2  // 1MB for simulation
+`else
+    parameter integer RAM_SIZE = 3  // 4KB for FPGA synthesis
+`endif
+)(
 
     // Input signals
     input sysclk,    // System clock in FPGA
@@ -137,12 +145,16 @@ module MEM_RAM_49 (
 
 // TODO: Make the ram size definition working based on FPGA board.
 // Configure RAM size for 3202D board.
-// .ramSize: 0=disabled, 1=64KWord, 2=1Mword
+// .ramSize: 0=disabled, 1=64KWord, 2=1Mword, 3=4KWord
 //
 // Note: There seems to be some problems detecting correct RAMSIZE as there is no INRQ defined for undefined RAM.
 // Maybe the solution is to trigger RAM parity error..
+//
+// VIVADO FIX: Use RAM_SIZE parameter (default 3=4KB for FPGA, 2=1MB for Verilator)
+// 6MB exceeds device BRAM capacity for synthesis.
+// For production with external memory, use RAM_SIZE=2.
 
-  localparam integer RamSize = 2;
+  localparam integer RamSize = RAM_SIZE;  // Use parameter: 3 (4KB) for FPGA, 2 (1MB) for Verilator
 
   SIP1M9  #(.ramSize(RamSize)) CHIP_15H
   (

@@ -12,6 +12,8 @@
 // CJTC 02SEP86
 // 44304E,1C,LBC3 - LOCAL DATA BUS CONTROL PAL
 
+// NOTE: PAL16L8 is purely combinational in the original hardware.
+// Clock input added for FPGA synthesis to eliminate combinatorial loops.
 
 // Note: Verilator doesnt like signal name "EBADR" therefore its named "EBADR_b1". I dont know why.
 
@@ -19,6 +21,9 @@
 // Note3: Code for TEST removed for clarity as its NEVER used
 
 module PAL_44304E (
+    input CK,        //! Clock input (added for FPGA synthesis)
+    input sys_rst_n, //! System reset (active low, for FPGA synthesis)
+
     input CGNT_n,    //! I0
     input BGNT_n,    //! I1
     input BGNT50_n,  //! I2
@@ -55,21 +60,37 @@ module PAL_44304E (
   reg  BACT_reg;
   reg  EBADR_n_reg;
 
+`ifdef USE_TRANSPARENT_LATCHES
+  // Transparent latch (original behavior for simulation)
+  /* verilator lint_off LATCH */
   always @(*) begin
-
-    // BACT - BUS ACTIVITY. LASTS FOR COMPLETE DMA TO LOCAL MEMORY
-    // CYCLE (ONLY ON MEMORY READ)
-
     BACT_reg = (BGNT50 & MWRITE_n)
            |   (BACT_reg & BDAP50);
 
-
-    // EBADR - ENABLE ADDRESS FROM BUS TO LOCAL MEMORY
-    EBADR_n_reg = (GNT_n & BGNT_n)       // TURN ON AT BAPR WITH GNT
-             | (IBAPR_n & EBADR_n_reg)   // HOLD UNTIL BGNT AND GNT BOTH GONE
+    EBADR_n_reg = (GNT_n & BGNT_n)
+             | (IBAPR_n & EBADR_n_reg)
              | (GNT_n & EBADR_n_reg);
-
   end
+  /* verilator lint_on LATCH */
+`else
+  // Edge-triggered flip-flop (FPGA synthesis)
+  always @(posedge CK or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
+      BACT_reg <= 1'b0;
+      EBADR_n_reg <= 1'b1;  // EBADR_b1 = ~EBADR_n_reg, inactive at reset
+    end else begin
+      if (BGNT50 & MWRITE_n)
+        BACT_reg <= 1'b1;
+      else if (!BDAP50)
+        BACT_reg <= 1'b0;
+
+      if (GNT_n & BGNT_n)
+        EBADR_n_reg <= 1'b1;
+      else if (!IBAPR_n & !GNT_n)
+        EBADR_n_reg <= 1'b0;
+    end
+  end
+`endif
 
 
   assign EBADR_b1 = ~EBADR_n_reg;

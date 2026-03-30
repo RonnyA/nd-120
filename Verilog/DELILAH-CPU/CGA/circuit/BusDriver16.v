@@ -29,13 +29,18 @@ module BusDriver16 (
   //assign ZI_15_0 = TN ?  IO_15_0 : 16'b0; // Probably the correct implementation ? In test moode we should be isolated ?
   //assign ZI_15_0 = TN ?  internalData : 16'b0; // Probably the correct implementation ? In test moode we should be isolated ?
 
-  always @(EN, TN, A_15_0_IN, IO_15_0_IN) begin
+  // Fixed: Use blocking assignments and ensure all signals assigned in all paths to prevent latch inference
+  always @(*) begin
+    // Default assignments to prevent latch inference
+    IO_reg = 16'b0;
+    A_reg = 16'b0;
+
     if (!EN) begin
       // Write A to IO
-      IO_reg <= A_15_0_IN;
+      IO_reg = A_15_0_IN;
     end else begin
-      // Read IO to ZI
-      A_reg <= IO_15_0_IN;
+      // Read IO to A
+      A_reg = IO_15_0_IN;
     end
   end
 

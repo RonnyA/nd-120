@@ -22,8 +22,13 @@
 //
 // PAL16RL8 (https://rocelec.widen.net/view/pdf/c6dwcslffz/VANTS00080-1.pdf)
 
+// NOTE: PAL16L8 is purely combinational in the original hardware.
+// Clock input added for FPGA synthesis to eliminate latch inference.
 
 module PAL_45009B (
+    input CK,          //! Clock input (added for FPGA synthesis)
+    input sys_rst_n,   //! System reset (active low, for FPGA synthesis)
+
     input RDATA,       //! I0 - RDATA25 signal (doesnt match name)
     input BLOCKL25_n,  //! I1 - BLOCKL25_n
     input BCGNT50,     //! I2 - BCGNT50
@@ -77,20 +82,29 @@ module PAL_45009B (
   wire set_condition = (RDATA & EPEAL_n & EPESL_n & LERR & MR_n);
   wire reset_condition = !(PA_n & MR_n);
 
+`ifdef USE_TRANSPARENT_LATCHES
+  // Transparent latch (original behavior for simulation)
+  /* verilator lint_off LATCH */
   always @(*) begin
     if (!TEST) begin
-
       if (set_condition) BLOCKL_reg = 1'b1;  // SET ON LOCAL ERROR
       else if (reset_condition)
-        BLOCKL_reg = 1'b0;  // RESET IF PA_n & MR_n ARE NOT BOTH 1 (// HOLD TILL PEA READ)
-      /*
-        BLOCKL_reg <=
-              (RDATA & EPEAL_n & EPESL_n & LERR & MR_n) | // SET ON LOCAL ERROR
-              (BLOCKL_reg & PA_n & MR_n)                  // HOLD TILL PEA READ
-              ;
-*/
+        BLOCKL_reg = 1'b0;  // HOLD TILL PEA READ
     end
   end
+  /* verilator lint_on LATCH */
+`else
+  // Edge-triggered flip-flop (FPGA synthesis)
+  always @(posedge CK or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
+      BLOCKL_reg <= 1'b0;
+    end else if (!TEST) begin
+      if (set_condition) BLOCKL_reg <= 1'b1;
+      else if (reset_condition)
+        BLOCKL_reg <= 1'b0;
+    end
+  end
+`endif
 
   assign BLOCKL_n = ~BLOCKL_reg;
 

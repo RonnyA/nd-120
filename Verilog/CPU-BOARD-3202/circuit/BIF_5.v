@@ -295,6 +295,10 @@ module BIF_5 (
    * between different bus interfaces while maintaining signal integrity.
    */
   BIF_DPATH_9 DPATH (
+      // Clock and reset (added for FPGA synthesis)
+      .OSC         (s_osc),                   // Oscillator clock
+      .sys_rst_n   (sys_rst_n),               // System reset
+
       // Outputs
       .BDAP50_n     (s_bdap50_n),             // Bus Data Present (50ns delayed)
       .BDRY25_n     (s_bdry25_n),             // Bus Data Ready (25ns delayed)
@@ -415,6 +419,7 @@ module BIF_5 (
       .MIS0      (s_mis0),          // Miscellaneous 0
       .MOFF_n    (s_moff_n),        // Memory Off
       .OSC       (s_osc),           // Oscillator
+      .sys_rst_n (sys_rst_n),       // System reset
       .PA_n      (s_pa_n),          // Parity Error Address (PEA)
       .PD1       (s_pd1),           // Power Down 1
       .PD3       (s_pd3),           // Power Down 3

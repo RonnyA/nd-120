@@ -34,22 +34,22 @@ module F617 (
 
   always @(posedge H02_C or posedge s_set or posedge s_reset)
   begin
-    if (s_set | s_reset)
+    // Prioritized: RESET has priority over SET to avoid synthesis warning
+    if (s_reset)
     begin
-      // forced clear or set
-      if (s_reset & !s_set) begin  // reset
-        N01_Q   <= 1'b0;
-        N02_QB  <= 1'b1;
-      end else if (s_set & !s_reset) begin  // set
-        N01_Q   <= 1'b1;
-        N02_QB  <= 1'b0;
-      end else begin  /* s_set AND s_reset */
-        N01_Q   <= 1'b0;
-        N02_QB  <= 1'b0;
-      end
+      // Reset has highest priority
+      N01_Q   <= 1'b0;
+      N02_QB  <= 1'b1;
+    end
+    else if (s_set)
+    begin
+      // Set has second priority
+      N01_Q   <= 1'b1;
+      N02_QB  <= 1'b0;
     end
     else
     begin
+      // Normal D flip-flop operation on clock edge
       N01_Q   <= s_d;
       N02_QB  <= ~s_d;
     end

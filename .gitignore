@@ -21,3 +21,25 @@ Verilog/runSim/fs.BPUN
 Verilog/runSim/ONE-CHECK-1192A.BPUN
 Verilog/runSim/RTC.BPUN
 Verilog/runSim/TPE-MON-100-B00.BPUN
+
+# Comparison tool build artifacts and output
+Verilog/sim/obj_dir_latch/
+Verilog/sim/obj_dir_ff/
+Verilog/sim/trace_latch.csv
+Verilog/sim/trace_ff.csv
+Verilog/sim/trace_diff.txt
+
+# Waveform dumps
+Verilog/sim/waveform-sync.vcd
+
+# Gowin project user state (window layout)
+Verilog/ND-120-Gowin/*.gprj.user
+
+# IDE settings
+Verilog/simDevices/.vscode/
+
+# Generated/temp files
+Verilog/___module_export.json
+
+# Floppy disk images (large binary)
+Verilog/runSim/FLOPPY.IMG

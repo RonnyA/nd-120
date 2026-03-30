@@ -11,6 +11,8 @@
 // ADGD 18/8/86
 // 45008B, 2F, DATA
 
+// NOTE: PAL16L8 is purely combinational in the original hardware.
+// Clock input added for FPGA synthesis to eliminate latch inference.
 
 // PCB 3202D sheet 46:
 //
@@ -23,6 +25,8 @@
 
 
 module PAL_45008B (
+    input CK,         //! Clock input (added for FPGA synthesis)
+    input sys_rst_n,  //! System reset (active low, for FPGA synthesis)
 
     input MWRITE_n,   //! I0 - MWRITE_n
     input SWDIS_n,    //! I1 - SWDIS_n (SW4 - Parity disable, normal position = down.)
@@ -63,6 +67,12 @@ module PAL_45008B (
   wire MR = ~MR_n;
 
 
+  // Register and wire declarations (moved before assign to avoid synthesis warning)
+  reg  DISB_reg;
+  reg  TST_reg;
+  wire TST = TST_reg;
+  wire DISB = DISB_reg;
+
   // ON WRITE TO MEMORY
   assign OET_n = ~(MWRITE);
 
@@ -78,26 +88,39 @@ module PAL_45008B (
   // DIS logic
   assign DIS_n = ~(DISB | SWDIS);
 
-  reg  DISB_reg;
-  reg  TST_reg;
-  wire TST = TST_reg;
-  wire DISB = DISB_reg;
 
-
+`ifdef USE_TRANSPARENT_LATCHES
+  // Transparent latch (original behavior for simulation)
+  /* verilator lint_off LATCH */
   always @(*) begin
-
-    // SET IF LDB3=1 AND IOX=ECCR
     if ((LBD3 & BIOXL & ECCR) == 1) DISB_reg = 1'b1;
-    else if (((MR_n & BIOXL_n) == 0) | ((MR_n & ECCR_n)) == 0)  // HOLD UNTIL NEXT IOX=ECCR
+    else if (((MR_n & BIOXL_n) == 0) | ((MR_n & ECCR_n)) == 0)
       DISB_reg = 1'b0;
 
-    // SET IF ANY OF LBD0,1,4 AND IOX=ECCR
     if (((LBD0 & BIOXL & ECCR) == 1) | ((LBD1 & BIOXL & ECCR) == 1) | ((LBD4 & BIOXL & ECCR) == 1))
       TST_reg = 1'b1;
-    else if (((MR_n & BIOXL) == 0) | ((MR_n & ECCR_n) == 0))  // HOLD UNTIL NEXT IOX=ECCR
+    else if (((MR_n & BIOXL) == 0) | ((MR_n & ECCR_n) == 0))
       TST_reg = 1'b0;
-
   end
+  /* verilator lint_on LATCH */
+`else
+  // Edge-triggered flip-flop (FPGA synthesis)
+  always @(posedge CK or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
+      DISB_reg <= 1'b0;
+      TST_reg <= 1'b0;
+    end else begin
+      if ((LBD3 & BIOXL & ECCR) == 1) DISB_reg <= 1'b1;
+      else if (((MR_n & BIOXL_n) == 0) | ((MR_n & ECCR_n)) == 0)
+        DISB_reg <= 1'b0;
+
+      if (((LBD0 & BIOXL & ECCR) == 1) | ((LBD1 & BIOXL & ECCR) == 1) | ((LBD4 & BIOXL & ECCR) == 1))
+        TST_reg <= 1'b1;
+      else if (((MR_n & BIOXL) == 0) | ((MR_n & ECCR_n) == 0))
+        TST_reg <= 1'b0;
+    end
+  end
+`endif
 
 
   assign DISB_n = ~DISB_reg;

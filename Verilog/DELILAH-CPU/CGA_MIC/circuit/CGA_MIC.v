@@ -616,7 +616,7 @@ module CGA_MIC (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
+  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) MEMORY_35 (
       .clock(s_mclk),

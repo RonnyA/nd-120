@@ -30,6 +30,7 @@ module BIF_BCTL_6 (
     input MOFF_n,     //! Memory Off
     input MOR25_n,    //! Memory Operation Ready 25ns delayed
     input OSC,        //! Oscillator
+    input sys_rst_n,  //! System reset (active low, for FPGA synthesis)
     input PA_n,       //! Parity Error Address (PEA)
     input PD1,        //! Power Down 1
     input PD3,        //! Power Down 3
@@ -287,6 +288,7 @@ module BIF_BCTL_6 (
    */
   PAL_44401B PAL_44401_UBTIM (
       .CK  (s_osc),
+      .sys_rst_n(sys_rst_n),
       .OE_n(s_pd1),
 
       .CC2_n   (s_cc2_n),     // I0
@@ -318,6 +320,9 @@ module BIF_BCTL_6 (
    * Includes test functionality and interfaces with memory operation ready signals.
    */
   PAL_45001B PAL_45001_UBPAR (
+      .CK       (s_osc),        // Clock (added for FPGA synthesis)
+      .sys_rst_n(sys_rst_n),    // System reset (for FPGA synthesis)
+
       .BDRY50_n (s_bdry50_n),   // I0 - BDRY50_n Bus Data Ready 50ns delayed
       .BDRY75_n (s_bdry75_n),   // I1 - BDRY75_n Bus Data Ready 75ns delayed
       .BLOCK25_n(s_block25_n),  // I2 - BLOCK25_n Block 25ns delayed
