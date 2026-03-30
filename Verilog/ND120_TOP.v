@@ -155,7 +155,20 @@ module ND120_TOP
   //   5=LED1 from MMU
   //   6=LED5_RED_DISABLE_PARITY
 
-  wire s_run;  // RUN: 1=CPU is running, 0=OPCOM mode
+  // Debug signals -- mark_debug lets Vivado ILA probe these in Hardware Manager.
+  // After synthesis, in Vivado: Open Synthesized Design -> Set Up Debug -> add these nets.
+  // Then re-run Implementation and Generate Bitstream.
+  (* mark_debug = "true" *) wire s_run;
+  (* mark_debug = "true" *) wire [12:0] s_debug_csa;
+  (* mark_debug = "true" *) wire s_debug_uartTx;
+  (* mark_debug = "true" *) wire s_debug_uartRx;
+  (* mark_debug = "true" *) wire [6:0] s_debug_cpu_led;
+
+  assign s_debug_csa = CSA_12_0;
+  assign s_debug_uartTx = uartTx;
+  assign s_debug_uartRx = uartRx;
+  assign s_debug_cpu_led = s_cpu_led;
+
   (* keep = "true", DONT_TOUCH = "true" *)  wire [4:0] s_test_4_0;  // Test pads
   (* keep = "true", DONT_TOUCH = "true" *)  wire [4:0] s_dp_5_1_n;  // Datapath 5-1
   (* keep = "true", DONT_TOUCH = "true" *)  wire s_tp1_intrq_n;     // TP1 INTRQ_n
