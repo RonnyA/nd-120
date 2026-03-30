@@ -951,7 +951,7 @@ module DECODE_DGA_COMM (
       .result(s_a192_nand_out)
   );
 
-  D_FLIPFLOP #(
+  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) MEMORY_63 (
       .clock(s_clk1),
@@ -1000,7 +1000,7 @@ module DECODE_DGA_COMM (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
+  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) MEMORY_68 (
       .clock(s_clk3),
@@ -1138,7 +1138,7 @@ module DECODE_DGA_COMM (
       .Y(s_208_y)
   );
 
-  D_FLIPFLOP #(
+  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) MEMORY_66 (
       .clock(s_clk3),

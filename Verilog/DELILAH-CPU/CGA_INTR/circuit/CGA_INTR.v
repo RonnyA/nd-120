@@ -143,7 +143,7 @@ module CGA_INTR (
       .result(s_gates1_out)
   );
 
-  D_FLIPFLOP #(
+  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) MEMORY_2 (
       .clock(s_mclk),

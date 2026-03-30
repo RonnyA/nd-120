@@ -114,7 +114,7 @@ module CGA_MIC_INCOUNT (
       .sel(s_lwca_n)
   );
 
-  D_FLIPFLOP #(
+  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) MEMORY_6 (
       .clock(s_mclk),
@@ -126,7 +126,7 @@ module CGA_MIC_INCOUNT (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
+  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) MEMORY_7 (
       .clock(s_mclk),

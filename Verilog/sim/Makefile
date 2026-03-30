@@ -58,7 +58,7 @@ compare_latch: latch_ff_compare.cpp
 	@echo "=== Latch trace written to trace_latch.csv ==="
 
 compare_ff: latch_ff_compare.cpp
-	$(VERILATOR) $(COMPARE_VFLAGS) $(VERILATOR_DIRS) --exe $(COMPARE_SOURCES) -CFLAGS "$(VERILATOR_DIRS) -I../../simDevices" --Mdir obj_dir_ff
+	$(VERILATOR) $(COMPARE_VFLAGS) -DVERILATOR_SIM -DFPGA_FF_MODE $(VERILATOR_DIRS) --exe $(COMPARE_SOURCES) -CFLAGS "$(VERILATOR_DIRS) -I../../simDevices" --Mdir obj_dir_ff
 	cd obj_dir_ff && make -f VND120_TOP.mk VND120_TOP
 	./obj_dir_ff/VND120_TOP > trace_ff.csv
 	@echo "=== FF trace written to trace_ff.csv ==="
