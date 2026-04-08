@@ -39,15 +39,15 @@ localparam [1:0] SEL_REPEAT = 2'b11;
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-  wire [ 1:0] s_mux_selector;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [ 1:0] s_mux_selector;
   wire [12:0] s_ret_12_0;
   wire [12:0] s_next_12_0;
-  wire [11:0] s_csbit_11_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [11:0] s_csbit_11_0;
   wire [12:0] s_w_12_0_out;
   wire [12:0] s_iw_12_0_out;
-  wire [ 3:0] s_jmp_3_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [ 3:0] s_jmp_3_0;
   //wire [12:0] s_rep_12_0;
-  wire        s_csbit20;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_csbit20;
   wire        s_mclk_n;
   wire        s_mclk;
   wire        s_mr_n;
@@ -70,7 +70,7 @@ localparam [1:0] SEL_REPEAT = 2'b11;
   assign s_csbit20          = CSBIT20;
   assign s_mr_n             = MRN;
 
-  wire [12:0] s_jmpaddr_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_jmpaddr_12_0;
   // Fixed: Added s_csbit20 as bit 12 for complete 13-bit assignment
   assign s_jmpaddr_12_0 = {s_csbit20, s_csbit_11_0[11:4], s_jmp_3_0[3:0]};
 
@@ -81,9 +81,9 @@ localparam [1:0] SEL_REPEAT = 2'b11;
   //assign W_12_0             = s_w_12_0_out[12:0];
 
   // Register declarations (moved before assign to avoid synthesis warning)
-  reg [12:0] regREP;
-  reg [12:0] regW;
-  reg [12:0] regIW;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) reg [12:0] regREP;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) reg [12:0] regW;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) reg [12:0] regIW;
 
   assign IW_12_0            = regIW;
   assign W_12_0             = regW;

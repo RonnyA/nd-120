@@ -12,6 +12,7 @@ module MEM_ERROR_47 (
 
     // Input signals
 
+    input        sysclk,     //! FPGA system clock — used for CK edge detection
     input        OSC,        // Clock input (added for FPGA synthesis)
     input        sys_rst_n,  // System reset (active low, for FPGA synthesis)
 
@@ -109,6 +110,7 @@ module MEM_ERROR_47 (
 
   // PESL register
   TTL_74374 CHIP_7C_PESL_HI (
+      .sysclk(sysclk),
       .CK(s_spesl),
       .D({s_fetch, s_cgnt50_n, s_power, s_power, s_power, s_corr_n, s_hierr, s_loerr}),
       .OE_n(s_epesl_n),
@@ -116,6 +118,7 @@ module MEM_ERROR_47 (
   );
 
   TTL_74374 CHIP_3C_PESL_LO (
+      .sysclk(sysclk),
       .CK(s_speal),
       .D(s_lbd_23_0[23:16]),
       .OE_n(s_epesl_n),
@@ -125,6 +128,7 @@ module MEM_ERROR_47 (
 
   // PEAL register
   TTL_74374 CHIP_4C_PEAL_HI (
+      .sysclk(sysclk),
       .CK(s_speal),
       .D(s_lbd_23_0[15:8]),
       .OE_n(s_epeal_n),
@@ -132,6 +136,7 @@ module MEM_ERROR_47 (
   );
 
   TTL_74374 CHIP_6D_PEAL_LO (
+      .sysclk(sysclk),
       .CK(s_speal),
       .D(s_lbd_23_0[7:0]),
       .OE_n(s_epeal_n),

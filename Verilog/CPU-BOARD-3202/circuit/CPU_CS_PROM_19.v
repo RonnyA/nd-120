@@ -25,7 +25,7 @@ module CPU_CS_PROM_19 (
 
 
   wire [14:0] s_Address;
-  reg [15:0] regData;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) reg [15:0] regData;
 
   assign s_Address = {LUA_12_0, RF_1_0};  // Concatenate the bits to form a 15-bit address
 

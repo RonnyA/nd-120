@@ -15,6 +15,8 @@
 
 
 module DECODE_DGA (
+    input       sysclk,     // System clock (for F595 synchronous RS latch)
+    input       sys_rst_n,  // FPGA system reset (active-low)
 
     /*******************************************************************************
    ** The inputs are defined here                                                **
@@ -380,6 +382,8 @@ module DECODE_DGA (
   // ****************************************************************************************************
 
   DECODE_DGA_POW POW (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
       // Inputs
       .BDRY50N(s_xbdn),
       .CLOSC(s_xclo),
@@ -444,6 +448,8 @@ module DECODE_DGA (
 );
 
   DECODE_DGA_COMM COMM (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
       // Inputs
       .BRKN(s_xbrn),         //! Break signal
       .CA10(s_ca10),         //! Cache address bit 10

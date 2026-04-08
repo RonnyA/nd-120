@@ -346,7 +346,7 @@ module IO_DCD_38 (
 
   // Test signals
   wire TESTE;
-  assign TESTE = 1'b1;  // <=== TEST ENABLE (?) Must be 1 for normal operation
+  assign TESTE = 1'b0;  // Tied to GND on production PCB (TESTE=1 = factory test mode, runs timers 64x faster)
 
   //wire XTESTO;
 
@@ -377,12 +377,14 @@ module IO_DCD_38 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+  // PPOSC baud-rate reference always derived from sysclk (100MHz/8 = 12.5MHz),
+  // NOT from XTAL1/clk1, so the UART speed is unaffected by SW2 clock divider.
   TTL_74393 CHIP_13C_1 (
-      .CLK_n(s_XTAL1),
+      .CLK_n(sysclk),
       .RESET(s_closc),
       .QA(),
       .QB(),
-      .QC(s_pposc),  // Signal PPOSC leaving DCD (4.9152 Mhz clock for UART) (Div8)
+      .QC(s_pposc),  // Signal PPOSC leaving DCD (100MHz/8 = 12.5MHz for UART)
       .QD(s_div_16)
   );
 
@@ -400,6 +402,8 @@ module IO_DCD_38 (
 
 
   DECODE_DGA DGA (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
       /** INPUT **/
 
       .XBDN(s_bdry50_n),

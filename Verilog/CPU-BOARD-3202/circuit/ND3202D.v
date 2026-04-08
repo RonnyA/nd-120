@@ -140,7 +140,16 @@ module ND3202D (
     // Debug outputs for FPGA
     output [4:0] DEBUG_CC_TERM,  // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
     output       DEBUG_MCLK,     // Memory clock
-    output       DEBUG_LCS_n     // LCS_n: 0=loading microcode, 1=microcode loaded
+    output       DEBUG_LCS_n,    // LCS_n: 0=loading microcode, 1=microcode loaded
+
+    // Additional debug outputs for microcode load/boot analysis
+    output       DEBUG_FETCH,    // Fetch signal
+    output       DEBUG_MR_n,     // Master Reset
+    output       DEBUG_CLEAR_n,  // Clear
+    output       DEBUG_REFRQ_n,  // Refresh Request
+    output       DEBUG_INTRQ_n,  // Interrupt Request (TP1)
+    output       DEBUG_POWFAIL_n, // Power Fail
+    output [15:0] DEBUG_FIDBO_15_0 // FIDBO internal data bus
 );
 
   /*
@@ -177,6 +186,12 @@ TODO: Sort bits on output LED to match led numbering
   assign DEBUG_CC_TERM = {s_term_n, s_cc_3_1_n[2:0], s_cc0_n};
   assign DEBUG_MCLK = s_mclk;
   assign DEBUG_LCS_n = s_lcs_n;
+  assign DEBUG_FETCH = s_fetch;
+  assign DEBUG_MR_n = s_mr_n;
+  assign DEBUG_CLEAR_n = s_clear_n;
+  assign DEBUG_REFRQ_n = s_refrq_n;
+  assign DEBUG_INTRQ_n = s_rp1_intrq_n;
+  assign DEBUG_POWFAIL_n = s_powfail_n;
 
   wire [ 3:0] s_lba_3_0;
   wire [ 3:0] s_pil_3_0;
@@ -699,6 +714,7 @@ TODO: Sort bits on output LED to match led numbering
       .PPN_23_10   (s_ppn_23_10[13:0]),
       .TEST_4_0    (s_test_4_0[4:0]),
       .TOPCSB      (s_csbits[63:0]),
+      .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
       .TP1_INTRQ_n (s_rp1_intrq_n),
       .TRAPN       (s_trap_n),                  //out
       .LDEXM_n     (s_LDEXM_n),

@@ -2,11 +2,15 @@
 
 /**************************************************************************
 ** Testbench for F595
-** Tests the conversion from gated latch to edge-triggered flip-flop
+** Tests synchronous RS flip-flop sampled on sysclk
 ** R/S Latch with Gated input
 ***************************************************************************/
 
 module F595_tb;
+
+  // System clock
+  reg sysclk;
+  reg sys_rst_n;
 
   // Inputs
   reg H01_S;  // Set
@@ -17,8 +21,14 @@ module F595_tb;
   wire N01_Q;   // Q
   wire N02_QB;  // Qn
 
+  // Generate 100MHz sysclk
+  initial sysclk = 0;
+  always #5 sysclk = ~sysclk;  // 10ns period
+
   // Instantiate the Unit Under Test (UUT)
   F595 uut (
+    .sysclk(sysclk),
+    .sys_rst_n(sys_rst_n),
     .H01_S(H01_S),
     .H02_R(H02_R),
     .H03_G(H03_G),
@@ -28,179 +38,124 @@ module F595_tb;
 
   // Test vectors
   initial begin
-    $display("F595 Testbench - Testing gated latch to edge-triggered flip-flop conversion");
+    $display("F595 Testbench - Synchronous RS FF sampled on sysclk");
     $display("========================================");
-    $display("Original: Gated latch (transparent when G=1)");
-    $display("Fixed: Edge-triggered flip-flop (captures on rising edge of G)");
     $display("");
     $display("Time\tS\tR\tG\t|\tQ\tQn");
 
     // Initialize inputs
+    sys_rst_n = 0;  // Assert reset
     H01_S = 0;
     H02_R = 0;
     H03_G = 0;
-    #100;
+    #20;
+    sys_rst_n = 1;  // Release reset
+    #80;
 
-    // Test 1: Set condition (S=1, R=1) - Both outputs go high
-    $display("\nTest 1: Set condition (S=1, R=1) - trigger on rising edge of G");
+    // Test 1: Set condition (S=1, R=1) with gate high
+    $display("\nTest 1: Set condition (S=1, R=1) with G=1");
     H01_S = 1;
     H02_R = 1;
-    H03_G = 0;
-    #50;
-    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b (before rising edge)", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
-
-    // Rising edge of gate - should capture the values
     H03_G = 1;
-    #50;
-    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b (after rising edge)", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
+    #20;  // Wait for sysclk edge
+    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
     if (N01_Q !== 1'b1 || N02_QB !== 1'b1)
       $display("ERROR: Both Q and Qn should be 1");
     else
       $display("PASS: Q=1, Qn=1 (set condition)");
 
-    H03_G = 0;
     #50;
 
-    // Test 2: Reset condition (S=0, R=1) - Q=0, Qn=1
-    $display("\nTest 2: Reset condition (S=0, R=1)");
+    // Test 2: Reset condition (S=0, R=1) with gate high
+    $display("\nTest 2: Reset condition (S=0, R=1) with G=1");
     H01_S = 0;
     H02_R = 1;
-    H03_G = 0;
-    #50;
-    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b (before rising edge)", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
-
-    // Rising edge of gate
     H03_G = 1;
-    #50;
-    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b (after rising edge)", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
+    #20;
+    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
     if (N01_Q !== 1'b0 || N02_QB !== 1'b1)
       $display("ERROR: Q should be 0, Qn should be 1");
     else
       $display("PASS: Q=0, Qn=1 (reset condition)");
 
-    H03_G = 0;
     #50;
 
-    // Test 3: Set condition (S=1, R=0) - Q=1, Qn=0
-    $display("\nTest 3: Set condition (S=1, R=0)");
+    // Test 3: Set condition (S=1, R=0) with gate high
+    $display("\nTest 3: Set condition (S=1, R=0) with G=1");
     H01_S = 1;
     H02_R = 0;
-    H03_G = 0;
-    #50;
-    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b (before rising edge)", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
-
-    // Rising edge of gate
     H03_G = 1;
-    #50;
-    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b (after rising edge)", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
+    #20;
+    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
     if (N01_Q !== 1'b1 || N02_QB !== 1'b0)
       $display("ERROR: Q should be 1, Qn should be 0");
     else
       $display("PASS: Q=1, Qn=0 (set condition)");
 
-    H03_G = 0;
     #50;
 
-    // Test 4: Hold condition (S=0, R=0) - maintain previous state
-    $display("\nTest 4: Hold condition (S=0, R=0) - should maintain state");
-    reg prev_Q, prev_QB;
-    prev_Q = N01_Q;
-    prev_QB = N02_QB;
-
+    // Test 4: Hold condition (S=0, R=0) with gate high - should maintain state
+    $display("\nTest 4: Hold condition (S=0, R=0) with G=1 - should maintain state");
     H01_S = 0;
     H02_R = 0;
-    H03_G = 0;
-    #50;
-    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b (before rising edge, prev: Q=%b, Qn=%b)",
-             $time, H01_S, H02_R, H03_G, N01_Q, N02_QB, prev_Q, prev_QB);
-
-    // Rising edge of gate - should maintain previous state
     H03_G = 1;
-    #50;
-    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b (after rising edge)", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
-    if (N01_Q !== prev_Q || N02_QB !== prev_QB)
-      $display("PASS: Values held (edge-triggered behavior)");
+    #20;
+    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
+    if (N01_Q !== 1'b1 || N02_QB !== 1'b0)
+      $display("ERROR: Should maintain previous state Q=1, Qn=0");
     else
-      $display("PASS: Values maintained");
+      $display("PASS: State maintained Q=1, Qn=0");
 
-    H03_G = 0;
     #50;
 
-    // Test 5: Verify edge-triggered behavior (not transparent latch)
-    $display("\nTest 5: Verify edge-triggered behavior (values don't change while G=1)");
+    // Test 5: Gate low - changes to S/R should not affect output
+    $display("\nTest 5: Gate low - S/R changes should not affect output");
+    H03_G = 0;
+    #20;
     H01_S = 0;
     H02_R = 1;
-    H03_G = 1; // Gate already high
-    #50;
-    prev_Q = N01_Q;
-    prev_QB = N02_QB;
-    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b (G=1, capturing previous state)", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
-
-    // Change inputs while gate is high - should NOT affect outputs (edge-triggered)
-    H01_S = 1;
-    H02_R = 0;
-    #50;
-    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b (changed S,R while G=1)", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
-    $display("  Previous: Q=%b, Qn=%b", prev_Q, prev_QB);
-    if (N01_Q === prev_Q && N02_QB === prev_QB)
-      $display("PASS: Outputs stable (edge-triggered, not transparent latch)");
+    #20;
+    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
+    if (N01_Q !== 1'b1 || N02_QB !== 1'b0)
+      $display("ERROR: Output should not change when G=0");
     else
-      $display("NOTE: Outputs changed (this would indicate transparent latch behavior)");
+      $display("PASS: Output held while G=0");
 
-    // Test 6: Multiple gate pulses
-    $display("\nTest 6: Multiple gate pulses with different inputs");
-    H03_G = 0;
     #50;
 
-    // Pulse 1: Set Q
-    H01_S = 1;
-    H02_R = 0;
-    H03_G = 0;
-    #50;
+    // Test 6: Gate goes high again - should now respond
+    $display("\nTest 6: Gate goes high - should respond to current S/R (S=0, R=1)");
     H03_G = 1;
-    #50;
-    $display("%0t: Pulse 1: S=1, R=0 -> Q=%b, Qn=%b", $time, N01_Q, N02_QB);
-    H03_G = 0;
-    #50;
-
-    // Pulse 2: Reset Q
-    H01_S = 0;
-    H02_R = 1;
-    H03_G = 0;
-    #50;
-    H03_G = 1;
-    #50;
-    $display("%0t: Pulse 2: S=0, R=1 -> Q=%b, Qn=%b", $time, N01_Q, N02_QB);
-    H03_G = 0;
-    #50;
-
-    // Pulse 3: Both high
-    H01_S = 1;
-    H02_R = 1;
-    H03_G = 0;
-    #50;
-    H03_G = 1;
-    #50;
-    $display("%0t: Pulse 3: S=1, R=1 -> Q=%b, Qn=%b", $time, N01_Q, N02_QB);
-
-    if (N01_Q === 1'b1 && N02_QB === 1'b1)
-      $display("PASS: Multiple pulses working correctly");
+    #20;
+    $display("%0t\t%b\t%b\t%b\t|\t%b\t%b", $time, H01_S, H02_R, H03_G, N01_Q, N02_QB);
+    if (N01_Q !== 1'b0 || N02_QB !== 1'b1)
+      $display("ERROR: Q should be 0, Qn should be 1");
     else
-      $display("ERROR: Final state incorrect");
+      $display("PASS: Q=0, Qn=1 (reset after gate re-enabled)");
+
+    // Test 7: Constant gate high, toggling S/R (mimics DGA_POW usage)
+    $display("\nTest 7: Constant G=1, toggling S/R (DGA_POW pattern)");
+    H03_G = 1;
+    H01_S = 1; H02_R = 0;
+    #20;
+    $display("%0t: S=1,R=0 -> Q=%b, Qn=%b", $time, N01_Q, N02_QB);
+
+    H01_S = 0; H02_R = 0;
+    #20;
+    $display("%0t: S=0,R=0 -> Q=%b, Qn=%b (hold)", $time, N01_Q, N02_QB);
+
+    H01_S = 0; H02_R = 1;
+    #20;
+    $display("%0t: S=0,R=1 -> Q=%b, Qn=%b", $time, N01_Q, N02_QB);
+
+    H01_S = 0; H02_R = 0;
+    #20;
+    $display("%0t: S=0,R=0 -> Q=%b, Qn=%b (hold)", $time, N01_Q, N02_QB);
 
     $display("\n========================================");
     $display("F595 Testbench Complete");
-    $display("Verified: Gated latch converted to edge-triggered flip-flop");
-    $display("  - Captures state on rising edge of G (not transparent)");
-    $display("  - No latch inference warnings expected");
     $display("========================================");
     $finish;
-  end
-
-  // Monitor for debugging
-  always @(N01_Q or N02_QB) begin
-    if ($time > 0)
-      $display("  [Monitor] Time=%0t: Q=%b, Qn=%b", $time, N01_Q, N02_QB);
   end
 
 endmodule

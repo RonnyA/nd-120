@@ -69,7 +69,10 @@ module CPU_PROC_CGA_33 (
     output [ 4:0] TEST_4_0,    //! Test output
     output        TRAP_n,      //! Trap, active low
     output        WCS_n,       //! Write Control Store, active low
-    output        WRTRF        //! Write Register File
+    output        WRTRF,       //! Write Register File
+
+    // Debug
+    output [15:0] DEBUG_FIDBO_15_0  //! FIDBO internal data bus
 );
 
 
@@ -102,6 +105,7 @@ module CPU_PROC_CGA_33 (
 
 
   TTL_74374 CHIP_34G (
+      .sysclk(sysclk),
       .CK(~ALUCLK),  //7F (Smith with 1's complement) ?
       .D({
         IBINT10_n, IBINT11_n, IBINT12_n, IBINT13_n, IBINT15_n, 3'b000
@@ -281,7 +285,9 @@ module CPU_PROC_CGA_33 (
       .XTEST_4_0(TEST_4_0),
       .XTRAPN(TRAP_n),
       .XWCSN(WCS_n),
-      .XWRTRF(WRTRF)
+      .XWRTRF(WRTRF),
+
+      .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0)
   );
 
 endmodule

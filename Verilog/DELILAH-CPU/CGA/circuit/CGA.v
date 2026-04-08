@@ -87,6 +87,9 @@ module CGA (
     output        XTRAPN,
     output        XWCSN,
     output        XWRTRF,
+
+    // Debug
+    output [15:0] DEBUG_FIDBO_15_0,
     output [15:0] XFIDB_15_0_OUT
 );
 
@@ -157,8 +160,8 @@ module CGA (
   wire        s_cfetch;
   wire        s_clff_n;
   wire        s_clirq_n;
-  wire        s_cond;
-  wire        s_cry;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_cond;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_cry;
   wire        s_csalui0;
   wire        s_csalui1;
   wire        s_csalui2;
@@ -268,7 +271,7 @@ module CGA (
   wire        s_write_n;
   wire        s_xfetch_n;
   wire        s_z;
-  wire        s_zf;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_zf;
   wire        sx_acond_n_out;
   wire        sx_aluclk;
   wire        sx_bint10_n;
@@ -560,6 +563,7 @@ module CGA (
   assign XTRAPN              = sx_trap_n_out;
   assign XWCSN               = sx_wcs_n_out;
   assign XWRTRF              = sx_wrtrf_out;
+  assign DEBUG_FIDBO_15_0    = s_FIDBO_15_0;
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **

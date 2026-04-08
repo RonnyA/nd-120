@@ -88,6 +88,7 @@ module CPU_15 (
     output [13:0] PPN_23_10,   //! Physical Page Number - 14-bit page number for memory mapping
     output [ 4:0] TEST_4_0,    //! Test Points - 5-bit test signals for debugging
     output [63:0] TOPCSB,      //! Top Control Store Bits - 64-bit microcode control signals
+    output [15:0] DEBUG_FIDBO_15_0,  //! FIDBO internal data bus
 
     output RWCS_n,       //! COMMAND 36.1 RWCS - Read/write control store as addressed by ADCS command
     output LSHADOW,      //! Latch Shadow signal
@@ -453,7 +454,9 @@ module CPU_15 (
     .TP1_INTRQ_n(s_tp1_intr1_n),
     .TRAPN(s_trap_n),  // TRAP_n output
     .VEX(s_vex),
-    .WCS_n(s_wcs_n)
+    .WCS_n(s_wcs_n),
+
+    .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0)
   );
 
   CPU_CS_16 CS (

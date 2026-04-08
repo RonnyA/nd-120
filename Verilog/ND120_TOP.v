@@ -36,13 +36,19 @@ module ND120_TOP
     input wire sysclk,    //! System Clock
     input wire btn1,      //! Button 1 - connected to sys_rst_n
     input wire btn2,      //! Button 2
+`ifndef VERILATOR_SIM
+    input wire btn3,      //! SW5 - CPU clock: 0=100MHz, 1=12.5MHz
+`endif
     input wire uartRx,    //! UART Receive pin
     output wire uartTx,   //! UART Transmit pin
+`ifdef VERILATOR_SIM
+    output wire [5:0] led //! 6-bit LED output (simulation)
+`else
     output wire [15:0] led, //! 16 LEDs on Basys3 (LD0-LD15)
-
     // 7-segment display (active LOW, Basys3)
     output wire [6:0] seg,  //! 7-segment segments (a-g, active LOW)
     output wire [3:0] an    //! 7-segment digit anodes (active LOW)
+`endif
 
 `ifdef VERILATOR_SIM
     // Simulation-only ports: full bus interface for device emulation
@@ -136,6 +142,9 @@ module ND120_TOP
   wire s_high= 1'b1;
   wire s_low= 1'b0;
   wire sys_rst_n;
+`ifndef VERILATOR_SIM
+  wire mmcm_locked;
+`endif
 
   // input signals
   wire clk1;  //! Clock Signal 1
@@ -163,7 +172,7 @@ module ND120_TOP
   // After synthesis, in Vivado: Open Synthesized Design -> Set Up Debug -> add these nets.
   // Then re-run Implementation and Generate Bitstream.
   (* mark_debug = "true" *) wire s_run;
-  (* mark_debug = "true" *) wire [12:0] s_debug_csa;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_debug_csa;
   (* mark_debug = "true" *) wire s_debug_uartTx;
   (* mark_debug = "true" *) wire s_debug_uartRx;
   (* mark_debug = "true" *) wire [6:0] s_debug_cpu_led;
@@ -181,6 +190,17 @@ module ND120_TOP
   (* mark_debug = "true" *) wire [4:0] s_debug_cc_term;    // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
   (* mark_debug = "true" *) wire       s_debug_mclk;       // Memory clock
   (* mark_debug = "true" *) wire       s_debug_lcs_n;      // LCS_n: 0=loading, 1=loaded
+  (* mark_debug = "true" *) wire       s_debug_fetch;      // Fetch signal
+  (* mark_debug = "true" *) wire       s_debug_mr_n;       // Master Reset
+  (* mark_debug = "true" *) wire       s_debug_clear_n;    // Clear
+  (* mark_debug = "true" *) wire       s_debug_refrq_n;    // Refresh Request
+  (* mark_debug = "true" *) wire       s_debug_intrq_n;    // Interrupt Request
+  (* mark_debug = "true" *) wire       s_debug_powfail_n;  // Power Fail
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [15:0] s_debug_fidbo;  // FIDBO internal data bus
+
+  // ALU debug probes: mark_debug applied directly in submodule source files:
+  //   CGA_ALU.v:  s_q_15_0 (Q reg), s_f_15_0 (F result)
+  //   CGA.v:      s_zf (zero flag), s_cry (carry), s_cond (condition)
 
   (* keep = "true", DONT_TOUCH = "true" *)  wire [4:0] s_test_4_0;  // Test pads
   (* keep = "true", DONT_TOUCH = "true" *)  wire [4:0] s_dp_5_1_n;  // Datapath 5-1
@@ -189,22 +209,100 @@ module ND120_TOP
 
   reg [32:0] clockTicks;
 
-  // TODO: Modify clock ?
-  assign clk1 = sysclk;  // XTAL1 = 39.3216MHZ
-  //assign clk2 = sysclk;  // XTAL2 = 35 MHZ (for slow operations?)
+`ifdef VERILATOR_SIM
+  // Simulation: testbench controls btn1 directly (0 for 100 cycles, then 1)
   assign sys_rst_n = btn1;
+`else
+  // FPGA: Power-on reset holds sys_rst_n LOW for 256 cycles after configuration
+  // or after btn1 (SW0) goes low. Ensures a clean reset-release transition
+  // every time the switch is toggled, re-triggering the full CPU boot sequence.
+  reg [7:0] por_count = 8'd0;
+  reg       por_done  = 1'b0;
+  always @(posedge sysclk) begin
+    if (!btn1) begin
+      // SW0 down: reset the POR counter
+      por_count <= 8'd0;
+      por_done  <= 1'b0;
+    end else if (!por_done) begin
+      if (por_count == 8'hFF)
+        por_done <= 1'b1;
+      else
+        por_count <= por_count + 1'b1;
+    end
+  end
+  assign sys_rst_n = por_done & mmcm_locked;
+`endif
+
+`ifdef VERILATOR_SIM
+  assign clk1 = sysclk;  // Simulation: always full speed
+`else
+  // FPGA: SW3 (btn3, pin W17) selects CPU clock at runtime.
+  //   SW5 DOWN (0) -> 100 MHz full speed
+  //   SW5 UP   (1) -> 12.5 MHz slow/debug speed
+  //
+  // MMCM generates both from sysclk; BUFGMUX_CTRL does glitch-free switching.
+  // btn3 feeds only the mux select (S) - no clock-capable pin required.
+  // UART baud clock (PPOSC) is hardwired to sysclk in IO_DCD_38 - unaffected.
+
+  (* ASYNC_REG = "TRUE" *) reg btn3_s1 = 1'b0, btn3_s2 = 1'b0;
+  always @(posedge sysclk) begin
+    btn3_s1 <= btn3;
+    btn3_s2 <= btn3_s1;
+  end
+
+  wire clk_100_pre, clk_12p5_pre, clkfb_out, clkfb_in;
+  wire clk_100, clk_12p5;
+
+  MMCME2_BASE #(
+    .BANDWIDTH        ("OPTIMIZED"),
+    .CLKFBOUT_MULT_F  (10.0),   // VCO = 100 * 10 = 1000 MHz
+    .CLKIN1_PERIOD    (10.0),   // 100 MHz input
+    .CLKOUT0_DIVIDE_F (10.0),   // CLKOUT0 = 1000 / 10 = 100 MHz
+    .CLKOUT1_DIVIDE   (80),     // CLKOUT1 = 1000 / 80 = 12.5 MHz
+    .DIVCLK_DIVIDE    (1),
+    .STARTUP_WAIT     ("FALSE")
+  ) mmcm_cpu_clk (
+    .CLKIN1   (sysclk),
+    .CLKFBIN  (clkfb_in),
+    .CLKFBOUT (clkfb_out),
+    .CLKOUT0  (clk_100_pre),
+    .CLKOUT1  (clk_12p5_pre),
+    .LOCKED   (mmcm_locked),
+    .PWRDWN   (1'b0),
+    .RST      (1'b0)
+  );
+  BUFG bufg_fb   (.I(clkfb_out),    .O(clkfb_in));
+  BUFG bufg_100  (.I(clk_100_pre),  .O(clk_100));
+  BUFG bufg_12p5 (.I(clk_12p5_pre), .O(clk_12p5));
+
+  // Glitch-free mux: S=0 -> I0 (100 MHz), S=1 -> I1 (12.5 MHz)
+  BUFGMUX_CTRL clk_mux_i (
+    .O  (clk1),
+    .I0 (clk_100),
+    .I1 (clk_12p5),
+    .S  (btn3_s2)
+  );
+`endif
+  //assign clk2 = sysclk;  // XTAL2 = 35 MHZ (for slow operations?)
   assign oc_select = 2'b11;  // 11= Choose clock input = XTAL1 (full speed)
 
-  // LED assignments for FPGA debug
-  // Basys3: LEDs are ACTIVE HIGH (1=ON). LD0 is rightmost.
-  // Tang Nano: LEDs are ACTIVE LOW (0=ON) -- invert if targeting Tang Nano.
+`ifdef VERILATOR_SIM
+  // Simulation: original 6-bit LED mapping (active low, matching Run120.cpp)
+  assign led[1:0] = ~s_cpu_led[1:0];  // 0=RED, 1=GREEN
+  assign led[2] = !s_run;
+  assign led[3] = !s_cpu_led[3];      // CPU GRANT INDICATOR
+  assign led[4] = !s_cpu_led[4];      // BUS GRANT INDICATOR
+  assign led[5] = !s_cpu_led[5];      // LED1 from MMU
+`else
+  // FPGA: 16-bit LED mapping for Basys3 (active HIGH)
   //
   // LD0 = led[0] = CPU RED LED        (ON = error/halt)
   // LD1 = led[1] = CPU GREEN LED      (ON = running)
-  // LD2 = led[2] = RUN indicator      (ON = CPU running, OFF = OPCOM)
+  // LD2 = led[2] = RUN indicator      (ON = CPU NOT running/OPCOM, OFF = running)
   // LD3 = led[3] = sys_rst_n state    (ON = reset released, OFF = in reset)
   // LD4 = led[4] = UART TX activity   (blinks when transmitting)
   // LD5 = led[5] = Heartbeat          (blinks ~1.5Hz if clock running)
+  //                To restore LED1 from MMU: assign led[5] = !s_cpu_led[5];
 
   // RIGHT SIDE: CPU status (LD0-LD5)
   assign led[0]  = s_cpu_led[0];       // LD0:  CPU RED
@@ -214,10 +312,10 @@ module ND120_TOP
   assign led[4]  = ~uartTx;            // LD4:  UART TX activity
   assign led[5]  = clockTicks[26];     // LD5:  Heartbeat ~1.5Hz
   assign led[6]  = s_debug_mclk;       // LD6:  Memory clock
-  assign led[7]  = ~s_debug_lcs_n;    // LD7:  LCS (ON=microcode loaded)
-  assign led[8]  = 1'b0;              // LD8:  (spare)
-  assign led[9]  = 1'b0;              // LD9:  (spare)
-  assign led[10] = 1'b0;              // LD10: (spare)
+  assign led[7]  = ~s_debug_lcs_n;     // LD7:  LCS (ON=microcode loaded)
+  assign led[8]  = s_debug_mr_n;       // LD8:  MR_n (ON=not in reset)
+  assign led[9]  = 1'b0;               // LD9:  (spare)
+  assign led[10] = 1'b0;               // LD10: (spare)
 
   // LEFT SIDE: Cycle state machine (LD11-LD15)
   assign led[11] = ~s_debug_cc_term[0]; // LD11: CC0  (inverted: ON=active)
@@ -225,6 +323,7 @@ module ND120_TOP
   assign led[13] = ~s_debug_cc_term[2]; // LD13: CC2
   assign led[14] = ~s_debug_cc_term[3]; // LD14: CC3
   assign led[15] = ~s_debug_cc_term[4]; // LD15: TERM (leftmost)
+`endif
 
   // Free-running clock counter (no reset needed)
   always @(posedge sysclk)
@@ -232,7 +331,8 @@ module ND120_TOP
     clockTicks <= clockTicks + 1;
   end
 
-  // 7-segment display: shows CPU addresses in hex.
+`ifndef VERILATOR_SIM
+  // 7-segment display: shows CPU addresses in hex (FPGA only).
   // SW1 (btn2) selects what to display:
   //   SW1 OFF (DOWN): MIC address = CSA_12_0 (microcode address, 13 bits)
   //   SW1 ON  (UP):   MAC address = LA_23_10 (memory logical address, 14 bits)
@@ -248,6 +348,7 @@ module ND120_TOP
       .seg(seg),
       .an(an)
   );
+`endif
 
   ND3202D CPU_BOARD (
       .sysclk(sysclk),
@@ -341,7 +442,14 @@ module ND120_TOP
       .LED        (s_cpu_led[6:0]),  // 7 bit LED signals
       .DEBUG_CC_TERM(s_debug_cc_term), // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
       .DEBUG_MCLK(s_debug_mclk),      // Memory clock
-      .DEBUG_LCS_n(s_debug_lcs_n)     // LCS_n: 0=loading, 1=loaded
+      .DEBUG_LCS_n(s_debug_lcs_n),    // LCS_n: 0=loading, 1=loaded
+      .DEBUG_FETCH(s_debug_fetch),
+      .DEBUG_MR_n(s_debug_mr_n),
+      .DEBUG_CLEAR_n(s_debug_clear_n),
+      .DEBUG_REFRQ_n(s_debug_refrq_n),
+      .DEBUG_INTRQ_n(s_debug_intrq_n),
+      .DEBUG_POWFAIL_n(s_debug_powfail_n),
+      .DEBUG_FIDBO_15_0(s_debug_fidbo)
   );
 
 endmodule

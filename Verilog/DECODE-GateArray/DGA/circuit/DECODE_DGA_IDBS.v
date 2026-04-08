@@ -526,7 +526,7 @@ module DECODE_DGA_IDBS (
       .D1_H02 (s_a265_nand_out),
       .D2_H03 (s_a258_nand_out),
       .D3_H04 (s_a262_nand_out),
-      .N01_Q0 (s_epans_n),
+      .N01_Q0 (),             // EPANSN: combinatorial bypass below (see comment)
       .N02_Q1 (s_rinr_n),
       .N03_Q2 (s_epan_n),
       .N04_Q3 (s_traald_n),
@@ -535,6 +535,16 @@ module DECODE_DGA_IDBS (
       .N07_Q2B(),
       .N08_Q3B()
   );
+
+  // EPANSN combinatorial bypass:
+  // The original ND-120 WCS was async SRAM — CSIDBS settled during the idle phase
+  // (via MACLK), so F924 captured the correct value at posedge CLK (TERM_n falling).
+  // Our simulated WCS has 1-cycle registered output, causing CSIDBS to appear one
+  // instruction late. Making s_epans_n directly reflect a260_nand_out compensates:
+  // CSIDBS=o020 settles at MCLK falling (start of idle), so s_epans_n=0 is visible
+  // during the idle phase when CSEL is transparent, allowing COND=F[15]=1 to be
+  // captured before o002336 CONDENABL executes.
+  assign s_epans_n = s_a260_nand_out;
 
   F924 A248 (
       .C_H05  (s_clk0),

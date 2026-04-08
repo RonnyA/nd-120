@@ -85,10 +85,10 @@ module CGA_MIC (
   wire [ 3:0] s_jmp_3_0;
   wire [ 3:0] s_laa_3_0_out;
   wire [ 3:0] s_lba_3_0_out;
-  wire [ 3:0] s_lc_3_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [ 3:0] s_lc_3_0;
   wire [ 3:0] s_lcc_3_0;
   wire [ 3:0] s_pil_3_0;
-  wire [ 3:0] s_sc_6_3_out;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [ 3:0] s_sc_6_3_out;
   wire [ 3:0] s_tsel_3_0;
   wire [ 3:0] s_tvec_3_0;
   wire [ 6:0] s_ir_6_0;
@@ -107,7 +107,7 @@ module CGA_MIC (
   wire        s_cfetch;
   wire        s_clff_n;
   wire        s_clff;
-  wire        s_cond_n;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_cond_n;
   wire        s_cond;
   wire        s_cry;
   wire        s_csalui8;
@@ -148,8 +148,8 @@ module CGA_MIC (
   wire        s_gates3_out;
   wire        s_gates4_out;
   wire        s_gates5_out;
-  wire        s_efalse;
-  wire        s_etrue;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_efalse;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_etrue;
   wire        s_csts6_etrue;
   wire        s_gnd;
   wire        s_ialui8_clocked_qn;

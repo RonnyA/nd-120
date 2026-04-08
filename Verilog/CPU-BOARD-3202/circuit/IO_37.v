@@ -332,6 +332,7 @@ module IO_37(
 
    IO_PANCAL_40   PANCAL
    (
+      .sysclk(sysclk),
       .CLEAR_n(s_clear_n),
       .DP_5_1_n(s_dp_5_1_n[4:0]),
       .EMP_n(s_emp_n),

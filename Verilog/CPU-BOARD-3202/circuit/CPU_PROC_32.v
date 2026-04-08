@@ -83,7 +83,10 @@ module CPU_PROC_32 (
     output        TP1_INTRQ_n,  //! Test point TP1 Interrupt Request
     output        TRAPN,        //! Trap
     output        VEX,          //! Vector Exception
-    output        WCS_n         //! Write Control Store
+    output        WCS_n,        //! Write Control Store
+
+    // Debug
+    output [15:0] DEBUG_FIDBO_15_0  //! FIDBO internal data bus
 );
 
 
@@ -495,7 +498,9 @@ module CPU_PROC_32 (
       .TEST_4_0(s_test_4_0[4:0]),           // Test signals 4-0
       .TRAP_n(s_trap_n_out),                // Trap signal
       .WCS_n(s_wcs_n),                      // Write Control Store
-      .WRTRF(s_wrtrf)                       // Write Register File Strobe
+      .WRTRF(s_wrtrf),                      // Write Register File Strobe
+
+      .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0)
   );
 
 endmodule

@@ -2,7 +2,7 @@
  **                                                                          **
  ** Component : 74LS374                                                      **
  **                                                                          **
- ** Octal Transparent EDGE-TRIGGERED FLIP-FLOPS with 3-state outputs         ** 
+ ** Octal Transparent EDGE-TRIGGERED FLIP-FLOPS with 3-state outputs         **
  **                                                                          **
  ** Documentation: https://www.ti.com/lit/ds/symlink/sn54ls373-sp.pdf        **
  **                                                                          **
@@ -11,22 +11,26 @@
  *****************************************************************************/
 
 module TTL_74374 (
-    input wire [7:0] D,   // Data inputs
-    input wire CK,        // Clock input (Latching on rising edge of CK)
-    input wire OE_n,      // Output Control (active low)
-    output wire [7:0] Q   // Outputs
+    input wire        sysclk, // FPGA system clock — used for CK edge detection
+    input wire [7:0]  D,      // Data inputs
+    input wire        CK,     // Clock input (latches on rising edge of CK)
+    input wire        OE_n,   // Output Control (active low)
+    output wire [7:0] Q       // Outputs
 );
-    reg [7:0] Q_reg = 8'b0;  // Internal register with initial value for FPGA
+    reg [7:0] Q_reg = 8'b0;
 
-    // Latch operation on rising edge of CK
-    always @(posedge CK) begin
-        Q_reg <= D;  // Latch data on rising edge of CK
+    // Detect rising edge of CK relative to sysclk
+    reg CK_d = 1'b0;
+    always @(posedge sysclk)
+        CK_d <= CK;
+
+    wire CK_pulse = CK & ~CK_d;
+
+    always @(posedge sysclk) begin
+        if (CK_pulse)
+            Q_reg <= D;
     end
 
-    // Output control
-    // When OC_n is low (active), outputs reflect the latched data
-    // When OC_n is high, outputs are in high-impedance state
     assign Q = OE_n ? 8'b0 : Q_reg;
-
 
 endmodule

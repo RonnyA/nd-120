@@ -80,12 +80,12 @@ module CGA_ALU (
   wire [15:0] s_d_15_0;
   wire [15:0] s_dbr_15_0;
   wire [15:0] s_ea_15_0;
-  wire [15:0] s_f_15_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [15:0] s_f_15_0;
   wire [15:0] s_fidbi_15_0;
   wire [15:0] s_fidbo_15_0_out;
   wire [15:0] s_g_15_0;
   wire [15:0] s_grp_15_0;
-  wire [15:0] s_q_15_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [15:0] s_q_15_0;
   wire [15:0] s_rb_15_0_out;
   wire [15:0] s_rn_15_0;
   wire [15:0] s_s_15_0;

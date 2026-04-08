@@ -326,6 +326,7 @@ module MEM_43 (
    */
   MEM_ERROR_47 ERROR (
       // Clock and reset (added for FPGA synthesis)
+      .sysclk(sysclk),
       .OSC(s_osc),
       .sys_rst_n(sys_rst_n),
 

@@ -14,6 +14,8 @@
 ***************************************************************************/
 
 module DECODE_DGA_COMM (
+    input       sysclk,       //! System clock (for F595 synchronous RS latch)
+    input       sys_rst_n,    //! FPGA system reset (active-low)
     input       BRKN,         //! Break signal
     input       CLEAR,        //! Clear signal
     input       CLK1,         //! Clock input 1
@@ -1194,6 +1196,8 @@ module DECODE_DGA_COMM (
   );
 
   F595 A207 (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
       .H01_S (s_a196_nand_out),
       .H02_R (s_clk3_n),
       .H03_G (s_zz1),

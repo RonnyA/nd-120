@@ -54,10 +54,46 @@ module IDT6168A_20 (
 );
 
   // Memory array - 4K x 4-bit
+  reg [3:0] idt_memory_array[0:4095];
+
+`ifdef VERILATOR_SIM
+  // Simulation mode: 1-cycle registered read to model IDT6168A's 15-20 ns access time.
+  //
+  // WHY NOT COMBINATORIAL:
+  // With zero-delay reads the MASEL feedback loop (WCS→CSBITS→SC5/SC6→regREP→
+  // regW→CSA→LUA→WCS) collapses entirely within one MCLK=0 idle period.
+  // The TVEC dispatch chain (o000017→o000016→o002001) resolves in delta time
+  // without any intermediate MCLK pulses. At the single MCLK posedge for o002001
+  // R81 (COMM_MIS_REG in CGA_DCD) captures o002001's CSCOMM=o07 instead of
+  // o000016's CSCOMM=o17, so LDLCN never fires and LC never loads from panel IDB.
+  //
+  // WHY 1-CYCLE DELAY FIXES IT:
+  // The 1-cycle break in the feedback loop forces each TVEC chain step to take one
+  // sysclk. Steps o000017, o000016, and o002001 each get their own MCLK pulse,
+  // exactly as in real hardware. At posedge MCLK for o000016, R81 captures
+  // CSCOMM=o17. At posedge MCLK for o002001, M169C sees LDLCN=0 and loads LC
+  // from the panel IDB bus.  Sequential execution is unaffected: LUA has been
+  // stable for multiple cycles before MCLK fires, so D_reg is always valid.
+
+  // Writes: synchronous on negedge (matches LCS load timing)
+  always @(negedge clk) begin
+    if (!CE_n && !WE_n) begin
+      idt_memory_array[A_11_0] <= D_3_0_IN;
+    end
+  end
+
+  // Reads: 1-cycle registered — data appears one posedge after address + CE_n settle
+  reg [3:0] D_reg;
+  always @(posedge clk) begin
+    D_reg <= (!CE_n && WE_n) ? idt_memory_array[A_11_0] : 4'b0000;
+  end
+  assign D_3_0_OUT = D_reg;
+
+`else
+  // FPGA mode: synchronous block RAM (Xilinx/Gowin block RAM inference).
   // Gowin: syn_ramstyle for block RAM inference
   // Xilinx: ram_style for block RAM inference
   (* syn_ramstyle = "block_ram", ram_style = "block" *)
-  reg [3:0] idt_memory_array[0:4095];
 
   reg [3:0] data_out;
   reg regCE_n;
@@ -81,5 +117,7 @@ module IDT6168A_20 (
 
   // Output gated by registered chip enable and write enable
   assign D_3_0_OUT = (!regCE_n && WE_n) ? data_out : 4'b0000;
+
+`endif
 
 endmodule
