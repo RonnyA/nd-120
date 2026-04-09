@@ -8,49 +8,32 @@
 ***************************************************************************/
 
 module LATCH (
+    input  wire sysclk,    //! FPGA system clock — same code path for sim and FPGA
     input  wire D,
     input  wire ENABLE,
     output wire Q,
     output wire QN
 );
 
-  // FPGA_MODE: Set to 1 for edge-triggered operation (FPGA synthesis)
-  //            Set to 0 for transparent latch operation (original behavior)
-`ifdef USE_TRANSPARENT_LATCHES
-  parameter FPGA_MODE = 0;  // Simulation: use transparent latch (original behavior)
-`else
-  parameter FPGA_MODE = 1;  // FPGA: use edge-triggered FF for synthesis
-`endif
+  // Edge-detect on rising ENABLE, sampled by sysclk.
+  //
+  // Replaces the previous `always @(posedge ENABLE)` pattern which routed
+  // ENABLE through fabric as a clock signal — unsafe on FPGA (no clock
+  // network, glitch-prone, hold-time analysis incomplete).
+  //
+  // Semantics: captures D on the first sysclk edge AFTER ENABLE has gone
+  // from 0 to 1 (≤1 sysclk lag). Equivalent to the original posedge-ENABLE
+  // semantics whenever D is stable across that 1-cycle window.
 
-  reg regD;
-  assign Q = regD;   // Assign Q
-  assign QN = ~regD; // Assign Q_n
+  reg regD   = 1'b0;
+  reg en_prev = 1'b0;
 
-  // Initialize register to 0
-  initial begin
-    regD = 1'b0;
+  always @(posedge sysclk) begin
+    en_prev <= ENABLE;
+    if (ENABLE & ~en_prev) regD <= D;
   end
 
-
-  generate
-    if (FPGA_MODE == 1) begin : gen_flipflop
-      // Edge-triggered flip-flop mode (FPGA-friendly)
-      // Captures data on rising edge of ENABLE
-      always @(posedge ENABLE) begin
-        regD <= D;
-      end
-    end else begin : gen_latch
-      // Transparent latch mode (original behavior)
-      /* verilator lint_off LATCH */
-      always @(D or ENABLE) begin
-        if (ENABLE) begin
-          regD <= D;  // When ENABLE is high, Q takes the value of the input
-        end
-        // When ENABLE is low, Q retains its value
-      end
-      /* verilator lint_on LATCH */
-    end
-  endgenerate
+  assign Q  = regD;
+  assign QN = ~regD;
 
 endmodule
-

@@ -1060,6 +1060,7 @@ module CGA_MIC (
 
   CGA_MIC_CSEL CSEL (
       // Input
+      .sysclk(sysclk),
       .ALUCLK(s_aluclk),
       .CFETCH(s_cfetch),
       .COND(s_cond),

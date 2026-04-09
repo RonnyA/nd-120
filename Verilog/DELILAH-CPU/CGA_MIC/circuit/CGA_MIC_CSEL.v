@@ -11,6 +11,7 @@
 ***************************************************************************/
 
 module CGA_MIC_CSEL (
+    input       sysclk,    //! FPGA system clock — threaded to LATCH
     input       ALUCLK,
     input       CFETCH,
     input       COND,
@@ -153,6 +154,7 @@ module CGA_MIC_CSEL (
    *******************************************************************************/
 
   LATCH CSEL_LATCH (
+      .sysclk(sysclk),
       .D(s_pcond_n),
       .ENABLE(s_aluclk_n),
       .Q(s_cond_n_out),
