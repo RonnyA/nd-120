@@ -28,7 +28,7 @@
 #include "verilated.h"
 
 #ifdef DO_TRACE
-#include <verilated_vcd_c.h>
+#include <verilated_fst_c.h>
 #endif
 
 #include "NDBus.h"
@@ -97,10 +97,10 @@ int main(int argc, char **argv)
 	addDevices();
 
 #ifdef DO_TRACE
-	VerilatedVcdC *m_trace = new VerilatedVcdC;
+	VerilatedFstC *m_trace = new VerilatedFstC;
 	Verilated::traceEverOn(true);
 	top->trace(m_trace, 1); // 1 is the trace depth
-	m_trace->open("waveform.vcd");
+	m_trace->open("waveform.fst");
 #endif
 
 	// Load data
@@ -132,28 +132,22 @@ int main(int argc, char **argv)
 	int hashReceived = 0;
 	int readyReceived = 0;
 
-	// long startTrace = 2390000; // STAR
-	// long maxTicks = startTrace + 500000;
+	// Trace start: skip PROM->WCS loading phase (LCS_n=0).
+	// Loading completes before tick ~650000. Execution starts with:
+	//   CSA=o000000, LCS_n=1 -> master clear / CPU self-test
+	//   CSA=o000016, LCS_n=1 -> PANEL INTERRUPT trap (TVEC dispatch)
+	// Only lower startTrace to 0 if validating the PROM load process itself.
+	long startTrace = 730000;   // just before second loop exit at tick 737749 (CSA=o002047)
 
-	//long startTrace = 755472; // OPCOM READY after selftest
-							  
-	//long startTrace = 2207832; // READY AFTER BOOT from 0!
-	// long startTrace = 4777683;
-	long startTrace = 0;
-	//long startTrace = 10000000; // 10 mill
+	//long startTrace = 0;             // full trace including PROM load (very large file)
+	//long startTrace = 755472;        // OPCOM READY after selftest
+	//long startTrace = 2207832;       // READY AFTER BOOT from 0
+	//long startTrace = (7808519-200); // DYNAMIC OVERFLOW BIT NOT SET (MPY2OP)
 
-	//long startTrace = (7808519-200); // DYNAMIC OVERFLOW BIT NOT SET. SHOULD HAVE BEEN "MPY" FAILED (MPY2OP) 
-
-	//long maxTicks = 2000000;
-
-	//long maxTicks = 755472; // OPCOM READY after selftest
-
-
-	//long maxTicks = startTrace + 200000; // 200K (good for boot)
-	long maxTicks = startTrace + 1000000; // 1M
-	// long maxTicks = startTrace + 2000000; // 2M
-	// long maxTicks = startTrace + 5500000; // 5.5M
-
+	//long maxTicks = startTrace + 200000;  // 200K (focused debug)
+	//long maxTicks = startTrace + 2000000; // 2M (short run)
+	//long maxTicks = startTrace + 5500000; // 5.5M
+	long maxTicks = startTrace + 600000;   // 600K ticks covers ~3 loop cycles + transitions
 	
 
 	// Boot commands
@@ -200,6 +194,24 @@ int main(int argc, char **argv)
 			// MPY - OPCODE 120000
 			//printf("[%ld] MPY - %o\r\n",cnt, top->CSA_12_0);
 			top->DEBUGFLAG =1;
+		}
+
+		// Detect exit from o002045/o002046 cold-boot delay loop
+		{
+			static uint16_t prev_csa = 0;
+			static long loop_entry_tick = 0;
+			static long loop_iters = 0;
+			uint16_t csa = top->CSA_12_0;
+			if (csa == 02045 || csa == 02046) {
+				if (loop_entry_tick == 0) loop_entry_tick = cnt;
+				loop_iters++;
+			} else if (loop_entry_tick > 0) {
+				printf("[%ld] Left o002045/o002046 delay loop after %ld iters, now CSA=o%06o\r\n",
+				       cnt, loop_iters, csa);
+				loop_entry_tick = 0;
+				loop_iters = 0;
+			}
+			prev_csa = csa;
 		}
 
 		top->eval();

@@ -14,7 +14,7 @@ ifeq ($(USE_LATCHES),0)
   SIM_DEFINES += -DFPGA_FF_MODE
 endif
 
-VERILATOR_FLAGS = --trace -Wall --cc ../ND120_TOP.v  $(SUPPRESS_FLAGS) $(SIM_DEFINES)
+VERILATOR_FLAGS = --trace-fst -Wall --cc ../ND120_TOP.v  $(SUPPRESS_FLAGS) $(SIM_DEFINES)
 
 #TOP_3202D_COMPONENTS = --I../circuit -I../../Shared/logisim   -I../../Shared/ndlib  -I../../Shared/support
 TOP_3202D_COMPONENTS =  -I../Shared/logisim   -I../Shared/ndlib  -I../Shared/support -I../CPU-BOARD-3202/circuit
@@ -42,10 +42,8 @@ run: test_nd120
 	./obj_dir/VND120_TOP
 
 gtk: run
-    # The signal file can be very big, >1GB so use optimizing.
-    # Use the -g or --giga flag to enable dynamically compressed memory handling, which allows GTKWave to load large VCD files without running out of memory.
-	# Use the -o or --optimize flag to convert VCD files to FST directly from the command line when opening them with GTKWave. (require 'vcd2fst' installed)
-	gtkwave -g waveform.vcd top_3202d.gtkw &
+	# FST format: compressed, indexed, much faster to load than VCD
+	gtkwave waveform.fst top_3202d.gtkw &
 
 # --- Latch vs FF comparison targets ---
 COMPARE_SOURCES = latch_ff_compare.cpp ../simDevices/NDDevices.cpp ../simDevices/NDBus.cpp
