@@ -10,6 +10,7 @@
 
 module MEM_LBDIF_48 (
     // Input signals
+    input sysclk,
     input BCGNT25,   //! Bus cycle grant (Delayed 25ns)
     input BDAP50_n,  //! Bus Data Present (Delayed 50ns)
     input BGNT_n,    //! Bus Grant
@@ -204,6 +205,7 @@ module MEM_LBDIF_48 (
 
 
   AM29C821 CHIP_13F (
+      .sysclk(sysclk),
       .CK(s_osc),
       .OE_n(s_pd4),
       .D(chip13_d),
@@ -260,6 +262,7 @@ module MEM_LBDIF_48 (
   assign s_gnt50_n_out    = chip14_y[9];
 
   AM29C821 CHIP_14F (
+      .sysclk(sysclk),
       .CK(s_osc),
       .OE_n(s_pd4),
       .D(chip14_d),

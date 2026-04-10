@@ -11,6 +11,7 @@
 module BIF_BCTL_SYNC_8 (
 
     // Inputs signals
+    input sysclk,
     input BLOCK_n,    //! BLOCK_n - Bus Block
     input CACT_n,     //! CACT_n - CPU Active
     input CLEAR_n,    //! CLEAR_n - Clear
@@ -126,6 +127,7 @@ module BIF_BCTL_SYNC_8 (
 
   // Bus Driver 10 bits. Positive edge-triggered registers with D-type flip-flops and 3-state
   AM29C821 CHIP_3D (
+      .sysclk(sysclk),
       .CK(s_osc),
       .OE_n(s_pd3),
       .D(input_chip_3d),
@@ -163,6 +165,7 @@ module BIF_BCTL_SYNC_8 (
 
   // Bus Driver 10 bits. Positive edge-triggered registers with D-type flip-flops and 3-state
   AM29C821 CHIP_4D (
+      .sysclk(sysclk),
       .CK(s_osc),
       .OE_n(s_pd1),
       .D(input_chip_4d),

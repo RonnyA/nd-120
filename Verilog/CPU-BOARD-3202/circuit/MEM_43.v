@@ -249,6 +249,7 @@ module MEM_43 (
    * Handles the local bus interface and memory control signals.
    */
   MEM_LBDIF_48 LBDIF (
+      .sysclk(sysclk),
       // Input signals
       .BDAP50_n(s_bdap50_n),
       .BGNT25_n(s_bgnt25_n),
@@ -392,6 +393,7 @@ module MEM_43 (
    * Also handles the memory control signals and error handling.
    */
   MEM_ADDR_44 ADDR (
+      .sysclk(sysclk),
       // Input signals
       .BCGNT50(s_bcgnt25), // Need to latch address earlier before it goes away. Thats why this is changed to BCGNT25 (Ronny 7.12.2024)
       .HIEN_n(s_hien_n),

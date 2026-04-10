@@ -117,7 +117,8 @@ module IO_UART_42 (
   assign s_rx                    = s_rxd;
 
 
-  AM29C821 CHIP_33G (
+  AM29C821 #(.USE_SYSCLK(1)) CHIP_33G (
+      .sysclk(sysclk),
       .CK(s_clk),
       .OE_n(s_eiorn_n),
       .D({s_tbmt_n, s_da_n, s_eauto_n, s_lock_n, s_console_n, 1'b1, BAUD_RATE_SWITCH[3:0]}),
