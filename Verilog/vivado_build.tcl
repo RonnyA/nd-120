@@ -347,6 +347,26 @@ connect_debug_port u_ila_0/probe36 [get_nets [list sysclk_IBUF_BUFG]]
 create_debug_port u_ila_0 probe
 connect_probe u_ila_0/probe37 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_lc_3_0[*]} "LC"
 
+# probe38: CSIDBS_4_0 — microcode IDB source select (which IDB source we expect)
+create_debug_port u_ila_0 probe
+connect_probe u_ila_0/probe38 {CPU_BOARD/IO/s_csidbs_4_0[*]} "CSIDBS"
+
+# probe39: IDB_UART — output of IO_UART_42 (gated by EIOR_n / RUART_n)
+create_debug_port u_ila_0 probe
+connect_probe u_ila_0/probe39 {CPU_BOARD/IO/s_idb_15_0_uart_out[*]} "IDB_UART"
+
+# probe40: IDB_PANCAL — output of IO_PANCAL_40 (gated by EPANS_n)
+create_debug_port u_ila_0 probe
+connect_probe u_ila_0/probe40 {CPU_BOARD/IO/s_idb_15_0_pancal_out[*]} "IDB_PANCAL"
+
+# probe41: IDB_REG — output of IO_REG_41 (gated by RINR_n / TRAALD_n)
+create_debug_port u_ila_0 probe
+connect_probe u_ila_0/probe41 {CPU_BOARD/IO/s_idb_15_0_reg_out[*]} "IDB_REG"
+
+# probe42: IDB_DCD — output of IO_DCD_38 panel vector (8 bits, gated by EPAN_n)
+create_debug_port u_ila_0 probe
+connect_probe u_ila_0/probe42 {CPU_BOARD/IO/s_idb_7_0_dcd_out[*]} "IDB_DCD"
+
 # Connect debug hub clock
 set_property C_CLK_INPUT_FREQ_HZ 100000000 [get_debug_cores dbg_hub]
 set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
@@ -357,7 +377,7 @@ connect_debug_port dbg_hub/clk [get_nets sysclk_IBUF_BUFG]
 # NOTE: Do NOT use save_constraints here — it writes ILA definitions into the
 # XDC file, which then conflict with this script on the next build.
 
-puts "ILA debug core configured with 37 probes"
+puts "ILA debug core configured with 43 probes"
 
 # Implementation reads the synth_1 checkpoint from disk. ILA above exists only in
 # memory until we overwrite that checkpoint; otherwise impl has no debug cores and

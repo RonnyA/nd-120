@@ -107,9 +107,9 @@ module IO_37(
    /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-   wire [15:0] s_idb_15_0_uart_out;
-   wire [15:0] s_idb_15_0_pancal_out;
-   wire [15:0] s_idb_15_0_reg_out;
+   (* mark_debug = "true", DONT_TOUCH = "true" *) wire [15:0] s_idb_15_0_uart_out;
+   (* mark_debug = "true", DONT_TOUCH = "true" *) wire [15:0] s_idb_15_0_pancal_out;
+   (* mark_debug = "true", DONT_TOUCH = "true" *) wire [15:0] s_idb_15_0_reg_out;
 
    wire [7:0]  s_idb_7_0_in;
 
@@ -120,7 +120,7 @@ module IO_37(
    wire [4:0]  s_cscomm_4_0;
    wire [4:0]  s_dp_5_1_n;
 
-   wire [4:0]  s_csidbs_4_0;
+   (* mark_debug = "true", DONT_TOUCH = "true" *) wire [4:0]  s_csidbs_4_0;
    wire [1:0]  s_pcr_1_0;
    wire [1:0]  s_mis_1_0;
    wire [1:0]  s_csmis_1_0;
@@ -209,7 +209,7 @@ module IO_37(
    wire        s_clk;
    wire        s_short_n;
    wire        s_wchim_n;
-   wire  [7:0] s_idb_7_0_dcd_out; // output from DGA module (submodule dga_pow)
+   (* mark_debug = "true", DONT_TOUCH = "true" *) wire  [7:0] s_idb_7_0_dcd_out; // output from DGA module (submodule dga_pow)
 
 
 
@@ -278,11 +278,26 @@ module IO_37(
    assign FMISS      = s_fmiss;
    assign FORM_n     = s_form_n;
 
-   assign IDB_15_0_OUT[15:0] =
-      s_idb_15_0_uart_out[15:0]     |
-      s_idb_15_0_pancal_out[15:0]   |
-      s_idb_15_0_reg_out[15:0]      |
-      {8'b00000000, s_idb_7_0_dcd_out[7:0]};
+   // IDB source MUX — selects exactly one source based on CSIDBS.
+   // Replaces the OR-bus which caused contamination: non-selected sources
+   // with stale OE_n timing leaked bits into the read value.
+   // CSIDBS is from registered microcode bits, stable during the step.
+   reg [15:0] s_idb_mux;
+   always @(*) begin
+      case (s_csidbs_4_0)
+         5'o16:        s_idb_mux = s_idb_15_0_uart_out;         // IOR (UART status)
+         5'o37:        s_idb_mux = s_idb_15_0_uart_out;         // UART data read
+         5'o20, 5'o21: s_idb_mux = s_idb_15_0_pancal_out;       // MIPANS / MAPANS
+         5'o26:        s_idb_mux = s_idb_15_0_reg_out;           // ALD (auto load descriptor)
+         5'o35:        s_idb_mux = s_idb_15_0_reg_out;           // RINR (installation number)
+         5'o27:        s_idb_mux = {8'b0, s_idb_7_0_dcd_out};   // EPAN (panel vector, bits 3:0)
+         default:      s_idb_mux = s_idb_15_0_uart_out             // fallback: OR all (preserves legacy behavior
+                                  | s_idb_15_0_pancal_out           //   for any CSIDBS code not yet mapped)
+                                  | s_idb_15_0_reg_out
+                                  | {8'b0, s_idb_7_0_dcd_out};
+      endcase
+   end
+   assign IDB_15_0_OUT[15:0] = s_idb_mux;
 
    assign IORQ_n     = s_iorq_n;
    assign MCL        = s_mcl;
