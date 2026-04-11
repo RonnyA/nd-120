@@ -282,9 +282,13 @@ connect_probe u_ila_0/probe19 {CPU_BOARD/CPU/CGA/DELILAH/DCD/s_iclirq_group} "CL
 create_debug_port u_ila_0 probe
 connect_probe u_ila_0/probe20 {s_debug_fidbo[*]} "FIDBO"
 
-# probe21: PROM regData (microcode ROM output, mark_debug in CPU_CS_PROM_19.v)
+# probe21: free slot (was PROM_DATA — removed because PROM is irrelevant during
+# execution; CPU runs from WCS after LCS load. Slot is dummy-connected to sysclk
+# to keep probe numbering aligned for probes 22-47.)
 create_debug_port u_ila_0 probe
-connect_probe u_ila_0/probe21 {CPU_BOARD/CPU/CS/PROM/regData[*]} "PROM_DATA"
+set_property port_width 1 [get_debug_ports u_ila_0/probe21]
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe21]
+connect_debug_port u_ila_0/probe21 [get_nets [list sysclk_IBUF_BUFG]]
 
 # probe22: ALU Q register (mark_debug in CGA_ALU.v)
 create_debug_port u_ila_0 probe
