@@ -53,71 +53,65 @@ module IDT6168A_20 (
     output wire [ 3:0] D_3_0_OUT  // Data output for read
 );
 
-  // Memory array - 4K x 4-bit
+  // Memory array - 4K x 4-bit. Marked for block RAM inference on FPGA targets.
+  // Both Vivado/Xilinx (ram_style) and Gowin (syn_ramstyle) recognise this.
+  (* syn_ramstyle = "block_ram", ram_style = "block" *)
   reg [3:0] idt_memory_array[0:4095];
 
-`ifdef VERILATOR_SIM
-  // Simulation mode: 1-cycle registered read to model IDT6168A's 15-20 ns access time.
+  // -----------------------------------------------------------------------
+  // Unified sim/FPGA model: posedge-clk write-first synchronous RAM.
   //
-  // WHY NOT COMBINATORIAL:
-  // With zero-delay reads the MASEL feedback loop (WCS→CSBITS→SC5/SC6→regREP→
-  // regW→CSA→LUA→WCS) collapses entirely within one MCLK=0 idle period.
-  // The TVEC dispatch chain (o000017→o000016→o002001) resolves in delta time
-  // without any intermediate MCLK pulses. At the single MCLK posedge for o002001
-  // R81 (COMM_MIS_REG in CGA_DCD) captures o002001's CSCOMM=o07 instead of
-  // o000016's CSCOMM=o17, so LDLCN never fires and LC never loads from panel IDB.
+  // Both branches now use the SAME timing semantics — no `ifdef VERILATOR_SIM`
+  // divergence. Read latency is 1 sysclk: address change at posedge clk N
+  // produces the corresponding data at posedge clk N+1.
   //
-  // WHY 1-CYCLE DELAY FIXES IT:
-  // The 1-cycle break in the feedback loop forces each TVEC chain step to take one
-  // sysclk. Steps o000017, o000016, and o002001 each get their own MCLK pulse,
-  // exactly as in real hardware. At posedge MCLK for o000016, R81 captures
-  // CSCOMM=o17. At posedge MCLK for o002001, M169C sees LDLCN=0 and loads LC
-  // from the panel IDB bus.  Sequential execution is unaffected: LUA has been
-  // stable for multiple cycles before MCLK fires, so D_reg is always valid.
+  // Why 1 sysclk and not zero/combinational:
+  //
+  //   With zero-delay reads, the WCS feedback loop (WCS→CSBITS→SC5/SC6→
+  //   regREP→regW→CSA→LUA→WCS) collapses entirely within one MCLK=0 idle
+  //   period. The TVEC dispatch chain (o000017→o000016→o002001) resolves
+  //   in delta time without intermediate MCLK pulses, and o000016 LDLC is
+  //   skipped (R81 in CGA_DCD captures the wrong CSCOMM).
+  //
+  //   The 1-sysclk read delay forces each TVEC chain step to take its own
+  //   MCLK cycle, matching how the original ASIC's WCS RAM access time
+  //   (15-20ns) was a significant fraction of the original cycle period.
+  //
+  // Why posedge-only (not negedge writes / negedge reads):
+  //
+  //   The previous model had VERILATOR_SIM doing reads on posedge but
+  //   writes on negedge, while the FPGA branch did BOTH on negedge — the
+  //   half-sysclk shift created a sim/FPGA divergence. Unifying both to
+  //   posedge eliminates the divergence and gives the same timing model
+  //   in iverilog, Verilator, and the FPGA block RAM.
+  //
+  // Block RAM inference: Vivado and Gowin both recognise the
+  // "always @(posedge clk) begin if (we) mem[a] <= d; out <= mem[a]; end"
+  // pattern as a write-first BRAM template.
+  // -----------------------------------------------------------------------
+  reg [3:0] data_out  = 4'h0;
+  reg       regCE_n   = 1'b1;
+  reg       regWE_n   = 1'b1;
 
-  // Writes: synchronous on negedge (matches LCS load timing)
-  always @(negedge clk) begin
-    if (!CE_n && !WE_n) begin
-      idt_memory_array[A_11_0] <= D_3_0_IN;
-    end
-  end
-
-  // Reads: 1-cycle registered — data appears one posedge after address + CE_n settle
-  reg [3:0] D_reg;
   always @(posedge clk) begin
-    D_reg <= (!CE_n && WE_n) ? idt_memory_array[A_11_0] : 4'b0000;
-  end
-  assign D_3_0_OUT = D_reg;
-
-`else
-  // FPGA mode: synchronous block RAM (Xilinx/Gowin block RAM inference).
-  // Gowin: syn_ramstyle for block RAM inference
-  // Xilinx: ram_style for block RAM inference
-  (* syn_ramstyle = "block_ram", ram_style = "block" *)
-
-  reg [3:0] data_out;
-  reg regCE_n;
-
-  // Simple read/write pattern for block RAM inference.
-  // Block RAM cannot have reset on the memory array itself,
-  // only on the output register.
-  always @(negedge clk) begin
     regCE_n <= CE_n;
-
+    regWE_n <= WE_n;
     if (!CE_n) begin
       if (!WE_n) begin
-        // Write operation: data written directly (no pipeline register)
+        // Write happens at posedge clk N. Read of the SAME address at the
+        // same edge returns the just-written value (write-first behavior).
         idt_memory_array[A_11_0] <= D_3_0_IN;
+        data_out                 <= D_3_0_IN;
+      end else begin
+        // Pure read: capture memory[A] into data_out for the next cycle.
+        data_out                 <= idt_memory_array[A_11_0];
       end
-
-      // Read operation: always read (write-first behavior)
-      data_out <= idt_memory_array[A_11_0];
     end
   end
 
-  // Output gated by registered chip enable and write enable
-  assign D_3_0_OUT = (!regCE_n && WE_n) ? data_out : 4'b0000;
+  // Output: tri-state-equivalent. Drives data_out only when the registered
+  // CE_n is asserted AND the registered WE_n is high (read mode).
+  assign D_3_0_OUT = (!regCE_n && regWE_n) ? data_out : 4'b0000;
 
-`endif
 
 endmodule
