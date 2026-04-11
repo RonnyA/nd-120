@@ -153,7 +153,7 @@ module CGA_DCD (
   wire       s_fetch_n_out;
   wire       s_fetch;
   wire       s_fidbo5;
-  wire       s_iclirq_group;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire       s_iclirq_group;
   wire       s_iclirq;
   wire       s_icomm0_n;
   wire       s_icomm0;

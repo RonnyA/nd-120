@@ -97,7 +97,7 @@ module CGA_MIC (
   wire [12:0] s_next_12_0;
   wire [12:0] s_ret_12_0;
   wire [12:0] s_w_12_0;
-  wire [12:0] s_wca_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_wca_12_0;
   wire [15:0] s_cd_15_0;
   wire [15:0] s_csbit_15_0;
 

@@ -38,7 +38,7 @@ module CGA_MIC_CSEL (
   wire [2:0] s_mux_selector;
   wire [3:0] s_tsel_3_0;
   wire       s_aluclk_n;
-  wire       s_aluclk;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire       s_aluclk;
   wire       s_cfetch_n;
   (* mark_debug = "true", DONT_TOUCH = "true" *) wire       s_cond_n_out;
   wire       s_cond;

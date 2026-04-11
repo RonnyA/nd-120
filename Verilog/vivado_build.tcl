@@ -178,18 +178,64 @@ set_property port_width 1 [get_debug_ports u_ila_0/clk]
 connect_debug_port u_ila_0/clk [get_nets [list sysclk_IBUF_BUFG]]
 
 # Helper: connect a probe to nets that actually exist after synthesis.
-# If some bits were optimized away, the probe is sized to match what's available.
+#
+# Vivado renames `reg` declarations during synthesis (e.g. `regREP[12:0]`
+# becomes `regREP_reg[12:0]`), and may slightly mangle hierarchical instance
+# names. To avoid silent failures we try several patterns:
+#   1. The exact pattern as given.
+#   2. The pattern with `_reg[*]` substituted for `[*]` (Vivado reg rename).
+#   3. The pattern with `_reg` appended (scalar reg rename).
+#   4. A hierarchical fallback search using the leaf basename (-hierarchical).
+# If none match, the probe is dummy-connected to sysclk_IBUF_BUFG and a
+# WARNING is printed so we can see which probe failed.
+#
+# All patterns are tried QUIETLY before reporting failure, so a successful
+# fallback doesn't pollute the build log.
 proc connect_probe {probe_port net_pattern probe_name} {
-    set nets [get_nets -quiet $net_pattern]
+    # Build the variant pattern list
+    set patterns [list $net_pattern]
+
+    # Variant 2: replace [*] with _reg[*] for vector reg rename
+    if {[string match "*\\\[\*\\\]*" $net_pattern]} {
+        # nothing — handled below by literal substitution
+    }
+    set v2 [string map {"[*]" "_reg[*]"} $net_pattern]
+    if {$v2 ne $net_pattern} { lappend patterns $v2 }
+
+    # Variant 3: append _reg for scalar reg
+    lappend patterns "${net_pattern}_reg"
+
+    # Variant 4: hierarchical search by leaf basename
+    set leaf [file tail $net_pattern]
+    if {$leaf ne $net_pattern} {
+        lappend patterns "*${leaf}"
+        lappend patterns "*[string map {"[*]" "_reg[*]"} $leaf]"
+    }
+
+    set nets {}
+    set used_pattern ""
+    foreach p $patterns {
+        set try [get_nets -quiet $p]
+        if {[llength $try] > 0} {
+            set nets $try
+            set used_pattern $p
+            break
+        }
+    }
+
     set count [llength $nets]
     if {$count == 0} {
-        puts "WARNING: No nets found for $probe_name ($net_pattern) - skipping probe"
+        puts "WARNING: No nets found for $probe_name (tried: $patterns) - skipping probe"
         # Connect to a dummy 1-bit signal to avoid unconnected probe errors
         set_property port_width 1 [get_debug_ports $probe_port]
         connect_debug_port $probe_port [get_nets [list sysclk_IBUF_BUFG]]
         return
     }
-    puts "  $probe_name: $count nets found"
+    if {$used_pattern eq $net_pattern} {
+        puts "  $probe_name: $count nets found"
+    } else {
+        puts "  $probe_name: $count nets found (via fallback pattern: $used_pattern)"
+    }
     set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports $probe_port]
     set_property port_width $count [get_debug_ports $probe_port]
     connect_debug_port $probe_port $nets
@@ -256,7 +302,7 @@ connect_debug_port u_ila_0/probe13 [get_nets [list sysclk_IBUF_BUFG]]
 
 # probe14: WCA_12_0 (Write Control Store Address)
 create_debug_port u_ila_0 probe
-connect_probe u_ila_0/probe14 {CPU_BOARD/CPU/PROC/CGA/DELILAH/s_wca_12_0[*]} "WCA"
+connect_probe u_ila_0/probe14 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_wca_12_0[*]} "WCA"
 
 # probe15: CD_15_0 (CPU data bus output)
 create_debug_port u_ila_0 probe
@@ -272,11 +318,11 @@ connect_probe u_ila_0/probe17 {CPU_BOARD/sys_rst_n} "SYS_RST_n"
 
 # probe18: regPowerOnClear
 create_debug_port u_ila_0 probe
-connect_probe u_ila_0/probe18 {CPU_BOARD/IO/DCD/regPowerOnClear_reg_0} "PWR_ON_CLR"
+connect_probe u_ila_0/probe18 {CPU_BOARD/IO/DCD/regPowerOnClear_reg} "PWR_ON_CLR"
 
 # probe19: CLIRQ group
 create_debug_port u_ila_0 probe
-connect_probe u_ila_0/probe19 {CPU_BOARD/CPU/CGA/DELILAH/DCD/s_iclirq_group} "CLIRQ"
+connect_probe u_ila_0/probe19 {CPU_BOARD/CPU/PROC/CGA/DELILAH/DCD/s_iclirq_group} "CLIRQ"
 
 # probe20: FIDBO_15_0 (internal data bus, threaded through hierarchy)
 create_debug_port u_ila_0 probe
@@ -384,16 +430,17 @@ create_debug_port u_ila_0 probe
 connect_probe u_ila_0/probe44 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_trap_n} "TRAP_n"
 
 # probe45: regREP — input to W_12_0 latch (combinational mux output of MASEL)
+# Note: Vivado renames `reg` to `_reg`, instance is MIC_MASEL not MASEL
 create_debug_port u_ila_0 probe
-connect_probe u_ila_0/probe45 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/MASEL/regREP[*]} "regREP"
+connect_probe u_ila_0/probe45 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/MIC_MASEL/regREP_reg[*]} "regREP"
 
 # probe46: W_12_0 — MASEL output, working microcode address
 create_debug_port u_ila_0 probe
-connect_probe u_ila_0/probe46 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/MASEL/regW[*]} "W_12_0"
+connect_probe u_ila_0/probe46 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/MIC_MASEL/regW_reg[*]} "W_12_0"
 
 # probe47: IW_12_0 — MASEL output, instruction-word register
 create_debug_port u_ila_0 probe
-connect_probe u_ila_0/probe47 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/MASEL/regIW[*]} "IW_12_0"
+connect_probe u_ila_0/probe47 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/MIC_MASEL/regIW_reg[*]} "IW_12_0"
 
 # Connect debug hub clock
 set_property C_CLK_INPUT_FREQ_HZ 100000000 [get_debug_cores dbg_hub]
