@@ -305,8 +305,12 @@ module ND120_TOP
   //                To restore LED1 from MMU: assign led[5] = !s_cpu_led[5];
 
   // RIGHT SIDE: CPU status (LD0-LD5)
-  assign led[0]  = s_cpu_led[0];       // LD0:  CPU RED
-  assign led[1]  = s_cpu_led[1];       // LD1:  CPU GREEN
+  // s_cpu_led[0] = s_emcl_n  (negative-logic from CHIP_28A_IOC in IO_REG_41)
+  // s_cpu_led[1] = s_led3_green_n (negative-logic from CHIP_28A_IOC)
+  // Both are active-low chip outputs; invert for active-high Basys3 LEDs.
+  // (The Verilator branch above already does this with ~s_cpu_led[1:0].)
+  assign led[0]  = ~s_cpu_led[0];      // LD0:  CPU RED   (ON when s_emcl_n=0       = master clear active)
+  assign led[1]  = ~s_cpu_led[1];      // LD1:  CPU GREEN (ON when s_led3_green_n=0 = init complete)
   assign led[2]  = ~s_run;             // LD2:  ON when CPU running
   assign led[3]  = sys_rst_n;          // LD3:  ON when reset released
   assign led[4]  = ~uartTx;            // LD4:  UART TX activity
