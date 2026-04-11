@@ -423,9 +423,11 @@ module ND120_TOP
       .EAUTO_n  (s_high),     // External Auto
       .RXD      (uartRx),     // UART Receive A-C8
 
+      // Signals from CPU Board to C-PLUG
+      .RUN_n      (s_run),    // Run C-B14 (driven by Stop flip-flop: low while CPU is running)
+
       // Signals from CPU Board to A-PLUG
       .TXD        (uartTx),   // UART Transmit TXD A-C7
-      .RUN_n      (s_run),    // Run A-C18
       .DP_5_1_n   (s_dp_5_1_n),     // Data Path 5-1 A-> 1=C25, 2=C26, 3=C27, 4=C28, 5=C29
 
 

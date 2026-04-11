@@ -167,7 +167,7 @@ create_debug_core u_ila_0 ila
 set_property ALL_PROBE_SAME_MU true [get_debug_cores u_ila_0]
 set_property ALL_PROBE_SAME_MU_CNT 1 [get_debug_cores u_ila_0]
 set_property C_ADV_TRIGGER false [get_debug_cores u_ila_0]
-set_property C_DATA_DEPTH 2048 [get_debug_cores u_ila_0]
+set_property C_DATA_DEPTH 1024 [get_debug_cores u_ila_0]
 set_property C_EN_STRG_QUAL false [get_debug_cores u_ila_0]
 set_property C_INPUT_PIPE_STAGES 0 [get_debug_cores u_ila_0]
 set_property C_TRIGIN_EN false [get_debug_cores u_ila_0]
@@ -222,9 +222,10 @@ connect_probe u_ila_0/probe5 {s_debug_mclk} "MCLK"
 create_debug_port u_ila_0 probe
 connect_probe u_ila_0/probe6 {s_debug_uartRx} "UART_RX"
 
-# probe7: CPU LED status
+# probe7: MAP_n / EWCA_n / TRAP_n — IPOS mux selectors that drive CSA combinationally
+# (replaces CPU_LED to free BRAM for the new IDB source probes)
 create_debug_port u_ila_0 probe
-connect_probe u_ila_0/probe7 {s_debug_cpu_led[*]} "CPU_LED"
+connect_probe u_ila_0/probe7 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_map_n} "MAP_n"
 
 # probe8: FETCH
 create_debug_port u_ila_0 probe
@@ -246,9 +247,12 @@ connect_probe u_ila_0/probe11 {s_debug_refrq_n} "REFRQ_n"
 create_debug_port u_ila_0 probe
 connect_probe u_ila_0/probe12 {s_debug_intrq_n} "INTRQ_n"
 
-# probe13: POWFAIL_n
+# probe13: sysclk (replaces POWFAIL_n — needed to see exact FF capture moments
+# relative to combinational MCLK transitions)
 create_debug_port u_ila_0 probe
-connect_probe u_ila_0/probe13 {s_debug_powfail_n} "POWFAIL_n"
+set_property port_width 1 [get_debug_ports u_ila_0/probe13]
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe13]
+connect_debug_port u_ila_0/probe13 [get_nets [list sysclk_IBUF_BUFG]]
 
 # probe14: WCA_12_0 (Write Control Store Address)
 create_debug_port u_ila_0 probe
@@ -367,6 +371,26 @@ connect_probe u_ila_0/probe41 {CPU_BOARD/IO/s_idb_15_0_reg_out[*]} "IDB_REG"
 create_debug_port u_ila_0 probe
 connect_probe u_ila_0/probe42 {CPU_BOARD/IO/s_idb_7_0_dcd_out[*]} "IDB_DCD"
 
+# probe43: EWCA_n — IPOS mux selector input
+create_debug_port u_ila_0 probe
+connect_probe u_ila_0/probe43 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_ewca_n} "EWCA_n"
+
+# probe44: TRAP_n — IPOS mux selector input
+create_debug_port u_ila_0 probe
+connect_probe u_ila_0/probe44 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_trap_n} "TRAP_n"
+
+# probe45: regREP — input to W_12_0 latch (combinational mux output of MASEL)
+create_debug_port u_ila_0 probe
+connect_probe u_ila_0/probe45 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/MASEL/regREP[*]} "regREP"
+
+# probe46: W_12_0 — MASEL output, working microcode address
+create_debug_port u_ila_0 probe
+connect_probe u_ila_0/probe46 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/MASEL/regW[*]} "W_12_0"
+
+# probe47: IW_12_0 — MASEL output, instruction-word register
+create_debug_port u_ila_0 probe
+connect_probe u_ila_0/probe47 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/MASEL/regIW[*]} "IW_12_0"
+
 # Connect debug hub clock
 set_property C_CLK_INPUT_FREQ_HZ 100000000 [get_debug_cores dbg_hub]
 set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
@@ -377,7 +401,7 @@ connect_debug_port dbg_hub/clk [get_nets sysclk_IBUF_BUFG]
 # NOTE: Do NOT use save_constraints here — it writes ILA definitions into the
 # XDC file, which then conflict with this script on the next build.
 
-puts "ILA debug core configured with 43 probes"
+puts "ILA debug core configured with 48 probes (depth 1024)"
 
 # Implementation reads the synth_1 checkpoint from disk. ILA above exists only in
 # memory until we overwrite that checkpoint; otherwise impl has no debug cores and

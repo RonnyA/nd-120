@@ -127,7 +127,7 @@ module CGA_MIC (
   wire        s_dzd_out;
   wire        s_dzd_signal;
   wire        s_dzdff_q;
-  wire        s_ewca_n;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_ewca_n;
   wire        s_f11;
   wire        s_f15;
   wire        s_fs6_efalse;
@@ -185,7 +185,7 @@ module CGA_MIC (
   wire        s_ldlc_n;
   wire        s_loop;
   wire        s_lwca_n;
-  wire        s_map_n;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_map_n;
   wire        s_mclk_n;
   wire        s_sclk_n;
   wire        s_clk_sc34;  // Clock signal for flip-flop carrying SC3 and SC4 signal
@@ -208,7 +208,7 @@ module CGA_MIC (
   wire        s_spare;
   wire        s_stp;
   wire        s_t_n_out;
-  wire        s_trap_n;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_trap_n;
   wire        s_up_n_out;
   wire        s_up_out;
   wire        s_wcs_n_out;

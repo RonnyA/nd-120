@@ -116,26 +116,41 @@ localparam [1:0] SEL_REPEAT = 2'b11;
     endcase
   end
 
-  // LATCH regREP to W as long as MCLKN is active
-  // Is used by IPOS to create the MA_12_0 address to microcode RAM
-  // Fixed: Converted latch to combinational logic - when s_mclk_n is low, use registered value
-  always @(*) begin
-    if (s_mclk_n) begin
-      regW = regREP;  // Transparent when clock is high
-    end else begin
-      regW = regIW;   // Use registered value when clock is low (holds last captured value)
-    end
+  // ----------------------------------------------------------------------
+  // FPGA-friendly redesign of regW and regIW. Both are now sysclk-clocked
+  // FFs (no posedge-MCLK clock, no inferred latches).
+  //
+  // regW (W_12_0):
+  //   - Latches every sysclk while MCLK_n=1 (= MCLK=0, idle phase)
+  //   - Holds during the active phase (MCLK=1)
+  //   - No MRN reset (per original design semantics)
+  //
+  // regIW (IW_12_0):
+  //   - Captures regREP exactly once per cycle, at the moment MCLK
+  //     transitions 0->1 (edge-detect via sysclk)
+  //   - Async clear on MPN (s_mr_n) low — preserves original behavior
+  //   - Holds at all other times
+  // ----------------------------------------------------------------------
+
+  // regW: sysclk-sampled level-sensitive on idle phase
+  always @(posedge sysclk) begin
+    if (s_mclk_n)
+      regW <= regREP;
+    // else: hold (no else clause)
   end
 
+  // s_mclk_prev: track previous mclk for edge detection on regIW
+  reg s_mclk_prev = 1'b0;
+  always @(posedge sysclk) begin
+    s_mclk_prev <= s_mclk;
+  end
 
-  // On rising clock edge load REP into IW
-  // IW goes back to IINC to calculate next address (which is then input to stack module)
-  always @(posedge s_mclk or negedge s_mr_n) begin
-    if (!s_mr_n) begin
-        regIW <= 0;
-    end else begin
+  // regIW: edge-detect on MCLK rising, async clear on MPN
+  always @(posedge sysclk or negedge s_mr_n) begin
+    if (!s_mr_n)
+      regIW <= 13'd0;
+    else if (s_mclk & ~s_mclk_prev)
       regIW <= regREP;
-    end
   end
 
 

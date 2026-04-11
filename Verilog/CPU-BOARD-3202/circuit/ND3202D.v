@@ -29,6 +29,7 @@ module ND3202D (
     /* FROM C-PLUG */
     input LOAD_n,      //! Input signal from "C PLUG", signal B12 - LOAD_n
     input BREQ_n,      //! Input signal from "C PLUG", signal C12 - BREQ_n (DMA BUS Request)
+    // C-PLUG B13 - /RESTART: pulled high on the panel side, NOT CONNECTED to any logic on this board
     input CONTINUE_n,  //! Input signal from "C PLUG", signal B15 - CONTINUE_n
     input STOP_n,      //! Input signal from "C PLUG", signal B16 - STOP_n
 
@@ -63,6 +64,7 @@ module ND3202D (
 
 
     /* TO C-PLUG */
+    output RUN_n,       //! Output-signal to "C PLUG", signal B14 RUN~ (driven by Stop flip-flop: low while CPU is running)
     output BREF_n,      //! Output-signal to "C PLIG", signal B12 BREF~
     output BERROR_n,    //! Output-signal to "C PLIG", signal B21 BERROR~
     output BINACK_n,    //! Output-signal to "C PLIG", signal B19 BINACK~
@@ -125,7 +127,6 @@ module ND3202D (
    ** The outputs are defined here                                               **
    *******************************************************************************/
     output TXD,  // Output signal to "A PLUG", signal A10 (D2N) and C7 (TXD) (from the UART TXD)
-    output RUN_n,  // Output signal to "A PLUG", signal C10 (RUN_n) (from the CPU)
     output [4:0]  DP_5_1_n,       // Output signal to "A PLUG", signal DP~5_1 "Display signals" (C25,C26, C27, C28, C29)
 
     output [63:0] CSBITS,  //! Microcode Control signals - 64bit (for debugging)
