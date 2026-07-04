@@ -119,8 +119,64 @@ Use for genuine edge-triggered registers whose source **pulses** every cycle
 (MCLK/MACLK/UCLK per bus cycle). NEVER use where the source can sit static - that
 is the exact failure LATCH hit.
 
-**Rule for the spec:** default to A (level-capture). Use B only for the per-cycle
-strobes, and only after confirming the source is never held static during load.
+**RESOLVED RULE (2026-07-04 investigation).** The level-vs-edge choice is decided
+by the primitive's *type*, not per-instance guesswork:
+
+- **Transparent latches** (`LATCH`, `L4`, `L8`) are level-sensitive - they must
+  track D across the whole enable-high window -> **pattern A (level-capture)**.
+  Already converted. The LCS trap only ever applied to these.
+- **Edge flip-flops** (`D_FLIPFLOP`, `J_K_FLIPFLOP`, `T_FLIPFLOP`, `R81`, `R41P`,
+  `R81P`, `SCAN_FF`) trigger on `posedge <clock>` -> **pattern B (edge-detect)**.
+  There is NO LCS trap for them: a real edge FF clocked on a static-held signal
+  *also* never fires, so edge-detect (`raw & ~raw_d`) is the exact equivalent.
+
+So the FF-primitive conversion is uniform - edge-detect for all of them - and
+`make compare` (only-BDRY gate) confirms each one. This removes the biggest
+correctness risk the earlier draft flagged.
+
+## Verified baseline = the acceptance gate (2026-07-04)
+
+On the checkpoint tree, `make compare` in `sim/` gives:
+- FF sim **boots**: CSA reaches `o002001 @ cycle 69778` and `o002047 @ 72362`
+  (max CSA `o17777` = WCS load top).
+- The **only** diverging signal is **BDRY** (5872 / 1,000,000 rows, from cycle 0)
+  - the documented harmless init transient.
+
+So the gate for every conversion step is: `make compare` must still show
+**only BDRY differing** AND FF must still hit `o002001@69778` / `o002047@72362`.
+`make compare` prints "DIVERGENCE FOUND" even for the BDRY-only case (it is a raw
+diff) - so check the *columns* that differ, not just the banner. Any NEW diverging
+column (or a missed boot milestone) means the conversion is wrong -> revert it.
+
+Verify boot milestones after a run:
+```bash
+awk -F, 'NR>2 && $2==1025{print "o002001@"$1;exit}' trace_ff.csv   # expect 69778
+awk -F, 'NR>2 && $2==1063{print "o002047@"$1;exit}' trace_ff.csv   # expect 72362
+```
+
+## Plumbing reality (measured)
+
+Under `FPGA_FF_MODE` the primitive uses `sysclk`, so `sysclk` MUST be connected at
+every instance - you cannot half-plumb (an unconnected input = 0 = dead clock ->
+FF build breaks / never boots). Each FF primitive therefore drags `sysclk`
+threading through its hierarchy. Measured parent coverage (files instantiating the
+primitive that still lack a `sysclk` port):
+
+| Primitive | instances | parent files | missing sysclk |
+|-----------|-----------|--------------|----------------|
+| `SCAN_FF` | 111 | 11 | 9 |
+| `D_FLIPFLOP` | 77 | ~14 | ~9 |
+| `R81` | 17 | 10 | 6 |
+| `R41P` | 6 | 4 | 3 |
+| `J_K_FLIPFLOP` | 6 | 3 | 2 |
+
+Pattern for adding the port: **always declare `input sysclk`** (both build modes),
+wrap it `/* verilator lint_off UNUSEDSIGNAL */ ... lint_on */` since it is unused
+in the latch build, and connect `.sysclk(sysclk)` at every instance. Parents that
+merely pass it on need no waiver (a signal wired to a child port counts as used).
+NOTE: the module-level iverilog testbenches under `*/sim/*_tb.v` also instantiate
+these primitives and will need `.sysclk` added too - but they are outside the
+`make compare` gate, so update them per-primitive when convenient.
 
 ## Per-primitive transform
 
@@ -187,6 +243,47 @@ these gate the OSS/Gowin flow, so they must be done for Tang regardless.
 4. Keep the current combinational outputs (`ALUCLK`, `MCLK`, ...) too, under the
    non-FPGA path, so the latch sim is untouched.
 
+## CRITICAL FINDING (2026-07-04): piecemeal edge-detect is UNSOUND
+
+I trial-converted **R41P** (6 instances: LAA/LBA microcode address bits, ALU
+STS/CONTR) to the sysclk edge-detect pattern, fully plumbed, and ran the gate.
+Result:
+
+- Everything through `o002047 @ 72362` stayed **byte-identical** (load, init,
+  self-test entry all fine) - 0 diffs before that cycle.
+- But **after** o002047 the microcode took a **different branch**: at the
+  de-duplicated address sequence, golden goes `...o2133 -> o2134 -> o2135...`
+  while the converted FF goes `...o2133 -> o2156 -> o2546...`. Not timing jitter -
+  a changed conditional. Reverted.
+
+**Root cause:** edge-detect (`raw & ~raw_d`) adds **1 sysclk of latency** to the
+converted register's update, relative to its still-unconverted neighbors. In the
+current FF build, R41P used `posedge CP` with *zero* added latency and everything
+was balanced to that. Converting ONE primitive desynchronizes it by a cycle from
+the rest, and that cycle is enough to flip a condition (R41P drives LAA/LBA and ALU
+control - directly on the branch path).
+
+**Two consequences for the plan:**
+1. **The conversion cannot be done primitive-by-primitive.** A converted register
+   lags its unconverted siblings by a cycle -> broken. The whole set of registers
+   in a clock domain (all consumers of ALUCLK, or all of MCLK, etc.) must be
+   converted **together** so they stay mutually aligned, OR the technique must be
+   latency-neutral (fire the enable on the *same* sysclk edge that `posedge CP`
+   would, requiring CP to be a clean sysclk-synchronous 1-cycle pulse generated in
+   CYC_36 - i.e. the CYC_36 enable-generator must come FIRST, not the leaf
+   primitives).
+2. **`make compare` (cycle-exact) is too strict as the sole gate** for clock-domain
+   changes, and also too *weak* (R41P passed the o002001/o002047 milestone check
+   yet was wrong). The real acceptance test is the **full de-duplicated CSA address
+   sequence** (latch vs FF) - it caught this. Use that, plus "reaches OPCOM /
+   completes self-test", not just row-diff counts.
+
+**Revised approach:** build the **CYC_36 sysclk enable-generator first** so MCLK/
+MACLK/ALUCLK/... arrive as clean 1-sysclk-aligned pulses, convert **all** consumers
+of a given enable in one coherent step, and gate on the **address-sequence** match
+(not cycle-exact rows). This is a bigger first commit than "one primitive," and is
+the correction to the bottom-up ordering the earlier draft assumed.
+
 ## Sequencing (guardrailed by `make compare` after EVERY step)
 
 `make compare` (`sim/`) builds latch + FF, runs both, diffs 16 tracked signals ->
@@ -206,8 +303,12 @@ diverges is caught in seconds, in sim, before the FPGA.
 
 ## Risks / open questions (resolve during review)
 
-- [ ] `OSC` in the FPGA branch of `ND120_TOP.v`: what actually drives it? Decides
-      whether the FSM needs an `osc_tick` enable or `OSC==sysclk`.
+- [x] `OSC` source (RESOLVED): `s_osc` is itself a **gated** net -
+      `~(XTAL1 & oc1 & oc0) ...` in `IO_DCD_38.v:360-362`, where `XTAL1 = clk1`
+      (`= sysclk` in sim; MMCM 100/12.5 MHz on FPGA, `ND120_TOP.v:236-284`). So the
+      master oscillator into the cycle FSM is a combinational gate off `clk1`, not a
+      clean clock - the FSM (`PAL_44601` on `OSC`) needs an `osc_tick` enable
+      (edge-detect `s_osc` on `sysclk`) when CYC_36 is converted.
 - [ ] `InvertClockEnable` polarity per primitive instance - the active edge must be
       preserved exactly (falling `clock` == rising `~clock`).
 - [ ] Async preset/reset (`D_FLIPFLOP ACTIVE_ASYNC==1`): keep async vs synchronize.
