@@ -429,18 +429,20 @@ connect_probe u_ila_0/probe43 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_ewca_n} "EWC
 create_debug_port u_ila_0 probe
 connect_probe u_ila_0/probe44 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_trap_n} "TRAP_n"
 
-# probe45: regREP — input to W_12_0 latch (combinational mux output of MASEL)
-# Note: Vivado renames `reg` to `_reg`, instance is MIC_MASEL not MASEL
+# probe45: MA_12_0 — MIC_IPOS output, the combinational microcode address
+# (= CSA at the CGA_MIC level. Probe at MIC wire, not MASEL internal reg.)
 create_debug_port u_ila_0 probe
-connect_probe u_ila_0/probe45 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/MIC_MASEL/regREP_reg[*]} "regREP"
+connect_probe u_ila_0/probe45 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_ma_12_0_out[*]} "MA_12_0"
 
-# probe46: W_12_0 — MASEL output, working microcode address
+# probe46: W_12_0 — MASEL output wire at the CGA_MIC level
+# (s_w_12_0 drives MIC_IPOS. During idle = regREP, during active = regIW.)
 create_debug_port u_ila_0 probe
-connect_probe u_ila_0/probe46 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/MIC_MASEL/regW_reg[*]} "W_12_0"
+connect_probe u_ila_0/probe46 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_w_12_0[*]} "W_12_0"
 
-# probe47: IW_12_0 — MASEL output, instruction-word register
+# probe47: IW_12_0 — MASEL output wire at the CGA_MIC level
+# (s_iw_12_0 feeds MIC_IINC for NEXT calculation.)
 create_debug_port u_ila_0 probe
-connect_probe u_ila_0/probe47 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/MIC_MASEL/regIW_reg[*]} "IW_12_0"
+connect_probe u_ila_0/probe47 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_iw_12_0[*]} "IW_12_0"
 
 # Connect debug hub clock
 set_property C_CLK_INPUT_FREQ_HZ 100000000 [get_debug_cores dbg_hub]
