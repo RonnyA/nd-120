@@ -42,7 +42,12 @@ Documentation: https://www.alldatasheet.com/datasheet-pdf/view/65830/IDT/IDT6168
 NOTE!! The access time is not immediate, meaning it takes 15-20 nanoseconds after the address has changed for the data to become valid on the output.
 
 */
-module IDT6168A_20 (
+module IDT6168A_20 #(
+    // Optional preload image (one 4-bit hex nibble per line, 4096 lines).
+    // Empty string = no preload (default). Used to pre-fill the WCS so the
+    // runtime microcode load can be skipped - see docs/skip-wcs-load.md.
+    parameter INIT_FILE = ""
+) (
     input wire clk,     // Clock input (BLOCK RAM MUST HAVE CLOCK)
     input wire reset_n, // Active-low reset
 
@@ -57,6 +62,14 @@ module IDT6168A_20 (
   // Both Vivado/Xilinx (ram_style) and Gowin (syn_ramstyle) recognise this.
   (* syn_ramstyle = "block_ram", ram_style = "block" *)
   reg [3:0] idt_memory_array[0:4095];
+
+  // Optional block-RAM preload (bitstream INIT on FPGA; $readmemh in sim).
+  // Only active under SKIP_WCS_LOAD; preserves BRAM inference (Xilinx + Gowin).
+`ifdef SKIP_WCS_LOAD
+  initial begin
+    if (INIT_FILE != "") $readmemh(INIT_FILE, idt_memory_array);
+  end
+`endif
 
   // -----------------------------------------------------------------------
   // Unified sim/FPGA model: posedge-clk write-first synchronous RAM.

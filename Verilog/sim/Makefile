@@ -14,6 +14,16 @@ ifeq ($(USE_LATCHES),0)
   SIM_DEFINES += -DFPGA_FF_MODE
 endif
 
+# SKIP_WCS: pre-load the WCS and skip the microcode load phase (docs/skip-wcs-load.md).
+# Requires the 32 wcs_*.hex files in this dir (Code/Microcode/gen_wcs_image.py).
+# CPP_DEFINES also forwards the flag to the C++ testbench so it can trace from
+# tick 0 (no load phase to skip).
+CPP_DEFINES =
+ifeq ($(SKIP_WCS),1)
+  SIM_DEFINES += -DSKIP_WCS_LOAD
+  CPP_DEFINES += -DSKIP_WCS_LOAD
+endif
+
 VERILATOR_FLAGS = --trace-fst -Wall --cc ../ND120_TOP.v  $(SUPPRESS_FLAGS) $(SIM_DEFINES)
 
 #TOP_3202D_COMPONENTS = --I../circuit -I../../Shared/logisim   -I../../Shared/ndlib  -I../../Shared/support
@@ -32,7 +42,7 @@ CPP_SOURCES = test_nd120.cpp ../simDevices/NDDevices.cpp ../simDevices/NDBus.cpp
 all: test_nd120 run gtk
 
 test_nd120: $(CPP_SOURCES)
-	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS) --exe $(CPP_SOURCES)  -CFLAGS "$(VERILATOR_DIRS)  -I../../simDevices"
+	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS) --exe $(CPP_SOURCES)  -CFLAGS "$(VERILATOR_DIRS)  -I../../simDevices $(CPP_DEFINES)"
 	cd obj_dir && make -f VND120_TOP.mk VND120_TOP
 
 clean:

@@ -12,6 +12,13 @@ ifeq ($(USE_LATCHES),0)
   SIM_DEFINES += -DFPGA_FF_MODE
 endif
 
+# SKIP_WCS: Set to 1 to pre-load the WCS and skip the microcode load phase.
+#           Requires the 32 wcs_*.hex files in this dir (gen_wcs_image.py).
+#           See docs/skip-wcs-load.md.
+ifeq ($(SKIP_WCS),1)
+  SIM_DEFINES += -DSKIP_WCS_LOAD
+endif
+
 VERILATOR_FLAGS = --trace -Wall --cc ../ND120_TOP.v $(SUPPRESS_FLAGS) $(SIM_DEFINES)
 
 #TOP_3202D_COMPONENTS = -I../circuit -I../../Shared/logisim   -I../../Shared/ndlib  -I../../Shared/support

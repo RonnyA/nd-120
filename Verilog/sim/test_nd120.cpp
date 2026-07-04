@@ -137,6 +137,13 @@ int main(int argc, char **argv)
 	//   CSA=o000000, LCS_n=1 -> master clear / CPU self-test
 	//   CSA=o000016, LCS_n=1 -> PANEL INTERRUPT trap (TVEC dispatch)
 	// Only lower startTrace to 0 if validating the PROM load process itself.
+#ifdef SKIP_WCS_LOAD
+	// WCS is pre-loaded (docs/skip-wcs-load.md): there is NO PROM->WCS load
+	// phase, so execution begins almost immediately. Trace from tick 0 and the
+	// capture IS the boot sequence (0 -> o002001 -> self-test -> OPCOM).
+	long startTrace = 0;
+	long maxTicks   = 200000;   // 200K ticks covers boot through self-test/OPCOM
+#else
 	long startTrace = 730000;   // just before second loop exit at tick 737749 (CSA=o002047)
 
 	//long startTrace = 0;             // full trace including PROM load (very large file)
@@ -148,6 +155,7 @@ int main(int argc, char **argv)
 	//long maxTicks = startTrace + 2000000; // 2M (short run)
 	//long maxTicks = startTrace + 5500000; // 5.5M
 	long maxTicks = startTrace + 600000;   // 600K ticks covers ~3 loop cycles + transitions
+#endif
 	
 
 	// Boot commands
