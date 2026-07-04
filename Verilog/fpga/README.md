@@ -1,28 +1,42 @@
-# FPGA build flows
+# FPGA targets
 
 **Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/`
 
-Per-FPGA build and flash files. The Verilog/HDL source stays under `Verilog/`
-(the build scripts reference it by absolute path); only the board-specific
-build/flow files live here.
+Per-FPGA build and flow files. The Verilog/HDL source is **shared** and stays
+under `Verilog/` - the build scripts reference it by absolute path. Only the
+board-specific build/flow files (scripts, constraints, tool projects) live here,
+one folder per board.
 
-| Folder | FPGA | Toolchain | Status |
-|--------|------|-----------|--------|
-| [`basys3/`](basys3/) | Digilent Basys3 (Xilinx `xc7a35tcpg236-1`) | Vivado (Windows host) | Working synth; boot blocked by derived-clock timing (see `../docs/fpga-debug-methodology.md`) |
-| [`tang-nano-20k/`](tang-nano-20k/) | Sipeed Tang Nano 20K (Gowin `GW2AR-18`) | Gowin EDA / OSS (yosys+nextpnr) | Target in progress (see `../docs/tang-nano-20k-port.md`) |
+## Targets
 
-## Basys3 (Vivado)
-Scripts in `basys3/` (run from the Windows host):
-- `vivado_build.ps1` / `vivado_build.tcl` - synth + implement (see the tcl header
-  for flags: `full_synth`, `skip_program`, ...).
-- `vivado_lint.tcl` - lint only.
-- `flash.ps1` / `flash.tcl` - program FPGA (JTAG) and/or SPI flash.
-- `constraints_tie_unused.xdc` - constraints for unused pins.
-- Helpers: `vivado_impl_only.tcl`, `list_flash.tcl`, `check_rom.tcl`, `find_nets.tcl`.
+| Target | FPGA | Toolchain | Status | Details |
+|--------|------|-----------|--------|---------|
+| [**basys3/**](basys3/README.md) | Xilinx Artix-7 `xc7a35tcpg236-1` | Vivado (Windows host) | Synthesis OK; **fails timing** (WNS approx -100 ns), does not boot | [basys3/README.md](basys3/README.md) |
+| [**tang-nano-20k/**](tang-nano-20k/README.md) | Gowin `GW2AR-18` | Gowin EDA / OSS (yosys+nextpnr) | **Primary target**, bring-up in progress | [tang-nano-20k/README.md](tang-nano-20k/README.md) |
 
-Each `.ps1` finds its companion `.tcl` in this same folder - keep them together.
+**Tang Nano 20K is the current focus** (faster synth than Vivado, Linux-native
+OSS flow, and 8 MB SDRAM for full main memory). Basys3 is the fallback/second
+target once Tang works.
 
-## Tang Nano 20K (Gowin)
-See `tang-nano-20k/README.md`. Microcode note: with `SKIP_WCS_LOAD`
-(`../docs/skip-wcs-load.md`) the WCS is bitstream-preloaded, which is what makes
-the microcode fit the Tang's 828 Kbit BSRAM.
+## Shared context (applies to both)
+
+- **The boot blocker is timing, not logic.** The FF-mode Verilator sim boots
+  correctly; the FPGAs fail because ~35 modules use derived signals as clock
+  nets. The fix (single `sysclk` + clock-enables) is board-independent. See
+  [`../docs/fpga-debug-methodology.md`](../docs/fpga-debug-methodology.md) 3.2.
+- **Microcode preload:** `SKIP_WCS_LOAD` bitstream-preloads the WCS and skips the
+  runtime load phase - verified in Verilator, and required to fit the Tang's
+  BSRAM. See [`../docs/skip-wcs-load.md`](../docs/skip-wcs-load.md).
+- **Compile-time defines** (per-target behavior): see
+  [`../docs/build-defines.md`](../docs/build-defines.md).
+- **Golden boot reference** for validation: see
+  [`../docs/boot-golden-spec.md`](../docs/boot-golden-spec.md).
+
+## Reference docs
+
+- [`../docs/tang-nano-20k-port.md`](../docs/tang-nano-20k-port.md) - Tang port analysis
+- [`../docs/fpga-debug-methodology.md`](../docs/fpga-debug-methodology.md) - Verilator-vs-FPGA debug
+- [`../docs/build-defines.md`](../docs/build-defines.md) - compile-time defines
+- [`../docs/skip-wcs-load.md`](../docs/skip-wcs-load.md) - preloaded-WCS microcode
+- [`../docs/boot-golden-spec.md`](../docs/boot-golden-spec.md) - expected boot sequence
+- [`../FPGA-BRINGUP-PLAN.md`](../FPGA-BRINGUP-PLAN.md) - overall bring-up plan

@@ -42,3 +42,15 @@ gtk: run
 	gtkwave waveform.vcd dga.gtkw &
 
 .PHONY: all clean
+
+# iverilog testbench for F595
+IVERILOG = iverilog
+VERILOG_ROOT = ../../..
+
+F595_tb: F595_tb.v $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F595.v
+	$(IVERILOG) -g2012 -I$(VERILOG_ROOT)/Shared/logisim -I$(VERILOG_ROOT)/Shared/ndlib -I$(VERILOG_ROOT)/Shared/support -o $@ $^
+
+test-f595: F595_tb
+	./F595_tb
+
+.PHONY: test-f595

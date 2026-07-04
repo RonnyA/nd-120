@@ -41,3 +41,15 @@ gtk: run
 	gtkwave waveform.vcd cga.gtkw &
 
 .PHONY: all clean
+
+# iverilog testbench for BusDriver16
+IVERILOG = iverilog
+VERILOG_ROOT = ../../..
+
+BusDriver16_tb: BusDriver16_tb.v $(VERILOG_ROOT)/DELILAH-CPU/CGA/circuit/BusDriver16.v
+	$(IVERILOG) -g2012 -I$(VERILOG_ROOT)/Shared/logisim -I$(VERILOG_ROOT)/Shared/ndlib -I$(VERILOG_ROOT)/Shared/support -o $@ $^
+
+test-busdriver16: BusDriver16_tb
+	./BusDriver16_tb
+
+.PHONY: test-busdriver16

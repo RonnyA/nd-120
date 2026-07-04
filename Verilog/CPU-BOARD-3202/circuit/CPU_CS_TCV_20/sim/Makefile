@@ -41,3 +41,15 @@ gtk: run
 
 .PHONY: all clean
 
+# iverilog testbench for CPU_CS_TCV_20
+IVERILOG = iverilog
+VERILOG_ROOT = ../../../..
+
+CPU_CS_TCV_20_tb: CPU_CS_TCV_20_tb.v $(VERILOG_ROOT)/CPU-BOARD-3202/circuit/CPU_CS_TCV_20.v
+	$(IVERILOG) -g2012 -I$(VERILOG_ROOT)/Shared/logisim -I$(VERILOG_ROOT)/Shared/ndlib -I$(VERILOG_ROOT)/Shared/support -I$(VERILOG_ROOT)/CPU-BOARD-3202/circuit -o $@ $^
+
+test-tcv20: CPU_CS_TCV_20_tb
+	./CPU_CS_TCV_20_tb
+
+.PHONY: test-tcv20
+

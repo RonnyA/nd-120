@@ -89,7 +89,7 @@ module CPU_CS_TCV_20_tb;
 
     // Test 4: Read CSBITS[63:48] to IDB
     $display("\nTest 4: Read CSBITS[63:48] to IDB");
-    CSBITS = 64'hEF010000000000 00;
+    CSBITS = 64'hEF01000000000000;
     WCS_n = 1;
     ECSL_n = 0;
     EW_3_0_n = 4'b0111; // Enable word 3

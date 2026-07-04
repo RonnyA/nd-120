@@ -1,0 +1,315 @@
+# ND-120 FPGA Debug Methodology — Step-by-Step
+
+**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/fpga-debug-methodology.md`
+**Last updated:** 2026-07-03
+
+A followable procedure for finding and fixing why the ND-120 boots in the
+Verilator latch reference but not on the Basys3 FPGA. Working hypothesis:
+**the divergence comes from timing/semantic differences between transparent
+latches (original hardware) and the edge-triggered flip-flops the FPGA needs.**
+This doc gives the mental model, a triage decision tree, and per-step commands
+to isolate the buggy module(s) and drive them to a fix.
+
+Companion docs:
+- `docs/boot-golden-spec.md` — the expected microcode boot flow + detection rule.
+- `sim/SIGNAL-COMPARISON-HOWTO.md` — the `make compare` latch-vs-FF tool.
+- `sim/FPGA_DEBUG_RUNBOOK.md` — Verilator-vs-FPGA workflow + signal map.
+- `sim/FPGA_REFACTORING_GUIDE.md` — the async-clock -> synchronous conversion pattern.
+- `FPGA-BRINGUP-PLAN.md` — build/flash/validate loop + capture automation.
+
+---
+
+## 0. The mental model: THREE WORLDS
+
+| World | Build | Clocking | Role |
+|---|---|---|---|
+| **Latch sim** | Verilator, `USE_LATCHES=1` (default) | transparent latches | **Golden reference** — boots to OPCOM |
+| **FF sim** | Verilator, `USE_LATCHES=0` (`-DFPGA_FF_MODE`) | edge-triggered FFs | **"Simulated FPGA"** — same semantics the FPGA gets |
+| **Real FPGA** | Vivado synth (`FPGA_FF_MODE` implied) | real FF + routing/timing | The target |
+
+**The key insight that drives everything below:** FF sim uses the *same*
+flip-flop semantics as the FPGA, in software, deterministically, in seconds.
+So most FPGA boot bugs reproduce in **FF sim WITHOUT hardware**. Fix them in the
+fast loop; only real-silicon effects (timing closure, RAM inference, tri-state,
+routing) need the board.
+
+```
+Latch sim boots  ─┐
+                  ├─►  If FF sim ALSO fails  → bug is in the latch→FF logic. Debug in sim (fast).
+FF sim result   ─┘    If FF sim boots but FPGA fails → bug is silicon-only (timing/RAM/tristate).
+```
+
+**Current evidence (updated 2026-07-04):** a **fresh** `make compare` shows FF sim
+now boots **identically to latch sim** — all 16 tracked signals match except the
+documented harmless BDRY cycle-0 init transient; FF reaches exec start `o002001`
+(cycle 69778) and the Phase-3 exit `o002047` (cycle 72362), and keeps executing.
+So the latch->FF refactor is CORRECT in Verilator. **We are in Branch B
+(Section 3): the latch/FF logic is fine; the remaining FPGA failure is
+silicon-only** (timing closure, RAM inference, tri-state, reset). (The earlier
+"FF stuck at CSA=0" reading came from a stale Mar-30 trace that predated the
+refactor commits — disregard it.)
+
+---
+
+## 1. TRIAGE (do this first — ~10 min)
+
+Answer three questions. They decide which branch (Section 2 or 3) you work in.
+
+### 1a. Does FF-mode Verilator boot? (the pivotal question)
+
+```bash
+cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+make clean
+make compare          # builds latch + FF, runs both, diffs -> trace_diff.txt
+```
+
+Then find where FF first structurally diverges (ignore the known-harmless BDRY
+init transient around cycle 16415):
+
+```bash
+# Does FF ever reach execution start o002001 and the Phase-3 exit o002047?
+awk -F, 'NR>1 && $2==1025{print "FF reaches o002001 @"$1; f=1; exit} END{if(!f)print "FF NEVER reaches o002001"}' trace_ff.csv
+awk -F, 'NR>1 && $2==1063{print "FF reaches o002047 @"$1; f=1; exit} END{if(!f)print "FF NEVER reaches o002047"}' trace_ff.csv
+# Where does FF top out?
+awk -F, 'NR>1{if($2>mx)mx=$2} END{printf "FF max CSA=%06o\n",mx}' trace_ff.csv
+```
+
+- **FF fails (stuck / never reaches o002001 or o002047):** -> **Branch A (Section 2).**
+  Bug reproduces in sim. This is where the evidence currently points.
+- **FF boots to OPCOM but FPGA does not:** -> **Branch B (Section 3).** Silicon-only.
+
+### 1b. Does the FPGA meet timing?  (Windows)
+
+```powershell
+# After a synth+impl run, read the timing summary:
+#   open_run impl_1 ; report_timing_summary
+# or open the project in Vivado GUI -> Implementation -> Report Timing Summary
+```
+Note the **WNS** (Worst Negative Slack) at the CPU clock. Positive = timing
+closes (boot failure is logic). Negative = a real setup/hold problem (the
+combinational-clock paths likely cannot close) -> prioritise Section 3.2.
+
+### 1c. Fresh ILA capture of the CURRENT bitstream  (Windows + WSL)
+
+Do not trust old captures. Program the current `.bit`, capture the ILA, export
+CSV (see `FPGA-BRINGUP-PLAN.md` Section 12), and confirm where the FPGA actually
+stalls today. Compare against `docs/boot-golden-spec.md` phases.
+
+---
+
+## 2. BRANCH A — FF sim reproduces the bug (debug in simulation)
+
+This is the fast path: edit -> `make compare` -> analyse, all in WSL, seconds
+per iteration, fully deterministic. No FPGA needed until it boots in FF sim.
+
+### 2.1 Find the FIRST structural divergence
+
+The earliest signal that diverges between latch and FF is closest to the root
+cause. Use the per-signal first-divergence script from `SIGNAL-COMPARISON-HOWTO.md`:
+
+```bash
+cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+python3 - <<'PY'
+import csv
+first={}
+with open('trace_latch.csv') as a, open('trace_ff.csv') as b:
+    ra,rb=csv.DictReader(a),csv.DictReader(b)
+    cols=ra.fieldnames
+    for r1,r2 in zip(ra,rb):
+        for c in cols:
+            if c not in first and r1[c]!=r2[c]:
+                first[c]=(int(r1['cycle']),r1[c],r2[c])
+for c in cols:
+    if c in first:
+        cyc,v1,v2=first[c]; print(f"{c:10s} FIRST DIFF @{cyc:>8} latch={v1} ff={v2}")
+    elif c!='cycle': print(f"{c:10s} MATCH")
+PY
+```
+
+The 16-signal set (CSA, TERM_n, MCLK, MACLK, EMD, CBWRITE, CMWRITE, BACT,
+EBADR_n, DAP, BLOCK, RERR, BDRY, DISB, TST, BLOCKL, LED) spans the cycle FSM,
+bus PALs, and memory control. Whichever diverges **first** (excluding the cycle
+~16415 BDRY init transient) names the subsystem. If you need a signal that is
+not in the CSV, add it: build, then `grep <SIGNAL> obj_dir/VND120_TOP___024root.h`
+to get the Verilator path, and add it to `latch_ff_compare.cpp`.
+
+### 2.2 If the divergence is at/near CSA=0 (design never starts)
+
+That is a clock/reset problem, not a datapath problem. Suspect the derived-clock
+chain that must produce the very first `MCLK`/`MACLK`/`LCS_n` edges:
+- `CYC_36` + `PAL_44403C` (the `LCS_n` load state machine).
+- `Shared/ndlib/LATCH.v` and its `sysclk` routing (the current refactor).
+- `MEMORY_*`/`D_FLIPFLOP` reset values in FF mode.
+
+Zoom in with the waveform:
+```bash
+make gtk    # opens waveform.fst; look at sysclk, MR_n, LCS_n, MCLK, MACLK, CSA around cycle 0..20000
+```
+
+### 2.3 Zoom to the module, then test it in ISOLATION
+
+Once a subsystem is implicated, test that module alone with an iverilog
+testbench next to it (fast, targeted), driving latch vs FF behaviour:
+
+```bash
+# Example: the MASEL microcode-address path
+cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_MIC/sim
+make test-masel          # MASEL_cycle_tb + MASEL_iw_capture_tb (race/timing checks)
+```
+
+For a module without a testbench yet, create `<module>/sim/<module>_tb.v` that:
+1. drives `sysclk` and the module's derived clock (e.g. `MCLK`) with realistic
+   FPGA timing (derived clock rising 1 sysclk AFTER the data it gates),
+2. asserts the expected output for a known input,
+3. runs once in latch config and once with `-DFPGA_FF_MODE`.
+A divergence there is your isolated, minimal reproduction.
+
+### 2.4 Apply the fix pattern, prove it with `make compare`
+
+The canonical fix for an async/derived clock is in `FPGA_REFACTORING_GUIDE.md`:
+sample the derived "clock" as **data** on `sysclk`, edge-detect it to make a
+single-cycle enable, and clock the register on `sysclk` gated by that enable.
+After the change:
+
+```bash
+cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+make compare    # goal: FF sim now reaches the same boot phases as latch sim
+```
+Iterate 2.1 -> 2.4 until FF sim boots to OPCOM. THEN go to the FPGA (Section 3
+residual checks + Section 4 flash/validate).
+
+---
+
+## 3. BRANCH B — FF sim boots but the FPGA does not (silicon-only)
+
+If FF sim reaches OPCOM but hardware does not, the cause is something Verilator
+does not model. Check these in order:
+
+### 3.1 RAM inference
+- `MEM_RAM_49.v` selects tiny BRAM RAM for synthesis (`ramSize=3`, 24KB) vs large
+  sim RAM. Confirm the microcode ROM (`AM27256_4513{2,3}L.hex`) is present in the
+  Vivado project dir and actually initialises the BRAM (not empty).
+- Check `IDT6168A`/control-store RAM inferred as block RAM, not distributed.
+
+### 3.2 Timing closure — CONFIRMED ROOT CAUSE (from the Vivado logs, 2026-07)
+
+The Basys3 build **fails timing catastrophically** — this, not a functional bug,
+is why the FPGA does not boot:
+- `CRITICAL WARNING [Timing 38-282]: design failed to meet timing requirements`
+- **WNS approx -65 to -101 ns, TNS approx -50,000 ns**, plus hold violations
+  (THS approx -163 ns). A generated clock with **period < 2 ns** is reported.
+- There is an `MMCME2_BASE` CPU clock (`ND120_TOP.v:264`); the `sys_clk`
+  constraint lives in the Vivado-managed project XDC
+  (`ND3202D.srcs/constrs_2/new/constraints.xdc`), not in the repo.
+
+**Mechanism:** ~35 files still clock flip-flops on **derived signals**, e.g.
+`always @(posedge CK / CP / s_aluclk / s_clock / s_clkab / s_clkba ...)`, not on
+`sysclk`. Synthesis turns each into its own clock net -> dozens of gated/derived
+clock domains STA cannot constrain -> massive negative setup AND hold slack ->
+logic never settles -> boot fails/stalls on hardware.
+
+**This is distinct from the latch->FF work.** That fixed FUNCTIONAL behavior
+(FF sim boots). Eliminating the derived-clock *nets* is the TIMING fix and is
+still outstanding. It is board-independent (the Tang won't fix it).
+
+**The fix (Section 2.4 pattern), applied to every derived-clock site:** replace
+`always @(posedge <derived>) q <= d;` with
+`always @(posedge sysclk) if (<derived>_rising_edge) q <= d;` so there is ONE
+clock domain (`sysclk`) and the derived signals become clock *enables*. Then STA
+constrains cleanly and timing closes (the ND-120 is a slow CPU; a single modest
+sysclk has plenty of margin).
+
+**Work list — files with derived-clock always-blocks (35):** the PAL set
+(`PAL_44302B/44303B/44304E/44310D/44401B/44407A/44408B/44445B/44446B/44511A/
+44601B/44801A/44803A/44902A/44904B/45001B/45008B/45009B`), Shared support
+(`AM29841`, `AM29C821`, `TTL_74534/74646/74648`, `SC2661_UART`), Shared ndlib
+(`LATCH`, `R41P`, `R81`, `R81P`, `SCAN_FF`), Shared logisim
+(`D_FLIPFLOP`, `D_FLIPFLOP_SIMPLE`, `J_K_FLIPFLOP`, `T_FLIPFLOP`), and
+`CGA_ALU_ARG`, `CGA_WRF_RBLOCK_DR16`, `BIF_DPATH_PPNLBD_14`. Convert the base
+flip-flop/latch primitives first (`D_FLIPFLOP`, `LATCH`, `R81`, etc.) — most of
+the PALs and TTL parts instantiate those, so fixing the primitives fixes the
+majority in one place.
+
+### 3.3 Tri-state
+- Inside the FPGA `z` does not exist. Every "3-state" buffer must drive `0` when
+  disabled (`TTL_74245/244/241`, `AM29841`, `AM29861A`). A `z` that sim resolves
+  but silicon floats -> wrong data.
+
+### 3.4 Reset
+- `sys_rst_n` must reach every FF (POR counter). A latch that powered up to a
+  benign value in sim may come up wrong on the FPGA.
+
+### 3.5 ILA-vs-golden localisation
+- Capture the ILA (fresh), reduce to `MA @ posedge MACLK`, diff against
+  `boot-golden-spec.md`. First structural divergence names the failing phase;
+  probe that region's signals (add `mark_debug`, rebuild).
+
+---
+
+## 4. The build / flash / validate loop (once FF sim is good)
+
+```bash
+# WSL: regenerate golden reference
+cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim && make clean && make all
+```
+```powershell
+# Windows: full synth (logic changed) then flash
+cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\basys3
+.\vivado_build.ps1          # ~1h full synth; writes output\ND120_TOP.bit + .ltx
+.\flash.ps1 -Quick          # volatile JTAG program (fast iteration)
+```
+Then capture ILA -> CSV -> compare against golden (Sections 1c / 3.5). Success =
+FPGA `MA` walks the `boot-golden-spec.md` phases and escapes Phase 3 to o002047.
+
+---
+
+## 5. Root-cause techniques (toolbox)
+
+| Technique | Tool | When |
+|---|---|---|
+| Latch-vs-FF first-divergence | `make compare` + python (2.1) | Every FF-mode logic bug |
+| Waveform zoom | `make gtk` / GTKWave on `waveform.fst` | Inspect exact edges around divergence |
+| Module isolation | iverilog `*_tb.v` in module `sim/` | Confirm/repro a single module's bug |
+| Microcode path check | `MA @ posedge MACLK` vs `boot-golden-spec.md` | "Did it take the right branch?" |
+| Async-clock refactor | `FPGA_REFACTORING_GUIDE.md` pattern | Fix derived-clock races (root class) |
+| FPGA signal capture | ILA + `capture_ila.tcl` + `vcd_extract.py` | Silicon-only bugs, final validation |
+
+**Bias:** always try to reproduce in FF sim before touching the FPGA. A bug you
+can reproduce in `make compare` is one you can bisect in minutes; a bug you can
+only see on the board costs an hour per iteration.
+
+---
+
+## 6. The current bug as a worked example (Phase 3 stall)
+
+**Symptom (FPGA + likely FF sim):** microcode stuck oscillating `o002045/o002046`
+(hex 0x0425/0x0426), never reaching `o002047` (0x0427). If FF sim is stuck even
+earlier at CSA=0 (per the Mar 30 trace), fix that FIRST — it is upstream.
+
+**What SHOULD happen (from `boot-golden-spec.md` Phase 3):** at `o002046`, when
+`ZF=1` (ALU countdown `F` reached 0), branch to `o002047`.
+
+**Candidate root causes, cheapest to check first:**
+1. `Q` register not loaded with 0x3FFF before the loop (probe `s_q_15_0`).
+2. ALU `F = A - Q` not computing (probe `s_f_15_0`) — combinational logic broke.
+3. `ZF` not asserting when `F=0` (probe `DELILAH.ALU.ZF`).
+4. `COND` not propagating through the CSEL condition latch (`ALUCLK` timing) —
+   the `CSEL_LATCH` refactor is directly here.
+5. Condition not reaching the MASEL address mux (`SC5/SC6` control) — your MASEL
+   Variant F work targets this.
+
+**How to bisect:** run 2.1 to see which of CSA / MCLK / MACLK / (add ZF, COND, Q,
+F) diverges first between latch and FF. That single first-divergence signal tells
+you which of 1-5 it is, instead of guessing. Note o002046 -> o002047 is a
+condition-driven branch, so items 3-5 (condition path) are most likely.
+
+---
+
+## 7. Open questions to confirm (fill in when known)
+
+- [ ] Fresh `make compare`: is FF sim still stuck at CSA=0, or does it now reach a
+      later phase? (Determines Branch A vs B and the upstream-most bug.)
+- [x] FPGA WNS at the CPU clock: **negative, approx -100 ns (fails badly)** — root
+      cause is derived-clock nets (Section 3.2). This is the primary blocker.
+- [ ] Fresh ILA: where does the CURRENT bitstream actually stall?
+- [ ] Prime suspect module confirmed by 2.1 first-divergence (MASEL? ALU? CSEL?).

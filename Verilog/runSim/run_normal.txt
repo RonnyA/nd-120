@@ -1,0 +1,10 @@
+PaperTape object created.
+FloppyPIO object created.
+B address    000000
+C address    160616
+Load address 000000
+Word count   054731
+Checksum     021150
+Execute	     000000
+Words read   054731
+#

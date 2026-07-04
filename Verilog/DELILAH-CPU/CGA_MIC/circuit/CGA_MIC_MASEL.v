@@ -92,28 +92,38 @@ localparam [1:0] SEL_REPEAT = 2'b11;
   (* keep = "true", DONT_TOUCH = "true" *) wire [3:0] unused_CSBITS_bits;
   assign unused_CSBITS_bits[3:0] = s_csbit_11_0[3:0];
 
+  // VARIANT F: register regREP through sysclk to break the data race.
+  // The combinational mux output feeds a 1-sysclk pipeline register.
+  // regIW then captures from the registered (stable) regREP at
+  // posedge s_mclk without a setup violation.
+  reg [12:0] regREP_comb;
   always @(*) begin
     case (s_mux_selector)
         SEL_JUMP: begin
             // handle jump
-            regREP = s_jmpaddr_12_0;
+            regREP_comb = s_jmpaddr_12_0;
         end
         SEL_RETURN: begin
             // handle return
-            regREP = s_ret_12_0;
+            regREP_comb = s_ret_12_0;
         end
         SEL_NEXT: begin
             // handle next
-            regREP = s_next_12_0;
+            regREP_comb = s_next_12_0;
         end
         SEL_REPEAT: begin
             // handle repeat
-            regREP = IW_12_0;
+            regREP_comb = IW_12_0;
         end
         default: begin
             // optional: handle invalid case
+            regREP_comb = s_next_12_0;
         end
     endcase
+  end
+
+  always @(posedge sysclk) begin
+    regREP <= regREP_comb;
   end
 
   // LATCH regREP to W as long as MCLKN is active

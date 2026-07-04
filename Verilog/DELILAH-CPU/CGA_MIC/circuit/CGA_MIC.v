@@ -92,11 +92,11 @@ module CGA_MIC (
   wire [ 3:0] s_tsel_3_0;
   wire [ 3:0] s_tvec_3_0;
   wire [ 6:0] s_ir_6_0;
-  wire [12:0] s_iw_12_0;
-  wire [12:0] s_ma_12_0_out;
-  wire [12:0] s_next_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_iw_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_ma_12_0_out;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_next_12_0;
   wire [12:0] s_ret_12_0;
-  wire [12:0] s_w_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_w_12_0;
   (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_wca_12_0;
   wire [15:0] s_cd_15_0;
   wire [15:0] s_csbit_15_0;
