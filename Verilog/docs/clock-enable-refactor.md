@@ -278,11 +278,48 @@ control - directly on the branch path).
    sequence** (latch vs FF) - it caught this. Use that, plus "reaches OPCOM /
    completes self-test", not just row-diff counts.
 
-**Revised approach:** build the **CYC_36 sysclk enable-generator first** so MCLK/
-MACLK/ALUCLK/... arrive as clean 1-sysclk-aligned pulses, convert **all** consumers
-of a given enable in one coherent step, and gate on the **address-sequence** match
-(not cycle-exact rows). This is a bigger first commit than "one primitive," and is
-the correction to the bottom-up ordering the earlier draft assumed.
+### Three gated experiments (2026-07-05) — all fail at the SAME point
+
+Ran three conversions, each gated by `sim/seqcheck.py` (de-duplicated CSA address
+sequence, latch vs FF):
+
+| # | change | result |
+|---|--------|--------|
+| 1 | R41P -> sysclk **edge-detect** (6 inst, plumbed) | FAIL @ transition 57638 |
+| 2 | R41P -> sysclk **level-capture** (LATCH idiom) | FAIL @ **57638 (identical)** |
+| 3 | **CYC_36**: register ALL 6 datapath clocks (ALUCLK/MCLK/MACLK/UCLK/CLK/WRFSTB) on sysclk — uniform +1 shift of the whole datapath, zero consumer edits | FAIL @ **57638 (identical)** |
+
+All three diverge at the **exact same** microcode transition: golden
+`...o2133 -> o2134 -> o2135...`, converted `...o2133 -> o2156 -> o2546...`, and
+all produce the identical 134624-vs-162146 transition counts. Everything up to
+`o002047 @72362` is byte-identical in every case. Baseline (no change) passes
+`seqcheck.py`.
+
+### Conclusion: the fix requires PHASE-ACCURATE enables, not sysclk migration
+
+The idiom (edge vs level) does not matter, and **uniformly** shifting the whole
+datapath by one sysclk fails exactly like a single register. So the problem is not
+latency-per-register or partial-vs-whole — it is that the microcode control loop
+(address -> WCS read -> condition -> next address, spanning MIC/WCS/ALU/MAC) depends
+on the **intra-cycle PHASE relationships** between ALUCLK, MCLK and MACLK. These
+clocks fire at *different points within one cycle* (see `cycle_clock.md`: the cycle
+FSM sequences variable-length states 51.2/76.8/102.4/... ns, and 44307 decodes
+distinct MCLK/MACLK phases per state). Moving them all to the sysclk edge collapses
+those phases into one, which flips a conditional at o2133.
+
+**So the correct enable-generator must reproduce each derived clock's sub-cycle
+phase**, not just "pulse once per cycle." Concretely: characterise, from
+`cycle_clock.md` + `CYC_36`/`PAL_44307C`, WHEN within a cycle each of ALUCLK/MCLK/
+MACLK/UCLK asserts relative to the FSM state, and emit each enable on the sysclk
+edge matching that phase. This is a genuine timing-design task (needs the cycle
+diagram), NOT a mechanical primitive sweep — the naive sweep is now proven to fail.
+
+Tooling added for this work: `sim/seqcheck.py` (the address-sequence gate — use it,
+not cycle-exact `make compare`, which is both too strict and too weak here).
+
+**Status:** naive approaches ruled out by experiment; branch reverted to the green
+baseline. Next real step is the phase-accurate enable-generator, best done with the
+cycle-timing diagram in hand (and ideally reviewed before the wide consumer sweep).
 
 ## Sequencing (guardrailed by `make compare` after EVERY step)
 
