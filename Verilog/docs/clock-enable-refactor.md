@@ -317,6 +317,42 @@ diagram), NOT a mechanical primitive sweep — the naive sweep is now proven to 
 Tooling added for this work: `sim/seqcheck.py` (the address-sequence gate — use it,
 not cycle-exact `make compare`, which is both too strict and too weak here).
 
+### ALUCLK bisect (2026-07-05) — pinpoints the mechanism
+
+Registering ONLY `ALUCLK` (MCLK/MACLK left combinational) breaks the design at an
+**ALU-condition branch**: the `o2045/o2046/o2047` delay-loop exit (governed by `ZF`,
+an ALU flag). Golden `o2047 -> o2050`; the ALUCLK-shifted FF skips to `o3710` -
+it mis-evaluates the `ZF` countdown. This confirms ALUCLK's phase is load-bearing
+for the ALU flag/condition path. Corroboration: the **entire STS register**
+(`CGA_ALU_STS`: STS_REG_MID (R41P) + 12x SCAN_FF) is clocked on `s_aluclk`, and the
+o2133 failure is microcode **TEST 7 (STS + register file)** taking its error branch
+(`STERR` o2156 -> `DYTP2` o2546). `s_aluclk = ~(TERM_n | LCS)` is the **terminate
+pulse**: the ALU computes combinationally through the cycle and latches its
+result/flags at terminate. Any sysclk shift of ALUCLK latches the wrong cycle's
+flags -> wrong condition -> wrong branch.
+
+### The phase-accurate fix (design)
+
+Every failed attempt captured one sysclk LATE because an edge/level enable derived
+from the *already-risen* clock is inherently delayed. The fix is to fire the capture
+enable on the SAME sysclk edge the original `posedge ALUCLK` fired, using the FSM's
+**next-state** (available combinationally before the edge):
+
+- Expose `TERM` next-value (`term_next`, the D-input combinational equation) from
+  `PAL_44601B` (and the 44307 decodes of MCLK_n/MACLK_n evaluated on next-state).
+- In `CYC_36`, per clock: `clk_en = clk_NEXT & ~clk_NOW`, e.g.
+  `aluclk_en = (term_next & ~LCS) & ~(TERM_reg & ~LCS)` = `term_next & ~TERM_reg`
+  when `LCS=0`. This pulse is high during the cycle BEFORE the sysclk edge E where
+  TERM asserts, so `always @(posedge sysclk) if (aluclk_en) q<=d` captures at edge E
+  -- exactly when `posedge ALUCLK` fired, with the same (pre-terminate-stable) data.
+  Net zero latency (the earlier attempts were +1; this uses next-state to hit E, not
+  E+1).
+- Convert the ALUCLK/MCLK/MACLK/UCLK consumers to `if (<clk>_en)` on sysclk.
+
+Test path: prove `aluclk_en` on the ALU domain passes `seqcheck.py` (fixes test 7)
+before extending to MCLK/MACLK. This is the first genuinely phase-correct candidate;
+all prior ones were provably off by one sysclk.
+
 **Status:** naive approaches ruled out by experiment; branch reverted to the green
 baseline. Next real step is the phase-accurate enable-generator, best done with the
 cycle-timing diagram in hand (and ideally reviewed before the wide consumer sweep).
