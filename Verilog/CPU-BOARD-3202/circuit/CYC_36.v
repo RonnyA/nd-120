@@ -226,7 +226,7 @@ module CYC_36 (
   wire s_cc1_n_next  = ~s_cc1_d;
   wire s_cc2_n_next  = ~s_cc2_d;
   wire s_cc3_n_next  = ~s_cc3_d;
-  wire s_mclk_n_next, s_maclk_n_next;
+  wire s_mclk_n_next, s_maclk_n_next, s_uclk_next;
   /* verilator lint_off PINCONNECTEMPTY */
   PAL_44307C PAL_44307_UCYCLK_NEXT (
       .TERM_n (s_term_n_next),
@@ -241,7 +241,8 @@ module CYC_36 (
       .VEX    (s_vex),
       .MCLK_n (s_mclk_n_next),
       .MACLK_n(s_maclk_n_next),
-      .WRFSTB (), .CYD (), .EORF_n (), .UCLK (), .ETRAP_n (), .MAP_n ()
+      .UCLK   (s_uclk_next),
+      .WRFSTB (), .CYD (), .EORF_n (), .ETRAP_n (), .MAP_n ()
   );
   /* verilator lint_on PINCONNECTEMPTY */
   wire s_mclk_next  = ~(s_term_n_next & s_mclk_n_next);   // next MCLK  = ~(TERM_n_next & MCLK_n_next)
@@ -255,10 +256,28 @@ module CYC_36 (
   end
   assign MCLK                = mclk_pa;
   assign MACLK               = maclk_pa;
+
+  // ---- Phase-accurate CLK and UCLK ----
+  // CLK = ~TERM_n rises at terminate (like ALUCLK but without the LCS gate), so
+  // clk_en = TERM_d. CLK also clocks the FSM's own PAL_44403/44404 (via s_clk),
+  // so those PALs now run on the clean generated clock instead of the gated net -
+  // the PALs themselves are untouched, only their clock input changes.
+  // UCLK = TERM_n & UCLK_44307 has its own mid-cycle phase; uclk_next uses the
+  // 2nd PAL_44307's UCLK on the next-state.
+  wire clk_en   = s_term_d;                       // CLK about to rise (terminate)
+  wire uclk_next = s_term_n_next & s_uclk_next;   // next UCLK = TERM_n_next & UCLK_44307_next
+  wire uclk_en   = uclk_next & ~s_uclk_out;       // UCLK about to rise
+  reg  clk_pa = 1'b0, uclk_pa = 1'b0;
+  always @(posedge sysclk) begin
+    clk_pa  <= clk_en;
+    uclk_pa <= uclk_en;
+  end
+  assign UCLK                = uclk_pa;
 `else
   assign ALUCLK              = s_aluclk;
   assign MCLK                = s_mclk;
   assign MACLK               = s_maclk_out;
+  assign UCLK                = s_uclk_out;
 `endif
   assign CC_3_1_n            = s_cc_3_1_n[2:0];
   assign CC0_n               = s_cc0_n;
@@ -270,16 +289,21 @@ module CYC_36 (
   assign LCS_n               = s_lcs_n;
   assign MAP_n               = s_map_n;
   assign TERM_n              = s_term_n;
-  // MCLK / MACLK are assigned in the FPGA_FF_MODE block above (phase-accurate)
-  // and in its `else` branch (original gated nets).
-  assign UCLK                = s_uclk_out;
+  // MCLK / MACLK / UCLK are assigned in the FPGA_FF_MODE block above
+  // (phase-accurate) and in its `else` branch (original gated nets).
   assign WRFSTB              = s_wrfstb;
 
   /*******************************************************************************
    ** Refactored all gates to use Verilog code for and/or/not                    **
    *******************************************************************************/
   assign s_lcs               = ~s_lcs_n;
+`ifdef FPGA_FF_MODE
+  // Clean phase-accurate CLK: drives the output CLK and the FSM's own
+  // PAL_44403/44404 clock inputs, replacing the gated ~TERM_n net.
+  assign s_clk               = clk_pa;
+`else
   assign s_clk               = ~s_term_n;
+`endif
   assign s_aluclk            = ~(s_term_n | s_lcs);
   assign s_mclk              = ~(s_term_n & s_mclk_n);
   assign s_maclk_out         = ~(s_term_n & s_maclk_n);
