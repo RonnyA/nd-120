@@ -355,6 +355,49 @@ module PAL_44601B_tb;
     default_inputs;
 
     // ---------------------------------------------------------------
+    // Scenario 7: slowest path. With no early-terminate condition
+    //   (SHORT/HIT/BRK/SLOW all inactive, waits released) the FSM walks
+    //   the FULL 16-state Gray sequence a..p - the LCS/RWCS/UART/XSLOW
+    //   class, ~435 ns per DesignDocuments/Other/CPU-Timing.md - and
+    //   terminates at the maximum-length state p (1000, unconditional).
+    //   This exercises the upper Gray states (i..p) that scenarios 1-6
+    //   never reach. Validate: (1) the counter actually reaches state p
+    //   (full walk, upper half reachable), and (2) the longest cycle
+    //   still terminates (no deadlock in the upper states). The Gray and
+    //   terminate/reset invariants run every tick as usual; the registered
+    //   TERM lands one edge after the terminating state, so we check
+    //   structural reach+terminate rather than a hardcoded cycle index.
+    // ---------------------------------------------------------------
+    $display("\n-- Scenario 7: full a..p slow walk (reach p, then terminate) --");
+    reset_to_a;
+    default_inputs;
+    begin : slow_walk
+      integer c;
+      reg seen_p;
+      reg saw_term;
+      seen_p   = 1'b0;
+      saw_term = 1'b0;
+      for (c = 0; c < 20; c = c + 1) begin
+        tick;
+        if (cur_cc === 4'b1000) seen_p   = 1'b1;  // reached state p
+        if (cur_term === 1'b1)  saw_term = 1'b1;  // longest cycle terminated
+      end
+      if (seen_p)
+        $display("PASS [p-walk]: FSM reached state p (1000) on the slow path");
+      else begin
+        errors = errors + 1;
+        $display("FAIL [p-walk]: FSM never reached state p (1000) - upper Gray states unreachable?");
+      end
+      if (saw_term)
+        $display("PASS [p-walk]: longest cycle terminated (no deadlock in upper states)");
+      else begin
+        errors = errors + 1;
+        $display("FAIL [p-walk]: longest cycle never asserted TERM - possible deadlock");
+      end
+    end
+    default_inputs;
+
+    // ---------------------------------------------------------------
     // Summary
     // ---------------------------------------------------------------
     $display("\n======================================================");
