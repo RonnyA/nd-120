@@ -23,6 +23,39 @@ setup AND hold slack -> logic never settles -> boot fails on hardware. This is a
 **timing** fix, distinct from the latch->FF functional work (FF sim already boots
 identically to latch sim). It is **board-independent** - the Tang will not fix it.
 
+## IMPLEMENTED (2026-07-05): phase-accurate clocks via validated mirrors
+
+The gated-combinational clocks minted in `CYC_36` are now clean sysclk-generated FF
+clocks in `FPGA_FF_MODE`, boot byte-identical to golden (seqcheck IDENTICAL). The
+key that made it work (after edge/level/uniform all failed by +1 sysclk): fire each
+clock's enable on the FSM's **next-state**, which leads by one cycle, so registering
+it lands the rising edge on the exact edge the old gated clock fired (net-zero
+latency).
+
+- **Validated next-state mirrors** of `PAL_44601B` (PALs stay untouched & golden):
+  - `CYC_TERM_D.v` - TERM next-state. Exhaustively validated == PAL (all 16 states x
+    2 TERM x 128 inputs = 4096 checks, 0 err; mutation-tested). `make test-cyctermd`.
+  - `CYC_CC_D.v` - CC3..CC0 next-state. Exhaustively validated == PAL (512 checks,
+    0 err). `make test-ccd`. (Both in `CPU-BOARD-3202/circuit/sim/`.)
+- **MCLK/MACLK/UCLK next values**: a SECOND (combinational) `PAL_44307C` instance is
+  fed the next-state (TERM_D + CC_D) - the real PAL reused, no mirror of 44307.
+- **Per clock**: `clk_en = <clock>_NEXT & ~<clock>_NOW`, registered -> clean pulse.
+  - ALUCLK: `aluclk_en = TERM_D & ~LCS`.
+  - CLK (`~TERM_n`): `clk_en = TERM_D`; the clean `clk_pa` also feeds the FSM's own
+    `PAL_44403/44404` `.CLK` (their clock source changes, the PALs do not).
+  - MCLK/MACLK: `~(TERM_n_next & MCLK_n_next/MACLK_n_next)` from the 2nd 44307.
+  - UCLK: `TERM_n_next & UCLK_44307_next`.
+- **Not converted**: WRFSTB (no posedge/clock use - the WRF clocks on ALUCLK).
+- **Consumers unchanged** - they still `posedge <clock>`, but on a clean FF clock
+  instead of a gated LUT net. (True single-sysclk-domain, i.e. converting consumers
+  to `if(<clk>_en)`, is a later optional step - mainly for Gowin.)
+- **OSC** (the FSM clock): `= sysclk` in sim; on FPGA `oc_select=2'b11` constant-
+  folds it to `clk1`, so it is a clean clock net (not the gated-clock problem).
+
+Gate for all of the above: `sim/seqcheck.py` after `make compare` -> address
+sequence IDENTICAL, FF reaches o002001@69778 / o002047@72362. Next real signal is a
+Basys3 re-synth to measure WNS.
+
 ## The clock tree today (from `CPU-BOARD-3202/circuit/CYC_36.v`)
 
 Every CPU "clock" is minted in one place - `CYC_36` - from `OSC` and `TERM_n`:
