@@ -168,7 +168,39 @@ module CYC_36 (
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
+`ifdef FPGA_FF_MODE
+  // ---- Phase-accurate ALUCLK (single sysclk domain) ----
+  // ALUCLK = ~(TERM_n|LCS) pulses at bus-cycle terminate; the ALU / condition
+  // register latch on its rising edge. To move off the gated combinational clock
+  // without shifting that latch, we need the enable to fire on the SAME sysclk
+  // edge the old ALUCLK did. CYC_TERM_D gives TERM's NEXT-state (validated exactly
+  // == PAL_44601B, see CYC_TERM_D_tb.v), which is high the cycle BEFORE TERM
+  // asserts; registering it lands aluclk_pa's rising edge on the correct edge
+  // (net-zero latency vs the +1 of registering the already-risen s_aluclk).
+  // Clean FF-generated clock, no consumer edits. See docs/clock-enable-refactor.md.
+  wire s_term_d;
+  CYC_TERM_D U_TERM_D (
+      .CC0_n  (s_cc0_n),
+      .CC1_n  (s_cc_3_1_n[0]),
+      .CC2_n  (s_cc_3_1_n[1]),
+      .CC3_n  (s_cc_3_1_n[2]),
+      .TERM_n (s_term_n),
+      .SHORT_n(s_short_n),
+      .HIT    (s_hit),
+      .BRK_n  (s_brk_n),
+      .SLOW_n (s_slow_n),
+      .DLY0_n (s_dly0_n),
+      .DLY1_n (s_dly1_n),
+      .CSDELAY0(s_csdelay_1_0[0]),
+      .TERM_D (s_term_d)
+  );
+  wire aluclk_en = s_term_d & ~s_lcs;   // ALUCLK about to rise (LCS gates it off during load)
+  reg  aluclk_pa = 1'b0;
+  always @(posedge sysclk) aluclk_pa <= aluclk_en;
+  assign ALUCLK              = aluclk_pa;
+`else
   assign ALUCLK              = s_aluclk;
+`endif
   assign CC_3_1_n            = s_cc_3_1_n[2:0];
   assign CC0_n               = s_cc0_n;
   assign CLK                 = s_clk;
