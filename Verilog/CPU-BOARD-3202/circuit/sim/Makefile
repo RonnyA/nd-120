@@ -10,9 +10,16 @@ CYC_TERM_D_tb: CYC_TERM_D_tb.v $(CIRCUIT)/CYC_TERM_D.v $(PAL)/PAL_44601B.v
 test-cyctermd: CYC_TERM_D_tb
 	./CYC_TERM_D_tb
 
-test-all: test-cyctermd
+# Exhaustive validation of CYC_CC_D (CC next-state mirror) vs PAL_44601B.
+CYC_CC_D_tb: CYC_CC_D_tb.v $(CIRCUIT)/CYC_CC_D.v $(PAL)/PAL_44601B.v
+	$(IVERILOG) -g2012 -o $@ $^
+
+test-ccd: CYC_CC_D_tb
+	./CYC_CC_D_tb
+
+test-all: test-cyctermd test-ccd
 
 clean:
-	rm -f CYC_TERM_D_tb *.vcd
+	rm -f CYC_TERM_D_tb CYC_CC_D_tb *.vcd
 
-.PHONY: test-cyctermd test-all clean
+.PHONY: test-cyctermd test-ccd test-all clean

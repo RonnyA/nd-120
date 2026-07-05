@@ -329,7 +329,7 @@ TODO: Sort bits on output LED to match led numbering
   wire        s_lock_n;
   wire        s_lperr_n;
   wire        s_lshadow;
-  wire        s_maclk;
+  wire        s_maclk /* verilator public_flat_rd */;  // kept observable for the sim trace harness
   wire        s_map_n;
   wire        s_mclk;
   wire        s_mem_bdry_n; // BDRY signal out from MEM module

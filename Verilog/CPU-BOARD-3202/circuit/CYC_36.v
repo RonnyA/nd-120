@@ -198,8 +198,67 @@ module CYC_36 (
   reg  aluclk_pa = 1'b0;
   always @(posedge sysclk) aluclk_pa <= aluclk_en;
   assign ALUCLK              = aluclk_pa;
+
+  // ---- Phase-accurate MCLK / MACLK ----
+  // MCLK/MACLK = ~(TERM_n & MCLK_n/MACLK_n); MCLK_n/MACLK_n are combinational
+  // PAL_44307C decodes of CC + TERM. Feed a SECOND (combinational) PAL_44307C
+  // the NEXT-state - TERM from CYC_TERM_D, CC from CYC_CC_D (both validated ==
+  // PAL_44601B) - to get their next values, then fire each enable on the edge
+  // the old clock rose. The PALs stay untouched; PAL_44307C is reused as-is.
+  wire s_cc0_d, s_cc1_d, s_cc2_d, s_cc3_d;
+  CYC_CC_D U_CC_D (
+      .CC0_n     (s_cc0_n),
+      .CC1_n     (s_cc_3_1_n[0]),
+      .CC2_n     (s_cc_3_1_n[1]),
+      .CC3_n     (s_cc_3_1_n[2]),
+      .TERM_n    (s_term_n),
+      .CGNTCACT_n(s_cgntcact_n),
+      .WAIT1     (s_wait1),
+      .WAIT2     (s_wait2),
+      .BRK_n     (s_brk_n),
+      .CC0_D     (s_cc0_d),
+      .CC1_D     (s_cc1_d),
+      .CC2_D     (s_cc2_d),
+      .CC3_D     (s_cc3_d)
+  );
+  wire s_term_n_next = ~s_term_d;
+  wire s_cc0_n_next  = ~s_cc0_d;
+  wire s_cc1_n_next  = ~s_cc1_d;
+  wire s_cc2_n_next  = ~s_cc2_d;
+  wire s_cc3_n_next  = ~s_cc3_d;
+  wire s_mclk_n_next, s_maclk_n_next;
+  /* verilator lint_off PINCONNECTEMPTY */
+  PAL_44307C PAL_44307_UCYCLK_NEXT (
+      .TERM_n (s_term_n_next),
+      .CC0_n  (s_cc0_n_next),
+      .CC1_n  (s_cc1_n_next),
+      .CC2_n  (s_cc2_n_next),
+      .CC3_n  (s_cc3_n_next),
+      .FORM_n (s_form_n),
+      .BRK_n  (s_brk_n),
+      .RWCS_n (s_rwcs_n),
+      .TRAP_n (s_trap_n),
+      .VEX    (s_vex),
+      .MCLK_n (s_mclk_n_next),
+      .MACLK_n(s_maclk_n_next),
+      .WRFSTB (), .CYD (), .EORF_n (), .UCLK (), .ETRAP_n (), .MAP_n ()
+  );
+  /* verilator lint_on PINCONNECTEMPTY */
+  wire s_mclk_next  = ~(s_term_n_next & s_mclk_n_next);   // next MCLK  = ~(TERM_n_next & MCLK_n_next)
+  wire s_maclk_next = ~(s_term_n_next & s_maclk_n_next);  // next MACLK
+  wire mclk_en  = s_mclk_next  & ~s_mclk;        // MCLK  about to rise
+  wire maclk_en = s_maclk_next & ~s_maclk_out;   // MACLK about to rise
+  reg  mclk_pa = 1'b0, maclk_pa = 1'b0;
+  always @(posedge sysclk) begin
+    mclk_pa  <= mclk_en;
+    maclk_pa <= maclk_en;
+  end
+  assign MCLK                = mclk_pa;
+  assign MACLK               = maclk_pa;
 `else
   assign ALUCLK              = s_aluclk;
+  assign MCLK                = s_mclk;
+  assign MACLK               = s_maclk_out;
 `endif
   assign CC_3_1_n            = s_cc_3_1_n[2:0];
   assign CC0_n               = s_cc0_n;
@@ -209,10 +268,10 @@ module CYC_36 (
   assign EORF_n              = s_eorf_n;
   assign ETRAP_n             = s_etrap_n;
   assign LCS_n               = s_lcs_n;
-  assign MACLK               = s_maclk_out;
   assign MAP_n               = s_map_n;
-  assign MCLK                = s_mclk;
   assign TERM_n              = s_term_n;
+  // MCLK / MACLK are assigned in the FPGA_FF_MODE block above (phase-accurate)
+  // and in its `else` branch (original gated nets).
   assign UCLK                = s_uclk_out;
   assign WRFSTB              = s_wrfstb;
 
