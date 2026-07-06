@@ -216,9 +216,17 @@ module ND120_TOP
   // FPGA: Power-on reset holds sys_rst_n LOW for 256 cycles after configuration
   // or after btn1 (SW0) goes low. Ensures a clean reset-release transition
   // every time the switch is toggled, re-triggering the full CPU boot sequence.
+  //
+  // Clocked on clk_cpu (the CPU domain), NOT sysclk: sys_rst_n fans out to
+  // hundreds of CPU-register reset/enable pins. On sysclk that made 462
+  // sys_clk->clk_cpu crossings that could not meet the tight related-clock
+  // window. On clk_cpu they are intra-domain (60 ns) and meet easily. clk_cpu
+  // only runs once the MMCM locks, so before lock the counter is frozen at 0 and
+  // sys_rst_n = por_done & mmcm_locked holds reset asserted anyway. 256 clk_cpu
+  // cycles ~= 15 us reset pulse.
   reg [7:0] por_count = 8'd0;
   reg       por_done  = 1'b0;
-  always @(posedge sysclk) begin
+  always @(posedge clk_cpu) begin
     if (!btn1) begin
       // SW0 down: reset the POR counter
       por_count <= 8'd0;

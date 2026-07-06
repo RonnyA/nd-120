@@ -8,14 +8,15 @@
 #   clk_cpu  = MMCM CLKOUT0 (~16.67 MHz). Clocks the ENTIRE ND-120 CPU + bus core
 #              (also feeds CLOCK_1/CLOCK_2 / the OSC inputs).
 #
-# The only paths that cross between these two domains are:
-#   - CPU state -> ILA probes and 7-seg (pure observation)
-#   - POR sys_rst_n -> CPU (reset; async-assert, held 256 cycles)
-# None are functional synchronous datapaths, so the two domains are asynchronous
-# for timing. Without this, the CPU's deep (~49 ns) paths get timed against the
-# 100 MHz ILA capture clock and fail. (Reset-release synchronization into clk_cpu
-# is a future robustness item.)
-
+# As of 2026-07-06 the POR (clk_cpu) and ILA/dbg_hub (clk_cpu) were moved into the
+# CPU domain, so the ONLY remaining crossing is CPU state -> 7-seg display (pure
+# observation, human-readable, timing-irrelevant). Declaring the two domains
+# asynchronous makes that crossing a non-timed path.
+#
+# Reference clocks BY NAME: the earlier '-of_objects [get_pins .../CLKOUT0]' form
+# returned an empty object at constraint-eval time, so the group silently never
+# applied. The MMCM CLKOUT0 net is clk_cpu_pre, which Vivado auto-derives as the
+# generated clock named 'clk_cpu_pre'.
 set_clock_groups -asynchronous \
   -group [get_clocks sys_clk] \
-  -group [get_clocks -of_objects [get_pins mmcm_cpu_clk/CLKOUT0]]
+  -group [get_clocks clk_cpu_pre]

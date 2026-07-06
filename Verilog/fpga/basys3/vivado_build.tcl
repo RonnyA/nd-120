@@ -235,9 +235,15 @@ set_property C_INPUT_PIPE_STAGES 0 [get_debug_cores u_ila_0]
 set_property C_TRIGIN_EN false [get_debug_cores u_ila_0]
 set_property C_TRIGOUT_EN false [get_debug_cores u_ila_0]
 
-# Connect ILA clock
+# Connect ILA clock.
+# Sample on clk1 (= clk_cpu, ~16.67 MHz, the CPU/bus domain) NOT sysclk (100 MHz).
+# The CPU is now a single synchronous clk_cpu domain, so clk1 captures every CPU
+# state; sampling on sysclk instead made ~175 ILA probe-input paths cross from
+# clk_cpu into the 100 MHz ILA and fail timing. All probe DATA nets are CPU
+# (clk_cpu) signals, so with a clk1 sample clock they are intra-domain.
+set ila_clk_net "clk1"
 set_property port_width 1 [get_debug_ports u_ila_0/clk]
-connect_debug_port u_ila_0/clk [get_nets [list sysclk_IBUF_BUFG]]
+connect_debug_port u_ila_0/clk [get_nets [list $ila_clk_net]]
 
 # Helper: connect a probe to nets that actually exist after synthesis.
 #
@@ -288,9 +294,11 @@ proc connect_probe {probe_port net_pattern probe_name} {
     set count [llength $nets]
     if {$count == 0} {
         puts "WARNING: No nets found for $probe_name (tried: $patterns) - skipping probe"
-        # Connect to a dummy 1-bit signal to avoid unconnected probe errors
+        # Connect to a dummy 1-bit signal to avoid unconnected probe errors.
+        # Use clk1 (the ILA sample clock / clk_cpu domain) so a missing probe does
+        # not introduce a 100 MHz sysclk CDC into the clk1-sampled ILA.
         set_property port_width 1 [get_debug_ports $probe_port]
-        connect_debug_port $probe_port [get_nets [list sysclk_IBUF_BUFG]]
+        connect_debug_port $probe_port [get_nets [list clk1]]
         return
     }
     if {$used_pattern eq $net_pattern} {
@@ -355,12 +363,13 @@ connect_probe u_ila_0/probe11 {s_debug_refrq_n} "REFRQ_n"
 create_debug_port u_ila_0 probe
 connect_probe u_ila_0/probe12 {s_debug_intrq_n} "INTRQ_n"
 
-# probe13: sysclk (replaces POWFAIL_n — needed to see exact FF capture moments
-# relative to combinational MCLK transitions)
+# probe13: clk_cpu (was sysclk; the CPU is now a single clk_cpu domain so a raw
+# 100 MHz sysclk probe would be a CDC into the clk1-sampled ILA. Point at the
+# sample clock itself.)
 create_debug_port u_ila_0 probe
 set_property port_width 1 [get_debug_ports u_ila_0/probe13]
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe13]
-connect_debug_port u_ila_0/probe13 [get_nets [list sysclk_IBUF_BUFG]]
+connect_debug_port u_ila_0/probe13 [get_nets [list $ila_clk_net]]
 
 # probe14: WCA_12_0 (Write Control Store Address)
 create_debug_port u_ila_0 probe
@@ -390,13 +399,12 @@ connect_probe u_ila_0/probe19 {CPU_BOARD/CPU/PROC/CGA/DELILAH/DCD/s_iclirq_group
 create_debug_port u_ila_0 probe
 connect_probe u_ila_0/probe20 {s_debug_fidbo[*]} "FIDBO"
 
-# probe21: free slot (was PROM_DATA — removed because PROM is irrelevant during
-# execution; CPU runs from WCS after LCS load. Slot is dummy-connected to sysclk
-# to keep probe numbering aligned for probes 22-47.)
+# probe21: free slot (was PROM_DATA — removed). Dummy-connected to the ILA sample
+# clock (clk1) to keep probe numbering aligned for probes 22-47.
 create_debug_port u_ila_0 probe
 set_property port_width 1 [get_debug_ports u_ila_0/probe21]
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe21]
-connect_debug_port u_ila_0/probe21 [get_nets [list sysclk_IBUF_BUFG]]
+connect_debug_port u_ila_0/probe21 [get_nets [list $ila_clk_net]]
 
 # probe22: ALU Q register (mark_debug in CGA_ALU.v)
 create_debug_port u_ila_0 probe
@@ -453,11 +461,11 @@ connect_probe u_ila_0/probe34 {CPU_BOARD/CPU/CS/ACAL/s_maclk} "MACLK"
 create_debug_port u_ila_0 probe
 connect_probe u_ila_0/probe35 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/CSEL/s_aluclk} "ALUCLK"
 
-# probe36: sysclk — 100 MHz FPGA system clock, same net as ILA sample clock
+# probe36: clk_cpu — the ILA sample clock (was sysclk; CPU is single clk_cpu domain)
 create_debug_port u_ila_0 probe
 set_property port_width 1 [get_debug_ports u_ila_0/probe36]
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe36]
-connect_debug_port u_ila_0/probe36 [get_nets [list sysclk_IBUF_BUFG]]
+connect_debug_port u_ila_0/probe36 [get_nets [list $ila_clk_net]]
 
 # probe37: LC — link counter (lower 4 bits), used for PANVC dispatch
 create_debug_port u_ila_0 probe
@@ -506,11 +514,11 @@ connect_probe u_ila_0/probe46 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_w_12_0[*]} "
 create_debug_port u_ila_0 probe
 connect_probe u_ila_0/probe47 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_iw_12_0[*]} "IW_12_0"
 
-# Connect debug hub clock
-set_property C_CLK_INPUT_FREQ_HZ 100000000 [get_debug_cores dbg_hub]
+# Connect debug hub clock — same clk_cpu (clk1) domain as the ILA (~16.67 MHz).
+set_property C_CLK_INPUT_FREQ_HZ 16666667 [get_debug_cores dbg_hub]
 set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
 set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]
-connect_debug_port dbg_hub/clk [get_nets sysclk_IBUF_BUFG]
+connect_debug_port dbg_hub/clk [get_nets $ila_clk_net]
 
 # Save the debug constraints
 # NOTE: Do NOT use save_constraints here — it writes ILA definitions into the
