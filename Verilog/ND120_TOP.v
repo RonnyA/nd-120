@@ -37,7 +37,7 @@ module ND120_TOP
     input wire btn1,      //! Button 1 - connected to sys_rst_n
     input wire btn2,      //! Button 2
 `ifndef VERILATOR_SIM
-    input wire btn3,      //! SW5 - CPU clock: 0=100MHz, 1=12.5MHz
+    input wire btn3,      //! SW5 - (unused since 2026-07-06; CPU now fixed at clk_cpu ~16.67MHz)
 `endif
     input wire uartRx,    //! UART Receive pin
     output wire uartTx,   //! UART Transmit pin
@@ -236,52 +236,44 @@ module ND120_TOP
 `ifdef VERILATOR_SIM
   assign clk1 = sysclk;  // Simulation: always full speed
 `else
-  // FPGA: SW3 (btn3, pin W17) selects CPU clock at runtime.
-  //   SW5 DOWN (0) -> 100 MHz full speed
-  //   SW5 UP   (1) -> 12.5 MHz slow/debug speed
+  // FPGA: the whole ND-120 CPU + bus domain runs on ONE clock, clk_cpu, at
+  // ~16.67 MHz (100 MHz / 6 = 60 ns period). Rationale (2026-07-06 timing study):
+  // the microengine's deepest path -- reading the microcode word out of the WCS
+  // control-store BRAM and propagating it through the decode/next-address/FSM
+  // logic -- is ~49 ns (76 logic levels). It CANNOT close at 100 MHz (10 ns) or
+  // even 39 MHz (25.6 ns); those paths legitimately span a whole microcycle on
+  // the real machine. 60 ns closes it with margin and no risky multicycle
+  // constraints. clk_cpu also feeds CLOCK_1/CLOCK_2 (the OSC/bus inputs) so the
+  // cycle controller and bus arbiter share the same domain -- no internal CDC.
+  // sysclk (100 MHz pin) still clocks the POR, 7-seg, heartbeat and ILA only.
   //
-  // MMCM generates both from sysclk; BUFGMUX_CTRL does glitch-free switching.
-  // btn3 feeds only the mux select (S) - no clock-capable pin required.
-  // UART baud clock (PPOSC) is hardwired to sysclk in IO_DCD_38 - unaffected.
+  // NOTE: the original SW5 runtime 100/12.5 MHz mux is removed -- 100 MHz never
+  // closed timing, so a runtime-selectable fast mode was dead. Push clk_cpu
+  // faster (or add validated multicycle paths for a 39 MHz bus) as a follow-up.
 
-  (* ASYNC_REG = "TRUE" *) reg btn3_s1 = 1'b0, btn3_s2 = 1'b0;
-  always @(posedge sysclk) begin
-    btn3_s1 <= btn3;
-    btn3_s2 <= btn3_s1;
-  end
-
-  wire clk_100_pre, clk_12p5_pre, clkfb_out, clkfb_in;
-  wire clk_100, clk_12p5;
+  wire clk_cpu_pre, clkfb_out, clkfb_in;
+  wire clk_cpu;
 
   MMCME2_BASE #(
     .BANDWIDTH        ("OPTIMIZED"),
     .CLKFBOUT_MULT_F  (10.0),   // VCO = 100 * 10 = 1000 MHz
     .CLKIN1_PERIOD    (10.0),   // 100 MHz input
-    .CLKOUT0_DIVIDE_F (10.0),   // CLKOUT0 = 1000 / 10 = 100 MHz
-    .CLKOUT1_DIVIDE   (80),     // CLKOUT1 = 1000 / 80 = 12.5 MHz
+    .CLKOUT0_DIVIDE_F (60.0),   // CLKOUT0 = 1000 / 60 = 16.667 MHz (CPU/bus clock)
     .DIVCLK_DIVIDE    (1),
     .STARTUP_WAIT     ("FALSE")
   ) mmcm_cpu_clk (
     .CLKIN1   (sysclk),
     .CLKFBIN  (clkfb_in),
     .CLKFBOUT (clkfb_out),
-    .CLKOUT0  (clk_100_pre),
-    .CLKOUT1  (clk_12p5_pre),
+    .CLKOUT0  (clk_cpu_pre),
     .LOCKED   (mmcm_locked),
     .PWRDWN   (1'b0),
     .RST      (1'b0)
   );
-  BUFG bufg_fb   (.I(clkfb_out),    .O(clkfb_in));
-  BUFG bufg_100  (.I(clk_100_pre),  .O(clk_100));
-  BUFG bufg_12p5 (.I(clk_12p5_pre), .O(clk_12p5));
+  BUFG bufg_fb  (.I(clkfb_out),   .O(clkfb_in));
+  BUFG bufg_cpu (.I(clk_cpu_pre), .O(clk_cpu));
 
-  // Glitch-free mux: S=0 -> I0 (100 MHz), S=1 -> I1 (12.5 MHz)
-  BUFGMUX_CTRL clk_mux_i (
-    .O  (clk1),
-    .I0 (clk_100),
-    .I1 (clk_12p5),
-    .S  (btn3_s2)
-  );
+  assign clk1 = clk_cpu;  // CLOCK_1/CLOCK_2 (OSC/bus) run at CPU speed
 `endif
   //assign clk2 = sysclk;  // XTAL2 = 35 MHZ (for slow operations?)
   assign oc_select = 2'b11;  // 11= Choose clock input = XTAL1 (full speed)
@@ -355,7 +347,11 @@ module ND120_TOP
 `endif
 
   ND3202D CPU_BOARD (
-      .sysclk(sysclk),
+`ifdef VERILATOR_SIM
+      .sysclk(sysclk),      // sim: single full-speed clock (clk1 == sysclk)
+`else
+      .sysclk(clk1),        // FPGA: CPU core runs on clk_cpu (~16.67 MHz), same net as OSC
+`endif
       .sys_rst_n(sys_rst_n),
       .CLOCK_1(clk1),  // XTAL1 = 39.3216MHZ
       .CLOCK_2(clk1),  // XTAL2 = 35 MHZ (for slow operations?)

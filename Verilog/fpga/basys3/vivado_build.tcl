@@ -63,6 +63,68 @@ set_msg_config -id {Synth 8-3936} -suppress
 set_msg_config -id {Synth 8-5837} -suppress
 
 ########################################################################
+# ADD NEW RTL SOURCES TO THE PROJECT
+#  These modules are instantiated by CPU-BOARD-3202/circuit/CYC_36.v under
+#  FPGA_FF_MODE (the phase-accurate clock generation). They are validated
+#  next-state mirrors of PAL_44601B. Sim finds them via -I include dirs, but the
+#  Vivado project has an explicit file list, so they must be added here or synth
+#  fails with "module 'CYC_TERM_D' not found". Idempotent: only add if absent.
+########################################################################
+foreach _rel {
+    CPU-BOARD-3202/circuit/CYC_TERM_D.v
+    CPU-BOARD-3202/circuit/CYC_CC_D.v
+} {
+    set _f "${verilog_dir}/${_rel}"
+    if {![file exists $_f]} {
+        puts "ERROR: required source not found on disk: $_f"
+        exit 1
+    }
+    if {[llength [get_files -quiet -of [get_filesets sources_1] [file tail $_f]]] == 0} {
+        add_files -norecurse -fileset sources_1 $_f
+        puts "Added source to project: $_f"
+    } else {
+        puts "Source already in project: [file tail $_f]"
+    }
+}
+
+########################################################################
+# ADD TIMING CONSTRAINTS TO THE PROJECT
+#  nd120_timing.xdc declares the CPU clk_cpu domain asynchronous to the 100 MHz
+#  sysclk (ILA/7-seg/POR) domain. Added to constrs_1 so it is read AFTER the
+#  project's pin/clock XDC (sys_clk must already exist). Idempotent.
+########################################################################
+set _xdc "${verilog_dir}/fpga/basys3/nd120_timing.xdc"
+if {![file exists $_xdc]} {
+    puts "ERROR: timing constraints not found on disk: $_xdc"
+    exit 1
+}
+if {[llength [get_files -quiet -of [get_filesets constrs_1] [file tail $_xdc]]] == 0} {
+    add_files -norecurse -fileset constrs_1 $_xdc
+    puts "Added constraints to project: $_xdc"
+} else {
+    puts "Constraints already in project: [file tail $_xdc]"
+}
+
+########################################################################
+# VERILOG DEFINES FOR FPGA SYNTHESIS
+#  FPGA_FF_MODE  -- activates the phase-accurate FF clock generation in
+#                   CPU-BOARD-3202/circuit/CYC_36.v. WITHOUT this define Vivado
+#                   compiles the ELSE branch (original gated combinational
+#                   clocks: ALUCLK/MCLK/MACLK/CLK/UCLK minted from TERM_n), which
+#                   creates un-constrainable clock nets (BUFG-on-LUT, LUT-driving-
+#                   clock) and cannot meet timing. It does NOT re-enable
+#                   transparent latches: USE_TRANSPARENT_LATCHES is gated behind
+#                   VERILATOR_SIM (ND120_TOP.v), which is absent for synthesis.
+#  Append (do not overwrite) so any project-level defines are preserved.
+########################################################################
+set _defs [get_property verilog_define [current_fileset]]
+if {[lsearch -exact $_defs FPGA_FF_MODE] < 0} {
+    lappend _defs FPGA_FF_MODE
+    set_property verilog_define $_defs [current_fileset]
+}
+puts "Verilog defines for synthesis: [get_property verilog_define [current_fileset]]"
+
+########################################################################
 # SYNTHESIS
 ########################################################################
 puts "\n=== SYNTHESIS ==="

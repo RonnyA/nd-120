@@ -50,6 +50,7 @@ Verilog/sim/wcs_*.hex
 Verilog/runSim/wcs_*.hex
 
 # FPGA build logs/journals (Vivado + Gowin) - regenerated every build
+Verilog/fpga/**/logs/
 Verilog/fpga/**/*.log
 Verilog/fpga/**/*.jou
 Verilog/*.log

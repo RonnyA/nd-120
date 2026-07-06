@@ -252,7 +252,14 @@ module SC2661_UART (
   reg regCommandExecuted;  // Flag set when read/write operation has been executed
 
 
-  wire uart_sysclk = ~sysclk;
+  // FPGA timing fix (2026-07-06): the UART formerly clocked on ~sysclk (the
+  // falling edge). That made EVERY UART output path a half-cycle path on FPGA
+  // (regDataOut fans out through the IDB into the bus arbiter/MAC), which alone
+  // accounted for 608 of 637 failing endpoints at 39 MHz. Clock on the normal
+  // rising edge instead: with non-blocking assignments this is race-free in sim
+  // (Verilator evaluates RHS on pre-edge values) and turns those half-cycle
+  // paths into full-cycle paths on FPGA. Re-validated in runSim (OPCOM).
+  wire uart_sysclk = sysclk;
 
   assign s_txd = txBit;
 
