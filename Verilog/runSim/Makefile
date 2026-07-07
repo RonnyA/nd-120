@@ -37,7 +37,7 @@ CPP_SOURCES = Run120.cpp ../simDevices/NDDevices.cpp ../simDevices/NDBus.cpp
 all: compile run gtk
 
 compile: $(CPP_SOURCES)
-	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS) --exe $(CPP_SOURCES)  -CFLAGS "$(VERILATOR_DIRS)  -I../../simDevices"
+	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS) --exe $(CPP_SOURCES)  -CFLAGS "$(VERILATOR_DIRS)  -I../../simDevices $(EXTRA_CFLAGS)"
 	cd obj_dir && make -f VND120_TOP.mk VND120_TOP
 
 clean:

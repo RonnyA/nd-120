@@ -109,6 +109,25 @@ vluint64_t time_step = 5;
 int DELAY_FRAMES = 16;					   // 16 frames
 int HALF_DELAY_WAIT = (DELAY_FRAMES >> 1); // Equivalent to DELAY_FRAMES / 2
 
+// --- FF-vs-latch divergence instrumentation (build with EXTRA_CFLAGS) ---
+// -DSCRIPT_INPUT : after the boot '#' prompt, auto-inject a scripted command
+// -DTRACE_CSA    : log CSA_12_0 changes (post-boot) to csa_trace.csv
+#if defined(TRACE_CSA) || defined(SCRIPT_INPUT)
+static int g_boot_done_cnt = 0;    // cnt when first '#' output (0 = not yet)
+#endif
+#ifdef TRACE_CSA
+static FILE *g_csa_fp = nullptr;
+static unsigned g_last_csa = 0xFFFFu;
+#endif
+#ifdef SCRIPT_INPUT
+#ifndef SCRIPT_CMD
+#define SCRIPT_CMD "0!\r"               // override with -DSCRIPT_CMD='"20!\r"'
+#endif
+static const char *g_script = SCRIPT_CMD;  // command to run once OPCOM is up
+static int g_script_idx = 0;
+static int g_next_inject_cnt = 0;          // gate: don't send next char until this cnt
+#endif
+
 int txData = 0;
 int txDataBit = 0;
 int txEnabled = 0;
@@ -180,6 +199,9 @@ int main(int argc, char **argv)
 	top->BAPR_n_IN = 1;
 
 	int cnt = 0;
+#ifdef TRACE_CSA
+	g_csa_fp = fopen("csa_trace.csv", "w");
+#endif
 	while (true)
 	{
 		cnt++;
@@ -193,6 +215,27 @@ int main(int argc, char **argv)
 		top->sysclk = !top->sysclk;
 
 		proccess_bif_signal(top);
+
+#if defined(TRACE_CSA) || defined(SCRIPT_INPUT)
+		if (g_boot_done_cnt != 0)
+		{
+#ifdef TRACE_CSA
+			if (g_csa_fp && top->CSA_12_0 != g_last_csa)
+			{
+				fprintf(g_csa_fp, "%d,%o\n", cnt, (unsigned)top->CSA_12_0);
+				g_last_csa = top->CSA_12_0;
+			}
+#endif
+			if (cnt > g_boot_done_cnt + 200000 + 40000000)
+			{
+#ifdef TRACE_CSA
+				if (g_csa_fp) { fclose(g_csa_fp); g_csa_fp = nullptr; }
+#endif
+				printf("\n[instrumented] cycle budget reached, stopping\n");
+				break;
+			}
+		}
+#endif
 
 		new_led = top->led ^ 0x3F; // bits are negated, active low
 		// if (new_led != led)
@@ -212,8 +255,19 @@ int main(int argc, char **argv)
 		if (!txEnabled)
 		{
 			char ch;
+			ssize_t n = 0;
+#ifdef SCRIPT_INPUT
+			// After boot ('#' seen) + settle, feed the scripted command instead of stdin
+			if (g_boot_done_cnt != 0 && cnt > g_boot_done_cnt + 1000000 && cnt > g_next_inject_cnt && g_script[g_script_idx] != '\0')
+			{
+				ch = g_script[g_script_idx++];
+				n = 1;
+				g_next_inject_cnt = cnt + 300000;  // inter-char gap so OPCOM reads each (avoid RX overrun)
+			}
+			else
+#endif
 			// Try to read a character from stdin
-			ssize_t n = read(STDIN_FILENO, &ch, 1);
+			n = read(STDIN_FILENO, &ch, 1);
 
 			if (n > 0)
 			{
@@ -343,6 +397,9 @@ int main(int argc, char **argv)
 					// printf("Received 0x%02X '%c'\r\n", rxData, rxData);
 					printf("%c", rxData);
 					fflush(stdout);
+#if defined(TRACE_CSA) || defined(SCRIPT_INPUT)
+					if (rxData == '#' && g_boot_done_cnt == 0) g_boot_done_cnt = cnt;
+#endif
 
 					rxData = 0;
 					rxEnabled = false;
