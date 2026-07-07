@@ -7,7 +7,10 @@ SUPPRESS_FLAGS = -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY -Wno-UNUSED -Wno-UNDRIVEN -
 USE_LATCHES ?= 1
 
 # Enable larger RAM (1MB) for Verilator simulation instead of FPGA's 4KB
-SIM_DEFINES = -DVERILATOR_SIM
+# EXTRA_VDEFINES: extra Verilog-side defines, e.g.
+#   EXTRA_VDEFINES="-DRTC_REAL_PERIOD -DBOARD_CLK_FREQ=16666667"
+# to run the DGA real-time clock at the true FPGA period (OPCOM pacing repro).
+SIM_DEFINES = -DVERILATOR_SIM $(EXTRA_VDEFINES)
 ifeq ($(USE_LATCHES),0)
   SIM_DEFINES += -DFPGA_FF_MODE
 endif

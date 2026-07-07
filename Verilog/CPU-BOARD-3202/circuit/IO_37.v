@@ -117,6 +117,7 @@ module IO_37(
    wire [7:0]  s_pa_7_0;
    wire [1:0]  s_oc_1_0;
    wire [1:0]  s_stat_4_3;
+   wire [1:0]  s_stat_4_3_dga;
    wire [4:0]  s_cscomm_4_0;
    wire [4:0]  s_dp_5_1_n;
 
@@ -324,6 +325,32 @@ module IO_37(
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+   // Console output kick: stand-in for the (not yet implemented) MC68705 panel
+   // processor raising STAT3 (panel attention). Each time the UART transmit
+   // holding register drains (TBMT 0->1, a character handed to the shifter),
+   // pulse STAT3 towards the DGA. The DGA's original PRQ edge detector
+   // (DECODE_DGA_IDBS, A282/A283) latches it into a panel-request interrupt,
+   // whose microcode vector (PRQ: at o2340 -> MOPC) sends the NEXT pending
+   // console character immediately. Result: OPCOM output streams at character
+   // rate instead of one character per 20 ms RTC tick, without touching the
+   // RTC/MS20 timekeeping path.
+   // The pulse is a short stretch (32 sysclk, enough for the CLK1-sampled edge
+   // detector) and is fed ONLY to the DGA STAT3 input (s_stat_4_3_dga); the
+   // PANCAL MIPANS/MAPANS readout keeps its own (zero) STAT bits, so the
+   // microcode never sees a synthetic panel-message flag on the IDB.
+   reg [5:0] s_conkick_cnt = 6'd0;
+   reg       s_tbmt_dly    = 1'b0;
+   wire      s_conkick     = (s_conkick_cnt != 6'd0);
+   always @(posedge sysclk) begin
+      s_tbmt_dly <= ~s_tbmt_n;
+      if (!s_tbmt_n && !s_tbmt_dly)
+         s_conkick_cnt <= 6'd32;
+      else if (s_conkick_cnt != 6'd0)
+         s_conkick_cnt <= s_conkick_cnt - 6'd1;
+   end
+   assign s_stat_4_3_dga[1] = s_stat_4_3[1];
+   assign s_stat_4_3_dga[0] = s_stat_4_3[0] | s_conkick;
+
    // Or together console_n signal from IO_REG and from Port A.
    // Negate "console_n" to get "console" - that way OR will work as expected.
    assign s_uart_console_n = ~(!s_io_console_n | !s_console_n);
@@ -477,7 +504,7 @@ module IO_37(
       .SIOC_n(s_sioc_n),
       .SLOW_n(s_slow_n),
       .SSEMA_n(s_ssema_n),
-      .STAT_4_3(s_stat_4_3[1:0]),
+      .STAT_4_3(s_stat_4_3_dga[1:0]),  // STAT3 includes the console output kick (see s_conkick above)
       .STOC_n(s_stoc_n),
       .STP(s_stp),
       .SWMCL_n(s_swmcl_n),

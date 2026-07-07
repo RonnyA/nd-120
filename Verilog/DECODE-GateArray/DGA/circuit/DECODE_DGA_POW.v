@@ -316,14 +316,30 @@ module DECODE_DGA_POW (
   //
   // Simulation: short count (256 cycles) so boot completes quickly.
   // FPGA: real-time 20ms/5ms count at 100MHz.
-`ifdef VERILATOR_SIM
-  // Original TESTE=1 F714 chain: RTOSC(period=256cyc) -> /2(A624) -> /8(A616/A618/A617) -> /2(A577) ≈ 8192 sysclk per interrupt
-  // 256 was too fast (32x) — instruction verify programs couldn't execute enough instructions per RTC period
+  // BOARD_CLK_FREQ: actual frequency of sysclk in Hz. The Basys3 build defines
+  // it (vivado_build.tcl: 16666667 for the 16.67 MHz clk_cpu); default matches
+  // the SC2661_UART.v fallback so both timers share one clock assumption.
+`ifndef BOARD_CLK_FREQ
+  `define BOARD_CLK_FREQ 100_000_000
+`endif
+
+`ifdef RTC_REAL_PERIOD
+  // Force the REAL board-clock period even in a Verilator build - used to
+  // reproduce FPGA real-time behavior (OPCOM output pacing) in simulation.
+  localparam RTC_20MS = (`BOARD_CLK_FREQ / 50) - 1;    // 20 ms
+  localparam RTC_5MS  = (`BOARD_CLK_FREQ / 200) - 1;   // 5 ms
+`elsif VERILATOR_SIM
+  // Original TESTE=1 F714 chain: RTOSC(period=256cyc) -> /2(A624) -> /8(A616/A618/A617) -> /2(A577) ~ 8192 sysclk per interrupt
+  // 256 was too fast (32x) - instruction verify programs couldn't execute enough instructions per RTC period
   localparam RTC_20MS = 21'd8192;   // Matches original ~8K-cycle period (TESTE=1 baseline)
   localparam RTC_5MS  = 21'd2048;   // Proportional (1/4 of 20ms)
 `else
-  localparam RTC_20MS = 21'd1_999_999;  // 100MHz * 20ms
-  localparam RTC_5MS  = 21'd499_999;    // 100MHz * 5ms
+  // Derive from the real board clock. The old fixed 1_999_999 assumed 100 MHz;
+  // on the Basys3 the CPU/board domain is 16.67 MHz, which stretched the
+  // "20 ms" tick to ~120 ms - OPCOM output (one char per tick via MS20/MOPC)
+  // crawled at ~8 chars/sec and the OS timebase ran 6x slow.
+  localparam RTC_20MS = (`BOARD_CLK_FREQ / 50) - 1;    // 20 ms
+  localparam RTC_5MS  = (`BOARD_CLK_FREQ / 200) - 1;   // 5 ms
 `endif
 
   reg [20:0] s_rtc_cnt;

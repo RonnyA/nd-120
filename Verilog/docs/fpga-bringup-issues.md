@@ -14,7 +14,42 @@ sim-reproducible ones.
   CPU/OPCOM stack to test throughput/correctness. Keep as LOW PRIORITY - only build
   if the UART issue can't be resolved another way.
 
-## 1. UART output slow (register dump takes 1-2s)  [FIX DID NOT HELP - reclassified]
+## 1. UART output slow (register dump takes 1-2s)  [ROOT CAUSE FOUND + FIXED 2026-07-07, FPGA synth pending]
+- ROOT CAUSE (two parts, neither baud nor the UART flags):
+  OPCOM output is emitted by microcode MOPC, invoked from the PAN (panel)
+  interrupt. On this board the ONLY active PAN source was the DGA RTC tick
+  (the 68705 panel processor that raises PRQ is a stub). And that tick was
+  miscalibrated: `DECODE_DGA_POW.v` hard-coded RTC_20MS=1_999_999 assuming a
+  100 MHz clock, but the Basys3 CPU/board domain is 16.67 MHz -> the "20 ms"
+  tick was really ~120 ms. One char per tick = ~8 chars/sec (observed
+  "5-10 chars take a second"). The OS timebase (level-13 clock, MS20) was
+  also 6x slow.
+- FIX PART 1 (`DECODE-GateArray/DGA/circuit/DECODE_DGA_POW.v`): RTC terminal
+  count derived from `BOARD_CLK_FREQ` (vivado_build.tcl already defines
+  16666667) -> a true 20 ms / 5 ms tick. Also adds -DRTC_REAL_PERIOD to force
+  the real period in a Verilator build (repro tooling).
+- FIX PART 2 (`CPU-BOARD-3202/circuit/IO_37.v`, console output kick): each
+  time the UART transmit holding register drains (TBMT 0->1), pulse STAT3
+  towards the DGA (only the DGA copy - the PANCAL MIPANS readout is
+  untouched). The DGA's original PRQ edge detector latches it into a
+  panel-request interrupt whose vector (PRQ: o2340 -> MOPC) sends the next
+  pending char immediately. Output then STREAMS at UART line rate; the
+  RTC/MS20 timekeeping path is untouched (PRQ and RTC are separate PAN
+  sources with separate clears).
+- VALIDATED in Verilator with the REAL tick period (EXTRA_VDEFINES=
+  "-DRTC_REAL_PERIOD -DBOARD_CLK_FREQ=16666667", runSim SCRIPT_CMD_CRS /
+  SCRIPT_CMD_EXAM repros, o2347 send spacing in csa_trace.csv):
+  before: exactly one send per tick (spacing = RTC period). After: memory
+  examine `/` value streamed 7 chars back-to-back at char rate; remaining
+  tick-waits are input-side only (typed chars are read on the tick, which
+  is fine at human typing speed). Gates re-run with the kick active:
+  seqcheck PASS (latch==FF, 162053 transitions), STERR=0, INSTRUCTION-B
+  `0!` still runs to the `>` prompt in FF mode.
+- EXPECTED ON FPGA: first char of a burst starts within 20 ms, then ~960
+  chars/sec at 9600 baud (line-rate limited). PENDING: one Basys3 re-synth
+  to confirm a register dump is snappy.
+--- (earlier analysis below) ---
+- (was) [FIX DID NOT HELP - reclassified]
 - UPDATE 2026-07-07: FPGA re-synth WITH the TxEMT fix -> still slow ("works as
   before"). So OPCOM polls TxRDY (bit0, already correct), NOT TxEMT -> the TxEMT
   fix (commit 196c444) was a real bug fix but NOT the slowness cause. Keep it

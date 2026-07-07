@@ -123,6 +123,12 @@ static unsigned g_last_csa = 0xFFFFu;
 #ifdef SCRIPT_CMD_20
 #define SCRIPT_CMD "20!\r"              // -DSCRIPT_CMD_20 avoids quoting through make/verilator
 #endif
+#ifdef SCRIPT_CMD_CRS
+#define SCRIPT_CMD "\r\r\r\r\r\r\r\r"   // -DSCRIPT_CMD_CRS: 8 Enters; each re-echoes the '#' prompt via MOPC (console-output repro)
+#endif
+#ifdef SCRIPT_CMD_EXAM
+#define SCRIPT_CMD "20/\r"              // -DSCRIPT_CMD_EXAM: memory examine; prints a multi-char octal value (output-burst repro)
+#endif
 #ifndef SCRIPT_CMD
 #define SCRIPT_CMD "0!\r"               // override with -DSCRIPT_CMD='"20!\r"'
 #endif
