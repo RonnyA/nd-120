@@ -48,25 +48,77 @@ module SIP1M9 (
                                  (ramSize == 3) ? 4095    :   // 4 KB (fits in BRAM for testing)
                                                   1;          // Disabled = 1 word (or 0, if desired)
 
-// Now use that for your memory declarations.
-(* ram_style = "block" *) reg [7:0] sdram   [0:MEM_DEPTH-1];
-(* ram_style = "block" *) reg       sdram_9 [0:MEM_DEPTH-1];
-
-
-  //(* ram_style = "block" *)reg  [7:0] sdram                     [0:65534];
-  //(* ram_style = "block" *)reg        sdram_9                   [0:65534];
-
-  //(* ram_style = "block" *)reg  [7:0] sdram                     [0:1048575];  //1MB
-  //(* ram_style = "block" *)reg        sdram_9                   [0:1048575];  //1Mbit
-
-  reg  [9:0] hi_address;
-
   reg  [7:0] reg_Q8;
   reg        reg_Q9;
 
-  /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
+  // NOTE: sdram/sdram_9 are declared at MODULE scope (not inside the generate) so
+  // their Verilator hierarchical name stays `...CHIP_15H__DOT__sdram`, which the C++
+  // sim harnesses (loadfile in test_nd120.cpp / Run120.cpp / latch_ff_compare.cpp)
+  // reference to preload programs. Used by the ramSize=2 DRAM model below; unused
+  // (and synthesis-pruned) on the ramSize=3 FPGA BRAM path.
+  (* ram_style = "block" *) reg [7:0] sdram   [0:MEM_DEPTH-1];
+  (* ram_style = "block" *) reg       sdram_9 [0:MEM_DEPTH-1];
+
+generate
+if (ramSize == 3) begin : g_fpga_bram
+  // ======================================================================
+  //  FPGA SYNCHRONOUS BRAM PATH (ramSize=3)
+  // ----------------------------------------------------------------------
+  //  The original DRAM model below (ramSize=2) is a ZERO-DELAY simulation
+  //  model: it clocks on negedge RAS_n/CAS_n (routed control signals, not a
+  //  clock), gates the read output combinationally by CAS_n, and indexes a
+  //  20-bit `sip_address` into whatever depth is declared. On real BRAM that
+  //  fails four ways (glitchy clock, read-0 race, address-changes-with-clock,
+  //  and — because sip_address = {row,col} reorders the bits — consecutive
+  //  addresses land 1024 apart and alias in a small array).
+  //
+  //  This path is a proper SYNCHRONOUS BRAM: everything on sysclk; RAS_n/CAS_n
+  //  are treated as level enables (they are PAL outputs registered on OSC=sysclk
+  //  in this design, so they are already sysclk-synchronous); the read output is
+  //  registered and HELD stable (the controller's RDATA strobe samples it late in
+  //  the cycle while CAS is still low); and the address is reconstructed to the
+  //  LINEAR word address LBD[19:0] = {col, row} so it is contiguous, then the low
+  //  FPGA_ADDR_BITS are used (no reorder-aliasing).
+  // ======================================================================
+  localparam integer FPGA_ADDR_BITS = 13;                 // 8 K words/chip (tune to BRAM budget)
+  localparam integer FPGA_DEPTH     = (1 << FPGA_ADDR_BITS);
+
+  (* ram_style = "block" *) reg [7:0] bram8 [0:FPGA_DEPTH-1];
+  (* ram_style = "block" *) reg       bram9 [0:FPGA_DEPTH-1];
+
+  reg  [9:0] row_addr;                                     // AA latched during the RAS/row phase
+  // Linear word address = {col, row} = LBD[19:0]; use the low FPGA_ADDR_BITS.
+  wire [19:0] lin_addr  = {ADDRESS[9:0], row_addr[9:0]};   // {col(now on AA during CAS), row}
+  wire [FPGA_ADDR_BITS-1:0] a = lin_addr[FPGA_ADDR_BITS-1:0];
+
+  always @(posedge sysclk) begin
+    // Track the row address throughout the RAS window (before CAS asserts);
+    // whatever is on AA when CAS falls no longer overwrites it.
+    if (!RAS_n && CAS_n) row_addr <= ADDRESS[9:0];
+
+    // Access while both strobes are active (bank-gated CAS_n already selects us).
+    if (!RAS_n && !CAS_n) begin
+      if (W_n) begin                                       // read (re-reads while CAS low; addr stable)
+        reg_Q8 <= bram8[a];
+        reg_Q9 <= bram9[a];
+      end else begin                                       // write
+        bram8[a] <= D8;
+        bram9[a] <= D9;
+      end
+    end
+  end
+
+  // Registered, held read data; still bank-gated (0 when not selected / not a read)
+  // so the three banks' outputs OR-combine correctly in MEM_RAM_49.
+  assign Q8 = ((CAS_n == 0) && (W_n)) ? reg_Q8 : 8'b0;
+  assign Q9 = ((CAS_n == 0) && (W_n)) ? reg_Q9 : 1'b0;
+
+end else begin : g_sim_dram
+  // ======================================================================
+  //  ORIGINAL ZERO-DELAY DRAM MODEL (ramSize=2 Verilator, etc.) — unchanged
+  //  (sdram/sdram_9 declared at module scope above)
+  // ======================================================================
+  reg [9:0] hi_address;
 
   wire [19:0] sip_address = (CAS_n == 0) ? {hi_address[9:0], ADDRESS[9:0]} : 20'b0;
 
@@ -86,10 +138,11 @@ module SIP1M9 (
     end
   end
 
-
   // Data out is valid as long as CAS is active (and its read, not write)
   assign Q8 = ((CAS_n == 0) && (W_n)) ? reg_Q8 : 8'b00000000;
   assign Q9 = ((CAS_n == 0) && (W_n)) ? reg_Q9 : 0;
+end
+endgenerate
 
 
   // Even Parity Logic

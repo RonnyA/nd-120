@@ -83,7 +83,27 @@ sim-reproducible ones.
   seqcheck's boot path never exercised. Traces in scratchpad: csa_latch_0.csv /
   csa_ff_0.csv, s0l.txt/s0f.txt (deduped).
 
-## 3. RAM addressing + data corruption  [FPGA ONLY - TO INVESTIGATE]
+## 3. RAM addressing + data corruption  [FIX WRITTEN + UNIT-TESTED, FPGA synth pending]
+- FIX (2026-07-07): `Shared/support/SIP1M9.v` now has a proper SYNCHRONOUS BRAM path
+  for `ramSize==3` (generate block `g_fpga_bram`), leaving the zero-delay DRAM sim
+  model for `ramSize==2` untouched. Sysclk-clocked; RAS_n/CAS_n treated as level
+  enables (they are PAL outputs registered on OSC=sysclk, per the MAC-timing map);
+  read data REGISTERED and HELD (RDATA samples it late while CAS low); address
+  reconstructed to the LINEAR word address `{col,row}=LBD[19:0]` and the low
+  FPGA_ADDR_BITS (=13 => 8K words/chip) used, so it is CONTIGUOUS and does NOT alias
+  (the old `sip_address={row,col}` reordered bits so consecutive addresses landed
+  1024 apart and wrapped). Bank OR-combine preserved (Q gated by bank-gated CAS_n).
+- UNIT TEST: `Shared/support/sim/SIP1M9_bram_tb.v` drives the real RAS-before-CAS
+  protocol and passes: basic write/read, NO aliasing (addr 0 vs 4, 1 vs 5 distinct),
+  the exact FPGA bug octals (377->377, 103->103, 011->011 -- were 357/123), address
+  spread distinct, read stability. `iverilog -g2012 SIP1M9_bram_tb.v ../SIP1M9.v`.
+- PENDING: (a) confirm Verilator ramSize=2 sim still builds + STERR=0/seqcheck (the
+  generate wraps the old model unchanged); (b) FPGA synth -> check BRAM utilization
+  fits (8K x9 x6 chips = 432Kb + microcode ROM) and that on-board write/read now
+  works; tune FPGA_ADDR_BITS up if there is BRAM headroom. Note: INSTRUCTION-B is 23K
+  words so will NOT fit 8K/bank -- use small test programs, or raise the size / bank.
+
+--- original analysis (still valid) ---
 - Symptoms (Ronny, on the Basys3):
   - ALL memory addresses read back the SAME value: write 377->addr0, dump 0..10
     all show 357; write 0->addr1, all addresses show 0. => RAM address input

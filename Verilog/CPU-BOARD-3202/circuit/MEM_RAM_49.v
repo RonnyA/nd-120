@@ -17,7 +17,11 @@ module MEM_RAM_49 #(
     // RAM size configuration: 0=disabled, 1=64KB, 2=1MB, 3=4KB
     // Default to 3 (4KB) for FPGA synthesis, override to 2 (1MB) for Verilator
 `ifdef VERILATOR_SIM
+  `ifdef FORCE_SMALL_RAM
+    parameter integer RAM_SIZE = 3  // FORCE FPGA-size BRAM in sim to reproduce the FPGA RAM bug
+  `else
     parameter integer RAM_SIZE = 2  // 1MB for simulation
+  `endif
 `else
     parameter integer RAM_SIZE = 3  // 4KB for FPGA synthesis
 `endif
