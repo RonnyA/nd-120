@@ -115,13 +115,23 @@ if {[llength [get_files -quiet -of [get_filesets constrs_1] [file tail $_xdc]]] 
 #                   clock) and cannot meet timing. It does NOT re-enable
 #                   transparent latches: USE_TRANSPARENT_LATCHES is gated behind
 #                   VERILATOR_SIM (ND120_TOP.v), which is absent for synthesis.
+#  BOARD_CLK_FREQ=16666667 -- the UART (SC2661_UART.v) derives its baud divisor
+#                   DELAY_FRAMES = BOARD_CLK_FREQ / UART_BAUD_RATE. The UART is
+#                   clocked by the CPU-board sysclk = clk_cpu = 16.667 MHz (100/6),
+#                   NOT 100 MHz. The default 100_000_000 made the console baud ~6x
+#                   wrong (garbled serial). 16666667/115200 = 144 -> ~115740 baud
+#                   (<0.5% error). Without this the CPU sits in STOP/OPCOM but can
+#                   never receive a console command.
 #  Append (do not overwrite) so any project-level defines are preserved.
 ########################################################################
 set _defs [get_property verilog_define [current_fileset]]
 if {[lsearch -exact $_defs FPGA_FF_MODE] < 0} {
     lappend _defs FPGA_FF_MODE
-    set_property verilog_define $_defs [current_fileset]
 }
+# Remove any stale BOARD_CLK_FREQ then set the correct one for clk_cpu.
+set _defs [lsearch -all -inline -not $_defs BOARD_CLK_FREQ=*]
+lappend _defs BOARD_CLK_FREQ=16666667
+set_property verilog_define $_defs [current_fileset]
 puts "Verilog defines for synthesis: [get_property verilog_define [current_fileset]]"
 
 ########################################################################
