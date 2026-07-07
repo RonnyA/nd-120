@@ -514,11 +514,14 @@ connect_probe u_ila_0/probe46 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_w_12_0[*]} "
 create_debug_port u_ila_0 probe
 connect_probe u_ila_0/probe47 {CPU_BOARD/CPU/PROC/CGA/DELILAH/MIC/s_iw_12_0[*]} "IW_12_0"
 
-# Connect debug hub clock — same clk_cpu (clk1) domain as the ILA (~16.67 MHz).
-set_property C_CLK_INPUT_FREQ_HZ 16666667 [get_debug_cores dbg_hub]
+# Connect debug hub clock. The dbg_hub (JTAG comms) needs >= 25 MHz, so it stays
+# on the 100 MHz sysclk even though the ILA SAMPLES on clk1 (~16.67 MHz). The ILA
+# IP handles the hub<->capture-clock crossing internally; this is a supported
+# config (capture clock independent of the debug-hub clock).
+set_property C_CLK_INPUT_FREQ_HZ 100000000 [get_debug_cores dbg_hub]
 set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
 set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]
-connect_debug_port dbg_hub/clk [get_nets $ila_clk_net]
+connect_debug_port dbg_hub/clk [get_nets sysclk_IBUF_BUFG]
 
 # Save the debug constraints
 # NOTE: Do NOT use save_constraints here — it writes ILA definitions into the
