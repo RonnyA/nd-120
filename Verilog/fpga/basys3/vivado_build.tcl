@@ -139,7 +139,7 @@ lappend _defs BOARD_CLK_FREQ=16666667
 # the CPU configured. 16666667/9600 = 1736 -> ~9601 baud. Console: COM3 9600 7E1.
 # (Go 115200 later once serial works: bump this AND the thumbwheel's BAUDV code.)
 set _defs [lsearch -all -inline -not $_defs UART_BAUD_RATE=*]
-lappend _defs UART_BAUD_RATE=115200
+lappend _defs UART_BAUD_RATE=9600
 set_property verilog_define $_defs [current_fileset]
 puts "Verilog defines for synthesis: [get_property verilog_define [current_fileset]]"
 
