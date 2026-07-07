@@ -54,10 +54,14 @@ module SIP1M9 (
   // NOTE: sdram/sdram_9 are declared at MODULE scope (not inside the generate) so
   // their Verilator hierarchical name stays `...CHIP_15H__DOT__sdram`, which the C++
   // sim harnesses (loadfile in test_nd120.cpp / Run120.cpp / latch_ff_compare.cpp)
-  // reference to preload programs. Used by the ramSize=2 DRAM model below; unused
-  // (and synthesis-pruned) on the ramSize=3 FPGA BRAM path.
+  // reference to preload programs. ONLY declared for Verilator (ramSize=2 DRAM model);
+  // on the FPGA (ramSize=3) it is unused, and as a block-RAM-styled array it was NOT
+  // pruned in time and pushed BRAM usage over the xc7a35t's 100-block limit -> synth
+  // OOM. Guarded out of the FPGA build. (ramSize=2 <=> VERILATOR_SIM in this design.)
+`ifdef VERILATOR_SIM
   (* ram_style = "block" *) reg [7:0] sdram   [0:MEM_DEPTH-1];
   (* ram_style = "block" *) reg       sdram_9 [0:MEM_DEPTH-1];
+`endif
 
 generate
 if (ramSize == 3) begin : g_fpga_bram
@@ -80,7 +84,7 @@ if (ramSize == 3) begin : g_fpga_bram
   //  LINEAR word address LBD[19:0] = {col, row} so it is contiguous, then the low
   //  FPGA_ADDR_BITS are used (no reorder-aliasing).
   // ======================================================================
-  localparam integer FPGA_ADDR_BITS = 13;                 // 8 K words/chip (tune to BRAM budget)
+  localparam integer FPGA_ADDR_BITS = 12;                 // 4 K words/chip (fits xc7a35t; tune up later)
   localparam integer FPGA_DEPTH     = (1 << FPGA_ADDR_BITS);
 
   (* ram_style = "block" *) reg [7:0] bram8 [0:FPGA_DEPTH-1];
