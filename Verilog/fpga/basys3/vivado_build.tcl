@@ -238,7 +238,15 @@ puts "ROM init check: ${rom_report_file}"
 # Recreated after every synthesis because net names may change.
 # Probes all mark_debug signals from ND120_TOP.
 ########################################################################
-puts "\n=== SETTING UP ILA DEBUG CORE ==="
+# ILA temporarily disabled (2026-07-08): after recent RTL changes the debug-core
+# opt_design fails ("Synthesis of Debug Cores has failed"). The ILA is not needed
+# for console/memory/execution testing. When 0, the ILA is built in-memory but NOT
+# written into the checkpoint impl reads, so implementation runs ILA-free. Set to 1
+# (and fix the failing probe) to restore on-chip debug. Override: -tclargs enable_ila
+set _enable_ila 0
+if {[lsearch $argv "enable_ila"] >= 0} { set _enable_ila 1 }
+
+puts "\n=== SETTING UP ILA DEBUG CORE (enabled=$_enable_ila) ==="
 
 # Remove any existing debug cores from previous runs
 catch {delete_debug_core -quiet [get_debug_cores -quiet]}
@@ -572,8 +580,12 @@ if {$main_dcp eq ""} {
     puts "ERROR: No synthesis .dcp in $synth_run_dir — cannot save ILA for implementation"
     exit 1
 }
-puts "Saving synthesized design with ILA to checkpoint: $main_dcp"
-write_checkpoint -force $main_dcp
+if {$_enable_ila} {
+    puts "Saving synthesized design with ILA to checkpoint: $main_dcp"
+    write_checkpoint -force $main_dcp
+} else {
+    puts "ILA disabled: leaving synth checkpoint untouched (implementation runs ILA-free)"
+}
 
 # Close synthesized design before implementation
 close_design
@@ -623,20 +635,24 @@ wait_on_run impl_1
 # write_bitstream does not emit this file; write_debug_probes does.
 set impl_run_dir [get_property DIRECTORY [get_runs impl_1]]
 set ltx_run [file join $impl_run_dir "${top_module}.ltx"]
-open_run impl_1
-if {[catch {write_debug_probes -force $ltx_run} dbg_err]} {
-    puts "ERROR: write_debug_probes failed (no ILA in implemented design?): $dbg_err"
+if {$_enable_ila} {
+    open_run impl_1
+    if {[catch {write_debug_probes -force $ltx_run} dbg_err]} {
+        puts "ERROR: write_debug_probes failed (no ILA in implemented design?): $dbg_err"
+        close_design
+        exit 1
+    }
     close_design
-    exit 1
+    if {![file exists $ltx_run]} {
+        puts "ERROR: Debug probes file was not created: $ltx_run"
+        exit 1
+    }
+    file copy -force $ltx_run "${output_dir}/${top_module}.ltx"
+    puts "Debug probes file: $ltx_run"
+    puts "  (copy) ${output_dir}/${top_module}.ltx — use this .ltx with ${output_dir}/${top_module}.bit in Hardware Manager if needed"
+} else {
+    puts "ILA disabled: skipping write_debug_probes / .ltx (no on-chip ILA this build)"
 }
-close_design
-if {![file exists $ltx_run]} {
-    puts "ERROR: Debug probes file was not created: $ltx_run"
-    exit 1
-}
-file copy -force $ltx_run "${output_dir}/${top_module}.ltx"
-puts "Debug probes file: $ltx_run"
-puts "  (copy) ${output_dir}/${top_module}.ltx — use this .ltx with ${output_dir}/${top_module}.bit in Hardware Manager if needed"
 
 # Check for bitstream
 set bit_file [file join $impl_run_dir "${top_module}.bit"]
