@@ -34,11 +34,28 @@ module LATCH (
 
   reg regD = 1'b0;
 
+`ifdef USE_TRANSPARENT_LATCHES
+  // TRUE transparent latch (the original 74xx behaviour): while ENABLE high, Q
+  // follows D combinationally; when ENABLE falls, Q holds. This is the correct
+  // reference model with no sysclk-sampling race. FPGA path below keeps the
+  // synchronous approximation.
+  always @(*) begin
+    if (ENABLE) regD = D;
+  end
+`else
   always @(posedge sysclk) begin
     if (ENABLE) regD <= D;
   end
+`endif
 
+`ifdef USE_TRANSPARENT_LATCHES
   assign Q  = regD;
   assign QN = ~regD;
+`else
+  // FPGA: synthesizable transparent latch = mux + FF (Q follows D while ENABLE high)
+  wire q = ENABLE ? D : regD;
+  assign Q  = q;
+  assign QN = ~q;
+`endif
 
 endmodule

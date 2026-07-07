@@ -45,31 +45,42 @@ module L8 (
 
 reg [7:0] reg8bit;
 
-assign QA   = reg8bit[0];
-assign QAN  = ~reg8bit[0];
-
-assign QB   = reg8bit[1];
-assign QBN  = ~reg8bit[1];
-
-assign QC   = reg8bit[2];
-assign QCN  = ~reg8bit[2];
-
-assign QD   = reg8bit[3];
-assign QDN  = ~reg8bit[3];
-
-assign QE   = reg8bit[4];
-assign QEN  = ~reg8bit[4];
-
-assign QF   = reg8bit[5];
-assign QFN  = ~reg8bit[5];
-
-assign QG   = reg8bit[6];
-assign QGN  = ~reg8bit[6];
-
-assign QH   = reg8bit[7];
-assign QHN  = ~reg8bit[7];
+`ifdef USE_TRANSPARENT_LATCHES
+assign QA=reg8bit[0]; assign QAN=~reg8bit[0];
+assign QB=reg8bit[1]; assign QBN=~reg8bit[1];
+assign QC=reg8bit[2]; assign QCN=~reg8bit[2];
+assign QD=reg8bit[3]; assign QDN=~reg8bit[3];
+assign QE=reg8bit[4]; assign QEN=~reg8bit[4];
+assign QF=reg8bit[5]; assign QFN=~reg8bit[5];
+assign QG=reg8bit[6]; assign QGN=~reg8bit[6];
+assign QH=reg8bit[7]; assign QHN=~reg8bit[7];
+`else
+// FPGA: synthesizable transparent latch = mux + FF (Q follows input while L high)
+wire q_a = L ? A : reg8bit[0]; assign QA=q_a; assign QAN=~q_a;
+wire q_b = L ? B : reg8bit[1]; assign QB=q_b; assign QBN=~q_b;
+wire q_c = L ? C : reg8bit[2]; assign QC=q_c; assign QCN=~q_c;
+wire q_d = L ? D : reg8bit[3]; assign QD=q_d; assign QDN=~q_d;
+wire q_e = L ? E : reg8bit[4]; assign QE=q_e; assign QEN=~q_e;
+wire q_f = L ? F : reg8bit[5]; assign QF=q_f; assign QFN=~q_f;
+wire q_g = L ? G : reg8bit[6]; assign QG=q_g; assign QGN=~q_g;
+wire q_h = L ? H : reg8bit[7]; assign QH=q_h; assign QHN=~q_h;
+`endif
 
 
+`ifdef USE_TRANSPARENT_LATCHES
+always @(*) begin
+    if (L) begin
+        reg8bit[0] = A;
+        reg8bit[1] = B;
+        reg8bit[2] = C;
+        reg8bit[3] = D;
+        reg8bit[4] = E;
+        reg8bit[5] = F;
+        reg8bit[6] = G;
+        reg8bit[7] = H;
+    end
+end
+`else
 always @(posedge sysclk) begin
     if (L) begin
         reg8bit[0] <= A;
@@ -82,5 +93,6 @@ always @(posedge sysclk) begin
         reg8bit[7] <= H;
     end
 end
+`endif
 
 endmodule
