@@ -36,7 +36,34 @@ sim-reproducible ones.
   Self-test STERR still 0, seqcheck PASS.
 - STATUS: FPGA re-synth in progress; confirm register dump is now snappy.
 
-## 2. `20!` (execute from addr 20) HANGS in Verilator FF mode  [INVESTIGATING]
+## 2. `20!` (execute from addr 20) HANGS in Verilator FF mode  [RESOLVED 2026-07-07]
+- ROOT CAUSE: the FPGA_FF_MODE "phase-accurate" clocks in
+  `CPU-BOARD-3202/circuit/CYC_36.v` were generated as 1-sysclk RISE PULSES
+  (en = next_level & ~current_level), not as the full clock LEVEL. Rising edges
+  were correct (that is what boot seqcheck validated), but every consumer that
+  uses the clock as a LEVEL saw a collapsed high phase. The killer instance:
+  `CPU_CS_ACAL_17` - its 74373/AM29841 address latches are TRANSPARENT while
+  MACLK is HIGH, feeding the WCS address (LUA) from CSA. With a 1-sysclk MACLK
+  pulse, LUA froze for the rest of the microcycle, so the mid-cycle CSA change
+  during instruction dispatch (DGA handler address via WCA, e.g. o7250 in the
+  fetch path) NEVER reached the WCS. CSBITS stayed at the previous microword
+  (o6000, jump target o145) and MASEL captured the stale jump target: latch
+  went o7250->o143 (correct), FF went ->o145 (fetch loop) - the CPU never
+  executed any dispatched instruction, P just marched on. Proven by a per-sysclk
+  trace (-DTRACE_MIC in runSim/Run120.cpp): FF held CSA=o7250 for 7 sysclks with
+  CSBITS never updating; latch showed CSBITS=word[o7250] one sysclk after CSA.
+- FIX: register the predicted next LEVEL instead of a rise pulse in CYC_36
+  FPGA_FF_MODE: `mclk_pa <= s_mclk_next`, `maclk_pa <= s_maclk_next`,
+  `uclk_pa <= uclk_next`. Rising edges land on the SAME sysclk as before (no
+  boot regression); the full high phase is now also reproduced, so level
+  consumers (ACAL transparency, MASEL regW hold via MCLKN, ACAL FF+CE on FPGA)
+  behave like the latch/combinational clocks. ALUCLK/CLK were already levels
+  (high = TERM window).
+- VALIDATED: (a) FF `0!` and `20!` now run INSTRUCTION-B (VERIFY header /
+  `>` prompt); (b) deduped CSA sequence of the ENTIRE 40M-cycle `0!` run is
+  IDENTICAL latch vs FF (11.89M transitions, 0 diffs); (c) `make compare` +
+  seqcheck.py PASS (162060 transitions identical); (d) self-test STERR=0
+  (no o1134 visits after WCS load in trace_ff.csv).
 - Symptom: `make run USE_LATCHES=0` (FF mode = FPGA path): OPCOM comes up, but
   running a loaded program via `20!` hangs. `make run` (latch mode) works.
 - Significance: a REPRODUCIBLE sim divergence between latch and FF (=FPGA) mode

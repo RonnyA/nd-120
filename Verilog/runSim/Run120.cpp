@@ -120,6 +120,9 @@ static FILE *g_csa_fp = nullptr;
 static unsigned g_last_csa = 0xFFFFu;
 #endif
 #ifdef SCRIPT_INPUT
+#ifdef SCRIPT_CMD_20
+#define SCRIPT_CMD "20!\r"              // -DSCRIPT_CMD_20 avoids quoting through make/verilator
+#endif
 #ifndef SCRIPT_CMD
 #define SCRIPT_CMD "0!\r"               // override with -DSCRIPT_CMD='"20!\r"'
 #endif
@@ -202,6 +205,18 @@ int main(int argc, char **argv)
 #ifdef TRACE_CSA
 	g_csa_fp = fopen("csa_trace.csv", "w");
 #endif
+#ifdef TRACE_MIC
+	// Deep half-clock trace of the MIC address pipeline in a cnt window.
+	// Build with e.g. -DTRACE_MIC -DTRACE_MIC_START=12345 -DTRACE_MIC_END=12999
+#ifndef TRACE_MIC_START
+#define TRACE_MIC_START 0
+#endif
+#ifndef TRACE_MIC_END
+#define TRACE_MIC_END 0x7FFFFFFF
+#endif
+	FILE *g_mic_fp = fopen("mic_trace.csv", "w");
+	fprintf(g_mic_fp, "cnt,sysclk,csa,csbits,regREP,regIW,muxsel,term,cc\n");
+#endif
 	while (true)
 	{
 		cnt++;
@@ -215,6 +230,32 @@ int main(int argc, char **argv)
 		top->sysclk = !top->sysclk;
 
 		proccess_bif_signal(top);
+
+#ifdef TRACE_MIC
+		if (g_mic_fp && cnt >= TRACE_MIC_START && cnt <= TRACE_MIC_END)
+		{
+			fprintf(g_mic_fp, "%d,%d,%o,%016llx,%o,%o,%d,%d,%d%d%d%d\n",
+				cnt,
+				(int)top->sysclk,
+				(unsigned)top->CSA_12_0,
+				(unsigned long long)top->rootp->ND120_TOP__DOT__s_csbits,
+				(unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_MASEL__DOT__regREP,
+				(unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_MASEL__DOT__regIW,
+				(int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_MASEL__DOT__s_mux_selector,
+				(int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__TERM_reg,
+				(int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC3_reg,
+				(int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC2_reg,
+				(int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC1_reg,
+				(int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC0_reg);
+		}
+		if (g_mic_fp && cnt > TRACE_MIC_END)
+		{
+			fclose(g_mic_fp);
+			g_mic_fp = nullptr;
+			printf("\n[instrumented] TRACE_MIC window done, stopping\n");
+			break;
+		}
+#endif
 
 #if defined(TRACE_CSA) || defined(SCRIPT_INPUT)
 		if (g_boot_done_cnt != 0)

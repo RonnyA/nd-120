@@ -247,12 +247,18 @@ module CYC_36 (
   /* verilator lint_on PINCONNECTEMPTY */
   wire s_mclk_next  = ~(s_term_n_next & s_mclk_n_next);   // next MCLK  = ~(TERM_n_next & MCLK_n_next)
   wire s_maclk_next = ~(s_term_n_next & s_maclk_n_next);  // next MACLK
-  wire mclk_en  = s_mclk_next  & ~s_mclk;        // MCLK  about to rise
-  wire maclk_en = s_maclk_next & ~s_maclk_out;   // MACLK about to rise
+  // Register the predicted next LEVEL, not a rise-only pulse. The rising edge
+  // lands on the same sysclk edge as the original gated clock (same property
+  // the pulse form had), but the full high phase is also reproduced. That
+  // matters for level consumers: CPU_CS_ACAL_17's address latches are
+  // transparent while MACLK is HIGH - with a 1-sysclk pulse the WCS address
+  // (LUA) froze for the rest of the microcycle, so a mid-cycle CSA change
+  // (DGA dispatch via WCA, e.g. instruction-fetch MAP) never reached the WCS
+  // and MASEL captured a jump target from the stale previous microword.
   reg  mclk_pa = 1'b0, maclk_pa = 1'b0;
   always @(posedge sysclk) begin
-    mclk_pa  <= mclk_en;
-    maclk_pa <= maclk_en;
+    mclk_pa  <= s_mclk_next;
+    maclk_pa <= s_maclk_next;
   end
   assign MCLK                = mclk_pa;
   assign MACLK               = maclk_pa;
@@ -264,13 +270,14 @@ module CYC_36 (
   // the PALs themselves are untouched, only their clock input changes.
   // UCLK = TERM_n & UCLK_44307 has its own mid-cycle phase; uclk_next uses the
   // 2nd PAL_44307's UCLK on the next-state.
-  wire clk_en   = s_term_d;                       // CLK about to rise (terminate)
+  wire clk_en   = s_term_d;                       // CLK next level = TERM_D (high while TERM asserted)
   wire uclk_next = s_term_n_next & s_uclk_next;   // next UCLK = TERM_n_next & UCLK_44307_next
-  wire uclk_en   = uclk_next & ~s_uclk_out;       // UCLK about to rise
+  // Same level-accurate treatment as MCLK/MACLK above: register the predicted
+  // next LEVEL so the full UCLK high phase is reproduced, not just the rise.
   reg  clk_pa = 1'b0, uclk_pa = 1'b0;
   always @(posedge sysclk) begin
     clk_pa  <= clk_en;
-    uclk_pa <= uclk_en;
+    uclk_pa <= uclk_next;
   end
   assign UCLK                = uclk_pa;
 `else

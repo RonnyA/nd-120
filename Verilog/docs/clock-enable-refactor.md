@@ -39,7 +39,18 @@ latency).
     0 err). `make test-ccd`. (Both in `CPU-BOARD-3202/circuit/sim/`.)
 - **MCLK/MACLK/UCLK next values**: a SECOND (combinational) `PAL_44307C` instance is
   fed the next-state (TERM_D + CC_D) - the real PAL reused, no mirror of 44307.
-- **Per clock**: `clk_en = <clock>_NEXT & ~<clock>_NOW`, registered -> clean pulse.
+- **Per clock**: register the predicted next LEVEL: `q <= <clock>_NEXT`.
+  UPDATE 2026-07-07: originally this registered the rise pulse
+  `<clock>_NEXT & ~<clock>_NOW`. That kept every RISING edge phase-accurate
+  (which is all boot seqcheck exercises) but collapsed the HIGH phase to
+  1 sysclk. Level consumers then broke: `CPU_CS_ACAL_17`'s address latches are
+  transparent while MACLK is HIGH, so with a 1-sysclk MACLK the WCS address
+  (LUA) froze mid-microcycle and the DGA instruction-dispatch address (WCA,
+  e.g. o7250) never reached the WCS -> FF-mode program execution hung
+  (fpga-bringup-issues.md issue 2). MCLK/MACLK/UCLK are now level-registered:
+  identical rising edge, full high phase reproduced. RULE: a generated
+  replacement for a gated clock must reproduce the WAVEFORM, not just the
+  rising edge - transparent-latch consumers use it as a level.
   - ALUCLK: `aluclk_en = TERM_D & ~LCS`.
   - CLK (`~TERM_n`): `clk_en = TERM_D`; the clean `clk_pa` also feeds the FSM's own
     `PAL_44403/44404` `.CLK` (their clock source changes, the PALs do not).
