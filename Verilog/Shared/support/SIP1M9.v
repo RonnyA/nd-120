@@ -90,17 +90,22 @@ if (ramSize == 3) begin : g_fpga_bram
   (* ram_style = "block" *) reg [7:0] bram8 [0:FPGA_DEPTH-1];
   (* ram_style = "block" *) reg       bram9 [0:FPGA_DEPTH-1];
 
-  reg  [9:0] row_addr;                                     // AA latched during the RAS/row phase
+  reg  [9:0] row_addr;                                     // AA captured at the RAS falling edge
+  reg        ras_n_d;                                      // RAS_n one sysclk ago (edge detect)
   // Linear word address = {col, row} = LBD[19:0]; use the low FPGA_ADDR_BITS.
-  wire [19:0] lin_addr  = {ADDRESS[9:0], row_addr[9:0]};   // {col(now on AA during CAS), row}
+  wire [19:0] lin_addr  = {ADDRESS[9:0], row_addr[9:0]};   // {col(on AA while both low), row}
   wire [FPGA_ADDR_BITS-1:0] a = lin_addr[FPGA_ADDR_BITS-1:0];
 
   always @(posedge sysclk) begin
-    // Track the row address throughout the RAS window (before CAS asserts);
-    // whatever is on AA when CAS falls no longer overwrites it.
-    if (!RAS_n && CAS_n) row_addr <= ADDRESS[9:0];
+    ras_n_d <= RAS_n;
+    // Capture the ROW ONLY at the RAS falling edge. Verified against the real
+    // controller (DBG_MEM trace): AA carries the row exactly at RAS-fall; the very
+    // next sysclk (RAS still low, CAS still HIGH) AA already switches to the COLUMN,
+    // so a level-triggered latch grabbed the column and every access hit {col,col}.
+    if (ras_n_d && !RAS_n) row_addr <= ADDRESS[9:0];
 
-    // Access while both strobes are active (bank-gated CAS_n already selects us).
+    // Access while both strobes are active (bank-gated CAS_n already selects us);
+    // AA carries the column throughout the both-low window.
     if (!RAS_n && !CAS_n) begin
       if (W_n) begin                                       // read (re-reads while CAS low; addr stable)
         reg_Q8 <= bram8[a];
@@ -129,6 +134,18 @@ end else begin : g_sim_dram
   always @(negedge RAS_n) begin
     hi_address <= ADDRESS[9:0];
   end
+
+`ifdef DBG_MEM
+  // Ground-truth timing capture of the working DRAM model vs sysclk, to design the
+  // FPGA sync BRAM. Logs the AA at each RAS/CAS fall and the sysclk-level view.
+  integer dbg_cyc = 0;
+  always @(posedge sysclk) dbg_cyc <= dbg_cyc + 1;
+  always @(negedge RAS_n) $display("MEM RASfall cyc=%0d AA(row)=%o", dbg_cyc, ADDRESS);
+  always @(negedge CAS_n) if (!RAS_n)
+    $display("MEM CASfall cyc=%0d AA(col)=%o row=%o W_n=%b D8=%o", dbg_cyc, ADDRESS, hi_address, W_n, D8);
+  always @(posedge sysclk) if (!RAS_n || !CAS_n)
+    $display("MEM sclk   cyc=%0d RAS_n=%b CAS_n=%b AA=%o W_n=%b", dbg_cyc, RAS_n, CAS_n, ADDRESS, W_n);
+`endif
 
   always @(negedge CAS_n) begin
 `ifdef VERILATOR_SIM
