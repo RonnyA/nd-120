@@ -131,6 +131,15 @@ if {[lsearch -exact $_defs FPGA_FF_MODE] < 0} {
 # Remove any stale BOARD_CLK_FREQ then set the correct one for clk_cpu.
 set _defs [lsearch -all -inline -not $_defs BOARD_CLK_FREQ=*]
 lappend _defs BOARD_CLK_FREQ=16666667
+# UART baud = 9600 to match the baud-rate thumbwheel (s_baud_rate_switch=4'b1000=8=
+# 9600, ND120_TOP.v). The microcode reads that thumbwheel (o2013 IDBS.IOR -> Q) and
+# the o2016 BAUDV T.JMP selects the 9600 console-clock config (jumps to o5670). The
+# SC2661_UART model uses a FIXED DELAY_FRAMES = BOARD_CLK_FREQ/UART_BAUD_RATE, so it
+# must be told 9600 or it transmits at the stale 115200 default, mismatching what
+# the CPU configured. 16666667/9600 = 1736 -> ~9601 baud. Console: COM3 9600 7E1.
+# (Go 115200 later once serial works: bump this AND the thumbwheel's BAUDV code.)
+set _defs [lsearch -all -inline -not $_defs UART_BAUD_RATE=*]
+lappend _defs UART_BAUD_RATE=9600
 set_property verilog_define $_defs [current_fileset]
 puts "Verilog defines for synthesis: [get_property verilog_define [current_fileset]]"
 
