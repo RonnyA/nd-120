@@ -131,6 +131,10 @@ end else begin : g_sim_dram
   end
 
   always @(negedge CAS_n) begin
+`ifdef VERILATOR_SIM
+    // sdram/sdram_9 exist only under VERILATOR_SIM; this whole DRAM model branch is
+    // never GENERATED on the FPGA (ramSize=3 -> g_fpga_bram) but Vivado still PARSES
+    // it, so the sdram references must be preprocessed out for the FPGA build.
     if (!RAS_n) begin
       if (W_n) begin  // read
         reg_Q8 <= sdram[sip_address];
@@ -140,6 +144,7 @@ end else begin : g_sim_dram
         sdram_9[sip_address] <= D9;
       end
     end
+`endif
   end
 
   // Data out is valid as long as CAS is active (and its read, not write)
