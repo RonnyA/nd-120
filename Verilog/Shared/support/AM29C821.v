@@ -22,10 +22,16 @@ module AM29C821 (
 );
 
   // USE_SYSCLK=0 (default): original posedge CK — correct for real clock
-  //   signals like s_osc or s_bcgnt50.
-  // USE_SYSCLK=1: level-sensitive sysclk capture — required when CK is a
-  //   1-sysclk-wide combinational pulse (e.g., s_clk = ~TERM_n) that
-  //   rises at the same edge it would be sampled by posedge CK.
+  //   signals like s_osc.
+  // USE_SYSCLK=1: level-sensitive sysclk capture — ONLY correct when CK is a
+  //   1-sysclk-wide pulse (e.g., s_clk = ~TERM_n). With a multi-cycle CK the
+  //   register keeps re-capturing D every sysclk while CK is high — NOT
+  //   edge-triggered semantics. (This is what broke the memory write path
+  //   when used for the BCGNT50 address latches: LBD had moved on from the
+  //   address to the write data by the end of the grant window.)
+  // USE_SYSCLK=2: sysclk-sampled RISING-EDGE capture — the FPGA-safe
+  //   replacement for posedge-CK when CK is a multi-cycle control signal
+  //   (e.g., BCGNT50): captures D exactly once per CK rise, no clock net.
   parameter USE_SYSCLK = 0;
 
   reg [9:0] Y_Latch = 10'b0;
@@ -34,6 +40,12 @@ module AM29C821 (
     if (USE_SYSCLK == 1) begin : gen_sysclk
       always @(posedge sysclk) begin
         if (CK) Y_Latch <= D;
+      end
+    end else if (USE_SYSCLK == 2) begin : gen_sysclk_edge
+      reg ck_d = 1'b0;
+      always @(posedge sysclk) begin
+        ck_d <= CK;
+        if (CK && !ck_d) Y_Latch <= D;
       end
     end else begin : gen_posedge_ck
       always @(posedge CK) begin

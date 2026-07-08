@@ -96,6 +96,10 @@ if (ramSize == 3) begin : g_fpga_bram
   wire [19:0] lin_addr  = {ADDRESS[9:0], row_addr[9:0]};   // {col(on AA while both low), row}
   wire [FPGA_ADDR_BITS-1:0] a = lin_addr[FPGA_ADDR_BITS-1:0];
 
+  reg cas_win_d;  // both-low window, one sysclk delayed (first-edge detect)
+  reg [7:0] d8_q;  // write data captured BEFORE CAS (see comment below)
+  reg       d9_q;
+
   always @(posedge sysclk) begin
     ras_n_d <= RAS_n;
     // Capture the ROW ONLY at the RAS falling edge. Verified against the real
@@ -104,15 +108,26 @@ if (ramSize == 3) begin : g_fpga_bram
     // so a level-triggered latch grabbed the column and every access hit {col,col}.
     if (ras_n_d && !RAS_n) row_addr <= ADDRESS[9:0];
 
+    // Write-data capture: on silicon the D bus is driven BEFORE CAS-fall and
+    // released shortly after it (measured on the Tang SDRAM backend,
+    // 8-JUL-2026; the zero-delay sim's "valid at CAS-fall" is the PRE-edge
+    // value). Capture every sysclk while RAS is active and CAS not yet seen:
+    // the final capture (the CAS-fall edge) holds the settled cycle-N+1 value.
+    if (!RAS_n && CAS_n) begin
+      d8_q <= D8;
+      d9_q <= D9;
+    end
+
     // Access while both strobes are active (bank-gated CAS_n already selects us);
     // AA carries the column throughout the both-low window.
+    cas_win_d <= (!RAS_n && !CAS_n);
     if (!RAS_n && !CAS_n) begin
       if (W_n) begin                                       // read (re-reads while CAS low; addr stable)
         reg_Q8 <= bram8[a];
         reg_Q9 <= bram9[a];
-      end else begin                                       // write
-        bram8[a] <= D8;
-        bram9[a] <= D9;
+      end else if (!cas_win_d) begin                       // write ONCE, first both-low
+        bram8[a] <= d8_q;                                  // edge, with the pre-CAS
+        bram9[a] <= d9_q;                                  // captured data
       end
     end
   end

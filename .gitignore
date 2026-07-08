@@ -67,3 +67,23 @@ Verilog/fpga/**/dfx_runtime.txt
 Verilog/sim/waveform.fst
 Verilog/**/__pycache__/
 *.pyc
+
+# FPGA build artifacts (per-board)
+Verilog/fpga/**/.Xil/
+Verilog/fpga/tang-nano-20k/build/
+Verilog/fpga/tang-nano-20k/sdram-test/build/
+Verilog/fpga/tang-nano-20k/lint/
+# WCS preload hex are copied in by gowin_build.ps1 from Code/Microcode/wcs/
+Verilog/fpga/tang-nano-20k/wcs_*.hex
+Verilog/fpga/tang-nano-20k/wcs_image.hex
+Verilog/fpga/**/*.bit
+Verilog/fpga/**/timing.rpt
+Verilog/fpga/**/util.rpt
+Verilog/fpga/**/clockInfo.txt
+Verilog/fpga/**/mem-test/sim/tb
+# iverilog testbench outputs
+Verilog/CPU-BOARD-3202/circuit/sim/*.log
+# sim run output logs
+Verilog/runSim/out_*.log
+Verilog/sim/compare_run*.log
+Verilog/fpga/**/sim/*.vcd

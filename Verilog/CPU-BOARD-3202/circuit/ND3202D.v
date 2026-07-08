@@ -151,6 +151,25 @@ module ND3202D (
     output       DEBUG_INTRQ_n,  // Interrupt Request (TP1)
     output       DEBUG_POWFAIL_n, // Power Fail
     output [15:0] DEBUG_FIDBO_15_0 // FIDBO internal data bus
+
+`ifdef MAIN_RAM_SDRAM
+    // SDRAM main-memory backend (Tang Nano 20K) - threaded down to MEM_43.
+    // Absent in Verilator/Basys3 builds.
+    ,
+    input         clk2x,        //! 2x sysclk, same PLL, edge-aligned
+    input         clk2x_sdram,  //! 180 degrees from clk2x, to the SDRAM chip
+    output        O_sdram_clk,
+    output        O_sdram_cke,
+    output        O_sdram_cs_n,
+    output        O_sdram_cas_n,
+    output        O_sdram_ras_n,
+    output        O_sdram_wen_n,
+    inout  [31:0] IO_sdram_dq,
+    output [10:0] O_sdram_addr,
+    output [ 1:0] O_sdram_ba,
+    output [ 3:0] O_sdram_dqm,
+    output [15:0] DBG_MEMW  // write-path debug bus from MEM_43
+`endif
 );
 
   /*
@@ -876,6 +895,23 @@ TODO: Sort bits on output LED to match led numbering
   MEM_43 MEM (
       .sysclk   (sysclk),    // System clock in FPGA
       .sys_rst_n(sys_rst_n), // System reset in FPGA
+
+`ifdef MAIN_RAM_SDRAM
+      // SDRAM main-memory backend (Tang Nano 20K)
+      .clk2x(clk2x),
+      .clk2x_sdram(clk2x_sdram),
+      .O_sdram_clk(O_sdram_clk),
+      .O_sdram_cke(O_sdram_cke),
+      .O_sdram_cs_n(O_sdram_cs_n),
+      .O_sdram_cas_n(O_sdram_cas_n),
+      .O_sdram_ras_n(O_sdram_ras_n),
+      .O_sdram_wen_n(O_sdram_wen_n),
+      .IO_sdram_dq(IO_sdram_dq),
+      .O_sdram_addr(O_sdram_addr),
+      .O_sdram_ba(O_sdram_ba),
+      .O_sdram_dqm(O_sdram_dqm),
+      .DBG_MEMW(DBG_MEMW),
+`endif
 
       // INPUTS
       .BDAP50_n   (s_bdap50_n),               //  Bus Data Present (50 ns delay)

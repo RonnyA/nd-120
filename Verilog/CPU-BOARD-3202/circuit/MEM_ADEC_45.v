@@ -10,6 +10,8 @@
 
 
 module MEM_ADEC_45 (
+    input sysclk,     //! System clock (for the FF-mode _D PAL mirrors)
+    input sys_rst_n,  //! System reset
     input BGNT_n,
     input BMEM_n,
     input CGNT_n,
@@ -224,8 +226,17 @@ module MEM_ADEC_45 (
 
   // PAL_UCADEC, chip 9G
   // CPU Address Decode and CPU Local Request
+`ifdef FPGA_FF_MODE
+  // FF mode: sysclk-domain mirror - CK (ECREQ) becomes an edge enable, no
+  // routed-net clock (see docs/HANDOFF-basys3-memory-write.md)
+  PAL_44445B_D PAL_UCADEC (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .CK  (s_ecreq),
+`else
   PAL_44445B PAL_UCADEC (
       .CK  (s_ecreq),
+`endif
       .OE_n(s_cgnt_n),
 
       .WRITE (s_write),   // I0 - WRITE
@@ -251,8 +262,16 @@ module MEM_ADEC_45 (
 
   // PAL_UBADEC, chip 6G
   // BUS Address Decode and Bus Local Request
+`ifdef FPGA_FF_MODE
+  // FF mode: sysclk-domain mirror - CK (DBAPR) becomes an edge enable
+  PAL_44446B_D PAL_UBADEC (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .CK  (s_dbapr),
+`else
   PAL_44446B PAL_UBADEC (
       .CK  (s_dbapr),
+`endif
       .OE_n(s_bgnt_n),
 
       .DBAPR   (s_dbapr),      // I0 - DBAPR

@@ -65,6 +65,27 @@ module MEM_43 (
     output        LED5,          //! LED5_RED_DISABLE_PARITY
     output        LED_CPU_GI,    //! LED_CPU_GRANT_INDICATOR
     output        LED_BUS_GI     // LED_BUS_GRANT_INDICATOR
+
+`ifdef MAIN_RAM_SDRAM
+    // SDRAM main-memory backend (Tang Nano 20K): the sheet-49 RAM is replaced
+    // by MEM_RAM_49_SDRAM, which needs a 2x clock pair and the SDRAM device
+    // pins threaded to the top level. Absent in Verilator/Basys3 builds.
+    ,
+    input         clk2x,        //! 2x sysclk, same PLL, edge-aligned
+    input         clk2x_sdram,  //! 180 degrees from clk2x, to the SDRAM chip
+    output        O_sdram_clk,
+    output        O_sdram_cke,
+    output        O_sdram_cs_n,
+    output        O_sdram_cas_n,
+    output        O_sdram_ras_n,
+    output        O_sdram_wen_n,
+    inout  [31:0] IO_sdram_dq,
+    output [10:0] O_sdram_addr,
+    output [ 1:0] O_sdram_ba,
+    output [ 3:0] O_sdram_dqm,
+    // Write-path debug: raw signal bus for the on-chip capture (see top)
+    output [15:0] DBG_MEMW
+`endif
 );
 
 
@@ -218,6 +239,8 @@ module MEM_43 (
    */
   MEM_ADEC_45 ADEC
   (
+    .sysclk(sysclk),
+    .sys_rst_n(sys_rst_n),
     // Inputs
     .BGNT_n(s_bgnt_n),
     .BMEM_n(s_bmem_n),
@@ -410,6 +433,94 @@ module MEM_43 (
    * Handles memory operations and interfaces with the system bus.
    * Provides memory access, control and error handling functionality.
    */
+`ifdef MAIN_RAM_SDRAM
+  // Raw write-path signal bus for the top-level capture engine
+  assign DBG_MEMW = {s_ram_dd_17_0_in[4:0],          // [15:11] DD low bits
+                     (s_ram_dd_17_0_in != 18'b0),    // [10] DD nonzero
+                     s_bcgnt50,                      // [9]
+                     s_bgnt_n,                       // [8]
+                     s_cgnt_n,                       // [7]
+                     s_write,                        // [6]
+                     s_ecreq,                        // [5]
+                     s_dbapr,                        // [4]
+                     s_mwrite_n,                     // [3]
+                     s_mwrite50_n,                   // [2]
+                     s_cas,                          // [1]
+                     s_ras};                         // [0]
+
+  // Tang Nano 20K: sheet-49 RAM implemented on the embedded 8 MB SDRAM
+  // (fpga/tang-nano-20k/sdram-bridge/MEM_RAM_49_SDRAM.v; same interface,
+  // 2 banks = 4 MB, self-scheduled refresh - see docs/nd120-dram-memory.md)
+  MEM_RAM_49_SDRAM RAM (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      // Input signals
+      .AA_9_0(s_aa_9_0[9:0]),
+      .BANK0(s_bank_2_0[0]),
+      .BANK1(s_bank_2_0[1]),
+      .BANK2(s_bank_2_0[2]),
+      .CAS(s_cas),
+      .CORR_n(s_corr_n),
+      .DD_17_0_IN(s_ram_dd_17_0_in[17:0]),
+      .MWRITE50_n(s_mwrite50_n),
+      .RAS(s_ras),
+
+      // Output signals
+      .DD_17_0_OUT(s_ram_dd_17_0_out[17:0]),
+
+      // SDRAM backend (threaded to the board top)
+      .clk2x(clk2x),
+      .clk2x_sdram(clk2x_sdram),
+      .O_sdram_clk(O_sdram_clk),
+      .O_sdram_cke(O_sdram_cke),
+      .O_sdram_cs_n(O_sdram_cs_n),
+      .O_sdram_cas_n(O_sdram_cas_n),
+      .O_sdram_ras_n(O_sdram_ras_n),
+      .O_sdram_wen_n(O_sdram_wen_n),
+      .IO_sdram_dq(IO_sdram_dq),
+      .O_sdram_addr(O_sdram_addr),
+      .O_sdram_ba(O_sdram_ba),
+      .O_sdram_dqm(O_sdram_dqm)
+  );
+`elsif MAIN_RAM_BLOCKRAM
+  // FPGA block-RAM backend: one clean synchronous BRAM instead of the six
+  // emulated SIP1M9 chips (MEM_RAM_49_BLOCKRAM.v). Default 3 banks x 4K words.
+  MEM_RAM_49_BLOCKRAM RAM (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .AA_9_0(s_aa_9_0[9:0]),
+      .BANK0(s_bank_2_0[0]),
+      .BANK1(s_bank_2_0[1]),
+      .BANK2(s_bank_2_0[2]),
+      .CAS(s_cas),
+      .CORR_n(s_corr_n),
+      .DD_17_0_IN(s_ram_dd_17_0_in[17:0]),
+      .MWRITE50_n(s_mwrite50_n),
+      .RAS(s_ras),
+      .DD_17_0_OUT(s_ram_dd_17_0_out[17:0])
+  );
+`elsif VERILATOR_SIM
+  // Simulation backend: the zero-delay DRAM model on the shared interface
+  // (MEM_RAM_49_SIM.v, 3 banks x 1M = 6 MB). The C++ harnesses preload
+  // programs via its b0_* arrays. Build with FORCE_SMALL_RAM to reproduce
+  // FPGA-size RAM instead: define MAIN_RAM_BLOCKRAM in the sim build.
+  MEM_RAM_49_SIM RAM (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .AA_9_0(s_aa_9_0[9:0]),
+      .BANK0(s_bank_2_0[0]),
+      .BANK1(s_bank_2_0[1]),
+      .BANK2(s_bank_2_0[2]),
+      .CAS(s_cas),
+      .CORR_n(s_corr_n),
+      .DD_17_0_IN(s_ram_dd_17_0_in[17:0]),
+      .MWRITE50_n(s_mwrite50_n),
+      .RAS(s_ras),
+      .DD_17_0_OUT(s_ram_dd_17_0_out[17:0])
+  );
+`else
+  // Original six-chip SIP1M9 sheet (historical reference / FPGA default
+  // until a board opts into a MAIN_RAM_* backend)
   MEM_RAM_49 RAM (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
@@ -427,4 +538,5 @@ module MEM_43 (
       // Output signals
       .DD_17_0_OUT(s_ram_dd_17_0_out[17:0])
   );
+`endif
 endmodule
