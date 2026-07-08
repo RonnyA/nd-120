@@ -87,3 +87,4 @@ Verilog/CPU-BOARD-3202/circuit/sim/*.log
 Verilog/runSim/out_*.log
 Verilog/sim/compare_run*.log
 Verilog/fpga/**/sim/*.vcd
+Verilog/fpga/**/sim/*.vvp
