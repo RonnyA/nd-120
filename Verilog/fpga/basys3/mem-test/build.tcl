@@ -7,9 +7,10 @@ set srcdir [file dirname [file normalize [info script]]]
 
 create_project -in_memory -part $part
 
+# msg_printer.v uses $bits -> needs SystemVerilog dialect
+read_verilog -sv [file join $srcdir msg_printer.v]
 read_verilog [list \
     [file join $srcdir basys3_mem_test_top.v] \
-    [file join $srcdir msg_printer.v] \
     [file join $srcdir uart_tx.v] \
     [file join $srcdir .. .. .. CPU-BOARD-3202 circuit MEM_RAM_49.v] \
     [file join $srcdir .. .. .. Shared support SIP1M9.v] ]
