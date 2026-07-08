@@ -359,7 +359,18 @@ module IO_DCD_38 (
   // Calculate OSC signal
   assign s_osc_inp1 = ~(s_XTAL1 & s_oc1 & s_oc0);  // Chip 10F
   assign s_osc_inp2 = ~(s_oc0_n & s_oc1_and_xtal2_n);
+`ifdef VERILATOR_SIM
   assign s_osc = ~(s_osc_inp1 & s_osc_inp2);
+`else
+  // FPGA: OSC must be a CLEAN clock net, not a combinational LUT decode. The
+  // memory controller (PAL_44902A) clocks the whole DRAM state machine on OSC,
+  // while the BRAM + address latches clock on the BUFG sysclk. A LUT-generated
+  // OSC is phase-shifted from sysclk and can glitch on the oc0/oc1/XTAL edges ->
+  // the state machine mis-clocks and every memory read returns a fixed value.
+  // On the FPGA XTAL1 = XTAL2 = clk1 = clk_cpu (BUFG), so the clock select is
+  // moot; drive OSC straight from that clean net so OSC == sysclk == clk_cpu.
+  assign s_osc = s_XTAL1;
+`endif
 
   // The AND is done in a 74321 chip (Positive NAND Schmitt Trigger)
   assign s_oc1_and_xtal2_n = ~(s_oc1 & s_XTAL2);
