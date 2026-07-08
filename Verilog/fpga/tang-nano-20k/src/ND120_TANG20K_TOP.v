@@ -157,14 +157,16 @@ module ND120_TANG20K_TOP (
   // s_cpu_led[3] = LED_CPU_GRANT_INDICATOR (= CGNT_n, low when granted)
   // s_cpu_led[4] = LED_BUS_GRANT_INDICATOR (= BGNT_n, low when granted)
   // s_cpu_led[2] = LED4_RED_PARITY_ERROR (polarity: verify on first light)
-  // MEMORY-WRITE ANALYZER BUILD (8-JUL-2026): on-chip capture of the raw
-  // write-path bus, dumped as hex over the UART after the trigger.
+  // WRITE-GENERATION ANALYZER BUILD (8-JUL-2026 late): bus retargeted at
+  // the DGA WRITE chain (see ND3202D.v DBG_MEMW assign for the bit map).
+  // [7] = wdec (F924 A160 D3 decode input), [6] = WRITE (registered out).
   wire [15:0] s_dbg_memw;
   wire dbg_dumping;
-  assign led[0] = ~dbg_dumping;      // ON = capture done, dump running/done
-  assign led[1] = s_dbg_memw[3];     // live MWRITE_n (ON when write asserted... active-low LED)
-  assign led[2] = ~s_dbg_memw[10];   // ON = DD nonzero right now
-  assign led[3] = uart_txp;          // UART TX activity
+  reg wdec_seen, write_seen;         // sticky since arm
+  assign led[0] = ~s_dbg_memw[6];    // ON = WRITE high right now
+  assign led[1] = ~write_seen;       // ON = WRITE asserted at least once since arm
+  assign led[2] = ~wdec_seen;        // ON = write DECODE fired at least once since arm
+  assign led[3] = ~dbg_dumping;      // ON = trigger hit, dump ran (new-build marker)
   assign led[4] = ~s_cpu_led[2];     // parity error indicator
   assign led[5] = clockTicks[24];    // heartbeat ~0.8 Hz (clock alive)
 
@@ -174,32 +176,39 @@ module ND120_TANG20K_TOP (
   /**********************************************
   *  On-chip write-path analyzer (clk2x domain) *
   ***********************************************/
-  // 512 samples of the 16-bit bus at 13.5 MHz; trigger = first MWRITE50
-  // falling edge after a ~2.5 s arm delay (skips boot, catches the deposit);
-  // 448 pre-trigger + 64 post. Then dumps "hhhh\r\n" x512 over the UART at
-  // 9600 (taking the TX pin over from the CPU console).
+  // 512 samples of the 16-bit bus at clk2x; trigger = first rising edge of
+  // the write DECODE (bit [7], the F924 D3 input) after a ~2.5 s arm delay
+  // (skips boot; deposit at the console fires it). 64 pre-trigger + 448
+  // post, so the whole decode -> WRITE -> ECREQ -> grant -> RAS/CAS
+  // sequence lands after the trigger. Then dumps "hhhh\r\n" x512 over the
+  // UART at 9600 (taking the TX pin over from the CPU console).
+  // If LED3 (decode seen) never lights, the decode itself never fires on
+  // silicon - that is a result too.
   reg [15:0] cap_mem[0:511];
   reg [8:0] cap_wptr;
-  reg [6:0] cap_post;
+  reg [8:0] cap_post;
   reg [24:0] arm_cnt;
   reg cap_armed, cap_trig, cap_done;
-  reg mw50_d2;
+  reg wdec_d2;
   always @(posedge clk2x) begin
     if (!sys_rst_n) begin
       cap_wptr <= 0; cap_post <= 0; arm_cnt <= 0;
-      cap_armed <= 0; cap_trig <= 0; cap_done <= 0; mw50_d2 <= 1;
+      cap_armed <= 0; cap_trig <= 0; cap_done <= 0; wdec_d2 <= 0;
+      wdec_seen <= 0; write_seen <= 0;
     end else begin
       if (!cap_armed) begin
         arm_cnt <= arm_cnt + 1'b1;
         if (arm_cnt == 25'h1FFFFFF) cap_armed <= 1;  // ~2.5 s at 13.5 MHz
       end
-      mw50_d2 <= s_dbg_memw[2];
+      wdec_d2 <= s_dbg_memw[7];
+      if (cap_armed && s_dbg_memw[7]) wdec_seen <= 1;
+      if (cap_armed && s_dbg_memw[6]) write_seen <= 1;
       if (!cap_done) begin
         cap_mem[cap_wptr] <= s_dbg_memw;
         cap_wptr <= cap_wptr + 1'b1;
-        if (!cap_trig && cap_armed && mw50_d2 && !s_dbg_memw[2]) begin
+        if (!cap_trig && cap_armed && !wdec_d2 && s_dbg_memw[7]) begin
           cap_trig <= 1;
-          cap_post <= 7'd64;
+          cap_post <= 9'd448;
         end else if (cap_trig) begin
           cap_post <= cap_post - 1'b1;
           if (cap_post == 0) cap_done <= 1;
@@ -212,10 +221,18 @@ module ND120_TANG20K_TOP (
   function [7:0] hexd(input [3:0] n);
     hexd = (n < 4'd10) ? (8'h30 + {4'b0, n}) : (8'h37 + {4'b0, n});
   endfunction
+  // Separate registered read port (simple-dual-port BRAM; write happens
+  // only during capture, read only during dump - Gowin PA2122 otherwise)
+  reg [8:0] cap_raddr;
+  reg [15:0] cap_rd;
+  always @(posedge clk2x) cap_rd <= cap_mem[cap_raddr];
+
   reg [9:0] dump_i;
   reg [2:0] dump_c;
   reg dump_run, dump_fin;
-  reg [15:0] dump_word;
+  reg [26:0] hold_cnt;  // ~10 s at 13.5 MHz: keep the console on the CPU
+                        // after the trigger so the deposit echo and a
+                        // post-deposit examine get through before the dump
   reg d_tx_valid;
   reg [7:0] d_tx_data;
   wire d_tx_busy, dbg_txd;
@@ -223,17 +240,20 @@ module ND120_TANG20K_TOP (
   always @(posedge clk2x) begin
     if (!sys_rst_n) begin
       dump_i <= 0; dump_c <= 0; dump_run <= 0; dump_fin <= 0; d_tx_valid <= 0;
+      cap_raddr <= 0; hold_cnt <= 0;
     end else begin
       d_tx_valid <= 0;
-      if (cap_done && !dump_run && !dump_fin) begin
+      if (cap_done && !dump_run && !dump_fin && hold_cnt != 27'h7FFFFFF)
+        hold_cnt <= hold_cnt + 1'b1;
+      if (cap_done && !dump_run && !dump_fin && hold_cnt == 27'h7FFFFFF) begin
         dump_run <= 1; dump_i <= 0; dump_c <= 0;
-        dump_word <= cap_mem[cap_wptr];  // oldest
+        cap_raddr <= cap_wptr;  // oldest sample first (cap_rd valid next cycle)
       end else if (dump_run && !d_tx_busy && !d_tx_valid) begin
         case (dump_c)
-          3'd0: d_tx_data <= hexd(dump_word[15:12]);
-          3'd1: d_tx_data <= hexd(dump_word[11:8]);
-          3'd2: d_tx_data <= hexd(dump_word[7:4]);
-          3'd3: d_tx_data <= hexd(dump_word[3:0]);
+          3'd0: d_tx_data <= hexd(cap_rd[15:12]);
+          3'd1: d_tx_data <= hexd(cap_rd[11:8]);
+          3'd2: d_tx_data <= hexd(cap_rd[7:4]);
+          3'd3: d_tx_data <= hexd(cap_rd[3:0]);
           3'd4: d_tx_data <= 8'h0D;
           default: d_tx_data <= 8'h0A;
         endcase
@@ -241,7 +261,7 @@ module ND120_TANG20K_TOP (
         if (dump_c == 3'd5) begin
           dump_c <= 0;
           dump_i <= dump_i + 1'b1;
-          dump_word <= cap_mem[cap_wptr + dump_i[8:0] + 9'd1];
+          cap_raddr <= cap_raddr + 1'b1;  // settled long before next char
           if (dump_i == 10'd511) begin dump_run <= 0; dump_fin <= 1; end
         end else dump_c <= dump_c + 1'b1;
       end

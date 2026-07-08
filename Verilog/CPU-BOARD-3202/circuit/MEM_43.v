@@ -434,17 +434,19 @@ module MEM_43 (
    * Provides memory access, control and error handling functionality.
    */
 `ifdef MAIN_RAM_SDRAM
-  // Raw write-path signal bus for the top-level capture engine
-  assign DBG_MEMW = {s_ram_dd_17_0_in[4:0],          // [15:11] DD low bits
-                     (s_ram_dd_17_0_in != 18'b0),    // [10] DD nonzero
-                     s_bcgnt50,                      // [9]
-                     s_bgnt_n,                       // [8]
-                     s_cgnt_n,                       // [7]
-                     s_write,                        // [6]
-                     s_ecreq,                        // [5]
-                     s_dbapr,                        // [4]
-                     s_mwrite_n,                     // [3]
-                     s_mwrite50_n,                   // [2]
+  // Raw write-path signal bus for the top-level capture engine.
+  // v4: bridge-FSM focus (v3 proved AA row/col + BANK0 + write mode are all
+  // correct at the bridge inputs, so the break is inside the bridge or the
+  // SDRAM controller - watch commands issue and data_ready come back).
+  // Bits [7:6] are 0 here; ND3202D overlays wdec (trigger) and WRITE.
+  wire [7:0] s_dbg_bridge;
+  assign DBG_MEMW = {s_dbg_bridge[7:0],              // [15:8] bridge: {bstate[2:0],
+                                                     //   wr, rd, data_ready, have_data, busy}
+                     2'b00,                          // [7:6] (wdec, WRITE in ND3202D)
+                     s_bank_2_0[0],                  // [5] BANK0
+                     s_mwrite50_n,                   // [4]
+                     s_dbapr,                        // [3]
+                     s_ecreq,                        // [2]
                      s_cas,                          // [1]
                      s_ras};                         // [0]
 
@@ -478,6 +480,7 @@ module MEM_43 (
       .O_sdram_ras_n(O_sdram_ras_n),
       .O_sdram_wen_n(O_sdram_wen_n),
       .IO_sdram_dq(IO_sdram_dq),
+      .DBG_BRIDGE(s_dbg_bridge),
       .O_sdram_addr(O_sdram_addr),
       .O_sdram_ba(O_sdram_ba),
       .O_sdram_dqm(O_sdram_dqm)

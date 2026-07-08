@@ -143,7 +143,7 @@ module nd120_tang20k_tb;
         disable waitboot;
       end
       begin
-        #400_000_000;  // 400 ms sim time
+        #3_000_000_000;  // 3 s sim time (boot at 6.75 MHz slow bring-up)
         $display("");
         $display("TB_RESULT: TIMEOUT waiting for OPCOM prompt");
         $finish;
@@ -176,7 +176,7 @@ module nd120_tang20k_tb;
 
   // global watchdog
   initial begin
-    #900_000_000;  // 900 ms sim time
+    #4_000_000_000;  // 4 s sim time
     $display("");
     $display("TB_RESULT: TIMEOUT");
     $finish;

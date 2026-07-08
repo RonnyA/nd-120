@@ -73,7 +73,10 @@ module MEM_RAM_49_SDRAM #(
     inout  [31:0] IO_sdram_dq,
     output [10:0] O_sdram_addr,
     output [ 1:0] O_sdram_ba,
-    output [ 3:0] O_sdram_dqm
+    output [ 3:0] O_sdram_dqm,
+
+    // Raw bridge state for the on-chip analyzer (see TRACE-CAPTURE-GUIDE.md)
+    output [ 7:0] DBG_BRIDGE
 );
 
   /*******************************************************************************
@@ -190,6 +193,13 @@ module MEM_RAM_49_SDRAM #(
 
   reg [17:0] dd_hold;
   reg        have_data;
+
+  assign DBG_BRIDGE = {bstate[2:0],    // [7:5] FSM state (B_IDLE..B_TAIL)
+                       s_wr,           // [4] write command issued
+                       s_rd,           // [3] read command issued
+                       s_data_ready,   // [2] controller returned read data
+                       have_data,      // [1] read data held for DD_OUT
+                       s_busy};        // [0] controller busy
 
   // Idle watchdog: if the CPU leaves memory alone, refresh anyway
   reg [6:0] idle_cnt;

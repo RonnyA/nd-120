@@ -892,6 +892,29 @@ TODO: Sort bits on output LED to match led numbering
   assign {s_ibint11_n, s_ibint12_n, s_ibint13_n, s_ibint15_n}
     = {s_bint11_n, s_bint12_n, s_bint13_n, s_bint15_n};
 
+`ifdef MAIN_RAM_SDRAM
+  // Write-path analyzer bus, retargeted (8-JUL-2026) at the WRITE
+  // generation chain in the DGA (DECODE_DGA_COMM F924 A160, clocked by
+  // the CYC-generated CLK): microcode CSCOMM decode -> D3 -> Q3 = WRITE.
+  // s_dbg_wdec recomputes the A167 NAND decode (D3 of the F924) from the
+  // same board-level nets the DGA sees, so we can watch the D input and
+  // the registered output side by side on silicon.
+  wire [15:0] s_dbg_mem43;  // original MEM_43 bus (RAS/MWRITE_n kept below)
+  wire s_dbg_wdec =
+      (s_cscomm_4_0[4] & s_cscomm_4_0[3] & ~s_cscomm_4_0[2] & s_cscomm_4_0[1] & s_lcs_n) |
+      (s_cscomm_4_0[4] & s_cscomm_4_0[3] & s_cscomm_4_0[2] & ~s_cscomm_4_0[1] & s_cscomm_4_0[0] & s_lcs_n);
+  // v4 (v1: WRITE asserts; v2: DD data + MWRITE_n correct in the window;
+  // v3: AA row/col + BANK0 + write mode correct at the bridge inputs):
+  // MEM_43 now sends the SDRAM-bridge FSM internals (see its DBG_MEMW
+  // assign); overlay the wdec trigger at [7] and WRITE at [6] so the
+  // top-level logic is unchanged.
+  assign DBG_MEMW = {s_dbg_mem43[15:8],    // [15:8] bridge {bstate[2:0], wr, rd,
+                     s_dbg_wdec,           //   data_ready, have_data, busy}
+                     s_write,              // [7] wdec (TRIGGER), [6] WRITE
+                     s_dbg_mem43[5:0]};    // [5]=BANK0 [4]=MWRITE50_n [3]=DBAPR
+                                           // [2]=ECREQ [1]=CAS [0]=RAS
+`endif
+
   MEM_43 MEM (
       .sysclk   (sysclk),    // System clock in FPGA
       .sys_rst_n(sys_rst_n), // System reset in FPGA
@@ -910,7 +933,7 @@ TODO: Sort bits on output LED to match led numbering
       .O_sdram_addr(O_sdram_addr),
       .O_sdram_ba(O_sdram_ba),
       .O_sdram_dqm(O_sdram_dqm),
-      .DBG_MEMW(DBG_MEMW),
+      .DBG_MEMW(s_dbg_mem43),
 `endif
 
       // INPUTS
