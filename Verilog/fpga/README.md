@@ -39,6 +39,48 @@ handoffs in each `<board>/` folder) - this file is only the directory. For
 the QMTECH resume instructions specifically, see
 [`qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md`](qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md).
 
+## Building - one API for every board
+
+Every board folder has a `Makefile` with the **same targets**, whatever the
+toolchain underneath. From WSL (the Windows-hosted tools are reached via
+`powershell.exe` - works because the repo lives on a Windows drive):
+
+| Target | Meaning |
+|--------|---------|
+| `make` | Build the bitstream (no board needed) |
+| `make load` | Program the FPGA - **volatile** (JTAG/SRAM; gone at power-cycle) |
+| `make flash` | Program **persistent** config flash (survives power-cycle) |
+| `make sim` | Run the board folder's iverilog testbenches (where present) |
+| `make clean` | Remove build outputs (where present) |
+
+Board-specific extras: `basys3` adds `make reuse` (skip the ~1h resynth,
+reuse the `synth_1` checkpoint) and `make lint`; `qmtech-a35t` takes
+`TEST=led-test|mem-test` (default `mem-test`) and has no `flash` flow yet;
+`mister` is a placeholder until the Quartus project exists; `cmod-a7-35t`
+is research-only (no Makefile). The standalone
+`tang-nano-20k/sdram-test/` keeps its own Makefile with the same
+`all`/`load`/`flash`/`sim`/`clean` targets (Linux-native OSS flow).
+
+**On the Windows host** the underlying scripts are the direct entry points
+(the Makefiles just delegate to them):
+
+```powershell
+cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\basys3
+.\vivado_build.ps1              # bitstream ('make'); -ReuseSynth / -LintOnly / -Program
+.\flash.ps1 -Quick              # 'make load' (JTAG only); omit -Quick for 'make flash'
+
+cd ..\tang-nano-20k
+.\gowin_build.ps1               # bitstream ('make'); copies WCS preload + checks EX3988
+
+cd ..\qmtech-a35t\mem-test      # or led-test
+vivado -mode batch -source build.tcl -tclargs skip_program   # 'make'
+vivado -mode batch -source build.tcl                         # 'make load'
+```
+
+Programming transport per board: Basys3 and Cmod A7 = onboard USB-JTAG;
+Tang Nano 20K = `openFPGALoader` from WSL (usbipd-attached) or the Gowin
+programmer GUI; QMTECH = Xilinx Platform Cable USB II on the JTAG header.
+
 ## Shared context (applies to all boards)
 
 - **The boot blocker is timing, not logic.** The FF-mode Verilator sim boots

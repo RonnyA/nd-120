@@ -25,14 +25,19 @@ write_bitstream -force $bit
 puts "BITSTREAM: $bit"
 
 # ---- program over JTAG (volatile; power-cycle wipes it) ----
-open_hw_manager
-connect_hw_server
-open_hw_target
-set dev [lindex [get_hw_devices xc7a35t*] 0]
-current_hw_device $dev
-set_property PROGRAM.FILE $bit $dev
-program_hw_devices $dev
-puts "PROGRAMMED (JTAG)"
-close_hw_manager
+# Pass "-tclargs skip_program" to build the bitstream without a board attached.
+if {[lsearch $argv "skip_program"] < 0} {
+    open_hw_manager
+    connect_hw_server
+    open_hw_target
+    set dev [lindex [get_hw_devices xc7a35t*] 0]
+    current_hw_device $dev
+    set_property PROGRAM.FILE $bit $dev
+    program_hw_devices $dev
+    puts "PROGRAMMED (JTAG)"
+    close_hw_manager
+} else {
+    puts "skip_program: bitstream built, not programmed"
+}
 
 puts "=== LED-TEST BUILD COMPLETE ==="

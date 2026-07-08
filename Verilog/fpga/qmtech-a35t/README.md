@@ -21,6 +21,7 @@ JTAG-program with one `vivado -mode batch -source build.tcl` each.
 
 | File | Purpose |
 |------|---------|
+| [`Makefile`](Makefile) | Standard board API (see [`../README.md`](../README.md) "Building"): `make [TEST=led-test\|mem-test]` = bitstream only, `make load` = build + JTAG program, `make sim` = run the mem-test testbench (passes), `make clean`. |
 | [`board-pins.xdc`](board-pins.xdc) | Reference pin map - every pin confirmed from the vendor XDCs/manual (50 MHz clock `R2`, LEDs `C8`/`D8` **active-low**, key `H18`, full 39-pin SDRAM map, config properties). Copy ports from here; don't re-derive. Includes commented placeholders for future OPCOM UART header pins. |
 | [`led-test/`](led-test/) | Stage-1 smoke test: `led_test_top.v` (1 Hz heartbeat on `led_n[0]`, key echo on `led_n[1]`), `led_test.xdc`, `build.tcl` (in-memory synth -> impl -> bitstream -> JTAG program, modeled on [`../basys3/mem-test/build.tcl`](../basys3/mem-test/build.tcl)). Run on the Windows host: `vivado -mode batch -source build.tcl` |
 | [`mem-test/`](mem-test/) | Stage-2: port of [`../basys3/mem-test/`](../basys3/mem-test/) (same FSM/vectors/`MEM_RAM_49`, directly comparable with the Basys3 run that passes on silicon). 50 MHz MMCM math; no UART pin - `msg_printer` TX is an internal `mark_debug` net for ILA; result on the LEDs: running = fast blink, PASS = 1 Hz blink, FAIL = both solid. Sim: `cd mem-test/sim && iverilog -g2012 -DNO_MMCM -o tb qmtech_mem_test_tb.v ... && vvp tb` (passes). |
