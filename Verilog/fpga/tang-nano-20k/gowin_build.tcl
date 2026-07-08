@@ -1,0 +1,59 @@
+# ND120 Tang Nano 20K - Gowin gw_sh build script
+#
+# Run on the Windows host (like the Vivado flow):
+#   gw_sh.exe gowin_build.tcl        (or use gowin_build.ps1, which also
+#                                     copies the WCS preload hex files)
+#
+# Creates a throwaway project under build/ from the SAME file list as the
+# GUI project (nd120_tang20k.gprj is parsed, so there is one source of
+# truth), then runs synthesis + place&route.
+# Bitstream: build/impl/pnr/nd120_tang20k_build.fs
+
+set proj_dir [file dirname [file normalize [info script]]]
+
+create_project -name nd120_tang20k_build -dir $proj_dir/build \
+    -pn GW2AR-LV18QN88C8/I7 -device_version C -force
+
+# One source of truth: pull the file list out of the GUI project file
+set fp [open "$proj_dir/nd120_tang20k.gprj" r]
+set xml [read $fp]
+close $fp
+
+set nfiles 0
+foreach {full path} [regexp -all -inline {<File path="([^"]+)"[^>]*enable="1"/>} $xml] {
+    add_file [file normalize "$proj_dir/$path"]
+    incr nfiles
+}
+puts "Added $nfiles files from nd120_tang20k.gprj"
+
+set_option -top_module ND120_TANG20K_TOP
+set_option -verilog_std v2001
+
+# WCS preload images (SKIP_WCS_LOAD): GowinSynthesis resolves the relative
+# $readmemh("wcs_*.hex") paths against its own working directories, NOT the
+# script directory - first build failed with EX3988 "Cannot open file" and
+# produced an EMPTY control store (dead CPU). Copy the images into every
+# directory the tool may use.
+set wcs_src [file normalize "$proj_dir/../../../Code/Microcode/wcs"]
+set wcs_files [glob -nocomplain "$wcs_src/wcs_*.hex"]
+if {[llength $wcs_files] != 33} {
+    puts "WARNING: expected 33 wcs hex files in $wcs_src, found [llength $wcs_files]"
+}
+set dests [list [pwd] \
+                $proj_dir \
+                $proj_dir/build \
+                $proj_dir/build/nd120_tang20k_build \
+                $proj_dir/build/nd120_tang20k_build/impl \
+                $proj_dir/build/nd120_tang20k_build/impl/gwsynthesis]
+foreach d $dests {
+    file mkdir $d
+    foreach f $wcs_files {
+        file copy -force $f $d
+    }
+}
+puts "WCS preload images copied to [llength $dests] candidate directories"
+
+# Print a text timing report for the WNS check
+set_option -gen_text_timing_rpt 1
+
+run all

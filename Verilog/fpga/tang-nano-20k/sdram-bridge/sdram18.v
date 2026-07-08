@@ -1,0 +1,227 @@
+// 18-bit-word SDRAM controller for Tang Nano 20K - ND-120 main memory variant
+//
+// Adapted from nand2mario's byte-based controller (sdram-test/src/sdram.v,
+// Apache-2.0, see sdram-test/src/LICENSE.nand2mario). Differences:
+//   - one 18-bit ND-120 word (16 data + 2 parity) per 32-bit SDRAM word,
+//     upper 14 DQ bits unused
+//   - addr is a 21-bit WORD address (2M words = the whole 8 MB part),
+//     no byte offset / DQM lane selection: writes drive all four lanes
+//   - everything else (timing parameters, state machine, refresh, init)
+//     is unchanged
+//
+// Under default settings (max 66.7Mhz):
+// - Data read latency is 4 cycles, read/write take 5 cycles, no overlap.
+// - All ops use auto-precharge; caller must pulse `refresh` once per ~15 us.
+// - clk_sdram must be 180 degrees from clk (PLL clkoutp).
+
+module sdram18
+#(
+    parameter         FREQ = 54_000_000,
+
+    parameter         DATA_WIDTH = 32,
+    parameter         ROW_WIDTH = 11,  // 2K rows
+    parameter         COL_WIDTH = 8,   // 256 words per row
+    parameter         BANK_WIDTH = 2,  // 4 banks
+
+    // Time delays for 66.7Mhz max clock (min clock cycle 15ns)
+    parameter [3:0]   CAS  = 4'd2,
+    parameter [3:0]   T_WR = 4'd2,
+    parameter [3:0]   T_MRD= 4'd2,
+    parameter [3:0]   T_RP = 4'd1,
+    parameter [3:0]   T_RCD= 4'd1,
+    parameter [3:0]   T_RC = 4'd4
+)
+(
+    // SDRAM side interface
+    inout [DATA_WIDTH-1:0]      SDRAM_DQ,
+    output reg [ROW_WIDTH-1:0]  SDRAM_A,
+    output reg [BANK_WIDTH-1:0] SDRAM_BA,
+    output            SDRAM_nCS,
+    output reg        SDRAM_nWE,
+    output reg        SDRAM_nRAS,
+    output reg        SDRAM_nCAS,
+    output            SDRAM_CLK,
+    output            SDRAM_CKE,
+    output reg  [3:0] SDRAM_DQM,
+
+    // Logic side interface
+    input             clk,
+    input             clk_sdram,    // phase shifted from clk (normally 180-degrees)
+    input             resetn,
+    input             rd,           // command: read
+    input             wr,           // command: write
+    input             refresh,      // command: auto refresh, once per ~15 us
+    input      [20:0] addr,         // WORD address, buffered at rd/wr pulse time
+    input      [17:0] din,          // data input, buffered at wr pulse time
+    output     [17:0] dout,         // data output, valid at data_ready, then held
+    output reg        data_ready,
+    output reg        busy          // 0: ready for next command
+);
+
+// Tri-state DQ input/output
+reg dq_oen;         // 0 means output
+reg [DATA_WIDTH-1:0] dq_out;
+assign SDRAM_DQ = dq_oen ? {DATA_WIDTH{1'bz}} : dq_out;
+wire [DATA_WIDTH-1:0] dq_in = SDRAM_DQ;
+
+reg [17:0] dout_buf;
+assign dout = data_ready ? dq_in[17:0] : dout_buf;
+assign SDRAM_CLK = clk_sdram;
+assign SDRAM_CKE = 1'b1;
+assign SDRAM_nCS = 1'b0;
+
+reg [2:0] state;
+localparam INIT = 3'd0;
+localparam CONFIG = 3'd1;
+localparam IDLE = 3'd2;
+localparam READ = 3'd3;
+localparam WRITE = 3'd4;
+localparam REFRESH = 3'd5;
+
+// RAS# CAS# WE#
+localparam CMD_SetModeReg=3'b000;
+localparam CMD_AutoRefresh=3'b001;
+localparam CMD_PreCharge=3'b010;
+localparam CMD_BankActivate=3'b011;
+localparam CMD_Write=3'b100;
+localparam CMD_Read=3'b101;
+localparam CMD_NOP=3'b111;
+
+localparam [2:0] BURST_LEN = 3'b0;      // burst length 1
+localparam BURST_MODE = 1'b0;           // sequential
+localparam [10:0] MODE_REG = {4'b0, CAS[2:0], BURST_MODE, BURST_LEN};
+
+reg cfg_now;            // pulse for configuration
+reg [3:0] cycle;
+reg [17:0] din_buf;
+reg [20:0] addr_buf;    // {ba[1:0], row[10:0], col[7:0]}
+
+//
+// SDRAM state machine
+//
+always @(posedge clk) begin
+    cycle <= cycle == 4'd15 ? 4'd15 : cycle + 4'd1;
+    // defaults
+    {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_NOP;
+    casex ({state, cycle})
+        // wait 200 us on power-on
+        {INIT, 4'bxxxx} : if (cfg_now) begin
+            state <= CONFIG;
+            cycle <= 0;
+        end
+
+        // configuration sequence
+        {CONFIG, 4'd0} : begin
+            // precharge all
+            {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_PreCharge;
+            SDRAM_A[10] <= 1'b1;
+        end
+        {CONFIG, T_RP} : begin
+            {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_AutoRefresh;
+        end
+        {CONFIG, T_RP+T_RC} : begin
+            {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_AutoRefresh;
+        end
+        {CONFIG, T_RP+T_RC+T_RC} : begin
+            {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_SetModeReg;
+            SDRAM_A[10:0] <= MODE_REG;
+        end
+        {CONFIG, T_RP+T_RC+T_RC+T_MRD} : begin
+            state <= IDLE;
+            busy <= 1'b0;
+        end
+
+        // read/write/refresh
+        {IDLE, 4'bxxxx}: if (rd | wr) begin
+            // bank activate; word address split: {ba, row, col}
+            {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_BankActivate;
+            SDRAM_BA <= addr[20:19];
+            SDRAM_A  <= addr[18:8];                 // 11-bit row address
+            state <= rd ? READ : WRITE;
+            addr_buf <= addr;
+            if (wr) din_buf <= din;
+            cycle <= 4'd1;
+            busy <= 1'b1;
+        end else if (refresh) begin
+            {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_AutoRefresh;
+            state <= REFRESH;
+            cycle <= 4'd1;
+            busy <= 1'b1;
+        end
+
+        // read sequence (data at cycle T_RCD+CAS+1 relative to activate)
+        {READ, T_RCD}: begin
+            {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_Read;
+            SDRAM_A[10] <= 1'b1;        // auto precharge
+            SDRAM_A[9:0] <= {2'b0, addr_buf[COL_WIDTH-1:0]};  // column
+            SDRAM_DQM <= 4'b0;
+        end
+        {READ, T_RCD+CAS}: begin
+            data_ready <= 1'b1;
+        end
+        {READ, T_RCD+CAS+4'd1}: begin
+            data_ready <= 1'b0;
+            dout_buf <= dq_in[17:0];
+            busy <= 0;
+            state <= IDLE;
+        end
+
+        // write sequence
+        {WRITE, T_RCD}: begin
+            {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_Write;
+            SDRAM_A[10] <= 1'b1;        // auto precharge
+            SDRAM_A[9:0] <= {2'b0, addr_buf[COL_WIDTH-1:0]};  // column
+            SDRAM_DQM <= 4'b0000;       // write all lanes (18-bit word in 32)
+            dq_out <= {14'b0, din_buf};
+            dq_oen <= 1'b0;
+        end
+        {WRITE, T_RCD+4'd1}: begin
+            dq_oen <= 1'b1;
+        end
+        {WRITE, T_RCD+T_WR+T_RP}: begin
+            busy <= 0;
+            state <= IDLE;
+        end
+
+        // refresh sequence
+        {REFRESH, T_RC}: begin
+            state <= IDLE;
+            busy <= 0;
+        end
+    endcase
+
+    if (~resetn) begin
+        busy <= 1'b1;
+        dq_oen <= 1'b1;
+        SDRAM_DQM <= 4'b0;
+        state <= INIT;
+    end
+end
+
+//
+// Generate cfg_now pulse after initialization delay (normally 200us)
+//
+reg  [14:0]   rst_cnt;
+reg rst_done, rst_done_p1, cfg_busy;
+
+always @(posedge clk) begin
+    rst_done_p1 <= rst_done;
+    cfg_now     <= rst_done & ~rst_done_p1;
+
+    if (rst_cnt != FREQ / 1000 * 200 / 1000) begin      // count to 200 us
+        rst_cnt  <= rst_cnt[14:0] + 1;
+        rst_done <= 1'b0;
+        cfg_busy <= 1'b1;
+    end else begin
+        rst_done <= 1'b1;
+        cfg_busy <= 1'b0;
+    end
+
+    if (~resetn) begin
+        rst_cnt  <= 15'd0;
+        rst_done <= 1'b0;
+        cfg_busy <= 1'b1;
+    end
+end
+
+endmodule
