@@ -73,6 +73,9 @@ set_msg_config -id {Synth 8-5837} -suppress
 foreach _rel {
     CPU-BOARD-3202/circuit/CYC_TERM_D.v
     CPU-BOARD-3202/circuit/CYC_CC_D.v
+    CPU-BOARD-3202/circuit/PAL_44445B_D.v
+    CPU-BOARD-3202/circuit/PAL_44446B_D.v
+    Shared/support/SevenSegDebug.v
 } {
     set _f "${verilog_dir}/${_rel}"
     if {![file exists $_f]} {
