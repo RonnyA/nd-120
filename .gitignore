@@ -72,6 +72,7 @@ Verilog/**/__pycache__/
 Verilog/fpga/**/.Xil/
 Verilog/fpga/tang-nano-20k/build/
 Verilog/fpga/tang-nano-20k/sdram-test/build/
+Verilog/fpga/tang-nano-20k/sdram18-test/build/
 Verilog/fpga/tang-nano-20k/lint/
 # WCS preload hex are copied in by gowin_build.ps1 from Code/Microcode/wcs/
 Verilog/fpga/tang-nano-20k/wcs_*.hex
