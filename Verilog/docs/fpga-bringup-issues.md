@@ -118,7 +118,22 @@ sim-reproducible ones.
   seqcheck's boot path never exercised. Traces in scratchpad: csa_latch_0.csv /
   csa_ff_0.csv, s0l.txt/s0f.txt (deduped).
 
-## 3. RAM addressing + data corruption  [FIX WRITTEN + UNIT-TESTED, FPGA synth pending]
+## 3. RAM addressing + data corruption  [MEMORY MODULE PROVEN GOOD ON SILICON -> bug is MAC integration]
+- BREAKTHROUGH 2026-07-08: standalone Basys3 memory test (`fpga/basys3/mem-test/`)
+  drives MEM_RAM_49 -> SIP1M9 sync BRAM with the real DRAM RAS/CAS/AA protocol and
+  PASSES ON HARDWARE: all 8 addresses write+read correct, no aliasing (0 vs 4
+  distinct), last read 0x42 confirmed on LEDs. So the BRAM memory PATH is CORRECT on
+  silicon. The CPU's read-0 failure is therefore NOT the memory module / SIP1M9 fix
+  -- it is the CPU MAC/bus INTEGRATION driving the memory interface wrong on the FPGA
+  (RAS/CAS/AA/DD/MWRITE50_n/banks from MEM_RAMC_50/PAL_44902A, MEM_ADDR_44,
+  MEM_DATA_46). Same FF-mode/real-timing class as the CYC_36 fix; zero-delay sim
+  hides it (memory works in sim). NEXT: snoop the CPU's actual memory-interface
+  signals on the board (reuse the mem-test UART dump) during an OPCOM memory access,
+  compare to the known-correct timing the standalone test uses, find the wrong signal.
+  NOTE (Basys3 gotcha): btn1=SW0=V17; the mem-test holds reset when SW0 is UP (opposite
+  of the CPU's "SW0 UP=run") -- set SW0 DOWN to run it. Fix polarity in a rebuild.
+
+--- (below: the SIP1M9 sync BRAM fix -- correct, keep) ---
 - FIX (2026-07-07): `Shared/support/SIP1M9.v` now has a proper SYNCHRONOUS BRAM path
   for `ramSize==3` (generate block `g_fpga_bram`), leaving the zero-delay DRAM sim
   model for `ramSize==2` untouched. Sysclk-clocked; RAS_n/CAS_n treated as level

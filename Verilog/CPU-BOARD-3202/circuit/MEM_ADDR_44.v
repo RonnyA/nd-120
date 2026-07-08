@@ -87,7 +87,14 @@ module MEM_ADDR_44 (
       .Y_OUT(s_aa_9_0_out)
   );
 
-  AM29C821 CHIP_3H_ROW_ADDRESS (
+  // USE_SYSCLK=1: BCGNT50 is a bus-grant CONTROL signal, not a clock. Clocking these
+  // address latches on `posedge BCGNT50` (USE_SYSCLK=0) is the routed-net-as-clock
+  // anti-pattern -- works in zero-delay sim but on the FPGA the row/col address is
+  // not captured reliably, so the CPU reads/writes the wrong RAM location (read 0).
+  // The standalone mem-test (fpga/basys3/mem-test) drives AA directly, bypassing
+  // these, and PASSES on hardware -- proving the fault is here. Sample on sysclk with
+  // BCGNT50 as an enable instead (same fix as the UART CHIP_33G).
+  AM29C821 #(.USE_SYSCLK(1)) CHIP_3H_ROW_ADDRESS (
       .sysclk(sysclk),
       .CK(s_bcgnt50),
       .D(s_lbd_lo_in),
@@ -95,7 +102,7 @@ module MEM_ADDR_44 (
       .Y(s_lbd_lo_out)
   );
 
-  AM29C821 CHIP_4H_COL_ADDRESS (
+  AM29C821 #(.USE_SYSCLK(1)) CHIP_4H_COL_ADDRESS (
       .sysclk(sysclk),
       .CK(s_bcgnt50),
       .D(s_lbd_hi_in),
