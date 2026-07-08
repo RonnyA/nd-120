@@ -118,6 +118,17 @@ The Logisim diagrams has been drawn with [Version 3.8.0](https://github.com/logi
 
 ## FPGA
 
+### FPGA Hardware
+
+The project targets several FPGA boards, each with its own folder of build
+scripts, pin constraints, vendor documentation and bring-up plans under
+[Verilog/fpga/](Verilog/fpga/README.md). Current line-up: **Tang Nano 20K**
+(primary target, Gowin), **Basys3** (Xilinx Artix-7, active debugging line),
+**QMTECH XC7A35T** (paused side experiment, Artix-7 + 32 MB SDRAM),
+**MiSTer / DE10-Nano** (future full-machine target) and **Cmod A7-35T**
+(research only). See [Verilog/fpga/README.md](Verilog/fpga/README.md) for
+the status table, priority order and per-board details.
+
 ### Verilog
 
 Most Verilog files are generated from the Logisim drawings, using Logisim-Evolution FPGA tools.

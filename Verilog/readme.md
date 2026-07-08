@@ -136,21 +136,91 @@ The design uses different RAM sizes for Verilator simulation vs FPGA synthesis:
 
 The configuration is automatic based on compile-time defines in `MEM_RAM_49.v`. No manual changes needed.
 
-## FPGA Targets
+## Supported hardware targets
 
-FPGA build/flow files live under [`fpga/`](fpga/README.md), one folder per board.
-The HDL source is shared; only board-specific build scripts, constraints, and
-tool projects are per-target. See [`fpga/README.md`](fpga/README.md) for the
-overview.
+The same HDL source builds for one simulator and two FPGA boards. FPGA
+build/flow files live under [`fpga/`](fpga/README.md), one folder per board —
+only board-specific build scripts, constraints, and tool projects are
+per-target.
 
-| Target | FPGA | Toolchain | Status |
-|--------|------|-----------|--------|
-| [**Tang Nano 20K**](fpga/tang-nano-20k/README.md) *(primary)* | Gowin `GW2AR-18` (20,736 LUT4, 828 Kbit BSRAM, 8 MB SDRAM, 27 MHz) | Gowin EDA / OSS yosys+nextpnr (Linux-native) | Bring-up in progress |
+| Target | Device | Toolchain | Status |
+|--------|--------|-----------|--------|
+| **Verilator** (reference) | — (simulation) | Verilator + GTKWave, Linux/WSL | **Works** — boots microcode, self-test 7/14, OPCOM UART |
+| [**Tang Nano 20K**](fpga/tang-nano-20k/README.md) *(primary FPGA)* | Gowin `GW2AR-18` (20,736 LUT4, 828 Kbit BSRAM, 8 MB SDRAM, 27 MHz) | Gowin EDA / OSS yosys+nextpnr (Linux-native) | Bring-up in progress |
 | [**Basys3**](fpga/basys3/README.md) | Xilinx Artix-7 `xc7a35tcpg236-1` (33,280 LUT6, ~1,800 Kbit BRAM, 100 MHz) | Vivado (Windows host) | Synthesis OK; **fails timing** (WNS approx -100 ns), does not boot |
 
-**Current focus is the Tang Nano 20K** - faster Gowin synthesis than Vivado, a
-Linux-native OSS toolchain, and 8 MB SDRAM that lets the FPGA run the full memory
-config like the simulator. Basys3 is the second target once Tang works.
+**Current FPGA focus is the Tang Nano 20K** - faster Gowin synthesis than Vivado,
+a Linux-native OSS toolchain, and 8 MB SDRAM that lets the FPGA run the full
+memory config like the simulator. Basys3 is the second target once Tang works.
+
+### Verilator (simulation — the working reference)
+
+No hardware needed; this is the golden reference every FPGA build is compared
+against. Two harnesses, described in detail [above](#run-verilog-code-using-verilator):
+
+```bash
+# Waveform / signal-level sim (FST + GTKWave)
+cd Verilog/sim && make clean && make all
+
+# Interactive full-CPU sim (microcode load + self-test + live OPCOM console)
+cd Verilog/runSim && make clean && make compile && make run
+```
+
+### Basys3 — synthesize & deploy (Vivado, Windows host)
+
+The repo lives on `E:`; the Vivado project is outside the repo at
+`F:/Xilinx/ND120/ND3202D/`. Run from **Windows PowerShell**:
+
+```powershell
+cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\basys3
+
+# Synthesize + implement + write bitstream (~1h full synth; copies microcode hex first)
+.\vivado_build.ps1
+#   -> F:\Xilinx\ND120\ND3202D\output\ND120_TOP.bit (+ .ltx for ILA probes)
+
+# Deploy to the board:
+.\flash.ps1 -Quick     # JTAG only (volatile) - fast iteration
+.\flash.ps1            # JTAG + SPI flash - survives power cycle
+```
+
+`vivado_build.tcl` flags: `full_synth`, `skip_program`, `no_reset_synth`,
+`backup_bit`; `vivado_lint.tcl` runs lint only. The microcode hex files
+`AM27256_4513{2,3}L.hex` must be in the project dir (the `.ps1` copies them from
+`Code/Microcode/`) or the ROM is empty. Details:
+[`fpga/basys3/README.md`](fpga/basys3/README.md).
+
+### Tang Nano 20K — synthesize & deploy (Gowin)
+
+Two flows (details and current caveats in
+[`fpga/tang-nano-20k/README.md`](fpga/tang-nano-20k/README.md)):
+
+- **Gowin EDA** (authoritative): the existing project `ND-120-Gowin/`
+  (`ND-120-Gowin.gprj`) via the GUI or `gw_sh`; its Synplify-based synthesis
+  handles the design's TTL-style flip-flops as-is. Program the board over the
+  onboard BL616 USB (Gowin Programmer or `openFPGALoader`).
+- **OSS flow** (Linux/WSL, no Windows round-trip):
+
+  ```bash
+  source ~/oss-cad-suite/environment   # install: see fpga/tang-nano-20k/README.md
+  # yosys synth_gowin -> nextpnr-himbaechel --device GW2AR-LV18QN88C8/I7
+  #   -> gowin_pack -> deploy:
+  openFPGALoader -b tangnano20k <bitstream>.fs        # SRAM (volatile)
+  openFPGALoader -b tangnano20k -f <bitstream>.fs     # config flash (persistent)
+  ```
+
+  Caveat: `yosys synth_gowin` currently rejects several TTL flip-flop primitives
+  (multiple edge-sensitive events); Gowin EDA handles them. Pin constraints:
+  `fpga/tang-nano-20k/ND120_TOP.cst`. Board build scripts are still being added
+  as the bring-up progresses.
+
+  Board hardware reference: [Sipeed wiki - Tang Nano 20K](https://wiki.sipeed.com/hardware/en/tang/tang-nano-20k/nano-20k.html).
+  The 8 MB embedded SDRAM has a standalone bring-up test (nand2mario controller
+  + ND-120 UART at 9600 baud) in
+  [`fpga/tang-nano-20k/sdram-test/`](fpga/tang-nano-20k/sdram-test/README.md) -
+  buildable with both Gowin EDA (`sdram_test.gprj`) and the OSS flow (`make`),
+  with a passing iverilog testbench (`make sim`). **Verified on hardware
+  2026-07-08**: OSS-flow bitstream, 1 MB write+verify passes; that README also
+  documents the usbipd/WSL2 program-and-console workflow.
 
 Key shared facts:
 

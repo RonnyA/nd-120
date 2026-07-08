@@ -12,13 +12,34 @@ one folder per board.
 | Target | FPGA | Toolchain | Status | Details |
 |--------|------|-----------|--------|---------|
 | [**basys3/**](basys3/README.md) | Xilinx Artix-7 `xc7a35tcpg236-1` | Vivado (Windows host) | Synthesis OK; **fails timing** (WNS approx -100 ns), does not boot | [basys3/README.md](basys3/README.md) |
-| [**tang-nano-20k/**](tang-nano-20k/README.md) | Gowin `GW2AR-18` | Gowin EDA / OSS (yosys+nextpnr) | **Primary target**, bring-up in progress | [tang-nano-20k/README.md](tang-nano-20k/README.md) |
+| [**tang-nano-20k/**](tang-nano-20k/README.md) | Gowin `GW2AR-18` | Gowin EDA / OSS (yosys+nextpnr) | **Primary target**, bring-up in progress; SDRAM test [`tang-nano-20k/sdram-test/`](tang-nano-20k/sdram-test/README.md) **passes on hardware** via the OSS flow | [tang-nano-20k/README.md](tang-nano-20k/README.md) |
+| [**mister/**](mister/README.md) | Intel Cyclone V SE `5CSEBA6U23I7` (DE10-Nano / "MiSTer PI", ~110K LE + ARM HPS running Linux) | Quartus Lite 17.0.2 (free, Docker `raetro/quartus:17.0`) | **Planned** - MiSTer core with floppy/HDD as Linux-side image files, OSD menu, microcode upload from file; phase plan with validated links in [`mister/docs/00-overview.md`](mister/docs/00-overview.md) | [mister/README.md](mister/README.md) |
+| [**qmtech-a35t/**](qmtech-a35t/README.md) | Xilinx Artix-7 `xc7a35tcsg325-1` (QMTECH XC7A35T SDRAM core board) | Vivado (Windows host), same flow as Basys3 | **Paused side experiment** - stages 1-2 (LED smoke test + mem-test port) written and sim-verified, nothing run on hardware yet; resume via [`qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md`](qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md) | [qmtech-a35t/README.md](qmtech-a35t/README.md) |
+| [**cmod-a7-35t/**](cmod-a7-35t/README.md) | Xilinx Artix-7 `xc7a35t-1cpg236` (Digilent Cmod A7-35T DIP module, 512 KB external SRAM) | Vivado (Windows host), same flow as Basys3 (same part) | **Research only** - not planned for purchase/porting (too expensive vs the Tang Nano 20K); folder holds the collected docs + backend sketch | [cmod-a7-35t/README.md](cmod-a7-35t/README.md) |
 
-**Tang Nano 20K is the current focus** (faster synth than Vivado, Linux-native
-OSS flow, and 8 MB SDRAM for full main memory). Basys3 is the fallback/second
-target once Tang works.
+## Priority order (2026-07-08)
 
-## Shared context (applies to both)
+1. **Tang Nano 20K - primary target** (faster synth than Vivado, Linux-native
+   OSS flow, 8 MB SDRAM for full main memory). It is also the project's
+   **value-for-money benchmark**: under 300 NOK for SDRAM + microSD +
+   USB-JTAG/UART + HDMI - judge any new board suggestion against it.
+2. **Basys3** - fallback/second target once Tang works; currently the active
+   debugging line for the board-independent timing work.
+3. **QMTECH XC7A35T** - paused side experiment (Ronny owns it). Same die as
+   the Basys3 + 32 MB SDRAM (2 MB main-memory target). Stages 1-2 written and
+   sim-verified, nothing run on hardware yet.
+4. **MiSTer** - future "full machine" target (disk images served from the
+   board's Linux side); starts once FF-mode boot works.
+5. **Cmod A7-35T** - research only, no purchase planned: 1039 NOK for less
+   functionality than the sub-300-NOK Tang Nano 20K. The folder keeps the
+   collected docs and the SRAM-backend sketch.
+
+Per-board detail lives **with the board** (README, vendor docs, plans and
+handoffs in each `<board>/` folder) - this file is only the directory. For
+the QMTECH resume instructions specifically, see
+[`qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md`](qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md).
+
+## Shared context (applies to all boards)
 
 - **The boot blocker is timing, not logic.** The FF-mode Verilator sim boots
   correctly; the FPGAs fail because ~35 modules use derived signals as clock

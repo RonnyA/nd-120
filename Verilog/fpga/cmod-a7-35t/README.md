@@ -1,0 +1,144 @@
+# ND-120 on Digilent Cmod A7-35T (future target)
+
+**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/cmod-a7-35t/`
+
+## Status
+
+**Research/reference board only - not a purchase or porting priority.**
+At 1039 NOK it is too expensive and less functional than the Tang Nano 20K,
+which is the project's value-for-money and capability benchmark (8 MB SDRAM,
+onboard microSD, USB-JTAG/UART, HDMI - at **under 300 NOK**, less than a
+third of the Cmod's price). This
+folder exists to keep the research (docs, pin map, backend plan) in one
+place in case the board is ever picked up; no build files, no hardware,
+no timeline. Board docs live with the board, not in `Verilog/docs/`.
+Original capture: `Verilog/TODO.md` ("Future boards / peripherals").
+
+## Why this board
+
+Same `xc7a35t-1cpg236` die **and package** as the Basys3 - bitstream-level
+identical logic - but in a breadboardable DIP module with **512 KB external
+SRAM**, which offers a third main-memory backend besides Basys3 BRAM and
+Tang/QMTECH SDRAM.
+
+## Pin source of truth
+
+[`Cmod-A7-Master.xdc`](Cmod-A7-Master.xdc) - Digilent's official master XDC
+(rev. B board), fetched 2026-07-08 from
+<https://github.com/Digilent/digilent-xdc>. Every subsystem is in it:
+clock `L17`, LEDs `A17`/`C16`, RGB LED `C17`(r)/`B16`(g)/`B17`(b), buttons
+`A18`/`B18`, Pmod JA (8 signals), UART `J17`/`J18` (matches the reference
+manual), QSPI, the full SRAM map, the 44 DIP GPIOs (`pio1`-`pio48`, with
+gaps: DIP 15/16 usable instead as XADC analog inputs `vaux4`/`vaux12`,
+DIP 24/25 = VU/GND power), and a 1-wire pin (`D17`) for the onboard crypto
+authentication chip. Uncomment + rename lines from there; don't re-derive.
+
+## Board facts (verify against the reference manual at bring-up)
+
+- FPGA: XC7A35T-1CPG236C - 20,800 LUT, 225 KB BRAM (same part as Basys3, so
+  the Basys3 Vivado flow and fixes apply unchanged).
+- 12 MHz system clock on pin **`L17`** (an MRCC input on bank 14). Must be
+  multiplied by an **MMCM** - a PLL cannot be used directly (PLL minimum
+  input is 19 MHz, per the reference manual). Note the Basys3-derived
+  clocking needs new math here: 12 MHz in vs the Basys3's 100 MHz and the
+  QMTECH's 50 MHz (e.g. 16.667 MHz clk_cpu = 12 x 50 / 36, VCO 600 MHz -
+  recompute properly at bring-up against the 7-series MMCM VCO range).
+- 512 KB external async SRAM: ISSI **`IS61WV5128BLL-10BLI`** - 19 address +
+  8 bi-directional data + 3 control signals, **8 ns access** at the board's
+  3.3 V +/-5% supply (theoretical max 125 MB/s). Datasheet (A/B variants):
+  <https://www.issi.com/WW/pdf/61-64WV5128Axx-Bxx.pdf>. Full FPGA<->SRAM pin
+  map is in the local [`Cmod-A7-Master.xdc`](Cmod-A7-Master.xdc)
+  ("Cellular RAM" section: `MemAdr[18:0]`, `MemDB[7:0]`, `RamOEn`/`RamWEn`/`RamCEn`).
+- 4 MB QSPI config flash (`mx25l3273f`), Master-SPI boot at power-on.
+  Programmed indirectly from the Vivado hardware manager (needs Vivado
+  >= 2017.2); supports x1/x2/x4 bus widths, up to 50 MHz config rate.
+  Flash write takes 4-5 min (erase-dominated); subsequent power-on config
+  is <1 s. Same volatile-vs-flash split as our other boards: JTAG `.bit`
+  for iteration, flash `.mcs` for standalone boot.
+- **Configuration behavior:** power-on always tries the QSPI flash first; no
+  valid flash image -> FPGA sits unconfigured until JTAG-programmed. JTAG
+  programming works any time power is on and overwrites the running config.
+  Uncompressed bitstream is ~17.5 Mbit and takes ~6 s over the onboard
+  USB-JTAG; enabling bitstream compression in Vivado (up to ~10x depending
+  on design fill) cuts both JTAG time and flash-erase footprint. "DONE" LED
+  lights on successful configuration.
+- USB-JTAG **and** USB-UART via the onboard FTDI **FT2232HQ** on the micro
+  USB connector (like the Basys3, unlike the QMTECH board) - power,
+  programming, ILA/VIO and the OPCOM console all over one cable. The two
+  functions are fully independent (UART traffic never interferes with JTAG
+  and vice versa). UART lands on FPGA pins **`J17`/`J18`** (TXD/RXD); the
+  status LED next to DIP pin 25 blinks on TX/RX traffic. Standard FTDI VCP
+  drivers -> plain COM port on the host.
+- **Power:** either micro USB (4.5-5.5 V) or an external supply on DIP pins
+  24/25 (`VU`/GND, 3.32-5.5 V; the VU minimum rises with Pmod 3V3 load:
+  3.38 V @ 100 mA, 3.48 V @ 250 mA drawn from the Pmod header). When USB is
+  attached, VU is *driven* to ~5 V through a schottky diode (usable to power
+  external circuitry).
+- **Warning (from the reference manual):** because VU is driven when a USB
+  host is attached, disconnect any external supply on DIP pin 24 (especially
+  a battery) before plugging in USB - or add a series schottky diode on VU
+  if both sources must coexist (see Digilent forum guidance).
+- 2 user LEDs + 1 tri-color (RGB) LED, 2 push buttons, one Pmod connector,
+  44 DIP-pin user I/Os.
+- **Tri-color LED is active-low** (anodes on 3V3, cathodes on FPGA pins -
+  drive 0 to light, same polarity as the QMTECH LEDs). Reference manual
+  warning: never drive a color with a steady `1`-equivalent (steady low) -
+  it is uncomfortably bright; use PWM at <=50% duty cycle per color (which
+  also gives a full mixed-color palette).
+- **XADC:** 1 MSPS on-chip ADC; DIP pins 15/16 are 0-3.3 V analog inputs
+  (`vaux4`/`vaux12`, see the master XDC). Not needed for the ND-120, but free.
+- Variants: A7-**35T** (ours: 20,800 LUT / 41,800 FF / 225 KB BRAM) and
+  A7-15T (10,400 LUT / 112.5 KB BRAM - **retired**, no longer sold). Board is
+  0.7 in x 2.75 in, fits a standard 48-pin DIP socket.
+
+## Vendor resources
+
+Local copies (per the board-docs-live-with-the-board rule):
+
+- [`docs/Cmod-A7-Reference-Manual.pdf`](docs/Cmod-A7-Reference-Manual.pdf) - the full reference manual
+- [`Cmod-A7-Master.xdc`](Cmod-A7-Master.xdc) - official master pin constraints
+
+Online (from the resource center, <https://digilent.com/reference/programmable-logic/cmod-a7/start>):
+
+- Reference manual (web):
+  <https://digilent.com/reference/programmable-logic/cmod-a7/reference-manual>
+- Cmod A7 Programming Guide (JTAG + QSPI flash workflows):
+  <https://digilent.com/reference/learn/programmable-logic/tutorials/cmod-a7-programming-guide/start>
+- Schematic Rev. B: <https://digilent.com/reference/_media/reference/programmable-logic/cmod-a7/cmod_a7_sch.pdf>
+- Schematic Rev. C: <https://digilent.com/reference/_media/reference/programmable-logic/cmod-a7/cmod_a7_sch_rev_c0.pdf>
+  (check the board rev before trusting either; the master XDC here is rev. B)
+- Board image:
+  <https://digilent.com/reference/_media/reference/programmable-logic/cmod-a7/cmod-a7-0.png>
+- Out-of-box demo project (pinout/XDC source):
+  <https://github.com/Digilent/Cmod-A7-35T-OOB> -
+  [README](https://github.com/Digilent/Cmod-A7-35T-OOB/blob/master/README.md)
+- Other demos: [GPIO](https://digilent.com/reference/programmable-logic/cmod-a7/demos/gpio),
+  [XADC](https://digilent.com/reference/programmable-logic/cmod-a7/demos/xadc),
+  and a [community project exercising XADC/GPIO/buttons/LEDs/**SRAM**](https://forum.digilent.com/topic/2866-cmod-a7-35t-demo-project/)
+  - the SRAM part is a useful reference for the `MEM_RAM_49_SRAM` bridge.
+- Purchase (2026-07-08): Farnell Norway, **1039 NOK** -
+  <https://no.farnell.com/digilent/410-328-35t/development-board-artix-7-fpga/dp/2614574>
+
+## Plan (from `Verilog/TODO.md`, to be expanded here)
+
+1. **Backend phase 1 - BRAM:** start with `MAIN_RAM_BLOCKRAM` (raise
+   `BANK_ADDR_BITS`; 225 KB BRAM minus the WCS budget). Gets the board booting
+   with the least new code.
+2. **Backend phase 2 - external SRAM:** a `MEM_RAM_49_SRAM` backend for the
+   512 KB SRAM. 8-bit bus means ~4 byte-accesses per 18-bit ND word (2 data
+   bytes + parity) - needs its own protocol bridge like the Tang SDRAM one
+   (`../tang-nano-20k/sdram-bridge/`), validated testbench-first against the
+   measured ND-120 DRAM protocol (`../../docs/nd120-dram-memory.md` section 6).
+3. **SD-card block device:** SD-card Pmod on the Pmod connector - shares the
+   SPI-mode SD + FAT reader core planned for Basys3 (see `Verilog/TODO.md`,
+   "SD-card block devices across all boards").
+
+Prerequisite, as for every board: the board-independent clock-enable /
+FF-mode work must boot first (see [`../README.md`](../README.md), "Shared
+context").
+
+## See also
+
+- [`../README.md`](../README.md) - all FPGA targets
+- [`../basys3/README.md`](../basys3/README.md) - same FPGA part, same Vivado flow
+- `Verilog/TODO.md` - "Future boards / peripherals" section (origin of this plan)
