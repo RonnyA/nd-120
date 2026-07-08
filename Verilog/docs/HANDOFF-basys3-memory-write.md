@@ -72,6 +72,125 @@ in-window phases. Open nd120_tang20k.gprj in the IDE, Tools->GAO. Also
 check MEM_ADEC_45:137 idle-assert polarity vs the original PALASM while
 waiting for synthesis.
 
+**MEASURED ON SILICON (8-JUL 19:35, on-chip analyzer, 511-sample trace):**
+The write path mystery is SOLVED one level up. Trace of a granted deposit
+access (clk2x sampling, trigger mw50_n edge): ECREQ rises -> CGNT grant ->
+clean RAS/CAS window - but **the CPU's `WRITE` input to MEM_ADEC_45 is 0 in
+ALL 511 samples**, so MWRITE_n goes HIGH during the grant and the deposit
+executes as a READ. Confirmed also: MWRITE idle-asserts between grants
+(ADEC :137) and the DD "junk" exists only in idle. ALL downstream layers
+(ADEC _D PALs, PAL_45008B, AM29833A, SDRAM bridge) are exonerated by
+measurement.
+
+**ROOT TARGET: the `WRITE` output of the DELILAH CPU core (CGA/MAC,
+ND3202D `s_write`, CPU instance ~line 719) never asserts on silicon** while
+working in both sim modes -> almost certainly another derived-clock capture
+inside CGA/CYC (MCLK/UCLK domain - the clock-enable refactor territory,
+same family as the CYC_36 fixes). Next: trace WRITE generation in the CGA
+(microcode CSCOMM decode -> MAC write cycle), find the register that
+launches it and what clocks it in FF mode.
+
+**WRITE CHAIN TRACED IN RTL (8-JUL late) - it is the DGA, not the CGA:**
+`WRITE` does NOT come from the DELILAH CGA. Path: `ND3202D` `s_write` <-
+`IO_37` <- `IO_DCD_38` <- DGA `XWRI` <- `DECODE_DGA_COMM.v` **F924 A160
+Q3** (4-bit FF, `.C_H05(s_clk2)` = board `CLK` from CYC_36, a generated
+clock). D3 = `s_a167_nand_out` = NAND(A147, A144) = decode high when
+`CSCOMM_4_0` in {5'b11010, 5'b11011, 5'b11101} AND `LCS_n`=1. The SAME
+F924 also produces `MREQ` (Q2B) and `FETCH` (Q0) - and MREQ/FETCH visibly
+work on silicon, so the suspect is specifically the D3 decode phase vs
+the CLK edge in FF mode (CSCOMM comes from the microword pipeline in a
+different clock family). Note `IO_DCD_38` is also where the FPGA-only
+OSC clean-clock fix (0fb062b) landed - same module, same clocking family.
+
+**ANALYZER RETARGETED (8-JUL late, this session):** `DBG_MEMW` is now
+assembled in `ND3202D.v` (the MEM_43 bus moved to internal `s_dbg_mem43`,
+RAS/MWRITE_n kept as bits [15:14]). New map:
+[4:0]=CSCOMM_4_0 [5]=LCS_n [6]=WRITE [7]=wdec (the A167 decode recomputed
+at board level = F924 D3 input) [8]=CLK (the F924 clock) [9]=UCLK
+[10]=ECREQ [11]=CGNT_n [12]=MREQ_n [13]=DT_n [14]=MWRITE_n [15]=RAS.
+Trigger = wdec RISING edge after the 2.5 s arm; 64 pre + 448 post samples.
+LEDs: LED1=WRITE live, LED2=sticky WRITE-seen since arm, LED3=sticky
+wdec-seen since arm, LED4=dump ran. Interpretation on the board:
+- LED3 never ON after a deposit => the CSCOMM write decode NEVER fires on
+  silicon => go upstream (microword pipeline / CSCOMM path in FF mode).
+- LED3 ON, LED2 OFF => decode fires but the F924 misses it => D3-vs-CLK2
+  phase in FF mode; the dump shows decode width vs CLK edges directly.
+- LED2 ON => WRITE asserts after all => timing vs ECREQ/grant in the dump.
+
+**Full-build pre-synth sim added:** `fpga/tang-nano-20k/sim/Makefile`
+(`make test`) compiles the EXACT Gowin file list (parsed from
+nd120_tang20k.gprj) + `lint/rpll_stub.v` + the behavioral SDRAM model with
+the tang20k_defines set (UART sped to 16 clk_cpu/bit) and runs
+`nd120_tang20k_tb` (boot -> '#' -> deposit/readback check). NOTE: at the
+6.75 MHz TANG_SLOW_BRINGUP clock the boot needs SECONDS of sim time -
+timeouts were raised to 3 s/4 s; a full run takes a long wall-clock time
+with iverilog. Compile-check alone is still a useful fast gate.
+
+**FOUR-GENERATION CAPTURE CAMPAIGN (8-JUL late evening) - the ND-120 side
+is EXONERATED end to end; the bug is in the SDRAM backend.** Analyzer
+retargeted three times (v2 data path, v3 address/bank, v4 bridge FSM; bit
+maps live in the `DBG_MEMW` assign in `ND3202D.v`, method documented in
+`fpga/tang-nano-20k/TRACE-CAPTURE-GUIDE.md`). Measured on silicon for one
+deposit of 054321 to cell 22:
+- v1: the CSCOMM write decode FIRES and `WRITE` asserts (F924 A160 captures
+  D3 at the CLK edge) -> the 19:35 "WRITE never asserts" trace had caught
+  the EXAMINE access, not the deposit. Theory dead.
+- v2: `DD` carries 054321 (low bits 10001 verified) stably from RAS rise
+  through the whole CAS window, `MWRITE_n` asserted -> MEM_DATA_46 /
+  AM29833A / PAL_45008B all exonerated; the earlier "DD all-zero in
+  window" OR-capture claim was wrong (also an examine, most likely).
+- v3: `AA` row=0 at RAS, col=18 (=0o22) at CAS, BANK0=1, write mode
+  latched -> MEM_ADDR_44 / MEM_ADEC_45 exonerated.
+- v4: the bridge FSM walks IDLE->COLWAIT->COL->WRDATA->POST and ISSUES the
+  write command (`s_wr` pulse) with the OR-accumulated data -> the
+  MEM_RAM_49_SDRAM protocol bridge logic exonerated.
+- Console repeatability probe (same bitstream): examine of cell 22 returns
+  a STABLE wrong value (000201, five reads in a row, before AND after the
+  deposit; very first read after power-up gave 000605 once). Neighbor cell
+  reads stable 000000. Deposits never change the readback.
+
+**=> Suspected `sdram18.v` (+ its clocking)... and then EXONERATED on
+9-JUL by a dedicated hardware test.** `fpga/tang-nano-20k/sdram18-test/`
+(new, OSS yosys/nextpnr flow, Linux-native ~2 min build) drives
+`sdram18.v` with the FULL BUILD's exact clocking (Gowin_rPLL_ND120 with
+TANG_SLOW_BRINGUP: 13.5 MHz + shifted chip clock, FREQ=13.5M): verbose
+4-word demo (col[9:8] bits, bank bit, parity bits, last word) + full
+2M-word write/verify. **PASSES ON HARDWARE.** (iverilog sim in its sim/
+also passes.) Note: the bridge packs addr {bank,row[9:0],col[9:0]} vs
+sdram18's {ba[1:0],row[10:0],col[7:0]} - a bijection, harmless, but know
+it when reading SDRAM-side traces.
+
+**=> ONLY ONE BOX LEFT: full-build integration = cross-clock-domain
+timing.** The bridge samples OSC-domain signals (RAS/CAS/AA/BANKx/
+MWRITE50_n, registered on CLKOUTD = clk_cpu 6.75 MHz) directly in the
+clk2x domain (CLKOUT 13.5 MHz) relying on PLL edge alignment - and the
+Gowin build logs show **47x "WARN (TA1117) Can't calculate clocks'
+relationship"** on register-as-clock domains (BCGNT50-clocked address
+latches, s_rdata-clocked regs, DSTB_n, SPES...): those paths are
+UNCONSTRAINED, so each PNR run is a timing lottery. Observed exactly
+that: v1-v3 bitstreams read stable 000000, the v4 bitstream (same RTL,
+debug tap added) reads stable-but-different junk (000605 once, then
+000201 forever; deposits never land). The `nd120_tang20k.sdc` only
+defines sys_clk and trusts Gowin to derive the rest - it cannot relate
+the register-derived clocks.
+**Next steps:** (1) this is the clock-enable-fix branch's thesis: convert
+the remaining register-as-clock domains feeding the memory path to
+clock-enables in the sysclk domain (CYC_36-style), which removes the
+unconstrained domains outright; (2) shorter-term diagnostic: add
+create_generated_clock / set_false_path+manual sync constraints for the
+worst offenders and see if a constrained build deposits correctly - that
+would confirm the mechanism cheaply before the big refactor.
+
+**On-chip analyzer (KEEP - it works):** in ND120_TANG20K_TOP: 512x16 ring
+at clk2x, 16-bit bus from MEM_43 DBG_MEMW ([0]ras [1]cas [2]mw50_n [3]mw_n
+[4]dbapr [5]ecreq [6]write [7]cgnt_n [8]bgnt_n [9]bcg50 [10]ddnz
+[15:11]dd[4:0]), trigger mw50_n fall after 2.5s arm, auto-dump 512 hex
+lines over UART at 9600 (takes over TX; LED4 latches ON after dump; S1
+re-arms). To retarget at the CGA WRITE chain, widen/repoint DBG_MEMW.
+Gotchas: keep ONE listener attached across the whole cycle; never program
+while listening (NUL junk); verify .fs timestamp before programming; a
+`pkill cat /dev/ttyUSB1` inside a composite command kills its own shell.
+
 **Next steps (in order):**
 1. Read `PAL/PAL_45008B.v`: how are OET_n/OER_n formed, what do they depend
    on (MWRITE/QD_n/grant phases), and what does FF-mode conversion do to

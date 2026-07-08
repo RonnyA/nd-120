@@ -140,6 +140,7 @@ on the board's USB serial -> compare boot behaviour against
 |------|---------|
 | `ND120_TOP.cst` | **STALE - Tang Nano 9K pinout** (clock pin 52, LEDs 10-16). Superseded by `src/nd120_tang20k.cst`. Kept only until the 9K is ever targeted; do not use for the 20K. |
 | [`sdram-test/`](sdram-test/README.md) | **Standalone SDRAM bring-up test** - nand2mario controller + ND-120 UART (9600 8N1) reporting every read/write. Gowin EDA project + OSS Makefile + iverilog testbench. **PASSES on hardware** (2026-07-08, OSS-flow bitstream, **full 8 MB** write+verify OK). |
+| [`sdram18-test/`](sdram18-test/) | **Standalone sdram18.v hardware test** - drives the ND-120 18-bit-word controller with the full build's exact 13.5 MHz slow-bring-up clocking (same PLL module). 4-word demo + full 2M-word write/verify over UART. **PASSES on hardware** (2026-07-09, OSS flow) - exonerates the controller; the deposit bug is full-build cross-domain timing (see `../../docs/HANDOFF-basys3-memory-write.md`). |
 | [`sdram-bridge/`](sdram-bridge/README.md) | **ND-120 sheet-49 SDRAM backend** - `MEM_RAM_49_SDRAM.v` maps the measured ND-120 DRAM protocol onto the SDRAM (2x-clock bridge, self-scheduled refresh, 2 banks = 4 MB). Protocol-validated in simulation; awaits the Tang top-level (G1) for full integration. Design doc: [`../../docs/nd120-dram-memory.md`](../../docs/nd120-dram-memory.md). |
 
 **Existing Gowin EDA project:** `../../ND-120-Gowin/` (`ND-120-Gowin.gprj`). Its
@@ -180,6 +181,10 @@ Introduce a board target (`TARGET_TANG20K`) that derives:
 
 ## On-chip debug
 
+- **THE working method: [`TRACE-CAPTURE-GUIDE.md`](TRACE-CAPTURE-GUIDE.md)** -
+  512-sample on-chip analyzer in the ND-120 top, dumped over the console UART;
+  full build/capture/decode walkthrough (usable by a person or an LLM). This is
+  what cracked the memory-write bug.
 - **GAO** (Gowin Analyzer Oscilloscope) - captures internal nets to BSRAM, read
   back over JTAG. But BSRAM is scarce here (WCS uses most of it), so GAO capture
   depth is shallow.
@@ -203,6 +208,7 @@ Introduce a board target (`TARGET_TANG20K`) that derives:
 
 ## Related docs
 
+- [`TRACE-CAPTURE-GUIDE.md`](TRACE-CAPTURE-GUIDE.md) - on-chip trace capture + analysis how-to (this board).
 - `../../docs/tang-nano-20k-port.md` - full port analysis (this board's design doc).
 - `../../docs/skip-wcs-load.md` - preloaded-WCS microcode (needed for the fit).
 - `../../docs/build-defines.md` - the board-target define scheme.
