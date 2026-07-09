@@ -9,6 +9,7 @@
 ***************************************************************************/
 
 module BIF_DPATH_CDLBD_11 (
+    input sysclk,  //! System clock (used only for the FF-mode strobe edge-capture)
     input DSTB_n,  //! Data Strobe
     input ECREQ,   //! Enable CPU Request
     input EMD_n,   //! Enable Memory
@@ -68,7 +69,18 @@ module BIF_DPATH_CDLBD_11 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  TTL_74646 CHIP_7B (
+  // P1c-2 (docs/plan-fix-unconstrained-clocks.md): ECREQ is a CPU-request
+  // strobe, not a clock. In FF mode the CLKBA registers capture on a
+  // sysclk-detected ECREQ rise instead of clocking on the routed net.
+  // CLKAB (DSTB_n) stays posedge-clocked until P3 converts the BIF batch.
+`ifdef FPGA_FF_MODE
+  localparam ECREQ_CAPTURE = 2;
+`else
+  localparam ECREQ_CAPTURE = 0;
+`endif
+
+  TTL_74646 #(.USE_SYSCLK_BA(ECREQ_CAPTURE)) CHIP_7B (
+      .sysclk(sysclk),
       .A_IN (s_lbd_15_0_in[15:8]),
       .A_OUT(s_lbd_15_0_out[15:8]),
       .B_IN (s_cd_15_0_in[15:8]),
@@ -84,7 +96,8 @@ module BIF_DPATH_CDLBD_11 (
       .OE_n(s_emd_n)
   );
 
-  TTL_74646 CHIP_6B (
+  TTL_74646 #(.USE_SYSCLK_BA(ECREQ_CAPTURE)) CHIP_6B (
+      .sysclk(sysclk),
       .A_IN (s_lbd_15_0_in[7:0]),
       .A_OUT(s_lbd_15_0_out[7:0]),
       .B_IN (s_cd_15_0_in[7:0]),

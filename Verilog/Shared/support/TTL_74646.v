@@ -12,6 +12,7 @@
  *****************************************************************************/
 
 module TTL_74646(
+   input sysclk, // FPGA system clock (used only when USE_SYSCLK_AB/BA=2)
    input[7:0] A_IN,
    input[7:0] B_IN,
    input CLKAB,
@@ -24,6 +25,16 @@ module TTL_74646(
    output[7:0] A_OUT,
    output[7:0] B_OUT
 );
+
+   // USE_SYSCLK_AB / USE_SYSCLK_BA select how the two internal registers
+   // capture (independently, one per clock pin):
+   //   0 (default): original posedge CLKAB / CLKBA - matches the real chip.
+   //   2: sysclk-sampled RISING-EDGE capture (AM29C821 USE_SYSCLK=2
+   //      pattern) - the FPGA-safe mode when the clock pin is driven by a
+   //      control strobe (ECREQ, BGNT_n, DSTB_n ...), not a clock. One
+   //      capture per detected rise, no fabric-routed clock net.
+   parameter USE_SYSCLK_AB = 0;
+   parameter USE_SYSCLK_BA = 0;
 
 
 
@@ -75,17 +86,35 @@ module TTL_74646(
       regB_Delayed <= B_IN;
    end
 
-   always @(posedge s_clkab )
-   begin
-      //regA <= A_IN; //Capture directly input signal
-      regA <= regA_Delayed; //Capture delayed input signal
-   end
+   generate
+      if (USE_SYSCLK_AB == 2) begin : gen_ab_edge
+         reg clkab_d = 1'b0;
+         always @(posedge sysclk) begin
+            clkab_d <= s_clkab;
+            if (s_clkab && !clkab_d) regA <= regA_Delayed;
+         end
+      end else begin : gen_ab_posedge
+         always @(posedge s_clkab )
+         begin
+            //regA <= A_IN; //Capture directly input signal
+            regA <= regA_Delayed; //Capture delayed input signal
+         end
+      end
 
-   always @(posedge s_clkba )
-   begin
-      //regB <= B_IN;  //Capture directly input signal
-      regB <= regB_Delayed; //Capture delayed input signal
-   end
+      if (USE_SYSCLK_BA == 2) begin : gen_ba_edge
+         reg clkba_d = 1'b0;
+         always @(posedge sysclk) begin
+            clkba_d <= s_clkba;
+            if (s_clkba && !clkba_d) regB <= regB_Delayed;
+         end
+      end else begin : gen_ba_posedge
+         always @(posedge s_clkba )
+         begin
+            //regB <= B_IN;  //Capture directly input signal
+            regB <= regB_Delayed; //Capture delayed input signal
+         end
+      end
+   endgenerate
 
 
 /*

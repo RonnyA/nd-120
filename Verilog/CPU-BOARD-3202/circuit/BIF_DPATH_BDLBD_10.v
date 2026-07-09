@@ -8,6 +8,8 @@
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module BIF_DPATH_BDLBD_10 (
+    input sysclk,  //! System clock (used only for the FF-mode strobe edge-capture)
+
     input  [23:0] BD_23_0_n_IN,  //! Bus Data IN
     output [23:0] BD_23_0_n_OUT, //! Bus Data OUT
 
@@ -64,6 +66,7 @@ module BIF_DPATH_BDLBD_10 (
    *******************************************************************************/
 
   TTL_74648 CHIP_4A (
+      .sysclk(sysclk),
       .A_IN(s_bd_23_0_n_in[23:16]),
       .A_OUT_n(s_bd_23_0_n_out[23:16]),
 
@@ -83,6 +86,7 @@ module BIF_DPATH_BDLBD_10 (
 
 
   TTL_74648 CHIP_5A (
+      .sysclk(sysclk),
       .A_IN(s_bd_23_0_n_in[15:8]),
       .A_OUT_n(s_bd_23_0_n_out[15:8]),
 
@@ -102,6 +106,7 @@ module BIF_DPATH_BDLBD_10 (
 
 
   TTL_74648 CHIP_6A (
+      .sysclk(sysclk),
       .A_IN(s_bd_23_0_n_in[7:0]),
       .A_OUT_n(s_bd_23_0_n_out[7:0]),
 

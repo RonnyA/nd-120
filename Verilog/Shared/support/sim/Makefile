@@ -31,3 +31,11 @@ SIP1M9_bram_tb: SIP1M9_bram_tb.v ../SIP1M9.v
 
 clean:
 	rm -f SC2661_UART_tb SIP1M9_bram_tb *.vcd
+
+# P1c-2/P1d/P3: TTL_74646/74648 strobe-clock edge-capture equivalence
+test-7464x: TTL_7464x_equiv_tb
+	$(VVP) TTL_7464x_equiv_tb | tee t7464x_result.tmp
+	@grep -q "TB_RESULT: PASS" t7464x_result.tmp && rm -f t7464x_result.tmp TTL_7464x_equiv_tb.vcd
+
+TTL_7464x_equiv_tb: TTL_7464x_equiv_tb.v ../TTL_74646.v ../TTL_74648.v
+	$(IVERILOG) -g2012 -o $@ $(INCDIRS) TTL_7464x_equiv_tb.v ../TTL_74646.v ../TTL_74648.v
