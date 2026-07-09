@@ -168,6 +168,10 @@ forward on a red gate):
    the PAL_44446B_D / CYC_CC_D equivalence tbs. Must PASS - and where
    practical, must FAIL when run against a deliberately broken conversion
    (proves the tb has teeth, like MEM_ADDR_44_tb did against 9b005c2).
+   The tb must print `TB_RESULT: PASS/FAIL` and be REGISTERED in
+   `Verilog/tests/run_all_tests.sh` (global `make test` from `Verilog/`,
+   fail-fast). Registered tbs re-run on every subsequent conversion for
+   free - the suite is the accumulated regression net of this plan.
 2. **Verilator trace identity** (minutes): `cd Verilog/sim && make compare`;
    `diff trace_ff.csv golden/trace_ff_golden.csv` and
    `diff trace_latch.csv golden/trace_latch_golden.csv` both EMPTY.

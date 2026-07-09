@@ -76,6 +76,15 @@ Testbenches live in a `sim/` directory **next to the module** they test — no c
 - **Verilator** (`test_*.cpp`) — full-module sim with C++ harness + waveforms. Run via `make all`.
 - `Verilog/tests/vivado_warning_fixes/` is **legacy**; new testbenches go in the module's own `sim/`.
 
+**Global test suite** (from `Verilog/`): `make test` runs every self-checking
+unit testbench, fail-fast — the first failure aborts loudly with exit 1.
+`make test-full` adds the heavy system gates (latch-vs-FF golden trace compare,
+runSim golden console, Tang vtest boot+deposit). The registry lives in
+`Verilog/tests/run_all_tests.sh`: **every new testbench must be added there**
+with a strict pass pattern (`TB_RESULT: PASS` convention preferred), and every
+tb must print a machine-checkable verdict — a test that can pass silently can
+fail silently.
+
 ### FPGA build (Vivado, on Windows host)
 
 FPGA build/flow files are under `Verilog/fpga/<board>/` (Basys3 = `fpga/basys3/`,

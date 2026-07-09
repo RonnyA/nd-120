@@ -8,11 +8,18 @@ IVERILOG = iverilog
 VVP      = vvp
 INCDIRS  = -I.. -I../../ndlib -I../../logisim
 
-.PHONY: test-uart test-ram test-am29833a clean
+.PHONY: test-uart test-ram test-am29833a test-am29c821 clean
 
 test-am29833a: AM29833A_equiv_tb
 	$(VVP) AM29833A_equiv_tb | tee am29833a_result.tmp
 	@grep -q "TB_RESULT: PASS" am29833a_result.tmp && rm -f am29833a_result.tmp
+
+test-am29c821: AM29C821_equiv_tb
+	$(VVP) AM29C821_equiv_tb | tee am29c821_result.tmp
+	@grep -q "TB_RESULT: PASS" am29c821_result.tmp && rm -f am29c821_result.tmp AM29C821_equiv_tb.vcd
+
+AM29C821_equiv_tb: AM29C821_equiv_tb.v ../AM29C821.v
+	$(IVERILOG) -g2012 -o $@ $(INCDIRS) AM29C821_equiv_tb.v ../AM29C821.v
 
 AM29833A_equiv_tb: AM29833A_equiv_tb.v ../AM29833A.v
 	$(IVERILOG) -g2012 -o $@ $(INCDIRS) AM29833A_equiv_tb.v ../AM29833A.v

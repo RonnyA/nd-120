@@ -53,3 +53,10 @@ test-tcv20: CPU_CS_TCV_20_tb
 
 .PHONY: test-tcv20
 
+
+# Batch self-check (iverilog) for the global test suite (Verilog/Makefile)
+test-tcv: CPU_CS_TCV_20_iv_tb
+	./CPU_CS_TCV_20_iv_tb
+
+CPU_CS_TCV_20_iv_tb: CPU_CS_TCV_20_tb.v ../../CPU_CS_TCV_20.v
+	iverilog -g2012 -o $@ $^

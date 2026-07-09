@@ -58,3 +58,55 @@ clean:
 	rm -f CYC_TERM_D_tb CYC_CC_D_tb MEM_ADDR_44_tb MEM_CHAIN_tb MEM_CHAIN_BLOCKRAM_tb MEM_CHAIN_SIM_tb *.vcd *_out.log
 
 .PHONY: test-cyctermd test-ccd test-memaddr test-memchain test-all clean
+
+# MEM_RAM_49_BLOCKRAM: block-RAM sheet-49 backend, measured DRAM protocol
+test-blockram: MEM_RAM_49_BLOCKRAM_tb
+	./MEM_RAM_49_BLOCKRAM_tb | tee blockram_result.tmp
+	@grep -q "TB_RESULT: PASS" blockram_result.tmp && rm -f blockram_result.tmp MEM_RAM_49_BLOCKRAM_tb.vcd
+
+MEM_RAM_49_BLOCKRAM_tb: MEM_RAM_49_BLOCKRAM_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
+	$(IVERILOG) -g2012 -o $@ MEM_RAM_49_BLOCKRAM_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
+
+# BIF datapath sheets: run the same vectors in latch mode (plain) and FF
+# mode (-DFPGA_FF_MODE, the P1c-2/P1d sysclk edge-captures). Both must pass.
+BIF_SUPPORT = ../../../Shared/support
+
+test-cdlbd: BIF_DPATH_CDLBD_11_tb BIF_DPATH_CDLBD_11_ff_tb
+	./BIF_DPATH_CDLBD_11_tb    | tee cdlbd_result.tmp
+	@grep -q "TB_RESULT: PASS" cdlbd_result.tmp
+	./BIF_DPATH_CDLBD_11_ff_tb | tee cdlbd_result.tmp
+	@grep -q "TB_RESULT: PASS" cdlbd_result.tmp && rm -f cdlbd_result.tmp BIF_DPATH_CDLBD_11_tb.vcd
+
+BIF_DPATH_CDLBD_11_tb: BIF_DPATH_CDLBD_11_tb.v $(CIRCUIT)/BIF_DPATH_CDLBD_11.v $(BIF_SUPPORT)/TTL_74646.v
+	$(IVERILOG) -g2012 -o $@ $^
+
+BIF_DPATH_CDLBD_11_ff_tb: BIF_DPATH_CDLBD_11_tb.v $(CIRCUIT)/BIF_DPATH_CDLBD_11.v $(BIF_SUPPORT)/TTL_74646.v
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o $@ $^
+
+test-bdlbd: BIF_DPATH_BDLBD_10_tb BIF_DPATH_BDLBD_10_ff_tb
+	./BIF_DPATH_BDLBD_10_tb    | tee bdlbd_result.tmp
+	@grep -q "TB_RESULT: PASS" bdlbd_result.tmp
+	./BIF_DPATH_BDLBD_10_ff_tb | tee bdlbd_result.tmp
+	@grep -q "TB_RESULT: PASS" bdlbd_result.tmp && rm -f bdlbd_result.tmp BIF_DPATH_BDLBD_10_tb.vcd
+
+BIF_DPATH_BDLBD_10_tb: BIF_DPATH_BDLBD_10_tb.v $(CIRCUIT)/BIF_DPATH_BDLBD_10.v $(BIF_SUPPORT)/TTL_74648.v
+	$(IVERILOG) -g2012 -o $@ $^
+
+BIF_DPATH_BDLBD_10_ff_tb: BIF_DPATH_BDLBD_10_tb.v $(CIRCUIT)/BIF_DPATH_BDLBD_10.v $(BIF_SUPPORT)/TTL_74648.v
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o $@ $^
+
+# MEM_DATA_46: parity transceivers + PAL_45008B, latch and FF modes
+LOGISIM = ../../../Shared/logisim
+MEMDATA_SRCS = MEM_DATA_46_tb.v $(CIRCUIT)/MEM_DATA_46.v $(BIF_SUPPORT)/AM29833A.v $(PAL)/PAL_45008B.v $(LOGISIM)/NOR_GATE.v $(LOGISIM)/J_K_FLIPFLOP.v
+
+test-memdata: MEM_DATA_46_tb_bin MEM_DATA_46_ff_tb_bin
+	./MEM_DATA_46_tb_bin    | tee memdata_result.tmp
+	@grep -q "TB_RESULT: PASS" memdata_result.tmp
+	./MEM_DATA_46_ff_tb_bin | tee memdata_result.tmp
+	@grep -q "TB_RESULT: PASS" memdata_result.tmp && rm -f memdata_result.tmp MEM_DATA_46_tb.vcd
+
+MEM_DATA_46_tb_bin: $(MEMDATA_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(MEMDATA_SRCS)
+
+MEM_DATA_46_ff_tb_bin: $(MEMDATA_SRCS)
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o $@ $(MEMDATA_SRCS)
