@@ -266,6 +266,14 @@ TODO: Sort bits on output LED to match led numbering
   // Wires!
   wire        s_acond_n;  // Output from CGA_MIC_CONDREG. CGA.XACONDN
   wire        s_aluclk;
+  // P2 clock-enable pulses from CYC_36 (consumed as domains convert)
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire        s_cyc_clk_en;
+  wire        s_cyc_uclk_en;
+  wire        s_cyc_mclk_en;
+  wire        s_cyc_maclk_en;
+  wire        s_cyc_aluclk_en;
+  /* verilator lint_on UNUSEDSIGNAL */
   wire        s_bapr_n_in;
   wire        s_bapr_n_out;
   wire        s_bdap_n_in;
@@ -657,7 +665,16 @@ TODO: Sort bits on output LED to match led numbering
       .RRF_n(s_rrf_n),
       .TERM_n(s_term_n),
       .VEX(s_vex),
-      .WRFSTB(s_wrfstb)
+      .WRFSTB(s_wrfstb),
+
+      // One-sysclk clock-enable pulses (FPGA_FF_MODE, else 0) for the P2
+      // domain conversions - consumed incrementally as each CPU clock
+      // domain moves to `posedge sysclk + if (EN)`.
+      .CLK_EN(s_cyc_clk_en),
+      .UCLK_EN(s_cyc_uclk_en),
+      .MCLK_EN(s_cyc_mclk_en),
+      .MACLK_EN(s_cyc_maclk_en),
+      .ALUCLK_EN(s_cyc_aluclk_en)
   );
 
 

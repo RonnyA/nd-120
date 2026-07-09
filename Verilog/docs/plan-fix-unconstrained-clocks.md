@@ -109,16 +109,26 @@ deposit test. There is a real chance deposits start working here, before P2.
 ## Phase 2 - the CYC_36 generated CPU clocks (the branch thesis)
 
 `CYC_36` additionally emits one-sysclk-wide enable pulses aligned with each
-level-registered clock: `CLK_EN, UCLK_EN, MCLK_EN, ALUCLK_EN, RFCLK_EN`.
+level-registered clock: `CLK_EN, UCLK_EN, MCLK_EN, MACLK_EN, ALUCLK_EN`
+(**landed 9-JUL** - see progress log; alignment property tb = `test-cycen`).
 Consumers convert from `posedge s_xclk` to `posedge sysclk + if (XCLK_EN)`,
-one whole domain per commit, smallest first:
+one whole domain per commit, smallest first.
 
-- **P2a** s_rfclk domain (WRF)
-- **P2b** s_aluclk domain (CGA_ALU)
+**CORRECTION (9-JUL, from the P1d .tr):** the plan's original "P2a s_rfclk
+(WRF)" was a misidentification - netlist s_rfclk's source is
+`DGA/POW/A633/reqQ_n` (the DGA power/RTC divider chain, 1 endpoint), NOT
+the CGA write register file. It moves to the P3 IO/divider batch. The WRF
+is inside the ALUCLK/WRFSTB structure and is handled with P2b.
+
+- **P2b** s_aluclk domain (CGA_ALU: GPR/DBR/QREG/STS + CGA condition regs)
 - **P2c** s_uclk domain (microcode pipeline)
 - **P2d** s_mclk domain
 - **P2e** s_clk domain (DGA XCLK + IO). Converting the DGA turns F924 into
   sysclk+CE and dissolves the internal clk2/clk3/clk3_n (#6) for free.
+
+Fmax reality from the P1d .tr (why P2 matters): s_clk 3.06 MHz,
+s_mclk_Z 3.07 MHz, s_aluclk_Z 5.85 MHz, CLKOUTD domain 5.67 MHz vs the
+6.75 MHz crawl clock - and none of it hold-analyzed.
 
 ## Phase 3 - control-strobe clocks (#11-#16)
 
@@ -570,3 +580,23 @@ P1d .tr): s_clk, s_uclk_Z, s_mclk_Z, s_aluclk_Z, s_rfclk, s_clk3_n_10
 (P2 CYC domain); DSTB_n_34, SPES_12, s_sioc_n, s_div_16, s_XRTOSC,
 s_ldirv (P3); plus the now-empty s_dbg_memw_0[2] analyzer trigger.
 Deposits did not start working after P1 - the P2 CYC conversion is next.
+
+**9-JUL-2026 - global test suite.** `make test` from `Verilog/` runs all
+self-checking unit tbs fail-fast (registry:
+`Verilog/tests/run_all_tests.sh`); `make test-full` adds gates 2-4.
+Five new comprehensive tbs landed with it (AM29C821, MEM_RAM_49_BLOCKRAM,
+CDLBD_11, BDLBD_10, MEM_DATA_46 - the last three compiled in BOTH latch
+and FF modes). Gauntlet gate 1 now requires registering every new tb.
+
+**9-JUL-2026 - P2 foundation: CYC_36 enable pulses.** CYC_36 emits
+CLK_EN/UCLK_EN/MCLK_EN/MACLK_EN/ALUCLK_EN (FF mode; tied 0 in latch
+mode), each = `next_level & ~pa_level`, i.e. high exactly in the cycle
+whose posedge is the pa clock's rise. ND3202D wires them to
+s_cyc_*_en (unconsumed until P2b+). Alignment property tb `test-cycen`
+(registered): EN in cycle N <=> pa rises at the edge ending N, checked
+every cycle over a free-running FSM (9495 checks, all five enables
+pulsing); teeth = a one-cycle-LATE enable fails with 500 errors, and a
+vacuous (idle-FSM) run fails via MIN_PULSES. iverilog note: PAL_44601B
+has no reset - the tb deposits the FPGA GSR power-up state (all state
+regs 0) or the FSM X-locks under 4-state sim (Verilator 2-state hides
+this).

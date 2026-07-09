@@ -55,6 +55,17 @@ module CYC_36 (
     output MCLK,
     output UCLK,
     output WRFSTB,
+
+    // One-sysclk-wide clock-enable pulses (FPGA_FF_MODE only, else tied 0).
+    // Each asserts during the sysclk cycle whose POSEDGE is the rising edge
+    // of the corresponding phase-accurate clock, so a consumer converted to
+    // `posedge sysclk + if (XCLK_EN)` captures on exactly the edge the old
+    // `posedge XCLK` flop did. P2 of docs/plan-fix-unconstrained-clocks.md.
+    output CLK_EN,
+    output UCLK_EN,
+    output MCLK_EN,
+    output MACLK_EN,
+    output ALUCLK_EN,
     output CYD,
     output [2:0] CC_3_1_n,
     output CC0_n,          // Cycle Control bit 0 (added for debug)
@@ -280,11 +291,28 @@ module CYC_36 (
     uclk_pa <= uclk_next;
   end
   assign UCLK                = uclk_pa;
+
+  // ---- Clock-enable pulses for P2 domain conversions ----
+  // next-level & ~current-level = high exactly in the cycle before the pa
+  // clock's rise, i.e. the enable is sampled by the SAME sysclk posedge
+  // that produces the rise. Consumers on `posedge sysclk + if (EN)` are
+  // then cycle-identical to `posedge pa-clock` flops (same-domain data).
+  assign CLK_EN              = clk_en       & ~clk_pa;
+  assign UCLK_EN             = uclk_next    & ~uclk_pa;
+  assign MCLK_EN             = s_mclk_next  & ~mclk_pa;
+  assign MACLK_EN            = s_maclk_next & ~maclk_pa;
+  assign ALUCLK_EN           = aluclk_en    & ~aluclk_pa;
 `else
   assign ALUCLK              = s_aluclk;
   assign MCLK                = s_mclk;
   assign MACLK               = s_maclk_out;
   assign UCLK                = s_uclk_out;
+  // Latch mode has no phase-accurate registers: no enables.
+  assign CLK_EN              = 1'b0;
+  assign UCLK_EN             = 1'b0;
+  assign MCLK_EN             = 1'b0;
+  assign MACLK_EN            = 1'b0;
+  assign ALUCLK_EN           = 1'b0;
 `endif
   assign CC_3_1_n            = s_cc_3_1_n[2:0];
   assign CC0_n               = s_cc0_n;
