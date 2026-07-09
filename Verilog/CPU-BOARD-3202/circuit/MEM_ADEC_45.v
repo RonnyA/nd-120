@@ -169,6 +169,24 @@ module MEM_ADEC_45 (
       .tick(1'b1)
   );
 
+`ifdef FPGA_FF_MODE
+  // P1b (docs/plan-fix-unconstrained-clocks.md): REFRQ_n is a refresh-request
+  // strobe from the DGA, not a clock. The original flop is set on the rising
+  // edge of REFRQ_n (d = s_power = 1) and cleared asynchronously by RGNT -
+  // a request/grant handshake flag. Clocking it on the strobe makes REFRQ_n
+  // a fabric-routed clock (unconstrained hold-race lottery). FF mode: same
+  // handshake on sysclk with a detected rising edge; the grant clear is
+  // synchronous and dominant, mirroring the async-reset priority.
+  reg rlrq_ff = 1'b0;
+  reg refrq_n_d = 1'b0;
+  always @(posedge sysclk) begin
+    refrq_n_d <= s_refrq_n;
+    if (s_rgnt) rlrq_ff <= 1'b0;
+    else if (s_refrq_n && !refrq_n_d) rlrq_ff <= s_power;
+  end
+  assign s_pal_44904_clk = rlrq_ff;
+  assign s_rlrq_n_out = ~rlrq_ff;
+`else
   D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) MEMORY_2 (
@@ -180,6 +198,7 @@ module MEM_ADEC_45 (
       .reset(s_rgnt),
       .tick(1'b1)
   );
+`endif
 
 
   /*******************************************************************************
