@@ -65,7 +65,17 @@ module BIF_DPATH_BDLBD_10 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  TTL_74648 CHIP_4A (
+  // P1d (docs/plan-fix-unconstrained-clocks.md): BGNT_n is a bus-grant
+  // strobe, not a clock. In FF mode the CLKBA registers capture on a
+  // sysclk-detected BGNT_n rise instead of clocking on the routed net.
+  // CLKAB (CLKBD) stays posedge-clocked until P3 converts the BIF batch.
+`ifdef FPGA_FF_MODE
+  localparam BGNT_CAPTURE = 2;
+`else
+  localparam BGNT_CAPTURE = 0;
+`endif
+
+  TTL_74648 #(.USE_SYSCLK_BA(BGNT_CAPTURE)) CHIP_4A (
       .sysclk(sysclk),
       .A_IN(s_bd_23_0_n_in[23:16]),
       .A_OUT_n(s_bd_23_0_n_out[23:16]),
@@ -85,7 +95,7 @@ module BIF_DPATH_BDLBD_10 (
   );
 
 
-  TTL_74648 CHIP_5A (
+  TTL_74648 #(.USE_SYSCLK_BA(BGNT_CAPTURE)) CHIP_5A (
       .sysclk(sysclk),
       .A_IN(s_bd_23_0_n_in[15:8]),
       .A_OUT_n(s_bd_23_0_n_out[15:8]),
@@ -105,7 +115,7 @@ module BIF_DPATH_BDLBD_10 (
   );
 
 
-  TTL_74648 CHIP_6A (
+  TTL_74648 #(.USE_SYSCLK_BA(BGNT_CAPTURE)) CHIP_6A (
       .sysclk(sysclk),
       .A_IN(s_bd_23_0_n_in[7:0]),
       .A_OUT_n(s_bd_23_0_n_out[7:0]),
