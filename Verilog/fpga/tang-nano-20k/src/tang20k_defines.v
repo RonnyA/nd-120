@@ -34,8 +34,18 @@
 // 27/54 MHz build (gowin_rpll_27_54.v switches on the same define).
 `define TANG_SLOW_BRINGUP
 
+// Crawl bring-up (P0 mechanism probe): halve the slow bring-up again -
+// CPU/bus 3.375 MHz, SDRAM pair 6.75 MHz. The probe .tr measured the
+// CPU-domain Fmax at 4.84 MHz, so at 3.375 MHz the SAME netlist meets
+// timing. If a crawl build deposits correctly, the deposit bug is proven
+// to be pure cross-domain timing (not logic). Define IN ADDITION to
+// TANG_SLOW_BRINGUP (it overrides the PLL and clock counts).
+//`define TANG_CRAWL_BRINGUP
+
 // Clock/baud parameters - keep ALL derived counts slaved to these
-`ifdef TANG_SLOW_BRINGUP
+`ifdef TANG_CRAWL_BRINGUP
+`define BOARD_CLK_FREQ 3_375_000
+`elsif TANG_SLOW_BRINGUP
 `define BOARD_CLK_FREQ 6_750_000
 `else
 `define BOARD_CLK_FREQ 27_000_000

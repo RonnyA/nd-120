@@ -45,7 +45,13 @@ module Gowin_rPLL_ND120 (
       .FDLY({gw_gnd, gw_gnd, gw_gnd, gw_gnd})
   );
 
-`ifdef TANG_SLOW_BRINGUP
+`ifdef TANG_CRAWL_BRINGUP
+  // Crawl bring-up (P0 timing-mechanism probe): CLKOUT = 27 * 1/4 = 6.75 MHz
+  // (SDRAM pair), CLKOUTD = 3.375 MHz (CPU/bus). VCO = 6.75 * 128 = 864 MHz.
+  defparam rpll_inst.FBDIV_SEL = 0;
+  defparam rpll_inst.IDIV_SEL = 3;
+  defparam rpll_inst.ODIV_SEL = 128;
+`elsif TANG_SLOW_BRINGUP
   // Slow bring-up: CLKOUT = 27 * (FBDIV+1)/(IDIV+1) = 27 * 1/2 = 13.5 MHz
   // (SDRAM pair), CLKOUTD = 6.75 MHz (CPU/bus). VCO = 13.5 * 64 = 864 MHz.
   defparam rpll_inst.FBDIV_SEL = 0;

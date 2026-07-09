@@ -76,6 +76,7 @@ module nd120_tang20k_tb;
   // ---- UART TX decoder: echo every byte, keep the last few ----
   reg [7:0] ch;
   reg [31:0] last4 = 0;
+  reg [127:0] last16 = 0;  // 16-char ring for the readback check
   integer bi;
   integer rx_count = 0;
   initial begin
@@ -92,6 +93,7 @@ module nd120_tang20k_tb;
       else $write("<%02x>", ch);
       $fflush;
       last4 = {last4[23:0], ch};
+      last16 = {last16[119:0], ch};
     end
   end
 
@@ -109,7 +111,11 @@ module nd120_tang20k_tb;
     end
   endtask
 
-  // paced send: MOPC needs inter-char gaps
+  // paced send: MOPC polls the console once per RTC tick (~120 ms of sim
+  // time at BOARD_CLK_FREQ calibration), so pace one char per 130 ms.
+  // NOTE this makes the tb Verilator-only in practice (seconds of sim
+  // time); iverilog cannot get there in reasonable wall time.
+  localparam CHAR_GAP = 130_000_000;  // ns = 130 ms
   task send_str(input [8*8-1:0] s, input integer len);
     integer i;
     reg [7:0] c;
@@ -117,7 +123,7 @@ module nd120_tang20k_tb;
       for (i = 0; i < len; i = i + 1) begin
         c = s[8*(len-1-i)+:8];
         send_char(c);
-        #(BITP * 40);
+        #(CHAR_GAP);
       end
     end
   endtask
@@ -135,41 +141,59 @@ module nd120_tang20k_tb;
   initial begin
     repeat (20) @(posedge clk);
 
-    // Wait for the OPCOM prompt '#' (boot: MCL + self-test on preloaded WCS)
+    // Wait for the OPCOM prompt '#' (boot: MCL + self-test on preloaded WCS).
+    // Polling loop instead of fork/disable-by-name (Verilator --timing does
+    // not support named-fork disable): 30000 x 100 us = 3 s timeout.
     $display("TB: booting (waiting for '#')...");
-    fork : waitboot
-      begin
-        wait (last4[7:0] == "#");
-        disable waitboot;
+    begin : waitboot
+      integer boot_poll;
+      boot_poll = 0;
+      while (last4[7:0] != "#" && boot_poll < 30000) begin
+        #100_000;
+        boot_poll = boot_poll + 1;
       end
-      begin
-        #3_000_000_000;  // 3 s sim time (boot at 6.75 MHz slow bring-up)
+      if (last4[7:0] != "#") begin
         $display("");
         $display("TB_RESULT: TIMEOUT waiting for OPCOM prompt");
         $finish;
       end
-    join
+    end
     $display("");
     $display("TB: OPCOM prompt seen (%0d chars so far)", rx_count);
     #(BITP * 100);
 
     // CR -> new '#' prompt
     send_char(8'h0D);
-    #(BITP * 200);
+    #(CHAR_GAP * 2);
     expect_last("#", "CR re-echoes the prompt");
 
     // deposit 054321 at 22, read back
     send_str("22/", 3);
-    #(BITP * 200);
+    #(CHAR_GAP * 2);
     send_str({"054321", 8'h0D}, 7);
-    #(BITP * 300);
+    #(CHAR_GAP * 2);
     send_str("22/", 3);
-    #(BITP * 400);
-    // the last printed characters must be the octal readback "054321 "
-    if (errors == 0) $display("");
+    #(CHAR_GAP * 3);
+    $display("");
     $display("TB: done (%0d chars total)", rx_count);
 
-    if (errors == 0) $display("TB_RESULT: PASS (check echoed output above for /054321)");
+    // HARD readback check: the tail of the received stream must contain
+    // "22/054321" - the echo of the final examine followed by the value
+    // OPCOM printed for address 22. On the board-failure signature this
+    // reads "22/000000" instead.
+    begin : rbcheck
+      integer j;
+      reg found;
+      found = 0;
+      for (j = 0; j <= 7; j = j + 1)
+        if (last16[8*j+:72] == "22/054321") found = 1;
+      if (!found) begin
+        errors = errors + 1;
+        $display("FAIL: readback of 054321 not seen (tail=%s)", last16);
+      end
+    end
+
+    if (errors == 0) $display("TB_RESULT: PASS (deposit 22/054321 readback verified)");
     else $display("TB_RESULT: FAIL (%0d errors)", errors);
     $finish;
   end

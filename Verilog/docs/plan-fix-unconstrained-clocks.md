@@ -25,15 +25,41 @@ Background: `docs/HANDOFF-basys3-memory-write.md`,
 | 6  | `s_clk3_n_10`             | DGA internal inverted clk3                         | P2e   |
 | 7  | `MEM/s_rdata`             | MEM_DATA_46.v:219,245 AM29861A read latches        | P1a   |
 | 8  | `s_refrq_n`               | MEM_ADEC_45.v:175 D_FLIPFLOP                       | P1b   |
-| 9  | `s_dbg_memw_0[2]` = MWRITE50_n | consumer identified in P0 inventory           | P1c   |
-| 10 | `BGNT_n_9`                | consumer identified in P0 inventory                | P1d   |
-| 11 | `DSTB_n_34`               | BIF_DPATH_10/11 bus-data latches                   | P3    |
+| 9  | `s_dbg_memw_0[2]` = **ECREQ** (v4 dbg layout bit2; NOT MWRITE50_n) | MEM_ADEC_45.v:235,238 `.CK(s_ecreq)` | P1c   |
+| 10 | `BGNT_n_9`                | BIF_DPATH_BDLBD_10.v:75,94,113 TTL_74646/648 `.CLKBA(s_bgnt_n)` | P1d   |
+| 11 | `DSTB_n_34`               | BIF_DPATH_CDLBD_11.v:77,93 TTL_74646 `.CLKAB(s_dstb_n)` | P3    |
 | 12 | `BIF/SPES_12`             | BIF_DPATH_PESPEA_13 parity registers               | P3    |
 | 13 | `s_ibapr_n_Z`             | BIF bus-address capture                            | P3    |
 | 14 | `DELILAH/s_ldirv_2835`    | CGA_CPU_ALU_CONTR.v:657,669 IR registers           | P3    |
 | 15 | `IO/s_sioc_n`             | IO_37 registers                                    | P3    |
 | 16 | `DCD/s_div_16`, `s_XRTOSC`| IO_DCD_38.v:403 RTC divider chain                  | P3    |
-| 17 | `sys_rst_n`               | a flop clocked by the reset net                    | P4    |
+| 17 | `sys_rst_n`               | `sys_rst_n_s0/F` (per .tr; find RTL flop in P4)    | P4    |
+
+### P0 inventory addendum (9-JUL-2026, RTL clock-port sweep)
+
+Additional register-as-clock consumers found by grepping every clock-capable
+port hookup (`.CK/.CP/.CLK/.clock/.CLKAB/.CLKBA/.LE/.RAS_n/.CAS_n`) in
+`CPU-BOARD-3202/circuit`, `DECODE-GateArray`, `DELILAH-CPU`. These do not all
+appear as separate TA1117 clocks (some merge or optimize in synthesis) but
+they are the same disease and get fixed in the same phase as their neighbors:
+
+| Net             | Clocks what                                            | Phase |
+|-----------------|--------------------------------------------------------|-------|
+| `s_dbapr`       | MEM_ADEC_45.v:270,273 `.CK(s_dbapr)`                   | P1c   |
+| `s_ddbapr`      | MEM_ADEC_45.v:163 `.clock(s_ddbapr)` D_FLIPFLOP        | P1c   |
+| `s_spesl`       | MEM_ERROR_47.v:114 `.CK(s_spesl)`                      | P3    |
+| RAS_n/CAS_n     | MEM_RAM_49.v:170-272 SIP1M9 row/col/write capture      | P1e   |
+| `s_clk1/s_clk2/s_clk3(_n)` | DECODE_DGA_COMM.v:959-1146 F924 banks (internal CYC-derived) | P2e |
+| `s_mclk` as LE  | CPU_PROC_32.v:324 `.LE(s_mclk)` AM29841 latch          | P2d   |
+
+Clock Summary cross-check (`build/nd120_tang20k_build/impl/pnr/*.tr` 2.2):
+19 base clocks = sys_clk + the 18 rogue roots; matches the table above plus
+`s_ldirv` (source `DCD/GATES_10/s_ldirv_s3/F` - a LUT output as clock).
+Max-frequency reality check from the same report: `s_clk` domain Fmax
+**2.689 MHz**, `s_mclk` 2.732 MHz, `s_aluclk` 5.286 MHz - even the
+*constrainable* paths are 5-10x too slow for the 13.5 MHz clk2x, and TNS
+on aluclk is -40862 ns over 355 endpoints. P2 does not just constrain
+these paths, it moves them onto sysclk where the tools can finally retime.
 
 Rules that bind every phase:
 - **Never modify `Verilog/PAL/PAL_*.v`** - conversions live in consumers or
@@ -368,3 +394,116 @@ from the 47-clock cleanup:
 **3. Defined clocks in the Basys3 build** (explore_clocks.rpt): sys_clk
 100 MHz, MMCM-derived clk_100_pre / clk_12p5_pre (auto-derived, fine).
 Everything else in the design is an undeclared register-clock domain.
+
+## Progress log
+
+**9-JUL-2026 - P0 executed:**
+- **P0.1 inventory: DONE.** TBDs closed (see addendum after the 17-net
+  table): #9 = ECREQ (not MWRITE50_n), consumers MEM_ADEC_45.v:235,238;
+  #10 BGNT_n -> BIF_DPATH_BDLBD_10.v CLKBA transceivers. New finds:
+  s_dbapr/s_ddbapr (MEM_ADEC_45), s_spesl (MEM_ERROR_47), s_dstb_n CLKAB
+  (BIF_DPATH_CDLBD_11).
+- **P0.2 goldens: DONE.** `sim/golden/trace_{ff,latch}_golden.csv` +
+  `checksums.md5`; determinism proven (re-run byte-identical).
+  `runSim/golden/console_ff_golden.log` captured with the new
+  `-DSCRIPT_INPUT -DSCRIPT_CMD_GOLDEN` build of Run120.cpp
+  (`22/054321` deposit + readback + `0!` + `20!`, 40M-cycle budget stop);
+  determinism proven. NOTE: FF-mode Verilator readback shows **054321
+  correctly** - the deposit bug is board-only, as diagnosed.
+  Golden rebuild recipe:
+  `cd Verilog/runSim && make clean && make compile USE_LATCHES=0
+  EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_GOLDEN" && ./obj_dir/VND120_TOP
+  </dev/null > console.log` then diff against the golden.
+- **P0.3 SDC probe: bitstream BUILT, board test pending.** Gowin SDC
+  lessons (they cost three build iterations - remember them for P5):
+  1. The SDC parser is a tiny Tcl subset: **no foreach/variables** -
+     flat commands only.
+  2. **PLL output pins are not clock sources until explicitly declared** -
+     chain create_generated_clock from [get_ports sys_clk] first.
+  3. **Auto-inferred clocks are not addressable objects** - get_clocks on
+     a .tr auto-clock name fails with TA2004 at parse time; declare an
+     explicit create_clock on the source PIN (from the .tr Source column),
+     then reference the explicit name.
+  Result: TA1117 dropped **47 -> 3** (only sys_rst_n pairs remain = P4).
+  Probe SDC lives between the THROWAWAY banners in
+  `fpga/tang-nano-20k/src/nd120_tang20k.sdc` - REVERT after the board test.
+- **P0.3 board test #1 (constrained @ 6.75 MHz): deposits STILL FAIL**
+  (`22/` -> 000000, deposit 054321, readback 000000; reads all-zero like
+  the v1-v3 bitstreams). BUT the .tr shows the constraints were defined
+  and NOT MET: clk_cpu setup TNS **-14,399 ns / 418 endpoints** (Fmax
+  4.84 MHz vs 6.75 needed), gen_mclk TNS -2,537 ns / 81 endpoints, 700
+  setup-violated endpoints total. A build that misses setup by 3x a full
+  period on 418 paths is expected to misbehave, so this is a CONSISTENT
+  result, not a refutation: constraining alone cannot rescue a netlist
+  whose real Fmax is below its clock. (The 89 "hold violations" are
+  probe artifacts - the p_* base clocks assume phase-0 alignment they do
+  not really have; another reason the SDC-only approach is a dead end.)
+- **P0.3 probe #2 (crawl clocking): deposits STILL FAIL, identically.**
+  Added `TANG_CRAWL_BRINGUP` (tang20k_defines.v + gowin_rpll_27_54.v,
+  kept as a commented-out option): CLKOUT 6.75 MHz / CPU 3.375 MHz -
+  under the measured 4.84 MHz Fmax. Constrained crawl build: setup
+  violations dropped 700 -> 19 endpoints (the 19, and the 92 "hold"
+  violations, are all probe-phase artifacts on p_*/gen_* fake clocks).
+  Board test: `22/` -> 000000, deposit 054321, readback 000000 - the
+  EXACT same failure as at 6.75 MHz. A pure setup-timing failure should
+  change behavior at half speed; it did not change AT ALL.
+  (SDC probe reverted as planned; one extra fragility noted: synthesis
+  uniquification suffixes in pin names change between builds - the
+  p_ecreq pin was s_dbg_memw_2_s17/F in one build, _s2/F in the next.)
+
+**P0 CONCLUSION - diagnosis revised.** The unconstrained-clock disease is
+real (it must be fixed regardless; Fmax 2.7-4.8 MHz domains cannot ship),
+but it is NOT the proximate cause of the deposit failure:
+1. Deposit failure is frequency-independent (identical at 6.75 and
+   3.375 MHz) and constraint-independent.
+2. Reads return per-bitstream-stable values; on both constrained builds
+   they read 000000 before AND after a deposit.
+3. **Coverage hole found:** `MAIN_RAM_SDRAM` (the MEM_RAM_49_SDRAM
+   bridge + sdram18.v path) is only buildable via ND3202D/MEM_43 ifdefs;
+   the Verilator sim tops (ND120_TOP for sim/ and runSim/) never build
+   it, and the iverilog Tang tb is far too slow to boot. The runSim
+   golden deposits fine - but through the BRAM RAM, not the bridge.
+   **No simulation has ever executed a deposit through the SDRAM
+   bridge.** All silicon captures (v1-v4) traced the WRITE side to the
+   bridge FSM issuing s_wr with correct data; the READ side (bridge
+   read FSM -> RDATA latches -> LBD -> IDB -> console) was never traced
+   nor simulated.
+Prime suspect at that point: functional bug vs physical race - decided by
+P0.4 below.
+
+- **P0.4 Verilator full-build sim: PASSES.** Made the existing Tang tb
+  runnable under `verilator --binary --timing` (new `make vtest` target in
+  `fpga/tang-nano-20k/sim/Makefile`; three fixes: named-fork `disable`
+  replaced with a polling loop, `-CFLAGS "-std=gnu++20 -fcoroutines"` for
+  g++ 11, and - critically - char pacing raised to 130 ms/char because
+  MOPC only polls the console once per RTC tick; the old 95 us pacing
+  produced a HOLLOW pass where zero chars were ever echoed). The tb now
+  HARD-checks the readback (tail must contain "22/054321").
+  Result: the EXACT Tang configuration (GOWIN + FPGA_FF_MODE +
+  MAIN_RAM_SDRAM bridge + sdram18 + TANG_SLOW_BRINGUP + SKIP_WCS_LOAD)
+  boots, deposits through the real bridge, and reads back 054321
+  correctly. ~100 s wall for 3 s sim.
+
+**P0 FINAL CONCLUSION - the mechanism, precisely:**
+1. Zero-delay sim of the full Tang config PASSES (P0.4).
+2. Board fails IDENTICALLY at 6.75 and 3.375 MHz (P0.3) - frequency-
+   independent.
+3. Wrong values are stable per bitstream, different across bitstreams.
+4. Setup-only fixes (constraints, slower clocks) change NOTHING.
+=> The failure is a **HOLD-type / clock-skew race on the fabric-routed
+register-as-clock nets**: a rogue clock's insertion delay through LUTs
+and routing exceeds the data delay of the signals it captures, so the
+capturing flop samples post-transition data. Hold races are immune to
+frequency reduction (both edges slide together) - exactly what P0.3
+observed - and their outcome depends on relative routing delays, i.e.
+the PNR lottery - exactly the per-bitstream signature. Gowin cannot even
+ANALYZE these paths (TA1117), let alone fix them.
+The fix remains the clock-enable refactor (P1/P2): moving every capture
+onto sysclk with enables gives the tools a single skew-managed clock
+tree, which kills the race class structurally. Frequency changes never
+will.
+
+**Validation-gauntlet upgrade:** gate 4 is now `make vtest` in
+`fpga/tang-nano-20k/sim/` - a REAL boot + deposit + verified readback of
+the exact Tang build (was: "file list elaborates"). Run it before every
+Gowin build.

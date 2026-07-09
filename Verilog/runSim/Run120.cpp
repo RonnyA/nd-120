@@ -129,6 +129,12 @@ static unsigned g_last_csa = 0xFFFFu;
 #ifdef SCRIPT_CMD_EXAM
 #define SCRIPT_CMD "20/\r"              // -DSCRIPT_CMD_EXAM: memory examine; prints a multi-char octal value (output-burst repro)
 #endif
+#ifdef SCRIPT_CMD_GOLDEN
+// -DSCRIPT_CMD_GOLDEN: the clock-enable refactor validation sequence
+// (docs/plan-fix-unconstrained-clocks.md gate 3): examine 22, deposit
+// 054321, re-examine (readback must show 054321), then run from 0 and 20.
+#define SCRIPT_CMD "22/054321\r22/\r0!\r20!\r"
+#endif
 #ifndef SCRIPT_CMD
 #define SCRIPT_CMD "0!\r"               // override with -DSCRIPT_CMD='"20!\r"'
 #endif

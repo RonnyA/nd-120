@@ -37,7 +37,21 @@ $(VVP): $(TB).v $(SRCS)
 	iverilog -g2012 -o $(VVP) $(DEFS) \
 	  $(TB).v ../sdram-test/sim/sdram_model.v ../lint/rpll_stub.v $(SRCS)
 
-clean:
-	rm -f $(VVP) $(TB).log
+# Verilator timing-mode run of the SAME testbench (iverilog is far too slow
+# to boot the CPU - seconds of sim time; Verilator --timing runs it in
+# minutes). Same sources, same defines, same PASS criterion.
+vtest: obj_dir/V$(TB)
+	cd $(TOPDIR) && sim/obj_dir/V$(TB) | tee sim/$(TB)_verilator.log
+	@grep -q "TB_RESULT: PASS" $(TB)_verilator.log
 
-.PHONY: test clean
+obj_dir/V$(TB): $(TB).v $(SRCS)
+	verilator --binary --timing -j 4 -Wno-fatal --top-module $(TB) \
+	  -CFLAGS "-std=gnu++20 -fcoroutines" \
+	  $(DEFS) \
+	  $(TB).v ../sdram-test/sim/sdram_model.v ../lint/rpll_stub.v $(SRCS)
+
+clean:
+	rm -f $(VVP) $(TB).log $(TB)_verilator.log
+	rm -rf obj_dir
+
+.PHONY: test vtest clean
