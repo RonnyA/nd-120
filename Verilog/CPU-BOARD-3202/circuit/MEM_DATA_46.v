@@ -215,7 +215,20 @@ module MEM_DATA_46 (
 
 
 
-  AM29833A CHIP_1H (
+  // RDATA is a read-data strobe generated in the OSC domain (PAL_44310), not
+  // a clock. Clocking the parity-error registers on `posedge RDATA` makes
+  // RDATA a fabric-routed clock net on FPGA (unconstrained, hold-race
+  // lottery - see docs/plan-fix-unconstrained-clocks.md P1a). In FF mode use
+  // the sysclk-sampled edge capture instead (OSC == sysclk on FPGA); latch
+  // mode keeps the original chip behavior.
+`ifdef FPGA_FF_MODE
+  localparam PARITY_ERR_CAPTURE = 2;
+`else
+  localparam PARITY_ERR_CAPTURE = 0;
+`endif
+
+  AM29833A #(.USE_SYSCLK(PARITY_ERR_CAPTURE)) CHIP_1H (
+      .sysclk(s_osc),
       .CLK(s_rdata),
       .CLR_n(s_clrerr_n),
       .ERR_n(s_loerr_n_out),  // output (pulled high) // TODO: Fix pull up when output is not enabled
@@ -241,7 +254,8 @@ module MEM_DATA_46 (
       .T_OUT(s_dd_17_0_out[7:0])
   );
 
-  AM29833A CHIP_2H (
+  AM29833A #(.USE_SYSCLK(PARITY_ERR_CAPTURE)) CHIP_2H (
+      .sysclk(s_osc),
       .CLK(s_rdata),
       .CLR_n(s_clrerr_n),
       .ERR_n  (s_hierr_n_out),        // output (pulled high) // TODO: Fix pull up when output is not enabled

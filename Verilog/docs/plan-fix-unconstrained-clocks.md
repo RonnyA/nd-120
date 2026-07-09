@@ -507,3 +507,18 @@ will.
 `fpga/tang-nano-20k/sim/` - a REAL boot + deposit + verified readback of
 the exact Tang build (was: "file list elaborates"). Run it before every
 Gowin build.
+
+**9-JUL-2026 - P1a DONE (all 5 gates green).** The rogue net was actually
+clocking **AM29833A** parity-error flops (the plan table said AM29861A -
+that chip is combinational and needed nothing). AM29833A gained the
+AM29C821-style USE_SYSCLK=2 edge capture (sync dominant CLR_n); selected
+under FPGA_FF_MODE in MEM_DATA_46 with sysclk=OSC. Gates: equivalence tb
+504/0 + teeth (`Shared/support/sim make test-am29833a`), both trace goldens
+byte-identical, runSim console byte-identical, vtest deposit PASS, Gowin
+TA1117 **47 -> 44** with s_rdata gone from the .tr; board boots/examines,
+no regression. NOTE for later (separate from this refactor): the capture
+condition `!ReceiveMode` checking T-port parity looks inverted vs the
+datasheet receive-side semantics - matches the open "AM29833A parity" item
+in Verilog/TODO.md.
+Remaining P1: P1b refrq_n, P1c ECREQ + dbapr/ddbapr, P1d BGNT_n, P1e
+SIP1M9 RAS (Basys3).
