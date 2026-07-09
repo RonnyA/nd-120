@@ -157,6 +157,22 @@ module MEM_ADEC_45 (
   /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
+`ifdef FPGA_FF_MODE
+  // P1c (docs/plan-fix-unconstrained-clocks.md): DDBAPR is the delayed
+  // bus-address-present strobe (PAL_UBADEC output), not a clock. Same
+  // request/grant flag conversion as MEMORY_2 below: set with the address-OK
+  // qualifier on a detected DDBAPR rising edge, synchronous dominant BGNT
+  // clear. Validated by CPU-BOARD-3202/sim make test-reqgnt (covers the
+  // d-qualifier case: a request with AOK=0 must not set the flag).
+  reg blrq_ff = 1'b0;
+  reg ddbapr_d = 1'b0;
+  always @(posedge sysclk) begin
+    ddbapr_d <= s_ddbapr;
+    if (s_bgnt) blrq_ff <= 1'b0;
+    else if (s_ddbapr && !ddbapr_d) blrq_ff <= s_aok;
+  end
+  assign s_blrq_n_out = ~blrq_ff;
+`else
   D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) MEMORY_1 (
@@ -168,6 +184,7 @@ module MEM_ADEC_45 (
       .reset(s_bgnt),
       .tick(1'b1)
   );
+`endif
 
 `ifdef FPGA_FF_MODE
   // P1b (docs/plan-fix-unconstrained-clocks.md): REFRQ_n is a refresh-request
