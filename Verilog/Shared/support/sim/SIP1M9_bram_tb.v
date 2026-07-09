@@ -35,11 +35,13 @@ module SIP1M9_bram_tb;
   // only at the RAS falling edge, then switches to the COLUMN one cycle later while
   // CAS is still HIGH; CAS falls with the column on AA; both strobes low for a couple
   // cycles; RAS deasserts while CAS stays low (the RDATA read-capture window).
+  // Write data: the D bus is driven BEFORE CAS-fall on silicon (DBG_MEM trace
+  // 8-JUL-2026); the model captures it while RAS is low and CAS still high.
   task mem_write(input [19:0] lbd, input [7:0] data);
     begin
       @(negedge sysclk); ADDRESS = lbd[9:0];   RAS_n = 0; W_n = 0;   // RAS fall, AA=row
-      @(negedge sysclk); ADDRESS = lbd[19:10];                        // AA -> col, CAS still high
-      @(negedge sysclk); D8 = data; CAS_n = 0;                        // CAS fall, AA=col
+      @(negedge sysclk); ADDRESS = lbd[19:10]; D8 = data;             // AA -> col + D valid, CAS still high
+      @(negedge sysclk); CAS_n = 0;                                   // CAS fall, AA=col
       @(negedge sysclk);                                              // both low
       @(negedge sysclk); RAS_n = 1;                                   // RAS deassert, CAS still low
       @(negedge sysclk); CAS_n = 1; W_n = 1;                          // precharge

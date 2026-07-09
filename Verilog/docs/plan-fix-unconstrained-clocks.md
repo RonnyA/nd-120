@@ -522,3 +522,47 @@ datasheet receive-side semantics - matches the open "AM29833A parity" item
 in Verilog/TODO.md.
 Remaining P1: P1b refrq_n, P1c ECREQ + dbapr/ddbapr, P1d BGNT_n, P1e
 SIP1M9 RAS (Basys3).
+
+**9-JUL-2026 - P1b + P1c DONE (all 5 gates green each).**
+- **P1b refrq_n** (commit 073c6f6): MEM_ADEC_45 MEMORY_2 D_FLIPFLOP
+  replaced under FPGA_FF_MODE by a sysclk edge-capture flag (rlrq_ff:
+  set on refrq_n rise gated by s_power, cleared by s_rgnt). Equivalence
+  tb `CPU-BOARD-3202/sim make test-reqgnt`. Gowin TA1117 44 -> 42.
+  Deferred: s_pal_44904_clk (rlrq_ff) still clocks PAL_44904B UMSIZE -
+  display-only and swept by Gowin on Tang.
+- **P1c-1 ddbapr** (commit ae7fb33): same pattern for MEMORY_1
+  (blrq_ff: set on s_ddbapr rise gated by s_aok, cleared by grant).
+  TA1117 42 -> 40. Note: ECREQ's MEM_ADEC consumer (PAL_UCADEC) was
+  ALREADY converted via the PAL_44445B_D mirror - the real remaining
+  ECREQ clock was in the BIF datapath:
+- **P1c-2 ECREQ** (commit acdaa13): TTL_74646/74648 gained
+  USE_SYSCLK_AB/BA=2 edge-capture modes (equivalence tb
+  `Shared/support/sim make test-7464x`, 410 checks + teeth).
+  BIF_DPATH_CDLBD_11 CHIP_7B/6B CLKBA (ECREQ) -> mode 2 under
+  FPGA_FF_MODE, sysclk threaded from BIF_DPATH_9 (.sysclk(OSC)).
+  TA1117 40 -> 39; ECREQ clock domain now has ZERO timing endpoints
+  in the .tr. CLKAB (DSTB_n) deliberately left for P3.
+- **P1d BGNT_n** (commit 6dc09a7): BIF_DPATH_BDLBD_10 CHIP_4A/5A/6A
+  (TTL_74648) CLKBA -> mode 2 under FPGA_FF_MODE. TA1117 39 -> 37;
+  BGNT gone from the clock report. Board after flash: boot + examine
+  clean, deposit still fails with per-bitstream junk (expected - the
+  remaining rogue roots are the P2 CYC clocks + P3 strobes).
+
+**9-JUL-2026 - P1e: NO CODE CHANGE NEEDED (verified).** The RAS/CAS ->
+sysclk conversion already exists from the 8-JUL write-path campaign:
+SIP1M9 ramSize=3 `g_fpga_bram` (row on RAS-fall edge-detect, pre-CAS
+write-data capture, all posedge sysclk) and MEM_RAM_49_BLOCKRAM (same
+design). The remaining `always @(negedge RAS_n/CAS_n)` blocks are in the
+non-generated ramSize!=3 sim branch only. Cross-checks: no RAS/CAS roots
+in the current Gowin TA1117 list or .tr Clock Summary; Basys3 default
+path is MEM_RAM_49 -> SIP1M9 ramSize=3 (vivado_build.tcl defines no
+MAIN_RAM_*), so it takes g_fpga_bram. Found + fixed a STALE testbench:
+`SIP1M9_bram_tb.v` still drove D8 at CAS-fall (pre-cc87430 protocol) and
+failed 16/16; now drives D one cycle before CAS per the DBG_MEM-verified
+silicon timing - ALL PASS.
+
+**P1 COMPLETE.** TA1117 47 -> 37. Remaining rogue clock roots (from the
+P1d .tr): s_clk, s_uclk_Z, s_mclk_Z, s_aluclk_Z, s_rfclk, s_clk3_n_10
+(P2 CYC domain); DSTB_n_34, SPES_12, s_sioc_n, s_div_16, s_XRTOSC,
+s_ldirv (P3); plus the now-empty s_dbg_memw_0[2] analyzer trigger.
+Deposits did not start working after P1 - the P2 CYC conversion is next.
