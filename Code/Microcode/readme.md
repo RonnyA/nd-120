@@ -1,36 +1,58 @@
 # ND-120/CX Microcode
 
+The complete microcode of the Norsk Data ND-120 "DELILAH" CPU — as EPROM dumps,
+as a 600 DPI scan of the original 1987 printed listing, and (the crown jewel)
+as **fully reconstructed, compilable assembly source** recovered from that scan
+and proven bit-for-bit against the silicon.
 
-The Microcode is stored in two different EPROM's each holding 8-bit of a 16 bit word
+## The reconstructed source
 
-Each EPROM is 32KBytes
+| File | Version | What it is |
+|------|---------|------------|
+| [ND-120-DELILAH-K.LISTING.txt](ND-120-DELILAH-K.LISTING.txt) | K (oct 13) | The printed listing, re-typed from the scans — every line number, label, comment and instruction |
+| [nd-120-delilah-K.uc](nd-120-delilah-K.uc) | K | The same source, compilable with the ND110Compile assembler |
+| [ND-120-DELILAH-L.LISTING.txt](ND-120-DELILAH-L.LISTING.txt) | L (oct 14) | Version L, derived from K by applying ND's own changes |
+| [nd-120-delilah-L-from-K.uc](nd-120-delilah-L-from-K.uc) | L | Compiles **bit-exact against the EPROM dump — all 4886 words** |
 
-The PROM's 45123/45133 contains the 32 bits floating point code, the PROM's 45148/45149 contains the 48bit floating point code
+The printed listing is version **K**; the EPROMs in the machines are version
+**L**. It took a long OCR-correction campaign (every suspect line verified
+against the page scans) to get here, and the payoff is the full K→L diff:
+Norsk Data bumped the version word, inserted **one** `COMM,SLOW` word in the
+CPU-init sequence, removed the P/B/X register-read delay (an assembler
+token-table change — no source lines touched), adjusted six condition-false
+sequencing specs, and made four small operand fixes. **13 changed source lines
+in total, and every jump label identical** — that is the entire difference
+between the two ROMs.
 
-[AM27256_45132L](AM27256_45132L.bin) = Contains the LO 8 bits (0-7)
-[AM27256_45133L](AM27256_45133L.bin) = Contains the HI 8 bits (8-15)
+The reconstruction pipeline, gates and the full change-log live in the
+[ND120UC repo](E:\Dev\Ronny\ND120UC) (`docs/K-to-L-source-changes.md`).
 
-When creating the 64 bit microcode, you will need to read 4 addresses of 16 bits to get the 
+## The EPROMs
 
+The microcode is stored in two 32 KByte EPROMs, each holding 8 bits of a
+16-bit word:
 
-| EPROM Address | Microcode bits | 
-|---------|----------------|
-| 0       | Bits 48-63 |
-| 1       | Bits 31-47 | 
-| 2       | Bits 16-31 | 
-| 3       | Bits 0-15 |
+- [AM27256_45132L](AM27256_45132L.bin) — LO 8 bits (0–7)
+- [AM27256_45133L](AM27256_45133L.bin) — HI 8 bits (8–15)
 
+The 45132/45133 pair contains the 32-bit floating point code; the
+45148/45149 pair contains the 48-bit floating point code.
 
-## Microcode source code ##
+Each 64-bit microcode word is built from 4 consecutive 16-bit reads:
 
-The [Source code](ND-120%20Mikroprogramlisting-L-ocr.pdf) for the microcode is available as a PDF with a total of 249 pages.
-Its scanned in 600 DPI and it's been OCR'ed
+| EPROM Address | Microcode bits |
+|---------------|----------------|
+| 0 | Bits 48–63 |
+| 1 | Bits 32–47 |
+| 2 | Bits 16–31 |
+| 3 | Bits 0–15 |
 
-The [ND-06.031.1 EN ND-110 and ND-120 Microprogrammer's Guide](ND-06.031.1%20EN%20ND-110%20and%20ND-120%20Microprogrammer's%20Guide-Gandalf-OCR.pdf) is useful for understanding the microcode.
+The low byte of the word at octal address 020 is the microcode version:
+oct 13 = K, oct 14 = L.
 
-## Reading the binary microcode in C# ##
-C# code to read the microcode into an 64bit wide array named chip_microcode
+## Reading the binary microcode in C#
 
+C# code to read the microcode into a 64-bit wide array named `chip_microcode`:
 
 ```csharp
         byte[] LOBits = File.ReadAllBytes("AM27256_45132L.bin");
@@ -63,19 +85,25 @@ C# code to read the microcode into an 64bit wide array named chip_microcode
 
 ```
 
+## Documentation
 
-## Schematic ##
+- [ND-120 Mikroprogramlisting-L-ocr.pdf](ND-120%20Mikroprogramlisting-L-ocr.pdf)
+  — the original printed listing (version K), 249 pages, scanned at 600 DPI.
+  The source of truth the reconstruction was verified against.
+- [ND-06.031.1 EN ND-110 and ND-120 Microprogrammer's Guide](ND-06.031.1%20EN%20ND-110%20and%20ND-120%20Microprogrammer's%20Guide-Gandalf-OCR.pdf)
+  — the reference for understanding the microcode word format and tokens.
 
-Here you can se how the EPROM's was connected to the internal databuse (IDB)
+## Schematic
 
-![Schematich for EPROM](images/CPU_EPROM.png)
+Here you can see how the EPROMs were connected to the internal data bus (IDB):
 
-## EPPROM on CPU board 3202 ##
+![Schematic for EPROM](images/CPU_EPROM.png)
+
+## EPROM on CPU board 3202
 
 ![CPU Board 3202 with EPROM](images/3202_microcode_EPROMS.png)
 
-## Hex dump of Microkode ##
+## Hex dump of microcode
 
-In case you just want to review the microcode as hex, here is a dump for your convinience
-
-[Hex dump](microcode.md)
+In case you just want to review the microcode as hex, here is a dump for your
+convenience: [Hex dump](microcode.md)
