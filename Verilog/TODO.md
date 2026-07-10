@@ -1,28 +1,33 @@
 # ND-120 Verilog TODO
 
-> Last updated: 10-JUL-2026
+> Last updated: 11-JUL-2026
 
 ---
 
-## SD-FAT stack (Milestone 1 of docs/sd-bpun-device-plan.md) - built, sims pass, NOT yet on hardware
+## SD-FAT stack (Milestone 1 of docs/sd-bpun-device-plan.md) - built incl. WRITES, sims pass, NOT yet on hardware
 
-Reusable SD/FAT library in `SD-FAT/` (vendored WangXuan95 reader, marked
-mods: runtime file name, directory-entry outputs, scan_done/file size) +
-Tang Nano 20K test project `fpga/tang-nano-20k/sd-fat-test/`: UART menu
-(9600 8N1, `#` prompt) with 1=LIST root dir, 2=DUMP BOOT.BPUN (hex/octal,
-byte-verified), 3=COPY placeholder, persistent `SD:` card status, watchdog
-(no card / stuck read never hangs). iverilog + Verilator system tests pass
-against a real mkfs.vfat FAT16 image; OSS bitstream builds (32/46 BSRAM,
-Fmax 77 MHz).
+Reusable SD/FAT library in `SD-FAT/`: vendored WangXuan95 reader (marked
+mods: runtime file name, dir-entry name/size/date/is-dir outputs,
+first-sector output, split sdcmd tristate) + CLEAN-ROOM `sd_writer.v`
+(CMD24, MIT, own unit tb `SD-FAT/sim :: test-writer`). Tang test project
+`fpga/tang-nano-20k/sd-fat-test/`: UART menu (9600 8N1, `#` prompt):
+1=LIST (size + DD-MMM-YYYY date + name, <DIR> entries), 2=DUMP BOOT.BPUN
+(hex/octal, byte-verified), 3=COPY BOOT.BPUN over pre-created TEST.TXT
+(in-place sector rewrite, Route B), 4=WRBLK1 (word[w]=w pattern into 1KW
+block 1 = sectors first+4..7, range-guarded), H=help; persistent `SD:`
+status; watchdogs everywhere. `make console` = interactive Verilator UART.
+Verilator system test verifies dump bytes, list columns, copy content and
+that WRBLK1 touched ONLY block 1. Bitstream builds (OSS flow).
+Block map convention: 1KW block N of contiguous file = 4 SD sectors at
+first_sector+4N (SD-FAT/README.md).
 
 Next actions:
-1. `make load` on the Tang, card from the README recipe -> acceptance A3-A6.
+1. `make load` on the Tang, card from the README recipe -> acceptance
+   A3-A6 + menu 3/4 on real silicon.
 2. OWNER DECISION: GPL-3.0 vendored files in the MIT repo (before commit).
-3. OWNER DECISION: menu item 3 / write path - Route B (CMD24 + in-place
-   rewrite of pre-created contiguous files, recommended) vs Route A
-   (picorv32 + FatFs). See `SD-FAT/README.md`.
-4. Milestone 2: ND_BUS_DEV_IF + TAPE_READER_400 against the Verilator bus
-   ports, then `$` boot from card (plan sections 8 and 10).
+3. Milestone 2: ND_BUS_DEV_IF + TAPE_READER_400 against the Verilator bus
+   ports, then `$` boot from card (plan sections 8 and 10); floppy device
+   builds on the 1KW block map.
 
 ---
 

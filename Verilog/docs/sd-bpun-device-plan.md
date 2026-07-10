@@ -1,7 +1,14 @@
 # SD-card BPUN loading and ND-100 device emulation - design plan
 
-Status: DESIGN DOCUMENT (research complete, implementation not started)
-Last reviewed: 10-JUL-2026
+Status: MILESTONE 1 IMPLEMENTED 10/11-JUL-2026 (SD-FAT library +
+Tang Nano 20K sd-fat-test: LIST/DUMP/COPY/1KW-block-write menu, all sims
+green, bitstream builds - see Verilog/SD-FAT/README.md and
+Verilog/fpga/tang-nano-20k/sd-fat-test/README.md; awaiting hardware run).
+Sections 1-9 below are the original design; deviations are documented in
+the two READMEs (notably: the write path landed EARLY as the clean-room
+sd_writer.v with in-place rewrites - Route B - and the 1-kiloword block
+map; milestone ordering in docs/device-bus-todo.md supersedes section 10+).
+Last reviewed: 11-JUL-2026
 Scope: SD card + FAT filesystem access on the FPGA boards, an emulated
 ND-100 paper tape reader (device 400 octal) that reads .BPUN files from
 the SD card, and the roadmap to floppy and SMD/HDD image emulation on
