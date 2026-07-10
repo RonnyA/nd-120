@@ -129,6 +129,11 @@ static unsigned g_last_csa = 0xFFFFu;
 #ifdef SCRIPT_CMD_EXAM
 #define SCRIPT_CMD "20/\r"              // -DSCRIPT_CMD_EXAM: memory examine; prints a multi-char octal value (output-burst repro)
 #endif
+#ifdef SCRIPT_CMD_BINLOAD
+// -DSCRIPT_CMD_BINLOAD: activate the console serial binary loader; the
+// raw BPUN bytes then come from ND120_BINLOAD_FILE (see below).
+#define SCRIPT_CMD "300$"
+#endif
 #ifdef SCRIPT_CMD_GOLDEN
 // -DSCRIPT_CMD_GOLDEN: the clock-enable refactor validation sequence
 // (docs/plan-fix-unconstrained-clocks.md gate 3): examine 22, deposit
@@ -141,6 +146,14 @@ static unsigned g_last_csa = 0xFFFFu;
 static const char *g_script = SCRIPT_CMD;  // command to run once OPCOM is up
 static int g_script_idx = 0;
 static int g_next_inject_cnt = 0;          // gate: don't send next char until this cnt
+// ND120_BINLOAD_FILE: after the script, stream this file's RAW bytes into
+// the console UART (300$ serial binary loader experiments).
+// ND120_BINLOAD_SETTLE / ND120_BINLOAD_GAP: cnt delays before / between bytes.
+static FILE *g_binf = nullptr;
+static long g_bin_gap = 100000;
+static long g_bin_settle = 2000000;
+static int g_bin_state = 0;   // 0=idle 1=settling 2=streaming 3=done
+static long g_bin_sent = 0;
 #endif
 
 int txData = 0;
@@ -317,6 +330,45 @@ int main(int argc, char **argv)
 				n = 1;
 				g_next_inject_cnt = cnt + 300000;  // inter-char gap so OPCOM reads each (avoid RX overrun)
 			}
+			else if (g_boot_done_cnt != 0 && g_script[g_script_idx] == '\0' &&
+			    g_bin_state != 3 && getenv("ND120_BINLOAD_FILE") != nullptr &&
+			    cnt > g_next_inject_cnt)
+			{
+				if (g_bin_state == 0)
+				{
+					if (const char *e = getenv("ND120_BINLOAD_GAP")) g_bin_gap = atol(e);
+					if (const char *e = getenv("ND120_BINLOAD_SETTLE")) g_bin_settle = atol(e);
+					g_binf = fopen(getenv("ND120_BINLOAD_FILE"), "rb");
+					if (!g_binf) { printf("[binload] cannot open file\n"); g_bin_state = 3; }
+					else {
+						printf("[binload] settling %ld cnt after script\n", g_bin_settle);
+						g_next_inject_cnt = cnt + g_bin_settle;
+						g_bin_state = 1;
+					}
+				}
+				else
+				{
+					int c = fgetc(g_binf);
+					if (c == EOF) {
+						fclose(g_binf); g_binf = nullptr;
+						printf("[binload] streamed %ld bytes (gap=%ld cnt)\n", g_bin_sent, g_bin_gap);
+						g_bin_state = 3;
+					} else {
+						if (g_bin_state == 1) { printf("[binload] streaming...\n"); g_bin_state = 2; }
+					if ((g_bin_sent % 8) == 0)
+						printf("[binload] byte %ld: uart cmd=%02x status=%02x rxen=%d ioc=%02x\n",
+						    g_bin_sent,
+						    (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regCommandRegister,
+						    (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regStatusRegister,
+						    (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__cmd_rxEnabled,
+						    (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__REG_MODULE__DOT____Vcellout__CHIP_28A_IOC__Q);
+						ch = (char)c;
+						n = 1;
+						g_bin_sent++;
+						g_next_inject_cnt = cnt + g_bin_gap;
+					}
+				}
+			}
 			else
 #endif
 			// Try to read a character from stdin
@@ -481,6 +533,18 @@ int main(int argc, char **argv)
 	m_trace->close();
 #endif
 
+#ifdef SCRIPT_INPUT
+	if (const char *e = getenv("ND120_BINLOAD_CHECK")) {
+		unsigned a0 = 0; int nw = 0;
+		if (sscanf(e, "%o:%d", &a0, &nw) == 2) {
+			printf("[binload] RAM check @%06o:", a0);
+			for (int k = 0; k < nw; k++)
+				printf(" %06o",
+				    ((unsigned)ram_high[a0 + k] << 8) | ram_low[a0 + k]);
+			printf("\n");
+		}
+	}
+#endif
 	delete top;
 	return 0;
 }
