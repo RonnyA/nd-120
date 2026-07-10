@@ -333,7 +333,19 @@ module CPU_PROC_32 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  AM29841 CHIP_25F (
+  // P3 (docs/plan-fix-unconstrained-clocks.md): in FF mode the CA latch
+  // captures on posedge sysclk gated by the rise-aligned MCLK enable
+  // instead of clocking on the routed s_mclk net (mclk_Z clock root).
+`ifdef FPGA_FF_MODE
+  localparam CA_LATCH_CE = 1;
+`else
+  localparam CA_LATCH_CE = 0;
+`endif
+
+  AM29841 #(.USE_ENABLE(CA_LATCH_CE)) CHIP_25F (
+      .sysclk(sysclk),
+      .EN(s_mclk_en),
+
       // Input signals
       .D(s_csca_9_0),
       .LE(s_mclk),

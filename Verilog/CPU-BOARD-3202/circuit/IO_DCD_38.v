@@ -392,6 +392,21 @@ module IO_DCD_38 (
 
   // PPOSC baud-rate reference always derived from sysclk (100MHz/8 = 12.5MHz),
   // NOT from XTAL1/clk1, so the UART speed is unaffected by SW2 clock divider.
+`ifdef FPGA_FF_MODE
+  // P3 (docs/plan-fix-unconstrained-clocks.md): the two ripple 74393s made
+  // s_div_16 / s_XRTOSC register-driven clock roots. One synchronous 8-bit
+  // counter is bit-exact to the cascade (the second counter incremented on
+  // the s_div_16 fall = bits[3:0] wrap = bit 4 of a plain binary counter),
+  // only shifted from negedge to posedge sysclk.
+  reg [7:0] r_rt_cnt;
+  always @(posedge sysclk) begin
+    if (s_closc) r_rt_cnt <= 8'd0;
+    else r_rt_cnt <= r_rt_cnt + 8'd1;
+  end
+  assign s_pposc  = r_rt_cnt[2];  // period 8 sysclk (12.5MHz at 100MHz, for UART)
+  assign s_div_16 = r_rt_cnt[3];
+  assign s_XRTOSC = r_rt_cnt[7];  // period 256 sysclk -> RTOSC to DGA
+`else
   TTL_74393 CHIP_13C_1 (
       .CLK_n(sysclk),
       .RESET(s_closc),
@@ -409,6 +424,7 @@ module IO_DCD_38 (
       .QC(),
       .QD(s_XRTOSC)  // Signal RTOSC going to DGA (153.6Khz)
   );
+`endif
 
 
 

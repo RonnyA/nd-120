@@ -546,6 +546,7 @@ module CPU_15 (
     .STP(s_stp),
     .SW1_CONSOLE(s_sw1_console),
     .UCLK(s_uclk),
+    .UCLK_EN(s_uclk_en),
     .WCHIM_n(s_wchim_n),
     .WRITE(s_write),
 

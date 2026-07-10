@@ -11,6 +11,8 @@
 ***********************************************************************************************************/
 
 module AM29841 (
+    input wire sysclk,    // FPGA system clock (used only when USE_ENABLE=1)
+    input wire EN,        // Clock enable     (used only when USE_ENABLE=1)
     input wire [9:0] D,   // 10 Bit Data inputs
     input wire LE,        // Latch Enable (when high in latch mode, rising edge in FF mode)
     input wire OE_n,      // Output Enable
@@ -25,15 +27,33 @@ module AM29841 (
     parameter FPGA_MODE = 1;  // FPGA: use edge-triggered FF for synthesis
 `endif
 
+    // USE_ENABLE=1: capture on posedge sysclk when EN is high (rise-aligned
+    // enable for the clock that drives LE) instead of clocking on the routed
+    // LE net (P3, docs/plan-fix-unconstrained-clocks.md). Overrides FPGA_MODE.
+    parameter USE_ENABLE = 0;
+
     reg [9:0] Q_reg = 10'b0;  // Internal register/latch with initial value for FPGA
 
     generate
-        if (FPGA_MODE == 1) begin : gen_flipflop
+        if (USE_ENABLE == 1) begin : gen_enable
+            /* verilator lint_off UNUSEDSIGNAL */
+            wire unused_le = LE;
+            /* verilator lint_on UNUSEDSIGNAL */
+            always @(posedge sysclk) begin
+                if (EN) Q_reg <= D;
+            end
+        end else if (FPGA_MODE == 1) begin : gen_flipflop
+            /* verilator lint_off UNUSEDSIGNAL */
+            wire unused_sys = sysclk & EN;
+            /* verilator lint_on UNUSEDSIGNAL */
             // Edge-triggered flip-flop mode (FPGA-friendly)
             always @(posedge LE) begin
                 Q_reg <= D;  // Capture on rising edge
             end
         end else begin : gen_latch
+            /* verilator lint_off UNUSEDSIGNAL */
+            wire unused_sys = sysclk & EN;
+            /* verilator lint_on UNUSEDSIGNAL */
             // Transparent latch mode (original behavior)
             /* verilator lint_off LATCH */
             always @(*) begin

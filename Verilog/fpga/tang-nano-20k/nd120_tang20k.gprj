@@ -163,6 +163,7 @@
         <File path="../../PAL/PAL_44402D.v" type="file.verilog" enable="1"/>
         <File path="../../PAL/PAL_44403C.v" type="file.verilog" enable="1"/>
         <File path="../../PAL/PAL_44404C.v" type="file.verilog" enable="1"/>
+        <File path="../../PAL/PAL_44402D_EN.v" type="file.verilog" enable="1"/>
         <File path="../../PAL/PAL_44403C_EN.v" type="file.verilog" enable="1"/>
         <File path="../../PAL/PAL_44404C_EN.v" type="file.verilog" enable="1"/>
         <File path="../../PAL/PAL_44407A_EN.v" type="file.verilog" enable="1"/>

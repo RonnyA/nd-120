@@ -298,6 +298,23 @@ module DECODE_DGA_POW (
       .tick(1'b1)
   );
 
+`ifdef FPGA_FF_MODE
+  // P4 (docs/plan-fix-unconstrained-clocks.md): s_clear_n (= sys_rst_n on
+  // FPGA) was A572's clock pin - the last register/reset-net clock root
+  // (Gowin auto-created a bogus 100MHz "sys_rst_n" base clock for it and
+  // could not analyze any path touching it). Capture s_esload_n on a
+  // sysclk-detected clear_n rise instead; the async CLRTI preset is kept.
+  reg r_a572_clear_n_d = 1'b0;
+  always @(posedge sysclk) r_a572_clear_n_d <= s_clear_n;
+  wire s_a572_clearn_rise = s_clear_n & ~r_a572_clear_n_d;
+
+  reg r_a572_q = 1'b0;  // q starts 0 -> s_lrst (qBar) starts 1, as the original
+  always @(posedge sysclk or posedge s_clrti) begin
+    if (s_clrti) r_a572_q <= 1'b1;
+    else if (s_a572_clearn_rise) r_a572_q <= s_esload_n;
+  end
+  assign s_lrst = ~r_a572_q;
+`else
   D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) A572 (
@@ -309,6 +326,7 @@ module DECODE_DGA_POW (
       .reset(s_zz0),  //negated zz1
       .tick(1'b1)
   );
+`endif
 
   // A577: RTC (Real Time Clock) — synchronous sysclk counter replaces the
   // F714/JK ripple chain (A623->A619->A624->A616/A618/A617 chain) which uses
@@ -368,6 +386,82 @@ module DECODE_DGA_POW (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+  // Connected all F091 (A637 and A613) to this F091
+  F091 A613B (
+      .N01(s_zz1),  // N01 = Always 1
+      .N02(s_zz0)   // N02 = Always 0
+  );
+
+  F595 A570 (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .H01_S (s_stp_n),
+      .H02_R (s_pwcl),
+      .H03_G (s_zz1),
+      .N01_Q (),
+      .N02_QB(s_esload_n)
+  );
+
+  F595 A571 (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .H01_S (a580_nand_out),
+      .H02_R (s_start),
+      .H03_G (s_zz1),
+      .N01_Q (s_stp),
+      .N02_QB(s_stp_n)
+  );
+
+`ifdef FPGA_FF_MODE
+  // P3 (docs/plan-fix-unconstrained-clocks.md): the F714/F617 RTOSC ripple
+  // network made s_rfclk and the chain QBs register-driven clock roots.
+  // Synchronous re-implementation on posedge sysclk:
+  //  - A623/A632/A634/A621/A622/A619 toggle on the previous stage's QB rise
+  //    (= Q fall) - exactly a 6-bit binary up counter stepped on the RTOSC
+  //    rise (reset RESCL).
+  //  - A633 (rfclk = QB) / A629 (panosc = QB) are /2 toggles (reset CLOSC).
+  //  - A630/A631 (F617) clock on the rfclk rise with async active-low set;
+  //    the rise is derived from the q633 NEXT value so a CLOSC-forced QB
+  //    rise clocks them exactly like the original async network did.
+  reg       r_rtosc_d = 1'b0;
+  reg       r_q633 = 1'b0;     // A633 Q (s_rfclk  = QB = ~Q), reset CLOSC
+  reg       r_q629 = 1'b0;     // A629 Q (s_panosc = QB = ~Q), reset CLOSC
+  reg [5:0] r_cnt6 = 6'd0;     // A623/A632/A634/A621/A622/A619 chain, reset RESCL
+  reg       r_refrq_n = 1'b0;  // A630 Q (F617: D=0,       C=rfclk, SB_n=s_ref_n)
+  reg       r_a631_q = 1'b0;   // A631 Q (F617: D=refrq_n, C=rfclk, SB_n=s_bdry50_n)
+
+  wire s_rtosc_rise = s_rtosc & ~r_rtosc_d;
+  wire s_q633_next  = s_closc ? 1'b0 : (s_rtosc_rise ? ~r_q633 : r_q633);
+  wire s_rfclk_rise = r_q633 & ~s_q633_next;  // rfclk = ~q633
+
+  always @(posedge sysclk) begin
+    r_rtosc_d <= s_rtosc;
+    r_q633    <= s_q633_next;
+
+    if (s_closc)           r_q629 <= 1'b0;
+    else if (s_rfclk_rise) r_q629 <= ~r_q629;
+
+    if (s_rescl)           r_cnt6 <= 6'd0;
+    else if (s_rtosc_rise) r_cnt6 <= r_cnt6 + 6'd1;
+
+    if (!s_ref_n)          r_refrq_n <= 1'b1;  // F617 async set
+    else if (s_rfclk_rise) r_refrq_n <= 1'b0;  // D = 0
+
+    if (!s_bdry50_n)       r_a631_q <= 1'b1;   // F617 async set
+    else if (s_rfclk_rise) r_a631_q <= r_refrq_n;
+  end
+
+  assign s_rfclk    = ~r_q633;
+  assign s_panosc   = ~r_q629;
+  assign s_a623_q_n = ~r_cnt6[0];
+  assign s_a632_q_n = ~r_cnt6[1];
+  assign s_a634_q_n = ~r_cnt6[2];
+  assign s_a621_q_n = ~r_cnt6[3];
+  assign s_a622_q_n = ~r_cnt6[4];
+  assign s_testo    = ~r_cnt6[5];
+  assign s_refrq_n  = r_refrq_n;
+  assign s_a631_q   = r_a631_q;
+`else
   F714 A623 (
       .H01_T (s_rtosc),
       .H02_R (s_rescl),
@@ -382,13 +476,6 @@ module DECODE_DGA_POW (
       .H03_S (s_gnd),
       .N01_Q (),
       .N02_QB(s_rfclk)
-  );
-
-
-  // Connected all F091 (A637 and A613) to this F091
-  F091 A613B (
-      .N01(s_zz1),  // N01 = Always 1
-      .N02(s_zz0)   // N02 = Always 0
   );
 
   F714 A632 (
@@ -413,26 +500,6 @@ module DECODE_DGA_POW (
       .H03_S (s_gnd),
       .N01_Q (),
       .N02_QB(s_a634_q_n)
-  );
-
-  F595 A570 (
-      .sysclk(sysclk),
-      .sys_rst_n(sys_rst_n),
-      .H01_S (s_stp_n),
-      .H02_R (s_pwcl),
-      .H03_G (s_zz1),
-      .N01_Q (),
-      .N02_QB(s_esload_n)
-  );
-
-  F595 A571 (
-      .sysclk(sysclk),
-      .sys_rst_n(sys_rst_n),
-      .H01_S (a580_nand_out),
-      .H02_R (s_start),
-      .H03_G (s_zz1),
-      .N01_Q (s_stp),
-      .N02_QB(s_stp_n)
   );
 
   F714 A621 (
@@ -476,6 +543,7 @@ module DECODE_DGA_POW (
       .N01_Q (),
       .N02_QB(s_testo)
   );
+`endif
 
   F714 A627 (
       .H01_T (s_a617_q_n),

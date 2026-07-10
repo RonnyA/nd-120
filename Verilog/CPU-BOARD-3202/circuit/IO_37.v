@@ -357,7 +357,8 @@ module IO_37(
    // Negate "console_n" to get "console" - that way OR will work as expected.
    assign s_uart_console_n = ~(!s_io_console_n | !s_console_n);
 
-   IO_REG_41   REG_MODULE (.BINT10_n(s_bint10_n),
+   IO_REG_41   REG_MODULE (.sysclk(sysclk),
+                           .BINT10_n(s_bint10_n),
                            .BINT12_n(s_bint12_n),
                            .BINT13_n(s_bint13_n),
                            .CLEAR_n(s_clear_n),

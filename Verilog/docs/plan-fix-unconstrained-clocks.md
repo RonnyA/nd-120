@@ -691,3 +691,84 @@ vacuous (idle-FSM) run fails via MIN_PULSES. iverilog note: PAL_44601B
 has no reset - the tb deposits the FPGA GSR power-up state (all state
 regs 0) or the FSM X-locks under 4-state sim (Verilator 2-state hides
 this).
+
+**10-JUL-2026 - P3 COMPLETE (strobe roots + MMU cache): TA1117 28 -> 2.**
+Converted in one batch, all sim gates green:
+
+- **BIF end-of-window lesson (the board deposit bug):** DSTB_n marks the
+  END of the memory data window - the mode-2 (rise+1) edge capture reads
+  a dead bus, and every memory READ returned 000000 (vtest + runSim both
+  caught it; examine looked right only because memory was zero).
+  New `TTL_74646 USE_SYSCLK_AB=3` WINDOWED capture: follow the data on
+  posedge sysclk while the strobe is low, hold from the rise -> holds the
+  at-rise value with no lag. Legal in CDLBD because SAB=DSTB_n selects
+  real-time data during the low window, so regA is unobserved until the
+  rise. RULE: strobe conversions must classify the strobe first -
+  START-of-window (ECREQ, BGNT_n: data valid after the rise -> mode 2) vs
+  END-of-window (DSTB_n: data dies at the rise -> mode 3).
+- BIF batch: CDLBD CLKAB (mode 3), BDLBD CLKAB=CLKBD (mode 2, BD bus tied
+  off - residual risk documented), PESPEA 4x TTL_74534 on SPEA/SPES (new
+  USE_SYSCLK=2 param), PPNLBD posedge ECREQ -> inline edge capture.
+  s_dbg_memw_0[2] root was ECREQ seen through the DBG_MEMW bus - gone
+  with the PPNLBD fix.
+- IOC: TTL_74273 gained USE_SYSCLK=2 (sync clear kept); CHIP_28A_IOC
+  captures on the detected ~SIOC_n rise. Cost: the two LED trace columns
+  shift one tick (the only non-BDRY trace change - accepted, FF golden
+  regenerated).
+- LDIRV: D_FLIPFLOP_EN gained USE_ENABLE=2 (strobe edge-capture via the
+  clock pin); MEMORY_46/47 in CGA_CPU_ALU_CONTR converted.
+- Dividers: the two ripple 74393s (s_div_16/s_XRTOSC roots) replaced in
+  FF mode by one synchronous 8-bit counter (bit-exact mapping: pposc=
+  bit2, div_16=bit3, XRTOSC=bit7); the POW F714/F617 RTOSC ripple network
+  (s_rfclk root) replaced by a sync 6-bit counter + rfclk/panosc toggles
+  + F617 set-priority equations, with the rfclk rise derived from the
+  q633 NEXT value so the CLOSC-forced QB rise still clocks A630/A631.
+  Refresh phase moves -> BDRY diff rows grew (13684, still BDRY-only).
+- MMU cache roots (s_mclk_Z/s_uclk_Z): PAL_44402D posedge UCLK ->
+  PAL_44402D_EN equation copy on UCLK_EN; AM29841 CHIP_25F posedge
+  LE=mclk -> new AM29841 USE_ENABLE=1 on MCLK_EN. UCLK_EN threaded
+  CPU_15 -> CPU_MMU_24 -> CPU_MMU_CACHE_25. Cache RAMs were already
+  sysclk BRAMs.
+
+Gates: trace_latch == stored golden byte-for-byte; trace_ff == golden
+(regenerated: BDRY refresh phase + 2 LED rows, columns verified);
+latch-vs-FF diff = BDRY + 2 LED rows only; make test 24/24; runSim FF
+console == golden; Tang vtest deposit PASS. Gowin: TA1117 2 (both
+sys_rst_n <-> CLKOUTD, the P4 item); CPU-domain worst real path slack
++37.6ns - the 1320 "violated endpoints" are all against the bogus
+sys_rst_n 100MHz auto-clock, not real paths. NEXT: board deposit test,
+then P4 (sys_rst_n).
+
+**10-JUL-2026 (later) - P4 COMPLETE + BOARD DEPOSIT PASSES: TA1117 = 0.**
+
+- vtest caught a P3 regression before the board did: mode-2 DSTB capture
+  read a dead bus and ALL memory reads returned 000000 -> the mode-3
+  windowed capture above (TTL_74646 USE_SYSCLK_AB=3) fixed it; both
+  goldens stayed byte-identical.
+- First board flash then died silently: the write-path analyzer in
+  ND120_TANG20K_TOP triggers on the first write decode - which NOW FIRES
+  during normal boot - dumped its ring buffer and held the TX pin forever
+  (dump_fin never clears). The pin takeover is now behind
+  `TANG_WRITE_ANALYZER_DUMP` (off by default); the wdec/WRITE LEDs stay.
+- Board still silent after that: hardware bisect (DIAG builds) showed the
+  boot lived or died with the SIOC conversion - but DIAG2's timing report
+  was violation-free and the identical RTL passes vtest. The real
+  mechanism was the LAST unconstrained root: POW A572 clocked by
+  s_clear_n (= sys_rst_n on FPGA). Gowin auto-created a bogus 100MHz
+  "sys_rst_n" base clock for it and every path near it was unanalyzed -
+  the same per-bitstream placement-lottery that caused the original write
+  bug. Each recompile rolled the dice; the SIOC localparam flip just
+  reshuffled the layout.
+- P4 fix: A572 converted in FF mode to a sysclk flop capturing
+  s_esload_n on a detected s_clear_n rise (async CLRTI preset kept,
+  q init 0 so s_lrst starts 1 like the original).
+- RESULT: **zero TA1117 warnings, the bogus sys_rst_n clock is gone from
+  the Clock Summary, and every real clock closes timing with 0.000 TNS
+  setup AND hold.** All sim gates green (24/24 units, both trace goldens
+  byte-identical, runSim console golden, vtest PASS). **BOARD: boots to
+  the OPCOM '#' prompt, deposit 22/54321 + readback = 054321 - the first
+  time a memory WRITE from the console works on silicon.**
+
+Remaining (P5): zero-warning enforcement in the build scripts + the
+Basys3/Vivado equivalent pass; BD-bus strobes (CLKBD/SPEA/SPES mode 2)
+are dead logic on both boards - residual risk documented above.

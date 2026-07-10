@@ -7,6 +7,9 @@
 **   clock, original behaviour.                                          **
 ** USE_ENABLE=1: posedge sysclk, captures when EN is high (P2 clock-     **
 **   domain conversion mode - see SCAN_FF_EN.v / the plan doc).          **
+** USE_ENABLE=2: strobe edge-capture - `clock` carries a control strobe, **
+**   not a clock; capture d on a sysclk-detected rise of `clock` (P3     **
+**   mode, AM29C821 USE_SYSCLK=2 pattern). EN is unused (tie 0).         **
 **                                                                       **
 ** ASYNC_RESET=0 (default): preset/reset must be tied 0 (clean sync      **
 **   flop, InvertClockEnable=0).                                         **
@@ -47,6 +50,18 @@ module D_FLIPFLOP_EN #(
         if (preset) q_r <= 1'b1;
         else if (reset) q_r <= 1'b0;
         else if (EN) q_r <= d;
+      end
+      assign q    = q_r;
+      assign qBar = ~q_r;
+    end else if (USE_ENABLE == 2) begin : gen_strobe_edge
+      /* verilator lint_off UNUSEDSIGNAL */
+      wire unused = EN & preset & reset & tick;
+      /* verilator lint_on UNUSEDSIGNAL */
+      reg q_r = 1'b0;
+      reg clock_d = 1'b0;
+      always @(posedge sysclk) begin
+        clock_d <= clock;
+        if (clock && !clock_d) q_r <= d;
       end
       assign q    = q_r;
       assign qBar = ~q_r;

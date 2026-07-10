@@ -86,6 +86,7 @@ foreach _rel {
     Shared/ndlib/SCAN_WITH_RESET_N_EN.v
     Shared/ndlib/M169C_EN.v
     Shared/ndlib/F924_EN.v
+    PAL/PAL_44402D_EN.v
     PAL/PAL_44403C_EN.v
     PAL/PAL_44404C_EN.v
     PAL/PAL_44407A_EN.v

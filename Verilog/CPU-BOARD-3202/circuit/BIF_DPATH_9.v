@@ -204,6 +204,7 @@ module BIF_DPATH_9 (
 
   BIF_DPATH_PPNLBD_14 PPNLBD (
       // Inputs
+      .sysclk(OSC),  // OSC == sysclk (clk_cpu BUFG) on FPGA
       .CA_9_0(s_ca_9_0[9:0]),           // 10-bit address
       .EADR_n(s_eaddr_n),               // Address enable (active low)
       .ECREQ(s_ecreq),                  // Enable CPU Request
@@ -249,6 +250,7 @@ module BIF_DPATH_9 (
 
   BIF_DPATH_PESPEA_13 PESPEA (
       // Inputs
+      .sysclk(OSC),  // OSC == sysclk (clk_cpu BUFG) on FPGA
       .BD_23_0_n_IN(s_bd_23_0_n_in[23:0]),
       .EPEA_n(s_epea_n),
       .EPES_n(s_epes_n),

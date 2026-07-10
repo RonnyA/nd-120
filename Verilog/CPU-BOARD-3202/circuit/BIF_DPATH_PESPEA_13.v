@@ -9,6 +9,7 @@
 ***************************************************************************/
 
 module BIF_DPATH_PESPEA_13 (
+    input        sysclk,  //! System clock (used only for the FF-mode strobe edge-capture)
     input [23:0] BD_23_0_n_IN,
     input        EPEA_n,
     input        EPES_n,
@@ -68,7 +69,17 @@ module BIF_DPATH_PESPEA_13 (
 
   assign s_idb_15_0_out       = s_pea_idb_15_0_out | s_pes_idb_15_0_out;
 
-  TTL_74534 CHIP_9A (
+  // P3 (docs/plan-fix-unconstrained-clocks.md): SPEA/SPES are parity-error
+  // capture strobes, not clocks. In FF mode the registers capture on a
+  // sysclk-detected strobe rise instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam SPE_CAPTURE = 2;
+`else
+  localparam SPE_CAPTURE = 0;
+`endif
+
+  TTL_74534 #(.USE_SYSCLK(SPE_CAPTURE)) CHIP_9A (
+      .sysclk(sysclk),
       .CK(s_spea),
       .OE_n(s_epea_n),
       .D(s_bd_23_0_n_in[15:8]),
@@ -76,7 +87,8 @@ module BIF_DPATH_PESPEA_13 (
   );
 
 
-  TTL_74534 CHIP_8A (
+  TTL_74534 #(.USE_SYSCLK(SPE_CAPTURE)) CHIP_8A (
+      .sysclk(sysclk),
       .CK(s_spea),
       .OE_n(s_epea_n),
       .D(s_bd_23_0_n_in[7:0]),
@@ -106,14 +118,16 @@ module BIF_DPATH_PESPEA_13 (
   /// Bit 15: FETCH — Error occurred during instruction fetch or during an examine (EXAM) or a deposit(DEP) instruction.
   ///
 
-  TTL_74534 CHIP_12A (
+  TTL_74534 #(.USE_SYSCLK(SPE_CAPTURE)) CHIP_12A (
+      .sysclk(sysclk),
       .CK(s_spes),
       .OE_n(s_epes_n),
       .D(chip12D[7:0]),
       .Q_n(s_pes_idb_15_0_out[15:8])
   );
 
-  TTL_74534 CHIP_10A (
+  TTL_74534 #(.USE_SYSCLK(SPE_CAPTURE)) CHIP_10A (
+      .sysclk(sysclk),
       .CK(s_spea),
       .OE_n(s_epes_n),
       .D(s_bd_23_0_n_in[23:16]),

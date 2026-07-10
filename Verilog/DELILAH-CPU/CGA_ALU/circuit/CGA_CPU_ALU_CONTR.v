@@ -214,8 +214,12 @@ module CGA_CPU_ALU_CONTR (
   // (aligned to the ALUCLK rise) instead of clocking on the routed net.
 `ifdef FPGA_FF_MODE
   localparam ALUCLK_CE = 1;
+  // P3: LDIRV is a decoded load strobe (COMM/MIS/LCS cone), not a clock -
+  // capture on a sysclk-detected LDIRV rise (D_FLIPFLOP_EN mode 2).
+  localparam LDIRV_CE = 2;
 `else
   localparam ALUCLK_CE = 0;
+  localparam LDIRV_CE = 0;
 `endif
 
   assign s_up_n              = UPN;
@@ -665,10 +669,12 @@ module CGA_CPU_ALU_CONTR (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(LDIRV_CE)
   ) MEMORY_46 (
-      .clock(s_ldirv),
+      .sysclk(sysclk),
+      .EN(1'b0),
+      .clock(s_ldirv),  // LDIRV strobe (edge-captured in FF mode)
       .d(s_cd_10_9[1]),
       .preset(1'b0),
       .q(s_memory46_q),
@@ -677,10 +683,12 @@ module CGA_CPU_ALU_CONTR (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(LDIRV_CE)
   ) MEMORY_47 (
-      .clock(s_ldirv),
+      .sysclk(sysclk),
+      .EN(1'b0),
+      .clock(s_ldirv),  // LDIRV strobe (edge-captured in FF mode)
       .d(s_cd_10_9[0]),
       .preset(1'b0),
       .q(s_memory47_q),

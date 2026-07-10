@@ -278,7 +278,18 @@ module ND120_TANG20K_TOP (
       .txd(dbg_txd)
   );
   wire cpu_txd;
+  // The write-path analyzer served its purpose: with the P3 strobe
+  // conversion the write decode fires during normal boot, so the dump
+  // would trigger every boot and hold the TX pin forever (dump_fin never
+  // clears). Only let it take the console when explicitly enabled.
+`ifdef TANG_WRITE_ANALYZER_DUMP
   assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
+`else
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_dbg_txd = dbg_txd;
+  /* verilator lint_on UNUSEDSIGNAL */
+  assign uart_txp = cpu_txd;
+`endif
 
   ND3202D CPU_BOARD (
       .sysclk(clk_cpu),  // CPU core, OSC and bus all on 27 MHz
