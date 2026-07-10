@@ -1,6 +1,28 @@
 # ND-120 Verilog TODO
 
-> Last updated: 8-JUL-2026
+> Last updated: 10-JUL-2026
+
+---
+
+## SD-FAT stack (Milestone 1 of docs/sd-bpun-device-plan.md) - built, sims pass, NOT yet on hardware
+
+Reusable SD/FAT library in `SD-FAT/` (vendored WangXuan95 reader, marked
+mods: runtime file name, directory-entry outputs, scan_done/file size) +
+Tang Nano 20K test project `fpga/tang-nano-20k/sd-fat-test/`: UART menu
+(9600 8N1, `#` prompt) with 1=LIST root dir, 2=DUMP BOOT.BPUN (hex/octal,
+byte-verified), 3=COPY placeholder, persistent `SD:` card status, watchdog
+(no card / stuck read never hangs). iverilog + Verilator system tests pass
+against a real mkfs.vfat FAT16 image; OSS bitstream builds (32/46 BSRAM,
+Fmax 77 MHz).
+
+Next actions:
+1. `make load` on the Tang, card from the README recipe -> acceptance A3-A6.
+2. OWNER DECISION: GPL-3.0 vendored files in the MIT repo (before commit).
+3. OWNER DECISION: menu item 3 / write path - Route B (CMD24 + in-place
+   rewrite of pre-created contiguous files, recommended) vs Route A
+   (picorv32 + FatFs). See `SD-FAT/README.md`.
+4. Milestone 2: ND_BUS_DEV_IF + TAPE_READER_400 against the Verilator bus
+   ports, then `$` boot from card (plan sections 8 and 10).
 
 ---
 
@@ -193,3 +215,46 @@ RAM works in simulation. For real FPGA hardware, the `DD_17_0` IN/OUT signals ma
 | Latch-to-FF migration | Complete -- see `verilog-remove-latch.md` |
 | LINT and latches | All latches converted to FFs with ifdef guards |
 | CPU_15 "disconnected" signals | Verified: `s_eccr` -> MEM_43, `s_ioni` -> IO_37, `s_rrf_n` -> CYC_36, `s_mreq_n` is input from CYC_36. All properly connected. |
+
+---
+
+## Microcode-execution fidelity (added 10-JUL-2026)
+
+### Fix the JMP0-3 vectored-jump dispatch (CGA_MIC)
+
+The microsequencer's vectored jump (`T,JMP0-3`, microword bit 25 VECT)
+always lands on the vector base: the low-4-bit OR (IR(0-3) or A-operand,
+selected by MIS0) never contributes. Blocks the 300$ serial binary
+loader (INCH polls IOX 302 but dispatches to the IOX 300 handler) and
+any microcode-issued vectored device I/O. Pre-existing (fails in latch
+mode too, first exercised 10-JUL). Full analysis + 2-minute sim repro:
+docs/serial-binload-300.md. Reference implementations to compare
+against (ASK before porting C# behavior - it may contain hacks):
+E:\Dev\Repos\Ronny\ND110Compile\ND110CPU (Cpu.cs ~783 vector dispatch,
+~1310 LDIRV loads IR from the IDB - note our IRLATCH samples CD instead)
+and NorskData-Doc ND-06.031.1 Microprogrammer's Guide (bit 25 / MIS0).
+
+### Audit: microorder-by-microorder fidelity sweep
+
+The JMP0-3 find suggests a class: microorders that no current test
+exercises may be wrong or unimplemented, and could explain part of the
+7/14 self-test failures and macro-instruction bugs. Plan: extract the
+COMM/IDBS/condition decode tables from the Microprogrammer's Guide,
+diff against what CGA_MIC/CGA_DCD/DGA actually implement, and give each
+divergence a targeted unit test (the C# CPU at ND110Compile is a
+working oracle for expected behavior - verify against the guide before
+copying). Candidates to check first: vectored jumps (this bug), LDIRV
+data source (IDB vs CD), MANIR/manual-IR flows, SCOND/hold-register
+condition pipeline, COMM decodes marked "changed" in the ND-110->ND-120
+delta (5, 36.2, 36.3).
+
+### Evaluate: replace IDB OR-bus merging with muxes
+
+Today many IDB/CD readers OR together all source outputs (inactive
+sources drive 0). Evaluate switching to explicit muxes: pros - a wrong
+enable produces an X/detectable in sim instead of silently OR-corrupted
+data, clearer synthesis, kills a class of sim-vs-FPGA divergences
+(EIOR-style read races); cons - large mechanical change across
+generated code, must keep Logisim-structure compatibility, and the
+golden byte-identity gates must hold throughout. Decision needed on
+scope (board-level buses only vs inside gate arrays too).

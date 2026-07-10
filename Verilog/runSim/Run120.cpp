@@ -149,6 +149,8 @@ static int g_next_inject_cnt = 0;          // gate: don't send next char until t
 // ND120_BINLOAD_FILE: after the script, stream this file's RAW bytes into
 // the console UART (300$ serial binary loader experiments).
 // ND120_BINLOAD_SETTLE / ND120_BINLOAD_GAP: cnt delays before / between bytes.
+static int g_ldirv_last = 0;
+static unsigned g_termx_logged = 0;
 static FILE *g_binf = nullptr;
 static long g_bin_gap = 100000;
 static long g_bin_settle = 2000000;
@@ -282,13 +284,73 @@ int main(int argc, char **argv)
 		}
 #endif
 
+#ifdef ND120_PROBE_MIC
+		// requires a --public-flat-rw verilator build (see docs/serial-binload-300.md)
+		{
+			// probe: log every LDIRV rise (with CD + resulting IR) and
+			// the dispatch inputs whenever TERMX (CSA 0511) executes
+			int ld = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_ldirv;
+			if (ld && !g_ldirv_last)
+				printf("[probe] cnt=%d LDIRV rise: cd=%06o ir_6_0=%03o\n", cnt,
+				    (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_cd_15_0,
+				    (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_ir_6_0);
+			g_ldirv_last = ld;
+			{
+				// ring buffer: full MUX34P input/select/output window
+				#define RB 16
+				static struct { int cnt; unsigned csa, ir, laa, csb, jmp, q, idb, aport, din, f; int mis0, vectn; } rb[RB];
+				static int rbi = 0, dump_after = 0;
+				rb[rbi].cnt   = cnt;
+				rb[rbi].csa   = (unsigned)top->CSA_12_0;
+				rb[rbi].ir    = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_ir_6_0 & 017;
+				rb[rbi].laa   = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_laa_3_0_out;
+				rb[rbi].csb   = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_csbit_3_0;
+				rb[rbi].jmp   = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_MASEL__DOT__s_jmp_3_0;
+				rb[rbi].q     = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_QREG__DOT__REG_Q_LO__DOT__gen_enable__DOT__q_r;
+				rb[rbi].mis0  = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_csmis0;
+				rb[rbi].vectn = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_csvect_n;
+				rb[rbi].idb   = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_xfidbi_15_0;
+				rb[rbi].aport = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_a_15_0;
+				rb[rbi].din   = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_d_15_0;
+				rb[rbi].f     = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_f_15_0;
+				int hit = ((top->CSA_12_0 == 0511 || top->CSA_12_0 == 02310 || top->CSA_12_0 == 0503) && g_termx_logged < 6 && g_bin_state == 2);
+				if (hit) g_termx_logged++;
+				if (hit || dump_after > 0)
+				{
+					if (hit)
+					{
+						printf("[mux34p] ---- window (trigger csa=%04o) ----\n", (unsigned)top->CSA_12_0);
+						for (int k = RB - 5; k < RB; k++)
+						{
+							int j = (rbi + 1 + k) % RB;
+							printf("[mux34p] cnt=%d csa=%04o IR=%02o LAA=%02o CSB=%02o m0=%d vn=%d JMP=%02o Q=%03o IDB=%06o A=%06o D=%06o F=%06o\n",
+							    rb[j].cnt, rb[j].csa, rb[j].ir, rb[j].laa, rb[j].csb,
+							    rb[j].mis0, rb[j].vectn, rb[j].jmp, rb[j].q,
+							    rb[j].idb, rb[j].aport, rb[j].din, rb[j].f);
+						}
+						dump_after = 4;
+					}
+					else
+					{
+						printf("[mux34p] cnt=%d csa=%04o IR=%02o LAA=%02o CSB=%02o m0=%d vn=%d JMP=%02o Q=%03o IDB=%06o A=%06o D=%06o F=%06o\n",
+						    rb[rbi].cnt, rb[rbi].csa, rb[rbi].ir, rb[rbi].laa, rb[rbi].csb,
+						    rb[rbi].mis0, rb[rbi].vectn, rb[rbi].jmp, rb[rbi].q,
+						    rb[rbi].idb, rb[rbi].aport, rb[rbi].din, rb[rbi].f);
+						dump_after--;
+					}
+				}
+				rbi = (rbi + 1) % RB;
+						}
+		}
+#endif
 #if defined(TRACE_CSA) || defined(SCRIPT_INPUT)
 		if (g_boot_done_cnt != 0)
 		{
 #ifdef TRACE_CSA
 			if (g_csa_fp && top->CSA_12_0 != g_last_csa)
 			{
-				fprintf(g_csa_fp, "%d,%o\n", cnt, (unsigned)top->CSA_12_0);
+				fprintf(g_csa_fp, "%d,%o,%llo\n", cnt, (unsigned)top->CSA_12_0,
+				    (unsigned long long)top->rootp->ND120_TOP__DOT__s_csbits);
 				g_last_csa = top->CSA_12_0;
 			}
 #endif
@@ -355,13 +417,12 @@ int main(int argc, char **argv)
 						g_bin_state = 3;
 					} else {
 						if (g_bin_state == 1) { printf("[binload] streaming...\n"); g_bin_state = 2; }
+#ifdef ND120_PROBE_MIC
 					if ((g_bin_sent % 8) == 0)
-						printf("[binload] byte %ld: uart cmd=%02x status=%02x rxen=%d ioc=%02x\n",
+						printf("[binload] byte %ld: uart status=%02x\n",
 						    g_bin_sent,
-						    (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regCommandRegister,
-						    (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regStatusRegister,
-						    (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__cmd_rxEnabled,
-						    (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__REG_MODULE__DOT____Vcellout__CHIP_28A_IOC__Q);
+						    (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regStatusRegister);
+#endif
 						ch = (char)c;
 						n = 1;
 						g_bin_sent++;

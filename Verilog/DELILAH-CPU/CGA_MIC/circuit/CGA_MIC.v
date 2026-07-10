@@ -19,6 +19,11 @@ module CGA_MIC (
 
     input        ALUCLK,       //! ALU clock signal
     input [15:0] CD_15_0,      //! Data bus for communication
+`ifdef ND120_EXP_LDIRV_PUSH
+    input [ 6:0] EXP_FIDBO_6_0, //! EXPERIMENT (docs/serial-binload-300.md): internal
+                                //! IDB low bits, latched into IR on IDBS,ALU words
+    input        EXP_IDBS_ALU,  //! EXPERIMENT: this word's IDB source is the ALU
+`endif
     input        CFETCH,       //! Control signal for fetch operation
     input        CLFFN,        //! Clear flag function
     input        CRY,          //! Carry flag input
@@ -856,6 +861,35 @@ module CGA_MIC (
     .Z3 (s_jmp_3_0[3])
   );
 
+`ifdef ND120_EXP_LDIRV_PUSH
+  // EXPERIMENT rule 2 (docs/serial-binload-300.md): load IR from the
+  // internal IDB on every IDBS,ALU word (CSIDBS==0). The decisive load
+  // point is o500 in IOXG (IDB = masked device address), which vectors
+  // poll/read/activate/macro-IOX/IOXT/BAUDS alike; o501-o503 use
+  // BARG/ARG IDB sources and so preserve it. IOXT2's explicit
+  // COMM,LDIRV covers the IOXX1 entry that skips o500. Qualified to
+  // the MCLK-low phase like the real LDIRV decode.
+  wire s_exp_alu_ld  = EXP_IDBS_ALU & s_mclk_n;
+  wire s_exp_irgate  = s_ldirv | s_exp_alu_ld;
+  wire [6:0] s_exp_irdata = s_exp_alu_ld ? EXP_FIDBO_6_0 : s_cd_15_0[6:0];
+
+  L8 IRLATCH
+  (
+    // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    .L  (s_exp_irgate),
+    // Input signals
+    .A  (s_exp_irdata[0]),
+    .B  (s_exp_irdata[1]),
+    .C  (s_exp_irdata[2]),
+    .D  (s_exp_irdata[3]),
+    .E  (s_exp_irdata[4]),
+    .F  (s_exp_irdata[5]),
+    .G  (s_exp_irdata[6]),
+    .H  (1'b0),
+`else
   L8 IRLATCH
   (
     // System Input signals
@@ -872,6 +906,7 @@ module CGA_MIC (
     .F  (s_cd_15_0[5]),
     .G  (s_cd_15_0[6]),
     .H  (1'b0),
+`endif
 
     // Output signals
     .QA (s_ir_6_0[0]),

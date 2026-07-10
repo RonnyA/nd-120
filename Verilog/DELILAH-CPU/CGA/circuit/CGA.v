@@ -925,6 +925,10 @@ module CGA (
   // The CGA_MIC module is responsible for the microinstruction control within the DELILAH CPU's gate array.
   // It interprets various control and status signals to generate microinstructions that dictate the CPU's behavior.
   CGA_MIC MIC (
+`ifdef ND120_EXP_LDIRV_PUSH
+      .EXP_FIDBO_6_0(s_FIDBO_15_0[6:0]),
+      .EXP_IDBS_ALU(s_csidbs_4_0 == 5'b00000),
+`endif
       // Input signals
       .sysclk(sysclk),                          // System clock in FPGA
       .sys_rst_n(sys_rst_n),                    // System reset in FPGA
