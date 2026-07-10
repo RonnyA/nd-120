@@ -11,6 +11,8 @@
 module IO_DCD_38 (
     input sysclk,    // System clock in FPGA
     input sys_rst_n, // System reset in FPGA
+    input CLK_EN,      // CLK rise clock-enable pulse (FPGA_FF_MODE, else 0)
+    input CLK_FALL_EN, // CLK fall clock-enable pulse (FPGA_FF_MODE, else 0)
 
     input       BDRY50_n,
     input       BRK_n,
@@ -415,6 +417,8 @@ module IO_DCD_38 (
   DECODE_DGA DGA (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
+      .XCLK_EN(CLK_EN),           // P2 clock-enable (CLK rise, FPGA_FF_MODE)
+      .XCLK_FALL_EN(CLK_FALL_EN), // P2 clock-enable (CLK fall, FPGA_FF_MODE)
       /** INPUT **/
 
       .XBDN(s_bdry50_n),

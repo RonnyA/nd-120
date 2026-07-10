@@ -23,6 +23,7 @@ module CGA_MAC_AP09 (
     input        ECCRHIN,
     input        HOLD,
     input        MCLK,
+    input        MCLK_EN,     //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        NLCASEL,
     input [15:0] PR_15_0,
     input        PSEL,
@@ -690,6 +691,7 @@ module CGA_MAC_AP09 (
     .sys_rst_n(sys_rst_n),                    // System reset in FPGA
 
     .MCLK(s_mclk),
+    .MCLK_EN(MCLK_EN),
 
     .ECCR(s_eccr_out),
     .ECCRHIN(s_eccrhi_n),

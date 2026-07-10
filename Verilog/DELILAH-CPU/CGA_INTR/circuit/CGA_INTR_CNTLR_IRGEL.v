@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_INTR_CNTLR_IRGEL (
+    input       sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input       MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input       D,
     input       E,
     input       FIDB03,
@@ -126,6 +129,8 @@ module CGA_INTR_CNTLR_IRGEL (
    *******************************************************************************/
 
   CGA_INTR_CNTLR_IRGEL_HIGEL HIGEL (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .FIDB03(s_fidb03),
       .HIDET(s_hidet),
       .HIENABN(s_hienab_n),
@@ -147,6 +152,8 @@ module CGA_INTR_CNTLR_IRGEL (
   );
 
   CGA_INTR_CNTLR_IRGEL_LOGEL LOGEL (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .FIDB04(s_fidb04),
       .L(s_l),
       .LIENABN(s_lienab_n),
@@ -158,6 +165,8 @@ module CGA_INTR_CNTLR_IRGEL (
   );
 
   CGA_INTR_CNTLR_IRGEL_HIRL HIRL (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .D(s_d),
       .E(s_e),
       .H(s_h),
@@ -177,6 +186,8 @@ module CGA_INTR_CNTLR_IRGEL (
   );
 
   CGA_INTR_CNTLR_IRGEL_LORL LORL (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .D(s_d),
       .E(s_e),
       .LIENABN(s_lienab_n),

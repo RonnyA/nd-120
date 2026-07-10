@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_MIC_CONDREG (
+    input sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input [11:0] CSBIT_11_0,  //! Microcode bits 11:0
     input        CSSCOND,  //! Microcode "SCOND" - COND) sets a 4-bit condition-code to be tested on a later occasion.
     input LCSN,  //! Load Control Store
@@ -55,6 +58,15 @@ module CGA_MIC_CONDREG (
   assign s_csscond          = CSSCOND;
   assign s_lcs_n            = LCSN;
   assign s_mclk             = MCLK;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -145,7 +157,10 @@ module CGA_MIC_CONDREG (
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
-  SCAN_FF CSBIT11 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) CSBIT11 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_csbit_11_0[11]),
       .Q  (s_lcc_3_0_out[3]),
@@ -154,7 +169,10 @@ module CGA_MIC_CONDREG (
       .TI (s_lcc_3_0_out[3])
   );
 
-  SCAN_FF CSBIT10 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) CSBIT10 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_csbit_11_0[10]),
       .Q  (s_lcc_3_0_out[2]),
@@ -163,7 +181,10 @@ module CGA_MIC_CONDREG (
       .TI (s_lcc_3_0_out[2])
   );
 
-  SCAN_FF CSBIT9 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) CSBIT9 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_csbit_11_0[9]),
       .Q  (s_lcc_3_0_out[1]),
@@ -172,7 +193,10 @@ module CGA_MIC_CONDREG (
       .TI (s_lcc_3_0_out[1])
   );
 
-  SCAN_FF CSBIT8 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) CSBIT8 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_csbit_11_0[8]),
       .Q  (s_lcc_3_0_out[0]),
@@ -181,7 +205,10 @@ module CGA_MIC_CONDREG (
       .TI (s_lcc_3_0_out[0])
   );
 
-  SCAN_FF CSBIT7 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) CSBIT7 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_csbit_11_0[7]),
       .Q  (s_csbit7_q),
@@ -190,7 +217,10 @@ module CGA_MIC_CONDREG (
       .TI (s_csbit7_q)
   );
 
-  SCAN_FF CSBIT6 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) CSBIT6 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_csbit_11_0[6]),
       .Q  (s_csbit6_q),
@@ -199,7 +229,10 @@ module CGA_MIC_CONDREG (
       .TI (s_csbit6_q)
   );
 
-  SCAN_FF CSBIT5 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) CSBIT5 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_csbit_11_0[5]),
       .Q  (s_csbit5_q),
@@ -208,7 +241,10 @@ module CGA_MIC_CONDREG (
       .TI (s_csbit5_q)
   );
 
-  SCAN_FF CSBIT4 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) CSBIT4 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_csbit_11_0[4]),
       .Q  (s_csbit4_q),
@@ -217,7 +253,10 @@ module CGA_MIC_CONDREG (
       .TI (s_csbit4_q)
   );
 
-  SCAN_FF CSBIT3 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) CSBIT3 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_csbit_11_0[3]),
       .Q  (s_fc_6_3_out[3]),
@@ -226,7 +265,10 @@ module CGA_MIC_CONDREG (
       .TI (s_fc_6_3_out[3])
   );
 
-  SCAN_FF CSBIT2 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) CSBIT2 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_csbit_11_0[2]),
       .Q  (s_fc_6_3_out[2]),
@@ -235,7 +277,10 @@ module CGA_MIC_CONDREG (
       .TI (s_fc_6_3_out[2])
   );
 
-  SCAN_FF CSBIT1 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) CSBIT1 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_csbit_11_0[1]),
       .Q  (s_fc_6_3_out[1]),
@@ -244,7 +289,10 @@ module CGA_MIC_CONDREG (
       .TI (s_fc_6_3_out[1])
   );
 
-  SCAN_FF CSBIT0 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) CSBIT0 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_csbit_11_0[0]),
       .Q  (s_fc_6_3_out[0]),

@@ -21,6 +21,11 @@ module CPU_15 (
     input CLK,          //! Main system clock
     input MCLK,         //! Memory clock
     input MACLK,        //! Memory access clock
+    input ALUCLK_EN,    //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input MCLK_EN,      //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input MCLK_FALL_EN, //! MCLK fall-enable pulse (FPGA_FF_MODE, else 0)
+    input UCLK_EN,      //! UCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input CLK_EN,       //! CLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input ALUCLK,       //! ALU clock
 
     input       CA10,         //! Cache address bit 10
@@ -248,6 +253,16 @@ module CPU_15 (
   assign s_emcl_n = EMCL_n;
   assign s_pan_n = PAN_n;
   assign s_aluclk = ALUCLK;
+  wire s_aluclk_en;
+  assign s_aluclk_en = ALUCLK_EN;
+  wire s_mclk_en;
+  assign s_mclk_en = MCLK_EN;
+  wire s_mclk_fall_en;
+  assign s_mclk_fall_en = MCLK_FALL_EN;
+  wire s_uclk_en;
+  assign s_uclk_en = UCLK_EN;
+  wire s_clk_en;
+  assign s_clk_en = CLK_EN;
   assign s_ibint13_n = IBINT13_n;
   assign s_mor_n = MOR_n;
   assign s_maclk = MACLK;
@@ -388,6 +403,11 @@ module CPU_15 (
     .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
     // Input signals
+    .ALUCLK_EN(s_aluclk_en),
+    .MCLK_EN(s_mclk_en),
+    .MCLK_FALL_EN(s_mclk_fall_en),
+    .UCLK_EN(s_uclk_en),
+    .CLK_EN(s_clk_en),
     .ALUCLK(s_aluclk),
     .BEDO_n(s_bedo_n),
     .BEMPID_n(s_bempid_n),

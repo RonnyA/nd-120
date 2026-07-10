@@ -13,6 +13,10 @@
 ***************************************************************************/
 
 module CGA_MIC_STACK (
+    input        sysclk,        //! FPGA system clock (P2: enable capture)
+    input        MCLK_EN,       //! MCLK rise clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        MCLK_FALL_EN,  //! MCLK fall clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input        MCLK,
     input        SCLKN,
     input        SC3,            //! SC[4:3] values - 00:HOLD, 01:POP, 10:LOAD, 11:PUSH
@@ -101,6 +105,9 @@ module CGA_MIC_STACK (
    *******************************************************************************/
 
   CGA_MIC_STACK_BIT Bit11 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
       .LOAD(s_load),
@@ -113,6 +120,9 @@ module CGA_MIC_STACK (
   );
 
   CGA_MIC_STACK_BIT Bit10 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
       .LOAD(s_load),
@@ -125,6 +135,9 @@ module CGA_MIC_STACK (
   );
 
   CGA_MIC_STACK_BIT Bit9 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
       .LOAD(s_load),
@@ -137,6 +150,9 @@ module CGA_MIC_STACK (
   );
 
   CGA_MIC_STACK_BIT Bit8 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
       .LOAD(s_load),
@@ -149,6 +165,9 @@ module CGA_MIC_STACK (
   );
 
   CGA_MIC_STACK_BIT Bit7 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
       .LOAD(s_load),
@@ -161,6 +180,9 @@ module CGA_MIC_STACK (
   );
 
   CGA_MIC_STACK_BIT Bit6 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
       .LOAD(s_load),
@@ -173,6 +195,9 @@ module CGA_MIC_STACK (
   );
 
   CGA_MIC_STACK_BIT Bit5 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
       .LOAD(s_load),
@@ -185,6 +210,9 @@ module CGA_MIC_STACK (
   );
 
   CGA_MIC_STACK_BIT Bit4 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
       .LOAD(s_load),
@@ -197,6 +225,9 @@ module CGA_MIC_STACK (
   );
 
   CGA_MIC_STACK_BIT Bit3 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
       .LOAD(s_load),
@@ -209,6 +240,9 @@ module CGA_MIC_STACK (
   );
 
   CGA_MIC_STACK_BIT Bit2 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
       .LOAD(s_load),
@@ -221,6 +255,9 @@ module CGA_MIC_STACK (
   );
 
   CGA_MIC_STACK_BIT Bit1 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
       .LOAD(s_load),
@@ -233,6 +270,9 @@ module CGA_MIC_STACK (
   );
 
   CGA_MIC_STACK_BIT Bit0 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
       .CLK(s_mclk),
       .CLKN(s_sclk_n),
       .LOAD(s_load),
@@ -245,6 +285,9 @@ module CGA_MIC_STACK (
   );
 
   CGA_MIC_STACK_BIT12 Bit12 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
       .DEEP(s_deep_out),
       .LOAD(s_load),
       .MCLK(s_mclk),

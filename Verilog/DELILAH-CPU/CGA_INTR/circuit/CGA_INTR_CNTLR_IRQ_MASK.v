@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_INTR_CNTLR_IRQ_MASK (
+    input        sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input        MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input        A,
     input        B,
     input        C,
@@ -59,6 +62,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT15 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[15]),
       .DCDA(s_a),
@@ -69,6 +74,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT14 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[14]),
       .DCDA(s_a),
@@ -79,6 +86,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT13 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[13]),
       .DCDA(s_a),
@@ -89,6 +98,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT12 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[12]),
       .DCDA(s_a),
@@ -99,6 +110,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT11 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[11]),
       .DCDA(s_a),
@@ -109,6 +122,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT10 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[10]),
       .DCDA(s_a),
@@ -119,6 +134,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT9 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[9]),
       .DCDA(s_a),
@@ -129,6 +146,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT8 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[8]),
       .DCDA(s_a),
@@ -139,6 +158,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT7 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[7]),
       .DCDA(s_a),
@@ -149,6 +170,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT6 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[6]),
       .DCDA(s_a),
@@ -159,6 +182,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT5 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[5]),
       .DCDA(s_a),
@@ -169,6 +194,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT4 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[4]),
       .DCDA(s_a),
@@ -179,6 +206,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT3 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[3]),
       .DCDA(s_a),
@@ -189,6 +218,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT2 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[2]),
       .DCDA(s_a),
@@ -199,6 +230,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT1 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[1]),
       .DCDA(s_a),
@@ -209,6 +242,8 @@ module CGA_INTR_CNTLR_IRQ_MASK (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK_MASKBIT MASKBIT0 (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLOCK(s_mclk),
       .DATAIN(s_din_15_0[0]),
       .DCDA(s_a),

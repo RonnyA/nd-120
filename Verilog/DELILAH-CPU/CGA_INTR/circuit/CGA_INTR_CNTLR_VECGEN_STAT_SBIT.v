@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_INTR_CNTLR_VECGEN_STAT_SBIT (
+    input sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input CK,
     input DCDF,
     input DCDFN,
@@ -55,6 +58,15 @@ module CGA_INTR_CNTLR_VECGEN_STAT_SBIT (
   assign s_gpe = GPE;
   assign s_si_n = SIN;
   assign s_vin_n = VINN;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -101,9 +113,12 @@ module CGA_INTR_CNTLR_VECGEN_STAT_SBIT (
       .result(s_d)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // CK resolves to MCLK (CGA_INTR.MCLK, rising edge) - MCLK domain
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_5 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_ck),
       .d(s_d),
       .preset(1'b0),

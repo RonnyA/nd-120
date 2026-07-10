@@ -14,6 +14,9 @@ module CGA_MIC (
     input sysclk,    // System clock in FPGA
     input sys_rst_n, // System reset in FPGA
 
+    input        MCLK_EN,       //! MCLK rise clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        MCLK_FALL_EN,  //! MCLK fall clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input        ALUCLK,       //! ALU clock signal
     input [15:0] CD_15_0,      //! Data bus for communication
     input        CFETCH,       //! Control signal for fetch operation
@@ -271,6 +274,16 @@ module CGA_MIC (
   assign s_trap_n           = TRAPN;
   assign s_tvec_3_0[3:0]    = TVEC_3_0;
   assign s_zf               = ZF;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+  // Registers on the inverted nets (~MCLK) use MCLK_FALL_EN.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -592,9 +605,12 @@ module CGA_MIC (
   );
 
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_33 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_csloop),
       .preset(1'b0),
@@ -604,6 +620,25 @@ module CGA_MIC (
       .tick(1'b1)
   );
 
+  // MCLK domain: InvertClockEnable(1) on s_clk_sc34 (= ~MCLK) fires on the
+  // falling edge of ~MCLK, i.e. the MCLK rising edge -> MCLK_EN.
+  // (D_FLIPFLOP_EN has no InvertClockEnable, so the latch-mode original
+  // is kept verbatim in the else branch.)
+`ifdef FPGA_FF_MODE
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
+  ) MEMORY_34 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
+      .clock(s_clk_sc34),
+      .d(s_csfs_3),
+      .preset(1'b0),
+      .q(),
+      .qBar(s_sc_3_out),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
+`else
   D_FLIPFLOP #(
       .InvertClockEnable(1)
   ) MEMORY_34 (
@@ -615,10 +650,13 @@ module CGA_MIC (
       .reset(1'b0),
       .tick(1'b1)
   );
+`endif
 
-  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk (async clear s_clff)
+  D_FLIPFLOP_EN #(.USE_ENABLE(MCLK_CE), .ASYNC_RESET(1)
   ) MEMORY_35 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_zf),
       .preset(1'b0),
@@ -628,9 +666,12 @@ module CGA_MIC (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_36 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_csalui8),
       .preset(1'b0),
@@ -640,6 +681,25 @@ module CGA_MIC (
       .tick(1'b1)
   );
 
+  // MCLK domain: InvertClockEnable(1) on s_clk_sc34 (= ~MCLK) fires on the
+  // falling edge of ~MCLK, i.e. the MCLK rising edge -> MCLK_EN.
+  // (D_FLIPFLOP_EN has no InvertClockEnable, so the latch-mode original
+  // is kept verbatim in the else branch.)
+`ifdef FPGA_FF_MODE
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
+  ) MEMORY_37 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
+      .clock(s_clk_sc34),
+      .d(s_csfs_4),
+      .preset(1'b0),
+      .q(),
+      .qBar(s_sc_4_out),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
+`else
   D_FLIPFLOP #(
       .InvertClockEnable(1)
   ) MEMORY_37 (
@@ -651,10 +711,14 @@ module CGA_MIC (
       .reset(1'b0),
       .tick(1'b1)
   );
+`endif
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_38 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_gates29_out),
       .preset(1'b0),
@@ -664,9 +728,12 @@ module CGA_MIC (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_39 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_gates28_out),
       .preset(1'b0),
@@ -682,6 +749,9 @@ module CGA_MIC (
    *******************************************************************************/
 
   CGA_MIC_INCOUNT MIC_INCOUNT (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+
       .CD0(s_cd_15_0[0]),
       .CD1(s_cd_15_0[1]),
       .CSWAN0(s_cswan_1_0[0]),
@@ -697,7 +767,10 @@ module CGA_MIC (
   assign loop_counter[5:0] = {s_icd_5, s_icd_4,s_lc_3_0[3],s_lc_3_0[2],s_lc_3_0[1],s_lc_3_0[0]};
 
 
-  M169C LC_HI (
+  // MCLK domain: CP = s_mclk, counts on posedge MCLK
+  M169C_EN #(.USE_ENABLE(MCLK_CE)) LC_HI (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CP(s_mclk),
 
       .A(s_cd_15_0[4]),
@@ -719,7 +792,10 @@ module CGA_MIC (
       .UP(s_up_out)
   );
 
-  M169C LC_LO (
+  // MCLK domain: CP = s_mclk, counts on posedge MCLK
+  M169C_EN #(.USE_ENABLE(MCLK_CE)) LC_LO (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CP(s_mclk),
 
       .A(s_cd_15_0[0]),
@@ -817,6 +893,9 @@ module CGA_MIC (
   );
 
   CGA_MIC_CONDREG CONDREG (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+
         // Input
       .CSBIT_11_0(s_csbit_15_0[11:0]),
       .CSSCOND(s_cscond),
@@ -871,7 +950,10 @@ module CGA_MIC (
       .Z (s_laa0_signal)
   );
 
-  R41P LAA_REG (
+  // MCLK domain: CP = s_mclk, clocked on posedge MCLK
+  R41P_EN #(.USE_ENABLE(MCLK_CE)) LAA_REG (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CP(s_mclk),
 
       .A(s_laa0_signal),
@@ -932,7 +1014,10 @@ module CGA_MIC (
       .Z (s_lba0_signal)
   );
 
-  R41P LBA_REG (
+  // MCLK domain: CP = s_mclk, clocked on posedge MCLK
+  R41P_EN #(.USE_ENABLE(MCLK_CE)) LBA_REG (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CP(s_mclk),
 
       .A(s_lba0_signal),
@@ -974,6 +1059,10 @@ module CGA_MIC (
 
 
   CGA_MIC_STACK MIC_STACK (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
+
       // Input
       .MCLK (s_mclk),
       .SCLKN(s_sclk_n), //Stack Clock (Negated MCLK)
@@ -993,6 +1082,8 @@ module CGA_MIC (
       .sysclk(sysclk),  // System clock in FPGA
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
+      .MCLK_EN(MCLK_EN),
+
       // Input signals
       .CSBIT20(s_csbit20),
       .CSBIT_11_0(s_csbit_15_0[11:0]),
@@ -1010,7 +1101,10 @@ module CGA_MIC (
       .W_12_0(s_w_12_0[12:0])
   );
 
-  SCAN_WITH_SET_N OOD_FF (
+  // MCLK domain: CLK = s_mclk, clocked on posedge MCLK (async set S_n)
+  SCAN_WITH_SET_N_EN #(.USE_ENABLE(MCLK_CE)) OOD_FF (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_ood_signal),
       .Q  (s_oodff_q),
@@ -1020,7 +1114,10 @@ module CGA_MIC (
       .TI (s_oodff_q)
   );
 
-  SCAN_WITH_SET_N DZD_FF (
+  // MCLK domain: CLK = s_mclk, clocked on posedge MCLK (async set S_n)
+  SCAN_WITH_SET_N_EN #(.USE_ENABLE(MCLK_CE)) DZD_FF (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_dzd_signal),
       .Q  (s_dzdff_q),
@@ -1033,6 +1130,9 @@ module CGA_MIC (
 
 
   CGA_MIC_WCAREG MIC_WCAREG (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+
       .CD_15_0(s_cd_15_0[15:0]),
       .LCSN(s_lcs_n),
       .LWCAN(s_lwca_n),
@@ -1082,9 +1182,12 @@ module CGA_MIC (
       .CONDN(s_cond_n)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_32 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_cond_n),
       .preset(1'b0),

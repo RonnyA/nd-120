@@ -268,12 +268,17 @@ TODO: Sort bits on output LED to match led numbering
   wire        s_aluclk;
   // P2 clock-enable pulses from CYC_36 (consumed as domains convert)
   /* verilator lint_off UNUSEDSIGNAL */
+  wire        s_cyc_maclk_en;
+  wire        s_cyc_clk_fall_en;
+  wire        s_cyc_uclk_fall_en;
+  wire        s_cyc_maclk_fall_en;
+  wire        s_cyc_aluclk_fall_en;
+  /* verilator lint_on UNUSEDSIGNAL */
   wire        s_cyc_clk_en;
   wire        s_cyc_uclk_en;
   wire        s_cyc_mclk_en;
-  wire        s_cyc_maclk_en;
+  wire        s_cyc_mclk_fall_en;
   wire        s_cyc_aluclk_en;
-  /* verilator lint_on UNUSEDSIGNAL */
   wire        s_bapr_n_in;
   wire        s_bapr_n_out;
   wire        s_bdap_n_in;
@@ -556,10 +561,19 @@ TODO: Sort bits on output LED to match led numbering
   reg [1:0] regMIS_1_0;
 
 
+  // P2 (docs/plan-fix-unconstrained-clocks.md): CLK-domain flop sampling the
+  // microword - converts with the CLK group (aligned CLK_EN capture).
+`ifdef FPGA_FF_MODE
+  always@(posedge sysclk)
+  begin
+    if (s_cyc_clk_en) regMIS_1_0 <= s_csmis_1_0;
+  end
+`else
   always@(posedge s_clk)
   begin
     regMIS_1_0 <= s_csmis_1_0;
   end
+`endif
   assign s_mis_1_0 = regMIS_1_0;
 
   // ********************************************
@@ -674,7 +688,12 @@ TODO: Sort bits on output LED to match led numbering
       .UCLK_EN(s_cyc_uclk_en),
       .MCLK_EN(s_cyc_mclk_en),
       .MACLK_EN(s_cyc_maclk_en),
-      .ALUCLK_EN(s_cyc_aluclk_en)
+      .ALUCLK_EN(s_cyc_aluclk_en),
+      .CLK_FALL_EN(s_cyc_clk_fall_en),
+      .UCLK_FALL_EN(s_cyc_uclk_fall_en),
+      .MCLK_FALL_EN(s_cyc_mclk_fall_en),
+      .MACLK_FALL_EN(s_cyc_maclk_fall_en),
+      .ALUCLK_FALL_EN(s_cyc_aluclk_fall_en)
   );
 
 
@@ -684,6 +703,11 @@ TODO: Sort bits on output LED to match led numbering
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
       // CPU inputs
+      .ALUCLK_EN(s_cyc_aluclk_en),
+      .MCLK_EN(s_cyc_mclk_en),
+      .MCLK_FALL_EN(s_cyc_mclk_fall_en),
+      .UCLK_EN(s_cyc_uclk_en),
+      .CLK_EN(s_cyc_clk_en),
       .ALUCLK(s_aluclk),
       .CA10(s_ca10),
       .CCLR_n(s_cclr_n),
@@ -797,6 +821,8 @@ TODO: Sort bits on output LED to match led numbering
     .BDRY50_n(s_bdry50_n),
     .BRK_n(s_brk_n),
     .CLK(s_clk),
+    .CLK_EN(s_cyc_clk_en),
+    .CLK_FALL_EN(s_cyc_clk_fall_en),
     .CONSOLE_n(s_console_n),
     .CSCOMM_4_0(s_cscomm_4_0[4:0]),
     .CSIDBS_4_0(s_csidbs_4_0[4:0]),

@@ -11,6 +11,10 @@
 
 
 module CGA_IDBCTL (
+    // System input signals
+    input        sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input        MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     // Input signal
     input        EPCRN,
     input        EPGSN,
@@ -297,6 +301,8 @@ module CGA_IDBCTL (
 
 
   CGA_IDBCTL_PGSREG PGSREG (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .FETCHN(s_fetch_n),
       .LA_21_10(s_la_21_10[11:0]),
       .MCLK(s_mclk),

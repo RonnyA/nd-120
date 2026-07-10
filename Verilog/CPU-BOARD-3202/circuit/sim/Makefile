@@ -112,7 +112,7 @@ MEM_DATA_46_ff_tb_bin: $(MEMDATA_SRCS)
 	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o $@ $(MEMDATA_SRCS)
 
 # CYC_36 clock-enable alignment (P2 foundation): EN pulse <=> pa-clock rise
-CYCEN_SRCS = CYC_36_enables_tb.v $(CIRCUIT)/CYC_36.v $(CIRCUIT)/CYC_TERM_D.v $(CIRCUIT)/CYC_CC_D.v $(PAL)/PAL_44601B.v $(PAL)/PAL_44307C.v $(PAL)/PAL_44403C.v $(PAL)/PAL_44404C.v
+CYCEN_SRCS = CYC_36_enables_tb.v $(CIRCUIT)/CYC_36.v $(CIRCUIT)/CYC_TERM_D.v $(CIRCUIT)/CYC_CC_D.v $(PAL)/PAL_44601B.v $(PAL)/PAL_44307C.v $(PAL)/PAL_44403C.v $(PAL)/PAL_44404C.v $(PAL)/PAL_44403C_EN.v $(PAL)/PAL_44404C_EN.v
 
 test-cycen: CYC_36_enables_tb
 	./CYC_36_enables_tb | tee cycen_result.tmp

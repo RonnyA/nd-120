@@ -11,6 +11,8 @@
 ***************************************************************************/
 
 module CGA_ALU_OUTMUX_IDBS (
+    input       sysclk,     //! FPGA system clock (P2: ALUCLK_EN capture)
+    input       ALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input       ALUCLK,
     input       ALUD2N,
     input [4:0] CSIDBS_4_0,
@@ -92,6 +94,16 @@ module CGA_ALU_OUTMUX_IDBS (
    *******************************************************************************/
   assign s_csidbs_4_0[4:0] = CSIDBS_4_0;
   assign s_aluclk          = ALUCLK;
+
+  // P2b (docs/plan-fix-unconstrained-clocks.md): in FF mode the ALUCLK-
+  // clocked registers capture on posedge sysclk gated by ALUCLK_EN
+  // (aligned to the ALUCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam ALUCLK_CE = 1;
+`else
+  localparam ALUCLK_CE = 0;
+`endif
+
   assign s_alud2_n         = ALUD2N;
 
   /*******************************************************************************
@@ -245,7 +257,9 @@ module CGA_ALU_OUTMUX_IDBS (
   );
 
 
-  R81 IDBS_R1 (
+  R81_EN #(.USE_ENABLE(ALUCLK_CE)) IDBS_R1 (
+      .sysclk(sysclk),
+      .EN (ALUCLK_EN),
       .CP (s_aluclk),
       .A  (s_r1_a),
       .B  (s_r1_b),
@@ -274,7 +288,9 @@ module CGA_ALU_OUTMUX_IDBS (
   );
 
 
-  R81 IDBS_R2 (
+  R81_EN #(.USE_ENABLE(ALUCLK_CE)) IDBS_R2 (
+      .sysclk(sysclk),
+      .EN (ALUCLK_EN),
       .CP (s_aluclk),
       .A  (s_r2_a),
       .B  (s_r2_b),

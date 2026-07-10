@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_INTR (
+    input        sysclk,           //! FPGA system clock (P2: MCLK_EN capture)
+    input        MCLK_EN,          //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input        BINT10N,          //! Bus Interrupt 10, active low
     input        BINT11N,          //! Bus Interrupt 11, active low
     input        BINT12N,          //! Bus Interrupt 12, active low
@@ -98,6 +101,16 @@ module CGA_INTR (
   assign s_laa_3_0[3:0]     = regLAA_3_0;
 
   assign s_mclk             = MCLK;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
+
   assign s_nor_n            = 1; //TODO: Fix MORN;
   assign s_pan_n            = PANN;
   assign s_parerr_n         = PARERRN;
@@ -143,9 +156,13 @@ module CGA_INTR (
       .result(s_gates1_out)
   );
 
-  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
-      .InvertClockEnable(0)
+  // MCLK domain (CGA_INTR.MCLK, rising edge); async clear via CLIRQN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE),
+      .ASYNC_RESET(1)
   ) MEMORY_2 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_gates1_out),
       .preset(1'b0),
@@ -161,6 +178,8 @@ module CGA_INTR (
    *******************************************************************************/
 
   CGA_INTR_CNTLR CNTLR (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .EPIC(s_epic),
       .EPICMASKN(s_epicmask_n_out),
       .FIDBO_15_0(s_fidbo_15_0[15:0]),

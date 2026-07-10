@@ -76,6 +76,21 @@ foreach _rel {
     CPU-BOARD-3202/circuit/PAL_44445B_D.v
     CPU-BOARD-3202/circuit/PAL_44446B_D.v
     Shared/support/SevenSegDebug.v
+    Shared/ndlib/SCAN_FF_EN.v
+    Shared/ndlib/D_FLIPFLOP_EN.v
+    Shared/ndlib/R81_EN.v
+    Shared/ndlib/R41P_EN.v
+    Shared/ndlib/J_K_FLIPFLOP_EN.v
+    Shared/ndlib/SR44_EN.v
+    Shared/ndlib/SCAN_WITH_SET_N_EN.v
+    Shared/ndlib/SCAN_WITH_RESET_N_EN.v
+    Shared/ndlib/M169C_EN.v
+    Shared/ndlib/F924_EN.v
+    PAL/PAL_44403C_EN.v
+    PAL/PAL_44404C_EN.v
+    PAL/PAL_44407A_EN.v
+    PAL/PAL_44408B_EN.v
+    PAL/PAL_44511A_EN.v
 } {
     set _f "${verilog_dir}/${_rel}"
     if {![file exists $_f]} {

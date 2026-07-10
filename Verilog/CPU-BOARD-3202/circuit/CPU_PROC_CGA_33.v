@@ -13,6 +13,10 @@ module CPU_PROC_CGA_33 (
     input sysclk,    //! System clock in FPGA
     input sys_rst_n, //! System reset in FPGA
 
+    input        ALUCLK_EN,   //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        MCLK_EN,     //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        MCLK_FALL_EN, //! MCLK fall-enable pulse (FPGA_FF_MODE, else 0)
+    input        UCLK_EN,     //! UCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        ALUCLK,      //! ALU clock signal
     input        BEDO_n,      //! Bus Error Data Output, active low
     input        BEMPID_n,    //! Bus Empty ID, active low
@@ -204,6 +208,10 @@ module CPU_PROC_CGA_33 (
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
       /************ INPUT SIGNALS ********************/
+      .XALUCLK_EN(ALUCLK_EN),
+      .XMCLK_EN(MCLK_EN),
+      .XMCLK_FALL_EN(MCLK_FALL_EN),
+      .XTCLK_EN(UCLK_EN),
       .XALUCLK(ALUCLK),
       .XBINT10N(s_bint10_n),
       .XBINT11N(s_bint11_n),

@@ -12,6 +12,11 @@ module CPU_PROC_32 (
     input sysclk,    // System clock in FPGA
     input sys_rst_n, // System reset in FPGA
 
+    input        ALUCLK_EN,   //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        MCLK_EN,     //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        MCLK_FALL_EN, //! MCLK fall-enable pulse (FPGA_FF_MODE, else 0)
+    input        UCLK_EN,     //! UCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        CLK_EN,      //! CLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        ALUCLK,      //! ALU clock
     input        BEDO_n,      //! Buffered Enable IDB "data out" from CGA
     input        BEMPID_n,    //! Buffered EMPID - Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints)
@@ -204,6 +209,16 @@ module CPU_PROC_32 (
   assign s_ioxerr_n          = IOXERR_n;
   assign s_etrap_n           = ETRAP_n;
   assign s_aluclk            = ALUCLK;
+  wire s_aluclk_en;
+  assign s_aluclk_en         = ALUCLK_EN;
+  wire s_mclk_en;
+  assign s_mclk_en           = MCLK_EN;
+  wire s_mclk_fall_en;
+  assign s_mclk_fall_en      = MCLK_FALL_EN;
+  wire s_uclk_en;
+  assign s_uclk_en           = UCLK_EN;
+  wire s_clk_en;
+  assign s_clk_en            = CLK_EN;
   assign s_map_n             = MAP_n;
   assign s_ibint13_n         = IBINT13_n;
   assign s_ibint10_n         = IBINT10_n;
@@ -337,6 +352,8 @@ module CPU_PROC_32 (
   */
   CPU_PROC_CMDDEC_34 CMDDEC (
       // Inputs
+      .sysclk(sysclk),                  // FPGA system clock
+      .CLK_EN(s_clk_en),                // CLK clock-enable pulse (FPGA_FF_MODE)
       .CGABRK_n(s_cgabrk_n),            // CPU Break Signal
       .CLK(s_clk),                      // Clock
       .CSCOMM_4_0(s_cscomm_4_0[4:0]),   // Control Store - Command
@@ -449,6 +466,10 @@ module CPU_PROC_32 (
       .sys_rst_n(sys_rst_n), // input
 
       // Inputs
+      .ALUCLK_EN(s_aluclk_en),               // ALUCLK clock-enable pulse
+      .MCLK_EN(s_mclk_en),                   // MCLK clock-enable pulse
+      .MCLK_FALL_EN(s_mclk_fall_en),         // MCLK fall-enable pulse
+      .UCLK_EN(s_uclk_en),                   // UCLK clock-enable pulse
       .ALUCLK(s_aluclk),                     // ALU clock signal
       .BEDO_n(s_bedo_n),                     // Buffered Enable IDB "data out" from CGA
       .BEMPID_n(s_bempid_n),                 // Buffered EMPID - Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints)

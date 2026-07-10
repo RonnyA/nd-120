@@ -12,6 +12,9 @@
 
 
 module CGA_INTR_CNTLR_VECGEN_STAT (
+    input       sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input       MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input       FIDBO3,
     input       FIDBO4,
     input       G,
@@ -159,6 +162,8 @@ module CGA_INTR_CNTLR_VECGEN_STAT (
    *******************************************************************************/
 
   CGA_INTR_CNTLR_VECGEN_STAT_SBIT SBIT1_LO (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CK(s_mclk),
       .DCDF(s_xnor_lovec1_lovec0n),
       .DCDFN(s_g),
@@ -171,6 +176,8 @@ module CGA_INTR_CNTLR_VECGEN_STAT (
   );
 
   CGA_INTR_CNTLR_VECGEN_STAT_SBIT SBIT2_HI (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CK(s_mclk),
       .DCDF(s_xnor_hivec2n_hivec1nand0n),
       .DCDFN(s_g),
@@ -183,6 +190,8 @@ module CGA_INTR_CNTLR_VECGEN_STAT (
   );
 
   CGA_INTR_CNTLR_VECGEN_STAT_SBIT SBIT0_LO (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CK(s_mclk),
       .DCDF(s_lovec0_n),
       .DCDFN(s_g),
@@ -195,6 +204,8 @@ module CGA_INTR_CNTLR_VECGEN_STAT (
   );
 
   CGA_INTR_CNTLR_VECGEN_STAT_SBIT SBIT1_HI (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CK(s_mclk),
       .DCDF(s_xnor_hivec1_hivec0n),
       .DCDFN(s_g),
@@ -207,6 +218,8 @@ module CGA_INTR_CNTLR_VECGEN_STAT (
   );
 
   CGA_INTR_CNTLR_VECGEN_STAT_SBIT SBIT0_HI (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CK(s_mclk),
       .DCDF(s_hivec0_n),
       .DCDFN(s_g),
@@ -219,6 +232,8 @@ module CGA_INTR_CNTLR_VECGEN_STAT (
   );
 
   CGA_INTR_CNTLR_VECGEN_STAT_SBIT SBIT2_LO (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CK(s_mclk),
       .DCDF(s_xnor_lovec2n_lovec1nand0n),
       .DCDFN(s_g),

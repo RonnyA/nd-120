@@ -38,6 +38,7 @@ module CGA_WRF (
 
 
     // Input signals
+    input       ALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input       ALUCLK,   //! Clock
     input       BDEST,    //! B is destination (enable write to B from 'RB_15_0' on ALUCLK)
     input [3:0] LAA_3_0,  //! 4 bits to select A (source), for 16 different registers.
@@ -463,6 +464,7 @@ module CGA_WRF (
     .sysclk(sysclk),                          // System clock in FPGA
     .sys_rst_n(sys_rst_n),                    // System reset in FPGA
 
+    .ALUCLK_EN(ALUCLK_EN),
     .ALUCLK(s_aluclk),
     .A_15_0(s_a_15_0_out[15:0]),
     .BR_15_0(s_br_15_0_out[15:0]),

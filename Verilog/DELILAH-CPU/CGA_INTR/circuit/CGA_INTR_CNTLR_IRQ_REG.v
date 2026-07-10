@@ -13,6 +13,9 @@
 ***************************************************************************/
 
 module CGA_INTR_CNTLR_IRQ_REG (
+    input        sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input        MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input [15:0] CLRQ_15_0,
     input        CPN,
     input [15:0] IRQ_15_0_N,
@@ -49,6 +52,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_0 (
       .CLR(s_clrq_15_0[0]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[0]),
@@ -57,6 +62,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_1 (
       .CLR(s_clrq_15_0[1]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[1]),
@@ -65,6 +72,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_2 (
       .CLR(s_clrq_15_0[2]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[2]),
@@ -73,6 +82,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_3 (
       .CLR(s_clrq_15_0[3]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[3]),
@@ -81,6 +92,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_4 (
       .CLR(s_clrq_15_0[4]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[4]),
@@ -89,6 +102,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_5 (
       .CLR(s_clrq_15_0[5]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[5]),
@@ -97,6 +112,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_6 (
       .CLR(s_clrq_15_0[6]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[6]),
@@ -105,6 +122,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_7 (
       .CLR(s_clrq_15_0[7]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[7]),
@@ -113,6 +132,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_8 (
       .CLR(s_clrq_15_0[8]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[8]),
@@ -121,6 +142,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_9 (
       .CLR(s_clrq_15_0[9]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[9]),
@@ -129,6 +152,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_10 (
       .CLR(s_clrq_15_0[10]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[10]),
@@ -137,6 +162,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_11 (
       .CLR(s_clrq_15_0[11]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[11]),
@@ -145,6 +172,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_12 (
       .CLR(s_clrq_15_0[12]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[12]),
@@ -153,6 +182,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_13 (
       .CLR(s_clrq_15_0[13]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[13]),
@@ -161,6 +192,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_14 (
       .CLR(s_clrq_15_0[14]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[14]),
@@ -169,6 +202,8 @@ module CGA_INTR_CNTLR_IRQ_REG (
 
   CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_15 (
       .CLR(s_clrq_15_0[15]),
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CP (s_mclk),
       .CPN(s_cp_n),
       .INR(s_lreq_15_0_out[15]),

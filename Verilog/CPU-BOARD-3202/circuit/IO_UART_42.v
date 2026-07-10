@@ -16,6 +16,7 @@ module IO_UART_42 (
     // Input signals
     input       CEUART_n,   //! Chip Enable UART
     input       CLK,        //! Clock
+    input       CLK_EN,     //! CLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input       CONSOLE_n,  //! Console signal
     input       EAUTO_n,    //! External Auto signal
     input       EIOR_n,     //! Enable I/O Read
@@ -56,6 +57,7 @@ module IO_UART_42 (
 
   wire        s_ceuart_n;
   wire        s_clk;
+  wire        s_clk_en;
   wire        s_console_n;
   wire        s_da_n;
   wire        s_eauto_n;
@@ -87,6 +89,7 @@ module IO_UART_42 (
   assign s_pposc                 = PPOSC;
   assign s_eiorn_n               = EIOR_n;
   assign s_clk                   = CLK;
+  assign s_clk_en                = CLK_EN;
   assign s_eauto_n               = EAUTO_n;
   assign s_lcs_n                 = LCS_n;
   assign s_rxd                   = RXD;
@@ -117,9 +120,20 @@ module IO_UART_42 (
   assign s_rx                    = s_rxd;
 
 
+  // P2 (docs/plan-fix-unconstrained-clocks.md): CHIP_33G is the only flop in
+  // this module clocked by the board CLK domain. AM29C821 USE_SYSCLK=1 captures
+  // D on posedge sysclk while CK is high, so driving CK with the 1-sysclk-wide
+  // CLK_EN pulse (aligned to the CLK rise) gives the exact
+  // "posedge sysclk + if (CLK_EN)" capture in the sysclk domain.
+`ifdef FPGA_FF_MODE
+  localparam CLK_CE = 1;
+`else
+  localparam CLK_CE = 0;
+`endif
+
   AM29C821 #(.USE_SYSCLK(1)) CHIP_33G (
       .sysclk(sysclk),
-      .CK(s_clk),
+      .CK((CLK_CE != 0) ? s_clk_en : s_clk),  // domain CLK -> CLK_EN in FF mode
       .OE_n(s_eiorn_n),
       .D({s_tbmt_n, s_da_n, s_eauto_n, s_lock_n, s_console_n, 1'b1, BAUD_RATE_SWITCH[3:0]}),
       .Y({s_io_idb_15_0_out[15:11], s_io_idb_15_0_out[4:0]})

@@ -15,6 +15,7 @@ module CGA_WRF_RBLOCK_DR16 (
     input sys_rst_n, // System reset in FPGA
 
     // Input signals
+    input        ALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        ALUCLK,
     input [15:0] RB_15_0,
     input        WR,
@@ -52,11 +53,28 @@ module CGA_WRF_RBLOCK_DR16 (
    *******************************************************************************/
 
   reg [15:0] regFF;
+  // P2b: in FF mode capture on posedge sysclk gated by ALUCLK_EN (aligned
+  // to the ALUCLK rise); the WR qualifier is unchanged, so exactly one
+  // write happens per ALUCLK rise with WR asserted - same as the original.
+`ifdef FPGA_FF_MODE
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_aluclk = s_aluclk;
+  /* verilator lint_on UNUSEDSIGNAL */
+  always @(posedge sysclk) begin
+    if (ALUCLK_EN && s_wr) begin
+        regFF <= s_rb_15_0[15:0];
+    end
+  end
+`else
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_en = ALUCLK_EN;
+  /* verilator lint_on UNUSEDSIGNAL */
   always @(posedge s_aluclk) begin
     if (s_wr) begin
         regFF <= s_rb_15_0[15:0];
     end
   end
+`endif
 
   assign s_reg_15_0_out = regFF;
 

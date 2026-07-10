@@ -126,6 +126,97 @@ is inside the ALUCLK/WRFSTB structure and is handled with P2b.
 - **P2e** s_clk domain (DGA XCLK + IO). Converting the DGA turns F924 into
   sysclk+CE and dissolves the internal clk2/clk3/clk3_n (#6) for free.
 
+**REVISION (10-JUL, from the P2b red gates): P2b-P2d cannot land as separate
+commits - the CGA clock group must convert TOGETHER.** Proof by measurement:
+
+- With rise-aligned enables the P2b conversion is byte-identical to golden
+  for 557,335 ticks, then ONE unconverted flop flips: `CGA_MIC.MEMORY_35`
+  (`s_zfff_q_out`, Z-flag sync, `posedge s_mclk`, d = combinational ZF off
+  the converted ALU registers). Waveforms show MCLK and ALUCLK rising on
+  the SAME sysclk edge in that cycle shape: the original derived-clock flop
+  samples ZF BEFORE the ALU registers' same-edge update lands (NBA
+  old-value exchange between two pass-2 derived clocks); the converted ALU
+  registers update in the sysclk pass, so the still-pa-clocked MEMORY_35
+  captures the NEW ZF one clock early. The corruption spreads
+  ZFFF -> COND -> INTR priority state (PD/HIGSN at ~650k) -> self-test
+  TEST 2 STERR at ~737836 -> runSim WAIT-loop hang.
+- Enable placement cannot fix this class. All three placements were built
+  and measured: rise-aligned (correct for converted<->converted and
+  latch-fed data; breaks unconverted same-edge observers), rise+1 posedge
+  and rise+negedge (both shift the capture VALUE to post-edge, which
+  diverges from cycle 0 - BDRY refresh chain +1 tick, 900k-line diff).
+  Verilator's derived-clock flops sample PRE-edge values of other
+  same-edge derived-clock flops; only same-pass NBA reproduces that, i.e.
+  BOTH sides of every coincident-edge transfer must be converted.
+- ALUCLK/CLK rise coincide by construction (both TERM-derived) and MCLK
+  coincides in short cycle shapes, so the coupled unit is the whole CGA
+  clock group: ALUCLK + CLK + UCLK + MCLK + MACLK consumers (MIC, INTR,
+  TRAP, IDBCTL, DCD, MAC, ALU, WRF) in ONE tree state, gated by the same
+  byte-identity compare at the end. Fall-edge consumers
+  (InvertClockEnable / ~ALUCLK style) need FALL enable pulses
+  (`pa & ~next`) added to CYC_36 alongside the rise enables.
+- Debug harness for residual flips (sim/): `ND120_START_TRACE` /
+  `ND120_MAX_TICKS` env overrides in test_nd120.cpp + kept obj_dir_base
+  (conversions off) and obj_dir_conv builds + scratchpad
+  vcd_diff.py/vcd_snap.py/bisect_time.sh - binary-searches the first
+  diverging tick and names the first diverging signals in ~30 min without
+  rebuilds. Ground zero for any new flip = convert that observer's module
+  next.
+
+**GROUP CONVERSION STATUS (10-JUL, uncommitted working tree):** the whole
+coupled group is now converted with rise-aligned enables:
+
+- CGA: ALU + WRF (P2b) + MIC (48 flops incl. M169C LC counters, SR44 stack
+  on MCLK-fall) + INTR (17) + DCD (21) + IDBCTL PGSREG (14) + MAC (7+1) +
+  TRAP TVGEN_P2 (7, TCLK=UCLK domain). New wrappers: J_K_FLIPFLOP_EN,
+  SR44_EN, SCAN_WITH_SET_N_EN, SCAN_WITH_RESET_N_EN, M169C_EN, F924_EN
+  (composites = structural copies with only the flop primitive swapped).
+- CYC PALs 44403C/44404C: new PAL_44403C_EN.v / PAL_44404C_EN.v in
+  Verilog/PAL/ (equation copies with `if (EN)`; originals untouched) -
+  they register on CLK and sample converted outputs (ACOND_n -> LCS_n was
+  the 557151 detonation).
+- DGA (P2e pulled in): COMM (13) + IDBS (4) + panel FIFO on XCLK=CLK;
+  one CLK_FALL_EN site (COMM A204 on ~clk3). POW divider left for P3.
+- Board: ND3202D regMIS, IO_UART_42 CHIP_33G (AM29C821 CK driven by the
+  CLK_EN pulse in FF mode). CS/ACAL/PANCAL verified no pa-clocked flops.
+- CYC_36 emits FALL enables (level & ~next) for all five clocks;
+  test-cycen extended (18990 checks).
+- Wrapper init bug found by harness: SCAN_WITH_SET_N_EN async set must be
+  `posedge ~S_n` (active-high preset like the original ACTIVE_ASYNC flop),
+  NOT `negedge S_n` - at time 0 S_n starts low, the negedge never fires,
+  the original's preset 0->1 does (DZD_FF t=0 flip).
+- **BDRY baseline finding:** latch-vs-FF `make compare` at committed HEAD
+  (0843e88) already differs in EXACTLY the BDRY column (5872 rows, refresh
+  pulses at reset rows 0-7 in latch, 100-107 in FF, then +1 offset) - a
+  PRE-EXISTING FF-mode reset artifact, not from this campaign. The
+  practical gate is therefore: diff columns == {BDRY, first@0, 5872} and
+  nothing else.
+- With all of the above, latch-vs-FF divergence moved 557151 -> 738965
+  (only CSA/LED/MCLK/TERM_n after 738965 + the baseline BDRY artifact).
+  The 738965 site is under bisect vs a HEAD-FF reference (wt-head
+  worktree binary) - false-positive snapshot diffs from intentional
+  clock-wiring nets (fifo_clk, CHIP_33G.CK) are excluded in vcd_snap.py.
+
+**ALL SIM GATES GREEN (10-JUL):** after two more fixes the full group
+conversion passes everything:
+
+1. CMDDEC PALs 44407A/44408B/44511A converted (PAL_*_EN equation copies,
+   CLK_EN threaded ND3202D -> CPU_15 -> CPU_PROC_32 -> CMDDEC). Fixed the
+   VEX/LDEXM flip at ~557533.
+2. CGA_MIC_MASEL regIW: its FF-mode capture read regREP - but regREP is
+   itself a sysclk register updating on the same edge, so the pa-clocked
+   original saw regREP's NEW value while the converted pre-edge sample was
+   one cycle stale. Fix: capture regREP_comb (the register's D input).
+   This is THE pattern for native-sysclk-producer -> converted-consumer
+   same-edge transfers: sample the producer's D, not its Q. Fired only
+   when a conditional jump resolved exactly on an MCLK rise (survived to
+   tick ~738920, self-test).
+3. Result: latch and FF traces byte-identical to the STORED GOLDENS
+   (cmp trace_{ff,latch}.csv vs sim/golden/ = OK over 1M rows), global
+   `make test` 24/24, runSim FF console byte-identical to golden
+   (previously hung in the STERR wait-loop), Tang vtest deposit
+   22/054321 readback PASS.
+
 Fmax reality from the P1d .tr (why P2 matters): s_clk 3.06 MHz,
 s_mclk_Z 3.07 MHz, s_aluclk_Z 5.85 MHz, CLKOUTD domain 5.67 MHz vs the
 6.75 MHz crawl clock - and none of it hold-analyzed.

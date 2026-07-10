@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_INTR_CNTLR_VECGEN (
+    input        sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input        MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input        FIDBO3,
     input        FIDBO4,
     input [ 2:0] FIDBO_2_0,
@@ -108,6 +111,8 @@ module CGA_INTR_CNTLR_VECGEN (
    *******************************************************************************/
 
   CGA_INTR_CNTLR_VECGEN_VHR VHR (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .HIVEC_2_0(s_hivec_2_0_out[2:0]),
       .HX_2_0(s_hx_2_0_out[2:0]),
       .HX_2_0_N(s_hx_2_0_n_out[2:0]),
@@ -139,6 +144,8 @@ module CGA_INTR_CNTLR_VECGEN (
   );
 
   CGA_INTR_CNTLR_VECGEN_STAT STAT (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .FIDBO3(s_fidbo3),
       .FIDBO4(s_fidbo4),
       .G(s_g),

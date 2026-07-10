@@ -12,6 +12,8 @@
 
 
 module CGA_ALU_SWAP (
+    input        sysclk,     //! FPGA system clock (P2: ALUCLK_EN capture)
+    input        ALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        ALUCLK,
     input [15:0] FIDBO_15_0,
 
@@ -31,6 +33,16 @@ module CGA_ALU_SWAP (
   assign s_fidbo_15_0[15:0] = FIDBO_15_0;
   assign s_aluclk           = ALUCLK;
 
+  // P2b (docs/plan-fix-unconstrained-clocks.md): in FF mode the ALUCLK-
+  // clocked registers capture on posedge sysclk gated by ALUCLK_EN
+  // (aligned to the ALUCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam ALUCLK_CE = 1;
+`else
+  localparam ALUCLK_CE = 0;
+`endif
+
+
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
@@ -40,8 +52,10 @@ module CGA_ALU_SWAP (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  R81 SWAP_LO_REG (
-      .CP (s_aluclk),
+  R81_EN #(.USE_ENABLE(ALUCLK_CE)) SWAP_LO_REG (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
+      .CP(s_aluclk),
       .A  (s_fidbo_15_0[15]),
       .B  (s_fidbo_15_0[14]),
       .C  (s_fidbo_15_0[13]),
@@ -68,8 +82,10 @@ module CGA_ALU_SWAP (
       .QHN()
   );
 
-  R81 SWAP_HI_REG (
-      .CP (s_aluclk),
+  R81_EN #(.USE_ENABLE(ALUCLK_CE)) SWAP_HI_REG (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
+      .CP(s_aluclk),
       .A  (s_fidbo_15_0[7]),
       .B  (s_fidbo_15_0[6]),
       .C  (s_fidbo_15_0[5]),

@@ -18,6 +18,8 @@ module IO_37(
    input       BDRY50_n,
    input       BRK_n,
    input       CLK,
+   input       CLK_EN,       //! CLK clock-enable pulse (FPGA_FF_MODE, else 0)
+   input       CLK_FALL_EN,  //! CLK fall-enable pulse (FPGA_FF_MODE, else 0)
    input       CONSOLE_n,
    input [4:0] CSCOMM_4_0,  //! Control Store Command (5 bits)
    input [4:0] CSIDBS_4_0,  //! Control Store IDB Source (5 bits)
@@ -397,6 +399,7 @@ module IO_37(
    (
       .sysclk(sysclk), // System clock in FPGA
       .sys_rst_n(sys_rst_n), // System reset in FPGA
+      .CLK_EN(CLK_EN),
 
       // Input signals
       .CEUART_n(s_ceuart_n),
@@ -434,6 +437,8 @@ module IO_37(
    (
       .sysclk(sysclk), // System clock in FPGA
       .sys_rst_n(sys_rst_n), // System reset in FPGA
+      .CLK_EN(CLK_EN),
+      .CLK_FALL_EN(CLK_FALL_EN),
 
       .BDRY50_n(s_bdry50_n),
       .BRK_n(s_brk_n),

@@ -163,6 +163,11 @@
         <File path="../../PAL/PAL_44402D.v" type="file.verilog" enable="1"/>
         <File path="../../PAL/PAL_44403C.v" type="file.verilog" enable="1"/>
         <File path="../../PAL/PAL_44404C.v" type="file.verilog" enable="1"/>
+        <File path="../../PAL/PAL_44403C_EN.v" type="file.verilog" enable="1"/>
+        <File path="../../PAL/PAL_44404C_EN.v" type="file.verilog" enable="1"/>
+        <File path="../../PAL/PAL_44407A_EN.v" type="file.verilog" enable="1"/>
+        <File path="../../PAL/PAL_44408B_EN.v" type="file.verilog" enable="1"/>
+        <File path="../../PAL/PAL_44511A_EN.v" type="file.verilog" enable="1"/>
         <File path="../../PAL/PAL_44407A.v" type="file.verilog" enable="1"/>
         <File path="../../PAL/PAL_44408B.v" type="file.verilog" enable="1"/>
         <File path="../../PAL/PAL_44445B.v" type="file.verilog" enable="1"/>
@@ -226,8 +231,18 @@
         <File path="../../Shared/ndlib/ND38GLP.v" type="file.verilog" enable="1"/>
         <File path="../../Shared/ndlib/R41P.v" type="file.verilog" enable="1"/>
         <File path="../../Shared/ndlib/R81.v" type="file.verilog" enable="1"/>
+        <File path="../../Shared/ndlib/R81_EN.v" type="file.verilog" enable="1"/>
+        <File path="../../Shared/ndlib/R41P_EN.v" type="file.verilog" enable="1"/>
         <File path="../../Shared/ndlib/RMUX_Gates.v" type="file.verilog" enable="1"/>
         <File path="../../Shared/ndlib/SCAN_FF.v" type="file.verilog" enable="1"/>
+        <File path="../../Shared/ndlib/SCAN_FF_EN.v" type="file.verilog" enable="1"/>
+        <File path="../../Shared/ndlib/D_FLIPFLOP_EN.v" type="file.verilog" enable="1"/>
+        <File path="../../Shared/ndlib/J_K_FLIPFLOP_EN.v" type="file.verilog" enable="1"/>
+        <File path="../../Shared/ndlib/SR44_EN.v" type="file.verilog" enable="1"/>
+        <File path="../../Shared/ndlib/SCAN_WITH_SET_N_EN.v" type="file.verilog" enable="1"/>
+        <File path="../../Shared/ndlib/SCAN_WITH_RESET_N_EN.v" type="file.verilog" enable="1"/>
+        <File path="../../Shared/ndlib/M169C_EN.v" type="file.verilog" enable="1"/>
+        <File path="../../Shared/ndlib/F924_EN.v" type="file.verilog" enable="1"/>
         <File path="../../Shared/ndlib/SCAN_WITH_SET_N.v" type="file.verilog" enable="1"/>
         <File path="../../Shared/ndlib/SR44.v" type="file.verilog" enable="1"/>
         <File path="../../Shared/support/AM29833A.v" type="file.verilog" enable="1"/>

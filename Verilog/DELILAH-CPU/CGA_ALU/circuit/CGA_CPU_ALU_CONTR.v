@@ -11,6 +11,8 @@
 ***************************************************************************/
 
 module CGA_CPU_ALU_CONTR (
+    input sysclk,     //! FPGA system clock (P2: ALUCLK_EN capture)
+    input ALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input ALUCLK,                 //! ALU Clock
     input [1:0] CD_10_9,          //! CPU Data 10:9
     input CRY,                    //! ALU Carry
@@ -206,6 +208,16 @@ module CGA_CPU_ALU_CONTR (
   assign s_xfetch_n          = XFETCHN;
   assign s_dgpr0_n           = DGPR0N;
   assign s_aluclk            = ALUCLK;
+
+  // P2b (docs/plan-fix-unconstrained-clocks.md): in FF mode the ALUCLK-
+  // clocked registers capture on posedge sysclk gated by ALUCLK_EN
+  // (aligned to the ALUCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam ALUCLK_CE = 1;
+`else
+  localparam ALUCLK_CE = 0;
+`endif
+
   assign s_up_n              = UPN;
   assign s_ldirv             = LDIRV;
   assign s_gpr0              = GPR0;
@@ -639,9 +651,11 @@ module CGA_CPU_ALU_CONTR (
       .result(s_gates44_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(ALUCLK_CE)
   ) MEMORY_45 (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .clock(s_aluclk),
       .d(s_csalui_8_0[6]),
       .preset(1'b0),
@@ -699,9 +713,11 @@ module CGA_CPU_ALU_CONTR (
       .result(s_gates50_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(ALUCLK_CE)
   ) MEMORY_51 (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .clock(s_aluclk),
       .d(s_gates50_out),
       .preset(1'b0),
@@ -798,8 +814,10 @@ module CGA_CPU_ALU_CONTR (
       .ZN(s_alui1n)
   );
 
-  R41P REG_RFLA4 (
-      .CP (s_aluclk),
+  R41P_EN #(.USE_ENABLE(ALUCLK_CE)) REG_RFLA4 (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
+      .CP(s_aluclk),
       .A  (s_gates54_out),
       .B  (s_gates55_out),
       .C  (s_gates12_out),
@@ -814,8 +832,10 @@ module CGA_CPU_ALU_CONTR (
       .QDN(s_alui4_n_out)
   );
 
-  R41P REG_BAAD (
-      .CP (s_aluclk),
+  R41P_EN #(.USE_ENABLE(ALUCLK_CE)) REG_BAAD (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
+      .CP(s_aluclk),
       .A  (s_gates13_out),
       .B  (s_gates14_out),
       .C  (s_gates7_out),
@@ -830,7 +850,9 @@ module CGA_CPU_ALU_CONTR (
       .QDN()
   );
 
-  R81 CONTR_REG (
+  R81_EN #(.USE_ENABLE(ALUCLK_CE)) CONTR_REG (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CP(s_aluclk),
       .A (s_isel1_n),
       .B (s_isel0_n),

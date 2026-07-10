@@ -15,6 +15,7 @@ module CGA_WRF_RBLOCK (
     input sys_rst_n, //! System reset in FPGA
 
     // Input signals
+    input ALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input ALUCLK,  //! To clock the operation
 
     input [15:0] EA_15_0,  //! Enable A (source) for read. 16 bits to select register.
@@ -926,6 +927,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .REG_15_0(s_reg0_z_15_0[15:0]),
@@ -938,6 +940,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .REG_15_0(s_reg1_d_15_0[15:0]),
@@ -951,6 +954,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .ALUCLKN(s_aluclk_n),
       .NLCA_15_0(s_ncla_15_0[15:0]),
@@ -968,6 +972,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .LR_15_0(s_br_15_0_out[15:0]),
       .RB_15_0(s_rb_15_0[15:0]),
@@ -981,6 +986,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .REG_15_0(s_reg4_l_15_0[15:0]),
@@ -993,6 +999,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .REG_15_0(s_reg5_a_15_0[15:0]),
@@ -1005,6 +1012,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .REG_15_0(s_reg6_t_15_0[15:0]),
@@ -1018,6 +1026,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .WR(s_wr_15_0[7]),
@@ -1033,6 +1042,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .REG_15_0(s_reg8_sts_15_0[15:0]),
@@ -1045,6 +1055,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .REG_15_0(s_reg9_r1_15_0[15:0]),
@@ -1057,6 +1068,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .REG_15_0(s_reg10_r2_15_0[15:0]),
@@ -1069,6 +1081,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .REG_15_0(s_reg11_r3_15_0[15:0]),
@@ -1081,6 +1094,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .REG_15_0(s_reg12_r4_15_0[15:0]),
@@ -1093,6 +1107,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .REG_15_0(s_reg13_r5_15_0[15:0]),
@@ -1105,6 +1120,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .REG_15_0(s_reg14_r6_15_0[15:0]),
@@ -1117,6 +1133,7 @@ module CGA_WRF_RBLOCK (
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .RB_15_0(s_rb_15_0[15:0]),
       .REG_15_0(s_reg15_r7_15_0[15:0]),

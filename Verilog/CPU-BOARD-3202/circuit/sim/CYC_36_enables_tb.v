@@ -8,6 +8,7 @@
 **                                                                       **
 **   the enable is high in cycle N  <=>  the corresponding phase-        **
 **   accurate clock RISES at the posedge ending cycle N                  **
+**   (and the same for the *_FALL_EN pulses against the FALLING edge)    **
 **                                                                       **
 ** checked EVERY sysclk cycle while the cycle-control FSM free-runs      **
 ** microcycles. Teeth: each enable must pulse >= MIN_PULSES times or the **
@@ -34,6 +35,7 @@ module CYC_36_enables_tb;
 
   wire aluclk, clk, maclk, mclk, uclk, wrfstb;
   wire clk_en, uclk_en, mclk_en, maclk_en, aluclk_en;
+  wire clk_fen, uclk_fen, mclk_fen, maclk_fen, aluclk_fen;
 
   CYC_36 dut (
       .sysclk(sysclk),
@@ -82,6 +84,11 @@ module CYC_36_enables_tb;
       .MCLK_EN(mclk_en),
       .MACLK_EN(maclk_en),
       .ALUCLK_EN(aluclk_en),
+      .CLK_FALL_EN(clk_fen),
+      .UCLK_FALL_EN(uclk_fen),
+      .MCLK_FALL_EN(mclk_fen),
+      .MACLK_FALL_EN(maclk_fen),
+      .ALUCLK_FALL_EN(aluclk_fen),
       .CYD(),
       .CC_3_1_n(),
       .CC0_n(),
@@ -104,6 +111,7 @@ module CYC_36_enables_tb;
   // before that edge (stable between posedges, sampled at negedge).
   reg p_clk, p_uclk, p_mclk, p_maclk, p_aluclk;
   reg e_clk, e_uclk, e_mclk, e_maclk, e_aluclk;
+  reg f_clk, f_uclk, f_mclk, f_maclk, f_aluclk;
   reg checking = 0;
 
   always @(posedge sysclk) begin
@@ -112,6 +120,11 @@ module CYC_36_enables_tb;
     e_mclk   <= mclk_en;
     e_maclk  <= maclk_en;
     e_aluclk <= aluclk_en;
+    f_clk    <= clk_fen;
+    f_uclk   <= uclk_fen;
+    f_mclk   <= mclk_fen;
+    f_maclk  <= maclk_fen;
+    f_aluclk <= aluclk_fen;
   end
 
   task check_one(input rise, input en_prev, input [63:0] name);
@@ -132,6 +145,13 @@ module CYC_36_enables_tb;
       check_one(mclk   & ~p_mclk,   e_mclk,   "MCLK");
       check_one(maclk  & ~p_maclk,  e_maclk,  "MACLK");
       check_one(aluclk & ~p_aluclk, e_aluclk, "ALUCLK");
+      // same property for the FALL pulses: fall at the posedge ending
+      // cycle N <=> fall-enable was high during cycle N
+      check_one(~clk    & p_clk,    f_clk,    "CLKF");
+      check_one(~uclk   & p_uclk,   f_uclk,   "UCLKF");
+      check_one(~mclk   & p_mclk,   f_mclk,   "MCLKF");
+      check_one(~maclk  & p_maclk,  f_maclk,  "MACLKF");
+      check_one(~aluclk & p_aluclk, f_aluclk, "ALUCLKF");
       if (clk    & ~p_clk)    n_clk    = n_clk + 1;
       if (uclk   & ~p_uclk)   n_uclk   = n_uclk + 1;
       if (mclk   & ~p_mclk)   n_mclk   = n_mclk + 1;

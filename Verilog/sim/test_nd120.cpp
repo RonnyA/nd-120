@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 #ifdef DO_TRACE
 	VerilatedFstC *m_trace = new VerilatedFstC;
 	Verilated::traceEverOn(true);
-	top->trace(m_trace, 1); // 1 is the trace depth
+	top->trace(m_trace, 1);
 	m_trace->open("waveform.fst");
 #endif
 
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 	long startTrace = 0;
 	long maxTicks   = 200000;   // 200K ticks covers boot through self-test/OPCOM
 #else
-	long startTrace = 730000;   // just before second loop exit at tick 737749 (CSA=o002047)
+	long startTrace = 730000;
 
 	//long startTrace = 0;             // full trace including PROM load (very large file)
 	//long startTrace = 755472;        // OPCOM READY after selftest
@@ -154,9 +154,14 @@ int main(int argc, char **argv)
 	//long maxTicks = startTrace + 200000;  // 200K (focused debug)
 	//long maxTicks = startTrace + 2000000; // 2M (short run)
 	//long maxTicks = startTrace + 5500000; // 5.5M
-	long maxTicks = startTrace + 600000;   // 600K ticks covers ~3 loop cycles + transitions
+	long maxTicks = startTrace + 600000;
 #endif
-	
+
+	// Runtime override so debug window sweeps don't need a recompile:
+	//   ND120_START_TRACE=<tick> ND120_MAX_TICKS=<tick> ./obj_dir/VND120_TOP
+	if (const char *e = getenv("ND120_START_TRACE")) startTrace = atol(e);
+	if (const char *e = getenv("ND120_MAX_TICKS"))   maxTicks   = atol(e);
+
 
 	// Boot commands
 	const char *cmdBOOT = "0!\0"; // Start program in RAM at address 0

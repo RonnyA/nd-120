@@ -16,6 +16,8 @@
 module DECODE_DGA_COMM (
     input       sysclk,       //! System clock (for F595 synchronous RS latch)
     input       sys_rst_n,    //! FPGA system reset (active-low)
+    input       CLK_EN,       //! CLK rise clock-enable pulse (FPGA_FF_MODE, else 0)
+    input       CLK_FALL_EN,  //! CLK fall clock-enable pulse (FPGA_FF_MODE, else 0)
     input       BRKN,         //! Break signal
     input       CLEAR,        //! Clear signal
     input       CLK1,         //! Clock input 1
@@ -222,6 +224,17 @@ module DECODE_DGA_COMM (
   assign s_idbi2           = IDBI2;
   assign s_hit_n           = HITN;
   assign s_idbi5           = IDBI5;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the CLK-clocked
+  // registers (CLK1/CLK2/CLK3 are all the board CLK, XCLK) capture on
+  // posedge sysclk gated by CLK_EN (aligned to the CLK rise); the s_clk3_n
+  // sites use CLK_FALL_EN (aligned to the CLK fall) instead of clocking on
+  // the routed nets.
+`ifdef FPGA_FF_MODE
+  localparam CLK_CE = 1;
+`else
+  localparam CLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -953,9 +966,12 @@ module DECODE_DGA_COMM (
       .result(s_a192_nand_out)
   );
 
-  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
-      .InvertClockEnable(0)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(CLK_CE),
+      .ASYNC_RESET(1)
   ) MEMORY_63 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .clock(s_clk1),
       .d(s_a153_nand_out),
       .preset(s_gnd),
@@ -965,9 +981,11 @@ module DECODE_DGA_COMM (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(CLK_CE)
   ) A226 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .clock(s_clk2),
       .d(s_a221_y),
       .preset(1'b0),
@@ -977,9 +995,11 @@ module DECODE_DGA_COMM (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(CLK_CE)
   ) A232 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .clock(s_clk1),
       .d(s_a236_y),
       .preset(1'b0),
@@ -990,9 +1010,11 @@ module DECODE_DGA_COMM (
   );
 
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(CLK_CE)
   ) A227 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .clock(s_clk2),
       .d(s_a220_nand_out),
       .preset(1'b0),
@@ -1002,9 +1024,12 @@ module DECODE_DGA_COMM (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
-      .InvertClockEnable(0)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(CLK_CE),
+      .ASYNC_RESET(1)
   ) MEMORY_68 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .clock(s_clk3),
       .d(s_a201_y),
       .preset(1'b0),
@@ -1014,9 +1039,13 @@ module DECODE_DGA_COMM (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // A204 clocks on posedge s_clk3_n = ~CLK3 = ~CLK, i.e. the CLK FALLING
+  // edge => resolved domain is CLK fall => CLK_FALL_EN.
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(CLK_CE)
   ) A204 (
+      .sysclk(sysclk),
+      .EN(CLK_FALL_EN),
       .clock(s_clk3_n),
       .d(s_a189_nand_out),
       .preset(1'b0),
@@ -1031,7 +1060,9 @@ module DECODE_DGA_COMM (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  F924 A181 (
+  F924_EN #(.USE_ENABLE(CLK_CE)) A181 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .C_H05  (s_clk3),
       .D0_H01 (s_vcc),
       .D1_H02 (s_isstop_n),
@@ -1047,7 +1078,9 @@ module DECODE_DGA_COMM (
       .N08_Q3B(s_ssema_n)
   );
 
-  F924 A214 (
+  F924_EN #(.USE_ENABLE(CLK_CE)) A214 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .C_H05  (s_clk2),
       .D0_H01 (s_a213_nand_out),
       .D1_H02 (s_a216_nand_out),
@@ -1063,7 +1096,9 @@ module DECODE_DGA_COMM (
       .N08_Q3B(s_iorq)
   );
 
-  F924 A140 (
+  F924_EN #(.USE_ENABLE(CLK_CE)) A140 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .C_H05  (s_clk2),
       .D0_H01 (s_a162_nand_out),
       .D1_H02 (s_vcc),
@@ -1100,7 +1135,9 @@ module DECODE_DGA_COMM (
       .Y(s_a236_y)
   );
 
-  F924 A187 (
+  F924_EN #(.USE_ENABLE(CLK_CE)) A187 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .C_H05  (s_clk3),
       .D0_H01 (s_iclrti_n),
       .D1_H02 (s_isioc_n),
@@ -1116,7 +1153,9 @@ module DECODE_DGA_COMM (
       .N08_Q3B()
   );
 
-  F924 A160 (
+  F924_EN #(.USE_ENABLE(CLK_CE)) A160 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .C_H05  (s_clk2),
       .D0_H01 (s_a171_nand_out),
       .D1_H02 (s_a166_nand_out),
@@ -1140,9 +1179,12 @@ module DECODE_DGA_COMM (
       .Y(s_208_y)
   );
 
-  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
-      .InvertClockEnable(0)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(CLK_CE),
+      .ASYNC_RESET(1)
   ) MEMORY_66 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .clock(s_clk3),
       .d(s_208_y),
       .preset(1'b0),
@@ -1171,7 +1213,9 @@ module DECODE_DGA_COMM (
   end
 */
 
-  F924 A188 (
+  F924_EN #(.USE_ENABLE(CLK_CE)) A188 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .C_H05  (s_clk3),
       .D0_H01 (s_vcc),
       .D1_H02 (s_istart_n),

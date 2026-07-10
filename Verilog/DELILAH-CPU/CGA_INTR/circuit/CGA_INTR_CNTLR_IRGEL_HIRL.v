@@ -12,6 +12,9 @@
 
 
 module CGA_INTR_CNTLR_IRGEL_HIRL (
+    input       sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input       MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input       D,
     input       E,
     input       H,
@@ -73,6 +76,15 @@ module CGA_INTR_CNTLR_IRGEL_HIRL (
   assign s_e              = E;
   assign s_mclk           = MCLK;
   assign s_higs_n         = HIGSN;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -163,7 +175,10 @@ module CGA_INTR_CNTLR_IRGEL_HIRL (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  SCAN_FF STATUS_OVERFLOW_FF (
+  // MCLK domain (CGA_INTR.MCLK, rising edge)
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) STATUS_OVERFLOW_FF (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_hidis_n),
       .Q  (s_hidis_n),
@@ -172,7 +187,10 @@ module CGA_INTR_CNTLR_IRGEL_HIRL (
       .TI (s_higas_n_out)
   );
 
-  SCAN_FF INT_REQ_ENABLE_FF (
+  // MCLK domain (CGA_INTR.MCLK, rising edge)
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) INT_REQ_ENABLE_FF (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_e),
       .Q  (s_int_req_q),

@@ -14,6 +14,8 @@ module CGA_MIC_MASEL (
     input sysclk,    // System clock in FPGA
     input sys_rst_n, // System reset in FPGA
 
+    input        MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input        CSBIT20,
     input [11:0] CSBIT_11_0,
     input [ 3:0] JMP_3_0,
@@ -140,6 +142,30 @@ localparam [1:0] SEL_REPEAT = 2'b11;
 
   // On rising clock edge load REP into IW
   // IW goes back to IINC to calculate next address (which is then input to stack module)
+  // MCLK domain: regIW clocks on posedge s_mclk (async clear s_mr_n).
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode capture on
+  // posedge sysclk gated by MCLK_EN (aligned to the MCLK rise) instead
+  // of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_mclk = s_mclk;
+  /* verilator lint_on UNUSEDSIGNAL */
+  // regREP is itself a sysclk register updating on EVERY posedge (VARIANT F
+  // above): the original pa-clocked regIW fired a delta AFTER that update
+  // and so captured regREP's NEW value. Sampling regREP here (pre-edge NBA)
+  // would be one cycle stale - capture the register's D input regREP_comb
+  // instead, which is exactly the value the original saw.
+  always @(posedge sysclk or negedge s_mr_n) begin
+    if (!s_mr_n) begin
+        regIW <= 0;
+    end else if (MCLK_EN) begin
+      regIW <= regREP_comb;
+    end
+  end
+`else
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_mclk_en = MCLK_EN;
+  /* verilator lint_on UNUSEDSIGNAL */
   always @(posedge s_mclk or negedge s_mr_n) begin
     if (!s_mr_n) begin
         regIW <= 0;
@@ -147,6 +173,7 @@ localparam [1:0] SEL_REPEAT = 2'b11;
       regIW <= regREP;
     end
   end
+`endif
 
 
 

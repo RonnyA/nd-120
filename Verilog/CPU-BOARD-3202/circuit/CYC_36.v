@@ -66,6 +66,14 @@ module CYC_36 (
     output MCLK_EN,
     output MACLK_EN,
     output ALUCLK_EN,
+    // Matching FALL pulses (level & ~next): high in the cycle whose POSEDGE
+    // is the FALLING edge of the phase-accurate clock, for consumers that
+    // clocked on the inverted net (posedge ~xclk / InvertClockEnable).
+    output CLK_FALL_EN,
+    output UCLK_FALL_EN,
+    output MCLK_FALL_EN,
+    output MACLK_FALL_EN,
+    output ALUCLK_FALL_EN,
     output CYD,
     output [2:0] CC_3_1_n,
     output CC0_n,          // Cycle Control bit 0 (added for debug)
@@ -90,6 +98,7 @@ module CYC_36 (
   (* mark_debug = "true" *) wire s_cc0_n;
   wire       s_cgntcact_n;
   wire       s_clk;
+  wire       s_clk_ce_en;
   wire       s_csalui7;
   wire       s_csalui8;
   wire       s_csalum0;
@@ -297,22 +306,36 @@ module CYC_36 (
   // clock's rise, i.e. the enable is sampled by the SAME sysclk posedge
   // that produces the rise. Consumers on `posedge sysclk + if (EN)` are
   // then cycle-identical to `posedge pa-clock` flops (same-domain data).
-  assign CLK_EN              = clk_en       & ~clk_pa;
+  assign s_clk_ce_en         = clk_en       & ~clk_pa;
+  assign CLK_EN              = s_clk_ce_en;
   assign UCLK_EN             = uclk_next    & ~uclk_pa;
   assign MCLK_EN             = s_mclk_next  & ~mclk_pa;
   assign MACLK_EN            = s_maclk_next & ~maclk_pa;
   assign ALUCLK_EN           = aluclk_en    & ~aluclk_pa;
+  // FALL pulses: level & ~next = high exactly in the cycle before the pa
+  // clock's fall, sampled by the same posedge that produces the fall.
+  assign CLK_FALL_EN         = clk_pa    & ~clk_en;
+  assign UCLK_FALL_EN        = uclk_pa   & ~uclk_next;
+  assign MCLK_FALL_EN        = mclk_pa   & ~s_mclk_next;
+  assign MACLK_FALL_EN       = maclk_pa  & ~s_maclk_next;
+  assign ALUCLK_FALL_EN      = aluclk_pa & ~aluclk_en;
 `else
   assign ALUCLK              = s_aluclk;
   assign MCLK                = s_mclk;
   assign MACLK               = s_maclk_out;
   assign UCLK                = s_uclk_out;
   // Latch mode has no phase-accurate registers: no enables.
-  assign CLK_EN              = 1'b0;
+  assign s_clk_ce_en         = 1'b0;
+  assign CLK_EN              = s_clk_ce_en;
   assign UCLK_EN             = 1'b0;
   assign MCLK_EN             = 1'b0;
   assign MACLK_EN            = 1'b0;
   assign ALUCLK_EN           = 1'b0;
+  assign CLK_FALL_EN         = 1'b0;
+  assign UCLK_FALL_EN        = 1'b0;
+  assign MCLK_FALL_EN        = 1'b0;
+  assign MACLK_FALL_EN       = 1'b0;
+  assign ALUCLK_FALL_EN      = 1'b0;
 `endif
   assign CC_3_1_n            = s_cc_3_1_n[2:0];
   assign CC0_n               = s_cc0_n;
@@ -405,8 +428,20 @@ module CYC_36 (
       .MAP_n  (s_map_n)         // B5_n - Memory Address Present signal
   );
 
+  // P2 (docs/plan-fix-unconstrained-clocks.md): the two CYIN PALs register
+  // on CLK (= clk_pa in FF mode) and sample converted-domain outputs
+  // (ACOND_n from CONDREG, LBA/LSHADOW from MIC/IDBCTL) - they are part of
+  // the coupled clock group and convert with it.
+`ifdef FPGA_FF_MODE
+  localparam CLK_CE = 1;
+`else
+  localparam CLK_CE = 0;
+`endif
+
   /* verilator lint_off PINMISSING */
-  PAL_44403C PAL_44403_UCYIN0 (
+  PAL_44403C_EN #(.USE_ENABLE(CLK_CE)) PAL_44403_UCYIN0 (
+      .sysclk(sysclk),
+      .EN  (s_clk_ce_en),
       .CLK (s_clk),  //CK
       .OE_n(s_pd1),  //OE_n
 
@@ -430,7 +465,9 @@ module CYC_36 (
       .SLCOND_n(s_slcond_n)  //B2_n
   );
 
-  PAL_44404C PAL_44404_UCYIN1 (
+  PAL_44404C_EN #(.USE_ENABLE(CLK_CE)) PAL_44404_UCYIN1 (
+      .sysclk(sysclk),
+      .EN  (s_clk_ce_en),
       .CLK (s_clk),  //CK
       .OE_n(s_pd1),  //OE_n
 

@@ -29,6 +29,7 @@ REGISTRY=(
   "Shared/support/sim :: test-am29833a :: TB_RESULT: PASS"
   "Shared/support/sim :: test-am29c821 :: TB_RESULT: PASS"
   "Shared/support/sim :: test-7464x    :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-ffen     :: TB_RESULT: PASS"
   # --- PALs -------------------------------------------------------------
   "PAL/sim :: test-all :: RESULT: PASS"
   # --- CPU board sheets -------------------------------------------------

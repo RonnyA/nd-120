@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_MAC_DECODE (
+    input       sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input       MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input [4:0] CSCOMM_4_0,
     input [1:0] CSMIS_1_0,
     input       LCSN,
@@ -143,6 +146,15 @@ module CGA_MAC_DECODE (
   assign s_mclk            = MCLK;
   assign s_lcs_n           = LCSN;
   assign s_wr7             = WR7;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked register captures on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -801,7 +813,9 @@ module CGA_MAC_DECODE (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  R41P DECODE_R41 (
+  R41P_EN #(.USE_ENABLE(MCLK_CE)) DECODE_R41 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .A  (s_gates54_out),
       .B  (s_gates55_out),
       .C  (s_gates58_out),

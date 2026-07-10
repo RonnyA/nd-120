@@ -14,6 +14,9 @@
 ***************************************************************************/
 
 module CGA_MAC_LASEL (
+    input        sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input        MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input        CSMREQ,
     input        DOUBLE,
     input        EXMN,
@@ -102,6 +105,15 @@ module CGA_MAC_LASEL (
   assign s_segz_n             = SEGZN;
   assign s_selpt_n            = SELPTN;
   assign s_vex                = VEX;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked flip-flop captures on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -340,9 +352,12 @@ module CGA_MAC_LASEL (
       .result(s_gates23_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // InvertClockEnable(0): fires on the rising edge of s_mclk = posedge MCLK
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_24 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_shadow_n),
       .preset(1'b0),

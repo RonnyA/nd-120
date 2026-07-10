@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_INTR_CNTLR_IRQ_REG_RQBIT (
+    input sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input CLR,
     input CP,
     input CPN,
@@ -44,6 +47,16 @@ module CGA_INTR_CNTLR_IRQ_REG_RQBIT (
    *******************************************************************************/
   assign s_clr = CLR;
   assign s_cp = CP;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
+
   assign s_p_n = PN;
   assign s_cp_n = CPN;
 
@@ -100,9 +113,12 @@ module CGA_INTR_CNTLR_IRQ_REG_RQBIT (
       .result(s_cpn_nand_clr)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // CP resolves to MCLK (CGA_INTR.MCLK, rising edge) - MCLK domain
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_5 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_cp),
       .d(s_d),
       .preset(1'b0),

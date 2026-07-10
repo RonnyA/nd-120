@@ -16,6 +16,10 @@ module CGA (
     input sys_rst_n, // System reset in FPGA
 
     // Control and data inputs
+    input        XALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        XMCLK_EN,      //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        XMCLK_FALL_EN, //! MCLK fall-enable pulse (FPGA_FF_MODE, else 0)
+    input        XTCLK_EN,      //! TCLK (=UCLK) clock-enable pulse (FPGA_FF_MODE, else 0)
     input        XALUCLK,
     input        XBINT10N,
     input        XBINT11N,
@@ -508,6 +512,14 @@ module CGA (
   assign sx_cssst_1_0[1:0]   = XCSSST_1_0[1:0];
 
   assign sx_aluclk           = XALUCLK;
+  wire sx_aluclk_en;
+  assign sx_aluclk_en = XALUCLK_EN;
+  wire sx_mclk_en;
+  assign sx_mclk_en = XMCLK_EN;
+  wire sx_mclk_fall_en;
+  assign sx_mclk_fall_en = XMCLK_FALL_EN;
+  wire sx_tclk_en;
+  assign sx_tclk_en = XTCLK_EN;
   assign sx_bint10_n         = XBINT10N;
   assign sx_bint11_n         = XBINT11N;
   assign sx_bint12_n         = XBINT12N;
@@ -636,6 +648,7 @@ module CGA (
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(sx_aluclk_en),
       .ALUCLK(sx_aluclk),
       .A_15_0(s_a_15_0[15:0]),
       .B_15_0(s_b_15_0[15:0]),
@@ -685,6 +698,8 @@ module CGA (
   // violation indicators, and trap requests.
   CGA_TRAP TRAP (
       // Input signals
+      .sysclk(sysclk),
+      .TCLK_EN(sx_tclk_en),
       .CBRKN(s_cbrk_n),
       .DSTOPN(s_dstop_n),
       .ETRAPN(sx_etrap_n),
@@ -714,6 +729,8 @@ module CGA (
   // mask signals, and violation indicators, and produces an output signal for the IDB.
   CGA_IDBCTL IDBCTL (
       // Input signals
+      .sysclk(sysclk),
+      .MCLK_EN(sx_mclk_en),
       .EPCRN(s_epcr_n),
       .EPGSN(s_epgs_n),
       .EPICMASKN(s_epicmask_n),
@@ -748,6 +765,7 @@ module CGA (
    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
 
    // Input signals
+    .ALUCLK_EN(sx_aluclk_en),
     .ALUCLK(sx_aluclk),          // Clock signal for the ALU
     .BDEST(s_BDEST),             // Flag indicating if B is the destination for writing
     .LAA_3_0(sx_laa_3_0_out[3:0]), // Selector for source register A
@@ -779,6 +797,7 @@ module CGA (
       // Input signals
       .sysclk(sysclk),                          // System clock in FPGA
       .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+      .MCLK_EN(sx_mclk_en),                     // MCLK clock-enable pulse (P2)
 
       .BRKN(sx_brk_n_out),
       .CRY(s_cry),
@@ -828,6 +847,8 @@ module CGA (
 
   // Input signals to the CGA_INTR module
   CGA_INTR INTR (
+      .sysclk(sysclk),
+      .MCLK_EN(sx_mclk_en),
       .BINT10N(sx_bint10_n),       // Bus Interrupt 10, active low
       .BINT11N(sx_bint11_n),       // Bus Interrupt 11, active low
       .BINT12N(sx_bint12_n),       // Bus Interrupt 12, active low
@@ -870,6 +891,7 @@ module CGA (
       // System Input signals
     .sysclk(sysclk),                          // System clock in FPGA
     .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+    .MCLK_EN(sx_mclk_en),                     // MCLK clock-enable pulse (P2)
 
     // Input signals to the CGA_MAC module
     .CSMREQ       (s_csmreq),                // Chip Select for MAC, active high
@@ -906,6 +928,8 @@ module CGA (
       // Input signals
       .sysclk(sysclk),                          // System clock in FPGA
       .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+      .MCLK_EN(sx_mclk_en),                     // MCLK clock-enable pulse (P2)
+      .MCLK_FALL_EN(sx_mclk_fall_en),           // MCLK fall-enable pulse (P2)
 
       
       .ALUCLK(sx_aluclk),                       // ALU Clock

@@ -46,3 +46,13 @@ test-7464x: TTL_7464x_equiv_tb
 
 TTL_7464x_equiv_tb: TTL_7464x_equiv_tb.v ../TTL_74646.v ../TTL_74648.v
 	$(IVERILOG) -g2012 -o $@ $(INCDIRS) TTL_7464x_equiv_tb.v ../TTL_74646.v ../TTL_74648.v
+
+# P2 wrappers: SCAN_FF_EN / D_FLIPFLOP_EN / R81_EN mode equivalence
+NDLIB = ../../ndlib
+LOGISIM2 = ../../logisim
+test-ffen: FF_EN_equiv_tb
+	$(VVP) FF_EN_equiv_tb | tee ffen_result.tmp
+	@grep -q "TB_RESULT: PASS" ffen_result.tmp && rm -f ffen_result.tmp FF_EN_equiv_tb.vcd
+
+FF_EN_equiv_tb: FF_EN_equiv_tb.v $(NDLIB)/SCAN_FF_EN.v $(NDLIB)/D_FLIPFLOP_EN.v $(NDLIB)/R81_EN.v $(NDLIB)/R41P_EN.v $(NDLIB)/SCAN_FF.v $(NDLIB)/R81.v $(NDLIB)/R41P.v $(LOGISIM2)/D_FLIPFLOP.v
+	$(IVERILOG) -g2012 -o $@ $^
