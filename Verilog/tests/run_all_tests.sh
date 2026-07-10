@@ -52,12 +52,19 @@ REGISTRY=(
   "fpga/tang-nano-20k/sdram-bridge/sim :: test :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sdram-test/sim   :: test :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sdram18-test/sim :: test :: TB_RESULT: PASS"
+  # --- SD-FAT library + Tang Nano 20K SD test ---------------------------
+  "SD-FAT/sim                         :: test-writer    :: TB_RESULT: PASS"
+  "fpga/tang-nano-20k/sd-fat-test/sim :: test-dumper    :: TB_RESULT: PASS"
+  "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator :: TB_RESULT: PASS"
 )
 # NOT in the registry (run manually, documented reasons):
 #   DELILAH-CPU/CGA_MIC/sim test-masel-cycle / test-masel-iw - exploratory
 #     race-documentation tbs with EXPECTED FAIL lines; not strict pass/fail.
 #   Verilog/sim make compare, runSim golden, fpga vtest - heavy system gates,
 #     run via `make test-full`.
+#   fpga/tang-nano-20k/sd-fat-test/sim test-system - pure-iverilog version of
+#     the SD full-system test (same plan as the registered test-verilator);
+#     iverilog needs 30-60 min for it, so it is a manual gate only.
 
 scream() {
   echo ""
