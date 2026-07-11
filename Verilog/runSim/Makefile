@@ -75,5 +75,16 @@ clean:
 run: compile
 	./obj_dir/VND120_TOP
 
+# Interactive floppy-boot session: Verilog device build (DMA floppy at
+# 1560) with a bootable diskette image behind it. At the '#' prompt
+# type 1560& - the BPUN loader boots the diskette's program, which
+# then owns the console (type help etc. at ITS prompt).
+# Override the image with: make run-floppy FLOPPY_IMG=path/to.img
+FLOPPY_IMG ?= ../ND-BUS-DEVICES/testdata/210523I01-XX-01D.img
 
-.PHONY: all clean
+run-floppy:
+	$(MAKE) compile VERILOG_TAPE=1
+	ND120_FLOPPY_IMG=$(FLOPPY_IMG) ./obj_dir/VND120_TOP
+
+
+.PHONY: all clean run-floppy
