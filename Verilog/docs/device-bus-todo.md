@@ -237,8 +237,15 @@ partition uses only part of it. Use the spare SDRAM as the disk layer:
 
 - [ ] Floppy DMA variant (NDDevices.cpp marks it TBD - semantics from
       nd100x)
-- [ ] SMD/HDD controller on the same bus shell (mass-storage loader path
-      CS 002147 MASS already in microcode; ALD 500/1540)
+- [x] SMD wired at 1540 in ND120_TOP (third chained DMA master) and
+      '1540&' MASS BOOT PROVEN IN SIM 11-JUL-2026 (`make test-smd-boot`).
+      Protocol discovery: the microcode mass loader is device-agnostic
+      (control word to base+3, ready polled on base+2 - the classic
+      controller layout); the SMD answers with a BOOT MODE (reset until
+      the first Load Control Word): +3 with bit 2 = autoload block 0
+      (1024 words) to ND memory 0, +2 returns ready/error. First real
+      control write switches to the native CWR-multiplexed map.
+      Backend image via ND120_SMD_IMG env (no default = no pack).
 - [ ] FAT robustness: FAT32 first-cluster fix or replacement core,
       filename selection UI (console command?), multiple images
 - [ ] Basys3 port via PMOD microSD (pins in sd-bpun-device-plan.md)

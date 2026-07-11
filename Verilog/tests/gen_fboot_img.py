@@ -7,14 +7,15 @@ Boot sector layout (512 words, the autoload unit):
   words 1..  = pattern (0x1234 + 3*i) & 0xFFFF
 The rest of the image is zero-filled to one full diskette.
 
-Usage: gen_fboot_img.py <image-out> <expected-line-out> [nwords]
+Usage: gen_fboot_img.py <image-out> <expected-line-out> [nwords] [blockwords]
 """
 import sys
 
 img_path, exp_path = sys.argv[1], sys.argv[2]
 nwords = int(sys.argv[3]) if len(sys.argv) > 3 else 16
+blockwords = int(sys.argv[4]) if len(sys.argv) > 4 else 512
 
-words = [0o151000] + [(0x1234 + 3 * i) & 0xFFFF for i in range(1, 512)]
+words = [0o151000] + [(0x1234 + 3 * i) & 0xFFFF for i in range(1, blockwords)]
 
 with open(img_path, "wb") as f:
     for w in words:

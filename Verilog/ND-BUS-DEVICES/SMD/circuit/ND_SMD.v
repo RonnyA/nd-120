@@ -30,6 +30,17 @@
 ** b7 hw error 2, b8 address mismatch, b10 compare error, b13 unit not   **
 ** ready, b14 on cylinder, b15 register multiplex bit.                   **
 **                                                                       **
+** BOOT MODE ('1540&'): the microcode mass-storage loader is device-    **
+** agnostic - it writes a control word to base+3 and polls base+2 for   **
+** the ready bit (the classic controller layout). On the SMD's native   **
+** map those are Load Block Address and Read Seek Condition, so a       **
+** bootable controller must answer the boot handshake: from reset (or   **
+** device clear) until the FIRST Load Control Word, a write to +3 with  **
+** bit 2 set triggers AUTOLOAD (block 0, 1024 words, DMA to ND memory   **
+** address 0) and +2 returns {error<<4, ready<<3}. The first real       **
+** control-word write leaves boot mode and the registers take their     **
+** native SMD meaning.                                                  **
+**                                                                       **
 ** Operations: M0 read transfer (disk -> memory), M1 write transfer      **
 ** (memory -> disk), M4 initiate seek (on-cylinder after delay),         **
 ** M6 seek complete search, M7 return to zero, M9 select release;        **
@@ -117,6 +128,7 @@ module ND_SMD #(
   reg        s_hw_err;        // status b7
   reg        s_on_cyl;        // status b14
   reg [3:0]  s_op;
+  reg        s_boot_mode;    // reset..first control word: boot handshake
 
   wire s_any_err = s_illegal | s_hw_err;
   wire [15:0] s_status = {s_cwr, s_on_cyl, 1'b0, 3'd0, 1'b0, 1'b0,
@@ -154,8 +166,10 @@ module ND_SMD #(
     if (iox_rd && s_addressed) begin
       case (s_reg)
         3'd0: iox_rdata = s_cwr ? s_word_cnt : s_core_addr;
-        3'd2: iox_rdata = s_cwr ? 16'd0      // ECC count
-                                : {1'b0, s_on_cyl, 14'd0};  // seek condition
+        3'd2: iox_rdata = s_boot_mode
+                          ? {11'd0, s_any_err | s_hw_err, s_rft, 3'd0}
+                          : (s_cwr ? 16'd0    // ECC count
+                                   : {1'b0, s_on_cyl, 14'd0});  // seek cond
         3'd4: iox_rdata = s_cwr ? 16'd0 : s_status;  // ECC pattern / status
         3'd6: iox_rdata = s_cwr ? s_blkaddr2 : s_blkaddr1;
         default: iox_rdata = 16'd0;
@@ -206,6 +220,7 @@ module ND_SMD #(
       s_hw_err    <= 1'b0;
       s_on_cyl    <= 1'b0;
       s_op        <= 4'd0;
+      s_boot_mode <= 1'b1;
       s_eng       <= E_IDLE;
       s_chunk_q   <= 11'd0;
       s_sec_idx   <= 11'd0;
@@ -233,10 +248,29 @@ module ND_SMD #(
             else       s_core_addr <= iox_wdata;            // load core addr
           end
           3'd3: begin
-            if (s_cwr) s_blkaddr2 <= iox_wdata;
-            else       s_blkaddr1 <= iox_wdata;
+            if (s_boot_mode && iox_wdata[2] && s_eng == E_IDLE) begin
+              // BOOT AUTOLOAD: block 0 (1024 words) -> ND memory 0
+              s_active    <= 1'b1;
+              s_rft       <= 1'b0;
+              s_hw_err    <= 1'b0;
+              s_illegal   <= 1'b0;
+              s_op        <= 4'd0;
+              s_blkaddr1  <= 16'd0;
+              s_blkaddr2  <= 16'd0;
+              s_core_addr <= 16'd0;
+              s_core_hi   <= 2'd0;
+              s_word_cnt  <= 16'd1024;
+              s_chunk_q   <= 11'd1024;
+              s_sec_idx   <= 11'd0;
+              disk_start  <= 1'b1;
+              disk_req    <= 1'b1;
+              disk_wr     <= 1'b0;
+              s_eng       <= E_DISK_RD;
+            end else if (s_cwr) s_blkaddr2 <= iox_wdata;
+            else                s_blkaddr1 <= iox_wdata;
           end
-          3'd5: begin  // control word
+          3'd5: begin  // control word (leaves boot mode)
+            s_boot_mode <= 1'b0;
             s_int_en    <= iox_wdata[0];
             s_errint_en <= iox_wdata[1];
             s_core_hi   <= iox_wdata[6:5];

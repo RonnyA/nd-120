@@ -53,6 +53,12 @@ void proccess_bif_signal(VND120_TOP *top)
 //#define DEBUG_LOG
         if (DEBUG_BIF) printf("-> BAPR %o ", bus_address);
 
+		// ND120_IOX_TRACE: log IOX addresses in the SMD range (debug)
+		if (getenv("ND120_IOX_TRACE") &&
+		    (bus_address & ~017) == 01540)
+			printf("[iox] addr %06o %s\r\n", bus_address,
+			       (bus_address & 1) ? "write" : "read");
+
 		// Respond only to addresses a C-model device actually owns.
 		// Answering unclaimed reads with 0 + instant BDRY would race
 		// (and beat) the Verilog devices on the same bus, feeding the
@@ -222,6 +228,7 @@ void proccess_bif_signal(VND120_TOP *top)
 	// registered in this build - see addDevices).
 	process_verilog_tape(top);
 	process_verilog_floppy(top);
+	process_verilog_smd(top);
 #endif
 
 	// Tick deviceManager
@@ -419,6 +426,135 @@ void process_verilog_floppy(VND120_TOP *top)
 	}
 
 	vflp_prev_req = top->FDISK_REQ;
+}
+
+/* Disk backend for the Verilog ND_SMD (disk 0). Image selected by
+** ND120_SMD_IMG (no default - without it every operation reports an
+** error, like a drive with no pack). Position mapping (same as the
+** SMD unit tb): word offset = blkaddrII * 2048 + blkaddrI * 64;
+** SDISK_START latches the position, chunks advance linearly. */
+static FILE *vsmd_file = 0;
+static int vsmd_file_tried = 0;
+static int vsmd_prev_req = 0;
+static int vsmd_state = 0;
+static long vsmd_pos = 0;   // byte position, advances across chunks
+static int vsmd_words = 0, vsmd_idx = 0;
+static int vsmd_done_ticks = 0;
+
+void process_verilog_smd(VND120_TOP *top)
+{
+	if (vsmd_file == 0 && !vsmd_file_tried)
+	{
+		vsmd_file_tried = 1;
+		const char *img = getenv("ND120_SMD_IMG");
+		if (img != 0)
+		{
+			vsmd_file = fopen(img, "r+");
+			if (vsmd_file == 0)
+				vsmd_file = fopen(img, "r");
+			if (vsmd_file == 0)
+				printf("VerilogSMD: cannot open %s\r\n", img);
+		}
+	}
+
+	if (vsmd_done_ticks > 0)
+	{
+		if (--vsmd_done_ticks == 0)
+		{
+			top->SDISK_DONE = 0;
+			top->SDISK_ERR = 0;
+		}
+	}
+
+	if (top->SDISK_START)
+	{
+		vsmd_pos = 2L * ((long)top->SDISK_BLKADDR2 * 2048 +
+		                 (long)top->SDISK_BLKADDR1 * 64);
+		if (getenv("ND120_SMD_TRACE"))
+			printf("[smd] START blk2=%06o blk1=%06o unit=%d pos=%ld\r\n",
+			       top->SDISK_BLKADDR2, top->SDISK_BLKADDR1,
+			       (int)top->SDISK_UNIT, vsmd_pos);
+	}
+
+	if (top->SDISK_REQ && !vsmd_prev_req)
+	{
+		if (getenv("ND120_SMD_TRACE"))
+			printf("[smd] REQ wr=%d words=%d pos=%ld\r\n",
+			       (int)top->SDISK_WR, (int)top->SDISK_WORDCOUNT, vsmd_pos);
+		vsmd_words = top->SDISK_WORDCOUNT;
+		vsmd_idx = 0;
+		if (vsmd_file == 0 || fseek(vsmd_file, vsmd_pos, SEEK_SET) != 0)
+		{
+			top->SDISK_ERR = 1;
+			top->SDISK_DONE = 1;
+			vsmd_done_ticks = 2;
+		}
+		else if (!top->SDISK_WR)
+		{
+			vsmd_state = 1;
+		}
+		else
+		{
+			vsmd_state = 2;
+		}
+	}
+	else if (vsmd_state == 1) // read: one word per call into the buffer
+	{
+		int hi = getc(vsmd_file);
+		int lo = getc(vsmd_file);
+		if (hi < 0 || lo < 0)
+		{
+			top->SDISK_ERR = 1;
+			top->SDISK_DONE = 1;
+			vsmd_done_ticks = 2;
+			top->SDBUF_WE = 0;
+			vsmd_state = 0;
+		}
+		else
+		{
+			top->SDBUF_ADDR = vsmd_idx & 0x3FF;
+			top->SDBUF_WDATA = ((hi & 0xFF) << 8) | (lo & 0xFF);
+			top->SDBUF_WE = 1;
+			vsmd_idx++;
+			if (vsmd_idx >= vsmd_words)
+				vsmd_state = 4;
+		}
+	}
+	else if (vsmd_state == 4)
+	{
+		top->SDBUF_WE = 0;
+		vsmd_pos += 2L * vsmd_words;
+		top->SDISK_DONE = 1;
+		vsmd_done_ticks = 2;
+		vsmd_state = 0;
+	}
+	else if (vsmd_state == 2) // write: present the buffer address
+	{
+		top->SDBUF_WE = 0;
+		top->SDBUF_ADDR = vsmd_idx & 0x3FF;
+		vsmd_state = 3;
+	}
+	else if (vsmd_state == 3) // write: take the word
+	{
+		unsigned short w = top->SDBUF_RDATA;
+		putc((w >> 8) & 0xFF, vsmd_file);
+		putc(w & 0xFF, vsmd_file);
+		vsmd_idx++;
+		if (vsmd_idx >= vsmd_words)
+		{
+			fflush(vsmd_file);
+			vsmd_pos += 2L * vsmd_words;
+			top->SDISK_DONE = 1;
+			vsmd_done_ticks = 2;
+			vsmd_state = 0;
+		}
+		else
+		{
+			vsmd_state = 2;
+		}
+	}
+
+	vsmd_prev_req = top->SDISK_REQ;
 }
 #endif
 

@@ -26,6 +26,11 @@
 #                    (verified word-for-word against a generated image
 #                    with a WAIT instruction at word 0). ~12 min.
 #
+#   make test-smd-boot  heavy system gate for the SMD mass boot:
+#                    '1540&' triggers the controller's boot handshake
+#                    (control to +3, ready polled on +2), block 0
+#                    (1024 words) DMA-lands at ND memory 0. ~12 min.
+#
 #   make test-dma-rtl  heavy system gate for DMA bus mastering: the
 #                    Verilog ND_DMA_MASTER inside ND120_TOP requests the
 #                    bus from the REAL arbiter (PAL_44801A) while the CPU
@@ -33,7 +38,7 @@
 #                    verifies the RAM arrays, DMA-reads it back.
 #                    ~12 min (one runSim compile + run).
 
-.PHONY: test test-full test-tape test-dma-rtl test-floppy-boot
+.PHONY: test test-full test-tape test-dma-rtl test-floppy-boot test-smd-boot
 
 test:
 	@bash tests/run_all_tests.sh
@@ -97,6 +102,19 @@ test-floppy-boot:
 	@echo ""
 	@echo "===================================================================="
 	@echo "  FLOPPY BOOT GATE PASSED (1560& autoloaded the boot sector to RAM)"
+	@echo "===================================================================="
+
+test-smd-boot:
+	@echo "==== system gate: 1540& SMD mass boot (boot handshake -> RAM) ===="
+	python3 tests/gen_fboot_img.py /tmp/nd120_sboot.img /tmp/nd120_sboot_exp.txt 16 1024
+	$(MAKE) -C runSim clean >/dev/null
+	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_SBOOT" >/dev/null
+	cd runSim && ND120_SMD_IMG=/tmp/nd120_sboot.img ND120_BINLOAD_CHECK=000000:16 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_sboot.log 2>&1
+	grep -a "RAM check" /tmp/nd120_sboot.log > /tmp/nd120_sboot_got.txt
+	cmp /tmp/nd120_sboot_got.txt /tmp/nd120_sboot_exp.txt
+	@echo ""
+	@echo "===================================================================="
+	@echo "  SMD BOOT GATE PASSED (1540& autoloaded block 0 to RAM)"
 	@echo "===================================================================="
 
 test-dma-rtl:

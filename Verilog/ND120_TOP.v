@@ -125,7 +125,23 @@ module ND120_TOP
     input  wire [9:0]  FDBUF_ADDR,
     input  wire [15:0] FDBUF_WDATA,
     input  wire        FDBUF_WE,
-    output wire [15:0] FDBUF_RDATA
+    output wire [15:0] FDBUF_RDATA,
+
+    // SMD disk backend (sim harness serves the disk-0 image; the
+    // backend owns the block-address-to-image mapping)
+    output wire        SDISK_START,
+    output wire        SDISK_REQ,
+    output wire        SDISK_WR,
+    output wire [15:0] SDISK_BLKADDR1,
+    output wire [15:0] SDISK_BLKADDR2,
+    output wire [2:0]  SDISK_UNIT,
+    output wire [10:0] SDISK_WORDCOUNT,
+    input  wire        SDISK_DONE,
+    input  wire        SDISK_ERR,
+    input  wire [9:0]  SDBUF_ADDR,
+    input  wire [15:0] SDBUF_WDATA,
+    input  wire        SDBUF_WE,
+    output wire [15:0] SDBUF_RDATA
 `endif
 `endif
 );
@@ -413,15 +429,16 @@ module ND120_TOP
   wire        s_dev_ident_strobe;
   wire [3:0]  s_dev_ident_level;
   // OR-bus contributions per device core (tape, floppy)
-  wire [15:0] s_tape_rdata, s_flp_rdata;
-  wire [3:0]  s_tape_intp, s_flp_intp;
-  wire        s_tape_hit, s_flp_hit;
-  wire [15:0] s_tape_code, s_flp_code;
+  wire [15:0] s_tape_rdata, s_flp_rdata, s_smd_rdata;
+  wire [3:0]  s_tape_intp, s_flp_intp, s_smd_intp;
+  wire        s_tape_hit, s_flp_hit, s_smd_hit;
+  wire [15:0] s_tape_code, s_flp_code, s_smd_code;
   wire        s_grant_tape_flp;  // ident chain: tape -> floppy
-  wire [15:0] s_dev_iox_rdata   = s_tape_rdata | s_flp_rdata;
-  wire [3:0]  s_dev_int_pending = s_tape_intp | s_flp_intp;
-  wire        s_dev_ident_hit   = s_tape_hit | s_flp_hit;
-  wire [15:0] s_dev_ident_code  = s_tape_code | s_flp_code;
+  wire        s_grant_flp_smd;   // ident chain: floppy -> SMD
+  wire [15:0] s_dev_iox_rdata   = s_tape_rdata | s_flp_rdata | s_smd_rdata;
+  wire [3:0]  s_dev_int_pending = s_tape_intp | s_flp_intp | s_smd_intp;
+  wire        s_dev_ident_hit   = s_tape_hit | s_flp_hit | s_smd_hit;
+  wire [15:0] s_dev_ident_code  = s_tape_code | s_flp_code | s_smd_code;
 
   ND_BUS_SLAVE BUS_SLAVE (
       .sysclk(s_dev_clk),
@@ -500,7 +517,7 @@ module ND120_TOP
       .ident_strobe(s_dev_ident_strobe),
       .ident_level(s_dev_ident_level),
       .ident_grant_in(s_grant_tape_flp),
-      .ident_grant_out(),
+      .ident_grant_out(s_grant_flp_smd),
       .ident_hit(s_flp_hit),
       .ident_code(s_flp_code),
       .dma_req(s_fdma_req),
@@ -544,13 +561,91 @@ module ND120_TOP
       .dma_busy(s_fdma_busy),
       .BREQ_n(s_fdmam_breq_n),
       .INGRANT_n(s_grant_dma_fdma_n),
-      .OUTGRANT_n(),
+      .OUTGRANT_n(s_grant_fdma_smdm_n),
       .BMEM_n(BMEM_n),
       .BD_23_0_n_OUT(s_fdmam_bd_n),
       .BD_23_0_n_IN(BD_23_0_n_OUT),
       .BAPR_n(s_fdmam_bapr_n),
       .BINPUT_n(s_fdmam_binput_n),
       .BDAP_n(s_fdmam_bdap_n),
+      .BDRY_n(BDRY_n_OUT)
+  );
+
+  // SMD disk controller at 1540 with its own bus master, third in the
+  // grant chain (test master -> floppy master -> SMD master).
+  wire        s_smd_req, s_smd_wr;
+  wire [23:0] s_smd_addr;
+  wire [15:0] s_smd_wdata, s_smd_rdata_dma;
+  wire        s_smd_ack, s_smd_err, s_smd_busy;
+
+  ND_SMD #(
+      .BASE_ADDR (16'o001540),
+      .IDENT_CODE(16'o000017),
+      .INT_LEVEL (4'd11)
+  ) SMD_1540 (
+      .sysclk(s_dev_clk),
+      .sys_rst_n(sys_rst_n),
+      .iox_addr(s_dev_iox_addr),
+      .iox_wr(s_dev_iox_wr),
+      .iox_wdata(s_dev_iox_wdata),
+      .iox_rd(s_dev_iox_rd),
+      .iox_rdata(s_smd_rdata),
+      .int_pending(s_smd_intp),
+      .ident_strobe(s_dev_ident_strobe),
+      .ident_level(s_dev_ident_level),
+      .ident_grant_in(s_grant_flp_smd),
+      .ident_grant_out(),
+      .ident_hit(s_smd_hit),
+      .ident_code(s_smd_code),
+      .dma_req(s_smd_req),
+      .dma_wr(s_smd_wr),
+      .dma_addr(s_smd_addr),
+      .dma_wdata(s_smd_wdata),
+      .dma_rdata(s_smd_rdata_dma),
+      .dma_ack(s_smd_ack),
+      .dma_err(s_smd_err),
+      .dma_busy(s_smd_busy),
+      .disk_start(SDISK_START),
+      .disk_req(SDISK_REQ),
+      .disk_wr(SDISK_WR),
+      .disk_blkaddr1(SDISK_BLKADDR1),
+      .disk_blkaddr2(SDISK_BLKADDR2),
+      .disk_unit(SDISK_UNIT),
+      .disk_wordcount(SDISK_WORDCOUNT),
+      .disk_done(SDISK_DONE),
+      .disk_err_in(SDISK_ERR),
+      .dbuf_addr(SDBUF_ADDR),
+      .dbuf_wdata(SDBUF_WDATA),
+      .dbuf_we(SDBUF_WE),
+      .dbuf_rdata(SDBUF_RDATA)
+  );
+
+  wire [23:0] s_smdm_bd_n;
+  wire s_smdm_breq_n, s_smdm_bapr_n, s_smdm_binput_n, s_smdm_bdap_n;
+  wire s_grant_fdma_smdm_n;  // grant chain: floppy master -> SMD master
+
+  ND_DMA_MASTER #(
+      .TIMEOUT_TICKS(16'd8192)
+  ) SMD_DMA_MASTER (
+      .sysclk(s_dev_clk),
+      .sys_rst_n(sys_rst_n),
+      .dma_req(s_smd_req),
+      .dma_wr(s_smd_wr),
+      .dma_addr(s_smd_addr),
+      .dma_wdata(s_smd_wdata),
+      .dma_rdata(s_smd_rdata_dma),
+      .dma_ack(s_smd_ack),
+      .dma_err(s_smd_err),
+      .dma_busy(s_smd_busy),
+      .BREQ_n(s_smdm_breq_n),
+      .INGRANT_n(s_grant_fdma_smdm_n),
+      .OUTGRANT_n(),
+      .BMEM_n(BMEM_n),
+      .BD_23_0_n_OUT(s_smdm_bd_n),
+      .BD_23_0_n_IN(BD_23_0_n_OUT),
+      .BAPR_n(s_smdm_bapr_n),
+      .BINPUT_n(s_smdm_binput_n),
+      .BDAP_n(s_smdm_bdap_n),
       .BDRY_n(BDRY_n_OUT)
   );
 
@@ -586,11 +681,11 @@ module ND120_TOP
   );
 
   // Wired-AND with the external (C-harness / tie-off) bus inputs
-  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN & s_dev_bd_n & s_dma_bd_n & s_fdmam_bd_n;
-  wire        s_bus_breq_n      = BREQ_n & s_dma_breq_n & s_fdmam_breq_n;
-  wire        s_bus_bapr_in_n   = BAPR_n_IN & s_dma_bapr_n & s_fdmam_bapr_n;
-  wire        s_bus_binput_in_n = BINPUT_n_IN & s_dev_binput_n & s_dma_binput_n & s_fdmam_binput_n;
-  wire        s_bus_bdap_in_n   = BDAP_n_IN & s_dev_bdap_n & s_dma_bdap_n & s_fdmam_bdap_n;
+  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN & s_dev_bd_n & s_dma_bd_n & s_fdmam_bd_n & s_smdm_bd_n;
+  wire        s_bus_breq_n      = BREQ_n & s_dma_breq_n & s_fdmam_breq_n & s_smdm_breq_n;
+  wire        s_bus_bapr_in_n   = BAPR_n_IN & s_dma_bapr_n & s_fdmam_bapr_n & s_smdm_bapr_n;
+  wire        s_bus_binput_in_n = BINPUT_n_IN & s_dev_binput_n & s_dma_binput_n & s_fdmam_binput_n & s_smdm_binput_n;
+  wire        s_bus_bdap_in_n   = BDAP_n_IN & s_dev_bdap_n & s_dma_bdap_n & s_fdmam_bdap_n & s_smdm_bdap_n;
   wire        s_bus_bdry_in_n   = BDRY_n_IN & s_dev_bdry_n;
   wire        s_bus_bint10_n    = BINT10_n & s_dev_bint10_n;
   wire        s_bus_bint11_n    = BINT11_n & s_dev_bint11_n;

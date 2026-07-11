@@ -142,6 +142,11 @@ static unsigned g_last_csa = 0xFFFFu;
 // prompt, as opposed to '$' = BPUN tape load).
 #define SCRIPT_CMD "1560&"
 #endif
+#ifdef SCRIPT_CMD_SBOOT
+// -DSCRIPT_CMD_SBOOT: boot from the SMD disk at device 1540 (octal)
+// via the microcode mass-storage loader.
+#define SCRIPT_CMD "1540&"
+#endif
 #ifdef SCRIPT_CMD_BINLOAD
 // -DSCRIPT_CMD_BINLOAD: activate the console serial binary loader; the
 // raw BPUN bytes then come from ND120_BINLOAD_FILE (see below).
