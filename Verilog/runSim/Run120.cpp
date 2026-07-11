@@ -129,6 +129,13 @@ static unsigned g_last_csa = 0xFFFFu;
 #ifdef SCRIPT_CMD_EXAM
 #define SCRIPT_CMD "20/\r"              // -DSCRIPT_CMD_EXAM: memory examine; prints a multi-char octal value (output-burst repro)
 #endif
+#ifdef SCRIPT_CMD_TAPE400
+// -DSCRIPT_CMD_TAPE400: boot from the papertape device 400 (octal) via the
+// microcode binary loader - the general bus IOX path. Loads the BPUN the
+// tape device serves (INSTRUCTION-B.BPUN). Works with both the C papertape
+// model and the Verilog device (VERILOG_TAPE=1); the outputs must match.
+#define SCRIPT_CMD "400$"
+#endif
 #ifdef SCRIPT_CMD_BINLOAD
 // -DSCRIPT_CMD_BINLOAD: activate the console serial binary loader; the
 // raw BPUN bytes then come from ND120_BINLOAD_FILE (see below).
@@ -169,7 +176,11 @@ int rxDataBit = 0;
 int rxEnabled = 0;
 int rxTicks = 0;
 int rxOnes = 0;
-// 7N2
+// Console injector framing: 7 data bits + parity-space + 2 stop (matches the
+// 7E2 the boot microcode programs into the SC2661 - fine for OPCOM ASCII).
+// tx8n1=1 switches to 8N1 for the 300$ binary load stream, where BPUN bytes
+// use the full 8 bits (set when the ND120_BINLOAD_FILE stream opens).
+int tx8n1 = 0;
 
 int main(int argc, char **argv)
 {
@@ -406,6 +417,8 @@ int main(int argc, char **argv)
 						printf("[binload] settling %ld cnt after script\n", g_bin_settle);
 						g_next_inject_cnt = cnt + g_bin_settle;
 						g_bin_state = 1;
+						tx8n1 = 1;  // BPUN bytes are 8-bit: switch injector to 8N1
+						printf("[binload] injector -> 8N1\n");
 					}
 				}
 				else
@@ -484,14 +497,31 @@ int main(int argc, char **argv)
 					txData >>= 1;
 					txTicks = DELAY_FRAMES - 1;
 					break;
-				case 8: // Parity
-					top->uartRx = 0;
-					// Calculate even parity: set top->uartRx to 1 if txOnes is odd, 0 if even
-					// top->uartRx = (txOnes % 2) ? 0 : 1; // Even parity calculation
+				case 8: // Parity slot (7E2 console) / 8th data bit (8N1 binload)
+					if (tx8n1)
+					{
+						top->uartRx = (txData & 0x01) ? 1 : 0;
+						txData >>= 1;
+					}
+					else
+					{
+						top->uartRx = 0;
+						// Calculate even parity: set top->uartRx to 1 if txOnes is odd, 0 if even
+						// top->uartRx = (txOnes % 2) ? 0 : 1; // Even parity calculation
+					}
 					txTicks = DELAY_FRAMES - 1;
 					break;
-				case 9:				 // stop bits
-				case 10:			 // stop bits
+				case 9:				 // stop bit
+					top->uartRx = 1; // MARK!
+					txTicks = DELAY_FRAMES - 1;
+					break;
+				case 10:			 // 2nd stop bit (7E2) / frame ends after 1 stop (8N1)
+					if (tx8n1)
+					{
+						txData = 0;
+						txEnabled = false;
+						break;
+					}
 					top->uartRx = 1; // MARK!
 					txTicks = DELAY_FRAMES - 1;
 					break;

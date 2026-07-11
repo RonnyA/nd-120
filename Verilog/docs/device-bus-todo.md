@@ -60,33 +60,51 @@ workstream while that session is active.
         the tape byte stream buffers a block at a time so it cannot
         starve floppy/HDD block requests
 
-## Phase 1 - Device Bus Interface (reusable, Verilog/ND-BUS-DEVICES/)
+## Phase 1 - Device Bus Interface (DONE 11-JUL-2026, commit ba27bc5)
 
-- [ ] Port NDBus.cpp proccess_bif_signal() to a Verilog bus-slave FSM:
-      BAPR/BIOXE/BINPUT/BINACK/BDAP/BDRY handshake, OUTIDENT/ident
-      daisy-chain, active-low BD_23_0_n bus, interrupt-level lines
-- [ ] Parameterized device shell: device number, ident code, interrupt
-      level; register read/write strobes toward the device core
-- [ ] Un-tie the external bus inputs in ND120_TOP.v / the Tang top
-      (currently tied off) behind an ifdef so boards without devices
-      stay identical
-- [ ] Unit tb: scripted bus master driving IOX read/write/ident against
-      a dummy device; register in tests/run_all_tests.sh
-- [ ] CDC note: bus side runs in the CPU sysclk domain; SD side keeps
-      its own clock + async FIFO (per sd-bpun-device-plan.md)
+- [x] ND-BUS-DEVICES/BUS-IF/circuit/ND_BUS_SLAVE.v - ports
+      NDBus.cpp proccess_bif_signal() to a sysclk FSM. Two latent
+      C-model issues FIXED in the port: BINT10-13 are actually driven
+      (the C '== 1' mask bug never asserted them - devices worked by
+      polling only), and an IDENT answer takes priority on BINACK over
+      the stale IOX direction from the level-code address (the C model
+      would have taken the READ branch; its IDENT path was never
+      exercised).
+- [x] Device parameters (BASE_ADDR/IDENT_CODE/INT_LEVEL) + ident
+      daisy-chain grant ports on each core; decode inside the core
+      like the C model's IsInAddress
+- [x] ND120_TOP.v: devices instantiated behind ND120_VERILOG_DEVICES,
+      wired-AND onto the active-low bus inputs; builds are bit-identical
+      with the define off (baseline compile verified)
+- [x] tb: scripted bus master, IOX read/write + IDENT, TWO tape cores
+      proving chain priority + clear-on-IDENT; registered in the suite
+- [x] Semantics reference doc: docs/nd100x-device-semantics.md
+      (interrupt layers, IDENT rules, floppy PIO/DMA + SMD register
+      maps, C-model hacks flagged)
+
+## Phase 2 - Tape reader, device 400 (Verilog/ND-BUS-DEVICES/TAPE-400/)
 
 ## Phase 2 - Tape reader, device 400 (Verilog/DEVICE-TAPEREADER/)
 
-- [ ] Register core per NDDevices.cpp/NDBusPapertapeReader.cs:
-      IOX 400 read data (clears RFT), 402 read status (bit 3 = ready),
-      403 write control (bit 0 int enable, bit 2 activate, bit 4 clear);
-      ident code 2 octal, level 12
-- [ ] Byte source A (sim): file-backed model so runSim can swap the C
-      papertape for the Verilog device - acceptance: runSim console
-      golden byte-identical with the Verilog device serving the BPUN
+- [x] Register core per NDDevices.cpp: ND_TAPE_400.v (IOX 400 read data
+      clears RFT, 402 status bit3, 403 control bits 0/2/3/4; ident 02,
+      level 12; byte source is a port). Divergence from the C model,
+      on purpose: pending = intEnabled AND readyForTransfer evaluated
+      continuously (level-sensitive, matches nd100x PID mirroring and
+      real hardware) instead of the C model's stale latched flag.
+- [x] Byte source A (sim): TAPE_BYTE_* ports on ND120_TOP served by
+      process_verilog_tape() in NDBus.cpp; runSim `make compile
+      VERILOG_TAPE=1` swaps the C papertape out (addDevices skips it)
+- [x] Acceptance gate A PASSED 11-JUL-2026: `make test-tape` (top-level
+      Makefile) boots INSTRUCTION-B via '400$' with the C model and the
+      Verilog device - console tails and loaded RAM identical; the
+      INSTRUCTION VERIFY banner prints and the '>' monitor prompt comes
+      up in both. Golden console (default build) re-verified unchanged.
 - [ ] Byte source B (hardware): SD-FAT file reader streaming a .BPUN
-      from the card (fixed filename first, per the core's limitation)
+      from the card (fixed filename first, per the core's limitation);
+      SDRAM full-preload per the cache design rule
 - [ ] Tang integration: device instantiated on the new bus interface
+      (the ifdef + wired-AND path in ND120_TOP is ready for it)
 - [ ] ACCEPTANCE: '$' at the OPCOM prompt boots INSTRUCTION-B from the
       microSD on silicon (ALD already straps to 400 - zero CPU changes)
 
@@ -126,8 +144,16 @@ partition uses only part of it. Use the spare SDRAM as the disk layer:
 
 ## Phase 3 - Floppy (PIO first)
 
-- [ ] Extract the floppy PIO register/command semantics from
-      NDDevices.cpp + the nd100x floppy emulator (bus-interface flavor)
+- [x] Semantics extracted (docs/nd100x-device-semantics.md) and core
+      written: ND-BUS-DEVICES/FLOPPY/circuit/ND_FLOPPY_PIO.v -
+      registers, geometry, command set, errors, auto-increment,
+      completion-delay interrupt; tb through the bus slave with an
+      image-backed disk model (registered in the suite).
+      NOT ported (ask Ronny): RSR1 "magic" diagnostic bits, autoload
+      boot blob, deleted-sector shadow array.
+      The disk backend is a port (disk_*/dbuf_*): sim harness serves
+      an image; hardware serves the SDRAM-cached image (2048-byte
+      blocks, write-through per the cache design rule).
 - [ ] Read-only floppy: FAT image file (.IMG) on the SD card as the disk
 - [ ] Write support: wire sd_writer.v path (writer tb already passing) -
       in-place writes to a pre-allocated contiguous image file

@@ -26,3 +26,7 @@
 
 void addDevices();
 void proccess_bif_signal(VND120_TOP *top);
+
+#ifdef ND120_VERILOG_DEVICES
+void process_verilog_tape(VND120_TOP *top);
+#endif

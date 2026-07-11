@@ -22,6 +22,17 @@ ifeq ($(SKIP_WCS),1)
   SIM_DEFINES += -DSKIP_WCS_LOAD
 endif
 
+# VERILOG_TAPE: Set to 1 to replace the C papertape model with the Verilog
+#               device stack (ND-BUS-DEVICES: ND_BUS_SLAVE + ND_TAPE_400
+#               instantiated inside ND120_TOP). The C harness then only
+#               serves raw tape bytes through the TAPE_BYTE_* ports.
+#               Gate: console output must stay byte-identical to golden.
+VERILOG_TAPE ?= 0
+ifeq ($(VERILOG_TAPE),1)
+  SIM_DEFINES += -DND120_VERILOG_DEVICES
+  EXTRA_CFLAGS += -DND120_VERILOG_DEVICES
+endif
+
 VERILATOR_FLAGS = --trace -Wall --cc ../ND120_TOP.v $(SUPPRESS_FLAGS) $(SIM_DEFINES)
 
 #TOP_3202D_COMPONENTS = -I../circuit -I../../Shared/logisim   -I../../Shared/ndlib  -I../../Shared/support
@@ -32,7 +43,9 @@ DGA_COMPONENTS = -I../DECODE-GateArray/DGA/circuit
 
 #SHARED_COMPONENTS =  -I../circuit -I../../shared/ndlib -I../../shared/logisim -I../../shared/gates   -I../../PAL
 
-VERILATOR_DIRS = $(TOP_3202D_COMPONENTS) $(CGA_COMPONENTS) $(DGA_COMPONENTS) -I../PAL 
+BUSDEV_COMPONENTS = -I../ND-BUS-DEVICES/BUS-IF/circuit -I../ND-BUS-DEVICES/TAPE-400/circuit
+
+VERILATOR_DIRS = $(TOP_3202D_COMPONENTS) $(CGA_COMPONENTS) $(DGA_COMPONENTS) $(BUSDEV_COMPONENTS) -I../PAL
 # Specify C++ source files here
 CPP_SOURCES = Run120.cpp ../simDevices/NDDevices.cpp ../simDevices/NDBus.cpp
 

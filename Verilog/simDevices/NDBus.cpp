@@ -209,6 +209,14 @@ void proccess_bif_signal(VND120_TOP *top)
 		*/
 	}
 	
+#ifdef ND120_VERILOG_DEVICES
+	// Serve the Verilog tape-400 device's byte-source ports.
+	// The C papertape model is NOT registered in this build (see
+	// addDevices) - the Verilog device inside ND120_TOP owns IOX 400-403
+	// and this harness only feeds it raw bytes from the tape file.
+	process_verilog_tape(top);
+#endif
+
 	// Tick deviceManager
 	uint16_t interruptBits = deviceManager.Tick();
 
@@ -228,12 +236,67 @@ void proccess_bif_signal(VND120_TOP *top)
 
 void addDevices()
 {
+#ifndef ND120_VERILOG_DEVICES
 	// Add the PaperTape (TapeReader) at octal 400-403
 	deviceManager.AddDevice(DeviceType::PaperTape, 0);
+#endif
 
 	// Add the FloppyPIO at octal 1560-1567
 	deviceManager.AddDevice(DeviceType::FloppyPIO, 0);
 }
+
+#ifdef ND120_VERILOG_DEVICES
+/* Byte source for the Verilog ND_TAPE_400 device (same tape file the C
+** papertape model uses). Called once per half-clock like the rest of
+** the bus processing, so the request/rewind pulses (one full clock)
+** are edge-detected to serve exactly one byte per request. The valid
+** flag spans one full clock; the device tolerates seeing the same
+** byte on two edges (same data, no position change). */
+static FILE *vtape_file = 0;
+static int vtape_prev_req = 0;
+static int vtape_prev_rewind = 0;
+static int vtape_valid_ticks = 0;
+
+void process_verilog_tape(VND120_TOP *top)
+{
+	if (vtape_file == 0)
+	{
+		vtape_file = fopen("INSTRUCTION-B.BPUN", "r");
+		if (vtape_file == 0)
+			printf("VerilogTape: unable to open INSTRUCTION-B.BPUN\r\n");
+	}
+
+	if (vtape_valid_ticks > 0)
+	{
+		vtape_valid_ticks--;
+		if (vtape_valid_ticks == 0)
+			top->TAPE_BYTE_VALID = 0;
+	}
+
+	if (top->TAPE_REWIND && !vtape_prev_rewind && vtape_file != 0)
+	{
+		rewind(vtape_file);
+	}
+
+	if (top->TAPE_BYTE_REQ && !vtape_prev_req && vtape_file != 0)
+	{
+		int w = getc(vtape_file);
+		if (w >= 0)
+		{
+			top->TAPE_BYTE_DATA = w & 0xFF;
+			top->TAPE_BYTE_VALID = 1;
+			vtape_valid_ticks = 2; // one full clock
+		}
+		else
+		{
+			printf("VerilogTape EOF");
+		}
+	}
+
+	vtape_prev_req = top->TAPE_BYTE_REQ;
+	vtape_prev_rewind = top->TAPE_REWIND;
+}
+#endif
 
 
 /*

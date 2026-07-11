@@ -90,6 +90,16 @@ module ND120_TOP
     output wire OUTGRANT_n,
     output wire OUTIDENT_n,
     output wire MCL
+
+`ifdef ND120_VERILOG_DEVICES
+    // Byte source for the Verilog papertape device (ND-BUS-DEVICES/TAPE-400):
+    // the sim harness serves a BPUN file; hardware serves an SD-FAT stream.
+    ,
+    output wire       TAPE_BYTE_REQ,   // pulse: fetch next tape byte
+    input  wire       TAPE_BYTE_VALID, // pulse: TAPE_BYTE_DATA is the byte
+    input  wire [7:0] TAPE_BYTE_DATA,
+    output wire       TAPE_REWIND     // pulse: rewind the tape source
+`endif
 `endif
 );
  
@@ -354,6 +364,103 @@ module ND120_TOP
   );
 `endif
 
+  /**********************************************
+  *  Verilog external-bus devices (optional)    *
+  *  ND-BUS-DEVICES: bus slave + papertape 400  *
+  *  Wired-AND onto the active-low bus inputs.  *
+  ***********************************************/
+
+`ifdef ND120_VERILOG_DEVICES
+`ifdef VERILATOR_SIM
+  wire s_dev_clk = sysclk;
+`else
+  wire s_dev_clk = clk1;
+`endif
+
+  wire [23:0] s_dev_bd_n;
+  wire s_dev_binput_n, s_dev_bdap_n, s_dev_bdry_n;
+  wire s_dev_bint10_n, s_dev_bint11_n, s_dev_bint12_n, s_dev_bint13_n;
+
+  wire [15:0] s_dev_iox_addr, s_dev_iox_wdata, s_dev_iox_rdata;
+  wire        s_dev_iox_wr, s_dev_iox_rd;
+  wire [3:0]  s_dev_int_pending;
+  wire        s_dev_ident_strobe, s_dev_ident_hit;
+  wire [3:0]  s_dev_ident_level;
+  wire [15:0] s_dev_ident_code;
+
+  ND_BUS_SLAVE BUS_SLAVE (
+      .sysclk(s_dev_clk),
+      .sys_rst_n(sys_rst_n),
+      .BD_23_0_n_OUT(BD_23_0_n_OUT),
+      .BD_23_0_n_IN(s_dev_bd_n),
+      .BAPR_n(BAPR_n_OUT),
+      .BIOXE_n(BIOXE_n),
+      .BINACK_n(BINACK_n),
+      .OUTIDENT_n(OUTIDENT_n),
+      .BINPUT_n(s_dev_binput_n),
+      .BDAP_n(s_dev_bdap_n),
+      .BDRY_n(s_dev_bdry_n),
+      .BINT10_n(s_dev_bint10_n),
+      .BINT11_n(s_dev_bint11_n),
+      .BINT12_n(s_dev_bint12_n),
+      .BINT13_n(s_dev_bint13_n),
+      .iox_addr(s_dev_iox_addr),
+      .iox_wr(s_dev_iox_wr),
+      .iox_wdata(s_dev_iox_wdata),
+      .iox_rd(s_dev_iox_rd),
+      .iox_rdata(s_dev_iox_rdata),
+      .int_pending(s_dev_int_pending),
+      .ident_strobe(s_dev_ident_strobe),
+      .ident_level(s_dev_ident_level),
+      .ident_hit(s_dev_ident_hit),
+      .ident_code(s_dev_ident_code)
+  );
+
+  ND_TAPE_400 #(
+      .BASE_ADDR (16'o000400),
+      .IDENT_CODE(16'o000002),
+      .INT_LEVEL (4'd12)
+  ) TAPE_400 (
+      .sysclk(s_dev_clk),
+      .sys_rst_n(sys_rst_n),
+      .iox_addr(s_dev_iox_addr),
+      .iox_wr(s_dev_iox_wr),
+      .iox_wdata(s_dev_iox_wdata),
+      .iox_rd(s_dev_iox_rd),
+      .iox_rdata(s_dev_iox_rdata),
+      .int_pending(s_dev_int_pending),
+      .ident_strobe(s_dev_ident_strobe),
+      .ident_level(s_dev_ident_level),
+      .ident_grant_in(1'b1),
+      .ident_grant_out(),
+      .ident_hit(s_dev_ident_hit),
+      .ident_code(s_dev_ident_code),
+      .byte_req(TAPE_BYTE_REQ),
+      .byte_valid(TAPE_BYTE_VALID),
+      .byte_data(TAPE_BYTE_DATA),
+      .source_rewind(TAPE_REWIND)
+  );
+
+  // Wired-AND with the external (C-harness / tie-off) bus inputs
+  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN & s_dev_bd_n;
+  wire        s_bus_binput_in_n = BINPUT_n_IN & s_dev_binput_n;
+  wire        s_bus_bdap_in_n   = BDAP_n_IN & s_dev_bdap_n;
+  wire        s_bus_bdry_in_n   = BDRY_n_IN & s_dev_bdry_n;
+  wire        s_bus_bint10_n    = BINT10_n & s_dev_bint10_n;
+  wire        s_bus_bint11_n    = BINT11_n & s_dev_bint11_n;
+  wire        s_bus_bint12_n    = BINT12_n & s_dev_bint12_n;
+  wire        s_bus_bint13_n    = BINT13_n & s_dev_bint13_n;
+`else
+  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN;
+  wire        s_bus_binput_in_n = BINPUT_n_IN;
+  wire        s_bus_bdap_in_n   = BDAP_n_IN;
+  wire        s_bus_bdry_in_n   = BDRY_n_IN;
+  wire        s_bus_bint10_n    = BINT10_n;
+  wire        s_bus_bint11_n    = BINT11_n;
+  wire        s_bus_bint12_n    = BINT12_n;
+  wire        s_bus_bint13_n    = BINT13_n;
+`endif
+
   ND3202D CPU_BOARD (
 `ifdef VERILATOR_SIM
       .sysclk(sysclk),      // sim: single full-speed clock (clk1 == sysclk)
@@ -370,25 +477,25 @@ module ND120_TOP
       .CONTINUE_n(s_high),  // Continue button C-B15
       .STOP_n(s_high),      // Stop button C-B16, A-C17
 
-      .BINT10_n(BINT10_n),  // Bus Interrupt 10 C-A15
-      .BINT11_n(BINT11_n),  // Bus Interrupt 11 C-C15
-      .BINT12_n(BINT12_n),  // Bus Interrupt 12 C-A16
-      .BINT13_n(BINT13_n),  // Bus Interrupt 13 C-A16
+      .BINT10_n(s_bus_bint10_n),  // Bus Interrupt 10 C-A15 (wired-AND with Verilog devices)
+      .BINT11_n(s_bus_bint11_n),  // Bus Interrupt 11 C-C15
+      .BINT12_n(s_bus_bint12_n),  // Bus Interrupt 12 C-A16
+      .BINT13_n(s_bus_bint13_n),  // Bus Interrupt 13 C-A16
       .BINT15_n(BINT15_n),  // Bus Interrupt 15 C-C17
 
       .POWSENSE_n(POWSENSE_n),  // Power Sense
 
-      .BD_23_0_n_IN(BD_23_0_n_IN), // Bus address and data from bus. Pulled high
+      .BD_23_0_n_IN(s_bus_bd_in_n), // Bus address and data from bus. Pulled high (wired-AND with Verilog devices)
       .BD_23_0_n_OUT(BD_23_0_n_OUT),
 
       // Bidirectional signals
       .SEMRQ_n_IN(SEMRQ_n_IN),     //! Input-signal from "C PLUG", signal A17 SEMREQ~ (SEMaphore REQest)
       .SEMRQ_n_OUT(SEMRQ_n_OUT),   //! Output-signal to "C PLUG", signal A17 SEMREQ~ (SEMaphore REQest)
-      .BINPUT_n_IN(BINPUT_n_IN),   //! Input-signal from "C PLUG", signal A18 BINPUT~ (Bus INPUT)
+      .BINPUT_n_IN(s_bus_binput_in_n), //! Input-signal from "C PLUG", signal A18 BINPUT~ (Bus INPUT)
       .BINPUT_n_OUT(BINPUT_n_OUT), //! Output-signal to "C PLUG", signal A18 BINPUT~ (Bus INPUT)
-      .BDAP_n_IN(BDAP_n_IN),       //! Input-signal from "C PLUG", signal C18 BDAP~ (Bus DAta Present)
+      .BDAP_n_IN(s_bus_bdap_in_n), //! Input-signal from "C PLUG", signal C18 BDAP~ (Bus DAta Present)
       .BDAP_n_OUT(BDAP_n_OUT),     //! Output-signal to "C PLUG", signal C18 BDAP~ (Bus DAta Present)
-      .BDRY_n_IN(BDRY_n_IN),       //! Input-signal from "C PLUG", signal A19 BDRY~ (Bus Data ReadY)
+      .BDRY_n_IN(s_bus_bdry_in_n), //! Input-signal from "C PLUG", signal A19 BDRY~ (Bus Data ReadY)
       .BDRY_n_OUT(BDRY_n_OUT),     //! Output-signal to "C PLUG", signal A19 BDRY~ (Bus Data ReadY)
       .BAPR_n_IN(BAPR_n_IN),       //! Input-signal from "C PLUG", signal A20 BAPR~ (Bus Address PResent)
       .BAPR_n_OUT(BAPR_n_OUT),     //! Output-signal to "C PLUG", signal A20 BAPR~ (Bus Address PResent)
