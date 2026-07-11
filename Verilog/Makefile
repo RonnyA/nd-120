@@ -49,7 +49,7 @@ test-full: test
 	@echo "===================================================================="
 
 # Filter that strips the C device models' debug prints, keeping console text
-TAPE_FILTER = grep -vaE '^(PaperTape|IDENT LVL|No device found|WTF|\[0\] FloppyPIO|Callback LVL|Clearing|Generating|Setting|\[binload\] (settling|streaming|injector|byte)|VerilogTape|Floppy PIO)'
+TAPE_FILTER = grep -vaE '^(PaperTape|FloppyPIO object|IDENT LVL|No device found|WTF|\[0\] FloppyPIO|Callback LVL|Clearing|Generating|Setting|\[binload\] (settling|streaming|injector|byte)|VerilogTape|Floppy PIO)'
 
 test-tape:
 	@echo "==== system gate: 400\$$ tape boot, C model vs Verilog device ===="
@@ -59,13 +59,22 @@ test-tape:
 	$(MAKE) -C runSim clean >/dev/null
 	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_TAPE400" >/dev/null
 	cd runSim && ND120_BINLOAD_CHECK=001000:8 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_tape_v.log 2>&1
-	$(TAPE_FILTER) /tmp/nd120_tape_c.log | tail -30 > /tmp/nd120_tape_c_tail.txt
-	$(TAPE_FILTER) /tmp/nd120_tape_v.log | tail -30 > /tmp/nd120_tape_v_tail.txt
-	cmp /tmp/nd120_tape_c_tail.txt /tmp/nd120_tape_v_tail.txt
+	# Landmark gate: both runs must load AND EXECUTE the program (the
+	# banner only prints if the loaded code runs). A byte-diff of the
+	# consoles is impossible: the C model's debug prints glue onto the
+	# console text mid-line.
+	for L in "Words read   054731" \
+	         "INSTRUCTION  VERIFY" \
+	         "PROGRAM NAME  : INSTRUCTION-B" \
+	         "The command HELP gives you a list of the commands."; do \
+	  grep -qa "$$L" /tmp/nd120_tape_c.log || { echo "C-model run missing: $$L"; exit 1; }; \
+	  grep -qa "$$L" /tmp/nd120_tape_v.log || { echo "Verilog run missing: $$L"; exit 1; }; \
+	done
+	# The Verilog run must NOT contain the C papertape (proves the swap)
+	! grep -qa "PaperTape" /tmp/nd120_tape_v.log
 	grep -a "RAM check" /tmp/nd120_tape_c.log > /tmp/nd120_tape_c_ram.txt
 	grep -a "RAM check" /tmp/nd120_tape_v.log > /tmp/nd120_tape_v_ram.txt
 	cmp /tmp/nd120_tape_c_ram.txt /tmp/nd120_tape_v_ram.txt
-	grep -qa "INSTRUCTION-B" /tmp/nd120_tape_v_tail.txt
 	@echo ""
 	@echo "===================================================================="
 	@echo "  TAPE GATE PASSED (Verilog tape-400 = C model, INSTRUCTION-B boots)"

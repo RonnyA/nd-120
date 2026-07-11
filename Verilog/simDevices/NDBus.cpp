@@ -39,6 +39,7 @@ BIF_State bifState = BIF_State::IDLE;
 
 int bus_address = 0;
 int bus_data = 0;
+int bus_claimed = 0; // a C-model device owns the strobed address
 
 void proccess_bif_signal(VND120_TOP *top)
 {
@@ -51,6 +52,13 @@ void proccess_bif_signal(VND120_TOP *top)
 
 //#define DEBUG_LOG
         if (DEBUG_BIF) printf("-> BAPR %o ", bus_address);
+
+		// Respond only to addresses a C-model device actually owns.
+		// Answering unclaimed reads with 0 + instant BDRY would race
+		// (and beat) the Verilog devices on the same bus, feeding the
+		// CPU zeros (found by the tape-400 gate).
+		bus_claimed = deviceManager.Claims(bus_address & ~1) ||
+		              deviceManager.Claims(bus_address | 1);
 
 		if ((bus_address & 1) ==0) // Read
 		{			
@@ -150,7 +158,7 @@ void proccess_bif_signal(VND120_TOP *top)
 		bus_data = (~top->BD_23_0_n_OUT) & 0xFFFF;
 
 		
-		if (bifState == BIF_State::WRITE) 
+		if (bifState == BIF_State::WRITE && bus_claimed)
 		{
 			if (DEBUG_BIF) printf("WRITE IOX Address: %o Data: %o \n", bus_address, bus_data);
 
@@ -159,7 +167,7 @@ void proccess_bif_signal(VND120_TOP *top)
 		}
 		
 		// If CPU tries to read, we need to ask CPU if we can write to bus - then wait for BINACK_n
-		if (bifState == BIF_State::READ)
+		if (bifState == BIF_State::READ && bus_claimed)
 		{
 			if (DEBUG_BIF) printf("Activating BINPUT !\n");
 			top->BINPUT_n_IN = 0; // Tell cpu this address is READ (so we need to put data on the bus), then wait for the BINACK signal
@@ -170,7 +178,7 @@ void proccess_bif_signal(VND120_TOP *top)
 	if ((top->BINACK_n == 0) && (prev_binack_n == 1))
 	{
 		if (DEBUG_BIF) printf("BINACK_n !\n");
-		if (bifState == BIF_State::READ)
+		if (bifState == BIF_State::READ && bus_claimed)
 		{
 			top->BD_23_0_n_IN = (~deviceManager.Read(bus_address)) & 0xFFFFFF;
 			top->BDAP_n_IN = 0; // DATA Present

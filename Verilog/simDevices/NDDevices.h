@@ -220,6 +220,7 @@ private:
 public:
     void MasterClear();
     void AddDevice(DeviceType type, uint8_t thumbweel);
+    bool Claims(uint32_t address);  // true if any registered device owns the address
     uint16_t Read(uint32_t address);
     void Write(uint32_t address, uint16_t value);
     uint16_t IDENT(uint16_t level);

@@ -1065,6 +1065,17 @@ void DeviceManager::MasterClear()
     }
 }
 
+/// @brief True if any registered device owns 'address'
+bool DeviceManager::Claims(uint32_t address)
+{
+    for (auto &info : devices)
+    {
+        if (info.device->IsInAddress(address))
+            return true;
+    }
+    return false;
+}
+
 /// @brief
 /// @param address
 /// @return
