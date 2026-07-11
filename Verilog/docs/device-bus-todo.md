@@ -21,15 +21,38 @@ Reference implementations (read these before coding each phase):
   000506-000510) - no vectored dispatch, unaffected by the closed 300$
   issue (docs/serial-binload-300.md).
 
-## Phase 0 - SD card + FAT (DONE 11-JUL-2026, commit 8b3da27)
+## Phase 0 - SD card + FAT (IN PROGRESS - parallel workstream)
+
+Milestone 1 committed 11-JUL-2026 (8b3da27); development CONTINUES in a
+parallel session (uncommitted work in Verilog/SD-FAT/ and
+fpga/tang-nano-20k/sd-fat-test/: sd_fat_rewrite.v cluster-chain
+reallocation, sd_fat_check.v, COPY and WRBLK1 1-kiloword block writes,
+interactive `make console` sim). Do not modify those trees from this
+workstream while that session is active.
 
 - [x] Verilog/SD-FAT/ library (WangXuan95 core vendored, LICENSE kept):
       sd_reader, sd_file_reader, sdcmd_ctrl, sd_writer + sd_card_model tb
 - [x] fpga/tang-nano-20k/sd-fat-test/ standalone project: read BPUN from
       FAT microSD, hex-dump over UART
 - [x] 3 self-checking tbs registered (suite = 27, all green)
+- [ ] Finish the write path (COPY / block writes / fsck-gated rewrite) -
+      owned by the parallel SD-FAT session
 - [ ] Hardware validation on the Tang microSD slot (real card, real dump)
       - the milestone-1 acceptance from sd-bpun-device-plan.md
+- [ ] LIBRARY REFACTOR (after sd-fat-test is finished): fold the
+      test project's reusable logic into the generic library so the
+      ND-120 devices consume ONE clean interface. Rules:
+      - Verilog/SD-FAT/ is the home of everything generic (card init,
+        FAT mount, file find/read/write, block read/write, status);
+        board glue (pins, UART menu, LEDs) stays in fpga/<board>/
+      - NOTHING SD/FAT-related goes into the CPU trees:
+        DELILAH-CPU/ (CGA), DECODE-GateArray/ (DGA), CPU-BOARD-3202/
+        stay pure ND-120 hardware; devices talk to the library through
+        a byte/word-stream port on the ND-BUS-DEVICES side
+      - target interface for devices: open(fixed name)/rewind,
+        stream-read bytes, block read/write by 1KW block number
+        (the tape-400 and floppy cores program against this, not
+        against sd_reader directly)
 
 ## Phase 1 - Device Bus Interface (reusable, Verilog/ND-BUS-DEVICES/)
 
@@ -94,3 +117,6 @@ Reference implementations (read these before coding each phase):
   goal stands)
 - GPL-3.0 vendored core: approved by owner for SD-FAT (LICENSE file in
   tree)
+- SD/FAT code lives ONLY in Verilog/SD-FAT/ (generic library) and
+  fpga/<board>/ (board glue) - never in DELILAH-CPU/, DECODE-GateArray/
+  or CPU-BOARD-3202/
