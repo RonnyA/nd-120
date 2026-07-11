@@ -65,6 +65,37 @@ CPP_SOURCES = Run120.cpp ../simDevices/NDDevices.cpp ../simDevices/NDBus.cpp
 # Default target
 all: compile run gtk
 
+help:
+	@echo "runSim - full CPU simulation (microcode load + self-test + OPCOM console)"
+	@echo ""
+	@echo "Targets:"
+	@echo "  make compile      build the simulator (C models for the bus devices)"
+	@echo "  make run          compile + run interactively (OPCOM on stdin/stdout)"
+	@echo "  make run-floppy   Verilog-device build (DMA floppy at 1560) + run with"
+	@echo "                    a bootable diskette image; type 1560& at the '#'"
+	@echo "                    prompt to boot it - the loaded program then owns the"
+	@echo "                    console (type help etc. at ITS prompt)"
+	@echo "  make clean        remove obj_dir (do this when switching build flags)"
+	@echo ""
+	@echo "Variables:"
+	@echo "  USE_LATCHES=0     FPGA flip-flop mode (default 1 = transparent latches)"
+	@echo "  VERILOG_TAPE=1    replace the C papertape/floppy models with the Verilog"
+	@echo "                    device stack inside ND120_TOP (tape-400 + DMA floppy"
+	@echo "                    at 1560 + SMD at 1540)"
+	@echo "  FLOPPY_IMG=path   diskette image for run-floppy (default: the 210523I01"
+	@echo "                    test-program diskette in ND-BUS-DEVICES/testdata)"
+	@echo "  SKIP_WCS=1        preload the WCS, skip the microcode load phase"
+	@echo ""
+	@echo "Environment at run time:"
+	@echo "  ND120_FLOPPY_IMG  floppy image file (what run-floppy sets for you)"
+	@echo "  ND120_SMD_IMG     SMD disk-0 image file (no default = drive not ready)"
+	@echo ""
+	@echo "System gates live in the top-level Verilog/Makefile: make test,"
+	@echo "test-full, test-tape, test-dma-rtl, test-floppy-boot, test-smd-boot."
+	@echo "See runSim/README.md for the full story."
+
+.PHONY: help
+
 compile: $(CPP_SOURCES)
 	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS) --exe $(CPP_SOURCES)  -CFLAGS "$(VERILATOR_DIRS)  -I../../simDevices $(EXTRA_CFLAGS)"
 	cd obj_dir && make -f VND120_TOP.mk VND120_TOP
