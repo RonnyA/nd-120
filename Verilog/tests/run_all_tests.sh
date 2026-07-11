@@ -60,6 +60,7 @@ REGISTRY=(
   # --- ND-100 external bus devices --------------------------------------
   "ND-BUS-DEVICES/BUS-IF/sim :: test-bus-slave :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/FLOPPY/sim :: test-floppy-pio :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/DMA/sim    :: test-dma-master :: TB_RESULT: PASS"
 )
 # NOT in the registry (run manually, documented reasons):
 #   DELILAH-CPU/CGA_MIC/sim test-masel-cycle / test-masel-iw - exploratory

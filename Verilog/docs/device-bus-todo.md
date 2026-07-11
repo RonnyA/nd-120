@@ -162,6 +162,38 @@ partition uses only part of it. Use the spare SDRAM as the disk layer:
 - [ ] Acceptance: boot 1560 floppy load on silicon (ALD 1560 exists in
       the switch table); later SINTRAN/tools from floppy
 
+## DMA (bus mastering - needed for floppy DMA and SMD)
+
+- [x] Protocol documented from ND-06.016.01: docs/nd100-bus-dma.md
+      (bus rules, BREQ/BMEM/INGRANT/OUTGRANT allocation, memory read
+      and write cycle anatomy, DMA controller programming model, a
+      synchronous Verilog contract, gaps section). BDAP-driver
+      ambiguity vs ND-06.026 RESOLVED against PAL_44902A: the MASTER
+      drives BDAP both directions, memory waits for it.
+- [x] RTL survey: the ENTIRE BCU/arbiter/memory-response path already
+      exists schematic-faithfully on the CPU board (PAL_44801A
+      arbiter, OUTGRANT generation, PAL_44446B DMA address decode,
+      PAL_44803A/PAL_44902A RAM grant + RAS/CAS, BCGNT-gated
+      address/data latches). Only the MASTER side was missing: top
+      ties BREQ_n=1, and NDBus.cpp implements the slave role only
+      (its BMEM handler is a commented-out stub).
+- [x] ND-BUS-DEVICES/DMA/circuit/ND_DMA_MASTER.v: request/grant +
+      single-word memory reference engine (one word per allocation,
+      re-request per word, local hang guard). Unit tb: TWO chained
+      masters against a BCU+memory model - word write/read, 64-word
+      block, simultaneous requests with chain priority, delayed
+      grant, dead-memory timeout + recovery. Registered in the suite.
+- [ ] Full-RTL validation: drive ND_DMA_MASTER against the REAL CPU
+      board (assert BREQ_n into ND120_TOP, real PAL arbiter grants,
+      real RAM answers) - instantiate behind ND120_VERILOG_DEVICES
+      like the tape, verify a DMA-written pattern via OPCOM examine
+      and a DMA read of a deposited pattern
+- [ ] Floppy DMA device core (command block in ND memory per
+      nd100x deviceFloppyDMA: 12-word block, pointer regs at +5/+7,
+      dualDensity status bit15 forced 1) on top of ND_DMA_MASTER
+- [ ] SMD controller (register map in docs/nd100x-device-semantics.md)
+      on top of ND_DMA_MASTER
+
 ## Phase 4 - Later
 
 - [ ] Floppy DMA variant (NDDevices.cpp marks it TBD - semantics from
