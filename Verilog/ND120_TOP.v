@@ -111,19 +111,17 @@ module ND120_TOP
     output wire        DMA_ERR,
     output wire        DMA_BUSY,
 
-    // Floppy disk-image backend (sim harness serves FLOPPY.IMG;
-    // hardware later serves the SDRAM-cached image)
+    // Floppy disk-image backend for the DMA-flavor controller
+    // (sim harness serves FLOPPY.IMG; hardware later serves the
+    // SDRAM-cached image). Position = logical sector * sector size.
     output wire        FDISK_REQ,
-    output wire [2:0]  FDISK_OP,
-    output wire [6:0]  FDISK_SECTOR,
-    output wire [6:0]  FDISK_TRACK,
+    output wire        FDISK_WR,
+    output wire [15:0] FDISK_LSECT,
     output wire [1:0]  FDISK_FORMAT,
-    output wire [2:0]  FDISK_DRIVE,
-    output wire [9:0]  FDISK_BUF_START,
+    output wire [1:0]  FDISK_DRIVE,
     output wire [10:0] FDISK_WORDCOUNT,
     input  wire        FDISK_DONE,
-    input  wire        FDISK_ERR_NOTRDY,
-    input  wire        FDISK_ERR_MISSING,
+    input  wire        FDISK_ERR,
     input  wire [9:0]  FDBUF_ADDR,
     input  wire [15:0] FDBUF_WDATA,
     input  wire        FDBUF_WE,
@@ -478,7 +476,15 @@ module ND120_TOP
       .source_rewind(TAPE_REWIND)
   );
 
-  ND_FLOPPY_PIO #(
+  // Floppy 1560, DMA flavor (Ronny's choice 11-JUL): the controller
+  // masters the bus through its own ND_DMA_MASTER, second in the grant
+  // chain behind the DMA test master.
+  wire        s_fdma_req, s_fdma_wr;
+  wire [23:0] s_fdma_addr;
+  wire [15:0] s_fdma_wdata, s_fdma_rdata;
+  wire        s_fdma_ack, s_fdma_err, s_fdma_busy;
+
+  ND_FLOPPY_DMA #(
       .BASE_ADDR (16'o001560),
       .IDENT_CODE(16'o000021),
       .INT_LEVEL (4'd11)
@@ -497,21 +503,55 @@ module ND120_TOP
       .ident_grant_out(),
       .ident_hit(s_flp_hit),
       .ident_code(s_flp_code),
+      .dma_req(s_fdma_req),
+      .dma_wr(s_fdma_wr),
+      .dma_addr(s_fdma_addr),
+      .dma_wdata(s_fdma_wdata),
+      .dma_rdata(s_fdma_rdata),
+      .dma_ack(s_fdma_ack),
+      .dma_err(s_fdma_err),
+      .dma_busy(s_fdma_busy),
       .disk_req(FDISK_REQ),
-      .disk_op(FDISK_OP),
-      .disk_sector(FDISK_SECTOR),
-      .disk_track(FDISK_TRACK),
+      .disk_wr(FDISK_WR),
+      .disk_lsect(FDISK_LSECT),
       .disk_format(FDISK_FORMAT),
       .disk_drive(FDISK_DRIVE),
-      .disk_buf_start(FDISK_BUF_START),
       .disk_wordcount(FDISK_WORDCOUNT),
       .disk_done(FDISK_DONE),
-      .disk_err_notrdy(FDISK_ERR_NOTRDY),
-      .disk_err_missing(FDISK_ERR_MISSING),
+      .disk_err_in(FDISK_ERR),
       .dbuf_addr(FDBUF_ADDR),
       .dbuf_wdata(FDBUF_WDATA),
       .dbuf_we(FDBUF_WE),
       .dbuf_rdata(FDBUF_RDATA)
+  );
+
+  wire [23:0] s_fdmam_bd_n;
+  wire s_fdmam_breq_n, s_fdmam_bapr_n, s_fdmam_binput_n, s_fdmam_bdap_n;
+  wire s_grant_dma_fdma_n;  // grant chain: test DMA master -> floppy master
+
+  ND_DMA_MASTER #(
+      .TIMEOUT_TICKS(16'd8192)
+  ) FLOPPY_DMA_MASTER (
+      .sysclk(s_dev_clk),
+      .sys_rst_n(sys_rst_n),
+      .dma_req(s_fdma_req),
+      .dma_wr(s_fdma_wr),
+      .dma_addr(s_fdma_addr),
+      .dma_wdata(s_fdma_wdata),
+      .dma_rdata(s_fdma_rdata),
+      .dma_ack(s_fdma_ack),
+      .dma_err(s_fdma_err),
+      .dma_busy(s_fdma_busy),
+      .BREQ_n(s_fdmam_breq_n),
+      .INGRANT_n(s_grant_dma_fdma_n),
+      .OUTGRANT_n(),
+      .BMEM_n(BMEM_n),
+      .BD_23_0_n_OUT(s_fdmam_bd_n),
+      .BD_23_0_n_IN(BD_23_0_n_OUT),
+      .BAPR_n(s_fdmam_bapr_n),
+      .BINPUT_n(s_fdmam_binput_n),
+      .BDAP_n(s_fdmam_bdap_n),
+      .BDRY_n(BDRY_n_OUT)
   );
 
   // DMA bus master (full-RTL DMA validation): requests the bus from the
@@ -535,7 +575,7 @@ module ND120_TOP
       .dma_busy(DMA_BUSY),
       .BREQ_n(s_dma_breq_n),
       .INGRANT_n(OUTGRANT_n),
-      .OUTGRANT_n(),
+      .OUTGRANT_n(s_grant_dma_fdma_n),
       .BMEM_n(BMEM_n),
       .BD_23_0_n_OUT(s_dma_bd_n),
       .BD_23_0_n_IN(BD_23_0_n_OUT),
@@ -546,11 +586,11 @@ module ND120_TOP
   );
 
   // Wired-AND with the external (C-harness / tie-off) bus inputs
-  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN & s_dev_bd_n & s_dma_bd_n;
-  wire        s_bus_breq_n      = BREQ_n & s_dma_breq_n;
-  wire        s_bus_bapr_in_n   = BAPR_n_IN & s_dma_bapr_n;
-  wire        s_bus_binput_in_n = BINPUT_n_IN & s_dev_binput_n & s_dma_binput_n;
-  wire        s_bus_bdap_in_n   = BDAP_n_IN & s_dev_bdap_n & s_dma_bdap_n;
+  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN & s_dev_bd_n & s_dma_bd_n & s_fdmam_bd_n;
+  wire        s_bus_breq_n      = BREQ_n & s_dma_breq_n & s_fdmam_breq_n;
+  wire        s_bus_bapr_in_n   = BAPR_n_IN & s_dma_bapr_n & s_fdmam_bapr_n;
+  wire        s_bus_binput_in_n = BINPUT_n_IN & s_dev_binput_n & s_dma_binput_n & s_fdmam_binput_n;
+  wire        s_bus_bdap_in_n   = BDAP_n_IN & s_dev_bdap_n & s_dma_bdap_n & s_fdmam_bdap_n;
   wire        s_bus_bdry_in_n   = BDRY_n_IN & s_dev_bdry_n;
   wire        s_bus_bint10_n    = BINT10_n & s_dev_bint10_n;
   wire        s_bus_bint11_n    = BINT11_n & s_dev_bint11_n;

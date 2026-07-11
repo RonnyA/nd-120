@@ -307,19 +307,15 @@ void process_verilog_tape(VND120_TOP *top)
 	vtape_prev_rewind = top->TAPE_REWIND;
 }
 
-/* Disk-image backend for the Verilog ND_FLOPPY_PIO (FLOPPY.IMG, same
-** file and position math as the C FloppyPIO model). One word moves per
-** half-clock call: reads stream image words into the device buffer via
-** the FDBUF port, writes stream buffer words into the image. Command
-** ops other than read/write/writedel (format) fill the track with the
-** C model's 0xAAFF pattern. */
+/* Disk-image backend for the Verilog ND_FLOPPY_DMA (FLOPPY.IMG).
+** DMA-flavor position math: byte offset = logical sector * sector
+** size; sector size by format: 0=512, 1=256, 2=128, 3=1024 bytes
+** (nd100x deviceFloppyDMA). One word moves per half-clock call. */
 static FILE *vflp_file = 0;
 static int vflp_prev_req = 0;
-static int vflp_state = 0;    // 0 idle, 1 read-stream, 2 write-addr, 3 write-take, 4 done-pulse
+static int vflp_state = 0;    // 0 idle, 1 read-stream, 2 write-addr, 3 write-take, 4 read-tail
 static long vflp_pos = 0;
 static int vflp_words = 0, vflp_idx = 0;
-static unsigned vflp_bufstart = 0;
-static int vflp_op = 0;
 static int vflp_done_ticks = 0;
 
 void process_verilog_floppy(VND120_TOP *top)
@@ -336,52 +332,32 @@ void process_verilog_floppy(VND120_TOP *top)
 		if (--vflp_done_ticks == 0)
 		{
 			top->FDISK_DONE = 0;
-			top->FDISK_ERR_NOTRDY = 0;
-			top->FDISK_ERR_MISSING = 0;
+			top->FDISK_ERR = 0;
 		}
 	}
 
 	if (top->FDISK_REQ && !vflp_prev_req)
 	{
-		int bytes_per_sector = (top->FDISK_FORMAT == 2) ? 256 :
-		                       (top->FDISK_FORMAT == 3) ? 512 : 128;
-		int sectors_per_track = (top->FDISK_FORMAT == 2) ? 15 :
-		                        (top->FDISK_FORMAT == 3) ? 8 : 26;
-		vflp_pos = ((long)top->FDISK_SECTOR - 1) * bytes_per_sector +
-		           (long)top->FDISK_TRACK * bytes_per_sector * sectors_per_track;
+		int bytes_per_sector = (top->FDISK_FORMAT == 0) ? 512 :
+		                       (top->FDISK_FORMAT == 1) ? 256 :
+		                       (top->FDISK_FORMAT == 2) ? 128 : 1024;
+		vflp_pos = (long)top->FDISK_LSECT * bytes_per_sector;
 		vflp_words = top->FDISK_WORDCOUNT;
-		vflp_bufstart = top->FDISK_BUF_START;
 		vflp_idx = 0;
-		vflp_op = top->FDISK_OP;
 
 		if (vflp_file == 0 || fseek(vflp_file, vflp_pos, SEEK_SET) != 0)
 		{
-			top->FDISK_ERR_NOTRDY = 1;
+			top->FDISK_ERR = 1;
 			top->FDISK_DONE = 1;
 			vflp_done_ticks = 2;
 		}
-		else if (vflp_op == 4) // read data
+		else if (!top->FDISK_WR)
 		{
 			vflp_state = 1;
 		}
-		else if (vflp_op == 1 || vflp_op == 2) // write / write deleted
+		else
 		{
 			vflp_state = 2;
-		}
-		else // format track: C-model 0xAAFF fill
-		{
-			for (int sct = 0; sct < sectors_per_track; sct++)
-				for (int w = 0; w < bytes_per_sector / 2; w++)
-				{
-					long p = (long)top->FDISK_TRACK * bytes_per_sector *
-					             sectors_per_track + sct * bytes_per_sector + w * 2;
-					fseek(vflp_file, p, SEEK_SET);
-					putc(0xAA, vflp_file);
-					putc(0xFF, vflp_file);
-				}
-			fflush(vflp_file);
-			top->FDISK_DONE = 1;
-			vflp_done_ticks = 2;
 		}
 	}
 	else if (vflp_state == 1) // read: one word per call into the buffer
@@ -390,7 +366,7 @@ void process_verilog_floppy(VND120_TOP *top)
 		int lo = getc(vflp_file);
 		if (hi < 0 || lo < 0)
 		{
-			top->FDISK_ERR_NOTRDY = 1;
+			top->FDISK_ERR = 1;
 			top->FDISK_DONE = 1;
 			vflp_done_ticks = 2;
 			top->FDBUF_WE = 0;
@@ -398,14 +374,12 @@ void process_verilog_floppy(VND120_TOP *top)
 		}
 		else
 		{
-			top->FDBUF_ADDR = (vflp_bufstart + vflp_idx) & 0x3FF;
+			top->FDBUF_ADDR = vflp_idx & 0x3FF;
 			top->FDBUF_WDATA = ((hi & 0xFF) << 8) | (lo & 0xFF);
 			top->FDBUF_WE = 1;
 			vflp_idx++;
 			if (vflp_idx >= vflp_words)
-			{
 				vflp_state = 4;
-			}
 		}
 	}
 	else if (vflp_state == 4) // read tail: drop WE, pulse done
@@ -418,7 +392,7 @@ void process_verilog_floppy(VND120_TOP *top)
 	else if (vflp_state == 2) // write: present the buffer address
 	{
 		top->FDBUF_WE = 0;
-		top->FDBUF_ADDR = (vflp_bufstart + vflp_idx) & 0x3FF;
+		top->FDBUF_ADDR = vflp_idx & 0x3FF;
 		vflp_state = 3;
 	}
 	else if (vflp_state == 3) // write: take the word after eval settled
