@@ -142,6 +142,12 @@ static unsigned g_last_csa = 0xFFFFu;
 // prompt, as opposed to '$' = BPUN tape load).
 #define SCRIPT_CMD "1560&"
 #endif
+#ifdef SCRIPT_CMD_FBOOTHELP
+// -DSCRIPT_CMD_FBOOTHELP: boot the floppy test program from 1560 and
+// then type 'help' at ITS prompt (not OPCOM's - after '&' the loaded
+// program owns the console).
+#define SCRIPT_CMD "1560&help\r"
+#endif
 #ifdef SCRIPT_CMD_SBOOT
 // -DSCRIPT_CMD_SBOOT: boot from the SMD disk at device 1540 (octal)
 // via the microcode mass-storage loader.
@@ -577,7 +583,14 @@ int main(int argc, char **argv)
 			{
 				ch = g_script[g_script_idx++];
 				n = 1;
-				g_next_inject_cnt = cnt + 300000;  // inter-char gap so OPCOM reads each (avoid RX overrun)
+				{
+					// inter-char gap so the reader keeps up (OPCOM or a
+					// booted program); ND120_SCRIPT_GAP overrides
+					long gap = 300000;
+					if (const char *g = getenv("ND120_SCRIPT_GAP"))
+						gap = atol(g);
+					g_next_inject_cnt = cnt + gap;
+				}
 			}
 			else if (g_boot_done_cnt != 0 && g_script[g_script_idx] == '\0' &&
 			    g_bin_state != 3 && getenv("ND120_BINLOAD_FILE") != nullptr &&

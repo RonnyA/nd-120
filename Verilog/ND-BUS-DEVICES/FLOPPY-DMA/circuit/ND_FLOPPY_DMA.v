@@ -34,11 +34,18 @@
 **   0x01 WRITE DATA: ND memory -> disk by DMA                           **
 **   0x38 IDENTIFY / others: no-op completion (status writeback only),   **
 **        mirroring the C model's TODO stubs                             **
-**   AUTOLOAD (control b2): the boot path used by '1560&' at the OPCOM   **
-**        prompt - the controller reads the FIRST sector (512 words,     **
-**        the 1KB dual-density boot sector) and DMA-writes it to ND      **
-**        memory address 0, then goes ready. No command block, no        **
-**        status writeback (there is no pointer yet at boot time).       **
+**   BOOT MODE (control b2, used by '1560&'): the microcode mass boot    **
+**        is the BPUN loader pointed at the device - per byte it writes  **
+**        the control word (bit 2 = activate), polls status +2 for the   **
+**        ready bit, and reads the next boot-stream WORD from +0 (the    **
+**        diskette stores one stream byte per 16-bit word, low byte).    **
+**        The controller serves the boot stream from its buffer,         **
+**        refilling a 512-word chunk from the image whenever the         **
+**        pointer crosses a chunk boundary. Reading +0 clears ready;     **
+**        the next activate re-arms it. Device clear or a real           **
+**        executeCommand leaves boot mode. Verified empirically: the     **
+**        'DMA the block to memory 0' interpretation was WRONG (the      **
+**        CPU never jumped; the microcode wants to read the stream).     **
 **                                                                       **
 ** All memory traffic goes through the ND_DMA_MASTER client port         **
 ** (dma_*): the command-block fetch, the sector data both directions,    **
@@ -168,7 +175,7 @@ module ND_FLOPPY_DMA #(
     iox_rdata = 16'd0;
     if (iox_rd && s_addressed) begin
       case (s_reg)
-        3'd0: iox_rdata = 16'd0;    // read data (test mode - not modeled)
+        3'd0: iox_rdata = s_boot_active ? s_buffer[s_bootptr] : 16'd0;
         3'd2: iox_rdata = s_rsr1;
         3'd4: iox_rdata = s_rsr2;
         default: iox_rdata = 16'd0;
@@ -195,7 +202,9 @@ module ND_FLOPPY_DMA #(
   reg [2:0]  s_wb_idx;      // writeback word index (0-5 -> w6-w11)
   reg [15:0] s_delay_cnt;
   reg        s_dma_wait;    // a dma_req is outstanding
-  reg        s_autoload;    // boot flow: no command block, no writeback
+  reg        s_autoload;    // a boot-chunk fetch is in flight
+  reg        s_boot_active; // boot byte-server engaged
+  reg [9:0]  s_bootptr;     // word index into the current boot chunk
 
   assign disk_lsect     = s_lsect;
   assign disk_format    = s_cb_fmt;
@@ -238,6 +247,8 @@ module ND_FLOPPY_DMA #(
       s_chunk_q     <= 11'd0;
       s_dma_wait    <= 1'b0;
       s_autoload    <= 1'b0;
+      s_boot_active <= 1'b0;
+      s_bootptr     <= 10'd0;
       dma_req       <= 1'b0;
       dma_wr        <= 1'b0;
       dma_addr      <= 24'd0;
@@ -251,6 +262,12 @@ module ND_FLOPPY_DMA #(
       // backend writes into the sector buffer (disk read fill)
       if (dbuf_we) s_buffer[dbuf_addr] <= dbuf_wdata;
 
+      // boot stream readout: +0 read consumes the word, clears ready
+      if (s_boot_active && iox_rd && s_addressed && (s_reg == 3'd0)) begin
+        s_bootptr <= s_bootptr + 10'd1;
+        s_rft     <= 1'b0;
+      end
+
       // ---- IOX register writes ----
       if (s_wr_here) begin
         case (s_reg)
@@ -258,32 +275,50 @@ module ND_FLOPPY_DMA #(
             s_int_enabled <= iox_wdata[1];
             s_test_mode   <= iox_wdata[3];
             if (iox_wdata[4]) begin  // device clear
-              s_rft      <= 1'b1;
-              s_active   <= 1'b0;
-              s_hard_err <= 1'b0;
-              s_err_code <= 7'd0;
-              s_eng      <= E_IDLE;
-              s_dma_wait <= 1'b0;
+              s_rft         <= 1'b1;
+              s_active      <= 1'b0;
+              s_hard_err    <= 1'b0;
+              s_err_code    <= 7'd0;
+              s_boot_active <= 1'b0;
+              s_eng         <= E_IDLE;
+              s_dma_wait    <= 1'b0;
             end
-            if (iox_wdata[2] && s_eng == E_IDLE) begin
-              // AUTOLOAD: boot sector (512 words from logical sector 0
-              // of a format-3 / 1KB diskette) -> ND memory address 0.
-              // The command-block fields are synthesized locally.
-              s_active     <= 1'b1;
-              s_rft        <= 1'b0;
-              s_hard_err   <= 1'b0;
-              s_err_code   <= 7'd0;
-              s_autoload   <= 1'b1;
-              s_cb[0]      <= 16'h0300;  // format 3 (1024 B/sector)
-              s_lsect      <= 16'd0;
-              s_mem_ptr    <= 24'd0;
-              s_words_left <= 16'd512;
-              s_chunk_q    <= 11'd512;
-              s_sec_idx    <= 11'd0;
-              disk_req     <= 1'b1;
-              disk_wr      <= 1'b0;
-              s_eng        <= E_DISK_RD;
+            if (iox_wdata[2] && !iox_wdata[8] && s_eng == E_IDLE) begin
+              // BOOT MODE activate: arm the next boot-stream word
+              if (!s_boot_active) begin
+                // first activate: fetch chunk 0 into the buffer
+                s_boot_active <= 1'b1;
+                s_bootptr     <= 10'd0;
+                s_active      <= 1'b1;
+                s_rft         <= 1'b0;
+                s_hard_err    <= 1'b0;
+                s_err_code    <= 7'd0;
+                s_autoload    <= 1'b1;
+                s_cb[0]       <= 16'h0300;  // format 3 (1024 B/sector)
+                s_lsect       <= 16'd0;
+                s_chunk_q     <= 11'd512;
+                disk_req      <= 1'b1;
+                disk_wr       <= 1'b0;
+                s_eng         <= E_DISK_RD;
+              end else if (s_bootptr == 10'd512) begin
+                // chunk exhausted: fetch the next one (re-assert the
+                // boot geometry - a normal command may have changed
+                // the format field in between)
+                s_bootptr  <= 10'd0;
+                s_active   <= 1'b1;
+                s_rft      <= 1'b0;
+                s_autoload <= 1'b1;
+                s_cb[0]    <= 16'h0300;
+                s_lsect    <= s_lsect + 16'd1;
+                s_chunk_q  <= 11'd512;
+                disk_req   <= 1'b1;
+                disk_wr    <= 1'b0;
+                s_eng      <= E_DISK_RD;
+              end else begin
+                s_rft <= 1'b1;  // next word already buffered
+              end
             end else if (iox_wdata[8] && s_eng == E_IDLE) begin  // execute
+              s_boot_active <= 1'b0;
               s_active   <= 1'b1;
               s_rft      <= 1'b0;
               s_hard_err <= 1'b0;
@@ -350,12 +385,19 @@ module ND_FLOPPY_DMA #(
               s_hard_err <= 1'b1;
               s_err_code <= 7'd2;
               if (s_autoload) begin
+                s_autoload  <= 1'b0;
                 s_delay_cnt <= DELAY_TICKS;
                 s_eng       <= E_DELAY;
               end else begin
                 s_eng    <= E_WBACK;
                 s_wb_idx <= 3'd0;
               end
+            end else if (s_autoload) begin
+              // boot chunk buffered: serve it via +0 reads
+              s_autoload <= 1'b0;
+              s_active   <= 1'b0;
+              s_rft      <= 1'b1;
+              s_eng      <= E_IDLE;
             end else begin
               s_sec_idx <= 11'd0;
               s_eng     <= E_MEM_WR;

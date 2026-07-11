@@ -207,7 +207,10 @@ module nd_floppy_dma_tb;
     disk_err_in <= 1'b0;
     dbuf_we     <= 1'b0;
     if (disk_req) begin
-      base = disk_lsect * WPS;
+      // position honors the format the controller declares
+      base = disk_lsect * ((disk_format == 2'd3) ? 512 :
+                           (disk_format == 2'd2) ? 64 :
+                           (disk_format == 2'd1) ? 128 : 256);
       if (!disk_wr) begin
         for (w = 0; w < disk_wordcount; w = w + 1) begin
           @(posedge sysclk);
@@ -424,24 +427,27 @@ module nd_floppy_dma_tb;
     check(icode === 16'o000021, "IDENT code not 021");
     check(bint11_n === 1'b1, "BINT11_n not released after IDENT");
 
-    // 5b: AUTOLOAD (the '1560&' boot path): control b2 alone must copy
-    //     the boot sector (512 words from lsect 0) to ND memory 0
-    for (i = 0; i < 600; i = i + 1) memory[i] = 16'hDEAD;
-    iox_write(16'o001563, 16'o000004);  // control: activateAutoload
-    begin : autoload_wait
-      integer guard;
-      reg [15:0] st;
-      guard = 0; st = 0;
-      while (!(st & 16'h0008) && guard < 30000) begin
-        iox_read(16'o001562, st);
-        guard = guard + 1;
+    // 5b: BOOT MODE (the '1560&' path): per word - activate (control
+    //     bit 2), poll status ready, read the stream word from +0.
+    //     Cross the 512-word chunk boundary to prove the refill.
+    begin : bootstream
+      integer guard, k;
+      reg [15:0] st, bw;
+      for (k = 0; k < 515; k = k + 1) begin
+        iox_write(16'o001563, 16'o000004);  // activate next boot word
+        guard = 0; st = 0;
+        while (!(st & 16'h0008) && guard < 30000) begin
+          iox_read(16'o001562, st);
+          guard = guard + 1;
+        end
+        check((st & 16'h0008) !== 0, "boot stream never ready");
+        iox_read(16'o001560, bw);
+        if (bw !== image[k])
+          check(1'b0, "boot stream word wrong");
       end
-      check((st & 16'h0008) !== 0, "autoload never became ready");
+      // a real command leaves boot mode
+      iox_write(16'o001563, 16'o000420);  // deviceClear (b4) + b8? no: clear only
     end
-    for (i = 0; i < 512; i = i + 1)
-      if (memory[i] !== image[i])
-        check(1'b0, "autoload boot sector wrong in ND memory");
-    check(memory[512] === 16'hDEAD, "autoload overran 512 words");
 
     // 6: REAL IMAGE phase - load the ND distribution diskette and read
     //    it back through the controller at start, middle and end

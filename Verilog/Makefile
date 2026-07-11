@@ -93,15 +93,19 @@ test-tape:
 
 test-floppy-boot:
 	@echo "==== system gate: 1560& floppy mass boot (autoload -> RAM) ===="
-	python3 tests/gen_fboot_img.py /tmp/nd120_fboot.img /tmp/nd120_fboot_exp.txt 16
+	python3 tests/gen_fboot_img.py /tmp/nd120_fboot.img /tmp/nd120_fboot_exp.txt
 	$(MAKE) -C runSim clean >/dev/null
 	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_FBOOT" >/dev/null
-	cd runSim && ND120_FLOPPY_IMG=/tmp/nd120_fboot.img ND120_BINLOAD_CHECK=000000:16 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_fboot.log 2>&1
+	cd runSim && ND120_FLOPPY_IMG=/tmp/nd120_fboot.img ND120_BINLOAD_CHECK=002000:16 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_fboot.log 2>&1
 	grep -a "RAM check" /tmp/nd120_fboot.log > /tmp/nd120_fboot_got.txt
-	cmp /tmp/nd120_fboot_got.txt /tmp/nd120_fboot_exp.txt
+	cat /tmp/nd120_fboot_got.txt
+	# words 0-2 = the loaded program; word at index 10 = 000077, the
+	# value the program STORES when it RUNS (the preload background
+	# fills the other cells, so a full-line compare is meaningless)
+	awk '{ exit !($$5=="170477" && $$6=="004011" && $$7=="151000" && $$15=="000077") }' /tmp/nd120_fboot_got.txt
 	@echo ""
 	@echo "===================================================================="
-	@echo "  FLOPPY BOOT GATE PASSED (1560& autoloaded the boot sector to RAM)"
+	@echo "  FLOPPY BOOT GATE PASSED (1560& BPUN-booted and EXECUTED the program)"
 	@echo "===================================================================="
 
 test-smd-boot:
