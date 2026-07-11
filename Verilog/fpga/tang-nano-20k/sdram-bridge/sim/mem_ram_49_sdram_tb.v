@@ -12,9 +12,20 @@
 ** random soak against a mirror model, idle-watchdog refresh, refresh      **
 ** cadence (avg interval < 16 us).                                         **
 **                                                                         **
+** Compile modes (one source, three registry targets):                     **
+**   (none)             legacy 18-bit word-per-location; stored parity     **
+**                      round-trips, including deliberately BAD parity     **
+**   -DND_SDRAM_PACK16  packed 16-bit mode: two ND words per location,     **
+**                      DQM lane-masked writes. Pinned contract            **
+**                      (docs/nd120-parity-analysis.md section 6):         **
+**                      adjacent-word independence, computed parity on     **
+**                      read (CORR_n always 1), bad-parity writes absorbed **
+**   + -DTB_PART_ROWS=n reduced CPU partition: rows >= n report ABSENT     **
+**                      (reads 0, writes dropped), like an empty bank      **
+**                                                                         **
 ** Prints "TB_RESULT: PASS" on success.                                    **
 **                                                                         **
-** Last reviewed: 8-JUL-2026                                               **
+** Last reviewed: 11-JUL-2026                                              **
 ** Ronny Hansen                                                            **
 *****************************************************************************/
 `timescale 1ns / 1ps
@@ -22,6 +33,13 @@
 module mem_ram_49_sdram_tb;
 
   localparam OSC_PERIOD = 37;  // ~27 MHz
+
+  // CPU partition size in 1K-word rows ({bank, row}); 2048 = full 4 MB
+`ifdef TB_PART_ROWS
+  localparam TB_ROWS = `TB_PART_ROWS;
+`else
+  localparam TB_ROWS = 2048;
+`endif
 
   // OSC and 2x clock, edge-aligned (posedge osc == every other posedge clk2x)
   reg clk2x = 1;
@@ -50,7 +68,8 @@ module mem_ram_49_sdram_tb;
   wire [3:0] sd_dqm;
 
   MEM_RAM_49_SDRAM #(
-      .CLK2X_FREQ(54_000_000)
+      .CLK2X_FREQ(54_000_000),
+      .CPU_PART_ROWS(TB_ROWS)
   ) dut (
       .sysclk(osc),
       .sys_rst_n(sys_rst_n),
@@ -120,11 +139,30 @@ module mem_ram_49_sdram_tb;
     end
   endtask
 
+  // expected readback of a written 18-bit word
+`ifdef ND_SDRAM_PACK16
+  // packed mode: 16 data bits stored, parity REGENERATED as odd parity on
+  // read - a deliberately-bad stored parity bit is absorbed
+  function [17:0] exp_rd(input [17:0] w);
+    exp_rd = {~(^w[16:9]), w[16:9], ~(^w[7:0]), w[7:0]};
+  endfunction
+`else
+  // legacy 18-bit mode: all 18 bits (incl. bad parity) round-trip verbatim
+  function [17:0] exp_rd(input [17:0] w);
+    exp_rd = w;
+  endfunction
+`endif
+
+  // does this ND address belong to a populated bank AND the CPU partition?
+  function present(input [1:0] bank, input [9:0] row);
+    present = (bank < 2) && ({1'b0, bank[0], row} < TB_ROWS[11:0]);
+  endfunction
+
   // ---- one access with the measured 6-cycle signature ----
   // bank: 0/1/2. For reads, samples DD_OUT/CORR_n late in N+4 AND N+5.
   task access(input [1:0] bank, input [9:0] row, input [9:0] col, input wn,
               input [17:0] wdata);
-    reg [17:0] s4, s5;
+    reg [17:0] s4, s5, exp;
     reg c4, c5;
     reg [20:0] idx;
     begin
@@ -166,17 +204,18 @@ module mem_ram_49_sdram_tb;
       repeat (5 + ({$random} % 8)) @(posedge osc);
 
       if (wn) begin  // read: verify
-        if (bank == 2) begin
-          check(s4 === 18'b0, "bank2 read not 0 (N+4)");
-          check(c4 === 1'b1, "bank2 CORR_n not 1");
+        if (!present(bank, row)) begin
+          check(s4 === 18'b0, "absent read not 0 (N+4)");
+          check(c4 === 1'b1, "absent CORR_n not 1");
         end else if (written[idx]) begin
-          check(s4 === mirror[idx], "read data wrong (N+4)");
-          check(s5 === mirror[idx], "read data not held (N+5)");
-          check(c4 === ((^mirror[idx][8:0]) & (^mirror[idx][17:9])), "CORR_n wrong (N+4)");
+          exp = exp_rd(mirror[idx]);
+          check(s4 === exp, "read data wrong (N+4)");
+          check(s5 === exp, "read data not held (N+5)");
+          check(c4 === ((^exp[8:0]) & (^exp[17:9])), "CORR_n wrong (N+4)");
           check(c5 === c4, "CORR_n not held (N+5)");
         end
       end else begin  // write: track mirror, DD_OUT must stay 0
-        if (bank != 2) begin
+        if (present(bank, row)) begin
           mirror[idx]  = wdata;
           written[idx] = 1;
         end
@@ -223,10 +262,49 @@ module mem_ram_49_sdram_tb;
     rd18(2, 10'h012, 10'h034);
 
     // ---- parity round-trip: even and (deliberately) odd parity words ----
-    wr18(0, 10'h010, 10'h001, 18'b000000000_000000011);  // even parity halves
-    wr18(0, 10'h010, 10'h002, 18'b000000001_000000001);  // odd parity halves (bad-parity test data)
+    // legacy mode: stored parity (incl. BAD parity) round-trips verbatim;
+    // pack16 mode: parity is recomputed on read, bad parity is absorbed
+    // (exp_rd encodes the mode's contract - nd120-parity-analysis.md sec. 6)
+    wr18(0, 10'h010, 10'h001, 18'b000000000_000000011);  // BAD low parity (correct = 1)
+    wr18(0, 10'h010, 10'h002, 18'b000000001_000000001);  // good parity halves
     rd18(0, 10'h010, 10'h001);
     rd18(0, 10'h010, 10'h002);
+
+`ifdef ND_SDRAM_PACK16
+    // ---- pack16: adjacent ND words (even/odd col) share one location ----
+    // lane-mask contract: writing one half must NEVER disturb the other
+    $display("TB: pack16 adjacent-word independence...");
+    wr18(0, 10'h020, 10'h000, 18'h3FFFF);  // even half: all-ones data
+    wr18(0, 10'h020, 10'h001, 18'h00000);  // odd half: all-zeros data
+    rd18(0, 10'h020, 10'h000);             // even survived the odd write
+    rd18(0, 10'h020, 10'h001);
+    wr18(0, 10'h020, 10'h000, 18'h00000);  // overwrite even with zeros
+    rd18(0, 10'h020, 10'h001);             // odd untouched
+    rd18(0, 10'h020, 10'h000);
+    wr18(0, 10'h020, 10'h3FF, 18'h15555);  // odd half first this time
+    wr18(0, 10'h020, 10'h3FE, 18'h2AAAA);
+    rd18(0, 10'h020, 10'h3FF);
+    rd18(0, 10'h020, 10'h3FE);
+    // read-after-write of the SAME location's other half (stale-DQM check:
+    // the write's lane mask must not blank the following read's data window)
+    wr18(1, 10'h021, 10'h004, 18'h12345);
+    rd18(1, 10'h021, 10'h005);
+    rd18(1, 10'h021, 10'h004);
+
+    // ---- partition boundary (reduced-CPU builds): last CPU row present,
+    // first storage-reserved row absent (write dropped, reads 0) ----
+    if (TB_ROWS < 2048) begin
+      $display("TB: pack16 partition boundary at row %0d...", TB_ROWS);
+      rb   = (TB_ROWS - 1) / 1024;
+      rrow = (TB_ROWS - 1) % 1024;
+      wr18(rb, rrow, 10'h005, 18'h12345);
+      rd18(rb, rrow, 10'h005);
+      rb   = TB_ROWS / 1024;
+      rrow = TB_ROWS % 1024;
+      wr18(rb, rrow, 10'h005, 18'h0AAAA);
+      rd18(rb, rrow, 10'h005);
+    end
+`endif
 
     // ---- random soak ----
     $display("TB: random soak (2000 accesses)...");

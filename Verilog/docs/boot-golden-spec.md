@@ -112,6 +112,11 @@ All addresses verified against the Verilator trace from address 0. Ticks are
 - Self-test loop `002116-002123`: iterates ~16 times; `COND,LC=0` at `002123`
   exits when the loop counter reaches 0. (`002116` area in ND-120 listing
   lines 6560-6610; error path `STERR1` at `002121`.)
+- This loop is self-test TEST 6 (loop counter / shift-right-double via GPR),
+  a pure CPU-core test. It does NOT touch memory parity - the `IDBS,PEA`
+  select in the `002123` loop-back word is a don't-care (`ALUD,NONE`); no
+  self-test subtest exercises memory parity at all. Full evidence:
+  `docs/nd120-parity-analysis.md`.
 - Then UART output routines run (self-test result banner).
 
 ### Phase 5 — OPCOM ready + RTC async

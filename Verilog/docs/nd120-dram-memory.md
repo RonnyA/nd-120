@@ -233,17 +233,27 @@ the primary mechanism and the watchdog only covers an idle CPU.
 
 ### Word width: 18 bits into a 32-bit SDRAM
 
-The SDRAM is 2M x 32. The clean mapping is **one 18-bit ND word per 32-bit
+The SDRAM is 2M x 32. The original mapping is **one 18-bit ND word per 32-bit
 SDRAM word** (needs the controller's 32-bit port instead of the byte port - a
 small modification; `dout32` already exists, writes need a 4-lane DQM=0000
 variant). Capacity: 2M words = **2 banks of 1M words = 4 MB** - BANK2 simply
 reports absent, the ND-120's boot-time size probing handles missing banks
 (that is how the machine was sold with less than max memory).
 
-Alternative if 3 full banks (6 MB) are ever needed: store only the 16 data
-bits (3M x 16 fits in 6 MB of the 8 MB) and recompute the 2 parity bits on
-read. **Rejected for now**: the self-test deliberately writes bad parity to
-test the error path; recomputed parity would break that.
+**Superseded 11-JUL-2026 by `ND_SDRAM_PACK16`** (work order
+`nd120-parity-refactor-order.md`): store only the 16 DATA bits, TWO ND words
+per 32-bit location, DQM lane-masked writes (single access, no
+read-modify-write, protocol timing untouched), parity COMPUTED on the read
+path. The old "rejected: the self-test deliberately writes bad parity"
+rationale was folklore - the microcode self-test never touches memory parity
+and runtime software only consumes the PES/PEA/IIC error machinery; see
+`docs/nd120-parity-analysis.md` for the evidence and the pinned contract.
+With the define on, BANK0+BANK1 (still the full 4 MB, boot sizing unchanged)
+occupy the LOWER half of the chip (location bit 20 = 0) and the upper 4 MB
+is reserved for the nd_storage disk-image cache (`nd-storage-design.md`
+section 5.2). The CPU/storage split is parameterized at ND-row granularity
+(`MEM_RAM_49_SDRAM` parameter `CPU_PART_ROWS`, default 2048 = 4 MB) so a
+future build can trade CPU memory for cache without another refactor.
 
 ## 7. Frequencies and how to adjust per board
 

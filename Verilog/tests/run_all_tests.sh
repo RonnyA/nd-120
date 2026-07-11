@@ -50,6 +50,8 @@ REGISTRY=(
   "DELILAH-CPU/CGA_MIC/sim  :: test-masel-basic :: PASS"
   # --- Tang Nano 20K SDRAM stack ---------------------------------------
   "fpga/tang-nano-20k/sdram-bridge/sim :: test :: TB_RESULT: PASS"
+  "fpga/tang-nano-20k/sdram-bridge/sim :: test-pack16 :: TB_RESULT: PASS"
+  "fpga/tang-nano-20k/sdram-bridge/sim :: test-pack16-part :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sdram-test/sim   :: test :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sdram18-test/sim :: test :: TB_RESULT: PASS"
   # --- SD-FAT library + Tang Nano 20K SD test ---------------------------

@@ -139,16 +139,14 @@ Previously marked as fixed but needs double-checking. IN/OUT signal assignments 
 
 **File**: `CPU-BOARD-3202/circuit/CPU_15.v`
 
-### AM29833A: Parity and error not implemented
+### AM29833A: Parity and error not implemented — RESOLVED (stale entry)
 
-Error flag and parity output are hardcoded:
-
-```verilog
-assign ERR_n = 1;    // Should detect parity errors
-assign PAR_OUT = 0;  // Should compute parity
-```
-
-This affects parity error testing and may cause self-test failures.
+**Stale as of 11-JUL-2026:** `Shared/support/AM29833A.v` has real parity
+logic (PAR_OUT = ~(^R) generate, 9-bit receive-side check register driving
+ERR_n; reviewed 22-MAR-2025; equivalence tb `test-am29833a`). And parity
+cannot be behind any self-test failure anyway: the microcode self-test
+never touches memory parity — all 8 subtests are CPU-core-only. Evidence
+with octal microcode references: `docs/nd120-parity-analysis.md`.
 
 **File**: `Shared/support/AM29833A.v`
 

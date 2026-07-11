@@ -26,6 +26,14 @@
 // Main memory = embedded 8 MB SDRAM through MEM_RAM_49_SDRAM (2 banks, 4 MB)
 `define MAIN_RAM_SDRAM
 
+// Packed main memory: store 16 DATA bits only, two ND words per 32-bit SDRAM
+// location (DQM lane-masked writes, parity computed on read). CPU keeps the
+// full 4 MB in the LOWER half of the chip; the upper 4 MB is reserved for the
+// nd_storage disk-image cache. Semantics pinned by docs/nd120-parity-analysis.md;
+// tbs: sdram-bridge/sim test-pack16 / test-pack16-part. Only meaningful with
+// MAIN_RAM_SDRAM; no effect on Verilator/Basys3 builds.
+`define ND_SDRAM_PACK16
+
 // Slow bring-up clocking (G1): first Gowin build measured CPU-domain Fmax at
 // 9.38 MHz (31 levels) with derived-clock domains down to 4.7 MHz - the known
 // derived-clock architecture problem. Until the clock-enable refactor closes

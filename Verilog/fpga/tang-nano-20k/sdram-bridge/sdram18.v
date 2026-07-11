@@ -9,6 +9,17 @@
 //   - everything else (timing parameters, state machine, refresh, init)
 //     is unchanged
 //
+// ND_SDRAM_PACK16 (docs/nd120-parity-refactor-order.md, semantics pinned by
+// docs/nd120-parity-analysis.md): store 16 DATA bits only, TWO ND words per
+// 32-bit SDRAM location. addr becomes a 22-bit HALF-WORD address
+// ([21:1] = location, [0] = half), din/dout become 16 bits. A 16-bit write
+// stays a SINGLE access: the DQM byte lanes mask the other half (write DQM
+// latency is 0 cycles), so there is no read-modify-write and the state
+// machine timing is untouched. After the write burst the DQM lanes are
+// restored to 0 (read DQM latency is 2 cycles - a stale mask would blank
+// the next read's data window on silicon). Reads fetch the full 32-bit
+// location and mux the addressed half onto dout.
+//
 // Under default settings (max 66.7Mhz):
 // - Data read latency is 4 cycles, read/write take 5 cycles, no overlap.
 // - All ops use auto-precharge; caller must pulse `refresh` once per ~15 us.
@@ -51,9 +62,15 @@ module sdram18
     input             rd,           // command: read
     input             wr,           // command: write
     input             refresh,      // command: auto refresh, once per ~15 us
+`ifdef ND_SDRAM_PACK16
+    input      [21:0] addr,         // HALF-WORD address: [21:1] = location, [0] = half
+    input      [15:0] din,          // data input, buffered at wr pulse time
+    output     [15:0] dout,         // data output, valid at data_ready, then held
+`else
     input      [20:0] addr,         // WORD address, buffered at rd/wr pulse time
     input      [17:0] din,          // data input, buffered at wr pulse time
     output     [17:0] dout,         // data output, valid at data_ready, then held
+`endif
     output reg        data_ready,
     output reg        busy          // 0: ready for next command
 );
@@ -64,8 +81,14 @@ reg [DATA_WIDTH-1:0] dq_out;
 assign SDRAM_DQ = dq_oen ? {DATA_WIDTH{1'bz}} : dq_out;
 wire [DATA_WIDTH-1:0] dq_in = SDRAM_DQ;
 
+`ifdef ND_SDRAM_PACK16
+reg [15:0] dout_buf;
+wire [15:0] dq_in_half;
+assign dout = data_ready ? dq_in_half : dout_buf;
+`else
 reg [17:0] dout_buf;
 assign dout = data_ready ? dq_in[17:0] : dout_buf;
+`endif
 assign SDRAM_CLK = clk_sdram;
 assign SDRAM_CKE = 1'b1;
 assign SDRAM_nCS = 1'b0;
@@ -93,8 +116,14 @@ localparam [10:0] MODE_REG = {4'b0, CAS[2:0], BURST_MODE, BURST_LEN};
 
 reg cfg_now;            // pulse for configuration
 reg [3:0] cycle;
+`ifdef ND_SDRAM_PACK16
+reg [15:0] din_buf;
+reg [21:0] addr_buf;    // {ba[1:0], row[10:0], col[7:0], half}
+assign dq_in_half = addr_buf[0] ? dq_in[31:16] : dq_in[15:0];
+`else
 reg [17:0] din_buf;
 reg [20:0] addr_buf;    // {ba[1:0], row[10:0], col[7:0]}
+`endif
 
 //
 // SDRAM state machine
@@ -135,8 +164,13 @@ always @(posedge clk) begin
         {IDLE, 4'bxxxx}: if (rd | wr) begin
             // bank activate; word address split: {ba, row, col}
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_BankActivate;
+`ifdef ND_SDRAM_PACK16
+            SDRAM_BA <= addr[21:20];
+            SDRAM_A  <= addr[19:9];                 // 11-bit row address
+`else
             SDRAM_BA <= addr[20:19];
             SDRAM_A  <= addr[18:8];                 // 11-bit row address
+`endif
             state <= rd ? READ : WRITE;
             addr_buf <= addr;
             if (wr) din_buf <= din;
@@ -153,7 +187,11 @@ always @(posedge clk) begin
         {READ, T_RCD}: begin
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_Read;
             SDRAM_A[10] <= 1'b1;        // auto precharge
+`ifdef ND_SDRAM_PACK16
+            SDRAM_A[9:0] <= {2'b0, addr_buf[COL_WIDTH:1]};  // column (location)
+`else
             SDRAM_A[9:0] <= {2'b0, addr_buf[COL_WIDTH-1:0]};  // column
+`endif
             SDRAM_DQM <= 4'b0;
         end
         {READ, T_RCD+CAS}: begin
@@ -161,7 +199,11 @@ always @(posedge clk) begin
         end
         {READ, T_RCD+CAS+4'd1}: begin
             data_ready <= 1'b0;
+`ifdef ND_SDRAM_PACK16
+            dout_buf <= dq_in_half;
+`else
             dout_buf <= dq_in[17:0];
+`endif
             busy <= 0;
             state <= IDLE;
         end
@@ -170,13 +212,25 @@ always @(posedge clk) begin
         {WRITE, T_RCD}: begin
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_Write;
             SDRAM_A[10] <= 1'b1;        // auto precharge
+`ifdef ND_SDRAM_PACK16
+            SDRAM_A[9:0] <= {2'b0, addr_buf[COL_WIDTH:1]};  // column (location)
+            // lane-masked single-access write: mask (1) the half NOT addressed
+            SDRAM_DQM <= addr_buf[0] ? 4'b0011 : 4'b1100;
+            dq_out <= {din_buf, din_buf};   // masked lanes ignore their copy
+`else
             SDRAM_A[9:0] <= {2'b0, addr_buf[COL_WIDTH-1:0]};  // column
             SDRAM_DQM <= 4'b0000;       // write all lanes (18-bit word in 32)
             dq_out <= {14'b0, din_buf};
+`endif
             dq_oen <= 1'b0;
         end
         {WRITE, T_RCD+4'd1}: begin
             dq_oen <= 1'b1;
+`ifdef ND_SDRAM_PACK16
+            // restore read mask NOW: read DQM latency is 2 cycles, so the mask
+            // must be low well before the next read's data window
+            SDRAM_DQM <= 4'b0;
+`endif
         end
         {WRITE, T_RCD+T_WR+T_RP}: begin
             busy <= 0;

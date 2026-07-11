@@ -18,6 +18,18 @@
 ** BANK2 is not populated: never written, reads as 0, so the ND-120's    **
 ** boot-time memory sizing simply detects two banks.                     **
 **                                                                       **
+** ND_SDRAM_PACK16 (docs/nd120-parity-refactor-order.md, semantics       **
+** pinned by docs/nd120-parity-analysis.md): only the 16 DATA bits are   **
+** stored, two adjacent ND words per 32-bit SDRAM location, so           **
+** BANK0+BANK1 (still the full 4 MB, boot sizing unchanged) fold into    **
+** the LOWER half of the chip (location bit 20 = 0); the upper half is   **
+** RESERVED for the nd_storage disk-image cache (nd-storage-design.md    **
+** section 5.2). Parity is COMPUTED on the read path (DD[8]/DD[17]       **
+** regenerated as odd parity, CORR_n always "correct") - licensed by the **
+** parity analysis: no self-test or runtime path reads stored parity.    **
+** The CPU/storage split is parameterized at ND-row granularity          **
+** (CPU_PART_ROWS) so a future build can trade CPU memory for cache.     **
+**                                                                       **
 ** Refresh is generated HERE (the board logic's refresh chain is         **
 ** inactive - see docs/nd120-dram-memory.md section 4): primarily in     **
 ** the guaranteed-idle slot right after each access, plus an idle        **
@@ -33,10 +45,17 @@ module MEM_RAM_49_SDRAM #(
     // provides BOARD_CLK_FREQ (tang20k_defines.v), derive 2x from it - the
     // refresh interval and the controller's init counts depend on it.
 `ifdef BOARD_CLK_FREQ
-    parameter CLK2X_FREQ = 2 * `BOARD_CLK_FREQ
+    parameter CLK2X_FREQ = 2 * `BOARD_CLK_FREQ,
 `else
-    parameter CLK2X_FREQ = 54_000_000
+    parameter CLK2X_FREQ = 54_000_000,
 `endif
+    // ND_SDRAM_PACK16 only: how many 1K-ND-word rows ({bank, row[9:0]} out of
+    // 2048) belong to the CPU. Default 2048 = full 4 MB main memory (both ND
+    // banks). Rows at/above this count report ABSENT (read 0, writes dropped),
+    // so boot-time sizing shrinks accordingly - e.g. 1024 = 2 MB CPU, freeing
+    // 6 MB of the chip for the storage cache. Keep it a multiple of 1024 so
+    // whole ND banks appear/disappear (the sizing probe works per bank).
+    parameter CPU_PART_ROWS = 2048
 ) (
     // Input signals (sheet-49 interface, same as MEM_RAM_49)
     input sysclk,     // OSC-domain clock (unused internally; kept for symmetry)
@@ -114,9 +133,15 @@ module MEM_RAM_49_SDRAM #(
    ** SDRAM controller (18-bit word variant, runs entirely on clk2x)             **
    *******************************************************************************/
   reg         s_rd, s_wr, s_refresh;
+`ifdef ND_SDRAM_PACK16
+  reg  [21:0] s_addr;  // half-word address: [21]=0 pins the CPU to the low half
+  reg  [15:0] s_din;
+  wire [15:0] s_dout;
+`else
   reg  [20:0] s_addr;
   reg  [17:0] s_din;
   wire [17:0] s_dout;
+`endif
   wire        s_data_ready, s_busy;
 
   sdram18 #(
@@ -243,7 +268,13 @@ module MEM_RAM_49_SDRAM #(
           if (RAS && !ras_d) begin  // fast edge 2N+1: RAS rise seen, AA = row
             row_q     <= AA_9_0;
             wn_q      <= MWRITE50_n;
+`ifdef ND_SDRAM_PACK16
+            // partition check at row granularity: rows beyond the CPU's share
+            // behave exactly like an unpopulated bank (B_TAIL path)
+            bsel_q    <= (BANK0 | BANK1) && ({BANK1, AA_9_0} < CPU_PART_ROWS[11:0]);
+`else
             bsel_q    <= BANK0 | BANK1;
+`endif
             bank_q    <= BANK1;
             have_data <= 0;
             idle_cnt  <= 0;
@@ -261,7 +292,13 @@ module MEM_RAM_49_SDRAM #(
           if (!bsel_q) begin
             bstate <= B_TAIL;  // BANK2 / no bank: not populated, do nothing
           end else if (!s_busy) begin
+`ifdef ND_SDRAM_PACK16
+            // ND word address as a HALF-WORD index into the low half of the
+            // chip: adjacent ND words share one 32-bit location ([0] = half)
+            s_addr <= {1'b0, bank_q, row_q, AA_9_0};
+`else
             s_addr <= {bank_q, row_q, AA_9_0};  // {bank, row[9:0], col[9:0]} = 21 bits
+`endif
             if (wn_q) begin
               s_rd   <= 1;  // read: issue now -> data_ready by fast 2N+8 = OSC N+4
               bstate <= B_RDWAIT;
@@ -279,7 +316,13 @@ module MEM_RAM_49_SDRAM #(
           // drive window (through OSC N+4 = fast 2N+8), then issue with it
           wcnt_q <= wcnt_q + 1'b1;
           if (wcnt_q >= 3'd5 && !s_busy) begin
+`ifdef ND_SDRAM_PACK16
+            // store the 16 DATA bits only; DD[8]/DD[17] (parity) are dropped
+            // and recomputed on read (docs/nd120-parity-analysis.md section 6)
+            s_din  <= {dd_acc[16:9] | dd_acc_n[16:9], dd_acc[7:0] | dd_acc_n[7:0]};
+`else
             s_din  <= dd_acc | dd_acc_n;
+`endif
             s_wr   <= 1;
             bstate <= B_POST;
           end else if (wcnt_q >= 3'd5) begin
@@ -289,7 +332,13 @@ module MEM_RAM_49_SDRAM #(
 
         B_RDWAIT:
         if (s_data_ready) begin
+`ifdef ND_SDRAM_PACK16
+          // regenerate ODD parity (AM29833A convention: PAR = ~^byte) so the
+          // downstream checkers and CORR_n always see a correct word
+          dd_hold   <= {~(^s_dout[15:8]), s_dout[15:8], ~(^s_dout[7:0]), s_dout[7:0]};
+`else
           dd_hold   <= s_dout;
+`endif
           have_data <= 1;
           bstate    <= B_POST;
         end
@@ -302,7 +351,14 @@ module MEM_RAM_49_SDRAM #(
           bstate <= B_IDLE;
         end
 
-        B_TAIL: if (!RAS) bstate <= B_IDLE;
+        B_TAIL: begin
+          // absent bank/row: the controller is idle for this whole access, so
+          // it is a free refresh slot - without this, a run of absent-row
+          // accesses (each resetting the idle watchdog, none reaching the
+          // B_POST slot) starves refresh past its 15 us cadence
+          if (refresh_needed && !s_busy) s_refresh <= 1;
+          if (!RAS) bstate <= B_IDLE;
+        end
 
         default: bstate <= B_IDLE;
       endcase
