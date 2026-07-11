@@ -53,9 +53,10 @@ void proccess_bif_signal(VND120_TOP *top)
 //#define DEBUG_LOG
         if (DEBUG_BIF) printf("-> BAPR %o ", bus_address);
 
-		// ND120_IOX_TRACE: log IOX addresses in the SMD range (debug)
+		// ND120_IOX_TRACE: log IOX addresses in the SMD and floppy
+		// ranges (debug)
 		if (getenv("ND120_IOX_TRACE") &&
-		    (bus_address & ~017) == 01540)
+		    ((bus_address & ~017) == 01540 || (bus_address & ~017) == 01560))
 			printf("[iox] addr %06o %s\r\n", bus_address,
 			       (bus_address & 1) ? "write" : "read");
 

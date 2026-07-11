@@ -112,9 +112,24 @@ int HALF_DELAY_WAIT = (DELAY_FRAMES >> 1); // Equivalent to DELAY_FRAMES / 2
 // --- FF-vs-latch divergence instrumentation (build with EXTRA_CFLAGS) ---
 // -DSCRIPT_INPUT : after the boot '#' prompt, auto-inject a scripted command
 // -DTRACE_CSA    : log CSA_12_0 changes (post-boot) to csa_trace.csv
-#if defined(TRACE_CSA) || defined(SCRIPT_INPUT)
 static int g_boot_done_cnt = 0;    // cnt when first '#' output (0 = not yet)
-#endif
+// Interactive stdin pacing (see the read() gate in the main loop): the sim
+// runs much slower than wall time, so typed or piped chars pile up in the
+// stdin buffer and would reach the console UART back-to-back. MOPC has no
+// RX FIFO and drops them - a fast-typed "1560&" arrives mangled and the
+// boot goes to a garbage address. Feed at most one char per gap instead.
+static long g_stdin_next_cnt = 0;  // don't consume the next stdin char before this cnt
+static long g_stdin_gap = 300000;  // min cnt between stdin chars (ND120_STDIN_GAP)
+static long g_max_cnt = 0;         // 0 = run forever; ND120_MAX_CNT bounds a test run
+// After a '&' boot command the loaded program owns the console, but it
+// only reads the UART once it is up - chars typed during the load are
+// lost (no RX FIFO anywhere). A human waits for the program's greeting
+// before typing; the injectors do the same: after '&', hold input until
+// a full output line has arrived AND the console has been quiet a while.
+static long g_last_rx_cnt = 0;     // cnt of the most recent console output char
+static long g_rx_lf_total = 0;     // total newlines seen on console output
+static long g_lf_at_mark = -1;     // g_rx_lf_total when '&' was sent (-1 = not waiting)
+static long g_amp_settle = 3000000; // quiet time required after the greeting (ND120_AMP_SETTLE)
 #ifdef TRACE_CSA
 static FILE *g_csa_fp = nullptr;
 static unsigned g_last_csa = 0xFFFFu;
@@ -434,9 +449,19 @@ int main(int argc, char **argv)
 	FILE *g_mic_fp = fopen("mic_trace.csv", "w");
 	fprintf(g_mic_fp, "cnt,sysclk,csa,csbits,regREP,regIW,muxsel,term,cc\n");
 #endif
+	if (const char *e = getenv("ND120_STDIN_GAP")) g_stdin_gap = atol(e);
+	if (const char *e = getenv("ND120_MAX_CNT")) g_max_cnt = atol(e);
+	if (const char *e = getenv("ND120_AMP_SETTLE")) g_amp_settle = atol(e);
+
 	while (true)
 	{
 		cnt++;
+
+		if (g_max_cnt > 0 && cnt > g_max_cnt)
+		{
+			printf("\n[harness] ND120_MAX_CNT reached, stopping\n");
+			break;
+		}
 
 		if (cnt == 100)
 		{
@@ -547,7 +572,17 @@ int main(int argc, char **argv)
 				g_last_csa = top->CSA_12_0;
 			}
 #endif
-			if (cnt > g_boot_done_cnt + 200000 + 40000000)
+			// post-boot cycle budget; ND120_SCRIPT_BUDGET overrides (a
+			// booted program that must also answer typed commands needs
+			// more room than the default)
+			static long s_script_budget = 0;
+			if (s_script_budget == 0)
+			{
+				s_script_budget = 40000000;
+				if (const char *e = getenv("ND120_SCRIPT_BUDGET"))
+					s_script_budget = atol(e);
+			}
+			if (cnt > g_boot_done_cnt + 200000 + s_script_budget)
 			{
 #ifdef TRACE_CSA
 				if (g_csa_fp) { fclose(g_csa_fp); g_csa_fp = nullptr; }
@@ -579,10 +614,18 @@ int main(int argc, char **argv)
 			ssize_t n = 0;
 #ifdef SCRIPT_INPUT
 			// After boot ('#' seen) + settle, feed the scripted command instead of stdin
-			if (g_boot_done_cnt != 0 && cnt > g_boot_done_cnt + 1000000 && cnt > g_next_inject_cnt && g_script[g_script_idx] != '\0')
+			if (g_boot_done_cnt != 0 && cnt > g_boot_done_cnt + 1000000 && cnt > g_next_inject_cnt && g_script[g_script_idx] != '\0' &&
+			    (g_lf_at_mark < 0 || (g_rx_lf_total > g_lf_at_mark && cnt > g_last_rx_cnt + g_amp_settle)))
 			{
 				ch = g_script[g_script_idx++];
 				n = 1;
+				// '&' hands the console to the booted program: hold the
+				// rest of the script until it has printed a line and gone
+				// quiet (a human waits for the greeting before typing)
+				g_lf_at_mark = (ch == '&') ? g_rx_lf_total : -1;
+				if (getenv("ND120_SCRIPT_DEBUG"))
+					printf("[script] sent %02x '%c' at cnt %d\r\n",
+					       ch, (ch >= ' ' ? ch : '.'), cnt);
 				{
 					// inter-char gap so the reader keeps up (OPCOM or a
 					// booted program); ND120_SCRIPT_GAP overrides
@@ -634,8 +677,25 @@ int main(int argc, char **argv)
 			}
 			else
 #endif
-			// Try to read a character from stdin
-			n = read(STDIN_FILENO, &ch, 1);
+			// Try to read a character from stdin - but paced: hold input
+			// until the boot '#' prompt has appeared, then at most one
+			// char per g_stdin_gap so MOPC (no RX FIFO) keeps up. Queued
+			// chars are not lost, only delayed. See the note at the top.
+			{
+				if (g_boot_done_cnt != 0 && cnt > g_boot_done_cnt + 1000000 &&
+				    cnt > g_stdin_next_cnt &&
+				    (g_lf_at_mark < 0 || (g_rx_lf_total > g_lf_at_mark && cnt > g_last_rx_cnt + g_amp_settle)))
+				{
+					n = read(STDIN_FILENO, &ch, 1);
+					if (n > 0)
+					{
+						g_stdin_next_cnt = cnt + g_stdin_gap;
+						// after '&' hold further input until the booted
+						// program has printed its greeting and gone quiet
+						g_lf_at_mark = (ch == '&') ? g_rx_lf_total : -1;
+					}
+				}
+			}
 
 			if (n > 0)
 			{
@@ -781,10 +841,10 @@ int main(int argc, char **argv)
 				case 11:
 					// printf("Received 0x%02X '%c'\r\n", rxData, rxData);
 					printf("%c", rxData);
+					g_last_rx_cnt = cnt;
+					if (rxData == '\r' || rxData == '\n') g_rx_lf_total++;
 					fflush(stdout);
-#if defined(TRACE_CSA) || defined(SCRIPT_INPUT)
 					if (rxData == '#' && g_boot_done_cnt == 0) g_boot_done_cnt = cnt;
-#endif
 
 					rxData = 0;
 					rxEnabled = false;
@@ -813,7 +873,7 @@ int main(int argc, char **argv)
 	m_trace->close();
 #endif
 
-#ifdef SCRIPT_INPUT
+	// Available in interactive builds too (the stdin-path boot test uses it)
 	if (const char *e = getenv("ND120_BINLOAD_CHECK")) {
 		unsigned a0 = 0; int nw = 0;
 		if (sscanf(e, "%o:%d", &a0, &nw) == 2) {
@@ -824,7 +884,6 @@ int main(int argc, char **argv)
 			printf("\n");
 		}
 	}
-#endif
 	delete top;
 	return 0;
 }

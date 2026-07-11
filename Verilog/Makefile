@@ -38,7 +38,7 @@
 #                    verifies the RAM arrays, DMA-reads it back.
 #                    ~12 min (one runSim compile + run).
 
-.PHONY: test test-full test-tape test-dma-rtl test-floppy-boot test-smd-boot
+.PHONY: test test-full test-tape test-dma-rtl test-floppy-boot test-floppy-stdin test-smd-boot
 
 test:
 	@bash tests/run_all_tests.sh
@@ -54,6 +54,7 @@ test-full: test
 	  cmp /tmp/nd120_console_check.log golden/console_ff_golden.log
 	@echo "==== system gate: Tang vtest (boot + deposit + readback) ===="
 	$(MAKE) -C fpga/tang-nano-20k/sim vtest
+	$(MAKE) test-floppy-stdin
 	@echo ""
 	@echo "===================================================================="
 	@echo "  FULL SUITE PASSED (units + goldens + vtest)"
@@ -106,6 +107,26 @@ test-floppy-boot:
 	@echo ""
 	@echo "===================================================================="
 	@echo "  FLOPPY BOOT GATE PASSED (1560& BPUN-booted and EXECUTED the program)"
+	@echo "===================================================================="
+
+# The interactive (typed-input) path: the SAME binary make run-floppy runs
+# (no SCRIPT_INPUT), fed "1560&" through a pipe so all six chars sit in the
+# stdin buffer at once - worst-case typing/paste. The harness must hold
+# them until the '#' prompt and pace them one per gap, or MOPC (no RX
+# FIFO) drops chars and the boot goes to a garbage address (the
+# interactive-hang bug). Same RAM proof as test-floppy-boot.
+test-floppy-stdin:
+	@echo "==== system gate: interactive stdin 1560& floppy boot ===="
+	python3 tests/gen_fboot_img.py /tmp/nd120_fstdin.img /tmp/nd120_fstdin_exp.txt
+	$(MAKE) -C runSim clean >/dev/null
+	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 >/dev/null
+	cd runSim && printf '1560&' | ND120_FLOPPY_IMG=/tmp/nd120_fstdin.img ND120_BINLOAD_CHECK=002000:16 ND120_MAX_CNT=120000000 ./obj_dir/VND120_TOP > /tmp/nd120_fstdin.log 2>&1
+	grep -a "RAM check" /tmp/nd120_fstdin.log > /tmp/nd120_fstdin_got.txt
+	cat /tmp/nd120_fstdin_got.txt
+	awk '{ exit !($$5=="170477" && $$6=="004011" && $$7=="151000" && $$15=="000077") }' /tmp/nd120_fstdin_got.txt
+	@echo ""
+	@echo "===================================================================="
+	@echo "  STDIN FLOPPY BOOT GATE PASSED (piped 1560& booted and EXECUTED)"
 	@echo "===================================================================="
 
 test-smd-boot:

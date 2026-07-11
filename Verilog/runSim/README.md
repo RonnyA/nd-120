@@ -59,3 +59,27 @@ registered instead - the historical runSim behavior.
 configuration and checks a hard verdict (console landmarks, RAM
 contents, executed-code proof). See the top-level `Verilog/Makefile`
 header and `docs/device-bus-todo.md`.
+
+`make test-floppy-stdin` additionally proves the INTERACTIVE input
+path: it pipes `1560&` into the exact `make run-floppy` binary
+(worst-case: all chars buffered at once) and requires the boot to
+load AND execute. The harness paces stdin (one char per 300000 cnt,
+`ND120_STDIN_GAP`), holds input until the `#` prompt, and after a
+`&` boot holds again until the loaded program has printed a full
+line and gone quiet (`ND120_AMP_SETTLE`). Without that pacing MOPC
+(no RX FIFO) drops chars and a typed `1560&` arrives mangled - the
+old "interactive boot hangs" bug. `ND120_MAX_CNT` bounds a run for
+tests.
+
+## Known sim-only limitation: console input to a BOOTED program
+
+After `&` the loaded program owns the console, but in Verilator it
+never sees typed input: the program polls the terminal controller
+via IOX and the zero-delay sim's IDB read race returns 0 for the
+data-available status (the same artifact that blocks the `300$`
+serial loader). Proven 11-JUL-2026: the 210523I01 diskette boots,
+runs, prints its greeting and completes all its floppy I/O, the
+harness delivers `help` cleanly afterwards, and the program never
+receives a char. On FPGA hardware this path works. Interactive
+validation of booted programs is therefore a HARDWARE test until
+the IDB read race is modeled/fixed.
