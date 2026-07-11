@@ -128,9 +128,19 @@ partition uses only part of it. Use the spare SDRAM as the disk layer:
 - HDD/SMD later (37-75 MB, does not fit): real cache with per-block
   tags (2048-byte blocks) over the same SDRAM region, same
   write-through policy
-- SDRAM map: fixed partition - low region ND-120 main memory (as
-  today), high region disk-image slots; document the map in one place
-- sdram18.v gets a second (device) port; ARBITRATION RULE: CPU memory
+- SDRAM map (UPDATED 11-JUL per the pack16 refactor, commit d26fd66):
+  with ND_SDRAM_PACK16 (Tang; already default in tang20k_defines.v)
+  the CPU uses two ND words per 32-bit SDRAM location, so STORAGE GETS
+  THE ENTIRE UPPER 4 MB as 32-bit locations {1'b1, addr[19:0]} WITHOUT
+  sacrificing CPU memory. The CPU/storage split knob is the parameter
+  MEM_RAM_49_SDRAM #(CPU_PART_ROWS) (1K-word ND rows, default 2048 =
+  full 4 MB CPU) - never hardcode the boundary. Contract doc:
+  docs/nd120-parity-analysis.md; gates test-pack16/test-pack16-part
+  registered.
+- sdram18.v gets a second (device) port; CAVEAT from the pack16 work:
+  the CPU-side address in pack16 is a 22-bit HALF-word address
+  ([0] = which half) - the device port must use the FULL-LOCATION view
+  ({1'b1, addr[19:0]}), not the CPU view. ARBITRATION RULE: CPU memory
   traffic has absolute priority, the device port takes leftover cycles
   only - a floppy preload must never stall a CPU access
 - Tape/BPUN: ALSO 100% cached - preload the whole .BPUN into SDRAM at
@@ -183,14 +193,16 @@ partition uses only part of it. Use the spare SDRAM as the disk layer:
       masters against a BCU+memory model - word write/read, 64-word
       block, simultaneous requests with chain priority, delayed
       grant, dead-memory timeout + recovery. Registered in the suite.
-- [ ] Full-RTL validation IN THE VERILATOR SIMULATORS FIRST (Ronny's
-      rule 11-JUL: sim + unit tests before any board work): drive
-      ND_DMA_MASTER against the REAL CPU board (assert BREQ_n into
-      ND120_TOP, real PAL arbiter grants, real RAM answers) -
-      instantiate behind ND120_VERILOG_DEVICES like the tape, verify
-      a DMA-written pattern via OPCOM examine and a DMA read of a
-      deposited pattern; gate with a registered test target. ONLY
-      AFTER the sim gate is green does DMA go into the Tang project.
+- [x] Full-RTL validation GREEN 11-JUL-2026 (`make test-dma-rtl`,
+      commit 54a0a0b): ND_DMA_MASTER inside ND120_TOP, real BREQ into
+      the real PAL_44801A arbiter while the CPU runs, 32 words
+      DMA-written into the real RAM (arrays verified) and DMA-read
+      back. Two findings measured and fixed in the engine: data-window
+      capture (RTL closes the BD data window before the external BDRY
+      edge) and MIN_GAP_TICKS self-pacing (back-to-back re-requests
+      lose the RAM cycle; matches real controllers' 1.4us+ re-request
+      periods). Tang integration is the remaining step, AFTER the sim
+      work completes (Ronny's rule).
 - [ ] Floppy DMA device core (command block in ND memory per
       nd100x deviceFloppyDMA: 12-word block, pointer regs at +5/+7,
       dualDensity status bit15 forced 1) on top of ND_DMA_MASTER
