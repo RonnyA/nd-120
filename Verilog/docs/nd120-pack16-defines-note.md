@@ -1,6 +1,6 @@
 # To: nd-120 FPGA main session
 # From: parity-refactor session
-# Re: defines and parameters introduced by the 16-bit packed SDRAM refactor (commit d26fd66, branch clock-enable-fix, pushed 11-JUL-2026)
+# Re: defines and parameters introduced by the 16-bit packed SDRAM refactor (commits d26fd66 + b79b96d, branch clock-enable-fix, pushed 11-JUL-2026)
 
 ## The one new define
 
@@ -26,12 +26,21 @@ ABSORBED in this mode - data round-trips, parity comes back computed-good.
 - `Verilog/fpga/tang-nano-20k/sim/Makefile` - added to `DEFS` (the full-boot
   pre-synth sim mirrors tang20k_defines.v). vtest PASSES with it on
   (OPCOM deposit 22/054321 readback through the packed path).
-- Referenced ONLY by files under `fpga/tang-nano-20k/` (sdram18.v,
-  MEM_RAM_49_SDRAM.v, their tb). Verilator golden / Basys3 / runSim never
-  see it - non-Tang builds are bit-identical by construction.
-- Only meaningful together with `MAIN_RAM_SDRAM`. Without the define, the
-  bridge/controller compile to the OLD 18-bit one-word-per-location
-  behavior, byte-for-byte (the legacy tb still passes unchanged).
+- `Verilog/runSim/Makefile` - **default ON** (`PACK16 ?= 1`, opt out with
+  `PACK16=0`) as of b79b96d: `MEM_RAM_49_SIM` models the packed-memory
+  CONTRACT at the reference level (parity recomputed from data on read,
+  never read from storage; capacity/banking/preload hooks unchanged - the
+  recompute sits at the output stage precisely so Verilator keeps the
+  b*_p preload arrays alive for Run120.cpp). Validated: the FF-mode
+  golden console gate is BYTE-IDENTICAL to golden/console_ff_golden.log
+  with the define on.
+- On the SDRAM/bridge side, referenced ONLY by files under
+  `fpga/tang-nano-20k/` (sdram18.v, MEM_RAM_49_SDRAM.v, their tb); with
+  the define off everything compiles to the OLD 18-bit stored-parity
+  behavior byte-for-byte (legacy tb + PACK16=0 runSim build). Basys3 /
+  Verilog/sim latch-FF compare builds do not set it.
+- Only meaningful together with `MAIN_RAM_SDRAM` (bridge) or
+  `VERILATOR_SIM` (reference model).
 
 ## The new parameter
 
