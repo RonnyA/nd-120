@@ -96,8 +96,21 @@ help:
 
 .PHONY: help
 
+# Build-flags stamp: make does not rebuild C++ objects when only -D flags
+# change, so switching VERILOG_TAPE / USE_LATCHES / EXTRA_CFLAGS between
+# builds would silently link stale harness objects (e.g. NDBus.o still
+# registering the C devices next to the Verilog ones). If the flag set
+# differs from the last build, wipe obj_dir first.
+BUILD_FLAGS = $(SIM_DEFINES) | $(EXTRA_CFLAGS)
+FLAGS_STAMP = obj_dir/.buildflags
+
 compile: $(CPP_SOURCES)
+	@if [ -d obj_dir ] && [ "`cat $(FLAGS_STAMP) 2>/dev/null`" != "$(BUILD_FLAGS)" ]; then \
+	  echo "Build flags changed (or unknown) since last build - cleaning obj_dir"; \
+	  rm -rf obj_dir; \
+	fi
 	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS) --exe $(CPP_SOURCES)  -CFLAGS "$(VERILATOR_DIRS)  -I../../simDevices $(EXTRA_CFLAGS)"
+	@echo "$(BUILD_FLAGS)" > $(FLAGS_STAMP)
 	cd obj_dir && make -f VND120_TOP.mk VND120_TOP
 
 clean:
@@ -114,7 +127,7 @@ run: compile
 FLOPPY_IMG ?= ../ND-BUS-DEVICES/testdata/210523I01-XX-01D.img
 
 run-floppy:
-	$(MAKE) compile VERILOG_TAPE=1
+	$(MAKE) compile VERILOG_TAPE=1 USE_LATCHES=0
 	ND120_FLOPPY_IMG=$(FLOPPY_IMG) ./obj_dir/VND120_TOP
 
 
