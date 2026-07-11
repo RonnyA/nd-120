@@ -115,8 +115,14 @@ partition uses only part of it. Use the spare SDRAM as the disk layer:
 - sdram18.v gets a second (device) port; ARBITRATION RULE: CPU memory
   traffic has absolute priority, the device port takes leftover cycles
   only - a floppy preload must never stall a CPU access
-- nd_storage clients then see: tape = SD byte stream (unchanged),
-  floppy/HDD = SDRAM-backed block port with SD write-through behind it
+- Tape/BPUN: ALSO 100% cached - preload the whole .BPUN into SDRAM at
+  open (biggest BPUN in the repo is ~46 KB = ~23 blocks, loads in a
+  blink), then the byte stream is served entirely from SDRAM;
+  read-only, so no write-through path needed; "rewind" = reset the
+  SDRAM read pointer, no card access at all
+- nd_storage clients then see the SAME picture for every device:
+  SDRAM-backed (tape = byte stream, floppy/HDD = block port), with
+  the SD card only touched at preload/mount and for write-through
 
 ## Phase 3 - Floppy (PIO first)
 
