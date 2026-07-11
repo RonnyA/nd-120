@@ -38,7 +38,20 @@ module ND_DMA_MASTER #(
     // Safety net only: the real timeout guard is the BCU's (memory out
     // of range -> PES bit 14). This local counter stops a hung FSM in
     // sim/tbs; 0 disables it.
-    parameter [15:0] TIMEOUT_TICKS = 16'd4096
+    parameter [15:0] TIMEOUT_TICKS = 16'd4096,
+    // BINPUT is an ADDRESS-PHASE signal: memory latches the direction
+    // at BAPR; after BAPR goes inactive BINPUT carries no meaning
+    // (confirmed 11-JUL-2026 against Figure V.4.2).
+    //   0 = release BINPUT together with BAPR (correct behavior)
+    //   1 = hold BINPUT until the BDRY leading edge (conservative
+    //       variant, kept selectable for validation runs)
+    parameter BINPUT_HOLD = 0,
+    // Early re-request (open question, both variants unit-tested):
+    //   0 = a new dma_req is accepted only after dma_ack (BREQ
+    //       re-asserted after the BDRY trailing edge)
+    //   1 = a dma_req arriving during a transfer is buffered and BREQ
+    //       re-asserted already in the cycle tail (overlapping BDRY)
+    parameter EARLY_REREQ = 0
 ) (
     input wire sysclk,
     input wire sys_rst_n,
@@ -76,6 +89,10 @@ module ND_DMA_MASTER #(
   reg        s_wr;
   reg [23:0] s_addr;
   reg [15:0] s_wdata;
+  reg        s_pend;        // EARLY_REREQ: buffered next request
+  reg        s_pend_wr;
+  reg [23:0] s_pend_addr;
+  reg [15:0] s_pend_wdata;
   reg        s_prev_bmem_n;
   reg [15:0] s_tick_cnt;
   reg [1:0]  s_phase_cnt;   // small strobe-width counter
@@ -110,6 +127,10 @@ module ND_DMA_MASTER #(
       s_addr        <= 24'd0;
       s_wdata       <= 16'd0;
       s_req_frozen  <= 1'b0;
+      s_pend        <= 1'b0;
+      s_pend_wr     <= 1'b0;
+      s_pend_addr   <= 24'd0;
+      s_pend_wdata  <= 16'd0;
       s_prev_bmem_n <= 1'b1;
       s_tick_cnt    <= 16'd0;
       s_phase_cnt   <= 2'd0;
@@ -128,6 +149,14 @@ module ND_DMA_MASTER #(
       // round is over (BMEM inactive)
       if (BMEM_n == 1'b1) s_req_frozen <= 1'b0;
       else if (s_bmem_fall) s_req_frozen <= (s_state == ST_REQ);
+
+      // EARLY_REREQ: buffer one request arriving while busy
+      if (EARLY_REREQ != 0 && dma_req && (s_state != ST_IDLE) && !s_pend) begin
+        s_pend       <= 1'b1;
+        s_pend_wr    <= dma_wr;
+        s_pend_addr  <= dma_addr;
+        s_pend_wdata <= dma_wdata;
+      end
 
       case (s_state)
         ST_IDLE: begin
@@ -163,6 +192,11 @@ module ND_DMA_MASTER #(
             s_phase_cnt <= s_phase_cnt - 2'd1;
           end else begin
             BAPR_n <= 1'b1;
+            if (BINPUT_HOLD == 0) begin
+              // Direction was latched by memory at BAPR; BINPUT has no
+              // meaning in the data phase - release it with BAPR
+              BINPUT_n <= 1'b1;
+            end
             if (s_wr) begin
               // Write: data on BD combined with BDAP
               BD_23_0_n_OUT <= ~{8'd0, s_wdata};
@@ -192,9 +226,21 @@ module ND_DMA_MASTER #(
 
         // Trailing edge of BDRY releases the bus; complete toward the client
         ST_END: begin
+          if (EARLY_REREQ != 0 && s_pend) begin
+            BREQ_n <= 1'b0;  // re-assert in the cycle tail (overlaps BDRY)
+          end
           if (BDRY_n == 1'b1) begin
             dma_ack <= 1'b1;
-            s_state <= ST_IDLE;
+            if (EARLY_REREQ != 0 && s_pend) begin
+              s_wr    <= s_pend_wr;
+              s_addr  <= s_pend_addr;
+              s_wdata <= s_pend_wdata;
+              s_pend  <= 1'b0;
+              s_tick_cnt <= 16'd0;
+              s_state <= ST_REQ;
+            end else begin
+              s_state <= ST_IDLE;
+            end
           end
         end
 
@@ -212,6 +258,7 @@ module ND_DMA_MASTER #(
           BD_23_0_n_OUT <= 24'hFFFFFF;
           dma_err       <= 1'b1;
           dma_ack       <= 1'b1;
+          s_pend        <= 1'b0;
           s_state       <= ST_IDLE;
         end
       end

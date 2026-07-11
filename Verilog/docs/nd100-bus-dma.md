@@ -1001,13 +1001,16 @@ BDRY    -------------------------------v__________^--------
   E8  BDRY leading edge = "DATA ACCEPTED". Grant withdrawn (arrows
       to BMEM/INGRANT trailing edges). BINPUT's trailing edge is
       drawn here, at the BDRY leading edge; the stretch of BINPUT's
-      active level immediately before it is hatched. Interpretation:
-      BINPUT is guaranteed active at least until memory has accepted
-      the data; the hatch suggests the exact release point inside
-      that late window is not committed. ASK RONNY: may a master
-      release BINPUT between BDAP(lead) and BDRY(lead), or must it
-      hold to the BDRY leading edge? (Safe contract implemented and
-      documented in 8.2: hold BINPUT until the BDRY leading edge.)
+      active level immediately before it is hatched.
+      RESOLVED (Ronny, 11-JUL-2026): BINPUT is an ADDRESS-PHASE
+      signal only. The memory latches the transfer direction at BAPR;
+      once BAPR is inactive BINPUT carries no meaning - the data
+      phase is governed by BDAP (data present, memory reads BD) and
+      BDRY (data accepted) alone. A master may therefore release
+      BINPUT any time after the BAPR trailing edge. ND_DMA_MASTER
+      does this by default (parameter BINPUT_HOLD=0, releasing BINPUT
+      together with BAPR); the conservative hold-to-BDRY variant
+      remains selectable (BINPUT_HOLD=1) and both are unit-tested.
   E9  master releases BDAP (arrow BDRY(lead) -> BDAP(trail)); the
       DATA TO MEMORY bubble extends slightly PAST the BDAP trailing
       edge - write data hold through the strobe release.
@@ -1068,11 +1071,16 @@ resolution against PAL_44902A).
    Earliest re-assert point: the figures do not show a same-
    controller re-request during its own ongoing cycle - the examples
    only show re-requests after cycle end (6 us / 1.4 us periods).
-   ASK RONNY: may the engine re-assert BREQ for word N+1 already
-   while word N's cycle is finishing (pipelined re-request), or
-   should it wait for the BDRY trailing edge? (Conservative: wait
-   for the trailing edge; that is also what a re-request through the
-   dma_req/dma_ack client interface naturally does.)
+   TO BE SETTLED BY TEST (plan agreed with Ronny 11-JUL-2026): the
+   manual does not answer this, so both behaviors are implemented as
+   a parameter on ND_DMA_MASTER (EARLY_REREQ: 0 = re-assert only
+   after the BDRY trailing edge via the normal dma_req/dma_ack flow;
+   1 = buffer the next request and re-assert BREQ already in the
+   cycle tail, overlapping BDRY). Both variants pass the unit tb;
+   the decision falls when both run against the REAL CPU-board
+   arbiter (PAL_44801A) in the Verilator full-RTL gate - whichever
+   the real equations accept (both, probably) and the faster one
+   wins for the SMD.
 7. Nothing acknowledges BREQ except the INGRANT token; if the BCU
    aborts a hung cycle (8 us timeout) the request simply competes in
    the next round.

@@ -62,7 +62,8 @@ module nd_dma_master_tb;
   wire        bdap_bus_n = a_bdap_n & b_bdap_n;
   reg         bdry_n = 1;
 
-  ND_DMA_MASTER #(.TIMEOUT_TICKS(16'd200)) u_master_a (
+  ND_DMA_MASTER #(.TIMEOUT_TICKS(16'd200), .BINPUT_HOLD(0),
+                  .EARLY_REREQ(1)) u_master_a (
       .sysclk(sysclk), .sys_rst_n(sys_rst_n),
       .dma_req(a_req), .dma_wr(a_wr), .dma_addr(a_addr), .dma_wdata(a_wdata),
       .dma_rdata(a_rdata), .dma_ack(a_ack), .dma_err(a_err), .dma_busy(a_busy),
@@ -74,7 +75,8 @@ module nd_dma_master_tb;
       .BDRY_n(bdry_n)
   );
 
-  ND_DMA_MASTER #(.TIMEOUT_TICKS(16'd200)) u_master_b (
+  ND_DMA_MASTER #(.TIMEOUT_TICKS(16'd200), .BINPUT_HOLD(1),
+                  .EARLY_REREQ(0)) u_master_b (
       .sysclk(sysclk), .sys_rst_n(sys_rst_n),
       .dma_req(b_req), .dma_wr(b_wr), .dma_addr(b_addr), .dma_wdata(b_wdata),
       .dma_rdata(b_rdata), .dma_ack(b_ack), .dma_err(b_err), .dma_busy(b_busy),
@@ -128,6 +130,11 @@ module nd_dma_master_tb;
       M_WAITD: begin
         if (bdap_bus_n == 1'b0) begin
           if (m_write) begin
+            // direction was latched at BAPR; a BINPUT_HOLD=0 master must
+            // have released BINPUT before the data phase (all writes in
+            // this tb come from master A, the HOLD=0 variant)
+            check(a_binput_n === 1'b1,
+                  "BINPUT still active in data phase (HOLD=0 master)");
             memory[m_addr[15:0]] <= ~bd_bus_n[15:0];
           end else begin
             mem_bd_n <= ~{8'd0, memory[m_addr[15:0]]};
@@ -302,6 +309,26 @@ module nd_dma_master_tb;
     a_xfer(1'b1, 24'o00006000, 16'hC0DE);
     check(memory[16'o6000] === 16'hC0DE, "post-timeout write lost");
     check(a_err === 1'b0, "post-timeout transfer flagged error");
+
+    // 8: early re-request (EARLY_REREQ=1 on master A): queue word 2
+    //    while word 1 is still on the bus; BREQ overlaps the cycle
+    //    tail; both words must land correctly
+    @(negedge sysclk);
+    a_wr = 1; a_addr = 24'o10000; a_wdata = 16'h1A1A; a_req = 1;
+    @(negedge sysclk);
+    // word 1 in flight: immediately queue word 2
+    a_addr = 24'o10001; a_wdata = 16'h2B2B;
+    @(negedge sysclk);
+    a_req = 0;
+    guard = 0; i = 0;
+    while (i < 2 && guard < 1000) begin
+      @(negedge sysclk);
+      if (a_ack === 1'b1) i = i + 1;
+      guard = guard + 1;
+    end
+    check(i == 2, "early re-request: did not get two acks");
+    check(memory[16'o10000] === 16'h1A1A, "early re-request word 1 lost");
+    check(memory[16'o10001] === 16'h2B2B, "early re-request word 2 lost");
 
     if (errors == 0) $display("TB_RESULT: PASS");
     else begin
