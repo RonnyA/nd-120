@@ -15,6 +15,15 @@ ifeq ($(USE_LATCHES),0)
   SIM_DEFINES += -DFPGA_FF_MODE
 endif
 
+# Packed-memory contract (default ON, matching the Tang build): parity is
+# never read from storage, MEM_RAM_49_SIM recomputes it from the data on
+# every read. Set PACK16=0 to model classic stored-parity DRAM.
+# See docs/nd120-parity-analysis.md.
+PACK16 ?= 1
+ifeq ($(PACK16),1)
+  SIM_DEFINES += -DND_SDRAM_PACK16
+endif
+
 # SKIP_WCS: Set to 1 to pre-load the WCS and skip the microcode load phase.
 #           Requires the 32 wcs_*.hex files in this dir (gen_wcs_image.py).
 #           See docs/skip-wcs-load.md.

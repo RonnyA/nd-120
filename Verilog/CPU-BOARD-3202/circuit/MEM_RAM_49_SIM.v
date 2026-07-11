@@ -19,7 +19,16 @@
 **   ...MEM__DOT__RAM__DOT__b0_hi_p  [1M x 1]  parity bit 17             **
 ** (same element widths as the old CHIP_15H/15J sdram/sdram_9 arrays).   **
 **                                                                       **
-** Last reviewed: 8-JUL-2026                                             **
+** ND_SDRAM_PACK16: models the packed-storage memory contract of the     **
+** Tang SDRAM backend (docs/nd120-parity-analysis.md section 6) at the   **
+** reference level: parity bits are NOT read back from storage - DD[8]/  **
+** DD[17] are recomputed from the data on every read (odd parity), so a  **
+** deliberately-bad-parity write is absorbed. Capacity/banking and the   **
+** C++ preload hooks are unchanged (preload parity arrays become         **
+** don't-cares on read). The physical packing/DQM layer itself is        **
+** validated by the sdram-bridge tbs and the Tang full-boot vtest.       **
+**                                                                       **
+** Last reviewed: 11-JUL-2026                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -109,20 +118,35 @@ module MEM_RAM_49_SIM (
       end
     end
 
+`ifdef ND_SDRAM_PACK16
+  // Packed-storage contract: parity is never READ from storage - recompute
+  // it from the 16 data bits at the output (odd parity, AM29833A
+  // convention). Stored parity still flows into q* above, keeping the
+  // b*_p arrays alive for the C++ preload hooks; it is replaced here, so
+  // observably it was never stored.
+  wire [17:0] q0e = {~(^q0[16:9]), q0[16:9], ~(^q0[7:0]), q0[7:0]};
+  wire [17:0] q1e = {~(^q1[16:9]), q1[16:9], ~(^q1[7:0]), q1[7:0]};
+  wire [17:0] q2e = {~(^q2[16:9]), q2[16:9], ~(^q2[7:0]), q2[7:0]};
+`else
+  wire [17:0] q0e = q0;
+  wire [17:0] q1e = q1;
+  wire [17:0] q2e = q2;
+`endif
+
   // Data out valid while the bank's CAS is active on a read; banks OR together
-  wire [17:0] dd0 = (cas_b0 && MWRITE50_n) ? q0 : 18'b0;
-  wire [17:0] dd1 = (cas_b1 && MWRITE50_n) ? q1 : 18'b0;
-  wire [17:0] dd2 = (cas_b2 && MWRITE50_n) ? q2 : 18'b0;
+  wire [17:0] dd0 = (cas_b0 && MWRITE50_n) ? q0e : 18'b0;
+  wire [17:0] dd1 = (cas_b1 && MWRITE50_n) ? q1e : 18'b0;
+  wire [17:0] dd2 = (cas_b2 && MWRITE50_n) ? q2e : 18'b0;
   assign DD_17_0_OUT = dd0 | dd1 | dd2;
 
   // Parity outputs: per virtual chip, XOR of its 9 bits when reading, else 1;
   // AND-combined - identical to the six chips' PRD_n -> CORR_n
-  wire prd_b0l = (cas_b0 && MWRITE50_n) ? (^q0[8:0]) : 1'b1;
-  wire prd_b0h = (cas_b0 && MWRITE50_n) ? (^q0[17:9]) : 1'b1;
-  wire prd_b1l = (cas_b1 && MWRITE50_n) ? (^q1[8:0]) : 1'b1;
-  wire prd_b1h = (cas_b1 && MWRITE50_n) ? (^q1[17:9]) : 1'b1;
-  wire prd_b2l = (cas_b2 && MWRITE50_n) ? (^q2[8:0]) : 1'b1;
-  wire prd_b2h = (cas_b2 && MWRITE50_n) ? (^q2[17:9]) : 1'b1;
+  wire prd_b0l = (cas_b0 && MWRITE50_n) ? (^q0e[8:0]) : 1'b1;
+  wire prd_b0h = (cas_b0 && MWRITE50_n) ? (^q0e[17:9]) : 1'b1;
+  wire prd_b1l = (cas_b1 && MWRITE50_n) ? (^q1e[8:0]) : 1'b1;
+  wire prd_b1h = (cas_b1 && MWRITE50_n) ? (^q1e[17:9]) : 1'b1;
+  wire prd_b2l = (cas_b2 && MWRITE50_n) ? (^q2e[8:0]) : 1'b1;
+  wire prd_b2h = (cas_b2 && MWRITE50_n) ? (^q2e[17:9]) : 1'b1;
   assign CORR_n = prd_b0l & prd_b0h & prd_b1l & prd_b1h & prd_b2l & prd_b2h;
 
 endmodule
