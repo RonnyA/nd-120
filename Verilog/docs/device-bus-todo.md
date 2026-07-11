@@ -96,8 +96,12 @@ The SD card is slow; the Tang SDRAM is 8 MB and the ND-120 memory
 partition uses only part of it. Use the spare SDRAM as the disk layer:
 
 - CACHE UNIT = ONE BLOCK = 2048 bytes (1 kiloword = 4 SD sectors),
-  the same ND-120 block framing sd-fat-test WRBLK1 already uses; all
-  transfers, tags and write-through happen at this granularity
+  chosen to map 1:1 onto the SD card's block read/write interface
+  (the nd_storage 1KW-block port, same framing sd-fat-test WRBLK1
+  already uses). ONE block unit through the whole stack: device
+  request = cache block = nd_storage block = 4 consecutive SD
+  sectors - a cache fill or write-through is exactly one nd_storage
+  block transfer, no partial blocks, no unit conversion anywhere
 - Floppy (~1.2 MB image = ~600 blocks): PRELOAD the whole image
   block-by-block into SDRAM at mount, serve ALL reads from SDRAM (no
   eviction ever needed), WRITE-THROUGH every written 2048-byte block
