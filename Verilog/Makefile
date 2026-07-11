@@ -20,7 +20,14 @@
 # Board builds stay in fpga/<board>/ (see fpga/README.md); the CPU sims
 # stay in sim/ and runSim/. This Makefile only aggregates TESTS.
 
-.PHONY: test test-full test-tape
+#   make test-dma-rtl  heavy system gate for DMA bus mastering: the
+#                    Verilog ND_DMA_MASTER inside ND120_TOP requests the
+#                    bus from the REAL arbiter (PAL_44801A) while the CPU
+#                    runs, DMA-writes a pattern into the REAL RAM,
+#                    verifies the RAM arrays, DMA-reads it back.
+#                    ~12 min (one runSim compile + run).
+
+.PHONY: test test-full test-tape test-dma-rtl
 
 test:
 	@bash tests/run_all_tests.sh
@@ -62,4 +69,16 @@ test-tape:
 	@echo ""
 	@echo "===================================================================="
 	@echo "  TAPE GATE PASSED (Verilog tape-400 = C model, INSTRUCTION-B boots)"
+	@echo "===================================================================="
+
+test-dma-rtl:
+	@echo "==== system gate: DMA master vs the real arbiter + RAM ===="
+	$(MAKE) -C runSim clean >/dev/null
+	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 EXTRA_CFLAGS="-DSCRIPT_INPUT" >/dev/null
+	cd runSim && ND120_DMA_TEST=010000:32 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_dma_rtl.log 2>&1
+	grep -a "dmatest" /tmp/nd120_dma_rtl.log
+	grep -qa "\[dmatest\] RESULT: PASS" /tmp/nd120_dma_rtl.log
+	@echo ""
+	@echo "===================================================================="
+	@echo "  DMA RTL GATE PASSED (real arbiter granted, real RAM read+written)"
 	@echo "===================================================================="

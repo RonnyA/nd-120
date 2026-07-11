@@ -222,6 +222,9 @@ module nd_dma_master_tb;
     //    both complete with correct data
     memory[16'o3000] = 16'h1111;
     memory[16'o3001] = 16'h2222;
+    // let both masters' recovery gaps (MIN_GAP_TICKS) expire so the
+    // simultaneous request is a pure chain-priority race
+    repeat (40) @(negedge sysclk);
     a_done_seen = 0; b_done_seen = 0;
     @(negedge sysclk);
     a_wr = 0; a_addr = 24'o3000; a_req = 1;

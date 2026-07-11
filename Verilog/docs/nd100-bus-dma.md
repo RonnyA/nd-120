@@ -1071,16 +1071,29 @@ resolution against PAL_44902A).
    Earliest re-assert point: the figures do not show a same-
    controller re-request during its own ongoing cycle - the examples
    only show re-requests after cycle end (6 us / 1.4 us periods).
-   TO BE SETTLED BY TEST (plan agreed with Ronny 11-JUL-2026): the
-   manual does not answer this, so both behaviors are implemented as
-   a parameter on ND_DMA_MASTER (EARLY_REREQ: 0 = re-assert only
-   after the BDRY trailing edge via the normal dma_req/dma_ack flow;
-   1 = buffer the next request and re-assert BREQ already in the
-   cycle tail, overlapping BDRY). Both variants pass the unit tb;
-   the decision falls when both run against the REAL CPU-board
-   arbiter (PAL_44801A) in the Verilator full-RTL gate - whichever
-   the real equations accept (both, probably) and the faster one
-   wins for the SMD.
+   SETTLED BY MEASUREMENT (full-RTL gate, 11-JUL-2026): back-to-back
+   re-requests are NOT safe against this board's memory. The bus
+   arbiter (PAL_44801A) happily grants again immediately, but the
+   memory-side grant/decode chain (BLRQ latch, BCGNT 25/50ns stages)
+   has not unwound yet: the next externally strobed address is never
+   latched, no RAM cycle happens, and the transfer is eventually
+   "completed" by a stray BDRY from unrelated CPU traffic (measured:
+   every second back-to-back read lost, writes survived only because
+   this board buffers DMA writes - see the JLB 1987 notes in
+   PAL_44304E/EBADR). Real controllers never hit this: they
+   re-request at 1.4 us+ periods (II.4 examples). ND_DMA_MASTER
+   therefore self-paces with MIN_GAP_TICKS (default 32 sysclk ticks)
+   between granted cycles - requests are accepted at any time, only
+   the BREQ assertion is deferred. EARLY_REREQ remains available for
+   experiments but must not be used against this memory system.
+
+   Second measured finding (same gate): in our zero-delay RTL the
+   memory's data window on BD closes BEFORE the externally visible
+   BDRY edge (the internal BDRY25/BDRY50 chains release the EBD data
+   drivers early). On the real backplane data holds through BDRY.
+   ND_DMA_MASTER therefore captures the LAST DRIVEN value of the
+   data window instead of strobing BD exactly at the BDRY edge -
+   identical result on real timing, tolerant of the RTL skew.
 7. Nothing acknowledges BREQ except the INGRANT token; if the BCU
    aborts a hung cycle (8 us timeout) the request simply competes in
    the next round.

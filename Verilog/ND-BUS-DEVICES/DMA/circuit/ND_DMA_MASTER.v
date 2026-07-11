@@ -51,7 +51,17 @@ module ND_DMA_MASTER #(
     //       re-asserted after the BDRY trailing edge)
     //   1 = a dma_req arriving during a transfer is buffered and BREQ
     //       re-asserted already in the cycle tail (overlapping BDRY)
-    parameter EARLY_REREQ = 0
+    parameter EARLY_REREQ = 0,
+    // Recovery gap between granted cycles, in sysclk ticks. MEASURED on
+    // the real CPU-board RTL (full-RTL gate): the memory-side grant and
+    // decode chain (BLRQ/BCGNT 25/50ns stages) needs time to unwind
+    // after BDRY before it can latch the next externally strobed
+    // address - a back-to-back re-request wins the bus grant but the
+    // RAM cycle never happens (every second read lost). Real ND-100
+    // controllers re-request at 1.4us+ periods (manual II.4 examples),
+    // so hardware never hit this. The request is ACCEPTED at any time;
+    // only the BREQ assertion is deferred.
+    parameter [7:0] MIN_GAP_TICKS = 8'd32
 ) (
     input wire sysclk,
     input wire sys_rst_n,
@@ -89,12 +99,15 @@ module ND_DMA_MASTER #(
   reg        s_wr;
   reg [23:0] s_addr;
   reg [15:0] s_wdata;
+  reg [15:0] s_rd_capture;  // last driven bus value seen in the data window
+  reg        s_rd_captured;
   reg        s_pend;        // EARLY_REREQ: buffered next request
   reg        s_pend_wr;
   reg [23:0] s_pend_addr;
   reg [15:0] s_pend_wdata;
   reg        s_prev_bmem_n;
   reg [15:0] s_tick_cnt;
+  reg [7:0]  s_gap_cnt;     // recovery gap countdown (MIN_GAP_TICKS)
   reg [1:0]  s_phase_cnt;   // small strobe-width counter
 
   assign dma_busy = (s_state != ST_IDLE);
@@ -107,7 +120,8 @@ module ND_DMA_MASTER #(
   // BMEM edge; s_frozen_eff covers the edge cycle itself (the register
   // updates one clock later).
   reg  s_req_frozen;
-  wire s_frozen_eff = s_req_frozen | (s_bmem_fall && (s_state == ST_REQ));
+  wire s_frozen_eff = s_req_frozen |
+                      (s_bmem_fall && (s_state == ST_REQ) && (BREQ_n == 1'b0));
 
   // Daisy chain: combinational pass-through, like the search chain on
   // the real backplane. We consume the token only when FROZEN-in and
@@ -127,12 +141,15 @@ module ND_DMA_MASTER #(
       s_addr        <= 24'd0;
       s_wdata       <= 16'd0;
       s_req_frozen  <= 1'b0;
+      s_rd_capture  <= 16'd0;
+      s_rd_captured <= 1'b0;
       s_pend        <= 1'b0;
       s_pend_wr     <= 1'b0;
       s_pend_addr   <= 24'd0;
       s_pend_wdata  <= 16'd0;
       s_prev_bmem_n <= 1'b1;
       s_tick_cnt    <= 16'd0;
+      s_gap_cnt     <= 8'd0;
       s_phase_cnt   <= 2'd0;
       dma_rdata     <= 16'd0;
       dma_ack       <= 1'b0;
@@ -145,10 +162,13 @@ module ND_DMA_MASTER #(
     end else begin
       dma_ack <= 1'b0;
 
+      if (s_gap_cnt != 8'd0) s_gap_cnt <= s_gap_cnt - 8'd1;
+
       // Freeze latch: sampled at the BMEM leading edge, cleared when the
       // round is over (BMEM inactive)
       if (BMEM_n == 1'b1) s_req_frozen <= 1'b0;
-      else if (s_bmem_fall) s_req_frozen <= (s_state == ST_REQ);
+      else if (s_bmem_fall)
+        s_req_frozen <= (s_state == ST_REQ) && (BREQ_n == 1'b0);
 
       // EARLY_REREQ: buffer one request arriving while busy
       if (EARLY_REREQ != 0 && dma_req && (s_state != ST_IDLE) && !s_pend) begin
@@ -165,7 +185,6 @@ module ND_DMA_MASTER #(
             s_wr     <= dma_wr;
             s_addr   <= dma_addr;
             s_wdata  <= dma_wdata;
-            BREQ_n   <= 1'b0;
             s_state  <= ST_REQ;
             s_tick_cnt <= 16'd0;
           end
@@ -175,6 +194,10 @@ module ND_DMA_MASTER #(
         // at its leading edge AND the grant token reaching us. A request
         // raised after the BMEM edge waits for the next round (F.2).
         ST_REQ: begin
+          // assert the request once the recovery gap has expired
+          if (BREQ_n == 1'b1 && s_gap_cnt == 8'd0) begin
+            BREQ_n <= 1'b0;
+          end
           if ((BMEM_n == 1'b0) && (INGRANT_n == 1'b0) && s_frozen_eff) begin
             // Granted: drop the request, start the address cycle
             BREQ_n        <= 1'b1;
@@ -205,15 +228,27 @@ module ND_DMA_MASTER #(
               BD_23_0_n_OUT <= 24'hFFFFFF;
             end
             BDAP_n  <= 1'b0;
+            s_rd_captured <= 1'b0;
             s_state <= ST_DATA;
           end
         end
 
-        // Wait for memory's BDRY
+        // Wait for memory's BDRY. Read data: on the real backplane the
+        // data holds through BDRY, so strobing at the BDRY leading edge
+        // equals taking the LAST DRIVEN value of the data window - and
+        // the latter also tolerates our zero-delay RTL, where the
+        // internal BDRY25/BDRY50 delay chains make the board release
+        // its data drivers before the externally visible BDRY edge
+        // (measured in the full-RTL gate; see docs/nd100-bus-dma.md).
         ST_DATA: begin
+          if (!s_wr && (BD_23_0_n_IN != 24'hFFFFFF)) begin
+            s_rd_capture  <= ~BD_23_0_n_IN[15:0];
+            s_rd_captured <= 1'b1;
+          end
           if (BDRY_n == 1'b0) begin
             if (!s_wr) begin
-              dma_rdata <= ~BD_23_0_n_IN[15:0];  // strobe read data on BDRY
+              dma_rdata <= s_rd_captured ? s_rd_capture
+                                         : ~BD_23_0_n_IN[15:0];
             end
             // Leading edge of BDRY terminates the grant: release our
             // strobes and data
@@ -230,7 +265,8 @@ module ND_DMA_MASTER #(
             BREQ_n <= 1'b0;  // re-assert in the cycle tail (overlaps BDRY)
           end
           if (BDRY_n == 1'b1) begin
-            dma_ack <= 1'b1;
+            dma_ack   <= 1'b1;
+            s_gap_cnt <= MIN_GAP_TICKS;
             if (EARLY_REREQ != 0 && s_pend) begin
               s_wr    <= s_pend_wr;
               s_addr  <= s_pend_addr;
@@ -259,6 +295,7 @@ module ND_DMA_MASTER #(
           dma_err       <= 1'b1;
           dma_ack       <= 1'b1;
           s_pend        <= 1'b0;
+          s_gap_cnt     <= MIN_GAP_TICKS;
           s_state       <= ST_IDLE;
         end
       end

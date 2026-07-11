@@ -98,7 +98,18 @@ module ND120_TOP
     output wire       TAPE_BYTE_REQ,   // pulse: fetch next tape byte
     input  wire       TAPE_BYTE_VALID, // pulse: TAPE_BYTE_DATA is the byte
     input  wire [7:0] TAPE_BYTE_DATA,
-    output wire       TAPE_REWIND     // pulse: rewind the tape source
+    output wire       TAPE_REWIND,    // pulse: rewind the tape source
+
+    // DMA test client (full-RTL DMA gate: ND_DMA_MASTER against the
+    // real bus arbiter and RAM; the sim harness drives these)
+    input  wire        DMA_REQ,        // pulse: one word transfer
+    input  wire        DMA_WR,         // 0 = memory read, 1 = memory write
+    input  wire [23:0] DMA_ADDR,       // physical memory address
+    input  wire [15:0] DMA_WDATA,
+    output wire [15:0] DMA_RDATA,
+    output wire        DMA_ACK,
+    output wire        DMA_ERR,
+    output wire        DMA_BUSY
 `endif
 `endif
 );
@@ -441,10 +452,43 @@ module ND120_TOP
       .source_rewind(TAPE_REWIND)
   );
 
+  // DMA bus master (full-RTL DMA validation): requests the bus from the
+  // REAL arbiter (PAL_44801A via BIF) and runs real memory cycles.
+  // Chain head is the CPU's OUTGRANT.
+  wire [23:0] s_dma_bd_n;
+  wire s_dma_breq_n, s_dma_bapr_n, s_dma_binput_n, s_dma_bdap_n;
+
+  ND_DMA_MASTER #(
+      .TIMEOUT_TICKS(16'd8192)
+  ) DMA_MASTER (
+      .sysclk(s_dev_clk),
+      .sys_rst_n(sys_rst_n),
+      .dma_req(DMA_REQ),
+      .dma_wr(DMA_WR),
+      .dma_addr(DMA_ADDR),
+      .dma_wdata(DMA_WDATA),
+      .dma_rdata(DMA_RDATA),
+      .dma_ack(DMA_ACK),
+      .dma_err(DMA_ERR),
+      .dma_busy(DMA_BUSY),
+      .BREQ_n(s_dma_breq_n),
+      .INGRANT_n(OUTGRANT_n),
+      .OUTGRANT_n(),
+      .BMEM_n(BMEM_n),
+      .BD_23_0_n_OUT(s_dma_bd_n),
+      .BD_23_0_n_IN(BD_23_0_n_OUT),
+      .BAPR_n(s_dma_bapr_n),
+      .BINPUT_n(s_dma_binput_n),
+      .BDAP_n(s_dma_bdap_n),
+      .BDRY_n(BDRY_n_OUT)
+  );
+
   // Wired-AND with the external (C-harness / tie-off) bus inputs
-  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN & s_dev_bd_n;
-  wire        s_bus_binput_in_n = BINPUT_n_IN & s_dev_binput_n;
-  wire        s_bus_bdap_in_n   = BDAP_n_IN & s_dev_bdap_n;
+  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN & s_dev_bd_n & s_dma_bd_n;
+  wire        s_bus_breq_n      = BREQ_n & s_dma_breq_n;
+  wire        s_bus_bapr_in_n   = BAPR_n_IN & s_dma_bapr_n;
+  wire        s_bus_binput_in_n = BINPUT_n_IN & s_dev_binput_n & s_dma_binput_n;
+  wire        s_bus_bdap_in_n   = BDAP_n_IN & s_dev_bdap_n & s_dma_bdap_n;
   wire        s_bus_bdry_in_n   = BDRY_n_IN & s_dev_bdry_n;
   wire        s_bus_bint10_n    = BINT10_n & s_dev_bint10_n;
   wire        s_bus_bint11_n    = BINT11_n & s_dev_bint11_n;
@@ -452,6 +496,8 @@ module ND120_TOP
   wire        s_bus_bint13_n    = BINT13_n & s_dev_bint13_n;
 `else
   wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN;
+  wire        s_bus_breq_n      = BREQ_n;
+  wire        s_bus_bapr_in_n   = BAPR_n_IN;
   wire        s_bus_binput_in_n = BINPUT_n_IN;
   wire        s_bus_bdap_in_n   = BDAP_n_IN;
   wire        s_bus_bdry_in_n   = BDRY_n_IN;
@@ -473,7 +519,7 @@ module ND120_TOP
 
       // Signal from C-PLUG to CPU Board (and some signals dupliacted on A-PLUG)
       .LOAD_n(s_high),      // Load button  C-B12, A-C15
-      .BREQ_n(BREQ_n),      // Bus Request  C-C12
+      .BREQ_n(s_bus_breq_n),  // Bus Request  C-C12 (wired-AND with DMA master)
       .CONTINUE_n(s_high),  // Continue button C-B15
       .STOP_n(s_high),      // Stop button C-B16, A-C17
 
@@ -497,7 +543,7 @@ module ND120_TOP
       .BDAP_n_OUT(BDAP_n_OUT),     //! Output-signal to "C PLUG", signal C18 BDAP~ (Bus DAta Present)
       .BDRY_n_IN(s_bus_bdry_in_n), //! Input-signal from "C PLUG", signal A19 BDRY~ (Bus Data ReadY)
       .BDRY_n_OUT(BDRY_n_OUT),     //! Output-signal to "C PLUG", signal A19 BDRY~ (Bus Data ReadY)
-      .BAPR_n_IN(BAPR_n_IN),       //! Input-signal from "C PLUG", signal A20 BAPR~ (Bus Address PResent)
+      .BAPR_n_IN(s_bus_bapr_in_n), //! Input-signal from "C PLUG", signal A20 BAPR~ (Bus Address PResent)
       .BAPR_n_OUT(BAPR_n_OUT),     //! Output-signal to "C PLUG", signal A20 BAPR~ (Bus Address PResent)
 
       // Signals from CPU board to C-PLUG

@@ -30,7 +30,11 @@ endif
 VERILOG_TAPE ?= 0
 ifeq ($(VERILOG_TAPE),1)
   SIM_DEFINES += -DND120_VERILOG_DEVICES
-  EXTRA_CFLAGS += -DND120_VERILOG_DEVICES
+  # 'override' is required: EXTRA_CFLAGS is usually given on the make
+  # command line, and a plain += on a command-line variable is silently
+  # ignored - which would compile the C harness WITHOUT the define
+  # (leaving the C papertape registered and the Verilog device starved).
+  override EXTRA_CFLAGS += -DND120_VERILOG_DEVICES
 endif
 
 VERILATOR_FLAGS = --trace -Wall --cc ../ND120_TOP.v $(SUPPRESS_FLAGS) $(SIM_DEFINES)
@@ -43,7 +47,7 @@ DGA_COMPONENTS = -I../DECODE-GateArray/DGA/circuit
 
 #SHARED_COMPONENTS =  -I../circuit -I../../shared/ndlib -I../../shared/logisim -I../../shared/gates   -I../../PAL
 
-BUSDEV_COMPONENTS = -I../ND-BUS-DEVICES/BUS-IF/circuit -I../ND-BUS-DEVICES/TAPE-400/circuit
+BUSDEV_COMPONENTS = -I../ND-BUS-DEVICES/BUS-IF/circuit -I../ND-BUS-DEVICES/TAPE-400/circuit -I../ND-BUS-DEVICES/DMA/circuit
 
 VERILATOR_DIRS = $(TOP_3202D_COMPONENTS) $(CGA_COMPONENTS) $(DGA_COMPONENTS) $(BUSDEV_COMPONENTS) -I../PAL
 # Specify C++ source files here

@@ -156,6 +156,151 @@ static int g_next_inject_cnt = 0;          // gate: don't send next char until t
 // ND120_BINLOAD_FILE: after the script, stream this file's RAW bytes into
 // the console UART (300$ serial binary loader experiments).
 // ND120_BINLOAD_SETTLE / ND120_BINLOAD_GAP: cnt delays before / between bytes.
+
+#if defined(ND120_VERILOG_DEVICES) && defined(SCRIPT_INPUT)
+// ND120_DMA_TEST=<octal addr>:<count> - full-RTL DMA gate: after boot,
+// the Verilog ND_DMA_MASTER inside ND120_TOP DMA-writes a pattern into
+// RAM through the REAL bus arbiter (PAL_44801A) while the CPU is live
+// (true cycle steal), verifies the RAM arrays directly, then DMA-reads
+// everything back. Verdict line: "[dmatest] RESULT: PASS/FAIL".
+static int g_dmat_state = 0;        // 0=off 1=wait-boot 2=write 3=read 4=done
+static unsigned g_dmat_addr0 = 0;
+static int g_dmat_count = 0, g_dmat_idx = 0, g_dmat_fail = 0;
+static int g_dmat_reqhold = 0;
+static int g_dmat_gapleft = 0;
+static long g_dmat_guard = 0;
+
+static inline unsigned short dmat_pattern(unsigned a)
+{
+	return (unsigned short)(052525u ^ a ^ (a << 7));
+}
+
+static void dma_test_tick(VND120_TOP *top, int cnt,
+                          unsigned char *ram_lo, unsigned char *ram_hi)
+{
+	if (g_dmat_state == 0 || g_dmat_state == 4)
+		return;
+
+	if (g_dmat_state == 1)
+	{
+		if (g_boot_done_cnt != 0 && cnt > g_boot_done_cnt + 3000000)
+		{
+			printf("[dmatest] starting: %d words at %06o\n",
+			       g_dmat_count, g_dmat_addr0);
+			g_dmat_state = 2;
+			g_dmat_idx = 0;
+		}
+		return;
+	}
+
+	// finish the one-clock request pulse first
+	if (g_dmat_reqhold > 0)
+	{
+		if (--g_dmat_reqhold == 0)
+			top->DMA_REQ = 0;
+		return;
+	}
+
+	if (top->DMA_ACK)
+	{
+		if (top->DMA_ERR)
+		{
+			printf("[dmatest] transfer error at idx %d\n", g_dmat_idx);
+			g_dmat_fail++;
+		}
+		if (g_dmat_state == 3)
+		{
+			unsigned short want = dmat_pattern(g_dmat_addr0 + g_dmat_idx);
+			if (top->DMA_RDATA != want)
+			{
+				printf("[dmatest] readback mismatch @%06o got %06o want %06o\n",
+				       g_dmat_addr0 + g_dmat_idx, top->DMA_RDATA, want);
+				g_dmat_fail++;
+			}
+		}
+		g_dmat_idx++;
+		g_dmat_guard = 0;
+		if (const char *g = getenv("ND120_DMA_GAP"))
+			g_dmat_gapleft = atoi(g);
+		if (g_dmat_idx >= g_dmat_count)
+		{
+			if (g_dmat_state == 2)
+			{
+				// write pass done: check the RAM arrays directly before
+				// trusting the readback path
+				for (int k = 0; k < g_dmat_count; k++)
+				{
+					unsigned a = g_dmat_addr0 + k;
+					unsigned short got =
+					    (unsigned short)((ram_hi[a] << 8) | ram_lo[a]);
+					if (got != dmat_pattern(a))
+					{
+						printf("[dmatest] RAM array mismatch @%06o got %06o want %06o\n",
+						       a, got, dmat_pattern(a));
+						g_dmat_fail++;
+					}
+				}
+				printf("[dmatest] write pass done, RAM verified, reading back\n");
+				g_dmat_state = 3;
+				g_dmat_idx = 0;
+			}
+			else
+			{
+				g_dmat_state = 4;
+				printf("[dmatest] RESULT: %s\n", g_dmat_fail ? "FAIL" : "PASS");
+				return;
+			}
+		}
+		// fall through to issue the next word
+	}
+	else if (top->DMA_BUSY)
+	{
+		// bus-window trace of the first read word (ND120_DMA_TRACE=1)
+		if (g_dmat_state == 3 && getenv("ND120_DMA_TRACE") && g_dmat_idx == atoi(getenv("ND120_DMA_TRACE")))
+		{
+			static unsigned prev_sig = 0xFFFFFFFF;
+			static int trace_lines = 0;
+			unsigned sig = ((unsigned)top->BDRY_n_OUT << 26) |
+			               ((unsigned)top->BMEM_n << 25) |
+			               ((unsigned)top->OUTGRANT_n << 24) |
+			               (top->BD_23_0_n_OUT & 0xFFFFFF);
+			if (sig != prev_sig && trace_lines < 300)
+			{
+				printf("[dmatrace] cnt=%d bdry=%d bmem=%d grant=%d bd_out=%06o (~=%06o)\n",
+				       cnt, (int)top->BDRY_n_OUT, (int)top->BMEM_n,
+				       (int)top->OUTGRANT_n,
+				       (unsigned)(top->BD_23_0_n_OUT & 0xFFFFFF),
+				       (unsigned)(~top->BD_23_0_n_OUT & 0xFFFFFF));
+				prev_sig = sig;
+				trace_lines++;
+			}
+		}
+		if (++g_dmat_guard > 8000000)
+		{
+			printf("[dmatest] HANG waiting for the bus\n");
+			printf("[dmatest] RESULT: FAIL\n");
+			g_dmat_state = 4;
+		}
+		return;
+	}
+
+	// inter-word recovery gap (ND120_DMA_GAP half-ticks, default 0)
+	if (g_dmat_gapleft > 0)
+	{
+		g_dmat_gapleft--;
+		return;
+	}
+
+	// issue the next transfer
+	top->DMA_WR = (g_dmat_state == 2);
+	top->DMA_ADDR = g_dmat_addr0 + g_dmat_idx;
+	top->DMA_WDATA = dmat_pattern(g_dmat_addr0 + g_dmat_idx);
+	top->DMA_REQ = 1;
+	g_dmat_reqhold = 2;
+	g_dmat_guard = 1;
+}
+#endif
+
 static int g_ldirv_last = 0;
 static unsigned g_termx_logged = 0;
 static FILE *g_binf = nullptr;
@@ -239,6 +384,23 @@ int main(int argc, char **argv)
 	top->BDRY_n_IN = 1;
 	top->BAPR_n_IN = 1;
 
+#if defined(ND120_VERILOG_DEVICES) && defined(SCRIPT_INPUT)
+	top->DMA_REQ = 0;
+	top->DMA_WR = 0;
+	top->DMA_ADDR = 0;
+	top->DMA_WDATA = 0;
+	if (const char *e = getenv("ND120_DMA_TEST"))
+	{
+		if (sscanf(e, "%o:%d", &g_dmat_addr0, &g_dmat_count) == 2 &&
+		    g_dmat_count > 0)
+		{
+			g_dmat_state = 1;
+			printf("[dmatest] armed: %d words at %06o\n",
+			       g_dmat_count, g_dmat_addr0);
+		}
+	}
+#endif
+
 	int cnt = 0;
 #ifdef TRACE_CSA
 	g_csa_fp = fopen("csa_trace.csv", "w");
@@ -268,6 +430,9 @@ int main(int argc, char **argv)
 		top->sysclk = !top->sysclk;
 
 		proccess_bif_signal(top);
+#if defined(ND120_VERILOG_DEVICES) && defined(SCRIPT_INPUT)
+		dma_test_tick(top, cnt, &ram_low[0], &ram_high[0]);
+#endif
 
 #ifdef TRACE_MIC
 		if (g_mic_fp && cnt >= TRACE_MIC_START && cnt <= TRACE_MIC_END)
