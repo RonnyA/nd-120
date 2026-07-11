@@ -84,8 +84,6 @@ workstream while that session is active.
 
 ## Phase 2 - Tape reader, device 400 (Verilog/ND-BUS-DEVICES/TAPE-400/)
 
-## Phase 2 - Tape reader, device 400 (Verilog/DEVICE-TAPEREADER/)
-
 - [x] Register core per NDDevices.cpp: ND_TAPE_400.v (IOX 400 read data
       clears RFT, 402 status bit3, 403 control bits 0/2/3/4; ident 02,
       level 12; byte source is a port). Divergence from the C model,
@@ -214,8 +212,17 @@ partition uses only part of it. Use the spare SDRAM as the disk layer:
       disk model); registered in the suite. NOT yet wired into
       ND120_TOP (1560 currently has the PIO flavor - controller choice
       per board is a wiring decision, ask Ronny at integration).
-- [ ] SMD controller (register map in docs/nd100x-device-semantics.md)
-      on top of ND_DMA_MASTER
+- [x] SMD controller DONE 11-JUL-2026:
+      ND-BUS-DEVICES/SMD/circuit/ND_SMD.v per nd100x deviceSMD -
+      CWR-bit-15 multiplexed register file (core address / word
+      counter / block address I+II / seek condition / ECC stubs),
+      in-controller registers loaded by IOX, M0/M1 DMA transfers
+      through ND_DMA_MASTER with 1K-word chunking, count-mem-addr,
+      M4 seek / M7 RTZ -> on-cylinder, other ops as stub completions,
+      ident 017 level 11. tb: full stack (1500-word read crossing the
+      buffer chunk, 800-word write, register readback after transfer,
+      seek, interrupt + IDENT); registered in the suite. Not wired
+      into ND120_TOP yet (1540 free; wiring is a board decision).
 
 ## Phase 4 - Later
 
