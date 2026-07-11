@@ -35,11 +35,14 @@
 ** the ready bit (the classic controller layout). On the SMD's native   **
 ** map those are Load Block Address and Read Seek Condition, so a       **
 ** bootable controller must answer the boot handshake: from reset (or   **
-** device clear) until the FIRST Load Control Word, a write to +3 with  **
-** bit 2 set triggers AUTOLOAD (block 0, 1024 words, DMA to ND memory   **
-** address 0) and +2 returns {error<<4, ready<<3}. The first real       **
-** control-word write leaves boot mode and the registers take their     **
-** native SMD meaning.                                                  **
+** device clear) until the FIRST Load Control Word, the '&' loader IS   **
+** the BPUN loader pointed at the device - per byte it writes +3 with   **
+** bit 2 (activate), polls +2 for ready, and reads the next boot-      **
+** stream WORD from +0 (the disk stores one stream byte per 16-bit     **
+** word). The controller byte-serves its buffer, refilling 1024-word   **
+** chunks from the image; +2 returns {error<<4, ready<<3}. The first   **
+** real control-word write leaves boot mode and the registers take     **
+** their native SMD meaning.                                            **
 **                                                                       **
 ** Operations: M0 read transfer (disk -> memory), M1 write transfer      **
 ** (memory -> disk), M4 initiate seek (on-cylinder after delay),         **
@@ -129,6 +132,9 @@ module ND_SMD #(
   reg        s_on_cyl;        // status b14
   reg [3:0]  s_op;
   reg        s_boot_mode;    // reset..first control word: boot handshake
+  reg        s_boot_fetch;   // a boot-chunk fetch is in flight
+  reg        s_boot_loaded;  // a chunk is in the buffer
+  reg [10:0] s_bootptr;      // word index into the current boot chunk
 
   wire s_any_err = s_illegal | s_hw_err;
   wire [15:0] s_status = {s_cwr, s_on_cyl, 1'b0, 3'd0, 1'b0, 1'b0,
@@ -165,7 +171,8 @@ module ND_SMD #(
     iox_rdata = 16'd0;
     if (iox_rd && s_addressed) begin
       case (s_reg)
-        3'd0: iox_rdata = s_cwr ? s_word_cnt : s_core_addr;
+        3'd0: iox_rdata = s_boot_mode ? s_buffer[s_bootptr[9:0]]
+                          : (s_cwr ? s_word_cnt : s_core_addr);
         3'd2: iox_rdata = s_boot_mode
                           ? {11'd0, s_any_err | s_hw_err, s_rft, 3'd0}
                           : (s_cwr ? 16'd0    // ECC count
@@ -221,6 +228,9 @@ module ND_SMD #(
       s_on_cyl    <= 1'b0;
       s_op        <= 4'd0;
       s_boot_mode <= 1'b1;
+      s_boot_fetch<= 1'b0;
+      s_boot_loaded <= 1'b0;
+      s_bootptr   <= 11'd0;
       s_eng       <= E_IDLE;
       s_chunk_q   <= 11'd0;
       s_sec_idx   <= 11'd0;
@@ -240,6 +250,12 @@ module ND_SMD #(
 
       if (dbuf_we) s_buffer[dbuf_addr] <= dbuf_wdata;
 
+      // boot stream readout: +0 read consumes the word, clears ready
+      if (s_boot_mode && iox_rd && s_addressed && (s_reg == 3'd0)) begin
+        s_bootptr <= s_bootptr + 11'd1;
+        s_rft     <= 1'b0;
+      end
+
       // ---- IOX register writes ----
       if (s_wr_here) begin
         case (s_reg)
@@ -249,23 +265,35 @@ module ND_SMD #(
           end
           3'd3: begin
             if (s_boot_mode && iox_wdata[2] && s_eng == E_IDLE) begin
-              // BOOT AUTOLOAD: block 0 (1024 words) -> ND memory 0
-              s_active    <= 1'b1;
-              s_rft       <= 1'b0;
-              s_hw_err    <= 1'b0;
-              s_illegal   <= 1'b0;
-              s_op        <= 4'd0;
-              s_blkaddr1  <= 16'd0;
-              s_blkaddr2  <= 16'd0;
-              s_core_addr <= 16'd0;
-              s_core_hi   <= 2'd0;
-              s_word_cnt  <= 16'd1024;
-              s_chunk_q   <= 11'd1024;
-              s_sec_idx   <= 11'd0;
-              disk_start  <= 1'b1;
-              disk_req    <= 1'b1;
-              disk_wr     <= 1'b0;
-              s_eng       <= E_DISK_RD;
+              // BOOT byte-server: arm the next boot-stream word
+              if (!s_boot_loaded && !s_boot_fetch) begin
+                // first activate: fetch chunk 0 (position from the
+                // zeroed block address registers)
+                s_active   <= 1'b1;
+                s_hw_err   <= 1'b0;
+                s_illegal  <= 1'b0;
+                s_boot_fetch <= 1'b1;
+                s_blkaddr1 <= 16'd0;
+                s_blkaddr2 <= 16'd0;
+                s_chunk_q  <= 11'd1024;
+                disk_start <= 1'b1;
+                disk_req   <= 1'b1;
+                disk_wr    <= 1'b0;
+                s_eng      <= E_DISK_RD;
+              end else if (s_bootptr == 11'd1024) begin
+                // chunk exhausted: refill (backend position advances
+                // linearly on its own)
+                s_bootptr  <= 11'd0;
+                s_active   <= 1'b1;
+                s_rft      <= 1'b0;
+                s_boot_fetch <= 1'b1;
+                s_chunk_q  <= 11'd1024;
+                disk_req   <= 1'b1;
+                disk_wr    <= 1'b0;
+                s_eng      <= E_DISK_RD;
+              end else begin
+                s_rft <= 1'b1;  // next word already buffered
+              end
             end else if (s_cwr) s_blkaddr2 <= iox_wdata;
             else                s_blkaddr1 <= iox_wdata;
           end
@@ -341,9 +369,17 @@ module ND_SMD #(
         E_DISK_RD: begin
           if (disk_done) begin
             if (disk_err_in) begin
-              s_hw_err    <= 1'b1;
-              s_delay_cnt <= DELAY_TICKS;
-              s_eng       <= E_DELAY;
+              s_hw_err     <= 1'b1;
+              s_boot_fetch <= 1'b0;
+              s_delay_cnt  <= DELAY_TICKS;
+              s_eng        <= E_DELAY;
+            end else if (s_boot_fetch) begin
+              // boot chunk buffered: serve it via +0 reads
+              s_boot_fetch  <= 1'b0;
+              s_boot_loaded <= 1'b1;
+              s_active      <= 1'b0;
+              s_rft         <= 1'b1;
+              s_eng         <= E_IDLE;
             end else begin
               s_sec_idx <= 11'd0;
               s_eng     <= E_MEM_WR;

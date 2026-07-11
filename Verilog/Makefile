@@ -110,15 +110,18 @@ test-floppy-boot:
 
 test-smd-boot:
 	@echo "==== system gate: 1540& SMD mass boot (boot handshake -> RAM) ===="
-	python3 tests/gen_fboot_img.py /tmp/nd120_sboot.img /tmp/nd120_sboot_exp.txt 16 1024
+	python3 tests/gen_fboot_img.py /tmp/nd120_sboot.img /tmp/nd120_sboot_exp.txt
 	$(MAKE) -C runSim clean >/dev/null
 	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_SBOOT" >/dev/null
-	cd runSim && ND120_SMD_IMG=/tmp/nd120_sboot.img ND120_BINLOAD_CHECK=000000:16 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_sboot.log 2>&1
+	cd runSim && ND120_SMD_IMG=/tmp/nd120_sboot.img ND120_BINLOAD_CHECK=002000:16 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_sboot.log 2>&1
 	grep -a "RAM check" /tmp/nd120_sboot.log > /tmp/nd120_sboot_got.txt
-	cmp /tmp/nd120_sboot_got.txt /tmp/nd120_sboot_exp.txt
+	cat /tmp/nd120_sboot_got.txt
+	# loaded program + the 000077 it stores when it RUNS (see the
+	# floppy gate note about the preload background)
+	awk '{ exit !($$5=="170477" && $$6=="004011" && $$7=="151000" && $$15=="000077") }' /tmp/nd120_sboot_got.txt
 	@echo ""
 	@echo "===================================================================="
-	@echo "  SMD BOOT GATE PASSED (1540& autoloaded block 0 to RAM)"
+	@echo "  SMD BOOT GATE PASSED (1540& BPUN-booted and EXECUTED the program)"
 	@echo "===================================================================="
 
 test-dma-rtl:

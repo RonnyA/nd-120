@@ -352,25 +352,26 @@ module nd_smd_tb;
     check((rdata & 16'h0008) !== 0, "not ready at reset");
     check((rdata & 16'h8000) === 0, "CWR bit set at reset");
 
-    // 1b: BOOT MODE (the '1540&' handshake): write 004005 to +3, poll
-    //     +2 for ready; block 0 (1024 words) must land at ND memory 0
-    for (i = 0; i < 1100; i = i + 1) memory[i] = 16'hDEAD;
-    iox_write(16'o001543, 16'o004005);
-    begin : bootwait
-      integer guard;
-      reg [15:0] st;
-      guard = 0; st = 0;
-      while (!(st & 16'h0008) && guard < 30000) begin
-        iox_read(16'o001542, st);
-        guard = guard + 1;
+    // 1b: BOOT MODE (the '1540&' handshake, BPUN byte-server): per word
+    //     activate via +3 bit 2, poll +2 for ready, read the stream
+    //     word from +0; cross the 1024-word chunk boundary
+    begin : bootstream
+      integer guard, k;
+      reg [15:0] st, bw;
+      for (k = 0; k < 1030; k = k + 1) begin
+        iox_write(16'o001543, 16'o004005);
+        guard = 0; st = 0;
+        while (!(st & 16'h0008) && guard < 30000) begin
+          iox_read(16'o001542, st);
+          guard = guard + 1;
+        end
+        check((st & 16'h0008) !== 0, "boot stream never ready on +2");
+        check((st & 16'h0010) === 0, "boot stream flagged error");
+        iox_read(16'o001540, bw);
+        if (bw !== image[k])
+          check(1'b0, "boot stream word wrong");
       end
-      check((st & 16'h0008) !== 0, "boot autoload never ready on +2");
-      check((st & 16'h0010) === 0, "boot autoload flagged error");
     end
-    for (i = 0; i < 1024; i = i + 1)
-      if (memory[i] !== image[i])
-        check(1'b0, "boot block wrong in ND memory");
-    check(memory[1024] === 16'hDEAD, "boot autoload overran 1024 words");
 
     // 2: M0 READ 1500 words (crosses the 1K buffer chunk) from
     //    blkaddrII=1, blkaddrI=2 (tb map: word 2176) to core 0x4000

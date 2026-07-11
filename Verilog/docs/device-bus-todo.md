@@ -30,8 +30,9 @@ reallocation, sd_fat_check.v, COPY and WRBLK1 1-kiloword block writes,
 interactive `make console` sim). Do not modify those trees from this
 workstream while that session is active.
 
-- [x] Verilog/SD-FAT/ library (WangXuan95 core vendored, LICENSE kept):
-      sd_reader, sd_file_reader, sdcmd_ctrl, sd_writer + sd_card_model tb
+- [x] Verilog/SD-FAT/ library (all project MIT since 12-JUL-2026: the
+      vendored reader was replaced by a clean-room sd_file_reader.v):
+      sd_file_reader, sd_writer + sd_card_model tb
 - [x] fpga/tang-nano-20k/sd-fat-test/ standalone project: read BPUN from
       FAT microSD, hex-dump over UART
 - [x] 3 self-checking tbs registered (suite = 27, all green)
@@ -52,7 +53,7 @@ workstream while that session is active.
       - target interface for devices: open(fixed name)/rewind,
         stream-read bytes, block read/write by 1KW block number
         (the tape-400 and floppy cores program against this, not
-        against sd_reader directly)
+        against the SD reader directly)
       - the SD card is SHARED BY ALL DEVICES (one physical slot,
         many clients): nd_storage gets N client ports with per-client
         file state (name, first cluster, position) in front of ONE
@@ -239,13 +240,16 @@ partition uses only part of it. Use the spare SDRAM as the disk layer:
       nd100x)
 - [x] SMD wired at 1540 in ND120_TOP (third chained DMA master) and
       '1540&' MASS BOOT PROVEN IN SIM 11-JUL-2026 (`make test-smd-boot`).
-      Protocol discovery: the microcode mass loader is device-agnostic
-      (control word to base+3, ready polled on base+2 - the classic
-      controller layout); the SMD answers with a BOOT MODE (reset until
-      the first Load Control Word): +3 with bit 2 = autoload block 0
-      (1024 words) to ND memory 0, +2 returns ready/error. First real
-      control write switches to the native CWR-multiplexed map.
-      Backend image via ND120_SMD_IMG env (no default = no pack).
+      Protocol (CORRECTED after the exec-proof runs): the microcode
+      '&' loader is THE BPUN LOADER pointed at the device - per byte:
+      control (bit 2) to base+3, poll base+2 for ready, read the next
+      stream WORD from base+0 (disk stores one stream byte per 16-bit
+      word); action word 0 = AUTOSTART at the leader's B address.
+      Both ND_FLOPPY_DMA and ND_SMD implement boot-mode BYTE-SERVERS
+      (chunked buffer refills); the gates prove load + jump + EXECUTE
+      (the booted program's STA result checked in RAM). The real
+      210523I01 diskette boots via 1560& and talks on the console.
+      Backend images via ND120_FLOPPY_IMG / ND120_SMD_IMG env.
 - [ ] FAT robustness: FAT32 first-cluster fix or replacement core,
       filename selection UI (console command?), multiple images
 - [ ] Basys3 port via PMOD microSD (pins in sd-bpun-device-plan.md)
@@ -259,8 +263,9 @@ partition uses only part of it. Use the spare SDRAM as the disk layer:
 - Clock-enable discipline: no new clock domains except the SD side
   behind its FIFO; nothing register-driven as a clock (P5 zero-warning
   goal stands)
-- GPL-3.0 vendored core: approved by owner for SD-FAT (LICENSE file in
-  tree)
+- Licensing: the SD-FAT library is all project MIT code (the temporary
+  GPL vendoring was replaced by the clean-room sd_file_reader.v,
+  12-JUL-2026)
 - SD/FAT code lives ONLY in Verilog/SD-FAT/ (generic library) and
   fpga/<board>/ (board glue) - never in DELILAH-CPU/, DECODE-GateArray/
   or CPU-BOARD-3202/
