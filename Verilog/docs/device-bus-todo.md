@@ -53,6 +53,12 @@ workstream while that session is active.
         stream-read bytes, block read/write by 1KW block number
         (the tape-400 and floppy cores program against this, not
         against sd_reader directly)
+      - the SD card is SHARED BY ALL DEVICES (one physical slot,
+        many clients): nd_storage gets N client ports with per-client
+        file state (name, first cluster, position) in front of ONE
+        sector engine, arbitrated round-robin at block granularity;
+        the tape byte stream buffers a block at a time so it cannot
+        starve floppy/HDD block requests
 
 ## Phase 1 - Device Bus Interface (reusable, Verilog/ND-BUS-DEVICES/)
 
