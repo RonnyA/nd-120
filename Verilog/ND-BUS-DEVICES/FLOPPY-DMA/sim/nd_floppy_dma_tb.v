@@ -424,6 +424,25 @@ module nd_floppy_dma_tb;
     check(icode === 16'o000021, "IDENT code not 021");
     check(bint11_n === 1'b1, "BINT11_n not released after IDENT");
 
+    // 5b: AUTOLOAD (the '1560&' boot path): control b2 alone must copy
+    //     the boot sector (512 words from lsect 0) to ND memory 0
+    for (i = 0; i < 600; i = i + 1) memory[i] = 16'hDEAD;
+    iox_write(16'o001563, 16'o000004);  // control: activateAutoload
+    begin : autoload_wait
+      integer guard;
+      reg [15:0] st;
+      guard = 0; st = 0;
+      while (!(st & 16'h0008) && guard < 30000) begin
+        iox_read(16'o001562, st);
+        guard = guard + 1;
+      end
+      check((st & 16'h0008) !== 0, "autoload never became ready");
+    end
+    for (i = 0; i < 512; i = i + 1)
+      if (memory[i] !== image[i])
+        check(1'b0, "autoload boot sector wrong in ND memory");
+    check(memory[512] === 16'hDEAD, "autoload overran 512 words");
+
     // 6: REAL IMAGE phase - load the ND distribution diskette and read
     //    it back through the controller at start, middle and end
     load_real_image();

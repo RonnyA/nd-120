@@ -136,6 +136,12 @@ static unsigned g_last_csa = 0xFFFFu;
 // model and the Verilog device (VERILOG_TAPE=1); the outputs must match.
 #define SCRIPT_CMD "400$"
 #endif
+#ifdef SCRIPT_CMD_FBOOT
+// -DSCRIPT_CMD_FBOOT: boot from the floppy at device 1560 (octal) via
+// the microcode mass-storage loader ('&' = device boot at the OPCOM
+// prompt, as opposed to '$' = BPUN tape load).
+#define SCRIPT_CMD "1560&"
+#endif
 #ifdef SCRIPT_CMD_BINLOAD
 // -DSCRIPT_CMD_BINLOAD: activate the console serial binary loader; the
 // raw BPUN bytes then come from ND120_BINLOAD_FILE (see below).

@@ -20,6 +20,12 @@
 # Board builds stay in fpga/<board>/ (see fpga/README.md); the CPU sims
 # stay in sim/ and runSim/. This Makefile only aggregates TESTS.
 
+#   make test-floppy-boot  heavy system gate for the floppy mass boot:
+#                    '1560&' at the OPCOM prompt makes the DMA floppy
+#                    controller AUTOLOAD the boot sector to ND memory 0
+#                    (verified word-for-word against a generated image
+#                    with a WAIT instruction at word 0). ~12 min.
+#
 #   make test-dma-rtl  heavy system gate for DMA bus mastering: the
 #                    Verilog ND_DMA_MASTER inside ND120_TOP requests the
 #                    bus from the REAL arbiter (PAL_44801A) while the CPU
@@ -27,7 +33,7 @@
 #                    verifies the RAM arrays, DMA-reads it back.
 #                    ~12 min (one runSim compile + run).
 
-.PHONY: test test-full test-tape test-dma-rtl
+.PHONY: test test-full test-tape test-dma-rtl test-floppy-boot
 
 test:
 	@bash tests/run_all_tests.sh
@@ -78,6 +84,19 @@ test-tape:
 	@echo ""
 	@echo "===================================================================="
 	@echo "  TAPE GATE PASSED (Verilog tape-400 = C model, INSTRUCTION-B boots)"
+	@echo "===================================================================="
+
+test-floppy-boot:
+	@echo "==== system gate: 1560& floppy mass boot (autoload -> RAM) ===="
+	python3 tests/gen_fboot_img.py /tmp/nd120_fboot.img /tmp/nd120_fboot_exp.txt 16
+	$(MAKE) -C runSim clean >/dev/null
+	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_FBOOT" >/dev/null
+	cd runSim && ND120_FLOPPY_IMG=/tmp/nd120_fboot.img ND120_BINLOAD_CHECK=000000:16 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_fboot.log 2>&1
+	grep -a "RAM check" /tmp/nd120_fboot.log > /tmp/nd120_fboot_got.txt
+	cmp /tmp/nd120_fboot_got.txt /tmp/nd120_fboot_exp.txt
+	@echo ""
+	@echo "===================================================================="
+	@echo "  FLOPPY BOOT GATE PASSED (1560& autoloaded the boot sector to RAM)"
 	@echo "===================================================================="
 
 test-dma-rtl:

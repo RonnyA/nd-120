@@ -167,8 +167,17 @@ partition uses only part of it. Use the spare SDRAM as the disk layer:
       in-place writes to a pre-allocated contiguous image file
       (recommended approach from sd-bpun-device-plan.md - no FAT
       allocation logic in hardware)
-- [ ] Acceptance: boot 1560 floppy load on silicon (ALD 1560 exists in
-      the switch table); later SINTRAN/tools from floppy
+- [x] SIM-SIDE BOOT PROVEN 11-JUL-2026 (`make test-floppy-boot`):
+      '1560&' at the OPCOM prompt drives the microcode mass-storage
+      loader; the DMA controller's AUTOLOAD (control b2, discovered
+      empirically - the microcode writes 004005 and polls status)
+      DMA-writes the 512-word boot sector to ND memory 0, verified
+      word-for-word against a generated image (WAIT at word 0 parks
+      the booted CPU). Discovery note: the C PIO model could never
+      satisfy this path (4005's high byte lands in its command field
+      -> readID error loop) - 1560& never worked in runSim before.
+- [ ] Acceptance on silicon: boot 1560 floppy on the Tang (needs the
+      SD/SDRAM image backend); later SINTRAN/tools from floppy
 
 ## DMA (bus mastering - needed for floppy DMA and SMD)
 

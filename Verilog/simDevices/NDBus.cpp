@@ -322,9 +322,13 @@ void process_verilog_floppy(VND120_TOP *top)
 {
 	if (vflp_file == 0)
 	{
-		vflp_file = fopen("FLOPPY.IMG", "r+");
+		// ND120_FLOPPY_IMG selects the image (unit tests use a generated
+		// one); default FLOPPY.IMG
+		const char *img = getenv("ND120_FLOPPY_IMG");
+		if (img == 0) img = "FLOPPY.IMG";
+		vflp_file = fopen(img, "r+");
 		if (vflp_file == 0)
-			vflp_file = fopen("FLOPPY.IMG", "r");
+			vflp_file = fopen(img, "r");
 	}
 
 	if (vflp_done_ticks > 0)

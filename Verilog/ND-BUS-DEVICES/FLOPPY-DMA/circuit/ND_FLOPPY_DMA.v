@@ -34,6 +34,11 @@
 **   0x01 WRITE DATA: ND memory -> disk by DMA                           **
 **   0x38 IDENTIFY / others: no-op completion (status writeback only),   **
 **        mirroring the C model's TODO stubs                             **
+**   AUTOLOAD (control b2): the boot path used by '1560&' at the OPCOM   **
+**        prompt - the controller reads the FIRST sector (512 words,     **
+**        the 1KB dual-density boot sector) and DMA-writes it to ND      **
+**        memory address 0, then goes ready. No command block, no        **
+**        status writeback (there is no pointer yet at boot time).       **
 **                                                                       **
 ** All memory traffic goes through the ND_DMA_MASTER client port         **
 ** (dma_*): the command-block fetch, the sector data both directions,    **
@@ -190,6 +195,7 @@ module ND_FLOPPY_DMA #(
   reg [2:0]  s_wb_idx;      // writeback word index (0-5 -> w6-w11)
   reg [15:0] s_delay_cnt;
   reg        s_dma_wait;    // a dma_req is outstanding
+  reg        s_autoload;    // boot flow: no command block, no writeback
 
   assign disk_lsect     = s_lsect;
   assign disk_format    = s_cb_fmt;
@@ -231,6 +237,7 @@ module ND_FLOPPY_DMA #(
       s_delay_cnt   <= 16'd0;
       s_chunk_q     <= 11'd0;
       s_dma_wait    <= 1'b0;
+      s_autoload    <= 1'b0;
       dma_req       <= 1'b0;
       dma_wr        <= 1'b0;
       dma_addr      <= 24'd0;
@@ -258,11 +265,30 @@ module ND_FLOPPY_DMA #(
               s_eng      <= E_IDLE;
               s_dma_wait <= 1'b0;
             end
-            if (iox_wdata[8] && s_eng == E_IDLE) begin  // execute command
+            if (iox_wdata[2] && s_eng == E_IDLE) begin
+              // AUTOLOAD: boot sector (512 words from logical sector 0
+              // of a format-3 / 1KB diskette) -> ND memory address 0.
+              // The command-block fields are synthesized locally.
+              s_active     <= 1'b1;
+              s_rft        <= 1'b0;
+              s_hard_err   <= 1'b0;
+              s_err_code   <= 7'd0;
+              s_autoload   <= 1'b1;
+              s_cb[0]      <= 16'h0300;  // format 3 (1024 B/sector)
+              s_lsect      <= 16'd0;
+              s_mem_ptr    <= 24'd0;
+              s_words_left <= 16'd512;
+              s_chunk_q    <= 11'd512;
+              s_sec_idx    <= 11'd0;
+              disk_req     <= 1'b1;
+              disk_wr      <= 1'b0;
+              s_eng        <= E_DISK_RD;
+            end else if (iox_wdata[8] && s_eng == E_IDLE) begin  // execute
               s_active   <= 1'b1;
               s_rft      <= 1'b0;
               s_hard_err <= 1'b0;
               s_err_code <= 7'd0;
+              s_autoload <= 1'b0;
               s_cb_idx   <= 3'd0;
               s_eng      <= E_CB_FETCH;
             end
@@ -323,8 +349,13 @@ module ND_FLOPPY_DMA #(
             if (disk_err_in) begin
               s_hard_err <= 1'b1;
               s_err_code <= 7'd2;
-              s_eng      <= E_WBACK;
-              s_wb_idx   <= 3'd0;
+              if (s_autoload) begin
+                s_delay_cnt <= DELAY_TICKS;
+                s_eng       <= E_DELAY;
+              end else begin
+                s_eng    <= E_WBACK;
+                s_wb_idx <= 3'd0;
+              end
             end else begin
               s_sec_idx <= 11'd0;
               s_eng     <= E_MEM_WR;
@@ -342,8 +373,13 @@ module ND_FLOPPY_DMA #(
             s_words_left <= s_words_left - 16'd1;
             if (s_sec_idx + 11'd1 >= s_chunk_q || s_words_left == 16'd1) begin
               if (s_words_left == 16'd1) begin
-                s_eng    <= E_WBACK;
-                s_wb_idx <= 3'd0;
+                if (s_autoload) begin
+                  s_delay_cnt <= DELAY_TICKS;
+                  s_eng       <= E_DELAY;
+                end else begin
+                  s_eng    <= E_WBACK;
+                  s_wb_idx <= 3'd0;
+                end
               end else begin
                 s_lsect   <= s_lsect + 16'd1;
                 s_chunk_q <= ((s_words_left - 16'd1) > {5'd0, s_words_per_sector}) ?
