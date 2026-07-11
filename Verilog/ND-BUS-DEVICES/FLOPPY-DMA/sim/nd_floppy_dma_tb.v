@@ -18,7 +18,11 @@
 ** crossing a sector boundary with a partial tail (300 words), write     **
 ** of two full sectors, status writeback words (RSR1 copy, last memory   **
 ** address, remaining words = 0), IDENTIFY stub completion, level-11     **
-** interrupt on completion + IDENT code 021 + clear-on-IDENT.            **
+** interrupt on completion + IDENT code 021 + clear-on-IDENT - and a     **
+** REAL floppy image phase: testdata/210523I01-XX-01D.img (an original   **
+** ND distribution diskette, 1261568 bytes) is loaded into the disk      **
+** model and read back through the controller at the start, middle and   **
+** end of the image, word-compared against the file content.             **
 **                                                                       **
 ** Verdict line: TB_RESULT: PASS / TB_RESULT: FAIL                       **
 **                                                                       **
@@ -162,13 +166,41 @@ module nd_floppy_dma_tb;
   end
 
   // ---- disk image model (format 0: 256 words per sector) ----
+  // Sized for the real image: 1261568 bytes = 630784 words = 2464
+  // logical sectors at 256 words. The synthetic pattern fills the
+  // low sectors for the protocol tests; the real image is loaded
+  // over it for the real-image phase.
   localparam WPS = 256;
-  reg [15:0] image[0:(64 * WPS) - 1];  // 64 logical sectors
+  localparam IMG_WORDS = 630784;
+  reg [15:0] image[0:IMG_WORDS - 1];
   integer ii, w, base;
   initial begin
     for (ii = 0; ii < 64 * WPS; ii = ii + 1)
       image[ii] = 16'h9000 + ii[15:0];
   end
+
+  reg img_loaded;
+  initial img_loaded = 0;
+
+  task load_real_image;
+    integer fd, n;
+    begin
+      fd = $fopen("../../testdata/210523I01-XX-01D.img", "rb");
+      if (fd == 0) begin
+        // image files are local-only (gitignored) - see testdata/README.md
+        $display("[tb] SKIP real-image phase: testdata/210523I01-XX-01D.img not present");
+      end else begin
+        img_loaded = 1;
+        // $fread packs big-endian per element - the same byte order the
+        // C models use (ReadWord: hi byte first)
+        n = $fread(image, fd);
+        $fclose(fd);
+        check(n == 2 * IMG_WORDS, "real image short read");
+        $display("[tb] real image loaded: %0d bytes; first words %06o %06o %06o %06o",
+                 n, image[0], image[1], image[2], image[3]);
+      end
+    end
+  endtask
 
   always @(posedge sysclk) begin
     disk_done   <= 1'b0;
@@ -391,6 +423,42 @@ module nd_floppy_dma_tb;
     check(ihit === 1'b1, "IDENT PL11 no hit");
     check(icode === 16'o000021, "IDENT code not 021");
     check(bint11_n === 1'b1, "BINT11_n not released after IDENT");
+
+    // 6: REAL IMAGE phase - load the ND distribution diskette and read
+    //    it back through the controller at start, middle and end
+    load_real_image();
+    if (img_loaded) begin
+    // 6a: first 512 words (lsect 0, two sectors)
+    memory[CB + 0] = 16'h0000;
+    memory[CB + 1] = 16'd0;
+    memory[CB + 2] = 16'd0;
+    memory[CB + 3] = 16'h7000;
+    memory[CB + 4] = 16'h8000;
+    memory[CB + 5] = 16'd512;
+    run_command(CB, 1'b0);
+    for (i = 0; i < 512; i = i + 1) begin
+      if (memory[16'h7000 + i] !== image[i])
+        check(1'b0, "real image start readback wrong");
+    end
+    // 6b: middle of the image (lsect 1200)
+    memory[CB + 1] = 16'd1200;
+    memory[CB + 3] = 16'h7000;
+    memory[CB + 5] = 16'd512;
+    run_command(CB, 1'b0);
+    for (i = 0; i < 512; i = i + 1) begin
+      if (memory[16'h7000 + i] !== image[1200 * WPS + i])
+        check(1'b0, "real image middle readback wrong");
+    end
+    // 6c: the last two sectors of the diskette
+    memory[CB + 1] = 16'd2462;
+    memory[CB + 3] = 16'h7000;
+    memory[CB + 5] = 16'd512;
+    run_command(CB, 1'b0);
+    for (i = 0; i < 512; i = i + 1) begin
+      if (memory[16'h7000 + i] !== image[2462 * WPS + i])
+        check(1'b0, "real image end readback wrong");
+    end
+    end  // img_loaded
 
     if (errors == 0) $display("TB_RESULT: PASS");
     else begin

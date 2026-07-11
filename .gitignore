@@ -89,3 +89,7 @@ Verilog/runSim/out_*.log
 Verilog/sim/compare_run*.log
 Verilog/fpga/**/sim/*.vcd
 Verilog/fpga/**/sim/*.vvp
+
+# Device test images (large, local only - see Verilog/ND-BUS-DEVICES/testdata/README.md)
+Verilog/ND-BUS-DEVICES/testdata/*.img
+Verilog/ND-BUS-DEVICES/testdata/*.IMG

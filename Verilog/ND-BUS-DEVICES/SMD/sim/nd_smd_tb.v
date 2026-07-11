@@ -152,20 +152,48 @@ module nd_smd_tb;
   end
 
   // ---- disk model: linear word array, position from block address ----
-  reg [15:0] image[0:16383];
-  integer disk_pos;   // advances across chunks within one transfer
+  // The array doubles as a WINDOW into the 75 MB real SMD image
+  // (BIGDISK0-L2-100.IMG, gitignored - see testdata/README.md):
+  // window_base is subtracted from the computed position, and the
+  // real-image phase loads 1M-word windows with $fseek + $fread.
+  localparam WIN_WORDS = 1048576;
+  reg [15:0] image[0:WIN_WORDS - 1];
+  integer window_base;  // in words
+  integer disk_pos;     // advances across chunks within one transfer
   integer ii, w;
   initial begin
+    window_base = 0;
     for (ii = 0; ii < 16384; ii = ii + 1)
       image[ii] = 16'h7000 + ii[15:0];
   end
+
+  reg img_avail;
+  initial img_avail = 0;
+
+  task load_window(input integer word_base);
+    integer fd, n;
+    begin
+      fd = $fopen("../../testdata/BIGDISK0-L2-100.IMG", "rb");
+      if (fd == 0) begin
+        img_avail = 0;
+      end else begin
+        img_avail = 1;
+        n = $fseek(fd, word_base * 2, 0);
+        n = $fread(image, fd);
+        $fclose(fd);
+        window_base = word_base;
+        $display("[tb] SMD image window @word %0d: %0d bytes, first words %06o %06o",
+                 word_base, n, image[0], image[1]);
+      end
+    end
+  endtask
 
   always @(posedge sysclk) begin
     disk_done   <= 1'b0;
     disk_err_in <= 1'b0;
     dbuf_we     <= 1'b0;
     if (disk_start) begin
-      disk_pos = disk_blkaddr2 * 2048 + disk_blkaddr1 * 64;
+      disk_pos = disk_blkaddr2 * 2048 + disk_blkaddr1 * 64 - window_base;
     end
     if (disk_req) begin
       if (!disk_wr) begin
@@ -306,7 +334,7 @@ module nd_smd_tb;
   reg [15:0] rdata;
   reg        ihit;
   reg [15:0] icode;
-  integer    i, dpos;
+  integer    i, dpos, nzcount;
 
   initial begin
 `ifdef DUMPFILE
@@ -387,6 +415,65 @@ module nd_smd_tb;
     check(ihit === 1'b1, "IDENT PL11 no hit");
     check(icode === 16'o000017, "IDENT code not 017");
     check(bint11_n === 1'b1, "BINT11_n not released after IDENT");
+
+    // 6: REAL IMAGE phase - three windows of the 75 MB SMD disk 0
+    //    (start, middle, exact tail), each read through the controller
+    //    and word-compared against the file content
+    load_window(0);
+    if (!img_avail) begin
+      $display("[tb] SKIP real-image phase: testdata/BIGDISK0-L2-100.IMG not present");
+    end else begin
+      // start: blkaddrII=0, blkaddrI=0 -> word 0
+      iox_write(16'o001541, 16'h7000);
+      iox_write(16'o001543, 16'd0);
+      iox_write(16'o001545, 16'h8000);
+      iox_write(16'o001543, 16'd0);
+      iox_write(16'o001545, 16'h0000);
+      iox_write(16'o001547, 16'd1024);
+      iox_write(16'o001545, 16'h0004);
+      wait_ready();
+      for (i = 0; i < 1024; i = i + 1)
+        if (memory[16'h7000 + i] !== image[i])
+          check(1'b0, "SMD image start readback wrong");
+
+      nzcount = 0;
+      for (i = 0; i < 1024; i = i + 1) if (memory[16'h7000 + i] !== 16'd0) nzcount = nzcount + 1;
+      check(nzcount > 0, "SMD start window compared only zeros (vacuous)");
+
+      // middle: data-rich region, window at word 5120*2048 (byte 20971520)
+      load_window(5120 * 2048);
+      iox_write(16'o001541, 16'h7000);
+      iox_write(16'o001543, 16'd0);       // blkaddr I
+      iox_write(16'o001545, 16'h8000);
+      iox_write(16'o001543, 16'd5120);    // blkaddr II
+      iox_write(16'o001545, 16'h0000);
+      iox_write(16'o001547, 16'd1024);
+      iox_write(16'o001545, 16'h0004);
+      wait_ready();
+      for (i = 0; i < 1024; i = i + 1)
+        if (memory[16'h7000 + i] !== image[i])
+          check(1'b0, "SMD image middle readback wrong");
+      nzcount = 0;
+      for (i = 0; i < 1024; i = i + 1) if (memory[16'h7000 + i] !== 16'd0) nzcount = nzcount + 1;
+      check(nzcount > 0, "SMD middle window compared only zeros (vacuous)");
+
+      // far region: the deepest data-bearing cylinder (blkaddrII 18472)
+      load_window(18472 * 2048);
+      iox_write(16'o001541, 16'h7000);
+      iox_write(16'o001543, 16'd0);
+      iox_write(16'o001545, 16'h8000);
+      iox_write(16'o001543, 16'd18472);
+      iox_write(16'o001545, 16'h0000);
+      iox_write(16'o001547, 16'd1024);
+      iox_write(16'o001545, 16'h0004);
+      wait_ready();
+      for (i = 0; i < 1024; i = i + 1)
+        if (memory[16'h7000 + i] !== image[i])
+          check(1'b0, "SMD image far readback wrong");
+      nzcount = 0;
+      for (i = 0; i < 1024; i = i + 1) if (memory[16'h7000 + i] !== 16'd0) nzcount = nzcount + 1;
+      check(nzcount > 0, "SMD far window compared only zeros (vacuous)");
+    end
 
     if (errors == 0) $display("TB_RESULT: PASS");
     else begin
