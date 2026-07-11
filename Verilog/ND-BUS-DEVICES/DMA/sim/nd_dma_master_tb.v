@@ -13,7 +13,9 @@
 **   single word write + readback, 64-word block via re-requests,       **
 **   simultaneous requests (chain priority: A first, B next, both        **
 **   complete), grant under bus-busy delay, local timeout (memory        **
-**   never answers), data integrity across masters.                     **
+**   never answers), data integrity across masters, and the request     **
+**   freeze: a chain-head request raised AFTER the BMEM leading edge    **
+**   must pass the token to the frozen downstream requester.            **
 **                                                                       **
 ** Verdict line: TB_RESULT: PASS / TB_RESULT: FAIL                       **
 **                                                                       **
@@ -257,6 +259,44 @@ module nd_dma_master_tb;
     check(a_err === 1'b1, "timeout not flagged as error");
     check(a_breq_n === 1'b1, "BREQ stuck after timeout");
     model_enable = 1;
+
+    // 7 (run before 6's final check block): request freeze - B
+    // (downstream) requests; after the BMEM leading edge A (chain
+    // head) requests LATE. A must pass the token (not steal the
+    // grant); B completes this round, A the next round.
+    arb_delay = 4'd6;
+    memory[16'o7000] = 16'h7777;
+    memory[16'o7001] = 16'h8888;
+    a_done_seen = 0; b_done_seen = 0;
+    @(negedge sysclk);
+    b_wr = 0; b_addr = 24'o7001; b_req = 1;
+    @(negedge sysclk);
+    b_req = 0;
+    guard = 0;
+    while (bmem_n !== 1'b0 && guard < 100) begin
+      @(negedge sysclk); guard = guard + 1;
+    end
+    check(bmem_n === 1'b0, "BMEM never fell in freeze test");
+    a_wr = 0; a_addr = 24'o7000; a_req = 1;  // too late for this round
+    @(negedge sysclk);
+    a_req = 0;
+    guard = 0;
+    while ((!a_done_seen || !b_done_seen) && guard < 3000) begin
+      @(negedge sysclk);
+      if (b_ack === 1'b1 && !b_done_seen) begin
+        b_done_seen = 1;
+        check(b_rdata === 16'h8888, "B freeze-test read wrong");
+        check(a_done_seen == 0, "A stole the grant despite late request");
+      end
+      if (a_ack === 1'b1 && !a_done_seen) begin
+        a_done_seen = 1;
+        check(a_rdata === 16'h7777, "A freeze-test read wrong");
+      end
+      guard = guard + 1;
+    end
+    check(b_done_seen === 1'b1, "B never completed (freeze test)");
+    check(a_done_seen === 1'b1, "A never completed after freeze round");
+    arb_delay = 4'd2;
 
     // 6: recovery after timeout: normal transfer works again
     a_xfer(1'b1, 24'o00006000, 16'hC0DE);

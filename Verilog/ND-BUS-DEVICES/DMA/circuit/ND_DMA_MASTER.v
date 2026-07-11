@@ -76,22 +76,32 @@ module ND_DMA_MASTER #(
   reg        s_wr;
   reg [23:0] s_addr;
   reg [15:0] s_wdata;
-  reg        s_claimed;     // we consumed the grant token this cycle
   reg        s_prev_bmem_n;
   reg [15:0] s_tick_cnt;
   reg [1:0]  s_phase_cnt;   // small strobe-width counter
 
   assign dma_busy = (s_state != ST_IDLE);
 
-  // Daisy chain: pass the token unless we are claiming it. Combinational,
-  // like the search chain on the real backplane. The claim must HOLD for
-  // the whole transfer, not just the wait: if the token leaked past a
-  // granted master mid-cycle, the next requester downstream would start
-  // its own cycle on the occupied bus.
-  wire s_claiming = (s_state != ST_IDLE);
-  assign OUTGRANT_n = INGRANT_n | s_claiming;
-
   wire s_bmem_fall = (BMEM_n == 1'b0) && (s_prev_bmem_n == 1'b1);
+
+  // Request freeze (F.2, Figure V.4.1 "DMA REQ. STATUS IS FROZEN"):
+  // only a request asserted BEFORE the leading edge of BMEM takes part
+  // in the current grant round. s_req_frozen latches our status at the
+  // BMEM edge; s_frozen_eff covers the edge cycle itself (the register
+  // updates one clock later).
+  reg  s_req_frozen;
+  wire s_frozen_eff = s_req_frozen | (s_bmem_fall && (s_state == ST_REQ));
+
+  // Daisy chain: combinational pass-through, like the search chain on
+  // the real backplane. We consume the token only when FROZEN-in and
+  // waiting (Figure V.5.1: an un-frozen requester must keep connecting
+  // INGRANT to OUTGRANT), and for the whole transfer once granted - if
+  // the token leaked past a granted master mid-cycle, the next
+  // requester downstream would start its own cycle on the occupied bus.
+  wire s_claiming = ((s_state == ST_REQ) && s_frozen_eff) ||
+                    (s_state == ST_ADDR) || (s_state == ST_DATA) ||
+                    (s_state == ST_END);
+  assign OUTGRANT_n = INGRANT_n | s_claiming;
 
   always @(posedge sysclk or negedge sys_rst_n) begin
     if (!sys_rst_n) begin
@@ -99,7 +109,7 @@ module ND_DMA_MASTER #(
       s_wr          <= 1'b0;
       s_addr        <= 24'd0;
       s_wdata       <= 16'd0;
-      s_claimed     <= 1'b0;
+      s_req_frozen  <= 1'b0;
       s_prev_bmem_n <= 1'b1;
       s_tick_cnt    <= 16'd0;
       s_phase_cnt   <= 2'd0;
@@ -114,6 +124,11 @@ module ND_DMA_MASTER #(
     end else begin
       dma_ack <= 1'b0;
 
+      // Freeze latch: sampled at the BMEM leading edge, cleared when the
+      // round is over (BMEM inactive)
+      if (BMEM_n == 1'b1) s_req_frozen <= 1'b0;
+      else if (s_bmem_fall) s_req_frozen <= (s_state == ST_REQ);
+
       case (s_state)
         ST_IDLE: begin
           dma_err <= 1'b0;
@@ -127,12 +142,11 @@ module ND_DMA_MASTER #(
           end
         end
 
-        // Wait for the allocation: BMEM active (request status frozen at
-        // its leading edge - ours is, we asserted BREQ before) and the
-        // grant token reaching us. The token may arrive on the BMEM edge
-        // or after; accept whenever both are true.
+        // Wait for the allocation: BMEM active AND our request frozen in
+        // at its leading edge AND the grant token reaching us. A request
+        // raised after the BMEM edge waits for the next round (F.2).
         ST_REQ: begin
-          if ((BMEM_n == 1'b0) && (INGRANT_n == 1'b0)) begin
+          if ((BMEM_n == 1'b0) && (INGRANT_n == 1'b0) && s_frozen_eff) begin
             // Granted: drop the request, start the address cycle
             BREQ_n        <= 1'b1;
             BD_23_0_n_OUT <= ~s_addr;

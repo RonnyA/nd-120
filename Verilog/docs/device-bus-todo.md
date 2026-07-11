@@ -183,11 +183,14 @@ partition uses only part of it. Use the spare SDRAM as the disk layer:
       masters against a BCU+memory model - word write/read, 64-word
       block, simultaneous requests with chain priority, delayed
       grant, dead-memory timeout + recovery. Registered in the suite.
-- [ ] Full-RTL validation: drive ND_DMA_MASTER against the REAL CPU
-      board (assert BREQ_n into ND120_TOP, real PAL arbiter grants,
-      real RAM answers) - instantiate behind ND120_VERILOG_DEVICES
-      like the tape, verify a DMA-written pattern via OPCOM examine
-      and a DMA read of a deposited pattern
+- [ ] Full-RTL validation IN THE VERILATOR SIMULATORS FIRST (Ronny's
+      rule 11-JUL: sim + unit tests before any board work): drive
+      ND_DMA_MASTER against the REAL CPU board (assert BREQ_n into
+      ND120_TOP, real PAL arbiter grants, real RAM answers) -
+      instantiate behind ND120_VERILOG_DEVICES like the tape, verify
+      a DMA-written pattern via OPCOM examine and a DMA read of a
+      deposited pattern; gate with a registered test target. ONLY
+      AFTER the sim gate is green does DMA go into the Tang project.
 - [ ] Floppy DMA device core (command block in ND memory per
       nd100x deviceFloppyDMA: 12-word block, pointer regs at +5/+7,
       dualDensity status bit15 forced 1) on top of ND_DMA_MASTER
