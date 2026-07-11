@@ -90,6 +90,30 @@ workstream while that session is active.
 - [ ] ACCEPTANCE: '$' at the OPCOM prompt boots INSTRUCTION-B from the
       microSD on silicon (ALD already straps to 400 - zero CPU changes)
 
+## SDRAM disk-image cache (design rule, lands with Phase 3)
+
+The SD card is slow; the Tang SDRAM is 8 MB and the ND-120 memory
+partition uses only part of it. Use the spare SDRAM as the disk layer:
+
+- CACHE UNIT = ONE BLOCK = 2048 bytes (1 kiloword = 4 SD sectors),
+  the same ND-120 block framing sd-fat-test WRBLK1 already uses; all
+  transfers, tags and write-through happen at this granularity
+- Floppy (~1.2 MB image = ~600 blocks): PRELOAD the whole image
+  block-by-block into SDRAM at mount, serve ALL reads from SDRAM (no
+  eviction ever needed), WRITE-THROUGH every written 2048-byte block
+  to SDRAM + SD card so the card is always consistent (safe to pull
+  anytime)
+- HDD/SMD later (37-75 MB, does not fit): real cache with per-block
+  tags (2048-byte blocks) over the same SDRAM region, same
+  write-through policy
+- SDRAM map: fixed partition - low region ND-120 main memory (as
+  today), high region disk-image slots; document the map in one place
+- sdram18.v gets a second (device) port; ARBITRATION RULE: CPU memory
+  traffic has absolute priority, the device port takes leftover cycles
+  only - a floppy preload must never stall a CPU access
+- nd_storage clients then see: tape = SD byte stream (unchanged),
+  floppy/HDD = SDRAM-backed block port with SD write-through behind it
+
 ## Phase 3 - Floppy (PIO first)
 
 - [ ] Extract the floppy PIO register/command semantics from
