@@ -203,9 +203,17 @@ partition uses only part of it. Use the spare SDRAM as the disk layer:
       lose the RAM cycle; matches real controllers' 1.4us+ re-request
       periods). Tang integration is the remaining step, AFTER the sim
       work completes (Ronny's rule).
-- [ ] Floppy DMA device core (command block in ND memory per
-      nd100x deviceFloppyDMA: 12-word block, pointer regs at +5/+7,
-      dualDensity status bit15 forced 1) on top of ND_DMA_MASTER
+- [x] Floppy DMA device core DONE 11-JUL-2026:
+      ND-BUS-DEVICES/FLOPPY-DMA/circuit/ND_FLOPPY_DMA.v per nd100x
+      deviceFloppyDMA - pointer regs, 12-word command block DMA-fetched
+      from ND memory, read/write functions moving sector data by DMA
+      (multi-sector with partial tail), status words 6-11 DMA-written
+      back, dualDensity b15 forced 1, IDENTIFY/other functions complete
+      as clean stubs like the C model. tb: the full stack (IOX ->
+      bus slave -> controller -> ND_DMA_MASTER -> BCU+memory model +
+      disk model); registered in the suite. NOT yet wired into
+      ND120_TOP (1560 currently has the PIO flavor - controller choice
+      per board is a wiring decision, ask Ronny at integration).
 - [ ] SMD controller (register map in docs/nd100x-device-semantics.md)
       on top of ND_DMA_MASTER
 

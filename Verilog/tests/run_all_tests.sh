@@ -56,13 +56,20 @@ REGISTRY=(
   "fpga/tang-nano-20k/sdram18-test/sim :: test :: TB_RESULT: PASS"
   # --- SD-FAT library + Tang Nano 20K SD test ---------------------------
   "SD-FAT/sim                         :: test-writer    :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-writer-div1 :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-nds-cdc   :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-nds-engine :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-nds-write :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-nds-mount :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-dumper    :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator-fat32 :: TB_RESULT: PASS"
+  "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator-fat32big :: TB_RESULT: PASS"
   # --- ND-100 external bus devices --------------------------------------
   "ND-BUS-DEVICES/BUS-IF/sim :: test-bus-slave :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/FLOPPY/sim :: test-floppy-pio :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/DMA/sim    :: test-dma-master :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-dma :: TB_RESULT: PASS"
 )
 # NOT in the registry (run manually, documented reasons):
 #   DELILAH-CPU/CGA_MIC/sim test-masel-cycle / test-masel-iw - exploratory
