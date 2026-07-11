@@ -218,11 +218,10 @@ void proccess_bif_signal(VND120_TOP *top)
 	}
 	
 #ifdef ND120_VERILOG_DEVICES
-	// Serve the Verilog tape-400 device's byte-source ports.
-	// The C papertape model is NOT registered in this build (see
-	// addDevices) - the Verilog device inside ND120_TOP owns IOX 400-403
-	// and this harness only feeds it raw bytes from the tape file.
+	// Serve the Verilog devices' backend ports (the C models are NOT
+	// registered in this build - see addDevices).
 	process_verilog_tape(top);
+	process_verilog_floppy(top);
 #endif
 
 	// Tick deviceManager
@@ -247,10 +246,13 @@ void addDevices()
 #ifndef ND120_VERILOG_DEVICES
 	// Add the PaperTape (TapeReader) at octal 400-403
 	deviceManager.AddDevice(DeviceType::PaperTape, 0);
-#endif
 
 	// Add the FloppyPIO at octal 1560-1567
 	deviceManager.AddDevice(DeviceType::FloppyPIO, 0);
+#endif
+	// With ND120_VERILOG_DEVICES both devices are Verilog cores inside
+	// ND120_TOP; this harness only serves their backend ports (tape
+	// bytes + floppy disk image).
 }
 
 #ifdef ND120_VERILOG_DEVICES
@@ -303,6 +305,142 @@ void process_verilog_tape(VND120_TOP *top)
 
 	vtape_prev_req = top->TAPE_BYTE_REQ;
 	vtape_prev_rewind = top->TAPE_REWIND;
+}
+
+/* Disk-image backend for the Verilog ND_FLOPPY_PIO (FLOPPY.IMG, same
+** file and position math as the C FloppyPIO model). One word moves per
+** half-clock call: reads stream image words into the device buffer via
+** the FDBUF port, writes stream buffer words into the image. Command
+** ops other than read/write/writedel (format) fill the track with the
+** C model's 0xAAFF pattern. */
+static FILE *vflp_file = 0;
+static int vflp_prev_req = 0;
+static int vflp_state = 0;    // 0 idle, 1 read-stream, 2 write-addr, 3 write-take, 4 done-pulse
+static long vflp_pos = 0;
+static int vflp_words = 0, vflp_idx = 0;
+static unsigned vflp_bufstart = 0;
+static int vflp_op = 0;
+static int vflp_done_ticks = 0;
+
+void process_verilog_floppy(VND120_TOP *top)
+{
+	if (vflp_file == 0)
+	{
+		vflp_file = fopen("FLOPPY.IMG", "r+");
+		if (vflp_file == 0)
+			vflp_file = fopen("FLOPPY.IMG", "r");
+	}
+
+	if (vflp_done_ticks > 0)
+	{
+		if (--vflp_done_ticks == 0)
+		{
+			top->FDISK_DONE = 0;
+			top->FDISK_ERR_NOTRDY = 0;
+			top->FDISK_ERR_MISSING = 0;
+		}
+	}
+
+	if (top->FDISK_REQ && !vflp_prev_req)
+	{
+		int bytes_per_sector = (top->FDISK_FORMAT == 2) ? 256 :
+		                       (top->FDISK_FORMAT == 3) ? 512 : 128;
+		int sectors_per_track = (top->FDISK_FORMAT == 2) ? 15 :
+		                        (top->FDISK_FORMAT == 3) ? 8 : 26;
+		vflp_pos = ((long)top->FDISK_SECTOR - 1) * bytes_per_sector +
+		           (long)top->FDISK_TRACK * bytes_per_sector * sectors_per_track;
+		vflp_words = top->FDISK_WORDCOUNT;
+		vflp_bufstart = top->FDISK_BUF_START;
+		vflp_idx = 0;
+		vflp_op = top->FDISK_OP;
+
+		if (vflp_file == 0 || fseek(vflp_file, vflp_pos, SEEK_SET) != 0)
+		{
+			top->FDISK_ERR_NOTRDY = 1;
+			top->FDISK_DONE = 1;
+			vflp_done_ticks = 2;
+		}
+		else if (vflp_op == 4) // read data
+		{
+			vflp_state = 1;
+		}
+		else if (vflp_op == 1 || vflp_op == 2) // write / write deleted
+		{
+			vflp_state = 2;
+		}
+		else // format track: C-model 0xAAFF fill
+		{
+			for (int sct = 0; sct < sectors_per_track; sct++)
+				for (int w = 0; w < bytes_per_sector / 2; w++)
+				{
+					long p = (long)top->FDISK_TRACK * bytes_per_sector *
+					             sectors_per_track + sct * bytes_per_sector + w * 2;
+					fseek(vflp_file, p, SEEK_SET);
+					putc(0xAA, vflp_file);
+					putc(0xFF, vflp_file);
+				}
+			fflush(vflp_file);
+			top->FDISK_DONE = 1;
+			vflp_done_ticks = 2;
+		}
+	}
+	else if (vflp_state == 1) // read: one word per call into the buffer
+	{
+		int hi = getc(vflp_file);
+		int lo = getc(vflp_file);
+		if (hi < 0 || lo < 0)
+		{
+			top->FDISK_ERR_NOTRDY = 1;
+			top->FDISK_DONE = 1;
+			vflp_done_ticks = 2;
+			top->FDBUF_WE = 0;
+			vflp_state = 0;
+		}
+		else
+		{
+			top->FDBUF_ADDR = (vflp_bufstart + vflp_idx) & 0x3FF;
+			top->FDBUF_WDATA = ((hi & 0xFF) << 8) | (lo & 0xFF);
+			top->FDBUF_WE = 1;
+			vflp_idx++;
+			if (vflp_idx >= vflp_words)
+			{
+				vflp_state = 4;
+			}
+		}
+	}
+	else if (vflp_state == 4) // read tail: drop WE, pulse done
+	{
+		top->FDBUF_WE = 0;
+		top->FDISK_DONE = 1;
+		vflp_done_ticks = 2;
+		vflp_state = 0;
+	}
+	else if (vflp_state == 2) // write: present the buffer address
+	{
+		top->FDBUF_WE = 0;
+		top->FDBUF_ADDR = (vflp_bufstart + vflp_idx) & 0x3FF;
+		vflp_state = 3;
+	}
+	else if (vflp_state == 3) // write: take the word after eval settled
+	{
+		unsigned short w = top->FDBUF_RDATA;
+		putc((w >> 8) & 0xFF, vflp_file);
+		putc(w & 0xFF, vflp_file);
+		vflp_idx++;
+		if (vflp_idx >= vflp_words)
+		{
+			fflush(vflp_file);
+			top->FDISK_DONE = 1;
+			vflp_done_ticks = 2;
+			vflp_state = 0;
+		}
+		else
+		{
+			vflp_state = 2;
+		}
+	}
+
+	vflp_prev_req = top->FDISK_REQ;
 }
 #endif
 

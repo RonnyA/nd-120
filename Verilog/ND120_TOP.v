@@ -109,7 +109,25 @@ module ND120_TOP
     output wire [15:0] DMA_RDATA,
     output wire        DMA_ACK,
     output wire        DMA_ERR,
-    output wire        DMA_BUSY
+    output wire        DMA_BUSY,
+
+    // Floppy disk-image backend (sim harness serves FLOPPY.IMG;
+    // hardware later serves the SDRAM-cached image)
+    output wire        FDISK_REQ,
+    output wire [2:0]  FDISK_OP,
+    output wire [6:0]  FDISK_SECTOR,
+    output wire [6:0]  FDISK_TRACK,
+    output wire [1:0]  FDISK_FORMAT,
+    output wire [2:0]  FDISK_DRIVE,
+    output wire [9:0]  FDISK_BUF_START,
+    output wire [10:0] FDISK_WORDCOUNT,
+    input  wire        FDISK_DONE,
+    input  wire        FDISK_ERR_NOTRDY,
+    input  wire        FDISK_ERR_MISSING,
+    input  wire [9:0]  FDBUF_ADDR,
+    input  wire [15:0] FDBUF_WDATA,
+    input  wire        FDBUF_WE,
+    output wire [15:0] FDBUF_RDATA
 `endif
 `endif
 );
@@ -392,12 +410,20 @@ module ND120_TOP
   wire s_dev_binput_n, s_dev_bdap_n, s_dev_bdry_n;
   wire s_dev_bint10_n, s_dev_bint11_n, s_dev_bint12_n, s_dev_bint13_n;
 
-  wire [15:0] s_dev_iox_addr, s_dev_iox_wdata, s_dev_iox_rdata;
+  wire [15:0] s_dev_iox_addr, s_dev_iox_wdata;
   wire        s_dev_iox_wr, s_dev_iox_rd;
-  wire [3:0]  s_dev_int_pending;
-  wire        s_dev_ident_strobe, s_dev_ident_hit;
+  wire        s_dev_ident_strobe;
   wire [3:0]  s_dev_ident_level;
-  wire [15:0] s_dev_ident_code;
+  // OR-bus contributions per device core (tape, floppy)
+  wire [15:0] s_tape_rdata, s_flp_rdata;
+  wire [3:0]  s_tape_intp, s_flp_intp;
+  wire        s_tape_hit, s_flp_hit;
+  wire [15:0] s_tape_code, s_flp_code;
+  wire        s_grant_tape_flp;  // ident chain: tape -> floppy
+  wire [15:0] s_dev_iox_rdata   = s_tape_rdata | s_flp_rdata;
+  wire [3:0]  s_dev_int_pending = s_tape_intp | s_flp_intp;
+  wire        s_dev_ident_hit   = s_tape_hit | s_flp_hit;
+  wire [15:0] s_dev_ident_code  = s_tape_code | s_flp_code;
 
   ND_BUS_SLAVE BUS_SLAVE (
       .sysclk(s_dev_clk),
@@ -438,18 +464,54 @@ module ND120_TOP
       .iox_wr(s_dev_iox_wr),
       .iox_wdata(s_dev_iox_wdata),
       .iox_rd(s_dev_iox_rd),
-      .iox_rdata(s_dev_iox_rdata),
-      .int_pending(s_dev_int_pending),
+      .iox_rdata(s_tape_rdata),
+      .int_pending(s_tape_intp),
       .ident_strobe(s_dev_ident_strobe),
       .ident_level(s_dev_ident_level),
       .ident_grant_in(1'b1),
-      .ident_grant_out(),
-      .ident_hit(s_dev_ident_hit),
-      .ident_code(s_dev_ident_code),
+      .ident_grant_out(s_grant_tape_flp),
+      .ident_hit(s_tape_hit),
+      .ident_code(s_tape_code),
       .byte_req(TAPE_BYTE_REQ),
       .byte_valid(TAPE_BYTE_VALID),
       .byte_data(TAPE_BYTE_DATA),
       .source_rewind(TAPE_REWIND)
+  );
+
+  ND_FLOPPY_PIO #(
+      .BASE_ADDR (16'o001560),
+      .IDENT_CODE(16'o000021),
+      .INT_LEVEL (4'd11)
+  ) FLOPPY_1560 (
+      .sysclk(s_dev_clk),
+      .sys_rst_n(sys_rst_n),
+      .iox_addr(s_dev_iox_addr),
+      .iox_wr(s_dev_iox_wr),
+      .iox_wdata(s_dev_iox_wdata),
+      .iox_rd(s_dev_iox_rd),
+      .iox_rdata(s_flp_rdata),
+      .int_pending(s_flp_intp),
+      .ident_strobe(s_dev_ident_strobe),
+      .ident_level(s_dev_ident_level),
+      .ident_grant_in(s_grant_tape_flp),
+      .ident_grant_out(),
+      .ident_hit(s_flp_hit),
+      .ident_code(s_flp_code),
+      .disk_req(FDISK_REQ),
+      .disk_op(FDISK_OP),
+      .disk_sector(FDISK_SECTOR),
+      .disk_track(FDISK_TRACK),
+      .disk_format(FDISK_FORMAT),
+      .disk_drive(FDISK_DRIVE),
+      .disk_buf_start(FDISK_BUF_START),
+      .disk_wordcount(FDISK_WORDCOUNT),
+      .disk_done(FDISK_DONE),
+      .disk_err_notrdy(FDISK_ERR_NOTRDY),
+      .disk_err_missing(FDISK_ERR_MISSING),
+      .dbuf_addr(FDBUF_ADDR),
+      .dbuf_wdata(FDBUF_WDATA),
+      .dbuf_we(FDBUF_WE),
+      .dbuf_rdata(FDBUF_RDATA)
   );
 
   // DMA bus master (full-RTL DMA validation): requests the bus from the

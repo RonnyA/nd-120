@@ -194,6 +194,7 @@ module ND_FLOPPY_PIO #(
   endfunction
 
   wire s_wr_here = iox_wr && s_addressed;
+  wire [2:0] s_cmd_dec = cmd_decode(iox_wdata[15:8]);
 
   always @(posedge sysclk or negedge sys_rst_n) begin
     if (!sys_rst_n) begin
@@ -275,10 +276,10 @@ module ND_FLOPPY_PIO #(
           s_missing       <= 1'b0;
           s_crc_err       <= 1'b0;
           s_overrun       <= 1'b0;
-          s_cmd           <= cmd_decode(iox_wdata[15:8]);
+          s_cmd           <= s_cmd_dec;
           s_cmd_buf_start <= s_bufptr;
 
-          case (cmd_decode(iox_wdata[15:8]))
+          case (s_cmd_dec)
             CMD_CTLRESET: begin
               // No interrupt per documentation; just not busy
               s_busy <= 1'b0;
@@ -314,7 +315,7 @@ module ND_FLOPPY_PIO #(
                 s_busy      <= 1'b0;
               end else begin
                 disk_req <= 1'b1;
-                disk_op  <= cmd_decode(iox_wdata[15:8]);
+                disk_op  <= s_cmd_dec;
                 s_cmd_running <= 1'b1;
               end
             end
