@@ -447,7 +447,16 @@ module CPU_PROC_32 (
   );
   */
   //2x RAM 2^11 addresses, Each 8-bit wide. Converted to one 16 bits wide
+  // yosys: the asynchronous read on s_idb_erf_out (assign below) cannot map
+  // to a BSRAM, and yosys treats ram_style="block" as a hard requirement
+  // ("ERROR: no valid mapping") where Vivado/Gowin EDA treat it as advisory
+  // and fall back. 2048x16 = 32 Kbit as distributed LUT RAM (~2K LUT4).
+  // yosys pre-defines YOSYS; every other flow is untouched.
+`ifdef YOSYS
+  (* ram_style = "distributed" *) reg [15:0] registerBlock[0:2047];
+`else
   (* ram_style = "block" *) reg [15:0] registerBlock[0:2047];
+`endif
 
 
   always @(posedge sysclk) // or negedge s_twrf_n)

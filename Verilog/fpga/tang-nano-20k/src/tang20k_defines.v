@@ -34,21 +34,33 @@
 // MAIN_RAM_SDRAM; no effect on Verilator/Basys3 builds.
 `define ND_SDRAM_PACK16
 
+// ---- Clock variant selection (slow / crawl / full) ----------------------
 // Slow bring-up clocking (G1): first Gowin build measured CPU-domain Fmax at
 // 9.38 MHz (31 levels) with derived-clock domains down to 4.7 MHz - the known
 // derived-clock architecture problem. Until the clock-enable refactor closes
 // timing at 27 MHz, run CPU/bus at 6.75 MHz (SDRAM pair at 13.5 MHz), which
-// sits under every measured Fmax with margin. Comment this out for the full
-// 27/54 MHz build (gowin_rpll_27_54.v switches on the same define).
-`define TANG_SLOW_BRINGUP
-
+// sits under every measured Fmax with margin.
+//
 // Crawl bring-up (P0 mechanism probe): halve the slow bring-up again -
 // CPU/bus 3.375 MHz, SDRAM pair 6.75 MHz. The probe .tr measured the
 // CPU-domain Fmax at 4.84 MHz, so at 3.375 MHz the SAME netlist meets
-// timing. If a crawl build deposits correctly, the deposit bug is proven
-// to be pure cross-domain timing (not logic). Define IN ADDITION to
+// timing. Crawl = TANG_CRAWL_BRINGUP defined IN ADDITION to
 // TANG_SLOW_BRINGUP (it overrides the PLL and clock counts).
-//`define TANG_CRAWL_BRINGUP
+//
+// The variant is selected WITHOUT editing this file: the build flows
+// pre-define TANG_VARIANT_FULL or TANG_VARIANT_CRAWL on top of this
+// compilation unit (OSS: `make VARIANT=full|crawl|slow` passes -D flags;
+// Gowin: `gowin_build.ps1 -Variant ...` emits build/tang20k_variant.v as
+// the first project file). No variant define = slow bring-up, the same
+// default as before. See docs/tang20k-build-flows.md.
+`ifdef TANG_VARIANT_FULL
+  // full speed 27/54 MHz: neither SLOW nor CRAWL defined
+`elsif TANG_VARIANT_CRAWL
+  `define TANG_SLOW_BRINGUP
+  `define TANG_CRAWL_BRINGUP
+`else
+  `define TANG_SLOW_BRINGUP
+`endif
 
 // Clock/baud parameters - keep ALL derived counts slaved to these
 `ifdef TANG_CRAWL_BRINGUP

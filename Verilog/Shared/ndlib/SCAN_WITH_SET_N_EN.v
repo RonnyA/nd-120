@@ -38,7 +38,17 @@ module SCAN_WITH_SET_N_EN #(
       /* verilator lint_off UNUSEDSIGNAL */
       wire unused_clk = CLK;
       /* verilator lint_on UNUSEDSIGNAL */
+      // yosys/Gowin: a GW2A FF's power-up value must EQUAL its async-set
+      // value (dfflegalize hard-errors on init 0 + async preset 1; Xilinx
+      // allows them to differ, so Vivado never minded). Init 1 is also what
+      // the silicon does: S_n is asserted through POR, so the FF leaves
+      // reset at 1 regardless of the declared init. Verilator/iverilog/
+      // Vivado keep the original init 0 (golden traces unchanged).
+`ifdef YOSYS
+      reg q_r = 1'b1;
+`else
       reg q_r = 1'b0;
+`endif
       // Active-high async set (posedge ~S_n), matching the original's
       // D_FLIPFLOP ACTIVE_ASYNC preset trigger: at time 0 with S_n low the
       // 0->1 preset transition fires the block, which a `negedge S_n`

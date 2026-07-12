@@ -3,9 +3,9 @@
 // UART 69/70 = BL616 USB serial, LEDs 15-20 active low).
 // NOTE: ../ND120_TOP.cst is a STALE Tang Nano 9K pinout - do not use it.
 // NOTE (Gowin EDA): the O_sdram_*/IO_sdram_* ports are auto-connected to the
-// on-package SDRAM and must NOT be constrained here. The OSS flow would need
-// ../sdram-test/src/sdram_pins_oss.cst appended (but the full CPU currently
-// requires Gowin EDA anyway - yosys rejects the TTL flip-flop primitives).
+// on-package SDRAM and must NOT be constrained here. The OSS flow (the
+// PRIMARY flow since 12-JUL-2026, see docs/tang20k-build-flows.md) appends
+// ../sdram-test/src/sdram_pins_oss.cst automatically (Makefile build/oss.cst).
 
 IO_LOC "sys_clk" 4;
 IO_PORT "sys_clk" PULL_MODE=UP;
