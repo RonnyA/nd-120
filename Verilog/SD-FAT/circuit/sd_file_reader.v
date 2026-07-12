@@ -1,658 +1,1537 @@
-
-//--------------------------------------------------------------------------------------------------------
-// Module  : sd_file_reader
-// Type    : synthesizable, IP's top
-// Standard: Verilog 2001 (IEEE1364-2001)
-// Function: A SD-card host to initialize SD-card and read files
-//           Specify a filename, sd_file_reader will read out file content
-//           Support CardType   : SDv1.1 , SDv2  or SDHCv2
-//           Support FileSystem : FAT16 or FAT32
-//--------------------------------------------------------------------------------------------------------
-// Vendored from https://github.com/WangXuan95/FPGA-SDcard-Reader (GPL-3.0,
-// see LICENSE.WangXuan95 in this directory).
-//
-// MODIFIED for the ND-120 project, 10-JUL-2026 (Ronny Hansen):
-//   1. Added two status outputs: "scan_done" (the internal filesystem FSM
-//      reached its DONE state - i.e. the file has been fully streamed out,
-//      or the search/mount failed) and "found_file_size" (byte size of the
-//      found file, valid once file_found=1).
-//   2. Removed the SIMULATE-mode "$finish" generate block: this IP is
-//      simulated INSIDE a larger testbench that must keep running (UART
-//      dump verification) after the file read completes.
-//   3. The target file name is now a runtime INPUT PORT (target_name /
-//      target_len) instead of the FILE_NAME/FILE_NAME_LEN parameters (the
-//      parameters remain but are unused). target_name is byte-0-in-low-byte
-//      ordered (target_name[8*k +: 8] = k-th character); case-insensitive
-//      as before. target_len = 0 never matches any file: that is the
-//      "directory scan only" mode used for the LIST menu command.
-//   4. Added directory-entry outputs (dir_entry_valid / dir_entry_name /
-//      dir_entry_len / dir_entry_size / dir_entry_date / dir_entry_is_dir):
-//      every plain file AND subdirectory entry the root search walks past
-//      is reported with its parsed name (byte 0 in the low byte), byte
-//      size, raw FAT date word and a directory flag, so a menu can list
-//      the card contents. Subdirectory entries (attribute 0x10) are now
-//      accepted by the entry parser; the file-search comparator skips them.
-//   5. Added found_file_first_sector: absolute sector number of the found
-//      file's first data sector (valid with file_found; used by the SD
-//      writer for in-place rewrites of contiguous files).
-//   6. sdcmd inout split into sdcmd_i/sdcmd_o/sdcmd_oe (see sdcmd_ctrl.v).
-//--------------------------------------------------------------------------------------------------------
+/****************************************************************************
+** SD card init + FAT16/FAT32 mount + root-directory scan + file stream    **
+**                                                                         **
+** ORIGINAL ND-120 project code (MIT, like the repository). CLEAN-ROOM     **
+** implementation from public specifications only: the SD Physical Layer   **
+** Simplified Specification (command framing, init sequence, response      **
+** formats, data-block framing) and the Microsoft FAT specification        **
+** (MBR/BPB layout, FAT12/16/32 thresholds, directory entries, VFAT long   **
+** file names). The command/data bit engine reuses the proven idiom of     **
+** this project's own sd_writer.v (tick-based bit clock, CRC functions,    **
+** 48-bit command shifter).                                                **
+**                                                                         **
+** One run per release of rstn (the consumers hold the module in reset     **
+** and release it per command - the rewind / card-swap recovery pattern):  **
+**                                                                         **
+**   1. card init at the identification clock (~137 kHz at 27 MHz):        **
+**      74+ dummy clocks, CMD0, CMD8 (SDv2 detect), CMD55+ACMD41 loop      **
+**      (HCS; CCS in the OCR selects SDHC block addressing), CMD2 (CID),   **
+**      CMD3 (RCA), CMD9 (CSD - card_capacity_mb is decoded from it, both  **
+**      CSD v1 and v2; a CMD9 timeout is tolerated and leaves it 0),       **
+**      CMD7 (select) - then the DATA clock (clk/(2*CLK_DIV),              **
+**      13.5 MHz at 27 MHz / CLK_DIV=1) - CMD16 (512-byte blocks).         **
+**      card_stat counts the init steps; >= 8 means the card is ready.     **
+**   2. mount: sector 0 is a DBR (superfloppy) or an MBR (the four         **
+**      partition entries are walked for the first plausible volume);      **
+**      the BPB gives the geometry. Cluster count < 4085 (FAT12) or a      **
+**      malformed BPB = unmountable: scan_done without filesystem_type.    **
+**   3. root directory scan (FAT16 linear region / FAT32 root cluster      **
+**      chain, CMD17 per sector): every plain file and subdirectory is     **
+**      reported on dir_entry_* (VFAT long name when a valid LFN chain     **
+**      with a matching SFN checksum precedes the entry, else the 8.3      **
+**      name, no trailing dot on extension-less names); deleted entries,   **
+**      volume labels and hidden/system/read-only entries are skipped;     **
+**      a 0x00 name byte ends the directory. target_name/target_len is     **
+**      matched case-insensitively (target_len = 0 never matches: LIST     **
+**      mode).                                                             **
+**   4. file streaming: the FAT chain is walked run by run (consecutive    **
+**      clusters merge into one CMD18 multi-block read - the speed path;   **
+**      a single-sector tail uses CMD17); every block's CRC16 is           **
+**      verified; found_file_size bytes are emitted in order on            **
+**      outen/outbyte.                                                     **
+**   5. scan_done (sticky level): file streamed, file not found after      **
+**      the full scan, or unmountable filesystem.                          **
+**                                                                         **
+** No tristates (repo rule): CMD is exposed as sdcmd_i/_o/_oe; DAT0 is     **
+** never driven by this module (read-only core - writes live in            **
+** sd_writer.v).                                                           **
+**                                                                         **
+** CLK_DIV: data-phase half-period in clk cycles. 1 = clk/2 (13.5 MHz at   **
+** 27 MHz, inside the mandatory 25 MHz default-speed limit); legacy        **
+** values >1 divide further (2 = clk/4 for 25-50 MHz clocks). The          **
+** identification clock is fixed near 137 kHz at 27 MHz (100-400 kHz       **
+** band). SIMULATE=1 shortens only the identification clock and the        **
+** power-up dummy-clock run (simulation card models answer immediately).   **
+**                                                                         **
+** Last reviewed: 11-JUL-2026                                              **
+** Ronny Hansen                                                            **
+*****************************************************************************/
 
 module sd_file_reader #(
-    parameter            FILE_NAME_LEN = 11           , // length of FILE_NAME (in bytes). Since the length of "example.txt" is 11, so here is 11.
-    parameter [52*8-1:0] FILE_NAME     = "example.txt", // file name to read, ignore upper and lower case
-                                                        // For example, if you want to read a file named "HeLLo123.txt", this parameter can be "hello123.TXT", "HELLO123.txt" or "HEllo123.Txt"
-    parameter      [2:0] CLK_DIV       = 3'd2,          // when clk =   0~ 25MHz , set CLK_DIV = 3'd1,
-                                                        // when clk =  25~ 50MHz , set CLK_DIV = 3'd2,
-                                                        // when clk =  50~100MHz , set CLK_DIV = 3'd3,
-                                                        // when clk = 100~200MHz , set CLK_DIV = 3'd4,
-                                                        // ......
-    parameter            SIMULATE      = 0              // 0:normal use.         1:only for simulation
+    parameter [2:0] CLK_DIV  = 3'd1,  // data sdclk = clk / (2*CLK_DIV)
+    parameter       SIMULATE = 0
 ) (
-    // rstn active-low, 1:working, 0:reset
-    input  wire       rstn,
-    // clock
-    input  wire       clk,
-    // SDcard signals (tristate resolved at the top level)
-    output wire       sdclk,
-    input  wire       sdcmd_i,
-    output wire       sdcmd_o,
-    output wire       sdcmd_oe,
-    input  wire       sddat0,            // this module only reads DAT0
-    // status output (optional for user)
-    output wire [3:0] card_stat,         // show the sdcard initialize status
-    output wire [1:0] card_type,         // 0=UNKNOWN    , 1=SDv1    , 2=SDv2  , 3=SDHCv2
-    output wire [1:0] filesystem_type,   // 0=UNASSIGNED , 1=UNKNOWN , 2=FAT16 , 3=FAT32 
-    output reg        file_found,        // 0=file not found, 1=file found
-    // file content data output (sync with clk)
-    output reg        outen,             // when outen=1, a byte of file content is read out from outbyte
-    output reg  [7:0] outbyte,           // a byte of file content
-    // --- ND-120 project modification (10-JUL-2026), see header ----------
-    output wire       scan_done,         // filesystem FSM reached DONE (file fully read, or failed)
-    output wire[31:0] found_file_size,   // size in bytes of the found file (valid once file_found=1)
-    // (mod 3) runtime target file name; byte 0 in the low byte, case-insensitive.
-    // target_len = 0 never matches: "directory scan only" mode.
-    input  wire[52*8-1:0] target_name,
-    input  wire[ 7:0]     target_len,
-    // (mod 4) every file/subdirectory root entry walked during the search
-    output wire           dir_entry_valid,  // 1-cycle pulse
-    output wire[52*8-1:0] dir_entry_name,   // parsed name, byte 0 in the low byte
-    output wire[ 7:0]     dir_entry_len,    // name length in bytes
-    output wire[31:0]     dir_entry_size,   // byte size (0 for directories)
-    output wire[15:0]     dir_entry_date,   // raw FAT date word (offset 0x18)
-    output wire           dir_entry_is_dir, // 1 = subdirectory entry
-    // (mod 5) absolute first data sector of the found file (with file_found)
-    output wire[31:0]     found_file_first_sector
+    input  wire rstn,
+    input  wire clk,
+
+    // SD pins (no tristate here - repo rule)
+    output wire sdclk,
+    input  wire sdcmd_i,
+    output wire sdcmd_o,
+    output wire sdcmd_oe,
+    input  wire sddat0,
+
+    // status
+    output reg  [3:0] card_stat,        // init step counter; >= 8 = ready
+    output reg  [1:0] card_type,        // 0 unknown, 1 SDv1, 2 SDv2, 3 SDHCv2
+    output reg  [1:0] filesystem_type,  // 0 unknown, 2 FAT16, 3 FAT32
+
+    // scan / stream results
+    output reg         file_found,       // level: target matched (found_* valid)
+    output reg         outen,            // 1-cycle pulse per file byte
+    output reg  [7:0]  outbyte,
+    output reg         scan_done,        // sticky level: run finished
+    output reg  [31:0] found_file_size,
+
+    // target file name, byte 0 in the low byte; target_len 0 = LIST mode
+    input wire [52*8-1:0] target_name,
+    input wire [7:0]      target_len,
+
+    // one pulse per reported root entry
+    output reg             dir_entry_valid,
+    output reg [52*8-1:0]  dir_entry_name,   // byte 0 in the low byte
+    output reg [7:0]       dir_entry_len,
+    output reg [31:0]      dir_entry_size,
+    output reg [15:0]      dir_entry_date,   // raw FAT write-date word
+    output reg [31:0]      dir_entry_cluster,
+    output reg             dir_entry_is_dir,
+
+    // found-file details (valid with file_found)
+    output reg [31:0] found_file_first_sector,
+
+    // filesystem geometry (valid once filesystem_type[1] = mounted)
+    output reg [7:0]  fs_cluster_size,      // sectors per cluster
+    output reg [31:0] fs_fat0_sector,       // absolute first FAT sector
+    output reg [31:0] fs_sectors_per_fat,
+    output reg [7:0]  fs_num_fats,
+    output reg [31:0] fs_data_base_sector,  // BIASED: cluster c at base + cs*c
+    output reg [31:0] fs_total_sectors,     // absolute end of the volume
+    output reg [31:0] fs_root_cluster,      // FAT32 root dir first cluster
+
+    output reg [31:0] found_dir_entry_sector,
+    output reg [3:0]  found_dir_entry_index,
+    output reg [31:0] found_file_cluster,   // full 32-bit (top nibble masked)
+
+    // card identity (valid once card_stat >= 6): capacity decoded from the
+    // CMD9 CSD register (v1 and v2 layouts; 0 = CMD9 unanswered) and the
+    // CMD3-published RCA (the sd_writer engine needs it for CMD55)
+    output reg  [31:0] card_capacity_mb,
+    output wire [15:0] card_rca
 );
 
+  // identification-phase half period: ~137 kHz at 27 MHz on hardware,
+  // shortened in simulation (the card models answer at fixed clock counts)
+  localparam [7:0] INIT_HALF = SIMULATE ? 8'd2 : 8'd99;
+  localparam [7:0] DATA_HALF = (CLK_DIV == 3'd0) ? 8'd1 : {5'd0, CLK_DIV};
 
+  // ------------------------------------------------------------- bit engine
+  localparam [1:0] K_DUMMY = 2'd0;  // op_ndum clocks with CMD driven high
+  localparam [1:0] K_CMD   = 2'd1;  // 48-bit command + response
+  localparam [1:0] K_CMDN  = 2'd2;  // 48-bit command, no response (CMD0)
+  localparam [1:0] K_READ  = 2'd3;  // CMD17/CMD18 + op_nblk data blocks
 
-function  [7:0] toUpperCase;
-    input [7:0] in;
-begin
-    toUpperCase = (in>=8'h61 && in<=8'h7A) ? (in & 8'b11011111) : in;
-end
-endfunction
+  reg         e_start;
+  reg  [1:0]  e_kind;
+  reg  [5:0]  e_cmd;
+  reg  [31:0] e_arg;
+  reg         e_r2;
+  reg  [7:0]  e_ndum;
+  reg  [12:0] e_nblk;
+  wire        e_busy;
+  wire        e_done, e_err;
+  wire [31:0] e_resp;
+  wire [127:0] e_resp_r2;  // R2 payload (CID/CSD bits 127:1; bit 0 = end bit)
+  wire        e_rx_we;
+  wire [7:0]  e_rx_byte;
+  wire [8:0]  e_rx_idx;
+  reg         e_slow;
 
+  sd_card_ctrl #(
+      .DATA_DIV(DATA_HALF),
+      .INIT_DIV(INIT_HALF)
+  ) u_ctrl (
+      .clk     (clk),
+      .rstn    (rstn),
+      .slow    (e_slow),
+      .op_start(e_start),
+      .op_kind (e_kind),
+      .op_cmd  (e_cmd),
+      .op_arg  (e_arg),
+      .op_r2   (e_r2),
+      .op_ndum (e_ndum),
+      .op_nblk (e_nblk),
+      .busy    (e_busy),
+      .done    (e_done),
+      .err     (e_err),
+      .resp_arg(e_resp),
+      .resp_r2 (e_resp_r2),
+      .rx_we   (e_rx_we),
+      .rx_byte (e_rx_byte),
+      .rx_idx  (e_rx_idx),
+      .sdclk   (sdclk),
+      .sdcmd_i (sdcmd_i),
+      .sdcmd_o (sdcmd_o),
+      .sdcmd_oe(sdcmd_oe),
+      .sddat0  (sddat0)
+  );
 
+  // ------------------------------------------------------------- helpers
+  function [2:0] log2cs(input [7:0] cs);  // sectors/cluster is a power of two
+    casez (cs)
+      8'b1???????: log2cs = 3'd7;
+      8'b01??????: log2cs = 3'd6;
+      8'b001?????: log2cs = 3'd5;
+      8'b0001????: log2cs = 3'd4;
+      8'b00001???: log2cs = 3'd3;
+      8'b000001??: log2cs = 3'd2;
+      8'b0000001?: log2cs = 3'd1;
+      default:     log2cs = 3'd0;
+    endcase
+  endfunction
 
-wire [52*8-1:0] FILE_NAME_UPPER;
+  // case-insensitive fold (ASCII lower -> upper)
+  function [7:0] ucase(input [7:0] b);
+    ucase = (b >= 8'h61 && b <= 8'h7A) ? (b - 8'h20) : b;
+  endfunction
 
-generate genvar k;
-    for (k=0; k<52; k=k+1) begin : convert_fname_to_upper
-        assign FILE_NAME_UPPER[k*8 +: 8] = toUpperCase( FILE_NAME[k*8 +: 8] );
-    end
-endgenerate
+  // byte offset of LFN name unit u's LOW byte inside a directory entry
+  function [4:0] lfn_off(input [3:0] u);
+    case (u)
+      4'd0:    lfn_off = 5'd1;
+      4'd1:    lfn_off = 5'd3;
+      4'd2:    lfn_off = 5'd5;
+      4'd3:    lfn_off = 5'd7;
+      4'd4:    lfn_off = 5'd9;
+      4'd5:    lfn_off = 5'd14;
+      4'd6:    lfn_off = 5'd16;
+      4'd7:    lfn_off = 5'd18;
+      4'd8:    lfn_off = 5'd20;
+      4'd9:    lfn_off = 5'd22;
+      4'd10:   lfn_off = 5'd24;
+      4'd11:   lfn_off = 5'd28;
+      default: lfn_off = 5'd30;
+    endcase
+  endfunction
 
+  // ------------------------------------------------------------- registers
+  reg        is32;
+  reg [2:0]  l2cs;
+  reg [31:0] max_cluster;
+  reg        ccs;   // 1 = SDHC/SDXC block addressing, 0 = byte addressing
+  reg        v2;    // CMD8 answered
+  reg [15:0] rca;
 
+  assign card_rca = rca;
 
-initial file_found = 1'b0;
-initial {outen,outbyte} = 0;
+  // CSD capacity decode (e_resp_r2[k] = CSD[k] after the CMD9 R2):
+  //   v2 (CSD_STRUCTURE = 1): capacity = (C_SIZE+1) * 512 KB, C_SIZE[21:0]
+  //     at CSD[69:48]  ->  MB = (C_SIZE+1) / 2
+  //   v1 (CSD_STRUCTURE = 0): capacity = (C_SIZE+1) *
+  //     2^(C_SIZE_MULT+2) * 2^READ_BL_LEN bytes, C_SIZE[11:0] at CSD[73:62],
+  //     C_SIZE_MULT[2:0] at CSD[49:47], READ_BL_LEN[3:0] at CSD[83:80]
+  wire [22:0] s_csd2_hblk = {1'b0, e_resp_r2[69:48]} + 23'd1;  // 512KB units
+  wire [12:0] s_csd1_blks = {1'b0, e_resp_r2[73:62]} + 13'd1;
+  wire [4:0]  s_csd1_exp  = {2'b0, e_resp_r2[49:47]} +
+                            {1'b0, e_resp_r2[83:80]} + 5'd2;
+  // the v1 2^exp scaling runs one bit per clock in H_CSD1: a variable
+  // barrel shifter would cost ~200 LUTs for a once-per-init calculation
+  reg [19:0] csd_w;  // v1 work value (v1 tops out at 4 GB = 4096 MB)
+  reg [4:0]  csd_n;  // shift budget, balanced against the /2^20 (bytes->MB)
 
+  // BPB fields as parsed
+  reg [31:0] vol_base;
+  reg        mbr_done;
+  reg        jmp_ok;
+  reg [15:0] p_bps, p_rsvd, p_rootn, p_tot16, p_spf16;
+  reg [7:0]  p_spc, p_nfat;
+  reg [31:0] p_tot32, p_spf32;
+  reg [1:0]  mbr_p;
 
-reg         read_start     = 1'b0;
-reg  [31:0] read_sector_no = 0;
-wire        read_done;
+  // directory scan position
+  reg [31:0] dsec;       // current root directory sector
+  reg [31:0] drem;       // FAT16: root sectors left
+  reg [31:0] dclu;       // FAT32: current root cluster
+  reg [7:0]  doff;       // FAT32: sector offset inside the root cluster
+  reg [15:0] dscan;      // scanned-sector guard
+  reg        dirend;     // 0x00 entry seen: directory over
 
-wire        rvalid;
-wire [ 8:0] raddr;
-wire [ 7:0] rdata;
+  // FAT sector cache + entry fetch
+  reg [31:0] cache_sec;
+  reg [31:0] qc;         // cluster whose FAT entry is wanted
+  reg [31:0] fat_val;    // masked entry value
+  reg [5:0]  fat_ret;
 
-reg  [31:0] rootdir_sector = 0 , rootdir_sector_t;             // rootdir sector number (FAT16 only)
-reg  [15:0] rootdir_sectorcount = 0 , rootdir_sectorcount_t;   // (FAT16 only)
+  // streaming
+  reg [31:0] remaining;
+  reg [31:0] cur, nxt, run_start;
+  reg [12:0] run_secs;
 
-reg  [31:0] curr_cluster = 0 , curr_cluster_t;    // current reading cluster number
+  // buffered field fetch (1-clk BRAM latency)
+  reg [8:0]  f_off;
+  reg [1:0]  f_idx, f_cnt;  // f_cnt = nbytes-1
+  reg [31:0] f_val;
+  reg [5:0]  f_ret;
 
-wire [ 6:0] curr_cluster_fat_offset;
-wire [24:0] curr_cluster_fat_no;
-assign {curr_cluster_fat_no,curr_cluster_fat_offset} = curr_cluster;
+  // engine-op helper
+  reg [5:0]  e_ret, e_eret;
+  reg        e_err_seen;  // the last op ended in err (e_eret was taken)
 
-wire [ 7:0] curr_cluster_fat_offset_fat16;
-wire [23:0] curr_cluster_fat_no_fat16;
-assign {curr_cluster_fat_no_fat16,curr_cluster_fat_offset_fat16} = curr_cluster;
+  reg [1:0]  route;
+  localparam [1:0] R_NONE   = 2'd0;
+  localparam [1:0] R_BUF    = 2'd1;
+  localparam [1:0] R_DIR    = 2'd2;
+  localparam [1:0] R_STREAM = 2'd3;
 
-reg  [31:0] target_cluster = 0;           // target cluster number item in FAT32 table
-reg  [15:0] target_cluster_fat16 = 16'h0; // target cluster number item in FAT16 table
-reg  [ 7:0] cluster_sector_offset=8'h0 , cluster_sector_offset_t;   // current sector number in cluster
+  reg [15:0] a41_guard;
+  reg        cmd8_ok;
 
-reg  [31:0] file_cluster = 0;
-reg  [31:0] file_size = 0;
+  // ------------------------------------------------------------- sector buffer
+  reg [7:0] secbuf[0:511];
+  reg [7:0] fsm_q;
+  reg [8:0] fsm_addr;
+  always @(posedge clk) begin
+    if (e_rx_we && route == R_BUF) secbuf[e_rx_idx] <= e_rx_byte;
+    fsm_q <= secbuf[fsm_addr];
+  end
 
-reg  [ 7:0] cluster_size = 0 , cluster_size_t;
-reg  [31:0] first_fat_sector_no = 0 , first_fat_sector_no_t;
-reg  [31:0] first_data_sector_no= 0 , first_data_sector_no_t;
+  // ------------------------------------------------------------- dir parser
+  // 32-byte entries are collected live (raw), then processed at leisure in
+  // proc while the next entry's bytes arrive (one byte per >= 16 clk at
+  // CLK_DIV=1, so a whole entry takes >= 512 clk - the process FSM below
+  // needs well under 200).
+  reg [247:0] raw;        // entry bytes 0..30 (byte 31 joins at the copy)
+  reg [255:0] proc;
+  reg         pbusy;
+  reg [3:0]   pent_snap;  // entry index inside the sector
+  reg [31:0]  psec_snap;  // sector holding the entry
 
-reg         search_fat = 1'b0;
+  localparam [3:0] P_CLASS = 4'd1;
+  localparam [3:0] P_LFNU  = 4'd2;
+  localparam [3:0] P_SFN   = 4'd3;
+  localparam [3:0] P_PICK  = 4'd4;
+  localparam [3:0] P_83B   = 4'd5;
+  localparam [3:0] P_83E   = 4'd6;
+  localparam [3:0] P_83X   = 4'd7;
+  localparam [3:0] P_CMP   = 4'd8;
+  localparam [3:0] P_EMIT  = 4'd9;
 
-localparam [2:0] RESET         = 3'd0,
-                 SEARCH_MBR    = 3'd1,
-                 SEARCH_DBR    = 3'd2,
-                 LS_ROOT_FAT16 = 3'd3,
-                 LS_ROOT_FAT32 = 3'd4,
-                 READ_A_FILE   = 3'd5,
-                 DONE          = 3'd6;
+  reg [3:0]       pstate;
+  reg [3:0]       pu;        // LFN unit index 0..12
+  reg [3:0]       pi;        // SFN byte index
+  reg [5:0]       pbase;     // (ord-1)*13
+  reg             plast;     // this LFN entry carries the 0x40 last flag
+  reg             eterm;     // terminator seen inside THIS LFN entry
+  reg [52*8-1:0]  lfn_buf;
+  reg [7:0]       lfn_len;
+  reg [7:0]       lfn_ck;    // checksum byte carried by the LFN chain
+  reg [3:0]       lfn_next;  // expected ordinal of the next LFN entry
+  reg             lfn_have;
+  reg [7:0]       ck;        // SFN checksum accumulator
+  reg [7:0]       nci;       // name-build / compare index
+  reg             pmatch;
 
-reg        [2:0] filesystem_state = RESET;
+  wire [7:0] pb0   = proc[7:0];
+  wire [7:0] pattr = proc[8*11+:8];
+  wire [7:0] pck13 = proc[8*13+:8];
+  wire [4:0] pulo  = lfn_off(pu);
+  wire [7:0] plo   = proc[8*pulo+:8];
+  wire [7:0] phi   = proc[8*(pulo+5'd1)+:8];
+  wire [3:0] pord  = pb0[3:0];  // LFN ordinal (valid range here is 1..4)
+  wire [5:0] pux   = pbase + {2'd0, pu};
 
-localparam [1:0] UNASSIGNED = 2'd0,
-                 UNKNOWN    = 2'd1,
-                 FAT16      = 2'd2,
-                 FAT32      = 2'd3;
+  // ------------------------------------------------------------- main FSM
+  localparam [5:0] H_BOOT    = 6'd0;   // power-up dummy clocks
+  localparam [5:0] H_CMD0    = 6'd1;
+  localparam [5:0] H_CMD8    = 6'd2;
+  localparam [5:0] H_C55     = 6'd3;
+  localparam [5:0] H_A41     = 6'd4;
+  localparam [5:0] H_A41W    = 6'd5;   // not-ready pause before the retry
+  localparam [5:0] H_CMD2    = 6'd6;
+  localparam [5:0] H_CMD3    = 6'd7;
+  localparam [5:0] H_CMD7    = 6'd8;
+  localparam [5:0] H_CMD16   = 6'd9;
+  localparam [5:0] H_RDBOOT  = 6'd10;  // read the DBR/MBR candidate sector
+  localparam [5:0] H_P_SIG   = 6'd11;
+  localparam [5:0] H_P_JMP   = 6'd12;
+  localparam [5:0] H_P_BPS   = 6'd13;
+  localparam [5:0] H_P_SPC   = 6'd14;
+  localparam [5:0] H_P_RSVD  = 6'd15;
+  localparam [5:0] H_P_NFAT  = 6'd16;
+  localparam [5:0] H_P_ROOTN = 6'd17;
+  localparam [5:0] H_P_TOT16 = 6'd18;
+  localparam [5:0] H_P_SPF16 = 6'd19;
+  localparam [5:0] H_P_TOT32 = 6'd20;
+  localparam [5:0] H_P_SPF32 = 6'd21;
+  localparam [5:0] H_P_ROOTC = 6'd22;
+  localparam [5:0] H_GEOM    = 6'd23;
+  localparam [5:0] H_MBR_T   = 6'd24;  // partition entry: type byte
+  localparam [5:0] H_MBR_L   = 6'd25;  // partition entry: start LBA
+  localparam [5:0] H_DIR_RD  = 6'd26;
+  localparam [5:0] H_DIR_NX  = 6'd27;
+  localparam [5:0] H_DIR_HOP = 6'd28;  // FAT32 root chain hop
+  localparam [5:0] H_STREAM0 = 6'd29;
+  localparam [5:0] H_RUN0    = 6'd30;
+  localparam [5:0] H_RUNX    = 6'd31;
+  localparam [5:0] H_RUNJ    = 6'd32;
+  localparam [5:0] H_RDRUN   = 6'd33;
+  localparam [5:0] H_RUNEND  = 6'd34;
+  localparam [5:0] H_FINISH  = 6'd35;  // wait for the parser, then scan_done
+  localparam [5:0] H_HALT    = 6'd36;
+  localparam [5:0] H_FAT_RD  = 6'd37;  // FAT entry fetch (cached sector)
+  localparam [5:0] H_FAT_OFF = 6'd38;
+  localparam [5:0] H_FAT_V   = 6'd39;
+  localparam [5:0] E_GO      = 6'd40;  // engine op: pulse start
+  localparam [5:0] E_WT      = 6'd41;  // engine op: wait done/err
+  localparam [5:0] F_RD0     = 6'd42;  // little-endian field fetch (secbuf)
+  localparam [5:0] F_RD1     = 6'd43;
+  localparam [5:0] F_RD2     = 6'd44;
+  localparam [5:0] H_UNMNT   = 6'd45;
+  localparam [5:0] H_CMD9    = 6'd46;  // SEND_CSD (capacity; timeout tolerated)
+  localparam [5:0] H_CSD     = 6'd47;  // decode card_capacity_mb
+  localparam [5:0] H_CSD1    = 6'd48;  // CSD v1: scale by 2^exp, bit by bit
 
-reg        [1:0] filesystem = UNASSIGNED,
-                 filesystem_parsed;
+  reg [5:0] state;
 
-//enum logic [2:0] {RESET, SEARCH_MBR, SEARCH_DBR, LS_ROOT_FAT16, LS_ROOT_FAT32, READ_A_FILE, DONE} filesystem_state = RESET;
-//enum logic [1:0] {UNASSIGNED, UNKNOWN, FAT16, FAT32} filesystem=UNASSIGNED, filesystem_parsed;
+  // end-of-chain test on a masked FAT entry value
+  wire fat_eoc = is32 ? (fat_val[27:0] >= 28'hFFFFFF7)
+                      : (fat_val[15:0] >= 16'hFFF7);
+  wire nxt_eoc = is32 ? (nxt[27:0] >= 28'hFFFFFF7)
+                      : (nxt[15:0] >= 16'hFFF7);
 
-assign filesystem_type = filesystem;
+  wire [31:0] spf_v   = (p_spf16 != 16'd0) ? {16'd0, p_spf16} : p_spf32;
+  wire [31:0] tot_v   = (p_tot16 != 16'd0) ? {16'd0, p_tot16} : p_tot32;
+  wire [31:0] rootsec = {20'd0, p_rootn[15:4]};   // rootn*32/512
+  wire [31:0] fatarea = {24'd0, p_nfat} * spf_v;
+  wire        bpb_ok  = jmp_ok && (p_bps == 16'd512) && (p_spc != 8'd0) &&
+                        ((p_spc & (p_spc - 8'd1)) == 8'd0) &&
+                        (p_rsvd != 16'd0) && (p_nfat != 8'd0) &&
+                        (spf_v != 32'd0) && (tot_v != 32'd0);
 
+  // sectors needed for the rest of the file, capped to the current run
+  wire [31:0] need_secs = (remaining + 32'd511) >> 9;
+  wire [12:0] nblk_now  = (need_secs < {19'd0, run_secs}) ? need_secs[12:0]
+                                                          : run_secs;
 
-
-//----------------------------------------------------------------------------------------------------------------------
-// loop variables
-integer ii, i;
-
-
-//----------------------------------------------------------------------------------------------------------------------
-// store MBR or DBR fields
-//----------------------------------------------------------------------------------------------------------------------
-reg [ 7:0] sector_content [0:511];
-initial for (ii=0; ii<512; ii=ii+1) sector_content[ii] = 0;
-
-always @ (posedge clk)
-    if (rvalid)
-        sector_content[raddr] <= rdata;
-
-
-
-//----------------------------------------------------------------------------------------------------------------------
-// parse MBR or DBR fields
-//----------------------------------------------------------------------------------------------------------------------
-wire        is_boot_sector     = ( {sector_content['h1FE],sector_content['h1FF]}==16'h55AA );
-wire        is_dbr             =    sector_content[0]==8'hEB || sector_content[0]==8'hE9;
-wire [31:0] dbr_sector_no      =   {sector_content['h1C9],sector_content['h1C8],sector_content['h1C7],sector_content['h1C6]};
-wire [15:0] bytes_per_sector   =   {sector_content['hC],sector_content['hB]};
-wire [ 7:0] sector_per_cluster =    sector_content['hD];
-wire [15:0] resv_sectors       =   {sector_content['hF],sector_content['hE]};
-wire [ 7:0] number_of_fat      =    sector_content['h10];
-wire [15:0] rootdir_itemcount  =   {sector_content['h12],sector_content['h11]};   // root dir item count (FAT16 Only)
-
-reg  [31:0] sectors_per_fat = 0;
-reg  [31:0] root_cluster    = 0;
-
-always @ (*) begin    
-    sectors_per_fat   = {16'h0, sector_content['h17], sector_content['h16]};
-    root_cluster      = 0;
-    if(sectors_per_fat>0) begin                     // FAT16 case
-        filesystem_parsed = FAT16;
-    end else if(sector_content['h56]==8'h32) begin  // FAT32 case
-        filesystem_parsed = FAT32;
-        sectors_per_fat   = {sector_content['h27],sector_content['h26],sector_content['h25],sector_content['h24]};
-        root_cluster      = {sector_content['h2F],sector_content['h2E],sector_content['h2D],sector_content['h2C]};
-    end else begin   // Unknown FileSystem
-        filesystem_parsed = UNKNOWN;
-    end
-end
-
-
-
-//----------------------------------------------------------------------------------------------------------------------
-// main FSM
-//----------------------------------------------------------------------------------------------------------------------
-always @ (posedge clk or negedge rstn)
-    if(~rstn) begin
-        read_start <= 1'b0;
-        read_sector_no <= 0;
-        filesystem_state <= RESET;
-        filesystem <= UNASSIGNED;
-        search_fat <= 1'b0;
-        cluster_size <= 8'h0;
-        first_fat_sector_no   <= 0;
-        first_data_sector_no  <= 0;
-        curr_cluster          <= 0;
-        cluster_sector_offset <= 8'h0;
-        rootdir_sector        <= 0;
-        rootdir_sectorcount   <= 16'h0;
+  always @(posedge clk) begin
+    if (!rstn) begin
+      state           <= H_BOOT;
+      e_start         <= 1'b0;
+      e_kind          <= K_DUMMY;
+      e_cmd           <= 6'd0;
+      e_arg           <= 32'd0;
+      e_r2            <= 1'b0;
+      e_ndum          <= 8'd0;
+      e_nblk          <= 13'd0;
+      e_slow          <= 1'b1;
+      e_ret           <= H_BOOT;
+      e_eret          <= H_BOOT;
+      route           <= R_NONE;
+      card_stat       <= 4'd0;
+      card_type       <= 2'd0;
+      filesystem_type <= 2'd0;
+      file_found      <= 1'b0;
+      outen           <= 1'b0;
+      outbyte         <= 8'd0;
+      scan_done       <= 1'b0;
+      found_file_size <= 32'd0;
+      dir_entry_valid <= 1'b0;
+      dir_entry_name  <= {52 * 8{1'b0}};
+      dir_entry_len   <= 8'd0;
+      dir_entry_size  <= 32'd0;
+      dir_entry_date  <= 16'd0;
+      dir_entry_cluster <= 32'd0;
+      dir_entry_is_dir  <= 1'b0;
+      found_file_first_sector <= 32'd0;
+      fs_cluster_size     <= 8'd0;
+      fs_fat0_sector      <= 32'd0;
+      fs_sectors_per_fat  <= 32'd0;
+      fs_num_fats         <= 8'd0;
+      fs_data_base_sector <= 32'd0;
+      fs_total_sectors    <= 32'd0;
+      fs_root_cluster     <= 32'd0;
+      found_dir_entry_sector <= 32'd0;
+      found_dir_entry_index  <= 4'd0;
+      found_file_cluster     <= 32'd0;
+      card_capacity_mb       <= 32'd0;
+      csd_w       <= 20'd0;
+      csd_n       <= 5'd0;
+      is32        <= 1'b0;
+      l2cs        <= 3'd0;
+      max_cluster <= 32'd0;
+      ccs         <= 1'b0;
+      v2          <= 1'b0;
+      rca         <= 16'd0;
+      vol_base    <= 32'd0;
+      mbr_done    <= 1'b0;
+      jmp_ok      <= 1'b0;
+      p_bps       <= 16'd0;
+      p_rsvd      <= 16'd0;
+      p_rootn     <= 16'd0;
+      p_tot16     <= 16'd0;
+      p_spf16     <= 16'd0;
+      p_spc       <= 8'd0;
+      p_nfat      <= 8'd0;
+      p_tot32     <= 32'd0;
+      p_spf32     <= 32'd0;
+      mbr_p       <= 2'd0;
+      dsec        <= 32'd0;
+      drem        <= 32'd0;
+      dclu        <= 32'd0;
+      doff        <= 8'd0;
+      dscan       <= 16'd0;
+      dirend      <= 1'b0;
+      cache_sec   <= 32'hFFFF_FFFF;
+      qc          <= 32'd0;
+      fat_val     <= 32'd0;
+      fat_ret     <= H_BOOT;
+      remaining   <= 32'd0;
+      cur         <= 32'd0;
+      nxt         <= 32'd0;
+      run_start   <= 32'd0;
+      run_secs    <= 13'd0;
+      f_off       <= 9'd0;
+      f_idx       <= 2'd0;
+      f_cnt       <= 2'd0;
+      f_val       <= 32'd0;
+      f_ret       <= H_BOOT;
+      a41_guard   <= 16'd0;
+      cmd8_ok     <= 1'b0;
+      e_err_seen  <= 1'b0;
+      raw         <= 248'd0;
+      proc        <= 256'd0;
+      pbusy       <= 1'b0;
+      pent_snap   <= 4'd0;
+      psec_snap   <= 32'd0;
+      pstate      <= P_CLASS;
+      pu          <= 4'd0;
+      pi          <= 4'd0;
+      pbase       <= 6'd0;
+      plast       <= 1'b0;
+      eterm       <= 1'b0;
+      lfn_buf     <= {52 * 8{1'b0}};
+      lfn_len     <= 8'd0;
+      lfn_ck      <= 8'd0;
+      lfn_next    <= 4'd0;
+      lfn_have    <= 1'b0;
+      ck          <= 8'd0;
+      nci         <= 8'd0;
+      pmatch      <= 1'b0;
     end else begin
-        cluster_size_t = cluster_size;
-        first_fat_sector_no_t  = first_fat_sector_no;
-        first_data_sector_no_t = first_data_sector_no;
-        curr_cluster_t = curr_cluster;
-        cluster_sector_offset_t = cluster_sector_offset;
-        rootdir_sector_t = rootdir_sector;
-        rootdir_sectorcount_t = rootdir_sectorcount;
-    
-        read_start <= 1'b0;
-        
-        if (read_done) begin
-            case(filesystem_state)
-            SEARCH_MBR :    if(is_boot_sector) begin
-                                filesystem_state <= SEARCH_DBR;
-                                if(~is_dbr) read_sector_no <= dbr_sector_no;
-                            end else begin
-                                read_sector_no <= read_sector_no + 1;
-                            end
-            SEARCH_DBR :    if(is_boot_sector && is_dbr ) begin
-                                if(bytes_per_sector!=16'd512) begin
-                                    filesystem_state <= DONE;
-                                end else begin
-                                    filesystem <= filesystem_parsed;
-                                    if(filesystem_parsed==FAT16) begin
-                                        cluster_size_t        = sector_per_cluster;
-                                        first_fat_sector_no_t = read_sector_no + resv_sectors;
-                                        
-                                        rootdir_sectorcount_t = rootdir_itemcount / (16'd512/16'd32);
-                                        rootdir_sector_t      = first_fat_sector_no_t + sectors_per_fat * number_of_fat;
-                                        first_data_sector_no_t= rootdir_sector_t + rootdir_sectorcount_t - cluster_size_t*2;
-                                        
-                                        cluster_sector_offset_t = 8'h0;
-                                        read_sector_no      <= rootdir_sector_t + cluster_sector_offset_t;
-                                        filesystem_state <= LS_ROOT_FAT16;
-                                    end else if(filesystem_parsed==FAT32) begin
-                                        cluster_size_t        = sector_per_cluster;
-                                        first_fat_sector_no_t = read_sector_no + resv_sectors;
-                                        
-                                        first_data_sector_no_t= first_fat_sector_no_t + sectors_per_fat * number_of_fat - cluster_size_t * 2;
-                                        
-                                        curr_cluster_t        = root_cluster;
-                                        cluster_sector_offset_t = 8'h0;
-                                        read_sector_no      <= first_data_sector_no_t + cluster_size_t * curr_cluster_t + cluster_sector_offset_t;
-                                        filesystem_state <= LS_ROOT_FAT32;
-                                    end else begin
-                                        filesystem_state <= DONE;
-                                    end
-                                end
-                            end
-            LS_ROOT_FAT16 :     if(file_found) begin
-                                    curr_cluster_t = file_cluster;
-                                    cluster_sector_offset_t = 8'h0;
-                                    read_sector_no <= first_data_sector_no_t + cluster_size_t * curr_cluster_t + cluster_sector_offset_t;
-                                    filesystem_state <= READ_A_FILE;
-                                end else if(cluster_sector_offset_t<rootdir_sectorcount_t) begin
-                                    cluster_sector_offset_t = cluster_sector_offset_t + 8'd1;
-                                    read_sector_no <= rootdir_sector_t + cluster_sector_offset_t;
-                                end else begin
-                                    filesystem_state <= DONE;   // cant find target file
-                                end
-            LS_ROOT_FAT32 : if(~search_fat) begin
-                                if(file_found) begin
-                                    curr_cluster_t = file_cluster;
-                                    cluster_sector_offset_t = 8'h0;
-                                    read_sector_no <= first_data_sector_no_t + cluster_size_t * curr_cluster_t + cluster_sector_offset_t;
-                                    filesystem_state <= READ_A_FILE;
-                                end else if(cluster_sector_offset_t<(cluster_size_t-1)) begin
-                                    cluster_sector_offset_t = cluster_sector_offset_t + 8'd1;
-                                    read_sector_no <= first_data_sector_no_t + cluster_size_t * curr_cluster_t + cluster_sector_offset_t;
-                                end else begin   // read FAT to get next cluster
-                                    search_fat <= 1'b1;
-                                    cluster_sector_offset_t = 8'h0;
-                                    read_sector_no <= first_fat_sector_no_t + curr_cluster_fat_no;
-                                end
-                            end else begin
-                                search_fat <= 1'b0;
-                                cluster_sector_offset_t = 8'h0;
-                                if(target_cluster=='h0FFF_FFFF || target_cluster=='h0FFF_FFF8 || target_cluster=='hFFFF_FFFF || target_cluster<2) begin
-                                    filesystem_state <= DONE;   // cant find target file
-                                end else begin
-                                    curr_cluster_t = target_cluster;
-                                    read_sector_no <= first_data_sector_no_t + cluster_size_t * curr_cluster_t + cluster_sector_offset_t;
-                                end
-                            end
-            READ_A_FILE  : 
-                            if(~search_fat) begin
-                                if(cluster_sector_offset_t<(cluster_size_t-1)) begin
-                                    cluster_sector_offset_t = cluster_sector_offset_t + 8'd1;
-                                    read_sector_no <= first_data_sector_no_t + cluster_size_t * curr_cluster_t + cluster_sector_offset_t;
-                                end else begin   // read FAT to get next cluster
-                                    search_fat <= 1'b1;
-                                    cluster_sector_offset_t = 8'h0;
-                                    read_sector_no <= first_fat_sector_no_t + (filesystem==FAT16 ? curr_cluster_fat_no_fat16 : curr_cluster_fat_no);
-                                end
-                            end else begin
-                                search_fat <= 1'b0;
-                                cluster_sector_offset_t = 8'h0;
-                                if(filesystem==FAT16) begin
-                                    if(target_cluster_fat16>=16'hFFF0 || target_cluster_fat16<16'h2) begin
-                                        filesystem_state <= DONE;   // read to the end of file, done
-                                    end else begin
-                                        curr_cluster_t = {16'h0,target_cluster_fat16};
-                                        read_sector_no <= first_data_sector_no_t + cluster_size_t * curr_cluster_t + cluster_sector_offset_t;
-                                    end
-                                end else begin
-                                    if(target_cluster=='h0FFF_FFFF || target_cluster=='h0FFF_FFF8 || target_cluster=='hFFFF_FFFF || target_cluster<2) begin
-                                        filesystem_state <= DONE;   // read to the end of file, done
-                                    end else begin
-                                        curr_cluster_t = target_cluster;
-                                        read_sector_no <= first_data_sector_no_t + cluster_size_t * curr_cluster_t + cluster_sector_offset_t;
-                                    end
-                                end
-                            end
-            endcase
+      e_start         <= 1'b0;
+      outen           <= 1'b0;
+      dir_entry_valid <= 1'b0;
+
+      // ---------------- stream datapath (parallel to the FSM) -------------
+      if (e_rx_we && route == R_STREAM && remaining != 32'd0) begin
+        outen     <= 1'b1;
+        outbyte   <= e_rx_byte;
+        remaining <= remaining - 32'd1;
+      end
+
+      // ---------------- directory entry collector -------------------------
+      if (e_rx_we && route == R_DIR) begin
+        if (e_rx_idx[4:0] == 5'd31) begin
+          proc      <= {e_rx_byte, raw};
+          pent_snap <= e_rx_idx[8:5];
+          psec_snap <= dsec;
+          pbusy     <= 1'b1;
+          pstate    <= P_CLASS;
         end else begin
-            case (filesystem_state)
-                RESET         : filesystem_state  <= SEARCH_MBR;
-                SEARCH_MBR    : read_start <= 1'b1;
-                SEARCH_DBR    : read_start <= 1'b1;
-                LS_ROOT_FAT16 : read_start <= 1'b1;
-                LS_ROOT_FAT32 : read_start <= 1'b1;
-                READ_A_FILE   : read_start <= 1'b1;
-                //DONE          : $finish;
-            endcase
+          raw[8*e_rx_idx[4:0]+:8] <= e_rx_byte;
         end
-        
-        cluster_size <= cluster_size_t;
-        first_fat_sector_no <= first_fat_sector_no_t;
-        first_data_sector_no <= first_data_sector_no_t;
-        curr_cluster <= curr_cluster_t;
-        cluster_sector_offset <= cluster_sector_offset_t;
-        rootdir_sector <= rootdir_sector_t;
-        rootdir_sectorcount <= rootdir_sectorcount_t;
-    end
+      end
 
-
-// --- ND-120 project modification (10-JUL-2026): the original SIMULATE-mode
-// "$finish on DONE" generate block was removed here (see file header), and
-// the DONE state / file size are exported instead.
-assign scan_done       = (filesystem_state == DONE);
-assign found_file_size = file_size;
-
-
-
-
-//----------------------------------------------------------------------------------------------------------------------
-// capture data in FAT table
-//----------------------------------------------------------------------------------------------------------------------
-always @ (posedge clk or negedge rstn) begin
-    if(~rstn) begin
-        target_cluster <= 0;
-        target_cluster_fat16 <= 16'h0;
-    end else begin
-        if(search_fat && rvalid) begin
-            if(filesystem==FAT16) begin
-                if(raddr[8:1]==curr_cluster_fat_offset_fat16)
-                    target_cluster_fat16[8*raddr[0] +: 8] <= rdata;
-            end else if(filesystem==FAT32) begin
-                if(raddr[8:2]==curr_cluster_fat_offset)
-                    target_cluster[8*raddr[1:0] +: 8] <= rdata;
+      // ---------------- directory entry process FSM -----------------------
+      if (pbusy) begin
+        case (pstate)
+          P_CLASS: begin
+            if (pb0 == 8'h00) begin
+              dirend <= 1'b1;
+              pbusy  <= 1'b0;
+            end else if (pb0 == 8'hE5) begin
+              lfn_have <= 1'b0;  // deleted: an LFN chain cannot span it
+              pbusy    <= 1'b0;
+            end else if (pattr == 8'h0F) begin
+              // VFAT long-name entry (reverse order, 13 UTF-16 units each)
+              eterm <= 1'b0;
+              pu    <= 4'd0;
+              if (pb0[6]) begin  // 0x40: last (highest-ordinal) entry
+                if (pord >= 4'd1 && pord <= 4'd4 && !pb0[5] && !pb0[4]) begin
+                  lfn_have <= 1'b1;
+                  lfn_buf  <= {52 * 8{1'b0}};  // no residue past the new name
+                  lfn_ck   <= pck13;
+                  lfn_len  <= {1'd0, pord, 3'd0} + {2'd0, pord, 2'd0} +
+                              {4'd0, pord};      // 13*ord (full, no terminator)
+                  lfn_next <= pord - 4'd1;
+                  plast    <= 1'b1;
+                  case (pord)
+                    4'd1:    pbase <= 6'd0;
+                    4'd2:    pbase <= 6'd13;
+                    4'd3:    pbase <= 6'd26;
+                    default: pbase <= 6'd39;
+                  endcase
+                  pstate <= P_LFNU;
+                end else begin
+                  lfn_have <= 1'b0;  // name longer than 52 chars / malformed
+                  pbusy    <= 1'b0;
+                end
+              end else begin       // continuation entry
+                if (lfn_have && !pb0[5] && !pb0[4] && pord == lfn_next &&
+                    pord >= 4'd1 && pck13 == lfn_ck) begin
+                  lfn_next <= pord - 4'd1;
+                  plast    <= 1'b0;
+                  case (pord)
+                    4'd1:    pbase <= 6'd0;
+                    4'd2:    pbase <= 6'd13;
+                    default: pbase <= 6'd26;  // ordinal 3 (4 is always last)
+                  endcase
+                  pstate <= P_LFNU;
+                end else begin
+                  lfn_have <= 1'b0;  // broken chain
+                  pbusy    <= 1'b0;
+                end
+              end
+            end else if ((pattr & 8'h0F) != 8'h00) begin
+              // volume label / hidden / system / read-only: skipped
+              lfn_have <= 1'b0;
+              pbusy    <= 1'b0;
+            end else begin
+              // plain file or subdirectory
+              ck     <= 8'd0;
+              pi     <= 4'd0;
+              pstate <= P_SFN;
             end
+          end
+
+          P_LFNU: begin  // one UTF-16 unit per cycle
+            if (!eterm) begin
+              if (plo == 8'h00 && phi == 8'h00) begin
+                if (plast) begin
+                  lfn_len <= {2'd0, pux};
+                  eterm   <= 1'b1;
+                end else begin
+                  lfn_have <= 1'b0;  // terminator outside the last entry
+                end
+              end else if (phi != 8'h00) begin
+                lfn_have <= 1'b0;    // non-ASCII unit: fall back to 8.3
+              end else begin
+                lfn_buf[8*pux+:8] <= plo;
+              end
+            end
+            if (pu == 4'd12 || !lfn_have) pbusy <= 1'b0;
+            else pu <= pu + 4'd1;
+          end
+
+          P_SFN: begin  // checksum over the 11 SFN bytes
+            ck <= {ck[0], ck[7:1]} + proc[8*pi+:8];
+            if (pi == 4'd10) pstate <= P_PICK;
+            else pi <= pi + 4'd1;
+          end
+
+          P_PICK: begin
+            dir_entry_size <= {proc[8*31+:8], proc[8*30+:8],
+                               proc[8*29+:8], proc[8*28+:8]};
+            dir_entry_date <= {proc[8*25+:8], proc[8*24+:8]};
+            dir_entry_cluster <= is32
+                ? {4'd0, proc[8*21+:4], proc[8*20+:8],
+                   proc[8*27+:8], proc[8*26+:8]}
+                : {16'd0, proc[8*27+:8], proc[8*26+:8]};
+            dir_entry_is_dir <= pattr[4];
+            if (lfn_have && lfn_next == 4'd0 && ck == lfn_ck &&
+                lfn_len != 8'd0 && lfn_len <= 8'd52) begin
+              dir_entry_name <= lfn_buf;
+              dir_entry_len  <= lfn_len;
+              pstate         <= P_CMP;
+              nci            <= 8'd0;
+              pmatch <= (target_len != 8'd0) && (target_len == lfn_len) &&
+                        !pattr[4] && !file_found;
+            end else begin
+              dir_entry_name <= {52 * 8{1'b0}};  // NUL-padded past the name
+              pi     <= 4'd0;
+              nci    <= 8'd0;
+              pstate <= P_83B;
+            end
+          end
+
+          P_83B: begin  // 8.3 base name (strip trailing spaces)
+            if (proc[8*pi+:8] == 8'h20) begin
+              pstate <= P_83E;
+            end else begin
+              dir_entry_name[8*nci[5:0]+:8] <=
+                  (pi == 4'd0 && proc[7:0] == 8'h05) ? 8'hE5 : proc[8*pi+:8];
+              nci <= nci + 8'd1;
+              if (pi == 4'd7) pstate <= P_83E;
+              else pi <= pi + 4'd1;
+            end
+          end
+
+          P_83E: begin  // '.' only when an extension exists
+            if (proc[8*8+:8] == 8'h20) begin
+              dir_entry_len <= nci;
+              pmatch <= (target_len != 8'd0) && (target_len == nci) &&
+                        !pattr[4] && !file_found;
+              nci    <= 8'd0;
+              pstate <= P_CMP;
+            end else begin
+              dir_entry_name[8*nci[5:0]+:8] <= 8'h2E;  // '.'
+              nci    <= nci + 8'd1;
+              pi     <= 4'd8;
+              pstate <= P_83X;
+            end
+          end
+
+          P_83X: begin  // extension (strip trailing spaces)
+            if (proc[8*pi+:8] == 8'h20) begin
+              dir_entry_len <= nci;
+              pmatch <= (target_len != 8'd0) && (target_len == nci) &&
+                        !pattr[4] && !file_found;
+              nci    <= 8'd0;
+              pstate <= P_CMP;
+            end else begin
+              dir_entry_name[8*nci[5:0]+:8] <= proc[8*pi+:8];
+              nci <= nci + 8'd1;
+              if (pi == 4'd10) begin
+                dir_entry_len <= nci + 8'd1;
+                pmatch <= (target_len != 8'd0) &&
+                          (target_len == nci + 8'd1) &&
+                          !pattr[4] && !file_found;
+                nci    <= 8'd0;
+                pstate <= P_CMP;
+              end else pi <= pi + 4'd1;
+            end
+          end
+
+          P_CMP: begin  // case-insensitive target compare, one byte per cycle
+            if (!pmatch || nci >= dir_entry_len) begin
+              pstate <= P_EMIT;
+            end else begin
+              if (ucase(dir_entry_name[8*nci[5:0]+:8]) !=
+                  ucase(target_name[8*nci[5:0]+:8])) pmatch <= 1'b0;
+              nci <= nci + 8'd1;
+            end
+          end
+
+          P_EMIT: begin
+            dir_entry_valid <= 1'b1;
+            if (pmatch) begin
+              file_found              <= 1'b1;
+              found_file_size         <= dir_entry_size;
+              found_file_cluster      <= dir_entry_cluster;
+              found_file_first_sector <= fs_data_base_sector +
+                                         (dir_entry_cluster << l2cs);
+              found_dir_entry_sector  <= psec_snap;
+              found_dir_entry_index   <= pent_snap;
+            end
+            pmatch   <= 1'b0;
+            lfn_have <= 1'b0;
+            pbusy    <= 1'b0;
+          end
+
+          default: pbusy <= 1'b0;
+        endcase
+      end
+
+      // ---------------- main FSM ------------------------------------------
+      case (state)
+        // ======== card init (identification clock) ========================
+        H_BOOT: begin
+          card_stat <= 4'd0;
+          e_slow    <= 1'b1;
+          route     <= R_NONE;
+          e_kind    <= K_DUMMY;
+          e_ndum    <= 8'd80;  // >= 74 power-up clocks with CMD high
+          e_ret     <= H_CMD0;
+          e_eret    <= H_BOOT;
+          state     <= E_GO;
         end
+
+        H_CMD0: begin
+          card_stat <= 4'd1;
+          e_kind    <= K_CMDN;
+          e_cmd     <= 6'd0;
+          e_arg     <= 32'd0;
+          e_ret     <= H_CMD8;
+          e_eret    <= H_BOOT;
+          state     <= E_GO;
+        end
+
+        H_CMD8: begin
+          card_stat <= 4'd2;
+          e_kind    <= K_CMD;
+          e_r2      <= 1'b0;
+          e_cmd     <= 6'd8;
+          e_arg     <= 32'h0000_01AA;  // 2.7-3.6 V + check pattern
+          cmd8_ok   <= 1'b1;
+          e_ret     <= H_C55;          // response: SDv2
+          e_eret    <= H_C55;          // timeout: SDv1 (via cmd8_ok clear)
+          a41_guard <= 16'd0;
+          v2        <= 1'b0;
+          state     <= E_GO;
+        end
+
+        H_C55: begin
+          // arriving from H_CMD8: e_done set v2, e_err means no CMD8 answer
+          if (cmd8_ok) begin
+            v2      <= !e_err_seen && (e_resp[7:0] == 8'hAA);
+            cmd8_ok <= 1'b0;
+          end
+          card_stat <= 4'd3;
+          e_kind    <= K_CMD;
+          e_cmd     <= 6'd55;
+          e_arg     <= 32'd0;          // RCA 0 before CMD3
+          e_ret     <= H_A41;
+          e_eret    <= H_BOOT;
+          state     <= E_GO;
+        end
+
+        H_A41: begin
+          e_kind <= K_CMD;
+          e_cmd  <= 6'd41;             // ACMD41: HCS + voltage window
+          e_arg  <= v2 ? 32'h40FF_8000 : 32'h00FF_8000;
+          e_ret  <= H_A41W;
+          e_eret <= H_BOOT;
+          state  <= E_GO;
+        end
+
+        H_A41W: begin
+          if (e_resp[31]) begin        // OCR busy bit set = ready
+            ccs       <= v2 & e_resp[30];
+            card_type <= v2 ? (e_resp[30] ? 2'd3 : 2'd2) : 2'd1;
+            state     <= H_CMD2;
+          end else if (a41_guard == 16'hFFFF) begin
+            state <= H_BOOT;           // card never ready: start over
+          end else begin
+            a41_guard <= a41_guard + 16'd1;
+            e_kind    <= K_DUMMY;      // idle clocks between the retries
+            e_ndum    <= 8'd8;
+            e_ret     <= H_C55;
+            e_eret    <= H_BOOT;
+            state     <= E_GO;
+          end
+        end
+
+        H_CMD2: begin
+          card_stat <= 4'd4;
+          e_kind    <= K_CMD;
+          e_r2      <= 1'b1;           // 136-bit CID
+          e_cmd     <= 6'd2;
+          e_arg     <= 32'd0;
+          e_ret     <= H_CMD3;
+          e_eret    <= H_BOOT;
+          state     <= E_GO;
+        end
+
+        H_CMD3: begin
+          card_stat <= 4'd5;
+          e_kind    <= K_CMD;
+          e_r2      <= 1'b0;
+          e_cmd     <= 6'd3;
+          e_arg     <= 32'd0;
+          e_ret     <= H_CMD9;
+          e_eret    <= H_BOOT;
+          state     <= E_GO;
+        end
+
+        H_CMD9: begin
+          rca    <= e_resp[31:16];  // R6: the card's published RCA
+          e_kind <= K_CMD;
+          e_r2   <= 1'b1;           // 136-bit CSD
+          e_cmd  <= 6'd9;
+          e_arg  <= {e_resp[31:16], 16'd0};
+          e_ret  <= H_CSD;
+          e_eret <= H_CSD;          // no CSD answer: capacity stays 0
+          state  <= E_GO;
+        end
+
+        H_CSD:
+        if (e_err_seen) state <= H_CMD7;  // no CSD answer: capacity stays 0
+        else if (e_resp_r2[127:126] == 2'b01) begin
+          card_capacity_mb <= {10'd0, s_csd2_hblk[22:1]};  // v2: (C_SIZE+1)/2
+          state <= H_CMD7;
+        end else begin
+          csd_w <= {7'd0, s_csd1_blks};  // v1: (C_SIZE+1) * 2^exp bytes
+          csd_n <= s_csd1_exp;
+          state <= H_CSD1;
+        end
+
+        H_CSD1:  // MB = blocks << (exp-20), one bit per clock either way
+        if (csd_n == 5'd20) begin
+          card_capacity_mb <= {12'd0, csd_w};
+          state <= H_CMD7;
+        end else if (csd_n > 5'd20) begin
+          csd_w <= {csd_w[18:0], 1'b0};
+          csd_n <= csd_n - 5'd1;
+        end else begin
+          csd_w <= {1'b0, csd_w[19:1]};
+          csd_n <= csd_n + 5'd1;
+        end
+
+        H_CMD7: begin
+          card_stat <= 4'd6;
+          e_kind    <= K_CMD;
+          e_r2      <= 1'b0;
+          e_cmd     <= 6'd7;
+          e_arg     <= {rca, 16'd0};
+          e_ret     <= H_CMD16;
+          e_eret    <= H_BOOT;
+          state     <= E_GO;
+        end
+
+        H_CMD16: begin
+          card_stat <= 4'd7;
+          e_slow    <= 1'b0;           // data clock from here on
+          e_kind    <= K_CMD;
+          e_cmd     <= 6'd16;
+          e_arg     <= 32'd512;
+          e_ret     <= H_RDBOOT;
+          e_eret    <= H_BOOT;
+          state     <= E_GO;
+        end
+
+        // ======== mount ====================================================
+        H_RDBOOT: begin
+          card_stat <= 4'd8;           // card ready (consumer threshold)
+          route     <= R_BUF;
+          cache_sec <= 32'hFFFF_FFFF;  // the FAT cache buffer is reused
+          e_kind    <= K_READ;
+          e_cmd     <= 6'd17;
+          e_arg     <= ccs ? vol_base : (vol_base << 9);
+          e_nblk    <= 13'd1;
+          e_ret     <= H_P_SIG;
+          e_eret    <= H_UNMNT;
+          state     <= E_GO;
+        end
+
+        H_P_SIG: begin
+          f_off <= 9'd510; f_cnt <= 2'd1; f_ret <= H_P_JMP; state <= F_RD0;
+        end
+        H_P_JMP:
+        if (f_val[15:0] != 16'hAA55) state <= H_UNMNT;
+        else begin
+          f_off <= 9'd0; f_cnt <= 2'd0; f_ret <= H_P_BPS; state <= F_RD0;
+        end
+        H_P_BPS: begin
+          jmp_ok <= (f_val[7:0] == 8'hEB) || (f_val[7:0] == 8'hE9);
+          f_off <= 9'd11; f_cnt <= 2'd1; f_ret <= H_P_SPC; state <= F_RD0;
+        end
+        H_P_SPC: begin
+          p_bps <= f_val[15:0];
+          f_off <= 9'd13; f_cnt <= 2'd0; f_ret <= H_P_RSVD; state <= F_RD0;
+        end
+        H_P_RSVD: begin
+          p_spc <= f_val[7:0];
+          f_off <= 9'd14; f_cnt <= 2'd1; f_ret <= H_P_NFAT; state <= F_RD0;
+        end
+        H_P_NFAT: begin
+          p_rsvd <= f_val[15:0];
+          f_off <= 9'd16; f_cnt <= 2'd0; f_ret <= H_P_ROOTN; state <= F_RD0;
+        end
+        H_P_ROOTN: begin
+          p_nfat <= f_val[7:0];
+          f_off <= 9'd17; f_cnt <= 2'd1; f_ret <= H_P_TOT16; state <= F_RD0;
+        end
+        H_P_TOT16: begin
+          p_rootn <= f_val[15:0];
+          f_off <= 9'd19; f_cnt <= 2'd1; f_ret <= H_P_SPF16; state <= F_RD0;
+        end
+        H_P_SPF16: begin
+          p_tot16 <= f_val[15:0];
+          f_off <= 9'd22; f_cnt <= 2'd1; f_ret <= H_P_TOT32; state <= F_RD0;
+        end
+        H_P_TOT32: begin
+          p_spf16 <= f_val[15:0];
+          f_off <= 9'd32; f_cnt <= 2'd3; f_ret <= H_P_SPF32; state <= F_RD0;
+        end
+        H_P_SPF32: begin
+          p_tot32 <= f_val;
+          f_off <= 9'd36; f_cnt <= 2'd3; f_ret <= H_P_ROOTC; state <= F_RD0;
+        end
+        H_P_ROOTC: begin
+          p_spf32 <= f_val;
+          f_off <= 9'd44; f_cnt <= 2'd3; f_ret <= H_GEOM; state <= F_RD0;
+        end
+
+        H_GEOM: begin : geom
+          reg [31:0] g_fat0, g_first, g_dbase, g_cc, g_rootc;
+          if (!bpb_ok) begin
+            // not a BPB: sector 0 may be an MBR - walk its partition table
+            if (!mbr_done && vol_base == 32'd0) begin
+              mbr_p <= 2'd0;
+              f_off <= 9'd450;  // 446 + 4: partition 0 type byte
+              f_cnt <= 2'd0;
+              f_ret <= H_MBR_T;
+              state <= F_RD0;
+            end else state <= H_UNMNT;
+          end else begin
+            g_rootc = f_val & 32'h0FFF_FFFF;
+            g_fat0  = vol_base + {16'd0, p_rsvd};
+            g_first = g_fat0 + fatarea + rootsec;
+            g_dbase = g_first - {23'd0, p_spc, 1'b0};  // bias: -2*spc
+            g_cc    = (tot_v - (g_first - vol_base)) >> log2cs(p_spc);
+            is32 <= (p_spf16 == 16'd0);
+            l2cs <= log2cs(p_spc);
+            fs_cluster_size     <= p_spc;
+            fs_fat0_sector      <= g_fat0;
+            fs_sectors_per_fat  <= spf_v;
+            fs_num_fats         <= p_nfat;
+            fs_data_base_sector <= g_dbase;
+            fs_total_sectors    <= vol_base + tot_v;
+            fs_root_cluster     <= (p_spf16 == 16'd0) ? g_rootc : 32'd0;
+            max_cluster         <= g_cc + 32'd1;
+            dscan               <= 16'd0;
+            dirend              <= 1'b0;
+            if (p_spf16 != 16'd0 && g_cc < 32'd4085) begin
+              state <= H_UNMNT;  // FAT12 territory: not supported
+            end else if (p_spf16 == 16'd0) begin
+              filesystem_type <= 2'd3;
+              dclu <= g_rootc;
+              doff <= 8'd0;
+              dsec <= g_dbase + (g_rootc << log2cs(p_spc));
+              if (g_rootc < 32'd2) state <= H_UNMNT;
+              else state <= H_DIR_RD;
+            end else begin
+              filesystem_type <= 2'd2;
+              dsec <= g_fat0 + fatarea;
+              drem <= rootsec;
+              if (rootsec == 32'd0) state <= H_FINISH;
+              else state <= H_DIR_RD;
+            end
+          end
+        end
+
+        H_MBR_T: begin
+          // f_val[7:0] = partition type; 0 = empty slot
+          if (f_val[7:0] != 8'h00) begin
+            f_off <= 9'd446 + {1'd0, mbr_p, 4'd0} + 9'd8;  // start LBA
+            f_cnt <= 2'd3;
+            f_ret <= H_MBR_L;
+            state <= F_RD0;
+          end else if (mbr_p == 2'd3) state <= H_UNMNT;
+          else begin
+            mbr_p <= mbr_p + 2'd1;
+            f_off <= 9'd450 + {1'd0, mbr_p + 2'd1, 4'd0};
+            f_cnt <= 2'd0;
+            f_ret <= H_MBR_T;
+            state <= F_RD0;
+          end
+        end
+
+        H_MBR_L:
+        if (f_val == 32'd0) state <= H_UNMNT;
+        else begin
+          vol_base <= f_val;
+          mbr_done <= 1'b1;
+          state    <= H_RDBOOT;
+        end
+
+        // ======== root directory scan =====================================
+        H_DIR_RD:
+        if (!pbusy) begin
+          route  <= R_DIR;
+          e_kind <= K_READ;
+          e_cmd  <= 6'd17;
+          e_arg  <= ccs ? dsec : (dsec << 9);
+          e_nblk <= 13'd1;
+          e_ret  <= H_DIR_NX;
+          e_eret <= H_FINISH;
+          state  <= E_GO;
+        end
+
+        H_DIR_NX:
+        if (!pbusy) begin
+          if (file_found) state <= H_STREAM0;
+          else if (dirend || dscan == 16'hFFFF) state <= H_FINISH;
+          else begin
+            dscan <= dscan + 16'd1;
+            if (!is32) begin
+              if (drem <= 32'd1) state <= H_FINISH;
+              else begin
+                drem  <= drem - 32'd1;
+                dsec  <= dsec + 32'd1;
+                state <= H_DIR_RD;
+              end
+            end else begin
+              if ({24'd0, doff} + 32'd1 < {24'd0, fs_cluster_size}) begin
+                doff  <= doff + 8'd1;
+                dsec  <= dsec + 32'd1;
+                state <= H_DIR_RD;
+              end else begin
+                qc      <= dclu;      // follow the root cluster chain
+                fat_ret <= H_DIR_HOP;
+                state   <= H_FAT_RD;
+              end
+            end
+          end
+        end
+
+        H_DIR_HOP:
+        if (fat_eoc || fat_val < 32'd2 || fat_val > max_cluster)
+          state <= H_FINISH;
+        else begin
+          dclu  <= fat_val;
+          doff  <= 8'd0;
+          dsec  <= fs_data_base_sector + (fat_val << l2cs);
+          state <= H_DIR_RD;
+        end
+
+        // ======== FAT entry fetch (with a one-sector cache) ===============
+        H_FAT_RD: begin
+          if ((fs_fat0_sector + (is32 ? (qc >> 7) : (qc >> 8))) == cache_sec)
+            state <= H_FAT_OFF;
+          else begin
+            route     <= R_BUF;
+            cache_sec <= fs_fat0_sector + (is32 ? (qc >> 7) : (qc >> 8));
+            e_kind    <= K_READ;
+            e_cmd     <= 6'd17;
+            e_arg     <= ccs ? (fs_fat0_sector + (is32 ? (qc >> 7) : (qc >> 8)))
+                             : ((fs_fat0_sector +
+                                 (is32 ? (qc >> 7) : (qc >> 8))) << 9);
+            e_nblk    <= 13'd1;
+            e_ret     <= H_FAT_OFF;
+            e_eret    <= H_FINISH;
+            state     <= E_GO;
+          end
+        end
+
+        H_FAT_OFF: begin
+          f_off <= is32 ? {qc[6:0], 2'b00} : {qc[7:0], 1'b0};
+          f_cnt <= is32 ? 2'd3 : 2'd1;
+          f_ret <= H_FAT_V;
+          state <= F_RD0;
+        end
+
+        H_FAT_V: begin
+          fat_val <= is32 ? (f_val & 32'h0FFF_FFFF) : {16'd0, f_val[15:0]};
+          state   <= fat_ret;
+        end
+
+        // ======== file streaming ==========================================
+        H_STREAM0: begin
+          remaining <= found_file_size;
+          cur       <= found_file_cluster;
+          if (found_file_size == 32'd0 || found_file_cluster < 32'd2 ||
+              found_file_cluster > max_cluster) state <= H_FINISH;
+          else state <= H_RUN0;
+        end
+
+        H_RUN0: begin
+          run_start <= cur;
+          run_secs  <= {5'd0, fs_cluster_size};
+          state     <= H_RUNX;
+        end
+
+        H_RUNX: begin
+          qc      <= cur;
+          fat_ret <= H_RUNJ;
+          state   <= H_FAT_RD;
+        end
+
+        H_RUNJ:  // merge consecutive clusters into one multi-block read
+        if (fat_val == cur + 32'd1 && fat_val <= max_cluster &&
+            ({1'b0, run_secs} + {6'd0, fs_cluster_size} <= 14'd4096)) begin
+          cur      <= fat_val;
+          run_secs <= run_secs + {5'd0, fs_cluster_size};
+          state    <= H_RUNX;
+        end else begin
+          nxt   <= fat_val;
+          state <= H_RDRUN;
+        end
+
+        H_RDRUN: begin
+          route  <= R_STREAM;
+          e_kind <= K_READ;
+          e_cmd  <= (nblk_now > 13'd1) ? 6'd18 : 6'd17;
+          e_arg  <= ccs ? (fs_data_base_sector + (run_start << l2cs))
+                        : ((fs_data_base_sector + (run_start << l2cs)) << 9);
+          e_nblk <= nblk_now;
+          e_ret  <= H_RUNEND;
+          e_eret <= H_FINISH;  // CRC / timeout: end the stream early
+          state  <= E_GO;
+        end
+
+        H_RUNEND:
+        if (remaining == 32'd0) state <= H_FINISH;
+        else if (nxt_eoc || nxt < 32'd2 || nxt > max_cluster)
+          state <= H_FINISH;   // size says more, chain says over: stop
+        else begin
+          cur   <= nxt;
+          state <= H_RUN0;
+        end
+
+        // ======== common tails ============================================
+        H_UNMNT: state <= H_FINISH;  // filesystem_type stays < 2
+
+        H_FINISH:
+        if (!pbusy) begin
+          route     <= R_NONE;
+          scan_done <= 1'b1;
+          state     <= H_HALT;
+        end
+
+        H_HALT: state <= H_HALT;  // parked until the next rstn cycle
+
+        // ======== engine-op helper ========================================
+        E_GO: begin
+          e_start <= 1'b1;
+          state   <= E_WT;
+        end
+
+        E_WT: begin
+          if (e_done) begin
+            e_err_seen <= 1'b0;
+            state      <= e_ret;
+          end else if (e_err) begin
+            e_err_seen <= 1'b1;
+            state      <= e_eret;
+          end
+        end
+
+        // ======== little-endian field fetch from secbuf ===================
+        F_RD0: begin
+          f_val    <= 32'd0;
+          f_idx    <= 2'd0;
+          fsm_addr <= f_off;
+          state    <= F_RD1;
+        end
+
+        F_RD1: state <= F_RD2;  // registered-read latency
+
+        F_RD2: begin
+          f_val <= f_val | ({24'd0, fsm_q} << {f_idx, 3'b000});
+          if (f_idx == f_cnt) state <= f_ret;
+          else begin
+            f_idx    <= f_idx + 2'd1;
+            fsm_addr <= fsm_addr + 9'd1;
+            state    <= F_RD1;
+          end
+        end
+
+        default: state <= H_HALT;
+      endcase
     end
-end
+  end
 
+endmodule
 
-sd_reader #(
-    .CLK_DIV    ( CLK_DIV        ),
-    .SIMULATE   ( SIMULATE       )
-) u_sd_reader (
-    .rstn       ( rstn           ),
-    .clk        ( clk            ),
-    .sdclk      ( sdclk          ),
-    .sdcmd_i    ( sdcmd_i        ),
-    .sdcmd_o    ( sdcmd_o        ),
-    .sdcmd_oe   ( sdcmd_oe       ),
-    .sddat0     ( sddat0         ),
-    .card_type  ( card_type      ),
-    .card_stat  ( card_stat      ),
-    .rstart     ( read_start     ),
-    .rsector    ( read_sector_no ),
-    .rbusy      (                ),
-    .rdone      ( read_done      ),
-    .outen      ( rvalid         ),
-    .outaddr    ( raddr          ),
-    .outbyte    ( rdata          )
+/****************************************************************************
+** sd_card_ctrl - SD command / read-data bit engine (1-bit SD native)      **
+**                                                                         **
+** Helper of sd_file_reader (same file, same clean-room provenance). One   **
+** operation at a time:                                                    **
+**   K_DUMMY  op_ndum sdclk cycles with CMD driven high (power-up ramp,    **
+**            ACMD41 retry spacing)                                        **
+**   K_CMD    48-bit command (start 0, host 1, index, arg, CRC7, end 1),   **
+**            then a 48-bit (or 136-bit, op_r2) response; resp_arg         **
+**            captures the 32-bit argument field                           **
+**   K_CMDN   command without a response (CMD0)                            **
+**   K_READ   command + R1, then op_nblk data blocks on DAT0 (start 0 +    **
+**            4096 data bits + CRC16 + end); every byte is strobed out on  **
+**            rx_we/rx_byte/rx_idx and every block's CRC16 is verified     **
+**            (the CCITT accumulator over data+CRC ends at zero).          **
+**            op_nblk > 1 sends CMD18 traffic and terminates with CMD12;   **
+**            a CRC error or data timeout mid-stream aborts via CMD12      **
+**            and reports err.                                             **
+**                                                                         **
+** Outputs change on the falling sdclk edge, inputs are sampled on the     **
+** rising edge (the sd_writer.v timing idiom, proven at CLKDIV=1 =         **
+** 13.5 MHz on hardware). The bit clock halves are DATA_DIV clk cycles     **
+** (INIT_DIV while slow=1). No tristates: sdcmd_o/_oe only, DAT0 is        **
+** never driven.                                                           **
+**                                                                         **
+** Last reviewed: 11-JUL-2026                                              **
+** Ronny Hansen                                                            **
+*****************************************************************************/
+
+module sd_card_ctrl #(
+    parameter [7:0] DATA_DIV = 8'd1,
+    parameter [7:0] INIT_DIV = 8'd99
+) (
+    input wire clk,
+    input wire rstn,
+    input wire slow,
+
+    input  wire        op_start,
+    input  wire [1:0]  op_kind,
+    input  wire [5:0]  op_cmd,
+    input  wire [31:0] op_arg,
+    input  wire        op_r2,
+    input  wire [7:0]  op_ndum,
+    input  wire [12:0] op_nblk,
+    output wire        busy,
+    output reg         done,
+    output reg         err,
+    output reg  [31:0] resp_arg,
+    output reg [127:0] resp_r2,  // R2 payload: bit k = CID/CSD bit k (k >= 1)
+
+    output reg        rx_we,
+    output reg  [7:0] rx_byte,
+    output reg  [8:0] rx_idx,
+
+    output reg  sdclk,
+    input  wire sdcmd_i,
+    output reg  sdcmd_o,
+    output reg  sdcmd_oe,
+    input  wire sddat0
 );
 
+  function [6:0] crc7_step(input [6:0] c, input b);
+    crc7_step = {c[5:0], 1'b0} ^ (7'h09 & {7{c[6] ^ b}});
+  endfunction
 
+  function [15:0] crc16_step(input [15:0] c, input b);
+    crc16_step = {c[14:0], 1'b0} ^ (16'h1021 & {16{c[15] ^ b}});
+  endfunction
 
-//----------------------------------------------------------------------------------------------------------------------
-// parse root dir
-//----------------------------------------------------------------------------------------------------------------------
-reg         fready = 1'b0;            // a file is find when fready = 1
-reg  [ 7:0] fnamelen = 0;
-reg  [15:0] fcluster = 0;
-reg  [31:0] fsize = 0;
-reg  [ 7:0] fname [0:51];
-reg  [ 7:0] file_name [0:51];
-reg         isshort=1'b0, islongok=1'b0, islong=1'b0, longvalid=1'b0;
-reg         isshort_t   , islongok_t   , islong_t   , longvalid_t   ;
-reg  [ 5:0] longno = 6'h0 , longno_t;
-reg  [ 7:0] lastchar = 8'h0;
-reg  [ 7:0] fdtnamelen = 8'h0 , fdtnamelen_t;
-reg  [ 7:0] sdtnamelen = 8'h0 , sdtnamelen_t;
-reg  [ 7:0] file_namelen = 8'h0;
-reg  [15:0] file_1st_cluster = 16'h0 , file_1st_cluster_t;
-reg  [31:0] file_1st_size = 0 , file_1st_size_t;
-// ND-120 mod: entry date + directory flag
-reg  [15:0] file_1st_date = 16'h0 , file_1st_date_t;
-reg         entry_isdir = 1'b0;
-reg  [15:0] fdate = 16'h0;
-reg         fdir = 1'b0;
+  // ------------------------------------------------------------- bit clock
+  reg [7:0] divcnt;
+  wire [7:0] half = slow ? INIT_DIV : DATA_DIV;
+  wire tick = (divcnt >= half - 8'd1);
+  wire fall_tick = tick && sdclk;   // next edge falls: change outputs
+  wire rise_tick = tick && !sdclk;  // next edge rises: sample inputs
 
-initial for(i=0;i<52;i=i+1) begin file_name[i]=8'h0; fname[i]=8'h0; end
+  // ------------------------------------------------------------- FSM
+  localparam [3:0] E_IDLE  = 4'd0;
+  localparam [3:0] E_DUM   = 4'd1;
+  localparam [3:0] E_GAP   = 4'd2;   // 8 released clocks before a command
+  localparam [3:0] E_CMD   = 4'd3;   // shift the 48-bit command
+  localparam [3:0] E_NRC   = 4'd4;   // no-response tail (CMD0)
+  localparam [3:0] E_RWAIT = 4'd5;   // response start bit
+  localparam [3:0] E_RESP  = 4'd6;   // remaining response bits
+  localparam [3:0] E_DWAIT = 4'd7;   // data start bit
+  localparam [3:0] E_DATA  = 4'd8;   // 4096 data + 16 CRC bits
+  localparam [3:0] E_DEND  = 4'd9;   // block end bit + verdict
+  localparam [3:0] E_DONE  = 4'd10;
+  localparam [3:0] E_ERR   = 4'd11;
 
-always @ (posedge clk or negedge rstn) begin
-    if(~rstn) begin
-        fready<=1'b0;  fnamelen<=8'h0; file_namelen<=8'h0;
-        fcluster<=16'h0;  fsize<=0;
-        fdate<=16'h0; fdir<=1'b0; file_1st_date<=16'h0; entry_isdir<=1'b0;
-        for(i=0;i<52;i=i+1) begin file_name[i]<=8'h0; fname[i]<=8'h0; end
-        
-        {isshort, islongok, islong, longvalid} <= 4'b0000;
-        
-        longno     <= 6'h0;
-        lastchar   <= 8'h0;
-        fdtnamelen <= 8'h0;
-        sdtnamelen <= 8'h0;
-        file_1st_cluster <= 16'h0;
-        file_1st_size <= 0;
+  localparam [21:0] TO_RESP = 22'd1000;       // response timeout (sdclk)
+  localparam [21:0] TO_DATA = 22'd2_000_000;  // data-start timeout (sdclk)
+
+  reg [3:0]  state;
+  reg [1:0]  kind_r;
+  reg        r2_r;
+  reg        stopph;   // the running command is the injected CMD12
+  reg        err_p;    // err (not done) once the CMD12 completes
+  reg [12:0] blkleft;
+  reg        multi;    // op_nblk > 1: CMD18 stream, CMD12 to terminate
+  reg [47:0] cmdreg;
+  reg [6:0]  crc7;
+  reg [15:0] crc16;
+  reg [12:0] bitcnt;
+  reg [45:0] rsh;
+  reg [7:0]  rbits;
+  reg [7:0]  shreg;
+  reg [7:0]  dumcnt;
+  reg [21:0] toctr;
+
+  assign busy = (state != E_IDLE);
+
+  wire [45:0] rsh_n = {rsh[44:0], sdcmd_i};
+
+  always @(posedge clk) begin
+    if (!rstn) begin
+      state    <= E_IDLE;
+      divcnt   <= 8'd0;
+      sdclk    <= 1'b0;
+      sdcmd_o  <= 1'b1;
+      sdcmd_oe <= 1'b0;
+      done     <= 1'b0;
+      err      <= 1'b0;
+      resp_arg <= 32'd0;
+      resp_r2  <= 128'd0;
+      rx_we    <= 1'b0;
+      rx_byte  <= 8'd0;
+      rx_idx   <= 9'd0;
+      kind_r   <= 2'd0;
+      r2_r     <= 1'b0;
+      stopph   <= 1'b0;
+      err_p    <= 1'b0;
+      blkleft  <= 13'd0;
+      multi    <= 1'b0;
+      cmdreg   <= 48'd0;
+      crc7     <= 7'd0;
+      crc16    <= 16'd0;
+      bitcnt   <= 13'd0;
+      rsh      <= 46'd0;
+      rbits    <= 8'd0;
+      shreg    <= 8'd0;
+      dumcnt   <= 8'd0;
+      toctr    <= 22'd0;
     end else begin
-        {isshort_t, islongok_t, islong_t, longvalid_t} = {isshort, islongok, islong, longvalid};
-        longno_t = longno;
-        fdtnamelen_t = fdtnamelen;
-        sdtnamelen_t = sdtnamelen;
-        file_1st_cluster_t = file_1st_cluster;
-        file_1st_size_t = file_1st_size;
-        file_1st_date_t = file_1st_date;
-        
-        fready<=1'b0;  fnamelen<=8'h0;
-        for(i=0;i<52;i=i+1) fname[i]<=8'h0;
-        fcluster<=16'h0;  fsize<=0;
-        fdate<=16'h0; fdir<=1'b0;
-        
-        if( rvalid && (filesystem_state==LS_ROOT_FAT16||filesystem_state==LS_ROOT_FAT32) && ~search_fat ) begin
-            case (raddr[4:0])
-                5'h18 :    file_1st_date_t[ 0+:8] = rdata;   // ND-120 mod: write date
-                5'h19 :    file_1st_date_t[ 8+:8] = rdata;
-                5'h1A : file_1st_cluster_t[ 0+:8] = rdata;
-                5'h1B : file_1st_cluster_t[ 8+:8] = rdata;
-                5'h1C :    file_1st_size_t[ 0+:8] = rdata;
-                5'h1D :    file_1st_size_t[ 8+:8] = rdata;
-                5'h1E :    file_1st_size_t[16+:8] = rdata;
-                5'h1F :    file_1st_size_t[24+:8] = rdata;
-            endcase
-            
-            if(raddr[4:0]==5'h0) begin
-                {islongok_t, isshort_t} = 2'b00;
-                fdtnamelen_t = 8'h0;  sdtnamelen_t=8'h0;
-                
-                if(rdata!=8'hE5 && rdata!=8'h2E && rdata!=8'h00) begin
-                    if(islong_t && longno_t==6'h1)
-                        islongok_t = 1'b1;
-                    else
-                        isshort_t = 1'b1;
-                end
-                
-                if(rdata[7]==1'b0 && ~islongok_t) begin
-                    if(rdata[6]) begin
-                        {islong_t,longvalid_t} = 2'b11;
-                        longno_t = rdata[5:0];
-                    end else if(islong_t) begin
-                        if(longno_t>6'h1 && (rdata[5:0]+6'h1==longno_t) ) begin
-                            islong_t = 1'b1;
-                            longno_t = rdata[5:0];
-                        end else begin
-                            islong_t = 1'b0;
-                        end
-                    end else
-                        islong_t = 1'b0;
-                end else
-                    islong_t = 1'b0;
-            end else if(raddr[4:0]==5'hB) begin
-                if(rdata!=8'h0F)
-                    islong_t = 1'b0;
-                // ND-120 mod: accept plain files (0x20) AND subdirectories (0x10)
-                if(rdata!=8'h20 && rdata!=8'h10)
-                    {isshort_t, islongok_t} = 2'b00;
-                entry_isdir <= (rdata==8'h10);
-            end else if(raddr[4:0]==5'h1F) begin
-                if(islongok_t && longvalid_t || isshort_t) begin
-                    fready <= 1'b1;
-                    fnamelen <= file_namelen;
-                    for(i=0;i<52;i=i+1) fname[i] <= (i<file_namelen) ? file_name[i] : 8'h0;
-                    fcluster <= file_1st_cluster_t;
-                    fsize <= file_1st_size_t;
-                    fdate <= file_1st_date_t;   // ND-120 mod
-                    fdir <= entry_isdir;        // ND-120 mod
-                end
-            end
-            
-            if(islong_t) begin
-                if(raddr[4:0]>5'h0&&raddr[4:0]<5'hB || raddr[4:0]>=5'hE&&raddr[4:0]<5'h1A || raddr[4:0]>=5'h1C)begin
-                    if((raddr[4:0]<5'hB) ? raddr[0] : ~raddr[0]) begin   // parens: yosys lexes "'hB ?" as a wildcard literal (ND-120 mod)
-                        lastchar <= rdata;
-                        fdtnamelen_t = fdtnamelen_t + 8'd1;
-                    end else begin
-                        //automatic logic [15:0] unicode = {rdata,lastchar};
-                        if({rdata,lastchar} == 16'h0000) begin
-                            file_namelen <= fdtnamelen_t-8'd1 + (longno_t-8'd1)*8'd13;
-                        end else if({rdata,lastchar} != 16'hFFFF) begin
-                            if(rdata == 8'h0) begin
-                                file_name[fdtnamelen_t-8'd1+(longno_t-8'd1)*8'd13] <= (lastchar>=8'h61 && lastchar<=8'h7A) ? lastchar&8'b11011111 : lastchar; 
-                            end else begin
-                                longvalid_t = 1'b0;
-                            end
-                        end
-                    end
-                end
-            end 
-            
-            if(isshort_t) begin
-                if(raddr[4:0]<5'h8) begin
-                    if(rdata!=8'h20) begin
-                        file_name[sdtnamelen_t] <= rdata;
-                        sdtnamelen_t = sdtnamelen_t + 8'd1;
-                    end
-                end else if(raddr[4:0]<5'hB) begin
-                    // ND-120 mod: only insert the '.' when an extension
-                    // actually follows (upstream gave "NAME." for
-                    // extension-less 8.3 names, e.g. directories)
-                    if(raddr[4:0]==5'h8 && rdata!=8'h20) begin
-                        file_name[sdtnamelen_t] <= 8'h2E;
-                        sdtnamelen_t = sdtnamelen_t + 8'd1;
-                    end
-                    if(rdata!=8'h20) begin
-                        file_name[sdtnamelen_t] <= rdata;
-                        sdtnamelen_t = sdtnamelen_t + 8'd1;
-                    end
-                end else if(raddr[4:0]==5'hB) begin
-                    file_namelen <= sdtnamelen_t;
-                end
-            end
-            
+      done  <= 1'b0;
+      err   <= 1'b0;
+      rx_we <= 1'b0;
+
+      if (state == E_IDLE) begin
+        divcnt   <= 8'd0;
+        sdclk    <= 1'b0;
+        sdcmd_oe <= 1'b0;
+        if (op_start) begin
+          kind_r  <= op_kind;
+          r2_r    <= op_r2;
+          stopph  <= 1'b0;
+          err_p   <= 1'b0;
+          multi   <= (op_nblk > 13'd1);
+          blkleft <= (op_nblk == 13'd0) ? 13'd1 : op_nblk;
+          cmdreg  <= {2'b01, op_cmd, op_arg, 7'd0, 1'b1};
+          crc7    <= 7'd0;
+          bitcnt  <= 13'd0;
+          dumcnt  <= op_ndum;
+          state   <= (op_kind == 2'd0) ? E_DUM : E_GAP;
         end
-        
-        {isshort, islongok, islong, longvalid} <= {isshort_t, islongok_t, islong_t, longvalid_t};
-        longno <= longno_t;
-        fdtnamelen <= fdtnamelen_t;
-        sdtnamelen <= sdtnamelen_t;
-        file_1st_cluster <= file_1st_cluster_t;
-        file_1st_size <= file_1st_size_t;
-        file_1st_date <= file_1st_date_t;
-    end
-end
+      end else begin
+        divcnt <= tick ? 8'd0 : divcnt + 8'd1;
+        if (tick) sdclk <= ~sdclk;
 
+        case (state)
+          E_DUM:  // op_ndum clocks with CMD driven high
+          if (fall_tick) begin
+            sdcmd_oe <= 1'b1;
+            sdcmd_o  <= 1'b1;
+            if (dumcnt <= 8'd1) begin
+              sdcmd_oe <= 1'b0;
+              state    <= E_DONE;
+            end else dumcnt <= dumcnt - 8'd1;
+          end
 
+          E_GAP:  // NCC spacing, CMD released
+          if (fall_tick) begin
+            sdcmd_oe <= 1'b0;
+            if (bitcnt == 13'd7) begin
+              bitcnt <= 13'd0;
+              state  <= E_CMD;
+            end else bitcnt <= bitcnt + 13'd1;
+          end
 
-//----------------------------------------------------------------------------------------------------------------------
-// compare Target filename with Parsed filename
-//----------------------------------------------------------------------------------------------------------------------
-// --- ND-120 project modification (10-JUL-2026): compare against the runtime
-// target_name port (byte-0-first layout, so the compare is index-aligned)
-// instead of the FILE_NAME parameter; target_len==0 never matches (LIST mode).
-always @ (posedge clk or negedge rstn)
-    if(~rstn) begin
-        file_found <= 1'b0;
-        file_cluster <= 0;
-        file_size <= 0;
-    end else begin
-        if (fready && !fdir && fnamelen==target_len && target_len!=8'd0) begin
-            file_found <= 1'b1;
-            file_cluster <= fcluster;
-            file_size <= fsize;
-            for (ii=0; ii<52; ii=ii+1) begin
-                if( ii<target_len && fname[ii] != toUpperCase(target_name[ii*8+:8]) ) begin
-                    file_found <= 1'b0;
-                    file_cluster <= 0;
-                    file_size <= 0;
-                end
+          E_CMD:  // 48-bit command, CRC7 accumulated over the first 40 bits
+          if (fall_tick) begin
+            if (bitcnt < 13'd40) begin
+              sdcmd_oe <= 1'b1;
+              sdcmd_o  <= cmdreg[47];
+              crc7     <= crc7_step(crc7, cmdreg[47]);
+              cmdreg   <= {cmdreg[46:0], 1'b1};
+            end else if (bitcnt < 13'd47) begin
+              sdcmd_o <= crc7[6];
+              crc7    <= {crc7[5:0], 1'b0};
+            end else begin
+              sdcmd_o <= 1'b1;  // end bit
             end
-        end
+            if (bitcnt == 13'd47) begin
+              bitcnt <= 13'd0;
+              toctr  <= 22'd0;
+              state  <= (kind_r == 2'd2 && !stopph) ? E_NRC : E_RWAIT;
+            end else bitcnt <= bitcnt + 13'd1;
+          end
+
+          E_NRC:  // CMD0 has no response: 8 clocks, then done
+          if (fall_tick) begin
+            sdcmd_oe <= 1'b0;
+            if (bitcnt == 13'd7) begin
+              bitcnt <= 13'd0;
+              state  <= E_DONE;
+            end else bitcnt <= bitcnt + 13'd1;
+          end
+
+          E_RWAIT: begin
+            if (fall_tick) sdcmd_oe <= 1'b0;  // release after the end bit
+            if (rise_tick && !sdcmd_oe) begin
+              if (sdcmd_i == 1'b0) begin
+                bitcnt <= 13'd0;
+                rbits  <= (r2_r && !stopph) ? 8'd135 : 8'd47;
+                state  <= E_RESP;
+              end else if (toctr >= TO_RESP) state <= E_ERR;
+              else toctr <= toctr + 22'd1;
+            end
+          end
+
+          E_RESP:
+          if (rise_tick) begin
+            rsh <= rsh_n;
+            // the 46-bit rsh window loses the head of a 136-bit R2; a full
+            // shadow keeps every CID/CSD bit (the last 128 sampled bits are
+            // exactly CSD[127:1] followed by the end bit)
+            if (r2_r && !stopph) resp_r2 <= {resp_r2[126:0], sdcmd_i};
+            if (bitcnt[7:0] == rbits - 8'd1) begin
+              if (!r2_r || stopph) resp_arg <= rsh_n[39:8];
+              bitcnt <= 13'd0;
+              toctr  <= 22'd0;
+              if (stopph) state <= err_p ? E_ERR : E_DONE;
+              else if (kind_r == 2'd3) state <= E_DWAIT;
+              else state <= E_DONE;
+            end else bitcnt <= bitcnt + 13'd1;
+          end
+
+          E_DWAIT:
+          if (rise_tick) begin
+            if (sddat0 == 1'b0) begin  // data start bit
+              bitcnt <= 13'd0;
+              crc16  <= 16'd0;
+              shreg  <= 8'd0;
+              state  <= E_DATA;
+            end else if (toctr >= TO_DATA) begin
+              if (multi) begin  // close the CMD18 stream, then err
+                err_p  <= 1'b1;
+                cmdreg <= {2'b01, 6'd12, 32'd0, 7'd0, 1'b1};
+                crc7   <= 7'd0;
+                bitcnt <= 13'd0;
+                stopph <= 1'b1;
+                state  <= E_GAP;
+              end else state <= E_ERR;
+            end else toctr <= toctr + 22'd1;
+          end
+
+          E_DATA:  // 4096 data bits + 16 CRC bits (accumulator ends at 0)
+          if (rise_tick) begin
+            crc16 <= crc16_step(crc16, sddat0);
+            if (bitcnt < 13'd4096) begin
+              shreg <= {shreg[6:0], sddat0};
+              if (bitcnt[2:0] == 3'd7) begin
+                rx_we   <= 1'b1;
+                rx_idx  <= bitcnt[11:3];
+                rx_byte <= {shreg[6:0], sddat0};
+              end
+            end
+            if (bitcnt == 13'd4111) state <= E_DEND;
+            else bitcnt <= bitcnt + 13'd1;
+          end
+
+          E_DEND:  // end bit; CRC verdict; next block / CMD12 / done
+          if (rise_tick) begin
+            if (crc16 != 16'd0) begin
+              if (multi) begin
+                err_p  <= 1'b1;
+                cmdreg <= {2'b01, 6'd12, 32'd0, 7'd0, 1'b1};
+                crc7   <= 7'd0;
+                bitcnt <= 13'd0;
+                stopph <= 1'b1;
+                state  <= E_GAP;
+              end else state <= E_ERR;
+            end else if (blkleft > 13'd1) begin
+              blkleft <= blkleft - 13'd1;
+              toctr   <= 22'd0;
+              state   <= E_DWAIT;
+            end else if (multi) begin
+              cmdreg <= {2'b01, 6'd12, 32'd0, 7'd0, 1'b1};
+              crc7   <= 7'd0;
+              bitcnt <= 13'd0;
+              stopph <= 1'b1;
+              state  <= E_GAP;
+            end else state <= E_DONE;
+          end
+
+          E_DONE: begin
+            done  <= 1'b1;
+            state <= E_IDLE;
+          end
+
+          E_ERR: begin
+            err   <= 1'b1;
+            state <= E_IDLE;
+          end
+
+          default: state <= E_IDLE;
+        endcase
+      end
     end
-
-// --- ND-120 project modification (10/11-JUL-2026): export walked dir entries
-assign dir_entry_valid  = fready;
-assign dir_entry_len    = fnamelen;
-assign dir_entry_size   = fsize;
-assign dir_entry_date   = fdate;
-assign dir_entry_is_dir = fdir;
-// (mod 5) absolute first data sector of the found file (contiguity is the
-// caller's responsibility - see SD-FAT/README.md, in-place rewrite)
-assign found_file_first_sector = first_data_sector_no + cluster_size * file_cluster;
-generate genvar dk;
-    for (dk=0; dk<52; dk=dk+1) begin : flatten_dir_entry_name
-        assign dir_entry_name[8*dk +: 8] = fname[dk];
-    end
-endgenerate
-
-
-
-//----------------------------------------------------------------------------------------------------------------------
-// output file content
-//----------------------------------------------------------------------------------------------------------------------
-reg [31:0] fptr = 0;
-
-always @ (posedge clk or negedge rstn)
-    if(~rstn) begin
-        fptr <= 0;
-        {outen,outbyte} <= 0;
-    end else begin
-        if(rvalid && filesystem_state==READ_A_FILE && ~search_fat && fptr<file_size) begin
-            fptr <= fptr + 1;
-            {outen,outbyte} <= {1'b1,rdata};
-        end else
-            {outen,outbyte} <= 0;
-    end
-
+  end
 
 endmodule

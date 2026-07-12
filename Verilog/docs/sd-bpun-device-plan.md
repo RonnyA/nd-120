@@ -383,6 +383,13 @@ Verilog, pins only in each board's constraint file.
 
 ### 6.3 Recommended core (read-only milestone): WangXuan95 sd_file_reader
 
+> SUPERSEDED 12-JUL-2026: the vendored core served the read-only
+> milestone and was then REPLACED by a clean-room, project-MIT
+> `sd_file_reader.v` (written from the public SD/FAT specifications,
+> same interface, 13.5 MHz data phase, CMD18 streaming). The survey
+> below is kept as historical research; the licensing caveat no longer
+> applies to this repository.
+
 https://github.com/WangXuan95/FPGA-SDcard-Reader - two files,
 `RTL/sd_reader.v` (card init + CMD17 sector reads, SD-native 1-bit)
 and `RTL/sd_file_reader.v` (MBR/DBR parse, FAT16/FAT32 autodetect,
@@ -475,9 +482,7 @@ Verilog/ND-BUS-DEVICES/                  reusable ND-100 device-bus glue
 
 Verilog/SD-FAT/                          SD card + FAT filesystem access
     circuit/
-        sd_reader.v                      vendored WangXuan95 (GPL-3.0, keep header)
-        sd_file_reader.v                 vendored WangXuan95 (GPL-3.0, keep header)
-        LICENSE                          GPL-3.0 text for the vendored files
+        sd_file_reader.v                 project MIT (clean-room, 12-JUL-2026)
         SD_FILE_STREAM.v                 project wrapper (section 8.3)
         BYTE_FIFO_ASYNC.v                dual-clock byte FIFO (CDC boundary)
     sim/
@@ -947,10 +952,10 @@ Decide with the owner when M2 works.
 
 | # | Risk / question | Mitigation |
 |---|---|---|
-| 1 | GPL-3.0 vendored SD core vs repo licensing intent | Owner decision before vendoring; SPI variant is same license; fallback = write a clean-room 1-bit reader (well-understood protocol, ~2 weeks) |
-| 2 | Vendored core's FAT32 16-bit first-cluster bug | FAT16 card recipe; acceptance test A6 documents the FAT32 envelope |
+| 1 | ~~GPL-3.0 vendored SD core vs repo licensing intent~~ RESOLVED 12-JUL-2026: the fallback was executed - `sd_file_reader.v` is now a clean-room MIT 1-bit reader (public SD/FAT specs, identical interface, 13.5 MHz data phase); the vendored files are deleted | Registered gates (SD-FAT/sim + sd-fat-test/sim) prove equivalence |
+| 2 | ~~Reader FAT32 16-bit first-cluster bug~~ RESOLVED: full 32-bit first clusters (fat32big gate covers it) | FAT16 card recipe; acceptance test A6 documents the FAT32 envelope |
 | 3 | Root-dir-only, attribute 0x20-only lookup | Documented card recipe; check attribute in README |
-| 4 | `sd_file_reader` flow control mid-sector (UNVERIFIED) | Wrapper drives `sd_reader` sector-by-sector; 512-byte buffer in the consumer |
+| 4 | `sd_file_reader` flow control mid-sector (none: outen has no backpressure) | Consumers buffer (64 KB BRAM / mount FIFO); byte pacing is >= 16 clk at CLK_DIV=1 |
 | 5 | No card-detect line on Tang slot (UNVERIFIED) | Detect by init timeout; S1 = manual retry |
 | 6 | Basys3 Pmod pinout unverified | Verify against Digilent master XDC + Pmod MicroSD manual when the adapter arrives; SPI-mode variant of the core may suit the Pmod better |
 | 7 | Microcode binary-load path unproven in FF mode on hardware | Milestone 2 step 1 proves the device against the microcode in Verilator first; hardware divergence feeds the clock-domain workstream |

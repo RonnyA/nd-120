@@ -1,14 +1,41 @@
 # ND-120 Verilog TODO
 
-> Last updated: 11-JUL-2026
+> Last updated: 11-JUL-2026 (SD-FAT hardware-proven; nd_storage steps 1-3; card-killer fixed)
 
 ---
 
-## SD-FAT stack (Milestone 1 of docs/sd-bpun-device-plan.md) - built incl. WRITES, sims pass, NOT yet on hardware
+## SD-FAT stack - PROVEN ON HARDWARE 11-JUL-2026; nd_storage underway
 
-Reusable SD/FAT library in `SD-FAT/`: vendored WangXuan95 reader (marked
-mods: runtime file name, dir-entry name/size/date/is-dir outputs,
-first-sector output, split sdcmd tristate) + CLEAN-ROOM `sd_writer.v`
+Hardware status: menu LIST/DUMP/CHECK/COPY/WRBLK1/speed tests all ran on
+the Tang against a real FAT32 card. A cold-start create bug destroyed the
+card's boot sector (root cause: sd_fat_rewrite S_DIR_W wrote the patched
+dir sector to the raw input instead of the internal register = CMD24 to
+sector 0); FIXED and now guarded by a permanent safety net (see the
+WRITE-PATH SAFETY POLICY in SD-FAT/README.md): illegal-sector assertion
+in the card models, boot-region byte-identity, fsck gates, cold-start
+first-command plans, big-geometry FAT32 gate. Bitstream with the fix
+built 11-JUL 12:05.
+
+Speed: hardware measured 137 KB/s (single-sector CMD24 at 2.7 MHz;
+per-sector card program busy dominates). Plan + ladder in
+docs/sd-speed-plan.md; rungs a (13.5 MHz) + b (CMD18/CMD25 multi-block
+in the MIT writer, menu 6/7 on bursts) in implementation.
+
+nd_storage (Ronny's spec docs/nd-storage-interface-spec.md; design +
+validation + status in docs/nd-storage-design.md /
+nd-storage-spec-validation.md): steps 1-3 of 10 done, gates
+test-nds-cdc/-engine/-write registered and green. Next: mount/preload,
+contiguity check, Verilator system gate, tape + floppy adapters,
+SDRAM board glue (partition decision; see also
+docs/nd120-parity-refactor-order.md - the parity refactor work order
+that upgrades the partition to 4 MB CPU + 4 MB storage).
+
+## OLD STATUS (superseded 11-JUL): built incl. WRITES, sims pass
+
+Reusable SD/FAT library in `SD-FAT/`: `sd_file_reader.v` (clean-room
+project MIT since 12-JUL-2026; runtime file name, dir-entry
+name/size/date/is-dir outputs, first-sector output, split sdcmd
+tristate, 13.5 MHz data phase) + CLEAN-ROOM `sd_writer.v`
 (CMD24, MIT, own unit tb `SD-FAT/sim :: test-writer`). Tang test project
 `fpga/tang-nano-20k/sd-fat-test/`: UART menu (9600 8N1, `#` prompt):
 1=LIST (size + DD-MMM-YYYY date + name, <DIR> entries), 2=DUMP BOOT.BPUN
@@ -24,7 +51,8 @@ first_sector+4N (SD-FAT/README.md).
 Next actions:
 1. `make load` on the Tang, card from the README recipe -> acceptance
    A3-A6 + menu 3/4 on real silicon.
-2. OWNER DECISION: GPL-3.0 vendored files in the MIT repo (before commit).
+2. DONE 12-JUL-2026: the GPL vendoring question is moot - the reader was
+   replaced by a clean-room MIT implementation (whole SD-FAT library MIT).
 3. Milestone 2: ND_BUS_DEV_IF + TAPE_READER_400 against the Verilator bus
    ports, then `$` boot from card (plan sections 8 and 10); floppy device
    builds on the 1KW block map.
