@@ -70,9 +70,15 @@ round-trip, refresh cadence) - PASSES.
 (247 files) + `gowin_build.tcl`/`.ps1` (gw_sh on the Windows host). SDRAM pins
 threaded through `MEM_43`/`ND3202D` under `ifdef MAIN_RAM_SDRAM` (Verilator
 regression-checked; full Tang file set elaborates under Verilator lint).
-Remaining: run the first Gowin build (`.\gowin_build.ps1` on Windows), check
-fit + timing, flash, compare boot against `docs/boot-golden-spec.md` on the
-9600-baud console.
+**DUAL-TOOLCHAIN since 12-JUL-2026 (docs/tang20k-build-flows.md +
+worklog-2026-07-12-pack16-dual-toolchain.md):** the full CPU also builds
+with the OSS suite (`make [VARIANT=slow|crawl|full]` in
+fpga/tang-nano-20k/, PRIMARY flow; `make gowin` = backup). All three
+variant bitstreams built; nextpnr closes the FULL 27/54 MHz variant at
+clk_cpu Fmax 57.5 MHz (GowinSynthesis had measured 9.38 MHz - the number
+behind TANG_SLOW_BRINGUP). Remaining: `make load` on the board, compare
+boot against `docs/boot-golden-spec.md` on the 9600-baud console; if
+VARIANT=full boots on hardware, retire the slow-bringup default.
 
 ### CPU clock above 27 MHz (after 27 MHz validation)
 
