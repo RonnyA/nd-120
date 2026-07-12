@@ -38,7 +38,7 @@
 #                    verifies the RAM arrays, DMA-reads it back.
 #                    ~12 min (one runSim compile + run).
 
-.PHONY: test test-full test-tape test-dma-rtl test-floppy-boot test-floppy-stdin test-smd-boot
+.PHONY: test test-full test-tape test-dma-rtl test-floppy-boot test-floppy-stdin test-smd-boot test-instr-argument
 
 test:
 	@bash tests/run_all_tests.sh
@@ -55,6 +55,7 @@ test-full: test
 	@echo "==== system gate: Tang vtest (boot + deposit + readback) ===="
 	$(MAKE) -C fpga/tang-nano-20k/sim vtest
 	$(MAKE) test-floppy-stdin
+	$(MAKE) test-instr-argument
 	@echo ""
 	@echo "===================================================================="
 	@echo "  FULL SUITE PASSED (units + goldens + vtest)"
@@ -156,3 +157,11 @@ test-dma-rtl:
 	@echo "===================================================================="
 	@echo "  DMA RTL GATE PASSED (real arbiter granted, real RAM read+written)"
 	@echo "===================================================================="
+
+# Instruction-verify area gate: boots INSTRUCTION-B, types the area command,
+# records the golden-format trace and compares against the ND-110 reference
+# (tests/instruction-verify/README.md). Heavy (~15 min sim).
+test-instr-argument:
+	@echo "==== system gate: instruction-verify ARGUMENT vs ND-110 golden ===="
+	bash tests/instruction-verify/run_area_test.sh ARGUMENT | tee /tmp/nd120_iverify_argument_gate.log
+	grep -q "TB_RESULT: PASS" /tmp/nd120_iverify_argument_gate.log
