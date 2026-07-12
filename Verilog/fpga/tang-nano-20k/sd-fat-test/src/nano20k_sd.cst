@@ -10,13 +10,21 @@ IO_PORT "sys_clk" PULL_MODE=UP;
 IO_LOC "s1" 88;
 IO_PORT "s1" PULL_MODE=NONE;
 
+IO_LOC "s2" 87;
+IO_PORT "s2" PULL_MODE=NONE;
+
 // BL616 USB serial (shows up as a COM port on the host)
 IO_LOC "uart_txp" 69;
 IO_PORT "uart_txp" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
 IO_LOC "uart_rxp" 70;
 IO_PORT "uart_rxp" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 
-// microSD slot (SD-native 1-bit mode: CMD bidir, DAT0 read, DAT1-3 held high)
+// microSD slot (SD-native mode: CMD + DAT0-3 bidirectional; DAT1-3 carry
+// data in the writer engine's 4-bit phase and idle released). The board
+// has EXTERNAL 10K pull-ups on CMD and DAT0-3 (R53-R57), so all six pins
+// run PULL_MODE=NONE - the same proven configuration MiSTeryNano uses on
+// this slot. Released lines idle high through the external pulls, and
+// DAT3 is high at CMD0 (stays out of SPI mode).
 IO_LOC "sd_clk" 83;
 IO_PORT "sd_clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
 IO_LOC "sd_cmd" 82;

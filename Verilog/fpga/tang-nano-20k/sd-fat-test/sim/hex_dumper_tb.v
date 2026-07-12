@@ -19,7 +19,8 @@ module hex_dumper_tb;
   localparam CLK_HALF = 18.5;  // ~27 MHz
   localparam DELAY_FRAMES = 27;  // fast sim baud: 1 Mbaud at 27 MHz
   localparam ADDR_W = 16;
-  localparam LEN = 40;
+  localparam LEN = 43;
+  localparam LEADER = 3;  // zero bytes at the start, like a BPUN tape
 
   reg clk = 0;
   always #CLK_HALF clk = ~clk;
@@ -30,7 +31,8 @@ module hex_dumper_tb;
   reg [7:0] tmem[0:(1 << ADDR_W)-1];
   integer i;
   initial begin
-    for (i = 0; i < LEN; i = i + 1) tmem[i] = (i * 37 + 11) & 8'hFF;
+    for (i = 0; i < LEADER; i = i + 1) tmem[i] = 8'h00;
+    for (i = LEADER; i < LEN; i = i + 1) tmem[i] = (i * 37 + 11) & 8'hFF;
   end
 
   wire [ADDR_W-1:0] mem_addr;
@@ -107,7 +109,7 @@ module hex_dumper_tb;
     end
   endtask
 
-  task gput_str(input [8*24-1:0] s, input integer len);
+  task gput_str(input [8*32-1:0] s, input integer len);
     integer k;
     begin
       for (k = 0; k < len; k = k + 1) gput(s[8*(len-1-k)+:8]);
@@ -142,11 +144,11 @@ module hex_dumper_tb;
         gput(8'h0A);
       end
 
-      // octal words line
-      gput_str("OCTAL WORDS (FIRST 8): ", 23);
-      wn = (LEN >= 16) ? 8 : LEN / 2;
+      // octal words line: first 8 words AFTER the zero leader
+      gput_str("OCTAL WORDS AFTER LEADER: ", 26);
+      wn = ((LEN - LEADER) >= 16) ? 8 : (LEN - LEADER) / 2;
       for (w = 0; w < wn; w = w + 1) begin
-        word = {tmem[2*w], tmem[2*w+1]};
+        word = {tmem[LEADER+2*w], tmem[LEADER+2*w+1]};
         gput(8'h30 + {7'b0, word[15]});
         gput(8'h30 + {5'b0, word[14:12]});
         gput(8'h30 + {5'b0, word[11:9]});

@@ -16,7 +16,7 @@ module status_printer (
     input rst_n,
 
     input       start,  // 1-cycle pulse; only when busy=0
-    input [4:0] msg,    // MSG_* selector, latched at start
+    input [5:0] msg,    // MSG_* selector, latched at start
     output      busy,   // high until the whole message has left the UART
 
     // handshake to the shared uart_tx (top level muxes this with hex_dumper)
@@ -26,36 +26,46 @@ module status_printer (
 );
 
   // Message selectors (top level uses the same values)
-  localparam MSG_BANNER       = 5'd0;
-  localparam MSG_CARD_SDV1    = 5'd1;
-  localparam MSG_CARD_SDV2    = 5'd2;
-  localparam MSG_CARD_SDHC    = 5'd3;
-  localparam MSG_FS_FAT16     = 5'd4;
-  localparam MSG_FS_FAT32     = 5'd5;
-  localparam MSG_FS_UNKNOWN   = 5'd6;
-  localparam MSG_FILE_FOUND   = 5'd7;
-  localparam MSG_FILE_NOTFND  = 5'd8;
-  localparam MSG_ERR_CARD_TO  = 5'd9;
-  localparam MSG_ERR_SCAN_TO  = 5'd10;
-  localparam MSG_ERR_TRUNC    = 5'd11;
-  localparam MSG_MENU         = 5'd12;
-  localparam MSG_NOTIMPL      = 5'd13;
-  localparam MSG_SD_NOTCHK    = 5'd14;  // menu SD status line (14 + status code)
-  localparam MSG_SD_NOCARD    = 5'd15;
-  localparam MSG_SD_ERROR     = 5'd16;
-  localparam MSG_SD_OK        = 5'd17;
-  localparam MSG_COPYING      = 5'd18;
-  localparam MSG_COPY_DONE    = 5'd19;
-  localparam MSG_ERR_NOTGT    = 5'd20;
-  localparam MSG_ERR_SMALL    = 5'd21;
-  localparam MSG_ERR_WRITE    = 5'd22;
-  localparam MSG_BLK_WRITING  = 5'd23;
-  localparam MSG_BLK_DONE     = 5'd24;
-  localparam MSG_ERR_RANGE    = 5'd25;
-  localparam MSG_HELP1        = 5'd26;
-  localparam MSG_HELP2        = 5'd27;
-  localparam MSG_HELP3        = 5'd28;
-  localparam MSG_HELP4        = 5'd29;
+  localparam MSG_BANNER= 6'd0;
+  localparam MSG_CARD_SDV1= 6'd1;
+  localparam MSG_CARD_SDV2= 6'd2;
+  localparam MSG_CARD_SDHC= 6'd3;
+  localparam MSG_FS_FAT16= 6'd4;
+  localparam MSG_FS_FAT32= 6'd5;
+  localparam MSG_FS_UNKNOWN= 6'd6;
+  localparam MSG_FILE_FOUND= 6'd7;
+  localparam MSG_FILE_NOTFND= 6'd8;
+  localparam MSG_ERR_CARD_TO= 6'd9;
+  localparam MSG_ERR_SCAN_TO= 6'd10;
+  localparam MSG_ERR_TRUNC= 6'd11;
+  localparam MSG_MENU= 6'd12;
+  localparam MSG_NOTIMPL= 6'd13;
+  localparam MSG_SD_NOTCHK= 6'd14;  // menu SD status line (14 + status code)
+  localparam MSG_SD_NOCARD= 6'd15;
+  localparam MSG_SD_ERROR= 6'd16;
+  localparam MSG_SD_OK= 6'd17;
+  localparam MSG_COPYING= 6'd18;
+  localparam MSG_COPY_DONE= 6'd19;
+  localparam MSG_ERR_NOTGT= 6'd20;
+  localparam MSG_ERR_SMALL= 6'd21;
+  localparam MSG_ERR_WRITE= 6'd22;
+  localparam MSG_BLK_WRITING= 6'd23;
+  localparam MSG_BLK_DONE= 6'd24;
+  localparam MSG_ERR_RANGE= 6'd25;
+  localparam MSG_HELP1= 6'd26;
+  localparam MSG_HELP2= 6'd27;
+  localparam MSG_HELP3= 6'd28;
+  localparam MSG_HELP4= 6'd29;
+  localparam MSG_HELP5= 6'd30;
+  localparam MSG_HELP6= 6'd31;
+  localparam MSG_HELP7= 6'd32;
+  localparam MSG_ERR_IOSZ= 6'd33;
+  localparam MSG_IOW_RUN= 6'd34;
+  localparam MSG_IOR_RUN= 6'd35;
+  localparam MSG_SCANNING= 6'd36;
+  localparam MSG_ERR_READ= 6'd37;
+  localparam MSG_ERR_FATRD= 6'd38;
+  localparam MSG_ERR_FATCOR= 6'd39;
 
   // Fixed strings (longest is 55 chars; strchar window is 64)
   localparam S_BANNER      = "\015\012SD-FAT TEST 10-JUL-2026\015\012";
@@ -70,7 +80,7 @@ module status_printer (
   localparam S_ERR_CARD_TO = "ERROR: CARD INIT TIMEOUT\015\012";
   localparam S_ERR_SCAN_TO = "ERROR: FS SCAN TIMEOUT\015\012";
   localparam S_ERR_TRUNC   = "ERROR: FILE TRUNCATED TO BUFFER\015\012";
-  localparam S_MENU        = "\015\0121=LIST 2=DUMP 3=COPY 4=WRBLK1 H=HELP\015\012# ";
+  localparam S_MENU        = "\015\0121=LIST 2=DUMP 3=COPY 4=WRBLK1 5=CHECK 6=WS 7=RS H=HELP\015\012# ";
   localparam S_NOTIMPL     = "NOT IMPLEMENTED\015\012";
   localparam S_SD_NOTCHK   = "SD: NOT CHECKED\015\012";
   localparam S_SD_NOCARD   = "SD: NO CARD\015\012";
@@ -78,23 +88,33 @@ module status_printer (
   localparam S_SD_OK       = "SD: OK\015\012";
   localparam S_COPYING     = "COPYING BOOT.BPUN TO TEST.TXT\015\012";
   localparam S_COPY_DONE   = "COPY DONE\015\012";
-  localparam S_ERR_NOTGT   = "ERROR: TEST.TXT NOT ON CARD\015\012";
-  localparam S_ERR_SMALL   = "ERROR: TEST.TXT TOO SMALL\015\012";
+  localparam S_ERR_NOTGT   = "ERROR: TARGET FILE NOT ON CARD\015\012";
+  localparam S_ERR_SMALL   = "ERROR: NO CONTIGUOUS FREE SPACE\015\012";
   localparam S_ERR_WRITE   = "ERROR: SD WRITE FAILED\015\012";
   localparam S_BLK_WRITING = "WRITING PATTERN TO 1KW BLOCK 1\015\012";
   localparam S_BLK_DONE    = "BLOCK 1 UPDATED\015\012";
   localparam S_ERR_RANGE   = "ERROR: BLOCK OUT OF RANGE\015\012";
-  localparam S_HELP1       = "1 = LIST ROOT DIR (SIZE, DATE, NAME)\015\012";
+  localparam S_HELP1       = "1 = LIST ROOT DIR + CARD/VOL/FREE MB INFO LINE\015\012";
   localparam S_HELP2       = "2 = DUMP BOOT.BPUN AS HEX + OCTAL WORDS\015\012";
   localparam S_HELP3       = "3 = COPY BOOT.BPUN OVER TEST.TXT (IN PLACE)\015\012";
   localparam S_HELP4       = "4 = WRITE WORDS 0-1023 TO 1KW BLOCK 1 OF BOOT.BPUN\015\012";
+  localparam S_HELP5       = "5 = VALIDATE EVERY FILE CLUSTER CHAIN (FSCK-LITE)\015\012";
+  localparam S_HELP6       = "6 = WRITE SPEED: REWRITE IO.DAT, 1000 X 1KW BLOCKS\015\012";
+  localparam S_HELP7       = "7 = READ SPEED: READ IO.DAT BACK (RUN 6 FIRST)\015\012";
+  localparam S_ERR_IOSZ    = "ERROR: IO.DAT WRONG SIZE - RUN 6 FIRST\015\012";
+  localparam S_IOW_RUN     = "WRITING IO.DAT\015\012";
+  localparam S_IOR_RUN     = "READING IO.DAT\015\012";
+  localparam S_SCANNING    = "SCANNING FAT FOR FREE SPACE...\015\012";
+  localparam S_ERR_READ    = "ERROR: SD READ FAILED\015\012";
+  localparam S_ERR_FATRD   = "ERROR: FAT READ FAILED\015\012";
+  localparam S_ERR_FATCOR  = "ERROR: FAT CHAIN CORRUPT\015\012";
 
   // pick character idx (0-based) out of a string literal; 0 terminates
   function [7:0] strchar(input [8*64-1:0] s, input integer len, input integer i);
     strchar = (i < len) ? s[8*(len-1-i)+:8] : 8'h00;
   endfunction
 
-  reg [4:0] msg_r;
+  reg [5:0] msg_r;
   reg [5:0] idx;
 
   reg [7:0] ch;
@@ -130,6 +150,16 @@ module status_printer (
       MSG_HELP2:       ch = strchar({8'b0, S_HELP2}, $bits(S_HELP2)/8, idx);
       MSG_HELP3:       ch = strchar({8'b0, S_HELP3}, $bits(S_HELP3)/8, idx);
       MSG_HELP4:       ch = strchar({8'b0, S_HELP4}, $bits(S_HELP4)/8, idx);
+      MSG_HELP5:       ch = strchar({8'b0, S_HELP5}, $bits(S_HELP5)/8, idx);
+      MSG_HELP6:       ch = strchar({8'b0, S_HELP6}, $bits(S_HELP6)/8, idx);
+      MSG_HELP7:       ch = strchar({8'b0, S_HELP7}, $bits(S_HELP7)/8, idx);
+      MSG_ERR_IOSZ:    ch = strchar({8'b0, S_ERR_IOSZ}, $bits(S_ERR_IOSZ)/8, idx);
+      MSG_IOW_RUN:     ch = strchar({8'b0, S_IOW_RUN}, $bits(S_IOW_RUN)/8, idx);
+      MSG_IOR_RUN:     ch = strchar({8'b0, S_IOR_RUN}, $bits(S_IOR_RUN)/8, idx);
+      MSG_SCANNING:    ch = strchar({8'b0, S_SCANNING}, $bits(S_SCANNING)/8, idx);
+      MSG_ERR_READ:    ch = strchar({8'b0, S_ERR_READ}, $bits(S_ERR_READ)/8, idx);
+      MSG_ERR_FATRD:   ch = strchar({8'b0, S_ERR_FATRD}, $bits(S_ERR_FATRD)/8, idx);
+      MSG_ERR_FATCOR:  ch = strchar({8'b0, S_ERR_FATCOR}, $bits(S_ERR_FATCOR)/8, idx);
       default:         ch = 8'h00;
     endcase
   end

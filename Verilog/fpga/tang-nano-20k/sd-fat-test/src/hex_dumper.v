@@ -7,7 +7,9 @@
 **   000000: 8D 0A 30 30 36 30 30 30  30 8D 0A B1 36 B4 33 B1             **
 **   ...                       (16 bytes/line, extra space after byte 8,   **
 **                              a space after EVERY byte incl. the last)   **
-**   OCTAL WORDS (FIRST 8): 105015 030060 ...                              **
+**   OCTAL WORDS AFTER LEADER: 105015 030060 ...  (first 8 words from    **
+**                                the first NONZERO byte - BPUN tapes     **
+**                                begin with a zero leader)                **
 **   LENGTH: 000000002342 BYTES                                            **
 **   DONE                                                                  **
 **                                                                         **
@@ -41,7 +43,7 @@ module hex_dumper #(
     input            tx_busy
 );
 
-  localparam S_OCT  = "OCTAL WORDS (FIRST 8): ";
+  localparam S_OCT  = "OCTAL WORDS AFTER LEADER: ";
   localparam S_LEN  = "LENGTH: ";
   localparam S_BYT  = " BYTES\015\012";
   localparam S_DONE = "DONE\015\012";
@@ -53,7 +55,7 @@ module hex_dumper #(
   endfunction
 
   // pick character idx (0-based) out of a string literal; 0 terminates
-  function [7:0] strchar(input [8*24-1:0] s, input integer len, input integer i);
+  function [7:0] strchar(input [8*32-1:0] s, input integer len, input integer i);
     strchar = (i < len) ? s[8*(len-1-i)+:8] : 8'h00;
   endfunction
 
@@ -103,6 +105,9 @@ module hex_dumper #(
   localparam ST_STR        = 5'd24;  // generic string emitter (str_sel)
   localparam ST_SEND       = 5'd25;  // char handshake to uart_tx
   localparam ST_GAP        = 5'd26;  // one cycle for tx_busy to assert
+  localparam ST_OSCAN_SET  = 5'd27;  // find the first nonzero byte (BPUN
+  localparam ST_OSCAN_WAIT = 5'd28;  // tapes start with a zero leader -
+  localparam ST_OSCAN_CHK  = 5'd29;  // octal words start after it)
 
   // string selector for ST_STR
   localparam SEL_OCT  = 3'd0;
@@ -118,6 +123,7 @@ module hex_dumper #(
 
   reg [ADDR_W:0] len_r;    // latched length
   reg [ADDR_W:0] offs;     // current line offset
+  reg [ADDR_W:0] obase;    // octal section: first byte after the zero leader
   reg [4:0]      bidx;     // byte index within the line (0..15)
   reg [2:0]      digidx;   // hex/octal digit counter
   reg [15:0]     word;     // octal section: current 16-bit word
@@ -128,6 +134,7 @@ module hex_dumper #(
   reg [3:0]      decpow;   // current power-of-ten index (11..0)
 
   wire [23:0] offs24 = {{(24-ADDR_W-1){1'b0}}, offs};
+  wire [ADDR_W:0] orem = len_r - obase;  // bytes after the zero leader
 
   assign busy = (state != ST_IDLE);
 
@@ -156,6 +163,7 @@ module hex_dumper #(
       mem_addr  <= 0;
       len_r     <= 0;
       offs      <= 0;
+      obase     <= 0;
       bidx      <= 0;
       digidx    <= 0;
       word      <= 0;
@@ -177,11 +185,15 @@ module hex_dumper #(
 
         // ---- hex dump lines -------------------------------------------
         ST_LINE:
-        if (offs >= len_r) begin  // also handles length 0: straight to octal
-          str_sel <= SEL_OCT;
-          sidx    <= 0;
-          str_ret <= ST_OCT_HDR;
-          state   <= ST_STR;
+        if (offs >= len_r) begin
+          obase <= 0;
+          state <= (len_r == 0) ? ST_OCT_HDR : ST_OSCAN_SET;
+          if (len_r == 0) begin
+            str_sel <= SEL_OCT;
+            sidx    <= 0;
+            str_ret <= ST_OCT_HDR;
+            state   <= ST_STR;
+          end
         end else begin
           digidx <= 0;
           state  <= ST_ADDR_DIG;
@@ -241,10 +253,29 @@ module hex_dumper #(
           state     <= ST_SEND;
         end
 
+        // ---- find the end of the zero leader ----------------------------
+        ST_OSCAN_SET: begin
+          mem_addr <= obase[ADDR_W-1:0];
+          state    <= ST_OSCAN_WAIT;
+        end
+
+        ST_OSCAN_WAIT: state <= ST_OSCAN_CHK;
+
+        ST_OSCAN_CHK:
+        if (mem_data != 8'h00 || obase + 1 >= len_r) begin
+          str_sel <= SEL_OCT;
+          sidx    <= 0;
+          str_ret <= ST_OCT_HDR;
+          state   <= ST_STR;
+        end else begin
+          obase <= obase + 1;
+          state <= ST_OSCAN_SET;
+        end
+
         // ---- octal words section --------------------------------------
         ST_OCT_HDR: begin
-          // words available: min(8, len/2)
-          wcnt <= (len_r >= 16) ? 4'd8 : len_r[3:1];
+          // words available after the leader: min(8, remaining/2)
+          wcnt <= (orem >= 16) ? 4'd8 : orem[3:1];
           widx <= 0;
           state <= ST_OCT_SET_HI;
         end
@@ -256,7 +287,7 @@ module hex_dumper #(
           str_ret <= ST_LEN_HDR;
           state   <= ST_STR;
         end else begin
-          mem_addr <= {{(ADDR_W-5){1'b0}}, widx, 1'b0};
+          mem_addr <= obase[ADDR_W-1:0] + {{(ADDR_W-5){1'b0}}, widx, 1'b0};
           state    <= ST_OCT_WAIT_HI;
         end
 
@@ -264,7 +295,7 @@ module hex_dumper #(
 
         ST_OCT_LAT_HI: begin
           word[15:8] <= mem_data;
-          mem_addr   <= {{(ADDR_W-5){1'b0}}, widx, 1'b1};
+          mem_addr   <= obase[ADDR_W-1:0] + {{(ADDR_W-5){1'b0}}, widx, 1'b1};
           state      <= ST_OCT_WAIT_LO;
         end
 

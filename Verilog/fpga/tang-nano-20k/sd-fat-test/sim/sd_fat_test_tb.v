@@ -44,6 +44,9 @@ module sd_fat_test_tb;
 
   pullup (sd_cmd);
   pullup (sd_dat0);
+  pullup (sd_dat1);
+  pullup (sd_dat2);
+  pullup (sd_dat3);
 
   sd_fat_test_top #(
       .CLK_FREQ(27_000_000),
@@ -53,6 +56,7 @@ module sd_fat_test_tb;
   ) dut (
       .sys_clk (clk),
       .s1      (s1),
+      .s2      (1'b0),
       .uart_rxp(uart_rxp),
       .uart_txp(uart_txp),
       .sd_clk  (sd_clk),
@@ -70,8 +74,24 @@ module sd_fat_test_tb;
   ) card (
       .sd_clk (sd_clk),
       .sd_cmd (sd_cmd),
-      .sd_dat0(sd_dat0)
+      .sd_dat0(sd_dat0),
+      .sd_dat1(sd_dat1),
+      .sd_dat2(sd_dat2),
+      .sd_dat3(sd_dat3)
   );
+
+  // bus-contention assertion (always on): the card model and the DUT pad
+  // drivers must never overlap - the 12-JUL-2026 silicon failure was a
+  // synthesis-collapsed DAT1-3 tristate fighting the card in 4-bit reads
+  always @(posedge sd_clk) begin
+    if ((card.dat_oe && dut.s_dat0_pad_oe) ||
+        (card.datx_oe && (dut.s_dat1_pad_oe || dut.s_dat2_pad_oe ||
+                          dut.s_dat3_pad_oe)) ||
+        (card.cmd_drive && dut.cmd_oe)) begin
+      $display("TB_RESULT: FAIL bus contention: card and DUT driving the same SD line at %0t", $time);
+      $finish;
+    end
+  end
 
   // ------------------------------------------------------------- payload
   reg [7:0] payload[0:65535];
@@ -342,6 +362,49 @@ module sd_fat_test_tb;
     end
     if (find_str(t0, "BLOCK 1 UPDATED", 15) == -1) begin
       $display("FAIL: no BLOCK 1 UPDATED for key 4");
+      errors = errors + 1;
+    end
+
+    // 3b2. speed tests: 6 then 7 must both report a KB/S line
+    t0 = cap_len;
+    send_key("6");
+    guard = 0;
+    while (find_str(t0, "KB/S", 4) == -1 && guard < 400_000_000 &&
+           find_str(t0, "ERROR", 5) == -1) begin
+      @(posedge clk);
+      guard = guard + 1;
+    end
+    if (find_str(t0, "WRITE ", 6) == -1 || find_str(t0, "KB/S", 4) == -1) begin
+      $display("FAIL: no WRITE KB/S line for key 6");
+      errors = errors + 1;
+    end
+    t0 = cap_len;
+    send_key("7");
+    guard = 0;
+    while (find_str(t0, "KB/S", 4) == -1 && guard < 400_000_000 &&
+           find_str(t0, "ERROR", 5) == -1) begin
+      @(posedge clk);
+      guard = guard + 1;
+    end
+    if (find_str(t0, "READ ", 5) == -1 || find_str(t0, "KB/S", 4) == -1) begin
+      $display("FAIL: no READ KB/S line for key 7");
+      errors = errors + 1;
+    end
+
+    // 3c. CHECK: chain validation must complete without BAD lines
+    t0 = cap_len;
+    send_key("5");
+    guard = 0;
+    while (find_str(t0, "CHECK DONE", 10) == -1 && guard < 400_000_000) begin
+      @(posedge clk);
+      guard = guard + 1;
+    end
+    if (find_str(t0, "CHECK DONE", 10) == -1) begin
+      $display("FAIL: no CHECK DONE for key 5");
+      errors = errors + 1;
+    end
+    if (find_str(t0, " BAD", 4) != -1) begin
+      $display("FAIL: CHECK reported a BAD chain");
       errors = errors + 1;
     end
 

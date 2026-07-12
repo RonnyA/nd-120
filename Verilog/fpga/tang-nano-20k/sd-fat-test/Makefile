@@ -1,6 +1,7 @@
 # Tang Nano 20K SD-FAT test - OSS toolchain flow (yosys / nextpnr / apicula)
 #
-# Requires oss-cad-suite on the PATH:  source ~/oss-cad-suite/environment
+# oss-cad-suite is found automatically (default ~/oss-cad-suite, override
+# with OSS_CAD=/path). No manual `source .../environment` needed.
 #
 # Targets:
 #   make          build build/sd_fat_test_top.fs
@@ -10,6 +11,12 @@
 #
 # Card recipe and expected output: see README.md
 
+# auto-add the oss-cad-suite tools to PATH when present
+OSS_CAD ?= $(HOME)/oss-cad-suite
+ifneq ($(wildcard $(OSS_CAD)/bin),)
+export PATH := $(OSS_CAD)/bin:$(PATH)
+endif
+
 TOP     = sd_fat_test_top
 DEVICE  = GW2AR-LV18QN88C8/I7
 FAMILY  = GW2A-18C
@@ -18,10 +25,11 @@ BOARD   = tangnano20k
 # reusable SD/FAT library (board-independent, pins bound in the CST)
 SDFAT   = ../../../SD-FAT/circuit
 
-SRCS    = $(SDFAT)/sdcmd_ctrl.v \
-          $(SDFAT)/sd_reader.v \
-          $(SDFAT)/sd_file_reader.v \
+SRCS    = $(SDFAT)/sd_file_reader.v \
           $(SDFAT)/sd_writer.v \
+          $(SDFAT)/sd_fat_rewrite.v \
+          $(SDFAT)/sd_fat_check.v \
+          $(SDFAT)/sd_fat_freescan.v \
           src/uart_tx.v \
           src/uart_rx.v \
           src/status_printer.v \
@@ -31,13 +39,17 @@ SRCS    = $(SDFAT)/sdcmd_ctrl.v \
 
 BUILD   = build
 
+# compile-time feature selection (see ../../../SD-FAT/circuit/sd_fat_features.vh)
+# e.g. make SDFAT_FEATURES="-DSDFAT_NO_CHECK -DSDFAT_NO_SPEED"
+SDFAT_FEATURES ?=
+
 all: $(BUILD)/$(TOP).fs
 
 $(BUILD):
 	mkdir -p $(BUILD)
 
 $(BUILD)/$(TOP).json: $(SRCS) | $(BUILD)
-	yosys -l $(BUILD)/synth.log -p "read_verilog $(SRCS); synth_gowin -top $(TOP); write_json $@"
+	yosys -l $(BUILD)/synth.log -p "read_verilog -I$(SDFAT) $(SDFAT_FEATURES) $(SRCS); synth_gowin -top $(TOP); write_json $@"
 
 $(BUILD)/$(TOP)_pnr.json: $(BUILD)/$(TOP).json src/nano20k_sd.cst
 	nextpnr-himbaechel --json $(BUILD)/$(TOP).json \
@@ -57,6 +69,12 @@ load: $(BUILD)/$(TOP).fs
 flash: $(BUILD)/$(TOP).fs
 	openFPGALoader -b $(BOARD) -f $<
 
+# load the EXISTING bitstream as-is - NO rebuild, even if sources changed.
+# Use when the .fs on disk is known-good and you just want it on the board.
+load-only:
+	@test -f $(BUILD)/$(TOP).fs || { echo "no $(BUILD)/$(TOP).fs - run make first"; exit 1; }
+	openFPGALoader -b $(BOARD) $(BUILD)/$(TOP).fs
+
 sim:
 	$(MAKE) -C sim
 
@@ -67,9 +85,10 @@ console:
 help:
 	@echo "Tang Nano 20K SD-FAT test - targets:"
 	@echo ""
-	@echo "  Build / hardware (needs: source ~/oss-cad-suite/environment)"
+	@echo "  Build / hardware (oss-cad-suite auto-detected, OSS_CAD=/path to override)"
 	@echo "    make          build the bitstream (build/$(TOP).fs)"
-	@echo "    make load     volatile load into FPGA SRAM (fast iteration)"
+	@echo "    make load     volatile load into FPGA SRAM (rebuilds if sources changed)"
+	@echo "    make load-only  load the existing bitstream AS-IS, no rebuild"
 	@echo "    make flash    persistent: write the config flash"
 	@echo ""
 	@echo "  Simulation (run BEFORE hardware)"
