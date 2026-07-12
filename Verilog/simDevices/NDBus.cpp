@@ -337,6 +337,24 @@ void process_verilog_floppy(VND120_TOP *top)
 		vflp_file = fopen(img, "r+");
 		if (vflp_file == 0)
 			vflp_file = fopen(img, "r");
+
+		// Media format from the image size, exactly like nd100x
+		// deviceFloppyDMA.c READ FORMAT: 315392 bytes = 8-inch disk
+		// (512 B/sector, format word 0); >= 1261568 bytes = 5.25"
+		// 1.2MB (1024 B/sector + double sided + double density = 017
+		// octal). Default 0xF (the 1.2MB descriptor) if unknown.
+		top->FDISK_MEDIA_FMT = 0xF;
+		if (vflp_file != 0)
+		{
+			long sz;
+			fseek(vflp_file, 0, SEEK_END);
+			sz = ftell(vflp_file);
+			fseek(vflp_file, 0, SEEK_SET);
+			if (sz == 315392)
+				top->FDISK_MEDIA_FMT = 0x0;
+			else if (sz >= 1261568)
+				top->FDISK_MEDIA_FMT = 0xF;
+		}
 	}
 
 	if (vflp_done_ticks > 0)

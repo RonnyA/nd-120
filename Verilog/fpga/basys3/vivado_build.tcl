@@ -147,6 +147,17 @@ set _defs [get_property verilog_define [current_fileset]]
 if {[lsearch -exact $_defs FPGA_FF_MODE] < 0} {
     lappend _defs FPGA_FF_MODE
 }
+# SKIP_WCS_LOAD -- bitstream-preload the WCS from the 32 wcs_*.hex nibble images
+#                  and neutralise the LCS latch so the ~573K-cycle runtime PROM->WCS
+#                  load never runs (PAL_44403C.v). With this define the microcode
+#                  PROM (CPU_CS_PROM_19) is never read, so its ROM arrays are
+#                  compiled out (see CPU_CS_PROM_19.v) -- reclaims ~7850 LUTs.
+#                  The 32 wcs_*.hex files must be on the $readmemh search path
+#                  (vivado_build.ps1 copies them into the project dir). See
+#                  docs/skip-wcs-load.md.
+if {[lsearch -exact $_defs SKIP_WCS_LOAD] < 0} {
+    lappend _defs SKIP_WCS_LOAD
+}
 # Remove any stale BOARD_CLK_FREQ then set the correct one for clk_cpu.
 set _defs [lsearch -all -inline -not $_defs BOARD_CLK_FREQ=*]
 lappend _defs BOARD_CLK_FREQ=16666667
@@ -228,13 +239,19 @@ if {$bram_count < 8} {
     puts "WARNING: Only $bram_count BRAMs - microcode ROM may be empty!"
 }
 
-# Dump BRAM INIT values to verify microcode ROM is populated
-set rom_cells [get_cells -hierarchical -filter {PRIMITIVE_TYPE =~ BMEM.* && NAME =~ *rom_lo* || NAME =~ *rom_hi*}]
+# Dump BRAM INIT values to verify the microcode is populated.
+# With SKIP_WCS_LOAD the microcode PROM (rom_lo/rom_hi) is compiled out; the
+# microcode now lives in the 32 WCS IDT6168A chips, bitstream-preloaded from the
+# wcs_*.hex nibble images. So we check the WCS BRAMs (idt_memory_array), not the
+# old PROM. NOTE the parenthesised filter: without it, `&& || ` binds as
+# (BMEM && name) || name, matching non-BRAM cells too (old precedence bug).
+set rom_cells [get_cells -hierarchical -filter {PRIMITIVE_TYPE =~ BMEM.* && (NAME =~ *idt_memory_array* || NAME =~ *rom_lo* || NAME =~ *rom_hi*)}]
 set rom_report_file "${output_dir}/rom_init_check.txt"
 set fp [open $rom_report_file w]
-puts $fp "=== Microcode ROM BRAM INIT Check ==="
+puts $fp "=== Microcode BRAM INIT Check (WCS preload + any PROM) ==="
 puts $fp "Date: [clock format [clock seconds]]"
 puts $fp ""
+set _nonzero 0
 foreach cell $rom_cells {
     puts $fp "Cell: $cell"
     set init0 [get_property INIT_00 $cell]
@@ -243,14 +260,22 @@ foreach cell $rom_cells {
     puts $fp "  INIT_01: $init1"
     if {$init0 eq "256'h0000000000000000000000000000000000000000000000000000000000000000"
         || $init0 eq ""} {
-        puts $fp "  ** WARNING: INIT_00 is all zeros - ROM may be empty!"
+        puts $fp "  ** WARNING: INIT_00 is all zeros - this slice may be empty!"
     } else {
         puts $fp "  OK: INIT_00 has non-zero data"
+        incr _nonzero
     }
     puts $fp ""
 }
 close $fp
 puts "ROM init check: ${rom_report_file}"
+if {[llength $rom_cells] == 0} {
+    puts "  ROM: No microcode BRAMs found (idt_memory_array / rom_lo / rom_hi)."
+    puts "       Under SKIP_WCS_LOAD the WCS should map to BRAM and be preloaded"
+    puts "       from wcs_*.hex - check those files are on the \$readmemh path."
+} else {
+    puts "  ROM: [llength $rom_cells] microcode BRAM slice(s), $_nonzero with non-zero INIT."
+}
 
 ########################################################################
 # SET UP ILA DEBUG CORE

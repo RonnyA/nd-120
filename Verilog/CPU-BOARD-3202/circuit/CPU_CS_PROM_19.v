@@ -31,7 +31,20 @@ module CPU_CS_PROM_19 (
 
   // AM27256_45132L = Contains the LO 8 bits (0-7) AM27256_45133L = Contains the HI 8 bits (8-15)
 
+  // Drop the microcode ROM arrays entirely when they are never read:
+  //  - GOWIN         : Tang Nano 20K loads microcode via SKIP_WCS_LOAD; no ROM path.
+  //  - SKIP_WCS_LOAD : the WCS is bitstream-preloaded, so the PROM->WCS runtime load
+  //                    never runs and this PROM is dead. On Xilinx this reclaims the
+  //                    ~7850 LUTs / BRAM the ROM would otherwise consume.
+  // The Verilog preprocessor has no `||`, so fold both triggers into one helper.
 `ifdef GOWIN
+  `define ND_DROP_PROM_ROM
+`endif
+`ifdef SKIP_WCS_LOAD
+  `define ND_DROP_PROM_ROM
+`endif
+
+`ifdef ND_DROP_PROM_ROM
 
 `else
 
@@ -52,8 +65,8 @@ module CPU_CS_PROM_19 (
   // That's OK -- correctness over BRAM savings.
 
   always @(posedge sysclk) begin
-    `ifdef GOWIN
-      // Use SPI flash for Gowin FPGAs
+    `ifdef ND_DROP_PROM_ROM
+      // ROM arrays removed (GOWIN or SKIP_WCS_LOAD): the PROM is never read.
       regData <= 0;
     `else
       regData[7:0]  <= rom_lo[s_Address];

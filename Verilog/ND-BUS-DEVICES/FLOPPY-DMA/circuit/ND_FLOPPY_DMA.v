@@ -6,7 +6,8 @@
 ** registered by default there; SINTRAN detects it via status bit 15).   **
 ** Semantics reference: docs/nd100x-device-semantics.md.                 **
 **                                                                       **
-** IOX 1560+0 R  read data (test mode)                                   **
+** IOX 1560+0 R  read data (test mode; outside boot mode the C model    **
+**               returns the constant 0x0001)                            **
 **         +2 R  read status register 1:                                 **
 **               b1 intEnabled, b2 deviceActive, b3 readyForTransfer,    **
 **               b4 inclusiveOrBits, b5 deletedRecord, b6 retry,         **
@@ -16,7 +17,9 @@
 **               b3 testMode, b4 deviceClear, b5 enableStreamer,         **
 **               b8 executeCommand                                       **
 **         +4 R  read status register 2: b0-1 bytesPrSector,             **
-**               b2 doubleSided, b3 doubleDensity                        **
+**               b2 doubleSided, b3 doubleDensity, b8-9 selected unit    **
+**               (latched at command decode; READ FORMAT loads the       **
+**               media format from disk_media_fmt)                       **
 **         +5 W  load pointer HIGH (command block address bits 16-23)    **
 **         +7 W  load pointer LOW  (command block address bits 0-15)     **
 **                                                                       **
@@ -32,8 +35,15 @@
 ** Functions implemented (enough for boot + basic driver use):           **
 **   0x00 READ DATA:  disk -> ND memory by DMA                           **
 **   0x01 WRITE DATA: ND memory -> disk by DMA                           **
+**   0x22 READ FORMAT: media format (disk_media_fmt) into status 2       **
 **   0x38 IDENTIFY / others: no-op completion (status writeback only),   **
 **        mirroring the C model's TODO stubs                             **
+**                                                                       **
+** Completion mirrors the C model's ReadEnd: after the E_WBACK status    **
+** writeback (still busy/not-ready, like the C model's first write) and  **
+** the completion delay, a FINAL DMA write re-writes CB+6 with the       **
+** completed status (READY = 1, BUSY = 0) - a driver waiting on FSTA1    **
+** in memory sees the controller go ready.                               **
 **   BOOT MODE (control b2, used by '1560&'): the microcode mass boot    **
 **        is the BPUN loader pointed at the device - per byte it writes  **
 **        the control word (bit 2 = activate), polls status +2 for the   **
@@ -60,7 +70,7 @@
 ** Ident code 021 (octal), interrupt level 11; interrupt on completion   **
 ** when enableInterrupt is set; IDENT clears pending + enable.           **
 **                                                                       **
-** Last reviewed: 11-JUL-2026                                            **
+** Last reviewed: 12-JUL-2026                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -106,6 +116,12 @@ module ND_FLOPPY_DMA #(
     output wire [10:0] disk_wordcount, // words per sector
     input  wire        disk_done,
     input  wire        disk_err_in,
+    // Media format of the mounted image, derived from the image size by
+    // the backend exactly like deviceFloppyDMA.c ExecuteFloppyGo/READ
+    // FORMAT: {doubleDensity, doubleSided, bytesPerSector[1:0]}.
+    // Size 315392 (8-inch) -> 4'b0000; size >= 1261568 (5.25" 1.2MB)
+    // -> 4'b1111. Tie to 4'b1111 if unknown.
+    input  wire [3:0]  disk_media_fmt,
     input  wire [9:0]  dbuf_addr,
     input  wire [15:0] dbuf_wdata,
     input  wire        dbuf_we,
@@ -142,7 +158,12 @@ module ND_FLOPPY_DMA #(
   wire [23:0] s_mem_addr0 = {s_cb[2][7:0], s_cb[3]};
   wire [15:0] s_count     = s_cb[5];
 
-  wire [15:0] s_rsr2 = {12'd0, s_cb[0][11], s_cb[0][10], s_cb_fmt};
+  // STATUS 2 (format word): a real latched register, NOT an echo of the
+  // command-word format bits. Loaded at command decode with the selected
+  // unit in bits 8-9 (deviceFloppyDMA.c line 371); READ FORMAT (0x22)
+  // additionally loads the media format bits 0-3 from disk_media_fmt
+  // (deviceFloppyDMA.c lines 528-540).
+  reg [15:0] s_status2;
 
   // geometry: bytes per sector by format -> words per sector
   wire [10:0] s_words_per_sector = (s_cb_fmt == 2'd0) ? 11'd256 :
@@ -175,9 +196,10 @@ module ND_FLOPPY_DMA #(
     iox_rdata = 16'd0;
     if (iox_rd && s_addressed) begin
       case (s_reg)
-        3'd0: iox_rdata = s_boot_active ? s_buffer[s_bootptr] : 16'd0;
+        // +0 outside boot mode: the C model returns the constant 0x0001
+        3'd0: iox_rdata = s_boot_active ? s_buffer[s_bootptr] : 16'd1;
         3'd2: iox_rdata = s_rsr1;
-        3'd4: iox_rdata = s_rsr2;
+        3'd4: iox_rdata = s_status2;
         default: iox_rdata = 16'd0;
       endcase
     end
@@ -192,6 +214,8 @@ module ND_FLOPPY_DMA #(
   localparam E_DISK_WR  = 4'd5;   // backend: buffer -> image sector
   localparam E_WBACK    = 4'd6;   // DMA-write status words 6-11
   localparam E_DELAY    = 4'd7;   // completion delay -> interrupt
+  localparam E_FINAL    = 4'd8;   // re-write CB+6 with completed status
+                                  // (READY=1, BUSY=0) - C model ReadEnd
 
   reg [3:0]  s_eng;
   reg [2:0]  s_cb_idx;      // command-block word index during fetch
@@ -205,6 +229,7 @@ module ND_FLOPPY_DMA #(
   reg        s_autoload;    // a boot-chunk fetch is in flight
   reg        s_boot_active; // boot byte-server engaged
   reg [9:0]  s_bootptr;     // word index into the current boot chunk
+  reg        s_final_wb;    // command block present: E_DELAY -> E_FINAL
 
   assign disk_lsect     = s_lsect;
   assign disk_format    = s_cb_fmt;
@@ -249,6 +274,8 @@ module ND_FLOPPY_DMA #(
       s_autoload    <= 1'b0;
       s_boot_active <= 1'b0;
       s_bootptr     <= 10'd0;
+      s_final_wb    <= 1'b0;
+      s_status2     <= 16'd0;
       dma_req       <= 1'b0;
       dma_wr        <= 1'b0;
       dma_addr      <= 24'd0;
@@ -283,7 +310,9 @@ module ND_FLOPPY_DMA #(
               s_eng         <= E_IDLE;
               s_dma_wait    <= 1'b0;
             end
-            if (iox_wdata[2] && !iox_wdata[8] && s_eng == E_IDLE) begin
+            // autoload has PRIORITY over execute when both bits are set
+            // (C model if/else order in FloppyDMA_Write)
+            if (iox_wdata[2] && s_eng == E_IDLE) begin
               // BOOT MODE activate: arm the next boot-stream word
               if (!s_boot_active) begin
                 // first activate: fetch chunk 0 into the buffer
@@ -360,6 +389,15 @@ module ND_FLOPPY_DMA #(
             s_lsect      <= s_disk_addr;
             s_mem_ptr    <= s_mem_addr0;
             s_words_left <= s_count;
+            // status 2: selected unit in bits 8-9 (C model command setup);
+            // READ FORMAT loads the media format bits on top - the 8-inch
+            // format (all-zero descriptor) is a plain assignment in the C
+            // model, so the unit bits are cleared for that case too
+            if (s_func == 6'h22)
+              s_status2 <= (disk_media_fmt == 4'b0000) ? 16'd0 :
+                           ({6'd0, s_cb_drive, 8'd0} | {12'd0, disk_media_fmt});
+            else
+              s_status2 <= {6'd0, s_cb_drive, 8'd0};
             s_chunk_q    <= (s_count > {5'd0, s_words_per_sector}) ?
                             s_words_per_sector : s_count[10:0];
             s_sec_idx    <= 11'd0;
@@ -387,6 +425,7 @@ module ND_FLOPPY_DMA #(
               if (s_autoload) begin
                 s_autoload  <= 1'b0;
                 s_delay_cnt <= DELAY_TICKS;
+                s_final_wb  <= 1'b0;  // boot path: no command block
                 s_eng       <= E_DELAY;
               end else begin
                 s_eng    <= E_WBACK;
@@ -417,6 +456,7 @@ module ND_FLOPPY_DMA #(
               if (s_words_left == 16'd1) begin
                 if (s_autoload) begin
                   s_delay_cnt <= DELAY_TICKS;
+                  s_final_wb  <= 1'b0;  // boot path: no command block
                   s_eng       <= E_DELAY;
                 end else begin
                   s_eng    <= E_WBACK;
@@ -481,7 +521,7 @@ module ND_FLOPPY_DMA #(
           if (!s_dma_wait && !dma_busy) begin
             case (s_wb_idx)
               3'd0: dma_issue(1'b1, {s_ptr_hi, s_ptr_lo} + 24'd6, s_rsr1);
-              3'd1: dma_issue(1'b1, {s_ptr_hi, s_ptr_lo} + 24'd7, s_rsr2);
+              3'd1: dma_issue(1'b1, {s_ptr_hi, s_ptr_lo} + 24'd7, s_status2);
               3'd2: dma_issue(1'b1, {s_ptr_hi, s_ptr_lo} + 24'd8,
                               {8'd0, s_mem_ptr[23:16]});
               3'd3: dma_issue(1'b1, {s_ptr_hi, s_ptr_lo} + 24'd9,
@@ -494,19 +534,34 @@ module ND_FLOPPY_DMA #(
             s_dma_wait <= 1'b0;
             if (s_wb_idx == 3'd5) begin
               s_delay_cnt <= DELAY_TICKS;
+              s_final_wb  <= 1'b1;  // re-write CB+6 after the delay
               s_eng       <= E_DELAY;
             end
             s_wb_idx <= s_wb_idx + 3'd1;
           end
         end
 
-        // completion delay, then ready + interrupt condition
+        // completion delay, then ready + interrupt condition; a normal
+        // command (s_final_wb) goes on to re-write CB+6 with the
+        // completed status, like the C model's ReadEnd
         E_DELAY: begin
           if (s_delay_cnt != 16'd0) s_delay_cnt <= s_delay_cnt - 16'd1;
           else begin
             s_active <= 1'b0;
             s_rft    <= 1'b1;
-            s_eng    <= E_IDLE;
+            s_eng    <= s_final_wb ? E_FINAL : E_IDLE;
+          end
+        end
+
+        // final status re-write (C model ReadEnd): one DMA write of
+        // CB+6 with s_rsr1 now evaluating READY=1, BUSY=0, bit15=1
+        E_FINAL: begin
+          if (!s_dma_wait && !dma_busy) begin
+            dma_issue(1'b1, {s_ptr_hi, s_ptr_lo} + 24'd6, s_rsr1);
+          end else if (s_dma_wait && dma_ack) begin
+            s_dma_wait <= 1'b0;
+            s_final_wb <= 1'b0;
+            s_eng      <= E_IDLE;
           end
         end
 

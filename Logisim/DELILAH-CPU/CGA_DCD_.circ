@@ -676,6 +676,7 @@
     <comp lib="1" loc="(1090,3050)" name="NOR Gate">
       <a name="facing" val="south"/>
       <a name="inputs" val="4"/>
+      <a name="label" val="AN4"/>
       <a name="negate0" val="true"/>
       <a name="negate1" val="true"/>
       <a name="negate2" val="true"/>
@@ -697,6 +698,7 @@
     <comp lib="1" loc="(1240,2940)" name="NAND Gate">
       <a name="facing" val="south"/>
       <a name="inputs" val="4"/>
+      <a name="label" val="ND4"/>
     </comp>
     <comp lib="1" loc="(1240,3080)" name="NOR Gate"/>
     <comp lib="1" loc="(1260,1950)" name="NAND Gate">
@@ -1149,7 +1151,7 @@
     <comp lib="8" loc="(1700,1160)" name="Text">
       <a name="text" val="Page 67 - Sheet 3 of 10"/>
     </comp>
-    <comp lib="8" loc="(1732,2029)" name="Text">
+    <comp lib="8" loc="(1730,2025)" name="Text">
       <a name="text" val="COMM 23 and 24 -&gt; CJMP"/>
     </comp>
     <comp lib="8" loc="(1835,785)" name="Text">

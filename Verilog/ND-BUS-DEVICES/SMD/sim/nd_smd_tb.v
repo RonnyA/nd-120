@@ -120,10 +120,12 @@ module nd_smd_tb;
   reg        m_write;
   reg [3:0]  m_state = 0;
   reg [3:0]  m_cnt = 0;
+  reg        mem_stall = 1'b0;  // when set, the memory never grants the bus
+                                // -> the DMA master times out (dma_err)
 
   always @(posedge sysclk) begin
     case (m_state)
-      4'd0: if (m_breq_n == 1'b0) begin m_cnt <= 4'd2; m_state <= 4'd1; end
+      4'd0: if (!mem_stall && m_breq_n == 1'b0) begin m_cnt <= 4'd2; m_state <= 4'd1; end
       4'd1: begin
         if (m_cnt != 0) m_cnt <= m_cnt - 4'd1;
         else begin bmem_n <= 1'b0; grant_head_n <= 1'b0; m_state <= 4'd2; end
@@ -495,6 +497,35 @@ module nd_smd_tb;
       for (i = 0; i < 1024; i = i + 1) if (memory[16'h7000 + i] !== 16'd0) nzcount = nzcount + 1;
       check(nzcount > 0, "SMD far window compared only zeros (vacuous)");
     end
+
+    // 7: DMA BUS FAULT -> hardware error (SMD review C3: dma_err was
+    //    ignored, so a bus/memory timeout produced a silent "success").
+    //    Stall the memory model so the DMA master times out and asserts
+    //    dma_err; the controller must set the hardware-error status bits.
+    mem_stall = 1'b1;
+    iox_write(16'o001541, 16'h6000);   // core address
+    iox_write(16'o001543, 16'd0);      // block address I (CWR=0)
+    iox_write(16'o001545, 16'h8000);   // CWR=1
+    iox_write(16'o001543, 16'd0);      // block address II
+    iox_write(16'o001545, 16'h0000);   // CWR=0
+    iox_write(16'o001547, 16'd16);     // word count
+    iox_write(16'o001545, 16'h0004);   // ACTIVE, op M0 -> DMA into memory
+    wait_ready();
+    iox_read(16'o001544, rdata);       // status (CWR=0)
+    check((rdata & 16'h0080) !== 0, "DMA fault: hardware-error bit 7 not set");
+    check((rdata & 16'h0010) !== 0, "DMA fault: error-OR bit 4 not set");
+    mem_stall = 1'b0;
+    // recovery: a fresh command clears the error and transfers normally
+    iox_write(16'o001541, 16'h6800);
+    iox_write(16'o001543, 16'd0);
+    iox_write(16'o001545, 16'h8000);
+    iox_write(16'o001543, 16'd0);
+    iox_write(16'o001545, 16'h0000);
+    iox_write(16'o001547, 16'd8);
+    iox_write(16'o001545, 16'h0004);
+    wait_ready();
+    iox_read(16'o001544, rdata);
+    check((rdata & 16'h0080) === 0, "hardware-error bit stuck after recovery");
 
     if (errors == 0) $display("TB_RESULT: PASS");
     else begin

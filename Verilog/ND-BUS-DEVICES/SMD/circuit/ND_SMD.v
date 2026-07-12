@@ -393,21 +393,31 @@ module ND_SMD #(
                       s_buffer[s_sec_idx[9:0]]);
           end else if (s_dma_wait && dma_ack) begin
             s_dma_wait  <= 1'b0;
-            s_core_addr <= s_core_addr + 16'd1;
-            s_word_cnt  <= s_word_cnt - 16'd1;
-            if (s_sec_idx + 11'd1 >= s_chunk_q || s_word_cnt == 16'd1) begin
-              if (s_word_cnt == 16'd1) begin
-                s_delay_cnt <= DELAY_TICKS;
-                s_eng       <= E_DELAY;
-              end else begin
-                s_chunk_q <= ((s_word_cnt - 16'd1) > {5'd0, BUF_WORDS}) ?
-                             BUF_WORDS : s_word_cnt[10:0] - 11'd1;
-                disk_req  <= 1'b1;
-                disk_wr   <= 1'b0;
-                s_eng     <= E_DISK_RD;
-              end
+            if (dma_err) begin
+              // bus/memory fault during the DMA cycle (timeout / no memory
+              // contact) - abort as a hard error, like disk_err_in above.
+              // Mirrors ND_FLOPPY_DMA's dma_err handling; without this the
+              // transfer would "complete" with garbage (SMD review C3).
+              s_hw_err    <= 1'b1;
+              s_delay_cnt <= DELAY_TICKS;
+              s_eng       <= E_DELAY;
             end else begin
-              s_sec_idx <= s_sec_idx + 11'd1;
+              s_core_addr <= s_core_addr + 16'd1;
+              s_word_cnt  <= s_word_cnt - 16'd1;
+              if (s_sec_idx + 11'd1 >= s_chunk_q || s_word_cnt == 16'd1) begin
+                if (s_word_cnt == 16'd1) begin
+                  s_delay_cnt <= DELAY_TICKS;
+                  s_eng       <= E_DELAY;
+                end else begin
+                  s_chunk_q <= ((s_word_cnt - 16'd1) > {5'd0, BUF_WORDS}) ?
+                               BUF_WORDS : s_word_cnt[10:0] - 11'd1;
+                  disk_req  <= 1'b1;
+                  disk_wr   <= 1'b0;
+                  s_eng     <= E_DISK_RD;
+                end
+              end else begin
+                s_sec_idx <= s_sec_idx + 11'd1;
+              end
             end
           end
         end
@@ -417,15 +427,23 @@ module ND_SMD #(
             dma_issue(1'b0, {6'd0, s_core_hi, s_core_addr}, 16'd0);
           end else if (s_dma_wait && dma_ack) begin
             s_dma_wait <= 1'b0;
-            s_buffer[s_sec_idx[9:0]] <= dma_rdata;
-            s_core_addr <= s_core_addr + 16'd1;
-            s_word_cnt  <= s_word_cnt - 16'd1;
-            if (s_sec_idx + 11'd1 >= s_chunk_q || s_word_cnt == 16'd1) begin
-              disk_req <= 1'b1;
-              disk_wr  <= 1'b1;
-              s_eng    <= E_DISK_WR;
+            if (dma_err) begin
+              // bus/memory fault reading a word for the disk write - abort
+              // as a hard error (SMD review C3: dma_err was ignored here).
+              s_hw_err    <= 1'b1;
+              s_delay_cnt <= DELAY_TICKS;
+              s_eng       <= E_DELAY;
             end else begin
-              s_sec_idx <= s_sec_idx + 11'd1;
+              s_buffer[s_sec_idx[9:0]] <= dma_rdata;
+              s_core_addr <= s_core_addr + 16'd1;
+              s_word_cnt  <= s_word_cnt - 16'd1;
+              if (s_sec_idx + 11'd1 >= s_chunk_q || s_word_cnt == 16'd1) begin
+                disk_req <= 1'b1;
+                disk_wr  <= 1'b1;
+                s_eng    <= E_DISK_WR;
+              end else begin
+                s_sec_idx <= s_sec_idx + 11'd1;
+              end
             end
           end
         end

@@ -37,8 +37,15 @@
 #                    runs, DMA-writes a pattern into the REAL RAM,
 #                    verifies the RAM arrays, DMA-reads it back.
 #                    ~12 min (one runSim compile + run).
+#
+#   make test-dma-xcheck  heavy system gate: OPCOM<->DMA cross-check. The
+#                    CPU deposits known words via OPCOM (A/V<CR>) through
+#                    the normal store path; the Verilog ND_DMA_MASTER then
+#                    DMA-reads those same word addresses and asserts it
+#                    sees exactly what OPCOM wrote - DMA and CPU address
+#                    one and the same memory. ~12 min (one compile + run).
 
-.PHONY: test test-full test-tape test-dma-rtl test-floppy-boot test-floppy-stdin test-smd-boot test-instr-argument
+.PHONY: test test-full test-tape test-dma-rtl test-dma-xcheck test-floppy-boot test-floppy-stdin test-smd-boot test-instr
 
 test:
 	@bash tests/run_all_tests.sh
@@ -158,10 +165,36 @@ test-dma-rtl:
 	@echo "  DMA RTL GATE PASSED (real arbiter granted, real RAM read+written)"
 	@echo "===================================================================="
 
+test-dma-xcheck:
+	@echo "==== system gate: OPCOM deposit <-> DMA read cross-check ===="
+	$(MAKE) -C runSim clean >/dev/null
+	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_DMAXCHECK" >/dev/null
+	cd runSim && ND120_DMA_XCHECK=1 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_dma_xcheck.log 2>&1
+	grep -a "dmaxcheck" /tmp/nd120_dma_xcheck.log
+	grep -qa "\[dmaxcheck\] RESULT: PASS" /tmp/nd120_dma_xcheck.log
+	@echo ""
+	@echo "===================================================================="
+	@echo "  DMA XCHECK GATE PASSED (OPCOM-written word read back over DMA)"
+	@echo "===================================================================="
+
 # Instruction-verify area gate: boots INSTRUCTION-B, types the area command,
 # records the golden-format trace and compares against the ND-110 reference
-# (tests/instruction-verify/README.md). Heavy (~15 min sim).
-test-instr-argument:
-	@echo "==== system gate: instruction-verify ARGUMENT vs ND-110 golden ===="
-	bash tests/instruction-verify/run_area_test.sh ARGUMENT | tee /tmp/nd120_iverify_argument_gate.log
-	grep -q "TB_RESULT: PASS" /tmp/nd120_iverify_argument_gate.log
+# (tests/instruction-verify/README.md). Heavy (~15-25 min sim per area).
+#
+# Validated areas (golden trace delivered by the ND-110 side AND passing the
+# architectural gate). The ND-110 side has NOT yet delivered content for
+# 32-BITS-FLOATING, PRIVILEGED, ND100-24BIT, BCD, ND100-CX (0-macro golden
+# files) or RUN - add them here once their traces arrive and pass.
+INSTR_AREAS = ARGUMENT STACK BYTE-STRING MEMORY-REFERENCE SEQUENCE \
+              REGISTER-OPERATIONS BIT-OPERATIONS SHIFT-INSTRUCTIONS \
+              48-BITS-FLOATING
+
+# `make test-instr-<AREA>` runs one area; `make test-instr` runs the full
+# validated sweep (~1.5h). test-full runs only ARGUMENT as a smoke gate.
+test-instr-%:
+	@echo "==== system gate: instruction-verify $* vs ND-110 golden ===="
+	bash tests/instruction-verify/run_area_test.sh $* | tee /tmp/nd120_iverify_$*_gate.log
+	grep -q "TB_RESULT: PASS" /tmp/nd120_iverify_$*_gate.log
+
+test-instr: $(addprefix test-instr-,$(INSTR_AREAS))
+	@echo "==== all $(words $(INSTR_AREAS)) instruction-verify areas PASSED ===="

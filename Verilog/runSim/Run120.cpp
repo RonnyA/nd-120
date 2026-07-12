@@ -181,6 +181,12 @@ static unsigned g_last_csa = 0xFFFFu;
 // 054321, re-examine (readback must show 054321), then run from 0 and 20.
 #define SCRIPT_CMD "22/054321\r22/\r0!\r20!\r"
 #endif
+#ifdef SCRIPT_CMD_DMAXCHECK
+// -DSCRIPT_CMD_DMAXCHECK: type OPCOM deposits of known octal words into
+// low memory (word addresses 1000-1002), the CPU-path writer for the
+// ND120_DMA_XCHECK cross-check gate. Values MUST match g_dmax_val[].
+#define SCRIPT_CMD "1000/054321\r1001/012345\r1002/077777\r"
+#endif
 #ifndef SCRIPT_CMD
 #define SCRIPT_CMD "0!\r"               // override with -DSCRIPT_CMD='"20!\r"'
 #endif
@@ -333,6 +339,119 @@ static void dma_test_tick(VND120_TOP *top, int cnt,
 	g_dmat_reqhold = 2;
 	g_dmat_guard = 1;
 }
+
+// ND120_DMA_XCHECK=1 - OPCOM<->DMA cross-check gate. The independent
+// writer here is the CPU itself: the -DSCRIPT_CMD_DMAXCHECK script types
+// OPCOM deposits ("A/V<CR>") that write known octal words to low memory
+// through the normal CPU/MOPC store path. After the deposits settle, the
+// Verilog ND_DMA_MASTER DMA-reads those same word addresses over the bus
+// and asserts it sees exactly what OPCOM wrote - proving the DMA path and
+// the CPU path address one and the same memory. The table below MUST
+// match the deposits in SCRIPT_CMD_DMAXCHECK (both octal, word addresses).
+// Verdict line: "[dmaxcheck] RESULT: PASS/FAIL".
+static const unsigned g_dmax_addr[3] = { 001000u, 001001u, 001002u };
+static const unsigned short g_dmax_val[3] = { 0054321u, 0012345u, 0077777u };
+static const int g_dmax_count = 3;
+static int g_dmax_state = 0;     // 0=off 1=wait-deposits 2=read 3=done
+static int g_dmax_idx = 0, g_dmax_fail = 0;
+static int g_dmax_reqhold = 0;
+static long g_dmax_guard = 0;
+static long g_dmax_start_cnt = 0; // cnt when the deposits were seen drained
+
+static void dma_xcheck_tick(VND120_TOP *top, int cnt,
+                            unsigned char *ram_lo, unsigned char *ram_hi)
+{
+	if (g_dmax_state == 0 || g_dmax_state == 3)
+		return;
+	// Never drive the DMA client ports at the same time as dma_test_tick
+	// (the two gates are armed by different env vars, but be explicit).
+	if (g_dmat_state != 0)
+		return;
+
+	if (g_dmax_state == 1)
+	{
+		// wait until the OPCOM deposit script has been fully typed in and
+		// the last store has had time to land + MOPC to go quiet
+		if (g_boot_done_cnt != 0 && g_script[g_script_idx] == '\0')
+		{
+			if (g_dmax_start_cnt == 0)
+				g_dmax_start_cnt = cnt;
+			if (cnt > g_dmax_start_cnt + 3000000)
+			{
+				printf("[dmaxcheck] deposits settled, DMA-reading %d words\n",
+				       g_dmax_count);
+				g_dmax_state = 2;
+				g_dmax_idx = 0;
+			}
+		}
+		return;
+	}
+
+	if (g_dmax_reqhold > 0)
+	{
+		if (--g_dmax_reqhold == 0)
+			top->DMA_REQ = 0;
+		return;
+	}
+
+	if (top->DMA_ACK)
+	{
+		unsigned a = g_dmax_addr[g_dmax_idx];
+		unsigned short want = g_dmax_val[g_dmax_idx];
+		unsigned short ram = (unsigned short)((ram_hi[a] << 8) | ram_lo[a]);
+		if (top->DMA_ERR)
+		{
+			printf("[dmaxcheck] DMA error reading @%06o\n", a);
+			g_dmax_fail++;
+		}
+		// the deposited value must be in the RAM array (proves OPCOM/CPU
+		// wrote memory) AND the DMA read must return it (proves DMA read
+		// the same word)
+		if (ram != want)
+		{
+			printf("[dmaxcheck] OPCOM deposit missing @%06o: RAM %06o want %06o\n",
+			       a, ram, want);
+			g_dmax_fail++;
+		}
+		if (top->DMA_RDATA != want)
+		{
+			printf("[dmaxcheck] DMA readback mismatch @%06o got %06o want %06o (RAM %06o)\n",
+			       a, top->DMA_RDATA, want, ram);
+			g_dmax_fail++;
+		}
+		else
+		{
+			printf("[dmaxcheck] @%06o OPCOM=%06o DMA=%06o OK\n",
+			       a, want, top->DMA_RDATA);
+		}
+		g_dmax_idx++;
+		g_dmax_guard = 0;
+		if (g_dmax_idx >= g_dmax_count)
+		{
+			g_dmax_state = 3;
+			printf("[dmaxcheck] RESULT: %s\n", g_dmax_fail ? "FAIL" : "PASS");
+			return;
+		}
+		// fall through to issue the next read
+	}
+	else if (top->DMA_BUSY)
+	{
+		if (++g_dmax_guard > 8000000)
+		{
+			printf("[dmaxcheck] HANG waiting for the bus\n");
+			printf("[dmaxcheck] RESULT: FAIL\n");
+			g_dmax_state = 3;
+		}
+		return;
+	}
+
+	// issue the next DMA read of an OPCOM-deposited word
+	top->DMA_WR = 0;
+	top->DMA_ADDR = g_dmax_addr[g_dmax_idx];
+	top->DMA_REQ = 1;
+	g_dmax_reqhold = 2;
+	g_dmax_guard = 1;
+}
 #endif
 
 static int g_ldirv_last = 0;
@@ -433,6 +552,11 @@ int main(int argc, char **argv)
 			       g_dmat_count, g_dmat_addr0);
 		}
 	}
+	if (getenv("ND120_DMA_XCHECK") && g_dmat_state == 0)
+	{
+		g_dmax_state = 1;
+		printf("[dmaxcheck] armed: %d OPCOM-deposited words\n", g_dmax_count);
+	}
 #endif
 
 	int cnt = 0;
@@ -476,6 +600,7 @@ int main(int argc, char **argv)
 		proccess_bif_signal(top);
 #if defined(ND120_VERILOG_DEVICES) && defined(SCRIPT_INPUT)
 		dma_test_tick(top, cnt, &ram_low[0], &ram_high[0]);
+		dma_xcheck_tick(top, cnt, &ram_low[0], &ram_high[0]);
 #endif
 
 #ifdef TRACE_MIC
@@ -502,6 +627,29 @@ int main(int argc, char **argv)
 			printf("\n[instrumented] TRACE_MIC window done, stopping\n");
 			break;
 		}
+#endif
+
+#ifdef ND120_PROBE_MPY
+			// Probe MPY result/overflow microcode (DELILAH CSA 004425-004435,
+			// MPY2..MPY3). 004433 = "SET DYN. & STAT. OVF." (loads R4=60); 004434
+			// MPY3 ORs R4 into STS via STS,LO. Shows if the overflow branch is
+			// taken and the resulting STS. --public-flat-rw build.
+			{
+				static unsigned mpy_last_csa = 0xFFFFu;
+				unsigned csa = (unsigned)top->CSA_12_0;
+				if (csa != mpy_last_csa && csa >= 004425u && csa <= 004435u)
+				{
+					auto rp = top->rootp;
+					static int mpy_prints = 0;
+					printf("[mpy] cnt=%d csa=%04o STS=%06o R4=%06o R5=%06o\n",
+						cnt, csa,
+						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg8_sts_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg12_r4_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg13_r5_15_0);
+					if (++mpy_prints >= 600) { printf("[mpy] captured 600 samples, exiting\n"); fflush(stdout); exit(0); }
+				}
+				mpy_last_csa = csa;
+			}
 #endif
 
 #ifdef ND120_PROBE_MIC
@@ -635,6 +783,13 @@ int main(int argc, char **argv)
 			static int tv_init = 0, tv_prev_clk = 0, tv_have_prev = 0;
 			static int tv_armed = 0, tv_done = 0, tv_count = 0, tv_max = 400;
 			static long tv_skipped = 0;
+			// Arming: default = first macro instruction on a test level
+			// (PIL 1-9), matching the golden RUN trace. The 14 area traces
+			// arm on the first fetch from the test-code region (a PIL-0
+			// address); to match that window exactly, pass the golden's own
+			// first-section fetch address in ND120_TVERIFY_ARM_ADDR (octal)
+			// and we arm when that address is fetched.
+			static long tv_arm_addr = -1;
 			static unsigned tv_prev_csa = 0xFFFF;
 			// watched register order matches the golden trace header
 			static const char *tv_names[19] = {
@@ -649,6 +804,8 @@ int main(int argc, char **argv)
 				const char *of = getenv("ND120_TVERIFY_OUT");
 				tv_fp = fopen(of ? of : "trace_verify.md", "w");
 				if (const char *e = getenv("ND120_TVERIFY_MAX")) tv_max = atoi(e);
+				if (const char *e = getenv("ND120_TVERIFY_ARM_ADDR"))
+					tv_arm_addr = strtol(e, nullptr, 8);
 				if (const char *sf = getenv("ND120_TVERIFY_SYMS"))
 				{
 					FILE *f = fopen(sf, "r");
@@ -725,10 +882,25 @@ int main(int argc, char **argv)
 				{
 					if (tv_boundary)
 					{
-						if (!tv_armed && pil >= 1 && pil <= 9)
-							tv_armed = 1;
+						if (!tv_armed)
+						{
+							if (tv_arm_addr >= 0)
+							{
+								// arm at golden's first fetch address (P-1)
+								if (((v[6] - 1) & 0xFFFF) == (unsigned)tv_arm_addr)
+									tv_armed = 1;
+							}
+							else if (pil >= 1 && pil <= 9)
+								tv_armed = 1;
+						}
 						if (!tv_armed)
 							tv_skipped++;
+						else if (pil >= 10)
+						{
+							// interrupt/stress level (clock 13, dummy-output 14,
+							// IOX-error 12): golden logs only test levels
+							// (PIL 0-9), so don't count/log toward the 400 window.
+						}
 						else if (++tv_count > tv_max)
 						{
 							fprintf(tv_fp, "\n## Run summary\n\n- Preamble skipped: %ld\n- Detailed: %d (cap)\n",
@@ -736,6 +908,14 @@ int main(int argc, char **argv)
 							fclose(tv_fp);
 							tv_done = 1;
 							printf("\n[tverify] %d instructions traced, done\n", tv_max);
+							// Trace complete and flushed - exit instead of
+							// spinning to ND120_MAX_CNT (which just pegs a CPU
+							// core). Set ND120_TVERIFY_NOEXIT=1 to keep running.
+							if (!getenv("ND120_TVERIFY_NOEXIT"))
+							{
+								fflush(stdout);
+								exit(0);
+							}
 						}
 						else
 						{

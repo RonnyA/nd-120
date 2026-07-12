@@ -14,11 +14,14 @@
 ** model and ND memory through the DMA master, and DMA-writes status     **
 ** back into the block.                                                  **
 **                                                                       **
-** Covered: dualDensity status bit (always 1), multi-sector read         **
-** crossing a sector boundary with a partial tail (300 words), write     **
-** of two full sectors, status writeback words (RSR1 copy, last memory   **
-** address, remaining words = 0), IDENTIFY stub completion, level-11     **
-** interrupt on completion + IDENT code 021 + clear-on-IDENT - and a     **
+** Covered: dualDensity status bit (always 1), +0 constant read (1),     **
+** multi-sector read crossing a sector boundary with a partial tail      **
+** (300 words), write of two full sectors, status writeback words        **
+** (RSR1 copy, last memory address, remaining words = 0), FINAL status   **
+** re-write of CB+6 after completion (READY bit 3 = 1, BUSY bit 2 = 0 -  **
+** the C model's ReadEnd), READ FORMAT (0x22) returning the media        **
+** format word 017 in CB+7 and on IOX +4, IDENTIFY stub completion,      **
+** level-11 interrupt on completion + IDENT code 021 + clear - and a     **
 ** REAL floppy image phase: testdata/210523I01-XX-01D.img (an original   **
 ** ND distribution diskette, 1261568 bytes) is loaded into the disk      **
 ** model and read back through the controller at the start, middle and   **
@@ -26,7 +29,7 @@
 **                                                                       **
 ** Verdict line: TB_RESULT: PASS / TB_RESULT: FAIL                       **
 **                                                                       **
-** Last reviewed: 11-JUL-2026                                            **
+** Last reviewed: 12-JUL-2026                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -102,6 +105,8 @@ module nd_floppy_dma_tb;
   wire [1:0]  disk_format, disk_drive;
   wire [10:0] disk_wordcount;
   reg         disk_done = 0, disk_err_in = 0;
+  // media descriptor for the 1.2MB image: 1024 B/s + DS + DD = 017
+  reg  [3:0]  disk_media_fmt = 4'b1111;
   reg  [9:0]  dbuf_addr = 0;
   reg  [15:0] dbuf_wdata = 0;
   reg         dbuf_we = 0;
@@ -124,6 +129,7 @@ module nd_floppy_dma_tb;
       .disk_lsect(disk_lsect), .disk_format(disk_format),
       .disk_drive(disk_drive), .disk_wordcount(disk_wordcount),
       .disk_done(disk_done), .disk_err_in(disk_err_in),
+      .disk_media_fmt(disk_media_fmt),
       .dbuf_addr(dbuf_addr), .dbuf_wdata(dbuf_wdata), .dbuf_we(dbuf_we),
       .dbuf_rdata(dbuf_rdata)
   );
@@ -347,6 +353,9 @@ module nd_floppy_dma_tb;
       end
       check((st & 16'h0008) !== 0, "controller never became ready");
       check((st & 16'h8000) !== 0, "dualDensity bit not set in RSR1");
+      // let the FINAL CB+6 status re-write (E_FINAL, one DMA write
+      // after ready) land before the caller inspects the command block
+      repeat (100) @(negedge sysclk);
     end
   endtask
 
@@ -372,6 +381,9 @@ module nd_floppy_dma_tb;
     iox_read(16'o001562, rdata);
     check((rdata & 16'h8000) !== 0, "dualDensity not set at reset");
     check((rdata & 16'h0008) !== 0, "not ready at reset");
+    // +0 outside boot mode returns the C model's constant 1
+    iox_read(16'o001560, rdata);
+    check(rdata === 16'd1, "+0 read outside boot not 1");
 
     // 2: READ 300 words (multi-sector: 256 + 44) from lsect 2 to 0x4000
     memory[CB + 0] = 16'h0000;  // func 0 read, drive 0, format 0
@@ -391,6 +403,14 @@ module nd_floppy_dma_tb;
     check((memory[CB + 6] & 16'h8000) !== 0, "writeback RSR1 missing");
     check(memory[CB + 9] === (16'h4000 + 16'd300), "writeback last addr wrong");
     check(memory[CB + 11] === 16'd0, "writeback remaining not 0");
+    // FINAL status re-write (the "Never Ready" bug): after completion
+    // CB+6 must say READY (bit 3) = 1 and BUSY (bit 2) = 0, like the C
+    // model's ReadEnd re-write - a driver waiting on FSTA1 in memory
+    // must see the controller go ready
+    check((memory[CB + 6] & 16'h0008) !== 0, "CB+6 READY (bit3) not set");
+    check((memory[CB + 6] & 16'h0004) === 0, "CB+6 BUSY (bit2) still set");
+    // w7 = status 2: selected unit 0, no format bits for a plain read
+    check(memory[CB + 7] === 16'd0, "read CB+7 status2 not 0");
 
     // 3: WRITE 512 words (two sectors) from 0x5000 to lsect 10
     for (i = 0; i < 512; i = i + 1) memory[16'h5000 + i] = 16'hB000 + i[15:0];
@@ -413,6 +433,23 @@ module nd_floppy_dma_tb;
     memory[CB + 6] = 16'hDEAD;
     run_command(CB, 1'b0);
     check((memory[CB + 6] & 16'h8000) !== 0, "identify writeback missing");
+    check((memory[CB + 6] & 16'h0008) !== 0, "identify CB+6 READY not set");
+    check((memory[CB + 6] & 16'h0004) === 0, "identify CB+6 BUSY still set");
+
+    // 4b: READ FORMAT (0x22): the media format word - NOT an echo of
+    //     the command word - comes back in CB+7 and on IOX +4. The
+    //     1.2MB descriptor (disk_media_fmt = 4'b1111) reads 017 octal:
+    //     1024 bytes/sector + double sided + double density, unit 0.
+    memory[CB + 0] = 16'h0022;  // func 0x22 READ FORMAT, drive 0
+    memory[CB + 5] = 16'd0;
+    memory[CB + 6] = 16'hDEAD;
+    memory[CB + 7] = 16'hDEAD;
+    run_command(CB, 1'b0);
+    check(memory[CB + 7] === 16'o000017, "READ FORMAT CB+7 not 017");
+    check((memory[CB + 6] & 16'h0008) !== 0, "READ FORMAT CB+6 READY not set");
+    check((memory[CB + 6] & 16'h0004) === 0, "READ FORMAT CB+6 BUSY still set");
+    iox_read(16'o001564, rdata);
+    check(rdata === 16'o000017, "IOX +4 status2 not 017");
 
     // 5: interrupt + IDENT: run a command with interrupt enabled
     check(bint11_n === 1'b1, "BINT11 asserted before enable");

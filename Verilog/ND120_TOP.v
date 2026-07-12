@@ -122,6 +122,10 @@ module ND120_TOP
     output wire [10:0] FDISK_WORDCOUNT,
     input  wire        FDISK_DONE,
     input  wire        FDISK_ERR,
+    // media format from the image size (deviceFloppyDMA.c READ FORMAT):
+    // {doubleDensity, doubleSided, bytesPerSector[1:0]}; 4'b0000 = 8-inch
+    // 315392-byte image, 4'b1111 = 5.25" 1.2MB image (drive default)
+    input  wire [3:0]  FDISK_MEDIA_FMT,
     input  wire [9:0]  FDBUF_ADDR,
     input  wire [15:0] FDBUF_WDATA,
     input  wire        FDBUF_WE,
@@ -536,6 +540,7 @@ module ND120_TOP
       .disk_wordcount(FDISK_WORDCOUNT),
       .disk_done(FDISK_DONE),
       .disk_err_in(FDISK_ERR),
+      .disk_media_fmt(FDISK_MEDIA_FMT),
       .dbuf_addr(FDBUF_ADDR),
       .dbuf_wdata(FDBUF_WDATA),
       .dbuf_we(FDBUF_WE),
