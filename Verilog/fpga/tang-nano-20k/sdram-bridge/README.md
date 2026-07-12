@@ -64,3 +64,27 @@ the board).
 cd Verilog/fpga/tang-nano-20k/sdram-bridge/sim
 make test    # iverilog; prints TB_RESULT: PASS
 ```
+
+Registered gates (all in `Verilog/tests/run_all_tests.sh`): `test` (legacy
+18-bit words), `test-pack16` (`ND_SDRAM_PACK16`: two ND words per 32-bit
+location, DQM lane-masked writes, computed parity), `test-pack16-part`
+(reduced CPU partition via `CPU_PART_ROWS`), `test-storage-port`
+(`ND_STORAGE_PORT`: the nd_storage device mem port - see below).
+
+## Storage device port (`ND_STORAGE_PORT`, requires `ND_SDRAM_PACK16`)
+
+`MEM_RAM_49_SDRAM` optionally exposes the nd_storage mem port of
+`docs/nd-storage-design.md` section 5.2 (`stor_clk` domain:
+`mem_start`/`mem_we`/`mem_addr[19:0]`/`mem_wdata[31:0]`/`mem_rdata[31:0]`/
+`mem_busy`/`mem_done`, toggle-CDC into clk2x). Device ops move whole 32-bit
+locations through sdram18's `acc32`/`din32`/`dout32` path and are granted
+exactly like refresh - in the guaranteed-idle B_POST slot after each CPU
+access, in B_TAIL during absent-row accesses, and in B_IDLE behind the idle
+watchdog guard, always behind refresh priority - so CPU accesses always win
+and the measured protocol timing is untouched (the `test-storage-port` gate
+runs device traffic concurrently with the CPU replay soak and re-checks the
+N+4 deadline on every access). The grant issues half-word address
+`{1'b1, mem_addr, 1'b0}`: the forced leading 1 pins all device traffic to
+the upper (storage) half of the chip - it physically cannot reach CPU
+memory. Without the define the module is bit-identical to the plain pack16
+build.

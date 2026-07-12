@@ -12,7 +12,7 @@
 ** random soak against a mirror model, idle-watchdog refresh, refresh      **
 ** cadence (avg interval < 16 us).                                         **
 **                                                                         **
-** Compile modes (one source, three registry targets):                     **
+** Compile modes (one source, four registry targets):                      **
 **   (none)             legacy 18-bit word-per-location; stored parity     **
 **                      round-trips, including deliberately BAD parity     **
 **   -DND_SDRAM_PACK16  packed 16-bit mode: two ND words per location,     **
@@ -22,6 +22,14 @@
 **                      read (CORR_n always 1), bad-parity writes absorbed **
 **   + -DTB_PART_ROWS=n reduced CPU partition: rows >= n report ABSENT     **
 **                      (reads 0, writes dropped), like an empty bank      **
+**   + -DND_STORAGE_PORT  nd_storage device port (32-bit locations at      **
+**                      {1'b1, mem_addr}, granted only in the idle/tail    **
+**                      slots): directed read/write, CPU-alias isolation   **
+**                      (a device write can NEVER land in the CPU half),   **
+**                      device traffic CONCURRENT with the CPU soak - the  **
+**                      soak's late-N+4/N+5 sampling proves the measured   **
+**                      CPU protocol timing is untouched - plus idle-slot  **
+**                      service and a mirror-model integrity check         **
 **                                                                         **
 ** Prints "TB_RESULT: PASS" on success.                                    **
 **                                                                         **
@@ -60,6 +68,20 @@ module mem_ram_49_sdram_tb;
   wire [17:0] DD_OUT;
   wire CORR_n;
 
+`ifdef ND_STORAGE_PORT
+  // storage device port (stor_clk domain, deliberately NOT related to OSC
+  // to stress the toggle CDC; on Tang it is the same-crystal 27 MHz)
+  reg stor_clk = 0;
+  always #20.5 stor_clk = ~stor_clk;  // ~24.4 MHz
+  reg         stor_rst_n = 0;
+  reg         mem_start = 0;
+  reg         mem_we = 0;
+  reg  [19:0] mem_addr = 0;
+  reg  [31:0] mem_wdata = 0;
+  wire [31:0] mem_rdata;
+  wire        mem_busy, mem_done;
+`endif
+
   // SDRAM pins
   wire sd_clk, sd_cke, sd_cs_n, sd_cas_n, sd_ras_n, sd_wen_n;
   wire [31:0] sd_dq;
@@ -97,6 +119,18 @@ module mem_ram_49_sdram_tb;
       .O_sdram_addr(sd_addr),
       .O_sdram_ba(sd_ba),
       .O_sdram_dqm(sd_dqm)
+`ifdef ND_STORAGE_PORT
+      ,
+      .stor_clk(stor_clk),
+      .stor_rst_n(stor_rst_n),
+      .mem_start(mem_start),
+      .mem_we(mem_we),
+      .mem_addr(mem_addr),
+      .mem_wdata(mem_wdata),
+      .mem_rdata(mem_rdata),
+      .mem_busy(mem_busy),
+      .mem_done(mem_done)
+`endif
   );
 
   sdram_model u_model (
@@ -117,6 +151,14 @@ module mem_ram_49_sdram_tb;
   reg        written[0:2097151];
   integer wi;
   initial for (wi = 0; wi < 2097152; wi = wi + 1) written[wi] = 0;
+
+`ifdef ND_STORAGE_PORT
+  // ---- device-region mirror (1M x 32-bit locations, upper chip half) ----
+  reg [31:0] dev_mirror[0:1048575];
+  reg        dev_written[0:1048575];
+  integer dwi;
+  initial for (dwi = 0; dwi < 1048576; dwi = dwi + 1) dev_written[dwi] = 0;
+`endif
 
   // ---- refresh cadence monitor ----
   integer refresh_count = 0;
@@ -232,16 +274,88 @@ module mem_ram_49_sdram_tb;
     access(bank, row, col, 1'b1, 18'b0);
   endtask
 
+`ifdef ND_STORAGE_PORT
+  // ---- one device-port op (mem-port contract of nd-storage-design 5.2):
+  // pulse mem_start when not busy, wait for the mem_done pulse, verify reads
+  // against the device mirror. Runs concurrently with the CPU access task.
+  integer dev_ops_done = 0;
+  task dev_op(input dwe, input [19:0] da, input [31:0] dwd);
+    integer dwdg;
+    begin
+      @(posedge stor_clk);
+      while (mem_busy) @(posedge stor_clk);
+      mem_we    <= dwe;
+      mem_addr  <= da;
+      mem_wdata <= dwd;
+      mem_start <= 1'b1;
+      @(posedge stor_clk);
+      mem_start <= 1'b0;
+      dwdg = 0;
+      while (mem_done !== 1'b1 && dwdg < 100000) begin
+        @(posedge stor_clk);
+        dwdg = dwdg + 1;
+      end
+      check(dwdg < 100000, "device op timeout");
+      if (dwe) begin
+        dev_mirror[da]  = dwd;
+        dev_written[da] = 1;
+      end else if (dev_written[da]) begin
+        check(mem_rdata === dev_mirror[da], "device read data wrong");
+      end
+      dev_ops_done = dev_ops_done + 1;
+    end
+  endtask
+
+  // random device traffic: mostly a small hot region (so reads hit written
+  // locations), occasionally the top of the 1M-location device space
+  task dev_rand_op;
+    reg        rw;
+    reg [19:0] ra;
+    reg [31:0] rd32;
+    begin
+      if (({$random} % 10) == 0) ra = 20'hFFC00 + ({$random} % 1024);
+      else ra = {$random} % 4096;
+      rw   = ({$random} % 10) < 5;
+      rd32 = $random;
+      dev_op(rw, ra, rd32);
+    end
+  endtask
+`endif
+
   integer i;
   reg [1:0] rb;
   reg [9:0] rrow, rcol;
   reg [17:0] rdat;
   realtime soak_start;
 
+  // CPU-protocol random soak: every access re-checks the measured N+4 data
+  // deadline and N+5 hold inside the access task
+  task cpu_soak_run;
+    begin
+      for (i = 0; i < 2000; i = i + 1) begin
+        rb   = {$random} % 2;
+        rrow = $random;
+        rcol = $random;
+        rdat = $random;
+        if (({$random} % 10) < 4) wr18(rb, rrow, rcol, rdat);
+        else rd18(rb, rrow, rcol);
+      end
+    end
+  endtask
+
+`ifdef ND_STORAGE_PORT
+  reg soak_running = 0;
+  reg [19:0] dpa;
+  realtime idle_start;
+`endif
+
   initial begin
     // reset + SDRAM init (200 us at 54 MHz)
     repeat (10) @(posedge osc);
     sys_rst_n = 1;
+`ifdef ND_STORAGE_PORT
+    stor_rst_n = 1;
+`endif
     $display("TB: waiting for SDRAM init...");
     wait (dut.u_sdram.busy === 1'b0);
     repeat (4) @(posedge osc);
@@ -306,21 +420,67 @@ module mem_ram_49_sdram_tb;
     end
 `endif
 
+`ifdef ND_STORAGE_PORT
+    // ---- device port, directed: first/last location of the storage region ----
+    $display("TB: device port directed read/write...");
+    dev_op(1, 20'h00000, 32'h1122_3344);
+    dev_op(1, 20'hFFFFF, 32'hA5C3_961E);
+    dev_op(0, 20'h00000, 32'h0);
+    dev_op(0, 20'hFFFFF, 32'h0);
+
+    // ---- device/CPU isolation: the forced address MSB means device address
+    // D lands at location {1,D} (storage half) - it can NEVER reach the CPU
+    // alias {0,D} = ND half-words {D,0}/{D,1}. Write the CPU words that WOULD
+    // be clobbered if the partition were not enforced, "attempt" the device
+    // write on the same 20-bit address, and prove both sides intact.
+    $display("TB: device port CPU-partition isolation...");
+    dpa = 20'h00123;  // CPU alias {dpa,x} = bank 0, row 0, cols 0x246/0x247
+    wr18(0, 10'h000, 10'h246, 18'h12345);
+    wr18(0, 10'h000, 10'h247, 18'h0F0F0);
+    dev_op(1, dpa, 32'hCAFE_BABE);  // the below-partition write attempt
+    rd18(0, 10'h000, 10'h246);      // CPU words untouched (mirror-checked)
+    rd18(0, 10'h000, 10'h247);
+    dev_op(0, dpa, 32'h0);          // device sees ITS data in the storage half
+`endif
+
     // ---- random soak ----
+`ifdef ND_STORAGE_PORT
+    // device traffic runs CONCURRENTLY with the CPU protocol replay: every
+    // CPU access still checks the N+4 deadline / N+5 hold, proving device
+    // arbitration (B_POST/B_TAIL slots here - the idle watchdog guard never
+    // opens during the soak) does not shift CPU-observable timing
+    $display("TB: random soak (2000 accesses) + concurrent device traffic...");
+    soak_start   = $realtime;
+    soak_running = 1;
+    fork
+      begin
+        cpu_soak_run;
+        soak_running = 0;
+      end
+      begin
+        while (soak_running) dev_rand_op;
+      end
+    join
+    $display("TB: device ops completed so far: %0d", dev_ops_done);
+    check(dev_ops_done >= 100, "device port starved during CPU soak");
+`else
     $display("TB: random soak (2000 accesses)...");
     soak_start = $realtime;
-    for (i = 0; i < 2000; i = i + 1) begin
-      rb   = {$random} % 2;
-      rrow = $random;
-      rcol = $random;
-      rdat = $random;
-      if (({$random} % 10) < 4) wr18(rb, rrow, rcol, rdat);
-      else rd18(rb, rrow, rcol);
-    end
+    cpu_soak_run;
+`endif
 
     // ---- idle stretch: watchdog refresh must keep firing ----
+`ifdef ND_STORAGE_PORT
+    // device ops during the idle stretch exercise the B_IDLE grant slot
+    // (behind the idle_cnt watchdog guard); refresh keeps priority
+    $display("TB: idle stretch 200 us + idle-slot device ops...");
+    idle_start = $realtime;
+    repeat (100) dev_rand_op;
+    while (($realtime - idle_start) < 200_000) #1000;
+`else
     $display("TB: idle stretch 200 us...");
     #200_000;
+`endif
     rd18(0, 10'h000, 10'h000);   // still correct after idle
     rd18(1, 10'h3FF, 10'h3FF);
 
@@ -328,6 +488,11 @@ module mem_ram_49_sdram_tb;
     $display("TB: %0d refreshes, max gap %0t ns", refresh_count, max_refresh_gap);
     check(refresh_count > 50, "too few refreshes");
     check(max_refresh_gap < 20_000, "refresh gap exceeded 20 us");
+
+`ifdef ND_STORAGE_PORT
+    $display("TB: %0d device ops total", dev_ops_done);
+    check(dev_ops_done >= 200, "too few device ops completed");
+`endif
 
     if (errors == 0) $display("TB_RESULT: PASS");
     else $display("TB_RESULT: FAIL (%0d errors)", errors);

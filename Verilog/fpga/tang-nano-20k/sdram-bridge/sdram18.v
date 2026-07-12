@@ -20,6 +20,14 @@
 // the next read's data window on silicon). Reads fetch the full 32-bit
 // location and mux the addressed half onto dout.
 //
+// Full-location access (pack16 only, for the nd_storage device port of
+// MEM_RAM_49_SDRAM - nd-storage-design.md section 5.2): pulsing rd/wr with
+// acc32=1 moves the WHOLE 32-bit location addressed by addr[21:1]
+// (addr[0] is ignored): writes drive all four DQM lanes from din32, reads
+// return the location on dout32. Same 5-cycle state machine, no timing
+// change; with acc32 tied 0 the controller behaves bit-identically to the
+// plain pack16 build.
+//
 // Under default settings (max 66.7Mhz):
 // - Data read latency is 4 cycles, read/write take 5 cycles, no overlap.
 // - All ops use auto-precharge; caller must pulse `refresh` once per ~15 us.
@@ -66,6 +74,9 @@ module sdram18
     input      [21:0] addr,         // HALF-WORD address: [21:1] = location, [0] = half
     input      [15:0] din,          // data input, buffered at wr pulse time
     output     [15:0] dout,         // data output, valid at data_ready, then held
+    input             acc32,        // 1 at rd/wr pulse = full-location (32-bit) op
+    input      [31:0] din32,        // 32-bit write data (acc32 writes only)
+    output     [31:0] dout32,       // 32-bit read data, valid at data_ready, held
 `else
     input      [20:0] addr,         // WORD address, buffered at rd/wr pulse time
     input      [17:0] din,          // data input, buffered at wr pulse time
@@ -85,6 +96,8 @@ wire [DATA_WIDTH-1:0] dq_in = SDRAM_DQ;
 reg [15:0] dout_buf;
 wire [15:0] dq_in_half;
 assign dout = data_ready ? dq_in_half : dout_buf;
+reg [31:0] dout32_buf;
+assign dout32 = data_ready ? dq_in : dout32_buf;
 `else
 reg [17:0] dout_buf;
 assign dout = data_ready ? dq_in[17:0] : dout_buf;
@@ -120,6 +133,8 @@ reg [3:0] cycle;
 reg [15:0] din_buf;
 reg [21:0] addr_buf;    // {ba[1:0], row[10:0], col[7:0], half}
 assign dq_in_half = addr_buf[0] ? dq_in[31:16] : dq_in[15:0];
+reg        acc32_buf;   // full-location op, latched with addr_buf
+reg [31:0] din32_buf;
 `else
 reg [17:0] din_buf;
 reg [20:0] addr_buf;    // {ba[1:0], row[10:0], col[7:0]}
@@ -174,6 +189,10 @@ always @(posedge clk) begin
             state <= rd ? READ : WRITE;
             addr_buf <= addr;
             if (wr) din_buf <= din;
+`ifdef ND_SDRAM_PACK16
+            acc32_buf <= acc32;
+            if (wr) din32_buf <= din32;
+`endif
             cycle <= 4'd1;
             busy <= 1'b1;
         end else if (refresh) begin
@@ -201,6 +220,7 @@ always @(posedge clk) begin
             data_ready <= 1'b0;
 `ifdef ND_SDRAM_PACK16
             dout_buf <= dq_in_half;
+            dout32_buf <= dq_in;
 `else
             dout_buf <= dq_in[17:0];
 `endif
@@ -214,9 +234,11 @@ always @(posedge clk) begin
             SDRAM_A[10] <= 1'b1;        // auto precharge
 `ifdef ND_SDRAM_PACK16
             SDRAM_A[9:0] <= {2'b0, addr_buf[COL_WIDTH:1]};  // column (location)
-            // lane-masked single-access write: mask (1) the half NOT addressed
-            SDRAM_DQM <= addr_buf[0] ? 4'b0011 : 4'b1100;
-            dq_out <= {din_buf, din_buf};   // masked lanes ignore their copy
+            // lane-masked single-access write: mask (1) the half NOT addressed;
+            // full-location (acc32) writes drive all four lanes from din32
+            SDRAM_DQM <= acc32_buf ? 4'b0000 : (addr_buf[0] ? 4'b0011 : 4'b1100);
+            dq_out <= acc32_buf ? din32_buf
+                                : {din_buf, din_buf};  // masked lanes ignore their copy
 `else
             SDRAM_A[9:0] <= {2'b0, addr_buf[COL_WIDTH-1:0]};  // column
             SDRAM_DQM <= 4'b0000;       // write all lanes (18-bit word in 32)

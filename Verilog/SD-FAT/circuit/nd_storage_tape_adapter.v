@@ -1,0 +1,190 @@
+/****************************************************************************
+** nd_storage_tape_adapter - byte-stream adapter for the paper-tape reader **
+**                                                                         **
+** Design doc: Verilog/docs/nd-storage-design.md section 2.5; spec         **
+** Verilog/docs/nd-storage-interface-spec.md section 5 (acceptance test 4).**
+**                                                                         **
+** Sits between ND_TAPE_400's byte source port (byte_req / byte_valid /    **
+** byte_data / source_rewind - pin-for-pin, see                            **
+** Verilog/ND-BUS-DEVICES/TAPE-400/circuit/ND_TAPE_400.v) and ONE          **
+** nd_storage client port. Single clock: clk_cpu (the client-port domain   **
+** - the CDC lives inside nd_storage).                                     **
+**                                                                         **
+** Behavior:                                                               **
+**   - keeps a 32-bit byte position s_bptr; block = s_bptr[26:11],         **
+**     word-in-block = s_bptr[10:1]                                        **
+**   - on byte_req: position past EOF (s_bptr >= c_size_bytes) or file     **
+**     not open -> SILENCE (no byte_valid, no client-port traffic - the    **
+**     tape's ready-for-transfer flag stays low, the C-model EOF           **
+**     behavior). The zero-padded slot tail past EOF is never served.      **
+**   - block hit (s_have_blk and s_cur_blk matches) -> serve from the      **
+**     local 1024x16 block buffer: byte_valid pulse with                   **
+**     byte 2w = word[15:8], byte 2w+1 = word[7:0] (big-endian word        **
+**     order, design doc 4.1 normative)                                    **
+**   - miss -> one c_req block READ into the local buffer, then serve      **
+**   - source_rewind: position back to 0, buffer invalidated; an           **
+**     in-flight fetch is discarded on completion. NO card access - the    **
+**     image lives in SDRAM.                                               **
+**   - c_err on a fetch -> drop s_have_blk, stay silent (tape runout       **
+**     semantics); the next byte_req simply retries the fetch.             **
+**                                                                         **
+** READ-ONLY by construction: c_wr is tied 0 and c_buf_rdata is tied 0,    **
+** so the step-6 FLAG (never write the partial tail block of a file whose  **
+** size is not a 2048-byte multiple) holds trivially - there is no write   **
+** path at all.                                                            **
+**                                                                         **
+** open_start is a pulse from the board/boot logic; it is passed through   **
+** as a c_open_req pulse (nd_storage ignores it while the port is busy).   **
+**                                                                         **
+** Last reviewed: 11-JUL-2026                                              **
+** Ronny Hansen                                                            **
+*****************************************************************************/
+
+module nd_storage_tape_adapter (
+    input wire clk_cpu,
+    input wire rst_n,
+
+    // Byte source port (to ND_TAPE_400, pin-for-pin)
+    input  wire       byte_req,       // 1-cycle pulse: fetch next byte
+    output reg        byte_valid,     // 1-cycle pulse: byte_data is the byte
+    output reg  [7:0] byte_data,
+    input  wire       source_rewind,  // 1-cycle pulse: back to byte 0
+
+    // Board/boot control
+    input wire open_start,  // 1-cycle pulse: (re)open the file
+
+    // nd_storage client port (one client, clk_cpu domain)
+    output reg         c_open_req,
+    input  wire        c_open_ok,
+    input  wire        c_open_err,
+    input  wire [31:0] c_size_bytes,
+    output reg         c_req,
+    output wire        c_wr,          // tied 0: tape is READ-ONLY
+    output reg  [15:0] c_block,
+    input  wire        c_busy,
+    input  wire        c_done,        // 1-cycle pulse
+    input  wire        c_err,         // valid with c_done
+    input  wire [ 9:0] c_buf_addr,
+    input  wire [15:0] c_buf_wdata,
+    input  wire        c_buf_we,
+    output wire [15:0] c_buf_rdata    // never used (no write path)
+);
+
+  assign c_wr        = 1'b0;
+  assign c_buf_rdata = 16'd0;
+
+  // Local copy of the current block (BRAM, written by the client port
+  // during a fetch, read back one word at a time to serve bytes)
+  reg [15:0] s_blkbuf[0:1023];
+  always @(posedge clk_cpu) begin
+    if (c_buf_we) s_blkbuf[c_buf_addr] <= c_buf_wdata;
+  end
+
+  // FSM
+  localparam [2:0] A_IDLE = 3'd0,  // wait for a pending byte request
+                   A_WAIT = 3'd1,  // block fetch in flight (c_req issued)
+                   A_RD1  = 3'd2,  // registered buffer read
+                   A_RD2  = 3'd3;  // emit byte_valid
+
+  reg [ 2:0] s_state;
+  reg [31:0] s_bptr;      // byte position in the file
+  reg [15:0] s_cur_blk;   // block number held in s_blkbuf
+  reg        s_have_blk;  // s_blkbuf/s_cur_blk are valid
+  reg        s_pend;      // a byte_req is waiting to be answered
+  reg        s_drop;      // rewind hit an in-flight fetch: discard it
+  reg [15:0] s_word;      // registered buffer read data
+
+  always @(posedge clk_cpu or negedge rst_n) begin
+    if (!rst_n) begin
+      byte_valid <= 1'b0;
+      byte_data  <= 8'd0;
+      c_open_req <= 1'b0;
+      c_req      <= 1'b0;
+      c_block    <= 16'd0;
+      s_state    <= A_IDLE;
+      s_bptr     <= 32'd0;
+      s_cur_blk  <= 16'd0;
+      s_have_blk <= 1'b0;
+      s_pend     <= 1'b0;
+      s_drop     <= 1'b0;
+      s_word     <= 16'd0;
+    end else begin
+      byte_valid <= 1'b0;
+      c_req      <= 1'b0;
+      c_open_req <= 1'b0;
+
+      if (open_start) c_open_req <= 1'b1;
+
+      case (s_state)
+        A_IDLE: begin
+          if (s_pend) begin
+            if (!c_open_ok || (s_bptr >= c_size_bytes)) begin
+              // EOF / not open: SILENCE - drop the request, no traffic
+              s_pend <= 1'b0;
+            end else if (s_have_blk && (s_cur_blk == s_bptr[26:11])) begin
+              s_state <= A_RD1;
+            end else if (!c_busy) begin
+              c_req   <= 1'b1;
+              c_block <= s_bptr[26:11];
+              s_state <= A_WAIT;
+            end
+          end
+        end
+
+        A_WAIT: begin
+          if (c_done) begin
+            if (s_drop) begin
+              // rewound while the fetch was in flight: discard
+              s_drop     <= 1'b0;
+              s_have_blk <= 1'b0;
+              s_state    <= A_IDLE;
+            end else if (c_err) begin
+              // tape runout: silent, retryable on the next byte_req
+              s_have_blk <= 1'b0;
+              s_pend     <= 1'b0;
+              s_state    <= A_IDLE;
+            end else begin
+              s_have_blk <= 1'b1;
+              s_cur_blk  <= c_block;
+              s_state    <= A_RD1;
+            end
+          end
+        end
+
+        A_RD1: begin
+          s_word  <= s_blkbuf[s_bptr[10:1]];
+          s_state <= A_RD2;
+        end
+
+        A_RD2: begin
+          byte_valid <= 1'b1;
+          // big-endian word order: even byte = bits 15:8 (design doc 4.1)
+          byte_data  <= s_bptr[0] ? s_word[7:0] : s_word[15:8];
+          s_bptr     <= s_bptr + 32'd1;
+          s_pend     <= 1'b0;
+          s_state    <= A_IDLE;
+        end
+
+        default: s_state <= A_IDLE;
+      endcase
+
+      // latch a byte request (after the case so a same-cycle serve
+      // completion cannot eat a new request)
+      if (byte_req) s_pend <= 1'b1;
+
+      // rewind wins over everything in this cycle
+      if (source_rewind) begin
+        s_bptr     <= 32'd0;
+        s_have_blk <= 1'b0;
+        s_pend     <= 1'b0;
+        byte_valid <= 1'b0;
+        if ((s_state == A_WAIT) && !c_done) begin
+          s_drop <= 1'b1;  // stay in A_WAIT until the fetch completes
+        end else begin
+          s_state <= A_IDLE;
+        end
+      end
+    end
+  end
+
+endmodule

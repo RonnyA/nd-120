@@ -30,12 +30,26 @@
 ** The CPU/storage split is parameterized at ND-row granularity          **
 ** (CPU_PART_ROWS) so a future build can trade CPU memory for cache.     **
 **                                                                       **
+** ND_STORAGE_PORT (requires ND_SDRAM_PACK16): adds the nd_storage       **
+** device port of nd-storage-design.md section 5.2 - a start/busy/done   **
+** mem port (stor_clk domain, toggle-CDC into clk2x) that reads/writes   **
+** whole 32-bit locations at {1'b1, mem_addr[19:0]}, i.e. ONLY the       **
+** upper-half storage region: the leading 1 is forced HERE, so device    **
+** traffic physically cannot reach the CPU's half of the chip. Device    **
+** ops are granted exactly like refresh - in the guaranteed-idle B_POST  **
+** slot after each CPU access (>= 14 free fast cycles before the         **
+** earliest next access under the N+11 rule; one op is 5 cycles), in     **
+** B_TAIL (absent-row accesses leave the controller idle), and in        **
+** B_IDLE behind the same idle_cnt watchdog guard - so CPU accesses      **
+** always win and the measured protocol timing is untouched. Without     **
+** the define the module is bit-identical to the plain pack16 build.     **
+**                                                                       **
 ** Refresh is generated HERE (the board logic's refresh chain is         **
 ** inactive - see docs/nd120-dram-memory.md section 4): primarily in     **
 ** the guaranteed-idle slot right after each access, plus an idle        **
 ** watchdog when the CPU leaves memory alone.                            **
 **                                                                       **
-** Last reviewed: 8-JUL-2026                                             **
+** Last reviewed: 11-JUL-2026                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -96,6 +110,23 @@ module MEM_RAM_49_SDRAM #(
 
     // Raw bridge state for the on-chip analyzer (see TRACE-CAPTURE-GUIDE.md)
     output [ 7:0] DBG_BRIDGE
+
+`ifdef ND_SDRAM_PACK16
+`ifdef ND_STORAGE_PORT
+    // nd_storage device port (nd-storage-design.md section 5.2): 32-bit
+    // locations at {1'b1, mem_addr} = the upper-half storage region only
+    ,
+    input  wire        stor_clk,    // = clk_stor (nd_storage's memory side)
+    input  wire        stor_rst_n,
+    input  wire        mem_start,   // 1-cycle pulse, only legal when mem_busy=0
+    input  wire        mem_we,
+    input  wire [19:0] mem_addr,    // 32-bit-location address inside the region
+    input  wire [31:0] mem_wdata,
+    output reg  [31:0] mem_rdata,   // valid at mem_done, then held
+    output wire        mem_busy,
+    output reg         mem_done     // 1-cycle pulse
+`endif
+`endif
 );
 
   /*******************************************************************************
@@ -137,6 +168,25 @@ module MEM_RAM_49_SDRAM #(
   reg  [21:0] s_addr;  // half-word address: [21]=0 pins the CPU to the low half
   reg  [15:0] s_din;
   wire [15:0] s_dout;
+`ifdef ND_STORAGE_PORT
+  // stor_clk-side request latches (stable from mem_start until mem_done, so
+  // safe to sample in clk2x once the synced start toggle arrives)
+  reg         s_dev_busy;
+  reg         s_dev_we_l;
+  reg  [19:0] s_dev_addr_l;
+  reg  [31:0] s_dev_wdata_l;
+  reg         s_dev_start_tgl;               // stor_clk -> clk2x request
+  reg         s_dev_dn_s0, s_dev_dn_s1, s_dev_dn_d;  // done toggle, synced back
+  // clk2x-side device engine
+  reg         s_dev_st_s0, s_dev_st_s1, s_dev_st_d;  // start toggle, synced in
+  reg         s_dev_pend;   // request waiting for a grant slot
+  reg         s_dev_run;    // op issued to the controller
+  reg         s_dev_seen;   // controller busy observed since issue
+  reg         s_dev_done_tgl;                // clk2x -> stor_clk completion
+  reg  [31:0] s_dev_rdata;  // dout32 captured at data_ready, held for stor_clk
+  reg         s_acc32;      // full-location command qualifier to sdram18
+  wire [31:0] s_dout32;
+`endif
 `else
   reg  [20:0] s_addr;
   reg  [17:0] s_din;
@@ -156,6 +206,17 @@ module MEM_RAM_49_SDRAM #(
       .addr(s_addr),
       .din(s_din),
       .dout(s_dout),
+`ifdef ND_SDRAM_PACK16
+`ifdef ND_STORAGE_PORT
+      .acc32(s_acc32),
+      .din32(s_dev_wdata_l),
+      .dout32(s_dout32),
+`else
+      .acc32(1'b0),
+      .din32(32'b0),
+      .dout32(),
+`endif
+`endif
       .data_ready(s_data_ready),
       .busy(s_busy),
 
@@ -247,6 +308,19 @@ module MEM_RAM_49_SDRAM #(
       dd_hold   <= 0;
       have_data <= 0;
       idle_cnt  <= 0;
+`ifdef ND_SDRAM_PACK16
+`ifdef ND_STORAGE_PORT
+      s_dev_st_s0    <= 0;
+      s_dev_st_s1    <= 0;
+      s_dev_st_d     <= 0;
+      s_dev_pend     <= 0;
+      s_dev_run      <= 0;
+      s_dev_seen     <= 0;
+      s_dev_done_tgl <= 0;
+      s_dev_rdata    <= 0;
+      s_acc32        <= 0;
+`endif
+`endif
     end else begin
       // command outputs are 1-cycle pulses
       s_rd      <= 0;
@@ -254,6 +328,31 @@ module MEM_RAM_49_SDRAM #(
       s_refresh <= 0;
 
       ras_d <= RAS;
+
+`ifdef ND_SDRAM_PACK16
+`ifdef ND_STORAGE_PORT
+      // ---- storage device port, clk2x side ----
+      s_acc32 <= 0;  // command qualifier: pulses with s_rd/s_wr on device grants
+
+      // request toggle from stor_clk: 2-flop sync + edge detect -> pending
+      s_dev_st_s0 <= s_dev_start_tgl;
+      s_dev_st_s1 <= s_dev_st_s0;
+      s_dev_st_d  <= s_dev_st_s1;
+      if (s_dev_st_s1 != s_dev_st_d) s_dev_pend <= 1;
+
+      // completion tracking: after a grant, watch the controller go busy and
+      // idle again; reads capture the full location at data_ready
+      if (s_dev_run) begin
+        if (s_busy) s_dev_seen <= 1;
+        if (s_data_ready) s_dev_rdata <= s_dout32;
+        if (s_dev_seen && !s_busy) begin
+          s_dev_run      <= 0;
+          s_dev_seen     <= 0;
+          s_dev_done_tgl <= ~s_dev_done_tgl;  // rdata already stable
+        end
+      end
+`endif
+`endif
 
       // OR-accumulate the write data across the access (see comment above):
       // reset at RAS rise, collect every clk2x edge while the access runs
@@ -283,6 +382,22 @@ module MEM_RAM_49_SDRAM #(
             // idle watchdog refresh (only when no access is starting)
             idle_cnt <= (idle_cnt == IDLE_REFRESH_AFTER) ? idle_cnt : idle_cnt + 1;
             if (refresh_needed && !s_busy && idle_cnt == IDLE_REFRESH_AFTER) s_refresh <= 1;
+`ifdef ND_SDRAM_PACK16
+`ifdef ND_STORAGE_PORT
+            // device grant, behind the same long-idle guard as the watchdog
+            // refresh (refresh keeps priority; !s_refresh blocks the cycle a
+            // refresh pulse is still being presented to the controller)
+            else if (s_dev_pend && !s_dev_run && !s_busy && !s_refresh
+                     && idle_cnt == IDLE_REFRESH_AFTER) begin
+              s_addr     <= {1'b1, s_dev_addr_l, 1'b0};  // storage half ONLY
+              s_acc32    <= 1;
+              if (s_dev_we_l) s_wr <= 1;
+              else s_rd <= 1;
+              s_dev_pend <= 0;
+              s_dev_run  <= 1;
+            end
+`endif
+`endif
           end
         end
 
@@ -348,6 +463,21 @@ module MEM_RAM_49_SDRAM #(
           // guaranteed-idle slot: earliest next access is N+11 (22 fast cycles
           // after RAS rise), a refresh takes 5 - always safe here
           if (refresh_needed) s_refresh <= 1;
+`ifdef ND_SDRAM_PACK16
+`ifdef ND_STORAGE_PORT
+          // device grant in the same guaranteed-idle slot, refresh first: a
+          // 5-cycle device op issued here is long done before the earliest
+          // next access reaches B_COL (fast 2N+25)
+          else if (s_dev_pend && !s_dev_run && !s_refresh) begin
+            s_addr     <= {1'b1, s_dev_addr_l, 1'b0};  // storage half ONLY
+            s_acc32    <= 1;
+            if (s_dev_we_l) s_wr <= 1;
+            else s_rd <= 1;
+            s_dev_pend <= 0;
+            s_dev_run  <= 1;
+          end
+`endif
+`endif
           bstate <= B_IDLE;
         end
 
@@ -357,6 +487,20 @@ module MEM_RAM_49_SDRAM #(
           // accesses (each resetting the idle watchdog, none reaching the
           // B_POST slot) starves refresh past its 15 us cadence
           if (refresh_needed && !s_busy) s_refresh <= 1;
+`ifdef ND_SDRAM_PACK16
+`ifdef ND_STORAGE_PORT
+          // device grant in the absent-row free slot, refresh first: the op
+          // ends at latest 6 cycles after RAS fall, the next access is >= 12
+          else if (s_dev_pend && !s_dev_run && !s_busy && !s_refresh) begin
+            s_addr     <= {1'b1, s_dev_addr_l, 1'b0};  // storage half ONLY
+            s_acc32    <= 1;
+            if (s_dev_we_l) s_wr <= 1;
+            else s_rd <= 1;
+            s_dev_pend <= 0;
+            s_dev_run  <= 1;
+          end
+`endif
+`endif
           if (!RAS) bstate <= B_IDLE;
         end
 
@@ -377,5 +521,53 @@ module MEM_RAM_49_SDRAM #(
   // remaining four (unpopulated banks) contribute constant 1 - same formula as
   // SIP1M9's PRD_n, same AND-combination as MEM_RAM_49's CORR_n.
   assign CORR_n = read_active ? ((^dd_hold[8:0]) & (^dd_hold[17:9])) : 1'b1;
+
+`ifdef ND_SDRAM_PACK16
+`ifdef ND_STORAGE_PORT
+  /*******************************************************************************
+   ** Storage device port, stor_clk side (nd-storage-design.md section 5.2)     **
+   **                                                                            **
+   ** start/we/addr/wdata are latched at the mem_start pulse and held stable    **
+   ** for the whole op, so the clk2x side samples them as quasi-static data     **
+   ** behind the 2-flop start-toggle sync. Completion comes back as a done      **
+   ** toggle; s_dev_rdata was captured at data_ready, several clk2x cycles      **
+   ** before the toggle flip, so it is stable when sampled here.                **
+   *******************************************************************************/
+  assign mem_busy = s_dev_busy;
+
+  always @(posedge stor_clk) begin
+    if (!stor_rst_n) begin
+      s_dev_busy      <= 0;
+      s_dev_we_l      <= 0;
+      s_dev_addr_l    <= 0;
+      s_dev_wdata_l   <= 0;
+      s_dev_start_tgl <= 0;
+      s_dev_dn_s0     <= 0;
+      s_dev_dn_s1     <= 0;
+      s_dev_dn_d      <= 0;
+      mem_rdata       <= 0;
+      mem_done        <= 0;
+    end else begin
+      mem_done    <= 0;
+      s_dev_dn_s0 <= s_dev_done_tgl;
+      s_dev_dn_s1 <= s_dev_dn_s0;
+      s_dev_dn_d  <= s_dev_dn_s1;
+      if (!s_dev_busy) begin
+        if (mem_start) begin
+          s_dev_we_l      <= mem_we;
+          s_dev_addr_l    <= mem_addr;
+          s_dev_wdata_l   <= mem_wdata;
+          s_dev_busy      <= 1;
+          s_dev_start_tgl <= ~s_dev_start_tgl;
+        end
+      end else if (s_dev_dn_s1 != s_dev_dn_d) begin
+        mem_rdata  <= s_dev_rdata;
+        mem_done   <= 1;
+        s_dev_busy <= 0;
+      end
+    end
+  end
+`endif
+`endif
 
 endmodule
