@@ -677,12 +677,20 @@ int main(int argc, char **argv)
 			}
 			else
 #endif
-			// Try to read a character from stdin - but paced: hold input
-			// until the boot '#' prompt has appeared, then at most one
-			// char per g_stdin_gap so MOPC (no RX FIFO) keeps up. Queued
-			// chars are not lost, only delayed. See the note at the top.
+			// Read a character from stdin. A real keyboard (tty) is read
+			// DIRECTLY - human typing is naturally paced and any delay
+			// here just feels like lag. Pacing applies only to PIPED
+			// input (tests, paste-style feeds), where all chars arrive
+			// at once and would hit MOPC (no RX FIFO) back-to-back:
+			// hold until the boot '#' prompt, one char per g_stdin_gap,
+			// and after '&' hold until the booted program's greeting.
 			{
-				if (g_boot_done_cnt != 0 && cnt > g_boot_done_cnt + 1000000 &&
+				static const int s_stdin_tty = isatty(STDIN_FILENO);
+				if (s_stdin_tty)
+				{
+					n = read(STDIN_FILENO, &ch, 1);
+				}
+				else if (g_boot_done_cnt != 0 && cnt > g_boot_done_cnt + 1000000 &&
 				    cnt > g_stdin_next_cnt &&
 				    (g_lf_at_mark < 0 || (g_rx_lf_total > g_lf_at_mark && cnt > g_last_rx_cnt + g_amp_settle)))
 				{
