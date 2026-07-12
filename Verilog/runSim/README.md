@@ -71,15 +71,24 @@ line and gone quiet (`ND120_AMP_SETTLE`). Without that pacing MOPC
 old "interactive boot hangs" bug. `ND120_MAX_CNT` bounds a run for
 tests.
 
-## Known sim-only limitation: console input to a BOOTED program
+## Console input to a BOOTED program: WORKS (12-JUL-2026)
 
-After `&` the loaded program owns the console, but in Verilator it
-never sees typed input: the program polls the terminal controller
-via IOX and the zero-delay sim's IDB read race returns 0 for the
-data-available status (the same artifact that blocks the `300$`
-serial loader). Proven 11-JUL-2026: the 210523I01 diskette boots,
-runs, prints its greeting and completes all its floppy I/O, the
-harness delivers `help` cleanly afterwards, and the program never
-receives a char. On FPGA hardware this path works. Interactive
-validation of booted programs is therefore a HARDWARE test until
-the IDB read race is modeled/fixed.
+After `&` or `$` the loaded program owns the console, and typed
+input DOES reach it in Verilator: proven end-to-end by booting
+INSTRUCTION-B (`400$`) and typing `help` at its `>` prompt - the
+program echoes and answers. A per-clock probe (ND120_PROBE_IOR)
+confirmed the IOR-word read, the UART status read and the UART
+data read all deliver real values through the full strobe window.
+
+The earlier "booted programs never see input" conclusion (11-JUL)
+was wrong on two counts: the measurements predated the UART
+sysclk-edge fix and the P2 clock-enable conversions, and the TPE
+test case was not deaf - it was stuck retrying the floppy because
+of the ND_FLOPPY_DMA status-writeback bug (see
+ND-BUS-DEVICES/FLOPPY-DMA/NEVER-READY-ANALYSIS.md), since fixed.
+The piped-stdin injector holds input until the booted program's
+greeting after both `&` and `$` commands (a human types only after
+the prompt appears; the harness now does the same).
+
+The `300$` serial-loader path remains unvalidated in sim (abandoned;
+its TRM dispatch additionally needs the o500 microcode patch).

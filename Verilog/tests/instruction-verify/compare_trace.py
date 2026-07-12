@@ -137,7 +137,11 @@ def main():
     ap.add_argument("--micro-warnings", action="store_true",
                     help="also report per-symbol micro profile differences")
     ap.add_argument("--max-warn", type=int, default=20)
+    ap.add_argument("--ignore-regs", default="",
+                    help="comma-separated registers to exclude from the macro "
+                         "compare (whitelisted known-benign init differences)")
     args = ap.parse_args()
+    ignore = set(x for x in args.ignore_regs.split(",") if x)
 
     norm = load_symmap(args.map)
     g_all = parse_trace(args.golden)
@@ -179,8 +183,15 @@ def main():
                 return 1
         # 2) full register state at fetch
         for r in REG_NAMES:
+            if r in ignore:
+                continue
             gv = (ge["regs"] or {}).get(r)
             ov = (oe["regs"] or {}).get(r)
+            if r == "LC" and gv and ov:
+                # golden logs LC as a 16-bit count; our hardware loop counter
+                # is 6 bits ({ICD5,ICD4,LC3:0}) - compare the low 6 bits
+                gv = "%02o" % (int(gv, 8) & 0o77)
+                ov = "%02o" % (int(ov, 8) & 0o77)
             if gv != ov:
                 print("\nFIRST DIVERGENCE at macro #%d, address %s, opcode %s"
                       % (i + 1, ge["addr"], ge["opcode"]))

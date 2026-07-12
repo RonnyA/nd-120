@@ -53,6 +53,44 @@ Map results: 1067 symbols in both microcodes (612 same address, 455 moved),
 10 genuinely ND-110-only, 14 genuinely ND-120-only (extra console/BAUDS/TRM
 words). Every symbol seen so far in the golden traces exists on our side.
 
+## Running a compare (the recipe)
+
+```bash
+# 1. build runSim with the trace emitter (FF mode, public signals)
+cd Verilog/runSim
+make compile USE_LATCHES=0 EXTRA_VDEFINES="--public-flat-rw" EXTRA_CFLAGS="-DND120_TRACE_VERIFY"
+
+# 2. boot INSTRUCTION-B from tape 400 and type the area command
+printf '400$ARGUMENT\r' | ND120_MAX_CNT=400000000 ND120_STDIN_GAP=300000 \
+  ND120_TVERIFY_OUT=trace_nd120_argument.md \
+  ND120_TVERIFY_SYMS=../tests/instruction-verify/nd120_symbols.tsv \
+  ./obj_dir/VND120_TOP > run.log 2>&1
+
+# 3. compare against the golden trace
+python3 ../tests/instruction-verify/compare_trace.py \
+  /mnt/e/Dev/Repos/Ronny/ND110Compile/traces/TRACE-INSTRUCTION-VERIFY-ARGUMENT.md \
+  trace_nd120_argument.md
+```
+
+The emitter arms at the first PIL 1-9 macro instruction and records 400
+(ND120_TVERIFY_MAX overrides). Boundary detection uses the CPU FETCH strobe -
+the ND-120 CONTINUE dispatch does NOT visit csa 0 (only level switches do),
+so csa-0 boundaries miss most instructions.
+
+## Calibration findings (ARGUMENT, 12-JUL-2026)
+
+- Macro register state matches golden essentially exactly from instruction #1
+  (A D T X B L P STS R1-R6 Q F GPR all equal on the armed snapshot).
+- KNOWN BENIGN: `R7` differs (golden constant 020003, never written in-window;
+  ours 000003/000001) - preamble/init difference (their emulator loads BPUN +
+  `0!`; we boot via real 400$ MOPC path which uses R7 scratch). Whitelist with
+  `--ignore-regs R7` until the ND-110 side confirms.
+- LC: golden logs a 16-bit software count, our hardware loop counter is 6 bits
+  ({ICD5,ICD4,LC3:0}) - comparator masks LC to 6 bits.
+- Our F (ALU output latch) lands one micro-row later than golden's
+  combinational F - micro rows are advisory (per-symbol warnings), macro rows
+  are the gate.
+
 ## Execution plan
 
 1. **Prerequisite: fix the Verilator IDB read race** - the AREA command is
