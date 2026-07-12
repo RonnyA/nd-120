@@ -20,6 +20,8 @@
 #include <random>
 #include <ctime>
 #include <string>
+#include <map>
+#include <cstring>
 
 #include <unistd.h>
 #include <termios.h>
@@ -561,6 +563,217 @@ int main(int argc, char **argv)
 						}
 		}
 #endif
+
+#ifdef ND120_PROBE_IOR
+		// IDB read race probe: watch the I/O-read strobes (EIOR_n / CEUART_n)
+		// and what the CPU-side bus actually carries while they are active.
+		// BAUDS (boot, reads IDBS,IOR) is the always-available repro.
+		{
+			static struct {
+				int cnt; unsigned csa; int clk, eior, ceu, ru;
+				unsigned ylatch, iorout, uartout, fidbi, alud;
+			} pring[32];
+			static int pri = 0, pactive = 0, ptail = 0, pevents = 0;
+			pring[pri].cnt     = cnt;
+			pring[pri].csa     = (unsigned)top->CSA_12_0;
+			pring[pri].clk     = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_clk;
+			pring[pri].eior    = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_eiorn_n;
+			pring[pri].ceu     = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_ceuart_n;
+			pring[pri].ru      = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_ruart_n;
+			pring[pri].ylatch  = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_33G__DOT__Y_Latch;
+			pring[pri].iorout  = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_io_idb_15_0_out;
+			pring[pri].uartout = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_uart_idb_7_0_out;
+			pring[pri].fidbi   = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_xfidbi_15_0;
+			pring[pri].alud    = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_d_15_0;
+			// trigger: UART READ strobes only (CE + READ both active).
+			// Boot-time IOR-word reads (EIOR_n) were probed first and WORK.
+			static int plines = 0; // per-event line budget (log-size guard)
+			int strobe = (!pring[pri].ceu && !pring[pri].ru);
+			if (strobe && !pactive && pevents < 20)
+			{
+				pevents++;
+				printf("[iorprobe] ---- event %d: strobe asserts (csa=%04o) ----\n",
+				    pevents, pring[pri].csa);
+				for (int k = 32 - 8; k <= 32; k++)
+				{
+					int j = (pri + k) % 32;
+					printf("[iorprobe] cnt=%d csa=%04o clk=%d eior=%d ceu=%d ru=%d ylatch=%03o iorout=%06o uartout=%03o fidbi=%06o alud=%06o\n",
+					    pring[j].cnt, pring[j].csa, pring[j].clk,
+					    pring[j].eior, pring[j].ceu, pring[j].ru,
+					    pring[j].ylatch, pring[j].iorout, pring[j].uartout,
+					    pring[j].fidbi, pring[j].alud);
+				}
+				ptail = 0;
+				plines = 0;
+			}
+			else if (pactive && pevents <= 20)
+			{
+				if ((strobe || ptail < 24) && plines++ < 300)
+				{
+					printf("[iorprobe] cnt=%d csa=%04o clk=%d eior=%d ceu=%d ru=%d ylatch=%03o iorout=%06o uartout=%03o fidbi=%06o alud=%06o\n",
+					    pring[pri].cnt, pring[pri].csa, pring[pri].clk,
+					    pring[pri].eior, pring[pri].ceu, pring[pri].ru,
+					    pring[pri].ylatch, pring[pri].iorout, pring[pri].uartout,
+					    pring[pri].fidbi, pring[pri].alud);
+					ptail = strobe ? 0 : ptail + 1;
+				}
+			}
+			pactive = strobe || (pactive && ptail < 24);
+			pri = (pri + 1) % 32;
+		}
+#endif
+#ifdef ND120_TRACE_VERIFY
+		// Golden-format instruction trace (tests/instruction-verify/):
+		// one section per macro instruction (addr, opcode, PIL, full register
+		// state at fetch), micro rows = csar + symbol + changed registers.
+		// Needs a --public-flat-rw build. Env:
+		//   ND120_TVERIFY_OUT  - output .md (default trace_verify.md)
+		//   ND120_TVERIFY_SYMS - nd120_symbols.tsv from gen_nd120_syms.py
+		//   ND120_TVERIFY_MAX  - macro instructions after arming (default 400)
+		{
+			static FILE *tv_fp = nullptr;
+			static int tv_init = 0, tv_prev_clk = 0, tv_have_prev = 0;
+			static int tv_armed = 0, tv_done = 0, tv_count = 0, tv_max = 400;
+			static long tv_skipped = 0;
+			static unsigned tv_prev_csa = 0xFFFF;
+			// watched register order matches the golden trace header
+			static const char *tv_names[19] = {
+				"A", "D", "T", "X", "B", "L", "P", "STS",
+				"R1", "R2", "R3", "R4", "R5", "R6", "R7",
+				"Q", "F", "GPR", "LC"};
+			static unsigned tv_prev_v[19];
+			static std::map<unsigned, std::pair<std::string, std::string>> tv_syms;
+			if (!tv_init)
+			{
+				tv_init = 1;
+				const char *of = getenv("ND120_TVERIFY_OUT");
+				tv_fp = fopen(of ? of : "trace_verify.md", "w");
+				if (const char *e = getenv("ND120_TVERIFY_MAX")) tv_max = atoi(e);
+				if (const char *sf = getenv("ND120_TVERIFY_SYMS"))
+				{
+					FILE *f = fopen(sf, "r");
+					char buf[512];
+					while (f && fgets(buf, sizeof buf, f))
+					{
+						unsigned a;
+						char sym[64] = "", src[400] = "";
+						char *t1 = strchr(buf, '\t');
+						if (!t1) continue;
+						*t1 = 0;
+						a = (unsigned)strtoul(buf, nullptr, 8);
+						char *t2 = strchr(t1 + 1, '\t');
+						if (t2)
+						{
+							*t2 = 0;
+							snprintf(sym, sizeof sym, "%s", t1 + 1);
+							snprintf(src, sizeof src, "%s", t2 + 1);
+							char *nl = strchr(src, '\n');
+							if (nl) *nl = 0;
+						}
+						tv_syms[a] = {sym, src};
+					}
+					if (f) fclose(f);
+				}
+				if (tv_fp)
+					fprintf(tv_fp, "# INSTRUCTION-VERIFY trace - ND-120 RTL (runSim)\n\n"
+						"- Emitted by ND120_TRACE_VERIFY; same format as the ND-110 golden traces.\n"
+						"- All values OCTAL. Micro symbol column = DELILAH listing labels.\n\n");
+			}
+			int tv_clk = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_clk;
+			if (tv_fp && !tv_done && tv_clk && !tv_prev_clk)
+			{
+				// sample the watched set at this CLK rise
+				unsigned v[19];
+				auto *rp = top->rootp;
+				v[0]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg5_a_15_0;
+				v[1]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg1_d_15_0;
+				v[2]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg6_t_15_0;
+				v[3]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg7_x_15_0;
+				v[4]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg3_b_15_0;
+				v[5]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg4_l_15_0;
+				v[6]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg2_p_15_0;
+				v[7]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg8_sts_15_0;
+				v[8]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg9_r1_15_0;
+				v[9]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg10_r2_15_0;
+				v[10] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg11_r3_15_0;
+				v[11] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg12_r4_15_0;
+				v[12] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg13_r5_15_0;
+				v[13] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg14_r6_15_0;
+				v[14] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg15_r7_15_0;
+				v[15] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_q_15_0;
+				v[16] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_f_15_0;
+				v[17] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_grp_15_0;
+				v[18] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__loop_counter;
+				unsigned pil = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__sx_pil_3_0_out;
+				unsigned csa = (unsigned)top->CSA_12_0;
+				// macro boundary detection. Two architectural signatures:
+				// (a) an instruction FETCH commits P and GPR together in one
+				//     microcycle (shift ops change GPR alone, jumps/level
+				//     restores change P alone, EXR loads GPR alone);
+				// (b) dispatches through csa 0 (level switch, EXR'd
+				//     instruction) enter the new instruction without (a).
+				// Both rules can only coincide on the SAME edge (handled by
+				// the single condition); one-word instructions legitimately
+				// produce boundaries on consecutive edges - never suppress.
+				// GPR must hold a real opcode: skip-bumps and panel-service
+				// entries pass these rules with GPR momentarily 0 (no
+				// golden trace contains a genuine 000000 opcode).
+				int tv_boundary = tv_have_prev && v[17] != 0 &&
+				    ((v[6] != tv_prev_v[6] && v[17] != tv_prev_v[17]) ||
+				     (tv_prev_csa == 0 && csa != 0));
+				if (tv_have_prev)
+				{
+					if (tv_boundary)
+					{
+						if (!tv_armed && pil >= 1 && pil <= 9)
+							tv_armed = 1;
+						if (!tv_armed)
+							tv_skipped++;
+						else if (++tv_count > tv_max)
+						{
+							fprintf(tv_fp, "\n## Run summary\n\n- Preamble skipped: %ld\n- Detailed: %d (cap)\n",
+								tv_skipped, tv_max);
+							fclose(tv_fp);
+							tv_done = 1;
+							printf("\n[tverify] %d instructions traced, done\n", tv_max);
+						}
+						else
+						{
+							fprintf(tv_fp, "\n### #%d  `%06o : %06o`  PIL=%u\n",
+								tv_count, (v[6] - 1) & 0xFFFF, v[17], pil);
+							fprintf(tv_fp, "`A=%06o D=%06o T=%06o X=%06o B=%06o L=%06o "
+								"P=%06o STS=%06o R1=%06o R2=%06o R3=%06o R4=%06o "
+								"R5=%06o R6=%06o R7=%06o Q=%06o F=%06o GPR=%06o LC=%06o`\n\n",
+								v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7],
+								v[8], v[9], v[10], v[11], v[12], v[13], v[14],
+								v[15], v[16], v[17], v[18]);
+							fprintf(tv_fp, "| csar | symbol | changed | microcode |\n|---|---|---|---|\n");
+						}
+					}
+					else if (tv_armed && !tv_done && tv_count >= 1)
+					{
+						// micro row for the word that just executed (tv_prev_csa)
+						char chg[512] = "";
+						int cl = 0;
+						for (int r = 0; r < 19; r++)
+							if (v[r] != tv_prev_v[r])
+								cl += snprintf(chg + cl, sizeof(chg) - cl, "%s%s=%06o",
+									cl ? " " : "", tv_names[r], v[r]);
+						auto it = tv_syms.find(tv_prev_csa);
+						fprintf(tv_fp, "| %06o | %s | %s | `%s` |\n",
+							tv_prev_csa,
+							it != tv_syms.end() ? it->second.first.c_str() : "",
+							cl ? chg : "-",
+							it != tv_syms.end() ? it->second.second.c_str() : "");
+					}
+				}
+				memcpy(tv_prev_v, v, sizeof v);
+				tv_prev_csa = csa;
+				tv_have_prev = 1;
+			}
+			tv_prev_clk = tv_clk;
+		}
+#endif
 #if defined(TRACE_CSA) || defined(SCRIPT_INPUT)
 		if (g_boot_done_cnt != 0)
 		{
@@ -622,7 +835,7 @@ int main(int argc, char **argv)
 				// '&' hands the console to the booted program: hold the
 				// rest of the script until it has printed a line and gone
 				// quiet (a human waits for the greeting before typing)
-				g_lf_at_mark = (ch == '&') ? g_rx_lf_total : -1;
+				g_lf_at_mark = (ch == '&' || ch == '$') ? g_rx_lf_total : -1;
 				if (getenv("ND120_SCRIPT_DEBUG"))
 					printf("[script] sent %02x '%c' at cnt %d\r\n",
 					       ch, (ch >= ' ' ? ch : '.'), cnt);
@@ -700,7 +913,7 @@ int main(int argc, char **argv)
 						g_stdin_next_cnt = cnt + g_stdin_gap;
 						// after '&' hold further input until the booted
 						// program has printed its greeting and gone quiet
-						g_lf_at_mark = (ch == '&') ? g_rx_lf_total : -1;
+						g_lf_at_mark = (ch == '&' || ch == '$') ? g_rx_lf_total : -1;
 					}
 				}
 			}
