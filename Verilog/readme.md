@@ -5,8 +5,10 @@ The Verilog code has been split into subfolder matching the structure of the Log
 ## Status
 
 Verilator compiles and runs the full boot path: microcode load, "Master Clear",
-then the MACL CPU self-test (currently **7 of 14 tests pass**), after which OPCOM
-UART communication works (use the `runSim/` harness to interact with it). FPGA
+then the MACL CPU self-test (**passes clean - 0 STERR visits**, measured 13-JUL
+with the runSim ND120_COUNT_STERR probe; the old "7 of 14" figure predated the
+07-JUL transparent-latch fix), after which OPCOM UART communication works (use
+the `runSim/` harness to interact with it). FPGA
 synthesis passes but implementation/boot does not yet run correctly — closing the
 latch-vs-flip-flop timing gap is the current focus.
 
@@ -145,7 +147,7 @@ per-target.
 
 | Target | Device | Toolchain | Status |
 |--------|--------|-----------|--------|
-| **Verilator** (reference) | — (simulation) | Verilator + GTKWave, Linux/WSL | **Works** — boots microcode, self-test 7/14, OPCOM UART |
+| **Verilator** (reference) | — (simulation) | Verilator + GTKWave, Linux/WSL | **Works** — boots microcode, self-test clean (STERR=0), OPCOM UART |
 | [**Tang Nano 20K**](fpga/tang-nano-20k/README.md) *(primary FPGA)* | Gowin `GW2AR-18` (20,736 LUT4, 828 Kbit BSRAM, 8 MB SDRAM, 27 MHz) | Gowin EDA / OSS yosys+nextpnr (Linux-native) | Bring-up in progress |
 | [**Basys3**](fpga/basys3/README.md) | Xilinx Artix-7 `xc7a35tcpg236-1` (33,280 LUT6, ~1,800 Kbit BRAM, 100 MHz) | Vivado (Windows host) | Synthesis OK; **fails timing** (WNS approx -100 ns), does not boot |
 
