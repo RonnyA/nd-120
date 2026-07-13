@@ -1,6 +1,48 @@
 # ND-120 Verilog TODO
 
-> Last updated: 11-JUL-2026 (SD-FAT hardware-proven; nd_storage steps 1-3; card-killer fixed)
+> Last updated: 13-JUL-2026 (MPY product/overflow bug fixed in CGA_ALU_QREG)
+
+---
+
+## Logisim drawing fix needed: CGA_ALU QREG MUXQ15 D3 (regeneration hazard)
+
+`CGA_ALU_QREG.v` had MUXQ15 input D3 wired to Q0 (a Q rotate) instead of F0
+(the shift-right-double link that streams the multiply product from R5 into
+Q). Result: EVERY MPY/RMPY product low word read 0 and +/-32768-boundary
+overflows never set the O/Q status bits (INSTRUCTION-B "DYNAMIC OVERFLOW BIT
+NOT SET"). The Verilog is FIXED (13-JUL, verified vs nd100x on a 10-pair
+sweep, latch+FF, golden areas re-pass), and Ronny confirmed the original
+schematic (CGA p.43) reads D3=F0 - the error is in the LOGISIM DRAWING
+(original PDF scan very unclear at this point). **Until the Logisim sheet is
+corrected, regenerating CGA_ALU_QREG.v reintroduces the bug.** Full analysis:
+`docs/MPY-dynamic-overflow-rootcause.md`.
+
+---
+
+## Pre-existing test failure: test-memchain (bit 8 drops)
+
+`make test` currently aborts at `CPU-BOARD-3202/circuit/sim test-memchain`:
+"dback bank1 col3 got=177377 expected 177777" and "k bank0 row3col2
+got=123056 expected 123456" - bit 8 dropped in the MEM_ADDR_44 ->
+MEM_RAM_49/SIP1M9 chain. Fails on committed code (deps all clean); belongs
+to the memory/device workstream, not the QREG fix (whose file is not in this
+testbench's dependency list).
+
+---
+
+## BUG: 400$ tape boot triggers a continuous level-12 interrupt storm
+
+The SD/FAT rewiring of the sim device path broke the tape byte feed: booting
+INSTRUCTION-B from tape with `400$` produces tens of thousands of
+"Generating/Clearing interrupt at level 12" cycles - the tape's level-12
+interrupt re-arms every cycle instead of one-per-byte. Tests still finish
+but runs crawl; the RUN command can't run at all. Full detail, repro, code
+map and acceptance criteria: `docs/BUG-tape400-sd-level12-storm.md`.
+Desired: run through the Verilog `ND_TAPE_400` fed by SD (one interrupt per
+byte); acceptable fallback = restore the C tape wiring behind a build define
+(like `VERILOG_TAPE`) so both variants stay buildable. Blocks the
+instruction-verify per-area pass/fail (needs INSTRUCTION-B's own
+`== END OF TEST ==` output, which the storm makes impractical).
 
 ---
 

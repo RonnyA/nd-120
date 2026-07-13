@@ -84,7 +84,11 @@ module CGA_ALU_QREG (
       .D0(s_q_15_0_out[15]),
       .D1(s_f_15_0[15]),
       .D2(s_q_15_0_out[14]),
-      .D3(s_q_15_0_out[0]),
+      // Shift-right-double serial input: Q15 must receive the bit leaving
+      // the R-side shifter (F[0]), so MPY/FMU streams the product's low
+      // bits from R5 into Q. Was Q[0] (a rotate), which left Q stuck at 0
+      // through the whole multiply loop.
+      .D3(s_f_15_0[0]),
       .Z (s_mux_z_15)
   );
 

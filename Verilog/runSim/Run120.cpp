@@ -629,6 +629,38 @@ int main(int argc, char **argv)
 		}
 #endif
 
+#ifdef ND120_PROBE_MPYPHASE
+			// Fine-grained phase capture around the MPY CONDENABL branch:
+			// log every eval for a window starting at the post-boot COND word
+			// (csa 04431), to see when s_zf changes vs ALUCLK/MCLK/MACLK and what
+			// the CSEL latch (s_cond_n) samples. Reveals the correct pipeline phase.
+			{
+				static int cap = 0, passes = 0;
+				auto rp = top->rootp;
+				unsigned csa = (unsigned)top->CSA_12_0;
+				if (cap == 0 && csa == 04431u && cnt > 300000 && passes < 12) { cap = 60; passes++; }
+				if (cap > 0)
+				{
+					printf("[ph] cnt=%d csa=%05o r5=%06o q=%06o rb=%06o rli=%d alui6=%d alusts=%06o a=%06o b=%06o f=%06o csts=%d%d aluclk=%d mclk_en=%d\n",
+						cnt, csa,
+						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg13_r5_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_q_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_rb_15_0_out,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_rli_out,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_alui6,
+						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_sts_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_a_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_b_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_f_15_0,
+						(int)((rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_csts_1_0 >> 1) & 1),
+						(int)(rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_csts_1_0 & 1),
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_aluclk,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CYC__DOT__MCLK_EN);
+					if (--cap == 0 && passes >= 12) { printf("[ph] done\n"); fflush(stdout); }
+				}
+			}
+#endif
+
 #ifdef ND120_PROBE_MPY
 			// Probe MPY result/overflow microcode (DELILAH CSA 004425-004435,
 			// MPY2..MPY3). 004433 = "SET DYN. & STAT. OVF." (loads R4=60); 004434
