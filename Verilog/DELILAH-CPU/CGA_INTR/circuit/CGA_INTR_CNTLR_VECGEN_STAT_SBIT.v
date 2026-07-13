@@ -76,6 +76,8 @@ module CGA_INTR_CNTLR_VECGEN_STAT_SBIT (
   /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
+  // S-bus load NAND (LDSTAT path). Confirmed against schematic p.87 at
+  // 900dpi: NAND(SIN, DCDG, DCDF, GPE) exactly as transcribed.
   NAND_GATE_4_INPUTS #(
       .BubblesMask(4'h0)
   ) GATES_1 (

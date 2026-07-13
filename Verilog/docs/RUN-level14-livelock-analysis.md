@@ -90,7 +90,55 @@ REGENERATION HAZARD: the Logisim CGA_INTR sheet needs the same corrections
 (cell GATES_3 input + the six instance pin maps) or regenerating
 `CGA_INTR_CNTLR_VECGEN_STAT*.v` reintroduces both bugs.
 
-## STATUS 13-JUL evening: fix implemented but GATED OFF - more work needed
+## STATUS 13-JUL late: FENCE FIX WORKS - livelock gone; a NEW bug is next
+
+With the corrected wiring (below), enabled via `ND120_INTR_STATUS_FENCE`:
+
+| | fence dead (before) | fence live (now) |
+|---|---|---|
+| EXT14 re-dispatches in the storm window | **14 487** | **1** |
+| TRA IIC reached (the handler's dismissal) | 21 (all pre-storm) | **22 - it runs** |
+| HISTAT / LOSTAT | stuck 0 / {0,7} | real values (7,3,2,5...) |
+| CPU self-test | passes | **passes** (no regression) |
+| INSTRUCTION-B boots | yes | **yes** |
+
+The level-14 livelock is FIXED. The final wiring (all four cases fall out of
+the confirmed cell equation + the MDCD strobe polarities):
+
+    DCDF/DCDFN = HIF / HIF_n     (group F strobe: RDVECT-of-this-group, LDSTAT)
+    DCDG/DCDGN = G / G_N         (G is ACTIVE LOW: 1 idle, 0 on RDVECT/MCLR)
+    VINN       = XNOR chain      (the vector+1 bits)
+    GPE        = HIGE / LOGE     (group-enable, the FIDBO3/FIDBO4 buffers)
+    SIN        = S-bus
+      idle -> hold | LDSTAT -> load S-bus | RDVECT -> load vector+1 | MCLR -> clear
+
+The earlier "self-test hangs with the fence on" was MY error, not a second RTL
+bug: I had DCDG/DCDGN swapped because I read G as active-high. The comparator
+(VECGEN_CMP/MAGCMP, p.88 - computes VGES = (V >= S), the correct Am2914 rule)
+and IRGEL (p.90-95) were AUDITED and are CORRECT - no changes needed there.
+
+## NEXT BUG (new, exposed by the working fence): bogus IIC = "Memory Out of Range"
+
+RUN now runs the level-14 handler properly, reads the internal-interrupt code,
+and INSTRUCTION-B aborts with:
+
+    Internal Interrupt. IIC: 11 -Memory Out of Range
+    PES: 136000   PEA: 000000
+
+But `CGA.v:114` has `assign s_nor_n = 1; //TODO: Fix MORN;` - the
+memory-out-of-range input is TIED OFF, so the CPU cannot raise a real MOR.
+Meanwhile the measured hardware vector is 2 = IREQ bit 10 = **IOX error**,
+which IS what RUN's stressor should raise (the reference ND-110 prints
+"IOX-ERROR STARTED" here). So the vector -> IIC read path decodes the wrong
+code. Suspects: the PICV/PICS -> IDB path (`CGA_IDBCTL` SEL6 muxes, IDBS,PICVC)
+and the AIIC/TRA IIC microcode's expectations; also the tied-off MORN itself
+(a real gap - the ND-100 MOR source is not modelled).
+
+Probe next: capture the IDB value the microcode reads at AIIC (csa 00725-00731)
+together with PICV_2_0 / PICS_2_0, and compare with the IIC code INSTRUCTION-B
+expects for an IOX error.
+
+## Previous status (superseded)
 
 Both corrections are in the tree behind **`ND120_INTR_STATUS_FENCE`
 (default OFF)**; the default build keeps the historical fence-inert
