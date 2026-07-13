@@ -691,6 +691,143 @@ int main(int argc, char **argv)
 			}
 #endif
 
+#ifdef ND120_PROBE_RUNIDENT
+			// RUN-area hang probe: on every OUTIDENT fall (CPU asking the bus
+			// which device interrupts), dump the interrupt-request picture:
+			// the CGA INTR request vector (IREQ, active low, bit=level), the
+			// C-model bus interrupt input (BINT12_n), the Verilog-device
+			// interrupt lines (s_dev_bint1x_n) and the raw ident address.
+			// --public-flat-rw build.
+			{
+				static int oi_last = 1, oi_prints = 0;
+				int oi = (int)top->OUTIDENT_n;
+				if (!oi && oi_last && oi_prints < 60)
+				{
+					auto rp = top->rootp;
+					printf("[ridnt] cnt=%d bd=%06o ireq_n=%06o bint{10,11,12,13}_n=%d%d%d%d\n",
+						cnt,
+						(unsigned)((~top->BD_23_0_n_OUT) & 0xFFFF),
+						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_ireq_15_0_n,
+						(int)top->BINT10_n,
+						(int)top->BINT11_n,
+						(int)top->BINT12_n,
+						(int)top->BINT13_n);
+					oi_prints++;
+					if (oi_prints == 60) { printf("[ridnt] capture done\n"); fflush(stdout); }
+				}
+				oi_last = oi;
+			}
+			// Continuous edge log for the level-12 request chain: log every
+			// TRANSITION of IREQ bit2 (live level-12 request into the INTR),
+			// the RQBIT_2 latch (latched PID12), and its CLRQ_2 clear pulse.
+			{
+				static int q2_last = -1, i2_last = -1, c2_last = -1;
+				static int tr_prints = 0;
+				auto rp = top->rootp;
+				int i2 = (int)((rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_ireq_15_0_n >> 2) & 1);
+				int q2 = (int)((rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_mireq_15_0 >> 2) & 1);
+				int c2 = (int)((rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_clrq_15_0 >> 2) & 1);
+				if (cnt > 16000000 && (i2 != i2_last || q2 != q2_last || c2 != c2_last) && tr_prints < 300)
+				{
+					printf("[r12] cnt=%d ireq2_n=%d mireq2=%d clrq2=%d\n", cnt, i2, q2, c2);
+					tr_prints++;
+					if (tr_prints == 300) { printf("[r12] capture done\n"); fflush(stdout); }
+				}
+				i2_last = i2; q2_last = q2; c2_last = c2;
+			}
+			// Storm-clear probe: during the level-14 storm window, log every
+			// TRANSITION of CLRQ bits 10/14, the HIK/LOK clear strobes with
+			// their HX/LX bit codes, the latched IOXERR/bit14 requests and
+			// the raw IOXERR input - shows whether the vector-read clear
+			// (RVECT -> X-decode -> CLRQ) ever fires and where it points.
+			{
+				static unsigned last_sig = 0xFFFFFFFFu;
+				static int sc_prints = 0;
+				auto rp = top->rootp;
+				unsigned clrq = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_clrq_15_0;
+				unsigned mireq = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_mireq_15_0;
+				int hik = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hik;
+				int lok = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_lok;
+				unsigned hx = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hx_2_0;
+				unsigned lx = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_lx_2_0;
+				int ioxe_n = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_ioxerr_n;
+				unsigned sig = ((clrq & 0x4400u) << 8) ^ (hik << 7) ^ (lok << 6) ^ (hx << 3) ^ lx ^ ((mireq & 0x4400u) >> 1) ^ (ioxe_n << 15);
+				if (cnt > 17300000 && sig != last_sig && sc_prints < 200)
+				{
+					printf("[sclr] cnt=%d csa=%05o clrq=%06o mireq_n=%06o hik=%d lok=%d hx=%o lx=%o ioxerr_n=%d\n",
+						cnt, (unsigned)top->CSA_12_0, clrq, mireq, hik, lok, hx, lx, ioxe_n);
+					sc_prints++;
+					if (sc_prints == 200) { printf("[sclr] done\n"); fflush(stdout); }
+				}
+				last_sig = sig;
+			}
+			// PIL tracker + key-CSA counters during the storm: log every PIL
+			// change; count EXT14 dispatches (csa 03756), TAIIC entries
+			// (csa 03665) and MACRI (csa 00054) visits.
+			{
+				static int pil_last = -1, pil_prints = 0;
+				static unsigned n_ext14 = 0, n_taiic = 0, n_macri = 0;
+				static unsigned csa_last = 0xFFFF;
+				static int cnt_reported = 0;
+				auto rp = top->rootp;
+				unsigned csa = (unsigned)top->CSA_12_0;
+				int pil = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__sx_pil_3_0_out;
+				if (csa != csa_last)
+				{
+					if (csa == 03756u) n_ext14++;
+					if (csa == 03665u) n_taiic++;
+					if (csa == 00054u) n_macri++;
+				}
+				csa_last = csa;
+				if (cnt > 17000000 && pil != pil_last && pil_prints < 100)
+				{
+					printf("[pil] cnt=%d csa=%05o PIL=%d ext14=%u taiic=%u macri=%u\n",
+						cnt, csa, pil, n_ext14, n_taiic, n_macri);
+					pil_prints++;
+				}
+				pil_last = pil;
+				if (!cnt_reported && cnt >= 18500000)
+				{
+					printf("[pil] FINAL counters: ext14=%u taiic=%u macri=%u PIL=%d\n", n_ext14, n_taiic, n_macri, pil);
+					fflush(stdout);
+					cnt_reported = 1;
+				}
+			}
+			// IRGEL once-only-gate tracker: log every transition of the HI/LO
+			// group request enables (HIENABN/LIENABN - the "dispatch once,
+			// re-arm on command" gates), the group requests (HIRQ/LIRQ) and
+			// detect lines, from the working startup EXT14s into the storm.
+			{
+				static unsigned ig_last = 0xFFFFFFFFu;
+				static int ig_prints = 0;
+				auto rp = top->rootp;
+				int hien_n = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_hienab_n;
+				int lien_n = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_lienab_n;
+				int hirq = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_hirq;
+				int lirq = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_lirq;
+				int hidet = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_hidet;
+				unsigned histat = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__s_histat_2_0;
+				unsigned lostat = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__s_lostat_2_0;
+				unsigned hivec = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hivec_2_0;
+				unsigned ig = (hien_n << 4) | (lien_n << 3) | (hirq << 2) | (lirq << 1) | hidet;
+				ig = (ig << 12) | (histat << 9) | (lostat << 6) | (hivec << 3)
+					| ((unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hif << 2)
+					| ((unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hipassall << 1)
+					| (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hivges;
+				if (cnt > 17370000 && ig != ig_last && ig_prints < 300)
+				{
+					printf("[irgel] cnt=%d csa=%05o hien_n=%d lien_n=%d hirq=%d lirq=%d hidet=%d histat=%o lostat=%o hivec=%o hif=%d hipass=%d hivges=%d\n",
+						cnt, (unsigned)top->CSA_12_0, hien_n, lien_n, hirq, lirq, hidet, histat, lostat, hivec,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hif,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hipassall,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hivges);
+					ig_prints++;
+					if (ig_prints == 300) { printf("[irgel] done\n"); fflush(stdout); }
+				}
+				ig_last = ig;
+			}
+#endif
+
 #ifdef ND120_PROBE_SHIFT
 			// Shift serial-input probe: whenever the microword runs with
 			// CSALUM=11 (shift-loop mode: SSEL taken from the instruction bits

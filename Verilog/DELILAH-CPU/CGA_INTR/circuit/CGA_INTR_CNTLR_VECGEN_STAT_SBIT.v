@@ -95,6 +95,28 @@ module CGA_INTR_CNTLR_VECGEN_STAT_SBIT (
       .result(s_nand_dcdg_dcdfn_sts)
   );
 
+  // Vector-load NAND. Schematic p.87 (SBIT detail box, read at 600dpi and
+  // confirmed by Ronny 13-JUL-2026) shows VINN & DCDF & DCDGN - the middle
+  // input is DCDF, not GPE. That is the Am2914 "READ VECTOR also loads
+  // vector+1 into the Status Register" path, i.e. the fence that stops the
+  // interrupt just taken from being re-dispatched (RUN level-14 livelock,
+  // docs/RUN-level14-livelock-analysis.md).
+  //
+  // Behind ND120_INTR_STATUS_FENCE (default OFF) because enabling the fence
+  // alone makes the CPU self-test's interrupt scan (microcode APID3) hang -
+  // the comparator/IRGEL chain downstream has not been verified against the
+  // sheets yet. Default build keeps the historical (fence-inert) behaviour,
+  // which passes 13/14 INSTRUCTION-B areas + the 48-test unit suite.
+`ifdef ND120_INTR_STATUS_FENCE
+  NAND_GATE_3_INPUTS #(
+      .BubblesMask(3'b000)
+  ) GATES_3 (
+      .input1(s_vin_n),
+      .input2(s_dcdf),
+      .input3(s_dcdg_n),
+      .result(s_nand_vinn_gpe_dcdgn)
+  );
+`else
   NAND_GATE_3_INPUTS #(
       .BubblesMask(3'b000)
   ) GATES_3 (
@@ -103,6 +125,7 @@ module CGA_INTR_CNTLR_VECGEN_STAT_SBIT (
       .input3(s_dcdg_n),
       .result(s_nand_vinn_gpe_dcdgn)
   );
+`endif
 
   OR_GATE_3_INPUTS #(
       .BubblesMask(3'b111)

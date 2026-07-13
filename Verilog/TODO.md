@@ -5,6 +5,48 @@
 
 ---
 
+## OPEN: interrupt status fence (Am2914) - fix written, gated OFF, needs a partner fix
+
+The DELILAH interrupt system is a close Am2914 copy. Its **status register**
+(the fence that stops the interrupt just taken from being re-dispatched:
+"READ VECTOR auto-loads vector+1 into the Status Register") has NEVER worked
+in our RTL - two transcription bugs in `CGA_INTR_CNTLR_VECGEN_STAT{,_SBIT}.v`
+(schematic p.87): the cell's vector-load NAND took GPE instead of DCDF, and
+the six SBIT instances (drawn WITHOUT pin names on the sheet) had four pins
+rotated. Both are now corrected in-tree but **gated behind
+`ND120_INTR_STATUS_FENCE`, default OFF**, because switching the fence on
+alone hangs the CPU self-test's interrupt scan (microcode APID3) - the
+priority comparator (`..._VECGEN_CMP{,_MAGCMP}`, p.88) and the request-generate
+logic (`..._IRGEL_*`, p.90-95) were written when the fence was inert and need
+the same schematic + Am2914 audit (rule: a request passes only when its
+vector >= the status value). Consequence today: INSTRUCTION-B `RUN` livelocks
+at level 14 (IOX-error storm re-dispatches every macro instruction). All 13
+other areas pass. Full analysis + repro: `docs/RUN-level14-livelock-analysis.md`.
+Logisim CGA_INTR sheet needs the same corrections (regeneration hazard).
+
+---
+
+## OPEN: interrupt status fence (Am2914) - fix written, gated OFF, needs a partner fix
+
+The DELILAH interrupt system is a close Am2914 copy. Its **status register**
+(the fence that stops the interrupt just taken from being re-dispatched:
+"READ VECTOR auto-loads vector+1 into the Status Register") has NEVER worked
+in our RTL - two transcription bugs in `CGA_INTR_CNTLR_VECGEN_STAT{,_SBIT}.v`
+(schematic p.87): the cell's vector-load NAND took GPE instead of DCDF, and
+the six SBIT instances (drawn WITHOUT pin names on the sheet) had four pins
+rotated. Both are now corrected in-tree but **gated behind
+`ND120_INTR_STATUS_FENCE`, default OFF**, because switching the fence on
+alone hangs the CPU self-test's interrupt scan (microcode APID3) - the
+priority comparator (`..._VECGEN_CMP{,_MAGCMP}`, p.88) and the request-generate
+logic (`..._IRGEL_*`, p.90-95) were written when the fence was inert and need
+the same schematic + Am2914 audit (rule: a request passes only when its
+vector >= the status value). Consequence today: INSTRUCTION-B `RUN` livelocks
+at level 14 (IOX-error storm re-dispatches every macro instruction). All 13
+other areas pass. Full analysis + repro: `docs/RUN-level14-livelock-analysis.md`.
+Logisim CGA_INTR sheet needs the same corrections (regeneration hazard).
+
+---
+
 ## Logisim drawing fix needed: CGA_ALU CONTR MEMORY_46/47 (regeneration hazard)
 
 `CGA_CPU_ALU_CONTR.v` captured the instruction's shift-type bits (CD 10:9 -

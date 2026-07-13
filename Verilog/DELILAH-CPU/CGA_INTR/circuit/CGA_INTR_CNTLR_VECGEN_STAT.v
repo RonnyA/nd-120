@@ -157,92 +157,132 @@ module CGA_INTR_CNTLR_VECGEN_STAT (
   );
 
 
+
+  /*******************************************************************************
+   ** SBIT pin mapping (see docs/RUN-level14-livelock-analysis.md)               **
+   **                                                                            **
+   ** The six SBIT blocks on schematic p.87 are drawn WITHOUT pin names (only    **
+   ** the detail box names them), so the pin order had to be read off the        **
+   ** drawing. Ronny's reads (top SBIT = HISTAT2, pins from top): pin2 = XNOR    **
+   ** increment output, pin3 = HIF, pin6 = G_N.                                  **
+   **                                                                            **
+   ** ND120_INTR_STATUS_FENCE (default OFF) selects the Am2914-correct mapping   **
+   ** that makes READ VECTOR load "vector+1" into the status register (the       **
+   ** re-dispatch fence). It is OFF because switching it on alone hangs the CPU  **
+   ** self-test's interrupt scan (microcode APID3) - the comparator chain        **
+   ** downstream needs verifying against pages 88-95 first.                      **
+   *******************************************************************************/
+`ifdef ND120_INTR_STATUS_FENCE
+  wire       s_hi_dcdfn = s_hif_n;
+  wire       s_hi_dcdg  = s_g_n;
+  wire       s_hi_dcdgn = s_g;
+  wire [2:0] s_hi_dcdf  = {3{s_hif}};
+  wire [2:0] s_hi_vinn  = {s_xnor_hivec2n_hivec1nand0n, s_xnor_hivec1_hivec0n, s_hivec0_n};
+  wire       s_lo_dcdfn = s_lof_n;
+  wire       s_lo_dcdg  = s_g_n;
+  wire       s_lo_dcdgn = s_g;
+  wire [2:0] s_lo_dcdf  = {3{s_lof}};
+  wire [2:0] s_lo_vinn  = {s_xnor_lovec2n_lovec1nand0n, s_xnor_lovec1_lovec0n, s_lovec0_n};
+`else
+  wire       s_hi_dcdfn = s_g;
+  wire       s_hi_dcdg  = s_hif_n;
+  wire       s_hi_dcdgn = s_fidbo3_n;
+  wire [2:0] s_hi_dcdf  = {s_xnor_hivec2n_hivec1nand0n, s_xnor_hivec1_hivec0n, s_hivec0_n};
+  wire [2:0] s_hi_vinn  = {3{s_g_n}};
+  wire       s_lo_dcdfn = s_g;
+  wire       s_lo_dcdg  = s_lof_n;
+  wire       s_lo_dcdgn = s_fidbo4_n;
+  wire [2:0] s_lo_dcdf  = {s_xnor_lovec2n_lovec1nand0n, s_xnor_lovec1_lovec0n, s_lovec0_n};
+  wire [2:0] s_lo_vinn  = {3{s_g_n}};
+`endif
+
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
+
 
   CGA_INTR_CNTLR_VECGEN_STAT_SBIT SBIT1_LO (
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
       .CK(s_mclk),
-      .DCDF(s_xnor_lovec1_lovec0n),
-      .DCDFN(s_g),
-      .DCDG(s_lof_n),
-      .DCDGN(s_fidbo4_n),
+      .DCDF(s_lo_dcdf[1]),
+      .DCDFN(s_lo_dcdfn),
+      .DCDG(s_lo_dcdg),
+      .DCDGN(s_lo_dcdgn),
       .GPE(s_lof),
       .SIN(s_losin_2_0[1]),
       .STS(s_lostat_2_0_out[1]),
-      .VINN(s_g_n)
+      .VINN(s_lo_vinn[1])
   );
 
   CGA_INTR_CNTLR_VECGEN_STAT_SBIT SBIT2_HI (
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
       .CK(s_mclk),
-      .DCDF(s_xnor_hivec2n_hivec1nand0n),
-      .DCDFN(s_g),
-      .DCDG(s_hif_n),
-      .DCDGN(s_fidbo3_n),
+      .DCDF(s_hi_dcdf[2]),
+      .DCDFN(s_hi_dcdfn),
+      .DCDG(s_hi_dcdg),
+      .DCDGN(s_hi_dcdgn),
       .GPE(s_hif),
       .SIN(s_hisin_2_0[2]),
       .STS(s_histat_2_0_out[2]),
-      .VINN(s_g_n)
+      .VINN(s_hi_vinn[2])
   );
 
   CGA_INTR_CNTLR_VECGEN_STAT_SBIT SBIT0_LO (
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
       .CK(s_mclk),
-      .DCDF(s_lovec0_n),
-      .DCDFN(s_g),
-      .DCDG(s_lof_n),
-      .DCDGN(s_fidbo4_n),
+      .DCDF(s_lo_dcdf[0]),
+      .DCDFN(s_lo_dcdfn),
+      .DCDG(s_lo_dcdg),
+      .DCDGN(s_lo_dcdgn),
       .GPE(s_lof),
       .SIN(s_losin_2_0[0]),
       .STS(s_lostat_2_0_out[0]),
-      .VINN(s_g_n)
+      .VINN(s_lo_vinn[0])
   );
 
   CGA_INTR_CNTLR_VECGEN_STAT_SBIT SBIT1_HI (
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
       .CK(s_mclk),
-      .DCDF(s_xnor_hivec1_hivec0n),
-      .DCDFN(s_g),
-      .DCDG(s_hif_n),
-      .DCDGN(s_fidbo3_n),
+      .DCDF(s_hi_dcdf[1]),
+      .DCDFN(s_hi_dcdfn),
+      .DCDG(s_hi_dcdg),
+      .DCDGN(s_hi_dcdgn),
       .GPE(s_hif),
       .SIN(s_hisin_2_0[1]),
       .STS(s_histat_2_0_out[1]),
-      .VINN(s_g_n)
+      .VINN(s_hi_vinn[1])
   );
 
   CGA_INTR_CNTLR_VECGEN_STAT_SBIT SBIT0_HI (
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
       .CK(s_mclk),
-      .DCDF(s_hivec0_n),
-      .DCDFN(s_g),
-      .DCDG(s_hif_n),
-      .DCDGN(s_fidbo3_n),
+      .DCDF(s_hi_dcdf[0]),
+      .DCDFN(s_hi_dcdfn),
+      .DCDG(s_hi_dcdg),
+      .DCDGN(s_hi_dcdgn),
       .GPE(s_hif),
       .SIN(s_hisin_2_0[0]),
       .STS(s_histat_2_0_out[0]),
-      .VINN(s_g_n)
+      .VINN(s_hi_vinn[0])
   );
 
   CGA_INTR_CNTLR_VECGEN_STAT_SBIT SBIT2_LO (
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
       .CK(s_mclk),
-      .DCDF(s_xnor_lovec2n_lovec1nand0n),
-      .DCDFN(s_g),
-      .DCDG(s_lof_n),
-      .DCDGN(s_fidbo4_n),
+      .DCDF(s_lo_dcdf[2]),
+      .DCDFN(s_lo_dcdfn),
+      .DCDG(s_lo_dcdg),
+      .DCDGN(s_lo_dcdgn),
       .GPE(s_lof),
       .SIN(s_losin_2_0[2]),
       .STS(s_lostat_2_0_out[2]),
-      .VINN(s_g_n)
+      .VINN(s_lo_vinn[2])
   );
 
 endmodule
