@@ -1,6 +1,25 @@
 # ND-120 Verilog TODO
 
-> Last updated: 13-JUL-2026 (MPY product/overflow bug fixed in CGA_ALU_QREG)
+> Last updated: 13-JUL-2026 (MPY product/overflow bug fixed in CGA_ALU_QREG;
+> SHIFT ROT/ZIN/LIN serial-input bug fixed in CGA_CPU_ALU_CONTR)
+
+---
+
+## Logisim drawing fix needed: CGA_ALU CONTR MEMORY_46/47 (regeneration hazard)
+
+`CGA_CPU_ALU_CONTR.v` captured the instruction's shift-type bits (CD 10:9 -
+ROT/ZIN/LIN select) in two rising-edge D flip-flops (MEMORY_46/47) clocked by
+the LDIRV strobe. The CD bus holds the instruction only late in the
+LDIRV-high window (measured: CD=0 at every rise, instruction present at every
+fall), so the flops captured 0 forever, SSEL stayed 00 and every
+SHA/SHD/SHT/SAD ROT / ZIN-right / LIN shift ran as a PLAIN arithmetic shift
+(INSTRUCTION-B SHIFT sub-tests 5OP-8OP, 256 failures each; both latch and FF
+builds). FIXED (13-JUL): replaced with the `SSEL_LATCH` L8 transparent latch,
+wired like the proven CGA_MIC IRLATCH. **Until the Logisim CGA_ALU_ sheet
+(page 42) gets the same latch, regenerating CGA_CPU_ALU_CONTR.v reintroduces
+the bug.** Ronny: please also check what the original PDF draws for the SSEL
+capture (the MIC IR capture is a latch on its sheet). Full analysis:
+`docs/SHIFT-serial-input-rootcause.md`.
 
 ---
 

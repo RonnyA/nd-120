@@ -691,6 +691,51 @@ int main(int argc, char **argv)
 			}
 #endif
 
+#ifdef ND120_PROBE_SHIFT
+			// Shift serial-input probe: whenever the microword runs with
+			// CSALUM=11 (shift-loop mode: SSEL taken from the instruction bits
+			// captured in ALU_CONTR MEMORY_46/47), log the whole serial-input
+			// selection chain. Also log every LDIRV rise with the CD bus so we
+			// can see what MEMORY_46/47 actually captured. --public-flat-rw.
+			{
+				static int shift_prints = 0, ldirv_prints = 0;
+				static int ldirv_last = 0;
+				auto rp = top->rootp;
+				int ld = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_ldirv;
+				unsigned cdnow = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_cd_15_0;
+				if (cnt > 1500000 && ld != ldirv_last && ((cdnow >> 9) & 3u) != 0 && ldirv_prints < 200)
+				{
+					printf("[shp-ir] cnt=%d LDIRV %s cd=%06o alu_cd109=%d%d m46=%d m47=%d\n", cnt, ld ? "rise" : "fall", cdnow,
+						(int)((rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_cd_10_9 >> 1) & 1),
+						(int)(rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_cd_10_9 & 1),
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_memory46_q,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_memory47_q);
+					ldirv_prints++;
+				}
+				ldirv_last = ld;
+				unsigned alum = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_csalum_1_0;
+				if (cnt > 1500000 && alum == 3u && shift_prints < 400)
+				{
+					printf("[shp] cnt=%d csa=%05o m46=%d m47=%d ssel=%d%d rri=%d rli=%d qli=%d sts7=%d f=%06o q=%06o alui6=%d aluclk=%d\n",
+						cnt, (unsigned)top->CSA_12_0,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_memory46_q,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_memory47_q,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_ssel1,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_ssel0,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_rri_out,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_rli_out,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_qli_out,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_sts7,
+						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_f_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_q_15_0,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_alui6,
+						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_aluclk);
+					shift_prints++;
+					if (shift_prints == 400) { printf("[shp] capture done\n"); fflush(stdout); }
+				}
+			}
+#endif
+
 #ifdef ND120_PROBE_MPY
 			// Probe MPY result/overflow microcode (DELILAH CSA 004425-004435,
 			// MPY2..MPY3). 004433 = "SET DYN. & STAT. OVF." (loads R4=60); 004434

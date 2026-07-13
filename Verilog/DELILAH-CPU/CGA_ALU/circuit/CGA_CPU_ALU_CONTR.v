@@ -214,12 +214,8 @@ module CGA_CPU_ALU_CONTR (
   // (aligned to the ALUCLK rise) instead of clocking on the routed net.
 `ifdef FPGA_FF_MODE
   localparam ALUCLK_CE = 1;
-  // P3: LDIRV is a decoded load strobe (COMM/MIS/LCS cone), not a clock -
-  // capture on a sysclk-detected LDIRV rise (D_FLIPFLOP_EN mode 2).
-  localparam LDIRV_CE = 2;
 `else
   localparam ALUCLK_CE = 0;
-  localparam LDIRV_CE = 0;
 `endif
 
   assign s_up_n              = UPN;
@@ -669,32 +665,46 @@ module CGA_CPU_ALU_CONTR (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP_EN #(
-      .USE_ENABLE(LDIRV_CE)
-  ) MEMORY_46 (
+  // Shift-type capture (instruction bits 10:9 -> SSEL via the CSMIS muxes).
+  // Must be a TRANSPARENT LATCH on LDIRV, exactly like the MIC IR latch
+  // (CGA_MIC IRLATCH): the instruction word is valid on the CD bus late in
+  // the LDIRV-high window and is gone again before the next rise, so a
+  // rising-edge flip-flop can never capture it (measured: CD=000000 at
+  // every LDIRV rise, instruction present at every fall). As flip-flops
+  // these bits stayed 0, SSEL decoded as 00 and every SHA/SHD/SHT/SAD
+  // ROT / ZIN-right / LIN shift executed as a plain arithmetic shift
+  // (INSTRUCTION-B SHIFT sub-tests 5OP-8OP, 256 failures each).
+  L8 SSEL_LATCH (
       .sysclk(sysclk),
-      .EN(1'b0),
-      .clock(s_ldirv),  // LDIRV strobe (edge-captured in FF mode)
-      .d(s_cd_10_9[1]),
-      .preset(1'b0),
-      .q(s_memory46_q),
-      .qBar(),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+      .sys_rst_n(1'b1),
 
-  D_FLIPFLOP_EN #(
-      .USE_ENABLE(LDIRV_CE)
-  ) MEMORY_47 (
-      .sysclk(sysclk),
-      .EN(1'b0),
-      .clock(s_ldirv),  // LDIRV strobe (edge-captured in FF mode)
-      .d(s_cd_10_9[0]),
-      .preset(1'b0),
-      .q(s_memory47_q),
-      .qBar(),
-      .reset(1'b0),
-      .tick(1'b1)
+      .L(s_ldirv),
+
+      .A(s_cd_10_9[1]),
+      .B(s_cd_10_9[0]),
+      .C(1'b0),
+      .D(1'b0),
+      .E(1'b0),
+      .F(1'b0),
+      .G(1'b0),
+      .H(1'b0),
+
+      .QA (s_memory46_q),
+      .QAN(),
+      .QB (s_memory47_q),
+      .QBN(),
+      .QC (),
+      .QCN(),
+      .QD (),
+      .QDN(),
+      .QE (),
+      .QEN(),
+      .QF (),
+      .QFN(),
+      .QG (),
+      .QGN(),
+      .QH (),
+      .QHN()
   );
 
   NAND_GATE #(
