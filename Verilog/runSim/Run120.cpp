@@ -629,6 +629,36 @@ int main(int argc, char **argv)
 		}
 #endif
 
+#ifdef ND120_COUNT_STERR
+			// Count entries into the MACL self-test error routine (STERR,
+			// CSA octal 2156) across the WHOLE run (the self-test runs
+			// before the '#' prompt, outside the TRACE_CSA window). Each
+			// failing self-test check jumps here; 0 visits = clean pass.
+			// The WCS load streams every address 0..8177 linearly, so CSA
+			// passes 2156 once during loading - only count EXECUTION
+			// visits, i.e. after the loader leaves the linear walk (the
+			// first time CSA jumps back to 0 after having been past 2156).
+			{
+				static unsigned sterr_last_csa = 0xFFFFu, sterr_hits = 0;
+				static int sterr_reported = 0, sterr_exec = 0;
+				unsigned csa_now = (unsigned)top->CSA_12_0;
+				if (!sterr_exec && sterr_last_csa > 02156u && sterr_last_csa != 0xFFFFu && csa_now < 02000u)
+					sterr_exec = 1;
+				if (sterr_exec && csa_now == 02156u && sterr_last_csa != 02156u)
+				{
+					sterr_hits++;
+					printf("[sterr] hit %u at cnt=%d\n", sterr_hits, cnt);
+				}
+				sterr_last_csa = csa_now;
+				if (!sterr_reported && g_boot_done_cnt != 0)
+				{
+					printf("[sterr] boot complete: %u STERR visits during self-test\n", sterr_hits);
+					fflush(stdout);
+					sterr_reported = 1;
+				}
+			}
+#endif
+
 #ifdef ND120_PROBE_MPYPHASE
 			// Fine-grained phase capture around the MPY CONDENABL branch:
 			// log every eval for a window starting at the post-boot COND word
