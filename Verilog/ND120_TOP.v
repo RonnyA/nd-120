@@ -319,6 +319,25 @@ module ND120_TOP
   wire clk_cpu_pre, clkfb_out, clkfb_in;
   wire clk_cpu;
 
+`ifdef TARGET_CMOD_A7
+  // Cmod A7: 12 MHz crystal. VCO = 12 x 63 = 756 MHz (in the 600-1200 MHz
+  // MMCM range); clk_cpu = 756 / 28 = 27.000 MHz EXACTLY - the same CPU
+  // speed as the Tang Nano 20K full-speed build, so BOARD_CLK_FREQ=27000000
+  // and every derived count matches. Fallback if 27 MHz does not close
+  // timing: pass -verilog_define ND120_CMOD_MMCM_DIV=56.0 for 13.5 MHz
+  // (or 42.0 for 18 MHz) - same VCO, one divider change.
+  `ifndef ND120_CMOD_MMCM_DIV
+    `define ND120_CMOD_MMCM_DIV 28.0
+  `endif
+  MMCME2_BASE #(
+    .BANDWIDTH        ("OPTIMIZED"),
+    .CLKFBOUT_MULT_F  (63.0),    // VCO = 12 * 63 = 756 MHz
+    .CLKIN1_PERIOD    (83.333),  // 12 MHz input
+    .CLKOUT0_DIVIDE_F (`ND120_CMOD_MMCM_DIV),  // 756 / 28 = 27 MHz (CPU/bus clock)
+    .DIVCLK_DIVIDE    (1),
+    .STARTUP_WAIT     ("FALSE")
+  ) mmcm_cpu_clk (
+`else
   MMCME2_BASE #(
     .BANDWIDTH        ("OPTIMIZED"),
     .CLKFBOUT_MULT_F  (10.0),   // VCO = 100 * 10 = 1000 MHz
@@ -327,6 +346,7 @@ module ND120_TOP
     .DIVCLK_DIVIDE    (1),
     .STARTUP_WAIT     ("FALSE")
   ) mmcm_cpu_clk (
+`endif
     .CLKIN1   (sysclk),
     .CLKFBIN  (clkfb_in),
     .CLKFBOUT (clkfb_out),

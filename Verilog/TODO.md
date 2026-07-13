@@ -185,10 +185,19 @@ UART/RTC counts derived from it, per the OPCOM speed fix).
 
 ### CMOD A7-35T target (Digilent)
 
-> Board folder created 2026-07-08: `fpga/cmod-a7-35t/` (README + plan live
-> there now; this entry is the origin note). **Downgraded to research-only
-> the same day:** at ~1039 NOK it is too expensive and less functional than
-> the Tang Nano 20K - no purchase planned.
+> **ACTIVE since 13-JUL-2026 - the owner has the board.** First-version
+> build files landed in `fpga/cmod-a7-35t/` (BRAM main memory, CPU at
+> 27 MHz via the TARGET_CMOD_A7 MMCM branch, self-contained build.tcl +
+> Makefile, SD-Pmod wiring documented incl. the 3.3V/VU voltage rules).
+> **TODO: the pack16 SRAM bridge** - 512 KB / 256K-word main memory,
+> full detailed plan in `fpga/cmod-a7-35t/SRAM-BRIDGE-PLAN.md` (the old
+> 4-byte-access idea is INVALID per
+> `docs/basys3-memory-speed-validation.md`; pack16 is mandatory,
+> <= 33 MHz validated, est. 2-4 days).
+>
+> (Origin note, superseded: board folder created 2026-07-08; downgraded
+> to research-only the same day on price - the owner has since acquired
+> one.)
 
 Same `xc7a35t-1cpg236` die as Basys3 in a DIP module: 20,800 LUT, 225 KB
 BRAM, **512 KB external SRAM (8-bit bus, 8 ns)**, 4 MB QSPI, USB-JTAG/UART,

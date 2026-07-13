@@ -4,15 +4,99 @@
 
 ## Status
 
-**Research/reference board only - not a purchase or porting priority.**
-At 1039 NOK it is too expensive and less functional than the Tang Nano 20K,
-which is the project's value-for-money and capability benchmark (8 MB SDRAM,
-onboard microSD, USB-JTAG/UART, HDMI - at **under 300 NOK**, less than a
-third of the Cmod's price). This
-folder exists to keep the research (docs, pin map, backend plan) in one
-place in case the board is ever picked up; no build files, no hardware,
-no timeline. Board docs live with the board, not in `Verilog/docs/`.
-Original capture: `Verilog/TODO.md` ("Future boards / peripherals").
+**ACTIVE since 13-JUL-2026 - the owner has the board.** First-version build
+files are in this directory (BRAM main memory, CPU at 27 MHz = the Tang
+Nano 20K's full CPU speed; see "First build" below). The 512 KB SRAM
+main-memory upgrade is specified in
+[`SRAM-BRIDGE-PLAN.md`](SRAM-BRIDGE-PLAN.md) (pack16, <= 33 MHz validated -
+see `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/basys3-memory-speed-validation.md`).
+Board docs live with the board, not in `Verilog/docs/`.
+
+## First build: ND-120 CPU on BRAM at 27 MHz
+
+Same configuration as the Basys3 build (FPGA_FF_MODE, MAIN_RAM_BLOCKRAM,
+runtime WCS load from the PROM images) but self-contained (no Vivado GUI
+project) and clocked at 27 MHz:
+
+```
+cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\cmod-a7-35t
+vivado -mode batch -source build.tcl                  # build + JTAG program
+vivado -mode batch -source build.tcl -tclargs -noburn # build only
+```
+(or `make` / `make build` from WSL - Vivado path in the Makefile.)
+
+- **Clocking - how 27 MHz comes from the 12 MHz crystal:** the
+  `TARGET_CMOD_A7` branch in
+  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND120_TOP.v` sets the MMCM to
+  VCO = 12 x 63 = 756 MHz (inside the 600-1200 MHz range), clk_cpu =
+  756 / 28 = **27.000 MHz exactly** - so `BOARD_CLK_FREQ=27000000` and
+  every UART/RTC count matches the Tang. (A PLL cannot be used - its
+  minimum input is 19 MHz; the MMCM goes down to 10 MHz.) If 27 MHz does
+  not close timing, build.tcl fails loudly on negative WNS; fallback is
+  `-verilog_define ND120_CMOD_MMCM_DIV=56.0` = 13.5 MHz (halved, still
+  faster than nothing - and change BOARD_CLK_FREQ to 13500000 to match).
+- Console: FT2232 COM port, **115200 8N1** (same as the Basys3 build).
+- Buttons: BTN0 = reset. LEDs: LD0 = error/halt, LD1 = running; RGB
+  (50% PWM per the manual's brightness warning): red = not-running,
+  green = reset released, blue = UART TX.
+- Main memory: BRAM, Basys3-equivalent default (3 banks x 4K words =
+  24 KB). Raising it toward the 32-64K-word ceiling = `BANK_ADDR_BITS`
+  in `MEM_RAM_49_BLOCKRAM.v` (+ `SKIP_WCS_LOAD` for the top of the range) -
+  see the capacity math in
+  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/basys3-memory-speed-validation.md`
+  section 4.1.
+
+## SD-card Pmod on the single Pmod connector (JA)
+
+The Digilent SD Pmods (Pmod MicroSD / Pmod SD - same mapping) plug
+straight into JA. Wiring (Pmod pin -> JA pin -> FPGA pin, from
+`Cmod-A7-Master.xdc`):
+
+| Pmod pin | Signal | FPGA pin |
+|---|---|---|
+| 1 | ~CS / DAT3 | G17 |
+| 2 | MOSI / CMD | G19 |
+| 3 | MISO / DAT0 | N18 |
+| 4 | SCK | L18 |
+| 5, 11 | GND | - |
+| 6, 12 | VCC = **3.3 V from the Pmod header** | - |
+| 7 | DAT1 | H17 |
+| 8 | DAT2 | H19 |
+| 9 | CD (card detect) | J19 (optional, unused by the stack) |
+| 10 | (WP / NC) | K18 (unused) |
+
+**Voltage rules (do not skip):**
+
+- The Pmod header's VCC pins supply **3.3 V** - correct for SD cards and
+  both Digilent SD Pmods. Power the module ONLY from the Pmod header.
+- **Never power the SD module from VU (DIP pin 24)** - VU is driven to
+  ~5 V when USB is attached. SD cards are 3.3 V devices and the Cmod's
+  FPGA pins are NOT 5 V tolerant.
+- Note the reference-manual figure: VU's minimum rises with Pmod 3V3
+  load (3.38 V @ 100 mA, 3.48 V @ 250 mA drawn from the Pmod header) -
+  an SD card's ~100 mA is within budget on USB power.
+- In the XDC, enable internal pull-ups on CMD/DAT0-3 (`PULLUP true`) -
+  the stack needs released lines idling high (DAT3 high at CMD0 keeps
+  the card out of SPI mode); the Pmod module's own pull-ups are not
+  guaranteed. Same reasoning as the Basys3 port
+  (`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/basys3/sd-fat-test/`),
+  which is also the wrapper template for a Cmod SD test build (swap the
+  MMCM input for 12 MHz, pins from the table above).
+
+## TODO: 512 KB SRAM main memory (pack16 bridge)
+
+Full detailed plan: [`SRAM-BRIDGE-PLAN.md`](SRAM-BRIDGE-PLAN.md) - the
+sheet-49 backend design (`MAIN_RAM_SRAM`), cycle-by-cycle timing at
+27 MHz, the mandatory pack16 shape (the recorded 4-byte-access idea is
+invalidated at any frequency), testbench and acceptance gates. Estimated
+2-4 days. Upgrades main memory from ~24 KB BRAM to **256K words (512 KB)**
+and frees BRAM.
+
+Original research capture below (kept for reference):
+
+**Historical note (superseded 13-JUL-2026):** this board was originally
+downgraded to research-only vs the Tang Nano 20K on price/function; the
+owner has since acquired one, so the port is live.
 
 ## Why this board
 
