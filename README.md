@@ -15,15 +15,32 @@ On the way to the FPGA code, there will be testable Logisim Circuits and Logisim
 
 ## Current Status
 
-**Simulation Results:**
-- Microcode loads successfully (64KB ROM)
-- Master Clear (MACL) executes
-- CPU self-test: **7 out of 14 tests passing**
-- UART communication operational
-- OPCOM (operator communication) functional
+**Simulation (Verilator, the golden reference):**
+- Microcode loads, Master Clear executes, CPU self-test runs
+  (7 of 14 subtests passing - the remaining failures are CPU-core
+  suspects, proven unrelated to memory parity: see
+  `Verilog/docs/nd120-parity-analysis.md`)
+- OPCOM console works; `INSTRUCTION-B` loads and runs from the Verilog
+  papertape device; DMA bus mastering against the real arbiter
+- Golden-console and latch-vs-FF regression gates keep it all pinned
 
-**FPGA Status:**
-- Synthesis passes, implementation requires optimization
+**FPGA hardware:**
+- **Basys3**: OPCOM boots on the board (tag `fpga-opcom-working-basys3`);
+  active debug line at 16.67 MHz
+- **Tang Nano 20K**: full CPU bitstream with **4 MB SDRAM main memory**
+  (packed 16-bit storage, computed parity - `ND_SDRAM_PACK16`), the other
+  4 MB reserved for the SD disk-image cache; SD/FAT stack proven on
+  hardware (read + write, safety-gated)
+- **Dual toolchain**: the Tang builds with the OSS CAD Suite
+  (yosys/nextpnr, primary) and Gowin EDA (backup) - all clock variants;
+  nextpnr closes the full 27/54 MHz target with >2x margin
+  (`Verilog/docs/tang20k-build-flows.md`)
+- **Cmod A7-35T**: first build ready (BRAM memory, CPU at 27 MHz);
+  512 KB SRAM main-memory bridge planned
+  (`Verilog/fpga/cmod-a7-35t/SRAM-BRIDGE-PLAN.md`)
+- Memory-backend speed rules for every board (what meets the no-wait-state
+  protocol at 40 MHz and what cannot):
+  `Verilog/docs/basys3-memory-speed-validation.md`
 
 ## Quick Start
 
@@ -71,6 +88,10 @@ Compressed history of the work progress:
 | 29. Januar 2025 | Verilator - Testprogram 'INSTRUCTION-B.BPUN' (204384B 83.11.01) loads and starts. 7 out of 14 tests succeed. |
 | 22. Mars 2025 | Verilator & C++ - Interface with ND BUS via BIF module to C connector. Added support for Papertape reader and Floppy PIO written in C++ |
 | 1. June 2025 | Reverse engineered the ROM chips for the panel controller's with help of Ghidra and Claude.AI |
+| 7. July 2026 | OPCOM boots on Basys3 hardware (tag `fpga-opcom-working-basys3`); FF-mode clock architecture fixes |
+| 11. July 2026 | SD/FAT stack proven on Tang Nano 20K hardware (read+write); microcode analysis proves the self-test never touches memory parity -> packed 16-bit SDRAM storage (`ND_SDRAM_PACK16`): CPU keeps 4 MB, 4 MB freed for the disk cache |
+| 12. July 2026 | Dual-toolchain Tang builds: OSS CAD Suite (yosys/nextpnr) primary, Gowin EDA backup; nextpnr closes the full 27/54 MHz clock target with >2x margin |
+| 13. July 2026 | Basys3 SD-Pmod port; memory-backend speed validation vs the no-wait-state protocol for every board; Cmod A7-35T activated (first 27 MHz BRAM build + SRAM bridge plan) |
 
 ## Design documents
 
@@ -123,11 +144,15 @@ The Logisim diagrams has been drawn with [Version 3.8.0](https://github.com/logi
 The project targets several FPGA boards, each with its own folder of build
 scripts, pin constraints, vendor documentation and bring-up plans under
 [Verilog/fpga/](Verilog/fpga/README.md). Current line-up: **Tang Nano 20K**
-(primary target, Gowin), **Basys3** (Xilinx Artix-7, active debugging line),
-**QMTECH XC7A35T** (paused side experiment, Artix-7 + 32 MB SDRAM),
-**MiSTer / DE10-Nano** (future full-machine target) and **Cmod A7-35T**
-(research only). See [Verilog/fpga/README.md](Verilog/fpga/README.md) for
-the status table, priority order and per-board details.
+(primary target - 4 MB SDRAM main memory, SD storage, dual toolchain:
+OSS yosys/nextpnr primary + Gowin EDA backup), **Basys3** (Xilinx Artix-7,
+active debugging line; SD-card Pmod test build included), **Cmod A7-35T**
+(active - first 27 MHz BRAM build ready, 512 KB SRAM bridge planned),
+**QMTECH XC7A35T** (paused side experiment, Artix-7 + 32 MB SDRAM - its
+40 MHz memory plan is validated on paper) and **MiSTer / DE10-Nano**
+(future full-machine target). See
+[Verilog/fpga/README.md](Verilog/fpga/README.md) for the status table,
+priority order and per-board details.
 
 ### Verilog
 
