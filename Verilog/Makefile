@@ -182,12 +182,16 @@ test-dma-xcheck:
 # (tests/instruction-verify/README.md). Heavy (~15-25 min sim per area).
 #
 # Validated areas (golden trace delivered by the ND-110 side AND passing the
-# architectural gate). The ND-110 side has NOT yet delivered content for
-# 32-BITS-FLOATING, PRIVILEGED, ND100-24BIT, BCD, ND100-CX (0-macro golden
-# files) or RUN - add them here once their traces arrive and pass.
+# architectural gate). 13 of 15 areas; the two missing:
+#  - 48-BITS-FLOATING is N/A on this machine - the DELILAH PROM microcode
+#    implements the 32-bit float option (docs/48bit-float-not-configured.md).
+#    Its golden gate (first-400 window) happens to pass because the window
+#    ends before the float instructions run, but the deep area can never
+#    pass; 32-BITS-FLOATING is the float gate here.
+#  - RUN needs level-12/14 stress-interrupt device models in runSim first.
 INSTR_AREAS = ARGUMENT STACK BYTE-STRING MEMORY-REFERENCE SEQUENCE \
               REGISTER-OPERATIONS BIT-OPERATIONS SHIFT-INSTRUCTIONS \
-              48-BITS-FLOATING
+              32-BITS-FLOATING BCD ND100-24BIT ND100-CX PRIVILEGED
 
 # `make test-instr-<AREA>` runs one area; `make test-instr` runs the full
 # validated sweep (~1.5h). test-full runs only ARGUMENT as a smoke gate.
