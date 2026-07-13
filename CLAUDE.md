@@ -112,9 +112,46 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
 
 ## Status & known issues
 
-- Verilator: microcode load + Master Clear run; CPU self-test currently passes **7 of 14** tests. OPCOM UART works.
-- FPGA: synthesis passes, implementation/boot does not yet work (latch→FF and RAM issues are the leading suspects).
-- Live task list: `Verilog/TODO.md` (high-priority items include `CPU_15` IDB/MMU validation and `AM29833A` parity). Historical latch-refactor notes: `Verilog/verilog-remove-latch.md`, `Verilog/worklog-latch-refactor.md`.
+> Last verified: 13-JUL-2026. State only what is measured here — this section
+> is what other people (and other agents) read first, so stale claims here
+> propagate as fact.
+
+**Verilator (the working reference)**
+
+- Microcode load + Master Clear run; OPCOM UART works.
+- **CPU self-test passes clean: 0 execution-phase STERR visits.** (The old
+  "7 of 14" claim was stale; measured with the `ND120_COUNT_STERR` probe in
+  `runSim/Run120.cpp`. Careful: the WCS loader walks past the STERR address
+  once during loading — only execution-phase visits count.)
+- **Instruction validation: 13 of 13 testable INSTRUCTION-B areas pass**, on
+  both layers (each area's own `== END OF TEST ==` with zero error lines, and
+  the 400-instruction golden-trace gate vs the ND-110 reference). Matrix:
+  `Verilog/tests/instruction-verify/CAMPAIGN-STATUS.md`; run with
+  `make test-instr`.
+  - `48-BITS-FLOATING` is **N/A**: our PROM microcode implements the 32-bit
+    float option (`Verilog/docs/48bit-float-not-configured.md`).
+  - `RUN` is the one area that does **not** pass — it livelocks at level 14
+    because the interrupt controller's Am2914 status fence was never wired
+    correctly (`Verilog/docs/RUN-level14-livelock-analysis.md`). Fix is
+    in-tree behind `ND120_INTR_STATUS_FENCE`, currently **default OFF**.
+- Unit suite: 48/48 green (`make test`), except a pre-existing `test-memchain`
+  failure belonging to the memory/device workstream (see `Verilog/TODO.md`).
+- CPU bugs found and fixed by the campaign (both were single-input
+  transcription errors from the schematics, both have Logisim regeneration
+  hazards listed in `Verilog/TODO.md`): `CGA_ALU_QREG` (every MPY product's
+  low word was 0) and `CGA_CPU_ALU_CONTR` (all ROT/ZIN-right/LIN shifts ran as
+  plain shifts).
+
+**FPGA**
+
+- Synthesis passes; **CPU boot on FPGA still does not work** — this remains
+  the open problem, and it is what the `clock-enable-fix` branch is about
+  (latch→FF conversion of the unconstrained register-as-clock domains).
+- Proven on real silicon (Tang Nano 20K): the SDRAM controller, and the
+  SD/FAT stack incl. 4-bit-bus transfers. Those are subsystems, not a CPU boot.
+
+- Live task list: `Verilog/TODO.md`. Historical latch-refactor notes:
+  `Verilog/verilog-remove-latch.md`, `Verilog/worklog-latch-refactor.md`.
 
 ## Files to reference
 
