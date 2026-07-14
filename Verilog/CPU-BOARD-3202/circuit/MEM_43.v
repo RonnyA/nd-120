@@ -85,6 +85,22 @@ module MEM_43 (
     output [ 3:0] O_sdram_dqm,
     // Write-path debug: raw signal bus for the on-chip capture (see top)
     output [15:0] DBG_MEMW
+`ifdef ND_STORAGE_PORT
+    // nd_storage device port, passed straight down to MEM_RAM_49_SDRAM (which
+    // forces the leading address 1, so device traffic physically cannot reach
+    // the CPU's half of the chip). stor_clk is its OWN domain - the backend
+    // toggle-CDCs it into clk2x. See MEM_RAM_49_SDRAM.v section 5.2.
+    ,
+    input  wire        stor_clk,
+    input  wire        stor_rst_n,
+    input  wire        mem_start,
+    input  wire        mem_we,
+    input  wire [19:0] mem_addr,
+    input  wire [31:0] mem_wdata,
+    output wire [31:0] mem_rdata,
+    output wire        mem_busy,
+    output wire        mem_done
+`endif
 `endif
 );
 
@@ -484,6 +500,18 @@ module MEM_43 (
       .O_sdram_addr(O_sdram_addr),
       .O_sdram_ba(O_sdram_ba),
       .O_sdram_dqm(O_sdram_dqm)
+`ifdef ND_STORAGE_PORT
+      ,
+      .stor_clk  (stor_clk),
+      .stor_rst_n(stor_rst_n),
+      .mem_start (mem_start),
+      .mem_we    (mem_we),
+      .mem_addr  (mem_addr),
+      .mem_wdata (mem_wdata),
+      .mem_rdata (mem_rdata),
+      .mem_busy  (mem_busy),
+      .mem_done  (mem_done)
+`endif
   );
 `elsif MAIN_RAM_BLOCKRAM
   // FPGA block-RAM backend: one clean synchronous BRAM instead of the six

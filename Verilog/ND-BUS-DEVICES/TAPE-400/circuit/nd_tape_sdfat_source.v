@@ -75,6 +75,7 @@ module nd_tape_sdfat_source #(
   wire [N*10-1:0] buf_addr_w;
 
   // client 0 <-> tape adapter
+  wire        a_open_ok, a_open_err;
   wire        a_open_req, a_req, a_wr, a_busy, a_done, a_err;
   wire [31:0] a_size_bytes;
   wire [15:0] a_block, a_buf_wdata, a_buf_rdata;
@@ -98,7 +99,6 @@ module nd_tape_sdfat_source #(
   assign a_buf_addr   = buf_addr_w[9:0];
   assign a_buf_wdata  = buf_wdata_w[15:0];
   assign a_buf_we     = buf_we_w[0];
-  wire   a_open_ok, a_open_err;
 
   // ---- one-shot open sequencer (clk_cpu domain) ----
   // FIXED 14-JUL-2026 (first time this module was ever instantiated): the

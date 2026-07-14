@@ -26,6 +26,15 @@ module ND120_TANG20K_TOP (
 
     output wire [5:0] led,  //! 6 board LEDs, ACTIVE LOW (pins 15-20)
 
+    // microSD slot (SD-native mode). Pin map and PULL_MODE come from the
+    // silicon-proven sd-fat-test/src/nano20k_sd.cst - the slot has external
+    // 10K pull-ups (R53-R57), so released lines idle high. Only CMD and DAT0
+    // are used: the storage reader is 1-bit (the 4-bit writer is not built in
+    // this design), so DAT1-3 are not brought out at all.
+    output wire sd_clk,
+    inout  wire sd_cmd,   //! bidirectional: host commands / card responses
+    inout  wire sd_dat0,  //! bidirectional: card read data
+
     // Embedded SDRAM ("magic" port names - Gowin EDA connects these to the
     // on-package SDRAM die automatically; the OSS flow pins them in a cst)
     output        O_sdram_clk,
@@ -155,13 +164,9 @@ module ND120_TANG20K_TOP (
   // [7] = wdec (F924 A160 D3 decode input), [6] = WRITE (registered out).
   wire [15:0] s_dbg_memw;
   wire dbg_dumping;
-  reg wdec_seen, write_seen;         // sticky since arm
-  assign led[0] = ~s_dbg_memw[6];    // ON = WRITE high right now
-  assign led[1] = ~write_seen;       // ON = WRITE asserted at least once since arm
-  assign led[2] = ~wdec_seen;        // ON = write DECODE fired at least once since arm
-  assign led[3] = ~dbg_dumping;      // ON = trigger hit, dump ran (new-build marker)
-  assign led[4] = ~s_cpu_led[2];     // parity error indicator
-  assign led[5] = clockTicks[24];    // heartbeat ~0.8 Hz (clock alive)
+  reg wdec_seen, write_seen;         // sticky since arm (write-path analyzer)
+  // The LED assignments live further down, AFTER the storage block declares
+  // the signals they show - see "STORAGE BRING-UP LED SET".
 
   /**********************************************
   *  The CPU board                              *
@@ -284,20 +289,158 @@ module ND120_TANG20K_TOP (
   assign uart_txp = cpu_txd;
 `endif
 
-  // Phase 1 of the ND120_CORE extraction (14-JUL-2026): device-LESS core,
-  // i.e. exactly the previous Tang behaviour (this board never had the
-  // ND-BUS device chain). The C-PLUG bus is tied off above and the storage
-  // seam is unused. Phase 2 (separate change) turns INCLUDE_TAPE on and
-  // hangs nd_tape_sdfat_source off TAPE_BYTE_* to boot from the real SD card.
+  // Phase 2 of the ND120_CORE extraction (14-JUL-2026): the core now carries
+  // the ND-BUS tape device (INCLUDE_TAPE=1) and nd_tape_sdfat_source hangs off
+  // the TAPE_BYTE_* seam, so '400$' at the console boots BOOT.BPUN off the real
+  // SD card - the same RTL proven in the runSim harness against a simulated
+  // card. Floppy and SMD stay out until their phases (they need the sync-read
+  // buffer refactor first - see BSRAM-BUDGET.md).
   //
   // installation_number, the s_high/s_low helpers, OC_1_0, SEL_TESTMUX and
   // the baud-rate switch now live INSIDE ND120_CORE (CPU-board constants),
   // so this board no longer declares them.
 
-  // Storage seam: unused on the device-less core. Inputs tied inactive,
-  // outputs left unread.
-  wire        TAPE_BYTE_REQ;
-  wire        TAPE_REWIND;
+  /**********************************************
+  *  Storage: BOOT.BPUN off the SD card         *
+  ***********************************************/
+  // Clock choice - deliberate, do not "simplify" to clk_cpu/clk2x:
+  // sd_file_reader's identification clock is a HARDCODED divide (INIT_HALF=99,
+  // sd_file_reader.v:124), i.e. clk/198. The SD spec requires 100-400 kHz for
+  // card identification, so ONLY the 27 MHz crystal is legal:
+  //     27.00 MHz -> 136.4 kHz  OK   (and what sd-fat-test proved on silicon)
+  //     13.50 MHz ->  68.2 kHz  OUT OF SPEC
+  //      6.75 MHz ->  34.1 kHz  OUT OF SPEC
+  // Running the stack from sys_clk also keeps the card at one fixed speed for
+  // every VARIANT (slow/crawl/full only move the CPU). The SDRAM device port
+  // is built for exactly this: stor_clk is its own domain, toggle-CDC'd into
+  // clk2x inside MEM_RAM_49_SDRAM.
+  wire clk_stor = sys_clk;
+
+  // sys_rst_n is generated in the clk_cpu domain; 2-FF synchronize its release
+  // into the storage domain (async assert, synchronous deassert).
+  reg stor_rst_r1, stor_rst_r2;
+  always @(posedge clk_stor or negedge sys_rst_n)
+    if (!sys_rst_n) begin
+      stor_rst_r1 <= 1'b0;
+      stor_rst_r2 <= 1'b0;
+    end else begin
+      stor_rst_r1 <= 1'b1;
+      stor_rst_r2 <= stor_rst_r1;
+    end
+  wire rst_stor_n = stor_rst_r2;
+
+  wire        TAPE_BYTE_REQ, TAPE_REWIND;
+  wire        s_tape_byte_valid;
+  wire [7:0]  s_tape_byte_data;
+
+  wire        s_sd_clk_o;
+  wire        s_sd_cmd_o, s_sd_cmd_oe;
+  wire        s_sd_dat0_o, s_sd_dat0_oe;
+  wire [ 1:0] s_sd_status;
+
+  // SDRAM device port (clk_stor domain) into MEM_RAM_49_SDRAM's upper half
+  wire        s_mem_start, s_mem_we;
+  wire [19:0] s_mem_addr;
+  wire [31:0] s_mem_wdata, s_mem_rdata;
+  wire        s_mem_busy, s_mem_done;
+
+  nd_tape_sdfat_source #(
+      .SIMULATE(0)  // real card: full-length SD init
+  ) TAPE_SDFAT_SOURCE (
+      .clk_stor  (clk_stor),
+      .rst_stor_n(rst_stor_n),
+      .clk_cpu   (clk_cpu),
+      .rst_cpu_n (sys_rst_n),
+
+      .byte_req     (TAPE_BYTE_REQ),
+      .byte_valid   (s_tape_byte_valid),
+      .byte_data    (s_tape_byte_data),
+      .source_rewind(TAPE_REWIND),
+
+      .sd_clk_o  (s_sd_clk_o),
+      .sd_cmd_i  (sd_cmd),
+      .sd_cmd_o  (s_sd_cmd_o),
+      .sd_cmd_oe (s_sd_cmd_oe),
+      .sd_dat0_i (sd_dat0),
+      .sd_dat0_o (s_sd_dat0_o),
+      .sd_dat0_oe(s_sd_dat0_oe),
+
+      .mem_start(s_mem_start),
+      .mem_we   (s_mem_we),
+      .mem_addr (s_mem_addr),
+      .mem_wdata(s_mem_wdata),
+      .mem_rdata(s_mem_rdata),
+      .mem_busy (s_mem_busy),
+      .mem_done (s_mem_done),
+
+      .sd_status(s_sd_status)
+  );
+
+  /**********************************************
+  *  SD pads - the ONLY tristates (repo rule)   *
+  ***********************************************/
+  // Single-ternary form  oe ? val : 1'bz  is mandatory: it is the only idiom
+  // yosys maps to a real IOBUF. A 'z' in an INNER ternary branch silently
+  // collapses to a plain driver and shorts the bus - the silicon-only bug
+  // documented in sd-fat-test/src/sd_fat_test_top.v. Verified by 'make check'
+  // (check_tristate.py) below. DAT1-3 are not driven at all; the slot's
+  // external 10K pull-ups hold them high, which is what keeps the card out of
+  // SPI mode at CMD0.
+  assign sd_clk  = s_sd_clk_o;
+  assign sd_cmd  = s_sd_cmd_oe  ? s_sd_cmd_o  : 1'bz;
+  assign sd_dat0 = s_sd_dat0_oe ? s_sd_dat0_o : 1'bz;
+
+  /**********************************************
+  *  STORAGE BRING-UP LED SET (ACTIVE LOW)      *
+  ***********************************************/
+  // The board's only window into the SD stack. It answers "did the card
+  // mount?" and "did the CPU ever ask the tape for a byte?" SEPARATELY, so a
+  // silent console can be attributed to the CPU or to storage instead of
+  // guessed at.
+  //
+  //   led[5] heartbeat ~0.8 Hz        - clk_cpu alive at all
+  //   led[4] sd_status[1]  \  00 = NOTCHK (the mount never ran)  01 = NOCARD
+  //   led[3] sd_status[0]  /  10 = ERROR (mount/FAT failed)      11 = OK
+  //   led[2] a tape byte was served   - the SD->tape path delivered data
+  //   led[1] the SD clock has toggled - the card is being talked to at all
+  //   led[0] the CPU asked the tape for a byte - '400$' reached ND_TAPE_400
+  //
+  // Reading it: led[4] AND led[3] both lit = the whole SD-FAT chain works
+  // (card init, FAT walk, BOOT.BPUN located and preloaded into the SDRAM
+  // region). led[0] dark after typing 400$ = the CPU never drove the device,
+  // i.e. a CPU/bus problem and NOT a storage one.
+  //
+  // sd_status is a clk_stor signal sampled into clk_cpu here with no CDC: it
+  // drives an LED for a human eye, where a torn sample is unobservable.
+  // The write-path analyzer keeps its stickies (still live behind
+  // TANG_WRITE_ANALYZER_DUMP) - they just no longer own the LEDs.
+  reg s_tape_byte_seen, s_tape_req_seen, s_sdclk_seen, s_sdclk_d;
+  always @(posedge clk_cpu or negedge sys_rst_n)
+    if (!sys_rst_n) begin
+      s_tape_byte_seen <= 1'b0;
+      s_tape_req_seen  <= 1'b0;
+      s_sdclk_seen     <= 1'b0;
+      s_sdclk_d        <= 1'b0;
+    end else begin
+      s_sdclk_d <= s_sd_clk_o;
+      if (s_tape_byte_valid)       s_tape_byte_seen <= 1'b1;
+      if (TAPE_BYTE_REQ)           s_tape_req_seen  <= 1'b1;
+      if (s_sd_clk_o != s_sdclk_d) s_sdclk_seen     <= 1'b1;
+    end
+
+  assign led[0] = ~s_tape_req_seen;   // ON = the CPU asked the tape for a byte
+  assign led[1] = ~s_sdclk_seen;      // ON = the SD clock has toggled
+  assign led[2] = ~s_tape_byte_seen;  // ON = a tape byte was actually served
+  assign led[3] = ~s_sd_status[0];    // sd_status low bit
+  assign led[4] = ~s_sd_status[1];    // sd_status high bit (both lit = OK)
+  assign led[5] = clockTicks[24];     // heartbeat ~0.8 Hz (clock alive)
+
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_analyzer_leds = &{1'b0, s_dbg_memw, dbg_dumping, wdec_seen,
+                                write_seen, s_cpu_led[2], 1'b0};
+  /* verilator lint_on UNUSEDSIGNAL */
+
+  // Unused seams: floppy and SMD stay out of this build (their phases).
   wire [15:0] DMA_RDATA;
   wire        DMA_ACK, DMA_ERR, DMA_BUSY;
   wire        FDISK_REQ, FDISK_WR;
@@ -312,7 +455,7 @@ module ND120_TANG20K_TOP (
   wire [15:0] SDBUF_RDATA;
 
   /* verilator lint_off UNUSEDSIGNAL */
-  wire unused_core_seam = &{1'b0, TAPE_BYTE_REQ, TAPE_REWIND, DMA_RDATA,
+  wire unused_core_seam = &{1'b0, DMA_RDATA,
                             DMA_ACK, DMA_ERR, DMA_BUSY, FDISK_REQ, FDISK_WR,
                             FDISK_LSECT, FDISK_FORMAT, FDISK_DRIVE,
                             FDISK_WORDCOUNT, FDBUF_RDATA, SDISK_START,
@@ -322,7 +465,7 @@ module ND120_TANG20K_TOP (
   /* verilator lint_on UNUSEDSIGNAL */
 
   ND120_CORE #(
-      .INCLUDE_TAPE  (0),
+      .INCLUDE_TAPE  (1),
       .INCLUDE_FLOPPY(0),
       .INCLUDE_SMD   (0)
   ) CORE (
@@ -365,10 +508,10 @@ module ND120_TANG20K_TOP (
       .RXD(uart_rxp),
       .TXD(cpu_txd),
 
-      // Storage seam: unused (device-less core)
+      // Storage seam: the tape reads BOOT.BPUN off the SD card
       .TAPE_BYTE_REQ(TAPE_BYTE_REQ),
-      .TAPE_BYTE_VALID(1'b0),
-      .TAPE_BYTE_DATA(8'd0),
+      .TAPE_BYTE_VALID(s_tape_byte_valid),
+      .TAPE_BYTE_DATA(s_tape_byte_data),
       .TAPE_REWIND(TAPE_REWIND),
 
       .DMA_REQ(1'b0),
@@ -438,7 +581,18 @@ module ND120_TANG20K_TOP (
       .O_sdram_addr(O_sdram_addr),
       .O_sdram_ba(O_sdram_ba),
       .O_sdram_dqm(O_sdram_dqm),
-      .DBG_MEMW(s_dbg_memw)
+      .DBG_MEMW(s_dbg_memw),
+
+      // nd_storage device port -> MEM_RAM_49_SDRAM's upper-half region
+      .stor_clk  (clk_stor),
+      .stor_rst_n(rst_stor_n),
+      .mem_start (s_mem_start),
+      .mem_we    (s_mem_we),
+      .mem_addr  (s_mem_addr),
+      .mem_wdata (s_mem_wdata),
+      .mem_rdata (s_mem_rdata),
+      .mem_busy  (s_mem_busy),
+      .mem_done  (s_mem_done)
   );
 
 endmodule

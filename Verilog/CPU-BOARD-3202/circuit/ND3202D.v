@@ -169,6 +169,20 @@ module ND3202D (
     output [ 1:0] O_sdram_ba,
     output [ 3:0] O_sdram_dqm,
     output [15:0] DBG_MEMW  // write-path debug bus from MEM_43
+`ifdef ND_STORAGE_PORT
+    // nd_storage device port - straight through to MEM_43/MEM_RAM_49_SDRAM.
+    // stor_clk is its own domain (the backend toggle-CDCs it into clk2x).
+    ,
+    input  wire        stor_clk,
+    input  wire        stor_rst_n,
+    input  wire        mem_start,
+    input  wire        mem_we,
+    input  wire [19:0] mem_addr,
+    input  wire [31:0] mem_wdata,
+    output wire [31:0] mem_rdata,
+    output wire        mem_busy,
+    output wire        mem_done
+`endif
 `endif
 );
 
@@ -977,6 +991,17 @@ TODO: Sort bits on output LED to match led numbering
       .O_sdram_ba(O_sdram_ba),
       .O_sdram_dqm(O_sdram_dqm),
       .DBG_MEMW(s_dbg_mem43),
+`ifdef ND_STORAGE_PORT
+      .stor_clk  (stor_clk),
+      .stor_rst_n(stor_rst_n),
+      .mem_start (mem_start),
+      .mem_we    (mem_we),
+      .mem_addr  (mem_addr),
+      .mem_wdata (mem_wdata),
+      .mem_rdata (mem_rdata),
+      .mem_busy  (mem_busy),
+      .mem_done  (mem_done),
+`endif
 `endif
 
       // INPUTS

@@ -184,6 +184,30 @@ module ND120_CORE #(
     output wire [ 1:0] O_sdram_ba,
     output wire [ 3:0] O_sdram_dqm,
     output wire [15:0] DBG_MEMW      //! write-path debug bus from MEM_43
+`ifdef ND_STORAGE_PORT
+    /***************************************************
+     *  (c) STORAGE seam into the SDRAM device port     *
+     *  The board's storage stack (nd_tape_sdfat_source)*
+     *  reaches MEM_RAM_49_SDRAM's upper-half region     *
+     *  through here. The backend forces the leading     *
+     *  address 1, so device traffic physically cannot   *
+     *  touch the CPU's half of the chip.                *
+     *  stor_clk is an INDEPENDENT domain (the SD stack  *
+     *  needs 27 MHz for a spec-legal identification     *
+     *  clock, whatever VARIANT the CPU runs at); the    *
+     *  backend toggle-CDCs it into clk2x.               *
+     ***************************************************/
+    ,
+    input  wire        stor_clk,
+    input  wire        stor_rst_n,
+    input  wire        mem_start,
+    input  wire        mem_we,
+    input  wire [19:0] mem_addr,
+    input  wire [31:0] mem_wdata,
+    output wire [31:0] mem_rdata,
+    output wire        mem_busy,
+    output wire        mem_done
+`endif
 `endif
 );
 
@@ -744,6 +768,18 @@ module ND120_CORE #(
       .O_sdram_ba(O_sdram_ba),
       .O_sdram_dqm(O_sdram_dqm),
       .DBG_MEMW(DBG_MEMW)
+`ifdef ND_STORAGE_PORT
+      ,
+      .stor_clk  (stor_clk),
+      .stor_rst_n(stor_rst_n),
+      .mem_start (mem_start),
+      .mem_we    (mem_we),
+      .mem_addr  (mem_addr),
+      .mem_wdata (mem_wdata),
+      .mem_rdata (mem_rdata),
+      .mem_busy  (mem_busy),
+      .mem_done  (mem_done)
+`endif
 `endif
   );
 

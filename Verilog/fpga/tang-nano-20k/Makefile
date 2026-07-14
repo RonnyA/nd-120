@@ -29,6 +29,12 @@ ifneq ($(wildcard $(OSS_CAD)/bin),)
 export PATH := $(OSS_CAD)/bin:$(PATH)
 endif
 
+# bash for 'set -o pipefail' (the PnR rule needs it - see there); and
+# .DELETE_ON_ERROR so a failed recipe never leaves a half-written artifact
+# behind for the next run to mistake for a good one.
+SHELL := /bin/bash
+.DELETE_ON_ERROR:
+
 TOP    = ND120_TANG20K_TOP
 DEVICE = GW2AR-LV18QN88C8/I7
 FAMILY = GW2A-18C
@@ -51,6 +57,10 @@ endif
 # (src/tang20k_defines.v is first; yosys keeps `defines across a single
 # read_verilog file list, same as the Gowin ordered compilation unit).
 SRCS := $(shell grep -o '<File path="[^"]*"' $(GPRJ) | sed 's/<File path="//;s/"//' | grep '\.v$$')
+
+# The SD-FAT sources `include "sd_fat_features.vh" - give yosys the path.
+# (Gowin EDA resolves includes from the file list's own directories.)
+INCS = -I../../SD-FAT/circuit
 
 OSS_BASE  = $(BUILD)/nd120_tang20k_oss-$(VARIANT)
 FS_OSS    = $(OSS_BASE).fs
@@ -79,15 +89,21 @@ wcs-hex:
 # matches the GW2A default FF state, so nothing depends on the inits.
 $(OSS_BASE).json: $(SRCS) $(GPRJ) | $(BUILD)
 	$(MAKE) wcs-hex
-	yosys -l $(OSS_BASE)-synth.log -p "read_verilog $(VDEFS) $(SRCS); hierarchy -top $(TOP); proc; attrmap -remove init; synth_gowin -top $(TOP) -json $@"
+	yosys -l $(OSS_BASE)-synth.log -p "read_verilog $(INCS) $(VDEFS) $(SRCS); hierarchy -top $(TOP); proc; attrmap -remove init; synth_gowin -top $(TOP) -json $@"
 
 # package pins + SDRAM pseudo-pins (nextpnr does not auto-connect the
 # embedded SDRAM the way Gowin EDA does - same trick as sdram-test)
 $(BUILD)/oss.cst: src/nd120_tang20k.cst sdram-test/src/sdram_pins_oss.cst | $(BUILD)
 	cat $^ > $@
 
+# 'rm -f $@' + pipefail are LOAD-BEARING, do not drop them (14-JUL-2026):
+# nextpnr writes nothing when it fails, and `| tee` hides its exit status, so
+# the old `test -f $@` passed against a PREVIOUS run's file. A failed PnR then
+# reported success and `make load` flashed a stale bitstream - measured here as
+# a 2-day-old .fs presented as a fresh build.
 $(OSS_BASE)_pnr.json: $(OSS_BASE).json $(BUILD)/oss.cst
-	nextpnr-himbaechel --json $(OSS_BASE).json \
+	rm -f $@
+	set -o pipefail; nextpnr-himbaechel --json $(OSS_BASE).json \
 	    --write $@ \
 	    --device $(DEVICE) \
 	    --vopt family=$(FAMILY) \
@@ -104,10 +120,10 @@ $(FS_OSS): $(OSS_BASE)_pnr.json
 # 2. latch census: FPGA_FF_MODE builds must contain no inferred latches
 check: | $(BUILD)
 	$(MAKE) wcs-hex
-	yosys -q -p "read_verilog $(VDEFS) $(SRCS); hierarchy -top $(TOP); proc; opt -fast; tribuf; write_json $(BUILD)/tristate-$(VARIANT).json"
+	yosys -q -p "read_verilog $(INCS) $(VDEFS) $(SRCS); hierarchy -top $(TOP); proc; opt -fast; tribuf; write_json $(BUILD)/tristate-$(VARIANT).json"
 	python3 sd-fat-test/sim/check_tristate.py $(BUILD)/tristate-$(VARIANT).json $(TOP) IO_sdram_dq | tee $(BUILD)/tristate-$(VARIANT).log
 	@grep -q "TB_RESULT: PASS" $(BUILD)/tristate-$(VARIANT).log
-	yosys -q -p "read_verilog $(VDEFS) $(SRCS); hierarchy -top $(TOP); proc; opt -fast; select -assert-none t:\$$dlatch t:\$$dlatchsr; select -clear" \
+	yosys -q -p "read_verilog $(INCS) $(VDEFS) $(SRCS); hierarchy -top $(TOP); proc; opt -fast; select -assert-none t:\$$dlatch t:\$$dlatchsr; select -clear" \
 	  && echo "LATCH GATE: PASS (no inferred latches)" \
 	  || { echo "LATCH GATE: FAIL - inferred latches present"; exit 1; }
 

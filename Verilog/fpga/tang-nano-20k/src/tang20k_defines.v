@@ -34,6 +34,16 @@
 // MAIN_RAM_SDRAM; no effect on Verilator/Basys3 builds.
 `define ND_SDRAM_PACK16
 
+// nd_storage device port on the SDRAM backend (requires ND_SDRAM_PACK16):
+// a start/busy/done port in its own stor_clk domain that reads/writes whole
+// 32-bit locations at {1'b1, mem_addr} - the upper-half storage region ONLY,
+// the leading 1 is forced inside MEM_RAM_49_SDRAM so device traffic physically
+// cannot reach the CPU's memory. This is what nd_tape_sdfat_source uses to
+// stage BOOT.BPUN off the SD card for the '400$' tape boot.
+// Threaded ND120_TANG20K_TOP -> ND120_CORE -> ND3202D -> MEM_43 -> the backend.
+// tb: sdram-bridge/sim test-storage-port.
+`define ND_STORAGE_PORT
+
 // ---- Clock variant selection (slow / crawl / full) ----------------------
 // Slow bring-up clocking (G1): first Gowin build measured CPU-domain Fmax at
 // 9.38 MHz (31 levels) with derived-clock domains down to 4.7 MHz - the known
