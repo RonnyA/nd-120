@@ -115,17 +115,10 @@ module ND120_TANG20K_TOP (
   wire BDRY_n_IN = 1'b1;
   wire BAPR_n_IN = 1'b1;
 
-  // Installation number (read via IDB source 035)
-  wire [7:0] installation_number = 8'd123;
-
-  wire s_high = 1'b1;
-  wire s_low = 1'b0;
-
-  wire [2:0] s_SEL_TESTMUX = 3'b000;
-
-  // Baud rate thumbwheel: 8 = 9600 baud (BAUDV, microcode page 158).
-  // UART_BAUD_RATE in tang20k_defines.v must match.
-  wire [3:0] s_baud_rate_switch = 4'b1000;
+  // Installation number, the s_high/s_low helpers, SEL_TESTMUX and the baud
+  // rate thumbwheel (8 = 9600 baud, BAUDV microcode page 158) are CPU-board
+  // constants and now live inside ND120_CORE.v -- not duplicated per board.
+  // UART_BAUD_RATE in tang20k_defines.v must still match 9600.
 
   /**********************************************
   *  Status / debug wires                       *
@@ -291,30 +284,63 @@ module ND120_TANG20K_TOP (
   assign uart_txp = cpu_txd;
 `endif
 
-  ND3202D CPU_BOARD (
-      .sysclk(clk_cpu),  // CPU core, OSC and bus all on 27 MHz
+  // Phase 1 of the ND120_CORE extraction (14-JUL-2026): device-LESS core,
+  // i.e. exactly the previous Tang behaviour (this board never had the
+  // ND-BUS device chain). The C-PLUG bus is tied off above and the storage
+  // seam is unused. Phase 2 (separate change) turns INCLUDE_TAPE on and
+  // hangs nd_tape_sdfat_source off TAPE_BYTE_* to boot from the real SD card.
+  //
+  // installation_number, the s_high/s_low helpers, OC_1_0, SEL_TESTMUX and
+  // the baud-rate switch now live INSIDE ND120_CORE (CPU-board constants),
+  // so this board no longer declares them.
+
+  // Storage seam: unused on the device-less core. Inputs tied inactive,
+  // outputs left unread.
+  wire        TAPE_BYTE_REQ;
+  wire        TAPE_REWIND;
+  wire [15:0] DMA_RDATA;
+  wire        DMA_ACK, DMA_ERR, DMA_BUSY;
+  wire        FDISK_REQ, FDISK_WR;
+  wire [15:0] FDISK_LSECT;
+  wire [1:0]  FDISK_FORMAT, FDISK_DRIVE;
+  wire [10:0] FDISK_WORDCOUNT;
+  wire [15:0] FDBUF_RDATA;
+  wire        SDISK_START, SDISK_REQ, SDISK_WR;
+  wire [15:0] SDISK_BLKADDR1, SDISK_BLKADDR2;
+  wire [2:0]  SDISK_UNIT;
+  wire [10:0] SDISK_WORDCOUNT;
+  wire [15:0] SDBUF_RDATA;
+
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_core_seam = &{1'b0, TAPE_BYTE_REQ, TAPE_REWIND, DMA_RDATA,
+                            DMA_ACK, DMA_ERR, DMA_BUSY, FDISK_REQ, FDISK_WR,
+                            FDISK_LSECT, FDISK_FORMAT, FDISK_DRIVE,
+                            FDISK_WORDCOUNT, FDBUF_RDATA, SDISK_START,
+                            SDISK_REQ, SDISK_WR, SDISK_BLKADDR1,
+                            SDISK_BLKADDR2, SDISK_UNIT, SDISK_WORDCOUNT,
+                            SDBUF_RDATA, 1'b0};
+  /* verilator lint_on UNUSEDSIGNAL */
+
+  ND120_CORE #(
+      .INCLUDE_TAPE  (0),
+      .INCLUDE_FLOPPY(0),
+      .INCLUDE_SMD   (0)
+  ) CORE (
+      .clk_cpu(clk_cpu),  // CPU core, OSC and bus all on 27 MHz
       .sys_rst_n(sys_rst_n),
-      .CLOCK_1(clk_cpu),
-      .CLOCK_2(clk_cpu),
 
-      // C-PLUG inputs
-      .LOAD_n(s_high),
+      // C-PLUG bus: no external bus on this board (tied off above)
       .BREQ_n(BREQ_n),
-      .CONTINUE_n(s_high),
-      .STOP_n(s_high),
-
       .BINT10_n(BINT10_n),
       .BINT11_n(BINT11_n),
       .BINT12_n(BINT12_n),
       .BINT13_n(BINT13_n),
       .BINT15_n(BINT15_n),
-
       .POWSENSE_n(POWSENSE_n),
 
       .BD_23_0_n_IN(BD_23_0_n_IN),
       .BD_23_0_n_OUT(),
 
-      // Bidirectional bus signals (unused outputs left open)
       .SEMRQ_n_IN(SEMRQ_n_IN),
       .SEMRQ_n_OUT(),
       .BINPUT_n_IN(BINPUT_n_IN),
@@ -326,7 +352,6 @@ module ND120_TANG20K_TOP (
       .BAPR_n_IN(BAPR_n_IN),
       .BAPR_n_OUT(),
 
-      // CPU board -> C-PLUG (no external bus: open)
       .BREF_n(),
       .BERROR_n(),
       .BINACK_n(),
@@ -336,47 +361,59 @@ module ND120_TANG20K_TOP (
       .OUTIDENT_n(),
       .MCL(),
 
-      // B-PLUG
-      .INR_7_0(installation_number),
-      .EBUS(1'b1),
-      .SEL5MS_n(1'b1),
+      // UART console (BL616 USB serial)
+      .RXD(uart_rxp),
+      .TXD(cpu_txd),
 
-      .PIL(),
-      .LUA_12_0(),
-      .IDB_15_0(),
-      .CSCOMM_4_0(),
-      .MIS_1_0(),
-      .CD_15_0(),
-      .LBD_15_0(),
+      // Storage seam: unused (device-less core)
+      .TAPE_BYTE_REQ(TAPE_BYTE_REQ),
+      .TAPE_BYTE_VALID(1'b0),
+      .TAPE_BYTE_DATA(8'd0),
+      .TAPE_REWIND(TAPE_REWIND),
+
+      .DMA_REQ(1'b0),
+      .DMA_WR(1'b0),
+      .DMA_ADDR(24'd0),
+      .DMA_WDATA(16'd0),
+      .DMA_RDATA(DMA_RDATA),
+      .DMA_ACK(DMA_ACK),
+      .DMA_ERR(DMA_ERR),
+      .DMA_BUSY(DMA_BUSY),
+
+      .FDISK_REQ(FDISK_REQ),
+      .FDISK_WR(FDISK_WR),
+      .FDISK_LSECT(FDISK_LSECT),
+      .FDISK_FORMAT(FDISK_FORMAT),
+      .FDISK_DRIVE(FDISK_DRIVE),
+      .FDISK_WORDCOUNT(FDISK_WORDCOUNT),
+      .FDISK_DONE(1'b0),
+      .FDISK_ERR(1'b0),
+      .FDISK_MEDIA_FMT(4'd0),
+      .FDBUF_ADDR(10'd0),
+      .FDBUF_WDATA(16'd0),
+      .FDBUF_WE(1'b0),
+      .FDBUF_RDATA(FDBUF_RDATA),
+
+      .SDISK_START(SDISK_START),
+      .SDISK_REQ(SDISK_REQ),
+      .SDISK_WR(SDISK_WR),
+      .SDISK_BLKADDR1(SDISK_BLKADDR1),
+      .SDISK_BLKADDR2(SDISK_BLKADDR2),
+      .SDISK_UNIT(SDISK_UNIT),
+      .SDISK_WORDCOUNT(SDISK_WORDCOUNT),
+      .SDISK_DONE(1'b0),
+      .SDISK_ERR(1'b0),
+      .SDBUF_ADDR(10'd0),
+      .SDBUF_WDATA(16'd0),
+      .SDBUF_WE(1'b0),
+      .SDBUF_RDATA(SDBUF_RDATA),
+
+      // Debug / status
+      .LED(s_cpu_led[6:0]),
+      .RUN_n(s_run),
+      .CSA_12_0(CSA_12_0),
       .LA_23_10(s_debug_la_23_10),
       .CA_9_0(s_debug_ca_9_0),
-
-      // A-PLUG
-      .OSCCL_n(s_high),
-      .OC_1_0(2'b11),   // clock select = XTAL1 (full speed)
-      .XTR(s_low),
-      .LOCK_n(s_high),
-      .CONSOLE_n(s_high),
-      .SWMCL_n(s_high),
-      .EAUTO_n(s_high),
-      .RXD(uart_rxp),
-
-      .RUN_n(s_run),
-
-      .TXD(cpu_txd),
-      .DP_5_1_n(s_dp_5_1_n),
-
-      // Configuration switches
-      .SW1_CONSOLE(s_high),
-      .SEL_TESTMUX(s_SEL_TESTMUX),
-      .BAUD_RATE_SWITCH(s_baud_rate_switch),
-
-      // Outputs
-      .CSBITS(s_csbits),
-      .TEST_4_0(s_test_4_0),
-      .TP1_INTRQ_n(s_tp1_intrq_n),
-      .CSA_12_0(CSA_12_0),
-      .LED(s_cpu_led[6:0]),
       .DEBUG_CC_TERM(s_debug_cc_term),
       .DEBUG_MCLK(s_debug_mclk),
       .DEBUG_LCS_n(s_debug_lcs_n),

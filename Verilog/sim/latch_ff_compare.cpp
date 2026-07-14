@@ -101,10 +101,10 @@ int main(int argc, char **argv)
     VND120_TOP *top = new VND120_TOP;
 
     // Load microcode into RAM
-    auto &ram_low = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo;
-    auto &ram_low_9 = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo_p;
-    auto &ram_high = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi;
-    auto &ram_high_9 = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi_p;
+    auto &ram_low = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo;
+    auto &ram_low_9 = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo_p;
+    auto &ram_high = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi;
+    auto &ram_high_9 = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi_p;
 
     char *fname = strdup("INSTRUCTION-B.BPUN");
     loadfile(fname, 0, &ram_low[0], &ram_low_9[0], &ram_high[0], &ram_high_9[0]);
@@ -162,26 +162,26 @@ int main(int argc, char **argv)
                    "%d\n",
                 cnt,
                 (int)top->CSA_12_0,
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__s_term_n,
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__s_maclk,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_term_n,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_maclk,
                 0,  // MACLK placeholder (not separately accessible)
 
                 // Group 1: BIF PALs
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__BIF__DOT__DPATH__DOT__LDBCTL__DOT__PAL_44302_ULBC1__DOT__EMD,
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__BIF__DOT__DPATH__DOT__LDBCTL__DOT__PAL_44303_ULBC2__DOT__CBWRITE,
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__BIF__DOT__DPATH__DOT__LDBCTL__DOT__PAL_44303_ULBC2__DOT__CMWRITE,
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__BIF__DOT__DPATH__DOT__LDBCTL__DOT__PAL_44304_ULBC3__DOT__BACT_reg,
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__BIF__DOT__DPATH__DOT__LDBCTL__DOT__PAL_44304_ULBC3__DOT__EBADR_n_reg,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__BIF__DOT__DPATH__DOT__LDBCTL__DOT__PAL_44302_ULBC1__DOT__EMD,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__BIF__DOT__DPATH__DOT__LDBCTL__DOT__PAL_44303_ULBC2__DOT__CBWRITE,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__BIF__DOT__DPATH__DOT__LDBCTL__DOT__PAL_44303_ULBC2__DOT__CMWRITE,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__BIF__DOT__DPATH__DOT__LDBCTL__DOT__PAL_44304_ULBC3__DOT__BACT_reg,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__BIF__DOT__DPATH__DOT__LDBCTL__DOT__PAL_44304_ULBC3__DOT__EBADR_n_reg,
 
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__BIF__DOT__BCTL__DOT__PAL_44401_UBTIM__DOT__DAP,
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__BIF__DOT__BCTL__DOT__PAL_45001_UBPAR__DOT__BLOCK_reg,
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__BIF__DOT__BCTL__DOT__PAL_45001_UBPAR__DOT__RERR_reg,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__BIF__DOT__BCTL__DOT__PAL_44401_UBTIM__DOT__DAP,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__BIF__DOT__BCTL__DOT__PAL_45001_UBPAR__DOT__BLOCK_reg,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__BIF__DOT__BCTL__DOT__PAL_45001_UBPAR__DOT__RERR_reg,
 
                 // Group 2: Memory PALs
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__LBDIF__DOT__PAL_44310_ULBDIF__DOT__BDRY,
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__DATA__DOT__PAL_45008_UDATA__DOT__DISB_reg,
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__DATA__DOT__PAL_45008_UDATA__DOT__TST_reg,
-                (int)r.ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__ERROR__DOT__PAL_45009_UERROR__DOT__BLOCKL_reg,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__LBDIF__DOT__PAL_44310_ULBDIF__DOT__BDRY,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__DATA__DOT__PAL_45008_UDATA__DOT__DISB_reg,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__DATA__DOT__PAL_45008_UDATA__DOT__TST_reg,
+                (int)r.ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__ERROR__DOT__PAL_45009_UERROR__DOT__BLOCKL_reg,
 
                 // Progress indicator
                 (int)top->led

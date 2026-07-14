@@ -267,6 +267,7 @@
         <File path="../../Shared/support/TTL_74646.v" type="file.verilog" enable="1"/>
         <File path="../../Shared/support/TTL_74648.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_rpll_27_54.v" type="file.verilog" enable="1"/>
+        <File path="../../ND120_CORE.v" type="file.verilog" enable="1"/>
         <File path="src/ND120_TANG20K_TOP.v" type="file.verilog" enable="1"/>
         <File path="sdram-test/src/uart_tx.v" type="file.verilog" enable="1"/>
         <File path="sdram-bridge/MEM_RAM_49_SDRAM.v" type="file.verilog" enable="1"/>

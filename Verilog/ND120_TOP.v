@@ -192,12 +192,10 @@ module ND120_TOP
   wire MCL;
 `endif
 
-  // Installation number.
-  wire [7:0] installation_number = 8'd123;
+  // NOTE: installation_number, the s_high/s_low helpers, oc_select,
+  // SEL_TESTMUX and the baud-rate switch moved INTO ND120_CORE.v -- they are
+  // CPU-board constants, not board-level I/O.
 
-  // helpers
-  wire s_high= 1'b1;
-  wire s_low= 1'b0;
   wire sys_rst_n;
 `ifndef VERILATOR_SIM
   wire mmcm_locked;
@@ -206,13 +204,6 @@ module ND120_TOP
   // input signals
   wire clk1;  //! Clock Signal 1
   //wire clk2;  //! Clock Signal 2
-  wire [1:0] oc_select;
-
-  wire [2:0] s_SEL_TESTMUX;
-  assign s_SEL_TESTMUX = 2'b000;  // 00=TESTMUX=0
-
-  wire [3:0] s_baud_rate_switch;
-  assign s_baud_rate_switch = 4'b1000;  // 8=9600 baud (ref BAUDV page 158 in microcode)
 
   // output wire from CPU
 
@@ -259,10 +250,10 @@ module ND120_TOP
   //   CGA_ALU.v:  s_q_15_0 (Q reg), s_f_15_0 (F result)
   //   CGA.v:      s_zf (zero flag), s_cry (carry), s_cond (condition)
 
-  (* keep = "true", DONT_TOUCH = "true" *)  wire [4:0] s_test_4_0;  // Test pads
-  (* keep = "true", DONT_TOUCH = "true" *)  wire [4:0] s_dp_5_1_n;  // Datapath 5-1
-  (* keep = "true", DONT_TOUCH = "true" *)  wire s_tp1_intrq_n;     // TP1 INTRQ_n
-  (* keep = "true", DONT_TOUCH = "true" *)  wire [63:0] s_csbits;   // Microcode CPU BITS
+  // NOTE: s_test_4_0 / s_dp_5_1_n / s_tp1_intrq_n / s_csbits moved INTO
+  // ND120_CORE.v (they are CPU-board debug nets, not board I/O). Verilator
+  // hierarchical readers now reach s_csbits at
+  // ND120_TOP__DOT__CORE__DOT__s_csbits.
 
   reg [32:0] clockTicks;
 
@@ -361,7 +352,6 @@ module ND120_TOP
   assign clk1 = clk_cpu;  // CLOCK_1/CLOCK_2 (OSC/bus) run at CPU speed
 `endif
   //assign clk2 = sysclk;  // XTAL2 = 35 MHZ (for slow operations?)
-  assign oc_select = 2'b11;  // 11= Choose clock input = XTAL1 (full speed)
 
 `ifdef VERILATOR_SIM
   // Simulation: original 6-bit LED mapping (active low, matching Run120.cpp)
@@ -432,402 +422,171 @@ module ND120_TOP
 `endif
 
   /**********************************************
-  *  Verilog external-bus devices (optional)    *
-  *  ND-BUS-DEVICES: bus slave + papertape 400  *
-  *  Wired-AND onto the active-low bus inputs.  *
+  *  The board-independent ND-120 core          *
+  *  (ND3202D CPU board + the ND-BUS device     *
+  *  chain). Everything board-specific -- POR,  *
+  *  MMCM, LED map, 7-seg, heartbeat, and the   *
+  *  FPGA bus tie-offs above -- stays here.     *
+  *                                             *
+  *  The device chain is populated exactly as   *
+  *  the old `ifdef ND120_VERILOG_DEVICES did:  *
+  *  present for the sim harness, absent        *
+  *  otherwise.                                 *
   ***********************************************/
 
 `ifdef ND120_VERILOG_DEVICES
-`ifdef VERILATOR_SIM
-  wire s_dev_clk = sysclk;
+  localparam CORE_INCLUDE_TAPE   = 1;
+  localparam CORE_INCLUDE_FLOPPY = 1;
+  localparam CORE_INCLUDE_SMD    = 1;
 `else
-  wire s_dev_clk = clk1;
+  localparam CORE_INCLUDE_TAPE   = 0;
+  localparam CORE_INCLUDE_FLOPPY = 0;
+  localparam CORE_INCLUDE_SMD    = 0;
+
+  // No device chain: the storage seam is unused. Tie the core's source
+  // inputs inactive and leave its source outputs unread.
+  wire        TAPE_BYTE_REQ;
+  wire        TAPE_BYTE_VALID = 1'b0;
+  wire [7:0]  TAPE_BYTE_DATA  = 8'd0;
+  wire        TAPE_REWIND;
+
+  wire        DMA_REQ   = 1'b0;
+  wire        DMA_WR    = 1'b0;
+  wire [23:0] DMA_ADDR  = 24'd0;
+  wire [15:0] DMA_WDATA = 16'd0;
+  wire [15:0] DMA_RDATA;
+  wire        DMA_ACK;
+  wire        DMA_ERR;
+  wire        DMA_BUSY;
+
+  wire        FDISK_REQ;
+  wire        FDISK_WR;
+  wire [15:0] FDISK_LSECT;
+  wire [1:0]  FDISK_FORMAT;
+  wire [1:0]  FDISK_DRIVE;
+  wire [10:0] FDISK_WORDCOUNT;
+  wire        FDISK_DONE       = 1'b0;
+  wire        FDISK_ERR        = 1'b0;
+  wire [3:0]  FDISK_MEDIA_FMT  = 4'd0;
+  wire [9:0]  FDBUF_ADDR       = 10'd0;
+  wire [15:0] FDBUF_WDATA      = 16'd0;
+  wire        FDBUF_WE         = 1'b0;
+  wire [15:0] FDBUF_RDATA;
+
+  wire        SDISK_START;
+  wire        SDISK_REQ;
+  wire        SDISK_WR;
+  wire [15:0] SDISK_BLKADDR1;
+  wire [15:0] SDISK_BLKADDR2;
+  wire [2:0]  SDISK_UNIT;
+  wire [10:0] SDISK_WORDCOUNT;
+  wire        SDISK_DONE  = 1'b0;
+  wire        SDISK_ERR   = 1'b0;
+  wire [9:0]  SDBUF_ADDR  = 10'd0;
+  wire [15:0] SDBUF_WDATA = 16'd0;
+  wire        SDBUF_WE    = 1'b0;
+  wire [15:0] SDBUF_RDATA;
 `endif
 
-  wire [23:0] s_dev_bd_n;
-  wire s_dev_binput_n, s_dev_bdap_n, s_dev_bdry_n;
-  wire s_dev_bint10_n, s_dev_bint11_n, s_dev_bint12_n, s_dev_bint13_n;
-
-  wire [15:0] s_dev_iox_addr, s_dev_iox_wdata;
-  wire        s_dev_iox_wr, s_dev_iox_rd;
-  wire        s_dev_ident_strobe;
-  wire [3:0]  s_dev_ident_level;
-  // OR-bus contributions per device core (tape, floppy)
-  wire [15:0] s_tape_rdata, s_flp_rdata, s_smd_rdata;
-  wire [3:0]  s_tape_intp, s_flp_intp, s_smd_intp;
-  wire        s_tape_hit, s_flp_hit, s_smd_hit;
-  wire [15:0] s_tape_code, s_flp_code, s_smd_code;
-  wire        s_grant_tape_flp;  // ident chain: tape -> floppy
-  wire        s_grant_flp_smd;   // ident chain: floppy -> SMD
-  wire [15:0] s_dev_iox_rdata   = s_tape_rdata | s_flp_rdata | s_smd_rdata;
-  wire [3:0]  s_dev_int_pending = s_tape_intp | s_flp_intp | s_smd_intp;
-  wire        s_dev_ident_hit   = s_tape_hit | s_flp_hit | s_smd_hit;
-  wire [15:0] s_dev_ident_code  = s_tape_code | s_flp_code | s_smd_code;
-
-  ND_BUS_SLAVE BUS_SLAVE (
-      .sysclk(s_dev_clk),
+  ND120_CORE #(
+      .INCLUDE_TAPE  (CORE_INCLUDE_TAPE),
+      .INCLUDE_FLOPPY(CORE_INCLUDE_FLOPPY),
+      .INCLUDE_SMD   (CORE_INCLUDE_SMD)
+  ) CORE (
+      // (a) clock / reset. clk1 is the CPU+bus+device domain in BOTH
+      // branches: sim assigns clk1 = sysclk, FPGA assigns clk1 = clk_cpu.
+      .clk_cpu(clk1),
       .sys_rst_n(sys_rst_n),
+
+      // (e) C-PLUG bus: driven by the C harness in sim, tied off above on FPGA
+      .BREQ_n(BREQ_n),
+      .BINT10_n(BINT10_n),
+      .BINT11_n(BINT11_n),
+      .BINT12_n(BINT12_n),
+      .BINT13_n(BINT13_n),
+      .BINT15_n(BINT15_n),
+      .POWSENSE_n(POWSENSE_n),
+
+      .BD_23_0_n_IN(BD_23_0_n_IN),
       .BD_23_0_n_OUT(BD_23_0_n_OUT),
-      .BD_23_0_n_IN(s_dev_bd_n),
-      .BAPR_n(BAPR_n_OUT),
-      .BIOXE_n(BIOXE_n),
+
+      .SEMRQ_n_IN(SEMRQ_n_IN),
+      .SEMRQ_n_OUT(SEMRQ_n_OUT),
+      .BINPUT_n_IN(BINPUT_n_IN),
+      .BINPUT_n_OUT(BINPUT_n_OUT),
+      .BDAP_n_IN(BDAP_n_IN),
+      .BDAP_n_OUT(BDAP_n_OUT),
+      .BDRY_n_IN(BDRY_n_IN),
+      .BDRY_n_OUT(BDRY_n_OUT),
+      .BAPR_n_IN(BAPR_n_IN),
+      .BAPR_n_OUT(BAPR_n_OUT),
+
+      .BREF_n(BREF_n),
+      .BERROR_n(BERROR_n),
       .BINACK_n(BINACK_n),
+      .BIOXE_n(BIOXE_n),
+      .BMEM_n(BMEM_n),
+      .OUTGRANT_n(OUTGRANT_n),
       .OUTIDENT_n(OUTIDENT_n),
-      .BINPUT_n(s_dev_binput_n),
-      .BDAP_n(s_dev_bdap_n),
-      .BDRY_n(s_dev_bdry_n),
-      .BINT10_n(s_dev_bint10_n),
-      .BINT11_n(s_dev_bint11_n),
-      .BINT12_n(s_dev_bint12_n),
-      .BINT13_n(s_dev_bint13_n),
-      .iox_addr(s_dev_iox_addr),
-      .iox_wr(s_dev_iox_wr),
-      .iox_wdata(s_dev_iox_wdata),
-      .iox_rd(s_dev_iox_rd),
-      .iox_rdata(s_dev_iox_rdata),
-      .int_pending(s_dev_int_pending),
-      .ident_strobe(s_dev_ident_strobe),
-      .ident_level(s_dev_ident_level),
-      .ident_hit(s_dev_ident_hit),
-      .ident_code(s_dev_ident_code)
-  );
+      .MCL(MCL),
 
-  ND_TAPE_400 #(
-      .BASE_ADDR (16'o000400),
-      .IDENT_CODE(16'o000002),
-      .INT_LEVEL (4'd12)
-  ) TAPE_400 (
-      .sysclk(s_dev_clk),
-      .sys_rst_n(sys_rst_n),
-      .iox_addr(s_dev_iox_addr),
-      .iox_wr(s_dev_iox_wr),
-      .iox_wdata(s_dev_iox_wdata),
-      .iox_rd(s_dev_iox_rd),
-      .iox_rdata(s_tape_rdata),
-      .int_pending(s_tape_intp),
-      .ident_strobe(s_dev_ident_strobe),
-      .ident_level(s_dev_ident_level),
-      .ident_grant_in(1'b1),
-      .ident_grant_out(s_grant_tape_flp),
-      .ident_hit(s_tape_hit),
-      .ident_code(s_tape_code),
-      .byte_req(TAPE_BYTE_REQ),
-      .byte_valid(TAPE_BYTE_VALID),
-      .byte_data(TAPE_BYTE_DATA),
-      .source_rewind(TAPE_REWIND)
-  );
+      // (d) UART
+      .RXD(uartRx),
+      .TXD(uartTx),
 
-  // Floppy 1560, DMA flavor (Ronny's choice 11-JUL): the controller
-  // masters the bus through its own ND_DMA_MASTER, second in the grant
-  // chain behind the DMA test master.
-  wire        s_fdma_req, s_fdma_wr;
-  wire [23:0] s_fdma_addr;
-  wire [15:0] s_fdma_wdata, s_fdma_rdata;
-  wire        s_fdma_ack, s_fdma_err, s_fdma_busy;
+      // (c) storage backend: forwarded 1:1 to the ND120_TOP ports, which the
+      // C harness serves (BPUN file / FLOPPY.IMG / disk-0 image)
+      .TAPE_BYTE_REQ(TAPE_BYTE_REQ),
+      .TAPE_BYTE_VALID(TAPE_BYTE_VALID),
+      .TAPE_BYTE_DATA(TAPE_BYTE_DATA),
+      .TAPE_REWIND(TAPE_REWIND),
 
-  ND_FLOPPY_DMA #(
-      .BASE_ADDR (16'o001560),
-      .IDENT_CODE(16'o000021),
-      .INT_LEVEL (4'd11)
-  ) FLOPPY_1560 (
-      .sysclk(s_dev_clk),
-      .sys_rst_n(sys_rst_n),
-      .iox_addr(s_dev_iox_addr),
-      .iox_wr(s_dev_iox_wr),
-      .iox_wdata(s_dev_iox_wdata),
-      .iox_rd(s_dev_iox_rd),
-      .iox_rdata(s_flp_rdata),
-      .int_pending(s_flp_intp),
-      .ident_strobe(s_dev_ident_strobe),
-      .ident_level(s_dev_ident_level),
-      .ident_grant_in(s_grant_tape_flp),
-      .ident_grant_out(s_grant_flp_smd),
-      .ident_hit(s_flp_hit),
-      .ident_code(s_flp_code),
-      .dma_req(s_fdma_req),
-      .dma_wr(s_fdma_wr),
-      .dma_addr(s_fdma_addr),
-      .dma_wdata(s_fdma_wdata),
-      .dma_rdata(s_fdma_rdata),
-      .dma_ack(s_fdma_ack),
-      .dma_err(s_fdma_err),
-      .dma_busy(s_fdma_busy),
-      .disk_req(FDISK_REQ),
-      .disk_wr(FDISK_WR),
-      .disk_lsect(FDISK_LSECT),
-      .disk_format(FDISK_FORMAT),
-      .disk_drive(FDISK_DRIVE),
-      .disk_wordcount(FDISK_WORDCOUNT),
-      .disk_done(FDISK_DONE),
-      .disk_err_in(FDISK_ERR),
-      .disk_media_fmt(FDISK_MEDIA_FMT),
-      .dbuf_addr(FDBUF_ADDR),
-      .dbuf_wdata(FDBUF_WDATA),
-      .dbuf_we(FDBUF_WE),
-      .dbuf_rdata(FDBUF_RDATA)
-  );
+      .DMA_REQ(DMA_REQ),
+      .DMA_WR(DMA_WR),
+      .DMA_ADDR(DMA_ADDR),
+      .DMA_WDATA(DMA_WDATA),
+      .DMA_RDATA(DMA_RDATA),
+      .DMA_ACK(DMA_ACK),
+      .DMA_ERR(DMA_ERR),
+      .DMA_BUSY(DMA_BUSY),
 
-  wire [23:0] s_fdmam_bd_n;
-  wire s_fdmam_breq_n, s_fdmam_bapr_n, s_fdmam_binput_n, s_fdmam_bdap_n;
-  wire s_grant_dma_fdma_n;  // grant chain: test DMA master -> floppy master
+      .FDISK_REQ(FDISK_REQ),
+      .FDISK_WR(FDISK_WR),
+      .FDISK_LSECT(FDISK_LSECT),
+      .FDISK_FORMAT(FDISK_FORMAT),
+      .FDISK_DRIVE(FDISK_DRIVE),
+      .FDISK_WORDCOUNT(FDISK_WORDCOUNT),
+      .FDISK_DONE(FDISK_DONE),
+      .FDISK_ERR(FDISK_ERR),
+      .FDISK_MEDIA_FMT(FDISK_MEDIA_FMT),
+      .FDBUF_ADDR(FDBUF_ADDR),
+      .FDBUF_WDATA(FDBUF_WDATA),
+      .FDBUF_WE(FDBUF_WE),
+      .FDBUF_RDATA(FDBUF_RDATA),
 
-  ND_DMA_MASTER #(
-      .TIMEOUT_TICKS(16'd8192)
-  ) FLOPPY_DMA_MASTER (
-      .sysclk(s_dev_clk),
-      .sys_rst_n(sys_rst_n),
-      .dma_req(s_fdma_req),
-      .dma_wr(s_fdma_wr),
-      .dma_addr(s_fdma_addr),
-      .dma_wdata(s_fdma_wdata),
-      .dma_rdata(s_fdma_rdata),
-      .dma_ack(s_fdma_ack),
-      .dma_err(s_fdma_err),
-      .dma_busy(s_fdma_busy),
-      .BREQ_n(s_fdmam_breq_n),
-      .INGRANT_n(s_grant_dma_fdma_n),
-      .OUTGRANT_n(s_grant_fdma_smdm_n),
-      .BMEM_n(BMEM_n),
-      .BD_23_0_n_OUT(s_fdmam_bd_n),
-      .BD_23_0_n_IN(BD_23_0_n_OUT),
-      .BAPR_n(s_fdmam_bapr_n),
-      .BINPUT_n(s_fdmam_binput_n),
-      .BDAP_n(s_fdmam_bdap_n),
-      .BDRY_n(BDRY_n_OUT)
-  );
+      .SDISK_START(SDISK_START),
+      .SDISK_REQ(SDISK_REQ),
+      .SDISK_WR(SDISK_WR),
+      .SDISK_BLKADDR1(SDISK_BLKADDR1),
+      .SDISK_BLKADDR2(SDISK_BLKADDR2),
+      .SDISK_UNIT(SDISK_UNIT),
+      .SDISK_WORDCOUNT(SDISK_WORDCOUNT),
+      .SDISK_DONE(SDISK_DONE),
+      .SDISK_ERR(SDISK_ERR),
+      .SDBUF_ADDR(SDBUF_ADDR),
+      .SDBUF_WDATA(SDBUF_WDATA),
+      .SDBUF_WE(SDBUF_WE),
+      .SDBUF_RDATA(SDBUF_RDATA),
 
-  // SMD disk controller at 1540 with its own bus master, third in the
-  // grant chain (test master -> floppy master -> SMD master).
-  wire        s_smd_req, s_smd_wr;
-  wire [23:0] s_smd_addr;
-  wire [15:0] s_smd_wdata, s_smd_rdata_dma;
-  wire        s_smd_ack, s_smd_err, s_smd_busy;
-
-  ND_SMD #(
-      .BASE_ADDR (16'o001540),
-      .IDENT_CODE(16'o000017),
-      .INT_LEVEL (4'd11)
-  ) SMD_1540 (
-      .sysclk(s_dev_clk),
-      .sys_rst_n(sys_rst_n),
-      .iox_addr(s_dev_iox_addr),
-      .iox_wr(s_dev_iox_wr),
-      .iox_wdata(s_dev_iox_wdata),
-      .iox_rd(s_dev_iox_rd),
-      .iox_rdata(s_smd_rdata),
-      .int_pending(s_smd_intp),
-      .ident_strobe(s_dev_ident_strobe),
-      .ident_level(s_dev_ident_level),
-      .ident_grant_in(s_grant_flp_smd),
-      .ident_grant_out(),
-      .ident_hit(s_smd_hit),
-      .ident_code(s_smd_code),
-      .dma_req(s_smd_req),
-      .dma_wr(s_smd_wr),
-      .dma_addr(s_smd_addr),
-      .dma_wdata(s_smd_wdata),
-      .dma_rdata(s_smd_rdata_dma),
-      .dma_ack(s_smd_ack),
-      .dma_err(s_smd_err),
-      .dma_busy(s_smd_busy),
-      .disk_start(SDISK_START),
-      .disk_req(SDISK_REQ),
-      .disk_wr(SDISK_WR),
-      .disk_blkaddr1(SDISK_BLKADDR1),
-      .disk_blkaddr2(SDISK_BLKADDR2),
-      .disk_unit(SDISK_UNIT),
-      .disk_wordcount(SDISK_WORDCOUNT),
-      .disk_done(SDISK_DONE),
-      .disk_err_in(SDISK_ERR),
-      .dbuf_addr(SDBUF_ADDR),
-      .dbuf_wdata(SDBUF_WDATA),
-      .dbuf_we(SDBUF_WE),
-      .dbuf_rdata(SDBUF_RDATA)
-  );
-
-  wire [23:0] s_smdm_bd_n;
-  wire s_smdm_breq_n, s_smdm_bapr_n, s_smdm_binput_n, s_smdm_bdap_n;
-  wire s_grant_fdma_smdm_n;  // grant chain: floppy master -> SMD master
-
-  ND_DMA_MASTER #(
-      .TIMEOUT_TICKS(16'd8192)
-  ) SMD_DMA_MASTER (
-      .sysclk(s_dev_clk),
-      .sys_rst_n(sys_rst_n),
-      .dma_req(s_smd_req),
-      .dma_wr(s_smd_wr),
-      .dma_addr(s_smd_addr),
-      .dma_wdata(s_smd_wdata),
-      .dma_rdata(s_smd_rdata_dma),
-      .dma_ack(s_smd_ack),
-      .dma_err(s_smd_err),
-      .dma_busy(s_smd_busy),
-      .BREQ_n(s_smdm_breq_n),
-      .INGRANT_n(s_grant_fdma_smdm_n),
-      .OUTGRANT_n(),
-      .BMEM_n(BMEM_n),
-      .BD_23_0_n_OUT(s_smdm_bd_n),
-      .BD_23_0_n_IN(BD_23_0_n_OUT),
-      .BAPR_n(s_smdm_bapr_n),
-      .BINPUT_n(s_smdm_binput_n),
-      .BDAP_n(s_smdm_bdap_n),
-      .BDRY_n(BDRY_n_OUT)
-  );
-
-  // DMA bus master (full-RTL DMA validation): requests the bus from the
-  // REAL arbiter (PAL_44801A via BIF) and runs real memory cycles.
-  // Chain head is the CPU's OUTGRANT.
-  wire [23:0] s_dma_bd_n;
-  wire s_dma_breq_n, s_dma_bapr_n, s_dma_binput_n, s_dma_bdap_n;
-
-  ND_DMA_MASTER #(
-      .TIMEOUT_TICKS(16'd8192)
-  ) DMA_MASTER (
-      .sysclk(s_dev_clk),
-      .sys_rst_n(sys_rst_n),
-      .dma_req(DMA_REQ),
-      .dma_wr(DMA_WR),
-      .dma_addr(DMA_ADDR),
-      .dma_wdata(DMA_WDATA),
-      .dma_rdata(DMA_RDATA),
-      .dma_ack(DMA_ACK),
-      .dma_err(DMA_ERR),
-      .dma_busy(DMA_BUSY),
-      .BREQ_n(s_dma_breq_n),
-      .INGRANT_n(OUTGRANT_n),
-      .OUTGRANT_n(s_grant_dma_fdma_n),
-      .BMEM_n(BMEM_n),
-      .BD_23_0_n_OUT(s_dma_bd_n),
-      .BD_23_0_n_IN(BD_23_0_n_OUT),
-      .BAPR_n(s_dma_bapr_n),
-      .BINPUT_n(s_dma_binput_n),
-      .BDAP_n(s_dma_bdap_n),
-      .BDRY_n(BDRY_n_OUT)
-  );
-
-  // Wired-AND with the external (C-harness / tie-off) bus inputs
-  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN & s_dev_bd_n & s_dma_bd_n & s_fdmam_bd_n & s_smdm_bd_n;
-  wire        s_bus_breq_n      = BREQ_n & s_dma_breq_n & s_fdmam_breq_n & s_smdm_breq_n;
-  wire        s_bus_bapr_in_n   = BAPR_n_IN & s_dma_bapr_n & s_fdmam_bapr_n & s_smdm_bapr_n;
-  wire        s_bus_binput_in_n = BINPUT_n_IN & s_dev_binput_n & s_dma_binput_n & s_fdmam_binput_n & s_smdm_binput_n;
-  wire        s_bus_bdap_in_n   = BDAP_n_IN & s_dev_bdap_n & s_dma_bdap_n & s_fdmam_bdap_n & s_smdm_bdap_n;
-  wire        s_bus_bdry_in_n   = BDRY_n_IN & s_dev_bdry_n;
-  wire        s_bus_bint10_n    = BINT10_n & s_dev_bint10_n;
-  wire        s_bus_bint11_n    = BINT11_n & s_dev_bint11_n;
-  wire        s_bus_bint12_n    = BINT12_n & s_dev_bint12_n;
-  wire        s_bus_bint13_n    = BINT13_n & s_dev_bint13_n;
-`else
-  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN;
-  wire        s_bus_breq_n      = BREQ_n;
-  wire        s_bus_bapr_in_n   = BAPR_n_IN;
-  wire        s_bus_binput_in_n = BINPUT_n_IN;
-  wire        s_bus_bdap_in_n   = BDAP_n_IN;
-  wire        s_bus_bdry_in_n   = BDRY_n_IN;
-  wire        s_bus_bint10_n    = BINT10_n;
-  wire        s_bus_bint11_n    = BINT11_n;
-  wire        s_bus_bint12_n    = BINT12_n;
-  wire        s_bus_bint13_n    = BINT13_n;
-`endif
-
-  ND3202D CPU_BOARD (
-`ifdef VERILATOR_SIM
-      .sysclk(sysclk),      // sim: single full-speed clock (clk1 == sysclk)
-`else
-      .sysclk(clk1),        // FPGA: CPU core runs on clk_cpu (~16.67 MHz), same net as OSC
-`endif
-      .sys_rst_n(sys_rst_n),
-      .CLOCK_1(clk1),  // XTAL1 = 39.3216MHZ
-      .CLOCK_2(clk1),  // XTAL2 = 35 MHZ (for slow operations?)
-
-      // Signal from C-PLUG to CPU Board (and some signals dupliacted on A-PLUG)
-      .LOAD_n(s_high),      // Load button  C-B12, A-C15
-      .BREQ_n(s_bus_breq_n),  // Bus Request  C-C12 (wired-AND with DMA master)
-      .CONTINUE_n(s_high),  // Continue button C-B15
-      .STOP_n(s_high),      // Stop button C-B16, A-C17
-
-      .BINT10_n(s_bus_bint10_n),  // Bus Interrupt 10 C-A15 (wired-AND with Verilog devices)
-      .BINT11_n(s_bus_bint11_n),  // Bus Interrupt 11 C-C15
-      .BINT12_n(s_bus_bint12_n),  // Bus Interrupt 12 C-A16
-      .BINT13_n(s_bus_bint13_n),  // Bus Interrupt 13 C-A16
-      .BINT15_n(BINT15_n),  // Bus Interrupt 15 C-C17
-
-      .POWSENSE_n(POWSENSE_n),  // Power Sense
-
-      .BD_23_0_n_IN(s_bus_bd_in_n), // Bus address and data from bus. Pulled high (wired-AND with Verilog devices)
-      .BD_23_0_n_OUT(BD_23_0_n_OUT),
-
-      // Bidirectional signals
-      .SEMRQ_n_IN(SEMRQ_n_IN),     //! Input-signal from "C PLUG", signal A17 SEMREQ~ (SEMaphore REQest)
-      .SEMRQ_n_OUT(SEMRQ_n_OUT),   //! Output-signal to "C PLUG", signal A17 SEMREQ~ (SEMaphore REQest)
-      .BINPUT_n_IN(s_bus_binput_in_n), //! Input-signal from "C PLUG", signal A18 BINPUT~ (Bus INPUT)
-      .BINPUT_n_OUT(BINPUT_n_OUT), //! Output-signal to "C PLUG", signal A18 BINPUT~ (Bus INPUT)
-      .BDAP_n_IN(s_bus_bdap_in_n), //! Input-signal from "C PLUG", signal C18 BDAP~ (Bus DAta Present)
-      .BDAP_n_OUT(BDAP_n_OUT),     //! Output-signal to "C PLUG", signal C18 BDAP~ (Bus DAta Present)
-      .BDRY_n_IN(s_bus_bdry_in_n), //! Input-signal from "C PLUG", signal A19 BDRY~ (Bus Data ReadY)
-      .BDRY_n_OUT(BDRY_n_OUT),     //! Output-signal to "C PLUG", signal A19 BDRY~ (Bus Data ReadY)
-      .BAPR_n_IN(s_bus_bapr_in_n), //! Input-signal from "C PLUG", signal A20 BAPR~ (Bus Address PResent)
-      .BAPR_n_OUT(BAPR_n_OUT),     //! Output-signal to "C PLUG", signal A20 BAPR~ (Bus Address PResent)
-
-      // Signals from CPU board to C-PLUG
-      .BREF_n(BREF_n),           // Output-signal to "C PLIG", signal B12 BREF~
-      .BERROR_n(BERROR_n),       // Output-signal to "C PLIG", signal B21 BERROR~
-      .BINACK_n(BINACK_n),       // Output-signal to "C PLIG", signal B19 BINACK~
-      .BIOXE_n(BIOXE_n),         // Output-signal to "C PLIG", signal C19 BIOXE~
-      .BMEM_n(BMEM_n),           // Output-signal to "C PLIG", signal C28 BMEM~
-      .OUTGRANT_n(OUTGRANT_n),   // Output-signal to "C PLIG", signal C23 OUTGRANT~
-      .OUTIDENT_n(OUTIDENT_n),   // Output-signal to "C PLIG", signal C22 OUTIDENT~
-      .MCL(MCL),                 // Output-signal to "C PLIG", signal B20 MCL~ (after negation)
-
-
-      // Signals from B-PLUG to CPU Board
-      .INR_7_0(installation_number), // INR 7:0, signal B-> B15, B4, B5, B17, B8, B7, B13, B6. (Installation number, read using IDB Source = 035)
-      .EBUS(1'b1),     // EBUS, signal B-B3 (Pulled high with through resistor network RN13)
-      .SEL5MS_n(1'b1), // SEL 5ms, signal B-B14 (Pulled high with 1kohm resistor R4)
-
-      // Signals from CPU to B-PLUG
-      .PIL(),         // XPIL3=B-C8, PIL2=B-B12. PIL1=B-B10, PIL0=B-B9
-      .LUA_12_0(),    // XLUA 12:0
-      .IDB_15_0(),    // XIDB 15:0
-      .CSCOMM_4_0(),  //
-      .MIS_1_0(),     // MIS1=B-C14, MIS0=B-A14
-      .CD_15_0(),     // CD 15:0
-      .LBD_15_0(),    // LBD 15:0
-      .LA_23_10(s_debug_la_23_10),  // XLA 23:10 (MAC upper address)
-      .CA_9_0(s_debug_ca_9_0),     // CA 9:0 (MAC lower address)
-
-
-      // Signals from A-PLUG to CPU board
-      .OSCCL_n  (s_high),     // Oscillator Clock
-      .OC_1_0   (oc_select),  // Oscillator Clock Select
-      .XTR      (s_low),      // External Transmit/Receive Clock (not used)
-      .LOCK_n   (s_high),     // Lock signal (from key)
-      .CONSOLE_n(s_high),     // Console signal (from key)
-      .SWMCL_n  (s_high),     // Software Master Clear (MCL)
-      .EAUTO_n  (s_high),     // External Auto
-      .RXD      (uartRx),     // UART Receive A-C8
-
-      // Signals from CPU Board to C-PLUG
-      .RUN_n      (s_run),    // Run C-B14 (driven by Stop flip-flop: low while CPU is running)
-
-      // Signals from CPU Board to A-PLUG
-      .TXD        (uartTx),   // UART Transmit TXD A-C7
-      .DP_5_1_n   (s_dp_5_1_n),     // Data Path 5-1 A-> 1=C25, 2=C26, 3=C27, 4=C28, 5=C29
-
-
-      /* Configuration switches (input to ND3202D board) */
-      .SW1_CONSOLE     (s_high),             // Console switch
-      .SEL_TESTMUX     (s_SEL_TESTMUX),      // Test MUX (select signals to test pads)
-      .BAUD_RATE_SWITCH(s_baud_rate_switch), // Baud rate switch
-
-      // outputs
-      .CSBITS     (s_csbits),       // Microcode CPU BITS
-      .TEST_4_0   (s_test_4_0),     // Test pads
-      .TP1_INTRQ_n(s_tp1_intrq_n),  // TP1 Interrupt
-      .CSA_12_0    (CSA_12_0),      // Microcode Address (for debugging)
-      .LED        (s_cpu_led[6:0]),  // 7 bit LED signals
-      .DEBUG_CC_TERM(s_debug_cc_term), // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
-      .DEBUG_MCLK(s_debug_mclk),      // Memory clock
-      .DEBUG_LCS_n(s_debug_lcs_n),    // LCS_n: 0=loading, 1=loaded
+      // (f) debug / status -> the board's LED map, 7-seg and ILA wires
+      .LED(s_cpu_led[6:0]),
+      .RUN_n(s_run),
+      .CSA_12_0(CSA_12_0),
+      .LA_23_10(s_debug_la_23_10),
+      .CA_9_0(s_debug_ca_9_0),
+      .DEBUG_CC_TERM(s_debug_cc_term),
+      .DEBUG_MCLK(s_debug_mclk),
+      .DEBUG_LCS_n(s_debug_lcs_n),
       .DEBUG_FETCH(s_debug_fetch),
       .DEBUG_MR_n(s_debug_mr_n),
       .DEBUG_CLEAR_n(s_debug_clear_n),

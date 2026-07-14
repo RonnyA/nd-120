@@ -34,7 +34,8 @@ DGA_COMPONENTS = -I../DECODE-GateArray/DGA/circuit
 
 #SHARED_COMPONENTS =  -I../circuit --I../../shared/ndlib --I../../shared/logisim --I../../shared/gates   --I../../PAL
 
-VERILATOR_DIRS = $(TOP_3202D_COMPONENTS) $(CGA_COMPONENTS) $(DGA_COMPONENTS) -I../PAL 
+# -I.. = the Verilog root, where ND120_CORE.v (instantiated by ND120_TOP.v) lives
+VERILATOR_DIRS = -I.. $(TOP_3202D_COMPONENTS) $(CGA_COMPONENTS) $(DGA_COMPONENTS) -I../PAL
 # Specify C++ source files here
 CPP_SOURCES = test_nd120.cpp ../simDevices/NDDevices.cpp ../simDevices/NDBus.cpp
 

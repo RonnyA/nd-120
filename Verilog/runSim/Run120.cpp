@@ -495,11 +495,11 @@ int main(int argc, char **argv)
 
 	// Load data
 	// Access MEM->RAM fields via rootp
-	auto &ram_low = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo;
-	auto &ram_low_9 = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo_p;
+	auto &ram_low = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo;
+	auto &ram_low_9 = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo_p;
 
-	auto &ram_high = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi;
-	auto &ram_high_9 = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi_p;
+	auto &ram_high = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi;
+	auto &ram_high_9 = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi_p;
 
 	// Use provided filename if exists, otherwise default to "INSTRUCTION-B.BPUN"
 	// char *default_filename = strdup("INSTRUCTION-B.BPUN"); // strdup creates a modifiable copy
@@ -610,15 +610,15 @@ int main(int argc, char **argv)
 				cnt,
 				(int)top->sysclk,
 				(unsigned)top->CSA_12_0,
-				(unsigned long long)top->rootp->ND120_TOP__DOT__s_csbits,
-				(unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_MASEL__DOT__regREP,
-				(unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_MASEL__DOT__regIW,
-				(int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_MASEL__DOT__s_mux_selector,
-				(int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__TERM_reg,
-				(int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC3_reg,
-				(int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC2_reg,
-				(int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC1_reg,
-				(int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC0_reg);
+				(unsigned long long)top->rootp->ND120_TOP__DOT__CORE__DOT__s_csbits,
+				(unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_MASEL__DOT__regREP,
+				(unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_MASEL__DOT__regIW,
+				(int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_MASEL__DOT__s_mux_selector,
+				(int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__TERM_reg,
+				(int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC3_reg,
+				(int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC2_reg,
+				(int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC1_reg,
+				(int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC0_reg);
 		}
 		if (g_mic_fp && cnt > TRACE_MIC_END)
 		{
@@ -673,19 +673,19 @@ int main(int argc, char **argv)
 				{
 					printf("[ph] cnt=%d csa=%05o r5=%06o q=%06o rb=%06o rli=%d alui6=%d alusts=%06o a=%06o b=%06o f=%06o csts=%d%d aluclk=%d mclk_en=%d\n",
 						cnt, csa,
-						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg13_r5_15_0,
-						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_q_15_0,
-						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_rb_15_0_out,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_rli_out,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_alui6,
-						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_sts_15_0,
-						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_a_15_0,
-						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_b_15_0,
-						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_f_15_0,
-						(int)((rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_csts_1_0 >> 1) & 1),
-						(int)(rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_csts_1_0 & 1),
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_aluclk,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CYC__DOT__MCLK_EN);
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg13_r5_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_q_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_rb_15_0_out,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_rli_out,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_alui6,
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_sts_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_a_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_b_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_f_15_0,
+						(int)((rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_csts_1_0 >> 1) & 1),
+						(int)(rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_csts_1_0 & 1),
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_aluclk,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__MCLK_EN);
 					if (--cap == 0 && passes >= 12) { printf("[ph] done\n"); fflush(stdout); }
 				}
 			}
@@ -707,7 +707,7 @@ int main(int argc, char **argv)
 					printf("[ridnt] cnt=%d bd=%06o ireq_n=%06o bint{10,11,12,13}_n=%d%d%d%d\n",
 						cnt,
 						(unsigned)((~top->BD_23_0_n_OUT) & 0xFFFF),
-						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_ireq_15_0_n,
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_ireq_15_0_n,
 						(int)top->BINT10_n,
 						(int)top->BINT11_n,
 						(int)top->BINT12_n,
@@ -724,9 +724,9 @@ int main(int argc, char **argv)
 				static int q2_last = -1, i2_last = -1, c2_last = -1;
 				static int tr_prints = 0;
 				auto rp = top->rootp;
-				int i2 = (int)((rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_ireq_15_0_n >> 2) & 1);
-				int q2 = (int)((rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_mireq_15_0 >> 2) & 1);
-				int c2 = (int)((rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_clrq_15_0 >> 2) & 1);
+				int i2 = (int)((rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_ireq_15_0_n >> 2) & 1);
+				int q2 = (int)((rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_mireq_15_0 >> 2) & 1);
+				int c2 = (int)((rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_clrq_15_0 >> 2) & 1);
 				if (cnt > 16000000 && (i2 != i2_last || q2 != q2_last || c2 != c2_last) && tr_prints < 300)
 				{
 					printf("[r12] cnt=%d ireq2_n=%d mireq2=%d clrq2=%d\n", cnt, i2, q2, c2);
@@ -744,13 +744,13 @@ int main(int argc, char **argv)
 				static unsigned last_sig = 0xFFFFFFFFu;
 				static int sc_prints = 0;
 				auto rp = top->rootp;
-				unsigned clrq = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_clrq_15_0;
-				unsigned mireq = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_mireq_15_0;
-				int hik = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hik;
-				int lok = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_lok;
-				unsigned hx = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hx_2_0;
-				unsigned lx = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_lx_2_0;
-				int ioxe_n = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_ioxerr_n;
+				unsigned clrq = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_clrq_15_0;
+				unsigned mireq = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_mireq_15_0;
+				int hik = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hik;
+				int lok = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_lok;
+				unsigned hx = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hx_2_0;
+				unsigned lx = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_lx_2_0;
+				int ioxe_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_ioxerr_n;
 				unsigned sig = ((clrq & 0x4400u) << 8) ^ (hik << 7) ^ (lok << 6) ^ (hx << 3) ^ lx ^ ((mireq & 0x4400u) >> 1) ^ (ioxe_n << 15);
 				if (cnt > 17300000 && sig != last_sig && sc_prints < 200)
 				{
@@ -771,7 +771,7 @@ int main(int argc, char **argv)
 				static int cnt_reported = 0;
 				auto rp = top->rootp;
 				unsigned csa = (unsigned)top->CSA_12_0;
-				int pil = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__sx_pil_3_0_out;
+				int pil = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__sx_pil_3_0_out;
 				if (csa != csa_last)
 				{
 					if (csa == 03756u) n_ext14++;
@@ -801,26 +801,26 @@ int main(int argc, char **argv)
 				static unsigned ig_last = 0xFFFFFFFFu;
 				static int ig_prints = 0;
 				auto rp = top->rootp;
-				int hien_n = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_hienab_n;
-				int lien_n = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_lienab_n;
-				int hirq = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_hirq;
-				int lirq = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_lirq;
-				int hidet = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_hidet;
-				unsigned histat = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__s_histat_2_0;
-				unsigned lostat = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__s_lostat_2_0;
-				unsigned hivec = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hivec_2_0;
+				int hien_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_hienab_n;
+				int lien_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_lienab_n;
+				int hirq = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_hirq;
+				int lirq = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_lirq;
+				int hidet = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_hidet;
+				unsigned histat = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__s_histat_2_0;
+				unsigned lostat = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__s_lostat_2_0;
+				unsigned hivec = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hivec_2_0;
 				unsigned ig = (hien_n << 4) | (lien_n << 3) | (hirq << 2) | (lirq << 1) | hidet;
 				ig = (ig << 12) | (histat << 9) | (lostat << 6) | (hivec << 3)
-					| ((unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hif << 2)
-					| ((unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hipassall << 1)
-					| (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hivges;
+					| ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hif << 2)
+					| ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hipassall << 1)
+					| (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hivges;
 				if (cnt > 17370000 && ig != ig_last && ig_prints < 300)
 				{
 					printf("[irgel] cnt=%d csa=%05o hien_n=%d lien_n=%d hirq=%d lirq=%d hidet=%d histat=%o lostat=%o hivec=%o hif=%d hipass=%d hivges=%d\n",
 						cnt, (unsigned)top->CSA_12_0, hien_n, lien_n, hirq, lirq, hidet, histat, lostat, hivec,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hif,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hipassall,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hivges);
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hif,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hipassall,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_hivges);
 					ig_prints++;
 					if (ig_prints == 300) { printf("[irgel] done\n"); fflush(stdout); }
 				}
@@ -838,35 +838,35 @@ int main(int argc, char **argv)
 				static int shift_prints = 0, ldirv_prints = 0;
 				static int ldirv_last = 0;
 				auto rp = top->rootp;
-				int ld = (int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_ldirv;
-				unsigned cdnow = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_cd_15_0;
+				int ld = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_ldirv;
+				unsigned cdnow = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_cd_15_0;
 				if (cnt > 1500000 && ld != ldirv_last && ((cdnow >> 9) & 3u) != 0 && ldirv_prints < 200)
 				{
 					printf("[shp-ir] cnt=%d LDIRV %s cd=%06o alu_cd109=%d%d m46=%d m47=%d\n", cnt, ld ? "rise" : "fall", cdnow,
-						(int)((rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_cd_10_9 >> 1) & 1),
-						(int)(rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_cd_10_9 & 1),
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_memory46_q,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_memory47_q);
+						(int)((rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_cd_10_9 >> 1) & 1),
+						(int)(rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_cd_10_9 & 1),
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_memory46_q,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_memory47_q);
 					ldirv_prints++;
 				}
 				ldirv_last = ld;
-				unsigned alum = (unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_csalum_1_0;
+				unsigned alum = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_csalum_1_0;
 				if (cnt > 1500000 && alum == 3u && shift_prints < 400)
 				{
 					printf("[shp] cnt=%d csa=%05o m46=%d m47=%d ssel=%d%d rri=%d rli=%d qli=%d sts7=%d f=%06o q=%06o alui6=%d aluclk=%d\n",
 						cnt, (unsigned)top->CSA_12_0,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_memory46_q,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_memory47_q,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_ssel1,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_ssel0,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_rri_out,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_rli_out,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_qli_out,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_sts7,
-						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_f_15_0,
-						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_q_15_0,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_alui6,
-						(int)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_aluclk);
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_memory46_q,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_memory47_q,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_ssel1,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_ssel0,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_rri_out,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_rli_out,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_qli_out,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_sts7,
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_f_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_q_15_0,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_CONTR__DOT__s_alui6,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_aluclk);
 					shift_prints++;
 					if (shift_prints == 400) { printf("[shp] capture done\n"); fflush(stdout); }
 				}
@@ -887,9 +887,9 @@ int main(int argc, char **argv)
 					static int mpy_prints = 0;
 					printf("[mpy] cnt=%d csa=%04o STS=%06o R4=%06o R5=%06o\n",
 						cnt, csa,
-						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg8_sts_15_0,
-						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg12_r4_15_0,
-						(unsigned)rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg13_r5_15_0);
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg8_sts_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg12_r4_15_0,
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg13_r5_15_0);
 					if (++mpy_prints >= 600) { printf("[mpy] captured 600 samples, exiting\n"); fflush(stdout); exit(0); }
 				}
 				mpy_last_csa = csa;
@@ -901,11 +901,11 @@ int main(int argc, char **argv)
 		{
 			// probe: log every LDIRV rise (with CD + resulting IR) and
 			// the dispatch inputs whenever TERMX (CSA 0511) executes
-			int ld = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_ldirv;
+			int ld = (int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_ldirv;
 			if (ld && !g_ldirv_last)
 				printf("[probe] cnt=%d LDIRV rise: cd=%06o ir_6_0=%03o\n", cnt,
-				    (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_cd_15_0,
-				    (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_ir_6_0);
+				    (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_cd_15_0,
+				    (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_ir_6_0);
 			g_ldirv_last = ld;
 			{
 				// ring buffer: full MUX34P input/select/output window
@@ -914,17 +914,17 @@ int main(int argc, char **argv)
 				static int rbi = 0, dump_after = 0;
 				rb[rbi].cnt   = cnt;
 				rb[rbi].csa   = (unsigned)top->CSA_12_0;
-				rb[rbi].ir    = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_ir_6_0 & 017;
-				rb[rbi].laa   = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_laa_3_0_out;
-				rb[rbi].csb   = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_csbit_3_0;
-				rb[rbi].jmp   = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_MASEL__DOT__s_jmp_3_0;
-				rb[rbi].q     = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_QREG__DOT__REG_Q_LO__DOT__gen_enable__DOT__q_r;
-				rb[rbi].mis0  = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_csmis0;
-				rb[rbi].vectn = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_csvect_n;
-				rb[rbi].idb   = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_xfidbi_15_0;
-				rb[rbi].aport = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_a_15_0;
-				rb[rbi].din   = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_d_15_0;
-				rb[rbi].f     = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_f_15_0;
+				rb[rbi].ir    = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_ir_6_0 & 017;
+				rb[rbi].laa   = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_laa_3_0_out;
+				rb[rbi].csb   = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_csbit_3_0;
+				rb[rbi].jmp   = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_MASEL__DOT__s_jmp_3_0;
+				rb[rbi].q     = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_QREG__DOT__REG_Q_LO__DOT__gen_enable__DOT__q_r;
+				rb[rbi].mis0  = (int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_csmis0;
+				rb[rbi].vectn = (int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__s_csvect_n;
+				rb[rbi].idb   = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_xfidbi_15_0;
+				rb[rbi].aport = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_a_15_0;
+				rb[rbi].din   = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_d_15_0;
+				rb[rbi].f     = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_f_15_0;
 				int hit = ((top->CSA_12_0 == 0511 || top->CSA_12_0 == 02310 || top->CSA_12_0 == 0503) && g_termx_logged < 6 && g_bin_state == 2);
 				if (hit) g_termx_logged++;
 				if (hit || dump_after > 0)
@@ -968,15 +968,15 @@ int main(int argc, char **argv)
 			static int pri = 0, pactive = 0, ptail = 0, pevents = 0;
 			pring[pri].cnt     = cnt;
 			pring[pri].csa     = (unsigned)top->CSA_12_0;
-			pring[pri].clk     = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_clk;
-			pring[pri].eior    = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_eiorn_n;
-			pring[pri].ceu     = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_ceuart_n;
-			pring[pri].ru      = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_ruart_n;
-			pring[pri].ylatch  = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_33G__DOT__Y_Latch;
-			pring[pri].iorout  = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_io_idb_15_0_out;
-			pring[pri].uartout = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_uart_idb_7_0_out;
-			pring[pri].fidbi   = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_xfidbi_15_0;
-			pring[pri].alud    = (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_d_15_0;
+			pring[pri].clk     = (int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_clk;
+			pring[pri].eior    = (int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_eiorn_n;
+			pring[pri].ceu     = (int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_ceuart_n;
+			pring[pri].ru      = (int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_ruart_n;
+			pring[pri].ylatch  = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_33G__DOT__Y_Latch;
+			pring[pri].iorout  = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_io_idb_15_0_out;
+			pring[pri].uartout = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_uart_idb_7_0_out;
+			pring[pri].fidbi   = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_xfidbi_15_0;
+			pring[pri].alud    = (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_d_15_0;
 			// trigger: UART READ strobes only (CE + READ both active).
 			// Boot-time IOR-word reads (EIOR_n) were probed first and WORK.
 			static int plines = 0; // per-event line budget (log-size guard)
@@ -1080,32 +1080,32 @@ int main(int argc, char **argv)
 						"- Emitted by ND120_TRACE_VERIFY; same format as the ND-110 golden traces.\n"
 						"- All values OCTAL. Micro symbol column = DELILAH listing labels.\n\n");
 			}
-			int tv_clk = (int)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_clk;
+			int tv_clk = (int)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__s_clk;
 			if (tv_fp && !tv_done && tv_clk && !tv_prev_clk)
 			{
 				// sample the watched set at this CLK rise
 				unsigned v[19];
 				auto *rp = top->rootp;
-				v[0]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg5_a_15_0;
-				v[1]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg1_d_15_0;
-				v[2]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg6_t_15_0;
-				v[3]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg7_x_15_0;
-				v[4]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg3_b_15_0;
-				v[5]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg4_l_15_0;
-				v[6]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg2_p_15_0;
-				v[7]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg8_sts_15_0;
-				v[8]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg9_r1_15_0;
-				v[9]  = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg10_r2_15_0;
-				v[10] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg11_r3_15_0;
-				v[11] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg12_r4_15_0;
-				v[12] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg13_r5_15_0;
-				v[13] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg14_r6_15_0;
-				v[14] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg15_r7_15_0;
-				v[15] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_q_15_0;
-				v[16] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_f_15_0;
-				v[17] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_grp_15_0;
-				v[18] = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__loop_counter;
-				unsigned pil = rp->ND120_TOP__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__sx_pil_3_0_out;
+				v[0]  = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg5_a_15_0;
+				v[1]  = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg1_d_15_0;
+				v[2]  = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg6_t_15_0;
+				v[3]  = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg7_x_15_0;
+				v[4]  = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg3_b_15_0;
+				v[5]  = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg4_l_15_0;
+				v[6]  = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg2_p_15_0;
+				v[7]  = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg8_sts_15_0;
+				v[8]  = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg9_r1_15_0;
+				v[9]  = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg10_r2_15_0;
+				v[10] = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg11_r3_15_0;
+				v[11] = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg12_r4_15_0;
+				v[12] = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg13_r5_15_0;
+				v[13] = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg14_r6_15_0;
+				v[14] = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg15_r7_15_0;
+				v[15] = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_q_15_0;
+				v[16] = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_f_15_0;
+				v[17] = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_grp_15_0;
+				v[18] = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__loop_counter;
+				unsigned pil = rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__sx_pil_3_0_out;
 				unsigned csa = (unsigned)top->CSA_12_0;
 				// macro boundary detection. Two architectural signatures:
 				// (a) an instruction FETCH commits P and GPR together in one
@@ -1205,7 +1205,7 @@ int main(int argc, char **argv)
 			if (g_csa_fp && top->CSA_12_0 != g_last_csa)
 			{
 				fprintf(g_csa_fp, "%d,%o,%llo\n", cnt, (unsigned)top->CSA_12_0,
-				    (unsigned long long)top->rootp->ND120_TOP__DOT__s_csbits);
+				    (unsigned long long)top->rootp->ND120_TOP__DOT__CORE__DOT__s_csbits);
 				g_last_csa = top->CSA_12_0;
 			}
 #endif
@@ -1303,7 +1303,7 @@ int main(int argc, char **argv)
 					if ((g_bin_sent % 8) == 0)
 						printf("[binload] byte %ld: uart status=%02x\n",
 						    g_bin_sent,
-						    (unsigned)top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regStatusRegister);
+						    (unsigned)top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regStatusRegister);
 #endif
 						ch = (char)c;
 						n = 1;
