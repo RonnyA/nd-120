@@ -79,20 +79,39 @@ s_low / SEL_TESTMUX / baud-rate wires are dropped (now core-internal).
   the (b) SDRAM PHY pass-through AND the all-devices-absent wired-AND collapse
   on real RTL, not just lint.
 
-## Step 4 status: `make test-full` CANNOT pass as-is -- for two reasons that
-## are NOT this refactor, and both belong to other workstreams:
-1. `make test` aborts on the PRE-EXISTING `test-memchain` failure (TODO.md:83).
-2. The runSim console golden is stale (see above) -- the floppy/tape session's
-   print gating, proven identical delta with and without the core.
-Everything in test-full that this refactor can affect has been run green
-individually:
-- unit suite 48/48 (memchain filtered), test-tape, test-dma-rtl, test-dma-xcheck
-- Tang `make vtest` TB_RESULT: PASS
-- `make -C sim compare`: **trace_ff.csv AND trace_latch.csv both BYTE-IDENTICAL
-  to their goldens** -- cycle-by-cycle signal-level proof, in BOTH latch and FF
-  mode, that the extraction changed nothing. (This gate also exercises the
-  rewritten `sim/latch_ff_compare.cpp` hierarchical paths.)
+## Step 4: every test-full stanza PASSES individually. The aggregate
+## `make test-full` still aborts on ONE pre-existing failure that is not ours:
+`test-memchain` (TODO.md:83), which its `test` prerequisite hits fail-fast.
+
+Stanza-by-stanza, all green:
+- unit suite 48/48 (memchain filtered)
+- `make -C sim compare`: trace_ff.csv AND trace_latch.csv **BYTE-IDENTICAL** to
+  their goldens -- cycle-by-cycle signal-level proof, in BOTH latch and FF mode,
+  that the extraction changed nothing. (Also exercises the rewritten
+  `sim/latch_ff_compare.cpp` hierarchical paths.)
+- runSim FF console vs golden: **BYTE-IDENTICAL** (see the print-gating note below)
+- Tang `make vtest`: TB_RESULT: PASS
+- `make test-tape`, `make test-dma-rtl`, `make test-dma-xcheck`: PASSED
+- `make test-floppy-stdin`: PASSED
+- `make test-instr-argument`: TB_RESULT: PASS (400 aligned instructions match)
 - pre-refactor vs post-refactor runSim console: byte-identical (see above).
+
+### The console golden gate: debug prints are compiled in for THIS GATE ONLY
+`golden/console_ff_golden.log` was recorded while the C device models printed
+their IDENT/interrupt trace unconditionally. The floppy/tape session gated those
+prints OFF by default (they drowned a 400$ load --
+docs/BUG-tape400-sd-level12-storm.md), which made the golden unreproducible.
+Resolution (Ronny's call 14-JUL): do NOT re-record the golden and do NOT turn the
+prints back on globally -- compile them in **only for the gate**:
+- `Verilog/Makefile` test-full passes `-DDEBUG_INTERRUPT` on the console-gate
+  compile ONLY. Default runs stay quiet (verified: 0 debug lines by default,
+  20 with the define).
+- `-DDEBUG_INTERRUPT` is exactly right; **`-DDEBUG_BIF=1` is NOT** -- it also
+  emits the BAPR/BIOXE bus trace, which the golden does not contain.
+- One dependency: `simDevices/NDBus.cpp`'s `IDENT LVL[..]` print had been placed
+  under `DEBUG_BIF`; it is IDENT tracing, so it now also fires under
+  `DEBUG_INTERRUPT`. Without that hunk the gate is 4 lines short.
+Result: gate reproduces the golden byte-for-byte, prints stay off in normal runs.
 
 ## TWO findings that reshape the task framing
 

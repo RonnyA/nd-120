@@ -84,14 +84,26 @@ byte-identical to golden; pre-refactor (HEAD worktree + current C models) vs
 post-refactor runSim console byte-identical; 48/48 units, tape, dma-rtl,
 dma-xcheck, Tang vtest all green.
 
-TWO THINGS THAT ARE **NOT** THE CORE REFACTOR (do not chase them as regressions):
-1. `test-memchain` still fails -- PRE-EXISTING, TODO.md:83.
-2. `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/golden/console_ff_golden.log`
-   is STALE: it still holds 20 C-model debug-print lines that THIS session's
-   own uncommitted change gated behind `#ifdef DEBUG_INTERRUPT` (NDDevices.cpp)
-   and `if (DEBUG_BIF)` (NDBus.cpp:115, DEBUG_BIF=0). The pre-refactor baseline
-   shows the SAME 20-line delta, so it is the print gating, not the core.
-   **Regenerating that golden belongs to this (floppy/tape) workstream.**
+ONE THING THAT IS **NOT** THE CORE REFACTOR (do not chase it as a regression):
+`test-memchain` still fails -- PRE-EXISTING, TODO.md:83. It is the ONLY reason
+the aggregate `make test-full` does not go green; every other stanza passes.
+
+**The console golden is FIXED, and it needs a hunk in YOUR file.** Your print
+gating made `runSim/golden/console_ff_golden.log` unreproducible (it holds 20
+IDENT/interrupt lines the gated models no longer emit). Ronny's call 14-JUL:
+don't re-record the golden, don't un-gate globally -- compile the prints in for
+that ONE gate. Implemented as:
+- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Makefile`: the test-full console gate
+  compiles with `-DDEBUG_INTERRUPT`. COMMITTED. Harmless at HEAD (prints are
+  force-on there); required once your gating lands.
+- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/simDevices/NDBus.cpp`: the
+  `IDENT LVL[..]` print now also fires under `DEBUG_INTERRUPT`, not only
+  `DEBUG_BIF` (it IS IDENT tracing). **This hunk is UNCOMMITTED and sits on top
+  of your uncommitted NDBus.cpp -- carry it in YOUR commit.** Without it the
+  gate is 4 lines short. Do not use `-DDEBUG_BIF=1` instead: that also emits the
+  BAPR/BIOXE trace, which the golden does not contain.
+Verified: gate reproduces the golden byte-for-byte; default runs emit 0 debug
+lines (20 only with the define).
 
 Remaining: step 4 = `make test-full` (blocked only by the two items above),
 then the Tang Phase-2 follow-up (INCLUDE_TAPE(1) + nd_tape_sdfat_source).

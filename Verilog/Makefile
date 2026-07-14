@@ -56,7 +56,14 @@ test-full: test
 	cmp sim/trace_ff.csv    sim/golden/trace_ff_golden.csv
 	cmp sim/trace_latch.csv sim/golden/trace_latch_golden.csv
 	@echo "==== system gate: runSim FF console vs golden ===="
-	$(MAKE) -C runSim compile USE_LATCHES=0 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_GOLDEN" >/dev/null
+# golden/console_ff_golden.log was recorded while the C device models still
+# printed their IDENT/interrupt trace unconditionally. Those prints are OFF by
+# default now (they drowned a 400$ load - see docs/BUG-tape400-sd-level12-storm.md),
+# so this gate - and ONLY this gate - compiles them back in to match the golden.
+# Normal runs stay quiet. If you re-record the golden, drop the define.
+# NOTE: -DDEBUG_INTERRUPT is exactly right and -DDEBUG_BIF=1 is NOT: the latter
+# also emits the BAPR/BIOXE bus trace, which the golden does not contain.
+	$(MAKE) -C runSim compile USE_LATCHES=0 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_GOLDEN -DDEBUG_INTERRUPT" >/dev/null
 	cd runSim && ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_console_check.log 2>&1; \
 	  cmp /tmp/nd120_console_check.log golden/console_ff_golden.log
 	@echo "==== system gate: Tang vtest (boot + deposit + readback) ===="
