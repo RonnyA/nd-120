@@ -55,8 +55,12 @@ ifeq ($(VERILOG_TAPE),1)
 #            Both paths must build and pass - the C models also back the
 #            sim/ latch-vs-FF trace goldens.
   SD_STORAGE  ?= 1
-  SD_CARD_IMG ?= ../SD-FAT/sim/nd_boot_card.img
+  # The default card is a build artefact: .gitignore excludes SD-FAT/sim/*.img,
+  # so a fresh clone has no card and the 'card' target below builds it.
+  SD_CARD_IMG_DEFAULT := ../SD-FAT/sim/nd_boot_card.img
+  SD_CARD_IMG ?= $(SD_CARD_IMG_DEFAULT)
   ifeq ($(SD_STORAGE),1)
+    SD_CARD_NEEDED := 1
     SIM_DEFINES += -DND120_SD_STORAGE -DND120_SD_CARD_IMG='"$(SD_CARD_IMG)"'
     override EXTRA_CFLAGS += -DND120_SD_STORAGE
     TIMING := 1
@@ -139,16 +143,19 @@ help:
 	@echo "                    at 1560 + SMD at 1540)"
 	@echo "  SD_STORAGE=1      (DEFAULT when VERILOG_TAPE=1) feed the tape from the"
 	@echo "                    REAL Verilog SD-FAT stack reading a simulated SD"
-	@echo "                    card - the same RTL that runs on Tang. The card must"
-	@echo "                    carry BOOT.BPUN: build it with"
-	@echo "                      ../SD-FAT/sim/make_boot_card.sh"
+	@echo "                    card - the same RTL that runs on Tang. The card"
+	@echo "                    carries BOOT.BPUN and is built automatically by"
+	@echo "                    'make run' if absent (target: card, script:"
+	@echo "                    ../SD-FAT/sim/make_boot_card.sh)."
 	@echo "                    Implies TIMING=1 (the card model drives the SD bus"
 	@echo "                    from tasks). 400\$$ then boots BOOT.BPUN off the card."
 	@echo "  SD_STORAGE=0      fall back to the C tape file server in NDBus.cpp"
 	@echo "                    (process_verilog_tape, reads INSTRUCTION-B.BPUN"
 	@echo "                    directly). Both paths must build and pass."
 	@echo "  SD_CARD_IMG=path  card image for SD_STORAGE"
-	@echo "                    (default ../SD-FAT/sim/nd_boot_card.img)"
+	@echo "                    (default ../SD-FAT/sim/nd_boot_card.img, auto-built)"
+	@echo "                    A card given here is never auto-built - if it is"
+	@echo "                    missing, that is an error."
 	@echo "  TIMING=1          Verilator --timing (event controls). Forced on by"
 	@echo "                    SD_STORAGE=1; measured behaviour-neutral and free"
 	@echo "                    (console byte-identical to golden, same runtime)."
@@ -186,7 +193,27 @@ compile: $(CPP_SOURCES)
 clean:
 	rm -rf obj_dir
 
-run: compile
+# Make sure the SD card image exists before a SD_STORAGE=1 run - without it
+# sd_card_model.v aborts at time 0 ("FATAL cannot open image") and nothing
+# boots. The default card is gitignored, so a fresh clone always lands here.
+# A hand-supplied SD_CARD_IMG is never auto-built: we do not know what it is
+# meant to contain, so a missing one is an error, not something to invent.
+.PHONY: card
+card:
+ifeq ($(SD_CARD_NEEDED),1)
+	@if [ ! -f "$(SD_CARD_IMG)" ]; then \
+	  if [ "$(SD_CARD_IMG)" = "$(SD_CARD_IMG_DEFAULT)" ]; then \
+	    echo "card: $(SD_CARD_IMG) missing - building it"; \
+	    ../SD-FAT/sim/make_boot_card.sh; \
+	  else \
+	    echo "card: SD_CARD_IMG=$(SD_CARD_IMG) does not exist (not auto-built:" >&2; \
+	    echo "      only the default card is generated, by make_boot_card.sh)" >&2; \
+	    exit 1; \
+	  fi; \
+	fi
+endif
+
+run: compile card
 	./obj_dir/VND120_TOP
 
 # Interactive floppy-boot session: Verilog device build (DMA floppy at
