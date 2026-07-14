@@ -216,11 +216,12 @@ module nd_storage_tape_adapter_tb;
   // Tier B: adapter on client 0 of the REAL nd_storage stack
   // =====================================================================
   wire        sd1_clk, sd1_cmd_o, sd1_cmd_oe, sd1_dat0_o, sd1_dat0_oe;
-  wire        sd1_cmd, sd1_dat0;
-  pullup (sd1_cmd);
-  pullup (sd1_dat0);
-  assign sd1_cmd  = sd1_cmd_oe ? sd1_cmd_o : 1'bz;
-  assign sd1_dat0 = sd1_dat0_oe ? sd1_dat0_o : 1'bz;
+  // SD lines resolved by MUX, no tristates (14-JUL-2026): host output-enable
+  // wins, then the card, then the bus pullup (1) - same rule as
+  // nd_storage_vtop.v:92.
+  wire        cm_cmd_o, cm_cmd_oe, cm_dat0_o, cm_dat0_oe;
+  wire        sd1_cmd  = sd1_cmd_oe  ? sd1_cmd_o  : (cm_cmd_oe  ? cm_cmd_o  : 1'b1);
+  wire        sd1_dat0 = sd1_dat0_oe ? sd1_dat0_o : (cm_dat0_oe ? cm_dat0_o : 1'b1);
 
   wire        mem_start_w, mem_we_w, mem_busy_w, mem_done_w;
   wire [19:0] mem_addr_w;
@@ -330,9 +331,12 @@ module nd_storage_tape_adapter_tb;
       .MAX_BYTES       (IMG_BYTES),
       .LEGAL_MIN_SECTOR(IMG_SECTORS)
   ) card (
-      .sd_clk (sd1_clk),
-      .sd_cmd (sd1_cmd),
-      .sd_dat0(sd1_dat0)
+      .sd_clk   (sd1_clk),
+      .sd_cmd_i (sd1_cmd),  .sd_cmd_o (cm_cmd_o),  .sd_cmd_oe (cm_cmd_oe),
+      .sd_dat0_i(sd1_dat0), .sd_dat0_o(cm_dat0_o), .sd_dat0_oe(cm_dat0_oe),
+      .sd_dat1_i(1'b1), .sd_dat1_o(), .sd_dat1_oe(),
+      .sd_dat2_i(1'b1), .sd_dat2_o(), .sd_dat2_oe(),
+      .sd_dat3_i(1'b1), .sd_dat3_o(), .sd_dat3_oe()
   );
 
   // sticky monitors for the tier-B EOF silence window

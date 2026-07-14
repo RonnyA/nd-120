@@ -78,11 +78,13 @@ module nd_storage_tb;
 
   // ------------------------------------------------------------- DUT 1
   wire        sd1_clk, sd1_cmd_o, sd1_cmd_oe, sd1_dat0_o, sd1_dat0_oe;
-  wire        sd1_cmd, sd1_dat0;  // resolved pads
-  pullup (sd1_cmd);
-  pullup (sd1_dat0);
-  assign sd1_cmd  = sd1_cmd_oe ? sd1_cmd_o : 1'bz;
-  assign sd1_dat0 = sd1_dat0_oe ? sd1_dat0_o : 1'bz;
+  // SD lines resolved by MUX, no tristates (14-JUL-2026): host output-enable
+  // wins, then the card, then the bus pullup (1) - same rule as
+  // nd_storage_vtop.v:92. Lets the same card model run under iverilog AND
+  // Verilator.
+  wire        c1_cmd_o, c1_cmd_oe, c1_dat0_o, c1_dat0_oe;
+  wire        sd1_cmd  = sd1_cmd_oe  ? sd1_cmd_o  : (c1_cmd_oe  ? c1_cmd_o  : 1'b1);
+  wire        sd1_dat0 = sd1_dat0_oe ? sd1_dat0_o : (c1_dat0_oe ? c1_dat0_o : 1'b1);
 
   wire        mem_start_w, mem_we_w, mem_busy_w, mem_done_w;
   wire [19:0] mem_addr_w;
@@ -165,9 +167,12 @@ module nd_storage_tb;
       .MAX_BYTES       (IMG_BYTES),
       .LEGAL_MIN_SECTOR(IMG_SECTORS)
   ) card (
-      .sd_clk (sd1_clk),
-      .sd_cmd (sd1_cmd),
-      .sd_dat0(sd1_dat0)
+      .sd_clk   (sd1_clk),
+      .sd_cmd_i (sd1_cmd),  .sd_cmd_o (c1_cmd_o),  .sd_cmd_oe (c1_cmd_oe),
+      .sd_dat0_i(sd1_dat0), .sd_dat0_o(c1_dat0_o), .sd_dat0_oe(c1_dat0_oe),
+      .sd_dat1_i(1'b1), .sd_dat1_o(), .sd_dat1_oe(),
+      .sd_dat2_i(1'b1), .sd_dat2_o(), .sd_dat2_oe(),
+      .sd_dat3_i(1'b1), .sd_dat3_o(), .sd_dat3_oe()
   );
 
   // client 1 buffer: REGISTERED BRAM (the sterner timing case)
@@ -188,11 +193,9 @@ module nd_storage_tb;
   wire clk_cpu2  = clk_cpu & dut2_en;
 
   wire        sd2_clk, sd2_cmd_o, sd2_cmd_oe, sd2_dat0_o, sd2_dat0_oe;
-  wire        sd2_cmd, sd2_dat0;
-  pullup (sd2_cmd);
-  pullup (sd2_dat0);
-  assign sd2_cmd  = sd2_cmd_oe ? sd2_cmd_o : 1'bz;
-  assign sd2_dat0 = sd2_dat0_oe ? sd2_dat0_o : 1'bz;
+  wire        c2_cmd_o, c2_cmd_oe, c2_dat0_o, c2_dat0_oe;
+  wire        sd2_cmd  = sd2_cmd_oe  ? sd2_cmd_o  : (c2_cmd_oe  ? c2_cmd_o  : 1'b1);
+  wire        sd2_dat0 = sd2_dat0_oe ? sd2_dat0_o : (c2_dat0_oe ? c2_dat0_o : 1'b1);
 
   wire        m2_start_w, m2_we_w, m2_busy_w, m2_done_w;
   wire [19:0] m2_addr_w;
@@ -265,9 +268,12 @@ module nd_storage_tb;
       .MAX_BYTES       (IMG_BYTES),
       .LEGAL_MIN_SECTOR(IMG_SECTORS)
   ) card2 (
-      .sd_clk (sd2_clk),
-      .sd_cmd (sd2_cmd),
-      .sd_dat0(sd2_dat0)
+      .sd_clk   (sd2_clk),
+      .sd_cmd_i (sd2_cmd),  .sd_cmd_o (c2_cmd_o),  .sd_cmd_oe (c2_cmd_oe),
+      .sd_dat0_i(sd2_dat0), .sd_dat0_o(c2_dat0_o), .sd_dat0_oe(c2_dat0_oe),
+      .sd_dat1_i(1'b1), .sd_dat1_o(), .sd_dat1_oe(),
+      .sd_dat2_i(1'b1), .sd_dat2_o(), .sd_dat2_oe(),
+      .sd_dat3_i(1'b1), .sd_dat3_o(), .sd_dat3_oe()
   );
 
   // ------------------------------------------------------------- monitors

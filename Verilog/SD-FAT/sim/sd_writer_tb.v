@@ -89,17 +89,20 @@ module sd_writer_tb #(
     end
 
   wire sd_clk;
-  wire sd_cmd;
-  wire sd_dat0, sd_dat1, sd_dat2, sd_dat3;
+  // SD lines resolved by MUX, no tristates (14-JUL-2026): host output-enable
+  // wins, then the card, then the bus pullup (1) - same rule as
+  // nd_storage_vtop.v:92.
+  wire cm_cmd_o, cm_cmd_oe, cm_dat0_o, cm_dat0_oe;
+  wire cm_dat1_o, cm_dat1_oe, cm_dat2_o, cm_dat2_oe, cm_dat3_o, cm_dat3_oe;
+  wire sd_cmd  = wr_cmd_oe  ? wr_cmd_o  : (cm_cmd_oe  ? cm_cmd_o  : 1'b1);
+  wire sd_dat0 = wr_dat0_oe ? wr_dat0_o : (cm_dat0_oe ? cm_dat0_o : 1'b1);
+  wire sd_dat1 = wr_dat1_oe ? wr_dat1_o : (cm_dat1_oe ? cm_dat1_o : 1'b1);
+  wire sd_dat2 = wr_dat2_oe ? wr_dat2_o : (cm_dat2_oe ? cm_dat2_o : 1'b1);
+  wire sd_dat3 = wr_dat3_oe ? wr_dat3_o : (cm_dat3_oe ? cm_dat3_o : 1'b1);
   wire wr_cmd_o, wr_cmd_oe, wr_dat0_o, wr_dat0_oe;
   wire wr_dat1_o, wr_dat1_oe, wr_dat2_o, wr_dat2_oe, wr_dat3_o, wr_dat3_oe;
   reg  tb_use4 = 0;
 
-  pullup (sd_cmd);
-  pullup (sd_dat0);
-  pullup (sd_dat1);
-  pullup (sd_dat2);
-  pullup (sd_dat3);
 
   sd_writer #(
       .CLKDIV(TB_CLKDIV)
@@ -140,22 +143,17 @@ module sd_writer_tb #(
   );
 
   // single tristate resolution, as at the board top level
-  assign sd_cmd  = wr_cmd_oe ? wr_cmd_o : 1'bz;
-  assign sd_dat0 = wr_dat0_oe ? wr_dat0_o : 1'bz;
-  assign sd_dat1 = wr_dat1_oe ? wr_dat1_o : 1'bz;
-  assign sd_dat2 = wr_dat2_oe ? wr_dat2_o : 1'bz;
-  assign sd_dat3 = wr_dat3_oe ? wr_dat3_o : 1'bz;
 
   sd_card_model #(
       .IMAGE    ("writer_test.img"),
       .MAX_BYTES(IMG_BYTES)
   ) card (
-      .sd_clk (sd_clk),
-      .sd_cmd (sd_cmd),
-      .sd_dat0(sd_dat0),
-      .sd_dat1(sd_dat1),
-      .sd_dat2(sd_dat2),
-      .sd_dat3(sd_dat3)
+      .sd_clk   (sd_clk),
+      .sd_cmd_i (sd_cmd),  .sd_cmd_o (cm_cmd_o),  .sd_cmd_oe (cm_cmd_oe),
+      .sd_dat0_i(sd_dat0), .sd_dat0_o(cm_dat0_o), .sd_dat0_oe(cm_dat0_oe),
+      .sd_dat1_i(sd_dat1), .sd_dat1_o(cm_dat1_o), .sd_dat1_oe(cm_dat1_oe),
+      .sd_dat2_i(sd_dat2), .sd_dat2_o(cm_dat2_o), .sd_dat2_oe(cm_dat2_oe),
+      .sd_dat3_i(sd_dat3), .sd_dat3_o(cm_dat3_o), .sd_dat3_oe(cm_dat3_oe)
   );
 
   // DAT1-3 discipline monitor (enabled around 4-bit WRITE ops): the card's

@@ -69,11 +69,12 @@ module nd_storage_fatchk_tb;
 
   // ------------------------------------------------------------- DUT
   wire        sd_clk, sd_cmd_o, sd_cmd_oe, sd_dat0_o, sd_dat0_oe;
-  wire        sd_cmd, sd_dat0;  // resolved pads
-  pullup (sd_cmd);
-  pullup (sd_dat0);
-  assign sd_cmd  = sd_cmd_oe ? sd_cmd_o : 1'bz;
-  assign sd_dat0 = sd_dat0_oe ? sd_dat0_o : 1'bz;
+  // SD lines resolved by MUX, no tristates (14-JUL-2026): host output-enable
+  // wins, then the card, then the bus pullup (1) - same rule as
+  // nd_storage_vtop.v:92.
+  wire        cm_cmd_o, cm_cmd_oe, cm_dat0_o, cm_dat0_oe;
+  wire        sd_cmd  = sd_cmd_oe  ? sd_cmd_o  : (cm_cmd_oe  ? cm_cmd_o  : 1'b1);
+  wire        sd_dat0 = sd_dat0_oe ? sd_dat0_o : (cm_dat0_oe ? cm_dat0_o : 1'b1);
 
   wire        mem_start_w, mem_we_w, mem_busy_w, mem_done_w;
   wire [19:0] mem_addr_w;
@@ -153,9 +154,12 @@ module nd_storage_fatchk_tb;
       .MAX_BYTES       (IMG_BYTES),
       .LEGAL_MIN_SECTOR(IMG_SECTORS)
   ) card (
-      .sd_clk (sd_clk),
-      .sd_cmd (sd_cmd),
-      .sd_dat0(sd_dat0)
+      .sd_clk   (sd_clk),
+      .sd_cmd_i (sd_cmd),  .sd_cmd_o (cm_cmd_o),  .sd_cmd_oe (cm_cmd_oe),
+      .sd_dat0_i(sd_dat0), .sd_dat0_o(cm_dat0_o), .sd_dat0_oe(cm_dat0_oe),
+      .sd_dat1_i(1'b1), .sd_dat1_o(), .sd_dat1_oe(),
+      .sd_dat2_i(1'b1), .sd_dat2_o(), .sd_dat2_oe(),
+      .sd_dat3_i(1'b1), .sd_dat3_o(), .sd_dat3_oe()
   );
 
   // ------------------------------------------------------------- monitors

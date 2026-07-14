@@ -2,6 +2,8 @@
 ** Behavioral SD card model (native 1-bit mode) for the SD-FAT test        **
 **                                                                         **
 ** Serves sectors from a raw filesystem image file ($fread at time 0).     **
+** SD bus is split _i/_o/_oe (no tristates) - the TB muxes. See the port   **
+** block. Runs under BOTH iverilog and Verilator.                          **
 ** Implements what the SD-FAT library needs:                               **
 **   CMD0 (no response), CMD8 (R7), CMD55+ACMD41 (R1/R3, reports SDHC),    **
 **   CMD2 (R2/CID), CMD3 (R6, RCA=0x0001), CMD7 (R1), CMD16 (R1),          **
@@ -66,11 +68,30 @@ module sd_card_model #(
     parameter LEGAL_MIN_SECTOR = 0   // nonzero: writes below this count illegal
 ) (
     input  sd_clk,
-    inout  sd_cmd,   // needs a pullup() in the testbench
-    inout  sd_dat0,  // needs a pullup() in the testbench (bidir since CMD24)
-    inout  sd_dat1,  // 4-bit bus mode (ACMD6); pullup() when used, else float
-    inout  sd_dat2,
-    inout  sd_dat3
+    // SD bus, SPLIT _i/_o/_oe - NO TRISTATES, NO PULLUP (14-JUL-2026).
+    // Rationale: `z` is iverilog-only in practice and the repo bans it inside
+    // the FPGA (see nd_storage.v header, CLAUDE.md). The testbench resolves
+    // each line with a MUX - host output-enable wins, then the card, then the
+    // bus pullup (1) - exactly as nd_storage_vtop.v:92 already does. This is
+    // what lets the SAME Verilog card model run under BOTH iverilog and
+    // the Verilator flow, so the Verilog gets validated in both. (Do NOT start
+    // a comment with the word "verilator" - it is lexed as a metacomment and
+    // is a hard error. Yes, that is how this line got written.)
+    input  sd_cmd_i,   //! resolved CMD line in
+    output sd_cmd_o,   //! CMD value this card drives
+    output sd_cmd_oe,  //! 1 = this card is driving CMD
+    input  sd_dat0_i,  //! resolved DAT0 line in (bidir since CMD24)
+    output sd_dat0_o,
+    output sd_dat0_oe,
+    input  sd_dat1_i,  //! 4-bit bus mode (ACMD6); tie 1 when unused
+    output sd_dat1_o,
+    output sd_dat1_oe,
+    input  sd_dat2_i,
+    output sd_dat2_o,
+    output sd_dat2_oe,
+    input  sd_dat3_i,
+    output sd_dat3_o,
+    output sd_dat3_oe
 );
 
   reg [7:0] mem[0:MAX_BYTES-1];
@@ -111,22 +132,27 @@ module sd_card_model #(
   reg cmd_drive;
   reg cmd_out;
   initial {cmd_drive, cmd_out} = 2'b01;
-  assign sd_cmd = cmd_drive ? cmd_out : 1'bz;
+  assign sd_cmd_o  = cmd_out;
+  assign sd_cmd_oe = cmd_drive;
 
   // ------------------------------------------------------------- DAT0 pin
   // driven only while the card sources data (read block, CRC status, busy)
   reg dat_out, dat_oe;
   initial {dat_out, dat_oe} = 2'b10;
-  assign sd_dat0 = dat_oe ? dat_out : 1'bz;
+  assign sd_dat0_o  = dat_out;
+  assign sd_dat0_oe = dat_oe;
 
   // ------------------------------------------------------------- DAT1-3
   // driven ONLY during a 4-bit read data block; the CRC status token and
   // all busy signalling stay on DAT0 alone (SD Physical Layer spec)
   reg d1_out, d2_out, d3_out, datx_oe;
   initial {d1_out, d2_out, d3_out, datx_oe} = 4'b1110;
-  assign sd_dat1 = datx_oe ? d1_out : 1'bz;
-  assign sd_dat2 = datx_oe ? d2_out : 1'bz;
-  assign sd_dat3 = datx_oe ? d3_out : 1'bz;
+  assign sd_dat1_o  = d1_out;
+  assign sd_dat1_oe = datx_oe;
+  assign sd_dat2_o  = d2_out;
+  assign sd_dat2_oe = datx_oe;
+  assign sd_dat3_o  = d3_out;
+  assign sd_dat3_oe = datx_oe;
 
   // bus width state: ACMD6 arg[1:0] = 2'b10 selects 4-bit, CMD0 resets it
   reg bus4;
@@ -285,7 +311,7 @@ module sd_card_model #(
         byt  = 8'h00;
         for (i = 0; i < 1024; i = i + 1) begin
           @(posedge sd_clk);
-          nib = {sd_dat3, sd_dat2, sd_dat1, sd_dat0};
+          nib = {sd_dat3_i, sd_dat2_i, sd_dat1_i, sd_dat0_i};
           crc3 = crc16_step(crc3, nib[3]);
           crc2 = crc16_step(crc2, nib[2]);
           crc1 = crc16_step(crc1, nib[1]);
@@ -311,10 +337,10 @@ module sd_card_model #(
         crch3 = 16'd0;
         for (i = 15; i >= 0; i = i - 1) begin
           @(posedge sd_clk);
-          crc_host[i] = sd_dat0;
-          crch1[i] = sd_dat1;
-          crch2[i] = sd_dat2;
-          crch3[i] = sd_dat3;
+          crc_host[i] = sd_dat0_i;
+          crch1[i] = sd_dat1_i;
+          crch2[i] = sd_dat2_i;
+          crch3[i] = sd_dat3_i;
         end
         if (crc_host !== crc || crch1 !== crc1 ||
             crch2 !== crc2 || crch3 !== crc3) begin
@@ -335,15 +361,15 @@ module sd_card_model #(
           byt = 8'h00;
           for (b = 7; b >= 0; b = b - 1) begin
             @(posedge sd_clk);
-            byt[b] = sd_dat0;
-            crc = crc16_step(crc, sd_dat0);
+            byt[b] = sd_dat0_i;
+            crc = crc16_step(crc, sd_dat0_i);
           end
           if (!reject && base + i < MAX_BYTES) mem[base+i] = byt;
         end
         crc_host = 16'd0;
         for (i = 15; i >= 0; i = i - 1) begin
           @(posedge sd_clk);
-          crc_host[i] = sd_dat0;
+          crc_host[i] = sd_dat0_i;
         end
         if (!reject && crc_host !== crc) begin
           wr_crc_errors = wr_crc_errors + 1;
@@ -407,7 +433,7 @@ module sd_card_model #(
       q = 48'd0;
       for (i = 46; i >= 0; i = i - 1) begin
         @(posedge sd_clk);
-        q[i] = sd_cmd;
+        q[i] = sd_cmd_i;
       end
       cc = crc7_of40(q[47:8]);
       if ({cc, 1'b1} !== q[7:0]) begin
@@ -450,7 +476,7 @@ module sd_card_model #(
         gap_now = rgap_rand ? ({$random} % 17) : {24'd0, rgap};
         while (!abort && k < gap_now) begin
           @(posedge sd_clk);
-          if (sd_cmd === 1'b0 && !cmd_drive) abort = 1'b1;
+          if (sd_cmd_i === 1'b0 && !cmd_drive) abort = 1'b1;
           else k = k + 1;
         end
         if (!abort && bus4) begin
@@ -490,7 +516,7 @@ module sd_card_model #(
             d3_out  <= blknibs[i][3];
             i = i + 1;
             @(posedge sd_clk);
-            if (sd_cmd === 1'b0 && !cmd_drive) abort = 1'b1;
+            if (sd_cmd_i === 1'b0 && !cmd_drive) abort = 1'b1;
           end
           @(negedge sd_clk) begin  // release the DAT lines between blocks
             dat_oe  <= 1'b0;
@@ -524,7 +550,7 @@ module sd_card_model #(
             dat_out <= blkbits[i];
             i = i + 1;
             @(posedge sd_clk);
-            if (sd_cmd === 1'b0 && !cmd_drive) abort = 1'b1;
+            if (sd_cmd_i === 1'b0 && !cmd_drive) abort = 1'b1;
           end
           @(negedge sd_clk) dat_oe <= 1'b0;  // release DAT0 between blocks
           if (!abort) blk = blk + 1;
@@ -547,7 +573,7 @@ module sd_card_model #(
       fin = 1'b0;
       while (!fin) begin
         @(posedge sd_clk);
-        if (sd_cmd === 1'b0 && !cmd_drive) begin
+        if (sd_cmd_i === 1'b0 && !cmd_drive) begin
           recv_rest_cmd(rcmd);  // expect CMD12 -> R1
           // R1b: final busy while the last block finishes programming
           @(negedge sd_clk) begin
@@ -558,7 +584,7 @@ module sd_card_model #(
           @(negedge sd_clk) dat_out <= 1'b1;
           @(negedge sd_clk) dat_oe <= 1'b0;
           fin = 1'b1;
-        end else if (sd_dat0 === 1'b0 && !dat_oe) begin
+        end else if (sd_dat0_i === 1'b0 && !dat_oe) begin
           // data start bit: this burst block behaves exactly like a CMD24
           cursec = (base >> 9) + blk;
           rej = 1'b0;
@@ -590,11 +616,11 @@ module sd_card_model #(
     reg [6:0] crc_calc;
     // hunt for a command start bit on a rising edge
     @(posedge sd_clk);
-    if (sd_cmd === 1'b0) begin
+    if (sd_cmd_i === 1'b0) begin
       req[47] = 1'b0;
       for (i = 46; i >= 0; i = i - 1) begin
         @(posedge sd_clk);
-        req[i] = sd_cmd;
+        req[i] = sd_cmd_i;
       end
       cmd = req[45:40];
       arg = req[39:8];
@@ -757,7 +783,7 @@ module sd_card_model #(
           guard = 0;
           while (guard >= 0) begin
             @(posedge sd_clk);
-            if (sd_dat0 === 1'b0) guard = -1;  // start bit seen
+            if (sd_dat0_i === 1'b0) guard = -1;  // start bit seen
             else if (guard > 5000) begin
               $display("sd_card_model: CMD24 data start-bit timeout at %0t", $time);
               guard = -2;

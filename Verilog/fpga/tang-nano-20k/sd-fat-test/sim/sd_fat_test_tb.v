@@ -42,11 +42,25 @@ module sd_fat_test_tb;
   wire sd_dat1, sd_dat2, sd_dat3;
   wire [5:0] led;
 
+  // NOTE: this TB keeps the real tristate net ON PURPOSE. Its DUT is a BOARD
+  // TOP (sd_fat_test_top) with genuine bidirectional pads, and exercising that
+  // pad path is exactly what this bench is for (cf. the test-tristate netlist
+  // gate: yosys collapsed nested-ternary z on silicon). The card model itself
+  // is now z-free (split _i/_o/_oe), so it drives the net from here instead.
+  // iverilog-only by construction; the Verilator path uses sd_fat_test_vtop.v.
   pullup (sd_cmd);
   pullup (sd_dat0);
   pullup (sd_dat1);
   pullup (sd_dat2);
   pullup (sd_dat3);
+
+  wire cm_cmd_o, cm_cmd_oe, cm_dat0_o, cm_dat0_oe;
+  wire cm_dat1_o, cm_dat1_oe, cm_dat2_o, cm_dat2_oe, cm_dat3_o, cm_dat3_oe;
+  assign sd_cmd  = cm_cmd_oe  ? cm_cmd_o  : 1'bz;
+  assign sd_dat0 = cm_dat0_oe ? cm_dat0_o : 1'bz;
+  assign sd_dat1 = cm_dat1_oe ? cm_dat1_o : 1'bz;
+  assign sd_dat2 = cm_dat2_oe ? cm_dat2_o : 1'bz;
+  assign sd_dat3 = cm_dat3_oe ? cm_dat3_o : 1'bz;
 
   sd_fat_test_top #(
       .CLK_FREQ(27_000_000),
@@ -72,12 +86,12 @@ module sd_fat_test_tb;
       .IMAGE("fat16.img"),
       .MAX_BYTES(8 * 1024 * 1024)
   ) card (
-      .sd_clk (sd_clk),
-      .sd_cmd (sd_cmd),
-      .sd_dat0(sd_dat0),
-      .sd_dat1(sd_dat1),
-      .sd_dat2(sd_dat2),
-      .sd_dat3(sd_dat3)
+      .sd_clk   (sd_clk),
+      .sd_cmd_i (sd_cmd),  .sd_cmd_o (cm_cmd_o),  .sd_cmd_oe (cm_cmd_oe),
+      .sd_dat0_i(sd_dat0), .sd_dat0_o(cm_dat0_o), .sd_dat0_oe(cm_dat0_oe),
+      .sd_dat1_i(sd_dat1), .sd_dat1_o(cm_dat1_o), .sd_dat1_oe(cm_dat1_oe),
+      .sd_dat2_i(sd_dat2), .sd_dat2_o(cm_dat2_o), .sd_dat2_oe(cm_dat2_oe),
+      .sd_dat3_i(sd_dat3), .sd_dat3_o(cm_dat3_o), .sd_dat3_oe(cm_dat3_oe)
   );
 
   // bus-contention assertion (always on): the card model and the DUT pad
