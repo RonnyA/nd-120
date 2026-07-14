@@ -501,12 +501,40 @@ int main(int argc, char **argv)
 	auto &ram_high = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi;
 	auto &ram_high_9 = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi_p;
 
-	// Use provided filename if exists, otherwise default to "INSTRUCTION-B.BPUN"
-	// char *default_filename = strdup("INSTRUCTION-B.BPUN"); // strdup creates a modifiable copy
-	char *default_filename = strdup("DEBUG.BPUN"); // strdup creates a modifiable copy
-	char *filename = (argc > 1) ? argv[1] : default_filename;
-	
-	loadfile(filename, 0, &ram_low[0], &ram_low_9[0], &ram_high[0], &ram_high_9[0]);
+	// DEBUG PRE-DEPOSIT of a BPUN straight into the RAM arrays, bypassing the
+	// CPU entirely. This is a debug shortcut, NOT how the machine works.
+	//
+	// It MUST NOT run under SD_STORAGE (14-JUL-2026, caught by Ronny): the
+	// default DEBUG.BPUN is BYTE-IDENTICAL to INSTRUCTION-B.BPUN (same
+	// sha256, both 46566 bytes), so pre-depositing it puts the very program
+	// the '400$' tape boot is supposed to fetch into memory BEFORE the boot
+	// runs. The console banner then proves nothing about the tape: the boot
+	// would print it whether or not a single byte came off the card. Any
+	// "boots from SD" claim measured with this on is contaminated.
+	//
+	// Under ND120_SD_STORAGE the card supplies the program, so the pre-deposit
+	// is OFF unless a file is named explicitly on the command line. Pass one
+	// (or set ND120_PRELOAD_BPUN=file) when you WANT the shortcut.
+	const char *env_preload = getenv("ND120_PRELOAD_BPUN");
+	char *filename = NULL;
+	if (argc > 1)
+		filename = argv[1];
+	else if (env_preload != NULL && env_preload[0] != '\0')
+		filename = strdup(env_preload);
+#ifndef ND120_SD_STORAGE
+	else
+		filename = strdup("DEBUG.BPUN");  // legacy default (C tape / no SD)
+#endif
+
+	if (filename != NULL) {
+		printf("[ND120] BPUN pre-deposit into RAM: %s (debug shortcut - the CPU\n"
+		       "        did NOT load this; a tape boot of the same file proves nothing)\n",
+		       filename);
+		loadfile(filename, 0, &ram_low[0], &ram_low_9[0], &ram_high[0], &ram_high_9[0]);
+	} else {
+		printf("[ND120] no BPUN pre-deposit: RAM starts empty, '400$' must load the\n"
+		       "        program off the SD card itself\n");
+	}
 
 	// LED bits
 	//!   0=CPU RED

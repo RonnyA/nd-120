@@ -2,9 +2,12 @@ VERILATOR = verilator
 
 SUPPRESS_FLAGS = -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY -Wno-UNUSED -Wno-UNDRIVEN -Wno-WIDTH -Wno-EOFNEWLINE -Wno-LATCH -Wno-SYNCASYNCNET
 
-# USE_LATCHES: Set to 1 (default) for transparent latch behavior (original hardware).
-#              Set to 0 for edge-triggered flip-flop behavior (FPGA mode).
-USE_LATCHES ?= 1
+# USE_LATCHES: 0 (edge-triggered flip-flop behavior) is the default and is what
+#              every build here uses. We do not use latches any more - the
+#              transparent-latch path is legacy. USE_LATCHES=1 stays reachable
+#              from the command line ONLY as a one-off debug escape hatch; no
+#              target in this file may pass it to a sub-make.
+USE_LATCHES ?= 0
 
 # Enable larger RAM (1MB) for Verilator simulation instead of FPGA's 4KB
 # EXTRA_VDEFINES: extra Verilog-side defines, e.g.
@@ -130,6 +133,16 @@ help:
 	@echo "Targets:"
 	@echo "  make compile      build the simulator (C models for the bus devices)"
 	@echo "  make run          compile + run interactively (OPCOM on stdin/stdout)"
+	@echo "                    with the Verilog device stack fed by the real"
+	@echo "                    SD-FAT RTL reading a simulated SD card"
+	@echo "                    (= VERILOG_TAPE=1 SD_STORAGE=1)"
+	@echo "  make run-config   boot CONFIGURATIO-C08.BPUN off the card (device"
+	@echo "                    configuration; type RUN at its prompt to probe the"
+	@echo "                    machine - says if floppy/SMD/tape are detected)"
+	@echo "  make run-fs       boot FILSYS-INV-Q04.BPUN off the card (file-system"
+	@echo "                    investigator; looks INTO a floppy or SMD image)"
+	@echo "  make run-c        same, but with the C device models in"
+	@echo "                    ../simDevices instead (= VERILOG_TAPE=0)"
 	@echo "  make run-floppy   Verilog-device build (DMA floppy at 1560) + run with"
 	@echo "                    a bootable diskette image; type 1560& at the '#'"
 	@echo "                    prompt to boot it - the loaded program then owns the"
@@ -137,7 +150,9 @@ help:
 	@echo "  make clean        remove obj_dir (do this when switching build flags)"
 	@echo ""
 	@echo "Variables:"
-	@echo "  USE_LATCHES=0     FPGA flip-flop mode (default 1 = transparent latches)"
+	@echo "  USE_LATCHES=1     legacy transparent-latch mode - debug only, never"
+	@echo "                    for normal work. Default 0 = the edge-triggered"
+	@echo "                    flip-flop behavior every build here uses."
 	@echo "  VERILOG_TAPE=1    replace the C papertape/floppy models with the Verilog"
 	@echo "                    device stack inside ND120_TOP (tape-400 + DMA floppy"
 	@echo "                    at 1560 + SMD at 1540)"
@@ -213,8 +228,46 @@ ifeq ($(SD_CARD_NEEDED),1)
 	fi
 endif
 
-run: compile card
-	./obj_dir/VND120_TOP
+# run   = the Verilog device stack fed by the real SD-FAT RTL reading a
+#         simulated SD card (the same RTL that runs on Tang).
+# run-c = the C device models in ../simDevices (NDBus.cpp file servers).
+# Both recurse so the flag set is fixed here rather than left to the caller;
+# the .buildflags stamp in 'compile' wipes obj_dir when you switch between them.
+run:
+	$(MAKE) run-sim VERILOG_TAPE=1 SD_STORAGE=1
+
+run-c:
+	$(MAKE) run-sim VERILOG_TAPE=0
+
+run-sim: compile card
+	ND120_FLOPPY_IMG=$(FLOPPY_IMG) ./obj_dir/VND120_TOP
+
+# ---- other programs on the boot card -------------------------------------
+# Same '400$' tape boot, different BOOT.BPUN. Each program gets its OWN card
+# image so they never clobber each other and switching back does not rebuild.
+# The BPUNs are committed here - these targets never read D:\ND\BPUN.
+#
+#   run-config  CONFIGURATIO-C08.BPUN - device configuration. Type RUN at its
+#               prompt to make it probe the machine: this is what says whether
+#               the floppy / SMD / tape controllers are detected correctly.
+#   run-fs      FILSYS-INV-Q04.BPUN - file-system investigator. Looks INTO a
+#               disk image (floppy or SMD), so it validates that we can read
+#               those images at all.
+#
+# Card size note: make_boot_card.sh refuses anything over 65536 bytes (SLOT0 =
+# 32 blocks x 2048). CONFIGURATIO-C08 = 47052, FILSYS-INV-Q04 = 50870 - both fit.
+CONFIG_BPUN = CONFIGURATIO-C08.BPUN
+FS_BPUN     = FILSYS-INV-Q04.BPUN
+
+run-config:
+	../SD-FAT/sim/make_boot_card.sh ../../runSim/$(CONFIG_BPUN) nd_config_card.img
+	$(MAKE) run-sim VERILOG_TAPE=1 SD_STORAGE=1 \
+	        SD_CARD_IMG=../SD-FAT/sim/nd_config_card.img
+
+run-fs:
+	../SD-FAT/sim/make_boot_card.sh ../../runSim/$(FS_BPUN) nd_fs_card.img
+	$(MAKE) run-sim VERILOG_TAPE=1 SD_STORAGE=1 \
+	        SD_CARD_IMG=../SD-FAT/sim/nd_fs_card.img
 
 # Interactive floppy-boot session: Verilog device build (DMA floppy at
 # 1560) with a bootable diskette image behind it. At the '#' prompt
@@ -224,8 +277,8 @@ run: compile card
 FLOPPY_IMG ?= ../ND-BUS-DEVICES/testdata/210523I01-XX-01D.img
 
 run-floppy:
-	$(MAKE) compile VERILOG_TAPE=1 USE_LATCHES=0
+	$(MAKE) compile VERILOG_TAPE=1
 	ND120_FLOPPY_IMG=$(FLOPPY_IMG) ./obj_dir/VND120_TOP
 
 
-.PHONY: all clean run-floppy
+.PHONY: all clean run run-c run-sim run-floppy
