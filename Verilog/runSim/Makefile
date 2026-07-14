@@ -44,9 +44,48 @@ ifeq ($(VERILOG_TAPE),1)
   # ignored - which would compile the C harness WITHOUT the define
   # (leaving the C papertape registered and the Verilog device starved).
   override EXTRA_CFLAGS += -DND120_VERILOG_DEVICES
+
+# SD_STORAGE=1 (DEFAULT, Ronny 14-JUL-2026): the Verilog tape device is fed by
+#            the REAL SD-FAT stack reading a simulated SD card - the same RTL
+#            that runs on Tang - instead of the C file server in NDBus.cpp.
+#            The card must carry BOOT.BPUN; build it with
+#            ../SD-FAT/sim/make_boot_card.sh (SD_CARD_IMG points at it).
+#            Implies TIMING=1: sd_card_model.v drives the SD bus from tasks.
+# SD_STORAGE=0 falls back to the C tape file server (process_verilog_tape).
+#            Both paths must build and pass - the C models also back the
+#            sim/ latch-vs-FF trace goldens.
+  SD_STORAGE  ?= 1
+  SD_CARD_IMG ?= ../SD-FAT/sim/nd_boot_card.img
+  ifeq ($(SD_STORAGE),1)
+    SIM_DEFINES += -DND120_SD_STORAGE -DND120_SD_CARD_IMG='"$(SD_CARD_IMG)"'
+    override EXTRA_CFLAGS += -DND120_SD_STORAGE
+    TIMING := 1
+    # Suppressions scoped to the SD_STORAGE build ONLY, so the CPU sources keep
+    # their full -Wall. All four are pre-existing and benign in the SD-FAT
+    # stack, and SD-FAT/sim/Makefile already suppresses them there:
+    #   PINMISSING    BY DESIGN - nd_storage instantiates sd_writer without the
+    #                 4-bit ports; unconnected use_4bit = the proven 1-bit engine
+    #   DECLFILENAME  nds_sync.v / sd_file_reader.v hold >1 module (see -v above)
+    #   BLKSEQ        blocking assigns in the card MODEL's sequential tasks
+    #   TIMESCALEMOD  the SD-FAT sources carry a timescale, the CPU ones do not
+    SDFAT_SUPPRESS = -Wno-PINMISSING -Wno-DECLFILENAME -Wno-BLKSEQ -Wno-TIMESCALEMOD
+  endif
 endif
 
-VERILATOR_FLAGS = --trace -Wall --cc ../ND120_TOP.v $(SUPPRESS_FLAGS) $(SIM_DEFINES)
+# TIMING=1  compile with Verilator --timing (event controls / delays).
+#           Needed by the Verilog SD card model (sd_card_model.v drives the
+#           SD bus from tasks with @(negedge sd_clk)), i.e. by SD_STORAGE.
+#           It changes Verilator's scheduler for the WHOLE build, so it is a
+#           variable and the golden gates must be re-proven under it.
+TIMING ?= 0
+ifeq ($(TIMING),1)
+  TIMING_FLAGS = --timing
+  override EXTRA_CFLAGS += -std=gnu++20 -fcoroutines
+else
+  TIMING_FLAGS =
+endif
+
+VERILATOR_FLAGS = --trace -Wall --cc ../ND120_TOP.v $(SUPPRESS_FLAGS) $(SDFAT_SUPPRESS) $(TIMING_FLAGS) $(SIM_DEFINES)
 
 #TOP_3202D_COMPONENTS = -I../circuit -I../../Shared/logisim   -I../../Shared/ndlib  -I../../Shared/support
 TOP_3202D_COMPONENTS =  -I../Shared/logisim   -I../Shared/ndlib  -I../Shared/support -I../CPU-BOARD-3202/circuit
@@ -57,9 +96,24 @@ DGA_COMPONENTS = -I../DECODE-GateArray/DGA/circuit
 #SHARED_COMPONENTS =  -I../circuit -I../../shared/ndlib -I../../shared/logisim -I../../shared/gates   -I../../PAL
 
 BUSDEV_COMPONENTS = -I../ND-BUS-DEVICES/BUS-IF/circuit -I../ND-BUS-DEVICES/TAPE-400/circuit -I../ND-BUS-DEVICES/DMA/circuit -I../ND-BUS-DEVICES/FLOPPY/circuit -I../ND-BUS-DEVICES/FLOPPY-DMA/circuit -I../ND-BUS-DEVICES/SMD/circuit
+# SD-FAT stack (SD_STORAGE): circuit/ = the real RTL, sim/ = sd_card_model +
+# nds_mem_model, the two SIM-ONLY models ND120_TOP instantiates under
+# ND120_SD_STORAGE. Without these -I dirs Verilator cannot find nd_storage.
+SDFAT_COMPONENTS = -I../SD-FAT/circuit -I../SD-FAT/sim
+# LIBRARY files: -I resolves a module by FILENAME, and these two hold modules
+# whose names differ from their file, so -I alone cannot find them:
+#   nds_sync.v       -> nds_sync_pulse, nds_sync_level
+#   sd_file_reader.v -> sd_card_ctrl (alongside sd_file_reader)
+# Kept OUT of VERILATOR_DIRS on purpose: that variable is also handed to g++
+# via -CFLAGS, which would try to LINK these .v files.
+# Only fed to Verilator when SD_STORAGE=1: parsing them otherwise would drag
+# their (suppressed-only-there) DECLFILENAME warnings into the C-path build.
+ifeq ($(SD_STORAGE),1)
+  SDFAT_VFILES = -v ../SD-FAT/circuit/nds_sync.v -v ../SD-FAT/circuit/sd_file_reader.v
+endif
 
 # -I.. = the Verilog root, where ND120_CORE.v (instantiated by ND120_TOP.v) lives
-VERILATOR_DIRS = -I.. $(TOP_3202D_COMPONENTS) $(CGA_COMPONENTS) $(DGA_COMPONENTS) $(BUSDEV_COMPONENTS) -I../PAL
+VERILATOR_DIRS = -I.. $(TOP_3202D_COMPONENTS) $(CGA_COMPONENTS) $(DGA_COMPONENTS) $(BUSDEV_COMPONENTS) $(SDFAT_COMPONENTS) -I../PAL
 # Specify C++ source files here
 CPP_SOURCES = Run120.cpp ../simDevices/NDDevices.cpp ../simDevices/NDBus.cpp
 
@@ -83,6 +137,21 @@ help:
 	@echo "  VERILOG_TAPE=1    replace the C papertape/floppy models with the Verilog"
 	@echo "                    device stack inside ND120_TOP (tape-400 + DMA floppy"
 	@echo "                    at 1560 + SMD at 1540)"
+	@echo "  SD_STORAGE=1      (DEFAULT when VERILOG_TAPE=1) feed the tape from the"
+	@echo "                    REAL Verilog SD-FAT stack reading a simulated SD"
+	@echo "                    card - the same RTL that runs on Tang. The card must"
+	@echo "                    carry BOOT.BPUN: build it with"
+	@echo "                      ../SD-FAT/sim/make_boot_card.sh"
+	@echo "                    Implies TIMING=1 (the card model drives the SD bus"
+	@echo "                    from tasks). 400\$$ then boots BOOT.BPUN off the card."
+	@echo "  SD_STORAGE=0      fall back to the C tape file server in NDBus.cpp"
+	@echo "                    (process_verilog_tape, reads INSTRUCTION-B.BPUN"
+	@echo "                    directly). Both paths must build and pass."
+	@echo "  SD_CARD_IMG=path  card image for SD_STORAGE"
+	@echo "                    (default ../SD-FAT/sim/nd_boot_card.img)"
+	@echo "  TIMING=1          Verilator --timing (event controls). Forced on by"
+	@echo "                    SD_STORAGE=1; measured behaviour-neutral and free"
+	@echo "                    (console byte-identical to golden, same runtime)."
 	@echo "  FLOPPY_IMG=path   diskette image for run-floppy (default: the 210523I01"
 	@echo "                    test-program diskette in ND-BUS-DEVICES/testdata)"
 	@echo "  SKIP_WCS=1        preload the WCS, skip the microcode load phase"
@@ -110,7 +179,7 @@ compile: $(CPP_SOURCES)
 	  echo "Build flags changed (or unknown) since last build - cleaning obj_dir"; \
 	  rm -rf obj_dir; \
 	fi
-	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS) --exe $(CPP_SOURCES)  -CFLAGS "$(VERILATOR_DIRS)  -I../../simDevices $(EXTRA_CFLAGS)"
+	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS) $(SDFAT_VFILES) --exe $(CPP_SOURCES)  -CFLAGS "$(VERILATOR_DIRS)  -I../../simDevices $(EXTRA_CFLAGS)"
 	@echo "$(BUILD_FLAGS)" > $(FLAGS_STAMP)
 	cd obj_dir && make -f VND120_TOP.mk VND120_TOP
 

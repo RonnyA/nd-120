@@ -438,6 +438,125 @@ module ND120_TOP
   localparam CORE_INCLUDE_TAPE   = 1;
   localparam CORE_INCLUDE_FLOPPY = 1;
   localparam CORE_INCLUDE_SMD    = 1;
+
+  /*--------------------------------------------------------------------
+  *  Tape byte source: SD-FAT stack (ND120_SD_STORAGE) or the C harness.
+  *
+  *  SD_STORAGE=1 (the runSim default) feeds ND_TAPE_400 from the REAL
+  *  Verilog SD-FAT stack reading a simulated SD card - the same RTL that
+  *  runs on Tang - instead of the C file server in simDevices/NDBus.cpp.
+  *  The card holds BOOT.BPUN; build it with SD-FAT/sim/make_boot_card.sh.
+  *
+  *  SIM-ONLY. sd_card_model / nds_mem_model are testbench models and must
+  *  never reach an FPGA build, hence the VERILATOR_SIM guard: on hardware
+  *  the byte source is nd_tape_sdfat_source on the BOARD, wired to a real
+  *  card and to the SDRAM device port (see docs/PLAN-nd120-storage-phases.md).
+  *
+  *  The TAPE_BYTE_* ports stay in place either way so the C harness still
+  *  compiles; under SD_STORAGE its VALID/DATA inputs are simply ignored
+  *  (NDBus.cpp also stops serving tape - same define).
+  *-------------------------------------------------------------------*/
+  wire       s_tape_byte_valid;
+  wire [7:0] s_tape_byte_data;
+
+`ifdef ND120_SD_STORAGE
+`ifndef VERILATOR_SIM
+  // ND120_SD_STORAGE pulls in simulation-only card/memory models.
+  initial begin
+    $display("FATAL: ND120_SD_STORAGE is a Verilator-sim-only path");
+    $finish;
+  end
+`endif
+  // clk_stor: the SD/SDRAM domain. In sim it shares the CPU clock (clk1);
+  // nd_storage's CDC (nds_sync) handles the equal-clock case fine. Skewing
+  // it to stress the CDC the way SD-FAT/sim does (27.03 vs 23.04 MHz) is a
+  // follow-up, not a correctness requirement here.
+  wire s_stor_clk   = clk1;
+  wire s_stor_rst_n = sys_rst_n;
+
+  wire s_sd_clk_o, s_sd_cmd_o, s_sd_cmd_oe, s_sd_dat0_o, s_sd_dat0_oe;
+  wire s_card_cmd_o, s_card_cmd_oe, s_card_dat0_o, s_card_dat0_oe;
+
+  // SD lines resolved by MUX - no tristates (the card model is z-free):
+  // host output-enable wins, then the card, then the bus pullup (1).
+  wire s_sd_cmd  = s_sd_cmd_oe  ? s_sd_cmd_o  : (s_card_cmd_oe  ? s_card_cmd_o  : 1'b1);
+  wire s_sd_dat0 = s_sd_dat0_oe ? s_sd_dat0_o : (s_card_dat0_oe ? s_card_dat0_o : 1'b1);
+
+  wire        s_stor_mem_start, s_stor_mem_we, s_stor_mem_busy, s_stor_mem_done;
+  wire [19:0] s_stor_mem_addr;
+  wire [31:0] s_stor_mem_wdata, s_stor_mem_rdata;
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire [1:0]  s_sd_status;
+  /* verilator lint_on UNUSEDSIGNAL */
+
+  nd_tape_sdfat_source #(
+      .SIMULATE(1)  // short SD init in sim
+  ) TAPE_SDFAT_SOURCE (
+      .clk_stor  (s_stor_clk),
+      .rst_stor_n(s_stor_rst_n),
+      .clk_cpu   (clk1),
+      .rst_cpu_n (sys_rst_n),
+
+      // byte source port -> ND_TAPE_400 inside the core
+      .byte_req     (TAPE_BYTE_REQ),
+      .byte_valid   (s_tape_byte_valid),
+      .byte_data    (s_tape_byte_data),
+      .source_rewind(TAPE_REWIND),
+
+      .sd_clk_o  (s_sd_clk_o),
+      .sd_cmd_i  (s_sd_cmd),
+      .sd_cmd_o  (s_sd_cmd_o),
+      .sd_cmd_oe (s_sd_cmd_oe),
+      .sd_dat0_i (s_sd_dat0),
+      .sd_dat0_o (s_sd_dat0_o),
+      .sd_dat0_oe(s_sd_dat0_oe),
+
+      .mem_start(s_stor_mem_start),
+      .mem_we   (s_stor_mem_we),
+      .mem_addr (s_stor_mem_addr),
+      .mem_wdata(s_stor_mem_wdata),
+      .mem_rdata(s_stor_mem_rdata),
+      .mem_busy (s_stor_mem_busy),
+      .mem_done (s_stor_mem_done),
+
+      .sd_status(s_sd_status)
+  );
+
+  // The simulated card. IMAGE is relative to the sim CWD (runSim/).
+  sd_card_model #(
+      .IMAGE    (`ND120_SD_CARD_IMG),
+      .MAX_BYTES(8 * 1024 * 1024)
+  ) SD_CARD (
+      .sd_clk   (s_sd_clk_o),
+      .sd_cmd_i (s_sd_cmd),  .sd_cmd_o (s_card_cmd_o),  .sd_cmd_oe (s_card_cmd_oe),
+      .sd_dat0_i(s_sd_dat0), .sd_dat0_o(s_card_dat0_o), .sd_dat0_oe(s_card_dat0_oe),
+      .sd_dat1_i(1'b1), .sd_dat1_o(), .sd_dat1_oe(),
+      .sd_dat2_i(1'b1), .sd_dat2_o(), .sd_dat2_oe(),
+      .sd_dat3_i(1'b1), .sd_dat3_o(), .sd_dat3_oe()
+  );
+
+  // Stands in for the SDRAM device region that nd_storage caches into.
+  // runSim has no SDRAM (MEM_RAM_49_SIM is the main RAM); nd_storage's
+  // mem_* is a generic 32-bit word port, so the behavioral model is a
+  // faithful backend - same contract, randomized 4..40-cycle latency.
+  nds_mem_model MEM_STOR (
+      .clk  (s_stor_clk),
+      .rst_n(s_stor_rst_n),
+      .start(s_stor_mem_start),
+      .we   (s_stor_mem_we),
+      .addr (s_stor_mem_addr),
+      .wdata(s_stor_mem_wdata),
+      .rdata(s_stor_mem_rdata),
+      .busy (s_stor_mem_busy),
+      .done (s_stor_mem_done)
+  );
+
+`else
+  // C harness serves the tape bytes through the top-level ports.
+  assign s_tape_byte_valid = TAPE_BYTE_VALID;
+  assign s_tape_byte_data  = TAPE_BYTE_DATA;
+`endif
+
 `else
   localparam CORE_INCLUDE_TAPE   = 0;
   localparam CORE_INCLUDE_FLOPPY = 0;
@@ -449,6 +568,8 @@ module ND120_TOP
   wire        TAPE_BYTE_VALID = 1'b0;
   wire [7:0]  TAPE_BYTE_DATA  = 8'd0;
   wire        TAPE_REWIND;
+  wire        s_tape_byte_valid = TAPE_BYTE_VALID;
+  wire [7:0]  s_tape_byte_data  = TAPE_BYTE_DATA;
 
   wire        DMA_REQ   = 1'b0;
   wire        DMA_WR    = 1'b0;
@@ -537,8 +658,8 @@ module ND120_TOP
       // (c) storage backend: forwarded 1:1 to the ND120_TOP ports, which the
       // C harness serves (BPUN file / FLOPPY.IMG / disk-0 image)
       .TAPE_BYTE_REQ(TAPE_BYTE_REQ),
-      .TAPE_BYTE_VALID(TAPE_BYTE_VALID),
-      .TAPE_BYTE_DATA(TAPE_BYTE_DATA),
+      .TAPE_BYTE_VALID(s_tape_byte_valid),  // SD-FAT stack or C harness
+      .TAPE_BYTE_DATA(s_tape_byte_data),
       .TAPE_REWIND(TAPE_REWIND),
 
       .DMA_REQ(DMA_REQ),
