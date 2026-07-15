@@ -229,3 +229,140 @@ some future microcode uses the vector-read clear.
    (never happens).
 3. Check the DELILAH listing comments around PLINT/PLVO/PICFM (nd120uc
    source) for the intended mask algorithm.
+
+## 15-JUL: IIC=11 mechanism PINNED (measured), one semantic question open
+
+Fence is ON+default. RUN passes the livelock; the remaining fatal is the
+`TRA IIC` -> `IIC: 11 - Memory Out of Range` at PIL 14. Full [scan] probe
+(runSim/Run120.cpp, ND120_PROBE_RUNIDENT) through the error window:
+
+MEASURED, all datapath components VERIFIED CORRECT by read+sim:
+- priority encoder PTYENC: IOX bit10->hivec2, MOR bit12->hivec4, INT14 bit14->hivec6 (correct)
+- vector-hold VHR: holds hivec faithfully (HX=6 for INT14)
+- magnitude comparator MAGCMP: VGES=(V>=S), hand-verified correct for V=6 vs S=5/6/7
+- OSMUX: clean 2:1 status mux (PICS = selected group's 3-bit status)
+- status LOAD path: during the IOX scan, HISTAT faithfully tracks the microcode's
+  hisin fence writes (hisin3->histat3, hisin2->histat2, ...); comparator flips
+  exactly right; the IOX scan finds vector 2 CORRECTLY and IOX is handled.
+
+THE ANOMALY (dynamic, not a static miswire):
+- After IOX is handled, at CLRXX/MCLPID (csa 01162) hisin=7 is presented and
+  HISTAT latches 7 (LOSTAT stays 0). 
+- INT14 is now pending (hidet=1, hivec=6) but 6 < 7 -> hivges=0 -> INT14 is
+  FENCED OUT, never dispatched. CPU runs macro instructions with INT14 blocked.
+- The test then executes `TRA IIC` (AIIC microcode: start Q=25oct, scan down,
+  COND,IRQ). It returns level 12 (=IIC 11, MOR) instead of level 14 (=IIC 13,
+  INT14). i.e. the scan's threshold lands at hi-vector 4, not 6.
+- Asymmetry: LOW-group status rests at 0 (allows all) after its handling;
+  HIGH-group status rests at 7 (blocks all) after IOX. High vs low differ.
+
+OPEN SEMANTIC QUESTION (needs ND-120 ground truth): after servicing a
+high-group internal interrupt (IOX, hi-vec2), what SHOULD the high status
+(HISTAT) rest at - 0/low (allowing the pending INT14 hi-vec6 to dispatch), or
+7 (blocking)? And what should CLRXX/`PIC,MCLPID` do to HISTAT - clear to 0, or
+leave the fence? If HISTAT should be low, the bug is the MCLPID/clear path
+leaving 7 (interacts with the status-fence fix); if 7 is correct, INT14 must
+be dispatched by a different path and the AIIC down-scan mapping is the bug.
+
+Probe staged to add G/HIF/RDVECT/MCLR/VINN strobes at csa 01162 to decide
+whether the 7 comes from an LDSTAT(hisin=7), a mis-fired vector+1 load
+(hivec+1: note hivec6+1=7!), or the MCLR path.
+
+## 15-JUL (cont): AIIC scan fully mapped; divergence is the two-interrupt case
+
+Microcode (ND-120-DELILAH-L.LISTING, CS 000725):
+  AIIC1 725: RMSK->R6; 726: Q=IIE; 727: Q=IIE&37760; 730: LMSK=~Q;
+        731: Q=25oct(=21); 732: PIC,ION B,13 (COND,F=0);
+        733: PIC,LOSTS status=Q; 734: A=R3-Q (COND,F=0 F,RETURN);
+        735: Q=Q-1, CLIRQ, loop-while-COND,IRQ; 736: Q=0 ->AIIC2;
+        737 AIIC3: Q=Q-12oct; 740: A,16 SMPID; 742 AIIC2: LOSTS=R5 ->CLR14.
+  Fence Q maps to chip status by bits: FIDBO_2_0=Q[2:0], FIDBO3=Q[3](HIGE=~),
+  FIDBO4=Q[4](LOGE=~). So Q selects high vs low group and the 3-bit status.
+
+MEASURED at the failing TRA IIC (probe [scan], csa 725-745):
+- At CS 732 (PIC,ION B,13) hivec drops 6->2: the INT14 request (mireq bit14)
+  is CLEARED mid-handler, leaving IOX (bit10, hivec2) as the top high request.
+- The scan then runs against hivec=2 and the low-group requests, and the
+  computed A cycles 11/12/13; the machine ends with IIC 11.
+- histat=7 during macro execution is CORRECT (same-level fence at PIL 14).
+
+STATE: every datapath block verified correct (PTYENC encoder, VHR, MAGCMP
+comparator, OSMUX, and the status LOAD path - histat faithfully tracks the
+microcode's fence writes in the clean IOX scan). The divergence is in the
+DYNAMIC two-interrupt AIIC scan (IOX + INT14 both pending, INT14 cleared at
+CS 732), and/or the Q->(HIGE/LOGE,status) fence encoding for that case.
+Hand-simulating the decrement loop with the group-enable pipeline is where
+solo analysis stalls (loop direction vs fence encoding ambiguous without the
+ND-120 fence-value semantics). Next best measurements: (a) the C# internal-IIC
+(IIC) scan for the IOX-ERROR phase - the golden per-step Q/status/IIC; or
+(b) confirm the intended Q->group/status mapping and loop exit condition.
+
+## 15-JUL: IIC architecture confirmed (nd100x + ND-120 uc-emulator) - the exact mapping
+
+TRA IIC (nd100x cpu_instr.c:1888) returns calcIIC() = HIGHEST SET BIT of
+(IID & IIE), then clears IID/IIC. IID is a SEPARATE register from the Am2914
+IREQ. IID bit -> IIC code (console prints code in OCTAL):
+  bit5=Z bit6=PI bit7=IOX bit8=PTY(10o) bit9=MOR(11o) bit10=POW(12o)
+
+ND-120 uc-emulator note (Ronny): the two internal sources use DIFFERENT
+conventions in the model:
+  IOX -> SetInterruptDetectbits(1<<10)   = Am2914 IREQ bit 10 (hivec 2)
+  MOR -> InternalInterruptLvl14(1<<9,..) = IID bit 9 directly
+
+Reconciled mapping for our DELILAH hardware (IRSRC IREQ bits -> IIC):
+  IOX IREQ10(hivec2) -> IID/IIC bit 7  (IIC 7)
+  PAR IREQ11(hivec3) -> IID/IIC bit 8  (IIC 10o)
+  MOR IREQ12(hivec4) -> IID/IIC bit 9  (IIC 11o)
+  POW IREQ13(hivec5) -> IID/IIC bit 10 (IIC 12o)
+  => IIC_bit = IREQ_bit - 3  (= hivec + 5)
+
+THE BUG, quantified: console shows IIC 11o = bit 9 = MOR = IREQ bit 12
+(hivec 4). But at the failure NO IREQ bit 12 is pending (mireq active =
+bits 0,2,3,14; IOX bit10 already cleared). So the AIIC scan produces a code
+(bit 9) that corresponds to NO pending source - a miscomputed scan result,
+and it is exactly +2 from IOX's correct bit 7. The +2 (hivec2->as-if-hivec4,
+or IREQ10->as-if-IREQ12) is the recurring signature. Root cause is in the
+AIIC fence-scan arithmetic / Am2914-vector->IIC-code translation for the
+high group, NOT a datapath miswire (all datapath verified correct).
+Awaiting C# per-step IID/IIE/IIC trace to pin the exact divergent step.
+
+## 15-JUL: ROOT CAUSE FOUND + FIXED - FIDBO[1]<->[2] swap (RUN passes)
+
+THE BUG: CGA_INTR_CNTLR.v:109-111 swapped FIDBO bits 1 and 2 on the
+status-fence write path (s_fidbo_2_0 -> VECGEN.FIDBO_2_0 -> HISIN/LOSIN, the
+value the microcode LDSTAT writes into the Am2914 status register):
+    s_fidbo_2_0[1] = s_fidbo_15_0[2];   // WRONG (swapped)
+    s_fidbo_2_0[2] = s_fidbo_15_0[1];   // WRONG (swapped)
+The swap maps 2<->4 and 3<->5 (values where bit1!=bit2); 0,1,6,7 unchanged.
+
+WHY IT MISDECODES IOX AS MOR: the AIIC (TRA IIC) microcode scans the status
+fence: writes fence=Q, checks IRQ = (hivec >= status). The hardware stored
+histat = swap(Q&7) but the comparator used the UNSWAPPED hivec. For IOX
+(hivec 2): hivges passes only when swap(Q&7) <= 2, i.e. Q&7 in {0,1,4};
+highest = 4. So the microcode brackets IOX at ITS fence value 4 and computes
+the IIC for vector 4 = MOR = IIC 11 octal, instead of vector 2 = IOX = IIC 7.
+
+WHY ONLY RUN FAILED: only the LDSTAT (microcode-written status) path goes
+through this swap. The normal interrupt fence uses the hardware RDVECT
+vector+1 auto-load (VINN), which does NOT go through s_fidbo_2_0. So self-
+test, RTC (level 13), and all 13 instruction areas - which use RDVECT-based
+fencing - passed, and only RUN's internal-interrupt TRA IIC scan (LDSTAT-
+based, and the only test exercising vectors 2/3 through it) failed.
+
+RED HERRINGS RULED OUT along the way (all measured):
+- The IIE&37760 mask DOES work: LMSK sets PICMASK[14]=1, hivec drops 6->2.
+  (The C# LLM's "bit 14 leaks / mask missing" hypothesis was wrong for us.)
+- MOR wiring not firing (MOR-off run byte-identical).
+- Encoder (PTYENC), VHR, comparator (MAGCMP), OSMUX all verified correct.
+- The swap initially looked ruled-out because post-swap histat=2 read as
+  "found vec 2" - but that was swap(4); the microcode's fence was 4.
+
+FIX: CGA_INTR_CNTLR.v now defaults to NO swap; escape hatch
+ND120_INTR_FIDBO_SWAP_ORIG restores the original. VALIDATED 15-JUL:
+self-test 0 STERR, unit suite 49/49, RUN handles IOX-ERROR and reaches
+LEVEL 13 / ARGUMENT == END OF TEST == (the reference RUN-console-ND120.log
+sequence). Full 13-area golden regression in progress.
+
+C# behavior (TRA IIC clears IOX/MOR sources, keeps level-14 bit 14) is
+CORRECT - matches nd100x (gIID=0 clears sources, gPID bit14 separate). Not
+a bug.

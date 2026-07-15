@@ -106,9 +106,10 @@ module CGA_INTR_CNTLR (
   /*******************************************************************************
    ** Here all wiring is defined                                                 **
    *******************************************************************************/
+  // FIDBO -> status-write value (feeds VECGEN.FIDBO_2_0 -> HISIN/LOSIN).
   assign s_fidbo_2_0[0]      = s_fidbo_15_0[0];
-  assign s_fidbo_2_0[1]      = s_fidbo_15_0[2];
-  assign s_fidbo_2_0[2]      = s_fidbo_15_0[1];
+  assign s_fidbo_2_0[1]      = s_fidbo_15_0[1];
+  assign s_fidbo_2_0[2]      = s_fidbo_15_0[2];
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **

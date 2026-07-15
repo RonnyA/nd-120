@@ -30,6 +30,14 @@ test_trap: $(CPP_SOURCES)
 	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS)
 	cd obj_dir && make -f VCGA_TRAP.mk VCGA_TRAP
 
+# --- iverilog gate-level testbenches (self-checking, TB_RESULT: PASS) --------
+# Generic rule: `make iv-<MODULE>` compiles+runs <MODULE>_tb.v against the gate
+# netlists (Shared libs + circuit/ resolved via -y). Registered per-tb in
+# tests/run_all_tests.sh.
+IV_LIB = -y ${VERILOG_ROOT}/Shared/logisim -y ${VERILOG_ROOT}/Shared/support -y ${VERILOG_ROOT}/Shared/ndlib
+iv-%:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_$* $*_tb.v && vvp -N /tmp/ndtb_$*
+
 clean:
 	rm -rf obj_dir
 

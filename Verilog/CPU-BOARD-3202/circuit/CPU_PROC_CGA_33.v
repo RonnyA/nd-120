@@ -34,7 +34,7 @@ module CPU_PROC_CGA_33 (
     input        LCS_n,       //! Local Chip Select, active low
     input        MAP_n,       //! Memory Address Present signal
     input        MCLK,        //! Main Clock
-    input        MOR_n,       //! Memory Operation Ready, active low
+    input        MOR_n,       //! Memory Out of Range, active low
     input        MR_n,        //! Memory Read, active low
     input        PAN_n,       //! Parity Error, active low
     input        PARERR_n,    //! Parity Error, active low

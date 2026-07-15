@@ -104,12 +104,18 @@ module CGA_INTR_CNTLR_VECGEN_STAT_SBIT (
   // interrupt just taken from being re-dispatched (RUN level-14 livelock,
   // docs/RUN-level14-livelock-analysis.md).
   //
-  // Behind ND120_INTR_STATUS_FENCE (default OFF) because enabling the fence
-  // alone makes the CPU self-test's interrupt scan (microcode APID3) hang -
-  // the comparator/IRGEL chain downstream has not been verified against the
-  // sheets yet. Default build keeps the historical (fence-inert) behaviour,
-  // which passes 13/14 INSTRUCTION-B areas + the 48-test unit suite.
-`ifdef ND120_INTR_STATUS_FENCE
+  // DEFAULT (Am2914-correct). Validated 14-JUL-2026 in FF mode:
+  //   - CPU self-test 0 STERR visits (clean)
+  //   - RUN no longer livelocks (level-14 re-dispatch 14487 -> 1); it now
+  //     reaches CLOCK STARTED / DUMMY OUTPUT (the remaining IIC=11 there is
+  //     the separate internal-IIC/MOR decode, not this fence)
+  //   - ground-truth confirmed vs the C# DELILAH-L PIC trace
+  //     (/mnt/e/Dev/Repos/Ronny/ND110Compile/traces/PIC-TRACE-RUN-ND120.md):
+  //     READ VECTOR loads vector+1 on the WINNING chip only, and the per-group
+  //     DCDF (HIF/LOF) strobe qualifies the load - exactly this wiring.
+  // Define ND120_INTR_STATUS_FENCE_OFF to restore the historical dead-fence
+  // (fence-inert) behaviour.
+`ifndef ND120_INTR_STATUS_FENCE_OFF
   NAND_GATE_3_INPUTS #(
       .BubblesMask(3'b000)
   ) GATES_3 (

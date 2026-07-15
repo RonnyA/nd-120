@@ -166,13 +166,14 @@ module CGA_INTR_CNTLR_VECGEN_STAT (
    ** drawing. Ronny's reads (top SBIT = HISTAT2, pins from top): pin2 = XNOR    **
    ** increment output, pin3 = HIF, pin6 = G_N.                                  **
    **                                                                            **
-   ** ND120_INTR_STATUS_FENCE (default OFF) selects the Am2914-correct mapping   **
-   ** that makes READ VECTOR load "vector+1" into the status register (the       **
-   ** re-dispatch fence). It is OFF because switching it on alone hangs the CPU  **
-   ** self-test's interrupt scan (microcode APID3) - the comparator chain        **
-   ** downstream needs verifying against pages 88-95 first.                      **
+   ** The Am2914-correct mapping (DEFAULT) makes READ VECTOR load "vector+1"     **
+   ** into the status register (the re-dispatch fence). Validated 14-JUL-2026    **
+   ** in FF mode: self-test 0 STERR, RUN livelock gone (14487->1 re-dispatch),   **
+   ** comparator (p.88) + IRGEL (p.90-95) audited clean, and matched against     **
+   ** the C# DELILAH-L PIC ground-truth trace. Define                            **
+   ** ND120_INTR_STATUS_FENCE_OFF to restore the historical dead-fence mapping.  **
    *******************************************************************************/
-`ifdef ND120_INTR_STATUS_FENCE
+`ifndef ND120_INTR_STATUS_FENCE_OFF
   // Am2914 status register. Derived from the confirmed cell equation
   //   D = (SIN & DCDG & DCDF & GPE) | (DCDG & DCDFN & STS) | (VINN & DCDF & DCDGN)
   // plus the MDCD strobe polarities (G is ACTIVE LOW: G=1 idle, G=0 on
@@ -206,7 +207,7 @@ module CGA_INTR_CNTLR_VECGEN_STAT (
   wire [2:0] s_lo_vinn  = {3{s_g_n}};
 `endif
 
-`ifdef ND120_INTR_STATUS_FENCE
+`ifndef ND120_INTR_STATUS_FENCE_OFF
   wire s_hi_gpe = s_fidbo3_n;   // HIGE  (group enable, FIDBO3 buffer)
   wire s_lo_gpe = s_fidbo4_n;   // LOGE  (group enable, FIDBO4 buffer)
 `else

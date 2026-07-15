@@ -70,7 +70,7 @@ module CGA_INTR (
   wire        s_irq_out;
   wire        s_logs_n_out;
   wire        s_mclk;
-  wire        s_nor_n;
+  wire        s_mor_n;
   wire        s_pan_n;
   wire        s_parerr_n;
   wire        s_pd_out;
@@ -111,7 +111,11 @@ module CGA_INTR (
   localparam MCLK_CE = 0;
 `endif
 
-  assign s_nor_n            = 1; //TODO: Fix MORN;
+`ifdef ND120_MOR_TIED_OFF
+  assign s_mor_n            = 1'b1;   // B2 experiment: MOR source disabled (diagnostic only)
+`else
+  assign s_mor_n            = MORN;  // Memory Out of Range (active low), from board MOR_n via CGA.XMORN
+`endif
   assign s_pan_n            = PANN;
   assign s_parerr_n         = PARERRN;
   assign s_powfail_n        = POWFAILN;
@@ -205,7 +209,7 @@ module CGA_INTR (
       .FIDBO_15_0(s_fidbo_15_0[15:0]),
       .IOXERRN(s_ioxerr_n),
       .IREQ_15_0_N(s_ireq_15_0_n[15:0]),
-      .NORN(s_nor_n),
+      .MORN(s_mor_n),
       .PARERRN(s_parerr_n),
       .POWFAILN(s_powfail_n),
       .Z(s_z)

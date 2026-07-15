@@ -745,6 +745,39 @@ int main(int argc, char **argv)
 				}
 				oi_last = oi;
 			}
+			// B2 (vector->IIC decode probe): during the INT14 internal-interrupt
+			// the microcode's AIIC status-fence scan (PIC,LOSTS writes decreasing
+			// fences, COND,IRQ finds the threshold) computes the IIC. INT14=hivec6
+			// must give IIC 13 but we get IIC 11 (=hivec4). Dump the scan: does
+			// HISTAT track the fence the microcode writes, and does the comparator
+			// (HIVGES) flip at the right fence for hivec=6? Tight cnt window keeps
+			// output bounded (the INT14 scan is ~cnt 17.384-17.389M).
+			{
+				auto rp = top->rootp;
+				static unsigned scan_csa_last = 0xFFFF; static int scan_prints = 0;
+				unsigned csa = (unsigned)top->CSA_12_0;
+				if (cnt > 17380000 && csa >= 00670u && csa <= 00752u && csa != scan_csa_last && scan_prints < 300) {
+					auto RD=[&](const char*){};(void)RD;
+					unsigned histat=(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__CMP__DOT__s_histat_2_0;
+					unsigned lostat=(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__CMP__DOT__s_lostat_2_0;
+					unsigned hivec=(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_hivec_2_0;
+					unsigned lovec=(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRGEL__DOT__s_lovec_2_0;
+					int hivges=(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__CMP__DOT__s_hivges_out;
+					int lovges=(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__CMP__DOT__s_lovges_out;
+					unsigned hisin=(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__STAT__DOT__s_hisin_2_0;
+					unsigned pics=(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_pics_2_0_out;
+					unsigned picv=(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_picv_2_0_out;
+					unsigned fidbo=(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__s_fidbo_2_0;
+					int fidbo3=(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__s_fidbo3;
+					int fidbo4=(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__VECGEN__DOT__s_fidbo4;
+					unsigned areg=(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_a_15_0;
+					unsigned pmask=(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_picmask_15_0_out;
+					printf("[scan] cnt=%d csa=%05o histat=%o lostat=%o hivec=%o lovec=%o hivges=%d lovges=%d hisin=%o fidbo=%o hige=%d loge=%d pics=%o picv=%o A=%06o pmask=%06o\n",
+						cnt, csa, histat, lostat, hivec, lovec, hivges, lovges, hisin, fidbo, fidbo3, fidbo4, pics, picv, areg, pmask);
+					fflush(stdout); scan_prints++;
+				}
+				scan_csa_last = csa;
+			}
 			// Continuous edge log for the level-12 request chain: log every
 			// TRANSITION of IREQ bit2 (live level-12 request into the INTR),
 			// the RQBIT_2 latch (latched PID12), and its CLRQ_2 clear pulse.

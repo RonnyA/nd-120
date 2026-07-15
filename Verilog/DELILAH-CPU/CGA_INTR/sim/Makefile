@@ -34,8 +34,25 @@ test_intr: $(CPP_SOURCES)
 	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS)
 	cd obj_dir && make -f VCGA_INTR.mk VCGA_INTR
 
+# --- CGA_INTR_IRSRC MOR/IOX interrupt-source unit test -----------------------
+# Locks in the 14-JUL MOR wiring (MORN -> IREQ[12]). Separate --Mdir so it does
+# not collide with the CGA_INTR build above. Self-checking (TB_RESULT: PASS).
+test-irsrc:
+	$(VERILATOR) --cc --exe -Wall $(SUPPRESS_FLAGS) $(VERILATOR_DIRS) \
+	    --Mdir obj_dir_irsrc ${COMPONENT_ROOT}/CGA_INTR_IRSRC.v test_irsrc.cpp
+	cd obj_dir_irsrc && make -f VCGA_INTR_IRSRC.mk VCGA_INTR_IRSRC
+	./obj_dir_irsrc/VCGA_INTR_IRSRC
+
+# --- iverilog gate-level testbenches (self-checking, TB_RESULT: PASS) --------
+# Generic rule: `make iv-<MODULE>` compiles+runs <MODULE>_tb.v against the gate
+# netlists (Shared libs + circuit/ resolved via -y). Registered per-tb in
+# tests/run_all_tests.sh.
+IV_LIB = -y ${VERILOG_ROOT}/Shared/logisim -y ${VERILOG_ROOT}/Shared/support -y ${VERILOG_ROOT}/Shared/ndlib
+iv-%:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_$* $*_tb.v && vvp -N /tmp/ndtb_$*
+
 clean:
-	rm -rf obj_dir
+	rm -rf obj_dir obj_dir_irsrc
 
 run: test_intr
 	./obj_dir/VCGA_INTR
