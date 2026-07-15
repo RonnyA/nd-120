@@ -8,7 +8,11 @@
 ** Page 78                                                               **
 ** SHEET 1 of 1                                                          **
 **                                                                       **
-** Last reviewed: 23-MAR-2025                                            **
+** 15-JUL-2026: all 16 request bits swapped from RQBIT (async            **
+** cross-coupled SR latch) to the loop-free RQBIT_V2 - equivalence       **
+** proved in ../sim/CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2_tb.v.                **
+**                                                                       **
+** Last reviewed: 15-JUL-2026                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -50,7 +54,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_0 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_0 (
       .CLR(s_clrq_15_0[0]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -60,7 +64,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[0])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_1 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_1 (
       .CLR(s_clrq_15_0[1]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -70,7 +74,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[1])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_2 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_2 (
       .CLR(s_clrq_15_0[2]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -80,7 +84,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[2])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_3 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_3 (
       .CLR(s_clrq_15_0[3]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -90,7 +94,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[3])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_4 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_4 (
       .CLR(s_clrq_15_0[4]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -100,7 +104,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[4])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_5 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_5 (
       .CLR(s_clrq_15_0[5]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -110,7 +114,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[5])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_6 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_6 (
       .CLR(s_clrq_15_0[6]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -120,7 +124,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[6])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_7 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_7 (
       .CLR(s_clrq_15_0[7]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -130,7 +134,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[7])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_8 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_8 (
       .CLR(s_clrq_15_0[8]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -140,7 +144,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[8])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_9 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_9 (
       .CLR(s_clrq_15_0[9]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -150,7 +154,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[9])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_10 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_10 (
       .CLR(s_clrq_15_0[10]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -160,7 +164,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[10])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_11 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_11 (
       .CLR(s_clrq_15_0[11]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -170,7 +174,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[11])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_12 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_12 (
       .CLR(s_clrq_15_0[12]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -180,7 +184,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[12])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_13 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_13 (
       .CLR(s_clrq_15_0[13]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -190,7 +194,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[13])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_14 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_14 (
       .CLR(s_clrq_15_0[14]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),
@@ -200,7 +204,7 @@ module CGA_INTR_CNTLR_IRQ_REG (
       .PN (s_irq_15_0_n[14])
   );
 
-  CGA_INTR_CNTLR_IRQ_REG_RQBIT RQBIT_15 (
+  CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2 RQBIT_15 (
       .CLR(s_clrq_15_0[15]),
       .sysclk(sysclk),
       .MCLK_EN(MCLK_EN),

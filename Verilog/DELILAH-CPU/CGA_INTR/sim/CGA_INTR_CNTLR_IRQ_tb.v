@@ -42,8 +42,13 @@ module CGA_INTR_CNTLR_IRQ_tb;
   wire        CPN   = ~MCLK;
   wire [15:0] MIREQ_N, PICMASK;
 
+  // Free-running oscillator for the RQBIT_V2 sysclk request catcher;
+  // edges on the .5ns grid never coincide with the integer-ns stimulus.
+  reg         sysclk = 0;
+  always #0.5 sysclk = ~sysclk;
+
   CGA_INTR_CNTLR_IRQ dut (
-      .sysclk     (1'b0),
+      .sysclk     (sysclk),
       .MCLK_EN    (1'b0),
       .A          (A),
       .B          (B),

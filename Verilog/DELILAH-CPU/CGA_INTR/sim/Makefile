@@ -51,6 +51,15 @@ IV_LIB = -y ${VERILOG_ROOT}/Shared/logisim -y ${VERILOG_ROOT}/Shared/support -y 
 iv-%:
 	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_$* $*_tb.v && vvp -N /tmp/ndtb_$*
 
+# --- RQBIT vs RQBIT_V2 equivalence, BOTH build modes -------------------------
+# Dual-instantiation tb (original async-latch RQBIT vs loop-free RQBIT_V2),
+# run twice: default posedge-CP mode, then FPGA_FF_MODE (MCLK_EN-gated sysclk
+# capture). Registered in tests/run_all_tests.sh; a FAIL line in either run
+# fails the suite.
+test-rqbitv2:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_rqbitv2 CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2_tb.v && vvp -N /tmp/ndtb_rqbitv2
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_rqbitv2_ff CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2_tb.v && vvp -N /tmp/ndtb_rqbitv2_ff
+
 clean:
 	rm -rf obj_dir obj_dir_irsrc
 

@@ -103,6 +103,7 @@
         <File path="../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_MREQ.v" type="file.verilog" enable="1"/>
         <File path="../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_REG.v" type="file.verilog" enable="1"/>
         <File path="../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_REG_RQBIT.v" type="file.verilog" enable="1"/>
+        <File path="../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2.v" type="file.verilog" enable="1"/>
         <File path="../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_MDCD.v" type="file.verilog" enable="1"/>
         <File path="../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN.v" type="file.verilog" enable="1"/>
         <File path="../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_CMP.v" type="file.verilog" enable="1"/>

@@ -16,7 +16,9 @@
 **                                                                                               **
 ** Self-checking against an INDEPENDENT per-bit shadow L[15:0]. "TB_RESULT: PASS/FAIL".            **
 ** Teeth: -DTEETH_TEST corrupts one expected bit -> harness MUST FAIL.                            **
-** MCLK_EN=0, FPGA_FF_MODE NOT defined (original posedge-MCLK path).                              **
+** MCLK_EN=0, FPGA_FF_MODE NOT defined (original posedge-MCLK path). sysclk free-runs (period    **
+** 1ns, edges on the .5ns grid) because the RQBIT_V2 request catcher samples on sysclk - as in   **
+** the real system, where the oscillator never stops.                                            **
 **                                                                                               **
 ** Compile (from repo Verilog/):                                                                  **
 **   iverilog -g2012 -o /tmp/tb_irqreg -y Shared/logisim -y Shared/support -y Shared/ndlib \      **
@@ -36,8 +38,13 @@ module CGA_INTR_CNTLR_IRQ_REG_tb;
   wire        CPN       = ~MCLK;
   wire [15:0] LREQ;
 
+  // Free-running oscillator for the RQBIT_V2 sysclk request catcher;
+  // edges on the .5ns grid never coincide with the integer-ns stimulus.
+  reg         sysclk    = 0;
+  always #0.5 sysclk = ~sysclk;
+
   CGA_INTR_CNTLR_IRQ_REG dut (
-      .sysclk    (1'b0),
+      .sysclk    (sysclk),
       .MCLK_EN   (1'b0),
       .CLRQ_15_0 (CLRQ),
       .CPN       (CPN),
