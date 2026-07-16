@@ -63,7 +63,10 @@ test-full: test
 # Normal runs stay quiet. If you re-record the golden, drop the define.
 # NOTE: -DDEBUG_INTERRUPT is exactly right and -DDEBUG_BIF=1 is NOT: the latter
 # also emits the BAPR/BIOXE bus trace, which the golden does not contain.
-	$(MAKE) -C runSim compile USE_LATCHES=0 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_GOLDEN -DDEBUG_INTERRUPT" >/dev/null
+# VERILOG_TAPE=0 is now EXPLICIT: the runSim default is the Verilog ND_TAPE_400/
+# SD stack, but this golden was recorded against the C device models, so this
+# gate opts into them on purpose (until the golden is re-recorded on Verilog).
+	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=0 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_GOLDEN -DDEBUG_INTERRUPT" >/dev/null
 	cd runSim && ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_console_check.log 2>&1; \
 	  cmp /tmp/nd120_console_check.log golden/console_ff_golden.log
 	@echo "==== system gate: Tang vtest (boot + deposit + readback) ===="
@@ -81,7 +84,7 @@ TAPE_FILTER = grep -vaE '^(PaperTape|FloppyPIO object|IDENT LVL|No device found|
 test-tape:
 	@echo "==== system gate: 400\$$ tape boot, C model vs Verilog device ===="
 	$(MAKE) -C runSim clean >/dev/null
-	$(MAKE) -C runSim compile USE_LATCHES=0 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_TAPE400" >/dev/null
+	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=0 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_TAPE400" >/dev/null
 	cd runSim && ND120_BINLOAD_CHECK=001000:8 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_tape_c.log 2>&1
 	$(MAKE) -C runSim clean >/dev/null
 	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_TAPE400" >/dev/null

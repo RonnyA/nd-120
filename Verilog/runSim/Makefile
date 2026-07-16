@@ -34,12 +34,14 @@ ifeq ($(SKIP_WCS),1)
   SIM_DEFINES += -DSKIP_WCS_LOAD
 endif
 
-# VERILOG_TAPE: Set to 1 to replace the C papertape model with the Verilog
-#               device stack (ND-BUS-DEVICES: ND_BUS_SLAVE + ND_TAPE_400
-#               instantiated inside ND120_TOP). The C harness then only
-#               serves raw tape bytes through the TAPE_BYTE_* ports.
-#               Gate: console output must stay byte-identical to golden.
-VERILOG_TAPE ?= 0
+# VERILOG_TAPE: THE DEFAULT (1). Every build - `make compile`, `make run`,
+#               everything - uses the real Verilog device stack: ND_BUS_SLAVE +
+#               ND_TAPE_400 inside ND120_TOP, fed by the SD-FAT RTL reading a
+#               simulated SD card (the SAME RTL that runs on Tang).
+#               VERILOG_TAPE=0 is the ONLY way to pull in the legacy C papertape
+#               model (../simDevices), the ONE target that does so is `make
+#               run-c`, and a C build SCREAMS a banner so it is never silent.
+VERILOG_TAPE ?= 1
 ifeq ($(VERILOG_TAPE),1)
   SIM_DEFINES += -DND120_VERILOG_DEVICES
   # 'override' is required: EXTRA_CFLAGS is usually given on the make
@@ -77,6 +79,11 @@ ifeq ($(VERILOG_TAPE),1)
     #   TIMESCALEMOD  the SD-FAT sources carry a timescale, the CPU ones do not
     SDFAT_SUPPRESS = -Wno-PINMISSING -Wno-DECLFILENAME -Wno-BLKSEQ -Wno-TIMESCALEMOD
   endif
+else
+  # VERILOG_TAPE=0: the legacy C papertape model (../simDevices). This is the
+  # ONLY non-default path; `compile` screams a banner so a C build is never
+  # mistaken for the real Verilog ND_TAPE_400 / SD path.
+  CMODEL := 1
 endif
 
 # TIMING=1  compile with Verilator --timing (event controls / delays).
@@ -131,7 +138,9 @@ help:
 	@echo "runSim - full CPU simulation (microcode load + self-test + OPCOM console)"
 	@echo ""
 	@echo "Targets:"
-	@echo "  make compile      build the simulator (C models for the bus devices)"
+	@echo "  make compile      build the simulator - DEFAULT = the real Verilog"
+	@echo "                    device stack (ND_TAPE_400) fed by the SD-FAT RTL"
+	@echo "                    over a simulated SD card. NO C code. (Tang's path.)"
 	@echo "  make run          compile + run interactively (OPCOM on stdin/stdout)"
 	@echo "                    with the Verilog device stack fed by the real"
 	@echo "                    SD-FAT RTL reading a simulated SD card"
@@ -141,8 +150,10 @@ help:
 	@echo "                    machine - says if floppy/SMD/tape are detected)"
 	@echo "  make run-fs       boot FILSYS-INV-Q04.BPUN off the card (file-system"
 	@echo "                    investigator; looks INTO a floppy or SMD image)"
-	@echo "  make run-c        same, but with the C device models in"
-	@echo "                    ../simDevices instead (= VERILOG_TAPE=0)"
+	@echo "  make run-c        THE ONE C-MODEL TARGET. Legacy C papertape/device"
+	@echo "                    models in ../simDevices (= VERILOG_TAPE=0). Prints a"
+	@echo "                    loud banner so a C build is never silent. Only for"
+	@echo "                    legacy comparison - normal work uses 'make run'."
 	@echo "  make run-floppy   Verilog-device build (DMA floppy at 1560) + run with"
 	@echo "                    a bootable diskette image; type 1560& at the '#'"
 	@echo "                    prompt to boot it - the loaded program then owns the"
@@ -197,6 +208,17 @@ BUILD_FLAGS = $(SIM_DEFINES) | $(EXTRA_CFLAGS)
 FLAGS_STAMP = obj_dir/.buildflags
 
 compile: $(CPP_SOURCES)
+ifeq ($(CMODEL),1)
+	@printf '\n'
+	@printf '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n'
+	@printf '!!!!  BUILDING WITH THE C PAPERTAPE MODEL  (VERILOG_TAPE=0)     !!!!\n'
+	@printf '!!!!  THIS IS **NOT** THE REAL VERILOG ND_TAPE_400 / SD PATH.   !!!!\n'
+	@printf '!!!!  The Verilog-over-SD device stack is the DEFAULT           !!!!\n'
+	@printf '!!!!  (plain `make compile` / `make run`).  This C build comes  !!!!\n'
+	@printf '!!!!  ONLY from `make run-c` and exists for legacy comparison.  !!!!\n'
+	@printf '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n'
+	@printf '\n'
+endif
 	@if [ -d obj_dir ] && [ "`cat $(FLAGS_STAMP) 2>/dev/null`" != "$(BUILD_FLAGS)" ]; then \
 	  echo "Build flags changed (or unknown) since last build - cleaning obj_dir"; \
 	  rm -rf obj_dir; \
@@ -276,8 +298,13 @@ run-fs:
 # Override the image with: make run-floppy FLOPPY_IMG=path/to.img
 FLOPPY_IMG ?= ../ND-BUS-DEVICES/testdata/210523I01-XX-01D.img
 
+# Floppy boot: Verilog device stack (DMA floppy at 1560) with the diskette
+# served from ND120_FLOPPY_IMG by the C++ backend (process_verilog_floppy).
+# SD_STORAGE=0 is REQUIRED: the floppy file server is gated `#ifndef
+# ND120_SD_STORAGE` (NDBus.cpp), so with SD_STORAGE=1 the image is never served
+# and 1560& hangs. No SD card / no tape path here.
 run-floppy:
-	$(MAKE) compile VERILOG_TAPE=1
+	$(MAKE) compile VERILOG_TAPE=1 SD_STORAGE=0
 	ND120_FLOPPY_IMG=$(FLOPPY_IMG) ./obj_dir/VND120_TOP
 
 
