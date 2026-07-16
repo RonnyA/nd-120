@@ -75,6 +75,7 @@ REGISTRY=(
   "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR_MDCD              :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR_CLR               :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR                   :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR_seq               :: TB_RESULT: PASS"
   # --- CGA_TRAP gate-level unit tbs (iverilog, teeth-checked) -----------
   "DELILAH-CPU/CGA_TRAP/sim :: iv-CGA_TRAP_TBUF      :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_TRAP/sim :: iv-CGA_TRAP_BRKDET    :: TB_RESULT: PASS"
