@@ -44,6 +44,36 @@
 // tb: sdram-bridge/sim test-storage-port.
 `define ND_STORAGE_PORT
 
+// ---- TAPE-ONLY SD-FAT reader slimming (docs/fat-reader-slimming-plan.md) ----
+// The Tang tape boot path is READ-ONLY of a contiguous boot file. These cuts
+// reclaim FPGA LUT+ALU so the OSS placer fits. They are SAFE ONLY while the SD
+// path is tape-read-only; REMOVE them when a floppy/SMD build is added here
+// (random-access / writeback needs the full FAT reader and the contiguity
+// gate).
+//
+//   SDFAT_NO_STORAGE_CHECK  - drop the mount-time contiguity checker
+//                             (nd_storage_fatchk.v, ~1177 LUT+ALU); the card
+//                             recipe alone guarantees a contiguous boot image.
+//                             Mount M_CHK passes straight through. ENABLED.
+`define SDFAT_NO_STORAGE_CHECK
+
+//   SDFAT_NO_LFN            - strip VFAT long-filename parsing in
+//                             sd_file_reader.v (~1800 LUT+ALU); files matched
+//                             by 8.3 short name only. *** NOT ENABLED ***:
+//                             the tape client searches for "BOOT.BPUN"
+//                             (nd_tape_sdfat_source.v FILE0_NAME), whose 4-char
+//                             ".BPUN" extension is NOT 8.3-representable - FAT
+//                             stores it as a mangled short name (BOOT~1.BPU)
+//                             plus a VFAT long entry, so the name is only
+//                             reachable via LFN. Enabling this cut breaks the
+//                             tape open (verified: oerr=1). To claim the saving,
+//                             first rename the boot file to a real 8.3 name
+//                             (<=8 base, <=3 ext) and update FILE0_NAME to
+//                             match; THEN uncomment the line below. The ifdef
+//                             machinery in sd_file_reader.v is implemented and
+//                             validated - this is a one-line flip once renamed.
+// `define SDFAT_NO_LFN
+
 // ---- Clock variant selection (slow / crawl / full) ----------------------
 // Slow bring-up clocking (G1): first Gowin build measured CPU-domain Fmax at
 // 9.38 MHz (31 levels) with derived-clock domains down to 4.7 MHz - the known

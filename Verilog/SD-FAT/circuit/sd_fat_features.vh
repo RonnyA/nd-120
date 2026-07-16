@@ -19,6 +19,12 @@
 // The card reader (mount, LIST, DUMP - menu 1/2) is always present.
 // Stripped commands answer "NOT IMPLEMENTED" on the console.
 //
+// SDFAT_NO_LFN is a separate RAW strip macro consumed DIRECTLY by
+// sd_file_reader.v (it does not include this header): defined, it removes the
+// VFAT long-filename parser (~1800 LUT+ALU) and matches files by 8.3 name
+// only. Pass it the same way as the SDFAT_NO_* macros above (-DSDFAT_NO_LFN
+// or a `define ahead of the compilation unit). Used by the Tang tape build.
+//
 // Dependencies are resolved here: REWRITE and SPEED need WRITE; SPEED
 // needs REWRITE (it reallocates IO.DAT). Excluding a prerequisite
 // excludes its dependents automatically.

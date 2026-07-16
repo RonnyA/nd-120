@@ -194,6 +194,7 @@ module sd_file_reader #(
     ucase = (b >= 8'h61 && b <= 8'h7A) ? (b - 8'h20) : b;
   endfunction
 
+`ifndef SDFAT_NO_LFN
   // byte offset of LFN name unit u's LOW byte inside a directory entry
   function [4:0] lfn_off(input [3:0] u);
     case (u)
@@ -212,6 +213,7 @@ module sd_file_reader #(
       default: lfn_off = 5'd30;
     endcase
   endfunction
+`endif  // SDFAT_NO_LFN
 
   // ------------------------------------------------------------- registers
   reg        is32;
@@ -333,9 +335,11 @@ module sd_file_reader #(
   wire [7:0] pb0   = proc[7:0];
   wire [7:0] pattr = proc[8*11+:8];
   wire [7:0] pck13 = proc[8*13+:8];
+`ifndef SDFAT_NO_LFN
   wire [4:0] pulo  = lfn_off(pu);
-  wire [7:0] plo   = proc[8*pulo+:8];
+  wire [7:0] plo   = proc[8*pulo+:8];   // variable part-select: wide LFN mux
   wire [7:0] phi   = proc[8*(pulo+5'd1)+:8];
+`endif  // SDFAT_NO_LFN
   wire [3:0] pord  = pb0[3:0];  // LFN ordinal (valid range here is 1..4)
   wire [5:0] pux   = pbase + {2'd0, pu};
 
@@ -552,6 +556,13 @@ module sd_file_reader #(
               lfn_have <= 1'b0;  // deleted: an LFN chain cannot span it
               pbusy    <= 1'b0;
             end else if (pattr == 8'h0F) begin
+`ifdef SDFAT_NO_LFN
+              // SDFAT_NO_LFN (tape-only cut): VFAT long-name parsing stripped.
+              // Skip the LFN entry outright; the file is matched by its 8.3
+              // short name on the directory entry that follows.
+              lfn_have <= 1'b0;
+              pbusy    <= 1'b0;
+`else
               // VFAT long-name entry (reverse order, 13 UTF-16 units each)
               eterm <= 1'b0;
               pu    <= 4'd0;
@@ -591,6 +602,7 @@ module sd_file_reader #(
                   pbusy    <= 1'b0;
                 end
               end
+`endif  // SDFAT_NO_LFN
             end else if ((pattr & 8'h0F) != 8'h00) begin
               // volume label / hidden / system / read-only: skipped
               lfn_have <= 1'b0;
@@ -603,6 +615,7 @@ module sd_file_reader #(
             end
           end
 
+`ifndef SDFAT_NO_LFN
           P_LFNU: begin  // one UTF-16 unit per cycle
             if (!eterm) begin
               if (plo == 8'h00 && phi == 8'h00) begin
@@ -621,6 +634,7 @@ module sd_file_reader #(
             if (pu == 4'd12 || !lfn_have) pbusy <= 1'b0;
             else pu <= pu + 4'd1;
           end
+`endif  // SDFAT_NO_LFN
 
           P_SFN: begin  // checksum over the 11 SFN bytes
             ck <= {ck[0], ck[7:1]} + proc[8*pi+:8];
@@ -637,6 +651,7 @@ module sd_file_reader #(
                    proc[8*27+:8], proc[8*26+:8]}
                 : {16'd0, proc[8*27+:8], proc[8*26+:8]};
             dir_entry_is_dir <= pattr[4];
+`ifndef SDFAT_NO_LFN
             if (lfn_have && lfn_next == 4'd0 && ck == lfn_ck &&
                 lfn_len != 8'd0 && lfn_len <= 8'd52) begin
               dir_entry_name <= lfn_buf;
@@ -646,11 +661,15 @@ module sd_file_reader #(
               pmatch <= (target_len != 8'd0) && (target_len == lfn_len) &&
                         !pattr[4] && !file_found;
             end else begin
+`endif  // SDFAT_NO_LFN
+              // SDFAT_NO_LFN forces this 8.3 short-name path unconditionally
               dir_entry_name <= {52 * 8{1'b0}};  // NUL-padded past the name
               pi     <= 4'd0;
               nci    <= 8'd0;
               pstate <= P_83B;
+`ifndef SDFAT_NO_LFN
             end
+`endif  // SDFAT_NO_LFN
           end
 
           P_83B: begin  // 8.3 base name (strip trailing spaces)
