@@ -114,7 +114,7 @@ test-floppy-boot:
 	@echo "==== system gate: 1560& floppy mass boot (autoload -> RAM) ===="
 	python3 tests/gen_fboot_img.py /tmp/nd120_fboot.img /tmp/nd120_fboot_exp.txt
 	$(MAKE) -C runSim clean >/dev/null
-	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_FBOOT" >/dev/null
+	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 SD_STORAGE=0 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_FBOOT" >/dev/null
 	cd runSim && ND120_FLOPPY_IMG=/tmp/nd120_fboot.img ND120_BINLOAD_CHECK=002000:16 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_fboot.log 2>&1
 	grep -a "RAM check" /tmp/nd120_fboot.log > /tmp/nd120_fboot_got.txt
 	cat /tmp/nd120_fboot_got.txt
@@ -137,7 +137,7 @@ test-floppy-stdin:
 	@echo "==== system gate: interactive stdin 1560& floppy boot ===="
 	python3 tests/gen_fboot_img.py /tmp/nd120_fstdin.img /tmp/nd120_fstdin_exp.txt
 	$(MAKE) -C runSim clean >/dev/null
-	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 >/dev/null
+	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 SD_STORAGE=0 >/dev/null
 	cd runSim && printf '1560&' | ND120_FLOPPY_IMG=/tmp/nd120_fstdin.img ND120_BINLOAD_CHECK=002000:16 ND120_MAX_CNT=120000000 ./obj_dir/VND120_TOP > /tmp/nd120_fstdin.log 2>&1
 	grep -a "RAM check" /tmp/nd120_fstdin.log > /tmp/nd120_fstdin_got.txt
 	cat /tmp/nd120_fstdin_got.txt
@@ -151,7 +151,7 @@ test-smd-boot:
 	@echo "==== system gate: 1540& SMD mass boot (boot handshake -> RAM) ===="
 	python3 tests/gen_fboot_img.py /tmp/nd120_sboot.img /tmp/nd120_sboot_exp.txt
 	$(MAKE) -C runSim clean >/dev/null
-	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_SBOOT" >/dev/null
+	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 SD_STORAGE=0 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_SBOOT" >/dev/null
 	cd runSim && ND120_SMD_IMG=/tmp/nd120_sboot.img ND120_BINLOAD_CHECK=002000:16 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_sboot.log 2>&1
 	grep -a "RAM check" /tmp/nd120_sboot.log > /tmp/nd120_sboot_got.txt
 	cat /tmp/nd120_sboot_got.txt
