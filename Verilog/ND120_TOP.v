@@ -55,6 +55,7 @@ module ND120_TOP
     ,
     input wire DEBUGFLAG,  // DEBUG FLAG
     output wire [12:0] CSA_12_0,  //! Microcode Address (for debugging)
+    output wire [15:0] XMIC_DBG_15_0, //! DEBUG: microsequencer address-advance probe (matches Tang capture: {SC6,s_mclk_n,MCLK_EN,regIW[12:0]})
 
     // C-PLUG bus signals
     input wire BREQ_n,      // Bus Request
@@ -703,6 +704,9 @@ module ND120_TOP
       .LED(s_cpu_led[6:0]),
       .RUN_n(s_run),
       .CSA_12_0(CSA_12_0),
+      .PIL(),                 // debug-capture passthrough; unused in this top
+      .DEBUG_IREQ_15_0_N(),   // debug-capture passthrough; unused in this top
+      .XMIC_DBG_15_0(XMIC_DBG_15_0), // microsequencer address-advance probe (sim golden log)
       .LA_23_10(s_debug_la_23_10),
       .CA_9_0(s_debug_ca_9_0),
       .DEBUG_CC_TERM(s_debug_cc_term),

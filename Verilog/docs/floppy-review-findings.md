@@ -1,3 +1,22 @@
+## RESOLUTION STATUS (13-JUL-2026)
+
+Settled against the ND-11.021.01 manual (spec: `floppy-3112-register-spec-ND-11.021.md`):
+- **C1 (sector-count), C3 (partial-write tail), M1 (real error codes)** — FIXED in
+  `ND_FLOPPY_DMA.v`, tb-verified.
+- **M2 (error-code bits)** — RESOLVED: bits **9-14** (not 8-14). Manual §3.4/§3.9;
+  RetroCore C# agrees. FIXED in Verilog.
+- **M3 (IOX +4)** — RESOLVED: +4 = hardware status word (§3.7), same as +2; the
+  format word is Status Word 2 at CB+7, not an IOX register. FIXED in Verilog.
+  Root cause was conflating two distinct status words (hardware §3.7 vs memory §3.4).
+- **M11 (+0 constant)** — NO manual basis for 1 or 0x0F; left as 1 (do not invent).
+- **C2 (no-drive wedge)** — watchdog added (param, default off; needs real backend latency).
+- Emulator fixes captured as handoffs: `HANDOFF-nd100x-floppy-dma-manual-fixes.md`,
+  `HANDOFF-floppy-pio-c-and-csharp-fixes.md`.
+- OPEN (need a backend-input contract, not bugs): Status Word 2 extra bits
+  (5.25"/96tpi/sector-track, §3.5.2.2), write-protect input, streamer port.
+
+---
+
 # Adversarial review: Verilog floppy stack vs reference code (12-JUL-2026)
 
 Reviewed RTL: ND-BUS-DEVICES/FLOPPY-DMA/circuit/ND_FLOPPY_DMA.v (octal

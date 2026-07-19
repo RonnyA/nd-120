@@ -43,7 +43,7 @@ module CGA_INTR_CNTLR_IRGEL_HIRL (
   wire       s_h;
   wire       s_hidet_nand_hivges;
   wire       s_hidet;
-  wire       s_hidis_n;
+  wire       s_hidis_n /* synthesis syn_keep=1 */;  // GAO probe net - see fpga/tang-nano-20k/GAO-HOWTO.md
   wire       s_hienab_n_out;
   wire       s_higas_n_out;
   wire       s_higas_out;
@@ -53,8 +53,8 @@ module CGA_INTR_CNTLR_IRGEL_HIRL (
   wire       s_hirq_out;
   wire       s_hivges;
   wire       s_hve_out;
-  wire       s_int_req_q;
-  wire       s_int_req_qn;
+  wire       s_int_req_q /* synthesis syn_keep=1 */;   // GAO probe net - see fpga/tang-nano-20k/GAO-HOWTO.md
+  wire       s_int_req_qn /* synthesis syn_keep=1 */;  // GAO probe net
   wire       s_mclk;
   wire       s_pd_out;
   wire       s_rd_n;
@@ -162,11 +162,15 @@ module CGA_INTR_CNTLR_IRGEL_HIRL (
       .result(s_hirq_out)
   );
 
-  AND_GATE #(
-      .BubblesMask(2'b11)
+  // Vector-claim must be gated by the interrupt-request-enable FF (Am2914
+  // ground truth: a claim after DISIN must not fire even with requests
+  // pending and the mask open - the post-MCL mask is all-enabled by design).
+  AND_GATE_3_INPUTS #(
+      .BubblesMask(3'b111)
   ) GATES_7 (
       .input1(s_hipassall_n_out),
       .input2(s_s),
+      .input3(s_int_req_qn),
       .result(s_hve_out)
   );
 

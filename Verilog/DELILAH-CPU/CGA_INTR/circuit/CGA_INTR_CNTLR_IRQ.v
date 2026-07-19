@@ -36,9 +36,9 @@ module CGA_INTR_CNTLR_IRQ (
   wire [15:0] s_clrq_15_0;
   wire [15:0] s_din_15_0;
   wire [15:0] s_ireq_15_0_n;
-  wire [15:0] s_lreq_15_0;
+  wire [15:0] s_lreq_15_0 /* synthesis syn_keep=1 */;  // GAO probe net - see fpga/tang-nano-20k/GAO-HOWTO.md
   wire [15:0] s_mireq_15_0_n_out;
-  wire [15:0] s_picmask_15_0_n_out;
+  wire [15:0] s_picmask_15_0_n_out /* synthesis syn_keep=1 */;  // GAO probe net
   wire [15:0] s_picmask_15_0_out;
   wire        a_b;
   wire        s_a;

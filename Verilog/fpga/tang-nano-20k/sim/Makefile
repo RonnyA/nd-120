@@ -27,14 +27,18 @@ SRCS = $(shell grep -o '<File path="[^"]*"' $(TOPDIR)/nd120_tang20k.gprj \
 # matching BITP in the testbench.
 DEFS = -DGOWIN -DTARGET_TANG20K -DFPGA_FF_MODE -DSKIP_WCS_LOAD \
        -DMAIN_RAM_SDRAM -DND_SDRAM_PACK16 -DTANG_SLOW_BRINGUP \
+       -DND_STORAGE_PORT -DSDFAT_NO_STORAGE_CHECK \
        -DBOARD_CLK_FREQ=6750000 -DUART_BAUD_RATE=421875 -DSIM
+
+# sd_fat_features.vh lives with the SD-FAT RTL (`include in nd_storage.v etc.)
+INCS = -I$(TOPDIR)/../../SD-FAT/circuit
 
 test: $(VVP)
 	cd $(TOPDIR) && vvp sim/$(VVP) | tee sim/$(TB).log
 	@grep -q "TB_RESULT: PASS" $(TB).log
 
 $(VVP): $(TB).v $(SRCS)
-	iverilog -g2012 -o $(VVP) $(DEFS) \
+	iverilog -g2012 -o $(VVP) $(DEFS) $(INCS) \
 	  $(TB).v ../sdram-test/sim/sdram_model.v ../lint/rpll_stub.v $(SRCS)
 
 # Verilator timing-mode run of the SAME testbench (iverilog is far too slow
@@ -47,7 +51,7 @@ vtest: obj_dir/V$(TB)
 obj_dir/V$(TB): $(TB).v $(SRCS)
 	verilator --binary --timing -j 4 -Wno-fatal --top-module $(TB) \
 	  -CFLAGS "-std=gnu++20 -fcoroutines" \
-	  $(DEFS) \
+	  $(DEFS) $(INCS) \
 	  $(TB).v ../sdram-test/sim/sdram_model.v ../lint/rpll_stub.v $(SRCS)
 
 clean:

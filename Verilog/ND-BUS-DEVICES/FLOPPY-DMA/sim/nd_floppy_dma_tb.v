@@ -20,7 +20,8 @@
 ** (RSR1 copy, last memory address, remaining words = 0), FINAL status   **
 ** re-write of CB+6 after completion (READY bit 3 = 1, BUSY bit 2 = 0 -  **
 ** the C model's ReadEnd), READ FORMAT (0x22) returning the media        **
-** format word 017 in CB+7 and on IOX +4, IDENTIFY stub completion,      **
+** format word 017 in CB+7 (IOX +4 returns the hardware status word,     **
+** not the format word), IDENTIFY stub completion,                       **
 ** level-11 interrupt on completion + IDENT code 021 + clear - and a     **
 ** REAL floppy image phase: testdata/210523I01-XX-01D.img (an original   **
 ** ND distribution diskette, 1261568 bytes) is loaded into the disk      **
@@ -112,8 +113,12 @@ module nd_floppy_dma_tb;
   reg         dbuf_we = 0;
   wire [15:0] dbuf_rdata;
 
+  // DISK_TIMEOUT enabled (4000 ticks) so the C2 no-drive watchdog test can
+  // fire; 4000 >> the backend's ~512-cycle worst-case per-sector latency, so
+  // every normal transfer below still completes without a false trip.
   ND_FLOPPY_DMA #(
-      .DELAY_TICKS(16'd20)
+      .DELAY_TICKS(16'd20),
+      .DISK_TIMEOUT(16'd4000)
   ) u_fdma (
       .sysclk(sysclk), .sys_rst_n(sys_rst_n),
       .iox_addr(iox_addr), .iox_wr(iox_wr), .iox_wdata(iox_wdata),
@@ -208,11 +213,18 @@ module nd_floppy_dma_tb;
     end
   endtask
 
+  // C2 test hook: when set, the backend SILENTLY ignores the next disk_req
+  // (never raises disk_done) - models an absent drive whose adapter never
+  // answers, so the controller's watchdog must recover it.
+  reg drop_disk = 0;
+
   always @(posedge sysclk) begin
     disk_done   <= 1'b0;
     disk_err_in <= 1'b0;
     dbuf_we     <= 1'b0;
-    if (disk_req) begin
+    if (disk_req && drop_disk) begin
+      drop_disk <= 1'b0;  // consume the drop; no disk_done -> watchdog fires
+    end else if (disk_req) begin
       // position honors the format the controller declares
       base = disk_lsect * ((disk_format == 2'd3) ? 512 :
                            (disk_format == 2'd2) ? 64 :
@@ -360,6 +372,7 @@ module nd_floppy_dma_tb;
   endtask
 
   reg [15:0] rdata;
+  reg [15:0] rdata2;
   reg        ihit;
   reg [15:0] icode;
   integer    i;
@@ -398,9 +411,12 @@ module nd_floppy_dma_tb;
         check(1'b0, "read data wrong in ND memory");
     end
     check(memory[16'h4000 + 300] === 16'hDEAD, "read overran its count");
-    // status writeback: w6 RSR1 (dualDensity set), w9 last mem addr low,
-    // w11 remaining words = 0
-    check((memory[CB + 6] & 16'h8000) !== 0, "writeback RSR1 missing");
+    // status writeback: w6 Status Word 1, w9 last mem addr low,
+    // w11 remaining words = 0. Per ND-11.021 the dual-density bit 15 lives
+    // on the IOX hardware status word, NOT on the memory Status Word 1 -
+    // CB+6 bit 15 must be CLEAR (it is "not used" there).
+    check((memory[CB + 6] & 16'h8000) === 0,
+          "CB+6 Status Word 1 must not carry dual-density bit 15");
     check(memory[CB + 9] === (16'h4000 + 16'd300), "writeback last addr wrong");
     check(memory[CB + 11] === 16'd0, "writeback remaining not 0");
     // FINAL status re-write (the "Never Ready" bug): after completion
@@ -432,14 +448,15 @@ module nd_floppy_dma_tb;
     memory[CB + 5] = 16'd0;
     memory[CB + 6] = 16'hDEAD;
     run_command(CB, 1'b0);
-    check((memory[CB + 6] & 16'h8000) !== 0, "identify writeback missing");
+    check((memory[CB + 6] & 16'hDEAD) !== 16'hDEAD, "identify writeback missing");
+    check((memory[CB + 6] & 16'h8000) === 0, "identify CB+6 bit15 must be clear");
     check((memory[CB + 6] & 16'h0008) !== 0, "identify CB+6 READY not set");
     check((memory[CB + 6] & 16'h0004) === 0, "identify CB+6 BUSY still set");
 
-    // 4b: READ FORMAT (0x22): the media format word - NOT an echo of
-    //     the command word - comes back in CB+7 and on IOX +4. The
-    //     1.2MB descriptor (disk_media_fmt = 4'b1111) reads 017 octal:
-    //     1024 bytes/sector + double sided + double density, unit 0.
+    // 4b: READ FORMAT (0x22): the media format word (Status Word 2) is
+    //     delivered in memory at CB+7 - NOT on any IOX register. The 1.2MB
+    //     descriptor (disk_media_fmt = 4'b1111) reads 017 octal: 1024
+    //     bytes/sector + double sided + double density, unit 0.
     memory[CB + 0] = 16'h0022;  // func 0x22 READ FORMAT, drive 0
     memory[CB + 5] = 16'd0;
     memory[CB + 6] = 16'hDEAD;
@@ -448,8 +465,14 @@ module nd_floppy_dma_tb;
     check(memory[CB + 7] === 16'o000017, "READ FORMAT CB+7 not 017");
     check((memory[CB + 6] & 16'h0008) !== 0, "READ FORMAT CB+6 READY not set");
     check((memory[CB + 6] & 16'h0004) === 0, "READ FORMAT CB+6 BUSY still set");
-    iox_read(16'o001564, rdata);
-    check(rdata === 16'o000017, "IOX +4 status2 not 017");
+    // ND-11.021 §3.1 Note 1 / §3.7: IOX +2 and +4 BOTH return the hardware
+    // status word (bit 15 dual-density set), NOT the format word. Read both
+    // and prove they are identical and are not the CB+7 format value.
+    iox_read(16'o001562, rdata);
+    iox_read(16'o001564, rdata2);
+    check(rdata2 === rdata, "IOX +4 must equal +2 (hardware status word)");
+    check((rdata2 & 16'h8000) !== 0, "IOX +4 hardware status dualDensity not set");
+    check(rdata2 !== 16'o000017, "IOX +4 must be hardware status, not the format word");
 
     // 5: interrupt + IDENT: run a command with interrupt enabled
     check(bint11_n === 1'b1, "BINT11 asserted before enable");
@@ -484,6 +507,82 @@ module nd_floppy_dma_tb;
       end
       // a real command leaves boot mode
       iox_write(16'o001563, 16'o000420);  // deviceClear (b4) + b8? no: clear only
+    end
+
+    // 5c: SECTOR-COUNT mode (C1). w4 bit15 = 0 selects sector count; w5 is
+    //     a count of SECTORS, so 2 sectors at format 0 (256 w/s) must move
+    //     512 words - not 2. Read lsect 4..5 to 0x4800 and word-compare.
+    memory[CB + 0] = 16'h0000;   // func 0 read, drive 0, format 0
+    memory[CB + 1] = 16'd4;      // logical sector 4
+    memory[CB + 2] = 16'd0;
+    memory[CB + 3] = 16'h4800;
+    memory[CB + 4] = 16'h0000;   // b15 = 0 -> SECTOR count, high byte 0
+    memory[CB + 5] = 16'd2;      // 2 sectors
+    run_command(CB, 1'b0);
+    for (i = 0; i < 512; i = i + 1) begin
+      if (memory[16'h4800 + i] !== (16'h9000 + (4 * WPS + i)))
+        check(1'b0, "sector-count read data wrong");
+    end
+    check(memory[16'h4800 + 512] === 16'hDEAD, "sector-count read overran");
+    check(memory[CB + 11] === 16'd0, "sector-count remaining not 0");
+
+    // 5d: PARTIAL-SECTOR WRITE (C3). Write 300 words (1 full sector + 44)
+    //     to lsect 20. Pre-seed sectors 20/21 on the image with a sentinel;
+    //     after the write, sector 20 = source words 0..255, sector 21 words
+    //     0..43 = source 256..299, and words 44..255 MUST still be the
+    //     sentinel (the fix writes only 44 words to sector 21, not a full
+    //     sector of stale buffer).
+    for (i = 0; i < WPS; i = i + 1) begin
+      image[20 * WPS + i] = 16'hE000 + i[15:0];
+      image[21 * WPS + i] = 16'hE000 + i[15:0];
+    end
+    for (i = 0; i < 300; i = i + 1) memory[16'h5800 + i] = 16'hC000 + i[15:0];
+    memory[CB + 0] = 16'h0001;   // func 1 write, format 0
+    memory[CB + 1] = 16'd20;
+    memory[CB + 2] = 16'd0;
+    memory[CB + 3] = 16'h5800;
+    memory[CB + 4] = 16'h8000;   // word-count mode
+    memory[CB + 5] = 16'd300;
+    run_command(CB, 1'b0);
+    for (i = 0; i < WPS; i = i + 1) begin
+      if (image[20 * WPS + i] !== (16'hC000 + i[15:0]))
+        check(1'b0, "partial write: full sector 20 wrong");
+    end
+    for (i = 0; i < 44; i = i + 1) begin
+      if (image[21 * WPS + i] !== (16'hC000 + (WPS + i)))
+        check(1'b0, "partial write: sector 21 head wrong");
+    end
+    for (i = 44; i < WPS; i = i + 1) begin
+      if (image[21 * WPS + i] !== (16'hE000 + i[15:0]))
+        check(1'b0, "partial write: stale tail leaked past word 44");
+    end
+
+    // 5e: NO-DRIVE WATCHDOG (C2). Make the backend ignore the next request;
+    //     the controller must NOT wedge - the watchdog completes the command
+    //     with DRIVE_NOT_READY (oct 20 in RSR1 bits 8-14, OR bit 4 set) and
+    //     returns to ready, so a subsequent command still works.
+    drop_disk = 1'b1;
+    memory[CB + 0] = 16'h0000;   // func 0 read, drive 0
+    memory[CB + 1] = 16'd6;
+    memory[CB + 2] = 16'd0;
+    memory[CB + 3] = 16'h6800;
+    memory[CB + 4] = 16'h8000;
+    memory[CB + 5] = 16'd16;
+    memory[CB + 6] = 16'hDEAD;
+    run_command(CB, 1'b0);       // returns only if the controller went ready
+    // error code lives in Status Word 1 bits 9-14 (ND-11.021 §3.4/§3.9)
+    check((memory[CB + 6] & 16'h7E00) === (16'o000020 << 9),
+          "watchdog: CB+6 error code not DRIVE_NOT_READY (oct 20) at bits 9-14");
+    check((memory[CB + 6] & 16'h0010) !== 0, "watchdog: CB+6 OR bit not set");
+    check((memory[CB + 6] & 16'h0008) !== 0, "watchdog: CB+6 READY not set");
+    // controller recovered: a normal read now succeeds again
+    memory[CB + 1] = 16'd4;
+    memory[CB + 3] = 16'h6800;
+    memory[CB + 5] = 16'd8;
+    run_command(CB, 1'b0);
+    for (i = 0; i < 8; i = i + 1) begin
+      if (memory[16'h6800 + i] !== (16'h9000 + (4 * WPS + i)))
+        check(1'b0, "post-watchdog read wrong");
     end
 
     // 6: REAL IMAGE phase - load the ND distribution diskette and read

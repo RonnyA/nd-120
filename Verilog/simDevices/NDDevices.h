@@ -28,15 +28,18 @@
 #include <iostream>
 #include <string>
 
-// Enable/Disable interface debugging for devices
-
-#define DEBUG_PT // Papertape
-#define DEBUG_FLOPPY_PIO   
-#define DEBUG_FLOPPY_DMA 
-
-#define DEBUG_DATATRANSFER_PIO // uncomment to remove datatransfer debug for PIO
-#define DEBUG_DETAIL //uncomment to remove detailed debugging
-#define DEBUG_INTERRUPT  // uncomment to remove INTERRUPT and IDENT debugging
+// Enable/Disable interface debugging for devices.
+// These were force-ON, which made every tape byte print several console
+// lines during a 400$ / mass-boot load (~46K bytes) - the "level-12
+// interrupt storm": not the CPU spinning, but console I/O drowning the run.
+// They are OPT-IN now: uncomment (or -D on the compiler line) to re-enable
+// a given channel. Leave them off for normal / instruction-verify runs.
+// #define DEBUG_PT               // Papertape read/write tracing
+// #define DEBUG_FLOPPY_PIO
+// #define DEBUG_FLOPPY_DMA
+// #define DEBUG_DATATRANSFER_PIO // PIO buffer datatransfer tracing
+// #define DEBUG_DETAIL           // detailed per-op debugging
+// #define DEBUG_INTERRUPT        // INTERRUPT and IDENT tracing (hot path)
 
 enum class DeviceType
 {
@@ -95,7 +98,9 @@ protected:
             {                
                 bool triggered = it->callback(it->context, it->parameter);
 
+#ifdef DEBUG_INTERRUPT
                 printf("Callback LVL[%d] PARAM[%d] Returned %d!!\r\n", it->level, it->parameter, triggered);
+#endif
 
                 if (triggered && it->level > 0)
                     GenerateInterrupt(it->level);
@@ -117,7 +122,9 @@ protected:
         {
             if ((interruptBits & 1<<level) != 0)
             {
-                printf("Clearing interrupt at level %d\r\n",level);            
+#ifdef DEBUG_INTERRUPT
+                printf("Clearing interrupt at level %d\r\n",level);
+#endif
                 interruptBits &= ~(1 << level);
             }
         }
@@ -129,7 +136,9 @@ protected:
         {
             if ((interruptBits & 1<<level) == 0)
             {
+#ifdef DEBUG_INTERRUPT
                 printf("Generating interrupt at level %d\r\n",level);
+#endif
                 interruptBits |= 1<<level;
             }
         }

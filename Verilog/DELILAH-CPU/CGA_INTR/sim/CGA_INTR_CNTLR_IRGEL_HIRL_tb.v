@@ -79,11 +79,11 @@ module CGA_INTR_CNTLR_IRGEL_HIRL_tb;
 
   // ---- Independent comb functions of shadow state + inputs ----
   function automatic e_hipassall; input a_q1; begin e_hipassall = HIVGES & HIDET & a_q1; end endfunction
-  function automatic e_hve;       input a_q1; begin e_hve = e_hipassall(a_q1) & ~S; end endfunction
-  function automatic e_higas_n;   input a_q1;
-    begin e_higas_n = ~(e_hve(a_q1) & HIVEC_2_0[2] & HIVEC_2_0[1] & HIVEC_2_0[0]); end
+  function automatic e_hve;       input a_q1; input a_q2; begin e_hve = e_hipassall(a_q1) & ~S & a_q2; end endfunction
+  function automatic e_higas_n;   input a_q1; input a_q2;
+    begin e_higas_n = ~(e_hve(a_q1, a_q2) & HIVEC_2_0[2] & HIVEC_2_0[1] & HIVEC_2_0[0]); end
   endfunction
-  function automatic e_higas;     input a_q1; begin e_higas = ~e_higas_n(a_q1); end endfunction
+  function automatic e_higas;     input a_q1; input a_q2; begin e_higas = ~e_higas_n(a_q1, a_q2); end endfunction
   function automatic e_hidnh;     input dummy; begin e_hidnh = ~(HIDET & HIVGES); end endfunction
   function automatic e_pd;        input dummy; begin e_pd = (~HIGSN) | (HIDET & HIVGES); end endfunction
   function automatic e_rdn;       input a_q1; begin e_rdn = a_q1 & HIGSN & (~(HIDET & HIVGES)); end endfunction
@@ -95,8 +95,8 @@ module CGA_INTR_CNTLR_IRGEL_HIRL_tb;
   task compute_expected;
     begin
       eHIPASSALL = e_hipassall(q1);
-      eHVE       = e_hve(q1);
-      eHIGAS     = e_higas(q1);
+      eHVE       = e_hve(q1, q2);
+      eHIGAS     = e_higas(q1, q2);
       ePD        = e_pd(0);
       eRDN       = e_rdn(q1);
       eHIENABN   = e_hienabn(q1);
@@ -128,7 +128,7 @@ module CGA_INTR_CNTLR_IRGEL_HIRL_tb;
   task clk_and_check(input [127:0] what);
     reg n1, n2;
     begin
-      n1 = H ? e_higas_n(q1) : q1;   // STATUS_OVERFLOW_FF: TE=H, TI=higas_n, D=q1(self-hold)
+      n1 = H ? e_higas_n(q1, q2) : q1;   // STATUS_OVERFLOW_FF: TE=H, TI=higas_n, D=q1(self-hold)
       n2 = D ? q2 : E;               // INT_REQ_ENABLE_FF: TE=D, TI=q2(self-hold), D-in=E
       MCLK = 0; #2;
       MCLK = 1; #2;

@@ -90,10 +90,34 @@ module ND120_TANG20K_TOP (
     s1_r2 <= s1_r1;
   end
 
+  // Remote reset: a UART BREAK on the console RX (line held LOW for >=200 ms,
+  // ~2 character times would be enough but 200 ms rejects any glitch) acts
+  // exactly like pressing S1. BREAK is out-of-band: normal typed characters
+  // and ndcomm's binary deposit streams always return the line high between
+  // frames, so nothing legitimate can fake it. Host side: send a break
+  // (python termios.tcsendbreak / picocom C-a C-\ ) to reset the board
+  // without touching it.
+  localparam integer BREAK_CYCLES = (`BOARD_CLK_FREQ / 5);  // 200 ms of low
+  reg [24:0] brk_cnt = 25'd0;
+  reg        brk_rst = 1'b0;
+  reg        rx_r1 = 1'b1, rx_r2 = 1'b1;
+  always @(posedge clk_cpu) begin
+    rx_r1 <= uart_rxp;
+    rx_r2 <= rx_r1;
+    if (rx_r2) begin
+      brk_cnt <= 25'd0;
+      brk_rst <= 1'b0;
+    end else if (brk_cnt >= BREAK_CYCLES[24:0]) begin
+      brk_rst <= 1'b1;   // held until the line returns high
+    end else begin
+      brk_cnt <= brk_cnt + 1'b1;
+    end
+  end
+
   reg [7:0] por_count = 8'd0;
   reg       por_done = 1'b0;
   always @(posedge clk_cpu) begin
-    if (s1_r2) begin  // S1 pressed: Master Clear
+    if (s1_r2 | brk_rst) begin  // S1 pressed or console BREAK: Master Clear
       por_count <= 8'd0;
       por_done  <= 1'b0;
     end else if (!por_done) begin
@@ -106,7 +130,10 @@ module ND120_TANG20K_TOP (
   /**********************************************
   *  ND-100 bus: tied off (no external bus)     *
   ***********************************************/
-  wire [12:0] CSA_12_0;
+  wire [12:0] CSA_12_0 /* synthesis syn_keep=1 */;  // GAO probe net - see GAO-HOWTO.md
+  wire  [3:0] s_pil_3_0 /* synthesis syn_keep=1 */;  // PIL for the grant-capture probe (TANG_GRANT_CAPTURE)
+  wire [15:0] s_ireq_15_0_n /* synthesis syn_keep=1 */;  // raw interrupt-request vector (active low) for grant-source capture
+  wire [15:0] s_xmic_dbg /* synthesis syn_keep=1 */;  // microsequencer address-advance probe (Tang 06000-hang root cause)
 
   wire BREQ_n = 1'b1;
   wire BINT10_n = 1'b1;
@@ -182,31 +209,99 @@ module ND120_TANG20K_TOP (
   // UART at 9600 (taking the TX pin over from the CPU console).
   // If LED3 (decode seen) never lights, the decode itself never fires on
   // silicon - that is a result too.
+  // Capture source / trigger / pre-post split are switchable:
+  //  - default: the write-path analyzer (source = s_dbg_memw, trigger = write
+  //    decode rising, 64 pre + 448 post).
+  //  - TANG_GRANT_CAPTURE: the masked-level-10 grant probe. Source packs
+  //    {PIL[3:0], CSA[11:0]}; trigger = PIL entering level 10 (0->10 is the
+  //    silicon wedge); 448 PRE + 64 post so the whole lead-up to the switch is
+  //    recorded. Reading back the CSA sequence shows whether PIL->10 goes
+  //    through the normal level-switch microcode (PLINT 01133 / PLVO 01140 /
+  //    LVSWP 01146-01155, as a legit level-13 switch does in sim) or bypasses
+  //    it - the decisive fork for the root cause.
   reg [15:0] cap_mem[0:511];
   reg [8:0] cap_wptr;
   reg [8:0] cap_post;
   reg [24:0] arm_cnt;
   reg cap_armed, cap_trig, cap_done;
   reg wdec_d2;
+  reg [3:0] pil_prev;
+  reg [12:0] csa_prev;
+  reg [21:0] csa_stable;   // clk2x cycles the microcode CSA has been unchanged
+`ifdef TANG_GRANT_CAPTURE
+  // Word = {PIL[3:0], INTRQ, CSA[10:0]}.  INTRQ = ~DEBUG_INTRQ_n (already routed
+  // to this top) shows WHEN the interrupt-request FF is asserted relative to the
+  // 00017 dispatch: held-from-early (a level-held PAN, i.e. the free-running RTC,
+  // taken at the first interrupt-enable point => deterministic step 18) vs a late
+  // pulse. CSA[10:0] still covers the whole dispatch/level-switch region
+  // (00017 / 03740 / 01xxx); the 06xxx/07xxx SETUP context was captured in v1.
+  // Word = the 16-bit interrupt-request vector, active-HIGH (bit n set = IREQ[n]
+  // pending). Trigger = PIL entering level 10. The 448 pre-trigger samples cover
+  // the 00214 dispatch and the 00017/00053 RVECT read, so this shows EXACTLY
+  // which request bit (if any) is pending when the spurious grant fires:
+  //   all-zero  => a phantom grant with NO real request (empty-vector -> level 10)
+  //   bit 0 set => a real level-10 (BINT10 terminal) request
+  //   bit 8-15  => a HIGH-group/internal request collapsing to a level-10 read
+  // Word = {PIL[3:0], CSA[11:0]} - the microcode path. Trigger on EITHER the
+  // PIL->10 wedge OR the microcode HANGING (CSA unchanged for 2^22 clk2x ~ 78 ms
+  // = the free-run 0! cold start stalled). 480 pre + 32 post, so the dump shows
+  // the CSA sequence LEADING INTO the stall/wedge - i.e. exactly where and how
+  // the cold start dies. This is the free-run root-cause tool (single-stepping
+  // injects its own panel-stop PAN pulses; free-run does not, so this catches
+  // the REAL 0! failure).
+  // Word = the MEMORY ADDRESS being accessed, bits [23:8] = {LA_23_10[13:0],
+  // CA_9_0[9:8]}. When the cold start stalls at STZ (06000) waiting for a memory
+  // write to terminate, this captures WHICH address the write targets - the high
+  // bits show the region (in-range main mem < addr 21, vs bit22/23 = storage /
+  // out-of-range), which points at the SDRAM-controller condition that never
+  // asserts TERM. Trigger = microcode HANG (CSA stable) or PIL->10.
+  // Word = the CYCLE-FSM / arbitration state that gates TERM_n (why the STZ
+  // memory write never terminates). DEBUG_CC_TERM = {TERM_n,CC3_n,CC2_n,CC1_n,
+  // CC0_n}. Plus INTRQ / REFRQ / FETCH / MR_n / LCS_n so we see if an interrupt
+  // break, a refresh, or a stuck cycle state is holding TERM_n high at the hang.
+  //   bit4:0 = CC_TERM {TERM_n,CC3_n,CC2_n,CC1_n,CC0_n}
+  //   bit5=INTRQ(=~INTRQ_n) bit6=REFRQ(=~REFRQ_n) bit7=FETCH bit8=MR_n
+  //   bit9=LCS_n bit10=CLEAR_n bit11=POWFAIL_n bit12=MCLK  bit15:13=0
+  // Word = the microsequencer address-advance probe (from CGA_MIC XMIC_DBG):
+  //   bit15=SC6  bit14=s_mclk_n (regW mux-select = ~mclk_pa routed LEVEL)
+  //   bit13=MCLK_EN (microsequencer clock-tick pulse)  bit12:0=regIW (captured
+  //   next-address). Captured at the 06000 hang: shows which signal is FROZEN.
+  //   MCLK_EN stuck-low => word never retires (mem/CYC, case A); s_mclk_n stuck
+  //   => regW mux frozen; regIW stuck 06000 vs jump target 0145 (case B).
+  wire [15:0] s_cap_src   = s_xmic_dbg;
+  wire        s_hang      = &csa_stable;
+  wire        s_cap_event = ((s_pil_3_0 == 4'd10) && (pil_prev != 4'd10)) || s_hang;
+  localparam [8:0] CAP_POST = 9'd32;
+`else
+  wire [15:0] s_cap_src   = s_dbg_memw;
+  wire        s_cap_event = !wdec_d2 && s_dbg_memw[7];
+  localparam [8:0] CAP_POST = 9'd448;
+`endif
   always @(posedge clk2x) begin
     if (!sys_rst_n) begin
       cap_wptr <= 0; cap_post <= 0; arm_cnt <= 0;
       cap_armed <= 0; cap_trig <= 0; cap_done <= 0; wdec_d2 <= 0;
-      wdec_seen <= 0; write_seen <= 0;
+      wdec_seen <= 0; write_seen <= 0; pil_prev <= 0;
+      csa_prev <= 0; csa_stable <= 0;
     end else begin
       if (!cap_armed) begin
         arm_cnt <= arm_cnt + 1'b1;
         if (arm_cnt == 25'h1FFFFFF) cap_armed <= 1;  // ~2.5 s at 13.5 MHz
       end
+      // microcode-hang detector: count clk2x cycles CSA stays unchanged
+      csa_prev <= CSA_12_0;
+      if (CSA_12_0 != csa_prev) csa_stable <= 0;
+      else if (!(&csa_stable))  csa_stable <= csa_stable + 1'b1;
       wdec_d2 <= s_dbg_memw[7];
+      pil_prev <= s_pil_3_0;
       if (cap_armed && s_dbg_memw[7]) wdec_seen <= 1;
       if (cap_armed && s_dbg_memw[6]) write_seen <= 1;
       if (!cap_done) begin
-        cap_mem[cap_wptr] <= s_dbg_memw;
+        cap_mem[cap_wptr] <= s_cap_src;
         cap_wptr <= cap_wptr + 1'b1;
-        if (!cap_trig && cap_armed && !wdec_d2 && s_dbg_memw[7]) begin
+        if (!cap_trig && cap_armed && s_cap_event) begin
           cap_trig <= 1;
-          cap_post <= 9'd448;
+          cap_post <= CAP_POST;
         end else if (cap_trig) begin
           cap_post <= cap_post - 1'b1;
           if (cap_post == 0) cap_done <= 1;
@@ -281,6 +376,11 @@ module ND120_TANG20K_TOP (
   // would trigger every boot and hold the TX pin forever (dump_fin never
   // clears). Only let it take the console when explicitly enabled.
 `ifdef TANG_WRITE_ANALYZER_DUMP
+  assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
+`elsif TANG_GRANT_CAPTURE
+  // Grant-capture: after PIL->10 fires the capture, the dumper takes the TX
+  // pin and streams the 512 {PIL,CSA} samples as hex. The console is dead
+  // after that (expected - the CPU has wedged at level 10 anyway).
   assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
 `else
   /* verilator lint_off UNUSEDSIGNAL */
@@ -555,6 +655,7 @@ module ND120_TANG20K_TOP (
       .LED(s_cpu_led[6:0]),
       .RUN_n(s_run),
       .CSA_12_0(CSA_12_0),
+      .PIL(s_pil_3_0),
       .LA_23_10(s_debug_la_23_10),
       .CA_9_0(s_debug_ca_9_0),
       .DEBUG_CC_TERM(s_debug_cc_term),
@@ -567,6 +668,8 @@ module ND120_TANG20K_TOP (
       .DEBUG_INTRQ_n(s_debug_intrq_n),
       .DEBUG_POWFAIL_n(s_debug_powfail_n),
       .DEBUG_FIDBO_15_0(s_debug_fidbo),
+      .DEBUG_IREQ_15_0_N(s_ireq_15_0_n),
+      .XMIC_DBG_15_0(s_xmic_dbg),
 
       // SDRAM main memory (MAIN_RAM_SDRAM, threaded down to MEM_RAM_49_SDRAM)
       .clk2x(clk2x),

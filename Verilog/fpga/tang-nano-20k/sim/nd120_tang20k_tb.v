@@ -193,14 +193,95 @@ module nd120_tang20k_tb;
       end
     end
 
-    if (errors == 0) $display("TB_RESULT: PASS (deposit 22/054321 readback verified)");
+    // Read-modify-write check (the Tang silicon killer, 17-JUL-2026): MIN
+    // (memory increment, opcode 014000-family) must increment the cell.
+    // On the buggy SDRAM bridge the RMW access classifies as a plain write,
+    // never serves the read phase and commits before the CPU's late data
+    // pulse: the cell is destroyed to 000000 and every counted loop in the
+    // test programs (cold-start SETUP, BYTE-STRING repeats, RUN/STACK/
+    // SEGMENT) wedges. Repro: 100: MIN *+2 (040002), 102: 000123,
+    // P=100, breakpoint at 101, run; cell 102 must read 000124.
+    $display("TB: MIN read-modify-write check...");
+    send_str("100/", 4);
+    #(CHAR_GAP * 2);
+    send_str({"040002", 8'h0D}, 7);
+    #(CHAR_GAP * 2);
+    send_str("102/", 4);
+    #(CHAR_GAP * 2);
+    send_str({"000123", 8'h0D}, 7);
+    #(CHAR_GAP * 2);
+    send_str("P/", 2);
+    #(CHAR_GAP * 2);
+    send_str({"100", 8'h0D}, 4);
+    #(CHAR_GAP * 2);
+    send_str("101.", 4);          // breakpoint at 101 + free-run from P=100
+    #(CHAR_GAP * 20);             // generous: run + '.' echo
+    send_char(8'h0D);
+    #(CHAR_GAP * 2);
+    send_str("102/", 4);
+    #(CHAR_GAP * 3);
+    begin : mincheck
+      integer m;
+      reg minok;
+      minok = 0;
+      for (m = 0; m <= 6; m = m + 1)
+        if (last16[8*m+:80] == "102/000124") minok = 1;
+      if (!minok) begin
+        errors = errors + 1;
+        $display("FAIL: MIN did not increment cell 102 (tail=%s)", last16);
+      end else $display("TB: MIN RMW ok (102 = 000124)");
+    end
+    send_char(8'h0D);
+    #(CHAR_GAP * 2);
+
+    // Remote reset via UART BREAK: hold RX low 250 ms (threshold in the top
+    // is 200 ms) -> must act like S1: por restarts, CPU reboots to a fresh
+    // '#' prompt. RAM survives (only the CPU resets), so the deposit at 22
+    // done above must still read back afterwards.
+    $display("TB: sending 250 ms UART BREAK (remote reset)...");
+    rxd = 0;
+    #250_000_000;
+    rxd = 1;
+    begin : waitreboot
+      integer rb_poll;
+      last4 = 32'h0;
+      rb_poll = 0;
+      while (last4[7:0] != "#" && rb_poll < 30000) begin
+        #100_000;
+        rb_poll = rb_poll + 1;
+      end
+      if (last4[7:0] != "#") begin
+        errors = errors + 1;
+        $display("");
+        $display("FAIL: no OPCOM prompt after UART-BREAK reset");
+      end else begin
+        $display("");
+        $display("TB: rebooted after BREAK, prompt seen");
+        // deposit must have survived the CPU-only reset
+        send_str("22/", 3);
+        #(CHAR_GAP * 3);
+        begin : rbcheck2
+          integer k;
+          reg found2;
+          found2 = 0;
+          for (k = 0; k <= 7; k = k + 1)
+            if (last16[8*k+:72] == "22/054321") found2 = 1;
+          if (!found2) begin
+            errors = errors + 1;
+            $display("FAIL: post-BREAK readback of 054321 not seen (tail=%s)", last16);
+          end
+        end
+      end
+    end
+
+    if (errors == 0) $display("TB_RESULT: PASS (deposit 22/054321 readback verified, UART-BREAK reset reboots)");
     else $display("TB_RESULT: FAIL (%0d errors)", errors);
     $finish;
   end
 
   // global watchdog
   initial begin
-    #4_000_000_000;  // 4 s sim time
+    repeat (30) #1_000_000_000;  // 30 s sim time (130ms/char pacing: boot + deposit + MIN RMW + BREAK reboot)
     $display("");
     $display("TB_RESULT: TIMEOUT");
     $finish;

@@ -104,6 +104,7 @@ uint16_t PaperTape::Read(uint32_t address)
 #ifdef DEBUG_PT
         std::cout << "PaperTape read, invalid register address: " << address << std::endl;
 #endif
+        break;
     }
 
 #ifdef DEBUG_PT
@@ -188,7 +189,9 @@ void PaperTape::Write(uint32_t address, uint16_t value)
 uint16_t PaperTape::IDENT(uint16_t level)
 {
     // Provide some default functionality or just return 0
+#ifdef DEBUG_INTERRUPT
     std::cout << "PaperTape::IDENT called with level " << level << std::endl;
+#endif
     if ((interruptBits & 1 << level) != 0)
     {
         statusRegister.bits.interruptEnabled = false;
@@ -505,7 +508,9 @@ uint16_t FloppyPIO::IDENT(uint16_t level)
     }
     else
     {
+#ifdef DEBUG_INTERRUPT
         printf("WTF %x %x\r\n", interruptBits, 1 << level);
+#endif
     }
 
     return 0;
@@ -1124,7 +1129,9 @@ uint16_t DeviceManager::IDENT(uint16_t level)
             return id;
         }
     }
+#ifdef DEBUG_INTERRUPT
     printf("No device found for IDENT level: %d\r\n", level);
+#endif
     return 0;
 }
 

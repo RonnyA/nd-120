@@ -90,6 +90,7 @@ module CPU_15 (
     output [12:0] LUA_12_0,    //! Load Upper Address - 13-bit output for upper address bits of control store
     output [ 1:0] PCR_1_0,     //! Paging Control Register - 2-bit register for paging control
     output [ 3:0] PIL_3_0,     //! Priority Interrupt Level - 4-bit interrupt priority level
+    output [15:0] XIREQ_15_0_N, //! DEBUG: raw interrupt-request vector (active low)
     output [13:0] PPN_23_10,   //! Physical Page Number - 14-bit page number for memory mapping
     output [ 4:0] TEST_4_0,    //! Test Points - 5-bit test signals for debugging
     output [63:0] TOPCSB,      //! Top Control Store Bits - 64-bit microcode control signals
@@ -111,7 +112,8 @@ module CPU_15 (
     output HIT,          //! Cache hit
     output LEV0,         //! Level 0 active
     output LED1,         //! Cache enabled ?
-    output [12:0] CSA_12_0      //! Microcode Address (for debugging)
+    output [12:0] CSA_12_0,     //! Microcode Address (for debugging)
+    output [15:0] XMIC_DBG_15_0 //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
 );
 
 
@@ -463,6 +465,7 @@ module CPU_15 (
     .OPCLCS(s_opclcs),
     .PCR_1_0(s_pcr_1_0[1:0]),
     .PIL_3_0(s_pil_3_0[3:0]),
+    .XIREQ_15_0_N(XIREQ_15_0_N),
     .PONI(s_poni),
     .RF_1_0(s_rf_1_0[1:0]),
     .RRF_n(s_rrf_n),  //Output
@@ -476,7 +479,8 @@ module CPU_15 (
     .VEX(s_vex),
     .WCS_n(s_wcs_n),
 
-    .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0)
+    .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
+    .XMIC_DBG_15_0(XMIC_DBG_15_0)
   );
 
   CPU_CS_16 CS (

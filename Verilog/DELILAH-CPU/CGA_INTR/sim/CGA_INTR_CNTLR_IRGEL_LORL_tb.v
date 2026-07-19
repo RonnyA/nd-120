@@ -68,9 +68,9 @@ module CGA_INTR_CNTLR_IRGEL_LORL_tb;
   reg q;   // independent shadow state (int_req_enable_q)
 
   function automatic e_lopassall; input dummy; begin e_lopassall = RDN & LODET & LOVGES; end endfunction
-  function automatic e_lve;       input dummy; begin e_lve = e_lopassall(0) & ~S; end endfunction
+  function automatic e_lve;       input a_q; begin e_lve = e_lopassall(0) & ~S & a_q; end endfunction
   function automatic e_logas_n;   input dummy;
-    begin e_logas_n = ~(e_lve(0) & LOVEC_2_0[2] & LOVEC_2_0[1] & LOVEC_2_0[0]); end
+    begin e_logas_n = ~(e_lve(q) & LOVEC_2_0[2] & LOVEC_2_0[1] & LOVEC_2_0[0]); end
   endfunction
   function automatic e_logas;     input dummy; begin e_logas = ~e_logas_n(0); end endfunction
   function automatic e_lienabn;   input dummy; begin e_lienabn = ~RDN; end endfunction
@@ -81,7 +81,7 @@ module CGA_INTR_CNTLR_IRGEL_LORL_tb;
   task do_compare(input [127:0] what);
     begin
       eLOPASSALL = e_lopassall(0);
-      eLVE       = e_lve(0);
+      eLVE       = e_lve(q);
       eLOGASN    = e_logas_n(0);
       eLOGAS     = e_logas(0);
       eLIENABN   = e_lienabn(0);

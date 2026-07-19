@@ -75,7 +75,15 @@ module CGA_MIC (
     output [ 3:0] SC_6_3,      //! Status control bits 6 to 3
     output        TN,          //! Trap not signal
     output        UPN,         //! Update not signal
-    output        WCSN         //! Write control signal not
+    output        WCSN,        //! Write control signal not
+
+    // DEBUG (Tang 06000-hang root-cause probe): the sequencer address-advance
+    // state, active-HIGH. bit15=SC6 bit14=s_mclk_n(regW mux-select, ~mclk_pa
+    // routed LEVEL) bit13=MCLK_EN(microsequencer clock-tick pulse)
+    // bit12:0=regIW (captured next-address). Shows which signal is FROZEN at the
+    // hang: MCLK_EN stuck-low => word never retires (mem/CYC); s_mclk_n stuck =>
+    // regW mux frozen; regIW stuck at 06000 vs jump target 0145.
+    output [15:0] XMIC_DBG
 );
 
   /*******************************************************************************
@@ -105,6 +113,8 @@ module CGA_MIC (
   (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_next_12_0;
   wire [12:0] s_ret_12_0;
   (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_w_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_dbg_rep_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_dbg_jmp_12_0;
   (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_wca_12_0;
   wire [15:0] s_cd_15_0;
   wire [15:0] s_csbit_15_0;
@@ -308,6 +318,20 @@ module CGA_MIC (
   assign TN                 = s_t_n_out;
   assign UPN                = s_up_n_out;
   assign WCSN               = s_wcs_n_out;
+  // DEBUG probe word: {SC6, s_mclk_n, MCLK_EN, regREP_comb[12:0]}. The Tang
+  // capture showed SC=JUMP + MCLK_EN pulsing but regIW frozen at 06000 (jump
+  // target 0145 never loaded). regREP_comb is the COMPUTED next-address (= the
+  // JUMP target when SC=JUMP). If regREP_comb=0145 here, the sequencer computes
+  // the jump correctly but regIW/regW never propagate it (capture/clocking bug);
+  // if regREP_comb=6000, the mux/jmpaddr is wrong. s_mclk_n = the routed ~mclk
+  // level that gates regW.
+  //   bit15=CSBIT20 bit14=SC6 bit13=MCLK_EN bit12=0 bit11:0=CSBIT_11_0
+  // Tang measured s_jmpaddr=16000 = {csbit20=1, csbit_11_0[11:4]=0xC0}; 0xC00 =
+  // the ADDRESS 06000. So capture the RAW microword field CSBIT_11_0 that MASEL
+  // sees. Correct STZ word => CSBIT_11_0=0x065 (=> jmpaddr 0145). If instead
+  // CSBIT_11_0=0xC00 (=address 06000 low bits) => the WCS control-store READ is
+  // returning the ADDRESS not the DATA on silicon = ROOT CAUSE (WCS read path).
+  assign XMIC_DBG           = {s_csbit20, s_sc_6_3_out[3], MCLK_EN, 1'b0, s_csbit_15_0[11:0]};
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
@@ -1133,7 +1157,9 @@ module CGA_MIC (
 
       // Output signals
       .IW_12_0(s_iw_12_0[12:0]),
-      .W_12_0(s_w_12_0[12:0])
+      .W_12_0(s_w_12_0[12:0]),
+      .DBG_REP_12_0(s_dbg_rep_12_0[12:0]),
+      .DBG_JMP_12_0(s_dbg_jmp_12_0[12:0])
   );
 
   // MCLK domain: CLK = s_mclk, clocked on posedge MCLK (async set S_n)

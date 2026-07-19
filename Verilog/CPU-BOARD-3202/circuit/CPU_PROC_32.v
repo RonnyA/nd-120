@@ -78,6 +78,7 @@ module CPU_PROC_32 (
     output        OPCLCS,       //! COMMAND 36.2 LCS - Load control store from PROM and perform a Master Clear
     output [ 1:0] PCR_1_0,      //! Paging Control Register[1:0] = Ring Protection Level
     output [ 3:0] PIL_3_0,      //! Current Program Level
+    output [15:0] XIREQ_15_0_N, //! DEBUG: raw interrupt-request vector (active low)
     output        PONI,         //! Memory Management ON
     output [ 1:0] RF_1_0,       //! Selects which of the 4 16 bit's of the microcode to fetch from ROM
     output        RRF_n,        //! Read REG Flag - CSIDBS Source = 5 (REG)
@@ -91,7 +92,8 @@ module CPU_PROC_32 (
     output        WCS_n,        //! Write Control Store
 
     // Debug
-    output [15:0] DEBUG_FIDBO_15_0  //! FIDBO internal data bus
+    output [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
+    output [15:0] XMIC_DBG_15_0     //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
 );
 
 
@@ -535,6 +537,8 @@ module CPU_PROC_32 (
       .LSHADOW(s_lshadow),                  // Latch Shadow Memory signal
       .PCR_1_0(s_pcr_1_0[1:0]),             // Paging Control Register 1-0
       .PIL_3_0(s_pil_3_0[3:0]),             // Current Program Level
+      .XIREQ_15_0_N(XIREQ_15_0_N),          // DEBUG: raw interrupt-request vector
+
       .PONI(s_poni),                        // Memory Management ON
       .RF_1_0(s_rf_1_0),                    // Selects microcode from ROM
       .TEST_4_0(s_test_4_0[4:0]),           // Test signals 4-0
@@ -542,7 +546,8 @@ module CPU_PROC_32 (
       .WCS_n(s_wcs_n),                      // Write Control Store
       .WRTRF(s_wrtrf),                      // Write Register File Strobe
 
-      .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0)
+      .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
+      .XMIC_DBG_15_0(XMIC_DBG_15_0)
   );
 
 endmodule

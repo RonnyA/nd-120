@@ -3,7 +3,7 @@
 #  dir - see docs/tang20k-build-flows.md)
 #
 #   cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k
-#   .\gowin_build.ps1 [-Variant slow|crawl|full]
+#   .\gowin_build.ps1 [-Variant slow|crawl|full] [-Gao]
 #
 # -Variant selects the clocking (default slow, same as always):
 #   slow  = CPU 6.75 MHz / SDRAM 13.5 MHz
@@ -21,7 +21,8 @@
 
 param(
     [ValidateSet("slow", "crawl", "full")]
-    [string]$Variant = "slow"
+    [string]$Variant = "slow",
+    [switch]$Gao
 )
 
 $ErrorActionPreference = "Stop"
@@ -56,6 +57,19 @@ switch ($Variant) {
 }
 Set-Content -Path $variantFile -Value $variantContent -Encoding Ascii
 Write-Host "Variant: $Variant (build\tang20k_variant.v)"
+
+# GAO (on-chip logic analyzer) - opt-in, stateless like the variant file:
+# -Gao writes build\gao_enable.flag, which makes gowin_build.tcl add
+# src\nd120_tang20k_gao.rao (RTL-mode AO core, CGA_INTR grant chain).
+# Without -Gao the flag is REMOVED, so a plain build is always GAO-free.
+# Capture workflow: see GAO-HOWTO.md in this directory.
+$gaoFlag = Join-Path $buildDir "gao_enable.flag"
+if ($Gao) {
+    Set-Content -Path $gaoFlag -Value "enabled" -Encoding Ascii
+    Write-Host "GAO: ENABLED (src\nd120_tang20k_gao.rao will be inserted)"
+} else {
+    Remove-Item $gaoFlag -ErrorAction SilentlyContinue
+}
 
 & $gwsh (Join-Path $here "gowin_build.tcl")
 if ($LASTEXITCODE -ne 0) {

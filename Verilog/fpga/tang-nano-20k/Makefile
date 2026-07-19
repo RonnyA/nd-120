@@ -146,6 +146,12 @@ flash-gowin:
 	@test -f $(FS_GOWIN) || { echo "No Gowin bitstream at $(FS_GOWIN) - run 'make gowin' first"; exit 1; }
 	openFPGALoader -b $(BOARD) -f $(FS_GOWIN)
 
+# ---- USB / serial -----------------------------------------------------------
+# Attach the Tang's FTDI to WSL, fix raw-USB + /dev/ttyUSB* permissions.
+# Run after every board power cycle / replug (usbipd detaches on power loss).
+usb:
+	./usb-attach.sh
+
 # ---- sims -------------------------------------------------------------------
 sim:
 	$(MAKE) -C sdram-bridge/sim test

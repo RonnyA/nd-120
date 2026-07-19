@@ -120,3 +120,16 @@ test-cycen: CYC_36_enables_tb
 
 CYC_36_enables_tb: $(CYCEN_SRCS)
 	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o $@ $(CYCEN_SRCS)
+
+# CPU_CS_ACAL_17 LUA transparent-latch (Tang 06000 boot-hang root cause, 19-JUL).
+# Compiled in FPGA mode (NO VERILATOR_SIM) so it exercises the FIXED `else`
+# branch: LUA must track CSA with ZERO latency when MACLK=1. Fails on the old
+# 1-cycle-lag FF, passes on the transparent-latch fix.
+ACAL_SRCS = CPU_CS_ACAL_17_tb.v $(CIRCUIT)/CPU_CS_ACAL_17.v
+
+test-acal: CPU_CS_ACAL_17_tb
+	./CPU_CS_ACAL_17_tb | tee acal_result.tmp
+	@grep -q "TB_RESULT: PASS" acal_result.tmp && rm -f acal_result.tmp
+
+CPU_CS_ACAL_17_tb: $(ACAL_SRCS)
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o $@ $(ACAL_SRCS)

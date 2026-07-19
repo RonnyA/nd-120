@@ -130,10 +130,26 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
   `make test-instr`.
   - `48-BITS-FLOATING` is **N/A**: our PROM microcode implements the 32-bit
     float option (`Verilog/docs/48bit-float-not-configured.md`).
-  - `RUN` is the one area that does **not** pass — it livelocks at level 14
-    because the interrupt controller's Am2914 status fence was never wired
-    correctly (`Verilog/docs/RUN-level14-livelock-analysis.md`). Fix is
-    in-tree behind `ND120_INTR_STATUS_FENCE`, currently **default OFF**.
+  - `RUN` is the one area that does **not** fully pass yet, but the level-14
+    **livelock is FIXED** (14-JUL). The interrupt controller's Am2914 status
+    fence (READ VECTOR auto-loads vector+1 into the status register) was never
+    wired correctly; it is now the **RTL default** (escape hatch:
+    `ND120_INTR_STATUS_FENCE_OFF`). Validated fence-ON in FF mode: self-test 0
+    STERR, unit suite 48/48, all 13 instruction-verify areas, and the sim/
+    latch-vs-FF golden traces byte-identical. Ground-truth confirmed against
+    the C# DELILAH-L PIC trace
+    (`/mnt/e/Dev/Repos/Ronny/ND110Compile/traces/PIC-TRACE-RUN-ND120.md`):
+    vector+1 loads on the winning chip only, per-group DCDF (HIF/LOF) qualifies
+    it. The follow-on `IIC: 11 - Memory Out of Range` misreport was a THIRD
+    transcription bug — `CGA_INTR_CNTLR.v` swapped FIDBO bits 1<->2 on the
+    status-fence LDSTAT path, decoding an IOX error as MOR — fixed straight
+    through (commit `3acef36`); RUN now reaches its END OF TEST. MOR itself is
+    **wired** (same commit): `CGA_INTR.v:117` connects `MORN` by default (the
+    old tie-off survives only behind `ND120_MOR_TIED_OFF`, defined by no
+    build); source chain is bus-timeout (`DECODE_DGA_POW.v`) split MEM/IO in
+    `BIF_BCTL_BDRV_7.v` -> level 12. See
+    `Verilog/docs/HANDOFF-mor-level12-wiring.md` and
+    `Verilog/docs/RUN-level14-livelock-analysis.md`.
 - Unit suite: 48/48 green (`make test`), except a pre-existing `test-memchain`
   failure belonging to the memory/device workstream (see `Verilog/TODO.md`).
 - CPU bugs found and fixed by the campaign (both were single-input

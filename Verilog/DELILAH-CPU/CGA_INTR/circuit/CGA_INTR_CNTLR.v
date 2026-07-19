@@ -26,7 +26,8 @@ module CGA_INTR_CNTLR (
     output        PD,
     output [15:0] PICMASK_15_0,
     output [ 2:0] PICS_2_0,
-    output [ 2:0] PICV_2_0
+    output [ 2:0] PICV_2_0,
+    output [15:0] XMIREQ_15_0_N   //! DEBUG: masked interrupt-request vector (active low) that drives the grant
 );
 
   /*******************************************************************************
@@ -100,6 +101,7 @@ module CGA_INTR_CNTLR (
   assign LOGSN               = s_logs_n_out;
   assign PD                  = s_pd_out;
   assign PICMASK_15_0        = s_picmask_15_0_out[15:0];
+  assign XMIREQ_15_0_N       = s_mireq_15_0[15:0];
   assign PICS_2_0            = s_pics_2_0_out[2:0];
   assign PICV_2_0            = s_picv_2_0_out[2:0];
 

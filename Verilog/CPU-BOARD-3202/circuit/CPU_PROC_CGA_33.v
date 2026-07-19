@@ -68,6 +68,7 @@ module CPU_PROC_CGA_33 (
     output        LSHADOW,     //! Shadow Register Load
     output [ 1:0] PCR_1_0,     //! Processor Control Register
     output [ 3:0] PIL_3_0,     //! Processor Interrupt Level
+    output [15:0] XIREQ_15_0_N, //! DEBUG: raw interrupt-request vector (active low)
     output        PONI,        //! Memory Protection ON, PONI=1
     output [ 1:0] RF_1_0,      //! Register File
     output [ 4:0] TEST_4_0,    //! Test output
@@ -76,7 +77,8 @@ module CPU_PROC_CGA_33 (
     output        WRTRF,       //! Write Register File
 
     // Debug
-    output [15:0] DEBUG_FIDBO_15_0  //! FIDBO internal data bus
+    output [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
+    output [15:0] XMIC_DBG_15_0     //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
 );
 
 
@@ -288,6 +290,7 @@ module CPU_PROC_CGA_33 (
       .XMCA_9_0(CSCA_9_0),
       .XPCR_1_0(PCR_1_0),
       .XPIL_3_0(PIL_3_0),
+      .XIREQ_15_0_N(XIREQ_15_0_N),
       .XPONI(PONI),
       .XRF_1_0(RF_1_0),
       .XTEST_4_0(TEST_4_0),
@@ -295,7 +298,8 @@ module CPU_PROC_CGA_33 (
       .XWCSN(WCS_n),
       .XWRTRF(WRTRF),
 
-      .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0)
+      .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
+      .XMIC_DBG_15_0(XMIC_DBG_15_0)
   );
 
 endmodule

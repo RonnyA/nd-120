@@ -163,6 +163,21 @@ the WCS (~512 Kbit), unlike the Basys3. Plan:
 `SKIP_WCS_LOAD` is already implemented and verified in Verilator (preloaded WCS
 boots byte-identical to the normal load).
 
+**BSRAM is the binding resource on this board** - the 10-JUL-2026 PnR measured
+**41 of 46 blocks (90%)**, of which **32 are the WCS** (logic 30%, registers 12%,
+DSP 0%). Full analysis: [`BSRAM-BUDGET.md`](BSRAM-BUDGET.md). Two things live
+there, both analysis-only / not implemented:
+
+- **Reclaim 8 blocks (90% -> ~72%).** The UUA half of the WCS only holds real
+  microcode in words 0..1355 - the top two thirds is a computable address ramp -
+  so repacking that bank as one 2048x64 array frees 8 blocks. Note the naive fix
+  (just narrowing the chips to 2048 deep) saves *nothing*; the doc explains why.
+- **Floppy / SMD need a sync-read refactor before they fit at all.** Their 2 KB
+  sector buffers (`s_buffer[0:1023]`) are 1 BSRAM block each and the budget is
+  fine, but as written they use three *asynchronous* read ports - BSRAM is
+  sync-read only, so they will not infer and cannot fit as registers either.
+  Blocker, not an optimisation. Same fix serves Basys3.
+
 ## Planned build defines
 
 Introduce a board target (`TARGET_TANG20K`) that derives:

@@ -227,6 +227,43 @@ int main(int argc, char **argv)
 			prev_csa = csa;
 		}
 
+		// --- Microsequencer address-advance GOLDEN LOG (mic_trace.csv) ---
+		// Compare vs the Tang on-chip capture (same word: {SC6,s_mclk_n,MCLK_EN,
+		// regIW[12:0]} = XMIC_DBG). Build this sim in FF mode (USE_LATCHES=0) to
+		// match the Tang FPGA_FF_MODE path. Logs a 60-tick window each time the
+		// microcode enters the STR2 block (o006000..o006003) or lands on its jump
+		// target o000145 -- i.e. exactly how STR2 RETIRES and jumps in the WORKING
+		// design, the reference the frozen Tang 06000-hang is diffed against.
+		{
+			static FILE* micf = NULL;
+			static int   logwin = 0;
+			static int   first_str2 = 1;
+			if (!micf) {
+				micf = fopen("mic_trace.csv", "w");
+				fprintf(micf, "tick,csa_oct,regREP_oct,SC6,mclk_n,MCLK_EN\n");
+			}
+			// word: bit15=SC6 bit14=s_mclk_n bit13=MCLK_EN bit12:0=regREP_comb
+			uint16_t w    = top->XMIC_DBG_15_0;
+			uint16_t csa  = top->CSA_12_0;
+			uint16_t rep  = w & 0x1FFF;
+			uint8_t  men  = (w >> 13) & 1;
+			uint8_t  mcn  = (w >> 14) & 1;
+			uint8_t  sc6  = (w >> 15) & 1;
+			if ((csa >= 06000 && csa <= 06003) || csa == 0145) {
+				if (logwin < 60) logwin = 60;
+				if (first_str2 && csa >= 06000 && csa <= 06003) {
+					printf("[%ld] *** CSA reached STZ o%06o (regREP=o%06o SC6=%d mclk_n=%d MCLK_EN=%d) ***\r\n",
+					       cnt, csa, rep, sc6, mcn, men);
+					first_str2 = 0;
+				}
+			}
+			if (logwin > 0) {
+				fprintf(micf, "%ld,%06o,%06o,%d,%d,%d\n",
+				        cnt, csa, rep, sc6, mcn, men);
+				logwin--;
+			}
+		}
+
 		top->eval();
 		top->sysclk = !top->sysclk;
 

@@ -149,6 +149,7 @@ module ND120_CORE #(
     output wire [6:0]  LED,        //! ND3202D LED bundle (see ND3202D.v port comment)
     output wire        RUN_n,      //! low while the CPU is running
     output wire [12:0] CSA_12_0,   //! Microcode address
+    output wire [ 3:0] PIL,        //! Processor interrupt level (for debug capture)
     output wire [13:0] LA_23_10,   //! MAC upper address (XLA 23:10)
     output wire [9:0]  CA_9_0,     //! MAC lower address (XCA 9:0)
     output wire [4:0]  DEBUG_CC_TERM,    //! {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
@@ -160,7 +161,9 @@ module ND120_CORE #(
     output wire        DEBUG_REFRQ_n,    //! Refresh Request
     output wire        DEBUG_INTRQ_n,    //! Interrupt Request
     output wire        DEBUG_POWFAIL_n,  //! Power Fail
-    output wire [15:0] DEBUG_FIDBO_15_0  //! FIDBO internal data bus
+    output wire [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
+    output wire [15:0] DEBUG_IREQ_15_0_N, //! DEBUG: raw interrupt-request vector (active low)
+    output wire [15:0] XMIC_DBG_15_0     //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
 
 `ifdef MAIN_RAM_SDRAM
     /***************************************************
@@ -703,7 +706,7 @@ module ND120_CORE #(
       .SEL5MS_n(1'b1), // SEL 5ms, signal B-B14 (Pulled high with 1kohm resistor R4)
 
       // Signals from CPU to B-PLUG
-      .PIL(),         // XPIL3=B-C8, PIL2=B-B12. PIL1=B-B10, PIL0=B-B9
+      .PIL(PIL),      // XPIL3=B-C8, PIL2=B-B12. PIL1=B-B10, PIL0=B-B9
       .LUA_12_0(),    // XLUA 12:0
       .IDB_15_0(),    // XIDB 15:0
       .CSCOMM_4_0(),  //
@@ -750,7 +753,9 @@ module ND120_CORE #(
       .DEBUG_REFRQ_n(DEBUG_REFRQ_n),
       .DEBUG_INTRQ_n(DEBUG_INTRQ_n),
       .DEBUG_POWFAIL_n(DEBUG_POWFAIL_n),
-      .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0)
+      .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
+      .DEBUG_IREQ_15_0_N(DEBUG_IREQ_15_0_N),
+      .XMIC_DBG_15_0(XMIC_DBG_15_0)
 
 `ifdef MAIN_RAM_SDRAM
       // SDRAM main memory (threaded down to MEM_43 -> MEM_RAM_49_SDRAM)

@@ -43,6 +43,7 @@ REGISTRY=(
   "CPU-BOARD-3202/circuit/sim :: test-bdlbd    :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-memdata  :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-cycen    :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-acal     :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/CPU_CS_TCV_20/sim :: test-tcv :: Testbench Complete"
   # --- gate arrays --------------------------------------------------------
   "DECODE-GateArray/DGA/sim :: test-f595        :: Testbench Complete"

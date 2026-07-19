@@ -215,7 +215,7 @@ static inline unsigned short dmat_pattern(unsigned a)
 	return (unsigned short)(052525u ^ a ^ (a << 7));
 }
 
-static void dma_test_tick(VND120_TOP *top, int cnt,
+static void dma_test_tick(VND120_TOP *top, long cnt,
                           unsigned char *ram_lo, unsigned char *ram_hi)
 {
 	if (g_dmat_state == 0 || g_dmat_state == 4)
@@ -358,7 +358,7 @@ static int g_dmax_reqhold = 0;
 static long g_dmax_guard = 0;
 static long g_dmax_start_cnt = 0; // cnt when the deposits were seen drained
 
-static void dma_xcheck_tick(VND120_TOP *top, int cnt,
+static void dma_xcheck_tick(VND120_TOP *top, long cnt,
                             unsigned char *ram_lo, unsigned char *ram_hi)
 {
 	if (g_dmax_state == 0 || g_dmax_state == 3)
@@ -587,7 +587,7 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	int cnt = 0;
+	long cnt = 0;
 #ifdef TRACE_CSA
 	g_csa_fp = fopen("csa_trace.csv", "w");
 #endif
@@ -684,6 +684,127 @@ int main(int argc, char **argv)
 					fflush(stdout);
 					sterr_reported = 1;
 				}
+			}
+#endif
+
+#ifdef ND120_PROBE_VEC17
+			// Tang masked-level-10 root-cause probe (non-invasive; no RTL change).
+			// The measured silicon failure is a trap dispatch to the MACRO-INTERRUPT
+			// vector (microcode CS 000017 = "17/ % MACRO INTERRUPT", PIC,RVECT ->
+			// MACRI) which reads the PIC vector; an EMPTY claim reads 0, and the
+			// ITSRV table maps entry 0 -> level 10. This probe does NOT assume the
+			// claim is empty - it MEASURES the full claim picture at every entry to
+			// CS 000017, and dumps the preceding PAN/IRQ/INTRQN history so any
+			// INTRQN lag (INTRQN=1 while PAN=0 and IRQ=0) is visible directly.
+			//   IRQ    = live maskable claim (HIRQ|LIRQ, mask+enable gated)
+			//   IREQ_n = per-level latched requests, active low (all 1 = none)
+			//   MIREQ  = masked requests
+			//   PICV   = vector the RVECT read would return
+			//   PAN_n  = panel/RTC request into INTRQN (active low)
+			//   INTRQN = registered ~(PAN|IRQ), active low (0 = a dispatch is armed)
+			{
+				auto rp = top->rootp;
+				// --- rolling history ring (every half-sysclk) ---
+				static const int RN = 64;
+				static int   h_cnt[RN];
+				static unsigned h_csa[RN];
+				static int   h_pann[RN], h_irq[RN], h_intrqn[RN], h_pil[RN];
+				static int   h_head = 0, h_init = 0;
+				if (!h_init) { for (int k=0;k<RN;k++){h_cnt[k]=0;h_csa[k]=0;h_pann[k]=1;h_irq[k]=0;h_intrqn[k]=1;h_pil[k]=0;} h_init=1; }
+				int pann   = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_pan_n;
+				int irq    = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_irq;
+				int intrqn = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_intrq_n;
+				int pil    = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__sx_pil_3_0_out;
+				unsigned csa = (unsigned)top->CSA_12_0;
+				h_head = (h_head + 1) % RN;
+				h_cnt[h_head]=cnt; h_csa[h_head]=csa; h_pann[h_head]=pann;
+				h_irq[h_head]=irq; h_intrqn[h_head]=intrqn; h_pil[h_head]=pil;
+
+				// --- trigger 2 (the ACTUAL silicon signature): PIL switches from 0
+				// to a nonzero level. On silicon PIL 0->10 with nothing enabled is
+				// the wedge. Dump the same claim picture + history so we can see the
+				// cause state at the instant of a level switch, whatever path it took.
+				{
+					static int pil_last = -1, pil_prints = 0;
+					if (pil_last == 0 && pil != 0 && pil_prints < 40)
+					{
+						unsigned ireq_n = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_ireq_15_0_n;
+						unsigned mireq  = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_mireq_15_0;
+						unsigned picv   = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_picv_2_0_out;
+						int empty = (irq == 0) && ((ireq_n & 0xFFFFu) == 0xFFFFu);
+						printf("[PILSW]%s cnt=%d 0->%d csa=%05o IRQ=%d ireq_n=%06o mireq=%06o picv=%o pann=%d intrqn=%d\n",
+							empty ? " EMPTY-CLAIM" : "", cnt, pil, csa, irq, ireq_n, mireq, picv, pann, intrqn);
+						printf("        history (cnt csa pan_n irq intrqn pil):\n");
+						for (int k=1;k<=RN;k++){ int idx=(h_head+k)%RN;
+							printf("        %d %05o p%d i%d n%d L%d\n", h_cnt[idx], h_csa[idx], h_pann[idx], h_irq[idx], h_intrqn[idx], h_pil[idx]); }
+						fflush(stdout); pil_prints++;
+						if (pil_prints == 40) { printf("[PILSW] capture done\n"); fflush(stdout); }
+					}
+					pil_last = pil;
+				}
+
+				// --- trigger 1: entry into the macro-interrupt vector CS 000017 ---
+				static unsigned v_last_csa = 0xFFFFu;
+				static int v_prints = 0;
+				if (csa == 000017u && v_last_csa != 000017u && v_prints < 80)
+				{
+					unsigned ireq_n = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_ireq_15_0_n;
+					unsigned mireq  = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_mireq_15_0;
+					unsigned picv   = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_picv_2_0_out;
+					unsigned pics   = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_pics_2_0_out;
+					unsigned pmask  = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__s_picmask_15_0_out;
+					int empty = (irq == 0) && ((ireq_n & 0xFFFFu) == 0xFFFFu);
+					printf("[vec17]%s cnt=%d pil=%d IRQ=%d ireq_n=%06o mireq=%06o picv=%o pics=%o pann=%d intrqn=%d pmask=%06o\n",
+						empty ? " EMPTY-CLAIM" : "", cnt, pil, irq, ireq_n, mireq, picv, pics, pann, intrqn, pmask);
+					// dump the ring oldest->newest so the INTRQN/PAN/IRQ lag is visible
+					printf("        history (cnt csa pan_n irq intrqn pil):\n");
+					for (int k=1;k<=RN;k++){
+						int idx=(h_head+k)%RN;
+						printf("        %d %05o p%d i%d n%d L%d\n",
+							h_cnt[idx], h_csa[idx], h_pann[idx], h_irq[idx], h_intrqn[idx], h_pil[idx]);
+					}
+					fflush(stdout);
+					v_prints++;
+					if (v_prints == 80) { printf("[vec17] capture done\n"); fflush(stdout); }
+				}
+				v_last_csa = csa;
+			}
+#endif
+
+#ifdef ND120_PROBE_STSCHG
+			// BFILL STS-corruption probe (docs/bfill-sts-static-analysis.md):
+			// change-triggered log of the hardware STS register (CGA_ALU_STS
+			// output s_sts_15_0) with the executing CSA, the CSTS load code,
+			// LDPILN and FIDBO. Armed at the first visit to BFILL (CSA 01333)
+			// so the earlier boot/self-test churn stays silent; capped prints.
+			// The first log line where an 0x2A byte enters STS names the
+			// corrupting microword and load path. --public-flat-rw build.
+			{
+				static int armed = 0, prints = 0;
+				static long stschg_min = -1;
+				static unsigned sts_last = 0xFFFFFFFFu;
+				auto rp = top->rootp;
+				unsigned csa = (unsigned)top->CSA_12_0;
+				// CSA 01333 is also visited during boot/self-test, so gate
+				// arming on ND120_STSCHG_MIN (cycle count; find the target
+				// area's entry cnt from a first coarse run).
+				if (stschg_min < 0) {
+					const char *e = getenv("ND120_STSCHG_MIN");
+					stschg_min = e ? atol(e) : 0;
+				}
+				if (!armed && cnt >= stschg_min && csa == 01333u)
+					{ armed = 1; printf("[stschg] armed at cnt=%d (BFILL executing)\n", cnt); }
+				unsigned sts = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_sts_15_0;
+				if (armed && sts != sts_last && prints < 20000)
+				{
+					printf("[stschg] cnt=%d csa=%05o sts=%06o<-%06o csts=%d ldpiln=%d fidbo=%06o\n",
+						cnt, csa, sts, sts_last,
+						(int)(rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_csts_1_0 & 3),
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_ldpil_n,
+						(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_fidbo_15_0_out);
+					if (++prints == 20000) { printf("[stschg] print cap reached\n"); fflush(stdout); }
+				}
+				sts_last = sts;
 			}
 #endif
 

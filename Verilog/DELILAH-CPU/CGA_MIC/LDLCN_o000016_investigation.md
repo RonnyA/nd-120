@@ -102,6 +102,40 @@ wide dump. Only o000016 / o000050 matters here.
    worked in sim but broke on FPGA (CSA=00317 instead of 00000 at LCS_n
    rising). Variant F has not yet been flashed.
 
+## Emulator Ground Truth (2026-07-13) — open items 1 and 2 CONFIRMED
+
+Source: the ND110Compile emulator (`E:\Dev\Repos\Ronny\ND110Compile`), which boots
+the SAME DELILAH-L binary through master clear + self-test to a working OPCOM and
+passes INSTRUCTION-B end to end in ND-110 mode. Not guessed — asserted by a
+committed unit test run against both microcode generations:
+
+- Test: `PanelInterruptDispatch_TakesPanvcEntry1_MS20` in
+  `E:\Dev\Repos\Ronny\ND110Compile\TestND110\Boot\TestBootSequence.cs`
+  (commit 4376d46). PASSES for ND-110/RASK and ND-120/DELILAH-L.
+
+**Item 1 — LC=o01 IS the semantically correct value.** The compiled listing
+(`E:\Dev\Repos\Ronny\ND110Compile\ND110Compile\uCode\ND-120-DELILAH-L.LISTING.TXT`
+lines 90-96 and 10254-10278) shows:
+
+- o000016 = `% PANEL INTERRUPT` : `ALUD,NONE IDBS,PANEL COMM,LDLC T,JMP T,HOLD PANEL;`
+- PANVC jump table at o003760, indexed by LC:
+  `0:STOP  1:MS20  2:PRQ  3:SING2  4:LOAD  5:CONT  6:RSTRT  7:MACL`
+
+So the 20ms panel/RTC interrupt must load LC=o01 to dispatch o003761 → MS20.
+The emulator boot does exactly that: at the PANVC dispatch the LC low nibble is 1,
+for both RASK and DELILAH-L. The observed `CD=o000001` at tick 8965 is correct.
+
+**Item 2 — the PANVC → MS20 path completes.** Emulator-verified downstream path
+(also visible in the golden CS trace
+`E:\Dev\Repos\Ronny\ND110Compile\traces\TRACE-OPCOM-0BANG-CSPATH.md`, RASK addresses):
+`PANEL(o000050) → o000051 → o000052 (JMPAOPR dispatch) → o003761 (PANVC+1) →
+MS20 → MOPC MRET1 → console poll`. The MS20 handler address is o002261 (RASK) /
+o002333 (DELILAH-L). MS20 fires every 20ms period and OPCOM services the console
+off it (proven by typed-command tests in the same suite).
+
+Step A and Step B below are therefore answered; what remains for this
+investigation is only Step C (FPGA validation of Variant F).
+
 ## Next Steps
 
 ### Step A — confirm expected LC value (task #3)

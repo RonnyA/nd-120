@@ -531,10 +531,17 @@ module MEM_43 (
       .DD_17_0_OUT(s_ram_dd_17_0_out[17:0])
   );
 `elsif VERILATOR_SIM
-  // Simulation backend: the zero-delay DRAM model on the shared interface
-  // (MEM_RAM_49_SIM.v, 3 banks x 1M = 6 MB). The C++ harnesses preload
-  // programs via its b0_* arrays. Build with FORCE_SMALL_RAM to reproduce
-  // FPGA-size RAM instead: define MAIN_RAM_BLOCKRAM in the sim build.
+  // Simulation backend: the zero-delay DRAM model on the shared sheet-49
+  // interface (MEM_RAM_49_SIM.v, 3 banks x 1M x 18 bits = 6 MB - onboard
+  // decode reaches a 4 MB window, fully backed). This is the RAM that the
+  // sim builds actually compile; the SIP1M9 `else` branch below is NOT
+  // used by the sim. The C++ harnesses preload/inspect programs directly
+  // through its b0_* arrays (e.g. runSim/Run120.cpp reads ...RAM__DOT__b0_lo).
+  //
+  // To model a small FPGA-size RAM in a Verilator build instead, define
+  // MAIN_RAM_BLOCKRAM (selects MEM_RAM_49_BLOCKRAM above). NOTE: FORCE_SMALL_RAM
+  // is unrelated - it is a RAM_SIZE guard inside the legacy MEM_RAM_49.v
+  // (SIP1M9) and has NO effect on this MEM_RAM_49_SIM module.
   MEM_RAM_49_SIM RAM (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
@@ -550,8 +557,26 @@ module MEM_43 (
       .DD_17_0_OUT(s_ram_dd_17_0_out[17:0])
   );
 `else
-  // Original six-chip SIP1M9 sheet (historical reference / FPGA default
-  // until a board opts into a MAIN_RAM_* backend)
+  // ===========================================================================
+  // HISTORICAL FALLBACK - NOT USED BY ANY CURRENT BUILD. DO NOT ASSUME THIS IS
+  // THE SIMULATION OR FPGA RAM.
+  //
+  //   * Verilator sim  -> MEM_RAM_49_SIM   (the `elsif VERILATOR_SIM` branch)
+  //   * Tang Nano 20K  -> MEM_RAM_49_SDRAM (the `ifdef MAIN_RAM_SDRAM` branch)
+  //   * BRAM boards    -> MEM_RAM_49_BLOCKRAM (the `elsif MAIN_RAM_BLOCKRAM`)
+  //
+  // This branch (the original six-chip SIP1M9 sheet, MEM_RAM_49.v, Shared/
+  // support/SIP1M9.v) is reached ONLY when NONE of the above defines is set -
+  // which today is no build at all. It is kept purely as a schematic-faithful
+  // reference of the real sheet-49 DRAM array.
+  //
+  // It may be DELETED in the future. When it is, every FPGA board must select
+  // one of the MAIN_RAM_* backends above - either reuse an existing one
+  // (MEM_RAM_49_BLOCKRAM / _SDRAM / _SIM) or add its own MEM_RAM_49_<board>.v
+  // implementing the same sheet-49 interface (AA_9_0, BANK0/1/2, RAS, CAS,
+  // MWRITE50_n, DD_17_0_IN/OUT, CORR_n). A board must never silently fall
+  // through to this SIP1M9 path.
+  // ===========================================================================
   MEM_RAM_49 RAM (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),

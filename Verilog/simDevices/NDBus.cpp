@@ -112,7 +112,16 @@ void proccess_bif_signal(VND120_TOP *top)
 
 		// Try to identify which device has interrupt
 		idcode = deviceManager.IDENT(idlevel);
+		// IDENT tracing belongs to the DEBUG_INTERRUPT channel as well as the
+		// broader DEBUG_BIF one: golden/console_ff_golden.log holds these lines
+		// and the console gate turns them back on with -DDEBUG_INTERRUPT alone
+		// (DEBUG_BIF=1 would also emit the BAPR/BIOXE trace, which is NOT in
+		// the golden).
+#ifdef DEBUG_INTERRUPT
 		printf("IDENT LVL[%d]=%d\r\n", idlevel,idcode);
+#else
+		if (DEBUG_BIF) printf("IDENT LVL[%d]=%d\r\n", idlevel,idcode);
+#endif
 
 
 		if (idcode >0)
@@ -130,7 +139,7 @@ void proccess_bif_signal(VND120_TOP *top)
 		// Clear idcode
 		if (idcode >0)
 		{
-			printf("Clearing OUTIDENT code %o\r\n",idcode);
+			if (DEBUG_BIF) printf("Clearing OUTIDENT code %o\r\n",idcode);
 			idcode = 0;
 			top->BINPUT_n_IN = 1;
 			top->BDRY_n_IN = 1;
@@ -193,7 +202,7 @@ void proccess_bif_signal(VND120_TOP *top)
 		}
 		else if (idcode>0)
 		{
-			printf("Setting IDCODE %d\r\n",idcode);
+			if (DEBUG_BIF) printf("Setting IDCODE %d\r\n",idcode);
 			top->BD_23_0_n_IN = (~idcode) & 0xFFFFFF;
 			top->BDAP_n_IN = 0; // DATA Present
 			top->BDRY_n_IN = 0; //
@@ -227,7 +236,12 @@ void proccess_bif_signal(VND120_TOP *top)
 #ifdef ND120_VERILOG_DEVICES
 	// Serve the Verilog devices' backend ports (the C models are NOT
 	// registered in this build - see addDevices).
+#ifndef ND120_SD_STORAGE
+	// SD_STORAGE=1: the Verilog SD-FAT stack inside ND120_TOP serves the tape
+	// bytes from a simulated SD card, so this C file server must stand down -
+	// otherwise both would answer TAPE_BYTE_REQ.
 	process_verilog_tape(top);
+#endif
 	process_verilog_floppy(top);
 	process_verilog_smd(top);
 #endif
@@ -235,10 +249,22 @@ void proccess_bif_signal(VND120_TOP *top)
 	// Tick deviceManager
 	uint16_t interruptBits = deviceManager.Tick();
 
-	top->BINT10_n = !((interruptBits & 1<<10) == 1);
-	top->BINT11_n = !((interruptBits & 1<<11) == 1);
-	top->BINT12_n = !((interruptBits & 1<<12) == 1);
-	top->BINT13_n = !((interruptBits & 1<<13) == 1);
+	// BINTxx_n is active-low: assert (0) when this device level has its bit
+	// set. The old code compared the masked value == 1, which is never true
+	// for level >= 1 (see NDBUS_ASSERT_C_INTERRUPTS in NDBus.h) - so these
+	// lines were stuck deasserted and C devices were poll-only.
+#if NDBUS_ASSERT_C_INTERRUPTS
+	top->BINT10_n = (interruptBits & (1<<10)) ? 0 : 1;
+	top->BINT11_n = (interruptBits & (1<<11)) ? 0 : 1;
+	top->BINT12_n = (interruptBits & (1<<12)) ? 0 : 1;
+	top->BINT13_n = (interruptBits & (1<<13)) ? 0 : 1;
+#else
+	// Legacy always-deasserted behaviour (poll-only C devices)
+	top->BINT10_n = 1;
+	top->BINT11_n = 1;
+	top->BINT12_n = 1;
+	top->BINT13_n = 1;
+#endif
 
 	// Update signals
 	prev_bapr_n = top->BAPR_n_OUT;

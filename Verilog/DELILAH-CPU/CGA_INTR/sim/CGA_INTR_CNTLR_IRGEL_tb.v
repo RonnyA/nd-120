@@ -90,9 +90,9 @@ module CGA_INTR_CNTLR_IRGEL_tb;
 
   // ---- Independent comb functions (take state bits explicitly) ----
   function automatic c_hipassall(input a_h1); begin c_hipassall = HIVGES & HIDET & a_h1; end endfunction
-  function automatic c_hve(input a_h1);       begin c_hve = c_hipassall(a_h1) & ~S; end endfunction
+  function automatic c_hve(input a_h1, input a_h2);       begin c_hve = c_hipassall(a_h1) & ~S & a_h2; end endfunction
   function automatic c_higas_n(input a_h1);
-    begin c_higas_n = ~(c_hve(a_h1) & HIVEC_2_0[2] & HIVEC_2_0[1] & HIVEC_2_0[0]); end
+    begin c_higas_n = ~(c_hve(a_h1, s_h2) & HIVEC_2_0[2] & HIVEC_2_0[1] & HIVEC_2_0[0]); end
   endfunction
   function automatic c_higas(input a_h1);     begin c_higas = ~c_higas_n(a_h1); end endfunction
   function automatic c_hidnh(input dummy);    begin c_hidnh = ~(HIDET & HIVGES); end endfunction
@@ -102,16 +102,16 @@ module CGA_INTR_CNTLR_IRGEL_tb;
   function automatic c_hirq(input a_h1, input a_h2); begin c_hirq = c_hipassall(a_h1) & a_h2; end endfunction
 
   function automatic c_lopassall(input a_h1, input a_hg); begin c_lopassall = c_rdn(a_h1,a_hg) & LODET & LOVGES; end endfunction
-  function automatic c_lve(input a_h1, input a_hg);       begin c_lve = c_lopassall(a_h1,a_hg) & ~S; end endfunction
+  function automatic c_lve(input a_h1, input a_hg, input a_lq);       begin c_lve = c_lopassall(a_h1,a_hg) & ~S & a_lq; end endfunction
   function automatic c_logas_n(input a_h1, input a_hg);
-    begin c_logas_n = ~(c_lve(a_h1,a_hg) & LOVEC_2_0[2] & LOVEC_2_0[1] & LOVEC_2_0[0]); end
+    begin c_logas_n = ~(c_lve(a_h1,a_hg, s_lq) & LOVEC_2_0[2] & LOVEC_2_0[1] & LOVEC_2_0[0]); end
   endfunction
   function automatic c_logas(input a_h1, input a_hg);     begin c_logas = ~c_logas_n(a_h1,a_hg); end endfunction
   function automatic c_lienabn(input a_h1, input a_hg);   begin c_lienabn = ~c_rdn(a_h1,a_hg); end endfunction
   function automatic c_lirq(input a_h1, input a_hg, input a_lq); begin c_lirq = c_lopassall(a_h1,a_hg) & a_lq; end endfunction
 
   function automatic [2:0] c_picv(input a_h1, input a_hg);
-    begin c_picv = ({3{c_hve(a_h1)}} & HIVEC_2_0) | ({3{c_lve(a_h1,a_hg)}} & LOVEC_2_0); end
+    begin c_picv = ({3{c_hve(a_h1, s_h2)}} & HIVEC_2_0) | ({3{c_lve(a_h1,a_hg, s_lq)}} & LOVEC_2_0); end
   endfunction
   function automatic c_irqn(input a_h1, input a_h2, input a_hg, input a_lq);
     begin c_irqn = ~(c_hirq(a_h1,a_h2) | c_lirq(a_h1,a_hg,a_lq)); end

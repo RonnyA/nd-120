@@ -230,7 +230,15 @@ module DECODE_DGA_POW (
   assign s_idb2 = ~(s_lod_n & s_conn_n & s_rst_n & s_mcl_n);
 
   //A592 NAND_GATE_8_INPUTS
+`ifdef TANG_NO_RTC_PAN
+  // DIAGNOSTIC (masked-level-10 root cause): drop the RTC's contribution to the
+  // PAN (panel/timing) request so the free-running RTC raises NO interrupt. If
+  // the phantom macro-interrupt / PIL->10 wedge vanishes with this, the held RTC
+  // PAN was the source (conkick already exonerated).
+  assign a592_nand_out = ~(s_mcl_n & s_rst_n & s_conn_n & s_lod_n & s_zz1 & s_prq_n & 1'b1 & s_stp_n);
+`else
   assign a592_nand_out = ~(s_mcl_n & s_rst_n & s_conn_n & s_lod_n & s_zz1 & s_prq_n & s_rtc_n & s_stp_n);
+`endif
 
   // A603 NAND_GATE_4_INPUTS
   assign s_idb1 = ~(a597_nand_out & s_rst_n & s_mcl_n & a609_nand_out);

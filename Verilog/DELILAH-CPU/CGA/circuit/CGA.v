@@ -85,6 +85,7 @@ module CGA (
     output [ 9:0] XMCA_9_0,
     output [ 1:0] XPCR_1_0,
     output [ 3:0] XPIL_3_0,
+    output [15:0] XIREQ_15_0_N, //! DEBUG: raw interrupt-request vector (active low)
     output        XPONI,     //! Memory Protection ON, PONI=1
     output [ 1:0] XRF_1_0,
     output [ 4:0] XTEST_4_0,
@@ -94,7 +95,8 @@ module CGA (
 
     // Debug
     output [15:0] DEBUG_FIDBO_15_0,
-    output [15:0] XFIDB_15_0_OUT
+    output [15:0] XFIDB_15_0_OUT,
+    output [15:0] XMIC_DBG_15_0  //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
 );
 
 
@@ -876,7 +878,8 @@ module CGA (
       .PD(s_pd),                   // Power Down signal
       .PICMASK_15_0(s_picmask_15_0[15:0]), // PIC Mask, 16-bit
       .PICS_2_0(s_pics_2_0[2:0]), // PIC Select, 3-bit
-      .PICV_2_0(s_picv_2_0[2:0])  // PIC Vector, 3-bit
+      .PICV_2_0(s_picv_2_0[2:0]), // PIC Vector, 3-bit
+      .XIREQ_15_0_N(XIREQ_15_0_N) // DEBUG: raw interrupt-request vector
   );
 
   // The CGA_MAC module is a part of the DELILAH CPU's gate array,
@@ -990,7 +993,8 @@ module CGA (
       .SC_6_3(s_sc_6_3[3:0]),                   // Special Condition Bits [6:3]
       .TN(s_t_n),                               // Test Negative
       .UPN(s_up_n),                             // Update Negative, active low
-      .WCSN(sx_wcs_n_out)                       // Write Control Store, active low
+      .WCSN(sx_wcs_n_out),                      // Write Control Store, active low
+      .XMIC_DBG(XMIC_DBG_15_0)                  // DEBUG: microsequencer address-advance probe
   );
 
   CGA_TESTMUX TESTMUX (

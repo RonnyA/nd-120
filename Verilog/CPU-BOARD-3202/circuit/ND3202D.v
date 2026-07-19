@@ -150,7 +150,9 @@ module ND3202D (
     output       DEBUG_REFRQ_n,  // Refresh Request
     output       DEBUG_INTRQ_n,  // Interrupt Request (TP1)
     output       DEBUG_POWFAIL_n, // Power Fail
-    output [15:0] DEBUG_FIDBO_15_0 // FIDBO internal data bus
+    output [15:0] DEBUG_FIDBO_15_0, // FIDBO internal data bus
+    output [15:0] DEBUG_IREQ_15_0_N, // DEBUG: raw interrupt-request vector (active low)
+    output [15:0] XMIC_DBG_15_0     // DEBUG: microsequencer address-advance probe (Tang 06000-hang)
 
 `ifdef MAIN_RAM_SDRAM
     // SDRAM main-memory backend (Tang Nano 20K) - threaded down to MEM_43.
@@ -786,6 +788,7 @@ TODO: Sort bits on output LED to match led numbering
       .LUA_12_0    (s_lua_12_0[12:0]),
       .PCR_1_0     (s_pcr_1_0[1:0]),
       .PIL_3_0     (s_pil_3_0[3:0]),
+      .XIREQ_15_0_N(DEBUG_IREQ_15_0_N),
       .PPN_23_10   (s_ppn_23_10[13:0]),
       .TEST_4_0    (s_test_4_0[4:0]),
       .TOPCSB      (s_csbits[63:0]),
@@ -801,7 +804,8 @@ TODO: Sort bits on output LED to match led numbering
       .ECCR        (s_eccr),                    // Output ECCR signal from CPU to RAM
       .HIT         (s_hit),                     // Cache hit
       .LEV0        (s_lev0),                    // Level 0 active
-      .CSA_12_0    (CSA_12_0)                   // Microcode Address (for debugging)
+      .CSA_12_0    (CSA_12_0),                  // Microcode Address (for debugging)
+      .XMIC_DBG_15_0(XMIC_DBG_15_0)             // DEBUG: microsequencer address-advance probe
   );
 
 

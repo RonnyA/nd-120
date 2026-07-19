@@ -25,15 +25,22 @@ module CPU_CS_ACAL_17 (
    *******************************************************************************/
 
   // Original chips (74373, AM29841) are TRANSPARENT LATCHES with enable.
-  // When enable (MACLK) = 1: output follows input (transparent).
+  // When enable (MACLK) = 1: output follows input (transparent, ZERO latency).
   // When enable = 0: output holds last value (latch).
   // During execution, MACLK = 1 always (TERM_n=0), so LUA = CSA with no delay.
+  // LUA is the WCS control-store READ ADDRESS and feeds the WCS BRAM
+  // combinationally, so LUA MUST track CSA with zero latency - on a microcode
+  // JUMP the target's microword must be read the same cycle the address changes.
   //
-  // VERILATOR_SIM mode: true transparent latch via always at(*) - matches real hardware.
-  // This is necessary to avoid a 1-cycle LUA lag that corrupts CSBITS on jumps.
-  //
-  // FPGA mode: posedge FF+CE - synthesizable equivalent (1-cycle latency acceptable
-  // because FPGA build confirmed correct by ILA measurement).
+  // BOTH build modes now implement the TRANSPARENT latch:
+  //  - VERILATOR_SIM: always @(*) latch (matches real hardware).
+  //  - FPGA (else):   synthesizable transparent latch = mux + hold-FF
+  //                   (Shared/ndlib/LATCH.v pattern), ZERO latency, no inferred latch.
+  // HISTORY: the FPGA branch was previously a plain posedge FF+CE that lagged
+  // LUA by 1 cycle. That lag corrupted CSBITS on JUMPs and was the Tang Nano 20K
+  // boot hang (wedge at microcode 06000 = STZ->CONT). Root-caused + fixed 19-JUL;
+  // the old "1-cycle lag acceptable / ILA-confirmed" claim was WRONG.
+  // Regression tests: sim/CPU_CS_ACAL_17_tb.v (asserts zero-latency transparency).
 
   reg [7:0]  s_q_chip30h_7_0;  // CHIP_30H: LUA[12:10], UUA[11:10]
   reg [9:0]  s_lua_9_0;        // CHIP_31F: LUA[9:0]
@@ -130,28 +137,41 @@ module CPU_CS_ACAL_17 (
   end
 
 `else
-  // FPGA mode: posedge FF+CE (standard synthesizable pattern, no inferred latches).
-  // 1-cycle LUA lag is acceptable on FPGA because each step spans many clock cycles.
+  // FPGA mode: SYNTHESIZABLE TRANSPARENT LATCH = mux + hold-FF (the sanctioned
+  // Shared/ndlib/LATCH.v pattern), NOT a plain posedge FF.
+  //
+  // ROOT CAUSE FIX (19-JUL, Tang boot hang): the previous `posedge sysclk`
+  // FF+CE version lagged LUA (the WCS control-store READ ADDRESS) by 1 cycle.
+  // LUA is combinational into the WCS BRAM, so on a microcode JUMP (e.g. STZ at
+  // 06000 -> CONT at 0145) LUA held the stale address for a cycle and the WCS
+  // returned the WRONG microword; the sequencer then computed a garbage jump
+  // target (measured on silicon: CSBIT_11_0=0xC00 = the address, s_jmpaddr=
+  // 16000 instead of 0145) and wedged at 06000 forever. The transparent latch
+  // (LUA follows CSA with ZERO latency while MACLK=1, exactly as the original
+  // 74373/AM29841 chips and the VERILATOR_SIM path above) removes the lag.
+  // The hold-FF captures on posedge sysclk when enable is high; the output mux
+  // is transparent when enable is high, held otherwise -> no inferred latch.
 
-  // CHIP_30H equivalent: 74373 transparent latch → posedge FF+CE
-  always @(posedge sysclk) begin
-    if (s_maclk) s_q_chip30h_7_0 <= s_d_chip30h_7_0;
-  end
+  reg [7:0] r_chip30h_hold;
+  reg [9:0] r_lua_9_0_hold;
+  reg [9:0] r_uua_32g_hold;
+  reg [9:0] r_uua_31g_hold;
 
-  // CHIP_31F equivalent: AM29841 → posedge FF+CE
-  always @(posedge sysclk) begin
-    if (s_maclk) s_lua_9_0 <= s_csa_12_0[9:0];
-  end
+  // CHIP_30H: 74373 transparent latch, enable=MACLK
+  always @(posedge sysclk) if (s_maclk) r_chip30h_hold <= s_d_chip30h_7_0;
+  always @(*) s_q_chip30h_7_0 = s_maclk ? s_d_chip30h_7_0 : r_chip30h_hold;
 
-  // CHIP_32G equivalent
-  always @(posedge sysclk) begin
-    if (s_maclk && s_lua12) s_uua_32g_9_0 <= s_csa_12_0[9:0];
-  end
+  // CHIP_31F: AM29841 transparent latch, enable=MACLK
+  always @(posedge sysclk) if (s_maclk) r_lua_9_0_hold <= s_csa_12_0[9:0];
+  always @(*) s_lua_9_0 = s_maclk ? s_csa_12_0[9:0] : r_lua_9_0_hold;
 
-  // CHIP_31G equivalent
-  always @(posedge sysclk) begin
-    if (s_clk && ~s_lua12) s_uua_31g_9_0 <= s_csca_9_0[9:0];
-  end
+  // CHIP_32G: AM29841 transparent latch, enable=MACLK && lua12
+  always @(posedge sysclk) if (s_maclk && s_lua12) r_uua_32g_hold <= s_csa_12_0[9:0];
+  always @(*) s_uua_32g_9_0 = (s_maclk && s_lua12) ? s_csa_12_0[9:0] : r_uua_32g_hold;
+
+  // CHIP_31G: AM29841 transparent latch, enable=CLK && !lua12
+  always @(posedge sysclk) if (s_clk && ~s_lua12) r_uua_31g_hold <= s_csca_9_0[9:0];
+  always @(*) s_uua_31g_9_0 = (s_clk && ~s_lua12) ? s_csca_9_0[9:0] : r_uua_31g_hold;
 
 `endif
 

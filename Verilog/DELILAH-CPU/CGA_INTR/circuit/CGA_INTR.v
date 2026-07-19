@@ -40,7 +40,8 @@ module CGA_INTR (
     output        PD,              //! Power Down signal
     output [15:0] PICMASK_15_0,    //! PIC Mask, 16-bit
     output [ 2:0] PICS_2_0,        //! PIC Select, 3-bit
-    output [ 2:0] PICV_2_0         //! PIC Vector, 3-bit
+    output [ 2:0] PICV_2_0,        //! PIC Vector, 3-bit
+    output [15:0] XIREQ_15_0_N     //! DEBUG: raw interrupt-request vector (active low) for grant-source capture
 );
 
   /*******************************************************************************
@@ -48,10 +49,10 @@ module CGA_INTR (
    *******************************************************************************/
   wire [15:0] s_fidbo_15_0;
   wire [15:0] s_picmask_15_0_out;
-  wire [ 2:0] s_picv_2_0_out;
+  wire [ 2:0] s_picv_2_0_out /* synthesis syn_keep=1 */;  // GAO probe net - see fpga/tang-nano-20k/GAO-HOWTO.md
   wire [ 2:0] s_pics_2_0_out;
   wire [ 3:0] s_laa_3_0;
-  wire [15:0] s_ireq_15_0_n;
+  wire [15:0] s_ireq_15_0_n /* synthesis syn_keep=1 */;  // GAO probe net
   wire        s_bint10_n;
   wire        s_bint11_n;
   wire        s_bint12_n;
@@ -64,12 +65,12 @@ module CGA_INTR (
   wire        s_epicmask_n_out;
   wire        s_gates1_out;
   wire        s_highs_n_out;
-  wire        s_intrq_n;
+  wire        s_intrq_n /* synthesis syn_keep=1 */;  // GAO probe net
   wire        s_ioxerr_n;
   wire        s_irq_n_out;
   wire        s_irq_out;
   wire        s_logs_n_out;
-  wire        s_mclk;
+  wire        s_mclk /* synthesis syn_keep=1 */;  // GAO probe net
   wire        s_mor_n;
   wire        s_pan_n;
   wire        s_parerr_n;
@@ -95,7 +96,14 @@ module CGA_INTR (
   assign s_empid_n          = EMPIDN;
   assign s_epic             = EPIC;
   assign s_fidbo_15_0[15:0] = FIDBO_15_0;
+`ifdef TANG_NO_IOXERR
+  // DIAGNOSTIC (masked-level-10 root cause): drop the IOX/bus-timeout error
+  // request (IREQ bit 10 = level 10, NOT enable-gated). If the phantom level-10
+  // wedge vanishes, a spurious bus timeout (TOUT) on the Tang is the source.
+  assign s_ioxerr_n         = 1'b1;
+`else
   assign s_ioxerr_n         = IOXERRN;
+`endif
 
   //assign s_laa_3_0[3:0]     = LAA_3_0;
   assign s_laa_3_0[3:0]     = regLAA_3_0;
@@ -116,7 +124,15 @@ module CGA_INTR (
 `else
   assign s_mor_n            = MORN;  // Memory Out of Range (active low), from board MOR_n via CGA.XMORN
 `endif
+`ifdef TANG_NO_PAN
+  // DIAGNOSTIC: hard-disable the panel (PAN) input to INTRQN entirely. If the
+  // phantom level-10 grant vanishes, PAN (some panel/PRQ source) was the
+  // trigger; if it persists, INTRQN is set by an IRQ-path glitch (MIREQ was
+  // measured empty, so a genuine masked request is NOT the cause).
+  assign s_pan_n            = 1'b1;
+`else
   assign s_pan_n            = PANN;
+`endif
   assign s_parerr_n         = PARERRN;
   assign s_powfail_n        = POWFAILN;
   assign s_z                = Z;
@@ -133,6 +149,17 @@ module CGA_INTR (
   assign PICMASK_15_0       = s_picmask_15_0_out[15:0];
   assign PICS_2_0           = s_pics_2_0_out[2:0];
   assign PICV_2_0           = s_picv_2_0_out[2:0];
+  // DEBUG capture word (active-HIGH; the Tang top captures it directly, no invert):
+  //   bit0=PAN  bit1=IRQ  bit2=INTRQ  bit5:3=PICV[2:0]  bit9:6=MIREQ low nibble
+  // This shows, at the dispatch, whether PAN pulses (INTRQN from panel, not a
+  // request) and that PICV reads empty (0) -> the stale-INTRQN -> macro -> level 10.
+  wire [15:0] s_mireq_dbg_n;
+  assign XIREQ_15_0_N       = { 6'b0,
+                                (~s_mireq_dbg_n[3:0]),   // bit9:6 = MIREQ[3:0] active-high
+                                s_picv_2_0_out[2:0],     // bit5:3 = PICV
+                                (~s_intrq_n),            // bit2   = INTRQ (grant asserted)
+                                s_irq_out,               // bit1   = IRQ (Am2914 claim)
+                                (~s_pan_n) };            // bit0   = PAN (panel request)
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
@@ -196,7 +223,8 @@ module CGA_INTR (
       .PD(s_pd_out),
       .PICMASK_15_0(s_picmask_15_0_out[15:0]),
       .PICS_2_0(s_pics_2_0_out[2:0]),
-      .PICV_2_0(s_picv_2_0_out[2:0])
+      .PICV_2_0(s_picv_2_0_out[2:0]),
+      .XMIREQ_15_0_N(s_mireq_dbg_n)
   );
 
   CGA_INTR_IRSRC IRSRC (

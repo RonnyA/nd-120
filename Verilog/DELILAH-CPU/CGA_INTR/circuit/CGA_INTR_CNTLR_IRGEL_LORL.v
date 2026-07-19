@@ -41,7 +41,7 @@ module CGA_INTR_CNTLR_IRGEL_LORL (
   wire       s_d;
   wire       s_e;
   wire       s_int_req_enable_q_n;
-  wire       s_int_req_enable_q;
+  wire       s_int_req_enable_q /* synthesis syn_keep=1 */;  // GAO probe net - see fpga/tang-nano-20k/GAO-HOWTO.md
   wire       s_lienab_n_out;
   wire       s_lirq_out;
   wire       s_lodet;
@@ -133,11 +133,15 @@ module CGA_INTR_CNTLR_IRGEL_LORL (
       .result(s_lirq_out)
   );
 
-  AND_GATE #(
-      .BubblesMask(2'b11)
+  // Vector-claim must be gated by the interrupt-request-enable FF (Am2914
+  // ground truth: a claim after DISIN must not fire even with requests
+  // pending and the mask open - the post-MCL mask is all-enabled by design).
+  AND_GATE_3_INPUTS #(
+      .BubblesMask(3'b111)
   ) GATES_4 (
       .input1(s_lopassall_n),
       .input2(s_s),
+      .input3(s_int_req_enable_q_n),
       .result(s_lve_out)
   );
 

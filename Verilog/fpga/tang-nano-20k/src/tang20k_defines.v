@@ -74,6 +74,30 @@
 //                             validated - this is a one-line flip once renamed.
 // `define SDFAT_NO_LFN
 
+//   TANG_GRANT_CAPTURE     - DEBUG PROBE for the masked-level-10 grant.
+//                            Repurposes the on-chip 512-sample analyzer to
+//                            record {PIL[3:0], CSA[11:0]} and trigger on PIL
+//                            entering level 10 (448 pre + 64 post). On the
+//                            wedge it takes the console TX and streams 512
+//                            hex lines "hhhh" (PIL = hex digit 1, CSA = lower
+//                            3 hex digits, octal-decode the CSA). Reveals
+//                            whether PIL->10 runs the normal level-switch
+//                            microcode (PLINT 01133 / LVSWP 01146-01155) or
+//                            bypasses it. See ANALYSIS-cga-intr-masked-grant-
+//                            root-cause.md sec 3c. Instrumentation only; leave
+//                            OFF for normal builds.
+`define TANG_GRANT_CAPTURE
+
+//   TANG_NO_CONKICK - DIAGNOSTIC: disable the IO_37 console-pacing STAT3 pulse
+//   (the un-original missing-68705 stand-in) so console traffic raises NO panel
+//   request. Tests whether the conkick is the PAN source of the phantom macro-
+//   interrupt / PIL->10 wedge. If the wedge vanishes, this is the faithful fix.
+
+//   TANG_NO_RTC_PAN - DIAGNOSTIC: drop the RTC's contribution to PAN (panel
+//   request). With conkick already off, this removes the last PAN source. If
+//   the PIL->10 wedge vanishes, the held RTC PAN is the confirmed trigger.
+// `define TANG_NO_IOXERR   (turned OFF for IREQ capture - let bit10/IOXERR show)
+
 // ---- Clock variant selection (slow / crawl / full) ----------------------
 // Slow bring-up clocking (G1): first Gowin build measured CPU-domain Fmax at
 // 9.38 MHz (31 levels) with derived-clock domains down to 4.7 MHz - the known

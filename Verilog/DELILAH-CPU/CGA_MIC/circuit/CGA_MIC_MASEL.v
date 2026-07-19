@@ -28,7 +28,9 @@ module CGA_MIC_MASEL (
     input        SC6,
 
     output [12:0] IW_12_0,
-    output [12:0] W_12_0
+    output [12:0] W_12_0,
+    output [12:0] DBG_REP_12_0,  //! DEBUG: regREP_comb (the computed next-address the sequencer selected; for SEL_JUMP = s_jmpaddr). Tang 06000-hang root-cause.
+    output [12:0] DBG_JMP_12_0   //! DEBUG: s_jmpaddr_12_0 (the raw JUMP target = {csbit20,csbit_11_0[11:4],jmp}). If wrong => WCS-read/CSBITS wrong.
 );
 
 localparam [1:0] SEL_JUMP   = 2'b00;
@@ -89,6 +91,8 @@ localparam [1:0] SEL_REPEAT = 2'b11;
 
   assign IW_12_0            = regIW;
   assign W_12_0             = regW;
+  assign DBG_REP_12_0       = regREP_comb;  // computed next-address (JUMP target when SC=JUMP)
+  assign DBG_JMP_12_0       = s_jmpaddr_12_0; // raw JUMP target (from csbits) - wrong => WCS/CSBITS bad
 
   // Code to make LINTER _not_ complain about bits not read in CSBIITS bits 3:0
   (* keep = "true", DONT_TOUCH = "true" *) wire [3:0] unused_CSBITS_bits;

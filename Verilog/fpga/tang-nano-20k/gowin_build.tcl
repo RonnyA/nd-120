@@ -38,6 +38,19 @@ puts "Added $nfiles files from nd120_tang20k.gprj"
 set_option -top_module ND120_TANG20K_TOP
 set_option -verilog_std v2001
 
+# GAO (Gowin Analyzer Oscilloscope) - opt-in on-chip logic analyzer.
+# gowin_build.ps1 -Gao writes build/gao_enable.flag; when present, the
+# RTL-mode GAO config src/nd120_tang20k_gao.rao is added and the AO core
+# is inserted during synthesis+PnR (taps the CGA_INTR grant chain in the
+# clk_cpu domain). Costs ~2 BSRAM + some LUTs. See GAO-HOWTO.md in this
+# directory for the capture workflow on the Windows host.
+if {[file exists "$proj_dir/build/gao_enable.flag"]} {
+    add_file -type gao [file normalize "$proj_dir/src/nd120_tang20k_gao.rao"]
+    puts "GAO ENABLED: src/nd120_tang20k_gao.rao (AO debug core will be inserted)"
+} else {
+    puts "GAO disabled (run gowin_build.ps1 -Gao to enable)"
+}
+
 # WCS preload images (SKIP_WCS_LOAD): GowinSynthesis resolves the relative
 # $readmemh("wcs_*.hex") paths against its own working directories, NOT the
 # script directory - first build failed with EX3988 "Cannot open file" and

@@ -58,7 +58,7 @@ module CGA_INTR_CNTLR_IRGEL (
   wire       s_hipasall_out;
   wire       s_hirq;
   wire       s_hivges;
-  wire       s_hve;
+  wire       s_hve /* synthesis syn_keep=1 */;  // GAO probe net - see fpga/tang-nano-20k/GAO-HOWTO.md
   wire       s_irq_n_out;
   wire       s_l;
   wire       s_lienab_n;
@@ -69,7 +69,7 @@ module CGA_INTR_CNTLR_IRGEL (
   wire       s_logs_n_out;
   wire       s_lopassall_out;
   wire       s_lovges;
-  wire       s_lve;
+  wire       s_lve /* synthesis syn_keep=1 */;  // GAO probe net
   wire       s_m;
   wire       s_mclk;
   wire       s_n;

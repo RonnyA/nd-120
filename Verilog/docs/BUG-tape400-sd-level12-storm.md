@@ -1,5 +1,55 @@
 # BUG REPORT: `400$` tape boot triggers a continuous level-12 interrupt storm (SD/FAT rewiring)
 
+## ROOT CAUSE & FIX (13-JUL-2026) - CONFIRMED FIXED ON REBUILD
+
+Verified by the instruction-verify session after rebuilding with these edits:
+the `400$` boot log dropped from ~9.5 MB of interrupt spam to 59 lines, zero
+level-12 noise; ARGUMENT ran all 9 levels to `== END OF TEST ==` in 60M cycles
+with no failures; the test now visibly reaches its post-area stress phase
+(`CLOCK STARTED`, `DUMMY OUTPUT STARTED`) instead of drowning. C-device
+interrupts now actually reach the CPU via the repaired `BINTxx_n` lines (they
+never did before). Original diagnosis below.
+
+
+Read directly from the source (not the earlier "suspected cause"), the storm is
+**console `printf` spam, not the CPU spinning in an interrupt handler**:
+
+- `simDevices/NDBus.cpp:238-241` drove the interrupt lines as
+  `BINTxx_n = !((interruptBits & 1<<xx) == 1)`. `interruptBits & (1<<12)` is 0 or
+  4096 - **never `== 1`** - so BINT10..13 were *always deasserted*. The C
+  papertape's level-12 interrupt never actually reached the CPU; `400$` boots by
+  **polling**. (This bug dates to commit 468aec0, 2025-03-24 - it predates the
+  SD/FAT rewiring, so the storm was mis-attributed to it.)
+- `simDevices/NDDevices.h` (`GenerateInterrupt`/`ClearInterrupt`/`TickIODelay`)
+  did **unconditional** `printf`s, and `NDDevices.h:33-39` force-`#define`d
+  `DEBUG_PT`/`DEBUG_INTERRUPT`/etc. So every tape byte emitted several console
+  lines; ~46K bytes x several lines = hundreds of thousands of console writes,
+  which dominates wall-clock. That is the "storm".
+
+**Fix applied (source only - not yet rebuilt, another session was live on
+`runSim/obj_dir`):**
+1. Silenced the per-byte spam: the `DEBUG_*` channels are now OPT-IN (commented
+   out), and the previously-unconditional interrupt/IDENT `printf`s are gated
+   behind `#ifdef DEBUG_INTERRUPT` / `if (DEBUG_BIF)`. This alone removes the
+   slowdown and is independent of the interrupt fix.
+2. Corrected the `== 1` interrupt-line bug so C-model interrupts deliver
+   properly (one per byte, cleared by IDENT). Guarded by
+   `NDBUS_ASSERT_C_INTERRUPTS` (NDBus.h, default 1); set 0 to restore the old
+   poll-only behaviour if a boot path regresses - the spam stays gone either way.
+
+**TO VERIFY after the other session frees `obj_dir`:**
+```
+cd Verilog/runSim && make clean && make compile USE_LATCHES=0
+printf '400$ARGUMENT\r' | ND120_MAX_CNT=20000000000 ND120_STDIN_GAP=300000 ./obj_dir/VND120_TOP
+```
+Expect: no "Generating/Clearing interrupt at level 12" flood, boot to
+`== END OF TEST ==` in reasonable wall-clock. If the boot itself regresses (as
+opposed to just being quiet), flip `NDBUS_ASSERT_C_INTERRUPTS` to 0 and rebuild;
+the run should still be quiet/fast (poll boot) while we investigate the handler.
+
+---
+
+
 **For:** the LLM/owner of the SD-card + FAT filesystem + sim device wiring work
 **Filed from:** the instruction-verify campaign (running INSTRUCTION-B via `400$`)
 **Repo:** `/mnt/e/Dev/Repos/Ronny/nd-120`, dir `Verilog/`
