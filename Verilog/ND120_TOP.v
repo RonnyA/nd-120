@@ -196,6 +196,15 @@ module ND120_TOP
   // NOTE: installation_number, the s_high/s_low helpers, oc_select,
   // SEL_TESTMUX and the baud-rate switch moved INTO ND120_CORE.v -- they are
   // CPU-board constants, not board-level I/O.
+  //
+  // installation_number is no longer a constant at all: ND120_CORE now holds a
+  // real 16-byte BACK-WIRING PROM (BACKWIRING_PROM, addressed by PIL 3:0) that
+  // SINTRAN reads with VERSN / IDBS,INR=35. Its contents are set at BUILD time
+  // with -DND120_SYSNO / -DND120_HWINFO2 / -DND120_NLEGU, e.g.
+  //   make -C runSim compile EXTRA_VDEFINES="-DND120_SYSNO=16'd42"
+  // Defaults and the "not present" sentinels:
+  // Shared/support/nd120_backwiring_defaults.vh;
+  // full mechanism: docs/backwiring-prom-installation-number.md.
 
   wire sys_rst_n;
 `ifndef VERILATOR_SIM

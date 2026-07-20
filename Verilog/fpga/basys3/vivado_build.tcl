@@ -77,6 +77,8 @@ foreach _rel {
     CPU-BOARD-3202/circuit/PAL_44445B_D.v
     CPU-BOARD-3202/circuit/PAL_44446B_D.v
     Shared/support/SevenSegDebug.v
+    Shared/support/BACKWIRING_PROM.v
+    Shared/support/nd120_backwiring_defaults.vh
     Shared/ndlib/SCAN_FF_EN.v
     Shared/ndlib/D_FLIPFLOP_EN.v
     Shared/ndlib/R81_EN.v

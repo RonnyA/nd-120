@@ -2,13 +2,23 @@
 # Run:  make test-uart      (SC2661 TX-flag timing)
 #       make test-ram       (SIP1M9 ramSize=3 synchronous BRAM: write/read + no-alias)
 #       make test-am29833a  (AM29833A USE_SYSCLK=0 vs =2 equivalence)
+#       make test-inrprom   (BACKWIRING_PROM: PIL-addressed installation number)
 #       make clean
 
 IVERILOG = iverilog
 VVP      = vvp
 INCDIRS  = -I.. -I../../ndlib -I../../logisim
 
-.PHONY: test-uart test-ram test-am29833a test-am29c821 clean
+.PHONY: test-uart test-ram test-am29833a test-am29c821 test-inrprom clean
+
+# Back-wiring PROM (installation number), addressed by PIL 3:0.
+# -I.. also gives iverilog the include path for nd120_backwiring_defaults.vh.
+test-inrprom: BACKWIRING_PROM_tb
+	$(VVP) BACKWIRING_PROM_tb | tee inrprom_result.tmp
+	@grep -q "TB_RESULT: PASS" inrprom_result.tmp && rm -f inrprom_result.tmp BACKWIRING_PROM_tb.vcd
+
+BACKWIRING_PROM_tb: BACKWIRING_PROM_tb.v ../BACKWIRING_PROM.v ../nd120_backwiring_defaults.vh
+	$(IVERILOG) -g2012 -o $@ $(INCDIRS) BACKWIRING_PROM_tb.v ../BACKWIRING_PROM.v
 
 test-am29833a: AM29833A_equiv_tb
 	$(VVP) AM29833A_equiv_tb | tee am29833a_result.tmp

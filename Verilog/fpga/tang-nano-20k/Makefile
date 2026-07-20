@@ -60,7 +60,10 @@ SRCS := $(shell grep -o '<File path="[^"]*"' $(GPRJ) | sed 's/<File path="//;s/"
 
 # The SD-FAT sources `include "sd_fat_features.vh" - give yosys the path.
 # (Gowin EDA resolves includes from the file list's own directories.)
-INCS = -I../../SD-FAT/circuit
+# Shared/support holds nd120_backwiring_defaults.vh, included by BOTH
+# BACKWIRING_PROM.v (same dir) and ND120_CORE.v (Verilog root) - the latter is
+# why the path has to be explicit here.
+INCS = -I../../SD-FAT/circuit -I../../Shared/support
 
 OSS_BASE  = $(BUILD)/nd120_tang20k_oss-$(VARIANT)
 FS_OSS    = $(OSS_BASE).fs

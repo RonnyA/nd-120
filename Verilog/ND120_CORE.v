@@ -28,6 +28,12 @@
 //! @title ND120 board-independent core (ND3202D + ND-BUS device chain)
 //! @author Ronny Hansen
 
+// Back-wiring PROM defaults (ND120_SYSNO / ND120_HWINFO2 / ND120_NLEGU and the
+// "not present" sentinels). Included here as well as in BACKWIRING_PROM.v so
+// the macros are defined no matter which of the two files the toolchain reads
+// first - the file is `ifndef-guarded, so including it twice is harmless.
+`include "nd120_backwiring_defaults.vh"
+
 module ND120_CORE #(
     // Device chain population. Each device is instantiated in a generate
     // block; when absent its shared-net contributions are tied inactive so
@@ -35,7 +41,18 @@ module ND120_CORE #(
     // wired-AND all stay valid expressions (graceful degradation).
     parameter INCLUDE_TAPE   = 0,  //! ND_TAPE_400 papertape at 400
     parameter INCLUDE_FLOPPY = 0,  //! ND_FLOPPY_DMA floppy 1560 (DMA flavor)
-    parameter INCLUDE_SMD    = 0   //! ND_SMD disk at 1540
+    parameter INCLUDE_SMD    = 0,  //! ND_SMD disk at 1540
+
+    // Back-wiring PROM (installation number) contents. These are what SINTRAN's
+    // GCPUNR reads with VERSN through IDBS,INR=35, and they are meant to be
+    // fixed into a bitstream at synthesis time. Defaults (and the -D override
+    // macros ND120_SYSNO / ND120_HWINFO2 / ND120_NLEGU) live in
+    // Shared/support/nd120_backwiring_defaults.vh; the PROM model and the full
+    // signal-path citations are in Shared/support/BACKWIRING_PROM.v; the whole
+    // mechanism is written up in docs/backwiring-prom-installation-number.md.
+    parameter [15:0] SYSNO   = `ND120_SYSNO,   //! CPU NUMBER (16'hFFFF = "not present")
+    parameter [15:0] HWINFO2 = `ND120_HWINFO2, //! CPU TYPE   (16'hFFFF = "not present")
+    parameter [ 7:0] NLEGU   = `ND120_NLEGU    //! legal users (8'o377  = "not present")
 ) (
     /***************************************************
      *  (a) CLOCK / RESET                              *
@@ -219,7 +236,13 @@ module ND120_CORE #(
   ***********************************************/
 
   // Installation number (read using IDB Source = 035)
-  wire [7:0] installation_number = 8'd123;
+  //
+  // Was a single hardwired 8'd123 for EVERY PIL value, which made SINTRAN's
+  // GCPUNR signature check (bytes 6/7 must read 0x55/0xAA) fail, so the CPU
+  // NUMBER / CPU TYPE / NLEGU in the PROM could never be reported. It is now a
+  // real 16-byte back-wiring PROM addressed by PIL[3:0] - see the instance of
+  // BACKWIRING_PROM further down and docs/backwiring-prom-installation-number.md.
+  wire [7:0] installation_number;
 
   wire s_high = 1'b1;
   wire s_low  = 1'b0;
@@ -652,6 +675,28 @@ module ND120_CORE #(
   wire        s_bus_bint13_n    = BINT13_n & s_dev_bint13_n;
 
   /**********************************************
+  *  The BACKPLANE back-wiring PROM             *
+  ***********************************************/
+  // Deliberately placed HERE, on the backplane side of the B-plug, not inside
+  // ND3202D: on the real machine the PROM is part of the back wiring, the CPU
+  // board only drives PIL[3:0] OUT to the B-plug and takes the byte back IN on
+  // INR_7_0. ND120_CORE is the first level above the CPU board and already
+  // owns the other B-plug constants (EBUS, SEL5MS_n), so this is the exact
+  // level the PROM belongs at. Nothing inside CPU-BOARD-3202 changes.
+  //
+  // The address is PIL[3:0] - STRONG INFERENCE, not read from a backplane
+  // schematic (none was found). Reasoning in BACKWIRING_PROM.v's header and in
+  // docs/backwiring-prom-installation-number.md.
+  BACKWIRING_PROM #(
+      .SYSNO  (SYSNO),    // bytes 0/1 - CPU NUMBER
+      .HWINFO2(HWINFO2),  // bytes 2/3 - CPU TYPE
+      .NLEGU  (NLEGU)     // byte 4    - number of legal users
+  ) BACKPLANE_INR_PROM (
+      .PIL_3_0(PIL),                  // the same nibble the CPU board drives to the B-plug
+      .INR_7_0(installation_number)   // back in on INR 7:0
+  );
+
+  /**********************************************
   *  The CPU board                              *
   ***********************************************/
 
@@ -702,6 +747,7 @@ module ND120_CORE #(
 
       // Signals from B-PLUG to CPU Board
       .INR_7_0(installation_number), // INR 7:0, signal B-> B15, B4, B5, B17, B8, B7, B13, B6. (Installation number, read using IDB Source = 035)
+                                     // Driven by BACKPLANE_INR_PROM above (16-byte back-wiring PROM addressed by PIL 3:0)
       .EBUS(1'b1),     // EBUS, signal B-B3 (Pulled high with through resistor network RN13)
       .SEL5MS_n(1'b1), // SEL 5ms, signal B-B14 (Pulled high with 1kohm resistor R4)
 
