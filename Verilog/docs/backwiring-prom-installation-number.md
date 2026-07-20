@@ -345,3 +345,132 @@ This case is covered by pass 3 of `BACKWIRING_PROM_tb.v`.
   returns the right byte for every `PIL` value (unit tb) and that the design
   still elaborates, builds and boots identically (§9 of the commit report).
 - **Any FPGA bitstream build** (Gowin or Vivado) after this change.
+
+---
+
+## 9. NOT the PROM: print number / print release / ECO level (the ALD register)
+
+`VERSN` returns **three** registers, and only **D** comes from the back-wiring
+PROM. **T** is the microprogram version and **A** is a bit-field describing the
+**CPU board itself**. Those A-register fields are frequently confused with the
+back-wiring PROM, so they are recorded here — they are *board* attributes, wired
+on the CPU board, and have nothing to do with the backplane PROM.
+
+### 9.1 The A-register layout (VERIFIED, from the microcode)
+
+The `VERSN` microroutine reads the ALD register (`IDBS,ALD`) and XORs it with an
+`ARG` literal. `Code/Microcode/ND-120-DELILAH-L.LISTING.txt` lines 124-133:
+
+```
+0124  000026                              ALUF,PASSD          ALUD,Q
+0125  000026          IDBS,ARG                                T,NEXT      T,HOLD
+0126  000026          40377;
+0128  000027  %CC INVERT BIT 0-3 (ALD), BIT 4-6 (PRINT RELEASE), BIT 7 (CX); BIT14 (PRINT NO)
+0129  000027  %CC BIT7=1 => HIGH SPEED, BIT 15-13=101 => 3202
+0131  000027          B,A                 ALUF,XORDQ          ALUD,B
+0132  000027          IDBS,ALD                                T,JMP       T,HOLD
+```
+
+`40377` octal = `0x40FF` = bits 0-7 plus bit 14, so exactly those bits are
+inverted. The value the guest sees is therefore:
+
+| A bits | field | ND-120 / 3202D value |
+|--------|-------|----------------------|
+| 15-13 | PRINT NUMBER | `101` binary = 5 → board print **3202** (microcode comment, line 129) |
+| 12-8  | ECO LEVEL (straps 5..9) | `10100` binary = 20 |
+| 7     | CX / HIGH SPEED | 1 |
+| 6-4   | PRINT RELEASE | `100` binary = 4 → release **D** |
+| 3-0   | ALD switch code | the ALD setting |
+
+### 9.2 Where each field is wired (VERIFIED)
+
+All of them are on **CPU board 3202 sheet 41**,
+`CPU-BOARD-3202/circuit/IO_REG_41.v`:
+
+- **PRINT RELEASE** — `:121` `assign s_print_no[2:0] = 3'b011;  // 011 == 3202D`,
+  driven onto IDB 6/5/4 by `CHIP_25A_ALD` (`:222-240`). The microcode inverts
+  bits 4-6, so the raw `011` is seen by software as `100` — which is exactly the
+  "`0b100` for version D" recorded in `Logisim/CPU-BOARD-3202/readme.md:59`.
+- **CX** — `s_cx_n` onto IDB 7 in the same buffer; inverted by the XOR, so a
+  fitted CX (active-low, 0) reads back as 1 = "HIGH SPEED".
+- **ECO LEVEL** — `:126-130`, the five straps
+  (`STRAP9→IDB8, STRAP8→IDB9, STRAP7→IDB10, STRAP6→IDB11, STRAP5→IDB12`), driven
+  by `CHIP_27A_STRAP` (`:198-219`). A *fitted* strap pulls the line LOW, so a
+  fitted strap reads 0. The stock build is commented
+  "`Set to ECO 100-785. Strap on 6,8 and 9`" → straps 9,8,7,6,5 = 0,0,1,0,1 →
+  field value `10100` binary = 20. These bits are **NOT** inverted by the XOR.
+  `Logisim/CPU-BOARD-3202/readme.md:59` says the same in words: "ALD register has
+  also STRAP 5-9 info in IDB11-IDB8 (For reading ECO level)".
+- **PRINT NUMBER** — IDB 15/14/13 are the `1'b1, 1'b1, s_strap_5`-side constants
+  of `CHIP_27A_STRAP` (`:198-219`): IDB15 = 1, IDB14 = 1, IDB13 = 1. The XOR
+  inverts **bit 14 only**, so software sees `101` — the code the microcode
+  comment maps to print 3202.
+
+### 9.2b How TPE renders the ECO level — **MEASURED**, not sourced
+
+No listing of the TPE `INSTRUCTION` diagnostic's decode was found. It was probed
+instead, by booting the real TPE floppy in the RetroCore emulator once per strap
+value and reading the `ECO level............:` line:
+
+| A bits 12-8 | TPE prints |
+|-------------|------------|
+| 0, 1, 2, 3, 4, 5, 8 (bit 12 clear) | `B` |
+| 16 (bit 12 set, bits 11-8 = 0) | `T` |
+| 20 (bit 12 set, bits 11-8 = 4) | `P` |
+| 31 (bit 12 set, bits 11-8 = 15) | `C` |
+
+Those three "bit 12 set" points fit a **descending letter list that skips `I` and
+`O`** — `T S R Q P N M L K J H G F E D C` — indexed by bits 11-8. The list is an
+**INFERENCE** from three samples, not a read of TPE's code. With the stock 3202D
+straps (field value 20) TPE prints **`P`**.
+
+### 9.2c A caveat found while emulating this (MEASURED)
+
+The RetroCore emulator was changed to return this exact A bit-field. Reporting the
+sourced print-number code `101` makes the **SINTRAN III disk image RetroCore boots**
+abort during `LOCOSTORE` with
+
+```
+Mismatch  CPU / micro-code-segm
+System malfunction. Sintran halt in ERRFATAL. L-reg: 035551
+```
+
+(the CPU-vs-microcode-segment branch at `PH-P2-RESTART.NPL:035542`), on both an
+ND-110/CX and an ND-120/CX. Bisection showed the ECO straps and the microprogram
+version are innocent — it is specifically A bits 15-13. Why that particular
+SINTRAN image rejects the 3202 code was **not** root-caused, and it is **not** a
+claim about real hardware or about this RTL. Recorded here only so the next person
+who wires these bits into an emulator is not surprised.
+
+### 9.3 ND-110 difference (VERIFIED)
+
+The ND-110 microcode (`ND110Compile/ND110Compile/uCode/ND-110-RASK.LISTING.TXT`
+lines 123-128) XORs with **`17` octal only**, i.e. it inverts just the ALD nibble
+and passes bits 4-15 straight through from that board's ALD register. The
+*layout* is the same (the same TPE diagnostic decodes both); only the raw strap
+polarity differs. No ND-110 CPU-board schematic or strap list exists in these
+repos, so the ND-110's own print number / release / ECO straps are **UNKNOWN**.
+
+### 9.4 Also not the PROM: the microprogram version (T)
+
+`VERSN` loads T straight from an `ARG` literal in its first microword:
+
+- `ND-110-RASK.LISTING.TXT:107-109` → `13;` = octal 13 = `0x000B` (revision K)
+- `ND-120-DELILAH-K.LISTING.txt:106-108` → `100013;` = `0x800B`
+- `ND-120-DELILAH-L.LISTING.txt:106-108` → `100014;` = `0x800C`
+
+Octal `100000` is bit 15, the ND-120 CPU-type identity bit; the **high byte is
+zero** in all three. Low 8 bits = revision letter as plain alphabet position
+(A=1 … K=013 … L=014, "I" not skipped).
+
+### 9.5 Should these be build parameters like `ND120_SYSNO`? — **No** (decision)
+
+`SYSNO` / `HWINFO2` / `NLEGU` are *site/installation* values: they legitimately
+differ per machine, which is why they were parameterised in
+`Shared/support/nd120_backwiring_defaults.vh`. Print number, print release and
+the ECO straps are *this board's identity* — they say "this is a 3202D at ECO
+100-785". Changing them would make the simulated board lie about which board it
+is. They are therefore left as the plain, commented `assign` constants in
+`IO_REG_41.v`, which is already the accurate model of the real board. Anyone
+building a different board revision edits those two `assign` lines (`:121` and
+`:126-130`), which are documented above.
