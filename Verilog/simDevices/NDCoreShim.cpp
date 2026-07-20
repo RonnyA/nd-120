@@ -54,8 +54,9 @@ static bool     g_wr        = false;
 static uint32_t g_addr      = 0;
 static uint16_t g_wdata     = 0;
 
-static uint16_t g_rd_capture   = 0;
-static bool     g_rd_captured  = false;
+/* BD_OUT from the previous ST_DATA tick - the read data is latched from here
+ * at the BDRY edge (see ST_DATA for why the previous tick, not the current). */
+static uint32_t g_prev_bd_out  = BD_IDLE;
 
 static bool     g_ack_pending  = false;   /* one-shot, consumed by dma_poll */
 static uint16_t g_ack_rdata    = 0;
@@ -291,41 +292,45 @@ void ndcore_shim_bus_tick(VND120_TOP *top)
                 top->BD_23_0_n_IN = BD_IDLE;
             }
             top->BDAP_n_IN = 0;
-            g_rd_captured  = false;
+            g_prev_bd_out  = BD_IDLE;   /* no data seen yet this cycle */
             g_state        = ST_DATA;
         }
         break;
 
-    /* Wait for memory's BDRY.
+    /* Wait for memory's BDRY, then take the read data from the PREVIOUS tick.
      *
-     * GOTCHA 2 - LATCH READ DATA ACROSS THE WHOLE WINDOW, NOT AT THE BDRY
-     * EDGE. The board's BDRY25/BDRY50 delay chains release the data drivers
-     * BEFORE the externally visible BDRY edge, so a master that samples only
-     * at BDRY reads all-ones -> inverts to a plausible-looking but totally
-     * wrong 0x0000. Silent corruption, not a crash. Capture every non-idle
-     * BD value seen during the window and use the last one.
-     * "Data present" is detected as BD != 0xFFFFFF (someone pulled lines
-     * low), NOT by a strobe edge. */
+     * GOTCHA 2 (corrected 20-JUL-2026 from a captured BD_OUT trajectory).
+     * The board's BDRY25/BDRY50 delay chains release memory's data drivers
+     * exactly as the externally-visible BDRY edge appears, so at the BDRY tick
+     * BD_OUT has ALREADY returned to idle (0xFFFFFF). The tick JUST BEFORE the
+     * BDRY edge still holds the valid data - so that is what we latch.
+     *
+     * This must NOT be a value-based "capture non-idle" scheme: a read of the
+     * data value 0 drives BD to 0xFFFFFF, byte-for-byte identical to the idle
+     * bus, so it can never be told apart from idle by looking at the value -
+     * only by TIMING. The old code captured the transitional 0x000000 at cycle
+     * start as junk 0xFFFF and, for a value-0 read, never overwrote it, so
+     * cb[1]=0 came back as 0xFFFF and sent the floppy past end-of-media.
+     * Using the previous tick's BD at the BDRY edge reads every value - 0
+     * included - correctly. */
     case ST_DATA:
-        if (!g_wr && top->BD_23_0_n_OUT != BD_IDLE)
-        {
-            g_rd_capture  = (uint16_t)((~top->BD_23_0_n_OUT) & 0xFFFFu);
-            g_rd_captured = true;
-        }
         if (top->BDRY_n_OUT == 0)
         {
             if (!g_wr)
-            {
-                g_ack_rdata = g_rd_captured
-                                ? g_rd_capture
-                                : (uint16_t)((~top->BD_23_0_n_OUT) & 0xFFFFu);
-            }
+                g_ack_rdata = (uint16_t)((~g_prev_bd_out) & 0xFFFFu);
+
             /* Leading edge of BDRY terminates the grant: release our strobes
              * and our data. */
             top->BDAP_n_IN    = 1;
             top->BD_23_0_n_IN = BD_IDLE;
             top->BINPUT_n_IN  = 1;
             g_state           = ST_END;
+        }
+        else
+        {
+            /* Still waiting: remember this tick's bus value; when BDRY fires
+             * next it is this (pre-release) value that held the data. */
+            g_prev_bd_out = top->BD_23_0_n_OUT;
         }
         break;
 
