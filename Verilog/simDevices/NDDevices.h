@@ -229,6 +229,12 @@ private:
 public:
     void MasterClear();
     void AddDevice(DeviceType type, uint8_t thumbweel);
+
+    // Register an ALREADY-CONSTRUCTED device. Needed because CreateDevice()
+    // is a private factory over a fixed DeviceType enum, and the NDDeviceCore
+    // bridge (ND120_DEVICECORE, see NDDeviceCoreAdapter.h) builds its own
+    // adapter instances. Purely additive - no existing caller changes.
+    void AddDevice(std::unique_ptr<NDDevice> device);
     bool Claims(uint32_t address);  // true if any registered device owns the address
     uint16_t Read(uint32_t address);
     void Write(uint32_t address, uint16_t value);

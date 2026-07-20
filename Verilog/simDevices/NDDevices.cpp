@@ -1061,6 +1061,18 @@ void DeviceManager::AddDevice(DeviceType type, uint8_t thumbweel)
     devices.push_back(std::move(info));
 }
 
+/// @brief Register an already-constructed device (NDDeviceCore adapters).
+/// @param device the device to take ownership of; a null pointer is ignored.
+void DeviceManager::AddDevice(std::unique_ptr<NDDevice> device)
+{
+    if (!device)
+        return;
+
+    DeviceInfo info;
+    info.device = std::move(device);
+    devices.push_back(std::move(info));
+}
+
 void DeviceManager::MasterClear()
 {
     for (auto &info : devices)

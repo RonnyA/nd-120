@@ -131,6 +131,108 @@ VERILATOR_DIRS = -I.. $(TOP_3202D_COMPONENTS) $(CGA_COMPONENTS) $(DGA_COMPONENTS
 # Specify C++ source files here
 CPP_SOURCES = Run120.cpp ../simDevices/NDDevices.cpp ../simDevices/NDBus.cpp
 
+# DEVICECORE=1 - the NDDeviceCore RTL EQUIVALENCE GATE (default 0 = OFF, the
+#            default build is byte-for-byte unaffected). Compiles the PORTABLE
+#            C99 device cores from ../../../NDDeviceCore - the SAME .c files
+#            that run in the RP2350 NDModulE firmware - into this harness and
+#            registers them with the DeviceManager through
+#            ../simDevices/NDDeviceCoreAdapter.cpp, so the REAL ND-120 CPU +
+#            bus RTL drives them. See docs/rtl-gate-plan.md and the
+#            `test-democore` target in the top-level Verilog/Makefile.
+#            NDDEVICECORE_DIR overrides the library location.
+DEVICECORE ?= 0
+# The portable C cores live in the git SUBMODULE at
+# Verilog/ND-BUS-DEVICES/portable (github.com/HackerCorpLabs/NDDeviceCore).
+# This Makefile runs from Verilog/runSim, so the submodule is two dirs up +
+# over. Still `?=`-overridable: point it at a working copy for iterating on
+# NDDeviceCore itself, e.g. NDDEVICECORE_DIR=/mnt/e/Dev/Ronny/NDDeviceCore.
+NDDEVICECORE_DIR ?= $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../ND-BUS-DEVICES/portable)
+ifeq ($(DEVICECORE),1)
+  # Character-device axis only (no DMA / no memory backdoor): the device
+  # contract, the char seam and the line printer core.
+  DEVICECORE_SOURCES = $(NDDEVICECORE_DIR)/src/nd_device.c \
+                       $(NDDEVICECORE_DIR)/src/nd_char.c \
+                       $(NDDEVICECORE_DIR)/src/nd_lineprinter.c \
+                       ../simDevices/NDDeviceCoreAdapter.cpp \
+                       ../simDevices/NDCoreCharBackend.cpp
+  DEVICECORE_INC = -I$(NDDEVICECORE_DIR)/include
+  # 'override' for the same reason VERILOG_TAPE uses it: EXTRA_CFLAGS usually
+  # arrives on the command line, where a plain += is silently ignored.
+  # The structured trace seam (nd_trace) + this harness's printf sink for it.
+  DEVICECORE_SOURCES += ../simDevices/NDCoreTrace.cpp \
+                        $(NDDEVICECORE_DIR)/src/nd_trace.c
+
+  # The DMA + block-storage engines belong to the BASE core library, not to the
+  # floppy option: NDDeviceCoreAdapter::Tick() pumps them unconditionally, so a
+  # tape-only build fails to LINK without them. They are inert when no block
+  # device is registered (the adapter is passed null and never ticks them).
+  DEVICECORE_SOURCES += $(NDDEVICECORE_DIR)/src/nd_dma.c \
+                        $(NDDEVICECORE_DIR)/src/nd_storage.c
+
+  override EXTRA_CFLAGS += -DND120_DEVICECORE $(DEVICECORE_INC)
+
+  # DEVICECORE_FLOPPY=1 additionally registers the portable nd_floppy_dma at
+  # IOX 1560-1567 (ident 021, level 11) so the CPU's `1560&` autoload - and a
+  # plain OPCOM `IO/` poke - land on OUR C core. Build it with VERILOG_TAPE=0
+  # so no Verilog floppy shares the window. See the `test-floppy-core*`
+  # targets in the top-level Verilog/Makefile.
+  ifeq ($(DEVICECORE_FLOPPY),1)
+    # HARD STOP, not a comment: with VERILOG_TAPE=1 the Verilog floppy core is
+    # instantiated inside ND120_TOP and ALSO answers 1560-1567. Two devices on
+    # one window race on every IOX cycle, and the C++-side Claims() guard
+    # cannot help - the Verilog device is not registered with DeviceManager at
+    # all. The failure would look like intermittent wrong data, not an error.
+    ifneq ($(VERILOG_TAPE),0)
+      $(error DEVICECORE_FLOPPY=1 requires VERILOG_TAPE=0 - otherwise the Verilog \
+floppy also drives IOX 1560-1567 and the two cores race. Rebuild with VERILOG_TAPE=0.)
+    endif
+    DEVICECORE_SOURCES += $(NDDEVICECORE_DIR)/src/nd_floppy_dma.c \
+                          ../simDevices/NDCoreBlockBackend.cpp
+    override EXTRA_CFLAGS += -DND120_DEVICECORE_FLOPPY
+    # The floppy is a DMA device, so it needs the C bus master.
+    DEVICECORE_BUSMASTER := 1
+  endif
+
+  # DEVICECORE_DEMODMA=1 registers the portable nd_demo_dma at IOX 0500-0503
+  # (ident 077, level 11). This is the DMA PIPE-CLEANER: it exists precisely so
+  # the bus master can be debugged with no disk geometry, no BPUN and no boot
+  # path in the way. Prove DMA here FIRST, then point it at the floppy.
+  ifeq ($(DEVICECORE_DEMODMA),1)
+    ifneq ($(VERILOG_TAPE),0)
+      $(error DEVICECORE_DEMODMA=1 requires VERILOG_TAPE=0 - a Verilog DMA master \
+would also arbitrate for the bus. Rebuild with VERILOG_TAPE=0.)
+    endif
+    DEVICECORE_SOURCES += $(NDDEVICECORE_DIR)/src/nd_demo_dma.c
+    override EXTRA_CFLAGS += -DND120_DEVICECORE_DEMODMA
+    DEVICECORE_BUSMASTER := 1
+  endif
+
+  # The C bus master itself - pulled in by any DMA-capable core above. It
+  # drives the RAW ND120_TOP bus ports (BREQ/BAPR/BDAP/BINPUT/BD) against the
+  # real arbiter and real RAM, because ND_DMA_MASTER.v is NOT elaborated in a
+  # DEVICECORE build and its client ports do not exist on ND120_TOP.
+  ifeq ($(DEVICECORE_BUSMASTER),1)
+    DEVICECORE_SOURCES += ../simDevices/NDCoreShim.cpp
+    override EXTRA_CFLAGS += -DND120_DEVICECORE_BUSMASTER
+  endif
+
+  # DEVICECORE_TAPE=1 registers the portable nd_tape400 at IOX 0400-0403
+  # (ident 02, level 12) so the CPU's `400$` BPUN loader reads OUR C core.
+  # Image from ND120_TAPECORE_IMG, default BOOT.BPUN.
+  ifeq ($(DEVICECORE_TAPE),1)
+    ifneq ($(VERILOG_TAPE),0)
+      $(error DEVICECORE_TAPE=1 requires VERILOG_TAPE=0 - otherwise the Verilog \
+ND_TAPE_400 also drives IOX 0400-0403 and the two cores race. Rebuild with VERILOG_TAPE=0.)
+    endif
+    DEVICECORE_SOURCES += $(NDDEVICECORE_DIR)/src/nd_tape400.c \
+                          ../simDevices/NDCoreTapeBackend.cpp
+    override EXTRA_CFLAGS += -DND120_DEVICECORE_TAPE
+  endif
+
+  # Appended LAST so every conditional addition above is included.
+  CPP_SOURCES += $(DEVICECORE_SOURCES)
+endif
+
 # Default target
 all: compile run gtk
 
@@ -303,9 +405,16 @@ FLOPPY_IMG ?= ../ND-BUS-DEVICES/testdata/210523I01-XX-01D.img
 # SD_STORAGE=0 is REQUIRED: the floppy file server is gated `#ifndef
 # ND120_SD_STORAGE` (NDBus.cpp), so with SD_STORAGE=1 the image is never served
 # and 1560& hangs. No SD card / no tape path here.
+#
+# The FILE-SYSTEM INVESTIGATOR is pre-deposited into RAM (Ronny 20-JUL-2026):
+# `20!` starts it and it inspects the MOUNTED diskette through the floppy
+# device - that is the point of this target. It deliberately does NOT preload
+# INSTRUCTION-VERIFY (DEBUG.BPUN). A floppy-BOOT validation (`1560&` must load
+# the program itself) needs an EMPTY RAM: use the test-floppy-boot gate, or run
+# the binary with ND120_PRELOAD_BPUN= (empty) explicitly.
 run-floppy:
 	$(MAKE) compile VERILOG_TAPE=1 SD_STORAGE=0
-	ND120_FLOPPY_IMG=$(FLOPPY_IMG) ./obj_dir/VND120_TOP
+	ND120_PRELOAD_BPUN=$(FS_BPUN) ND120_FLOPPY_IMG=$(FLOPPY_IMG) ./obj_dir/VND120_TOP
 
 
 .PHONY: all clean run run-c run-sim run-floppy

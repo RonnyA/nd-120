@@ -12,6 +12,14 @@
 #include "NDBus.h"
 #include "NDDevices.h"
 
+#ifdef ND120_DEVICECORE
+#include "NDDeviceCoreAdapter.h"   // addDevicesCore() - the NDDeviceCore gate
+#endif
+
+#ifdef ND120_DEVICECORE_BUSMASTER
+#include "NDCoreShim.h"            // the C bus master (raw ND120_TOP bus ports)
+#endif
+
 #include "VND120_TOP.h"
 #include "VND120_TOP___024root.h" // Root-level details for updating RAM directly
 
@@ -232,7 +240,23 @@ void proccess_bif_signal(VND120_TOP *top)
 		printf("BMEM_n Address: %o Data: %o \n", bus_address, bus_data);
 		*/
 	}
-	
+
+#ifdef ND120_DEVICECORE_BUSMASTER
+	// THE C BUS MASTER. This empty BMEM_n stub above is exactly the slot it
+	// belongs in: NDBus.cpp has never had DMA (see NDDeviceCore's trap list -
+	// "no DMA in NDBus.cpp" must NOT be read as "DMA is impossible").
+	//
+	// It is ticked BEFORE deviceManager.Tick() so the FSM advances on the
+	// signals the CPU produced in the eval() that just ran; the device core
+	// then observes the completion in the same pass via dma_poll().
+	//
+	// One call = one FSM step = one FULL sysclk period, which is the rate
+	// ND_DMA_MASTER.v's always @(posedge sysclk) runs at. NOTE: this function
+	// is NOT called every half-clock (a common claim) - Run120.cpp toggles
+	// sysclk twice per loop iteration, so we always see the same phase.
+	ndcore_shim_bus_tick(top);
+#endif
+
 #ifdef ND120_VERILOG_DEVICES
 	// Serve the Verilog devices' backend ports (the C models are NOT
 	// registered in this build - see addDevices).
@@ -278,15 +302,33 @@ void proccess_bif_signal(VND120_TOP *top)
 void addDevices()
 {
 #ifndef ND120_VERILOG_DEVICES
-	// Add the PaperTape (TapeReader) at octal 400-403
+#ifndef ND120_DEVICECORE_TAPE
+	// Add the PaperTape (TapeReader) at octal 400-403.
+	// SUPPRESSED under ND120_DEVICECORE_TAPE: the portable NDDeviceCore
+	// nd_tape400 owns 0400-0403 in that build, and two devices claiming the
+	// same window would race on every IOX cycle.
 	deviceManager.AddDevice(DeviceType::PaperTape, 0);
+#endif
 
-	// Add the FloppyPIO at octal 1560-1567
+#ifndef ND120_DEVICECORE_FLOPPY
+	// Add the FloppyPIO at octal 1560-1567.
+	// SUPPRESSED under ND120_DEVICECORE_FLOPPY: the portable NDDeviceCore
+	// nd_floppy_dma owns 1560-1567 in that build, and two devices claiming
+	// the same window would race on every IOX cycle.
 	deviceManager.AddDevice(DeviceType::FloppyPIO, 0);
+#endif
 #endif
 	// With ND120_VERILOG_DEVICES both devices are Verilog cores inside
 	// ND120_TOP; this harness only serves their backend ports (tape
 	// bytes + floppy disk image).
+
+#ifdef ND120_DEVICECORE
+	// The NDDeviceCore RTL equivalence gate (runSim: make DEVICECORE=1).
+	// Registers the PORTABLE C99 cores (the same .c that runs on the RP2350
+	// controller card) so the real ND-120 CPU + bus RTL drives them.
+	// Their IOX windows do not overlap any device above.
+	addDevicesCore();
+#endif
 }
 
 #ifdef ND120_VERILOG_DEVICES
