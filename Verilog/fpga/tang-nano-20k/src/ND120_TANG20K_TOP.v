@@ -399,6 +399,18 @@ module ND120_TANG20K_TOP (
   // installation_number, the s_high/s_low helpers, OC_1_0, SEL_TESTMUX and
   // the baud-rate switch now live INSIDE ND120_CORE (CPU-board constants),
   // so this board no longer declares them.
+  //
+  // installation_number is no longer a constant: ND120_CORE holds a real
+  // 16-byte BACK-WIRING PROM (BACKWIRING_PROM, addressed by PIL 3:0) that
+  // SINTRAN reads with VERSN / IDBS,INR=35. To bake a CPU NUMBER / CPU TYPE /
+  // legal-user count into THIS bitstream, add the `defines to
+  // src/tang20k_defines.v (compiled first, so it wins over the defaults):
+  //   `define ND120_SYSNO   16'd42
+  //   `define ND120_HWINFO2 16'd102
+  //   `define ND120_NLEGU   8'd32
+  // Defaults + "not present" sentinels live in
+  // ../../Shared/support/nd120_backwiring_defaults.vh; mechanism in
+  // ../../docs/backwiring-prom-installation-number.md.
 
   /**********************************************
   *  Storage: BOOT.BPUN off the SD card         *

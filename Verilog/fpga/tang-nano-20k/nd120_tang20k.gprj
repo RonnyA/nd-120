@@ -247,6 +247,7 @@
         <File path="../../Shared/ndlib/F924_EN.v" type="file.verilog" enable="1"/>
         <File path="../../Shared/ndlib/SCAN_WITH_SET_N.v" type="file.verilog" enable="1"/>
         <File path="../../Shared/ndlib/SR44.v" type="file.verilog" enable="1"/>
+        <File path="../../Shared/support/BACKWIRING_PROM.v" type="file.verilog" enable="1"/>
         <File path="../../Shared/support/AM29833A.v" type="file.verilog" enable="1"/>
         <File path="../../Shared/support/AM29841.v" type="file.verilog" enable="1"/>
         <File path="../../Shared/support/AM29861A.v" type="file.verilog" enable="1"/>
