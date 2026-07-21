@@ -138,7 +138,8 @@ void PaperTape::Write(uint32_t address, uint16_t value)
 
         if (controlWord.bits.deviceClear)
         {
-            std::cout << "PaperTape DeviceClear " << std::endl;
+            // (removed stray debug print "PaperTape DeviceClear" - it leaked into
+            //  the TPE config HARDWARE CONFIGURATION table on every device clear)
             statusRegister.bits.readActive = 0;
             statusRegister.bits.readyForTransfer = 0;
             characterBuffer = 0x00;

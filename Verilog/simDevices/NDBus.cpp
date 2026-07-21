@@ -140,6 +140,20 @@ void proccess_bif_signal(VND120_TOP *top)
 			top->BD_23_0_n_IN = (~idcode) & 0xFFFFFF;
 			//top->BDRY_n_IN = 0;
 		}
+		else
+		{
+			// NO device has a pending interrupt on this level. The oracle
+			// (nd100x DeviceManager_Ident -> DoIDENT) returns 0, so the CPU reads
+			// A:=0 here; it NEVER returns a stale code. On this open-collector,
+			// active-low bus (idle = 0xFFFFFF) we MUST release BD so the CPU
+			// reads 0 and not the ident code the PREVIOUS level's IDENT left
+			// driven. Without this a device appears to answer IDENT on levels it
+			// has no active interrupt on (TPE config investigation: LINE PRINTER
+			// (lvl 10) also seen on 11/12, FLOPPY (lvl 11) also on 12). Do NOT
+			// assert BINPUT: there is no data to present on an unclaimed level.
+			top->BD_23_0_n_IN = 0xFFFFFF;
+			top->BINPUT_n_IN  = 1;
+		}
 	}
 
 	if ((top->OUTIDENT_n == 1) && (prev_outident_n == 0))
@@ -152,6 +166,10 @@ void proccess_bif_signal(VND120_TOP *top)
 			top->BINPUT_n_IN = 1;
 			top->BDRY_n_IN = 1;
 		}
+		// ALWAYS release the ident data lines when OUTIDENT deasserts, so no
+		// stale code can linger on BD into the next IDENT cycle (open-collector
+		// idle = 0xFFFFFF). Belt-and-suspenders with the no-match release above.
+		top->BD_23_0_n_IN = 0xFFFFFF;
 	}
 
 
