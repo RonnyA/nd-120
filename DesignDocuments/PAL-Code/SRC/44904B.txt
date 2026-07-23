@@ -13,7 +13,7 @@ EHI := EMID
 
 EMID := ELOW * /EMID * /EHI     ; ENABLE DIGIT 2
 
-ELOW := /ELOW * /EMID * EHT     ; ENABLE DIGIT 1
+ELOW := /ELOW * /EMID * EHI     ; ENABLE DIGIT 1
 
 /ABIT := MOFF
        + MSIZE0 * EMID
@@ -22,8 +22,8 @@ ELOW := /ELOW * /EMID * EHT     ; ENABLE DIGIT 1
 
 
 /BBIT := MOFF
-       + /MSIZE1 * /MSIZEO * EMID
-       + MSIZE1 * MSIZEO * EMID
+       + /MSIZE1 * /MSIZE0 * EMID
+       + MSIZE1 * MSIZE0 * EMID
        + EHI
        + ELOW
 

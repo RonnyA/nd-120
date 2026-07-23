@@ -12,6 +12,11 @@ module CPU_PROC_32 (
     input sysclk,    // System clock in FPGA
     input sys_rst_n, // System reset in FPGA
 
+    input        ALUCLK_EN,   //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        MCLK_EN,     //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        MCLK_FALL_EN, //! MCLK fall-enable pulse (FPGA_FF_MODE, else 0)
+    input        UCLK_EN,     //! UCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        CLK_EN,      //! CLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        ALUCLK,      //! ALU clock
     input        BEDO_n,      //! Buffered Enable IDB "data out" from CGA
     input        BEMPID_n,    //! Buffered EMPID - Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints)
@@ -73,6 +78,7 @@ module CPU_PROC_32 (
     output        OPCLCS,       //! COMMAND 36.2 LCS - Load control store from PROM and perform a Master Clear
     output [ 1:0] PCR_1_0,      //! Paging Control Register[1:0] = Ring Protection Level
     output [ 3:0] PIL_3_0,      //! Current Program Level
+    output [15:0] XIREQ_15_0_N, //! DEBUG: raw interrupt-request vector (active low)
     output        PONI,         //! Memory Management ON
     output [ 1:0] RF_1_0,       //! Selects which of the 4 16 bit's of the microcode to fetch from ROM
     output        RRF_n,        //! Read REG Flag - CSIDBS Source = 5 (REG)
@@ -83,7 +89,11 @@ module CPU_PROC_32 (
     output        TP1_INTRQ_n,  //! Test point TP1 Interrupt Request
     output        TRAPN,        //! Trap
     output        VEX,          //! Vector Exception
-    output        WCS_n         //! Write Control Store
+    output        WCS_n,        //! Write Control Store
+
+    // Debug
+    output [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
+    output [15:0] XMIC_DBG_15_0     //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
 );
 
 
@@ -201,6 +211,16 @@ module CPU_PROC_32 (
   assign s_ioxerr_n          = IOXERR_n;
   assign s_etrap_n           = ETRAP_n;
   assign s_aluclk            = ALUCLK;
+  wire s_aluclk_en;
+  assign s_aluclk_en         = ALUCLK_EN;
+  wire s_mclk_en;
+  assign s_mclk_en           = MCLK_EN;
+  wire s_mclk_fall_en;
+  assign s_mclk_fall_en      = MCLK_FALL_EN;
+  wire s_uclk_en;
+  assign s_uclk_en           = UCLK_EN;
+  wire s_clk_en;
+  assign s_clk_en            = CLK_EN;
   assign s_map_n             = MAP_n;
   assign s_ibint13_n         = IBINT13_n;
   assign s_ibint10_n         = IBINT10_n;
@@ -315,7 +335,19 @@ module CPU_PROC_32 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  AM29841 CHIP_25F (
+  // P3 (docs/plan-fix-unconstrained-clocks.md): in FF mode the CA latch
+  // captures on posedge sysclk gated by the rise-aligned MCLK enable
+  // instead of clocking on the routed s_mclk net (mclk_Z clock root).
+`ifdef FPGA_FF_MODE
+  localparam CA_LATCH_CE = 1;
+`else
+  localparam CA_LATCH_CE = 0;
+`endif
+
+  AM29841 #(.USE_ENABLE(CA_LATCH_CE)) CHIP_25F (
+      .sysclk(sysclk),
+      .EN(s_mclk_en),
+
       // Input signals
       .D(s_csca_9_0),
       .LE(s_mclk),
@@ -334,6 +366,8 @@ module CPU_PROC_32 (
   */
   CPU_PROC_CMDDEC_34 CMDDEC (
       // Inputs
+      .sysclk(sysclk),                  // FPGA system clock
+      .CLK_EN(s_clk_en),                // CLK clock-enable pulse (FPGA_FF_MODE)
       .CGABRK_n(s_cgabrk_n),            // CPU Break Signal
       .CLK(s_clk),                      // Clock
       .CSCOMM_4_0(s_cscomm_4_0[4:0]),   // Control Store - Command
@@ -415,7 +449,16 @@ module CPU_PROC_32 (
   );
   */
   //2x RAM 2^11 addresses, Each 8-bit wide. Converted to one 16 bits wide
+  // yosys: the asynchronous read on s_idb_erf_out (assign below) cannot map
+  // to a BSRAM, and yosys treats ram_style="block" as a hard requirement
+  // ("ERROR: no valid mapping") where Vivado/Gowin EDA treat it as advisory
+  // and fall back. 2048x16 = 32 Kbit as distributed LUT RAM (~2K LUT4).
+  // yosys pre-defines YOSYS; every other flow is untouched.
+`ifdef YOSYS
+  (* ram_style = "distributed" *) reg [15:0] registerBlock[0:2047];
+`else
   (* ram_style = "block" *) reg [15:0] registerBlock[0:2047];
+`endif
 
 
   always @(posedge sysclk) // or negedge s_twrf_n)
@@ -446,6 +489,10 @@ module CPU_PROC_32 (
       .sys_rst_n(sys_rst_n), // input
 
       // Inputs
+      .ALUCLK_EN(s_aluclk_en),               // ALUCLK clock-enable pulse
+      .MCLK_EN(s_mclk_en),                   // MCLK clock-enable pulse
+      .MCLK_FALL_EN(s_mclk_fall_en),         // MCLK fall-enable pulse
+      .UCLK_EN(s_uclk_en),                   // UCLK clock-enable pulse
       .ALUCLK(s_aluclk),                     // ALU clock signal
       .BEDO_n(s_bedo_n),                     // Buffered Enable IDB "data out" from CGA
       .BEMPID_n(s_bempid_n),                 // Buffered EMPID - Interrupt Disable (EPIC.LDMPIE->set mask reg:inh all ints)
@@ -490,12 +537,17 @@ module CPU_PROC_32 (
       .LSHADOW(s_lshadow),                  // Latch Shadow Memory signal
       .PCR_1_0(s_pcr_1_0[1:0]),             // Paging Control Register 1-0
       .PIL_3_0(s_pil_3_0[3:0]),             // Current Program Level
+      .XIREQ_15_0_N(XIREQ_15_0_N),          // DEBUG: raw interrupt-request vector
+
       .PONI(s_poni),                        // Memory Management ON
       .RF_1_0(s_rf_1_0),                    // Selects microcode from ROM
       .TEST_4_0(s_test_4_0[4:0]),           // Test signals 4-0
       .TRAP_n(s_trap_n_out),                // Trap signal
       .WCS_n(s_wcs_n),                      // Write Control Store
-      .WRTRF(s_wrtrf)                       // Write Register File Strobe
+      .WRTRF(s_wrtrf),                      // Write Register File Strobe
+
+      .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
+      .XMIC_DBG_15_0(XMIC_DBG_15_0)
   );
 
 endmodule

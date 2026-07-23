@@ -15,6 +15,10 @@
 
 
 module DECODE_DGA (
+    input       sysclk,     // System clock (for F595 synchronous RS latch)
+    input       sys_rst_n,  // FPGA system reset (active-low)
+    input       XCLK_EN,      // XCLK rise clock-enable pulse (FPGA_FF_MODE, else 0)
+    input       XCLK_FALL_EN, // XCLK fall clock-enable pulse (FPGA_FF_MODE, else 0)
 
     /*******************************************************************************
    ** The inputs are defined here                                                **
@@ -348,9 +352,18 @@ module DECODE_DGA (
 
   // FIFO IN wires
   wire fifo_rst = ~s_xcl_n;
+  // P2 (docs/plan-fix-unconstrained-clocks.md): the FIFO clocks on XCLK and
+  // samples IDB - part of the CLK group. In FF mode it runs on sysclk with
+  // wr/rd gated by the aligned XCLK_EN pulse (one op per XCLK rise).
+`ifdef FPGA_FF_MODE
+  wire fifo_clk = sysclk;
+  wire fifo_wr_en = ~s_ldpanc_n & XCLK_EN;
+  wire fifo_rd_en = ~s_xrm_n & XCLK_EN;
+`else
   wire fifo_clk = s_xclk;
   wire fifo_wr_en = ~s_ldpanc_n;
   wire fifo_rd_en = ~s_xrm_n;
+`endif
 
   // FIFO OUT wires
   wire fifo_full;
@@ -380,6 +393,8 @@ module DECODE_DGA (
   // ****************************************************************************************************
 
   DECODE_DGA_POW POW (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
       // Inputs
       .BDRY50N(s_xbdn),
       .CLOSC(s_xclo),
@@ -417,6 +432,9 @@ module DECODE_DGA (
 
   // Decode SOURCE signal for IDB bus
   DECODE_DGA_IDBS IDBS (
+    // P2 clock-enable (FPGA_FF_MODE)
+    .sysclk(sysclk),
+    .CLK_EN(XCLK_EN),
     // Clock inputs
     .CLK0(s_xclk),           // Clock input 0
     .CLK1(s_xclk),           // Clock input 1
@@ -444,6 +462,10 @@ module DECODE_DGA (
 );
 
   DECODE_DGA_COMM COMM (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .CLK_EN(XCLK_EN),           //! P2 clock-enable (CLK rise, FPGA_FF_MODE)
+      .CLK_FALL_EN(XCLK_FALL_EN), //! P2 clock-enable (CLK fall, FPGA_FF_MODE)
       // Inputs
       .BRKN(s_xbrn),         //! Break signal
       .CA10(s_ca10),         //! Cache address bit 10

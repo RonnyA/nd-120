@@ -19,7 +19,7 @@ module CGA_INTR_IRSRC (
     input        EMPIDN,
     input [15:0] FIDBO_15_0,
     input        IOXERRN,
-    input        NORN,
+    input        MORN,
     input        PARERRN,
     input        POWFAILN,
     input        Z,
@@ -50,7 +50,7 @@ module CGA_INTR_IRSRC (
   wire        s_gates7_out;
   wire        s_gates9_out;
   wire        s_ioxerr_n;
-  wire        s_nor_n;
+  wire        s_mor_n;
   wire        s_parerr_n;
   wire        s_powfail_n;
   wire        s_z_n;
@@ -67,7 +67,7 @@ module CGA_INTR_IRSRC (
   assign s_bint15_n         = BINT15N;
   assign s_empid_n          = EMPIDN;
   assign s_ioxerr_n         = IOXERRN;
-  assign s_nor_n            = NORN;
+  assign s_mor_n            = MORN;
   assign s_parerr_n         = PARERRN;
   assign s_powfail_n        = POWFAILN;
   assign s_z                = Z;
@@ -254,7 +254,7 @@ module CGA_INTR_IRSRC (
       .BubblesMask(2'b11)
   ) GATES_21 (
       .input1(s_gates5_out),
-      .input2(s_nor_n),
+      .input2(s_mor_n),
       .result(s_ireq_15_0_n_out[12])
   );
 

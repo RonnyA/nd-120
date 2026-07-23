@@ -25,13 +25,26 @@ module CPU_CS_PROM_19 (
 
 
   wire [14:0] s_Address;
-  reg [15:0] regData;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) reg [15:0] regData;
 
   assign s_Address = {LUA_12_0, RF_1_0};  // Concatenate the bits to form a 15-bit address
 
   // AM27256_45132L = Contains the LO 8 bits (0-7) AM27256_45133L = Contains the HI 8 bits (8-15)
 
+  // Drop the microcode ROM arrays entirely when they are never read:
+  //  - GOWIN         : Tang Nano 20K loads microcode via SKIP_WCS_LOAD; no ROM path.
+  //  - SKIP_WCS_LOAD : the WCS is bitstream-preloaded, so the PROM->WCS runtime load
+  //                    never runs and this PROM is dead. On Xilinx this reclaims the
+  //                    ~7850 LUTs / BRAM the ROM would otherwise consume.
+  // The Verilog preprocessor has no `||`, so fold both triggers into one helper.
 `ifdef GOWIN
+  `define ND_DROP_PROM_ROM
+`endif
+`ifdef SKIP_WCS_LOAD
+  `define ND_DROP_PROM_ROM
+`endif
+
+`ifdef ND_DROP_PROM_ROM
 
 `else
 
@@ -46,19 +59,18 @@ module CPU_CS_PROM_19 (
   initial $readmemh("AM27256_45133L.hex", rom_hi);
 `endif
 
-  // Registered ROM read - clean pattern for BRAM inference.
-  // Two-stage pipeline: register address, then read data.
-  // This gives Vivado/Gowin the output register needed for BRAM.
-  reg [14:0] s_addr_reg;
+  // Registered ROM read - single stage (1 cycle latency).
+  // The microcode sequencer expects data 1 cycle after address.
+  // NOTE: Vivado may map this to LUT ROM instead of BRAM.
+  // That's OK -- correctness over BRAM savings.
 
   always @(posedge sysclk) begin
-    `ifdef GOWIN
-      // Use SPI flash for Gowin FPGAs
+    `ifdef ND_DROP_PROM_ROM
+      // ROM arrays removed (GOWIN or SKIP_WCS_LOAD): the PROM is never read.
       regData <= 0;
     `else
-      s_addr_reg    <= s_Address;
-      regData[7:0]  <= rom_lo[s_addr_reg];
-      regData[15:8] <= rom_hi[s_addr_reg];
+      regData[7:0]  <= rom_lo[s_Address];
+      regData[15:8] <= rom_hi[s_Address];
     `endif
   end
 

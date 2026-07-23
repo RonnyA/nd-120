@@ -13,6 +13,8 @@
 
 
 module F595 (
+    input sysclk,     // System clock (FPGA: used to sample S/R synchronously)
+    input sys_rst_n,  // FPGA system reset (active-low): forces latch to idle state (Q=0, Qn=1)
     input H01_S,  // Set
     input H02_R,  // Reset
     input H03_G,  // Gate Enable
@@ -23,18 +25,19 @@ module F595 (
 
   /* verilator lint_off UNOPTFLAT */
 
-  reg regQ;
-  reg regQn;
-
-  // Behavioral description of the R-S latch
-  // FPGA: edge-triggered flip-flop captures on rising edge of gate
-  // Simulation: transparent gated latch (original behavior)
+  // Start in idle/reset state: Q=0 (not set), Qn=1 (not set).
+  // Vivado maps these initial values to FF INIT attributes (respected after GSR).
+  reg regQ  = 1'b0;
+  reg regQn = 1'b1;
 
   /* verilator lint_off LATCH */
 
-`ifdef USE_TRANSPARENT_LATCHES
-  // Transparent gated latch (original behavior)
-  always @* begin
+`ifdef VERILATOR_SIM
+  // Transparent gated latch — matches real NEC F595 RS latch behavior.
+  // Required so combinatorial events (e.g. s_continue → s_conn_n → PAN_n → TVEC=016)
+  // propagate within the same clock cycle. A 1-cycle posedge delay would cause TVEC=016
+  // to miss the first FETCH step after COMM.CONTINUE, producing a wrong CSA jump.
+  always @(*) begin
     if (H03_G) begin
       if (H01_S & H02_R) begin
         regQ  = 1'b1;
@@ -46,22 +49,29 @@ module F595 (
         regQ  = 1'b1;
         regQn = 1'b0;
       end
+      // else: hold (latch behavior — neither S nor R asserted)
     end
+    // else: hold (gate closed)
   end
 `else
-  // Edge-triggered flip-flop (FPGA synthesis)
-  always @(posedge H03_G) begin
-    if (H01_S & H02_R) begin
-      regQ  <= 1'b1;
-      regQn <= 1'b1;
-    end else if (H02_R & !H01_S) begin
+  // FPGA mode: synchronous RS FF sampled on sysclk.
+  // sys_rst_n=0 forces idle (Q=0, Qn=1) so all latches start deasserted after FPGA reset.
+  always @(posedge sysclk) begin
+    if (!sys_rst_n) begin
       regQ  <= 1'b0;
       regQn <= 1'b1;
-    end else if (!H02_R & H01_S) begin
-      regQ  <= 1'b1;
-      regQn <= 1'b0;
+    end else if (H03_G) begin
+      if (H01_S & H02_R) begin
+        regQ  <= 1'b1;
+        regQn <= 1'b1;
+      end else if (H02_R & !H01_S) begin
+        regQ  <= 1'b0;
+        regQn <= 1'b1;
+      end else if (!H02_R & H01_S) begin
+        regQ  <= 1'b1;
+        regQn <= 1'b0;
+      end
     end
-    // else: hold previous value (implicit in edge-triggered flip-flop)
   end
 `endif
 

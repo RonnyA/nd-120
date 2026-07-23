@@ -16,6 +16,7 @@ module CGA_MAC (
     input sys_rst_n, // System reset in FPGA
 
     // Input signals
+    input        MCLK_EN,     //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        CSMREQ,
     input        DOUBLE,
     input        ILCSN,       //! Instruction Load Control Signal
@@ -171,6 +172,7 @@ module CGA_MAC (
     .HOLD(s_hold),
     .ICA_15_0(s_ica_15_0[15:0]),
     .MCLK(s_mclk),
+    .MCLK_EN(MCLK_EN),
     .NLCASEL(s_nlcasel),
     .PR_15_0(s_pr_15_0[15:0]),
     .PSEL(s_psel),
@@ -208,6 +210,8 @@ module CGA_MAC (
 
   CGA_MAC_PTSEL MAC_PTSEL (
       // Inputs
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .MCLK(s_mclk),
       .PONI(s_poni),
       .PTM(s_ptm),
@@ -220,6 +224,8 @@ module CGA_MAC (
 
   CGA_MAC_LASEL MAC_LASEL (
       // Inputs
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .A10(s_a10),
       .A1617(s_a1617),
       .A1619(s_a1619),
@@ -249,6 +255,8 @@ module CGA_MAC (
 
   CGA_MAC_LA1025 MAC_LA1025 (
       // Inputs
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .A10(s_a10),
       .A1617(s_a1617),
       .A1619(s_a1619),
@@ -273,6 +281,8 @@ module CGA_MAC (
 
   CGA_MAC_DECODE MAC_DECODE (
       // Inputs
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CSCOMM_4_0(s_cscomm_4_0[4:0]),
       .CSMIS_1_0(s_cmis_1_0[1:0]),
       .LCSN(s_lcs_n),

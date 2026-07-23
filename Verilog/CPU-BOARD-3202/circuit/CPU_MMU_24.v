@@ -37,6 +37,7 @@ module CPU_MMU_24 (
     input        STP,            //! Stop signal
     input        SW1_CONSOLE,    //! Switch on the console (on/off)
     input        UCLK,           //! User clock
+    input        UCLK_EN,        //! UCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        WCHIM_n,        //! Write cache inhibit
     input        WRITE,          //! Write enable
 
@@ -376,6 +377,7 @@ module CPU_MMU_24 (
     .RT_n(s_rt_n),
     .SW1_CONSOLE(s_sw1_console),
     .UCLK(s_uclk),
+    .UCLK_EN(UCLK_EN),
     .WCINH_n(s_wcinh_n),
 
     // Bus signals (in and out)

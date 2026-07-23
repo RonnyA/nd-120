@@ -1,0 +1,914 @@
+# MC68705U3 — ND-120 Front Panel Controller
+## Complete Firmware Analysis
+
+**File:** `E:/Dev/Repos/Ronny/nd-120/Code/68705/MC68705U3_35C.BIN`  
+**Ghidra Project:** `E:\Dev\Repos\Ronny\RetroGhidra\ND-120-68705-U3\`  
+**Architecture:** Motorola MC68705U3 (6805 family), 4KB ROM (0x0000–0x0FFF), 128-byte RAM (page 0)  
+**Crystal:** 4 MHz  
+**Analysis date:** 2026-04-06
+
+---
+
+## Table of Contents
+
+1. [Hardware Overview](#1-hardware-overview)
+2. [Port Assignment Summary](#2-port-assignment-summary)
+3. [Boot Sequence](#3-boot-sequence)
+4. [Timer ISR (~247 Hz)](#4-timer-isr-247-hz)
+5. [Main Loop — FIFO Command Processing](#5-main-loop--fifo-command-processing)
+6. [PANC Command Protocol — Receiving Commands](#6-panc-command-protocol--receiving-commands)
+7. [PANC Text Protocol — Writing Text to the Panel](#7-panc-text-protocol--writing-text-to-the-panel)
+8. [PANC Response Protocol — Sending Data to ND-120](#8-panc-response-protocol--sending-data-to-nd-120)
+9. [Display Update — From Characters to Shift Register](#9-display-update--from-characters-to-shift-register)
+10. [MM58274 RTC Interface](#10-mm58274-rtc-interface)
+11. [Software RTC (Timer-Driven)](#11-software-rtc-timer-driven)
+12. [CPU Performance Monitoring (Port D)](#12-cpu-performance-monitoring-port-d)
+13. [PRES / MIPANS / IDB:15 Hardware Path](#13-pres--mipans--idb15-hardware-path)
+14. [RAM Layout](#14-ram-layout)
+15. [ROM Data Tables](#15-rom-data-tables)
+16. [Interrupt Vectors](#16-interrupt-vectors)
+17. [Corrections to Existing Analysis Documents](#17-corrections-to-existing-analysis-documents)
+
+---
+
+## 1. Hardware Overview
+
+The MC68705U3 (chip 44A) is the dedicated front-panel controller for the ND-120 minicomputer. It sits between the Delilah DGA (Gate Array) CPU and the 3202D CBP (Control Board Panel), performing:
+
+- Reception and dispatch of PANC commands from the ND-120 CPU via the IDB FIFO
+- Display update: 4-character text output to 5 × 7-segment digits via Port C serial shift register chain
+- Software real-time clock (seconds → minutes → hours → days → months → years)
+- MM58274 hardware RTC read-at-boot for clock seeding
+- CPU performance monitoring: samples Port D ~247 times/second, builds utilization histograms
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                        ND-120 SYSTEM                             │
+│                                                                  │
+│  ┌──────────────┐   IDB[15:0]   ┌──────────────────────────┐   │
+│  │  Delilah DGA │◄─────────────►│  3202D CBP Board         │   │
+│  │  (CPU)       │               │  ┌────────────────────┐   │   │
+│  └──────────────┘               │  │ 74LS374 (32B) Latch │   │   │
+│          │ /EMP (FIFO rdy)      │  │ IDB[7:0] ↔ PA[7:0] │   │   │
+│          │ IDBS.MIPANS (20ms)   │  └────────────────────┘   │   │
+│          │                      │                            │   │
+│          │                      │  ┌────────────────────┐   │   │
+│          ▼                      │  │  MC68705U3 (44A)   │   │   │
+│       IDB Bus                   │  │  Panel Controller  │   │   │
+│          │                      │  └────────────────────┘   │   │
+│          │                      └──────────────────────────┘   │
+│          │                                                       │
+│       74LS244                                                    │
+│       IDB:15 ← PRES ← 74F04 inv ← PB7 (always 0)               │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 2. Port Assignment Summary
+
+### Port A — IDB Data Bus (Bidirectional)
+
+| Mode | DDRA | PA[7:0] Function |
+|------|------|-----------------|
+| Normal (command rx) | `0x00` (all input) | Receives IDB[7:0] data from 74LS374 latch via WMM strobe |
+| Response (data tx) | Modified per output | Drives IDB[7:0] back to ND-120 CPU |
+| RTC access (boot) | `0xF0` (upper=out, lower=in) | PA[7:4]=RTC register address, PA[3:0]=RTC data nibble read-back |
+
+### Port B — Control Signals (Output, DDRB=0xFF, init=0x2F = 0b00101111)
+
+There are **three distinct IDB strobe signals** on Port B, serving different directions. This is critical to understand:
+
+| Bit | Signal | Direction | Function |
+|-----|--------|-----------|----------|
+| PB0 | /WMM → 74LS374 CK | **Panel → ND-120** | Single-byte IDB write strobe. Rising edge latches PA[7:0] into 74LS374 → IDB[7:0]. Used by `Output_Response_To_ND120_IDB` (0x09C5). |
+| PB1 | IDB multi-byte strobe | **Panel → ND-120** | Time-packet IDB write strobe. Same latching action as PB0 but used exclusively for the multi-byte RTC time packet. Used by `Output_Status_Code_1_To_ND120` (0x09EE). Also confirmed as /WRCLK for MM58274 (hardware schematic). |
+| PB2 | /ROCLK | MM58274 only | MM58274 read clock / CS strobe (used in boot RTC init at 0x0AC0). |
+| PB3 | State flag | Internal | Mode/direction state flag |
+| PB4 | WMM FIFO strobe | **ND-120 → Panel** | Clock to advance FIFO and read next byte into PA. Used by `Strobe_WMM_Read_From_FIFO` (0x09BC). Opposite direction to PB0/PB1. |
+| PB5 | Sync control | Internal | Timer sync / IDB transaction state flag |
+| PB6 | RTC mode | Internal | Set during RTC reinit operations |
+| PB7 | PRES source | Hardware only | Permanently driven 0. Inverted by 74F04 (13G) → PRES=1 always → IDB:15=1 via 74LS244 |
+
+> **PB0 vs PB4 — do not confuse these:** PB4 reads bytes FROM the ND-120 (FIFO→PA). PB0 writes bytes TO the ND-120 (PA→74LS374→IDB). They are opposite directions on the same data bus.
+
+> **PB0 initial state = 1 (HIGH = /WMM deasserted).** The strobe fires as a LOW pulse: PB0 goes LOW then immediately HIGH. The 74LS374 latches PA on the **rising edge** (PB0 going HIGH).
+
+> **PB7 hardware path:** PB7=0 → 74F04 inverter (13G) → PRES=1 → 74LS244 → IDB:15=1 when ND-120 asserts IDBS.MIPANS. The panel MCU never controls this value; MIPANS is asserted by ND-120 microcode MS20 every ~20ms to latch PRES into IDB:15.
+
+### Port C — Display Shift Register Chain (Output, DDRC=0xFF, init=0xF8)
+
+| Bit | Signal | Function |
+|-----|--------|----------|
+| PC[2:0] | Reserved/low | Held low (init 0xF8 = 1111 1000) |
+| PC3 | DISP1 | Bit for display digit 1 (serial shift chain) |
+| PC4 | DISP2 | Bit for display digit 2 |
+| PC5 | DISP3 | Bit for display digit 3 |
+| PC6 | DISP4 | Bit for display digit 4 |
+| PC7 | DISP5 | Bit for display digit 5 (rightmost) |
+
+Port C is the serial shift register output. All 5 display bits are clocked simultaneously for each bit position of the display bitmap.
+
+### Port D — ND-120 CPU Status Monitoring (Input, DDRD=0x00)
+
+| Bit | Signal | Function |
+|-----|--------|----------|
+| PD0 | PCR Ring[0] | CPU ring level bit 0 |
+| PD1 | PCR Ring[1] | CPU ring level bit 1 |
+| PD2 | PONI | Memory Protection ON (from ND-120) |
+| PD3 | IONI | Interrupt system ON (from ND-120) |
+| PD4 | Reserved | — |
+| PD5 | Reserved | — |
+| PD6 | LHIT | Load hit / cache hit indicator |
+| PD7 | /EMP | FIFO data ready (active low in hardware; seen as 1=data available in code) |
+
+---
+
+## 3. Boot Sequence
+
+Entry point: **0x0110** (reset vector at 0x0FFE)
+
+```mermaid
+flowchart TD
+    A[Reset / Power-on\n0x0110] --> B[Clear RAM\n0x10–0x8F = 128 bytes zeroed]
+    B --> C[Init timing counters\n0x5B=16, 0x5C=200, 0x5D=2\n0x1B=0x80 enable monitoring]
+    C --> D[Configure ports\nDDRA=0 input\nPORTB=0x2F, DDRB=0xFF output\nPORTC=0xF8, DDRC=0xFF output\nDDRD=0x00 input]
+    D --> E[Initialize MM58274 RTC\n0x0AC0: read year/month/day/hour/min\nSeed software RTC counters\n0x20=year, 0x21=month, 0x22=day\n0x23=hour, 0x24=min, 0x25=sec]
+    E --> F[Start timer\nTCR=0x35 TOIE+prescaler/32\nTDR=3 reload\nMR=0x7F\n→ ~247 Hz timer ISR enabled]
+    F --> G[Clear system_config 0x1A = 0]
+    G --> H[Main Loop\nsee section 5]
+```
+
+**Timer rate calculation:**
+
+The timer uses an external clock input with /32 prescaler, reload value TDR=3. With the ND-120 board clock feeding the 68705 timer input:
+
+- TCR=0x35: TOIE=1 (timer overflow interrupt enable), prescaler=/32, external clock
+- Actual measured rate ≈ **247 Hz** (the function was originally named `Timer_1200Hz` but the naming was incorrect)
+
+---
+
+## 4. Timer ISR (~247 Hz)
+
+Entry point: **0x08C8** (timer vector at 0x0FF8)
+
+```mermaid
+flowchart TD
+    ISR[Timer ISR\n0x08C8] --> A[Reload TDR=3\nClear TIF bit 7 of TCR]
+    A --> B[Sample_ND120_CPU_Status_Signals\n0x09D4\nPORTD → RAM 0x19\nLEV0/LEV1/LHIT via PD bits]
+    B --> C[Update_CPU_Ring_PONI_IONI_Statistics\n0x06B2\nUpdate LED latch 0x60 from 0x19]
+    C --> D{0x1B bit1 set?\nLHIT monitor active}
+    D -->|yes| E[Update LHIT display\n0x0985]
+    D -->|no| F
+    E --> F[DEC 0x5B\nshift-prescaler counter]
+    F --> G{0x5B == 0?}
+    G -->|yes| H[Shift_CPU_Utilization_History_Buffer\n0x0948\nReload 0x5B=16]
+    G -->|no| I[DEC 0x5C\n200-tick prescaler]
+    H --> I
+    I --> J{0x5C == 0?}
+    J -->|no| K[RTI]
+    J -->|yes| L[Reload 0x5C=200\nDEC 0x5D half-second divider]
+    L --> M{0x5D == 0?}
+    M -->|no| K
+    M -->|yes| N[Reload 0x5D=2\nIncrement_Software_RTC_Counters\n0x08F9]
+    N --> K
+```
+
+**Timer tick chain summary:**
+
+| Counter | Reload | Fires every | Action |
+|---------|--------|-------------|--------|
+| 0x5B | 16 | 16 ticks ≈ 65ms | Shift CPU utilization history buffer |
+| 0x5C | 200 | 200 ticks ≈ 810ms | Outer prescaler |
+| 0x5D | 2 | 2 × 810ms ≈ 1.62s | Software RTC tick (1 second) |
+
+> **Note:** The 1-second tick fires every ~1.62 seconds in practice, not every 1.0 second. This is because 247Hz × 16 × 200 × 2 = 1,580,800 ticks per second (counter rolls before perfect alignment). For wall-clock accuracy, the software RTC will drift; only the MM58274 hardware RTC was accurate for time-keeping.
+
+---
+
+## 5. Main Loop — FIFO Command Processing and /EMP Signal
+
+After boot, the MCU enters an infinite polling loop at the end of `Init_And_Main_Loop` (0x0110+).
+
+### /EMP (PD7) — The Central Trigger
+
+`/EMP` is the FIFO "data ready" signal driven by the 3202D CBP board hardware. It appears on **Port D bit 7** (PD7). The MCU sees PD7=1 when the FIFO has a command byte ready to be read.
+
+> **Critical:** /EMP is NOT an interrupt. The MCU polls PD7 at two specific points in its loop (see scenarios below). The timer ISR does NOT check PD7.
+
+**IDB read path** (when PD7=1, MCU reads a byte):
+
+```
+0x09BC: Strobe_WMM_Read_From_FIFO
+  SEI                    ; protect the bus transaction
+  BCLR PB3              ; PB3 LOW  → enable read direction (IDB→PA buffer active)
+  A = PORTA             ; read byte from PA (driven from IDB/FIFO output)
+  BSET PB3              ; PB3 HIGH → disable read direction buffer
+  CLI
+  RTS
+```
+
+PB3 controls the direction buffer that gates IDB[7:0] onto PA[7:0] for reading. PB4 is used separately to advance/prime the FIFO before reading.
+
+---
+
+### Scenario A — /EMP asserted while MCU is idle (waiting for first command)
+
+This is the **normal wakeup path**. The MCU loops at 0x014E–0x0161, repeatedly pulsing PB4 (WMM strobe to prime FIFO) and then polling PD7 up to 255 times before pulsing again.
+
+```mermaid
+flowchart TD
+    IDLE[Main loop idle\n0x014E] --> T[Load timeout = 255\nRAM 0x1F = 0xFF]
+    T --> P4[Pulse PB4 HIGH then LOW\nWMM strobe: advance FIFO\noutput byte onto IDB]
+    P4 --> CHK{BRSET 7,PORTD\nPD7 == 1?\n/EMP asserted?}
+    CHK -->|no: FIFO empty| DEC[DEC RAM 0x1F\ntimeout--]
+    DEC --> ZRO{timeout == 0?}
+    ZRO -->|no: keep waiting| CHK
+    ZRO -->|yes: re-prime FIFO| IDLE
+    CHK -->|yes: FIFO has data| CMD[JSR 0x04D8\nProcess_PANC_Command_From_FIFO\nread command byte via PB3]
+    CMD --> DISP[Run full display pipeline\nclear bitmap → ROM lookup →\n3-pass bit merge → Port C serialize]
+    DISP --> SYNC[Wait TDR==3\ntimer sync point]
+    SYNC --> XCHG[Exchange CPU stats with ND-120\nvia IDB]
+    XCHG --> EMP2{BRSET 7,PORTD\nPD7 still == 1?}
+    EMP2 -->|yes → Scenario B| CMD
+    EMP2 -->|no| DLY[Inter-command delay\n32×10 = 320 cycles]
+    DLY --> IDLE
+```
+
+---
+
+### Scenario B — /EMP asserted immediately after command completes (back-to-back)
+
+At address **0x01A2**, after every full command+display cycle, PD7 is checked again **before** the inter-command delay. If the FIFO already has the next command loaded, the MCU re-enters command processing immediately without delay.
+
+```mermaid
+flowchart TD
+    PREV[Previous command + display cycle complete\n0x019D–0x01A1] --> CHK2{BRSET 7,PORTD 0x01A2\nPD7 == 1?\n/EMP still asserted?}
+    CHK2 -->|yes: more data in FIFO| FAST[Jump directly to 0x0161\nJSR 0x04D8\nread next command — NO DELAY]
+    FAST --> DISP2[Display pipeline\nfor new command]
+    DISP2 --> SYNC2[Timer sync]
+    SYNC2 --> XCHG2[CPU stats exchange]
+    XCHG2 --> CHK2
+    CHK2 -->|no: FIFO now empty| DLY2[Inter-command delay\n320 cycles\n0x01A5–0x01B1]
+    DLY2 --> IDLE2[Return to idle polling\nJMP 0x014E]
+```
+
+---
+
+### Combined /EMP State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> IDLE: Boot complete
+
+    IDLE: Idle — polling PD7\nPulse PB4 every 255 checks
+    IDLE --> CMD_ACTIVE: PD7=1 (/EMP asserted)\n→ jump to 0x0161
+
+    CMD_ACTIVE: Command active\nReading FIFO bytes via PB3\nRunning display pipeline
+    CMD_ACTIVE --> CMD_ACTIVE: PD7=1 at 0x01A2\n(back-to-back, no delay)
+    CMD_ACTIVE --> DELAY: PD7=0 at 0x01A2\n(FIFO drained)
+
+    DELAY: Inter-command delay\n320 CPU cycles
+    DELAY --> IDLE: JMP 0x014E
+```
+
+---
+
+### PB3 vs PB4 — Receive-side strobe distinction
+
+| Pin | When used | What it does |
+|-----|-----------|-------------|
+| **PB4** | Main idle loop (0x0152–0x0155) | Pulses WMM strobe HIGH→LOW to advance/prime FIFO, present byte on IDB |
+| **PB3** | Inside every `Strobe_WMM_Read_From_FIFO` (0x09BC) | Gates IDB[7:0] → PA[7:0] read direction buffer; MCU reads PORTA while PB3 is LOW |
+
+PB4 fires first (once per timeout cycle) to tell the FIFO to output the next byte. PB3 fires each time the MCU actually reads a byte. For a 5-byte command, PB4 fires once and PB3 fires 5 times.
+
+---
+
+### Main loop — complete flow
+
+```mermaid
+flowchart TD
+    START[Main loop entry\n0x014E] --> A[Timeout = 255\n0x001F = 0xFF]
+    A --> B[SEI\nPB4 HIGH→LOW\nWMM FIFO strobe\nCLI]
+    B --> C{PD7 == 1?\n0x0158: BRSET 7,PORTD}
+    C -->|no| D[DEC 0x001F]
+    D --> E{== 0?}
+    E -->|no| C
+    E -->|yes: re-prime| START
+    C -->|yes| F[0x0161: JSR 0x04D8\nRead cmd byte via PB3\nDispatch cmd 0–7 or time response]
+    F --> G[Clear bitmap 0x27–0x46]
+    G --> H[Load char ROM → 0x52–0x59\n0x01B4: Load_Display_Character_Data_From_ROM]
+    H --> I[Display merge pass 1\nmask=0x40, shift=4\n0x0479]
+    I --> J[Format 7-seg patterns\n0x01ED]
+    J --> K[Display merge pass 2\nmask=0x20, shift=2\n0x0479]
+    K --> L[Alt display decode\n0x037B]
+    L --> M[Display merge pass 3\nmask=0x10, shift=1\n0x0479]
+    M --> N[PB5 LOW\nWait TDR==3\ntimer just reloaded]
+    N --> O[SEI\nJSR 0x04A7\nClock 30 bitmap bytes to Port C\nCLI]
+    O --> P{PD7 == 1?\n0x01A2: BRSET 7,PORTD}
+    P -->|yes: more cmds| F
+    P -->|no| Q[Inter-command delay\n32 × 10 cycles = 320]
+    Q --> START
+```
+
+---
+
+## 6. PANC Command Protocol — Receiving Commands
+
+### Transport Layer
+
+The ND-120 CPU sends commands by filling the FIFO hardware on the 3202D CBP board. The FIFO signals readiness on PD7 (/EMP). The MC68705 reads bytes one at a time using the WMM strobe (PB4).
+
+**`Strobe_WMM_Read_From_FIFO` (0x09BC):**
+1. Assert WMM strobe: `BCLR 0x4, PortB` (PB4 LOW)
+2. Read Port A: `LDA PORTA`
+3. Deassert WMM strobe: `BSET 0x4, PortB` (PB4 HIGH)
+4. Return byte in A
+
+### Command Byte Format
+
+```
+ Bit:  7   6   5   4   3   2   1   0
+      ┌───┬───┬───┬───┬───┬───┬───┬───┐
+      │ X │ X │ X │ X │DIR│ CMD[2:0]  │
+      └───┴───┴───┴───┴───┴───┴───┴───┘
+```
+
+| Bit | Name | Value=0 | Value=1 |
+|-----|------|---------|---------|
+| 3 (DIR) | Direction | ND-120 requests data FROM panel (time/status output) | ND-120 sends data TO panel (display/config) |
+| [2:0] (CMD) | Command type | — | 0–7 |
+
+**Dispatch logic (0x04D8–0x04EA):**
+```asm
+JSR  Strobe_WMM_Read_From_FIFO   ; A = command byte
+STA  0x001C                       ; store in RAM[0x1C]
+BRSET 3, 0x001C, dispatch_write   ; bit3=1: config/display command
+JMP  Output_RTC_Time_Data_To_ND120 ; bit3=0: ND-120 wants time data
+dispatch_write:
+LDA  0x001C
+AND  #7                           ; A = cmd[2:0]
+ASLA / ASLA                       ; ×4 (3-byte JMP entries)
+TAX
+JMP  0x04FC,X                     ; indexed jump into command table
+```
+
+### Command Jump Table (0x04FC)
+
+| cmd[2:0] | Full byte | Jump target | Description | Input bytes |
+|----------|-----------|-------------|-------------|-------------|
+| 0 | `0x08` | 0x051B | SET_DISPLAY_DATA — set 5 time/display registers | 5 |
+| 1 | `0x09` | 0x0575 | SET_TIME_DISPLAY — 4 bytes → time display regs 0x15–0x18 | 4 |
+| 2 | `0x0A` | 0x0594 | SET_PERF_DISPLAY — enable performance mode, 2 params | 2 |
+| 3 | `0x0B` | 0x05C3 | SET_EXT_DISPLAY — 3 bytes → extended display mode | 3 |
+| 4 | `0x0C` | 0x05DF | SET_CHAR_DISPLAY — 1 byte index → ROM character lookup | 1 |
+| 5 | `0x0D` | 0x0608 | SET_CONFIG — 1 byte → RAM[0x1A] configuration flags | 1 |
+| 6 | `0x0E` | 0x0610 | SET_CHAR_INDICES — 4 bytes directly → display char buffer | 4 |
+| 7 | `0x0F` | 0x0627 | SET_FORMAT_FLAGS — 2 bytes; 0x4X = soft reset | 2 |
+
+---
+
+## 7. PANC Text Protocol — Writing Text to the Panel
+
+This section directly answers: **how does the ND-120 CPU write text to the front panel?**
+
+### Method 1: Direct Character Write — Command 6 (`0x0E`)
+
+This is the primary "write text" command. The ND-120 sends 5 bytes total:
+
+```
+Byte 0:  0x0E        Command byte (bit3=1, cmd=6)
+Byte 1:  char1_idx   → stored at RAM[0x11]
+Byte 2:  char0_idx   → stored at RAM[0x10]
+Byte 3:  char3_idx   → stored at RAM[0x13]
+Byte 4:  char2_idx   → stored at RAM[0x12]
+```
+
+> **Note:** The byte order is NOT sequential left-to-right. The order received is: pos1, pos0, pos3, pos2. This is confirmed by the disassembly at 0x0610–0x0624.
+
+```asm
+; 0x0610: Command 6 handler
+JSR  Strobe_WMM_Read_From_FIFO  ; read byte 1
+STA  0x0011                      ; → display position 1
+JSR  Strobe_WMM_Read_From_FIFO  ; read byte 2
+STA  0x0010                      ; → display position 0
+JSR  Strobe_WMM_Read_From_FIFO  ; read byte 3
+STA  0x0013                      ; → display position 3
+JSR  Strobe_WMM_Read_From_FIFO  ; read byte 4
+STA  0x0012                      ; → display position 2
+JMP  0x04ED                      ; → post-command processing
+```
+
+**Display position layout:**
+```
+Panel: [pos0][pos1][pos2][pos3][pos4]
+                                 ^--- pos4 is the performance/status digit (not set by cmd6)
+RAM:  [0x10][0x11][0x12][0x13]
+```
+
+**Character index encoding:**
+The values stored in RAM[0x10–0x13] are **7-segment pattern indices**, not raw ASCII. They are looked up through the character ROM at 0x0D22. Values 0x10–0x13 were observed as standard character indices. The actual 7-segment encoding table starts at ROM 0x0CF8 with digit patterns at offset +0x10.
+
+**Character ROM (ROM 0x0D22):**
+- 2-byte entries per character
+- Indexed by value in RAM[0x10–0x13]
+- Used for symbolic characters like letters ('P', 'E', 'X', 'M', 'T', etc.)
+
+### Method 2: ROM Character Select — Command 4 (`0x0C`)
+
+Selects from 4 predefined character pairs stored in ROM. The ND-120 sends 2 bytes:
+
+```
+Byte 0:  0x0C        Command byte (bit3=1, cmd=4)
+Byte 1:  sel         Selection byte:
+                     bits[1:0] → index into ROM table at 0x0D12 → RAM[0x12],[0x13]
+                     bits[4:3] → index into ROM table at 0x0D1A → RAM[0x10],[0x11]
+```
+
+### Method 3: Status/Time Command — Command 0 (`0x08`)
+
+Sets predefined messages based on system mode:
+
+```
+Byte 0:  0x08        Command byte (bit3=1, cmd=0)
+Bytes 1–5:           5 time/date bytes → RAM[0x14–0x18]
+
+Result in display buffer:
+  Normal mode (RAM[0x1A] bit2=0):  RAM[0x10..0x13] = 'P','E','X','M'  → shows "PEXM"
+  Test mode   (RAM[0x1A] bit2=1):  RAM[0x10..0x13] = 'P','T', 0, ##   → shows "PT##"
+```
+
+### Display Update Sequence (after any command)
+
+Once RAM[0x10–0x13] are updated, the main loop triggers the display pipeline on the next iteration:
+
+```mermaid
+sequenceDiagram
+    participant ND120 as ND-120 CPU
+    participant FIFO as FIFO Hardware
+    participant MCU as MC68705U3
+    participant DISP as Display Panel
+
+    ND120->>FIFO: Write 0x0E (cmd6)
+    ND120->>FIFO: Write char1_idx
+    ND120->>FIFO: Write char0_idx
+    ND120->>FIFO: Write char3_idx
+    ND120->>FIFO: Write char2_idx
+    FIFO-->>MCU: Assert /EMP (PD7=1)
+    MCU->>FIFO: WMM strobe (PB4) × 5 reads
+    MCU->>MCU: Store in RAM[0x10–0x13]
+    MCU->>MCU: Look up 7-seg patterns (ROM 0x0CF8/0x0D22)
+    MCU->>MCU: Build 32-byte bitmap (RAM 0x27–0x46)
+    MCU->>DISP: Serialize bitmap to PC3–PC7\n(5 bits per clock cycle via shift registers)
+```
+
+---
+
+## 8. PANC Response Protocol — Sending Data to ND-120
+
+When command byte has **bit3=0**, the ND-120 is requesting data from the panel controller. Entry: **0x06BE** `Output_RTC_Time_Data_To_ND120`.
+
+### IDB Write Strobe Summary
+
+There are two separate Port B pins used to write data to IDB[7:0], never active at the same time:
+
+| Strobe | Pin | Function | Code |
+|--------|-----|----------|------|
+| Single-byte response | **PB0** | One byte → 74LS374 → IDB[7:0] | 0x09C5 `Output_Response_To_ND120_IDB` |
+| Multi-byte time packet | **PB1** | Each byte of 18-byte packet → 74LS374 → IDB[7:0] | 0x09EE `Output_Status_Code_1_To_ND120` |
+
+Both use the **same hardware path**: PA[7:0] → 74LS374 D[7:0] → IDB[7:0]. Only the strobe pin differs.
+
+---
+
+### PB0 → /WMM → 74LS374 CK → IDB[7:0] — Detailed Path
+
+#### Hardware chain
+
+```
+MC68705 PB0
+    │  (active-low pulse: HIGH→LOW→HIGH)
+    ▼
+/WMM signal on 3202D CBP board
+    │
+    ▼
+74LS374 (32B) — octal D-type flip-flop, positive-edge triggered CK
+    │  D[7:0] ← PA[7:0] from MC68705 Port A
+    │  CK ← /WMM (latches on RISING EDGE when /WMM goes HIGH)
+    │  /OE — output always enabled toward IDB
+    ▼
+IDB[7:0] — Internal Data Bus to ND-120 CPU
+```
+
+#### Exact code sequence at 0x09C5 (`Output_Response_To_ND120_IDB`)
+
+```asm
+09c5: SEI              ; disable interrupts — protect the atomic IDB transaction
+09c6: STA 0x0000       ; PA output latch = data byte (DDRA still 0x00, pins still tristate)
+09c8: LDA #0xFF
+09ca: STA 0x0004       ; DDRA = 0xFF → enable PA output drivers → data now on PA pins
+09cc: BCLR 0x0, 0x0001 ; PB0 LOW  → /WMM falls (hold time: data stable on PA)
+09ce: BSET 0x0, 0x0001 ; PB0 HIGH → /WMM rises → 74LS374 CK RISING EDGE → LATCH PA→IDB
+09d0: CLR 0x0004       ; DDRA = 0x00 → tristate PA (release IDB bus)
+09d2: CLI              ; re-enable interrupts
+09d3: RTS
+```
+
+> **Write order matters:** Data is written to the PA output latch BEFORE DDRA is set to output. This prevents a glitch where partially-settled data could appear on the bus. The sequence is: latch data (tristate) → enable drivers → strobe → release.
+
+#### When does PB0 fire?
+
+PB0 fires **only** when a command with **bit3=0 AND bit2=1** is received — meaning the ND-120 is requesting a data response. It does **not** fire during any display/config command (bit3=1).
+
+```
+Command byte decode (0x06BE):
+  bit3 = 0  → ND-120 wants data back from panel
+  bit2 = 1  → address is valid (if bit2=0: early RTS, no output)
+  bit5 = 0  → standard read path → PB0 fires once (then PB1 for time packet if addr=0)
+  bit5 = 1  → RTC reinit path → PB0 fires once only
+```
+
+```mermaid
+sequenceDiagram
+    participant ND120 as ND-120 CPU
+    participant FIFO as FIFO Hardware
+    participant MCU as MC68705U3
+    participant PA as Port A (PA[7:0])
+    participant PB0 as PB0 (/WMM)
+    participant LS374 as 74LS374 (32B)
+    participant IDB as IDB[7:0]
+
+    ND120->>FIFO: Write command (bit3=0, bit2=1)
+    FIFO-->>MCU: /EMP asserted → PD7=1
+    MCU->>FIFO: PB4 strobe → read command byte into A
+    MCU->>FIFO: PB4 strobe → read address/confirm byte into A
+    Note over MCU: Build response byte in A
+    MCU->>MCU: SEI (disable interrupts)
+    MCU->>PA: STA 0x0000 → data into PA latch (pins tristate, DDRA=0)
+    MCU->>PA: DDRA=0xFF → PA pins drive bus
+    MCU->>PB0: BCLR → PB0 LOW (/WMM falls)
+    MCU->>PB0: BSET → PB0 HIGH (/WMM rises ↑)
+    PB0->>LS374: Rising edge on CK
+    LS374->>IDB: Q[7:0] latched from D[7:0]=PA[7:0]
+    MCU->>PA: DDRA=0 → PA tristate (IDB released)
+    MCU->>MCU: CLI (re-enable interrupts)
+    alt address field == 0
+        Note over MCU,IDB: Follow-up: full 18-byte time packet via PB1 strobe
+        loop 18 bytes
+            MCU->>PA: PA = next_time_byte
+            MCU->>PB0: PB1 LOW then PB1 HIGH → latch
+            LS374->>IDB: Q[7:0] = next byte
+        end
+    end
+```
+
+---
+
+### Full Time Packet (0x09EE) — PB1 Strobe
+
+`Output_Status_Code_1_To_ND120` uses **PB1** (not PB0) to strobe each byte. The hardware path is identical (PA → 74LS374 → IDB) but the strobe pin differs:
+
+```asm
+; Pattern repeated for each of 18 bytes:
+STA  0x0000          ; PA = data byte (DDRA already 0xFF, set once at entry)
+BCLR 0x1, 0x0001     ; PB1 LOW  → strobe falls
+BSET 0x1, 0x0001     ; PB1 HIGH → strobe rises → 74LS374 latches → IDB updated
+```
+
+**Packet format** (sent in this order via IDB[7:0]):
+
+| Byte | PA value | Content |
+|------|----------|---------|
+| 0 | `0x0F` | Header nibble 1 |
+| 1 | `0xF0` | Header nibble 2 |
+| 2 | `0x05` | Command code (RTC time packet) |
+| 3 | `0xF1 \| (leap_cycle & 3) << 2` | Flags + leap year indicator |
+| 4 | `ROM[0x0E44 + year×2] \| 0xD0` | Year high digit + 0xD0 tag |
+| 5 | `ROM[0x0E44 + year×2 + 1] \| 0xC0` | Year low digit + 0xC0 tag |
+| 6 | `ROM[0x0E44 + month×2] \| 0xB0` | Month high digit |
+| 7 | `ROM[0x0E44 + month×2 + 1] \| 0xA0` | Month low digit |
+| 8 | `ROM[0x0E44 + day×2] \| 0x90` | Day high digit |
+| 9 | `ROM[0x0E44 + day×2 + 1] \| 0x80` | Day low digit |
+| 10 | `ROM[0x0E44 + hour×2] \| 0x70` | Hour high digit |
+| 11 | `ROM[0x0E44 + hour×2 + 1] \| 0x60` | Hour low digit |
+| 12 | `ROM[0x0E44 + min×2] \| 0x50` | Minute high digit |
+| … | … | (continues through seconds) |
+
+Each field is tagged with a high-nibble identifier (0xD0=year, 0xC0=year-low, 0xB0=month, etc.) so the ND-120 can parse the packet independently of byte position.
+
+All data sourced from **software RTC counters** (RAM 0x20–0x26), not the MM58274 hardware after boot.
+
+---
+
+## 9. Display Update — From Characters to Shift Register
+
+### Overview
+
+The display has 5 digits (DISP1–DISP5). Each digit is a 7-segment display. The MC68705 drives all 5 simultaneously through a **serial shift register chain** on PC3–PC7.
+
+### Step 1: Character ROM Lookup
+
+Characters in RAM[0x10–0x13] are used as indices. For octal-mode (standard numerics from RAM[0x16–0x18]), each 3-bit octal digit is extracted and looked up in the 7-segment pattern ROM:
+
+```asm
+; Extract 3-bit octal digit from packed data in RAM[0x18]
+AND  #0x7        ; A = 3-bit nibble (0–7)
+ADD  #0x10       ; A += 0x10 (offset into 7-seg table)
+TAX
+LDA  0xCF8,X    ; load 7-seg pattern from ROM
+STA  0x0059      ; store in display work buffer
+```
+
+**7-segment pattern ROM (0x0CF8):**
+- 32 entries total (0x00–0x1F)
+- Digits 0–7 at offsets 0x10–0x17
+- Letters and symbols at other offsets
+- Custom encoding (not standard 7-seg BCD)
+
+### Step 2: 3-Pass Bit Merge into Bitmap
+
+The patterns are merged into the 32-byte display bitmap (RAM 0x27–0x46) in three passes, each using a different mask/shift:
+
+| Pass | Mask | Shift | Port C bits affected |
+|------|------|-------|---------------------|
+| 1 | 0x40 | 4 | DISP4, DISP5 |
+| 2 | 0x20 | 2 | DISP2, DISP3 |
+| 3 | 0x10 | 1 | DISP1 |
+
+`Process_7Segment_Display_Bit_Manipulation` extracts each bit from the 7-seg patterns and places it into the correct position within the 32-byte bitmap corresponding to the serial shift timing.
+
+### Step 3: Serialize to Port C
+
+`Update_RTC_Interface` (called mid-main-loop) serializes the 32-byte bitmap by clocking bits through PC3–PC7:
+
+```
+For each bit position (0–31):
+  PC[7:3] = bitmap_byte[bit_pos][4:0]  (5 display bits simultaneously)
+  PC[2:0] = unchanged (held 0)
+  → rising edge of clock shifts all 5 bits into display shift registers
+```
+
+This means for each clock cycle, one bit column of all 5 displays is shifted in simultaneously. After 32 clocks, all 5 × 7-segment digits are fully loaded.
+
+```mermaid
+sequenceDiagram
+    participant CPU68705 as MC68705
+    participant PC as Port C (PC3..PC7)
+    participant SR as Shift Register Chain
+    participant D1 as DISP1
+    participant D5 as DISP5
+
+    loop 32 clock cycles
+        CPU68705->>PC: Write bitmap byte (5 bits for DISP1–5)
+        PC->>SR: Clock edge → shift all 5 bits in
+    end
+    SR->>D1: Latch DISP1 segments
+    SR->>D5: Latch DISP5 segments
+```
+
+---
+
+## 10. MM58274 RTC Interface
+
+The MM58274 is an external hardware RTC chip. It is **only read at boot** to seed the software RTC. The MC68705 does not write to it during normal operation.
+
+### Hardware Connection
+
+| MC68705 Pin | Signal | MM58274 Pin | Description |
+|-------------|--------|-------------|-------------|
+| PA[7:4] | Address out | A[3:0] | Register address (upper nibble of Port A) |
+| PA[3:0] | Data in | D[3:0] | Data nibble read-back (lower nibble of Port A) |
+| PB2 | /ROCLK | /RD | Read clock (active low pulse) — **confirmed from code** |
+| PB1 | /WRCLK | /WR | Write clock (active low pulse) — **confirmed from hardware schematic** |
+
+> **Note on PB1/PB2:** The boot init code at 0x0AC0 uses PB2 for all visible MM58274 accesses (both address setup write and data read-back). PB1 usage was not observed in the disassembled init code. The user-confirmed schematic has PB1=/WRCLK and PB2=/ROCLK. It is possible that the firmware uses PB2 for a combined CS/ROCLK function while PB1 is used for any write operations (not visible in the boot-only RTC init, which primarily reads). **Treat PB1=/WRCLK as hardware-confirmed, PB2=/ROCLK as code-confirmed.**
+
+### MM58274 Read Protocol (from boot code 0x0AC0)
+
+```
+DDRA = 0xF0          ; PA[7:4] = output, PA[3:0] = input
+
+; For each RTC register read:
+PA = (reg_addr << 4) ; set address in upper nibble, lower nibble don't-care
+BCLR PB2             ; /ROCLK LOW — assert read strobe
+A = PORTA            ; read data nibble from PA[3:0]
+BSET PB2             ; /ROCLK HIGH — deassert read strobe
+A &= 0x0F            ; mask to 4-bit data nibble
+```
+
+### Register Read Sequence at Boot (0x0AC0)
+
+The init reads from these MM58274 registers:
+
+| PA value | Reg addr (PA[7:4]) | Contents seeded to |
+|----------|--------------------|--------------------|
+| 0xF0 | 0xF = Leap-year control | RAM[0x26] = leap-year cycle (0=leap year, 1/2/3=non-leap) |
+| 0xC0 | 0xC = Year tens BCD | Used to build binary year |
+| 0xD0 | 0xD = Year units BCD | Combined with tens → RAM[0x20] = binary year (0–99) |
+| 0xA0 | 0xA = Month tens BCD | Used to build binary month |
+| 0xB0 | 0xB = Month units BCD | Combined → RAM[0x21] = binary month |
+| 0x80 | 0x8 = Day tens BCD | Used to build binary day |
+| 0x90 | 0x9 = Day units BCD | Combined → RAM[0x22] = binary day |
+| ... | Hours, minutes, seconds | → RAM[0x23], [0x24], [0x25] |
+
+**BCD to binary conversion** is done inline: `tens × 10 + units` using multiply-by-8 (ASLX×3) + multiply-by-2 + add.
+
+---
+
+## 11. Software RTC (Timer-Driven)
+
+After boot, the MM58274 is **not accessed again**. All timekeeping runs in software via `Increment_Software_RTC_Counters` (0x08F9), called from the timer ISR.
+
+### Software RTC Counters (RAM)
+
+| Address | Counter | Range | Rollover |
+|---------|---------|-------|---------|
+| 0x25 | Seconds | 0–59 | → 0, increment minutes |
+| 0x24 | Minutes | 0–59 | → 0, increment hours |
+| 0x23 | Hours | 0–23 | → 0, increment days |
+| 0x22 | Day of month | 1–31 | Month-dependent, uses days-in-month table |
+| 0x21 | Month | 1–12 | → 1, increment year |
+| 0x20 | Year | 0–99 | → 0 (wraps, no century) |
+| 0x26 | Leap-year cycle | 0–3 | 0=leap, 1/2/3=non-leap |
+
+### Leap Year Handling
+
+ROM table at 0x0E37 (days-in-month) has separate entries for leap (month[13]) and non-leap years. The code uses RAM[0x26] to select the correct entry when rolling over the day counter.
+
+---
+
+## 12. CPU Performance Monitoring (Port D)
+
+Every timer ISR tick (~247 Hz):
+
+1. `Sample_ND120_CPU_Status_Signals` (0x09D4): Read PORTD → RAM[0x19]
+2. Extract ring level (PD[1:0]), PONI (PD2), IONI (PD3), LHIT (PD6)
+3. Build composite status byte
+4. `Update_CPU_Ring_PONI_IONI_Statistics` (0x06B2): Update LED accumulator RAM[0x60]
+
+**Ring level utilization accumulation:**
+
+Every 16 ticks: `Shift_CPU_Utilization_History_Buffer` (0x0948) shifts the 16-byte ring buffer at RAM[0x64–0x6F] left by one position.
+
+Every 200×2 ticks (≈1.62s): Utilization percentages are calculated and made available to the ND-120 via `Exchange_CPU_Stats_With_DGA` (IDB output).
+
+**Port D signals observed:**
+
+| PD bit | Signal | Meaning when 1 |
+|--------|--------|----------------|
+| PD[1:0] | Ring[1:0] | CPU ring level (0=user, 3=supervisor) |
+| PD2 | PONI | Memory protection active |
+| PD3 | IONI | Interrupt system enabled |
+| PD6 | LHIT | Cache hit this cycle |
+| PD7 | /EMP | FIFO has command data ready |
+
+---
+
+## 13. PRES / MIPANS / IDB:15 Hardware Path
+
+This is frequently misunderstood. The complete path:
+
+```
+MC68705 PB7 = 0 (always, driven low by firmware)
+    ↓
+74F04 inverter chip 13G
+    ↓
+PRES = 1 (always, because PB7=0 inverted)
+    ↓
+74LS244 buffer (enabled when ND-120 asserts IDBS.MIPANS)
+    ↓
+IDB:15 = 1 (always)
+```
+
+**MIPANS is NOT triggered by the panel MCU.** It is asserted by the ND-120 CPU's own microcode, specifically in the MS20 timer routine, every ~20ms. When MIPANS fires:
+- The 74LS244 gates PRES onto IDB:15
+- Since PRES=1 always, IDB:15=1 always
+- The MS20 microcode reads IDB:15=1 → continues to MOPC code
+
+**Implication:** The MC68705 never drives IDB:15 to 0. Any interpretation that the panel MCU controls the MS20 continuation decision is incorrect.
+
+---
+
+## 14. RAM Layout
+
+| Address | Size | Name | Used by |
+|---------|------|------|---------|
+| 0x10 | 1 | display_char[0] | cmd 0/4/6, main display loop |
+| 0x11 | 1 | display_char[1] | cmd 0/4/6 |
+| 0x12 | 1 | display_char[2] | cmd 2/4/6 |
+| 0x13 | 1 | display_char[3] | cmd 0/4/6 |
+| 0x14 | 1 | time_byte1 (seconds seed) | cmd 0 |
+| 0x15 | 1 | time_byte3 (minutes seed) | cmd 0/1 |
+| 0x16 | 1 | time_byte2 (hours seed) | cmd 0/1/3 |
+| 0x17 | 1 | time_byte5 (day seed) | cmd 0/1/2/3 |
+| 0x18 | 1 | time_byte4 (month seed) | cmd 0/1/2/3 |
+| 0x19 | 1 | cpu_status_raw | PORTD sample, timer ISR |
+| 0x1A | 1 | system_config | cmd 5, controls display mode |
+| 0x1B | 1 | control_flags | modified by all cmds; bit1=LHIT mode; bit2=feature; bit3=ext; bit4=time-only |
+| 0x1C | 1 | last_command_byte | FIFO dispatcher |
+| 0x1D | 1 | util_param1 | cmd 2/7, utilization params |
+| 0x1E | 1 | util_param2 | cmd 2/7 |
+| 0x1F | 1 | emp_timeout | main loop timeout counter |
+| 0x20 | 1 | year (binary 0–99) | software RTC, init from MM58274 |
+| 0x21 | 1 | month (binary 1–12) | software RTC |
+| 0x22 | 1 | day (binary 1–31) | software RTC |
+| 0x23 | 1 | hour (binary 0–23) | software RTC |
+| 0x24 | 1 | minutes (binary 0–59) | software RTC |
+| 0x25 | 1 | seconds (binary 0–59) | software RTC |
+| 0x26 | 1 | leap_cycle (0–3) | software RTC leap year |
+| 0x27–0x46 | 32 | display_bitmap | 7-seg serial shift buffer |
+| 0x47–0x4A | 4 | data_store | write operation buffer |
+| 0x52–0x59 | 8 | seg_patterns | 7-seg pattern work area |
+| 0x5B | 1 | shift_prescaler | timer: counts 16 ticks |
+| 0x5C | 1 | window_prescaler | timer: counts 200 windows |
+| 0x5D | 1 | rtc_divider | timer: counts 2 → 1-sec tick |
+| 0x60 | 1 | led_accumulator | CPU status LED latch |
+| 0x61–0x6F | 15 | util_history | CPU utilization ring buffer |
+
+---
+
+## 15. ROM Data Tables
+
+| Address | Size | Name | Description |
+|---------|------|------|-------------|
+| 0x0080 | 4 | epoch_base | 0x02DA0E10 — Unix epoch base for time calculations |
+| 0x0CF8 | 32 | seg_patterns | 7-segment patterns (custom encoding); digits 0–7 at +0x10 |
+| 0x0D22 | varies | char_rom | Character ROM: 2-byte entries for display characters indexed by 0x10–0x13 |
+| 0x0DDE | 26 | days_before_month | Cumulative days before each month ×2; non-leap at base, +0x0D offset for leap |
+| 0x0E1F | 24 | sec_per_hour | Cumulative seconds per hour (16-bit): hour×3600 |
+| 0x0E37 | 13 | days_in_month | Days per month (bytes, index 1–12) |
+| 0x0E44 | 16 | day_of_week_idx | Day-of-week index table (16-bit pairs, 0–7) |
+| 0x0F0C | 4 | cpu_bitmask | CPU status bit-mask table: 0x01, 0x02, 0x04, 0x08 |
+
+---
+
+## 16. Interrupt Vectors
+
+(ROM 0x0FF0–0x0FFF, read from hexdump)
+
+| Address | Vector | Handler | Notes |
+|---------|--------|---------|-------|
+| 0x0FF8 | Timer Overflow | 0x08C8 | ~247 Hz main timing ISR |
+| 0x0FFA | External INT | (unused) | No handler connected |
+| 0x0FFC | SWI (software) | 0x09BA | NOP + RTI (dummy) |
+| 0x0FFE | Reset | 0x0110 | Boot / re-init entry point |
+
+---
+
+## 17. Corrections to Existing Analysis Documents
+
+The following documents in `E:\Dev\Repos\Ronny\nd-120\Code\68705\U3\AI\` contain errors:
+
+### `mm58274_rtc_analysis.md` — CRITICAL ERRORS
+
+| Claim in document | Reality | Evidence |
+|-------------------|---------|----------|
+| "PC[3:0] is used for RTC address/data" | **WRONG.** Port A (PA[7:0]) is the RTC bus | Boot init code 0x0AC0: `STA 0x0000` (Port A), DDRA=0xF0 |
+| "PORTC = ..." in C pseudocode for RTC | **WRONG.** No Port C access in RTC init | Only PB2 and PA are used in 0x0AC0–0x0B?? |
+| MM58274 RAM mapping (0x20=tenths seconds) | **WRONG.** 0x20=year in actual firmware | Code at 0x0AE6–0x0B01: `STA 0x0020` after reading year register |
+| "Firmware does continuous RTC reads for display" | **WRONG.** Only reads at boot (0x0AC0) | After boot: all timekeeping uses software RTC counters |
+
+**Port C is the display shift register output, NOT the RTC bus.**
+
+### `nd100_integration_analysis.md` — ERRORS
+
+| Claim | Reality |
+|-------|---------|
+| "1200Hz sampling rate" | Actual rate ≈ **247 Hz** (TCR=0x35, TDR=3, /32 prescaler) |
+| Port C = "RTC Data Interface" | Port C = **display shift register** (DISP1–5 on PC3–PC7) |
+| Port B PB1 = "Reserved", PB2 = "RTC Reset/Enable" | PB1=/WRCLK (write clock), PB2=/ROCLK (read clock) for MM58274 |
+| "IDB[11:8] for STAT bits" | Not confirmed in disassembly — treat as unverified |
+
+### `panc_command_specification.md` — MOSTLY CORRECT
+
+This document has the most accurate command-level detail. Minor issues:
+- The "Response Byte Format" table with STA/ERR/RDY/VAL/TYP fields is **speculative** — no evidence in disassembly of this field encoding. The actual response byte is raw data (time, status, etc.).
+- MM58274 RAM mapping at 0x20–0x26 showing "tenths seconds" etc. is wrong — matches the `mm58274_rtc_analysis.md` error above.
+
+### `firmware_analysis_report.md` — TOO GENERIC
+
+This document is a guidance framework, not factual analysis. Port C described as "timing/clock hardware" is incorrect. Use this document only as a methodology reference, not as a source of facts about this specific firmware.
+
+---
+
+## Key Function Address Reference
+
+| Address | Name | Description |
+|---------|------|-------------|
+| 0x0110 | Init_And_Main_Loop | Reset entry, full init, then main polling loop |
+| 0x04D8 | FIFO_Command_Dispatcher | Read command byte, dispatch cmd0–7 or time output |
+| 0x04FC | Command_Jump_Table | 8 × JMP entries (3 bytes + 1 NOP each) |
+| 0x0610 | cmd6_SET_CHAR_INDICES | Write 4 chars directly to display buffer 0x10–0x13 |
+| 0x05DF | cmd4_SET_CHAR_DISPLAY | ROM character lookup into 0x10–0x13 |
+| 0x051B | cmd0_SET_DISPLAY_DATA | 5 bytes → 0x14–0x18 + set "PEXM"/"PT##" |
+| 0x06BE | Output_RTC_Time_Data_To_ND120 | cmd bit3=0: send time/status to ND-120 |
+| 0x09BC | Strobe_WMM_Read_From_FIFO | Read one byte via WMM strobe (PB4) from IDB/74LS374 |
+| 0x09C5 | Output_Response_To_ND120_IDB | Write one byte via IDB to ND-120 (PB0 latch) |
+| 0x09EE | Output_Status_Code_1_To_ND120 | Send full RTC time packet (8 bytes) |
+| 0x08C8 | Timer_ISR | ~247 Hz: sample CPU status, drive RTC chain |
+| 0x08F9 | Increment_Software_RTC_Counters | Tick sec→min→hr→day→month→year |
+| 0x0948 | Shift_CPU_Utilization_History_Buffer | Shift 16-byte ring buffer left |
+| 0x09D4 | Sample_ND120_CPU_Status_Signals | PORTD → RAM[0x19] composite status |
+| 0x0AC0 | Initialize_MM58274_RTC_Chip | Boot-time read of MM58274 registers → software RTC seed |
+| 0x09BA | SWI_Dummy | NOP + RTI (software interrupt handler, unused) |

@@ -12,6 +12,7 @@
  ******************************************************************************/
 
 module TTL_74648 (
+    input sysclk,  // FPGA system clock (used only when USE_SYSCLK_AB/BA=2)
     input [7:0] A_IN,
     input [7:0] B_IN,
     input CLKAB,
@@ -24,6 +25,13 @@ module TTL_74648 (
     output [7:0] A_OUT_n,
     output [7:0] B_OUT_n
 );
+
+  // USE_SYSCLK_AB / USE_SYSCLK_BA: 0 (default) = original posedge CLKAB/CLKBA;
+  // 2 = sysclk-sampled rising-edge capture (AM29C821 USE_SYSCLK=2 pattern) for
+  // when the clock pin carries a control strobe (BGNT_n, CLKBD ...), not a
+  // clock. See TTL_74646.v for the full rationale.
+  parameter USE_SYSCLK_AB = 0;
+  parameter USE_SYSCLK_BA = 0;
 
 
 
@@ -67,13 +75,31 @@ module TTL_74648 (
   reg [7:0] regA;
   reg [7:0] regB;
 
-  always @(posedge s_clkab) begin
-    regA <= a_in_n;
-  end
+  generate
+    if (USE_SYSCLK_AB == 2) begin : gen_ab_edge
+      reg clkab_d = 1'b0;
+      always @(posedge sysclk) begin
+        clkab_d <= s_clkab;
+        if (s_clkab && !clkab_d) regA <= a_in_n;
+      end
+    end else begin : gen_ab_posedge
+      always @(posedge s_clkab) begin
+        regA <= a_in_n;
+      end
+    end
 
-  always @(posedge s_clkba) begin
-    regB <= b_in_n;
-  end
+    if (USE_SYSCLK_BA == 2) begin : gen_ba_edge
+      reg clkba_d = 1'b0;
+      always @(posedge sysclk) begin
+        clkba_d <= s_clkba;
+        if (s_clkba && !clkba_d) regB <= b_in_n;
+      end
+    end else begin : gen_ba_posedge
+      always @(posedge s_clkba) begin
+        regB <= b_in_n;
+      end
+    end
+  endgenerate
 
 
   /*

@@ -14,6 +14,9 @@
 ***************************************************************************/
 
 module CGA_INTR_CNTLR_IRQ (
+    input        sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input        MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input        A,
     input        B,
     input        C,
@@ -33,9 +36,9 @@ module CGA_INTR_CNTLR_IRQ (
   wire [15:0] s_clrq_15_0;
   wire [15:0] s_din_15_0;
   wire [15:0] s_ireq_15_0_n;
-  wire [15:0] s_lreq_15_0;
+  wire [15:0] s_lreq_15_0 /* synthesis syn_keep=1 */;  // GAO probe net - see fpga/tang-nano-20k/GAO-HOWTO.md
   wire [15:0] s_mireq_15_0_n_out;
-  wire [15:0] s_picmask_15_0_n_out;
+  wire [15:0] s_picmask_15_0_n_out /* synthesis syn_keep=1 */;  // GAO probe net
   wire [15:0] s_picmask_15_0_out;
   wire        a_b;
   wire        s_a;
@@ -66,6 +69,8 @@ module CGA_INTR_CNTLR_IRQ (
    *******************************************************************************/
 
   CGA_INTR_CNTLR_IRQ_REG IRQ_REG (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .CLRQ_15_0(s_clrq_15_0[15:0]),
       .CPN(s_cp_n),
       .IRQ_15_0_N(s_ireq_15_0_n[15:0]),
@@ -74,6 +79,8 @@ module CGA_INTR_CNTLR_IRQ (
   );
 
   CGA_INTR_CNTLR_IRQ_MASK IRQ_MASK (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .A(s_a),
       .B(a_b),
       .C(s_c),

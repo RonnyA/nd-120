@@ -13,6 +13,7 @@
 
 module IO_PANCAL_40 (
     // Input signals
+    input       sysclk,   //! FPGA system clock — used for CK edge detection in CHIP_32B
     input       CLEAR_n,
     input       EMP_n,
     input       EPANS,
@@ -109,10 +110,10 @@ module IO_PANCAL_40 (
 
   wire s_wmm_n;
 
-
   // TTL_74374 CHIP_32B
   TTL_74374 CHIP_32B (
-      .CK(s_wmm_n),  // from 68705
+      .sysclk(sysclk),
+      .CK(s_wmm_n),  // from 68705 PB0
       .OE_n(s_epans),
       .D(s_pa_7_0),
       .Q(s_idb_15_0_chip_out[7:0])
@@ -166,7 +167,7 @@ module IO_PANCAL_40 (
   // *** PORT B *** (output)
   assign s_stat_4_0 = 5'b00000;
 
-  assign s_pres = 0;  // STAT7 signal pb7 - negated
+  assign s_pres = 1;  // PB7=0 on MC68705U3, inverted by 74F04 (13G) → PRES always 1
   assign s_read = 0;  // READ signal pb6
   // pb5 =stat4
   // pb4 =stat3

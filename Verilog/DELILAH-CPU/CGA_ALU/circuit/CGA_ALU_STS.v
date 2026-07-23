@@ -12,6 +12,8 @@
 
 
 module CGA_ALU_STS (
+    input        sysclk,     //! FPGA system clock (P2: ALUCLK_EN capture)
+    input        ALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        ALUCLK,
     input        CRY,
     input [ 1:0] CSTS_1_0,
@@ -67,6 +69,16 @@ module CGA_ALU_STS (
   assign s_fidbo_15_0[15:0] = FIDBO_15_0;
   assign s_ldpil_n          = LDPILN;
   assign s_aluclk           = ALUCLK;
+
+  // P2b (docs/plan-fix-unconstrained-clocks.md): in FF mode the ALUCLK-
+  // clocked registers capture on posedge sysclk gated by ALUCLK_EN
+  // (aligned to the ALUCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam ALUCLK_CE = 1;
+`else
+  localparam ALUCLK_CE = 0;
+`endif
+
   assign s_ovf              = OVF;
   assign s_mi               = MI;
   assign s_cry              = CRY;
@@ -165,8 +177,10 @@ module CGA_ALU_STS (
 
 
 
-  R41P STS_REG_MID (
-      .CP (s_aluclk),
+  R41P_EN #(.USE_ENABLE(ALUCLK_CE)) STS_REG_MID (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
+      .CP(s_aluclk),
       .A  (s_ists_7),
       .B  (s_ists_6),
       .C  (s_ists_5),
@@ -181,7 +195,9 @@ module CGA_ALU_STS (
       .QDN()
   );
 
-  SCAN_FF STS15_FF (
+  SCAN_FF_EN #(.USE_ENABLE(ALUCLK_CE)) STS15_FF (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CLK(s_aluclk),
       .D  (s_fidbo_15_0[15]),
       .Q  (),
@@ -190,7 +206,9 @@ module CGA_ALU_STS (
       .TI (s_sts_15_0_out[15])
   );
 
-  SCAN_FF STS14_FF (
+  SCAN_FF_EN #(.USE_ENABLE(ALUCLK_CE)) STS14_FF (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CLK(s_aluclk),
       .D  (s_fidbo_15_0[14]),
       .Q  (),
@@ -199,7 +217,9 @@ module CGA_ALU_STS (
       .TI (s_sts_15_0_out[14])
   );
 
-  SCAN_FF STS13_FF (
+  SCAN_FF_EN #(.USE_ENABLE(ALUCLK_CE)) STS13_FF (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CLK(s_aluclk),
       .D  (s_fidbo_15_0[13]),
       .Q  (),
@@ -208,7 +228,9 @@ module CGA_ALU_STS (
       .TI (s_sts_15_0_out[13])
   );
 
-  SCAN_FF STS12_FF (
+  SCAN_FF_EN #(.USE_ENABLE(ALUCLK_CE)) STS12_FF (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CLK(s_aluclk),
       .D  (s_fidbo_15_0[12]),
       .Q  (),
@@ -217,7 +239,9 @@ module CGA_ALU_STS (
       .TI (s_sts_15_0_out[12])
   );
 
-  SCAN_FF STS11_FF (
+  SCAN_FF_EN #(.USE_ENABLE(ALUCLK_CE)) STS11_FF (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CLK(s_aluclk),
       .D  (s_fidbo_15_0[11]),
       .Q  (),
@@ -226,7 +250,9 @@ module CGA_ALU_STS (
       .TI (s_sts_15_0_out[11])
   );
 
-  SCAN_FF STS10_FF (
+  SCAN_FF_EN #(.USE_ENABLE(ALUCLK_CE)) STS10_FF (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CLK(s_aluclk),
       .D  (s_fidbo_15_0[10]),
       .Q  (),
@@ -235,7 +261,9 @@ module CGA_ALU_STS (
       .TI (s_sts_15_0_out[10])
   );
 
-  SCAN_FF STS9_FF (
+  SCAN_FF_EN #(.USE_ENABLE(ALUCLK_CE)) STS9_FF (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CLK(s_aluclk),
       .D  (s_fidbo_15_0[9]),
       .Q  (),
@@ -244,7 +272,9 @@ module CGA_ALU_STS (
       .TI (s_sts_15_0_out[9])
   );
 
-  SCAN_FF STS8_FF (
+  SCAN_FF_EN #(.USE_ENABLE(ALUCLK_CE)) STS8_FF (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CLK(s_aluclk),
       .D  (s_fidbo_15_0[8]),
       .Q  (),
@@ -255,7 +285,9 @@ module CGA_ALU_STS (
 
   // 7-4?
 
-  SCAN_FF STS3_FF (
+  SCAN_FF_EN #(.USE_ENABLE(ALUCLK_CE)) STS3_FF (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CLK(s_aluclk),
       .D  (s_fidbo_15_0[3]),
       .Q  (),
@@ -264,7 +296,9 @@ module CGA_ALU_STS (
       .TI (s_sts_15_0_out[3])
   );
 
-  SCAN_FF STS2_FF (
+  SCAN_FF_EN #(.USE_ENABLE(ALUCLK_CE)) STS2_FF (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CLK(s_aluclk),
       .D  (s_fidbo_15_0[2]),
       .Q  (),
@@ -273,7 +307,9 @@ module CGA_ALU_STS (
       .TI (s_sts_15_0_out[2])
   );
 
-  SCAN_FF STS1_FF (
+  SCAN_FF_EN #(.USE_ENABLE(ALUCLK_CE)) STS1_FF (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CLK(s_aluclk),
       .D  (s_fidbo_15_0[1]),
       .Q  (),
@@ -282,7 +318,9 @@ module CGA_ALU_STS (
       .TI (s_sts_15_0_out[1])
   );
 
-  SCAN_FF STS0_FF (
+  SCAN_FF_EN #(.USE_ENABLE(ALUCLK_CE)) STS0_FF (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CLK(s_aluclk),
       .D  (s_fidbo_15_0[0]),
       .Q  (),

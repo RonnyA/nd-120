@@ -9,6 +9,7 @@
 ***************************************************************************/
 
 module BIF_BCTL_6 (
+    input sysclk,
     input CBWRITE_n,  //! CPU Bus Write
     input CC2_n,      //! Cycle Counter bit 2
     input CGNT50_n,   //! Grant 50ns delayed
@@ -402,6 +403,7 @@ module BIF_BCTL_6 (
    * Also handles reset, refresh and CPU active signal synchronization.
    */
   BIF_BCTL_SYNC_8 SYNC (
+      .sysclk(sysclk),
       // Inputs
       .CLEAR_n  (s_clear_n),    // Clear signal
       .IBDAP_n  (s_ibdap_n),    // Input Bus Data Present

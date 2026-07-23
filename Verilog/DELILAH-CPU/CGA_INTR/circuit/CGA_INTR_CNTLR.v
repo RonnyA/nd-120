@@ -10,6 +10,9 @@
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module CGA_INTR_CNTLR (
+    input        sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input        MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input        EPIC,
     input [15:0] FIDBO_15_0,
     input [15:0] IREQ_15_0_N,
@@ -23,7 +26,8 @@ module CGA_INTR_CNTLR (
     output        PD,
     output [15:0] PICMASK_15_0,
     output [ 2:0] PICS_2_0,
-    output [ 2:0] PICV_2_0
+    output [ 2:0] PICV_2_0,
+    output [15:0] XMIREQ_15_0_N   //! DEBUG: masked interrupt-request vector (active low) that drives the grant
 );
 
   /*******************************************************************************
@@ -97,15 +101,17 @@ module CGA_INTR_CNTLR (
   assign LOGSN               = s_logs_n_out;
   assign PD                  = s_pd_out;
   assign PICMASK_15_0        = s_picmask_15_0_out[15:0];
+  assign XMIREQ_15_0_N       = s_mireq_15_0[15:0];
   assign PICS_2_0            = s_pics_2_0_out[2:0];
   assign PICV_2_0            = s_picv_2_0_out[2:0];
 
   /*******************************************************************************
    ** Here all wiring is defined                                                 **
    *******************************************************************************/
+  // FIDBO -> status-write value (feeds VECGEN.FIDBO_2_0 -> HISIN/LOSIN).
   assign s_fidbo_2_0[0]      = s_fidbo_15_0[0];
-  assign s_fidbo_2_0[1]      = s_fidbo_15_0[2];
-  assign s_fidbo_2_0[2]      = s_fidbo_15_0[1];
+  assign s_fidbo_2_0[1]      = s_fidbo_15_0[1];
+  assign s_fidbo_2_0[2]      = s_fidbo_15_0[2];
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
@@ -132,6 +138,8 @@ module CGA_INTR_CNTLR (
    *******************************************************************************/
 
   CGA_INTR_CNTLR_VECGEN VECGEN (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .FIDBO3(s_fidbo_15_0[3]),
       .FIDBO4(s_fidbo_15_0[4]),
       .FIDBO_2_0(s_fidbo_2_0[2:0]),
@@ -171,6 +179,8 @@ module CGA_INTR_CNTLR (
   );
 
   CGA_INTR_CNTLR_IRGEL IRGEL (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .D(s_d),
       .E(s_e),
       .FIDB03(s_fidbo_15_0[3]),
@@ -197,6 +207,8 @@ module CGA_INTR_CNTLR (
   );
 
   CGA_INTR_CNTLR_MDCD MDCD (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .A(s_a),
       .B(s_b),
       .C(s_c),
@@ -224,6 +236,8 @@ module CGA_INTR_CNTLR (
   );
 
   CGA_INTR_CNTLR_IRQ IRQ (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .A(s_a),
       .B(s_b),
       .C(s_c),

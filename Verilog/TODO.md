@@ -1,6 +1,268 @@
 # ND-120 Verilog TODO
 
-> Last updated: 29-MAR-2026
+> Last updated: 13-JUL-2026 (MPY product/overflow bug fixed in CGA_ALU_QREG;
+> SHIFT ROT/ZIN/LIN serial-input bug fixed in CGA_CPU_ALU_CONTR)
+
+---
+
+## OPEN: interrupt status fence (Am2914) - fix written, gated OFF, needs a partner fix
+
+The DELILAH interrupt system is a close Am2914 copy. Its **status register**
+(the fence that stops the interrupt just taken from being re-dispatched:
+"READ VECTOR auto-loads vector+1 into the Status Register") has NEVER worked
+in our RTL - two transcription bugs in `CGA_INTR_CNTLR_VECGEN_STAT{,_SBIT}.v`
+(schematic p.87): the cell's vector-load NAND took GPE instead of DCDF, and
+the six SBIT instances (drawn WITHOUT pin names on the sheet) had four pins
+rotated. Both are now corrected in-tree but **gated behind
+`ND120_INTR_STATUS_FENCE`, default OFF**, because switching the fence on
+alone hangs the CPU self-test's interrupt scan (microcode APID3) - the
+priority comparator (`..._VECGEN_CMP{,_MAGCMP}`, p.88) and the request-generate
+logic (`..._IRGEL_*`, p.90-95) were written when the fence was inert and need
+the same schematic + Am2914 audit (rule: a request passes only when its
+vector >= the status value). Consequence today: INSTRUCTION-B `RUN` livelocks
+at level 14 (IOX-error storm re-dispatches every macro instruction). All 13
+other areas pass. Full analysis + repro: `docs/RUN-level14-livelock-analysis.md`.
+Logisim CGA_INTR sheet needs the same corrections (regeneration hazard).
+
+---
+
+## OPEN: interrupt status fence (Am2914) - fix written, gated OFF, needs a partner fix
+
+The DELILAH interrupt system is a close Am2914 copy. Its **status register**
+(the fence that stops the interrupt just taken from being re-dispatched:
+"READ VECTOR auto-loads vector+1 into the Status Register") has NEVER worked
+in our RTL - two transcription bugs in `CGA_INTR_CNTLR_VECGEN_STAT{,_SBIT}.v`
+(schematic p.87): the cell's vector-load NAND took GPE instead of DCDF, and
+the six SBIT instances (drawn WITHOUT pin names on the sheet) had four pins
+rotated. Both are now corrected in-tree but **gated behind
+`ND120_INTR_STATUS_FENCE`, default OFF**, because switching the fence on
+alone hangs the CPU self-test's interrupt scan (microcode APID3) - the
+priority comparator (`..._VECGEN_CMP{,_MAGCMP}`, p.88) and the request-generate
+logic (`..._IRGEL_*`, p.90-95) were written when the fence was inert and need
+the same schematic + Am2914 audit (rule: a request passes only when its
+vector >= the status value). Consequence today: INSTRUCTION-B `RUN` livelocks
+at level 14 (IOX-error storm re-dispatches every macro instruction). All 13
+other areas pass. Full analysis + repro: `docs/RUN-level14-livelock-analysis.md`.
+Logisim CGA_INTR sheet needs the same corrections (regeneration hazard).
+
+---
+
+## Logisim drawing fix needed: CGA_ALU CONTR MEMORY_46/47 (regeneration hazard)
+
+`CGA_CPU_ALU_CONTR.v` captured the instruction's shift-type bits (CD 10:9 -
+ROT/ZIN/LIN select) in two rising-edge D flip-flops (MEMORY_46/47) clocked by
+the LDIRV strobe. The CD bus holds the instruction only late in the
+LDIRV-high window (measured: CD=0 at every rise, instruction present at every
+fall), so the flops captured 0 forever, SSEL stayed 00 and every
+SHA/SHD/SHT/SAD ROT / ZIN-right / LIN shift ran as a PLAIN arithmetic shift
+(INSTRUCTION-B SHIFT sub-tests 5OP-8OP, 256 failures each; both latch and FF
+builds). FIXED (13-JUL): replaced with the `SSEL_LATCH` L8 transparent latch,
+wired like the proven CGA_MIC IRLATCH. **Until the Logisim CGA_ALU_ sheet
+(page 42) gets the same latch, regenerating CGA_CPU_ALU_CONTR.v reintroduces
+the bug.** Ronny: please also check what the original PDF draws for the SSEL
+capture (the MIC IR capture is a latch on its sheet). Full analysis:
+`docs/SHIFT-serial-input-rootcause.md`.
+
+---
+
+## Logisim drawing fix needed: CGA_ALU QREG MUXQ15 D3 (regeneration hazard)
+
+`CGA_ALU_QREG.v` had MUXQ15 input D3 wired to Q0 (a Q rotate) instead of F0
+(the shift-right-double link that streams the multiply product from R5 into
+Q). Result: EVERY MPY/RMPY product low word read 0 and +/-32768-boundary
+overflows never set the O/Q status bits (INSTRUCTION-B "DYNAMIC OVERFLOW BIT
+NOT SET"). The Verilog is FIXED (13-JUL, verified vs nd100x on a 10-pair
+sweep, latch+FF, golden areas re-pass), and Ronny confirmed the original
+schematic (CGA p.43) reads D3=F0 - the error is in the LOGISIM DRAWING
+(original PDF scan very unclear at this point). **Until the Logisim sheet is
+corrected, regenerating CGA_ALU_QREG.v reintroduces the bug.** Full analysis:
+`docs/MPY-dynamic-overflow-rootcause.md`.
+
+---
+
+## Pre-existing test failure: test-memchain (bit 8 drops)
+
+`make test` currently aborts at `CPU-BOARD-3202/circuit/sim test-memchain`:
+"dback bank1 col3 got=177377 expected 177777" and "k bank0 row3col2
+got=123056 expected 123456" - bit 8 dropped in the MEM_ADDR_44 ->
+MEM_RAM_49/SIP1M9 chain. Fails on committed code (deps all clean); belongs
+to the memory/device workstream, not the QREG fix (whose file is not in this
+testbench's dependency list).
+
+---
+
+## BUG: 400$ tape boot triggers a continuous level-12 interrupt storm
+
+The SD/FAT rewiring of the sim device path broke the tape byte feed: booting
+INSTRUCTION-B from tape with `400$` produces tens of thousands of
+"Generating/Clearing interrupt at level 12" cycles - the tape's level-12
+interrupt re-arms every cycle instead of one-per-byte. Tests still finish
+but runs crawl; the RUN command can't run at all. Full detail, repro, code
+map and acceptance criteria: `docs/BUG-tape400-sd-level12-storm.md`.
+Desired: run through the Verilog `ND_TAPE_400` fed by SD (one interrupt per
+byte); acceptable fallback = restore the C tape wiring behind a build define
+(like `VERILOG_TAPE`) so both variants stay buildable. Blocks the
+instruction-verify per-area pass/fail (needs INSTRUCTION-B's own
+`== END OF TEST ==` output, which the storm makes impractical).
+
+---
+
+## SD-FAT stack - PROVEN ON HARDWARE 11-JUL-2026; nd_storage underway
+
+Hardware status: menu LIST/DUMP/CHECK/COPY/WRBLK1/speed tests all ran on
+the Tang against a real FAT32 card. A cold-start create bug destroyed the
+card's boot sector (root cause: sd_fat_rewrite S_DIR_W wrote the patched
+dir sector to the raw input instead of the internal register = CMD24 to
+sector 0); FIXED and now guarded by a permanent safety net (see the
+WRITE-PATH SAFETY POLICY in SD-FAT/README.md): illegal-sector assertion
+in the card models, boot-region byte-identity, fsck gates, cold-start
+first-command plans, big-geometry FAT32 gate. Bitstream with the fix
+built 11-JUL 12:05.
+
+Speed: hardware measured 137 KB/s (single-sector CMD24 at 2.7 MHz;
+per-sector card program busy dominates). Plan + ladder in
+docs/sd-speed-plan.md; rungs a (13.5 MHz) + b (CMD18/CMD25 multi-block
+in the MIT writer, menu 6/7 on bursts) in implementation.
+
+nd_storage (Ronny's spec docs/nd-storage-interface-spec.md; design +
+validation + status in docs/nd-storage-design.md /
+nd-storage-spec-validation.md): steps 1-3 of 10 done, gates
+test-nds-cdc/-engine/-write registered and green. Next: mount/preload,
+contiguity check, Verilator system gate, tape + floppy adapters,
+SDRAM board glue (partition decision; see also
+docs/nd120-parity-refactor-order.md - the parity refactor work order
+that upgrades the partition to 4 MB CPU + 4 MB storage).
+
+## OLD STATUS (superseded 11-JUL): built incl. WRITES, sims pass
+
+Reusable SD/FAT library in `SD-FAT/`: `sd_file_reader.v` (clean-room
+project MIT since 12-JUL-2026; runtime file name, dir-entry
+name/size/date/is-dir outputs, first-sector output, split sdcmd
+tristate, 13.5 MHz data phase) + CLEAN-ROOM `sd_writer.v`
+(CMD24, MIT, own unit tb `SD-FAT/sim :: test-writer`). Tang test project
+`fpga/tang-nano-20k/sd-fat-test/`: UART menu (9600 8N1, `#` prompt):
+1=LIST (size + DD-MMM-YYYY date + name, <DIR> entries), 2=DUMP BOOT.BPUN
+(hex/octal, byte-verified), 3=COPY BOOT.BPUN over pre-created TEST.TXT
+(in-place sector rewrite, Route B), 4=WRBLK1 (word[w]=w pattern into 1KW
+block 1 = sectors first+4..7, range-guarded), H=help; persistent `SD:`
+status; watchdogs everywhere. `make console` = interactive Verilator UART.
+Verilator system test verifies dump bytes, list columns, copy content and
+that WRBLK1 touched ONLY block 1. Bitstream builds (OSS flow).
+Block map convention: 1KW block N of contiguous file = 4 SD sectors at
+first_sector+4N (SD-FAT/README.md).
+
+Next actions:
+1. `make load` on the Tang, card from the README recipe -> acceptance
+   A3-A6 + menu 3/4 on real silicon.
+2. DONE 12-JUL-2026: the GPL vendoring question is moot - the reader was
+   replaced by a clean-room MIT implementation (whole SD-FAT library MIT).
+3. Milestone 2: ND_BUS_DEV_IF + TAPE_READER_400 against the Verilator bus
+   ports, then `$` boot from card (plan sections 8 and 10); floppy device
+   builds on the 1KW block map.
+
+---
+
+## QMTECH XC7A35T board (PARKED side experiment)
+
+Stages 1-2 (LED smoke test + Basys3 mem-test port) written and sim-verified
+under `fpga/qmtech-a35t/`; **nothing run on hardware yet**. Resume point with
+exact next actions and stage-3 design notes (16-bit burst-of-2 SDRAM bridge):
+`fpga/qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md`.
+
+---
+
+## Tang Nano 20K bring-up
+
+### Integrate the SDRAM controller as ND-120 main memory (Tang only)
+
+The 8 MB embedded SDRAM is validated standalone
+(`fpga/tang-nano-20k/sdram-test/` - passes on hardware, full-8MB write+verify).
+Next: bridge the nand2mario controller behind the `MEM_RAM_49.v` interface
+(`AA_9_0`, `BANK0-2`, `RAS`/`CAS`, `MWRITE50_n`, `DD_17_0`), gated behind a
+Tang-only define (`TARGET_TANG20K` / `MAIN_RAM_SDRAM`) so Verilator and Basys3
+builds are completely unaffected. 8 MB of RAM available is acceptable.
+
+**Files**: `CPU-BOARD-3202/circuit/MEM_RAM_49.v`, `Shared/support/SIP1M9.v`,
+new adapter module under `fpga/tang-nano-20k/`.
+
+**Design analysis done** (8-JUL-2026): the full protocol measurement (25k
+accesses traced), the per-board backend plan (replace the MEM_RAM_49 body per
+target instead of more SIP1M9 ifdefs), the 2x-clock SDRAM bridge design with
+timing budget, refresh strategy, and the 18-bit-in-32 word mapping (2 banks =
+4 MB) are documented in `docs/nd120-dram-memory.md`.
+
+**Bridge implemented and protocol-validated** (8-JUL-2026):
+`fpga/tang-nano-20k/sdram-bridge/` - `MEM_RAM_49_SDRAM.v` + `sdram18.v`, with
+a testbench that replays the measured protocol (2000-access soak, parity
+round-trip, refresh cadence) - PASSES.
+
+**Tang top-level built** (8-JUL-2026): `fpga/tang-nano-20k/` -
+`src/ND120_TANG20K_TOP.v` + rPLL (27/54 MHz) + cst/sdc + `nd120_tang20k.gprj`
+(247 files) + `gowin_build.tcl`/`.ps1` (gw_sh on the Windows host). SDRAM pins
+threaded through `MEM_43`/`ND3202D` under `ifdef MAIN_RAM_SDRAM` (Verilator
+regression-checked; full Tang file set elaborates under Verilator lint).
+**DUAL-TOOLCHAIN since 12-JUL-2026 (docs/tang20k-build-flows.md +
+worklog-2026-07-12-pack16-dual-toolchain.md):** the full CPU also builds
+with the OSS suite (`make [VARIANT=slow|crawl|full]` in
+fpga/tang-nano-20k/, PRIMARY flow; `make gowin` = backup). All three
+variant bitstreams built; nextpnr closes the FULL 27/54 MHz variant at
+clk_cpu Fmax 57.5 MHz (GowinSynthesis had measured 9.38 MHz - the number
+behind TANG_SLOW_BRINGUP). Remaining: `make load` on the board, compare
+boot against `docs/boot-golden-spec.md` on the 9600-baud console; if
+VARIANT=full boots on hardware, retire the slow-bringup default.
+
+### CPU clock above 27 MHz (after 27 MHz validation)
+
+The Tang's 27 MHz crystal is only the PLL reference - the `rPLL` can multiply
+it. Plan: **validate everything at 27 MHz first**, then raise the CPU/SDRAM
+clock via the rPLL. Data points: the vendored `gowin_rpll.v` has a ready-made
+54 MHz setting (commented out), the nand2mario controller's timing parameters
+are good to 66.7 MHz, and the factory LiteX SoC runs this SDRAM at 48 MHz
+CL-2. So 27 -> 54 MHz is the natural step (keep `BOARD_CLK_FREQ` and all
+UART/RTC counts derived from it, per the OPCOM speed fix).
+
+---
+
+## Future boards / peripherals (captured 8-JUL-2026)
+
+### CMOD A7-35T target (Digilent)
+
+> **ACTIVE since 13-JUL-2026 - the owner has the board.** First-version
+> build files landed in `fpga/cmod-a7-35t/` (BRAM main memory, CPU at
+> 27 MHz via the TARGET_CMOD_A7 MMCM branch, self-contained build.tcl +
+> Makefile, SD-Pmod wiring documented incl. the 3.3V/VU voltage rules).
+> **TODO: the pack16 SRAM bridge** - 512 KB / 256K-word main memory,
+> full detailed plan in `fpga/cmod-a7-35t/SRAM-BRIDGE-PLAN.md` (the old
+> 4-byte-access idea is INVALID per
+> `docs/basys3-memory-speed-validation.md`; pack16 is mandatory,
+> <= 33 MHz validated, est. 2-4 days).
+>
+> (Origin note, superseded: board folder created 2026-07-08; downgraded
+> to research-only the same day on price - the owner has since acquired
+> one.)
+
+Same `xc7a35t-1cpg236` die as Basys3 in a DIP module: 20,800 LUT, 225 KB
+BRAM, **512 KB external SRAM (8-bit bus, 8 ns)**, 4 MB QSPI, USB-JTAG/UART,
+2 LEDs + 1 RGB, 2 buttons, one Pmod + 44 DIP I/O. Backend plan: start with
+`MAIN_RAM_BLOCKRAM` (raise `BANK_ADDR_BITS`; 225 KB BRAM minus WCS budget),
+later a `MEM_RAM_49_SRAM` backend for the 512 KB external SRAM (8-bit bus ->
+~4 byte-accesses per 18-bit word; needs its own protocol bridge like the
+SDRAM one). Reference manual:
+https://digilent.com/reference/programmable-logic/cmod-a7/reference-manual
+Demo: https://github.com/Digilent/Cmod-A7-35T-OOB (QSPI flash mx25l3273f).
+
+### SD-card block devices across all boards
+
+Goal: floppy/HDD images from SD card (FAT filesystem) so the ND-120 can load
+software on every target:
+- **Basys3 + CMOD A7:** SD-card Pmod on the Pmod connector (same module,
+  same SPI-mode controller on both).
+- **Tang Nano 20K:** on-board microSD (TF) slot.
+- **MiSTer:** different route - images served by the ARM/Linux side (see
+  `fpga/mister/`).
+Shared piece: one SPI SD + FAT reader core (or soft-CPU-less FAT16/32
+reader) behind a common "block device" interface feeding the ND-120 I/O
+(floppy controller emulation). Design doc needed before implementation.
 
 ---
 
@@ -23,16 +285,14 @@ Previously marked as fixed but needs double-checking. IN/OUT signal assignments 
 
 **File**: `CPU-BOARD-3202/circuit/CPU_15.v`
 
-### AM29833A: Parity and error not implemented
+### AM29833A: Parity and error not implemented — RESOLVED (stale entry)
 
-Error flag and parity output are hardcoded:
-
-```verilog
-assign ERR_n = 1;    // Should detect parity errors
-assign PAR_OUT = 0;  // Should compute parity
-```
-
-This affects parity error testing and may cause self-test failures.
+**Stale as of 11-JUL-2026:** `Shared/support/AM29833A.v` has real parity
+logic (PAR_OUT = ~(^R) generate, 9-bit receive-side check register driving
+ERR_n; reviewed 22-MAR-2025; equivalence tb `test-am29833a`). And parity
+cannot be behind any self-test failure anyway: the microcode self-test
+never touches memory parity — all 8 subtests are CPU-core-only. Evidence
+with octal microcode references: `docs/nd120-parity-analysis.md`.
 
 **File**: `Shared/support/AM29833A.v`
 
@@ -104,3 +364,46 @@ RAM works in simulation. For real FPGA hardware, the `DD_17_0` IN/OUT signals ma
 | Latch-to-FF migration | Complete -- see `verilog-remove-latch.md` |
 | LINT and latches | All latches converted to FFs with ifdef guards |
 | CPU_15 "disconnected" signals | Verified: `s_eccr` -> MEM_43, `s_ioni` -> IO_37, `s_rrf_n` -> CYC_36, `s_mreq_n` is input from CYC_36. All properly connected. |
+
+---
+
+## Microcode-execution fidelity (added 10-JUL-2026)
+
+### Fix the JMP0-3 vectored-jump dispatch (CGA_MIC)
+
+The microsequencer's vectored jump (`T,JMP0-3`, microword bit 25 VECT)
+always lands on the vector base: the low-4-bit OR (IR(0-3) or A-operand,
+selected by MIS0) never contributes. Blocks the 300$ serial binary
+loader (INCH polls IOX 302 but dispatches to the IOX 300 handler) and
+any microcode-issued vectored device I/O. Pre-existing (fails in latch
+mode too, first exercised 10-JUL). Full analysis + 2-minute sim repro:
+docs/serial-binload-300.md. Reference implementations to compare
+against (ASK before porting C# behavior - it may contain hacks):
+E:\Dev\Repos\Ronny\ND110Compile\ND110CPU (Cpu.cs ~783 vector dispatch,
+~1310 LDIRV loads IR from the IDB - note our IRLATCH samples CD instead)
+and NorskData-Doc ND-06.031.1 Microprogrammer's Guide (bit 25 / MIS0).
+
+### Audit: microorder-by-microorder fidelity sweep
+
+The JMP0-3 find suggests a class: microorders that no current test
+exercises may be wrong or unimplemented, and could explain part of the
+7/14 self-test failures and macro-instruction bugs. Plan: extract the
+COMM/IDBS/condition decode tables from the Microprogrammer's Guide,
+diff against what CGA_MIC/CGA_DCD/DGA actually implement, and give each
+divergence a targeted unit test (the C# CPU at ND110Compile is a
+working oracle for expected behavior - verify against the guide before
+copying). Candidates to check first: vectored jumps (this bug), LDIRV
+data source (IDB vs CD), MANIR/manual-IR flows, SCOND/hold-register
+condition pipeline, COMM decodes marked "changed" in the ND-110->ND-120
+delta (5, 36.2, 36.3).
+
+### Evaluate: replace IDB OR-bus merging with muxes
+
+Today many IDB/CD readers OR together all source outputs (inactive
+sources drive 0). Evaluate switching to explicit muxes: pros - a wrong
+enable produces an X/detectable in sim instead of silently OR-corrupted
+data, clearer synthesis, kills a class of sim-vs-FPGA divergences
+(EIOR-style read races); cons - large mechanical change across
+generated code, must keep Logisim-structure compatibility, and the
+golden byte-identity gates must hold throughout. Decision needed on
+scope (board-level buses only vs inside gate arrays too).

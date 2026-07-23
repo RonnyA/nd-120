@@ -1,0 +1,30 @@
+# Unit testbench for the ND-100 SMD disk controller
+# (repo convention: sim/ next to the modules it tests)
+#
+# test / test-smd - the full DMA device stack: CWR-multiplexed register
+#   file, M0/M1 transfers through ND_DMA_MASTER against the BCU+memory
+#   model, seek/on-cylinder, interrupt + IDENT 017
+
+IVERILOG = iverilog
+VVP      = vvp
+
+SRCS = ../../BUS-IF/circuit/ND_BUS_SLAVE.v \
+       ../../DMA/circuit/ND_DMA_MASTER.v \
+       ../circuit/ND_SMD.v \
+       nd_smd_tb.v
+
+all: test
+
+test: test-smd
+
+nd_smd_tb.vvp: $(SRCS)
+	$(IVERILOG) -g2005 -o $@ $(SRCS)
+
+test-smd: nd_smd_tb.vvp
+	$(VVP) nd_smd_tb.vvp | tee smd_out.log
+	@grep -q "TB_RESULT: PASS" smd_out.log
+
+clean:
+	rm -f *.vvp *.log *.vcd
+
+.PHONY: all test test-smd clean

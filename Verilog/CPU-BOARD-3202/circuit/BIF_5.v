@@ -363,6 +363,7 @@ module BIF_5 (
    * communication between the CPU and external devices.
    */
   BIF_BCTL_6 BCTL (
+      .sysclk(sysclk),
       // Outputs
       .BAPR_n    (s_bapr_n),      // Bus Address Present
       .BDAP50_n  (s_bdap50_n),    // Bus Data Present (50ns delayed)

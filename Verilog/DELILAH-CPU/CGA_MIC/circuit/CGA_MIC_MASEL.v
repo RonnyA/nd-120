@@ -14,6 +14,8 @@ module CGA_MIC_MASEL (
     input sysclk,    // System clock in FPGA
     input sys_rst_n, // System reset in FPGA
 
+    input        MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input        CSBIT20,
     input [11:0] CSBIT_11_0,
     input [ 3:0] JMP_3_0,
@@ -26,7 +28,9 @@ module CGA_MIC_MASEL (
     input        SC6,
 
     output [12:0] IW_12_0,
-    output [12:0] W_12_0
+    output [12:0] W_12_0,
+    output [12:0] DBG_REP_12_0,  //! DEBUG: regREP_comb (the computed next-address the sequencer selected; for SEL_JUMP = s_jmpaddr). Tang 06000-hang root-cause.
+    output [12:0] DBG_JMP_12_0   //! DEBUG: s_jmpaddr_12_0 (the raw JUMP target = {csbit20,csbit_11_0[11:4],jmp}). If wrong => WCS-read/CSBITS wrong.
 );
 
 localparam [1:0] SEL_JUMP   = 2'b00;
@@ -39,15 +43,15 @@ localparam [1:0] SEL_REPEAT = 2'b11;
   /*******************************************************************************
    ** The wires are defined here                                                 **
    *******************************************************************************/
-  wire [ 1:0] s_mux_selector;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [ 1:0] s_mux_selector;
   wire [12:0] s_ret_12_0;
   wire [12:0] s_next_12_0;
-  wire [11:0] s_csbit_11_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [11:0] s_csbit_11_0;
   wire [12:0] s_w_12_0_out;
   wire [12:0] s_iw_12_0_out;
-  wire [ 3:0] s_jmp_3_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [ 3:0] s_jmp_3_0;
   //wire [12:0] s_rep_12_0;
-  wire        s_csbit20;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_csbit20;
   wire        s_mclk_n;
   wire        s_mclk;
   wire        s_mr_n;
@@ -70,7 +74,7 @@ localparam [1:0] SEL_REPEAT = 2'b11;
   assign s_csbit20          = CSBIT20;
   assign s_mr_n             = MRN;
 
-  wire [12:0] s_jmpaddr_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_jmpaddr_12_0;
   // Fixed: Added s_csbit20 as bit 12 for complete 13-bit assignment
   assign s_jmpaddr_12_0 = {s_csbit20, s_csbit_11_0[11:4], s_jmp_3_0[3:0]};
 
@@ -81,39 +85,51 @@ localparam [1:0] SEL_REPEAT = 2'b11;
   //assign W_12_0             = s_w_12_0_out[12:0];
 
   // Register declarations (moved before assign to avoid synthesis warning)
-  reg [12:0] regREP;
-  reg [12:0] regW;
-  reg [12:0] regIW;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) reg [12:0] regREP;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) reg [12:0] regW;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) reg [12:0] regIW;
 
   assign IW_12_0            = regIW;
   assign W_12_0             = regW;
+  assign DBG_REP_12_0       = regREP_comb;  // computed next-address (JUMP target when SC=JUMP)
+  assign DBG_JMP_12_0       = s_jmpaddr_12_0; // raw JUMP target (from csbits) - wrong => WCS/CSBITS bad
 
   // Code to make LINTER _not_ complain about bits not read in CSBIITS bits 3:0
   (* keep = "true", DONT_TOUCH = "true" *) wire [3:0] unused_CSBITS_bits;
   assign unused_CSBITS_bits[3:0] = s_csbit_11_0[3:0];
 
+  // VARIANT F: register regREP through sysclk to break the data race.
+  // The combinational mux output feeds a 1-sysclk pipeline register.
+  // regIW then captures from the registered (stable) regREP at
+  // posedge s_mclk without a setup violation.
+  reg [12:0] regREP_comb;
   always @(*) begin
     case (s_mux_selector)
         SEL_JUMP: begin
             // handle jump
-            regREP = s_jmpaddr_12_0;
+            regREP_comb = s_jmpaddr_12_0;
         end
         SEL_RETURN: begin
             // handle return
-            regREP = s_ret_12_0;
+            regREP_comb = s_ret_12_0;
         end
         SEL_NEXT: begin
             // handle next
-            regREP = s_next_12_0;
+            regREP_comb = s_next_12_0;
         end
         SEL_REPEAT: begin
             // handle repeat
-            regREP = IW_12_0;
+            regREP_comb = IW_12_0;
         end
         default: begin
             // optional: handle invalid case
+            regREP_comb = s_next_12_0;
         end
     endcase
+  end
+
+  always @(posedge sysclk) begin
+    regREP <= regREP_comb;
   end
 
   // LATCH regREP to W as long as MCLKN is active
@@ -130,6 +146,30 @@ localparam [1:0] SEL_REPEAT = 2'b11;
 
   // On rising clock edge load REP into IW
   // IW goes back to IINC to calculate next address (which is then input to stack module)
+  // MCLK domain: regIW clocks on posedge s_mclk (async clear s_mr_n).
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode capture on
+  // posedge sysclk gated by MCLK_EN (aligned to the MCLK rise) instead
+  // of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_mclk = s_mclk;
+  /* verilator lint_on UNUSEDSIGNAL */
+  // regREP is itself a sysclk register updating on EVERY posedge (VARIANT F
+  // above): the original pa-clocked regIW fired a delta AFTER that update
+  // and so captured regREP's NEW value. Sampling regREP here (pre-edge NBA)
+  // would be one cycle stale - capture the register's D input regREP_comb
+  // instead, which is exactly the value the original saw.
+  always @(posedge sysclk or negedge s_mr_n) begin
+    if (!s_mr_n) begin
+        regIW <= 0;
+    end else if (MCLK_EN) begin
+      regIW <= regREP_comb;
+    end
+  end
+`else
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_mclk_en = MCLK_EN;
+  /* verilator lint_on UNUSEDSIGNAL */
   always @(posedge s_mclk or negedge s_mr_n) begin
     if (!s_mr_n) begin
         regIW <= 0;
@@ -137,6 +177,7 @@ localparam [1:0] SEL_REPEAT = 2'b11;
       regIW <= regREP;
     end
   end
+`endif
 
 
 

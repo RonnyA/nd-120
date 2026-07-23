@@ -1,0 +1,92 @@
+<?xml version="1" encoding="UTF-8"?>
+<GAO_CONFIG>
+    <Version>3.0</Version>
+    <Mode>Standard</Mode>
+    <AoCore index="0" sample_clock="clk_cpu" trig_type="0" storage_depth="1024" window_num="1" capture_amount="1024" implementation="0" trigger_pos="512" module_name="ND120_TANG20K_TOP" force_trigger_by_falling_edge="false">
+        <SignalList>
+            <Bus capture_enable="true" name="CSA_12_0[12:0]">
+                <Signal>CSA_12_0[12]</Signal>
+                <Signal>CSA_12_0[11]</Signal>
+                <Signal>CSA_12_0[10]</Signal>
+                <Signal>CSA_12_0[9]</Signal>
+                <Signal>CSA_12_0[8]</Signal>
+                <Signal>CSA_12_0[7]</Signal>
+                <Signal>CSA_12_0[6]</Signal>
+                <Signal>CSA_12_0[5]</Signal>
+                <Signal>CSA_12_0[4]</Signal>
+                <Signal>CSA_12_0[3]</Signal>
+                <Signal>CSA_12_0[2]</Signal>
+                <Signal>CSA_12_0[1]</Signal>
+                <Signal>CSA_12_0[0]</Signal>
+            </Bus>
+            <Signal capture_enable="true">CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/s_mclk</Signal>
+            <Signal capture_enable="true">CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/s_intrq_n</Signal>
+            <Bus capture_enable="true" name="CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/s_picv_2_0_out[2:0]">
+                <Signal>CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/s_picv_2_0_out[2]</Signal>
+                <Signal>CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/s_picv_2_0_out[1]</Signal>
+                <Signal>CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/s_picv_2_0_out[0]</Signal>
+            </Bus>
+            <Signal capture_enable="true">CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/CNTLR/IRGEL/HIRL/s_int_req_q</Signal>
+            <Signal capture_enable="true">CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/CNTLR/IRGEL/HIRL/s_int_req_qn</Signal>
+            <Signal capture_enable="true">CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/CNTLR/IRGEL/HIRL/s_hidis_n</Signal>
+            <Signal capture_enable="true">CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/CNTLR/IRGEL/LORL/s_int_req_enable_q</Signal>
+            <Signal capture_enable="true">CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/CNTLR/IRGEL/s_hve</Signal>
+            <Signal capture_enable="true">CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/CNTLR/IRGEL/s_lve</Signal>
+            <Signal capture_enable="true">CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/s_ireq_15_0_n[10]</Signal>
+            <Signal capture_enable="true">CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/s_ireq_15_0_n[12]</Signal>
+            <Signal capture_enable="true">CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/CNTLR/IRQ/s_lreq_15_0[10]</Signal>
+            <Signal capture_enable="true">CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/CNTLR/IRQ/s_picmask_15_0_n_out[10]</Signal>
+        </SignalList>
+        <Triggers>
+            <Trigger index="0">
+                <SignalList>
+                    <Signal>CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/CNTLR/IRGEL/s_hve</Signal>
+                    <Signal>CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/s_picv_2_0_out[2]</Signal>
+                    <Signal>CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/s_picv_2_0_out[1]</Signal>
+                    <Signal>CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/s_picv_2_0_out[0]</Signal>
+                </SignalList>
+            </Trigger>
+            <Trigger index="1">
+                <SignalList>
+                    <Signal>CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/INTR/s_intrq_n</Signal>
+                </SignalList>
+            </Trigger>
+            <Trigger index="2"/>
+            <Trigger index="3"/>
+            <Trigger index="4"/>
+            <Trigger index="5"/>
+            <Trigger index="6"/>
+            <Trigger index="7"/>
+            <Trigger index="8"/>
+            <Trigger index="9"/>
+            <Trigger index="10"/>
+            <Trigger index="11"/>
+            <Trigger index="12"/>
+            <Trigger index="13"/>
+            <Trigger index="14"/>
+            <Trigger index="15"/>
+        </Triggers>
+        <MatchUnits>
+            <MatchUnit index="0" enabled="1" match_type="1" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="R010" value1="" trigger="0"/>
+            <MatchUnit index="1" enabled="1" match_type="1" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="F" value1="" trigger="1"/>
+            <MatchUnit index="2" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="3" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="4" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="5" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="6" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="7" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="8" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="9" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="10" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="11" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="12" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="13" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="14" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+            <MatchUnit index="15" enabled="0" match_type="0" counter_enable="0" counter_width="2" counter="2" countinuous="0" func="0" value0="" value1=""/>
+        </MatchUnits>
+        <Expressions type="Static">
+            <Expression>M0</Expression>
+        </Expressions>
+    </AoCore>
+    <GAO_ID>1010010001110101</GAO_ID>
+</GAO_CONFIG>

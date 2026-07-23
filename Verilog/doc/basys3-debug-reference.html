@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ND-120 FPGA Debug Reference - Basys3</title>
+<style>
+  @page { size: A4 landscape; margin: 10mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 9px; color: #222; margin: 0; padding: 10px; }
+  h1 { font-size: 18px; text-align: center; margin: 0 0 2px 0; color: #0D47A1; }
+  .sub { text-align: center; font-size: 9px; color: #777; margin-bottom: 8px; }
+  h2 { font-size: 11px; color: #0D47A1; border-bottom: 2px solid #BBDEFB; margin: 6px 0 4px 0; padding-bottom: 2px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+  th { background: #0D47A1; color: #fff; padding: 3px 5px; text-align: left; font-size: 8px; }
+  td { padding: 2px 5px; border-bottom: 1px solid #ddd; font-size: 9px; }
+  tr:nth-child(even) td { background: #F0F4FF; }
+  .m { font-family: Consolas, monospace; font-size: 9px; }
+  .g { color: #2E7D32; font-weight: bold; }
+  .r { color: #C62828; }
+
+  /* two columns */
+  .row { width: 100%; overflow: hidden; margin-bottom: 4px; }
+  .col-left { float: left; width: 48%; }
+  .col-right { float: right; width: 48%; }
+  .col-full { width: 100%; clear: both; }
+
+  /* LED strip */
+  .leds { width: 100%; border-collapse: collapse; text-align: center; }
+  .leds td { border: 1.5px solid #999; padding: 4px 1px; font-size: 8px; font-weight: bold; width: 6.25%; }
+  .leds .hdr { font-size: 7px; color: #666; font-weight: normal; }
+  .lc { background: #E8F5E9; color: #2E7D32; }
+  .ls { background: #E3F2FD; color: #0D47A1; }
+  .lo { background: #FFF3E0; color: #E65100; }
+  .lx { background: #F5F5F5; color: #BBB; }
+
+  /* boot steps */
+  .step { margin: 1px 0; }
+  .sn { display: inline-block; background: #0D47A1; color: #fff; width: 14px; height: 14px; border-radius: 50%; text-align: center; line-height: 14px; font-size: 8px; margin-right: 4px; }
+  .sb { color: #E65100; font-weight: bold; }
+
+  /* uart box */
+  .ubox { display: inline-block; border: 1.5px solid #2E7D32; background: #E8F5E9; border-radius: 4px; padding: 2px 10px; text-align: center; margin: 2px 4px; }
+  .uval { font-size: 13px; font-weight: bold; color: #2E7D32; }
+  .ulab { font-size: 7px; color: #666; }
+
+  .footer { text-align: center; font-size: 7px; color: #AAA; margin-top: 4px; border-top: 1px solid #DDD; padding-top: 2px; }
+</style>
+</head>
+<body>
+
+<h1>ND-120 FPGA Debug Reference Card</h1>
+<div class="sub">Basys3 (xc7a35tcpg236-1) &bull; 100 MHz &bull; 115200 Baud &bull; Branch: redo-idb</div>
+
+<!-- LED BAR -->
+<h2>LED Layout (left LD15 to right LD0)</h2>
+<table class="leds">
+<tr>
+  <td class="lc">TERM<br><span class="hdr">LD15</span></td>
+  <td class="lc">CC3<br><span class="hdr">LD14</span></td>
+  <td class="lc">CC2<br><span class="hdr">LD13</span></td>
+  <td class="lc">CC1<br><span class="hdr">LD12</span></td>
+  <td class="lc">CC0<br><span class="hdr">LD11</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">LD10</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">LD9</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">LD8</span></td>
+  <td class="lo">LCS<br><span class="hdr">LD7</span></td>
+  <td class="lo">MCLK<br><span class="hdr">LD6</span></td>
+  <td class="lo">BEAT<br><span class="hdr">LD5</span></td>
+  <td class="ls">UART<br><span class="hdr">LD4</span></td>
+  <td class="ls">RST<br><span class="hdr">LD3</span></td>
+  <td class="ls">RUN<br><span class="hdr">LD2</span></td>
+  <td class="ls">GRN<br><span class="hdr">LD1</span></td>
+  <td class="ls">RED<br><span class="hdr">LD0</span></td>
+</tr>
+</table>
+
+<h2>Switch Layout (SW15 left to SW0 right)</h2>
+<table class="leds">
+<tr>
+  <td class="lx">&mdash;<br><span class="hdr">SW15</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">SW14</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">SW13</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">SW12</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">SW11</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">SW10</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">SW9</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">SW8</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">SW7</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">SW6</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">SW5</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">SW4</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">SW3</span></td>
+  <td class="lx">&mdash;<br><span class="hdr">SW2</span></td>
+  <td class="ls">7-SEG<br><span class="hdr">SW1</span></td>
+  <td class="lo">RESET<br><span class="hdr">SW0</span></td>
+</tr>
+</table>
+<table>
+<tr><th>Switch</th><th>Signal</th><th>UP (1)</th><th>DOWN (0)</th></tr>
+<tr><td>SW0 (right)</td><td class="m">sys_rst_n</td><td class="g">Reset released, CPU runs</td><td class="r">CPU held in reset</td></tr>
+<tr><td>SW1</td><td class="m">btn2</td><td>7-seg = MAC address</td><td>7-seg = MIC address</td></tr>
+<tr><td>SW2-SW15</td><td class="m">(unused)</td><td colspan="2">Not connected</td></tr>
+</table>
+
+<div class="row">
+
+<!-- LEFT COLUMN -->
+<div class="col-left">
+
+<h2>LED Details</h2>
+<table>
+<tr><th>LED</th><th>Signal</th><th>ON</th><th>OFF</th></tr>
+<tr><td>LD15</td><td class="m">~TERM_n</td><td class="g">Cycle termination</td><td>-</td></tr>
+<tr><td>LD14-11</td><td class="m">~CC3..0_n</td><td class="g">Cycle counter (cycles)</td><td>-</td></tr>
+<tr><td>LD7</td><td class="m">~LCS_n</td><td class="g">Microcode loaded</td><td class="r">Loading</td></tr>
+<tr><td>LD6</td><td class="m">MCLK</td><td class="g">Memory clock</td><td class="r">No MCLK</td></tr>
+<tr><td>LD5</td><td class="m">clkTick[26]</td><td class="g">Blinks 1.5Hz</td><td class="r">No clock!</td></tr>
+<tr><td>LD4</td><td class="m">~uartTx</td><td class="g">TX active</td><td>Silent</td></tr>
+<tr><td>LD3</td><td class="m">sys_rst_n</td><td class="g">Reset released</td><td class="r">In reset</td></tr>
+<tr><td>LD2</td><td class="m">~s_run</td><td class="g">CPU running</td><td>OPCOM</td></tr>
+<tr><td>LD1</td><td class="m">cpu_led[1]</td><td class="g">GREEN</td><td>-</td></tr>
+<tr><td>LD0</td><td class="m">cpu_led[0]</td><td class="g">RED (err)</td><td>OK</td></tr>
+</table>
+
+<h2>7-Segment Display (4 hex digits)</h2>
+<table>
+<tr><th>SW1</th><th>Shows</th><th>Range</th></tr>
+<tr><td>DOWN</td><td>MIC address (CSA_12_0, microcode)</td><td class="m">0000-1FFF</td></tr>
+<tr><td>UP</td><td>MAC address (LA_23_10, memory)</td><td class="m">0000-3FFF</td></tr>
+</table>
+<p style="font-size:8px;color:#666">Changing values = CPU executing &bull; Stuck 0000 = CPU not running</p>
+
+<h2>UART</h2>
+<div>
+  <span class="ubox"><span class="uval">115200</span><br><span class="ulab">Baud</span></span>
+  <span class="ubox"><span class="uval">8N1</span><br><span class="ulab">Format</span></span>
+  <span class="ubox"><span class="uval">None</span><br><span class="ulab">Flow</span></span>
+  <span class="ubox"><span class="uval">A17</span><br><span class="ulab">TX pin</span></span>
+  <span class="ubox"><span class="uval">A18</span><br><span class="ulab">RX pin</span></span>
+</div>
+
+<h2>Boot Sequence</h2>
+<div class="step"><span class="sn">1</span>Program bitstream</div>
+<div class="step"><span class="sn">2</span><span class="sb">LD5</span> blinks (clock running)</div>
+<div class="step"><span class="sn">3</span>Slide SW0 UP (release reset)</div>
+<div class="step"><span class="sn">4</span><span class="sb">LD3</span> ON (reset released)</div>
+<div class="step"><span class="sn">5</span><span class="sb">LD15-11</span> cycling (state machine)</div>
+<div class="step"><span class="sn">6</span><span class="sb">LD7</span> ON after ~6ms (microcode loaded)</div>
+<div class="step"><span class="sn">7</span><span class="sb">LD2</span> ON (CPU running)</div>
+<div class="step"><span class="sn">8</span>7-seg shows changing hex</div>
+<div class="step"><span class="sn">9</span>Terminal shows <span class="m">#</span> prompt</div>
+
+</div>
+
+<!-- RIGHT COLUMN -->
+<div class="col-right">
+
+<h2>Vivado ILA Debug Signals (mark_debug)</h2>
+<table>
+<tr><th>Signal</th><th>W</th><th>Description</th></tr>
+<tr><td class="m">s_debug_csa[12:0]</td><td>13</td><td>MIC address (microcode fetch)</td></tr>
+<tr><td class="m">s_debug_la_23_10[13:0]</td><td>14</td><td>MAC address upper (LA 23:10)</td></tr>
+<tr><td class="m">s_debug_ca_9_0[9:0]</td><td>10</td><td>MAC address lower (CA 9:0)</td></tr>
+<tr><td class="m">s_debug_cc_term[4:0]</td><td>5</td><td>{TERM,CC3,CC2,CC1,CC0}_n</td></tr>
+<tr><td class="m">s_debug_mclk</td><td>1</td><td>Memory clock</td></tr>
+<tr><td class="m">s_debug_lcs_n</td><td>1</td><td>LCS_n (0=loading, 1=loaded)</td></tr>
+<tr><td class="m">s_run</td><td>1</td><td>CPU run (0=running)</td></tr>
+<tr><td class="m">s_debug_uartTx</td><td>1</td><td>UART TX line</td></tr>
+<tr><td class="m">s_debug_uartRx</td><td>1</td><td>UART RX line</td></tr>
+<tr><td class="m">s_debug_cpu_led[6:0]</td><td>7</td><td>CPU status LEDs</td></tr>
+</table>
+
+<h2>Deep Hierarchy (add via Set Up Debug)</h2>
+<table>
+<tr><th>Path</th><th>W</th><th>Description</th></tr>
+<tr><td class="m">CPU_BOARD/.../s_FIDBO_15_0</td><td>16</td><td>CGA data bus output</td></tr>
+<tr><td class="m">CPU_BOARD/.../s_FIDBI_15_0</td><td>16</td><td>CGA data bus input</td></tr>
+<tr><td class="m">CPU_BOARD/CPU/CS/s_csbits</td><td>64</td><td>TOPCSB microcode word</td></tr>
+<tr><td class="m">CPU_BOARD/.../s_idb_erf_out</td><td>16</td><td>Register file to IDB</td></tr>
+<tr><td class="m">CPU_BOARD/.../CHIP_32H/txState</td><td>3</td><td>UART TX state machine</td></tr>
+<tr><td class="m">CPU_BOARD/.../CHIP_32H/rxState</td><td>3</td><td>UART RX state machine</td></tr>
+<tr><td class="m">CPU_BOARD/CYC/s_cc0_n</td><td>1</td><td>Cycle counter bit 0</td></tr>
+</table>
+
+<h2>Pin Map</h2>
+<table>
+<tr><th>Port</th><th>Pin</th><th>Port</th><th>Pin</th><th>Port</th><th>Pin</th></tr>
+<tr><td class="m">sysclk</td><td>W5</td><td class="m">led[5]</td><td>U15</td><td class="m">led[12]</td><td>P3</td></tr>
+<tr><td class="m">btn1/SW0</td><td>V17</td><td class="m">led[6]</td><td>U14</td><td class="m">led[13]</td><td>N3</td></tr>
+<tr><td class="m">btn2/SW1</td><td>V16</td><td class="m">led[7]</td><td>V14</td><td class="m">led[14]</td><td>P1</td></tr>
+<tr><td class="m">uartTx</td><td>A17</td><td class="m">led[8]</td><td>V13</td><td class="m">led[15]</td><td>L1</td></tr>
+<tr><td class="m">uartRx</td><td>A18</td><td class="m">led[9]</td><td>V3</td><td class="m">seg[0-6]</td><td>W7..U7</td></tr>
+<tr><td class="m">led[0]</td><td>U16</td><td class="m">led[10]</td><td>W3</td><td class="m">an[0-3]</td><td>U2..R2</td></tr>
+<tr><td class="m">led[1]</td><td>E19</td><td class="m">led[11]</td><td>U3</td><td></td><td></td></tr>
+<tr><td class="m">led[2]</td><td>U19</td><td></td><td></td><td></td><td></td></tr>
+<tr><td class="m">led[3]</td><td>V19</td><td></td><td></td><td></td><td></td></tr>
+<tr><td class="m">led[4]</td><td>W18</td><td></td><td></td><td></td><td></td></tr>
+</table>
+
+</div>
+</div>
+
+<div class="footer">ND-120 CPU &bull; Norsk Data 1988 &bull; FPGA Implementation &bull; 2026-03-30</div>
+
+</body>
+</html>

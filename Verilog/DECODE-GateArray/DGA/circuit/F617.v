@@ -4,61 +4,63 @@
 **                                                                       **
 ** NEC F617 - D Flip-Flop with RB, SB                                    **
 **                                                                       **
-** Truth table from REN_A12213XJ5V1UM00_OTH_19980801.pdf                 **
-** Page 6-238. Function D-F/F WITH RB, SB                                **
+** ACTIVE_ASYNC=0 (default): Only async set (reset tied to VCC).         **
+** ACTIVE_ASYNC=1: Both async set and reset (original NEC behavior).     **
 **                                                                       **
-** Last reviewed: 2-FEB-2024                                             **
+** Last reviewed: 30-MAR-2026                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
-module F617 (
+module F617 #(
+    parameter ACTIVE_ASYNC = 0  // 0=set only (reset tied VCC), 1=both set+reset
+)(
     input H01_D,   // Data
     input H02_C,   // Clock
-    input H03_RB,  // Reset (negated)
-    input H04_SB,  // Set (negated)
+    input H03_RB,  // Reset (negated, active low)
+    input H04_SB,  // Set (negated, active low)
 
     output reg N01_Q,
     output reg N02_QB
 );
 
-  // Wires
-  wire s_d;
-  wire s_set;
-  wire s_reset;
+  wire s_d     = H01_D;
+  wire s_set   = ~H04_SB;
+  wire s_reset = ~H03_RB;
 
-
-  // Assign inputs
-  assign s_d      = H01_D;
-  assign s_set    = ~H04_SB;
-  assign s_reset  = ~H03_RB;
-
-  always @(posedge H02_C or posedge s_set or posedge s_reset)
-  begin
-    // Prioritized: RESET has priority over SET to avoid synthesis warning
-    if (s_reset)
-    begin
-      // Reset has highest priority
-      N01_Q   <= 1'b0;
-      N02_QB  <= 1'b1;
+  generate
+    if (ACTIVE_ASYNC == 1) begin : gen_dual_async
+      // Both async set and reset (original NEC F617)
+      always @(posedge H02_C or posedge s_set or posedge s_reset)
+      begin
+        if (s_reset) begin
+          N01_Q  <= 1'b0;
+          N02_QB <= 1'b1;
+        end else if (s_set) begin
+          N01_Q  <= 1'b1;
+          N02_QB <= 1'b0;
+        end else begin
+          N01_Q  <= s_d;
+          N02_QB <= ~s_d;
+        end
+      end
+    end else begin : gen_set_only
+      // Only async set -- clean for FPGA when reset is tied to VCC
+      always @(posedge H02_C or posedge s_set)
+      begin
+        if (s_set) begin
+          N01_Q  <= 1'b1;
+          N02_QB <= 1'b0;
+        end else begin
+          N01_Q  <= s_d;
+          N02_QB <= ~s_d;
+        end
+      end
     end
-    else if (s_set)
-    begin
-      // Set has second priority
-      N01_Q   <= 1'b1;
-      N02_QB  <= 1'b0;
-    end
-    else
-    begin
-      // Normal D flip-flop operation on clock edge
-      N01_Q   <= s_d;
-      N02_QB  <= ~s_d;
-    end
-
-  end
+  endgenerate
 
 endmodule
 
-/* 
+/*
 
 TRUTH TABLE
 ===========

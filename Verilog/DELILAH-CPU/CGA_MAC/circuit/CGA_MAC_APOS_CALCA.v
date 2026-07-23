@@ -24,6 +24,7 @@ module CGA_MAC_APOS_CALCA (
     input sys_rst_n, // System reset in FPGA
 
     // Input signals
+    input        MCLK_EN,   //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        ECCRHIN,   //! ECCR HI (ECCR Hi bits valid)
     input [15:0] ICA_15_0,  //! CPU Address Input (16 bits)
     input        MCLK,      //! Memory Clock
@@ -66,6 +67,16 @@ module CGA_MAC_APOS_CALCA (
   assign s_ica_15_0[15:0] = ICA_15_0;
   assign s_mclk           = MCLK;
   assign s_eccrhi_n       = ECCRHIN;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+  // The L8 latches (transparent while MCLK is low) are untouched.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -124,7 +135,9 @@ module CGA_MAC_APOS_CALCA (
   );
 
 
-  R81 R_LO (
+  R81_EN #(.USE_ENABLE(MCLK_CE)) R_LO (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CP(s_mclk),
       .A (s_mca_9_0_out[0]),
       .B (s_mca_9_0_out[1]),
@@ -160,7 +173,9 @@ module CGA_MAC_APOS_CALCA (
       .QHN(s_lca_7_n_out)
   );
 
-  R81 R_HI (
+  R81_EN #(.USE_ENABLE(MCLK_CE)) R_HI (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CP(s_mclk),
       .A (s_mca_9_0_out[8]),
       .B (s_mca_9_0_out[9]),

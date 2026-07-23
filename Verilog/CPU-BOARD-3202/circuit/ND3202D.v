@@ -29,6 +29,7 @@ module ND3202D (
     /* FROM C-PLUG */
     input LOAD_n,      //! Input signal from "C PLUG", signal B12 - LOAD_n
     input BREQ_n,      //! Input signal from "C PLUG", signal C12 - BREQ_n (DMA BUS Request)
+    // C-PLUG B13 - /RESTART: pulled high on the panel side, NOT CONNECTED to any logic on this board
     input CONTINUE_n,  //! Input signal from "C PLUG", signal B15 - CONTINUE_n
     input STOP_n,      //! Input signal from "C PLUG", signal B16 - STOP_n
 
@@ -63,6 +64,7 @@ module ND3202D (
 
 
     /* TO C-PLUG */
+    output RUN_n,       //! Output-signal to "C PLUG", signal B14 RUN~ (driven by Stop flip-flop: low while CPU is running)
     output BREF_n,      //! Output-signal to "C PLIG", signal B12 BREF~
     output BERROR_n,    //! Output-signal to "C PLIG", signal B21 BERROR~
     output BINACK_n,    //! Output-signal to "C PLIG", signal B19 BINACK~
@@ -125,7 +127,6 @@ module ND3202D (
    ** The outputs are defined here                                               **
    *******************************************************************************/
     output TXD,  // Output signal to "A PLUG", signal A10 (D2N) and C7 (TXD) (from the UART TXD)
-    output RUN_n,  // Output signal to "A PLUG", signal C10 (RUN_n) (from the CPU)
     output [4:0]  DP_5_1_n,       // Output signal to "A PLUG", signal DP~5_1 "Display signals" (C25,C26, C27, C28, C29)
 
     output [63:0] CSBITS,  //! Microcode Control signals - 64bit (for debugging)
@@ -135,7 +136,56 @@ module ND3202D (
     output [12:0] CSA_12_0,    //! Microcode Address (for debugging)
 
     // Led signals
-    output [6:0]  LED // 0=CPU RED,1=CPU GREEN, 2=LED4_RED_PARITY_ERROR, 3=LED_CPU_GRANT_INDICATOR, 4=LED_BUS_GRANT_INDICATOR, 5=LED1 from MMU 6=LED5_RED_DISABLE_PARITY
+    output [6:0]  LED, // 0=CPU RED,1=CPU GREEN, 2=LED4_RED_PARITY_ERROR, 3=LED_CPU_GRANT_INDICATOR, 4=LED_BUS_GRANT_INDICATOR, 5=LED1 from MMU 6=LED5_RED_DISABLE_PARITY
+
+    // Debug outputs for FPGA
+    output [4:0] DEBUG_CC_TERM,  // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
+    output       DEBUG_MCLK,     // Memory clock
+    output       DEBUG_LCS_n,    // LCS_n: 0=loading microcode, 1=microcode loaded
+
+    // Additional debug outputs for microcode load/boot analysis
+    output       DEBUG_FETCH,    // Fetch signal
+    output       DEBUG_MR_n,     // Master Reset
+    output       DEBUG_CLEAR_n,  // Clear
+    output       DEBUG_REFRQ_n,  // Refresh Request
+    output       DEBUG_INTRQ_n,  // Interrupt Request (TP1)
+    output       DEBUG_POWFAIL_n, // Power Fail
+    output [15:0] DEBUG_FIDBO_15_0, // FIDBO internal data bus
+    output [15:0] DEBUG_IREQ_15_0_N, // DEBUG: raw interrupt-request vector (active low)
+    output [15:0] XMIC_DBG_15_0     // DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+
+`ifdef MAIN_RAM_SDRAM
+    // SDRAM main-memory backend (Tang Nano 20K) - threaded down to MEM_43.
+    // Absent in Verilator/Basys3 builds.
+    ,
+    input         clk2x,        //! 2x sysclk, same PLL, edge-aligned
+    input         clk2x_sdram,  //! 180 degrees from clk2x, to the SDRAM chip
+    output        O_sdram_clk,
+    output        O_sdram_cke,
+    output        O_sdram_cs_n,
+    output        O_sdram_cas_n,
+    output        O_sdram_ras_n,
+    output        O_sdram_wen_n,
+    inout  [31:0] IO_sdram_dq,
+    output [10:0] O_sdram_addr,
+    output [ 1:0] O_sdram_ba,
+    output [ 3:0] O_sdram_dqm,
+    output [15:0] DBG_MEMW  // write-path debug bus from MEM_43
+`ifdef ND_STORAGE_PORT
+    // nd_storage device port - straight through to MEM_43/MEM_RAM_49_SDRAM.
+    // stor_clk is its own domain (the backend toggle-CDCs it into clk2x).
+    ,
+    input  wire        stor_clk,
+    input  wire        stor_rst_n,
+    input  wire        mem_start,
+    input  wire        mem_we,
+    input  wire [19:0] mem_addr,
+    input  wire [31:0] mem_wdata,
+    output wire [31:0] mem_rdata,
+    output wire        mem_busy,
+    output wire        mem_done
+`endif
+`endif
 );
 
   /*
@@ -166,6 +216,18 @@ TODO: Sort bits on output LED to match led numbering
   wire [ 1:0] s_pcr_1_0;
 
   wire [ 2:0] s_cc_3_1_n;
+  wire        s_cc0_n;
+
+  // Debug output: {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
+  assign DEBUG_CC_TERM = {s_term_n, s_cc_3_1_n[2:0], s_cc0_n};
+  assign DEBUG_MCLK = s_mclk;
+  assign DEBUG_LCS_n = s_lcs_n;
+  assign DEBUG_FETCH = s_fetch;
+  assign DEBUG_MR_n = s_mr_n;
+  assign DEBUG_CLEAR_n = s_clear_n;
+  assign DEBUG_REFRQ_n = s_refrq_n;
+  assign DEBUG_INTRQ_n = s_rp1_intrq_n;
+  assign DEBUG_POWFAIL_n = s_powfail_n;
 
   wire [ 3:0] s_lba_3_0;
   wire [ 3:0] s_pil_3_0;
@@ -220,6 +282,19 @@ TODO: Sort bits on output LED to match led numbering
   // Wires!
   wire        s_acond_n;  // Output from CGA_MIC_CONDREG. CGA.XACONDN
   wire        s_aluclk;
+  // P2 clock-enable pulses from CYC_36 (consumed as domains convert)
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire        s_cyc_maclk_en;
+  wire        s_cyc_clk_fall_en;
+  wire        s_cyc_uclk_fall_en;
+  wire        s_cyc_maclk_fall_en;
+  wire        s_cyc_aluclk_fall_en;
+  /* verilator lint_on UNUSEDSIGNAL */
+  wire        s_cyc_clk_en;
+  wire        s_cyc_uclk_en;
+  wire        s_cyc_mclk_en;
+  wire        s_cyc_mclk_fall_en;
+  wire        s_cyc_aluclk_en;
   wire        s_bapr_n_in;
   wire        s_bapr_n_out;
   wire        s_bdap_n_in;
@@ -302,7 +377,7 @@ TODO: Sort bits on output LED to match led numbering
   wire        s_lock_n;
   wire        s_lperr_n;
   wire        s_lshadow;
-  wire        s_maclk;
+  wire        s_maclk /* verilator public_flat_rd */;  // kept observable for the sim trace harness
   wire        s_map_n;
   wire        s_mclk;
   wire        s_mem_bdry_n; // BDRY signal out from MEM module
@@ -502,10 +577,19 @@ TODO: Sort bits on output LED to match led numbering
   reg [1:0] regMIS_1_0;
 
 
+  // P2 (docs/plan-fix-unconstrained-clocks.md): CLK-domain flop sampling the
+  // microword - converts with the CLK group (aligned CLK_EN capture).
+`ifdef FPGA_FF_MODE
+  always@(posedge sysclk)
+  begin
+    if (s_cyc_clk_en) regMIS_1_0 <= s_csmis_1_0;
+  end
+`else
   always@(posedge s_clk)
   begin
     regMIS_1_0 <= s_csmis_1_0;
   end
+`endif
   assign s_mis_1_0 = regMIS_1_0;
 
   // ********************************************
@@ -567,6 +651,7 @@ TODO: Sort bits on output LED to match led numbering
       .ACOND_n(s_acond_n),
       .BRK_n(s_brk_n),
       .CC_3_1_n(s_cc_3_1_n[2:0]),
+      .CC0_n(s_cc0_n),
       .CLK(s_clk),
       .CSALUI7(s_csalui_8_0[7]),
       .CSALUI8(s_csalui_8_0[8]),
@@ -610,7 +695,21 @@ TODO: Sort bits on output LED to match led numbering
       .RRF_n(s_rrf_n),
       .TERM_n(s_term_n),
       .VEX(s_vex),
-      .WRFSTB(s_wrfstb)
+      .WRFSTB(s_wrfstb),
+
+      // One-sysclk clock-enable pulses (FPGA_FF_MODE, else 0) for the P2
+      // domain conversions - consumed incrementally as each CPU clock
+      // domain moves to `posedge sysclk + if (EN)`.
+      .CLK_EN(s_cyc_clk_en),
+      .UCLK_EN(s_cyc_uclk_en),
+      .MCLK_EN(s_cyc_mclk_en),
+      .MACLK_EN(s_cyc_maclk_en),
+      .ALUCLK_EN(s_cyc_aluclk_en),
+      .CLK_FALL_EN(s_cyc_clk_fall_en),
+      .UCLK_FALL_EN(s_cyc_uclk_fall_en),
+      .MCLK_FALL_EN(s_cyc_mclk_fall_en),
+      .MACLK_FALL_EN(s_cyc_maclk_fall_en),
+      .ALUCLK_FALL_EN(s_cyc_aluclk_fall_en)
   );
 
 
@@ -620,6 +719,11 @@ TODO: Sort bits on output LED to match led numbering
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
       // CPU inputs
+      .ALUCLK_EN(s_cyc_aluclk_en),
+      .MCLK_EN(s_cyc_mclk_en),
+      .MCLK_FALL_EN(s_cyc_mclk_fall_en),
+      .UCLK_EN(s_cyc_uclk_en),
+      .CLK_EN(s_cyc_clk_en),
       .ALUCLK(s_aluclk),
       .CA10(s_ca10),
       .CCLR_n(s_cclr_n),
@@ -684,9 +788,11 @@ TODO: Sort bits on output LED to match led numbering
       .LUA_12_0    (s_lua_12_0[12:0]),
       .PCR_1_0     (s_pcr_1_0[1:0]),
       .PIL_3_0     (s_pil_3_0[3:0]),
+      .XIREQ_15_0_N(DEBUG_IREQ_15_0_N),
       .PPN_23_10   (s_ppn_23_10[13:0]),
       .TEST_4_0    (s_test_4_0[4:0]),
       .TOPCSB      (s_csbits[63:0]),
+      .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
       .TP1_INTRQ_n (s_rp1_intrq_n),
       .TRAPN       (s_trap_n),                  //out
       .LDEXM_n     (s_LDEXM_n),
@@ -698,7 +804,8 @@ TODO: Sort bits on output LED to match led numbering
       .ECCR        (s_eccr),                    // Output ECCR signal from CPU to RAM
       .HIT         (s_hit),                     // Cache hit
       .LEV0        (s_lev0),                    // Level 0 active
-      .CSA_12_0    (CSA_12_0)                   // Microcode Address (for debugging)
+      .CSA_12_0    (CSA_12_0),                  // Microcode Address (for debugging)
+      .XMIC_DBG_15_0(XMIC_DBG_15_0)             // DEBUG: microsequencer address-advance probe
   );
 
 
@@ -732,6 +839,8 @@ TODO: Sort bits on output LED to match led numbering
     .BDRY50_n(s_bdry50_n),
     .BRK_n(s_brk_n),
     .CLK(s_clk),
+    .CLK_EN(s_cyc_clk_en),
+    .CLK_FALL_EN(s_cyc_clk_fall_en),
     .CONSOLE_n(s_console_n),
     .CSCOMM_4_0(s_cscomm_4_0[4:0]),
     .CSIDBS_4_0(s_csidbs_4_0[4:0]),
@@ -844,9 +953,60 @@ TODO: Sort bits on output LED to match led numbering
   assign {s_ibint11_n, s_ibint12_n, s_ibint13_n, s_ibint15_n}
     = {s_bint11_n, s_bint12_n, s_bint13_n, s_bint15_n};
 
+`ifdef MAIN_RAM_SDRAM
+  // Write-path analyzer bus, retargeted (8-JUL-2026) at the WRITE
+  // generation chain in the DGA (DECODE_DGA_COMM F924 A160, clocked by
+  // the CYC-generated CLK): microcode CSCOMM decode -> D3 -> Q3 = WRITE.
+  // s_dbg_wdec recomputes the A167 NAND decode (D3 of the F924) from the
+  // same board-level nets the DGA sees, so we can watch the D input and
+  // the registered output side by side on silicon.
+  wire [15:0] s_dbg_mem43;  // original MEM_43 bus (RAS/MWRITE_n kept below)
+  wire s_dbg_wdec =
+      (s_cscomm_4_0[4] & s_cscomm_4_0[3] & ~s_cscomm_4_0[2] & s_cscomm_4_0[1] & s_lcs_n) |
+      (s_cscomm_4_0[4] & s_cscomm_4_0[3] & s_cscomm_4_0[2] & ~s_cscomm_4_0[1] & s_cscomm_4_0[0] & s_lcs_n);
+  // v4 (v1: WRITE asserts; v2: DD data + MWRITE_n correct in the window;
+  // v3: AA row/col + BANK0 + write mode correct at the bridge inputs):
+  // MEM_43 now sends the SDRAM-bridge FSM internals (see its DBG_MEMW
+  // assign); overlay the wdec trigger at [7] and WRITE at [6] so the
+  // top-level logic is unchanged.
+  assign DBG_MEMW = {s_dbg_mem43[15:8],    // [15:8] bridge {bstate[2:0], wr, rd,
+                     s_dbg_wdec,           //   data_ready, have_data, busy}
+                     s_write,              // [7] wdec (TRIGGER), [6] WRITE
+                     s_dbg_mem43[5:0]};    // [5]=BANK0 [4]=MWRITE50_n [3]=DBAPR
+                                           // [2]=ECREQ [1]=CAS [0]=RAS
+`endif
+
   MEM_43 MEM (
       .sysclk   (sysclk),    // System clock in FPGA
       .sys_rst_n(sys_rst_n), // System reset in FPGA
+
+`ifdef MAIN_RAM_SDRAM
+      // SDRAM main-memory backend (Tang Nano 20K)
+      .clk2x(clk2x),
+      .clk2x_sdram(clk2x_sdram),
+      .O_sdram_clk(O_sdram_clk),
+      .O_sdram_cke(O_sdram_cke),
+      .O_sdram_cs_n(O_sdram_cs_n),
+      .O_sdram_cas_n(O_sdram_cas_n),
+      .O_sdram_ras_n(O_sdram_ras_n),
+      .O_sdram_wen_n(O_sdram_wen_n),
+      .IO_sdram_dq(IO_sdram_dq),
+      .O_sdram_addr(O_sdram_addr),
+      .O_sdram_ba(O_sdram_ba),
+      .O_sdram_dqm(O_sdram_dqm),
+      .DBG_MEMW(s_dbg_mem43),
+`ifdef ND_STORAGE_PORT
+      .stor_clk  (stor_clk),
+      .stor_rst_n(stor_rst_n),
+      .mem_start (mem_start),
+      .mem_we    (mem_we),
+      .mem_addr  (mem_addr),
+      .mem_wdata (mem_wdata),
+      .mem_rdata (mem_rdata),
+      .mem_busy  (mem_busy),
+      .mem_done  (mem_done),
+`endif
+`endif
 
       // INPUTS
       .BDAP50_n   (s_bdap50_n),               //  Bus Data Present (50 ns delay)

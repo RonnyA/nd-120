@@ -12,6 +12,9 @@
 
 
 module CGA_TRAP (
+    input sysclk,   //! FPGA system clock (P2: TCLK_EN capture)
+    input TCLK_EN,  //! TCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input CBRKN,
     input DSTOPN,
     input ETRAPN,
@@ -109,6 +112,8 @@ module CGA_TRAP (
    *******************************************************************************/
 
   CGA_TRAP_TVGEN TVGEN (
+      .sysclk(sysclk),
+      .TCLK_EN(TCLK_EN),
       .DSTOPN(s_dstop_n),
       .FTRAPN(s_ftrap_n),
       .IFETCH(s_ifetch),

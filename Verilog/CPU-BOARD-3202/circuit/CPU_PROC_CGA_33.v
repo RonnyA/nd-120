@@ -13,6 +13,10 @@ module CPU_PROC_CGA_33 (
     input sysclk,    //! System clock in FPGA
     input sys_rst_n, //! System reset in FPGA
 
+    input        ALUCLK_EN,   //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        MCLK_EN,     //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        MCLK_FALL_EN, //! MCLK fall-enable pulse (FPGA_FF_MODE, else 0)
+    input        UCLK_EN,     //! UCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        ALUCLK,      //! ALU clock signal
     input        BEDO_n,      //! Bus Error Data Output, active low
     input        BEMPID_n,    //! Bus Empty ID, active low
@@ -30,7 +34,7 @@ module CPU_PROC_CGA_33 (
     input        LCS_n,       //! Local Chip Select, active low
     input        MAP_n,       //! Memory Address Present signal
     input        MCLK,        //! Main Clock
-    input        MOR_n,       //! Memory Operation Ready, active low
+    input        MOR_n,       //! Memory Out of Range, active low
     input        MR_n,        //! Memory Read, active low
     input        PAN_n,       //! Parity Error, active low
     input        PARERR_n,    //! Parity Error, active low
@@ -64,12 +68,17 @@ module CPU_PROC_CGA_33 (
     output        LSHADOW,     //! Shadow Register Load
     output [ 1:0] PCR_1_0,     //! Processor Control Register
     output [ 3:0] PIL_3_0,     //! Processor Interrupt Level
+    output [15:0] XIREQ_15_0_N, //! DEBUG: raw interrupt-request vector (active low)
     output        PONI,        //! Memory Protection ON, PONI=1
     output [ 1:0] RF_1_0,      //! Register File
     output [ 4:0] TEST_4_0,    //! Test output
     output        TRAP_n,      //! Trap, active low
     output        WCS_n,       //! Write Control Store, active low
-    output        WRTRF        //! Write Register File
+    output        WRTRF,       //! Write Register File
+
+    // Debug
+    output [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
+    output [15:0] XMIC_DBG_15_0     //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
 );
 
 
@@ -102,6 +111,7 @@ module CPU_PROC_CGA_33 (
 
 
   TTL_74374 CHIP_34G (
+      .sysclk(sysclk),
       .CK(~ALUCLK),  //7F (Smith with 1's complement) ?
       .D({
         IBINT10_n, IBINT11_n, IBINT12_n, IBINT13_n, IBINT15_n, 3'b000
@@ -200,6 +210,10 @@ module CPU_PROC_CGA_33 (
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
       /************ INPUT SIGNALS ********************/
+      .XALUCLK_EN(ALUCLK_EN),
+      .XMCLK_EN(MCLK_EN),
+      .XMCLK_FALL_EN(MCLK_FALL_EN),
+      .XTCLK_EN(UCLK_EN),
       .XALUCLK(ALUCLK),
       .XBINT10N(s_bint10_n),
       .XBINT11N(s_bint11_n),
@@ -276,12 +290,16 @@ module CPU_PROC_CGA_33 (
       .XMCA_9_0(CSCA_9_0),
       .XPCR_1_0(PCR_1_0),
       .XPIL_3_0(PIL_3_0),
+      .XIREQ_15_0_N(XIREQ_15_0_N),
       .XPONI(PONI),
       .XRF_1_0(RF_1_0),
       .XTEST_4_0(TEST_4_0),
       .XTRAPN(TRAP_n),
       .XWCSN(WCS_n),
-      .XWRTRF(WRTRF)
+      .XWRTRF(WRTRF),
+
+      .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
+      .XMIC_DBG_15_0(XMIC_DBG_15_0)
   );
 
 endmodule

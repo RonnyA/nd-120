@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_INTR_CNTLR_IRQ_MASK_MASKBIT (
+    input sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input CLOCK,
     input DATAIN,
     input DCDA,
@@ -49,6 +52,15 @@ module CGA_INTR_CNTLR_IRQ_MASK_MASKBIT (
   assign s_clock = CLOCK;
   assign s_dcdb = DCDB;
   assign s_dcda = DCDA;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -101,9 +113,12 @@ module CGA_INTR_CNTLR_IRQ_MASK_MASKBIT (
       .result(s_d_input)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // CLOCK resolves to MCLK (CGA_INTR.MCLK, rising edge) - MCLK domain
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_6 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_clock),
       .d(s_d_input),
       .preset(1'b0),

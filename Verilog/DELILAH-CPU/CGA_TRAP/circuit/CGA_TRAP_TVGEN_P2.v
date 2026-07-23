@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_TRAP_TVGEN_P2 (
+    input sysclk,   //! FPGA system clock (P2: TCLK_EN capture)
+    input TCLK_EN,  //! TCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input DSTOPN,
     input FTRAPN,
     input IFETCH,
@@ -105,6 +108,15 @@ module CGA_TRAP_TVGEN_P2 (
   assign s_vtrap_n         = VTRAPN;
   assign s_wip             = WIP;
   assign s_wip_n           = WIPN;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the TCLK-
+  // clocked registers capture on posedge sysclk gated by TCLK_EN
+  // (aligned to the TCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam TCLK_CE = 1;
+`else
+  localparam TCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -260,9 +272,12 @@ module CGA_TRAP_TVGEN_P2 (
       .sel(s_mux_selector[1:0])
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(TCLK_CE)
   ) L1V0_FF (
+      .sysclk(sysclk),
+      .EN(TCLK_EN),
       .clock(s_tclk),
       .d(s_gates9_out),
       .preset(1'b0),
@@ -272,9 +287,12 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(TCLK_CE)
   ) L2V2_FF (
+      .sysclk(sysclk),
+      .EN(TCLK_EN),
       .clock(s_tclk),
       .d(s_gates8_out),
       .preset(1'b0),
@@ -284,9 +302,12 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(TCLK_CE)
   ) L3V1_FF (
+      .sysclk(sysclk),
+      .EN(TCLK_EN),
       .clock(s_tclk),
       .d(s_gates5_out),
       .preset(1'b0),
@@ -296,9 +317,12 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(TCLK_CE)
   ) L2V1_FF (
+      .sysclk(sysclk),
+      .EN(TCLK_EN),
       .clock(s_tclk),
       .d(s_gates7_out),
       .preset(1'b0),
@@ -308,9 +332,12 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(TCLK_CE)
   ) L1V1_FF (
+      .sysclk(sysclk),
+      .EN(TCLK_EN),
       .clock(s_tclk),
       .d(s_pgf),
       .preset(1'b0),
@@ -320,9 +347,12 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(TCLK_CE)
   ) L3V0_FF (
+      .sysclk(sysclk),
+      .EN(TCLK_EN),
       .clock(s_tclk),
       .d(s_gates10_out),
       .preset(1'b0),
@@ -332,9 +362,12 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(TCLK_CE)
   ) L2V0_FF (
+      .sysclk(sysclk),
+      .EN(TCLK_EN),
       .clock(s_tclk),
       .d(s_gates11_out),
       .preset(1'b0),

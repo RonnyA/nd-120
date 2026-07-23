@@ -14,8 +14,16 @@ module CGA_MIC (
     input sysclk,    // System clock in FPGA
     input sys_rst_n, // System reset in FPGA
 
+    input        MCLK_EN,       //! MCLK rise clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        MCLK_FALL_EN,  //! MCLK fall clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input        ALUCLK,       //! ALU clock signal
     input [15:0] CD_15_0,      //! Data bus for communication
+`ifdef ND120_EXP_LDIRV_PUSH
+    input [ 6:0] EXP_FIDBO_6_0, //! EXPERIMENT (docs/serial-binload-300.md): internal
+                                //! IDB low bits, latched into IR on IDBS,ALU words
+    input        EXP_IDBS_ALU,  //! EXPERIMENT: this word's IDB source is the ALU
+`endif
     input        CFETCH,       //! Control signal for fetch operation
     input        CLFFN,        //! Clear flag function
     input        CRY,          //! Carry flag input
@@ -67,7 +75,15 @@ module CGA_MIC (
     output [ 3:0] SC_6_3,      //! Status control bits 6 to 3
     output        TN,          //! Trap not signal
     output        UPN,         //! Update not signal
-    output        WCSN         //! Write control signal not
+    output        WCSN,        //! Write control signal not
+
+    // DEBUG (Tang 06000-hang root-cause probe): the sequencer address-advance
+    // state, active-HIGH. bit15=SC6 bit14=s_mclk_n(regW mux-select, ~mclk_pa
+    // routed LEVEL) bit13=MCLK_EN(microsequencer clock-tick pulse)
+    // bit12:0=regIW (captured next-address). Shows which signal is FROZEN at the
+    // hang: MCLK_EN stuck-low => word never retires (mem/CYC); s_mclk_n stuck =>
+    // regW mux frozen; regIW stuck at 06000 vs jump target 0145.
+    output [15:0] XMIC_DBG
 );
 
   /*******************************************************************************
@@ -85,19 +101,21 @@ module CGA_MIC (
   wire [ 3:0] s_jmp_3_0;
   wire [ 3:0] s_laa_3_0_out;
   wire [ 3:0] s_lba_3_0_out;
-  wire [ 3:0] s_lc_3_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [ 3:0] s_lc_3_0;
   wire [ 3:0] s_lcc_3_0;
   wire [ 3:0] s_pil_3_0;
-  wire [ 3:0] s_sc_6_3_out;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [ 3:0] s_sc_6_3_out;
   wire [ 3:0] s_tsel_3_0;
   wire [ 3:0] s_tvec_3_0;
   wire [ 6:0] s_ir_6_0;
-  wire [12:0] s_iw_12_0;
-  wire [12:0] s_ma_12_0_out;
-  wire [12:0] s_next_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_iw_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_ma_12_0_out;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_next_12_0;
   wire [12:0] s_ret_12_0;
-  wire [12:0] s_w_12_0;
-  wire [12:0] s_wca_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_w_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_dbg_rep_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_dbg_jmp_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_wca_12_0;
   wire [15:0] s_cd_15_0;
   wire [15:0] s_csbit_15_0;
 
@@ -107,7 +125,7 @@ module CGA_MIC (
   wire        s_cfetch;
   wire        s_clff_n;
   wire        s_clff;
-  wire        s_cond_n;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_cond_n;
   wire        s_cond;
   wire        s_cry;
   wire        s_csalui8;
@@ -127,7 +145,7 @@ module CGA_MIC (
   wire        s_dzd_out;
   wire        s_dzd_signal;
   wire        s_dzdff_q;
-  wire        s_ewca_n;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_ewca_n;
   wire        s_f11;
   wire        s_f15;
   wire        s_fs6_efalse;
@@ -148,8 +166,8 @@ module CGA_MIC (
   wire        s_gates3_out;
   wire        s_gates4_out;
   wire        s_gates5_out;
-  wire        s_efalse;
-  wire        s_etrue;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_efalse;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_etrue;
   wire        s_csts6_etrue;
   wire        s_gnd;
   wire        s_ialui8_clocked_qn;
@@ -185,7 +203,7 @@ module CGA_MIC (
   wire        s_ldlc_n;
   wire        s_loop;
   wire        s_lwca_n;
-  wire        s_map_n;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_map_n;
   wire        s_mclk_n;
   wire        s_sclk_n;
   wire        s_clk_sc34;  // Clock signal for flip-flop carrying SC3 and SC4 signal
@@ -208,7 +226,7 @@ module CGA_MIC (
   wire        s_spare;
   wire        s_stp;
   wire        s_t_n_out;
-  wire        s_trap_n;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_trap_n;
   wire        s_up_n_out;
   wire        s_up_out;
   wire        s_wcs_n_out;
@@ -272,6 +290,16 @@ module CGA_MIC (
   assign s_tvec_3_0[3:0]    = TVEC_3_0;
   assign s_zf               = ZF;
 
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+  // Registers on the inverted nets (~MCLK) use MCLK_FALL_EN.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
+
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
@@ -290,6 +318,20 @@ module CGA_MIC (
   assign TN                 = s_t_n_out;
   assign UPN                = s_up_n_out;
   assign WCSN               = s_wcs_n_out;
+  // DEBUG probe word: {SC6, s_mclk_n, MCLK_EN, regREP_comb[12:0]}. The Tang
+  // capture showed SC=JUMP + MCLK_EN pulsing but regIW frozen at 06000 (jump
+  // target 0145 never loaded). regREP_comb is the COMPUTED next-address (= the
+  // JUMP target when SC=JUMP). If regREP_comb=0145 here, the sequencer computes
+  // the jump correctly but regIW/regW never propagate it (capture/clocking bug);
+  // if regREP_comb=6000, the mux/jmpaddr is wrong. s_mclk_n = the routed ~mclk
+  // level that gates regW.
+  //   bit15=CSBIT20 bit14=SC6 bit13=MCLK_EN bit12=0 bit11:0=CSBIT_11_0
+  // Tang measured s_jmpaddr=16000 = {csbit20=1, csbit_11_0[11:4]=0xC0}; 0xC00 =
+  // the ADDRESS 06000. So capture the RAW microword field CSBIT_11_0 that MASEL
+  // sees. Correct STZ word => CSBIT_11_0=0x065 (=> jmpaddr 0145). If instead
+  // CSBIT_11_0=0xC00 (=address 06000 low bits) => the WCS control-store READ is
+  // returning the ADDRESS not the DATA on silicon = ROOT CAUSE (WCS read path).
+  assign XMIC_DBG           = {s_csbit20, s_sc_6_3_out[3], MCLK_EN, 1'b0, s_csbit_15_0[11:0]};
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
@@ -592,9 +634,12 @@ module CGA_MIC (
   );
 
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_33 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_csloop),
       .preset(1'b0),
@@ -604,6 +649,25 @@ module CGA_MIC (
       .tick(1'b1)
   );
 
+  // MCLK domain: InvertClockEnable(1) on s_clk_sc34 (= ~MCLK) fires on the
+  // falling edge of ~MCLK, i.e. the MCLK rising edge -> MCLK_EN.
+  // (D_FLIPFLOP_EN has no InvertClockEnable, so the latch-mode original
+  // is kept verbatim in the else branch.)
+`ifdef FPGA_FF_MODE
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
+  ) MEMORY_34 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
+      .clock(s_clk_sc34),
+      .d(s_csfs_3),
+      .preset(1'b0),
+      .q(),
+      .qBar(s_sc_3_out),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
+`else
   D_FLIPFLOP #(
       .InvertClockEnable(1)
   ) MEMORY_34 (
@@ -615,10 +679,13 @@ module CGA_MIC (
       .reset(1'b0),
       .tick(1'b1)
   );
+`endif
 
-  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk (async clear s_clff)
+  D_FLIPFLOP_EN #(.USE_ENABLE(MCLK_CE), .ASYNC_RESET(1)
   ) MEMORY_35 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_zf),
       .preset(1'b0),
@@ -628,9 +695,12 @@ module CGA_MIC (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_36 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_csalui8),
       .preset(1'b0),
@@ -640,6 +710,25 @@ module CGA_MIC (
       .tick(1'b1)
   );
 
+  // MCLK domain: InvertClockEnable(1) on s_clk_sc34 (= ~MCLK) fires on the
+  // falling edge of ~MCLK, i.e. the MCLK rising edge -> MCLK_EN.
+  // (D_FLIPFLOP_EN has no InvertClockEnable, so the latch-mode original
+  // is kept verbatim in the else branch.)
+`ifdef FPGA_FF_MODE
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
+  ) MEMORY_37 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
+      .clock(s_clk_sc34),
+      .d(s_csfs_4),
+      .preset(1'b0),
+      .q(),
+      .qBar(s_sc_4_out),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
+`else
   D_FLIPFLOP #(
       .InvertClockEnable(1)
   ) MEMORY_37 (
@@ -651,10 +740,14 @@ module CGA_MIC (
       .reset(1'b0),
       .tick(1'b1)
   );
+`endif
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_38 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_gates29_out),
       .preset(1'b0),
@@ -664,9 +757,12 @@ module CGA_MIC (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_39 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_gates28_out),
       .preset(1'b0),
@@ -682,6 +778,9 @@ module CGA_MIC (
    *******************************************************************************/
 
   CGA_MIC_INCOUNT MIC_INCOUNT (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+
       .CD0(s_cd_15_0[0]),
       .CD1(s_cd_15_0[1]),
       .CSWAN0(s_cswan_1_0[0]),
@@ -697,7 +796,10 @@ module CGA_MIC (
   assign loop_counter[5:0] = {s_icd_5, s_icd_4,s_lc_3_0[3],s_lc_3_0[2],s_lc_3_0[1],s_lc_3_0[0]};
 
 
-  M169C LC_HI (
+  // MCLK domain: CP = s_mclk, counts on posedge MCLK
+  M169C_EN #(.USE_ENABLE(MCLK_CE)) LC_HI (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CP(s_mclk),
 
       .A(s_cd_15_0[4]),
@@ -719,7 +821,10 @@ module CGA_MIC (
       .UP(s_up_out)
   );
 
-  M169C LC_LO (
+  // MCLK domain: CP = s_mclk, counts on posedge MCLK
+  M169C_EN #(.USE_ENABLE(MCLK_CE)) LC_LO (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CP(s_mclk),
 
       .A(s_cd_15_0[0]),
@@ -780,6 +885,35 @@ module CGA_MIC (
     .Z3 (s_jmp_3_0[3])
   );
 
+`ifdef ND120_EXP_LDIRV_PUSH
+  // EXPERIMENT rule 2 (docs/serial-binload-300.md): load IR from the
+  // internal IDB on every IDBS,ALU word (CSIDBS==0). The decisive load
+  // point is o500 in IOXG (IDB = masked device address), which vectors
+  // poll/read/activate/macro-IOX/IOXT/BAUDS alike; o501-o503 use
+  // BARG/ARG IDB sources and so preserve it. IOXT2's explicit
+  // COMM,LDIRV covers the IOXX1 entry that skips o500. Qualified to
+  // the MCLK-low phase like the real LDIRV decode.
+  wire s_exp_alu_ld  = EXP_IDBS_ALU & s_mclk_n;
+  wire s_exp_irgate  = s_ldirv | s_exp_alu_ld;
+  wire [6:0] s_exp_irdata = s_exp_alu_ld ? EXP_FIDBO_6_0 : s_cd_15_0[6:0];
+
+  L8 IRLATCH
+  (
+    // System Input signals
+    .sysclk(sysclk),                          // System clock in FPGA
+    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+
+    .L  (s_exp_irgate),
+    // Input signals
+    .A  (s_exp_irdata[0]),
+    .B  (s_exp_irdata[1]),
+    .C  (s_exp_irdata[2]),
+    .D  (s_exp_irdata[3]),
+    .E  (s_exp_irdata[4]),
+    .F  (s_exp_irdata[5]),
+    .G  (s_exp_irdata[6]),
+    .H  (1'b0),
+`else
   L8 IRLATCH
   (
     // System Input signals
@@ -796,6 +930,7 @@ module CGA_MIC (
     .F  (s_cd_15_0[5]),
     .G  (s_cd_15_0[6]),
     .H  (1'b0),
+`endif
 
     // Output signals
     .QA (s_ir_6_0[0]),
@@ -817,6 +952,9 @@ module CGA_MIC (
   );
 
   CGA_MIC_CONDREG CONDREG (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+
         // Input
       .CSBIT_11_0(s_csbit_15_0[11:0]),
       .CSSCOND(s_cscond),
@@ -871,7 +1009,10 @@ module CGA_MIC (
       .Z (s_laa0_signal)
   );
 
-  R41P LAA_REG (
+  // MCLK domain: CP = s_mclk, clocked on posedge MCLK
+  R41P_EN #(.USE_ENABLE(MCLK_CE)) LAA_REG (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CP(s_mclk),
 
       .A(s_laa0_signal),
@@ -932,7 +1073,10 @@ module CGA_MIC (
       .Z (s_lba0_signal)
   );
 
-  R41P LBA_REG (
+  // MCLK domain: CP = s_mclk, clocked on posedge MCLK
+  R41P_EN #(.USE_ENABLE(MCLK_CE)) LBA_REG (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CP(s_mclk),
 
       .A(s_lba0_signal),
@@ -974,6 +1118,10 @@ module CGA_MIC (
 
 
   CGA_MIC_STACK MIC_STACK (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+      .MCLK_FALL_EN(MCLK_FALL_EN),
+
       // Input
       .MCLK (s_mclk),
       .SCLKN(s_sclk_n), //Stack Clock (Negated MCLK)
@@ -993,6 +1141,8 @@ module CGA_MIC (
       .sysclk(sysclk),  // System clock in FPGA
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
+      .MCLK_EN(MCLK_EN),
+
       // Input signals
       .CSBIT20(s_csbit20),
       .CSBIT_11_0(s_csbit_15_0[11:0]),
@@ -1007,10 +1157,15 @@ module CGA_MIC (
 
       // Output signals
       .IW_12_0(s_iw_12_0[12:0]),
-      .W_12_0(s_w_12_0[12:0])
+      .W_12_0(s_w_12_0[12:0]),
+      .DBG_REP_12_0(s_dbg_rep_12_0[12:0]),
+      .DBG_JMP_12_0(s_dbg_jmp_12_0[12:0])
   );
 
-  SCAN_WITH_SET_N OOD_FF (
+  // MCLK domain: CLK = s_mclk, clocked on posedge MCLK (async set S_n)
+  SCAN_WITH_SET_N_EN #(.USE_ENABLE(MCLK_CE)) OOD_FF (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_ood_signal),
       .Q  (s_oodff_q),
@@ -1020,7 +1175,10 @@ module CGA_MIC (
       .TI (s_oodff_q)
   );
 
-  SCAN_WITH_SET_N DZD_FF (
+  // MCLK domain: CLK = s_mclk, clocked on posedge MCLK (async set S_n)
+  SCAN_WITH_SET_N_EN #(.USE_ENABLE(MCLK_CE)) DZD_FF (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_dzd_signal),
       .Q  (s_dzdff_q),
@@ -1033,6 +1191,9 @@ module CGA_MIC (
 
 
   CGA_MIC_WCAREG MIC_WCAREG (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
+
       .CD_15_0(s_cd_15_0[15:0]),
       .LCSN(s_lcs_n),
       .LWCAN(s_lwca_n),
@@ -1060,6 +1221,7 @@ module CGA_MIC (
 
   CGA_MIC_CSEL CSEL (
       // Input
+      .sysclk(sysclk),
       .ALUCLK(s_aluclk),
       .CFETCH(s_cfetch),
       .COND(s_cond),
@@ -1081,9 +1243,12 @@ module CGA_MIC (
       .CONDN(s_cond_n)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_32 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_cond_n),
       .preset(1'b0),

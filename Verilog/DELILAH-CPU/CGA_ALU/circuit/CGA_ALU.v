@@ -15,6 +15,7 @@ module CGA_ALU (
     input sysclk,    // System clock in FPGA
     input sys_rst_n, // System reset in FPGA
 
+    input        ALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        ALUCLK,
     input [15:0] A_15_0,
     input [15:0] B_15_0,
@@ -80,12 +81,12 @@ module CGA_ALU (
   wire [15:0] s_d_15_0;
   wire [15:0] s_dbr_15_0;
   wire [15:0] s_ea_15_0;
-  wire [15:0] s_f_15_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [15:0] s_f_15_0;
   wire [15:0] s_fidbi_15_0;
   wire [15:0] s_fidbo_15_0_out;
   wire [15:0] s_g_15_0;
   wire [15:0] s_grp_15_0;
-  wire [15:0] s_q_15_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [15:0] s_q_15_0;
   wire [15:0] s_rb_15_0_out;
   wire [15:0] s_rn_15_0;
   wire [15:0] s_s_15_0;
@@ -154,6 +155,16 @@ module CGA_ALU (
   assign s_csbit_15_0[15:0]     = CSBIT_15_0;
   assign s_up_n                 = UPN;
   assign s_aluclk               = ALUCLK;
+  wire s_aluclk_en_i = ALUCLK_EN;
+
+  // P2b (docs/plan-fix-unconstrained-clocks.md): in FF mode the ALUCLK-
+  // clocked registers capture on posedge sysclk gated by ALUCLK_EN
+  // (aligned to the ALUCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam ALUCLK_CE = 1;
+`else
+  localparam ALUCLK_CE = 0;
+`endif
   assign s_xfetch_n             = XFETCHN;
   assign s_ldgpr_n              = LDGPRN;
   assign s_lddbr_n              = LDDBRN;
@@ -193,9 +204,11 @@ module CGA_ALU (
   /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(ALUCLK_CE)
   ) MEMORY_1 (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .clock(s_aluclk),
       .d(s_csidbs4_0[2]),
       .preset(1'b0),
@@ -240,6 +253,8 @@ module CGA_ALU (
   );
 
   CGA_ALU_STS ALU_STS (
+      .sysclk(sysclk),
+      .ALUCLK_EN(s_aluclk_en_i),
       .ALUCLK(s_aluclk),
       .CRY(s_cry_out),
       .CSTS_1_0(s_csts_1_0[1:0]),
@@ -251,6 +266,8 @@ module CGA_ALU (
   );
 
   CGA_ALU_GPR ALU_GPR (
+      .sysclk(sysclk),
+      .ALUCLK_EN(s_aluclk_en_i),
       .ALUCLK(s_aluclk),
       .CD_15_0(s_cd_15_0[15:0]),
       .DGPR0N(s_dgpr0_n),
@@ -261,19 +278,25 @@ module CGA_ALU (
   );
 
   CGA_ALU_DBR ALU_DBR (
-      .ALUCLK  (s_aluclk),
+      .sysclk(sysclk),
+      .ALUCLK_EN(s_aluclk_en_i),
+      .ALUCLK(s_aluclk),
       .CD_15_0 (s_cd_15_0[15:0]),
       .DBR_15_0(s_dbr_15_0[15:0]),
       .LDDBRN  (s_lddbr_n)
   );
 
   CGA_ALU_ARG ALU_ARG (
+      .sysclk(sysclk),
+      .ALUCLK_EN(s_aluclk_en_i),
       .ALUCLK(s_aluclk),
       .ARG_15_0(s_arg_15_0[15:0]),
       .CSBIT_15_0(s_csbit_15_0[15:0])
   );
 
   CGA_ALU_SWAP ALU_SWAP (
+      .sysclk(sysclk),
+      .ALUCLK_EN(s_aluclk_en_i),
       .ALUCLK(s_aluclk),
       .FIDBO_15_0(s_fidbo_15_0_out[15:0]),
       .SW_15_0(s_sw_15_0[15:0])
@@ -293,6 +316,7 @@ module CGA_ALU (
 
        // Input
       .AARG0(s_aarg0),
+      .ALUCLK_EN(s_aluclk_en_i),
       .ALUCLK(s_aluclk),
       .ALUD2N(s_alud2_n),
       .ARG_15_0(s_arg_15_0[15:0]),
@@ -314,6 +338,8 @@ module CGA_ALU (
   );
 
   CGA_ALU_QREG ALU_QREG (
+      .sysclk(sysclk),
+      .ALUCLK_EN(s_aluclk_en_i),
       .ALUCLK(s_aluclk),
       .F_15_0(s_f_15_0[15:0]),
       .QLI(s_qli),
@@ -339,6 +365,8 @@ module CGA_ALU (
   );
 
   CGA_CPU_ALU_CONTR ALU_CONTR (
+      .sysclk(sysclk),
+      .ALUCLK_EN(s_aluclk_en_i),
       .ALUCLK(s_aluclk),
       .ALUD2N(s_alud2_n),
       .ALUI4(s_alui4),

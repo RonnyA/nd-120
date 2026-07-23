@@ -10,6 +10,7 @@
 
 module MEM_ADDR_44 (
     // Input
+    input sysclk,
     input [19:0] LBD_19_0,  //! Local Bus Address and Data - 20 bits (including parity 2 bits)
     input BCGNT50,          //! Bus cycle grant 50ns delayed CLOCK signal to latch LOW or HIGH bits from memory to AA_9_0
     input LOEN_n,           //! Low address bits enable
@@ -86,14 +87,25 @@ module MEM_ADDR_44 (
       .Y_OUT(s_aa_9_0_out)
   );
 
-  AM29C821 CHIP_3H_ROW_ADDRESS (
+  // USE_SYSCLK=2: BCGNT50 is a bus-grant CONTROL signal, not a clock. Clocking these
+  // address latches on `posedge BCGNT50` (USE_SYSCLK=0) is the routed-net-as-clock
+  // anti-pattern on FPGA. But USE_SYSCLK=1 (level enable) is WRONG here: BCGNT50
+  // stays high across the whole grant window while LBD moves on from the ADDRESS
+  // to the WRITE DATA, so the "address" registers ended up holding the data and
+  // every memory WRITE landed at the wrong location (OPCOM deposit broken in sim
+  // AND on the board, 8-JUL-2026). USE_SYSCLK=2 = sysclk-sampled RISING-EDGE
+  // capture: address taken exactly once per grant, like the original chip, with
+  // no routed clock net.
+  AM29C821 #(.USE_SYSCLK(2)) CHIP_3H_ROW_ADDRESS (
+      .sysclk(sysclk),
       .CK(s_bcgnt50),
       .D(s_lbd_lo_in),
       .OE_n(s_loen_n),
       .Y(s_lbd_lo_out)
   );
 
-  AM29C821 CHIP_4H_COL_ADDRESS (
+  AM29C821 #(.USE_SYSCLK(2)) CHIP_4H_COL_ADDRESS (
+      .sysclk(sysclk),
       .CK(s_bcgnt50),
       .D(s_lbd_hi_in),
       .OE_n(s_hien_n),

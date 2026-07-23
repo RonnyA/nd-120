@@ -84,9 +84,19 @@ module PAL_44801A (
   always @(posedge CK) begin
 
     // CACT - CPU IS ACTIVE ON THE ND100 BUS
+    // Priority-2 term ("CPU request AFTER a refresh") uses DOREF (active-high),
+    // NOT DOREF_n. This is the toggled-priority tie-breaker for a simultaneous
+    // CPU + DMA request: CACT term 2 fires on DOREF (last cycle was refresh) and
+    // GNT term 2 fires on /DOREF (below), so the two are COMPLEMENTARY and
+    // exactly one master wins - the bus can never be granted to both at once.
+    // FIXED 20-JUL-2026: this term was transcribed as DOREF_n, which made it
+    // identical to GNT's /DOREF term, so on DOREF=0 BOTH CACT and GNT set and
+    // the CPU ran an IOX cycle on top of a held external DMA grant. Corrected to
+    // match the original PALASM: DesignDocuments/PAL-Code/SRC/44801A.txt:11
+    // (`CRQ * /REFRQ50 * DOREF * /REF * /GNT * /SEM * /BDRY25 * /MR ; 2`).
     CACT_reg <=
                     (CRQ  & REFRQ50_n & BRQ50_n & REF_n & GNT_n & SEM_n & BDRY25_n & MR_n)  // 4
-                  | (CRQ  & REFRQ50_n & DOREF_n & REF_n & GNT_n & SEM_n & BDRY25_n & MR_n)  // 2
+                  | (CRQ  & REFRQ50_n & DOREF   & REF_n & GNT_n & SEM_n & BDRY25_n & MR_n)  // 2
                   | (CACT & BDRY25_n & MR_n)  // HOLD
                   | (CRQ  & SEM & GNT_n & BDRY25_n & MR_n);  // SEMAPHORE
 
@@ -102,8 +112,16 @@ module PAL_44801A (
     | (BRQ50 & SEM & GNT & MR_n);  // SEMAPHORE
 
     // IOD - IO SIGNAL TO LAST FOR THE ENTIRE BUS CYCLE
+    // FIXED 20-JUL-2026: term 2 ("IOX after a refresh") had TWO transcription
+    // errors vs the original PALASM (44801A.txt:31,
+    // `IORQ * CRQ * /REFRQ50 * DOREF * /REF * /GNT * /SEM * /BDRY25 * /MR ; 2`):
+    // DOREF_n should be DOREF (same inversion as the CACT double-grant bug), and
+    // the final term was ~MR_n where PALASM has /MR = MR_n. As written the term
+    // could only fire during master reset (MR active) - i.e. it was dead in
+    // normal operation, so an IOX right after a refresh never latched IOD via
+    // this path. Restored to match PALASM.
     IOD_reg <= (IORQ & CRQ & REFRQ50_n & BRQ50_n & REF_n & GNT_n & SEM_n & BDRY25_n & MR_n)  // 4
-    | (IORQ & CRQ & REFRQ50_n & DOREF_n & REF_n & GNT_n & SEM_n & BDRY25_n & ~MR_n)  // 2
+    | (IORQ & CRQ & REFRQ50_n & DOREF   & REF_n & GNT_n & SEM_n & BDRY25_n & MR_n)  // 2
     | (IOD & BDRY25_n & MR_n)  // HOLD
     | (IORQ & CRQ & SEM & GNT_n & BDRY25_n & MR_n);  // SEMAPHORE
 
@@ -125,7 +143,16 @@ module PAL_44801A (
     ACT_reg <= (CACT & BDRY25_n & MR_n) | (GNT & BDRY25_n & MR_n) | (REF & BDRY25_n & MR_n);
 
     // DOREF - INDICATES THAT LAST BUS CYCLE WAS A REFRESH
-    DOREF_reg <= (REF & ~MR & BDRY25) | (DOREF & ~MR & ~CACT_n & ~GNT_n & ~REF_n);
+    // FIXED 20-JUL-2026: the HOLD term was inverted. PALASM (44801A.txt:60,
+    // `DOREF * /MR * /CACT * /GNT * /REF`) holds DOREF while CACT, GNT and REF
+    // are all INACTIVE (i.e. between the refresh and the next real cycle), so
+    // the "last cycle was refresh" flag survives until the CPU/DMA takes its
+    // turn - that is what carries the toggled-priority tie-break. The Verilog
+    // used ~CACT_n & ~GNT_n & ~REF_n = CACT & GNT & REF (all ACTIVE at once),
+    // which is impossible, so the term was always 0 and DOREF never held -
+    // it only pulsed for one cycle after a refresh. Restored to /CACT /GNT /REF
+    // = CACT_n & GNT_n & REF_n.
+    DOREF_reg <= (REF & ~MR & BDRY25) | (DOREF & ~MR & CACT_n & GNT_n & REF_n);
 
   end
 

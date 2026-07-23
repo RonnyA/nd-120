@@ -33,3 +33,12 @@ gtk: run
 	gtkwave waveform.vcd top_3202d.gtkw &
 
 .PHONY: all clean
+
+# P1b/P1c equivalence: request/grant flag - D_FLIPFLOP (async clear) vs the
+# MEM_ADEC_45 FF-mode sysclk edge-capture (docs/plan-fix-unconstrained-clocks.md)
+test-reqgnt: reqgnt_equiv_tb
+	vvp reqgnt_equiv_tb | tee reqgnt_result.tmp
+	@grep -q "TB_RESULT: PASS" reqgnt_result.tmp && rm -f reqgnt_result.tmp reqgnt_equiv_tb.vcd
+
+reqgnt_equiv_tb: reqgnt_equiv_tb.v ../../Shared/logisim/D_FLIPFLOP.v
+	iverilog -g2012 -o $@ reqgnt_equiv_tb.v ../../Shared/logisim/D_FLIPFLOP.v

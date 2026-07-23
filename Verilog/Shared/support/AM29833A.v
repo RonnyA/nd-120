@@ -44,6 +44,7 @@ Each of these devices is produced with AMD's proprietary IMOX bipolar process, a
 
 
 module AM29833A (
+    input  wire       sysclk,   //! FPGA system clock (used only when USE_SYSCLK=2)
     input  wire       CLK,      //! Clock for parity error
     input  wire       CLR_n,    //! Clear error
     output wire       ERR_n,    //! Parity Error
@@ -57,7 +58,16 @@ module AM29833A (
     output wire [7:0] T_OUT     //! T out
 );
 
-  reg regERR;
+  // USE_SYSCLK=0 (default): original posedge CLK + async CLR_n - matches the
+  //   real chip; correct for simulation / latch mode.
+  // USE_SYSCLK=2: sysclk-sampled RISING-EDGE capture (same pattern as
+  //   AM29C821 USE_SYSCLK=2) - the FPGA-safe replacement when CLK is a
+  //   control strobe (here: RDATA), not a clock. Removes the routed-net-as-
+  //   clock; CLR_n becomes a synchronous clear (it is a slow control signal,
+  //   several sysclk cycles wide, so no clear event can be missed).
+  parameter USE_SYSCLK = 0;
+
+  reg regERR = 1'b0;
 
   // Transmit Mode: Transmits data from R port to T port. Generating parity. Receive path is disabled.
   wire TransmitMode;
@@ -83,18 +93,36 @@ module AM29833A (
   assign PAR_OUT = (!ReceiveMode) ? ~(^R) : 1'b0;
 
   // ERR register logic (latched on CLK)
-  always @(posedge CLK or negedge CLR_n) begin
-    if (!CLR_n)
-    begin
-      // Clear error flag
-      regERR <= 1'b0;
+  generate
+    if (USE_SYSCLK == 2) begin : gen_sysclk_edge
+      // FPGA mode: capture on a DETECTED rising edge of CLK, clocked by
+      // sysclk. One capture per CLK rise - same semantics as posedge CLK
+      // (CLK is generated in the sysclk/OSC domain and is at least one
+      // sysclk cycle wide, so no edge can be missed). CLR_n is checked
+      // synchronously and dominates, mirroring the async-clear priority.
+      reg clk_d = 1'b0;
+      always @(posedge sysclk) begin
+        clk_d <= CLK;
+        if (!CLR_n) regERR <= 1'b0;
+        else if (CLK && !clk_d && !ReceiveMode)
+          regERR <= ~(^{T, PAR});  // 9-bit parity check on T+PAR: EVEN = error
+      end
+    end else begin : gen_posedge_clk
+      // Original chip behavior (simulation / latch mode)
+      always @(posedge CLK or negedge CLR_n) begin
+        if (!CLR_n)
+        begin
+          // Clear error flag
+          regERR <= 1'b0;
+        end
+        else if (!ReceiveMode) // Default to transmit mode if ReceiveMode is not active
+        begin
+          // Store error flag if even parity detected
+          regERR <= ~(^{T, PAR}); // Parity check on T input + incoming PAR. If those 9 bits is EVEN we have an error
+        end
+      end
     end
-    else if (!ReceiveMode) // Defaul to transmit mode if ReceiveMode is not active
-    begin
-        // Store error flag if even parity detected, and error is not already set
-        regERR <= ~(^{T, PAR}); // Parity check on T input + incoming PAR. If those 9 bits is EVEN we have an error      
-    end
-  end
+  endgenerate
 
   // ERR output logic (open-collector style)
   assign ERR_n = regERR ? 1'b0 : 1'b1; //open collector is here resulting in an 1 when there is no error

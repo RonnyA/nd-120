@@ -12,6 +12,9 @@
 
 
 module CGA_INTR_CNTLR_IRGEL_HIRL (
+    input       sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input       MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input       D,
     input       E,
     input       H,
@@ -40,7 +43,7 @@ module CGA_INTR_CNTLR_IRGEL_HIRL (
   wire       s_h;
   wire       s_hidet_nand_hivges;
   wire       s_hidet;
-  wire       s_hidis_n;
+  wire       s_hidis_n /* synthesis syn_keep=1 */;  // GAO probe net - see fpga/tang-nano-20k/GAO-HOWTO.md
   wire       s_hienab_n_out;
   wire       s_higas_n_out;
   wire       s_higas_out;
@@ -50,8 +53,8 @@ module CGA_INTR_CNTLR_IRGEL_HIRL (
   wire       s_hirq_out;
   wire       s_hivges;
   wire       s_hve_out;
-  wire       s_int_req_q;
-  wire       s_int_req_qn;
+  wire       s_int_req_q /* synthesis syn_keep=1 */;   // GAO probe net - see fpga/tang-nano-20k/GAO-HOWTO.md
+  wire       s_int_req_qn /* synthesis syn_keep=1 */;  // GAO probe net
   wire       s_mclk;
   wire       s_pd_out;
   wire       s_rd_n;
@@ -73,6 +76,15 @@ module CGA_INTR_CNTLR_IRGEL_HIRL (
   assign s_e              = E;
   assign s_mclk           = MCLK;
   assign s_higs_n         = HIGSN;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -150,11 +162,15 @@ module CGA_INTR_CNTLR_IRGEL_HIRL (
       .result(s_hirq_out)
   );
 
-  AND_GATE #(
-      .BubblesMask(2'b11)
+  // Vector-claim must be gated by the interrupt-request-enable FF (Am2914
+  // ground truth: a claim after DISIN must not fire even with requests
+  // pending and the mask open - the post-MCL mask is all-enabled by design).
+  AND_GATE_3_INPUTS #(
+      .BubblesMask(3'b111)
   ) GATES_7 (
       .input1(s_hipassall_n_out),
       .input2(s_s),
+      .input3(s_int_req_qn),
       .result(s_hve_out)
   );
 
@@ -163,7 +179,10 @@ module CGA_INTR_CNTLR_IRGEL_HIRL (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  SCAN_FF STATUS_OVERFLOW_FF (
+  // MCLK domain (CGA_INTR.MCLK, rising edge)
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) STATUS_OVERFLOW_FF (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_hidis_n),
       .Q  (s_hidis_n),
@@ -172,7 +191,10 @@ module CGA_INTR_CNTLR_IRGEL_HIRL (
       .TI (s_higas_n_out)
   );
 
-  SCAN_FF INT_REQ_ENABLE_FF (
+  // MCLK domain (CGA_INTR.MCLK, rising edge)
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) INT_REQ_ENABLE_FF (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_e),
       .Q  (s_int_req_q),

@@ -1,0 +1,145 @@
+/**************************************************************************
+** ND-100 PAPERTAPE READER, DEVICE 400 (octal)                           **
+**                                                                       **
+** Register core matching the C reference model in                       **
+** simDevices/NDDevices.cpp (class PaperTape), which runSim boots        **
+** with today:                                                           **
+**                                                                       **
+**   IOX 400  read data      returns the character buffer, clears RFT    **
+**   IOX 401  write data     (papertape WRITER only - ignored)           **
+**   IOX 402  read status    bit0 = interrupt enabled                    **
+**                           bit2 = read active                          **
+**                           bit3 = ready for transfer (RFT)             **
+**   IOX 403  write control  bit0 = interrupt enable                     **
+**                           bit2 = activate (fetch next byte)           **
+**                           bit3 = ready for transfer preset            **
+**                           bit4 = device clear                         **
+**                                                                       **
+** Ident code 02 (octal), interrupt level 12.                            **
+** Interrupt pending = interruptEnabled AND readyForTransfer.            **
+** IDENT on level 12 with pending interrupt returns the ident code and   **
+** clears BOTH the pending flag and the interrupt-enable bit.            **
+**                                                                       **
+** The byte source is a port: the sim testbench serves a file image,     **
+** the hardware serves an SD-FAT stream. The C model fetches a byte      **
+** instantly on activate; here RFT rises when byte_valid arrives, which  **
+** the polling loader tolerates by design (it polls status bit 3).       **
+**                                                                       **
+** Last reviewed: 11-JUL-2026                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
+
+module ND_TAPE_400 #(
+    parameter [15:0] BASE_ADDR  = 16'o000400,
+    parameter [15:0] IDENT_CODE = 16'o000002,
+    parameter [3:0]  INT_LEVEL  = 4'd12
+) (
+    input wire sysclk,
+    input wire sys_rst_n,
+
+    // Device bus (from ND_BUS_SLAVE)
+    input  wire [15:0] iox_addr,
+    input  wire        iox_wr,
+    input  wire [15:0] iox_wdata,
+    input  wire        iox_rd,
+    output wire [15:0] iox_rdata,     // OR-bus: 0 when not addressed
+    output wire [3:0]  int_pending,   // {lvl13,lvl12,lvl11,lvl10}
+    input  wire        ident_strobe,
+    input  wire [3:0]  ident_level,
+    input  wire        ident_grant_in,   // daisy chain: 1 = we may answer
+    output wire        ident_grant_out,  // pass on when we don't answer
+    output wire        ident_hit,        // OR-bus contribution
+    output wire [15:0] ident_code,       // OR-bus contribution
+
+    // Byte source (file model in sim, SD-FAT streamer on hardware)
+    output reg         byte_req,     // 1-cycle pulse: fetch next byte
+    input  wire        byte_valid,   // 1-cycle pulse: byte_data is the byte
+    input  wire [7:0]  byte_data,
+    output reg         source_rewind // 1-cycle pulse on device clear
+);
+
+  // Status register bits (same layout as control word, per the C model)
+  reg s_int_enabled;    // bit 0
+  reg s_read_active;    // bit 2
+  reg s_rft;            // bit 3 - ready for transfer
+  reg [7:0] s_char_buffer;
+
+  wire [15:0] s_status = {12'd0, s_rft, s_read_active, 1'b0, s_int_enabled};
+
+  // Address decode: 400 (+0) data, 402 (+2) status, 403 (+3) control
+  wire s_addressed  = (iox_addr[15:2] == BASE_ADDR[15:2]);
+  wire s_rd_data    = iox_rd && s_addressed && (iox_addr[1:0] == 2'd0);
+  wire s_rd_status  = iox_rd && s_addressed && (iox_addr[1:0] == 2'd2);
+  wire s_wr_control = iox_wr && s_addressed && (iox_addr[1:0] == 2'd3);
+
+  // OR-bus read data (drive 0 when not addressed - FPGA rule)
+  assign iox_rdata = s_rd_data   ? {8'd0, s_char_buffer} :
+                     s_rd_status ? s_status : 16'd0;
+
+  // Interrupt pending: enabled AND ready (evaluated continuously,
+  // like SetInterruptStatus after every state change in the C model)
+  wire s_pending = s_int_enabled && s_rft;
+  assign int_pending = {(INT_LEVEL == 4'd13) && s_pending,
+                        (INT_LEVEL == 4'd12) && s_pending,
+                        (INT_LEVEL == 4'd11) && s_pending,
+                        (INT_LEVEL == 4'd10) && s_pending};
+
+  // IDENT daisy chain: answer only with a pending interrupt on OUR level
+  wire s_ident_answer = ident_strobe && ident_grant_in &&
+                        (ident_level == INT_LEVEL) && s_pending;
+  assign ident_hit       = s_ident_answer;
+  assign ident_code      = s_ident_answer ? IDENT_CODE : 16'd0;
+  assign ident_grant_out = ident_grant_in && !s_ident_answer;
+
+  always @(posedge sysclk or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
+      s_int_enabled <= 1'b0;
+      s_read_active <= 1'b0;
+      s_rft         <= 1'b0;
+      s_char_buffer <= 8'd0;
+      byte_req      <= 1'b0;
+      source_rewind <= 1'b0;
+    end else begin
+      byte_req      <= 1'b0;
+      source_rewind <= 1'b0;
+
+      // IOX 400: reading the data register clears ready-for-transfer
+      if (s_rd_data) begin
+        s_rft <= 1'b0;
+      end
+
+      // IOX 403: control word
+      if (s_wr_control) begin
+        s_int_enabled <= iox_wdata[0];
+        s_read_active <= iox_wdata[2];
+        s_rft         <= iox_wdata[3];
+
+        if (iox_wdata[4]) begin
+          // Device clear: stop, empty the buffer, rewind the tape
+          s_read_active <= 1'b0;
+          s_rft         <= 1'b0;
+          s_char_buffer <= 8'd0;
+          source_rewind <= 1'b1;
+        end else if (iox_wdata[2]) begin
+          // Activate: fetch the next byte; RFT rises on byte_valid
+          s_rft    <= 1'b0;
+          byte_req <= 1'b1;
+        end
+      end
+
+      // Byte arrived from the source
+      if (byte_valid) begin
+        s_char_buffer <= byte_data;
+        s_rft         <= 1'b1;
+        s_read_active <= 1'b0;
+      end
+
+      // IDENT answered: clear pending (RFT stays - the DATA is still
+      // there; the C model clears via the interruptEnabled bit)
+      if (s_ident_answer) begin
+        s_int_enabled <= 1'b0;
+      end
+    end
+  end
+
+endmodule

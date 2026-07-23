@@ -16,6 +16,10 @@ module CGA (
     input sys_rst_n, // System reset in FPGA
 
     // Control and data inputs
+    input        XALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        XMCLK_EN,      //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+    input        XMCLK_FALL_EN, //! MCLK fall-enable pulse (FPGA_FF_MODE, else 0)
+    input        XTCLK_EN,      //! TCLK (=UCLK) clock-enable pulse (FPGA_FF_MODE, else 0)
     input        XALUCLK,
     input        XBINT10N,
     input        XBINT11N,
@@ -81,13 +85,18 @@ module CGA (
     output [ 9:0] XMCA_9_0,
     output [ 1:0] XPCR_1_0,
     output [ 3:0] XPIL_3_0,
+    output [15:0] XIREQ_15_0_N, //! DEBUG: raw interrupt-request vector (active low)
     output        XPONI,     //! Memory Protection ON, PONI=1
     output [ 1:0] XRF_1_0,
     output [ 4:0] XTEST_4_0,
     output        XTRAPN,
     output        XWCSN,
     output        XWRTRF,
-    output [15:0] XFIDB_15_0_OUT
+
+    // Debug
+    output [15:0] DEBUG_FIDBO_15_0,
+    output [15:0] XFIDB_15_0_OUT,
+    output [15:0] XMIC_DBG_15_0  //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
 );
 
 
@@ -157,8 +166,8 @@ module CGA (
   wire        s_cfetch;
   wire        s_clff_n;
   wire        s_clirq_n;
-  wire        s_cond;
-  wire        s_cry;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_cond;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_cry;
   wire        s_csalui0;
   wire        s_csalui1;
   wire        s_csalui2;
@@ -268,7 +277,7 @@ module CGA (
   wire        s_write_n;
   wire        s_xfetch_n;
   wire        s_z;
-  wire        s_zf;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_zf;
   wire        sx_acond_n_out;
   wire        sx_aluclk;
   wire        sx_bint10_n;
@@ -505,6 +514,14 @@ module CGA (
   assign sx_cssst_1_0[1:0]   = XCSSST_1_0[1:0];
 
   assign sx_aluclk           = XALUCLK;
+  wire sx_aluclk_en;
+  assign sx_aluclk_en = XALUCLK_EN;
+  wire sx_mclk_en;
+  assign sx_mclk_en = XMCLK_EN;
+  wire sx_mclk_fall_en;
+  assign sx_mclk_fall_en = XMCLK_FALL_EN;
+  wire sx_tclk_en;
+  assign sx_tclk_en = XTCLK_EN;
   assign sx_bint10_n         = XBINT10N;
   assign sx_bint11_n         = XBINT11N;
   assign sx_bint12_n         = XBINT12N;
@@ -560,6 +577,7 @@ module CGA (
   assign XTRAPN              = sx_trap_n_out;
   assign XWCSN               = sx_wcs_n_out;
   assign XWRTRF              = sx_wrtrf_out;
+  assign DEBUG_FIDBO_15_0    = s_FIDBO_15_0;
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **
@@ -632,6 +650,7 @@ module CGA (
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
 
       // Input signals
+      .ALUCLK_EN(sx_aluclk_en),
       .ALUCLK(sx_aluclk),
       .A_15_0(s_a_15_0[15:0]),
       .B_15_0(s_b_15_0[15:0]),
@@ -681,6 +700,8 @@ module CGA (
   // violation indicators, and trap requests.
   CGA_TRAP TRAP (
       // Input signals
+      .sysclk(sysclk),
+      .TCLK_EN(sx_tclk_en),
       .CBRKN(s_cbrk_n),
       .DSTOPN(s_dstop_n),
       .ETRAPN(sx_etrap_n),
@@ -710,6 +731,8 @@ module CGA (
   // mask signals, and violation indicators, and produces an output signal for the IDB.
   CGA_IDBCTL IDBCTL (
       // Input signals
+      .sysclk(sysclk),
+      .MCLK_EN(sx_mclk_en),
       .EPCRN(s_epcr_n),
       .EPGSN(s_epgs_n),
       .EPICMASKN(s_epicmask_n),
@@ -744,6 +767,7 @@ module CGA (
    .sys_rst_n(sys_rst_n),                    // System reset in FPGA
 
    // Input signals
+    .ALUCLK_EN(sx_aluclk_en),
     .ALUCLK(sx_aluclk),          // Clock signal for the ALU
     .BDEST(s_BDEST),             // Flag indicating if B is the destination for writing
     .LAA_3_0(sx_laa_3_0_out[3:0]), // Selector for source register A
@@ -775,6 +799,7 @@ module CGA (
       // Input signals
       .sysclk(sysclk),                          // System clock in FPGA
       .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+      .MCLK_EN(sx_mclk_en),                     // MCLK clock-enable pulse (P2)
 
       .BRKN(sx_brk_n_out),
       .CRY(s_cry),
@@ -824,6 +849,8 @@ module CGA (
 
   // Input signals to the CGA_INTR module
   CGA_INTR INTR (
+      .sysclk(sysclk),
+      .MCLK_EN(sx_mclk_en),
       .BINT10N(sx_bint10_n),       // Bus Interrupt 10, active low
       .BINT11N(sx_bint11_n),       // Bus Interrupt 11, active low
       .BINT12N(sx_bint12_n),       // Bus Interrupt 12, active low
@@ -851,7 +878,8 @@ module CGA (
       .PD(s_pd),                   // Power Down signal
       .PICMASK_15_0(s_picmask_15_0[15:0]), // PIC Mask, 16-bit
       .PICS_2_0(s_pics_2_0[2:0]), // PIC Select, 3-bit
-      .PICV_2_0(s_picv_2_0[2:0])  // PIC Vector, 3-bit
+      .PICV_2_0(s_picv_2_0[2:0]), // PIC Vector, 3-bit
+      .XIREQ_15_0_N(XIREQ_15_0_N) // DEBUG: raw interrupt-request vector
   );
 
   // The CGA_MAC module is a part of the DELILAH CPU's gate array,
@@ -866,6 +894,7 @@ module CGA (
       // System Input signals
     .sysclk(sysclk),                          // System clock in FPGA
     .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+    .MCLK_EN(sx_mclk_en),                     // MCLK clock-enable pulse (P2)
 
     // Input signals to the CGA_MAC module
     .CSMREQ       (s_csmreq),                // Chip Select for MAC, active high
@@ -899,9 +928,15 @@ module CGA (
   // The CGA_MIC module is responsible for the microinstruction control within the DELILAH CPU's gate array.
   // It interprets various control and status signals to generate microinstructions that dictate the CPU's behavior.
   CGA_MIC MIC (
+`ifdef ND120_EXP_LDIRV_PUSH
+      .EXP_FIDBO_6_0(s_FIDBO_15_0[6:0]),
+      .EXP_IDBS_ALU(s_csidbs_4_0 == 5'b00000),
+`endif
       // Input signals
       .sysclk(sysclk),                          // System clock in FPGA
       .sys_rst_n(sys_rst_n),                    // System reset in FPGA
+      .MCLK_EN(sx_mclk_en),                     // MCLK clock-enable pulse (P2)
+      .MCLK_FALL_EN(sx_mclk_fall_en),           // MCLK fall-enable pulse (P2)
 
       
       .ALUCLK(sx_aluclk),                       // ALU Clock
@@ -958,7 +993,8 @@ module CGA (
       .SC_6_3(s_sc_6_3[3:0]),                   // Special Condition Bits [6:3]
       .TN(s_t_n),                               // Test Negative
       .UPN(s_up_n),                             // Update Negative, active low
-      .WCSN(sx_wcs_n_out)                       // Write Control Store, active low
+      .WCSN(sx_wcs_n_out),                      // Write Control Store, active low
+      .XMIC_DBG(XMIC_DBG_15_0)                  // DEBUG: microsequencer address-advance probe
   );
 
   CGA_TESTMUX TESTMUX (

@@ -12,6 +12,9 @@
 
 
 module CGA_IDBCTL_PGSREG (
+    input sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input FETCHN,
     input [11:0] LA_21_10,
     input MCLK,
@@ -44,6 +47,15 @@ module CGA_IDBCTL_PGSREG (
   assign s_pviol          = PVIOL;
   assign s_vacc_n         = VACCN;
 
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
+
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
@@ -62,7 +74,9 @@ module CGA_IDBCTL_PGSREG (
    *******************************************************************************/
 
 
-  SCAN_FF PGS15 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS15 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pgs15_dq),
       .Q  (s_pgs15_dq),
@@ -71,7 +85,9 @@ module CGA_IDBCTL_PGSREG (
       .TI (s_fetch_n)
   );
 
-  SCAN_FF PGS14 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS14 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pga_15_14_out[0]),
       .Q  (s_pga_15_14_out[0]),
@@ -80,7 +96,9 @@ module CGA_IDBCTL_PGSREG (
       .TI (s_pviol)
   );
 
-  SCAN_FF PGS11 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS11 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pgs_11_0_out[11]),
       .Q  (s_pgs_11_0_out[11]),
@@ -89,7 +107,9 @@ module CGA_IDBCTL_PGSREG (
       .TI (s_la_21_10[11])
   );
 
-  SCAN_FF PGS10 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS10 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pgs_11_0_out[10]),
       .Q  (s_pgs_11_0_out[10]),
@@ -98,7 +118,9 @@ module CGA_IDBCTL_PGSREG (
       .TI (s_la_21_10[10])
   );
 
-  SCAN_FF PGS9 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS9 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pgs_11_0_out[9]),
       .Q  (s_pgs_11_0_out[9]),
@@ -107,7 +129,9 @@ module CGA_IDBCTL_PGSREG (
       .TI (s_la_21_10[9])
   );
 
-  SCAN_FF PGS8 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS8 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pgs_11_0_out[8]),
       .Q  (s_pgs_11_0_out[8]),
@@ -116,7 +140,9 @@ module CGA_IDBCTL_PGSREG (
       .TI (s_la_21_10[8])
   );
 
-  SCAN_FF PGS7 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS7 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pgs_11_0_out[7]),
       .Q  (s_pgs_11_0_out[7]),
@@ -126,7 +152,9 @@ module CGA_IDBCTL_PGSREG (
   );
 
 
-  SCAN_FF PGS3 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS3 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pgs_11_0_out[3]),
       .Q  (s_pgs_11_0_out[3]),
@@ -135,7 +163,9 @@ module CGA_IDBCTL_PGSREG (
       .TI (s_la_21_10[3])
   );
 
-  SCAN_FF PGS2 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS2 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pgs_11_0_out[2]),
       .Q  (s_pgs_11_0_out[2]),
@@ -144,7 +174,9 @@ module CGA_IDBCTL_PGSREG (
       .TI (s_la_21_10[2])
   );
 
-  SCAN_FF PGS1 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS1 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pgs_11_0_out[1]),
       .Q  (s_pgs_11_0_out[1]),
@@ -153,7 +185,9 @@ module CGA_IDBCTL_PGSREG (
       .TI (s_la_21_10[1])
   );
 
-  SCAN_FF PGS0 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS0 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pgs_11_0_out[0]),
       .Q  (s_pgs_11_0_out[0]),
@@ -162,7 +196,9 @@ module CGA_IDBCTL_PGSREG (
       .TI (s_la_21_10[0])
   );
 
-  SCAN_FF PGS6 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS6 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pgs_11_0_out[6]),
       .Q  (s_pgs_11_0_out[6]),
@@ -171,7 +207,9 @@ module CGA_IDBCTL_PGSREG (
       .TI (s_la_21_10[6])
   );
 
-  SCAN_FF PGS5 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS5 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pgs_11_0_out[5]),
       .Q  (s_pgs_11_0_out[5]),
@@ -180,7 +218,9 @@ module CGA_IDBCTL_PGSREG (
       .TI (s_la_21_10[5])
   );
 
-  SCAN_FF PGS4 (
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) PGS4 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_pgs_11_0_out[4]),
       .Q  (s_pgs_11_0_out[4]),

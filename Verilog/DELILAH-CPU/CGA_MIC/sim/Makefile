@@ -39,4 +39,36 @@ run: test_mic
 gtk: run
 	gtkwave waveform.vcd mic.gtkw &
 
-.PHONY: all clean
+# ---------------------------------------------------------------
+# iverilog testbenches for MASEL submodule
+# These test CGA_MIC_MASEL.v in isolation using iverilog (not Verilator).
+# ---------------------------------------------------------------
+IVERILOG = iverilog
+INC_PATHS = -I${VERILOG_ROOT}/Shared/logisim \
+            -I${VERILOG_ROOT}/Shared/ndlib \
+            -I${VERILOG_ROOT}/Shared/support \
+            -I${DELILAH_ROOT}/CGA_MIC/circuit
+
+MASEL_SRC = ${DELILAH_ROOT}/CGA_MIC/circuit/CGA_MIC_MASEL.v
+
+MASEL_cycle_tb: MASEL_cycle_tb.v $(MASEL_SRC)
+	$(IVERILOG) -g2012 $(INC_PATHS) -o $@ $^
+
+MASEL_iw_capture_tb: MASEL_iw_capture_tb.v $(MASEL_SRC)
+	$(IVERILOG) -g2012 $(INC_PATHS) -o $@ $^
+
+test-masel-cycle: MASEL_cycle_tb
+	./MASEL_cycle_tb
+
+test-masel-iw: MASEL_iw_capture_tb
+	./MASEL_iw_capture_tb
+
+CGA_MIC_MASEL_tb: CGA_MIC_MASEL_tb.v $(MASEL_SRC)
+	$(IVERILOG) -g2012 $(INC_PATHS) -o $@ $^
+
+test-masel-basic: CGA_MIC_MASEL_tb
+	./CGA_MIC_MASEL_tb
+
+test-masel: test-masel-cycle test-masel-iw test-masel-basic
+
+.PHONY: all clean test-masel test-masel-cycle test-masel-iw test-masel-basic

@@ -11,6 +11,8 @@
 ***************************************************************************/
 
 module CGA_ALU_QREG (
+    input        sysclk,     //! FPGA system clock (P2: ALUCLK_EN capture)
+    input        ALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        ALUCLK,
     input [15:0] F_15_0,
     input        QLI,
@@ -54,6 +56,16 @@ module CGA_ALU_QREG (
   assign s_qsel_1_0[1:0] = QSEL_1_0;
   assign s_f_15_0[15:0]  = F_15_0;
   assign s_aluclk        = ALUCLK;
+
+  // P2b (docs/plan-fix-unconstrained-clocks.md): in FF mode the ALUCLK-
+  // clocked registers capture on posedge sysclk gated by ALUCLK_EN
+  // (aligned to the ALUCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam ALUCLK_CE = 1;
+`else
+  localparam ALUCLK_CE = 0;
+`endif
+
   assign s_qli           = QLI;
 
   /*******************************************************************************
@@ -72,7 +84,11 @@ module CGA_ALU_QREG (
       .D0(s_q_15_0_out[15]),
       .D1(s_f_15_0[15]),
       .D2(s_q_15_0_out[14]),
-      .D3(s_q_15_0_out[0]),
+      // Shift-right-double serial input: Q15 must receive the bit leaving
+      // the R-side shifter (F[0]), so MPY/FMU streams the product's low
+      // bits from R5 into Q. Was Q[0] (a rotate), which left Q stuck at 0
+      // through the whole multiply loop.
+      .D3(s_f_15_0[0]),
       .Z (s_mux_z_15)
   );
 
@@ -242,7 +258,9 @@ module CGA_ALU_QREG (
 
 
 
-  R81 REG_Q_HI (
+  R81_EN #(.USE_ENABLE(ALUCLK_CE)) REG_Q_HI (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CP(s_aluclk),
 
       .A(s_mux_z_15),
@@ -272,7 +290,9 @@ module CGA_ALU_QREG (
       .QHN()
   );
 
-  R81 REG_Q_LO (
+  R81_EN #(.USE_ENABLE(ALUCLK_CE)) REG_Q_LO (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CP(s_aluclk),
 
       .A(s_mux_z_7),

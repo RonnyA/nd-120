@@ -16,6 +16,7 @@ module CGA_DCD (
     input sys_rst_n, // System reset in FPGA
 
     // Input signals
+    input       MCLK_EN,      //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input       BRKN,         //! Break signal
     input       CRY,          //! Carry flag
     input [4:0] CSCOMM_4_0,   //! Command control signals
@@ -153,7 +154,7 @@ module CGA_DCD (
   wire       s_fetch_n_out;
   wire       s_fetch;
   wire       s_fidbo5;
-  wire       s_iclirq_group;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire       s_iclirq_group;
   wire       s_iclirq;
   wire       s_icomm0_n;
   wire       s_icomm0;
@@ -266,6 +267,15 @@ module CGA_DCD (
   assign s_sgr                = SGR;
   assign s_lshadow            = LSHADOW;
 
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-clocked
+  // registers capture on posedge sysclk gated by MCLK_EN (aligned to the
+  // MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
+
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
@@ -373,7 +383,10 @@ module CGA_DCD (
   );
 
 
-  R81 COMM_MIS_REG (
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  R81_EN #(.USE_ENABLE(MCLK_CE)) COMM_MIS_REG (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CP(s_mclk),
 
       .A(s_cscomm_4_0[0]),
@@ -932,9 +945,12 @@ module CGA_DCD (
       .result(s_lddbr_group)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_88 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_lddbr_group),
       .preset(1'b0),
@@ -990,9 +1006,12 @@ module CGA_DCD (
       .result(s_ifetchn_group)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_90 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_ifetchn_group),
       .preset(1'b0),
@@ -1005,7 +1024,10 @@ module CGA_DCD (
   /*** Signal CFETCHN ****/
   /*** Input: ICSCOMM ***/
 
-  SCAN_FF CFETCH_FF (
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) CFETCH_FF (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_cfetchff_q),
       .TE (s_brk),
@@ -1052,9 +1074,12 @@ module CGA_DCD (
       .result(s_write_group)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_91 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_write_group),
       .preset(1'b0),
@@ -1081,9 +1106,12 @@ module CGA_DCD (
   );
 
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_92 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_clff_n_group),
       .preset(1'b0),
@@ -1110,9 +1138,12 @@ module CGA_DCD (
 
 
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_93 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_iclirq_group),
       .preset(1'b0),
@@ -1146,9 +1177,12 @@ module CGA_DCD (
       .result(s_epic_n_group)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_94 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_epic_n_group),
       .preset(1'b0),
@@ -1180,9 +1214,12 @@ module CGA_DCD (
       .result(s_lwca_n_group)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_95 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_lwca_n_group),
       .preset(1'b0),
@@ -1229,9 +1266,12 @@ module CGA_DCD (
       .result(s_ldgpr_n_group)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_96 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_ldgpr_n_group),
       .preset(1'b0),
@@ -1259,9 +1299,12 @@ module CGA_DCD (
       .result(s_wrtrf_n_group)
   );
 */
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_98 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_wrtrf_n_group),
       .preset(1'b0),
@@ -1292,9 +1335,12 @@ module CGA_DCD (
       .result(s_epgs_n_group)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_97 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_epgs_n_group),
       .preset(1'b0),
@@ -1320,9 +1366,12 @@ module CGA_DCD (
       .result(s_epcr_n_group)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_85 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_epcr_n_group),
       .preset(1'b0),
@@ -1348,9 +1397,12 @@ module CGA_DCD (
       .result(s_epicv_n_group)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_86 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_epicv_n_group),
       .preset(1'b0),
@@ -1375,9 +1427,12 @@ module CGA_DCD (
       .input6(s_icsidbs_4_0[0]),
       .result(s_epics_n_group)  // o 15
   );
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_87 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_epics_n_group),
       .preset(1'b0),
@@ -1411,9 +1466,12 @@ module CGA_DCD (
       .result(s_erf_n_group)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_89 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_erf_n_group),
       .preset(1'b0),
@@ -1515,9 +1573,12 @@ module CGA_DCD (
       .result(s_csmreq_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_99 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_csmreq_out),
       .preset(1'b0),
@@ -1581,9 +1642,12 @@ module CGA_DCD (
   );
 
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_100 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_dvacc_n_group),
       .preset(1'b0),
@@ -1608,6 +1672,20 @@ module CGA_DCD (
 
   reg reg_emcln;
 
+`ifdef FPGA_FF_MODE
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN; async clear kept on s_mr_n
+  always @(posedge sysclk, negedge s_mr_n) begin
+    if (!s_mr_n) begin
+      // Negated CLEAR
+      reg_emcln <= 0;
+    end else if (MCLK_EN) begin
+      // Assign Q = D if TE is enabled (on clock)
+      if (!s_sioc_n) begin
+        reg_emcln <= s_fidbo5;
+      end
+    end
+  end
+`else
   always @(posedge s_mclk, negedge s_mr_n) begin
     if (!s_mr_n) begin
       // Negated CLEAR
@@ -1619,6 +1697,7 @@ module CGA_DCD (
       end
     end
   end
+`endif
 
   assign s_emcl_n = reg_emcln;
 
@@ -1672,9 +1751,12 @@ module CGA_DCD (
       .result(s_dstopn_group)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_83 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_dstopn_group),
       .preset(1'b0),
@@ -1684,9 +1766,12 @@ module CGA_DCD (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // P2: domain MCLK (posedge s_mclk) -> MCLK_EN
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_84 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_istop_n),
       .preset(1'b0),

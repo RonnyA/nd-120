@@ -14,6 +14,7 @@ module CGA_WRF_RBLOCK_LR16 (
     input sysclk,    // System clock in FPGA
     input sys_rst_n, // System reset in FPGA
 
+    input        ALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        ALUCLK,
     input [15:0] RB_15_0,
     input        WR,
@@ -42,6 +43,16 @@ module CGA_WRF_RBLOCK_LR16 (
    *******************************************************************************/
   assign s_rb_15_0[15:0] = RB_15_0;
   assign s_aluclk        = ALUCLK;
+
+  // P2b (docs/plan-fix-unconstrained-clocks.md): in FF mode the ALUCLK-
+  // clocked registers capture on posedge sysclk gated by ALUCLK_EN
+  // (aligned to the ALUCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam ALUCLK_CE = 1;
+`else
+  localparam ALUCLK_CE = 0;
+`endif
+
   assign s_wr            = WR;
 
   /*******************************************************************************
@@ -150,7 +161,11 @@ module CGA_WRF_RBLOCK_LR16 (
   // verilator lint_off UNDRIVEN
   // verilator lint_off PINCONNECTEMPTY
 
-  R81 R_15_8 (
+  R81_EN #(.USE_ENABLE(ALUCLK_CE)) R_15_8 (
+
+      .sysclk(sysclk),
+
+      .EN(ALUCLK_EN),
       .A (s_ir_15_0[15]),
       .B (s_ir_15_0[14]),
       .C (s_ir_15_0[13]),
@@ -179,7 +194,11 @@ module CGA_WRF_RBLOCK_LR16 (
       .QHN()
   );
 
-  R81 R_7_0 (
+  R81_EN #(.USE_ENABLE(ALUCLK_CE)) R_7_0 (
+
+      .sysclk(sysclk),
+
+      .EN(ALUCLK_EN),
       .A(s_ir_15_0[7]),
       .B(s_ir_15_0[6]),
       .C(s_ir_15_0[5]),

@@ -1,0 +1,4 @@
+
+# Golden reference files must stay byte-exact (gate: cmp) - no EOL normalization
+Verilog/sim/golden/** -text
+Verilog/runSim/golden/** -text

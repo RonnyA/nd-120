@@ -21,7 +21,7 @@ IF (VCC) EWCA = RWCS * /CC3 * CC2 * /TERM           ; ENABLE WCA REG. IN MIC ONT
 IF (VCC) EUPP = LUA12                               ; NORMAL ADRESSING
               + WCA * FETCH                         ; WRITE INTO MICROINSTUCTION CACHE
               + FETCH * /CC1 * /CC2 * /CC3 * /TERM  ; ENABLE IN THE FIRST 50NS
-                                                    ; + HOLD TIME = 7SNS
+                                                    ; + HOLD TIME = 75NS
 
                                                 
 IF (VCC) ELOW = /LUA12 * /FETCH                     ; NORMAL ADRESSING. ON FETCH EITHER MI

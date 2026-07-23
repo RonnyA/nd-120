@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_MIC_WCAREG (
+    input        sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input        MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input [15:0] CD_15_0,
     input        LCSN,
     input        LWCAN,
@@ -40,6 +43,15 @@ module CGA_MIC_WCAREG (
   assign s_mclk          = MCLK;
   assign s_lcs_n         = LCSN;
   assign s_lwca_n        = LWCAN;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   // Code to make LINTER _not_ complain about bits not read in CD bits 1:0
   (* keep = "true", DONT_TOUCH = "true" *) wire [1:0] unused_CD_bits;
@@ -74,7 +86,10 @@ module CGA_MIC_WCAREG (
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
-  SCAN_FF WCAFF12 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCAFF12 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wca_12_0_out[12]),
       .Q  (s_wca_12_0_out[12]),
@@ -83,7 +98,10 @@ module CGA_MIC_WCAREG (
       .TI (s_cd_15_0[14])
   );
 
-  SCAN_FF WCAFF11 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCAFF11 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wca_12_0_out[11]),
       .Q  (s_wca_12_0_out[11]),
@@ -92,7 +110,10 @@ module CGA_MIC_WCAREG (
       .TI (s_cd_15_0[13])
   );
 
-  SCAN_FF WCAFF10 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCAFF10 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wca_12_0_out[10]),
       .Q  (s_wca_12_0_out[10]),
@@ -101,7 +122,10 @@ module CGA_MIC_WCAREG (
       .TI (s_cd_15_0[12])
   );
 
-  SCAN_FF WCAFF9 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCAFF9 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wca_12_0_out[9]),
       .Q  (s_wca_12_0_out[9]),
@@ -110,7 +134,10 @@ module CGA_MIC_WCAREG (
       .TI (s_cd_15_0[11])
   );
 
-  SCAN_FF WCAFF8 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCAFF8 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wca_12_0_out[8]),
       .Q  (s_wca_12_0_out[8]),
@@ -119,7 +146,10 @@ module CGA_MIC_WCAREG (
       .TI (s_cd_15_0[10])
   );
 
-  SCAN_FF WCAFF7 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCAFF7 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wca_12_0_out[7]),
       .Q  (s_wca_12_0_out[7]),
@@ -128,7 +158,10 @@ module CGA_MIC_WCAREG (
       .TI (s_cd_15_0[9])
   );
 
-  SCAN_FF WCAFF6 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCAFF6 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wca_12_0_out[6]),
       .Q  (s_wca_12_0_out[6]),
@@ -137,7 +170,10 @@ module CGA_MIC_WCAREG (
       .TI (s_cd_15_0[8])
   );
 
-  SCAN_FF WCAFF5 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCAFF5 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wca_12_0_out[5]),
       .Q  (s_wca_12_0_out[5]),
@@ -146,7 +182,10 @@ module CGA_MIC_WCAREG (
       .TI (s_cd_15_0[7])
   );
 
-  SCAN_FF WCAFF4 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCAFF4 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wca_12_0_out[4]),
       .Q  (s_wca_12_0_out[4]),
@@ -155,7 +194,10 @@ module CGA_MIC_WCAREG (
       .TI (s_cd_15_0[6])
   );
 
-  SCAN_FF WCAFF3 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCAFF3 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wca_12_0_out[3]),
       .Q  (s_wca_12_0_out[3]),
@@ -164,7 +206,10 @@ module CGA_MIC_WCAREG (
       .TI (s_cd_15_0[5])
   );
 
-  SCAN_FF WCAFF2 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCAFF2 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wca_12_0_out[2]),
       .Q  (s_wca_12_0_out[2]),
@@ -173,7 +218,10 @@ module CGA_MIC_WCAREG (
       .TI (s_cd_15_0[4])
   );
 
-  SCAN_FF WCAFF1 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCAFF1 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wca_12_0_out[1]),
       .Q  (s_wca_12_0_out[1]),
@@ -182,7 +230,10 @@ module CGA_MIC_WCAREG (
       .TI (s_cd_15_0[3])
   );
 
-  SCAN_FF WCAFF0 (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCAFF0 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wca_12_0_out[0]),
       .Q  (s_wca_12_0_out[0]),
@@ -191,7 +242,10 @@ module CGA_MIC_WCAREG (
       .TI (s_cd_15_0[2])
   );
 
-  SCAN_FF WCSNFF (
+  // MCLK domain: clocked on posedge s_mclk
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) WCSNFF (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_wcsnff_out_q),
       .Q  (s_wcsnff_out_q),

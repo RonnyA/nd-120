@@ -19,9 +19,9 @@ CGNT := /MR * /CSEM * /BSEM * CLRQ * /BLRQ50 * /RLRQ * /RGNT * /CGNT * /BGNT   ;
       + CGNT * LOEN * /LOEN25 * /MR
 
 
-BGNT := /MR * /CSEM * /BSEM * /RLRQ * /CLRQ * BLRQSO * /RGNT * /CGNT * /BGNT   ; BLRQ ALO
-      + /MR * /CSEM * /BSEM * /LDR * /RLRQ * BLAQSO * /RGNT * /CGNT * /BGNT    ; BLRQ * N
-      + /MR * /CSEM * BSEM * BLRQ50 * /RGNT * /CGNT * /BGNT                    ; BERQ WITH
+BGNT := /MR * /CSEM * /BSEM * /RLRQ * /CLRQ * BLRQ50 * /RGNT * /CGNT * /BGNT   ; BLRQ ALO
+      + /MR * /CSEM * /BSEM * /LDR * /RLRQ * BLRQ50 * /RGNT * /CGNT * /BGNT    ; BLRQ * N
+      + /MR * /CSEM * BSEM * BLRQ50 * /RGNT * /CGNT * /BGNT                    ; BLRQ WITH
       + BGNT * /LOEN * /LOEN25 * /MR
       + BGNT * LOEN * LOEN25 * /MR
       + BGNT * LOEN * /LOEN25 * /MR
@@ -35,10 +35,10 @@ CSEM := /MR * SSEMA * CGNT                                                    ; 
       + /MR * CSEM * LOEN25 * /LOEN
       + /MR * CSEM * /LOEN25 * /LOEN
 
-BSEM := /MR * SEMRQSO * BGNT ,SET IN SEMRQ50 * BGNT
-+ IMR * BSEM * LOEN25 * LOEN ;HOLD UNTIL END OF 2ND. BGNT
-+ IMR * BSEM * LOEN2S * /LOEN
-+ IMR * BSEM * /LOEN25 * /LOEN
+BSEM := /MR * SEMRQ50 * BGNT ;SET IN SEMRQ50 * BGNT
++ /MR * BSEM * LOEN25 * LOEN ;HOLD UNTIL END OF 2ND. BGNT
++ /MR * BSEM * LOEN25 * /LOEN
++ /MR * BSEM * /LOEN25 * /LOEN
 
 LOEN25 := LOEN
 

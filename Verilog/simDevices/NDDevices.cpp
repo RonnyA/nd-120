@@ -104,6 +104,7 @@ uint16_t PaperTape::Read(uint32_t address)
 #ifdef DEBUG_PT
         std::cout << "PaperTape read, invalid register address: " << address << std::endl;
 #endif
+        break;
     }
 
 #ifdef DEBUG_PT
@@ -137,7 +138,8 @@ void PaperTape::Write(uint32_t address, uint16_t value)
 
         if (controlWord.bits.deviceClear)
         {
-            std::cout << "PaperTape DeviceClear " << std::endl;
+            // (removed stray debug print "PaperTape DeviceClear" - it leaked into
+            //  the TPE config HARDWARE CONFIGURATION table on every device clear)
             statusRegister.bits.readActive = 0;
             statusRegister.bits.readyForTransfer = 0;
             characterBuffer = 0x00;
@@ -188,7 +190,9 @@ void PaperTape::Write(uint32_t address, uint16_t value)
 uint16_t PaperTape::IDENT(uint16_t level)
 {
     // Provide some default functionality or just return 0
+#ifdef DEBUG_INTERRUPT
     std::cout << "PaperTape::IDENT called with level " << level << std::endl;
+#endif
     if ((interruptBits & 1 << level) != 0)
     {
         statusRegister.bits.interruptEnabled = false;
@@ -505,7 +509,9 @@ uint16_t FloppyPIO::IDENT(uint16_t level)
     }
     else
     {
+#ifdef DEBUG_INTERRUPT
         printf("WTF %x %x\r\n", interruptBits, 1 << level);
+#endif
     }
 
     return 0;
@@ -1056,6 +1062,18 @@ void DeviceManager::AddDevice(DeviceType type, uint8_t thumbweel)
     devices.push_back(std::move(info));
 }
 
+/// @brief Register an already-constructed device (NDDeviceCore adapters).
+/// @param device the device to take ownership of; a null pointer is ignored.
+void DeviceManager::AddDevice(std::unique_ptr<NDDevice> device)
+{
+    if (!device)
+        return;
+
+    DeviceInfo info;
+    info.device = std::move(device);
+    devices.push_back(std::move(info));
+}
+
 void DeviceManager::MasterClear()
 {
     for (auto &info : devices)
@@ -1063,6 +1081,17 @@ void DeviceManager::MasterClear()
 
         return info.device->Reset();
     }
+}
+
+/// @brief True if any registered device owns 'address'
+bool DeviceManager::Claims(uint32_t address)
+{
+    for (auto &info : devices)
+    {
+        if (info.device->IsInAddress(address))
+            return true;
+    }
+    return false;
 }
 
 /// @brief
@@ -1113,7 +1142,9 @@ uint16_t DeviceManager::IDENT(uint16_t level)
             return id;
         }
     }
+#ifdef DEBUG_INTERRUPT
     printf("No device found for IDENT level: %d\r\n", level);
+#endif
     return 0;
 }
 

@@ -8,24 +8,43 @@
 **                                                                       **
 ** Last reviewed: 2-FEB-2025                                             **
 ** Ronny Hansen                                                          **
+**                                                                       **
+** FPGA changes:                                                         **
+**  - sys_rst_n added: forces all F595 RS latches to idle (Q=0,Qn=1)    **
+**    during FPGA reset, preventing boot lockup from uninitialized state **
+**  - Powerfail logic removed (A596,A602,A593,A594,A591,A605,A600,A601) **
+**    Not needed on FPGA — sys_rst_n replaces powerfail-driven reset     **
+**  - A569 (CLEAR latch) replaced by assign s_clear_n = sys_rst_n       **
+**    This pulses CLEAR during the FPGA reset window (replaces powerfail **
+**    → CLEAR chain). Releases when sys_rst_n goes high at boot.        **
+**  - RTC counter replaced with synchronous sysclk counter (A577 was    **
+**    the original D_FF; A623/A619/A624/A616/A618/A617/A625 chain was   **
+**    unreliable in FPGA fabric due to cascaded data-signal clocks).     **
+**  - VERILATOR_SIM: short RTC count (8192/2048 cycles) for fast sim.   **
+**    Matches original TESTE=1 F714-chain effective period (~8K cycles). **
+**    Fast enough for simulation, slow enough for instruction verify.    **
+**    FPGA: real 20ms/5ms count at 100 MHz.                             **
 ***************************************************************************/
 
 module DECODE_DGA_POW (
+    // System
+    input sysclk,      // System clock (for F595 synchronous RS latch on FPGA)
+    input sys_rst_n,   // FPGA system reset (active-low): forces latches to idle, pulses CLEAR
     // Inputs
     input BDRY50N,
-    input CLOSC,        //! Clear Oscilator signal (From IO_DCD_38) - Is 1 during a very short time at power-on. Then goes to 0 and stays there.
+    input CLOSC,        //! Clear Oscillator signal (From IO_DCD_38) - High briefly at power-on then 0
     input CLRTIN,       //! Clear Real Time Clock
     input CONTINUEN,    //! Continue Enable
     input EMCLN,        //! Enable Master Clear
     input LOADN,        //! Load
-    input POWSENSE,     //! Power Sense. If high, power is good. If low, will trigger POWFAILN after some clock cycles. (1.2s delay?)
+    input POWSENSE,     //! Power Sense (not used in FPGA version — powerfail removed)
     input PRQN,         //! Panel Request
     input PWCL,         //! Power Control
     input REFN,         //! Refresh
     input RESET,        //! Reset
     input RTOSC,        //! Real Time Oscillator
-    input SEL5MSN,  //! Select 5ms (if active will trigger RTC after 5 ms, not 20ms)
-    input SSTOPN,   //! Set Stop Flip-Flop (When next FETCH is performed the microcproram is forced to microaddress 16 (Panel Interrupt) - Microcode command 14
+    input SEL5MSN,  //! Select 5ms (if active will trigger RTC after 5ms, not 20ms)
+    input SSTOPN,   //! Set Stop Flip-Flop
     input STARTN,   //! Start
     input STOPN,    //! Stop
     input TESTE,    //! Test Enable
@@ -38,7 +57,7 @@ module DECODE_DGA_POW (
     output MCL,       //! Master Clear
     output PANN,      //! Panel Interrupt Vector
     output PANOSC,    //! Panel Oscillator
-    output POWFAILN,  //! Power Fail
+    output POWFAILN,  //! Power Fail (tied 1 — powerfail removed in FPGA version)
     output REFRQN,    //! Refresh Request
     output STPN,      //! Stop
     output TESTO,     //! Test Output
@@ -55,15 +74,7 @@ module DECODE_DGA_POW (
   wire a598_nand_out;
   wire a599_nand_out;
   wire a609_nand_out;
-  wire s_a578_out_n;
   wire s_a579_out_n;
-  wire s_a591_q_n;
-  wire s_a593_q_n;
-  wire s_a594_q_n;
-  wire s_a596_q_n;
-  wire s_a601_y;
-  wire s_a602_q_n;
-  wire s_a605_q_n;
   wire s_a616_q;
   wire s_a617_q_n;
   wire s_a618_q_n;
@@ -73,7 +84,6 @@ module DECODE_DGA_POW (
   wire s_a622_q_n;
   wire s_a623_q_n;
   wire s_a624_q_n;
-  wire s_ms20;
   wire s_a626_q_n;
   wire s_a627_q_n;
   wire s_a631_q;
@@ -105,8 +115,6 @@ module DECODE_DGA_POW (
   wire s_panosc;
   wire s_powfail_n;
   wire s_powfail;
-  wire s_pows_n;
-  wire s_powsense;
   wire s_prq_n;
   wire s_prq;
   wire s_pwcl_n;
@@ -144,7 +152,7 @@ module DECODE_DGA_POW (
   assign s_continue_n = CONTINUEN;
   assign s_emcl_n = EMCLN;
   assign s_load_n = LOADN;
-  assign s_powsense = POWSENSE;
+  // POWSENSE not used in FPGA version (powerfail removed)
   assign s_prq_n = PRQN;
   assign s_pwcl = PWCL;
   assign s_ref_n = REFN;
@@ -166,7 +174,7 @@ module DECODE_DGA_POW (
   assign MCL = s_mcl;
   assign PANN = s_pan_n;
   assign PANOSC = s_panosc;
-  assign POWFAILN = s_powfail_n;
+  assign POWFAILN = s_powfail_n;  // Tied 1 — powerfail removed
   assign REFRQN = s_refrq_n;
   assign STPN = s_stp_n;
   assign TESTO = s_testo;
@@ -180,6 +188,10 @@ module DECODE_DGA_POW (
   assign s_gnd = 1'b0;
   assign s_vcc = 1'b1;
 
+  // Powerfail removed: tie powerfail signals to safe/inactive state
+  assign s_powfail   = 1'b0;
+  assign s_powfail_n = 1'b1;
+
   // NOT Gate's
   assign s_clear = ~s_clear_n;
   assign s_clrti = ~s_clrti_n;
@@ -187,7 +199,6 @@ module DECODE_DGA_POW (
   assign s_continue = ~s_continue_n;
   assign s_load = ~s_load_n;
   assign s_mcl_n = ~s_mcl;
-  assign s_powfail_n = ~s_powfail;
   assign s_prq = ~s_prq_n;
   assign s_pwcl_n = ~s_pwcl;
   assign s_rtc = ~s_rtc_n;
@@ -219,7 +230,15 @@ module DECODE_DGA_POW (
   assign s_idb2 = ~(s_lod_n & s_conn_n & s_rst_n & s_mcl_n);
 
   //A592 NAND_GATE_8_INPUTS
+`ifdef TANG_NO_RTC_PAN
+  // DIAGNOSTIC (masked-level-10 root cause): drop the RTC's contribution to the
+  // PAN (panel/timing) request so the free-running RTC raises NO interrupt. If
+  // the phantom macro-interrupt / PIL->10 wedge vanishes with this, the held RTC
+  // PAN was the source (conkick already exonerated).
+  assign a592_nand_out = ~(s_mcl_n & s_rst_n & s_conn_n & s_lod_n & s_zz1 & s_prq_n & 1'b1 & s_stp_n);
+`else
   assign a592_nand_out = ~(s_mcl_n & s_rst_n & s_conn_n & s_lod_n & s_zz1 & s_prq_n & s_rtc_n & s_stp_n);
+`endif
 
   // A603 NAND_GATE_4_INPUTS
   assign s_idb1 = ~(a597_nand_out & s_rst_n & s_mcl_n & a609_nand_out);
@@ -233,20 +252,20 @@ module DECODE_DGA_POW (
   //A573 NAND_GATE
   assign s_mcl = ~(s_emcl_n & s_clear_n);
 
-  // A611 NOR_GATE
-  assign s_pows_n = ~(s_powsense | s_pwcl);
-
   // A636 NOR GATE
   assign s_tout = ~(s_a631_q | s_rfclk);
 
   // A635 NOR_GATE
   assign s_rescl_n = ~(s_closc | s_reset);
 
-  // A578 NAND_GATE
-  assign s_a578_out_n = ~(s_stp_n & s_pwcl_n);
-
   // A579 NAND_GATE_3_INPUTS
   assign s_a579_out_n = ~(s_mcl_n & s_clrti_n & s_stp);
+
+  // A569 CLEAR latch replaced: pulse CLEAR during FPGA reset window (sys_rst_n=0),
+  // then release. This replaces the original powerfail -> CLEAR chain.
+  // CLEAR_n=0 (active) during reset -> MCL fires, initialising all modules.
+  // CLEAR_n=1 after reset -> MCL inactive, boot proceeds normally.
+  assign s_clear_n = sys_rst_n;
 
   J_K_FLIPFLOP #(
       .InvertClockEnable(0)
@@ -287,6 +306,23 @@ module DECODE_DGA_POW (
       .tick(1'b1)
   );
 
+`ifdef FPGA_FF_MODE
+  // P4 (docs/plan-fix-unconstrained-clocks.md): s_clear_n (= sys_rst_n on
+  // FPGA) was A572's clock pin - the last register/reset-net clock root
+  // (Gowin auto-created a bogus 100MHz "sys_rst_n" base clock for it and
+  // could not analyze any path touching it). Capture s_esload_n on a
+  // sysclk-detected clear_n rise instead; the async CLRTI preset is kept.
+  reg r_a572_clear_n_d = 1'b0;
+  always @(posedge sysclk) r_a572_clear_n_d <= s_clear_n;
+  wire s_a572_clearn_rise = s_clear_n & ~r_a572_clear_n_d;
+
+  reg r_a572_q = 1'b0;  // q starts 0 -> s_lrst (qBar) starts 1, as the original
+  always @(posedge sysclk or posedge s_clrti) begin
+    if (s_clrti) r_a572_q <= 1'b1;
+    else if (s_a572_clearn_rise) r_a572_q <= s_esload_n;
+  end
+  assign s_lrst = ~r_a572_q;
+`else
   D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) A572 (
@@ -298,36 +334,142 @@ module DECODE_DGA_POW (
       .reset(s_zz0),  //negated zz1
       .tick(1'b1)
   );
+`endif
 
-  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
-      .InvertClockEnable(0)
-  ) A577 (
-      .clock(s_ms20),
-      .d(s_gnd),
-      .preset(s_clrti),
-      .q(s_rtc_n),
-      .qBar(),
-      .reset(s_zz0),  //negated zz1
-      .tick(1'b1)
-  );
+  // A577: RTC (Real Time Clock) — synchronous sysclk counter replaces the
+  // F714/JK ripple chain (A623->A619->A624->A616/A618/A617 chain) which uses
+  // cascaded data-signal clocks unreliable in FPGA fabric.
+  //
+  // Simulation: short count (256 cycles) so boot completes quickly.
+  // FPGA: real-time 20ms/5ms count at 100MHz.
+  // BOARD_CLK_FREQ: actual frequency of sysclk in Hz. The Basys3 build defines
+  // it (vivado_build.tcl: 16666667 for the 16.67 MHz clk_cpu); default matches
+  // the SC2661_UART.v fallback so both timers share one clock assumption.
+`ifndef BOARD_CLK_FREQ
+  `define BOARD_CLK_FREQ 100_000_000
+`endif
 
-  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
-      .InvertClockEnable(0)
-  ) A600 (
-      .clock(s_a605_q_n),
-      .d(s_gnd),
-      .preset(~s_pows_n),
-      .q(s_powfail),
-      .qBar(),
-      .reset(~s_powfail),  // Q signal (POWFAIL) is fed back to reset (which has negated input in the original drawing)
-      .tick(1'b1)
-  );
+`ifdef RTC_REAL_PERIOD
+  // Force the REAL board-clock period even in a Verilator build - used to
+  // reproduce FPGA real-time behavior (OPCOM output pacing) in simulation.
+  localparam RTC_20MS = (`BOARD_CLK_FREQ / 50) - 1;    // 20 ms
+  localparam RTC_5MS  = (`BOARD_CLK_FREQ / 200) - 1;   // 5 ms
+`elsif VERILATOR_SIM
+  // Original TESTE=1 F714 chain: RTOSC(period=256cyc) -> /2(A624) -> /8(A616/A618/A617) -> /2(A577) ~ 8192 sysclk per interrupt
+  // 256 was too fast (32x) - instruction verify programs couldn't execute enough instructions per RTC period
+  localparam RTC_20MS = 21'd8192;   // Matches original ~8K-cycle period (TESTE=1 baseline)
+  localparam RTC_5MS  = 21'd2048;   // Proportional (1/4 of 20ms)
+`else
+  // Derive from the real board clock. The old fixed 1_999_999 assumed 100 MHz;
+  // on the Basys3 the CPU/board domain is 16.67 MHz, which stretched the
+  // "20 ms" tick to ~120 ms - OPCOM output (one char per tick via MS20/MOPC)
+  // crawled at ~8 chars/sec and the OS timebase ran 6x slow.
+  localparam RTC_20MS = (`BOARD_CLK_FREQ / 50) - 1;    // 20 ms
+  localparam RTC_5MS  = (`BOARD_CLK_FREQ / 200) - 1;   // 5 ms
+`endif
+
+  reg [20:0] s_rtc_cnt;
+  reg        s_rtc_n_reg;
+
+  always @(posedge sysclk) begin
+    if (s_clrti) begin
+      // Preset (re-arm): microcode cleared CLRTIN, restart the counter
+      s_rtc_n_reg <= 1'b1;
+      s_rtc_cnt   <= 21'd0;
+    end else if (s_rescl) begin
+      s_rtc_n_reg <= 1'b1;
+      s_rtc_cnt   <= 21'd0;
+    end else if (s_rtc_cnt >= (s_sel5ms_n ? RTC_20MS : RTC_5MS)) begin
+      s_rtc_cnt   <= 21'd0;
+      s_rtc_n_reg <= 1'b0;  // Fire RTC interrupt
+    end else begin
+      s_rtc_cnt   <= s_rtc_cnt + 21'd1;
+    end
+  end
+
+  assign s_rtc_n = s_rtc_n_reg;
 
 
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+  // Connected all F091 (A637 and A613) to this F091
+  F091 A613B (
+      .N01(s_zz1),  // N01 = Always 1
+      .N02(s_zz0)   // N02 = Always 0
+  );
+
+  F595 A570 (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .H01_S (s_stp_n),
+      .H02_R (s_pwcl),
+      .H03_G (s_zz1),
+      .N01_Q (),
+      .N02_QB(s_esload_n)
+  );
+
+  F595 A571 (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .H01_S (a580_nand_out),
+      .H02_R (s_start),
+      .H03_G (s_zz1),
+      .N01_Q (s_stp),
+      .N02_QB(s_stp_n)
+  );
+
+`ifdef FPGA_FF_MODE
+  // P3 (docs/plan-fix-unconstrained-clocks.md): the F714/F617 RTOSC ripple
+  // network made s_rfclk and the chain QBs register-driven clock roots.
+  // Synchronous re-implementation on posedge sysclk:
+  //  - A623/A632/A634/A621/A622/A619 toggle on the previous stage's QB rise
+  //    (= Q fall) - exactly a 6-bit binary up counter stepped on the RTOSC
+  //    rise (reset RESCL).
+  //  - A633 (rfclk = QB) / A629 (panosc = QB) are /2 toggles (reset CLOSC).
+  //  - A630/A631 (F617) clock on the rfclk rise with async active-low set;
+  //    the rise is derived from the q633 NEXT value so a CLOSC-forced QB
+  //    rise clocks them exactly like the original async network did.
+  reg       r_rtosc_d = 1'b0;
+  reg       r_q633 = 1'b0;     // A633 Q (s_rfclk  = QB = ~Q), reset CLOSC
+  reg       r_q629 = 1'b0;     // A629 Q (s_panosc = QB = ~Q), reset CLOSC
+  reg [5:0] r_cnt6 = 6'd0;     // A623/A632/A634/A621/A622/A619 chain, reset RESCL
+  reg       r_refrq_n = 1'b0;  // A630 Q (F617: D=0,       C=rfclk, SB_n=s_ref_n)
+  reg       r_a631_q = 1'b0;   // A631 Q (F617: D=refrq_n, C=rfclk, SB_n=s_bdry50_n)
+
+  wire s_rtosc_rise = s_rtosc & ~r_rtosc_d;
+  wire s_q633_next  = s_closc ? 1'b0 : (s_rtosc_rise ? ~r_q633 : r_q633);
+  wire s_rfclk_rise = r_q633 & ~s_q633_next;  // rfclk = ~q633
+
+  always @(posedge sysclk) begin
+    r_rtosc_d <= s_rtosc;
+    r_q633    <= s_q633_next;
+
+    if (s_closc)           r_q629 <= 1'b0;
+    else if (s_rfclk_rise) r_q629 <= ~r_q629;
+
+    if (s_rescl)           r_cnt6 <= 6'd0;
+    else if (s_rtosc_rise) r_cnt6 <= r_cnt6 + 6'd1;
+
+    if (!s_ref_n)          r_refrq_n <= 1'b1;  // F617 async set
+    else if (s_rfclk_rise) r_refrq_n <= 1'b0;  // D = 0
+
+    if (!s_bdry50_n)       r_a631_q <= 1'b1;   // F617 async set
+    else if (s_rfclk_rise) r_a631_q <= r_refrq_n;
+  end
+
+  assign s_rfclk    = ~r_q633;
+  assign s_panosc   = ~r_q629;
+  assign s_a623_q_n = ~r_cnt6[0];
+  assign s_a632_q_n = ~r_cnt6[1];
+  assign s_a634_q_n = ~r_cnt6[2];
+  assign s_a621_q_n = ~r_cnt6[3];
+  assign s_a622_q_n = ~r_cnt6[4];
+  assign s_testo    = ~r_cnt6[5];
+  assign s_refrq_n  = r_refrq_n;
+  assign s_a631_q   = r_a631_q;
+`else
   F714 A623 (
       .H01_T (s_rtosc),
       .H02_R (s_rescl),
@@ -342,21 +484,6 @@ module DECODE_DGA_POW (
       .H03_S (s_gnd),
       .N01_Q (),
       .N02_QB(s_rfclk)
-  );
-
-
-  // Connected all F091 (A637 and A613) to this F091
-  F091 A613B (
-      .N01(s_zz1),  // N01 = Always 1
-      .N02(s_zz0)   // N02 = Always 0
-  );  
-
-  F714 A596 (
-      .H01_T (s_a601_y),
-      .H02_R (s_powsense),
-      .H03_S (s_gnd),
-      .N01_Q (),
-      .N02_QB(s_a596_q_n)
   );
 
   F714 A632 (
@@ -375,14 +502,6 @@ module DECODE_DGA_POW (
       .N02_QB(s_panosc)
   );
 
-  F714 A602 (
-      .H01_T (s_a596_q_n),
-      .H02_R (s_powsense),
-      .H03_S (s_gnd),
-      .N01_Q (),
-      .N02_QB(s_a602_q_n)
-  );
-
   F714 A634 (
       .H01_T (s_a632_q_n),
       .H02_R (s_rescl),
@@ -391,44 +510,12 @@ module DECODE_DGA_POW (
       .N02_QB(s_a634_q_n)
   );
 
-  F595 A570 (
-      .H01_S (s_stp_n),
-      .H02_R (s_pwcl),
-      .H03_G (s_zz1),
-      .N01_Q (),
-      .N02_QB(s_esload_n)
-  );
-
-  F595 A571 (
-      .H01_S (a580_nand_out),
-      .H02_R (s_start),
-      .H03_G (s_zz1),
-      .N01_Q (s_stp),
-      .N02_QB(s_stp_n)
-  );
-
-  F714 A593 (
-      .H01_T (s_a602_q_n),
-      .H02_R (s_powsense),
-      .H03_S (s_gnd),
-      .N01_Q (),
-      .N02_QB(s_a593_q_n)
-  );
-
   F714 A621 (
       .H01_T (s_a634_q_n),
       .H02_R (s_rescl),
       .H03_S (s_gnd),
       .N01_Q (),
       .N02_QB(s_a621_q_n)
-  );
-
-  F714 A594 (
-      .H01_T (s_a593_q_n),
-      .H02_R (s_powsense),
-      .H03_S (s_gnd),
-      .N01_Q (),
-      .N02_QB(s_a594_q_n)
   );
 
   F714 A622 (
@@ -464,14 +551,7 @@ module DECODE_DGA_POW (
       .N01_Q (),
       .N02_QB(s_testo)
   );
-
-  F714 A591 (
-      .H01_T (s_a594_q_n),
-      .H02_R (s_powsense),
-      .H03_S (s_gnd),
-      .N01_Q (),
-      .N02_QB(s_a591_q_n)
-  );
+`endif
 
   F714 A627 (
       .H01_T (s_a617_q_n),
@@ -479,23 +559,6 @@ module DECODE_DGA_POW (
       .H03_S (s_gnd),
       .N01_Q (),
       .N02_QB(s_a627_q_n)
-  );
-
-  F714 A605 (
-      .H01_T (s_a591_q_n),
-      .H02_R (s_powsense),
-      .H03_S (s_gnd),
-      .N01_Q (),
-      .N02_QB(s_a605_q_n)
-  );
-
-
-  F571 A620 (
-      .A(s_test_enable),
-      .D0(s_testo),
-      .D1(s_rtosc),
-      .ENB_N(s_gnd),
-      .Y(s_a620_y)
   );
 
   F714 A626 (
@@ -514,12 +577,12 @@ module DECODE_DGA_POW (
       .N02_QB(s_a624_q_n)
   );
 
-  F571 A625 (
-      .A(s_sel5ms_n),
-      .D0(s_a617_q_n),
-      .D1(s_a626_q_n),
+  F571 A620 (
+      .A(s_test_enable),
+      .D0(s_testo),
+      .D1(s_rtosc),
       .ENB_N(s_gnd),
-      .Y(s_ms20)
+      .Y(s_a620_y)
   );
 
   F103 A628 (
@@ -527,15 +590,9 @@ module DECODE_DGA_POW (
       .F_OUT(s_rescl)
   );
 
-  F571 A601 (
-      .A(s_test_enable),
-      .D0(s_ms20),
-      .D1(s_rtosc),
-      .ENB_N(s_gnd),
-      .Y(s_a601_y)
-  );
-
   F595 A576 (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
       .H01_S (s_load),
       .H02_R (s_a579_out_n),
       .H03_G (s_zz1),
@@ -544,6 +601,8 @@ module DECODE_DGA_POW (
   );
 
   F595 A574 (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
       .H01_S (s_lrst),
       .H02_R (s_a579_out_n),
       .H03_G (s_zz1),
@@ -551,23 +610,16 @@ module DECODE_DGA_POW (
       .N02_QB(s_rst_n)
   );
 
-  /*  H01_S signal loops back vis STPN from A571. Verilator doesnt like it, Vivado does not complain */
-  /* verilator lint_off UNOPTFLAT */  // <=== This didnt fix verilator lint error, so I added it into the F595 module for everyone..
-  F595 A569 (
-      .H01_S (s_a578_out_n),
-      .H02_R (s_powfail_n),
-      .H03_G (s_zz1),
-      .N01_Q (),
-      .N02_QB(s_clear_n)
-  );
-  /* verilator lint_on UNOPTFLAT */
-
+  /* verilator lint_off UNOPTFLAT */
   F595 A575 (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
       .H01_S (s_continue),
       .H02_R (s_a579_out_n),
       .H03_G (s_zz1),
       .N01_Q (),
       .N02_QB(s_conn_n)
   );
+  /* verilator lint_on UNOPTFLAT */
 
 endmodule

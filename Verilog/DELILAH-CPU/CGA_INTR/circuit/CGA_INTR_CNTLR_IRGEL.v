@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_INTR_CNTLR_IRGEL (
+    input       sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input       MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input       D,
     input       E,
     input       FIDB03,
@@ -55,7 +58,7 @@ module CGA_INTR_CNTLR_IRGEL (
   wire       s_hipasall_out;
   wire       s_hirq;
   wire       s_hivges;
-  wire       s_hve;
+  wire       s_hve /* synthesis syn_keep=1 */;  // GAO probe net - see fpga/tang-nano-20k/GAO-HOWTO.md
   wire       s_irq_n_out;
   wire       s_l;
   wire       s_lienab_n;
@@ -66,7 +69,7 @@ module CGA_INTR_CNTLR_IRGEL (
   wire       s_logs_n_out;
   wire       s_lopassall_out;
   wire       s_lovges;
-  wire       s_lve;
+  wire       s_lve /* synthesis syn_keep=1 */;  // GAO probe net
   wire       s_m;
   wire       s_mclk;
   wire       s_n;
@@ -126,6 +129,8 @@ module CGA_INTR_CNTLR_IRGEL (
    *******************************************************************************/
 
   CGA_INTR_CNTLR_IRGEL_HIGEL HIGEL (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .FIDB03(s_fidb03),
       .HIDET(s_hidet),
       .HIENABN(s_hienab_n),
@@ -147,6 +152,8 @@ module CGA_INTR_CNTLR_IRGEL (
   );
 
   CGA_INTR_CNTLR_IRGEL_LOGEL LOGEL (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .FIDB04(s_fidb04),
       .L(s_l),
       .LIENABN(s_lienab_n),
@@ -158,6 +165,8 @@ module CGA_INTR_CNTLR_IRGEL (
   );
 
   CGA_INTR_CNTLR_IRGEL_HIRL HIRL (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .D(s_d),
       .E(s_e),
       .H(s_h),
@@ -177,6 +186,8 @@ module CGA_INTR_CNTLR_IRGEL (
   );
 
   CGA_INTR_CNTLR_IRGEL_LORL LORL (
+      .sysclk(sysclk),
+      .MCLK_EN(MCLK_EN),
       .D(s_d),
       .E(s_e),
       .LIENABN(s_lienab_n),

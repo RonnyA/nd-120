@@ -55,8 +55,28 @@ module CYC_36 (
     output MCLK,
     output UCLK,
     output WRFSTB,
+
+    // One-sysclk-wide clock-enable pulses (FPGA_FF_MODE only, else tied 0).
+    // Each asserts during the sysclk cycle whose POSEDGE is the rising edge
+    // of the corresponding phase-accurate clock, so a consumer converted to
+    // `posedge sysclk + if (XCLK_EN)` captures on exactly the edge the old
+    // `posedge XCLK` flop did. P2 of docs/plan-fix-unconstrained-clocks.md.
+    output CLK_EN,
+    output UCLK_EN,
+    output MCLK_EN,
+    output MACLK_EN,
+    output ALUCLK_EN,
+    // Matching FALL pulses (level & ~next): high in the cycle whose POSEDGE
+    // is the FALLING edge of the phase-accurate clock, for consumers that
+    // clocked on the inverted net (posedge ~xclk / InvertClockEnable).
+    output CLK_FALL_EN,
+    output UCLK_FALL_EN,
+    output MCLK_FALL_EN,
+    output MACLK_FALL_EN,
+    output ALUCLK_FALL_EN,
     output CYD,
     output [2:0] CC_3_1_n,
+    output CC0_n,          // Cycle Control bit 0 (added for debug)
     output TERM_n,
     output MAP_n,
     output CX_n,
@@ -75,9 +95,10 @@ module CYC_36 (
   wire       s_acond_n;
   wire       s_aluclk;
   wire       s_brk_n;
-  wire       s_cc0_n;
+  (* mark_debug = "true" *) wire s_cc0_n;
   wire       s_cgntcact_n;
   wire       s_clk;
+  wire       s_clk_ce_en;
   wire       s_csalui7;
   wire       s_csalui8;
   wire       s_csalum0;
@@ -167,26 +188,180 @@ module CYC_36 (
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
+`ifdef FPGA_FF_MODE
+  // ---- Phase-accurate ALUCLK (single sysclk domain) ----
+  // ALUCLK = ~(TERM_n|LCS) pulses at bus-cycle terminate; the ALU / condition
+  // register latch on its rising edge. To move off the gated combinational clock
+  // without shifting that latch, we need the enable to fire on the SAME sysclk
+  // edge the old ALUCLK did. CYC_TERM_D gives TERM's NEXT-state (validated exactly
+  // == PAL_44601B, see CYC_TERM_D_tb.v), which is high the cycle BEFORE TERM
+  // asserts; registering it lands aluclk_pa's rising edge on the correct edge
+  // (net-zero latency vs the +1 of registering the already-risen s_aluclk).
+  // Clean FF-generated clock, no consumer edits. See docs/clock-enable-refactor.md.
+  wire s_term_d;
+  CYC_TERM_D U_TERM_D (
+      .CC0_n  (s_cc0_n),
+      .CC1_n  (s_cc_3_1_n[0]),
+      .CC2_n  (s_cc_3_1_n[1]),
+      .CC3_n  (s_cc_3_1_n[2]),
+      .TERM_n (s_term_n),
+      .SHORT_n(s_short_n),
+      .HIT    (s_hit),
+      .BRK_n  (s_brk_n),
+      .SLOW_n (s_slow_n),
+      .DLY0_n (s_dly0_n),
+      .DLY1_n (s_dly1_n),
+      .CSDELAY0(s_csdelay_1_0[0]),
+      .TERM_D (s_term_d)
+  );
+  wire aluclk_en = s_term_d & ~s_lcs;   // ALUCLK about to rise (LCS gates it off during load)
+  reg  aluclk_pa = 1'b0;
+  always @(posedge sysclk) aluclk_pa <= aluclk_en;
+  assign ALUCLK              = aluclk_pa;
+
+  // ---- Phase-accurate MCLK / MACLK ----
+  // MCLK/MACLK = ~(TERM_n & MCLK_n/MACLK_n); MCLK_n/MACLK_n are combinational
+  // PAL_44307C decodes of CC + TERM. Feed a SECOND (combinational) PAL_44307C
+  // the NEXT-state - TERM from CYC_TERM_D, CC from CYC_CC_D (both validated ==
+  // PAL_44601B) - to get their next values, then fire each enable on the edge
+  // the old clock rose. The PALs stay untouched; PAL_44307C is reused as-is.
+  wire s_cc0_d, s_cc1_d, s_cc2_d, s_cc3_d;
+  CYC_CC_D U_CC_D (
+      .CC0_n     (s_cc0_n),
+      .CC1_n     (s_cc_3_1_n[0]),
+      .CC2_n     (s_cc_3_1_n[1]),
+      .CC3_n     (s_cc_3_1_n[2]),
+      .TERM_n    (s_term_n),
+      .CGNTCACT_n(s_cgntcact_n),
+      .WAIT1     (s_wait1),
+      .WAIT2     (s_wait2),
+      .BRK_n     (s_brk_n),
+      .CC0_D     (s_cc0_d),
+      .CC1_D     (s_cc1_d),
+      .CC2_D     (s_cc2_d),
+      .CC3_D     (s_cc3_d)
+  );
+  wire s_term_n_next = ~s_term_d;
+  wire s_cc0_n_next  = ~s_cc0_d;
+  wire s_cc1_n_next  = ~s_cc1_d;
+  wire s_cc2_n_next  = ~s_cc2_d;
+  wire s_cc3_n_next  = ~s_cc3_d;
+  wire s_mclk_n_next, s_maclk_n_next, s_uclk_next;
+  /* verilator lint_off PINCONNECTEMPTY */
+  PAL_44307C PAL_44307_UCYCLK_NEXT (
+      .TERM_n (s_term_n_next),
+      .CC0_n  (s_cc0_n_next),
+      .CC1_n  (s_cc1_n_next),
+      .CC2_n  (s_cc2_n_next),
+      .CC3_n  (s_cc3_n_next),
+      .FORM_n (s_form_n),
+      .BRK_n  (s_brk_n),
+      .RWCS_n (s_rwcs_n),
+      .TRAP_n (s_trap_n),
+      .VEX    (s_vex),
+      .MCLK_n (s_mclk_n_next),
+      .MACLK_n(s_maclk_n_next),
+      .UCLK   (s_uclk_next),
+      .WRFSTB (), .CYD (), .EORF_n (), .ETRAP_n (), .MAP_n ()
+  );
+  /* verilator lint_on PINCONNECTEMPTY */
+  wire s_mclk_next  = ~(s_term_n_next & s_mclk_n_next);   // next MCLK  = ~(TERM_n_next & MCLK_n_next)
+  wire s_maclk_next = ~(s_term_n_next & s_maclk_n_next);  // next MACLK
+  // Register the predicted next LEVEL, not a rise-only pulse. The rising edge
+  // lands on the same sysclk edge as the original gated clock (same property
+  // the pulse form had), but the full high phase is also reproduced. That
+  // matters for level consumers: CPU_CS_ACAL_17's address latches are
+  // transparent while MACLK is HIGH - with a 1-sysclk pulse the WCS address
+  // (LUA) froze for the rest of the microcycle, so a mid-cycle CSA change
+  // (DGA dispatch via WCA, e.g. instruction-fetch MAP) never reached the WCS
+  // and MASEL captured a jump target from the stale previous microword.
+  reg  mclk_pa = 1'b0, maclk_pa = 1'b0;
+  always @(posedge sysclk) begin
+    mclk_pa  <= s_mclk_next;
+    maclk_pa <= s_maclk_next;
+  end
+  assign MCLK                = mclk_pa;
+  assign MACLK               = maclk_pa;
+
+  // ---- Phase-accurate CLK and UCLK ----
+  // CLK = ~TERM_n rises at terminate (like ALUCLK but without the LCS gate), so
+  // clk_en = TERM_d. CLK also clocks the FSM's own PAL_44403/44404 (via s_clk),
+  // so those PALs now run on the clean generated clock instead of the gated net -
+  // the PALs themselves are untouched, only their clock input changes.
+  // UCLK = TERM_n & UCLK_44307 has its own mid-cycle phase; uclk_next uses the
+  // 2nd PAL_44307's UCLK on the next-state.
+  wire clk_en   = s_term_d;                       // CLK next level = TERM_D (high while TERM asserted)
+  wire uclk_next = s_term_n_next & s_uclk_next;   // next UCLK = TERM_n_next & UCLK_44307_next
+  // Same level-accurate treatment as MCLK/MACLK above: register the predicted
+  // next LEVEL so the full UCLK high phase is reproduced, not just the rise.
+  reg  clk_pa = 1'b0, uclk_pa = 1'b0;
+  always @(posedge sysclk) begin
+    clk_pa  <= clk_en;
+    uclk_pa <= uclk_next;
+  end
+  assign UCLK                = uclk_pa;
+
+  // ---- Clock-enable pulses for P2 domain conversions ----
+  // next-level & ~current-level = high exactly in the cycle before the pa
+  // clock's rise, i.e. the enable is sampled by the SAME sysclk posedge
+  // that produces the rise. Consumers on `posedge sysclk + if (EN)` are
+  // then cycle-identical to `posedge pa-clock` flops (same-domain data).
+  assign s_clk_ce_en         = clk_en       & ~clk_pa;
+  assign CLK_EN              = s_clk_ce_en;
+  assign UCLK_EN             = uclk_next    & ~uclk_pa;
+  assign MCLK_EN             = s_mclk_next  & ~mclk_pa;
+  assign MACLK_EN            = s_maclk_next & ~maclk_pa;
+  assign ALUCLK_EN           = aluclk_en    & ~aluclk_pa;
+  // FALL pulses: level & ~next = high exactly in the cycle before the pa
+  // clock's fall, sampled by the same posedge that produces the fall.
+  assign CLK_FALL_EN         = clk_pa    & ~clk_en;
+  assign UCLK_FALL_EN        = uclk_pa   & ~uclk_next;
+  assign MCLK_FALL_EN        = mclk_pa   & ~s_mclk_next;
+  assign MACLK_FALL_EN       = maclk_pa  & ~s_maclk_next;
+  assign ALUCLK_FALL_EN      = aluclk_pa & ~aluclk_en;
+`else
   assign ALUCLK              = s_aluclk;
+  assign MCLK                = s_mclk;
+  assign MACLK               = s_maclk_out;
+  assign UCLK                = s_uclk_out;
+  // Latch mode has no phase-accurate registers: no enables.
+  assign s_clk_ce_en         = 1'b0;
+  assign CLK_EN              = s_clk_ce_en;
+  assign UCLK_EN             = 1'b0;
+  assign MCLK_EN             = 1'b0;
+  assign MACLK_EN            = 1'b0;
+  assign ALUCLK_EN           = 1'b0;
+  assign CLK_FALL_EN         = 1'b0;
+  assign UCLK_FALL_EN        = 1'b0;
+  assign MCLK_FALL_EN        = 1'b0;
+  assign MACLK_FALL_EN       = 1'b0;
+  assign ALUCLK_FALL_EN      = 1'b0;
+`endif
   assign CC_3_1_n            = s_cc_3_1_n[2:0];
+  assign CC0_n               = s_cc0_n;
   assign CLK                 = s_clk;
   assign CX_n                = s_cx_n;
   assign CYD                 = s_cyd;
   assign EORF_n              = s_eorf_n;
   assign ETRAP_n             = s_etrap_n;
   assign LCS_n               = s_lcs_n;
-  assign MACLK               = s_maclk_out;
   assign MAP_n               = s_map_n;
-  assign MCLK                = s_mclk;
   assign TERM_n              = s_term_n;
-  assign UCLK                = s_uclk_out;
+  // MCLK / MACLK / UCLK are assigned in the FPGA_FF_MODE block above
+  // (phase-accurate) and in its `else` branch (original gated nets).
   assign WRFSTB              = s_wrfstb;
 
   /*******************************************************************************
    ** Refactored all gates to use Verilog code for and/or/not                    **
    *******************************************************************************/
   assign s_lcs               = ~s_lcs_n;
+`ifdef FPGA_FF_MODE
+  // Clean phase-accurate CLK: drives the output CLK and the FSM's own
+  // PAL_44403/44404 clock inputs, replacing the gated ~TERM_n net.
+  assign s_clk               = clk_pa;
+`else
   assign s_clk               = ~s_term_n;
+`endif
   assign s_aluclk            = ~(s_term_n | s_lcs);
   assign s_mclk              = ~(s_term_n & s_mclk_n);
   assign s_maclk_out         = ~(s_term_n & s_maclk_n);
@@ -253,8 +428,20 @@ module CYC_36 (
       .MAP_n  (s_map_n)         // B5_n - Memory Address Present signal
   );
 
+  // P2 (docs/plan-fix-unconstrained-clocks.md): the two CYIN PALs register
+  // on CLK (= clk_pa in FF mode) and sample converted-domain outputs
+  // (ACOND_n from CONDREG, LBA/LSHADOW from MIC/IDBCTL) - they are part of
+  // the coupled clock group and convert with it.
+`ifdef FPGA_FF_MODE
+  localparam CLK_CE = 1;
+`else
+  localparam CLK_CE = 0;
+`endif
+
   /* verilator lint_off PINMISSING */
-  PAL_44403C PAL_44403_UCYIN0 (
+  PAL_44403C_EN #(.USE_ENABLE(CLK_CE)) PAL_44403_UCYIN0 (
+      .sysclk(sysclk),
+      .EN  (s_clk_ce_en),
       .CLK (s_clk),  //CK
       .OE_n(s_pd1),  //OE_n
 
@@ -278,7 +465,9 @@ module CYC_36 (
       .SLCOND_n(s_slcond_n)  //B2_n
   );
 
-  PAL_44404C PAL_44404_UCYIN1 (
+  PAL_44404C_EN #(.USE_ENABLE(CLK_CE)) PAL_44404_UCYIN1 (
+      .sysclk(sysclk),
+      .EN  (s_clk_ce_en),
       .CLK (s_clk),  //CK
       .OE_n(s_pd1),  //OE_n
 

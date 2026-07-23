@@ -2720,7 +2720,7 @@
     </comp>
     <comp lib="0" loc="(1910,160)" name="Tunnel">
       <a name="facing" val="east"/>
-      <a name="label" val="Q0"/>
+      <a name="label" val="F0"/>
     </comp>
     <comp lib="0" loc="(1910,1780)" name="Tunnel">
       <a name="facing" val="east"/>
@@ -4290,22 +4290,22 @@
     <comp lib="8" loc="(2140,1140)" name="Text">
       <a name="text" val="LF_15_0"/>
     </comp>
-    <comp lib="8" loc="(2493,2214)" name="Text">
+    <comp lib="8" loc="(2490,2210)" name="Text">
       <a name="text" val="F15"/>
     </comp>
-    <comp lib="8" loc="(2502,2191)" name="Text">
-      <a name="text" val="B15_n"/>
-    </comp>
-    <comp lib="8" loc="(2503,2169)" name="Text">
+    <comp lib="8" loc="(2500,2165)" name="Text">
       <a name="text" val="A15_n"/>
     </comp>
-    <comp lib="8" loc="(2541,2082)" name="Text">
+    <comp lib="8" loc="(2500,2190)" name="Text">
+      <a name="text" val="B15_n"/>
+    </comp>
+    <comp lib="8" loc="(2540,2080)" name="Text">
       <a name="text" val="A15"/>
     </comp>
-    <comp lib="8" loc="(2541,2101)" name="Text">
+    <comp lib="8" loc="(2540,2100)" name="Text">
       <a name="text" val="B15"/>
     </comp>
-    <comp lib="8" loc="(2548,2122)" name="Text">
+    <comp lib="8" loc="(2545,2120)" name="Text">
       <a name="text" val="F15_n"/>
     </comp>
     <comp lib="8" loc="(635,100)" name="Text">

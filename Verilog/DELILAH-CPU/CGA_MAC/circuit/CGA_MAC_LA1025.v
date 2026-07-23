@@ -15,6 +15,9 @@
 
 
 module CGA_MAC_LA1025 (
+    input        sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input        MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input        A10,
     input        A1617,
     input        A1619,
@@ -127,6 +130,15 @@ module CGA_MAC_LA1025 (
   assign s_e1617            = E1617;
   assign s_f1617            = F1617;
   assign s_mclk             = MCLK;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -538,7 +550,9 @@ module CGA_MAC_LA1025 (
 
 
   // ** HIGH-LATCH (LA_23-18)**
-  R81 R_LA_H (
+  R81_EN #(.USE_ENABLE(MCLK_CE)) R_LA_H (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CP(s_mclk),
 
       .A  (1'b0),
@@ -568,7 +582,9 @@ module CGA_MAC_LA1025 (
   );
 
   // ** LOW-LATCH (LA_17-10)**
-  R81 R_LA_L (
+  R81_EN #(.USE_ENABLE(MCLK_CE)) R_LA_L (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CP(s_mclk),
 
       .A  (s_ila17),

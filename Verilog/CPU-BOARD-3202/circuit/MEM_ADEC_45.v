@@ -10,6 +10,8 @@
 
 
 module MEM_ADEC_45 (
+    input sysclk,     //! System clock (for the FF-mode _D PAL mirrors)
+    input sys_rst_n,  //! System reset
     input BGNT_n,
     input BMEM_n,
     input CGNT_n,
@@ -155,6 +157,22 @@ module MEM_ADEC_45 (
   /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
+`ifdef FPGA_FF_MODE
+  // P1c (docs/plan-fix-unconstrained-clocks.md): DDBAPR is the delayed
+  // bus-address-present strobe (PAL_UBADEC output), not a clock. Same
+  // request/grant flag conversion as MEMORY_2 below: set with the address-OK
+  // qualifier on a detected DDBAPR rising edge, synchronous dominant BGNT
+  // clear. Validated by CPU-BOARD-3202/sim make test-reqgnt (covers the
+  // d-qualifier case: a request with AOK=0 must not set the flag).
+  reg blrq_ff = 1'b0;
+  reg ddbapr_d = 1'b0;
+  always @(posedge sysclk) begin
+    ddbapr_d <= s_ddbapr;
+    if (s_bgnt) blrq_ff <= 1'b0;
+    else if (s_ddbapr && !ddbapr_d) blrq_ff <= s_aok;
+  end
+  assign s_blrq_n_out = ~blrq_ff;
+`else
   D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) MEMORY_1 (
@@ -166,7 +184,26 @@ module MEM_ADEC_45 (
       .reset(s_bgnt),
       .tick(1'b1)
   );
+`endif
 
+`ifdef FPGA_FF_MODE
+  // P1b (docs/plan-fix-unconstrained-clocks.md): REFRQ_n is a refresh-request
+  // strobe from the DGA, not a clock. The original flop is set on the rising
+  // edge of REFRQ_n (d = s_power = 1) and cleared asynchronously by RGNT -
+  // a request/grant handshake flag. Clocking it on the strobe makes REFRQ_n
+  // a fabric-routed clock (unconstrained hold-race lottery). FF mode: same
+  // handshake on sysclk with a detected rising edge; the grant clear is
+  // synchronous and dominant, mirroring the async-reset priority.
+  reg rlrq_ff = 1'b0;
+  reg refrq_n_d = 1'b0;
+  always @(posedge sysclk) begin
+    refrq_n_d <= s_refrq_n;
+    if (s_rgnt) rlrq_ff <= 1'b0;
+    else if (s_refrq_n && !refrq_n_d) rlrq_ff <= s_power;
+  end
+  assign s_pal_44904_clk = rlrq_ff;
+  assign s_rlrq_n_out = ~rlrq_ff;
+`else
   D_FLIPFLOP #(.ACTIVE_ASYNC(1),
       .InvertClockEnable(0)
   ) MEMORY_2 (
@@ -178,6 +215,7 @@ module MEM_ADEC_45 (
       .reset(s_rgnt),
       .tick(1'b1)
   );
+`endif
 
 
   /*******************************************************************************
@@ -224,8 +262,17 @@ module MEM_ADEC_45 (
 
   // PAL_UCADEC, chip 9G
   // CPU Address Decode and CPU Local Request
+`ifdef FPGA_FF_MODE
+  // FF mode: sysclk-domain mirror - CK (ECREQ) becomes an edge enable, no
+  // routed-net clock (see docs/HANDOFF-basys3-memory-write.md)
+  PAL_44445B_D PAL_UCADEC (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .CK  (s_ecreq),
+`else
   PAL_44445B PAL_UCADEC (
       .CK  (s_ecreq),
+`endif
       .OE_n(s_cgnt_n),
 
       .WRITE (s_write),   // I0 - WRITE
@@ -251,8 +298,16 @@ module MEM_ADEC_45 (
 
   // PAL_UBADEC, chip 6G
   // BUS Address Decode and Bus Local Request
+`ifdef FPGA_FF_MODE
+  // FF mode: sysclk-domain mirror - CK (DBAPR) becomes an edge enable
+  PAL_44446B_D PAL_UBADEC (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .CK  (s_dbapr),
+`else
   PAL_44446B PAL_UBADEC (
       .CK  (s_dbapr),
+`endif
       .OE_n(s_bgnt_n),
 
       .DBAPR   (s_dbapr),      // I0 - DBAPR

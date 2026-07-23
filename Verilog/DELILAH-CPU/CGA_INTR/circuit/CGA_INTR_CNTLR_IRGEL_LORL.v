@@ -14,6 +14,9 @@
 
 
 module CGA_INTR_CNTLR_IRGEL_LORL (
+    input       sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input       MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input       D,
     input       E,
     input       LODET,
@@ -38,7 +41,7 @@ module CGA_INTR_CNTLR_IRGEL_LORL (
   wire       s_d;
   wire       s_e;
   wire       s_int_req_enable_q_n;
-  wire       s_int_req_enable_q;
+  wire       s_int_req_enable_q /* synthesis syn_keep=1 */;  // GAO probe net - see fpga/tang-nano-20k/GAO-HOWTO.md
   wire       s_lienab_n_out;
   wire       s_lirq_out;
   wire       s_lodet;
@@ -67,6 +70,15 @@ module CGA_INTR_CNTLR_IRGEL_LORL (
   assign s_lodet          = LODET;
   assign s_s              = S;
   assign s_lovges         = LOVGES;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -121,11 +133,15 @@ module CGA_INTR_CNTLR_IRGEL_LORL (
       .result(s_lirq_out)
   );
 
-  AND_GATE #(
-      .BubblesMask(2'b11)
+  // Vector-claim must be gated by the interrupt-request-enable FF (Am2914
+  // ground truth: a claim after DISIN must not fire even with requests
+  // pending and the mask open - the post-MCL mask is all-enabled by design).
+  AND_GATE_3_INPUTS #(
+      .BubblesMask(3'b111)
   ) GATES_4 (
       .input1(s_lopassall_n),
       .input2(s_s),
+      .input3(s_int_req_enable_q_n),
       .result(s_lve_out)
   );
 
@@ -134,7 +150,10 @@ module CGA_INTR_CNTLR_IRGEL_LORL (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  SCAN_FF INT_REQ_ENABLE_FF (
+  // MCLK domain (CGA_INTR.MCLK, rising edge)
+  SCAN_FF_EN #(.USE_ENABLE(MCLK_CE)) INT_REQ_ENABLE_FF (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .CLK(s_mclk),
       .D  (s_e),
       .Q  (s_int_req_enable_q),

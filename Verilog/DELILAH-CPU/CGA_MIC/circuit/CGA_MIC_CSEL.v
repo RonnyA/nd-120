@@ -11,6 +11,7 @@
 ***************************************************************************/
 
 module CGA_MIC_CSEL (
+    input       sysclk,    //! FPGA system clock — threaded to LATCH
     input       ALUCLK,
     input       CFETCH,
     input       COND,
@@ -37,9 +38,9 @@ module CGA_MIC_CSEL (
   wire [2:0] s_mux_selector;
   wire [3:0] s_tsel_3_0;
   wire       s_aluclk_n;
-  wire       s_aluclk;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire       s_aluclk;
   wire       s_cfetch_n;
-  wire       s_cond_n_out;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire       s_cond_n_out;
   wire       s_cond;
   wire       s_cry;
   wire       s_dzd;
@@ -50,7 +51,7 @@ module CGA_MIC_CSEL (
   wire       s_lcz; 
   wire       s_ood;
   wire       s_ovf;
-  wire       s_pcond_n;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire       s_pcond_n;
   wire       s_plexer1_out;
   wire       s_plexer2_out;
   wire       s_plexer3_out;
@@ -153,6 +154,7 @@ module CGA_MIC_CSEL (
    *******************************************************************************/
 
   LATCH CSEL_LATCH (
+      .sysclk(sysclk),
       .D(s_pcond_n),
       .ENABLE(s_aluclk_n),
       .Q(s_cond_n_out),

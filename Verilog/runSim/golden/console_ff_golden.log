@@ -1,0 +1,51 @@
+PaperTape object created.
+FloppyPIO object created.
+B address    000000
+C address    160616
+Load address 000000
+Word count   054731
+Checksum     021150
+Execute	     000000
+Words read   054731
+[ND120] WCS mode: RUNTIME LOAD (normal PROM->WCS copy)
+#22/125005 054321
+#124002 22/054321 
+#124002 0!
+---------------------------
+--  INSTRUCTION  VERIFY  --
+---------------------------
+
+PROGRAM NUMBER: 204384B
+PROGRAM NAME  : INSTRUCTION-B
+DATE ISSUED   : 83.11.01
+
+
+COMPUTER: ND-100/CX  32 BIT FLOATING FORMAT WITH NORMAL CYCLE.
+ALD     : 400
+PAGING  : MEMORY MANAGEMENT II
+CACHE   : YES
+PaperTape::IDENT called with level 10
+[0] FloppyPIO::IDENT called with level 10
+WTF 0 400
+No device found for IDENT level: 10
+IDENT LVL[10]=0
+PaperTape::IDENT called with level 11
+[0] FloppyPIO::IDENT called with level 11
+WTF 0 800
+No device found for IDENT level: 11
+IDENT LVL[11]=0
+PaperTape::IDENT called with level 12
+[0] FloppyPIO::IDENT called with level 12
+WTF 0 1000
+No device found for IDENT level: 12
+IDENT LVL[12]=0
+PaperTape::IDENT called with level 13
+[0] FloppyPIO::IDENT called with level 13
+WTF 0 2000
+No device found for IDENT level: 13
+IDENT LVL[13]=0
+
+The command HELP gives you a list of the commands.
+
+>
+[instrumented] cycle budget reached, stopping

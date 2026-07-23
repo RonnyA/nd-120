@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_MIC_MASEL_REPEAT (
+    input        sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input        MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input        MCLK,
     input        MPN,
     input        SC5,      //! Selector SC5
@@ -86,6 +89,26 @@ module CGA_MIC_MASEL_REPEAT (
   end
 */  
 
+  // MCLK domain: regRepeat clocks on posedge s_mclk (s_mp is a sync clear).
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode capture on
+  // posedge sysclk gated by MCLK_EN (aligned to the MCLK rise) instead
+  // of clocking on the routed net. The original inner "if (s_mclk)"
+  // guard is vacuously true at posedge s_mclk and is dropped here
+  // (at the MCLK_EN capture edge the MCLK level register is still low).
+`ifdef FPGA_FF_MODE
+  always @(posedge sysclk) begin
+    if (MCLK_EN) begin
+      if (s_mp) begin
+        regRepeat <= 12'b000000000000;
+      end else begin
+        regRepeat[12:0] <= s_rep_12_0[12:0];
+      end
+    end
+  end
+`else
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_en = sysclk & MCLK_EN;
+  /* verilator lint_on UNUSEDSIGNAL */
   always @(posedge s_mclk) begin // or posedge s_mp) begin
     if (s_mp) begin
       regRepeat <= 12'b000000000000;
@@ -95,6 +118,7 @@ module CGA_MIC_MASEL_REPEAT (
       end
     end
   end
+`endif
 
 
 

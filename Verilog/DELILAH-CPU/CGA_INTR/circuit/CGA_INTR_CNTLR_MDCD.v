@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_INTR_CNTLR_MDCD (
+    input       sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input       MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input       EPIC,
     input       HIPASSALL,
     input [3:0] LAA_3_0,
@@ -132,6 +135,15 @@ module CGA_INTR_CNTLR_MDCD (
   assign s_hipassall    = HIPASSALL;
   assign s_lopassall    = LOPASSALL;
   assign s_mclk         = MCLK;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -525,9 +537,12 @@ module CGA_INTR_CNTLR_MDCD (
       .result(s_gates41_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain (CGA_INTR.MCLK, rising edge)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_42 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_gates19_out),
       .preset(1'b0),
@@ -537,9 +552,12 @@ module CGA_INTR_CNTLR_MDCD (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain (CGA_INTR.MCLK, rising edge)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_43 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_gates20_out),
       .preset(1'b0),

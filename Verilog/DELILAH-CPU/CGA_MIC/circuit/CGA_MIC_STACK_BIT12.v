@@ -12,6 +12,10 @@
 
 
 module CGA_MIC_STACK_BIT12 (
+    input sysclk,        //! FPGA system clock (P2: enable capture)
+    input MCLK_EN,       //! MCLK rise clock-enable pulse (FPGA_FF_MODE, else 0)
+    input MCLK_FALL_EN,  //! MCLK fall clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input LOAD,
     input MCLK,
     input S3,
@@ -68,6 +72,17 @@ module CGA_MIC_STACK_BIT12 (
   assign s_s4n_s3n = S4NS3N;
   assign s_sclk_n  = SCLKN;
   assign s_sti_n   = STIN;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the derived-
+  // clock registers capture on posedge sysclk gated by the matching
+  // enable pulse instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+  localparam MCLK_FALL_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+  localparam MCLK_FALL_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -159,9 +174,12 @@ module CGA_MIC_STACK_BIT12 (
       .result(s_gates10_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain: s_mclk = MCLK, clocked on posedge MCLK
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_11 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_sti_n),
       .preset(1'b0),
@@ -176,7 +194,10 @@ module CGA_MIC_STACK_BIT12 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  SR44 SR44_2 (
+  // MCLK_FALL domain: s_sclk_n = SCLKN = ~MCLK, posedge ~MCLK = MCLK falling edge
+  SR44_EN #(.USE_ENABLE(MCLK_FALL_CE)) SR44_2 (
+      .sysclk(sysclk),
+      .EN(MCLK_FALL_EN),
       .CP(s_sclk_n),
 
       .A  (s_gates8_out),

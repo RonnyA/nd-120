@@ -16,6 +16,7 @@ module CGA_ALU_OUTMUX (
     input sys_rst_n, // System reset in FPGA
 
     input        AARG0,
+    input        ALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        ALUCLK,
     input        ALUD2N,
     input [15:0] ARG_15_0,
@@ -920,6 +921,8 @@ module CGA_ALU_OUTMUX (
 
   CGA_ALU_OUTMUX_IDBS OUTMUX_IDBS
   (
+      .sysclk(sysclk),
+      .ALUCLK_EN(ALUCLK_EN),
       .ALUCLK(s_aluclk),
       .ALUD2N(s_alud2n),
       .CSIDBS_4_0(s_csidbs_4_0[4:0]),

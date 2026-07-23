@@ -1,5 +1,13 @@
 # Vivado Warning Fixes - Testbench Suite
 
+> **Note on testbench placement:** New testbenches should be placed in a
+> `sim/` subdirectory next to the module's source code, following the
+> project convention used throughout the codebase (e.g.,
+> `DELILAH-CPU/CGA_MIC/sim/`). This directory (`tests/vivado_warning_fixes/`)
+> contains legacy testbenches from the initial Vivado warning fix pass.
+> The MASEL testbenches (`MASEL_cycle_tb.v`, `MASEL_iw_capture_tb.v`) have
+> been moved to `DELILAH-CPU/CGA_MIC/sim/`.
+
 This directory contains unit testbenches for all modules modified to fix Vivado synthesis warnings (combinatorial loops, latch inferences, and incomplete signal assignments).
 
 ## Overview

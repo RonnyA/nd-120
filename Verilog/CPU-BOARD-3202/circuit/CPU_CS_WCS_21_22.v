@@ -107,9 +107,19 @@ module CPU_CS_WCS_21_22 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+  // Announce the WCS mode at sim start so there is no ambiguity about whether
+  // the WCS was pre-loaded (SKIP_WCS_LOAD) or filled by the runtime load phase.
+  initial begin
+`ifdef SKIP_WCS_LOAD
+    $display("[ND120] WCS mode: PRELOADED (SKIP_WCS_LOAD) - runtime microcode load phase bypassed");
+`else
+    $display("[ND120] WCS mode: RUNTIME LOAD (normal PROM->WCS copy)");
+`endif
+  end
+
   // Lower address: 0x0000-0x0FFF
 
-  IDT6168A_20 CHIP_16C (
+  IDT6168A_20 #(.INIT_FILE("wcs_16C.hex")) CHIP_16C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -119,7 +129,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_ww3_n)
   );
 
-  IDT6168A_20 CHIP_17C (
+  IDT6168A_20 #(.INIT_FILE("wcs_17C.hex")) CHIP_17C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -129,7 +139,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_ww3_n)
   );
 
-  IDT6168A_20 CHIP_18C (
+  IDT6168A_20 #(.INIT_FILE("wcs_18C.hex")) CHIP_18C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -139,7 +149,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_ww3_n)
   );
 
-  IDT6168A_20 CHIP_19C (
+  IDT6168A_20 #(.INIT_FILE("wcs_19C.hex")) CHIP_19C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -149,7 +159,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_ww3_n)
   );
 
-  IDT6168A_20 CHIP_20C (
+  IDT6168A_20 #(.INIT_FILE("wcs_20C.hex")) CHIP_20C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -159,7 +169,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_ww2_n)
   );
 
-  IDT6168A_20 CHIP_21C (
+  IDT6168A_20 #(.INIT_FILE("wcs_21C.hex")) CHIP_21C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -169,7 +179,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_ww2_n)
   );
 
-  IDT6168A_20 CHIP_22C (
+  IDT6168A_20 #(.INIT_FILE("wcs_22C.hex")) CHIP_22C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -179,7 +189,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_ww2_n)
   );
 
-  IDT6168A_20 CHIP_23C (
+  IDT6168A_20 #(.INIT_FILE("wcs_23C.hex")) CHIP_23C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -190,7 +200,7 @@ module CPU_CS_WCS_21_22 (
   );
 
 
-  IDT6168A_20 CHIP_24C (
+  IDT6168A_20 #(.INIT_FILE("wcs_24C.hex")) CHIP_24C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -200,7 +210,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_ww1_n)
   );
 
-  IDT6168A_20 CHIP_25C (
+  IDT6168A_20 #(.INIT_FILE("wcs_25C.hex")) CHIP_25C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -210,7 +220,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_ww1_n)
   );
 
-  IDT6168A_20 CHIP_26C (
+  IDT6168A_20 #(.INIT_FILE("wcs_26C.hex")) CHIP_26C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -220,7 +230,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_ww1_n)
   );
 
-  IDT6168A_20 CHIP_27C (
+  IDT6168A_20 #(.INIT_FILE("wcs_27C.hex")) CHIP_27C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -231,7 +241,7 @@ module CPU_CS_WCS_21_22 (
   );
 
 
-  IDT6168A_20 CHIP_28C (
+  IDT6168A_20 #(.INIT_FILE("wcs_28C.hex")) CHIP_28C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -241,7 +251,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_ww0_n)
   );
 
-  IDT6168A_20 CHIP_29C (
+  IDT6168A_20 #(.INIT_FILE("wcs_29C.hex")) CHIP_29C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -251,7 +261,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_ww0_n)
   );
 
-  IDT6168A_20 CHIP_30C (
+  IDT6168A_20 #(.INIT_FILE("wcs_30C.hex")) CHIP_30C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -261,7 +271,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_ww0_n)
   );
 
-  IDT6168A_20 CHIP_31C (
+  IDT6168A_20 #(.INIT_FILE("wcs_31C.hex")) CHIP_31C (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_lua_address[11:0]),
@@ -274,7 +284,7 @@ module CPU_CS_WCS_21_22 (
 
   // Upper address: 0x1000-0x1FFF
 
-  IDT6168A_20 CHIP_16D (
+  IDT6168A_20 #(.INIT_FILE("wcs_16D.hex")) CHIP_16D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -284,7 +294,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu3_n)
   );
 
-  IDT6168A_20 CHIP_17D (
+  IDT6168A_20 #(.INIT_FILE("wcs_17D.hex")) CHIP_17D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -294,7 +304,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu3_n)
   );
 
-  IDT6168A_20 CHIP_18D (
+  IDT6168A_20 #(.INIT_FILE("wcs_18D.hex")) CHIP_18D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -304,7 +314,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu3_n)
   );
 
-  IDT6168A_20 CHIP_19D (
+  IDT6168A_20 #(.INIT_FILE("wcs_19D.hex")) CHIP_19D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -316,7 +326,7 @@ module CPU_CS_WCS_21_22 (
 
 
 
-  IDT6168A_20 CHIP_20D (
+  IDT6168A_20 #(.INIT_FILE("wcs_20D.hex")) CHIP_20D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -326,7 +336,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu2_n)
   );
 
-  IDT6168A_20 CHIP_21D (
+  IDT6168A_20 #(.INIT_FILE("wcs_21D.hex")) CHIP_21D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -336,7 +346,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu2_n)
   );
 
-  IDT6168A_20 CHIP_22D (
+  IDT6168A_20 #(.INIT_FILE("wcs_22D.hex")) CHIP_22D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -346,7 +356,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu2_n)
   );
 
-  IDT6168A_20 CHIP_23D (
+  IDT6168A_20 #(.INIT_FILE("wcs_23D.hex")) CHIP_23D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -356,7 +366,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu2_n)
   );
 
-  IDT6168A_20 CHIP_24D (
+  IDT6168A_20 #(.INIT_FILE("wcs_24D.hex")) CHIP_24D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -366,7 +376,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu1_n)
   );
 
-  IDT6168A_20 CHIP_25D (
+  IDT6168A_20 #(.INIT_FILE("wcs_25D.hex")) CHIP_25D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -376,7 +386,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu1_n)
   );
 
-  IDT6168A_20 CHIP_26D (
+  IDT6168A_20 #(.INIT_FILE("wcs_26D.hex")) CHIP_26D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -386,7 +396,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu1_n)
   );
 
-  IDT6168A_20 CHIP_27D (
+  IDT6168A_20 #(.INIT_FILE("wcs_27D.hex")) CHIP_27D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -396,7 +406,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu1_n)
   );
 
-  IDT6168A_20 CHIP_28D (
+  IDT6168A_20 #(.INIT_FILE("wcs_28D.hex")) CHIP_28D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -406,7 +416,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu0_n)
   );
 
-  IDT6168A_20 CHIP_29D (
+  IDT6168A_20 #(.INIT_FILE("wcs_29D.hex")) CHIP_29D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -416,7 +426,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu0_n)
   );
 
-  IDT6168A_20 CHIP_30D (
+  IDT6168A_20 #(.INIT_FILE("wcs_30D.hex")) CHIP_30D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),
@@ -426,7 +436,7 @@ module CPU_CS_WCS_21_22 (
       .WE_n(s_wu0_n)
   );
 
-  IDT6168A_20 CHIP_31D (
+  IDT6168A_20 #(.INIT_FILE("wcs_31D.hex")) CHIP_31D (
       .clk(sysclk),
       .reset_n(sys_rst_n),
       .A_11_0(s_uua_address[11:0]),

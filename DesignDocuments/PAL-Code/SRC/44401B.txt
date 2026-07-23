@@ -5,9 +5,9 @@ JLB 12AUG86 BTIM.PAL
 OSC /CC2 /CACT /CACT25 /BDRY50 /CGNT /CGNT50 /TERM /IORQ GND
 /OE /EADR /EIOD /NC14 /Q2 /Q1 /Q0 /DAP /APR VCC
 
-Q0 := CACT * /Q2 * /Q4 * /Q0 * /CACT25
-    + /Q2 * /Q1 * QO
-    + Q2 * Q1 * QO
+Q0 := CACT * /Q2 * /Q1 * /Q0 * /CACT25
+    + /Q2 * /Q1 * Q0
+    + Q2 * Q1 * Q0
     + Q2 * Q1 * /Q0
 
 Q1 := /Q2 * Q0 * Q1
@@ -22,7 +22,7 @@ Q2 := Q1 * /Q0 * Q2
 
 IF (VCC) APR = /Q2 * Q1 * CACT
 
-IF (VCC) EADR = /Q2 * QO * CACT                    ; t + u
+IF (VCC) EADR = /Q2 * Q0 * CACT                    ; t + u
               + /Q2 * Q1 * CACT                    ; u + v
               + Q1 * /Q0 * CACT                    ; v + w
               + /Q2 * /Q1 * /Q0 * CACT * /CACT25   ; s
@@ -32,7 +32,7 @@ IF (VCC) DAP = /Q2 * /Q1 * /Q0 * CACT * CACT25
              + DAP * /TERM * IORQ * CC2
 
 
-IF (VCC) EIOD = IORQ * /Q2 * /Q1 * /QO * CACT * CACT2S * /BDRY50 * CC2
+IF (VCC) EIOD = IORQ * /Q2 * /Q1 * /Q0 * CACT * CACT25 * /BDRY50 * CC2
 ;STARTS WHEN THE s STATE HAS BEEN REACHED AFTER COMPLETING THE LOOP.
 
 DESCRIPTION
@@ -50,12 +50,12 @@ DESCRIPTION
 ;                        (t)001                                                |
 ;                                                                              |
 ;                        |-----(u)-----(v)-----(w)-----(x)-----(y)-----(z)---->| 
-;                             O11     010     110     111     101     100
+;                             011     010     110     111     101     100
                  
 ; 010387 JLB: EIOD TOO SOON, ONLY 15NS SETUP FOR BD BEFORE BIOXE.
 ; WOULD NOT LOAD FROM FLOPPY. EIOD FRONT FLANK DELAYED 25NS.
 
-: SAME WITH DAP. DAP HELD FOR THE REST OF THE CYCLE UNTIL TERM
+; SAME WITH DAP. DAP HELD FOR THE REST OF THE CYCLE UNTIL TERM
 ; ON IORQ.
 ; 060387 JLB: DAP HELD INTO ADDRESS PART OF IOX CYCLES AFTER A
 ; BUFFERED WRITE CYCLE. SWAPPED IOD FOR IORQ IN EIOD.

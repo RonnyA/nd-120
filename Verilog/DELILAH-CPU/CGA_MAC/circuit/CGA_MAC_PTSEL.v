@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_MAC_PTSEL (
+    input sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input MCLK,
     input PONI, //! Memory Protection ON, PONI=1
     input PTM,
@@ -45,6 +48,15 @@ module CGA_MAC_PTSEL (
   assign s_ptm = PTM;
   assign s_poni = PONI;
   assign s_spt_n = SPTN;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked flip-flop captures on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -98,9 +110,13 @@ module CGA_MAC_PTSEL (
       .result(s_gates4_out)
   );
 
-  J_K_FLIPFLOP #(
+  // InvertClockEnable(0): fires on the rising edge of s_mclk = posedge MCLK
+  J_K_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE),
       .InvertClockEnable(0)
   ) MEMORY_5 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .j(s_spt),
       .k(s_sapt),

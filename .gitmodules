@@ -1,0 +1,3 @@
+[submodule "Verilog/ND-BUS-DEVICES/portable"]
+	path = Verilog/ND-BUS-DEVICES/portable
+	url = https://github.com/HackerCorpLabs/NDDeviceCore.git

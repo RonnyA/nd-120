@@ -36,15 +36,26 @@ module ND120_TOP
     input wire sysclk,    //! System Clock
     input wire btn1,      //! Button 1 - connected to sys_rst_n
     input wire btn2,      //! Button 2
+`ifndef VERILATOR_SIM
+    input wire btn3,      //! SW5 - (unused since 2026-07-06; CPU now fixed at clk_cpu ~16.67MHz)
+`endif
     input wire uartRx,    //! UART Receive pin
     output wire uartTx,   //! UART Transmit pin
-    output wire [5:0] led //! 6-bit output for controlling LEDs
+`ifdef VERILATOR_SIM
+    output wire [5:0] led //! 6-bit LED output (simulation)
+`else
+    output wire [15:0] led, //! 16 LEDs on Basys3 (LD0-LD15)
+    // 7-segment display (active LOW, Basys3)
+    output wire [6:0] seg,  //! 7-segment segments (a-g, active LOW)
+    output wire [3:0] an    //! 7-segment digit anodes (active LOW)
+`endif
 
 `ifdef VERILATOR_SIM
     // Simulation-only ports: full bus interface for device emulation
     ,
     input wire DEBUGFLAG,  // DEBUG FLAG
     output wire [12:0] CSA_12_0,  //! Microcode Address (for debugging)
+    output wire [15:0] XMIC_DBG_15_0, //! DEBUG: microsequencer address-advance probe (matches Tang capture: {SC6,s_mclk_n,MCLK_EN,regIW[12:0]})
 
     // C-PLUG bus signals
     input wire BREQ_n,      // Bus Request
@@ -80,6 +91,63 @@ module ND120_TOP
     output wire OUTGRANT_n,
     output wire OUTIDENT_n,
     output wire MCL
+
+`ifdef ND120_VERILOG_DEVICES
+    // Byte source for the Verilog papertape device (ND-BUS-DEVICES/TAPE-400):
+    // the sim harness serves a BPUN file; hardware serves an SD-FAT stream.
+    ,
+    output wire       TAPE_BYTE_REQ,   // pulse: fetch next tape byte
+    input  wire       TAPE_BYTE_VALID, // pulse: TAPE_BYTE_DATA is the byte
+    input  wire [7:0] TAPE_BYTE_DATA,
+    output wire       TAPE_REWIND,    // pulse: rewind the tape source
+
+    // DMA test client (full-RTL DMA gate: ND_DMA_MASTER against the
+    // real bus arbiter and RAM; the sim harness drives these)
+    input  wire        DMA_REQ,        // pulse: one word transfer
+    input  wire        DMA_WR,         // 0 = memory read, 1 = memory write
+    input  wire [23:0] DMA_ADDR,       // physical memory address
+    input  wire [15:0] DMA_WDATA,
+    output wire [15:0] DMA_RDATA,
+    output wire        DMA_ACK,
+    output wire        DMA_ERR,
+    output wire        DMA_BUSY,
+
+    // Floppy disk-image backend for the DMA-flavor controller
+    // (sim harness serves FLOPPY.IMG; hardware later serves the
+    // SDRAM-cached image). Position = logical sector * sector size.
+    output wire        FDISK_REQ,
+    output wire        FDISK_WR,
+    output wire [15:0] FDISK_LSECT,
+    output wire [1:0]  FDISK_FORMAT,
+    output wire [1:0]  FDISK_DRIVE,
+    output wire [10:0] FDISK_WORDCOUNT,
+    input  wire        FDISK_DONE,
+    input  wire        FDISK_ERR,
+    // media format from the image size (deviceFloppyDMA.c READ FORMAT):
+    // {doubleDensity, doubleSided, bytesPerSector[1:0]}; 4'b0000 = 8-inch
+    // 315392-byte image, 4'b1111 = 5.25" 1.2MB image (drive default)
+    input  wire [3:0]  FDISK_MEDIA_FMT,
+    input  wire [9:0]  FDBUF_ADDR,
+    input  wire [15:0] FDBUF_WDATA,
+    input  wire        FDBUF_WE,
+    output wire [15:0] FDBUF_RDATA,
+
+    // SMD disk backend (sim harness serves the disk-0 image; the
+    // backend owns the block-address-to-image mapping)
+    output wire        SDISK_START,
+    output wire        SDISK_REQ,
+    output wire        SDISK_WR,
+    output wire [15:0] SDISK_BLKADDR1,
+    output wire [15:0] SDISK_BLKADDR2,
+    output wire [2:0]  SDISK_UNIT,
+    output wire [10:0] SDISK_WORDCOUNT,
+    input  wire        SDISK_DONE,
+    input  wire        SDISK_ERR,
+    input  wire [9:0]  SDBUF_ADDR,
+    input  wire [15:0] SDBUF_WDATA,
+    input  wire        SDBUF_WE,
+    output wire [15:0] SDBUF_RDATA
+`endif
 `endif
 );
  
@@ -125,24 +193,27 @@ module ND120_TOP
   wire MCL;
 `endif
 
-  // Installation number.
-  wire [7:0] installation_number = 8'd123;
+  // NOTE: installation_number, the s_high/s_low helpers, oc_select,
+  // SEL_TESTMUX and the baud-rate switch moved INTO ND120_CORE.v -- they are
+  // CPU-board constants, not board-level I/O.
+  //
+  // installation_number is no longer a constant at all: ND120_CORE now holds a
+  // real 16-byte BACK-WIRING PROM (BACKWIRING_PROM, addressed by PIL 3:0) that
+  // SINTRAN reads with VERSN / IDBS,INR=35. Its contents are set at BUILD time
+  // with -DND120_SYSNO / -DND120_HWINFO2 / -DND120_NLEGU, e.g.
+  //   make -C runSim compile EXTRA_VDEFINES="-DND120_SYSNO=16'd42"
+  // Defaults and the "not present" sentinels:
+  // Shared/support/nd120_backwiring_defaults.vh;
+  // full mechanism: docs/backwiring-prom-installation-number.md.
 
-  // helpers
-  wire s_high= 1'b1;
-  wire s_low= 1'b0;
   wire sys_rst_n;
+`ifndef VERILATOR_SIM
+  wire mmcm_locked;
+`endif
 
   // input signals
   wire clk1;  //! Clock Signal 1
   //wire clk2;  //! Clock Signal 2
-  wire [1:0] oc_select;
-
-  wire [2:0] s_SEL_TESTMUX;
-  assign s_SEL_TESTMUX = 2'b000;  // 00=TESTMUX=0
-
-  wire [3:0] s_baud_rate_switch;
-  assign s_baud_rate_switch = 4'b1000;  // 8=9600 baud (ref BAUDV page 158 in microcode)
 
   // output wire from CPU
 
@@ -155,131 +226,508 @@ module ND120_TOP
   //   5=LED1 from MMU
   //   6=LED5_RED_DISABLE_PARITY
 
-  wire s_run;  // RUN: 1=CPU is running, 0=OPCOM mode
-  (* keep = "true", DONT_TOUCH = "true" *)  wire [4:0] s_test_4_0;  // Test pads
-  (* keep = "true", DONT_TOUCH = "true" *)  wire [4:0] s_dp_5_1_n;  // Datapath 5-1
-  (* keep = "true", DONT_TOUCH = "true" *)  wire s_tp1_intrq_n;     // TP1 INTRQ_n
-  (* keep = "true", DONT_TOUCH = "true" *)  wire [63:0] s_csbits;   // Microcode CPU BITS
+  // Debug signals -- mark_debug lets Vivado ILA probe these in Hardware Manager.
+  // After synthesis, in Vivado: Open Synthesized Design -> Set Up Debug -> add these nets.
+  // Then re-run Implementation and Generate Bitstream.
+  (* mark_debug = "true" *) wire s_run;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_debug_csa;
+  (* mark_debug = "true" *) wire s_debug_uartTx;
+  (* mark_debug = "true" *) wire s_debug_uartRx;
+  (* mark_debug = "true" *) wire [6:0] s_debug_cpu_led;
+
+  assign s_debug_csa = CSA_12_0;
+  assign s_debug_uartTx = uartTx;
+  assign s_debug_uartRx = uartRx;
+  assign s_debug_cpu_led = s_cpu_led;
+
+  // MAC (Memory Access Controller) address debug wires
+  (* mark_debug = "true" *) wire [13:0] s_debug_la_23_10;  // LA 23:10
+  (* mark_debug = "true" *) wire [9:0]  s_debug_ca_9_0;    // CA 9:0
+
+  // Cycle state machine debug
+  (* mark_debug = "true" *) wire [4:0] s_debug_cc_term;    // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
+  (* mark_debug = "true" *) wire       s_debug_mclk;       // Memory clock
+  (* mark_debug = "true" *) wire       s_debug_lcs_n;      // LCS_n: 0=loading, 1=loaded
+  (* mark_debug = "true" *) wire       s_debug_fetch;      // Fetch signal
+  (* mark_debug = "true" *) wire       s_debug_mr_n;       // Master Reset
+  (* mark_debug = "true" *) wire       s_debug_clear_n;    // Clear
+  (* mark_debug = "true" *) wire       s_debug_refrq_n;    // Refresh Request
+  (* mark_debug = "true" *) wire       s_debug_intrq_n;    // Interrupt Request
+  (* mark_debug = "true" *) wire       s_debug_powfail_n;  // Power Fail
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [15:0] s_debug_fidbo;  // FIDBO internal data bus
+
+  // ALU debug probes: mark_debug applied directly in submodule source files:
+  //   CGA_ALU.v:  s_q_15_0 (Q reg), s_f_15_0 (F result)
+  //   CGA.v:      s_zf (zero flag), s_cry (carry), s_cond (condition)
+
+  // NOTE: s_test_4_0 / s_dp_5_1_n / s_tp1_intrq_n / s_csbits moved INTO
+  // ND120_CORE.v (they are CPU-board debug nets, not board I/O). Verilator
+  // hierarchical readers now reach s_csbits at
+  // ND120_TOP__DOT__CORE__DOT__s_csbits.
 
   reg [32:0] clockTicks;
 
-  // TODO: Modify clock ?
-  assign clk1 = sysclk;  // XTAL1 = 39.3216MHZ
-  //assign clk2 = sysclk;  // XTAL2 = 35 MHZ (for slow operations?)
+`ifdef VERILATOR_SIM
+  // Simulation: testbench controls btn1 directly (0 for 100 cycles, then 1)
   assign sys_rst_n = btn1;
-  assign oc_select = 2'b11;  // 11= Choose clock input = XTAL1 (full speed)
+`else
+  // FPGA: Power-on reset holds sys_rst_n LOW for 256 cycles after configuration
+  // or after btn1 (SW0) goes low. Ensures a clean reset-release transition
+  // every time the switch is toggled, re-triggering the full CPU boot sequence.
+  //
+  // Clocked on clk_cpu (the CPU domain), NOT sysclk: sys_rst_n fans out to
+  // hundreds of CPU-register reset/enable pins. On sysclk that made 462
+  // sys_clk->clk_cpu crossings that could not meet the tight related-clock
+  // window. On clk_cpu they are intra-domain (60 ns) and meet easily. clk_cpu
+  // only runs once the MMCM locks, so before lock the counter is frozen at 0 and
+  // sys_rst_n = por_done & mmcm_locked holds reset asserted anyway. 256 clk_cpu
+  // cycles ~= 15 us reset pulse.
+  reg [7:0] por_count = 8'd0;
+  reg       por_done  = 1'b0;
+  always @(posedge clk_cpu) begin
+    if (!btn1) begin
+      // SW0 down: reset the POR counter
+      por_count <= 8'd0;
+      por_done  <= 1'b0;
+    end else if (!por_done) begin
+      if (por_count == 8'hFF)
+        por_done <= 1'b1;
+      else
+        por_count <= por_count + 1'b1;
+    end
+  end
+  assign sys_rst_n = por_done & mmcm_locked;
+`endif
 
-  // Assign som lights to the LED's (Inverted because the nano is led's are active low)
-  //assign led[5:0] =5'b0;
+`ifdef VERILATOR_SIM
+  assign clk1 = sysclk;  // Simulation: always full speed
+`else
+  // FPGA: the whole ND-120 CPU + bus domain runs on ONE clock, clk_cpu, at
+  // ~16.67 MHz (100 MHz / 6 = 60 ns period). Rationale (2026-07-06 timing study):
+  // the microengine's deepest path -- reading the microcode word out of the WCS
+  // control-store BRAM and propagating it through the decode/next-address/FSM
+  // logic -- is ~49 ns (76 logic levels). It CANNOT close at 100 MHz (10 ns) or
+  // even 39 MHz (25.6 ns); those paths legitimately span a whole microcycle on
+  // the real machine. 60 ns closes it with margin and no risky multicycle
+  // constraints. clk_cpu also feeds CLOCK_1/CLOCK_2 (the OSC/bus inputs) so the
+  // cycle controller and bus arbiter share the same domain -- no internal CDC.
+  // sysclk (100 MHz pin) still clocks the POR, 7-seg, heartbeat and ILA only.
+  //
+  // NOTE: the original SW5 runtime 100/12.5 MHz mux is removed -- 100 MHz never
+  // closed timing, so a runtime-selectable fast mode was dead. Push clk_cpu
+  // faster (or add validated multicycle paths for a 39 MHz bus) as a follow-up.
 
-  assign led[1:0] = ~s_cpu_led[1:0];  //  0=RED,1=GREEN
+  wire clk_cpu_pre, clkfb_out, clkfb_in;
+  wire clk_cpu;
+
+`ifdef TARGET_CMOD_A7
+  // Cmod A7: 12 MHz crystal. VCO = 12 x 63 = 756 MHz (in the 600-1200 MHz
+  // MMCM range); clk_cpu = 756 / 28 = 27.000 MHz EXACTLY - the same CPU
+  // speed as the Tang Nano 20K full-speed build, so BOARD_CLK_FREQ=27000000
+  // and every derived count matches. Fallback if 27 MHz does not close
+  // timing: pass -verilog_define ND120_CMOD_MMCM_DIV=56.0 for 13.5 MHz
+  // (or 42.0 for 18 MHz) - same VCO, one divider change.
+  `ifndef ND120_CMOD_MMCM_DIV
+    `define ND120_CMOD_MMCM_DIV 28.0
+  `endif
+  MMCME2_BASE #(
+    .BANDWIDTH        ("OPTIMIZED"),
+    .CLKFBOUT_MULT_F  (63.0),    // VCO = 12 * 63 = 756 MHz
+    .CLKIN1_PERIOD    (83.333),  // 12 MHz input
+    .CLKOUT0_DIVIDE_F (`ND120_CMOD_MMCM_DIV),  // 756 / 28 = 27 MHz (CPU/bus clock)
+    .DIVCLK_DIVIDE    (1),
+    .STARTUP_WAIT     ("FALSE")
+  ) mmcm_cpu_clk (
+`else
+  MMCME2_BASE #(
+    .BANDWIDTH        ("OPTIMIZED"),
+    .CLKFBOUT_MULT_F  (10.0),   // VCO = 100 * 10 = 1000 MHz
+    .CLKIN1_PERIOD    (10.0),   // 100 MHz input
+    .CLKOUT0_DIVIDE_F (60.0),   // CLKOUT0 = 1000 / 60 = 16.667 MHz (CPU/bus clock)
+    .DIVCLK_DIVIDE    (1),
+    .STARTUP_WAIT     ("FALSE")
+  ) mmcm_cpu_clk (
+`endif
+    .CLKIN1   (sysclk),
+    .CLKFBIN  (clkfb_in),
+    .CLKFBOUT (clkfb_out),
+    .CLKOUT0  (clk_cpu_pre),
+    .LOCKED   (mmcm_locked),
+    .PWRDWN   (1'b0),
+    .RST      (1'b0)
+  );
+  BUFG bufg_fb  (.I(clkfb_out),   .O(clkfb_in));
+  BUFG bufg_cpu (.I(clk_cpu_pre), .O(clk_cpu));
+
+  assign clk1 = clk_cpu;  // CLOCK_1/CLOCK_2 (OSC/bus) run at CPU speed
+`endif
+  //assign clk2 = sysclk;  // XTAL2 = 35 MHZ (for slow operations?)
+
+`ifdef VERILATOR_SIM
+  // Simulation: original 6-bit LED mapping (active low, matching Run120.cpp)
+  assign led[1:0] = ~s_cpu_led[1:0];  // 0=RED, 1=GREEN
   assign led[2] = !s_run;
-  assign led[3] = !s_cpu_led[3]; // LED CPU GRANT INDICATOR
-  assign led[4] = !s_cpu_led[4]; // LED BUS GRANT INDICATOR
-  assign led[5] = clockTicks[26]; // Heartbeat ~1.5Hz (100MHz / 2^27)
-  // To restore LED1 from MMU, replace the line above with:
-  //   assign led[5] = !s_cpu_led[5]; // LED1 from MMU
+  assign led[3] = !s_cpu_led[3];      // CPU GRANT INDICATOR
+  assign led[4] = !s_cpu_led[4];      // BUS GRANT INDICATOR
+  assign led[5] = !s_cpu_led[5];      // LED1 from MMU
+`else
+  // FPGA: 16-bit LED mapping for Basys3 (active HIGH)
+  //
+  // LD0 = led[0] = CPU RED LED        (ON = error/halt)
+  // LD1 = led[1] = CPU GREEN LED      (ON = running)
+  // LD2 = led[2] = RUN indicator      (ON = CPU NOT running/OPCOM, OFF = running)
+  // LD3 = led[3] = sys_rst_n state    (ON = reset released, OFF = in reset)
+  // LD4 = led[4] = UART TX activity   (blinks when transmitting)
+  // LD5 = led[5] = Heartbeat          (blinks ~1.5Hz if clock running)
+  //                To restore LED1 from MMU: assign led[5] = !s_cpu_led[5];
 
-  //assign led[4] = !uartRx;
-  //assign led[5] = !uartTx;
+  // RIGHT SIDE: CPU status (LD0-LD5)
+  // s_cpu_led[0] = s_emcl_n  (negative-logic from CHIP_28A_IOC in IO_REG_41)
+  // s_cpu_led[1] = s_led3_green_n (negative-logic from CHIP_28A_IOC)
+  // Both are active-low chip outputs; invert for active-high Basys3 LEDs.
+  // (The Verilator branch above already does this with ~s_cpu_led[1:0].)
+  assign led[0]  = ~s_cpu_led[0];      // LD0:  CPU RED   (ON when s_emcl_n=0       = master clear active)
+  assign led[1]  = ~s_cpu_led[1];      // LD1:  CPU GREEN (ON when s_led3_green_n=0 = init complete)
+  assign led[2]  = ~s_run;             // LD2:  ON when CPU running
+  assign led[3]  = sys_rst_n;          // LD3:  ON when reset released
+  assign led[4]  = ~uartTx;            // LD4:  UART TX activity
+  assign led[5]  = clockTicks[26];     // LD5:  Heartbeat ~1.5Hz
+  assign led[6]  = s_debug_mclk;       // LD6:  Memory clock
+  assign led[7]  = ~s_debug_lcs_n;     // LD7:  LCS (ON=microcode loaded)
+  assign led[8]  = s_debug_mr_n;       // LD8:  MR_n (ON=not in reset)
+  assign led[9]  = 1'b0;               // LD9:  (spare)
+  assign led[10] = 1'b0;               // LD10: (spare)
 
-  // For debugging: shows # of clockticks in GTKWave if needed
-  always@(posedge sysclk)
+  // LEFT SIDE: Cycle state machine (LD11-LD15)
+  assign led[11] = ~s_debug_cc_term[0]; // LD11: CC0  (inverted: ON=active)
+  assign led[12] = ~s_debug_cc_term[1]; // LD12: CC1
+  assign led[13] = ~s_debug_cc_term[2]; // LD13: CC2
+  assign led[14] = ~s_debug_cc_term[3]; // LD14: CC3
+  assign led[15] = ~s_debug_cc_term[4]; // LD15: TERM (leftmost)
+`endif
+
+  // Free-running clock counter (no reset needed)
+  always @(posedge sysclk)
   begin
-    clockTicks <= clockTicks+1;
+    clockTicks <= clockTicks + 1;
   end
 
+`ifndef VERILATOR_SIM
+  // 7-segment display: shows CPU addresses in hex (FPGA only).
+  // SW1 (btn2) selects what to display:
+  //   SW1 OFF (DOWN): MIC address = CSA_12_0 (microcode address, 13 bits)
+  //   SW1 ON  (UP):   MAC address = LA_23_10 (memory logical address, 14 bits)
+  // If display shows changing values, the CPU is executing.
+  // If stuck at 0000, the CPU is not running.
+  wire [15:0] seg_display_value = btn2
+      ? {2'b0, s_debug_la_23_10}
+      : {3'b0, CSA_12_0};
 
-  ND3202D CPU_BOARD (
-      .sysclk(sysclk),
+  SevenSegDebug SEVEN_SEG (
+      .clk(sysclk),
+      .value(seg_display_value),
+      .seg(seg),
+      .an(an)
+  );
+`endif
+
+  /**********************************************
+  *  The board-independent ND-120 core          *
+  *  (ND3202D CPU board + the ND-BUS device     *
+  *  chain). Everything board-specific -- POR,  *
+  *  MMCM, LED map, 7-seg, heartbeat, and the   *
+  *  FPGA bus tie-offs above -- stays here.     *
+  *                                             *
+  *  The device chain is populated exactly as   *
+  *  the old `ifdef ND120_VERILOG_DEVICES did:  *
+  *  present for the sim harness, absent        *
+  *  otherwise.                                 *
+  ***********************************************/
+
+`ifdef ND120_VERILOG_DEVICES
+  localparam CORE_INCLUDE_TAPE   = 1;
+  localparam CORE_INCLUDE_FLOPPY = 1;
+  localparam CORE_INCLUDE_SMD    = 1;
+
+  /*--------------------------------------------------------------------
+  *  Tape byte source: SD-FAT stack (ND120_SD_STORAGE) or the C harness.
+  *
+  *  SD_STORAGE=1 (the runSim default) feeds ND_TAPE_400 from the REAL
+  *  Verilog SD-FAT stack reading a simulated SD card - the same RTL that
+  *  runs on Tang - instead of the C file server in simDevices/NDBus.cpp.
+  *  The card holds BOOT.BPUN; build it with SD-FAT/sim/make_boot_card.sh.
+  *
+  *  SIM-ONLY. sd_card_model / nds_mem_model are testbench models and must
+  *  never reach an FPGA build, hence the VERILATOR_SIM guard: on hardware
+  *  the byte source is nd_tape_sdfat_source on the BOARD, wired to a real
+  *  card and to the SDRAM device port (see docs/PLAN-nd120-storage-phases.md).
+  *
+  *  The TAPE_BYTE_* ports stay in place either way so the C harness still
+  *  compiles; under SD_STORAGE its VALID/DATA inputs are simply ignored
+  *  (NDBus.cpp also stops serving tape - same define).
+  *-------------------------------------------------------------------*/
+  wire       s_tape_byte_valid;
+  wire [7:0] s_tape_byte_data;
+
+`ifdef ND120_SD_STORAGE
+`ifndef VERILATOR_SIM
+  // ND120_SD_STORAGE pulls in simulation-only card/memory models.
+  initial begin
+    $display("FATAL: ND120_SD_STORAGE is a Verilator-sim-only path");
+    $finish;
+  end
+`endif
+  // clk_stor: the SD/SDRAM domain. In sim it shares the CPU clock (clk1);
+  // nd_storage's CDC (nds_sync) handles the equal-clock case fine. Skewing
+  // it to stress the CDC the way SD-FAT/sim does (27.03 vs 23.04 MHz) is a
+  // follow-up, not a correctness requirement here.
+  wire s_stor_clk   = clk1;
+  wire s_stor_rst_n = sys_rst_n;
+
+  wire s_sd_clk_o, s_sd_cmd_o, s_sd_cmd_oe, s_sd_dat0_o, s_sd_dat0_oe;
+  wire s_card_cmd_o, s_card_cmd_oe, s_card_dat0_o, s_card_dat0_oe;
+
+  // SD lines resolved by MUX - no tristates (the card model is z-free):
+  // host output-enable wins, then the card, then the bus pullup (1).
+  wire s_sd_cmd  = s_sd_cmd_oe  ? s_sd_cmd_o  : (s_card_cmd_oe  ? s_card_cmd_o  : 1'b1);
+  wire s_sd_dat0 = s_sd_dat0_oe ? s_sd_dat0_o : (s_card_dat0_oe ? s_card_dat0_o : 1'b1);
+
+  wire        s_stor_mem_start, s_stor_mem_we, s_stor_mem_busy, s_stor_mem_done;
+  wire [19:0] s_stor_mem_addr;
+  wire [31:0] s_stor_mem_wdata, s_stor_mem_rdata;
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire [1:0]  s_sd_status;
+  /* verilator lint_on UNUSEDSIGNAL */
+
+  nd_tape_sdfat_source #(
+      .SIMULATE(1)  // short SD init in sim
+  ) TAPE_SDFAT_SOURCE (
+      .clk_stor  (s_stor_clk),
+      .rst_stor_n(s_stor_rst_n),
+      .clk_cpu   (clk1),
+      .rst_cpu_n (sys_rst_n),
+
+      // byte source port -> ND_TAPE_400 inside the core
+      .byte_req     (TAPE_BYTE_REQ),
+      .byte_valid   (s_tape_byte_valid),
+      .byte_data    (s_tape_byte_data),
+      .source_rewind(TAPE_REWIND),
+
+      .sd_clk_o  (s_sd_clk_o),
+      .sd_cmd_i  (s_sd_cmd),
+      .sd_cmd_o  (s_sd_cmd_o),
+      .sd_cmd_oe (s_sd_cmd_oe),
+      .sd_dat0_i (s_sd_dat0),
+      .sd_dat0_o (s_sd_dat0_o),
+      .sd_dat0_oe(s_sd_dat0_oe),
+
+      .mem_start(s_stor_mem_start),
+      .mem_we   (s_stor_mem_we),
+      .mem_addr (s_stor_mem_addr),
+      .mem_wdata(s_stor_mem_wdata),
+      .mem_rdata(s_stor_mem_rdata),
+      .mem_busy (s_stor_mem_busy),
+      .mem_done (s_stor_mem_done),
+
+      .sd_status(s_sd_status)
+  );
+
+  // The simulated card. IMAGE is relative to the sim CWD (runSim/).
+  sd_card_model #(
+      .IMAGE    (`ND120_SD_CARD_IMG),
+      .MAX_BYTES(8 * 1024 * 1024)
+  ) SD_CARD (
+      .sd_clk   (s_sd_clk_o),
+      .sd_cmd_i (s_sd_cmd),  .sd_cmd_o (s_card_cmd_o),  .sd_cmd_oe (s_card_cmd_oe),
+      .sd_dat0_i(s_sd_dat0), .sd_dat0_o(s_card_dat0_o), .sd_dat0_oe(s_card_dat0_oe),
+      .sd_dat1_i(1'b1), .sd_dat1_o(), .sd_dat1_oe(),
+      .sd_dat2_i(1'b1), .sd_dat2_o(), .sd_dat2_oe(),
+      .sd_dat3_i(1'b1), .sd_dat3_o(), .sd_dat3_oe()
+  );
+
+  // Stands in for the SDRAM device region that nd_storage caches into.
+  // runSim has no SDRAM (MEM_RAM_49_SIM is the main RAM); nd_storage's
+  // mem_* is a generic 32-bit word port, so the behavioral model is a
+  // faithful backend - same contract, randomized 4..40-cycle latency.
+  nds_mem_model MEM_STOR (
+      .clk  (s_stor_clk),
+      .rst_n(s_stor_rst_n),
+      .start(s_stor_mem_start),
+      .we   (s_stor_mem_we),
+      .addr (s_stor_mem_addr),
+      .wdata(s_stor_mem_wdata),
+      .rdata(s_stor_mem_rdata),
+      .busy (s_stor_mem_busy),
+      .done (s_stor_mem_done)
+  );
+
+`else
+  // C harness serves the tape bytes through the top-level ports.
+  assign s_tape_byte_valid = TAPE_BYTE_VALID;
+  assign s_tape_byte_data  = TAPE_BYTE_DATA;
+`endif
+
+`else
+  localparam CORE_INCLUDE_TAPE   = 0;
+  localparam CORE_INCLUDE_FLOPPY = 0;
+  localparam CORE_INCLUDE_SMD    = 0;
+
+  // No device chain: the storage seam is unused. Tie the core's source
+  // inputs inactive and leave its source outputs unread.
+  wire        TAPE_BYTE_REQ;
+  wire        TAPE_BYTE_VALID = 1'b0;
+  wire [7:0]  TAPE_BYTE_DATA  = 8'd0;
+  wire        TAPE_REWIND;
+  wire        s_tape_byte_valid = TAPE_BYTE_VALID;
+  wire [7:0]  s_tape_byte_data  = TAPE_BYTE_DATA;
+
+  wire        DMA_REQ   = 1'b0;
+  wire        DMA_WR    = 1'b0;
+  wire [23:0] DMA_ADDR  = 24'd0;
+  wire [15:0] DMA_WDATA = 16'd0;
+  wire [15:0] DMA_RDATA;
+  wire        DMA_ACK;
+  wire        DMA_ERR;
+  wire        DMA_BUSY;
+
+  wire        FDISK_REQ;
+  wire        FDISK_WR;
+  wire [15:0] FDISK_LSECT;
+  wire [1:0]  FDISK_FORMAT;
+  wire [1:0]  FDISK_DRIVE;
+  wire [10:0] FDISK_WORDCOUNT;
+  wire        FDISK_DONE       = 1'b0;
+  wire        FDISK_ERR        = 1'b0;
+  wire [3:0]  FDISK_MEDIA_FMT  = 4'd0;
+  wire [9:0]  FDBUF_ADDR       = 10'd0;
+  wire [15:0] FDBUF_WDATA      = 16'd0;
+  wire        FDBUF_WE         = 1'b0;
+  wire [15:0] FDBUF_RDATA;
+
+  wire        SDISK_START;
+  wire        SDISK_REQ;
+  wire        SDISK_WR;
+  wire [15:0] SDISK_BLKADDR1;
+  wire [15:0] SDISK_BLKADDR2;
+  wire [2:0]  SDISK_UNIT;
+  wire [10:0] SDISK_WORDCOUNT;
+  wire        SDISK_DONE  = 1'b0;
+  wire        SDISK_ERR   = 1'b0;
+  wire [9:0]  SDBUF_ADDR  = 10'd0;
+  wire [15:0] SDBUF_WDATA = 16'd0;
+  wire        SDBUF_WE    = 1'b0;
+  wire [15:0] SDBUF_RDATA;
+`endif
+
+  ND120_CORE #(
+      .INCLUDE_TAPE  (CORE_INCLUDE_TAPE),
+      .INCLUDE_FLOPPY(CORE_INCLUDE_FLOPPY),
+      .INCLUDE_SMD   (CORE_INCLUDE_SMD)
+  ) CORE (
+      // (a) clock / reset. clk1 is the CPU+bus+device domain in BOTH
+      // branches: sim assigns clk1 = sysclk, FPGA assigns clk1 = clk_cpu.
+      .clk_cpu(clk1),
       .sys_rst_n(sys_rst_n),
-      .CLOCK_1(clk1),  // XTAL1 = 39.3216MHZ
-      .CLOCK_2(clk1),  // XTAL2 = 35 MHZ (for slow operations?)
 
-      // Signal from C-PLUG to CPU Board (and some signals dupliacted on A-PLUG)
-      .LOAD_n(s_high),      // Load button  C-B12, A-C15
-      .BREQ_n(BREQ_n),      // Bus Request  C-C12
-      .CONTINUE_n(s_high),  // Continue button C-B15
-      .STOP_n(s_high),      // Stop button C-B16, A-C17
+      // (e) C-PLUG bus: driven by the C harness in sim, tied off above on FPGA
+      .BREQ_n(BREQ_n),
+      .BINT10_n(BINT10_n),
+      .BINT11_n(BINT11_n),
+      .BINT12_n(BINT12_n),
+      .BINT13_n(BINT13_n),
+      .BINT15_n(BINT15_n),
+      .POWSENSE_n(POWSENSE_n),
 
-      .BINT10_n(BINT10_n),  // Bus Interrupt 10 C-A15
-      .BINT11_n(BINT11_n),  // Bus Interrupt 11 C-C15
-      .BINT12_n(BINT12_n),  // Bus Interrupt 12 C-A16
-      .BINT13_n(BINT13_n),  // Bus Interrupt 13 C-A16
-      .BINT15_n(BINT15_n),  // Bus Interrupt 15 C-C17
-
-      .POWSENSE_n(POWSENSE_n),  // Power Sense
-
-      .BD_23_0_n_IN(BD_23_0_n_IN), // Bus address and data from bus. Pulled high
+      .BD_23_0_n_IN(BD_23_0_n_IN),
       .BD_23_0_n_OUT(BD_23_0_n_OUT),
 
-      // Bidirectional signals
-      .SEMRQ_n_IN(SEMRQ_n_IN),     //! Input-signal from "C PLUG", signal A17 SEMREQ~ (SEMaphore REQest)
-      .SEMRQ_n_OUT(SEMRQ_n_OUT),   //! Output-signal to "C PLUG", signal A17 SEMREQ~ (SEMaphore REQest)
-      .BINPUT_n_IN(BINPUT_n_IN),   //! Input-signal from "C PLUG", signal A18 BINPUT~ (Bus INPUT)
-      .BINPUT_n_OUT(BINPUT_n_OUT), //! Output-signal to "C PLUG", signal A18 BINPUT~ (Bus INPUT)
-      .BDAP_n_IN(BDAP_n_IN),       //! Input-signal from "C PLUG", signal C18 BDAP~ (Bus DAta Present)
-      .BDAP_n_OUT(BDAP_n_OUT),     //! Output-signal to "C PLUG", signal C18 BDAP~ (Bus DAta Present)
-      .BDRY_n_IN(BDRY_n_IN),       //! Input-signal from "C PLUG", signal A19 BDRY~ (Bus Data ReadY)
-      .BDRY_n_OUT(BDRY_n_OUT),     //! Output-signal to "C PLUG", signal A19 BDRY~ (Bus Data ReadY)
-      .BAPR_n_IN(BAPR_n_IN),       //! Input-signal from "C PLUG", signal A20 BAPR~ (Bus Address PResent)
-      .BAPR_n_OUT(BAPR_n_OUT),     //! Output-signal to "C PLUG", signal A20 BAPR~ (Bus Address PResent)
+      .SEMRQ_n_IN(SEMRQ_n_IN),
+      .SEMRQ_n_OUT(SEMRQ_n_OUT),
+      .BINPUT_n_IN(BINPUT_n_IN),
+      .BINPUT_n_OUT(BINPUT_n_OUT),
+      .BDAP_n_IN(BDAP_n_IN),
+      .BDAP_n_OUT(BDAP_n_OUT),
+      .BDRY_n_IN(BDRY_n_IN),
+      .BDRY_n_OUT(BDRY_n_OUT),
+      .BAPR_n_IN(BAPR_n_IN),
+      .BAPR_n_OUT(BAPR_n_OUT),
 
-      // Signals from CPU board to C-PLUG
-      .BREF_n(BREF_n),           // Output-signal to "C PLIG", signal B12 BREF~
-      .BERROR_n(BERROR_n),       // Output-signal to "C PLIG", signal B21 BERROR~
-      .BINACK_n(BINACK_n),       // Output-signal to "C PLIG", signal B19 BINACK~
-      .BIOXE_n(BIOXE_n),         // Output-signal to "C PLIG", signal C19 BIOXE~
-      .BMEM_n(BMEM_n),           // Output-signal to "C PLIG", signal C28 BMEM~
-      .OUTGRANT_n(OUTGRANT_n),   // Output-signal to "C PLIG", signal C23 OUTGRANT~
-      .OUTIDENT_n(OUTIDENT_n),   // Output-signal to "C PLIG", signal C22 OUTIDENT~
-      .MCL(MCL),                 // Output-signal to "C PLIG", signal B20 MCL~ (after negation)
+      .BREF_n(BREF_n),
+      .BERROR_n(BERROR_n),
+      .BINACK_n(BINACK_n),
+      .BIOXE_n(BIOXE_n),
+      .BMEM_n(BMEM_n),
+      .OUTGRANT_n(OUTGRANT_n),
+      .OUTIDENT_n(OUTIDENT_n),
+      .MCL(MCL),
 
+      // (d) UART
+      .RXD(uartRx),
+      .TXD(uartTx),
 
-      // Signals from B-PLUG to CPU Board
-      .INR_7_0(installation_number), // INR 7:0, signal B-> B15, B4, B5, B17, B8, B7, B13, B6. (Installation number, read using IDB Source = 035)
-      .EBUS(1'b1),     // EBUS, signal B-B3 (Pulled high with through resistor network RN13)
-      .SEL5MS_n(1'b1), // SEL 5ms, signal B-B14 (Pulled high with 1kohm resistor R4)
+      // (c) storage backend: forwarded 1:1 to the ND120_TOP ports, which the
+      // C harness serves (BPUN file / FLOPPY.IMG / disk-0 image)
+      .TAPE_BYTE_REQ(TAPE_BYTE_REQ),
+      .TAPE_BYTE_VALID(s_tape_byte_valid),  // SD-FAT stack or C harness
+      .TAPE_BYTE_DATA(s_tape_byte_data),
+      .TAPE_REWIND(TAPE_REWIND),
 
-      // Signals from CPU to B-PLUG
-      .PIL(),         // XPIL3=B-C8, PIL2=B-B12. PIL1=B-B10, PIL0=B-B9
-      .LUA_12_0(),    // XLUA 12:0
-      .IDB_15_0(),    // XIDB 15:0
-      .CSCOMM_4_0(),  //
-      .MIS_1_0(),     // MIS1=B-C14, MIS0=B-A14
-      .CD_15_0(),     // CD 15:0
-      .LBD_15_0(),    // LBD 15:0
-      .LA_23_10(),    // XLA 23:10
-      .CA_9_0(),      // CA 9:0
+      .DMA_REQ(DMA_REQ),
+      .DMA_WR(DMA_WR),
+      .DMA_ADDR(DMA_ADDR),
+      .DMA_WDATA(DMA_WDATA),
+      .DMA_RDATA(DMA_RDATA),
+      .DMA_ACK(DMA_ACK),
+      .DMA_ERR(DMA_ERR),
+      .DMA_BUSY(DMA_BUSY),
 
+      .FDISK_REQ(FDISK_REQ),
+      .FDISK_WR(FDISK_WR),
+      .FDISK_LSECT(FDISK_LSECT),
+      .FDISK_FORMAT(FDISK_FORMAT),
+      .FDISK_DRIVE(FDISK_DRIVE),
+      .FDISK_WORDCOUNT(FDISK_WORDCOUNT),
+      .FDISK_DONE(FDISK_DONE),
+      .FDISK_ERR(FDISK_ERR),
+      .FDISK_MEDIA_FMT(FDISK_MEDIA_FMT),
+      .FDBUF_ADDR(FDBUF_ADDR),
+      .FDBUF_WDATA(FDBUF_WDATA),
+      .FDBUF_WE(FDBUF_WE),
+      .FDBUF_RDATA(FDBUF_RDATA),
 
-      // Signals from A-PLUG to CPU board
-      .OSCCL_n  (s_high),     // Oscillator Clock
-      .OC_1_0   (oc_select),  // Oscillator Clock Select
-      .XTR      (s_low),      // External Transmit/Receive Clock (not used)
-      .LOCK_n   (s_high),     // Lock signal (from key)
-      .CONSOLE_n(s_high),     // Console signal (from key)
-      .SWMCL_n  (s_high),     // Software Master Clear (MCL)
-      .EAUTO_n  (s_high),     // External Auto
-      .RXD      (uartRx),     // UART Receive A-C8
+      .SDISK_START(SDISK_START),
+      .SDISK_REQ(SDISK_REQ),
+      .SDISK_WR(SDISK_WR),
+      .SDISK_BLKADDR1(SDISK_BLKADDR1),
+      .SDISK_BLKADDR2(SDISK_BLKADDR2),
+      .SDISK_UNIT(SDISK_UNIT),
+      .SDISK_WORDCOUNT(SDISK_WORDCOUNT),
+      .SDISK_DONE(SDISK_DONE),
+      .SDISK_ERR(SDISK_ERR),
+      .SDBUF_ADDR(SDBUF_ADDR),
+      .SDBUF_WDATA(SDBUF_WDATA),
+      .SDBUF_WE(SDBUF_WE),
+      .SDBUF_RDATA(SDBUF_RDATA),
 
-      // Signals from CPU Board to A-PLUG
-      .TXD        (uartTx),   // UART Transmit TXD A-C7
-      .RUN_n      (s_run),    // Run A-C18
-      .DP_5_1_n   (s_dp_5_1_n),     // Data Path 5-1 A-> 1=C25, 2=C26, 3=C27, 4=C28, 5=C29
-
-
-      /* Configuration switches (input to ND3202D board) */
-      .SW1_CONSOLE     (s_high),             // Console switch
-      .SEL_TESTMUX     (s_SEL_TESTMUX),      // Test MUX (select signals to test pads)
-      .BAUD_RATE_SWITCH(s_baud_rate_switch), // Baud rate switch
-
-      // outputs
-      .CSBITS     (s_csbits),       // Microcode CPU BITS
-      .TEST_4_0   (s_test_4_0),     // Test pads
-      .TP1_INTRQ_n(s_tp1_intrq_n),  // TP1 Interrupt
-      .CSA_12_0    (CSA_12_0),      // Microcode Address (for debugging)
-      .LED        (s_cpu_led[6:0])  // 7 bit LED signals (was [5:0], now matches ND3202D)
+      // (f) debug / status -> the board's LED map, 7-seg and ILA wires
+      .LED(s_cpu_led[6:0]),
+      .RUN_n(s_run),
+      .CSA_12_0(CSA_12_0),
+      .PIL(),                 // debug-capture passthrough; unused in this top
+      .DEBUG_IREQ_15_0_N(),   // debug-capture passthrough; unused in this top
+      .XMIC_DBG_15_0(XMIC_DBG_15_0), // microsequencer address-advance probe (sim golden log)
+      .LA_23_10(s_debug_la_23_10),
+      .CA_9_0(s_debug_ca_9_0),
+      .DEBUG_CC_TERM(s_debug_cc_term),
+      .DEBUG_MCLK(s_debug_mclk),
+      .DEBUG_LCS_n(s_debug_lcs_n),
+      .DEBUG_FETCH(s_debug_fetch),
+      .DEBUG_MR_n(s_debug_mr_n),
+      .DEBUG_CLEAR_n(s_debug_clear_n),
+      .DEBUG_REFRQ_n(s_debug_refrq_n),
+      .DEBUG_INTRQ_n(s_debug_intrq_n),
+      .DEBUG_POWFAIL_n(s_debug_powfail_n),
+      .DEBUG_FIDBO_15_0(s_debug_fidbo)
   );
 
 endmodule

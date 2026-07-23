@@ -20,6 +20,9 @@ TBS = PAL_44304E_tb \
       PAL_45008B_tb \
       BusDriver16_tb \
       CGA_MIC_MASEL_tb \
+      MASEL_iw_capture_tb \
+      MASEL_cycle_tb \
+      IDT6168A_20_tb \
       CPU_CS_TCV_20_tb \
       F595_tb
 
@@ -57,6 +60,19 @@ BusDriver16_tb: BusDriver16_tb.v $(VERILOG_ROOT)/DELILAH-CPU/CGA/circuit/BusDriv
 CGA_MIC_MASEL_tb: CGA_MIC_MASEL_tb.v $(VERILOG_ROOT)/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_MASEL.v
 	$(IVERILOG) -g2012 $(INC_PATHS) -o $@ $^
 
+MASEL_iw_capture_tb: MASEL_iw_capture_tb.v $(VERILOG_ROOT)/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_MASEL.v
+	$(IVERILOG) -g2012 $(INC_PATHS) -o $@ $^
+
+MASEL_cycle_tb: MASEL_cycle_tb.v $(VERILOG_ROOT)/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_MASEL.v
+	$(IVERILOG) -g2012 $(INC_PATHS) -o $@ $^
+
+IDT6168A_20_tb: IDT6168A_20_tb.v $(VERILOG_ROOT)/Shared/support/IDT6168A_20.v
+	$(IVERILOG) -g2012 -DVERILATOR_SIM $(INC_PATHS) -o $@ $^
+
+# Same testbench but built against the FPGA branch (no VERILATOR_SIM define)
+IDT6168A_20_tb_fpga: IDT6168A_20_tb.v $(VERILOG_ROOT)/Shared/support/IDT6168A_20.v
+	$(IVERILOG) -g2012 $(INC_PATHS) -o $@ $^
+
 CPU_CS_TCV_20_tb: CPU_CS_TCV_20_tb.v $(VERILOG_ROOT)/CPU-BOARD-3202/circuit/CPU_CS_TCV_20.v
 	$(IVERILOG) -g2012 $(INC_PATHS) -o $@ $^
 
@@ -79,6 +95,18 @@ test-busdriver16: BusDriver16_tb
 
 test-masel: CGA_MIC_MASEL_tb
 	./CGA_MIC_MASEL_tb
+
+test-masel-iw: MASEL_iw_capture_tb
+	./MASEL_iw_capture_tb
+
+test-masel-cycle: MASEL_cycle_tb
+	./MASEL_cycle_tb
+
+test-idt6168: IDT6168A_20_tb
+	./IDT6168A_20_tb
+
+test-idt6168-fpga: IDT6168A_20_tb_fpga
+	./IDT6168A_20_tb_fpga
 
 test-tcv20: CPU_CS_TCV_20_tb
 	./CPU_CS_TCV_20_tb

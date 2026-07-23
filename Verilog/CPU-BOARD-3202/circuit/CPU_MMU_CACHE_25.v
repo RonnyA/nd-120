@@ -28,6 +28,7 @@ module CPU_MMU_CACHE_25 (
     input        RT_n,
     input        SW1_CONSOLE,
     input        UCLK,
+    input        UCLK_EN,  //! UCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input        WCINH_n,
 
     input  [15:0] CD_15_0_IN,
@@ -191,7 +192,18 @@ module CPU_MMU_CACHE_25 (
     .D_OUT  (s_cd_15_0_out[7:0])
   );
 
-  PAL_44402D PAL_44402_UBITS (  // PAL16R4D
+  // P3 (docs/plan-fix-unconstrained-clocks.md): in FF mode the UBITS PAL
+  // registers capture on posedge sysclk gated by the rise-aligned UCLK
+  // enable instead of clocking on the routed s_uclk net (uclk_Z clock root).
+`ifdef FPGA_FF_MODE
+  localparam UCLK_CE = 1;
+`else
+  localparam UCLK_CE = 0;
+`endif
+
+  PAL_44402D_EN #(.USE_ENABLE(UCLK_CE)) PAL_44402_UBITS (  // PAL16R4D
+      .sysclk(sysclk),
+      .EN(UCLK_EN),
       .CLK (s_uclk),
       .OE_n(s_pd2),
 

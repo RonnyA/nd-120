@@ -252,7 +252,14 @@ module SC2661_UART (
   reg regCommandExecuted;  // Flag set when read/write operation has been executed
 
 
-  wire uart_sysclk = ~sysclk;
+  // FPGA timing fix (2026-07-06): the UART formerly clocked on ~sysclk (the
+  // falling edge). That made EVERY UART output path a half-cycle path on FPGA
+  // (regDataOut fans out through the IDB into the bus arbiter/MAC), which alone
+  // accounted for 608 of 637 failing endpoints at 39 MHz. Clock on the normal
+  // rising edge instead: with non-blocking assignments this is race-free in sim
+  // (Verilator evaluates RHS on pre-edge values) and turns those half-cycle
+  // paths into full-cycle paths on FPGA. Re-validated in runSim (OPCOM).
+  wire uart_sysclk = sysclk;
 
   assign s_txd = txBit;
 
@@ -266,7 +273,7 @@ module SC2661_UART (
 
         regReceiveHoldingRegister <= 8'b0;
         regTransmitHoldingRegister <= 8'b0;
-        regStatusRegister <= 8'b00000001; // TX empty
+        regStatusRegister <= 8'b00000101; // TX empty: THR(bit0)=1 AND TxEMT(bit2)=1 (idle)
         regModeRegister <= 8'b0;
         regCommandRegister <= 8'b0;
         regDataOut <= 8'b0;
@@ -343,7 +350,11 @@ module SC2661_UART (
                   end
                   2'b01: begin
                     //regDataOut = regStatusRegister;  // Read status register
-                    regStatusRegister[2] <= 0;  // Clear register SR2
+                    // TxEMT (bit2) is a LEVEL status (transmit shift register empty).
+                    // Do NOT read-clear it: OPCOM polls it to know the buffer drained,
+                    // and read-clearing made it stall waiting for it to re-assert
+                    // (2026-07-07). SR2 is now driven as a level by the TX state machine.
+                    // regStatusRegister[2] <= 0;  // (was: read-clear SR2 -- removed)
                   end
                   //2'b10:   regDataOut = regModeRegister;  // Read mode register 1 and 2
                   //2'b11:   regDataOut = regCommandRegister;  // Read command register
@@ -459,11 +470,13 @@ module SC2661_UART (
             TX_STATE_IDLE: begin
               if (regDataInSendRegister) begin
                 regStatusRegister[0] <= 0;  // 0=Transmit Holding Register BUSY
+                regStatusRegister[2] <= 0;  // 0=Transmit Shift Register BUSY (TxEMT low)
                 txState              <= TX_STATE_START_BIT;
                 txCounter            <= 0;
               end else begin
                 txBit <= 1;
-                regStatusRegister[0] <= 1; // tx empty
+                regStatusRegister[0] <= 1; // tx empty (THR empty, TxRDY)
+                regStatusRegister[2] <= 1; // TxEMT: shift register empty (level, idle)
               end
             end
             TX_STATE_START_BIT: begin

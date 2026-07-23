@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_INTR_CNTLR_IRGEL_HIGEL (
+    input sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input FIDB03,
     input HIDET,
     input HIENABN,
@@ -60,6 +63,15 @@ module CGA_INTR_CNTLR_IRGEL_HIGEL (
   assign s_m = M;
   assign s_mclk = MCLK;
   assign s_n = N;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -142,9 +154,12 @@ module CGA_INTR_CNTLR_IRGEL_HIGEL (
       .result(s_gates7_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  // MCLK domain (CGA_INTR.MCLK, rising edge)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(MCLK_CE)
   ) MEMORY_8 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_gates7_out),
       .preset(1'b0),

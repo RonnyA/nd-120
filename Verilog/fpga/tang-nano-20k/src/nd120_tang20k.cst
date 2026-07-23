@@ -1,0 +1,53 @@
+// ND120_TANG20K_TOP - Tang Nano 20K package pins
+// Same pins as the hardware-verified sdram-test (clock 4, S1 88, S2 87,
+// UART 69/70 = BL616 USB serial, LEDs 15-20 active low).
+// NOTE: ../ND120_TOP.cst is a STALE Tang Nano 9K pinout - do not use it.
+// NOTE (Gowin EDA): the O_sdram_*/IO_sdram_* ports are auto-connected to the
+// on-package SDRAM and must NOT be constrained here. The OSS flow (the
+// PRIMARY flow since 12-JUL-2026, see docs/tang20k-build-flows.md) appends
+// ../sdram-test/src/sdram_pins_oss.cst automatically (Makefile build/oss.cst).
+
+IO_LOC "sys_clk" 4;
+IO_PORT "sys_clk" PULL_MODE=UP;
+
+IO_LOC "s1" 88;
+IO_PORT "s1" PULL_MODE=NONE;
+IO_LOC "s2" 87;
+IO_PORT "s2" PULL_MODE=NONE;
+
+// BL616 USB serial (one COM port on the host, 9600 8N1 for OPCOM)
+IO_LOC "uart_txp" 69;
+IO_PORT "uart_txp" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+IO_LOC "uart_rxp" 70;
+IO_PORT "uart_rxp" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+
+// 6 on-board LEDs (active low)
+IO_LOC "led[5]" 20;
+IO_PORT "led[5]" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
+IO_LOC "led[4]" 19;
+IO_PORT "led[4]" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
+IO_LOC "led[3]" 18;
+IO_PORT "led[3]" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
+IO_LOC "led[2]" 17;
+IO_PORT "led[2]" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
+IO_LOC "led[1]" 16;
+IO_PORT "led[1]" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
+IO_LOC "led[0]" 15;
+IO_PORT "led[0]" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
+
+// microSD slot (SD-native mode) - BOOT.BPUN source for the '400$' tape boot.
+// Pins and PULL_MODE copied verbatim from the silicon-proven
+// sd-fat-test/src/nano20k_sd.cst; that project verified them against three
+// independent sources (sipeed TangNano-20K-example, nand2mario nestang and
+// snestang). The slot has EXTERNAL 10K pull-ups on CMD and DAT0-3 (R53-R57),
+// so both pins run PULL_MODE=NONE and released lines idle high - the same
+// configuration MiSTeryNano uses on this slot.
+// DAT1-3 are intentionally NOT in this design: the storage reader is 1-bit.
+// They stay undriven and the external pull-ups hold them high, which is what
+// keeps DAT3 high at CMD0 (card stays out of SPI mode).
+IO_LOC "sd_clk" 83;
+IO_PORT "sd_clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+IO_LOC "sd_cmd" 82;
+IO_PORT "sd_cmd" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+IO_LOC "sd_dat0" 84;
+IO_PORT "sd_dat0" IO_TYPE=LVCMOS33 PULL_MODE=NONE;

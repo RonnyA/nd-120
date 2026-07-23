@@ -48,25 +48,121 @@ module SIP1M9 (
                                  (ramSize == 3) ? 4095    :   // 4 KB (fits in BRAM for testing)
                                                   1;          // Disabled = 1 word (or 0, if desired)
 
-// Now use that for your memory declarations.
-(* ram_style = "block" *) reg [7:0] sdram   [0:MEM_DEPTH-1];
-(* ram_style = "block" *) reg       sdram_9 [0:MEM_DEPTH-1];
-
-
-  //(* ram_style = "block" *)reg  [7:0] sdram                     [0:65534];
-  //(* ram_style = "block" *)reg        sdram_9                   [0:65534];
-
-  //(* ram_style = "block" *)reg  [7:0] sdram                     [0:1048575];  //1MB
-  //(* ram_style = "block" *)reg        sdram_9                   [0:1048575];  //1Mbit
-
-  reg  [9:0] hi_address;
-
   reg  [7:0] reg_Q8;
   reg        reg_Q9;
 
-  /*******************************************************************************
-   ** Here all output connections are defined                                    **
-   *******************************************************************************/
+  // NOTE: sdram/sdram_9 are declared at MODULE scope (not inside the generate) so
+  // their Verilator hierarchical name stays `...CHIP_15H__DOT__sdram`, which the C++
+  // sim harnesses (loadfile in test_nd120.cpp / Run120.cpp / latch_ff_compare.cpp)
+  // reference to preload programs. ONLY declared for Verilator (ramSize=2 DRAM model);
+  // on the FPGA (ramSize=3) it is unused, and as a block-RAM-styled array it was NOT
+  // pruned in time and pushed BRAM usage over the xc7a35t's 100-block limit -> synth
+  // OOM. Guarded out of the FPGA build. (ramSize=2 <=> VERILATOR_SIM in this design.)
+`ifdef VERILATOR_SIM
+  (* ram_style = "block" *) reg [7:0] sdram   [0:MEM_DEPTH-1];
+  (* ram_style = "block" *) reg       sdram_9 [0:MEM_DEPTH-1];
+`endif
+
+generate
+if (ramSize == 3) begin : g_fpga_bram
+  // ======================================================================
+  //  FPGA SYNCHRONOUS BRAM PATH (ramSize=3)
+  // ----------------------------------------------------------------------
+  //  The original DRAM model below (ramSize=2) is a ZERO-DELAY simulation
+  //  model: it clocks on negedge RAS_n/CAS_n (routed control signals, not a
+  //  clock), gates the read output combinationally by CAS_n, and indexes a
+  //  20-bit `sip_address` into whatever depth is declared. On real BRAM that
+  //  fails four ways (glitchy clock, read-0 race, address-changes-with-clock,
+  //  and — because sip_address = {row,col} reorders the bits — consecutive
+  //  addresses land 1024 apart and alias in a small array).
+  //
+  //  This path is a proper SYNCHRONOUS BRAM: everything on sysclk; RAS_n/CAS_n
+  //  are treated as level enables (they are PAL outputs registered on OSC=sysclk
+  //  in this design, so they are already sysclk-synchronous); the read output is
+  //  registered and HELD stable (the controller's RDATA strobe samples it late in
+  //  the cycle while CAS is still low); and the address is reconstructed to the
+  //  LINEAR word address LBD[19:0] = {col, row} so it is contiguous, then the low
+  //  FPGA_ADDR_BITS are used (no reorder-aliasing).
+  // ======================================================================
+  localparam integer FPGA_ADDR_BITS = 12;                 // 4 K words/chip (fits xc7a35t; tune up later)
+  localparam integer FPGA_DEPTH     = (1 << FPGA_ADDR_BITS);
+
+  (* ram_style = "block" *) reg [7:0] bram8 [0:FPGA_DEPTH-1];
+
+  // PARITY STORAGE (bram9 / D9 / Q9)
+  // -------------------------------------------------------------------------
+  // The stored parity bit is DEAD: MEM_43.v:218 hardwires
+  //     assign LPERR_n = s_lperr_n | 1;   // "Always set to 1 to avoid Parity Error"
+  // so the local parity error can never fire and nothing consumes the read-back
+  // parity bit. Storing it cost a whole extra BRAM per chip: bram9 is 4096x1, and
+  // a RAMB18 is the smallest block Vivado can allocate, so 1 bit/word burned a
+  // RAMB18 per chip (6 chips = 6 RAMB18 = 3 BRAM tiles) to hold 4 Kbit of data.
+  //
+  // Define RAM_PARITY_STORAGE to bring the real parity RAM back (e.g. if LPERR_n
+  // is ever fixed to actually report errors).
+`ifdef RAM_PARITY_STORAGE
+  (* ram_style = "block" *) reg       bram9 [0:FPGA_DEPTH-1];
+`endif
+
+  reg  [9:0] row_addr;                                     // AA captured at the RAS falling edge
+  reg        ras_n_d;                                      // RAS_n one sysclk ago (edge detect)
+  // Linear word address = {col, row} = LBD[19:0]; use the low FPGA_ADDR_BITS.
+  wire [19:0] lin_addr  = {ADDRESS[9:0], row_addr[9:0]};   // {col(on AA while both low), row}
+  wire [FPGA_ADDR_BITS-1:0] a = lin_addr[FPGA_ADDR_BITS-1:0];
+
+  reg cas_win_d;  // both-low window, one sysclk delayed (first-edge detect)
+  reg [7:0] d8_q;  // write data captured BEFORE CAS (see comment below)
+  reg       d9_q;
+
+  always @(posedge sysclk) begin
+    ras_n_d <= RAS_n;
+    // Capture the ROW ONLY at the RAS falling edge. Verified against the real
+    // controller (DBG_MEM trace): AA carries the row exactly at RAS-fall; the very
+    // next sysclk (RAS still low, CAS still HIGH) AA already switches to the COLUMN,
+    // so a level-triggered latch grabbed the column and every access hit {col,col}.
+    if (ras_n_d && !RAS_n) row_addr <= ADDRESS[9:0];
+
+    // Write-data capture: on silicon the D bus is driven BEFORE CAS-fall and
+    // released shortly after it (measured on the Tang SDRAM backend,
+    // 8-JUL-2026; the zero-delay sim's "valid at CAS-fall" is the PRE-edge
+    // value). Capture every sysclk while RAS is active and CAS not yet seen:
+    // the final capture (the CAS-fall edge) holds the settled cycle-N+1 value.
+    if (!RAS_n && CAS_n) begin
+      d8_q <= D8;
+      d9_q <= D9;
+    end
+
+    // Access while both strobes are active (bank-gated CAS_n already selects us);
+    // AA carries the column throughout the both-low window.
+    cas_win_d <= (!RAS_n && !CAS_n);
+    if (!RAS_n && !CAS_n) begin
+      if (W_n) begin                                       // read (re-reads while CAS low; addr stable)
+        reg_Q8 <= bram8[a];
+`ifdef RAM_PARITY_STORAGE
+        reg_Q9 <= bram9[a];
+`else
+        reg_Q9 <= 1'b0;                                    // parity not stored (see above)
+`endif
+      end else if (!cas_win_d) begin                       // write ONCE, first both-low
+        bram8[a] <= d8_q;                                  // edge, with the pre-CAS
+`ifdef RAM_PARITY_STORAGE
+        bram9[a] <= d9_q;                                  // captured data
+`endif
+      end
+    end
+  end
+
+  // Registered, held read data; still bank-gated (0 when not selected / not a read)
+  // so the three banks' outputs OR-combine correctly in MEM_RAM_49.
+  assign Q8 = ((CAS_n == 0) && (W_n)) ? reg_Q8 : 8'b0;
+  assign Q9 = ((CAS_n == 0) && (W_n)) ? reg_Q9 : 1'b0;
+
+end else begin : g_sim_dram
+  // ======================================================================
+  //  ORIGINAL ZERO-DELAY DRAM MODEL (ramSize=2 Verilator, etc.) — unchanged
+  //  (sdram/sdram_9 declared at module scope above)
+  // ======================================================================
+  reg [9:0] hi_address;
 
   wire [19:0] sip_address = (CAS_n == 0) ? {hi_address[9:0], ADDRESS[9:0]} : 20'b0;
 
@@ -74,7 +170,23 @@ module SIP1M9 (
     hi_address <= ADDRESS[9:0];
   end
 
+`ifdef DBG_MEM
+  // Ground-truth timing capture of the working DRAM model vs sysclk, to design the
+  // FPGA sync BRAM. Logs the AA at each RAS/CAS fall and the sysclk-level view.
+  integer dbg_cyc = 0;
+  always @(posedge sysclk) dbg_cyc <= dbg_cyc + 1;
+  always @(negedge RAS_n) $display("MEM RASfall cyc=%0d AA(row)=%o", dbg_cyc, ADDRESS);
+  always @(negedge CAS_n) if (!RAS_n)
+    $display("MEM CASfall cyc=%0d AA(col)=%o row=%o W_n=%b D8=%o", dbg_cyc, ADDRESS, hi_address, W_n, D8);
+  always @(posedge sysclk) if (!RAS_n || !CAS_n)
+    $display("MEM sclk   cyc=%0d RAS_n=%b CAS_n=%b AA=%o W_n=%b", dbg_cyc, RAS_n, CAS_n, ADDRESS, W_n);
+`endif
+
   always @(negedge CAS_n) begin
+`ifdef VERILATOR_SIM
+    // sdram/sdram_9 exist only under VERILATOR_SIM; this whole DRAM model branch is
+    // never GENERATED on the FPGA (ramSize=3 -> g_fpga_bram) but Vivado still PARSES
+    // it, so the sdram references must be preprocessed out for the FPGA build.
     if (!RAS_n) begin
       if (W_n) begin  // read
         reg_Q8 <= sdram[sip_address];
@@ -84,12 +196,14 @@ module SIP1M9 (
         sdram_9[sip_address] <= D9;
       end
     end
+`endif
   end
-
 
   // Data out is valid as long as CAS is active (and its read, not write)
   assign Q8 = ((CAS_n == 0) && (W_n)) ? reg_Q8 : 8'b00000000;
   assign Q9 = ((CAS_n == 0) && (W_n)) ? reg_Q9 : 0;
+end
+endgenerate
 
 
   // Even Parity Logic

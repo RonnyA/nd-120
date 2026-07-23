@@ -8,6 +8,7 @@
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module IO_REG_41 (
+    input       sysclk,  //! System clock (used only for the FF-mode strobe edge-capture)
 
     // Input signals
     input       CLEAR_n,
@@ -156,7 +157,17 @@ module IO_REG_41 (
 
    // NOTE: CHIP_28A_IOC CLK() signal has been negated to get code to work. This is different than the original drawings
 
-  TTL_74273 CHIP_28A_IOC (
+  // P3 (docs/plan-fix-unconstrained-clocks.md): SIOC_n is an IDB write
+  // strobe, not a clock. In FF mode the IOC register captures on a
+  // sysclk-detected strobe rise instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam SIOC_CAPTURE = 2;
+`else
+  localparam SIOC_CAPTURE = 0;
+`endif
+
+  TTL_74273 #(.USE_SYSCLK(SIOC_CAPTURE)) CHIP_28A_IOC (
+      .sysclk(sysclk),
       .CLK(~s_sioc_n),  // Clock input (in drawings using s_sioc_n, but had to invert to get the correct behaviour)
       .CLR_n(s_clear_n),  // Active low clear input
       .D(s_ioc_idb_7_0_in[7:0]), // 8-bit data input directly from the bus (which is a combination of IDB, ALD and INR)

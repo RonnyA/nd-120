@@ -11,6 +11,9 @@
 ***************************************************************************/
 
 module CGA_MIC_INCOUNT (
+    input sysclk,   //! FPGA system clock (P2: MCLK_EN capture)
+    input MCLK_EN,  //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input CD0,
     input CD1,
     input EC,
@@ -57,6 +60,15 @@ module CGA_MIC_INCOUNT (
   assign s_cd1            = CD1;
   assign s_lwca_n         = LWCAN;
   assign s_ec             = EC;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the MCLK-
+  // clocked registers capture on posedge sysclk gated by MCLK_EN
+  // (aligned to the MCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam MCLK_CE = 1;
+`else
+  localparam MCLK_CE = 0;
+`endif
 
   /*******************************************************************************
    ** Here all output connections are defined                                    **
@@ -114,9 +126,11 @@ module CGA_MIC_INCOUNT (
       .sel(s_lwca_n)
   );
 
-  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk (async preset s_mr)
+  D_FLIPFLOP_EN #(.USE_ENABLE(MCLK_CE), .ASYNC_RESET(1)
   ) MEMORY_6 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_plexers4_n_out),
       .preset(s_mr),
@@ -126,9 +140,11 @@ module CGA_MIC_INCOUNT (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(.ACTIVE_ASYNC(1),
-      .InvertClockEnable(0)
+  // MCLK domain: clocked on posedge s_mclk (async preset s_mr)
+  D_FLIPFLOP_EN #(.USE_ENABLE(MCLK_CE), .ASYNC_RESET(1)
   ) MEMORY_7 (
+      .sysclk(sysclk),
+      .EN(MCLK_EN),
       .clock(s_mclk),
       .d(s_plexers5_n_out),
       .preset(s_mr),

@@ -28,7 +28,7 @@
 #include "verilated.h"
 
 #ifdef DO_TRACE
-#include <verilated_vcd_c.h>
+#include <verilated_fst_c.h>
 #endif
 
 #include "NDBus.h"
@@ -97,19 +97,19 @@ int main(int argc, char **argv)
 	addDevices();
 
 #ifdef DO_TRACE
-	VerilatedVcdC *m_trace = new VerilatedVcdC;
+	VerilatedFstC *m_trace = new VerilatedFstC;
 	Verilated::traceEverOn(true);
-	top->trace(m_trace, 1); // 1 is the trace depth
-	m_trace->open("waveform.vcd");
+	top->trace(m_trace, 1);
+	m_trace->open("waveform.fst");
 #endif
 
 	// Load data
 	// Access MEM->RAM fields via rootp
-	auto &ram_low = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__CHIP_15H__DOT__sdram;
-	auto &ram_low_9 = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__CHIP_15H__DOT__sdram_9;
+	auto &ram_low = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo;
+	auto &ram_low_9 = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo_p;
 
-	auto &ram_high = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__CHIP_15J__DOT__sdram;
-	auto &ram_high_9 = top->rootp->ND120_TOP__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__CHIP_15J__DOT__sdram_9;
+	auto &ram_high = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi;
+	auto &ram_high_9 = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi_p;
 	char *fname = strdup("INSTRUCTION-B.BPUN"); // strdup creates a modifiable copy
 	loadfile(fname, 0, &ram_low[0], &ram_low_9[0], &ram_high[0], &ram_high_9[0]);
 
@@ -132,29 +132,36 @@ int main(int argc, char **argv)
 	int hashReceived = 0;
 	int readyReceived = 0;
 
-	// long startTrace = 2390000; // STAR
-	// long maxTicks = startTrace + 500000;
-
-	//long startTrace = 755472; // OPCOM READY after selftest
-							  
-	//long startTrace = 2207832; // READY AFTER BOOT from 0!
-	// long startTrace = 4777683;
+	// Trace start: skip PROM->WCS loading phase (LCS_n=0).
+	// Loading completes before tick ~650000. Execution starts with:
+	//   CSA=o000000, LCS_n=1 -> master clear / CPU self-test
+	//   CSA=o000016, LCS_n=1 -> PANEL INTERRUPT trap (TVEC dispatch)
+	// Only lower startTrace to 0 if validating the PROM load process itself.
+#ifdef SKIP_WCS_LOAD
+	// WCS is pre-loaded (docs/skip-wcs-load.md): there is NO PROM->WCS load
+	// phase, so execution begins almost immediately. Trace from tick 0 and the
+	// capture IS the boot sequence (0 -> o002001 -> self-test -> OPCOM).
 	long startTrace = 0;
-	//long startTrace = 10000000; // 10 mill
+	long maxTicks   = 200000;   // 200K ticks covers boot through self-test/OPCOM
+#else
+	long startTrace = 730000;
 
-	//long startTrace = (7808519-200); // DYNAMIC OVERFLOW BIT NOT SET. SHOULD HAVE BEEN "MPY" FAILED (MPY2OP) 
+	//long startTrace = 0;             // full trace including PROM load (very large file)
+	//long startTrace = 755472;        // OPCOM READY after selftest
+	//long startTrace = 2207832;       // READY AFTER BOOT from 0
+	//long startTrace = (7808519-200); // DYNAMIC OVERFLOW BIT NOT SET (MPY2OP)
 
-	//long maxTicks = 2000000;
+	//long maxTicks = startTrace + 200000;  // 200K (focused debug)
+	//long maxTicks = startTrace + 2000000; // 2M (short run)
+	//long maxTicks = startTrace + 5500000; // 5.5M
+	long maxTicks = startTrace + 600000;
+#endif
 
-	//long maxTicks = 755472; // OPCOM READY after selftest
+	// Runtime override so debug window sweeps don't need a recompile:
+	//   ND120_START_TRACE=<tick> ND120_MAX_TICKS=<tick> ./obj_dir/VND120_TOP
+	if (const char *e = getenv("ND120_START_TRACE")) startTrace = atol(e);
+	if (const char *e = getenv("ND120_MAX_TICKS"))   maxTicks   = atol(e);
 
-
-	//long maxTicks = startTrace + 200000; // 200K (good for boot)
-	long maxTicks = startTrace + 1000000; // 1M
-	// long maxTicks = startTrace + 2000000; // 2M
-	// long maxTicks = startTrace + 5500000; // 5.5M
-
-	
 
 	// Boot commands
 	const char *cmdBOOT = "0!\0"; // Start program in RAM at address 0
@@ -200,6 +207,61 @@ int main(int argc, char **argv)
 			// MPY - OPCODE 120000
 			//printf("[%ld] MPY - %o\r\n",cnt, top->CSA_12_0);
 			top->DEBUGFLAG =1;
+		}
+
+		// Detect exit from o002045/o002046 cold-boot delay loop
+		{
+			static uint16_t prev_csa = 0;
+			static long loop_entry_tick = 0;
+			static long loop_iters = 0;
+			uint16_t csa = top->CSA_12_0;
+			if (csa == 02045 || csa == 02046) {
+				if (loop_entry_tick == 0) loop_entry_tick = cnt;
+				loop_iters++;
+			} else if (loop_entry_tick > 0) {
+				printf("[%ld] Left o002045/o002046 delay loop after %ld iters, now CSA=o%06o\r\n",
+				       cnt, loop_iters, csa);
+				loop_entry_tick = 0;
+				loop_iters = 0;
+			}
+			prev_csa = csa;
+		}
+
+		// --- Microsequencer address-advance GOLDEN LOG (mic_trace.csv) ---
+		// Compare vs the Tang on-chip capture (same word: {SC6,s_mclk_n,MCLK_EN,
+		// regIW[12:0]} = XMIC_DBG). Build this sim in FF mode (USE_LATCHES=0) to
+		// match the Tang FPGA_FF_MODE path. Logs a 60-tick window each time the
+		// microcode enters the STR2 block (o006000..o006003) or lands on its jump
+		// target o000145 -- i.e. exactly how STR2 RETIRES and jumps in the WORKING
+		// design, the reference the frozen Tang 06000-hang is diffed against.
+		{
+			static FILE* micf = NULL;
+			static int   logwin = 0;
+			static int   first_str2 = 1;
+			if (!micf) {
+				micf = fopen("mic_trace.csv", "w");
+				fprintf(micf, "tick,csa_oct,regREP_oct,SC6,mclk_n,MCLK_EN\n");
+			}
+			// word: bit15=SC6 bit14=s_mclk_n bit13=MCLK_EN bit12:0=regREP_comb
+			uint16_t w    = top->XMIC_DBG_15_0;
+			uint16_t csa  = top->CSA_12_0;
+			uint16_t rep  = w & 0x1FFF;
+			uint8_t  men  = (w >> 13) & 1;
+			uint8_t  mcn  = (w >> 14) & 1;
+			uint8_t  sc6  = (w >> 15) & 1;
+			if ((csa >= 06000 && csa <= 06003) || csa == 0145) {
+				if (logwin < 60) logwin = 60;
+				if (first_str2 && csa >= 06000 && csa <= 06003) {
+					printf("[%ld] *** CSA reached STZ o%06o (regREP=o%06o SC6=%d mclk_n=%d MCLK_EN=%d) ***\r\n",
+					       cnt, csa, rep, sc6, mcn, men);
+					first_str2 = 0;
+				}
+			}
+			if (logwin > 0) {
+				fprintf(micf, "%ld,%06o,%06o,%d,%d,%d\n",
+				        cnt, csa, rep, sc6, mcn, men);
+				logwin--;
+			}
 		}
 
 		top->eval();

@@ -5,9 +5,9 @@ JLB/CJTC 14AUG86
 /Q0 /Q2 /CC2 /BDRY25 /BDRY50 /CGNT /CGNT50 /CACT /TERM GND
 /BGNT /CGNTCACT /RT /IORQ TEST NC16 /DSTB /EMD /BGNTCACT VCC
 
-IF (/TEST) EMD = Q2 * QO * CACT         ; CPU CYCLE TO BUS SET
-            + EMD * CACT 1              ;       "          HOLD
-            + CGNT * CGNTSO             ; CPU CYCLE TO MEM SET
+IF (/TEST) EMD = Q2 * Q0 * CACT         ; CPU CYCLE TO BUS SET
+            + EMD * CACT                ;       "          HOLD
+            + CGNT * CGNT50             ; CPU CYCLE TO MEM SET
             + EMD * RT * CC2 * /TERM    ; ) HOLD TERMS FOR
             + EMD * IORQ * CC2 * /TERM  ; ) CPU READ, FETCH AND
                                         ; ) MAP CYCLES

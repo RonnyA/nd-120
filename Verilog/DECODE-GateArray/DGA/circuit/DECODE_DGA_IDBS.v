@@ -13,6 +13,8 @@
 ***************************************************************************/
 
 module DECODE_DGA_IDBS (
+    input       sysclk,      //! FPGA system clock (P2: CLK_EN capture)
+    input       CLK_EN,      //! CLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input       CLK0,        //! Clock input 0
     input       CLK1,        //! Clock input 1
     input [4:0] CSIDBS_4_0,  //! Microcode IDB Source select
@@ -112,6 +114,16 @@ module DECODE_DGA_IDBS (
   assign s_csidbs_4_0[4:0] = CSIDBS_4_0;
   assign s_clk1 = CLK1;
   assign s_clk0 = CLK0;
+
+  // P2 (docs/plan-fix-unconstrained-clocks.md): in FF mode the CLK-clocked
+  // registers (CLK0 and CLK1 are both the board CLK, XCLK) capture on
+  // posedge sysclk gated by CLK_EN (aligned to the CLK rise) instead of
+  // clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam CLK_CE = 1;
+`else
+  localparam CLK_CE = 0;
+`endif
   assign s_stat_4 = STAT4;
   assign s_lcs_n = LCSN;
   assign s_stat_3 = STAT3;
@@ -499,7 +511,9 @@ module DECODE_DGA_IDBS (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  F924 A282 (
+  F924_EN #(.USE_ENABLE(CLK_CE)) A282 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .C_H05  (s_clk1),
       .D0_H01 (s_a286_nand_out),
       .D1_H02 (s_a284_nor_out),
@@ -520,13 +534,15 @@ module DECODE_DGA_IDBS (
       .N02()
   );
 
-  F924 A259 (
+  F924_EN #(.USE_ENABLE(CLK_CE)) A259 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .C_H05  (s_clk1),
       .D0_H01 (s_a260_nand_out),
       .D1_H02 (s_a265_nand_out),
       .D2_H03 (s_a258_nand_out),
       .D3_H04 (s_a262_nand_out),
-      .N01_Q0 (s_epans_n),
+      .N01_Q0 (),             // EPANSN: combinatorial bypass below (see comment)
       .N02_Q1 (s_rinr_n),
       .N03_Q2 (s_epan_n),
       .N04_Q3 (s_traald_n),
@@ -536,7 +552,19 @@ module DECODE_DGA_IDBS (
       .N08_Q3B()
   );
 
-  F924 A248 (
+  // EPANSN combinatorial bypass:
+  // The original ND-120 WCS was async SRAM — CSIDBS settled during the idle phase
+  // (via MACLK), so F924 captured the correct value at posedge CLK (TERM_n falling).
+  // Our simulated WCS has 1-cycle registered output, causing CSIDBS to appear one
+  // instruction late. Making s_epans_n directly reflect a260_nand_out compensates:
+  // CSIDBS=o020 settles at MCLK falling (start of idle), so s_epans_n=0 is visible
+  // during the idle phase when CSEL is transparent, allowing COND=F[15]=1 to be
+  // captured before o002336 CONDENABL executes.
+  assign s_epans_n = s_a260_nand_out;
+
+  F924_EN #(.USE_ENABLE(CLK_CE)) A248 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .C_H05  (s_clk0),
       .D0_H01 (s_a254_nand_out),
       .D1_H02 (s_a253_nand_out),
@@ -552,7 +580,9 @@ module DECODE_DGA_IDBS (
       .N08_Q3B()
   );
 
-  F924 A275 (
+  F924_EN #(.USE_ENABLE(CLK_CE)) A275 (
+      .sysclk(sysclk),
+      .EN(CLK_EN),
       .C_H05  (s_clk0),
       .D0_H01 (s_vcc),
       .D1_H02 (s_a249_nand_out),

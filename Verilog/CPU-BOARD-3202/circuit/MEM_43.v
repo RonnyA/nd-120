@@ -65,6 +65,43 @@ module MEM_43 (
     output        LED5,          //! LED5_RED_DISABLE_PARITY
     output        LED_CPU_GI,    //! LED_CPU_GRANT_INDICATOR
     output        LED_BUS_GI     // LED_BUS_GRANT_INDICATOR
+
+`ifdef MAIN_RAM_SDRAM
+    // SDRAM main-memory backend (Tang Nano 20K): the sheet-49 RAM is replaced
+    // by MEM_RAM_49_SDRAM, which needs a 2x clock pair and the SDRAM device
+    // pins threaded to the top level. Absent in Verilator/Basys3 builds.
+    ,
+    input         clk2x,        //! 2x sysclk, same PLL, edge-aligned
+    input         clk2x_sdram,  //! 180 degrees from clk2x, to the SDRAM chip
+    output        O_sdram_clk,
+    output        O_sdram_cke,
+    output        O_sdram_cs_n,
+    output        O_sdram_cas_n,
+    output        O_sdram_ras_n,
+    output        O_sdram_wen_n,
+    inout  [31:0] IO_sdram_dq,
+    output [10:0] O_sdram_addr,
+    output [ 1:0] O_sdram_ba,
+    output [ 3:0] O_sdram_dqm,
+    // Write-path debug: raw signal bus for the on-chip capture (see top)
+    output [15:0] DBG_MEMW
+`ifdef ND_STORAGE_PORT
+    // nd_storage device port, passed straight down to MEM_RAM_49_SDRAM (which
+    // forces the leading address 1, so device traffic physically cannot reach
+    // the CPU's half of the chip). stor_clk is its OWN domain - the backend
+    // toggle-CDCs it into clk2x. See MEM_RAM_49_SDRAM.v section 5.2.
+    ,
+    input  wire        stor_clk,
+    input  wire        stor_rst_n,
+    input  wire        mem_start,
+    input  wire        mem_we,
+    input  wire [19:0] mem_addr,
+    input  wire [31:0] mem_wdata,
+    output wire [31:0] mem_rdata,
+    output wire        mem_busy,
+    output wire        mem_done
+`endif
+`endif
 );
 
 
@@ -218,6 +255,8 @@ module MEM_43 (
    */
   MEM_ADEC_45 ADEC
   (
+    .sysclk(sysclk),
+    .sys_rst_n(sys_rst_n),
     // Inputs
     .BGNT_n(s_bgnt_n),
     .BMEM_n(s_bmem_n),
@@ -249,6 +288,7 @@ module MEM_43 (
    * Handles the local bus interface and memory control signals.
    */
   MEM_LBDIF_48 LBDIF (
+      .sysclk(sysclk),
       // Input signals
       .BDAP50_n(s_bdap50_n),
       .BGNT25_n(s_bgnt25_n),
@@ -326,6 +366,7 @@ module MEM_43 (
    */
   MEM_ERROR_47 ERROR (
       // Clock and reset (added for FPGA synthesis)
+      .sysclk(sysclk),
       .OSC(s_osc),
       .sys_rst_n(sys_rst_n),
 
@@ -391,6 +432,7 @@ module MEM_43 (
    * Also handles the memory control signals and error handling.
    */
   MEM_ADDR_44 ADDR (
+      .sysclk(sysclk),
       // Input signals
       .BCGNT50(s_bcgnt25), // Need to latch address earlier before it goes away. Thats why this is changed to BCGNT25 (Ronny 7.12.2024)
       .HIEN_n(s_hien_n),
@@ -407,6 +449,134 @@ module MEM_43 (
    * Handles memory operations and interfaces with the system bus.
    * Provides memory access, control and error handling functionality.
    */
+`ifdef MAIN_RAM_SDRAM
+  // Raw write-path signal bus for the top-level capture engine.
+  // v4: bridge-FSM focus (v3 proved AA row/col + BANK0 + write mode are all
+  // correct at the bridge inputs, so the break is inside the bridge or the
+  // SDRAM controller - watch commands issue and data_ready come back).
+  // Bits [7:6] are 0 here; ND3202D overlays wdec (trigger) and WRITE.
+  wire [7:0] s_dbg_bridge;
+  assign DBG_MEMW = {s_dbg_bridge[7:0],              // [15:8] bridge: {bstate[2:0],
+                                                     //   wr, rd, data_ready, have_data, busy}
+                     2'b00,                          // [7:6] (wdec, WRITE in ND3202D)
+                     s_bank_2_0[0],                  // [5] BANK0
+                     s_mwrite50_n,                   // [4]
+                     s_dbapr,                        // [3]
+                     s_ecreq,                        // [2]
+                     s_cas,                          // [1]
+                     s_ras};                         // [0]
+
+  // Tang Nano 20K: sheet-49 RAM implemented on the embedded 8 MB SDRAM
+  // (fpga/tang-nano-20k/sdram-bridge/MEM_RAM_49_SDRAM.v; same interface,
+  // 2 banks = 4 MB, self-scheduled refresh - see docs/nd120-dram-memory.md)
+  MEM_RAM_49_SDRAM RAM (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      // Input signals
+      .AA_9_0(s_aa_9_0[9:0]),
+      .BANK0(s_bank_2_0[0]),
+      .BANK1(s_bank_2_0[1]),
+      .BANK2(s_bank_2_0[2]),
+      .CAS(s_cas),
+      .CORR_n(s_corr_n),
+      .DD_17_0_IN(s_ram_dd_17_0_in[17:0]),
+      .MWRITE50_n(s_mwrite50_n),
+      .RAS(s_ras),
+
+      // Output signals
+      .DD_17_0_OUT(s_ram_dd_17_0_out[17:0]),
+
+      // SDRAM backend (threaded to the board top)
+      .clk2x(clk2x),
+      .clk2x_sdram(clk2x_sdram),
+      .O_sdram_clk(O_sdram_clk),
+      .O_sdram_cke(O_sdram_cke),
+      .O_sdram_cs_n(O_sdram_cs_n),
+      .O_sdram_cas_n(O_sdram_cas_n),
+      .O_sdram_ras_n(O_sdram_ras_n),
+      .O_sdram_wen_n(O_sdram_wen_n),
+      .IO_sdram_dq(IO_sdram_dq),
+      .DBG_BRIDGE(s_dbg_bridge),
+      .O_sdram_addr(O_sdram_addr),
+      .O_sdram_ba(O_sdram_ba),
+      .O_sdram_dqm(O_sdram_dqm)
+`ifdef ND_STORAGE_PORT
+      ,
+      .stor_clk  (stor_clk),
+      .stor_rst_n(stor_rst_n),
+      .mem_start (mem_start),
+      .mem_we    (mem_we),
+      .mem_addr  (mem_addr),
+      .mem_wdata (mem_wdata),
+      .mem_rdata (mem_rdata),
+      .mem_busy  (mem_busy),
+      .mem_done  (mem_done)
+`endif
+  );
+`elsif MAIN_RAM_BLOCKRAM
+  // FPGA block-RAM backend: one clean synchronous BRAM instead of the six
+  // emulated SIP1M9 chips (MEM_RAM_49_BLOCKRAM.v). Default 3 banks x 4K words.
+  MEM_RAM_49_BLOCKRAM RAM (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .AA_9_0(s_aa_9_0[9:0]),
+      .BANK0(s_bank_2_0[0]),
+      .BANK1(s_bank_2_0[1]),
+      .BANK2(s_bank_2_0[2]),
+      .CAS(s_cas),
+      .CORR_n(s_corr_n),
+      .DD_17_0_IN(s_ram_dd_17_0_in[17:0]),
+      .MWRITE50_n(s_mwrite50_n),
+      .RAS(s_ras),
+      .DD_17_0_OUT(s_ram_dd_17_0_out[17:0])
+  );
+`elsif VERILATOR_SIM
+  // Simulation backend: the zero-delay DRAM model on the shared sheet-49
+  // interface (MEM_RAM_49_SIM.v, 3 banks x 1M x 18 bits = 6 MB - onboard
+  // decode reaches a 4 MB window, fully backed). This is the RAM that the
+  // sim builds actually compile; the SIP1M9 `else` branch below is NOT
+  // used by the sim. The C++ harnesses preload/inspect programs directly
+  // through its b0_* arrays (e.g. runSim/Run120.cpp reads ...RAM__DOT__b0_lo).
+  //
+  // To model a small FPGA-size RAM in a Verilator build instead, define
+  // MAIN_RAM_BLOCKRAM (selects MEM_RAM_49_BLOCKRAM above). NOTE: FORCE_SMALL_RAM
+  // is unrelated - it is a RAM_SIZE guard inside the legacy MEM_RAM_49.v
+  // (SIP1M9) and has NO effect on this MEM_RAM_49_SIM module.
+  MEM_RAM_49_SIM RAM (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .AA_9_0(s_aa_9_0[9:0]),
+      .BANK0(s_bank_2_0[0]),
+      .BANK1(s_bank_2_0[1]),
+      .BANK2(s_bank_2_0[2]),
+      .CAS(s_cas),
+      .CORR_n(s_corr_n),
+      .DD_17_0_IN(s_ram_dd_17_0_in[17:0]),
+      .MWRITE50_n(s_mwrite50_n),
+      .RAS(s_ras),
+      .DD_17_0_OUT(s_ram_dd_17_0_out[17:0])
+  );
+`else
+  // ===========================================================================
+  // HISTORICAL FALLBACK - NOT USED BY ANY CURRENT BUILD. DO NOT ASSUME THIS IS
+  // THE SIMULATION OR FPGA RAM.
+  //
+  //   * Verilator sim  -> MEM_RAM_49_SIM   (the `elsif VERILATOR_SIM` branch)
+  //   * Tang Nano 20K  -> MEM_RAM_49_SDRAM (the `ifdef MAIN_RAM_SDRAM` branch)
+  //   * BRAM boards    -> MEM_RAM_49_BLOCKRAM (the `elsif MAIN_RAM_BLOCKRAM`)
+  //
+  // This branch (the original six-chip SIP1M9 sheet, MEM_RAM_49.v, Shared/
+  // support/SIP1M9.v) is reached ONLY when NONE of the above defines is set -
+  // which today is no build at all. It is kept purely as a schematic-faithful
+  // reference of the real sheet-49 DRAM array.
+  //
+  // It may be DELETED in the future. When it is, every FPGA board must select
+  // one of the MAIN_RAM_* backends above - either reuse an existing one
+  // (MEM_RAM_49_BLOCKRAM / _SDRAM / _SIM) or add its own MEM_RAM_49_<board>.v
+  // implementing the same sheet-49 interface (AA_9_0, BANK0/1/2, RAS, CAS,
+  // MWRITE50_n, DD_17_0_IN/OUT, CORR_n). A board must never silently fall
+  // through to this SIP1M9 path.
+  // ===========================================================================
   MEM_RAM_49 RAM (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
@@ -424,4 +594,5 @@ module MEM_43 (
       // Output signals
       .DD_17_0_OUT(s_ram_dd_17_0_out[17:0])
   );
+`endif
 endmodule

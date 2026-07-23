@@ -74,6 +74,12 @@ module PAL_44403C (
 
     // Q0 flip-flop
     // Logic for LCS_n (active-low)
+`ifdef SKIP_WCS_LOAD
+    // WCS is pre-loaded (see docs/skip-wcs-load.md): never enter the load phase.
+    // LCS stays 0 -> LCS_n stays 1 (execute) from cycle 0; MR_n is untouched so
+    // the microcode PC still resets to 0 and master-clear init still runs.
+    LCS <= 1'b0;
+`else
     if (
         (MR)
         | (s_dma12_n & LUA12_n & LCS)  // LCS FROM MR AND UNTIL MA12 HAS GONE HIGH AND
@@ -81,6 +87,7 @@ module PAL_44403C (
         | (s_dma12_n & LUA12 & LCS))
       LCS <= 1'b1;
     else LCS <= 1'b0;
+`endif
 
 
     // Q1 flip-flop

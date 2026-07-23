@@ -11,6 +11,8 @@
 ***************************************************************************/
 
 module CGA_CPU_ALU_CONTR (
+    input sysclk,     //! FPGA system clock (P2: ALUCLK_EN capture)
+    input ALUCLK_EN,  //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input ALUCLK,                 //! ALU Clock
     input [1:0] CD_10_9,          //! CPU Data 10:9
     input CRY,                    //! ALU Carry
@@ -206,6 +208,16 @@ module CGA_CPU_ALU_CONTR (
   assign s_xfetch_n          = XFETCHN;
   assign s_dgpr0_n           = DGPR0N;
   assign s_aluclk            = ALUCLK;
+
+  // P2b (docs/plan-fix-unconstrained-clocks.md): in FF mode the ALUCLK-
+  // clocked registers capture on posedge sysclk gated by ALUCLK_EN
+  // (aligned to the ALUCLK rise) instead of clocking on the routed net.
+`ifdef FPGA_FF_MODE
+  localparam ALUCLK_CE = 1;
+`else
+  localparam ALUCLK_CE = 0;
+`endif
+
   assign s_up_n              = UPN;
   assign s_ldirv             = LDIRV;
   assign s_gpr0              = GPR0;
@@ -639,9 +651,11 @@ module CGA_CPU_ALU_CONTR (
       .result(s_gates44_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(ALUCLK_CE)
   ) MEMORY_45 (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .clock(s_aluclk),
       .d(s_csalui_8_0[6]),
       .preset(1'b0),
@@ -651,28 +665,46 @@ module CGA_CPU_ALU_CONTR (
       .tick(1'b1)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_46 (
-      .clock(s_ldirv),
-      .d(s_cd_10_9[1]),
-      .preset(1'b0),
-      .q(s_memory46_q),
-      .qBar(),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+  // Shift-type capture (instruction bits 10:9 -> SSEL via the CSMIS muxes).
+  // Must be a TRANSPARENT LATCH on LDIRV, exactly like the MIC IR latch
+  // (CGA_MIC IRLATCH): the instruction word is valid on the CD bus late in
+  // the LDIRV-high window and is gone again before the next rise, so a
+  // rising-edge flip-flop can never capture it (measured: CD=000000 at
+  // every LDIRV rise, instruction present at every fall). As flip-flops
+  // these bits stayed 0, SSEL decoded as 00 and every SHA/SHD/SHT/SAD
+  // ROT / ZIN-right / LIN shift executed as a plain arithmetic shift
+  // (INSTRUCTION-B SHIFT sub-tests 5OP-8OP, 256 failures each).
+  L8 SSEL_LATCH (
+      .sysclk(sysclk),
+      .sys_rst_n(1'b1),
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
-  ) MEMORY_47 (
-      .clock(s_ldirv),
-      .d(s_cd_10_9[0]),
-      .preset(1'b0),
-      .q(s_memory47_q),
-      .qBar(),
-      .reset(1'b0),
-      .tick(1'b1)
+      .L(s_ldirv),
+
+      .A(s_cd_10_9[1]),
+      .B(s_cd_10_9[0]),
+      .C(1'b0),
+      .D(1'b0),
+      .E(1'b0),
+      .F(1'b0),
+      .G(1'b0),
+      .H(1'b0),
+
+      .QA (s_memory46_q),
+      .QAN(),
+      .QB (s_memory47_q),
+      .QBN(),
+      .QC (),
+      .QCN(),
+      .QD (),
+      .QDN(),
+      .QE (),
+      .QEN(),
+      .QF (),
+      .QFN(),
+      .QG (),
+      .QGN(),
+      .QH (),
+      .QHN()
   );
 
   NAND_GATE #(
@@ -699,9 +731,11 @@ module CGA_CPU_ALU_CONTR (
       .result(s_gates50_out)
   );
 
-  D_FLIPFLOP #(
-      .InvertClockEnable(0)
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(ALUCLK_CE)
   ) MEMORY_51 (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .clock(s_aluclk),
       .d(s_gates50_out),
       .preset(1'b0),
@@ -798,8 +832,10 @@ module CGA_CPU_ALU_CONTR (
       .ZN(s_alui1n)
   );
 
-  R41P REG_RFLA4 (
-      .CP (s_aluclk),
+  R41P_EN #(.USE_ENABLE(ALUCLK_CE)) REG_RFLA4 (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
+      .CP(s_aluclk),
       .A  (s_gates54_out),
       .B  (s_gates55_out),
       .C  (s_gates12_out),
@@ -814,8 +850,10 @@ module CGA_CPU_ALU_CONTR (
       .QDN(s_alui4_n_out)
   );
 
-  R41P REG_BAAD (
-      .CP (s_aluclk),
+  R41P_EN #(.USE_ENABLE(ALUCLK_CE)) REG_BAAD (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
+      .CP(s_aluclk),
       .A  (s_gates13_out),
       .B  (s_gates14_out),
       .C  (s_gates7_out),
@@ -830,7 +868,9 @@ module CGA_CPU_ALU_CONTR (
       .QDN()
   );
 
-  R81 CONTR_REG (
+  R81_EN #(.USE_ENABLE(ALUCLK_CE)) CONTR_REG (
+      .sysclk(sysclk),
+      .EN(ALUCLK_EN),
       .CP(s_aluclk),
       .A (s_isel1_n),
       .B (s_isel0_n),

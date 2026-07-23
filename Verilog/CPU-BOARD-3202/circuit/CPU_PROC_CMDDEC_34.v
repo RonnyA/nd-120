@@ -8,6 +8,9 @@
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 module CPU_PROC_CMDDEC_34 (
+    input wire       sysclk,  //! FPGA system clock (FF-mode clock-enable capture)
+    input wire       CLK_EN,  //! CLK-rise clock-enable pulse (FPGA_FF_MODE, else 0)
+
     input wire       CGABRK_n,
     input wire       CLK,
     input wire [4:0] CSCOMM_4_0,
@@ -35,6 +38,15 @@ module CPU_PROC_CMDDEC_34 (
 );
 
 
+  // P2 clock-domain conversion (docs/plan-fix-unconstrained-clocks.md): these
+  // PALs register on CLK and sample the converted-domain microword
+  // CSCOMM/CSMIS and IDB - part of the coupled clock group.
+`ifdef FPGA_FF_MODE
+  localparam CLK_CE = 1;
+`else
+  localparam CLK_CE = 0;
+`endif
+
   /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
@@ -52,7 +64,12 @@ module CPU_PROC_CMDDEC_34 (
    *******************************************************************************/
 
   //
-  PAL_44407A PAL_44407_UERFIX (
+  PAL_44407A_EN #(
+      .USE_ENABLE(CLK_CE)
+  ) PAL_44407_UERFIX (
+      .sysclk(sysclk),  // FPGA system clock (USE_ENABLE=1)
+      .EN(CLK_EN),      // CLK-rise clock-enable pulse (USE_ENABLE=1)
+
       .CK  (CLK),  // Clock signal
       .OE_n(PD1),  // OUTPUT ENABLE (active-low) for Q0-Q3
 
@@ -80,7 +97,12 @@ module CPU_PROC_CMDDEC_34 (
   // Using the previois PAL_44408B instead
 
   // PAL_44408B VEXFIX
-  PAL_44408B PAL_44408B_VEXFIX (
+  PAL_44408B_EN #(
+      .USE_ENABLE(CLK_CE)
+  ) PAL_44408B_VEXFIX (
+      .sysclk(sysclk),  // FPGA system clock (USE_ENABLE=1)
+      .EN(CLK_EN),      // CLK-rise clock-enable pulse (USE_ENABLE=1)
+
       .CK  (CLK),  // Clock signal
       .OE_n(PD1),  // OUTPUT ENABLE (active-low) for Q0-Q5
 
@@ -105,7 +127,12 @@ module CPU_PROC_CMDDEC_34 (
   );
 
   // PAL_44511_ULEV0
-  PAL_44511A PAL_44511_ULEV0 (
+  PAL_44511A_EN #(
+      .USE_ENABLE(CLK_CE)
+  ) PAL_44511_ULEV0 (
+      .sysclk(sysclk),  // FPGA system clock (USE_ENABLE=1)
+      .EN(CLK_EN),      // CLK-rise clock-enable pulse (USE_ENABLE=1)
+
       .CK  (CLK),  // Clock signal
       .OE_n(PD1),  // OUTPUT ENABLE (active-low) for Q0-Q3
 

@@ -54,8 +54,19 @@ module Am9150 (
 
   /*******************************************************************************
    ** Memory array using block RAM                                               **
+   **                                                                            **
+   ** yosys: the asynchronous read on data_out (assign below) cannot map to a   **
+   ** BSRAM, and yosys treats ram_style="block" as a hard requirement ("ERROR:  **
+   ** no valid mapping") where Vivado/Gowin EDA treat it as advisory and fall   **
+   ** back. 1024x4 = 4 Kbit as distributed LUT RAM (~256 LUT4); one instance    **
+   ** in the design (MMU cache CHIP_21F). yosys pre-defines YOSYS, so every     **
+   ** other flow (Vivado, Gowin EDA, Verilator, iverilog) is untouched.         **
    *******************************************************************************/
+`ifdef YOSYS
+  (* ram_style = "distributed" *) reg [3:0] am_memory_array[0:1023];
+`else
   (* ram_style = "block" *) reg [3:0] am_memory_array[0:1023];
+`endif
 
 
   // Read, write and reset operations

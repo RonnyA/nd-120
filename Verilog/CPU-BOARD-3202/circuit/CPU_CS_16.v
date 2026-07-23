@@ -60,7 +60,7 @@ module CPU_CS_16 (
    ** The wires are defined here                                                 **
    *******************************************************************************/
   wire [ 3:0] s_ew_3_0_n;
-  wire [63:0] s_csbits_out_wcs;  // out from WCS
+  wire [63:0] s_csbits_out_wcs;  // out from WCS — actual microcode word CPU executes
   wire [63:0] s_csbits_out_tcv;  // out from TCV
 
   wire [15:0] s_IDB_15_0_prom_out;
@@ -69,7 +69,7 @@ module CPU_CS_16 (
 
   wire [ 3:0] s_ww3_0_n;
   wire [ 3:0] s_WU_3_0_n;
-  wire [12:0] s_LUA_12_0;
+  (* mark_debug = "true", DONT_TOUCH = "true" *) wire [12:0] s_LUA_12_0;
 
   wire [11:0] s_uua;
   wire        s_elow_n;
@@ -184,6 +184,7 @@ module CPU_CS_16 (
 
   CPU_CS_ACAL_17 ACAL (
       // Input signals
+      .sysclk(sysclk),
       .CLK(CLK),
       .CSA_12_0(CSA_12_0[12:0]),
       .CSCA_9_0(CSCA_9_0[9:0]),

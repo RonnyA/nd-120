@@ -11,6 +11,8 @@
 module IO_DCD_38 (
     input sysclk,    // System clock in FPGA
     input sys_rst_n, // System reset in FPGA
+    input CLK_EN,      // CLK rise clock-enable pulse (FPGA_FF_MODE, else 0)
+    input CLK_FALL_EN, // CLK fall clock-enable pulse (FPGA_FF_MODE, else 0)
 
     input       BDRY50_n,
     input       BRK_n,
@@ -346,7 +348,7 @@ module IO_DCD_38 (
 
   // Test signals
   wire TESTE;
-  assign TESTE = 1'b1;  // <=== TEST ENABLE (?) Must be 1 for normal operation
+  assign TESTE = 1'b0;  // Tied to GND on production PCB (TESTE=1 = factory test mode, runs timers 64x faster)
 
   //wire XTESTO;
 
@@ -359,7 +361,18 @@ module IO_DCD_38 (
   // Calculate OSC signal
   assign s_osc_inp1 = ~(s_XTAL1 & s_oc1 & s_oc0);  // Chip 10F
   assign s_osc_inp2 = ~(s_oc0_n & s_oc1_and_xtal2_n);
+`ifdef VERILATOR_SIM
   assign s_osc = ~(s_osc_inp1 & s_osc_inp2);
+`else
+  // FPGA: OSC must be a CLEAN clock net, not a combinational LUT decode. The
+  // memory controller (PAL_44902A) clocks the whole DRAM state machine on OSC,
+  // while the BRAM + address latches clock on the BUFG sysclk. A LUT-generated
+  // OSC is phase-shifted from sysclk and can glitch on the oc0/oc1/XTAL edges ->
+  // the state machine mis-clocks and every memory read returns a fixed value.
+  // On the FPGA XTAL1 = XTAL2 = clk1 = clk_cpu (BUFG), so the clock select is
+  // moot; drive OSC straight from that clean net so OSC == sysclk == clk_cpu.
+  assign s_osc = s_XTAL1;
+`endif
 
   // The AND is done in a 74321 chip (Positive NAND Schmitt Trigger)
   assign s_oc1_and_xtal2_n = ~(s_oc1 & s_XTAL2);
@@ -377,12 +390,29 @@ module IO_DCD_38 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+  // PPOSC baud-rate reference always derived from sysclk (100MHz/8 = 12.5MHz),
+  // NOT from XTAL1/clk1, so the UART speed is unaffected by SW2 clock divider.
+`ifdef FPGA_FF_MODE
+  // P3 (docs/plan-fix-unconstrained-clocks.md): the two ripple 74393s made
+  // s_div_16 / s_XRTOSC register-driven clock roots. One synchronous 8-bit
+  // counter is bit-exact to the cascade (the second counter incremented on
+  // the s_div_16 fall = bits[3:0] wrap = bit 4 of a plain binary counter),
+  // only shifted from negedge to posedge sysclk.
+  reg [7:0] r_rt_cnt;
+  always @(posedge sysclk) begin
+    if (s_closc) r_rt_cnt <= 8'd0;
+    else r_rt_cnt <= r_rt_cnt + 8'd1;
+  end
+  assign s_pposc  = r_rt_cnt[2];  // period 8 sysclk (12.5MHz at 100MHz, for UART)
+  assign s_div_16 = r_rt_cnt[3];
+  assign s_XRTOSC = r_rt_cnt[7];  // period 256 sysclk -> RTOSC to DGA
+`else
   TTL_74393 CHIP_13C_1 (
-      .CLK_n(s_XTAL1),
+      .CLK_n(sysclk),
       .RESET(s_closc),
       .QA(),
       .QB(),
-      .QC(s_pposc),  // Signal PPOSC leaving DCD (4.9152 Mhz clock for UART) (Div8)
+      .QC(s_pposc),  // Signal PPOSC leaving DCD (100MHz/8 = 12.5MHz for UART)
       .QD(s_div_16)
   );
 
@@ -394,12 +424,17 @@ module IO_DCD_38 (
       .QC(),
       .QD(s_XRTOSC)  // Signal RTOSC going to DGA (153.6Khz)
   );
+`endif
 
 
 
 
 
   DECODE_DGA DGA (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .XCLK_EN(CLK_EN),           // P2 clock-enable (CLK rise, FPGA_FF_MODE)
+      .XCLK_FALL_EN(CLK_FALL_EN), // P2 clock-enable (CLK fall, FPGA_FF_MODE)
       /** INPUT **/
 
       .XBDN(s_bdry50_n),
