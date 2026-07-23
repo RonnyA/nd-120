@@ -37,6 +37,7 @@
 
 #include "NDBus.h"
 #include "NDDevices.h"
+#include "NDConsoleScript.h"   // runtime OPCOM script override (ND120_SCRIPT / ND120_SCRIPT_FILE)
 
 // Save the original terminal settings
 struct termios orig_termios;
@@ -165,6 +166,13 @@ static unsigned g_last_csa = 0xFFFFu;
 // program owns the console).
 #define SCRIPT_CMD "1560&help\r"
 #endif
+#ifdef SCRIPT_CMD_FBOOTCFG
+// -DSCRIPT_CMD_FBOOTCFG: boot the floppy test program (TPE Monitor) from
+// 1560, then drive its configure tool: 'config' <enter>, 'run' <enter>.
+// The injector holds after '&' until the boot completes, then types the
+// rest at the loaded program's prompt.
+#define SCRIPT_CMD "1560&config\rrun\r"
+#endif
 #ifdef SCRIPT_CMD_SBOOT
 // -DSCRIPT_CMD_SBOOT: boot from the SMD disk at device 1540 (octal)
 // via the microcode mass-storage loader.
@@ -190,7 +198,11 @@ static unsigned g_last_csa = 0xFFFFu;
 #ifndef SCRIPT_CMD
 #define SCRIPT_CMD "0!\r"               // override with -DSCRIPT_CMD='"20!\r"'
 #endif
-static const char *g_script = SCRIPT_CMD;  // command to run once OPCOM is up
+// Resolve the console script at RUN TIME: ND120_SCRIPT (inline, \r-escaped) or
+// ND120_SCRIPT_FILE override the compiled-in SCRIPT_CMD default. Lets any test
+// drive OPCOM (deposit/examine/boot/...) with no rebuild and no -DSCRIPT_CMD
+// quoting/PCH breakage. See simDevices/NDConsoleScript.h.
+static const char *g_script = nd_console_script_resolve(SCRIPT_CMD);  // command to run once OPCOM is up
 static int g_script_idx = 0;
 static int g_next_inject_cnt = 0;          // gate: don't send next char until this cnt
 // ND120_BINLOAD_FILE: after the script, stream this file's RAW bytes into
@@ -515,22 +527,43 @@ int main(int argc, char **argv)
 	// Under ND120_SD_STORAGE the card supplies the program, so the pre-deposit
 	// is OFF unless a file is named explicitly on the command line. Pass one
 	// (or set ND120_PRELOAD_BPUN=file) when you WANT the shortcut.
+	//
+	// SAME RULE FOR THE FLOPPY (19-JUL-2026, caught by Ronny): when a diskette
+	// is mounted (ND120_FLOPPY_IMG set, i.e. `make run-floppy`) the CPU is
+	// supposed to load the program itself with '1560&'. Pre-depositing
+	// DEBUG.BPUN there put INSTRUCTION-B in RAM before the boot ran, so the
+	// floppy boot proved nothing - exactly the contamination the SD_STORAGE
+	// guard above exists to prevent. A mounted boot medium => no default
+	// pre-deposit. Force one anyway with argv[1] or ND120_PRELOAD_BPUN.
 	const char *env_preload = getenv("ND120_PRELOAD_BPUN");
+	const char *env_floppy  = getenv("ND120_FLOPPY_IMG");      // Verilog-floppy diskette
+	const char *env_fcore   = getenv("ND120_FLOPPYCORE_IMG");  // NDDeviceCore C-floppy diskette
+	const bool floppy_mounted =
+	    (env_floppy != NULL && env_floppy[0] != '\0') ||
+	    (env_fcore  != NULL && env_fcore[0]  != '\0');
+	// ND120_PRELOAD_BPUN set-but-EMPTY = explicitly NO pre-deposit (overrides
+	// the legacy default), so any boot gate can force an empty RAM regardless
+	// of build flags.
+	const bool preload_none = (env_preload != NULL && env_preload[0] == '\0');
 	char *filename = NULL;
 	if (argc > 1)
 		filename = argv[1];
 	else if (env_preload != NULL && env_preload[0] != '\0')
 		filename = strdup(env_preload);
 #ifndef ND120_SD_STORAGE
-	else
-		filename = strdup("DEBUG.BPUN");  // legacy default (C tape / no SD)
+	else if (!floppy_mounted && !preload_none)
+		filename = strdup("DEBUG.BPUN");  // legacy default (C tape, no SD, no floppy)
 #endif
 
 	if (filename != NULL) {
 		printf("[ND120] BPUN pre-deposit into RAM: %s (debug shortcut - the CPU\n"
-		       "        did NOT load this; a tape boot of the same file proves nothing)\n",
+		       "        did NOT load this; a tape/floppy boot of the same file proves nothing)\n",
 		       filename);
 		loadfile(filename, 0, &ram_low[0], &ram_low_9[0], &ram_high[0], &ram_high_9[0]);
+	} else if (floppy_mounted) {
+		printf("[ND120] no BPUN pre-deposit: RAM starts empty, '1560&' must load the\n"
+		       "        program off the diskette itself (%s)\n",
+		       (env_floppy != NULL && env_floppy[0] != '\0') ? env_floppy : env_fcore);
 	} else {
 		printf("[ND120] no BPUN pre-deposit: RAM starts empty, '400$' must load the\n"
 		       "        program off the SD card itself\n");
@@ -1391,17 +1424,16 @@ int main(int argc, char **argv)
 				g_last_csa = top->CSA_12_0;
 			}
 #endif
-			// post-boot cycle budget; ND120_SCRIPT_BUDGET overrides (a
-			// booted program that must also answer typed commands needs
-			// more room than the default)
-			static long s_script_budget = 0;
-			if (s_script_budget == 0)
+			// post-boot cycle budget: NO default cap - the runner runs forever
+			// unless a budget is EXPLICITLY given on the command line via
+			// ND120_SCRIPT_BUDGET (=cycles to run after boot). Unset => no limit.
+			static long s_script_budget = -1;   // -1 = not yet read
+			if (s_script_budget == -1)
 			{
-				s_script_budget = 40000000;
-				if (const char *e = getenv("ND120_SCRIPT_BUDGET"))
-					s_script_budget = atol(e);
+				const char *e = getenv("ND120_SCRIPT_BUDGET");
+				s_script_budget = e ? atol(e) : 0;   // 0 => run forever
 			}
-			if (cnt > g_boot_done_cnt + 200000 + s_script_budget)
+			if (s_script_budget > 0 && cnt > g_boot_done_cnt + 200000 + s_script_budget)
 			{
 #ifdef TRACE_CSA
 				if (g_csa_fp) { fclose(g_csa_fp); g_csa_fp = nullptr; }

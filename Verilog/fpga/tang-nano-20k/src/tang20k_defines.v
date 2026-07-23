@@ -44,6 +44,13 @@
 // tb: sdram-bridge/sim test-storage-port.
 `define ND_STORAGE_PORT
 
+// ---- Storage device select (Ronny 19-JUL: don't carry tape+floppy at once) --
+// TANG_FLOPPY = floppy-only build (1560&, ND_FLOPPY_DMA + nd_storage FLOPPY1.IMG
+// client; NO tape). Comment it out for the DEFAULT tape-only build (400$, the
+// proven silicon config). Consumed by ND120_TANG20K_TOP.v (TANG_INC_TAPE/FLOPPY)
+// and by the SDFAT_NO_STORAGE_CHECK guard below.
+`define TANG_FLOPPY
+
 // ---- TAPE-ONLY SD-FAT reader slimming (docs/fat-reader-slimming-plan.md) ----
 // The Tang tape boot path is READ-ONLY of a contiguous boot file. These cuts
 // reclaim FPGA LUT+ALU so the OSS placer fits. They are SAFE ONLY while the SD
@@ -54,8 +61,13 @@
 //   SDFAT_NO_STORAGE_CHECK  - drop the mount-time contiguity checker
 //                             (nd_storage_fatchk.v, ~1177 LUT+ALU); the card
 //                             recipe alone guarantees a contiguous boot image.
-//                             Mount M_CHK passes straight through. ENABLED.
+//                             Mount M_CHK passes straight through. ENABLED FOR
+//                             TAPE ONLY - a floppy build (TANG_FLOPPY) needs the
+//                             contiguity gate back (random access), so the cut
+//                             is guarded off there.
+`ifndef TANG_FLOPPY
 `define SDFAT_NO_STORAGE_CHECK
+`endif
 
 //   SDFAT_NO_LFN            - strip VFAT long-filename parsing in
 //                             sd_file_reader.v (~1800 LUT+ALU); files matched

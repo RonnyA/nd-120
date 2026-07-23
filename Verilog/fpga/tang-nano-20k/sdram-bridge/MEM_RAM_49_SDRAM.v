@@ -14,14 +14,16 @@
 **   N+5 : RAS falls, CAS tail one more cycle                            **
 **   Next access no earlier than N+11.                                   **
 **                                                                       **
-** Capacity: 2M x 18-bit words = BANK0 + BANK1 (1M words each) = 4 MB.   **
-** BANK2 is not populated: never written, reads as 0, so the ND-120's    **
-** boot-time memory sizing simply detects two banks.                     **
+** Capacity: 2M x 18-bit words = BANK0 + BANK2 (1M words each) = 4 MB.   **
+** BANK1 is not populated: never written, reads as 0, so the ND-120's    **
+** boot-time memory sizing simply detects two banks. (The board PAL      **
+** decodes phys banks in the order BANK0,BANK2,BANK1 - so the CONTIGUOUS  **
+** second 2 MB is BANK2, and BANK0+BANK2 is the real 4 MB; see line 373.) **
 **                                                                       **
 ** ND_SDRAM_PACK16 (docs/nd120-parity-refactor-order.md, semantics       **
 ** pinned by docs/nd120-parity-analysis.md): only the 16 DATA bits are   **
 ** stored, two adjacent ND words per 32-bit SDRAM location, so           **
-** BANK0+BANK1 (still the full 4 MB, boot sizing unchanged) fold into    **
+** BANK0+BANK2 (still the full 4 MB, boot sizing unchanged) fold into    **
 ** the LOWER half of the chip (location bit 20 = 0); the upper half is   **
 ** RESERVED for the nd_storage disk-image cache (nd-storage-design.md    **
 ** section 5.2). Parity is COMPUTED on the read path (DD[8]/DD[17]       **
@@ -77,10 +79,10 @@ module MEM_RAM_49_SDRAM #(
 
     input [9:0] AA_9_0,
     input       BANK0,
-    input       BANK1,
     /* verilator lint_off UNUSEDSIGNAL */
-    input       BANK2,  // not populated in the SDRAM backend (2M words = 2 banks)
+    input       BANK1,  // absent third 1M bank (phys 2M-3M); not populated here
     /* verilator lint_on UNUSEDSIGNAL */
+    input       BANK2,  // 2nd populated 1M bank: PAL decodes phys 1M-2M here
 
     input CAS,
     input RAS,
@@ -273,8 +275,8 @@ module MEM_RAM_49_SDRAM #(
   reg       ras_d;
   reg [9:0] row_q;
   reg       wn_q;    // 1 = read (MWRITE50_n high)
-  reg       bsel_q;  // access hits a populated bank (BANK0/BANK1)
-  reg       bank_q;  // 0 = BANK0, 1 = BANK1
+  reg       bsel_q;  // access hits a populated bank (BANK0/BANK2)
+  reg       bank_q;  // 0 = BANK0, 1 = BANK2 (the 2nd populated 1M bank)
   reg [2:0] wcnt_q;  // write-data settle counter (capture late in the window)
 
   reg [17:0] dd_hold;
@@ -370,11 +372,16 @@ module MEM_RAM_49_SDRAM #(
 `ifdef ND_SDRAM_PACK16
             // partition check at row granularity: rows beyond the CPU's share
             // behave exactly like an unpopulated bank (B_TAIL path)
-            bsel_q    <= (BANK0 | BANK1) && ({BANK1, AA_9_0} < CPU_PART_ROWS[11:0]);
+            // NOTE: the board decode PAL (PAL_44445B) wires the three 1M-word
+            // banks in physical-address order BANK0, BANK2, BANK1 - so the
+            // CONTIGUOUS second 2 MB (phys words 1M-2M) is decoded as BANK2,
+            // not BANK1. The two populated SDRAM regions must therefore be
+            // BANK0 + BANK2 (BANK1 = the absent third bank at 2M-3M).
+            bsel_q    <= (BANK0 | BANK2) && ({BANK2, AA_9_0} < CPU_PART_ROWS[11:0]);
 `else
-            bsel_q    <= BANK0 | BANK1;
+            bsel_q    <= BANK0 | BANK2;
 `endif
-            bank_q    <= BANK1;
+            bank_q    <= BANK2;
             have_data <= 0;
             idle_cnt  <= 0;
             bstate    <= B_COLWAIT;
@@ -405,7 +412,7 @@ module MEM_RAM_49_SDRAM #(
 
         B_COL: begin  // 2N+3: AA carries the column
           if (!bsel_q) begin
-            bstate <= B_TAIL;  // BANK2 / no bank: not populated, do nothing
+            bstate <= B_TAIL;  // BANK1 / no bank: not populated, do nothing
           end else if (!s_busy) begin
 `ifdef ND_SDRAM_PACK16
             // ND word address as a HALF-WORD index into the low half of the

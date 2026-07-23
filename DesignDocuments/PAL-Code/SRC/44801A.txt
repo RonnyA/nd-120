@@ -27,8 +27,8 @@ GNT := BRQ50 * /REFRQ50 * /CRQ   * /REF * /CACT * /SEM * /BDRY25 * /MR  ; 3
 
 ; IOD - IO SIGNAL TO LAST FOR THE ENTIRE BUS CYCLE
 
-IOD := IORQ * CRQ * /REFRQ50 * /BRQSO * /REF * /GNT * /SEM * /BDRY25 * /MR  ; 4
-     + IORQ * CRQ * /REFRQSO * DOREF  * /REF * /GNT * /SEM * /BDRY25 * /MR  ; 2
+IOD := IORQ * CRQ * /REFRQ50 * /BRQ50 * /REF * /GNT * /SEM * /BDRY25 * /MR  ; 4
+     + IORQ * CRQ * /REFRQ50 * DOREF  * /REF * /GNT * /SEM * /BDRY25 * /MR  ; 2
      + IOD * /BDRY25 * /MR                                                  ; HOLD
      + IORQ * CRQ * SEM * /GNT * /BDRY25 * /MR                              ; SEMAPHORE
 

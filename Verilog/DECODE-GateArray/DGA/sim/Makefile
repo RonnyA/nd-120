@@ -53,4 +53,15 @@ F595_tb: F595_tb.v $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F595.v
 test-f595: F595_tb
 	./F595_tb
 
-.PHONY: test-f595
+# Transparency regression (Tang boot-hang class): F595 FPGA branch must be a
+# zero-latency transparent latch, not a lagging FF. Compiled without
+# VERILATOR_SIM so it exercises the FPGA (else) branch. FAILS on the old lagging
+# FF, PASSES on the transparent-latch fix.
+F595_transparency_tb: F595_transparency_tb.v $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F595.v
+	$(IVERILOG) -g2012 -I$(VERILOG_ROOT)/Shared/logisim -I$(VERILOG_ROOT)/Shared/ndlib -I$(VERILOG_ROOT)/Shared/support -o $@ $^
+
+test-f595-transparency: F595_transparency_tb
+	./F595_transparency_tb | tee f595tr_result.tmp
+	@grep -q "TB_RESULT: PASS" f595tr_result.tmp && rm -f f595tr_result.tmp
+
+.PHONY: test-f595 test-f595-transparency

@@ -268,7 +268,11 @@ module ND120_TANG20K_TOP (
   //   next-address). Captured at the 06000 hang: shows which signal is FROZEN.
   //   MCLK_EN stuck-low => word never retires (mem/CYC, case A); s_mclk_n stuck
   //   => regW mux frozen; regIW stuck 06000 vs jump target 0145 (case B).
-  wire [15:0] s_cap_src   = s_xmic_dbg;
+  // STACK-hang investigation: capture the STALLED microcode address (CSA) so we
+  // know WHERE the STACK test wedges (map to the microcode listing), the same
+  // first step that located the boot hang at CSA 06000.
+  //   bit12:0 = CSA_12_0 (octal microcode address at the stall)  bit15:13 = 0
+  wire [15:0] s_cap_src   = {3'b0, CSA_12_0[12:0]};
   wire        s_hang      = &csa_stable;
   wire        s_cap_event = ((s_pil_3_0 == 4'd10) && (pil_prev != 4'd10)) || s_hang;
   localparam [8:0] CAP_POST = 9'd32;
@@ -456,8 +460,23 @@ module ND120_TANG20K_TOP (
   wire [31:0] s_mem_wdata, s_mem_rdata;
   wire        s_mem_busy, s_mem_done;
 
+  // Storage device select: TANG_FLOPPY = floppy-only (1560&, no tape); default
+  // = tape-only (400$, the proven silicon build). Ronny: don't carry both at
+  // once - a floppy build drops the tape (saves the ND_TAPE_400 + tape-adapter
+  // resources). Applied to BOTH the core (device presence) and the SD-FAT
+  // wrapper (which client it serves).
+`ifdef TANG_FLOPPY
+  localparam TANG_INC_TAPE   = 0;
+  localparam TANG_INC_FLOPPY = 1;
+`else
+  localparam TANG_INC_TAPE   = 1;
+  localparam TANG_INC_FLOPPY = 0;
+`endif
+
   nd_tape_sdfat_source #(
-      .SIMULATE(0)  // real card: full-length SD init
+      .SIMULATE(0),                     // real card: full-length SD init
+      .INCLUDE_TAPE(TANG_INC_TAPE),
+      .INCLUDE_FLOPPY(TANG_INC_FLOPPY)
   ) TAPE_SDFAT_SOURCE (
       .clk_stor  (clk_stor),
       .rst_stor_n(rst_stor_n),
@@ -468,6 +487,21 @@ module ND120_TANG20K_TOP (
       .byte_valid   (s_tape_byte_valid),
       .byte_data    (s_tape_byte_data),
       .source_rewind(TAPE_REWIND),
+
+      // floppy disk-image backend seam (client 1 = FLOPPY1.IMG) <-> the core
+      .FDISK_REQ      (FDISK_REQ),
+      .FDISK_WR       (FDISK_WR),
+      .FDISK_LSECT    (FDISK_LSECT),
+      .FDISK_FORMAT   (FDISK_FORMAT),
+      .FDISK_DRIVE    (FDISK_DRIVE),
+      .FDISK_WORDCOUNT(FDISK_WORDCOUNT),
+      .FDISK_DONE     (FDISK_DONE),
+      .FDISK_ERR      (FDISK_ERR),
+      .FDISK_MEDIA_FMT(FDISK_MEDIA_FMT),
+      .FDBUF_ADDR     (FDBUF_ADDR),
+      .FDBUF_WDATA    (FDBUF_WDATA),
+      .FDBUF_WE       (FDBUF_WE),
+      .FDBUF_RDATA    (FDBUF_RDATA),
 
       .sd_clk_o  (s_sd_clk_o),
       .sd_cmd_i  (sd_cmd),
@@ -552,14 +586,22 @@ module ND120_TANG20K_TOP (
                                 write_seen, s_cpu_led[2], 1'b0};
   /* verilator lint_on UNUSEDSIGNAL */
 
-  // Unused seams: floppy and SMD stay out of this build (their phases).
+  // Floppy seam (1560&) is now WIRED to the SD-FAT stack (FLOPPY1.IMG via the
+  // nd_storage floppy adapter inside TAPE_SDFAT_SOURCE). SMD stays out (phase).
   wire [15:0] DMA_RDATA;
   wire        DMA_ACK, DMA_ERR, DMA_BUSY;
+  // core -> floppy backend (request)
   wire        FDISK_REQ, FDISK_WR;
   wire [15:0] FDISK_LSECT;
   wire [1:0]  FDISK_FORMAT, FDISK_DRIVE;
   wire [10:0] FDISK_WORDCOUNT;
   wire [15:0] FDBUF_RDATA;
+  // floppy backend -> core (completion + buffer fill + media format)
+  wire        FDISK_DONE, FDISK_ERR;
+  wire [3:0]  FDISK_MEDIA_FMT;
+  wire [9:0]  FDBUF_ADDR;
+  wire [15:0] FDBUF_WDATA;
+  wire        FDBUF_WE;
   wire        SDISK_START, SDISK_REQ, SDISK_WR;
   wire [15:0] SDISK_BLKADDR1, SDISK_BLKADDR2;
   wire [2:0]  SDISK_UNIT;
@@ -567,18 +609,18 @@ module ND120_TANG20K_TOP (
   wire [15:0] SDBUF_RDATA;
 
   /* verilator lint_off UNUSEDSIGNAL */
+  // FDISK_*/FDBUF_* are now used (floppy wired). External DMA test-client port
+  // and the SMD seam stay unused in this build.
   wire unused_core_seam = &{1'b0, DMA_RDATA,
-                            DMA_ACK, DMA_ERR, DMA_BUSY, FDISK_REQ, FDISK_WR,
-                            FDISK_LSECT, FDISK_FORMAT, FDISK_DRIVE,
-                            FDISK_WORDCOUNT, FDBUF_RDATA, SDISK_START,
+                            DMA_ACK, DMA_ERR, DMA_BUSY, SDISK_START,
                             SDISK_REQ, SDISK_WR, SDISK_BLKADDR1,
                             SDISK_BLKADDR2, SDISK_UNIT, SDISK_WORDCOUNT,
                             SDBUF_RDATA, 1'b0};
   /* verilator lint_on UNUSEDSIGNAL */
 
   ND120_CORE #(
-      .INCLUDE_TAPE  (1),
-      .INCLUDE_FLOPPY(0),
+      .INCLUDE_TAPE  (TANG_INC_TAPE),
+      .INCLUDE_FLOPPY(TANG_INC_FLOPPY),
       .INCLUDE_SMD   (0)
   ) CORE (
       .clk_cpu(clk_cpu),  // CPU core, OSC and bus all on 27 MHz
@@ -641,12 +683,12 @@ module ND120_TANG20K_TOP (
       .FDISK_FORMAT(FDISK_FORMAT),
       .FDISK_DRIVE(FDISK_DRIVE),
       .FDISK_WORDCOUNT(FDISK_WORDCOUNT),
-      .FDISK_DONE(1'b0),
-      .FDISK_ERR(1'b0),
-      .FDISK_MEDIA_FMT(4'd0),
-      .FDBUF_ADDR(10'd0),
-      .FDBUF_WDATA(16'd0),
-      .FDBUF_WE(1'b0),
+      .FDISK_DONE(FDISK_DONE),
+      .FDISK_ERR(FDISK_ERR),
+      .FDISK_MEDIA_FMT(FDISK_MEDIA_FMT),
+      .FDBUF_ADDR(FDBUF_ADDR),
+      .FDBUF_WDATA(FDBUF_WDATA),
+      .FDBUF_WE(FDBUF_WE),
       .FDBUF_RDATA(FDBUF_RDATA),
 
       .SDISK_START(SDISK_START),

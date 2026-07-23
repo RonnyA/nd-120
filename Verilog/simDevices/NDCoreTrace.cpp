@@ -81,6 +81,30 @@ void ndcore_trace(void *ctx, uint16_t evt, uint32_t a, uint32_t b, uint32_t c)
                a, (unsigned long)b, (unsigned long)c);
         return;
 
+    case ND_TRACE_FLP_GO:
+        // GO: the CPU handed us a command-block address; we are about to DMA
+        // the 12-word command block from ND memory.
+        printf("[ndcore] FLP GO      command-block @ %06o (ND word addr)\r\n", a);
+        return;
+
+    case ND_TRACE_FLP_COMMAND:
+        // The DECODED command block: a=raw command word (func 0-5, drive 6-7,
+        // format 8-9), b=disk address (LBA / sector number), c=words to move.
+        // This is EXACTLY what the CPU asked the floppy to do.
+        printf("[ndcore] FLP COMMAND word=%06o  func=%02o drive=%lu format=%lu  LBA=%lu  words=%lu\r\n",
+               a, (unsigned)(a & 077u),
+               (unsigned long)((a >> 6) & 3u), (unsigned long)((a >> 8) & 3u),
+               (unsigned long)b, (unsigned long)c);
+        return;
+
+    case ND_TRACE_FLP_PHASE:
+        // Where that command lands: a=target ND memory word addr, b=media BYTE
+        // position (LBA*bytes-per-sector), c=bytes/sector. If b runs past the
+        // image size, the read is reaching off the end of the diskette.
+        printf("[ndcore] FLP PHASE   mem@ %06o  media byte-pos %lu  bytes/sector %lu\r\n",
+               a, (unsigned long)b, (unsigned long)c);
+        return;
+
     case ND_TRACE_FLP_BOOT_ENTER:
         printf("[ndcore] FLP autoload ENTER (unit %lu) - PIO byte server, no DMA\r\n",
                (unsigned long)a);

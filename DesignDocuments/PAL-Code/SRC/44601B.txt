@@ -49,7 +49,7 @@ CC0 := /CC3 * /CC2 * /CC1 * /TERM                               ; a+b+f+i+j+m+N
      + /CC3 * CC2 * CC1 * CC0 * /TERM
      + CC3 * CC2 * /CC1 * /TERM
      + CC3 * /CC2 * CC1 * /TERM
-     + /CC3 * CC2 * CC1 * /CC0 * CGNTCACT * /TERM               ; e WAIT FOR BUS OF LOC
+     + /CC3 * CC2 * CC1 * /CC0 * /CGNTCACT * /TERM              ; e WAIT FOR BUS OR LOC
      + /CC3 * CC2 * CC1 * /CC0 * BRK * /TERM                    ; e MEM CYCLE TO FINISH
      + /CC3 * CC2 * CC1 * /CC0 * /WAIT2 * /TERM                 ; e IF WAIT2 and NOT BRK
      + /CC3 * /CC2 * CC1 * CC0 * CGNTCACT * /BRK * /TERM        ; e PREV WRITE

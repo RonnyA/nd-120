@@ -406,6 +406,7 @@ void process_verilog_tape(VND120_TOP *top)
 ** size; sector size by format: 0=512, 1=256, 2=128, 3=1024 bytes
 ** (nd100x deviceFloppyDMA). One word moves per half-clock call. */
 static FILE *vflp_file = 0;
+static int vflp_dbg = (getenv("ND120_FLOPPY_DEBUG") != 0);
 static int vflp_prev_req = 0;
 static int vflp_state = 0;    // 0 idle, 1 read-stream, 2 write-addr, 3 write-take, 4 read-tail
 static long vflp_pos = 0;
@@ -461,8 +462,19 @@ void process_verilog_floppy(VND120_TOP *top)
 		vflp_words = top->FDISK_WORDCOUNT;
 		vflp_idx = 0;
 
+		// ND120_FLOPPY_DEBUG=1 traces every backend sector request so a silent
+		// boot hang shows WHICH sector the device asked for and whether it was
+		// served (the boot microcode polls ready forever with no timeout, so
+		// without this a stall is invisible).
+		if (vflp_dbg)
+			printf("[flpdbg] REQ %s lsect=%d fmt=%d wc=%d -> byte pos %ld\n",
+			       top->FDISK_WR ? "WRITE" : "READ", (int)top->FDISK_LSECT,
+			       (int)top->FDISK_FORMAT, (int)top->FDISK_WORDCOUNT, vflp_pos);
+
 		if (vflp_file == 0 || fseek(vflp_file, vflp_pos, SEEK_SET) != 0)
 		{
+			if (vflp_dbg)
+				printf("[flpdbg]   SEEK FAILED (file=%p) -> FDISK_ERR\n", (void *)vflp_file);
 			top->FDISK_ERR = 1;
 			top->FDISK_DONE = 1;
 			vflp_done_ticks = 2;
@@ -500,6 +512,9 @@ void process_verilog_floppy(VND120_TOP *top)
 	}
 	else if (vflp_state == 4) // read tail: drop WE, pulse done
 	{
+		if (vflp_dbg)
+			printf("[flpdbg]   served %d words, first=%06o -> FDISK_DONE\n",
+			       vflp_idx, (unsigned)top->FDBUF_WDATA);
 		top->FDBUF_WE = 0;
 		top->FDISK_DONE = 1;
 		vflp_done_ticks = 2;

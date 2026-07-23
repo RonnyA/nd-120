@@ -7,11 +7,11 @@ CLK CSDELAY1 CSALUM1 CSALUM0 CSALUI8 CSALUI7 LBA3 LBA1 LBA0 GND
 
 ; CYCLE CONTROL INPUT GENERATOR. PART 1.
 
-IF (VCC) DLY1 = CSDELAY1 * /LBA3 * LBA1 * LBAO      ; 2S5NS DELAY OF PREVIOUS CYC
+IF (VCC) DLY1 = CSDELAY1 * /LBA3 * LBA1 * LBA0      ; 25NS DELAY OF PREVIOUS CYC
               + RRF * SLCOND                        ; ON MICROCODE REQUEST IN AD
                                                     ; DLY0. NB.! MUST ALSO HAVE
                                                     ; OF LONG COMPUTATION TIME.
-                                                    ; THIS DELAY 1S ONLY USED WH
+                                                    ; THIS DELAY IS ONLY USED WH
                                                     ; IS USED
                                                     ; FOR ADDRESS COMPUTATION IN
 

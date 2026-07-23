@@ -129,7 +129,7 @@ endif
 # -I.. = the Verilog root, where ND120_CORE.v (instantiated by ND120_TOP.v) lives
 VERILATOR_DIRS = -I.. $(TOP_3202D_COMPONENTS) $(CGA_COMPONENTS) $(DGA_COMPONENTS) $(BUSDEV_COMPONENTS) $(SDFAT_COMPONENTS) -I../PAL
 # Specify C++ source files here
-CPP_SOURCES = Run120.cpp ../simDevices/NDDevices.cpp ../simDevices/NDBus.cpp
+CPP_SOURCES = Run120.cpp ../simDevices/NDDevices.cpp ../simDevices/NDBus.cpp ../simDevices/NDConsoleScript.cpp
 
 # DEVICECORE=1 - the NDDeviceCore RTL EQUIVALENCE GATE (default 0 = OFF, the
 #            default build is byte-for-byte unaffected). Compiles the PORTABLE
@@ -260,6 +260,22 @@ help:
 	@echo "                    a bootable diskette image; type 1560& at the '#'"
 	@echo "                    prompt to boot it - the loaded program then owns the"
 	@echo "                    console (type help etc. at ITS prompt)"
+	@echo ""
+	@echo "  --- NDDeviceCore C-core interactive runs (the code the Pico runs) ---"
+	@echo "  make run-tpe      Boot the TPE Monitor diskette (TPE_IMG=FLOPPY1.IMG)"
+	@echo "                    through the PORTABLE C floppy core. PURE MANUAL - no"
+	@echo "                    scripted keys; YOU type 1560& to boot and drive it."
+	@echo "                    SLOW: wait a few minutes for '==TPE42=>'. The 'clock"
+	@echo "                    is not updated' msg is EXPECTED (no 6805 panel)."
+	@echo "                    REUSES an up-to-date binary; after editing source use:"
+	@echo "  make run-tpe-rebuild  force a clean floppy-core recompile, then run."
+	@echo "  make run-tpe-auto Same boot, UNATTENDED/scripted (auto-types 1560&"
+	@echo "                    config<CR>run<CR>) - the only target that injects keys."
+	@echo "  make run-rtc      Pre-deposit RTC.BPUN (RTC_BPUN=) + start at octal 20 -"
+	@echo "                    a standalone 20ms level-13 clock diagnostic."
+	@echo "  make run-tpe-trace  Like run-tpe (manual) + ND120_CORE_TRACE=1: prints"
+	@echo "                    every floppy IOX / DMA / storage op ([ndcore] lines)"
+	@echo "                    so you can see what TPE sends the floppy and gets back."
 	@echo "  make clean        remove obj_dir (do this when switching build flags)"
 	@echo ""
 	@echo "Variables:"
@@ -291,9 +307,18 @@ help:
 	@echo "                    test-program diskette in ND-BUS-DEVICES/testdata)"
 	@echo "  SKIP_WCS=1        preload the WCS, skip the microcode load phase"
 	@echo ""
+	@echo "  TPE_IMG=path      diskette for run-tpe / run-tpe-auto (default FLOPPY1.IMG)"
+	@echo "  RTC_BPUN=path     program for run-rtc (default RTC.BPUN)"
+	@echo ""
 	@echo "Environment at run time:"
 	@echo "  ND120_FLOPPY_IMG  floppy image file (what run-floppy sets for you)"
+	@echo "  ND120_FLOPPYCORE_IMG  diskette for the C floppy core (run-tpe sets it)"
 	@echo "  ND120_SMD_IMG     SMD disk-0 image file (no default = drive not ready)"
+	@echo ""
+	@echo "Run limits are OPT-IN, command line ONLY (never a default cap):"
+	@echo "  ND120_MAX_CNT=N       stop after N total cycles"
+	@echo "  ND120_SCRIPT_BUDGET=N stop N cycles after boot (script/interactive builds)"
+	@echo "  unset => run FOREVER until Ctrl-C"
 	@echo ""
 	@echo "System gates live in the top-level Verilog/Makefile: make test,"
 	@echo "test-full, test-tape, test-dma-rtl, test-floppy-boot, test-smd-boot."
@@ -416,5 +441,70 @@ run-floppy:
 	$(MAKE) compile VERILOG_TAPE=1 SD_STORAGE=0
 	ND120_PRELOAD_BPUN=$(FS_BPUN) ND120_FLOPPY_IMG=$(FLOPPY_IMG) ./obj_dir/VND120_TOP
 
+# ---- NDDeviceCore C-core interactive runs (the portable RP2350 device cores) --
+# These build the PORTABLE C device cores (VERILOG_TAPE=0, DEVICECORE=1) and boot
+# a real image THROUGH them, so you exercise the SAME .c code the Pico runs. No
+# cycle cap - they run until you Ctrl-C. To cap a run, pass a limit on the command
+# line ONLY: ND120_SCRIPT_BUDGET=N (cycles after boot) or ND120_MAX_CNT=N.
+#
+#   run-tpe       Boot the TPE Monitor diskette (TPE_IMG) through the C floppy
+#                 core - PURE MANUAL, NO scripted keypresses. YOU type '1560&' at
+#                 the '#' prompt to boot, then drive the whole session yourself.
+#                 TPE is SLOW (its panel-clock probe runs ~a few minutes before
+#                 '==TPE42=>'). The 'clock is not updated' message is EXPECTED
+#                 (the MM58274/MC68705 calendar panel is an RTL stub, IO_PANCAL_40).
+#   run-tpe-auto  Same boot but UNATTENDED / scripted: auto-types
+#                 '1560&config<CR>run<CR>' (the ONLY target that injects keys).
+#   run-rtc       Pre-deposit the RTC.BPUN clock diagnostic and start it at octal
+#                 20 - a standalone check of the 20ms level-13 clock (prints
+#                 'CLOCK TEST NORD-100' + an 'A' liveness stream when healthy).
+# Override the image/program with e.g. `make run-tpe TPE_IMG=path/to.img`.
+TPE_IMG  ?= FLOPPY1.IMG
+RTC_BPUN ?= RTC.BPUN
 
-.PHONY: all clean run run-c run-sim run-floppy
+# run-tpe REUSES an existing clean floppy-core binary instead of re-running
+# Verilator every time: it only (re)builds when obj_dir/VND120_TOP is missing or
+# was built with different flags (e.g. an injector/-DSCRIPT_INPUT build, or a
+# non-floppy build). It does NOT detect SOURCE edits - after changing .c/.v code
+# run `make run-tpe-rebuild` to force a fresh compile.
+run-tpe:
+	@if [ -x obj_dir/VND120_TOP ] && grep -q ND120_DEVICECORE_FLOPPY obj_dir/.buildflags 2>/dev/null && ! grep -q SCRIPT_INPUT obj_dir/.buildflags 2>/dev/null; then \
+	  echo "==> run-tpe: reusing obj_dir/VND120_TOP (run 'make run-tpe-rebuild' after editing source)"; \
+	else \
+	  echo "==> run-tpe: building the clean floppy-core binary (no injector)"; \
+	  $(MAKE) compile VERILOG_TAPE=0 SD_STORAGE=0 DEVICECORE=1 DEVICECORE_FLOPPY=1; \
+	fi
+	ND120_FLOPPYCORE_IMG=$(TPE_IMG) ./obj_dir/VND120_TOP
+
+# Force a clean floppy-core recompile then run (use after editing source).
+run-tpe-rebuild:
+	$(MAKE) compile VERILOG_TAPE=0 SD_STORAGE=0 DEVICECORE=1 DEVICECORE_FLOPPY=1
+	ND120_FLOPPYCORE_IMG=$(TPE_IMG) ./obj_dir/VND120_TOP
+
+run-tpe-auto:
+	$(MAKE) compile VERILOG_TAPE=0 SD_STORAGE=0 DEVICECORE=1 DEVICECORE_FLOPPY=1 \
+	        EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_FBOOTCFG"
+	ND120_FLOPPYCORE_IMG=$(TPE_IMG) ./obj_dir/VND120_TOP
+
+run-rtc:
+	$(MAKE) compile VERILOG_TAPE=1 SD_STORAGE=0 \
+	        EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_20"
+	ND120_PRELOAD_BPUN=$(RTC_BPUN) ./obj_dir/VND120_TOP
+
+# run-tpe-trace: identical to run-tpe (PURE MANUAL, you type 1560&) but with the
+# NDDeviceCore floppy trace ON (ND120_CORE_TRACE=1). Every IOX read/write, the
+# decoded FLP-COMMAND (func / drive / LBA / word count), FLP-PHASE (media byte
+# position, bytes/sector) and STORAGE submit/done (position, bytes moved) prints
+# as [ndcore] lines, interleaved with the console. Use it to see EXACTLY what TPE
+# sends the floppy and what comes back (e.g. why LIST-FILES / LOAD-PROGRAM report
+# OUTSIDE DEVICE LIMITS - does TPE even issue a floppy command, or reject first?).
+run-tpe-trace:
+	@if [ -x obj_dir/VND120_TOP ] && grep -q ND120_DEVICECORE_FLOPPY obj_dir/.buildflags 2>/dev/null && ! grep -q SCRIPT_INPUT obj_dir/.buildflags 2>/dev/null; then \
+	  echo "==> run-tpe-trace: reusing obj_dir/VND120_TOP"; \
+	else \
+	  $(MAKE) compile VERILOG_TAPE=0 SD_STORAGE=0 DEVICECORE=1 DEVICECORE_FLOPPY=1; \
+	fi
+	ND120_FLOPPYCORE_IMG=$(TPE_IMG) ND120_CORE_TRACE=1 ./obj_dir/VND120_TOP
+
+
+.PHONY: all clean run run-c run-sim run-floppy run-tpe run-tpe-rebuild run-tpe-auto run-rtc run-tpe-trace

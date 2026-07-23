@@ -56,6 +56,7 @@ test-all: test-cyctermd test-ccd test-memaddr test-memchain test-memchain-blockr
 
 clean:
 	rm -f CYC_TERM_D_tb CYC_CC_D_tb MEM_ADDR_44_tb MEM_CHAIN_tb MEM_CHAIN_BLOCKRAM_tb MEM_CHAIN_SIM_tb *.vcd *_out.log
+	rm -f MEM_RAM_49_SIM_PARITY_tb_p0 MEM_RAM_49_SIM_PARITY_tb_p1 MEM_ERROR_47_tb_bin *_result.tmp
 
 .PHONY: test-cyctermd test-ccd test-memaddr test-memchain test-all clean
 
@@ -133,3 +134,52 @@ test-acal: CPU_CS_ACAL_17_tb
 
 CPU_CS_ACAL_17_tb: $(ACAL_SRCS)
 	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o $@ $(ACAL_SRCS)
+
+# MEM_RAM_49_SIM parity: write a deliberately-bad parity bit, read it back.
+# Runs BOTH packing modes and asserts the mode-correct behaviour:
+#   PACK16=0 -> stored parity read back, CORR_n=0 (bad parity DETECTED).
+#   PACK16=1 -> ND_SDRAM_PACK16 (the shipped sim default) RECOMPUTES parity on
+#               read, so the bad bit is discarded and CORR_n=1 (ABSORBED). This
+#               is why a parity/ECCR override no longer fires and memory is
+#               classified Mpm5 not Local. See docs/nd120-parity-analysis.md.
+test-memparity: MEM_RAM_49_SIM_PARITY_tb_p0 MEM_RAM_49_SIM_PARITY_tb_p1
+	./MEM_RAM_49_SIM_PARITY_tb_p0 | tee memparity_result.tmp
+	@grep -q "TB_RESULT: PASS" memparity_result.tmp
+	./MEM_RAM_49_SIM_PARITY_tb_p1 | tee memparity_result.tmp
+	@grep -q "TB_RESULT: PASS" memparity_result.tmp && rm -f memparity_result.tmp
+
+MEM_RAM_49_SIM_PARITY_tb_p0: MEM_RAM_49_SIM_PARITY_tb.v $(CIRCUIT)/MEM_RAM_49_SIM.v
+	$(IVERILOG) -g2012 -o $@ $^
+
+MEM_RAM_49_SIM_PARITY_tb_p1: MEM_RAM_49_SIM_PARITY_tb.v $(CIRCUIT)/MEM_RAM_49_SIM.v
+	$(IVERILOG) -g2012 -DND_SDRAM_PACK16 -o $@ $^
+
+# MEM_ERROR_47: PES/PEA error status+address capture on a local parity error
+# (PAL_45009B strobes SPESL/SPEAL, 74374 latches). Proves the error datapath
+# encodes the fields TPE reads via TRA PES / TRA PEA.
+MEMERROR_SRCS = MEM_ERROR_47_tb.v $(CIRCUIT)/MEM_ERROR_47.v $(BIF_SUPPORT)/TTL_74374.v $(PAL)/PAL_45009B.v
+
+test-memerror: MEM_ERROR_47_tb_bin
+	./MEM_ERROR_47_tb_bin | tee memerror_result.tmp
+	@grep -q "TB_RESULT: PASS" memerror_result.tmp && rm -f memerror_result.tmp MEM_ERROR_47_tb.vcd
+
+MEM_ERROR_47_tb_bin: $(MEMERROR_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(MEMERROR_SRCS)
+
+# CPU_MMU_PT_29 DETERMINISTIC REPLAY of the REAL captured VPN-63 paging setup.
+# Vectors come from sim/tpe_paging.csv (probe capture of INSTRUCTION-B's MMS-II
+# bring-up): PPN[o77]=o77, PT[o77]=162000 identity map for the 177777 top page.
+# Regression guard that the shadow/PT block RAM returns that translation through
+# its 1-clock sync-read latency. See the tb header for the honest scope.
+MMUPT_SUPPORT = ../../../Shared/support
+MMUPT_REPLAY_SRCS = CPU_MMU_PT_29_replay_tb.v $(CIRCUIT)/CPU_MMU_PT_29.v \
+                    $(MMUPT_SUPPORT)/TMM2018D_25.v $(MMUPT_SUPPORT)/IMS1403_25.v
+
+CPU_MMU_PT_29_replay_tb: $(MMUPT_REPLAY_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(MMUPT_REPLAY_SRCS)
+
+test-mmupt-replay: CPU_MMU_PT_29_replay_tb
+	./CPU_MMU_PT_29_replay_tb | tee mmupt_replay_result.tmp
+	@grep -q "TB_RESULT: PASS" mmupt_replay_result.tmp && rm -f mmupt_replay_result.tmp
+
+.PHONY: test-memparity test-memerror test-mmupt-replay

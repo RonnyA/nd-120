@@ -229,9 +229,13 @@ module ND_FLOPPY_DMA #(
   wire [31:0] s_wtr   = s_is_wc ? {8'd0, s_wc24}
                                 : ({8'd0, s_wc24} * {21'd0, s_words_per_sector});
 
-  // ---- internal sector buffer (BRAM) ----
+  // ---- internal sector buffer (single synchronous-read BSRAM block) ----
+  // Async-read arrays do NOT map to Gowin BSRAM (BSRAM-BUDGET.md Part 2), so
+  // the buffer is a simple dual-port RAM: one muxed write port, one registered
+  // read port (address muxed by engine state - see the RAM port block below
+  // the register declarations). Writes were already synchronous; dbuf_rdata is
+  // driven from the registered read there.
   reg [15:0] s_buffer[0:1023];
-  always @(*) dbuf_rdata = s_buffer[dbuf_addr];
 
   // ---- address decode ----
   wire s_addressed = (iox_addr[15:3] == BASE_ADDR[15:3]);
@@ -256,7 +260,7 @@ module ND_FLOPPY_DMA #(
     if (iox_rd && s_addressed) begin
       case (s_reg)
         // +0 outside boot mode: the C model returns the constant 0x0001
-        3'd0: iox_rdata = s_boot_active ? s_buffer[s_bootptr] : 16'd1;
+        3'd0: iox_rdata = s_boot_active ? s_buf_dout : 16'd1;
         // §3.1 Note 1 + §3.7: +2 and +4 both return the hardware status word
         3'd2: iox_rdata = s_hwstat;
         3'd4: iox_rdata = s_hwstat;
@@ -317,6 +321,36 @@ module ND_FLOPPY_DMA #(
     end
   endtask
 
+  // ---- sector-buffer RAM ports (synchronous, BSRAM-inferable) -------------
+  // WRITE port: backend fill (dbuf_we) or the E_MEM_RD DMA commit, muxed - the
+  // two are mutually exclusive engine phases. READ port: one registered read
+  // whose address follows the active consumer - E_MEM_WR walks the sector for
+  // the DMA-out, E_DISK_WR serves the backend readout (dbuf_addr), otherwise
+  // the boot-stream pointer. s_buf_valid marks s_buf_dout as current for the
+  // address requested THIS cycle (s_buf_dout holds s_buffer[s_buf_raddr_q]);
+  // consumers that need the freshest word gate on it, adding the one cycle of
+  // read latency. The floppy adapter's F_PULL present/settle/sample walk
+  // already tolerates the registered readout (nd_storage_floppy_adapter.v).
+  wire        s_memrd_commit = (s_eng == E_MEM_RD) && s_dma_wait &&
+                               dma_ack && !dma_err;
+  wire        s_buf_we    = dbuf_we | s_memrd_commit;
+  wire [ 9:0] s_buf_waddr = dbuf_we ? dbuf_addr : s_sec_idx[9:0];
+  wire [15:0] s_buf_wdata = dbuf_we ? dbuf_wdata : dma_rdata;
+  wire [ 9:0] s_buf_raddr = (s_eng == E_MEM_WR)  ? s_sec_idx[9:0] :
+                            (s_eng == E_DISK_WR) ? dbuf_addr      :
+                                                   s_bootptr;
+  reg  [15:0] s_buf_dout;
+  reg  [ 9:0] s_buf_raddr_q;
+  wire        s_buf_valid = (s_buf_raddr_q == s_buf_raddr);
+
+  always @(posedge sysclk) begin
+    if (s_buf_we) s_buffer[s_buf_waddr] <= s_buf_wdata;
+    s_buf_dout    <= s_buffer[s_buf_raddr];
+    s_buf_raddr_q <= s_buf_raddr;
+  end
+
+  always @(*) dbuf_rdata = s_buf_dout;
+
   always @(posedge sysclk or negedge sys_rst_n) begin
     if (!sys_rst_n) begin
       s_int_enabled <= 1'b0;
@@ -353,8 +387,8 @@ module ND_FLOPPY_DMA #(
       dma_req  <= 1'b0;
       disk_req <= 1'b0;
 
-      // backend writes into the sector buffer (disk read fill)
-      if (dbuf_we) s_buffer[dbuf_addr] <= dbuf_wdata;
+      // backend fill (dbuf_we) into the sector buffer is handled by the
+      // synchronous RAM write port above (s_buf_we mux)
 
       // boot stream readout: +0 read consumes the word, clears ready
       if (s_boot_active && iox_rd && s_addressed && (s_reg == 3'd0)) begin
@@ -492,17 +526,30 @@ module ND_FLOPPY_DMA #(
         E_DISK_RD: begin
           if (disk_done) begin
             if (disk_err_in) begin
-              // backend not-ready / read failure: DRIVE_NOT_READY = oct 20
-              // (deviceFloppyDMA.c uses DRIVE_NOT_READY, sets only the code)
-              s_err_code <= 6'o20;
               if (s_autoload) begin
-                s_autoload  <= 1'b0;
-                s_delay_cnt <= DELAY_TICKS;
-                s_final_wb  <= 1'b0;  // boot path: no command block
-                s_eng       <= E_DELAY;
+                // BOOT autoload backend failure = boot_fail(). Match BOTH
+                // authorities: the portable core nd_floppy_dma.c boot_fail()
+                // (lines 603-617) and nd100x deviceFloppyDMA.c ExecuteAutoload
+                // set NO_BOOTSTRAP (oct 50, deviceFloppyDMA.h
+                // FLOPPY_ERR_NO_BOOTSTRAP) + hard error, and LEAVE boot mode
+                // (boot_active := false). Releasing RFT in E_DELAY frees the
+                // microcode's forever-poll on +2 instead of hanging silently;
+                // clearing s_boot_active makes a later +0 read return the idle
+                // constant 1 again (not stale buffer) and lets a fresh activate
+                // re-enter boot cleanly. A normal (non-boot) read keeps oct 20.
+                s_err_code    <= 6'o50;
+                s_hard_err    <= 1'b1;
+                s_boot_active <= 1'b0;
+                s_autoload    <= 1'b0;
+                s_delay_cnt   <= DELAY_TICKS;
+                s_final_wb    <= 1'b0;  // boot path: no command block
+                s_eng         <= E_DELAY;
               end else begin
-                s_eng    <= E_WBACK;
-                s_wb_idx <= 3'd0;
+                // backend not-ready / read failure: DRIVE_NOT_READY = oct 20
+                // (deviceFloppyDMA.c uses DRIVE_NOT_READY, sets only the code)
+                s_err_code <= 6'o20;
+                s_eng      <= E_WBACK;
+                s_wb_idx   <= 3'd0;
               end
             end else if (s_autoload) begin
               // boot chunk buffered: serve it via +0 reads
@@ -515,17 +562,24 @@ module ND_FLOPPY_DMA #(
               s_eng     <= E_MEM_WR;
             end
           end else if (DISK_TIMEOUT != 16'd0) begin
-            // C2 watchdog: backend never answered -> DRIVE_NOT_READY, no wedge
+            // C2 watchdog: backend never answered -> no wedge
             if (s_disk_to == 16'd1) begin
-              s_err_code <= 6'o20;
               if (s_autoload) begin
-                s_autoload  <= 1'b0;
-                s_delay_cnt <= DELAY_TICKS;
-                s_final_wb  <= 1'b0;
-                s_eng       <= E_DELAY;
+                // BOOT autoload timed out = boot_fail() (same authorities as
+                // the disk_err_in branch above): NO_BOOTSTRAP (oct 50) + hard
+                // error, leave boot mode, RFT released in E_DELAY. A normal
+                // read keeps DRIVE_NOT_READY (oct 20).
+                s_err_code    <= 6'o50;
+                s_hard_err    <= 1'b1;
+                s_boot_active <= 1'b0;
+                s_autoload    <= 1'b0;
+                s_delay_cnt   <= DELAY_TICKS;
+                s_final_wb    <= 1'b0;
+                s_eng         <= E_DELAY;
               end else begin
-                s_eng    <= E_WBACK;
-                s_wb_idx <= 3'd0;
+                s_err_code <= 6'o20;  // DRIVE_NOT_READY, no wedge
+                s_eng      <= E_WBACK;
+                s_wb_idx   <= 3'd0;
               end
             end else if (s_disk_to != 16'd0) begin
               s_disk_to <= s_disk_to - 16'd1;
@@ -535,8 +589,9 @@ module ND_FLOPPY_DMA #(
 
         // DMA-write the buffered sector words to ND memory
         E_MEM_WR: begin
-          if (!s_dma_wait && !dma_busy) begin
-            dma_issue(1'b1, s_mem_ptr, s_buffer[s_sec_idx[9:0]]);
+          if (!s_dma_wait && !dma_busy && s_buf_valid) begin
+            // s_buf_dout is the registered read of s_buffer[s_sec_idx]
+            dma_issue(1'b1, s_mem_ptr, s_buf_dout);
           end else if (s_dma_wait && dma_ack) begin
             s_dma_wait <= 1'b0;
             if (dma_err) begin
@@ -587,7 +642,8 @@ module ND_FLOPPY_DMA #(
               s_eng      <= E_WBACK;
               s_wb_idx   <= 3'd0;
             end else begin
-            s_buffer[s_sec_idx[9:0]] <= dma_rdata;
+            // dma_rdata -> s_buffer[s_sec_idx] is committed by the synchronous
+            // RAM write port above (s_memrd_commit qualifier)
             s_mem_ptr    <= s_mem_ptr + 24'd1;
             s_words_left <= s_words_left - 32'd1;
             if (s_sec_idx + 11'd1 >= s_chunk_q || s_words_left == 32'd1) begin

@@ -45,6 +45,9 @@ REGISTRY=(
   "CPU-BOARD-3202/circuit/sim :: test-memdata  :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-cycen    :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-acal     :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-memparity :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-memerror  :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-mmupt-replay :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/CPU_CS_TCV_20/sim :: test-tcv :: Testbench Complete"
   # --- gate arrays --------------------------------------------------------
   "DECODE-GateArray/DGA/sim :: test-f595        :: Testbench Complete"
@@ -114,6 +117,8 @@ REGISTRY=(
   "ND-BUS-DEVICES/FLOPPY/sim :: test-floppy-pio :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/DMA/sim    :: test-dma-master :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-dma :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-boot :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-sdfat :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/SMD/sim    :: test-smd        :: TB_RESULT: PASS"
 )
 # NOT in the registry (run manually, documented reasons):
@@ -121,6 +126,12 @@ REGISTRY=(
 #     race-documentation tbs with EXPECTED FAIL lines; not strict pass/fail.
 #   Verilog/sim make compare, runSim golden, fpga vtest - heavy system gates,
 #     run via `make test-full`.
+#   Verilog make test-democore - the NDDeviceCore RTL EQUIVALENCE GATE
+#     (portable C99 nd_lineprinter driven by the real ND-120 CPU + bus RTL,
+#     verdict line "[democore] RESULT: PASS"). Deliberately NOT in this
+#     registry: it is a ~12 min runSim compile+run, and this registry is the
+#     fast per-testbench sweep behind plain `make test`. It is registered in
+#     the heavy sweep instead - see `test-full` in Verilog/Makefile.
 #   fpga/tang-nano-20k/sd-fat-test/sim test-system - pure-iverilog version of
 #     the SD full-system test (same plan as the registered test-verilator);
 #     iverilog needs 30-60 min for it, so it is a manual gate only.
