@@ -7,14 +7,28 @@
 ** registers (tb mapping: word offset = blkaddrII * 2048 + blkaddrI *    **
 ** 64; the backend owns the geometry, as in nd100x).                     **
 **                                                                       **
-** Covered: register multiplex bit (CWR) on reads and status b15,        **
-** M0 read transfer of 1500 words (crosses the 1K-word buffer chunk),    **
-** core address / word counter readback after completion, M1 write of    **
-** 800 words, M4 seek -> on-cylinder, interrupt + IDENT code 017.        **
+** Updated 23-JUL-2026 for the oracle-faithful ND_SMD rewrite:           **
+**  - Core Address and Word Count are 24-bit and loaded by TWO IOX        **
+**    writes each (HI 8 then LO 16) via the 15 MHz card's flip-flops;     **
+**    read back LO then HI.                                              **
+**  - New status layout: b4 inclusive-OR, b5 illegal load, b8 address     **
+**    mismatch, b13 disk-unit-not-ready, b14 on-cylinder.               **
+**  - Seek condition: b0-7 per-unit seek-complete, b12 = 1 (15 MHz id).  **
+**  - On an ERROR the oracle leaves ready-for-transfer LOW and marks the  **
+**    unit not-ready; error interrupts fire from HandleError. Tests use   **
+**    wait_idle (poll not-active) on the error paths.                    **
+**  - The DUT is instanced with a large GEO_MAX_CYL so the tb's linear    **
+**    block map is never rejected by the CHS bound; address-mismatch is   **
+**    exercised with an out-of-range SECTOR instead.                     **
+**                                                                       **
+** Covered: reset status, '1540&' boot byte-server, M0 read (1500 words, **
+** crosses the 1K chunk), 24-bit register readback, M1 write (800 words), **
+** M4 seek (on-cyl + seek-complete + 15 MHz id), interrupt + IDENT 017,   **
+** address mismatch, error interrupt, ECC pattern register, real 75 MB    **
+** image windows, and a DMA bus fault -> disk-not-ready + recovery.       **
 **                                                                       **
 ** Verdict line: TB_RESULT: PASS / TB_RESULT: FAIL                       **
 **                                                                       **
-** Last reviewed: 11-JUL-2026                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -85,6 +99,9 @@ module nd_smd_tb;
   );
 
   // ---- SMD controller under test ----
+  // GEO_MAX_CYL is set high so the tb's linear block-address map (blkaddrII
+  // used as a large "cylinder") is never rejected by the CHS bound; the
+  // address-mismatch feature is exercised through an out-of-range SECTOR.
   wire        disk_start, disk_req, disk_wr;
   wire [15:0] disk_blkaddr1, disk_blkaddr2;
   wire [2:0]  disk_unit;
@@ -95,7 +112,7 @@ module nd_smd_tb;
   reg         dbuf_we = 0;
   wire [15:0] dbuf_rdata;
 
-  ND_SMD #(.DELAY_TICKS(16'd10)) u_smd (
+  ND_SMD #(.DELAY_TICKS(16'd10), .GEO_MAX_CYL(65535)) u_smd (
       .sysclk(sysclk), .sys_rst_n(sys_rst_n),
       .iox_addr(iox_addr), .iox_wr(iox_wr), .iox_wdata(iox_wdata),
       .iox_rd(iox_rd), .iox_rdata(iox_rdata),
@@ -319,6 +336,7 @@ module nd_smd_tb;
     end
   endtask
 
+  // Poll status +4 (CWR=0) until ready-for-transfer (b3) - normal completion.
   task wait_ready;
     integer guard;
     reg [15:0] st;
@@ -330,6 +348,49 @@ module nd_smd_tb;
         guard = guard + 1;
       end
       check((st & 16'h0008) !== 0, "controller never became ready");
+    end
+  endtask
+
+  // Poll status +4 (CWR=0) until NOT active (b2 clear) - used on error paths,
+  // where the oracle leaves ready-for-transfer low.
+  task wait_idle;
+    integer guard;
+    reg [15:0] st;
+    begin
+      guard = 0;
+      st = 16'h0004;
+      while ((st & 16'h0004) && guard < 30000) begin
+        iox_read(16'o001544, st);
+        guard = guard + 1;
+      end
+      check((st & 16'h0004) === 0, "controller never left active");
+    end
+  endtask
+
+  // Core Address (24-bit): two writes, HI 8 then LO 16 (maw flip-flop).
+  task load_core(input [23:0] a);
+    begin
+      iox_write(16'o001541, {8'd0, a[23:16]});
+      iox_write(16'o001541, a[15:0]);
+    end
+  endtask
+
+  // Word Counter (24-bit): two writes, HI 8 then LO 16 (wcw flip-flop).
+  task load_wcnt(input [23:0] c);
+    begin
+      iox_write(16'o001547, {8'd0, c[23:16]});
+      iox_write(16'o001547, c[15:0]);
+    end
+  endtask
+
+  // Block Address I (CWR=0) then II (CWR=1), via control-word CWR toggles.
+  task load_block(input [15:0] bi, input [15:0] bii);
+    begin
+      iox_write(16'o001545, 16'h0000);  // control: unit 0, CWR=0, no GO
+      iox_write(16'o001543, bi);        // block address I  (head b8-15, sector b0-7)
+      iox_write(16'o001545, 16'h8000);  // control: CWR=1
+      iox_write(16'o001543, bii);       // block address II (cylinder)
+      iox_write(16'o001545, 16'h0000);  // control: CWR=0
     end
   endtask
 
@@ -355,8 +416,8 @@ module nd_smd_tb;
     check((rdata & 16'h8000) === 0, "CWR bit set at reset");
 
     // 1b: BOOT MODE (the '1540&' handshake, BPUN byte-server): per word
-    //     activate via +3 bit 2, poll +2 for ready, read the stream
-    //     word from +0; cross the 1024-word chunk boundary
+    //     activate via +3 bit 2, poll +2 for ready, read the stream word
+    //     from +0; cross the 1024-word chunk boundary
     begin : bootstream
       integer guard, k;
       reg [15:0] st, bw;
@@ -375,63 +436,64 @@ module nd_smd_tb;
       end
     end
 
+    // Leave boot mode with a device clear (control word bit 4): selects unit
+    // 0, clears the registers and resets the flip-flops. The oracle leaves
+    // ready-for-transfer low after a device clear; we only assert not-active.
+    iox_write(16'o001545, 16'h0010);
+    iox_read(16'o001544, rdata);
+    check((rdata & 16'h0004) === 0, "active after device clear");
+
     // 2: M0 READ 1500 words (crosses the 1K buffer chunk) from
     //    blkaddrII=1, blkaddrI=2 (tb map: word 2176) to core 0x4000
-    iox_write(16'o001541, 16'h4000);   // core address
-    iox_write(16'o001543, 16'd2);      // block address I (CWR=0)
-    iox_write(16'o001545, 16'h8000);   // control: CWR=1 (no GO)
-    iox_write(16'o001543, 16'd1);      // block address II (CWR=1)
-    iox_write(16'o001545, 16'h0000);   // control: CWR=0
-    iox_write(16'o001547, 16'd1500);   // word count
-    iox_write(16'o001545, 16'h0004);   // control: ACTIVE, op M0
+    load_core(24'h004000);
+    load_block(16'd2, 16'd1);          // I=2 (head 0, sector 2), II=1 (cyl 1)
+    load_wcnt(24'd1500);
+    iox_write(16'o001545, 16'h0004);   // GO: ACTIVE, op M0
     wait_ready();
     dpos = 1 * 2048 + 2 * 64;
-    for (i = 0; i < 1500; i = i + 1) begin
+    for (i = 0; i < 1500; i = i + 1)
       if (memory[16'h4000 + i] !== (16'h7000 + dpos[15:0] + i[15:0]))
         check(1'b0, "M0 read data wrong in ND memory");
-    end
     check(memory[16'h4000 + 1500] === 16'hDEAD, "M0 overran its count");
-    // core address readback (CWR=0) and word counter (CWR=1)
+    // core address readback (CWR=0, LO) and word counter (CWR=1, LO)
     iox_read(16'o001540, rdata);
     check(rdata === (16'h4000 + 16'd1500), "core address readback wrong");
     iox_write(16'o001545, 16'h8000);   // CWR=1
     iox_read(16'o001540, rdata);
     check(rdata === 16'd0, "word counter not 0 after transfer");
-    // note: +4 with CWR=1 returns the ECC pattern, not the status, so
-    // the b15 mirror is not observable that way (same as nd100x)
     iox_write(16'o001545, 16'h0000);   // CWR back to 0
 
     // 3: M1 WRITE 800 words from core 0x5000 to blkaddrII=3, blkaddrI=0
     for (i = 0; i < 800; i = i + 1) memory[16'h5000 + i] = 16'hC000 + i[15:0];
-    iox_write(16'o001541, 16'h5000);
-    iox_write(16'o001543, 16'd0);      // block address I
-    iox_write(16'o001545, 16'h8000);
-    iox_write(16'o001543, 16'd3);      // block address II
-    iox_write(16'o001545, 16'h0000);
-    iox_write(16'o001547, 16'd800);
-    iox_write(16'o001545, 16'h0804);   // ACTIVE (b2), op M1 (b11)
+    load_core(24'h005000);
+    load_block(16'd0, 16'd3);
+    load_wcnt(24'd800);
+    iox_write(16'o001545, 16'h0804);   // GO: ACTIVE (b2), op M1 (b11)
     wait_ready();
     dpos = 3 * 2048;
-    for (i = 0; i < 800; i = i + 1) begin
+    for (i = 0; i < 800; i = i + 1)
       if (image[dpos + i] !== (16'hC000 + i[15:0]))
         check(1'b0, "M1 written image data wrong");
-    end
     check(image[dpos + 800] === (16'h7000 + dpos[15:0] + 16'd800),
           "M1 overran the image");
 
-    // 4: M4 seek -> on-cylinder in status b14 and seek condition
-    iox_write(16'o001545, 16'h2004);   // ACTIVE, op M4 (b13=1? M4 = 0100)
+    // 4: M4 seek -> on-cylinder (status b14), per-unit seek-complete
+    //    (seek condition b0) and the 15 MHz card id (seek condition b12)
+    load_block(16'd0, 16'd2);
+    iox_write(16'o001545, 16'h2004);   // GO: ACTIVE, op M4 (0100)
     wait_ready();
     iox_read(16'o001544, rdata);
-    check((rdata & 16'h4000) !== 0, "onCylinder not set after seek");
-    iox_read(16'o001542, rdata);
-    check((rdata & 16'h4000) !== 0, "seek condition missing on-cylinder");
+    check((rdata & 16'h4000) !== 0, "onCylinder (status b14) not set after seek");
+    iox_read(16'o001542, rdata);       // seek condition (CWR=0)
+    check((rdata & 16'h0001) !== 0, "unit-0 seek-complete (seek cond b0) missing");
+    check((rdata & 16'h1000) !== 0, "SMD-15MHz id (seek cond b12) not set");
 
     // 5: interrupt + IDENT: M0 read with interrupt enabled
     check(bint11_n === 1'b1, "BINT11 asserted before enable");
-    iox_write(16'o001541, 16'h6000);
-    iox_write(16'o001547, 16'd16);
-    iox_write(16'o001545, 16'h0005);   // ACTIVE, M0, int enable (b0)
+    load_core(24'h006000);
+    load_block(16'd0, 16'd0);
+    load_wcnt(24'd16);
+    iox_write(16'o001545, 16'h0005);   // GO: ACTIVE, M0, int enable (b0)
     wait_ready();
     check(bint11_n === 1'b0, "BINT11_n not asserted on completion");
     ident(16'o000011, ihit, icode);
@@ -439,38 +501,70 @@ module nd_smd_tb;
     check(icode === 16'o000017, "IDENT code not 017");
     check(bint11_n === 1'b1, "BINT11_n not released after IDENT");
 
-    // 6: REAL IMAGE phase - three windows of the 75 MB SMD disk 0
-    //    (start, middle, exact tail), each read through the controller
-    //    and word-compared against the file content
+    // 6: ADDRESS MISMATCH: a sector field >= sectors/track (18) is out of
+    //    range -> status b8, inclusive-OR b4, disk-not-ready b13; NO transfer,
+    //    ready stays low.
+    for (i = 0; i < 8; i = i + 1) memory[16'h6800 + i] = 16'hBEEF;
+    load_core(24'h006800);
+    load_block(16'd20, 16'd0);         // sector 20 >= 18 -> out of range
+    load_wcnt(24'd8);
+    iox_write(16'o001545, 16'h0004);   // GO M0
+    wait_idle();
+    iox_read(16'o001544, rdata);
+    check((rdata & 16'h0100) !== 0, "address mismatch (status b8) not set");
+    check((rdata & 16'h0010) !== 0, "inclusive-OR (status b4) not set on mismatch");
+    check((rdata & 16'h2000) !== 0, "disk-not-ready (status b13) not set on mismatch");
+    check(memory[16'h6800] === 16'hBEEF, "mismatch still moved data");
+
+    // 7: ERROR INTERRUPT: with ONLY the error interrupt enabled (b1, not b0),
+    //    a fault must still raise BINT11 (oracle HandleError).
+    iox_write(16'o001545, 16'h0010);   // device clear -> clean state
+    load_block(16'd20, 16'd0);         // out-of-range again
+    load_wcnt(24'd8);
+    iox_write(16'o001545, 16'h0006);   // GO M0, error-int enable (b1), no b0
+    wait_idle();
+    check(bint11_n === 1'b0, "error interrupt (BINT11) not raised on fault");
+    ident(16'o000011, ihit, icode);
+    check(ihit === 1'b1, "IDENT PL11 no hit on error interrupt");
+    check(bint11_n === 1'b1, "BINT11 not released after IDENT (error int)");
+
+    // 8: 24-bit core-address readback via the mar flip-flop (LO then HI)
+    iox_write(16'o001545, 16'h0010);   // device clear (clears flip-flops)
+    load_core(24'h012345);             // HI=0x01, LO=0x2345
+    iox_read(16'o001540, rdata);       // first read: LO 16
+    check(rdata === 16'h2345, "core address LO readback wrong");
+    iox_read(16'o001540, rdata);       // second read: HI 8
+    check(rdata === 16'h0001, "core address HI readback wrong");
+
+    // 9: ECC pattern register (read +4, CWR=1): bits 11-13 = 1, bit 15 = CWR
+    iox_write(16'o001545, 16'h8000);   // CWR=1
+    iox_read(16'o001544, rdata);       // +4 CWR=1 -> ECC pattern
+    check((rdata & 16'h3800) === 16'h3800, "ECC pattern bits 11-13 not all 1");
+    check((rdata & 16'h8000) !== 0, "ECC pattern bit 15 (CWR) not set");
+    iox_write(16'o001545, 16'h0000);   // CWR back to 0
+
+    // 10: REAL IMAGE phase - three windows of the 75 MB SMD disk 0 (start,
+    //     middle, far), each read through the controller and word-compared
     load_window(0);
     if (!img_avail) begin
       $display("[tb] SKIP real-image phase: testdata/BIGDISK0-L2-100.IMG not present");
     end else begin
-      // start: blkaddrII=0, blkaddrI=0 -> word 0
-      iox_write(16'o001541, 16'h7000);
-      iox_write(16'o001543, 16'd0);
-      iox_write(16'o001545, 16'h8000);
-      iox_write(16'o001543, 16'd0);
-      iox_write(16'o001545, 16'h0000);
-      iox_write(16'o001547, 16'd1024);
+      load_core(24'h007000);
+      load_block(16'd0, 16'd0);        // word 0
+      load_wcnt(24'd1024);
       iox_write(16'o001545, 16'h0004);
       wait_ready();
       for (i = 0; i < 1024; i = i + 1)
         if (memory[16'h7000 + i] !== image[i])
           check(1'b0, "SMD image start readback wrong");
-
       nzcount = 0;
       for (i = 0; i < 1024; i = i + 1) if (memory[16'h7000 + i] !== 16'd0) nzcount = nzcount + 1;
       check(nzcount > 0, "SMD start window compared only zeros (vacuous)");
 
-      // middle: data-rich region, window at word 5120*2048 (byte 20971520)
       load_window(5120 * 2048);
-      iox_write(16'o001541, 16'h7000);
-      iox_write(16'o001543, 16'd0);       // blkaddr I
-      iox_write(16'o001545, 16'h8000);
-      iox_write(16'o001543, 16'd5120);    // blkaddr II
-      iox_write(16'o001545, 16'h0000);
-      iox_write(16'o001547, 16'd1024);
+      load_core(24'h007000);
+      load_block(16'd0, 16'd5120);
+      load_wcnt(24'd1024);
       iox_write(16'o001545, 16'h0004);
       wait_ready();
       for (i = 0; i < 1024; i = i + 1)
@@ -480,14 +574,10 @@ module nd_smd_tb;
       for (i = 0; i < 1024; i = i + 1) if (memory[16'h7000 + i] !== 16'd0) nzcount = nzcount + 1;
       check(nzcount > 0, "SMD middle window compared only zeros (vacuous)");
 
-      // far region: the deepest data-bearing cylinder (blkaddrII 18472)
       load_window(18472 * 2048);
-      iox_write(16'o001541, 16'h7000);
-      iox_write(16'o001543, 16'd0);
-      iox_write(16'o001545, 16'h8000);
-      iox_write(16'o001543, 16'd18472);
-      iox_write(16'o001545, 16'h0000);
-      iox_write(16'o001547, 16'd1024);
+      load_core(24'h007000);
+      load_block(16'd0, 16'd18472);
+      load_wcnt(24'd1024);
       iox_write(16'o001545, 16'h0004);
       wait_ready();
       for (i = 0; i < 1024; i = i + 1)
@@ -498,34 +588,27 @@ module nd_smd_tb;
       check(nzcount > 0, "SMD far window compared only zeros (vacuous)");
     end
 
-    // 7: DMA BUS FAULT -> hardware error (SMD review C3: dma_err was
-    //    ignored, so a bus/memory timeout produced a silent "success").
-    //    Stall the memory model so the DMA master times out and asserts
-    //    dma_err; the controller must set the hardware-error status bits.
+    // 11: DMA BUS FAULT -> disk-unit-not-ready (b13) via HandleError (oracle:
+    //     a DMA/bus fault marks the unit not ready). Ready stays low on the
+    //     fault, so poll for not-active, then a fresh command recovers.
+    window_base = 0;                   // synthetic map again for this phase
     mem_stall = 1'b1;
-    iox_write(16'o001541, 16'h6000);   // core address
-    iox_write(16'o001543, 16'd0);      // block address I (CWR=0)
-    iox_write(16'o001545, 16'h8000);   // CWR=1
-    iox_write(16'o001543, 16'd0);      // block address II
-    iox_write(16'o001545, 16'h0000);   // CWR=0
-    iox_write(16'o001547, 16'd16);     // word count
-    iox_write(16'o001545, 16'h0004);   // ACTIVE, op M0 -> DMA into memory
-    wait_ready();
-    iox_read(16'o001544, rdata);       // status (CWR=0)
-    check((rdata & 16'h0080) !== 0, "DMA fault: hardware-error bit 7 not set");
-    check((rdata & 16'h0010) !== 0, "DMA fault: error-OR bit 4 not set");
+    load_core(24'h006000);
+    load_block(16'd0, 16'd0);
+    load_wcnt(24'd16);
+    iox_write(16'o001545, 16'h0004);   // GO M0 -> DMA into the stalled memory
+    wait_idle();
+    iox_read(16'o001544, rdata);
+    check((rdata & 16'h2000) !== 0, "DMA fault: disk-not-ready (b13) not set");
     mem_stall = 1'b0;
-    // recovery: a fresh command clears the error and transfers normally
-    iox_write(16'o001541, 16'h6800);
-    iox_write(16'o001543, 16'd0);
-    iox_write(16'o001545, 16'h8000);
-    iox_write(16'o001543, 16'd0);
-    iox_write(16'o001545, 16'h0000);
-    iox_write(16'o001547, 16'd8);
+    // recovery: a fresh command clears not-ready and transfers normally
+    load_core(24'h006800);
+    load_block(16'd0, 16'd0);
+    load_wcnt(24'd8);
     iox_write(16'o001545, 16'h0004);
     wait_ready();
     iox_read(16'o001544, rdata);
-    check((rdata & 16'h0080) === 0, "hardware-error bit stuck after recovery");
+    check((rdata & 16'h2000) === 0, "disk-not-ready stuck after recovery");
 
     if (errors == 0) $display("TB_RESULT: PASS");
     else begin

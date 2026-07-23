@@ -87,9 +87,9 @@ module ND_SMD #(
     // Geometry for the ExecuteGO address-mismatch bound. Default = the
     // 75 MB SMD disk (5 heads, 18 sectors/track, 823 cylinders), which is
     // the geometry the C# oracle fixes every unit to. 1024-byte sectors.
-    parameter integer GEO_HEADS   = 5,
-    parameter integer GEO_SPT     = 18,
-    parameter integer GEO_MAX_CYL = 823
+    parameter [15:0] GEO_HEADS   = 16'd5,
+    parameter [15:0] GEO_SPT     = 16'd18,
+    parameter [15:0] GEO_MAX_CYL = 16'd823
 ) (
     input wire sysclk,
     input wire sys_rst_n,
@@ -143,9 +143,7 @@ module ND_SMD #(
   reg [7:0]  s_word_cnt_hi;   // word counter bits 16-23  (HI)
   reg [15:0] s_blkaddr1;      // block address I  (head b8-15, sector b0-7)
   reg [15:0] s_blkaddr2;      // block address II (cylinder)
-  reg [15:0] s_ecc_control;   // ECC control register (bit0 reset, bit1 force)
-  reg [7:0]  s_ecc_control_hi;// ECC control HI byte
-  reg [15:0] s_ecc_count;     // ECC count register
+  reg [15:0] s_ecc_count;     // ECC count register (bit0 of ECC control resets it)
 
   // ---- unit selection + per-unit state ----
   reg [2:0]  s_sel_unit;      // raw unit from control word bits 7-9
@@ -177,7 +175,6 @@ module ND_SMD #(
   reg        s_wcr_ff;        // word-counter READ  flip-flop
   reg        s_wc_eccw_ff;    // ECC-control  WRITE flip-flop
 
-  reg [3:0]  s_op;            // device operation (control b11-14)
   reg        s_irq;           // latched level-11 interrupt line
 
   // ---- boot mode (not in the oracle; preserved verbatim) ----
@@ -302,8 +299,8 @@ module ND_SMD #(
       if (cyl == 16'd0 && head == 8'd0 && sector == 8'd0)
         chs2lba = 32'd0;
       else
-        chs2lba = (({16'd0, cyl} * GEO_HEADS) + {24'd0, head}) * GEO_SPT
-                  + {24'd0, sector};
+        chs2lba = (({16'd0, cyl} * {16'd0, GEO_HEADS}) + {24'd0, head})
+                  * {16'd0, GEO_SPT} + {24'd0, sector};
     end
   endfunction
 
@@ -359,8 +356,6 @@ module ND_SMD #(
       s_word_cnt_hi  <= 8'd0;
       s_blkaddr1     <= 16'd0;
       s_blkaddr2     <= 16'd0;
-      s_ecc_control  <= 16'd0;
-      s_ecc_control_hi <= 8'd0;
       s_ecc_count    <= 16'd0;
       s_sel_unit     <= 3'd0;
       s_disk_selected<= 1'b0;
@@ -385,7 +380,6 @@ module ND_SMD #(
       s_wcw_ff       <= 1'b0;
       s_wcr_ff       <= 1'b0;
       s_wc_eccw_ff   <= 1'b0;
-      s_op           <= 4'd0;
       s_irq          <= 1'b0;
       s_boot_mode    <= 1'b1;
       s_boot_fetch   <= 1'b0;
@@ -494,7 +488,8 @@ module ND_SMD #(
           end
 
           // +5  Load Control Word (GO / opcode). Leaves boot mode.
-          3'd5: begin
+          // Oracle: a control word is IGNORED while the controller is active.
+          3'd5: if (!s_active) begin
             s_boot_mode <= 1'b0;
             s_int_en    <= iox_wdata[0];
             s_errint_en <= iox_wdata[1];
@@ -502,7 +497,6 @@ module ND_SMD #(
             s_marginal  <= iox_wdata[10];
             s_sel_unit  <= iox_wdata[9:7];
             s_disk_selected <= ~iox_wdata[9];  // unit 0..3 -> selected
-            s_op        <= iox_wdata[14:11];
             s_cwr       <= iox_wdata[15];
             s_active    <= iox_wdata[2];        // oracle: active = bit 2 (clear/GO override below)
             s_rft       <= 1'b1;               // oracle: ready = true (top)
@@ -555,7 +549,7 @@ module ND_SMD #(
 
                 if (!iox_wdata[3] &&
                     ((w_lba > w_max_lba) ||
-                     (w_sector >= GEO_SPT) ||
+                     (w_sector >= GEO_SPT[7:0]) ||
                      ({8'd0, w_head} >= GEO_MAX_CYL))) begin
                   // ---- address mismatch ----
                   s_addr_mismatch <= 1'b1;
@@ -637,13 +631,11 @@ module ND_SMD #(
           3'd7: if (!s_boot_mode) begin
             if (s_cwr) begin
               if (s_wc_eccw_ff) begin
-                s_ecc_control <= iox_wdata;
                 if (iox_wdata[0]) s_ecc_count <= 16'd0; // bit0: reset ECC
                 if (iox_wdata[1]) s_hw_err2   <= 1'b1;  // bit1: force parity
                 s_wc_eccw_ff  <= 1'b0;
               end else begin
-                s_ecc_control_hi <= iox_wdata[7:0];
-                s_wc_eccw_ff     <= 1'b1;
+                s_wc_eccw_ff  <= 1'b1;   // HI byte unused (as in the oracle)
               end
             end else if (s_wcw_ff) begin
               s_word_cnt <= iox_wdata;        // second write: LO 16
