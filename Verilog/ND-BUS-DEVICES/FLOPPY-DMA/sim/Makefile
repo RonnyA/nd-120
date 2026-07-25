@@ -25,6 +25,13 @@ BOOT_SRCS = ../../BUS-IF/circuit/ND_BUS_SLAVE.v \
             ../circuit/ND_FLOPPY_DMA.v \
             nd_floppy_boot_tb.v
 
+# test-floppy-iox: floppy campaign phase P1 - the IOX register / status /
+# control-word conformance matrix (CONFORMANCE.md sec 1-3, 6) asserted
+# directly at the device IOX slave port. ND_FLOPPY_DMA only (no BUS_SLAVE);
+# the bus-strobe / boot-consume interaction is P2.
+IOX_SRCS = ../circuit/ND_FLOPPY_DMA.v \
+           nd_floppy_iox_tb.v
+
 # test-floppy-sdfat: the DMA-floppy backend seam served by the REAL SD-FAT
 # stack (nd_tape_sdfat_source #(.INCLUDE_FLOPPY(1)) -> nd_storage -> floppy
 # adapter -> sd_card_model with FLOPPY1.IMG). Verilator (--timing) because the
@@ -39,7 +46,7 @@ VSDFAT_SRCS = $(wildcard $(SDFAT)/circuit/*.v) \
 
 all: test
 
-test: test-floppy-dma test-floppy-boot
+test: test-floppy-dma test-floppy-boot test-floppy-iox
 
 nd_floppy_dma_tb.vvp: $(SRCS)
 	$(IVERILOG) -g2005 -o $@ $(SRCS)
@@ -54,6 +61,13 @@ nd_floppy_boot_tb.vvp: $(BOOT_SRCS)
 test-floppy-boot: nd_floppy_boot_tb.vvp
 	$(VVP) nd_floppy_boot_tb.vvp | tee floppy_boot_out.log
 	@grep -q "TB_RESULT: PASS" floppy_boot_out.log
+
+nd_floppy_iox_tb.vvp: $(IOX_SRCS)
+	$(IVERILOG) -g2005 -o $@ $(IOX_SRCS)
+
+test-floppy-iox: nd_floppy_iox_tb.vvp
+	$(VVP) nd_floppy_iox_tb.vvp | tee floppy_iox_out.log
+	@grep -q "TB_RESULT: PASS" floppy_iox_out.log
 
 test-floppy-sdfat:
 	cd $(SDFAT)/sim && bash make_storage_image.sh >/dev/null 2>&1
