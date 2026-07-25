@@ -32,6 +32,16 @@ BOOT_SRCS = ../../BUS-IF/circuit/ND_BUS_SLAVE.v \
 IOX_SRCS = ../circuit/ND_FLOPPY_DMA.v \
            nd_floppy_iox_tb.v
 
+# test-floppy-p2: floppy campaign phase P2 - iox_rd strobe width + the
+# boot-read CONSUME rule, driven through the REAL CPU-side bus handshake
+# (ND_BUS_SLAVE + ND_FLOPPY_DMA). Asserts single-cycle strobe, one consume
+# per +0 read, refill at exactly 512, and pins the >512 overrun wedge
+# (CONFORMANCE.md sec 7 cand. 1-2, sec 9.4). No DMA master (autoload never
+# issues a dma_req); the disk backend fills the boot buffer.
+P2_SRCS = ../../BUS-IF/circuit/ND_BUS_SLAVE.v \
+          ../circuit/ND_FLOPPY_DMA.v \
+          nd_floppy_p2_tb.v
+
 # test-floppy-sdfat: the DMA-floppy backend seam served by the REAL SD-FAT
 # stack (nd_tape_sdfat_source #(.INCLUDE_FLOPPY(1)) -> nd_storage -> floppy
 # adapter -> sd_card_model with FLOPPY1.IMG). Verilator (--timing) because the
@@ -46,7 +56,7 @@ VSDFAT_SRCS = $(wildcard $(SDFAT)/circuit/*.v) \
 
 all: test
 
-test: test-floppy-dma test-floppy-boot test-floppy-iox
+test: test-floppy-dma test-floppy-boot test-floppy-iox test-floppy-p2
 
 nd_floppy_dma_tb.vvp: $(SRCS)
 	$(IVERILOG) -g2005 -o $@ $(SRCS)
@@ -68,6 +78,13 @@ nd_floppy_iox_tb.vvp: $(IOX_SRCS)
 test-floppy-iox: nd_floppy_iox_tb.vvp
 	$(VVP) nd_floppy_iox_tb.vvp | tee floppy_iox_out.log
 	@grep -q "TB_RESULT: PASS" floppy_iox_out.log
+
+nd_floppy_p2_tb.vvp: $(P2_SRCS)
+	$(IVERILOG) -g2005 -o $@ $(P2_SRCS)
+
+test-floppy-p2: nd_floppy_p2_tb.vvp
+	$(VVP) nd_floppy_p2_tb.vvp | tee floppy_p2_out.log
+	@grep -q "TB_RESULT: PASS" floppy_p2_out.log
 
 test-floppy-sdfat:
 	cd $(SDFAT)/sim && bash make_storage_image.sh >/dev/null 2>&1
