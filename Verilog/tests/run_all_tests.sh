@@ -123,6 +123,7 @@ REGISTRY=(
   "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-sdfat :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/SMD/sim    :: test-smd        :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/SMD/sim    :: test-smd-iox    :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/SMD/sim    :: test-smd-p2     :: TB_RESULT: PASS"
 )
 # NOT in the registry (run manually, documented reasons):
 #   DELILAH-CPU/CGA_MIC/sim test-masel-cycle / test-masel-iw - exploratory
