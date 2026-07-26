@@ -51,7 +51,15 @@ module ND_DMA_MASTER #(
     //       re-asserted after the BDRY trailing edge)
     //   1 = a dma_req arriving during a transfer is buffered and BREQ
     //       re-asserted already in the cycle tail (overlapping BDRY)
+    // `ND_DMA_EARLY_REREQ overrides the default at COMPILE time ONLY - no
+    // build defines it, so every normal build keeps 0. The dmaSim P3 teeth
+    // target sets it to 1 (with MIN_GAP 0) to reproduce the back-to-back
+    // hazard, proving the recovery gap is load-bearing.
+`ifdef ND_DMA_EARLY_REREQ
+    parameter EARLY_REREQ = `ND_DMA_EARLY_REREQ,
+`else
     parameter EARLY_REREQ = 0,
+`endif
     // Recovery gap between granted cycles, in sysclk ticks. MEASURED on
     // the real CPU-board RTL (full-RTL gate): the memory-side grant and
     // decode chain (BLRQ/BCGNT 25/50ns stages) needs time to unwind
@@ -61,7 +69,24 @@ module ND_DMA_MASTER #(
     // controllers re-request at 1.4us+ periods (manual II.4 examples),
     // so hardware never hit this. The request is ACCEPTED at any time;
     // only the BREQ assertion is deferred.
+    //
+    // UNITS - READ THIS: the quantity that matters is a real-TIME interval,
+    // not a tick count. The target is the ND-100 controller re-request
+    // period, ~1.4us (manual II.4). "32 ticks" is only that interval
+    // expressed in sysclk periods AT THE SIM CLOCK. This design does not pin
+    // one CPU/bus clock frequency (see the clocking docs), so the equivalent
+    // tick count is clock-dependent, NOT a physical constant - 32 is the
+    // sim-era default. At a known silicon clock, re-derive it from the time
+    // (ticks = ceil(1.4us * f_sysclk)); do not carry 32 over blindly.
+    // `ND_DMA_MIN_GAP_TICKS overrides the default at COMPILE time ONLY - no
+    // build defines it, so every normal build keeps 32. The dmaSim P3 teeth
+    // target sets it to 0 (with EARLY_REREQ 1) to reproduce "every second
+    // read lost", proving the recovery gap is load-bearing.
+`ifdef ND_DMA_MIN_GAP_TICKS
+    parameter [7:0] MIN_GAP_TICKS = `ND_DMA_MIN_GAP_TICKS
+`else
     parameter [7:0] MIN_GAP_TICKS = 8'd32
+`endif
 ) (
     input wire sysclk,
     input wire sys_rst_n,
