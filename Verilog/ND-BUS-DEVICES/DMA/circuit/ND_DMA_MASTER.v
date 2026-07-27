@@ -266,7 +266,24 @@ module ND_DMA_MASTER #(
         // its data drivers before the externally visible BDRY edge
         // (measured in the full-RTL gate; see docs/nd100-bus-dma.md).
         ST_DATA: begin
-          if (!s_wr && (BD_23_0_n_IN != 24'hFFFFFF)) begin
+          // Capture only GENUINELY-DRIVEN read data by rejecting BOTH idle
+          // patterns of this inverted wired-AND bus:
+          //   0xFFFFFF = idle-high (tb model + the DMA's own idle drive + a
+          //              memory word of 0, which drives ~0 = 0xFFFFFF), and
+          //   0x000000 = released/undriven (ND120_TOP+FPGA "drive 0 when
+          //              disabled", and the pre-data phase there).
+          // Real non-zero data is neither (the upper byte is driven 0xFF, e.g.
+          // data 0x0F00 -> bus 0xFFF0FF; even data 0xFFFF -> bus 0xFF0000).
+          // For a data value of 0 the bus is 0xFFFFFF at the BDRY edge in BOTH
+          // environments, so the `~BD_23_0_n_IN` fallback below yields 0 - no
+          // capture needed. This makes the capture value-independent and works
+          // for both the standalone tbs (data presented AT BDRY) and ND120_TOP
+          // (data presented BEFORE BDRY, released to 0xFFFFFF at the edge).
+          // The old `!= 0xFFFFFF` captured the ND120_TOP pre-data 0x000000 as
+          // garbage 0xFFFF, corrupting zero-word reads (FLOMON command block
+          // sector -> 65535 -> floppy boot hang); `!= 0x000000` alone broke the
+          // tbs (idle-high captured as 0). Rejecting both is correct everywhere.
+          if (!s_wr && (BD_23_0_n_IN != 24'hFFFFFF) && (BD_23_0_n_IN != 24'h000000)) begin
             s_rd_capture  <= ~BD_23_0_n_IN[15:0];
             s_rd_captured <= 1'b1;
           end
