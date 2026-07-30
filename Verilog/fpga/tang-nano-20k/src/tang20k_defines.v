@@ -98,7 +98,25 @@
 //                            bypasses it. See ANALYSIS-cga-intr-masked-grant-
 //                            root-cause.md sec 3c. Instrumentation only; leave
 //                            OFF for normal builds.
-`define TANG_GRANT_CAPTURE
+// `define TANG_GRANT_CAPTURE   // A/B: OFF for the control build (Issue I)
+
+//   TANG_TRAP_CAPTURE      - DEBUG PROBE for the PAGING-test-3 eject (Issue D).
+//                            Repurposes the 512-sample analyzer to record
+//                            {TVEC[3:0], TRAPN, CSA[10:0]} (TVEC/TRAPN arrive
+//                            via the XMIC_DBG bus, repacked in CGA_MIC.v under
+//                            this same define - sim probe semantics untouched
+//                            because the sim never defines it). Trigger =
+//                            CSA held at 7 (the vector-7 self-jump) for 16
+//                            clk2x cycles, OR the frozen-CSA hang detector.
+//                            480 pre + 32 post. Decodes: TVEC = top hex digit
+//                            bits 15:12, bit 11 = TRAPN, low 11 bits = CSA.
+//                            If TVEC==7 at the CSA->7 jump the trap generator
+//                            really computed 7 on silicon; if TVEC!=7 the CSA
+//                            latch caught a mid-transition value (comb-path
+//                            setup failure). If test 3 ejects WITHOUT firing
+//                            this, vector 7 is not taken on silicon at all.
+//                            Instrumentation only; leave OFF for normal builds.
+// `define TANG_TRAP_CAPTURE
 
 //   TANG_NO_CONKICK - DIAGNOSTIC: disable the IO_37 console-pacing STAT3 pulse
 //   (the un-original missing-68705 stand-in) so console traffic raises NO panel

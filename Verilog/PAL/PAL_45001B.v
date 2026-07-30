@@ -65,19 +65,28 @@ module PAL_45001B (
 
 
   // STROBE PARITY ERROR STATUS WORD
+  // PALASM 45001B: /SPES = ... + BLOCK25 + ... - the strobe stops once the
+  // BLOCK freeze is ACTIVE. The old BLOCK25_n literal inverted the freeze
+  // (SPES could never fire before an error).
   assign SPES = TEST ? 1'b0 :
             ~(
-                (BDRY50_n & BDRY75_n  ) 
-              | (BDRY50   & BDRY75    ) 
+                (BDRY50_n & BDRY75_n  )
+              | (BDRY50   & BDRY75    )
               | (BDRY50_n & BDRY75    )
-              | ( BLOCK25_n           )
+              | ( BLOCK25             )
               | ( EPEA                )
               | ( EPES                )
               | ( MR                  )
 );
 
   // STROBE PARITY ERROR ADDRESS
-  assign SPEA = TEST ? 1'b0 : ~((DBAPR_n) | (BLOCK25) | (EPEA) | (MR_n));
+  // PALASM 45001B: /SPEA = /DBAPR + BLOCK25 + EPEA + MR. The DBAPR pin is
+  // ACTIVE-HIGH in the PALASM pin list (the port name _n is a misnomer; the
+  // board wires the active-high delayed BAPR from 44304E here), so /DBAPR is
+  // the port inverted - and the last literal is MR, not MR_n. With the old
+  // literals SPEA was stuck at 0 and the PES/PEA address registers never
+  // captured anything (PAGING test 11 read them back as all zero).
+  assign SPEA = TEST ? 1'b0 : ~((~DBAPR_n) | (BLOCK25) | (EPEA) | (MR));
 
   // PARITY ERROR SIGNALS FROM BUS AND LOCAL MEMORY
   assign PARERR_n = TEST ? 1'b1 : ~((BDRY50 & BDRY75_n & BPERR50 & MR_n) | (LERR));

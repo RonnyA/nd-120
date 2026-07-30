@@ -106,13 +106,17 @@ module PAL_44403C_EN #(
 
       // B0 pin
       // Logic for DLY0_n (active-low)
-      assign DLY0_n = ~(MDLY_n |  // 25NS DELAY ON MICROCODE REQUEST
+      // PALASM 44403C: DLY0 = MDLY + CSDELAY0 + ACOND*CSECOND + ACOND*CSLOOP
+      //                     + LUA12*/DMA12 + /LUA12*DMA12 + DMAP
+      // Same 30-JUL audit fix as PAL_44403C.v: MDLY_n -> MDLY, XNOR -> XOR
+      // on the LUA12/DMA12 pair, raw MAP -> registered DMAP.
+      assign DLY0_n = ~(MDLY |  // 25NS DELAY ON MICROCODE REQUEST
           CSDELAY0 |  // 25NS DELAY ON PREVIOUS CYCLE ON MICROCODE REQ
           (ACOND & CSECOND) |  // CONDITIONAL MICROSEQUENCING
           (ACOND & CSLOOP) |  // USING ALU RESULT
-          (LUA12 & ~DMA12_n) |  // CHANGING FROM LOWER TO UPPER CONTROL STORE A
-          (~LUA12 & DMA12_n) |  // AFTER MAP TO AVOID CSDELAY BEING TOO LATE
-          MAP);  // DMAP
+          (LUA12 & ~DMA12) |  // CHANGING FROM LOWER TO UPPER CONTROL STORE A
+          (~LUA12 & DMA12) |  // (one clock after LUA12 changes - XOR)
+          DMAP);  // AFTER MAP TO AVOID CSDELAY BEING TOO LATE
 
       // B2 pin
       // Logic for SLCOND_n (active-low)

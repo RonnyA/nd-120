@@ -75,11 +75,13 @@ module PAL_44511A (
     else if ((CLK_n) == 0)  // HOLD UNTIL START OF NEXT CYCLE
       CWR_reg <= 1'b0;
 
-    // Logic for CUP  (ADDED CACHE UPDATE BIT)
-    if ((CWR_n & MREQ_n) == 1)  // SET IN WRITE TO CACHE
-      CUP_n_reg <= 1'b0;
-    else if (MREQ_n == 0)  // HOLD UNTIL NEXT MREQ
-      CUP_n_reg <= 1'b1;
+    // Logic for CUP (ADDED CACHE UPDATE BIT). 44511A OCR/PNG (registered):
+    //   /CUP := /CWR * MREQ + /CUP * /MREQ
+    //   (intent: CUP := CWR*MREQ + CUP*/MREQ - SET on write-to-cache, hold until next MREQ).
+    // Fix 26-JUL: the prior if/else had the MREQ polarity flipped (CWR_n & MREQ_n),
+    // so CUP was never set on a cache write and spuriously set when idle -> the
+    // CACHE-1X0 diagnostic reported "Cache updated bit: Not working".
+    CUP_n_reg <= (CWR_n & MREQ) | (CUP_n_reg & MREQ_n);
   end
 
   // outputs

@@ -94,11 +94,20 @@ module PAL_44402D (
 
   // Output logic for Q0_n, Q1_n, Q2_n
 
+  // PALASM 44402D (verified against the original scan 30-JUL): the pins NUBI
+  // and NUBD are ACTIVE-HIGH in the pin list, and the registered equations
+  // define /NUBI and /NUBD - a PAL16R4 output inverts the register onto the
+  // pin, so pin = ~register. The port names here are historical misnomers:
+  // they carry the ACTIVE-HIGH NUBI/NUBD pins straight into the used-bit RAM
+  // (CPU_MMU_CACHE_25 chip 21F, non-inverting), whose output returns as the
+  // active-high OUBI/OUBD inputs. The missing inversion below broke the
+  // used-bit loop (used bits toggled on fetch instead of holding; IHIT/USED
+  // computed from inverted state) - 30-JUL PAL audit find.
   // Q0
-  assign NUBI_n = OE_n ? 1'b0 : NUBI_n_reg;
+  assign NUBI_n = OE_n ? 1'b0 : ~NUBI_n_reg;
 
   // Q1
-  assign NUBD_n = OE_n ? 1'b0 : NUBD_n_reg;
+  assign NUBD_n = OE_n ? 1'b0 : ~NUBD_n_reg;
 
   // Q3
   assign IHIT_n = OE_n ? 1'b0 : ~IHIT_reg;

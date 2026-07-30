@@ -222,7 +222,11 @@ module ND120_TANG20K_TOP (
   reg [15:0] cap_mem[0:511];
   reg [8:0] cap_wptr;
   reg [8:0] cap_post;
-  reg [24:0] arm_cnt;
+  reg [28:0] arm_cnt;  // 30-JUL: widened 25->29 bits (arm ~40s, was ~2.5s) -
+                       // the WCS microcode load keeps CSA STATIC longer than
+                       // 2.5s, so the hang trigger fired mid-load and the
+                       // dumper seized the TX pin before the console ever
+                       // spoke (SRAM-load-no-boot mystery, plan Issue I).
   reg cap_armed, cap_trig, cap_done;
   reg wdec_d2;
   reg [3:0] pil_prev;
@@ -276,6 +280,27 @@ module ND120_TANG20K_TOP (
   wire        s_hang      = &csa_stable;
   wire        s_cap_event = ((s_pil_3_0 == 4'd10) && (pil_prev != 4'd10)) || s_hang;
   localparam [8:0] CAP_POST = 9'd32;
+`elsif TANG_TRAP_CAPTURE
+  // Issue-D (PAGING test 3 eject) probe. Word = {TVEC[3:0], TRAPN, CSA[10:0]}:
+  // TVEC/TRAPN arrive via the repacked XMIC_DBG (CGA_MIC.v, same define), CSA
+  // is the local GAO net. Trigger = CSA held at octal 7 for 16 clk2x cycles
+  // (the unimplemented-vector-7 self-jump; a transit through address 7 does
+  // not persist) OR the frozen-CSA hang detector. 480 pre + 32 post so the
+  // dump shows the trap dispatch LEADING INTO vector 7 - in particular
+  // whether TVEC=7 at the jump (trap generator really computed 7 on silicon)
+  // or TVEC!=7 (the CSA latch captured a mid-transition value = comb-path
+  // setup failure in the TVEC->CSA path).
+  wire [15:0] s_cap_src   = {s_xmic_dbg[15:11], CSA_12_0[10:0]};
+  reg  [4:0]  csa7_cnt;
+  always @(posedge clk2x) begin
+    if (!sys_rst_n) csa7_cnt <= 5'd0;
+    else if (CSA_12_0 == 13'd7) begin
+      if (!(&csa7_cnt)) csa7_cnt <= csa7_cnt + 1'b1;
+    end else csa7_cnt <= 5'd0;
+  end
+  wire        s_hang      = &csa_stable;
+  wire        s_cap_event = (csa7_cnt == 5'd16) || s_hang;
+  localparam [8:0] CAP_POST = 9'd32;
 `else
   wire [15:0] s_cap_src   = s_dbg_memw;
   wire        s_cap_event = !wdec_d2 && s_dbg_memw[7];
@@ -290,7 +315,7 @@ module ND120_TANG20K_TOP (
     end else begin
       if (!cap_armed) begin
         arm_cnt <= arm_cnt + 1'b1;
-        if (arm_cnt == 25'h1FFFFFF) cap_armed <= 1;  // ~2.5 s at 13.5 MHz
+        if (arm_cnt == 29'h1FFFFFFF) cap_armed <= 1;  // ~40 s at 13.5 MHz
       end
       // microcode-hang detector: count clk2x cycles CSA stays unchanged
       csa_prev <= CSA_12_0;
@@ -385,6 +410,11 @@ module ND120_TANG20K_TOP (
   // Grant-capture: after PIL->10 fires the capture, the dumper takes the TX
   // pin and streams the 512 {PIL,CSA} samples as hex. The console is dead
   // after that (expected - the CPU has wedged at level 10 anyway).
+  assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
+`elsif TANG_TRAP_CAPTURE
+  // Trap-capture: after the vector-7 / hang trigger fires, the dumper takes
+  // the TX pin and streams the 512 {TVEC,TRAPN,CSA} samples as hex. Console
+  // dead afterwards (expected - the CPU is spinning at vector 7 / wedged).
   assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
 `else
   /* verilator lint_off UNUSEDSIGNAL */

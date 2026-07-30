@@ -64,8 +64,18 @@ module TMM2018D_25 #(
   end
 
   // Output is enabled when OE_n and CS_n, but not during write
+`ifdef TMM_ASYNC_READ
+  // DIAGNOSTIC (Issue D, PAGING test 3): the real TMM2018D is an ASYNC SRAM -
+  // data follows the address combinationally. The sync-read BRAM model below
+  // serves data one clock stale when the address changes just before the
+  // consuming edge (PT translation / trap-handler PT read-modify-write).
+  // This define restores the faithful async read for simulation. NOT
+  // BRAM-inferrable - do not enable for FPGA synthesis without a timing plan.
+  assign D_OUT = (!OE_n & !CS_n & W_n) ? tmm_memory_array[ADDRESS] : 8'b0; // <== ASYNC read
+`else
   assign D_OUT = (!OE_n & !CS_n & W_n) ? data_out_reg : 8'b0; //<== SYNC read
   //assign D_OUT = (!OE_n & !CS_n & W_n) ? tmm_memory_array[ADDRESS] : 8'b0; // <== ASYNC read
+`endif
 
 
 endmodule

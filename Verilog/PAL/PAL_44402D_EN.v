@@ -87,10 +87,11 @@ module PAL_44402D_EN #(
       end
 
       // Q0
-      assign NUBI_n = OE_n ? 1'b0 : NUBI_n_reg;
+      // Pin = ~register (PAL16R4 inverts; see PAL_44402D.v 30-JUL audit note)
+      assign NUBI_n = OE_n ? 1'b0 : ~NUBI_n_reg;
 
       // Q1
-      assign NUBD_n = OE_n ? 1'b0 : NUBD_n_reg;
+      assign NUBD_n = OE_n ? 1'b0 : ~NUBD_n_reg;
 
       // Q3
       assign IHIT_n = OE_n ? 1'b0 : ~IHIT_reg;

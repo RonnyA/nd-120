@@ -101,10 +101,15 @@ module PAL_44302B (
   assign BGNTCACT_n = TEST ? 1'b1 : ~(BGNT | CACT); //! BGNTCACT_n - Combined BUS Grant/Active signal 
 
   // Logic for DSTB
+  // PALASM 44302B: DSTB = CGNT + CACT*/BDRY50*/BDRY25*/IORQ + CACT*IORQ*CC2
+  // (30-JUL audit: the middle term had BDRY50/BDRY25/IORQ all UN-negated, so
+  // the strobe never spanned a non-IOX CPU-from-bus read - the DSTB rise is
+  // what samples read data into the CD/LBD 74646s AT BDRY, per the PALASM's
+  // own description.)
   assign DSTB_n = TEST ? 1'b1 :
                     ~(
-                        (CGNT)                          |
-                        (CACT & BDRY50 & BDRY25 & IORQ) |
+                        (CGNT)                                   |
+                        (CACT & BDRY50_n & BDRY25_n & IORQ_n)    |
                         (CACT & IORQ & CC2)                // IOX CYCLE
       );
 
