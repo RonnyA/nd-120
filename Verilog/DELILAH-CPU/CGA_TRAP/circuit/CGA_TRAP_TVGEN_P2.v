@@ -243,11 +243,19 @@ module CGA_TRAP_TVGEN_P2 (
 
 
   // TVEC 2
+  // NOTE (fix 27-JUL): the original schematic (DELILAH p.104) uses a 3-input mux MUX31LP
+  // (D0,D1,D2) with A=LEV1 (priority) / B=LEV2 select and an inverting Z output. There is no
+  // D3: select A=B=1 maps to D2 (level-1 wins - a page fault must beat a level-2 trap). The
+  // Logisim/Verilog conversion modeled it as a 4-input Multiplexer_4 and tied the phantom
+  // muxIn_3 to 1'b0, so sel=11 produced TVEC=0111=7 (an unimplemented "SINTRAN 4" trap vector
+  // that self-jumps -> hang) whenever a page fault (LEV1) and PGU (LEV2) fired together (e.g.
+  // the CX-instruction test's access to a not-present page, IPT=2). Restore the MUX31LP
+  // behaviour: muxIn_3 = muxIn_2 (D2) so A=B=1 -> the level-1 (page-fault, vector 1) encoding.
   Multiplexer_4 TVEC2_MUX (
       .muxIn_0(s_gnd),
       .muxIn_1(s_l2v2_n),
       .muxIn_2(s_power),
-      .muxIn_3(1'b0),
+      .muxIn_3(s_power),   // MUX31LP: A=B=1 selects D2 (=muxIn_2), not a phantom D3
       .muxOut(s_tvec2_n),
       .sel(s_mux_selector[1:0])
   );
@@ -257,7 +265,7 @@ module CGA_TRAP_TVGEN_P2 (
       .muxIn_0(s_l3v1_n),
       .muxIn_1(s_l2v1_n),
       .muxIn_2(s_l1v1_n),
-      .muxIn_3(1'b0),
+      .muxIn_3(s_l1v1_n),  // MUX31LP: A=B=1 selects D2 (=muxIn_2); see TVEC2_MUX note
       .muxOut(s_tvec1_n),
       .sel(s_mux_selector[1:0])
   );
@@ -267,7 +275,7 @@ module CGA_TRAP_TVGEN_P2 (
       .muxIn_0(s_l3v0_n),
       .muxIn_1(s_l2v0_n),
       .muxIn_2(s_l1v0_n),
-      .muxIn_3(1'b0),
+      .muxIn_3(s_l1v0_n),  // MUX31LP: A=B=1 selects D2 (=muxIn_2); see TVEC2_MUX note
       .muxOut(s_tvec0_n),
       .sel(s_mux_selector[1:0])
   );
@@ -287,20 +295,20 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
-  // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
-  D_FLIPFLOP_EN #(
-      .USE_ENABLE(TCLK_CE)
-  ) L2V2_FF (
-      .sysclk(sysclk),
-      .EN(TCLK_EN),
-      .clock(s_tclk),
-      .d(s_gates8_out),
-      .preset(1'b0),
-      .q(),
-      .qBar(s_l2v2_n),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+  // FIX 27-JUL (trap-vector-7 timing race, Issue D): the level-2 vector data
+  // bits (l2v2/l2v1/l2v0) were TCLK-registered FFs while the trap SELECT
+  // {LEV1,LEV2} and TRAPN are combinational. On a PGU/WIP rising edge LEV2
+  // selects the level-2 slot immediately, but the registered l2v* still held
+  // the previous-edge "no-level-2-condition" default {1,1,1} -> TVEC=0111=7
+  // (unimplemented SINTRAN-4 self-jump) for one TCLK, and CSA latched 7 before
+  // the FFs updated to the correct PGU->4 / WIP->5 encoding. The trap vector is
+  // only ever sampled at the dispatch cycle (coincident with the live fault),
+  // and a level-2 trap always has WIP|PGU|RD live, so drive the level-2 mux
+  // inputs COMBINATIONALLY from the live gate outputs - coherent with the live
+  // LEV2 select. Registered L1V/L3V (page-fault / level-3) slots are untouched;
+  // sel=11/10/00 are unaffected (they never select D1). qBar polarity preserved
+  // (l2vN_n = ~gatesM_out).
+  assign s_l2v2_n = ~s_gates8_out;
 
   // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
   D_FLIPFLOP_EN #(
@@ -317,20 +325,8 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
-  // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
-  D_FLIPFLOP_EN #(
-      .USE_ENABLE(TCLK_CE)
-  ) L2V1_FF (
-      .sysclk(sysclk),
-      .EN(TCLK_EN),
-      .clock(s_tclk),
-      .d(s_gates7_out),
-      .preset(1'b0),
-      .q(),
-      .qBar(s_l2v1_n),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+  // FIX 27-JUL (Issue D, see L2V2 note): combinational level-2 vector bit 1.
+  assign s_l2v1_n = ~s_gates7_out;
 
   // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
   D_FLIPFLOP_EN #(
@@ -362,20 +358,22 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
-  // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
-  D_FLIPFLOP_EN #(
-      .USE_ENABLE(TCLK_CE)
-  ) L2V0_FF (
-      .sysclk(sysclk),
-      .EN(TCLK_EN),
-      .clock(s_tclk),
-      .d(s_gates11_out),
-      .preset(1'b0),
-      .q(),
-      .qBar(s_l2v0_n),
-      .reset(1'b0),
-      .tick(1'b1)
-  );
+  // FIX 27-JUL (Issue D, see L2V2 note): combinational level-2 vector bit 0.
+  assign s_l2v0_n = ~s_gates11_out;
 
+`ifdef TRAPDBG
+  // Internal vector-7 diagnosis: on the cycle the vector first becomes 7, dump
+  // the select + every level-condition + the registered l*v* bits, so we can see
+  // WHICH sel/condition path produces 7 (algebra says it should be impossible
+  // with the mux fix - this settles which assumption is wrong).
+  reg r_v7_d = 1'b0;
+  always @(posedge sysclk) begin
+    r_v7_d <= (s_tvec_3_0_out == 4'd7);
+    if (!r_v7_d && (s_tvec_3_0_out == 4'd7))
+      $display("[tv7] sel=%b(L1=%b L2=%b) WIP=%b PGU=%b PGF=%b RD=%b RV=%b PVIOL=%b VACC=%b IFE=%b | l2v2n=%b l2v1n=%b l2v0n=%b l1v1n=%b l1v0n=%b l3v1n=%b l3v0n=%b",
+        s_mux_selector, LEV1, LEV2, s_wip, s_pgu, s_pgf, s_rd, s_rv, s_pviol, s_vacc, s_ifetch,
+        s_l2v2_n, s_l2v1_n, s_l2v0_n, s_l1v1_n, s_l1v0_n, s_l3v1_n, s_l3v0_n);
+  end
+`endif
 
 endmodule
