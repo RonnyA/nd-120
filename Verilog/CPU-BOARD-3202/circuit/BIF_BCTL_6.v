@@ -346,6 +346,31 @@ module BIF_BCTL_6 (
       .LERR_n  (s_lerr_n)     // B5_n - LERR_n (out) Local Error signal
   );
 
+`ifdef PESDBG
+  // Issue-F probe (inert unless -DPESDBG): log every change on the SLOW links
+  // of the PES/PEA capture-freeze-readback chain around PAL 45001B (freeze,
+  // error latches, readback strobes), plus pulse COUNTS for the fast SPEA/SPES
+  // capture strobes, to find which link stays dead during PAGING test 11
+  // (PES/PEA read back 0). Counts keep the log under the size cap - SPEA fires
+  // every bus cycle by design after the strobe fix.
+  reg [8:0] r_pesdbg_d = 9'b111111111;
+  reg r_spea_d = 1'b0, r_spes_d = 1'b0;
+  reg [31:0] r_spea_cnt = 0, r_spes_cnt = 0;
+  wire [8:0] s_pesdbg_now = {s_rerr_n, s_block_n, s_mor25_n, s_ps_n, s_pa_n,
+                             s_epes_n, s_epea_n, s_parerr_n, s_lerr_n};
+  always @(posedge s_osc) begin
+    if (s_spea && !r_spea_d) r_spea_cnt <= r_spea_cnt + 1;
+    if (s_spes && !r_spes_d) r_spes_cnt <= r_spes_cnt + 1;
+    r_spea_d <= s_spea;
+    r_spes_d <= s_spes;
+    if (s_pesdbg_now != r_pesdbg_d)
+      $display("[pes] rerr_n=%b block_n=%b mor25_n=%b ps_n=%b pa_n=%b epes_n=%b epea_n=%b parerr_n=%b lerr_n=%b speaN=%0d spesN=%0d",
+               s_rerr_n, s_block_n, s_mor25_n, s_ps_n, s_pa_n,
+               s_epes_n, s_epea_n, s_parerr_n, s_lerr_n, r_spea_cnt, r_spes_cnt);
+    r_pesdbg_d <= s_pesdbg_now;
+  end
+`endif
+
 
   /*
    * Bus driver module for the ND120 CPU bus interface.

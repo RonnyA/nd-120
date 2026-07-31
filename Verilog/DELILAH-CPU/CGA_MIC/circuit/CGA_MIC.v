@@ -331,7 +331,15 @@ module CGA_MIC (
   // sees. Correct STZ word => CSBIT_11_0=0x065 (=> jmpaddr 0145). If instead
   // CSBIT_11_0=0xC00 (=address 06000 low bits) => the WCS control-store READ is
   // returning the ADDRESS not the DATA on silicon = ROOT CAUSE (WCS read path).
+`ifdef TANG_TRAP_CAPTURE
+  // Issue-D on-chip probe (Tang builds only; the sim never defines this, so the
+  // sim-probe XMIC bit meanings below are untouched): export the trap dispatch
+  // inputs this module already receives - {TVEC[3:0], TRAPN, 11'b0}. The Tang
+  // top combines bits 15:11 with CSA into the analyzer word (tang20k_defines.v).
+  assign XMIC_DBG           = {s_tvec_3_0[3:0], s_trap_n, 11'b0};
+`else
   assign XMIC_DBG           = {s_csbit20, s_sc_6_3_out[3], MCLK_EN, 1'b0, s_csbit_15_0[11:0]};
+`endif
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **

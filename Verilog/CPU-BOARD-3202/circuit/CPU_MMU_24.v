@@ -452,4 +452,49 @@ module CPU_MMU_24 (
     .WCINH_n(s_wcinh_n)         // Write control inhibit (active low)
   );
 
+`ifdef PTDBG
+  // Issue-D probe (inert unless -DPTDBG): log all program-visible page-table
+  // traffic so the PAGING test-3 PGU/WIP failure can be pinned - does the
+  // trap handler WRITE the PT entry with the PGU/WIP status bits set, and
+  // does the test's read-back RETURN them?
+  //   [pt] WR  = a PT-chip write strobe (EPT_n low + WMAP_n low): addr + data
+  //   [pt] RDI = PT entry driven onto the IDB (EPTI_n low, read direction)
+  //   [pt] WRI = IDB driven onto the PT bus (EPTI_n low, write direction)
+  // Each is edge/change-detected so one strobe logs once.
+  reg        r_ptdbg_wr_d, r_ptdbg_rdi_d, r_ptdbg_wri_d;
+  reg [10:0] r_ptdbg_addr_d;
+  reg [15:0] r_ptdbg_data_d;
+  always @(posedge sysclk) begin
+    r_ptdbg_wr_d   <= (!s_ept_n && !s_wmap_n);
+    r_ptdbg_rdi_d  <= (!s_epti_n && !s_write);
+    r_ptdbg_wri_d  <= (!s_epti_n &&  s_write);
+    r_ptdbg_addr_d <= s_la_20_10;
+    r_ptdbg_data_d <= s_pt_pt_15_0_in;
+    if ((!s_ept_n && !s_wmap_n) &&
+        (!r_ptdbg_wr_d || r_ptdbg_addr_d != s_la_20_10 || r_ptdbg_data_d != s_pt_pt_15_0_in))
+      $display("[pt] t=%0t WR  addr=%04o data=%06o (pt15_9=%03o)",
+               $time, s_la_20_10, s_pt_pt_15_0_in, s_pt_pt_15_0_in[15:9]);
+    if ((!s_epti_n && !s_write) && !r_ptdbg_rdi_d)
+      $display("[pt] RDI addr=%04o data=%06o (pt15_9=%03o)",
+               s_la_20_10, s_ptidb_pt_15_0_in, s_ptidb_pt_15_0_in[15:9]);
+    if ((!s_epti_n && s_write) && !r_ptdbg_wri_d)
+      $display("[pt] WRI addr=%04o idb=%06o (pt15_9=%03o)",
+               s_la_20_10, s_ptidb_idb_15_0_in, s_ptidb_idb_15_0_in[15:9]);
+  end
+
+  // Zero-entry translation probe: log every PT translation read (EPT active,
+  // not a write) that returns an entry with ALL-ZERO status bits - the
+  // signature of the spurious PV trap (access through an unmapped entry).
+  // Logs the PT INDEX (= PIT + virtual page), which the trap probes cannot see.
+  reg        r_ptdbg_z_d;
+  reg [10:0] r_ptdbg_zaddr_d;
+  always @(posedge sysclk) begin
+    r_ptdbg_z_d     <= (!s_ept_n && s_wmap_n && s_pt_pt_15_0_out[15:9] == 7'd0);
+    r_ptdbg_zaddr_d <= s_la_20_10;
+    if ((!s_ept_n && s_wmap_n && s_pt_pt_15_0_out[15:9] == 7'd0) &&
+        (!r_ptdbg_z_d || r_ptdbg_zaddr_d != s_la_20_10))
+      $display("[pt] Z   addr=%04o data=%06o", s_la_20_10, s_pt_pt_15_0_out);
+  end
+`endif
+
 endmodule
