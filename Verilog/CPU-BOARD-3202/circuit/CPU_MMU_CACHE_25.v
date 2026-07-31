@@ -106,7 +106,21 @@ module CPU_MMU_CACHE_25 (
   /*******************************************************************************
    ** Here all output connections are defined                                    **
    *******************************************************************************/
+  // Banner word-index-2 fix (26-JUL): the cache data SRAM (23F/24F) is driven onto
+  // the wired-OR CD bus for the whole read-transfer (CS=ECD, sheet 25). On a MISS the
+  // memory data only survives that OR because the refill (WCA) forces the SRAM output
+  // to 0 while writing. For a CACHE-INHIBIT page (WCINH) the refill is suppressed, so a
+  // line still holding stale non-zero data (e.g. 0177777 cached during init-clear, then
+  // the memory rewritten by DMA which bypasses the cache) JAMS the OR bus over the
+  // correct memory word -> banner "INSTRUCTION" printed as "INST\x7f\x7fCTION".
+  // Gate the cache CD output by HIT so it contributes 0 unless this line genuinely
+  // matches the requested address; memory then passes cleanly on every miss/inhibit.
+  // Escape hatch: -DND120_CACHE_DRIVE_UNGATED restores the raw schematic behaviour.
+`ifdef ND120_CACHE_DRIVE_UNGATED
   assign CD_15_0_OUT = s_cd_15_0_out[15:0];
+`else
+  assign CD_15_0_OUT = s_hit ? s_cd_15_0_out[15:0] : 16'b0;
+`endif
   assign CON = s_con;
   assign CON_n = s_con_n;
   assign HIT = s_hit;
