@@ -53,6 +53,9 @@ REGISTRY=(
   "DECODE-GateArray/DGA/sim :: test-f595        :: Testbench Complete"
   "DELILAH-CPU/CGA/sim      :: test-busdriver16 :: Testbench Complete"
   "DELILAH-CPU/CGA_MIC/sim  :: test-masel-basic :: PASS"
+  # --- CGA_MAC_DECODE exhaustive decode check (both build modes, Issue-C
+  #     GATES_5 regression tooth: SPT/SAPT mutual exclusion) ---------------
+  "DELILAH-CPU/CGA_MAC/sim  :: test-decode      :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_INTR/sim :: test-irsrc        :: TB_RESULT: PASS"
   # --- CGA_INTR gate-level unit tbs (iverilog, teeth-checked) -----------
   "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR_VECGEN_PTY_PTYENC  :: TB_RESULT: PASS"

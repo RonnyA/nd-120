@@ -247,12 +247,21 @@ module CGA_MAC_DECODE (
       .result(s_gates4_out)
   );
 
+  // 31-JUL-2026: input3 was s_cscomm_4 - a transcription error vs the DELILAH
+  // schematic (CGA/MAC/DECODE sheet 1 of 4, page 25: the third input of this
+  // ND3 taps the ICSMIS0 row). The term is the SPT mask for APT requests
+  // (CSCOMM 0o34/0o35 with CSMIS=1); without it SPT and SAPT assert together
+  // on RDRQ,APT / WRRQ,APT and the PTSEL JK (J=SPT, K=SAPT) TOGGLES instead
+  // of selecting APT - from an APT state it flips to PT, the dest first-touch
+  // protection check reads the wrong page table and raises a spurious level-14
+  // page fault that kills the in-flight write (INSTRUCTION-C03 Cx:
+  // "MOVEW APT ==> APT" drops the destination page-boundary word).
   NAND_GATE_3_INPUTS #(
       .BubblesMask(3'b000)
   ) GATES_5 (
       .input1(s_cscomm_3_n),
       .input2(s_csmis_1),
-      .input3(s_cscomm_4),
+      .input3(s_csmis_0_n),
       .result(s_gates5_out)
   );
 
