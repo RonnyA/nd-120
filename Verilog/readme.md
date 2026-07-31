@@ -236,6 +236,10 @@ Key shared facts:
 - Per-target compile-time defines: [`docs/build-defines.md`](docs/build-defines.md).
 - Expected boot sequence for validation: [`docs/boot-golden-spec.md`](docs/boot-golden-spec.md).
 - Overall plan: [`FPGA-BRINGUP-PLAN.md`](FPGA-BRINGUP-PLAN.md).
+- All design docs, handoffs, and plans are indexed in [`docs/README.md`](docs/README.md);
+  the ND-100 bus protocol (IOX / IDENT / DMA) is written up in
+  [`docs/nd100-bus-dma.md`](docs/nd100-bus-dma.md) with a slide deck at
+  [`docs/nd100-bus-deck.pptx`](docs/nd100-bus-deck.pptx).
 
 ## Verilog code status
 

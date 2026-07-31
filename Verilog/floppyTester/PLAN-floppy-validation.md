@@ -10,6 +10,11 @@ bottom-up with self-checking testbenches, from single IOX register accesses to a
 full `1560&` boot off a simulated SD card, so that the Tang floppy boot can be
 trusted. SMD gets the same treatment AFTER the floppy is validated (Ronny).
 
+**Bus protocol reference** (the IOX/IDENT/DMA behavior these testbenches check):
+`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd100-bus-dma.md` (writeup) and
+`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd100-bus-deck.pptx` (slide deck,
+all bus phases). See also `../ND-BUS-DEVICES/README.md`.
+
 ## Ground rules
 
 - **Oracle:** `/home/ronny/repos/nd100x/src/devices/floppy/deviceFloppyDMA.c`

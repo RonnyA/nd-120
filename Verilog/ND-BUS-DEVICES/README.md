@@ -85,3 +85,24 @@ equivalent of the 100 ns settle window the manual gives the interfaces.
   OUTIDENT release.
 - A device with no pending interrupt on the polled level passes the
   grant on and returns nothing.
+
+## Bus protocol references (IOX / IDENT / DMA)
+
+Explainers for the three bus phases these devices implement. Both are in
+`../docs/` (repo-root: `Verilog/docs/`):
+
+- **`../docs/nd100-bus-deck.pptx`** - 16-slide deck covering all bus phases
+  (IOX read/write, IDENT poll, DMA read/write + the recovery gap and
+  CPU-vs-DMA arbitration). Editable PowerPoint; the verbatim manual text
+  from ND-06.016.01 is baked into each slide's notes. Native-drawn timing
+  waveforms are reconstructions - trust the RTL and the manual over the
+  drawing.
+- **`../docs/nd100-bus-dma.md`** - the authoritative ND-100 bus + DMA
+  writeup. Section 10.8 holds the MEASURED findings ("every second read
+  lost", read-data-capture window). Read this before touching
+  `DMA/circuit/ND_DMA_MASTER.v`.
+
+Cited manual: `ND-06.016.01 NORD-100 Input/Output System` - Section III
+(IOX register access), Section IV + F.2 (IDENT PL<level>, poll codes
+004/011/022/043 octal - NOTE the poll code is NOT the level integer),
+Section V (DMA + the grant daisy chain).

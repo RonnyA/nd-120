@@ -10,6 +10,11 @@ Sections 1-7 below are the original design/analysis (kept for background); the
 measured outcome is in **§0 RESULTS** immediately below. All paths are absolute;
 facts are cited by path+line.
 
+**Bus protocol reference** (what this P3 work validates the DMA master against):
+`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd100-bus-dma.md` (writeup; §10.8 =
+measured DMA findings) and `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd100-bus-deck.pptx`
+(slide deck, all bus phases). See also `../ND-BUS-DEVICES/README.md`.
+
 ---
 
 ## 0. RESULTS (built + measured, 2026-07-26)
