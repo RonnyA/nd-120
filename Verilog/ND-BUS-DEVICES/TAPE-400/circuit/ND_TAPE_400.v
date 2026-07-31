@@ -43,6 +43,7 @@ module ND_TAPE_400 #(
     input  wire [15:0] iox_wdata,
     input  wire        iox_rd,
     output wire [15:0] iox_rdata,     // OR-bus: 0 when not addressed
+    output wire        iox_sel,       // 1 = this core owns the captured IOX address
     output wire [3:0]  int_pending,   // {lvl13,lvl12,lvl11,lvl10}
     input  wire        ident_strobe,
     input  wire [3:0]  ident_level,
@@ -68,6 +69,7 @@ module ND_TAPE_400 #(
 
   // Address decode: 400 (+0) data, 402 (+2) status, 403 (+3) control
   wire s_addressed  = (iox_addr[15:2] == BASE_ADDR[15:2]);
+  assign iox_sel    = s_addressed;   // slave gates its BDRY response on this
   wire s_rd_data    = iox_rd && s_addressed && (iox_addr[1:0] == 2'd0);
   wire s_rd_status  = iox_rd && s_addressed && (iox_addr[1:0] == 2'd2);
   wire s_wr_control = iox_wr && s_addressed && (iox_addr[1:0] == 2'd3);

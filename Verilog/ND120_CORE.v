@@ -296,6 +296,11 @@ module ND120_CORE #(
   wire        s_tape_hit, s_flp_hit, s_smd_hit;
   wire [15:0] s_tape_code, s_flp_code, s_smd_code;
 
+  // Per-core IOX address-match. When NO core owns the captured IOX address the
+  // slave must answer nothing (no BDRY) so the CPU bus-times-out into the
+  // level-14 IOX error, instead of the slave answering every address.
+  wire        s_tape_sel, s_flp_sel, s_smd_sel;
+
   // IDENT daisy chain: head -> tape -> floppy -> SMD (absent stage = pass-through)
   wire        s_grant_tape_flp;  // ident chain: tape -> floppy
   wire        s_grant_flp_smd;   // ident chain: floppy -> SMD
@@ -304,6 +309,7 @@ module ND120_CORE #(
   wire [3:0]  s_dev_int_pending = s_tape_intp  | s_flp_intp  | s_smd_intp;
   wire        s_dev_ident_hit   = s_tape_hit   | s_flp_hit   | s_smd_hit;
   wire [15:0] s_dev_ident_code  = s_tape_code  | s_flp_code  | s_smd_code;
+  wire        s_dev_iox_hit     = s_tape_sel   | s_flp_sel   | s_smd_sel;
 
   // DMA grant chain (active low): CPU OUTGRANT_n -> test master -> floppy
   // master -> SMD master. Declared up front: s_grant_fdma_smdm_n is used by
@@ -344,6 +350,7 @@ module ND120_CORE #(
           .iox_wdata(s_dev_iox_wdata),
           .iox_rd(s_dev_iox_rd),
           .iox_rdata(s_dev_iox_rdata),
+          .iox_hit(s_dev_iox_hit),
           .int_pending(s_dev_int_pending),
           .ident_strobe(s_dev_ident_strobe),
           .ident_level(s_dev_ident_level),
@@ -386,6 +393,7 @@ module ND120_CORE #(
           .iox_wdata(s_dev_iox_wdata),
           .iox_rd(s_dev_iox_rd),
           .iox_rdata(s_tape_rdata),
+          .iox_sel(s_tape_sel),
           .int_pending(s_tape_intp),
           .ident_strobe(s_dev_ident_strobe),
           .ident_level(s_dev_ident_level),
@@ -400,6 +408,7 @@ module ND120_CORE #(
       );
     end else begin : gen_no_tape
       assign s_tape_rdata     = 16'd0;
+      assign s_tape_sel       = 1'b0;
       assign s_tape_intp      = 4'd0;
       assign s_tape_hit       = 1'b0;
       assign s_tape_code      = 16'd0;
@@ -434,6 +443,7 @@ module ND120_CORE #(
           .iox_wdata(s_dev_iox_wdata),
           .iox_rd(s_dev_iox_rd),
           .iox_rdata(s_flp_rdata),
+          .iox_sel(s_flp_sel),
           .int_pending(s_flp_intp),
           .ident_strobe(s_dev_ident_strobe),
           .ident_level(s_dev_ident_level),
@@ -490,6 +500,7 @@ module ND120_CORE #(
       );
     end else begin : gen_no_floppy
       assign s_flp_rdata          = 16'd0;
+      assign s_flp_sel            = 1'b0;
       assign s_flp_intp           = 4'd0;
       assign s_flp_hit            = 1'b0;
       assign s_flp_code           = 16'd0;
@@ -534,6 +545,7 @@ module ND120_CORE #(
           .iox_wdata(s_dev_iox_wdata),
           .iox_rd(s_dev_iox_rd),
           .iox_rdata(s_smd_rdata),
+          .iox_sel(s_smd_sel),
           .int_pending(s_smd_intp),
           .ident_strobe(s_dev_ident_strobe),
           .ident_level(s_dev_ident_level),
@@ -590,6 +602,7 @@ module ND120_CORE #(
       );
     end else begin : gen_no_smd
       assign s_smd_rdata      = 16'd0;
+      assign s_smd_sel        = 1'b0;
       assign s_smd_intp       = 4'd0;
       assign s_smd_hit        = 1'b0;
       assign s_smd_code       = 16'd0;

@@ -100,6 +100,7 @@ module ND_SMD #(
     input  wire [15:0] iox_wdata,
     input  wire        iox_rd,
     output reg  [15:0] iox_rdata,
+    output wire        iox_sel,         // 1 = this core owns the captured IOX address
     output wire [3:0]  int_pending,
     input  wire        ident_strobe,
     input  wire [3:0]  ident_level,
@@ -193,6 +194,7 @@ module ND_SMD #(
 
   // ---- decode ----
   wire s_addressed = (iox_addr[15:3] == BASE_ADDR[15:3]);
+  assign iox_sel   = s_addressed;   // slave gates its BDRY response on this
   wire [2:0] s_reg = iox_addr[2:0];
   wire s_wr_here = iox_wr && s_addressed;
   wire s_rd_here = iox_rd && s_addressed;

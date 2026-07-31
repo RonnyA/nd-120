@@ -49,6 +49,7 @@ module nd_bus_slave_tb;
   wire [3:0]  intp_a, intp_b;
   wire        hit_a, hit_b;
   wire [15:0] code_a, code_b;
+  wire        sel_a, sel_b;   // per-core IOX address-match
   wire        grant_ab;  // chain: core A -> core B
 
   assign iox_rdata = rdata_a | rdata_b;
@@ -74,6 +75,7 @@ module nd_bus_slave_tb;
       .iox_wdata(iox_wdata),
       .iox_rd(iox_rd),
       .iox_rdata(iox_rdata),
+      .iox_hit(sel_a | sel_b),
       .int_pending(intp_a | intp_b),
       .ident_strobe(ident_strobe),
       .ident_level(ident_level),
@@ -123,6 +125,7 @@ module nd_bus_slave_tb;
       .iox_wdata(iox_wdata),
       .iox_rd(iox_rd),
       .iox_rdata(rdata_a),
+      .iox_sel(sel_a),
       .int_pending(intp_a),
       .ident_strobe(ident_strobe),
       .ident_level(ident_level),
@@ -148,6 +151,7 @@ module nd_bus_slave_tb;
       .iox_wdata(iox_wdata),
       .iox_rd(iox_rd),
       .iox_rdata(rdata_b),
+      .iox_sel(sel_b),
       .int_pending(intp_b),
       .ident_strobe(ident_strobe),
       .ident_level(ident_level),
@@ -234,6 +238,23 @@ module nd_bus_slave_tb;
     end
   endtask
 
+  // Read an address NO core owns: the slave must answer NOTHING (BINPUT_n and
+  // BDRY_n stay high) so the CPU bus-times-out -> level-14 IOX error. This is
+  // the "answers all calls" bug fix - the OLD slave answered every address.
+  task iox_read_noanswer(input [15:0] addr);
+    integer guard;
+    begin
+      bus_apr(addr & 16'hFFFE);  // LSB=0 -> read
+      bioxe_n = 0;
+      for (guard = 0; guard < 30; guard = guard + 1) @(negedge sysclk);
+      check(binput_n === 1'b1, "unclaimed address wrongly asserted BINPUT_n");
+      check(bdry_n  === 1'b1, "unclaimed address wrongly asserted BDRY_n");
+      bioxe_n = 1;
+      @(negedge sysclk);
+      @(negedge sysclk);
+    end
+  endtask
+
   // IDENT PL<level>: levelcode = 004/011/022/043 for 10/11/12/13
   task ident(input [15:0] levelcode, output hit, output [15:0] code);
     integer guard;
@@ -290,8 +311,8 @@ module nd_bus_slave_tb;
     // 1: status starts empty; unclaimed address reads 0
     iox_read(16'o000402, rdata);
     check(rdata === 16'd0, "initial status not 0");
-    iox_read(16'o000500, rdata);
-    check(rdata === 16'd0, "unclaimed address not 0");
+    // unclaimed address: the slave must NOT answer (bus-timeout -> level-14)
+    iox_read_noanswer(16'o000500);
 
     // 2: activate (control bit2) -> RFT rises when the byte arrives
     iox_write(16'o000403, 16'o000004);
