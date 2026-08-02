@@ -1,6 +1,6 @@
 # Session handoff — 2026-07-22 (ND-120 store/177777 hunt + generic sim probe)
 
-**Full path:** `E:\Dev\Repos\Ronny\nd-120\Verilog\sim\HANDOFF-session-2026-07-22.md`
+**Full path:** `Verilog/sim/HANDOFF-session-2026-07-22.md`
 Reboot imminent — all changes below are ON DISK (survive reboot) but **NOT git-committed**.
 Background agents + WSL sim processes will be KILLED by the reboot; re-kick as noted.
 
@@ -53,7 +53,7 @@ runSim/Run120.cpp documents this exact hazard (`ND120_STDIN_GAP=300000`).
 ## NEXT STEPS (resume here after reboot)
 
 1. **Rebuild the probe with the send-gap fix** (WSL, ~7 min each):
-   `wsl.exe -e bash -lc 'cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim && make probe-floppycore USE_LATCHES=0'`
+   `wsl.exe -e bash -lc 'cd Verilog/sim && make probe-floppycore USE_LATCHES=0'`
    (also `probe-floppy` if needed).
 2. **Verify the fix**: drive `reset; send 1560&; run 100000000` and confirm the console now shows
    **"TPE Monitor" / "TPE>" / ND-120/CX**, NOT "INSTRUCTION VERIFY / INSTRUCTION-B / >". If still

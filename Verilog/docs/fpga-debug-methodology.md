@@ -1,6 +1,6 @@
 # ND-120 FPGA Debug Methodology — Step-by-Step
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/fpga-debug-methodology.md`
+**Full path:** `Verilog/docs/fpga-debug-methodology.md`
 **Last updated:** 2026-07-03
 
 A followable procedure for finding and fixing why the ND-120 boots in the
@@ -58,7 +58,7 @@ Answer three questions. They decide which branch (Section 2 or 3) you work in.
 ### 1a. Does FF-mode Verilator boot? (the pivotal question)
 
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 make clean
 make compare          # builds latch + FF, runs both, diffs -> trace_diff.txt
 ```
@@ -108,7 +108,7 @@ The earliest signal that diverges between latch and FF is closest to the root
 cause. Use the per-signal first-divergence script from `SIGNAL-COMPARISON-HOWTO.md`:
 
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 python3 - <<'PY'
 import csv
 first={}
@@ -153,7 +153,7 @@ testbench next to it (fast, targeted), driving latch vs FF behaviour:
 
 ```bash
 # Example: the MASEL microcode-address path
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_MIC/sim
+cd Verilog/DELILAH-CPU/CGA_MIC/sim
 make test-masel          # MASEL_cycle_tb + MASEL_iw_capture_tb (race/timing checks)
 ```
 
@@ -172,7 +172,7 @@ single-cycle enable, and clock the register on `sysclk` gated by that enable.
 After the change:
 
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 make compare    # goal: FF sim now reaches the same boot phases as latch sim
 ```
 Iterate 2.1 -> 2.4 until FF sim boots to OPCOM. THEN go to the FPGA (Section 3
@@ -250,11 +250,11 @@ majority in one place.
 
 ```bash
 # WSL: regenerate golden reference
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim && make clean && make all
+cd Verilog/sim && make clean && make all
 ```
 ```powershell
 # Windows: full synth (logic changed) then flash
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\basys3
+cd Verilog/fpga/basys3
 .\vivado_build.ps1          # ~1h full synth; writes output\ND120_TOP.bit + .ltx
 .\flash.ps1 -Quick          # volatile JTAG program (fast iteration)
 ```

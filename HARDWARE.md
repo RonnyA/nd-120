@@ -2,6 +2,13 @@
 
 This document details the hardware components, specifications, and requirements for the ND-120 CPU implementation.
 
+> **Provenance note (02-AUG-2026):** this document was drafted in September 2025.
+> The component and status tables below have been re-checked against the RTL.
+> The numeric timing, power, environmental and mechanical figures further down
+> have **not** been traced back to the original Norsk Data documentation - treat
+> them as unverified until someone confirms them against `NorskData-Doc/` or the
+> design documents.
+
 ## System Overview
 
 The ND-120 CPU is a 16-bit minicomputer processor originally designed by Norsk Data in 1988. This implementation recreates the complete system using modern HDL and FPGA technology.
@@ -20,7 +27,7 @@ The main CPU board contains all essential processing components in a single-boar
 | **NEC DGA** | Custom Gate Array | Instruction decoder | ✅ Implemented |
 | **MC68705-U3** | 8-bit Microcontroller | Panel controller | ✅ ROM dumped & analyzed |
 | **SC2661 UART** | Serial Communication | Console I/O | ✅ Implemented |
-| **AM29833A** | ALU Bit-slice | Arithmetic operations | ✅ Implemented |
+| **AM29833A** | Parity Bus Transceiver | Memory data path parity (sheet 46) | ✅ Implemented |
 
 #### Memory Subsystem
 
@@ -28,8 +35,8 @@ The main CPU board contains all essential processing components in a single-boar
 |-----------|------|------|----------|---------|
 | **Microcode ROM** | 64KB | EPROM | Microinstruction storage | ✅ Dumped & implemented |
 | **Working Registers** | 32×16-bit | Static RAM | CPU register file | ✅ Implemented |
-| **Cache Memory** | Variable | Static RAM | Microcode cache | ✅ Implemented |
-| **Main Memory** | Up to 8MB | Dynamic RAM | System memory | ⚠️ Simulation only |
+| **Cache Memory** | Variable | Static RAM | MMU data cache | ⚠️ Implemented, never functionally validated |
+| **Main Memory** | Up to 8MB | Dynamic RAM | System memory | ✅ Simulation (6MB) and SDRAM on Tang Nano 20K |
 
 ### DELILAH CPU Gate Array (CGA)
 
@@ -143,17 +150,15 @@ Programmable Array Logic providing various control functions.
 ### Microcode Memory
 
 **Organization**:
-- **Total Size**: 64KB (65,536 words)
+- **Total Size**: 64KB, split low half + high half
 - **Word Width**: 64 bits
-- **Technology**: EPROM (2764/27128 series)
-- **Access Time**: <150ns
+- **Technology**: EPROM, AM27256 (the dumps used by the build are
+  `AM27256_45132L.hex` and `AM27256_45133L.hex`, microcode version L)
+- **Access Time**: <150ns (unverified against the original data sheet)
 
-**Address Map**:
-```
-0x0000-0x07FF: Low microcode (32KB)
-0x0800-0x0FFF: High microcode (32KB)
-0x1000-0x1FFF: Trap vectors
-```
+The hex address map that stood here was internally inconsistent (it labelled
+2KB ranges as 32KB) and is not reproduced. For the real control-store layout see
+`Verilog/mic-calculation.md` and the microcode listing under `Code/Microcode/`.
 
 **Microcode Fields**:
 - **ALU Control**: 9 bits (CSALUI[8:0])
@@ -177,15 +182,14 @@ Programmable Array Logic providing various control functions.
 - **Usage**: Cache, buffers, register files
 - **Access Time**: <70ns
 
-### I/O Memory Map
+### I/O Address Map
 
-| Address Range | Device | Function |
-|---------------|--------|----------|
-| **0x8000-0x8003** | UART | Serial communication |
-| **0x8004-0x8007** | Parallel I/O | General purpose I/O |
-| **0x8008-0x800F** | Interrupt Controller | Interrupt management |
-| **0x8010-0x801F** | Timer | System timing |
-| **0x8020-0x802F** | Panel Interface | Front panel communication |
+The ND-120 does not use a hex memory-mapped I/O window. Devices are reached with
+the `IOX` instruction using **octal device addresses** (for example the floppy /
+streamer controller at `1560`). The hex table that stood here was never traced to
+any Norsk Data source and has been removed rather than left as fact. The authoritative
+per-device addresses are in the Norsk Data functional descriptions under
+`NorskData-Doc/`, and in the device models under `Verilog/ND-BUS-DEVICES/`.
 
 ## Clock and Timing
 
@@ -227,15 +231,17 @@ Programmable Array Logic providing various control functions.
 
 ### Development Boards
 
-#### Supported Boards
-- **Tang Nano 20K**: GoWin GW2AR-18 FPGA
-- **DE10-Nano**: Intel Cyclone V SoC
-- **Arty A7**: Xilinx Artix-7
+#### Board Support In Tree
 
-#### Board-Specific Features
-- **Tang Nano**: SPI flash for microcode storage
-- **DE10-Nano**: ARM processor for peripherals
-- **Arty A7**: Ethernet and USB connectivity
+Build flows live under `Verilog/fpga/<board>/`, see `Verilog/fpga/README.md`.
+
+| Board | FPGA | State |
+|-------|------|-------|
+| **Tang Nano 20K** | GoWin GW2AR-18 | CPU boots on silicon; SDRAM and SD/FAT storage proven |
+| **Basys3** | Xilinx Artix-7 `xc7a35t` | Synthesises, CPU boot does not work yet |
+| **QMTech A35T** | Xilinx Artix-7 | Bring-up paused |
+| **Cmod A7-35T** | Xilinx Artix-7 | Research only, no build validated |
+| **MiSTer (DE10-Nano)** | Intel Cyclone V SoC | Planned, not started |
 
 ## Power Requirements
 

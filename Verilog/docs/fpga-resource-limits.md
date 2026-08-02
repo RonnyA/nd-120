@@ -3,10 +3,10 @@
 Last updated 16-JUL-2026. Board = Tang Nano 20K, Gowin **GW2AR (GW2A-18C)**.
 Numbers are from the OSS flow (yosys -> nextpnr-himbaechel). All paths absolute.
 This is the board-independent-ish summary; the detailed analyses are:
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/fpga-utilization-breakdown.md`
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/fpga-utilization-reduction-plan.md`
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/fat-reader-slimming-plan.md`
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md`
+- `Verilog/docs/fpga-utilization-breakdown.md`
+- `Verilog/docs/fpga-utilization-reduction-plan.md`
+- `Verilog/docs/fat-reader-slimming-plan.md`
+- `Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md`
   (older BSRAM-only budget; its "logic has huge headroom" premise is now STALE -
   see below).
 
@@ -72,6 +72,6 @@ Key facts the levers turn on:
 
 To test floppy boot in Verilator yourself:
 ```
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim
+cd Verilog/runSim
 make run-floppy      # then type 1560& at the '#' prompt
 ```

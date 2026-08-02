@@ -67,17 +67,17 @@ selected), NOT a C-model filename edit.
 
 ## ND120_CORE extraction: STEPS 1-3 DONE + COMMITTED 14-JUL-2026
 
-Full detail + evidence: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/PLAN-nd120-core-extraction.md`.
+Full detail + evidence: `Verilog/docs/PLAN-nd120-core-extraction.md`.
 
 Files created/changed by the core extraction (COMMITTED on clock-enable-fix):
-- NEW  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND120_CORE.v`
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND120_TOP.v`                          (instantiates CORE; external ports UNCHANGED)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v` (CORE #(0,0,0), device-less)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj`      (added ND120_CORE.v to the file list)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/Makefile`, `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/Makefile` (added `-I..`)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/Run120.cpp`,
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/latch_ff_compare.cpp`,
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/test_nd120.cpp`  (`__DOT__` prefix: CPU_BOARD/s_csbits now under CORE)
+- NEW  `Verilog/ND120_CORE.v`
+- `Verilog/ND120_TOP.v`                          (instantiates CORE; external ports UNCHANGED)
+- `Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v` (CORE #(0,0,0), device-less)
+- `Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj`      (added ND120_CORE.v to the file list)
+- `Verilog/runSim/Makefile`, `Verilog/sim/Makefile` (added `-I..`)
+- `Verilog/runSim/Run120.cpp`,
+  `Verilog/sim/latch_ff_compare.cpp`,
+  `Verilog/sim/test_nd120.cpp`  (`__DOT__` prefix: CPU_BOARD/s_csbits now under CORE)
 
 PROVEN behaviour-neutral (not assumed): trace_ff.csv + trace_latch.csv both
 byte-identical to golden; pre-refactor (HEAD worktree + current C models) vs
@@ -93,10 +93,10 @@ gating made `runSim/golden/console_ff_golden.log` unreproducible (it holds 20
 IDENT/interrupt lines the gated models no longer emit). Ronny's call 14-JUL:
 don't re-record the golden, don't un-gate globally -- compile the prints in for
 that ONE gate. Implemented as:
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Makefile`: the test-full console gate
+- `Verilog/Makefile`: the test-full console gate
   compiles with `-DDEBUG_INTERRUPT`. COMMITTED. Harmless at HEAD (prints are
   force-on there); required once your gating lands.
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/simDevices/NDBus.cpp`: the
+- `Verilog/simDevices/NDBus.cpp`: the
   `IDENT LVL[..]` print now also fires under `DEBUG_INTERRUPT`, not only
   `DEBUG_BIF` (it IS IDENT tracing). **This hunk is UNCOMMITTED and sits on top
   of your uncommitted NDBus.cpp -- carry it in YOUR commit.** Without it the

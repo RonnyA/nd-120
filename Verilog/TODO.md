@@ -1,49 +1,130 @@
 # ND-120 Verilog TODO
 
-> Last updated: 13-JUL-2026 (MPY product/overflow bug fixed in CGA_ALU_QREG;
-> SHIFT ROT/ZIN/LIN serial-input bug fixed in CGA_CPU_ALU_CONTR)
+> Last updated: 02-AUG-2026 (SMD controller handed to another session; plan
+> below says who owns what)
 
 ---
 
-## OPEN: interrupt status fence (Am2914) - fix written, gated OFF, needs a partner fix
+## CURRENT PLAN - 02-AUG-2026
 
-The DELILAH interrupt system is a close Am2914 copy. Its **status register**
-(the fence that stops the interrupt just taken from being re-dispatched:
-"READ VECTOR auto-loads vector+1 into the Status Register") has NEVER worked
-in our RTL - two transcription bugs in `CGA_INTR_CNTLR_VECGEN_STAT{,_SBIT}.v`
-(schematic p.87): the cell's vector-load NAND took GPE instead of DCDF, and
-the six SBIT instances (drawn WITHOUT pin names on the sheet) had four pins
-rotated. Both are now corrected in-tree but **gated behind
-`ND120_INTR_STATUS_FENCE`, default OFF**, because switching the fence on
-alone hangs the CPU self-test's interrupt scan (microcode APID3) - the
-priority comparator (`..._VECGEN_CMP{,_MAGCMP}`, p.88) and the request-generate
-logic (`..._IRGEL_*`, p.90-95) were written when the fence was inert and need
-the same schematic + Am2914 audit (rule: a request passes only when its
-vector >= the status value). Consequence today: INSTRUCTION-B `RUN` livelocks
-at level 14 (IOX-error storm re-dispatches every macro instruction). All 13
-other areas pass. Full analysis + repro: `docs/RUN-level14-livelock-analysis.md`.
-Logisim CGA_INTR sheet needs the same corrections (regeneration hazard).
+### Owned elsewhere - do NOT change these files here
+
+**SMD disc controller (1540).** A separate session has taken over the SMD work
+from `docs/HANDOFF-smd-controller-01-AUG.md`, together with the Pi Pico C-code
+side that is running ground-truth tests to confirm the nd100x oracle is 100%
+correct. Off our plate:
+
+- `ND-BUS-DEVICES/SMD/circuit/ND_SMD.v` - register semantics, the
+  controller-type / word-count flip-flop question, `21540&` mass-storage load.
+- `SD-FAT/circuit/nd_storage_smd_adapter.v` position mapping (still
+  `blkaddr2*2048 + blkaddr1*64`, not the oracle's cylinder/head/sector -> LBA;
+  changing it means changing the adapter, `ND-BUS-DEVICES/SMD/sim/nd_smd_tb.v`
+  and `process_verilog_smd()` in `simDevices/NDBus.cpp` together).
+
+What we already fixed and leave in place (all uncommitted, all verified in
+Verilator): the 8 ms `DELAY_TICKS` derived from the board clock in
+`ND120_CORE.v`, the boot-mode `+1`/`+7` writes, the first-fetch ready drop,
+status bit 11 as DMA channel error, and `ND120_MAX_CNT` in the
+`test-smd-boot` gate. Captured ground truth for the oracle side lives in
+`ND-BUS-DEVICES/SMD/sim/traces/`.
+
+**Ronny's, not ours to start:** the combined floppy+SCSI PCB question (onboard
+Z80, decodes both the 1560 floppy/streamer window and SCSI at 144300).
+
+### Waiting on Ronny
+
+1. **Commit approval** for the whole working tree: the SMD fixes above, the
+   testbench migration into per-module `sim/` folders plus the
+   `tests/run_all_tests.sh` registry entries, the `git mv`/`git rm` already
+   staged, and the Gowin place/route options in
+   `fpga/tang-nano-20k/gowin_build.tcl`.
+2. **Tang rebuild + flash.** Nothing above is on silicon; the flashed bitstream
+   predates all of it. Only silicon can say whether the residual "Disc unit not
+   ready" is the SD/image side (`020001`) or the DMA side (`024001`).
+
+### Ours, unblocked, in priority order
+
+1. **Finish the testbench campaign** (paused): `DECODE_DGA_COMM` is partially
+   written, `BIF_BCTL_6` not started, then Tier 6. Every new tb must print
+   `TB_RESULT: PASS` and be registered in `tests/run_all_tests.sh`.
+2. **`test-memchain`** still fails (bit 8 drops) - see its own section below.
+   It is the one red light in an otherwise green unit suite.
+3. Then the standing items further down this file.
 
 ---
 
-## OPEN: interrupt status fence (Am2914) - fix written, gated OFF, needs a partner fix
+## LOW PRIO: confirm-or-refute that the DMA master's MIN_GAP_TICKS gap is load-bearing
+
+Added 31-JUL-2026. The committed conclusion (commit 332ff8e,
+`Verilog/floppyTester/PLAN-P3-dma-master-validation.md` section "0. RESULTS",
+plus the DMA slide deck) says the MIN_GAP_TICKS recovery gap prevents the
+"every second read lost" DMA hazard. A 26-JUL isolation sweep (dmaSim hammer,
+FIXED read address 010000 octal, 2x2 over MIN_GAP {0,32} x EARLY_REREQ {0,1})
+contradicts it: stale reads track EARLY_REREQ only (7/64 stale whenever
+EARLY_REREQ=1, 0/512 when 0, at BOTH gap values), suggesting MIN_GAP is
+vestigial. NOT conclusive: a fixed-address hammer is blind to the
+stale-ADDRESS-latch variant (a stale latch still holds the right address);
+the original evidence (`Verilog/docs/nd100-bus-dma.md` section 10.8) used a
+CHANGING-address burst.
+
+Task: extend the hammer in `Verilog/dmaSim/dma_p3_main.cpp` with an
+INCREMENTING-address mode (new env `ND120_DMA_HAMMER_INCR=1`; pre-seed RAM
+word=address so a stale latch returns a detectably wrong word; keep the fixed
+mode). Re-run the 2x2 at N>=512 per cell, strictly serial with `make clean`
+between builds (MIN_GAP/EARLY_REREQ are compile-time via EXTRA_VDEFINES; no
+build-flags stamp in `Verilog/dmaSim/Makefile`). Also sweep MIN_GAP
+{0,1,2,4,8,16,32} at EARLY_REREQ=0. Then either correct the "load-bearing"
+wording in the PLAN doc (note the 332ff8e correction, don't rewrite history;
+flag the pptx deck for its owner) or document the true minimum gap. Full
+task spec with guardrails: session memory `dma-min-gap-verify-task`.
+
+## LOW PRIO: RTC persistence - 6805 panel-processor / calendar clock emulation + ESP32 NTP time source
+
+Added 31-JUL-2026 (Ronny). Today the machine has no saved wall-clock: TPE
+reports "==TPE42=> The clock is not updated (display panel wrong or
+unexisting)". On the real ND-120 the calendar clock lives with the display
+panel's 6805 microcontroller; we need to emulate ENOUGH of the 6805 + RTC
+chip that the operating system can save the clock and restore it on boot.
+
+Constraints / design direction (part of the larger board plan):
+- The Tang Nano 20K has no RTC and no battery backup, so the FPGA alone
+  cannot keep time across power-off. Align this task with the planned ESP32
+  integration: the ESP32 tracks real time via network NTP and provides it to
+  the emulated panel clock on boot.
+- SINTRAN III is NOT year-2000 safe (y2k). The ESP32 must therefore store a
+  year OFFSET and always present SINTRAN a pre-2000 date - e.g. real year
+  minus a fixed number of years (exact scheme to be decided; leap-year
+  alignment matters when picking the offset) - so the OS never sees a year
+  that crashes it. The true date lives only on the ESP32 side.
+- Scope to work out when picked up: which 6805 panel registers/commands the
+  OS actually uses (save clock / read clock), where they surface in the
+  ND-120 I/O map, and the minimal emulation that satisfies both TPE and
+  SINTRAN. Full notes: session memory `rtc-6805-esp32-persistence-task`.
+
+## CLOSED 14-JUL-2026: interrupt status fence (Am2914) - now the RTL default
 
 The DELILAH interrupt system is a close Am2914 copy. Its **status register**
 (the fence that stops the interrupt just taken from being re-dispatched:
-"READ VECTOR auto-loads vector+1 into the Status Register") has NEVER worked
-in our RTL - two transcription bugs in `CGA_INTR_CNTLR_VECGEN_STAT{,_SBIT}.v`
-(schematic p.87): the cell's vector-load NAND took GPE instead of DCDF, and
-the six SBIT instances (drawn WITHOUT pin names on the sheet) had four pins
-rotated. Both are now corrected in-tree but **gated behind
-`ND120_INTR_STATUS_FENCE`, default OFF**, because switching the fence on
-alone hangs the CPU self-test's interrupt scan (microcode APID3) - the
-priority comparator (`..._VECGEN_CMP{,_MAGCMP}`, p.88) and the request-generate
-logic (`..._IRGEL_*`, p.90-95) were written when the fence was inert and need
-the same schematic + Am2914 audit (rule: a request passes only when its
-vector >= the status value). Consequence today: INSTRUCTION-B `RUN` livelocks
-at level 14 (IOX-error storm re-dispatches every macro instruction). All 13
-other areas pass. Full analysis + repro: `docs/RUN-level14-livelock-analysis.md`.
-Logisim CGA_INTR sheet needs the same corrections (regeneration hazard).
+"READ VECTOR auto-loads vector+1 into the Status Register") had never worked in
+our RTL - two transcription bugs in `CGA_INTR_CNTLR_VECGEN_STAT{,_SBIT}.v`
+(schematic p.87): the cell's vector-load NAND took GPE instead of DCDF, and the
+six SBIT instances (drawn WITHOUT pin names on the sheet) had four pins rotated.
+
+Both fixes are now **ON by default** in the RTL; the escape hatch that restores
+the old dead-fence behaviour is `ND120_INTR_STATUS_FENCE_OFF`, which no build
+defines. Validated in FF mode: self-test 0 execution-phase STERR, unit suite
+48/48, all 13 instruction-verify areas, and the `sim/` latch-vs-FF golden traces
+byte-identical. Ground truth came from the C# DELILAH-L PIC trace: vector+1
+loads on the winning chip only, and per-group DCDF (HIF/LOF) qualifies it.
+
+The follow-on `IIC: 11 - Memory Out of Range` misreport was a separate
+transcription bug - `CGA_INTR_CNTLR.v` swapped FIDBO bits 1 and 2 on the
+status-fence LDSTAT path, decoding an IOX error as MOR - fixed in commit
+`3acef36`. INSTRUCTION-B `RUN` now reaches its end of test.
+
+Still owed: the Logisim CGA_INTR sheet needs the same two corrections, since
+the schematic and the Verilog are maintained by hand and must agree. Full
+analysis: `docs/RUN-level14-livelock-analysis.md`.
 
 ---
 
@@ -268,7 +349,9 @@ reader) behind a common "block device" interface feeding the ND-120 I/O
 
 ## High Priority
 
-> Items that may affect self-test failures (7/14 tests currently fail)
+> Items raised when the self-test was still failing. The self-test itself is now
+> clean (0 execution-phase STERR visits, 13-JUL-2026); these entries are kept
+> because the underlying questions were never answered.
 
 ### CPU_15: IDB output assignment
 
@@ -379,15 +462,16 @@ any microcode-issued vectored device I/O. Pre-existing (fails in latch
 mode too, first exercised 10-JUL). Full analysis + 2-minute sim repro:
 docs/serial-binload-300.md. Reference implementations to compare
 against (ASK before porting C# behavior - it may contain hacks):
-E:\Dev\Repos\Ronny\ND110Compile\ND110CPU (Cpu.cs ~783 vector dispatch,
+$ND_REPOS/ND110Compile/ND110CPU (Cpu.cs ~783 vector dispatch,
 ~1310 LDIRV loads IR from the IDB - note our IRLATCH samples CD instead)
 and NorskData-Doc ND-06.031.1 Microprogrammer's Guide (bit 25 / MIS0).
 
 ### Audit: microorder-by-microorder fidelity sweep
 
 The JMP0-3 find suggests a class: microorders that no current test
-exercises may be wrong or unimplemented, and could explain part of the
-7/14 self-test failures and macro-instruction bugs. Plan: extract the
+exercises may be wrong or unimplemented, and could explain remaining
+macro-instruction bugs (this was written while the self-test was still
+failing; the self-test is clean since 13-JUL-2026). Plan: extract the
 COMM/IDBS/condition decode tables from the Microprogrammer's Guide,
 diff against what CGA_MIC/CGA_DCD/DGA actually implement, and give each
 divergence a targeted unit test (the C# CPU at ND110Compile is a

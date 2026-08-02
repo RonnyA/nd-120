@@ -1,6 +1,6 @@
 # ND-120 Build-Time Defines (sim vs FPGA) and Unification Plan
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/build-defines.md`
+**Full path:** `Verilog/docs/build-defines.md`
 **Last updated:** 2026-07-04
 
 Every compile-time `ifdef` that makes the Verilog build differently for Verilator

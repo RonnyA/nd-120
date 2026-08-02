@@ -15,7 +15,7 @@ the SD card, and the roadmap to floppy and SMD/HDD image emulation on
 the same SD stack.
 
 All paths in this document are relative to the repository root
-`/mnt/e/Dev/Repos/Ronny/nd-120/` unless written as full paths.
+`/` unless written as full paths.
 Anything not confirmed against a primary source is marked UNVERIFIED.
 
 ---
@@ -126,7 +126,7 @@ code):
 
 | Asset | Full path | Relevance |
 |---|---|---|
-| C# paper tape reader with the ND-06.015.02 spec text quoted inline, plus the full ndwiki BPUN bootstrap listing | `/mnt/e/Dev/Repos/Ronny/RetroCore/Emulated.HW/ND/CPU/NDBUS/NDBusPapertapeReader.cs` | Best-commented register spec; matches `NDDevices.cpp` |
+| C# paper tape reader with the ND-06.015.02 spec text quoted inline, plus the full ndwiki BPUN bootstrap listing | `$ND_REPOS/RetroCore/Emulated.HW/ND/CPU/NDBUS/NDBusPapertapeReader.cs` | Best-commented register spec; matches `NDDevices.cpp` |
 | C emulator with papertape device | https://github.com/HackerCorpLabs/nd100x `src/devices/papertape/devicePapertape.{c,h}` | Independent cross-check of register semantics |
 | SINTRAN IOX/EXR driver architecture notes | `/mnt/d/ND/busi/2-IOX-AND-REGISTERS/SINTRAN-DEVICE-DRIVER-IOX-EXR-COMPLETE.md` | How real drivers use IOXT/EXR; useful for floppy/SMD later |
 | BPUN tape library | `/mnt/d/ND/BPUN/` | Test payloads |

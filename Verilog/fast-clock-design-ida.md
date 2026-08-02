@@ -1,7 +1,7 @@
 # Fast-Clock Design Idea
 
 ## Full path
-`E:\Dev\Repos\Ronny\nd-120\Verilog\fast-clock-design-ida.md`
+`Verilog/fast-clock-design-ida.md`
 
 ## Problem this is trying to solve
 

@@ -1,6 +1,6 @@
 # Basys3 (Xilinx Artix-7) FPGA target
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/basys3/`
+**Full path:** `Verilog/fpga/basys3/`
 
 Vivado build/flash flow for the Digilent **Basys3** board. This was the first
 FPGA target; synthesis works but the design does not yet boot on hardware (a
@@ -42,7 +42,7 @@ are run from this folder. The Vivado project itself lives **outside the repo** a
 ## Build & flash (Windows PowerShell)
 
 ```powershell
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\basys3
+cd Verilog/fpga/basys3
 
 # Full synth (needed after any logic change; ~1h). Default ps1 does full_synth.
 .\vivado_build.ps1

@@ -71,7 +71,7 @@ cause - please test whether this is a CPU/interrupt problem.**
 ## The hypothesis we want you to test (UNVERIFIED)
 
 **The tape-400 level-12 interrupt storm.**
-See `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/BUG-tape400-sd-level12-storm.md`.
+See `Verilog/docs/BUG-tape400-sd-level12-storm.md`.
 
 `400$` is known to storm level-12 interrupts from the tape device. In Verilator
 that only makes the sim slow - the tests still complete. **On real silicon a
@@ -98,7 +98,7 @@ sudo chmod 666 /dev/ttyUSB0 /dev/ttyUSB1
 Build and load - **the OSS flow (yosys/nextpnr) CANNOT PnR** (22 combinational
 loops in `CGA_INTR ... IRQ_REG.RQBIT_*`, proven pre-existing), so use Gowin:
 ```
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k
+cd Verilog/fpga/tang-nano-20k
 make gowin VARIANT=slow
 make load-gowin            # volatile SRAM - a power cycle wipes it
 ```
@@ -110,7 +110,7 @@ Memory dump syntax is `n<y` (start, end, octal).
 To re-take the pristine dump: `400$` (hangs) -> **press S1** -> do NOT run
 `20!` (it scribbles its own scratch into memory) -> dump. Tool:
 ```
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tools
+cd Verilog/tools
 ./check_bpun_memory.py --bpun ../runSim/CONFIGURATIO-C08.BPUN --commands
 ./check_bpun_memory.py --bpun ../runSim/CONFIGURATIO-C08.BPUN --dump cap.log
 ```
@@ -118,7 +118,7 @@ cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tools
 ## Reference: the same thing WORKS in Verilator
 
 ```
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim
+cd Verilog/runSim
 make run          # 400$ boots INSTRUCTION-B off a simulated SD card
 make run-config   # CONFIGURATIO-C08
 make run-fs       # FILSYS-INV-Q04
@@ -148,22 +148,22 @@ INSTRUCTION-B's `RUN` is yours - I have not touched it. CONFIGURATION-C08's
 ## Full paths to everything referenced
 
 - Handoff (storage side, full detail):
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/HANDOFF-tang-sd-tape-boot.md`
+  `Verilog/fpga/tang-nano-20k/HANDOFF-tang-sd-tape-boot.md`
 - This file:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/STATUS-FOR-CPU-LLM.md`
+  `Verilog/fpga/tang-nano-20k/STATUS-FOR-CPU-LLM.md`
 - Memory-dump comparison tool:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tools/check_bpun_memory.py`
+  `Verilog/tools/check_bpun_memory.py`
 - Level-12 storm bug:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/BUG-tape400-sd-level12-storm.md`
+  `Verilog/docs/BUG-tape400-sd-level12-storm.md`
 - Tang board top:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
+  `Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
 - Tape SD source:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/TAPE-400/circuit/nd_tape_sdfat_source.v`
+  `Verilog/ND-BUS-DEVICES/TAPE-400/circuit/nd_tape_sdfat_source.v`
 - Tape device:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/TAPE-400/circuit/ND_TAPE_400.v`
+  `Verilog/ND-BUS-DEVICES/TAPE-400/circuit/ND_TAPE_400.v`
 - Microcode (checksum/ILLEG branch):
   `/mnt/e/Dev/Ronny/nd120uc/source/nd-120-delilah-L-from-K.uc:6212`
 - BPUN format + loader:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/Run120.cpp`
+  `Verilog/runSim/Run120.cpp`
 - BSRAM budget:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md`
+  `Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md`

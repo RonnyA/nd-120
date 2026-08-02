@@ -1,6 +1,6 @@
 # HANDOFF: FF-mode program-execution divergence (Verilator)
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/HANDOFF-ff-execution-divergence.md`
+**Full path:** `Verilog/docs/HANDOFF-ff-execution-divergence.md`
 **Written:** 2026-07-07 · Repo: nd-120 (ND-120 CPU HDL) · Branch: `clock-enable-fix`
 
 You are picking up ONE self-contained bug. Another engineer is working the UART/RAM

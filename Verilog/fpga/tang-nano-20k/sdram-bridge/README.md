@@ -1,6 +1,6 @@
 # ND-120 sheet-49 SDRAM backend (Tang Nano 20K)
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/sdram-bridge/`
+**Full path:** `Verilog/fpga/tang-nano-20k/sdram-bridge/`
 
 > **Status: protocol-validated in simulation.** The testbench replays the
 > *measured* ND-120 DRAM protocol (2000-access random soak + directed tests)

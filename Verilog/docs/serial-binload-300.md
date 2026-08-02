@@ -99,12 +99,12 @@ Question: which microinstruction COMMAND (COMM, microword bits 36-32) and
 MIS (bits 43-42) combinations assert LDIRV ("Load instruction register
 (MIC)") according to the original Norsk Data documentation, and does the
 RTL decode in
-/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_DCD/circuit/CGA_DCD.v
+Verilog/DELILAH-CPU/CGA_DCD/circuit/CGA_DCD.v
 (gates GATES_79 / GATES_3 / GATES_8 / GATES_9, lines 754-819) match it.
 
 ### 1. Documentation entries
 
-Source: /mnt/e/Dev/Repos/Ronny/nd-120/NorskData-Doc/ND-06.031.1 EN ND-110
+Source: NorskData-Doc/ND-06.031.1 EN ND-110
 and ND-120 Microprogrammer's Guide-Gandalf-OCR.pdf
 
 - Chapter 3 command-decode list (PDF page 31, printed page 24-25), exact
@@ -129,7 +129,7 @@ and ND-120 Microprogrammer's Guide-Gandalf-OCR.pdf
   CNEXT,F15 / NF15 / F=0 / NF=0; 26,0-3 JMP,* / B / I / X; 27,0
   JMP,XB; 27,1 JMP,XI(,B); 27,2 spare; 27,3 CONTINUE ("Fetch relative
   to P").
-- /mnt/e/Dev/Repos/Ronny/nd-120/NorskData-Doc/ND-06026-1-EN ND-110
+- NorskData-Doc/ND-06026-1-EN ND-110
   Functional Description-ocr.pdf: no LDIRV occurrence at all (checked by
   full-text extraction).
 
@@ -213,7 +213,7 @@ which is the microword observed empirically at CS address 000145 firing
 LDIRV with COMM=27, MIS=3.
 
 The C# ND-110 emulator
-(/mnt/e/Dev/Repos/Ronny/ND110Compile/ND110CPU/Enums.cs, around line 141)
+($ND_REPOS/ND110Compile/ND110CPU/Enums.cs, around line 141)
 carries the same table: "20,3: LDIRV", MIS=2 of 22 = COMM,MAP, and the
 CJMP/CNEXT_24/CNEXT_25/JMP_26/JMP_27 groups - consistent (ND-110, but
 this range is identical on ND-120).

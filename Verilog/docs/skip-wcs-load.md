@@ -1,6 +1,6 @@
 # SKIP_WCS_LOAD — Preload the WCS and Skip the Microcode Load Phase
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/skip-wcs-load.md`
+**Full path:** `Verilog/docs/skip-wcs-load.md`
 **Last updated:** 2026-07-04
 
 How to preload the Writable Control Store (WCS) directly and skip the ~573K-cycle
@@ -63,7 +63,7 @@ So the preload needs the 64-bit image demuxed into 32 nibble-wide 4096-deep file
 
 ## Generator (done, validated)
 
-`/mnt/e/Dev/Repos/Ronny/nd-120/Code/Microcode/gen_wcs_image.py` produces, into
+`Code/Microcode/gen_wcs_image.py` produces, into
 `Code/Microcode/wcs/`:
 - `wcs_image.hex` — 8192 x 64-bit (unified; for inspection / a single-BRAM WCS).
 - `wcs_<16..31><C|D>.hex` — 32 per-chip nibble files (4096 x 4-bit each).

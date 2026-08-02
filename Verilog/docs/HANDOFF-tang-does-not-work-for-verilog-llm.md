@@ -2,7 +2,7 @@
 
 **To:** the session doing Verilog / Verilator testing
 **Date:** 17-JUL-2026
-**This file:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/HANDOFF-tang-does-not-work-for-verilog-llm.md`
+**This file:** `Verilog/docs/HANDOFF-tang-does-not-work-for-verilog-llm.md`
 
 ---
 
@@ -14,7 +14,7 @@ SD, not over serial. Please treat the FPGA build as unvalidated and help work ou
 why.
 
 The 13/13 instruction-verify pass is a **runSim / Verilator FF-mode** result
-(`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/instruction-verify/CAMPAIGN-STATUS.md`,
+(`Verilog/tests/instruction-verify/CAMPAIGN-STATUS.md`,
 13-JUL). Grepping that whole directory for `tang` / `silicon` / `ndcomm` returns
 nothing. There is no console capture anywhere in the repo showing
 instruction-verify output that came from the Tang.
@@ -69,7 +69,7 @@ Card: `CONFIGURATIO-C08.BPUN` as `BOOT.BPUN`.
    start, the program does not present the commands we need.
 6. **LEDs during that state: LED5 blinking (the heartbeat), NO other LED on.**
    Ronny reported this explicitly. For reference, the storage bring-up LED set in
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
+   `Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
    (active low, lit = true):
    - led[5] heartbeat
    - led[4] = sd_status[1], led[3] = sd_status[0]  (both lit = mount OK)
@@ -99,7 +99,7 @@ on silicon.** Something is true on the board that is not true in sim.
 Candidate directions - all **UNVERIFIED**, listed so nobody re-derives them:
 
 1. **The tape-400 level-12 interrupt storm.**
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/BUG-tape400-sd-level12-storm.md`.
+   `Verilog/docs/BUG-tape400-sd-level12-storm.md`.
    `400$` is known to storm level-12 interrupts. In Verilator that only makes the
    sim slow - tests still complete. On silicon a storm could livelock the CPU,
    which would look exactly like this: all the data arrives, the CPU never
@@ -114,7 +114,7 @@ Candidate directions - all **UNVERIFIED**, listed so nobody re-derives them:
 4. **Timing.** Slow bring-up runs CPU/bus at 6.75 MHz against a measured 9.38 MHz
    Fmax, so nominally it has margin - but the known real WNS is a 52 ns / 76-level
    WCS->ACAL path to a CE pin (a multicycle-constraint problem, see
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/README.md`). Not
+   `Verilog/fpga/tang-nano-20k/README.md`). Not
    ruled out.
 
 **Ownership note:** INSTRUCTION-B's `RUN` belongs to the CPU/interrupt session -
@@ -135,7 +135,7 @@ sudo chmod 666 /dev/ttyUSB0 /dev/ttyUSB1
 
 The **OSS flow (yosys/nextpnr) cannot PnR this design** - use Gowin:
 ```
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k
+cd Verilog/fpga/tang-nano-20k
 make gowin VARIANT=slow
 make load-gowin            # volatile SRAM - a power cycle wipes it
 ```
@@ -147,7 +147,7 @@ dump syntax is `n<y` (start, end, octal).
 Pristine dump recipe: `400$` (hangs) -> press S1 -> do **NOT** run `20!` (it
 scribbles its own scratch into memory) -> dump:
 ```
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tools
+cd Verilog/tools
 ./check_bpun_memory.py --bpun ../runSim/CONFIGURATIO-C08.BPUN --commands
 ./check_bpun_memory.py --bpun ../runSim/CONFIGURATIO-C08.BPUN --dump cap.log
 ```
@@ -155,7 +155,7 @@ cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tools
 ## The sim reference
 
 ```
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim
+cd Verilog/runSim
 make run          # 400$ boots INSTRUCTION-B off a simulated SD card
 make run-config   # CONFIGURATIO-C08
 make run-fs       # FILSYS-INV-Q04
@@ -194,26 +194,26 @@ fault in sim could be the same fault as the missing HELP menu on silicon.
 ## Full paths
 
 - This handoff:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/HANDOFF-tang-does-not-work-for-verilog-llm.md`
+  `Verilog/docs/HANDOFF-tang-does-not-work-for-verilog-llm.md`
 - Storage-side handoff (full detail):
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/HANDOFF-tang-sd-tape-boot.md`
+  `Verilog/fpga/tang-nano-20k/HANDOFF-tang-sd-tape-boot.md`
 - Status written for the CPU/interrupt session:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/STATUS-FOR-CPU-LLM.md`
+  `Verilog/fpga/tang-nano-20k/STATUS-FOR-CPU-LLM.md`
 - Level-12 storm bug:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/BUG-tape400-sd-level12-storm.md`
+  `Verilog/docs/BUG-tape400-sd-level12-storm.md`
 - Instruction-verify campaign (SIM ONLY):
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/instruction-verify/CAMPAIGN-STATUS.md`
+  `Verilog/tests/instruction-verify/CAMPAIGN-STATUS.md`
 - Memory-dump comparison tool:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tools/check_bpun_memory.py`
+  `Verilog/tools/check_bpun_memory.py`
 - Tang board top (LED assignments, clocking):
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
+  `Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
 - Tang build defines:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/tang20k_defines.v`
+  `Verilog/fpga/tang-nano-20k/src/tang20k_defines.v`
 - Tape SD source:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/TAPE-400/circuit/nd_tape_sdfat_source.v`
+  `Verilog/ND-BUS-DEVICES/TAPE-400/circuit/nd_tape_sdfat_source.v`
 - Tape device:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/TAPE-400/circuit/ND_TAPE_400.v`
+  `Verilog/ND-BUS-DEVICES/TAPE-400/circuit/ND_TAPE_400.v`
 - BPUN format + loader:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/Run120.cpp`
+  `Verilog/runSim/Run120.cpp`
 - Tang README (timing / WNS):
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/README.md`
+  `Verilog/fpga/tang-nano-20k/README.md`

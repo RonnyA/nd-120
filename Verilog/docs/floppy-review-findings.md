@@ -24,7 +24,7 @@ Reviewed RTL: ND-BUS-DEVICES/FLOPPY-DMA/circuit/ND_FLOPPY_DMA.v (octal
 SD-FAT/circuit/nd_storage_floppy_adapter.v.
 References: /mnt/e/Dev/Emulators/ND/nd100x/src/devices/floppy/
 deviceFloppyDMA.{c,h} + deviceFloppyPIO.{c,h} (the stated port source);
-/mnt/e/Dev/Repos/Ronny/RetroCore/Emulated.HW/ND/CPU/NDBUS/
+$ND_REPOS/RetroCore/Emulated.HW/ND/CPU/NDBUS/
 NDBusFloppyDMA.cs + NDBusFloppyPIO.cs (richer register-level reference);
 Verilog/simDevices/NDBus.cpp + NDDevices.cpp;
 docs/nd100x-device-semantics.md; FLOPPY-DMA/NEVER-READY-ANALYSIS.md.

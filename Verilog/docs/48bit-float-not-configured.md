@@ -6,7 +6,7 @@ cannot pass on this CPU because the DELILAH microcode in our PROMs implements
 the **32-bit** floating-point option, not the 48-bit one. The area to
 validate on this machine is `32-BITS-FLOATING` (INSTRUCTION-B has it, and an
 ND-110 golden trace exists for it:
-`/mnt/e/Dev/Repos/Ronny/ND110Compile/traces/TRACE-INSTRUCTION-VERIFY-32-BITS-FLOATING.md`).
+`$ND_REPOS/ND110Compile/traces/TRACE-INSTRUCTION-VERIFY-32-BITS-FLOATING.md`).
 
 ## Evidence
 

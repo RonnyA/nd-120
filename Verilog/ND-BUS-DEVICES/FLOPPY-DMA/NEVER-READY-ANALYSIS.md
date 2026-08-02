@@ -12,12 +12,12 @@ Reference (known-good) model:
   /home/ronny/repos/nd100x/src/devices/floppy/deviceFloppyDMA.h
   /home/ronny/repos/nd100x/src/devices/floppy/deviceFloppyDMA.c
 Our RTL:
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/FLOPPY-DMA/circuit/ND_FLOPPY_DMA.v
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/BUS-IF/circuit/ND_BUS_SLAVE.v
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND120_TOP.v (ND120_VERILOG_DEVICES section)
+  Verilog/ND-BUS-DEVICES/FLOPPY-DMA/circuit/ND_FLOPPY_DMA.v
+  Verilog/ND-BUS-DEVICES/BUS-IF/circuit/ND_BUS_SLAVE.v
+  Verilog/ND120_TOP.v (ND120_VERILOG_DEVICES section)
 Sim harness (C++ side of the bus):
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/simDevices/NDBus.cpp
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/simDevices/NDDevices.cpp
+  Verilog/simDevices/NDBus.cpp
+  Verilog/simDevices/NDDevices.cpp
 
 No RTL or C code was modified. This document is analysis + fix proposal only.
 
@@ -131,7 +131,7 @@ The two credible decodes are:
   (b) A garbage/corrupted device-number field: TPE has messages of the form
       "**** Error - device number 'NNNNNNB never ready for transfer" (found
       at file offset 0x10062 in
-      /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/testdata/210523I01-XX-01D.img).
+      Verilog/ND-BUS-DEVICES/testdata/210523I01-XX-01D.img).
       If the printed field came from a datafield our DMA writeback stomped
       or never filled, the number is meaningless noise.
 
@@ -176,7 +176,7 @@ waiting on memory/interrupt - exactly the part our RTL gets wrong.
 4. OUR RTL VS THE C MODEL - THE MISMATCHES
 ---------------------------------------------------------------------------
 
-File: /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/FLOPPY-DMA/circuit/ND_FLOPPY_DMA.v
+File: Verilog/ND-BUS-DEVICES/FLOPPY-DMA/circuit/ND_FLOPPY_DMA.v
 
 What already matches:
   - +2 read returns the full RSR1 with bit 15 = 1 in ALL modes, including
@@ -190,7 +190,7 @@ What already matches:
   - Interrupt condition s_pending = int_enabled && RFT (line 162), BINT11
     line, and IDENT code 021 at level 11 are implemented (lines 162-171)
     and pass the module testbench (BINT11 assertion + IDENT 021 checks in
-    /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/FLOPPY-DMA/sim/nd_floppy_dma_tb.v
+    Verilog/ND-BUS-DEVICES/FLOPPY-DMA/sim/nd_floppy_dma_tb.v
     lines 418-428).
 
 MISMATCH A - the root cause: the status writeback happens while still busy,
@@ -240,12 +240,12 @@ Wiring audit, all confirmed present and consistent:
 
   - ND_FLOPPY_DMA drives int_pending[1] (= level 11) from
     s_int_enabled && s_rft (ND_FLOPPY_DMA.v lines 162-166).
-  - /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/BUS-IF/circuit/ND_BUS_SLAVE.v
+  - Verilog/ND-BUS-DEVICES/BUS-IF/circuit/ND_BUS_SLAVE.v
     drives BINT11_n = ~int_pending[1] (line 70) and answers OUTIDENT: level
     decoded from the BAPR-strobed address (004/011/022/043 -> 10..13, lines
     82-85), granted core answers with ident_hit/ident_code, slave puts the
     code on BD via BINPUT/BINACK (lines 137-176).
-  - /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND120_TOP.v instantiates the
+  - Verilog/ND120_TOP.v instantiates the
     floppy with IDENT_CODE 021 / INT_LEVEL 11 (lines 504-508), ident grant
     chain tape -> floppy -> SMD (lines 436-437, 519-520, 596), and
     wire-ANDs the device BINT lines into the CPU bus inputs (lines
@@ -259,9 +259,9 @@ Wiring audit, all confirmed present and consistent:
   The console lines "No device found for IDENT level: 11" and
   "IDENT LVL[11]=0" are printed by the C++ side:
   DeviceManager::IDENT in
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/simDevices/NDDevices.cpp (line 1127)
+  Verilog/simDevices/NDDevices.cpp (line 1127)
   called from the OUTIDENT edge handler in
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/simDevices/NDBus.cpp (lines 86-126).
+  Verilog/simDevices/NDBus.cpp (lines 86-126).
   In ND120_VERILOG_DEVICES builds the C++ DeviceManager is EMPTY (addDevices
   registers the C models only when ND120_VERILOG_DEVICES is NOT defined), so
   those prints are expected noise on every IDENT and say nothing about the
@@ -306,7 +306,7 @@ Wiring audit, all confirmed present and consistent:
 ---------------------------------------------------------------------------
 
 All changes in
-/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/FLOPPY-DMA/circuit/ND_FLOPPY_DMA.v
+Verilog/ND-BUS-DEVICES/FLOPPY-DMA/circuit/ND_FLOPPY_DMA.v
 (no bus-slave or top-level changes needed; the interrupt/ident wiring is
 already correct):
 
@@ -337,7 +337,7 @@ already correct):
       deviceFloppyDMA.c lines 528-540: size 315392 -> 4'b0000 (8-inch,
       512 B/s), size >= 1261568 -> 4'b1111 (1024 B/s, DS, DD). Wire it
       through ND120_TOP's FDISK_* port group and the runSim floppy backend
-      in /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/simDevices/NDBus.cpp
+      in Verilog/simDevices/NDBus.cpp
       (process_verilog_floppy). Default to 4'b1111 if unknown so the TPE
       1.2MB workflow works even before the harness change.
 
@@ -349,7 +349,7 @@ already correct):
         during a transfer behaves like the C model.
 
   F4. Harness hygiene (separate file, optional):
-      /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/simDevices/NDBus.cpp lines
+      Verilog/simDevices/NDBus.cpp lines
       237-240: change `== 1` to `!= 0` in the four BINT assignments, and
       consider gating the "No device found for IDENT level" print behind
       DEBUG_BIF in ND120_VERILOG_DEVICES builds to stop the misleading
@@ -357,9 +357,9 @@ already correct):
 
   Verification plan (per repo conventions, testbench lives next to the
   module and must be registered in
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/run_all_tests.sh):
+  Verilog/tests/run_all_tests.sh):
       1. Extend
-         /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/FLOPPY-DMA/sim/nd_floppy_dma_tb.v
+         Verilog/ND-BUS-DEVICES/FLOPPY-DMA/sim/nd_floppy_dma_tb.v
          with: (a) after completion delay, memory[CB+6] must have bit 3 = 1
          and bit 2 = 0 (today only bit 15 is checked - that is how the bug
          escaped); (b) a READ FORMAT (0x22) command whose CB+7 comes back

@@ -1,6 +1,6 @@
 # Tang Nano 20K SDRAM test
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/sdram-test/`
+**Full path:** `Verilog/fpga/tang-nano-20k/sdram-test/`
 
 > **Status: PASSES on hardware - full 8 MB.** 2026-07-08: OSS-flow bitstream
 > loaded over usbipd/WSL2, runs observed on the board's UART at 9600 - all 4
@@ -224,7 +224,7 @@ via screen - several consecutive full passes):
 
 Alternative without usbipd: program from the Windows side (Gowin Programmer
 GUI or a Windows openFPGALoader) using
-`E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k\sdram-test\build\sdram_test_top.fs`
+`Verilog/fpga/tang-nano-20k/sdram-test/build/sdram_test_top.fs`
 in SRAM mode, and keep the serial terminal on the Windows COM port.
 
 ### Serial terminal

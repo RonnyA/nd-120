@@ -65,7 +65,7 @@ The ALD switch is a physical rotary switch on the CPU board. Its position determ
 | 12     | x3         | 21540             | Bootstrap load from SMD disk (1540) and run         |
 | 11     | x4         | 400               | BPUN load from paper tape (400) and run             |
 | 10     | x5         | 1600              | BPUN load from HDLC (1600) and run                  |
-| 9      | x6         | 21560             | Run only (no load)                                  |
+| 9      | x6         | 21560             | Mass storage load from 1560 and run (whatever controller sits at 1560) |
 | 8      | x7         | 0                 | Run only (no load)                                  |
 | 7      | x8         | 100000            | No load. CPU stops.                                 |
 | 6      | x9         | 101560            | Binary load from 1560 (SCSI boot)                   |
@@ -80,7 +80,7 @@ The ALD switch is a physical rotary switch on the CPU board. Its position determ
 
 | I want to...                      | Type at OPCOM `#` prompt |
 |-----------------------------------|--------------------------|
-| Boot from SCSI disk               | `21560&`                 |
+| Boot from the controller at 1560  | `21560&`                 |
 | Boot from SMD disk                | `21540&`                 |
 | Boot from Winchester disk         | `20500&`                 |
 | Load BPUN from paper tape         | `400&`                   |
@@ -96,3 +96,26 @@ The ALD switch is a physical rotary switch on the CPU board. Its position determ
 - Floppy and SCSI share device address 1560 -- only one can be physically present
 - The content of internal register I12 reflects the ALD settings
 - To bootstrap from an arbitrary device address, set bit 13: e.g., device 1550 becomes `21550&`
+
+### Provenance of the switch-9 row
+
+Switch 9 was read off a real **CPU 3095** board: the switch in position 9 gives
+internal register **I12 = 21560B**, a mass storage load from 1560B. That is all
+the setting means - it names a device address and a load format, NOT a disc
+technology. SCSI is one controller that can answer at 1560; a floppy controller
+is another, and the same setting serves whichever card is fitted in a given
+machine. This table previously described that row as "Run only (no load)",
+which was wrong on two counts - it contradicted the measured board and it
+contradicted this document's own rule that switch settings 8 to 15 load AND
+run.
+
+Two things nearby are still unverified against hardware and should not be
+trusted the way the switch-9 row now can be:
+
+- The tail comment in `Verilog/CPU-BOARD-3202/circuit/IO_REG_41.v` says
+  "ALD settings 4, 5, 12 and 13 specify a bootstrap load from a disk". Those
+  four are the Winchester and SMD rows; the 1560 rows (switch 9 and switch 1)
+  are NOT in that list even though switch 9 demonstrably performs a mass
+  storage load. Either the list predates SCSI at 1560 or it is incomplete.
+- The remaining "Run only (no load)" entry (switch 8, ALD value 0) has not been
+  checked on a board.

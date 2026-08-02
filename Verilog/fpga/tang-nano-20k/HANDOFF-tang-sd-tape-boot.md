@@ -29,7 +29,7 @@ Bitstream `0b3b4e12...` (Gowin flow, VARIANT=slow), loaded volatile.
 - BSRAM **44/46 (96%)**: 34 SP + 10 SDPB, up from the 41/46 device-less
   baseline. The storage stack costs 3 blocks, 2 spare. Tape needed NO
   sync-read refactor (floppy/SMD still will - see
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md`).
+  `Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md`).
 
 ## 2. THE BLOCKER: `400$` hangs on hardware
 
@@ -45,12 +45,12 @@ Measured directly over the console (not inferred):
   expected list). Unexplained. Could be a partial load higher up, could be
   something else. **NOT yet measured - do not assume.**
 
-In Verilator (`cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim && make run`) the
+In Verilator (`cd Verilog/runSim && make run`) the
 SAME RTL completes `400$` and boots the program fully. So this is
 hardware/FF-mode-specific, not a storage-logic bug.
 
 **Prime suspect to test first: the tape-400 level-12 interrupt storm**
-(`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/BUG-tape400-sd-level12-storm.md`).
+(`Verilog/docs/BUG-tape400-sd-level12-storm.md`).
 In sim the storm only makes things slow; on real silicon a storm could livelock
 the CPU. This is a HYPOTHESIS, unverified.
 
@@ -65,7 +65,7 @@ the CPU. This is a HYPOTHESIS, unverified.
 - **`400$` not auto-starting the program.** All three BPUNs have
   **execute = 000000**, i.e. action code 0 = "load only, do not start"
   (BPUN sections A-I, see `loadfile()` in
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/Run120.cpp`). `20!` is the
+  `Verilog/runSim/Run120.cpp`). `20!` is the
   intended way to start. NOTE: this explains a clean load that returns to the
   prompt - it does **NOT** explain the hard hang above. Do not conflate them.
 - **Words 1..15 reading `000001..000017`.** That address ramp IS the program's
@@ -89,7 +89,7 @@ WARNING: the Basys3 is ALSO `0403:6010` (busid 1-7). Do not pick by VID:PID.
 
 **Build + load (the OSS flow CANNOT PnR - see section 5):**
 ```
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k
+cd Verilog/fpga/tang-nano-20k
 make gowin VARIANT=slow      # Gowin EDA on the Windows host
 make load-gowin              # volatile SRAM; a power cycle wipes it
 ```
@@ -103,7 +103,7 @@ unpaced `0<77` returns nothing at all. Console is `/dev/ttyUSB1` @ 9600 8N1.
 3. do NOT run `20!` (it scribbles its own scratch into memory)
 4. dump every block and diff:
 ```
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tools
+cd Verilog/tools
 ./check_bpun_memory.py --bpun ../runSim/CONFIGURATIO-C08.BPUN --commands
 #   -> prints the n<y commands (1K-word blocks) for the whole image
 #   ... capture the console to cap.log ...
@@ -139,7 +139,7 @@ not from its command names. Diff against the RIGHT file.
 ## 6. Verilator side (all green)
 
 ```
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim
+cd Verilog/runSim
 make run          # INSTRUCTION-B from the simulated card (default SD_STORAGE=1)
 make run-config   # CONFIGURATIO-C08 - RUN probes devices
 make run-fs       # FILSYS-INV-Q04  - looks INTO floppy/SMD images
@@ -149,7 +149,7 @@ BPUN pre-deposit is now OFF under `ND120_SD_STORAGE`. That pre-deposit used to
 put INSTRUCTION-B in RAM before every run (its default `DEBUG.BPUN` is
 byte-identical to `INSTRUCTION-B.BPUN`), which made every earlier "boots from
 SD" claim worthless. See memory `bpun-predeposit-contamination`.
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/` KEEPS its pre-deposit on purpose
+`Verilog/sim/` KEEPS its pre-deposit on purpose
 (Ronny's ruling): no tape exists there, it is the injection method, and the
 traces are the latch-vs-FF golden gate.
 

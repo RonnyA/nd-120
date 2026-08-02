@@ -1,7 +1,7 @@
 # Worklog — LATCH refactor (CSEL_LATCH)
 
 ## Full path
-`E:\Dev\Repos\Ronny\nd-120\Verilog\worklog-latch-refactor.md`
+`Verilog/worklog-latch-refactor.md`
 
 ## Branch
 `redo-idb`

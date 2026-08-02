@@ -1,6 +1,6 @@
 # ND-120 memory-parity semantics: what the self-test and runtime actually require
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd120-parity-analysis.md`
+**Full path:** `Verilog/docs/nd120-parity-analysis.md`
 **Date:** 11-JUL-2026. Section-2 deliverable of
 `Verilog/docs/nd120-parity-refactor-order.md` (the 18-bit -> 16-bit SDRAM
 packing work order). Every claim below carries a microcode reference; the
@@ -33,14 +33,14 @@ no side-band SDRAM region is required.
 
 - **Clean ROM-validated ND-110 source** (same labels as ND-120; the
   authoritative semantic decode):
-  `/mnt/e/Dev/Repos/Ronny/ND110Compile/ND110Compile/uCode/ND-110-RASK.uc`,
+  `$ND_REPOS/ND110Compile/ND110Compile/uCode/ND-110-RASK.uc`,
   self-test at lines 4859-5199.
 - **L-EPROM decode** (bit-exact):
   `/mnt/e/Dev/Ronny/nd120uc/source/nd-120-delilah.uc`, self-test at
   octal o2053-o2156. (Labels/comments in this range are OCR-polluted -
   trust the bits, not the labels.)
 - **Address-annotated listing**:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Code/Microcode/ND-120-DELILAH-L.LISTING.txt`
+  `Code/Microcode/ND-120-DELILAH-L.LISTING.txt`
   lines 5290 (self-test start), 5518 (o2123), 5676 (o2156 STERR).
 - Token semantics: `nd120uc/scripts/nd120_tokens.json` (`IDBS,PEA` =
   "PEA-REGISTER -> IDB", `IDBS,PES` = "PES-REGISTER -> IDB"; no token

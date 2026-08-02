@@ -53,7 +53,7 @@ This keeps the test next to what it tests — no searching. Examples:
 
 ```bash
 # From WSL, cd to the module's sim/ directory
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_MIC/sim
+cd Verilog/DELILAH-CPU/CGA_MIC/sim
 
 # iverilog testbenches
 make test-masel          # run all MASEL tests
@@ -88,7 +88,7 @@ it** (stdin reading is intentionally disabled). This is the harness for
 signal-level debugging and for proving a refactor didn't change behaviour.
 
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 make clean
 make all            # compile + run + open GTKWave (waveform.fst + top_3202d.gtkw)
 make test_nd120     # compile only
@@ -111,7 +111,7 @@ link. The loop runs **indefinitely until you press Ctrl+C**. Defaults to
 loading `DEBUG.BPUN`; pass a different tape as the first argument.
 
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim
+cd Verilog/runSim
 make clean
 make compile
 make run                                # loads DEBUG.BPUN, gives you the console
@@ -174,7 +174,7 @@ The repo lives on `E:`; the Vivado project is outside the repo at
 `F:/Xilinx/ND120/ND3202D/`. Run from **Windows PowerShell**:
 
 ```powershell
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\basys3
+cd Verilog/fpga/basys3
 
 # Synthesize + implement + write bitstream (~1h full synth; copies microcode hex first)
 .\vivado_build.ps1

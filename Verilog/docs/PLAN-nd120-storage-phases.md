@@ -6,15 +6,15 @@
 > promote those to fact without checking.
 >
 > Companion docs (read them, they are load-bearing):
-> - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/PLAN-nd120-core-extraction.md` — phase 1, the core seam
-> - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md` — the BSRAM analysis this plan depends on
-> - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/HANDOFF-nd-storage.md` — the storage stack's own handoff
+> - `Verilog/docs/PLAN-nd120-core-extraction.md` — phase 1, the core seam
+> - `Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md` — the BSRAM analysis this plan depends on
+> - `Verilog/SD-FAT/HANDOFF-nd-storage.md` — the storage stack's own handoff
 
 ## The goal in one paragraph
 
 `ND120_CORE` exposes a storage seam (`TAPE_BYTE_*`, `FDISK_*`/`FDBUF_*`,
 `SDISK_*`/`SDBUF_*`). Today that seam is served by **C file-servers** in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/simDevices/NDBus.cpp` in sim, and by
+`Verilog/simDevices/NDBus.cpp` in sim, and by
 **nothing** on Tang. The goal is to serve it from the **real Verilog SD-FAT
 stack reading a simulated/real SD card**, in *both* Verilator runSim and on
 Tang, so the same devices and the same images are exercised in both places —
@@ -28,9 +28,9 @@ Tang, so the same devices and the same images are exercised in both places —
    and must keep compiling; `make` supports both paths and `make help` documents
    both.
 2. **Test images are real, local, gitignored.** Already in place:
-   - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/testdata/210523I01-XX-01D.img`
+   - `Verilog/ND-BUS-DEVICES/testdata/210523I01-XX-01D.img`
      (1,261,568 B) ← `/home/ronny/repos/nd100x/images/Nd-210523I01-XX-01D.img` → serves **FLOPPY1.IMG**
-   - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/testdata/BIGDISK0-L2-100.IMG`
+   - `Verilog/ND-BUS-DEVICES/testdata/BIGDISK0-L2-100.IMG`
      (78,643,200 B) ← `F:\RC\RonnyTest\HDLC1\BIGDISK0-L2-100.IMG` → serves **SMD0.IMG**
    - Both already matched by `.gitignore:94-95` (`testdata/*.img`, `testdata/*.IMG`). Keep it that way.
 3. **TWO boot BPUNs**, both served as `BOOT.BPUN` (one per card variant):
@@ -52,7 +52,7 @@ Tang, so the same devices and the same images are exercised in both places —
    is ONLY needed IF we plan to have external bus activated to talk to other
    cards via external ND bus — that we are at the moment not planning".**
 
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/sim/sd_card_model.v:69-73` uses
+   `Verilog/SD-FAT/sim/sd_card_model.v:69-73` uses
    `inout sd_cmd/sd_dat*` + `pullup()` in the TB, which is iverilog-only and
    already violates the repo's own no-tristate rule
    (`SD-FAT/circuit/nd_storage.v:24-25`; CLAUDE.md: "inside the FPGA `z` does not
@@ -76,7 +76,7 @@ Tang, so the same devices and the same images are exercised in both places —
    `sd_writer_tb.v` / the engine+write TBs.
    **Gate: every one of those TBs must still pass after the conversion** — that
    is the regression proof. They are all registered in
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/run_all_tests.sh`.
+   `Verilog/tests/run_all_tests.sh`.
 
    **The ONLY real tristate is the physical SD pad on Tang**, and it already
    lives at the board top where it belongs — `nd_storage` deliberately exposes
@@ -227,7 +227,7 @@ repo** (verified).
 `inout`. Add on-demand `$fseek`/`$fread` so a 76 MB card needs no 76 MB array.
 **Gate: every existing iverilog storage tb still passes** (`test-nds-mount`,
 `test-nds-tape`, `test-nds-floppy`, `test-nds-fatchk`, `test-writer`, …) — all
-in `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/run_all_tests.sh`.
+in `Verilog/tests/run_all_tests.sh`.
 
 **(b) Mem backend for runSim.** nd_storage's `mem_*` is mandatory but generic
 (fact 2). Reuse the proven behavioral mem model — the C++ one from
@@ -450,7 +450,7 @@ assert SMD detection. `make test-smd-boot` against the SD path.
 | P5 SMD | `1540&` boot | still green | pass | if SDRAM allows | measure | +SMD |
 
 **Standing rules:** every new tb goes in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/run_all_tests.sh` with a strict
+`Verilog/tests/run_all_tests.sh` with a strict
 `TB_RESULT: PASS` pattern — a test that can pass silently can fail silently.
 `make test` must stay 48/48 (modulo the pre-existing `test-memchain`,
 TODO.md:83), and `sim/`'s latch/FF trace goldens must stay byte-identical —

@@ -1,6 +1,6 @@
 # ND-120 main memory: how MEM_RAM_49 and the DRAM protocol work, and how to map it per board
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd120-dram-memory.md`
+**Full path:** `Verilog/docs/nd120-dram-memory.md`
 **Date:** 8-JUL-2026. Measured numbers come from a Verilator run with `-DDBG_MEM`
 (25,008 memory accesses captured, see [Measured protocol](#measured-protocol-ground-truth-from-simulation)).
 

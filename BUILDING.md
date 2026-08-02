@@ -1,236 +1,264 @@
 # Building and Testing ND-120
 
-This document provides comprehensive instructions for building, testing, and running the ND-120 CPU implementation.
+This document provides instructions for building, testing, and running the ND-120
+CPU implementation.
+
+All paths below are relative to the repository root.
 
 ## Prerequisites
 
 ### Required Tools
 
 #### Verilator
-Install [Verilator](https://www.veripool.org/verilator/) for Verilog simulation and testing.
+Install [Verilator](https://www.veripool.org/verilator/) for Verilog simulation
+and testing. `verilator` must be on your `PATH`.
 
-**Windows Installation:**
-- Download from the official website or use a package manager
-- Ensure `verilator` is in your PATH
+#### Icarus Verilog
+The unit testbenches (`*_tb.v`) are run with `iverilog`.
+
+#### GNU Make and a C++ compiler
+Needed for the Verilator harnesses.
 
 #### Logisim-Evolution (Optional)
 For viewing and modifying the original schematics:
 - Install [Logisim-Evolution](https://github.com/logisim-evolution/logisim-evolution)
 - Tested with [Version 3.8.0](https://github.com/logisim-evolution/logisim-evolution/releases/tag/v3.8.0)
 
+Note: the Verilog is no longer regenerated from Logisim. The schematics and the
+Verilog are both maintained by hand, so a fix must be applied to both.
+
 #### GTKWave (Optional)
 For viewing simulation waveforms:
 - Install [GTKWave](https://gtkwave.sourceforge.net/)
-- Use the `-g` flag for large VCD files (>1GB)
-- Use the `-o` flag to convert VCD to FST format
+- The sim harness writes FST directly, which GTKWave opens far faster than VCD
 
 ### System Requirements
-- **Windows**: PowerShell or Command Prompt (bash not supported)
-- **Make**: GNU Make or compatible
-- **C++ Compiler**: For Verilator compilation
+
+Development is done on **Linux / WSL2 with bash**. The one exception is Vivado,
+which runs on a Windows host and is driven by the `.ps1` / `.tcl` scripts under
+`Verilog/fpga/basys3/`.
 
 ## Building the Project
 
 ### Quick Start
-```powershell
-# Navigate to main simulation directory
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\sim
 
-# Clean previous builds
+```bash
+# Waveform / signal-level simulation
+cd Verilog/sim
 make clean
-
-# Build and run complete simulation with waveform viewer
-make all
+make all            # compile, run, open GTKWave (waveform.fst + top_3202d.gtkw)
 ```
 
 ### Build Targets
 
-#### Main CPU Simulation
-```powershell
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\sim
+#### Signal-level simulation (`Verilog/sim`)
 
-# Individual commands
-make clean          # Remove build artifacts
-make test_nd120     # Compile Verilog to C++
-make run           # Execute simulation
-make gtk           # Open GTKWave with traces
-make all           # Complete build, run, and view cycle
+Exercises `ND120_TOP` and writes FST waveforms.
+
+```bash
+cd Verilog/sim
+make clean            # remove build artifacts
+make test_nd120       # compile only
+make run              # run only
+make gtk              # open GTKWave with the saved signal groups
+make all              # compile, run and view
 ```
 
-#### Full CPU System with Microcode
-```powershell
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\runSim
+#### Full CPU system with microcode (`Verilog/runSim`)
 
+Runs the microcode load and the CPU self-test, then hands the console to OPCOM
+over the UART so you can interact with the CPU.
+
+```bash
+cd Verilog/runSim
 make clean
-make compile       # Compile with Run120.cpp (includes microcode)
-make run          # Run CPU with microcode and self-test
-make all          # Compile and run in sequence
+make compile
+make run
 ```
 
-#### Individual Component Testing
+#### Latch mode versus flip-flop mode
 
-**PAL Chip Testing:**
-```powershell
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\44302B\sim
-make clean
-make all          # Test PAL 44302B
-make gtk          # View PAL-specific waveforms
+`USE_LATCHES` (default `1`) selects transparent latches, which match the
+original hardware. `USE_LATCHES=0` adds `FPGA_FF_MODE` and builds edge-triggered
+flip-flops instead, which is what the FPGA needs.
+
+```bash
+cd Verilog/sim
+make compile USE_LATCHES=0   # build in FF mode
+make compare                 # build both, run both, diff trace_latch.csv vs trace_ff.csv
 ```
 
-**CPU Component Testing:**
-```powershell
-# Test individual CPU components
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\sim
+`make compare` writes `trace_diff.txt`. An empty diff is the proof that a
+refactor left behaviour unchanged.
+
+#### Individual component testing
+
+Testbenches live in a `sim/` directory next to the module they test.
+
+```bash
+cd Verilog/PAL/sim
 make clean
 make all
 
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_15\sim
+cd Verilog/DELILAH-CPU/CGA_ALU/sim
 make clean
 make all
 ```
+
+#### The whole test suite
+
+```bash
+cd Verilog
+make test        # every self-checking unit testbench, fail-fast
+make test-full   # adds the heavy gates: latch-vs-FF golden trace compare,
+                 # runSim golden console, Tang boot + deposit
+make test-instr  # the INSTRUCTION-B instruction-verification campaign
+```
+
+The registry is `Verilog/tests/run_all_tests.sh`. Every new testbench must be
+added there with a strict pass pattern (the convention is to print
+`TB_RESULT: PASS`), because a test that can pass silently can fail silently.
 
 ## Build Configuration
 
-### Verilator Flags
-The build system uses these Verilator configuration flags:
+### Compile-time defines
+
+| Define | Meaning |
+|--------|---------|
+| `VERILATOR_SIM` | Set for all Verilator builds. Enables the bus ports, the fast UART and the large simulation RAM (6MB). Absent for FPGA synthesis, which uses a small BRAM-friendly RAM. Selected in `MEM_RAM_49.v`. |
+| `FPGA_FF_MODE` | Forces edge-triggered flip-flops instead of transparent latches. Added by the Makefiles when `USE_LATCHES=0`. |
+
+See `Verilog/docs/build-defines.md` for the full list.
+
+### Verilator flags
+
+The build system suppresses a fixed set of warnings; the current list lives in
+the Makefiles, for example:
+
 ```makefile
 SUPPRESS_FLAGS = -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY -Wno-UNUSED -Wno-UNDRIVEN -Wno-WIDTH -Wno-EOFNEWLINE -Wno-LATCH
-VERILATOR_FLAGS = --trace -Wall --cc ND120_TOP.v $(SUPPRESS_FLAGS)
 ```
 
-### Include Paths
+### Include paths
+
 The build automatically includes:
-- `../Shared/logisim` - Logisim-generated components
-- `../Shared/ndlib` - ND-120 specific libraries
-- `../Shared/support` - Support circuits
-- `../CPU-BOARD-3202/circuit` - CPU board modules
-- `../DELILAH-CPU/` - CGA submodules
-- `../DECODE-GateArray/` - DGA modules
-- `../PAL` - PAL chip implementations
+- `Verilog/Shared/logisim` - Logisim-generated components
+- `Verilog/Shared/ndlib` - ND-120 specific libraries
+- `Verilog/Shared/support` - support circuits
+- `Verilog/CPU-BOARD-3202/circuit` - CPU board modules
+- `Verilog/DELILAH-CPU/` - CGA submodules
+- `Verilog/DECODE-GateArray/` - DGA modules
+- `Verilog/PAL` - PAL chip implementations
 
 ## Testing
 
-### Simulation Output
-The main simulation produces:
-- **Console Output**: CPU state, microcode execution, UART communication
-- **VCD Files**: Complete signal traces for waveform analysis
-- **Log Files**: Detailed execution logs
+### Simulation output
 
-### Test Programs
-The CPU simulation runs several test sequences:
+- **Console output**: CPU state, microcode execution, UART traffic
+- **FST waveforms**: complete signal traces for GTKWave
+- **CSV traces**: microcode address and CSA traces for automated comparison
 
-1. **Microcode Load**: Loads 64KB microcode (32KB low + 32KB high)
-2. **Master Clear**: CPU initialization sequence
-3. **MACL (Master Clear)**: CPU self-test and initialization
-4. **Self-Test**: 14 individual CPU tests (currently 7 passing)
-5. **OPCOM Mode**: UART communication interface
+Keep every log, trace, FST and CSV under 1GB. Window or bound long runs instead
+of dumping everything.
 
-### Expected Results
+### Boot sequence
+
+1. **Microcode load**: 64KB control store, low half plus high half
+2. **Master Clear**: CPU initialisation
+3. **MACL**: microcode-level initialisation
+4. **Self-test**: the CPU's own test sequence
+5. **OPCOM**: operator communication over the UART
+
+### Expected results
+
 ```
-Microcode loading: ✓ Success
-Master Clear: ✓ Success
-MACL execution: ✓ Success
-CPU Self-tests: 7/14 passing
-UART Communication: ✓ Working
+Microcode loading: OK
+Master Clear: OK
+MACL execution: OK
+CPU self-test: 0 execution-phase STERR visits
+UART communication: working
 ```
 
-### Waveform Analysis
-```powershell
-# View main CPU waveforms
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\sim
+The self-test acceptance gate is the count of execution-phase STERR visits,
+measured with the `ND120_COUNT_STERR` probe. Zero is the pass condition. Note
+that the control-store loader walks past the STERR address once while loading -
+that visit does not count.
+
+### Waveform analysis
+
+```bash
+cd Verilog/sim
 make gtk
-
-# GTKWave opens with pre-configured signal groups in top_3202d.gtkw
 ```
 
-The waveform viewer shows:
-- Clock signals and timing
-- CPU bus transactions
-- ALU operations
-- Memory access patterns
-- Interrupt handling
-- UART communication
+GTKWave opens with the pre-configured signal groups in `top_3202d.gtkw`. See
+`Verilog/sim/VCD_ANALYSIS_GUIDE.md` and `Verilog/sim/FPGA_DEBUG_RUNBOOK.md`.
 
 ### Debugging
-For debugging issues:
 
-1. **Check Build Output**: Verilator compilation warnings/errors
-2. **Console Logs**: CPU execution traces and error messages
-3. **Waveforms**: Signal-level debugging in GTKWave
-4. **Component Tests**: Run individual module tests to isolate issues
+1. **Check build output**: Verilator compilation warnings and errors
+2. **Console logs**: CPU execution traces and error messages
+3. **Waveforms**: signal-level debugging in GTKWave
+4. **Component tests**: run individual module tests to isolate the failure
 
-#### Common Issues
-- **Clock Timing**: Check MCLK, UCLK signals in waveforms
-- **Memory Access**: Verify address/data bus patterns
-- **Microcode**: Ensure ROM files are loaded correctly
-- **UART**: Check baud rate and protocol settings
+#### Common issues
 
-### Performance Testing
-```powershell
-# Run extended CPU test
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\runSim
-make run
+- **Stale `obj_dir`**: changing a `-D` define without cleaning silently reuses
+  the old build. Run `make clean` when you change build flags.
+- **One build at a time**: never run two Verilator builds or simulations
+  concurrently in the same directory; concurrent `obj_dir` writes corrupt it.
+- **Clock timing**: check MCLK and UCLK in the waveforms
+- **Microcode**: make sure the ROM hex files are present, or the control store
+  is empty and nothing runs
 
-# Monitor for:
-# - Microcode execution speed
-# - Memory access patterns
-# - Interrupt response times
-# - UART throughput
+## FPGA build
+
+Board flows live under `Verilog/fpga/<board>/`; see `Verilog/fpga/README.md`.
+
+### Basys3 (Xilinx, Vivado on the Windows host)
+
+```
+vivado -mode batch -source vivado_build.tcl -tclargs [flags...]
 ```
 
-## FPGA Synthesis (Experimental)
+Useful flags: `full_synth` (required for a full re-synthesis, roughly an hour;
+otherwise the existing `synth_1` checkpoint is reused), `skip_program`,
+`no_reset_synth`, `backup_bit`. `vivado_lint.tcl` runs lint only. The part is
+`xc7a35tcpg236-1`. The microcode hex files must be copied in first or the ROM
+is empty.
 
-**Status**: Synthesis passes but implementation fails
+### Tang Nano 20K (GoWin)
 
-The Verilog code can be synthesized for FPGA but requires additional work:
-- Static/Dynamic RAM module refactoring needed
-- Clock domain crossing fixes required
-- Resource optimization for target FPGA
-
-For Tang Nano development:
-- Use SPI flash for microcode ROM storage
-- Implement proper clock management
-- Add FPGA-specific constraints
+Built with Gowin EDA (`make gowin`, `make load-gowin`). The open-source
+yosys/nextpnr flow currently fails to place and route this design. Power-cycle
+the board after every programming operation.
 
 ## Troubleshooting
 
-### Windows-Specific Notes
-- **Never use bash commands** like `cd /path`
-- **Use PowerShell** or Command Prompt: `cd E:\path`
-- **File paths**: Use backslashes or forward slashes consistently
+### Build errors
 
-### Build Errors
-```powershell
-# Clean everything and rebuild
+```bash
 make clean
-# Check for file permission issues
-# Ensure Verilator is in PATH
-# Verify C++ compiler availability
+# check that verilator and iverilog are on PATH
+# check that a C++ compiler is available
 ```
 
-### Simulation Errors
-- Check microcode ROM files are present
+### Simulation errors
+
+- Check that the microcode ROM hex files are present
 - Verify all Verilog module dependencies
-- Review console output for specific error messages
-- Use GTKWave to identify signal timing issues
+- Read the console output for the specific error
+- Use GTKWave to find the signal timing problem
 
 ## Advanced Usage
 
-### Custom Test Programs
-To run custom test programs:
-1. Place binary files in `runSim/` directory
-2. Modify `Run120.cpp` to load your program
-3. Rebuild and run simulation
+### Custom test programs
 
-### Signal Tracing
-Customize signal tracing by editing:
-- `top_3202d.gtkw` - Main CPU signals
-- `pal.gtkw` - PAL chip signals
-- Individual component `.gtkw` files
+Test programs are loaded in BPUN format through the papertape device. Place the
+binary in `Verilog/runSim/` and select it there.
 
-### Performance Analysis
-The simulation provides detailed metrics:
-- Clock cycles per instruction
-- Memory bandwidth utilization
-- Interrupt latency measurements
-- UART communication throughput
+### Signal tracing
+
+Customise tracing by editing the GTKWave save files:
+- `Verilog/sim/top_3202d.gtkw` - main CPU signals
+- the per-component `.gtkw` files in each `sim/` directory

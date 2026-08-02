@@ -1,7 +1,7 @@
 # ND-120 generic sim PROBE — build, protocol, driver API, examples
 
-**Full path:** `E:\Dev\Repos\Ronny\nd-120\Verilog\sim\PROBE-README.md`
-**WSL path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/PROBE-README.md`
+**Full path:** `Verilog/sim/PROBE-README.md`
+**WSL path:** `Verilog/sim/PROBE-README.md`
 
 A ONE reusable, scriptable Verilator harness for the whole ND-120 CPU
 (`VND120_TOP`) that you point at *any* signal and *any* trigger **at runtime**,
@@ -14,9 +14,9 @@ probe is a NEW harness (`nd120_probe.cpp`) built with the non-invasive flags
 `--public-flat-rw --vpi`.
 
 Files:
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\sim\nd120_probe.cpp` — the engine.
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\sim\nd120_probe.py` — the Python driver.
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\sim\examples\mmu_177777_probe.py` — worked MMU example.
+- `Verilog/sim/nd120_probe.cpp` — the engine.
+- `Verilog/sim/nd120_probe.py` — the Python driver.
+- `Verilog/sim/examples/mmu_177777_probe.py` — worked MMU example.
 - `Makefile` target `probe`, and this README.
 
 ---
@@ -27,7 +27,7 @@ Everything Verilator/make/run happens inside WSL with `/mnt/e/...` paths. NEVER
 run a Verilator/Windows exe from Windows/MINGW.
 
 ```bash
-wsl.exe -e bash -lc 'cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim && make probe USE_LATCHES=0'
+wsl.exe -e bash -lc 'cd Verilog/sim && make probe USE_LATCHES=0'
 ```
 
 - `USE_LATCHES=0` selects FF mode (the shipped FPGA path) — the default for
@@ -161,7 +161,7 @@ never issues a paged store can't masquerade as a bug, gates the FST on the
 top-page window, and prints an HONEST verdict. Run:
 
 ```bash
-wsl.exe -e bash -lc 'cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim && python3 examples/mmu_177777_probe.py'
+wsl.exe -e bash -lc 'cd Verilog/sim && python3 examples/mmu_177777_probe.py'
 ```
 
 Outputs: `mmu_177777.csv` (compact PRE/POST window) and `mmu_177777_win.fst`
@@ -173,7 +173,7 @@ Generic pattern: record a full-hierarchy FST **only** while a condition holds,
 then read it with the existing tools. No script file needed:
 
 ```bash
-wsl.exe -e bash -lc 'cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim && \
+wsl.exe -e bash -lc 'cd Verilog/sim && \
   printf "%s\n" \
     "load INSTRUCTION-B.BPUN" \
     "capture fst combo_win.fst" \
@@ -182,7 +182,7 @@ wsl.exe -e bash -lc 'cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim && \
     "run 300000" \
     "quit" | ./obj_dir_probe/VND120_TOP'
 # then read the windowed FST with the EXISTING tools:
-wsl.exe -e bash -lc 'cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim && python3 vcd_extract.py combo_win.fst --list | head'
+wsl.exe -e bash -lc 'cd Verilog/sim && python3 vcd_extract.py combo_win.fst --list | head'
 ```
 
 The windowed `combo_win.fst` is read by `fst.py::open_wave` (pipes through

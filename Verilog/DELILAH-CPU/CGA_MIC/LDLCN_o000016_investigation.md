@@ -1,6 +1,6 @@
 # LDLCN / o000016 PANVC Dispatch Investigation
 
-**Full path:** `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\LDLCN_o000016_investigation.md`
+**Full path:** `Verilog/DELILAH-CPU/CGA_MIC/LDLCN_o000016_investigation.md`
 
 **Last updated:** 2026-04-14
 
@@ -46,7 +46,7 @@ regREP stable for at least 1 sysclk before MCLK rises.
 
 **Command run:**
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 make clean && make test_nd120 && make run   # via WSL
 python3 trace_ldlc2.py
 ```
@@ -104,17 +104,17 @@ wide dump. Only o000016 / o000050 matters here.
 
 ## Emulator Ground Truth (2026-07-13) — open items 1 and 2 CONFIRMED
 
-Source: the ND110Compile emulator (`E:\Dev\Repos\Ronny\ND110Compile`), which boots
+Source: the ND110Compile emulator (`$ND_REPOS/ND110Compile/`), which boots
 the SAME DELILAH-L binary through master clear + self-test to a working OPCOM and
 passes INSTRUCTION-B end to end in ND-110 mode. Not guessed — asserted by a
 committed unit test run against both microcode generations:
 
 - Test: `PanelInterruptDispatch_TakesPanvcEntry1_MS20` in
-  `E:\Dev\Repos\Ronny\ND110Compile\TestND110\Boot\TestBootSequence.cs`
+  `$ND_REPOS/ND110Compile/TestND110/Boot/TestBootSequence.cs`
   (commit 4376d46). PASSES for ND-110/RASK and ND-120/DELILAH-L.
 
 **Item 1 — LC=o01 IS the semantically correct value.** The compiled listing
-(`E:\Dev\Repos\Ronny\ND110Compile\ND110Compile\uCode\ND-120-DELILAH-L.LISTING.TXT`
+(`$ND_REPOS/ND110Compile/ND110Compile/uCode/ND-120-DELILAH-L.LISTING.TXT`
 lines 90-96 and 10254-10278) shows:
 
 - o000016 = `% PANEL INTERRUPT` : `ALUD,NONE IDBS,PANEL COMM,LDLC T,JMP T,HOLD PANEL;`
@@ -127,7 +127,7 @@ for both RASK and DELILAH-L. The observed `CD=o000001` at tick 8965 is correct.
 
 **Item 2 — the PANVC → MS20 path completes.** Emulator-verified downstream path
 (also visible in the golden CS trace
-`E:\Dev\Repos\Ronny\ND110Compile\traces\TRACE-OPCOM-0BANG-CSPATH.md`, RASK addresses):
+`$ND_REPOS/ND110Compile/traces/TRACE-OPCOM-0BANG-CSPATH.md`, RASK addresses):
 `PANEL(o000050) → o000051 → o000052 (JMPAOPR dispatch) → o003761 (PANVC+1) →
 MS20 → MOPC MRET1 → console poll`. The MS20 handler address is o002261 (RASK) /
 o002333 (DELILAH-L). MS20 fires every 20ms period and OPCOM services the console
@@ -140,7 +140,7 @@ investigation is only Step C (FPGA validation of Variant F).
 
 ### Step A — confirm expected LC value (task #3)
 
-1. Read `E:\Dev\Repos\Ronny\nd-120\Code\Microcode\ND-120 Mikroprogramlisting-L-ocr.md`
+1. Read `Code/Microcode/ND-120 Mikroprogramlisting-L-ocr.md`
    and find the microcode word at address o000016.
 2. Decode its LDLC source — what IDB selector does CSIDBS=o27 map to, and
    what value does that source put on CD[5:0]?
@@ -177,31 +177,31 @@ investigation is only Step C (FPGA validation of Variant F).
 ## Key Files and Scripts
 
 **Source files under investigation:**
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC.v` (LC counters, LDLCN routing)
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_MASEL.v` (Variant F fix, uncommitted)
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_IPOS.v` (TVEC override mux)
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_DCD\circuit\CGA_DCD.v` (LDLCN decode from COMM)
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\Shared\ndlib\M169C.v` (74LS169 counter behavior)
+- `Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC.v` (LC counters, LDLCN routing)
+- `Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_MASEL.v` (Variant F fix, uncommitted)
+- `Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_IPOS.v` (TVEC override mux)
+- `Verilog/DELILAH-CPU/CGA_DCD/circuit/CGA_DCD.v` (LDLCN decode from COMM)
+- `Verilog/Shared/ndlib/M169C.v` (74LS169 counter behavior)
 
 **Trace scripts:**
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\sim\trace_ldlc2.py` — narrow window trace at first PANVC dispatch
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\sim\trace_lc_all.py` — dumps all LDLCN pulses + LC changes across the run
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\sim\trace_ldlcn.py` — total LDLCN event count over 2M ticks
+- `Verilog/sim/trace_ldlc2.py` — narrow window trace at first PANVC dispatch
+- `Verilog/sim/trace_lc_all.py` — dumps all LDLCN pulses + LC changes across the run
+- `Verilog/sim/trace_ldlcn.py` — total LDLCN event count over 2M ticks
 
 **Build commands (WSL only — Git Bash verilator is broken):**
 ```bash
-wsl bash -c "cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim && make clean && make test_nd120 && make run"
-wsl bash -c "cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim && python3 trace_ldlc2.py"
+wsl bash -c "cd Verilog/sim && make clean && make test_nd120 && make run"
+wsl bash -c "cd Verilog/sim && python3 trace_ldlc2.py"
 ```
 
 **Microcode reference for Step A:**
-- `E:\Dev\Repos\Ronny\nd-120\Code\Microcode\ND-120 Mikroprogramlisting-L-ocr.md`
+- `Code/Microcode/ND-120 Mikroprogramlisting-L-ocr.md`
 
 ---
 
 ## Debug & Analysis Toolkit — `Verilog/sim/*.py`
 
-All analysis scripts live in `E:\Dev\Repos\Ronny\nd-120\Verilog\sim\` and
+All analysis scripts live in `Verilog/sim/` and
 must be run from WSL (Git Bash `python3` works but `verilator` doesn't;
 see `feedback_wsl_verilator.md`). All scripts default to reading
 `waveform.fst` produced by `make run`.
@@ -226,7 +226,7 @@ address/value in hex or decimal alone.
 
 1. **Run the sim** to regenerate `waveform.fst` (WSL only):
    ```bash
-   wsl bash -c "cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim && make clean && make test_nd120 && make run"
+   wsl bash -c "cd Verilog/sim && make clean && make test_nd120 && make run"
    ```
 2. **Find the signal you need.** Try `vcd_extract.py waveform.fst --list` or
    `python3 find_sigs.py` (edit `SUBS` first). Signal scopes are under
@@ -279,7 +279,7 @@ reference for this investigation):
 from fst import open_wave
 from collections import defaultdict
 
-VCD = "/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/waveform.fst"
+VCD = "Verilog/sim/waveform.fst"
 
 WANT = {
     "csa":   "s_debug_csa",      # substring match against full scoped name

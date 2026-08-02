@@ -1,12 +1,12 @@
 # Basys3 main-memory options vs the ND-120 DRAM protocol: speed validation
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/basys3-memory-speed-validation.md`
+**Full path:** `Verilog/docs/basys3-memory-speed-validation.md`
 **Date:** 13-JUL-2026.
 **Question answered:** of all the main-memory options researched for the
 Digilent Basys3 (Artix-7 XC7A35T, no external RAM on board, only Pmod
 expansion), which are FAST ENOUGH for the ND-120 recreation at the stated
 ~40 MHz target (39.06 MHz = the original ND OSC, see
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/basys3/exp_slowclk.tcl`:
+`Verilog/fpga/basys3/exp_slowclk.tcl`:
 "25.6 ns = 39.06 MHz (original ND OSC target)")?
 
 **Short answer: nothing external through the Pmod connectors meets the
@@ -20,7 +20,7 @@ changing the recreated PAL state machine.** Details and arithmetic below.
 
 ## 1. Ground truth: the measured protocol (what "fast enough" means)
 
-Source: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd120-dram-memory.md`
+Source: `Verilog/docs/nd120-dram-memory.md`
 (measured from 25,008 captured accesses, `-DDBG_MEM` Verilator run; every
 access had the identical signature). N = the OSC cycle of the RAS falling
 edge (chip-side; RAS rise on the sheet-49 interface):
@@ -45,7 +45,7 @@ first both-low window edge.
 > Any replacement backend must meet the fixed deadline.
 
 The sequencer is `PAL_44902A` (a registered PAL16R8 clocked on OSC,
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/PAL_44902A.v`); the `RDATA`
+`Verilog/PAL/PAL_44902A.v`); the `RDATA`
 sample strobe comes from `MEM_LBDIF_48`. There is no ready/ack input
 anywhere in the chain. **A backend that cannot meet N+4 cannot ask for a
 wait state - it simply returns garbage.** (Section 8 revisits what changing
@@ -88,7 +88,7 @@ the protocol shape, independent of frequency:
 | 16.67 MHz | 60.0 ns | **180 ns** | 240 ns | " |
 
 The proven reference (Basys3 BRAM path in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/SIP1M9.v`,
+`Verilog/Shared/support/SIP1M9.v`,
 `ramSize=3`) actually delivers by the start of **N+3** - i.e. the "safe
 side of proven behaviour" target is really **2 cycles = 50 ns at 40 MHz**;
 N+4 is the absolute latest.
@@ -125,11 +125,11 @@ they are routed using best-available tracks without impedance control or
 delay matching."
 (<https://digilent.com/reference/programmable-logic/basys-3/reference-manual>).
 The repo's own analysis in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/usb-storage-options.md`
+`Verilog/docs/usb-storage-options.md`
 confirms the Basys3 has **3 general-purpose Pmods (8 signals each, 3.3 V)**
 plus the dual-purpose JXADC Pmod = **32 signals maximum, 24 if an SD-card
 Pmod occupies one connector** (SD is the planned storage per
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/TODO.md`, "SD-card block devices
+`Verilog/TODO.md`, "SD-card block devices
 across all boards").
 
 ---
@@ -139,30 +139,30 @@ across all boards").
 From the repo (all read for this report):
 
 1. **On-chip BRAM** (`MAIN_RAM_BLOCKRAM`) - current Basys3 backend.
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/MEM_RAM_49_BLOCKRAM.v`,
-   proven path in `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/SIP1M9.v` (ramSize=3),
-   standalone hardware test `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/basys3/mem-test/basys3_mem_test_top.v`.
+   `Verilog/CPU-BOARD-3202/circuit/MEM_RAM_49_BLOCKRAM.v`,
+   proven path in `Verilog/Shared/support/SIP1M9.v` (ramSize=3),
+   standalone hardware test `Verilog/fpga/basys3/mem-test/basys3_mem_test_top.v`.
 2. **512 KB async SRAM, 8-bit bus, on dedicated pins** - the CMOD A7-35T
-   plan: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/cmod-a7-35t/README.md`
-   and `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/TODO.md` ("CMOD A7-35T
+   plan: `Verilog/fpga/cmod-a7-35t/README.md`
+   and `Verilog/TODO.md` ("CMOD A7-35T
    target"). Never timing-validated; evaluated in section 4.3, and its
    Pmod-transplanted variant in 4.2.
 3. **16-bit SDRAM, burst-of-2 bridge** - the QMTECH XC7A35T stage-3 plan:
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md`
+   `Verilog/fpga/qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md`
    (W9825G6KH-6, BL=2, per-ND-word data beat + parity beat; superseded on
    the Tang by `ND_SDRAM_PACK16` per `nd120-dram-memory.md` section 6).
 4. **Tang Nano 20K SDRAM 2x-clock bridge** - implemented and
    hardware-validated; its deadline math is the template
    (`nd120-dram-memory.md` section 6,
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/sdram-bridge/`).
+   `Verilog/fpga/tang-nano-20k/sdram-bridge/`).
 5. **HyperRAM / octal PSRAM on a Pmod** - **no prior document in this repo
    mentions it** (verified: `grep -riE 'hyperram|psram'` over
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs` and
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga` returns nothing).
+   `Verilog/docs` and
+   `Verilog/fpga` returns nothing).
    Evaluated here as the obvious modern add-on (off-the-shelf module:
    1BitSquared Pmod HyperRAM, <https://1bitsquared.com/products/pmod-hyperram>).
 6. **UART sector-server / CH376 / SD-card Pmod** - storage backends from
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/usb-storage-options.md`;
+   `Verilog/docs/usb-storage-options.md`;
    included to state explicitly that they are NOT main-memory candidates.
 
 ---
@@ -181,7 +181,7 @@ CPU logic's timing closure, not the memory.
 
 **Capacity - the real question.** XC7A35T total BRAM: **1,800 Kbit
 (50 RAMB36 / 100 RAMB18) = 225 KB**
-(`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/basys3/README.md`, board
+(`Verilog/fpga/basys3/README.md`, board
 table; matches AMD/Xilinx 7-series product tables). Deductions:
 
 - **WCS**: 8192 x 64-bit microwords = 524,288 bits = **512 Kbit** (fixed cost).
@@ -189,12 +189,12 @@ table; matches AMD/Xilinx 7-series product tables). Deductions:
   **~512 Kbit**, currently duplicated into BRAM. The full Basys3 build
   measures **~1,044 Kbit** of BRAM used, "dominated by the duplicated
   microcode PROM + WCS"
-  (`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/basys3/README.md`, Status) -
+  (`Verilog/fpga/basys3/README.md`, Status) -
   that figure includes the current default main RAM (3 banks x 4K words x
   18 bit = 216 Kbit = **24 KB**, the "Basys3's 24 KB BRAM main-memory
   limit" cited in the QMTECH handoff).
 - `SKIP_WCS_LOAD` can reclaim the PROM's ~512 Kbit
-  (`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/skip-wcs-load.md`: "its
+  (`Verilog/docs/skip-wcs-load.md`: "its
   ~512 Kbit BRAM can be dropped").
 
 Arithmetic for maximum ND main memory (18-bit words, `MEM_RAM_49_BLOCKRAM`
@@ -274,7 +274,7 @@ At 16.67 MHz (180 ns budget) even a 3-byte (data+parity) scheme fits
 
 ### 4.3 The CMOD A7 512 KB SRAM plan (dedicated pins, NOT a Basys3 option) - the 40 MHz ambition is INVALID as planned
 
-Plan source: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/cmod-a7-35t/README.md`
+Plan source: `Verilog/fpga/cmod-a7-35t/README.md`
 (backend phase 2): "8-bit bus means **~4 byte-accesses per 18-bit ND word**
 (2 data bytes + parity)". This was never timing-validated. On the CMOD's
 dedicated short traces a byte access can be done in **one** clock cycle
@@ -298,7 +298,7 @@ dedicated short traces a byte access can be done in **one** clock cycle
   budget at any frequency - the internal-fast-clock form is mandatory.
 - **pack16 rescue (2 bytes, parity computed - the same refactor already
   adopted for the Tang as `ND_SDRAM_PACK16`,
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd120-parity-refactor-order.md`):**
+  `Verilog/docs/nd120-parity-refactor-order.md`):**
   captures at N+2 and N+3, held-register presentation -> meets start of
   N+4 at 40 MHz **with zero slack**, comfortable at <= 33 MHz. This is the
   only shape in which the CMOD SRAM ever reaches 40 MHz, and it is
@@ -389,13 +389,13 @@ every single 1-2 word access. Not a main-memory option here.
 
 ### 4.6 UART sector-server / CH376 / SD-card Pmod - storage only, by definition
 
-From `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/usb-storage-options.md`:
+From `Verilog/docs/usb-storage-options.md`:
 the UART sector-server (FT2232, up to 12 Mbaud ~= 1.2 MB/s), the CH376
 USB-stick bridge, the MAX3421E host, and the SD-card Pmod all present
 **512-byte LBA sectors over the `eng_*` port with millisecond-class
 latencies** - 4-7 orders of magnitude away from 75 ns. They are block
 STORAGE backends behind `nd_storage`
-(`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd-storage-design.md`), never
+(`Verilog/docs/nd-storage-design.md`), never
 main-memory candidates. Listed here so the option inventory is complete
 and their role is unambiguous.
 
@@ -405,7 +405,7 @@ and their role is unambiguous.
 
 Could a small BRAM cache in front of a slow big store (SRAM/HyperRAM/
 sector-server) fake a large main memory? **No.**
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd120-dram-memory.md` is
+`Verilog/docs/nd120-dram-memory.md` is
 explicit that stalling is impossible: the PAL_44902A sequence "has fixed
 length, there is no way for the memory to stall it". A cache miss needs
 tens-to-thousands of cycles to fill; with no wait-state mechanism the
@@ -447,13 +447,13 @@ signalling.**
    and the QMTECH XC7A35T (32 MB SDRAM; section 4.4 shows its planned
    BL=2/CL2 bridge is in-spec at 40 MHz OSC) are the memory boards. This
    is already the direction of
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md`
+   `Verilog/fpga/qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md`
    - this report just confirms it with arithmetic.
 2. **On the Basys3, run BRAM at full speed and maximize it.** Raise
    `BANK_ADDR_BITS` in
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/MEM_RAM_49_BLOCKRAM.v`
+   `Verilog/CPU-BOARD-3202/circuit/MEM_RAM_49_BLOCKRAM.v`
    toward 32K-64K words and adopt `SKIP_WCS_LOAD`
-   (`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/skip-wcs-load.md`) to
+   (`Verilog/docs/skip-wcs-load.md`) to
    reclaim the ~512 Kbit PROM duplicate. 64 KW at 39.06 MHz is a real,
    useful small-memory ND-120 for microcode/instruction/OPCOM/self-test
    work. Do not chase MB-class memory on this board.
@@ -463,15 +463,15 @@ signalling.**
    both trade away the very 39.06 MHz target that motivated the question.
 4. **If MB-class memory on the Basys3 ever becomes non-negotiable**, the
    only real lever is changing the no-wait-state PAL contract
-   (`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/PAL_44902A.v` +
+   (`Verilog/PAL/PAL_44902A.v` +
    `MEM_LBDIF_48`) to permit stalls - a deliberate divergence from the
    measured original hardware that should be decided as such, not slipped
    in as a memory backend.
 5. **Carry the pack16 lesson everywhere:** every byte- or beat-serial
    backend only fits the 3-cycle budget when an ND word costs at most 2
    backend beats. The parity-computed pack16 contract
-   (`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd120-parity-refactor-order.md`,
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd120-parity-analysis.md`)
+   (`Verilog/docs/nd120-parity-refactor-order.md`,
+   `Verilog/docs/nd120-parity-analysis.md`)
    is what makes the SDRAM boards work and is the precondition for any
    future SRAM bridge.
 
@@ -481,17 +481,17 @@ signalling.**
 
 Repo ground truth (all absolute paths):
 
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd120-dram-memory.md` - measured protocol, no-wait-state property, backend family, Tang bridge math
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/TODO.md` - CMOD A7 section, SD-card plan
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/cmod-a7-35t/README.md` - 512 KB SRAM plan, IS61WV5128BLL-10BLI facts
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md` - stage-3 16-bit BL=2 SDRAM bridge plan
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/basys3/README.md` - XC7A35T BRAM totals, ~1,044 Kbit utilization
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/basys3/mem-test/basys3_mem_test_top.v` - standalone BRAM-path protocol test
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/SIP1M9.v` - proven ramSize=3 BRAM path (registered read, first both-low edge)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/MEM_RAM_49_BLOCKRAM.v` - `BANK_ADDR_BITS` parameterization
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/skip-wcs-load.md` - ~512 Kbit PROM BRAM reclaim
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/usb-storage-options.md` - Pmod counts, storage backends
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/basys3/exp_slowclk.tcl` - the 39.06 MHz target statement
+- `Verilog/docs/nd120-dram-memory.md` - measured protocol, no-wait-state property, backend family, Tang bridge math
+- `Verilog/TODO.md` - CMOD A7 section, SD-card plan
+- `Verilog/fpga/cmod-a7-35t/README.md` - 512 KB SRAM plan, IS61WV5128BLL-10BLI facts
+- `Verilog/fpga/qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md` - stage-3 16-bit BL=2 SDRAM bridge plan
+- `Verilog/fpga/basys3/README.md` - XC7A35T BRAM totals, ~1,044 Kbit utilization
+- `Verilog/fpga/basys3/mem-test/basys3_mem_test_top.v` - standalone BRAM-path protocol test
+- `Verilog/Shared/support/SIP1M9.v` - proven ramSize=3 BRAM path (registered read, first both-low edge)
+- `Verilog/CPU-BOARD-3202/circuit/MEM_RAM_49_BLOCKRAM.v` - `BANK_ADDR_BITS` parameterization
+- `Verilog/docs/skip-wcs-load.md` - ~512 Kbit PROM BRAM reclaim
+- `Verilog/docs/usb-storage-options.md` - Pmod counts, storage backends
+- `Verilog/fpga/basys3/exp_slowclk.tcl` - the 39.06 MHz target statement
 
 External (datasheets/specs, cited inline above):
 

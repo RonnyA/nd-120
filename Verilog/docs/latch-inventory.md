@@ -1,6 +1,6 @@
 # ND-120 Datapath Latch Inventory (latch → clock-enabled-FF refactor)
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/latch-inventory.md`
+**Full path:** `Verilog/docs/latch-inventory.md`
 **Created:** 2026-07-07
 
 ## SOLVED (2026-07-07) — see the summary before the refactor plan below

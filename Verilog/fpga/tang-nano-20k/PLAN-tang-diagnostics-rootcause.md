@@ -10,7 +10,10 @@
   original `!= 0xFFFFFF` guard; "not ready at reset" is before any DMA read). 1 clean hunk, git-clean
   otherwise. COMMIT-READY (verify SMD against a clean tree first). Tang has the earlier non-robust fix
   flashed - boots the same; re-flash the robust version when convenient.
-- **Issue E (`#` memory-test slow) = TRIAGED -> silicon-only.** Bank tests WORK + FAST in Verilator
+- **Issue E = RESOLVED 30-JUL by the PAL_44403C DLY0 fix** (every microcycle took
+  the delayed path - the machine ran ~2x slow globally; Ronny confirms "feels
+  quicker" and `#` is instant). Original triage below is superseded.
+- **Issue E(orig) (`#` memory-test slow) = TRIAGED -> silicon-only.** Bank tests WORK + FAST in Verilator
   (in-range `0#`->pass by 12M ticks; out-of-range `77#`->MOR-fail `?` by 18M). MOR/memory-decode
   FUNCTIONS in sim; RTOSC/rfclk is a fixed 256-sysclk counter (same in sim+FPGA). So the Tang `#`
   slowness is the silicon TOUT-timing divergence = Issue B on the memory path. NOT a sim-fixable RTL
@@ -24,7 +27,7 @@
 
 
 Opened 2026-07-27. Board: Tang Nano 20K, `TANG_FLOPPY` (floppy-only), `FPGA_FF_MODE`.
-All paths absolute. Engine for sim work: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/obj_dir_vflop`
+All paths absolute. Engine for sim work: `Verilog/runSim/obj_dir_vflop`
 (Verilog device stack, `-DND120_VERILOG_DEVICES -DFPGA_FF_MODE`).
 
 ## Where we are
@@ -40,10 +43,10 @@ each, Verilator-first then Tang.
    after.
 3. **Fix** the RTL.
 4. **Validate in Verilator**: the specific test passes AND the regression suite
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/run_all_tests.sh` (`make test` from `Verilog/`) is
+   `Verilog/tests/run_all_tests.sh` (`make test` from `Verilog/`) is
    green — in particular the 8 DMA-consumer gates (see Issue A).
 5. **Re-flash Tang** (`make gowin VARIANT=slow` then `make flash-gowin` from
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/`) and **validate on silicon**.
+   `Verilog/fpga/tang-nano-20k/`) and **validate on silicon**.
 SILICON-ONLY issues (clean in Verilator) can't use step 1 — they need ON-CHIP CAPTURE instead
 (re-enable a targeted probe like `TANG_GRANT_CAPTURE` and compare the captured timing to the Verilator
 golden). Issue B is this kind.
@@ -127,7 +130,61 @@ so SILICON-ONLY.
 ---
 
 ## Issue C — `MOVEW APT ==> APT` drops the destination page-boundary word  [RTL, repros in sim]
-STATUS: known bug, memory `movew-page-boundary-word-drop`. Same failure in Verilator and on Tang, so
+STATUS 31-JUL: **ROOT CAUSE MEASURED at signal level; fix needs the original schematic
+term confirmed (MAC DECODE, DELILAH pages 25-28) — waiting on Ronny's go for the
+schematic check.** Full chain (all measured in Verilator, current build, probe engine
+`Verilog/sim/obj_dir_probe_cx`, artifacts in the session scratchpad):
+1. Repro: `1560&` -> `load inst` -> `cx-instructions` (single-area command). Failing
+   subtest: MOVEW opcode 143104, D=161750 -> T=163754, L=100o; dest crosses page
+   boundary 164000o after 24o words.
+2. The boundary word's write IS issued (ucode APTWR+1, CSA 4323, data 24o), then a
+   SPURIOUS level-14 page-fault trap (TVEC=3) fires one microcycle later (after the
+   CONDENABL slot -> no INTER rewind), the test's level-14 handler runs ~8.2k ticks,
+   the move resumes at the NEXT word: the in-flight write never lands. Control: the
+   passing PT->APT subtest writes the identical dest block through the identical
+   WRRQ,APT micro-op, same boundary, zero faults (6 clean repeats).
+3. Cause of the spurious fault (FST, `movew_sel.fst`): at EVERY `WRRQ,APT` (and
+   `RDRQ,APT`) the CGA_MAC_DECODE strobes assert **SPT AND SAPT simultaneously**;
+   the PTSEL JK (J=SPT, K=SAPT, `CGA_MAC_PTSEL.v`) sees J=K=1 = TOGGLE. Coming from
+   a PT request the toggle lands on APT by luck (all passing variants); coming from
+   an APT request (APT->APT: the src read left it at APT) it flips to PT, the dest
+   first-touch protection check consults the NORMAL PT's entry for page 72o ->
+   page fault -> word dropped.
+4. Decode math (verified against microword encodings, CSCOMM bits 36:32 / CSMIS 43:42):
+   `GATES_59 = NAND(s_cscomm_2, s_csmis_1_n, s_csmis_0)` masks SPT on APT only for
+   c2=0 codes (22,30,32 - all clean); the c2=1 request codes 34/35 (RDRQ/WRRQ) have
+   NO APT mask -> SPT stays asserted. A blanket mask (drop the cscomm_2 input) would
+   also hit codes 24-27 with CSMIS=1 which DO occur in the L-ROM (CSMIS = unrelated
+   MIS modifier there), so the surgical original term must be read off the schematic:
+   GATES_59/GATES_60 inputs on the MAC DECODE sheet, `Verilog/DELILAH-CPU/CGA_MAC/
+   circuit/CGA_MAC_DECODE.v:352-360,797-809`. ALTERNATIVE: the original element in
+   PTSEL may not be a toggle-on-J=K JK (SR-style with priority) - the schematic
+   decides which fix is faithful.
+Old attack plan v2 below (superseded by the above; kept for method reference):
+1. REPRODUCE MINIMAL (Verilator, engine runSim/obj_dir_testmode or fresh build):
+   scripted `1560&` -> `load inst` -> run ONLY the cx/MOVEW area (the scripted-TPE
+   injector is proven), OR craft a 20-word BPUN doing SETPT + MOVEW APT->APT across
+   176000o and deposit-load it - trigger in MINUTES not 209M ticks.
+2. OBSERVE, do not guess: arm `Verilog/sim/fst_window.h` (windowed full-signal FST,
+   committed today) with ND120_FST_TRIG_P at the MOVEW loop address -> capture EVERY
+   signal around the boundary word: LA_20_10, PT/PPN outputs, WMAP/EPT strobes,
+   SPT/SAPT + SELPTN (CGA_MAC_PTSEL - MOVEW toggles PT<->APT per word!), the
+   write strobes into MEM, and the cache-side WCA/ECD.
+3. PRIME SUSPECTS, ranked by what the paging hunt taught us:
+   H1 the alternate-PT toggle (SPT/SAPT JK in CGA_MAC_PTSEL) races the write strobe
+      exactly at the page-crossing word - same PONI/PT-select corner as Issue D;
+   H2 dest PT write-back (COMM,WRRQ,HOLD) displaces the data write - single
+      s_wmap_n strobe in CPU_MMU_24.v:243 (the original H1);
+   H3 cache write-allocate/inhibit at the boundary (CPU_MMU_CACHE_25 - NOTE the
+      44402D used-bit fix changed this area; re-test BEFORE deep-diving: the bug
+      may already be GONE, it was filed pre-fix!).
+4. STEP 0 THEREFORE: re-run the failing INSTRUCTION cx area on the CURRENT build
+   (sim first, and Ronny already sees the MOVEW error still present on Tang as of
+   30-JUL morning - but that flash predated the 44402D fix; the CURRENT flash has
+   it -> RE-CHECK ON SILICON before assuming still-broken).
+5. Fix -> gates: instruction-verify cx area + golden traces, full suite, PAGING
+   11/11 regression, Tang re-flash + INSTRUCTION on silicon.
+STATUS(orig): known bug, memory `movew-page-boundary-word-drop`. Same failure in Verilator and on Tang, so
 NOT silicon-specific. `MOVEW APT->APT` drops the dest word at `176000o` (reads 0, expected `24o`).
 
 - **Verilator plan:** the DECISIVE experiment (already designed, not yet run): stop right after the

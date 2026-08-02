@@ -1,6 +1,6 @@
 # FPGA targets
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/`
+**Full path:** `Verilog/fpga/`
 
 Per-FPGA build and flow files. The Verilog/HDL source is **shared** and stays
 under `Verilog/` - the build scripts reference it by absolute path. Only the
@@ -68,7 +68,7 @@ delegating to `build.tcl`). The standalone
 (the Makefiles just delegate to them):
 
 ```powershell
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\basys3
+cd Verilog/fpga/basys3
 .\vivado_build.ps1              # bitstream ('make'); -ReuseSynth / -LintOnly / -Program
 .\flash.ps1 -Quick              # 'make load' (JTAG only); omit -Quick for 'make flash'
 

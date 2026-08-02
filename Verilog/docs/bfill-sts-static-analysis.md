@@ -13,7 +13,7 @@ forever (IRW writes level-1 registers, triggers level 1, IRR verifies).
 
 ### 1.1 COMM,EWRF and IDBS,REG address by FIELD VALUE, not register content
 
-VERIFIED in /mnt/e/Dev/Repos/Ronny/ND110Compile/ND110CPU/Cpu.cs:
+VERIFIED in $ND_REPOS/ND110Compile/ND110CPU/Cpu.cs:
 
 - EWRF (line 1313): `hw.RF.Write(hw.alu.A_Operand, hw.alu.B_Operand,
   hw.idb.ReadWord())` - IDB is written to the external register file cell
@@ -23,12 +23,12 @@ VERIFIED in /mnt/e/Dev/Repos/Ronny/ND110Compile/ND110CPU/Cpu.cs:
 - A_Operand/B_Operand come from the microword fields themselves when no
   special RASEL/RBSEL mode is selected: RBSEL case 0 takes microword bits
   16-19 (Cpu.cs line 2899), RASEL case 0 takes bits 12-15 (line 2939).
-- RegisterFile.Write/Read (/mnt/e/Dev/Repos/Ronny/ND110Compile/ND110CPU/RegisterFile.cs
+- RegisterFile.Write/Read ($ND_REPOS/ND110Compile/ND110CPU/RegisterFile.cs
   lines 117-136) index a 16x16 array: [A-operand (level slot), B-operand
   (register slot)].
 
 Token encodings (VERIFIED,
-/mnt/e/Dev/Repos/Ronny/ND110Compile/ND110Compile/ND120Tokens.cs):
+$ND_REPOS/ND110Compile/ND110Compile/ND120Tokens.cs):
 
 - `A,R3` = A-op 13 octal (line 22), `B,R6` = B-op 16 octal (line 72).
 - `COMM,EWRF` (line 221): "IDB -> REGISTER FILE WORD ADDRESSED BY A-OP AND
@@ -52,18 +52,18 @@ Consequence - THE CONFLICT IN THE TASK STATEMENT DISSOLVES (VERIFIED):
 ### 1.2 Register numbering and the two different "STS" storages
 
 VERIFIED: C# RegisterEnum
-(/mnt/e/Dev/Repos/Ronny/ND110Compile/ND110CPU/Enums.cs lines 899-939):
+($ND_REPOS/ND110Compile/ND110CPU/Enums.cs lines 899-939):
 0=Zero ("ZERO REG., STATUS OR SCRATCH"), 1=D, 2=P, 3=B, 4=L, 5=A, 6=T, 7=X,
 8=STS ("STATUS OR SCRATCH"), 9-15=R1-R7. The RTL local working register file
 uses the identical numbering (VERIFIED, header comment of
-/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_WRF/circuit/CGA_WRF.v
+Verilog/DELILAH-CPU/CGA_WRF/circuit/CGA_WRF.v
 lines 15-31).
 
 Three distinct things exist:
 
 1. The HARDWARE STS register (C#: BUFALU.STS_value,
-   /mnt/e/Dev/Repos/Ronny/ND110Compile/ND110CPU/BUFALU.cs line 107; RTL:
-   /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_STS.v).
+   $ND_REPOS/ND110Compile/ND110CPU/BUFALU.cs line 107; RTL:
+   Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_STS.v).
    Written ONLY by the CSST field ops (STS,EA / STS,ES / STS,LO) and by
    COMM,LDPIL (high byte). IDBS,STS reads it (Cpu.cs lines 3090-3092).
 2. LOCAL working register 010 octal ("B,STS"/"A,STS") - a SCRATCH register.
@@ -107,7 +107,7 @@ word in local/bank register 010 is NOT itself a failure.
 
 ### 2.1 EWRF / IDBS,REG addressing - MATCHES
 
-VERIFIED, /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_PROC_32.v:
+VERIFIED, Verilog/CPU-BOARD-3202/circuit/CPU_PROC_32.v:
 
 - lines 286-289: external register-file address = {2'b0(RASEL bits 9:8),
   LBA_3_0 (bits 7:4, register), LAA_3_0 (bits 3:0, level)} - one-to-one with
@@ -115,7 +115,7 @@ VERIFIED, /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_PROC_
 - lines 456-474: registerBlock write gated by ERF_n/TWRF_n (EWRF decode in
   CPU_PROC_CMDDEC_34), read is the WRTRF/ERF-gated async read.
 
-VERIFIED, /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC.v:
+VERIFIED, Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC.v:
 
 - LAA muxes (lines 949-987): RASEL 0 -> CS bits 15:12; 1 -> PIL; 2 -> IR
   bits; 3 -> LC. LBA muxes (lines 1012-1050): RBSEL 0 -> CS bits 19:16;
@@ -126,14 +126,14 @@ VERIFIED, /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_
 
 ### 2.2 Local WRF - MATCHES (register 0 is a real register)
 
-VERIFIED: /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK.v
+VERIFIED: Verilog/DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK.v
 line 925 instantiates `CGA_WRF_RBLOCK_DR16 Z_REG_0` - local register 0 is a
 real 16-bit register, so LVSWP 01150's write of hardware STS into local reg 0
 is representable. STS_REG_8 (line 1040) is the separate scratch "STS slot".
 
 ### 2.3 CGA_ALU_STS - re-checked, consistent with prior verification
 
-VERIFIED, /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_STS.v:
+VERIFIED, Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_STS.v:
 
 - Bits 0-3: SCAN_FF with TE = NAND(CSTS[1],CSTS[0]) (GATES_2, lines 128-134,
   FFs lines 288-330) -> load FIDBO only when CSTS==3.
@@ -141,7 +141,7 @@ VERIFIED, /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_
   ES -> MI into bit 7; else hold.
 - Bits 8-15: SCAN_FF with TE = LDPILN (lines 198-284) -> load FIDBO high byte
   only when LDPILN is low. LDPILN decodes COMM==00001 only (VERIFIED,
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_DCD/circuit/CGA_DCD.v
+  Verilog/DELILAH-CPU/CGA_DCD/circuit/CGA_DCD.v
   GATES_13, lines 820-833, from the REGISTERED COMM bits) - COMM,EWRF (=3)
   cannot assert it, and the decode inputs are registered so a zero-delay
   simulation cannot glitch it.
@@ -156,7 +156,7 @@ is the computed new-level STS word.
 
 ### 2.4 CSTS generation in CGA_CPU_ALU_CONTR - CONFIRMED DIVERGENCE (pipeline skew)
 
-/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_CONTR.v:
+Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_CONTR.v:
 
 - CSTS[0] = CONTR_REG QE = ALUCLK-registered CSST[0] (lines 879, 892).
 - CSTS[1] = NAND(s_icsst1, s_gates49_out) (GATES_48, lines 710-716), where
@@ -215,7 +215,7 @@ STS,EA-followed-by-ALUM,IR pattern is UNKNOWN statically.
    0x2A2A when the CPU left level 1; the framework hang is a faithful
    downstream consequence, not a separate slot-rewrite bug.
 3. CONFIRMED RTL-vs-emulator divergence: CGA_CPU_ALU_CONTR GATES_49
-   (/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_CONTR.v
+   (Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_CONTR.v
    lines 718-724) evaluates the ES-forcing term with the registered
    (executing-word) alui8 but the unregistered (next-word) CSALUM via
    s_gates1_out (lines 286-292). Per the C# ground truth both must be the
@@ -252,18 +252,18 @@ instruction.)
 
 - Microcode: /mnt/e/Dev/Ronny/nd120uc/source/nd-120-delilah.uc (BFILL lines
   1738-1790; LVSWP lines 1477-1499; IRR lines 645-672; IRW lines 673-703)
-- C# ground truth: /mnt/e/Dev/Repos/Ronny/ND110Compile/ND110CPU/Cpu.cs,
-  /mnt/e/Dev/Repos/Ronny/ND110Compile/ND110CPU/RegisterFile.cs,
-  /mnt/e/Dev/Repos/Ronny/ND110Compile/ND110CPU/BUFALU.cs,
-  /mnt/e/Dev/Repos/Ronny/ND110Compile/ND110CPU/Enums.cs,
-  /mnt/e/Dev/Repos/Ronny/ND110Compile/ND110Compile/ND120Tokens.cs
-- RTL: /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_CONTR.v,
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_STS.v,
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_WRF/circuit/CGA_WRF.v,
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK.v,
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC.v,
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_DCD/circuit/CGA_DCD.v,
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_PROC_32.v
+- C# ground truth: $ND_REPOS/ND110Compile/ND110CPU/Cpu.cs,
+  $ND_REPOS/ND110Compile/ND110CPU/RegisterFile.cs,
+  $ND_REPOS/ND110Compile/ND110CPU/BUFALU.cs,
+  $ND_REPOS/ND110Compile/ND110CPU/Enums.cs,
+  $ND_REPOS/ND110Compile/ND110Compile/ND120Tokens.cs
+- RTL: Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_CONTR.v,
+  Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_STS.v,
+  Verilog/DELILAH-CPU/CGA_WRF/circuit/CGA_WRF.v,
+  Verilog/DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK.v,
+  Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC.v,
+  Verilog/DELILAH-CPU/CGA_DCD/circuit/CGA_DCD.v,
+  Verilog/CPU-BOARD-3202/circuit/CPU_PROC_32.v
 
 ## Framework verify decode (17-JUL)
 

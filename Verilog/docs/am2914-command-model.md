@@ -14,7 +14,7 @@ and `.../scripts/nd120_tokens.json`), or a **measured iverilog probe** of
 > Table I "MICROINSTRUCTION SET FOR Am2914 PRIORITY INTERRUPT CIRCUIT",
 > book page 2-108). OCR artefacts in the dump were corrected against the RTL.
 
-Repo root for relative paths below: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog`.
+Repo root for relative paths below: `Verilog`.
 
 ---
 
@@ -395,7 +395,7 @@ Notes / uncertainties for this sequence:
 
 ## 7. Source index (absolute paths)
 
-RTL (`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/`):
+RTL (`Verilog/DELILAH-CPU/CGA_INTR/`):
 `circuit/CGA_INTR.v`, `circuit/CGA_INTR_IRSRC.v`, `circuit/CGA_INTR_CNTLR.v`,
 `circuit/CGA_INTR_CNTLR_MDCD.v`, `circuit/CGA_INTR_CNTLR_IRQ.v`,
 `circuit/CGA_INTR_CNTLR_IRQ_REG(_RQBIT).v`, `circuit/CGA_INTR_CNTLR_IRQ_MASK(_MASKBIT).v`,
@@ -412,7 +412,7 @@ Microcode: `/mnt/e/Dev/Ronny/nd120uc/source/ND-120-DELILAH-L.LISTING.txt`
 `/mnt/e/Dev/Ronny/nd120uc/source/scripts/nd120_tokens.json` (PIC A-OP `w1`
 fields), `/mnt/e/Dev/Ronny/nd120uc/docs/index.html:876` (`PIC_COMMANDS`).
 
-Cross-refs: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/RUN-level14-livelock-analysis.md`
+Cross-refs: `Verilog/docs/RUN-level14-livelock-analysis.md`
 (IIC architecture, measured hivec/status values, FIDBO-swap fix);
-`/mnt/e/Dev/Repos/Ronny/ND110Compile/traces/PIC-TRACE-RUN-ND120.md` (C# PIC
+`$ND_REPOS/ND110Compile/traces/PIC-TRACE-RUN-ND120.md` (C# PIC
 trace); `~/repos/nd100x/src/cpu/cpu.c` (`calcIIC`).

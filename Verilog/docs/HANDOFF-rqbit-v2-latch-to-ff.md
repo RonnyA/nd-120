@@ -1,6 +1,6 @@
 # HANDOFF — refactor CGA_INTR_CNTLR_IRQ_REG_RQBIT into a loop-free V2
 
-Written 15-JUL-2026. Branch `clock-enable-fix`. Repo root `/mnt/e/Dev/Repos/Ronny/nd-120`.
+Written 15-JUL-2026. Branch `clock-enable-fix`. Repo root ``.
 All paths absolute — this doc is read cold. Do NOT mention any AI tool in code,
 comments, commits, or docs.
 
@@ -19,7 +19,7 @@ The current RQBIT holds its request in a cross-coupled async SR latch
 2. **hang a plain event simulator** — driving the parent `CGA_INTR_CNTLR` request
    path from X-init makes these NAND latches oscillate (iverilog times out).
 3. **be the leading suspect for the Tang `400$` silicon hang** — see
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/HANDOFF-tang-sd-tape-boot.md` and
+   `Verilog/docs/HANDOFF-tang-sd-tape-boot.md` and
    memory `tang-400-hang-validated`: RQBIT_2 latches the tape's level-12 request
    and, on Gowin fabric, the async feedback can glitch/fail-to-hold where
    zero-delay Verilator settles cleanly.
@@ -30,33 +30,33 @@ flow and see whether the 22 loops are gone.
 
 ## Files — READ these (do not trust this summary; read the source)
 - RTL to replace:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_REG_RQBIT.v`
+  `Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_REG_RQBIT.v`
   (the SR latch is `GATES_1..4` + `MEMORY_5`; `INR = qBar`).
 - The behaviour CONTRACT (already reverse-engineered from the gates, exhaustively
   checked against the DUT) is documented in the header of:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/sim/CGA_INTR_CNTLR_IRQ_REG_RQBIT_tb.v`
+  `Verilog/DELILAH-CPU/CGA_INTR/sim/CGA_INTR_CNTLR_IRQ_REG_RQBIT_tb.v`
   — read that header. The reduced synchronous behaviour it proves is:
   on each rising `CP` (=MCLK): `if (CLR) L<=0; else if (!PN) L<=1; else HOLD;`
   `INR = L`. PN = request active-LOW, CLR = clear active-HIGH (dominates),
   INR = pending active-HIGH. `CPN` is driven as `~CP`.
 - Parent that instantiates RQBIT (this is where the SWAP happens — find the
   instantiation and confirm the port wiring):
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_REG.v`
+  `Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_REG.v`
 - FF primitive + mode handling (V2 must keep this):
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/ndlib/` (the `D_FLIPFLOP_EN`
+  `Verilog/Shared/ndlib/` (the `D_FLIPFLOP_EN`
   used by RQBIT) and the `FPGA_FF_MODE` / `MCLK_EN` pattern already in RQBIT.v
   lines 51-58, 116-129. Also `docs/plan-fix-unconstrained-clocks.md`.
 - Logisim gate primitives (bubble/inversion semantics) for deriving the golden:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/logisim/`
+  `Verilog/Shared/logisim/`
 - Context / rules:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/HANDOFF-interrupt-trap-testbenches.md`
+  `Verilog/docs/HANDOFF-interrupt-trap-testbenches.md`
   (the 29 interrupt/trap testbenches, the generic `iv-%` runner, how they are
   registered), memory `p2-domains-convert-together`, `ff-exec-divergence-fixed`,
   `clock-enable-refactor`.
 
 ## V2 requirements (drop-in)
 - Same module name suffix `_V2`, in
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2.v`.
+  `Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2.v`.
 - **Identical port list** to RQBIT (`sysclk, MCLK_EN, CLR, CP, CPN, PN → INR`) so
   it is a pure drop-in.
 - **No combinational feedback loop** — the request is held in an edge-triggered
@@ -70,7 +70,7 @@ flow and see whether the 22 loops are gone.
 
 ## EXTEND THE TESTBENCHES TO TEST **ALL** SCENARIOS  ← mandatory, do this first
 The existing tb
-(`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/sim/CGA_INTR_CNTLR_IRQ_REG_RQBIT_tb.v`)
+(`Verilog/DELILAH-CPU/CGA_INTR/sim/CGA_INTR_CNTLR_IRQ_REG_RQBIT_tb.v`)
 covers persistence/clear/hold + a randomized soak, but it drives inputs only
 while `CP=0` and only in non-FF mode. Before trusting V2, EXTEND it (and add a
 V2 tb, or better: one tb that instantiates BOTH RQBIT and RQBIT_V2 and asserts
@@ -94,17 +94,17 @@ strongest proof and is the preferred deliverable.
 ## Validation gates (in order — do NOT swap until all green)
 1. Extended unit tb: RQBIT_V2 matches RQBIT bit-for-bit over ALL scenarios above;
    `TB_RESULT: PASS`; teeth (`-DTEETH_TEST`) forces FAIL. Run via the generic
-   rule: `make -C /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/sim iv-<tbname>`.
+   rule: `make -C Verilog/DELILAH-CPU/CGA_INTR/sim iv-<tbname>`.
 2. Do the SWAP: change the instantiation in
    `.../CGA_INTR_CNTLR_IRQ_REG.v` from RQBIT to RQBIT_V2 (keep RQBIT.v on disk).
 3. The 29 interrupt/trap tbs still pass, especially the CNTLR-top tb
    (`.../sim/CGA_INTR_CNTLR_tb.v`) and IRQ tbs — run them via the `iv-%` rule.
-4. Behaviour-neutral at the system level: `cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+4. Behaviour-neutral at the system level: `cd Verilog/sim
    && make compare` — the latch-vs-FF golden traces
    (`trace_ff.csv`/`trace_latch.csv` vs `sim/golden/*`) must stay byte-identical.
-   Also the full unit suite: `cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog && make test`.
+   Also the full unit suite: `cd Verilog && make test`.
 5. THE PAYOFF CHECK: run the OSS FPGA flow and confirm the combinational loops
-   are gone — `cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k && make all`
+   are gone — `cd Verilog/fpga/tang-nano-20k && make all`
    (yosys → nextpnr-himbaechel → gowin_pack). If nextpnr now PnRs (no
    "combinational loop" errors), the theory holds. (Do NOT flash hardware — that
    is Ronny's; report that a board run is the final proof of the `400$` hang fix.)

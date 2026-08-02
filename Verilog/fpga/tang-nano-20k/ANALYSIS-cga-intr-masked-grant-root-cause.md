@@ -1,10 +1,10 @@
 # ANALYSIS — Tang "masked level-10 grant": root-cause investigation (OPEN)
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/ANALYSIS-cga-intr-masked-grant-root-cause.md`
+**Full path:** `Verilog/fpga/tang-nano-20k/ANALYSIS-cga-intr-masked-grant-root-cause.md`
 **Status:** ROOT-CAUSE HUNT IN PROGRESS. An earlier trap-side guard was written and
 then **REVERTED** (18-JUL) at Ronny's direction — it treated the symptom, not the
 cause, and it deviated from the schematics. We are now finding the real cause.
-**Answering:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/HANDOFF-cga-intr-masked-grant-analysis.md`.
+**Answering:** `Verilog/fpga/tang-nano-20k/HANDOFF-cga-intr-masked-grant-analysis.md`.
 
 ---
 
@@ -137,16 +137,16 @@ capture block already in the Tang top.
 
 RTL instrumentation is in and compile-clean (both build modes). Files touched
 (all instrumentation, gated / passthrough — default builds unaffected):
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND120_CORE.v` — new `PIL[3:0]` output
+- `Verilog/ND120_CORE.v` — new `PIL[3:0]` output
   passthrough (the board's PIL was left unconnected; now forwarded).
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
+- `Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
   — the 512-sample analyzer's source/trigger/split switch on `TANG_GRANT_CAPTURE`.
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/tang20k_defines.v`
+- `Verilog/fpga/tang-nano-20k/src/tang20k_defines.v`
   — the (commented) `TANG_GRANT_CAPTURE` define + doc.
 
 Steps:
 1. Uncomment `` `define TANG_GRANT_CAPTURE `` in
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/tang20k_defines.v`.
+   `Verilog/fpga/tang-nano-20k/src/tang20k_defines.v`.
 2. Full Gowin rebuild (`make gowin`) and flash. (Mind the load-gowin
    stale-bitstream trap: verify the flashed .fs mtime/sha vs the fresh build.)
 3. Reproduce the wedge as before: btn1 (MACL, keeps SDRAM) -> software `MACL`
@@ -181,7 +181,7 @@ it only seizes the UART if PIL actually hits 10 on the board.
 **Practical run note (silicon):**
 - `make gowin` runs on the Windows host (PowerShell `gowin_build.ps1`) — build
   there, then flash the fresh `.fs` (verify mtime/sha; the load-gowin trap).
-- Step with `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/scratch_piltrace.py`
+- Step with `Verilog/fpga/tang-nano-20k/scratch_piltrace.py`
   as before. At the step where PIL->10 (~18), the capture arms cap_done, waits
   a few seconds (hold_cnt), then the debug dumper SEIZES the console TX and
   streams the 512 hex lines. So: once piltrace reports the PIL=10 grant, STOP
@@ -294,7 +294,7 @@ options (Ronny's call, faithfulness constraint):
 ## 3f. The real MC68705U3 behavior + the FAITHFUL FIX (18-JUL)
 
 Agent read the U3 firmware analysis AND the sheet-40 schematic
-(`/mnt/e/Dev/Repos/Ronny/nd-120/Code/68705/3202D_PANCAL_SHEET40.png`). Findings:
+(`Code/68705/3202D_PANCAL_SHEET40.png`). Findings:
 - STAT3 = PB4, a firmware-HELD LEVEL: set at panel-command completion, cleared
   at idle, ACKed by the CPU reading PANS (`TRA PANS` / EPANS/MIPANS). Not a
   hardware one-shot; the DGA A282/A283 turns its rising edge into PRQ.

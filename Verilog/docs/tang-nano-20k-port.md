@@ -1,6 +1,6 @@
 # ND-120 on Tang Nano 20K (Gowin GW2AR-18) — Port Analysis
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/tang-nano-20k-port.md`
+**Full path:** `Verilog/docs/tang-nano-20k-port.md`
 **Last updated:** 2026-07-04
 
 Analysis of moving the ND-120 FPGA target from Basys3 (Xilinx `xc7a35t`) to the

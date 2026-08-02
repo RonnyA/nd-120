@@ -299,7 +299,7 @@ are true simultaneously. Each PAL's FF logic must be verified against the origin
 
 ### BUG 1: PAL_45001B stray semicolon (CRITICAL)
 
-**File**: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/PAL_45001B.v` line 95-96
+**File**: `Verilog/PAL/PAL_45001B.v` line 95-96
 **Exists on**: both `main` and `vivado-fix` branches
 
 ```verilog
@@ -317,7 +317,7 @@ have this bug, so latch vs FF comparison will always differ for this signal unti
 
 ### ~~BUG 2: PAL_44304E EBADR_n_reg FF clear logic~~ -- VERIFIED CORRECT
 
-**File**: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/PAL_44304E.v` lines 82-85
+**File**: `Verilog/PAL/PAL_44304E.v` lines 82-85
 
 Initially flagged as a bug, but algebraic analysis proves the FF conversion IS correct.
 
@@ -374,7 +374,7 @@ No fix needed. Skipping to TODO 0.3.
 
 ### TODO 0.3: Create signal comparison test harness -- DONE
 
-**New file**: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/latch_ff_compare.cpp`
+**New file**: `Verilog/sim/latch_ff_compare.cpp`
 
 This test harness records key internal signals at every `posedge OSC` during simulation and
 outputs them as CSV. Run once with `VERILATOR_SIM` defined (latch mode), once without (FF
@@ -411,7 +411,7 @@ cycle,CSA,TERM,MCLK,EMD,CBWRITE,CMWRITE,BACT,EBADR,DAP,BLOCK,RERR,BDRY,...
 
 ### TODO 0.4: Add Makefile targets -- DONE
 
-**File**: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/Makefile`
+**File**: `Verilog/sim/Makefile`
 
 Add these targets:
 ```makefile
@@ -437,7 +437,7 @@ compare: compare_latch compare_ff
 
 ### TODO 0.5: Create per-PAL unit testbenches
 
-**Directory**: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/vivado_warning_fixes/`
+**Directory**: `Verilog/tests/vivado_warning_fixes/`
 
 Each testbench instantiates the PAL module, applies stimulus sequences that exercise the
 set/hold/clear paths of each latched signal, and verifies outputs.
@@ -771,7 +771,7 @@ only. OSC clocking is safe for all PALs.
 
 ```bash
 # Normal simulation (latches, original behavior)
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 make clean && make compile          # or: make compile USE_LATCHES=1
 
 # FPGA mode simulation (flip-flops)
@@ -784,6 +784,6 @@ make run
 make compare
 
 # Run individual PAL testbenches
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/vivado_warning_fixes
+cd Verilog/tests/vivado_warning_fixes
 make all
 ```

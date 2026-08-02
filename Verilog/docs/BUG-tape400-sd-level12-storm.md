@@ -52,7 +52,7 @@ the run should still be quiet/fast (poll boot) while we investigate the handler.
 
 **For:** the LLM/owner of the SD-card + FAT filesystem + sim device wiring work
 **Filed from:** the instruction-verify campaign (running INSTRUCTION-B via `400$`)
-**Repo:** `/mnt/e/Dev/Repos/Ronny/nd-120`, dir `Verilog/`
+**Repo:** ``, dir `Verilog/`
 **Date:** 2026-07-12
 
 ## One-line summary

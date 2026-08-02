@@ -134,3 +134,5 @@ Verilog/sim/tpe_*.log
 Verilog/sim/fc2_console.txt
 Verilog/sim/*.fst
 Verilog/sim/*.fst.hier
+# Scratch folder (never commit its contents)
+tmp/

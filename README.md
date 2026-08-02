@@ -16,10 +16,15 @@ On the way to the FPGA code, there will be testable Logisim Circuits and Logisim
 ## Current Status
 
 **Simulation (Verilator, the golden reference):**
-- Microcode loads, Master Clear executes, CPU self-test runs
-  (7 of 14 subtests passing - the remaining failures are CPU-core
-  suspects, proven unrelated to memory parity: see
-  `Verilog/docs/nd120-parity-analysis.md`)
+- Microcode loads, Master Clear executes, and the CPU self-test passes
+  clean: **0 execution-phase STERR visits** (measured with the
+  `ND120_COUNT_STERR` probe)
+- **13 of 13 testable INSTRUCTION-B areas pass** on both layers - each
+  area's own end-of-test with zero error lines, and the 400-instruction
+  golden-trace comparison against the ND-110 reference
+  (`Verilog/tests/instruction-verify/CAMPAIGN-STATUS.md`). The
+  48-bit floating area is not applicable: our PROM microcode implements
+  the 32-bit float option.
 - OPCOM console works; `INSTRUCTION-B` loads and runs from the Verilog
   papertape device; DMA bus mastering against the real arbiter
 - Golden-console and latch-vs-FF regression gates keep it all pinned
@@ -44,13 +49,13 @@ On the way to the FPGA code, there will be testable Logisim Circuits and Logisim
 
 ## Quick Start
 
-```powershell
-cd Verilog\sim
+```bash
+cd Verilog/sim
 make clean
 make all  # Compiles, runs, and opens GTKWave
 ```
 
-**Prerequisites:** [Verilator](https://www.veripool.org/verilator/), GTKWave (optional), Windows with PowerShell
+**Prerequisites:** [Verilator](https://www.veripool.org/verilator/), Icarus Verilog, GTKWave (optional). Development is done on Linux / WSL2 with bash.
 
 See [BUILDING.md](BUILDING.md) for detailed build and test instructions.
 
@@ -60,8 +65,8 @@ The minimum requirements to make the CPU work:
 
 | Component | Schematic | HDL | Status |
 |-----------|-----------|-----|--------|
-| [DELILAH CPU Gate Array (CGA)](DesignDocuments\DELILAH-CPU\readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
-| [NEC Decoder Gate Array (DGA)](DesignDocuments\DECODE-GateArray\readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
+| [DELILAH CPU Gate Array (CGA)](DesignDocuments/DELILAH-CPU/readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
+| [NEC Decoder Gate Array (DGA)](DesignDocuments/DECODE-GateArray/readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
 | [ND 3202 CPU Board revision D](DesignDocuments/CPU-BOARD-3202/Readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
 | [PAL Chips](DesignDocuments/PAL-Code/Readme.md) | All PALASM code has been validated | Verilog and testcode created | QA on Verilog ongoing |
 
@@ -69,29 +74,7 @@ In the CPU Board we will plug in the DELILAH CPU and the Decoder, all PAL chips 
 
 ## History
 
-Compressed history of the work progress:
-
-| Date | Description |
-|------|-------------|
-| 11. March 2023 | Received Design Documentation from Lasse Bockelie |
-| 21. August 2023 | Logisim Drawings completed for DGA and DELILAH/CGA |
-| 03. December 2023 | Using Logisim drawings to start generate Verilog files for DGA and CGA |
-| 12. December 2023 | Starting to consolidate all information about PAL chips (PNG for PALASM code, OCR to TXT and write Verilog version of PAL code) |
-| 26. December 2023 | Logisim drawings of CPU Board 3202D completed |
-| 27. December 2023 | Using Logisim drawings to start generate Verilog files for CPU Board 3202D |
-| 11. January 2024 | Most PALASM code has been ported to Verilog |
-| January-June 2024 | Adding support chips, refactoring and bugfixing. Adding tests and test results |
-| June-November 2024 | No work done |
-| 9. November 2024 | Starting up again after a long break. Cleaning up code, refactoring and testing. Connecting everything together. |
-| 20. November 2024 | Verilator - Microcode is loaded from ROM to DRAM. MACL microcode starts but fail on STACK operations, and fails on COND operations. |
-| 13. December 2024 | Verilator - Microcode MACL starts, CPU test code runs. OPCOM is initialized and communication over UART works. |
-| 29. Januar 2025 | Verilator - Testprogram 'INSTRUCTION-B.BPUN' (204384B 83.11.01) loads and starts. 7 out of 14 tests succeed. |
-| 22. Mars 2025 | Verilator & C++ - Interface with ND BUS via BIF module to C connector. Added support for Papertape reader and Floppy PIO written in C++ |
-| 1. June 2025 | Reverse engineered the ROM chips for the panel controller's with help of Ghidra and Claude.AI |
-| 7. July 2026 | OPCOM boots on Basys3 hardware (tag `fpga-opcom-working-basys3`); FF-mode clock architecture fixes |
-| 11. July 2026 | SD/FAT stack proven on Tang Nano 20K hardware (read+write); microcode analysis proves the self-test never touches memory parity -> packed 16-bit SDRAM storage (`ND_SDRAM_PACK16`): CPU keeps 4 MB, 4 MB freed for the disk cache |
-| 12. July 2026 | Dual-toolchain Tang builds: OSS CAD Suite (yosys/nextpnr) primary, Gowin EDA backup; nextpnr closes the full 27/54 MHz clock target with >2x margin |
-| 13. July 2026 | Basys3 SD-Pmod port; memory-backend speed validation vs the no-wait-state protocol for every board; Cmod A7-35T activated (first 27 MHz BRAM build + SRAM bridge plan) |
+The compressed history of the work progress has moved to [HISTORY.md](HISTORY.md).
 
 ## Design documents
 
@@ -150,7 +133,10 @@ see [Verilog/fpga/README.md](Verilog/fpga/README.md).**
 
 ### Verilog
 
-Most Verilog files are generated from the Logisim drawings, using Logisim-Evolution FPGA tools.
+Most Verilog files were originally generated from the Logisim drawings using the
+Logisim-Evolution FPGA tools. They are **no longer regenerated** - the Verilog and
+the schematics are now both maintained by hand, so a fix has to be made in both
+places.
 
 All the Verilog files are stored in the [Verilog folder](Verilog/)
 
@@ -160,10 +146,16 @@ To test the Verilog code using Verilator you need to install the [Verilator](htt
 
 ## Documentation
 
+Paths in this repository are always relative to the repository root. Where a
+document has to point at one of the *other* ND repositories, it writes
+`$ND_REPOS/<repo>/...` - set `ND_REPOS` to the directory that holds your ND
+checkouts.
+
 | Document | Description |
 |----------|-------------|
 | [BUILDING.md](BUILDING.md) | Build instructions, testing, and troubleshooting |
-| [DEVELOPMENT.md](DEVELOPMENT.md) | Project history, architecture, and contribution guide |
+| [HISTORY.md](HISTORY.md) | Project history, milestone by milestone |
+| [DEVELOPMENT.md](DEVELOPMENT.md) | Architecture, coding standards, and contribution guide |
 | [HARDWARE.md](HARDWARE.md) | Hardware specifications and component details |
 
 ## Acknowledgments
@@ -172,4 +164,3 @@ To test the Verilog code using Verilator you need to install the [Verilator](htt
 - **Matthieu Benoit** - ROM chip reading and data extraction
 - **NDWiki Community** - Comprehensive ND-120 documentation
 - **GHIDRA Team** - Reverse engineering tools
-- **Claude.AI** - Analysis assistance

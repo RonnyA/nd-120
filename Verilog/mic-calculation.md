@@ -1,10 +1,10 @@
 # MIC Address Calculation — ND-120 CGA (DELILAH) Analysis
 
-**Full path:** `E:\Dev\Repos\Ronny\nd-120\Verilog\mic-calculation.md`
+**Full path:** `Verilog/mic-calculation.md`
 
 **Scope:** This document describes every signal that participates in the generation of the microcode RAM address `MA[12:0]` inside the CGA (DELILAH) gate array, and answers the specific question: *do internal traps (MPV / page fault / illegal instruction) still fire when `IONI` (STS bit 15) is off, i.e. after an `IOF` instruction?*
 
-All line numbers refer to files in `E:\Dev\Repos\Ronny\nd-120\Verilog\`.
+All line numbers refer to files in `Verilog/`.
 
 Facts in this document are taken directly from the Verilog. Anything I could not verify from the code is explicitly flagged with **[UNVERIFIED]** or listed in the "Open questions" section at the end.
 
@@ -404,7 +404,7 @@ Again: **no `IONI`** in this derivation.
 
 ## 9. Answers to the six open questions
 
-After tracing the Verilog sources and the microcode listing in `E:\Dev\Repos\Ronny\nd-120\Code\Microcode\ND-120 Mikroprogramlisting-L-ocr.md`, here is what the code actually says.
+After tracing the Verilog sources and the microcode listing in `Code/Microcode/ND-120 Mikroprogramlisting-L-ocr.md`, here is what the code actually says.
 
 ### Q1 — How does `IOF` actually suppress interrupts, if not via hardware gating on `IONI`?
 
@@ -593,7 +593,7 @@ Pattern `00001` binary = **CSCOMM=01 octal**. So `LDPILN` asserts when the micro
 
 ### 11.3 The `IOF` instruction microcode routine
 
-**Verified (partial).** From the entry-point index at line 500 of `E:\Dev\Repos\Ronny\nd-120\Code\Microcode\ND-120 Mikroprogramlisting-L-ocr.md`:
+**Verified (partial).** From the entry-point index at line 500 of `Code/Microcode/ND-120 Mikroprogramlisting-L-ocr.md`:
 
 ```
 IOF  → microcode address 003461
@@ -711,18 +711,18 @@ None of these remaining uncertainties change the top-level answer: **MPV and PF 
 
 ## 10. Files referenced
 
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA\circuit\CGA.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_IPOS.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_MASEL.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_IINC.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_CSEL.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_CONDREG.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_STACK.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC_WCAREG.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_BRKDET.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_TVGEN.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP_TBUF.v`
-- `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR.v`
+- `Verilog/DELILAH-CPU/CGA/circuit/CGA.v`
+- `Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_ALU.v`
+- `Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC.v`
+- `Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_IPOS.v`
+- `Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_MASEL.v`
+- `Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_IINC.v`
+- `Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_CSEL.v`
+- `Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_CONDREG.v`
+- `Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_STACK.v`
+- `Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_WCAREG.v`
+- `Verilog/DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP.v`
+- `Verilog/DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_BRKDET.v`
+- `Verilog/DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_TVGEN.v`
+- `Verilog/DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_TBUF.v`
+- `Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR.v`

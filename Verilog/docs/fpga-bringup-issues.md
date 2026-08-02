@@ -1,6 +1,6 @@
 # ND-120 FPGA Bring-up Issues & Test Plan
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/fpga-bringup-issues.md`
+**Full path:** `Verilog/docs/fpga-bringup-issues.md`
 **Started:** 2026-07-07 (Basys3, xc7a35t, after OPCOM first came up on silicon)
 
 Tracks the open issues found once the FPGA started running OPCOM, with the plan to

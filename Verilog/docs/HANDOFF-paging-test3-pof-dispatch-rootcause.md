@@ -18,13 +18,13 @@ bracket showed, in order of discovery:
    NEVER asserted - the test's 44 map writes stored the protection words but wrote
    NOTHING into the PPN bank, which kept its power-on zeros -> physical page 0 always.
 4. Diff against the original PALASM
-   (`/mnt/e/Dev/Repos/Ronny/nd-120/DesignDocuments/PAL-Code/SRC/44306A.txt`):
+   (`DesignDocuments/PAL-Code/SRC/44306A.txt`):
    PALASM:  EIPL = WCHIM + DOUBLE*LSHADOW*CA0 + LSHADOW*WRITE   ; "(SAME FOR REX AND SEX)"
    Verilog: had an extra `DOUBLE &` on the third term (copy-paste from the EIPU
    equation above it). In REX mode DOUBLE=0 -> EIPL never fires. All 7 other
    equations in the file match the PALASM exactly.
 
-**FIX (applied 29-JUL):** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/PAL_44306A.v` -
+**FIX (applied 29-JUL):** `Verilog/PAL/PAL_44306A.v` -
 EIPL third term corrected to `(LSHADOW & WRITE)`. Same single-term transcription-error
 class as CGA_ALU_QREG and CGA_CPU_ALU_CONTR.
 
@@ -87,15 +87,15 @@ microcode-transparent; the macro-visible behavior must match the oracle.)
 ## Our RTL, measured cycle-by-cycle
 
 Probes: TRAP_RP_WATCH + TRAP_LA_WATCH in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/Run120.cpp` (register snapshot at each
+`Verilog/runSim/Run120.cpp` (register snapshot at each
 trap dispatch; every change of MMU `s_la_20_10` + PT output + EPT/WMAP + PONI + P from
 the PON onward), PTDBG in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_MMU_24.v`, TRAPDBG in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP.v`.
+`Verilog/CPU-BOARD-3202/circuit/CPU_MMU_24.v`, TRAPDBG in
+`Verilog/DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP.v`.
 Raw logs (scratchpad, session 61614461):
 `/tmp/claude-1000/-mnt-e-Dev-Repos-Ronny-nd-120-Verilog/61614461-8603-4295-97e6-e3d0aac44e99/scratchpad/pgu_la.log`
 (full) and `.../la_trace.txt` ([la] lines only). Engine:
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/obj_dir_ptdbg` (FF mode, SD_STORAGE=0,
+`Verilog/runSim/obj_dir_ptdbg` (FF mode, SD_STORAGE=0,
 `--public-flat-rw`, built `make -C obj_dir_ptdbg -f VND120_TOP.mk OPT_FAST="-Os -DTRAP_LA_WATCH"`).
 
 Cycle numbers below are the `c=` values in la_trace.txt (sysclk half-cycles).
@@ -168,31 +168,31 @@ Traps 1 and 3 are textbook-correct (right entry, right read-modify-write, transp
 refetch). The interrupt/vector plumbing all checks out (earlier phases of this hunt).
 The TMM2018D sync-read infidelity was A/B-refuted with -DTMM_ASYNC_READ (kept as a
 diagnostic define in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/TMM2018D_25.v`).
+`Verilog/Shared/support/TMM2018D_25.v`).
 
 ## How to reproduce
 
 ```
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim
+cd Verilog/runSim
 # engine obj_dir_ptdbg already built (see above). Then:
 ND120_FLOPPY_IMG=FLOPPY1.IMG ND120_SCRIPT='1560&load pag\rrun\r3\r' \
 ND120_AMP_SETTLE=50000000 ND120_MAX_CNT=400000000 ./obj_dir_ptdbg/VND120_TOP > pgu_la.log
 grep '\[la\]' pgu_la.log   # capture arms at P=077675, 8000 samples
 ```
 Oracle side: `/home/ronny/repos/nd100x/build/bin/nd100x --boot=floppy
---image=/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/FLOPPY1.IMG --cputype=ND120CX -d`
+--image=Verilog/runSim/FLOPPY1.IMG --cputype=ND120CX -d`
 then drive TPE over the DAP console (`load pag`, `run`, `3`), breakpoint 0x7FBD.
 
 ## Cleanup still owed (all probes are inert without their defines)
 
 - `TRAP_RP_WATCH`, `TRAP_LA_WATCH`, `TRACE_MIC_TRAP45` blocks in
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/Run120.cpp`
-- `PTDBG` block in `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_MMU_24.v`
-- `TRAPDBG` block in `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP.v`
+  `Verilog/runSim/Run120.cpp`
+- `PTDBG` block in `Verilog/CPU-BOARD-3202/circuit/CPU_MMU_24.v`
+- `TRAPDBG` block in `Verilog/DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP.v`
 - `TANG_TRAP_CAPTURE` is still DEFINED in
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/tang20k_defines.v` -
+  `Verilog/fpga/tang-nano-20k/src/tang20k_defines.v` -
   must be commented out for normal Tang builds. The Tang currently holds the volatile
   SRAM capture build; a power cycle restores the flashed image.
 - `obj_dir_ptdbg` / `obj_dir_sdstore_keep` juggling in
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/` - current `obj_dir` is the foreign
+  `Verilog/runSim/` - current `obj_dir` is the foreign
   SD_STORAGE build (untouched).

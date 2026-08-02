@@ -1,7 +1,7 @@
 # GAO (Gowin Analyzer Oscilloscope) capture on the Tang Nano 20K
 
 Date: 17-JUL-2026. Purpose: the decisive S1 experiment from
-/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/tang-masked-grant-audit.md -
+Verilog/docs/tang-masked-grant-audit.md -
 capture the CGA_INTR grant chain (int_req_q, INTRQN, PICV, mask/request
 bit 10, CSA) around the spurious PIL 0 -> 10 grant that only manifests at
 speed on silicon.
@@ -15,28 +15,28 @@ Sources with URLs are at the end.
 ## 1. What was built
 
 - GAO config file (RTL-mode, Standard):
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/nd120_tang20k_gao.rao
+  Verilog/fpga/tang-nano-20k/src/nd120_tang20k_gao.rao
 - Build hook (opt-in flag file, same mechanism as the clock variant):
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/gowin_build.tcl
+  Verilog/fpga/tang-nano-20k/gowin_build.tcl
   (adds `add_file -type gao src/nd120_tang20k_gao.rao` when
   build/gao_enable.flag exists)
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/gowin_build.ps1
+  Verilog/fpga/tang-nano-20k/gowin_build.ps1
   (new `-Gao` switch writes/removes the flag; a build WITHOUT -Gao is
   always GAO-free)
 - Inert keep-pragmas (`/* synthesis syn_keep=1 */`, a trailing comment
   that Verilator, iverilog and yosys all ignore - verified by compiling a
   test module with all three) on every probed net, so Gowin synthesis
   cannot optimize them away before the AO core taps them:
-  - /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL_HIRL.v (s_int_req_q, s_int_req_qn, s_hidis_n)
-  - /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL_LORL.v (s_int_req_enable_q)
-  - /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL.v (s_hve, s_lve)
-  - /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR.v (s_intrq_n, s_picv_2_0_out, s_ireq_15_0_n, s_mclk)
-  - /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ.v (s_lreq_15_0, s_picmask_15_0_n_out)
-  - /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v (CSA_12_0)
+  - Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL_HIRL.v (s_int_req_q, s_int_req_qn, s_hidis_n)
+  - Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL_LORL.v (s_int_req_enable_q)
+  - Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL.v (s_hve, s_lve)
+  - Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR.v (s_intrq_n, s_picv_2_0_out, s_ireq_15_0_n, s_mclk)
+  - Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ.v (s_lreq_15_0, s_picmask_15_0_n_out)
+  - Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v (CSA_12_0)
 
 Why RTL mode (.rao) and not post-synthesis (.gao): the synthesized
 netlist on disk
-(/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/build/nd120_tang20k_build/impl/gwsynthesis/nd120_tang20k_build.vg)
+(Verilog/fpga/tang-nano-20k/build/nd120_tang20k_build/impl/gwsynthesis/nd120_tang20k_build.vg)
 was inspected directly: deep module boundaries are restructured and most
 of the wanted nets are renamed to synthetic `n7_*` style names
 (s_int_req_qn, HVE, INTRQN etc. do not survive under their RTL names).
@@ -93,7 +93,7 @@ IOF decode, MCLK phases, int_req_q state leading in) and 512 samples of
 post-trigger dispatch (CSA microcode addresses).
 
 To retrigger on INTRQN falling instead: edit
-/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/nd120_tang20k_gao.rao
+Verilog/fpga/tang-nano-20k/src/nd120_tang20k_gao.rao
 and change `<Expression>M0</Expression>` to `<Expression>M1</Expression>`
 (or `M0|M1` for either), then rebuild. Expression syntax `M0&M1`,
 `!M4&(M3|M6)` etc. is VERIFIED from SUG114. The expression is Static, so
@@ -106,7 +106,7 @@ so plan trigger changes via the .rao.
 
 The current GAO-free Gowin EDA build uses 43 of 46 BSRAM blocks (94%,
 SP 34 + SDPB 9 - VERIFIED in
-/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/build/nd120_tang20k_build/impl/pnr/nd120_tang20k_build.rpt.txt).
+Verilog/fpga/tang-nano-20k/build/nd120_tang20k_build/impl/pnr/nd120_tang20k_build.rpt.txt).
 Only 3 blocks are free.
 
 - 28 capture bits x 1024 depth fits in 2 BSRAM (1Kx18 mode x2 = 36
@@ -123,7 +123,7 @@ Only 3 blocks are free.
 
 ## 5. Build (Windows host)
 
-    cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k
+    cd Verilog/fpga/tang-nano-20k
     .\gowin_build.ps1 -Variant full -Gao
 
 Use `-Variant full` (CPU 27 MHz) if the goal is the full-speed
@@ -136,7 +136,7 @@ Verify GAO really got inserted before flashing:
 
 1. The gw_sh console printed `GAO ENABLED: src/nd120_tang20k_gao.rao`.
 2. The PnR report
-   E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k\build\nd120_tang20k_build\impl\pnr\nd120_tang20k_build.rpt.txt
+   Verilog/fpga/tang-nano-20k/build/nd120_tang20k_build/impl/pnr/nd120_tang20k_build.rpt.txt
    shows BSRAM ABOVE the GAO-free 43 (expect 45), and (per SUG100) the
    report includes GAO place/route time and a GAO Resource section when
    a GAO is in the project.
@@ -178,7 +178,7 @@ After the session, to return to the WSL flow:
     usbipd attach --wsl --busid <busid>
 
 (and in WSL, the usual /mnt/e workflow -
-/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/usb-attach.sh.)
+Verilog/fpga/tang-nano-20k/usb-attach.sh.)
 
 Console note: while the board is on Windows, the OPCOM console (9600
 baud) is the OTHER channel of the same USB device - use a Windows
@@ -197,7 +197,7 @@ Launch the analyzer with NO command-line device args - passing
 `-series/-device/-gao/-fs` on the command line produced a
 **"Can not set device"** dialog on this install. Start it bare and open
 the `.rao` from the GUI (File -> Open ->
-`E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k\src\nd120_tang20k_gao.rao`):
+`Verilog/fpga/tang-nano-20k/src/nd120_tang20k_gao.rao`):
 
     Start-Process 'C:\Utils\Gowin\Gowin_V1.9.10.02_x64\IDE\bin\gao_analyzer.exe'
 
@@ -235,18 +235,18 @@ port in the analyzer:
 ## 7. Capture session, step by step
 
 1. Build with `-Gao` (section 5) and note the bitstream:
-   E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k\build\nd120_tang20k_build\impl\pnr\nd120_tang20k_build.fs
+   Verilog/fpga/tang-nano-20k/build/nd120_tang20k_build/impl/pnr/nd120_tang20k_build.fs
 2. Hand the USB device to Windows (section 6).
 3. Start the analyzer. Two equivalent ways (VERIFIED in SUG114):
    - Gowin IDE: open the project-less IDE
      (C:\Utils\Gowin\Gowin_V1.9.10.02_x64\IDE\bin\gw_ide.exe), menu
      Tools -> Gowin Analyzer Oscilloscope, then toolbar Open and select
-     E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k\src\nd120_tang20k_gao.rao
+     Verilog/fpga/tang-nano-20k/src/nd120_tang20k_gao.rao
    - Standalone exe:
      C:\Utils\Gowin\Gowin_V1.9.10.02_x64\IDE\bin\gao_analyzer.exe
        -series GW2AR -device GW2AR-18C
-       -gao E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k\src\nd120_tang20k_gao.rao
-       -fs E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k\build\nd120_tang20k_build\impl\pnr\nd120_tang20k_build.fs
+       -gao Verilog/fpga/tang-nano-20k/src/nd120_tang20k_gao.rao
+       -fs Verilog/fpga/tang-nano-20k/build/nd120_tang20k_build/impl/pnr/nd120_tang20k_build.fs
      (-series and -device are mandatory, -gao and -fs optional -
      VERIFIED argument list from SUG114; the exact -series/-device
      strings for this part are INFERRED from the SUG114 example format
@@ -272,9 +272,9 @@ port in the analyzer:
 8. Export: toolbar Export -> format CSV (also VCD if wanted - GTKWave
    reads it with the existing tooling). Default export dir is
    impl/wave under the project, i.e.
-   E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k\build\nd120_tang20k_build\impl\wave
+   Verilog/fpga/tang-nano-20k/build/nd120_tang20k_build/impl/wave
    - copy the file into
-   /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/ and note
+   Verilog/fpga/tang-nano-20k/ and note
    the bitstream it came from.
 
 ### Reading the capture (what decides S1)

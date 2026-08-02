@@ -1,6 +1,6 @@
 # Clock-Enable Refactor: eliminating the derived-clock nets
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/clock-enable-refactor.md`
+**Full path:** `Verilog/docs/clock-enable-refactor.md`
 **Last updated:** 2026-07-04
 **Status:** SPEC FOR REVIEW - no code changed yet.
 

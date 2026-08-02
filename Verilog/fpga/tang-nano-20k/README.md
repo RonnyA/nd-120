@@ -1,6 +1,6 @@
 # Tang Nano 20K (Gowin GW2AR-18) FPGA target
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/`
+**Full path:** `Verilog/fpga/tang-nano-20k/`
 
 Gowin build/flow for the Sipeed **Tang Nano 20K**. This is the **primary FPGA
 target** going forward - chosen for faster synthesis than Vivado, a Linux-native

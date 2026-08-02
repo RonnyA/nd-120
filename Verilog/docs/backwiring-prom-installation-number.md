@@ -1,6 +1,6 @@
 # The Back-Wiring PROM (installation number) — mechanism, and how to bake it into a bitstream
 
-**Full path:** `E:\Dev\Repos\Ronny\nd-120\Verilog\docs\backwiring-prom-installation-number.md`
+**Full path:** `Verilog/docs/backwiring-prom-installation-number.md`
 **Last updated:** 20-JUL-2026
 
 Every claim below is marked **VERIFIED** (read out of a file in one of these repos,

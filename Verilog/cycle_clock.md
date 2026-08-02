@@ -127,9 +127,9 @@ stateDiagram-v2
 
 The cycle control system is implemented across several modules:
 
-- **PAL_44601B** (`E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44601B.v`): Main cycle control state machine (CYCFSM)
-- **PAL_44307C** (`E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44307C.v`): Cycle clock generator (CYCLK)
-- **CYC_36** (`E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CYC_36.v`): Top-level cycle control module
+- **PAL_44601B** (`Verilog/PAL/PAL_44601B.v`): Main cycle control state machine (CYCFSM)
+- **PAL_44307C** (`Verilog/PAL/PAL_44307C.v`): Cycle clock generator (CYCLK)
+- **CYC_36** (`Verilog/CPU-BOARD-3202/circuit/CYC_36.v`): Top-level cycle control module
 
 ### Signal Description
 
@@ -642,7 +642,7 @@ Manages basic cycle progression and timing.
 
 The cycle control can be verified by:
 
-1. **Simulation**: Using the existing testbench in `E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\44601B\sim`
+1. **Simulation**: Using the existing testbench in `Verilog/PAL/44601B/sim`
 2. **GTKWave Analysis**: Examining state transitions and timing
 3. **Hardware Testing**: Running on actual FPGA implementation
 

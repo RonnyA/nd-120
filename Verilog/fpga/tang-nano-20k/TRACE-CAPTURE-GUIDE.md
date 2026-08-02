@@ -1,6 +1,6 @@
 # Tang Nano 20K - on-chip trace capture and analysis guide
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/TRACE-CAPTURE-GUIDE.md`
+**Full path:** `Verilog/fpga/tang-nano-20k/TRACE-CAPTURE-GUIDE.md`
 
 How to capture 512-sample signal traces from the ND-120 running on the Tang
 Nano 20K silicon and decode them. Written to be followed by a person or an
@@ -65,7 +65,7 @@ cd sim && make nd120_tang20k_tb.vvp && cd ..     # seconds; catches syntax/port 
 
 # Bitstream (Gowin gw_sh on the Windows host, callable from WSL, ~3 min)
 /mnt/c/Utils/Gowin/Gowin_V1.9.10.02_x64/IDE/bin/gw_sh.exe \
-    'E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k\gowin_build.tcl'
+    'Verilog/fpga/tang-nano-20k/gowin_build.tcl'
 
 # Verify the bitstream is FRESH before programming (stale .fs = wasted run)
 ls -la build/nd120_tang20k_build/impl/pnr/nd120_tang20k_build.fs

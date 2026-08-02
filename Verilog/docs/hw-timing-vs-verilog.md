@@ -1,6 +1,6 @@
 # HW timing model vs our Verilog - designer's notes
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/hw-timing-vs-verilog.md`
+**Full path:** `Verilog/docs/hw-timing-vs-verilog.md`
 **Source:** design intent per **Lasse Bockelie**, who designed the ND-110 and ND-120 CPUs.
 **Last updated:** 2026-07-05
 

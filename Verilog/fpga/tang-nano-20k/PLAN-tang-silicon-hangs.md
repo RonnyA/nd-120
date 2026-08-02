@@ -1,6 +1,6 @@
 # PLAN - Tang Nano 20K silicon hangs: 0!, RUN, BYTE-STRING, STACK, SEGMENT
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/PLAN-tang-silicon-hangs.md`
+**Full path:** `Verilog/fpga/tang-nano-20k/PLAN-tang-silicon-hangs.md`
 Date: 17-JUL-2026. Board state: Gowin bitstream (SRAM load) built 16-JUL 03:19,
 INSTRUCTION-B.BPUN on card as BOOT.BPUN, loads byte-perfect (verified 99.9%
 over OPCOM dump `0<54730`), starts via `20!`, full menu.
@@ -73,7 +73,7 @@ assume - rebuild once from current HEAD if in doubt.
 
 ### Phase 1 - instruction-level embedded debugger (ndcomm, no rebuild)
 
-The tool exists: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tools/ndcomm/ndcomm
+The tool exists: `Verilog/fpga/tools/ndcomm/ndcomm
 -t N -r /dev/ttyUSB1` single-steps N instructions via OPCOM (Z-step) dumping
 IR/STS/D/B/L/A/T/X each step. 9600 baud console; the port must be free.
 
@@ -122,11 +122,11 @@ lockstep with src/tang20k_defines.v when defines change.
 ### Phase 2 - signal-level embedded analyzer (one-file retarget + rebuild)
 
 The 512x16 on-chip analyzer already exists in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
+`Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
 (ring buffer, trigger = rising bit[7] after arm delay, dump over console
 UART). Bit map = `assign DBG_MEMW` in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/ND3202D.v`.
-Guide: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/TRACE-CAPTURE-GUIDE.md`.
+`Verilog/CPU-BOARD-3202/circuit/ND3202D.v`.
+Guide: `Verilog/fpga/tang-nano-20k/TRACE-CAPTURE-GUIDE.md`.
 
 2.1 **Map v4 (cold start / console)**: bits = console IOX strobe (trigger),
     UART TBMT, IOX device address low bits, CSA low bits. Reproduce `0!`.

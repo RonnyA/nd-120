@@ -10,7 +10,7 @@ Grounded design (line-accurate against the real RTL). Execute from this.
   "MEM_RAM_49-facing" wording in the original brief.
 
 Execution status: **steps 1-3 DONE + COMMITTED (14-JUL-2026) on clock-enable-fix.**
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND120_CORE.v` is instantiated by both
+`Verilog/ND120_CORE.v` is instantiated by both
 tops. Step 1 (new-file-first, instantiated by nothing) elaborated clean in every
 configuration:
 - verilator --lint-only -Wall (runSim suppression set), top-module ND120_CORE:
@@ -30,17 +30,17 @@ with the storage seam tied off otherwise). External port list UNCHANGED.
 
 - **PLAN CORRECTION: the `__DOT__` edit is 3 files, not 1.** The plan said only
   runSim/Run120.cpp; in fact:
-  - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/Run120.cpp`          120 refs
-  - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/latch_ff_compare.cpp`    18 refs  <- the latch-vs-FF golden gate in test-full
-  - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/test_nd120.cpp`           4 refs
+  - `Verilog/runSim/Run120.cpp`          120 refs
+  - `Verilog/sim/latch_ff_compare.cpp`    18 refs  <- the latch-vs-FF golden gate in test-full
+  - `Verilog/sim/test_nd120.cpp`           4 refs
   Only TWO symbol classes needed rewriting, both mechanical:
   `ND120_TOP__DOT__CPU_BOARD` -> `ND120_TOP__DOT__CORE__DOT__CPU_BOARD` and
   `ND120_TOP__DOT__s_csbits` -> `ND120_TOP__DOT__CORE__DOT__s_csbits`.
   The other top-level symbols readers touch (clockTicks, s_debug_fidbo,
   s_debug_mr_n, s_test_4_0) stay at ND120_TOP or are unused by the C++.
 - **Also needed:** `-I..` (the Verilog root, where ND120_CORE.v lives) added to
-  VERILATOR_DIRS in `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/Makefile` and
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/Makefile` -- otherwise Verilator
+  VERILATOR_DIRS in `Verilog/runSim/Makefile` and
+  `Verilog/sim/Makefile` -- otherwise Verilator
   cannot find ND120_CORE.
 
 **BEHAVIOUR-NEUTRALITY PROVEN (not inferred).** Built HEAD's pre-refactor RTL in
@@ -64,14 +64,14 @@ Gates green after step 2: `make test` 48/48 (memchain filtered, as above);
 `make test-dma-xcheck` PASSED (OPCOM-written word read back over DMA).
 
 **Step 3 DONE (14-JUL-2026).**
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
+`Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
 now instantiates `ND120_CORE #(0,0,0) CORE(...)` instead of ND3202D directly
 (device-LESS = previous Tang behaviour). Board keeps rPLL/POR/tie-offs/
 LED-write-analyzer/clockTicks; its duplicate installation_number / s_high /
 s_low / SEL_TESTMUX / baud-rate wires are dropped (now core-internal).
 - **Also needed:** the Tang flow uses an EXPLICIT file list, not -I dirs, so
   `<File path="../../ND120_CORE.v" .../>` was added to
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj`
+  `Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj`
   (right before src/ND120_TANG20K_TOP.v). Without it Gowin/vtest cannot find
   the core.
 - Gate: `make -C fpga/tang-nano-20k/sim vtest` -> **TB_RESULT: PASS**

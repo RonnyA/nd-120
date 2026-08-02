@@ -8,7 +8,7 @@ from the 3112 DMA controller (that one has its own handoff,
 
 **Files:**
 - C: `/mnt/e/Dev/Emulators/ND/nd100x/src/devices/floppy/deviceFloppyPIO.c` + `.h`
-- C#: `/mnt/e/Dev/Repos/Ronny/RetroCore/Emulated.HW/ND/CPU/NDBUS/NDBusFloppyPIO.cs`
+- C#: `$ND_REPOS/RetroCore/Emulated.HW/ND/CPU/NDBUS/NDBusFloppyPIO.cs`
 
 **Manual:** there is **no dedicated 3027 / ND-11.015 / ND-11.012 PIO manual** in
 NDInsight (confirmed). The authoritative register spec used here is **§B.4

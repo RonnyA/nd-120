@@ -1,6 +1,6 @@
 # Handoff request → C# ND-120 microcode-CPU team: capture TPE paging setup + STA→177777
 
-**Full path:** `E:\Dev\Repos\Ronny\nd-120\Verilog\sim\HANDOFF-csharp-paging-capture.md`
+**Full path:** `Verilog/sim/HANDOFF-csharp-paging-capture.md`
 **From:** ND-120 Verilog/Verilator probe work (nd-120 repo, `sim/nd120_probe.*`).
 **Why:** the Verilog RTL fails TPE `INSTRUCTION` on every memory-WRITE op that touches
 logical address **177777 (0xFFFF, the top logical page)** — STA/STT/STX/MIN/STF/SBYT

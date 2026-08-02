@@ -11,15 +11,15 @@ measured outcome is in **§0 RESULTS** immediately below. All paths are absolute
 facts are cited by path+line.
 
 **Bus protocol reference** (what this P3 work validates the DMA master against):
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd100-bus-dma.md` (writeup; §10.8 =
-measured DMA findings) and `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd100-bus-deck.pptx`
+`Verilog/docs/nd100-bus-dma.md` (writeup; §10.8 =
+measured DMA findings) and `Verilog/docs/nd100-bus-deck.pptx`
 (slide deck, all bus phases). See also `../ND-BUS-DEVICES/README.md`.
 
 ---
 
 ## 0. RESULTS (built + measured, 2026-07-26)
 
-**Harness:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/dmaSim/` — own `Makefile`,
+**Harness:** `Verilog/dmaSim/` — own `Makefile`,
 own `obj_dir`, own C++ main `dma_p3_main.cpp` (+ copied `AM27256_4513{2,3}L.hex`
 microcode PROMs). Verilates `ND120_TOP` (`-DVERILATOR_SIM -DFPGA_FF_MODE
 -DND_SDRAM_PACK16 -DND120_VERILOG_DEVICES --timing`) and drives ONLY the DMA
@@ -66,7 +66,7 @@ bus); verification reads the Verilated RAM byte arrays directly
    round drops a READ cycle but a WRITE still lands. Reads have no such buffer.
 
 **RTL footprint:** two inert compile-time hooks added to
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/DMA/circuit/ND_DMA_MASTER.v`
+`Verilog/ND-BUS-DEVICES/DMA/circuit/ND_DMA_MASTER.v`
 (`` `ND_DMA_MIN_GAP_TICKS `` / `` `ND_DMA_EARLY_REREQ ``) — no normal build
 defines them, so every shipping build is byte-identical. They exist only so the
 teeth targets can rebuild with the recovery disabled.
@@ -91,7 +91,7 @@ real board bus RTL, to prove whether the combined-tb DMA errors were **harness**
 `test-floppy-p3`.
 
 The behaviour under suspicion is already characterised in the RTL itself. From
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/DMA/circuit/ND_DMA_MASTER.v`
+`Verilog/ND-BUS-DEVICES/DMA/circuit/ND_DMA_MASTER.v`
 lines 55–64 (the `MIN_GAP_TICKS` comment):
 
 > MEASURED on the real CPU-board RTL (full-RTL gate): the memory-side grant and
@@ -162,30 +162,30 @@ replaces the one below it.
 
 - The **full-RTL DMA gate** — `ND_DMA_MASTER` wired to the real bus interface
   inside the core:
-  - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND120_CORE.v:467` (floppy DMA master)
+  - `Verilog/ND120_CORE.v:467` (floppy DMA master)
     and `:567` (SMD DMA master), each connected to the real `BIF_5` bus interface.
   - Driven by the top-level DMA test-client ports —
-    `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND120_TOP.v:104` ("DMA test client
+    `Verilog/ND120_TOP.v:104` ("DMA test client
     (full-RTL DMA gate: ND_DMA_MASTER against the real bus arbiter and RAM …)"),
     ports `DMA_REQ/DMA_WR/DMA_ADDR/DMA_WDATA/DMA_RDATA/DMA_ACK/DMA_ERR/DMA_BUSY`.
 - The **real arbiter**, standalone-instantiable in iverilog:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/PAL_44801A.v` (PAL16R8 "BARB"), with
+  `Verilog/PAL/PAL_44801A.v` (PAL16R8 "BARB"), with
   an existing iverilog tb
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/sim/PAL_44801A_tb.v`.
+  `Verilog/PAL/sim/PAL_44801A_tb.v`.
 - The **BIF bus-control + freeze/grant** RTL:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/BIF_BCTL_6.v`
+  `Verilog/CPU-BOARD-3202/circuit/BIF_BCTL_6.v`
   (instantiates the arbiter), `BIF_BCTL_BDRV_7.v` (the DMA-request-freeze / grant
   search, documented at `:50–56`), `BIF_5.v` (the bus-interface wrapper).
 - The **memory grant chain** already exercised in iverilog:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/sim/MEM_CHAIN_tb.v`
+  `Verilog/CPU-BOARD-3202/circuit/sim/MEM_CHAIN_tb.v`
   (drives BCGNT/BLRQ) — **NOTE:** its gate `test-memchain` is the one known-failing
   entry in the suite (memory workstream); if Tier 1 reuses that RAM/grant slice,
   its state matters. See §8.
 - The master's own recovery-gap logic and its tunables:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/DMA/circuit/ND_DMA_MASTER.v`
+  `Verilog/ND-BUS-DEVICES/DMA/circuit/ND_DMA_MASTER.v`
   (`MIN_GAP_TICKS`, `EARLY_REREQ`, `HOLD_BINPUT` parameters, all unit-noted).
 - Tier 0 gate:
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/FLOPPY-DMA/sim/nd_floppy_dma_tb.v`
+  `Verilog/ND-BUS-DEVICES/FLOPPY-DMA/sim/nd_floppy_dma_tb.v`
   (`test-floppy-dma`, green).
 
 **New (this plan):**
@@ -207,13 +207,13 @@ replaces the one below it.
 **Instantiate the real arbiter, model only the memory-side timing.**
 
 The honest constraint (traced, not assumed): `BIF_5` is **not** a clean CPU-free
-slice. `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/BIF_5.v:30–80`
+slice. `Verilog/CPU-BOARD-3202/circuit/BIF_5.v:30–80`
 shows ~40 inputs pulled from across the CPU-board fabric — microcode bits (`MIS0`,
 `WRITE`, `MWRITE_n`, `TERM_n`, `RT_n`), the CPU data bus (`CD_15_0`), the
 cycle-timing chain (`OSC`, `GNT50_n`, `BDAP50_n`, `BDRY50_n`), refresh (`REFRQ_n`),
 parity/error (`PS_n`, `PA_n`, `LERR_n`, `MOR25_n`), power (`PD1/PD3`), semaphore.
 And the arbiter `PAL_44801A`
-(`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/PAL_44801A.v:29–49`) is a **cycle-state
+(`Verilog/PAL/PAL_44801A.v:29–49`) is a **cycle-state
 machine** clocked by `OSC` and gated by `CRQ_n`/`IORQ_n`/`REFRQ50_n` — its
 grant/refresh interleave (the thing that loses every second read) is a *product of
 that timing chain*, not of a standalone part.
@@ -267,9 +267,9 @@ threshold once Verilator is unfenced.
   proposes to **instantiate** it read-only in a new device-lane tb — it edits none
   of it. The Tier 2 revival is gated on coordination.
 - **Device lane only** for anything startable now: the new tb lands under
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/DMA/sim/` (or
+  `Verilog/ND-BUS-DEVICES/DMA/sim/` (or
   `FLOPPY-DMA/sim/`), registered in
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/run_all_tests.sh` with a strict
+  `Verilog/tests/run_all_tests.sh` with a strict
   `TB_RESULT: PASS`.
 
 ---
@@ -300,8 +300,8 @@ threshold once Verilator is unfenced.
    arbiter is wanted now as an early smoke test.
 
 See also:
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/floppyTester/CONFORMANCE.md`,
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/floppyTester/PLAN-floppy-validation.md`,
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/DMA/circuit/ND_DMA_MASTER.v`,
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/PAL/PAL_44801A.v`,
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/BIF_5.v`.
+`Verilog/floppyTester/CONFORMANCE.md`,
+`Verilog/floppyTester/PLAN-floppy-validation.md`,
+`Verilog/ND-BUS-DEVICES/DMA/circuit/ND_DMA_MASTER.v`,
+`Verilog/PAL/PAL_44801A.v`,
+`Verilog/CPU-BOARD-3202/circuit/BIF_5.v`.

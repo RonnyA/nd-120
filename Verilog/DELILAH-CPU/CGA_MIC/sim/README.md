@@ -1,6 +1,6 @@
 # CGA_MIC Simulation & Testbenches
 
-**Full path:** `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\sim\`
+**Full path:** `Verilog/DELILAH-CPU/CGA_MIC/sim/`
 
 ## Testbench convention
 
@@ -23,7 +23,7 @@ DELILAH-CPU/CGA_MIC/
 ## Running MASEL testbenches (iverilog)
 
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_MIC/sim
+cd Verilog/DELILAH-CPU/CGA_MIC/sim
 
 # Run both MASEL testbenches
 make test-masel
