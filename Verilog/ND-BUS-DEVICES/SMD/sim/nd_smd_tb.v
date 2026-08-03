@@ -112,7 +112,10 @@ module nd_smd_tb;
   reg         dbuf_we = 0;
   wire [15:0] dbuf_rdata;
 
-  ND_SMD #(.DELAY_TICKS(16'd10), .GEO_MAX_CYL(65535)) u_smd (
+  // HAS_WC_FLIPFLOP(1): this tb exercises the 15 MHz two-write HI/LO register
+  // load + LO/HI readback, so it pins the flip-flop card (the module default is
+  // now the single-write ECC card that boots).
+  ND_SMD #(.DELAY_TICKS(16'd10), .GEO_MAX_CYL(65535), .HAS_WC_FLIPFLOP(1)) u_smd (
       .sysclk(sysclk), .sys_rst_n(sys_rst_n),
       .iox_addr(iox_addr), .iox_wr(iox_wr), .iox_wdata(iox_wdata),
       .iox_rd(iox_rd), .iox_rdata(iox_rdata),
@@ -182,7 +185,10 @@ module nd_smd_tb;
   integer ii, w;
   initial begin
     window_base = 0;
-    for (ii = 0; ii < 16384; ii = ii + 1)
+    // Must cover the highest synthetic-phase position. With the real CHS
+    // geometry a cylinder is 5*18*512 = 46080 words, so cylinder 3 alone is
+    // already word 138240 - the old 16384 only sufficed for the linear map.
+    for (ii = 0; ii < 200000; ii = ii + 1)
       image[ii] = 16'h7000 + ii[15:0];
   end
 
@@ -212,7 +218,11 @@ module nd_smd_tb;
     disk_err_in <= 1'b0;
     dbuf_we     <= 1'b0;
     if (disk_start) begin
-      disk_pos = disk_blkaddr2 * 2048 + disk_blkaddr1 * 64 - window_base;
+      // CHS -> LBA -> words, the same sum as ND_SMD / nd_storage_smd_adapter
+      // and process_verilog_smd(): 5 heads, 18 sectors/track, 512 words per
+      // 1024-byte sector. head = blkaddr1[15:8], sector = blkaddr1[7:0].
+      disk_pos = (((disk_blkaddr2 * 5) + ((disk_blkaddr1 >> 8) & 8'hFF)) * 18
+                  + (disk_blkaddr1 & 8'hFF)) * 512 - window_base;
     end
     if (disk_req) begin
       if (!disk_wr) begin
@@ -410,10 +420,11 @@ module nd_smd_tb;
     sys_rst_n = 1;
     repeat (5) @(negedge sysclk);
 
-    // 1: reset status: ready, CWR=0 -> status b15 = 0
+    // 1: reset status: no unit is selected yet, so ALL reads return 0
+    //    (oracle SMD_Read: `if (!data->regs.selectedDisk) return 0`,
+    //    nd100x deviceSMD.c). In boot mode +4 is not served either.
     iox_read(16'o001544, rdata);
-    check((rdata & 16'h0008) !== 0, "not ready at reset");
-    check((rdata & 16'h8000) === 0, "CWR bit set at reset");
+    check(rdata === 16'd0, "status not 0 before any unit selected");
 
     // 1b: BOOT MODE (the '1540&' handshake, BPUN byte-server): per word
     //     activate via +3 bit 2, poll +2 for ready, read the stream word
@@ -450,7 +461,7 @@ module nd_smd_tb;
     load_wcnt(24'd1500);
     iox_write(16'o001545, 16'h0004);   // GO: ACTIVE, op M0
     wait_ready();
-    dpos = 1 * 2048 + 2 * 64;
+    dpos = ((1 * 5 + 0) * 18 + 2) * 512;   // cyl 1, head 0, sector 2
     for (i = 0; i < 1500; i = i + 1)
       if (memory[16'h4000 + i] !== (16'h7000 + dpos[15:0] + i[15:0]))
         check(1'b0, "M0 read data wrong in ND memory");
@@ -470,7 +481,7 @@ module nd_smd_tb;
     load_wcnt(24'd800);
     iox_write(16'o001545, 16'h0804);   // GO: ACTIVE (b2), op M1 (b11)
     wait_ready();
-    dpos = 3 * 2048;
+    dpos = ((3 * 5 + 0) * 18 + 0) * 512;   // cyl 3, head 0, sector 0
     for (i = 0; i < 800; i = i + 1)
       if (image[dpos + i] !== (16'hC000 + i[15:0]))
         check(1'b0, "M1 written image data wrong");
@@ -561,9 +572,13 @@ module nd_smd_tb;
       for (i = 0; i < 1024; i = i + 1) if (memory[16'h7000 + i] !== 16'd0) nzcount = nzcount + 1;
       check(nzcount > 0, "SMD start window compared only zeros (vacuous)");
 
-      load_window(5120 * 2048);
+      // One cylinder = 5 heads * 18 sectors * 512 words = 46080 words, so a
+      // window base is cylinder * 46080. The old cylinder numbers (5120,
+      // 18472) were picked for the linear blkaddr2*2048 map and land far
+      // outside the 75 MB image under the real geometry.
+      load_window(426 * 46080);
       load_core(24'h007000);
-      load_block(16'd0, 16'd5120);
+      load_block(16'd0, 16'd426);
       load_wcnt(24'd1024);
       iox_write(16'o001545, 16'h0004);
       wait_ready();
@@ -574,9 +589,12 @@ module nd_smd_tb;
       for (i = 0; i < 1024; i = i + 1) if (memory[16'h7000 + i] !== 16'd0) nzcount = nzcount + 1;
       check(nzcount > 0, "SMD middle window compared only zeros (vacuous)");
 
-      load_window(18472 * 2048);
+      // "far" must still land on WRITTEN data or the non-zero check below is
+      // vacuous - this image is only populated to about cylinder 432 under
+      // the real geometry, the rest of the 75 MB is zeros.
+      load_window(432 * 46080);
       load_core(24'h007000);
-      load_block(16'd0, 16'd18472);
+      load_block(16'd0, 16'd432);
       load_wcnt(24'd1024);
       iox_write(16'o001545, 16'h0004);
       wait_ready();

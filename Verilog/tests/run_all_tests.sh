@@ -27,12 +27,33 @@ REGISTRY=(
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"
   "Shared/support/sim :: test-am29833a :: TB_RESULT: PASS"
+  # parity CONVENTION gate: ~^data is what the chip calls correct, and the
+  # inverted bit must always fault (policy: parity computed, never stored)
+  "Shared/support/sim :: test-am29833a-parity :: TB_RESULT: PASS"
   "Shared/support/sim :: test-am29c821 :: TB_RESULT: PASS"
   "Shared/support/sim :: test-7464x    :: TB_RESULT: PASS"
   "Shared/support/sim :: test-ffen     :: TB_RESULT: PASS"
+  # --- ndlib _EN clock-enable equivalence tbs (base vs _EN, late-EN teeth) -
+  "Shared/support/sim :: test-scanrst-en :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-scanset-en :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-sr44-en    :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-m169c-en   :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-f924-en    :: TB_RESULT: PASS"
   "Shared/support/sim :: test-inrprom  :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-fifo     :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-idt6168a :: TB_RESULT: PASS"
   # --- PALs -------------------------------------------------------------
   "PAL/sim :: test-all :: RESULT: PASS"
+  # --- PAL _EN clock-enable equivalence tbs (base vs _EN, exhaustive+LFSR) -
+  "PAL/sim :: test-44402d-en :: TB_RESULT: PASS"
+  "PAL/sim :: test-44403c-en :: TB_RESULT: PASS"
+  "PAL/sim :: test-44404c-en :: TB_RESULT: PASS"
+  "PAL/sim :: test-44407a-en :: TB_RESULT: PASS"
+  "PAL/sim :: test-44408b-en :: TB_RESULT: PASS"
+  "PAL/sim :: test-44511a-en :: TB_RESULT: PASS"
+  # --- sheet-45 address-decode PALs (base + _D mirror vs PALASM golden) ----
+  "PAL/sim :: test-44445b-d :: TB_RESULT: PASS"
+  "PAL/sim :: test-44446b-d :: TB_RESULT: PASS"
   # --- CPU board sheets -------------------------------------------------
   "CPU-BOARD-3202/sim         :: test-reqgnt   :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-cyctermd :: RESULT: PASS"
@@ -48,16 +69,112 @@ REGISTRY=(
   "CPU-BOARD-3202/circuit/sim :: test-memparity :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-memerror  :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-mmupt-replay :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-mmupt        :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/CPU_CS_TCV_20/sim :: test-tcv :: Testbench Complete"
   # --- gate arrays --------------------------------------------------------
   "DECODE-GateArray/DGA/sim :: test-f595        :: Testbench Complete"
+  # --- DGA standard cells: F091/F103/F571 comb + F617 async-FF (both
+  #     ACTIVE_ASYNC params) + CPU_STOC_35 exhaustive -----------------------
+  "DECODE-GateArray/DGA/sim :: test-fcells      :: TB_RESULT: PASS"
+  "DECODE-GateArray/DGA/sim :: test-f617        :: TB_RESULT: PASS"
+  "DECODE-GateArray/DGA/sim :: test-f714        :: TB_RESULT: PASS"
+  # DECODE_DGA_IDBS enable decoder + panel PRQ/VAL FSM (both build modes)
+  "DECODE-GateArray/DGA/sim :: test-dga-idbs    :: TB_RESULT: PASS"
+  # DECODE_DGA_POW power-up/MCL/RTC/TOUT sheet (5 builds: plain, VERILATOR_SIM,
+  # +RTC_SIM_20MS, FPGA_FF_MODE+BOARD_CLK_FREQ, VERILATOR_SIM+FPGA_FF_MODE)
+  "DECODE-GateArray/DGA/sim :: test-dga-pow     :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-stoc      :: TB_RESULT: PASS"
+  # --- CPU-board Tier-3: RAMC grant chain / LBDIF delays (2 modes) /
+  #     PANCAL stub contract / MMU cache HIT-gate (3 modes, teeth=ungated) --
+  "CPU-BOARD-3202/circuit/sim :: test-ramc      :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-lbdif     :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-pancal    :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-mmucache  :: TB_RESULT: PASS"
+  # BIF_BCTL_SYNC_8 delay-tap pipeline (AM29C821 x2 + PD1/PD3 kills)
+  "CPU-BOARD-3202/circuit/sim :: test-bifsync   :: TB_RESULT: PASS"
+  # BIF_DPATH_LDBCTL_12 LBC PAL trio (44303B/44302B/44304E, FF+latch modes)
+  "CPU-BOARD-3202/circuit/sim :: test-ldbctl    :: TB_RESULT: PASS"
+  # BIF_DPATH_PESPEA_13 PEA/PES error registers (plain + FF strobe modes)
+  "CPU-BOARD-3202/circuit/sim :: test-pespea    :: TB_RESULT: PASS"
+  # MEM_ADEC_45 real sheet-45 DUT (UCADEC/UBADEC PALs + BLRQ/RLRQ flags,
+  # plain + FPGA_FF_MODE _D-mirror builds)
+  "CPU-BOARD-3202/circuit/sim :: test-adec      :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA/sim      :: test-busdriver16 :: Testbench Complete"
+  # CGA_TESTMUX Verilator tb: 25 directed vectors on the TM0-TM4 test mux
+  "DELILAH-CPU/CGA_TESTMUX/sim :: test-testmux  :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_MIC/sim  :: test-masel-basic :: PASS"
+  # --- CGA_MIC counter/select tbs (CSEL+INCOUNT dual build modes) ----------
+  "DELILAH-CPU/CGA_MIC/sim  :: test-mic-csel    :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_MIC/sim  :: test-mic-incount :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_MIC/sim  :: test-mic-iinc    :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_MIC/sim  :: test-mic-ipos    :: TB_RESULT: PASS"
+  # --- CGA_MIC Tier-3: return stack family + WCAREG/CONDREG (dual modes) ---
+  "DELILAH-CPU/CGA_MIC/sim  :: test-mic-stackbit   :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_MIC/sim  :: test-mic-stackbit12 :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_MIC/sim  :: test-mic-stack      :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_MIC/sim  :: test-mic-wcareg     :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_MIC/sim  :: test-mic-condreg    :: TB_RESULT: PASS"
+  # --- CGA_MIC Tier-5: MASEL repeat register (dual modes, SC5/SC6 pinned) --
+  "DELILAH-CPU/CGA_MIC/sim  :: test-mic-repeat     :: TB_RESULT: PASS"
   # --- CGA_MAC_DECODE exhaustive decode check (both build modes, Issue-C
   #     GATES_5 regression tooth: SPT/SAPT mutual exclusion) ---------------
   "DELILAH-CPU/CGA_MAC/sim  :: test-decode      :: TB_RESULT: PASS"
+  # --- CGA_MAC_FASTADD per-stage-exhaustive adder check (both build modes) -
+  "DELILAH-CPU/CGA_MAC/sim  :: test-fastadd     :: TB_RESULT: PASS"
+  # --- CGA_MAC_ADD Tier-4: PRP 4-way selector + CDS sign-extension + adder
+  #     vs an independent golden model (both build modes) -------------------
+  "DELILAH-CPU/CGA_MAC/sim  :: test-mac-add     :: TB_RESULT: PASS"
+  # --- CGA_MAC_PTSEL exhaustive SELPTN table + JK set/clear/hold/toggle
+  #     (Issue-C flop; both build modes) ------------------------------------
+  "DELILAH-CPU/CGA_MAC/sim  :: test-ptsel       :: TB_RESULT: PASS"
+  # --- CGA_MAC SEGPT family (three builds each: plain / FPGA_FF_MODE /
+  #     USE_TRANSPARENT_LATCHES - the define that switches L4/L8) -----------
+  "DELILAH-CPU/CGA_MAC/sim  :: test-segpt-seg   :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_MAC/sim  :: test-segpt-xpt   :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_MAC/sim  :: test-segpt-pcr   :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_MAC/sim  :: test-segpt       :: TB_RESULT: PASS"
+  # --- CGA_MAC Tier-3: APOS increment/CALCA (3 modes) / LASEL 2^19 sweep ---
+  "DELILAH-CPU/CGA_MAC/sim  :: test-apos-inc    :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_MAC/sim  :: test-apos-calca  :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_MAC/sim  :: test-lasel       :: TB_RESULT: PASS"
+  # --- CGA_MAC Tier-4: AP09 ICA wired-OR mux + CALCA + incrementer (3 modes)
+  "DELILAH-CPU/CGA_MAC/sim  :: test-mac-ap09    :: TB_RESULT: PASS"
+  # --- CGA_MAC Tier-4: LA1025 LA23-10 wired-OR merge + ECCRHIN (3 modes) ---
+  "DELILAH-CPU/CGA_MAC/sim  :: test-mac-la1025  :: TB_RESULT: PASS"
+  # --- CGA_IDBCTL / CGA_WRF Tier-1 tbs (PGSREG dual, LR16 triple modes) ----
+  "DELILAH-CPU/CGA_IDBCTL/sim :: test-idbctl-sel6   :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_IDBCTL/sim :: test-idbctl-pgsreg :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_WRF/sim    :: test-wrf-sel16     :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_WRF/sim    :: test-wrf-lr16      :: TB_RESULT: PASS"
+  # --- CGA_WRF Tier-5: DR16 WR-qualified register (dual modes) -------------
+  "DELILAH-CPU/CGA_WRF/sim    :: test-wrf-dr16      :: TB_RESULT: PASS"
+  # --- CGA_WRF Tier-4: RBLOCK parent register-file wiring (triple modes) ---
+  "DELILAH-CPU/CGA_WRF/sim    :: test-wrf-rblock    :: TB_RESULT: PASS"
+  # --- CGA_ALU small mux/swap exhaustive tbs (SWAP dual build modes) -------
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-swap    :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-sel7    :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-sel8    :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-mux216l :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-rmux    :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-logop   :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-smux    :: TB_RESULT: PASS"
+  # SHIFT: full 2^20 exhaustive incl. every serial-input combination
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-shift   :: TB_RESULT: PASS"
+  # --- CGA_ALU Tier-3 register tbs (dual modes; QREG teeth = the MPY bug) --
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-dbr     :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-qreg    :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-sts     :: TB_RESULT: PASS"
+  # --- CGA_ALU Tier-5: ARG register (dual modes, exhaustive load sweep) ----
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-arg     :: TB_RESULT: PASS"
+  # --- CGA_ALU Tier-4: OUTMUX parent netlist (dual modes, selector wiring) -
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-outmux  :: TB_RESULT: PASS"
+  # --- CGA_ALU Tier-4: ALU controller (3 modes; teeth = the historical
+  #     SSEL edge-capture bug - ROT/ZIN-right/LIN shifts ran as plain) ------
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-contr   :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_INTR/sim :: test-irsrc        :: TB_RESULT: PASS"
   # --- CGA_INTR gate-level unit tbs (iverilog, teeth-checked) -----------
+  "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR_CLR_CLRBIT         :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_INTR/sim :: test-intr-vecgen                     :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR_VECGEN_PTY_PTYENC  :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR_VECGEN_PTY         :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR_VECGEN_CMP_MAGCMP  :: TB_RESULT: PASS"
@@ -109,6 +226,7 @@ REGISTRY=(
   "SD-FAT/sim                         :: test-storage   :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-tape  :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-floppy :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-nds-smd   :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-dumper    :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator-fat32 :: TB_RESULT: PASS"
@@ -124,11 +242,19 @@ REGISTRY=(
   "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-iox :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-p2 :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-sdfat :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/TAPE-400/sim :: test-tape400  :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/SMD/sim    :: test-smd        :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/SMD/sim    :: test-smd-iox    :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/SMD/sim    :: test-smd-p2     :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/SMD/sim    :: test-smd-ecc    :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/SMD/sim    :: test-smd-err    :: TB_RESULT: PASS"
 )
 # NOT in the registry (run manually, documented reasons):
+#   DECODE-GateArray/DGA/sim test-f595-transparency - FAILS BY DESIGN on the
+#     current F595 FPGA branch (lagging FF; the transparent-latch fix was
+#     REVERTED 19-JUL after a comb loop on silicon). It pinpoints the
+#     divergence; register it only if/when F595's FPGA branch is made a
+#     zero-latency transparent latch again.
 #   DELILAH-CPU/CGA_MIC/sim test-masel-cycle / test-masel-iw - exploratory
 #     race-documentation tbs with EXPECTED FAIL lines; not strict pass/fail.
 #   Verilog/sim make compare, runSim golden, fpga vtest - heavy system gates,

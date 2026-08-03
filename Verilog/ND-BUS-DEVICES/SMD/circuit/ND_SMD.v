@@ -8,11 +8,18 @@
 ** Where a behaviour is a documented DIVERGENCE in the C port, this RTL   **
 ** follows the same choice; those are marked "DIVERGENCE:" below.        **
 **                                                                       **
-** This is the 15 MHz card: it HAS the address/word-count FLIP-FLOPS, so  **
-** the 24-bit Core Address and Word Count registers are each loaded by    **
-** TWO writes (HI 8 bits, then LO 16) and read back LO then HI. Control-  **
-** word bits 5-6 (address 16-17) belong to the OLD 10 MHz card and are    **
-** IGNORED here, exactly as the oracle ignores them.                      **
+** CONTROLLER TYPE is a strap (parameter HAS_WC_FLIPFLOP, DEFAULT 0):      **
+**   0 = ECC / BIG-DISC card (DEFAULT): NO flip-flops - each of the Core   **
+**       Address / Word Count registers loads its full value in ONE write  **
+**       and reads back in one, and Core Address bits 16-17 come from       **
+**       control-word bits 5-6. This is the type that BOOTS: the mass-      **
+**       storage microcode writes the word counter ONCE (002000), which     **
+**       loads 1024 only on a single-write card. A plain build boots.       **
+**   1 = 15/10 MHz card (opt-in): it HAS the address/word-count FLIP-FLOPS, **
+**       so the 24-bit Core Address and Word Count registers are each       **
+**       loaded by TWO writes (HI 8 bits, then LO 16) and read back LO then **
+**       HI; control-word bits 5-6 (address 16-17) are IGNORED (old 10MHz). **
+**       Mirrors the C core nd_smd.has_flipflops exactly.                  **
 **                                                                       **
 ** UNLIKE the floppy card there is NO command block in ND memory. The     **
 ** guest loads the transfer parameters into controller registers by IOX   **
@@ -67,15 +74,20 @@
 ** every unit to). A backend that owns a different geometry should pass   **
 ** matching GEO_* parameters.                                            **
 **                                                                       **
-** BOOT MODE ('1540&'): the device-agnostic microcode mass-storage        **
+** BOOT MODE ('1540&', BPUN byte-server): the device-agnostic microcode    **
 ** loader (writes +3 bit 2, polls +2 ready, reads +0) is answered from    **
 ** reset until the FIRST Load Control Word - preserved BYTE-FOR-BYTE from **
 ** the silicon-validated implementation; it is not part of the oracle.    **
+** A +1 or +7 write ALSO leaves boot mode: that loader never writes those **
+** registers, but the MASS STORAGE LOAD microroutine ('21540&', CSA       **
+** o2217) starts with two +1 writes and a +7 write, and boot mode used to **
+** discard them - so the GO that followed ran with a zero word count and  **
+** loaded nothing. See docs/ANALYSIS-smd-disc-tema-not-ready.md.          **
 **                                                                       **
 ** Thumbwheels (all level 11): tw0 01540/017, tw1 01550/020,             **
 **   tw2 00540/023, tw3 00550/006 (octal). This instance = tw0 defaults.  **
 **                                                                       **
-** Last reviewed: 23-JUL-2026                                            **
+** Last reviewed: 1-AUG-2026                                             **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
@@ -83,13 +95,51 @@ module ND_SMD #(
     parameter [15:0] BASE_ADDR   = 16'o001540,
     parameter [15:0] IDENT_CODE  = 16'o000017,
     parameter [3:0]  INT_LEVEL   = 4'd11,
-    parameter [15:0] DELAY_TICKS = 16'd10,  // nd100x IODELAY_HDD_SMD
+    // How long the controller stays ACTIVE after a GO before it reports
+    // completion, in sysclk cycles. Do NOT set this by hand at an
+    // instantiation: it is a TIME, so the board wrapper computes it from its
+    // own clock frequency (see ND120_CORE.v, which turns a millisecond figure
+    // into cycles). The module default stays small so the unit testbenches
+    // run fast. 32 bits: 8 ms at 100 MHz is 800,000 cycles.
+    parameter [31:0] DELAY_TICKS = 32'd10,
     // Geometry for the ExecuteGO address-mismatch bound. Default = the
     // 75 MB SMD disk (5 heads, 18 sectors/track, 823 cylinders), which is
     // the geometry the C# oracle fixes every unit to. 1024-byte sectors.
     parameter [15:0] GEO_HEADS   = 16'd5,
     parameter [15:0] GEO_SPT     = 16'd18,
-    parameter [15:0] GEO_MAX_CYL = 16'd823
+    parameter [15:0] GEO_MAX_CYL = 16'd823,
+    // Controller-type strap (docs/design/SMD-CONTROLLER-TYPE-SEAM.md).
+    //   0 = ECC / BIG-DISC controller (THE DEFAULT): the Core Address and Word
+    //       Counter registers have NO flip-flops - each loads its FULL value in
+    //       a SINGLE write, the reads return the full value every time, and Core
+    //       Address bits 16-17 come from control-word bits 5-6. This is the card
+    //       that BOOTS: the mass-storage microcode (CSA o2217) writes the Word
+    //       Counter ONCE with 002000, which loads 1024 on a single-write card.
+    //   1 = 15/10 MHz SMD (ND632): the 24-bit Core Address and Word Counter
+    //       registers load via a HI-then-LO TWO-write flip-flop, and the reads
+    //       return LO then HI. Control-word bits 5-6 are ignored (old 10 MHz).
+    // Mirrors the C core's nd_smd.has_flipflops EXACTLY (nd_smd_set_controller);
+    // the equivalence gate drives both sides to the same value.
+    //
+    // DEFAULT IS 0 (no flip-flop) so a plain build BOOTS the SMD image with no
+    // define. The 15 MHz two-write card is the opt-in: set HAS_WC_FLIPFLOP(1)
+    // (the three flip-flop unit testbenches do exactly that, and ND120_CORE
+    // exposes it via -DND120_SMD_15MHZ). A parameter, not an `input wire`,
+    // because an unwired input floats to Z and would read as 0 anyway - the
+    // parameter makes the choice explicit and constant-foldable.
+    parameter HAS_WC_FLIPFLOP = 0,
+
+    // WORD-COUNTER protocol, SEPARATE from the card-type strap above.
+    // Defaults to the card type, but the ND-120 needs them to differ: the
+    // mass-storage microroutine at CSA o2217 writes the MEMORY ADDRESS with two
+    // +1 accesses (flip-flop protocol) and the WORD COUNT with ONE +7 write of
+    // 002000, which only loads 1024 words if the word counter is single-access.
+    // Ground truth: ND-BUS-DEVICES/SMD/sim/traces/mass-load-21540.trace.
+    // Measured in nd100x 03-AUG-2026 (ND100X_SMD_TYPE=smd15 ND100X_SMD_WC_FF=0):
+    // DISC-TEMA scores IDENTICALLY with the word counter single-access, so it
+    // constrains only the memory address - the two requirements are compatible.
+    // RetroCore models the same idea as four independent flip-flop flags.
+    parameter HAS_WCNT_FLIPFLOP = HAS_WC_FLIPFLOP
 ) (
     input wire sysclk,
     input wire sys_rst_n,
@@ -166,6 +216,14 @@ module ND_SMD #(
   reg        s_hw_err2;       // status b7
   reg        s_addr_mismatch; // status b8
   reg        s_comparer_err;  // status b10
+  // status b11 = DMA CHANNEL ERROR (the oracle's SMDStatusRegister names bit 11
+  // "DMA Channel error", reserved/never set there because its transfer is a
+  // memcpy). The RTL has a real DMA master that CAN fault, and a bus/memory
+  // fault used to be indistinguishable from a media fault (both ended in
+  // err_active with only "disk unit not ready" showing). Setting b11 tells a
+  // diagnostic which side failed. NOT part of the inclusive-OR (b4): the
+  // oracle's hardwareError does not include bit 11.
+  reg        s_dma_ch_err;    // status b11
   reg        s_seek_err;      // seek-condition b11
 
   // ---- flip-flops (15 MHz card: two-word HI/LO loads, cleared by a
@@ -178,6 +236,10 @@ module ND_SMD #(
 
   reg        s_irq;           // latched level-11 interrupt line
 
+`ifdef ND120_SMD_TRACE
+  reg [31:0] s_trace_cyc;     // sysclk counter for the simulation-only trace
+`endif
+
   // ---- boot mode (not in the oracle; preserved verbatim) ----
   reg        s_boot_mode;
   reg        s_boot_fetch;
@@ -189,8 +251,13 @@ module ND_SMD #(
   assign disk_unit     = s_sel_unit;
 
   // ---- internal buffer ----
+  // Async-read arrays do NOT map to Gowin BSRAM (they explode into ~16k FF +
+  // LUT mux trees - measured 43k LUT4 standalone), so the buffer is a simple
+  // dual-port RAM: one muxed write port, one registered read port whose
+  // address follows the active consumer (see the RAM port block above the
+  // main FSM). Same refactor as ND_FLOPPY_DMA's buffer. dbuf_rdata is driven
+  // from the registered read there.
   reg [15:0] s_buffer[0:1023];
-  always @(*) dbuf_rdata = s_buffer[dbuf_addr];
 
   // ---- decode ----
   wire s_addressed = (iox_addr[15:3] == BASE_ADDR[15:3]);
@@ -212,7 +279,7 @@ module ND_SMD #(
         s_oncyl_bit,      // b14 on cylinder
         s_notready_bit,   // b13 disk unit not ready
         1'b0,             // b12
-        1'b0,             // b11
+        s_dma_ch_err,     // b11 DMA channel error (bus/memory fault)
         s_comparer_err,   // b10 comparer error
         1'b0,             // b9
         s_addr_mismatch,  // b8  address mismatch
@@ -225,15 +292,34 @@ module ND_SMD #(
         s_errint_en,      // b1  error-interrupt enabled
         s_int_en };       // b0  interrupt enabled
 
+  // b12 of the seek condition is the CONTROLLER-TYPE identity bit: 1 on the
+  // SMD 10/15 MHz cards, 0 on the NORD-10-era BIG-DISC / ECC cards. It must
+  // follow the HAS_WC_FLIPFLOP strap, because that bit is how software decides
+  // which register protocol to use. Hard-coding it to 1 while strapped as the
+  // single-access ECC card made the machine announce itself as a 15 MHz card:
+  // TPE then drove the two-access HI/LO protocol and DISC-TEMA's Memory Address
+  // Register test failed on every value (expected 00000000001b, found
+  // 00000200001b = (N<<16)|N - the second read returning the low word again,
+  // which is CORRECT behaviour for a single-access card). Measured on the Tang
+  // 03-AUG-2026. Oracle: RetroCore NDBusDiscControllerSMD.cs gates this bit on
+  // SMD_15MHZ_CONTR / SMD_10MHZ_CONTR only, and notes that SINTRAN M will not
+  // read/write/boot DISC-75-1 when it is set.
   wire [15:0] s_seek_cond =
       { 3'b000,           // b15-13 address field / ECC parity / ECC correctable
-        1'b1,             // b12    isSMD15Mhz (always 1)
+        HAS_WC_FLIPFLOP ? 1'b1 : 1'b0,  // b12 SMD 10/15 MHz card id
         s_seek_err,       // b11    seek error
         s_sel_unit,       // b10-8  unit selected
         s_seek_complete };// b7-0   seek complete per unit
 
   // ECC pattern (read +4, CWR=1): bits 11-13 = 1, bit 15 = CWR read-back.
-  wire [15:0] s_ecc_pattern = { s_cwr, 1'b0, 3'b111, 11'd0 };
+  // b14 is the second controller-type identity bit and is the INVERSE sense of
+  // seek-condition b12: ND-11.020.01 sec 2.5 says "Bit 14: Always 0. To
+  // distinguish from the old ND-100 SMD controller", so the 15 MHz card reads 0
+  // and the older BIG-DISC / ECC cards read 1 (RetroCore sets it for
+  // BIG_DISC_CONTR / ECC_DISC_CONTR). Follows the strap for the same reason as
+  // b12 above.
+  wire [15:0] s_ecc_pattern =
+      { s_cwr, HAS_WC_FLIPFLOP ? 1'b0 : 1'b1, 3'b111, 11'd0 };
 
   // ---- interrupt / ident (latched line) ----
   assign int_pending = {(INT_LEVEL == 4'd13) && s_irq,
@@ -252,18 +338,32 @@ module ND_SMD #(
     if (s_rd_here) begin
       if (s_boot_mode) begin
         case (s_reg)
-          3'd0: iox_rdata = s_buffer[s_bootptr[9:0]];
+          // registered read: the port block's default read address IS the
+          // boot pointer, so s_buf_dout tracks it (settles one sysclk after
+          // each pointer step - far inside the IOX strobe spacing).
+          3'd0: iox_rdata = s_buf_dout;
           3'd2: iox_rdata = {11'd0, s_incl_or, s_rft, 3'd0};
           default: iox_rdata = 16'd0;
         endcase
-      end else if (!s_disk_selected) begin
-        // oracle Read(): returns 0 while no unit is selected
-        iox_rdata = 16'd0;
       end else begin
+        // NOTE: reads are NOT gated on a selected unit. The status register,
+        // ECC pattern, seek condition, core address and word counter are
+        // CONTROLLER registers (cards 3043/3044) - they exist whether or not a
+        // drive is selected, and only the drive-sourced bits depend on one
+        // (s_oncyl_bit / s_notready_bit above already return 0 / 1 when
+        // nothing is selected). The old "return 0 while no unit is selected"
+        // gate was copied from the oracle, where it was a bug: it made the
+        // status register unreadable exactly when a GO on a not-specified unit
+        // had just raised hardware-error b7, so the error could never be seen.
+        // DISC-TEMA reports that as "Read (from NOT specified unit), Status
+        // Bit 7b is 0 !". Fixed in the oracle too.
         case (s_reg)
+          // With flip-flops the read alternates LO then HI (the *_ff read
+          // toggles below); a single-write card has no HI phase and returns the
+          // full LO register every time.
           3'd0: iox_rdata = s_cwr
-                          ? (s_wcr_ff ? {8'd0, s_word_cnt_hi}   : s_word_cnt)
-                          : (s_mar_ff ? {8'd0, s_core_addr_hi}  : s_core_addr);
+                          ? ((HAS_WCNT_FLIPFLOP && s_wcr_ff) ? {8'd0, s_word_cnt_hi}  : s_word_cnt)
+                          : ((HAS_WC_FLIPFLOP && s_mar_ff) ? {8'd0, s_core_addr_hi} : s_core_addr);
           3'd2: iox_rdata = s_cwr ? s_ecc_count : s_seek_cond;
           3'd4: iox_rdata = s_cwr ? s_ecc_pattern : s_status;
           3'd6: iox_rdata = s_cwr ? s_blkaddr2 : s_blkaddr1;
@@ -284,7 +384,7 @@ module ND_SMD #(
   reg [2:0]  s_eng;
   reg [10:0] s_chunk_q;
   reg [10:0] s_sec_idx;
-  reg [15:0] s_delay_cnt;
+  reg [31:0] s_delay_cnt;
   reg        s_dma_wait;
   reg [23:0] s_mem_addr;      // running ND word address
   reg [23:0] s_words_left;    // words still to move
@@ -350,6 +450,36 @@ module ND_SMD #(
     end
   endtask
 
+  // ---- buffer RAM ports (BSRAM-mappable: sync write + sync read) ----------
+  // One muxed WRITE port (backend fill via dbuf_we, or the DMA read-in
+  // commit) and one registered READ port whose address follows the active
+  // consumer: E_MEM_WR walks the sector for the DMA-out, E_DISK_WR serves
+  // the backend readout (dbuf_addr), otherwise the boot-stream pointer.
+  // s_buf_valid marks s_buf_dout as current for the address requested THIS
+  // cycle (s_buf_dout holds s_buffer[s_buf_raddr_q]); consumers that need
+  // the freshest word gate on it, adding the one cycle of read latency.
+  // The write sites these ports replace lived inside the FSM below; the
+  // E_MEM_RD commit condition is mirrored here exactly.
+  wire        s_memrd_commit = (s_eng == E_MEM_RD) && s_dma_wait &&
+                               dma_ack && !dma_err;
+  wire        s_buf_we    = dbuf_we | s_memrd_commit;
+  wire [ 9:0] s_buf_waddr = dbuf_we ? dbuf_addr : s_sec_idx[9:0];
+  wire [15:0] s_buf_wdata = dbuf_we ? dbuf_wdata : dma_rdata;
+  wire [ 9:0] s_buf_raddr = (s_eng == E_MEM_WR)  ? s_sec_idx[9:0] :
+                            (s_eng == E_DISK_WR) ? dbuf_addr      :
+                                                   s_bootptr[9:0];
+  reg  [15:0] s_buf_dout;
+  reg  [ 9:0] s_buf_raddr_q;
+  wire        s_buf_valid = (s_buf_raddr_q == s_buf_raddr);
+
+  always @(posedge sysclk) begin
+    if (s_buf_we) s_buffer[s_buf_waddr] <= s_buf_wdata;
+    s_buf_dout    <= s_buffer[s_buf_raddr];
+    s_buf_raddr_q <= s_buf_raddr;
+  end
+
+  always @(*) dbuf_rdata = s_buf_dout;
+
   always @(posedge sysclk or negedge sys_rst_n) begin
     if (!sys_rst_n) begin
       s_core_addr    <= 16'd0;
@@ -376,6 +506,7 @@ module ND_SMD #(
       s_hw_err2      <= 1'b0;
       s_addr_mismatch<= 1'b0;
       s_comparer_err <= 1'b0;
+      s_dma_ch_err   <= 1'b0;
       s_seek_err     <= 1'b0;
       s_maw_ff       <= 1'b0;
       s_mar_ff       <= 1'b0;
@@ -390,7 +521,7 @@ module ND_SMD #(
       s_eng          <= E_IDLE;
       s_chunk_q      <= 11'd0;
       s_sec_idx      <= 11'd0;
-      s_delay_cnt    <= 16'd0;
+      s_delay_cnt    <= 32'd0;
       s_dma_wait     <= 1'b0;
       s_mem_addr     <= 24'd0;
       s_words_left   <= 24'd0;
@@ -407,7 +538,8 @@ module ND_SMD #(
       disk_start <= 1'b0;
       disk_req   <= 1'b0;
 
-      if (dbuf_we) s_buffer[dbuf_addr] <= dbuf_wdata;
+      // (backend dbuf_we writes now land through the muxed RAM write port
+      //  above - see the buffer RAM ports block)
 
       // ---- read-strobe side effects ----
       if (s_rd_here) begin
@@ -419,8 +551,13 @@ module ND_SMD #(
           end
         end else if (s_disk_selected) begin
           case (s_reg)
-            3'd0: if (s_cwr) s_wcr_ff <= ~s_wcr_ff;  // read WC: LO then HI
-                  else       s_mar_ff <= ~s_mar_ff;  // read CA: LO then HI
+            // Only the flip-flop card alternates LO/HI on successive +0 reads;
+            // a single-write card has one 16-bit read, so leave the FFs alone.
+            3'd0: if (s_cwr) begin
+                    if (HAS_WCNT_FLIPFLOP) s_wcr_ff <= ~s_wcr_ff;  // WC: LO then HI
+                  end else begin
+                    if (HAS_WC_FLIPFLOP)   s_mar_ff <= ~s_mar_ff;  // CA: LO then HI
+                  end
             3'd4: if (!s_cwr) clr_ff;                // status read resets FFs
             default: ;
           endcase
@@ -431,15 +568,34 @@ module ND_SMD #(
       if (s_wr_here) begin
         case (s_reg)
           // +1  Load Core Address (CWR=0) / count-mem (CWR=1, maint. only)
-          3'd1: if (!s_boot_mode) begin
+          // A +1 write ALSO leaves boot mode. The BPUN byte-server the boot
+          // mode exists for never writes +1 or +7 (it writes +3 with bit 2,
+          // polls +2, reads +0), while the microcode MASS STORAGE LOAD
+          // routine at CSA o2217 (Code/Microcode/ND-120 Mikroprogramlisting-
+          // L-ocr.md, "MASS STORAGE LOAD, BECAUSE BIT 13 IS 1") starts with
+          // TWO +1 writes (core address HI then LO) before +3 / +7 / +5.
+          // Swallowing them left '21540&' loading a word count of zero, so
+          // the GO completed instantly and transferred nothing.
+          3'd1: begin
+            s_boot_mode <= 1'b0;
             if (s_cwr) begin
               if (s_test_mode && s_marginal) begin
                 s_core_addr <= s_core_addr + 16'd1;
                 s_word_cnt  <= s_word_cnt  - 16'd1;
               end
             end else if (s_active) begin
+              // Illegal load while active: raise b5 and IGNORE the write. It is
+              // a status flag only (ND-11.020.01 sec 2.5 b5) - the running
+              // operation continues and the drive does NOT go not-ready, so
+              // err_active must not be called here. DISC-TEMA loads this
+              // register during an active parity check and then expects to read
+              // status with b5 AND b2 both set.
               s_illegal <= 1'b1;
-              err_active;                    // illegal load while active
+            end else if (!HAS_WC_FLIPFLOP) begin
+              // ECC / BIG-DISC: no flip-flop - one write loads the full 16 bits.
+              // Bits 16-17 are NOT loaded here; they come from control-word
+              // bits 5-6 at the next +5 write (mirrors the nd100x oracle).
+              s_core_addr <= iox_wdata;
             end else if (s_maw_ff) begin
               s_core_addr <= iox_wdata;      // second write: LO 16
               s_maw_ff    <= 1'b0;
@@ -456,6 +612,15 @@ module ND_SMD #(
               if (iox_wdata[2] && s_eng == E_IDLE) begin
                 if (!s_boot_loaded && !s_boot_fetch) begin
                   s_active     <= 1'b1;
+                  // The FIRST fetch must drop ready-for-transfer exactly like
+                  // the wrap-around fetch below does. Without this the loader
+                  // polls +2, sees the RESET value of ready (1) while the
+                  // block read is still in flight, and reads +0 before the
+                  // buffer holds anything - so word 0 of the boot stream is
+                  // garbage and every word after it is shifted by one.
+                  // Measured with ND120_SMD_TRACE: "RD +0 -> 000062" arrived
+                  // while active=1, before the first disk_done.
+                  s_rft        <= 1'b0;
                   s_hw_err2    <= 1'b0;
                   s_illegal    <= 1'b0;
                   s_boot_fetch <= 1'b1;
@@ -480,8 +645,9 @@ module ND_SMD #(
                 end
               end
             end else if (s_active) begin
+              // Illegal load while active - b5 only, operation continues.
+              // See the +1 case above.
               s_illegal <= 1'b1;
-              err_active;                    // illegal load while active
             end else if (s_cwr) begin
               s_blkaddr2 <= iox_wdata;       // cylinder
             end else begin
@@ -490,8 +656,19 @@ module ND_SMD #(
           end
 
           // +5  Load Control Word (GO / opcode). Leaves boot mode.
-          // Oracle: a control word is IGNORED while the controller is active.
-          3'd5: if (!s_active) begin
+          // A control word loaded while the controller is active is an ILLEGAL
+          // LOAD like any other register write - ND-11.020.01 sec 2.5 b5, "Load
+          // of any register while status bit 2 is true". This used to be dropped
+          // silently, and DISC-TEMA caught it: "Error after Illegal Load
+          // (Control Word), Bit 5b was 0 !".
+          //
+          // Device clear (b4) is the one exception - it is the programmed master
+          // clear (ND-11.013.01A: "Programmed master clear, i.e., control word
+          // bit 4 (device clear)") and must always reach the controller, or an
+          // active controller could never be recovered.
+          3'd5: if (s_active && !iox_wdata[4]) begin
+            s_illegal <= 1'b1;
+          end else begin
             s_boot_mode <= 1'b0;
             s_int_en    <= iox_wdata[0];
             s_errint_en <= iox_wdata[1];
@@ -500,6 +677,11 @@ module ND_SMD #(
             s_sel_unit  <= iox_wdata[9:7];
             s_disk_selected <= ~iox_wdata[9];  // unit 0..3 -> selected
             s_cwr       <= iox_wdata[15];
+            // ECC / BIG-DISC: control-word bits 5-6 ARE core-address bits 16-17
+            // (the oracle's deviceSMD.c:465-468). On the flip-flop card these
+            // bits are "old 10 MHz, ignored" and the HI byte comes from the
+            // second +1 write instead. Only affects addresses above 64 K words.
+            if (!HAS_WC_FLIPFLOP) s_core_addr_hi <= {6'd0, iox_wdata[6:5]};
             s_active    <= iox_wdata[2];        // oracle: active = bit 2 (clear/GO override below)
             s_rft       <= 1'b1;               // oracle: ready = true (top)
             if (!iox_wdata[0]) s_irq <= 1'b0;  // int-enable clear drops line
@@ -525,6 +707,7 @@ module ND_SMD #(
               s_hw_err2      <= 1'b0;
               s_addr_mismatch<= 1'b0;
               s_comparer_err <= 1'b0;
+              s_dma_ch_err   <= 1'b0;
               s_seek_err     <= 1'b0;
               s_eng          <= E_IDLE;
               s_dma_wait     <= 1'b0;
@@ -543,10 +726,19 @@ module ND_SMD #(
                 if (iox_wdata[1]) s_irq <= 1'b1;
               end else begin
                 s_active            <= 1'b1;
+                // Unlike the oracle, whose transfer executes instantly inside
+                // the control-word write (so ready=true at top is already
+                // final), the RTL engine takes real time: ready-for-transfer
+                // must be LOW until completion (E_DELAY) raises it.
+                s_rft               <= 1'b0;
                 s_unit              <= iox_wdata[9:7];
                 s_not_ready[iox_wdata[9:7]] <= 1'b0;
                 s_seek_complete[iox_wdata[9:7]] <= 1'b0; // clear for the xfer
-                s_mem_addr   <= {s_core_addr_hi, s_core_addr};
+                // On the single-write card the HI bits arrive with THIS control
+                // word (bits 5-6), so use them directly - the s_core_addr_hi
+                // register write above is non-blocking and not visible yet.
+                s_mem_addr   <= HAS_WC_FLIPFLOP ? {s_core_addr_hi, s_core_addr}
+                                                : {6'd0, iox_wdata[6:5], s_core_addr};
                 s_words_left <= w_words;
 
                 if (!iox_wdata[3] &&
@@ -630,21 +822,41 @@ module ND_SMD #(
           end
 
           // +7  Load Word Counter (CWR=0) / Load ECC Control (CWR=1)
-          3'd7: if (!s_boot_mode) begin
-            if (s_cwr) begin
-              if (s_wc_eccw_ff) begin
-                if (iox_wdata[0]) s_ecc_count <= 16'd0; // bit0: reset ECC
-                if (iox_wdata[1]) s_hw_err2   <= 1'b1;  // bit1: force parity
-                s_wc_eccw_ff  <= 1'b0;
-              end else begin
-                s_wc_eccw_ff  <= 1'b1;   // HI byte unused (as in the oracle)
-              end
-            end else if (s_wcw_ff) begin
-              s_word_cnt <= iox_wdata;        // second write: LO 16
-              s_wcw_ff   <= 1'b0;
+          // Leaves boot mode for the same reason as +1 above (MASS writes the
+          // word count 2000 octal = 1024 words here).
+          3'd7: begin
+            // Illegal load (status b5): "Load of any register while status bit
+            // 2 is true" - ND-11.020.01 sec 2.5. The word counter is a register
+            // like the others, and this check was missing entirely, so DISC-TEMA
+            // reported "Error after Illegal Load (Word Count), Bit 5b was 0 !".
+            // The load is ignored; the running operation is NOT disturbed.
+            if (s_active) begin
+              s_illegal <= 1'b1;
             end else begin
-              s_word_cnt_hi <= iox_wdata[7:0];// first write: HI 8
-              s_wcw_ff      <= 1'b1;
+              s_boot_mode <= 1'b0;
+              if (s_cwr) begin
+                // Load ECC Control. Flip-flop card: HI write is a no-op, the LO
+                // (second) write acts. Single-write card: the one write acts.
+                if (!HAS_WC_FLIPFLOP || s_wc_eccw_ff) begin
+                  if (iox_wdata[0]) s_ecc_count <= 16'd0; // bit0: reset ECC
+                  if (iox_wdata[1]) s_hw_err2   <= 1'b1;  // bit1: force parity
+                  s_wc_eccw_ff  <= 1'b0;
+                end else begin
+                  s_wc_eccw_ff  <= 1'b1;   // HI byte unused (as in the oracle)
+                end
+              end else if (!HAS_WCNT_FLIPFLOP) begin
+                // Single-access word counter: one write loads the full 16 bits.
+                // THE line that makes the mass-storage boot work - the microcode's
+                // single +7 write of 002000 now lands as 1024 words, not 0.
+                s_word_cnt    <= iox_wdata;
+                s_word_cnt_hi <= 8'd0;
+              end else if (s_wcw_ff) begin
+                s_word_cnt <= iox_wdata;        // second write: LO 16
+                s_wcw_ff   <= 1'b0;
+              end else begin
+                s_word_cnt_hi <= iox_wdata[7:0];// first write: HI 8
+                s_wcw_ff      <= 1'b1;
+              end
             end
           end
 
@@ -682,11 +894,14 @@ module ND_SMD #(
         end
 
         E_MEM_WR: begin
-          if (!s_dma_wait && !dma_busy) begin
-            dma_issue(1'b1, s_mem_addr, s_buffer[s_sec_idx[9:0]]);
+          // s_buf_valid: wait the one read-latency cycle after entering the
+          // state / advancing s_sec_idx so s_buf_dout holds THIS word.
+          if (!s_dma_wait && !dma_busy && s_buf_valid) begin
+            dma_issue(1'b1, s_mem_addr, s_buf_dout);
           end else if (s_dma_wait && dma_ack) begin
             s_dma_wait <= 1'b0;
             if (dma_err) begin
+              s_dma_ch_err <= 1'b1;    // b11: the fault came from the ND bus
               err_active;              // bus/memory fault -> not ready
             end else begin
               s_mem_addr   <= s_mem_addr   + 24'd1;
@@ -715,9 +930,11 @@ module ND_SMD #(
           end else if (s_dma_wait && dma_ack) begin
             s_dma_wait <= 1'b0;
             if (dma_err) begin
+              s_dma_ch_err <= 1'b1;    // b11: the fault came from the ND bus
               err_active;              // bus/memory fault -> not ready
             end else begin
-              s_buffer[s_sec_idx[9:0]] <= dma_rdata;
+              // buffer write happens through the muxed RAM write port
+              // (s_memrd_commit mirrors this exact condition)
               s_mem_addr   <= s_mem_addr   + 24'd1;
               s_words_left <= s_words_left - 24'd1;
               if (s_sec_idx + 11'd1 >= s_chunk_q || s_words_left == 24'd1) begin
@@ -751,8 +968,8 @@ module ND_SMD #(
         // Completion delay, then ReadEnd (oracle SMDReadEnd). Boot completions
         // use the same delay slot but skip the register sync / interrupt.
         E_DELAY: begin
-          if (s_delay_cnt != 16'd0) begin
-            s_delay_cnt <= s_delay_cnt - 16'd1;
+          if (s_delay_cnt != 32'd0) begin
+            s_delay_cnt <= s_delay_cnt - 32'd1;
           end else if (s_boot_mode) begin
             s_active <= 1'b0;
             s_rft    <= 1'b1;
@@ -773,6 +990,30 @@ module ND_SMD #(
 
         default: s_eng <= E_IDLE;
       endcase
+
+`ifdef ND120_SMD_TRACE
+      // Simulation-only IOX trace (define ND120_SMD_TRACE to enable). Prints
+      // every register access with the controller state that decides what the
+      // access MEANS, which is what settles questions like "does the mass
+      // storage load microroutine write +7 once or twice".
+      // s_trace_cyc counts sysclk edges: the difference between two lines is
+      // the real cost of one loader step ($time is useless here - the sim
+      // model has no timescale and prints 0).
+      s_trace_cyc <= s_trace_cyc + 32'd1;
+      if (s_wr_here)
+        $display("[SMD] cyc=%0d WR +%0d val=%o boot=%b cwr=%b mawff=%b wcwff=%b",
+                 s_trace_cyc, s_reg, iox_wdata, s_boot_mode, s_cwr, s_maw_ff, s_wcw_ff);
+      if (s_rd_here)
+        $display("[SMD] cyc=%0d RD +%0d -> %o boot=%b active=%b rft=%b",
+                 s_trace_cyc, s_reg, iox_rdata, s_boot_mode, s_active, s_rft);
+      // Every IOX the CPU issues to a DISC-range address that is NOT ours.
+      // The controller sees the whole bus, so this answers "which device is
+      // the test program actually driving" without touching the bus RTL.
+      if ((iox_rd || iox_wr) && !s_addressed &&
+          iox_addr >= 16'o000400 && iox_addr < 16'o002000)
+        $display("[SMD-OTHER] cyc=%0d %s dev=%06o data=%06o",
+                 s_trace_cyc, iox_wr ? "WR" : "RD", iox_addr, iox_wdata);
+`endif
 
       // IDENT answered: clear interrupt-enable and drop the line (oracle IDENT).
       if (s_ident_answer) begin

@@ -43,6 +43,37 @@ module ND120_CORE #(
     parameter INCLUDE_FLOPPY = 0,  //! ND_FLOPPY_DMA floppy 1560 (DMA flavor)
     parameter INCLUDE_SMD    = 0,  //! ND_SMD disk at 1540
 
+    // SMD controller type (passed straight to ND_SMD's HAS_WC_FLIPFLOP strap;
+    // see docs/design/SMD-CONTROLLER-TYPE-SEAM.md). 0 = ECC / BIG-DISC card
+    // (core-address / word-count registers load in a SINGLE write) - THE DEFAULT,
+    // because this is the card that BOOTS: the mass-storage microcode writes the
+    // word counter ONCE with 002000, which loads 1024 words only on a single-
+    // write card. On a flip-flop card that single write lands in the HI byte and
+    // the count stays 0, so the boot would transfer nothing. 1 = 15/10 MHz card
+    // (24-bit registers loaded HI-then-LO by TWO writes).
+    //
+    // Default is define-driven so a plain build boots with NO file edit, exactly
+    // like BOARD_CLK_FREQ / ND120_SYSNO. The 15 MHz two-write card is the opt-in:
+    // build with EXTRA_VDEFINES="-DND120_SMD_15MHZ" (or set the parameter from a
+    // higher instance) to select it. Absent the define it stays 0 = the ECC
+    // single-write card that boots the image.
+`ifdef ND120_SMD_15MHZ
+    parameter SMD_HAS_FLIPFLOP = 1,
+`else
+    parameter SMD_HAS_FLIPFLOP = 0,
+`endif
+
+    // WORD-COUNTER protocol. Follows the card type. A card with a
+    // single-access word counter is NOT a documented controller - I built one
+    // briefly to reconcile DISC-TEMA with the mass-load microcode, before the
+    // PROM listing showed the microcode is simply written for a single-access
+    // card. Override only for experiments, never as a shipping configuration.
+`ifdef ND120_SMD_WCNT_SINGLE
+    parameter SMD_WCNT_FLIPFLOP = 0,
+`else
+    parameter SMD_WCNT_FLIPFLOP = SMD_HAS_FLIPFLOP,
+`endif
+
     // Back-wiring PROM (installation number) contents. These are what SINTRAN's
     // GCPUNR reads with VERSN through IDBS,INR=35, and they are meant to be
     // fixed into a bitstream at synthesis time. Defaults (and the -D override
@@ -278,6 +309,30 @@ module ND120_CORE #(
 
   // Every device shares this one clock with the CPU board.
   wire s_dev_clk = clk_cpu;
+
+  // ---- device timing expressed as TIME, converted here to clk_cpu cycles ---
+  // BOARD_CLK_FREQ is the actual clk_cpu frequency in Hz. The Tang defines it
+  // in fpga/tang-nano-20k/src/tang20k_defines.v: 6_750_000 for the default
+  // slow bring-up (the PLL gives CLKOUT 13.5 MHz and clk_cpu = CLKOUT/2),
+  // 27_000_000 full speed, 3_375_000 crawl. Builds that do not define it
+  // (the Verilator sim) fall back to the same 100 MHz DECODE_DGA_POW uses,
+  // so the macro's meaning stays identical everywhere.
+`ifdef BOARD_CLK_FREQ
+  localparam integer DEV_CLK_HZ = `BOARD_CLK_FREQ;
+`else
+  localparam integer DEV_CLK_HZ = 100_000_000;
+`endif
+
+  // SMD: how long the controller holds ACTIVE after a GO before reporting
+  // completion. This is a mechanical time on a real drive - a 75 MB SMD at
+  // 3600 rpm averages 8.3 ms of rotational latency alone, and a seek is tens
+  // of milliseconds - and diagnostics rely on it: DISC-TEMA reads the status
+  // a few thousand clocks after activating and reports "Controller not active
+  // after activate" if the operation has already finished. 8 ms is close to
+  // the real rotational figure and leaves a wide margin over that check at
+  // every clock variant (54,000 cycles at 6.75 MHz, 216,000 at 27 MHz).
+  localparam integer SMD_DELAY_MS    = 8;
+  localparam [31:0]  SMD_DELAY_TICKS = (DEV_CLK_HZ / 1000) * SMD_DELAY_MS;
 
   // Bus-slave contributions onto the CPU's bus inputs (active low)
   wire [23:0] s_dev_bd_n;
@@ -534,9 +589,15 @@ module ND120_CORE #(
       wire        s_smd_ack, s_smd_err, s_smd_busy;
 
       ND_SMD #(
-          .BASE_ADDR (16'o001540),
-          .IDENT_CODE(16'o000017),
-          .INT_LEVEL (4'd11)
+          .BASE_ADDR  (16'o001540),
+          .IDENT_CODE (16'o000017),
+          .INT_LEVEL  (4'd11),
+          .DELAY_TICKS(SMD_DELAY_TICKS),
+          // Controller-type strap: default ECC single-write (boots the SMD
+          // image). Override the top-level SMD_HAS_FLIPFLOP to 1 (or build with
+          // -DND120_SMD_15MHZ) for the 15 MHz two-write card.
+          .HAS_WC_FLIPFLOP(SMD_HAS_FLIPFLOP),
+          .HAS_WCNT_FLIPFLOP(SMD_WCNT_FLIPFLOP)
       ) SMD_1540 (
           .sysclk(s_dev_clk),
           .sys_rst_n(sys_rst_n),

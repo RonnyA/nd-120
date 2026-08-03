@@ -551,8 +551,18 @@ void process_verilog_floppy(VND120_TOP *top)
 /* Disk backend for the Verilog ND_SMD (disk 0). Image selected by
 ** ND120_SMD_IMG (no default - without it every operation reports an
 ** error, like a drive with no pack). Position mapping (same as the
-** SMD unit tb): word offset = blkaddrII * 2048 + blkaddrI * 64;
+** SMD unit tb and nd_storage_smd_adapter.v): the block address is
+** cylinder/head/sector, so
+**   LBA        = (cyl * SMD_GEO_HEADS + head) * SMD_GEO_SPT + sector
+**   byte offset = LBA * SMD_SECTOR_BYTES
+** with head = blkaddrI bits 15-8 and sector = blkaddrI bits 7-0.
+** (Was blkaddrII * 2048 + blkaddrI * 64, which matches the real geometry
+** only at block 0 - so the boot worked and everything past it read the
+** wrong part of the image.)
 ** SDISK_START latches the position, chunks advance linearly. */
+#define SMD_GEO_HEADS    5
+#define SMD_GEO_SPT      18
+#define SMD_SECTOR_BYTES 1024L
 static FILE *vsmd_file = 0;
 static int vsmd_file_tried = 0;
 static int vsmd_prev_req = 0;
@@ -588,8 +598,13 @@ void process_verilog_smd(VND120_TOP *top)
 
 	if (top->SDISK_START)
 	{
-		vsmd_pos = 2L * ((long)top->SDISK_BLKADDR2 * 2048 +
-		                 (long)top->SDISK_BLKADDR1 * 64);
+		{
+			long cyl  = (long)top->SDISK_BLKADDR2;
+			long head = ((long)top->SDISK_BLKADDR1 >> 8) & 0xFF;
+			long sect = (long)top->SDISK_BLKADDR1 & 0xFF;
+			long lba  = (cyl * SMD_GEO_HEADS + head) * SMD_GEO_SPT + sect;
+			vsmd_pos  = lba * SMD_SECTOR_BYTES;
+		}
 		if (getenv("ND120_SMD_TRACE"))
 			printf("[smd] START blk2=%06o blk1=%06o unit=%d pos=%ld\r\n",
 			       top->SDISK_BLKADDR2, top->SDISK_BLKADDR1,

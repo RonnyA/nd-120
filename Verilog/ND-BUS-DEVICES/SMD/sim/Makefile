@@ -28,9 +28,25 @@ P2_SRCS = ../../BUS-IF/circuit/ND_BUS_SLAVE.v \
           ../circuit/ND_SMD.v \
           nd_smd_p2_tb.v
 
+# test-smd-ecc: the ECC / single-write (NO flip-flop) register model, i.e.
+#   ND_SMD at its DEFAULT HAS_WC_FLIPFLOP=0. Proves each of Core Address /
+#   Word Counter / ECC Control loads in ONE write and reads back stably, and
+#   the mass-storage boot primitive (a single +7 write of 002000 -> 1024).
+ECC_SRCS = ../circuit/ND_SMD.v \
+           nd_smd_ecc_tb.v
+
+# test-smd-err: the ILLEGAL / ERROR paths - what the controller does when the
+#   guest misbehaves. Every other bench drives only legal sequences, so the
+#   missing illegal-load checks on +7 and +5 (and +5 blocking device clear
+#   while active) sat undetected with all gates green. Issues a real GO (M4
+#   seek, no disk backend) with a long DELAY_TICKS to hold the controller
+#   active while the illegal writes are made.
+ERR_SRCS = ../circuit/ND_SMD.v \
+           nd_smd_err_tb.v
+
 all: test
 
-test: test-smd test-smd-iox test-smd-p2
+test: test-smd test-smd-iox test-smd-p2 test-smd-ecc test-smd-err
 
 nd_smd_tb.vvp: $(SRCS)
 	$(IVERILOG) -g2005 -o $@ $(SRCS)
@@ -53,7 +69,21 @@ test-smd-p2: nd_smd_p2_tb.vvp
 	$(VVP) nd_smd_p2_tb.vvp | tee smd_p2_out.log
 	@grep -q "TB_RESULT: PASS" smd_p2_out.log
 
+nd_smd_ecc_tb.vvp: $(ECC_SRCS)
+	$(IVERILOG) -g2005 -o $@ $(ECC_SRCS)
+
+test-smd-ecc: nd_smd_ecc_tb.vvp
+	$(VVP) nd_smd_ecc_tb.vvp | tee smd_ecc_out.log
+	@grep -q "TB_RESULT: PASS" smd_ecc_out.log
+
+nd_smd_err_tb.vvp: $(ERR_SRCS)
+	$(IVERILOG) -g2005 -o $@ $(ERR_SRCS)
+
+test-smd-err: nd_smd_err_tb.vvp
+	$(VVP) nd_smd_err_tb.vvp | tee smd_err_out.log
+	@grep -q "TB_RESULT: PASS" smd_err_out.log
+
 clean:
 	rm -f *.vvp *.log *.vcd
 
-.PHONY: all test test-smd test-smd-iox test-smd-p2 clean
+.PHONY: all test test-smd test-smd-iox test-smd-p2 test-smd-ecc test-smd-err clean

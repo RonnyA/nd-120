@@ -51,6 +51,83 @@
 // and by the SDFAT_NO_STORAGE_CHECK guard below.
 `define TANG_FLOPPY
 
+// TANG_SMD = ADD the ND_SMD disk controller at 1540 (boot '1540&') on top of
+// the selected base build: ND_SMD + its own ND_DMA_MASTER in the core, and
+// nd_storage_smd_adapter serving SMD0.IMG off the SD card (nd_storage client
+// 3, slot remapped to 1376 blocks -> image limit 2,818,048 bytes). Costs ONE
+// BSRAM (the controller's 1024x16 buffer; the adapter is zero-BSRAM
+// stream-through) - that is the LAST free BSRAM block, 46/46 with it in.
+// Writes are supported for FULL ALIGNED 1024-word blocks only (even-sector
+// starts, 1024-word-multiple lengths); anything else answers disk_err.
+// Comment out to drop the SMD alone if resources overflow.
+`define TANG_SMD
+
+// ND120_SMD_15MHZ = strap the SMD controller as the 15 MHz two-access card
+// (24-bit Memory Address and Word Count loaded HI-then-LO, read back LO-then-HI)
+// instead of the ECC single-access card.
+//
+// Measured on silicon 03-AUG-2026: with the ECC strap the controller answers
+// IDENT 17 (octal), which TPE's configuration tool prints as "SMD 15 MHZ DISC
+// CONTR.", so TPE drives it with the 15 MHz two-access protocol. DISC-TEMA's
+// Memory Address Register test then fails on EVERY value with the second read
+// returning the low word again - expected 00000000001b, found 00000200001b,
+// i.e. (N<<16)|N - and every later command has a mis-loaded address and word
+// count ("Disc unit not ready" / "Controller not active after activate", all
+// data zero). Test 1, the data-way test, passes either way.
+//
+// KNOWN CONFLICT: the mass-storage boot microroutine at CSA o2217 writes the
+// word count with ONE +7 write of 002000, which under this two-access protocol
+// loads only the HI byte and leaves the count at zero - so '21540&' is expected
+// to stop working while this is defined. The ident and the strap disagree; one
+// of them is wrong, and this define is how we test which.
+//
+// LEFT OFF for now. The root cause turned out to be that ND_SMD announced the
+// WRONG TYPE: seek-condition b12 (the SMD 10/15 MHz identity bit) was hardwired
+// to 1 and ECC-pattern b14 to 0 regardless of this strap, so a card strapped as
+// the single-access ECC controller still told software it was a 15 MHz card and
+// software drove the two-access protocol against it. Both bits now follow
+// HAS_WC_FLIPFLOP.
+//
+// ON, because DISC-TEMA requires it. Measured in nd100x 03-AUG-2026 with the
+// new ND100X_SMD_TYPE selector, running the same du-di-c read both ways:
+//   ND100X_SMD_TYPE=smd15 -> read returns real data, no errors
+//   ND100X_SMD_TYPE=ecc   -> "Disc controller not present for this disc type !"
+// DISC-TEMA probes the controller type and will not test DISC-75MB-1 on an ECC
+// card at all, so with the identity bits now truthful an ECC-strapped Tang
+// would be REFUSED rather than tested.
+//
+// The mass-load objection is RESOLVED, not ignored: that microroutine writes
+// the memory address with TWO +1 accesses but the word count with ONE +7 write
+// of 002000 (ground truth: ND-BUS-DEVICES/SMD/sim/traces/mass-load-21540.trace),
+// and ND_SMD now straps those two registers SEPARATELY. ND120_CORE sets the
+// memory address two-access (what DISC-TEMA requires) and the word counter
+// single-access (what the mass load requires). Verified compatible in nd100x:
+// FUNCTION as the 15 MHz card with the word counter forced single-access scores
+// IDENTICALLY to the all-two-access card, so DISC-TEMA constrains only the
+// memory address.
+//
+// LEFT OFF. The ND-120's own MASS STORAGE LOAD microcode settles it: the PROM
+// listing at CSA 002221-002227 (nd120uc source/ND-120-DELILAH-L.LISTING.txt
+// lines 5866+) writes
+//     IOX N+1 (0) CORE ADDRESS      twice, value 0 both times
+//     IOX N+3 (0) BLOCK ADDRESS
+//     IOX N+7 (2000) WORD COUNTER   ONCE
+//     IOX N+5 (4) ACTIVATE
+// Two ZERO writes to the core address are harmless on a single-access card, so
+// they are NOT evidence of the two-access protocol. The single +7 of 002000
+// only means 1024 words on a SINGLE-ACCESS controller - on a two-access card it
+// loads the high byte with 002000 & 0xFF = 0 and the count stays zero.
+// So this machine is a single-access (ECC / NORD-10 large-disc generation)
+// controller, and '21540&' works only with this define OFF.
+//
+// Consequence to accept: DISC-TEMA J02 probes the controller type and REFUSES
+// single-access controllers outright ("Disc controller not present for this
+// disc type"), so it can never test this machine's disc however much we fix.
+// Read validation needs a different program - the SMD manual's own test-program
+// chapter lists PASCAN (2226), Super-Rand (2222), an ECC Test that "completely
+// diagnoses the 3043/3044 card", and BIGFUNC.
+//`define ND120_SMD_15MHZ
+
 // ---- TAPE-ONLY SD-FAT reader slimming (docs/fat-reader-slimming-plan.md) ----
 // The Tang tape boot path is READ-ONLY of a contiguous boot file. These cuts
 // reclaim FPGA LUT+ALU so the OSS placer fits. They are SAFE ONLY while the SD
@@ -65,8 +142,12 @@
 //                             TAPE ONLY - a floppy build (TANG_FLOPPY) needs the
 //                             contiguity gate back (random access), so the cut
 //                             is guarded off there.
+//                             (and a TANG_SMD build needs it too: random
+//                             access + writeback, same as floppy).
 `ifndef TANG_FLOPPY
+`ifndef TANG_SMD
 `define SDFAT_NO_STORAGE_CHECK
+`endif
 `endif
 
 //   SDFAT_NO_LFN            - strip VFAT long-filename parsing in
