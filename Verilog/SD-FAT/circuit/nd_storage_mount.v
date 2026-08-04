@@ -57,9 +57,9 @@
 `include "sd_fat_features.vh"
 
 module nd_storage_mount #(
-    parameter         N_CLIENTS      = 7,             // 1..7
+    parameter         N_CLIENTS      = 7,             // 1..8
     parameter [31:0]  WD_MAX         = 32'd270_000_000,
-    parameter [6:0]   PRELOAD_MASK   = 7'b0000111,    // v1: clients 0..2 only
+    parameter [7:0]   PRELOAD_MASK   = 8'b00000111,   // v1: clients 0..2 only
     parameter [31:0]  SLOT0_BASE_BLK = 32'd0,
     parameter [31:0]  SLOT0_SIZE_BLK = 32'd32,
     parameter [31:0]  SLOT1_BASE_BLK = 32'd32,
@@ -73,7 +73,9 @@ module nd_storage_mount #(
     parameter [31:0]  SLOT5_BASE_BLK = 32'd1632,
     parameter [31:0]  SLOT5_SIZE_BLK = 32'd160,
     parameter [31:0]  SLOT6_BASE_BLK = 32'd1792,
-    parameter [31:0]  SLOT6_SIZE_BLK = 32'd160
+    parameter [31:0]  SLOT6_SIZE_BLK = 32'd128,
+    parameter [31:0]  SLOT7_BASE_BLK = 32'd1920,
+    parameter [31:0]  SLOT7_SIZE_BLK = 32'd128
 ) (
     input  wire clk_stor,
     input  wire rst_stor_n,
@@ -145,7 +147,8 @@ module nd_storage_mount #(
         3'd3:    slot_base = SLOT3_BASE_BLK;
         3'd4:    slot_base = SLOT4_BASE_BLK;
         3'd5:    slot_base = SLOT5_BASE_BLK;
-        default: slot_base = SLOT6_BASE_BLK;
+        3'd6:    slot_base = SLOT6_BASE_BLK;
+        default: slot_base = SLOT7_BASE_BLK;
       endcase
     end
   endfunction
@@ -160,7 +163,8 @@ module nd_storage_mount #(
         3'd3:    slot_size = SLOT3_SIZE_BLK;
         3'd4:    slot_size = SLOT4_SIZE_BLK;
         3'd5:    slot_size = SLOT5_SIZE_BLK;
-        default: slot_size = SLOT6_SIZE_BLK;
+        3'd6:    slot_size = SLOT6_SIZE_BLK;
+        default: slot_size = SLOT7_SIZE_BLK;
       endcase
     end
   endfunction
@@ -347,7 +351,11 @@ module nd_storage_mount #(
             open_err[mnt_client]  <= 1'b0;
             s_nocard              <= 1'b0;
             s_rstcnt              <= 4'd15;
-            if (mnt_client >= N_CLIENTS[2:0] || !PRELOAD_MASK[mnt_client]) begin
+            // Compare at FULL width. N_CLIENTS[2:0] truncates: at the
+            // 8-client map it is 3'b000, so "mnt_client >= 0" would be
+            // always true and NO client would ever mount - a silent, total
+            // failure that looks like an SD card fault on hardware.
+            if ({29'd0, mnt_client} >= N_CLIENTS || !PRELOAD_MASK[mnt_client]) begin
               // v1: SMD cache-window clients answer open_err immediately -
               // no reader release, no card traffic (Phase 4 lands here)
               s_mask_fail <= 1'b1;

@@ -62,6 +62,29 @@
 // Comment out to drop the SMD alone if resources overflow.
 `define TANG_SMD
 
+// TANG_WD = ADD the ND_WINCHESTER disc controller at 500 (ST506 card 3041)
+// instead of the SMD: ND_WINCHESTER + its own ND_DMA_MASTER in the core, and
+// nd_storage_smd_adapter (the SAME adapter, at Winchester geometry - it has
+// nothing SMD-specific in it) serving WD0.IMG off the SD card, nd_storage
+// client 6. Images are WDn.IMG, never SMDn.IMG.
+//
+// MUTUALLY EXCLUSIVE WITH TANG_SMD, and not by preference - by BSRAM. The
+// note above records that TANG_SMD takes the LAST free block, 46/46 with it
+// in. ND_WINCHESTER has its own 1024x16 buffer and would need a 47th that
+// does not exist. Defining both is caught at elaboration below rather than
+// left to a confusing place-and-route failure.
+//
+// Why you might want this one instead: the ND-120's MASS STORAGE LOAD
+// microcode (PROM listing, CSA 002221-002227) writes the core address TWICE
+// and the word count ONCE, which is the Winchester's register protocol, not
+// the SMD's. The SMD core needs a boot-mode special case to cope; this one
+// does not.
+//`define TANG_WD
+
+// (the TANG_SMD / TANG_WD mutual-exclusion guard lives inside
+//  ND120_TANG20K_TOP.v, where an instantiation is legal syntax and the
+//  error names itself instead of being a bare 'syntax error' here)
+
 // ND120_SMD_15MHZ = strap the SMD controller as the 15 MHz two-access card
 // (24-bit Memory Address and Word Count loaded HI-then-LO, read back LO-then-HI)
 // instead of the ECC single-access card.

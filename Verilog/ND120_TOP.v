@@ -146,7 +146,24 @@ module ND120_TOP
     input  wire [9:0]  SDBUF_ADDR,
     input  wire [15:0] SDBUF_WDATA,
     input  wire        SDBUF_WE,
-    output wire [15:0] SDBUF_RDATA
+    output wire [15:0] SDBUF_RDATA,
+
+    // Winchester disk backend (ST506/8 inch at 500). Same shape as the SMD
+    // seam above; the card reuses nd_storage_smd_adapter with Winchester
+    // geometry. Images are WDn.IMG, never SMDn.IMG.
+    output wire        WDISK_START,
+    output wire        WDISK_REQ,
+    output wire        WDISK_WR,
+    output wire [15:0] WDISK_BLKADDR1,
+    output wire [15:0] WDISK_BLKADDR2,
+    output wire [2:0]  WDISK_UNIT,
+    output wire [10:0] WDISK_WORDCOUNT,
+    input  wire        WDISK_DONE,
+    input  wire        WDISK_ERR,
+    input  wire [9:0]  WDBUF_ADDR,
+    input  wire [15:0] WDBUF_WDATA,
+    input  wire        WDBUF_WE,
+    output wire [15:0] WDBUF_RDATA
 `endif
 `endif
 );
@@ -448,6 +465,13 @@ module ND120_TOP
   localparam CORE_INCLUDE_TAPE   = 1;
   localparam CORE_INCLUDE_FLOPPY = 1;
   localparam CORE_INCLUDE_SMD    = 1;
+  // OPT-IN: IOX 500-507 is the CDC cartridge disc's block, so the Winchester
+  // must not appear unless asked for. Build with -DND120_INCLUDE_WD.
+`ifdef ND120_INCLUDE_WD
+  localparam CORE_INCLUDE_WD     = 1;
+`else
+  localparam CORE_INCLUDE_WD     = 0;
+`endif
 
   /*--------------------------------------------------------------------
   *  Tape byte source: SD-FAT stack (ND120_SD_STORAGE) or the C harness.
@@ -571,6 +595,7 @@ module ND120_TOP
   localparam CORE_INCLUDE_TAPE   = 0;
   localparam CORE_INCLUDE_FLOPPY = 0;
   localparam CORE_INCLUDE_SMD    = 0;
+  localparam CORE_INCLUDE_WD     = 0;
 
   // No device chain: the storage seam is unused. Tie the core's source
   // inputs inactive and leave its source outputs unread.
@@ -617,12 +642,27 @@ module ND120_TOP
   wire [15:0] SDBUF_WDATA = 16'd0;
   wire        SDBUF_WE    = 1'b0;
   wire [15:0] SDBUF_RDATA;
+
+  wire        WDISK_START;
+  wire        WDISK_REQ;
+  wire        WDISK_WR;
+  wire [15:0] WDISK_BLKADDR1;
+  wire [15:0] WDISK_BLKADDR2;
+  wire [2:0]  WDISK_UNIT;
+  wire [10:0] WDISK_WORDCOUNT;
+  wire        WDISK_DONE  = 1'b0;
+  wire        WDISK_ERR   = 1'b0;
+  wire [9:0]  WDBUF_ADDR  = 10'd0;
+  wire [15:0] WDBUF_WDATA = 16'd0;
+  wire        WDBUF_WE    = 1'b0;
+  wire [15:0] WDBUF_RDATA;
 `endif
 
   ND120_CORE #(
       .INCLUDE_TAPE  (CORE_INCLUDE_TAPE),
       .INCLUDE_FLOPPY(CORE_INCLUDE_FLOPPY),
-      .INCLUDE_SMD   (CORE_INCLUDE_SMD)
+      .INCLUDE_SMD   (CORE_INCLUDE_SMD),
+      .INCLUDE_WD    (CORE_INCLUDE_WD)
   ) CORE (
       // (a) clock / reset. clk1 is the CPU+bus+device domain in BOTH
       // branches: sim assigns clk1 = sysclk, FPGA assigns clk1 = clk_cpu.
@@ -708,6 +748,19 @@ module ND120_TOP
       .SDBUF_WDATA(SDBUF_WDATA),
       .SDBUF_WE(SDBUF_WE),
       .SDBUF_RDATA(SDBUF_RDATA),
+      .WDISK_START(WDISK_START),
+      .WDISK_REQ(WDISK_REQ),
+      .WDISK_WR(WDISK_WR),
+      .WDISK_BLKADDR1(WDISK_BLKADDR1),
+      .WDISK_BLKADDR2(WDISK_BLKADDR2),
+      .WDISK_UNIT(WDISK_UNIT),
+      .WDISK_WORDCOUNT(WDISK_WORDCOUNT),
+      .WDISK_DONE(WDISK_DONE),
+      .WDISK_ERR(WDISK_ERR),
+      .WDBUF_ADDR(WDBUF_ADDR),
+      .WDBUF_WDATA(WDBUF_WDATA),
+      .WDBUF_WE(WDBUF_WE),
+      .WDBUF_RDATA(WDBUF_RDATA),
 
       // (f) debug / status -> the board's LED map, 7-seg and ILA wires
       .LED(s_cpu_led[6:0]),

@@ -49,7 +49,12 @@ module nd_storage_tb;
 
   localparam STOR_HALF = 18.5;  // ~27.03 MHz
   localparam CPU_HALF  = 21.7;  // ~23.04 MHz
-  localparam N         = 7;
+  // 8, matching nd_storage's client count since SMD3.IMG was replaced by
+  // WD0/WD1.IMG. This is deliberately the FULL count: the mount FSM's range
+  // guard truncates if written as N_CLIENTS[2:0], and at 8 that becomes
+  // 3'b000 so NO client mounts at all. Running this bench at 7 could never
+  // catch that - it is the one configuration where the bug exists.
+  localparam N         = 8;
 
   localparam integer TAPE_BYTES = 3001;
   localparam integer FLP_BYTES  = 4096;
@@ -99,7 +104,7 @@ module nd_storage_tb;
   wire [N*10-1:0] buf_addr_w;
   wire [N*16-1:0] buf_wdata_w;
   reg  [15:0]     rd1 = 0;
-  wire [N*16-1:0] buf_rdata_w = {80'd0, rd1, 16'd0};
+  wire [N*16-1:0] buf_rdata_w = {96'd0, rd1, 16'd0};
 
   wire [1:0] sd_status_w, card_type_w, fs_type_w;
 

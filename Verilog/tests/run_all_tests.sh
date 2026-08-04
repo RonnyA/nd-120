@@ -248,6 +248,8 @@ REGISTRY=(
   "ND-BUS-DEVICES/SMD/sim    :: test-smd-p2     :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/SMD/sim    :: test-smd-ecc    :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/SMD/sim    :: test-smd-err    :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-iox :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-adapter :: TB_RESULT: PASS"
 )
 # NOT in the registry (run manually, documented reasons):
 #   DECODE-GateArray/DGA/sim test-f595-transparency - FAILS BY DESIGN on the

@@ -26,8 +26,12 @@
 **   - mem port mux: the mount FSM owns the device port while mnt_busy    **
 **     (the engine is parked in E_OPEN then); the engine otherwise.       **
 **                                                                         **
-** Client map (v1, owner file set 11-JUL-2026): 0 = TAPE.BPUN (tape-400), **
-** 1/2 = FLOPPY1/2.IMG, 3..6 = SMD0..3.IMG. PRELOAD_MASK selects which    **
+** Client map (04-AUG-2026): 0 = TAPE.BPUN (tape-400), 1/2 = FLOPPY1/2.  **
+** IMG, 3..5 = SMD0..2.IMG, 6/7 = WD0/WD1.IMG (the ST506/8-inch           **
+** Winchester, ND_WINCHESTER.v). Winchester images are WDn.IMG, NEVER     **
+** SMDn.IMG. SMD3 was dropped to make room: the grant index is THREE bits **
+** so 8 clients is the ceiling, and the slot map must end at block 2048   **
+** because s_blk_abs in nd_storage_engine is [10:0]. PRELOAD_MASK selects **
 ** clients get the v1 full-slot preload; the SMD clients (slots are       **
 ** Phase-4 cache windows) are OUTSIDE the default mask and answer         **
 ** open_err immediately, with zero card traffic.                          **
@@ -44,19 +48,20 @@
 `include "sd_fat_features.vh"
 
 module nd_storage #(
-    parameter            N_CLIENTS    = 7,
+    parameter            N_CLIENTS    = 8,
     parameter [2:0]      RD_CLK_DIV   = 3'd2,          // sd_file_reader (25-50 MHz clk)
     parameter [7:0]      WR_CLKDIV    = 8'd5,          // sd_writer bit clock divider
     parameter [31:0]     WD_MAX       = 32'd270_000_000,
     parameter            SIMULATE     = 0,             // short SD init in sim
-    parameter [6:0]      PRELOAD_MASK = 7'b0000111,    // v1 full preload: clients 0..2
+    parameter [7:0]      PRELOAD_MASK = 8'b00000111,   // v1 full preload: clients 0..2
     parameter [52*8-1:0] FILE0_NAME   = "TAPE.BPUN",   parameter [7:0] FILE0_LEN = 8'd9,
     parameter [52*8-1:0] FILE1_NAME   = "FLOPPY1.IMG", parameter [7:0] FILE1_LEN = 8'd11,
     parameter [52*8-1:0] FILE2_NAME   = "FLOPPY2.IMG", parameter [7:0] FILE2_LEN = 8'd11,
     parameter [52*8-1:0] FILE3_NAME   = "SMD0.IMG",    parameter [7:0] FILE3_LEN = 8'd8,
     parameter [52*8-1:0] FILE4_NAME   = "SMD1.IMG",    parameter [7:0] FILE4_LEN = 8'd8,
     parameter [52*8-1:0] FILE5_NAME   = "SMD2.IMG",    parameter [7:0] FILE5_LEN = 8'd8,
-    parameter [52*8-1:0] FILE6_NAME   = "SMD3.IMG",    parameter [7:0] FILE6_LEN = 8'd8,
+    parameter [52*8-1:0] FILE6_NAME   = "WD0.IMG",     parameter [7:0] FILE6_LEN = 8'd7,
+    parameter [52*8-1:0] FILE7_NAME   = "WD1.IMG",     parameter [7:0] FILE7_LEN = 8'd7,
     // slot map in 2048-byte blocks (design section 1.3 defaults)
     parameter [31:0] SLOT0_BASE_BLK = 32'd0,    parameter [31:0] SLOT0_SIZE_BLK = 32'd32,
     parameter [31:0] SLOT1_BASE_BLK = 32'd32,   parameter [31:0] SLOT1_SIZE_BLK = 32'd640,
@@ -64,7 +69,15 @@ module nd_storage #(
     parameter [31:0] SLOT3_BASE_BLK = 32'd1312, parameter [31:0] SLOT3_SIZE_BLK = 32'd160,
     parameter [31:0] SLOT4_BASE_BLK = 32'd1472, parameter [31:0] SLOT4_SIZE_BLK = 32'd160,
     parameter [31:0] SLOT5_BASE_BLK = 32'd1632, parameter [31:0] SLOT5_SIZE_BLK = 32'd160,
-    parameter [31:0] SLOT6_BASE_BLK = 32'd1792, parameter [31:0] SLOT6_SIZE_BLK = 32'd160
+    // The map MUST end at block 2048 or lower: nd_storage_engine's s_blk_abs
+    // is [10:0] and feeds mem_addr = {blk_abs, word}, so anything past block
+    // 2047 aliases silently back over the start of the region. The two
+    // Winchester slots are 128 blocks each, which lands the end exactly on
+    // 2048. There is NO headroom left - a ninth client needs a wider
+    // s_blk_abs and mem_addr, which reaches into ND120_CORE, ND3202D, MEM_43
+    // and the SDRAM bridge.
+    parameter [31:0] SLOT6_BASE_BLK = 32'd1792, parameter [31:0] SLOT6_SIZE_BLK = 32'd128,
+    parameter [31:0] SLOT7_BASE_BLK = 32'd1920, parameter [31:0] SLOT7_SIZE_BLK = 32'd128
 ) (
     input  wire clk_stor,
     input  wire rst_stor_n,
@@ -114,7 +127,7 @@ module nd_storage #(
   // ------------------------------------------------------- target file names
   // FILEn_NAME literals are left-justified; the reader wants byte 0 in the
   // low byte. Same reversal generate as sd_fat_test_top's g_target_names.
-  wire [52*8-1:0] tgt0, tgt1, tgt2, tgt3, tgt4, tgt5, tgt6;
+  wire [52*8-1:0] tgt0, tgt1, tgt2, tgt3, tgt4, tgt5, tgt6, tgt7;
   generate
     genvar tk;
     for (tk = 0; tk < 52; tk = tk + 1) begin : g_target_names
@@ -125,6 +138,7 @@ module nd_storage #(
       assign tgt4[8*tk+:8] = (tk < FILE4_LEN) ? FILE4_NAME[8*(FILE4_LEN-1-tk)+:8] : 8'h00;
       assign tgt5[8*tk+:8] = (tk < FILE5_LEN) ? FILE5_NAME[8*(FILE5_LEN-1-tk)+:8] : 8'h00;
       assign tgt6[8*tk+:8] = (tk < FILE6_LEN) ? FILE6_NAME[8*(FILE6_LEN-1-tk)+:8] : 8'h00;
+      assign tgt7[8*tk+:8] = (tk < FILE7_LEN) ? FILE7_NAME[8*(FILE7_LEN-1-tk)+:8] : 8'h00;
     end
   endgenerate
 
@@ -140,7 +154,8 @@ module nd_storage #(
       3'd3:    begin s_target_name = tgt3; s_target_len = FILE3_LEN; end
       3'd4:    begin s_target_name = tgt4; s_target_len = FILE4_LEN; end
       3'd5:    begin s_target_name = tgt5; s_target_len = FILE5_LEN; end
-      default: begin s_target_name = tgt6; s_target_len = FILE6_LEN; end
+      3'd6:    begin s_target_name = tgt6; s_target_len = FILE6_LEN; end
+      default: begin s_target_name = tgt7; s_target_len = FILE7_LEN; end
     endcase
   end
 
@@ -289,7 +304,8 @@ module nd_storage #(
       .SLOT3_BASE_BLK(SLOT3_BASE_BLK), .SLOT3_SIZE_BLK(SLOT3_SIZE_BLK),
       .SLOT4_BASE_BLK(SLOT4_BASE_BLK), .SLOT4_SIZE_BLK(SLOT4_SIZE_BLK),
       .SLOT5_BASE_BLK(SLOT5_BASE_BLK), .SLOT5_SIZE_BLK(SLOT5_SIZE_BLK),
-      .SLOT6_BASE_BLK(SLOT6_BASE_BLK), .SLOT6_SIZE_BLK(SLOT6_SIZE_BLK)
+      .SLOT6_BASE_BLK(SLOT6_BASE_BLK), .SLOT6_SIZE_BLK(SLOT6_SIZE_BLK),
+      .SLOT7_BASE_BLK(SLOT7_BASE_BLK), .SLOT7_SIZE_BLK(SLOT7_SIZE_BLK)
   ) u_mount (
       .clk_stor          (clk_stor),
       .rst_stor_n        (rst_stor_n),
@@ -351,7 +367,8 @@ module nd_storage #(
       .SLOT3_BASE_BLK(SLOT3_BASE_BLK),
       .SLOT4_BASE_BLK(SLOT4_BASE_BLK),
       .SLOT5_BASE_BLK(SLOT5_BASE_BLK),
-      .SLOT6_BASE_BLK(SLOT6_BASE_BLK)
+      .SLOT6_BASE_BLK(SLOT6_BASE_BLK),
+      .SLOT7_BASE_BLK(SLOT7_BASE_BLK)
   ) u_engine (
       .clk_stor       (clk_stor),
       .rst_stor_n     (rst_stor_n),

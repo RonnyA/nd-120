@@ -56,7 +56,7 @@
 *****************************************************************************/
 
 module nd_storage_engine #(
-    parameter         N_CLIENTS      = 4,             // 1..7
+    parameter         N_CLIENTS      = 4,             // 1..8
     parameter [31:0]  WD_MAX         = 32'd270_000_000,
     parameter [31:0]  SLOT0_BASE_BLK = 32'd0,
     parameter [31:0]  SLOT1_BASE_BLK = 32'd32,
@@ -64,7 +64,8 @@ module nd_storage_engine #(
     parameter [31:0]  SLOT3_BASE_BLK = 32'd1312,
     parameter [31:0]  SLOT4_BASE_BLK = 32'd1472,
     parameter [31:0]  SLOT5_BASE_BLK = 32'd1632,
-    parameter [31:0]  SLOT6_BASE_BLK = 32'd1792
+    parameter [31:0]  SLOT6_BASE_BLK = 32'd1792,
+    parameter [31:0]  SLOT7_BASE_BLK = 32'd1920
 ) (
     input  wire clk_stor,
     input  wire rst_stor_n,
@@ -134,7 +135,8 @@ module nd_storage_engine #(
         3'd3:    slot_base = SLOT3_BASE_BLK;
         3'd4:    slot_base = SLOT4_BASE_BLK;
         3'd5:    slot_base = SLOT5_BASE_BLK;
-        default: slot_base = SLOT6_BASE_BLK;
+        3'd6:    slot_base = SLOT6_BASE_BLK;
+        default: slot_base = SLOT7_BASE_BLK;
       endcase
     end
   endfunction
@@ -307,7 +309,12 @@ module nd_storage_engine #(
     if (!rst_stor_n) begin
       s_state          <= E_IDLE;
       s_grant          <= 3'd0;
-      s_ptr            <= N_CLIENTS[2:0] - 3'd1;  // client 0 scanned first
+      // client 0 scanned first. The truncation is SAFE here and only here:
+      // at N_CLIENTS==8, N_CLIENTS[2:0] is 3'b000 and 0-1 wraps to 7, which
+      // still makes client 0 the next one scanned. Do not copy this pattern -
+      // the same truncation in nd_storage_mount's range guard would break
+      // mounting outright, which is why that one compares at full width.
+      s_ptr            <= N_CLIENTS[2:0] - 3'd1;
       s_pend_open      <= {N_CLIENTS{1'b0}};
       s_pend_blk       <= {N_CLIENTS{1'b0}};
       s_blk_abs        <= 11'd0;

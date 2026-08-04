@@ -502,11 +502,38 @@ module ND120_TANG20K_TOP (
   localparam TANG_INC_TAPE   = 1;
   localparam TANG_INC_FLOPPY = 0;
 `endif
+  // TANG_SMD (src/tang20k_defines.v) adds the SMD disk at 1540 (SMD0.IMG via
+  // nd_storage client 3) on top of whichever base build is selected. It is a
+  // separate gate so it can be dropped alone if resources overflow.
+`ifdef TANG_SMD
+  localparam TANG_INC_SMD    = 1;
+`else
+  localparam TANG_INC_SMD    = 0;
+`endif
+  // TANG_WD adds the Winchester at 500 (WD0.IMG via nd_storage client 6)
+  // INSTEAD of the SMD - the two are mutually exclusive on BSRAM, which
+  // tang20k_defines.v enforces at elaboration.
+`ifdef TANG_WD
+  localparam TANG_INC_WD     = 1;
+ `ifdef TANG_SMD
+  // Both disc controllers selected. There is no 47th BSRAM block: each owns a
+  // 1024x16 buffer and TANG_SMD alone already sits at 46/46 (see the note on
+  // `define TANG_SMD in tang20k_defines.v). Pick one. This deliberately
+  // instantiates a module that does not exist, so the build stops with a
+  // message that names the problem rather than failing later in place-and-
+  // route with an opaque resource error.
+  TANG_SMD_AND_TANG_WD_ARE_MUTUALLY_EXCLUSIVE_ONLY_ONE_BSRAM_BUFFER_IS_FREE u_pick_one();
+ `endif
+`else
+  localparam TANG_INC_WD     = 0;
+`endif
 
   nd_tape_sdfat_source #(
       .SIMULATE(0),                     // real card: full-length SD init
       .INCLUDE_TAPE(TANG_INC_TAPE),
-      .INCLUDE_FLOPPY(TANG_INC_FLOPPY)
+      .INCLUDE_FLOPPY(TANG_INC_FLOPPY),
+      .INCLUDE_SMD(TANG_INC_SMD),
+      .INCLUDE_WD(TANG_INC_WD)
   ) TAPE_SDFAT_SOURCE (
       .clk_stor  (clk_stor),
       .rst_stor_n(rst_stor_n),
@@ -532,6 +559,36 @@ module ND120_TANG20K_TOP (
       .FDBUF_WDATA    (FDBUF_WDATA),
       .FDBUF_WE       (FDBUF_WE),
       .FDBUF_RDATA    (FDBUF_RDATA),
+
+      // SMD disk-image backend seam (client 3 = SMD0.IMG) <-> the core
+      .SDISK_START    (SDISK_START),
+      .SDISK_REQ      (SDISK_REQ),
+      .SDISK_WR       (SDISK_WR),
+      .SDISK_BLKADDR1 (SDISK_BLKADDR1),
+      .SDISK_BLKADDR2 (SDISK_BLKADDR2),
+      .SDISK_UNIT     (SDISK_UNIT),
+      .SDISK_WORDCOUNT(SDISK_WORDCOUNT),
+      .SDISK_DONE     (SDISK_DONE),
+      .SDISK_ERR      (SDISK_ERR),
+      .SDBUF_ADDR     (SDBUF_ADDR),
+      .SDBUF_WDATA    (SDBUF_WDATA),
+      .SDBUF_WE       (SDBUF_WE),
+      .SDBUF_RDATA    (SDBUF_RDATA),
+
+      // Winchester disk-image backend (client 6 = WD0.IMG)
+      .WDISK_START    (WDISK_START),
+      .WDISK_REQ      (WDISK_REQ),
+      .WDISK_WR       (WDISK_WR),
+      .WDISK_BLKADDR1 (WDISK_BLKADDR1),
+      .WDISK_BLKADDR2 (WDISK_BLKADDR2),
+      .WDISK_UNIT     (WDISK_UNIT),
+      .WDISK_WORDCOUNT(WDISK_WORDCOUNT),
+      .WDISK_DONE     (WDISK_DONE),
+      .WDISK_ERR      (WDISK_ERR),
+      .WDBUF_ADDR     (WDBUF_ADDR),
+      .WDBUF_WDATA    (WDBUF_WDATA),
+      .WDBUF_WE       (WDBUF_WE),
+      .WDBUF_RDATA    (WDBUF_RDATA),
 
       .sd_clk_o  (s_sd_clk_o),
       .sd_cmd_i  (sd_cmd),
@@ -616,8 +673,11 @@ module ND120_TANG20K_TOP (
                                 write_seen, s_cpu_led[2], 1'b0};
   /* verilator lint_on UNUSEDSIGNAL */
 
-  // Floppy seam (1560&) is now WIRED to the SD-FAT stack (FLOPPY1.IMG via the
-  // nd_storage floppy adapter inside TAPE_SDFAT_SOURCE). SMD stays out (phase).
+  // Floppy seam (1560&) is WIRED to the SD-FAT stack (FLOPPY1.IMG via the
+  // nd_storage floppy adapter inside TAPE_SDFAT_SOURCE). The SMD seam (1540&)
+  // is wired the same way (SMD0.IMG via nd_storage_smd_adapter, client 3)
+  // when TANG_SMD is defined; otherwise the source ties it idle and the core
+  // leaves the device out.
   wire [15:0] DMA_RDATA;
   wire        DMA_ACK, DMA_ERR, DMA_BUSY;
   // core -> floppy backend (request)
@@ -633,25 +693,38 @@ module ND120_TANG20K_TOP (
   wire [15:0] FDBUF_WDATA;
   wire        FDBUF_WE;
   wire        SDISK_START, SDISK_REQ, SDISK_WR;
+  wire        WDISK_START, WDISK_REQ, WDISK_WR;
   wire [15:0] SDISK_BLKADDR1, SDISK_BLKADDR2;
   wire [2:0]  SDISK_UNIT;
   wire [10:0] SDISK_WORDCOUNT;
   wire [15:0] SDBUF_RDATA;
+  wire [15:0] WDISK_BLKADDR1, WDISK_BLKADDR2;
+  wire [ 2:0] WDISK_UNIT;
+  wire [10:0] WDISK_WORDCOUNT;
+  wire        WDISK_DONE, WDISK_ERR;
+  wire [ 9:0] WDBUF_ADDR;
+  wire [15:0] WDBUF_WDATA;
+  wire        WDBUF_WE;
+  wire [15:0] WDBUF_RDATA;
+  // SMD backend -> core (completion + buffer fill); tied idle by the
+  // source's gen_no_smd when TANG_SMD is absent
+  wire        SDISK_DONE, SDISK_ERR;
+  wire [9:0]  SDBUF_ADDR;
+  wire [15:0] SDBUF_WDATA;
+  wire        SDBUF_WE;
 
   /* verilator lint_off UNUSEDSIGNAL */
-  // FDISK_*/FDBUF_* are now used (floppy wired). External DMA test-client port
-  // and the SMD seam stay unused in this build.
+  // FDISK_*/FDBUF_* and (under TANG_SMD) SDISK_*/SDBUF_* are used; only the
+  // external DMA test-client port stays unused in this build.
   wire unused_core_seam = &{1'b0, DMA_RDATA,
-                            DMA_ACK, DMA_ERR, DMA_BUSY, SDISK_START,
-                            SDISK_REQ, SDISK_WR, SDISK_BLKADDR1,
-                            SDISK_BLKADDR2, SDISK_UNIT, SDISK_WORDCOUNT,
-                            SDBUF_RDATA, 1'b0};
+                            DMA_ACK, DMA_ERR, DMA_BUSY, 1'b0};
   /* verilator lint_on UNUSEDSIGNAL */
 
   ND120_CORE #(
       .INCLUDE_TAPE  (TANG_INC_TAPE),
       .INCLUDE_FLOPPY(TANG_INC_FLOPPY),
-      .INCLUDE_SMD   (0)
+      .INCLUDE_SMD   (TANG_INC_SMD),
+      .INCLUDE_WD    (TANG_INC_WD)
   ) CORE (
       .clk_cpu(clk_cpu),  // CPU core, OSC and bus all on 27 MHz
       .sys_rst_n(sys_rst_n),
@@ -728,12 +801,27 @@ module ND120_TANG20K_TOP (
       .SDISK_BLKADDR2(SDISK_BLKADDR2),
       .SDISK_UNIT(SDISK_UNIT),
       .SDISK_WORDCOUNT(SDISK_WORDCOUNT),
-      .SDISK_DONE(1'b0),
-      .SDISK_ERR(1'b0),
-      .SDBUF_ADDR(10'd0),
-      .SDBUF_WDATA(16'd0),
-      .SDBUF_WE(1'b0),
+      .SDISK_DONE(SDISK_DONE),
+      .SDISK_ERR(SDISK_ERR),
+      .SDBUF_ADDR(SDBUF_ADDR),
+      .SDBUF_WDATA(SDBUF_WDATA),
+      .SDBUF_WE(SDBUF_WE),
       .SDBUF_RDATA(SDBUF_RDATA),
+
+      // Winchester disk-image backend (TANG_WD; tied idle otherwise)
+      .WDISK_START(WDISK_START),
+      .WDISK_REQ(WDISK_REQ),
+      .WDISK_WR(WDISK_WR),
+      .WDISK_BLKADDR1(WDISK_BLKADDR1),
+      .WDISK_BLKADDR2(WDISK_BLKADDR2),
+      .WDISK_UNIT(WDISK_UNIT),
+      .WDISK_WORDCOUNT(WDISK_WORDCOUNT),
+      .WDISK_DONE(WDISK_DONE),
+      .WDISK_ERR(WDISK_ERR),
+      .WDBUF_ADDR(WDBUF_ADDR),
+      .WDBUF_WDATA(WDBUF_WDATA),
+      .WDBUF_WE(WDBUF_WE),
+      .WDBUF_RDATA(WDBUF_RDATA),
 
       // Debug / status
       .LED(s_cpu_led[6:0]),

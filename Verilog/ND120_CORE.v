@@ -42,6 +42,7 @@ module ND120_CORE #(
     parameter INCLUDE_TAPE   = 0,  //! ND_TAPE_400 papertape at 400
     parameter INCLUDE_FLOPPY = 0,  //! ND_FLOPPY_DMA floppy 1560 (DMA flavor)
     parameter INCLUDE_SMD    = 0,  //! ND_SMD disk at 1540
+    parameter INCLUDE_WD     = 0,  //! ND_WINCHESTER disk at 500 (ST506/8 inch)
 
     // SMD controller type (passed straight to ND_SMD's HAS_WC_FLIPFLOP strap;
     // see docs/design/SMD-CONTROLLER-TYPE-SEAM.md). 0 = ECC / BIG-DISC card
@@ -191,6 +192,24 @@ module ND120_CORE #(
     input  wire        SDBUF_WE,
     output wire [15:0] SDBUF_RDATA,
 
+    // Winchester disk backend (INCLUDE_WD). Same port shape as the SMD one:
+    // the card reuses nd_storage_smd_adapter with Winchester geometry, since
+    // that adapter has nothing SMD-specific in it (see the adapter header and
+    // ND-BUS-DEVICES/WINCHESTER/sim/nd_winchester_adapter_tb.v).
+    output wire        WDISK_START,
+    output wire        WDISK_REQ,
+    output wire        WDISK_WR,
+    output wire [15:0] WDISK_BLKADDR1,
+    output wire [15:0] WDISK_BLKADDR2,
+    output wire [2:0]  WDISK_UNIT,
+    output wire [10:0] WDISK_WORDCOUNT,
+    input  wire        WDISK_DONE,
+    input  wire        WDISK_ERR,
+    input  wire [9:0]  WDBUF_ADDR,
+    input  wire [15:0] WDBUF_WDATA,
+    input  wire        WDBUF_WE,
+    output wire [15:0] WDBUF_RDATA,
+
     /***************************************************
      *  (f) DEBUG / STATUS (all outputs)               *
      ***************************************************/
@@ -302,10 +321,10 @@ module ND120_CORE #(
   *  inputs of the CPU board.                   *
   ***********************************************/
 
-  localparam ANY_DEVICE = (INCLUDE_TAPE != 0) || (INCLUDE_FLOPPY != 0) || (INCLUDE_SMD != 0);
+  localparam ANY_DEVICE = (INCLUDE_TAPE != 0) || (INCLUDE_FLOPPY != 0) || (INCLUDE_SMD != 0) || (INCLUDE_WD != 0);
   // The DMA test master is the head of the DMA grant chain (its INGRANT_n is
   // the CPU's OUTGRANT_n), so it must exist whenever any bus master exists.
-  localparam ANY_DMA_MASTER = (INCLUDE_FLOPPY != 0) || (INCLUDE_SMD != 0);
+  localparam ANY_DMA_MASTER = (INCLUDE_FLOPPY != 0) || (INCLUDE_SMD != 0) || (INCLUDE_WD != 0);
 
   // Every device shares this one clock with the CPU board.
   wire s_dev_clk = clk_cpu;
@@ -346,38 +365,40 @@ module ND120_CORE #(
   wire [3:0]  s_dev_ident_level;
 
   // OR-bus contributions per device core (tape, floppy, SMD)
-  wire [15:0] s_tape_rdata, s_flp_rdata, s_smd_rdata;
-  wire [3:0]  s_tape_intp, s_flp_intp, s_smd_intp;
-  wire        s_tape_hit, s_flp_hit, s_smd_hit;
-  wire [15:0] s_tape_code, s_flp_code, s_smd_code;
+  wire [15:0] s_tape_rdata, s_flp_rdata, s_smd_rdata, s_wd_rdata;
+  wire [3:0]  s_tape_intp, s_flp_intp, s_smd_intp, s_wd_intp;
+  wire        s_tape_hit, s_flp_hit, s_smd_hit, s_wd_hit;
+  wire [15:0] s_tape_code, s_flp_code, s_smd_code, s_wd_code;
 
   // Per-core IOX address-match. When NO core owns the captured IOX address the
   // slave must answer nothing (no BDRY) so the CPU bus-times-out into the
   // level-14 IOX error, instead of the slave answering every address.
-  wire        s_tape_sel, s_flp_sel, s_smd_sel;
+  wire        s_tape_sel, s_flp_sel, s_smd_sel, s_wd_sel;
 
   // IDENT daisy chain: head -> tape -> floppy -> SMD (absent stage = pass-through)
   wire        s_grant_tape_flp;  // ident chain: tape -> floppy
   wire        s_grant_flp_smd;   // ident chain: floppy -> SMD
+  wire        s_grant_smd_wd;    // ident chain: SMD -> Winchester
 
-  wire [15:0] s_dev_iox_rdata   = s_tape_rdata | s_flp_rdata | s_smd_rdata;
-  wire [3:0]  s_dev_int_pending = s_tape_intp  | s_flp_intp  | s_smd_intp;
-  wire        s_dev_ident_hit   = s_tape_hit   | s_flp_hit   | s_smd_hit;
-  wire [15:0] s_dev_ident_code  = s_tape_code  | s_flp_code  | s_smd_code;
-  wire        s_dev_iox_hit     = s_tape_sel   | s_flp_sel   | s_smd_sel;
+  wire [15:0] s_dev_iox_rdata   = s_tape_rdata | s_flp_rdata | s_smd_rdata | s_wd_rdata;
+  wire [3:0]  s_dev_int_pending = s_tape_intp  | s_flp_intp  | s_smd_intp  | s_wd_intp;
+  wire        s_dev_ident_hit   = s_tape_hit   | s_flp_hit   | s_smd_hit   | s_wd_hit;
+  wire [15:0] s_dev_ident_code  = s_tape_code  | s_flp_code  | s_smd_code  | s_wd_code;
+  wire        s_dev_iox_hit     = s_tape_sel   | s_flp_sel   | s_smd_sel   | s_wd_sel;
 
   // DMA grant chain (active low): CPU OUTGRANT_n -> test master -> floppy
   // master -> SMD master. Declared up front: s_grant_fdma_smdm_n is used by
   // the floppy master before the SMD master is instantiated.
   wire        s_grant_dma_fdma_n;   // grant chain: test DMA master -> floppy master
   wire        s_grant_fdma_smdm_n;  // grant chain: floppy master  -> SMD master
+  wire        s_grant_smdm_wdm_n;   // grant chain: SMD master     -> Winchester master
 
   // Per-master bus contributions (active low; tied high when the master is absent)
-  wire [23:0] s_dma_bd_n,   s_fdmam_bd_n,   s_smdm_bd_n;
-  wire        s_dma_breq_n, s_fdmam_breq_n, s_smdm_breq_n;
-  wire        s_dma_bapr_n, s_fdmam_bapr_n, s_smdm_bapr_n;
-  wire        s_dma_binput_n, s_fdmam_binput_n, s_smdm_binput_n;
-  wire        s_dma_bdap_n, s_fdmam_bdap_n, s_smdm_bdap_n;
+  wire [23:0] s_dma_bd_n,   s_fdmam_bd_n,   s_smdm_bd_n,   s_wdm_bd_n;
+  wire        s_dma_breq_n, s_fdmam_breq_n, s_smdm_breq_n, s_wdm_breq_n;
+  wire        s_dma_bapr_n, s_fdmam_bapr_n, s_smdm_bapr_n, s_wdm_bapr_n;
+  wire        s_dma_binput_n, s_fdmam_binput_n, s_smdm_binput_n, s_wdm_binput_n;
+  wire        s_dma_bdap_n, s_fdmam_bdap_n, s_smdm_bdap_n, s_wdm_bdap_n;
 
   /*---------------------------------------------
   *  ND-BUS slave shell (present with any device)
@@ -611,7 +632,7 @@ module ND120_CORE #(
           .ident_strobe(s_dev_ident_strobe),
           .ident_level(s_dev_ident_level),
           .ident_grant_in(s_grant_flp_smd),
-          .ident_grant_out(),
+          .ident_grant_out(s_grant_smd_wd),
           .ident_hit(s_smd_hit),
           .ident_code(s_smd_code),
           .dma_req(s_smd_req),
@@ -652,7 +673,7 @@ module ND120_CORE #(
           .dma_busy(s_smd_busy),
           .BREQ_n(s_smdm_breq_n),
           .INGRANT_n(s_grant_fdma_smdm_n),
-          .OUTGRANT_n(),
+          .OUTGRANT_n(s_grant_smdm_wdm_n),
           .BMEM_n(BMEM_n),
           .BD_23_0_n_OUT(s_smdm_bd_n),
           .BD_23_0_n_IN(BD_23_0_n_OUT),
@@ -662,6 +683,8 @@ module ND120_CORE #(
           .BDRY_n(BDRY_n_OUT)
       );
     end else begin : gen_no_smd
+      assign s_grant_smd_wd   = s_grant_flp_smd;      // ident chain pass-through
+      assign s_grant_smdm_wdm_n = s_grant_fdma_smdm_n; // DMA grant pass-through
       assign s_smd_rdata      = 16'd0;
       assign s_smd_sel        = 1'b0;
       assign s_smd_intp       = 4'd0;
@@ -680,6 +703,119 @@ module ND120_CORE #(
       assign SDISK_UNIT       = 3'd0;
       assign SDISK_WORDCOUNT  = 11'd0;
       assign SDBUF_RDATA      = 16'd0;
+    end
+  endgenerate
+
+  /*---------------------------------------------
+  *  Winchester disc controller at 500 (ST506
+  *  card 3041 / 8 inch card 3038) with its own
+  *  bus master, fourth in the grant chain
+  *  (test -> floppy -> SMD -> Winchester).
+  *
+  *  NOTE 500-507 is the SAME IOX block as the
+  *  CDC cartridge disc: a machine has one card
+  *  or the other, never both.
+  *--------------------------------------------*/
+  generate
+    if (INCLUDE_WD != 0) begin : gen_wd
+      wire        s_wd_req, s_wd_wr;
+      wire [23:0] s_wd_addr;
+      wire [15:0] s_wd_wdata, s_wd_rdata_dma;
+      wire        s_wd_ack, s_wd_err, s_wd_busy;
+
+      ND_WINCHESTER #(
+          .BASE_ADDR  (16'o000500),
+          .IDENT_CODE (16'o000001),
+          .INT_LEVEL  (4'd11),
+          .DELAY_TICKS(SMD_DELAY_TICKS),
+          // Micropolis 1325 (the DISC-74-1) - the drive SINTRAN boots from,
+          // and the default in both C models. MUST match the GEO_* the
+          // storage adapter in front of the backend is given.
+          .GEO_HEADS  (16'd8),
+          .GEO_SPT    (16'd9),
+          .GEO_MAX_CYL(16'd1024)
+      ) WD_500 (
+          .sysclk(s_dev_clk),
+          .sys_rst_n(sys_rst_n),
+          .iox_addr(s_dev_iox_addr),
+          .iox_wr(s_dev_iox_wr),
+          .iox_wdata(s_dev_iox_wdata),
+          .iox_rd(s_dev_iox_rd),
+          .iox_rdata(s_wd_rdata),
+          .iox_sel(s_wd_sel),
+          .int_pending(s_wd_intp),
+          .ident_strobe(s_dev_ident_strobe),
+          .ident_level(s_dev_ident_level),
+          .ident_grant_in(s_grant_smd_wd),
+          .ident_grant_out(),
+          .ident_hit(s_wd_hit),
+          .ident_code(s_wd_code),
+          .dma_req(s_wd_req),
+          .dma_wr(s_wd_wr),
+          .dma_addr(s_wd_addr),
+          .dma_wdata(s_wd_wdata),
+          .dma_rdata(s_wd_rdata_dma),
+          .dma_ack(s_wd_ack),
+          .dma_err(s_wd_err),
+          .dma_busy(s_wd_busy),
+          .disk_start(WDISK_START),
+          .disk_req(WDISK_REQ),
+          .disk_wr(WDISK_WR),
+          .disk_blkaddr1(WDISK_BLKADDR1),
+          .disk_blkaddr2(WDISK_BLKADDR2),
+          .disk_unit(WDISK_UNIT),
+          .disk_wordcount(WDISK_WORDCOUNT),
+          .disk_done(WDISK_DONE),
+          .disk_err_in(WDISK_ERR),
+          .dbuf_addr(WDBUF_ADDR),
+          .dbuf_wdata(WDBUF_WDATA),
+          .dbuf_we(WDBUF_WE),
+          .dbuf_rdata(WDBUF_RDATA)
+      );
+
+      ND_DMA_MASTER #(
+          .TIMEOUT_TICKS(16'd8192)
+      ) WD_DMA_MASTER (
+          .sysclk(s_dev_clk),
+          .sys_rst_n(sys_rst_n),
+          .dma_req(s_wd_req),
+          .dma_wr(s_wd_wr),
+          .dma_addr(s_wd_addr),
+          .dma_wdata(s_wd_wdata),
+          .dma_rdata(s_wd_rdata_dma),
+          .dma_ack(s_wd_ack),
+          .dma_err(s_wd_err),
+          .dma_busy(s_wd_busy),
+          .BREQ_n(s_wdm_breq_n),
+          .INGRANT_n(s_grant_smdm_wdm_n),
+          .OUTGRANT_n(),
+          .BMEM_n(BMEM_n),
+          .BD_23_0_n_OUT(s_wdm_bd_n),
+          .BD_23_0_n_IN(BD_23_0_n_OUT),
+          .BAPR_n(s_wdm_bapr_n),
+          .BINPUT_n(s_wdm_binput_n),
+          .BDAP_n(s_wdm_bdap_n),
+          .BDRY_n(BDRY_n_OUT)
+      );
+    end else begin : gen_no_wd
+      assign s_wd_rdata      = 16'd0;
+      assign s_wd_sel        = 1'b0;
+      assign s_wd_intp       = 4'd0;
+      assign s_wd_hit        = 1'b0;
+      assign s_wd_code       = 16'd0;
+      assign s_wdm_bd_n      = 24'hFFFFFF;
+      assign s_wdm_breq_n    = 1'b1;
+      assign s_wdm_bapr_n    = 1'b1;
+      assign s_wdm_binput_n  = 1'b1;
+      assign s_wdm_bdap_n    = 1'b1;
+      assign WDISK_START     = 1'b0;
+      assign WDISK_REQ       = 1'b0;
+      assign WDISK_WR        = 1'b0;
+      assign WDISK_BLKADDR1  = 16'd0;
+      assign WDISK_BLKADDR2  = 16'd0;
+      assign WDISK_UNIT      = 3'd0;
+      assign WDISK_WORDCOUNT = 11'd0;
+      assign WDBUF_RDATA     = 16'd0;
     end
   endgenerate
 
@@ -737,11 +873,11 @@ module ND120_CORE #(
   *  contribute all-ones, so the AND is exactly
   *  the ND120_TOP no-device pass-through.
   *--------------------------------------------*/
-  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN & s_dev_bd_n & s_dma_bd_n & s_fdmam_bd_n & s_smdm_bd_n;
-  wire        s_bus_breq_n      = BREQ_n & s_dma_breq_n & s_fdmam_breq_n & s_smdm_breq_n;
-  wire        s_bus_bapr_in_n   = BAPR_n_IN & s_dma_bapr_n & s_fdmam_bapr_n & s_smdm_bapr_n;
-  wire        s_bus_binput_in_n = BINPUT_n_IN & s_dev_binput_n & s_dma_binput_n & s_fdmam_binput_n & s_smdm_binput_n;
-  wire        s_bus_bdap_in_n   = BDAP_n_IN & s_dev_bdap_n & s_dma_bdap_n & s_fdmam_bdap_n & s_smdm_bdap_n;
+  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN & s_dev_bd_n & s_dma_bd_n & s_fdmam_bd_n & s_smdm_bd_n & s_wdm_bd_n;
+  wire        s_bus_breq_n      = BREQ_n & s_dma_breq_n & s_fdmam_breq_n & s_smdm_breq_n & s_wdm_breq_n;
+  wire        s_bus_bapr_in_n   = BAPR_n_IN & s_dma_bapr_n & s_fdmam_bapr_n & s_smdm_bapr_n & s_wdm_bapr_n;
+  wire        s_bus_binput_in_n = BINPUT_n_IN & s_dev_binput_n & s_dma_binput_n & s_fdmam_binput_n & s_smdm_binput_n & s_wdm_binput_n;
+  wire        s_bus_bdap_in_n   = BDAP_n_IN & s_dev_bdap_n & s_dma_bdap_n & s_fdmam_bdap_n & s_smdm_bdap_n & s_wdm_bdap_n;
   wire        s_bus_bdry_in_n   = BDRY_n_IN & s_dev_bdry_n;
   wire        s_bus_bint10_n    = BINT10_n & s_dev_bint10_n;
   wire        s_bus_bint11_n    = BINT11_n & s_dev_bint11_n;
