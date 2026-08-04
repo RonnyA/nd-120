@@ -51,9 +51,18 @@ module MEM_RAM_49_BLOCKRAM #(
   wire [31:0] unused_params = NUM_BANKS;
   /* verilator lint_on UNUSEDSIGNAL */
 
-  // One 18-bit wide BRAM, 4 bank slots (bank 3 unused)
+  // One 16-bit wide BRAM, 4 bank slots (bank 3 unused).
+  // PARITY IS NEVER STORED (policy, Ronny 3-AUG-2026): the two parity bits
+  // DD[8] and DD[17] are dropped on write and regenerated as ODD parity on
+  // read, exactly as MEM_RAM_49_SDRAM and SIP1M9 do. 18 bits wide would have
+  // cost extra block RAM to hold bits nothing reads back.
   (* ram_style = "block", syn_ramstyle = "block_ram" *)
-  reg [17:0] mem[0:(4 << BANK_ADDR_BITS)-1];
+  reg [15:0] mem[0:(4 << BANK_ADDR_BITS)-1];
+
+  // {high byte, low byte} -> full 18-bit word with regenerated odd parity
+  function [17:0] with_parity(input [15:0] d);
+    with_parity = {~(^d[15:8]), d[15:8], ~(^d[7:0]), d[7:0]};
+  endfunction
 
   reg [9:0] row_q;
   reg       ras_d;
@@ -87,9 +96,11 @@ module MEM_RAM_49_BLOCKRAM #(
 
       if (win) begin
         if (MWRITE50_n) begin
-          rd_q <= mem[{bidx, a}];       // read: registered, re-reads while CAS
+          // read: registered, re-reads while CAS; parity regenerated here
+          rd_q <= with_parity(mem[{bidx, a}]);
         end else if (!win_d) begin
-          mem[{bidx, a}] <= dd_q;       // write: ONCE, first window edge
+          // write: ONCE, first window edge; the two parity bits are dropped
+          mem[{bidx, a}] <= {dd_q[16:9], dd_q[7:0]};
         end
       end
     end

@@ -47,9 +47,14 @@ Z80, decodes both the 1560 floppy/streamer window and SCSI at 144300).
 1. **Finish the testbench campaign** (paused): `DECODE_DGA_COMM` is partially
    written, `BIF_BCTL_6` not started, then Tier 6. Every new tb must print
    `TB_RESULT: PASS` and be registered in `tests/run_all_tests.sh`.
-2. **`test-memchain`** still fails (bit 8 drops) - see its own section below.
-   It is the one red light in an otherwise green unit suite.
-3. Then the standing items further down this file.
+2. ~~The 3 failing sdram-bridge testbenches~~ **FIXED 4-AUG-2026** - stale
+   testbench, not an RTL defect; see the section below.
+3. Then the standing items further down this file, including the FPGA parity
+   hole that `test-memchain` turned out to be sitting on.
+
+Suite state 4-AUG-2026: the sdram-bridge three now pass. Note the runner is
+fail-fast, so a green run means "green up to the first failure" - to see
+everything, run past it deliberately.
 
 ---
 
@@ -161,14 +166,118 @@ corrected, regenerating CGA_ALU_QREG.v reintroduces the bug.** Full analysis:
 
 ---
 
-## Pre-existing test failure: test-memchain (bit 8 drops)
+## DONE 3-AUG-2026: parity is COMPUTED everywhere, never stored (policy)
 
-`make test` currently aborts at `CPU-BOARD-3202/circuit/sim test-memchain`:
-"dback bank1 col3 got=177377 expected 177777" and "k bank0 row3col2
-got=123056 expected 123456" - bit 8 dropped in the MEM_ADDR_44 ->
-MEM_RAM_49/SIP1M9 chain. Fails on committed code (deps all clean); belongs
-to the memory/device workstream, not the QREG fix (whose file is not in this
-testbench's dependency list).
+Ronny's decision: **no FPGA target wastes memory storing parity, ever.** All
+five sheet-49 backends now drop DD[8]/DD[17] on write and regenerate them on
+read as odd parity (`~^data`, the Am29833A convention) - previously Tang
+regenerated, Basys3 returned a constant 0 (wrong for 128 of 256 byte values),
+and the other three stored. `RAM_PARITY_STORAGE` is deleted, so storage cannot
+be switched back on. Full table, rationale and gates: `docs/nd120-parity-
+analysis.md` section 6b. New gate `test-am29833a-parity` proves the polarity
+against the chip that checks it; the `test-memchain*` sweep writes deliberately
+wrong parity and demands correct parity back (teeth-proven: Q9 forced to 0
+fails 35 checks).
+
+**What remains open below is the CHECKING side, which this did not touch.**
+
+---
+
+## OPEN: parity is never CHECKED - two independent reasons
+
+Found 3-AUG-2026 while gating the policy above. Even now that every read
+carries correct parity, nothing can ever report a bad one:
+
+1. **`MEM_43.v:234`**: `assign LPERR_n = s_lperr_n | 1;` - "Always set to 1 to
+   avoid Parity Error. TODO: FIX! ?" The local parity error cannot reach the
+   CPU.
+2. **`AM29833A.v:126`**: the error register is loaded only `else if
+   (!ReceiveMode)`. But `MEM_DATA_46.v:230-255` wires **T to the memory bus and
+   R to LBD**, so a memory READ is receive mode - the direction we care about
+   is exactly the one the model does not evaluate. The datasheet text quoted at
+   the top of `AM29833A.v` says the opposite: "In the receive mode, data and
+   parity are read at the T port, and the data is output at the R port along
+   with an /ERR flag showing the result of the parity test."
+
+Point 2 looks like a transcription error in the chip model, but changing a
+checker's semantics needs Ronny's call, and the two must be fixed together with
+a decision about what the CPU should DO with a real parity error (level 14 +
+IIC, PES/PEA - see `docs/nd120-parity-analysis.md` section 5). Until then FPGA
+memory is unprotected: correct parity in, no checking.
+
+---
+
+## SUPERSEDED 3-AUG-2026 (kept for the root-cause trail): FPGA memory has NO parity
+
+Root-caused 3-AUG-2026, out of the long-standing `test-memchain` "bit 8 drops"
+failure. That failure was the testbench over-asserting, and it is fixed; the
+hole it was sitting on is real and is still open.
+
+The 18-bit memory word is two lots of 8 data + 1 parity: data in `DD[7:0]` and
+`DD[16:9]`, **parity in `DD[8]` and `DD[17]`** - `MEM_DATA_46.v:239-242` and
+`:266-269` wire exactly those two bits to the AM29833A `PAR` / `PAR_OUT` pins
+(CHIP_1H low byte, CHIP_2H high byte).
+
+Two things are missing on the FPGA path, and each one alone makes parity dead:
+
+1. **Not stored.** `SIP1M9.v:92-105,141-145`: the `ramSize=3` BRAM path returns
+   `reg_Q9 <= 1'b0` unless `RAM_PARITY_STORAGE` is defined. Deliberate - one bit
+   per word still costs a whole RAMB18 per chip, 6 chips = 6 RAMB18 to hold
+   4 Kbit. This is the path Basys3 synthesizes. (Tang uses the SDRAM backend
+   instead, where `ND_SDRAM_PACK16` computes parity rather than storing it.)
+2. **Not reported.** `MEM_43.v:234`: `assign LPERR_n = s_lperr_n | 1;` -
+   "Always set to 1 to avoid Parity Error. TODO: FIX! ?" A local parity error
+   can never reach the CPU even when the bit IS stored.
+
+So the storage cut is only harmless because the checking was already disabled.
+Fixing this means both halves together: define `RAM_PARITY_STORAGE` (accepting
+the BRAM cost) AND make `LPERR_n` report, then decide what the CPU should do
+with a real parity error. Until then FPGA memory is unprotected, silently.
+
+`MEM_CHAIN_tb.v` now models the build choice instead of failing on it: a
+`STORE_MASK` expects all 18 bits for the BLOCKRAM and SIM backends (which do
+store parity) and clears bits 17 and 8 for the SIP1M9 FPGA path, so the data
+bits are still checked exactly and an unstored parity bit must read back 0.
+All three variants pass. Undo that mask the day parity storage comes back.
+
+---
+
+## FIXED 4-AUG-2026: 3 sdram-bridge testbenches failed on committed code
+
+Found 3-AUG-2026, root-caused and fixed 4-AUG-2026. `make test` is fail-fast and
+had been aborting at `test-memchain`, which sits EARLIER in
+`tests/run_all_tests.sh` than these - so these three had been failing unseen
+behind it:
+
+```
+fpga/tang-nano-20k/sdram-bridge/sim :: test              (11 errors)
+fpga/tang-nano-20k/sdram-bridge/sim :: test-pack16       (9 errors)
+fpga/tang-nano-20k/sdram-bridge/sim :: test-storage-port (9 errors)
+```
+
+**The RTL was right; the testbench was stale.** Commit `81462c0` (23-JUL-2026,
+"Tang 4MB fix") changed which ND banks the bridge treats as populated, because
+the board decode PAL `PAL_44445B` wires the three 1M-word banks in PHYSICAL
+address order **BANK0, BANK2, BANK1**. So the two populated 1M regions are
+**BANK0 (phys 0-1M) and BANK2 (phys 1M-2M)**, and **BANK1 is the absent third
+bank** at phys 2M-3M (`MEM_RAM_49_SDRAM.v` lines 375-384). That fix is validated
+on silicon - it is what made the Tang report 4 MB instead of 2 MB.
+
+`mem_ram_49_sdram_tb.v` was last touched 11-JUL and still used the pre-fix map:
+banks 0/1 populated, bank 2 absent. Every failing check follows from that one
+mismatch - reads of BANK1 returned 0 (absent) where the tb expected written
+data, and the BANK2 "absent" access returned real data where the tb expected 0.
+The errors only LOOKED late because the soak repeats the same mismatch; the
+first three fire immediately after the directed writes.
+
+`test-pack16-part` passed throughout for the same reason: with
+`TB_PART_ROWS=1024` only BANK0 is inside the CPU partition, so tb and RTL agreed
+by accident on banks 1 and 2 both being unreachable.
+
+Fix: the tb now derives the physical bank index from the real map
+(`phys(bank) = (bank == 2)`), does its directed first/last-word writes on BANK0
+and BANK2, uses BANK1 as the unpopulated-bank case, and soaks over {0,2}. No RTL
+change. All four targets pass.
 
 ---
 

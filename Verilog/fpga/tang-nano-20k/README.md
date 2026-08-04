@@ -134,6 +134,67 @@ First light checklist: heartbeat LED blinking -> OPCOM console at **9600 8N1**
 on the board's USB serial -> compare boot behaviour against
 [`../../docs/boot-golden-spec.md`](../../docs/boot-golden-spec.md).
 
+## Storage build: SD-FAT + floppy + SMD (measured 3-AUG-2026)
+
+The SD-FAT reader, the floppy at 1560 and the SMD disc at 1540 are all in one
+bitstream and it places and routes. This is the build to use for disc work.
+
+**Defines** (`src/tang20k_defines.v`, both active):
+
+| Define | Effect |
+|---|---|
+| `TANG_FLOPPY` | floppy-only base build: `ND_FLOPPY_DMA` at 1560 + `nd_storage` client for `FLOPPY1.IMG`. **Drops the papertape** - `TANG_INC_TAPE` goes to 0, so `400$` is not available in this bitstream. |
+| `TANG_SMD` | adds `ND_SMD` at 1540 with its own `ND_DMA_MASTER`, plus `nd_storage_smd_adapter` serving `SMD0.IMG` (client 3, slot 1376 blocks -> image limit 2,818,048 bytes). |
+
+They resolve to `TANG_INC_FLOPPY = 1`, `TANG_INC_SMD = 1`, `TANG_INC_TAPE = 0`
+in `src/ND120_TANG20K_TOP.v`, applied both to the core (which devices exist) and
+to `nd_tape_sdfat_source` (which client the SD-FAT reader serves).
+
+With either define set, the SD-FAT slimming cut `SDFAT_NO_STORAGE_CHECK` is
+suppressed automatically - floppy and SMD do random access and writeback, so the
+mount-time contiguity checker (`nd_storage_fatchk.v`) must stay in. That cut is
+for the tape-only build.
+
+**Measured utilization** (Gowin EDA flow, `VARIANT=slow`, 3-AUG-2026, from
+`build/nd120_tang20k_build/impl/pnr/nd120_tang20k_build.rpt.html`):
+
+| Resource | Used | % |
+|---|---|---|
+| LUT/ALU/ROM16 | 14464 (12955 LUT, 1509 ALU) | - |
+| CLS | 9103/10368 | 88% |
+| Register | 7579/15915 | 48% |
+| - as Latch | 0/15552 | 0% |
+| - as FF | 7529/15552 | 49% |
+| BSRAM | 34 SP10 SDPB | 96% |
+| DSP | 2 MULTALU36X18 | 9% |
+| PLL | 1/2 | 50% |
+
+Read those two numbers together: **BSRAM 96% and CLS 88%** is what "everything
+fits, with nothing to spare" looks like on this board. The SMD's 1024x16 sector
+buffer is the last BSRAM block; dropping `TANG_SMD` alone is the intended escape
+hatch if something else needs one. **Register as Latch is 0** - no inferred
+latches, which is a standing gate for every build here.
+
+This supersedes the older claim below that floppy and SMD "need a sync-read
+refactor before they fit at all": that refactor was done, both sector buffers
+are synchronous-read now, and the build above is the measurement.
+
+Build and program (Gowin EDA flow, Windows host):
+
+```
+.\gowin_build.ps1 -Variant slow      # or: make gowin VARIANT=slow
+make load-gowin                      # SRAM  - gone at power-off
+make flash-gowin                     # SPI flash - survives a power cut
+```
+
+Power-cycle the board after every loader operation before judging anything on
+the console.
+
+Note before flashing rather than loading: this build's SMD write path is live
+(full aligned 1024-word blocks only; anything else answers `disk_err`), and a
+flashed bitstream comes up on its own at every power-on, so it can write
+`SMD0.IMG` on the card without anyone asking.
+
 ## Files here (legacy)
 
 | File | Purpose |
@@ -172,11 +233,11 @@ there, both analysis-only / not implemented:
   microcode in words 0..1355 - the top two thirds is a computable address ramp -
   so repacking that bank as one 2048x64 array frees 8 blocks. Note the naive fix
   (just narrowing the chips to 2048 deep) saves *nothing*; the doc explains why.
-- **Floppy / SMD need a sync-read refactor before they fit at all.** Their 2 KB
-  sector buffers (`s_buffer[0:1023]`) are 1 BSRAM block each and the budget is
-  fine, but as written they use three *asynchronous* read ports - BSRAM is
-  sync-read only, so they will not infer and cannot fit as registers either.
-  Blocker, not an optimisation. Same fix serves Basys3.
+- **Floppy / SMD sync-read refactor - DONE, no longer a blocker.** Their 2 KB
+  sector buffers (`s_buffer[0:1023]`) once used three *asynchronous* read ports,
+  which BSRAM cannot do; they are synchronous-read now and both devices are in a
+  placed bitstream (see [Storage build](#storage-build-sd-fat--floppy--smd-measured-3-aug-2026)
+  - BSRAM 96% with both in). Same fix serves Basys3.
 
 ## Planned build defines
 

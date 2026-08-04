@@ -182,4 +182,179 @@ test-mmupt-replay: CPU_MMU_PT_29_replay_tb
 	./CPU_MMU_PT_29_replay_tb | tee mmupt_replay_result.tmp
 	@grep -q "TB_RESULT: PASS" mmupt_replay_result.tmp && rm -f mmupt_replay_result.tmp
 
-.PHONY: test-memparity test-memerror test-mmupt-replay
+# CPU_MMU_PT_29 directed write/readback + read-latency characterisation
+# (sync vs async shadow-RAM read; see the tb header). Same sources as the
+# replay tb, different stimulus.
+MMUPT_SRCS = CPU_MMU_PT_29_tb.v $(CIRCUIT)/CPU_MMU_PT_29.v \
+             $(MMUPT_SUPPORT)/TMM2018D_25.v $(MMUPT_SUPPORT)/IMS1403_25.v
+
+CPU_MMU_PT_29_tb_bin: $(MMUPT_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(MMUPT_SRCS)
+
+test-mmupt: CPU_MMU_PT_29_tb_bin
+	./CPU_MMU_PT_29_tb_bin | tee mmupt_result.tmp
+	@grep -q "TB_RESULT: PASS" mmupt_result.tmp && rm -f mmupt_result.tmp
+
+.PHONY: test-memparity test-memerror test-mmupt-replay test-mmupt
+
+# CPU_STOC_35: IDB->CD gate. Exhaustive 2*65536 sweep; STOC_n high must
+# drive CD to 0 (FPGA tri-state convention, no Z inside the fabric).
+STOC_SRCS = CPU_STOC_35_tb.v $(CIRCUIT)/CPU_STOC_35.v
+
+CPU_STOC_35_tb_bin: $(STOC_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(STOC_SRCS)
+
+test-stoc: CPU_STOC_35_tb_bin
+	./CPU_STOC_35_tb_bin | tee stoc_result.tmp
+	@grep -q "TB_RESULT: PASS" stoc_result.tmp && rm -f stoc_result.tmp
+
+.PHONY: test-stoc
+
+# MEM_RAMC_50: RAM arbiter (PAL_44803A) + RAM control state machine
+# (PAL_44902A) vs an independent Python model (gen_ramc_golden.py):
+# directed grant walks + one-hot invariant + LFSR checksum.
+RAMC_SRCS = MEM_RAMC_50_tb.v $(CIRCUIT)/MEM_RAMC_50.v $(PAL)/PAL_44803A.v $(PAL)/PAL_44902A.v
+
+test-ramc: MEM_RAMC_50_tb_bin
+	./MEM_RAMC_50_tb_bin | tee ramc_result.tmp
+	@grep -q "TB_RESULT: PASS" ramc_result.tmp && rm -f ramc_result.tmp
+
+MEM_RAMC_50_tb_bin: $(RAMC_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(RAMC_SRCS)
+
+# MEM_LBDIF_48: AM29C821 delay chains + PAL_44310D. Runs BOTH BDRY
+# branches: plain = edge-FF (FPGA), -DUSE_TRANSPARENT_LATCHES = latch
+# (original hardware). Per-mode golden tables from gen_lbdif_golden.py.
+LBDIF_SRCS = MEM_LBDIF_48_tb.v $(CIRCUIT)/MEM_LBDIF_48.v $(SUPPORT)/AM29C821.v $(PAL)/PAL_44310D.v
+
+test-lbdif: MEM_LBDIF_48_ff_tb_bin MEM_LBDIF_48_lm_tb_bin
+	./MEM_LBDIF_48_ff_tb_bin | tee lbdif_result.tmp
+	@grep -q "TB_RESULT: PASS" lbdif_result.tmp
+	./MEM_LBDIF_48_lm_tb_bin | tee lbdif_result.tmp
+	@grep -q "TB_RESULT: PASS" lbdif_result.tmp && rm -f lbdif_result.tmp
+
+MEM_LBDIF_48_ff_tb_bin: $(LBDIF_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(LBDIF_SRCS)
+
+MEM_LBDIF_48_lm_tb_bin: $(LBDIF_SRCS)
+	$(IVERILOG) -g2012 -DUSE_TRANSPARENT_LATCHES -o $@ $(LBDIF_SRCS)
+
+# IO_PANCAL_40: panel/calendar stub contract (68705 + RTC unimplemented):
+# exhaustive {EPANS,FUL_n,VAL} x PA sweep + one-shot 74374 capture pin.
+PANCAL_SRCS = IO_PANCAL_40_tb.v $(CIRCUIT)/IO_PANCAL_40.v $(SUPPORT)/TTL_74374.v $(SUPPORT)/TTL_74244.v
+
+test-pancal: IO_PANCAL_40_tb_bin
+	./IO_PANCAL_40_tb_bin | tee pancal_result.tmp
+	@grep -q "TB_RESULT: PASS" pancal_result.tmp && rm -f pancal_result.tmp
+
+IO_PANCAL_40_tb_bin: $(PANCAL_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(PANCAL_SRCS)
+
+# CPU_MMU_CACHE_25: cache sheet incl. the 26-JUL HIT-gate on CD_15_0_OUT
+# (banner word-2 stale-line fix). Three builds: gated (default), the
+# -DND120_CACHE_DRIVE_UNGATED escape hatch (raw schematic drive), and
+# -DFPGA_FF_MODE (UCLK_EN capture). The stale-line checks are the teeth:
+# an ungated assign in the normal build FAILS them.
+MMUCACHE_SRCS = CPU_MMU_CACHE_25_tb.v $(CIRCUIT)/CPU_MMU_CACHE_25.v $(SUPPORT)/TMM2018D_25.v $(SUPPORT)/Am9150.v $(PAL)/PAL_44402D_EN.v $(PAL)/PAL_44402D.v
+
+test-mmucache: CPU_MMU_CACHE_25_tb_bin CPU_MMU_CACHE_25_ug_tb_bin CPU_MMU_CACHE_25_ff_tb_bin
+	./CPU_MMU_CACHE_25_tb_bin | tee mmucache_result.tmp
+	@grep -q "TB_RESULT: PASS" mmucache_result.tmp
+	./CPU_MMU_CACHE_25_ug_tb_bin | tee mmucache_result.tmp
+	@grep -q "TB_RESULT: PASS" mmucache_result.tmp
+	./CPU_MMU_CACHE_25_ff_tb_bin | tee mmucache_result.tmp
+	@grep -q "TB_RESULT: PASS" mmucache_result.tmp && rm -f mmucache_result.tmp
+
+CPU_MMU_CACHE_25_tb_bin: $(MMUCACHE_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(MMUCACHE_SRCS)
+
+CPU_MMU_CACHE_25_ug_tb_bin: $(MMUCACHE_SRCS)
+	$(IVERILOG) -g2012 -DND120_CACHE_DRIVE_UNGATED -o $@ $(MMUCACHE_SRCS)
+
+CPU_MMU_CACHE_25_ff_tb_bin: $(MMUCACHE_SRCS)
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o $@ $(MMUCACHE_SRCS)
+
+# BIF_BCTL_SYNC_8: two AM29C821 delay-tap registers (25/50/75ns) + PD1/PD3
+# comb output kills. The netlist has NO ifdef branches (AM29C821 default
+# USE_SYSCLK=0 posedge-CK, as on the board), so ONE build is the complete
+# meaningful mode set.
+BIFSYNC_SRCS = BIF_BCTL_SYNC_8_tb.v $(CIRCUIT)/BIF_BCTL_SYNC_8.v $(SUPPORT)/AM29C821.v
+
+test-bifsync: BIF_BCTL_SYNC_8_tb_bin
+	./BIF_BCTL_SYNC_8_tb_bin | tee bifsync_result.tmp
+	@grep -q "TB_RESULT: PASS" bifsync_result.tmp && rm -f bifsync_result.tmp
+
+BIF_BCTL_SYNC_8_tb_bin: $(BIFSYNC_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(BIFSYNC_SRCS)
+
+.PHONY: test-bifsync
+
+# BIF_DPATH_LDBCTL_12: the three LBC PALs (44303B/44302B/44304E) incl. the
+# sheet-level BACT_n feedback. Both PAL state branches: plain = posedge-OSC
+# FF (FPGA), -DUSE_TRANSPARENT_LATCHES = transparent latch (original hw).
+LDBCTL_SRCS = BIF_DPATH_LDBCTL_12_tb.v $(CIRCUIT)/BIF_DPATH_LDBCTL_12.v \
+              $(PAL)/PAL_44303B.v $(PAL)/PAL_44302B.v $(PAL)/PAL_44304E.v
+
+test-ldbctl: BIF_DPATH_LDBCTL_12_ff_tb_bin BIF_DPATH_LDBCTL_12_lm_tb_bin
+	./BIF_DPATH_LDBCTL_12_ff_tb_bin | tee ldbctl_result.tmp
+	@grep -q "TB_RESULT: PASS" ldbctl_result.tmp
+	./BIF_DPATH_LDBCTL_12_lm_tb_bin | tee ldbctl_result.tmp
+	@grep -q "TB_RESULT: PASS" ldbctl_result.tmp && rm -f ldbctl_result.tmp
+
+BIF_DPATH_LDBCTL_12_ff_tb_bin: $(LDBCTL_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(LDBCTL_SRCS)
+
+BIF_DPATH_LDBCTL_12_lm_tb_bin: $(LDBCTL_SRCS)
+	$(IVERILOG) -g2012 -DUSE_TRANSPARENT_LATCHES -o $@ $(LDBCTL_SRCS)
+
+.PHONY: test-ldbctl
+
+# BIF_DPATH_PESPEA_13: PEA/PES error registers (4x TTL_74534), the sheet in
+# the silicon-validated PES/SPEA path (PAGING 11/11). Both strobe branches:
+# plain = capture on the strobe's own posedge, -DFPGA_FF_MODE = USE_SYSCLK=2
+# sysclk-sampled strobe rise.
+PESPEA_SRCS = BIF_DPATH_PESPEA_13_tb.v $(CIRCUIT)/BIF_DPATH_PESPEA_13.v $(SUPPORT)/TTL_74534.v
+
+test-pespea: BIF_DPATH_PESPEA_13_tb_bin BIF_DPATH_PESPEA_13_ff_tb_bin
+	./BIF_DPATH_PESPEA_13_tb_bin | tee pespea_result.tmp
+	@grep -q "TB_RESULT: PASS" pespea_result.tmp
+	./BIF_DPATH_PESPEA_13_ff_tb_bin | tee pespea_result.tmp
+	@grep -q "TB_RESULT: PASS" pespea_result.tmp && rm -f pespea_result.tmp
+
+BIF_DPATH_PESPEA_13_tb_bin: $(PESPEA_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(PESPEA_SRCS)
+
+BIF_DPATH_PESPEA_13_ff_tb_bin: $(PESPEA_SRCS)
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o $@ $(PESPEA_SRCS)
+
+.PHONY: test-pespea
+
+# MEM_ADEC_45: the REAL sheet-45 DUT (base PALs 44445B/44446B/44904B +
+# D_FLIPFLOP request/grant flags; FF mode swaps in the _D PAL mirrors and
+# the sysclk edge-detect flags). Replaces the inline-model-only coverage of
+# CPU-BOARD-3202/sim/reqgnt_equiv_tb.v. Both builds, same stimulus/counts.
+ADEC_SRCS = MEM_ADEC_45_tb.v $(CIRCUIT)/MEM_ADEC_45.v \
+            $(CIRCUIT)/PAL_44445B_D.v $(CIRCUIT)/PAL_44446B_D.v \
+            $(PAL)/PAL_44445B.v $(PAL)/PAL_44446B.v $(PAL)/PAL_44904B.v \
+            $(LOGISIM)/D_FLIPFLOP.v
+
+test-adec: MEM_ADEC_45_tb_bin MEM_ADEC_45_ff_tb_bin
+	./MEM_ADEC_45_tb_bin | tee adec_result.tmp
+	@grep -q "TB_RESULT: PASS" adec_result.tmp
+	./MEM_ADEC_45_ff_tb_bin | tee adec_result.tmp
+	@grep -q "TB_RESULT: PASS" adec_result.tmp && rm -f adec_result.tmp
+
+MEM_ADEC_45_tb_bin: $(ADEC_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(ADEC_SRCS)
+
+MEM_ADEC_45_ff_tb_bin: $(ADEC_SRCS)
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o $@ $(ADEC_SRCS)
+
+.PHONY: test-adec
+
+clean-tier3:
+	rm -f MEM_RAMC_50_tb_bin MEM_LBDIF_48_ff_tb_bin MEM_LBDIF_48_lm_tb_bin
+	rm -f IO_PANCAL_40_tb_bin CPU_MMU_CACHE_25_tb_bin
+	rm -f CPU_MMU_CACHE_25_ug_tb_bin CPU_MMU_CACHE_25_ff_tb_bin
+
+.PHONY: test-ramc test-lbdif test-pancal test-mmucache clean-tier3

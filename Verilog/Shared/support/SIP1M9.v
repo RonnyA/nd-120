@@ -60,7 +60,8 @@ module SIP1M9 (
   // OOM. Guarded out of the FPGA build. (ramSize=2 <=> VERILATOR_SIM in this design.)
 `ifdef VERILATOR_SIM
   (* ram_style = "block" *) reg [7:0] sdram   [0:MEM_DEPTH-1];
-  (* ram_style = "block" *) reg       sdram_9 [0:MEM_DEPTH-1];
+  // No sdram_9: parity is regenerated on read, never stored (see the policy
+  // note below). Nothing outside this file referenced it.
 `endif
 
 generate
@@ -89,20 +90,23 @@ if (ramSize == 3) begin : g_fpga_bram
 
   (* ram_style = "block" *) reg [7:0] bram8 [0:FPGA_DEPTH-1];
 
-  // PARITY STORAGE (bram9 / D9 / Q9)
+  // PARITY (D9 / Q9): COMPUTED ON READ, NEVER STORED
   // -------------------------------------------------------------------------
-  // The stored parity bit is DEAD: MEM_43.v:218 hardwires
-  //     assign LPERR_n = s_lperr_n | 1;   // "Always set to 1 to avoid Parity Error"
-  // so the local parity error can never fire and nothing consumes the read-back
-  // parity bit. Storing it cost a whole extra BRAM per chip: bram9 is 4096x1, and
-  // a RAMB18 is the smallest block Vivado can allocate, so 1 bit/word burned a
-  // RAMB18 per chip (6 chips = 6 RAMB18 = 3 BRAM tiles) to hold 4 Kbit of data.
+  // POLICY (Ronny, 3-AUG-2026): no FPGA target stores parity - not here, not in
+  // any other sheet-49 backend. One bit per word still costs a whole RAMB18 per
+  // chip (the smallest block Vivado can allocate), i.e. 6 RAMB18 across the six
+  // chips to hold 4 Kbit, and the ND-120 never needs the STORED bit: what the
+  // board consumes is a word whose parity is CONSISTENT with its data.
   //
-  // Define RAM_PARITY_STORAGE to bring the real parity RAM back (e.g. if LPERR_n
-  // is ever fixed to actually report errors).
-`ifdef RAM_PARITY_STORAGE
-  (* ram_style = "block" *) reg       bram9 [0:FPGA_DEPTH-1];
-`endif
+  // So D9 is accepted and dropped on write, and Q9 is regenerated on read as
+  // ODD parity of the byte actually returned: PAR = ~^D8, the Am29833A
+  // convention (AM29833A.v:100 generates ~(^R); :116 flags an error when the
+  // 9-bit group comes out EVEN). That keeps PRD_n - and MEM_RAM_49's CORR_n -
+  // reading "correct", and it is what MEM_RAM_49_SDRAM already does on Tang.
+  //
+  // Returning 0 here (what this path did until 3-AUG-2026) was NOT neutral: it
+  // is the wrong parity for every byte with even population, so unmasking
+  // LPERR_n would have faulted about half of all reads.
 
   reg  [9:0] row_addr;                                     // AA captured at the RAS falling edge
   reg        ras_n_d;                                      // RAS_n one sysclk ago (edge detect)
@@ -138,17 +142,10 @@ if (ramSize == 3) begin : g_fpga_bram
     if (!RAS_n && !CAS_n) begin
       if (W_n) begin                                       // read (re-reads while CAS low; addr stable)
         reg_Q8 <= bram8[a];
-`ifdef RAM_PARITY_STORAGE
-        reg_Q9 <= bram9[a];
-`else
-        reg_Q9 <= 1'b0;                                    // parity not stored (see above)
-`endif
+        reg_Q9 <= ~(^bram8[a]);                            // ODD parity, regenerated
       end else if (!cas_win_d) begin                       // write ONCE, first both-low
         bram8[a] <= d8_q;                                  // edge, with the pre-CAS
-`ifdef RAM_PARITY_STORAGE
-        bram9[a] <= d9_q;                                  // captured data
-`endif
-      end
+      end                                                  // captured data (D9 dropped)
     end
   end
 
@@ -190,10 +187,11 @@ end else begin : g_sim_dram
     if (!RAS_n) begin
       if (W_n) begin  // read
         reg_Q8 <= sdram[sip_address];
-        reg_Q9 <= sdram_9[sip_address];
+        // Parity regenerated, never stored - same rule as the FPGA path above,
+        // so the Verilator reference and silicon cannot diverge here.
+        reg_Q9 <= ~(^sdram[sip_address]);
       end else begin  // write
-        sdram[sip_address]   <= D8;
-        sdram_9[sip_address] <= D9;
+        sdram[sip_address] <= D8;                      // D9 accepted and dropped
       end
     end
 `endif

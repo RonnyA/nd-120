@@ -60,7 +60,7 @@
 // Writes are supported for FULL ALIGNED 1024-word blocks only (even-sector
 // starts, 1024-word-multiple lengths); anything else answers disk_err.
 // Comment out to drop the SMD alone if resources overflow.
-`define TANG_SMD
+//`define TANG_SMD   // OFF for the TANG_WD build (mutually exclusive)
 
 // TANG_WD = ADD the ND_WINCHESTER disc controller at 500 (ST506 card 3041)
 // instead of the SMD: ND_WINCHESTER + its own ND_DMA_MASTER in the core, and
@@ -79,7 +79,7 @@
 // and the word count ONCE, which is the Winchester's register protocol, not
 // the SMD's. The SMD core needs a boot-mode special case to cope; this one
 // does not.
-//`define TANG_WD
+`define TANG_WD
 
 // (the TANG_SMD / TANG_WD mutual-exclusion guard lives inside
 //  ND120_TANG20K_TOP.v, where an instantiation is legal syntax and the

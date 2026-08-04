@@ -1,16 +1,19 @@
 /**************************************************************************
 ** tb_mem_ram_parity - unit testbench for MEM_RAM_49_SIM parity behaviour  **
 **                                                                        **
-** Proves the ND_SDRAM_PACK16 parity contract that defeats the ECCR /     **
-** parity-error override (why TPE classifies memory as Mpm5, not Local):  **
+** Proves the parity contract that defeats the ECCR / parity-error       **
+** override (why TPE classifies memory as Mpm5, not Local):              **
 **   - Correct-parity round-trip: CORR_n stays 1 (no error), data intact. **
-**   - BAD-parity write then read:                                        **
-**       PACK16=1 -> parity is RECOMPUTED on read, the bad stored parity  **
-**                  is DISCARDED, CORR_n stays 1 (fault ABSORBED = bug).   **
-**       PACK16=0 -> stored parity is read back, CORR_n goes 0 (fault     **
-**                  DETECTED = classic stored-parity DRAM).               **
+**   - BAD-parity write then read: parity is REGENERATED on read, the bad **
+**     bit is DISCARDED, CORR_n stays 1 (fault absorbed).                 **
 **                                                                        **
-** Build/run BOTH modes to see the divergence:                           **
+** POLICY 3-AUG-2026 (docs/nd120-parity-analysis.md section 6b): parity   **
+** is computed, never stored, in EVERY build. This tb used to assert a    **
+** divergence - stored parity without ND_SDRAM_PACK16, regenerated with   **
+** it. That divergence is gone by decision. Both builds are still run, so **
+** the gate now proves the define does NOT change parity semantics.       **
+**                                                                        **
+** Build/run BOTH modes - they must agree:                               **
 **   iverilog -g2012            -o tb.p0 tb_mem_ram_parity.v MEM_RAM_49_SIM.v && vvp tb.p0
 **   iverilog -g2012 -DND_SDRAM_PACK16 -o tb.p1 tb_mem_ram_parity.v MEM_RAM_49_SIM.v && vvp tb.p1
 **                                                                        **
@@ -93,9 +96,9 @@ module tb_mem_ram_parity;
 
   initial begin
 `ifdef ND_SDRAM_PACK16
-    $display("=== tb_mem_ram_parity  (MODE: PACK16=1, ND_SDRAM_PACK16 defined) ===");
+    $display("=== tb_mem_ram_parity  (build: ND_SDRAM_PACK16 defined) ===");
 `else
-    $display("=== tb_mem_ram_parity  (MODE: PACK16=0, stored-parity DRAM) ===");
+    $display("=== tb_mem_ram_parity  (build: ND_SDRAM_PACK16 NOT defined) ===");
 `endif
 
     // ---- Test 1: correct-parity round-trip: data intact, no error ----
@@ -112,25 +115,21 @@ module tb_mem_ram_parity;
     ram_write(10'd0, 10'd6, w_badlo);
     ram_read (10'd0, 10'd6, rd, corr);
     check(rd[7:0]  == 8'h55, "T2 read-back low data still == 0x55");
-`ifdef ND_SDRAM_PACK16
-    check(corr === 1'b1,     "T2 PACK16=1: CORR_n == 1 (bad parity ABSORBED - the bug)");
+    // Policy 3-AUG-2026: parity is regenerated on read in EVERY build, so the
+    // bad stored bit is discarded and CORR_n stays 1. Identical in both modes -
+    // ND_SDRAM_PACK16 must NOT change parity semantics any more, and building
+    // this tb both ways is what proves it.
+    check(corr === 1'b1,     "T2 CORR_n == 1 (bad parity absorbed, per policy)");
     check(rd[8]  == odd_par(8'h55),
-                             "T2 PACK16=1: read parity is RECOMPUTED (correct), stored bad bit gone");
-`else
-    check(corr === 1'b0,     "T2 PACK16=0: CORR_n == 0 (bad parity DETECTED)");
-    check(rd[8]  == ~odd_par(8'h55),
-                             "T2 PACK16=0: read parity is the STORED bad bit");
-`endif
+                             "T2 read parity is REGENERATED, stored bad bit gone");
 
     // ---- Test 3: BAD high-byte parity ---------------------------------
     w_badhi = mkword(8'hAA, 8'h55, ~odd_par(8'hAA), odd_par(8'h55));
     ram_write(10'd0, 10'd7, w_badhi);
     ram_read (10'd0, 10'd7, rd, corr);
-`ifdef ND_SDRAM_PACK16
-    check(corr === 1'b1,     "T3 PACK16=1: CORR_n == 1 (bad HIGH parity also absorbed)");
-`else
-    check(corr === 1'b0,     "T3 PACK16=0: CORR_n == 0 (bad HIGH parity detected)");
-`endif
+    check(corr === 1'b1,     "T3 CORR_n == 1 (bad HIGH parity also absorbed)");
+    check(rd[17] == odd_par(8'hAA),
+                             "T3 high read parity is REGENERATED");
 
     // ---- Test 4: a good word at a different address is unaffected -----
     ram_write(10'd3, 10'd9, mkword(8'h0F, 8'hF0, odd_par(8'h0F), odd_par(8'hF0)));

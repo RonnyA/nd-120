@@ -37,6 +37,11 @@ puts "Added $nfiles files from nd120_tang20k.gprj"
 
 set_option -top_module ND120_TANG20K_TOP
 set_option -verilog_std v2001
+# Congestion relief for the TANG_SMD build: the default placer left 9 nets
+# unrouted at CLS 90%. place_option/route_option 1 select Gowin's alternate
+# (congestion-driven) placement and routing algorithms.
+set_option -place_option 1
+set_option -route_option 1
 
 # GAO (Gowin Analyzer Oscilloscope) - opt-in on-chip logic analyzer.
 # gowin_build.ps1 -Gao writes build/gao_enable.flag; when present, the

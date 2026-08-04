@@ -31,6 +31,31 @@ test_idbctl: $(CPP_SOURCES)
 	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS)
 	cd obj_dir && make -f VCGA_IDBCTL.mk VCGA_IDBCTL
 
+# --- iverilog gate-level testbenches (self-checking, TB_RESULT: PASS) --------
+# Generic rule: `make iv-<MODULE>` compiles+runs <MODULE>_tb.v against the gate
+# netlists (Shared libs + circuit/ resolved via -y). Registered per-tb in
+# tests/run_all_tests.sh.
+IV_LIB = -y ${VERILOG_ROOT}/Shared/logisim -y ${VERILOG_ROOT}/Shared/support -y ${VERILOG_ROOT}/Shared/ndlib
+iv-%:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_$* $*_tb.v && vvp -N /tmp/ndtb_$*
+
+# --- CGA_IDBCTL_SEL6 exhaustive verification ---------------------------------
+# All 4096 {data,enable} combinations vs the independent sum-of-products
+# model (generator-cross-checked). Pure combinational (assign-only): a single
+# build mode covers it. Registered in tests/run_all_tests.sh.
+test-idbctl-sel6:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_idbctl_sel6 CGA_IDBCTL_SEL6_tb.v && vvp -N /tmp/ndtb_idbctl_sel6
+
+# --- CGA_IDBCTL_PGSREG verification, BOTH build modes ------------------------
+# Defining loads + walking-one + hold (with and without clock) + 256
+# fixed-seed LFSR steps vs the independent 14-bit register model (note the
+# PGS15 output is taken from QN). Registered module (14x SCAN_FF_EN switched
+# by FPGA_FF_MODE): run twice, default latch/CP mode then FPGA_FF_MODE
+# (MCLK_EN-gated sysclk capture). Registered in tests/run_all_tests.sh.
+test-idbctl-pgsreg:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_idbctl_pgsreg CGA_IDBCTL_PGSREG_tb.v && vvp -N /tmp/ndtb_idbctl_pgsreg
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_idbctl_pgsreg_ff CGA_IDBCTL_PGSREG_tb.v && vvp -N /tmp/ndtb_idbctl_pgsreg_ff
+
 clean:
 	rm -rf obj_dir
 

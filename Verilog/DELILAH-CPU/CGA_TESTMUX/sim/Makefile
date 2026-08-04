@@ -41,4 +41,9 @@ run: test_testmux
 gtk: run
 	gtkwave waveform.vcd testmux.gtkw &
 
-.PHONY: all clean
+# Registry target: build (Verilator) + run + strict verdict check.
+test-testmux: test_testmux
+	./obj_dir/VCGA_TESTMUX | tee testmux_result.tmp
+	@grep -q "TB_RESULT: PASS" testmux_result.tmp && rm -f testmux_result.tmp
+
+.PHONY: all clean run test-testmux

@@ -65,3 +65,112 @@ test-f595-transparency: F595_transparency_tb
 	@grep -q "TB_RESULT: PASS" f595tr_result.tmp && rm -f f595tr_result.tmp
 
 .PHONY: test-f595 test-f595-transparency
+
+# Small pure-comb DGA standard cells (F091 level gen, F103 inverter,
+# F571 2:1 mux w/ active-low enable) - exhaustive golden-table sweeps in
+# one tb. No build-mode ifdefs in these cells; one build covers all paths.
+FCELLS_SRCS = DGA_FCELLS_tb.v \
+              $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F091.v \
+              $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F103.v \
+              $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F571.v \
+              $(VERILOG_ROOT)/Shared/logisim/Multiplexer_2_w_enable.v
+
+DGA_FCELLS_tb: $(FCELLS_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(FCELLS_SRCS)
+
+test-fcells: DGA_FCELLS_tb
+	./DGA_FCELLS_tb | tee fcells_result.tmp
+	@grep -q "TB_RESULT: PASS" fcells_result.tmp && rm -f fcells_result.tmp
+
+# F617 D-FF with async RB/SB: directed load/hold/set/reset/priority tests
+# plus a 3000-step fixed-seed LFSR soak checked against checksums from an
+# independent Python event model. Covers BOTH ACTIVE_ASYNC parameter
+# values (0 = set-only repo default, 1 = dual async) in one binary; F617
+# has no VERILATOR_SIM/FPGA_FF_MODE ifdefs, the parameter is its only
+# behavior switch.
+F617_SRCS = F617_tb.v $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F617.v
+
+F617_tb: $(F617_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(F617_SRCS)
+
+test-f617: F617_tb
+	./F617_tb | tee f617_result.tmp
+	@grep -q "TB_RESULT: PASS" f617_result.tmp && rm -f f617_result.tmp
+
+.PHONY: test-fcells test-f617
+
+# F714 T-FF with async R/S: directed truth-table walk incl. the RTL
+# reset-priority behavior on the R=S=1 prohibition row (see tb header).
+F714_SRCS = F714_tb.v $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F714.v
+
+F714_tb: $(F714_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(F714_SRCS)
+
+test-f714: F714_tb
+	./F714_tb | tee f714_result.tmp
+	@grep -q "TB_RESULT: PASS" f714_result.tmp && rm -f f714_result.tmp
+
+.PHONY: test-f714
+
+# DECODE_DGA_IDBS - IDB source enable decoder + panel PRQ/VAL handshake.
+# Sequential (4x F924 on CLK0/CLK1): built+run in BOTH modes - default
+# posedge-CLK capture and -DFPGA_FF_MODE (sysclk+CLK_EN capture). No
+# latch primitives, so USE_TRANSPARENT_LATCHES does not apply. Exhaustive
+# decode sweep + directed panel-FSM walk + clock-group routing (default
+# build) + 4000-step fixed-seed soak vs an independent behavioral model.
+IDBS_SRCS = $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/DECODE_DGA_IDBS.v \
+            $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F924.v \
+            $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F091.v \
+            $(VERILOG_ROOT)/Shared/ndlib/F924_EN.v \
+            $(VERILOG_ROOT)/Shared/ndlib/D_FLIPFLOP_EN.v \
+            $(VERILOG_ROOT)/Shared/logisim/D_FLIPFLOP.v
+
+test-dga-idbs:
+	$(IVERILOG) -g2012 -o DECODE_DGA_IDBS_tb DECODE_DGA_IDBS_tb.v $(IDBS_SRCS)
+	./DECODE_DGA_IDBS_tb | tee idbs_result.tmp
+	@grep -q "TB_RESULT: PASS" idbs_result.tmp && rm -f idbs_result.tmp
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o DECODE_DGA_IDBS_tb_ff DECODE_DGA_IDBS_tb.v $(IDBS_SRCS)
+	./DECODE_DGA_IDBS_tb_ff | tee idbs_result.tmp
+	@grep -q "TB_RESULT: PASS" idbs_result.tmp && rm -f idbs_result.tmp
+
+.PHONY: test-dga-idbs
+
+# DECODE_DGA_POW - power-up/master-clear/RTC/bus-timeout sheet. Sequential
+# (F595 RS latches, A572 capture FF, sysclk RTC counter, RTOSC ripple
+# chain + F617 TOUT pair). FIVE builds cover every ifdef path: plain
+# (sync F595 + ripple chain, default 100MHz-derived RTC limit checked
+# statically), VERILATOR_SIM (transparent F595, 8192/2048 RTC + runtime
+# period pokes), VERILATOR_SIM+RTC_SIM_20MS=600 (build-knob override -
+# the tb hard-codes 600/150, keep the -D value paired), FPGA_FF_MODE+
+# BOARD_CLK_FREQ=25600 (synchronous chain, derived limit 511/127 run
+# dynamically - keep the -D value paired with the tb constants), and
+# VERILATOR_SIM+FPGA_FF_MODE (the sim FF-mode combination).
+POW_SRCS = $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/DECODE_DGA_POW.v \
+           $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F595.v \
+           $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F714.v \
+           $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F617.v \
+           $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F571.v \
+           $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F103.v \
+           $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F091.v \
+           $(VERILOG_ROOT)/Shared/logisim/Multiplexer_2_w_enable.v \
+           $(VERILOG_ROOT)/Shared/logisim/J_K_FLIPFLOP.v \
+           $(VERILOG_ROOT)/Shared/logisim/D_FLIPFLOP.v
+
+test-dga-pow:
+	$(IVERILOG) -g2012 -o DECODE_DGA_POW_tb DECODE_DGA_POW_tb.v $(POW_SRCS)
+	./DECODE_DGA_POW_tb | tee pow_result.tmp
+	@grep -q "TB_RESULT: PASS" pow_result.tmp && rm -f pow_result.tmp
+	$(IVERILOG) -g2012 -DVERILATOR_SIM -o DECODE_DGA_POW_tb_vs DECODE_DGA_POW_tb.v $(POW_SRCS)
+	./DECODE_DGA_POW_tb_vs | tee pow_result.tmp
+	@grep -q "TB_RESULT: PASS" pow_result.tmp && rm -f pow_result.tmp
+	$(IVERILOG) -g2012 -DVERILATOR_SIM -DRTC_SIM_20MS=600 -o DECODE_DGA_POW_tb_vs20 DECODE_DGA_POW_tb.v $(POW_SRCS)
+	./DECODE_DGA_POW_tb_vs20 | tee pow_result.tmp
+	@grep -q "TB_RESULT: PASS" pow_result.tmp && rm -f pow_result.tmp
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE -DBOARD_CLK_FREQ=25600 -o DECODE_DGA_POW_tb_ff DECODE_DGA_POW_tb.v $(POW_SRCS)
+	./DECODE_DGA_POW_tb_ff | tee pow_result.tmp
+	@grep -q "TB_RESULT: PASS" pow_result.tmp && rm -f pow_result.tmp
+	$(IVERILOG) -g2012 -DVERILATOR_SIM -DFPGA_FF_MODE -o DECODE_DGA_POW_tb_vsff DECODE_DGA_POW_tb.v $(POW_SRCS)
+	./DECODE_DGA_POW_tb_vsff | tee pow_result.tmp
+	@grep -q "TB_RESULT: PASS" pow_result.tmp && rm -f pow_result.tmp
+
+.PHONY: test-dga-pow

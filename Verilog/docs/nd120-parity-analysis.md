@@ -148,6 +148,54 @@ Testbench: `Verilog/fpga/tang-nano-20k/sdram-bridge/sim/` - the 18-bit tb
 (`test`) plus the packed-mode tb (`test-pack16`), both registered in
 `Verilog/tests/run_all_tests.sh` and emitting `TB_RESULT: PASS`.
 
+## 6b. POLICY (Ronny, 3-AUG-2026): no FPGA target ever STORES parity
+
+Section 6's contract was written for the Tang SDRAM backend only. It is now
+the rule for **every** sheet-49 memory backend, by decision, not by build
+flag: **FPGA block RAM is never spent on parity bits.** One bit per word costs
+a whole RAMB18 per chip (the smallest block the tools allocate) to hold data
+nothing reads back.
+
+Every backend therefore drops DD[8] / DD[17] on write and regenerates them on
+read as odd parity of the byte returned - `PAR = ~^data`, the Am29833A
+convention:
+
+| Backend | Target | Before 3-AUG-2026 | Now |
+|---|---|---|---|
+| `MEM_RAM_49_SDRAM` (`ND_SDRAM_PACK16`) | Tang | regenerated | unchanged |
+| `SIP1M9` `ramSize=3` | Basys3 | **returned constant 0** | regenerated |
+| `SIP1M9` `ramSize=2` | Verilator | stored | regenerated |
+| `MEM_RAM_49_BLOCKRAM` | FPGA variant | stored, 18-bit array | regenerated, 16-bit array |
+| `MEM_RAM_49_SIM` | Verilator | regenerated only under `ND_SDRAM_PACK16` | regenerated always |
+
+The old Basys3 behaviour was not merely "not stored" - constant 0 is the
+WRONG parity for every byte of even population, i.e. **128 of 256 values**
+(measured, see the tb below). It survived only because `MEM_43.v` masks
+`LPERR_n`. The sim backends were changed too, deliberately: a backend that
+stores parity in Verilator while the FPGA regenerates it is the sim-vs-silicon
+split that the golden reference exists to prevent.
+
+`RAM_PARITY_STORAGE` is gone. There is no way to switch storage back on, which
+is the point.
+
+Gates:
+
+- `Shared/support/sim :: test-am29833a-parity` - drives the chip that actually
+  checks parity over all 256 byte values: regenerated parity must never fault,
+  the inverted bit must always fault, and constant 0 faults exactly 128/256.
+  This is what makes unmasking `LPERR_n` a safe future step.
+- `CPU-BOARD-3202/circuit/sim :: test-memchain{,-blockram,-sim}` - the same
+  chain testbench against three backends. Its parity sweep writes 16 patterns
+  **with deliberately wrong parity** and requires correct regenerated parity
+  back, so storing, zeroing or inverting all fail. Teeth-proven 3-AUG-2026: a
+  build with Q9 forced back to 0 fails 35 checks.
+
+Still open, and NOT fixed by this work: `MEM_43.v` masks `LPERR_n`, and
+`AM29833A.v` evaluates its parity check only when `!ReceiveMode` while
+`MEM_DATA_46` wires the memory bus to T and LBD to R - so a memory READ is
+receive mode and the board's check does not evaluate there at all. See
+`Verilog/TODO.md`.
+
 ## 7. References
 
 - Work order: `Verilog/docs/nd120-parity-refactor-order.md`

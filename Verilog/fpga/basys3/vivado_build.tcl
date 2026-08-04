@@ -161,6 +161,20 @@ if {[lsearch -exact $_defs FPGA_FF_MODE] < 0} {
 if {[lsearch -exact $_defs SKIP_WCS_LOAD] < 0} {
     lappend _defs SKIP_WCS_LOAD
 }
+# MAIN_RAM_BLOCKRAM -- select the block-RAM sheet-49 backend (MEM_RAM_49_BLOCKRAM,
+#                  3 banks x 4K 18-bit words = 24 KB, the xc7a35t BRAM budget).
+#                  ADDED 3-AUG-2026. Until then this board defined NO MAIN_RAM_*
+#                  at all and therefore fell through MEM_43.v's `else branch into
+#                  the six-chip SIP1M9 DRAM sheet -- the exact "silent fallthrough"
+#                  that branch's own comment said must never happen, while the
+#                  comment simultaneously claimed no build used it. MEM_43.v now
+#                  makes a missing selection a compile error, so this define is
+#                  REQUIRED, not optional: without it synthesis fails on the
+#                  module ND120_ERROR_no_main_ram_backend_selected.
+#                  Same backend Cmod A7 already used (fpga/cmod-a7-35t/build.tcl).
+if {[lsearch -exact $_defs MAIN_RAM_BLOCKRAM] < 0} {
+    lappend _defs MAIN_RAM_BLOCKRAM
+}
 # Remove any stale BOARD_CLK_FREQ then set the correct one for clk_cpu.
 set _defs [lsearch -all -inline -not $_defs BOARD_CLK_FREQ=*]
 lappend _defs BOARD_CLK_FREQ=16666667

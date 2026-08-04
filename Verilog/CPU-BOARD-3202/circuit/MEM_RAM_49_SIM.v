@@ -118,20 +118,20 @@ module MEM_RAM_49_SIM (
       end
     end
 
-`ifdef ND_SDRAM_PACK16
-  // Packed-storage contract: parity is never READ from storage - recompute
-  // it from the 16 data bits at the output (odd parity, AM29833A
-  // convention). Stored parity still flows into q* above, keeping the
-  // b*_p arrays alive for the C++ preload hooks; it is replaced here, so
-  // observably it was never stored.
+  // PARITY IS ALWAYS REGENERATED, NEVER READ FROM STORAGE (policy, Ronny
+  // 3-AUG-2026 - see SIP1M9.v). Odd parity per byte, AM29833A convention.
+  // This was previously done only under ND_SDRAM_PACK16, which left this
+  // model returning STORED parity in every other build while the FPGA paths
+  // regenerated it - exactly the kind of sim-vs-silicon split that hides bugs
+  // from the Verilator golden reference. Now unconditional.
+  //
+  // The b*_p arrays stay (they are written above and read by the C++ preload
+  // hooks in runSim/Run120.cpp and sim/nd120_probe.cpp), but nothing they hold
+  // ever reaches the bus - this model is Verilator-only, so no FPGA memory is
+  // spent on them.
   wire [17:0] q0e = {~(^q0[16:9]), q0[16:9], ~(^q0[7:0]), q0[7:0]};
   wire [17:0] q1e = {~(^q1[16:9]), q1[16:9], ~(^q1[7:0]), q1[7:0]};
   wire [17:0] q2e = {~(^q2[16:9]), q2[16:9], ~(^q2[7:0]), q2[7:0]};
-`else
-  wire [17:0] q0e = q0;
-  wire [17:0] q1e = q1;
-  wire [17:0] q2e = q2;
-`endif
 
   // Data out valid while the bank's CAS is active on a read; banks OR together
   wire [17:0] dd0 = (cas_b0 && MWRITE50_n) ? q0e : 18'b0;

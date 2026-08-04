@@ -556,26 +556,30 @@ module MEM_43 (
       .RAS(s_ras),
       .DD_17_0_OUT(s_ram_dd_17_0_out[17:0])
   );
-`else
+`elsif MAIN_RAM_SIP1M9
   // ===========================================================================
-  // HISTORICAL FALLBACK - NOT USED BY ANY CURRENT BUILD. DO NOT ASSUME THIS IS
-  // THE SIMULATION OR FPGA RAM.
+  // OPT-IN ONLY (3-AUG-2026): the original six-chip SIP1M9 sheet
+  // (MEM_RAM_49.v + Shared/support/SIP1M9.v), kept as a schematic-faithful
+  // reference of the real sheet-49 DRAM array. It is NO LONGER a fallback -
+  // a board reaches it only by defining MAIN_RAM_SIP1M9 deliberately.
   //
-  //   * Verilator sim  -> MEM_RAM_49_SIM   (the `elsif VERILATOR_SIM` branch)
-  //   * Tang Nano 20K  -> MEM_RAM_49_SDRAM (the `ifdef MAIN_RAM_SDRAM` branch)
-  //   * BRAM boards    -> MEM_RAM_49_BLOCKRAM (the `elsif MAIN_RAM_BLOCKRAM`)
+  // Why this changed: until today this was the `else branch, and its own
+  // comment claimed "NOT USED BY ANY CURRENT BUILD". That was WRONG. Basys3
+  // defined no MAIN_RAM_* at all - the real synthesis logs show only
+  // FPGA_FF_MODE, SKIP_WCS_LOAD, BOARD_CLK_FREQ and UART_BAUD_RATE - so it had
+  // been silently landing here, which is precisely what the old comment said
+  // must never happen. Basys3 now selects MAIN_RAM_BLOCKRAM explicitly in
+  // fpga/basys3/vivado_build.tcl, and a missing selection is a COMPILE ERROR
+  // (the `else below) instead of a silent choice.
   //
-  // This branch (the original six-chip SIP1M9 sheet, MEM_RAM_49.v, Shared/
-  // support/SIP1M9.v) is reached ONLY when NONE of the above defines is set -
-  // which today is no build at all. It is kept purely as a schematic-faithful
-  // reference of the real sheet-49 DRAM array.
-  //
-  // It may be DELETED in the future. When it is, every FPGA board must select
-  // one of the MAIN_RAM_* backends above - either reuse an existing one
-  // (MEM_RAM_49_BLOCKRAM / _SDRAM / _SIM) or add its own MEM_RAM_49_<board>.v
-  // implementing the same sheet-49 interface (AA_9_0, BANK0/1/2, RAS, CAS,
-  // MWRITE50_n, DD_17_0_IN/OUT, CORR_n). A board must never silently fall
-  // through to this SIP1M9 path.
+  // Backend map:
+  //   * Verilator sim  -> MEM_RAM_49_SIM      (`elsif VERILATOR_SIM)
+  //   * Tang Nano 20K  -> MEM_RAM_49_SDRAM    (`ifdef MAIN_RAM_SDRAM)
+  //   * BRAM boards    -> MEM_RAM_49_BLOCKRAM (`elsif MAIN_RAM_BLOCKRAM)
+  //   * this reference -> MEM_RAM_49          (`elsif MAIN_RAM_SIP1M9)
+  // A new board either reuses one of those or adds its own
+  // MEM_RAM_49_<board>.v implementing the same sheet-49 interface (AA_9_0,
+  // BANK0/1/2, RAS, CAS, MWRITE50_n, DD_17_0_IN/OUT, CORR_n).
   // ===========================================================================
   MEM_RAM_49 RAM (
       .sysclk(sysclk),
@@ -594,5 +598,21 @@ module MEM_43 (
       // Output signals
       .DD_17_0_OUT(s_ram_dd_17_0_out[17:0])
   );
+`else
+  // ===========================================================================
+  // NO MAIN MEMORY BACKEND SELECTED - this is a build-configuration error.
+  //
+  // Every build must choose one, explicitly:
+  //   MAIN_RAM_SDRAM     Tang Nano 20K (8 MB SDRAM via sdram-bridge)
+  //   MAIN_RAM_BLOCKRAM  BRAM boards (Basys3, Cmod A7, QMTech)
+  //   VERILATOR_SIM      Verilator harnesses (6 MB behavioural model)
+  //   MAIN_RAM_SIP1M9    the six-chip sheet-49 reference (opt-in only)
+  //
+  // Instantiating a module that does not exist is the portable way to fail at
+  // ELABORATION in every tool we use (iverilog, Verilator, Vivado, Gowin) -
+  // there is no standard `error directive in Verilog-2001. The module name is
+  // the diagnostic; read it and go define one of the four above.
+  // ===========================================================================
+  ND120_ERROR_no_main_ram_backend_selected NO_RAM_BACKEND ();
 `endif
 endmodule

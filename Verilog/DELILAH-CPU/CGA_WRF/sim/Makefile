@@ -32,6 +32,58 @@ test_wrf: $(CPP_SOURCES)
 	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS)
 	cd obj_dir && make -f VCGA_WRF.mk VCGA_WRF
 
+# --- iverilog gate-level testbenches (self-checking, TB_RESULT: PASS) --------
+# Generic rule: `make iv-<MODULE>` compiles+runs <MODULE>_tb.v against the gate
+# netlists (Shared libs + circuit/ resolved via -y). Registered per-tb in
+# tests/run_all_tests.sh.
+IV_LIB = -y ${VERILOG_ROOT}/Shared/logisim -y ${VERILOG_ROOT}/Shared/support -y ${VERILOG_ROOT}/Shared/ndlib
+iv-%:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_$* $*_tb.v && vvp -N /tmp/ndtb_$*
+
+# --- CGA_WRF_RBLOCK_SEL16 verification ---------------------------------------
+# 8 directed corners + per-A02-slice exhaustive (8 slices x 64 combos) + 4096
+# fixed-seed LFSR full-width vectors vs the independent PA=|(SI&EA),
+# PB=|(SI&EB) model (generator-cross-checked). Pure combinational: a single
+# build mode covers it. Registered in tests/run_all_tests.sh.
+test-wrf-sel16:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_sel16 CGA_WRF_RBLOCK_SEL16_tb.v && vvp -N /tmp/ndtb_wrf_sel16
+
+# --- CGA_WRF_RBLOCK_LR16 verification, ALL THREE build modes -----------------
+# Defining load + walking-one/zero writes with WR=0 recirculation + hold +
+# 256 fixed-seed LFSR steps vs the independent R-register/L-latch model.
+# R81_EN switches on FPGA_FF_MODE, L8 switches on USE_TRANSPARENT_LATCHES:
+# run default, FF mode, and transparent-latch mode. Registered in
+# tests/run_all_tests.sh.
+test-wrf-lr16:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_lr16 CGA_WRF_RBLOCK_LR16_tb.v && vvp -N /tmp/ndtb_wrf_lr16
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_lr16_ff CGA_WRF_RBLOCK_LR16_tb.v && vvp -N /tmp/ndtb_wrf_lr16_ff
+	iverilog -g2012 -DUSE_TRANSPARENT_LATCHES $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_lr16_lat CGA_WRF_RBLOCK_LR16_tb.v && vvp -N /tmp/ndtb_wrf_lr16_lat
+
+# --- CGA_WRF_RBLOCK_DR16 verification, BOTH build modes ----------------------
+# Exhaustive 65536-value RB load sweep (WR=1, bit-for-bit) + clocked WR=0
+# hold + no-clock hold + sys_rst_n no-op pin + 4000 fixed-seed LFSR soak
+# with random WR vs the independent clocked golden model. Plain reg on
+# ALUCLK switched by FPGA_FF_MODE: run default latch/CP mode then
+# FPGA_FF_MODE. Registered in tests/run_all_tests.sh.
+test-wrf-dr16:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_dr16 CGA_WRF_RBLOCK_DR16_tb.v && vvp -N /tmp/ndtb_wrf_dr16
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_dr16_ff CGA_WRF_RBLOCK_DR16_tb.v && vvp -N /tmp/ndtb_wrf_dr16_ff
+
+# --- CGA_WRF_RBLOCK verification (PARENT level), ALL THREE build modes -------
+# Register-file addressing/selection wiring between the already-covered
+# SEL16/LR16/DR16 submodules: defining load + full read-back on both ports,
+# write-strobe gating, XFETCH-only P load, WR2-over-XFETCH priority,
+# read-select corners (0/multi/all enable wired-OR), exhaustive 16x16x2
+# walking-1/0 crossbar, PR/BR/XR latch-close semantics, no-clock hold and
+# a 4200-step fixed-seed LFSR soak vs an independent register-array model.
+# R81_EN/DR16 switch on FPGA_FF_MODE, L8 switches on USE_TRANSPARENT_LATCHES:
+# run default, FF mode, and transparent-latch mode. Registered in
+# tests/run_all_tests.sh.
+test-wrf-rblock:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_rblock CGA_WRF_RBLOCK_tb.v && vvp -N /tmp/ndtb_wrf_rblock
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_rblock_ff CGA_WRF_RBLOCK_tb.v && vvp -N /tmp/ndtb_wrf_rblock_ff
+	iverilog -g2012 -DUSE_TRANSPARENT_LATCHES $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_rblock_lat CGA_WRF_RBLOCK_tb.v && vvp -N /tmp/ndtb_wrf_rblock_lat
+
 clean:
 	rm -rf obj_dir
 

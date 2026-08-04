@@ -60,6 +60,19 @@ test-rqbitv2:
 	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_rqbitv2 CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2_tb.v && vvp -N /tmp/ndtb_rqbitv2
 	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_rqbitv2_ff CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2_tb.v && vvp -N /tmp/ndtb_rqbitv2_ff
 
+# --- CGA_INTR_CNTLR_VECGEN whole-block verification, BOTH build modes --------
+# MCLR + exhaustive 65536 MIREQ priority sweep + LDSTAT/comparator exhaustive
+# + enable sweep + vector+1 fence (incl. wrap and GPE blocking) + VHR + 512
+# fixed-seed LFSR steps vs the independent behavioral model (generator-
+# cross-checked). Registered module (SCAN_FF_EN + D_FLIPFLOP_EN switched by
+# FPGA_FF_MODE): run twice, default latch/CP mode then FPGA_FF_MODE. Built
+# with the fence-ON RTL default (no ND120_INTR_STATUS_FENCE_OFF). Registered
+# in tests/run_all_tests.sh. (CGA_INTR_CNTLR_CLR_CLRBIT is pure comb - run
+# via the generic rule: make iv-CGA_INTR_CNTLR_CLR_CLRBIT.)
+test-intr-vecgen:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_intr_vecgen CGA_INTR_CNTLR_VECGEN_tb.v && vvp -N /tmp/ndtb_intr_vecgen
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_intr_vecgen_ff CGA_INTR_CNTLR_VECGEN_tb.v && vvp -N /tmp/ndtb_intr_vecgen_ff
+
 clean:
 	rm -rf obj_dir obj_dir_irsrc
 

@@ -48,6 +48,134 @@ test-decode:
 	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_decode CGA_MAC_DECODE_tb.v && vvp -N /tmp/ndtb_mac_decode
 	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_decode_ff CGA_MAC_DECODE_tb.v && vvp -N /tmp/ndtb_mac_decode_ff
 
+# --- CGA_MAC_FASTADD exhaustive adder verification, BOTH build modes --------
+# Directed edge vectors + per-stage exhaustive sweeps (low adder 64K, high
+# adder 64K with carry=0 and 64K with carry=1) + 4096 fixed-seed LFSR vectors,
+# all vs an independent 16-bit-sum model. Pure comb module; both build modes
+# run for campaign uniformity. Registered in tests/run_all_tests.sh.
+test-fastadd:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_fastadd CGA_MAC_FASTADD_tb.v && vvp -N /tmp/ndtb_mac_fastadd
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_fastadd_ff CGA_MAC_FASTADD_tb.v && vvp -N /tmp/ndtb_mac_fastadd_ff
+
+# --- CGA_MAC_ADD address-adder verification, BOTH build modes ---------------
+# 4-way PRP source selector (A02 AOI + bubbled OR = OR-merge of selected
+# registers) + CDS sign-extension of CD[7:0] + FASTADD 16-bit sum, all vs an
+# independent behavioral golden model. Layers: exhaustive 32-combo control
+# sweep x 18 directed data tuples, per-bit carry corners x each single-select
+# mode, exhaustive CDS low-byte sweep with 3 ignored high bytes, 120000
+# fixed-seed random vectors. Pure comb module; both build modes run for
+# campaign uniformity. Registered in tests/run_all_tests.sh.
+test-mac-add:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_add CGA_MAC_ADD_tb.v && vvp -N /tmp/ndtb_mac_add
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_add_ff CGA_MAC_ADD_tb.v && vvp -N /tmp/ndtb_mac_add_ff
+
+# --- CGA_MAC_PTSEL exhaustive verification, BOTH build modes ----------------
+# All 32 {q,SPTN,SAPT,PONI,PTM} combinational SELPTN combos vs a golden table
+# + directed JK set/clear/hold/toggle sequences (toggle = the Issue-C hazard;
+# upstream DECODE fix guarantees J,K never both 1 in practice) + preset
+# dominance + hold-without-clock. Run twice: latch/CP mode, then FPGA_FF_MODE
+# (MCLK_EN-gated sysclk capture). Registered in tests/run_all_tests.sh.
+test-ptsel:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_ptsel CGA_MAC_PTSEL_tb.v && vvp -N /tmp/ndtb_mac_ptsel
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_ptsel_ff CGA_MAC_PTSEL_tb.v && vvp -N /tmp/ndtb_mac_ptsel_ff
+
+# --- CGA_MAC_SEGPT family, ALL THREE latch builds ---------------------------
+# The SEGPT registers are built from the L4/L8 latch primitives, whose
+# behavior switches on USE_TRANSPARENT_LATCHES (true level latch) vs default
+# (mux + posedge-sysclk FF). Each target runs three builds: plain,
+# -DFPGA_FF_MODE (campaign uniformity; L4/L8 do not reference it) and
+# -DUSE_TRANSPARENT_LATCHES. Golden tables from an independent Python gate
+# model (kept outside the repo, see tb headers). Registered in
+# tests/run_all_tests.sh; a FAIL line in any run fails the suite.
+SEGPT_MODES = "" "-DFPGA_FF_MODE" "-DUSE_TRANSPARENT_LATCHES"
+
+# Segment register: 256-value transparent sweep + SEGZN golden table +
+# directed load/hold + enable gating.
+test-segpt-seg:
+	for m in $(SEGPT_MODES); do \
+	  iverilog -g2012 $$m $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_segpt_seg CGA_MAC_SEGPT_SEG_tb.v && vvp -N /tmp/ndtb_segpt_seg || exit 1; \
+	done
+
+# XPT block: exhaustive 8x2 latched sweep vs golden table + transparency,
+# hold and enable gating.
+test-segpt-xpt:
+	for m in $(SEGPT_MODES); do \
+	  iverilog -g2012 $$m $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_segpt_xpt CGA_MAC_SEGPT_XPT_tb.v && vvp -N /tmp/ndtb_segpt_xpt || exit 1; \
+	done
+
+# PCR register: exhaustive 64K transparent sweep vs the bit-mapping (PIL
+# field 6:3 forced 0) + 32 LFSR literal loads + corners + enable gating.
+test-segpt-pcr:
+	for m in $(SEGPT_MODES); do \
+	  iverilog -g2012 $$m $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_segpt_pcr CGA_MAC_SEGPT_PCR_tb.v && vvp -N /tmp/ndtb_segpt_pcr || exit 1; \
+	done
+
+# SEGPT parent integration: MCLK inversion polarity, 260-vector load sweep
+# of all three registers, per-register load independence, MCLK=1 blocking,
+# transparency polarity.
+test-segpt:
+	for m in $(SEGPT_MODES); do \
+	  iverilog -g2012 $$m $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_segpt CGA_MAC_SEGPT_tb.v && vvp -N /tmp/ndtb_segpt || exit 1; \
+	done
+
+# --- CGA_MAC_APOS_INC exhaustive incrementer verification, single build -----
+# All 65536 LCA values vs an independent bitwise ripple model + running
+# checksum vs the Python-generator constant + directed carry-boundary
+# corners. Pure comb (the active RTL instantiates no library primitives),
+# so one build covers all modes. Registered in tests/run_all_tests.sh.
+test-apos-inc:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_apos_inc CGA_MAC_APOS_INC_tb.v && vvp -N /tmp/ndtb_mac_apos_inc
+
+# --- CGA_MAC_APOS_CALCA latch/register/decode verification, THREE builds ----
+# 64K transparent MCA sweep + checksum, exhaustive 1024-address load sweep
+# of the LCA register path with ECCR (IOX 100115) decode both ECCRHIN
+# polarities, 32 LFSR + 4 corner load/hold vectors, MCLK gating. Uses L8
+# (USE_TRANSPARENT_LATCHES) and R81_EN (FPGA_FF_MODE), so all three builds
+# run. Registered in tests/run_all_tests.sh; a FAIL in any run fails the
+# suite.
+test-apos-calca:
+	for m in $(SEGPT_MODES); do \
+	  iverilog -g2012 $$m $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_apos_calca CGA_MAC_APOS_CALCA_tb.v && vvp -N /tmp/ndtb_mac_apos_calca || exit 1; \
+	done
+
+# --- CGA_MAC_AP09 ICA selector + CALCA + incrementer, THREE builds ----------
+# Wired-OR ICA source mux (A02 AOI + bubbled OR3 + NLCA NAND gating) vs a
+# behavioral golden model, NLCA = LCA+1, MCA latch transparency/hold, LCA
+# register loads, ECCR (IOX 100115) decode both ECCRHIN polarities, 4000
+# fixed-seed xorshift soak with 1000 full load events. Uses L8 latches
+# (USE_TRANSPARENT_LATCHES) and R81_EN (FPGA_FF_MODE), so all three builds
+# run. Registered in tests/run_all_tests.sh; a FAIL in any run fails the
+# suite.
+test-mac-ap09:
+	for m in $(SEGPT_MODES); do \
+	  iverilog -g2012 $$m $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_ap09 CGA_MAC_AP09_tb.v && vvp -N /tmp/ndtb_mac_ap09 || exit 1; \
+	done
+
+# --- CGA_MAC_LASEL exhaustive shadow/select verification, BOTH build modes --
+# All 2^19 combinational input combos vs a Python-cross-checked compact
+# model + running checksum, plus LSHADOW (MCLK-clocked FF) capture/hold.
+# MEMORY_24 is a D_FLIPFLOP_EN, so plain and -DFPGA_FF_MODE both run; no
+# L4/L8 latches, so USE_TRANSPARENT_LATCHES does not apply. Registered in
+# tests/run_all_tests.sh.
+test-lasel:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_lasel CGA_MAC_LASEL_tb.v && vvp -N /tmp/ndtb_mac_lasel
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_lasel_ff CGA_MAC_LASEL_tb.v && vvp -N /tmp/ndtb_mac_lasel_ff
+
+# --- CGA_MAC_LA1025 logical-address block, THREE builds ---------------------
+# Wired-OR LA23-10 source merge (SEG/PCR/XPT/ICA products via A02 AOI +
+# bubbled OR, NAND pairs registered through inverting R81 outputs) vs a
+# behavioral golden model, plus the ECCRHIN LA[15:10]==100000 decode.
+# Layers: exhaustive 2048-combo control sweep x 4 distinct-constant tuples,
+# walking-1/0 per data input per select, ECCRHIN directed hits/near-misses
+# through all three ICA paths, register hold, 4000 fixed-seed soak. Only
+# R81_EN registers (no L4/L8), so plain and USE_TRANSPARENT_LATCHES builds
+# are identical; all three run for family uniformity. Registered in
+# tests/run_all_tests.sh; a FAIL line in any run fails the suite.
+test-mac-la1025:
+	for m in $(SEGPT_MODES); do \
+	  iverilog -g2012 $$m $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_la1025 CGA_MAC_LA1025_tb.v && vvp -N /tmp/ndtb_mac_la1025 || exit 1; \
+	done
+
 clean:
 	rm -rf obj_dir
 

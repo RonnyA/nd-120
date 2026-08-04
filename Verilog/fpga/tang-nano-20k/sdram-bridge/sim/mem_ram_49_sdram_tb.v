@@ -7,7 +7,7 @@
 **   read data sampled LATE in cycles N+4 and N+5 (hold check)             **
 **   RAS falls N+5, CAS N+6, next access >= N+11                           **
 **                                                                         **
-** Checks: directed first/last-word per bank, unpopulated BANK2, parity    **
+** Checks: directed first/last-word per bank, unpopulated BANK1, parity    **
 ** round-trip (including deliberately wrong parity bits), 2000-access      **
 ** random soak against a mirror model, idle-watchdog refresh, refresh      **
 ** cadence (avg interval < 16 us).                                         **
@@ -146,7 +146,7 @@ module mem_ram_49_sdram_tb;
       .dq(sd_dq)
   );
 
-  // ---- mirror model (banks 0/1 only) ----
+  // ---- mirror model (the populated banks BANK0/BANK2 only) ----
   reg [17:0] mirror[0:2097151];
   reg        written[0:2097151];
   integer wi;
@@ -195,9 +195,21 @@ module mem_ram_49_sdram_tb;
   endfunction
 `endif
 
+  // BANK ORDER (MEM_RAM_49_SDRAM.v lines 375-384, commit 81462c0, 23-JUL-2026):
+  // the board decode PAL PAL_44445B wires the three 1M-word banks in PHYSICAL
+  // address order BANK0, BANK2, BANK1. The two POPULATED regions are therefore
+  // BANK0 (phys 0-1M) and BANK2 (phys 1M-2M); BANK1 is the ABSENT third bank at
+  // phys 2M-3M. This is the silicon-validated 4 MB fix - a tb that treats BANK1
+  // as populated and BANK2 as absent is testing the pre-fix map.
+  //   phys(bank) = the 1-bit physical bank index: BANK0 -> 0, BANK2 -> 1.
+  function phys(input [1:0] bank);
+    phys = (bank == 2'd2);
+  endfunction
+
   // does this ND address belong to a populated bank AND the CPU partition?
   function present(input [1:0] bank, input [9:0] row);
-    present = (bank < 2) && ({1'b0, bank[0], row} < TB_ROWS[11:0]);
+    present = ((bank == 2'd0) || (bank == 2'd2)) &&
+              ({1'b0, phys(bank), row} < TB_ROWS[11:0]);
   endfunction
 
   // ---- one access with the measured 6-cycle signature ----
@@ -208,7 +220,7 @@ module mem_ram_49_sdram_tb;
     reg c4, c5;
     reg [20:0] idx;
     begin
-      idx = {bank[0], row, col};
+      idx = {phys(bank), row, col};
       @(posedge osc);  // N
       RAS   <= 1;
       AA    <= row;
@@ -333,7 +345,7 @@ module mem_ram_49_sdram_tb;
   task cpu_soak_run;
     begin
       for (i = 0; i < 2000; i = i + 1) begin
-        rb   = {$random} % 2;
+        rb   = (({$random} % 2) == 0) ? 2'd0 : 2'd2;  // populated banks only
         rrow = $random;
         rcol = $random;
         rdat = $random;
@@ -364,16 +376,16 @@ module mem_ram_49_sdram_tb;
     // ---- directed: first/last word of each populated bank ----
     wr18(0, 10'h000, 10'h000, 18'h00001);
     wr18(0, 10'h3FF, 10'h3FF, 18'h2AAAA);
-    wr18(1, 10'h000, 10'h000, 18'h15555);
-    wr18(1, 10'h3FF, 10'h3FF, 18'h3FFFE);
+    wr18(2, 10'h000, 10'h000, 18'h15555);
+    wr18(2, 10'h3FF, 10'h3FF, 18'h3FFFE);
     rd18(0, 10'h000, 10'h000);
     rd18(0, 10'h3FF, 10'h3FF);
-    rd18(1, 10'h000, 10'h000);
-    rd18(1, 10'h3FF, 10'h3FF);
+    rd18(2, 10'h000, 10'h000);
+    rd18(2, 10'h3FF, 10'h3FF);
 
-    // ---- unpopulated BANK2: write is dropped, read returns 0 ----
-    access(2, 10'h012, 10'h034, 1'b0, 18'h12345);
-    rd18(2, 10'h012, 10'h034);
+    // ---- unpopulated BANK1: write is dropped, read returns 0 ----
+    access(1, 10'h012, 10'h034, 1'b0, 18'h12345);
+    rd18(1, 10'h012, 10'h034);
 
     // ---- parity round-trip: even and (deliberately) odd parity words ----
     // legacy mode: stored parity (incl. BAD parity) round-trips verbatim;
@@ -401,19 +413,20 @@ module mem_ram_49_sdram_tb;
     rd18(0, 10'h020, 10'h3FE);
     // read-after-write of the SAME location's other half (stale-DQM check:
     // the write's lane mask must not blank the following read's data window)
-    wr18(1, 10'h021, 10'h004, 18'h12345);
-    rd18(1, 10'h021, 10'h005);
-    rd18(1, 10'h021, 10'h004);
+    wr18(2, 10'h021, 10'h004, 18'h12345);
+    rd18(2, 10'h021, 10'h005);
+    rd18(2, 10'h021, 10'h004);
 
     // ---- partition boundary (reduced-CPU builds): last CPU row present,
     // first storage-reserved row absent (write dropped, reads 0) ----
     if (TB_ROWS < 2048) begin
       $display("TB: pack16 partition boundary at row %0d...", TB_ROWS);
-      rb   = (TB_ROWS - 1) / 1024;
+      // physical row index -> ND bank name: phys 0 = BANK0, phys 1 = BANK2
+      rb   = (((TB_ROWS - 1) / 1024) == 0) ? 2'd0 : 2'd2;
       rrow = (TB_ROWS - 1) % 1024;
       wr18(rb, rrow, 10'h005, 18'h12345);
       rd18(rb, rrow, 10'h005);
-      rb   = TB_ROWS / 1024;
+      rb   = ((TB_ROWS / 1024) == 0) ? 2'd0 : 2'd2;
       rrow = TB_ROWS % 1024;
       wr18(rb, rrow, 10'h005, 18'h0AAAA);
       rd18(rb, rrow, 10'h005);
@@ -482,7 +495,7 @@ module mem_ram_49_sdram_tb;
     #200_000;
 `endif
     rd18(0, 10'h000, 10'h000);   // still correct after idle
-    rd18(1, 10'h3FF, 10'h3FF);
+    rd18(2, 10'h3FF, 10'h3FF);
 
     // ---- refresh cadence ----
     $display("TB: %0d refreshes, max gap %0t ns", refresh_count, max_refresh_gap);
