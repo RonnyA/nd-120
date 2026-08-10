@@ -195,7 +195,15 @@ module BIF_DPATH_9 (
   assign s_lbd_23_0_in        = LBD_23_0_IN;
   assign s_lbd_23_0_out       = s_ppnlbd_lbd_23_0_out | s_cdlbd_lbd_15_0_out | s_bdlbd_lbd_23_0_out;
 
-  assign s_cdlbd_lbd_15_0_in  = s_lbd_23_0_in[15:0] | s_ppnlbd_lbd_23_0_out[15:0] | s_bdlbd_lbd_23_0_out[15:0];
+  // The CDLBD's LBD pin is ONE bidirectional node on the board: when the chip
+  // itself drives LBD (A_OUT, regB->LBD during a CPU write), its own input
+  // register samples that same pin. Leaving the chip's own output out of its
+  // input made the DSTB_n-rise capture (PALASM 44302B: "DSTB TO SAMPLE DATA AT
+  // LBD/CD BUFFERS") read a dead bus during IOX writes, so the end-of-cycle
+  // echo (EMD window, WLBD_n high: regA -> CD -> DBR) delivered 0 and the
+  // microcode's unconditional A := DBR zeroed the A register on EVERY IOX
+  // OUTPUT. No combinational loop: A_OUT depends on regB, never on A_IN.
+  assign s_cdlbd_lbd_15_0_in  = s_lbd_23_0_in[15:0] | s_ppnlbd_lbd_23_0_out[15:0] | s_bdlbd_lbd_23_0_out[15:0] | s_cdlbd_lbd_15_0_out[15:0];
   assign s_bdlbd_lbd_23_0_in  = s_lbd_23_0_in[23:0] | s_ppnlbd_lbd_23_0_out[23:0] | s_cdlbd_lbd_15_0_out[15:0];
 
   /*******************************************************************************
