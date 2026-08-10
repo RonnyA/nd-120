@@ -1,3 +1,4 @@
+`include "nd_storage_status.vh"
 /**************************************************************************
 ** ND SMD DISC CONTROLLER, 15 MHz (ND632 / PCB 3043+3044), DMA           **
 **                                                                       **
@@ -179,6 +180,10 @@ module ND_SMD #(
     output wire [10:0] disk_wordcount, // words in the current chunk
     input  wire        disk_done,
     input  wire        disk_err_in,
+    // WHY the backend failed (nd_storage_status.vh), valid with disk_done
+    // when disk_err_in. Mapped below onto status bits THIS card's manual
+    // already defines - the code itself never reaches the guest.
+    input  wire [3:0]  disk_err_code,
     input  wire [9:0]  dbuf_addr,
     input  wire [15:0] dbuf_wdata,
     input  wire        dbuf_we,
@@ -432,6 +437,81 @@ module ND_SMD #(
       s_wcw_ff     <= 1'b0;
       s_wcr_ff     <= 1'b0;
       s_wc_eccw_ff <= 1'b0;
+    end
+  endtask
+
+  // ==== BACKEND FAILURE -> STATUS BIT =====================================
+  //
+  // WHERE THESE BITS COME FROM: every bit set below is one the SMD DISC
+  // CONTROLLER MANUAL ND-11.020.01, SECTION 2.5 (status register, read at
+  // IOX +4 when the multiplex bit selects status) already defines for this
+  // card. They are assembled into s_status above, each with its bit number
+  // and manual name. NOTHING here is invented: this task chooses AMONG the
+  // manual's bits, it never adds one and never puts the reason code itself
+  // anywhere the guest can read it. That rule is stated in
+  // Verilog/SD-FAT/circuit/nd_storage_status.vh: the SD-FAT stack is
+  // clean-room and may carry a reason code, a reproduced ND card may not.
+  //
+  // WHERE THE REASON CODE COMES FROM: nd_storage_engine.v tags the failure
+  // where it happens, and it travels engine -> nd_storage ->
+  // nd_storage_disc_adapter -> disk_err_code here.
+  //
+  // FULL MAPPING - all nine codes of nd_storage_status.vh:
+  //
+  //   NDS_ERR_NOCARD    b7  hardware error 2. No SD card in the slot: the
+  //                         drive electronics behind the interface cannot
+  //                         serve at all, which is the general hardware
+  //                         fault this bit reports.
+  //   NDS_ERR_NOTOPEN   b7  same bit: SMD0.IMG is not on the card, or the
+  //                         mount failed, so again there is no usable drive.
+  //   NDS_ERR_RANGE     b8  address mismatch - the CHS position asked for
+  //                         is past the end of the image, i.e. the address
+  //                         was not found on the drive.
+  //   NDS_ERR_TIMEOUT   b6  timeout. The engine watchdog fired: the backend
+  //                         never answered - exactly the event b6 exists for.
+  //   NDS_ERR_WRPROT    b5  illegal load. The controller was asked for a
+  //   NDS_ERR_WRALIGN   b5  transfer it is not allowed to perform (write
+  //                         path absent, or a partial/unaligned write that
+  //                         would need a read-modify-write). The medium is
+  //                         fine; the REQUEST was rejected - which is what
+  //                         "illegal load" means on this card.
+  //   NDS_ERR_CARDIO    b10 comparer error. The card answered but the data
+  //   NDS_ERR_FATCHAIN  b10 cannot be trusted (CMD17/CMD24 failure, CRC,
+  //                         card stopped mid-block, broken/circular FAT
+  //                         chain). b10 is the bit this file already used
+  //                         for a media write fault, so CARDIO keeps the
+  //                         historical behaviour byte-for-byte.
+  //   NDS_ERR_NONE          never reaches this task (no error, no call).
+  //
+  // b4 (inclusive OR of the error bits) follows automatically via
+  // s_incl_or, and err_active additionally forces b13 disk-unit-not-ready
+  // for the selected unit - both exactly as before this task existed.
+  //
+  // WHY THIS EXISTS: before it, every backend failure reached the guest as
+  // the same anonymous "not ready" (plus, on writes only, a comparer
+  // error). "No SD card", "SMD0.IMG absent", "block past the end of the
+  // image", "broken FAT chain" and "the card stopped answering" were
+  // indistinguishable from the guest, from DISC-TEMA and from a waveform.
+  //
+  // Call this BEFORE err_active (err_active clears the transfer state).
+  // ========================================================================
+  task set_backend_fault;
+    input [3:0] code;
+    begin
+      case (code)
+        // b7 hardware error 2 (ND-11.020.01 sec 2.5)
+        `NDS_ERR_NOCARD,
+        `NDS_ERR_NOTOPEN:  s_hw_err2       <= 1'b1;
+        // b8 address mismatch (sec 2.5)
+        `NDS_ERR_RANGE:    s_addr_mismatch <= 1'b1;
+        // b6 timeout (sec 2.5)
+        `NDS_ERR_TIMEOUT:  s_time_out      <= 1'b1;
+        // b5 illegal load (sec 2.5)
+        `NDS_ERR_WRPROT,
+        `NDS_ERR_WRALIGN:  s_illegal       <= 1'b1;
+        // b10 comparer error (sec 2.5) - CARDIO, FATCHAIN
+        default:           s_comparer_err  <= 1'b1;
+      endcase
     end
   endtask
 
@@ -878,7 +958,9 @@ module ND_SMD #(
               s_rft        <= 1'b1;
               s_eng        <= E_IDLE;
             end else if (disk_err_in) begin
-              // media read fault -> disk unit not ready (oracle READ_ERROR)
+              // media read fault -> disk unit not ready (oracle READ_ERROR),
+              // plus the bit that says which fault it actually was
+              set_backend_fault(disk_err_code);
               err_active;
             end else if (s_boot_fetch) begin
               s_boot_fetch  <= 1'b0;
@@ -951,7 +1033,10 @@ module ND_SMD #(
         E_DISK_WR: begin
           if (disk_done) begin
             if (disk_err_in) begin
-              s_comparer_err <= 1'b1;  // media write fault (oracle WriteBlock false)
+              // media write fault (oracle WriteBlock false). The reason
+              // picks the bit; NDS_ERR_CARDIO keeps the historical
+              // comparer-error bit this branch always set.
+              set_backend_fault(disk_err_code);
               err_active;
             end else if (s_words_left == 24'd0) begin
               s_delay_cnt <= DELAY_TICKS;

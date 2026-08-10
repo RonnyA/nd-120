@@ -1,3 +1,4 @@
+`include "nd_storage_status.vh"
 /**************************************************************************
 ** ND-100 FLOPPY DISK CONTROLLER, DMA INTERFACE (3112 / "new controller")**
 **                                                                       **
@@ -140,6 +141,10 @@ module ND_FLOPPY_DMA #(
     output wire [10:0] disk_wordcount, // words per sector
     input  wire        disk_done,
     input  wire        disk_err_in,
+    // WHY the backend failed (nd_storage_status.vh), valid with disk_done
+    // when disk_err_in. Mapped below onto codes from THIS controller's own
+    // error enum (deviceFloppyDMA.h / nd_floppy_dma.h) - never a new one.
+    input  wire [3:0]  disk_err_code,
     // Media format of the mounted image, derived from the image size by
     // the backend exactly like deviceFloppyDMA.c ExecuteFloppyGo/READ
     // FORMAT: {doubleDensity, doubleSided, bytesPerSector[1:0]}.
@@ -158,6 +163,92 @@ module ND_FLOPPY_DMA #(
   reg        s_rft;           // status b3
   reg        s_hard_err;      // status b7
   reg [5:0]  s_err_code;      // Status Word 1 b9-14 (ND-11.021 §3.4/§3.9)
+
+  // ==== BACKEND FAILURE -> ERROR CODE =====================================
+  //
+  // WHERE THESE CODES COME FROM: this controller does not report failures
+  // as individual status BITS the way the SMD and Winchester cards do. It
+  // reports a 6-bit NUMBER in STATUS WORD 1 bits 9-14 (ND-11.021.01 sec
+  // 3.4/3.9, tabulated in docs/floppy-3112-register-spec-ND-11.021.md),
+  // written back to the command block at CB+6 - never to an IOX register.
+  // The legal values are exactly the enum in
+  // Verilog/ND-BUS-DEVICES/portable/include/nd_floppy_dma.h, which is the
+  // same table nd100x's deviceFloppyDMA.h uses:
+  //
+  //     0       FLOPPY_ERR_OK               transfer ok
+  //     5       FLOPPY_ERR_CRC              CRC error - the media fault code
+  //     oct 16  FLOPPY_ERR_WRITE_PROTECTED  write-protected diskette
+  //     oct 20  FLOPPY_ERR_DRIVE_NOT_READY  drive not attached / not ready
+  //     oct 41  ND-100 BUS ERROR COMMAND FETCH   (set at the CB fetch)
+  //     oct 43  ND-100 BUS ERROR DATA TRANSFER   (set in the DMA path)
+  //     oct 50  FLOPPY_ERR_NO_BOOTSTRAP     no bootstrap on the diskette
+  //     oct 71  FLOPPY_ERR_RAM_ERROR        controller RAM error
+  //
+  // NOTHING outside that table may be produced here. This function chooses
+  // AMONG those values, it never adds one, and the storage stack's reason
+  // code itself never reaches the guest. That rule is stated in
+  // Verilog/SD-FAT/circuit/nd_storage_status.vh: the SD-FAT stack is
+  // clean-room and may carry a reason code, a reproduced ND card may not.
+  //
+  // WHERE THE REASON CODE COMES FROM: nd_storage_engine.v tags the failure
+  // where it happens, and it travels engine -> nd_storage ->
+  // nd_storage_floppy_adapter -> disk_err_code here.
+  //
+  // FULL MAPPING - all nine codes of nd_storage_status.vh:
+  //
+  //   NDS_ERR_NOCARD    oct 20  no SD card in the slot. From the guest's
+  //                             side there is no diskette in the drive,
+  //                             which is what DRIVE_NOT_READY reports.
+  //   NDS_ERR_NOTOPEN   oct 20  FLOPPY1.IMG/FLOPPY2.IMG is not on the card
+  //                             (or its mount failed): again, no diskette.
+  //   NDS_ERR_TIMEOUT   oct 20  the backend never answered. This card has
+  //                             no timeout code of its own, and the
+  //                             existing DISK_TIMEOUT watchdog in this file
+  //                             already reports oct 20 - kept identical.
+  //   NDS_ERR_RANGE     oct 20  a sector past the end of the image. There
+  //                             is no seek-error or address-mismatch code
+  //                             in this card's table, so it falls back to
+  //                             the general not-ready value rather than
+  //                             borrow a code that means something else.
+  //   NDS_ERR_WRPROT    oct 16  the write path is not built in.
+  //   NDS_ERR_WRALIGN   oct 16  a partial/unaligned write was refused. Both
+  //                             are "this diskette cannot be written",
+  //                             which is exactly WRITE_PROTECTED, and it
+  //                             correctly tells the driver the MEDIUM is
+  //                             fine - retrying the read will work.
+  //   NDS_ERR_CARDIO    5       the card answered but the data cannot be
+  //   NDS_ERR_FATCHAIN  5       trusted (CMD17/CMD24 failure, CRC, card
+  //                             stopped mid-block, broken/circular FAT
+  //                             chain). nd_floppy_dma.h documents CRC
+  //                             verbatim as "used for a media fault".
+  //   NDS_ERR_NONE              never reaches this function (no error).
+  //
+  // The BOOT autoload path is NOT routed through here: a backend failure
+  // during '1560&' must stay oct 50 NO_BOOTSTRAP + hard error + leave boot
+  // mode, matching both authorities (nd_floppy_dma.c boot_fail() and
+  // nd100x deviceFloppyDMA.c ExecuteAutoload). See E_DISK_RD below.
+  //
+  // WHY THIS EXISTS: before it, every backend failure reported the single
+  // value oct 20, so a diagnostic could not tell a missing diskette from a
+  // broken one, nor a refused write from a dead drive.
+  // ========================================================================
+  function [5:0] flp_err_code;
+    input [3:0] code;
+    begin
+      case (code)
+        // oct 20 DRIVE_NOT_READY - no medium, or no answer at all
+        `NDS_ERR_NOCARD,
+        `NDS_ERR_NOTOPEN,
+        `NDS_ERR_TIMEOUT,
+        `NDS_ERR_RANGE:   flp_err_code = 6'o20;
+        // oct 16 WRITE_PROTECTED - the transfer was refused, medium is fine
+        `NDS_ERR_WRPROT,
+        `NDS_ERR_WRALIGN: flp_err_code = 6'o16;
+        // 5 CRC - this card's media-fault code (CARDIO, FATCHAIN)
+        default:          flp_err_code = 6'd5;
+      endcase
+    end
+  endfunction
   reg [7:0]  s_ptr_hi;        // command block address b23-16
   reg [15:0] s_ptr_lo;        // command block address b15-0
   reg        s_test_mode;
@@ -547,9 +638,10 @@ module ND_FLOPPY_DMA #(
                 s_final_wb    <= 1'b0;  // boot path: no command block
                 s_eng         <= E_DELAY;
               end else begin
-                // backend not-ready / read failure: DRIVE_NOT_READY = oct 20
-                // (deviceFloppyDMA.c uses DRIVE_NOT_READY, sets only the code)
-                s_err_code <= 6'o20;
+                // backend not-ready / read failure. deviceFloppyDMA.c sets
+                // only the code and always DRIVE_NOT_READY; here the reason
+                // picks it, and a missing medium still lands on oct 20.
+                s_err_code <= flp_err_code(disk_err_code);
                 s_eng      <= E_WBACK;
                 s_wb_idx   <= 3'd0;
               end
@@ -664,8 +756,9 @@ module ND_FLOPPY_DMA #(
         E_DISK_WR: begin
           if (disk_done) begin
             if (disk_err_in) begin
-              // write failure -> DRIVE_NOT_READY = oct 20 (code only, like C)
-              s_err_code <= 6'o20;
+              // write failure: code only, like C, but the reason chooses it
+              // (a refused unaligned write is WRITE_PROTECTED, not a dead drive)
+              s_err_code <= flp_err_code(disk_err_code);
               s_eng      <= E_WBACK;
               s_wb_idx   <= 3'd0;
             end else if (s_words_left == 32'd0) begin

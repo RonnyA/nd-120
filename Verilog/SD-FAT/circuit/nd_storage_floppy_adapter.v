@@ -1,3 +1,4 @@
+`include "nd_storage_status.vh"
 /****************************************************************************
 ** nd_storage_floppy_adapter - block adapter for the DMA floppy backend    **
 **                                                                         **
@@ -84,6 +85,11 @@ module nd_storage_floppy_adapter #(
     input  wire [10:0] disk_wordcount,  // words to move
     output reg         disk_done,       // 1-cycle pulse
     output reg         disk_err,        // valid with disk_done
+    // WHY it failed, valid with disk_done (nd_storage_status.vh). The
+    // controller maps this onto a status bit ITS OWN MANUAL defines - it
+    // never invents one - so the guest can tell a missing card from a
+    // missing file from a sector past the end of the image.
+    output reg  [ 3:0] disk_err_code,
     output reg  [ 9:0] dbuf_addr,       // device sector buffer fill (reads)
     output reg  [15:0] dbuf_wdata,
     output reg         dbuf_we,
@@ -103,6 +109,7 @@ module nd_storage_floppy_adapter #(
     input  wire        c_busy,
     input  wire        c_done,          // 1-cycle pulse
     input  wire        c_err,           // valid with c_done
+    input  wire [ 3:0] c_err_code,      // valid with c_done when c_err
     input  wire [ 9:0] c_buf_addr,
     input  wire [15:0] c_buf_wdata,
     input  wire        c_buf_we,
@@ -130,10 +137,14 @@ module nd_storage_floppy_adapter #(
   // local buffer overflow guard (a consistent device never trips this)
   wire [11:0] s_span = {2'd0, s_req_woff} + {1'd0, disk_wordcount};
 
-  wire s_bad = !c_open_ok
-             | (s_span > 12'd1024)
-             | (disk_wr ? (s_wr_end_bytes > c_size_bytes)
-                        : (s_rd_end_bytes > c_size_bytes));
+  // The three refusals kept apart, so the reason survives to the guest
+  // instead of collapsing into one anonymous error bit.
+  wire s_notopen = !c_open_ok;
+  wire s_straddle = (s_span > 12'd1024);   // sector crosses a block boundary
+  wire s_oor = disk_wr ? (s_wr_end_bytes > c_size_bytes)
+                       : (s_rd_end_bytes > c_size_bytes);
+
+  wire s_bad = s_notopen | s_straddle | s_oor;
 
   // full aligned block write: no read-modify-write pre-read needed
   wire s_direct = (s_req_woff == 10'd0) && (disk_wordcount == 11'd1024);
@@ -160,6 +171,7 @@ module nd_storage_floppy_adapter #(
   reg        s_have_blk;  // s_blkbuf/s_cur_blk are valid
   reg        s_commit;    // write phase: 0 = RMW pre-read, 1 = commit write
   reg        s_err_q;     // error verdict for the F_DONE pulse
+  reg [ 3:0] s_code_q;    // and WHY, for the same pulse
 
   // block buffer: single write port (client fetch stream has priority;
   // the overlay walk only runs while the client port is idle), plus a
@@ -192,6 +204,8 @@ module nd_storage_floppy_adapter #(
       s_have_blk <= 1'b0;
       s_commit   <= 1'b0;
       s_err_q    <= 1'b0;
+      s_code_q      <= `NDS_ERR_NONE;
+      disk_err_code <= `NDS_ERR_NONE;
     end else begin
       disk_done  <= 1'b0;
       disk_err   <= 1'b0;
@@ -213,10 +227,14 @@ module nd_storage_floppy_adapter #(
             s_blk   <= s_req_blk;
             s_idx   <= 11'd0;
             if (s_bad) begin
-              s_err_q <= 1'b1;
+              s_err_q  <= 1'b1;
+              s_code_q <= s_notopen  ? `NDS_ERR_NOTOPEN
+                        : s_oor      ? `NDS_ERR_RANGE
+                                     : `NDS_ERR_WRALIGN;  // straddle
               s_state <= F_DONE;
             end else if (disk_wordcount == 11'd0) begin
-              s_err_q <= 1'b0;          // nothing to move: clean completion
+              s_err_q  <= 1'b0;         // nothing to move: clean completion
+              s_code_q <= `NDS_ERR_NONE;
               s_state <= F_DONE;
             end else if (disk_wr) begin
               // the buffer is about to mutate: the cache is invalid until
@@ -253,11 +271,13 @@ module nd_storage_floppy_adapter #(
             if (c_err) begin
               s_have_blk <= 1'b0;       // cache is suspect: drop it
               s_err_q    <= 1'b1;
+              s_code_q   <= c_err_code; // pass the storage stack's reason on
               s_state    <= F_DONE;
             end else if (s_op_wr && s_commit) begin
               s_have_blk <= 1'b1;       // committed: buffer == block content
               s_cur_blk  <= s_blk;
               s_err_q    <= 1'b0;
+              s_code_q   <= `NDS_ERR_NONE;
               s_state    <= F_DONE;
             end else if (s_op_wr) begin
               s_state <= F_PULL1;       // RMW pre-read landed: overlay next
@@ -280,7 +300,8 @@ module nd_storage_floppy_adapter #(
           dbuf_wdata <= s_word;
           dbuf_we    <= 1'b1;
           if (s_idx + 11'd1 >= s_wc) begin
-            s_err_q <= 1'b0;
+            s_err_q  <= 1'b0;
+            s_code_q <= `NDS_ERR_NONE;
             s_state <= F_DONE;
           end else begin
             s_idx   <= s_idx + 11'd1;
@@ -313,6 +334,7 @@ module nd_storage_floppy_adapter #(
         F_DONE: begin
           disk_done  <= 1'b1;
           disk_err   <= s_err_q;
+          disk_err_code <= s_code_q;
           dbuf_addr  <= 10'd0;
           dbuf_wdata <= 16'd0;
           s_state    <= F_IDLE;

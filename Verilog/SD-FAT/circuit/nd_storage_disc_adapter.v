@@ -1,5 +1,6 @@
+`include "nd_storage_status.vh"
 /****************************************************************************
-** nd_storage_smd_adapter - block adapter for the ND_SMD disk backend      **
+** nd_storage_disc_adapter - block adapter for the ND_SMD disk backend      **
 **                                                                         **
 ** Sits between ND_SMD's disk-image backend port (pin-for-pin, see         **
 ** Verilog/ND-BUS-DEVICES/SMD/circuit/ND_SMD.v) and ONE nd_storage client  **
@@ -88,7 +89,7 @@
 ** Ronny Hansen                                                            **
 *****************************************************************************/
 
-module nd_storage_smd_adapter #(
+module nd_storage_disc_adapter #(
     parameter [2:0]  UNIT = 3'd0,      // disk_unit value this instance serves
     // Drive geometry, used to turn cylinder/head/sector into a flat image
     // offset. MUST match the GEO_* parameters of the ND_SMD instance in front
@@ -110,6 +111,11 @@ module nd_storage_smd_adapter #(
     input  wire [10:0] disk_wordcount,  // words in this chunk
     output reg         disk_done,       // 1-cycle pulse
     output reg         disk_err,        // valid with disk_done
+    // WHY it failed, valid with disk_done (nd_storage_status.vh). The
+    // controller maps this onto a status bit ITS OWN MANUAL defines - it
+    // never invents one - so the guest can tell a missing card from a
+    // missing file from a block past the end of the image.
+    output reg  [3:0]  disk_err_code,
     output wire [ 9:0] dbuf_addr,       // device buffer fill (reads) / readout (writes)
     output reg  [15:0] dbuf_wdata,
     output reg         dbuf_we,
@@ -129,6 +135,7 @@ module nd_storage_smd_adapter #(
     input  wire        c_busy,
     input  wire        c_done,          // 1-cycle pulse
     input  wire        c_err,           // valid with c_done
+    input  wire [3:0]  c_err_code,      // valid with c_done when c_err
     input  wire [ 9:0] c_buf_addr,
     input  wire [15:0] c_buf_wdata,
     input  wire        c_buf_we,
@@ -188,6 +195,7 @@ module nd_storage_smd_adapter #(
   reg [10:0] s_idx;      // chunk words already served before this segment
   reg [10:0] s_seg;      // words this block segment covers
   reg        s_err_q;    // verdict for the S_DONE pulse
+  reg [3:0]  s_code_q;   // and WHY, for the same pulse
   reg [ 9:0] r_dbuf_addr;
 
   // current segment geometry (combinational; latched into s_seg at c_req)
@@ -229,6 +237,8 @@ module nd_storage_smd_adapter #(
       s_idx       <= 11'd0;
       s_seg       <= 11'd0;
       s_err_q     <= 1'b0;
+      s_code_q    <= `NDS_ERR_NONE;
+      disk_err_code <= `NDS_ERR_NONE;
     end else begin
       disk_done  <= 1'b0;
       disk_err   <= 1'b0;
@@ -257,9 +267,17 @@ module nd_storage_smd_adapter #(
             s_idx   <= 11'd0;
             if (s_bad) begin
               s_err_q <= 1'b1;
+              // Say WHICH refusal this is. All three used to look identical
+              // to the guest, and a write silently refused for being
+              // unaligned is the worst of them: the data never reached the
+              // card and nothing said so beyond one anonymous error bit.
+              s_code_q <= !c_open_ok            ? `NDS_ERR_NOTOPEN
+                        : (s_oor | s_blk_ovf)   ? `NDS_ERR_RANGE
+                                                : `NDS_ERR_WRALIGN;
               s_state <= S_DONE;
             end else if (disk_wordcount == 11'd0) begin
-              s_err_q <= 1'b0;          // nothing to move: clean completion
+              s_err_q  <= 1'b0;          // nothing to move: clean completion
+              s_code_q <= `NDS_ERR_NONE;
               s_state <= S_DONE;
             end else begin
               s_state <= S_CREQ;
@@ -288,16 +306,19 @@ module nd_storage_smd_adapter #(
           end
           if (c_done) begin
             if (c_err) begin
-              s_err_q <= 1'b1;
-              s_state <= S_DONE;
+              s_err_q  <= 1'b1;
+              s_code_q <= c_err_code;   // pass the storage stack's reason on
+              s_state  <= S_DONE;
             end else if (s_op_wr) begin
               s_pos   <= s_p + 28'd1024;  // one full block committed
-              s_err_q <= 1'b0;
-              s_state <= S_DONE;
+              s_err_q  <= 1'b0;
+              s_code_q <= `NDS_ERR_NONE;
+              s_state  <= S_DONE;
             end else if ({6'd0, s_idx} + {6'd0, s_seg} >= {6'd0, s_wc}) begin
               s_pos   <= s_p + {17'd0, s_seg};  // chunk complete
-              s_err_q <= 1'b0;
-              s_state <= S_DONE;
+              s_err_q  <= 1'b0;
+              s_code_q <= `NDS_ERR_NONE;
+              s_state  <= S_DONE;
             end else begin
               s_idx   <= s_idx + s_seg;   // next covered block
               s_p     <= s_p + {17'd0, s_seg};
@@ -308,7 +329,8 @@ module nd_storage_smd_adapter #(
 
         S_DONE: begin
           disk_done   <= 1'b1;
-          disk_err    <= s_err_q;
+          disk_err      <= s_err_q;
+          disk_err_code <= s_code_q;
           r_dbuf_addr <= 10'd0;
           dbuf_wdata  <= 16'd0;
           s_state     <= S_IDLE;

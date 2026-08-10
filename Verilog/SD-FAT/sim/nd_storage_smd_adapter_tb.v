@@ -1,5 +1,6 @@
+`include "nd_storage_status.vh"
 /****************************************************************************
-** Testbench for nd_storage_smd_adapter (iverilog)                         **
+** Testbench for nd_storage_disc_adapter (iverilog)                         **
 **                                                                         **
 ** The adapter maps ND_SMD's disk-image backend port (chunk transfers:     **
 ** disk_start latches the base position from the CYLINDER/HEAD/SECTOR      **
@@ -67,7 +68,7 @@
 *****************************************************************************/
 `timescale 1ns / 1ps
 
-module nd_storage_smd_adapter_tb;
+module nd_storage_disc_adapter_tb;
 
   localparam STOR_HALF = 18.5;  // ~27.03 MHz
   localparam CPU_HALF  = 21.7;  // ~23.04 MHz
@@ -111,6 +112,7 @@ module nd_storage_smd_adapter_tb;
   reg  [2:0]  ta_unit = 0;
   reg  [10:0] ta_wc = 0;
   wire        ta_done, ta_err;
+  wire [ 3:0] ta_code;              // WHY, from nd_storage_status.vh
   wire [9:0]  ta_dbuf_addr;
   wire [15:0] ta_dbuf_wdata;
   wire        ta_dbuf_we;
@@ -126,6 +128,10 @@ module nd_storage_smd_adapter_tb;
   reg         u_err_on_wr  = 0;   // error only client WRITE ops (the commit)
 
   reg         u_busy = 0, u_done = 0, u_err = 0, u_bwe = 0;
+  // The reason the scripted client reports with u_err. The adapter must
+  // hand it to the controller UNCHANGED - a failure inside nd_storage must
+  // not be flattened into the adapter's own generic verdict.
+  reg  [ 3:0] u_err_code = `NDS_ERR_CARDIO;
   reg  [9:0]  u_baddr = 0;
   reg  [15:0] u_bwdata = 0;
 
@@ -139,7 +145,7 @@ module nd_storage_smd_adapter_tb;
   always @(posedge clk_cpu)
     if (ta_dbuf_we) ta_cap[ta_dbuf_addr] <= ta_dbuf_wdata;
 
-  nd_storage_smd_adapter #(
+  nd_storage_disc_adapter #(
       .UNIT(3'd0)
   ) dut_u (
       .clk_cpu       (clk_cpu),
@@ -153,6 +159,7 @@ module nd_storage_smd_adapter_tb;
       .disk_wordcount(ta_wc),
       .disk_done     (ta_done),
       .disk_err      (ta_err),
+      .disk_err_code (ta_code),
       .dbuf_addr     (ta_dbuf_addr),
       .dbuf_wdata    (ta_dbuf_wdata),
       .dbuf_we       (ta_dbuf_we),
@@ -168,6 +175,7 @@ module nd_storage_smd_adapter_tb;
       .c_busy        (u_busy),
       .c_done        (u_done),
       .c_err         (u_err),
+      .c_err_code    (u_err_code),
       .c_buf_addr    (u_baddr),
       .c_buf_wdata   (u_bwdata),
       .c_buf_we      (u_bwe),
@@ -380,6 +388,7 @@ module nd_storage_smd_adapter_tb;
   reg  [2:0]  fb_unit = 0;
   reg  [10:0] fb_wc = 0;
   wire        fb_done, fb_err;
+  wire [ 3:0] fb_code;
   wire [9:0]  fb_dbuf_addr;
   wire [15:0] fb_dbuf_wdata;
   wire        fb_dbuf_we;
@@ -399,12 +408,13 @@ module nd_storage_smd_adapter_tb;
   wire [15:0] fb_buf_rdata;
 
   wire [N-1:0]    open_ok_w, open_err_w, busy_w, done_w, err_w, buf_we_w;
+  wire [N*4-1:0]  err_code_w;
   wire [N*32-1:0] size_bytes_w;
   wire [N*10-1:0] buf_addr_w;
   wire [N*16-1:0] buf_wdata_w;
   wire [1:0]      sd_status_w, card_type_w, fs_type_w;
 
-  nd_storage_smd_adapter #(
+  nd_storage_disc_adapter #(
       .UNIT(3'd0)
   ) dut_f (
       .clk_cpu       (clk_cpu),
@@ -418,6 +428,7 @@ module nd_storage_smd_adapter_tb;
       .disk_wordcount(fb_wc),
       .disk_done     (fb_done),
       .disk_err      (fb_err),
+      .disk_err_code (fb_code),
       .dbuf_addr     (fb_dbuf_addr),
       .dbuf_wdata    (fb_dbuf_wdata),
       .dbuf_we       (fb_dbuf_we),
@@ -433,6 +444,7 @@ module nd_storage_smd_adapter_tb;
       .c_busy        (busy_w[1]),
       .c_done        (done_w[1]),
       .c_err         (err_w[1]),
+      .c_err_code    (err_code_w[7:4]),
       .c_buf_addr    (buf_addr_w[19:10]),
       .c_buf_wdata   (buf_wdata_w[31:16]),
       .c_buf_we      (buf_we_w[1]),
@@ -474,6 +486,7 @@ module nd_storage_smd_adapter_tb;
       .busy      (busy_w),
       .done      (done_w),
       .err       (err_w),
+      .err_code  (err_code_w),
       .buf_addr  (buf_addr_w),
       .buf_wdata (buf_wdata_w),
       .buf_we    (buf_we_w),
@@ -562,8 +575,8 @@ module nd_storage_smd_adapter_tb;
 
   initial begin
 `ifdef DUMPFILE
-    $dumpfile("nd_storage_smd_adapter_tb.vcd");
-    $dumpvars(0, nd_storage_smd_adapter_tb);
+    $dumpfile("nd_storage_disc_adapter_tb.vcd");
+    $dumpvars(0, nd_storage_disc_adapter_tb);
 `endif
     repeat (10) @(posedge clk_stor);
     rst_n = 1;
@@ -693,9 +706,21 @@ module nd_storage_smd_adapter_tb;
       $display("FAIL: (a9) unaligned write not refused (ok=%b err=%b)", gok, gerr);
       errors = errors + 1;
     end
+    // ...and say WHICH refusal it was. Before 09-AUG-2026 all three of
+    // "not open", "out of range" and "unaligned" left the adapter as one
+    // anonymous bit, so a driver could not tell a rejected request shape
+    // from a dead card.
+    if (ta_code !== `NDS_ERR_WRALIGN) begin
+      $display("FAIL: (a9) unaligned write reason %0d, want WRALIGN", ta_code);
+      errors = errors + 1;
+    end
     a_op(1'b1, 1'b1, 16'd0, 16'd0, 11'd512, 3'd0, 32'd4000, gok, gerr);
     if (!gok || !gerr) begin
       $display("FAIL: (a9) partial write not refused (ok=%b err=%b)", gok, gerr);
+      errors = errors + 1;
+    end
+    if (ta_code !== `NDS_ERR_WRALIGN) begin
+      $display("FAIL: (a9) partial write reason %0d, want WRALIGN", ta_code);
       errors = errors + 1;
     end
     if (u_fetches !== f0 || u_writes !== k) begin
@@ -713,6 +738,10 @@ module nd_storage_smd_adapter_tb;
       $display("FAIL: (a10) out-of-range read (ok=%b err=%b)", gok, gerr);
       errors = errors + 1;
     end
+    if (ta_code !== `NDS_ERR_RANGE) begin
+      $display("FAIL: (a10) out-of-range reason %0d, want RANGE", ta_code);
+      errors = errors + 1;
+    end
     if (u_fetches !== f0) begin
       $display("FAIL: (a10) out-of-range caused traffic");
       errors = errors + 1;
@@ -722,15 +751,27 @@ module nd_storage_smd_adapter_tb;
       $display("FAIL: (a10) EOF-boundary read refused (ok=%b err=%b)", gok, gerr);
       errors = errors + 1;
     end
+    if (ta_code !== `NDS_ERR_NONE) begin
+      $display("FAIL: (a10) a SUCCESS reported reason %0d, want NONE", ta_code);
+      errors = errors + 1;
+    end
     a_check_cap(1536, 11'd512, 10);
 
     // (a11) c_err on the FETCH: done+err, retry succeeds; c_err on the
     // COMMIT: done+err, image unchanged
     u_err_inject = 1;
+    u_err_code   = `NDS_ERR_NOCARD;   // a specific reason from nd_storage
     f0 = u_fetches;
     a_op(1'b1, 1'b0, 16'd0, 16'd0, 11'd1024, 3'd0, 32'd20000, gok, gerr);
     if (!gok || !gerr) begin
       $display("FAIL: (a11) fetch c_err not reported (ok=%b err=%b)", gok, gerr);
+      errors = errors + 1;
+    end
+    // the reason must arrive UNCHANGED - the adapter passes it on, it does
+    // not substitute a verdict of its own
+    if (ta_code !== `NDS_ERR_NOCARD) begin
+      $display("FAIL: (a11) fetch reason %0d, want the injected NOCARD",
+               ta_code);
       errors = errors + 1;
     end
     if (u_fetches !== f0 + 1) begin
@@ -745,10 +786,16 @@ module nd_storage_smd_adapter_tb;
     end
     a_check_cap(0, 11'd1024, 11);
     u_err_on_wr = 1;
+    u_err_code  = `NDS_ERR_CARDIO;
     for (k = 0; k < 1024; k = k + 1) ta_dev[k] = wpatB(k + 7);
     a_op(1'b1, 1'b1, 16'd0, 16'd0, 11'd1024, 3'd0, 32'd40000, gok, gerr);
     if (!gok || !gerr) begin
       $display("FAIL: (a11) commit c_err not reported (ok=%b err=%b)", gok, gerr);
+      errors = errors + 1;
+    end
+    if (ta_code !== `NDS_ERR_CARDIO) begin
+      $display("FAIL: (a11) commit reason %0d, want the injected CARDIO",
+               ta_code);
       errors = errors + 1;
     end
     a_check_img(11);  // failed commit must not have changed the stub image
