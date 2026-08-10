@@ -313,6 +313,11 @@ REGISTRY=(
   "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-bus :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-storage :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-storage-sdram :: TB_RESULT: PASS"
+  # Same block read/write matrix with ND_STORAGE_DISCS_UNCACHED, which forces
+  # CACHE_MASK to zero. A cached client enters the engine at C_LOOK, a direct
+  # one jumps straight to C_SEC_GO - two different routes to the same 4-sector
+  # split, so both need their own gate.
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-storage-uncached :: TB_RESULT: PASS"
   # An operation must stay readable as ACTIVE long enough for a guest to see
   # it. Guards the RTZ completion delay against being shortened back to the
   # 8-tick fast path, which made the File System Investigator read 060011

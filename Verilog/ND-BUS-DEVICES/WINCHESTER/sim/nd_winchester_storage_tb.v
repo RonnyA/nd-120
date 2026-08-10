@@ -437,7 +437,12 @@ module nd_winchester_storage_tb;
     begin
       st    = 16'd0;
       guard = 0;
-      while (!st[3] && guard < 40000) begin
+      // 40000 was enough only because the CACHED build had already filled
+      // the early blocks, so a 4-block read was mostly hits. With the disc
+      // clients DIRECT every block is a fresh fetch - 16 card sectors for a
+      // 4096-word read - and the poll budget has to cover the slowest case,
+      // not the luckiest.
+      while (!st[3] && guard < 400000) begin
         iox_read(16'o504);
         st = rdlat;
         guard = guard + 1;
@@ -879,6 +884,60 @@ module nd_winchester_storage_tb;
     end
     check_words(16'o110000, 8192, 1024, "read across track boundary");
 
+    // ---- 10. SUB-BLOCK WRITE: 512 words, half a storage block -----------
+    // THE CASE THAT KILLS THE SINTRAN BOOT (silicon trace, 10-AUG-2026):
+    //
+    //   WRITE +7 word count    = 001000   (512 words)
+    //   WRITE +5 control word  = 004045   (M1 write, GO)
+    //   READ  +4 status        -> 021030  (b9 + b4: refused)
+    //
+    // 512 words = 1024 bytes = one ND page = EXACTLY ONE WINCHESTER SECTOR.
+    // That is the natural write unit for this card. The storage layer's block
+    // is 2048 bytes, and the adapter accepted only a full aligned 1024-word
+    // block, so every write SINTRAN issues is refused before it reaches the
+    // data path - which is also why fixing the buf_rdata slice changed
+    // nothing about the boot: writes never got that far.
+    //
+    // Serving this needs READ-MODIFY-WRITE. The half that is NOT written must
+    // survive, and that is the real risk: an implementation that fetches
+    // nothing and writes a half-filled block passes "did my data land" while
+    // silently destroying 1024 bytes on every write.
+    //
+    // blkaddr 3 = byte 3072 = the SECOND half of storage block 1 (bytes
+    // 2048..4095). Block 1 is untouched by every case above, so the first
+    // half must still equal the image.
+    for (i = 0; i < 512; i = i + 1)
+      dmamem[16'o120000 + i] = 16'h5000 | i[13:0];
+    dma_reads = 0;
+    do_write(16'd3, 16'o120000, 16'd512, "sub-block write 512w");
+    if (st[4]) begin
+      $display("FAIL: 512-word write refused, status %06o", st);
+      $display("      b9+b4 = the adapter's full-aligned-block rule; SINTRAN");
+      $display("      writes one 1024-byte sector and cannot satisfy it");
+      errors = errors + 1;
+    end
+
+    // read the WHOLE block back and check BOTH halves
+    for (i = 0; i < 1024; i = i + 1) dmamem[16'o122000 + i] = 16'hFFFF;
+    do_transfer(16'd2, 16'o122000, 16'd1024, "read back sub-block write");
+    for (i = 0; i < 512; i = i + 1) begin
+      if (dmamem[16'o122000 + i] !== {pat_wd(2048 + 2*i), pat_wd(2048 + 2*i + 1)}) begin
+        if (errors < 16)
+          $display("FAIL: UNTOUCHED half word %0d destroyed: got %06o want %06o",
+                   i, dmamem[16'o122000 + i],
+                   {pat_wd(2048 + 2*i), pat_wd(2048 + 2*i + 1)});
+        errors = errors + 1;
+      end
+    end
+    for (i = 0; i < 512; i = i + 1) begin
+      if (dmamem[16'o122000 + 512 + i] !== (16'h5000 | i[13:0])) begin
+        if (errors < 20)
+          $display("FAIL: written half word %0d: got %06o want %06o", i,
+                   dmamem[16'o122000 + 512 + i], (16'h5000 | i[13:0]));
+        errors = errors + 1;
+      end
+    end
+
     $display("");
     if (errors == 0) $display("TB_RESULT: PASS");
     else             $display("TB_RESULT: FAIL %0d errors", errors);
@@ -887,7 +946,7 @@ module nd_winchester_storage_tb;
 
   // absolute backstop
   initial begin
-    #400_000_000;
+    #4_000_000_000;
     $display("TB_RESULT: FAIL global timeout");
     $finish;
   end

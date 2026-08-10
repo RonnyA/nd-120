@@ -174,8 +174,23 @@ module nd_storage_disc_adapter #(
   // be in range for a slot-resident file, refuse before truncating
   wire        s_blk_ovf   = (s_p0[27:26] != 2'b00) | s_p0_ovf;
 
-  // write acceptance: full aligned block only (see header)
-  wire        s_wr_badal  = (s_p0[9:0] != 10'd0) || (disk_wordcount != 11'd1024);
+  // WRITE ACCEPTANCE. Was "full aligned 1024-word block only", which refused
+  // every write SINTRAN issues: it writes 512 words = 1024 bytes = one ND page
+  // = exactly ONE WINCHESTER SECTOR, the natural unit for this card. The
+  // storage layer's block is 2048 bytes, so a sector write is half a block.
+  // Silicon trace 10-AUG-2026: word count 001000, control 004045, status
+  // 021030 - refused - and the boot died with "DISC TRANSFER ERROR IN SEGMENT
+  // HANDLING".
+  //
+  // A partial block is now served by READ-MODIFY-WRITE (S_MREQ/S_MWAIT
+  // below). What is still refused is a MULTI-block chunk whose first block is
+  // partial: the merged words are staged in the device buffer above the
+  // guest's own chunk, so there is only room when the chunk fits in one block
+  // (s_wc <= s_seg). SINTRAN's sector writes always do.
+  wire        s_wr_partial = (s_p0[9:0] != 10'd0) || (disk_wordcount != 11'd1024);
+  wire [10:0] s_seg0       = ((11'd1024 - {1'b0, s_p0[9:0]}) < disk_wordcount)
+                             ? (11'd1024 - {1'b0, s_p0[9:0]}) : disk_wordcount;
+  wire        s_wr_badal   = s_wr_partial && (disk_wordcount > s_seg0);
 
   wire s_bad = !c_open_ok
              | s_oor
@@ -183,12 +198,15 @@ module nd_storage_disc_adapter #(
              | (disk_wr & s_wr_badal);
 
   // ---- FSM ---------------------------------------------------------------
-  localparam [1:0] S_IDLE  = 2'd0,  // wait for a matching disk_req
-                   S_CREQ  = 2'd1,  // wait !c_busy, pulse c_req for one block
-                   S_CWAIT = 2'd2,  // client op in flight (stream forwarding)
-                   S_DONE  = 2'd3;  // pulse disk_done (+disk_err)
+  localparam [2:0] S_IDLE  = 3'd0,  // wait for a matching disk_req
+                   S_CREQ  = 3'd1,  // wait !c_busy, pulse c_req for one block
+                   S_CWAIT = 3'd2,  // client op in flight (stream forwarding)
+                   S_DONE  = 3'd3,  // pulse disk_done (+disk_err)
+                   S_MREQ  = 3'd4,  // read-modify-write: request the block
+                   S_MWAIT = 3'd5;  // ...and keep the words we are NOT writing
 
-  reg [ 1:0] s_state;
+  reg [ 2:0] s_state;
+  reg        s_merge;    // this segment is partial: merge before writing
   reg        s_op_wr;    // latched disk_wr
   reg [10:0] s_wc;       // latched disk_wordcount
   reg [27:0] s_p;        // running word position (start of current segment)
@@ -213,8 +231,22 @@ module nd_storage_disc_adapter #(
   // write pull served straight from the device buffer (registered read in
   // ND_SMD; the engine's address/wait/sample pull gives it the cycle it
   // needs). Aligned full-block writes make the translation the identity.
+  // Where block word c_buf_addr lives in the device buffer during a write
+  // pull. For an aligned full block this is the identity, as before. For a
+  // merged partial block it is NOT: the guest's own words sit at the bottom
+  // of the buffer (chunk-relative, s_idx..), while the words fetched by the
+  // merge read are staged ABOVE the chunk at s_seg.. in block order. Getting
+  // this wrong writes the right number of words in the wrong places, which
+  // looks like data corruption rather than a refusal.
+  wire [10:0] s_mrg_idx = ({1'b0, c_buf_addr} < s_win_lo)
+                          ? {1'b0, c_buf_addr}
+                          : ({1'b0, c_buf_addr} - s_seg);
+  wire [ 9:0] s_wr_dbuf = s_in_win
+                          ? (s_idx[9:0] + (c_buf_addr - s_off))
+                          : (s_seg[9:0] + s_mrg_idx[9:0]);
+
   wire s_wr_stream = (s_state == S_CWAIT) && s_op_wr;
-  assign dbuf_addr   = s_wr_stream ? c_buf_addr : r_dbuf_addr;
+  assign dbuf_addr   = s_wr_stream ? s_wr_dbuf : r_dbuf_addr;
   assign c_buf_rdata = dbuf_rdata;
 
   always @(posedge clk_cpu or negedge rst_n) begin
@@ -279,7 +311,11 @@ module nd_storage_disc_adapter #(
               s_err_q  <= 1'b0;          // nothing to move: clean completion
               s_code_q <= `NDS_ERR_NONE;
               s_state <= S_DONE;
+            end else if (disk_wr && s_wr_partial) begin
+              s_merge <= 1'b1;           // fetch the block before writing it
+              s_state <= S_MREQ;
             end else begin
+              s_merge <= 1'b0;
               s_state <= S_CREQ;
             end
           end
@@ -293,6 +329,39 @@ module nd_storage_disc_adapter #(
             c_block <= s_p[25:10];
             s_seg   <= s_seg_next;
             s_state <= S_CWAIT;
+          end
+        end
+
+        // ---- read-modify-write, phase 1: fetch the block ----------------
+        // The guest supplied only part of this block. Read the whole block and
+        // keep the words OUTSIDE the guest's window - the inverse of the read
+        // forwarding below - staged above the chunk. The guest's own words in
+        // the device buffer are left untouched. Skipping this would write a
+        // half-filled block and silently destroy the other half.
+        S_MREQ: begin
+          if (!c_busy) begin
+            c_req   <= 1'b1;
+            c_wr    <= 1'b0;            // READ
+            c_block <= s_p[25:10];
+            s_seg   <= s_seg_next;
+            s_state <= S_MWAIT;
+          end
+        end
+
+        S_MWAIT: begin
+          if (c_buf_we && !s_in_win) begin
+            dbuf_we     <= 1'b1;
+            r_dbuf_addr <= s_seg[9:0] + s_mrg_idx[9:0];
+            dbuf_wdata  <= c_buf_wdata;
+          end
+          if (c_done) begin
+            if (c_err) begin
+              s_err_q  <= 1'b1;
+              s_code_q <= c_err_code;
+              s_state  <= S_DONE;
+            end else begin
+              s_state <= S_CREQ;        // now write the merged block back
+            end
           end
         end
 

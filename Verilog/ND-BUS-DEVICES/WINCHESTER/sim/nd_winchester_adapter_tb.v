@@ -295,9 +295,17 @@ module nd_winchester_adapter_tb;
     check(client_ops > 0, "a full aligned block write reached the client");
     @(negedge clk_cpu);
 
-    // ---- 4. a PARTIAL block write is REFUSED, with no client traffic --
-    // One Winchester sector is 512 words; a client block is 1024. This is the
-    // documented decision: refuse, visibly, rather than read-modify-write.
+    // ---- 4. a PARTIAL block write is SERVED by read-modify-write -------
+    // One Winchester sector is 512 words; a storage block is 1024. This used
+    // to be REFUSED with WRALIGN, on the reasoning that a visible refusal beat
+    // a read-modify-write. That decision was wrong, and silicon said so on
+    // 10-AUG-2026: SINTRAN writes one 1024-byte sector at a time - 512 words,
+    // the natural unit for this card - so EVERY write it issued was refused
+    // and the boot died with "DISC TRANSFER ERROR IN SEGMENT HANDLING".
+    //
+    // The adapter now fetches the block, keeps the words outside the guest's
+    // window, and writes the merged block back. That costs TWO client
+    // operations - a read then a write - where a full aligned block costs one.
     client_ops = 0;
     set_chs(16'd0, 4'd0, 5'd0);
     disk_wordcount = 11'd512;            // ONE sector - a partial block
@@ -309,16 +317,20 @@ module nd_winchester_adapter_tb;
 
     i = 0;
     while (!disk_done && i < 1000) begin @(negedge clk_cpu); i = i + 1; end
-    check(disk_done === 1'b1, "a partial block write still COMPLETES");
-    check(disk_err  === 1'b1, "a partial block write is refused with an error");
-    check(disk_err_code === `NDS_ERR_WRALIGN,
-          "the partial-write refusal says WRALIGN, not some generic fault");
-    check_eq32(client_ops, 32'd0,
-               "a refused write costs ZERO client traffic - never a partial write");
+    check(disk_done === 1'b1, "a partial block write COMPLETES");
+    check(disk_err  === 1'b0, "a partial block write is SERVED, not refused");
+    check(disk_err_code === `NDS_ERR_NONE,
+          "a served partial write reports reason code NONE");
+    check_eq32(client_ops, 32'd2,
+               "a partial write costs TWO client ops: the merge read, then the write");
     @(negedge clk_cpu);
 
-    // An UNALIGNED full-length write is refused for the same reason: starting
-    // at an odd sector puts the chunk offset at 512, not 0.
+    // An UNALIGNED FULL-LENGTH write is still refused, and deliberately: 1024
+    // words starting at offset 512 SPANS TWO blocks, so the first block is
+    // partial AND there is a second. The merged words are staged in the device
+    // buffer above the guest's own chunk, and a chunk that already fills the
+    // buffer leaves nowhere to put them. Refusing is correct here; serving it
+    // would need somewhere else to stage. SINTRAN never asks for this.
     client_ops = 0;
     set_chs(16'd0, 4'd0, 5'd1);          // sector 1 -> word 512, not aligned
     disk_wordcount = 11'd1024;

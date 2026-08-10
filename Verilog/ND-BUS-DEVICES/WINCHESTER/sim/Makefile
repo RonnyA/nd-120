@@ -87,7 +87,7 @@ STOR_SRCS = ../circuit/ND_WINCHESTER.v \
 all: test
 
 test: test-wd-iox test-wd-adapter test-wd-oracle test-wd-bus test-wd-storage \
-      test-wd-storage-sdram test-wd-rtz
+      test-wd-storage-uncached test-wd-storage-sdram test-wd-rtz
 
 nd_winchester_storage_tb.vvp: $(STOR_SRCS)
 	$(IVERILOG) -g2005 $(ND_INC) -o $@ $(STOR_SRCS)
@@ -98,6 +98,21 @@ nd_winchester_storage_tb.vvp: $(STOR_SRCS)
 test-wd-storage: nd_winchester_storage_tb.vvp ../../../SD-FAT/sim/nds_storage.img
 	$(VVP) nd_winchester_storage_tb.vvp | tee wd_storage_out.log
 	@grep -q "TB_RESULT: PASS" wd_storage_out.log
+
+# test-wd-storage-uncached: the SAME bench with the disc clients DIRECT
+#   instead of cached (ND_STORAGE_DISCS_UNCACHED forces CACHE_MASK to 0).
+#   Cached and direct take DIFFERENT paths through the engine - a cached
+#   client goes through C_LOOK's tag lookup, a direct one jumps straight to
+#   C_SEC_GO - and the read-modify-write for sub-block writes has to be right
+#   on both. Running only the default build proves one of the two.
+nd_winchester_storage_uncached_tb.vvp: $(STOR_SRCS)
+	$(IVERILOG) -g2005 -DND_STORAGE_DISCS_UNCACHED $(ND_INC) -o $@ $(STOR_SRCS)
+
+test-wd-storage-uncached: nd_winchester_storage_uncached_tb.vvp ../../../SD-FAT/sim/nds_storage.img
+	$(VVP) nd_winchester_storage_uncached_tb.vvp | tee wd_storage_uncached_out.log
+	@grep -q "TB_RESULT: PASS" wd_storage_uncached_out.log
+
+.PHONY: test-wd-storage-uncached
 
 # test-wd-storage-sdram: the SAME bench with the region served by the REAL
 #   MEM_RAM_49_SDRAM (ND_SDRAM_PACK16 + ND_STORAGE_PORT) and the behavioral
