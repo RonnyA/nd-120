@@ -89,7 +89,13 @@ test-44408b-en: PAL_44408B_EN_equiv_tb
 test-44511a-en: PAL_44511A_EN_equiv_tb
 	./PAL_44511A_EN_equiv_tb
 
-test-all: test-pal44304e test-pal45008b test-44601 test-pal44801a test-pal44401b test-44402d-en test-44403c-en test-44404c-en test-44407a-en test-44408b-en test-44511a-en
+# Holds every PAL_*.v to its PALASM listing at PAL/<id>/<id>.pds: no output
+# may be driven that the listing does not define, and none may be dropped.
+# Also reports which PALs have no listing at all. See PAL/PROVENANCE.md.
+test-pal-provenance:
+	python3 check_provenance.py
+
+test-all: test-pal44304e test-pal45008b test-44601 test-pal44801a test-pal44401b test-44402d-en test-44403c-en test-44404c-en test-44407a-en test-44408b-en test-44511a-en test-pal-provenance
 
 clean:
 	rm -f PAL_44304E_tb PAL_45008B_tb PAL_44601B_tb PAL_44801A_tb PAL_44401B_tb PAL_44402D_EN_equiv_tb PAL_44403C_EN_equiv_tb PAL_44404C_EN_equiv_tb PAL_44407A_EN_equiv_tb PAL_44408B_EN_equiv_tb PAL_44511A_EN_equiv_tb *.vcd

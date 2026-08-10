@@ -33,8 +33,36 @@
 **      chain ends inside the block - writing there would corrupt the      **
 **      NEXT file). Validate with 2 (DUMP): block 1 shows the pattern,     **
 **      blocks 0 and 2 are untouched.                                      **
+**   8  BLOCK: dump 1-kiloword block N of the target file WITHOUT          **
+**      buffering the file. The reader runs with no_stream=1 (directory    **
+**      match only), the 4 sectors of the block are read one at a time     **
+**      through the sd_writer engine's READ path and dumped. Cost and      **
+**      memory are the same for a 7 KB file and a 75 MB one - which is the **
+**      point: command 2 cannot look at anything past its 64 KB buffer.    **
+**      The block number is typed on the console in decimal.               **
+**   9  SECTOR: dump one ABSOLUTE SD sector, number typed in decimal, with **
+**      the FAT not consulted at all. This is what separates "the          **
+**      directory entry points at the wrong place" from "the card really   **
+**      holds zeros there" - the two look identical through command 2.     **
+**   R  RANGE: read a run of consecutive blocks (start block and count     **
+**      typed on the console) the same streaming way, keeping only a       **
+**      16-bit checksum of every word and a block count - the data never   **
+**      reaches the console, because a 1000-block hex dump at 9600 baud    **
+**      would take about six hours. One progress line per 64 blocks, then  **
+**      a summary: blocks, sectors, checksum, 27 MHz cycles of card        **
+**      traffic, PASS or FAIL. A failed card read stops the run and names  **
+**      the exact sector and block - that is what this command is for:     **
+**      every earlier check read a SINGLE block, and SINTRAN segment       **
+**      handling is the first thing that reads many in a row.              **
+**   N  set the target file name at runtime (root directory only, 8.3      **
+**      name, length-exact - that is all sd_file_reader can match)         **
 **   H  detailed help; any other key reprints the menu                     **
 **   S1 / S2 (either button) full reset                                    **
+**                                                                         **
+** DEFAULT BUILD IS READ-ONLY (src/sd_fat_test_config.vh): 3, 4, 6 are     **
+** compiled out and the sd_writer engine's rd_mode is tied to a constant   **
+** 1. A write-capable bitstream must never be pointed at a card that is    **
+** being diagnosed.                                                        **
 **                                                                         **
 ** Robustness: every wait state has a watchdog - no card, no file,         **
 ** unmountable filesystem, stuck reads and failed writes all print an      **
@@ -70,6 +98,7 @@
 ** Ronny Hansen                                                            **
 *****************************************************************************/
 
+`include "sd_fat_test_config.vh"
 `include "sd_fat_features.vh"
 
 module sd_fat_test_top #(
@@ -157,13 +186,16 @@ module sd_fat_test_top #(
   /*******************************************************************************
    ** Command mode and runtime target file name                                 **
    *******************************************************************************/
-  localparam M_DUMP = 3'd0;
-  localparam M_LIST = 3'd1;
-  localparam M_COPY = 3'd2;
-  localparam M_BLK  = 3'd3;  // write the test pattern into 1KW block 1
-  localparam M_CHK  = 3'd4;  // validate every root file's cluster chain
-  localparam M_IOW  = 3'd5;  // write speed test (rewrites IO.DAT)
-  localparam M_IOR  = 3'd6;  // read speed test (streams IO.DAT)
+  localparam M_DUMP = 4'd0;
+  localparam M_LIST = 4'd1;
+  localparam M_COPY = 4'd2;
+  localparam M_BLK  = 4'd3;  // write the test pattern into 1KW block 1
+  localparam M_CHK  = 4'd4;  // validate every root file's cluster chain
+  localparam M_IOW  = 4'd5;  // write speed test (rewrites IO.DAT)
+  localparam M_IOR  = 4'd6;  // read speed test (streams IO.DAT)
+  localparam M_BDMP = 4'd7;  // dump 1KW block N of the file, nothing buffered
+  localparam M_SDMP = 4'd8;  // dump one absolute SD sector, FAT bypassed
+  localparam M_RDMP = 4'd9;  // read a RANGE of blocks, checksum only
 
   localparam [31:0] IO_BYTES = IO_BLOCKS * 32'd2048;
   localparam [12:0] IO_SECT  = IO_BLOCKS * 13'd4;
@@ -172,7 +204,7 @@ module sd_fat_test_top #(
 
   localparam [8:0] BLK_NO = 9'd1;  // the block the menu command updates
 
-  reg [2:0] mode;
+  reg [3:0] mode;
   reg       copy_phase;  // COPY: 0 = read BOOT.BPUN, 1 = locate TEST.TXT
   reg       list_done;   // LIST: listing captured - the reader's automatic
                          // restart after the free scan must not append again
@@ -191,13 +223,34 @@ module sd_fat_test_top #(
     end
   endgenerate
 
+  // ---- runtime target file name (menu key N) ------------------------------
+  // Typed on the console; empty (rt_len = 0, the state after reset) means the
+  // compile-time FILE_NAME parameter is used, so nothing changes for an
+  // operator who never presses N. sd_file_reader matches ROOT-DIRECTORY
+  // entries only and compares the name LENGTH-EXACTLY (case-insensitively),
+  // which is why the help text spells that out.
+  reg [52*8-1:0] rt_name;
+  reg [7:0]      rt_len;
+  wire           rt_use = (rt_len != 8'd0);
+
   wire copy2 = (mode == M_COPY) && copy_phase;
   wire io_mode = (mode == M_IOW) || (mode == M_IOR);
-  wire [52*8-1:0] target_name = io_mode ? tgt_io : copy2 ? tgt_test : tgt_boot;
-  wire scan_only = mode_list || (mode == M_CHK);
+  // block dump (8), sector dump (9) and the range read (R): nothing is
+  // buffered, so all three are "streaming" modes as far as the buffer, the
+  // engine direction and the error texts are concerned
+  wire dump_mode = (mode == M_BDMP) || (mode == M_SDMP) || (mode == M_RDMP);
+  wire [52*8-1:0] target_name = io_mode ? tgt_io : copy2 ? tgt_test
+                              : rt_use ? rt_name : tgt_boot;
+  // the absolute-sector dump never looks at a file: target_len 0 = scan only
+  wire scan_only = mode_list || (mode == M_CHK) || (mode == M_SDMP);
   wire [7:0] target_len = scan_only ? 8'd0
                         : io_mode ? FILE3_LEN[7:0]
-                        : (copy2 ? FILE2_LEN[7:0] : FILE_NAME_LEN[7:0]);
+                        : copy2 ? FILE2_LEN[7:0]
+                        : rt_use ? rt_len : FILE_NAME_LEN[7:0];
+  // BLOCK: stop at the directory match. Reading a 75 MB file into a 64 KB
+  // buffer only to look at 2 KB of it is what this command exists to avoid,
+  // and no_stream also ends the reader's run at a clean card boundary.
+  wire no_stream = (mode == M_BDMP) || (mode == M_RDMP);
 
   /*******************************************************************************
    ** SD card + FAT filesystem library (Verilog/SD-FAT/, board-independent)     **
@@ -249,6 +302,7 @@ module sd_fat_test_top #(
       .scan_done      (scan_done),
       .found_file_size(file_size),
       .target_name    (target_name),
+      .no_stream      (no_stream),
       .target_len     (target_len),
       .dir_entry_valid(dir_valid),
       .dir_entry_name (dir_name),
@@ -366,8 +420,17 @@ module sd_fat_test_top #(
       .use_4bit  (s_use4),
       .start     (fx_busy ? fx_eng_start : ck_busy ? ck_eng_start
                           : fsn_busy ? fsn_eng_start : wr_start),
+`ifdef SDFAT_TEST_READONLY
+      // READ-ONLY BUILD: a constant, so the engine's CMD24/CMD25 write paths
+      // have no reachable driver and synthesis prunes them. This is the last
+      // line of defence behind the missing menu keys - see
+      // src/sd_fat_test_config.vh for why the tool defaults this way.
+      .rd_mode   (1'b1),
+`else
       .rd_mode   (fx_busy ? fx_eng_rd : ck_busy ? ck_eng_rd
-                          : fsn_busy ? fsn_eng_rd : (mode == M_IOR)),
+                          : fsn_busy ? fsn_eng_rd
+                          : ((mode == M_IOR) || dump_mode)),
+`endif
       .sector    (fx_busy ? fx_eng_sector : ck_busy ? ck_eng_sector
                           : fsn_busy ? fsn_eng_sector
                           : tgt_sector + {19'b0, seccnt}),
@@ -651,12 +714,14 @@ module sd_fat_test_top #(
   localparam PK_LF     = 4'd10;
   localparam PK_CL     = 4'd11;  // 8 hex digits of the first cluster
   localparam PK_SPC    = 4'd12;  // two spaces after the cluster column
+  localparam PK_SPD    = 4'd13;  // two spaces after the absolute-sector column
 
   reg [3:0]      pk_state, pk_ret;
   reg [52*8-1:0] pk_name;
   reg [7:0]      pk_len, pk_i;
   reg [15:0]     pk_date;
   reg [31:0]     pk_cluster;
+  reg [31:0]     pk_abs;     // first absolute sector of this entry
   reg            pk_we;
   reg [7:0]      pk_byte;
   reg [31:0]     pk_dval;    // decimal engine value
@@ -691,6 +756,15 @@ module sd_fat_test_top #(
           pk_len     <= dir_len;
           pk_date    <= dir_date;
           pk_cluster <= dir_cluster;
+          // first ABSOLUTE sector of the entry, straight from the geometry
+          // the reader publishes: data_base_sector is already biased so that
+          // cluster c starts at base + cluster_size*c. Printed so the
+          // operator can feed it to command 9 (or compare it against what
+          // the ND-120 storage stack thinks the file's address is) without
+          // doing the arithmetic by hand. Clusters 0/1 do not exist (an
+          // empty file records cluster 0), so those print 0.
+          pk_abs     <= (dir_cluster < 32'd2) ? 32'd0
+                        : (fs_dbase + {24'b0, fs_cs} * dir_cluster);
           pk_i       <= 0;
           if (dir_isdir) begin
             pk_state <= PK_DIRSTR;
@@ -792,6 +866,22 @@ module sd_fat_test_top #(
           pk_byte <= 8'h20;
           pk_we   <= 1'b1;
           if (pk_i == 8'd1) begin
+            // load the first absolute sector (10 digits, space-padded)
+            pk_i      <= 0;
+            pk_dval   <= pk_abs;
+            pk_dpow   <= 4'd9;
+            pk_ddig   <= 0;
+            pk_dpad   <= 1'b0;
+            pk_dstart <= 1'b0;
+            pk_ret    <= PK_SPD;
+            pk_state  <= PK_DEC;
+          end else pk_i <= pk_i + 8'd1;
+        end
+
+        PK_SPD: begin
+          pk_byte <= 8'h20;
+          pk_we   <= 1'b1;
+          if (pk_i == 8'd1) begin
             pk_i     <= 0;
             pk_state <= PK_WR;
           end else pk_i <= pk_i + 8'd1;
@@ -830,8 +920,11 @@ module sd_fat_test_top #(
   localparam S_IL_CARD = "CARD ";           // 5 chars
   localparam S_IL_VOL  = " MB  VOL ";       // 9 chars
   localparam S_IL_FREE = " MB  FREE ";      // 10 chars
-  localparam S_IL_TAIL = " MB\015\012";     // 5 chars
-  localparam S_IL_NA   = "N/A\015\012";     // 5 chars
+  localparam S_IL_SPC1 = " MB  SPC ";       // 9 chars, follows a numeric FREE
+  localparam S_IL_SPC2 = " SPC ";           // 5 chars, follows "N/A"
+  localparam S_IL_DBAS = " DBASE ";         // 7 chars
+  localparam S_IL_TAIL = "\015\012";        // 2 chars
+  localparam S_IL_NA   = "N/A";             // 3 chars
 
   function [7:0] ilchr(input [8*10-1:0] s, input [3:0] len, input [3:0] i);
     ilchr = (i < len) ? s[8*(len-1-i)+:8] : 8'h00;
@@ -856,8 +949,21 @@ module sd_fat_test_top #(
   localparam IL_STR  = 2'd1;  // current segment's characters
   localparam IL_DEC  = 2'd2;  // one decimal number, leading zeros skipped
 
+  // Segment order (a segment is a label, optionally followed by a decimal
+  // number). SPC and DBASE are the two numbers an operator needs to turn a
+  // LIST first-cluster column into an absolute sector by hand:
+  //   first sector = DBASE + SPC * first cluster
+  // which is exactly what the listing's own sector column computes.
+  //   0 "CARD "      capacity      -> 1
+  //   1 " MB  VOL "  volume MB     -> 2
+  //   2 " MB  FREE " free MB       -> 3   (or, with no scanner, -> 6)
+  //   3 " MB  SPC "  sectors/clus  -> 5
+  //   4 " SPC "      sectors/clus  -> 5   (the same after an "N/A" free)
+  //   5 " DBASE "    data base sec -> 7
+  //   6 "N/A"        no number     -> 4
+  //   7 CR LF        no number     -> end
   reg [1:0]  il_state;
-  reg [2:0]  il_seg;  // 0 "CARD ", 1 " MB  VOL ", 2 " MB  FREE ", 3 tail, 4 N/A
+  reg [2:0]  il_seg;
   reg [3:0]  il_si;
   reg        il_we;
   reg [7:0]  il_byte;
@@ -876,10 +982,25 @@ module sd_fat_test_top #(
       3'd0: il_ch = ilchr({40'b0, S_IL_CARD}, 4'd5, il_si);
       3'd1: il_ch = ilchr({8'b0, S_IL_VOL}, 4'd9, il_si);
       3'd2: il_ch = ilchr(S_IL_FREE, 4'd10, il_si);
-      3'd3: il_ch = ilchr({40'b0, S_IL_TAIL}, 4'd5, il_si);
-      default: il_ch = ilchr({40'b0, S_IL_NA}, 4'd5, il_si);
+      3'd3: il_ch = ilchr({8'b0, S_IL_SPC1}, 4'd9, il_si);
+      3'd4: il_ch = ilchr({40'b0, S_IL_SPC2}, 4'd5, il_si);
+      3'd5: il_ch = ilchr({24'b0, S_IL_DBAS}, 4'd7, il_si);
+      3'd6: il_ch = ilchr({56'b0, S_IL_NA}, 4'd3, il_si);
+      default: il_ch = ilchr({64'b0, S_IL_TAIL}, 4'd2, il_si);
     endcase
   end
+
+  // segment that follows a printed number
+  function [2:0] il_nxt(input [2:0] s);
+    case (s)
+      3'd0: il_nxt = 3'd1;
+      3'd1: il_nxt = 3'd2;
+      3'd2: il_nxt = 3'd3;
+      3'd3: il_nxt = 3'd5;
+      3'd4: il_nxt = 3'd5;
+      default: il_nxt = 3'd7;
+    endcase
+  endfunction
 
   always @(posedge clk) begin
     if (!sys_rst_n) begin
@@ -921,10 +1042,22 @@ module sd_fat_test_top #(
               il_dval  <= fsn_free_mb[23:0];
               il_state <= IL_DEC;
             end else begin
-              il_seg <= 3'd4;                 // "N/A" + CRLF, no unit
+              il_seg <= 3'd6;                 // "N/A", then straight to SPC
               il_si  <= 0;
             end
-            default: il_state <= IL_IDLE;     // tail / N/A finished
+            3'd3, 3'd4: begin
+              il_dval  <= {16'd0, cp_cs};     // sectors per cluster
+              il_state <= IL_DEC;
+            end
+            3'd5: begin
+              il_dval  <= cp_dbase[23:0];     // biased data base sector
+              il_state <= IL_DEC;
+            end
+            3'd6: begin                       // "N/A" carries no number
+              il_seg <= 3'd4;
+              il_si  <= 0;
+            end
+            default: il_state <= IL_IDLE;     // segment 7 = CR LF: line done
           endcase
         end else begin
           il_we   <= 1'b1;
@@ -944,7 +1077,7 @@ module sd_fat_test_top #(
           il_dstart <= il_dstart | (il_ddig != 0);
           il_ddig   <= 0;
           if (il_dpow == 0) begin
-            il_seg   <= il_seg + 3'd1;  // next segment header / tail
+            il_seg   <= il_nxt(il_seg);  // next segment header / tail
             il_si    <= 0;
             il_state <= IL_STR;
           end else il_dpow <= il_dpow - 3'd1;
@@ -1120,8 +1253,16 @@ module sd_fat_test_top #(
                                     : mode_list ? (pk_we | il_we) : f_outen);
   wire       buf_we  = wr_req && !wptr[BUF_AW];
 
+  // BLOCK (8) / SECTOR (9): sectors land in the buffer straight off the
+  // engine's read port as they arrive, at most 4 sectors (2048 bytes) per
+  // command whatever the file size - the buffer is only a landing pad here,
+  // never a copy of the file. seccnt is the sector index inside the block.
+  wire              rx_buf_we   = phase_write && dump_mode && eng_rx_we;
+  wire [BUF_AW-1:0] rx_buf_addr = {{(BUF_AW-11){1'b0}}, seccnt[1:0], eng_rx_addr};
+
   always @(posedge clk) begin
-    if (buf_we) file_buf[wptr[BUF_AW-1:0]] <= wr_byte;
+    if (rx_buf_we) file_buf[rx_buf_addr] <= eng_rx_data;
+    else if (buf_we) file_buf[wptr[BUF_AW-1:0]] <= wr_byte;
   end
 
   // the buffer pointer clears with the reader reset EXCEPT while the
@@ -1146,8 +1287,12 @@ module sd_fat_test_top #(
   // the text printer wins even while the reader is parked (phase_write):
   // the CHECK/SPEED/LIST reports print with the card still parked so the
   // reader is not restarted just to be reset mid-command at the menu
+  // in the BLOCK/SECTOR dumps the reader stays parked (phase_write) while
+  // hex_dumper prints, so the dumper - not the write-data path - owns the
+  // read port there
   wire [BUF_AW-1:0] rd_addr = tp_busy ? text_addr
-                            : phase_write ? widx[BUF_AW-1:0] : dump_addr;
+                            : (phase_write && !dump_mode) ? widx[BUF_AW-1:0]
+                            : dump_addr;
   always @(posedge clk) buf_rdata <= file_buf[rd_addr];
 
   // COPY: buffer bytes, zero-filled past the file end (real tapes had zero
@@ -1199,13 +1344,18 @@ module sd_fat_test_top #(
   wire [7:0] hd_tx_data;
   wire       hd_tx_valid;
 
+  // BLOCK/SECTOR dump exactly the sectors just read (nsec * 512 bytes);
+  // every other command dumps what the buffer collected
+  wire [BUF_AW:0] hd_length = dump_mode ? {{(BUF_AW-11){1'b0}}, nsec[2:0], 9'b0}
+                                        : wptr;
+
   hex_dumper #(
       .ADDR_W(BUF_AW)
   ) u_dump (
       .clk(clk),
       .rst_n(sys_rst_n),
       .start(hd_start),
-      .length(wptr),
+      .length(hd_length),
       .busy(hd_busy),
       .mem_addr(dump_addr),
       .mem_data(buf_rdata),
@@ -1279,6 +1429,7 @@ module sd_fat_test_top #(
   localparam MSG_BLK_DONE = 6'd24;
   localparam MSG_ERR_RANGE = 6'd25;
   localparam MSG_HELP1 = 6'd26;  // ..MSG_HELP7 = 32, printed in sequence
+  localparam MSG_HELP7 = 6'd32;
   localparam MSG_ERR_IOSZ = 6'd33;
   localparam MSG_IOW_RUN = 6'd34;
   localparam MSG_IOR_RUN = 6'd35;
@@ -1286,38 +1437,66 @@ module sd_fat_test_top #(
   localparam MSG_ERR_READ = 6'd37;
   localparam MSG_ERR_FATRD = 6'd38;
   localparam MSG_ERR_FATCOR = 6'd39;
+  localparam MSG_MENU2 = 6'd40;
+  localparam MSG_ASK_BLK = 6'd41;
+  localparam MSG_ASK_SEC = 6'd42;
+  localparam MSG_ASK_NAME = 6'd43;
+  localparam MSG_ERR_NUM = 6'd44;
+  localparam MSG_AT_SEC = 6'd45;
+  localparam MSG_NAME_SET = 6'd46;
+  localparam MSG_HELP8 = 6'd47;   // ..MSG_HELP13 = 52
+  localparam MSG_HELP13 = 6'd52;
+  localparam MSG_ASK_STA = 6'd53;
+  localparam MSG_ASK_CNT = 6'd54;
+  localparam MSG_R_RUN = 6'd55;
+  localparam MSG_R_AT = 6'd56;
+  localparam MSG_R_BLOCKS = 6'd57;
+  localparam MSG_R_SECS = 6'd58;
+  localparam MSG_R_CHK = 6'd59;
+  localparam MSG_R_CYC = 6'd60;
+  localparam MSG_R_PASS = 6'd61;
+  localparam MSG_R_FAIL = 6'd62;
 
-  localparam ST_BANNER   = 5'd0;
-  localparam ST_MENU     = 5'd1;   // print the SD status line, then
-  localparam ST_MENU2    = 5'd15;  // print the menu itself
-  localparam ST_KEY      = 5'd2;
-  localparam ST_CARD     = 5'd3;
-  localparam ST_FS       = 5'd4;
-  localparam ST_FILE     = 5'd5;
-  localparam ST_STREAM   = 5'd6;
-  localparam ST_DUMP     = 5'd7;
-  localparam ST_DUMP_W   = 5'd8;
-  localparam ST_LSCAN    = 5'd9;
-  localparam ST_LPRINT   = 5'd10;
-  localparam ST_LPRINT_W = 5'd11;
-  localparam ST_CMD_END  = 5'd12;
-  localparam ST_PRINT    = 5'd13;  // pulse sp_start, then
-  localparam ST_PRINT_W  = 5'd14;  // wait for the message to finish
-  localparam ST_C_FIND   = 5'd16;  // COPY: wait for the TEST.TXT scan
-  localparam ST_C_WRITE  = 5'd17;  // COPY/WRBLK1: kick one sector write
-  localparam ST_C_NEXT   = 5'd18;  // COPY/WRBLK1: wait for the sector to finish
-  localparam ST_HELP     = 5'd19;  // print MSG_HELP1..4 in sequence
-  localparam ST_C_FIX    = 5'd20;  // COPY: kick sd_fat_rewrite
-  localparam ST_C_FIX_W  = 5'd21;  // COPY: wait for it, then write the data
-  localparam ST_CHK      = 5'd22;  // CHECK: park the reader, kick the checker
-  localparam ST_CHK_W    = 5'd23;  // CHECK: wait, then print the report
-  localparam ST_SPEED    = 5'd24;  // IO speed: kick the KB/s formatter
-  localparam ST_SPEED_W  = 5'd25;  // IO speed: wait, then print the line
-  localparam ST_FREE     = 5'd26;  // LIST: park the reader, kick the free scan
-  localparam ST_FREE_W   = 5'd27;  // LIST: wait for the FAT scan
-  localparam ST_INFO     = 5'd28;  // LIST: kick the disk-info line formatter
-  localparam ST_INFO_W   = 5'd29;  // LIST: wait, then print the whole buffer
-  localparam ST_ECHO     = 5'd30;  // echo the accepted menu key + CR-LF
+  localparam ST_BANNER   = 6'd0;
+  localparam ST_MENU     = 6'd1;   // print the SD status line, then
+  localparam ST_MENU2    = 6'd15;  // the menu itself, then
+  localparam ST_MENU3    = 6'd31;  // its second line (64-char message limit)
+  localparam ST_KEY      = 6'd2;
+  localparam ST_CARD     = 6'd3;
+  localparam ST_FS       = 6'd4;
+  localparam ST_FILE     = 6'd5;
+  localparam ST_STREAM   = 6'd6;
+  localparam ST_DUMP     = 6'd7;
+  localparam ST_DUMP_W   = 6'd8;
+  localparam ST_LSCAN    = 6'd9;
+  localparam ST_LPRINT   = 6'd10;
+  localparam ST_LPRINT_W = 6'd11;
+  localparam ST_CMD_END  = 6'd12;
+  localparam ST_PRINT    = 6'd13;  // pulse sp_start, then
+  localparam ST_PRINT_W  = 6'd14;  // wait for the message to finish
+  localparam ST_C_FIND   = 6'd16;  // COPY: wait for the TEST.TXT scan
+  localparam ST_C_WRITE  = 6'd17;  // COPY/WRBLK1/BLOCK/SECTOR: kick a sector
+  localparam ST_C_NEXT   = 6'd18;  // and wait for that sector to finish
+  localparam ST_HELP     = 6'd19;  // print MSG_HELP1..12 in sequence
+  localparam ST_C_FIX    = 6'd20;  // COPY: kick sd_fat_rewrite
+  localparam ST_C_FIX_W  = 6'd21;  // COPY: wait for it, then write the data
+  localparam ST_CHK      = 6'd22;  // CHECK: park the reader, kick the checker
+  localparam ST_CHK_W    = 6'd23;  // CHECK: wait, then print the report
+  localparam ST_SPEED    = 6'd24;  // IO speed: kick the KB/s formatter
+  localparam ST_SPEED_W  = 6'd25;  // IO speed: wait, then print the line
+  localparam ST_FREE     = 6'd26;  // LIST: park the reader, kick the free scan
+  localparam ST_FREE_W   = 6'd27;  // LIST: wait for the FAT scan
+  localparam ST_INFO     = 6'd28;  // LIST: kick the disk-info line formatter
+  localparam ST_INFO_W   = 6'd29;  // LIST: wait, then print the whole buffer
+  localparam ST_ECHO     = 6'd30;  // echo the accepted menu key (+ CR-LF)
+  localparam ST_NUM      = 6'd32;  // BLOCK/SECTOR: read a decimal number in
+  localparam ST_NAME     = 6'd33;  // N: read a file name in
+  localparam ST_HEXOUT   = 6'd34;  // print 8 hex digits + CR LF (hx_val)
+  localparam ST_SWAIT    = 6'd35;  // SECTOR: let the reader's run end cleanly
+  localparam ST_R_NEXT   = 6'd36;  // RANGE: one block done - advance or report
+  localparam ST_R_SUM    = 6'd37;  // RANGE: print the summary, field by field
+  localparam ST_R_ERR    = 6'd38;  // RANGE: a read failed - print the sector
+  localparam ST_R_ERR2   = 6'd39;  // RANGE: ...and the block, then summarise
 
   // persistent SD status shown in the menu (survives between commands)
   localparam SD_NOTCHK = 2'd0;
@@ -1325,12 +1504,55 @@ module sd_fat_test_top #(
   localparam SD_ERROR  = 2'd2;
   localparam SD_OK     = 2'd3;
 
-  reg [4:0]  state;
-  reg [4:0]  next_after_print;
+  reg [5:0]  state;
+  reg [5:0]  next_after_print;
   reg [7:0]  echo_ch;    // the accepted key being echoed
-  reg [4:0]  echo_next;  // state after the echo finishes
+  reg [5:0]  echo_next;  // state after the echo finishes
   reg [1:0]  ec_i;       // echo byte index: key, CR, LF
+  reg        ec_crlf;    // 0 = echo the key alone (console number entry)
   reg        ec_gap;     // one-cycle gap for tx_busy to assert
+
+  // ---- console number entry (BLOCK / SECTOR) and name entry (N) ----------
+  reg [31:0] num_val;    // decimal accumulator
+  reg        num_dig;    // at least one digit seen (an empty entry is an error)
+  reg [23:0] blk_no;     // 1KW block index inside the file
+  reg [31:0] sec_no;     // absolute SD sector number
+  reg [31:0] hx_val;     // value printed by ST_HEXOUT
+  reg [3:0]  hx_i;       // 0..7 digits, 8 = CR, 9 = LF
+  reg [5:0]  hx_next;    // state after the hex value has been printed
+
+  // num_val * 10, built from shifts (no multiplier for a console keypress).
+  // The guard below stops the accumulator at 10 digits: 4294967295 is the
+  // largest sector number a 32-bit SD address can carry (2 TB), so anything
+  // beyond that is a typo, not an address.
+  wire [31:0] num_x10 = {num_val[28:0], 3'b0} + {num_val[30:0], 1'b0};
+  wire        num_fits = (num_val < 32'd400_000_000);
+
+  // ---- multi-block range read (menu R) ------------------------------------
+  // Segment handling in SINTRAN is the first thing that reads MANY
+  // consecutive blocks in one go, and everything validated before this
+  // command only ever read ONE block. So this reads a run of blocks the
+  // same way command 8 reads one - sector by sector, nothing buffered - and
+  // keeps only a running checksum and a block count. The console never sees
+  // the data: a 1000-block hex dump at 9600 baud would take about six hours.
+  reg [23:0] rng_start;  // first block of the run
+  reg [23:0] rng_cnt;    // number of blocks requested
+  reg [23:0] rng_blk;    // blocks completed so far
+  reg [15:0] rng_sum;    // sum of every 16-bit big-endian word read
+  reg [7:0]  rng_hi;     // high byte of the word being assembled
+  reg        num_second; // number entry: 0 = start block, 1 = block count
+  reg [2:0]  r_i;        // summary field index
+
+  // sum of the two block indices: (start + count) * 2048 is the number of
+  // bytes the file must have. 25-bit sum shifted by 11 = 36 bits, so the
+  // arithmetic is done in 40 - in 32 it would wrap and pass a bad range.
+  wire [39:0] rng_need = ({15'b0, rng_start} + {15'b0, rng_cnt}) << 11;
+
+  // bytes a file must contain for block blk_no to lie entirely inside it:
+  // (blk_no + 1) * 2048, computed in 40 bits because a 24-bit block index
+  // times 2048 is 35 bits - the same expression in 32 bits would wrap and
+  // let an out-of-range block through
+  wire [39:0] blk_need = ({16'b0, blk_no} + 40'd1) << 11;
   reg        io_run;      // IO speed test: cycle counter enable
   reg [31:0] io_cycles;
   reg        spf_go, spf_read;
@@ -1395,9 +1617,26 @@ module sd_fat_test_top #(
       echo_ch          <= 8'h00;
       echo_next        <= ST_MENU;
       ec_i             <= 2'd0;
+      ec_crlf          <= 1'b1;
       ec_gap           <= 1'b0;
       ec_valid         <= 1'b0;
       ec_byte          <= 8'h00;
+      num_val          <= 0;
+      num_dig          <= 1'b0;
+      blk_no           <= 0;
+      sec_no           <= 0;
+      hx_val           <= 0;
+      hx_i             <= 0;
+      hx_next          <= ST_MENU;
+      rt_name          <= 0;
+      rt_len           <= 0;
+      rng_start        <= 0;
+      rng_cnt          <= 0;
+      rng_blk          <= 0;
+      rng_sum          <= 0;
+      rng_hi           <= 0;
+      num_second       <= 1'b0;
+      r_i              <= 0;
     end else begin
       sp_start  <= 1'b0;
       hd_start  <= 1'b0;
@@ -1411,6 +1650,23 @@ module sd_fat_test_top #(
       ec_valid  <= 1'b0;
       if (rdrst_cnt != 0) rdrst_cnt <= rdrst_cnt - 5'd1;
       if (io_run) io_cycles <= io_cycles + 1;
+
+      // RANGE: fold every 16-bit word into the checksum as its bytes arrive
+      // off the engine. ND-120 words are big-endian on the card, so the even
+      // byte offset is the high half. Kept in this process (not in the
+      // buffer's) so rng_sum has exactly one driver.
+      //
+      // ROTATE-then-add, not a plain sum: the checksum has to notice a block
+      // read from the WRONG PLACE, and a plain 16-bit sum cannot. Blocks are
+      // 1024 words, so shifting a run by whole blocks shifts it by a
+      // multiple of 1024 words, and for any position-linear content the
+      // difference that makes to a plain sum is a multiple of 2^20 - always
+      // zero in 16 bits. Rotating the accumulator by one bit per word
+      // destroys that cancellation for one wire and one adder.
+      if ((mode == M_RDMP) && phase_write && eng_rx_we) begin
+        if (!eng_rx_addr[0]) rng_hi <= eng_rx_data;
+        else rng_sum <= {rng_sum[14:0], rng_sum[15]} + {rng_hi, eng_rx_data};
+      end
 
       case (state)
         ST_BANNER: begin
@@ -1430,6 +1686,14 @@ module sd_fat_test_top #(
 
         ST_MENU2: begin
           sp_msg           <= MSG_MENU;
+          next_after_print <= ST_MENU3;
+          state            <= ST_PRINT;
+        end
+
+        // the menu does not fit in one 64-character status message, so its
+        // tail (and the "# " prompt) is a second one
+        ST_MENU3: begin
+          sp_msg           <= MSG_MENU2;
           next_after_print <= ST_KEY;
           state            <= ST_PRINT;
         end
@@ -1438,6 +1702,7 @@ module sd_fat_test_top #(
         if (rx_valid) begin
           echo_ch    <= rx_data;  // echoed as <key> CR LF for accepted keys
           ec_i       <= 2'd0;
+          ec_crlf    <= 1'b1;
           ec_gap     <= 1'b0;
           err_flag   <= 1'b0;
           done_flag  <= 1'b0;
@@ -1472,6 +1737,13 @@ module sd_fat_test_top #(
 `endif
             end
             "4": begin
+`ifdef SDFAT_TEST_READONLY
+              // the read-only build contains no block-write path at all
+              sp_msg           <= MSG_NOTIMPL;
+              next_after_print <= ST_MENU;
+              echo_next        <= ST_PRINT;
+              state            <= ST_ECHO;
+`else
 `ifdef SDFAT_WRITE
               mode        <= M_BLK;
               cmd_running <= 1'b1;
@@ -1482,6 +1754,7 @@ module sd_fat_test_top #(
               next_after_print <= ST_MENU;
               echo_next        <= ST_PRINT;
               state            <= ST_ECHO;
+`endif
 `endif
             end
             "5": begin
@@ -1523,6 +1796,68 @@ module sd_fat_test_top #(
               state            <= ST_ECHO;
 `endif
             end
+            // ---- streaming diagnostics: both ask for a number first ------
+            // Both read their sectors through the sd_writer engine's READ
+            // path, so they need that engine compiled in (SDFAT_WRITE names
+            // the module, not the direction - the read-only build keeps it
+            // and ties its rd_mode to 1).
+            "8": begin
+`ifdef SDFAT_WRITE
+              mode             <= M_BDMP;
+              num_val          <= 0;
+              num_dig          <= 1'b0;
+              sp_msg           <= MSG_ASK_BLK;
+              next_after_print <= ST_NUM;
+              echo_next        <= ST_PRINT;
+              state            <= ST_ECHO;
+`else
+              sp_msg           <= MSG_NOTIMPL;
+              next_after_print <= ST_MENU;
+              echo_next        <= ST_PRINT;
+              state            <= ST_ECHO;
+`endif
+            end
+            "9": begin
+`ifdef SDFAT_WRITE
+              mode             <= M_SDMP;
+              num_val          <= 0;
+              num_dig          <= 1'b0;
+              sp_msg           <= MSG_ASK_SEC;
+              next_after_print <= ST_NUM;
+              echo_next        <= ST_PRINT;
+              state            <= ST_ECHO;
+`else
+              sp_msg           <= MSG_NOTIMPL;
+              next_after_print <= ST_MENU;
+              echo_next        <= ST_PRINT;
+              state            <= ST_ECHO;
+`endif
+            end
+            "R", "r": begin
+`ifdef SDFAT_WRITE
+              mode             <= M_RDMP;
+              num_val          <= 0;
+              num_dig          <= 1'b0;
+              num_second       <= 1'b0;   // start block first, then the count
+              sp_msg           <= MSG_ASK_STA;
+              next_after_print <= ST_NUM;
+              echo_next        <= ST_PRINT;
+              state            <= ST_ECHO;
+`else
+              sp_msg           <= MSG_NOTIMPL;
+              next_after_print <= ST_MENU;
+              echo_next        <= ST_PRINT;
+              state            <= ST_ECHO;
+`endif
+            end
+            "N", "n": begin
+              rt_len           <= 0;   // typing a name replaces the old one
+              rt_name          <= 0;
+              sp_msg           <= MSG_ASK_NAME;
+              next_after_print <= ST_NAME;
+              echo_next        <= ST_PRINT;
+              state            <= ST_ECHO;
+            end
             "H", "h", "?": begin
               sp_msg           <= MSG_HELP1;
               next_after_print <= ST_HELP;
@@ -1534,9 +1869,12 @@ module sd_fat_test_top #(
         end
 
         // ---- echo the accepted key + CR-LF, then run the command --------
+        // ec_crlf = 0 echoes the character alone (console number/name entry,
+        // where the line ends only when the operator presses CR); entering
+        // with ec_i = 1 and ec_crlf = 1 emits just the CR LF.
         ST_ECHO:
         if (ec_gap) ec_gap <= 1'b0;  // let tx_busy assert before polling
-        else if (ec_i == 2'd3) state <= echo_next;
+        else if (ec_i == (ec_crlf ? 2'd3 : 2'd1)) state <= echo_next;
         else if (!tx_busy) begin
           ec_valid <= 1'b1;
           ec_byte  <= (ec_i == 2'd0) ? echo_ch : (ec_i == 2'd1) ? 8'h0D : 8'h0A;
@@ -1544,11 +1882,108 @@ module sd_fat_test_top #(
           ec_gap   <= 1'b1;
         end
 
+        // ---- decimal number entry (commands 8 and 9) --------------------
+        ST_NUM:
+        if (rx_valid) begin
+          if (rx_data >= "0" && rx_data <= "9") begin
+            if (num_fits) num_val <= num_x10 + {28'b0, rx_data[3:0]};
+            num_dig   <= 1'b1;
+            echo_ch   <= rx_data;
+            ec_i      <= 2'd0;
+            ec_crlf   <= 1'b0;   // echo the digit, stay on the same line
+            ec_gap    <= 1'b0;
+            echo_next <= ST_NUM;
+            state     <= ST_ECHO;
+          end else if (rx_data == 8'h0D || rx_data == 8'h0A) begin
+            ec_i    <= 2'd1;     // CR LF only, then act on the number
+            ec_crlf <= 1'b1;
+            ec_gap  <= 1'b0;
+            if (!num_dig) begin
+              sp_msg           <= MSG_ERR_NUM;
+              err_flag         <= 1'b1;
+              next_after_print <= ST_MENU;
+              echo_next        <= ST_PRINT;
+            end else if ((mode == M_RDMP) && !num_second) begin
+              // RANGE takes two numbers: this was the start block, now ask
+              // for the count (the CR LF goes out first, then the prompt)
+              rng_start        <= num_val[23:0];
+              num_val          <= 0;
+              num_dig          <= 1'b0;
+              num_second       <= 1'b1;
+              sp_msg           <= MSG_ASK_CNT;
+              next_after_print <= ST_NUM;
+              echo_next        <= ST_PRINT;
+            end else begin
+              blk_no      <= num_val[23:0];
+              sec_no      <= num_val;
+              rng_cnt     <= num_val[23:0];
+              cmd_running <= 1'b1;    // release the reader: init + mount
+              wd          <= 0;
+              echo_next   <= ST_CARD;
+            end
+            state <= ST_ECHO;
+          end else begin
+            // any other key aborts the entry - safer than guessing
+            sp_msg           <= MSG_ERR_NUM;
+            err_flag         <= 1'b1;
+            next_after_print <= ST_MENU;
+            echo_ch          <= rx_data;
+            ec_i             <= 2'd0;
+            ec_crlf          <= 1'b1;
+            ec_gap           <= 1'b0;
+            echo_next        <= ST_PRINT;
+            state            <= ST_ECHO;
+          end
+        end
+
+        // ---- file name entry (command N) --------------------------------
+        // Lower case is folded to upper case for the console echo only; the
+        // reader compares case-insensitively either way. The length limit is
+        // 12 = 8 + '.' + 3, the longest 8.3 name there is.
+        ST_NAME:
+        if (rx_valid) begin
+          if (rx_data == 8'h0D || rx_data == 8'h0A) begin
+            sp_msg           <= (rt_len == 0) ? MSG_ERR_NUM : MSG_NAME_SET;
+            err_flag         <= (rt_len == 0);
+            next_after_print <= ST_MENU;
+            ec_i             <= 2'd1;   // CR LF only
+            ec_crlf          <= 1'b1;
+            ec_gap           <= 1'b0;
+            echo_next        <= ST_PRINT;
+            state            <= ST_ECHO;
+          end else if (rx_data > 8'h20 && rt_len < 8'd12) begin
+            rt_name[8*rt_len+:8] <= (rx_data >= "a" && rx_data <= "z")
+                                    ? (rx_data - 8'd32) : rx_data;
+            rt_len    <= rt_len + 8'd1;
+            echo_ch   <= (rx_data >= "a" && rx_data <= "z")
+                         ? (rx_data - 8'd32) : rx_data;
+            ec_i      <= 2'd0;
+            ec_crlf   <= 1'b0;
+            ec_gap    <= 1'b0;
+            echo_next <= ST_NAME;
+            state     <= ST_ECHO;
+          end
+        end
+
+        // ---- print hx_val as 8 hex digits + CR LF ------------------------
+        ST_HEXOUT:
+        if (ec_gap) ec_gap <= 1'b0;
+        else if (hx_i == 4'd10) state <= hx_next;
+        else if (!tx_busy) begin
+          ec_valid <= 1'b1;
+          ec_byte  <= (hx_i < 4'd8) ? hexd(hx_val[31-4*hx_i[2:0]-:4])
+                     : (hx_i == 4'd8) ? 8'h0D : 8'h0A;
+          hx_i     <= hx_i + 4'd1;
+          ec_gap   <= 1'b1;
+        end
+
         ST_CARD:
         if (card_ready) begin
           // card_type 1/2/3 maps directly onto MSG_CARD_SDV1/SDV2/SDHC
           sp_msg           <= {4'b0000, card_type};
-          next_after_print <= ST_FS;
+          // the absolute-sector dump deliberately skips the FS: line - it
+          // must work on a card whose filesystem does not mount at all
+          next_after_print <= (mode == M_SDMP) ? ST_SWAIT : ST_FS;
           state            <= ST_PRINT;
         end else if (wd == WD_MAX) begin
           sp_msg           <= MSG_ERR_CARD_TO;
@@ -1683,6 +2118,58 @@ module sd_fat_test_top #(
             sp_msg         <= MSG_IOW_RUN;
             next_after_print <= ST_C_FIX;
             state          <= ST_PRINT;
+          end else if (mode == M_RDMP) begin
+            // RANGE: the whole run must lie inside the file, and an empty
+            // run is a typo, not a request
+            if (rng_cnt == 24'd0 || {8'b0, file_size} < rng_need) begin
+              sp_msg           <= MSG_ERR_RANGE;
+              err_flag         <= 1'b1;
+              next_after_print <= ST_MENU;
+              state            <= ST_PRINT;
+            end else begin
+              // capture BEFORE phase_write parks the reader (same edge)
+              tgt_sector       <= file_first_sector + {6'b0, rng_start, 2'b00};
+              hx_val           <= file_first_sector + {6'b0, rng_start, 2'b00};
+              nsec             <= 13'd4;   // the loop runs ONE block at a time
+              seccnt           <= 0;
+              rng_blk          <= 0;
+              rng_sum          <= 0;
+              rng_hi           <= 0;
+              io_cycles        <= 0;       // 27 MHz cycles, card traffic only
+              phase_write      <= 1'b1;
+              hx_i             <= 0;
+              hx_next          <= ST_C_WRITE;
+              sp_msg           <= MSG_R_RUN;  // "...AT SECTOR " + 8 hex digits
+              next_after_print <= ST_HEXOUT;
+              state            <= ST_PRINT;
+            end
+          end else if (mode == M_BDMP) begin
+            // 1KW block read: same framing as WRBLK1 (ND-120 block = 1024
+            // 16-bit words = 2048 bytes = 4 SD sectors, block N at
+            // file_first_sector + 4*N, which assumes the file occupies
+            // consecutive sectors - command 9 is how that assumption gets
+            // checked). Refuse a block that starts past the end of the
+            // file: those sectors belong to another file and reporting
+            // them as this file's data is exactly the confusion this tool
+            // exists to remove.
+            if ({8'b0, file_size} < blk_need) begin
+              sp_msg           <= MSG_ERR_RANGE;
+              err_flag         <= 1'b1;
+              next_after_print <= ST_MENU;
+              state            <= ST_PRINT;
+            end else begin
+              // capture BEFORE phase_write parks the reader (same edge)
+              tgt_sector       <= file_first_sector + {6'b0, blk_no, 2'b00};
+              hx_val           <= file_first_sector + {6'b0, blk_no, 2'b00};
+              nsec             <= 13'd4;
+              seccnt           <= 0;
+              phase_write      <= 1'b1;
+              hx_i             <= 0;
+              hx_next          <= ST_C_WRITE;
+              sp_msg           <= MSG_AT_SEC;   // "AT SECTOR " + 8 hex digits
+              next_after_print <= ST_HEXOUT;
+              state            <= ST_PRINT;
+            end
           end else if (mode == M_BLK) begin
             // 1KW block write: the block must lie entirely inside the file
             // (past its end = inside the NEXT file's clusters)
@@ -1704,6 +2191,32 @@ module sd_fat_test_top #(
           end else begin
             state <= ST_DUMP;
           end
+        end else if (wd == WD_MAX) begin
+          sp_msg           <= MSG_ERR_SCAN_TO;
+          err_flag         <= 1'b1;
+          sd_status        <= SD_ERROR;
+          next_after_print <= ST_MENU;
+          state            <= ST_PRINT;
+        end else wd <= wd + 1;
+
+        // ---- SECTOR (9): the FAT is not consulted at all -----------------
+        // The reader still runs to completion first: parking it mid-command
+        // leaves a real card in the SENDING-DATA state and the next command
+        // on the bus gets no answer (silicon failure 11-JUL-2026, see the
+        // note in ST_FILE). scan_done arrives even when the volume did not
+        // mount, which is what makes this command usable on a broken card.
+        ST_SWAIT:
+        if (scan_done) begin
+          tgt_sector       <= sec_no;
+          hx_val           <= sec_no;
+          nsec             <= 13'd1;
+          seccnt           <= 0;
+          phase_write      <= 1'b1;
+          hx_i             <= 0;
+          hx_next          <= ST_C_WRITE;
+          sp_msg           <= MSG_AT_SEC;
+          next_after_print <= ST_HEXOUT;
+          state            <= ST_PRINT;
         end else if (wd == WD_MAX) begin
           sp_msg           <= MSG_ERR_SCAN_TO;
           err_flag         <= 1'b1;
@@ -1852,12 +2365,15 @@ module sd_fat_test_top #(
           state            <= ST_PRINT;
         end else wd <= wd + 1;
 
-        // ---- HELP: MSG_HELP1..4 then back to the menu --------------------
+        // ---- HELP: MSG_HELP1..12 then back to the menu -------------------
+        // The help texts are not one contiguous run of message codes: 1..7
+        // were allocated before the error/status codes 33..39, so 8..12 sit
+        // above those and the sequence hops once.
         ST_HELP:
-        if (sp_msg == MSG_HELP1 + 6) begin
+        if (sp_msg == MSG_HELP13) begin
           state <= ST_MENU;
         end else begin
-          sp_msg           <= sp_msg + 6'd1;
+          sp_msg           <= (sp_msg == MSG_HELP7) ? MSG_HELP8 : (sp_msg + 6'd1);
           next_after_print <= ST_HELP;
           state            <= ST_PRINT;
         end
@@ -1951,7 +2467,14 @@ module sd_fat_test_top #(
 
         ST_C_WRITE:
         if (seccnt >= nsec) begin
-          if (io_mode) begin
+          if (mode == M_RDMP) begin
+            io_run <= 1'b0;   // stop the clock before any console traffic
+            state  <= ST_R_NEXT;
+          end else if (dump_mode) begin
+            // the sectors are in the buffer; the reader stays parked while
+            // hex_dumper prints them (see ST_CHK_W for why)
+            state <= ST_DUMP;
+          end else if (io_mode) begin
             io_run <= 1'b0;
             state  <= ST_SPEED;  // phase_write stays up: the report uses the buffer
           end else begin
@@ -1964,6 +2487,9 @@ module sd_fat_test_top #(
           // menus 6/7 go in CMD25/CMD18 bursts of up to 128 sectors;
           // COPY/WRBLK1 keep the proven single-sector path (burst_len=1)
           wr_burst <= io_mode ? burst_now : 9'd1;
+          // RANGE times the CARD traffic only: the counter runs while
+          // sectors move and is stopped around every console line
+          if (mode == M_RDMP) io_run <= 1'b1;
           if (mode == M_IOR && seccnt == 0) begin
             io_cycles <= 0;
             io_run    <= 1'b1;  // the read clock starts with the first burst
@@ -1981,14 +2507,116 @@ module sd_fat_test_top #(
           seccnt <= seccnt + 13'd1;  // block k>=1 of the burst: advance the source
           wd     <= 0;
         end else if (wr_err || wd == WD_MAX) begin
-          phase_write      <= 1'b0;
-          // menu 7 is a READ through the engine: report it as one
-          sp_msg           <= (mode == M_IOR) ? MSG_ERR_READ : MSG_ERR_WRITE;
-          err_flag         <= 1'b1;
-          sd_status        <= SD_ERROR;
-          next_after_print <= ST_MENU;
-          state            <= ST_PRINT;
+          // menu 7/8/9/R are READS through the engine: report them as such
+          sp_msg    <= ((mode == M_IOR) || dump_mode) ? MSG_ERR_READ
+                                                     : MSG_ERR_WRITE;
+          err_flag  <= 1'b1;
+          sd_status <= SD_ERROR;
+          if (mode == M_RDMP) begin
+            // THE point of the range command: name the exact place it died,
+            // then still print the summary. The reader stays parked for it
+            // (ST_MENU releases it) exactly as after a completed run.
+            io_run           <= 1'b0;
+            next_after_print <= ST_R_ERR;
+          end else begin
+            phase_write      <= 1'b0;
+            next_after_print <= ST_MENU;
+          end
+          state <= ST_PRINT;
         end else wd <= wd + 1;
+
+        // ---- RANGE: one block finished ----------------------------------
+        // Nothing here scales with the run length: the same 4-sector loop is
+        // re-armed one block further on, and only the counters move.
+        ST_R_NEXT: begin
+          rng_blk <= rng_blk + 24'd1;
+          if (rng_blk + 24'd1 >= rng_cnt) begin
+            r_i   <= 0;
+            state <= ST_R_SUM;
+          end else begin
+            tgt_sector <= tgt_sector + 32'd4;  // next block = 4 more sectors
+            seccnt     <= 0;
+            // a sign of life every 64 blocks (128 KB): at 9600 baud one
+            // line per block would cost more time than the reading does
+            if (rng_blk[5:0] == 6'd63) begin
+              hx_val           <= {8'b0, rng_blk + 24'd1};
+              hx_i             <= 0;
+              hx_next          <= ST_C_WRITE;
+              sp_msg           <= MSG_R_AT;
+              next_after_print <= ST_HEXOUT;
+              state            <= ST_PRINT;
+            end else state <= ST_C_WRITE;
+          end
+        end
+
+        // ---- RANGE: a card read failed - say exactly where ---------------
+        // The sector is the block base plus the index the engine was on;
+        // both registers still hold the failing values here.
+        ST_R_ERR: begin
+          sp_msg           <= MSG_AT_SEC;
+          hx_val           <= tgt_sector + {19'b0, seccnt};
+          hx_i             <= 0;
+          hx_next          <= ST_R_ERR2;
+          next_after_print <= ST_HEXOUT;
+          state            <= ST_PRINT;
+        end
+
+        ST_R_ERR2: begin
+          sp_msg           <= MSG_R_AT;   // "AT BLOCK " + 8 hex digits
+          hx_val           <= {8'b0, rng_blk};
+          hx_i             <= 0;
+          hx_next          <= ST_R_SUM;
+          r_i              <= 0;
+          next_after_print <= ST_HEXOUT;
+          state            <= ST_PRINT;
+        end
+
+        // ---- RANGE: the summary, one labelled hex field per step ---------
+        // err_flag is set by the read loop when the card failed, so the same
+        // sequence reports a completed run and an aborted one - an aborted
+        // one has already named the block and sector it died on.
+        ST_R_SUM: begin
+          r_i <= r_i + 3'd1;
+          case (r_i)
+            3'd0: begin
+              sp_msg           <= MSG_R_BLOCKS;
+              hx_val           <= {8'b0, rng_blk};
+              hx_i             <= 0;
+              hx_next          <= ST_R_SUM;
+              next_after_print <= ST_HEXOUT;
+              state            <= ST_PRINT;
+            end
+            3'd1: begin
+              sp_msg           <= MSG_R_SECS;
+              hx_val           <= {6'b0, rng_blk, 2'b00};  // 4 sectors a block
+              hx_i             <= 0;
+              hx_next          <= ST_R_SUM;
+              next_after_print <= ST_HEXOUT;
+              state            <= ST_PRINT;
+            end
+            3'd2: begin
+              sp_msg           <= MSG_R_CHK;
+              hx_val           <= {16'b0, rng_sum};
+              hx_i             <= 0;
+              hx_next          <= ST_R_SUM;
+              next_after_print <= ST_HEXOUT;
+              state            <= ST_PRINT;
+            end
+            3'd3: begin
+              sp_msg           <= MSG_R_CYC;
+              hx_val           <= io_cycles;  // 27 MHz; seconds = n / 27000000
+              hx_i             <= 0;
+              hx_next          <= ST_R_SUM;
+              next_after_print <= ST_HEXOUT;
+              state            <= ST_PRINT;
+            end
+            default: begin
+              sp_msg           <= err_flag ? MSG_R_FAIL : MSG_R_PASS;
+              next_after_print <= err_flag ? ST_MENU : ST_CMD_END;
+              state            <= ST_PRINT;
+            end
+          endcase
+        end
 
         // ---- common tail ------------------------------------------------
         ST_CMD_END: begin

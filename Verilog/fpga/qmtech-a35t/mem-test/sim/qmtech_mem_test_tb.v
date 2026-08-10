@@ -63,6 +63,10 @@ module qmtech_mem_test_tb;
     if (!dut.fail && led_n[1] != 1'b1)
       $display("*** LED ENCODING WRONG for PASS: led_n[1]=%b (expected 1/off)", led_n[1]);
     if (dut.fail) $display("=== RESULT: FAIL ==="); else $display("=== RESULT: PASS ===");
+    // Machine-checkable verdict. The registry greps for this exact
+    // string; the human-readable line above is kept as-is.
+    if (dut.fail) $display("TB_RESULT: FAIL");
+    else          $display("TB_RESULT: PASS");
     $finish;
   end
 

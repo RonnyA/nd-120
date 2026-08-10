@@ -3,6 +3,15 @@
 #
 # test           - all scripted gates below
 # test-dumper    - hex_dumper unit test (iverilog, seconds) [registry]
+# test-block     - streaming diagnostics (menu 8 BLOCK, 9 SECTOR, R RANGE, N)
+#                  against blockdump.img, whose BIG.BPUN is 320 KB = five
+#                  times the tool's dump buffer. Includes a 70-block (280
+#                  sector) CONSECUTIVE run through menu R with its checksum
+#                  verified against the image model - the multi-block case
+#                  SINTRAN segment handling depends on. Also the READ-ONLY
+#                  gate: the default build must offer no writing command and
+#                  issue no CMD24 or CMD25 at all (iverilog, ~2 min)
+#                  [registry]
 # test-verilator - full stack under Verilator: top + C++ SD card model +
 #                  FAT16 image (test_sd_fat.cpp): the full menu walk PLUS
 #                  a cold-start pass (destructive commands 6/3/4 each as
@@ -30,7 +39,8 @@
 # no root needed); payload = Verilog/runSim/RTC.BPUN (small, real BPUN).
 
 IVERILOG  = iverilog
-IVFLAGS   = -g2005 -DSIM -I$(SDFAT)/circuit
+# -I../src: the tool's own build configuration header (read-only by default)
+IVFLAGS   = -g2005 -DSIM -I$(SDFAT)/circuit -I../src
 VVP       = vvp
 VERILATOR = verilator
 
@@ -57,9 +67,25 @@ SYSTEM_SRCS = $(SDFAT)/circuit/sd_file_reader.v \
               ../src/sd_fat_test_top.v \
               sd_fat_test_tb.v
 
+# the streaming diagnostics (menu 8 BLOCK / 9 SECTOR / N) on a file five
+# times the size of the 64 KB dump buffer, in the DEFAULT read-only build
+BLOCK_SRCS = $(SDFAT)/circuit/sd_file_reader.v \
+             $(SDFAT)/circuit/sd_writer.v \
+             $(SDFAT)/circuit/sd_fat_rewrite.v \
+             $(SDFAT)/circuit/sd_fat_check.v \
+             $(SDFAT)/circuit/sd_fat_freescan.v \
+             $(SDFAT)/sim/sd_card_model.v \
+             ../src/uart_tx.v \
+             ../src/uart_rx.v \
+             ../src/status_printer.v \
+             ../src/hex_dumper.v \
+             ../src/buf_text_printer.v \
+             ../src/sd_fat_test_top.v \
+             sd_fat_block_tb.v
+
 all: test
 
-test: lint-configs test-dumper test-verilator test-verilator-fat32 test-verilator-fat32big
+test: lint-configs test-dumper test-block test-verilator test-verilator-fat32 test-verilator-fat32big
 
 hex_dumper_tb.vvp: $(DUMPER_SRCS)
 	$(IVERILOG) $(IVFLAGS) -o $@ $(DUMPER_SRCS)
@@ -79,20 +105,47 @@ fat32.img: make_test_image.sh
 fat32big.img: make_test_image.sh
 	./make_test_image.sh ../../../../runSim/RTC.BPUN 32 fat32big.img 32 1100
 
+# the full-menu system tb drives the WRITING commands (3/4/6), so it needs
+# the write-capable variant of the tool (default build is read-only, see
+# ../src/sd_fat_test_config.vh)
 sd_fat_test_tb.vvp: $(SYSTEM_SRCS)
-	$(IVERILOG) $(IVFLAGS) -o $@ $(SYSTEM_SRCS)
+	$(IVERILOG) $(IVFLAGS) -DSDFAT_TEST_WRITE_ENABLE -o $@ $(SYSTEM_SRCS)
 
 test-system: sd_fat_test_tb.vvp fat16.img payload.bin
 	$(VVP) sd_fat_test_tb.vvp | tee system_out.log
 	@grep -q "TB_RESULT: PASS" system_out.log
 
+blockdump.img big.bin: make_block_image.sh
+	./make_block_image.sh
+
+sd_fat_block_tb.vvp: $(BLOCK_SRCS)
+	$(IVERILOG) $(IVFLAGS) -o $@ $(BLOCK_SRCS)
+
+# test-block - STREAMING DIAGNOSTICS gate (iverilog, ~2 min):
+#   BIG.BPUN is 327680 bytes, five times the 64 KB dump buffer, so menu 2
+#   cannot inspect it at all. The bench sets the file name from the console
+#   (N), dumps 1KW block 100 (file byte 204800) with menu 8 and checks every
+#   one of the 2048 bytes against the image pattern, reads the file's first
+#   absolute sector out of the LIST column, then dumps that same sector by
+#   absolute number with menu 9 and requires the two to agree. It also
+#   asserts that the default build offers NO writing command and puts no
+#   CMD24/CMD25 on the bus. Finally it runs menu R over 70 CONSECUTIVE
+#   blocks (280 sectors) and requires the reported block count, sector
+#   count and rotate-add word checksum to match values computed here from
+#   the image model - the long-run case that single-block tests miss.
+test-block: sd_fat_block_tb.vvp blockdump.img
+	$(VVP) sd_fat_block_tb.vvp | tee block_out.log
+	@grep -q "TB_RESULT: PASS" block_out.log
+
 # every feature configuration must at least elaborate (area is stripped by
 # the SDFAT_NO_* defines - see SD-FAT/circuit/sd_fat_features.vh)
 lint-configs:
 	$(IVERILOG) $(IVFLAGS) -s sd_fat_test_top -o /dev/null $(SDFAT)/circuit/*.v ../src/*.v
-	$(IVERILOG) $(IVFLAGS) -DSDFAT_NO_CHECK -DSDFAT_NO_SPEED -s sd_fat_test_top -o /dev/null $(SDFAT)/circuit/*.v ../src/*.v
+	$(IVERILOG) $(IVFLAGS) -DSDFAT_TEST_WRITE_ENABLE -s sd_fat_test_top -o /dev/null $(SDFAT)/circuit/*.v ../src/*.v
+	$(IVERILOG) $(IVFLAGS) -DSDFAT_TEST_WRITE_ENABLE -DSDFAT_NO_CHECK -DSDFAT_NO_SPEED -s sd_fat_test_top -o /dev/null $(SDFAT)/circuit/*.v ../src/*.v
 	$(IVERILOG) $(IVFLAGS) -DSDFAT_NO_WRITE -s sd_fat_test_top -o /dev/null $(SDFAT)/circuit/*.v ../src/*.v
-	@echo "LINT: full / no-check-no-speed / read-only configurations all elaborate"
+	@echo "LINT: default read-only / write-enabled / no-check-no-speed /"
+	@echo "LINT: no-engine configurations all elaborate"
 	@echo "TB_RESULT: PASS"
 
 # ---- Verilator (pattern from Verilog/runSim/Makefile) ----------------------
@@ -109,8 +162,12 @@ VSRCS = sd_fat_test_vtop.v \
         $(SDFAT)/circuit/sd_fat_check.v \
         $(SDFAT)/circuit/sd_fat_freescan.v
 
+# test_sd_fat.cpp drives the writing commands (3/4/6) and the FAT-surgeon
+# failure injections, so every Verilator plan builds the WRITE-CAPABLE
+# variant; the default bitstream is read-only (../src/sd_fat_test_config.vh)
 compile-verilator: test_sd_fat.cpp $(VSRCS)
 	$(VERILATOR) -Wall --cc sd_fat_test_vtop.v $(SUPPRESS_FLAGS) \
+	    +define+SDFAT_TEST_WRITE_ENABLE \
 	    -I../src -I$(SDFAT)/circuit \
 	    --exe test_sd_fat.cpp
 	cd obj_dir && $(MAKE) -f Vsd_fat_test_vtop.mk Vsd_fat_test_vtop
@@ -151,6 +208,9 @@ help:
 	@echo "SD-FAT test simulation targets:"
 	@echo "  make test            all scripted gates (dumper + 3 Verilator plans)"
 	@echo "  make test-dumper     hex_dumper unit tb (iverilog, seconds)"
+	@echo "  make test-block      streaming BLOCK/SECTOR dumps on a 320 KB"
+	@echo "                       file, a 70-block RANGE run + the read-only"
+	@echo "                       gate (iverilog, ~2 min)"
 	@echo "  make test-verilator  full-system scripted test + cold-start pass"
 	@echo "                       (Verilator, ~2 min) - the gate BEFORE hardware"
 	@echo "  make test-verilator-fat32     same full plan, FAT32 volume"
@@ -163,10 +223,10 @@ help:
 	@echo "  make clean           remove build products, logs and images"
 
 clean:
-	rm -f *.vvp *.log *.img payload.bin
+	rm -f *.vvp *.log *.img payload.bin big.bin
 	rm -rf obj_dir
 
-.PHONY: all test test-dumper test-system compile-verilator test-verilator test-verilator-fat32 test-verilator-fat32big console help clean
+.PHONY: all test test-dumper test-block test-system compile-verilator test-verilator test-verilator-fat32 test-verilator-fat32big console help clean
 
 # ---------------------------------------------------------------------------
 # test-tristate - SYNTHESIS tristate-integrity gate (12-JUL-2026 silicon
@@ -192,7 +252,7 @@ TRISTATE_SRCS = $(SDFAT)/circuit/sd_file_reader.v \
                 ../src/sd_fat_test_top.v
 
 test-tristate: $(TRISTATE_SRCS) check_tristate.py
-	$(YOSYS) -q -p "read_verilog -I$(SDFAT)/circuit $(TRISTATE_SRCS); hierarchy -top sd_fat_test_top; proc; opt -fast; tribuf; write_json tristate_check.json"
+	$(YOSYS) -q -p "read_verilog -I$(SDFAT)/circuit -I../src $(TRISTATE_SRCS); hierarchy -top sd_fat_test_top; proc; opt -fast; tribuf; write_json tristate_check.json"
 	python3 check_tristate.py tristate_check.json sd_fat_test_top sd_cmd sd_dat0 sd_dat1 sd_dat2 sd_dat3 | tee tristate_out.log
 	@grep -q "TB_RESULT: PASS" tristate_out.log
 

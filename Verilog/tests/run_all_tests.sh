@@ -244,7 +244,7 @@ REGISTRY=(
   "SD-FAT/sim                         :: test-nds-engine :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-write :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-mount :: TB_RESULT: PASS"
-  # Client bus slice continuity. nd_tape_sdfat_source hands nd_storage its
+  # Client bus slice continuity. nd_storage_devices hands nd_storage its
   # per-client ports as five hand-written flat concatenations, and nothing
   # else checks that a client actually got a slice in each one - a forgotten
   # slice is a silent tie to zero that elaborates, simulates and synthesises

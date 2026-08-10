@@ -174,3 +174,61 @@ test-dga-pow:
 	@grep -q "TB_RESULT: PASS" pow_result.tmp && rm -f pow_result.tmp
 
 .PHONY: test-dga-pow
+
+# ---------------------------------------------------------------------------
+# DECODE_DGA_COMM - microcode COMM command decode sheet (DGA pages 16-19).
+#
+# NOT in the registry, and deliberately so. The bench was written 01-AUG-2026
+# and had no make rule at all until 09-AUG; `make test-audit` found it. It
+# now BUILDS AND RUNS in all four ifdef modes, and every functional check
+# passes - errors=0 in all four. What fails is its own CHECK-COUNT guard:
+#
+#     mode                       expected   actual
+#     plain / VERILATOR_SIM        219100   240865
+#     FPGA_FF_MODE (both)          218781   240596
+#
+# The bench file is unchanged in git, so the extra checks come from the DUT:
+# `checks` is incremented inside conditionals that depend on COMM's outputs,
+# and DECODE_DGA_COMM.v was last touched by 2cde8e1 (the P2 conversion of
+# every CPU clock domain to sysclk clock-enables). More checks executing with
+# zero mismatches is consistent with the sheet doing MORE work, not wrong
+# work - but that has to be established, not assumed.
+#
+# DO NOT simply raise the two constants to the observed numbers. The count
+# guard exists to catch a bench that silently stops checking; bumping it to
+# whatever today prints removes the only thing protecting against that. The
+# drift needs explaining against the P2 change first, and then the constants
+# get set deliberately.
+# ---------------------------------------------------------------------------
+COMM_SRCS = $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/DECODE_DGA_COMM.v \
+            $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F091.v \
+            $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F571.v \
+            $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F595.v \
+            $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit/F924.v \
+            $(VERILOG_ROOT)/Shared/ndlib/D_FLIPFLOP_EN.v \
+            $(VERILOG_ROOT)/Shared/ndlib/F924_EN.v \
+            $(VERILOG_ROOT)/Shared/logisim/AND_GATE.v \
+            $(VERILOG_ROOT)/Shared/logisim/AND_GATE_3_INPUTS.v \
+            $(VERILOG_ROOT)/Shared/logisim/NAND_GATE.v \
+            $(VERILOG_ROOT)/Shared/logisim/NAND_GATE_3_INPUTS.v \
+            $(VERILOG_ROOT)/Shared/logisim/NAND_GATE_4_INPUTS.v \
+            $(VERILOG_ROOT)/Shared/logisim/NAND_GATE_5_INPUTS.v \
+            $(VERILOG_ROOT)/Shared/logisim/NAND_GATE_6_INPUTS.v \
+            $(VERILOG_ROOT)/Shared/logisim/NAND_GATE_8_INPUTS.v \
+            $(VERILOG_ROOT)/Shared/logisim/NOR_GATE.v \
+            $(VERILOG_ROOT)/Shared/logisim/D_FLIPFLOP.v \
+            $(VERILOG_ROOT)/Shared/logisim/Multiplexer_2_w_enable.v
+
+# Runs all four ifdef modes and REPORTS; does not gate. Once the count drift
+# is explained, drop the `-` prefixes and register it.
+test-dga-comm:
+	$(IVERILOG) -g2012 -o DECODE_DGA_COMM_tb DECODE_DGA_COMM_tb.v $(COMM_SRCS)
+	-./DECODE_DGA_COMM_tb | tail -3
+	$(IVERILOG) -g2012 -DVERILATOR_SIM -o DECODE_DGA_COMM_tb_vs DECODE_DGA_COMM_tb.v $(COMM_SRCS)
+	-./DECODE_DGA_COMM_tb_vs | tail -3
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o DECODE_DGA_COMM_tb_ff DECODE_DGA_COMM_tb.v $(COMM_SRCS)
+	-./DECODE_DGA_COMM_tb_ff | tail -3
+	$(IVERILOG) -g2012 -DVERILATOR_SIM -DFPGA_FF_MODE -o DECODE_DGA_COMM_tb_vsff DECODE_DGA_COMM_tb.v $(COMM_SRCS)
+	-./DECODE_DGA_COMM_tb_vsff | tail -3
+
+.PHONY: test-dga-comm

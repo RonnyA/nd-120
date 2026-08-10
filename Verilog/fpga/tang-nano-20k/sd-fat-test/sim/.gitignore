@@ -1,5 +1,7 @@
 fat16.img
 payload.bin
+*.img
+big.bin
 *.vvp
 *.log
 obj_dir/

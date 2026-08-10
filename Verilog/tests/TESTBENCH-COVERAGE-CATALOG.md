@@ -162,7 +162,7 @@ coverage is ~27%.
   RFT=0 vs oracle's RFT=1, activate fetch is asynchronous (byte_valid)
   vs the oracle's instant in-write fetch. Teeth = status-bit swap
   (s_rft<->s_read_active, the FIDBO-swap class), 52 errors, FAILs.
-  `nd_tape_sdfat_source` (the SD-FAT byte-source wrapper) remains
+  `nd_storage_devices` (the SD-FAT byte-source wrapper) remains
   uncovered - it needs the sd_card_model/nds_mem_model harness, Tier 6.
 
 - 01-AUG-2026: **Tier 4 started - CGA_MAC_ADD covered**
@@ -535,7 +535,7 @@ CGA_WRF_RBLOCK_DR16; BIF_BCTL_6, BIF_BCTL_SYNC_8, BIF_DPATH_LDBCTL_12,
 BIF_DPATH_PESPEA_13, MEM_ADEC_45 (replace the inline model in
 `Verilog/CPU-BOARD-3202/sim/reqgnt_equiv_tb.v` with the real DUT),
 PAL_44445B_D, PAL_44446B_D; DGA DECODE_DGA_POW(662), DECODE_DGA_COMM(1252),
-F617; ND_TAPE_400 + nd_tape_sdfat_source (only ND-BUS device with an empty
+F617; ND_TAPE_400 + nd_storage_devices (only ND-BUS device with an empty
 sim/ - mirror the nd_floppy_*_tb.v set).
 
 **Tier 6 - memory/storage & board glue (needs models):** sd_file_reader,

@@ -7,9 +7,15 @@
 **                                                                         **
 ** NOTE: \r is not a legal Verilog string escape - CR must be octal \015.  **
 **                                                                         **
-** Last reviewed: 10-JUL-2026                                              **
+** Every message must stay within 64 characters: strchar's window is       **
+** [8*64-1:0] and idx is 6 bits, so a longer string is silently truncated  **
+** and then wraps. That is why the menu is TWO messages.                   **
+**                                                                         **
+** Last reviewed: 10-AUG-2026                                              **
 ** Ronny Hansen                                                            **
 *****************************************************************************/
+
+`include "sd_fat_test_config.vh"
 
 module status_printer (
     input clk,
@@ -66,6 +72,30 @@ module status_printer (
   localparam MSG_ERR_READ= 6'd37;
   localparam MSG_ERR_FATRD= 6'd38;
   localparam MSG_ERR_FATCOR= 6'd39;
+  localparam MSG_MENU2= 6'd40;     // second menu line (the streaming commands)
+  localparam MSG_ASK_BLK= 6'd41;
+  localparam MSG_ASK_SEC= 6'd42;
+  localparam MSG_ASK_NAME= 6'd43;
+  localparam MSG_ERR_NUM= 6'd44;
+  localparam MSG_AT_SEC= 6'd45;    // followed by 8 hex digits from the top level
+  localparam MSG_NAME_SET= 6'd46;
+  localparam MSG_HELP8= 6'd47;     // help continues here: 33..39 were taken
+  localparam MSG_HELP9= 6'd48;     // before the streaming commands existed
+  localparam MSG_HELP10= 6'd49;
+  localparam MSG_HELP11= 6'd50;
+  localparam MSG_HELP12= 6'd51;
+  localparam MSG_HELP13= 6'd52;
+  // multi-block range read (menu R): prompts, progress and the summary
+  localparam MSG_ASK_STA= 6'd53;
+  localparam MSG_ASK_CNT= 6'd54;
+  localparam MSG_R_RUN= 6'd55;
+  localparam MSG_R_AT= 6'd56;      // + 8 hex digits: block reached
+  localparam MSG_R_BLOCKS= 6'd57;  // + 8 hex digits
+  localparam MSG_R_SECS= 6'd58;    // + 8 hex digits
+  localparam MSG_R_CHK= 6'd59;     // + 8 hex digits
+  localparam MSG_R_CYC= 6'd60;     // + 8 hex digits
+  localparam MSG_R_PASS= 6'd61;
+  localparam MSG_R_FAIL= 6'd62;
 
   // Fixed strings (longest is 55 chars; strchar window is 64)
   localparam S_BANNER      = "\015\012SD-FAT TEST 10-JUL-2026\015\012";
@@ -80,7 +110,16 @@ module status_printer (
   localparam S_ERR_CARD_TO = "ERROR: CARD INIT TIMEOUT\015\012";
   localparam S_ERR_SCAN_TO = "ERROR: FS SCAN TIMEOUT\015\012";
   localparam S_ERR_TRUNC   = "ERROR: FILE TRUNCATED TO BUFFER\015\012";
-  localparam S_MENU        = "\015\0121=LIST 2=DUMP 3=COPY 4=WRBLK1 5=CHECK 6=WS 7=RS H=HELP\015\012# ";
+  // The menu is printed as two messages (64-char limit, see the header).
+  // The read-only build must not OFFER a command it does not contain, so
+  // the writing keys are absent from the text as well as from the FSM.
+`ifdef SDFAT_TEST_READONLY
+  localparam S_MENU        = "\015\0121=LIST 2=DUMP 5=CHECK 8=BLOCK 9=SECTOR\015\012";
+  localparam S_MENU2       = "R=RANGE N=NAME H=HELP\015\012# ";
+`else
+  localparam S_MENU        = "\015\0121=LIST 2=DUMP 3=COPY 4=WRBLK1 5=CHECK 6=WS 7=RS\015\012";
+  localparam S_MENU2       = "8=BLOCK 9=SECTOR R=RANGE N=NAME H=HELP\015\012# ";
+`endif
   localparam S_NOTIMPL     = "NOT IMPLEMENTED\015\012";
   localparam S_SD_NOTCHK   = "SD: NOT CHECKED\015\012";
   localparam S_SD_NOCARD   = "SD: NO CARD\015\012";
@@ -95,12 +134,47 @@ module status_printer (
   localparam S_BLK_DONE    = "BLOCK 1 UPDATED\015\012";
   localparam S_ERR_RANGE   = "ERROR: BLOCK OUT OF RANGE\015\012";
   localparam S_HELP1       = "1 = LIST ROOT DIR + CARD/VOL/FREE MB INFO LINE\015\012";
-  localparam S_HELP2       = "2 = DUMP BOOT.BPUN AS HEX + OCTAL WORDS\015\012";
-  localparam S_HELP3       = "3 = COPY BOOT.BPUN OVER TEST.TXT (IN PLACE)\015\012";
-  localparam S_HELP4       = "4 = WRITE WORDS 0-1023 TO 1KW BLOCK 1 OF BOOT.BPUN\015\012";
-  localparam S_HELP5       = "5 = VALIDATE EVERY FILE CLUSTER CHAIN (FSCK-LITE)\015\012";
+  localparam S_HELP2       = "2 = DUMP WHOLE FILE VIA 64 KB BUFFER, HEX + OCTAL\015\012";
+`ifdef SDFAT_TEST_READONLY
+  // 3/4/6/7 are not in this build: an empty string prints nothing, so the
+  // help sequence below needs no second form
+  localparam S_HELP3       = 8'h00;
+  localparam S_HELP4       = 8'h00;
+  localparam S_HELP6       = 8'h00;
+  localparam S_HELP7       = 8'h00;
+`else
+  localparam S_HELP3       = "3 = COPY THE FILE OVER TEST.TXT (IN PLACE)\015\012";
+  localparam S_HELP4       = "4 = WRITE WORDS 0-1023 TO 1KW BLOCK 1 OF THE FILE\015\012";
   localparam S_HELP6       = "6 = WRITE SPEED: REWRITE IO.DAT, 1000 X 1KW BLOCKS\015\012";
   localparam S_HELP7       = "7 = READ SPEED: READ IO.DAT BACK (RUN 6 FIRST)\015\012";
+`endif
+  localparam S_HELP5       = "5 = VALIDATE EVERY FILE CLUSTER CHAIN (FSCK-LITE)\015\012";
+  localparam S_HELP8       = "8 = DUMP 1KW BLOCK N OF THE FILE, ANY FILE SIZE\015\012";
+  localparam S_HELP9       = "9 = DUMP ABSOLUTE SD SECTOR N, FAT NOT CONSULTED\015\012";
+  localparam S_HELP10      = "N = SET FILE NAME: ROOT DIR ONLY, 8.3 LENGTH EXACT\015\012";
+  localparam S_HELP11      = "LIST COLUMN 4 = FIRST ABSOLUTE SECTOR OF THE FILE\015\012";
+  localparam S_HELP12      = "BLOCK N IS AT FIRST SECTOR + 4*N (FILE CONTIGUOUS)\015\012";
+  localparam S_HELP13      = "R = READ A BLOCK RANGE, CHECKSUM ONLY, NO DUMP\015\012";
+  localparam S_ASK_BLK     = "BLOCK NUMBER, DECIMAL, THEN CR: ";
+  localparam S_ASK_STA     = "START BLOCK, DECIMAL, THEN CR: ";
+  localparam S_ASK_CNT     = "BLOCK COUNT, DECIMAL, THEN CR: ";
+  // The range summary is printed in HEX throughout (each label is followed
+  // by 8 hex digits from the top level's hex printer): one number format
+  // for every field keeps the console reader honest, and CYCLES is a raw
+  // 27 MHz count anyway - seconds = CYCLES / 27000000.
+  localparam S_R_RUN       = "READING BLOCK RANGE AT SECTOR ";
+  localparam S_R_AT        = "AT BLOCK ";
+  localparam S_R_BLOCKS    = "BLOCKS READ ";
+  localparam S_R_SECS      = "SECTORS READ ";
+  localparam S_R_CHK       = "CHECKSUM ";
+  localparam S_R_CYC       = "CYCLES ";
+  localparam S_R_PASS      = "RESULT: PASS\015\012";
+  localparam S_R_FAIL      = "RESULT: FAIL\015\012";
+  localparam S_ASK_SEC     = "ABSOLUTE SECTOR, DECIMAL, THEN CR: ";
+  localparam S_ASK_NAME    = "FILE NAME, THEN CR: ";
+  localparam S_ERR_NUM     = "ERROR: NO DIGITS ENTERED\015\012";
+  localparam S_AT_SEC      = "AT SECTOR ";
+  localparam S_NAME_SET    = "FILE NAME SET\015\012";
   localparam S_ERR_IOSZ    = "ERROR: IO.DAT WRONG SIZE - RUN 6 FIRST\015\012";
   localparam S_IOW_RUN     = "WRITING IO.DAT\015\012";
   localparam S_IOR_RUN     = "READING IO.DAT\015\012";
@@ -160,6 +234,29 @@ module status_printer (
       MSG_ERR_READ:    ch = strchar({8'b0, S_ERR_READ}, $bits(S_ERR_READ)/8, idx);
       MSG_ERR_FATRD:   ch = strchar({8'b0, S_ERR_FATRD}, $bits(S_ERR_FATRD)/8, idx);
       MSG_ERR_FATCOR:  ch = strchar({8'b0, S_ERR_FATCOR}, $bits(S_ERR_FATCOR)/8, idx);
+      MSG_MENU2:       ch = strchar({8'b0, S_MENU2}, $bits(S_MENU2)/8, idx);
+      MSG_ASK_BLK:     ch = strchar({8'b0, S_ASK_BLK}, $bits(S_ASK_BLK)/8, idx);
+      MSG_ASK_SEC:     ch = strchar({8'b0, S_ASK_SEC}, $bits(S_ASK_SEC)/8, idx);
+      MSG_ASK_NAME:    ch = strchar({8'b0, S_ASK_NAME}, $bits(S_ASK_NAME)/8, idx);
+      MSG_ERR_NUM:     ch = strchar({8'b0, S_ERR_NUM}, $bits(S_ERR_NUM)/8, idx);
+      MSG_AT_SEC:      ch = strchar({8'b0, S_AT_SEC}, $bits(S_AT_SEC)/8, idx);
+      MSG_NAME_SET:    ch = strchar({8'b0, S_NAME_SET}, $bits(S_NAME_SET)/8, idx);
+      MSG_HELP8:       ch = strchar({8'b0, S_HELP8}, $bits(S_HELP8)/8, idx);
+      MSG_HELP9:       ch = strchar({8'b0, S_HELP9}, $bits(S_HELP9)/8, idx);
+      MSG_HELP10:      ch = strchar({8'b0, S_HELP10}, $bits(S_HELP10)/8, idx);
+      MSG_HELP11:      ch = strchar({8'b0, S_HELP11}, $bits(S_HELP11)/8, idx);
+      MSG_HELP12:      ch = strchar({8'b0, S_HELP12}, $bits(S_HELP12)/8, idx);
+      MSG_HELP13:      ch = strchar({8'b0, S_HELP13}, $bits(S_HELP13)/8, idx);
+      MSG_ASK_STA:     ch = strchar({8'b0, S_ASK_STA}, $bits(S_ASK_STA)/8, idx);
+      MSG_ASK_CNT:     ch = strchar({8'b0, S_ASK_CNT}, $bits(S_ASK_CNT)/8, idx);
+      MSG_R_RUN:       ch = strchar({8'b0, S_R_RUN}, $bits(S_R_RUN)/8, idx);
+      MSG_R_AT:        ch = strchar({8'b0, S_R_AT}, $bits(S_R_AT)/8, idx);
+      MSG_R_BLOCKS:    ch = strchar({8'b0, S_R_BLOCKS}, $bits(S_R_BLOCKS)/8, idx);
+      MSG_R_SECS:      ch = strchar({8'b0, S_R_SECS}, $bits(S_R_SECS)/8, idx);
+      MSG_R_CHK:       ch = strchar({8'b0, S_R_CHK}, $bits(S_R_CHK)/8, idx);
+      MSG_R_CYC:       ch = strchar({8'b0, S_R_CYC}, $bits(S_R_CYC)/8, idx);
+      MSG_R_PASS:      ch = strchar({8'b0, S_R_PASS}, $bits(S_R_PASS)/8, idx);
+      MSG_R_FAIL:      ch = strchar({8'b0, S_R_FAIL}, $bits(S_R_FAIL)/8, idx);
       default:         ch = 8'h00;
     endcase
   end

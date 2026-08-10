@@ -41,6 +41,11 @@ BUILD   = build
 
 # compile-time feature selection (see ../../../SD-FAT/circuit/sd_fat_features.vh)
 # e.g. make SDFAT_FEATURES="-DSDFAT_NO_CHECK -DSDFAT_NO_SPEED"
+#
+# The bitstream is READ-ONLY by default (src/sd_fat_test_config.vh): menu
+# 3/4/6 are not compiled in and the card write path has no reachable driver.
+# For a write-capable bitstream, comment the `define out in that header - or,
+# for a one-off, make SDFAT_FEATURES="-DSDFAT_TEST_WRITE_ENABLE".
 SDFAT_FEATURES ?=
 
 all: $(BUILD)/$(TOP).fs
@@ -49,7 +54,7 @@ $(BUILD):
 	mkdir -p $(BUILD)
 
 $(BUILD)/$(TOP).json: $(SRCS) | $(BUILD)
-	yosys -l $(BUILD)/synth.log -p "read_verilog -I$(SDFAT) $(SDFAT_FEATURES) $(SRCS); synth_gowin -top $(TOP); write_json $@"
+	yosys -l $(BUILD)/synth.log -p "read_verilog -I$(SDFAT) -Isrc $(SDFAT_FEATURES) $(SRCS); synth_gowin -top $(TOP); write_json $@"
 
 $(BUILD)/$(TOP)_pnr.json: $(BUILD)/$(TOP).json src/nano20k_sd.cst
 	nextpnr-himbaechel --json $(BUILD)/$(TOP).json \
