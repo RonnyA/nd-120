@@ -97,7 +97,7 @@ FATCHK_SRCS = $(STACK_SRCS) nd_storage_fatchk_tb.v
 
 all: test
 
-test: test-writer test-writer-div1 test-nds-cdc test-nds-engine test-nds-write test-nds-mount test-nds-fatchk-unit test-nds-fatchk test-nds-cache test-nds-cachepath test-nds-errors
+test: test-writer test-writer-div1 test-nds-cdc test-nds-engine test-nds-write test-nds-mount test-nds-fatchk-unit test-nds-fatchk test-nds-cache test-nds-cachepath test-nds-errors test-nds-clientbus
 
 writer_test.img:
 	dd if=/dev/zero of=$@ bs=1024 count=64 status=none

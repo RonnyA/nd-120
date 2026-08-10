@@ -188,29 +188,79 @@ module nd_tape_sdfat_source #(
   wire        w_open_req, w_req, w_wr;
   wire [15:0] w_block, w_buf_rdata;
 
-  // drive client 0 (tape), client 1 (floppy) and client 3 (SMD) slices;
-  // tie clients 2 and 4..6 idle
-  assign open_req_w = {{(N-7){1'b0}}, w_open_req, 2'b00, m_open_req, 1'b0, f_open_req,  a_open_req};
-  assign req_w      = {{(N-7){1'b0}}, w_req,      2'b00, m_req,      1'b0, f_req,       a_req};
-  assign wr_w       = {{(N-7){1'b0}}, w_wr,       2'b00, m_wr,       1'b0, f_wr,        a_wr};
-  assign block_w    = {{((N-7)*16){1'b0}}, w_block, {2*16{1'b0}}, m_block,     16'd0, f_block,     a_block};
-  // w_buf_rdata BELONGS HERE, at client 6, exactly like block_w above.
-  // It was missing until 10-AUG-2026: this bus still had the older (N-4) form
-  // from before the Winchester client existed, so clients 4..7 were tied to
-  // zero and the Winchester's buffer read data never reached the engine. The
-  // four buses either side of this line were all updated when the WD client
-  // was added; this one was not.
+  // ---- client port fan-out -------------------------------------------------
+  // ONE CONTIGUOUS BLOCK PER CLIENT, indexed by a named constant. Adding a
+  // client means adding one block; a missing line is a VISIBLE gap in that
+  // block, not an invisible zero somewhere else in the file.
   //
-  // Only WRITES are affected, which is why it survived so long. A read moves
-  // data the other way, on buf_wdata/buf_we, and reads were the only thing
-  // ever exercised. A write silently staged 16'd0 for every word: the DMA
-  // fetched the payload from host memory correctly, the controller's own
-  // s_buffer held it correctly, and zeros went to the card - with no error
-  // raised anywhere, because no module could tell anything was wrong.
-  // Symptom on silicon: SINTRAN boots off the disc and then dies with
-  // "DISC TRANSFER ERROR IN SEGMENT HANDLING" the moment the swapper writes.
-  assign buf_rdata_w= {{((N-7)*16){1'b0}}, w_buf_rdata, {2*16{1'b0}},
-                       m_buf_rdata, 16'd0, f_buf_rdata, a_buf_rdata};
+  // This replaced five hand-written flat concatenations, one per bus, each
+  // carrying its own bit-counting arithmetic - e.g.
+  //
+  //   assign buf_rdata_w = {{((N-4)*16){1'b0}}, m_buf_rdata, 16'd0,
+  //                         f_buf_rdata, a_buf_rdata};
+  //
+  // Adding a client meant editing all five expressions and getting five
+  // separate bit counts right, and NOTHING checked that you had. On
+  // 10-AUG-2026 exactly one of them - buf_rdata_w - was left in its older
+  // (N-4) form when the Winchester client was added, so clients 4..7 were
+  // tied to zero and w_buf_rdata reached nothing. Only WRITES read that bus
+  // (reads travel the other way on buf_wdata/buf_we), and only reads had ever
+  // been exercised, so every Winchester write silently staged 16'd0 for every
+  // word while the DMA fetched the payload correctly and the controller's own
+  // buffer held it correctly. Zeros went to the SD card with no error raised
+  // anywhere. On the Tang, SINTRAN mass-loaded off the disc, started, and
+  // died with "DISC TRANSFER ERROR IN SEGMENT HANDLING" the moment the
+  // swapper wrote - after overwriting the image's master block with zeros.
+  //
+  // Gated by SD-FAT/sim/nd_storage_clientbus_tb.v (test-nds-clientbus).
+  localparam integer CL_TAPE   = 0;
+  localparam integer CL_FLOPPY = 1;
+  localparam integer CL_SMD    = 3;
+  localparam integer CL_WD     = 6;
+
+  // client 0 - tape (read-only: a_buf_rdata is tied 0 in the adapter itself)
+  assign open_req_w [CL_TAPE]            = a_open_req;
+  assign req_w      [CL_TAPE]            = a_req;
+  assign wr_w       [CL_TAPE]            = a_wr;
+  assign block_w    [16*CL_TAPE   +: 16] = a_block;
+  assign buf_rdata_w[16*CL_TAPE   +: 16] = a_buf_rdata;
+
+  // client 1 - floppy
+  assign open_req_w [CL_FLOPPY]          = f_open_req;
+  assign req_w      [CL_FLOPPY]          = f_req;
+  assign wr_w       [CL_FLOPPY]          = f_wr;
+  assign block_w    [16*CL_FLOPPY +: 16] = f_block;
+  assign buf_rdata_w[16*CL_FLOPPY +: 16] = f_buf_rdata;
+
+  // client 3 - SMD disc
+  assign open_req_w [CL_SMD]             = m_open_req;
+  assign req_w      [CL_SMD]             = m_req;
+  assign wr_w       [CL_SMD]             = m_wr;
+  assign block_w    [16*CL_SMD    +: 16] = m_block;
+  assign buf_rdata_w[16*CL_SMD    +: 16] = m_buf_rdata;
+
+  // client 6 - Winchester disc
+  assign open_req_w [CL_WD]              = w_open_req;
+  assign req_w      [CL_WD]              = w_req;
+  assign wr_w       [CL_WD]              = w_wr;
+  assign block_w    [16*CL_WD     +: 16] = w_block;
+  assign buf_rdata_w[16*CL_WD     +: 16] = w_buf_rdata;
+
+  // clients 2, 4, 5, 7 - no adapter exists. Driven explicitly rather than
+  // left undriven: an undriven net is z, not 0, and would propagate x.
+  genvar ci;
+  generate
+    for (ci = 0; ci < N; ci = ci + 1) begin : gen_idle_clients
+      if ((ci != CL_TAPE) && (ci != CL_FLOPPY) &&
+          (ci != CL_SMD)  && (ci != CL_WD)) begin : gen_idle
+        assign open_req_w [ci]           = 1'b0;
+        assign req_w      [ci]           = 1'b0;
+        assign wr_w       [ci]           = 1'b0;
+        assign block_w    [16*ci +: 16]  = 16'd0;
+        assign buf_rdata_w[16*ci +: 16]  = 16'd0;
+      end
+    end
+  endgenerate
 
   assign a_open_ok    = open_ok_w[0];
   assign a_open_err   = open_err_w[0];
