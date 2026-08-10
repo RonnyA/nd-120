@@ -7,10 +7,9 @@
 **                                                                         **
 **   M_IDLE : wait for mnt_start; latch the client; clear that client's  **
 **            open_ok/open_err (only a new open_req rebuilds a slot).    **
-**            A client outside PRELOAD_MASK (the SMD cache-window        **
-**            clients 3..6 in v1) fails IMMEDIATELY - no card traffic,   **
-**            no reader release (Phase 4 replaces this with the          **
-**            tag-based cache fill).                                     **
+**            Phase 4: PRELOAD_MASK is gone, so every client in range    **
+**            opens for real - only an out-of-range client index fails   **
+**            here without touching the card.                            **
 **   M_INIT : phase_write<=0 (reader owns the SD pins), hold the reader  **
 **            in reset a few more cycles, then release it for a FULL     **
 **            init+mount+scan run - the per-open re-init that doubles    **
@@ -19,12 +18,19 @@
 **   M_SCAN : wait for file_found; latch size/first-sector/first-cluster **
 **            and geometry at the SAME edge (the ST_C_FIND lesson: the   **
 **            reader is parked later and its registers reset with it).   **
-**            size > slot -> park + fail, decided combinationally at     **
-**            the latch edge - the reader needs hundreds of cycles to    **
-**            reach the first outen byte, so no payload ever moves.      **
+**            Phase 4: NO size-versus-slot test - that refusal is what   **
+**            made a 75 MB image impossible against a 256 KB slot - and  **
+**            NO staging of the payload. The reader runs with            **
+**            no_stream=1, so it stops at the directory match and this   **
+**            state waits for its scan_done before parking. Waiting      **
+**            matters: parking the reader mid-transfer leaves the card   **
+**            streaming and the next card user (the contiguity checker,  **
+**            or simply the next open) fails.                            **
 **            scan_done without file_found (missing file / bad FS) or    **
 **            watchdog -> park + fail.                                   **
-**   M_LOAD : consume the outen/outbyte stream -> 4-byte big-endian      **
+**   M_LOAD : DEAD under Phase 4 - unreachable, kept for one release so  **
+**            the change stays reviewable against v1. It used to:        **
+**            consume the outen/outbyte stream -> 4-byte big-endian      **
 **            packer (byte 4m lands in mem_wdata[31:24]) -> 8x32 sync    **
 **            FIFO -> mem-port writes at {SLOT_BASE_BLK[c],9'b0} +       **
 **            byte_cnt[21:2]; the tail word is zero-padded. The FIFO     **
@@ -40,7 +46,11 @@
 **            Without the feature flag the state passes straight through **
 **            to M_OK (the card recipe alone guarantees contiguity).     **
 **   M_OK   : open_ok[c]<=1, size_bytes/n_blocks (=ceil(size/2048)) /    **
-**            first_sector published, mnt_done with mnt_err=0.           **
+**            first_sector published, mnt_done with mnt_err=0.          **
+**            SIZE CEILING: n_blocks is 16 bits, so an image >= 128 MiB **
+**            (2^27 B) is silently mis-sized - see the long note at the **
+**            r_nblk assignment. An image merely bigger than its drive  **
+**            GEOMETRY is fine and is a different matter entirely.      **
 **   M_FAIL : open_err[c]<=1, mnt_done with mnt_err=1.                   **
 **                                                                         **
 ** open_ok stays up across later write errors (spec section 7); only a   **
@@ -59,7 +69,6 @@
 module nd_storage_mount #(
     parameter         N_CLIENTS      = 7,             // 1..8
     parameter [31:0]  WD_MAX         = 32'd270_000_000,
-    parameter [7:0]   PRELOAD_MASK   = 8'b00000111,   // v1: clients 0..2 only
     parameter [31:0]  SLOT0_BASE_BLK = 32'd0,
     parameter [31:0]  SLOT0_SIZE_BLK = 32'd32,
     parameter [31:0]  SLOT1_BASE_BLK = 32'd32,
@@ -85,6 +94,11 @@ module nd_storage_mount #(
     input  wire [2:0]  mnt_client,  // stable while the engine waits
     output reg         mnt_done,    // 1-cycle pulse
     output reg         mnt_err,     // valid with mnt_done
+    // Valid with mnt_done: this open failed because there is NO CARD (or
+    // the card never initialised), as opposed to the card being fine and
+    // this client's file not being on it. The engine turns the two into
+    // different reason codes because they need different operator action.
+    output reg         mnt_nocard,
     output wire        mnt_busy,    // owns the reader + mem port while high
 
     // ---- reader control / observation (sd_file_reader at the top) ----
@@ -126,6 +140,7 @@ module nd_storage_mount #(
     output reg  [N_CLIENTS-1:0]    open_err,
     output wire [N_CLIENTS*32-1:0] size_bytes,
     output wire [N_CLIENTS*16-1:0] n_blocks,     // ceil(size/2048)
+    output wire [N_CLIENTS*28-1:0] first_cluster, // file first FAT cluster
     output wire [N_CLIENTS*32-1:0] first_sector,
 
     // ---- sd_status feed for the top (spec section 7) ----
@@ -173,6 +188,7 @@ module nd_storage_mount #(
   wire [31:0] s_slot_bytes = slot_size(cur_client) << 11;
 
   // ------------------------------------------------------------- FSM
+  reg s_got_geom;   // target matched; size/first/cluster already latched
   localparam [3:0] M_IDLE = 4'd0;
   localparam [3:0] M_INIT = 4'd1;
   localparam [3:0] M_CARD = 4'd2;
@@ -194,7 +210,20 @@ module nd_storage_mount #(
   assign chk_size = s_size;  // stable from the file_found latch to mnt_done
 
   assign mnt_busy = (s_state != M_IDLE);
-  assign mem_we   = 1'b1;   // preload only writes
+  // STALE, kept deliberately visible (09-AUG-2026). This dates from the
+  // preload era, when the mount copied whole images into the region and
+  // therefore only ever WROTE. Under Phase 4 the mount does not preload at
+  // all: its mem_start fires only inside M_LOAD, which is unreachable. So
+  // this output is inert today - but it is a hard-wired 1 on a shared port's
+  // write-enable, and nd_storage.v:569 additionally FORCES the muxed mem_we
+  // to 1 for the whole time mnt_busy is high. That is only safe because the
+  // engine parks in E_OPEN across a mount. If either of those two facts ever
+  // stops being true, a region READ issued during a mount silently becomes a
+  // WRITE and corrupts the region instead of returning data.
+  //
+  // Do not "tidy" this to 1'b0 in isolation - the mux in nd_storage.v is the
+  // other half and they have to change together.
+  assign mem_we   = 1'b1;   // preload-era: the mount only ever wrote
 
   wire s_card_ready = (card_stat >= 4'd8);
 
@@ -202,13 +231,15 @@ module nd_storage_mount #(
   reg [31:0] r_size  [0:N_CLIENTS-1];
   reg [15:0] r_nblk  [0:N_CLIENTS-1];
   reg [31:0] r_first [0:N_CLIENTS-1];
+  reg [27:0] r_fclu  [0:N_CLIENTS-1];  // first cluster, for the FAT walker
 
   genvar gc;
   generate
     for (gc = 0; gc < N_CLIENTS; gc = gc + 1) begin : g_res
       assign size_bytes[32*gc +: 32]   = r_size[gc];
       assign n_blocks[16*gc +: 16]     = r_nblk[gc];
-      assign first_sector[32*gc +: 32] = r_first[gc];
+      assign first_sector[32*gc +: 32]  = r_first[gc];
+      assign first_cluster[28*gc +: 28] = r_fclu[gc];
     end
   endgenerate
 
@@ -276,6 +307,7 @@ module nd_storage_mount #(
       phase_write       <= 1'b1;   // out of reset the writer owns the pins
       mnt_done          <= 1'b0;
       mnt_err           <= 1'b0;
+      mnt_nocard        <= 1'b0;
       mem_start         <= 1'b0;
       mem_addr          <= 20'd0;
       mem_wdata         <= 32'd0;
@@ -301,6 +333,7 @@ module nd_storage_mount #(
         r_size[i]  <= 32'd0;
         r_nblk[i]  <= 16'd0;
         r_first[i] <= 32'd0;
+        r_fclu[i]  <= 28'd0;
       end
     end else begin
       mnt_done  <= 1'b0;
@@ -350,14 +383,18 @@ module nd_storage_mount #(
             open_ok[mnt_client]   <= 1'b0;  // only a new open rebuilds a slot
             open_err[mnt_client]  <= 1'b0;
             s_nocard              <= 1'b0;
+            s_got_geom            <= 1'b0;
             s_rstcnt              <= 4'd15;
             // Compare at FULL width. N_CLIENTS[2:0] truncates: at the
             // 8-client map it is 3'b000, so "mnt_client >= 0" would be
             // always true and NO client would ever mount - a silent, total
             // failure that looks like an SD card fault on hardware.
-            if ({29'd0, mnt_client} >= N_CLIENTS || !PRELOAD_MASK[mnt_client]) begin
-              // v1: SMD cache-window clients answer open_err immediately -
-              // no reader release, no card traffic (Phase 4 lands here)
+            if ({29'd0, mnt_client} >= N_CLIENTS) begin
+              // Phase 4: PRELOAD_MASK is gone. It used to fail every client
+              // outside the mask here (the disc classes), because v1 could
+              // only serve an image it had staged whole into the region.
+              // Nothing is staged now - the region is a cache - so every
+              // client in range opens.
               s_mask_fail <= 1'b1;
               s_state     <= M_FAIL;
             end else begin
@@ -391,7 +428,10 @@ module nd_storage_mount #(
         end
 
         M_SCAN: begin
-          if (file_found) begin
+          // file_found is a LEVEL, not a pulse: it stays high once the entry
+          // matches. Guard the latch so this branch cannot swallow the
+          // scan_done test below for the rest of the scan.
+          if (file_found && !s_got_geom) begin
             // same-edge capture: these registers vanish when the reader is
             // parked, so everything the load and the step-5 checker need is
             // latched NOW
@@ -401,27 +441,41 @@ module nd_storage_mount #(
             chk_cluster_size  <= fs_cluster_size;
             chk_fat0_sector   <= fs_fat0_sector;
             chk_is_fat32      <= fs_is_fat32;
-            if (found_size > s_slot_bytes) begin
-              // too big for the slot: park before the first outen byte
-              // (the reader needs hundreds of cycles to reach READ_A_FILE)
+            // Phase 4: NO size-versus-slot refusal. This test is what made
+            // a 75 MB Winchester image impossible against a 256 KB slot -
+            // the mount failed, every request answered zero-fill, and the
+            // guest saw a controller that finished with no error and no
+            // data. An image is now limited only by the 16-bit block count
+            // (128 MB), because the region caches it instead of holding it.
+            // ...and NO staging of the file contents either. M_LOAD used to
+            // stream the whole image into the region here; that IS the
+            // preload, and it is what a cache replaces. A mount now only
+            // establishes geometry - size, first sector, and the cluster
+            // facts the contiguity checker needs - and parks. Blocks are
+            // fetched by the engine on demand, so the image size no longer
+            // bounds anything and a 75 MB open costs the same as a 64 KB one.
+            //
+            // M_LOAD and its streaming datapath (s_pack/s_bcnt/s_wptr/...)
+            // are now unreachable and left for a separate removal, so this
+            // change stays reviewable against the v1 behaviour.
+            //
+            // EXPERIMENT (mechanism check): do NOT park here. Parking the
+            // reader the instant the directory entry matches leaves the card
+            // mid-transfer, and the next user of the card fails - the
+            // contiguity checker on this open, or simply the next open when
+            // the checker is stripped. Wait for the reader to stop by itself
+            // instead, which happens at a clean command boundary.
+            s_got_geom <= 1'b1;
+          end
+          if (scan_done || s_wd_hit) begin
+            if ((s_got_geom || file_found) && !s_wd_hit) begin
+              s_state <= M_PARK;      // clean stop: safe to take the card
+            end else begin
+              // file not found / unmountable filesystem / stuck
               rd_run      <= 1'b0;
               phase_write <= 1'b1;
               s_state     <= M_FAIL;
-            end else begin
-              s_pack    <= 24'd0;
-              s_bcnt    <= 22'd0;
-              s_flushed <= 1'b0;
-              s_wptr    <= 4'd0;
-              s_rptr    <= 4'd0;
-              s_wordcnt <= 19'd0;
-              s_outst   <= 1'b0;
-              s_state   <= M_LOAD;
             end
-          end else if (scan_done || s_wd_hit) begin
-            // file not found / unmountable filesystem / stuck
-            rd_run      <= 1'b0;
-            phase_write <= 1'b1;
-            s_state     <= M_FAIL;
           end
         end
 
@@ -471,9 +525,34 @@ module nd_storage_mount #(
         M_OK: begin
           open_ok[cur_client] <= 1'b1;
           r_size[cur_client]  <= s_size;
+          // ceil(size / 2048). The slice is [26:11], i.e. a 16-BIT block
+          // count, so this silently truncates any file at or above 2^27
+          // bytes = 128 MiB: the high size bits are simply dropped and the
+          // client is told the image is a different, smaller size than it
+          // really is. 150 MiB stores 11,264 blocks instead of 76,800 and
+          // most reads then fail the range check; exactly 128 MiB stores 0
+          // and EVERY read is refused.
+          //
+          // This is NOT the same thing as an oversized image being harmless.
+          // An image that is merely bigger than its drive geometry is fine
+          // by design - the controller (ND_WINCHESTER / ND_SMD) refuses any
+          // CHS past its own GEO_* bounds before the storage stack is asked
+          // for anything, so those sectors are never addressed. That holds
+          // for any size BELOW this 128 MiB ceiling.
+          //
+          // No ND disc image in this project approaches 128 MiB (the biggest
+          // Winchester drive is 75.5 MB), so nothing is broken today. But the
+          // failure mode is a silent wrong answer, which is the one thing
+          // nd_storage_status.vh exists to eliminate: a mount of an image
+          // >= 128 MiB should fail with NDS_ERR_RANGE instead of mis-sizing
+          // it. Widening the slice alone is not enough - n_blocks is a
+          // 16-bit port (see the port list above) and the engine compares
+          // against it, so the port width has to grow with it.
           r_nblk[cur_client]  <= s_size[26:11] + {15'd0, |s_size[10:0]};
           r_first[cur_client] <= s_first;
+          r_fclu[cur_client]  <= chk_first_cluster[27:0];
           mnt_err             <= 1'b0;
+          mnt_nocard          <= 1'b0;
           mnt_done            <= 1'b1;
           st_upd              <= 1'b1;
           st_val              <= 2'd3;  // SD_OK
@@ -483,6 +562,7 @@ module nd_storage_mount #(
         M_FAIL: begin
           open_err[cur_client] <= 1'b1;
           mnt_err              <= 1'b1;
+          mnt_nocard           <= s_nocard;
           mnt_done             <= 1'b1;
           if (!s_mask_fail) begin
             // mask failures never touched the card: no status update

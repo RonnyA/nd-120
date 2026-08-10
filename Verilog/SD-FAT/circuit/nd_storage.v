@@ -30,11 +30,24 @@
 ** IMG, 3..5 = SMD0..2.IMG, 6/7 = WD0/WD1.IMG (the ST506/8-inch           **
 ** Winchester, ND_WINCHESTER.v). Winchester images are WDn.IMG, NEVER     **
 ** SMDn.IMG. SMD3 was dropped to make room: the grant index is THREE bits **
-** so 8 clients is the ceiling, and the slot map must end at block 2048   **
-** because s_blk_abs in nd_storage_engine is [10:0]. PRELOAD_MASK selects **
-** clients get the v1 full-slot preload; the SMD clients (slots are       **
-** Phase-4 cache windows) are OUTSIDE the default mask and answer         **
-** open_err immediately, with zero card traffic.                          **
+** so 8 clients is the ceiling.                                           **
+**                                                                         **
+** PHASE 4 - NOTHING IS PRELOADED. The 4 MB region used to hold a COPY of **
+** each image, which meant an image could never be larger than its slot   **
+** and the mount refused anything bigger (256 KB for a Winchester, versus **
+** a real 75 MB disc). The region is now a CACHE:                          **
+**   - CACHE_MASK[c]=1: client c goes through the shared tag directory    **
+**     (nd_storage_cache.v). Image size is bounded only by the 16-bit     **
+**     block count (128 MB), never by the region.                          **
+**   - CACHE_MASK[c]=0: DIRECT. One shared staging line at STAGE_BASE_BLK **
+**     - safe because the arbiter serves one client at a time - and every **
+**     block request is fetched from the card. Tape and floppy are DIRECT: **
+**     the card is quick enough and caching them would only spend region. **
+** A mount establishes GEOMETRY ONLY (size, first sector, cluster facts): **
+** sd_file_reader is run with no_stream=1, so it stops at the directory   **
+** match. That also ends the run at a clean card boundary - parking the   **
+** reader mid-transfer leaves the card streaming and the next card user   **
+** fails.                                                                  **
 **                                                                         **
 ** Status outputs: sd_status 0=NOTCHK 1=NOCARD 2=ERROR 3=OK (updated at   **
 ** every mount end, degraded to ERROR by an engine watchdog or a card     **
@@ -53,7 +66,20 @@ module nd_storage #(
     parameter [7:0]      WR_CLKDIV    = 8'd5,          // sd_writer bit clock divider
     parameter [31:0]     WD_MAX       = 32'd270_000_000,
     parameter            SIMULATE     = 0,             // short SD init in sim
-    parameter [7:0]      PRELOAD_MASK = 8'b00000111,   // v1 full preload: clients 0..2
+    // Phase 4. CACHE_MASK[c]=1 -> client c is served through the shared
+    // cache directory and its image may be ANY size. 0 -> DIRECT: one shared
+    // staging line, every request fetched from the card. NOTHING is preloaded
+    // any more; PRELOAD_MASK is gone, and with it the "image must fit its
+    // slot" rule that capped a Winchester at 256 KB.
+    parameter [7:0]      CACHE_MASK   = 8'b11111000,   // disc classes cached
+    // Region layout. One staging line at block 0 is enough for every DIRECT
+    // client because the arbiter serves exactly one client at a time and a
+    // DIRECT line never has to survive past its own operation.
+    parameter [31:0]     STAGE_BASE_BLK = 32'd0,
+    parameter [31:0]     POOL_BASE_BLK  = 32'd1,
+    parameter            CACHE_SETS     = 256,
+    parameter            CACHE_SETIDX   = 8,
+    parameter            CACHE_WAYS     = 4,
     parameter [52*8-1:0] FILE0_NAME   = "TAPE.BPUN",   parameter [7:0] FILE0_LEN = 8'd9,
     parameter [52*8-1:0] FILE1_NAME   = "FLOPPY1.IMG", parameter [7:0] FILE1_LEN = 8'd11,
     parameter [52*8-1:0] FILE2_NAME   = "FLOPPY2.IMG", parameter [7:0] FILE2_LEN = 8'd11,
@@ -69,13 +95,13 @@ module nd_storage #(
     parameter [31:0] SLOT3_BASE_BLK = 32'd1312, parameter [31:0] SLOT3_SIZE_BLK = 32'd160,
     parameter [31:0] SLOT4_BASE_BLK = 32'd1472, parameter [31:0] SLOT4_SIZE_BLK = 32'd160,
     parameter [31:0] SLOT5_BASE_BLK = 32'd1632, parameter [31:0] SLOT5_SIZE_BLK = 32'd160,
-    // The map MUST end at block 2048 or lower: nd_storage_engine's s_blk_abs
-    // is [10:0] and feeds mem_addr = {blk_abs, word}, so anything past block
-    // 2047 aliases silently back over the start of the region. The two
-    // Winchester slots are 128 blocks each, which lands the end exactly on
-    // 2048. There is NO headroom left - a ninth client needs a wider
-    // s_blk_abs and mem_addr, which reaches into ND120_CORE, ND3202D, MEM_43
-    // and the SDRAM bridge.
+    // SLOTn_* are VESTIGIAL under Phase 4: a slot no longer bounds an image,
+    // because the region caches blocks instead of holding them. The region
+    // still cannot exceed 2048 blocks - s_blk_abs in nd_storage_engine is
+    // [10:0] and feeds mem_addr = {blk_abs, word}, and widening that reaches
+    // into ND120_CORE, ND3202D, MEM_43 and the SDRAM bridge - but that is
+    // now a limit on CACHE SIZE, not on image size. The live layout knobs
+    // are STAGE_BASE_BLK / POOL_BASE_BLK / CACHE_SETS / CACHE_WAYS above.
     parameter [31:0] SLOT6_BASE_BLK = 32'd1792, parameter [31:0] SLOT6_SIZE_BLK = 32'd128,
     parameter [31:0] SLOT7_BASE_BLK = 32'd1920, parameter [31:0] SLOT7_SIZE_BLK = 32'd128
 ) (
@@ -113,6 +139,26 @@ module nd_storage #(
     output wire [N_CLIENTS-1:0]    busy,
     output wire [N_CLIENTS-1:0]    done,
     output wire [N_CLIENTS-1:0]    err,
+    // WHY the operation failed, valid with done when err=1. Codes and the
+    // rule they enforce are in nd_storage_status.vh: an operation either
+    // moves the data or completes with err and a reason - never a silent
+    // success, never a completion that does not arrive.
+    output wire [N_CLIENTS*4-1:0]  err_code,
+
+    // Fill-path diagnostic seam, forwarded from nd_storage_engine.v. Pure
+    // observation - leave unconnected in builds that do not probe it.
+    output wire [4:0]  dbg_state,
+    output wire [31:0] dbg_lba,
+    output wire [15:0] dbg_wdata,
+    output wire [15:0] dbg_rdata,
+    output wire [15:0] dbg_bufw,
+    output wire        dbg_bufwe,
+    output wire [15:0] dbg_fsec,
+    output wire        dbg_rx_stb,
+    output wire [7:0]  dbg_rx_raw,
+    output wire [7:0]  dbg_rx_byte,
+    output wire        dbg_past_eof,
+    output wire [2:0]  dbg_grant,
     output wire [N_CLIENTS*10-1:0] buf_addr,
     output wire [N_CLIENTS*16-1:0] buf_wdata,
     output wire [N_CLIENTS-1:0]    buf_we,
@@ -199,6 +245,7 @@ module nd_storage #(
       .scan_done              (rd_scan_done),
       .found_file_size        (rd_file_size),
       .target_name            (s_target_name),
+      .no_stream              (1'b1),   // geometry only: blocks come from the cache
       .target_len             (s_target_len),
       .dir_entry_valid        (),
       .dir_entry_name         (),
@@ -228,6 +275,9 @@ module nd_storage #(
   wire        wr_sdclk;
   wire        wr_cmd_o, wr_cmd_oe, wr_dat0_o, wr_dat0_oe;
   wire        sdw_start, sdw_rd_mode, sdw_busy, sdw_done, sdw_err;
+  wire [8:0]  sdw_burst_len;
+  wire        e_sdw_rd_mode;
+  wire [8:0]  e_sdw_burst_len;
   wire [31:0] sdw_sector;
   wire [8:0]  sdw_rd_addr;
   wire [7:0]  sdw_rd_data;
@@ -255,7 +305,7 @@ module nd_storage #(
       .busy      (sdw_busy),
       .done      (sdw_done),
       .err       (sdw_err),
-      .burst_len (9'd0),
+      .burst_len (sdw_burst_len),
       .rca       (16'd0),
       .block_next(),
       .rd_addr   (sdw_rd_addr),
@@ -275,6 +325,7 @@ module nd_storage #(
 
   // ------------------------------------------------------------- mount FSM
   wire        mnt_start, mnt_done, mnt_err, mnt_busy;
+  wire        mnt_nocard;   // mount failed for lack of a card, not a file
   wire [2:0]  mnt_client;
   wire        m_mem_start;
   wire [19:0] m_mem_addr;
@@ -287,6 +338,7 @@ module nd_storage #(
   wire [N_CLIENTS*32-1:0] s_size_stor;
   wire [N_CLIENTS*16-1:0] s_n_blocks;
   wire [N_CLIENTS*32-1:0] s_first_sector;
+  wire [N_CLIENTS*28-1:0] s_first_cluster;
 
   // fatchk handoff (driven/consumed below; tied off when the flag is off)
   wire        m_chk_start, m_chk_done, m_chk_ok;
@@ -297,7 +349,6 @@ module nd_storage #(
   nd_storage_mount #(
       .N_CLIENTS     (N_CLIENTS),
       .WD_MAX        (WD_MAX),
-      .PRELOAD_MASK  (PRELOAD_MASK),
       .SLOT0_BASE_BLK(SLOT0_BASE_BLK), .SLOT0_SIZE_BLK(SLOT0_SIZE_BLK),
       .SLOT1_BASE_BLK(SLOT1_BASE_BLK), .SLOT1_SIZE_BLK(SLOT1_SIZE_BLK),
       .SLOT2_BASE_BLK(SLOT2_BASE_BLK), .SLOT2_SIZE_BLK(SLOT2_SIZE_BLK),
@@ -313,6 +364,7 @@ module nd_storage #(
       .mnt_client        (mnt_client),
       .mnt_done          (mnt_done),
       .mnt_err           (mnt_err),
+      .mnt_nocard        (mnt_nocard),
       .mnt_busy          (mnt_busy),
       .rd_run            (s_rd_run),
       .phase_write       (s_phase_write),
@@ -347,6 +399,7 @@ module nd_storage #(
       .size_bytes        (s_size_stor),
       .n_blocks          (s_n_blocks),
       .first_sector      (s_first_sector),
+      .first_cluster     (s_first_cluster),
       .st_upd            (mnt_st_upd),
       .st_val            (mnt_st_val),
       .load_fifo_ovf     ()
@@ -358,6 +411,30 @@ module nd_storage #(
   wire [31:0] e_mem_wdata;
   wire        eng_wd_err;
 
+  // ------------------------------------------------------- cache directory
+  wire        c_lookup_req, c_lookup_done, c_lookup_hit;
+  wire [2:0]  c_lookup_client, c_lookup_way;
+  wire [15:0] c_lookup_block;
+  wire [10:0] c_lookup_line;
+  wire        c_alloc_req, c_alloc_done;
+  wire [2:0]  c_alloc_client, c_alloc_way;
+  wire [15:0] c_alloc_block;
+
+  nd_storage_cache #(
+      .WAYS(CACHE_WAYS), .SETS(CACHE_SETS), .SETIDX(CACHE_SETIDX),
+      .POOL_BASE_BLK(POOL_BASE_BLK), .BLKW(16)
+  ) u_cache (
+      .clk(clk_stor), .rst_n(rst_stor_n),
+      .lookup_req(c_lookup_req), .lookup_client(c_lookup_client),
+      .lookup_block(c_lookup_block), .lookup_done(c_lookup_done),
+      .lookup_hit(c_lookup_hit), .lookup_way(c_lookup_way),
+      .lookup_line(c_lookup_line),
+      .alloc_req(c_alloc_req), .alloc_client(c_alloc_client),
+      .alloc_block(c_alloc_block), .alloc_way(c_alloc_way),
+      .alloc_done(c_alloc_done),
+      .inval_req(1'b0), .inval_client(3'd0), .inval_done()
+  );
+
   nd_storage_engine #(
       .N_CLIENTS     (N_CLIENTS),
       .WD_MAX        (WD_MAX),
@@ -368,7 +445,9 @@ module nd_storage #(
       .SLOT4_BASE_BLK(SLOT4_BASE_BLK),
       .SLOT5_BASE_BLK(SLOT5_BASE_BLK),
       .SLOT6_BASE_BLK(SLOT6_BASE_BLK),
-      .SLOT7_BASE_BLK(SLOT7_BASE_BLK)
+      .SLOT7_BASE_BLK(SLOT7_BASE_BLK),
+      .CACHE_MASK     (CACHE_MASK),
+      .STAGE_BASE_BLK (STAGE_BASE_BLK)
   ) u_engine (
       .clk_stor       (clk_stor),
       .rst_stor_n     (rst_stor_n),
@@ -385,11 +464,29 @@ module nd_storage #(
       .mnt_client     (mnt_client),
       .mnt_done       (mnt_done),
       .mnt_err        (mnt_err),
+      .mnt_nocard     (mnt_nocard),
       .open_ok_stor   (s_open_ok_stor),
       .open_err_stor  (s_open_err_stor),
+      .dbg_state   (dbg_state),
+      .dbg_lba     (dbg_lba),
+      .dbg_wdata   (dbg_wdata),
+      .dbg_rdata   (dbg_rdata),
+      .dbg_bufw    (dbg_bufw),
+      .dbg_bufwe   (dbg_bufwe),
+      .dbg_fsec    (dbg_fsec),
+      .dbg_rx_stb  (dbg_rx_stb),
+      .dbg_rx_raw  (dbg_rx_raw),
+      .dbg_rx_byte (dbg_rx_byte),
+      .dbg_past_eof(dbg_past_eof),
+      .dbg_grant   (dbg_grant),
       .size_bytes_stor(s_size_stor),
+      .err_code       (err_code),
       .n_blocks       (s_n_blocks),
       .first_sector   (s_first_sector),
+      .first_cluster  (s_first_cluster),
+      .fat_spc        (m_chk_cluster_size),
+      .fat0_sector    (m_chk_fat0_sector),
+      .fat_is_fat32   (m_chk_is_fat32),
       .sdw_start      (e_sdw_start),
       .sdw_sector     (e_sdw_sector),
       .sdw_busy       (sdw_busy),
@@ -397,6 +494,23 @@ module nd_storage #(
       .sdw_err        (sdw_err),
       .sdw_rd_addr    (sdw_rd_addr),
       .sdw_rd_data    (sdw_rd_data),
+      .sdw_rd_mode    (e_sdw_rd_mode),
+      .sdw_burst_len  (e_sdw_burst_len),
+      .sdw_rx_we      (sdw_rx_we),
+      .sdw_rx_addr    (sdw_rx_addr),
+      .sdw_rx_data    (sdw_rx_data),
+      .cache_lookup_req    (c_lookup_req),
+      .cache_lookup_client (c_lookup_client),
+      .cache_lookup_block  (c_lookup_block),
+      .cache_lookup_done   (c_lookup_done),
+      .cache_lookup_hit    (c_lookup_hit),
+      .cache_lookup_way    (c_lookup_way),
+      .cache_lookup_line   (c_lookup_line),
+      .cache_alloc_req     (c_alloc_req),
+      .cache_alloc_client  (c_alloc_client),
+      .cache_alloc_block   (c_alloc_block),
+      .cache_alloc_way     (c_alloc_way),
+      .cache_alloc_done    (c_alloc_done),
       .eng_wd_err     (eng_wd_err),
       .open_req       (open_req),
       .open_ok        (open_ok),
@@ -448,13 +562,15 @@ module nd_storage #(
   );
 
   assign sdw_start   = f_chk_busy ? f_sdw_start  : e_sdw_start;
-  assign sdw_rd_mode = f_chk_busy;
+  assign sdw_rd_mode = f_chk_busy ? 1'b1 : e_sdw_rd_mode;
   assign sdw_sector  = f_chk_busy ? f_sdw_sector : e_sdw_sector;
+  assign sdw_burst_len = f_chk_busy ? 9'd1 : e_sdw_burst_len;
 `else
   // feature stripped: the engine is the only sd_writer master and the
   // mount's M_CHK state passes straight through (no checker to answer)
   assign sdw_start   = e_sdw_start;
-  assign sdw_rd_mode = 1'b0;
+  assign sdw_burst_len = e_sdw_burst_len;
+  assign sdw_rd_mode = e_sdw_rd_mode;
   assign sdw_sector  = e_sdw_sector;
   assign m_chk_done  = 1'b0;
   assign m_chk_ok    = 1'b0;
@@ -464,6 +580,11 @@ module nd_storage #(
   // Mount and engine are mutually exclusive by arbiter construction (the
   // engine sits in E_OPEN while mnt_busy); returns fan out to both.
   assign mem_start = mnt_busy ? m_mem_start : e_mem_start;
+  // The 1'b1 here is preload-era (see nd_storage_mount.v's mem_we): while a
+  // mount runs, EVERY access on the shared device port is forced to a write,
+  // whatever the engine asked for. Safe only because the engine is parked in
+  // E_OPEN for the whole mount. Passing m_mem_we through instead would be
+  // strictly better, but it is a two-file change - do not do half of it.
   assign mem_we    = mnt_busy ? 1'b1        : e_mem_we;
   assign mem_addr  = mnt_busy ? m_mem_addr  : e_mem_addr;
   assign mem_wdata = mnt_busy ? m_mem_wdata : e_mem_wdata;

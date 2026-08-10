@@ -23,7 +23,8 @@
 ** clk_cpu (the ND-120 bus/client domain). sd_status is 2-FF synchronized  **
 ** into clk_cpu before it gates the one-shot open.                         **
 **                                                                         **
-** Only client 0 is used; clients 1-7 are tied idle. PRELOAD_MASK = 1 so   **
+** Only client 0 is used; clients 1-7 are tied idle. Tape is DIRECT (not  **
+** in CACHE_MASK): the card is quick enough and nothing is preloaded.     **
 ** only BOOT.BPUN is preloaded (the boot card carries no other files).     **
 **                                                                         **
 ** Ronny Hansen                                                            **
@@ -51,6 +52,14 @@ module nd_tape_sdfat_source #(
     output wire [7:0] byte_data,
     input  wire       source_rewind,
 
+    // Sticky tape diagnostic. The ND-400 reader has no status register in
+    // which "no SD card" could be expressed, so it stays silent to the guest
+    // exactly as before and publishes the reason HERE instead - for a
+    // testbench, a probe or a board LED, never for ND logic. Without this,
+    // a missing card and the end of the tape are the same observation.
+    output wire       TDISK_FAULT,
+    output wire [3:0] TDISK_ERR_CODE,
+
     // ND_FLOPPY_DMA disk-image backend seam (client 1 = FLOPPY1.IMG). Present
     // regardless; driven only when INCLUDE_FLOPPY=1, tied idle otherwise. Wired
     // pin-for-pin to ND120_CORE's FDISK_*/FDBUF_* (nd_storage_floppy_adapter).
@@ -62,6 +71,7 @@ module nd_tape_sdfat_source #(
     input  wire [10:0] FDISK_WORDCOUNT,
     output wire        FDISK_DONE,
     output wire        FDISK_ERR,
+    output wire [ 3:0] FDISK_ERR_CODE,
     output wire [ 3:0] FDISK_MEDIA_FMT,
     output wire [ 9:0] FDBUF_ADDR,
     output wire [15:0] FDBUF_WDATA,
@@ -80,6 +90,7 @@ module nd_tape_sdfat_source #(
     input  wire [10:0] SDISK_WORDCOUNT,
     output wire        SDISK_DONE,
     output wire        SDISK_ERR,
+    output wire [ 3:0] SDISK_ERR_CODE,
     output wire [ 9:0] SDBUF_ADDR,
     output wire [15:0] SDBUF_WDATA,
     output wire        SDBUF_WE,
@@ -98,6 +109,7 @@ module nd_tape_sdfat_source #(
     input  wire [10:0] WDISK_WORDCOUNT,
     output wire        WDISK_DONE,
     output wire        WDISK_ERR,
+    output wire [ 3:0] WDISK_ERR_CODE,
     output wire [ 9:0] WDBUF_ADDR,
     output wire [15:0] WDBUF_WDATA,
     output wire        WDBUF_WE,
@@ -121,6 +133,20 @@ module nd_tape_sdfat_source #(
     input  wire        mem_busy,
     input  wire        mem_done,
 
+    // Fill-path diagnostic seam from nd_storage. Pure observation.
+    output wire [4:0]  DBG_STATE,
+    output wire [31:0] DBG_LBA,
+    output wire [15:0] DBG_WDATA,
+    output wire [15:0] DBG_RDATA,
+    output wire [15:0] DBG_BUFW,
+    output wire        DBG_BUFWE,
+    output wire [15:0] DBG_FSEC,
+    output wire        DBG_RX_STB,
+    output wire [7:0]  DBG_RX_RAW,
+    output wire [7:0]  DBG_RX_BYTE,
+    output wire        DBG_PAST_EOF,
+    output wire [2:0]  DBG_GRANT,
+
     // status passthrough (board LEDs / debug)
     output wire [1:0]  sd_status
 );
@@ -134,6 +160,7 @@ module nd_tape_sdfat_source #(
   // ---- flattened client-port buses; only client 0 is driven/used ----
   wire [N-1:0]    open_req_w, open_ok_w, open_err_w, req_w, wr_w;
   wire [N-1:0]    busy_w, done_w, err_w, buf_we_w;
+  wire [N*4-1:0]  err_code_w;   // WHY each client failed (nd_storage_status.vh)
   wire [N*32-1:0] size_bytes_w;
   wire [N*16-1:0] block_w, buf_wdata_w, buf_rdata_w;
   wire [N*10-1:0] buf_addr_w;
@@ -215,6 +242,9 @@ module nd_tape_sdfat_source #(
           .c_busy       (a_busy),
           .c_done       (a_done),
           .c_err        (a_err),
+          .c_err_code   (err_code_w[3:0]),
+          .fault        (TDISK_FAULT),
+          .fault_code   (TDISK_ERR_CODE),
           .c_buf_addr   (a_buf_addr),
           .c_buf_wdata  (a_buf_wdata),
           .c_buf_we     (a_buf_we),
@@ -229,6 +259,8 @@ module nd_tape_sdfat_source #(
       assign a_buf_rdata = 16'd0;
       assign byte_valid  = 1'b0;
       assign byte_data   = 8'd0;
+      assign TDISK_FAULT    = 1'b0;
+      assign TDISK_ERR_CODE = 4'd0;
     end
   endgenerate
 
@@ -267,6 +299,7 @@ module nd_tape_sdfat_source #(
           .disk_wordcount(FDISK_WORDCOUNT),
           .disk_done     (FDISK_DONE),
           .disk_err      (FDISK_ERR),
+          .disk_err_code (FDISK_ERR_CODE),
           .dbuf_addr     (FDBUF_ADDR),
           .dbuf_wdata    (FDBUF_WDATA),
           .dbuf_we       (FDBUF_WE),
@@ -282,6 +315,7 @@ module nd_tape_sdfat_source #(
           .c_busy        (busy_w[1]),
           .c_done        (done_w[1]),
           .c_err         (err_w[1]),
+          .c_err_code    (err_code_w[7:4]),
           .c_buf_addr    (buf_addr_w[19:10]),
           .c_buf_wdata   (buf_wdata_w[31:16]),
           .c_buf_we      (buf_we_w[1]),
@@ -296,6 +330,7 @@ module nd_tape_sdfat_source #(
       assign f_buf_rdata     = 16'd0;
       assign FDISK_DONE      = 1'b0;
       assign FDISK_ERR       = 1'b0;
+      assign FDISK_ERR_CODE  = 4'd0;
       assign FDISK_MEDIA_FMT = 4'd0;
       assign FDBUF_ADDR      = 10'd0;
       assign FDBUF_WDATA     = 16'd0;
@@ -328,6 +363,7 @@ module nd_tape_sdfat_source #(
           .disk_wordcount(SDISK_WORDCOUNT),
           .disk_done     (SDISK_DONE),
           .disk_err      (SDISK_ERR),
+          .disk_err_code (SDISK_ERR_CODE),
           .dbuf_addr     (SDBUF_ADDR),
           .dbuf_wdata    (SDBUF_WDATA),
           .dbuf_we       (SDBUF_WE),
@@ -343,6 +379,7 @@ module nd_tape_sdfat_source #(
           .c_busy        (busy_w[3]),
           .c_done        (done_w[3]),
           .c_err         (err_w[3]),
+          .c_err_code    (err_code_w[15:12]),
           .c_buf_addr    (buf_addr_w[39:30]),
           .c_buf_wdata   (buf_wdata_w[63:48]),
           .c_buf_we      (buf_we_w[3]),
@@ -357,6 +394,7 @@ module nd_tape_sdfat_source #(
       assign m_buf_rdata = 16'd0;
       assign SDISK_DONE  = 1'b0;
       assign SDISK_ERR   = 1'b0;
+      assign SDISK_ERR_CODE = 4'd0;
       assign SDBUF_ADDR  = 10'd0;
       assign SDBUF_WDATA = 16'd0;
       assign SDBUF_WE    = 1'b0;
@@ -395,6 +433,7 @@ module nd_tape_sdfat_source #(
           .disk_wordcount(WDISK_WORDCOUNT),
           .disk_done     (WDISK_DONE),
           .disk_err      (WDISK_ERR),
+          .disk_err_code (WDISK_ERR_CODE),
           .dbuf_addr     (WDBUF_ADDR),
           .dbuf_wdata    (WDBUF_WDATA),
           .dbuf_we       (WDBUF_WE),
@@ -410,6 +449,7 @@ module nd_tape_sdfat_source #(
           .c_busy        (busy_w[6]),
           .c_done        (done_w[6]),
           .c_err         (err_w[6]),
+          .c_err_code    (err_code_w[27:24]),
           .c_buf_addr    (buf_addr_w[69:60]),
           .c_buf_wdata   (buf_wdata_w[111:96]),
           .c_buf_we      (buf_we_w[6]),
@@ -424,6 +464,7 @@ module nd_tape_sdfat_source #(
       assign w_buf_rdata = 16'd0;
       assign WDISK_DONE  = 1'b0;
       assign WDISK_ERR   = 1'b0;
+      assign WDISK_ERR_CODE = 4'd0;
       assign WDBUF_ADDR  = 10'd0;
       assign WDBUF_WDATA = 16'd0;
       assign WDBUF_WE    = 1'b0;
@@ -436,19 +477,67 @@ module nd_tape_sdfat_source #(
       // preload the served clients: client 0 (BOOT.BPUN) when tape is in,
       // client 1 (FLOPPY1.IMG) when floppy is in, client 3 (SMD0.IMG) when
       // the SMD is in - staged reads/writes from/to the region
-      .PRELOAD_MASK ((INCLUDE_TAPE ? 8'b00000001 : 8'b00000000) |
-                     (INCLUDE_FLOPPY ? 8'b00000010 : 8'b00000000) |
-                     (INCLUDE_SMD ? 8'b00001000 : 8'b00000000) |
-                     (INCLUDE_WD ? 8'b01000000 : 8'b00000000)),
+      // Phase 4: CACHE_MASK replaces PRELOAD_MASK. Nothing is preloaded any
+      // more, so every included client simply opens. Tape and floppy stay
+      // DIRECT (bit 0) - the card is quick enough for them and caching them
+      // would only spend region. The disc classes are CACHED, which is what
+      // lets a 75 MB image be served at all. Flipping the floppy to cached
+      // later is one bit here.
+      // ND_STORAGE_DISCS_UNCACHED: force the disc classes DIRECT.
+      //
+      // DIAGNOSTIC LEVER, added 09-AUG-2026. On silicon the Winchester read
+      // returns ZEROS with a perfectly clean status (060011, error-OR bit
+      // clear) while block 0 of WD0.IMG demonstrably holds data - measured
+      // with an 11-instruction program deposited through OPCOM, so no
+      // driver, no FSI and no SINTRAN are involved. The same RTL chain
+      // PASSES in simulation (WINCHESTER/sim test-wd-storage, and again
+      // against a real SDRAM model). The one structural difference between
+      // the client that works on silicon and the one that does not is this
+      // mask: the tape (client 0) is DIRECT and loads fine off the same
+      // card, the Winchester (client 6) is CACHED and comes back empty.
+      //
+      // Defining this makes every disc client DIRECT - each request fetches
+      // through the shared staging line inside its own grant, so image size
+      // is still unbounded, it is just slower (no reuse across requests).
+      // If the read then returns real data, the fault is in the Phase-4
+      // cache path on hardware, not in the controller or the FAT stack.
+`ifdef ND_STORAGE_DISCS_UNCACHED
+      .CACHE_MASK (8'b00000000),
+`else
+      .CACHE_MASK ((INCLUDE_SMD ? 8'b00111000 : 8'b00000000) |
+                   (INCLUDE_WD  ? 8'b11000000 : 8'b00000000)),
+`endif
       .FILE0_NAME  (BOOT_NAME), .FILE0_LEN(BOOT_LEN),
-      // SMD0 slot remap (safe HERE because this wrapper never preloads
-      // clients 2 and 4..7, whose default slots the enlargement overlaps -
-      // that now includes the two Winchester clients 6 and 7):
-      // base 672 (right after FLOPPY1's slot), 1376 blocks to the end of the
-      // 2048-block region -> SMD0.IMG can be up to 2,818,048 bytes. A larger
-      // file fails the open (mount size > slot rule) and every SMD request
-      // then answers disk_err.
-      .SLOT3_BASE_BLK(32'd672), .SLOT3_SIZE_BLK(32'd1376)
+      // ND_STORAGE_WD_BADNAME: CONTROL EXPERIMENT, 09-AUG-2026. Points the
+      // Winchester client at a filename that cannot be on the card, so the
+      // mount MUST fail. The whole silicon zero-read diagnosis rests on
+      // "the status came back clean, therefore the file mounted and the read
+      // really happened" - and that error plumbing has only ever been proven
+      // in simulation. If this build ALSO reports a clean 060011 instead of
+      // b7 disk fault, the instrument is lying and the mount may have been
+      // failing silently all along.
+`ifdef ND_STORAGE_WD_BADNAME
+      .FILE6_NAME  ("ZZNOSUCH.IMG"), .FILE6_LEN(8'd12),
+`endif
+      // ND_STORAGE_WD_USE_BOOTTAP: DISCRIMINATOR, 09-AUG-2026. Points the
+      // Winchester client at BOOT.TAP - the SMALL file the tape client
+      // demonstrably reads correctly off this very card (400$ loads the File
+      // System Investigator from it). Everything else stays identical.
+      //
+      // If the Winchester then returns REAL DATA, the fault depends on the
+      // FILE - size or position on the card - and WD0.IMG at 75 MB is 4600x
+      // larger than anything the simulation testbenches ever exercised
+      // (WD_BYTES = 16384). If it STILL returns zeros, the fault is in the
+      // Winchester client path itself and is independent of the file.
+`ifdef ND_STORAGE_WD_USE_BOOTTAP
+      .FILE6_NAME  ("BOOT.TAP"), .FILE6_LEN(8'd8),
+`endif
+      // No slot remap any more. Slots used to bound the image size, and this
+      // wrapper enlarged SMD0's to squeeze a bigger file in; with the cache
+      // the image size is unbounded by the region, so the remap is dead and
+      // its overlap hazard (the enlarged slot 3 covered clients 6 and 7)
+      // goes with it.
+      .STAGE_BASE_BLK(32'd0), .POOL_BASE_BLK(32'd1)
   ) u_nd_storage (
       .clk_stor  (clk_stor),
       .rst_stor_n(rst_stor_n),
@@ -478,6 +567,19 @@ module nd_tape_sdfat_source #(
       .busy      (busy_w),
       .done      (done_w),
       .err       (err_w),
+      .err_code  (err_code_w),
+      .dbg_state   (DBG_STATE),
+      .dbg_lba     (DBG_LBA),
+      .dbg_wdata   (DBG_WDATA),
+      .dbg_rdata   (DBG_RDATA),
+      .dbg_bufw    (DBG_BUFW),
+      .dbg_bufwe   (DBG_BUFWE),
+      .dbg_fsec    (DBG_FSEC),
+      .dbg_rx_stb  (DBG_RX_STB),
+      .dbg_rx_raw  (DBG_RX_RAW),
+      .dbg_rx_byte (DBG_RX_BYTE),
+      .dbg_past_eof(DBG_PAST_EOF),
+      .dbg_grant   (DBG_GRANT),
       .buf_addr  (buf_addr_w),
       .buf_wdata (buf_wdata_w),
       .buf_we    (buf_we_w),

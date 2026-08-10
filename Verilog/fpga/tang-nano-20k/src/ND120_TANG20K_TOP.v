@@ -191,6 +191,11 @@ module ND120_TANG20K_TOP (
   // [7] = wdec (F924 A160 D3 decode input), [6] = WRITE (registered out).
   wire [15:0] s_dbg_memw;
   wire dbg_dumping;
+`ifdef TANG_WD_TRACE_DUMP
+  wire [19:0] wd_trace_rec;
+  wire        wd_trace_we;
+  wire        wd_trace_done;
+`endif
   reg wdec_seen, write_seen;         // sticky since arm (write-path analyzer)
   // The LED assignments live further down, AFTER the storage block declares
   // the signals they show - see "STORAGE BRING-UP LED SET".
@@ -219,8 +224,28 @@ module ND120_TANG20K_TOP (
   //    through the normal level-switch microcode (PLINT 01133 / PLVO 01140 /
   //    LVSWP 01146-01155, as a legit level-13 switch does in sim) or bypasses
   //    it - the decisive fork for the root cause.
-  reg [15:0] cap_mem[0:511];
-  reg [8:0] cap_wptr;
+  // Ring depth. The free-running capture modes want every one of 512 clocks;
+  // the WD IOX trace stores one entry per REGISTER ACCESS, and the sequence
+  // it has to catch is about 33 accesses long. At 20 bits Gowin puts this in
+  // distributed RAM (SSRAM), not block RAM, so depth is paid for in LOGIC
+  // cells: 512 deep overflowed the part by 114 cells (20850 of 20736) with
+  // the Winchester build in, and 128 deep STILL overflowed it by 9 (20745)
+  // once the Winchester and the floppy were both in - measured 09-AUG-2026.
+  //
+  // 64 is still comfortably enough for the sequence that matters. The
+  // captured File System Investigator trace (nd100x, ND100X_WD_DEBUG=1) is
+  // 72 accesses END TO END for a whole LIST-FILE-NAMES, and the trigger - a
+  // read of +0 - first fires at access 17, so a 64-deep ring holds every
+  // access from power-on up to and including the first failing transfer.
+`ifdef TANG_WD_TRACE_DUMP
+  localparam CAP_AW = 6;
+`else
+  localparam CAP_AW = 9;
+`endif
+  localparam [CAP_AW-1:0] CAP_LAST = {CAP_AW{1'b1}};
+
+  reg [19:0] cap_mem[0:(1<<CAP_AW)-1];   // 20 bits: rw + register + data
+  reg [CAP_AW-1:0] cap_wptr;
   reg [8:0] cap_post;
   reg [28:0] arm_cnt;  // 30-JUL: widened 25->29 bits (arm ~40s, was ~2.5s) -
                        // the WCS microcode load keeps CSA STATIC longer than
@@ -230,6 +255,10 @@ module ND120_TANG20K_TOP (
   reg cap_armed, cap_trig, cap_done;
   reg wdec_d2;
   reg [3:0] pil_prev;
+  reg [4:0] estate_prev;
+  reg [7:0] rxraw_prev;
+  reg [31:0] lba_prev;
+  reg [15:0] wdata_prev;
   reg [12:0] csa_prev;
   reg [21:0] csa_stable;   // clk2x cycles the microcode CSA has been unchanged
 `ifdef TANG_GRANT_CAPTURE
@@ -276,7 +305,9 @@ module ND120_TANG20K_TOP (
   // know WHERE the STACK test wedges (map to the microcode listing), the same
   // first step that located the boot hang at CSA 06000.
   //   bit12:0 = CSA_12_0 (octal microcode address at the stall)  bit15:13 = 0
-  wire [15:0] s_cap_src   = {3'b0, CSA_12_0[12:0]};
+  wire [19:0] s_cap_src   = {4'd0, 3'b0, CSA_12_0[12:0]};
+  wire        s_cap_stb   = 1'b1;
+  wire        s_cap_arm   = cap_armed;
   wire        s_hang      = &csa_stable;
   wire        s_cap_event = ((s_pil_3_0 == 4'd10) && (pil_prev != 4'd10)) || s_hang;
   localparam [8:0] CAP_POST = 9'd32;
@@ -290,7 +321,9 @@ module ND120_TANG20K_TOP (
   // whether TVEC=7 at the jump (trap generator really computed 7 on silicon)
   // or TVEC!=7 (the CSA latch captured a mid-transition value = comb-path
   // setup failure in the TVEC->CSA path).
-  wire [15:0] s_cap_src   = {s_xmic_dbg[15:11], CSA_12_0[10:0]};
+  wire [19:0] s_cap_src   = {4'd0, s_xmic_dbg[15:11], CSA_12_0[10:0]};
+  wire        s_cap_stb   = 1'b1;
+  wire        s_cap_arm   = cap_armed;
   reg  [4:0]  csa7_cnt;
   always @(posedge clk2x) begin
     if (!sys_rst_n) csa7_cnt <= 5'd0;
@@ -301,8 +334,357 @@ module ND120_TANG20K_TOP (
   wire        s_hang      = &csa_stable;
   wire        s_cap_event = (csa7_cnt == 5'd16) || s_hang;
   localparam [8:0] CAP_POST = 9'd32;
+`elsif TANG_WD_TRACE_DUMP
+  // One ring entry per COMPLETED IOX access to the Winchester, not per clock:
+  // s_cap_stb gates the ring write, so 128 entries are 128 register accesses
+  // and the pointer wraps, always holding the MOST RECENT 128.
+  //
+  // TRIGGER ON THE END OF THE OPERATION, NOT ON A REGISTER. The first version
+  // triggered on a read of +0 - but that is the diagnostic's very FIRST
+  // access (op 1 of the captured oracle trace is `RD +0 -> 0`), so it fired
+  // immediately, at the "Sector" prompt, and dumped a ring that was still
+  // almost entirely empty. The interesting accesses are the LAST ones, so
+  // wait until the card has been quiet for about a second instead: DISC-TEMA
+  // stops touching it once the transfer is reported.
+  // ND_WD_TRACE_DBUF: capture what the ADAPTER FORWARDS into the controller's
+  // sector buffer, instead of the IOX register traffic.
+  //
+  // WHY, 09-AUG-2026. The silicon zero-read is now narrowed to exactly two
+  // components: the c_buf_we -> dbuf_we forwarding window inside
+  // nd_storage_smd_adapter (S_CWAIT / s_in_win), or the s_buffer BSRAM read
+  // inside ND_WINCHESTER. Both pass in simulation, so only a probe on real
+  // hardware can separate them, and black-box A/B has been exhausted:
+  // the fault is independent of the file (BOOT.TAP reads fine through the
+  // TAPE client and returns zeros through the WINCHESTER client), of the
+  // cache, of the clock domain and of the LBA.
+  //
+  // This records every word the adapter writes into the buffer, tagged 4'hE.
+  //   ring full of E<data> with REAL values -> the adapter forwards fine,
+  //     so the fault is the controller's BSRAM read path.
+  //   ring EMPTY, or full of E0000 -> the adapter never forwards, so the
+  //     fault is the window in the adapter.
+  // Either way it names the culprit in one run.
+  // Fill-path diagnostic seam from nd_storage (see nd_storage_engine.v).
+  wire [4:0] DBG_STATE;
+  wire [31:0] DBG_LBA;
+  wire [15:0] DBG_WDATA;
+  wire [15:0] DBG_RDATA;
+  wire [15:0] DBG_BUFW;
+  wire DBG_BUFWE;
+  wire [15:0] DBG_FSEC;
+  wire       DBG_RX_STB;
+  wire [7:0] DBG_RX_RAW, DBG_RX_BYTE;
+  wire       DBG_PAST_EOF;
+  wire [2:0] DBG_GRANT;
+
+`ifdef ND_WD_TRACE_FILL
+  // Capture CARD BYTES arriving during a fill, raw AND after the end-of-file
+  // gate, tagged with the granted client:
+  //   tag  = {1'b1, grant[2:0]}
+  //   data = {raw byte from the card, byte actually written to staging}
+  // raw != 0 while gated == 0 -> the s_past_eof gate is zeroing real data.
+  // raw == 0                  -> the card itself delivered nothing.
+  //
+  // BIT 19 IS A WRITTEN-MARKER AND MUST STAY 1. It was 1'b0 until 09-AUG-2026,
+  // which made the probe undecidable: the TAPE client is grant 0, so a genuine
+  // record of a zero card byte encoded as 00000 - exactly what an unwritten
+  // cap_mem entry reads back as (cap_mem has no reset). Two silicon runs came
+  // back 64/64 zeros and neither could be interpreted. With bit 19 set, any
+  // record that is still 00000 was never written, full stop.
+  wire [19:0] s_cap_src   = {1'b1, DBG_GRANT, DBG_RX_RAW, DBG_RX_BYTE};
+`elsif ND_WD_TRACE_REGION
+  // Capture what the SDRAM REGION actually returns on a read completion.
+  //
+  // The dbuf probe (ND_WD_TRACE_DBUF) showed the adapter forwarding 63 words
+  // that were ALL ZERO, which cleared both the adapter window and the
+  // controller BSRAM and pushed the fault back inside nd_storage: the words
+  // are already zero when the client buffer is written, i.e. s_bridge_rd_data
+  // is zero, i.e. the REGION READ returned nothing. This probe tests that
+  // directly at the SDRAM device port, which is the last place the data can
+  // still be checked from outside nd_storage.
+  //
+  //   ring full of D<data> with REAL values -> SDRAM returns the data and it
+  //     is lost between the region read and the client write (the bridge).
+  //   ring full of D0000 -> the region itself holds zeros, so the staging ->
+  //     region WRITE never landed, and the fault is on the write side.
+  wire [19:0] s_cap_src   = {4'hD, s_mem_rdata[15:0]};
+`elsif ND_WD_TRACE_DBUF
+  wire [19:0] s_cap_src   = {4'hE, WDBUF_WDATA};
+`elsif ND_WD_TRACE_ESTATE
+  // Every CHANGE of the storage engine's state, tagged F, with the granted
+  // client. Answers "which states does a Winchester read actually visit"
+  // directly, instead of inferring it from a byte strobe that has now come
+  // back empty three times for three different reasons.
+  wire [19:0] s_cap_src   = {4'hF, 8'd0, DBG_GRANT, DBG_STATE};
+`elsif ND_WD_TRACE_PIL
+  // Every CHANGE of the CPU's priority interrupt level, tagged B. Added
+  // 09-AUG-2026 because the Winchester-register trace had gone as far as it
+  // can: the File System Investigator's device-open sequence matches the
+  // nd100x oracle access for access, and then LI-FI issues no IOX at all and
+  // reports the status it cached at open. That decision is taken CPU-side, so
+  // the question is no longer what the controller returned but whether the
+  // machine ever runs the level-11 handler. Recording only transitions keeps
+  // the 64-entry ring useful - PIL sampled every clk2x would fill it in
+  // microseconds and show nothing but the idle level.
+  wire [19:0] s_cap_src   = {4'hB, 12'd0, s_pil_3_0};
+`elsif ND_WD_TRACE_FSEC
+  // The mount's first_sector for the granted client, low 16 bits, strobed on
+  // entry to C_SEC_GO so it is captured at the moment a fetch is launched.
+  // Compare against the ND_WD_TRACE_LBA capture of the SAME run configuration:
+  // for block 0 they must be equal. Client 6 / WD0.IMG resolved to 64672 on
+  // 10-AUG-2026; if first_sector is also 64672 the resolve is right and the
+  // card really holds zeros there, and if it differs the resolve is wrong for
+  // large files. Neither answer needs the card's layout.
+  wire [19:0] s_cap_src   = {1'b1, DBG_GRANT, DBG_FSEC};
+`elsif ND_WD_TRACE_BUFW
+  // The word the engine hands to the granted client's buffer, strobed by that
+  // buffer's own write enable. THE LAST UNMEASURED SIGNAL in the read chain.
+  // Everything either side is now proven on silicon: the region reads back
+  // real file text (10-AUG-2026), and the adapter forwards words that are
+  // zero. If this is non-zero, the loss is inside nd_storage_smd_adapter -
+  // which is the Winchester's adapter and NOT the tape's, matching a fault
+  // that follows the client. If this is zero, the loss is in the engine's
+  // clk_cpu client front-end between the bridge and the buffer.
+  //
+  // The strobe is safe here where the clk_stor ones were not: clk_cpu is HALF
+  // of clk2x, so this write enable is two clk2x cycles wide.
+  wire [19:0] s_cap_src   = {1'b1, DBG_GRANT, DBG_BUFW};
+`elsif ND_WD_TRACE_RDATA
+  // What the SDRAM region RETURNS on read-back, tagged with the client, taken
+  // at R_PUSH_HI where mem_rdata is valid. The write side is now PROVEN good:
+  // 10-AUG-2026, 63 of 63 region writes for client 6 were non-zero and carried
+  // readable ASCII straight off the card. So staging is filled and the region
+  // is written with real data; if it reads back zero, the fault is the region
+  // read or the SDRAM device port, not the storage engine's fetch path.
+  wire [19:0] s_cap_src   = {1'b1, DBG_GRANT, DBG_RDATA};
+`elsif ND_WD_TRACE_WDATA
+  // The word the engine writes into the SDRAM region, tagged with the client.
+  // The resolve is now PROVEN correct (10-AUG-2026: pointed at BOOT.TAP,
+  // client 6 fetched sectors 21920-21923 - four consecutive sectors, block 0
+  // of the file, in the same card region the tape client reads). So the card
+  // is read from the right place and the region still ends up zero. This
+  // splits the last span: non-zero here means staging was filled and the
+  // fault is in the region write or read-back; zero here means the received
+  // bytes never reached staging.
+  wire [19:0] s_cap_src   = {1'b1, DBG_GRANT, DBG_WDATA};
+`elsif ND_WD_TRACE_LBA
+  // The resolved card sector of each fetch, low 16 bits, tagged with the
+  // granted client. Bit 19 is 1 so an unwritten ring slot (00000) stays
+  // distinguishable from a genuine record.
+  //
+  // Why this value: the card fetch demonstrably RUNS for client 6 (four
+  // C_SEC_WAIT per block in the engine-state trace) and completes with no
+  // error, yet the region ends up zero. A read of the WRONG sector produces
+  // exactly that - it lands in blank card space, sdw_err never asserts, and
+  // every word is zero. BOOT.TAP reads correctly as client 0 and returns
+  // zeros as client 6, same file and same card, so the fault follows the
+  // CLIENT, and the sector is the per-client value.
+  wire [19:0] s_cap_src   = {1'b1, DBG_GRANT, DBG_LBA[15:0]};
 `else
-  wire [15:0] s_cap_src   = s_dbg_memw;
+  wire [19:0] s_cap_src   = wd_trace_rec;
+`endif
+
+  // RISING EDGE ONLY, and that is not a detail. This capture block is clocked
+  // by clk2x while ND_WINCHESTER runs on clk_cpu, which is clk2x/2, so its
+  // one-cycle trace_we pulse is TWO clk2x cycles
+  // wide and the ring recorded every single event TWICE - halving the usable
+  // depth from 64 entries to 32. Measured on silicon 09-AUG-2026: the whole
+  // dump came back in exact pairs, including the interrupt-edge record, and
+  // an edge-detected pulse cannot legitimately fire twice. Confined to this
+  // trace mode: the other capture modes tie s_cap_stb high and sample every
+  // clk2x cycle on purpose.
+  reg         wd_trace_we_q;
+  always @(posedge clk2x) begin
+    if (!sys_rst_n) wd_trace_we_q <= 1'b0;
+    else            wd_trace_we_q <= wd_trace_we;
+  end
+`ifdef ND_WD_TRACE_FILL
+  // LEVEL change, not the strobe. DBG_RX_STB is a ONE-CYCLE pulse in the
+  // clk_stor domain (27 MHz) and this ring samples on clk2x (13.5 MHz), so a
+  // single-cycle pulse is simply not observable here - it can fall entirely
+  // between two sampling edges. That, and not "the card delivered nothing",
+  // is why three separate fill captures came back with an empty ring on
+  // 09-AUG-2026. DBG_RX_RAW is held between bytes, so a change-detect on the
+  // value samples reliably at half rate. It will MISS repeats of the same
+  // byte value; that is fine, because the question is only whether the bytes
+  // arriving from the card are non-zero.
+  wire        s_cap_stb   = (DBG_RX_RAW != rxraw_prev);
+`elsif ND_WD_TRACE_REGION
+  wire        s_cap_stb   = s_mem_done && !s_mem_we;   // read completions only
+`elsif ND_WD_TRACE_DBUF
+  wire        s_cap_stb   = WDBUF_WE;
+`elsif ND_WD_TRACE_ESTATE
+  // The per-WORD serve loop is NOT recorded. R_WAIT(4) -> R_PUSH_HI(5) ->
+  // R_PUSH_LO(6) repeats once per word, 512 times per block, and on 09-AUG-2026
+  // it filled all 64 ring slots by itself - the capture showed nothing but the
+  // tail of the serve loop and evicted every state that says HOW the block was
+  // obtained (E_GRANT, C_SEC_GO/C_SEC_WAIT for a card read, W_MEM for the
+  // staging->region write). Those are the states in question, so the loop is
+  // filtered out exactly like the foreign IOX records were.
+  // There are TWO per-word loops and both must go. The serve loop is
+  // R_WAIT(4)/R_PUSH_HI(5)/R_PUSH_LO(6); the staging->region write loop is
+  // W_MEM(10)/W_MEM_WAIT(11). Each runs once per word, 512 times per block.
+  // Filtering only the first (09-AUG-2026) simply handed the whole ring to the
+  // second. What is left is low-rate and is the actual question: E_GRANT,
+  // C_SEC_GO/C_SEC_WAIT (four per fill - a real card read), C_ALLOC, R_MEM,
+  // E_DONE.
+  wire        s_cap_stb   = (DBG_STATE != estate_prev)
+                            && (DBG_STATE != 5'd4)
+                            && (DBG_STATE != 5'd5)
+                            && (DBG_STATE != 5'd6)
+                            && (DBG_STATE != 5'd10)
+                            && (DBG_STATE != 5'd11);
+`elsif ND_WD_TRACE_FSEC
+  wire        s_cap_stb   = (DBG_STATE == 5'd14) && (estate_prev != 5'd14);
+`elsif ND_WD_TRACE_BUFW
+  wire        s_cap_stb   = DBG_BUFWE;
+`elsif ND_WD_TRACE_RDATA
+  wire        s_cap_stb   = (DBG_STATE == 5'd5) && (estate_prev != 5'd5);
+`elsif ND_WD_TRACE_WDATA
+  // Strobe on ENTRY TO W_MEM(10), not on a change of the data.
+  //
+  // A change-detector cannot answer this question, and 10-AUG-2026 proved it
+  // the hard way: `DBG_WDATA != wdata_prev` produces an empty ring both when
+  // the probe is broken AND when the value is constantly zero - which is the
+  // exact hypothesis under test. Same undecidable design as the first fill
+  // probe, made twice.
+  //
+  // W_MEM entry is a level transition the ESTATE trace already PROVED happens
+  // (once per word, 512 per block). So records carrying 0000 mean the region
+  // really is being written with zeros, and NO records at all means the probe
+  // itself is dead. The two are finally distinguishable.
+  wire        s_cap_stb   = (DBG_STATE == 5'd10) && (estate_prev != 5'd10);
+`elsif ND_WD_TRACE_LBA
+  wire        s_cap_stb   = (DBG_LBA != lba_prev);
+`elsif ND_WD_TRACE_PIL
+  wire        s_cap_stb   = (s_pil_3_0 != pil_prev);
+`else
+  // FOREIGN ACCESSES ARE NOT RECORDED. They were excluded from the TRIGGER on
+  // 09-AUG-2026 but still consumed ring slots, and with a 64-entry ring that
+  // loses the evidence outright: the tape reader at IOX 400/402/403 polls
+  // continuously, so a captured File System Investigator session came back
+  // with 59 of 63 slots holding tape polls and only the last four Winchester
+  // accesses surviving. The failing read had been evicted by the very traffic
+  // this filter now drops. Foreign records still reach wd_trace_foreign for
+  // the trigger logic below - only the ring write is gated. The tag test is
+  // spelled out rather than reusing wd_trace_foreign, which is declared below
+  // this point; module-level nets may legally be used before declaration but
+  // there is no reason to lean on that through the Gowin front end.
+  wire        s_cap_stb   = wd_trace_we && !wd_trace_we_q
+                            && (wd_trace_rec[19:16] != 4'hC);
+`endif
+
+  // THE ARM DELAY DOES NOT APPLY HERE. cap_armed only goes high ~40 s after
+  // reset, which exists so the CPU-debug capture modes do not trigger during
+  // boot. For this trace it silently DISCARDS events: a mass-load hang three
+  // seconds after reset trips the idle trigger at ~6 s, long before arming,
+  // and the result is no dump at all - indistinguishable from "the card was
+  // never touched". That ambiguity produced a wrong conclusion once already.
+  wire        s_cap_arm = 1'b1;
+
+  // COUNT ONLY REAL CARD ACCESSES. ND_WINCHESTER.v's trace_we bundles FIVE
+  // kinds of record into one strobe (see its trace_rec assignment): register
+  // write, register read, IDENT answer, interrupt edge, and - top nibble
+  // 4'hC - a FOREIGN IOX, i.e. somebody ELSE'S device being addressed while
+  // the Winchester just watches the bus go by. Feeding all five into the
+  // trigger made the probe fire on traffic that has nothing to do with this
+  // card: measured 09-AUG-2026 on silicon, a plain '400$' tape load filled
+  // the entire 64-entry ring with C0100 / C0102 / C0103 - octal 400, 402,
+  // 403, the PAPER TAPE READER's own registers - and tripped the trigger
+  // before the Winchester had been touched at all. Twice that dump was read
+  // as "the ring came back empty"; it never was, it was full of the tape.
+  //
+  // So the idle timer and the access count now advance ONLY on records that
+  // are really this card's. Foreign records are still RECORDED - seeing the
+  // surrounding IOX traffic is the whole point of having them - they simply
+  // do not arm anything.
+  wire wd_trace_foreign = (wd_trace_rec[19:16] == 4'hC);
+  // The IOX one-shot, kept SEPARATE from s_cap_stb: when ND_WD_TRACE_DBUF
+  // makes the ring capture buffer writes, the TRIGGER must still key off the
+  // card's IOX activity going idle, not off buffer writes.
+  wire wd_iox_own       = wd_trace_we && !wd_trace_we_q && !wd_trace_foreign;
+  wire wd_trace_own     = wd_iox_own;
+
+  reg [29:0] wd_idle;      // clk2x cycles since the last access to the card
+  reg [7:0]  wd_count;     // OWN accesses seen (saturating)
+  reg        wd_ran;       // a device OPERATION has completed
+  always @(posedge clk2x) begin
+    if (!sys_rst_n) begin
+      wd_idle  <= 30'd0;
+      wd_count <= 8'd0;
+      wd_ran   <= 1'b0;
+    end else begin
+      if (wd_trace_done) wd_ran <= 1'b1;
+      if (wd_trace_own) begin
+        wd_idle <= 30'd0;
+        if (!(&wd_count)) wd_count <= wd_count + 1'b1;
+      end else if (!(&wd_idle)) begin
+        wd_idle <= wd_idle + 1'b1;
+      end
+    end
+  end
+
+  // COMPARE WITH >=, NEVER ==. wd_idle saturates, so an equality test matches
+  // for exactly one cycle and is lost if anything gates it that cycle - which
+  // is the other half of how the last capture came back empty.
+  //
+  // Two ways in, because the two failures look different from here:
+  //   - a COMPLETED operation then ~1 s of quiet: the DISC-TEMA case, where
+  //     the memory-address readback is the last thing to happen;
+  //   - at least 4 accesses then ~4 s of quiet with nothing completing: the
+  //     mass-load hang. The count requirement stops a lone probe during the
+  //     floppy boot from tripping it, which is what made an earlier version
+  //     fire early and dump an empty ring.
+  // The idle threshold has to exceed the LONGEST gap DISC-TEMA leaves while
+  // collecting Disc name / Unit / Cylinder / Surface / Sector / Amount from
+  // the operator. Measured: about 15 s with the scripted driver, longer with
+  // a human. A 4 s window fired at the "Amount" prompt and dumped only the
+  // seven opening probe accesses. 30 s clears it; the mass-load hang is
+  // permanent, so any threshold works there.
+  //
+  // The completion path stays at ~1 s and fires FIRST in every healthy run,
+  // so this long window only ever matters when nothing completes at all.
+  // 09-AUG-2026: BOTH terms now also require a MINIMUM ACCESS COUNT, because
+  // the old thresholds fired during the boot probe and dumped an empty ring -
+  // exactly the failure this comment block warned about, just at a different
+  // scale. Loading the File System Investigator from tape and getting it to
+  // its first Winchester read takes well over the 30 s idle window, so a
+  // 2-access boot probe armed the capture long before the traffic of
+  // interest existed. The captured File System Investigator sequence
+  // (nd100x, ND100X_WD_DEBUG=1) reaches its first completed transfer at
+  // access 12 and runs to 72, so 8 and 40 sit clear of a probe and well
+  // inside the real run.
+  // THRESHOLDS MEASURED, NOT GUESSED. 09-AUG-2026 on silicon: a complete
+  // File System Investigator session - load from tape, open DISC-74MB-1
+  // unit 0, read the geometry, then LI-FI - produces only FOUR accesses of
+  // this card's own (status read, the M7 return-to-zero, the completion
+  // interrupt, status read). With the old >=8 requirement the trigger could
+  // therefore NEVER fire, and a 180 s idle capture came back with no dump
+  // at all - which reads exactly like "the probe is broken" and is why the
+  // numbers are now tied to a measurement instead of a guess.
+  //
+  // The counts exist only to stop a ONE-access probe from arming, so 3 is
+  // enough. The second term (no completion at all) drops in proportion.
+  // 09-AUG-2026, SECOND correction, measured not guessed: the completion-path
+  // idle window was 13_500_000 = ONE SECOND at 13.5 MHz, and that makes an
+  // interactive File System Investigator session impossible to capture. The
+  // console floor is 0.30 s per character (below 0.20 s OPCOM drops input), so
+  // typing "LI-FI" alone takes 1.5 s, and the operator gap between answering
+  // "Device unit :" and issuing the command is several seconds more. None of
+  // that touches the Winchester, so wd_idle runs free and the capture closes
+  // during the DIALOGUE - long before the read it exists to record. Observed
+  // exactly that: the ring dumped while LI-FI was still printing, holding only
+  // the three opening probe accesses. 45 s clears any scripted dialogue gap
+  // and still fires well inside a listen window. Both terms move together so
+  // the 30 s term cannot pre-empt the 45 s one.
+  wire        s_cap_event = (wd_ran && (wd_count >= 8'd3)
+                             && (wd_idle >= 30'd607_500_000))
+                         || ((wd_count >= 8'd6) && (wd_idle >= 30'd607_500_000));
+  localparam [8:0] CAP_POST = 9'd0;   // the trigger IS the end - nothing after
+`else
+  wire [19:0] s_cap_src   = {4'd0, s_dbg_memw};
+  wire        s_cap_stb   = 1'b1;
+  wire        s_cap_arm   = cap_armed;
   wire        s_cap_event = !wdec_d2 && s_dbg_memw[7];
   localparam [8:0] CAP_POST = 9'd448;
 `endif
@@ -310,7 +692,7 @@ module ND120_TANG20K_TOP (
     if (!sys_rst_n) begin
       cap_wptr <= 0; cap_post <= 0; arm_cnt <= 0;
       cap_armed <= 0; cap_trig <= 0; cap_done <= 0; wdec_d2 <= 0;
-      wdec_seen <= 0; write_seen <= 0; pil_prev <= 0;
+      wdec_seen <= 0; write_seen <= 0; pil_prev <= 0; estate_prev <= 0; rxraw_prev <= 0; lba_prev <= 0; wdata_prev <= 0;
       csa_prev <= 0; csa_stable <= 0;
     end else begin
       if (!cap_armed) begin
@@ -323,12 +705,18 @@ module ND120_TANG20K_TOP (
       else if (!(&csa_stable))  csa_stable <= csa_stable + 1'b1;
       wdec_d2 <= s_dbg_memw[7];
       pil_prev <= s_pil_3_0;
+      estate_prev <= DBG_STATE;
+      rxraw_prev  <= DBG_RX_RAW;
+      lba_prev    <= DBG_LBA;
+      wdata_prev  <= DBG_WDATA;
       if (cap_armed && s_dbg_memw[7]) wdec_seen <= 1;
       if (cap_armed && s_dbg_memw[6]) write_seen <= 1;
       if (!cap_done) begin
-        cap_mem[cap_wptr] <= s_cap_src;
-        cap_wptr <= cap_wptr + 1'b1;
-        if (!cap_trig && cap_armed && s_cap_event) begin
+        if (s_cap_stb) begin
+          cap_mem[cap_wptr] <= s_cap_src;
+          cap_wptr <= cap_wptr + 1'b1;
+        end
+        if (!cap_trig && s_cap_arm && s_cap_event) begin
           cap_trig <= 1;
           cap_post <= CAP_POST;
         end else if (cap_trig) begin
@@ -345,11 +733,11 @@ module ND120_TANG20K_TOP (
   endfunction
   // Separate registered read port (simple-dual-port BRAM; write happens
   // only during capture, read only during dump - Gowin PA2122 otherwise)
-  reg [8:0] cap_raddr;
-  reg [15:0] cap_rd;
+  reg [CAP_AW-1:0] cap_raddr;
+  reg [19:0] cap_rd;
   always @(posedge clk2x) cap_rd <= cap_mem[cap_raddr];
 
-  reg [9:0] dump_i;
+  reg [CAP_AW-1:0] dump_i;
   reg [2:0] dump_c;
   reg dump_run, dump_fin;
   reg [26:0] hold_cnt;  // ~10 s at 13.5 MHz: keep the console on the CPU
@@ -372,19 +760,20 @@ module ND120_TANG20K_TOP (
         cap_raddr <= cap_wptr;  // oldest sample first (cap_rd valid next cycle)
       end else if (dump_run && !d_tx_busy && !d_tx_valid) begin
         case (dump_c)
-          3'd0: d_tx_data <= hexd(cap_rd[15:12]);
-          3'd1: d_tx_data <= hexd(cap_rd[11:8]);
-          3'd2: d_tx_data <= hexd(cap_rd[7:4]);
-          3'd3: d_tx_data <= hexd(cap_rd[3:0]);
-          3'd4: d_tx_data <= 8'h0D;
+          3'd0: d_tx_data <= hexd(cap_rd[19:16]);  // rw + register offset
+          3'd1: d_tx_data <= hexd(cap_rd[15:12]);
+          3'd2: d_tx_data <= hexd(cap_rd[11:8]);
+          3'd3: d_tx_data <= hexd(cap_rd[7:4]);
+          3'd4: d_tx_data <= hexd(cap_rd[3:0]);
+          3'd5: d_tx_data <= 8'h0D;
           default: d_tx_data <= 8'h0A;
         endcase
         d_tx_valid <= 1;
-        if (dump_c == 3'd5) begin
+        if (dump_c == 3'd6) begin
           dump_c <= 0;
           dump_i <= dump_i + 1'b1;
           cap_raddr <= cap_raddr + 1'b1;  // settled long before next char
-          if (dump_i == 10'd511) begin dump_run <= 0; dump_fin <= 1; end
+          if (dump_i == CAP_LAST) begin dump_run <= 0; dump_fin <= 1; end
         end else dump_c <= dump_c + 1'b1;
       end
     end
@@ -405,6 +794,9 @@ module ND120_TANG20K_TOP (
   // would trigger every boot and hold the TX pin forever (dump_fin never
   // clears). Only let it take the console when explicitly enabled.
 `ifdef TANG_WRITE_ANALYZER_DUMP
+  assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
+`elsif TANG_WD_TRACE_DUMP
+  // The dump takes the console only after the diagnostic has printed.
   assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
 `elsif TANG_GRANT_CAPTURE
   // Grant-capture: after PIL->10 fires the capture, the dumper takes the TX
@@ -490,13 +882,14 @@ module ND120_TANG20K_TOP (
   wire [31:0] s_mem_wdata, s_mem_rdata;
   wire        s_mem_busy, s_mem_done;
 
-  // Storage device select: TANG_FLOPPY = floppy-only (1560&, no tape); default
-  // = tape-only (400$, the proven silicon build). Ronny: don't carry both at
-  // once - a floppy build drops the tape (saves the ND_TAPE_400 + tape-adapter
-  // resources). Applied to BOTH the core (device presence) and the SD-FAT
-  // wrapper (which client it serves).
+  // Storage device select: TANG_FLOPPY adds the floppy (1560&); the tape
+  // (400$) is carried in EVERY build - Ronny 06-AUG-2026: the tape driver is
+  // small, keep it alongside the floppy. What stays dropped in a floppy build
+  // is LONG-FILENAME parsing (SDFAT_NO_LFN, ~1800 LUT), which is why the
+  // tape's boot file on the Tang is the 8.3 name BOOT.TAP, not BOOT.BPUN -
+  // see the BOOT_NAME override at the nd_tape_sdfat_source instantiation.
 `ifdef TANG_FLOPPY
-  localparam TANG_INC_TAPE   = 0;
+  localparam TANG_INC_TAPE   = 1;
   localparam TANG_INC_FLOPPY = 1;
 `else
   localparam TANG_INC_TAPE   = 1;
@@ -533,7 +926,13 @@ module ND120_TANG20K_TOP (
       .INCLUDE_TAPE(TANG_INC_TAPE),
       .INCLUDE_FLOPPY(TANG_INC_FLOPPY),
       .INCLUDE_SMD(TANG_INC_SMD),
-      .INCLUDE_WD(TANG_INC_WD)
+      .INCLUDE_WD(TANG_INC_WD),
+      // The Tang boots the tape from BOOT.TAP, not the default BOOT.BPUN:
+      // ".BPUN" is a 4-character extension, which FAT can only store via a
+      // VFAT long-filename entry, and the floppy/WD builds strip LFN parsing
+      // (SDFAT_NO_LFN). An 8.3 name is readable by every build variant.
+      .BOOT_NAME("BOOT.TAP"),
+      .BOOT_LEN(8'd8)
   ) TAPE_SDFAT_SOURCE (
       .clk_stor  (clk_stor),
       .rst_stor_n(rst_stor_n),
@@ -554,6 +953,7 @@ module ND120_TANG20K_TOP (
       .FDISK_WORDCOUNT(FDISK_WORDCOUNT),
       .FDISK_DONE     (FDISK_DONE),
       .FDISK_ERR      (FDISK_ERR),
+      .FDISK_ERR_CODE (FDISK_ERR_CODE),
       .FDISK_MEDIA_FMT(FDISK_MEDIA_FMT),
       .FDBUF_ADDR     (FDBUF_ADDR),
       .FDBUF_WDATA    (FDBUF_WDATA),
@@ -570,6 +970,7 @@ module ND120_TANG20K_TOP (
       .SDISK_WORDCOUNT(SDISK_WORDCOUNT),
       .SDISK_DONE     (SDISK_DONE),
       .SDISK_ERR      (SDISK_ERR),
+      .SDISK_ERR_CODE (SDISK_ERR_CODE),
       .SDBUF_ADDR     (SDBUF_ADDR),
       .SDBUF_WDATA    (SDBUF_WDATA),
       .SDBUF_WE       (SDBUF_WE),
@@ -585,6 +986,7 @@ module ND120_TANG20K_TOP (
       .WDISK_WORDCOUNT(WDISK_WORDCOUNT),
       .WDISK_DONE     (WDISK_DONE),
       .WDISK_ERR      (WDISK_ERR),
+      .WDISK_ERR_CODE (WDISK_ERR_CODE),
       .WDBUF_ADDR     (WDBUF_ADDR),
       .WDBUF_WDATA    (WDBUF_WDATA),
       .WDBUF_WE       (WDBUF_WE),
@@ -606,6 +1008,18 @@ module ND120_TANG20K_TOP (
       .mem_busy (s_mem_busy),
       .mem_done (s_mem_done),
 
+      .DBG_STATE   (DBG_STATE),
+      .DBG_LBA     (DBG_LBA),
+      .DBG_WDATA   (DBG_WDATA),
+      .DBG_RDATA   (DBG_RDATA),
+      .DBG_BUFW    (DBG_BUFW),
+      .DBG_BUFWE   (DBG_BUFWE),
+      .DBG_FSEC    (DBG_FSEC),
+      .DBG_RX_STB  (DBG_RX_STB),
+      .DBG_RX_RAW  (DBG_RX_RAW),
+      .DBG_RX_BYTE (DBG_RX_BYTE),
+      .DBG_PAST_EOF(DBG_PAST_EOF),
+      .DBG_GRANT   (DBG_GRANT),
       .sd_status(s_sd_status)
   );
 
@@ -661,8 +1075,28 @@ module ND120_TANG20K_TOP (
       if (s_sd_clk_o != s_sdclk_d) s_sdclk_seen     <= 1'b1;
     end
 
-  assign led[0] = ~s_tape_req_seen;   // ON = the CPU asked the tape for a byte
-  assign led[1] = ~s_sdclk_seen;      // ON = the SD clock has toggled
+  // led[0]/led[1] repurposed 07-AUG-2026 (Ronny): storage BLOCK activity.
+  // A block op lasts microseconds, so each event loads a ~150 ms stretcher
+  // (22 bits at 27 MHz) - one flash per block, a solid glow under load.
+  // Sources are the device-side backend seams (clk_cpu domain): floppy and
+  // Winchester block requests, direction from the WR flag. The old meanings
+  // (tape-req-seen / sd-clk-seen) served bring-up and are retired.
+  reg [21:0] s_led_rd_stretch, s_led_wr_stretch;
+  wire s_blk_rd_ev = (FDISK_REQ & ~FDISK_WR) | (WDISK_REQ & ~WDISK_WR);
+  wire s_blk_wr_ev = (FDISK_REQ &  FDISK_WR) | (WDISK_REQ &  WDISK_WR);
+  always @(posedge clk_cpu or negedge sys_rst_n)
+    if (!sys_rst_n) begin
+      s_led_rd_stretch <= 22'd0;
+      s_led_wr_stretch <= 22'd0;
+    end else begin
+      if (s_blk_rd_ev)                 s_led_rd_stretch <= {22{1'b1}};
+      else if (|s_led_rd_stretch)      s_led_rd_stretch <= s_led_rd_stretch - 22'd1;
+      if (s_blk_wr_ev)                 s_led_wr_stretch <= {22{1'b1}};
+      else if (|s_led_wr_stretch)      s_led_wr_stretch <= s_led_wr_stretch - 22'd1;
+    end
+
+  assign led[0] = ~|s_led_rd_stretch; // ON = storage BLOCK READ in the last ~150 ms
+  assign led[1] = ~|s_led_wr_stretch; // ON = storage BLOCK WRITE in the last ~150 ms
   assign led[2] = ~s_tape_byte_seen;  // ON = a tape byte was actually served
   assign led[3] = ~s_sd_status[0];    // sd_status low bit
   assign led[4] = ~s_sd_status[1];    // sd_status high bit (both lit = OK)
@@ -670,7 +1104,8 @@ module ND120_TANG20K_TOP (
 
   /* verilator lint_off UNUSEDSIGNAL */
   wire unused_analyzer_leds = &{1'b0, s_dbg_memw, dbg_dumping, wdec_seen,
-                                write_seen, s_cpu_led[2], 1'b0};
+                                write_seen, s_cpu_led[2], s_tape_req_seen,
+                                s_sdclk_seen, 1'b0};
   /* verilator lint_on UNUSEDSIGNAL */
 
   // Floppy seam (1560&) is WIRED to the SD-FAT stack (FLOPPY1.IMG via the
@@ -688,6 +1123,7 @@ module ND120_TANG20K_TOP (
   wire [15:0] FDBUF_RDATA;
   // floppy backend -> core (completion + buffer fill + media format)
   wire        FDISK_DONE, FDISK_ERR;
+  wire [ 3:0] FDISK_ERR_CODE;
   wire [3:0]  FDISK_MEDIA_FMT;
   wire [9:0]  FDBUF_ADDR;
   wire [15:0] FDBUF_WDATA;
@@ -702,6 +1138,7 @@ module ND120_TANG20K_TOP (
   wire [ 2:0] WDISK_UNIT;
   wire [10:0] WDISK_WORDCOUNT;
   wire        WDISK_DONE, WDISK_ERR;
+  wire [ 3:0] WDISK_ERR_CODE;
   wire [ 9:0] WDBUF_ADDR;
   wire [15:0] WDBUF_WDATA;
   wire        WDBUF_WE;
@@ -709,6 +1146,7 @@ module ND120_TANG20K_TOP (
   // SMD backend -> core (completion + buffer fill); tied idle by the
   // source's gen_no_smd when TANG_SMD is absent
   wire        SDISK_DONE, SDISK_ERR;
+  wire [ 3:0] SDISK_ERR_CODE;
   wire [9:0]  SDBUF_ADDR;
   wire [15:0] SDBUF_WDATA;
   wire        SDBUF_WE;
@@ -788,6 +1226,7 @@ module ND120_TANG20K_TOP (
       .FDISK_WORDCOUNT(FDISK_WORDCOUNT),
       .FDISK_DONE(FDISK_DONE),
       .FDISK_ERR(FDISK_ERR),
+      .FDISK_ERR_CODE(FDISK_ERR_CODE),
       .FDISK_MEDIA_FMT(FDISK_MEDIA_FMT),
       .FDBUF_ADDR(FDBUF_ADDR),
       .FDBUF_WDATA(FDBUF_WDATA),
@@ -803,6 +1242,7 @@ module ND120_TANG20K_TOP (
       .SDISK_WORDCOUNT(SDISK_WORDCOUNT),
       .SDISK_DONE(SDISK_DONE),
       .SDISK_ERR(SDISK_ERR),
+      .SDISK_ERR_CODE(SDISK_ERR_CODE),
       .SDBUF_ADDR(SDBUF_ADDR),
       .SDBUF_WDATA(SDBUF_WDATA),
       .SDBUF_WE(SDBUF_WE),
@@ -818,6 +1258,7 @@ module ND120_TANG20K_TOP (
       .WDISK_WORDCOUNT(WDISK_WORDCOUNT),
       .WDISK_DONE(WDISK_DONE),
       .WDISK_ERR(WDISK_ERR),
+      .WDISK_ERR_CODE(WDISK_ERR_CODE),
       .WDBUF_ADDR(WDBUF_ADDR),
       .WDBUF_WDATA(WDBUF_WDATA),
       .WDBUF_WE(WDBUF_WE),
@@ -868,6 +1309,12 @@ module ND120_TANG20K_TOP (
       .mem_rdata (s_mem_rdata),
       .mem_busy  (s_mem_busy),
       .mem_done  (s_mem_done)
+`ifdef TANG_WD_TRACE_DUMP
+      ,
+      .wd_trace_rec (wd_trace_rec),
+      .wd_trace_we  (wd_trace_we),
+      .wd_trace_done(wd_trace_done)
+`endif
   );
 
 endmodule

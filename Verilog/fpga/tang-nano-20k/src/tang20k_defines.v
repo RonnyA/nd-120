@@ -49,6 +49,16 @@
 // client; NO tape). Comment it out for the DEFAULT tape-only build (400$, the
 // proven silicon config). Consumed by ND120_TANG20K_TOP.v (TANG_INC_TAPE/FLOPPY)
 // and by the SDFAT_NO_STORAGE_CHECK guard below.
+// OFF 09-AUG-2026, single-variable experiment for the Winchester read failure.
+// ND_FLOPPY_DMA is ALSO interrupt level 11 (ident 21) and sits ahead of the
+// Winchester in the ident grant chain. A silicon capture of the File System
+// Investigator showed two level-11 IDENT cycles that NO device answered
+// (grant_in=1 at the Winchester, so nothing ahead claimed them either),
+// after which the Winchester's own completion interrupt was never identified
+// at all. Dropping the floppy removes the only other level-11 device, so if
+// the unclaimed cycles vanish and LI-FI proceeds, the floppy raised them.
+// The tape (400$) is unaffected: TANG_INC_TAPE is 1 in both branches and
+// BOOT_NAME("BOOT.TAP") is not conditional on this define.
 `define TANG_FLOPPY
 
 // TANG_SMD = ADD the ND_SMD disk controller at 1540 (boot '1540&') on top of
@@ -84,6 +94,120 @@
 // (the TANG_SMD / TANG_WD mutual-exclusion guard lives inside
 //  ND120_TANG20K_TOP.v, where an instantiation is legal syntax and the
 //  error names itself instead of being a bare 'syntax error' here)
+
+// TANG_WD_TRACE_DUMP = capture the Winchester's IOX register accesses on
+// SILICON and dump them over the debug UART.
+//
+// Why it exists: ND_WINCHESTER.v replays the nd100x C model's ENTIRE
+// DISC-TEMA "DU-DI-C" IOX trace - all 33 operations, every status word -
+// with zero divergence (ND-BUS-DEVICES/WINCHESTER/sim, `make test-wd-oracle`),
+// and DISC-TEMA on this board still reports "Memory address Register not as
+// expected" while returning perfect data and the identical status word
+// 060010. The controller is therefore NOT the fault, and the sequence the
+// CPU actually issues has never been observed anywhere. ND_SMD.v carries the
+// same facility (ND120_SMD_TRACE) and that is what made the SMD tractable.
+//
+// What it does: rings the last 512 COMPLETED IOX accesses to the card - one
+// entry per access, not per clock - triggers on a READ of +0 (the memory
+// address readback that fails), keeps 8 more, then streams them as five hex
+// digits per line: digit 1 = {rw, register offset} (rw 1 = write), digits
+// 2-5 = the 16-bit value written or returned. It takes the console only
+// after the diagnostic has printed, like the other capture modes.
+//
+// Costs a 512x20 capture ring and the dumper. Leave it OFF for normal builds.
+// DISABLED 09-AUG-2026. Re-enable ONLY to capture the card side. Once the
+// dump fires it takes the console permanently (the debug TX keeps the mux),
+// so anything that needs to read memory or registers AFTER the traffic -
+// e.g. a deposited program that stores what the CPU captured from an IOX
+// read - must run on a build with this OFF.
+//`define TANG_WD_TRACE_DUMP
+
+// ND_WD_TRACE_DBUF = make the ring capture the adapter's buffer writes
+// (WDBUF_WE/WDBUF_WDATA) instead of IOX traffic. Discriminates the last two
+// suspects for the zero-read. See the note in ND120_TANG20K_TOP.v.
+//`define ND_WD_TRACE_DBUF
+
+// ND_WD_TRACE_REGION = capture what the SDRAM region returns on each read
+// completion. Follows the dbuf probe, which proved the words are already
+// zero before the adapter sees them.
+//`define ND_WD_TRACE_REGION
+
+// ND_WD_TRACE_FILL = capture card bytes during a fill, raw AND after the
+// end-of-file gate. Follows the region probe (63/63 D0000), which proved the
+// region was written with zeros, so staging itself was filled with zeros.
+//
+// OFF 09-AUG-2026. Two runs of this probe returned 64/64 records of 00000 and
+// BOTH were unreadable, because the tape client is grant 0: a real record of a
+// zero card byte encodes as 00000, which is byte-identical to a cap_mem entry
+// that was never written. The tag now carries a written-marker bit (see
+// s_cap_src in ND120_TANG20K_TOP.v) so a future fill run is decidable, but the
+// IOX trace below answers the open question directly and needs no new marker.
+// ON again 09-AUG-2026, and now DECIDABLE: bit 19 of the record is a
+// written-marker, so 00000 can only mean "never written". The RTZ fix made
+// the File System Investigator actually issue its transfer, so this probe now
+// samples a fill driven by the real driver rather than a deposited program.
+//`define ND_WD_TRACE_FILL
+
+// ND_WD_TRACE_LBA = the card sector each fetch actually reads, per client.
+//`define ND_WD_TRACE_LBA
+
+// ND_WD_TRACE_FSEC = the mount's first_sector for the granted client.
+//`define ND_WD_TRACE_FSEC
+
+// ND_WD_TRACE_WDATA = the word written into the region. The resolve is proven
+// correct, so this splits staging-empty from region-write-broken.
+//`define ND_WD_TRACE_WDATA
+
+// ND_WD_TRACE_RDATA = what the region returns on read-back.
+//`define ND_WD_TRACE_RDATA
+
+// ND_WD_TRACE_BUFW = the word handed to the client buffer - last unmeasured
+// signal between the proven-good region read and the zero-filled adapter.
+//`define ND_WD_TRACE_BUFW
+
+// ND_WD_TRACE_PIL = record every change of the CPU's priority interrupt level
+// instead of the Winchester's registers. The register trace is exhausted: the
+// device-open sequence matches the nd100x oracle exactly and LI-FI then issues
+// no IOX at all, so the failing decision is CPU-side. This shows whether the
+// machine ever reaches level 11.
+// OFF again: the RTZ completion-delay fix in ND_WINCHESTER.v is the thing
+// under test now, and answering "does the File System Investigator finally
+// issue the transfer" needs the Winchester REGISTER trace, not the PIL trace.
+//`define ND_WD_TRACE_PIL
+
+// ND_WD_TRACE_ESTATE = record every CHANGE of the storage engine's state with
+// the granted client. The byte-strobe probe has now returned an empty ring
+// three times; watching the state machine says which states a Winchester read
+// really visits rather than inferring it.
+//`define ND_WD_TRACE_ESTATE
+
+// ND_STORAGE_DISCS_UNCACHED = serve the disc clients DIRECT instead of
+// through the Phase-4 cache. Diagnostic for the 09-AUG-2026 silicon
+// zero-read: the DIRECT tape client reads the same card correctly while the
+// CACHED Winchester client returns zeros with a clean status. See the long
+// note at the CACHE_MASK parameter in nd_tape_sdfat_source.v.
+`define ND_STORAGE_DISCS_UNCACHED
+
+// ND_STORAGE_WD_BADNAME = control experiment: make the Winchester client
+// open a file that is NOT on the card, so the mount must fail. Proves
+// whether a clean status really means "the read happened". See the note at
+// FILE6_NAME in nd_tape_sdfat_source.v.
+//`define ND_STORAGE_WD_BADNAME
+
+// ND_STORAGE_WD_USE_BOOTTAP = discriminator: serve the Winchester client the
+// SMALL BOOT.TAP instead of the 75 MB WD0.IMG, to separate a file-dependent
+// fault from a client-path fault. See nd_tape_sdfat_source.v.
+// ON 10-AUG-2026, paired with ND_WD_TRACE_LBA to make the resolve DECIDABLE
+// without any ground truth about the card's layout. With this on, client 0
+// and client 6 open the SAME file, so the sectors they resolve MUST match.
+// The tape client's resolve is known good - 400$ loads the File System
+// Investigator from BOOT.TAP off this very card. So:
+//   client 6 sectors == client 0 sectors -> the resolve is right, and the
+//     zeros come from what happens to the data AFTER the fetch.
+//   client 6 sectors != client 0 sectors -> the per-client resolve is wrong,
+//     the fetch reads blank card space, and that is the whole bug.
+// Neither outcome needs to know where WD0.IMG physically lives.
+//`define ND_STORAGE_WD_USE_BOOTTAP   // back to the real WD0.IMG
 
 // ND120_SMD_15MHZ = strap the SMD controller as the 15 MHz two-access card
 // (24-bit Memory Address and Word Count loaded HI-then-LO, read back LO-then-HI)
@@ -167,9 +291,29 @@
 //                             is guarded off there.
 //                             (and a TANG_SMD build needs it too: random
 //                             access + writeback, same as floppy).
+//
+//                             TANG_WD ADDED TO THE GUARD 05-AUG-2026. The
+//                             Winchester build was inheriting the cut: the
+//                             list said "tape only" but only TANG_FLOPPY and
+//                             TANG_SMD were excluded, so TANG_WD - random
+//                             access AND writeback over a 75 MB WD0.IMG -
+//                             mounted with no contiguity gate at all. The
+//                             Phase-4 cache addresses a block as
+//                             first_sector + 4*block (nd_storage_engine.v
+//                             C_SEC_GO), which is only the right sector while
+//                             the file occupies consecutive clusters. On a
+//                             fragmented image every block past the first
+//                             fragment reads and WRITES the wrong sectors,
+//                             silently, with no error anywhere. Cost of
+//                             putting it back: ~1177 LUT+ALU on a part that
+//                             was already near its LUT4 limit - if TANG_WD
+//                             stops fitting, the answer is to slim something
+//                             else, not to drop this gate.
 `ifndef TANG_FLOPPY
 `ifndef TANG_SMD
+`ifndef TANG_WD
 `define SDFAT_NO_STORAGE_CHECK
+`endif
 `endif
 `endif
 
@@ -188,7 +332,35 @@
 //                             match; THEN uncomment the line below. The ifdef
 //                             machinery in sd_file_reader.v is implemented and
 //                             validated - this is a one-line flip once renamed.
-// `define SDFAT_NO_LFN
+//
+//                             ENABLED 05-AUG-2026, BUT ONLY FOR A NO-TAPE
+//                             BUILD. The blocker above is the TAPE client and
+//                             nothing else: ND120_TANG20K_TOP.v:498 sets
+//                             TANG_INC_TAPE = 0 whenever TANG_FLOPPY is
+//                             defined, so a floppy build never searches for
+//                             BOOT.BPUN and the 4-char extension stops
+//                             mattering. The files such a build DOES open -
+//                             FLOPPY1.IMG and WD0.IMG - are both real 8.3
+//                             names (<=8 base, <=3 extension), so no card
+//                             layout changes.
+//
+//                             Why it is enabled: the TANG_WD build overflowed
+//                             at 92% logic / 96% CLS with 335 unrouted nets
+//                             once the Phase-4 cache directory and the
+//                             contiguity checker were both in. This reclaims
+//                             ~1800 LUT+ALU. The alternative was to strip the
+//                             contiguity checker again, which would put back
+//                             silent wrong-sector reads AND writes on a
+//                             fragmented image - a far worse trade.
+//
+//                             The guard is deliberately the SAME condition as
+//                             TANG_INC_TAPE: reinstate the tape (comment out
+//                             TANG_FLOPPY) and long filenames come back on
+//                             their own, instead of the tape open silently
+//                             failing with oerr=1.
+`ifdef TANG_FLOPPY
+`define SDFAT_NO_LFN
+`endif
 
 //   TANG_GRANT_CAPTURE     - DEBUG PROBE for the masked-level-10 grant.
 //                            Repurposes the on-chip 512-sample analyzer to
