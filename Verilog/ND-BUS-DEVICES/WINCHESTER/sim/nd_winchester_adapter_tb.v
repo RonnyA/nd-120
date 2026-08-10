@@ -1,3 +1,4 @@
+`include "nd_storage_status.vh"
 /**************************************************************************
 ** TESTBENCH: the Winchester binding of nd_storage_smd_adapter             **
 **                                                                       **
@@ -62,6 +63,7 @@ module nd_winchester_adapter_tb;
   reg  [ 2:0] disk_unit  = 3'd0;
   reg  [10:0] disk_wordcount = 11'd0;
   wire        disk_done, disk_err;
+  wire [ 3:0] disk_err_code;     // WHY it was refused (nd_storage_status.vh)
   wire [ 9:0] dbuf_addr;
   wire [15:0] dbuf_wdata;
   wire        dbuf_we;
@@ -76,6 +78,7 @@ module nd_winchester_adapter_tb;
   reg         c_busy = 1'b0;
   reg         c_done = 1'b0;
   reg         c_err  = 1'b0;
+  reg  [ 3:0] c_err_code = 4'd0;
   reg  [ 9:0] c_buf_addr = 10'd0;
   reg  [15:0] c_buf_wdata = 16'd0;
   reg         c_buf_we = 1'b0;
@@ -97,6 +100,7 @@ module nd_winchester_adapter_tb;
       .disk_wordcount(disk_wordcount),
       .disk_done     (disk_done),
       .disk_err      (disk_err),
+      .disk_err_code (disk_err_code),
       .dbuf_addr     (dbuf_addr),
       .dbuf_wdata    (dbuf_wdata),
       .dbuf_we       (dbuf_we),
@@ -112,6 +116,7 @@ module nd_winchester_adapter_tb;
       .c_busy        (c_busy),
       .c_done        (c_done),
       .c_err         (c_err),
+      .c_err_code    (c_err_code),
       .c_buf_addr    (c_buf_addr),
       .c_buf_wdata   (c_buf_wdata),
       .c_buf_we      (c_buf_we),
@@ -131,13 +136,13 @@ module nd_winchester_adapter_tb;
       .disk_start(1'b0), .disk_req(1'b0), .disk_wr(1'b0),
       .disk_blkaddr1(ref_blk1), .disk_blkaddr2(ref_blk2),
       .disk_unit(3'd0), .disk_wordcount(11'd0),
-      .disk_done(), .disk_err(),
+      .disk_done(), .disk_err(), .disk_err_code(),
       .dbuf_addr(), .dbuf_wdata(), .dbuf_we(), .dbuf_rdata(16'd0),
       .open_start(1'b0),
       .c_open_req(), .c_open_ok(1'b1), .c_open_err(1'b0),
       .c_size_bytes(32'hFFFF_FFFF),
       .c_req(), .c_wr(), .c_block(), .c_busy(1'b0),
-      .c_done(1'b0), .c_err(1'b0),
+      .c_done(1'b0), .c_err(1'b0), .c_err_code(4'd0),
       .c_buf_addr(10'd0), .c_buf_wdata(16'd0), .c_buf_we(1'b0),
       .c_buf_rdata()
   );
@@ -182,6 +187,10 @@ module nd_winchester_adapter_tb;
   endfunction
 
   // Minimal nd_storage client: accept a request and complete it next cycle.
+  // inject_code != NONE makes it complete with err=1 and THAT reason, so the
+  // bench can prove a failure from inside nd_storage arrives at the
+  // controller as its own reason rather than being flattened by the adapter.
+  reg [3:0] inject_code = `NDS_ERR_NONE;
   reg c_pending = 1'b0;
   integer client_ops = 0;
   always @(posedge clk_cpu) begin
@@ -191,12 +200,37 @@ module nd_winchester_adapter_tb;
       c_busy     <= 1'b1;
       client_ops <= client_ops + 1;
     end else if (c_pending) begin
-      c_pending <= 1'b0;
-      c_busy    <= 1'b0;
-      c_done    <= 1'b1;
-      c_err     <= 1'b0;
+      c_pending  <= 1'b0;
+      c_busy     <= 1'b0;
+      c_done     <= 1'b1;
+      c_err      <= (inject_code != `NDS_ERR_NONE);
+      c_err_code <= inject_code;
     end
   end
+
+  // One read that the client port fails with a given reason; the adapter
+  // must hand that exact reason to the controller.
+  task check_passthrough(input [3:0] code, input [1023:0] name);
+    integer k;
+    begin
+      inject_code = code;
+      set_chs(16'd0, 4'd0, 5'd0);
+      disk_wordcount = 11'd1024;
+      disk_wr        = 1'b0;
+      @(negedge clk_cpu);
+      disk_start = 1'b1; disk_req = 1'b1;
+      @(negedge clk_cpu);
+      disk_start = 1'b0; disk_req = 1'b0;
+      k = 0;
+      while (!disk_done && k < 1000) begin @(negedge clk_cpu); k = k + 1; end
+      check(disk_done === 1'b1, {"a failed client op COMPLETES: ", name});
+      check(disk_err  === 1'b1, {"a failed client op is an error: ", name});
+      check(disk_err_code === code,
+            {"the storage reason reaches the controller unchanged: ", name});
+      inject_code = `NDS_ERR_NONE;
+      @(negedge clk_cpu);
+    end
+  endtask
 
   integer i;
 
@@ -256,6 +290,8 @@ module nd_winchester_adapter_tb;
     while (!disk_done && i < 1000) begin @(negedge clk_cpu); i = i + 1; end
     check(disk_done === 1'b1, "a full aligned block write completes");
     check(disk_err  === 1'b0, "a full aligned block write is NOT an error");
+    check(disk_err_code === `NDS_ERR_NONE,
+          "a successful write reports reason code NONE");
     check(client_ops > 0, "a full aligned block write reached the client");
     @(negedge clk_cpu);
 
@@ -275,6 +311,8 @@ module nd_winchester_adapter_tb;
     while (!disk_done && i < 1000) begin @(negedge clk_cpu); i = i + 1; end
     check(disk_done === 1'b1, "a partial block write still COMPLETES");
     check(disk_err  === 1'b1, "a partial block write is refused with an error");
+    check(disk_err_code === `NDS_ERR_WRALIGN,
+          "the partial-write refusal says WRALIGN, not some generic fault");
     check_eq32(client_ops, 32'd0,
                "a refused write costs ZERO client traffic - never a partial write");
     @(negedge clk_cpu);
@@ -293,7 +331,57 @@ module nd_winchester_adapter_tb;
     i = 0;
     while (!disk_done && i < 1000) begin @(negedge clk_cpu); i = i + 1; end
     check(disk_err === 1'b1, "an UNALIGNED full-length write is refused too");
+    check(disk_err_code === `NDS_ERR_WRALIGN,
+          "the unaligned refusal also says WRALIGN");
     check_eq32(client_ops, 32'd0, "the unaligned refusal is also traffic-free");
+
+    // ---- 5. the reason code from BELOW is passed through unchanged -----
+    // A failure inside nd_storage (no card, missing file, dead card...)
+    // must arrive at the controller as ITS OWN reason, not be flattened
+    // into whatever the adapter would have said. Drive one read that the
+    // client port fails with a specific code and check it comes out.
+    check_passthrough(`NDS_ERR_NOCARD,   "NOCARD");
+    check_passthrough(`NDS_ERR_CARDIO,   "CARDIO");
+    check_passthrough(`NDS_ERR_FATCHAIN, "FATCHAIN");
+    check_passthrough(`NDS_ERR_TIMEOUT,  "TIMEOUT");
+
+    // ---- 6. asking past the end of the image says RANGE ----------------
+    // c_size_bytes is the 1325's capacity; a cylinder past it is out of
+    // range for the drive, and the controller must be told THAT, not
+    // "media fault".
+    client_ops = 0;
+    set_chs(16'd9999, 4'd0, 5'd0);
+    disk_wordcount = 11'd1024;
+    disk_wr        = 1'b0;
+    @(negedge clk_cpu);
+    disk_start = 1'b1; disk_req = 1'b1;
+    @(negedge clk_cpu);
+    disk_start = 1'b0; disk_req = 1'b0;
+    i = 0;
+    while (!disk_done && i < 1000) begin @(negedge clk_cpu); i = i + 1; end
+    check(disk_done === 1'b1, "an out-of-range read still COMPLETES");
+    check(disk_err  === 1'b1, "an out-of-range read is an error");
+    check(disk_err_code === `NDS_ERR_RANGE,
+          "the out-of-range refusal says RANGE");
+    check_eq32(client_ops, 32'd0, "the out-of-range refusal is traffic-free");
+
+    // ---- 7. the file is not mounted: NOTOPEN, not a media fault --------
+    c_open_ok = 1'b0;
+    client_ops = 0;
+    set_chs(16'd0, 4'd0, 5'd0);
+    disk_wordcount = 11'd1024;
+    disk_wr        = 1'b0;
+    @(negedge clk_cpu);
+    disk_start = 1'b1; disk_req = 1'b1;
+    @(negedge clk_cpu);
+    disk_start = 1'b0; disk_req = 1'b0;
+    i = 0;
+    while (!disk_done && i < 1000) begin @(negedge clk_cpu); i = i + 1; end
+    check(disk_done === 1'b1, "a read with no mounted file still COMPLETES");
+    check(disk_err  === 1'b1, "a read with no mounted file is an error");
+    check(disk_err_code === `NDS_ERR_NOTOPEN,
+          "no mounted file says NOTOPEN");
+    c_open_ok = 1'b1;
 
     if (errors == 0)
       $display("=== %0d checks passed ===\nTB_RESULT: PASS", checks);

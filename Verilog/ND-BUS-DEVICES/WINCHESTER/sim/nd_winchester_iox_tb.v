@@ -140,6 +140,7 @@ module nd_winchester_iox_tb;
       .disk_wordcount(disk_wordcount),
       .disk_done     (1'b0),
       .disk_err_in   (1'b0),
+      .disk_err_code (4'd0),
       .dbuf_addr     (10'd0),
       .dbuf_wdata    (16'd0),
       .dbuf_we       (1'b0),

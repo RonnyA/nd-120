@@ -1,3 +1,4 @@
+`include "nd_storage_status.vh"
 /**************************************************************************
 ** ND WINCHESTER DISC CONTROLLER, 5 1/4 inch ST506 (3041) / 8 inch (3038) **
 **                                                                       **
@@ -130,6 +131,24 @@ module ND_WINCHESTER #(
     input  wire        iox_rd,
     output reg  [15:0] iox_rdata,
     output wire        iox_sel,         // 1 = this core owns the captured IOX address
+
+    // ---- on-silicon IOX trace tap -------------------------------------
+    // One record per COMPLETED IOX access to this card:
+    //   {rw, reg[2:0], data[15:0]}, rw 1 = write (data is iox_wdata),
+    //                               rw 0 = read  (data is what we returned).
+    // Costs nothing when the consumer ties it off - synthesis prunes it.
+    // This exists because ND_WINCHESTER.v is byte-for-byte conformant with
+    // the nd100x C model across the whole DISC-TEMA "DU-DI-C" IOX trace and
+    // the fault still only appears on silicon, so the sequence the CPU
+    // actually issues is the one piece of evidence nobody has. ND_SMD.v had
+    // the equivalent (ND120_SMD_TRACE) and that is what made it tractable.
+    output wire [19:0] trace_rec,
+    output wire        trace_we,
+    // Pulses when a device operation COMPLETES (the FinishOperation point).
+    // A capture trigger needs this: "the card went quiet" is not enough on
+    // its own, because the card is also quiet for many seconds while the
+    // diagnostic collects its prompts from the operator.
+    output reg         trace_done,
     output wire [3:0]  int_pending,
     input  wire        ident_strobe,
     input  wire [3:0]  ident_level,
@@ -160,6 +179,13 @@ module ND_WINCHESTER #(
     output wire [10:0] disk_wordcount, // words in the current chunk
     input  wire        disk_done,
     input  wire        disk_err_in,
+    // WHY the backend failed (nd_storage_status.vh), valid with disk_done.
+    // Mapped below onto the status bits ND-11.015.01 sec 3.5 ALREADY
+    // defines for this card - no new status bit is invented here. Before
+    // this existed every backend failure became a CRC error, so "no SD
+    // card", "WD0.IMG is not on the card" and "block past the end of the
+    // image" were one indistinguishable bit at the guest.
+    input  wire [3:0]  disk_err_code,
     input  wire [9:0]  dbuf_addr,
     input  wire [15:0] dbuf_wdata,
     input  wire        dbuf_we,
@@ -213,6 +239,10 @@ module ND_WINCHESTER #(
   reg        s_test_mode;     // control b3
 
   // ---- the upper/lower selection flip-flops (sec 3.2) ----
+`ifdef ND120_WD_TRACE
+  reg [31:0] s_trace_cyc;     // sysclk counter for the simulation-only trace
+`endif
+
   reg        s_ma_write_ff;
   reg        s_ma_read_ff;
 
@@ -234,6 +264,115 @@ module ND_WINCHESTER #(
   wire [2:0] s_reg = iox_addr[2:0];
   wire s_wr_here = iox_wr && s_addressed;
   wire s_rd_here = iox_rd && s_addressed;
+
+  // SIDE EFFECTS MUST BE EDGE-TRIGGERED, NOT LEVEL-TRIGGERED - AND THE READ
+  // ALTERNATOR MUST ADVANCE AT THE END OF THE ACCESS, NOT THE START.
+  //
+  // iox_rd / iox_wr are held for the whole ND-BUS I/O cycle, which is many
+  // sysclk periods - the bus runs at the original ND speed while the card is
+  // clocked by sysclk. Two separate faults came out of using the level:
+  //
+  //   1. Every non-idempotent side effect fired once PER SYSCLK for the
+  //      duration of the access. The +0 read alternator (s_ma_read_ff) and
+  //      the +1 write alternator (s_ma_write_ff) toggled N times instead of
+  //      once, so which half of the memory address register you got depended
+  //      on how many clocks the bus cycle happened to last.
+  //
+  //   2. Even toggled exactly once, toggling at the START of a read changes
+  //      iox_rdata WHILE the bus is still sampling it: the master sees the
+  //      other half. The alternator therefore advances on the END of the
+  //      access (s_rd_end), so the selected half is stable for the whole
+  //      cycle and the NEXT read gets the other one. The register offset is
+  //      latched with it, because iox_addr may already have moved on.
+  //
+  // Symptom on silicon (05-AUG-2026): DISC-TEMA J02 "DU-DI-C" on
+  // DISC-74MB-1 returned all 512 data words correctly and the identical
+  // status word 060010, then reported "Memory address Register not as
+  // expected" - the two IOX 500 reads came back swapped. Reproduced against
+  // the nd100x trace in nd_winchester_oracle_tb.v.
+  //
+  // Writes keep the RISING edge: iox_wdata is stable when the strobe goes
+  // active, and a write has no read-data to hold steady.
+  reg       s_iox_rd_q, s_iox_wr_q;
+  reg [2:0] s_reg_q;
+  always @(posedge sysclk or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
+      s_iox_rd_q <= 1'b0;
+      s_iox_wr_q <= 1'b0;
+      s_reg_q    <= 3'd0;
+    end else begin
+      s_iox_rd_q <= s_rd_here;
+      s_iox_wr_q <= iox_wr;
+      if (s_rd_here) s_reg_q <= s_reg;
+    end
+  end
+  wire s_rd_end  = s_iox_rd_q && !s_rd_here;   // end of an addressed read
+  wire s_wr_edge = s_wr_here && !s_iox_wr_q;
+
+  // Trace record encoding. {rw, reg} is the top nibble; 0-7 = a READ of
+  // +0..+7, 8-F = a WRITE to +0..+7. Two of those 16 codes are impossible on
+  // this card and are reused for events that are NOT IOX at all but that
+  // software can see just as clearly:
+  //
+  //   8xxxx  IDENT answered on level 11, xxxx = the code returned
+  //   Axxxx  the interrupt line CHANGED, xxxx = 1 raised / 0 dropped
+  //
+  // (+0 and +2 are read-only, so "write to +0" and "write to +2" can never
+  // occur.) They are here because the IOX sequence on silicon now matches the
+  // nd100x C model access for access and DISC-TEMA still disagrees with it,
+  // so whatever decides the verdict is something an IOX trace cannot show.
+  reg s_irq_q;
+  always @(posedge sysclk or negedge sys_rst_n) begin
+    if (!sys_rst_n) s_irq_q <= 1'b0;
+    else            s_irq_q <= s_irq;
+  end
+  wire s_irq_edge = (s_irq != s_irq_q);
+
+  //   Cxxxx  an IOX to an address that is NOT ours, xxxx = that address.
+  // The card sees the whole bus, so this answers "where is the CPU actually
+  // going" - the question left open when a mass-storage load (20500&) hangs
+  // having touched this card fewer than four times. If the microcode is
+  // driving 20501/20503/20507 because bit 13 was never stripped from the
+  // typed load code, nothing decodes, the bus times out, and the CPU hangs
+  // exactly as observed. ND_SMD.v has the same idea under [SMD-OTHER].
+  reg s_foreign_q;
+  wire s_foreign = (iox_rd || iox_wr) && !s_addressed;
+  always @(posedge sysclk or negedge sys_rst_n) begin
+    if (!sys_rst_n) s_foreign_q <= 1'b0;
+    else            s_foreign_q <= s_foreign;
+  end
+  wire s_foreign_edge = s_foreign && !s_foreign_q;
+
+  // An IDENT cycle this card did NOT answer is recorded too (tag 9). Without
+  // it the trace cannot tell the two ways an interrupt goes unclaimed apart,
+  // and on 09-AUG-2026 a silicon capture of the File System Investigator hit
+  // exactly that wall: the irq line rose (tag A) and no tag 8 ever followed,
+  // which is equally consistent with "the CPU never ran an IDENT cycle at all"
+  // and with "it did, but a device ahead of this one in the grant chain took
+  // it" - the floppy is also level 11 and sits earlier in the chain. Tag 9
+  // carries grant_in and s_irq, so the answer is read straight off the dump:
+  // no tag 9 at all      -> the CPU never identified; look CPU-side.
+  // tag 9 with grant=0   -> the grant never arrived; a device ahead consumed it.
+  // tag 9 with grant=1,
+  //   irq=0              -> our own irq had already dropped before the cycle.
+  reg s_idstb_q;
+  always @(posedge sysclk or negedge sys_rst_n) begin
+    if (!sys_rst_n) s_idstb_q <= 1'b0;
+    else            s_idstb_q <= ident_strobe;
+  end
+  wire s_idstb_edge = ident_strobe && !s_idstb_q &&
+                      (ident_level == INT_LEVEL) && !s_ident_answer;
+
+  assign trace_we  = s_wr_edge || (s_rd_here && !s_iox_rd_q)
+                     || s_ident_answer || s_idstb_edge || s_irq_edge
+                     || s_foreign_edge;
+  assign trace_rec = s_wr_edge       ? {1'b1, s_reg, iox_wdata}
+                   : (s_rd_here && !s_iox_rd_q) ? {1'b0, s_reg, iox_rdata}
+                   : s_ident_answer  ? {4'h8, IDENT_CODE}
+                   : s_idstb_edge    ? {4'h9, 10'd0, ident_grant_in, s_irq,
+                                        ident_level}
+                   : s_irq_edge      ? {4'hA, 15'd0, s_irq}
+                                     : {4'hC, iox_addr};
 
   // ---- status assembly (sec 3.5) ----
   // Bit 4 is the inclusive OR of the error bits. Bit 13 is EXCLUDED even
@@ -363,12 +502,95 @@ module ND_WINCHESTER #(
     begin
       s_active <= 1'b0;
       s_rft    <= 1'b1;
+      trace_done <= 1'b1;
       clr_ff;
+      // A FinishOperation, so the registers are left in their end-of-transfer
+      // state exactly as on the clean path (wd_sync_registers in both C
+      // models): the address advanced by the words that DID move, count zero.
+      s_mem_addr_lo <= s_dma_addr_r[15:0];
+      s_mem_addr_hi <= s_dma_addr_r[23:16];
+      s_word_cnt    <= 16'd0;
       s_on_cyl[s_unit] <= 1'b0;
       s_eng      <= E_IDLE;
       s_dma_wait <= 1'b0;
       if (s_errint_en) s_irq <= 1'b1;
       else             s_irq <= s_int_en;   // sec 4.1: ready && enabled
+    end
+  endtask
+
+  // ==== BACKEND FAILURE -> STATUS BIT =====================================
+  //
+  // WHERE THESE BITS COME FROM: every bit set below is one the WINCHESTER
+  // CONTROLLER MANUAL ND-11.015.01, SECTION 3.5 (status register, IOX +4)
+  // already defines for this card. They are listed verbatim in this file's
+  // header block under "Status (+4, sec 3.5)" and assembled into s_status
+  // further down. NOTHING here is invented: this task chooses AMONG the
+  // manual's bits, it never adds one, never repurposes one, and never puts
+  // the reason code itself anywhere the guest can read it. That is the rule
+  // in Verilog/SD-FAT/circuit/nd_storage_status.vh - the storage stack is
+  // clean-room and may carry a reason code, a reproduced ND card may not.
+  //
+  // WHERE THE REASON CODE COMES FROM: nd_storage_engine.v tags the failure
+  // at the point it happens (card timeout, CMD17/CMD24 failure, no mount,
+  // block past end of file, broken FAT chain, engine watchdog), the code
+  // travels engine -> nd_storage -> nd_storage_smd_adapter (the Winchester
+  // reuses it at ST506 geometry) -> disk_err_code here.
+  //
+  // FULL MAPPING - all nine codes of nd_storage_status.vh:
+  //
+  //   NDS_ERR_NOCARD    b7  disk fault / missing clocks. No SD card in the
+  //                         slot: from the guest's side the drive is simply
+  //                         not usable, which is exactly what b7 means.
+  //   NDS_ERR_NOTOPEN   b7  same bit: WD0.IMG is not on the card (or its
+  //                         mount failed), so again there is no usable
+  //                         drive behind the interface.
+  //   NDS_ERR_RANGE     b8  address mismatch. The manual's b8 is "the
+  //                         address searched for was not found on the
+  //                         drive", which is precisely a block past the end
+  //                         of the image.
+  //   NDS_ERR_TIMEOUT   b6  timeout. The engine watchdog fired: the backend
+  //                         never answered - the same event b6 exists for.
+  //   NDS_ERR_CARDIO    b9  CRC error. The card answered but the data is
+  //                         not trustworthy (CMD17/CMD24 error, CRC, card
+  //                         stopped mid-block). b9 is this card's
+  //                         data-unreadable bit.
+  //   NDS_ERR_FATCHAIN  b9  same bit: the FAT chain is broken or circular,
+  //                         so the medium cannot yield the requested data.
+  //   NDS_ERR_WRPROT    b9  this card has NO write-protect bit in sec 3.5.
+  //   NDS_ERR_WRALIGN   b9  A refused write IS a failure to write the
+  //                         medium, so it lands on the general media-fault
+  //                         bit. The exact reason stays readable on the
+  //                         storage seam (WDISK_ERR_CODE) for a testbench
+  //                         or a probe - it is only the GUEST that cannot
+  //                         tell these two apart, and that is the manual's
+  //                         limitation, not a shortcut taken here.
+  //   NDS_ERR_NONE          never reaches this task (no error, no call).
+  //
+  // b4 (inclusive OR of b5-b13) follows automatically from s_incl_or, so
+  // any bit chosen here also raises the guest's "something went wrong" bit
+  // exactly as the manual specifies.
+  //
+  // WHY THIS EXISTS: before it, both call sites hard-coded ONE bit, so
+  // "no SD card", "WD0.IMG missing", "block past the end of the image",
+  // "broken FAT chain" and "the card stopped answering" were a single
+  // indistinguishable CRC error at the guest, at the console and in a
+  // waveform. That is what made the 08-AUG-2026 zero-read investigation as
+  // long as it was.
+  // ========================================================================
+  task set_backend_fault;
+    input [3:0] code;
+    begin
+      case (code)
+        // b7 disk fault / missing clocks (sec 3.5)
+        `NDS_ERR_NOCARD,
+        `NDS_ERR_NOTOPEN:  s_disk_fault    <= 1'b1;
+        // b8 address mismatch (sec 3.5)
+        `NDS_ERR_RANGE:    s_addr_mismatch <= 1'b1;
+        // b6 timeout (sec 3.5)
+        `NDS_ERR_TIMEOUT:  s_time_out      <= 1'b1;
+        // b9 CRC error (sec 3.5) - CARDIO, FATCHAIN, WRPROT, WRALIGN
+        default:           s_crc_err       <= 1'b1;
+      endcase
     end
   endtask
 
@@ -419,6 +641,10 @@ module ND_WINCHESTER #(
       s_dma_ch_err   <= 1'b0;
       s_rw_gate      <= 1'b0;
       s_test_mode    <= 1'b0;
+`ifdef ND120_WD_TRACE
+      s_trace_cyc    <= 32'd0;
+`endif
+      trace_done     <= 1'b0;
       s_ma_write_ff  <= 1'b0;   // master clear is reset condition #1 (sec 3.2)
       s_ma_read_ff   <= 1'b0;
       s_irq          <= 1'b0;
@@ -441,10 +667,11 @@ module ND_WINCHESTER #(
       dma_req    <= 1'b0;
       disk_start <= 1'b0;
       disk_req   <= 1'b0;
+      trace_done <= 1'b0;
 
-      // ---- read-strobe side effects ----
-      if (s_rd_here) begin
-        case (s_reg)
+      // ---- read-strobe side effects (END of access: see the note above) ----
+      if (s_rd_end) begin
+        case (s_reg_q)
           // Successive +0 reads alternate LO then HI (sec 3.2).
           3'd0: s_ma_read_ff <= ~s_ma_read_ff;
           // A status read is flip-flop reset condition #3 (sec 3.2).
@@ -453,8 +680,8 @@ module ND_WINCHESTER #(
         endcase
       end
 
-      // ---- IOX register writes ----
-      if (s_wr_here) begin
+      // ---- IOX register writes (EDGE: see the note at s_wr_edge) ----
+      if (s_wr_edge) begin
         case (s_reg)
           // +1  Load memory address: TWO accesses, HI 8 then LO 16 (sec 3.2).
           3'd1: begin
@@ -559,11 +786,36 @@ module ND_WINCHESTER #(
                           s_cyl_pos[iox_wdata[9]]) ?
                         GEO_MAX_CYL : (s_cyl_pos[iox_wdata[9]] + s_word_cnt);
                   end
-                  s_delay_cnt <= DELAY_TICKS;
+                  // A zero-step seek moves nothing: the drive only re-checks
+                  // its position and completes. See the OP_RTZ note - the
+                  // completion delay is only earned by ARM MOTION.
+                  s_delay_cnt <= (s_word_cnt == 16'd0) ? 32'd8 : DELAY_TICKS;
                   s_eng       <= E_DELAY;
                 end
 
                 OP_RTZ: begin
+                  // EVERY RTZ earns DELAY_TICKS, including one whose arm is
+                  // already at cylinder 0.
+                  //
+                  // 06-AUG-2026 this charged a fixed 8 ticks when the arm was
+                  // already home, on the reasoning that a track-0 sensor check
+                  // is not a seek and that the full delay desynced DISC-TEMA
+                  // into reporting "Memory address Register not as expected".
+                  // That was a workaround, and the symptom it worked around
+                  // has since been root-caused elsewhere: the real fault was
+                  // an IOX write zeroing the A register, fixed as the CDLBD
+                  // 74646 pin-node correction in BIF_DPATH_9.v.
+                  //
+                  // The 8-tick path is itself a bug, and the nd100x oracle
+                  // proves it. In oracle/fsi-lifi-nd100x.trace the File System
+                  // Investigator writes 034005 and its next status read
+                  // returns 060005 - ACTIVE, seek still running. On silicon
+                  // the same read returns 060011, already finished, because
+                  // 8 ticks at 6.75 MHz is 1.2 us and no guest can poll that
+                  // fast. A real drive unloads and reseeks track 0 on every
+                  // RTZ; it is never instantaneous. Measured by
+                  // sim/nd_winchester_rtz_tb.v, which reproduces the silicon
+                  // divergence and fails on the old 8-tick behaviour.
                   s_cyl_pos[iox_wdata[9]] <= 16'd0;
                   s_rtz_viol  <= 1'b0;
                   s_delay_cnt <= DELAY_TICKS;
@@ -579,9 +831,25 @@ module ND_WINCHESTER #(
                     s_addr_mismatch <= 1'b1;
                     s_active <= 1'b0;
                     s_rft    <= 1'b1;
+                    trace_done <= 1'b1;
                     s_on_cyl[iox_wdata[9]] <= 1'b0;
                     s_eng      <= E_IDLE;
                     s_dma_wait <= 1'b0;
+                    // EVERY completion is a FinishOperation, and a
+                    // FinishOperation always clears the upper/lower selection
+                    // flip-flops and zeroes the word counter - both C models
+                    // route this path through wd_finish_operation(), which
+                    // calls wd_clear_flipflops() + wd_sync_registers().
+                    // Leaving them alone here is what made a LATER IOX 500
+                    // read return the wrong half: the transfer and the status
+                    // word stay perfectly correct, so the fault surfaces only
+                    // as DISC-TEMA's "Memory address Register not as
+                    // expected" long after the probe that caused it. The
+                    // address registers themselves are NOT advanced - nothing
+                    // was transferred, which is also what wd_sync_registers
+                    // computes here (mem_addr still equals what was loaded).
+                    clr_ff;
+                    s_word_cnt <= 16'd0;
                     if (iox_wdata[1]) s_irq <= 1'b1;
                     else              s_irq <= iox_wdata[0];
                   end else if (w_words != 24'd0) begin
@@ -620,7 +888,23 @@ module ND_WINCHESTER #(
               // stays idle and is by definition ready for an operation, so
               // status b3 goes to 1 and the sec 4.1 condition is re-evaluated.
               // THIS is what makes TPE CONFIGURATION find the card.
-              s_rft <= 1'b1;
+              //
+              // ONLY WHEN IT REALLY IS IDLE. "Stays idle" is a PREMISE, not a
+              // consequence, and it is one this RTL can violate where the C
+              // models cannot: their Wd_ExecuteGO is synchronous, so by the
+              // time any later control word arrives the operation has already
+              // finished and active is 0. Here an operation takes real time,
+              // so a non-activating word can land mid-transfer - and setting
+              // b3 then reports ACTIVE and FINISHED at the same instant,
+              // which no real card can do.
+              //
+              // Measured on silicon 05-AUG-2026 with ND120_WD_TRACE_DUMP:
+              // DISC-TEMA "DU-DI-C" issues GO (+5 = 034005), polls +4 and
+              // gets 060005 (active), writes a non-activating +5 = 0, and the
+              // next +4 read returned 060014 - b2 AND b3 both set. The oracle
+              // never emits that word; its whole status set for this run is
+              // 020010 / 020011 / 060011 / 060010 / 060005.
+              if (!s_active) s_rft <= 1'b1;
               s_irq <= iox_wdata[0];
             end else begin
               // Device clear AND the interrupt enable in one word: the clear
@@ -648,9 +932,7 @@ module ND_WINCHESTER #(
         E_DISK_RD: begin
           if (disk_done) begin
             if (disk_err_in) begin
-              // A media read fault is a CRC error on this card - the drive
-              // could not return good data.
-              s_crc_err <= 1'b1;
+              set_backend_fault(disk_err_code);
               err_active;
             end else begin
               s_sec_idx <= 11'd0;
@@ -717,11 +999,12 @@ module ND_WINCHESTER #(
         E_DISK_WR: begin
           if (disk_done) begin
             if (disk_err_in) begin
-              // A media write fault is a disk fault (b7). Note the adapter
-              // refuses a partial-block write by design, so an unaligned
-              // Winchester write arrives here as a clean, visible error
-              // rather than silent corruption.
-              s_disk_fault <= 1'b1;
+              // Same mapping as the read path, so a write failure is as
+              // diagnosable as a read failure. The adapter refuses a
+              // partial-block write by design, so an unaligned Winchester
+              // write arrives here as a clean, visible error rather than
+              // silent corruption - and now says WHICH refusal it was.
+              set_backend_fault(disk_err_code);
               err_active;
             end else if (s_words_left == 24'd0) begin
               s_delay_cnt <= DELAY_TICKS;
@@ -742,6 +1025,7 @@ module ND_WINCHESTER #(
           end else begin
             s_active <= 1'b0;
             s_rft    <= 1'b1;
+            trace_done <= 1'b1;
             clr_ff;
             s_mem_addr_lo <= s_dma_addr_r[15:0];
             s_mem_addr_hi <= s_dma_addr_r[23:16];
@@ -755,6 +1039,29 @@ module ND_WINCHESTER #(
 
         default: s_eng <= E_IDLE;
       endcase
+
+`ifdef ND120_WD_TRACE
+      // Simulation-only IOX trace, the same facility ND_SMD.v carries under
+      // ND120_SMD_TRACE. That trace is what made the SMD tractable: it shows
+      // what the real diagnostic actually emits, register by register, with
+      // the controller state that decides what each access MEANS. Reading the
+      // RTL against the C model settles nothing when the two agree and the
+      // silicon still disagrees - only the sequence does.
+      // s_trace_cyc counts sysclk edges; $time is useless (no timescale).
+      s_trace_cyc <= s_trace_cyc + 32'd1;
+      if (s_wr_edge)
+        $display("[WD] cyc=%0d WR +%0d val=%o maw_ff=%b active=%b rft=%b",
+                 s_trace_cyc, s_reg, iox_wdata, s_ma_write_ff, s_active, s_rft);
+      if (s_rd_here && !s_iox_rd_q)
+        $display("[WD] cyc=%0d RD +%0d -> %o mar_ff=%b active=%b rft=%b",
+                 s_trace_cyc, s_reg, iox_rdata, s_ma_read_ff, s_active, s_rft);
+      // Every IOX the CPU issues to a DISC-range address that is NOT ours -
+      // answers "which device is the test program actually driving".
+      if ((iox_rd || iox_wr) && !s_addressed &&
+          iox_addr >= 16'o000400 && iox_addr < 16'o002000)
+        $display("[WD-OTHER] cyc=%0d %s dev=%06o data=%06o",
+                 s_trace_cyc, iox_wr ? "WR" : "RD", iox_addr, iox_wdata);
+`endif
 
       // IDENT answered: clear interrupt-enable and drop the line.
       if (s_ident_answer) begin

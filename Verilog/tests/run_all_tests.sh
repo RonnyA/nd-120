@@ -23,6 +23,12 @@ VERILOG_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$VERILOG_ROOT" || exit 1
 
 REGISTRY=(
+  # --- meta: the suite checks itself first ---------------------------------
+  # Every testbench in the tree must be reached by an entry below, or be
+  # baselined in tests/tb_catalog.py with a reason. Fails when a new testbench
+  # is written and never registered - the drift that left 9 testbenches
+  # unreachable before 08-AUG-2026.
+  "tests :: test-tb-catalog :: TB_RESULT: PASS"
   # --- Shared support chips -------------------------------------------------
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"
@@ -44,6 +50,9 @@ REGISTRY=(
   "Shared/support/sim :: test-idt6168a :: TB_RESULT: PASS"
   # --- PALs -------------------------------------------------------------
   "PAL/sim :: test-all :: RESULT: PASS"
+  # provenance gate: no PAL may drive an output its PALASM listing does not
+  # define, nor drop one it does (the "invented signal" detector)
+  "PAL/sim :: test-pal-provenance :: TB_RESULT: PASS"
   # --- PAL _EN clock-enable equivalence tbs (base vs _EN, exhaustive+LFSR) -
   "PAL/sim :: test-44402d-en :: TB_RESULT: PASS"
   "PAL/sim :: test-44403c-en :: TB_RESULT: PASS"
@@ -60,6 +69,20 @@ REGISTRY=(
   "CPU-BOARD-3202/circuit/sim :: test-ccd      :: RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-memaddr  :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-memchain :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-cs-rwcs  :: TB_RESULT: PASS"
+  # microcycle timing golden gate: walks NORMAL/SHORT/SLOW/FETCH/FORM/TRAP/
+  # RWCS/LCS/BRK through the real cycle PALs and diffs every clock and strobe
+  # against CPU_CYCLE_TIMELINE.golden - a moved edge fails loudly
+  "CPU-BOARD-3202/circuit/sim :: test-cycle-timeline :: TB_RESULT: PASS"
+  # sheet-20 CS transceivers: the 74PCT373 capture on ECSL~'s falling edge.
+  # Its checks 4 and 5 change the source data under a closed latch, so a
+  # pass-through implementation (which is what the RTL had) fails loudly.
+  "CPU-BOARD-3202/circuit/sim :: test-cs-tcv :: TB_RESULT: PASS"
+  # full RWCS microcycle: the control-store word must still be on the IDB at
+  # the TERM edge, where ALUCLK writes the A register. This was the TRA CS
+  # (150017) reproducer and it went GREEN on 08-AUG-2026 when the sheet-20
+  # capture was added - registered that same day, as promised.
+  "CPU-BOARD-3202/circuit/sim :: test-cs-rwcs-cycle :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-blockram :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-cdlbd    :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-bdlbd    :: TB_RESULT: PASS"
@@ -227,6 +250,25 @@ REGISTRY=(
   "SD-FAT/sim                         :: test-nds-tape  :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-floppy :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-smd   :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-nds-cache :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-nds-cachepath :: TB_RESULT: PASS"
+  # Failure reporting: every way a storage op can fail must COMPLETE, with
+  # err=1 and the right reason code (SD-FAT/circuit/nd_storage_status.vh).
+  # No card, missing file, never-opened client, past end of image, broken
+  # FAT chain, frozen mem port - read AND write. The eighth mode, "the card
+  # goes silent", is in test-nds-errors-slow (run by `make test-full`): its
+  # only terminator is sd_writer.v's TO_DATA watchdog, 148 ms of simulated
+  # time for one case, and TO_DATA is a real device timeout that must not be
+  # shortened to suit a testbench.
+  "SD-FAT/sim                         :: test-nds-errors :: TB_RESULT: PASS"
+  # --- board memory-test benches ---------------------------------------
+  # Found by `make test-audit` 09-AUG-2026: both existed with no Makefile at
+  # all, so nothing could run them. They build and pass; they were simply
+  # invisible. Both boards are secondary targets (Basys3 has an open BLOCKRAM
+  # item, the QMTECH A35T bring-up is paused), which is exactly why an
+  # unattended gate is worth having - nobody is exercising them by hand.
+  "fpga/basys3/mem-test/sim           :: test-basys3-memtest :: TB_RESULT: PASS"
+  "fpga/qmtech-a35t/mem-test/sim      :: test-qmtech-memtest :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-dumper    :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator-fat32 :: TB_RESULT: PASS"
@@ -250,6 +292,15 @@ REGISTRY=(
   "ND-BUS-DEVICES/SMD/sim    :: test-smd-err    :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-iox :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-adapter :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-oracle :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-bus :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-storage :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-storage-sdram :: TB_RESULT: PASS"
+  # An operation must stay readable as ACTIVE long enough for a guest to see
+  # it. Guards the RTZ completion delay against being shortened back to the
+  # 8-tick fast path, which made the File System Investigator read 060011
+  # where the nd100x oracle reads 060005.
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-rtz :: TB_RESULT: PASS"
 )
 # NOT in the registry (run manually, documented reasons):
 #   DECODE-GateArray/DGA/sim test-f595-transparency - FAILS BY DESIGN on the
