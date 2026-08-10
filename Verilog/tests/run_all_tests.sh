@@ -244,6 +244,14 @@ REGISTRY=(
   "SD-FAT/sim                         :: test-nds-engine :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-write :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-mount :: TB_RESULT: PASS"
+  # Client bus slice continuity. nd_tape_sdfat_source hands nd_storage its
+  # per-client ports as five hand-written flat concatenations, and nothing
+  # else checks that a client actually got a slice in each one - a forgotten
+  # slice is a silent tie to zero that elaborates, simulates and synthesises
+  # cleanly. That is exactly how the Winchester's buf_rdata went missing and
+  # every disc WRITE quietly stored zeros (10-AUG-2026). Teeth-proven: with
+  # the fix reverted this fails on client 6 and only client 6.
+  "SD-FAT/sim                         :: test-nds-clientbus :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-fatchk-unit :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-fatchk :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-storage   :: TB_RESULT: PASS"
@@ -270,6 +278,15 @@ REGISTRY=(
   "fpga/basys3/mem-test/sim           :: test-basys3-memtest :: TB_RESULT: PASS"
   "fpga/qmtech-a35t/mem-test/sim      :: test-qmtech-memtest :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-dumper    :: TB_RESULT: PASS"
+  # Streaming diagnostics (menu 8 BLOCK / 9 SECTOR / R RANGE / N) on a
+  # 327680-byte file - five times the tool's 64 KB dump buffer, so menu 2
+  # cannot reach it. The RANGE case is the one that matters for SINTRAN
+  # segment handling: 70 CONSECUTIVE blocks (280 sectors) read as one run,
+  # with the reported block count, sector count and word checksum all
+  # checked against the image model. Also the read-only gate: the DEFAULT
+  # build must offer no writing command and put no CMD24/CMD25 on the
+  # card. ~2 min under iverilog.
+  "fpga/tang-nano-20k/sd-fat-test/sim :: test-block     :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator-fat32 :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator-fat32big :: TB_RESULT: PASS"
