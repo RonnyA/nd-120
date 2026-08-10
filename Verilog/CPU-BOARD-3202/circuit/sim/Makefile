@@ -57,8 +57,11 @@ test-all: test-cyctermd test-ccd test-memaddr test-memchain test-memchain-blockr
 clean:
 	rm -f CYC_TERM_D_tb CYC_CC_D_tb MEM_ADDR_44_tb MEM_CHAIN_tb MEM_CHAIN_BLOCKRAM_tb MEM_CHAIN_SIM_tb *.vcd *_out.log
 	rm -f MEM_RAM_49_SIM_PARITY_tb_p0 MEM_RAM_49_SIM_PARITY_tb_p1 MEM_ERROR_47_tb_bin *_result.tmp
+	# NB: CPU_CYCLE_TIMELINE.golden is a checked-in reference, NOT an artefact - never delete it here
+	rm -f CPU_CYCLE_TIMELINE_tb CPU_CS_RWCS_CYCLE_tb CPU_CS_TCV_20_tb cycle_timeline_out.trace cycle_timeline.diff
 
-.PHONY: test-cyctermd test-ccd test-memaddr test-memchain test-all clean
+.PHONY: test-cyctermd test-ccd test-memaddr test-memchain test-all clean \
+        test-cs-rwcs-cycle test-cycle-timeline golden-cycle-timeline test-cs-tcv
 
 # MEM_RAM_49_BLOCKRAM: block-RAM sheet-49 backend, measured DRAM protocol
 test-blockram: MEM_RAM_49_BLOCKRAM_tb
@@ -358,3 +361,83 @@ clean-tier3:
 	rm -f CPU_MMU_CACHE_25_ug_tb_bin CPU_MMU_CACHE_25_ff_tb_bin
 
 .PHONY: test-ramc test-lbdif test-pancal test-mmucache clean-tier3
+
+# Control-store readback (the TRA CS / TRA 17 path SINTRAN's microcode-revision
+# test uses). Isolates the hardware half: RWCS command decode (PAL_44408B),
+# the ECSL read window (PAL_44305D), the CS transceiver slice select, and
+# writable-control-store storage/readback at defined addresses.
+SUPPORT_CS = ../../../Shared/support
+CPU_CS_RWCS_tb: CPU_CS_RWCS_tb.v $(CIRCUIT)/CPU_CS_TCV_20.v $(CIRCUIT)/CPU_CS_WCS_21_22.v $(SUPPORT_CS)/IDT6168A_20.v $(PAL)/PAL_44305D.v $(PAL)/PAL_44408B.v
+	$(IVERILOG) -g2012 -o $@ $^
+
+test-cs-rwcs: CPU_CS_RWCS_tb
+	./CPU_CS_RWCS_tb | tee cs_rwcs_out.log
+	@grep -q "TB_RESULT: PASS" cs_rwcs_out.log
+
+# Same readback path, but over a WHOLE RWCS microcycle driven by the real
+# cycle state machine (PAL_44601B) and clock PAL (PAL_44307C). Pins the
+# deadline the static bench above cannot see: the addressed control-store
+# word must still be on the IDB at the TERM edge, because ALUCLK - the only
+# clock that writes the A register - fires there and nothing latches the
+# word in between.
+CPU_CS_RWCS_CYCLE_tb: CPU_CS_RWCS_CYCLE_tb.v $(CIRCUIT)/CPU_CS_16.v \
+                      $(CIRCUIT)/CPU_CS_ACAL_17.v $(CIRCUIT)/CPU_CS_CTL_18.v \
+                      $(CIRCUIT)/CPU_CS_PROM_19.v $(CIRCUIT)/CPU_CS_TCV_20.v \
+                      $(CIRCUIT)/CPU_CS_WCS_21_22.v $(SUPPORT_CS)/IDT6168A_20.v \
+                      $(SUPPORT_CS)/TTL_74139.v \
+                      $(PAL)/PAL_44305D.v $(PAL)/PAL_44307C.v $(PAL)/PAL_44601B.v
+	$(IVERILOG) -g2012 -o $@ $^
+
+test-cs-rwcs-cycle: CPU_CS_RWCS_CYCLE_tb
+	./CPU_CS_RWCS_CYCLE_tb | tee cs_rwcs_cycle_out.log
+	@grep -q "TB_RESULT: PASS" cs_rwcs_cycle_out.log
+
+
+# ---------------------------------------------------------------------------
+# Sheet 20 CS transceivers: the 74PCT373 capture on ECSL~'s falling edge.
+# This capture was MISSING and was the root cause of TRA CS returning 000000.
+# Checks 4 and 5 in the tb change the source data under a closed latch, so a
+# pass-through implementation fails loudly. See CPU_CS_TCV_20.v.
+# ---------------------------------------------------------------------------
+CPU_CS_TCV_20_tb: CPU_CS_TCV_20_tb.v $(CIRCUIT)/CPU_CS_TCV_20.v
+	$(IVERILOG) -g2012 -o $@ $^
+
+test-cs-tcv: CPU_CS_TCV_20_tb
+	./CPU_CS_TCV_20_tb | tee cs_tcv_out.log
+	@grep -q "TB_RESULT: PASS" cs_tcv_out.log
+
+# ---------------------------------------------------------------------------
+# Microcycle timeline observatory + golden gate.
+#
+# Walks one microcycle of each kind (NORMAL/SHORT/SLOW/FETCH/FORM/TRAP/RWCS/
+# LCS/BRK) through the real PAL_44601B + PAL_44307C + PAL_44305D and prints
+# every derived clock and strobe per cycle state. Answers "when does <strobe>
+# fire in a <kind> cycle" in a second instead of a full-machine boot.
+#
+# The timeline is diffed against CPU_CYCLE_TIMELINE.golden, so a clock
+# refactor or an edited PAL cannot silently move an edge. If the diff is
+# expected, regenerate with `make golden-cycle-timeline` - deliberately, after
+# justifying the change against the drawings, never to turn a red test green.
+# ---------------------------------------------------------------------------
+CPU_CYCLE_TIMELINE_tb: CPU_CYCLE_TIMELINE_tb.v \
+                       $(PAL)/PAL_44305D.v $(PAL)/PAL_44307C.v $(PAL)/PAL_44601B.v
+	$(IVERILOG) -g2012 -o $@ $^
+
+test-cycle-timeline: CPU_CYCLE_TIMELINE_tb
+	@./CPU_CYCLE_TIMELINE_tb > cycle_timeline_out.log 2>&1 || true
+	@cat cycle_timeline_out.log
+	@grep -v '^TB_RESULT:' cycle_timeline_out.log > cycle_timeline_out.trace
+	@if ! diff -u CPU_CYCLE_TIMELINE.golden cycle_timeline_out.trace > cycle_timeline.diff; then \
+	    echo ""; \
+	    echo "TIMELINE CHANGED - a microcycle edge moved. Diff:"; \
+	    cat cycle_timeline.diff; \
+	    echo ""; \
+	    echo "TB_RESULT: FAIL timeline differs from CPU_CYCLE_TIMELINE.golden"; \
+	    exit 1; \
+	fi
+	@grep -q "TB_RESULT: PASS" cycle_timeline_out.log
+	@echo "TB_RESULT: PASS (timeline matches golden)"
+
+golden-cycle-timeline: CPU_CYCLE_TIMELINE_tb
+	@./CPU_CYCLE_TIMELINE_tb 2>&1 | grep -v '^TB_RESULT:' > CPU_CYCLE_TIMELINE.golden
+	@echo "regenerated CPU_CYCLE_TIMELINE.golden - review the diff before committing"

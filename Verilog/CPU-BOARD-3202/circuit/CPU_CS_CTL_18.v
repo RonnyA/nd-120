@@ -88,7 +88,27 @@ module CPU_CS_CTL_18 (
   /*******************************************************************************
    ** Here all normal components are defined                                     **
    *******************************************************************************/
-  assign s_ecsd_n        = s_lcs_n & s_ewca_n;
+  // ECSD enables the 74139 that produces EW_3_0_n - the word select telling the
+  // CS transceiver WHICH 16-bit slice of the 64-bit control-store word faces the
+  // IDB. It must be active for the whole data window in BOTH directions.
+  //
+  // 07-AUG-2026: ECSL was missing from this enable, and that is why TRA CS
+  // (150017) returned 0 - SINTRAN's microcode-revision test
+  // (PH-P2-RESTART.NPL: X:=100 ; *150017 ; IF A<<13 -> "Micro-code not loaded.
+  // CPU revision too low !!"). Measured in the waveform: during the ACS
+  // routine's RWCS word the addressed CS word DID reach the IDB (142001, the
+  // low slice of WCS word 0), but only for a single sample - EWCA drops as the
+  // cycle enters CC3, EW went to 17 (no slice selected) and the data vanished
+  // before the CGA captured it, while ECSL was still holding the read window
+  // open ("ECSL HOLD IN g AND h", PAL_44305D). Adding ECSL_n here keeps the
+  // slice selected for exactly the window the read is defined over.
+  //
+  // This can not create a spurious drive: CPU_CS_TCV_20 only puts data on the
+  // IDB when ECSL_n is low AND WCS_n is high (read), and only writes CSBITS
+  // when WCS_n is low - and ECSL itself requires WCS_n high, so the write
+  // direction is untouched. Fails identically in latch and FF mode, so this is
+  // an original transcription gap, not a clock-enable artifact.
+  assign s_ecsd_n        = s_lcs_n & s_ewca_n & s_ecsl_n;
 
   // Simplified logic for WU_3_0_n, a NOR chip with negated inputs is in reality an AND chip
   assign s_wu_3_0_n[0]   = s_ww_3_0_n[0] & s_wica_n;

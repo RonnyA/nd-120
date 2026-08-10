@@ -9,6 +9,8 @@
 ***************************************************************************/
 
 module CPU_CS_TCV_20 (
+    input        sysclk,     //! FPGA system clock - clocks the sheet-20 CS capture FF
+    input        sys_rst_n,  //! synchronous reset for that FF
     input [63:0] CSBITS,  //! 64 bits CSBITS (input when reading from CSBITS to IDB OUT)
     output [63:0] CSBITS_OUT,     //! 64 bits CSBITS (output when IDB IN writes a 16 bit part to the CSBITS)
 
@@ -94,9 +96,58 @@ module CPU_CS_TCV_20 (
 
 
 
-  // ECSL_n decides if the data should be enabled out (on the IDB bus and the CSBITS output bus)
+  /*****************************************************************************
+   ** THE CS OUTPUT CAPTURE (sheet 20, chips 8C and 9C)                        **
+   **                                                                          **
+   ** The drawing puts TWO 74PCT373 octal latches between the word-select       **
+   ** '245s above and the IDB: 9C carries IDB15..IDB8, 8C carries IDB7..IDB0.   **
+   ** On BOTH chips the SAME net - ECSL~ - drives pin 11 (C, latch enable) AND  **
+   ** pin 1 (/OC, output control). That is the whole point:                     **
+   **                                                                          **
+   **   ECSL~ = 1 : C high  -> latch transparent, BUT /OC high -> outputs are   **
+   **               tri-stated, so the tracking is not observable anywhere.     **
+   **   ECSL~ = 0 : C low   -> latch HOLDS, and /OC low -> outputs drive IDB.   **
+   **                                                                          **
+   ** Because the transparent window never drives the bus, the only behaviour   **
+   ** anything can see is: CAPTURE ON THE FALLING EDGE OF ECSL~, then hold that **
+   ** value on the IDB for as long as ECSL~ stays low. That is an EDGE-         **
+   ** TRIGGERED FLIP-FLOP, not a latch - so this is modelled with a plain       **
+   ** posedge-sysclk edge detect. No transparent latch, nothing inferred.       **
+   ** (Same reasoning as the AM29C821 conversion: a control signal used as a    **
+   ** clock becomes an EDGE-DETECT, never a level.)                             **
+   **                                                                          **
+   ** WHY IT MATTERS (root cause of TRA CS returning 000000, 08-AUG-2026):      **
+   ** this capture was missing entirely - ECSL_n was an unused input port and   **
+   ** the read path was a straight combinational mux. During an RWCS microcycle **
+   ** PAL_44305D asserts ECSL at cycle state 0101 while EWCA is still on, so    **
+   ** LUA still holds the ADCS-latched control-store address and the correct    **
+   ** word is on the '245 outputs - that edge is the capture. EWCA then drops   **
+   ** at state 1100, MA and LUA move to the microaddress to be EXECUTED (which  **
+   ** is what PAL_44307C's MCLK comment describes), the control store re-reads, **
+   ** and without this flip-flop the word simply vanished. ECSL stays asserted  **
+   ** through to TERM - PAL_44305D's own comments call the two terms "READ      **
+   ** CONTROL STORE HOLD" and "HOLD OVERLAP WITH EWCA" - so the captured word   **
+   ** is still on the IDB when ALUCLK writes the A register at TERM.            **
+   *****************************************************************************/
+
+  reg [15:0] r_cs_capture;
+  reg        r_ecsl_n_d;
+
+  always @(posedge sysclk) begin
+    if (!sys_rst_n) begin
+      r_cs_capture <= 16'b0;
+      r_ecsl_n_d   <= 1'b1;
+    end else begin
+      r_ecsl_n_d <= ECSL_n;
+      // falling edge of ECSL~ = the 373s closing = the capture instant
+      if (r_ecsl_n_d && !ECSL_n) r_cs_capture <= regIDB_out[15:0];
+    end
+  end
+
+  // ECSL_n decides if the data should be enabled out (on the IDB bus and the CSBITS output bus).
+  // Inside the FPGA a disabled "3-state" driver must drive 0, never z.
   //assign IDB_15_0_OUT = (ECSL_n & !WCS_n) ? 16'b0 : regIDB[15:0];
-  assign IDB_15_0_OUT = (ECSL_n | !WCS_n) ? 16'b0 : regIDB_out[15:0];
+  assign IDB_15_0_OUT = (ECSL_n | !WCS_n) ? 16'b0 : r_cs_capture;
 
   //assign CSBITS_OUT[63:0] = (ECSL_n & WCS_n) ? 64'b0 : regCSBITS[63:0];
   //assign CSBITS_OUT[63:0] = (WCS_n) ? 64'b0 : regCSBITS[63:0];
