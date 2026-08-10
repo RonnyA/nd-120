@@ -33,6 +33,16 @@ REG_NAME = {
 }
 
 
+# Probe-mode tags (9, B, F) COLLIDE with ordinary register writes: in the
+# default IOX trace a top nibble of 9 is WRITE +1 (memory address), B is
+# WRITE +3 (block address) and F is WRITE +7 (WORD COUNT). Only one trace
+# mode is compiled into a build, so the stream cannot say which it is - the
+# reader must. Default to IOX, because that is the mode that matters and
+# because decoding a word-count write as an "engine state" hid the cause of
+# a SINTRAN boot failure for one whole capture (10-AUG-2026).
+PROBE_TAGS = False
+
+
 def decode_capture(path):
     """Every 5-hex-digit line in the file, oldest first.
 
@@ -68,13 +78,13 @@ def decode_capture(path):
             out.append(("IRQ", None, val & 1))
         elif top == 0x8:
             out.append(("IDENT", None, val))
-        elif top == 0xF:
+        elif top == 0xF and PROBE_TAGS:
             # Engine state change. Like tag 9 this MUST be tested before the
             # `top & 0x8` write branch, which would decode it as WRITE +7.
             out.append(("ESTATE", None, val))
-        elif top == 0xB:
+        elif top == 0xB and PROBE_TAGS:
             out.append(("PIL", None, val & 0xF))
-        elif top == 0x9:
+        elif top == 0x9 and PROBE_TAGS:
             # Unanswered IDENT cycle. Must be tested BEFORE the `top & 0x8`
             # write branch below, which would otherwise decode it as a
             # nonexistent WRITE +1.
@@ -128,8 +138,12 @@ def fmt(rec):
 
 
 def main():
+    global PROBE_TAGS
     if len(sys.argv) < 2:
         sys.exit(__doc__)
+    if "--probe" in sys.argv:
+        PROBE_TAGS = True
+        sys.argv.remove("--probe")
     cap = decode_capture(sys.argv[1])
     if not cap:
         sys.exit("no 5-hex-digit trace lines found in %s" % sys.argv[1])
