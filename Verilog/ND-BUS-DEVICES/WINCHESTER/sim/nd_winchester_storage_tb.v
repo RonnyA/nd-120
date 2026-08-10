@@ -116,6 +116,10 @@ module nd_winchester_storage_tb;
   wire [15:0] dma_wdata;
   reg         dma_ack = 1'b0;
   integer     dma_writes = 0;
+  integer     dma_reads  = 0;
+
+  // Read side of the same memory (see the .dma_rdata note at the DUT).
+  wire [15:0] dma_rdata_w = dmamem[dma_addr[15:0]];
 
   always @(posedge sysclk) begin
     dma_ack <= 1'b0;
@@ -124,6 +128,8 @@ module nd_winchester_storage_tb;
       if (dma_wr) begin
         dmamem[dma_addr[15:0]] <= dma_wdata;
         dma_writes = dma_writes + 1;
+      end else begin
+        dma_reads = dma_reads + 1;
       end
     end
   end
@@ -159,7 +165,11 @@ module nd_winchester_storage_tb;
       .dma_wr         (dma_wr),
       .dma_addr       (dma_addr),
       .dma_wdata      (dma_wdata),
-      .dma_rdata      (16'hA5A5),
+      // Served from the DMA memory, not a constant. A WRITE makes the
+      // controller READ host memory, so a tied constant makes every write
+      // test meaningless - it would store the same word everywhere and a
+      // byte-order or address-stepping fault would look perfect.
+      .dma_rdata      (dma_rdata_w),
       .dma_ack        (dma_ack),
       .dma_err        (1'b0),
       .dma_busy       (1'b0),
@@ -454,6 +464,20 @@ module nd_winchester_storage_tb;
     end
   endtask
 
+  // M1 = WRITE. Op is control-word bits 13:11 (ND_WINCHESTER.v:198-205), so
+  // M1 is (1 << 11) = 004000 octal, plus the activate bit 2.
+  task do_write(input [15:0] blkaddr, input [15:0] memaddr,
+                input [15:0] wc, input [255:0] what);
+    begin
+      iox_write(16'o503, blkaddr);      // block address
+      iox_write(16'o501, 16'd0);        // memory address, HI first
+      iox_write(16'o501, memaddr);      // memory address, LO second
+      iox_write(16'o507, wc);           // word count
+      iox_write(16'o505, 16'o004004);   // activate, M1 = write, no interrupt
+      wait_finished(what);
+    end
+  endtask
+
   // Every DMA'd word must be the file's bytes. Byte 2w of the block is the
   // HIGH half of client word w (the packing the whole stack uses).
   task check_words(input [15:0] base, input integer fbyte0, input integer nwords,
@@ -670,6 +694,158 @@ module nd_winchester_storage_tb;
       errors = errors + 1;
     end
     check_words(16'o30000, 4096, 1024, "blk2 via CHS 0/0/4");
+
+    // ---- 5. MULTI-BLOCK read: 2048 words = TWO storage blocks ----------
+    // Everything above this point transfers exactly 1024 words - ONE block -
+    // and so did every silicon run that has ever been called working. A
+    // segment is many blocks, and SINTRAN's segment handling is the first
+    // thing on this machine to ask for more than one block in a single
+    // command: on 10-AUG-2026 the disc booted, ran, and then failed with
+    // "DISC TRANSFER ERROR IN SEGMENT HANDLING". A multi-block transfer
+    // drives the adapter's chunking (s_seg/s_idx/s_wc walking the window
+    // across several storage blocks) which a 1024-word command never enters.
+    for (i = 0; i < 2048; i = i + 1) dmamem[16'o40000 + i] = 16'hFFFF;
+    dma_writes = 0;
+    do_transfer(16'd0, 16'o40000, 16'd2048, "multiblock read 2048w");
+    if (st[4] || st[9] || st[10] || st[11] || st[8]) begin
+      $display("FAIL: 2048-word read reported errors, status %06o", st);
+      errors = errors + 1;
+    end
+    if (dma_writes !== 2048) begin
+      $display("FAIL: 2048-word read moved %0d DMA words, want 2048",
+               dma_writes);
+      errors = errors + 1;
+    end
+    check_words(16'o40000, 0, 2048, "multiblock read 2048w");
+
+    // ---- 6. MULTI-BLOCK read: 4096 words = FOUR storage blocks ---------
+    // Two blocks can pass with an off-by-one that only bites on the third.
+    for (i = 0; i < 4096; i = i + 1) dmamem[16'o50000 + i] = 16'hFFFF;
+    dma_writes = 0;
+    do_transfer(16'd0, 16'o50000, 16'd4096, "multiblock read 4096w");
+    if (st[4]) begin
+      $display("FAIL: 4096-word read reported error, status %06o", st);
+      errors = errors + 1;
+    end
+    if (dma_writes !== 4096) begin
+      $display("FAIL: 4096-word read moved %0d DMA words, want 4096",
+               dma_writes);
+      errors = errors + 1;
+    end
+    check_words(16'o50000, 0, 4096, "multiblock read 4096w");
+
+    // ---- 7. MULTI-BLOCK read NOT starting at block 0 -------------------
+    // blkaddr counts 1024-byte units (case 4: blkaddr 4 = byte 4096), so
+    // blkaddr 4 with 2048 words spans bytes 4096..8191 - two blocks, both
+    // past the first, so the chain walk must be right for BOTH.
+    for (i = 0; i < 2048; i = i + 1) dmamem[16'o60000 + i] = 16'hFFFF;
+    dma_writes = 0;
+    do_transfer(16'd4, 16'o60000, 16'd2048, "multiblock read from blk2");
+    if (st[4]) begin
+      $display("FAIL: offset multiblock read error, status %06o", st);
+      errors = errors + 1;
+    end
+    check_words(16'o60000, 4096, 2048, "multiblock read from blk2");
+
+    // ---- 8. MULTI-BLOCK WRITE, then read it back -----------------------
+    // The other half of segment handling: it is the swapper, so it WRITES.
+    // Nothing in this tree has ever driven the Winchester write path from a
+    // guest command - the adapter accepts only whole aligned 1024-word
+    // blocks, and that rule has never met a real driver. Writes go to bytes
+    // 8192..12287 (blkaddr 8, two blocks), which is inside the 16384-byte
+    // image. Writes land at blkaddr 4 = bytes 4096..8191, inside cylinder 0
+    // head 0, and the read cases above have already verified that span BEFORE
+    // it is overwritten.
+    // ADDRESSING, because getting this wrong looks exactly like an RTL bug:
+    // the block-address register is CHS-PACKED, not a linear block number.
+    // ND_WINCHESTER.v:213-214 splits it as [15:5] cylinder, [4:0] sector,
+    // and the head comes from the control word. With GEO_SPT = 9 the only
+    // valid sectors are 0..8, so blkaddr 12 is sector 12 on a 9-sector track
+    // and the card correctly answers ADDRESS MISMATCH (status bit 8) with no
+    // transfer. LBA = (cyl*HEADS + head)*SPT + sector, and one sector here is
+    // 1024 BYTES, so inside cylinder 0 head 0 the addressable span is
+    // blkaddr 0..8 = bytes 0..9215. Every write below stays inside it; going
+    // past sector 8 needs a head change, which these cases deliberately do
+    // not exercise.
+    //
+    // 8a first: ONE block. If a single-block write already fails then the
+    // fault is the write path itself, not the chunking, and the multi-block
+    // result below would be a misleading place to start looking.
+    for (i = 0; i < 1024; i = i + 1)
+      dmamem[16'o64000 + i] = 16'hA000 | i[13:0];
+    dma_writes = 0;
+    dma_reads  = 0;
+    do_write(16'd4, 16'o64000, 16'd1024, "single-block write 1024w");
+    if (st[4]) begin
+      $display("FAIL: 1024-word write reported error, status %06o", st);
+      errors = errors + 1;
+    end
+    // Split the write into its two halves so the failure names itself:
+    // host memory -> the controller's own s_buffer (the DMA read side), then
+    // s_buffer -> the adapter -> staging -> card. Printing the controller
+    // buffer after the command says which half lost the payload.
+    // Split the write into its two halves so a future failure names itself:
+    // host memory -> the controller's own s_buffer (the DMA side), and then
+    // s_buffer -> adapter -> staging -> card. When buf_rdata_w was missing the
+    // Winchester slice, THIS check passed and the read-back below failed,
+    // which is what located the fault to the second half in one run.
+    for (i = 0; i < 4; i = i + 1) begin
+      if (dut.s_buffer[i] !== (16'hA000 | i[13:0])) begin
+        $display("FAIL: DMA half: controller s_buffer[%0d] = %06o, want %06o",
+                 i, dut.s_buffer[i], (16'hA000 | i[13:0]));
+        errors = errors + 1;
+      end
+    end
+    if (dma_reads !== 1024) begin
+      $display("FAIL: 1024-word write fetched %0d DMA words, want 1024",
+               dma_reads);
+      errors = errors + 1;
+    end
+    for (i = 0; i < 1024; i = i + 1) dmamem[16'o66000 + i] = 16'hFFFF;
+    do_transfer(16'd4, 16'o66000, 16'd1024, "read back 1-block write");
+    for (i = 0; i < 1024; i = i + 1) begin
+      if (dmamem[16'o66000 + i] !== (16'hA000 | i[13:0])) begin
+        if (errors < 4)
+          $display("FAIL: 1-BLOCK write read-back word %0d: got %06o want %06o",
+                   i, dmamem[16'o66000 + i], (16'hA000 | i[13:0]));
+        errors = errors + 1;
+      end
+    end
+
+    for (i = 0; i < 2048; i = i + 1)
+      dmamem[16'o70000 + i] = 16'hC000 | i[13:0];   // position-dependent
+    dma_writes = 0;
+    dma_reads  = 0;
+    do_write(16'd4, 16'o70000, 16'd2048, "multiblock write 2048w");
+    if (st[4] || st[9] || st[10] || st[11] || st[8]) begin
+      $display("FAIL: 2048-word write reported errors, status %06o", st);
+      errors = errors + 1;
+    end
+    if (dma_reads !== 2048) begin
+      $display("FAIL: write fetched %0d DMA words from memory, want 2048",
+               dma_reads);
+      errors = errors + 1;
+    end
+
+    // read it back into fresh, poisoned memory and compare with what was
+    // written - NOT with the image pattern, which those blocks no longer hold
+    for (i = 0; i < 2048; i = i + 1) dmamem[16'o100000 + i] = 16'hFFFF;
+    dma_writes = 0;
+    do_transfer(16'd4, 16'o100000, 16'd2048, "read back written blocks");
+    if (st[4]) begin
+      $display("FAIL: read-back reported error, status %06o", st);
+      errors = errors + 1;
+    end
+    for (i = 0; i < 2048; i = i + 1) begin
+      if (dmamem[16'o100000 + i] !== (16'hC000 | i[13:0])) begin
+        if (errors < 12)
+          $display("FAIL: read-back word %0d: got %06o want %06o", i,
+                   dmamem[16'o100000 + i], (16'hC000 | i[13:0]));
+        errors = errors + 1;
+      end
+    end
+    if (errors == 0)
+      $display("[ ok ] multi-block read and write, 1-4 blocks per command");
 
     $display("");
     if (errors == 0) $display("TB_RESULT: PASS");

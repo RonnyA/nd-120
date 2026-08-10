@@ -194,7 +194,23 @@ module nd_tape_sdfat_source #(
   assign req_w      = {{(N-7){1'b0}}, w_req,      2'b00, m_req,      1'b0, f_req,       a_req};
   assign wr_w       = {{(N-7){1'b0}}, w_wr,       2'b00, m_wr,       1'b0, f_wr,        a_wr};
   assign block_w    = {{((N-7)*16){1'b0}}, w_block, {2*16{1'b0}}, m_block,     16'd0, f_block,     a_block};
-  assign buf_rdata_w= {{((N-4)*16){1'b0}}, m_buf_rdata, 16'd0, f_buf_rdata, a_buf_rdata};
+  // w_buf_rdata BELONGS HERE, at client 6, exactly like block_w above.
+  // It was missing until 10-AUG-2026: this bus still had the older (N-4) form
+  // from before the Winchester client existed, so clients 4..7 were tied to
+  // zero and the Winchester's buffer read data never reached the engine. The
+  // four buses either side of this line were all updated when the WD client
+  // was added; this one was not.
+  //
+  // Only WRITES are affected, which is why it survived so long. A read moves
+  // data the other way, on buf_wdata/buf_we, and reads were the only thing
+  // ever exercised. A write silently staged 16'd0 for every word: the DMA
+  // fetched the payload from host memory correctly, the controller's own
+  // s_buffer held it correctly, and zeros went to the card - with no error
+  // raised anywhere, because no module could tell anything was wrong.
+  // Symptom on silicon: SINTRAN boots off the disc and then dies with
+  // "DISC TRANSFER ERROR IN SEGMENT HANDLING" the moment the swapper writes.
+  assign buf_rdata_w= {{((N-7)*16){1'b0}}, w_buf_rdata, {2*16{1'b0}},
+                       m_buf_rdata, 16'd0, f_buf_rdata, a_buf_rdata};
 
   assign a_open_ok    = open_ok_w[0];
   assign a_open_err   = open_err_w[0];
