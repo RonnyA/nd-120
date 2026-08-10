@@ -20,7 +20,7 @@
 ** Storage seam: the core exposes the byte/disk SOURCE ports and knows   **
 ** nothing of SD-FAT or of the C harness. The board supplies the         **
 ** implementation (sim: forwarded to ND120_TOP ports, served by the C    **
-** model; hardware: nd_storage / nd_tape_sdfat_source).                  **
+** model; hardware: nd_storage / nd_storage_devices).                  **
 **                                                                       **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
@@ -169,6 +169,7 @@ module ND120_CORE #(
     output wire [10:0] FDISK_WORDCOUNT,
     input  wire        FDISK_DONE,
     input  wire        FDISK_ERR,
+    input  wire [ 3:0] FDISK_ERR_CODE,
     //! media format from the image size (deviceFloppyDMA.c READ FORMAT):
     //! {doubleDensity, doubleSided, bytesPerSector[1:0]}
     input  wire [3:0]  FDISK_MEDIA_FMT,
@@ -187,13 +188,14 @@ module ND120_CORE #(
     output wire [10:0] SDISK_WORDCOUNT,
     input  wire        SDISK_DONE,
     input  wire        SDISK_ERR,
+    input  wire [ 3:0] SDISK_ERR_CODE,
     input  wire [9:0]  SDBUF_ADDR,
     input  wire [15:0] SDBUF_WDATA,
     input  wire        SDBUF_WE,
     output wire [15:0] SDBUF_RDATA,
 
     // Winchester disk backend (INCLUDE_WD). Same port shape as the SMD one:
-    // the card reuses nd_storage_smd_adapter with Winchester geometry, since
+    // the card reuses nd_storage_disc_adapter with Winchester geometry, since
     // that adapter has nothing SMD-specific in it (see the adapter header and
     // ND-BUS-DEVICES/WINCHESTER/sim/nd_winchester_adapter_tb.v).
     output wire        WDISK_START,
@@ -205,6 +207,7 @@ module ND120_CORE #(
     output wire [10:0] WDISK_WORDCOUNT,
     input  wire        WDISK_DONE,
     input  wire        WDISK_ERR,
+    input  wire [ 3:0] WDISK_ERR_CODE,
     input  wire [9:0]  WDBUF_ADDR,
     input  wire [15:0] WDBUF_WDATA,
     input  wire        WDBUF_WE,
@@ -220,7 +223,7 @@ module ND120_CORE #(
     output wire [13:0] LA_23_10,   //! MAC upper address (XLA 23:10)
     output wire [9:0]  CA_9_0,     //! MAC lower address (XCA 9:0)
     output wire [4:0]  DEBUG_CC_TERM,    //! {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
-    output wire        DEBUG_MCLK,       //! Memory clock
+    output wire        DEBUG_MCLK,       //! Microcycle clock
     output wire        DEBUG_LCS_n,      //! 0 = loading microcode, 1 = loaded
     output wire        DEBUG_FETCH,
     output wire        DEBUG_MR_n,       //! Master Reset
@@ -257,7 +260,7 @@ module ND120_CORE #(
 `ifdef ND_STORAGE_PORT
     /***************************************************
      *  (c) STORAGE seam into the SDRAM device port     *
-     *  The board's storage stack (nd_tape_sdfat_source)*
+     *  The board's storage stack (nd_storage_devices)*
      *  reaches MEM_RAM_49_SDRAM's upper-half region     *
      *  through here. The backend forces the leading     *
      *  address 1, so device traffic physically cannot   *
@@ -278,6 +281,15 @@ module ND120_CORE #(
     output wire        mem_busy,
     output wire        mem_done
 `endif
+`endif
+`ifdef TANG_WD_TRACE_DUMP
+    ,
+    // Winchester IOX trace tap, brought out for the board-level capture and
+    // UART dump. Present ONLY under TANG_WD_TRACE_DUMP - the normal build
+    // never carries it.
+    output wire [19:0] wd_trace_rec,
+    output wire        wd_trace_we,
+    output wire        wd_trace_done
 `endif
 );
 
@@ -351,7 +363,30 @@ module ND120_CORE #(
   // the real rotational figure and leaves a wide margin over that check at
   // every clock variant (54,000 cycles at 6.75 MHz, 216,000 at 27 MHz).
   localparam integer SMD_DELAY_MS    = 8;
+  // The delay is a WALL-CLOCK time, so the CYCLE count it becomes depends on
+  // DEV_CLK_HZ: 216,000 cycles on the Tang (27 MHz) but 800,000 in Verilator,
+  // which falls back to 100 MHz. The CPU executes per CYCLE, so the sim gives
+  // a spinning driver 3.7x MORE instructions before the card completes - and
+  // DISC-TEMA's wait for the seek is a software loop with a bounded count.
+  // ND120_DEV_DELAY_TICKS overrides the cycle count directly so a sim run can
+  // be made cycle-identical to silicon. Overriding is a DIAGNOSTIC lever, not
+  // a fix: it changes what the drive models, so leave it undefined unless a
+  // specific experiment needs it.
+`ifdef ND120_DEV_DELAY_TICKS
+  localparam [31:0]  SMD_DELAY_TICKS = `ND120_DEV_DELAY_TICKS;
+`else
   localparam [31:0]  SMD_DELAY_TICKS = (DEV_CLK_HZ / 1000) * SMD_DELAY_MS;
+`endif
+
+  // TESTED AND EXONERATED 05-AUG-2026, confirmed 06-AUG: the completion
+  // latency was never the cause of DISC-TEMA's "Memory address Register not
+  // as expected". The real fault was the CPU zeroing the A register at the
+  // end of every IOX WRITE (the CDLBD 74646's bidirectional LBD pin was
+  // transcribed as separate in/out nets, so the DSTB_n-rise capture read a
+  // dead bus and the microcode's unconditional A := DBR loaded 0). Fixed
+  // 06-AUG-2026 in CPU-BOARD-3202/circuit/BIF_DPATH_9.v (one OR-term restores
+  // the pin node); verified clean on silicon and in simulation.
+
 
   // Bus-slave contributions onto the CPU's bus inputs (active low)
   wire [23:0] s_dev_bd_n;
@@ -543,6 +578,7 @@ module ND120_CORE #(
           .disk_wordcount(FDISK_WORDCOUNT),
           .disk_done(FDISK_DONE),
           .disk_err_in(FDISK_ERR),
+          .disk_err_code(FDISK_ERR_CODE),
           .disk_media_fmt(FDISK_MEDIA_FMT),
           .dbuf_addr(FDBUF_ADDR),
           .dbuf_wdata(FDBUF_WDATA),
@@ -652,6 +688,7 @@ module ND120_CORE #(
           .disk_wordcount(SDISK_WORDCOUNT),
           .disk_done(SDISK_DONE),
           .disk_err_in(SDISK_ERR),
+          .disk_err_code(SDISK_ERR_CODE),
           .dbuf_addr(SDBUF_ADDR),
           .dbuf_wdata(SDBUF_WDATA),
           .dbuf_we(SDBUF_WE),
@@ -743,6 +780,15 @@ module ND120_CORE #(
           .iox_rd(s_dev_iox_rd),
           .iox_rdata(s_wd_rdata),
           .iox_sel(s_wd_sel),
+`ifdef TANG_WD_TRACE_DUMP
+          .trace_rec(wd_trace_rec),
+          .trace_we(wd_trace_we),
+          .trace_done(wd_trace_done),
+`else
+          .trace_rec(),
+          .trace_we(),
+          .trace_done(),
+`endif
           .int_pending(s_wd_intp),
           .ident_strobe(s_dev_ident_strobe),
           .ident_level(s_dev_ident_level),
@@ -767,6 +813,7 @@ module ND120_CORE #(
           .disk_wordcount(WDISK_WORDCOUNT),
           .disk_done(WDISK_DONE),
           .disk_err_in(WDISK_ERR),
+          .disk_err_code(WDISK_ERR_CODE),
           .dbuf_addr(WDBUF_ADDR),
           .dbuf_wdata(WDBUF_WDATA),
           .dbuf_we(WDBUF_WE),
@@ -800,6 +847,11 @@ module ND120_CORE #(
     end else begin : gen_no_wd
       assign s_wd_rdata      = 16'd0;
       assign s_wd_sel        = 1'b0;
+`ifdef TANG_WD_TRACE_DUMP
+      assign wd_trace_rec    = 20'd0;
+      assign wd_trace_we     = 1'b0;
+      assign wd_trace_done   = 1'b0;
+`endif
       assign s_wd_intp       = 4'd0;
       assign s_wd_hit        = 1'b0;
       assign s_wd_code       = 16'd0;
@@ -1001,7 +1053,7 @@ module ND120_CORE #(
       .CSA_12_0   (CSA_12_0),       // Microcode Address (for debugging)
       .LED        (LED[6:0]),       // 7 bit LED signals
       .DEBUG_CC_TERM(DEBUG_CC_TERM), // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
-      .DEBUG_MCLK(DEBUG_MCLK),       // Memory clock
+      .DEBUG_MCLK(DEBUG_MCLK),       // Microcycle clock
       .DEBUG_LCS_n(DEBUG_LCS_n),     // LCS_n: 0=loading, 1=loaded
       .DEBUG_FETCH(DEBUG_FETCH),
       .DEBUG_MR_n(DEBUG_MR_n),

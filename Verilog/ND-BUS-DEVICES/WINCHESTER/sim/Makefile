@@ -26,14 +26,14 @@ include $(VERILOG_ROOT)/mk/iverilog.mk
 IOX_SRCS = ../circuit/ND_WINCHESTER.v \
            nd_winchester_iox_tb.v
 
-# test-wd-adapter: the Winchester BINDING of nd_storage_smd_adapter. There is
+# test-wd-adapter: the Winchester BINDING of nd_storage_disc_adapter. There is
 #   no nd_storage_wd_adapter.v: that adapter has nothing SMD-specific in it -
 #   its CHS->LBA is driven by GEO_HEADS/GEO_SPT and its one hard assumption
 #   (1024-byte sectors) holds for this card too. This bench proves the reuse
 #   with Winchester geometry, and closes a real hole: the adapter's own bench
 #   instantiates it twice and both times at the DEFAULT geometry, so the
 #   parameterisation was never exercised.
-AD_SRCS  = ../../../SD-FAT/circuit/nd_storage_smd_adapter.v \
+AD_SRCS  = ../../../SD-FAT/circuit/nd_storage_disc_adapter.v \
            nd_winchester_adapter_tb.v
 
 # test-wd-oracle: replay of the nd100x C model's own IOX trace for the
@@ -58,7 +58,7 @@ BUS_SRCS = ../circuit/ND_WINCHESTER.v \
            ../../BUS-IF/circuit/ND_BUS_SLAVE.v \
            nd_winchester_bus_tb.v
 
-# test-wd-storage: the WHOLE chain - ND_WINCHESTER -> nd_storage_smd_adapter
+# test-wd-storage: the WHOLE chain - ND_WINCHESTER -> nd_storage_disc_adapter
 #   (client 6, Winchester geometry) -> nd_storage (mount + engine + Phase-4
 #   cache) -> the behavioral SD card serving the real FAT16 image. Every
 #   other Winchester bench fakes the backend, so the path from "the guest set
@@ -68,7 +68,7 @@ BUS_SRCS = ../circuit/ND_WINCHESTER.v \
 #   card image from ../../../SD-FAT/sim (make_storage_image.sh), which
 #   carries WD0.IMG.
 STOR_SRCS = ../circuit/ND_WINCHESTER.v \
-            ../../TAPE-400/circuit/nd_tape_sdfat_source.v \
+            ../../../SD-FAT/circuit/nd_storage_devices.v \
             ../../../SD-FAT/circuit/nds_sync.v \
             ../../../SD-FAT/circuit/nd_storage_engine.v \
             ../../../SD-FAT/circuit/nd_storage_mount.v \
@@ -77,7 +77,7 @@ STOR_SRCS = ../circuit/ND_WINCHESTER.v \
             ../../../SD-FAT/circuit/nd_storage.v \
             ../../../SD-FAT/circuit/nd_storage_tape_adapter.v \
             ../../../SD-FAT/circuit/nd_storage_floppy_adapter.v \
-            ../../../SD-FAT/circuit/nd_storage_smd_adapter.v \
+            ../../../SD-FAT/circuit/nd_storage_disc_adapter.v \
             ../../../SD-FAT/circuit/sd_file_reader.v \
             ../../../SD-FAT/circuit/sd_writer.v \
             ../../../SD-FAT/sim/nds_mem_model.v \

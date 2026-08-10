@@ -6,7 +6,7 @@
 **                                                                          **
 **  CLIENT BUS SLICE CONTINUITY.                                            **
 **                                                                          **
-**  nd_tape_sdfat_source.v hands nd_storage its per-client ports as FLAT    **
+**  nd_storage_devices.v hands nd_storage its per-client ports as FLAT    **
 **  concatenations, one 16-bit (or 1-bit, or 10-bit) slice per client:      **
 **                                                                          **
 **    assign buf_rdata_w = {{((N-7)*16){1'b0}}, w_buf_rdata, {2*16{1'b0}},  **
@@ -37,7 +37,7 @@
 **  WHAT THIS CHECKS, AND WHY IT NEEDS NO TRANSFER                          **
 **                                                                          **
 **  For the two disc clients the adapter passes the device buffer straight  **
-**  through combinationally (nd_storage_smd_adapter.v: assign c_buf_rdata = **
+**  through combinationally (nd_storage_disc_adapter.v: assign c_buf_rdata = **
 **  dbuf_rdata). So driving the wrapper's SDBUF_RDATA / WDBUF_RDATA inputs  **
 **  with distinct values and reading the corresponding slice of the flat    **
 **  bus proves the slice is wired - with no card, no mount, no clocking and **
@@ -62,7 +62,7 @@
 
 module nd_storage_clientbus_tb;
 
-  localparam integer N = 8;   // nd_tape_sdfat_source's client count
+  localparam integer N = 8;   // nd_storage_devices's client count
 
   // Distinct, non-zero, and not equal to each other or to any plausible
   // stuck value - so a slice wired to the WRONG client fails too, not just
@@ -85,7 +85,7 @@ module nd_storage_clientbus_tb;
 
   // The wrapper with EVERY client enabled - that is the point: the flat
   // buses only carry all their slices in this configuration.
-  nd_tape_sdfat_source #(
+  nd_storage_devices #(
       .SIMULATE      (1),
       .INCLUDE_TAPE  (1),
       .INCLUDE_FLOPPY(1),

@@ -70,7 +70,7 @@ STACK_SRCS = ../circuit/nds_sync.v \
 
 MOUNT_SRCS = $(STACK_SRCS) nd_storage_tb.v
 
-# Client bus slice continuity. Needs the WRAPPER (nd_tape_sdfat_source) and
+# Client bus slice continuity. Needs the WRAPPER (nd_storage_devices) and
 # every adapter, because the flat per-client concatenations that this checks
 # live in the wrapper, NOT in nd_storage - a bench on nd_storage alone cannot
 # see a dropped slice.
@@ -82,10 +82,10 @@ CLIENTBUS_SRCS = ../circuit/nds_sync.v \
                  ../circuit/nd_storage.v \
                  ../circuit/nd_storage_tape_adapter.v \
                  ../circuit/nd_storage_floppy_adapter.v \
-                 ../circuit/nd_storage_smd_adapter.v \
+                 ../circuit/nd_storage_disc_adapter.v \
                  ../circuit/sd_file_reader.v \
                  ../circuit/sd_writer.v \
-                 ../../ND-BUS-DEVICES/TAPE-400/circuit/nd_tape_sdfat_source.v \
+                 ../circuit/nd_storage_devices.v \
                  nd_storage_clientbus_tb.v
 
 ERRORS_SRCS = $(STACK_SRCS) nd_storage_errors_tb.v
@@ -321,7 +321,7 @@ test-nds-floppy: nd_storage_floppy_adapter_tb.vvp nds_storage.img
 
 # ---------------------------------------------------------------------------
 # test-nds-smd - ND_SMD disk-image block adapter (zero-BSRAM stream-through):
-#   tier A: nd_storage_smd_adapter against a SCRIPTED client-port stub and
+#   tier A: nd_storage_disc_adapter against a SCRIPTED client-port stub and
 #           a scripted disk-port driver replaying ND_SMD's backend
 #           handshake (boot-shape start+req, continuation chunks,
 #           block-spanning reads, aligned full-block writes incl. the
@@ -334,14 +334,14 @@ test-nds-floppy: nd_storage_floppy_adapter_tb.vvp nds_storage.img
 #           the disk port, refusal silence, whole-card shadow compare)
 # ---------------------------------------------------------------------------
 SMD_ADAPTER_SRCS = $(STACK_SRCS) \
-                   ../circuit/nd_storage_smd_adapter.v \
-                   nd_storage_smd_adapter_tb.v
+                   ../circuit/nd_storage_disc_adapter.v \
+                   nd_storage_disc_adapter_tb.v
 
-nd_storage_smd_adapter_tb.vvp: $(SMD_ADAPTER_SRCS)
+nd_storage_disc_adapter_tb.vvp: $(SMD_ADAPTER_SRCS)
 	$(IVERILOG) -g2005 -I../circuit -o $@ $(SMD_ADAPTER_SRCS)
 
-test-nds-smd: nd_storage_smd_adapter_tb.vvp nds_storage.img
-	$(VVP) nd_storage_smd_adapter_tb.vvp | tee nds_smd_out.log
+test-nds-smd: nd_storage_disc_adapter_tb.vvp nds_storage.img
+	$(VVP) nd_storage_disc_adapter_tb.vvp | tee nds_smd_out.log
 	@grep -q "TB_RESULT: PASS" nds_smd_out.log
 
 .PHONY: test-nds-smd

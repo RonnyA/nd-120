@@ -69,7 +69,10 @@ module nd_smd_iox_tb;
   wire [10:0] disk_wordcount;
   wire [15:0] dbuf_rdata;
 
-  ND_SMD dut (
+  // HAS_WC_FLIPFLOP(1): this conformance matrix exercises the 15 MHz two-write
+  // HI/LO load + LO/HI readback, so it pins the flip-flop card (the module
+  // default is now the single-write ECC card that boots).
+  ND_SMD #(.HAS_WC_FLIPFLOP(1)) dut (
       .sysclk        (sysclk),
       .sys_rst_n     (sys_rst_n),
       .iox_addr      (iox_addr),

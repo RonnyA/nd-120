@@ -86,7 +86,10 @@ module nd_smd_p2_tb;
   wire [15:0] dbuf_rdata;
   wire        ident_grant_out;
 
-  ND_SMD u_smd (
+  // HAS_WC_FLIPFLOP(1): this tb is specifically about the 15 MHz read
+  // flip-flops (mar_ff/wcr_ff toggle), so it pins the flip-flop card (the
+  // module default is now the single-write ECC card that boots).
+  ND_SMD #(.HAS_WC_FLIPFLOP(1)) u_smd (
       .sysclk        (sysclk),
       .sys_rst_n     (sys_rst_n),
       .iox_addr      (iox_addr),

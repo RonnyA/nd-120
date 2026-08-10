@@ -533,7 +533,7 @@ module ND_WINCHESTER #(
   // WHERE THE REASON CODE COMES FROM: nd_storage_engine.v tags the failure
   // at the point it happens (card timeout, CMD17/CMD24 failure, no mount,
   // block past end of file, broken FAT chain, engine watchdog), the code
-  // travels engine -> nd_storage -> nd_storage_smd_adapter (the Winchester
+  // travels engine -> nd_storage -> nd_storage_disc_adapter (the Winchester
   // reuses it at ST506 geometry) -> disk_err_code here.
   //
   // FULL MAPPING - all nine codes of nd_storage_status.vh:

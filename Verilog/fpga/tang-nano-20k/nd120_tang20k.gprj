@@ -272,18 +272,19 @@
         <File path="src/gowin_rpll_27_54.v" type="file.verilog" enable="1"/>
         <File path="../../ND-BUS-DEVICES/BUS-IF/circuit/ND_BUS_SLAVE.v" type="file.verilog" enable="1"/>
         <File path="../../ND-BUS-DEVICES/TAPE-400/circuit/ND_TAPE_400.v" type="file.verilog" enable="1"/>
-        <File path="../../ND-BUS-DEVICES/TAPE-400/circuit/nd_tape_sdfat_source.v" type="file.verilog" enable="1"/>
+        <File path="../../SD-FAT/circuit/nd_storage_devices.v" type="file.verilog" enable="1"/>
         <File path="../../ND-BUS-DEVICES/FLOPPY-DMA/circuit/ND_FLOPPY_DMA.v" type="file.verilog" enable="1"/>
         <File path="../../ND-BUS-DEVICES/SMD/circuit/ND_SMD.v" type="file.verilog" enable="1"/>
         <File path="../../ND-BUS-DEVICES/WINCHESTER/circuit/ND_WINCHESTER.v" type="file.verilog" enable="1"/>
         <File path="../../ND-BUS-DEVICES/DMA/circuit/ND_DMA_MASTER.v" type="file.verilog" enable="1"/>
         <File path="../../SD-FAT/circuit/nd_storage_floppy_adapter.v" type="file.verilog" enable="1"/>
-        <File path="../../SD-FAT/circuit/nd_storage_smd_adapter.v" type="file.verilog" enable="1"/>
+        <File path="../../SD-FAT/circuit/nd_storage_disc_adapter.v" type="file.verilog" enable="1"/>
         <File path="../../SD-FAT/circuit/nds_sync.v" type="file.verilog" enable="1"/>
         <File path="../../SD-FAT/circuit/sd_file_reader.v" type="file.verilog" enable="1"/>
         <File path="../../SD-FAT/circuit/sd_writer.v" type="file.verilog" enable="1"/>
         <File path="../../SD-FAT/circuit/nd_storage_fatchk.v" type="file.verilog" enable="1"/>
         <File path="../../SD-FAT/circuit/nd_storage_mount.v" type="file.verilog" enable="1"/>
+        <File path="../../SD-FAT/circuit/nd_storage_cache.v" type="file.verilog" enable="1"/>
         <File path="../../SD-FAT/circuit/nd_storage_engine.v" type="file.verilog" enable="1"/>
         <File path="../../SD-FAT/circuit/nd_storage_tape_adapter.v" type="file.verilog" enable="1"/>
         <File path="../../SD-FAT/circuit/nd_storage.v" type="file.verilog" enable="1"/>

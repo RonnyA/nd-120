@@ -351,7 +351,7 @@ module ND120_TANG20K_TOP (
   //
   // WHY, 09-AUG-2026. The silicon zero-read is now narrowed to exactly two
   // components: the c_buf_we -> dbuf_we forwarding window inside
-  // nd_storage_smd_adapter (S_CWAIT / s_in_win), or the s_buffer BSRAM read
+  // nd_storage_disc_adapter (S_CWAIT / s_in_win), or the s_buffer BSRAM read
   // inside ND_WINCHESTER. Both pass in simulation, so only a probe on real
   // hardware can separate them, and black-box A/B has been exhausted:
   // the fault is independent of the file (BOOT.TAP reads fine through the
@@ -441,7 +441,7 @@ module ND120_TANG20K_TOP (
   // buffer's own write enable. THE LAST UNMEASURED SIGNAL in the read chain.
   // Everything either side is now proven on silicon: the region reads back
   // real file text (10-AUG-2026), and the adapter forwards words that are
-  // zero. If this is non-zero, the loss is inside nd_storage_smd_adapter -
+  // zero. If this is non-zero, the loss is inside nd_storage_disc_adapter -
   // which is the Winchester's adapter and NOT the tape's, matching a fault
   // that follows the client. If this is zero, the loss is in the engine's
   // clk_cpu client front-end between the bridge and the buffer.
@@ -816,7 +816,7 @@ module ND120_TANG20K_TOP (
 `endif
 
   // Phase 2 of the ND120_CORE extraction (14-JUL-2026): the core now carries
-  // the ND-BUS tape device (INCLUDE_TAPE=1) and nd_tape_sdfat_source hangs off
+  // the ND-BUS tape device (INCLUDE_TAPE=1) and nd_storage_devices hangs off
   // the TAPE_BYTE_* seam, so '400$' at the console boots BOOT.BPUN off the real
   // SD card - the same RTL proven in the runSim harness against a simulated
   // card. Floppy and SMD stay out until their phases (they need the sync-read
@@ -887,7 +887,7 @@ module ND120_TANG20K_TOP (
   // small, keep it alongside the floppy. What stays dropped in a floppy build
   // is LONG-FILENAME parsing (SDFAT_NO_LFN, ~1800 LUT), which is why the
   // tape's boot file on the Tang is the 8.3 name BOOT.TAP, not BOOT.BPUN -
-  // see the BOOT_NAME override at the nd_tape_sdfat_source instantiation.
+  // see the BOOT_NAME override at the nd_storage_devices instantiation.
 `ifdef TANG_FLOPPY
   localparam TANG_INC_TAPE   = 1;
   localparam TANG_INC_FLOPPY = 1;
@@ -921,7 +921,7 @@ module ND120_TANG20K_TOP (
   localparam TANG_INC_WD     = 0;
 `endif
 
-  nd_tape_sdfat_source #(
+  nd_storage_devices #(
       .SIMULATE(0),                     // real card: full-length SD init
       .INCLUDE_TAPE(TANG_INC_TAPE),
       .INCLUDE_FLOPPY(TANG_INC_FLOPPY),
@@ -1110,7 +1110,7 @@ module ND120_TANG20K_TOP (
 
   // Floppy seam (1560&) is WIRED to the SD-FAT stack (FLOPPY1.IMG via the
   // nd_storage floppy adapter inside TAPE_SDFAT_SOURCE). The SMD seam (1540&)
-  // is wired the same way (SMD0.IMG via nd_storage_smd_adapter, client 3)
+  // is wired the same way (SMD0.IMG via nd_storage_disc_adapter, client 3)
   // when TANG_SMD is defined; otherwise the source ties it idle and the core
   // leaves the device out.
   wire [15:0] DMA_RDATA;

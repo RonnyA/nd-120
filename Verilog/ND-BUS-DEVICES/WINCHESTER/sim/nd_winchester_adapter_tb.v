@@ -1,10 +1,10 @@
 `include "nd_storage_status.vh"
 /**************************************************************************
-** TESTBENCH: the Winchester binding of nd_storage_smd_adapter             **
+** TESTBENCH: the Winchester binding of nd_storage_disc_adapter             **
 **                                                                       **
 ** WHY THERE IS NO nd_storage_wd_adapter.v                                **
 **                                                                       **
-** The Winchester needs no adapter of its own. nd_storage_smd_adapter.v   **
+** The Winchester needs no adapter of its own. nd_storage_disc_adapter.v   **
 ** contains nothing SMD-specific: its CHS->LBA is driven entirely by the  **
 ** GEO_HEADS / GEO_SPT parameters, and its one hard assumption - a        **
 ** 1024-byte sector, i.e. 512 words, hence the "<< 9" - is equally true   **
@@ -17,7 +17,7 @@
 ** which lands inside the b15-8 / b7-0 fields the adapter reads.          **
 **                                                                       **
 ** That reuse is a CLAIM, and this bench is what makes it a fact. It also **
-** closes a real hole: nd_storage_smd_adapter_tb.v instantiates the       **
+** closes a real hole: nd_storage_disc_adapter_tb.v instantiates the       **
 ** adapter twice and both times at the DEFAULT geometry, so the GEO_*     **
 ** parameterisation was never exercised by anything before this.          **
 **                                                                       **
@@ -84,7 +84,7 @@ module nd_winchester_adapter_tb;
   reg         c_buf_we = 1'b0;
   wire [15:0] c_buf_rdata;
 
-  nd_storage_smd_adapter #(
+  nd_storage_disc_adapter #(
       .UNIT(3'd0),
       .GEO_HEADS(WD_HEADS),
       .GEO_SPT  (WD_SPT)
@@ -129,7 +129,7 @@ module nd_winchester_adapter_tb;
   reg  [15:0] ref_blk1 = 16'd0, ref_blk2 = 16'd0;
   wire [31:0] ref_lba;
 
-  nd_storage_smd_adapter #(
+  nd_storage_disc_adapter #(
       .UNIT(3'd0)          // default geometry: 5 heads, 18 sectors/track
   ) ref_smd (
       .clk_cpu(clk_cpu), .rst_n(rst_n),
@@ -235,7 +235,7 @@ module nd_winchester_adapter_tb;
   integer i;
 
   initial begin
-    $display("=== Winchester binding of nd_storage_smd_adapter ===");
+    $display("=== Winchester binding of nd_storage_disc_adapter ===");
     repeat (4) @(negedge clk_cpu);
     rst_n = 1'b1;
     repeat (2) @(negedge clk_cpu);

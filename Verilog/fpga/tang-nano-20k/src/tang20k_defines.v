@@ -38,7 +38,7 @@
 // a start/busy/done port in its own stor_clk domain that reads/writes whole
 // 32-bit locations at {1'b1, mem_addr} - the upper-half storage region ONLY,
 // the leading 1 is forced inside MEM_RAM_49_SDRAM so device traffic physically
-// cannot reach the CPU's memory. This is what nd_tape_sdfat_source uses to
+// cannot reach the CPU's memory. This is what nd_storage_devices uses to
 // stage BOOT.BPUN off the SD card for the '400$' tape boot.
 // Threaded ND120_TANG20K_TOP -> ND120_CORE -> ND3202D -> MEM_43 -> the backend.
 // tb: sdram-bridge/sim test-storage-port.
@@ -63,7 +63,7 @@
 
 // TANG_SMD = ADD the ND_SMD disk controller at 1540 (boot '1540&') on top of
 // the selected base build: ND_SMD + its own ND_DMA_MASTER in the core, and
-// nd_storage_smd_adapter serving SMD0.IMG off the SD card (nd_storage client
+// nd_storage_disc_adapter serving SMD0.IMG off the SD card (nd_storage client
 // 3, slot remapped to 1376 blocks -> image limit 2,818,048 bytes). Costs ONE
 // BSRAM (the controller's 1024x16 buffer; the adapter is zero-BSRAM
 // stream-through) - that is the LAST free BSRAM block, 46/46 with it in.
@@ -74,7 +74,7 @@
 
 // TANG_WD = ADD the ND_WINCHESTER disc controller at 500 (ST506 card 3041)
 // instead of the SMD: ND_WINCHESTER + its own ND_DMA_MASTER in the core, and
-// nd_storage_smd_adapter (the SAME adapter, at Winchester geometry - it has
+// nd_storage_disc_adapter (the SAME adapter, at Winchester geometry - it has
 // nothing SMD-specific in it) serving WD0.IMG off the SD card, nd_storage
 // client 6. Images are WDn.IMG, never SMDn.IMG.
 //
@@ -185,18 +185,18 @@
 // through the Phase-4 cache. Diagnostic for the 09-AUG-2026 silicon
 // zero-read: the DIRECT tape client reads the same card correctly while the
 // CACHED Winchester client returns zeros with a clean status. See the long
-// note at the CACHE_MASK parameter in nd_tape_sdfat_source.v.
+// note at the CACHE_MASK parameter in nd_storage_devices.v.
 `define ND_STORAGE_DISCS_UNCACHED
 
 // ND_STORAGE_WD_BADNAME = control experiment: make the Winchester client
 // open a file that is NOT on the card, so the mount must fail. Proves
 // whether a clean status really means "the read happened". See the note at
-// FILE6_NAME in nd_tape_sdfat_source.v.
+// FILE6_NAME in nd_storage_devices.v.
 //`define ND_STORAGE_WD_BADNAME
 
 // ND_STORAGE_WD_USE_BOOTTAP = discriminator: serve the Winchester client the
 // SMALL BOOT.TAP instead of the 75 MB WD0.IMG, to separate a file-dependent
-// fault from a client-path fault. See nd_tape_sdfat_source.v.
+// fault from a client-path fault. See nd_storage_devices.v.
 // ON 10-AUG-2026, paired with ND_WD_TRACE_LBA to make the resolve DECIDABLE
 // without any ground truth about the card's layout. With this on, client 0
 // and client 6 open the SAME file, so the sectors they resolve MUST match.
@@ -321,7 +321,7 @@
 //                             sd_file_reader.v (~1800 LUT+ALU); files matched
 //                             by 8.3 short name only. *** NOT ENABLED ***:
 //                             the tape client searches for "BOOT.BPUN"
-//                             (nd_tape_sdfat_source.v FILE0_NAME), whose 4-char
+//                             (nd_storage_devices.v FILE0_NAME), whose 4-char
 //                             ".BPUN" extension is NOT 8.3-representable - FAT
 //                             stores it as a mangled short name (BOOT~1.BPU)
 //                             plus a VFAT long entry, so the name is only

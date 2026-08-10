@@ -1,5 +1,5 @@
 /****************************************************************************
-** nd_tape_sdfat_source - board-agnostic BOOT.BPUN byte source for the     **
+** nd_storage_devices - board-agnostic BOOT.BPUN byte source for the     **
 ** ND_TAPE_400 paper-tape device, backed by the SD-FAT storage stack.      **
 **                                                                         **
 ** Packages, in one reusable block for BOTH the Verilator sim and the      **
@@ -30,7 +30,7 @@
 ** Ronny Hansen                                                            **
 *****************************************************************************/
 
-module nd_tape_sdfat_source #(
+module nd_storage_devices #(
     parameter SIMULATE       = 0,  // 1 = short SD init (Verilator), 0 = real card
     parameter INCLUDE_TAPE   = 1,  // 1 = serve BOOT.BPUN to ND_TAPE_400 (client 0)
     parameter INCLUDE_FLOPPY = 0,  // 1 = also serve FLOPPY1.IMG to the DMA floppy
@@ -80,7 +80,7 @@ module nd_tape_sdfat_source #(
 
     // ND_SMD disk-image backend seam (client 3 = SMD0.IMG). Present
     // regardless; driven only when INCLUDE_SMD=1, tied idle otherwise. Wired
-    // pin-for-pin to ND120_CORE's SDISK_*/SDBUF_* (nd_storage_smd_adapter).
+    // pin-for-pin to ND120_CORE's SDISK_*/SDBUF_* (nd_storage_disc_adapter).
     input  wire        SDISK_START,
     input  wire        SDISK_REQ,
     input  wire        SDISK_WR,
@@ -417,7 +417,7 @@ module nd_tape_sdfat_source #(
         else if (open_ok_w[3]) s_mopened <= 1'b1;
       wire s_mopen_pulse = !s_mopened;
 
-      nd_storage_smd_adapter #(.UNIT(3'd0)) u_smd_adapter (
+      nd_storage_disc_adapter #(.UNIT(3'd0)) u_smd_adapter (
           .clk_cpu       (clk_cpu),
           .rst_n         (rst_cpu_n),
           .disk_start    (SDISK_START),
@@ -468,7 +468,7 @@ module nd_tape_sdfat_source #(
   endgenerate
 
   // ---- the Winchester adapter (client 6 -> ND_WINCHESTER disk-image backend)
-  // The SAME nd_storage_smd_adapter, with Winchester geometry. That adapter
+  // The SAME nd_storage_disc_adapter, with Winchester geometry. That adapter
   // has nothing SMD-specific in it: its CHS->LBA is driven entirely by
   // GEO_HEADS/GEO_SPT and its one hard assumption - a 1024-byte sector - is
   // equally true of this card (ND-11.015.01 sec 2.1). Proven by
@@ -483,7 +483,7 @@ module nd_tape_sdfat_source #(
         else if (open_ok_w[6]) s_wopened <= 1'b1;
       wire s_wopen_pulse = !s_wopened;
 
-      nd_storage_smd_adapter #(
+      nd_storage_disc_adapter #(
           .UNIT     (3'd0),
           .GEO_HEADS(16'd8),   // Micropolis 1325 / DISC-74-1
           .GEO_SPT  (16'd9)

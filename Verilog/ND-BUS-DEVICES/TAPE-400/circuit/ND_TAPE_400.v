@@ -25,6 +25,33 @@
 ** instantly on activate; here RFT rises when byte_valid arrives, which  **
 ** the polling loader tolerates by design (it polls status bit 3).       **
 **                                                                       **
+** ==== WHY THIS CARD REPORTS NO STORAGE ERROR ==========================**
+** The other three ND storage controllers in this tree map an SD-FAT     **
+** failure reason (Verilog/SD-FAT/circuit/nd_storage_status.vh) onto a   **
+** status bit or error code their own manual defines:                    **
+**   ND_WINCHESTER  status +4 bits b6/b7/b8/b9  (ND-11.015.01 sec 3.5)   **
+**   ND_SMD         status bits b5/b6/b7/b8/b10 (ND-11.020.01 sec 2.5)   **
+**   ND_FLOPPY_DMA  Status Word 1 b9-14 error code, oct 16/20 and 5      **
+**                                (ND-11.021.01 sec 3.4/3.9)             **
+** THIS card has nowhere to put one. Its whole interface is the four     **
+** registers above: the status word (402) carries interrupt-enabled,     **
+** read-active and ready-for-transfer, and nothing else - there is no    **
+** error bit and no error code anywhere in the device. A real ND-100     **
+** paper tape reader physically cannot say "the medium is faulty"; it    **
+** simply never becomes ready. Adding a bit here would be inventing a    **
+** register the card does not have, which the rule in                    **
+** nd_storage_status.vh forbids.                                         **
+**                                                                       **
+** So the behaviour the guest sees is unchanged and correct: on any      **
+** storage failure the source stops answering byte_req, RFT stays low,   **
+** and the loader waits exactly as it would at the end of the tape.      **
+** The REASON is published one level down instead, on the sticky         **
+** diagnostic pair nd_storage_tape_adapter.fault / .fault_code, brought  **
+** out of nd_storage_devices as TDISK_FAULT / TDISK_ERR_CODE. No ND    **
+** logic reads those - they exist for a testbench, a probe or a board    **
+** LED. Without them "the SD card fell out" and "you reached the end of  **
+** the tape" are the same observation from every point in the design.    **
+**                                                                       **
 ** Last reviewed: 11-JUL-2026                                            **
 ** Ronny Hansen                                                          **
 ***************************************************************************/

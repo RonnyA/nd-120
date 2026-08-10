@@ -5,8 +5,12 @@
 #   file, M0/M1 transfers through ND_DMA_MASTER against the BCU+memory
 #   model, seek/on-cylinder, interrupt + IDENT 017
 
-IVERILOG = iverilog
-VVP      = vvp
+# Shared include paths (Verilog/mk/iverilog.mk). Provides $(ND_INC),
+# which covers SD-FAT/circuit - the controllers include
+# nd_storage_status.vh from there.
+VERILOG_ROOT = ../../..
+include $(VERILOG_ROOT)/mk/iverilog.mk
+
 
 SRCS = ../../BUS-IF/circuit/ND_BUS_SLAVE.v \
        ../../DMA/circuit/ND_DMA_MASTER.v \
@@ -49,35 +53,35 @@ all: test
 test: test-smd test-smd-iox test-smd-p2 test-smd-ecc test-smd-err
 
 nd_smd_tb.vvp: $(SRCS)
-	$(IVERILOG) -g2005 -o $@ $(SRCS)
+	$(IVERILOG) -g2005 $(ND_INC) -o $@ $(SRCS)
 
 test-smd: nd_smd_tb.vvp
 	$(VVP) nd_smd_tb.vvp | tee smd_out.log
 	@grep -q "TB_RESULT: PASS" smd_out.log
 
 nd_smd_iox_tb.vvp: $(IOX_SRCS)
-	$(IVERILOG) -g2005 -o $@ $(IOX_SRCS)
+	$(IVERILOG) -g2005 $(ND_INC) -o $@ $(IOX_SRCS)
 
 test-smd-iox: nd_smd_iox_tb.vvp
 	$(VVP) nd_smd_iox_tb.vvp | tee smd_iox_out.log
 	@grep -q "TB_RESULT: PASS" smd_iox_out.log
 
 nd_smd_p2_tb.vvp: $(P2_SRCS)
-	$(IVERILOG) -g2005 -o $@ $(P2_SRCS)
+	$(IVERILOG) -g2005 $(ND_INC) -o $@ $(P2_SRCS)
 
 test-smd-p2: nd_smd_p2_tb.vvp
 	$(VVP) nd_smd_p2_tb.vvp | tee smd_p2_out.log
 	@grep -q "TB_RESULT: PASS" smd_p2_out.log
 
 nd_smd_ecc_tb.vvp: $(ECC_SRCS)
-	$(IVERILOG) -g2005 -o $@ $(ECC_SRCS)
+	$(IVERILOG) -g2005 $(ND_INC) -o $@ $(ECC_SRCS)
 
 test-smd-ecc: nd_smd_ecc_tb.vvp
 	$(VVP) nd_smd_ecc_tb.vvp | tee smd_ecc_out.log
 	@grep -q "TB_RESULT: PASS" smd_ecc_out.log
 
 nd_smd_err_tb.vvp: $(ERR_SRCS)
-	$(IVERILOG) -g2005 -o $@ $(ERR_SRCS)
+	$(IVERILOG) -g2005 $(ND_INC) -o $@ $(ERR_SRCS)
 
 test-smd-err: nd_smd_err_tb.vvp
 	$(VVP) nd_smd_err_tb.vvp | tee smd_err_out.log

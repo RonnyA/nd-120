@@ -25,7 +25,7 @@
 ** WHAT IS EXERCISED                                                       **
 **                                                                         **
 ** The REAL chain, in the wiring the Tang build uses: ND_WINCHESTER ->     **
-** nd_tape_sdfat_source(INCLUDE_WD=1) -> nd_storage_smd_adapter (client 6, **
+** nd_storage_devices(INCLUDE_WD=1) -> nd_storage_disc_adapter (client 6, **
 ** Winchester geometry) -> nd_storage (mount + engine + Phase-4 cache) ->  **
 ** the behavioral SD card serving the real FAT16 image, with WD0.IMG on    **
 ** it. Client 6 is a CACHED client, so a cold block-0 read must MISS,      **
@@ -60,7 +60,7 @@
 
 module nd_winchester_storage_tb;
 
-  // Micropolis 1325 / DISC-74-1, the geometry nd_tape_sdfat_source binds.
+  // Micropolis 1325 / DISC-74-1, the geometry nd_storage_devices binds.
   localparam [15:0] WD_HEADS = 16'd8;
   localparam [15:0] WD_SPT   = 16'd9;
 
@@ -201,7 +201,7 @@ module nd_winchester_storage_tb;
   wire [19:0] mem_addr;
   wire [31:0] mem_wdata, mem_rdata;
 
-  nd_tape_sdfat_source #(
+  nd_storage_devices #(
       .SIMULATE      (1),
       .INCLUDE_TAPE  (0),
       .INCLUDE_FLOPPY(1),   // as the Tang build: floppy AND Winchester both mount
@@ -509,7 +509,7 @@ module nd_winchester_storage_tb;
     rst_n = 1;
     repeat (50) @(posedge sysclk);
 
-    // The mount runs on its own after reset (nd_tape_sdfat_source pulses the
+    // The mount runs on its own after reset (nd_storage_devices pulses the
     // open once the card reports OK). Give it the card init + scan before the
     // first command; the adapter refuses with an error if it has not opened,
     // so a too-short wait shows up as an error bit, never as silence.

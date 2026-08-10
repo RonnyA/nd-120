@@ -4,7 +4,7 @@
 **                                                                       **
 **   direct FDISK/FDBUF driver (stands in for ND_FLOPPY_DMA)             **
 **        |                                                              **
-**   nd_tape_sdfat_source #(.INCLUDE_FLOPPY(1))                          **
+**   nd_storage_devices #(.INCLUDE_FLOPPY(1))                          **
 **        |  -> nd_storage -> floppy adapter (client 1 = FLOPPY1.IMG)    **
 **        v                                                              **
 **   sd_card_model (nds_storage.img) + nds_mem_model (SDRAM staging)     **
@@ -36,6 +36,7 @@ module nd_floppy_dma_sdfat_tb;
   reg  [1:0]  disk_format = 0, disk_drive = 0;
   reg  [10:0] disk_wordcount = 0;
   wire        disk_done, disk_err;
+  wire [ 3:0] disk_err_code;   // WHY (SD-FAT/circuit/nd_storage_status.vh)
   wire [3:0]  disk_media_fmt;
   wire [9:0]  dbuf_addr;
   wire [15:0] dbuf_wdata;
@@ -56,7 +57,7 @@ module nd_floppy_dma_sdfat_tb;
   wire [31:0] stor_mem_wdata, stor_mem_rdata;
   wire [1:0]  sd_status;
 
-  nd_tape_sdfat_source #(
+  nd_storage_devices #(
       .SIMULATE(1),
       .INCLUDE_TAPE(0),      // floppy-only build: no tape (the Tang floppy config)
       .INCLUDE_FLOPPY(1)
@@ -79,6 +80,7 @@ module nd_floppy_dma_sdfat_tb;
       .FDISK_WORDCOUNT(disk_wordcount),
       .FDISK_DONE     (disk_done),
       .FDISK_ERR      (disk_err),
+      .FDISK_ERR_CODE (disk_err_code),
       .FDISK_MEDIA_FMT(disk_media_fmt),
       .FDBUF_ADDR     (dbuf_addr),
       .FDBUF_WDATA    (dbuf_wdata),

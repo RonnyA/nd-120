@@ -123,6 +123,7 @@ module ND120_TOP
     output wire [10:0] FDISK_WORDCOUNT,
     input  wire        FDISK_DONE,
     input  wire        FDISK_ERR,
+    input  wire [ 3:0] FDISK_ERR_CODE,
     // media format from the image size (deviceFloppyDMA.c READ FORMAT):
     // {doubleDensity, doubleSided, bytesPerSector[1:0]}; 4'b0000 = 8-inch
     // 315392-byte image, 4'b1111 = 5.25" 1.2MB image (drive default)
@@ -143,13 +144,14 @@ module ND120_TOP
     output wire [10:0] SDISK_WORDCOUNT,
     input  wire        SDISK_DONE,
     input  wire        SDISK_ERR,
+    input  wire [ 3:0] SDISK_ERR_CODE,
     input  wire [9:0]  SDBUF_ADDR,
     input  wire [15:0] SDBUF_WDATA,
     input  wire        SDBUF_WE,
     output wire [15:0] SDBUF_RDATA,
 
     // Winchester disk backend (ST506/8 inch at 500). Same shape as the SMD
-    // seam above; the card reuses nd_storage_smd_adapter with Winchester
+    // seam above; the card reuses nd_storage_disc_adapter with Winchester
     // geometry. Images are WDn.IMG, never SMDn.IMG.
     output wire        WDISK_START,
     output wire        WDISK_REQ,
@@ -160,6 +162,7 @@ module ND120_TOP
     output wire [10:0] WDISK_WORDCOUNT,
     input  wire        WDISK_DONE,
     input  wire        WDISK_ERR,
+    input  wire [ 3:0] WDISK_ERR_CODE,
     input  wire [9:0]  WDBUF_ADDR,
     input  wire [15:0] WDBUF_WDATA,
     input  wire        WDBUF_WE,
@@ -483,7 +486,7 @@ module ND120_TOP
   *
   *  SIM-ONLY. sd_card_model / nds_mem_model are testbench models and must
   *  never reach an FPGA build, hence the VERILATOR_SIM guard: on hardware
-  *  the byte source is nd_tape_sdfat_source on the BOARD, wired to a real
+  *  the byte source is nd_storage_devices on the BOARD, wired to a real
   *  card and to the SDRAM device port (see docs/PLAN-nd120-storage-phases.md).
   *
   *  The TAPE_BYTE_* ports stay in place either way so the C harness still
@@ -523,7 +526,7 @@ module ND120_TOP
   wire [1:0]  s_sd_status;
   /* verilator lint_on UNUSEDSIGNAL */
 
-  nd_tape_sdfat_source #(
+  nd_storage_devices #(
       .SIMULATE(1)  // short SD init in sim
   ) TAPE_SDFAT_SOURCE (
       .clk_stor  (s_stor_clk),
@@ -623,6 +626,7 @@ module ND120_TOP
   wire [10:0] FDISK_WORDCOUNT;
   wire        FDISK_DONE       = 1'b0;
   wire        FDISK_ERR        = 1'b0;
+  wire [ 3:0] FDISK_ERR_CODE   = 4'd0;
   wire [3:0]  FDISK_MEDIA_FMT  = 4'd0;
   wire [9:0]  FDBUF_ADDR       = 10'd0;
   wire [15:0] FDBUF_WDATA      = 16'd0;
@@ -638,6 +642,7 @@ module ND120_TOP
   wire [10:0] SDISK_WORDCOUNT;
   wire        SDISK_DONE  = 1'b0;
   wire        SDISK_ERR   = 1'b0;
+  wire [ 3:0] SDISK_ERR_CODE = 4'd0;
   wire [9:0]  SDBUF_ADDR  = 10'd0;
   wire [15:0] SDBUF_WDATA = 16'd0;
   wire        SDBUF_WE    = 1'b0;
@@ -652,6 +657,7 @@ module ND120_TOP
   wire [10:0] WDISK_WORDCOUNT;
   wire        WDISK_DONE  = 1'b0;
   wire        WDISK_ERR   = 1'b0;
+  wire [ 3:0] WDISK_ERR_CODE = 4'd0;
   wire [9:0]  WDBUF_ADDR  = 10'd0;
   wire [15:0] WDBUF_WDATA = 16'd0;
   wire        WDBUF_WE    = 1'b0;
@@ -729,6 +735,7 @@ module ND120_TOP
       .FDISK_WORDCOUNT(FDISK_WORDCOUNT),
       .FDISK_DONE(FDISK_DONE),
       .FDISK_ERR(FDISK_ERR),
+      .FDISK_ERR_CODE(FDISK_ERR_CODE),
       .FDISK_MEDIA_FMT(FDISK_MEDIA_FMT),
       .FDBUF_ADDR(FDBUF_ADDR),
       .FDBUF_WDATA(FDBUF_WDATA),
@@ -744,6 +751,7 @@ module ND120_TOP
       .SDISK_WORDCOUNT(SDISK_WORDCOUNT),
       .SDISK_DONE(SDISK_DONE),
       .SDISK_ERR(SDISK_ERR),
+      .SDISK_ERR_CODE(SDISK_ERR_CODE),
       .SDBUF_ADDR(SDBUF_ADDR),
       .SDBUF_WDATA(SDBUF_WDATA),
       .SDBUF_WE(SDBUF_WE),
@@ -757,6 +765,7 @@ module ND120_TOP
       .WDISK_WORDCOUNT(WDISK_WORDCOUNT),
       .WDISK_DONE(WDISK_DONE),
       .WDISK_ERR(WDISK_ERR),
+      .WDISK_ERR_CODE(WDISK_ERR_CODE),
       .WDBUF_ADDR(WDBUF_ADDR),
       .WDBUF_WDATA(WDBUF_WDATA),
       .WDBUF_WE(WDBUF_WE),

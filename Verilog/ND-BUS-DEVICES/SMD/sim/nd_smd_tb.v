@@ -107,6 +107,9 @@ module nd_smd_tb;
   wire [2:0]  disk_unit;
   wire [10:0] disk_wordcount;
   reg         disk_done = 0, disk_err_in = 0;
+  // WHY the backend failed (SD-FAT/circuit/nd_storage_status.vh); see the
+  // note in nd_floppy_dma_tb.v.
+  reg [3:0]   disk_err_code = 4'd0;
   reg  [9:0]  dbuf_addr = 0;
   reg  [15:0] dbuf_wdata = 0;
   reg         dbuf_we = 0;
@@ -130,6 +133,7 @@ module nd_smd_tb;
       .disk_blkaddr1(disk_blkaddr1), .disk_blkaddr2(disk_blkaddr2),
       .disk_unit(disk_unit), .disk_wordcount(disk_wordcount),
       .disk_done(disk_done), .disk_err_in(disk_err_in),
+      .disk_err_code(disk_err_code),
       .dbuf_addr(dbuf_addr), .dbuf_wdata(dbuf_wdata), .dbuf_we(dbuf_we),
       .dbuf_rdata(dbuf_rdata)
   );
@@ -218,7 +222,7 @@ module nd_smd_tb;
     disk_err_in <= 1'b0;
     dbuf_we     <= 1'b0;
     if (disk_start) begin
-      // CHS -> LBA -> words, the same sum as ND_SMD / nd_storage_smd_adapter
+      // CHS -> LBA -> words, the same sum as ND_SMD / nd_storage_disc_adapter
       // and process_verilog_smd(): 5 heads, 18 sectors/track, 512 words per
       // 1024-byte sector. head = blkaddr1[15:8], sector = blkaddr1[7:0].
       disk_pos = (((disk_blkaddr2 * 5) + ((disk_blkaddr1 >> 8) & 8'hFF)) * 18
