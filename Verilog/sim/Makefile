@@ -124,6 +124,40 @@ probe-floppy: nd120_probe.cpp
 	cd obj_dir_probe_floppy && make -f VND120_TOP.mk VND120_TOP
 	@echo "=== probe-floppy engine built: obj_dir_probe_floppy/VND120_TOP (mount ND120_FLOPPY_IMG) ==="
 
+# --- PROBE variant WITH the WINCHESTER disc (ST506/8 inch card at IOX 500) ----
+# ADDITIVE target, own Mdir - never clobbers probe / probe-floppy.
+#
+# WHY: the Winchester seam (WDISK_*/WDBUF_*) has been a port on ND120_TOP since
+# the card was written, but the card was never once built into a Verilator run
+# with the real CPU - WINCHESTER was missing from BUSDEV_COMPONENTS in BOTH
+# harnesses, and simDevices/NDBus.cpp had a server for the SMD seam and none for
+# this one, so WDISK_DONE sat tied low and no transfer could ever complete. The
+# card therefore went from iverilog unit benches straight to the Tang, where the
+# only instrument is a 128-entry IOX ring dumped over a UART.
+#
+#   * -DND120_VERILOG_DEVICES  -> the Verilog bus device chain (as probe-floppy)
+#   * -DND120_INCLUDE_WD       -> opts IOX 500-507 in. NOT default: 500 is the
+#                                 CDC cartridge disc's block, so the Winchester
+#                                 must only appear when asked for.
+#   * WINCHESTER/circuit on the include path so Verilator can find ND_WINCHESTER
+#
+# The disc image is chosen at RUN time by env ND120_WD_IMG (no default - without
+# it every operation reports an error, like a drive with no pack). Set
+# ND120_WD_TRACE=1 for a per-operation START/REQ log.
+#   make probe-wd            # FF mode default (USE_LATCHES=0)
+# EXTRA_WD_DEFINES: pass-through for one-off diagnostic defines, e.g.
+#   make probe-wd USE_LATCHES=0 EXTRA_WD_DEFINES=-DND120_DEV_DELAY_TICKS=216000
+# to make the disc completion delay cycle-identical to the Tang (27 MHz)
+# instead of the sim's 100 MHz fallback.
+EXTRA_WD_DEFINES ?=
+PROBE_WD_DEFINES = $(PROBE_FLOPPY_DEFINES) -DND120_INCLUDE_WD $(EXTRA_WD_DEFINES)
+PROBE_WD_DIRS    = $(PROBE_FLOPPY_DIRS) -I../ND-BUS-DEVICES/WINCHESTER/circuit
+
+probe-wd: nd120_probe.cpp
+	$(VERILATOR) --trace-fst --vpi -Wall --cc ../ND120_TOP.v $(SUPPRESS_FLAGS) $(PROBE_WD_DEFINES) --public-flat-rw $(PROBE_WD_DIRS) --exe $(PROBE_SOURCES) -CFLAGS "$(VERILATOR_DIRS) -I../../simDevices -DND120_VERILOG_DEVICES" --Mdir obj_dir_probe_wd
+	cd obj_dir_probe_wd && make -f VND120_TOP.mk VND120_TOP
+	@echo "=== probe-wd engine built: obj_dir_probe_wd/VND120_TOP (set ND120_WD_IMG) ==="
+
 # --- PROBE variant with the PORTABLE C FLOPPY CORE (real TPE-MON boot) --------
 # ADDITIVE target: mirrors runSim's `run-tpe` device config
 #   make compile VERILOG_TAPE=0 SD_STORAGE=0 DEVICECORE=1 DEVICECORE_FLOPPY=1
@@ -162,4 +196,4 @@ probe-floppycore: nd120_probe.cpp
 	cd obj_dir_probe_floppycore && make -f VND120_TOP.mk VND120_TOP
 	@echo "=== probe-floppycore engine built: obj_dir_probe_floppycore/VND120_TOP (set ND120_FLOPPYCORE_IMG) ==="
 
-.PHONY: all clean probe probe-floppy probe-floppycore compare compare_latch compare_ff
+.PHONY: all clean probe probe-floppy probe-wd probe-floppycore compare compare_latch compare_ff

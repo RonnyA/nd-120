@@ -132,6 +132,13 @@ static int DELAY_FRAMES = 16;
 static int HALF_DELAY_WAIT = 8;
 static int txData=0, txDataBit=0, txEnabled=0, txTicks=0, txOnes=0;
 static int rxData=0, rxDataBit=0, rxEnabled=0, rxTicks=0, rxOnes=0;
+// Pseudo-signals: the CPU's most-recently emitted output byte and a 1-tick
+// strobe on the tick it completes. Lets rules trigger per output character
+// (e.g. capture microcode state when a corrupted byte is emitted). The char
+// completes ~11*DELAY_FRAMES ticks AFTER the CPU wrote it, so pair TXSTROBE
+// with a deep pre-ring (set pre) to look back at the store/load that produced it.
+static int g_lastTxByte = 0;   // last fully-received output byte (0..255)
+static int g_txStrobe   = 0;   // 1 on the single tick that byte completes
 
 // ===========================================================================
 //  SIGNAL REGISTRY  (Stage 1 guaranteed floor)  +  VPI  (Stage 2 stretch)
@@ -171,6 +178,54 @@ static void buildRegistry()
     g_registry["XMIC_DBG_15_0"] = { 16, RD(XMIC_DBG_15_0),   "ND120_TOP.XMIC_DBG_15_0" };
     g_registry["XMIC"]        = { 16, RD(XMIC_DBG_15_0),     "ND120_TOP.XMIC_DBG_15_0" };
     g_registry["led"]         = { 6,  RD(led),               "ND120_TOP.led" };
+
+    // ---- Probe pseudo-signals: the CPU's emitted output byte + completion strobe.
+    // Not RTL members - read from the UART-decode globals. Trigger per output char.
+    g_registry["TXBYTE"]   = { 8, []() -> uint64_t { return (uint64_t)g_lastTxByte; }, "(probe)TXBYTE" };
+    g_registry["TXSTROBE"] = { 1, []() -> uint64_t { return (uint64_t)g_txStrobe;   }, "(probe)TXSTROBE" };
+
+    // ---- INTR group: interrupt-controller request/clear signals (IDENT-clear bug).
+    // Path CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.INTR[.CNTLR...]. Member names verified
+    // from the generated header. Decision tree: CLRQ[n] pulses but IREQ_N[n]==0
+    // (source still driving) -> H1; CLRQ high only while MCLK=1 & req survives -> H2;
+    // CLRQ never asserts on cmd-4 -> H3.
+    g_registry["INTR_lreq"]   = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRQ__DOT__s_lreq_15_0),
+                                  "INTR.CNTLR.IRQ.s_lreq_15_0" };
+    g_registry["INTR_ireq_n"] = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_ireq_15_0_n),
+                                  "INTR.s_ireq_15_0_n" };
+    g_registry["INTR_clrq"]   = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRQ__DOT__s_clrq_15_0),
+                                  "INTR.CNTLR.IRQ.s_clrq_15_0" };
+    g_registry["INTR_mireq_n"]= { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__IRQ__DOT__s_mireq_15_0_n_out),
+                                  "INTR.CNTLR.IRQ.s_mireq_15_0_n_out" };
+    g_registry["INTR_empid_n"]= { 1,  RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_empid_n),
+                                  "INTR.s_empid_n" };
+    g_registry["INTR_fidbo"]  = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_fidbo_15_0),
+                                  "INTR.s_fidbo_15_0" };
+    g_registry["INTR_laa"]    = { 4,  RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__regLAA_3_0),
+                                  "INTR.regLAA_3_0" };
+    g_registry["INTR_hik"]    = { 1,  RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__CLR_CLEAR_CONTROL__DOT__s_hik),
+                                  "INTR.CNTLR.CLR.s_hik" };
+    g_registry["INTR_lok"]    = { 1,  RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__CLR_CLEAR_CONTROL__DOT__s_lok),
+                                  "INTR.CNTLR.CLR.s_lok" };
+    g_registry["INTR_j"]      = { 1,  RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__CNTLR__DOT__CLR_CLEAR_CONTROL__DOT__s_j),
+                                  "INTR.CNTLR.CLR.s_j" };
+    g_registry["INTR_mclk"]   = { 1,  RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__INTR__DOT__s_mclk),
+                                  "INTR.s_mclk" };
+
+    // ---- IOC / RTC group: the level-13 (BINT13) source. s_bint13_n =
+    // ~(s_ioc_3 & s_ioc_0) (IO_REG_41). s_ioc_3=clock-int-generated (RTC trap),
+    // s_ioc_0=enable-lvl13. SIOC_n = IOC-register write strobe. s_rtc/s_rtc_cnt =
+    // the (sim-shortened, 8192/2048-cycle) free-running RTC tick + counter.
+    g_registry["IOC_0"]   = { 1,  RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__REG_MODULE__DOT__s_ioc_0),
+                              "IO.REG_MODULE.s_ioc_0" };
+    g_registry["IOC_3"]   = { 1,  RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__REG_MODULE__DOT__s_ioc_3),
+                              "IO.REG_MODULE.s_ioc_3" };
+    g_registry["SIOC_n"]  = { 1,  RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__REG_MODULE__DOT__SIOC_n),
+                              "IO.REG_MODULE.SIOC_n" };
+    g_registry["RTC"]     = { 1,  RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__POW__DOT__s_rtc),
+                              "IO.DCD.DGA.POW.s_rtc" };
+    g_registry["RTC_CNT"] = { 32, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__POW__DOT__s_rtc_cnt),
+                              "IO.DCD.DGA.POW.s_rtc_cnt" };
 
     // ---- MMU group: CONFIRMED-present root members (seen in the root header) ----
     // Path fact (verified): CORE.CPU_BOARD.CPU.MMU  (extra CPU level vs the spec).
@@ -212,6 +267,68 @@ static void buildRegistry()
     g_registry["BLOCKL"]   = { 1, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__ERROR__DOT__PAL_45009_UERROR__DOT__BLOCKL_reg),
                                "ND120_TOP.CORE.CPU_BOARD.MEM.ERROR.PAL_45009_UERROR.BLOCKL" };
 
+    // ---- MEM READ-PATH group (banner word-2 all-ones read bug, 2026-07-24) ----
+    // Distinguish "wrong/unmapped address" from "bad data at the right address".
+    // Members exist because the probe builds with --public-flat-rw. MEMRD_ADDR is
+    // the un-multiplexed local-bus address MEM sees ([19:0] used); MEMRD_DATA is
+    // the 16-bit fetched word MEM returns; RAM_IDX/RAM_Q are the sim-RAM read index
+    // and its 18-bit read register (word = {RAM_Q[16:9], RAM_Q[7:0]}). All-ones
+    // (0177777) on MEMRD_DATA at a mapped address = a real read fault.
+    g_registry["MEMRD_ADDR"] = { 24, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__s_lbd_23_0_in),
+                                 "ND120_TOP.CORE.CPU_BOARD.MEM.s_lbd_23_0_in" };
+    g_registry["MEMRD_DATA"] = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__s_lbd_15_0_out),
+                                 "ND120_TOP.CORE.CPU_BOARD.MEM.s_lbd_15_0_out" };
+    g_registry["RAM_IDX"]    = { 20, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__idx0),
+                                 "ND120_TOP.CORE.CPU_BOARD.MEM.RAM.idx0" };
+    g_registry["RAM_Q"]      = { 18, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__q0),
+                                 "ND120_TOP.CORE.CPU_BOARD.MEM.RAM.q0" };
+
+    // ---- OUTPUT-PATH group (banner word-2 0x5255->0x7F7F datapath bug, 2026-07-24)
+    // Trace where a correctly-fetched word turns into 0x7F on the way to the UART:
+    // CD16 (fetched word into CGA) -> AREG/TREG (WRF regs) -> FIDBO (CPU IDB out) ->
+    // CPUIDB (board CPU IDB) -> IOIDB8 (byte lane into IO/UART) -> THR (UART transmit
+    // holding reg = the transmitted byte). Members exist under --public-flat-rw.
+    g_registry["CD16"]   = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_cd_15_0),
+                             "ND120_TOP.CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.s_cd_15_0" };
+    g_registry["AREG"]   = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__A_REG_5__DOT__regFF),
+                             "ND120_TOP...WRF.RBLOCK.A_REG_5.regFF" };
+    g_registry["TREG"]   = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__T_REG_6__DOT__regFF),
+                             "ND120_TOP...WRF.RBLOCK.T_REG_6.regFF" };
+    g_registry["FIDBO"]  = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_FIDBO_15_0),
+                             "ND120_TOP.CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.s_FIDBO_15_0" };
+    g_registry["CPUIDB"] = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_cpu_idb_15_0_out),
+                             "ND120_TOP.CORE.CPU_BOARD.s_cpu_idb_15_0_out" };
+    g_registry["IOIDB8"] = { 8,  RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__s_idb_7_0_in),
+                             "ND120_TOP.CORE.CPU_BOARD.IO.s_idb_7_0_in" };
+    g_registry["THR"]    = { 8,  RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regTransmitHoldingRegister),
+                             "ND120_TOP.CORE.CPU_BOARD.IO.UART.CHIP_32H.regTransmitHoldingRegister" };
+    // UART write cycle: THR <= UART_DIN when UART_CE_n==0 && UART_WR==1 && UART_ADDR==0.
+    g_registry["UART_DIN"]  = { 8, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__s_data_in),
+                                "ND120_TOP.CORE.CPU_BOARD.IO.UART.CHIP_32H.s_data_in" };
+    g_registry["UART_ADDR"] = { 2, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__s_address),
+                                "ND120_TOP.CORE.CPU_BOARD.IO.UART.CHIP_32H.s_address" };
+    g_registry["UART_CE_n"] = { 1, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__s_ce_n),
+                                "ND120_TOP.CORE.CPU_BOARD.IO.UART.CHIP_32H.s_ce_n" };
+    g_registry["UART_WR"]   = { 1, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__s_read_n),
+                                "ND120_TOP.CORE.CPU_BOARD.IO.UART.CHIP_32H.s_read_n" };
+    // WRF register-file read-back wires (P,D,B,L,A,T,X) - find which holds 0xFFFF
+    // for the word-2 char in the verifier's banner print. (2026-07-24)
+    g_registry["RP"] = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg2_p_15_0), "WRF.RBLOCK.s_reg2_p_15_0" };
+    g_registry["RD"] = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg1_d_15_0), "WRF.RBLOCK.s_reg1_d_15_0" };
+    g_registry["RB"] = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg3_b_15_0), "WRF.RBLOCK.s_reg3_b_15_0" };
+    g_registry["RL"] = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg4_l_15_0), "WRF.RBLOCK.s_reg4_l_15_0" };
+    g_registry["RA"] = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg5_a_15_0), "WRF.RBLOCK.s_reg5_a_15_0" };
+    g_registry["RT"] = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg6_t_15_0), "WRF.RBLOCK.s_reg6_t_15_0" };
+    g_registry["RX"] = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__s_reg7_x_15_0), "WRF.RBLOCK.s_reg7_x_15_0" };
+    // ALU Q register (effective-address A+Q at the LDT char-read; 2026-07-25)
+    g_registry["QREG"] = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_QREG__DOT__s_q_15_0_out), "DELILAH.ALU.ALU_QREG.s_q_15_0_out" };
+    // ALU Data-Bus Register (DBR) + its load-enable. CSA 0172 (IDBS,DBR PASSD)
+    // forwards DBR onto the IDB; DBR itself is loaded from CD earlier when
+    // LDDBRN is low. Capture both to find the cycle where word-2's char becomes
+    // 0xFF in DBR (datapath-generated, NOT stored in RAM - fastscan proved that).
+    g_registry["DBR"]    = { 16, RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__ALU_DBR__DOT__s_dbr_15_0_out), "DELILAH.ALU.ALU_DBR.s_dbr_15_0_out" };
+    g_registry["LDDBRN"] = { 1,  RD(ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_lddbr_n), "DELILAH.ALU.s_lddbr_n" };
+
     // ---- VPI-ONLY aliases: signals NOT guaranteed as direct members (get
     // optimized/aliased without --public-flat-rw). Resolved via VPI at runtime;
     // if VPI can't see them the driver reports it honestly. --------------------
@@ -229,6 +346,54 @@ static void buildRegistry()
                           "BLOCKL", "EBADR_n", "BDRY", "MMU.s_wmap_n", "MMU.s_la_20_10" };
     g_groups["BUS"]   = { "DAP", "BLOCK", "RERR", "BDRY", "BACT", "EBADR_n",
                           "EMD", "CBWRITE", "CMWRITE", "s_term_n" };
+    g_groups["INTR"]  = { "INTR_lreq", "INTR_ireq_n", "INTR_clrq", "INTR_mireq_n",
+                          "INTR_empid_n", "INTR_fidbo", "INTR_laa",
+                          "INTR_hik", "INTR_lok", "INTR_j", "INTR_mclk", "CSA_12_0" };
+    g_groups["IOCRTC"] = { "IOC_0", "IOC_3", "SIOC_n", "RTC", "RTC_CNT",
+                           "INTR_ireq_n", "INTR_lreq", "CSA_12_0" };
+    g_groups["BUSRD"]  = { "MEMRD_ADDR", "MEMRD_DATA", "RAM_IDX", "RAM_Q",
+                           "CSA_12_0", "s_maclk", "BDRY" };
+    g_groups["OUT"]    = { "CD16", "AREG", "TREG", "FIDBO", "CPUIDB", "IOIDB8",
+                           "THR", "TXBYTE", "CSA_12_0" };
+    g_groups["WRUART"] = { "UART_DIN", "UART_ADDR", "UART_CE_n", "UART_WR",
+                           "IOIDB8", "CD16", "FIDBO", "THR", "CSA_12_0" };
+    g_groups["WRREGS"] = { "UART_DIN", "UART_CE_n", "UART_WR", "UART_ADDR",
+                           "FIDBO", "CD16", "RP", "RD", "RB", "RL", "RA", "RT", "RX",
+                           "CSA_12_0" };
+    // Trace the word-2 LOAD: memory read of the string word + the registers it
+    // lands in, to see where 0x5255 becomes 0xFFFF (2026-07-24).
+    g_groups["MEMLOAD"]= { "MEMRD_ADDR", "MEMRD_DATA", "CD16", "FIDBO",
+                           "RA", "RT", "RD", "RB", "RX", "CSA_12_0" };
+    // Per-char read effective-address: catch each char's source read address to see
+    // where word-2 deviates (effective-address bug hypothesis, 2026-07-24).
+    g_groups["SRCADDR"]= { "UART_DIN", "UART_CE_n", "UART_WR", "UART_ADDR",
+                           "MEMRD_ADDR", "MEMRD_DATA", "RA", "CD16", "CSA_12_0" };
+    // Effective-address-from-registers: A and Q at the LDT char-read, no DRAM mux.
+    g_groups["EACOMP"] = { "UART_DIN", "UART_CE_n", "UART_WR", "UART_ADDR",
+                           "RA", "QREG", "RB", "RX", "MEMRD_ADDR", "MEMRD_DATA",
+                           "CD16", "CSA_12_0" };
+    // Data-Bus-Register load trace: watch DBR + LDDBRN + CD across the per-char
+    // window to catch the cycle DBR loads word-2's char as 0xFF vs a good char.
+    g_groups["DBRLOAD"]= { "UART_DIN", "UART_CE_n", "UART_WR", "UART_ADDR",
+                           "DBR", "LDDBRN", "CD16", "MEMRD_DATA", "QREG", "RA",
+                           "CSA_12_0" };
+    // WORD2: catch the packed banner word-2 read (051125=0x5255 'RU') into its
+    // destination register during the 71M verifier print. 6t proved the char is
+    // stored to scratch 03075 as 0377 and no byte-mask of 0x5255 gives 0xFF -> the
+    // unpack register must hold 0xFFFF. This group watches DBR + all WRF regs +
+    // MEMRD across the per-char unpack to find where 051125 becomes 0177777.
+    g_groups["WORD2"]  = { "UART_DIN", "UART_CE_n", "UART_WR", "UART_ADDR",
+                           "MEMRD_ADDR", "MEMRD_DATA", "CD16", "DBR", "QREG",
+                           "RA", "RT", "RD", "RB", "RX", "CSA_12_0" };
+    // WORD2W: WORD2 + memory write strobes, to catch the STORE to scratch cell
+    // 03075 that puts 0377 there for word-index-2 chars (R,U). Trigger on the
+    // 0377-char UART write with a large pre-window and find the 03075 store + the
+    // read/op that produced 0377 (6t: char is read from 03075, faithful; packed
+    // word 0x5255 never read live during print per WORD2b).
+    g_groups["WORD2W"] = { "UART_DIN", "UART_CE_n", "UART_WR", "UART_ADDR",
+                           "MEMRD_ADDR", "MEMRD_DATA", "CD16", "DBR",
+                           "RA", "RT", "RD", "RB", "RX", "CBWRITE", "CMWRITE",
+                           "CSA_12_0" };
 }
 
 // Try to resolve+read a signal by VPI dotted name. Returns ok=false if the VPI
@@ -583,6 +748,8 @@ static void serviceUartRx()
         // Python driver's wait_console() can match on emulated terminal output.
         fputc((char)rxData, stderr); fflush(stderr);
         g_console.push_back((char)rxData);
+        g_lastTxByte = (int)(unsigned char)rxData;   // expose for TXBYTE/TXSTROBE rules
+        g_txStrobe = 1;                              // 1-tick pulse; cleared after evalRules
         rxData = 0; rxEnabled = 0; break;
     }
     rxDataBit++;
@@ -608,6 +775,7 @@ static bool step()
 
     sampleCsv();                                           // CSV ring/POST (settled)
     bool stop = evalRules();                               // rules (settled)
+    g_txStrobe = 0;                                        // TXSTROBE is a 1-tick pulse
     g_globalTick++;
     return stop;
 }
@@ -736,6 +904,58 @@ int main(int argc, char **argv)
                 unsigned val = (g_ram_hi[addr] << 8) | g_ram_lo[addr];
                 printf("VAL %lo %o\n", addr, val);
             }
+        }
+        else if (cmd == "scanseq") {
+            // scanseq <hi-octal-bound> <w0> <w1> ... : C-side RAM scan (fast) for a
+            // run of consecutive octal words; prints each match addr + next 4 words.
+            if (tok.size() < 3) { printf("ERR scanseq <hi-oct> <w0> [w1..]\n"); }
+            else {
+                long hi = strtol(tok[1].c_str(), nullptr, 8);
+                int nw = (int)tok.size() - 2;
+                unsigned pat[16]; if (nw > 16) nw = 16;
+                for (int i = 0; i < nw; i++) pat[i] = (unsigned)strtol(tok[2+i].c_str(), nullptr, 8);
+                int hits = 0;
+                for (long a = 0; a + nw + 4 < hi; a++) {
+                    bool ok = true;
+                    for (int i = 0; i < nw; i++) {
+                        unsigned w = (g_ram_hi[a+i] << 8) | g_ram_lo[a+i];
+                        if (w != pat[i]) { ok = false; break; }
+                    }
+                    if (ok) {
+                        printf("HIT %lo next", a);
+                        for (int i = 0; i < 5; i++)
+                            printf(" %o", (g_ram_hi[a+nw+i] << 8) | g_ram_lo[a+nw+i]);
+                        printf("\n");
+                        if (++hits >= 8) break;
+                    }
+                }
+                printf("OK scanseq hits=%d\n", hits);
+            }
+        }
+        else if (cmd == "rtc") {
+            // rtc [<20ms-cycles> [<5ms-cycles>]] - retune the simulation RTC period
+            // at runtime. The boot is RTC-paced (OPCOM services one character per
+            // RTC tick), so booting at the fast default and only then slowing the
+            // clock is far cheaper than a slow build-time period. Omitting the
+            // 5 ms value keeps the 4:1 ratio. No argument = report current values.
+#ifdef ND120_RTC_RUNTIME
+            // Only compiled when the RTL provides the writable period regs
+            // (build with -DND120_RTC_RUNTIME alongside the matching RTL). Keeps
+            // the probe buildable against unmodified RTL, where these members
+            // do not exist.
+            if (tok.size() >= 2) {
+                unsigned long v20 = strtoul(tok[1].c_str(), nullptr, 10);
+                unsigned long v5  = (tok.size() >= 3) ? strtoul(tok[2].c_str(), nullptr, 10) : (v20 / 4);
+                g_top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__POW__DOT__s_rtc_20ms_var = (uint32_t)(v20 & 0x1FFFFF);
+                g_top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__POW__DOT__s_rtc_5ms_var  = (uint32_t)(v5  & 0x1FFFFF);
+            }
+            printf("OK rtc 20ms=%u 5ms=%u\n",
+                   (unsigned)g_top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__POW__DOT__s_rtc_20ms_var,
+                   (unsigned)g_top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__POW__DOT__s_rtc_5ms_var);
+#else
+            (void)tok;
+            printf("ERR rtc unsupported (build engine with -DND120_RTC_RUNTIME and matching RTL)\n");
+#endif
         }
         else if (cmd == "get") {
             if (tok.size() < 2) { printf("ERR get <signal>\n"); }

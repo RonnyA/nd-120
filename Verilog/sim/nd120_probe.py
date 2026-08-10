@@ -240,6 +240,21 @@ class Probe:
         f = self.cmd("get %s" % signal, want=("VAL", "ERR"))
         return int(f["_args"][1], 8) if len(f["_args"]) >= 2 else None
 
+    def rtc(self, cycles_20ms=None, cycles_5ms=None):
+        """Retune the simulation RTC period at runtime (decimal sysclk cycles).
+
+        The boot is RTC-paced - OPCOM services one input/output character per RTC
+        tick - so a slow period compiled in makes the boot itself just as slow.
+        Boot at the fast default, then call this once at the TPE> prompt to give
+        rate-sensitive software a realistic clock. Omitting cycles_5ms keeps the
+        4:1 ratio; calling with no arguments just reports the current values.
+        """
+        if cycles_20ms is None:
+            return self.cmd("rtc")
+        if cycles_5ms is None:
+            return self.cmd("rtc %d" % cycles_20ms)
+        return self.cmd("rtc %d %d" % (cycles_20ms, cycles_5ms))
+
     def watch(self, signal):
         return self.cmd("watch add %s" % signal)
 
