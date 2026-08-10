@@ -847,6 +847,38 @@ module nd_winchester_storage_tb;
     if (errors == 0)
       $display("[ ok ] multi-block read and write, 1-4 blocks per command");
 
+    // ---- 9. MULTI-BLOCK read ACROSS THE TRACK BOUNDARY -----------------
+    // Everything above stays inside cylinder 0 head 0, where sectors run 0..8
+    // (GEO_SPT = 9). A real transfer of any size crosses that: sector 8 is
+    // followed by head 1 sector 0, not by sector 9. SINTRAN's segment
+    // handling reads many blocks at once and must cross it constantly, and
+    // on silicon the boot dies with "DISC TRANSFER ERROR IN SEGMENT
+    // HANDLING" - so the rollover is the first thing to prove.
+    //
+    // blkaddr 8 with 1024 words spans bytes 8192..10239: sector 8, the LAST
+    // sector of cylinder 0 head 0, followed by the first sector of the next
+    // track. That is the rollover, in one command.
+    //
+    // It must also avoid bytes 4096..8191, which the write cases above
+    // deliberately overwrote - reading those back and comparing against the
+    // ORIGINAL image pattern fails on correct data. That mistake was made
+    // once here already.
+    for (i = 0; i < 1024; i = i + 1) dmamem[16'o110000 + i] = 16'hFFFF;
+    dma_writes = 0;
+    do_transfer(16'd8, 16'o110000, 16'd1024, "read across track boundary");
+    if (st[4] || st[8]) begin
+      $display("FAIL: track-crossing read reported error, status %06o", st);
+      $display("      (bit 8 = address mismatch: the CHS advance refused to");
+      $display("       roll sector 8 -> head 1 sector 0)");
+      errors = errors + 1;
+    end
+    if (dma_writes !== 1024) begin
+      $display("FAIL: track-crossing read moved %0d DMA words, want 1024",
+               dma_writes);
+      errors = errors + 1;
+    end
+    check_words(16'o110000, 8192, 1024, "read across track boundary");
+
     $display("");
     if (errors == 0) $display("TB_RESULT: PASS");
     else             $display("TB_RESULT: FAIL %0d errors", errors);
