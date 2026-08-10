@@ -797,23 +797,35 @@ int main(int argc, char **argv) {
         uint32_t sz = c == 0 ? top->size_bytes0 : (c == 1 ? top->size_bytes1 : top->size_bytes2);
         snprintf(m, sizeof m, "%s size_bytes = %u (want %ld)", NAMES[c], sz, SIZES[c]);
         check(sz == (uint32_t)SIZES[c], m);
-        // SDRAM preload byte-exact incl. the zero-padded tail word
-        long nw = (SIZES[c] + 3) / 4;
+        // Phase 4: NOTHING is preloaded, so there is no region copy to
+        // inspect. Content is proven the only way that now means anything -
+        // read every block through the CLIENT PORT, which drives the fetch
+        // (or cache hit) path all the way to the card. Bytes at or past
+        // size_bytes must read as ZERO: a fetch pulls whole 2048-byte
+        // blocks, so the last block of a file that is not a multiple of
+        // 2048 also drags in cluster slack, and the engine zero-fills it to
+        // keep v1's tail-padding contract.
         int bad = 0;
-        for (long mw = 0; mw < nw; mw++) {
-            uint32_t expw = 0;
-            for (int b = 0; b < 4; b++) {
-                long k = 4 * mw + b;
-                if (k < SIZES[c]) expw |= (uint32_t)pat_file(c, k) << (8 * (3 - b));
-            }
-            uint32_t got = memm.mem[SLOT_BASE_BLK[c] * 512 + mw];
-            if (got != expw) {
-                if (bad < 5)
-                    printf("FAIL: %s preload word %ld: got %08X want %08X\n", NAMES[c], mw, got, expw);
-                bad++;
+        for (int blk = 0; blk < NBLOCKS[c]; blk++) {
+            char rm[96];
+            memset(cbuf[c], 0xEE, sizeof cbuf[c]);
+            snprintf(rm, sizeof rm, "fetch %s blk %d", NAMES[c], blk);
+            if (!do_req(c, false, (uint16_t)blk, rm)) return 1;
+            for (long j = 0; j < 1024; j++) {
+                long k0 = (long)blk * 2048 + 2 * j;
+                long k1 = k0 + 1;
+                uint16_t expw = 0;
+                if (k0 < SIZES[c]) expw |= (uint16_t)pat_file(c, k0) << 8;
+                if (k1 < SIZES[c]) expw |= (uint16_t)pat_file(c, k1);
+                if (cbuf[c][j] != expw) {
+                    if (bad < 5)
+                        printf("FAIL: %s blk %d word %ld: got %04X want %04X\n",
+                               NAMES[c], blk, j, cbuf[c][j], expw);
+                    bad++;
+                }
             }
         }
-        snprintf(m, sizeof m, "%s SDRAM preload byte-exact (%ld words)", NAMES[c], nw);
+        snprintf(m, sizeof m, "%s block content byte-exact via client port", NAMES[c]);
         check(bad == 0, m);
     }
     check(top->sd_status == 3, "sd_status OK after the good opens");
@@ -892,8 +904,12 @@ int main(int argc, char **argv) {
                      c, CBLK[c]);
             check(bad == 0, m);
         }
-        check(sd_posedge_count == sd_before,
-              "concurrent reads produced ZERO SD traffic (served from SDRAM)");
+        // v1 asserted the OPPOSITE (== sd_before): with the whole image
+        // preloaded, a read never went near the card. Nothing is preloaded
+        // now, so a read that produced no card traffic would mean it was
+        // served from a stale region - the failure this guards against.
+        check(sd_posedge_count != sd_before,
+              "concurrent reads DID touch the card (nothing is preloaded now)");
     }
 
     // =================================================================
@@ -903,9 +919,14 @@ int main(int argc, char **argv) {
     {
         const uint16_t WBLK = 2;  // FLOPPY1.IMG block 2 (bytes 4096..6143)
         for (int w = 0; w < 1024; w++) cbuf[1][w] = (uint16_t)(0x9100 + 7 * w);
-        // instrumentation: SDRAM watch on slot1 block2, card commit counter
-        memm.arm_watch(SLOT_BASE_BLK[1] * 512 + WBLK * 512,
-                       SLOT_BASE_BLK[1] * 512 + WBLK * 512 + 512);
+        // Phase 4: where a block LIVES in the region is no longer
+        // slot_base+block. Client 1 is DIRECT (not in CACHE_MASK), so its
+        // block lands in the shared staging line at STAGE_BASE_BLK - one
+        // line is enough because the arbiter serves one client at a time.
+        // The card-first/SDRAM-second ordering this measures is unchanged
+        // and still worth proving; only the address moved.
+        const int STAGE_BLK = 0;   // = nd_storage's STAGE_BASE_BLK
+        memm.arm_watch(STAGE_BLK * 512, STAGE_BLK * 512 + 512);
         uint32_t commits_before = card.commit_count;
         if (!do_req(1, true, WBLK, "write floppy1 block 2")) return 1;
         check(!((top->err_o >> 1) & 1), "write floppy1 block 2 err=0");
@@ -935,9 +956,9 @@ int main(int argc, char **argv) {
             uint16_t a = (uint16_t)(0x9100 + 7 * (2 * mw));
             uint16_t b = (uint16_t)(0x9100 + 7 * (2 * mw + 1));
             uint32_t expw = ((uint32_t)a << 16) | b;
-            if (memm.mem[SLOT_BASE_BLK[1] * 512 + WBLK * 512 + mw] != expw) bad++;
+            if (memm.mem[STAGE_BLK * 512 + mw] != expw) bad++;
         }
-        check(bad == 0, "SDRAM copy of the written block matches");
+        check(bad == 0, "region copy of the written block matches (staging line)");
         // neighbor blocks untouched on the card
         bad = 0;
         for (int i = 0; i < 2048; i++) {

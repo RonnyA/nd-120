@@ -43,6 +43,11 @@
 **   fail_sector - one-shot: a write targeting exactly this sector        **
 **     (CMD24 or a CMD25 burst block) is rejected the same way, then the  **
 **     register self-clears to the all-ones sentinel (disabled).           **
+**   fail_next_reads - while nonzero, that many upcoming READ data blocks **
+**     are not sent at all: the command is answered, then the card goes    **
+**     silent, and the host's read watchdog must catch it. See the long    **
+**     note at the register for why a corrupted read CRC16 would NOT work  **
+**     (sd_writer.v does not check the read data CRC).                     **
 **   corrupt_line - one-shot, 4-bit mode only: 0..3 makes the card-side   **
 **     CRC16 of that DAT line mismatch for the next received write block  **
 **     (a simulated wire error on one line): the block is rejected with   **
@@ -103,8 +108,29 @@ module sd_card_model #(
   // error injection hooks (testbench-settable, default off = stock behavior)
   reg [31:0] fail_next_writes;  // reject this many upcoming write blocks ("101")
   reg [31:0] fail_sector;       // one-shot: reject a write to this sector
+  // READ-side injection, added 09-AUG-2026. There was write injection but
+  // no read injection, so "the card failed a read" - the single most
+  // common real storage fault - could not be tested at all.
+  //
+  // WHAT IT DOES: while nonzero, this many upcoming read data blocks are
+  // NOT SENT AT ALL. The card answers the command normally and then goes
+  // quiet, which is what a card that stops mid-transfer looks like on the
+  // wire; the host's read watchdog in sd_writer.v fires and raises its err
+  // output, and nd_storage_engine.v reports that as NDS_ERR_CARDIO.
+  //
+  // WHY NOT A BAD CRC16 (measured 09-AUG-2026, not assumed): sd_writer.v's
+  // R_DATA state SKIPS the read data CRC16 entirely - the comment at the
+  // bitcnt == s_rx_end branch says "CRC skipped, end bit", and no compare
+  // against the received CRC exists anywhere in that file. So a corrupted
+  // read CRC is invisible to this stack and could never have failed a test.
+  // Withholding the block is the injection the host can actually detect.
+  // (That the read CRC is unchecked at all is a real gap in sd_writer.v,
+  // separate from this model - a silently corrupted sector currently reads
+  // back as success.)
+  reg [31:0] fail_next_reads;
   initial fail_next_writes = 32'd0;
   initial fail_sector = 32'hFFFF_FFFF;
+  initial fail_next_reads = 32'd0;
 
   // reserved-region write detector (RAW images; see header)
   integer illegal_writes;
@@ -774,7 +800,15 @@ module sd_card_model #(
         cmd_out   <= 1'b1;
       end
 
-      if (do_data) send_block(data_base);
+      if (do_data) begin
+        if (fail_next_reads != 32'd0) begin
+          // injected read fault: answer the command, then send NOTHING.
+          // The host's read watchdog is what must catch this.
+          fail_next_reads = fail_next_reads - 32'd1;
+        end else begin
+          send_block(data_base);
+        end
+      end
       if (do_data18) stream_blocks(data_base);
       if (do_write) begin
         // wait for the host's data start bit (with a timeout), then receive

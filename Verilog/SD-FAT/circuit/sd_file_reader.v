@@ -86,6 +86,14 @@ module sd_file_reader #(
     // target file name, byte 0 in the low byte; target_len 0 = LIST mode
     input wire [52*8-1:0] target_name,
     input wire [7:0]      target_len,
+    // 1 = stop after the DIRECTORY match: found_* are published and the run
+    // ends at H_FINISH without reading a single file byte. For a consumer
+    // that only wants geometry (nd_storage's mount, which then fetches
+    // blocks on demand) this makes an open cost the same for a 64 KB file
+    // and a 75 MB one, and - the reason it exists - it ends the run at a
+    // CLEAN card boundary. Killing the reader mid-transfer instead leaves
+    // the card streaming and the next user of the card fails.
+    input wire            no_stream,
 
     // one pulse per reported root entry
     output reg             dir_entry_valid,
@@ -1058,7 +1066,7 @@ module sd_file_reader #(
 
         H_DIR_NX:
         if (!pbusy) begin
-          if (file_found) state <= H_STREAM0;
+          if (file_found) state <= no_stream ? H_FINISH : H_STREAM0;
           else if (dirend || dscan == 16'hFFFF) state <= H_FINISH;
           else begin
             dscan <= dscan + 16'd1;

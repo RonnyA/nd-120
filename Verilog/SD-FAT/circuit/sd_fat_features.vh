@@ -71,15 +71,16 @@
   `endif
 `endif
 `ifdef SDFAT_STORAGE
-  `ifdef SDFAT_CHECK
-    `ifndef SDFAT_NO_STORAGE_CHECK
-      `define SDFAT_STORAGE_CHECK   // mount-time contiguity gate: the mount
-                                    // FSM's M_CHK runs nd_storage_fatchk.v
-                                    // (a fragmented file fails the open);
-                                    // stripped, M_CHK passes straight
-                                    // through - the card recipe alone
-                                    // guarantees contiguous files
-    `endif
+  // RETIRED AS A DEFAULT 07-AUG-2026: the storage engine walks the FAT
+  // chain at runtime (nd_storage_engine.v F_RES states,
+  // docs/PLAN-fatwalk-runtime.md), so fragmented files are simply CORRECT
+  // and there is nothing left for a mount-time contiguity gate to protect.
+  // The checker remains available as a diagnostic build
+  // (-DSDFAT_FORCE_STORAGE_CHECK - its testbenches build it that way);
+  // nothing defines it by default, which also returns its logic to the
+  // Tang budget (the tape+floppy+WD build was 114 cells over WITH it).
+  `ifdef SDFAT_FORCE_STORAGE_CHECK
+    `define SDFAT_STORAGE_CHECK
   `endif
 `endif
 
