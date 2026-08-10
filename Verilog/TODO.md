@@ -16,7 +16,7 @@ correct. Off our plate:
 
 - `ND-BUS-DEVICES/SMD/circuit/ND_SMD.v` - register semantics, the
   controller-type / word-count flip-flop question, `21540&` mass-storage load.
-- `SD-FAT/circuit/nd_storage_smd_adapter.v` position mapping (still
+- `SD-FAT/circuit/nd_storage_disc_adapter.v` position mapping (still
   `blkaddr2*2048 + blkaddr1*64`, not the oracle's cylinder/head/sector -> LBA;
   changing it means changing the adapter, `ND-BUS-DEVICES/SMD/sim/nd_smd_tb.v`
   and `process_verilog_smd()` in `simDevices/NDBus.cpp` together).
@@ -57,6 +57,48 @@ fail-fast, so a green run means "green up to the first failure" - to see
 everything, run past it deliberately.
 
 ---
+
+## LOW PRIO: disc image >= 128 MiB is silently mis-sized at mount
+
+Found while documenting the Winchester/SMD geometry, 09-AUG-2026. Nothing is
+broken today - it is recorded so it is not rediscovered as a mystery.
+
+**What is fine.** A disc image LARGER than its drive geometry is harmless by
+design. `ND_WINCHESTER.v` (and `ND_SMD.v`) refuse any CHS beyond their own
+GEO_* bounds before the storage stack is asked for anything, so sectors past
+the end of the drive are unreachable whatever the file size, and SINTRAN
+never asks for them. `WD0.IMG` does not have to be exactly 75,497,472 bytes.
+
+**What is not fine.** `nd_storage_mount.v` M_OK stores the block count as
+
+    r_nblk[cur_client] <= s_size[26:11] + {15'd0, |s_size[10:0]};
+
+`s_size[26:11]` is a 16-bit slice, so a file at or above 2^27 bytes
+(134,217,728 = 128 MiB) loses its high size bits and the client is told the
+image is a different, smaller size than it is:
+
+| image | true blocks | stored | result |
+|-------|-------------|--------|--------|
+| 72 MiB (exact geometry) | 36,864 | 36,864 | fine |
+| 75 MiB (oversized) | 38,400 | 38,400 | fine |
+| 128 MiB | 65,536 | 0 | every read refused |
+| 150 MiB | 76,800 | 11,264 | most reads refused |
+
+The failure is a SILENT wrong answer, which is precisely what
+`SD-FAT/circuit/nd_storage_status.vh` exists to eliminate.
+
+**Fix when it matters:** refuse the mount with `NDS_ERR_RANGE` for an image
+>= 128 MiB. Widening the slice alone is NOT sufficient - `n_blocks` is a
+16-bit output port and the engine's range check compares against it, so the
+port width has to grow too.
+
+**Why it is low priority:** the largest drive modelled is 75.5 MB and no ND
+unit image in this project approaches 128 MiB. The mount-time guard is cheap
+insurance, not a live bug.
+
+Documented at: `nd_storage_mount.v` (header + the r_nblk assignment),
+`ND-BUS-DEVICES/README.md` ("The image file may be LARGER than the
+geometry"), `SD-FAT/CARD-LAYOUT.md`.
 
 ## LOW PRIO: confirm-or-refute that the DMA master's MIN_GAP_TICKS gap is load-bearing
 

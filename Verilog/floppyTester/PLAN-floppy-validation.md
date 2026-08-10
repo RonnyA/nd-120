@@ -117,7 +117,7 @@ diskette (expected behavior per Phase 0 finding). Gate: `test-floppy-p4`.
 
 ### Phase 5 — floppy_tester.cpp: full stack against the SD card
 Verilator harness in `floppyTester/` (side by side with runSim, own obj_dir):
-`ND_FLOPPY_DMA` + `ND_BUS_SLAVE` + `ND_DMA_MASTER` + `nd_tape_sdfat_source`
+`ND_FLOPPY_DMA` + `ND_BUS_SLAVE` + `ND_DMA_MASTER` + `nd_storage_devices`
 (INCLUDE_TAPE=0, INCLUDE_FLOPPY=1 — the exact Tang config) + `sd_card_model`
 (card carrying FLOPPY1.IMG) + `nds_mem_model`. Scripted escalation: mount ->
 IOX regs -> sector reads byte-diffed against the card image -> writes -> boot

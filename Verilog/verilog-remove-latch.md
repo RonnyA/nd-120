@@ -400,7 +400,7 @@ mode), and diff the outputs to find first divergence.
 | LUA_12_0 | CPU_CS_ACAL_17 | Microcode address |
 | CSA_12_0 | ND120_TOP | Top-level microcode address |
 | TERM_n | CYC_36 | Cycle termination |
-| MCLK | CYC_36 | Memory clock |
+| MCLK | CYC_36 | Microcycle clock |
 | CACT | BIF signals | CPU active |
 | CGNT | BIF signals | CPU grant |
 

@@ -24,6 +24,128 @@ TAPE-400/   ND_TAPE_400.v - papertape reader, IOX 400-403, ident 02,
 FLOPPY/     floppy PIO controller, IOX 1560-1567, ident 021, level 11.
 ```
 
+## Disc geometry - Winchester vs SMD
+
+The two block devices are within 0.5% of the same capacity by coincidence of
+completely different geometries. They are easy to confuse and are NOT
+interchangeable: a CHS->LBA calculation done with the wrong sectors-per-
+cylinder lands about 25% away from the intended block, and it does so
+SILENTLY - the transfer reports success, it just reads or writes the wrong
+part of the disc.
+
+| | Winchester (DISC-74-1) | SMD (75 MB unit) |
+|---|---|---|
+| Drive | Micropolis 1325 | CDC-type SMD pack |
+| Heads | **8** | **5** |
+| Sectors per track | **9** | **18** |
+| Cylinders | **1024** | **823** |
+| Bytes per sector | 1024 | 1024 |
+| **Sectors per cylinder** | **72** | **90** |
+| Total sectors | 73,728 | 74,070 |
+| Capacity | 75,497,472 B (75.50 MB) | 75,847,680 B (75.85 MB) |
+| Pages of 2048 B | 36,864 | 37,035 |
+| IOX base | 500 | 1540 |
+| Image | `WD0.IMG`, `WD1.IMG` | `SMD0.IMG` .. `SMD2.IMG` |
+
+### Where the numbers come from
+
+Both are RTL parameters, not constants buried in logic:
+
+- `WINCHESTER/circuit/ND_WINCHESTER.v` - `GEO_HEADS=8`, `GEO_SPT=9`,
+  `GEO_MAX_CYL=1024`
+- `SMD/circuit/ND_SMD.v` - `GEO_HEADS=5`, `GEO_SPT=18`, `GEO_MAX_CYL=823`
+
+Both match the nd100x C emulator, which is the oracle for this:
+`src/devices/winchester/diskWinchester.h` documents the 1325 as
+8 x 9 x 1024 x 1024 = 75,497,472 bytes, and
+`src/devices/smd/diskSMD.c` `DISK_75_MB` sets 5 / 18 / 823.
+
+The SMD's other supported packs (same file) are 38 MB (5/18/411), 150 MB
+(10/18/823), 288 MB (19/18/823), 474 MB (20/24/842), 515 MB (24/26/711) and
+825 MB (16/44/1024). The Winchester family holds several drives too - the
+1325 is the one SINTRAN boots from.
+
+### One adapter, two geometries
+
+There is no `nd_storage_wd_adapter.v`. The Winchester reuses
+`SD-FAT/circuit/nd_storage_disc_adapter.v`, which takes `GEO_HEADS` and
+`GEO_SPT` as parameters precisely so the same CHS->LBA arithmetic can serve
+both drives. The Winchester binding overrides them at two places, and both
+must agree:
+
+- `Verilog/ND120_CORE.v` (the ND_WINCHESTER instance)
+- `Verilog/ND-BUS-DEVICES/TAPE-400/circuit/nd_storage_devices.v` (the
+  adapter instance for client 6)
+
+`WINCHESTER/sim/nd_winchester_adapter_tb.v` guards this: it instantiates the
+adapter twice, once at Winchester geometry and once at the SMD default, and
+checks the SAME CHS gives DIFFERENT block numbers - so a parameter that
+silently fails to reach the arithmetic is caught.
+
+### The image file may be LARGER than the geometry
+
+This is expected and harmless. `WD0.IMG` on the SD card does not have to be
+exactly 75,497,472 bytes - a bigger file is fine, and the extra bytes are
+simply never touched.
+
+The reason is that the bound is enforced by the CONTROLLER against its own
+GEO_* parameters, not by the size of the backing file. `ND_WINCHESTER.v`
+checks every command before it reaches the storage backend:
+
+```verilog
+((w_lba > w_max_lba) || (s_head >= GEO_HEADS) || (w_sector >= GEO_SPT))
+    -> b8 address mismatch, operation refused, no backend request issued
+```
+
+with `w_max_lba = chs2lba(GEO_MAX_CYL, GEO_HEADS, GEO_SPT)` = 73,728. A CHS
+address beyond the drive cannot be expressed, so sectors past the geometry
+are unreachable however large the file is. The same holds for the SMD via its
+own GEO_* parameters. SINTRAN only ever addresses what the drive claims to
+have, so it never asks.
+
+The file-size range check further down (`nd_storage_disc_adapter.v`, and
+`n_blocks` in the engine) is a SECOND, independent bound. On an oversized
+image it is simply looser than the geometry check and never fires.
+
+**Ceiling: 128 MiB.** `nd_storage_mount.v:511` stores the block count as
+
+```verilog
+r_nblk[cur_client] <= s_size[26:11] + {15'd0, |s_size[10:0]};
+```
+
+`s_size[26:11]` is 16 bits, so any file size at or above 2^27 bytes
+(134,217,728 = 128 MiB) has its high bits DISCARDED and the block count wraps
+silently:
+
+| Image size | True blocks | Stored `n_blocks` | Result |
+|-----------|-------------|-------------------|--------|
+| 72 MiB (exact geometry) | 36,864 | 36,864 | fine |
+| 75 MiB (oversized) | 38,400 | 38,400 | fine |
+| 128 MiB | 65,536 | **0** | every read refused |
+| 150 MiB | 76,800 | **11,264** | most reads refused |
+
+So "bigger is fine" holds comfortably for any realistic ND disc image - the
+largest SMD pack in the table is 825 MB of geometry but no single ND unit
+image approaches 128 MiB today - but it is not unlimited, and the failure
+mode is silent truncation rather than an error. Worth a mount-time guard that
+refuses an image >= 128 MiB with `NDS_ERR_RANGE` instead of quietly
+mis-sizing it; not implemented yet.
+
+### Sanity-checking against a running machine
+
+The File System Investigator (`400$`, then `DISC-74MB-1`, unit `0`) prints
+
+```
+Total no. of disk pages is 107054
+```
+
+**That is OCTAL** - like every number the FSI prints - so it is 36,396
+pages, against the 36,864 the geometry gives. The 468-page difference is
+exactly 13.0 cylinders (1.27%), i.e. the bad-track and reserved-area
+allowance. A number in that shape CONFIRMS the geometry; reading it as
+decimal makes it look like a 219 MB drive and sends you chasing a
+discrepancy that does not exist.
+
 ## Device bus (between ND_BUS_SLAVE and the device cores)
 
 All in the sysclk domain. Read data is an OR-bus: a core drives 0 when

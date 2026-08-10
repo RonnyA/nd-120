@@ -210,7 +210,7 @@ fault in sim could be the same fault as the missing HELP menu on silicon.
 - Tang build defines:
   `Verilog/fpga/tang-nano-20k/src/tang20k_defines.v`
 - Tape SD source:
-  `Verilog/ND-BUS-DEVICES/TAPE-400/circuit/nd_tape_sdfat_source.v`
+  `Verilog/ND-BUS-DEVICES/TAPE-400/circuit/nd_storage_devices.v`
 - Tape device:
   `Verilog/ND-BUS-DEVICES/TAPE-400/circuit/ND_TAPE_400.v`
 - BPUN format + loader:

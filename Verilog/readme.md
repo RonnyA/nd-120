@@ -21,6 +21,15 @@ latch-vs-flip-flop timing gap is the current focus.
 | [Shared](Shared/readme.md)                     |                          | Verilog compiles - Missing a lot of testcases  | Syntehesis OK, implementation fails   | Shared code between the CPU, DGA and 3202D CPU board. Mix of converted logisim and manually created modules |
 
 
+## Reference documents
+
+- `tests/README.md` — what `make test` runs, measured coverage, and the orphan gate
+- `OWNERSHIP.md` — who may edit what, and the hard rules around builds, boards and git
+- `docs/SIGNALS.md` — what each control signal is, who drives it, and how that was established
+- `docs/RETRACTED.md` — claims this repo once asserted that turned out to be wrong
+- `PAL/PROVENANCE.md` — how a PAL is proved faithful to its PALASM listing
+- `../DesignDocuments/PAL-Code/` — the PALASM listings (`SRC/`), the scans (`IMG/`, authoritative), and the 2026 transcription audit
+
 ## Testbench conventions
 
 Testbenches live in a `sim/` subdirectory next to the module source code:
@@ -137,6 +146,17 @@ The design uses different RAM sizes for Verilator simulation vs FPGA synthesis:
   - Sufficient for testing CPU logic and small programs
 
 The configuration is automatic based on compile-time defines in `MEM_RAM_49.v`. No manual changes needed.
+
+## Devices, addresses and disc geometry
+
+- `docs/device-address-map.md` - every ND-BUS device: octal IOX base, ident
+  code, interrupt level, module and backing image, plus the boot/mass-load
+  console commands.
+- `ND-BUS-DEVICES/README.md` - the bus handshake, IDENT cascade rules, and the
+  **Winchester vs SMD disc geometry** table (they are nearly the same size
+  with different geometries; mixing them up corrupts transfers silently).
+- `SD-FAT/CARD-LAYOUT.md` - what the SD card must look like: root directory
+  only, 8.3 names, length-exact matching.
 
 ## Supported hardware targets
 

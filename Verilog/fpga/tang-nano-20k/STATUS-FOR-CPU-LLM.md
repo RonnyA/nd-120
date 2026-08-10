@@ -158,7 +158,7 @@ INSTRUCTION-B's `RUN` is yours - I have not touched it. CONFIGURATION-C08's
 - Tang board top:
   `Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
 - Tape SD source:
-  `Verilog/ND-BUS-DEVICES/TAPE-400/circuit/nd_tape_sdfat_source.v`
+  `Verilog/ND-BUS-DEVICES/TAPE-400/circuit/nd_storage_devices.v`
 - Tape device:
   `Verilog/ND-BUS-DEVICES/TAPE-400/circuit/ND_TAPE_400.v`
 - Microcode (checksum/ILLEG branch):

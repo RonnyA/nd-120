@@ -138,7 +138,7 @@ Tang, so the same devices and the same images are exercised in both places —
    `nd_storage_mount.v:193` "preload only writes"). Serving a floppy sector
    straight off the card is therefore **new engine work**, not a parameter
    change — and it is now needed in Phase 4, not just Phase 5.
-   Consistent with the ruling: `nd_tape_sdfat_source.v` already sets
+   Consistent with the ruling: `nd_storage_devices.v` already sets
    `PRELOAD_MASK(7'b0000001)` — tape only.
 
    **Upside:** dropping the floppy preload frees SLOT1+SLOT2 (1280 blocks =
@@ -199,7 +199,7 @@ Findings from doing it (all measured):
 - **`--timing` is FREE.** sd_card_model drives the SD bus from tasks so the
   whole runSim build needs Verilator `--timing`. Measured before adopting:
   console byte-identical to golden, 1m23.5s vs 1m25.1s. No dilemma after all.
-- **nd_tape_sdfat_source had a DEADLOCK** (never instantiated anywhere, so never
+- **nd_storage_devices had a DEADLOCK** (never instantiated anywhere, so never
   caught): it waited for `sd_status == OK` before opening, but a mount only runs
   on `open_req` (`nd_storage_mount.v:8`) and sd_status is only set at mount end
   (`nd_storage.v:35`). No open -> no mount -> no status -> no open; sd_clk never
@@ -216,7 +216,7 @@ Findings from doing it (all measured):
 `400$` boots `BOOT.BPUN` off a simulated/real card. C backends still available.
 
 **Why first:** it is the only device whose adapter exists, whose file fits a
-full-preload slot, and whose board-side wrapper (`nd_tape_sdfat_source.v`) is
+full-preload slot, and whose board-side wrapper (`nd_storage_devices.v`) is
 already written and elaborates — it just has **no instantiation anywhere in the
 repo** (verified).
 
@@ -261,10 +261,10 @@ FLOPPY1.IMG **+** SMD0.IMG.
 ### Step 2.3 — runSim: `SD_STORAGE` path, default ON ✅ DONE (ffdc745)
 - `runSim/Makefile`: add `-I../SD-FAT/circuit` to `VERILATOR_DIRS` (**missing
   today** — verified; first hard blocker). Add `SD_STORAGE ?= 1`.
-- Wire `nd_tape_sdfat_source` (or `nd_storage` + tape adapter) into the sim
+- Wire `nd_storage_devices` (or `nd_storage` + tape adapter) into the sim
   harness, feeding the core's `TAPE_BYTE_*`; C++ card model on the SD pads, C++
   mem model on `mem_*`. Set `SIMULATE=1` (short SD init,
-  `nd_tape_sdfat_source.v:33`).
+  `nd_storage_devices.v:33`).
 - `SD_STORAGE=0` selects the existing C path (`process_verilog_tape`,
   `NDBus.cpp:299-337`). **Both must build and pass.**
 - **`make help` must document both** (decision 1).
@@ -287,8 +287,8 @@ capture and assert on the output: **is the tape controller detected correctly?**
   expected text.
 - Extend with floppy in Phase 4 and SMD in Phase 5 — same test, more devices.
 
-### Step 2.5 — Tang: instantiate `nd_tape_sdfat_source`
-- `ND120_CORE #(1,0,0)` on Tang; hang `nd_tape_sdfat_source` off `TAPE_BYTE_*`.
+### Step 2.5 — Tang: instantiate `nd_storage_devices`
+- `ND120_CORE #(1,0,0)` on Tang; hang `nd_storage_devices` off `TAPE_BYTE_*`.
 - Resolve the SD tristate **at the board top** — `nd_storage` exposes only
   `_i`/`_o`/`_oe` (`nd_storage.v:24-25`). Note `sd-fat-test` found silicon-only
   tristate bugs (yosys nested-ternary `z` collapse) — the `test-tristate` gate
@@ -507,7 +507,7 @@ on silicon — any real pad work must re-run it.
   path, that golden must be re-recorded deliberately — not silently.
 - `nd_storage` hard max is **7 files** (FILE0..FILE6, 3-bit client index,
   `PRELOAD_MASK[6:0]`). Our set is 3. Fine, but do not plan an 8th.
-- `SIMULATE=1` shortens SD init in sim (`nd_tape_sdfat_source.v:33`). Hardware
+- `SIMULATE=1` shortens SD init in sim (`nd_storage_devices.v:33`). Hardware
   needs 0. Do not ship a bitstream with 1.
 - `sd_fat_features.vh`: `SDFAT_STORAGE` requires `SDFAT_WRITE` (`:62-66`);
   `SDFAT_STORAGE_CHECK` requires `SDFAT_CHECK` (`:67-78`).

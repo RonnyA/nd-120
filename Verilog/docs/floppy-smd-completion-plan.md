@@ -103,7 +103,7 @@ error (M8-M10), +0 constant per ruling 0.1c.
 
 ## Phase 4 - boot from SMD0, validated end to end (device level)
 
-4.1 nd_storage_smd_adapter.v: SMD disk_* port onto one nd_storage
+4.1 nd_storage_disc_adapter.v: SMD disk_* port onto one nd_storage
     client (same pattern as the floppy adapter). v1 = BOOT WINDOW:
     the client slot preloads the first 320KB of SMD0.IMG; blocks
     inside the window are served, outside -> b13-class error (declared

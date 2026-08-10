@@ -5,7 +5,7 @@ ASSUME NOTHING - verify in code before trusting any claim below.
 
 **Commit state:** the ND120_CORE extraction (steps 1-3) IS COMMITTED on this
 branch. Everything else described here - the floppy DMA manual conformance, the
-tape-400 level-12 storm fix, the SD boot card, nd_tape_sdfat_source, and the
+tape-400 level-12 storm fix, the SD boot card, nd_storage_devices, and the
 emulator handoffs - is still UNCOMMITTED in the working tree.
 
 ## DONE + VERIFIED this session
@@ -51,7 +51,7 @@ emulator handoffs - is still UNCOMMITTED in the working tree.
    by VFAT long name (4-char ext). Ran + verified byte-identical.
 
 5. **Board-agnostic SD-FAT tape byte source.**
-   `ND-BUS-DEVICES/TAPE-400/circuit/nd_tape_sdfat_source.v` - packages
+   `ND-BUS-DEVICES/TAPE-400/circuit/nd_storage_devices.v` - packages
    nd_storage (FILE0_NAME="BOOT.BPUN", PRELOAD_MASK=1) + nd_storage_tape_adapter
    + a mount->open sequencer, exposing ND_TAPE_400's byte-source port + SD pads
    + SDRAM mem_* + status. Elaborates cleanly against the real SD-FAT stack.
@@ -106,7 +106,7 @@ Verified: gate reproduces the golden byte-for-byte; default runs emit 0 debug
 lines (20 only with the define).
 
 Remaining: step 4 = `make test-full` (blocked only by the two items above),
-then the Tang Phase-2 follow-up (INCLUDE_TAPE(1) + nd_tape_sdfat_source).
+then the Tang Phase-2 follow-up (INCLUDE_TAPE(1) + nd_storage_devices).
 
 ## ORIGINAL plan notes (approved) for extract ND120_CORE.v
 
@@ -130,7 +130,7 @@ Execution steps (tasks #2-#4, gates keep the tree green at each commit):
   `make test-dma-rtl`, `make test-dma-xcheck`, runSim console-vs-golden.
 - **Step 3** (task #4): switch ND120_TANG20K_TOP.v to `ND120_CORE #(0,0,0)`.
   Gate: `fpga/tang-nano-20k/sim` `make vtest`. Then `make test-full`.
-- Follow-up (separate change): Tang `INCLUDE_TAPE(1)` + `nd_tape_sdfat_source`
+- Follow-up (separate change): Tang `INCLUDE_TAPE(1)` + `nd_storage_devices`
   on the board reading BOOT.BPUN from the real SD card.
 
 ## Git note
@@ -138,7 +138,7 @@ Working tree has BOTH this session's floppy/tape work AND the other
 (instruction-verify/MPY) session's files (MPY*.BPUN, shift-tests/, ndcomm,
 csa_trace.csv, trace_verify.md). Don't commit blindly - separate concerns or
 ask Ronny. This session's files: ND_FLOPPY_DMA.v, nd_floppy_dma_tb.v,
-simDevices/ND{Bus,Devices}.{h,cpp}, nd_tape_sdfat_source.v, make_boot_card.sh,
+simDevices/ND{Bus,Devices}.{h,cpp}, nd_storage_devices.v, make_boot_card.sh,
 docs/{floppy-3112-register-spec-ND-11.021, HANDOFF-nd100x-floppy-dma-manual-fixes,
 HANDOFF-floppy-pio-c-and-csharp-fixes, PLAN-nd120-core-extraction,
 BUG-tape400-sd-level12-storm, floppy-review-findings}.md.

@@ -8,6 +8,61 @@ open-source toolchain option, and 8 MB of SDRAM that lets the FPGA run the full
 memory config like the simulator. Full analysis and staged plan:
 `../../docs/tang-nano-20k-port.md`.
 
+## Bring-up: getting the board talking (do this first)
+
+Every session starts here. The whole USB dance is already scripted - it does
+not need to be done by hand, and doing it by hand is how most of the wasted
+time on this board has been spent.
+
+```bash
+cd Verilog/fpga/tang-nano-20k
+make usb            # find the Tang on the Windows host, attach it to WSL,
+                    # open the raw USB node AND /dev/ttyUSB* permissions
+make flash-gowin    # program the current bitstream
+```
+
+After `make usb` you have:
+
+| Device | Use |
+|--------|-----|
+| `/dev/ttyUSB0` | JTAG side (openFPGALoader) |
+| `/dev/ttyUSB1` | OPCOM console, **9600 8N1** |
+
+**Reflashing reboots the design - no power cycle needed.** Measured
+09-AUG-2026: `make flash-gowin` restarts the ND-120 and the console comes back
+to the `#` prompt on its own. So a build/flash/test cycle can run unattended.
+
+**A real power cycle is different.** Pulling power detaches the device from
+WSL and the host busid CHANGES (seen 3-3, then 2-4, then 5-2 on different
+days). After a power cycle, run `make usb` again - never assume the old busid.
+
+### When it will not talk
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `unable to open ftdi device: -4 (usb_open() failed)` | the raw USB node's permissions reset when the device re-enumerated | `make usb`, or `sudo chmod 666 $(lsusb -d 0403:6010 \| sed -E 's#Bus ([0-9]+) Device ([0-9]+).*#/dev/bus/usb/\1/\2#')` |
+| `unable to open ftdi device: -3 (device not found)` | not attached to WSL at all | `make usb` |
+| `cannot open /dev/ttyUSB1: No such file or directory` | attached, but `ftdi_sio` has not created the serial nodes | `make usb` |
+| `openFPGALoader: command not found` | running the command on the Windows side instead of inside WSL | run it from WSL |
+
+### Driving the console
+
+OPCOM is picky and the rules are not guessable:
+
+- **UPPERCASE only.**
+- **~0.30 s between characters.** At 0.12 s characters are dropped silently in
+  the middle of a number and OPCOM answers `?` - which looks like a machine
+  fault and is not one.
+- 9600 8N1 on `/dev/ttyUSB1`.
+
+Use the committed driver rather than writing another one:
+
+```bash
+python3 ../../tools/ndconsole.py --seconds 90 --out run.log '400$'
+```
+
+Command reference: `Verilog/docs/opcom-console.md` and the `nd120-fpga` skill.
+
 ## Board / device
 
 **Hardware reference:** [Sipeed wiki - Tang Nano 20K](https://wiki.sipeed.com/hardware/en/tang/tang-nano-20k/nano-20k.html)
@@ -101,7 +156,7 @@ The complete ND-120 CPU now has a Tang top-level and Gowin project here:
 
 | File | Purpose |
 |------|---------|
-| `src/ND120_TANG20K_TOP.v` | Board top: instantiates `ND3202D`, ties off the external bus, S1 = Master Clear, OPCOM UART 9600 on the BL616 (pins 69/70), 6-LED bring-up set (grants, UART RX/TX, parity, heartbeat) |
+| `src/ND120_TANG20K_TOP.v` | Board top: instantiates `ND3202D`, ties off the external bus, S1 = Master Clear, OPCOM UART 9600 on the BL616 (pins 69/70), 6 LEDs: block-read/write activity, tape byte served, SD status pair, heartbeat (see the LED table below) |
 | `src/tang20k_defines.v` | **Must stay FIRST in the project** - defines `GOWIN`, `TARGET_TANG20K`, `FPGA_FF_MODE`, `SKIP_WCS_LOAD`, `MAIN_RAM_SDRAM`, `BOARD_CLK_FREQ=27_000_000`, `UART_BAUD_RATE=9600` |
 | `src/gowin_rpll_27_54.v` | One rPLL: 54 MHz (SDRAM ctrl) + 54 MHz shifted (SDRAM chip) + 27 MHz (CPU/bus/OSC) |
 | `src/nd120_tang20k.cst` / `.sdc` | Pins (verified 20K pinout) + 27 MHz input clock |
@@ -134,6 +189,23 @@ First light checklist: heartbeat LED blinking -> OPCOM console at **9600 8N1**
 on the board's USB serial -> compare boot behaviour against
 [`../../docs/boot-golden-spec.md`](../../docs/boot-golden-spec.md).
 
+## LEDs (active low, pins 15-20; map of 07-AUG-2026)
+
+| LED | Meaning |
+|---|---|
+| `led[0]` | **Storage BLOCK READ** - flashes ~150 ms per floppy/Winchester block read (`FDISK_REQ`/`WDISK_REQ` with WR low), solid under sustained reads |
+| `led[1]` | **Storage BLOCK WRITE** - same stretcher, for block writes (WR high) |
+| `led[2]` | A tape byte was served - the SD -> TAPE-400 path delivered data (`400$` working) |
+| `led[3]` | `sd_status[0]` \ together: `00` = mount never ran, `01` = no card, |
+| `led[4]` | `sd_status[1]` / `10` = mount/FAT error, `11` = SD-FAT OK (both lit) |
+| `led[5]` | Heartbeat ~0.8 Hz - `clk_cpu` alive at all |
+
+Reading it: `led[4]`+`led[3]` both lit = the whole SD-FAT chain works. After
+`400$`, `led[2]` dark = the CPU never got tape bytes. `led[0]`/`led[1]` are
+the disc activity lights: one flash per block, a steady glow during a
+transfer burst. (Before 07-AUG, `led[0]`/`led[1]` were the bring-up
+indicators tape-request-seen / SD-clock-seen; those are retired.)
+
 ## Storage build: SD-FAT + floppy + SMD (measured 3-AUG-2026)
 
 The SD-FAT reader, the floppy at 1560 and the SMD disc at 1540 are all in one
@@ -144,11 +216,11 @@ bitstream and it places and routes. This is the build to use for disc work.
 | Define | Effect |
 |---|---|
 | `TANG_FLOPPY` | floppy-only base build: `ND_FLOPPY_DMA` at 1560 + `nd_storage` client for `FLOPPY1.IMG`. **Drops the papertape** - `TANG_INC_TAPE` goes to 0, so `400$` is not available in this bitstream. |
-| `TANG_SMD` | adds `ND_SMD` at 1540 with its own `ND_DMA_MASTER`, plus `nd_storage_smd_adapter` serving `SMD0.IMG` (client 3, slot 1376 blocks -> image limit 2,818,048 bytes). |
+| `TANG_SMD` | adds `ND_SMD` at 1540 with its own `ND_DMA_MASTER`, plus `nd_storage_disc_adapter` serving `SMD0.IMG` (client 3, slot 1376 blocks -> image limit 2,818,048 bytes). |
 
 They resolve to `TANG_INC_FLOPPY = 1`, `TANG_INC_SMD = 1`, `TANG_INC_TAPE = 0`
 in `src/ND120_TANG20K_TOP.v`, applied both to the core (which devices exist) and
-to `nd_tape_sdfat_source` (which client the SD-FAT reader serves).
+to `nd_storage_devices` (which client the SD-FAT reader serves).
 
 With either define set, the SD-FAT slimming cut `SDFAT_NO_STORAGE_CHECK` is
 suppressed automatically - floppy and SMD do random access and writeback, so the
