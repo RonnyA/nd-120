@@ -131,7 +131,13 @@ module IO_REG_41 (
 
 
   // Constant for ALD settings. ALD boot switch (for options, see comment at end of this file)
-  assign s_ALD[3:0] = 4'b0100;  //  0100 (4) == ALD boot switch for 400 (paper tape reader).
+  // 07-AUG-2026 (Ronny): default boot is the WINCHESTER. Vector 0010 (2) =
+  // switch setting 13 in the table below = "Bootstrap load from Winchester
+  // disk (500) and run" - block 0 into memory, execution from address 20
+  // (note 3). A bare '&' (or the LOAD button) now boots the disc; the paper
+  // tape stays reachable explicitly with 400$ / 400&.
+  // Previous value: 4'b0100 (switch 11, BPUN load from 400 paper tape).
+  assign s_ALD[3:0] = 4'b0010;  //  0010 (2) == bootstrap load Winchester 500, run from 20.
 
 
 
