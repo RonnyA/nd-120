@@ -24,10 +24,26 @@ module CPU_CS_ACAL_17 (
    ** The wires and registers are defined here                                   **
    *******************************************************************************/
 
+  // MACLK is the MICRO-ADDRESS LATCH STROBE - the latch enable for these
+  // chips, and their ONLY clock. It is not a "memory access clock"; these
+  // latches are its only consumer on the whole board. Confirmed against the
+  // drawing (08-AUG-2026): CHIP_31F pin LE = MACLK, CHIP_30H pin C = MACLK,
+  // and both output enables (/OE, /OC) = PD1. See PAL_44307C.v for the
+  // equation and the naming note.
+  //
   // Original chips (74373, AM29841) are TRANSPARENT LATCHES with enable.
   // When enable (MACLK) = 1: output follows input (transparent, ZERO latency).
   // When enable = 0: output holds last value (latch).
-  // During execution, MACLK = 1 always (TERM_n=0), so LUA = CSA with no delay.
+  // The capture is therefore MACLK's FALLING edge.
+  //
+  // CORRECTION (08-AUG-2026): the line that used to sit here claimed "during
+  // execution, MACLK = 1 always (TERM_n=0), so LUA = CSA with no delay". That
+  // is WRONG and was never measured. MACLK pulses once per microcycle - the
+  // PAL_44307C equation asserts it only for MAP, TRAP and RWCS cases, and the
+  // board's MACLK = ~(TERM_n & MACLK_n) adds only TERM. Measured in the
+  // waveform, MACLK goes low mid-cycle on ordinary microwords. LUA does still
+  // need to track CSA with ZERO latency while MACLK is high (see below) - that
+  // part of the reasoning stands - but not because MACLK is permanently high.
   // LUA is the WCS control-store READ ADDRESS and feeds the WCS BRAM
   // combinationally, so LUA MUST track CSA with zero latency - on a microcode
   // JUMP the target's microword must be read the same cycle the address changes.
@@ -113,7 +129,7 @@ module CPU_CS_ACAL_17 (
 `ifdef VERILATOR_SIM
   // True transparent latch behavior matching original chips.
   // always @(*) + conditional assign = transparent when enable=1, holds when 0.
-  // Required so LUA = CSA with zero latency during execution (MACLK=1 always).
+  // Required so LUA = CSA with zero latency while MACLK is high.
   // Without this, LUA lags CSA by 1 sysclk causing stale CSBITS on 1-cycle steps.
 
   // CHIP_30H: 74373 transparent latch, enable=MACLK

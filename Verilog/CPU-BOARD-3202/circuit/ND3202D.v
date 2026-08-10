@@ -140,7 +140,7 @@ module ND3202D (
 
     // Debug outputs for FPGA
     output [4:0] DEBUG_CC_TERM,  // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
-    output       DEBUG_MCLK,     // Memory clock
+    output       DEBUG_MCLK,     // Microcycle clock
     output       DEBUG_LCS_n,    // LCS_n: 0=loading microcode, 1=microcode loaded
 
     // Additional debug outputs for microcode load/boot analysis

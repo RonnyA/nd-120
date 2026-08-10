@@ -418,8 +418,8 @@ module CYC_36 (
       .RWCS_n (s_rwcs_n),       // I7  - Read/Write Control Store signal
       .TRAP_n (s_trap_n),       // I8  - Trap condition signal
       .VEX    (s_vex),          // I9  - Vector Exception signal (disable traps)
-      .MCLK_n (s_mclk_n),       // Y0_n - Memory Clock output (active low)
-      .MACLK_n(s_maclk_n),      // Y1_n - Memory Address Clock output (active low)
+      .MCLK_n (s_mclk_n),       // Y0_n - Microcycle clock output (active low)
+      .MACLK_n(s_maclk_n),      // Y1_n - Micro-address latch strobe (active low) - ACAL latch enable
       .WRFSTB (s_wrfstb),       // B0_n - Write Fast Strobe signal
       .CYD    (s_cyd),          // B1_n - Cycle Done indicator
       .EORF_n (s_eorf_n),       // B2_n - End Of Read Format signal (active low)

@@ -510,7 +510,7 @@ module CPU_PROC_32 (
       .IOXERR_n(s_ioxerr_n),                 // IOX Error signal
       .LCS_n(s_lcs_n),                       // Load Control Store signal
       .MAP_n(s_map_n),                       // Memory Address Present signal
-      .MCLK(s_mclk),                         // Master Clock signal
+      .MCLK(s_mclk),                         // Microcycle clock
       .MOR_n(s_mor_n),                       // Memory Error signal
       .MR_n(s_mr_n),                         // Master Reset signal
       .PAN_n(s_pan_n),                       // Panel signal

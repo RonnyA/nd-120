@@ -862,7 +862,7 @@ module CGA (
       .FIDBO_15_0(s_int_IDB_15_0_IN[15:0]), // FIDB, 16-bit
       .IOXERRN(sx_ioxerr_n),       // IO Exception Error, active low
       .LAA_3_0(sx_laa_3_0_out[3:0]), // Latched Address A, 4-bit
-      .MCLK(sx_mclk),              // Master Clock
+      .MCLK(sx_mclk),              // Microcycle clock
       .MORN(sx_mor_n),             // MOR signal, active low (Memory Error)
       .PANN(sx_pan_n),             // PAN signal, active low (Panel Interrupt)
       .PARERRN(sx_parerr_n),       // Parity Error, active low
@@ -900,7 +900,7 @@ module CGA (
     .CSMREQ       (s_csmreq),                // Chip Select for MAC, active high
     .DOUBLE       (sx_double_out),           // Double Precision Control
     .ILCSN        (sx_ilcs_n),               // Instruction Load Control Signal, active low
-    .MCLK         (sx_mclk),                 // Master Clock
+    .MCLK         (sx_mclk),                 // Microcycle clock
     .PONI         (sx_poni_out),             // Memory Protection ON, PONI=1
     .PTM          (s_ptm),                   // Processor Test Mode
     .WR3          (s_wr3),                   // Write Control Signal 3
@@ -966,7 +966,7 @@ module CGA (
       .LDLCN(s_ldlc_n),                         // Load LCN
       .LWCAN(s_lwca_n),                         // Latch WCA
       .MAPN(sx_map_n),                          // Memory Address Present signal
-      .MCLK(sx_mclk),                           // Master Clock
+      .MCLK(sx_mclk),                           // Microcycle clock
       .MI(s_mi),                                // STS M bit
       .MRN(sx_mrn),                             // Memory Read, active low
       .OVF(s_ovf),                              // Overflow

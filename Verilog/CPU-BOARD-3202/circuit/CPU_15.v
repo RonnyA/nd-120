@@ -19,8 +19,8 @@ module CPU_15 (
    ** The inputs are defined here                                                **
    *******************************************************************************/
     input CLK,          //! Main system clock
-    input MCLK,         //! Memory clock
-    input MACLK,        //! Memory access clock
+    input MCLK,         //! Microcycle clock - one pulse per microinstruction cycle (= TERM outside RWCS), stretched during RWCS. Not a master/memory clock.
+    input MACLK,        //! Micro-address latch strobe - latch enable for the control-store address latches in CPU_CS_ACAL_17 (transparent high, captures on the FALLING edge). NOT a memory clock.
     input ALUCLK_EN,    //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input MCLK_EN,      //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input MCLK_FALL_EN, //! MCLK fall-enable pulse (FPGA_FF_MODE, else 0)
@@ -111,7 +111,7 @@ module CPU_15 (
     output ECCR,         //! ECC Register Detected for IOX
     output HIT,          //! Cache hit
     output LEV0,         //! Level 0 active
-    output LED1,         //! Cache enabled ?
+    output LED1,         //! UNKNOWN: believed to indicate cache enabled, never traced. See Verilog/docs/SIGNALS.md
     output [12:0] CSA_12_0,     //! Microcode Address (for debugging)
     output [15:0] XMIC_DBG_15_0 //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
 );

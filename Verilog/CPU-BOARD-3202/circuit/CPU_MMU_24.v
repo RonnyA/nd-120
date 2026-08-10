@@ -58,7 +58,7 @@ module CPU_MMU_24 (
     output LAPA_n,               //! Latch Page Address, controls latching of the page address
     output [6:0] PT_15_9_OUT,    //! Page Table data output, top 7 bits
     output WCA_n,                //! Write Cache Address, controls writing to the cache address register
-    output LED1                  //! Cache enabled ?
+    output LED1                  //! UNKNOWN: believed to indicate cache enabled, never traced. See Verilog/docs/SIGNALS.md
 );
 
 
