@@ -49,8 +49,35 @@ int bus_address = 0;
 int bus_data = 0;
 int bus_claimed = 0; // a C-model device owns the strobed address
 
-/* Winchester trace sink - defined with the WD disc backend further down. */
-static FILE *wd_trace(void);
+/* Winchester trace sink. ND120_WD_TRACE_FILE names a file that nothing else
+** writes to - a plain printf is useless under the nd120_probe engine, whose
+** stdout carries the machine-readable line protocol, so trace lines would be
+** parsed as junk and dropped.
+**
+** DEFINED HERE, OUTSIDE `ifdef ND120_VERILOG_DEVICES`, because it is CALLED
+** from the C-model bus path below (the IDENT and IOX 500 trace lines) which is
+** NOT inside that guard. It used to live with the Winchester backend further
+** down, inside the guard, so every build WITHOUT ND120_VERILOG_DEVICES failed
+** to link with four "undefined reference to wd_trace()" errors. That is what
+** broke `make -C sim compare`, the latch-vs-FF golden gate. */
+static FILE *vwd_trc = 0;
+static int vwd_trc_tried = 0;
+
+static FILE *wd_trace(void)
+{
+	if (!vwd_trc_tried)
+	{
+		vwd_trc_tried = 1;
+		const char *tf = getenv("ND120_WD_TRACE_FILE");
+		if (tf != 0)
+		{
+			vwd_trc = fopen(tf, "w");
+			if (vwd_trc)
+				setvbuf(vwd_trc, 0, _IOLBF, 0);
+		}
+	}
+	return vwd_trc;
+}
 
 void proccess_bif_signal(VND120_TOP *top)
 {
@@ -383,14 +410,21 @@ void addDevices()
 ** flag spans one full clock; the device tolerates seeing the same
 ** byte on two edges (same data, no position change). */
 static FILE *vtape_file = 0;
+static int vtape_file_tried = 0;
 static int vtape_prev_req = 0;
 static int vtape_prev_rewind = 0;
 static int vtape_valid_ticks = 0;
 
 void process_verilog_tape(VND120_TOP *top)
 {
-	if (vtape_file == 0)
+	/* Open ONCE, whether or not it succeeds. Retrying a failed open on
+	** every tick costs two filesystem round-trips per tick and made the
+	** whole simulation 17x slower (measured: 100k ticks in 52.8 s with the
+	** retry, 3.1 s without) - and it printed one line per tick as well.
+	** Same "tried" guard the SMD and Winchester backends below already use. */
+	if (vtape_file == 0 && !vtape_file_tried)
 	{
+		vtape_file_tried = 1;
 		vtape_file = fopen("INSTRUCTION-B.BPUN", "r");
 		if (vtape_file == 0)
 			printf("VerilogTape: unable to open INSTRUCTION-B.BPUN\r\n");
@@ -432,6 +466,8 @@ void process_verilog_tape(VND120_TOP *top)
 ** size; sector size by format: 0=512, 1=256, 2=128, 3=1024 bytes
 ** (nd100x deviceFloppyDMA). One word moves per half-clock call. */
 static FILE *vflp_file = 0;
+static int vflp_file_tried = 0;
+static int vflp_media_fmt = 0xF;
 static int vflp_dbg = (getenv("ND120_FLOPPY_DEBUG") != 0);
 static int vflp_prev_req = 0;
 static int vflp_state = 0;    // 0 idle, 1 read-stream, 2 write-addr, 3 write-take, 4 read-tail
@@ -441,8 +477,16 @@ static int vflp_done_ticks = 0;
 
 void process_verilog_floppy(VND120_TOP *top)
 {
-	if (vflp_file == 0)
+	/* Open ONCE, whether or not it succeeds. This used to retry on EVERY
+	** tick whenever the image was absent - two failed opens per tick, which
+	** on a /mnt filesystem cost ~30 us each and made the whole simulation
+	** 17x slower (measured: 100k ticks in 52.8 s with the retry, 3.1 s
+	** without). A run with no floppy mounted is a normal case (the machine
+	** may be booting from the Winchester), so the absent image must be
+	** cheap. Same "tried" guard the SMD and Winchester backends below use. */
+	if (vflp_file == 0 && !vflp_file_tried)
 	{
+		vflp_file_tried = 1;
 		// ND120_FLOPPY_IMG selects the image (unit tests use a generated
 		// one); default FLOPPY.IMG
 		const char *img = getenv("ND120_FLOPPY_IMG");
@@ -456,7 +500,7 @@ void process_verilog_floppy(VND120_TOP *top)
 		// (512 B/sector, format word 0); >= 1261568 bytes = 5.25"
 		// 1.2MB (1024 B/sector + double sided + double density = 017
 		// octal). Default 0xF (the 1.2MB descriptor) if unknown.
-		top->FDISK_MEDIA_FMT = 0xF;
+		vflp_media_fmt = 0xF;
 		if (vflp_file != 0)
 		{
 			long sz;
@@ -464,11 +508,14 @@ void process_verilog_floppy(VND120_TOP *top)
 			sz = ftell(vflp_file);
 			fseek(vflp_file, 0, SEEK_SET);
 			if (sz == 315392)
-				top->FDISK_MEDIA_FMT = 0x0;
+				vflp_media_fmt = 0x0;
 			else if (sz >= 1261568)
-				top->FDISK_MEDIA_FMT = 0xF;
+				vflp_media_fmt = 0xF;
 		}
 	}
+	// Driven every call, as it was before the open was guarded, so the
+	// device port never depends on how often this function runs.
+	top->FDISK_MEDIA_FMT = vflp_media_fmt;
 
 	if (vflp_done_ticks > 0)
 	{
@@ -748,24 +795,8 @@ static int vwd_file_tried = 0;
 ** nd120_probe engine: its stdout carries the machine-readable line protocol,
 ** so trace lines are parsed as junk and dropped. Set ND120_WD_TRACE_FILE to a
 ** path to get the trace in a file that nothing else writes to. */
-static FILE *vwd_trc = 0;
-static int vwd_trc_tried = 0;
-
-static FILE *wd_trace(void)
-{
-	if (!vwd_trc_tried)
-	{
-		vwd_trc_tried = 1;
-		const char *tf = getenv("ND120_WD_TRACE_FILE");
-		if (tf != 0)
-		{
-			vwd_trc = fopen(tf, "w");
-			if (vwd_trc)
-				setvbuf(vwd_trc, 0, _IOLBF, 0);
-		}
-	}
-	return vwd_trc;
-}
+/* wd_trace() and its two statics now live near the top of this file, outside
+** the ND120_VERILOG_DEVICES guard - see the comment there. */
 static int vwd_prev_req = 0;
 static int vwd_state = 0;
 static long vwd_pos = 0;   // byte position, advances across chunks

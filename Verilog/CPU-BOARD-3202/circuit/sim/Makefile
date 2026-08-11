@@ -57,6 +57,8 @@ test-all: test-cyctermd test-ccd test-memaddr test-memchain test-memchain-blockr
 clean:
 	rm -f CYC_TERM_D_tb CYC_CC_D_tb MEM_ADDR_44_tb MEM_CHAIN_tb MEM_CHAIN_BLOCKRAM_tb MEM_CHAIN_SIM_tb *.vcd *_out.log
 	rm -f MEM_RAM_49_SIM_PARITY_tb_p0 MEM_RAM_49_SIM_PARITY_tb_p1 MEM_ERROR_47_tb_bin *_result.tmp
+	rm -f CPU_MMU_PT_29_shadow_rmw_tb_bin CPU_MMU_PT_29_shadow_rmw_async_tb_bin
+	rm -f CPU_MMU_24_shadow_tb_bin CPU_MMU_24_shadow_async_tb_bin
 	# NB: CPU_CYCLE_TIMELINE.golden is a checked-in reference, NOT an artefact - never delete it here
 	rm -f CPU_CYCLE_TIMELINE_tb CPU_CS_RWCS_CYCLE_tb CPU_CS_TCV_20_tb cycle_timeline_out.trace cycle_timeline.diff
 
@@ -198,7 +200,63 @@ test-mmupt: CPU_MMU_PT_29_tb_bin
 	./CPU_MMU_PT_29_tb_bin | tee mmupt_result.tmp
 	@grep -q "TB_RESULT: PASS" mmupt_result.tmp && rm -f mmupt_result.tmp
 
-.PHONY: test-memparity test-memerror test-mmupt-replay test-mmupt
+# CPU_MMU_PT_29 SHADOW-MEMORY read-modify-write bench: the PT STATUS bank
+# (EPT_n) that had no coverage at all, bank shifting over PT_number*64+vpn,
+# the shared-WMAP_n bank isolation, and the trap handler's read/modify/
+# write-back of a PTE at three read->write distances (0 = back-to-back).
+# TWO BUILDS from one source, because the shadow RAM read model is the
+# centre of the investigation:
+#   plain            - TMM2018D_25 synchronous block RAM, 1-clock read
+#   -DTMM_ASYNC_READ - the faithful async SRAM read of the real chip, 0-clock
+# Expectations that differ are written per model with `ifdef, so BOTH must
+# pass - a bench that only passes in one mode is not a regression gate.
+MMUPT_RMW_SRCS = CPU_MMU_PT_29_shadow_rmw_tb.v $(CIRCUIT)/CPU_MMU_PT_29.v \
+                 $(MMUPT_SUPPORT)/TMM2018D_25.v $(MMUPT_SUPPORT)/IMS1403_25.v
+
+test-mmupt-rmw: CPU_MMU_PT_29_shadow_rmw_tb_bin CPU_MMU_PT_29_shadow_rmw_async_tb_bin
+	./CPU_MMU_PT_29_shadow_rmw_tb_bin | tee mmupt_rmw_result.tmp
+	@grep -q "TB_RESULT: PASS" mmupt_rmw_result.tmp
+	./CPU_MMU_PT_29_shadow_rmw_async_tb_bin | tee mmupt_rmw_result.tmp
+	@grep -q "TB_RESULT: PASS" mmupt_rmw_result.tmp && rm -f mmupt_rmw_result.tmp
+
+CPU_MMU_PT_29_shadow_rmw_tb_bin: $(MMUPT_RMW_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(MMUPT_RMW_SRCS)
+
+CPU_MMU_PT_29_shadow_rmw_async_tb_bin: $(MMUPT_RMW_SRCS)
+	$(IVERILOG) -g2012 -DTMM_ASYNC_READ -o $@ $(MMUPT_RMW_SRCS)
+
+# CPU_MMU_24 (MMU TOP SHEET) shadow write STROBE + BUS wiring bench.
+# Sheet 29 proves the shadow RAM stores and returns entries; this one takes
+# the layer above it - the single WMAP_n strobe (LSHADOW & WRITE & CYD), the
+# PTIDB/PPNX transceiver merges onto the PT and PPN buses, and PAL_44306A -
+# acting on the real RAM chips. Includes a 256-combination structural sweep
+# proving no write strobe can ever coincide with a disabled transceiver
+# (the raw-IDB merge question at CPU_MMU_24.v:216).
+# TWO BUILDS from one source, same reason as test-mmupt-rmw:
+#   plain            - TMM2018D_25 synchronous block RAM, 1-clock read
+#   -DTMM_ASYNC_READ - the faithful async SRAM read of the real chip, 0-clock
+MMU24_SRCS = CPU_MMU_24_shadow_tb.v $(CIRCUIT)/CPU_MMU_24.v \
+             $(CIRCUIT)/CPU_MMU_PT_29.v $(CIRCUIT)/CPU_MMU_CACHE_25.v \
+             $(CIRCUIT)/CPU_MMU_CSR_26.v $(CIRCUIT)/CPU_MMU_HIT_27.v \
+             $(CIRCUIT)/CPU_MMU_PPNX_28.v $(CIRCUIT)/CPU_MMU_PTIDB_30.v \
+             $(PAL)/PAL_44306A.v $(PAL)/PAL_44402D.v $(PAL)/PAL_44402D_EN.v \
+             $(MMUPT_SUPPORT)/TMM2018D_25.v $(MMUPT_SUPPORT)/IMS1403_25.v \
+             $(MMUPT_SUPPORT)/Am9150.v
+
+test-mmu24-shadow: CPU_MMU_24_shadow_tb_bin CPU_MMU_24_shadow_async_tb_bin
+	./CPU_MMU_24_shadow_tb_bin | tee mmu24_shadow_result.tmp
+	@grep -q "TB_RESULT: PASS" mmu24_shadow_result.tmp
+	./CPU_MMU_24_shadow_async_tb_bin | tee mmu24_shadow_result.tmp
+	@grep -q "TB_RESULT: PASS" mmu24_shadow_result.tmp && rm -f mmu24_shadow_result.tmp
+
+CPU_MMU_24_shadow_tb_bin: $(MMU24_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(MMU24_SRCS)
+
+CPU_MMU_24_shadow_async_tb_bin: $(MMU24_SRCS)
+	$(IVERILOG) -g2012 -DTMM_ASYNC_READ -o $@ $(MMU24_SRCS)
+
+.PHONY: test-memparity test-memerror test-mmupt-replay test-mmupt test-mmupt-rmw \
+        test-mmu24-shadow
 
 # CPU_STOC_35: IDB->CD gate. Exhaustive 2*65536 sweep; STOC_n high must
 # drive CD to 0 (FPGA tri-state convention, no Z inside the fabric).
@@ -441,3 +499,58 @@ test-cycle-timeline: CPU_CYCLE_TIMELINE_tb
 golden-cycle-timeline: CPU_CYCLE_TIMELINE_tb
 	@./CPU_CYCLE_TIMELINE_tb 2>&1 | grep -v '^TB_RESULT:' > CPU_CYCLE_TIMELINE.golden
 	@echo "regenerated CPU_CYCLE_TIMELINE.golden - review the diff before committing"
+
+# ---------------------------------------------------------------------------
+# CPU_MMU_PPNX_28: the PPN <-> IDB transceivers of sheet 28 - 10B (IDB15..8 /
+# PPN25..18, /G = EIPU_n), 9B (IDB7..0 / PPN17..10, /G = EIPL_n), shared
+# DIR = ESTOF_n, plus 8B (74LS244, /G = EIPUR_n) forcing PPN25..19 to 0 and
+# passing IDB8 to PPN18. The bench asserts what the drawing shows: two
+# INDEPENDENT byte enables, one direction, and a disabled driver that puts 0
+# on the bus (the house no-z convention, see Shared/support/TTL_74245.v).
+#
+# HISTORY: when written this bench failed 570 of its 784 checks. The sheet's
+# IDB and PPN outputs carried no enable term at all and defaulted to a copy of
+# the corresponding input, so the sheet drove both buses on every cycle -
+# including the ones where DIR pointed the other way. The output assignments
+# are now gated per byte from the drawing, and the bench is green and
+# registered.
+#
+# Run:  make test-mmuppnx
+# ---------------------------------------------------------------------------
+MMUPPNX_SRCS = CPU_MMU_PPNX_28_tb.v $(CIRCUIT)/CPU_MMU_PPNX_28.v
+
+CPU_MMU_PPNX_28_tb_bin: $(MMUPPNX_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(MMUPPNX_SRCS)
+
+test-mmuppnx: CPU_MMU_PPNX_28_tb_bin
+	./CPU_MMU_PPNX_28_tb_bin | tee mmuppnx_result.tmp
+	@grep -q "TB_RESULT: PASS" mmuppnx_result.tmp && rm -f mmuppnx_result.tmp
+
+.PHONY: test-mmuppnx
+
+# ---------------------------------------------------------------------------
+# test-mmucache-nocache - the -DND120_NO_CACHE contract.
+#
+# The Tang Nano 20K cannot hold this design with the cache present once the
+# hit comparator on sheets 27/24 is correct (before the fix it compared six
+# wrong bits against a signal that is zero on every mapped access, so the
+# synthesiser deleted most of the cache path as dead logic). ND120_NO_CACHE
+# omits the five cache memories and the used-bit PAL, forces the board's real
+# SW1 cache-off position, and must therefore REPORT the cache as disabled.
+#
+# The normal test-mmucache builds necessarily FAIL against a build with no
+# cache in it - that is a different machine, not a regression - so the
+# cache-off contract gets its own bench.
+# ---------------------------------------------------------------------------
+MMUCACHE_NC_SRCS = CPU_MMU_CACHE_25_nocache_tb.v $(CIRCUIT)/CPU_MMU_CACHE_25.v \
+                   $(SUPPORT)/TMM2018D_25.v $(SUPPORT)/Am9150.v \
+                   $(PAL)/PAL_44402D_EN.v $(PAL)/PAL_44402D.v
+
+CPU_MMU_CACHE_25_nocache_tb_bin: $(MMUCACHE_NC_SRCS)
+	$(IVERILOG) -g2012 -DND120_NO_CACHE -o $@ $(MMUCACHE_NC_SRCS)
+
+test-mmucache-nocache: CPU_MMU_CACHE_25_nocache_tb_bin
+	./CPU_MMU_CACHE_25_nocache_tb_bin | tee mmucache_nc_result.tmp
+	@grep -q "TB_RESULT: PASS" mmucache_nc_result.tmp && rm -f mmucache_nc_result.tmp
+
+.PHONY: test-mmucache-nocache

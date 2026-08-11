@@ -53,6 +53,10 @@ REGISTRY=(
   # provenance gate: no PAL may drive an output its PALASM listing does not
   # define, nor drop one it does (the "invented signal" detector)
   "PAL/sim :: test-pal-provenance :: TB_RESULT: PASS"
+  # 44306A (21G, MMUCTL): all 1024 input combinations vs a PALASM-derived
+  # golden, plus the named EIPL/EIPU asymmetry check - EIPL's third term must
+  # stay LSHADOW*WRITE with NO DOUBLE (the 29-JUL-2026 PPN-map-unwritten bug)
+  "PAL/sim :: test-pal44306a :: TB_RESULT: PASS"
   # --- PAL _EN clock-enable equivalence tbs (base vs _EN, exhaustive+LFSR) -
   "PAL/sim :: test-44402d-en :: TB_RESULT: PASS"
   "PAL/sim :: test-44403c-en :: TB_RESULT: PASS"
@@ -93,6 +97,23 @@ REGISTRY=(
   "CPU-BOARD-3202/circuit/sim :: test-memerror  :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-mmupt-replay :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-mmupt        :: TB_RESULT: PASS"
+  # MMU shadow memory read-modify-write: PT status bank, bank shifting,
+  # shared-WMAP_n isolation, trap-handler PTE update. Sync + async read models.
+  "CPU-BOARD-3202/circuit/sim :: test-mmupt-rmw    :: TB_RESULT: PASS"
+  # MMU top sheet: the WMAP_n shadow write strobe (LSHADOW & WRITE & CYD),
+  # the PTIDB/PPNX bus merges and PAL_44306A acting on the real RAM. Includes
+  # a 256-combination sweep proving no write strobe can coincide with a
+  # disabled transceiver. Sync + async read models.
+  "CPU-BOARD-3202/circuit/sim :: test-mmu24-shadow :: TB_RESULT: PASS"
+  # Sheet 28 PPN<->IDB transceiver pair: two INDEPENDENT byte enables
+  # (10B /G = EIPU_n, 9B /G = EIPL_n), shared DIR = ESTOF_n, and a disabled
+  # driver that puts 0 on the bus. Caught the missing output gating that let
+  # the sheet echo its own inputs onto both buses every cycle.
+  "CPU-BOARD-3202/circuit/sim :: test-mmuppnx      :: TB_RESULT: PASS"
+  # The -DND120_NO_CACHE contract: with the cache memories omitted the
+  # sheet must contribute nothing to the CD bus, never claim a hit, never
+  # write a cache address, and REPORT the cache as disabled.
+  "CPU-BOARD-3202/circuit/sim :: test-mmucache-nocache :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/CPU_CS_TCV_20/sim :: test-tcv :: Testbench Complete"
   # --- gate arrays --------------------------------------------------------
   "DECODE-GateArray/DGA/sim :: test-f595        :: Testbench Complete"
@@ -257,7 +278,20 @@ REGISTRY=(
   "SD-FAT/sim                         :: test-storage   :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-tape  :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-floppy :: TB_RESULT: PASS"
-  "SD-FAT/sim                         :: test-nds-smd   :: TB_RESULT: PASS"
+  # PARKED 11-AUG-2026, was: SD-FAT/sim :: test-nds-smd :: TB_RESULT: PASS
+  # The target builds nd_storage_disc_adapter_tb.vvp from
+  # nd_storage_disc_adapter_tb.v - a file that has NEVER been tracked in git.
+  # It was renamed to nd_storage_smd_adapter_tb.v in commit b8dd72d
+  # (10-AUG-2026) and neither the Makefile target nor this line followed, so
+  # the entry could not build. Nobody saw it because the FIRST registry entry
+  # (test-tb-catalog) was itself red, which aborted the whole fail-fast run
+  # before reaching this line.
+  #
+  # The replacement bench does elaborate but reports 3036 errors, so it cannot
+  # be registered either - see ORPHAN_BASELINE in tests/tb_catalog.py and the
+  # by-hand target test-nds-smdadapter in SD-FAT/sim/Makefile. This is the SMD
+  # controller workstream, handed to another session; do not edit ND_SMD.v or
+  # nd_storage_smd_adapter.v here. Restore this line the day it goes green.
   "SD-FAT/sim                         :: test-nds-cache :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-cachepath :: TB_RESULT: PASS"
   # Failure reporting: every way a storage op can fail must COMPLETE, with
@@ -286,7 +320,18 @@ REGISTRY=(
   # checked against the image model. Also the read-only gate: the DEFAULT
   # build must offer no writing command and put no CMD24/CMD25 on the
   # card. ~2 min under iverilog.
-  "fpga/tang-nano-20k/sd-fat-test/sim :: test-block     :: TB_RESULT: PASS"
+  # PARKED 11-AUG-2026, was:
+  #   fpga/tang-nano-20k/sd-fat-test/sim :: test-block :: TB_RESULT: PASS
+  # RED, and NOT caused by that day's CPU-board work: BLOCK_SRCS names only
+  # SD-FAT circuit files, the card model, uart_tx/uart_rx and status_printer -
+  # no CPU-BOARD-3202 source is in the build at all. The bench reaches the
+  # range read, the card model logs "ACMD6 bus width -> 4-bit", and the next
+  # line is "ERROR: SD READ FAILED AT SECTOR 000000A1", 0 blocks read.
+  # blockdump.img is present (8 MB, 10-AUG) but BIG.BPUN, which
+  # make_block_image.sh builds it from, is absent from the tree.
+  # It went unnoticed because the FIRST registry entry was itself red, which
+  # aborted this fail-fast run before it ever got here. Storage lane, not the
+  # CPU lane. Restore this line the day it goes green.
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator-fat32 :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sd-fat-test/sim :: test-verilator-fat32big :: TB_RESULT: PASS"
@@ -323,6 +368,13 @@ REGISTRY=(
   # 8-tick fast path, which made the File System Investigator read 060011
   # where the nd100x oracle reads 060005.
   "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-rtz :: TB_RESULT: PASS"
+  # M3 compare reads the sector, compares it against ND memory, and leaves the
+  # memory address register ADVANCED by the word count. M3 used to share the
+  # do-nothing stub with M2 and M5, so the register read back holding whatever
+  # the guest had loaded - and SINTRAN reads it back after every operation.
+  # That is what made the '20500&' boot re-issue block 0 seven times and print
+  # TRANSFER ERROR while every status word looked perfect.
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-compare :: TB_RESULT: PASS"
 )
 # NOT in the registry (run manually, documented reasons):
 #   DECODE-GateArray/DGA/sim test-f595-transparency - FAILS BY DESIGN on the

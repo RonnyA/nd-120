@@ -16,6 +16,24 @@ PAL_44601B_tb: PAL_44601B_tb.v $(VERILOG_ROOT)/PAL/PAL_44601B.v
 PAL_44801A_tb: PAL_44801A_tb.v $(VERILOG_ROOT)/PAL/PAL_44801A.v
 	$(IVERILOG) -g2012 -I$(VERILOG_ROOT)/Shared/logisim -I$(VERILOG_ROOT)/Shared/ndlib -I$(VERILOG_ROOT)/Shared/support -I$(VERILOG_ROOT)/PAL -o $@ $^
 
+# PAL_44306A - MMU control (21G, MMUCTL). Exhaustive 1024-vector sweep of all
+# 10 inputs against a golden re-derived from the PALASM listing, plus named
+# checks that pin the EIPL/EIPU asymmetry (EIPL's third term must NOT carry
+# DOUBLE - the 29-JUL-2026 bug that left the PPN map RAM unwritten in REX
+# mode, so every paged access ran in physical page 0).
+PAL_44306A_SRCS = PAL_44306A_tb.v $(VERILOG_ROOT)/PAL/PAL_44306A.v
+
+PAL_44306A_tb_bin: $(PAL_44306A_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(PAL_44306A_SRCS)
+
+# Teeth build: corrupts the golden EIPL bit, so this binary MUST report FAIL.
+PAL_44306A_teeth_tb_bin: $(PAL_44306A_SRCS)
+	$(IVERILOG) -g2012 -DTEETH_TEST -o $@ $(PAL_44306A_SRCS)
+
+test-pal44306a: PAL_44306A_tb_bin
+	./PAL_44306A_tb_bin | tee pal44306a_result.tmp
+	@grep -q "TB_RESULT: PASS" pal44306a_result.tmp && rm -f pal44306a_result.tmp
+
 # PAL_44401B - bus cycle timing (BTIM). Generates EIOD (-> BIOXE), gated by
 # CACT: the IOX strobe cannot fire unless the CPU is active on the bus.
 PAL_44401B_tb: PAL_44401B_tb.v $(VERILOG_ROOT)/PAL/PAL_44401B.v
@@ -95,9 +113,10 @@ test-44511a-en: PAL_44511A_EN_equiv_tb
 test-pal-provenance:
 	python3 check_provenance.py
 
-test-all: test-pal44304e test-pal45008b test-44601 test-pal44801a test-pal44401b test-44402d-en test-44403c-en test-44404c-en test-44407a-en test-44408b-en test-44511a-en test-pal-provenance
+test-all: test-pal44304e test-pal45008b test-44601 test-pal44801a test-pal44401b test-pal44306a test-44402d-en test-44403c-en test-44404c-en test-44407a-en test-44408b-en test-44511a-en test-pal-provenance
 
 clean:
+	rm -f PAL_44306A_tb_bin PAL_44306A_teeth_tb_bin pal44306a_result.tmp
 	rm -f PAL_44304E_tb PAL_45008B_tb PAL_44601B_tb PAL_44801A_tb PAL_44401B_tb PAL_44402D_EN_equiv_tb PAL_44403C_EN_equiv_tb PAL_44404C_EN_equiv_tb PAL_44407A_EN_equiv_tb PAL_44408B_EN_equiv_tb PAL_44511A_EN_equiv_tb *.vcd
 
-.PHONY: test-pal44304e test-pal45008b test-44601 test-pal44801a test-pal44401b test-44402d-en test-44403c-en test-44404c-en test-44407a-en test-44408b-en test-44511a-en test-all clean
+.PHONY: test-pal44304e test-pal45008b test-44601 test-pal44801a test-pal44401b test-pal44306a test-44402d-en test-44403c-en test-44404c-en test-44407a-en test-44408b-en test-44511a-en test-all clean

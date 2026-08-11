@@ -388,3 +388,33 @@ test-nds-cachepath: nd_storage_cachepath_tb.vvp nds_cache_test.img
 	@grep -q "TB_RESULT: PASS" nds_cachepath_out.log
 
 .PHONY: test-nds-cache test-nds-cachepath
+
+# ---------------------------------------------------------------------------
+# test-nds-smdadapter - nd_storage_smd_adapter_tb.v
+#
+# DELIBERATELY NOT REGISTERED in Verilog/tests/run_all_tests.sh and not part of
+# any aggregate target: it is RED (TB_RESULT: FAIL 3036 errors as of
+# 11-AUG-2026) and the registry is fail-fast, so a red entry would abort every
+# later test. It is also the SMD controller workstream, which was handed to
+# another session - do not edit ND_SMD.v or nd_storage_smd_adapter.v here.
+#
+# It exists as a target because the coverage audit (tests/audit_testbenches.sh)
+# requires every *_tb.v to be runnable from its own sim/Makefile. Before this
+# rule the bench had neither a rule nor a registry entry, so the catalogue
+# check failed - and that check is the FIRST registry entry, which meant the
+# ENTIRE test suite aborted before running a single test.
+#
+# Register it the day it goes green.  Run by hand:  make test-nds-smdadapter
+# ---------------------------------------------------------------------------
+SMDADAPTER_SRCS = $(STACK_SRCS) \
+                  ../circuit/nd_storage_disc_adapter.v \
+                  nd_storage_smd_adapter_tb.v
+
+nd_storage_smd_adapter_tb.vvp: $(SMDADAPTER_SRCS)
+	$(IVERILOG) -g2005 -I../circuit -o $@ $(SMDADAPTER_SRCS)
+
+test-nds-smdadapter: nd_storage_smd_adapter_tb.vvp nds_storage.img
+	$(VVP) nd_storage_smd_adapter_tb.vvp | tee nds_smdadapter_out.log
+	@grep -q "TB_RESULT: PASS" nds_smdadapter_out.log
+
+.PHONY: test-nds-smdadapter
