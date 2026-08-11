@@ -91,6 +91,15 @@
 // does not.
 `define TANG_WD
 
+// CACHE COMPILED OUT. Fixing the cache-hit comparator (sheets 27 and 24) made
+// the cache REAL: it used to compare six wrong bits against a signal that is
+// zero on every mapped access, so most of the cache path was dead logic the
+// synthesiser removed. With it live the design needs 28330 logic cells against
+// this part's 20736. ND120_NO_CACHE omits the five cache memories and the
+// used-bit PAL, forces the board's own SW1 cache-off position, and makes the
+// machine REPORT the cache as disabled. Gate: make test-mmucache-nocache.
+`define ND120_NO_CACHE
+
 // (the TANG_SMD / TANG_WD mutual-exclusion guard lives inside
 //  ND120_TANG20K_TOP.v, where an instantiation is legal syntax and the
 //  error names itself instead of being a bare 'syntax error' here)
@@ -122,10 +131,42 @@
 // read - must run on a build with this OFF.
 //`define TANG_WD_TRACE_DUMP
 
+// ND_WD_TRACE_BLKONLY = keep the IOX trace, but let ONLY block-address
+// writes (+3) into the ring. One record per disc operation, so 256 entries
+// cover the whole '20500&' SINTRAN load (251 block addresses, counted from
+// the nd100x trace of the same WD0.IMG) instead of its last thirteen
+// operations. Use this to find WHERE the machine first asks for a different
+// disc address than the working emulator does; then go back to the full
+// trace to see what that operation did.
+//`define ND_WD_TRACE_BLKONLY
+
+// ND_WD_TRACE_OPSONLY = keep the IOX trace, but let only the three
+// records that describe an operation into the ring: block address (+3),
+// word count (+7), and the ACTIVATING control word (+5 with bit 2 set).
+// 85 operations of history instead of thirteen, with the opcode and the
+// length of each - which BLKONLY does not carry. Takes precedence over
+// ND_WD_TRACE_BLKONLY when both are defined.
+//`define ND_WD_TRACE_OPSONLY
+
 // ND_WD_TRACE_DBUF = make the ring capture the adapter's buffer writes
 // (WDBUF_WE/WDBUF_WDATA) instead of IOX traffic. Discriminates the last two
 // suspects for the zero-read. See the note in ND120_TANG20K_TOP.v.
 //`define ND_WD_TRACE_DBUF
+
+// ND_WD_TRACE_TVEC = ring the TRAP DISPATCH instead of the Winchester
+// registers: one record per entry to level 14, carrying TVEC (the ND-100
+// internal interrupt code: 1 = monitor call, 2 = memory protection
+// violation, 3 = page fault), TRAPN and the level. Needs the matching
+// export in DELILAH-CPU/CGA_MIC/circuit/CGA_MIC.v, which is guarded by
+// this same define.
+//`define ND_WD_TRACE_TVEC
+
+// ND_WD_TRACE_CSATRAP = free-run the microcode address (CSA) and TRIGGER on a
+// trap that happens after the card has been idle 45 s, i.e. at the livelock.
+// The ring then holds the ~256 clk2x cycles of microcode BEFORE the fault -
+// the run-up that sampling at the trap instant cannot show, because on a trap
+// the micro-address bus is the trap vector itself.
+//`define ND_WD_TRACE_CSATRAP
 
 // ND_WD_TRACE_REGION = capture what the SDRAM region returns on each read
 // completion. Follows the dbuf probe, which proved the words are already

@@ -89,7 +89,23 @@ module CPU_MMU_CACHE_25 (
    *******************************************************************************/
   assign s_ca_10_0 = CA_10_0;
   assign s_hit_1_0_n[1:0] = HIT_1_0_n;
+`ifdef ND120_NO_CACHE
+  // CACHE COMPILED OUT (-DND120_NO_CACHE).
+  //
+  // This is NOT an invented mode: the board has SW1, a real cache on/off
+  // switch, and CON low IS the off position. So the machine reports its cache
+  // status as DISABLED exactly as it would with the switch thrown, LED1 lit,
+  // and the hit comparators held disabled - and every access goes to main
+  // memory. What the define adds on top is that the cache SRAMs and the
+  // used-bit PAL are not instantiated at all, so the logic is not merely
+  // bypassed, it is absent.
+  //
+  // Why it exists: on the Tang Nano 20K the design does not fit with the
+  // cache present. Ignore SW1_CONSOLE and force the off position.
+  assign s_con = 1'b0;
+`else
   assign s_con = SW1_CONSOLE;
+`endif
   assign s_brk_n = BRK_n;
   assign s_wcinh_n = WCINH_n;
   assign s_cclr_n = CCLR_n;
@@ -116,7 +132,11 @@ module CPU_MMU_CACHE_25 (
   // Gate the cache CD output by HIT so it contributes 0 unless this line genuinely
   // matches the requested address; memory then passes cleanly on every miss/inhibit.
   // Escape hatch: -DND120_CACHE_DRIVE_UNGATED restores the raw schematic behaviour.
-`ifdef ND120_CACHE_DRIVE_UNGATED
+`ifdef ND120_NO_CACHE
+  // No cache RAM exists in this build, so the sheet contributes nothing to the
+  // wired-OR CD bus and memory data passes cleanly on every access.
+  assign CD_15_0_OUT = 16'b0;
+`elsif ND120_CACHE_DRIVE_UNGATED
   assign CD_15_0_OUT = s_cd_15_0_out[15:0];
 `else
   assign CD_15_0_OUT = s_hit ? s_cd_15_0_out[15:0] : 16'b0;
@@ -167,10 +187,28 @@ module CPU_MMU_CACHE_25 (
                .result(s_hit));
    */
 
+`ifdef ND120_NO_CACHE
+  // With CON forced to the off position the comparators on sheet 27 are held
+  // disabled and report NO MATCH, so this is 0 by the same logic the switch
+  // gives. Stated directly here so no cache signal is left undriven once the
+  // RAMs below are omitted.
+  assign s_hit = 1'b0;
+`else
   assign s_hit = !s_used_n & !s_hit_1_0_n[0] & !s_hit_1_0_n[1] & !s_cwr;
+`endif
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
+
+`ifdef ND120_NO_CACHE
+  // The five cache memories (23F/24F data, 16F/20F tag, 21F used-bits) and the
+  // used-bit PAL 18F are NOT INSTANTIATED in this build. Everything they drive
+  // is given its cache-off constant here.
+  assign s_cd_15_0_out    = 16'b0;
+  assign s_CPN_25_10_OUT  = 16'b0;
+  assign s_used_n         = 1'b1;   // no line is "used"
+  assign s_wca_n          = 1'b1;   // never write a cache address
+`else
 
   //  16K bit Static RAM  (2KByte)
   TMM2018D_25 CHIP_23F
@@ -299,5 +337,6 @@ module CPU_MMU_CACHE_25 (
     .D_OUT  (s_CPN_25_10_OUT[7:0])  // CPN 17-10
 
   );
+`endif  // ND120_NO_CACHE
 
 endmodule
