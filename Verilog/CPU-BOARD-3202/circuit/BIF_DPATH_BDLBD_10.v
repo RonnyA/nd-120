@@ -58,7 +58,22 @@ module BIF_DPATH_BDLBD_10 (
    ** Here all output connections are defined                                    **
    *******************************************************************************/
   assign LBD_23_0_OUT = (!s_ebd_n) ? s_lbd_23_0_out[23:0] : 24'b0;
-  assign BD_23_0_n_OUT        = (!s_ebd_n) ? s_bd_23_0_n_out[23:0] : ~24'b0; // If chip enabled and direction is B to A, read from chip. Else set disconnect from bus (negated..)
+  // A 74AS648 drives its A pins only when OE~ is LOW **and** DIR selects
+  // B->A. This line handled the OE~ case alone, so with EBD_n=0 and WBD_n=1 -
+  // the read half of every ND-bus cycle - it published 24'h000000, which on
+  // this ACTIVE-LOW wired-AND net means the BIF asserting all 24 BD lines,
+  // instead of releasing them. The released value for BD is all ones, which
+  // the OE~ branch on this same line already uses.
+  //
+  // TTL_74648.v returns 8'b0 for the DIR-disabled case, and that is correct
+  // for the LBD and CD wired-OR nets - it is only wrong for this one
+  // active-low net, so the correction belongs here and not in the chip model.
+  //
+  // It mattered: ND120_CORE hands BD_23_0_n_OUT to the floppy-DMA, SMD,
+  // Winchester and DMA models as their bus input, and ND_BUS_SLAVE.v latches
+  // ~BD_23_0_n_OUT as the bus address - so a slave sampling during a read
+  // window saw 24'hFFFFFF. It also reaches the board pin on the Tang build.
+  assign BD_23_0_n_OUT        = (!s_ebd_n && !s_wbd_n) ? s_bd_23_0_n_out[23:0] : ~24'b0;
 
 
   /*******************************************************************************
