@@ -154,9 +154,17 @@ module MEM_DATA_46_tb;
     @(negedge osc); rdata = 1;
     @(negedge osc);
     check_eq({17'b0, loerr}, 18'b1, "error visible in write mode");
-    @(negedge osc); mwrite_n = 1;          // OET_n=1: LOERR forced 0
+    // CORRECTED 11-AUG-2026. This used to assert LOERR forced to 0 when
+    // OET_n=1. OET_n = MWRITE_n, so OET_n=1 is a READ - exactly the case where
+    // a stored parity error must be reported. On sheet 46 (region E2-F3) the
+    // AM29833A ERR pins are OPEN COLLECTOR into the 74F04, ungated, so the
+    // error stays visible in both directions. Why it mattered: with nothing
+    // able to report an error the CONFIGURATION diagnostic classifies every
+    // bank as Mpm 5 instead of Local (measured on the Tang, all 4 MB), and
+    // SINTRAN then routes a page fault to its ND-500/5000 window handler.
+    @(negedge osc); mwrite_n = 1;          // OET_n=1 is a READ
     @(negedge osc);
-    check_eq({17'b0, loerr}, 18'b0, "LOERR gated by OET_n");
+    check_eq({17'b0, loerr}, 18'b1, "LOERR still visible on a read (ungated)");
     @(negedge osc); rdata = 0;
 
     $display("checks=%0d errors=%0d", checks, errors);

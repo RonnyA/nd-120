@@ -118,8 +118,27 @@ module MEM_DATA_46 (
   assign s_clr_15_8j         = ~s_clr_n;
   assign s_clr_14_8j         = ~s_nor_mrn_pan;
 
-  assign s_loerr_out         = s_oet_n ? 0 : ~s_loerr_n_out; // Pulled to 0 if s_oet_n is not 0 
-  assign s_hierr_out         = s_oet_n ? 0 : ~s_hierr_n_out; // Pulled to 0 if s_oet_n is not 0
+  // Sheet 46, region E2-F3: the AM29833A ERR pins (1H pin 10, 2H pin 10) are
+  // OPEN COLLECTOR, pulled up by R21/R26, and feed the 74F04 (1F) directly -
+  // pin 1->2 = LOERR, pin 3->4 = HIERR. Nothing on the drawing gates them.
+  //
+  // These were gated by OET_n, and OET_n = MWRITE_n (PAL 45008), so OET_n high
+  // is precisely a READ - the one case where a stored parity error would be
+  // reported. A memory error could therefore never raise LERR~, never set the
+  // PES bits and never light LED4.
+  //
+  // That matters beyond fidelity: the CONFIGURATION diagnostic decides whether
+  // a memory bank is LOCAL or MULTIPORT by arming the ECC-simulate probe and
+  // waiting for a level-14 parity interrupt. Silence means "Mpm 5". Measured
+  // 11-AUG-2026 on the Tang: all 4 MB reports as Mpm 5, and SINTRAN then treats
+  // a page fault in it as a fault in the ND-500/5000 shared-memory window,
+  // which is fatal on a machine with no ND-500.
+  //
+  // NOTE: this restores the REPORTING path only. With parity recomputed on
+  // every read (ND_SDRAM_PACK16) no error can be generated, so behaviour does
+  // not change until the ECCR simulate path exists.
+  assign s_loerr_out         = ~s_loerr_n_out;
+  assign s_hierr_out         = ~s_hierr_n_out;
 
   // LED: LED4_RED_PARITY_ERROR
   assign LED4                = ~s_led4;
