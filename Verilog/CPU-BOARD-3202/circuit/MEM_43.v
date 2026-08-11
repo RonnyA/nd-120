@@ -231,7 +231,11 @@ module MEM_43 (
   assign GNT50_n             = s_gnt50_n;
   assign IDB_15_0_OUT        = s_idb_15_0_out[15:0];
   assign LERR_n              = s_lerr_n;
-  assign LPERR_n             = s_lperr_n | 1; // Always set to 1 to avoid Parity Error. TODO: FIX! ?
+  // The 74LS112 local-parity-error flip-flop (8J, sheet 46 region F6) was
+  // computed and then thrown away by the `| 1`, so LPERR~ could never go
+  // active. Restored - see the note in MEM_DATA_46.v about why memory
+  // classifies as Mpm 5 rather than Local when nothing can report an error.
+  assign LPERR_n             = s_lperr_n;
   assign MOFF_n              = s_moff_n;
   assign MOR25_n             = s_mor25_n;
   assign MWRITE_n            = s_mwrite_n;
