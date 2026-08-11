@@ -33,13 +33,16 @@
 ** unit tbs (PAL/sim/PAL_44445B_D_tb.v, PAL_44446B_D_tb.v).              **
 **                                                                       **
 ** PINNED (gate behavior kept, flagged for audit):                       **
-**  PIN-1 SUSPECTED-TRANSCRIPTION-ERROR (benign under the arbiter's      **
-**        mutual exclusion): the sheet comment says BANK/MWRITE_n are    **
-**        "pulled high when CGNT_n and BGNT_n both are HIGH" (tri-state  **
-**        pull-up), but the gates test (~BGNT_n & ~CGNT_n) - i.e. both   **
-**        LOW (both GRANTED) - for the forced 3'b111 / 1'b1 value.       **
-**        With NO grant the gates give BANK=000 and MWRITE_n=0, where    **
-**        the pull-up reading would give 111/1. This tb pins the gates.  **
+**  PIN-1 RESOLVED 11-AUG-2026 - it WAS a transcription error, and not   **
+**        benign. Confirmed against the 600 dpi REV-D drawing, sheet 45  **
+**        region B4-D5: 9G (/OE=CGNT~) and 6G (/OE=BGNT~) share the      **
+**        BANK/MWRITE~ nets with RN18 pull-ups, so the pull-up wins when **
+**        BOTH grants are HIGH (both PALs output-disabled). The gates    **
+**        tested both grants LOW, leaving BANK=000 and MWRITE_n=0 on an  **
+**        idle bus - a write asserted with no grant. Through PAL 45008   **
+**        (OET_n = ~MWRITE) that held both AM29833A transceivers driving **
+**        LBD onto DD every idle cycle. Fixed in MEM_ADEC_45.v; the      **
+**        golden below follows the drawing.                              **
 **  PIN-2 Disabled-output asymmetry: PAL_44445B drives MWRITE_n=1 when   **
 **        OE_n=1 but PAL_44446B drives MWRITE_n=0; masked here by the    **
 **        grant AND-gating in the merge, visible only through PIN-1.     **
@@ -174,8 +177,16 @@ module MEM_ADEC_45_tb;
     reg exp_clrq_n;
     reg exp_crq_n;
     begin
-      // PIN-1: gates force 111/1 when BOTH grants are LOW (both granted)
-      if (!BGNT_n && !CGNT_n) begin
+      // RESOLVED 11-AUG-2026, was PIN-1. The 600 dpi REV-D drawing, sheet 45
+      // region B4-D5, settles it: 9G (/OE = CGNT~) and 6G (/OE = BGNT~) share
+      // the BANK2:0 and MWRITE~ nets, each pulled up by RN18. The pull-up wins
+      // only when BOTH PALs are output-DISABLED, i.e. BOTH GRANTS HIGH. The
+      // gates tested both grants LOW, so an idle bus held BANK=000 and
+      // MWRITE_n=0 - a write asserted with no grant outstanding, which through
+      // PAL 45008's OET_n = ~MWRITE left both AM29833A transceivers driving
+      // LBD onto DD continuously. Fixed in MEM_ADEC_45.v; this golden follows
+      // the drawing now instead of pinning the gates.
+      if (BGNT_n && CGNT_n) begin
         exp_bank = 3'b111;
         exp_mw_n = 1'b1;
       end else begin
