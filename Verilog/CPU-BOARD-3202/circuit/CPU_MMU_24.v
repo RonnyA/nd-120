@@ -256,7 +256,15 @@ module CPU_MMU_24 (
   (
     // Input signals
     .CPN_23_10_IN(s_hit_cpn_23_10_in[13:0]),
-    .PPN_23_10_IN(s_ppn_25_10_in[13:0]),
+    // The PPN(25:10) bus on sheet 24 is ONE node: the PT map RAM output, the
+    // PPNX output and the external PPN input all sit on it, and the vertical
+    // into the HIT block drops off that shared bus. This passed only
+    // s_ppn_25_10_in, which per CPU_15.v:391-393 is the LAPA latch alone and
+    // is ZERO whenever LAPA~ is high - i.e. on every MAPPED access. So the
+    // cache hit decision for paged memory was made by comparing the stored
+    // tag against a constant 0. s_wca_ppn_23_10_in (built at :234-237) is the
+    // same merge the WCA feed already uses, and is the bus the drawing shows.
+    .PPN_23_10_IN(s_wca_ppn_23_10_in[13:0]),
 
     .LSHADOW(s_lshadow),
     .FMISS  (s_fmiss),
