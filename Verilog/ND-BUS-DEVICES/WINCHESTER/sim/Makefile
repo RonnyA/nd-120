@@ -50,6 +50,14 @@ OR_SRCS  = ../circuit/ND_WINCHESTER.v \
 RTZ_SRCS = ../circuit/ND_WINCHESTER.v \
            nd_winchester_rtz_tb.v
 
+# test-wd-compare: M3 compare. The card reads the sector, DMA-reads the same
+#   words back OUT of ND memory, compares them, and leaves the memory address
+#   register ADVANCED by the word count. M3 used to share the do-nothing stub
+#   with M2 and M5, which left that register where the guest had loaded it -
+#   and SINTRAN reads it back after every operation.
+CMP_SRCS = ../circuit/ND_WINCHESTER.v \
+           nd_winchester_compare_tb.v
+
 # test-wd-bus: the card behind the REAL ND_BUS_SLAVE. Every other bench
 #   drives iox_rd/iox_wr directly, so the adapter that generates those
 #   strobes on the board was never in the loop - and +0 is precisely the
@@ -67,6 +75,21 @@ BUS_SRCS = ../circuit/ND_WINCHESTER.v \
 #   invisible until it showed up on silicon (08-AUG-2026). Needs the shared
 #   card image from ../../../SD-FAT/sim (make_storage_image.sh), which
 #   carries WD0.IMG.
+WD_STOR_COMMON = ../../../SD-FAT/circuit/nd_storage_devices.v \
+                 ../../../SD-FAT/circuit/nds_sync.v \
+                 ../../../SD-FAT/circuit/nd_storage_engine.v \
+                 ../../../SD-FAT/circuit/nd_storage_mount.v \
+                 ../../../SD-FAT/circuit/nd_storage_cache.v \
+                 ../../../SD-FAT/circuit/nd_storage_fatchk.v \
+                 ../../../SD-FAT/circuit/nd_storage.v \
+                 ../../../SD-FAT/circuit/nd_storage_tape_adapter.v \
+                 ../../../SD-FAT/circuit/nd_storage_floppy_adapter.v \
+                 ../../../SD-FAT/circuit/nd_storage_disc_adapter.v \
+                 ../../../SD-FAT/circuit/sd_file_reader.v \
+                 ../../../SD-FAT/circuit/sd_writer.v \
+                 ../../../SD-FAT/sim/nds_mem_model.v \
+                 ../../../SD-FAT/sim/sd_card_model.v
+
 STOR_SRCS = ../circuit/ND_WINCHESTER.v \
             ../../../SD-FAT/circuit/nd_storage_devices.v \
             ../../../SD-FAT/circuit/nds_sync.v \
@@ -87,7 +110,9 @@ STOR_SRCS = ../circuit/ND_WINCHESTER.v \
 all: test
 
 test: test-wd-iox test-wd-adapter test-wd-oracle test-wd-bus test-wd-storage \
-      test-wd-storage-uncached test-wd-storage-sdram test-wd-rtz
+      test-wd-wcsweep test-wd-dmapath \
+      test-wd-storage-uncached test-wd-storage-sdram test-wd-rtz test-wd-decode \
+      test-wd-compare
 
 nd_winchester_storage_tb.vvp: $(STOR_SRCS)
 	$(IVERILOG) -g2005 $(ND_INC) -o $@ $(STOR_SRCS)
@@ -171,6 +196,15 @@ test-wd-rtz: nd_winchester_rtz_tb.vvp
 
 .PHONY: test-wd-rtz
 
+nd_winchester_compare_tb.vvp: $(CMP_SRCS)
+	$(IVERILOG) -g2005 $(ND_INC) -o $@ $(CMP_SRCS)
+
+test-wd-compare: nd_winchester_compare_tb.vvp
+	$(VVP) nd_winchester_compare_tb.vvp | tee wd_compare_out.log
+	@grep -q "TB_RESULT: PASS" wd_compare_out.log
+
+.PHONY: test-wd-compare
+
 nd_winchester_bus_tb.vvp: $(BUS_SRCS)
 	$(IVERILOG) -g2005 $(ND_INC) -o $@ $(BUS_SRCS)
 
@@ -179,3 +213,63 @@ test-wd-bus: nd_winchester_bus_tb.vvp
 	@grep -q "TB_RESULT: PASS" wd_bus_out.log
 
 .PHONY: test-wd-bus
+
+# test-wd-wcsweep: word counts around every 1024-word boundary. 4608 (the
+#   SINTRAN boot's count) is 4.5 sectors, and the chunk arithmetic truncates a
+#   24-bit counter to 11 bits, so a remaining count of 1025 could ask for a
+#   ZERO-word chunk. Backend always completes, so any failure here is the
+#   controller's own arithmetic.
+nd_winchester_wcsweep_tb.vvp: nd_winchester_wcsweep_tb.v ../circuit/ND_WINCHESTER.v
+	$(IVERILOG) -g2005 $(ND_INC) -I../circuit -o $@ $^
+
+test-wd-wcsweep: nd_winchester_wcsweep_tb.vvp
+	$(VVP) nd_winchester_wcsweep_tb.vvp | tee wd_wcsweep_out.log
+	@grep -q "TB_RESULT: PASS" wd_wcsweep_out.log
+
+.PHONY: test-wd-wcsweep
+
+# test-wd-dmapath: the ONLY Winchester bench with a REAL DMA path. Every other
+#   one answers dma_req with dma_ack on the next clock and ties dma_busy to 0,
+#   so ND_DMA_MASTER - which arbitrates for the ND-100 bus - was never
+#   exercised with this card. Here the card drives the real master against a
+#   BCU + memory model implementing BREQ/BAPR/BDAP/BDRY, with the real SD card
+#   and SDRAM behind it.
+DMAPATH_SRCS = ../circuit/ND_WINCHESTER.v \
+               ../../DMA/circuit/ND_DMA_MASTER.v \
+               $(WD_STOR_COMMON) \
+               nd_winchester_dmapath_tb.v
+
+nd_winchester_dmapath_tb.vvp: $(DMAPATH_SRCS)
+	$(IVERILOG) -g2005 $(ND_INC) -I../circuit -o $@ $(DMAPATH_SRCS)
+
+test-wd-dmapath: nd_winchester_dmapath_tb.vvp ../../../SD-FAT/sim/nds_storage.img
+	$(VVP) nd_winchester_dmapath_tb.vvp | tee wd_dmapath_out.log
+	@grep -q "TB_RESULT: PASS" wd_dmapath_out.log
+
+.PHONY: test-wd-dmapath
+
+# test-wd-decode: pure WIRING bench, complementary to test-wd-iox. All 65536
+#   iox_addr values swept with the clock stopped (iox_sel must be 1 for
+#   exactly o500..o507, and every foreign address must read 0 - the OR-bus
+#   rule), the full read-mux offset map, and the IDENT daisy-chain over all
+#   16 levels x grant_in x pending. ident_grant_out is not referenced by any
+#   other Winchester bench, yet it is what lets the floppy (also level 11,
+#   ident 021) ever be identified. A second DUT with IS_3038=1 covers the
+#   card-identity strap on status b13. ND_WINCHESTER.v has no FPGA_FF_MODE
+#   ifdef; the second build only proves the define changes nothing.
+DEC_SRCS = ../circuit/ND_WINCHESTER.v \
+           nd_winchester_decode_tb.v
+
+nd_winchester_decode_tb.vvp: $(DEC_SRCS)
+	$(IVERILOG) -g2012 $(ND_INC) -o $@ $(DEC_SRCS)
+
+nd_winchester_decode_ff_tb.vvp: $(DEC_SRCS)
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE $(ND_INC) -o $@ $(DEC_SRCS)
+
+test-wd-decode: nd_winchester_decode_tb.vvp nd_winchester_decode_ff_tb.vvp
+	$(VVP) nd_winchester_decode_tb.vvp | tee wd_decode_out.log
+	@grep -q "TB_RESULT: PASS" wd_decode_out.log
+	$(VVP) nd_winchester_decode_ff_tb.vvp | tee wd_decode_ff_out.log
+	@grep -q "TB_RESULT: PASS" wd_decode_ff_out.log
+
+.PHONY: test-wd-decode

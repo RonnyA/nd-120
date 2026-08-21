@@ -139,6 +139,26 @@ module IO_UART_42 (
       .Y({s_io_idb_15_0_out[15:11], s_io_idb_15_0_out[4:0]})
   );
 
+`ifdef ND120_IOR_PROBE
+  // DIAGNOSTIC (IDENT PL10 hunt, 20-AUG-2026): every microcode IDBS,IOR read
+  // (EIOR_n low) logs the CAPTURED CHIP_33G bits 15/14 next to the LIVE
+  // TBMT_n/DA_n, so a stale FF-mode capture is visible as cap!=live.
+  // TBMT_n edges are logged too. Sim-only, no logic effect.
+  reg r_iorp_eior_prev, r_iorp_tbmt_prev, r_iorp_da_prev;
+  always @(posedge sysclk) begin
+    if (!s_eiorn_n && r_iorp_eior_prev)
+      $display("[ior] t=%0t READ cap15=%b cap14=%b live_tbmt_n=%b live_da_n=%b",
+               $time, s_io_idb_15_0_out[15], s_io_idb_15_0_out[14], s_tbmt_n, s_da_n);
+    if (s_tbmt_n != r_iorp_tbmt_prev)
+      $display("[ior] t=%0t TBMT_n=%b", $time, s_tbmt_n);
+    if (s_da_n != r_iorp_da_prev)
+      $display("[ior] t=%0t DA_n=%b", $time, s_da_n);
+    r_iorp_eior_prev <= s_eiorn_n;
+    r_iorp_tbmt_prev <= s_tbmt_n;
+    r_iorp_da_prev   <= s_da_n;
+  end
+`endif
+
   SC2661_UART CHIP_32H (
       .sysclk(sysclk),  // System clock in FPGA
       .sys_rst_n(sys_rst_n),  // System reset in FPGA

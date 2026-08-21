@@ -331,7 +331,7 @@ TODO: Sort bits on output LED to match led numbering
   wire        s_dap_n;
   wire        s_dbapr;
   wire        s_dt_n;
-  wire        s_dvacc_n;
+  wire        s_dvacc_n;  // DGA access qualifier: IO_37 drives it, CPU_15/CPU_MMU_24 consume it. Not the CGA's VACC (CGA_DCD.v).
   wire        s_eauto_n;
   wire        s_ebus_n;
   wire        s_eccr;

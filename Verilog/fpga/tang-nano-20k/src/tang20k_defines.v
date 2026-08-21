@@ -129,6 +129,21 @@
 // so anything that needs to read memory or registers AFTER the traffic -
 // e.g. a deposited program that stores what the CPU captured from an IOX
 // read - must run on a build with this OFF.
+// REQUIRED BY ND_WD_TRACE_TVEC_CSA (measured 17-AUG-2026): wd_trace_rec/we/done
+// are declared AND connected to the storage block ONLY inside this define
+// (ND120_TANG20K_TOP.v:194-198 and :1410-1414). Without it they are undriven
+// implicit wires, so wd_count never leaves 0 and the TVEC_CSA capture trigger
+// - which needs wd_count >= 3 plus 45 s of card idle (:775) - can NEVER fire.
+// A first Tang run with TVEC_CSA alone sat through 420 s of quiet and dumped
+// nothing for exactly this reason.
+// DISABLED 18-AUG-2026 to get a TRUSTWORTHY TPE verdict on silicon.
+// With this on, the dumper owns the console TX mux and prints 20-bit records
+// as 5 hex digits. A TPE PAGING run on 17-AUG came back reading
+//   "6. PAGE FAULT interrupt   E0109" then "50109" over and over,
+// which was taken for a TPE error code. It is not: E0109/50109/00103 are
+// trace records, and TPE's own "- End of test -" / error table never reached
+// the terminal at all. Any TPE or OPCOM session that must be BELIEVED has to
+// run on a build with this OFF.
 //`define TANG_WD_TRACE_DUMP
 
 // ND_WD_TRACE_BLKONLY = keep the IOX trace, but let ONLY block-address
@@ -154,12 +169,29 @@
 //`define ND_WD_TRACE_DBUF
 
 // ND_WD_TRACE_TVEC = ring the TRAP DISPATCH instead of the Winchester
-// registers: one record per entry to level 14, carrying TVEC (the ND-100
-// internal interrupt code: 1 = monitor call, 2 = memory protection
-// violation, 3 = page fault), TRAPN and the level. Needs the matching
-// export in DELILAH-CPU/CGA_MIC/circuit/CGA_MIC.v, which is guarded by
-// this same define.
+// registers: one record per entry to level 14, carrying TVEC, TRAPN and the
+// level. Needs the matching export in DELILAH-CPU/CGA_MIC/circuit/CGA_MIC.v,
+// which is guarded by this same define.
+//
+// BROKEN - DO NOT USE (measured 17-AUG-2026). This define names a branch in
+// BOTH capture chains of ND120_TANG20K_TOP.v (:445 and :602) that contains
+// comments and NOTHING ELSE: it assigns neither s_cap_src nor s_cap_stb, so
+// the ring has no source and no strobe. Use ND_WD_TRACE_TVEC_CSA below.
+//
+// The numbering in the old comment here was also wrong and is what made the
+// 11-AUG silicon record read "TVEC=3 = page fault". TVEC is the DELILAH
+// MICROCODE trap vector, not the ND-100 internal-interrupt code. The golden
+// self-checking bench states the microcode table explicitly
+// (DELILAH-CPU/CGA_TRAP/sim/CGA_TRAP_TVGEN_tb.v:16-17):
+//   1 = page fault, 2 = protect violation, 3 = RING DOWN, 4 = PGU, 5 = WIP.
 //`define ND_WD_TRACE_TVEC
+
+// ND_WD_TRACE_TVEC_CSA = the WORKING trap-dispatch capture. One record per
+// dispatched trap, strobed on the FALLING EDGE of TRAPN - the only moment TVEC
+// is valid (sampling on the PIL->14 transition is too late and returns idle on
+// every record). Word = {4'hA, TVEC[3:0], TRAPN, CSA[10:0]}, so each record
+// carries both the vector and the microcode address that took it.
+`define ND_WD_TRACE_TVEC_CSA
 
 // ND_WD_TRACE_CSATRAP = free-run the microcode address (CSA) and TRIGGER on a
 // trap that happens after the card has been idle 45 s, i.e. at the livelock.
@@ -407,7 +439,7 @@
 //                            Repurposes the on-chip 512-sample analyzer to
 //                            record {PIL[3:0], CSA[11:0]} and trigger on PIL
 //                            entering level 10 (448 pre + 64 post). On the
-//                            wedge it takes the console TX and streams 512
+//                            hang it takes the console TX and streams 512
 //                            hex lines "hhhh" (PIL = hex digit 1, CSA = lower
 //                            3 hex digits, octal-decode the CSA). Reveals
 //                            whether PIL->10 runs the normal level-switch
@@ -438,11 +470,11 @@
 //   TANG_NO_CONKICK - DIAGNOSTIC: disable the IO_37 console-pacing STAT3 pulse
 //   (the un-original missing-68705 stand-in) so console traffic raises NO panel
 //   request. Tests whether the conkick is the PAN source of the phantom macro-
-//   interrupt / PIL->10 wedge. If the wedge vanishes, this is the faithful fix.
+//   interrupt / PIL->10 hang. If the hang vanishes, this is the faithful fix.
 
 //   TANG_NO_RTC_PAN - DIAGNOSTIC: drop the RTC's contribution to PAN (panel
 //   request). With conkick already off, this removes the last PAN source. If
-//   the PIL->10 wedge vanishes, the held RTC PAN is the confirmed trigger.
+//   the PIL->10 hang vanishes, the held RTC PAN is the confirmed trigger.
 // `define TANG_NO_IOXERR   (turned OFF for IREQ capture - let bit10/IOXERR show)
 
 // ---- Clock variant selection (slow / crawl / full) ----------------------

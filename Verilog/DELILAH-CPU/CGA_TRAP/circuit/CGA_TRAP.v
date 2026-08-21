@@ -27,6 +27,9 @@ module CGA_TRAP (
     input PONI,
     input [6:0] PT_15_9,
     input TCLK,
+    // VACC_n from CGA_DCD. Inverted here and handed to TBUF/TVGEN/BRKDET, where
+    // it qualifies EVERY memory-protect trap term - page fault, ring violation,
+    // WIP and PGU are all AND'ed with VACC. No VACC, no memory-protect trap.
     input VACCN,
     input VTRAPN,
     input WRITEN,

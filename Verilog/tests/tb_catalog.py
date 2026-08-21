@@ -37,6 +37,29 @@ REGISTRY = os.path.join(HERE, "run_all_tests.sh")
 # Testbenches known not to be reached by `make test`, with the reason.
 # This list may only SHRINK. A new orphan is a failure.
 ORPHAN_BASELINE = {
+    "DELILAH-CPU/CGA_TRAP/sim/CGA_TRAP_TVGEN_transition_tb.v":
+        "DETECTOR, deliberately FAILING against today's RTL - 17-AUG-2026. "
+        "Checks every ordered pair of trap-condition classes: when a condition "
+        "becomes live, the dispatched TVEC must name THAT condition. Today all "
+        "30 transitions dispatch the previous condition's vector, 8 of them as "
+        "vector 7 (the unimplemented Issue-D value). Reproduces BOTH the "
+        "27-JUL Issue-D symptom and the page-fault-as-ring-down transient on "
+        "the bench in milliseconds. Register it the day the trap-vector "
+        "timing is fixed - it is the acceptance gate for that fix.",
+    "DELILAH-CPU/CGA_TRAP/sim/CGA_TRAP_TVGEN_pgfrace_tb.v":
+        "DETECTOR, deliberately FAILING against today's RTL - 17-AUG-2026. "
+        "Narrow version of the transition bench: PGF stable across the TCLK "
+        "edge gives the correct TVEC=1, PGF arriving AT the edge gives TVEC=3. "
+        "Kept as the minimal reproduction of the stale-vector capture. "
+        "Register alongside CGA_TRAP_TVGEN_transition_tb.v.",
+    "CPU-BOARD-3202/circuit/sim/PT_stale_read_tvec_tb.v":
+        "EXPERIMENT, deliberately FAILING in the sync build - 17-AUG-2026. "
+        "Wires the real TMM2018D_25 page-table status RAM to CGA_TRAP_TVGEN "
+        "and sweeps how early the PT address must change before the capturing "
+        "edge. Its measured result RETIRED the async-read theory: sync and "
+        "async behave identically, so TMM_ASYNC_READ is NOT the cure and "
+        "Verilator needs no divergence from silicon here. Kept for that "
+        "record. Not a gate.",
     "fpga/tang-nano-20k/sd-fat-test/sim/sd_fat_block_tb.v":
         "RED, storage lane, parked out of the registry 11-AUG-2026 - see the "
         "comment on the parked entry in run_all_tests.sh. It reaches the range "

@@ -18,7 +18,9 @@
 **                                 BOARD_CLK_FREQ (100 MHz -> 1999999 /  **
 **                                 499999; checked statically via        **
 **                                 dut.s_rtc_limit, rollover not run)    **
-**   2. -DVERILATOR_SIM          - transparent F595, RTC 8192/2048 with  **
+**   2. -DVERILATOR_SIM          - sync F595 (transparent branch was     **
+**                                 deleted 20-AUG-2026), RTC 8192/2048   **
+**                                 with                                  **
 **                                 the runtime-writable period regs      **
 **                                 (s_rtc_20ms_var / s_rtc_5ms_var,      **
 **                                 poked hierarchically by this tb)      **
@@ -28,7 +30,7 @@
 **                                 sysclk capture; derived limit 511/127 **
 **                                 exercised dynamically (rollover run)  **
 **   5. -DVERILATOR_SIM -DFPGA_FF_MODE - the sim FF-mode combination     **
-**                                 (transparent F595 + synchronous chain)**
+**                                 (sync F595 + synchronous chain)       **
 **                                                                       **
 ** INDEPENDENT golden model, re-derived from the gate structure (F595   **
 ** truth table incl. the S&R -> Q=1,QB=1 row; NAND network; F714 ripple **
@@ -55,16 +57,14 @@
 **     REFN cycle (at the next rfclk rise), or CLOSC (forces rfclk=1).  **
 **                                                                       **
 ** PINNED RTL behaviors (documented, not patched):                       **
-**  P1. sys_rst_n release: in VERILATOR_SIM builds the RESTART flag     **
-**      (A574) ends up SET after EVERY release - a579n falls (comb)     **
-**      before A572's non-blocking capture drops s_lrst, so the         **
-**      transparent A574 latches S=1. In non-VERILATOR builds the F595s **
-**      are forced idle during reset and A572 captures the forced       **
-**      ESLOADN=1, so the RESTART flag is NEVER set by sys_rst_n.       **
-**  P2. Post-reset STOP flag: VERILATOR_SIM builds leave it SET         **
-**      (STPN=0; the CLEAR window sets it via A580) - non-VERILATOR    **
-**      builds leave it CLEAR (STPN=1; the forced-idle window swallows  **
-**      the set and A580 is low by the first free clock edge).          **
+**  P1. sys_rst_n release (20-AUG-2026, F595 unified to the sync FF in  **
+**      EVERY build): the F595s are forced idle during reset and A572   **
+**      captures the forced ESLOADN=1, so the RESTART flag is NEVER     **
+**      set by sys_rst_n. The old transparent-build release race is     **
+**      gone with the deleted branch.                                   **
+**  P2. Post-reset STOP flag: every build leaves it CLEAR (STPN=1; the  **
+**      forced-idle window swallows the set and A580 is low by the      **
+**      first free clock edge).                                         **
 **  P3. RTC fire is LATCHED: s_rtc_n stays 0 after the terminal count   **
 **      until CLRTIN or RESCL (CLOSC|RESET); it never self-clears.      **
 **      Fire happens exactly limit+1 sysclk edges after release.        **
@@ -100,7 +100,7 @@
 module DECODE_DGA_POW_tb;
 
 `ifdef VERILATOR_SIM
-  localparam EXPECTED_CHECKS = 61957;  // builds 2/3/5 (fire + poke tests)
+  localparam EXPECTED_CHECKS = 61956;  // builds 2/3/5 (fire + poke tests; one VS-only warm-restart check removed with the F595 unification, 20-AUG-2026)
 `elsif FPGA_FF_MODE
   localparam EXPECTED_CHECKS = 61894;  // build 4 (fire tests, no pokes)
 `else
@@ -258,11 +258,10 @@ module DECODE_DGA_POW_tb;
       e_clear_n = sys_rst_n_r;
       e_mcl     = ~(r_EMCLN & e_clear_n);
       e_mcl_n   = ~e_mcl;
-`ifdef VERILATOR_SIM
-      e_fi = 1'b0;                    // transparent F595: never forced
-`else
+      // 20-AUG-2026 (approved): F595's VERILATOR_SIM transparent branch was
+      // deleted from the RTL (sim/silicon unification) - every build now runs
+      // the synchronous RS flip-flop, so the model is unconditional.
       e_fi = ~sys_rst_n_r;            // sync F595: forced idle while in reset
-`endif
       upd595(m_stp_q, m_stp_qb, ~(r_SSTOPN & e_clear_n & r_STOPN), ~r_STARTN, e_fi);
       upd595(m_esl_q, m_esl_qb, m_stp_qb, r_PWCL, e_fi);
       e_a579n = ~(e_mcl_n & r_CLRTIN & m_stp_q);
@@ -310,9 +309,6 @@ module DECODE_DGA_POW_tb;
   // sys_rst_n release event ordering (header P1)
   task ev_rst_release;
     begin
-`ifdef VERILATOR_SIM
-      settle_model;  // transparent latches see the a579n fall with OLD lrst
-`endif
       m_a572_q = (~r_CLRTIN) ? 1'b1 : m_esl_qb;
       settle_model;
     end
@@ -594,15 +590,10 @@ module DECODE_DGA_POW_tb;
     step_check;
     chk("PU_CLEAR0", CLEAR, 1'b0);
     chk("PU_MCL0", MCL, 1'b0);
-`ifdef VERILATOR_SIM
-    // P1/P2: transparent builds - RESTART flag set by the release race,
-    // STOP flag left set by the CLEAR window.
-    chk("PU_RSTFLAG", dut.s_rst_n, 1'b0);
-    chk("PU_STPN", STPN, 1'b0);
-`else
+    // P1/P2: with the sync F595 in every build (transparent branch deleted
+    // 20-AUG-2026), the forced-idle window swallows the release race.
     chk("PU_RSTFLAG", dut.s_rst_n, 1'b1);
     chk("PU_STPN", STPN, 1'b1);
-`endif
     // CLRTIN clears lrst and the RESTART flag in every build
     clrtin_pulse;
     chk("PU_RSTCLR", dut.s_rst_n, 1'b1);
@@ -665,14 +656,8 @@ module DECODE_DGA_POW_tb;
     npulse(0);
     chk("B_WARM_ESL", dut.s_esload_n, 1'b0);
     warm_rst_pulse;
-`ifdef VERILATOR_SIM
-    chk("B_WARM_RST", dut.s_rst_n, 1'b0);
-    chk("B_WARM_IDB2", IDB2, 1'b1);
-    chk("B_WARM_IDB0", IDB0, 1'b0);
-`else
     chk("B_WARM_RST", dut.s_rst_n, 1'b1);
     chk("B_WARM_IDB2", IDB2, 1'b0);
-`endif
     clrtin_pulse;
     chk("B_WARMCLR_RST", dut.s_rst_n, 1'b1);
     // PWCL: S&R row on A570 (P4) - while running, PWCL forces ESLOADN=1

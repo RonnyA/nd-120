@@ -34,7 +34,7 @@ module CPU_15 (
 
     input       CYD,          //! Cycle done signal
     input       DT_n,         //! Data transfer
-    input       DVACC_n,      //! Data valid access
+    input       DVACC_n,      //! DGA access qualifier (DECODE_DGA_COMM A227), passed down to CPU_MMU_24 - not the CGA's VACC
     input       ECSR_n,       //! Enable control store read
     input       EDO_n,        //! Enable data out
     input       EMCL_n,       //! Enable master clear
@@ -346,7 +346,13 @@ module CPU_15 (
 
 
   assign s_cpu_cd_15_0_out = s_stoc_cd_15_0_out | s_mmu_cd_15_0_out;
-  assign s_cpu_cd_15_0_out = s_cpu_cd_15_0_out;
+  // REMOVED 20-AUG-2026: 'assign s_cpu_cd_15_0_out = s_cpu_cd_15_0_out;'
+  // It was a SECOND continuous driver on this wire (the line above is the
+  // real one), and it drove the wire FROM ITSELF - a zero-logic
+  // combinational loop. Two continuous assignments on one wire resolve to x
+  // wherever they disagree, and this wire leaves the board as CD_15_0_OUT
+  // (line 316). Nothing sourced a value through it that line 348 does not
+  // already provide.
 
   // other signals
 

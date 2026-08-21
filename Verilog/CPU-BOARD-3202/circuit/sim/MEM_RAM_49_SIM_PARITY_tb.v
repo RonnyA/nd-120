@@ -4,8 +4,8 @@
 ** Proves the parity contract that defeats the ECCR / parity-error       **
 ** override (why TPE classifies memory as Mpm5, not Local):              **
 **   - Correct-parity round-trip: CORR_n stays 1 (no error), data intact. **
-**   - BAD-parity write then read: parity is REGENERATED on read, the bad **
-**     bit is DISCARDED, CORR_n stays 1 (fault absorbed).                 **
+**   - BAD-parity write then read: the bad lane is FLAGGED, the read     **
+**     returns inverted parity and CORR_n=0 (policy 20-AUG-2026).        **
 **                                                                        **
 ** POLICY 3-AUG-2026 (docs/nd120-parity-analysis.md section 6b): parity   **
 ** is computed, never stored, in EVERY build. This tb used to assert a    **
@@ -115,21 +115,33 @@ module tb_mem_ram_parity;
     ram_write(10'd0, 10'd6, w_badlo);
     ram_read (10'd0, 10'd6, rd, corr);
     check(rd[7:0]  == 8'h55, "T2 read-back low data still == 0x55");
-    // Policy 3-AUG-2026: parity is regenerated on read in EVERY build, so the
-    // bad stored bit is discarded and CORR_n stays 1. Identical in both modes -
-    // ND_SDRAM_PACK16 must NOT change parity semantics any more, and building
-    // this tb both ways is what proves it.
-    check(corr === 1'b1,     "T2 CORR_n == 1 (bad parity absorbed, per policy)");
-    check(rd[8]  == odd_par(8'h55),
-                             "T2 read parity is REGENERATED, stored bad bit gone");
+    // Policy UPDATED 20-AUG-2026 (approved by Ronny, supersedes 3-AUG): a
+    // write whose parity bit disagrees with its data marks the byte lane
+    // "bad" (per-lane flag in MEM_RAM_49_SIM), and reads of that lane return
+    // INVERTED parity with CORR_n = 0. The old regenerate-on-read model
+    // silently healed injected errors, which made the TPE CONFIGURATION
+    // ECC-simulate probe misclassify all memory as Mpm 5 (measured on the
+    // Tang, 11-AUG-2026) and left the parity-error path untestable in sim.
+    // Identical in both modes - ND_SDRAM_PACK16 must NOT change parity
+    // semantics, and building this tb both ways is what proves it.
+    check(corr === 1'b0,     "T2 CORR_n == 0 (bad parity SURVIVES, per policy)");
+    check(rd[8]  == ~odd_par(8'h55),
+                             "T2 read parity is the stored BAD bit (inverted)");
 
     // ---- Test 3: BAD high-byte parity ---------------------------------
     w_badhi = mkword(8'hAA, 8'h55, ~odd_par(8'hAA), odd_par(8'h55));
     ram_write(10'd0, 10'd7, w_badhi);
     ram_read (10'd0, 10'd7, rd, corr);
-    check(corr === 1'b1,     "T3 CORR_n == 1 (bad HIGH parity also absorbed)");
-    check(rd[17] == odd_par(8'hAA),
-                             "T3 high read parity is REGENERATED");
+    check(corr === 1'b0,     "T3 CORR_n == 0 (bad HIGH parity also survives)");
+    check(rd[17] == ~odd_par(8'hAA),
+                             "T3 high read parity is the stored BAD bit");
+
+    // ---- Test 3b: rewriting GOOD parity clears the bad-lane flag -------
+    ram_write(10'd0, 10'd6, w_good);
+    ram_read (10'd0, 10'd6, rd, corr);
+    check(corr === 1'b1,     "T3b CORR_n == 1 (good rewrite clears the flag)");
+    check(rd[8]  == odd_par(8'h55),
+                             "T3b read parity correct after good rewrite");
 
     // ---- Test 4: a good word at a different address is unaffected -----
     ram_write(10'd3, 10'd9, mkword(8'h0F, 8'hF0, odd_par(8'h0F), odd_par(8'hF0)));

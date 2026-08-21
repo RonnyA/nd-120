@@ -38,6 +38,19 @@ IV_LIB = -y ${VERILOG_ROOT}/Shared/logisim -y ${VERILOG_ROOT}/Shared/support -y 
 iv-%:
 	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_$* $*_tb.v && vvp -N /tmp/ndtb_$*
 
+# --- paging protection: trap vector AND paging status (PGS) together --------
+# CGA_TRAP (p.100/101/102/104) driven together with CGA_IDBCTL_PGSREG (p.98),
+# wired as CGA.v wires them (shared FETCHN/VACCN, PVIOL straight across). Every
+# case asserts BOTH the trap vector raised AND the resulting PGS word, against
+# the ND-110 page-protection semantics (page fault vs protect violation, PGS PM
+# and FETCH bits, PGS[11:0] = pagetable<<6 | VPN, ring violation vs ring-down).
+# Needs the CGA_IDBCTL circuit directory on the search path as well.
+test-trap-pgs-paging:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} \
+	  -y ${DELILAH_ROOT}/CGA_IDBCTL/circuit \
+	  -o /tmp/ndtb_trap_pgs_paging CGA_TRAP_PGS_paging_tb.v \
+	  && vvp -N /tmp/ndtb_trap_pgs_paging
+
 clean:
 	rm -rf obj_dir
 

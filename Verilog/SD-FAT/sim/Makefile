@@ -123,6 +123,26 @@ test-nds-cdc: nd_storage_cdc_tb.vvp
 	$(VVP) nd_storage_cdc_tb.vvp | tee nds_cdc_out.log
 	@grep -q "TB_RESULT: PASS" nds_cdc_out.log
 
+# ---------------------------------------------------------------------------
+# test-nds-synclevel - nds_sync_level (nds_sync.v) on its own: 2-flop DEPTH
+#   (a change lands on the second destination edge, never the first or the
+#   third), reset, multi-bit widths 1/3/8 with all 256 values up and down,
+#   sub-period phase offsets, short-pulse value integrity, and an x/z guard
+#   on every edge. Complements test-nds-cdc, which exercises the primitives
+#   across two skewed clocks rather than pinning the depth.
+# ---------------------------------------------------------------------------
+SYNCLEVEL_SRCS = ../circuit/nds_sync.v \
+                 nds_sync_level_tb.v
+
+nds_sync_level_tb.vvp: $(SYNCLEVEL_SRCS)
+	$(IVERILOG) -g2012 -I../circuit -o $@ $(SYNCLEVEL_SRCS)
+
+test-nds-synclevel: nds_sync_level_tb.vvp
+	$(VVP) -N nds_sync_level_tb.vvp | tee nds_synclevel_out.log
+	@grep -q "TB_RESULT: PASS" nds_synclevel_out.log
+
+.PHONY: test-nds-synclevel
+
 nd_storage_engine_tb.vvp: $(ENGINE_SRCS)
 	$(IVERILOG) -g2005 -I../circuit -o $@ $(ENGINE_SRCS)
 
@@ -418,3 +438,161 @@ test-nds-smdadapter: nd_storage_smd_adapter_tb.vvp nds_storage.img
 	@grep -q "TB_RESULT: PASS" nds_smdadapter_out.log
 
 .PHONY: test-nds-smdadapter
+
+# ---------------------------------------------------------------------------
+# test-fat-rewrite - sd_fat_rewrite (the FAT surgeon) against a hand-built
+#   FAT16 image and a behavioural sd_writer engine, checked BYTE-EXACTLY: a
+#   shadow of all 16 sectors is compared after every operation, so a stray
+#   byte anywhere fails the test. Covers realloc=0 (size field only), the
+#   K = ceil(size/cluster) boundaries, chain free + contiguous allocation in
+#   both FAT copies, num_fats=1, the no-space and root-full verdicts, the
+#   truthful read-vs-write err_kind, and create=1 - including the proof that
+#   the fresh entry is flushed to the sector the free slot was FOUND in and
+#   NOT to the dir_sector input (the bug that once wrote a directory image
+#   over sector 0 and destroyed the boot sector).
+#
+# TWO BUILDS from one source, split on SIMULATED TIME like the errors tier:
+#   test-fat-rewrite       the functional set. ~0.6 ms simulated, ~1 s.
+#   test-fat-rewrite-slow  adds the chain-loop verdict (err_kind=3), which
+#                          needs guard[16] = 65536 chain hops and therefore
+#                          a frozen card and an 8-byte transfer to be
+#                          simulatable at all. ~26 ms simulated, ~20 s.
+#                          Artificial by construction - see the bench header.
+# ---------------------------------------------------------------------------
+FATREWRITE_SRCS = ../circuit/sd_fat_rewrite.v \
+                  sd_fat_rewrite_tb.v
+
+sd_fat_rewrite_tb.vvp: $(FATREWRITE_SRCS)
+	$(IVERILOG) -g2012 -I../circuit -o $@ $(FATREWRITE_SRCS)
+
+sd_fat_rewrite_slow_tb.vvp: $(FATREWRITE_SRCS)
+	$(IVERILOG) -g2012 -I../circuit -DSD_FAT_REWRITE_TB_LOOP -o $@ $(FATREWRITE_SRCS)
+
+test-fat-rewrite: sd_fat_rewrite_tb.vvp
+	$(VVP) sd_fat_rewrite_tb.vvp | tee fat_rewrite_out.log
+	@grep -q "TB_RESULT: PASS" fat_rewrite_out.log
+
+test-fat-rewrite-slow: sd_fat_rewrite_slow_tb.vvp
+	$(VVP) sd_fat_rewrite_slow_tb.vvp | tee fat_rewrite_slow_out.log
+	@grep -q "TB_RESULT: PASS" fat_rewrite_slow_out.log
+
+.PHONY: test-fat-rewrite test-fat-rewrite-slow
+
+# ---------------------------------------------------------------------------
+# Unit benches added 20-AUG-2026 for the SD-FAT modules that had none.
+# Each is a standalone iverilog bench in this directory; all print
+# "TB_RESULT: PASS" as their last line.
+#
+# test-fat-check      sd_fat_check: the whole ASCII report compared byte for
+#                     byte against text assembled in the bench (name padding,
+#                     CL hex digits, LEN/EXP decimals, OK/BAD/DIR verdicts),
+#                     FAT-sector read counting, EXP ceil boundaries, engine
+#                     error path, n_entries=0.
+# test-fat-freescan   sd_fat_freescan: FAT16 and FAT32 entry formats and the
+#                     FAT32 reserved-nibble mask, clusters 0/1 excluded,
+#                     max_cluster boundary, the sectors_per_fat stop rule,
+#                     free_mb truncation at three cluster sizes, sec_tick
+#                     and the engine error path.
+# test-nds-mountfsm   nd_storage_mount as a unit: out-of-range client (card
+#                     never touched), no-card vs file-not-found status codes,
+#                     the published per-client slices, n_blocks ceil at the
+#                     boundaries, the geometry latch guard, re-open.
+# test-nds-mountfsm-chk  the same bench with the contiguity gate compiled in
+#                     (-DSDFAT_FORCE_STORAGE_CHECK): chk handshake, payload,
+#                     and chk_ok=0 failing the open.
+# test-nds-discadapter  nd_storage_disc_adapter as a UNIT (no card, no stack):
+#                     CHS->LBA at both geometries, the read-modify-write
+#                     partial-write path compared word for word against a
+#                     block shadow, the NDS_ERR_* refusal codes, unit
+#                     filtering. Distinct from the parked full-stack bench
+#                     nd_storage_smd_adapter_tb.v.
+# test-nds-devices    nd_storage_devices wrapper wiring: every backend output
+#                     of an all-excluded build held at 0 while an all-included
+#                     build answers the same stimulus, seam independence, unit
+#                     filtering, the open sequencers.
+# test-sd-cardctrl    sd_card_ctrl (inside sd_file_reader.v) at the bit level
+#                     against a card responder in the bench: transmitted CRC7,
+#                     R1/R2 capture, response timeout, block reads with CRC16
+#                     rejection, multi-block + CMD12, data timeout.
+#                     Runs the RTL's real 2,000,000-sdclk data timeout, ~30 s.
+# ---------------------------------------------------------------------------
+FATCHECK_SRCS = ../circuit/sd_fat_check.v \
+                sd_fat_check_tb.v
+
+sd_fat_check_tb.vvp: $(FATCHECK_SRCS)
+	$(IVERILOG) -g2012 -I../circuit -o $@ $(FATCHECK_SRCS)
+
+test-fat-check: sd_fat_check_tb.vvp
+	$(VVP) -N sd_fat_check_tb.vvp | tee fat_check_out.log
+	@grep -q "TB_RESULT: PASS" fat_check_out.log
+
+FREESCAN_SRCS = ../circuit/sd_fat_freescan.v \
+                sd_fat_freescan_tb.v
+
+sd_fat_freescan_tb.vvp: $(FREESCAN_SRCS)
+	$(IVERILOG) -g2012 -I../circuit -o $@ $(FREESCAN_SRCS)
+
+test-fat-freescan: sd_fat_freescan_tb.vvp
+	$(VVP) -N sd_fat_freescan_tb.vvp | tee fat_freescan_out.log
+	@grep -q "TB_RESULT: PASS" fat_freescan_out.log
+
+MOUNTFSM_SRCS = ../circuit/nd_storage_mount.v \
+                nd_storage_mount_tb.v
+
+nd_storage_mount_tb.vvp: $(MOUNTFSM_SRCS)
+	$(IVERILOG) -g2012 -I../circuit -o $@ $(MOUNTFSM_SRCS)
+
+nd_storage_mount_chk_tb.vvp: $(MOUNTFSM_SRCS)
+	$(IVERILOG) -g2012 -I../circuit -DSDFAT_FORCE_STORAGE_CHECK -o $@ $(MOUNTFSM_SRCS)
+
+test-nds-mountfsm: nd_storage_mount_tb.vvp
+	$(VVP) -N nd_storage_mount_tb.vvp | tee nds_mountfsm_out.log
+	@grep -q "TB_RESULT: PASS" nds_mountfsm_out.log
+
+test-nds-mountfsm-chk: nd_storage_mount_chk_tb.vvp
+	$(VVP) -N nd_storage_mount_chk_tb.vvp | tee nds_mountfsm_chk_out.log
+	@grep -q "TB_RESULT: PASS" nds_mountfsm_chk_out.log
+
+DISCAD_UNIT_SRCS = ../circuit/nd_storage_disc_adapter.v \
+                   nd_storage_disc_adapter_unit_tb.v
+
+nd_storage_disc_adapter_unit_tb.vvp: $(DISCAD_UNIT_SRCS)
+	$(IVERILOG) -g2012 -I../circuit -o $@ $(DISCAD_UNIT_SRCS)
+
+test-nds-discadapter: nd_storage_disc_adapter_unit_tb.vvp
+	$(VVP) -N nd_storage_disc_adapter_unit_tb.vvp | tee nds_discadapter_out.log
+	@grep -q "TB_RESULT: PASS" nds_discadapter_out.log
+
+DEVICES_SRCS = ../circuit/nds_sync.v \
+               ../circuit/nd_storage_engine.v \
+               ../circuit/nd_storage_mount.v \
+               ../circuit/nd_storage_cache.v \
+               ../circuit/nd_storage_fatchk.v \
+               ../circuit/nd_storage.v \
+               ../circuit/nd_storage_tape_adapter.v \
+               ../circuit/nd_storage_floppy_adapter.v \
+               ../circuit/nd_storage_disc_adapter.v \
+               ../circuit/sd_file_reader.v \
+               ../circuit/sd_writer.v \
+               ../circuit/nd_storage_devices.v \
+               nd_storage_devices_tb.v
+
+nd_storage_devices_tb.vvp: $(DEVICES_SRCS)
+	$(IVERILOG) -g2012 -I../circuit -o $@ $(DEVICES_SRCS)
+
+test-nds-devices: nd_storage_devices_tb.vvp
+	$(VVP) -N nd_storage_devices_tb.vvp | tee nds_devices_out.log
+	@grep -q "TB_RESULT: PASS" nds_devices_out.log
+
+CARDCTRL_SRCS = ../circuit/sd_file_reader.v \
+                sd_card_ctrl_tb.v
+
+sd_card_ctrl_tb.vvp: $(CARDCTRL_SRCS)
+	$(IVERILOG) -g2012 -I../circuit -o $@ $(CARDCTRL_SRCS)
+
+test-sd-cardctrl: sd_card_ctrl_tb.vvp
+	$(VVP) -N sd_card_ctrl_tb.vvp | tee sd_cardctrl_out.log
+	@grep -q "TB_RESULT: PASS" sd_cardctrl_out.log
+
+.PHONY: test-fat-check test-fat-freescan test-nds-mountfsm test-nds-mountfsm-chk \
+        test-nds-discadapter test-nds-devices test-sd-cardctrl

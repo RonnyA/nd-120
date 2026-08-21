@@ -32,6 +32,15 @@ REGISTRY=(
   # --- Shared support chips -------------------------------------------------
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"
+  # exhaustive 74245 transceiver gate: guards the removal of the shared
+  # 'internalBus' helper that closed a combinational loop on the FIDB bus
+  "Shared/support/sim :: test-74245   :: TB_RESULT: PASS"
+  # BusDriver16 full contract (FIDBO bus driver, on the same loop)
+  "DELILAH-CPU/CGA/sim :: test-busdriver16-full :: TB_RESULT: PASS"
+  # Freeze register that captures the trap-logic inputs at the edge that
+  # latched a page fault. Runs BOTH build modes; a wrong-cycle capture would
+  # send a hardware investigation somewhere wrong with false authority.
+  "DELILAH-CPU/CGA/sim :: test-pf-capture :: TB_RESULT: PASS"
   "Shared/support/sim :: test-am29833a :: TB_RESULT: PASS"
   # parity CONVENTION gate: ~^data is what the chip calls correct, and the
   # inverted bit must always fault (policy: parity computed, never stored)
@@ -105,6 +114,15 @@ REGISTRY=(
   # a 256-combination sweep proving no write strobe can coincide with a
   # disabled transceiver. Sync + async read models.
   "CPU-BOARD-3202/circuit/sim :: test-mmu24-shadow :: TB_RESULT: PASS"
+  # Every one of the 2048 page-table entries (32 tables x 64 VPNs): REX
+  # write + IDB read-back + translation, then a SEX pass for the full
+  # 16-bit PPN, then a fault-and-fix cycle on the entry SINTRAN dies on
+  # (APIT 007, virtual page 0o32). Physical pages are spread by an odd
+  # stride so a wrongly-formed index yields a visibly wrong page rather
+  # than a plausible neighbour. Catches the EIPL failure mode, where the
+  # status bank looks perfect while the PPN map was never written.
+  # Added 17-AUG-2026.
+  "CPU-BOARD-3202/circuit/sim :: test-mmu24-allentries :: TB_RESULT: PASS"
   # Sheet 28 PPN<->IDB transceiver pair: two INDEPENDENT byte enables
   # (10B /G = EIPU_n, 9B /G = EIPL_n), shared DIR = ESTOF_n, and a disabled
   # driver that puts 0 on the bus. Caught the missing output gating that let
@@ -144,6 +162,11 @@ REGISTRY=(
   # plain + FPGA_FF_MODE _D-mirror builds)
   "CPU-BOARD-3202/circuit/sim :: test-adec      :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA/sim      :: test-busdriver16 :: Testbench Complete"
+  # CGA_DCD sheet 10 (p.75) DVACCN + VACCN decode: exhaustive CSCOMM x CSMIS x
+  # LCSN x PONI x VEX x LSHADOW x INTRQN sweep, EMCLN=0 and EMCLN=1 passes,
+  # golden re-derived from the drawing's gate labels (34.3/35.3, 37.2/37.3,
+  # ND2). Two builds: plain + FPGA_FF_MODE.
+  "DELILAH-CPU/CGA_DCD/sim  :: test-dcd-vacc    :: TB_RESULT: PASS"
   # CGA_TESTMUX Verilator tb: 25 directed vectors on the TM0-TM4 test mux
   "DELILAH-CPU/CGA_TESTMUX/sim :: test-testmux  :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_MIC/sim  :: test-masel-basic :: PASS"
@@ -250,7 +273,19 @@ REGISTRY=(
   "DELILAH-CPU/CGA_TRAP/sim :: iv-CGA_TRAP_BRKDET    :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_TRAP/sim :: iv-CGA_TRAP_TVGEN_P2  :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_TRAP/sim :: iv-CGA_TRAP_TVGEN     :: TB_RESULT: PASS"
+  # Exhaustive sweep of ALL 524288 input combinations of CGA_TRAP_TVGEN
+  # (vacc ifetch iind iwrite intrq pan poni dstop_n ftrap_n vtrap_n ipcr ipt),
+  # checking TVEC_3_0/PVIOL/RESTR against a spec-derived golden. The older
+  # CGA_TRAP_TVGEN tb checks 5 directed vectors plus a 6000-vector random
+  # soak - about 1% of the space - so a term needing a specific multi-input
+  # coincidence could hide there. Added 17-AUG-2026.
+  "DELILAH-CPU/CGA_TRAP/sim :: iv-CGA_TRAP_TVGEN_exhaustive :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_TRAP/sim :: iv-CGA_TRAP           :: TB_RESULT: PASS"
+  # CGA_TRAP + CGA_IDBCTL_PGSREG driven together: every page-table protection
+  # outcome asserts BOTH the trap vector AND the resulting PGS word, against the
+  # ND-110 semantics (page fault vs protect violation, PGS PM/FETCH bits,
+  # PGS[11:0]=pagetable<<6|VPN, ring violation vs ring-down).
+  "DELILAH-CPU/CGA_TRAP/sim :: test-trap-pgs-paging  :: TB_RESULT: PASS"
   # --- Tang Nano 20K SDRAM stack ---------------------------------------
   "fpga/tang-nano-20k/sdram-bridge/sim :: test :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sdram-bridge/sim :: test-pack16 :: TB_RESULT: PASS"
@@ -356,6 +391,8 @@ REGISTRY=(
   "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-adapter :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-oracle :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-bus :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-wcsweep :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-dmapath :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-storage :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-storage-sdram :: TB_RESULT: PASS"
   # Same block read/write matrix with ND_STORAGE_DISCS_UNCACHED, which forces

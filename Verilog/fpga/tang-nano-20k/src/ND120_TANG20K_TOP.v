@@ -237,8 +237,18 @@ module ND120_TANG20K_TOP (
   // 72 accesses END TO END for a whole LIST-FILE-NAMES, and the trigger - a
   // read of +0 - first fires at access 17, so a 64-deep ring holds every
   // access from power-on up to and including the first failing transfer.
+  //
+  // 10-AUG-2026: 64 was NOT enough for the '20500&' mass load. That sequence
+  // is hundreds of accesses long, so a 64-deep ring wrapped and returned only
+  // its tail - every transfer in it completed with status 060010 and a
+  // correctly advanced memory address register, which says nothing about
+  // where the guest decided the load had failed. 256 buys the whole window,
+  // and the cells for it come from building this diagnostic with TANG_FLOPPY
+  // off: the mass load never touches the floppy, and its ND_FLOPPY_DMA plus
+  // its own DMA master are the largest block that can be removed without
+  // changing what the Winchester path does.
 `ifdef TANG_WD_TRACE_DUMP
-  localparam CAP_AW = 6;
+  localparam CAP_AW = 8;
 `else
   localparam CAP_AW = 9;
 `endif
@@ -255,13 +265,124 @@ module ND120_TANG20K_TOP (
   reg cap_armed, cap_trig, cap_done;
   reg wdec_d2;
   reg [3:0] pil_prev;
+  // TRAPN is ACTIVE LOW and is asserted only for the dispatch microcycle, so
+  // its previous value is what makes a one-record-per-trap strobe possible.
+  // Sampling at the PIL->14 transition instead is TOO LATE: measured
+  // 11-AUG-2026, all 255 records came back TVEC=15 TRAPN=1, the idle state.
+  reg       trapn_prev;
+
+  // Sticky "has this machine EVER executed the page-in microcode" flags.
+  // CLPT = 0o5705 unmaps a victim page, ENPT = 0o5706 maps the new one in.
+  // Set once and never cleared, so a single ring dump answers the question
+  // even though the ring itself only covers a few microseconds.
+  reg       seen_enpt, seen_clpt;
+  always @(posedge clk2x or negedge sys_rst_n) begin
+    if (!sys_rst_n) begin
+      seen_enpt <= 1'b0;
+      seen_clpt <= 1'b0;
+    end else begin
+      if (CSA_12_0 == 13'o5706) seen_enpt <= 1'b1;
+      if (CSA_12_0 == 13'o5705) seen_clpt <= 1'b1;
+    end
+  end
   reg [4:0] estate_prev;
   reg [7:0] rxraw_prev;
   reg [31:0] lba_prev;
   reg [15:0] wdata_prev;
   reg [12:0] csa_prev;
   reg [21:0] csa_stable;   // clk2x cycles the microcode CSA has been unchanged
-`ifdef TANG_GRANT_CAPTURE
+`ifdef TANG_PF_CAPTURE
+  // ---------------------------------------------------------------------------
+  // FIRST PAGE-FAULT FREEZE REGISTER readout (21-AUG-2026).
+  //
+  // ND120_PF_CAPTURE (inside CGA) froze the trap-logic inputs at the TCLK edge
+  // that latched a page-fault vector. It emits that 56-bit word through
+  // XMIC_DBG_15_0 as four 14-bit slices, slice index in [15:14]:
+  //
+  //   slice 0 -> frozen[13:0]   PT_15_9[6:0], VACC, LA[5:0]
+  //   slice 1 -> frozen[27:14]  LA[13:6]
+  //   slice 2 -> frozen[41:28]  TVEC, PVIOL, RESTR, ptram CS_n/OE_n,
+  //                             captured(bit 2), strobes_valid(bit 3), cycle[9:0]
+  //   slice 3 -> frozen[55:42]  cycle[23:10]
+  //
+  // Full layout and the decode are in
+  //   Verilog/fpga/tang-nano-20k/PLAN-pagefault-root-cause.md
+  //
+  // NOTE: while this define is set, XMIC_DBG_15_0 carries the capture readout,
+  // NOT the microsequencer address-advance probe. Do not decode it as the latter.
+  //
+  // Trigger: the frozen word's `captured` flag is bit 30, which lands in slice 2
+  // at bit 2. Latch it when that slice goes past, so the dump fires once the
+  // evidence actually exists rather than on a rotation of an empty register.
+  // Slice index is THREE bits ([15:13]) and the payload is 13 bits. The
+  // `captured` flag is frozen[30], and slice 2 carries frozen[38:26], so it
+  // arrives at payload bit 30-26 = 4.
+  //
+  // Measured 21-AUG-2026: this trigger was left decoding the OLD 2-bit index
+  // and bit 2 after the word was widened. `[15:14] == 2'd2` then matched
+  // slices 4 AND 5, bit 2 of those payloads is arbitrary, so pf_seen set at
+  // power-up, the dumper took the TX pin immediately and streamed zeros. The
+  // layout has THREE consumers - this file, ND120_PF_CAPTURE.v and
+  // pf_capture_run.py - and all three must move together.
+  reg  pf_seen = 1'b0;
+  reg [1:0] pf_s5_cnt = 2'd0;
+  reg [2:0] pf_slice_prev;
+  always @(posedge clk_cpu) begin
+    pf_slice_prev <= s_xmic_dbg[15:13];
+    // Trigger on c_next_valid (frozen[71]), NOT on `captured` (frozen[30]).
+    // c_next_valid means the DISCRIMINATOR sample - PT one capturing edge
+    // AFTER the fault - has actually been taken. Triggering on `captured`
+    // dumped the ring before that sample existed and the readout came back
+    // "NOT TAKEN", losing the one field that separates a real page fault from
+    // a late-arriving page-table entry. frozen[71] is slice 5 payload bit 6.
+    // Fire only after a COMPLETE post-capture rotation is in the ring.
+    //
+    // Measured 21-AUG-2026: triggering on the first sighting of slice 5 ended
+    // the dump immediately after it, so the rotation never wrapped back to
+    // slice 0 and the ring held only the STALE pre-capture slice 0 (501 copies
+    // of 0x0000). Slice 0 carries c_pt and c_vacc, so both came back as zeros
+    // that were never measured - which is what produced the impossible
+    // "PVIOL=1 with VACC=0" word.
+    //
+    // Counting two sightings of slice 5 guarantees slices 0..5 have all been
+    // emitted from the frozen, immutable word before the dump starts.
+    // Trigger on the LAST slice (7), not on a captured-only field. The readout
+    // now rotates either after a capture OR after a census timeout, so slice 7
+    // appearing twice means a complete word is in the ring in BOTH cases -
+    // including the case where nothing was captured and only the census has
+    // anything to say.
+    if ((s_xmic_dbg[15:13] == 3'd7) &&
+        (s_xmic_dbg[15:13] != pf_slice_prev)) begin
+      if (pf_s5_cnt == 2'd1) pf_seen <= 1'b1;
+      else                   pf_s5_cnt <= pf_s5_cnt + 1'b1;
+    end
+  end
+
+  wire [19:0] s_cap_src   = {4'd0, s_xmic_dbg[15:0]};
+  // One sample per slice: the slice rotates far slower than clk_cpu, so a
+  // change-detect records each slice exactly once instead of thousands of times.
+  wire        s_cap_stb   = (s_xmic_dbg[15:13] != pf_slice_prev);
+  wire        s_cap_arm   = cap_armed;
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire        s_hang      = &csa_stable;   // deliberately NOT used - see below
+  /* verilator lint_on UNUSEDSIGNAL */
+  // TRIGGER ON THE CAPTURED FAULT ONLY. Do NOT or-in s_hang.
+  //
+  // Measured 21-AUG-2026: with `pf_seen || s_hang` the board emitted 7940
+  // NUL bytes and nothing else. s_hang is "CSA unchanged for 2^22 cycles",
+  // which is exactly what the WCS microcode load looks like, so the dump
+  // triggered during the load, dump_fin latched permanently, and the dumper
+  // held the TX pin forever. The console never spoke, the boot command was
+  // never accepted, and no page fault could ever happen. The comment on
+  // arm_cnt above warns about precisely this.
+  //
+  // This experiment NEEDS the console alive: a human types '20500&' and the
+  // fault arrives 25+ minutes later. Only the real capture may take the pin.
+  wire        s_cap_event = pf_seen;
+  // All six slices must be recorded AFTER the trigger, and the rotation is
+  // slow, so keep collecting well past the event.
+  localparam [8:0] CAP_POST = 9'd64;
+`elsif TANG_GRANT_CAPTURE
   // Word = {PIL[3:0], INTRQ, CSA[10:0]}.  INTRQ = ~DEBUG_INTRQ_n (already routed
   // to this top) shows WHEN the interrupt-request FF is asserted relative to the
   // 00017 dispatch: held-from-early (a level-held PAN, i.e. the free-running RTC,
@@ -427,6 +548,70 @@ module ND120_TANG20K_TOP (
   // the 64-entry ring useful - PIL sampled every clk2x would fill it in
   // microseconds and show nothing but the idle level.
   wire [19:0] s_cap_src   = {4'hB, 12'd0, s_pil_3_0};
+`elsif ND_WD_TRACE_TVEC
+  // TRAP DISPATCH. Word = {tag, TVEC[3:0], TRAPN, PIL[3:0]}, so each record
+  // says WHICH internal interrupt was dispatched and at what level. TVEC is
+  // the ND-100 internal interrupt code: 1 = monitor call, 2 = memory
+  // protection violation, 3 = page fault.
+  //
+  // The reference number, measured 11-AUG-2026: in an nd100x boot of the SAME
+  // WD0.IMG, the 65536-instruction window following the block-3643 read holds
+  // EIGHT monitor calls (IID bit 1) and NO page fault and NO protection
+  // violation. So a ring full of code 2 or code 3 here IS the divergence,
+  // and a ring full of code 1 says the machine is re-taking monitor calls.
+`elsif ND_WD_TRACE_CSATRAP
+  // The microcode addresses LEADING INTO a trap. Sampling CSA at the trap
+  // instant is useless - on a trap the micro-address bus IS the trap vector
+  // (docs/SIGNALS.md: MA muxes WCA/W/TVEC/CD on EWCA/MAP_n/TRAP_n), so it
+  // just reads back the vector, which is what the previous build measured.
+  // Free-run CSA instead and let the TRAP be the TRIGGER, so the ring holds
+  // the ~256 clk2x cycles (~19 us) of microcode before the fault.
+  wire [19:0] s_cap_src   = {4'd0, 3'b0, CSA_12_0[12:0]};
+`elsif ND_WD_TRACE_TVEC_CSA
+  // CSA, not PIL, in the low bits: the PAGING test-3 analysis
+  // (docs/HANDOFF-paging-test3-pof-dispatch-rootcause.md) pins its D2
+  // defect to the overlapped COMM,AREAD dispatch word at CSA 04420. If
+  // the SINTRAN hang traps at the same microcode address, it is the same
+  // defect and not merely the same symptom.
+  // CSA dropped: it was measured to equal TVEC in every one of 255 records, so
+  // it carried nothing. CGA.v now packs the ring evidence into the low bits
+  // instead - see the repack note there.
+  //   [19:9] CSA[10:0]  [8:5] TVEC  [4] TRAPN  [3] VACC  [2] PGF  [1] TCLK  [0] 0
+  //
+  // The FULL low CSA is carried, not the top bits: the handlers that identify
+  // the vector actually used sit at LOW addresses (vector 1 -> 00020 = 16,
+  // vector 3 -> 00040 = 32), so CSA[10:0] is what distinguishes them and
+  // CSA[10:7] would read 0 for both. PT_15_9 is dropped to make room - it is
+  // already known to be 000 at the fault from the previous capture.
+  // DEMAND-PAGING PROBE (17-AUG-2026). The oracle shows that servicing a page
+  // fault ALWAYS runs the same microcode sequence, and 126 of 126 faults in a
+  // healthy boot end in a disc read:
+  //     PF -> CLPT (unmap victim) -> seek/read -> IDENT level 11
+  //        -> ENPT (map the page in) -> resume
+  // Our machine produces faults with NO disc read, so the question is whether
+  // it ever reaches those routines at all. From the microcode listing
+  // (/mnt/e/Dev/Ronny/nd120uc/source/nd-120-delilah.uc):
+  //     CLPT = CSA 0o5705,  ENPT = CSA 0o5706,  CLPT1 = 0o4071, CLPT3 = 0o4115
+  //
+  // NOTE 0o5705 = 3013 decimal - that needs TWELVE bits. The previous record
+  // carried only CSA[10:0], which would have truncated bit 11 and shown 0o1705,
+  // i.e. "never reached" for a routine that was in fact running. Carry the full
+  // 13-bit CSA here.
+  //
+  // The sticky flags matter more than the live CSA: a 256-record window is only
+  // microseconds, so it may simply miss a routine that does execute. Once set,
+  // seen_enpt/seen_clpt stay set, so ANY dump answers "has this machine EVER
+  // mapped a page in".
+  //   [19:16] CSA[3:0]  [15:4] LA_21_10  [3] VACC  [2] PGF  [1] TRAPN  [0] TCLK
+  //
+  // PGS reconstruction: PGS is the last LA_21_10 loaded while VACC was high
+  // (CGA_IDBCTL_PGSREG, drawing page 98 - self-holding scan FFs, TE = VACC).
+  // SINTRAN masks PGS & 001777 to get PT<<6|VPN and keys its serviceable/fatal
+  // decision on it. Oracle known-good at the first serviced fault: 040762
+  // (PT=7, VPN 0o62). L-reg 072627 implies ours reported 000760.
+  // Capturing LA + VACC free-running around the fault shows both the value AND
+  // whether it is overwritten before SINTRAN reads it.
+  wire [19:0] s_cap_src   = {CSA_12_0[3:0], s_xmic_dbg[15:0]};      // [0] PTM (STS bit 0)
 `elsif ND_WD_TRACE_FSEC
   // The mount's first_sector for the granted client, low 16 bits, strobed on
   // entry to C_SEC_GO so it is captured at the moment a fetch is launched.
@@ -558,6 +743,40 @@ module ND120_TANG20K_TOP (
   wire        s_cap_stb   = (DBG_LBA != lba_prev);
 `elsif ND_WD_TRACE_PIL
   wire        s_cap_stb   = (s_pil_3_0 != pil_prev);
+`elsif ND_WD_TRACE_TVEC
+  // One record per DISPATCHED trap: strobe on entry to level 14, the
+  // internal-interrupt level, not on every clock. A machine re-taking the
+  // same trap forever therefore fills the ring with that trap's code.
+`elsif ND_WD_TRACE_CSATRAP
+  wire        s_cap_stb   = 1'b1;
+`elsif ND_WD_TRACE_TVEC_CSA
+  // Falling edge of TRAPN = a trap is being DISPATCHED, which is the only
+  // moment TVEC is valid. One record per trap - but ONLY a REAL one.
+  //
+  // TVEC 15 is excluded (measured 17-AUG-2026). A first capture came back with
+  // all 256 slots holding the identical record AF00F = TVEC 15, CSA 0o17: the
+  // TRAPN edge fires constantly with vector 15, so the ring filled with those
+  // and evicted every real trap. This is not a new discovery - the repo's own
+  // trap probe already treats it as noise and prints nothing for it
+  // (DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP.v:117 tests
+  // `s_tvec_3_0_out != 4'd15` on exactly this edge).
+  //
+  // With vector 15 filtered out, the OPCOM idle loop after the ERRFATAL halt
+  // no longer consumes slots, so the card-idle trigger 45 s later still leaves
+  // the ring holding the last 256 REAL traps - the ones taken on the way into
+  // the fault.
+  // FREE-RUN (17-AUG-2026). One record per trap has no time axis, and that is
+  // now the limiting factor: the vector bits are TCLK-registered while TRAPN is
+  // combinational (CGA_TRAP_BRKDET.v has no clock port), so a sample taken at
+  // the TRAPN edge may read the vector BEFORE the capturing edge. That cannot
+  // be told apart from a genuinely wrong dispatch without consecutive clocks.
+  //
+  // Free-running at clk2x makes each record one clock, so the sequence shows
+  // TCLK rising, the vector settling, and - critically - which microcode
+  // address the sequencer actually RUNS afterwards. Vector 3 jumps to 00040,
+  // vector 1 jumps to 00020, so the handler entered names the vector that was
+  // really used.
+  wire        s_cap_stb   = 1'b1;
 `else
   // FOREIGN ACCESSES ARE NOT RECORDED. They were excluded from the TRIGGER on
   // 09-AUG-2026 but still consumed ring slots, and with a 64-entry ring that
@@ -570,8 +789,40 @@ module ND120_TANG20K_TOP (
   // spelled out rather than reusing wd_trace_foreign, which is declared below
   // this point; module-level nets may legally be used before declaration but
   // there is no reason to lean on that through the Gowin front end.
+`ifdef ND_WD_TRACE_OPSONLY
+  // ONE OPERATION PER THREE RECORDS: the block address (+3), the word count
+  // (+7), and the control word (+5) that actually ACTIVATES the card (bit 2).
+  // The four device-clear words each operation writes to +5 carry bit 2 = 0
+  // and are dropped, as are the status polls, the IDENT, the interrupt and
+  // the address readback. 256 entries therefore hold 85 operations, which
+  // reaches back past the block-0 retry loop the block-only capture found at
+  // operation 121 of 158 - the full trace reaches back only thirteen.
+  //
+  // Tags: 4'hB = write to +3, 4'hF = write to +7, 4'hD = write to +5.
+  wire        s_cap_stb   = wd_trace_we && !wd_trace_we_q
+                            && ((wd_trace_rec[19:16] == 4'hB)
+                             || (wd_trace_rec[19:16] == 4'hF)
+                             || ((wd_trace_rec[19:16] == 4'hD)
+                                 && wd_trace_rec[2]));
+`elsif ND_WD_TRACE_BLKONLY
+  // BLOCK ADDRESSES ONLY - one record per disc operation instead of the
+  // nineteen a full operation costs (block address, two address halves, word
+  // count, control word, status polls, IDENT, interrupt, address readback,
+  // four device clears). The whole '20500&' SINTRAN load writes 251 block
+  // addresses end to end, measured from the nd100x trace of the same WD0.IMG,
+  // so a 256-entry ring holds EVERY disc address the boot asks for, from the
+  // first to the last. The unfiltered trace cannot do that: at nineteen
+  // records per operation a 256-entry ring reaches back only thirteen
+  // operations, which is the last five percent of the load.
+  //
+  // Tag 4'hB is a WRITE (bit 19) to register 3 (bits 18:16), the block
+  // address register.
+  wire        s_cap_stb   = wd_trace_we && !wd_trace_we_q
+                            && (wd_trace_rec[19:16] == 4'hB);
+`else
   wire        s_cap_stb   = wd_trace_we && !wd_trace_we_q
                             && (wd_trace_rec[19:16] != 4'hC);
+`endif
 `endif
 
   // THE ARM DELAY DOES NOT APPLY HERE. cap_armed only goes high ~40 s after
@@ -677,10 +928,51 @@ module ND120_TANG20K_TOP (
   // the three opening probe accesses. 45 s clears any scripted dialogue gap
   // and still fires well inside a listen window. Both terms move together so
   // the 30 s term cannot pre-empt the 45 s one.
+`ifdef ND_WD_TRACE_CSATRAP
+  // Trigger on the trap itself, keeping a few records after it so the ring
+  // shows the dispatch as well as the run-up.
+  // Gated on the card having gone QUIET first (same 45 s idle the register
+  // trace uses). Traps happen constantly during a healthy boot; without the
+  // gate the ring would capture the first one and be long gone by the time
+  // the machine livelocks.
+  wire        s_cap_event = (!s_xmic_dbg[11] && trapn_prev)
+                            && (wd_count >= 8'd3)
+                            && (wd_idle >= 30'd607_500_000);
+  localparam [8:0] CAP_POST = 9'd16;
+`elsif ND_WD_TRACE_TVEC_CSA
+  // Keep the card-idle trigger; the STROBE above now filters vector 15, which
+  // is what makes it work. Triggering on the page fault itself (TVEC == 1) was
+  // tried on 17-AUG-2026 and produced ZERO records - the condition never became
+  // true in the whole 146 s run up to the ERRFATAL halt, even though SINTRAN
+  // then printed "IIC : 000003  Page Fault". That is worth knowing but it is
+  // NOT usable as a trigger, and it is NOT yet proof of anything: it means
+  // either page faults here are not delivered as microcode trap vector 1, or
+  // PGF never asserted. Recording every REAL trap and reading what the machine
+  // actually takes settles that without assuming the answer first.
+  // Trigger on the PAGE-FAULT dispatch itself: TRAPN falling with PGF live.
+  // The card-idle trigger is useless with a free-running strobe - 256 clk2x
+  // cycles is a window of microseconds, and the idle trigger only becomes true
+  // 45 s AFTER the halt.
+  //
+  // CAP_POST 200 of 256 puts most of the ring AFTER the trap, which is the
+  // whole question: does the sequencer run the vector-1 handler (00020) or the
+  // vector-3 handler (00040)? The ~56 records before the trigger still show the
+  // vector settling across the TCLK edge.
+  // BIT POSITIONS FOLLOW THE CGA REPACK. XMIC_DBG is now the PT/APT record
+  //   [15:12] PT  [11:8] APT  [7:4] table used  [3] FETCH_n  [2] PTM
+  //   [1] PGF  [0] TRAPN
+  // so TRAPN is bit 0 and PGF is bit 1. Every earlier packing put them
+  // somewhere else; leaving a stale index here makes the trigger test an
+  // address bit and it silently never fires - that cost a build+boot on
+  // 17-AUG-2026 and is what scratchpad/preflight_capture.py now checks.
+  wire        s_cap_event = (!s_xmic_dbg[0] && trapn_prev) && s_xmic_dbg[1];
+  localparam [8:0] CAP_POST = 9'd200;
+`else
   wire        s_cap_event = (wd_ran && (wd_count >= 8'd3)
                              && (wd_idle >= 30'd607_500_000))
                          || ((wd_count >= 8'd6) && (wd_idle >= 30'd607_500_000));
   localparam [8:0] CAP_POST = 9'd0;   // the trigger IS the end - nothing after
+`endif
 `else
   wire [19:0] s_cap_src   = {4'd0, s_dbg_memw};
   wire        s_cap_stb   = 1'b1;
@@ -693,6 +985,7 @@ module ND120_TANG20K_TOP (
       cap_wptr <= 0; cap_post <= 0; arm_cnt <= 0;
       cap_armed <= 0; cap_trig <= 0; cap_done <= 0; wdec_d2 <= 0;
       wdec_seen <= 0; write_seen <= 0; pil_prev <= 0; estate_prev <= 0; rxraw_prev <= 0; lba_prev <= 0; wdata_prev <= 0;
+      trapn_prev <= 1'b1;
       csa_prev <= 0; csa_stable <= 0;
     end else begin
       if (!cap_armed) begin
@@ -705,6 +998,7 @@ module ND120_TANG20K_TOP (
       else if (!(&csa_stable))  csa_stable <= csa_stable + 1'b1;
       wdec_d2 <= s_dbg_memw[7];
       pil_prev <= s_pil_3_0;
+      trapn_prev <= s_xmic_dbg[0];   // TRAPN, see the repack note above
       estate_prev <= DBG_STATE;
       rxraw_prev  <= DBG_RX_RAW;
       lba_prev    <= DBG_LBA;
@@ -793,7 +1087,18 @@ module ND120_TANG20K_TOP (
   // conversion the write decode fires during normal boot, so the dump
   // would trigger every boot and hold the TX pin forever (dump_fin never
   // clears). Only let it take the console when explicitly enabled.
-`ifdef TANG_WRITE_ANALYZER_DUMP
+`ifdef TANG_PF_CAPTURE
+  // Page-fault freeze readout: once ND120_PF_CAPTURE has frozen a fault the
+  // dumper takes the TX pin and streams the ring, which holds the four 14-bit
+  // slices of the frozen word. The console is dead afterwards - expected, the
+  // machine has already halted in ERRFATAL.
+  //
+  // WITHOUT this branch the dump never reaches a pin, so the ring is dead
+  // logic and synthesis removes everything feeding it - including the capture
+  // block itself. Measured 21-AUG-2026: the netlist contained no PF_CAPTURE
+  // registers at all and the readout would have streamed constants.
+  assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
+`elsif TANG_WRITE_ANALYZER_DUMP
   assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
 `elsif TANG_WD_TRACE_DUMP
   // The dump takes the console only after the diagnostic has printed.

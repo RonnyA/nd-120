@@ -95,3 +95,26 @@ gtk: run
 
 .PHONY: all clean
 
+
+# --- CGA_WRF_RBLOCK_PREG verification, ALL FOUR build modes ------------------
+# Walking one/zero on RB and NLCA, recirculate hold, WR2-over-XFETCH priority
+# and the PR latch transparency window, against the MUX31LP + R81 + L8
+# transcription. FPGA_FF_MODE switches the register, USE_TRANSPARENT_LATCHES
+# switches the latch: all four combinations must agree.
+# Registered in tests/run_all_tests.sh.
+test-wrf-preg:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_preg CGA_WRF_RBLOCK_PREG_tb.v && vvp -N /tmp/ndtb_wrf_preg
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_preg_ff CGA_WRF_RBLOCK_PREG_tb.v && vvp -N /tmp/ndtb_wrf_preg_ff
+	iverilog -g2012 -DUSE_TRANSPARENT_LATCHES $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_preg_lat CGA_WRF_RBLOCK_PREG_tb.v && vvp -N /tmp/ndtb_wrf_preg_lat
+	iverilog -g2012 -DFPGA_FF_MODE -DUSE_TRANSPARENT_LATCHES $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_preg_fflat CGA_WRF_RBLOCK_PREG_tb.v && vvp -N /tmp/ndtb_wrf_preg_fflat
+
+# --- CGA_WRF top-level verification, ALL FOUR build modes --------------------
+# Address-decoder sweep (16x16xBDEST), a walking one written into every bit of
+# every one of the 16 registers with a full 16-register read-back after each
+# write, the P register source paths, the PR/BR/XR latch windows and 256 LFSR
+# steps. Registered in tests/run_all_tests.sh.
+test-wrf:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf CGA_WRF_tb.v && vvp -N /tmp/ndtb_wrf
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_ff CGA_WRF_tb.v && vvp -N /tmp/ndtb_wrf_ff
+	iverilog -g2012 -DUSE_TRANSPARENT_LATCHES $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_lat CGA_WRF_tb.v && vvp -N /tmp/ndtb_wrf_lat
+	iverilog -g2012 -DFPGA_FF_MODE -DUSE_TRANSPARENT_LATCHES $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_wrf_fflat CGA_WRF_tb.v && vvp -N /tmp/ndtb_wrf_fflat

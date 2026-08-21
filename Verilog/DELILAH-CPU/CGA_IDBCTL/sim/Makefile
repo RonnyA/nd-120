@@ -56,6 +56,17 @@ test-idbctl-pgsreg:
 	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_idbctl_pgsreg CGA_IDBCTL_PGSREG_tb.v && vvp -N /tmp/ndtb_idbctl_pgsreg
 	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_idbctl_pgsreg_ff CGA_IDBCTL_PGSREG_tb.v && vvp -N /tmp/ndtb_idbctl_pgsreg_ff
 
+# --- CGA_IDBCTL top-level IDB source select verification, BOTH build modes ---
+# Walking-one per source, all 32 enable combinations x 16 random vectors
+# against the per-slice wiring map read off CGA_IDBCTL.v, an explicit RING
+# check (XFIDBI must not move the output while any internal source is
+# enabled) and a printed multi-hot characterisation. Contains PGSREG
+# (SCAN_FF_EN switched by FPGA_FF_MODE): run twice. Registered in
+# tests/run_all_tests.sh.
+test-idbctl:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_idbctl CGA_IDBCTL_tb.v && vvp -N /tmp/ndtb_idbctl
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_idbctl_ff CGA_IDBCTL_tb.v && vvp -N /tmp/ndtb_idbctl_ff
+
 clean:
 	rm -rf obj_dir
 

@@ -844,6 +844,44 @@ module ND120_CORE #(
           .BDAP_n(s_wdm_bdap_n),
           .BDRY_n(BDRY_n_OUT)
       );
+
+`ifdef ND120_DMA_STALL_DBG
+      // ------------------------------------------------------------------
+      // WINCHESTER DMA STALL PROBE (inert unless -DND120_DMA_STALL_DBG).
+      //
+      // The SINTRAN boot stops with the DISC side finished - every disk read
+      // reported done - and the controller still reporting ACTIVE (status
+      // 060005 instead of the oracle's 060011). A bench replaying the exact
+      // IOX sequence completes, a word-count sweep completes, and the real
+      // ND_DMA_MASTER driving the real SD card completes. The one thing no
+      // bench reproduces is the CPU competing for the same bus, so the
+      // question is whether this master ever WINS a grant once the CPU is
+      // spinning in its IOX poll loop.
+      //
+      // Reports a request that stays outstanding far longer than a memory
+      // cycle can take, and prints the bus lines that decide it: our own
+      // BREQ, the grant coming in, BMEM from the bus control unit, and BDRY
+      // from memory. Whichever of those is stuck names the culprit - it is
+      // not inferred from the absence of an acknowledge.
+      integer r_wdstall;
+      reg     r_wdstall_said;
+      initial begin r_wdstall = 0; r_wdstall_said = 1'b0; end
+      always @(posedge s_dev_clk) begin
+        if (s_wd_busy || s_wd_req) begin
+          r_wdstall <= r_wdstall + 1;
+          if (r_wdstall == 20000 && !r_wdstall_said) begin
+            r_wdstall_said <= 1'b1;
+            $display("[wddma] STALLED %0d cycles: req=%b busy=%b ack=%b err=%b  BREQ_n=%b INGRANT_n=%b BMEM_n=%b BDRY_n=%b addr=%o",
+                     r_wdstall, s_wd_req, s_wd_busy, s_wd_ack, s_wd_err,
+                     s_wdm_breq_n, s_grant_smdm_wdm_n, BMEM_n, BDRY_n_OUT,
+                     s_wd_addr);
+          end
+        end else begin
+          r_wdstall      <= 0;
+          r_wdstall_said <= 1'b0;
+        end
+      end
+`endif
     end else begin : gen_no_wd
       assign s_wd_rdata      = 16'd0;
       assign s_wd_sel        = 1'b0;

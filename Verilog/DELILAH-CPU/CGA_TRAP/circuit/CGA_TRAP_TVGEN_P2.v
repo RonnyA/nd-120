@@ -28,7 +28,7 @@ module CGA_TRAP_TVGEN_P2 (
     input RD,
     input RV,
     input TCLK,  //! TRAP CLOCK
-    input VACC,
+    input VACC,  //! MMU-translated memory reference this cycle - qualifies the level-2 vector terms
     input VTRAPN,
     input WIP,
     input WIPN,
@@ -295,20 +295,35 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
-  // FIX 27-JUL (trap-vector-7 timing race, Issue D): the level-2 vector data
-  // bits (l2v2/l2v1/l2v0) were TCLK-registered FFs while the trap SELECT
-  // {LEV1,LEV2} and TRAPN are combinational. On a PGU/WIP rising edge LEV2
-  // selects the level-2 slot immediately, but the registered l2v* still held
-  // the previous-edge "no-level-2-condition" default {1,1,1} -> TVEC=0111=7
-  // (unimplemented SINTRAN-4 self-jump) for one TCLK, and CSA latched 7 before
-  // the FFs updated to the correct PGU->4 / WIP->5 encoding. The trap vector is
-  // only ever sampled at the dispatch cycle (coincident with the live fault),
-  // and a level-2 trap always has WIP|PGU|RD live, so drive the level-2 mux
-  // inputs COMBINATIONALLY from the live gate outputs - coherent with the live
-  // LEV2 select. Registered L1V/L3V (page-fault / level-3) slots are untouched;
-  // sel=11/10/00 are unaffected (they never select D1). qBar polarity preserved
-  // (l2vN_n = ~gatesM_out).
-  assign s_l2v2_n = ~s_gates8_out;
+  // RESTORED 17-AUG-2026 to match the drawing. Page 104 (/CGA/TRAP/TVGEN sheet
+  // 2 of 2) draws ALL SEVEN vector bits - L2V2N, L3V1N, L2V1N, L1V1N, L3V0N,
+  // L2V0N, L1V0N - as FD1 flip-flops with their CK pins fed from the single
+  // TCLK net entering top-left. The level-2 bits are NOT combinational on the
+  // sheet.
+  //
+  // The 27-JUL change replaced these three with `assign s_l2vN_n = ~gate` to
+  // cure a trap-vector-7 dispatch (Issue D). That removed a divergence symptom
+  // by introducing a divergence: it made the level-2 slot behave differently
+  // from the level-1 and level-3 slots, which the drawing treats identically.
+  // Since all seven are drawn the same, a stale-capture effect is what the REAL
+  // hardware does too, so the real fault must be WHEN TCLK fires relative to
+  // the condition becoming valid - not the flip-flops. Chasing that is the
+  // point of restoring these.
+  //
+  // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(TCLK_CE)
+  ) L2V2_FF (
+      .sysclk(sysclk),
+      .EN(TCLK_EN),
+      .clock(s_tclk),
+      .d(s_gates8_out),
+      .preset(1'b0),
+      .q(),
+      .qBar(s_l2v2_n),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
   // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
   D_FLIPFLOP_EN #(
@@ -325,8 +340,21 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
-  // FIX 27-JUL (Issue D, see L2V2 note): combinational level-2 vector bit 1.
-  assign s_l2v1_n = ~s_gates7_out;
+  // RESTORED 17-AUG-2026 to match page 104 - see the L2V2_FF note above.
+  // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(TCLK_CE)
+  ) L2V1_FF (
+      .sysclk(sysclk),
+      .EN(TCLK_EN),
+      .clock(s_tclk),
+      .d(s_gates7_out),
+      .preset(1'b0),
+      .q(),
+      .qBar(s_l2v1_n),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
   // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
   D_FLIPFLOP_EN #(
@@ -358,8 +386,21 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
-  // FIX 27-JUL (Issue D, see L2V2 note): combinational level-2 vector bit 0.
-  assign s_l2v0_n = ~s_gates11_out;
+  // RESTORED 17-AUG-2026 to match page 104 - see the L2V2_FF note above.
+  // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
+  D_FLIPFLOP_EN #(
+      .USE_ENABLE(TCLK_CE)
+  ) L2V0_FF (
+      .sysclk(sysclk),
+      .EN(TCLK_EN),
+      .clock(s_tclk),
+      .d(s_gates11_out),
+      .preset(1'b0),
+      .q(),
+      .qBar(s_l2v0_n),
+      .reset(1'b0),
+      .tick(1'b1)
+  );
 
 `ifdef TRAPDBG
   // Internal vector-7 diagnosis: on the cycle the vector first becomes 7, dump

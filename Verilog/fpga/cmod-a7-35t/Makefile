@@ -5,13 +5,13 @@
 #   make clean      remove build outputs
 #
 # Vivado path: the same install the Basys3 flow uses
-# (F:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat); override with
+# (F:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat); override with
 #   make VIVADO="D:\Xilinx\...\vivado.bat"
 # From a Windows shell, run the tcl directly instead:
 #   cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\cmod-a7-35t
 #   vivado -mode batch -source build.tcl [-tclargs -noburn]
 
-VIVADO ?= F:\\AMDDesignTools\\2025.2.1\\Vivado\\bin\\vivado.bat
+VIVADO ?= F:\\AMDDesignTools\\2026.1\\Vivado\\bin\\vivado.bat
 CMD     = cmd.exe /c
 
 all:

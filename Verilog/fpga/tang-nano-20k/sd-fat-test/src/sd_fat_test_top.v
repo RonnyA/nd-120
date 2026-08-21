@@ -146,6 +146,19 @@ module sd_fat_test_top #(
     inout  sd_dat3,
 
     output [5:0] led  // active low
+
+`ifdef SDFAT_EXT_TEST
+    // External test commands (Nexys 4 DDR memory tests). Gated: builds that
+    // do not define SDFAT_EXT_TEST are byte-identical to before. The external
+    // module runs a self-contained test and prints through this design's UART.
+    ,
+    output reg       ext_start,     // 1-cycle pulse: run test ext_id
+    output reg [3:0] ext_id,        // 0 = DDR2, 1 = ND-120 memory path (BRAM)
+    input  wire      ext_busy,      // high while the external test runs
+    input  wire [7:0] ext_tx_data,  // its character stream...
+    input  wire      ext_tx_valid,  // ...with the same handshake as the others
+    output wire      ext_tx_busy    // the shared UART's busy flag
+`endif
 );
 
   localparam DELAY_FRAMES = CLK_FREQ / BAUD;
@@ -1238,6 +1251,15 @@ module sd_fat_test_top #(
    ** 64 KB byte buffer (BRAM): file bytes (DUMP/COPY) or list lines (LIST) in, **
    ** hex_dumper / buf_text_printer / sd_writer out                             **
    *******************************************************************************/
+  // SDFAT_BUF_BLOCKRAM: Vivado maps this array to DISTRIBUTED RAM by default
+  // (measured 20-AUG-2026 on xc7a100t: 24,576 RAMD64E cells against 19,000
+  // sites, so place_design fails outright) even though the write and the read
+  // are both clocked. The attribute forces block RAM. It is gated so that
+  // builds which do not define it - Tang Nano 20K (Gowin) and Basys3 - compile
+  // byte-identically to before.
+`ifdef SDFAT_BUF_BLOCKRAM
+  (* ram_style = "block" *)
+`endif
   reg [7:0] file_buf[0:(1 << BUF_AW)-1];
 
   reg [BUF_AW:0] wptr;
@@ -1260,9 +1282,18 @@ module sd_fat_test_top #(
   wire              rx_buf_we   = phase_write && dump_mode && eng_rx_we;
   wire [BUF_AW-1:0] rx_buf_addr = {{(BUF_AW-11){1'b0}}, seccnt[1:0], eng_rx_addr};
 
+  // ONE write port, explicitly muxed. Written as two if/else branches with
+  // two different address expressions - which is what this was - Vivado
+  // counts them as two separate write ports, needs a third for the read, and
+  // gives up on block RAM ("Infeasible attribute ram_style", measured
+  // 20-AUG-2026: 6144 RAM64M primitives instead of 16 RAMB36, which no longer
+  // fits any part here). The priority is unchanged: rx_buf_we wins.
+  wire [BUF_AW-1:0] buf_waddr = rx_buf_we ? rx_buf_addr : wptr[BUF_AW-1:0];
+  wire [7:0]        buf_wdata = rx_buf_we ? eng_rx_data : wr_byte;
+  wire              buf_wen   = rx_buf_we | buf_we;
+
   always @(posedge clk) begin
-    if (rx_buf_we) file_buf[rx_buf_addr] <= eng_rx_data;
-    else if (buf_we) file_buf[wptr[BUF_AW-1:0]] <= wr_byte;
+    if (buf_wen) file_buf[buf_waddr] <= buf_wdata;
   end
 
   // the buffer pointer clears with the reader reset EXCEPT while the
@@ -1390,9 +1421,19 @@ module sd_fat_test_top #(
   reg        ec_valid;
   reg  [7:0] ec_byte;
 
+`ifdef SDFAT_EXT_TEST
+  // the external test owns the console while it runs - nothing else prints
+  // during a memory test, so top priority is safe and keeps its lines intact
+  wire [7:0] tx_data = ext_tx_valid ? ext_tx_data
+                     : hd_tx_valid ? hd_tx_data : tp_tx_valid ? tp_tx_data
+                     : ec_valid ? ec_byte : sp_tx_data;
+  wire       tx_valid = ext_tx_valid | hd_tx_valid | tp_tx_valid | ec_valid | sp_tx_valid;
+  assign     ext_tx_busy = tx_busy;
+`else
   wire [7:0] tx_data = hd_tx_valid ? hd_tx_data : tp_tx_valid ? tp_tx_data
                      : ec_valid ? ec_byte : sp_tx_data;
   wire       tx_valid = hd_tx_valid | tp_tx_valid | ec_valid | sp_tx_valid;
+`endif
   wire       tx_busy;
 
   uart_tx #(
@@ -1497,6 +1538,10 @@ module sd_fat_test_top #(
   localparam ST_R_SUM    = 6'd37;  // RANGE: print the summary, field by field
   localparam ST_R_ERR    = 6'd38;  // RANGE: a read failed - print the sector
   localparam ST_R_ERR2   = 6'd39;  // RANGE: ...and the block, then summarise
+`ifdef SDFAT_EXT_TEST
+  localparam ST_EXT_W    = 6'd40;  // external test running - wait for ext_busy
+  reg ext_kicked;
+`endif
 
   // persistent SD status shown in the menu (survives between commands)
   localparam SD_NOTCHK = 2'd0;
@@ -1572,6 +1617,11 @@ module sd_fat_test_top #(
       state            <= ST_BANNER;
       next_after_print <= ST_BANNER;
       cmd_running      <= 1'b0;
+`ifdef SDFAT_EXT_TEST
+      ext_start        <= 1'b0;
+      ext_id           <= 4'd0;
+      ext_kicked       <= 1'b0;
+`endif
       rdrst_cnt        <= 0;
       phase_write      <= 1'b0;
       mode             <= M_DUMP;
@@ -1864,6 +1914,23 @@ module sd_fat_test_top #(
               echo_next        <= ST_PRINT;
               state            <= ST_ECHO;
             end
+`ifdef SDFAT_EXT_TEST
+            // ---- external memory tests (Nexys 4 DDR) --------------------
+            // The external module owns the console until it clears ext_busy;
+            // the card is not touched, so no reader phase is entered here.
+            "M", "m": begin
+              ext_id      <= 4'd0;      // DDR2
+              cmd_running <= 1'b1;
+              echo_next   <= ST_EXT_W;
+              state       <= ST_ECHO;
+            end
+            "B", "b": begin
+              ext_id      <= 4'd1;      // ND-120 memory path (BRAM)
+              cmd_running <= 1'b1;
+              echo_next   <= ST_EXT_W;
+              state       <= ST_ECHO;
+            end
+`endif
             default: state <= ST_MENU;  // anything else: reprint the menu
           endcase
         end
@@ -2623,6 +2690,23 @@ module sd_fat_test_top #(
           done_flag <= 1'b1;
           state     <= ST_MENU;
         end
+
+`ifdef SDFAT_EXT_TEST
+        // Kick the external test once, then wait for it to release ext_busy.
+        // Kicking here rather than in ST_KEY keeps the echoed key and the
+        // test's own output from interleaving.
+        ST_EXT_W:
+        if (!ext_kicked) begin
+          ext_start  <= 1'b1;
+          ext_kicked <= 1'b1;
+        end else begin
+          ext_start <= 1'b0;
+          if (!ext_busy && !ext_start) begin
+            ext_kicked <= 1'b0;
+            state      <= ST_CMD_END;
+          end
+        end
+`endif
 
         ST_PRINT: begin
           sp_start <= 1'b1;

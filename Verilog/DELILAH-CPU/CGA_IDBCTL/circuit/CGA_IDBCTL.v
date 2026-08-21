@@ -32,7 +32,7 @@ module CGA_IDBCTL (
     input [ 2:0] PICS_2_0,
     input [ 2:0] PICV_2_0,
     input        PVIOL,
-    input        VACCN,
+    input        VACCN,        //! VACC_n - passed straight down to CGA_IDBCTL_PGSREG as its load enable
     input [15:0] XFIDBI_15_0,
 
     // Output signal

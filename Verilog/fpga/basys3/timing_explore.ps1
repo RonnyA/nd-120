@@ -1,7 +1,7 @@
 # Runs timing_explore.tcl (opens the routed checkpoint, no resynth, ~1-2 min).
 # Wrapper so you don't need vivado on PATH.
 param(
-    [string]$VivadoPath = "F:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat"
+    [string]$VivadoPath = "F:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat"
 )
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Tcl = Join-Path $ScriptDir "timing_explore.tcl"

@@ -186,3 +186,28 @@ gtk: run
 	gtkwave waveform.vcd cga_mac.gtkw &
 
 .PHONY: all clean
+
+# --- CGA_MAC cycle-accurate REPLAY against a live boot capture -------------
+# Replays every CGA_MAC input, cycle by cycle, exactly as captured from a real
+# Winchester boot by the ND120_MAC_CAPTURE probe (ND120_TOP.v), and checks the
+# module's outputs against what the full machine produced on those same cycles.
+#
+# Chasing: the indirect `JPL I *14` at 000465 lands at 144162 instead of 144163
+# once in 15 executions, with L CORRECT and only bit 0 of P wrong. CGA_MAC owns
+# the address arithmetic (NLCA_15_0 = the "+1", PCR_15_0 = P), so if a latch or
+# flip-flop clocking difference is dropping the increment this reproduces it in
+# isolation - and if it PASSES, CGA_MAC is innocent and the fault is in what
+# drives it.
+#
+# Needs maccap_vectors.txt, built from the capture dump:
+#   python3 maccap_to_vectors.py /mnt/f/tmp/verilog/jpl_pgf.log
+# NOTE: each make recipe line is its own shell, so the "no vectors" guard must
+# wrap the whole thing in ONE shell - an `exit 0` on its own line would only end
+# that line and the tb would run anyway (and fail) with no capture present.
+test-mac-replay:
+	@if [ ! -s maccap_vectors.txt ]; then \
+	   echo "TB_RESULT: SKIP - no maccap_vectors.txt (MAC capture has not triggered yet)"; \
+	 else \
+	   iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_replay CGA_MAC_replay_tb.v && vvp -N /tmp/ndtb_mac_replay && \
+	   iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mac_replay_ff CGA_MAC_replay_tb.v && vvp -N /tmp/ndtb_mac_replay_ff; \
+	 fi

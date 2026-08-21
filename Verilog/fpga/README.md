@@ -14,6 +14,7 @@ one folder per board.
 | [**tang-nano-20k/**](tang-nano-20k/README.md) | Gowin `GW2AR-18` | OSS (yosys+nextpnr) primary / Gowin EDA backup | **Primary target** - full CPU bitstream with **4 MB SDRAM main memory** (packed 16-bit storage + computed parity, `ND_SDRAM_PACK16`; other 4 MB reserved for the SD disk-image cache); SD/FAT stack proven on hardware (read+write, safety-gated); nextpnr closes the full 27/54 MHz clock target with >2x margin | [tang-nano-20k/README.md](tang-nano-20k/README.md) |
 | [**basys3/**](basys3/README.md) | Xilinx Artix-7 `xc7a35tcpg236-1` | Vivado (Windows host) | **OPCOM boots on hardware** (tag `fpga-opcom-working-basys3`); active debug line at 16.67 MHz; SD-card Pmod test build included ([`basys3/sd-fat-test/`](basys3/sd-fat-test/README.md), Pmod JB) | [basys3/README.md](basys3/README.md) |
 | [**cmod-a7-35t/**](cmod-a7-35t/README.md) | Xilinx Artix-7 `xc7a35t-1cpg236` (Digilent Cmod A7-35T DIP module, 512 KB external SRAM) | Vivado (Windows host), same flow as Basys3 (same part) | **Active** - first bitstream ready (BRAM main memory, CPU at 27 MHz via MMCM); 512 KB pack16 SRAM main-memory bridge planned ([`cmod-a7-35t/SRAM-BRIDGE-PLAN.md`](cmod-a7-35t/SRAM-BRIDGE-PLAN.md)) | [cmod-a7-35t/README.md](cmod-a7-35t/README.md) |
+| [**nexys4ddr/**](nexys4ddr/README.md) | Xilinx Artix-7 `xc7a100tcsg324-1` (Digilent Nexys 4 DDR = Nexys A7-100T; 128 MiB DDR2, microSD, ~607 KB BRAM) | Vivado (Windows host), Basys3 flow as template | **New - files written 19-AUG-2026, nothing built or run yet.** First build is a Basys3 clone on a 3x bigger part (BRAM memory, 16.667 MHz), with `clk=<MHz>` up to 100 MHz as a build flag; microSD and DDR2 planned ([`nexys4ddr/EXTENSIONS-PLAN.md`](nexys4ddr/EXTENSIONS-PLAN.md)) | [nexys4ddr/README.md](nexys4ddr/README.md) |
 | [**qmtech-a35t/**](qmtech-a35t/README.md) | Xilinx Artix-7 `xc7a35tcsg325-1` (QMTECH XC7A35T SDRAM core board) | Vivado (Windows host), same flow as Basys3 | **Paused side experiment** - stages 1-2 (LED smoke test + mem-test port) written and sim-verified, nothing run on hardware yet; 40 MHz memory plan validated on paper; resume via [`qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md`](qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md) | [qmtech-a35t/README.md](qmtech-a35t/README.md) |
 | [**mister/**](mister/README.md) | Intel Cyclone V SE `5CSEBA6U23I7` (DE10-Nano / "MiSTer PI", ~110K LE + ARM HPS running Linux) | Quartus Lite 17.0.2 (free, Docker `raetro/quartus:17.0`) | **Future full-machine target** - MiSTer core with floppy/HDD as Linux-side image files, OSD menu, microcode upload from file; phase plan with validated links in [`mister/docs/00-overview.md`](mister/docs/00-overview.md) | [mister/README.md](mister/README.md) |
 
@@ -30,16 +31,28 @@ one folder per board.
 3. **Cmod A7-35T** - active. First bitstream runs the CPU at 27 MHz on BRAM
    (same shape as Basys3); the 512 KB on-board SRAM upgrade to 256K-word main
    memory via the pack16 bridge is planned (`cmod-a7-35t/SRAM-BRIDGE-PLAN.md`).
-4. **QMTECH XC7A35T** - paused side experiment (Ronny owns it). Same die as
+4. **Nexys 4 DDR / Nexys A7-100T** - new (19-AUG-2026). The largest part
+   in the set (xc7a100t: ~63k LUT, ~607 KB BRAM) plus 128 MiB DDR2 and an
+   on-board microSD slot. Added as a Basys3 clone so the first bitstream is a
+   known quantity; the point of the board is the two extensions (SD, then
+   real main memory) and the headroom to raise the CPU clock.
+5. **QMTECH XC7A35T** - paused side experiment (Ronny owns it). Same die as
    the Basys3 + 32 MB SDRAM (2 MB main-memory target). Stages 1-2 written and
    sim-verified, nothing run on hardware yet.
-5. **MiSTer** - future "full machine" target (disk images served from the
+6. **MiSTer** - future "full machine" target (disk images served from the
    board's Linux side); starts once FF-mode boot works.
 
 Per-board detail lives **with the board** (README, vendor docs, plans and
 handoffs in each `<board>/` folder) - this file is only the directory. For
 the QMTECH resume instructions specifically, see
 [`qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md`](qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md).
+
+## Prerequisites
+
+Every tool needed - Vivado, Gowin EDA, Verilator, iverilog, yosys, the
+serial/JTAG access route, and the documentation generators - with exact
+install and validation commands and the versions in use, is documented in
+[`../docs/PREREQUISITES.md`](../docs/PREREQUISITES.md).
 
 ## Building - one API for every board
 
@@ -58,6 +71,7 @@ toolchain underneath. From WSL (the Windows-hosted tools are reached via
 Board-specific extras: `basys3` adds `make reuse` (skip the ~1h resynth,
 reuse the `synth_1` checkpoint) and `make lint`; `qmtech-a35t` takes
 `TEST=led-test|mem-test` (default `mem-test`) and has no `flash` flow yet;
+`nexys4ddr` takes `CLK=<MHz>` (default 16) and has no `flash` flow yet;
 `mister` is a placeholder until the Quartus project exists; `cmod-a7-35t`
 uses the same Vivado flow as Basys3 (`make` / `make build` / `make clean`,
 delegating to `build.tcl`). The standalone

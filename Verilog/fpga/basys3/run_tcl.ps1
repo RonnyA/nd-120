@@ -3,7 +3,7 @@
 #         .\run_tcl.ps1 timing_explore.tcl
 param(
     [Parameter(Mandatory=$true)][string]$Tcl,
-    [string]$VivadoPath = "F:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat"
+    [string]$VivadoPath = "F:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat"
 )
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $TclPath = if (Test-Path $Tcl) { (Resolve-Path $Tcl).Path } else { Join-Path $ScriptDir $Tcl }

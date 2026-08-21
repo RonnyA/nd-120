@@ -85,7 +85,7 @@ split is about tools, not files.
 | Role | Edit Verilog, Verilator reference, validation | Synthesize, flash FPGA, capture ILA |
 | Source path | the repo checkout, `Verilog/` | the same checkout over the Windows drive letter, `Verilog\` |
 | Vivado project | — | `F:\Xilinx\ND120\ND3202D` (`ND3202D.xpr`) |
-| Vivado install | — | `F:\AMDDesignTools\2025.2.1\Vivado` |
+| Vivado install | — | `F:\AMDDesignTools\2026.1\Vivado` |
 | Tools | `verilator`, `iverilog`, `gtkwave`, `python3 vcd_extract.py` | `vivado_build.ps1`, `flash.ps1`, Hardware Manager (ILA) |
 | Output | `waveform.vcd`/`.fst` (golden), `trace_*.csv` | `output/ND120_TOP.bit` + `ND120_TOP.ltx` |
 
@@ -346,7 +346,7 @@ comparator as the sim.
 
 - **Architecture:** Windows runs `hw_server` (owns the USB-JTAG cable); WSL drives
   captures over TCP `localhost:3121`. Avoids passing the Digilent device into WSL.
-  `hw_server.bat` is under `F:\AMDDesignTools\2025.2.1\Vivado\bin\`.
+  `hw_server.bat` is under `F:\AMDDesignTools\2026.1\Vivado\bin\`.
 - **`scripts/capture_ila.tcl`** — `connect_hw_server -url`, select ILA, set a real
   **trigger condition** (NOT `-trigger_now`), `run_hw_ila` / `wait_on_hw_ila` /
   `upload_hw_ila_data`, then export CSV in one step with

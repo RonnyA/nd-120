@@ -107,16 +107,123 @@ test-44408b-en: PAL_44408B_EN_equiv_tb
 test-44511a-en: PAL_44511A_EN_equiv_tb
 	./PAL_44511A_EN_equiv_tb
 
+
+# =============================================================================
+# PALASM-golden testbenches for the PALs that had no coverage before 20-AUG-2026
+#
+# Each one builds its reference model from DesignDocuments/PAL-Code/SRC/<id>.txt
+# - the original PALASM listing - and sweeps every input combination against it,
+# forcing the state registers so the whole transition function is exercised and
+# not only the reachable states. Every one is EXHAUSTIVE.
+#
+# They target the DEFAULT build (edge-triggered). Do NOT add
+# -DUSE_TRANSPARENT_LATCHES or -DSKIP_WCS_LOAD to these.
+# =============================================================================
+
+PAL_44302B_tb: PAL_44302B_tb.v $(VERILOG_ROOT)/PAL/PAL_44302B.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+PAL_44303B_tb: PAL_44303B_tb.v $(VERILOG_ROOT)/PAL/PAL_44303B.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+PAL_44310D_tb: PAL_44310D_tb.v $(VERILOG_ROOT)/PAL/PAL_44310D.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+PAL_44402D_EN_tb: PAL_44402D_EN_tb.v $(VERILOG_ROOT)/PAL/PAL_44402D_EN.v $(VERILOG_ROOT)/PAL/PAL_44402D.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+PAL_44403C_EN_tb: PAL_44403C_EN_tb.v $(VERILOG_ROOT)/PAL/PAL_44403C_EN.v $(VERILOG_ROOT)/PAL/PAL_44403C.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+PAL_44404C_EN_tb: PAL_44404C_EN_tb.v $(VERILOG_ROOT)/PAL/PAL_44404C_EN.v $(VERILOG_ROOT)/PAL/PAL_44404C.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+PAL_44407A_EN_tb: PAL_44407A_EN_tb.v $(VERILOG_ROOT)/PAL/PAL_44407A_EN.v $(VERILOG_ROOT)/PAL/PAL_44407A.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+PAL_44408B_EN_tb: PAL_44408B_EN_tb.v $(VERILOG_ROOT)/PAL/PAL_44408B_EN.v $(VERILOG_ROOT)/PAL/PAL_44408B.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+PAL_44511A_EN_tb: PAL_44511A_EN_tb.v $(VERILOG_ROOT)/PAL/PAL_44511A_EN.v $(VERILOG_ROOT)/PAL/PAL_44511A.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+PAL_44803A_tb: PAL_44803A_tb.v $(VERILOG_ROOT)/PAL/PAL_44803A.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+PAL_44902A_tb: PAL_44902A_tb.v $(VERILOG_ROOT)/PAL/PAL_44902A.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+PAL_44904B_tb: PAL_44904B_tb.v $(VERILOG_ROOT)/PAL/PAL_44904B.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+PAL_45001B_tb: PAL_45001B_tb.v $(VERILOG_ROOT)/PAL/PAL_45001B.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+PAL_45009B_tb: PAL_45009B_tb.v $(VERILOG_ROOT)/PAL/PAL_45009B.v
+	$(IVERILOG) -g2005 -o $@ $^
+
+test-pal44302b: PAL_44302B_tb
+	./PAL_44302B_tb
+
+test-pal44303b: PAL_44303B_tb
+	./PAL_44303B_tb
+
+test-pal44310d: PAL_44310D_tb
+	./PAL_44310D_tb
+
+test-pal44402d: PAL_44402D_EN_tb
+	./PAL_44402D_EN_tb
+
+test-pal44403c: PAL_44403C_EN_tb
+	./PAL_44403C_EN_tb
+
+test-pal44404c: PAL_44404C_EN_tb
+	./PAL_44404C_EN_tb
+
+test-pal44407a: PAL_44407A_EN_tb
+	./PAL_44407A_EN_tb
+
+test-pal44408b: PAL_44408B_EN_tb
+	./PAL_44408B_EN_tb
+
+test-pal44511a: PAL_44511A_EN_tb
+	./PAL_44511A_EN_tb
+
+test-pal44803a: PAL_44803A_tb
+	./PAL_44803A_tb
+
+test-pal44902a: PAL_44902A_tb
+	./PAL_44902A_tb
+
+test-pal44904b: PAL_44904B_tb
+	./PAL_44904B_tb
+
+test-pal45001b: PAL_45001B_tb
+	./PAL_45001B_tb
+
+test-pal45009b: PAL_45009B_tb
+	./PAL_45009B_tb
+
+PAL_GOLDEN_TESTS = test-pal44302b test-pal44303b test-pal44310d \
+                   test-pal44402d test-pal44403c test-pal44404c \
+                   test-pal44407a test-pal44408b test-pal44511a \
+                   test-pal44803a test-pal44902a test-pal44904b \
+                   test-pal45001b test-pal45009b
+
+test-pal-golden: $(PAL_GOLDEN_TESTS)
+
 # Holds every PAL_*.v to its PALASM listing at PAL/<id>/<id>.pds: no output
 # may be driven that the listing does not define, and none may be dropped.
 # Also reports which PALs have no listing at all. See PAL/PROVENANCE.md.
 test-pal-provenance:
 	python3 check_provenance.py
 
-test-all: test-pal44304e test-pal45008b test-44601 test-pal44801a test-pal44401b test-pal44306a test-44402d-en test-44403c-en test-44404c-en test-44407a-en test-44408b-en test-44511a-en test-pal-provenance
+test-all: test-pal44304e test-pal45008b test-44601 test-pal44801a test-pal44401b test-pal44306a test-44402d-en test-44403c-en test-44404c-en test-44407a-en test-44408b-en test-44511a-en $(PAL_GOLDEN_TESTS) test-pal-provenance
 
 clean:
 	rm -f PAL_44306A_tb_bin PAL_44306A_teeth_tb_bin pal44306a_result.tmp
+	rm -f PAL_44302B_tb PAL_44303B_tb PAL_44310D_tb PAL_44402D_EN_tb PAL_44403C_EN_tb PAL_44404C_EN_tb PAL_44407A_EN_tb PAL_44408B_EN_tb PAL_44511A_EN_tb PAL_44803A_tb PAL_44902A_tb PAL_44904B_tb PAL_45001B_tb PAL_45009B_tb
 	rm -f PAL_44304E_tb PAL_45008B_tb PAL_44601B_tb PAL_44801A_tb PAL_44401B_tb PAL_44402D_EN_equiv_tb PAL_44403C_EN_equiv_tb PAL_44404C_EN_equiv_tb PAL_44407A_EN_equiv_tb PAL_44408B_EN_equiv_tb PAL_44511A_EN_equiv_tb *.vcd
 
+.PHONY: test-pal-golden $(PAL_GOLDEN_TESTS)
 .PHONY: test-pal44304e test-pal45008b test-44601 test-pal44801a test-pal44401b test-pal44306a test-44402d-en test-44403c-en test-44404c-en test-44407a-en test-44408b-en test-44511a-en test-all clean

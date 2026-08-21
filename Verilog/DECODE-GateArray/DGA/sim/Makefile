@@ -232,3 +232,39 @@ test-dga-comm:
 	-./DECODE_DGA_COMM_tb_vsff | tail -3
 
 .PHONY: test-dga-comm
+
+# F924 - the DGA 4-bit D register standard cell (4x Shared/logisim
+# D_FLIPFLOP). No enable, no reset, no ifdef, so one build covers every
+# path; the second build only proves FPGA_FF_MODE changes nothing.
+# Exhaustive 16 states x 16 data patterns, walking one/zero per data pin,
+# edge-sensitivity (falling edge and static D must hold) and a 2000-step
+# fixed-seed soak with irregular clocking.
+IV_YLIB = -y $(VERILOG_ROOT)/Shared/logisim -y $(VERILOG_ROOT)/Shared/support \
+          -y $(VERILOG_ROOT)/Shared/ndlib -y $(VERILOG_ROOT)/DECODE-GateArray/DGA/circuit
+
+test-f924:
+	$(IVERILOG) -g2012 $(IV_YLIB) -o F924_tb F924_tb.v
+	./F924_tb | tee f924_result.tmp
+	@grep -q "TB_RESULT: PASS" f924_result.tmp && rm -f f924_result.tmp
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE $(IV_YLIB) -o F924_tb_ff F924_tb.v
+	./F924_tb_ff | tee f924_result.tmp
+	@grep -q "TB_RESULT: PASS" f924_result.tmp && rm -f f924_result.tmp
+
+.PHONY: test-f924
+
+# DECODE_DGA - the DGA TOP LEVEL wiring. The three sub-sheets have their
+# own benches; what is tested here is that the top level connects them to
+# the right PINS. Exhaustive XID_4_0 sweep (32 codes x XLCN) observed at
+# the ten IDBS-driven output pins, the XIDB_3_0_OUT panel nibble mux over
+# all 256 input values, and the XA_7_0 disabled-output-drives-zero rule.
+# Built and run in BOTH modes: default (XCLK-clocked) and FPGA_FF_MODE
+# (sysclk + XCLK_EN clock enable).
+test-dga-top:
+	$(IVERILOG) -g2012 $(IV_YLIB) -o DECODE_DGA_tb DECODE_DGA_tb.v
+	./DECODE_DGA_tb | tee dgatop_result.tmp
+	@grep -q "TB_RESULT: PASS" dgatop_result.tmp && rm -f dgatop_result.tmp
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE $(IV_YLIB) -o DECODE_DGA_tb_ff DECODE_DGA_tb.v
+	./DECODE_DGA_tb_ff | tee dgatop_result.tmp
+	@grep -q "TB_RESULT: PASS" dgatop_result.tmp && rm -f dgatop_result.tmp
+
+.PHONY: test-dga-top

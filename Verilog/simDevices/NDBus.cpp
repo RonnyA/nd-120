@@ -338,7 +338,16 @@ void proccess_bif_signal(VND120_TOP *top)
 #endif
 	process_verilog_floppy(top);
 	process_verilog_smd(top);
+#ifndef ND120_SD_WD
+	// ND120_SD_WD: nd_storage client 6 inside ND120_TOP serves WD0.IMG off a
+	// simulated FAT card, so this C file server must stand down for exactly
+	// the same reason process_verilog_tape() does above. ND120_TOP takes the
+	// WDISK return path from its own seam in that build, so leaving this
+	// running would not corrupt anything - it would just quietly open the
+	// host image named by ND120_WD_IMG and answer into wires nobody reads,
+	// which is precisely the confusion this guard exists to prevent.
 	process_verilog_wd(top);
+#endif
 #endif
 
 	// Tick deviceManager

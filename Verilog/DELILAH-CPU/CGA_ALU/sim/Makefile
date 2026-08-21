@@ -183,3 +183,40 @@ gtk:
 
 .PHONY: all clean
 
+
+# --- CGA_ALU_GPR verification, BOTH build modes ------------------------------
+# Walking one/zero on FIDBO and CD, both shift directions incl. the GPRLI and
+# zero fills, hold via GPRC[2], and 512 fixed-seed LFSR steps against the
+# per-bit MUX41P map read off CGA_ALU_GPR.v. DGPR0N is checked on every step.
+# Registered (SCAN_FF_EN + D_FLIPFLOP_EN switched by FPGA_FF_MODE): run twice.
+# Registered in tests/run_all_tests.sh.
+test-alu-gpr:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_alu_gpr CGA_ALU_GPR_tb.v && vvp -N /tmp/ndtb_alu_gpr
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_alu_gpr_ff CGA_ALU_GPR_tb.v && vvp -N /tmp/ndtb_alu_gpr_ff
+
+# --- CGA_ALU_OUTMUX_IDBS exhaustive verification, BOTH build modes -----------
+# All 32 CSIDBS codes x both ALUD2N phases against the two-decoder + NAND
+# transcription, plus the combinational EA/EF steering and a register hold.
+# Registered (2x R81_EN switched by FPGA_FF_MODE): run twice.
+# Registered in tests/run_all_tests.sh.
+test-alu-outmux-idbs:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_alu_idbs CGA_ALU_OUTMUX_IDBS_tb.v && vvp -N /tmp/ndtb_alu_idbs
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_alu_idbs_ff CGA_ALU_OUTMUX_IDBS_tb.v && vvp -N /tmp/ndtb_alu_idbs_ff
+
+# --- CGA_CPU_ALU_RALU verification -------------------------------------------
+# All 32 control combinations x walking one/zero on both operand buses x carry
+# corners, plus 2048 LFSR vectors; F, CRY, ZF, SGR and OVF checked every time.
+# Purely combinational - built both ways to prove FPGA_FF_MODE cannot reach it.
+# Registered in tests/run_all_tests.sh.
+test-cpu-alu-ralu:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_cpu_alu_ralu CGA_CPU_ALU_RALU_tb.v && vvp -N /tmp/ndtb_cpu_alu_ralu
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_cpu_alu_ralu_ff CGA_CPU_ALU_RALU_tb.v && vvp -N /tmp/ndtb_cpu_alu_ralu_ff
+
+# --- CGA_ALU top-level integration / wiring map, BOTH build modes ------------
+# Asserts the port-to-port map of the thirteen sub-circuits, the STS output
+# taps, the FIDBO inversion and the registered AARG0 selector over 128
+# pseudo-random microcode words. Does NOT re-model what the ALU computes -
+# see the header of CGA_ALU_tb.v. Registered in tests/run_all_tests.sh.
+test-alu-top:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_alu_top CGA_ALU_tb.v && vvp -N /tmp/ndtb_alu_top
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_alu_top_ff CGA_ALU_tb.v && vvp -N /tmp/ndtb_alu_top_ff

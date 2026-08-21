@@ -19,6 +19,13 @@ module CGA_IDBCTL_PGSREG (
     input [11:0] LA_21_10,
     input MCLK,
     input PVIOL,
+    // VACCN is the LOAD ENABLE of this register (inverted to s_vacc and wired
+    // to TE on every SCAN_FF_EN cell below; D is tied back to Q, so TE=0 holds).
+    // Consequence: PGS = THE LAST LA_21_10 PRESENTED WHILE VACC WAS HIGH. There
+    // is no separate lock - the register stops capturing simply because VACC
+    // stops rising, and VACC cannot rise while paging is off (CGA_DCD.v sheet
+    // 10/10, GATES_75). That is how PGS survives long enough for the trap
+    // handler to read it back through EPGS.
     input VACCN,
 
     output [11:0] PGS_11_0,

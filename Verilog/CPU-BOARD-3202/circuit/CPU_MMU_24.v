@@ -21,7 +21,13 @@ module CPU_MMU_24 (
     input        CYD,            //! Cycle done
     input        DOUBLE,         //! Extended Adressing Mode (SEXI)
     input        DT_n,           //! Data transfer
-    input        DVACC_n,        //! Data valid acknowledge
+    // DVACC_n comes from the DECODER gate array (DECODE_DGA_COMM.v flip-flop
+    // A227 on CLK2) via IO_37, and is the access qualifier for the page-table
+    // control PAL below: PAL_44306A uses it (input I2) together with WRITE,
+    // DOUBLE, WCA_n and LSHADOW to decide ECD_n / LAPA_n, i.e. when the page
+    // table is actually addressed. NOT the CGA's VACC (CGA_DCD.v) - different
+    // net, same name.
+    input        DVACC_n,        //! DGA access qualifier, active low (see comment above)
     input        ECSR_n,         //! Enable cache status register
     input        EDO_n,          //! Enable data output
     input        EMCL_n,         //! Enable master clear
@@ -501,7 +507,15 @@ module CPU_MMU_24 (
     r_ptdbg_zaddr_d <= s_la_20_10;
     if ((!s_ept_n && s_wmap_n && s_pt_pt_15_0_out[15:9] == 7'd0) &&
         (!r_ptdbg_z_d || r_ptdbg_zaddr_d != s_la_20_10))
-      $display("[pt] Z   addr=%04o data=%06o", s_la_20_10, s_pt_pt_15_0_out);
+      // $time added 17-AUG-2026 so this log can be JOINED with the [acc] probe
+      // in CGA.v, which carries the access class (FETCH/READ/WRITE/IND) and the
+      // addressing mode. Those signals never leave the CGA, so the correlation
+      // is done on the timestamp rather than by plumbing ports down here.
+      // pit/vpn are split out because the whole question is which page TABLE
+      // was used - `addr` alone hides it.
+      $display("[pt] Z t=%0t addr=%04o pit=%02o vpn=%02o data=%06o DBL=%b WR=%b LSH=%b CYD=%b",
+               $time, s_la_20_10, s_la_20_10[10:6], s_la_20_10[5:0],
+               s_pt_pt_15_0_out, s_double, s_write, s_lshadow, s_cyd);
   end
 `endif
 

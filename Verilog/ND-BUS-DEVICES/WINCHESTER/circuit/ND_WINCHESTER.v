@@ -447,8 +447,10 @@ module ND_WINCHESTER #(
   localparam E_MEM_RD  = 3'd3;  // DMA: ND memory -> buffer
   localparam E_DISK_WR = 3'd4;  // backend: buffer -> image chunk
   localparam E_DELAY   = 3'd5;  // completion delay -> FinishOperation
+  localparam E_MEM_CMP = 3'd6;  // DMA: ND memory vs buffer (M3 compare)
 
   reg [2:0]  s_eng;
+  reg        s_is_cmp;       // this operation is M3, not M0
   reg [10:0] s_chunk_q;
   reg [10:0] s_sec_idx;
   reg [31:0] s_delay_cnt;
@@ -601,6 +603,7 @@ module ND_WINCHESTER #(
   wire [ 9:0] s_buf_waddr = dbuf_we ? dbuf_addr : s_sec_idx[9:0];
   wire [15:0] s_buf_wdata = dbuf_we ? dbuf_wdata : dma_rdata;
   wire [ 9:0] s_buf_raddr = (s_eng == E_MEM_WR)  ? s_sec_idx[9:0] :
+                            (s_eng == E_MEM_CMP) ? s_sec_idx[9:0] :
                             (s_eng == E_DISK_WR) ? dbuf_addr      :
                                                    10'd0;
   reg  [15:0] s_buf_dout;
@@ -649,6 +652,7 @@ module ND_WINCHESTER #(
       s_ma_read_ff   <= 1'b0;
       s_irq          <= 1'b0;
       s_eng          <= E_IDLE;
+      s_is_cmp       <= 1'b0;
       s_chunk_q      <= 11'd0;
       s_sec_idx      <= 11'd0;
       s_delay_cnt    <= 32'd0;
@@ -822,7 +826,7 @@ module ND_WINCHESTER #(
                   s_eng       <= E_DELAY;
                 end
 
-                OP_READ, OP_WRITE: begin
+                OP_READ, OP_WRITE, OP_COMPARE: begin
                   // Test mode bypasses the bounds check (sec 3.4).
                   if (!iox_wdata[3] &&
                       ((w_lba > w_max_lba) ||
@@ -856,7 +860,12 @@ module ND_WINCHESTER #(
                     s_chunk_q <= (w_words > {13'd0, BUF_WORDS}) ?
                                  BUF_WORDS : w_words[10:0];
                     s_sec_idx <= 11'd0;
-                    if (iox_wdata[13:11] == OP_READ) begin
+                    // M3 takes the READ path off the disc - it has to, it is
+                    // reading the sector - and then compares in E_MEM_CMP
+                    // instead of storing in E_MEM_WR.
+                    s_is_cmp <= (iox_wdata[13:11] == OP_COMPARE);
+                    if (iox_wdata[13:11] == OP_READ ||
+                        iox_wdata[13:11] == OP_COMPARE) begin
                       disk_start <= 1'b1;
                       disk_req   <= 1'b1;
                       disk_wr    <= 1'b0;
@@ -873,10 +882,24 @@ module ND_WINCHESTER #(
                 end
 
                 default: begin
-                  // M2 read-parity / M3 compare / M5 write-format: documented
-                  // stubs, acknowledged as no-data completions so the guest
-                  // proceeds. A compare never reports a mismatch and a format
-                  // writes nothing - same choice as both C models.
+                  // M2 read-parity / M5 write-format: documented stubs,
+                  // acknowledged as no-data completions so the guest proceeds.
+                  //
+                  // M3 COMPARE IS NO LONGER ONE OF THEM. It was, and the note
+                  // here claimed that matched both C models - it does not.
+                  // nd100x's deviceWinchester.c reads the sector, DMA-reads
+                  // the same words back out of ND memory, compares them, and
+                  // then writes the ADVANCED core address into the memory
+                  // address register like any other transfer. The stub left
+                  // that register holding the address the guest had loaded.
+                  //
+                  // SINTRAN reads +0 back after every operation, so the stub
+                  // is visible to it. Measured 10-AUG-2026: booting WD0.IMG
+                  // with '20500&', the Tang and nd100x request the SAME 124
+                  // disc addresses and then split at exactly the group where
+                  // SINTRAN reads block 0 twice and compares it. nd100x moves
+                  // on; the Tang re-issued block 0 eleven times and gave up
+                  // with SINTRAN's own 'TRANSFER ERROR' message.
                   s_delay_cnt <= DELAY_TICKS;
                   s_eng       <= E_DELAY;
                 end
@@ -936,7 +959,7 @@ module ND_WINCHESTER #(
               err_active;
             end else begin
               s_sec_idx <= 11'd0;
-              s_eng     <= E_MEM_WR;
+              s_eng     <= s_is_cmp ? E_MEM_CMP : E_MEM_WR;
             end
           end
         end
@@ -950,6 +973,49 @@ module ND_WINCHESTER #(
             s_dma_wait <= 1'b0;
             if (dma_err) begin
               s_dma_ch_err <= 1'b1;   // b11: the fault came from the ND bus
+              err_active;
+            end else begin
+              s_dma_addr_r <= s_dma_addr_r + 24'd1;
+              s_words_left <= s_words_left - 24'd1;
+              if (s_sec_idx + 11'd1 >= s_chunk_q || s_words_left == 24'd1) begin
+                if (s_words_left == 24'd1) begin
+                  s_delay_cnt <= DELAY_TICKS;
+                  s_eng       <= E_DELAY;
+                end else begin
+                  s_chunk_q <= ((s_words_left - 24'd1) > {13'd0, BUF_WORDS}) ?
+                               BUF_WORDS : (s_words_left[10:0] - 11'd1);
+                  disk_req  <= 1'b1;
+                  disk_wr   <= 1'b0;
+                  s_eng     <= E_DISK_RD;
+                end
+              end else begin
+                s_sec_idx <= s_sec_idx + 11'd1;
+              end
+            end
+          end
+        end
+
+        // M3 compare (sec 3.4.7): "No data transfer to the computer memory is
+        // performed" - the words go the OTHER way. The sector is already in
+        // the buffer from E_DISK_RD; each word is DMA-READ back out of ND
+        // memory and compared, and the running address advances exactly as it
+        // does on a read. A mismatch sets status b10 and stops there, leaving
+        // the address at the word that failed - which is what the C model's
+        // break-out-of-the-loop produces.
+        //
+        // s_buf_valid is the same one-cycle read-latency guard E_MEM_WR uses:
+        // without it the first comparison would run against the PREVIOUS
+        // buffer word and report a mismatch on identical data.
+        E_MEM_CMP: begin
+          if (!s_dma_wait && !dma_busy && s_buf_valid) begin
+            dma_issue(1'b0, s_dma_addr_r, 16'd0);
+          end else if (s_dma_wait && dma_ack) begin
+            s_dma_wait <= 1'b0;
+            if (dma_err) begin
+              s_dma_ch_err <= 1'b1;
+              err_active;
+            end else if (dma_rdata != s_buf_dout) begin
+              s_compare_err <= 1'b1;
               err_active;
             end else begin
               s_dma_addr_r <= s_dma_addr_r + 24'd1;

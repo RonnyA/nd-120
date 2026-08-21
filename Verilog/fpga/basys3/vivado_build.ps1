@@ -15,7 +15,7 @@
 #   * All output is logged to .\logs\  (see paths printed at start/end).
 
 param(
-    [string]$VivadoPath = "F:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat",
+    [string]$VivadoPath = "F:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat",
     [switch]$LintOnly,
     # Reuse the existing synth_1 checkpoint instead of a fresh ~1h synthesis.
     [switch]$ReuseSynth,
@@ -55,7 +55,7 @@ Write-Host "==========================================================" -Foregro
 # Check Vivado exists
 if (-not (Test-Path $VivadoPath)) {
     $alternatives = @(
-        "F:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat",
+        "F:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat",
         "C:\Xilinx\Vivado\2025.2\bin\vivado.bat",
         "C:\Xilinx\Vivado\2024.1\bin\vivado.bat"
     )
@@ -110,6 +110,35 @@ foreach ($f in $WcsFiles) {
     Copy-Item $f.FullName (Join-Path $WcsDestDir $f.Name) -Force
 }
 Write-Host "Copied $($WcsFiles.Count) WCS preload images -> $WcsDestDir (SKIP_WCS_LOAD)" -ForegroundColor Gray
+
+# ---------------------------------------------------------------------------
+# Licence: make the Windows *user* XILINXD_LICENSE_FILE reach this process.
+#
+# A Windows process started through WSL interop inherits the parent's
+# environment block, NOT the user's registry environment, so XILINXD_LICENSE_FILE
+# arrives UNSET and Vivado falls back to whatever licence it can find on its own.
+# That is how a build launched from WSL ran on the BASIC licence and died at
+# create_debug_core, while the same Vivado started from Windows had ENTERPRISE.
+#
+# Read the value from the user environment at runtime - do not hard-code a
+# licence path here, it is machine-specific. If the variable is already set in
+# this process (a normal Windows shell), leave it alone.
+# ---------------------------------------------------------------------------
+if (-not $env:XILINXD_LICENSE_FILE) {
+    $userLic = [Environment]::GetEnvironmentVariable('XILINXD_LICENSE_FILE','User')
+    if (-not $userLic) {
+        $userLic = [Environment]::GetEnvironmentVariable('XILINXD_LICENSE_FILE','Machine')
+    }
+    if ($userLic) {
+        $env:XILINXD_LICENSE_FILE = $userLic
+        Write-Host "Licence: took XILINXD_LICENSE_FILE from the user/machine environment" -ForegroundColor Gray
+        Write-Host "         $userLic" -ForegroundColor Gray
+    } else {
+        Write-Host "Licence: XILINXD_LICENSE_FILE is not set anywhere - Vivado will pick its own." -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "Licence: XILINXD_LICENSE_FILE already set in this process" -ForegroundColor Gray
+}
 
 Write-Host "Using Vivado: $VivadoPath" -ForegroundColor Cyan
 

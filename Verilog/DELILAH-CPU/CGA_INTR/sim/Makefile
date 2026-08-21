@@ -83,3 +83,13 @@ gtk: run
 	gtkwave waveform.vcd intr.gtkw &
 
 .PHONY: all clean
+
+# --- CGA_INTR_IRSRC verification ---------------------------------------------
+# Walking one/zero on FIDBO x both EMPIDN phases, one hardware source at a
+# time, EXHAUSTIVE over all 1024 hardware-source combinations and 1024 LFSR
+# vectors, against the per-gate transcription of CGA_INTR_IRSRC.v.
+# Purely combinational - built both ways to prove FPGA_FF_MODE cannot reach it.
+# Registered in tests/run_all_tests.sh.
+test-intr-irsrc:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_intr_irsrc CGA_INTR_IRSRC_tb.v && vvp -N /tmp/ndtb_intr_irsrc
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_intr_irsrc_ff CGA_INTR_IRSRC_tb.v && vvp -N /tmp/ndtb_intr_irsrc_ff

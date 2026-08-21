@@ -14,48 +14,48 @@ One row per RTL module in the three main areas. Coverage is measured, not assume
 
 ## CPU board 3202D
 
-51 modules - **22 DIRECT** (22 linked into `make test`), 8 indirect, **21 with no testbench**.
+51 modules - **36 DIRECT** (23 linked into `make test`), 8 indirect, **7 with no testbench**.
 
 | Module | Coverage | Testbench | in `make test` |
 |---|---|---|---|
 | `CPU-BOARD-3202/circuit/BIF_5.v` | **NONE** | - | - |
 | `CPU-BOARD-3202/circuit/BIF_BCTL_6.v` | **NONE** | - | - |
-| `CPU-BOARD-3202/circuit/BIF_BCTL_BDRV_7.v` | **NONE** | - | - |
+| `CPU-BOARD-3202/circuit/BIF_BCTL_BDRV_7.v` | **DIRECT** | `BIF_BCTL_BDRV_7_tb.v` | **NO** |
 | `CPU-BOARD-3202/circuit/BIF_BCTL_SYNC_8.v` | **DIRECT** | `BIF_BCTL_SYNC_8_tb.v` | yes |
-| `CPU-BOARD-3202/circuit/BIF_DPATH_9.v` | **NONE** | - | - |
+| `CPU-BOARD-3202/circuit/BIF_DPATH_9.v` | **DIRECT** | `BIF_DPATH_9_tb.v` | **NO** |
 | `CPU-BOARD-3202/circuit/BIF_DPATH_BDLBD_10.v` | **DIRECT** | `BIF_DPATH_BDLBD_10_tb.v` | yes |
 | `CPU-BOARD-3202/circuit/BIF_DPATH_CDLBD_11.v` | **DIRECT** | `BIF_DPATH_CDLBD_11_tb.v` | yes |
 | `CPU-BOARD-3202/circuit/BIF_DPATH_LDBCTL_12.v` | **DIRECT** | `BIF_DPATH_LDBCTL_12_tb.v` | yes |
 | `CPU-BOARD-3202/circuit/BIF_DPATH_PESPEA_13.v` | **DIRECT** | `BIF_DPATH_PESPEA_13_tb.v` | yes |
-| `CPU-BOARD-3202/circuit/BIF_DPATH_PPNLBD_14.v` | **NONE** | - | - |
-| `CPU-BOARD-3202/circuit/CPU_15.v` | **NONE** | - | - |
+| `CPU-BOARD-3202/circuit/BIF_DPATH_PPNLBD_14.v` | **DIRECT** | `BIF_DPATH_PPNLBD_14_tb.v` | **NO** |
+| `CPU-BOARD-3202/circuit/CPU_15.v` | INDIRECT | named in `CPU_MMU_24_shadow_tb.v` (+3) | - |
 | `CPU-BOARD-3202/circuit/CPU_CS_16.v` | COMPILED | compiled by a registered target | yes |
 | `CPU-BOARD-3202/circuit/CPU_CS_ACAL_17.v` | **DIRECT** | `CPU_CS_ACAL_17_tb.v` | yes |
-| `CPU-BOARD-3202/circuit/CPU_CS_CTL_18.v` | COMPILED | compiled by a registered target | yes |
-| `CPU-BOARD-3202/circuit/CPU_CS_PROM_19.v` | COMPILED | compiled by a registered target | yes |
+| `CPU-BOARD-3202/circuit/CPU_CS_CTL_18.v` | **DIRECT** | `CPU_CS_CTL_18_tb.v` | **NO** |
+| `CPU-BOARD-3202/circuit/CPU_CS_PROM_19.v` | **DIRECT** | `CPU_CS_PROM_19_tb.v` | **NO** |
 | `CPU-BOARD-3202/circuit/CPU_CS_PROM_19_ORG.v` | **NONE** | - | - |
 | `CPU-BOARD-3202/circuit/CPU_CS_TCV_20.v` | **DIRECT** | `CPU_CS_TCV_20_tb.v` | yes |
 | `CPU-BOARD-3202/circuit/CPU_CS_WCS_21_22.v` | COMPILED | compiled by a registered target | yes |
-| `CPU-BOARD-3202/circuit/CPU_MMU_24.v` | **NONE** | - | - |
+| `CPU-BOARD-3202/circuit/CPU_MMU_24.v` | COMPILED | compiled by a registered target | yes |
 | `CPU-BOARD-3202/circuit/CPU_MMU_CACHE_25.v` | **DIRECT** | `CPU_MMU_CACHE_25_tb.v` | yes |
-| `CPU-BOARD-3202/circuit/CPU_MMU_CSR_26.v` | **NONE** | - | - |
-| `CPU-BOARD-3202/circuit/CPU_MMU_HIT_27.v` | **NONE** | - | - |
-| `CPU-BOARD-3202/circuit/CPU_MMU_PPNX_28.v` | **NONE** | - | - |
-| `CPU-BOARD-3202/circuit/CPU_MMU_PTIDB_30.v` | **NONE** | - | - |
+| `CPU-BOARD-3202/circuit/CPU_MMU_CSR_26.v` | **DIRECT** | `CPU_MMU_CSR_26_tb.v` | **NO** |
+| `CPU-BOARD-3202/circuit/CPU_MMU_HIT_27.v` | **DIRECT** | `CPU_MMU_HIT_27_tb.v` | **NO** |
+| `CPU-BOARD-3202/circuit/CPU_MMU_PPNX_28.v` | **DIRECT** | `CPU_MMU_PPNX_28_tb.v` | yes |
+| `CPU-BOARD-3202/circuit/CPU_MMU_PTIDB_30.v` | **DIRECT** | `CPU_MMU_PTIDB_30_tb.v` | **NO** |
 | `CPU-BOARD-3202/circuit/CPU_MMU_PT_29.v` | **DIRECT** | `CPU_MMU_PT_29_tb.v` | yes |
-| `CPU-BOARD-3202/circuit/CPU_MMU_WCA_31.v` | **NONE** | - | - |
+| `CPU-BOARD-3202/circuit/CPU_MMU_WCA_31.v` | **DIRECT** | `CPU_MMU_WCA_31_tb.v` | **NO** |
 | `CPU-BOARD-3202/circuit/CPU_PROC_32.v` | **NONE** | - | - |
 | `CPU-BOARD-3202/circuit/CPU_PROC_CGA_33.v` | **NONE** | - | - |
-| `CPU-BOARD-3202/circuit/CPU_PROC_CMDDEC_34.v` | **NONE** | - | - |
+| `CPU-BOARD-3202/circuit/CPU_PROC_CMDDEC_34.v` | **DIRECT** | `CPU_PROC_CMDDEC_34_tb.v` | **NO** |
 | `CPU-BOARD-3202/circuit/CPU_STOC_35.v` | **DIRECT** | `CPU_STOC_35_tb.v` | yes |
 | `CPU-BOARD-3202/circuit/CYC_36.v` | COMPILED | compiled by a registered target | yes |
 | `CPU-BOARD-3202/circuit/CYC_CC_D.v` | **DIRECT** | `CYC_CC_D_tb.v` | yes |
 | `CPU-BOARD-3202/circuit/CYC_TERM_D.v` | **DIRECT** | `CYC_TERM_D_tb.v` | yes |
 | `CPU-BOARD-3202/circuit/IO_37.v` | **NONE** | - | - |
-| `CPU-BOARD-3202/circuit/IO_DCD_38.v` | **NONE** | - | - |
+| `CPU-BOARD-3202/circuit/IO_DCD_38.v` | **DIRECT** | `IO_DCD_38_tb.v` | **NO** |
 | `CPU-BOARD-3202/circuit/IO_PANCAL_40.v` | **DIRECT** | `IO_PANCAL_40_tb.v` | yes |
-| `CPU-BOARD-3202/circuit/IO_REG_41.v` | **NONE** | - | - |
-| `CPU-BOARD-3202/circuit/IO_UART_42.v` | **NONE** | - | - |
+| `CPU-BOARD-3202/circuit/IO_REG_41.v` | **DIRECT** | `IO_REG_41_tb.v` | **NO** |
+| `CPU-BOARD-3202/circuit/IO_UART_42.v` | **DIRECT** | `IO_UART_42_tb.v` | **NO** |
 | `CPU-BOARD-3202/circuit/MEM_43.v` | INDIRECT | named in `MEM_RAM_49_BLOCKRAM_tb.v` (+2) | - |
 | `CPU-BOARD-3202/circuit/MEM_ADDR_44.v` | **DIRECT** | `MEM_ADDR_44_tb.v` | yes |
 | `CPU-BOARD-3202/circuit/MEM_ADEC_45.v` | **DIRECT** | `MEM_ADEC_45_tb.v` | yes |
@@ -72,11 +72,11 @@ One row per RTL module in the three main areas. Coverage is measured, not assume
 
 ## Decoder gate array (DGA)
 
-11 modules - **6 DIRECT** (5 linked into `make test`), 5 indirect, **0 with no testbench**.
+11 modules - **8 DIRECT** (5 linked into `make test`), 3 indirect, **0 with no testbench**.
 
 | Module | Coverage | Testbench | in `make test` |
 |---|---|---|---|
-| `DECODE-GateArray/DGA/circuit/DECODE_DGA.v` | INDIRECT | named in `DECODE_DGA_COMM_tb.v` (+1) | - |
+| `DECODE-GateArray/DGA/circuit/DECODE_DGA.v` | **DIRECT** | `DECODE_DGA_tb.v` | **NO** |
 | `DECODE-GateArray/DGA/circuit/DECODE_DGA_COMM.v` | **DIRECT** | `DECODE_DGA_COMM_tb.v` | **NO** |
 | `DECODE-GateArray/DGA/circuit/DECODE_DGA_IDBS.v` | **DIRECT** | `DECODE_DGA_IDBS_tb.v` | yes |
 | `DECODE-GateArray/DGA/circuit/DECODE_DGA_POW.v` | **DIRECT** | `DECODE_DGA_POW_tb.v` | yes |
@@ -86,22 +86,22 @@ One row per RTL module in the three main areas. Coverage is measured, not assume
 | `DECODE-GateArray/DGA/circuit/F595.v` | **DIRECT** | `F595_tb.v` | yes |
 | `DECODE-GateArray/DGA/circuit/F617.v` | **DIRECT** | `F617_tb.v` | yes |
 | `DECODE-GateArray/DGA/circuit/F714.v` | **DIRECT** | `F714_tb.v` | yes |
-| `DECODE-GateArray/DGA/circuit/F924.v` | COMPILED | compiled by a registered target | yes |
+| `DECODE-GateArray/DGA/circuit/F924.v` | **DIRECT** | `F924_tb.v` | **NO** |
 
 ## DELILAH CPU gate array (CGA)
 
-91 modules - **77 DIRECT** (77 linked into `make test`), 8 indirect, **6 with no testbench**.
+91 modules - **86 DIRECT** (77 linked into `make test`), 5 indirect, **0 with no testbench**.
 
 | Module | Coverage | Testbench | in `make test` |
 |---|---|---|---|
 | `DELILAH-CPU/CGA/circuit/BusDriver16.v` | **DIRECT** | `BusDriver16_tb.v` | yes |
-| `DELILAH-CPU/CGA/circuit/CGA.v` | INDIRECT | named in `CPU_CS_RWCS_CYCLE_tb.v` (+72) | - |
-| `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU.v` | INDIRECT | named in `CPU_CS_RWCS_CYCLE_tb.v` (+2) | - |
+| `DELILAH-CPU/CGA/circuit/CGA.v` | INDIRECT | named in `CPU_CS_RWCS_CYCLE_tb.v` (+91) | - |
+| `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU.v` | **DIRECT** | `CGA_ALU_tb.v` | **NO** |
 | `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_ARG.v` | **DIRECT** | `CGA_ALU_ARG_tb.v` | yes |
 | `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_DBR.v` | **DIRECT** | `CGA_ALU_DBR_tb.v` | yes |
-| `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_GPR.v` | **NONE** | - | - |
+| `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_GPR.v` | **DIRECT** | `CGA_ALU_GPR_tb.v` | **NO** |
 | `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_OUTMUX.v` | **DIRECT** | `CGA_ALU_OUTMUX_tb.v` | yes |
-| `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_OUTMUX_IDBS.v` | **NONE** | - | - |
+| `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_OUTMUX_IDBS.v` | **DIRECT** | `CGA_ALU_OUTMUX_IDBS_tb.v` | **NO** |
 | `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_OUTMUX_SEL8.v` | **DIRECT** | `CGA_ALU_OUTMUX_SEL8_tb.v` | yes |
 | `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_QREG.v` | **DIRECT** | `CGA_ALU_QREG_tb.v` | yes |
 | `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_RALU_LOGOP.v` | **DIRECT** | `CGA_ALU_RALU_LOGOP_tb.v` | yes |
@@ -112,13 +112,13 @@ One row per RTL module in the three main areas. Coverage is measured, not assume
 | `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_SWAP.v` | **DIRECT** | `CGA_ALU_SWAP_tb.v` | yes |
 | `DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_CONTR.v` | **DIRECT** | `CGA_CPU_ALU_CONTR_tb.v` | yes |
 | `DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_OUTMUX_SEL7.v` | **DIRECT** | `CGA_CPU_ALU_OUTMUX_SEL7_tb.v` | yes |
-| `DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_RALU.v` | **NONE** | - | - |
+| `DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_RALU.v` | **DIRECT** | `CGA_CPU_ALU_RALU_tb.v` | **NO** |
 | `DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_RMUX.v` | **DIRECT** | `CGA_CPU_ALU_RMUX_tb.v` | yes |
-| `DELILAH-CPU/CGA_DCD/circuit/CGA_DCD.v` | **NONE** | - | - |
-| `DELILAH-CPU/CGA_IDBCTL/circuit/CGA_IDBCTL.v` | **NONE** | - | - |
+| `DELILAH-CPU/CGA_DCD/circuit/CGA_DCD.v` | INDIRECT | named in `CGA_DCD_IDBS_ENABLES_tb.v` (+3) | - |
+| `DELILAH-CPU/CGA_IDBCTL/circuit/CGA_IDBCTL.v` | **DIRECT** | `CGA_IDBCTL_tb.v` | **NO** |
 | `DELILAH-CPU/CGA_IDBCTL/circuit/CGA_IDBCTL_PGSREG.v` | **DIRECT** | `CGA_IDBCTL_PGSREG_tb.v` | yes |
 | `DELILAH-CPU/CGA_IDBCTL/circuit/CGA_IDBCTL_SEL6.v` | **DIRECT** | `CGA_IDBCTL_SEL6_tb.v` | yes |
-| `DELILAH-CPU/CGA_INTR/circuit/CGA_INTR.v` | INDIRECT | named in `CGA_INTR_CNTLR_CLR_tb.v` (+26) | - |
+| `DELILAH-CPU/CGA_INTR/circuit/CGA_INTR.v` | INDIRECT | named in `CGA_INTR_CNTLR_CLR_tb.v` (+27) | - |
 | `DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR.v` | **DIRECT** | `CGA_INTR_CNTLR_tb.v` | yes |
 | `DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_CLR.v` | **DIRECT** | `CGA_INTR_CNTLR_CLR_tb.v` | yes |
 | `DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_CLR_CLRBIT.v` | **DIRECT** | `CGA_INTR_CNTLR_CLR_CLRBIT_tb.v` | yes |
@@ -146,8 +146,8 @@ One row per RTL module in the three main areas. Coverage is measured, not assume
 | `DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_STAT.v` | **DIRECT** | `CGA_INTR_CNTLR_VECGEN_STAT_tb.v` | yes |
 | `DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_STAT_SBIT.v` | **DIRECT** | `CGA_INTR_CNTLR_VECGEN_STAT_SBIT_tb.v` | yes |
 | `DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_VHR.v` | **DIRECT** | `CGA_INTR_CNTLR_VECGEN_VHR_tb.v` | yes |
-| `DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_IRSRC.v` | COMPILED | compiled by a registered target | yes |
-| `DELILAH-CPU/CGA_MAC/circuit/CGA_MAC.v` | INDIRECT | named in `CGA_MAC_ADD_tb.v` | - |
+| `DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_IRSRC.v` | **DIRECT** | `CGA_INTR_IRSRC_tb.v` | **NO** |
+| `DELILAH-CPU/CGA_MAC/circuit/CGA_MAC.v` | INDIRECT | named in `CPU_MMU_24_allentries_tb.v` (+3) | - |
 | `DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_ADD.v` | **DIRECT** | `CGA_MAC_ADD_tb.v` | yes |
 | `DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_AP09.v` | **DIRECT** | `CGA_MAC_AP09_tb.v` | yes |
 | `DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_APOS_CALCA.v` | **DIRECT** | `CGA_MAC_APOS_CALCA_tb.v` | yes |
@@ -173,17 +173,17 @@ One row per RTL module in the three main areas. Coverage is measured, not assume
 | `DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_STACK_BIT.v` | **DIRECT** | `CGA_MIC_STACK_BIT_tb.v` | yes |
 | `DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_STACK_BIT12.v` | **DIRECT** | `CGA_MIC_STACK_BIT12_tb.v` | yes |
 | `DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_WCAREG.v` | **DIRECT** | `CGA_MIC_WCAREG_tb.v` | yes |
-| `DELILAH-CPU/CGA_TESTMUX/circuit/CGA_TESTMUX.v` | COMPILED | compiled by a registered target | yes |
+| `DELILAH-CPU/CGA_TESTMUX/circuit/CGA_TESTMUX.v` | **DIRECT** | `CGA_TESTMUX_tb.v` | **NO** |
 | `DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP.v` | **DIRECT** | `CGA_TRAP_tb.v` | yes |
 | `DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_BRKDET.v` | **DIRECT** | `CGA_TRAP_BRKDET_tb.v` | yes |
 | `DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_TBUF.v` | **DIRECT** | `CGA_TRAP_TBUF_tb.v` | yes |
 | `DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_TVGEN.v` | **DIRECT** | `CGA_TRAP_TVGEN_tb.v` | yes |
 | `DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_TVGEN_P2.v` | **DIRECT** | `CGA_TRAP_TVGEN_P2_tb.v` | yes |
-| `DELILAH-CPU/CGA_WRF/circuit/CGA_WRF.v` | INDIRECT | named in `CPU_CS_RWCS_CYCLE_tb.v` (+2) | - |
+| `DELILAH-CPU/CGA_WRF/circuit/CGA_WRF.v` | **DIRECT** | `CGA_WRF_tb.v` | **NO** |
 | `DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK.v` | **DIRECT** | `CGA_WRF_RBLOCK_tb.v` | yes |
 | `DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK_DR16.v` | **DIRECT** | `CGA_WRF_RBLOCK_DR16_tb.v` | yes |
 | `DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK_LR16.v` | **DIRECT** | `CGA_WRF_RBLOCK_LR16_tb.v` | yes |
-| `DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK_PREG.v` | **NONE** | - | - |
+| `DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK_PREG.v` | **DIRECT** | `CGA_WRF_RBLOCK_PREG_tb.v` | **NO** |
 | `DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK_SEL16.v` | **DIRECT** | `CGA_WRF_RBLOCK_SEL16_tb.v` | yes |
 
 ## Missing testbenches - the backlog, ranked
@@ -199,32 +199,12 @@ Note on the `assign` column: the Logisim-generated style wires nets together wit
 | Module | `always` | `assign` | submodules | kind |
 |---|---|---|---|---|
 | `CPU-BOARD-3202/circuit/ND3202D.v` | 2 | 99 | 5 | **HIGH** |
-| `CPU-BOARD-3202/circuit/IO_DCD_38.v` | 2 | 95 | 3 | **HIGH** |
-| `DELILAH-CPU/CGA_DCD/circuit/CGA_DCD.v` | 2 | 84 | 2 | **HIGH** |
 | `CPU-BOARD-3202/circuit/IO_37.v` | 2 | 81 | 4 | **HIGH** |
-| `CPU-BOARD-3202/circuit/CPU_MMU_24.v` | 2 | 54 | 7 | **HIGH** |
 | `CPU-BOARD-3202/circuit/CPU_CS_PROM_19_ORG.v` | 2 | 5 | 0 | **HIGH** |
-| `CPU-BOARD-3202/circuit/CPU_MMU_HIT_27.v` | 2 | 2 | 0 | **HIGH** |
-| `CPU-BOARD-3202/circuit/BIF_DPATH_PPNLBD_14.v` | 2 | 1 | 0 | **HIGH** |
 | `CPU-BOARD-3202/circuit/CPU_PROC_32.v` | 1 | 79 | 4 | **HIGH** |
 | `CPU-BOARD-3202/circuit/BIF_BCTL_6.v` | 1 | 62 | 5 | **HIGH** |
-| `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_GPR.v` | 1 | 8 | 17 | **HIGH** |
-| `CPU-BOARD-3202/circuit/CPU_MMU_PTIDB_30.v` | 1 | 4 | 0 | **HIGH** |
-| `CPU-BOARD-3202/circuit/CPU_MMU_PPNX_28.v` | 1 | 2 | 0 | **HIGH** |
-| `CPU-BOARD-3202/circuit/CPU_15.v` | 0 | 91 | 3 | MED |
 | `CPU-BOARD-3202/circuit/BIF_5.v` | 0 | 71 | 2 | MED |
-| `CPU-BOARD-3202/circuit/BIF_DPATH_9.v` | 0 | 47 | 5 | MED |
-| `CPU-BOARD-3202/circuit/BIF_BCTL_BDRV_7.v` | 0 | 44 | 0 | MED |
-| `CPU-BOARD-3202/circuit/IO_REG_41.v` | 0 | 32 | 2 | MED |
-| `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_OUTMUX_IDBS.v` | 0 | 32 | 2 | MED |
-| `DELILAH-CPU/CGA_IDBCTL/circuit/CGA_IDBCTL.v` | 0 | 27 | 17 | MED |
 | `CPU-BOARD-3202/circuit/CPU_PROC_CGA_33.v` | 0 | 24 | 2 | MED |
-| `DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_RALU.v` | 0 | 22 | 4 | MED |
-| `CPU-BOARD-3202/circuit/IO_UART_42.v` | 0 | 21 | 1 | MED |
-| `DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK_PREG.v` | 0 | 9 | 18 | LOW |
-| `CPU-BOARD-3202/circuit/CPU_MMU_CSR_26.v` | 0 | 5 | 0 | LOW |
-| `CPU-BOARD-3202/circuit/CPU_MMU_WCA_31.v` | 0 | 1 | 0 | LOW |
-| `CPU-BOARD-3202/circuit/CPU_PROC_CMDDEC_34.v` | 0 | 1 | 0 | LOW |
 
 ### Caveat on what NONE means
 
@@ -236,7 +216,7 @@ Modules marked **NONE** have no testbench at all. This is a backlog, not a failu
 
 | Area | Modules | DIRECT | linked | INDIRECT | NONE |
 |---|---|---|---|---|---|
-| CPU board 3202D | 51 | 22 | 22 | 8 | 21 |
-| Decoder gate array (DGA) | 11 | 6 | 5 | 5 | 0 |
-| DELILAH CPU gate array (CGA) | 91 | 77 | 77 | 8 | 6 |
+| CPU board 3202D | 51 | 36 | 23 | 8 | 7 |
+| Decoder gate array (DGA) | 11 | 8 | 5 | 3 | 0 |
+| DELILAH CPU gate array (CGA) | 91 | 86 | 77 | 5 | 0 |
 

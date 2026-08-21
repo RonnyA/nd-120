@@ -191,6 +191,27 @@ module IO_REG_41 (
   );
 
 
+`ifdef ND120_IOR_PROBE
+  // DIAGNOSTIC (IDENT PL10 hunt, 20-AUG-2026): log IOC control-register loads
+  // and BINT10_n edges so the interrupt-enable state at each level-10
+  // dispatch is on record. Sim-only, no logic effect.
+  reg [7:0] r_iorp_ioc_prev;
+  reg       r_iorp_b10_prev;
+  always @(posedge sysclk) begin
+    if (r_iorp_ioc_prev != {s_reset, s_scons_n, s_emcl_n, s_led3_green_n,
+                            s_ioc_3, s_ioc_2, s_ioc_1, s_ioc_0})
+      $display("[ior] t=%0t IOC=%b (rst,cons_n,emcl_n,led_n,i3,i2,i1,i0)",
+               $time, {s_reset, s_scons_n, s_emcl_n, s_led3_green_n,
+                       s_ioc_3, s_ioc_2, s_ioc_1, s_ioc_0});
+    if (s_bint10_n != r_iorp_b10_prev)
+      $display("[ior] t=%0t BINT10_n=%b (ioc2=%b tbmt=%b)",
+               $time, s_bint10_n, s_ioc_2, s_tbmt);
+    r_iorp_ioc_prev <= {s_reset, s_scons_n, s_emcl_n, s_led3_green_n,
+                        s_ioc_3, s_ioc_2, s_ioc_1, s_ioc_0};
+    r_iorp_b10_prev <= s_bint10_n;
+  end
+`endif
+
   // TTL_74244 CHIP_24A_INR (simplified..)
   assign s_idb_7_0_inr_out[7:0] = s_rinr_n ? 8'b0 : s_inr_7_0[7:0];
 

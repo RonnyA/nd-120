@@ -358,6 +358,27 @@ module ND120_TOP
     .DIVCLK_DIVIDE    (1),
     .STARTUP_WAIT     ("FALSE")
   ) mmcm_cpu_clk (
+`elsif TARGET_NEXYS4DDR
+  // Nexys 4 DDR / Nexys A7-100T: 100 MHz oscillator, same VCO as the Basys3
+  // (1000 MHz), but the divider is a build flag so the bigger -100T part can
+  // be pushed past the Basys3-proven 16.667 MHz. ND120_N4DDR_MMCM_DIV and
+  // BOARD_CLK_FREQ are set together by fpga/nexys4ddr/build.tcl's clk=<MHz>
+  // argument; changing one without the other breaks every derived count
+  // (UART baud, RTC tick, watchdogs).
+  //   60.0 = 16.667 MHz (default, Basys3-proven)   30.0 = 33.333 MHz
+  //   50.0 = 20 MHz      40.0 = 25 MHz             20.0 = 50 MHz
+  //   37.0 = 27.027 MHz (Tang full speed)          10.0 = 100 MHz
+  `ifndef ND120_N4DDR_MMCM_DIV
+    `define ND120_N4DDR_MMCM_DIV 60.0
+  `endif
+  MMCME2_BASE #(
+    .BANDWIDTH        ("OPTIMIZED"),
+    .CLKFBOUT_MULT_F  (10.0),   // VCO = 100 * 10 = 1000 MHz
+    .CLKIN1_PERIOD    (10.0),   // 100 MHz input
+    .CLKOUT0_DIVIDE_F (`ND120_N4DDR_MMCM_DIV),  // CPU/bus clock
+    .DIVCLK_DIVIDE    (1),
+    .STARTUP_WAIT     ("FALSE")
+  ) mmcm_cpu_clk (
 `else
   MMCME2_BASE #(
     .BANDWIDTH        ("OPTIMIZED"),
@@ -496,6 +517,62 @@ module ND120_TOP
   wire       s_tape_byte_valid;
   wire [7:0] s_tape_byte_data;
 
+  /*-------------------------------------------------------------------*
+   *  Winchester backend seam - WHO ANSWERS WDISK_*                      *
+   *                                                                     *
+   *  The core's WDISK_ and WDBUF_ forward signals always reach the     *
+   *  top-level ports (the C model in simDevices/NDBus.cpp reads them).  *
+   *  Only the RETURN path is switched, because only one backend may     *
+   *  drive it:                                                          *
+   *                                                                     *
+   *    default          the C file server, process_verilog_wd(), which  *
+   *                     opens the host file named by env ND120_WD_IMG   *
+   *                     and answers a block read with an fread. The     *
+   *                     SD-FAT stack is not in the path at all.         *
+   *                                                                     *
+   *    ND120_SD_WD      nd_storage_devices client 6 - the REAL RTL:     *
+   *                     sd_card_ctrl -> sd_file_reader (FAT mount +     *
+   *                     root scan) -> nd_storage_engine -> the Phase-4  *
+   *                     block CACHE -> nd_storage_disc_adapter. WD0.IMG *
+   *                     is a file on a simulated FAT card, exactly as   *
+   *                     it is on the Tang's real card.                  *
+   *                                                                     *
+   *  ND120_SD_WD requires ND120_SD_STORAGE (the card/SDRAM models) and  *
+   *  ND120_INCLUDE_WD (the Winchester card itself); both are checked    *
+   *  below. Its whole purpose is to put the SD/FAT/cache path under a   *
+   *  full SINTRAN boot, which no testbench does: the storage benches    *
+   *  read a 16 KB stand-in WD0.IMG, and a real image is ~75 MB.         *
+   *-------------------------------------------------------------------*/
+  wire        s_wdisk_done;
+  wire        s_wdisk_err;
+  wire [ 3:0] s_wdisk_err_code;
+  wire [ 9:0] s_wdbuf_addr;
+  wire [15:0] s_wdbuf_wdata;
+  wire        s_wdbuf_we;
+
+`ifdef ND120_SD_WD
+`ifndef ND120_SD_STORAGE
+  initial begin
+    $display("FATAL: ND120_SD_WD needs ND120_SD_STORAGE (the SD card model)");
+    $finish;
+  end
+`endif
+`ifndef ND120_INCLUDE_WD
+  initial begin
+    $display("FATAL: ND120_SD_WD needs ND120_INCLUDE_WD (the Winchester card)");
+    $finish;
+  end
+`endif
+`else
+  // C file server answers; nd_storage is either absent or tape-only.
+  assign s_wdisk_done     = WDISK_DONE;
+  assign s_wdisk_err      = WDISK_ERR;
+  assign s_wdisk_err_code = WDISK_ERR_CODE;
+  assign s_wdbuf_addr     = WDBUF_ADDR;
+  assign s_wdbuf_wdata    = WDBUF_WDATA;
+  assign s_wdbuf_we       = WDBUF_WE;
+`endif
+
 `ifdef ND120_SD_STORAGE
 `ifndef VERILATOR_SIM
   // ND120_SD_STORAGE pulls in simulation-only card/memory models.
@@ -527,7 +604,12 @@ module ND120_TOP
   /* verilator lint_on UNUSEDSIGNAL */
 
   nd_storage_devices #(
-      .SIMULATE(1)  // short SD init in sim
+      .SIMULATE(1),  // short SD init in sim
+`ifdef ND120_SD_WD
+      .INCLUDE_WD(1)  // client 6 = WD0.IMG, CACHED (CACHE_MASK bit 6)
+`else
+      .INCLUDE_WD(0)
+`endif
   ) TAPE_SDFAT_SOURCE (
       .clk_stor  (s_stor_clk),
       .rst_stor_n(s_stor_rst_n),
@@ -556,13 +638,42 @@ module ND120_TOP
       .mem_busy (s_stor_mem_busy),
       .mem_done (s_stor_mem_done),
 
+`ifdef ND120_SD_WD
+      // Winchester client 6. Forward signals are read straight off the
+      // top-level ports the core already drives; the return path lands on
+      // the s_wdisk_*/s_wdbuf_* seam instead of on the C model's.
+      .WDISK_START    (WDISK_START),
+      .WDISK_REQ      (WDISK_REQ),
+      .WDISK_WR       (WDISK_WR),
+      .WDISK_BLKADDR1 (WDISK_BLKADDR1),
+      .WDISK_BLKADDR2 (WDISK_BLKADDR2),
+      .WDISK_UNIT     (WDISK_UNIT),
+      .WDISK_WORDCOUNT(WDISK_WORDCOUNT),
+      .WDISK_DONE     (s_wdisk_done),
+      .WDISK_ERR      (s_wdisk_err),
+      .WDISK_ERR_CODE (s_wdisk_err_code),
+      .WDBUF_ADDR     (s_wdbuf_addr),
+      .WDBUF_WDATA    (s_wdbuf_wdata),
+      .WDBUF_WE       (s_wdbuf_we),
+      .WDBUF_RDATA    (WDBUF_RDATA),
+
+`endif
       .sd_status(s_sd_status)
   );
 
   // The simulated card. IMAGE is relative to the sim CWD (runSim/).
   sd_card_model #(
       .IMAGE    (`ND120_SD_CARD_IMG),
+      // sd_card_model slurps the WHOLE image into a byte array at time 0, so
+      // this is both the card's capacity and its cost in host RAM. 8 MB is
+      // ample for a BOOT.BPUN card; a card carrying a real ~75 MB WD0.IMG is
+      // not, and every sector past the end reads back as 0xFF - a mount that
+      // succeeds followed by garbage. Override with ND120_SD_CARD_BYTES.
+`ifdef ND120_SD_CARD_BYTES
+      .MAX_BYTES(`ND120_SD_CARD_BYTES)
+`else
       .MAX_BYTES(8 * 1024 * 1024)
+`endif
   ) SD_CARD (
       .sd_clk   (s_sd_clk_o),
       .sd_cmd_i (s_sd_cmd),  .sd_cmd_o (s_card_cmd_o),  .sd_cmd_oe (s_card_cmd_oe),
@@ -662,6 +773,15 @@ module ND120_TOP
   wire [15:0] WDBUF_WDATA = 16'd0;
   wire        WDBUF_WE    = 1'b0;
   wire [15:0] WDBUF_RDATA;
+
+  // Same Winchester return seam as the device branch, tied inactive: no
+  // device chain means nothing ever asks, so nothing ever answers.
+  wire        s_wdisk_done     = 1'b0;
+  wire        s_wdisk_err      = 1'b0;
+  wire [ 3:0] s_wdisk_err_code = 4'd0;
+  wire [ 9:0] s_wdbuf_addr     = 10'd0;
+  wire [15:0] s_wdbuf_wdata    = 16'd0;
+  wire        s_wdbuf_we       = 1'b0;
 `endif
 
   ND120_CORE #(
@@ -763,12 +883,15 @@ module ND120_TOP
       .WDISK_BLKADDR2(WDISK_BLKADDR2),
       .WDISK_UNIT(WDISK_UNIT),
       .WDISK_WORDCOUNT(WDISK_WORDCOUNT),
-      .WDISK_DONE(WDISK_DONE),
-      .WDISK_ERR(WDISK_ERR),
-      .WDISK_ERR_CODE(WDISK_ERR_CODE),
-      .WDBUF_ADDR(WDBUF_ADDR),
-      .WDBUF_WDATA(WDBUF_WDATA),
-      .WDBUF_WE(WDBUF_WE),
+      // Return path comes from the s_wdisk_*/s_wdbuf_* seam, not straight
+      // off the ports: under ND120_SD_WD the in-RTL SD-FAT stack answers
+      // instead of the C file server. See the seam comment above.
+      .WDISK_DONE(s_wdisk_done),
+      .WDISK_ERR(s_wdisk_err),
+      .WDISK_ERR_CODE(s_wdisk_err_code),
+      .WDBUF_ADDR(s_wdbuf_addr),
+      .WDBUF_WDATA(s_wdbuf_wdata),
+      .WDBUF_WE(s_wdbuf_we),
       .WDBUF_RDATA(WDBUF_RDATA),
 
       // (f) debug / status -> the board's LED map, 7-seg and ILA wires
@@ -791,5 +914,323 @@ module ND120_TOP
       .DEBUG_POWFAIL_n(s_debug_powfail_n),
       .DEBUG_FIDBO_15_0(s_debug_fidbo)
   );
+
+`ifdef ND120_INSTR_TRACE
+  // ------------------------------------------------------------------
+  // MACRO-INSTRUCTION TRACE (inert unless -DND120_INSTR_TRACE). 18-AUG-2026.
+  //
+  // Emits one line per retired macro instruction in the SAME COLUMN FORMAT as
+  // the nd100x oracle trace, so the two can be diffed to find the exact
+  // instruction where this machine stops behaving like a machine that boots:
+  //
+  //     PIL PC OP A D T X B L STS
+  //
+  // PC is the address of the instruction itself (P-1: P has already been
+  // advanced past the fetched word by the time the boundary is detected), and
+  // OP is the instruction word, which lives in the ALU's GPR register.
+  //
+  // BOUNDARY DETECTION is not "P changed" - that is wrong in both directions.
+  // Two architectural signatures are needed, and both come from the existing
+  // emitter in runSim (read, not modified - it is proven by the
+  // instruction-verify campaign):
+  //
+  //   (a) an instruction FETCH commits P and GPR together in ONE microcycle.
+  //       Testing P alone is not enough: shift operations change GPR alone,
+  //       and jumps or level restores change P alone.
+  //   (b) dispatches THROUGH microcode address 0 (a level switch, or an EXR'd
+  //       instruction) enter the new instruction without (a) ever happening.
+  //
+  // GPR must also hold a real opcode: skip-bumps and panel-service entries
+  // satisfy the rules with GPR momentarily 0, and no golden trace contains a
+  // genuine 000000 opcode.
+  //
+  // Sampled on the rising edge of the CPU CLK (the UART's copy of it), which
+  // is the edge the register file commits on - NOT sysclk, which would sample
+  // mid-microcycle and catch registers in transit.
+  //
+  // ND120_INSTR_TRACE_MAX caps the output; a whole boot is ~20 million
+  // instructions, so an uncapped run would produce gigabytes.
+  // ------------------------------------------------------------------
+`ifndef ND120_INSTR_TRACE_MAX
+  `define ND120_INSTR_TRACE_MAX 30000000
+`endif
+
+  wire        w_itr_clk = CORE.CPU_BOARD.IO.UART.s_clk;
+  wire [15:0] w_itr_a   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.WRF.RBLOCK.s_reg5_a_15_0;
+  wire [15:0] w_itr_d   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.WRF.RBLOCK.s_reg1_d_15_0;
+  wire [15:0] w_itr_t   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.WRF.RBLOCK.s_reg6_t_15_0;
+  wire [15:0] w_itr_x   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.WRF.RBLOCK.s_reg7_x_15_0;
+  wire [15:0] w_itr_b   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.WRF.RBLOCK.s_reg3_b_15_0;
+  wire [15:0] w_itr_l   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.WRF.RBLOCK.s_reg4_l_15_0;
+  wire [15:0] w_itr_p   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.WRF.RBLOCK.s_reg2_p_15_0;
+  wire [15:0] w_itr_sts = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.WRF.RBLOCK.s_reg8_sts_15_0;
+  wire [15:0] w_itr_gpr = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.ALU.s_grp_15_0;
+  wire [ 3:0] w_itr_pil = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.sx_pil_3_0_out;
+
+  reg         r_itr_clk_d  = 1'b0;
+  reg         r_itr_have   = 1'b0;
+  reg  [15:0] r_itr_p_d    = 16'd0;
+  reg  [15:0] r_itr_gpr_d  = 16'd0;
+  reg  [12:0] r_itr_csa_d  = 13'h1FFF;
+  reg  [31:0] r_itr_n      = 32'd0;
+
+  always @(posedge sysclk) begin
+    r_itr_clk_d <= w_itr_clk;
+    if (w_itr_clk && !r_itr_clk_d) begin           // CPU CLK rising edge
+      if (r_itr_have && (w_itr_gpr != 16'd0) &&
+          (((w_itr_p != r_itr_p_d) && (w_itr_gpr != r_itr_gpr_d)) ||
+           ((r_itr_csa_d == 13'd0) && (CSA_12_0 != 13'd0)))) begin
+        if (r_itr_n < `ND120_INSTR_TRACE_MAX) begin
+          $display("[itr] %0d %06o %06o %06o %06o %06o %06o %06o %06o %06o",
+                   w_itr_pil, (w_itr_p - 16'd1) & 16'hFFFF, w_itr_gpr,
+                   w_itr_a, w_itr_d, w_itr_t, w_itr_x, w_itr_b, w_itr_l,
+                   w_itr_sts);
+        end
+        r_itr_n <= r_itr_n + 32'd1;
+      end
+      r_itr_have  <= 1'b1;
+      r_itr_p_d   <= w_itr_p;
+      r_itr_gpr_d <= w_itr_gpr;
+      r_itr_csa_d <= CSA_12_0;
+    end
+  end
+`endif
+
+`ifdef ND120_JPL_RING
+  // ------------------------------------------------------------------
+  // JPL OFF-BY-ONE INSTRUMENT (inert unless -DND120_JPL_RING). 19-AUG-2026.
+  //
+  // THE FAULT BEING CHASED. `000465` holds `135014` = JPL I *14, i.e. an
+  // indirect call through the pointer word at 000465+14 = 000501 (5CLOA),
+  // which holds 144163. Once in 15 executions the jump lands at 144162 -
+  // ONE WORD EARLY - with the link register L CORRECT at 000466.
+  //
+  // WHY A RING AND NOT MORE TRACING. The macro-instruction trace is complete
+  // and shows NOTHING wrong before the bad landing: 000460..000465 execute
+  // exactly as they do on the 14 good calls, with no retry of 000465 and no
+  // level-14 handler in between. So the cause is BELOW macro level, in the
+  // microcode steps of the JPL itself. This captures every CPU-clock edge
+  // (microcode granularity) and dumps the history the moment P lands on the
+  // wrong address - i.e. it goes BACKWARDS from the failure.
+  //
+  // WRITE WATCH. It also reports any write whose effective address is the
+  // pointer word 000501, naming the instruction that did it. That separates
+  // "someone stored a wrong value" from "the read/P-load produced value-1".
+  // ------------------------------------------------------------------
+`ifndef ND120_JPL_RING_DEPTH
+  `define ND120_JPL_RING_DEPTH 512
+`endif
+  localparam integer JR_N   = `ND120_JPL_RING_DEPTH;
+  localparam [15:0]  JR_BAD = 16'o144162;   // the wrong landing
+  localparam [15:0]  JR_OK  = 16'o144163;   // the correct target
+  localparam [15:0]  JR_PTR = 16'o000501;   // 5CLOA, the pointer word
+
+  // NOTE the hierarchy: the instance named CGA holds the real CGA module as
+  // DELILAH, which is why every probe here goes through .CGA.DELILAH.
+  wire [15:0] w_jr_ea = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.s_ea_15_0;
+  wire        w_jr_wr = ~CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.s_write_n;
+
+  reg  [15:0] jr_p    [0:JR_N-1];
+  reg  [15:0] jr_gpr  [0:JR_N-1];
+  reg  [12:0] jr_csa  [0:JR_N-1];
+  reg  [15:0] jr_ea   [0:JR_N-1];
+  reg  [ 3:0] jr_pil  [0:JR_N-1];
+  localparam integer JR_WIN = 400;   // cycles logged after each arm
+  reg  [15:0] jr_win  = 16'd0;
+  reg  [31:0] jr_wp   = 32'd0;
+  reg         jr_done = 1'b0;
+  reg         jr_clkd = 1'b0;
+  integer     jr_i, jr_k;
+
+  // FULL MICROCODE TRACE TO DISK, WINDOWED. The ring above only holds the last
+  // 512 clock edges - enough to see the trigger, useless for real analysis.
+  // This emits EVERY CPU-clock edge once the macro-instruction count passes
+  // ND120_JPL_LOG_FROM, so the whole run-up to the failure lands in the log
+  // file and can be picked over afterwards. Windowed because a whole boot is
+  // ~16M instructions x ~30 clock edges = ~500M lines; starting at 15.8M gives
+  // ~200k instructions of full detail (~6M lines) around a failure that is
+  // deterministic and always lands at ~16.02M.
+`ifndef ND120_JPL_LOG_FROM
+  `define ND120_JPL_LOG_FROM 15800000
+`endif
+
+  always @(posedge sysclk) begin
+    jr_clkd <= w_itr_clk;
+    if (w_itr_clk && !jr_clkd) begin
+      // WINDOW BY EVENT, NOT BY COUNT. The old guard used r_itr_n, which counts
+      // only instructions the boundary rule EMITS - not executed instructions -
+      // so the window opened in the wrong place and MISSED the failing JPL
+      // (log held 1.11M dispatches where the window should have held ~219k).
+      // Arm on the JPL's own address instead: cannot drift, and it captures
+      // EVERY execution of this instruction, good and bad.
+      if (w_itr_p == 16'o000465)      jr_win <= JR_WIN[15:0];
+      else if (jr_win != 16'd0)       jr_win <= jr_win - 16'd1;
+      if ((jr_win != 16'd0) || (w_itr_p == 16'o000465))
+        $display("[jplmic] %0d %06o %06o %04o %06o %b",
+                 w_itr_pil, w_itr_p, w_itr_gpr, CSA_12_0, w_jr_ea, w_jr_wr);
+      jr_p  [jr_wp[8:0]] <= w_itr_p;
+      jr_gpr[jr_wp[8:0]] <= w_itr_gpr;
+      jr_csa[jr_wp[8:0]] <= CSA_12_0;
+      jr_ea [jr_wp[8:0]] <= w_jr_ea;
+      jr_pil[jr_wp[8:0]] <= w_itr_pil;
+      jr_wp <= jr_wp + 32'd1;
+
+      // Trigger: P has landed on the wrong address. Dump the ring OLDEST ->
+      // NEWEST so the run-up to the failure reads top to bottom.
+      if (!jr_done && (w_itr_p == JR_BAD)) begin
+        jr_done <= 1'b1;
+        $display("[jplring] TRIGGER P=%06o (expected %06o) at ringpos %0d",
+                 JR_BAD, JR_OK, jr_wp);
+        /* verilator lint_off BLKSEQ */
+        for (jr_i = 0; jr_i < JR_N; jr_i = jr_i + 1) begin
+          jr_k = (jr_wp + jr_i) % JR_N;
+          $display("[jplring] %4d PIL=%0d P=%06o GPR=%06o CSA=%04o EA=%06o",
+                   jr_i - JR_N, jr_pil[jr_k], jr_p[jr_k], jr_gpr[jr_k],
+                   jr_csa[jr_k], jr_ea[jr_k]);
+        end
+        /* verilator lint_on BLKSEQ */
+      end
+    end
+
+    // Any write to the pointer word, whenever it happens.
+    if (w_jr_wr && (w_jr_ea == JR_PTR))
+      $display("[jplwr] WRITE to pointer %06o : P=%06o GPR=%06o CSA=%04o PIL=%0d",
+               JR_PTR, w_itr_p, w_itr_gpr, CSA_12_0, w_itr_pil);
+  end
+`endif
+
+`ifdef ND120_MAC_CAPTURE
+  // ------------------------------------------------------------------
+  // CGA_MAC SIGNAL CAPTURE (inert unless -DND120_MAC_CAPTURE). 19-AUG-2026.
+  //
+  // PURPOSE. The indirect `JPL I *14` at 000465 lands at 144162 instead of
+  // 144163 once in 15 executions - bit 0 of the loaded P is 0 when it should
+  // be 1. The IDB is an OR-merge (CGA.v:627) and an OR can never CLEAR a bit,
+  // so the wrong value did not come from bus contention: either the read data
+  // was wrong or P captured the bus before bit 0 settled. CGA_MAC is where the
+  // address arithmetic lives - NLCA_15_0 is the "+1" output and PCR_15_0 is P.
+  //
+  // WHAT IT DOES. Records EVERY input and output of the CGA_MAC instance on
+  // every sysclk into a ring, and dumps the whole ring when P lands on the
+  // wrong address. The dump is column-formatted so a testbench can replay the
+  // exact input sequence into a standalone CGA_MAC and compare its outputs.
+  // ------------------------------------------------------------------
+`ifndef ND120_MAC_CAP_DEPTH
+  `define ND120_MAC_CAP_DEPTH 2048
+`endif
+  localparam integer MC_N = `ND120_MAC_CAP_DEPTH;
+
+  // inputs
+  wire        mc_mclken = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.MCLK_EN;
+  wire        mc_csmreq = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.CSMREQ;
+  wire        mc_double = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.DOUBLE;
+  wire        mc_ilcsn  = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.ILCSN;
+  wire        mc_mclk   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.MCLK;
+  wire        mc_poni   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.PONI;
+  wire        mc_ptm    = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.PTM;
+  wire        mc_wr3    = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.WR3;
+  wire        mc_wr7    = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.WR7;
+  wire [ 1:0] mc_cmis   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.CMIS_1_0;
+  wire [ 4:0] mc_cscomm = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.CSCOMM_4_0;
+  wire [15:0] mc_rb     = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.RB_15_0;
+  wire [15:0] mc_cd     = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.CD_15_0;
+  wire [15:0] mc_fidbo  = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.FIDBO_15_0;
+  wire [15:0] mc_pr     = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.PR_15_0;
+  wire [15:0] mc_br     = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.BR_15_0;
+  wire [15:0] mc_xr     = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.XR_15_0;
+  // ---- THE +1 CHAIN, INTERNAL SIGNALS ----------------------------------
+  // Module ports alone cannot validate
+  //   MCA_9_0 -> R81_EN(LCA) -> LCA_15_0 -> APOS_INC(+1) -> NLCA_15_0
+  // because LCA (the register output the incrementer adds to), ICA (its input
+  // path) and every select/clock that decides what gets captured are INTERNAL.
+  // Without them a mismatch cannot be pinned to the register, the select or
+  // the increment. AP09 exposes LCA/ICA as ports of its own instance.
+  wire [15:0] mc_lca    = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.MAC_AP09.LCA_15_0;
+  wire [15:0] mc_ica    = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.MAC_AP09.ICA_15_0;
+  // selects + clocking that steer the capture (all named wires in CGA_MAC)
+  wire        mc_nlcasel= CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.s_nlcasel;
+  wire        mc_psel   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.s_psel;
+  wire        mc_addsel = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.a_addsel;
+  wire        mc_hold   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.s_hold;
+  wire        mc_cdsel  = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.s_cdsel;
+  wire        mc_smclk  = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.s_mclk;
+
+  // outputs
+  wire        mc_eccr   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.ECCR;
+  wire [13:0] mc_la     = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.LA_23_10;
+  wire        mc_lshad  = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.LSHADOW;
+  wire [ 9:0] mc_mca    = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.MCA_9_0;
+  wire [15:0] mc_nlca   = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.NLCA_15_0;
+  wire [15:0] mc_pcr    = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.PCR_15_0;
+  wire        mc_vex    = CORE.CPU_BOARD.CPU.PROC.CGA.DELILAH.MAC.VEX;
+
+  reg [10:0] mc_b   [0:MC_N-1];   // {mclken,csmreq,double,ilcsn,mclk,poni,ptm,wr3,wr7,eccr,lshadow}
+  reg [ 1:0] mc_a   [0:MC_N-1];   // cmis
+  reg [ 4:0] mc_c   [0:MC_N-1];   // cscomm
+  reg [15:0] mc_r   [0:MC_N-1];
+  reg [15:0] mc_d   [0:MC_N-1];
+  reg [15:0] mc_f   [0:MC_N-1];
+  reg [15:0] mc_p   [0:MC_N-1];
+  reg [15:0] mc_bb  [0:MC_N-1];
+  reg [15:0] mc_x   [0:MC_N-1];
+  reg [13:0] mc_l   [0:MC_N-1];
+  reg [ 9:0] mc_m   [0:MC_N-1];
+  reg [15:0] mc_n   [0:MC_N-1];
+  reg [15:0] mc_q   [0:MC_N-1];
+  reg        mc_v   [0:MC_N-1];
+  reg [15:0] mc_lcaR[0:MC_N-1];
+  reg [15:0] mc_icaR[0:MC_N-1];
+  reg [ 5:0] mc_sel [0:MC_N-1];   // {nlcasel,psel,addsel,hold,cdsel,s_mclk}
+  reg [31:0] mc_wp   = 32'd0;
+  reg        mc_done = 1'b0;
+  reg        mc_clkd = 1'b0;
+  integer    mc_i, mc_k;
+
+  always @(posedge sysclk) begin
+    mc_b [mc_wp[10:0]] <= {mc_mclken,mc_csmreq,mc_double,mc_ilcsn,mc_mclk,
+                           mc_poni,mc_ptm,mc_wr3,mc_wr7,mc_eccr,mc_lshad};
+    mc_a [mc_wp[10:0]] <= mc_cmis;
+    mc_c [mc_wp[10:0]] <= mc_cscomm;
+    mc_r [mc_wp[10:0]] <= mc_rb;
+    mc_d [mc_wp[10:0]] <= mc_cd;
+    mc_f [mc_wp[10:0]] <= mc_fidbo;
+    mc_p [mc_wp[10:0]] <= mc_pr;
+    mc_bb[mc_wp[10:0]] <= mc_br;
+    mc_x [mc_wp[10:0]] <= mc_xr;
+    mc_l [mc_wp[10:0]] <= mc_la;
+    mc_m [mc_wp[10:0]] <= mc_mca;
+    mc_n [mc_wp[10:0]] <= mc_nlca;
+    mc_q [mc_wp[10:0]] <= mc_pcr;
+    mc_v [mc_wp[10:0]] <= mc_vex;
+    mc_lcaR[mc_wp[10:0]] <= mc_lca;
+    mc_icaR[mc_wp[10:0]] <= mc_ica;
+    mc_sel [mc_wp[10:0]] <= {mc_nlcasel,mc_psel,mc_addsel,mc_hold,mc_cdsel,mc_smclk};
+    mc_wp <= mc_wp + 32'd1;
+
+    mc_clkd <= w_itr_clk;
+    if (w_itr_clk && !mc_clkd && !mc_done && (w_itr_p == 16'o144162)) begin
+      mc_done <= 1'b1;
+      $display("[maccap] TRIGGER P=144162 ringpos=%0d depth=%0d", mc_wp, MC_N);
+      $display("[maccap] idx MCLKEN CSMREQ DOUBLE ILCSN MCLK PONI PTM WR3 WR7 CMIS CSCOMM RB CD FIDBO PR BR XR | ECCR LA LSHADOW MCA NLCA PCR VEX || ICA LCA NLCASEL PSEL ADDSEL HOLD CDSEL SMCLK");
+      /* verilator lint_off BLKSEQ */
+      for (mc_i = 0; mc_i < MC_N; mc_i = mc_i + 1) begin
+        mc_k = (mc_wp + mc_i) % MC_N;
+        $display("[maccap] %0d %b %b %b %b %b %b %b %b %b %0o %0o %06o %06o %06o %06o %06o %06o | %b %05o %b %04o %06o %06o %b || %06o %06o %b %b %b %b %b %b",
+                 mc_i - MC_N,
+                 mc_b[mc_k][10], mc_b[mc_k][9], mc_b[mc_k][8], mc_b[mc_k][7],
+                 mc_b[mc_k][6],  mc_b[mc_k][5], mc_b[mc_k][4], mc_b[mc_k][3],
+                 mc_b[mc_k][2],
+                 mc_a[mc_k], mc_c[mc_k],
+                 mc_r[mc_k], mc_d[mc_k], mc_f[mc_k], mc_p[mc_k], mc_bb[mc_k], mc_x[mc_k],
+                 mc_b[mc_k][1], mc_l[mc_k], mc_b[mc_k][0], mc_m[mc_k],
+                 mc_n[mc_k], mc_q[mc_k], mc_v[mc_k],
+                 mc_icaR[mc_k], mc_lcaR[mc_k],
+                 mc_sel[mc_k][5], mc_sel[mc_k][4], mc_sel[mc_k][3],
+                 mc_sel[mc_k][2], mc_sel[mc_k][1], mc_sel[mc_k][0]);
+      end
+      /* verilator lint_on BLKSEQ */
+    end
+  end
+`endif
 
 endmodule

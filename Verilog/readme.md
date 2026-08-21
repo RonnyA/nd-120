@@ -2,6 +2,11 @@
 
 The Verilog code has been split into subfolder matching the structure of the LogiSim and Design Documents
 
+
+> **Setting up a machine?** Every prerequisite - FPGA toolchains, simulators,
+> linters, test and documentation tooling - with copy-paste install and
+> validation commands: [`docs/PREREQUISITES.md`](docs/PREREQUISITES.md).
+
 ## Status
 
 Verilator compiles and runs the full boot path: microcode load, "Master Clear",

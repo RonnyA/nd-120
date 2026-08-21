@@ -255,6 +255,32 @@ CPU_MMU_24_shadow_tb_bin: $(MMU24_SRCS)
 CPU_MMU_24_shadow_async_tb_bin: $(MMU24_SRCS)
 	$(IVERILOG) -g2012 -DTMM_ASYNC_READ -o $@ $(MMU24_SRCS)
 
+# --- ALL 2048 page-table entries: write, read back, translate -------------
+# Sweeps every index (32 page tables x 64 VPNs), both banks, REX and SEX,
+# plus a fault-and-fix cycle. The existing shadow benches verify the protocol
+# but touch ~30 distinct indexes; this one catches an entry that never lands -
+# the PAL_44306A EIPL failure mode, where the STATUS bank looked perfect while
+# the PPN map was never written. Two builds, both must pass.
+MMU24ALL_SRCS = CPU_MMU_24_allentries_tb.v $(CIRCUIT)/CPU_MMU_24.v \
+             $(CIRCUIT)/CPU_MMU_PT_29.v $(CIRCUIT)/CPU_MMU_CACHE_25.v \
+             $(CIRCUIT)/CPU_MMU_CSR_26.v $(CIRCUIT)/CPU_MMU_HIT_27.v \
+             $(CIRCUIT)/CPU_MMU_PPNX_28.v $(CIRCUIT)/CPU_MMU_PTIDB_30.v \
+             $(PAL)/PAL_44306A.v $(PAL)/PAL_44402D.v $(PAL)/PAL_44402D_EN.v \
+             $(MMUPT_SUPPORT)/TMM2018D_25.v $(MMUPT_SUPPORT)/IMS1403_25.v \
+             $(MMUPT_SUPPORT)/Am9150.v
+
+test-mmu24-allentries: CPU_MMU_24_allentries_tb_bin CPU_MMU_24_allentries_async_tb_bin
+	./CPU_MMU_24_allentries_tb_bin | tee mmu24_all_result.tmp
+	@grep -q "TB_RESULT: PASS" mmu24_all_result.tmp
+	./CPU_MMU_24_allentries_async_tb_bin | tee mmu24_all_result.tmp
+	@grep -q "TB_RESULT: PASS" mmu24_all_result.tmp && rm -f mmu24_all_result.tmp
+
+CPU_MMU_24_allentries_tb_bin: $(MMU24ALL_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(MMU24ALL_SRCS)
+
+CPU_MMU_24_allentries_async_tb_bin: $(MMU24ALL_SRCS)
+	$(IVERILOG) -g2012 -DTMM_ASYNC_READ -o $@ $(MMU24ALL_SRCS)
+
 .PHONY: test-memparity test-memerror test-mmupt-replay test-mmupt test-mmupt-rmw \
         test-mmu24-shadow
 

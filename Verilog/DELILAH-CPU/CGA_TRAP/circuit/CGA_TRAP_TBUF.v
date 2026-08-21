@@ -18,7 +18,10 @@ module CGA_TRAP_TBUF (
     input       PANN,     //! PAN_n
     input [1:0] PCR_1_0,  //! PCR[1:0]
     input [6:0] PT_15_9,  //! PT[15:9]
-    input       VACCN,    //! VACC_n
+    // VACCN in / VACC out: this buffer just inverts VACCN and fans it out to
+    // CGA_TRAP_TVGEN and CGA_TRAP_BRKDET. VACC = "this cycle is an MMU-
+    // translated memory reference", generated in CGA_DCD.v sheet 10/10.
+    input       VACCN,    //! VACC_n - low when the access IS MMU-translated
     input       WRITEN,   //! WRITE_n
 
     output       IFETCH,
@@ -33,7 +36,7 @@ module CGA_TRAP_TBUF (
     output       IWRITE,
     output       IWRITEN,
     output       PAN,
-    output       VACC
+    output       VACC     //! ~VACCN, fanned out to TVGEN and BRKDET
 );
 
   /*******************************************************************************

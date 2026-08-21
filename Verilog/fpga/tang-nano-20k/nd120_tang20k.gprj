@@ -65,6 +65,7 @@
         <File path="../../DECODE-GateArray/DGA/circuit/F924.v" type="file.verilog" enable="1"/>
         <File path="../../DELILAH-CPU/CGA/circuit/BusDriver16.v" type="file.verilog" enable="1"/>
         <File path="../../DELILAH-CPU/CGA/circuit/CGA.v" type="file.verilog" enable="1"/>
+        <File path="../../DELILAH-CPU/CGA/circuit/ND120_PF_CAPTURE.v" type="file.verilog" enable="1"/>
         <File path="../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU.v" type="file.verilog" enable="1"/>
         <File path="../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_ARG.v" type="file.verilog" enable="1"/>
         <File path="../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_DBR.v" type="file.verilog" enable="1"/>

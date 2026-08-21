@@ -49,7 +49,37 @@ VERILOG_ROOT = ../../..
 BusDriver16_tb: BusDriver16_tb.v $(VERILOG_ROOT)/DELILAH-CPU/CGA/circuit/BusDriver16.v
 	$(IVERILOG) -g2012 -I$(VERILOG_ROOT)/Shared/logisim -I$(VERILOG_ROOT)/Shared/ndlib -I$(VERILOG_ROOT)/Shared/support -o $@ $^
 
+BusDriver16_full_tb: BusDriver16_full_tb.v $(VERILOG_ROOT)/DELILAH-CPU/CGA/circuit/BusDriver16.v
+	iverilog -g2012 -o $@ BusDriver16_full_tb.v $(VERILOG_ROOT)/DELILAH-CPU/CGA/circuit/BusDriver16.v
+
+# Pins the full BusDriver16 contract: all 4 EN/TN combinations, walking
+# patterns, 500 random vectors, and the three properties a refactor is most
+# likely to break (A_OUT ignores EN, A_OUT ignores TN, disabled drives 0 not z).
+test-busdriver16-full: BusDriver16_full_tb
+	vvp BusDriver16_full_tb | tee bd16full_result.tmp
+	@grep -q "TB_RESULT: PASS" bd16full_result.tmp && rm -f bd16full_result.tmp
+
 test-busdriver16: BusDriver16_tb
 	./BusDriver16_tb
 
 .PHONY: test-busdriver16
+
+# --- first page-fault freeze register (21-AUG-2026) --------------------------
+# ND120_PF_CAPTURE freezes the trap-logic inputs at the TCLK edge that latched
+# a page-fault vector, then locks, so the evidence survives to be read out
+# after the machine halts. It is only trustworthy if it lands on the RIGHT
+# cycle - TVEC is registered, so the causing inputs have already moved on by
+# the time the fault is visible. Both modes must pass: the capturing edge
+# differs between them but the captured cycle must not.
+test-pf-capture:
+	iverilog -g2012 -o /tmp/nd_pfcap_latch.vvp \
+	  ND120_PF_CAPTURE_tb.v ../circuit/ND120_PF_CAPTURE.v
+	vvp -N /tmp/nd_pfcap_latch.vvp | tee pfcap_latch.tmp
+	iverilog -g2012 -DFPGA_FF_MODE -o /tmp/nd_pfcap_ff.vvp \
+	  ND120_PF_CAPTURE_tb.v ../circuit/ND120_PF_CAPTURE.v
+	vvp -N /tmp/nd_pfcap_ff.vvp | tee pfcap_ff.tmp
+	@grep -q "TB_RESULT: PASS" pfcap_latch.tmp \
+	  && grep -q "TB_RESULT: PASS" pfcap_ff.tmp \
+	  && echo "TB_RESULT: PASS" && rm -f pfcap_latch.tmp pfcap_ff.tmp
+
+.PHONY: test-pf-capture

@@ -94,4 +94,5 @@ module CGA_IDBCTL_SEL6 (
   assign s_out_d0  = s_out_d | s_out_m | s_out_v | s_out_s | s_out_pcr | s_out_pgs;
 
 
+
 endmodule

@@ -178,3 +178,15 @@ test-mic-condreg:
         test-mic-csel test-mic-incount test-mic-iinc test-mic-ipos \
         test-mic-stackbit test-mic-stackbit12 test-mic-stack \
         test-mic-wcareg test-mic-condreg test-mic-repeat
+
+# --- CGA_MIC top-level integration / wiring map, ALL FOUR build modes --------
+# Asserts the port-to-port map of the eight sub-circuits and the output taps,
+# and independently models the IR latch, the LAA/LBA operand select (exhaustive
+# over CSRASEL x CSRBSEL) and the COND flip-flop. Does NOT re-model the
+# next-address machine - see the header of CGA_MIC_tb.v.
+# Registered in tests/run_all_tests.sh.
+test-mic-top:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mic_top CGA_MIC_tb.v && vvp -N /tmp/ndtb_mic_top
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mic_top_ff CGA_MIC_tb.v && vvp -N /tmp/ndtb_mic_top_ff
+	iverilog -g2012 -DUSE_TRANSPARENT_LATCHES $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mic_top_lat CGA_MIC_tb.v && vvp -N /tmp/ndtb_mic_top_lat
+	iverilog -g2012 -DFPGA_FF_MODE -DUSE_TRANSPARENT_LATCHES $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_mic_top_fflat CGA_MIC_tb.v && vvp -N /tmp/ndtb_mic_top_fflat
