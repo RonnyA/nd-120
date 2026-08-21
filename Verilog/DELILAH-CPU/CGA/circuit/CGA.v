@@ -138,6 +138,7 @@ module CGA (
   wire [15:0] s_xfidbi_15_0;
   wire [ 2:0] sx_tsel_2_0;
   wire [15:0] s_pcr_15_0;
+  wire [15:0] s_pcr_rb_15_0;  // PCR registered readback tap (IDB loop cut)
   wire [ 3:0] sx_laa_3_0_out;
   wire [ 1:0] sx_csrasel_1_0;
   wire [ 1:0] s_csrasel_1_0;
@@ -657,7 +658,14 @@ module CGA (
   // FIDBO must stop feeding MAC/INTR combinationally - either register it, or
   // qualify PCR/PGS readback with the one-hot CSIDBS_4_0 select at the SEL6
   // inputs so the tool can prove exclusivity inside a single module.
-  assign s_FIDBO_15_0         = s_alu_IDB_15_0_OUT | s_idbctl_IDB_15_0_OUT;
+  // 21-AUG-2026 EXPERIMENT (drawing sheet 5 of 8, &BD4TU pad ring): in the
+  // ASIC, FIDBO is driven ONLY by the ALU OUTMUX. The OUTMUX already carries
+  // the IDBCTL/SEL6 value through its one-hot EFIDB source
+  // (CGA_ALU_OUTMUX.v SI[5]), so ORing s_idbctl_IDB_15_0_OUT in here
+  // duplicated that path WITHOUT its enable - a permanent XFIDBI->FIDBO arc
+  // that closed the combinational IDB rings. Pre-change form, for rollback:
+  //   assign s_FIDBO_15_0 = s_alu_IDB_15_0_OUT | s_idbctl_IDB_15_0_OUT;
+  assign s_FIDBO_15_0         = s_alu_IDB_15_0_OUT;
 
 
 
@@ -783,7 +791,10 @@ module CGA (
       .LA_21_10(sx_la_23_10_out[11:0]),
       .LOGSN(s_logs_n),
       .MCLK(sx_mclk),
-      .PCR_15_0(s_pcr_15_0[15:0]),
+      // 21-AUG-2026 IDB-ring cut: SEL6 readback uses the REGISTERED PCR tap,
+      // not the FF-mode transparent-bypass output. All other PCR consumers
+      // (PTSEL, LASEL, debug) keep the transparent s_pcr_15_0.
+      .PCR_15_0(s_pcr_rb_15_0[15:0]),
       .PD(s_pd),
       .PICMASK_15_0(s_picmask_15_0[15:0]),
       .PICS_2_0(s_pics_2_0[2:0]),
@@ -961,6 +972,7 @@ module CGA (
     .MCA_9_0      (sx_mca_9_0_out[9:0]),     // Microcode Address bits 9 to 0
     .NLCA_15_0    (s_nlca_15_0[15:0]),       // Next Latch Address bits 15 to 0
     .PCR_15_0     (s_pcr_15_0[15:0]),        // Program Counter Register bits 15 to 0
+    .PCR_RB_15_0  (s_pcr_rb_15_0[15:0]),     // PCR registered readback tap (IDB loop cut)
     .VEX          (s_vex)                    // Violation Exception
   );
 
@@ -1038,6 +1050,8 @@ module CGA (
       .XMIC_DBG(s_xmic_from_mic)                // intercepted - see the repack below
 `elsif TANG_PF_CAPTURE
       .XMIC_DBG(s_xmic_from_mic)                // intercepted - the page-fault capture owns the port
+`elsif TANG_PC_HISTORY
+      .XMIC_DBG(s_xmic_from_mic)                // intercepted - the PC history probe owns the port
 `else
       .XMIC_DBG(XMIC_DBG_15_0)                  // DEBUG: microsequencer address-advance probe
 `endif
@@ -1116,7 +1130,10 @@ module CGA (
       .c_restr(),
       .c_ptram_cs_n(),
       .c_ptram_oe_n(),
-      .c_pgs_at_read(),
+      // .c_pgs_at_read() removed 21-AUG-2026: ND120_PF_CAPTURE declares no such
+      // port (the name appears only in that module's comments), so this dangling
+      // connection made every -PfCapture build fail to elaborate with PINNOTFOUND.
+      // It was connected to nothing, so removing it changes no behaviour.
       .c_pgs_valid(),
       .c_cycle(),
       .ptram_strobes_valid(),
@@ -1124,6 +1141,45 @@ module CGA (
   );
 
   assign XMIC_DBG_15_0 = s_pf_readout;
+`endif
+
+`ifdef TANG_PC_HISTORY
+`ifndef TANG_PF_CAPTURE
+  // PC HISTORY PROBE (21-AUG-2026)
+  //
+  // MUTUALLY EXCLUSIVE WITH TANG_PF_CAPTURE. There is exactly ONE 16-bit debug
+  // port out of the CGA and both probes want it; defining both produced two
+  // drivers here, which is the Gowin EX2000 "constantly driven from multiple
+  // places" failure the note above already records for the WD-trace repack.
+  // TANG_PF_CAPTURE wins, matching the precedence used everywhere else in this
+  // file. A PC-history build must therefore form its freeze trigger from a
+  // signal available at the TOP level, not from the capture block's readout.
+  //
+  // Streams the program counter out through the CGA's single 16-bit debug port
+  // so the Tang's generic capture ring can record {PIL, P} - 20 bits, the ring's
+  // native width. The top level supplies PIL, which is already routed there.
+  //
+  // WHY A PC TRAIL AND NOT A STREAM COMPARISON: an instruction-stream diff
+  // against the nd100x oracle cannot work. SINTRAN multiplexes level 1 among
+  // programs via the scheduler at PIL-2 address 032037, and which program is
+  // dispatched depends on device and clock timing, so two machines with
+  // different timing diverge at the first scheduling decision however correct
+  // both CPUs are. Measured: the first 673 normalised level-1 instructions
+  // match exactly, then the ND-120 runs program 043503 - which the oracle also
+  // runs 21 times, just at a different moment.
+  //
+  // What IS decisive is that the oracle NEVER accesses page 0o760 (WNDN5, the
+  // ND-500 window) - zero times in 25,000,000 instructions. So our first access
+  // to it IS the divergence and needs no comparison to find; what is missing is
+  // the trail of how we got there. Hence: freeze the ring on that access and
+  // read back the preceding program counters.
+  //
+  // PR_15_0 vs P_15_0: CGA_WRF_RBLOCK_PREG drives both from the same MUX31LP
+  // bank into two register banks on opposite clock phases, so they carry the
+  // same value half a clock apart and the SEQUENCE of program counters is
+  // identical. PR_15_0 is the one already routed into this module.
+  assign XMIC_DBG_15_0 = s_pr_15_0[15:0];
+`endif
 `endif
 
 `ifdef ND_WD_TRACE_TVEC_CSA
@@ -1239,6 +1295,7 @@ module CGA (
   // it was measured as 1 throughout the PONI run, and the prediction being
   // tested - used==0 exactly when EX==0 - does not need it.
 `ifndef TANG_PF_CAPTURE
+`ifndef TANG_PC_HISTORY
   // Both this repack and ND120_PF_CAPTURE want XMIC_DBG_15_0 - there is only
   // ONE 16-bit debug port out of the CGA, so they are mutually exclusive.
   // ND_WD_TRACE_TVEC_CSA is defined BY DEFAULT in the Tang's
@@ -1254,6 +1311,7 @@ module CGA (
                           (~s_vacc_n & ~s_pt_15_9[6] & ~s_pt_15_9[5] & ~s_pt_15_9[4]),
                                                        // [1]  PGF
                           sx_trap_n_out};              // [0]  TRAPN
+`endif
 `endif
 `endif
 

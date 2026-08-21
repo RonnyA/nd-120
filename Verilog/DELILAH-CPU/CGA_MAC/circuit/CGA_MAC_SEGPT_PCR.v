@@ -26,13 +26,21 @@ module CGA_MAC_SEGPT_PCR (
     input        MCLKN,
 
     // Output signals
-    output [15:0] PCR_15_0
+    output [15:0] PCR_15_0,
+
+    // Registered readback tap (21-AUG-2026): same stored value as PCR_15_0
+    // but taken from the L8/L4 register (QA_R taps), WITHOUT the FF-mode
+    // transparent bypass. Feeds ONLY the IDBCTL/SEL6 IDB readback - this
+    // cuts the combinational IDB ring FIDBO -> PCR -> SEL6 -> FIDBI ->
+    // OUTMUX(EFIDB) -> FIDBO. All other consumers keep PCR_15_0.
+    output [15:0] PCR_RB_15_0
 );
 
   /*******************************************************************************
    ** The wires are defined here                                                 **
-   *******************************************************************************/  
+   *******************************************************************************/
   wire [15:0] s_pcr_15_0_out;
+  wire [15:0] s_pcr_rb_15_0_out;
   wire [15:0] s_fidbo_15_0;
   wire        s_gates1_out;
   wire        s_lldpcr;
@@ -49,9 +57,11 @@ module CGA_MAC_SEGPT_PCR (
    ** Here all output connections are defined                                    **
    *******************************************************************************/
   assign PCR_15_0               = s_pcr_15_0_out[15:0];
+  assign PCR_RB_15_0            = s_pcr_rb_15_0_out[15:0];
 
   // Bits 6:3 is PIL (current program level), and is not set here.
   assign s_pcr_15_0_out[6:3] = 4'b0000;
+  assign s_pcr_rb_15_0_out[6:3] = 4'b0000;
 
   // Code to make LINTER not complain about bits not read in FIDBO 6:3
   (* keep = "true", DONT_TOUCH = "true" *) wire [4:0] unused_FIDBO_bits;
@@ -102,7 +112,15 @@ module CGA_MAC_SEGPT_PCR (
     .QG (s_pcr_15_0_out[9]),
     .QGN(),
     .QH (s_pcr_15_0_out[8]),
-    .QHN()
+    .QHN(),
+    .QA_R(s_pcr_rb_15_0_out[15]),
+    .QB_R(s_pcr_rb_15_0_out[14]),
+    .QC_R(s_pcr_rb_15_0_out[13]),
+    .QD_R(s_pcr_rb_15_0_out[12]),
+    .QE_R(s_pcr_rb_15_0_out[11]),
+    .QF_R(s_pcr_rb_15_0_out[10]),
+    .QG_R(s_pcr_rb_15_0_out[9]),
+    .QH_R(s_pcr_rb_15_0_out[8])
   );
 
 
@@ -127,7 +145,11 @@ module CGA_MAC_SEGPT_PCR (
     .QC (s_pcr_15_0_out[1]),
     .QCN(),
     .QD (s_pcr_15_0_out[0]),
-    .QDN()
+    .QDN(),
+    .QA_R(s_pcr_rb_15_0_out[7]),
+    .QB_R(s_pcr_rb_15_0_out[2]),
+    .QC_R(s_pcr_rb_15_0_out[1]),
+    .QD_R(s_pcr_rb_15_0_out[0])
   );
 
 endmodule

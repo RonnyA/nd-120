@@ -42,6 +42,7 @@ module CGA_MAC (
     output [ 9:0] MCA_9_0,     //! Microcode Address bits 9 to 0
     output [15:0] NLCA_15_0,   //! Next Latch Address bits 15 to 0
     output [15:0] PCR_15_0,    //! Program Counter Register bits 15 to 0
+    output [15:0] PCR_RB_15_0, //! PCR registered readback tap for IDBCTL/SEL6 (IDB loop cut)
     output        VEX          //! Vector EXecute signal
 );
 
@@ -201,6 +202,7 @@ module CGA_MAC (
 
     // Outputs
     .PCR_15_0(s_pcr_15_0_out[15:0]),
+    .PCR_RB_15_0(PCR_RB_15_0),
     .PEX(s_pex),
     .SEGZN(s_segz_n),
     .SEG_7_0(s_seg_7_0[7:0]),

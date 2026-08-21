@@ -26,10 +26,22 @@ module L4 (
     output QC,
     output QCN,
     output QD,
-    output QDN
+    output QDN,
+
+    // Registered-value taps (21-AUG-2026): the stored value WITHOUT the
+    // FF-mode transparent bypass mux - same contract as L8's QA_R..QH_R,
+    // see Shared/ndlib/L8.v. Leave unconnected where the transparent
+    // output is the wanted one.
+    output QA_R,
+    output QB_R,
+    output QC_R,
+    output QD_R
 );
 
 reg [3:0] reg4bit;
+
+assign {QA_R, QB_R, QC_R, QD_R} =
+       {reg4bit[0], reg4bit[1], reg4bit[2], reg4bit[3]};
 
 `ifdef USE_TRANSPARENT_LATCHES
 assign QA=reg4bit[0]; assign QAN=~reg4bit[0];
