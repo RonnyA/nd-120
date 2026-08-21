@@ -69,7 +69,14 @@ module MEM_RAM_49_BLOCKRAM #(
   reg [17:0] dd_q;    // write data captured while RAS active, CAS not yet seen
   reg        win_d;   // access window (RAS & CAS & bank), one sysclk delayed
 
-  reg [17:0] rd_q;
+  // Raw registered array read. The parity regeneration must sit AFTER this
+  // register: with_parity() between the array and the register put an XOR
+  // function in the read path, which stopped Vivado inferring block RAM -
+  // the whole 16K x 16 array fell back to 1024 RAM256X1S distributed-RAM
+  // primitives (measured 21-AUG-2026, Synth 8-6849). Registered raw read =
+  // BRAM-mappable; the parity bits are combinational on the FF output.
+  reg [15:0] rd_raw;
+  wire [17:0] rd_q = with_parity(rd_raw);
 
   // Linear word address {col, row}, low bits (same mapping as the proven
   // SIP1M9 FPGA path: contiguous CPU addresses stay contiguous)
@@ -96,8 +103,9 @@ module MEM_RAM_49_BLOCKRAM #(
 
       if (win) begin
         if (MWRITE50_n) begin
-          // read: registered, re-reads while CAS; parity regenerated here
-          rd_q <= with_parity(mem[{bidx, a}]);
+          // read: registered raw, re-reads while CAS; parity regenerated
+          // combinationally AFTER the register (see rd_raw above)
+          rd_raw <= mem[{bidx, a}];
         end else if (!win_d) begin
           // write: ONCE, first window edge; the two parity bits are dropped
           mem[{bidx, a}] <= {dd_q[16:9], dd_q[7:0]};

@@ -5,6 +5,30 @@
 
 ---
 
+## Test-gate backlog - 21-AUG-2026
+
+`make test` currently aborts in its two meta-gates before running a single
+functional test, for reasons that predate the IDB-ring work:
+
+- `tests/audit_testbenches.sh`: 4 orphan testbenches with no Makefile rule
+  and no registry entry - `CPU-BOARD-3202/circuit/sim/PT_stale_read_tvec_tb.v`,
+  `ND-BUS-DEVICES/WINCHESTER/sim/nd_winchester_boot_hang_tb.v`,
+  `ND-BUS-DEVICES/WINCHESTER/sim/nd_winchester_ticks_tb.v`,
+  `SD-FAT/sim/nd_storage_ticks_tb.v`.
+- `tests/tb_catalog.py`: 101 unregistered testbenches from the 21-AUG
+  committed testbench sweep (`TB_RESULT: FAIL 101 unregistered testbenches`).
+
+Decision 21-AUG (Ronny): leave as a backlog, burn down in its own session -
+register or delete each, do not baseline them away. Until then, run the
+functional registry by skipping the first entry (`test-tb-catalog`) in
+`tests/run_all_tests.sh`; the remaining 205 entries were green on 21-AUG.
+
+Also parked: `DELILAH-CPU/CGA/sim/ND120_PF_CAPTURE_tb.v` wires a port
+`c_pgs_at_read` that `ND120_PF_CAPTURE.v` does not have (elaboration error) -
+belongs to the ERRFATAL/PGS-capture investigation, fix it there.
+
+---
+
 ## CURRENT PLAN - 02-AUG-2026
 
 ### Owned elsewhere - do NOT change these files here
