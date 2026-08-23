@@ -820,7 +820,7 @@ TODO: Sort bits on output LED to match led numbering
 
   assign s_ibinput_n = (s_binput_n_out & s_binput_n_in);
   assign s_isemrq_n = (s_semrq_n_out & s_semrq_n_in);
-  assign s_ibint10_n =(s_binput_n_out & s_binput_n_in);
+  assign s_ibint10_n = s_bint10_n;
 
   // A2 => Y2
   assign s_ibapr_n = (s_bapr_n_out & s_bapr_n_in);
