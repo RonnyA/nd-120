@@ -49,8 +49,31 @@ test_nd120: $(CPP_SOURCES)
 clean:
 	rm -rf obj_dir obj_dir_latch obj_dir_ff
 
+# ---------------------------------------------------------------------------
+# LOG SIZE CAP - enforced here, not remembered.
+#
+# "any log file you create are not allowed to excced 1GB" had to be stated in
+# THREE separate sessions. A sim run that prints per-tick can fill a drive in
+# minutes. ND120_LOG_CAP is a hard ceiling applied to any redirected run;
+# override it deliberately (e.g. ND120_LOG_CAP=10G) for a campaign capture -
+# 10 GB is the standing allowance for the oracle/campaign logs in
+# $ND120_ORACLE_DIR.
+ND120_LOG_CAP ?= 1G
+
 run: test_nd120
 	./obj_dir/VND120_TOP
+
+# run-log: same run, but tee'd to a file that CANNOT exceed the cap.
+# head -c closes the pipe at the limit, so the run stops writing rather than
+# filling the disk. Use this whenever the output is being kept.
+run-log: test_nd120
+	@echo "[log cap $(ND120_LOG_CAP) -> $(or $(LOG),run.log)]"
+	./obj_dir/VND120_TOP 2>&1 | head -c $(ND120_LOG_CAP) | tee $(or $(LOG),run.log)
+	@sz=$$(du -h $(or $(LOG),run.log) | cut -f1); echo "[log $$sz]"; \
+	 if [ "$$(stat -c%s $(or $(LOG),run.log))" -ge "$$(numfmt --from=iec $(ND120_LOG_CAP))" ]; then \
+	   echo "WARNING: log hit the $(ND120_LOG_CAP) cap and was TRUNCATED - the run"; \
+	   echo "         may have continued past what the file shows."; \
+	 fi
 
 gtk: run
 	# FST format: compressed, indexed, much faster to load than VCD

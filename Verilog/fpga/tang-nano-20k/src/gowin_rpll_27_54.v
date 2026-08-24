@@ -51,6 +51,20 @@ module Gowin_rPLL_ND120 (
   defparam rpll_inst.FBDIV_SEL = 0;
   defparam rpll_inst.IDIV_SEL = 3;
   defparam rpll_inst.ODIV_SEL = 128;
+`elsif TANG_MID_BRINGUP
+  // MID (added 24-AUG-2026): CLKOUT = 27 * (FBDIV+1)/(IDIV+1) = 27 * 2/2 = 27
+  // MHz (SDRAM pair), CLKOUTD = 13.5 MHz (CPU/bus). VCO = 27 * 32 = 864 MHz,
+  // the same VCO the other three variants use.
+  //
+  // Why this variant exists: 6.75 MHz closes with 0 setup violations, 27 MHz
+  // reports 1667 and BREAKS ON SILICON (SINTRAN boots and LIST-FILES is fast,
+  // but s3 hangs - measured 24-AUG-2026). Gowin put the CPU-domain Fmax at
+  // 17.68 MHz (6.75 target) and 19.55 MHz (27 target), so 13.5 MHz is the
+  // fastest clean step: 2x the working speed, under the closure figure with
+  // margin, and clk2x at 27 MHz stays far inside sdram18.v's 66.7 MHz rating.
+  defparam rpll_inst.FBDIV_SEL = 1;
+  defparam rpll_inst.IDIV_SEL = 1;
+  defparam rpll_inst.ODIV_SEL = 32;
 `elsif TANG_SLOW_BRINGUP
   // Slow bring-up: CLKOUT = 27 * (FBDIV+1)/(IDIV+1) = 27 * 1/2 = 13.5 MHz
   // (SDRAM pair), CLKOUTD = 6.75 MHz (CPU/bus). VCO = 13.5 * 64 = 864 MHz.

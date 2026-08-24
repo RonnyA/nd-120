@@ -506,6 +506,8 @@
 // default as before. See docs/tang20k-build-flows.md.
 `ifdef TANG_VARIANT_FULL
   // full speed 27/54 MHz: neither SLOW nor CRAWL defined
+`elsif TANG_VARIANT_MID
+  `define TANG_MID_BRINGUP
 `elsif TANG_VARIANT_CRAWL
   `define TANG_SLOW_BRINGUP
   `define TANG_CRAWL_BRINGUP
@@ -518,6 +520,8 @@
 `define BOARD_CLK_FREQ 3_375_000
 `elsif TANG_SLOW_BRINGUP
 `define BOARD_CLK_FREQ 6_750_000
+`elsif TANG_MID_BRINGUP
+`define BOARD_CLK_FREQ 13_500_000
 `else
 `define BOARD_CLK_FREQ 27_000_000
 `endif

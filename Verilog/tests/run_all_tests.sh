@@ -29,6 +29,14 @@ REGISTRY=(
   # is written and never registered - the drift that left 9 testbenches
   # unreachable before 08-AUG-2026.
   "tests :: test-tb-catalog :: TB_RESULT: PASS"
+  # The silicon path must be flip-flop mode on every board. "no fucking
+  # latches i fucking told you" had to be said repeatedly; a latch-mode
+  # silicon build invalidates whatever it was measuring, so the rule lives in
+  # a check instead of in someone's memory.
+  "tests :: test-no-latches :: TB_RESULT: PASS"
+  # one microcode, everywhere: every PROM-image copy matches Code/Microcode
+  # (dated exceptions only) - the 895f360 sim-vs-board split detector
+  "tests :: test-microcode-sync :: TB_RESULT: PASS"
   # --- Shared support chips -------------------------------------------------
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"
@@ -98,6 +106,11 @@ REGISTRY=(
   # capture was added - registered that same day, as promised.
   "CPU-BOARD-3202/circuit/sim :: test-cs-rwcs-cycle :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-blockram :: TB_RESULT: PASS"
+  # address-SPACE integrity gate: the BLOCKRAM backend must span the full
+  # 64K-word logical space (the 24-AUG-2026 LIST-FILE-NAMES runaway was
+  # ADDR_BITS=15 wrapping addresses >= 0o100000 onto low memory); the
+  # 16-bit address-bit walk also catches dropped/swapped address bits
+  "CPU-BOARD-3202/circuit/sim :: test-blockram-space :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-cdlbd    :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-bdlbd    :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-memdata  :: TB_RESULT: PASS"
