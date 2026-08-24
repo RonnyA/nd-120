@@ -111,7 +111,20 @@ module MEM_RAM_49_SDRAM #(
     output [ 3:0] O_sdram_dqm,
 
     // Raw bridge state for the on-chip analyzer (see TRACE-CAPTURE-GUIDE.md)
-    output [ 7:0] DBG_BRIDGE
+    output [ 7:0] DBG_BRIDGE,
+
+    //! ---- PAGE-WRITE WATCH (24-AUG-2026, zero-page campaign) ---------------
+    //! Run 15 measured that the page the CPU fetches zeros from is PPN 0o3770
+    //! = physical page 2040 = {bank_q=1 (BANK2), row_q=1016}, which is REAL
+    //! populated memory. So the disc data was never stored there. This bus
+    //! reports every access to the 8-page window rows 1016..1023 in BOTH
+    //! banks, AT THE BRIDGE - the last point before the SDRAM itself, so a
+    //! transfer that never arrives cannot be argued away.
+    //!   word A: [15:14]=10  [13]=bank  [12:3]=row  [2:0]=data[15:13]
+    //!   word B: [15:14]=11  [13:1]=data[12:0]      [0]=0
+    //!   read  : [15:14]=01  [13]=bank  [12:3]=row  [2:0]=0
+    //! idle = 16'h0000
+    output [15:0] DBG_PGW
 
 `ifdef ND_SDRAM_PACK16
 `ifdef ND_STORAGE_PORT
@@ -274,6 +287,43 @@ module MEM_RAM_49_SDRAM #(
   reg [2:0] bstate;
   reg       ras_d;
   reg [9:0] row_q;
+
+  // ---- page-write watch (see the DBG_PGW port comment) ----------------------
+  // The window is rows 1016..1023 (row_q[9:3] == 7'd127) in both banks, so a
+  // transfer that lands a few pages off the target is visible as a near miss
+  // instead of looking like "no write at all".
+  localparam [6:0] PGW_ROW_HI = 7'd127;
+  reg  [1:0] pgw_phase = 2'd0;
+  reg        pgw_bank  = 1'b0;
+  reg  [9:0] pgw_row   = 10'd0;
+  reg [15:0] pgw_data  = 16'd0;
+  wire       pgw_match = (row_q[9:3] == PGW_ROW_HI);
+  assign DBG_PGW = (pgw_phase == 2'd1) ? {2'b10, pgw_bank, pgw_row, pgw_data[15:13]}
+                 : (pgw_phase == 2'd2) ? {2'b11, pgw_data[12:0], 1'b0}
+                 : (pgw_phase == 2'd3) ? {2'b01, pgw_bank, pgw_row, 3'b000}
+                                       : 16'h0000;
+
+  // Rising-edge detect on the controller's own issue pulses, so the record is
+  // taken at the moment the access is handed to the SDRAM - not at the board
+  // interface, where a dropped transfer would still look present. s_din is
+  // already updated by the time s_wr's edge is seen one cycle later.
+  reg s_wr_d = 1'b0;
+  reg s_rd_d = 1'b0;
+  always @(posedge clk2x) begin
+    s_wr_d <= s_wr;
+    s_rd_d <= s_rd;
+    if (pgw_phase != 2'd0) pgw_phase <= (pgw_phase == 2'd1) ? 2'd2 : 2'd0;
+    if (s_wr && !s_wr_d && pgw_match) begin
+      pgw_bank  <= bank_q;
+      pgw_row   <= row_q;
+      pgw_data  <= s_din[15:0];
+      pgw_phase <= 2'd1;
+    end else if (s_rd && !s_rd_d && pgw_match) begin
+      pgw_bank  <= bank_q;
+      pgw_row   <= row_q;
+      pgw_phase <= 2'd3;
+    end
+  end
   reg       wn_q;    // 1 = read (MWRITE50_n high)
   reg       bsel_q;  // access hits a populated bank (BANK0/BANK2)
   reg       bank_q;  // 0 = BANK0, 1 = BANK2 (the 2nd populated 1M bank)

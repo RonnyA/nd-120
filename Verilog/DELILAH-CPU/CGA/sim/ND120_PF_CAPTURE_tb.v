@@ -126,6 +126,33 @@ module ND120_PF_CAPTURE_tb;
       .ptram_strobes_valid(), .readout_15_0()
   );
 
+  // third instance: the 23-AUG no-permit ACCESS trigger (freeze on the first
+  // committed access to the target page whose permit bits are all clear,
+  // with NO fault vector required) - the zero-read hunt configuration.
+  reg         n_clear = 1'b0, n_tclk = 1'b0, n_tclk_en = 1'b0, n_vacc = 1'b0;
+  reg  [6:0]  n_pt = 7'b1110000;
+  reg  [13:0] n_la = 14'd0;
+  reg  [3:0]  n_tvec = 4'd0;
+  wire        n_captured;
+  wire [13:0] n_c_la;
+  wire [6:0]  n_c_pt;
+  wire [3:0]  n_c_tvec;
+  ND120_PF_CAPTURE #(
+      .CNTW(CNTW), .PF_VECTOR(1), .ROT_LOG2(3), .ARM_LOG2(4), .CENSUS_LOG2(24),
+      .MATCH_ANY(0), .MATCH_PAGE_ONLY(0), .MATCH_LA_19_10(10'o1032),
+      .MATCH_ON_NOPERM_ACCESS(1)
+  ) NOPRM (
+      .sysclk(sysclk), .clear(n_clear), .tclk(n_tclk), .tclk_en(n_tclk_en),
+      .pt_15_9(n_pt), .vacc(n_vacc), .la_23_10(n_la), .tvec_3_0(n_tvec),
+      .pviol(1'b0), .restr(1'b0), .ptram_cs_n(1'b1), .ptram_oe_n(1'b1),
+      .epgs(1'b0),
+      .captured(n_captured), .c_pt_15_9(n_c_pt), .c_vacc(), .c_la_23_10(n_c_la),
+      .c_tvec_3_0(n_c_tvec), .c_pviol(), .c_restr(), .c_ptram_cs_n(), .c_ptram_oe_n(),
+      .c_pt_prev(), .c_pt_next(), .c_next_valid(), .n_faults(), .last_la(),
+      .c_la_prev(), .c_pgs_at_read(), .c_pgs_valid(), .c_cycle(),
+      .ptram_strobes_valid(), .readout_15_0()
+  );
+
   integer errors = 0;
   integer checks = 0;
   integer quiet_fails = 0;
@@ -176,6 +203,21 @@ module ND120_PF_CAPTURE_tb;
 `else
       @(negedge sysclk); f_tclk = 1'b0;
       @(negedge sysclk); f_tclk = 1'b1;
+      @(negedge sysclk);
+`endif
+      repeat (3) @(posedge sysclk);
+    end
+  endtask
+
+  // One capturing edge for the NOPRM instance.
+  task automatic n_capture_edge;
+    begin
+`ifdef FPGA_FF_MODE
+      @(negedge sysclk); n_tclk_en = 1'b1;
+      @(negedge sysclk); n_tclk_en = 1'b0;
+`else
+      @(negedge sysclk); n_tclk = 1'b0;
+      @(negedge sysclk); n_tclk = 1'b1;
       @(negedge sysclk);
 `endif
       repeat (3) @(posedge sysclk);
@@ -564,6 +606,39 @@ module ND120_PF_CAPTURE_tb;
           "15 PGS: did not record the OVERWRITTEN value the handler would see");
       chk(c_pgs_at_read !== c_la,
           "15 PGS: overwrite not detectable - the two addresses match");
+    end
+
+    // ---------------------------------------------------------------------
+    // 16. NO-PERMIT ACCESS TRIGGER (23-AUG) - the zero-read hunt.
+    //     MATCH_ON_NOPERM_ACCESS(1): the freeze must fire on the FIRST
+    //     committed access to the target page whose permit bits are all
+    //     clear, with NO fault vector required - and must NOT fire on a
+    //     granting access to that page or a no-permit access elsewhere.
+    // ---------------------------------------------------------------------
+    begin : noperm_access
+      n_clear = 1'b1; repeat (2) @(posedge sysclk); n_clear = 1'b0;
+      repeat (40) @(posedge sysclk);   // past ARM_LOG2(4)
+
+      // granting access to the TARGET page: no freeze
+      n_pt = 7'b1111100; n_vacc = 1'b1; n_la = 14'o1032; n_tvec = NO_VEC;
+      n_capture_edge();
+      repeat (4) @(posedge sysclk);
+      chk(n_captured === 1'b0, "16 NOPRM: froze on a GRANTING access to the target page");
+
+      // no-permit access to a DIFFERENT page: no freeze
+      n_pt = 7'b0000000; n_la = 14'o0014;
+      n_capture_edge();
+      repeat (4) @(posedge sysclk);
+      chk(n_captured === 1'b0, "16 NOPRM: froze on a no-permit access to a non-target page");
+
+      // no-permit access to the TARGET page, NO fault vector ever: must freeze
+      n_pt = 7'b0000000; n_la = 14'o1032;
+      n_capture_edge();
+      repeat (4) @(posedge sysclk);
+      chk(n_captured === 1'b1, "16 NOPRM: did NOT freeze the no-permit target access");
+      chk(n_c_la === 14'o1032, "16 NOPRM: froze the wrong address");
+      chk(n_c_pt === 7'd0,     "16 NOPRM: froze a non-zero PT entry");
+      chk(n_c_tvec === NO_VEC, "16 NOPRM: a fault vector was present - trigger was not vector-free");
     end
 
     // ---------------------------------------------------------------------

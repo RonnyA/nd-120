@@ -3,7 +3,7 @@
 #  dir - see docs/tang20k-build-flows.md)
 #
 #   cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k
-#   .\gowin_build.ps1 [-Variant slow|crawl|full] [-Gao] [-PfCapture]
+#   .\gowin_build.ps1 [-Variant slow|crawl|full] [-Gao] [-PfCapture] [-PcHistory] [-JplCapture]
 #
 # -Variant selects the clocking (default slow, same as always):
 #   slow  = CPU 6.75 MHz / SDRAM 13.5 MHz
@@ -32,7 +32,16 @@ param(
     [ValidateSet("slow", "crawl", "full")]
     [string]$Variant = "slow",
     [switch]$Gao,
-    [switch]$PfCapture
+    [switch]$PfCapture,
+    [switch]$PcHistory,
+    [switch]$JplCapture,
+    [switch]$PtwrCapture,
+    [switch]$DiscsUncached,
+    [switch]$NoStorageCache,
+    [switch]$PfPath,
+    [switch]$PtOrder,
+    [switch]$PfLog,
+    [switch]$PgWrite
 )
 
 $ErrorActionPreference = "Stop"
@@ -70,6 +79,99 @@ switch ($Variant) {
 if ($PfCapture) {
     $variantContent += "``define TANG_PF_CAPTURE`n"
     Write-Host "PF CAPTURE: ENABLED - XMIC_DBG carries the page-fault freeze readout"
+}
+if ($PcHistory) {
+    if ($PfCapture) {
+        Write-Error "-PcHistory and -PfCapture are MUTUALLY EXCLUSIVE. There is one 16-bit debug port out of the CGA and both probes drive it; defining both gives two drivers and gw_sh stops with EX2000 'constantly driven from multiple places'."
+        exit 1
+    }
+    $variantContent += "``define TANG_PC_HISTORY`n"
+    Write-Host "PC HISTORY: ENABLED - XMIC_DBG carries the P register; the ring records {PIL,P}"
+    Write-Host "            and freezes on an access to the ND-500 window page (raw PNUMB 0o1360)."
+    Write-Host "            Decode the dump with pc_history_decode.py"
+}
+if ($JplCapture) {
+    if ($PfCapture -or $PcHistory) {
+        Write-Error "-JplCapture is MUTUALLY EXCLUSIVE with -PfCapture and -PcHistory. There is one 16-bit debug port out of the CGA and one capture ring; defining more than one gives two drivers and gw_sh stops with EX2000 'constantly driven from multiple places'."
+        exit 1
+    }
+    $variantContent += "``define TANG_JPL_CAPTURE`n"
+    Write-Host "JPL CAPTURE: ENABLED - the ring records the address bus, FIDBO and the"
+    Write-Host "             program counter across the two JPL I 111 instructions at"
+    Write-Host "             064544/064545. Decode with jpl_capture_decode.py"
+}
+if ($PtwrCapture) {
+    if ($PfCapture -or $PcHistory -or $JplCapture) {
+        Write-Error "-PtwrCapture is MUTUALLY EXCLUSIVE with the other capture switches - one capture ring."
+        exit 1
+    }
+    $variantContent += "``define TANG_PTWR_CAPTURE`n"
+    Write-Host "PTWR CAPTURE: ENABLED - the ring records the last ~256 page-table WRITES"
+    Write-Host "              (raw index + entry data, two words each) before the ERRFATAL"
+    Write-Host "              trigger. Source = DBG_PTW from CPU_MMU_24. Decode with"
+    Write-Host "              ptwr_capture_decode.py"
+}
+if ($PfPath) {
+    if ($PfCapture -or $PcHistory -or $JplCapture -or $PtwrCapture) {
+        Write-Error "-PfPath is MUTUALLY EXCLUSIVE with the other capture switches - one capture ring, one debug port."
+        exit 1
+    }
+    $variantContent += "``define TANG_PFPATH_CAPTURE`n"
+    Write-Host "PFPATH CAPTURE: ENABLED - {PIL,P} ring of the page-fault handler path after the"
+    Write-Host "               first no-permit access to raw page 0o1032; freezes on the return to"
+    Write-Host "               level 1. Decode with pc_history_decode.py (same {PIL,P} word format)."
+}
+if ($PtOrder) {
+    if ($PfCapture -or $PcHistory -or $JplCapture -or $PtwrCapture -or $PfPath) {
+        Write-Error "-PtOrder is MUTUALLY EXCLUSIVE with the other capture switches - one capture ring, one debug port."
+        exit 1
+    }
+    $variantContent += "``define TANG_PTORD_CAPTURE`n"
+    Write-Host "PTORD CAPTURE: ENABLED - one ring, in time order: page-table writes at raw"
+    Write-Host "               index 0o1032 (tag B) interleaved with no-permit-access markers"
+    Write-Host "               (tag C) and fault markers (tag D) at that same page. Answers"
+    Write-Host "               whether a no-permit access happens AFTER the granting write."
+}
+if ($PfLog) {
+    if ($PfCapture -or $PcHistory -or $JplCapture -or $PtwrCapture -or $PfPath -or $PtOrder) {
+        Write-Error "-PfLog is MUTUALLY EXCLUSIVE with the other capture switches - one capture ring, one debug port."
+        exit 1
+    }
+    $variantContent += "``define TANG_PFLOG_CAPTURE`n"
+    Write-Host "PFLOG CAPTURE: ENABLED - one record per page fault at ANY address"
+    Write-Host "               (page index + page-table entry), frozen by the ERRFATAL"
+    Write-Host "               printer. The LAST records are the fault that halts."
+    Write-Host "               Decode with pflog_capture_decode.py"
+}
+if ($PgWrite) {
+    if ($PfCapture -or $PcHistory -or $JplCapture -or $PtwrCapture -or $PfPath -or $PtOrder -or $PfLog) {
+        Write-Error "-PgWrite is MUTUALLY EXCLUSIVE with the other capture switches - one capture ring, one debug port."
+        exit 1
+    }
+    $variantContent += "``define TANG_PGW_CAPTURE`n"
+    Write-Host "PGW CAPTURE: ENABLED - every SDRAM-bridge access to physical rows"
+    Write-Host "             1016..1023 (both banks), i.e. the page the CPU fetches"
+    Write-Host "             zeros from. Answers whether ANY write ever reached it."
+    Write-Host "             Decode with pgw_capture_decode.py"
+}
+if ($DiscsUncached) {
+    # ND_STORAGE_DISCS_UNCACHED (nd_storage_devices.v, 09-AUG diagnostic
+    # lever): every disc client DIRECT - each request goes through the shared
+    # staging line, no cache reuse. Functionality + performance experiment:
+    # does the boot failure change, and how much slower is the boot?
+    $variantContent += "``define ND_STORAGE_DISCS_UNCACHED`n"
+    Write-Host "STORAGE CACHE: OFF (ND_STORAGE_DISCS_UNCACHED) - all disc clients DIRECT"
+}
+if ($NoStorageCache) {
+    # Stronger variant: the cache directory is NOT SYNTHESIZED (nd_storage.v
+    # ND_STORAGE_NO_CACHE). Requires every client DIRECT - a cached client
+    # would wait forever on lookup_done - so this switch FORCES the mask off.
+    if (-not $DiscsUncached) {
+        $variantContent += "``define ND_STORAGE_DISCS_UNCACHED`n"
+        Write-Host "STORAGE CACHE: mask forced OFF (required by -NoStorageCache)"
+    }
+    $variantContent += "``define ND_STORAGE_NO_CACHE`n"
+    Write-Host "STORAGE CACHE: NOT SYNTHESIZED (ND_STORAGE_NO_CACHE)"
 }
 Set-Content -Path $variantFile -Value $variantContent -Encoding Ascii
 # In a PowerShell double-quoted string the backtick is the ESCAPE character, so

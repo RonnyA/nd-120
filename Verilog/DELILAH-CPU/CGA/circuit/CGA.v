@@ -10,6 +10,54 @@
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
+// Both the PC-history ring and the JPL-read capture export the (fetch-
+// qualified) P register on the CGA's single 16-bit debug port. The define has
+// to be established BEFORE the first `ifdef that tests it - the MIC port
+// intercept near the top of the module - so it lives here, not next to the
+// probe itself.
+`ifdef TANG_PC_HISTORY
+`define ND120_PC_ON_DBG_PORT
+`endif
+`ifdef TANG_JPL_CAPTURE
+`define ND120_PC_ON_DBG_PORT
+`endif
+// TANG_PTWR_CAPTURE's ERRFATAL trigger compares XMIC_DBG against the printer
+// loop's P (004546), so it needs the P register on the port too. Run 1 of
+// that variant (23-AUG) never dumped BECAUSE this define was missing: the
+// port carried the microsequencer probe and the compare could never match.
+`ifdef TANG_PTWR_CAPTURE
+`define ND120_PC_ON_DBG_PORT
+`endif
+// TANG_PFPATH_CAPTURE (23-AUG): P register on the port AND the freeze register
+// instantiated (readout NOT on the port) so its `captured` flag can trigger
+// the top-level ring on the first no-permit access to the 0o1032 page.
+`ifdef TANG_PFPATH_CAPTURE
+`define ND120_PC_ON_DBG_PORT
+`define ND120_PF_CAPTURE_INST
+`endif
+// TANG_PTORD_CAPTURE (23-AUG, Phase 1b): needs BOTH - the P register on the
+// port for the ERRFATAL trigger, and the freeze register instantiated so its
+// evt_noperm / evt_fault pulses can be interleaved with the page-table write
+// stream in the top-level ring.
+`ifdef TANG_PTORD_CAPTURE
+`define ND120_PC_ON_DBG_PORT
+`define ND120_PF_CAPTURE_INST
+`endif
+// TANG_PFLOG_CAPTURE (23-AUG, run 11): same pair of needs - P on the port for
+// the ERRFATAL trigger, freeze register instantiated for the fault stream.
+`ifdef TANG_PFLOG_CAPTURE
+`define ND120_PC_ON_DBG_PORT
+`define ND120_PF_CAPTURE_INST
+`endif
+// TANG_PGW_CAPTURE (24-AUG, run 16): the ERRFATAL trigger compares XMIC_DBG
+// against the printer loop's P, so the P register must be on the debug port.
+`ifdef TANG_PGW_CAPTURE
+`define ND120_PC_ON_DBG_PORT
+`endif
+`ifdef TANG_PF_CAPTURE
+`define ND120_PF_CAPTURE_INST
+`endif
+
 module CGA (
     // System input signals
     input sysclk,    // System clock in FPGA
@@ -96,7 +144,8 @@ module CGA (
     // Debug
     output [15:0] DEBUG_FIDBO_15_0,
     output [15:0] XFIDB_15_0_OUT,
-    output [15:0] XMIC_DBG_15_0  //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [15:0] XMIC_DBG_15_0, //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [20:0] PF_CAPTURED    //! DEBUG: ND120_PF_CAPTURE. [0] froze (1 once the targeted fault/access happened); [1] pulse per no-permit access at the matched page; [2] pulse per page-fault vector at that page; [3] pulse per page-fault vector at ANY address, with [13:4]=LA[19:10] and [20:14]=PT[15:9] of that fault. All 0 when not built
 );
 
 
@@ -1050,14 +1099,14 @@ module CGA (
       .XMIC_DBG(s_xmic_from_mic)                // intercepted - see the repack below
 `elsif TANG_PF_CAPTURE
       .XMIC_DBG(s_xmic_from_mic)                // intercepted - the page-fault capture owns the port
-`elsif TANG_PC_HISTORY
+`elsif ND120_PC_ON_DBG_PORT
       .XMIC_DBG(s_xmic_from_mic)                // intercepted - the PC history probe owns the port
 `else
       .XMIC_DBG(XMIC_DBG_15_0)                  // DEBUG: microsequencer address-advance probe
 `endif
   );
 
-`ifdef TANG_PF_CAPTURE
+`ifdef ND120_PF_CAPTURE_INST
   // ---------------------------------------------------------------------------
   // FIRST PAGE-FAULT FREEZE REGISTER  (diagnostic, 21-AUG-2026)
   //
@@ -1106,7 +1155,23 @@ module CGA (
       // 2^31 is ~318 s after arming, comfortably past the halt.
       .CENSUS_LOG2(31),
       .MATCH_ANY(0),
-      .MATCH_LA_19_10(10'o760)
+      // RETARGETED 23-AUG-2026, the zero-read question (PLAN-pf-campaign-23aug):
+      // freeze on the first committed NO-PERMIT access to the page the CPU
+      // fetches as zeros. VA 064540 faults in the oracle as software PT=4
+      // VPN=26, software PNUMB = 0o432; raw = software XOR 0o1400 = 0o1032
+      // (see the encoding warning in ND120_PF_CAPTURE.v - match RAW here).
+      // MATCH_PAGE_ONLY is off: page 26 alone would also match other tables.
+      .MATCH_PAGE_ONLY(0),
+      // 23-AUG run 10 (Phase 1b, ordering): back to the REFAULTING page,
+      // raw 0o1032 = software 0o432. Run 9 measured that every no-permit
+      // access to raw 0o1360 (software 760) happens inside the ERRFATAL
+      // printer, so 760 is a consequence, not a cause. The open contradiction
+      // is at 0o1032: a GRANTING entry (066001) is written for it, yet a
+      // no-permit access at that same page is still captured. evt_noperm and
+      // the DBG_PTW write stream now share one ring, so ring order settles
+      // which came first.
+      .MATCH_LA_19_10(10'o1032),
+      .MATCH_ON_NOPERM_ACCESS(1)
   ) PF_CAPTURE (
       .sysclk(sysclk),
       .clear(1'b0),                // never cleared: the FIRST fault is the evidence
@@ -1121,7 +1186,7 @@ module CGA (
       .ptram_cs_n(1'b1),           // not routed - see HAS_PTRAM_STROBES above
       .ptram_oe_n(1'b1),
       .epgs(~s_epgs_n),          // PHASE 4b: the microcode reading PGS
-      .captured(),
+      .captured(PF_CAPTURED[0]),
       .c_pt_15_9(),
       .c_vacc(),
       .c_la_23_10(),
@@ -1137,13 +1202,26 @@ module CGA (
       .c_pgs_valid(),
       .c_cycle(),
       .ptram_strobes_valid(),
-      .readout_15_0(s_pf_readout)
+      .readout_15_0(s_pf_readout),
+      .evt_noperm(PF_CAPTURED[1]),
+      .evt_fault(PF_CAPTURED[2]),
+      .evt_any(PF_CAPTURED[3]),
+      .evt_any_la_19_10(PF_CAPTURED[13:4]),
+      .evt_any_pt_15_9(PF_CAPTURED[20:14])
   );
 
+`ifdef TANG_PF_CAPTURE
   assign XMIC_DBG_15_0 = s_pf_readout;
+`else
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_pf_readout = |s_pf_readout;
+  /* verilator lint_on UNUSEDSIGNAL */
+`endif
+`else
+  assign PF_CAPTURED = 21'd0;
 `endif
 
-`ifdef TANG_PC_HISTORY
+`ifdef ND120_PC_ON_DBG_PORT
 `ifndef TANG_PF_CAPTURE
   // PC HISTORY PROBE (21-AUG-2026)
   //
@@ -1178,7 +1256,48 @@ module CGA (
   // bank into two register banks on opposite clock phases, so they carry the
   // same value half a clock apart and the SEQUENCE of program counters is
   // identical. PR_15_0 is the one already routed into this module.
-  assign XMIC_DBG_15_0 = s_pr_15_0[15:0];
+  //
+  // QUALIFIED BY THE INSTRUCTION FETCH (22-AUG-2026, after run 6).
+  //
+  // Raw P was the wrong thing to export. The Tang ring records every CHANGE of
+  // whatever this port carries, and microcode moves P inside a single
+  // instruction, so a run of consecutive values on the port does NOT mean a run
+  // of consecutive instructions. Run 6 made that concrete: its level-1 trail
+  // recorded 064540..064547 with nothing in between, while the oracle takes two
+  // subroutine calls there (JPL I 111 at 064544 -> 004600, and again at 064545
+  // -> 052031, 170 instructions in total, all at PIL 1). Reading that trail as
+  // "the JPL did not jump" is not safe while the port is unqualified - the same
+  // 20+ artifact entries at 032040 appear inside the 074721-074724 idle loop,
+  // where no such instruction runs.
+  //
+  // XFETCHN is the P register's own fetch strobe, ACTIVE LOW - the same signal
+  // CGA_WRF_RBLOCK_PREG uses (see the .XFETCHN(s_xfetch_n) connection above,
+  // commented "Fetch signal for the P register"). Sampling P into a register on
+  // that strobe means the port only ever presents a value that was live at an
+  // instruction fetch, so consecutive entries in the ring are consecutive
+  // instructions and the JPL question can be answered.
+  reg [15:0] pc_at_fetch = 16'd0;
+  always @(posedge sysclk) begin
+    if (!sys_rst_n)        pc_at_fetch <= 16'd0;
+    else if (!s_xfetch_n)  pc_at_fetch <= s_pr_15_0[15:0];
+  end
+  // A FETCHED-INSTRUCTION PROBE WAS TRIED HERE AND IS VOID - 22-AUG-2026.
+  //
+  // It latched s_cd_15_0 on !s_fetch_n, copying the pairing the PTDBG probe
+  // further down this file uses ("last instruction word seen on a fetch"). On
+  // silicon it returned mostly ZEROS, alternating with the occasional real
+  // word (146155, 011236): the instruction word is NOT valid on that bus at
+  // that sysclk edge. Its dump was discarded and its "wrong physical page"
+  // verdict withdrawn.
+  //
+  // Do not repeat it without first establishing, in simulation, WHEN
+  // s_cd_15_0 carries the instruction relative to s_fetch_n and s_ldirv. Two
+  // separate probes have now been lost to sampling a bus at an unverified
+  // phase - the other concatenated LA and CA at the top level and produced
+  // fetch addresses with the page bits reading zero. Note also that the PTDBG
+  // pairing is NOT a precedent: that probe is Verilator-only $display output
+  // and its correctness was never established either.
+  assign XMIC_DBG_15_0 = pc_at_fetch;
 `endif
 `endif
 
@@ -1295,7 +1414,7 @@ module CGA (
   // it was measured as 1 throughout the PONI run, and the prediction being
   // tested - used==0 exactly when EX==0 - does not need it.
 `ifndef TANG_PF_CAPTURE
-`ifndef TANG_PC_HISTORY
+`ifndef ND120_PC_ON_DBG_PORT
   // Both this repack and ND120_PF_CAPTURE want XMIC_DBG_15_0 - there is only
   // ONE 16-bit debug port out of the CGA, so they are mutually exclusive.
   // ND_WD_TRACE_TVEC_CSA is defined BY DEFAULT in the Tang's
@@ -1500,7 +1619,10 @@ module CGA (
       // the records where a trap was taken - and PGS on those is what
       // SINTRAN's handler actually reads.
       if (!sx_trap_n_out || (r_pgf_n < PGF_LOG_MAX))
-        $display("[pgf] #%0d TRAPN=%b TVEC=%0d la=%04o pit=%02o vpn=%02o %s%s%s mode=%0d instr=%06o PT=%02o APT=%02o PCR=%06o PT159=%07b PGS=%06o",
+        // PIL/P appended 23-AUG-2026 so a fault record can be lined up with the
+        // oracle's PF log (which carries PIL and PC). P is the WRF P register
+        // at the fault cycle - for a FETCH fault it is the faulting address.
+        $display("[pgf] #%0d TRAPN=%b TVEC=%0d la=%04o pit=%02o vpn=%02o %s%s%s mode=%0d instr=%06o PT=%02o APT=%02o PCR=%06o PT159=%07b PIL=%0d P=%06o PGS=%06o",
                  r_pgf_n,
                  sx_trap_n_out,
                  s_tvec_3_0,
@@ -1516,6 +1638,8 @@ module CGA (
                  s_pcr_15_0[10:7],             // APT
                  s_pcr_15_0,
                  s_pt_15_9,
+                 sx_pil_3_0_out,
+                 WRF.RBLOCK.s_reg2_p_15_0,
                  // PGS is what SINTRAN's level-14 handler reads to identify the
                  // faulting page. The oracle's value for the VPN-26 fetch fault
                  // is PT=4 / VPN=26; if ours differs the handler cannot find the
@@ -1563,10 +1687,24 @@ module CGA (
   // dispatched" cannot be turned into "access type X never traps".
   localparam NOTRAP_LOG_MAX = 200;
   localparam WINCLS_LOG_MAX = 20000;
+  // ZR (23-AUG-2026): the H1 smoking gun is a COMMITTED zero-entry access that
+  // never traps. Qualifier chosen and why: TRAPN = ~(~brk_n & cbrk_high==0...)
+  // per CGA_TRAP_BRKDET.v GATES_16 - TRAPN can only assert while ETRAP_n is
+  // LOW and CBRK is inactive. So a PGF window that CONTAINS at least one cycle
+  // with (ETRAP_n low && CBRK_n high) is a window in which the trap logic was
+  // armed and a pending BRK MUST have dispatched; if such a window closes with
+  // no trap, the PGF->BRK chain itself failed for a committed access. A bare
+  // PGF assertion (2.7M/boot) is NOT used as the qualifier - most lookups are
+  // uncommitted and ETRAP_n never enables during their window.
+  localparam ZR_LOG_MAX     = 20000;
   reg        r_win_open    = 1'b0;
   reg        r_win_trapped = 1'b0;
   reg        r_win_etrap   = 1'b0;   // ETRAP_n seen HIGH (traps disabled)
   reg        r_win_cbrk    = 1'b0;   // CBRK seen active
+  reg        r_win_cmt     = 1'b0;   // trap-ARMED cycle seen (ETRAPn low, CBRK off)
+  reg [ 3:0] r_win_pil     = 4'd0;   // PIL at window open
+  reg [15:0] r_win_p       = 16'd0;  // WRF P register at window open
+  reg [31:0] r_zr_n        = 0;      // committed-but-never-trapped windows
   reg [31:0] r_win_la      = 0;
   reg        r_win_fetch   = 1'b0;   // access class latched at window open
   reg        r_win_write   = 1'b0;
@@ -1589,6 +1727,9 @@ module CGA (
         r_win_trapped <= ~sx_trap_n_out;
         r_win_etrap   <= sx_etrap_n;
         r_win_cbrk    <= ~s_cbrk_n;
+        r_win_cmt     <= (~sx_etrap_n & s_cbrk_n);
+        r_win_pil     <= sx_pil_3_0_out;
+        r_win_p       <= WRF.RBLOCK.s_reg2_p_15_0;
         r_win_la      <= {21'd0, sx_la_23_10_out[10:0]};
         r_win_fetch   <= ~s_fetch_n;
         r_win_write   <= ~s_write_n;
@@ -1607,6 +1748,7 @@ module CGA (
         if (sx_etrap_n)     r_win_etrap   <= 1'b1;
         if (!s_cbrk_n)      r_win_cbrk    <= 1'b1;
         if (!s_ind_n)       r_win_ind     <= 1'b1;
+        if (~sx_etrap_n & s_cbrk_n) r_win_cmt <= 1'b1;
         r_win_len <= r_win_len + 1;
       end
     end else if (r_win_open) begin        // window closes - classify it
@@ -1618,8 +1760,12 @@ module CGA (
       // of interest. PGS is added because that is the register SINTRAN's
       // level-14 handler reads to identify the faulting page: for the VPN-26
       // fetch fault the oracle's value is PT=4 / VPN=26 (26 decimal = 32 octal).
-      if (r_win_trapped || (r_wincls_n < WINCLS_LOG_MAX))
-        $display("[win] #%0d %s la=%04o pit=%02o vpn=%02o %s%s%s len=%0d ETRAPn_high=%b instr=%06o PGS=%06o PT=%02o APT=%02o PCR=%06o PT159=%07b",
+      // ZR windows (committed, never trapped) are ALWAYS logged up to their own
+      // cap - like trapped windows they are the rare, decisive records and must
+      // not be crowded out by the millions of early uncommitted NOTRAP windows.
+      if (r_win_trapped || (r_wincls_n < WINCLS_LOG_MAX) ||
+          (r_win_cmt && r_zr_n < ZR_LOG_MAX))
+        $display("[win] #%0d %s la=%04o pit=%02o vpn=%02o %s%s%s len=%0d ETRAPn_high=%b instr=%06o PGS=%06o PT=%02o APT=%02o PCR=%06o PT159=%07b CMT=%b PIL=%0d P=%06o",
                  r_wincls_n,
                  r_win_trapped ? "TRAP  " : "NOTRAP",
                  r_win_la[10:0], r_win_la[10:6], r_win_la[5:0],
@@ -1628,7 +1774,8 @@ module CGA (
                  r_win_dbl   ? "DBL " : "    ",
                  r_win_len, r_win_etrap, r_win_instr,
                  {IDBCTL.PGSREG.PGS_15_14, 2'b00, IDBCTL.PGSREG.PGS_11_0},
-                 r_win_pcr[14:11], r_win_pcr[10:7], r_win_pcr, r_win_pt159);
+                 r_win_pcr[14:11], r_win_pcr[10:7], r_win_pcr, r_win_pt159,
+                 r_win_cmt, r_win_pil, r_win_p);
       if (r_win_trapped) begin
         r_trapped_n <= r_trapped_n + 1;
       end else begin
@@ -1636,6 +1783,18 @@ module CGA (
         if (r_never_n < NOTRAP_LOG_MAX)
           $display("[notrap] #%0d la=%04o ETRAPn_high=%b CBRK=%b",
                    r_never_n, r_win_la[10:0], r_win_etrap, r_win_cbrk);
+        if (r_win_cmt) begin
+          r_zr_n <= r_zr_n + 1;
+          if (r_zr_n < ZR_LOG_MAX)
+            $display("[zr] #%0d la=%04o pit=%02o vpn=%02o %s%s%s len=%0d instr=%06o PT159=%07b PIL=%0d P=%06o",
+                     r_zr_n, r_win_la[10:0], r_win_la[10:6], r_win_la[5:0],
+                     r_win_fetch ? "FETCH " : (r_win_write ? "WRITE " : "READ  "),
+                     r_win_ind   ? "IND " : "    ",
+                     r_win_dbl   ? "DBL " : "    ",
+                     r_win_len, r_win_instr, r_win_pt159, r_win_pil, r_win_p);
+          if (r_zr_n[9:0] == 10'd0)
+            $display("[zrn] committed_never_trapped=%0d", r_zr_n);
+        end
       end
       if (r_trapped_n[9:0] == 10'd0 || r_never_n[9:0] == 10'd0)
         $display("[trapwin] pgf_windows_trapped=%0d never_trapped=%0d",

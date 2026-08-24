@@ -256,7 +256,11 @@ module ND120_CORE #(
     output wire [10:0] O_sdram_addr,
     output wire [ 1:0] O_sdram_ba,
     output wire [ 3:0] O_sdram_dqm,
-    output wire [15:0] DBG_MEMW      //! write-path debug bus from MEM_43
+    output wire [15:0] DBG_MEMW,     //! write-path debug bus from MEM_43
+    output wire [15:0] DBG_PTW,      //! page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
+    output wire [20:0]        PF_CAPTURED,  //! ND120_PF_CAPTURE freeze flag (23-AUG)
+    output wire [13:0]        DBG_PPN,      //! physical page number PPN[23:10] (24-AUG)
+    output wire [15:0]        DBG_PGW       //! SDRAM-bridge page-write watch (24-AUG)
 `ifdef ND_STORAGE_PORT
     /***************************************************
      *  (c) STORAGE seam into the SDRAM device port     *
@@ -394,9 +398,30 @@ module ND120_CORE #(
   wire        s_dev_bint10_n, s_dev_bint11_n, s_dev_bint12_n, s_dev_bint13_n;
 
   // IOX fan-out from the bus slave to the device cores
-  wire [15:0] s_dev_iox_addr, s_dev_iox_wdata;
-  wire        s_dev_iox_wr, s_dev_iox_rd;
+  // ND120_ILA_MARK_DEBUG (Nexys build.tcl -tclargs ila): keep the device
+  // IOX seam nets for the JTAG ILA - which register the CPU polls during
+  // the LIST-FILE-NAMES runaway and what the device answers (24-AUG).
+  // No functional effect; the define is set only by that build flag.
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
+  wire [15:0] s_dev_iox_addr;
+  wire [15:0] s_dev_iox_wdata;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
+  wire        s_dev_iox_wr;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
+  wire        s_dev_iox_rd;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire        s_dev_ident_strobe;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire [3:0]  s_dev_ident_level;
 
   // OR-bus contributions per device core (tape, floppy, SMD)
@@ -411,13 +436,28 @@ module ND120_CORE #(
   wire        s_tape_sel, s_flp_sel, s_smd_sel, s_wd_sel;
 
   // IDENT daisy chain: head -> tape -> floppy -> SMD (absent stage = pass-through)
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire        s_grant_tape_flp;  // ident chain: tape -> floppy
   wire        s_grant_flp_smd;   // ident chain: floppy -> SMD
   wire        s_grant_smd_wd;    // ident chain: SMD -> Winchester
 
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire [15:0] s_dev_iox_rdata   = s_tape_rdata | s_flp_rdata | s_smd_rdata | s_wd_rdata;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire [3:0]  s_dev_int_pending = s_tape_intp  | s_flp_intp  | s_smd_intp  | s_wd_intp;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire        s_dev_ident_hit   = s_tape_hit   | s_flp_hit   | s_smd_hit   | s_wd_hit;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire [15:0] s_dev_ident_code  = s_tape_code  | s_flp_code  | s_smd_code  | s_wd_code;
   wire        s_dev_iox_hit     = s_tape_sel   | s_flp_sel   | s_smd_sel   | s_wd_sel;
 
@@ -1118,7 +1158,11 @@ module ND120_CORE #(
       .O_sdram_addr(O_sdram_addr),
       .O_sdram_ba(O_sdram_ba),
       .O_sdram_dqm(O_sdram_dqm),
-      .DBG_MEMW(DBG_MEMW)
+      .DBG_MEMW(DBG_MEMW),
+      .DBG_PTW(DBG_PTW),
+      .PF_CAPTURED(PF_CAPTURED),
+      .DBG_PPN(DBG_PPN),
+      .DBG_PGW(DBG_PGW)
 `ifdef ND_STORAGE_PORT
       ,
       .stor_clk  (stor_clk),

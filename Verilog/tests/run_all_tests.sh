@@ -32,6 +32,7 @@ REGISTRY=(
   # --- Shared support chips -------------------------------------------------
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"
+  "Shared/support/sim :: test-uart-txabort :: TB_RESULT: PASS"
   # exhaustive 74245 transceiver gate: guards the removal of the shared
   # 'internalBus' helper that closed a combinational loop on the FIDB bus
   "Shared/support/sim :: test-74245   :: TB_RESULT: PASS"
@@ -106,6 +107,20 @@ REGISTRY=(
   "CPU-BOARD-3202/circuit/sim :: test-memerror  :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-mmupt-replay :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-mmupt        :: TB_RESULT: PASS"
+  # committed access to a ZERO page-table entry must dispatch the page-fault
+  # trap (MA forced to vector 0001 at the mid-cycle MACLK strobe) - the unit
+  # gate for hypothesis H1 of PLAN-zero-read-nonresident-page.md, through the
+  # real cycle PALs + PT RAM + BRKDET + TVGEN + IPOS with real BRK/TRAP
+  # feedback; both build modes
+  "CPU-BOARD-3202/circuit/sim :: test-pgf-committed    :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-pgf-committed-ff :: TB_RESULT: PASS"
+  # BD -> memory bank decode (ND3202D.v:533). The bank bits were tapped from
+  # what the board DRIVES instead of what the bus CARRIES, so every incoming
+  # DMA write decoded to BANK0 and SINTRAN's segment load landed one bank below
+  # the page the MMU resolved - the CPU then fetched zeros and died in
+  # ERRFATAL. Cannot be a Verilator boot test: MEM_RAM_49_SIM.v has all three
+  # banks, so a misdirected bank still finds memory there.
+  "CPU-BOARD-3202/circuit/sim :: test-bdbank           :: TB_RESULT: PASS"
   # MMU shadow memory read-modify-write: PT status bank, bank shifting,
   # shared-WMAP_n isolation, trap-handler PTE update. Sync + async read models.
   "CPU-BOARD-3202/circuit/sim :: test-mmupt-rmw    :: TB_RESULT: PASS"
@@ -376,6 +391,7 @@ REGISTRY=(
   "ND-BUS-DEVICES/BUS-IF/sim :: test-bus-slave :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/FLOPPY/sim :: test-floppy-pio :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/DMA/sim    :: test-dma-master :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/DMA/sim    :: test-dma-stale-capture :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-dma :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-boot :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-iox :: TB_RESULT: PASS"

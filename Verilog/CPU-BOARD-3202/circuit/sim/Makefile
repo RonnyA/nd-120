@@ -527,6 +527,99 @@ golden-cycle-timeline: CPU_CYCLE_TIMELINE_tb
 	@echo "regenerated CPU_CYCLE_TIMELINE.golden - review the diff before committing"
 
 # ---------------------------------------------------------------------------
+# Committed access to a ZERO page-table entry must dispatch the page-fault
+# trap (hypothesis H1 of PLAN-zero-read-nonresident-page.md, unit level).
+# Wires the REAL chain: cycle PALs (44601B+44307C) + TMM2018D PT status RAM +
+# CGA_TRAP_BRKDET + CGA_TRAP_TVGEN(_P2) + CGA_MIC_IPOS, with the board's real
+# BRK/TRAP feedback. FETCH/READ/WRITE against PTe=0 must each force
+# MA = trap vector 0001 at the mid-cycle MACLK trap-vector strobe; a fully
+# resident entry (permits+WIP+PGU set) must not trap. Runs in latch mode and
+# FPGA_FF_MODE.
+# ---------------------------------------------------------------------------
+PGF_SRCS = PGF_COMMITTED_ACCESS_tb.v \
+           $(PAL)/PAL_44601B.v $(PAL)/PAL_44307C.v \
+           $(SUPPORT)/TMM2018D_25.v \
+           ../../../DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_BRKDET.v \
+           ../../../DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_TVGEN.v \
+           ../../../DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_TVGEN_P2.v \
+           ../../../DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_IPOS.v \
+           ../../../Shared/logisim/NAND_GATE.v \
+           ../../../Shared/logisim/NAND_GATE_3_INPUTS.v \
+           ../../../Shared/logisim/NAND_GATE_4_INPUTS.v \
+           ../../../Shared/logisim/NAND_GATE_5_INPUTS.v \
+           ../../../Shared/logisim/NAND_GATE_6_INPUTS.v \
+           ../../../Shared/logisim/AND_GATE.v \
+           ../../../Shared/logisim/AND_GATE_3_INPUTS.v \
+           ../../../Shared/logisim/AND_GATE_4_INPUTS.v \
+           ../../../Shared/logisim/NOR_GATE.v \
+           ../../../Shared/logisim/NOR_GATE_3_INPUTS.v \
+           ../../../Shared/logisim/OR_GATE_3_INPUTS.v \
+           ../../../Shared/logisim/OR_GATE_4_INPUTS.v \
+           ../../../Shared/logisim/OR_GATE_5_INPUTS.v \
+           ../../../Shared/logisim/OR_GATE_8_INPUTS.v \
+           ../../../Shared/logisim/Multiplexer_4.v \
+           ../../../Shared/logisim/D_FLIPFLOP.v \
+           ../../../Shared/ndlib/A02.v \
+           ../../../Shared/ndlib/D_FLIPFLOP_EN.v
+
+PGF_COMMITTED_ACCESS_tb_bin: $(PGF_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(PGF_SRCS)
+
+PGF_COMMITTED_ACCESS_ff_tb_bin: $(PGF_SRCS)
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o $@ $(PGF_SRCS)
+
+test-pgf-committed: PGF_COMMITTED_ACCESS_tb_bin
+	./PGF_COMMITTED_ACCESS_tb_bin | tee pgf_committed_out.log
+	@grep -q "TB_RESULT: PASS" pgf_committed_out.log
+
+test-pgf-committed-ff: PGF_COMMITTED_ACCESS_ff_tb_bin
+	./PGF_COMMITTED_ACCESS_ff_tb_bin | tee pgf_committed_ff_out.log
+	@grep -q "TB_RESULT: PASS" pgf_committed_ff_out.log
+
+# ---------------------------------------------------------------------------
+# BD -> MEMORY BANK DECODE (24-AUG-2026 regression guard, ND3202D.v:533).
+#
+# The five bits that select the memory bank were tapped from what the BOARD
+# DRIVES onto the bus instead of what the bus CARRIES, so every incoming DMA
+# write decoded to BANK0 and SINTRAN's segment load landed one bank below the
+# page the MMU resolved. This drives a physical address on the real
+# BD_23_0_n_IN port and reads the decode tap through a hierarchical reference,
+# so the WIRING is checked rather than a copy of the expression.
+#
+# It elaborates the whole board, so it needs the same -y library set and the
+# SDRAM backend defines the Tang build uses. Verified 24-AUG-2026 to FAIL
+# (4 of 5 checks) against the old line and PASS against the fix.
+#
+# This CANNOT be a Verilator boot test: MEM_RAM_49_SIM.v provides all three
+# banks, so a misdirected bank still finds memory and the boot succeeds.
+BDBANK_DEFS = -DMAIN_RAM_SDRAM -DND_SDRAM_PACK16
+BDBANK_LIBS = -y $(CIRCUIT) \
+              -y ../../../DELILAH-CPU/CGA/circuit \
+              -y ../../../DELILAH-CPU/CGA_ALU/circuit \
+              -y ../../../DELILAH-CPU/CGA_DCD/circuit \
+              -y ../../../DELILAH-CPU/CGA_IDBCTL/circuit \
+              -y ../../../DELILAH-CPU/CGA_INTR/circuit \
+              -y ../../../DELILAH-CPU/CGA_MAC/circuit \
+              -y ../../../DELILAH-CPU/CGA_MIC/circuit \
+              -y ../../../DELILAH-CPU/CGA_TESTMUX/circuit \
+              -y ../../../DELILAH-CPU/CGA_TRAP/circuit \
+              -y ../../../DELILAH-CPU/CGA_WRF/circuit \
+              -y ../../../DECODE-GateArray/DGA/circuit \
+              -y $(PAL) \
+              -y ../../../Shared/logisim \
+              -y ../../../Shared/ndlib \
+              -y ../../../Shared/support \
+              -y ../../../fpga/tang-nano-20k/sdram-bridge \
+              -I ../../../Shared/support -I ../../../SD-FAT/circuit
+
+BD_BANK_DECODE_tb.vvp: BD_BANK_DECODE_tb.v $(CIRCUIT)/ND3202D.v
+	$(IVERILOG) -g2012 $(BDBANK_DEFS) $(BDBANK_LIBS) -o $@ BD_BANK_DECODE_tb.v
+
+test-bdbank: BD_BANK_DECODE_tb.vvp
+	vvp $< | tee bdbank_out.log
+	@grep -q "TB_RESULT: PASS" bdbank_out.log
+
+# ---------------------------------------------------------------------------
 # CPU_MMU_PPNX_28: the PPN <-> IDB transceivers of sheet 28 - 10B (IDB15..8 /
 # PPN25..18, /G = EIPU_n), 9B (IDB7..0 / PPN17..10, /G = EIPL_n), shared
 # DIR = ESTOF_n, plus 8B (74LS244, /G = EIPUR_n) forcing PPN25..19 to 0 and

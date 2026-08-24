@@ -4,7 +4,7 @@ pf_capture_run.py - boot the Tang to the ERRFATAL halt and collect the
                     page-fault freeze readout.
 
 Full path:
-  /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/pf_capture_run.py
+  Verilog/fpga/tang-nano-20k/pf_capture_run.py
 
 WHAT IT DOES
   1. Opens the console (/dev/ttyUSB1, 9600 8N1).
@@ -132,7 +132,7 @@ def fmt_pnumb(raw):
             % (raw, sw, (sw >> 6) & 0xF, sw & 0x3F))
 
 
-def report(frozen):
+def report(frozen, zeroread=False):
     pt = frozen & 0x7F
     vacc = (frozen >> 7) & 1
     la = (frozen >> 8) & 0x3FFF
@@ -143,8 +143,16 @@ def report(frozen):
     oe_n = (frozen >> 29) & 1
     captured = (frozen >> 30) & 1
     strobes_ok = (frozen >> 31) & 1
-    pgs_at_read = (frozen >> 32) & 0x3FFF
+    # CORRECTED 23-AUG-2026: bits [45:32] carry c_la_prev (LA one capturing
+    # edge BEFORE the freeze - pairs with pt_prev; the ND120_PF_CAPTURE word
+    # layout is the authority). They were decoded here as "PGS at read", a
+    # field the word has never carried. c_pgs_at_read exists only as a module
+    # output for testbenches, not in the readout.
+    la_prev = (frozen >> 32) & 0x3FFF
     pgs_valid = (frozen >> 46) & 1
+    # 23-AUG: PGS at the handler's EPGS read - low 10 bits at [56:47], high 4
+    # at [75:72]; meaningful only when pgs_valid=1.
+    pgs_at_read = ((frozen >> 47) & 0x3FF) | ((((frozen >> 72) & 0xF)) << 10)
     pt_prev = (frozen >> 57) & 0x7F
     pt_next = (frozen >> 64) & 0x7F
     next_valid = (frozen >> 71) & 1
@@ -158,7 +166,14 @@ def report(frozen):
     print(" PAGE-FAULT FREEZE READOUT")
     print("=" * 62)
     if not captured:
-        print(" captured = 0  -> no fault at the TARGETED page was frozen.")
+        if zeroread:
+            print(" captured = 0  -> NO committed no-permit access to the target")
+            print(" page (raw 0o1032) was ever seen. If the CPU still executed")
+            print(" zeros at 064540, the entry was GRANTING at every committed")
+            print(" access -> the zeros came from a legally-mapped wrong physical")
+            print(" page: MAP-RAM CONTENTS, not a missing trap.")
+        else:
+            print(" captured = 0  -> no fault at the TARGETED page was frozen.")
         print(" The freeze fields below are meaningless; the CENSUS is not.")
         print("")
         print(" CENSUS (independent of the targeted freeze)")
@@ -181,17 +196,28 @@ def report(frozen):
             print(" the value it reads is NOT the address that faulted.")
         return
     print(" captured   : 1")
-    print(" PGS the handler would read : %s"
-          % ("%06o  -> page table %o, page %o"
-             % (pgs_at_read, (pgs_at_read >> 6) & 0xF, pgs_at_read & 0x3F)
-             if pgs_valid else "(no EPGS read seen yet)"))
+    if pgs_valid:
+        print(" PGS AT the handler's read : %s" % fmt_pnumb(pgs_at_read))
+        if (pgs_at_read & 0x3FF) != (la & 0x3FF):
+            print("   *** DIFFERS from the frozen faulting LA - PGS WAS OVERWRITTEN")
+            print("       between the fault and the handler reading it. SINTRAN")
+            print("       acts on the wrong page. ***")
+        else:
+            print("   MATCHES the frozen faulting LA - no overwrite at this read.")
+    else:
+        print(" EPGS (handler read PGS after freeze) : NOT seen")
     print("")
     print(" PT_15_9    : %s   WPM=%d RPM=%d FPM=%d"
           % (format(pt, "07b"), (pt >> 6) & 1, (pt >> 5) & 1, (pt >> 4) & 1))
     print(" VACC       : %d" % vacc)
     print(" LA_23_10   : %s" % fmt_pnumb(la))
     print(" TVEC       : %d      PVIOL=%d  RESTR=%d" % (tvec, pviol, restr))
-    print(" PT one edge BEFORE : %s" % format(pt_prev, "07b"))
+    print(" PT one edge BEFORE : %s   (its LA: %s)"
+          % (format(pt_prev, "07b"), fmt_pnumb(la_prev)))
+    if la_prev != la:
+        print("   NOTE: LA one edge before DIFFERS from the frozen LA - the PT")
+        print("   entry judged and the address reported belong to DIFFERENT")
+        print("   accesses (the sync-BRAM one-cycle-stale signature).")
     print(" PT one edge AFTER  : %s%s"
           % (format(pt_next, "07b"),
              "" if next_valid else "   (NOT TAKEN - no later edge occurred)"))
@@ -212,23 +238,36 @@ def report(frozen):
     elif n_faults == 0:
         print("   -> the trap logic latched NO page fault at all since arming.")
     print("")
-    if pgs_valid:
-        print("")
-        print(" PHASE 4b - PGS OVERWRITE TEST")
-        if pgs_at_read != la:
-            print("   faulting LA          : %06o  -> table %o, page %o"
-                  % (la, (la >> 6) & 0xF, la & 0x3F))
-            print("   PGS at the EPGS read : %06o  -> table %o, page %o"
-                  % (pgs_at_read, (pgs_at_read >> 6) & 0xF, pgs_at_read & 0x3F))
-            print("   *** THEY DIFFER - PGS WAS OVERWRITTEN between the fault and")
-            print("       the handler reading it. SINTRAN acts on the wrong address. ***")
-        else:
-            print("   PGS at the read MATCHES the faulting LA (%06o)." % la)
-            print("   -> no overwrite. The handler saw the true faulting address,")
-            print("      so the overwrite hypothesis is DEAD.")
     print("")
     print(" VERDICT")
     grants = (pt >> 4) & 0x7
+    if zeroread:
+        # 23-AUG zero-read experiment: the freeze fired on the FIRST committed
+        # NO-PERMIT access to the target page (raw 0o1032, VA 064540's page),
+        # no fault vector required. So captured=1 here means "the machine DID
+        # present a committed access to a zero entry there"; the question is
+        # whether the trap followed.
+        print("   [zero-read trigger: freeze = first committed NO-PERMIT access")
+        print("    to raw page 0o1032; a fault vector was NOT required to fire]")
+        if tvec == 1:
+            print("   TVEC already held the page-fault vector at the freeze -> the")
+            print("   trap DISPATCHED for this access. The zero-read is NOT a")
+            print("   missing trap at this page; look at what the handler did next.")
+        elif n_faults and (last_la & 0x3FF) == 0o1032:
+            print("   The census's most recent fault is AT the target page -> the")
+            print("   trap followed the access. Not a missing trap.")
+        elif n_faults == 0:
+            print("   A committed no-permit access happened and NO page-fault vector")
+            print("   was ever latched since arming.")
+            print("   *** THE TRAP PATH FAILED IN VIVO. *** pt_prev/pt_next above say")
+            print("   whether the entry arrived late (granting neighbours) or was")
+            print("   steadily zero (qualifier/ETRAP window problem).")
+        else:
+            print("   Faults occurred (n=%d) but the most recent is NOT the target" % n_faults)
+            print("   page. Whether THIS access trapped is not decided by the")
+            print("   census alone - read pt_prev/pt_next and the console timeline.")
+        print("=" * 62)
+        return
     if grants:
         print("   PT GRANTS permission (one of WPM/RPM/FPM set).")
         print("   -> PGF cannot have been the cause. Something else raised the")
@@ -262,6 +301,8 @@ def main():
     ap.add_argument("--minutes", type=float, default=45.0)
     ap.add_argument("--log", default="pf_capture_run.log")
     ap.add_argument("--decode-file")
+    ap.add_argument("--zeroread", action="store_true",
+                    help="23-AUG no-permit-access trigger build (raw 0o1032)")
     args = ap.parse_args()
 
     if args.decode_file:
@@ -278,7 +319,7 @@ def main():
                   % format(seen, "08b"))
             print("(samples parsed: %d)" % len(samples))
             return 1
-        report(frozen)
+        report(frozen, args.zeroread)
         return 0
 
     import serial  # imported here so --decode-file works without pyserial
@@ -359,7 +400,7 @@ def main():
         emit("slices seen: %s of 0..3 - the word could not be rebuilt" % format(seen, "04b"))
         emit("log kept at %s - rerun with --decode-file to retry the decode" % args.log)
         return 1
-    report(frozen)
+    report(frozen, args.zeroread)
     return 0
 
 

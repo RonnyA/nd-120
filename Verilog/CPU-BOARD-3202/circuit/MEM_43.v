@@ -84,7 +84,10 @@ module MEM_43 (
     output [ 1:0] O_sdram_ba,
     output [ 3:0] O_sdram_dqm,
     // Write-path debug: raw signal bus for the on-chip capture (see top)
-    output [15:0] DBG_MEMW
+    output [15:0] DBG_MEMW,
+    //! SDRAM-bridge page-write watch (24-AUG zero-page campaign): every access
+    //! to physical rows 1016..1023 in both banks, taken AT THE BRIDGE.
+    output [15:0] DBG_PGW
 `ifdef ND_STORAGE_PORT
     // nd_storage device port, passed straight down to MEM_RAM_49_SDRAM (which
     // forces the leading address 1, so device traffic physically cannot reach
@@ -501,6 +504,7 @@ module MEM_43 (
       .O_sdram_wen_n(O_sdram_wen_n),
       .IO_sdram_dq(IO_sdram_dq),
       .DBG_BRIDGE(s_dbg_bridge),
+      .DBG_PGW(DBG_PGW),
       .O_sdram_addr(O_sdram_addr),
       .O_sdram_ba(O_sdram_ba),
       .O_sdram_dqm(O_sdram_dqm)
@@ -519,8 +523,16 @@ module MEM_43 (
   );
 `elsif MAIN_RAM_BLOCKRAM
   // FPGA block-RAM backend: one clean synchronous BRAM instead of the six
-  // emulated SIP1M9 chips (MEM_RAM_49_BLOCKRAM.v). Default 3 banks x 4K words.
-  MEM_RAM_49_BLOCKRAM RAM (
+  // emulated SIP1M9 chips (MEM_RAM_49_BLOCKRAM.v). Default 3 banks x 4K words
+  // (Basys3 xc7a35t budget); boards with more BRAM override the words-per-bank
+  // exponent with ND120_BLOCKRAM_ADDR_BITS (Nexys 4 DDR sets 15 = 32K words
+  // per bank in fpga/nexys4ddr/build.tcl).
+`ifndef ND120_BLOCKRAM_ADDR_BITS
+  `define ND120_BLOCKRAM_ADDR_BITS 12
+`endif
+  MEM_RAM_49_BLOCKRAM #(
+      .BANK_ADDR_BITS(`ND120_BLOCKRAM_ADDR_BITS)
+  ) RAM (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
       .AA_9_0(s_aa_9_0[9:0]),

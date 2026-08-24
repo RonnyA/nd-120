@@ -113,7 +113,9 @@ module CPU_15 (
     output LEV0,         //! Level 0 active
     output LED1,         //! UNKNOWN: believed to indicate cache enabled, never traced. See Verilog/docs/SIGNALS.md
     output [12:0] CSA_12_0,     //! Microcode Address (for debugging)
-    output [15:0] XMIC_DBG_15_0 //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [15:0] XMIC_DBG_15_0, //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [15:0] DBG_PTW,      //! DEBUG: page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
+    output [20:0]        PF_CAPTURED   //! DEBUG: ND120_PF_CAPTURE freeze flag (23-AUG)
 );
 
 
@@ -486,7 +488,8 @@ module CPU_15 (
     .WCS_n(s_wcs_n),
 
     .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
-    .XMIC_DBG_15_0(XMIC_DBG_15_0)
+    .XMIC_DBG_15_0(XMIC_DBG_15_0),
+    .PF_CAPTURED(PF_CAPTURED)
   );
 
   CPU_CS_16 CS (
@@ -580,7 +583,8 @@ module CPU_15 (
     .LAPA_n(s_lapa_n),
     .PT_15_9_OUT(s_pt_15_9[6:0]),
     .WCA_n(s_wca_n),
-    .LED1(s_led1)
+    .LED1(s_led1),
+    .DBG_PTW(DBG_PTW)
   );
 
 

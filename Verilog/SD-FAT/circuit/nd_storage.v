@@ -420,6 +420,28 @@ module nd_storage #(
   wire [2:0]  c_alloc_client, c_alloc_way;
   wire [15:0] c_alloc_block;
 
+`ifdef ND_STORAGE_NO_CACHE
+  // 23-AUG experiment lever: the cache directory is NOT SYNTHESIZED at all -
+  // stronger than ND_STORAGE_DISCS_UNCACHED (which leaves the logic in the
+  // netlist with the mask cleared). Separates "cache logic disabled" from
+  // "cache logic absent" (BSRAM, routing and timing pressure included).
+  // Only valid together with an all-DIRECT CACHE_MASK: a cached client
+  // would wait forever on lookup_done. Tie the directory interface idle.
+  // Tie only the CACHE's outputs; c_alloc_way is driven by the ENGINE
+  // (nd_storage_engine.v `output reg cache_alloc_way`) - tying it here
+  // double-drives (measured: Gowin EX2000 on the first S2 build).
+  assign c_lookup_done = 1'b0;
+  assign c_lookup_hit  = 1'b0;
+  assign c_lookup_way  = 3'd0;
+  assign c_lookup_line = 11'd0;
+  assign c_alloc_done  = 1'b0;
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_cache_reqs = c_lookup_req | c_alloc_req |
+                           (|c_lookup_client) | (|c_lookup_block) |
+                           (|c_alloc_client) | (|c_alloc_block) |
+                           (|c_alloc_way);
+  /* verilator lint_on UNUSEDSIGNAL */
+`else
   nd_storage_cache #(
       .WAYS(CACHE_WAYS), .SETS(CACHE_SETS), .SETIDX(CACHE_SETIDX),
       .POOL_BASE_BLK(POOL_BASE_BLK), .BLKW(16)
@@ -434,6 +456,7 @@ module nd_storage #(
       .alloc_done(c_alloc_done),
       .inval_req(1'b0), .inval_client(3'd0), .inval_done()
   );
+`endif
 
   nd_storage_engine #(
       .N_CLIENTS     (N_CLIENTS),

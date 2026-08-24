@@ -84,6 +84,19 @@ module ND120_PF_CAPTURE #(
     parameter [5:0]   MATCH_PAGE = 6'o60,
     parameter integer MATCH_ANY = 0,
     parameter [9:0]   MATCH_LA_19_10 = 10'o760,
+    //! 23-AUG-2026, the zero-read question: freeze on the first ARMED
+    //! committed access (VACC high at the capturing edge) to the matched page
+    //! whose PT permit bits are ALL CLEAR - i.e. the first access that MUST
+    //! page-fault - instead of on the fault vector. The frozen TVEC and the
+    //! census then say whether the trap actually followed:
+    //!   freeze fires, census/last_la never show a fault there -> the trap
+    //!     path failed in vivo (timing/qualifier);
+    //!   freeze NEVER fires although the CPU executed zeros from that page ->
+    //!     the entry was GRANTING, the zeros came from a legally-mapped wrong
+    //!     physical page (map-RAM contents);
+    //!   freeze fires and the fault follows -> that access traps fine, look
+    //!     elsewhere.
+    parameter integer MATCH_ON_NOPERM_ACCESS = 0,
     parameter integer HAS_PTRAM_STROBES = 0  //! 1 only when the page-table RAM
                                              //! strobes are really connected.
                                              //! Reported in the readout so an
@@ -137,6 +150,11 @@ module ND120_PF_CAPTURE #(
     //! differs from c_la_23_10, the entry the trap judged and the address it
     //! reported belong to DIFFERENT ACCESSES.
     output reg [13:0] c_la_prev = 14'd0,
+    //! PGS value AT the first handler read (EPGS) after the freeze - the
+    //! Phase-4b overwrite detector. In the readout word since 23-AUG-2026:
+    //! low 10 bits at frozen[56:47], high 4 bits at frozen[75:72]; valid
+    //! only when frozen[46] (c_pgs_valid) is set.
+    output reg [13:0] c_pgs_at_read = 14'd0,
     output reg        c_pgs_valid   = 1'b0,
     output reg [CNTW-1:0] c_cycle = {CNTW{1'b0}},
     output wire       ptram_strobes_valid, //! 0 = the two RAM bits mean NOTHING
@@ -149,7 +167,26 @@ module ND120_PF_CAPTURE #(
     //! console dump to catch each one.
     //!   readout[15:14] = slice index 0..3
     //!   readout[13:0]  = that slice of the frozen word
-    output wire [15:0] readout_15_0
+    output wire [15:0] readout_15_0,
+
+    //! ---- LIVE EVENT PULSES (23-AUG, Phase 1b ordering) ---------------------
+    //! One sysclk pulse per matching event, NOT gated by `captured`, so a ring
+    //! outside this module can record EVERY occurrence and place it in time
+    //! against the page-table write stream.
+    //!   evt_noperm = a committed access at the matched page whose entry grants
+    //!                nothing (PT[6:4] == 000)
+    //!   evt_fault  = a page-fault vector latched for the matched page
+    output wire       evt_noperm,
+    output wire       evt_fault,
+
+    //! ---- ANY-ADDRESS FAULT STREAM (23-AUG, run 11) -------------------------
+    //! One pulse per page-fault vector transition at ANY address, with the
+    //! snapshot that produced it. A ring outside this module records the
+    //! stream and the trigger stops it at the ERRFATAL printer, so the last
+    //! records ARE the fault that halts the machine.
+    output wire       evt_any,
+    output wire [9:0] evt_any_la_19_10,
+    output wire [6:0] evt_any_pt_15_9
 );
 
   assign ptram_strobes_valid = (HAS_PTRAM_STROBES != 0);
@@ -248,9 +285,19 @@ module ND120_PF_CAPTURE #(
   // here so the probe sees what the handler will see, WITHOUT touching
   // CGA_IDBCTL.
   reg [13:0] prev_la = 14'd0;
+  reg [13:0] pgs_shadow = 14'd0;
   always @(posedge sysclk) begin
-    if (clear) c_pgs_valid <= 1'b0;
-    else if (epgs && captured) c_pgs_valid <= 1'b1;   // did the handler read PGS at all
+    if (clear) begin
+      c_pgs_valid   <= 1'b0;
+      c_pgs_at_read <= 14'd0;
+      pgs_shadow    <= 14'd0;
+    end else begin
+      if (vacc) pgs_shadow <= la_23_10;   // the real PGS rule: load while VACC high
+      if (epgs && captured && !c_pgs_valid) begin
+        c_pgs_valid   <= 1'b1;            // did the handler read PGS at all
+        c_pgs_at_read <= pgs_shadow;      // what it actually saw
+      end
+    end
   end
 
   // ---- CENSUS: count every page-fault vector transition, any address ------
@@ -303,6 +350,28 @@ module ND120_PF_CAPTURE #(
   always @(posedge sysclk) pf_hit_d <= pf_hit;
   wire pf_now = pf_hit & ~pf_hit_d;
 
+  // ---- 23-AUG: the no-permit committed-access trigger (see parameter note).
+  // Uses the SNAPSHOT (pre_*) values so the frozen record and the trigger
+  // judge the same capturing edge. Edge-detected like pf_now so a condition
+  // that persists across edges freezes only once.
+  reg  acc_hit_d = 1'b0;
+  wire acc_hit = pre_valid & pre_vacc & la_match & (pre_pt[6:4] == 3'b000);
+  always @(posedge sysclk) acc_hit_d <= acc_hit;
+  wire acc_now = acc_hit & ~acc_hit_d;
+
+  wire freeze_now = (MATCH_ON_NOPERM_ACCESS != 0) ? acc_now : pf_now;
+
+  // Live pulses out (see the port comment): the ring in the FPGA top uses these
+  // to order accesses against page-table writes. Unconditional on `captured`.
+  assign evt_noperm = acc_now;
+  assign evt_fault  = pf_now;
+
+  // Any-address fault stream (see the port comment). pre_* is the snapshot the
+  // fault was judged on, so the address and the entry match the vector.
+  assign evt_any          = pf_any & ~pf_any_d & pre_valid;
+  assign evt_any_la_19_10 = pre_la[9:0];
+  assign evt_any_pt_15_9  = pre_pt;
+
   always @(posedge sysclk) begin
     if (clear) begin
       captured     <= 1'b0;
@@ -318,7 +387,7 @@ module ND120_PF_CAPTURE #(
       c_pt_prev    <= 7'd0;
       c_pt_next    <= 7'd0;
       c_next_valid <= 1'b0;
-    end else if (armed && !captured && pf_now && pre_valid) begin
+    end else if (armed && !captured && freeze_now && pre_valid) begin
       // freeze the snapshot taken AT the capturing edge, not the inputs now
       captured     <= 1'b1;
       c_pt_15_9    <= pre_pt;
@@ -360,12 +429,12 @@ module ND120_PF_CAPTURE #(
 
     last_la,                // [99:86]
     n_faults,               // [85:78]
-    6'd0,                   // [77:72] pad
-    c_next_valid,           // [71]
-    c_pt_next,              // [70:64]
+    2'd0,                   // [77:76] pad
+    c_pgs_at_read[13:10],   // [75:72]  <- 23-AUG: PGS at the handler's read,
+    c_next_valid,           // [71]        high bits (low bits at [56:47]);
+    c_pt_next,              // [70:64]     valid only when [46] c_pgs_valid=1
     c_pt_prev,              // [63:57]
-    1'b0,                   // [56] spare
-    9'd0,                   // [55:47] spare (was the cycle counter)
+    c_pgs_at_read[9:0],     // [56:47]  <- 23-AUG: PGS at the handler's read, low bits
     c_pgs_valid,            // [46]
     c_la_prev,              // [45:32]  <- pairs with c_pt_prev
     ptram_strobes_valid,    // [31]

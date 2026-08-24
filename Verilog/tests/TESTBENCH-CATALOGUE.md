@@ -90,12 +90,13 @@ One row per RTL module in the three main areas. Coverage is measured, not assume
 
 ## DELILAH CPU gate array (CGA)
 
-91 modules - **86 DIRECT** (77 linked into `make test`), 5 indirect, **0 with no testbench**.
+92 modules - **88 DIRECT** (78 linked into `make test`), 4 indirect, **0 with no testbench**.
 
 | Module | Coverage | Testbench | in `make test` |
 |---|---|---|---|
 | `DELILAH-CPU/CGA/circuit/BusDriver16.v` | **DIRECT** | `BusDriver16_tb.v` | yes |
-| `DELILAH-CPU/CGA/circuit/CGA.v` | INDIRECT | named in `CPU_CS_RWCS_CYCLE_tb.v` (+91) | - |
+| `DELILAH-CPU/CGA/circuit/CGA.v` | INDIRECT | named in `CPU_CS_RWCS_CYCLE_tb.v` (+94) | - |
+| `DELILAH-CPU/CGA/circuit/ND120_PF_CAPTURE.v` | **DIRECT** | `ND120_PF_CAPTURE_tb.v` | yes |
 | `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU.v` | **DIRECT** | `CGA_ALU_tb.v` | **NO** |
 | `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_ARG.v` | **DIRECT** | `CGA_ALU_ARG_tb.v` | yes |
 | `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_DBR.v` | **DIRECT** | `CGA_ALU_DBR_tb.v` | yes |
@@ -161,7 +162,7 @@ One row per RTL module in the three main areas. Coverage is measured, not assume
 | `DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_SEGPT_PCR.v` | **DIRECT** | `CGA_MAC_SEGPT_PCR_tb.v` | yes |
 | `DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_SEGPT_SEG.v` | **DIRECT** | `CGA_MAC_SEGPT_SEG_tb.v` | yes |
 | `DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_SEGPT_XPT.v` | **DIRECT** | `CGA_MAC_SEGPT_XPT_tb.v` | yes |
-| `DELILAH-CPU/CGA_MIC/circuit/CGA_MIC.v` | INDIRECT | named in `CGA_MIC_MASEL_REPEAT_tb.v` | - |
+| `DELILAH-CPU/CGA_MIC/circuit/CGA_MIC.v` | **DIRECT** | `CGA_MIC_tb.v` | **NO** |
 | `DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_CONDREG.v` | **DIRECT** | `CGA_MIC_CONDREG_tb.v` | yes |
 | `DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_CSEL.v` | **DIRECT** | `CGA_MIC_CSEL_tb.v` | yes |
 | `DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_IINC.v` | **DIRECT** | `CGA_MIC_IINC_tb.v` | yes |
@@ -218,5 +219,33 @@ Modules marked **NONE** have no testbench at all. This is a backlog, not a failu
 |---|---|---|---|---|---|
 | CPU board 3202D | 51 | 36 | 23 | 8 | 7 |
 | Decoder gate array (DGA) | 11 | 8 | 5 | 3 | 0 |
-| DELILAH CPU gate array (CGA) | 91 | 86 | 77 | 5 | 0 |
+| DELILAH CPU gate array (CGA) | 92 | 88 | 78 | 4 | 0 |
 
+
+## BD_BANK_DECODE_tb - the bus address must reach the memory bank decode
+
+- Source: `Verilog/CPU-BOARD-3202/circuit/sim/BD_BANK_DECODE_tb.v`
+- Run: `make test-bdbank` in `Verilog/CPU-BOARD-3202/circuit/sim/`
+- Registered in `Verilog/tests/run_all_tests.sh` (`TB_RESULT: PASS`)
+
+Regression guard for the defect fixed 24-AUG-2026 at `ND3202D.v:533`. The five
+address bits that select the memory bank were tapped from
+`s_bif_bd_23_0_n_out` - what the board DRIVES onto the bus - instead of
+`s_bif_bd_23_0_n_in`, what the bus CARRIES. On an incoming DMA write the board
+drives nothing and that net idles at all-ones, so BD23..BD19 read as 0 and
+every transfer decoded to BANK0. SINTRAN's segment load therefore landed at the
+right ROW in the wrong BANK, the CPU fetched zeros from the page the MMU
+resolved, executed them as STZ and halted in ERRFATAL after exactly 143 s.
+
+The bench drives a physical address on the real `BD_23_0_n_IN` port with the
+board driving nothing, then reads the decode tap through a hierarchical
+reference - so the WIRING is checked, not a copy of the expression. It
+elaborates the whole board and needs the SDRAM backend defines
+(`-DMAIN_RAM_SDRAM -DND_SDRAM_PACK16`).
+
+Verified 24-AUG-2026: FAILS 4 of 5 checks against the old line, PASSES 5 of 5
+against the fix.
+
+**This cannot be a Verilator boot test.** `MEM_RAM_49_SIM.v` models all three
+banks as present, so a misdirected bank still finds real memory and the boot
+succeeds - the fault is invisible in that harness by construction.

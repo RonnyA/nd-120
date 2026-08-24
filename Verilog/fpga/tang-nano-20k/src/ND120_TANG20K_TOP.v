@@ -176,6 +176,14 @@ module ND120_TANG20K_TOP (
   reg [26:0] clockTicks;
   always @(posedge clk_cpu) clockTicks <= clockTicks + 1'b1;
 
+  //! WIDE tick counter for timestamping a whole boot.
+  //! clockTicks above is 27 bits, which at clk_cpu wraps about every 20 s - it
+  //! is a heartbeat for led[5], not a timebase. The boot reaches the ERRFATAL
+  //! at roughly 143 s, so timestamping it needs a counter that does not wrap:
+  //! 40 bits is ~45 hours at 6.75 MHz.
+  reg [39:0] tickWide = 40'd0;
+  always @(posedge clk_cpu) tickWide <= tickWide + 1'b1;
+
   /* verilator lint_off UNUSEDSIGNAL */
   wire unused_s2 = s2;
   /* verilator lint_on UNUSEDSIGNAL */
@@ -190,6 +198,10 @@ module ND120_TANG20K_TOP (
   // the DGA WRITE chain (see ND3202D.v DBG_MEMW assign for the bit map).
   // [7] = wdec (F924 A160 D3 decode input), [6] = WRITE (registered out).
   wire [15:0] s_dbg_memw;
+  wire [15:0] s_dbg_ptw;   // page-table write stream from CPU_MMU_24 (23-AUG)
+  wire [15:0] s_dbg_pgw;    // SDRAM-bridge page-write watch (24-AUG zero-page campaign)
+  wire [13:0] s_dbg_ppn;    // physical page number PPN[23:10] (24-AUG zero-fetch campaign)
+  wire [20:0] s_pf_captured; // ND120_PF_CAPTURE: [0] frozen, [1] no-permit access pulse, [2] fault pulse at the matched page, [3] fault pulse ANY address with [13:4]=LA[19:10] [20:14]=PT[15:9] (23-AUG)
   wire dbg_dumping;
 `ifdef TANG_WD_TRACE_DUMP
   wire [19:0] wd_trace_rec;
@@ -263,6 +275,59 @@ module ND120_TANG20K_TOP (
                        // dumper seized the TX pin before the console ever
                        // spoke (SRAM-load-no-boot mystery, plan Issue I).
   reg cap_armed, cap_trig, cap_done;
+`ifdef TANG_PC_HISTORY
+  reg [19:0] pc_prev = 20'd0;      //! previous {PIL,P}; the strobe fires on a change
+  reg [ 9:0] la_prev_pc = 10'd0;   //! previous LA[19:10]; the trigger is its EDGE
+  //! FALLBACK TRIGGER. The first run (22-AUG-2026) reproduced the ERRFATAL but
+  //! produced NO dump at all - zero bytes at every baud - and there was no way
+  //! to tell "the LA trigger never fired" from "the dumper ran and sent
+  //! nothing". This counter guarantees a dump either way: if the LA match has
+  //! not fired by ~298 s (the fault lands at ~150 s, so it gets first refusal),
+  //! trigger anyway. A trail ending in 0644xx means the LA match won; a trail
+  //! ending anywhere else means it did not, and the ring/dumper chain is
+  //! nonetheless proven to work.
+  //!
+  //! TIMING, worked out rather than guessed: the counter only runs once
+  //! cap_armed is set, which is arm_cnt reaching 0x1FFFFFFF = 536,870,911
+  //! clk2x cycles = 39.8 s at 13.5 MHz. Bit 31 then sets after a further
+  //! 2^31 = 2,147,483,648 cycles = 159.1 s. So the fallback fires about
+  //! 199 s after reset. The measured boot reaches the ERRFATAL about 143 s
+  //! after the boot command, and the dump follows cap_done by the ~10 s
+  //! hold_cnt delay, so a real LA match still dumps first with room to spare.
+  reg [31:0] fallback_cnt = 32'd0;
+  reg [ 1:0] post_word    = 2'd0;   //! which half of the tick to emit after the trigger
+  reg [39:0] tick_at_trig = 40'd0;  //! tickWide latched the cycle the trigger fired
+  //! LOOP SUPPRESSOR (22-AUG-2026). Run 3 spent 465 of its 502 ring entries on
+  //! ONE three-instruction loop - the ERRFATAL console print at 0o31444 /
+  //! 0o31445 / 0o31446 spinning on the 9600-baud transmitter - so the trail
+  //! never reached back to the page fault. These hold the last FOUR words
+  //! actually written to the ring; a word that matches any of them is not
+  //! written again, which collapses any loop of up to four instructions to its
+  //! first iteration and leaves the 512 entries to cover real forward progress.
+  //!
+  //! The comparison is on the FULL 20-bit word {PIL,P}, not on P alone, so the
+  //! same address executed at a different interrupt level is still recorded -
+  //! a level switch must never be swallowed by the filter.
+  //!
+  //! Once the loop's three words occupy p_r0..p_r2 the shift register stops
+  //! moving (every iteration matches), so suppression is stable for as long as
+  //! the loop runs, however many millions of times it goes round.
+  //!
+  //! COST OF THIS FILTER, stated so the trail is not misread: the dump is a
+  //! list of DISTINCT-within-4 program counters, NOT an instruction count. A
+  //! tight loop appears once. Nothing in the trail says how long anything took.
+  reg [19:0] p_r0 = 20'd0, p_r1 = 20'd0, p_r2 = 20'd0, p_r3 = 20'd0;
+`endif
+`ifdef TANG_JPL_CAPTURE
+  //! MICROCODE-ADDRESS CAPTURE across the two JPL I 111 instructions.
+  reg [12:0] csa_cap_prev = 13'd0;  //! last CSA written to the ring
+  reg [15:0] pc_cap_prev  = 16'd0;  //! last PC written to the ring
+  reg [15:0] fid_cap_prev = 16'd0;  //! last FIDBO word written to the ring
+  reg [13:0] ppn_cap_prev = 14'd0;  //! last PPN written to the ring
+  reg        jpl_win      = 1'b0;   //! open while the window runs
+  reg        jpl_done     = 1'b0;   //! one window only
+  reg [ 9:0] jpl_cnt      = 10'd0;  //! hard bound on the window
+`endif
   reg wdec_d2;
   reg [3:0] pil_prev;
   // TRAPN is ACTIVE LOW and is asserted only for the dispatch microcycle, so
@@ -381,7 +446,472 @@ module ND120_TANG20K_TOP (
   wire        s_cap_event = pf_seen;
   // All six slices must be recorded AFTER the trigger, and the rotation is
   // slow, so keep collecting well past the event.
-  localparam [8:0] CAP_POST = 9'd64;
+  localparam [8:0] CAP_POST = 9'd2;
+`elsif TANG_PTWR_CAPTURE
+  // ---------------------------------------------------------------------------
+  // PAGE-TABLE WRITE HISTORY (23-AUG-2026, zero-read campaign).
+  //
+  // Measured that day on silicon: the fault at the VA-064540 page dispatches
+  // (TVEC=1) and the handler reads the CORRECT page in PGS - yet the page
+  // never becomes resident and refaults forever. Surviving suspect: the
+  // handler's page-table entry WRITE is lost or lands at the wrong map-RAM
+  // index. This variant records the write stream itself.
+  //
+  // Source = DBG_PTW from CPU_MMU_24 (via CPU_15/ND3202D/ND120_CORE): on each
+  // PT-chip write strobe (EPT_n low & WMAP_n low) two words appear on
+  // consecutive sysclks, idle 16'h0000 otherwise:
+  //   word A = {2'b10, addr[10:0], data[15:13]}   addr = raw LA_20_10 index
+  //   word B = {2'b11, data[12:0], 1'b0}
+  // The ring strobes only on nonzero-tag words, so 512 entries = the last
+  // ~256 writes (addr+data pairs) before the trigger.
+  //
+  // Trigger = the ERRFATAL printer signature (PIL 14 with the microcode at
+  // 004546, same event as TANG_PC_HISTORY) OR the frozen-CSA detector.
+  // CAP_POST is small so post-trigger noise cannot evict the history.
+  //
+  // The decode: for each A/B pair, addr XOR 0o1400 (top two table bits are
+  // complemented) = the SOFTWARE page-table index. The question the dump
+  // answers: does any write land at software 0o432 (raw 0o1032, the page that
+  // refaults), and if not, where DID the handler's writes go?
+  wire [19:0] s_cap_src   = {4'hB, s_dbg_ptw};
+  wire        s_cap_stb   = (s_dbg_ptw[15:14] != 2'b00);
+  wire        s_cap_arm   = cap_armed;
+  wire        s_hang      = &csa_stable;
+  wire        s_cap_event = ((s_pil_3_0 == 4'd14) && (s_xmic_dbg[15:0] == 16'o004546))
+                          || s_hang;
+  localparam [8:0] CAP_POST = 9'd8;
+`elsif TANG_PGW_CAPTURE
+  // ---------------------------------------------------------------------------
+  // DID ANY WRITE EVER REACH THE PAGE THE CPU FETCHES ZEROS FROM?
+  // (24-AUG-2026, run 16)
+  //
+  // Run 15 measured the fetch at 064544 resolving to PPN 0o3770 = physical
+  // page 2040 = {BANK2, row 1016} - REAL, POPULATED memory that still reads
+  // 000000. So the disc data was never stored there. This records every
+  // access to that page's 8-page neighbourhood (rows 1016..1023, both banks)
+  // AT THE SDRAM BRIDGE, the last point before the chip, so a transfer that
+  // never arrives cannot be mistaken for one that did.
+  //
+  //   {4'hB, DBG_PGW}   tag 10 = write word A (bank+row+data[15:13])
+  //                     tag 11 = write word B (data[12:0])
+  //                     tag 01 = a READ of the same window
+  //
+  // Reading it: writes present with real data -> the data WAS stored and
+  // something cleared or re-mapped it afterwards. Only reads, no writes ->
+  // the Winchester transfer never targeted this page, and the next question
+  // is the physical address the DMA presents against the one the MMU resolves.
+  wire        pgw_act   = (s_dbg_pgw[15:14] != 2'b00);
+  reg  [15:0] pgw_prev  = 16'd0;
+  always @(posedge clk2x) pgw_prev <= s_dbg_pgw;
+  wire [19:0] s_cap_src = {4'hB, s_dbg_pgw};
+  wire        s_cap_stb = pgw_act && (s_dbg_pgw != pgw_prev);
+  wire        s_cap_arm = cap_armed;
+  wire        s_hang    = &csa_stable;
+  wire        s_cap_event = ((s_pil_3_0 == 4'd14) && (s_xmic_dbg[15:0] == 16'o004546))
+                          || s_hang;
+  localparam [8:0] CAP_POST = 9'd8;
+`elsif TANG_PTORD_CAPTURE
+  // ---------------------------------------------------------------------------
+  // ORDERING: PAGE-TABLE WRITES vs NO-PERMIT ACCESSES, ONE PAGE, ONE RING
+  // (23-AUG-2026, Phase 1b of PLAN-pf-campaign-prio.md)
+  //
+  // THE CONTRADICTION THIS SETTLES. Both were measured on silicon on the same
+  // boot, and they cannot both describe the same moment:
+  //   - the handler WRITES a granting entry (raw index 0o1032, data 066001)
+  //     for the page that keeps faulting;
+  //   - the freeze register still catches a COMMITTED ACCESS at that same page
+  //     whose entry grants nothing (PT[6:4] == 000).
+  //
+  // No shared timestamp is needed: one ring, written in time order, IS the
+  // order. Both sources strobe the same ring.
+  //   {4'hB, DBG_PTW}                 page-table write traffic at THIS index
+  //                                   only (tag 10 = pair word A, 11 = word B,
+  //                                   01 = IDB->PT attempt); same word format
+  //                                   as TANG_PTWR_CAPTURE, so
+  //                                   ptwr_capture_decode.py decodes it
+  //   {4'hC, 4'd0, acc_cnt[11:0]}     a no-permit access at the matched page
+  //   {4'hD, 4'd0, flt_cnt[11:0]}     a page-fault vector at the matched page
+  //
+  // READING THE DUMP: if a 4'hC marker appears AFTER a granting write pair,
+  // the map RAM is not retaining or not returning the entry - a defect in the
+  // page-table RAM read path (the Issue-D family). If every 4'hC precedes the
+  // write, paging works and the halt cause is elsewhere.
+  //
+  // CLOCK NOTE: this ring runs on clk2x while the CPU core runs on clk_cpu
+  // (half that rate), so every core-cycle event is visible for TWO ring edges.
+  // Everything below is edge-detected on clk2x so one event makes one record -
+  // otherwise every write word and every access would be counted twice.
+  //
+  // EVICTION GUARD. The page refaults forever, so raw access markers alone
+  // would fill all 512 entries and push the writes out - and an evicted write
+  // reads exactly like a write that never happened. So at most 4 consecutive
+  // access markers are recorded between writes; the 12-bit counter carried in
+  // every marker states the TRUE total, making any suppression visible rather
+  // than silent.
+  reg [15:0] po_ptw_d   = 16'd0;
+  reg        po_acc_d   = 1'b0;
+  reg        po_flt_d   = 1'b0;
+  always @(posedge clk2x) begin
+    po_ptw_d <= s_dbg_ptw;
+    po_acc_d <= s_pf_captured[1];
+    po_flt_d <= s_pf_captured[2];
+  end
+  wire       po_ptw_new = (s_dbg_ptw != po_ptw_d) && (s_dbg_ptw[15:14] != 2'b00);
+  wire       po_acc_pls = s_pf_captured[1] && !po_acc_d;
+  wire       po_flt_pls = s_pf_captured[2] && !po_flt_d;
+
+  wire       po_ptw_a   = po_ptw_new && (s_dbg_ptw[15:14] == 2'b10);
+  wire       po_ptw_b   = po_ptw_new && (s_dbg_ptw[15:14] == 2'b11);
+  wire       po_ptw_att = po_ptw_new && (s_dbg_ptw[15:14] == 2'b01);
+  // word A / attempt carry addr[10:0] at [13:3]; LA[19:10] = word bits [12:3]
+  wire       po_idx_hit = (s_dbg_ptw[12:3] == 10'o1032);
+  reg        po_pair_hit = 1'b0;   // word A of the current pair matched
+  wire       po_wr_rec = (po_ptw_a   && po_idx_hit)
+                      || (po_ptw_att && po_idx_hit)
+                      || (po_ptw_b   && po_pair_hit);
+
+  reg [11:0] po_acc_cnt = 12'd0;
+  reg [11:0] po_flt_cnt = 12'd0;
+  reg [ 2:0] po_run     = 3'd0;     // access markers recorded since last write
+  reg        po_pend_acc = 1'b0;    // event arrived while the ring was busy
+  reg        po_pend_flt = 1'b0;
+  wire       po_emit_acc = !po_wr_rec && (po_pend_acc || po_acc_pls)
+                                      && (po_run < 3'd4);
+  wire       po_emit_flt = !po_wr_rec && !po_emit_acc && (po_pend_flt || po_flt_pls);
+  always @(posedge clk2x) begin
+    if (po_ptw_a) po_pair_hit <= po_idx_hit;
+    if (po_acc_pls) po_acc_cnt <= po_acc_cnt + 12'd1;
+    if (po_flt_pls) po_flt_cnt <= po_flt_cnt + 12'd1;
+    // pending: set on the pulse, cleared when the word actually reaches the ring
+    if (po_acc_pls && !po_emit_acc) po_pend_acc <= 1'b1;
+    else if (po_emit_acc)           po_pend_acc <= 1'b0;
+    if (po_flt_pls && !po_emit_flt) po_pend_flt <= 1'b1;
+    else if (po_emit_flt)           po_pend_flt <= 1'b0;
+    if (po_wr_rec)        po_run <= 3'd0;
+    else if (po_emit_acc) po_run <= po_run + 3'd1;
+  end
+
+  wire [19:0] s_cap_src = po_wr_rec   ? {4'hB, s_dbg_ptw}
+                        : po_emit_acc ? {4'hC, 4'd0, po_acc_cnt}
+                                      : {4'hD, 4'd0, po_flt_cnt};
+  wire        s_cap_stb   = po_wr_rec || po_emit_acc || po_emit_flt;
+  wire        s_cap_arm   = cap_armed;
+  wire        s_hang      = &csa_stable;
+  wire        s_cap_event = ((s_pil_3_0 == 4'd14) && (s_xmic_dbg[15:0] == 16'o004546))
+                          || s_hang;
+  localparam [8:0] CAP_POST = 9'd8;
+`elsif TANG_PFLOG_CAPTURE
+  // ---------------------------------------------------------------------------
+  // EVERY PAGE FAULT, ANY ADDRESS - THE LAST ONES ARE THE FATAL ONE
+  // (23-AUG-2026, run 11, after Phase 1b closed the 0o432 question)
+  //
+  // WHAT RUN 10 SETTLED. For raw page 0o1032 (software 0o432) the ordering
+  // ring showed: entry cleared to 000000, two no-permit accesses, two page
+  // faults, then the handler writes 062001 and 066001 - both GRANTING. Every
+  // no-permit access precedes the granting write. That page pages in exactly
+  // as it should, so "a page is read as zeros instead of faulting" is dead as
+  // an explanation of the halt.
+  //
+  // WHAT IS STILL UNKNOWN. The halt reports Perror 064406, level 1, IIC 3
+  // Page Fault, with NPIT/APIT = 000012 / 000007. Which page does THAT fault
+  // hit, and what did its page-table entry say? This ring answers exactly
+  // that: one record per page-fault vector transition at ANY address,
+  //
+  //     record[19:17] = 0
+  //     record[16:10] = PT[15:9] of that fault  (WPM RPM FPM WIP PGU ring1 ring0)
+  //     record[ 9: 0] = LA[19:10] - the raw page-table index
+  //
+  // frozen by the ERRFATAL printer signature. The LAST records are the fault
+  // that halts SINTRAN, named by page and by entry contents.
+  //
+  // CLOCK NOTE: the ring runs on clk2x, the core on clk_cpu (half the rate),
+  // so the one-core-cycle pulse is edge-detected here to make one record.
+  reg        pl_d = 1'b0;
+  always @(posedge clk2x) pl_d <= s_pf_captured[3];
+  wire       pl_pls = s_pf_captured[3] && !pl_d;
+
+  wire [19:0] s_cap_src   = {3'd0, s_pf_captured[20:14], s_pf_captured[13:4]};
+  wire        s_cap_stb   = pl_pls;
+  wire        s_cap_arm   = cap_armed;
+  wire        s_hang      = &csa_stable;
+  wire        s_cap_event = ((s_pil_3_0 == 4'd14) && (s_xmic_dbg[15:0] == 16'o004546))
+                          || s_hang;
+  localparam [8:0] CAP_POST = 9'd0;   // the fatal fault is the LAST record
+`elsif TANG_JPL_CAPTURE
+  // ---------------------------------------------------------------------------
+  // MICROCODE ADDRESS ACROSS THE TWO JPL I 111 INSTRUCTIONS (22-AUG-2026)
+  //
+  // WHAT IS BEING MEASURED, as opposed to inferred. The Tang executes
+  // 064540..064547 straight through and takes neither of the two JPL I 111
+  // calls at 064544/064545 that the oracle takes (to 004600 and 052031, 170
+  // instructions). A story that FITS is that the decode lost instruction bit
+  // 11, which is the only bit separating JPL (134000-137000) from the
+  // conditional jumps (130000-133000): 135111 would become 131111, JAZ 111,
+  // and with A = 144017 that does not jump - it falls through, exactly as
+  // observed, on both instructions.
+  //
+  // That is a GUESS and it has a hole: SINTRAN executes JPL constantly for the
+  // 150 seconds before this point, so bit 11 cannot be generally lost. This
+  // probe replaces the guess with a measurement - it records the microcode
+  // address the decode actually dispatched to.
+  //
+  // From Verilog/tests/instruction-verify/ND110-ND120-MIC-MAP.md:
+  //
+  //     007300 JAP   007304 JAN   007310 JAZ   007314 JAF
+  //     007320 JPC   007324 JNC   007330 JXZ   007334 JXN
+  //     007340 JPL
+  //
+  // CSA reaching 007340 means the decode produced JPL and the fault is inside
+  // the JPL microroutine. CSA landing on one of 007300-007334 means the decode
+  // produced a conditional jump instead, and the bit-11 story stops being a
+  // guess. CSA going somewhere else again means neither.
+  //
+  // CSA_12_0 is already routed to this level and is used by the grant-capture
+  // and trap-capture variants, so unlike the last two probes there is no new
+  // bus or strobe whose timing has to be assumed.
+  //
+  // Two values are tagged into the ring so the microcode trail can be lined up
+  // against the instruction boundaries. They are separately REGISTERED values
+  // compared against their own previous copies - not two buses assumed valid in
+  // the same cycle, which is the mistake that voided the address capture.
+  //
+  //     tag 0   CSA_12_0, the microcode address
+  //     tag 1   the fetch-qualified program counter
+  wire        csa_chg     = (CSA_12_0 != csa_cap_prev);
+  wire        pc_chg      = (s_xmic_dbg[15:0] != pc_cap_prev);
+  // 24-AUG: tag 2 = FIDBO, the word the CPU actually received. Run 13 measured
+  // the DISPATCHED MICROADDRESS (006000 = STZ) and the instruction word was
+  // INFERRED from it. That inference has to be replaced by a measurement:
+  // FIDBO says whether memory really delivered 000000, or delivered 135111 and
+  // the decode dropped it.
+  wire        fid_chg     = (s_debug_fidbo != fid_cap_prev);
+  // tag 3 = PPN[23:10], the PHYSICAL page the access reaches. PPN20 = [10] and
+  // PPN21 = [11] are the bank-decode inputs (PAL_44445B.v:65-67):
+  //   PPN[21:20] = 00 -> BANK0, 01 -> BANK2, 10 -> BANK1, 11 -> no bank.
+  // On this board BANK1 IS NOT POPULATED - MEM_RAM_49_SDRAM.v:18 says
+  // "never written, reads as 0" and line 415 drops the access. So a page whose
+  // PPN lands in BANK1 is mapped, granted, writable-looking, and reads ZERO.
+  wire        ppn_chg     = (s_dbg_ppn != ppn_cap_prev);
+  wire [19:0] s_cap_src   = csa_chg ? {4'd0, 3'b000, CSA_12_0}
+                          : pc_chg  ? {4'd1, s_xmic_dbg[15:0]}
+                          : fid_chg ? {4'd2, s_debug_fidbo}
+                                    : {4'd3, 2'b00, s_dbg_ppn};
+  wire        s_cap_stb   = jpl_win && (csa_chg || pc_chg || fid_chg || ppn_chg);
+  wire        s_cap_arm   = cap_armed;
+  wire        s_cap_event = jpl_done && !jpl_win;
+  localparam [8:0] CAP_POST = 9'd0;
+`elsif TANG_PFPATH_CAPTURE
+  // ---------------------------------------------------------------------------
+  // HANDLER PATH AFTER THE 0o1032 FAULT (23-AUG-2026).
+  // Measured so far on silicon: the fault dispatches (TVEC=1), PGS is correct,
+  // page-table writes work, LIMCHECK's segment-table reads match the oracle -
+  // so SINTRAN's PAGEFAULT must reach CALL SEGIN (034721) and yet the page is
+  // never written. This ring records the {PIL,P} trail of the handler levels
+  // (14 and 3) starting at the freeze register's capture of the first
+  // no-permit access to raw page 0o1032, and freezes on the first return to
+  // level 1 afterwards: the last 512 handler addresses before SINTRAN gave
+  // the program back. Compare with the oracle's trail for the same fault
+  // ($ND120_ORACLE_DIR/oracle_fault49_trail.txt): the first address where
+  // the two paths split names the instruction whose result differs.
+  // P register on XMIC_DBG via ND120_PC_ON_DBG_PORT (set in CGA.v for this
+  // define); the freeze register is instantiated but its readout is not on
+  // the port - only its `captured` flag comes up here.
+  wire [19:0] pp_word     = {s_pil_3_0, s_xmic_dbg[15:0]};
+  reg  [19:0] pp_prev = 20'd0, pp_r0 = 20'd0, pp_r1 = 20'd0, pp_r2 = 20'd0, pp_r3 = 20'd0;
+  reg         pp_seen = 1'b0;     // freeze register has captured
+  reg  [3:0]  pp_pil_prev = 4'd0;
+  always @(posedge clk_cpu) begin
+    pp_prev     <= pp_word;
+    pp_pil_prev <= s_pil_3_0;
+    if (s_pf_captured[0]) pp_seen <= 1'b1;
+    if (pp_word != pp_prev) begin
+      pp_r3 <= pp_r2; pp_r2 <= pp_r1; pp_r1 <= pp_r0; pp_r0 <= pp_word;
+    end
+  end
+  wire        pp_dup      = (pp_word == pp_r0) || (pp_word == pp_r1)
+                         || (pp_word == pp_r2) || (pp_word == pp_r3);
+  wire        pp_handler  = (s_pil_3_0 == 4'd14) || (s_pil_3_0 == 4'd3);
+  wire [19:0] s_cap_src   = pp_word;
+  // RUN 3 (23-AUG): record ALL levels after the capture - the oracle services
+  // this fault through levels 3, 2, 13, 11 and back to 1; the Tang's level
+  // sequence after CALLMLEV's WAIT is the open question.
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire        pp_handler_unused = pp_handler;
+  /* verilator lint_on UNUSEDSIGNAL */
+  wire        s_cap_stb   = pp_seen && (pp_word != pp_prev) && !pp_dup;
+  wire        s_cap_arm   = cap_armed;
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire        s_hang      = &csa_stable;   // not used as a trigger here
+  /* verilator lint_on UNUSEDSIGNAL */
+  // Freeze on the first EXIT FROM LEVEL 3 after the capture: PAGEFAULT runs
+  // at level 3 (IPAGFAULT hands over via ACTMON) and ends with a WAIT, so
+  // the ring then holds the tail of PAGEFAULT's own path. Run 1 froze on the
+  // return to level 1 instead and caught SINTRAN's later segment-setup
+  // sequence (034100-034310), with the fault handling already evicted.
+  // Note: the P ring records PC+1 transients on jumps/calls/WAIT (the P
+  // register steps before the target loads) - decode accordingly.
+  // RUN 3: freeze on the first return to level 1 after the capture (where the
+  // oracle re-executes 064540 with the page resident).
+  // RUN 4: freeze on the first entry to level 3 FROM level 2 after the capture.
+  // Oracle: CALLMLEV's WAIT drops 3->2, the level-2 routine at 035204 runs ~50
+  // instructions, then 2->3 re-enters at 034020 (EXITA) and SEGIN continues.
+  // The ring then holds PAGEFAULT, CALLMLEV, the level-2 routine and the
+  // re-entry point - the last sample names where level 3 resumes on the Tang.
+  // RUN 5: freeze a fixed number of samples AFTER the SEGIN call at P=036653,
+  // so the ring holds the CALLMLEV(MLRESERVE) handoff and its return - does
+  // control reach 036657, and with what A. pp_at_call latches on P=036653
+  // (level 3); the ring then fills CAP_POST-limited and freezes.
+  // RUN 6: latch when SEGIN issues CALL CALLMLEV(MLRESERVE) at 036653, then
+  // freeze when control next reaches the RETURN region at level 3:
+  //   036657 = returned, then IF <0 test;  036660 = A<0 wait path (MLRESERVE
+  //   failed);  036724 = A>=0, disc read proceeds. If NONE is ever reached
+  //   the capture falls back to the ring's timeout and none appears in the
+  //   tail = control never returned from CALLMLEV to SEGIN (control-flow bug).
+  reg pp_at_call = 1'b0;
+  always @(posedge clk_cpu)
+    if (pp_seen && (s_pil_3_0==4'd3) && (s_xmic_dbg[15:0]==16'o036653)) pp_at_call <= 1'b1;
+  // RUN 8: the P ring samples P with a +-1 ambiguity, so a single address
+  // cannot decide a branch. Trigger only on a RANGE well inside SEGIN's
+  // disc-read body (036724..036736) - three words wide, so the ambiguity
+  // cannot fake it. If this freezes, the Tang DOES take the disc-read path.
+  // If instead the timeout fires, the ring tail shows what ran instead.
+  // RUN 9: freeze the ring the moment the freeze register captures the
+  // no-permit access to the FATAL page (raw 0o1360) - the ring then holds
+  // the ~500 instructions that led to it, across all levels.
+  wire        pp_ret = 1'b1;
+  // own timeout counter: fallback_cnt is declared inside the PC_HISTORY block
+  // and does not exist in this variant (build 6 failed on exactly that).
+  reg [31:0] pp_to = 32'd0;
+  always @(posedge clk_cpu) if (cap_armed && !pp_to[31]) pp_to <= pp_to + 1'b1;
+  wire        s_cap_event = (pp_at_call && pp_ret) || pp_to[31];
+  localparam [8:0] CAP_POST = 9'd2;
+`elsif TANG_PC_HISTORY
+  // ---------------------------------------------------------------------------
+  // PC HISTORY - the trail of program counters leading into the ND-500 window
+  // access (21-AUG-2026).
+  //
+  // WHAT IS RECORDED: {PIL[3:0], P[15:0]}. P arrives on the CGA debug port,
+  // which carries s_pr_15_0 while TANG_PC_HISTORY is defined (CGA.v). PIL is
+  // already routed here for the grant probe.
+  //
+  // TRIGGER: an ACCESS to the ND-500 window page - no fault needed. The nd100x
+  // oracle NEVER touches this page: measured zero occurrences of PGS PNUMB
+  // 0o760 in a complete 25,000,000-instruction boot, while the page next to it
+  // (0o761) is the most-used page in table 7 (288 times). So our first access
+  // to it IS the divergence and identifies itself; what is missing is how we
+  // got there, which is exactly what the ring holds.
+  //
+  // RAW vs SOFTWARE PNUMB - the trap that has already cost this project a day:
+  // the page-table index has its TOP TWO BITS COMPLEMENTED in hardware and the
+  // microcode un-inverts them (TRA PGS XORs 0o1400). SINTRAN's WNDN5 is the
+  // SOFTWARE value 0o760, which is RAW 0o1360. LA_23_10[9:0] carries the RAW
+  // LA[19:10], so the comparison below MUST use 0o1360. Matching 0o760 here
+  // would silently watch software page 0o360 and never fire.
+  //
+  // WHY NOT A STREAM COMPARISON AGAINST THE ORACLE: it cannot work. SINTRAN
+  // multiplexes level 1 among programs from the scheduler at PIL-2 032037, and
+  // which program is dispatched depends on device and clock timing, so two
+  // machines diverge at the first scheduling decision however correct both
+  // CPUs are. Measured: the first 673 normalised level-1 instructions match
+  // exactly, then the ND-120 runs program 043503 - which the oracle also runs
+  // 21 times, just at a different moment.
+  //
+  // CAP_POST is small on purpose: the ring is 512 deep and the value is in the
+  // instructions BEFORE the access, not after.
+  //
+  // NOTE: TANG_PF_CAPTURE must NOT be defined together with this - there is one
+  // 16-bit CGA debug port and the capture block wins (see CGA.v). This build
+  // therefore has no page-fault readout, which is why the trigger is formed
+  // from LA here instead.
+  //! The PC word. During the post-trigger window this is replaced by the
+  //! latched tick so the dump carries WHEN the halt happened as well as the
+  //! trail leading to it - see tick_at_trig below.
+  wire [19:0] pc_word     = {s_pil_3_0, s_xmic_dbg[15:0]};
+  wire [19:0] s_cap_src   = !cap_trig ? pc_word
+                          : (post_word == 2'd0) ? tick_at_trig[39:20]
+                                                : tick_at_trig[19:0];
+  //! True when this word is one of the last four already recorded.
+  wire        pc_dup      = (pc_word == p_r0) || (pc_word == p_r1)
+                         || (pc_word == p_r2) || (pc_word == p_r3);
+  //! LEVEL-14 CODE IS NOT RECORDED (22-AUG-2026, after run 4).
+  //!
+  //! Run 4 came back with all 502 entries at PIL 14 and only 30 distinct
+  //! addresses: SINTRAN's error-message printer, a 27-address loop at
+  //! 0o31354..0o31451 spinning on the 9600-baud console. The last-4 filter had
+  //! already collapsed the 3-instruction inner loop; this was the loop behind
+  //! it, and no filter of a sensible width reaches past it.
+  //!
+  //! The code that actually touched the ND-500 window page ran at the
+  //! INTERRUPTED level, not at 14, and none of it was in the ring. Dropping
+  //! PIL 14 hands all 512 entries to the levels that matter, so the trail ends
+  //! at the last instruction executed before the trap was taken - which is the
+  //! address to compare against the oracle.
+  //!
+  //! What this gives up: the trap handler's own path is now invisible. That is
+  //! an acceptable trade because run 4 already recorded it in full.
+  //!
+  //! NARROWED FURTHER TO LEVEL 1 ONLY (22-AUG-2026, after run 5).
+  //!
+  //! Run 5 answered the first question and posed the next one. Its trail ended:
+  //!
+  //!     494  PIL 2   032037   SINTRAN scheduler dispatch
+  //!     495  PIL 2   032040
+  //!     496  PIL 1   032040
+  //!     497  PIL 1   064404   the oracle NEVER executes this
+  //!     498  PIL 1   064405   "
+  //!     499  PIL 1   064406   "   <- this run's Perror
+  //!     500  PIL 1   064407   "
+  //!     501  PIL 12  004377   "
+  //!
+  //! Measured against the oracle histogram: 064367 runs 35 times and 064540
+  //! runs once, but every address from 064370 to 064537 runs ZERO times in a
+  //! 25,000,000-instruction boot. Those four are the divergence.
+  //!
+  //! Only FIVE of the 502 entries were level 1 - the rest were level 3 (362)
+  //! and level 2 (134) - so there is no level-1 history to say HOW P reached
+  //! 064404. Recording level 1 alone turns all 512 entries into that history,
+  //! across many scheduler dispatches. A trail showing 064403 -> 064404 means
+  //! level 1 walked in; a trail showing some other address -> 064404 means
+  //! level 1's P was set to it, and the routine that set it is in the same
+  //! trail.
+  wire        s_cap_stb   = !cap_trig ? ((pc_word != pc_prev) && !pc_dup
+                                          && (s_pil_3_0 == 4'd1))
+                                      : (post_word < 2'd2);
+  wire        s_cap_arm   = cap_armed;
+  // EDGE-DETECTED, not a level. LA_23_10 holds its last value between accesses,
+  // so a bare `== 0o1360` would keep matching long after the access and could
+  // freeze the ring at an arbitrary later moment. Firing only when LA BECOMES
+  // that value pins the freeze to the access itself.
+  //
+  // The ideal qualifier is VACC, which is what ND120_PF_CAPTURE gates its
+  // identical comparison on - but VACC is not routed out of the CGA, and
+  // getting it here means adding a port through ND3202D and ND120_CORE as
+  // well. The residual risk this leaves is a genuine transient in which LA
+  // settles on 0o1360 at a clk2x edge without a translated access. That is
+  // detectable after the fact: the decoded trail would not end anywhere near
+  // the ERRFATAL, and the run can simply be repeated.
+  // TRIGGER = ENTERING THE MEASURED HALT LOOP (22-AUG-2026, run 3).
+  //
+  // Run 2 handed us this for free: its dump was 512 entries containing exactly
+  // two values, PIL 14 with P = 0o4546 and 0o4547, 252 each - SINTRAN's
+  // post-ERRFATAL halt loop. Freezing on the FIRST entry into that loop keeps
+  // the 512 program counters that came BEFORE it, which is the ERRFATAL path
+  // and whatever led there. Run 2 could not see them because the loop itself
+  // flushed the ring before the fallback fired at ~199 s.
+  //
+  // Why not the page match: run 1 tried the full raw address 0o1360 and never
+  // fired, and page-only (0o60 in any table) has no fault qualifier here - the
+  // proven ND120_PF_CAPTURE pairs its page-only match with a fault vector, and
+  // no fault signal is routed to this level. The halt loop is an exact,
+  // MEASURED signature and needs no such qualifier.
+  //
+  // Caveat to check in the result: 512 entries may not reach back past the
+  // ERRFATAL console print, which is long. If the trail is all print routine,
+  // the next step is the two-pass tick approach - which is why the tick is
+  // captured below.
+  wire        s_cap_event = ((s_pil_3_0 == 4'd14) && (s_xmic_dbg[15:0] == 16'o004546))
+                         || fallback_cnt[31];   // ~199 s after reset, safety net
+  localparam [8:0] CAP_POST = 9'd16;
 `elsif TANG_GRANT_CAPTURE
   // Word = {PIL[3:0], INTRQ, CSA[10:0]}.  INTRQ = ~DEBUG_INTRQ_n (already routed
   // to this top) shows WHEN the interrupt-request FF is asserted relative to the
@@ -998,6 +1528,44 @@ module ND120_TANG20K_TOP (
       else if (!(&csa_stable))  csa_stable <= csa_stable + 1'b1;
       wdec_d2 <= s_dbg_memw[7];
       pil_prev <= s_pil_3_0;
+`ifdef TANG_PC_HISTORY
+      pc_prev  <= s_cap_src;
+      la_prev_pc <= s_debug_la_23_10[9:0];
+      if (cap_armed && !cap_trig && !fallback_cnt[31]) fallback_cnt <= fallback_cnt + 1'b1;
+      if (!cap_trig) tick_at_trig <= tickWide;      // tracks until the trigger freezes it
+      if (cap_trig && post_word < 2'd2) post_word <= post_word + 1'b1;
+      //! Shift only on an entry that really goes into the ring, so p_r0..p_r3
+      //! are the last four RECORDED words and not the last four seen.
+      if (!cap_done && !cap_trig && s_cap_stb) begin
+        p_r3 <= p_r2; p_r2 <= p_r1; p_r1 <= p_r0; p_r0 <= pc_word;
+      end
+`endif
+`ifdef TANG_JPL_CAPTURE
+      //! Track only what actually went into the ring, so the "changed" test
+      //! stays honest when both values change in the same cycle.
+      if (jpl_win && csa_chg)            csa_cap_prev <= CSA_12_0;
+      if (jpl_win && !csa_chg && pc_chg) pc_cap_prev  <= s_xmic_dbg[15:0];
+      if (jpl_win && !csa_chg && !pc_chg && fid_chg) fid_cap_prev <= s_debug_fidbo;
+      if (jpl_win && !csa_chg && !pc_chg && !fid_chg && ppn_chg) ppn_cap_prev <= s_dbg_ppn;
+      //! Open on the fetch of 064544, close on 064547 or after 1023 cycles -
+      //! the ring is 512 deep and CSA changes every few cycles, so a longer
+      //! window would wrap and lose the JPL itself.
+      if (cap_armed && !jpl_win && !jpl_done
+          && (s_xmic_dbg[15:0] == 16'o064544)) begin
+        jpl_win      <= 1'b1;
+        jpl_cnt      <= 10'd0;
+        csa_cap_prev <= ~CSA_12_0;            // force a first CSA entry
+        pc_cap_prev  <= ~s_xmic_dbg[15:0];    // force a first PC entry
+        fid_cap_prev <= ~s_debug_fidbo;       // force a first FIDBO entry
+        ppn_cap_prev <= ~s_dbg_ppn;           // force a first PPN entry
+      end else if (jpl_win) begin
+        jpl_cnt <= jpl_cnt + 1'b1;
+        if ((s_xmic_dbg[15:0] == 16'o064547) || (&jpl_cnt)) begin
+          jpl_win  <= 1'b0;
+          jpl_done <= 1'b1;
+        end
+      end
+`endif
       trapn_prev <= s_xmic_dbg[0];   // TRAPN, see the repack note above
       estate_prev <= DBG_STATE;
       rxraw_prev  <= DBG_RX_RAW;
@@ -1087,7 +1655,31 @@ module ND120_TANG20K_TOP (
   // conversion the write decode fires during normal boot, so the dump
   // would trigger every boot and hold the TX pin forever (dump_fin never
   // clears). Only let it take the console when explicitly enabled.
-`ifdef TANG_PF_CAPTURE
+`ifdef TANG_PC_HISTORY
+  // PC history: once an access to the ND-500 window page has frozen the ring,
+  // the dumper takes the TX pin and streams the preceding {PIL,P} samples as
+  // hex. The console is dead afterwards - expected, and the machine is about
+  // to halt in ERRFATAL anyway.
+  //
+  // WITHOUT this branch the dump never reaches a pin, the ring is dead logic
+  // and synthesis removes everything feeding it - including the probe. That
+  // exact failure was measured on 21-AUG-2026 for TANG_PF_CAPTURE: the netlist
+  // contained no capture registers at all and the readout streamed constants.
+  assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
+`elsif TANG_JPL_CAPTURE
+  // JPL-read capture: once the two-instruction window at 064544/064545 has
+  // closed, the dumper takes the TX pin and streams the 512 tagged samples.
+  //
+  // THIS BRANCH IS NOT OPTIONAL AND ITS ABSENCE IS SILENT. Measured 22-AUG-2026
+  // on the first JPL-capture run: without it uart_txp falls through to the
+  // `else` below, the dumper drives nothing, the ring becomes dead logic and
+  // synthesis removes the whole probe. The board booted normally straight to
+  // the ERRFATAL and produced ZERO dump bytes, which looks exactly like "the
+  // trigger never fired" - 20 minutes of build and boot spent on nothing. The
+  // same trap is recorded for TANG_PF_CAPTURE two branches down; adding a
+  // capture variant means adding a branch HERE as well.
+  assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
+`elsif TANG_PF_CAPTURE
   // Page-fault freeze readout: once ND120_PF_CAPTURE has frozen a fault the
   // dumper takes the TX pin and streams the ring, which holds the four 14-bit
   // slices of the frozen word. The console is dead afterwards - expected, the
@@ -1097,6 +1689,34 @@ module ND120_TANG20K_TOP (
   // logic and synthesis removes everything feeding it - including the capture
   // block itself. Measured 21-AUG-2026: the netlist contained no PF_CAPTURE
   // registers at all and the readout would have streamed constants.
+  assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
+`elsif TANG_PTWR_CAPTURE
+  // Page-table write history: after the ERRFATAL/frozen-CSA trigger the
+  // dumper takes the TX pin and streams the ring of {tag,addr,data} write
+  // records. WITHOUT this branch the ring is dead logic and synthesis strips
+  // the whole probe (the TANG_PF_CAPTURE lesson two branches up).
+  assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
+`elsif TANG_PGW_CAPTURE
+  // Page-write watch: after the ERRFATAL/frozen-CSA trigger the dumper takes
+  // the TX pin and streams the ring of bridge-level accesses to the failing
+  // page's neighbourhood. Without this branch synthesis strips the probe.
+  assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
+`elsif TANG_PTORD_CAPTURE
+  // Ordering capture: after the ERRFATAL/frozen-CSA trigger the dumper takes
+  // the TX pin and streams the interleaved ring of page-table writes and
+  // no-permit-access markers for raw page 0o1032. WITHOUT this branch the ring
+  // is dead logic and synthesis strips the whole probe (the TANG_PF_CAPTURE
+  // lesson three branches up).
+  assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
+`elsif TANG_PFLOG_CAPTURE
+  // Fault stream: after the ERRFATAL trigger the dumper takes the TX pin and
+  // streams the last 512 page faults (page + entry). Without this branch
+  // synthesis strips the probe (the TANG_PF_CAPTURE lesson).
+  assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
+`elsif TANG_PFPATH_CAPTURE
+  // Handler-path capture: dumper takes the TX pin after the first return to
+  // level 1 following the 0o1032 fault. Without this branch synthesis strips
+  // the probe (the TANG_PF_CAPTURE lesson).
   assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
 `elsif TANG_WRITE_ANALYZER_DUMP
   assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
@@ -1402,7 +2022,16 @@ module ND120_TANG20K_TOP (
 
   assign led[0] = ~|s_led_rd_stretch; // ON = storage BLOCK READ in the last ~150 ms
   assign led[1] = ~|s_led_wr_stretch; // ON = storage BLOCK WRITE in the last ~150 ms
+`ifdef TANG_PC_HISTORY
+  // Repurposed for the PC-history probe: the board otherwise gives NO indication
+  // of whether the dumper ever started, which is exactly what the first run
+  // could not determine. ON = dbg_dumping (the dumper has taken the TX pin).
+  assign led[2] = ~dbg_dumping;
+`elsif TANG_JPL_CAPTURE
+  assign led[2] = ~dbg_dumping;
+`else
   assign led[2] = ~s_tape_byte_seen;  // ON = a tape byte was actually served
+`endif
   assign led[3] = ~s_sd_status[0];    // sd_status low bit
   assign led[4] = ~s_sd_status[1];    // sd_status high bit (both lit = OK)
   assign led[5] = clockTicks[24];     // heartbeat ~0.8 Hz (clock alive)
@@ -1603,6 +2232,10 @@ module ND120_TANG20K_TOP (
       .O_sdram_ba(O_sdram_ba),
       .O_sdram_dqm(O_sdram_dqm),
       .DBG_MEMW(s_dbg_memw),
+      .DBG_PTW(s_dbg_ptw),   // page-table write stream (23-AUG, zero-read campaign)
+      .PF_CAPTURED(s_pf_captured),
+      .DBG_PPN(s_dbg_ppn),
+      .DBG_PGW(s_dbg_pgw),
 
       // nd_storage device port -> MEM_RAM_49_SDRAM's upper-half region
       .stor_clk  (clk_stor),

@@ -93,7 +93,8 @@ module CPU_PROC_32 (
 
     // Debug
     output [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
-    output [15:0] XMIC_DBG_15_0     //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [15:0] XMIC_DBG_15_0,    //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [20:0]        PF_CAPTURED       //! DEBUG: ND120_PF_CAPTURE freeze flag (23-AUG)
 );
 
 
@@ -547,7 +548,8 @@ module CPU_PROC_32 (
       .WRTRF(s_wrtrf),                      // Write Register File Strobe
 
       .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
-      .XMIC_DBG_15_0(XMIC_DBG_15_0)
+      .XMIC_DBG_15_0(XMIC_DBG_15_0),
+      .PF_CAPTURED(PF_CAPTURED)
   );
 
 endmodule

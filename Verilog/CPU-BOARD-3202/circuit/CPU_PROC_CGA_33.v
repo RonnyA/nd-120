@@ -78,7 +78,8 @@ module CPU_PROC_CGA_33 (
 
     // Debug
     output [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
-    output [15:0] XMIC_DBG_15_0     //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [15:0] XMIC_DBG_15_0,    //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [20:0]        PF_CAPTURED       //! DEBUG: ND120_PF_CAPTURE freeze flag (23-AUG)
 );
 
 
@@ -299,7 +300,8 @@ module CPU_PROC_CGA_33 (
       .XWRTRF(WRTRF),
 
       .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
-      .XMIC_DBG_15_0(XMIC_DBG_15_0)
+      .XMIC_DBG_15_0(XMIC_DBG_15_0),
+      .PF_CAPTURED(PF_CAPTURED)
   );
 
 endmodule
