@@ -299,9 +299,9 @@ commit 4f6feda). Either declare the output or drop the connection.
 
 ### Reading the result
 
-Feed the recovered PC trail to `/mnt/f/tmp/verilog/nd100x_disdrv.c` for
+Feed the recovered PC trail to `$ND120_ORACLE_DIR/nd100x_disdrv.c` for
 disassembly, and check each address against
-`/mnt/f/tmp/verilog/oracle_pc_histogram.txt` to see whether the oracle ever
+`$ND120_ORACLE_DIR/oracle_pc_histogram.txt` to see whether the oracle ever
 executes it. Addresses the oracle never executes are the interesting ones.
 
 
