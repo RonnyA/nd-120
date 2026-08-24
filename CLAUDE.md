@@ -172,12 +172,22 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
 - Also proven on real silicon (Tang Nano 20K): the SDRAM controller, and the
   SD/FAT stack incl. 4-bit-bus transfers.
 - **Clock:** 6.75 MHz is the long-validated speed. A 13.5 MHz variant
-  (`-Variant mid`) closes with 0 setup violations. 27 MHz (`-Variant full`)
-  boots and is visibly faster, but Gowin reports 1667 setup violations
-  against a CPU-domain Fmax of 17.7-19.6 MHz — fast, not timing-clean, and
-  its correctness is UNVERIFIED. The `.sdc` is a single `create_clock` line
-  with no multicycle on the known 52 ns WCS->ACAL path, so the timing numbers
-  are a floor, not a verdict.
+  (`-Variant mid`) closes with 0 setup violations. **27 MHz (`-Variant full`)
+  runs SINTRAN, LIST-FILES and s3** and is visibly faster, but Gowin reports
+  1667 setup violations against a CPU-domain Fmax of 17.7–19.6 MHz — fast and
+  functional, but NOT timing-clean: margin over temperature and voltage is
+  unquantified, so it is not a configuration to trust for long unattended
+  runs or anything writing to the card.
+  - Beware a false signal here: an s3 "hang" at 27 MHz was first read as
+    corruption. It was not. **A slow first start and a quick second start is
+    a caching effect** — first run loads from disc, second finds it resident —
+    and the same apparent hang appears at 13.5 MHz. No comparative startup
+    timing exists between the clock variants; each observation came from a
+    different boot with a different cache state.
+  - The `.sdc` is a single `create_clock` line with no multicycle on the known
+    52 ns WCS→ACAL path, so the timing numbers are a floor, not a verdict.
+    Writing a real `.sdc` is the route to a fast machine that is also
+    defensible.
 
 - Live task list: `Verilog/TODO.md`. Historical latch-refactor notes:
   `Verilog/verilog-remove-latch.md`, `Verilog/worklog-latch-refactor.md`.
