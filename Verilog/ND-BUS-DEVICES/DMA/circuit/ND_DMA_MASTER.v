@@ -126,6 +126,7 @@ module ND_DMA_MASTER #(
   reg [15:0] s_wdata;
   reg [15:0] s_rd_capture;  // last driven bus value seen in the data window
   reg        s_rd_captured;
+  reg [1:0]  s_rd_idle_cnt; // consecutive undriven-bus ticks while BDRY idle
   reg        s_pend;        // EARLY_REREQ: buffered next request
   reg        s_pend_wr;
   reg [23:0] s_pend_addr;
@@ -254,6 +255,7 @@ module ND_DMA_MASTER #(
             end
             BDAP_n  <= 1'b0;
             s_rd_captured <= 1'b0;
+            s_rd_idle_cnt <= 2'd0;
             s_state <= ST_DATA;
           end
         end
@@ -286,11 +288,30 @@ module ND_DMA_MASTER #(
           if (!s_wr && (BD_23_0_n_IN != 24'hFFFFFF) && (BD_23_0_n_IN != 24'h000000)) begin
             s_rd_capture  <= ~BD_23_0_n_IN[15:0];
             s_rd_captured <= 1'b1;
+            s_rd_idle_cnt <= 2'd0;
+          end else if (!s_wr && s_rd_captured && (s_rd_idle_cnt != 2'd3)) begin
+            // Undriven tick: age the capture. A captured value is only
+            // trusted at the BDRY edge while FRESH (bus driven within the
+            // last 2 ticks) - see the acceptance test below.
+            s_rd_idle_cnt <= s_rd_idle_cnt + 2'd1;
           end
           if (BDRY_n == 1'b0) begin
             if (!s_wr) begin
-              dma_rdata <= s_rd_captured ? s_rd_capture
-                                         : ~BD_23_0_n_IN[15:0];
+              // Accept the captured value only if the drive window ran
+              // (near-)contiguously into this BDRY edge: the board may
+              // release its data drivers up to ~2 ticks before the edge
+              // (measured 0-1 ticks), but a CPU-fetch TRANSIENT leaking
+              // through the BIF transceiver sits at least a memory-access
+              // time (~6 ticks) before BDRY, so an age limit of 2 rejects
+              // every transient - including TRAINS of them, which the
+              // earlier clear-after-2-idle-ticks rule could miss when a
+              // new flicker kept resetting the idle counter. For a read
+              // of a ZERO word the answer drives ~0 = 24'hFFFFFF
+              // (idle-indistinguishable), so a stale capture used to win
+              // there; with the age limit the fallback 0 wins instead.
+              dma_rdata <= (s_rd_captured && (s_rd_idle_cnt <= 2'd2))
+                               ? s_rd_capture
+                               : ~BD_23_0_n_IN[15:0];
             end
             // Leading edge of BDRY terminates the grant: release our
             // strobes and data
