@@ -57,6 +57,16 @@ AM29833A_parity_regen_tb: AM29833A_parity_regen_tb.v ../AM29833A.v
 test-uart: SC2661_UART_tb
 	$(VVP) SC2661_UART_tb
 
+# TX abort-on-command-write regression (24-AUG-2026, Nexys LFN campaign):
+# a command write with TxEN=0 must not chop the character in flight and
+# must not strand a THR character written during the disable window.
+test-uart-txabort: SC2661_TX_ABORT_tb
+	$(VVP) SC2661_TX_ABORT_tb | tee txabort_result.tmp
+	@grep -q "TB_RESULT: PASS" txabort_result.tmp && rm -f txabort_result.tmp
+
+SC2661_TX_ABORT_tb: SC2661_TX_ABORT_tb.v ../SC2661_UART.v
+	$(IVERILOG) -g2012 -o $@ $(INCDIRS) SC2661_TX_ABORT_tb.v ../SC2661_UART.v
+
 SC2661_UART_tb: SC2661_UART_tb.v ../SC2661_UART.v
 	$(IVERILOG) -g2012 -o $@ $(INCDIRS) SC2661_UART_tb.v ../SC2661_UART.v
 

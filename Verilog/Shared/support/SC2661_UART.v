@@ -144,7 +144,14 @@ module SC2661_UART (
   `define UART_BAUD_RATE 115_200      // Default: 115200 baud
 `endif
 
-`ifdef VERILATOR_SIM
+`ifdef ND120_UART_DELAY_FRAMES
+  // Explicit override: real-timing UART in simulation. Set to the silicon
+  // clocks-per-bit ratio (Nexys 16.67 MHz / 9600 = 1736) to reproduce
+  // polling-loop pacing that the fast sim UART hides - the FILSYS
+  // "DEVICE NEVER READY" retry path is only reachable when the TX-ready
+  // poll actually spins (24-AUG LIST-FILE-NAMES campaign).
+  localparam DELAY_FRAMES = `ND120_UART_DELAY_FRAMES;
+`elsif VERILATOR_SIM
   localparam DELAY_FRAMES = 32'd16;   // Fast for simulation
 `else
   localparam DELAY_FRAMES = `BOARD_CLK_FREQ / `UART_BAUD_RATE;
@@ -458,13 +465,22 @@ module SC2661_UART (
   // The EPCI is conditioned to transmit data when the CTS input is Low and the TxEN command register bit is set.
   // In this code we just transmit when the TxEN command register bit is set. (Ignore CTS input)
 
-    
-        if (!cmd_txEnabled) begin
-          txState <= TX_STATE_IDLE;
-          txBit <= 1;
-          txBitNumber <= 0;
-          regDataInSendRegister <= 0;
-          txCounter <= 0;
+
+        // TxEN=0 gates STARTING a character, nothing else (real 2661
+        // behavior: "the transmitter completes the character in progress",
+        // and the THR content is never destroyed by disabling).
+        // The old code here reset the whole TX machine on !TxEN:
+        //   - a character in flight was chopped -> misframed garbage on the
+        //     console whenever software wrote the command register during
+        //     output (FILSYS does, every status poll);
+        //   - regDataInSendRegister was cleared -> a THR character written
+        //     in the same window was stranded forever (measured 24-AUG in
+        //     the dmaSim real-timing LFN run: txhold=3E '>' pending,
+        //     insend=0, TX idle, status claiming ready - console dead).
+        // See fpga/nexys4ddr/HANDOFF-floppy-dma-investigation.md 24-AUG.
+        if (!cmd_txEnabled && txState == TX_STATE_IDLE) begin
+          txBit <= 1;          // hold MARK while disabled and idle
+          txCounter <= 0;      // pending THR (if any) waits for TxEN
         end else begin
           case (txState)
             TX_STATE_IDLE: begin
