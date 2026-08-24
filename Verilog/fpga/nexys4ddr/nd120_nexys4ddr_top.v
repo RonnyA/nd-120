@@ -213,6 +213,9 @@ module nd120_nexys4ddr_top (
   wire        s_debug_mr_n, s_debug_clear_n, s_debug_refrq_n;
   wire        s_debug_intrq_n, s_debug_powfail_n;
   wire [15:0] s_debug_fidbo, s_ireq_15_0_n, s_xmic_dbg;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)   // keep the name for the ILA (build.tcl ila flag)
+`endif
   wire        cpu_txd;
   wire [15:0] DMA_RDATA;
   wire        DMA_ACK, DMA_ERR, DMA_BUSY;
@@ -558,11 +561,46 @@ module nd120_nexys4ddr_top (
 
   /**********************************************
   *  7-segment display                          *
-  *  sw[0] low  = microcode address (CSA)       *
-  *  sw[0] high = latched address bus           *
+  *  sw[15:14] = 00: sw[0] picks CSA / LA (as before)                       *
+  *  sw[15:14] = 01: {FDISK req count[7:0], done count[7:0]}                *
+  *  sw[15:14] = 10: {err count[7:0], first err code, last err code}        *
+  *  sw[15:14] = 11: first FDISK_LSECT requested                            *
+  *  Floppy-DMA debug taps (22-AUG-2026): counts every FDISK_REQ /          *
+  *  FDISK_DONE / FDISK_ERR on the seam between ND_FLOPPY_DMA and           *
+  *  nd_storage_floppy_adapter, latches the first error code, the last      *
+  *  error code and the first requested logical sector. Observation only.   *
   ***********************************************/
-  wire [15:0] seg_value = sw[0] ? {2'b0, s_debug_la_23_10}
-                                : {3'b0, CSA_12_0};
+  reg [7:0]  dbg_freq_cnt  = 8'd0;
+  reg [7:0]  dbg_fdone_cnt = 8'd0;
+  reg [7:0]  dbg_ferr_cnt  = 8'd0;
+  reg [3:0]  dbg_code_first = 4'd0, dbg_code_last = 4'd0;
+  reg [15:0] dbg_lsect_first = 16'd0;
+  reg        dbg_have_lsect = 1'b0, dbg_have_code = 1'b0;
+  always @(posedge clk_cpu) begin
+    if (FDISK_REQ) begin
+      dbg_freq_cnt <= dbg_freq_cnt + 8'd1;
+      if (!dbg_have_lsect) begin
+        dbg_lsect_first <= FDISK_LSECT;
+        dbg_have_lsect  <= 1'b1;
+      end
+    end
+    if (FDISK_DONE) dbg_fdone_cnt <= dbg_fdone_cnt + 8'd1;
+    if (FDISK_DONE && FDISK_ERR) begin
+      dbg_ferr_cnt  <= dbg_ferr_cnt + 8'd1;
+      dbg_code_last <= FDISK_ERR_CODE;
+      if (!dbg_have_code) begin
+        dbg_code_first <= FDISK_ERR_CODE;
+        dbg_have_code  <= 1'b1;
+      end
+    end
+  end
+
+  wire [15:0] seg_value =
+      (sw[15:14] == 2'b01) ? {dbg_freq_cnt, dbg_fdone_cnt} :
+      (sw[15:14] == 2'b10) ? {dbg_ferr_cnt, dbg_code_first, dbg_code_last} :
+      (sw[15:14] == 2'b11) ? dbg_lsect_first :
+      sw[0] ? {2'b0, s_debug_la_23_10}
+            : {3'b0, CSA_12_0};
   wire [6:0] nd_seg;
   wire [3:0] nd_an;
 

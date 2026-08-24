@@ -50,6 +50,9 @@ module IO_UART_42 (
   wire [ 7:0] s_idb_7_0_in;
   wire [ 1:0] s_mis_1_0;
 
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire [15:0] s_io_idb_15_0_out;
   wire [ 7:0] s_uart_idb_7_0_out;
 
@@ -57,10 +60,21 @@ module IO_UART_42 (
 
   wire        s_ceuart_n;
   wire        s_clk;
+  // ND120_ILA_MARK_DEBUG (Nexys build.tcl -tclargs ila): keep the console
+  // status-capture nets through synthesis so the JTAG ILA can compare the
+  // LIVE TBMT_n against the CHIP_33G-captured IOR bit and see whether the
+  // FF-mode CLK_EN capture pulse arrives (LIST-FILE-NAMES never-ready
+  // campaign, 24-AUG). No functional effect; define set only by that flag.
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire        s_clk_en;
   wire        s_console_n;
   wire        s_da_n;
   wire        s_eauto_n;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire        s_eiorn_n;
   wire        s_gnd;
   wire        s_lcs_n;
@@ -69,6 +83,9 @@ module IO_UART_42 (
   wire        s_ruart_n;
   wire        s_rx;
   wire        s_rxd;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire        s_tbmt_n;
   wire        s_txd;
   wire        s_xtr;

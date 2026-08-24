@@ -266,6 +266,31 @@ module IO_REG_41 (
       })
   );
 
+`ifdef ND120_INT12_PROBE
+  // Sim-only diagnostic (24-AUG TPE deaf-prompt hunt): log the console
+  // interrupt enables (IOC bits), DA, and the BINT10/12/13 lines on every
+  // change. Shows whether TPE ever enables the console input interrupt
+  // (IOC1) and whether BINT12 fires when a character arrives.
+  reg [7:0] r_i12_prev;
+  always @(posedge sysclk) begin : int12_probe
+    reg [7:0] now;
+    now = {s_ioc_0, s_ioc_1, s_ioc_2, s_ioc_3, s_da, s_bint10_n, s_bint12_n, s_bint13_n};
+    if (now != r_i12_prev)
+      $display("[int12] t=%0t ioc0=%b ioc1=%b ioc2=%b ioc3=%b da=%b bint10_n=%b bint12_n=%b bint13_n=%b",
+               $time, now[7], now[6], now[5], now[4], now[3], now[2], now[1], now[0]);
+    r_i12_prev <= now;
+  end
+  // log every SIOC strobe with the IDB byte being written to the IOC
+  // register - distinguishes "TPE never asks for the input interrupt"
+  // from "the FF-mode strobe capture lost bit 1".
+  reg r_i12_sioc_prev;
+  always @(posedge sysclk) begin
+    if (!s_sioc_n && r_i12_sioc_prev)
+      $display("[int12] t=%0t SIOC write IDB=%03o", $time, s_ioc_idb_7_0_in);
+    r_i12_sioc_prev <= s_sioc_n;
+  end
+`endif
+
 endmodule
 
 

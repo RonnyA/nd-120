@@ -54,11 +54,26 @@ module CGA_MAC (
   wire [ 4:0] s_cscomm_4_0;
   wire [ 7:0] s_seg_7_0;
   wire [ 9:0] s_mca_9_0_out;
+  // ND120_ILA_MARK_DEBUG (Nexys build.tcl -tclargs ila): keep the three
+  // address-chain nets through synthesis so the JTAG ILA can probe the
+  // stages of the LIST-FILE-NAMES wrong-indirect-jump fault:
+  //   s_cd_15_0 (memory data in) -> s_ica_15_0 (AP09 effective-address
+  //   mux out) -> s_la_23_10_out (LA1025 physical address out).
+  // No functional effect; the define is set only by that build flag.
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire [13:0] s_la_23_10_out;
   wire [15:0] s_add_15_0;
   wire [15:0] s_br_15_0;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire [15:0] s_cd_15_0;
   wire [15:0] s_fidbo_15_0;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire [15:0] s_ica_15_0;
   wire [15:0] s_lca_15_0;
   wire [15:0] s_nlca_15_0_out;
