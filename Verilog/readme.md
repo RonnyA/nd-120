@@ -13,9 +13,12 @@ Verilator compiles and runs the full boot path: microcode load, "Master Clear",
 then the MACL CPU self-test (**passes clean - 0 STERR visits**, measured 13-JUL
 with the runSim ND120_COUNT_STERR probe; the old "7 of 14" figure predated the
 07-JUL transparent-latch fix), after which OPCOM UART communication works (use
-the `runSim/` harness to interact with it). FPGA
-synthesis passes but implementation/boot does not yet run correctly — closing the
-latch-vs-flip-flop timing gap is the current focus.
+the `runSim/` harness to interact with it).
+
+**SINTRAN III boots on FPGA silicon (Tang Nano 20K, 24-AUG-2026)** — see the
+`ND3202D.v:533` bus bank-decode fix in `HISTORY.md`. The board runs at
+6.75 MHz validated, 13.5 MHz timing-clean, and 27 MHz boots but does not close
+timing.
 
 | Folder                                         | Status Logisim           |  Status Verilog                                | Status Vivado                         | Comment    |
 |------------------------------------------------|--------------------------|------------------------------------------------|---------------------------------------|------------|
