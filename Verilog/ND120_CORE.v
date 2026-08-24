@@ -86,6 +86,16 @@ module ND120_CORE #(
     parameter [15:0] HWINFO2 = `ND120_HWINFO2, //! CPU TYPE   (16'hFFFF = "not present")
     parameter [ 7:0] NLEGU   = `ND120_NLEGU    //! legal users (8'o377  = "not present")
 ) (
+`ifdef ND120_ERRFA_PROBE
+    input  wire ERRFA_CONTX,  // console TX line in (probe arming)
+    output wire ERRFA_TXD,    // SINTRAN ERRFATAL evidence probe TX (MEM RAM probe)
+    // device-chain IOX seam, exported for the board-level WD-IOX ring
+    output wire [15:0] ERRFA_IOX_ADDR,
+    output wire        ERRFA_IOX_RD,
+    output wire        ERRFA_IOX_WR,
+    output wire [15:0] ERRFA_IOX_WDATA,
+    output wire [15:0] ERRFA_IOX_RDATA,
+`endif
     /***************************************************
      *  (a) CLOCK / RESET                              *
      ***************************************************/
@@ -259,6 +269,10 @@ module ND120_CORE #(
     output wire [15:0] DBG_MEMW,     //! write-path debug bus from MEM_43
     output wire [15:0] DBG_PTW,      //! page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
     output wire [20:0]        PF_CAPTURED,  //! ND120_PF_CAPTURE freeze flag (23-AUG)
+    //! DEBUG stage timer (24-AUG-2026): [0] Winchester controller active,
+    //! [1] the Winchester's DMA master busy. Used to find where a disc
+    //! operation's ~1 s of wall clock actually goes.
+    output wire [1:0]         DBG_WDSTAGE,
     output wire [13:0]        DBG_PPN,      //! physical page number PPN[23:10] (24-AUG)
     output wire [15:0]        DBG_PGW       //! SDRAM-bridge page-write watch (24-AUG)
 `ifdef ND_STORAGE_PORT
@@ -460,6 +474,14 @@ module ND120_CORE #(
 `endif
   wire [15:0] s_dev_ident_code  = s_tape_code  | s_flp_code  | s_smd_code  | s_wd_code;
   wire        s_dev_iox_hit     = s_tape_sel   | s_flp_sel   | s_smd_sel   | s_wd_sel;
+
+`ifdef ND120_ERRFA_PROBE
+  assign ERRFA_IOX_ADDR  = s_dev_iox_addr;
+  assign ERRFA_IOX_RD    = s_dev_iox_rd;
+  assign ERRFA_IOX_WR    = s_dev_iox_wr;
+  assign ERRFA_IOX_WDATA = s_dev_iox_wdata;
+  assign ERRFA_IOX_RDATA = s_dev_iox_rdata;
+`endif
 
   // DMA grant chain (active low): CPU OUTGRANT_n -> test master -> floppy
   // master -> SMD master. Declared up front: s_grant_fdma_smdm_n is used by
@@ -799,6 +821,7 @@ module ND120_CORE #(
       wire [23:0] s_wd_addr;
       wire [15:0] s_wd_wdata, s_wd_rdata_dma;
       wire        s_wd_ack, s_wd_err, s_wd_busy;
+      wire        s_wd_dbg_active;
 
       ND_WINCHESTER #(
           .BASE_ADDR  (16'o000500),
@@ -844,6 +867,7 @@ module ND120_CORE #(
           .dma_ack(s_wd_ack),
           .dma_err(s_wd_err),
           .dma_busy(s_wd_busy),
+          .dbg_active(s_wd_dbg_active),
           .disk_start(WDISK_START),
           .disk_req(WDISK_REQ),
           .disk_wr(WDISK_WR),
@@ -859,6 +883,9 @@ module ND120_CORE #(
           .dbuf_we(WDBUF_WE),
           .dbuf_rdata(WDBUF_RDATA)
       );
+
+      // stage timer: [0] controller active, [1] its DMA master busy
+      assign DBG_WDSTAGE = {s_wd_busy, s_wd_dbg_active};
 
       ND_DMA_MASTER #(
           .TIMEOUT_TICKS(16'd8192)
@@ -939,6 +966,7 @@ module ND120_CORE #(
       assign s_wdm_binput_n  = 1'b1;
       assign s_wdm_bdap_n    = 1'b1;
       assign WDISK_START     = 1'b0;
+      assign DBG_WDSTAGE     = 2'b00;
       assign WDISK_REQ       = 1'b0;
       assign WDISK_WR        = 1'b0;
       assign WDISK_BLKADDR1  = 16'd0;
@@ -1041,6 +1069,10 @@ module ND120_CORE #(
   ***********************************************/
 
   ND3202D CPU_BOARD (
+`ifdef ND120_ERRFA_PROBE
+      .ERRFA_CONTX(ERRFA_CONTX),
+      .ERRFA_TXD(ERRFA_TXD),
+`endif
       .sysclk(clk_cpu),   // CPU core, OSC and bus all share one domain
       .sys_rst_n(sys_rst_n),
       .CLOCK_1(clk_cpu),  // XTAL1 = 39.3216MHZ on the real board

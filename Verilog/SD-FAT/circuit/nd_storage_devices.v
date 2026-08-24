@@ -127,6 +127,9 @@ module nd_storage_devices #(
     output wire       sd_dat0_o,
     output wire       sd_dat0_oe,
     // DAT1-3: 4-bit data bus (USE_4BIT). Released when not in 4-bit mode.
+    //! DEBUG stage-timer taps (24-AUG-2026)
+    output wire       dbg_sd_busy,
+    output wire       dbg_cache_pend,
     input  wire       sd_dat1_i,
     output wire       sd_dat1_o,
     output wire       sd_dat1_oe,
@@ -631,6 +634,8 @@ module nd_storage_devices #(
       .sd_dat0_i (sd_dat0_i),
       .sd_dat0_o (sd_dat0_o),
       .sd_dat0_oe(sd_dat0_oe),
+      .dbg_sd_busy   (dbg_sd_busy),
+      .dbg_cache_pend(dbg_cache_pend),
       .sd_dat1_i (sd_dat1_i),
       .sd_dat1_o (sd_dat1_o),
       .sd_dat1_oe(sd_dat1_oe),

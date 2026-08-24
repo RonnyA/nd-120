@@ -127,6 +127,9 @@ module nd_storage #(
     output wire sd_dat0_oe,
     // DAT1-3: driven only in 4-bit mode (USE_4BIT); released otherwise, and
     // the slot's external pull-ups hold them high.
+    //! DEBUG stage-timer taps (24-AUG-2026), see nd_storage_engine.
+    output wire dbg_sd_busy,
+    output wire dbg_cache_pend,
     input  wire sd_dat1_i,
     output wire sd_dat1_o,
     output wire sd_dat1_oe,
@@ -555,6 +558,8 @@ module nd_storage #(
       .sdw_start      (e_sdw_start),
       .sdw_sector     (e_sdw_sector),
       .sdw_busy       (sdw_busy),
+      .dbg_sd_busy   (dbg_sd_busy),
+      .dbg_cache_pend(dbg_cache_pend),
       .sdw_done       (sdw_done),
       .sdw_err        (sdw_err),
       .sdw_rd_addr    (sdw_rd_addr),

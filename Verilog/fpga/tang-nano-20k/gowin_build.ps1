@@ -42,7 +42,8 @@ param(
     [switch]$PfPath,
     [switch]$PtOrder,
     [switch]$PfLog,
-    [switch]$PgWrite
+    [switch]$PgWrite,
+    [switch]$StageTimer
 )
 
 $ErrorActionPreference = "Stop"
@@ -155,6 +156,17 @@ if ($PgWrite) {
     Write-Host "             1016..1023 (both banks), i.e. the page the CPU fetches"
     Write-Host "             zeros from. Answers whether ANY write ever reached it."
     Write-Host "             Decode with pgw_capture_decode.py"
+}
+if ($StageTimer) {
+    if ($PfCapture -or $PcHistory -or $JplCapture -or $PtwrCapture -or $PfPath -or $PtOrder -or $PfLog -or $PgWrite) {
+        Write-Error "-StageTimer is MUTUALLY EXCLUSIVE with the other capture switches - one capture ring."
+        exit 1
+    }
+    $variantContent += "``define TANG_STAGE_TIMER`n"
+    Write-Host "STAGE TIMER: ENABLED - accumulates ticks per disc-operation stage"
+    Write-Host "             (Winchester active, DMA, SD read, cache lookup) and"
+    Write-Host "             dumps the totals. Answers where a disc operation's"
+    Write-Host "             ~1 s actually goes. Decode with stage_timer_decode.py"
 }
 if ($DiscsUncached) {
     # ND_STORAGE_DISCS_UNCACHED (nd_storage_devices.v, 09-AUG diagnostic

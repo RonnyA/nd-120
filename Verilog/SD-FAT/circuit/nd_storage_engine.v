@@ -119,6 +119,10 @@ module nd_storage_engine #(
     output reg         sdw_start,
     output reg  [31:0] sdw_sector,
     input  wire        sdw_busy,
+    //! DEBUG (24-AUG-2026) stage-timer taps: is the card being read, and is a
+    //! cache lookup outstanding. Used to find where a disc operation's time goes.
+    output wire        dbg_sd_busy,
+    output wire        dbg_cache_pend,
     input  wire        sdw_done,
     input  wire        sdw_err,
     input  wire [8:0]  sdw_rd_addr,  // sd_writer byte fetch (2-clk registered)
@@ -312,6 +316,24 @@ module nd_storage_engine #(
   // FAT sector + in-sector byte offset of the current cluster's entry
   wire [31:0] s_fat_sec = fat0_sector + (fat_is_fat32 ? {7'd0, s_cur_clu[27:7]}
                                                       : {12'd0, s_cur_clu[27:8]});
+  // In-sector chain following (24-AUG-2026): the entry value being completed
+  // THIS cycle - its last byte is on sdw_rx_data, the rest already in the
+  // accumulator - and whether the cluster it names lives later in this same
+  // FAT sector, which is what makes a bufferless multi-hop pass possible.
+  reg         s_insec;                       // this pass already advanced
+  wire [31:0] s_nxt32 = {sdw_rx_data, s_fat_acc[23:0]};
+  wire [15:0] s_nxt16 = {sdw_rx_data, s_fat_acc[7:0]};
+  wire [27:0] s_nxt_clu = fat_is_fat32 ? s_nxt32[27:0] : {12'd0, s_nxt16};
+  // same 512-byte FAT sector? FAT32 packs 128 entries (clu[27:7]), FAT16 256
+  wire        s_nxt_same_sec = fat_is_fat32
+                             ? (s_nxt_clu[27:7] == s_cur_clu[27:7])
+                             : (s_nxt_clu[27:8] == s_cur_clu[27:8]);
+  wire [8:0]  s_nxt_off = fat_is_fat32 ? {s_nxt_clu[6:0], 2'b00}
+                                       : {s_nxt_clu[7:0], 1'b0};
+  // only follow FORWARD within the pass - an earlier offset has already
+  // streamed past and would need another read anyway
+  wire        s_nxt_later = (s_nxt_off > sdw_rx_addr);
+
   wire [8:0]  s_ent_off = fat_is_fat32 ? {s_cur_clu[6:0], 2'b00}
                                        : {s_cur_clu[7:0], 1'b0};
   wire [27:0] s_fclu_g  = first_cluster[28*s_grant +: 28];
@@ -557,6 +579,7 @@ module nd_storage_engine #(
       s_fat_acc        <= 32'd0;
       s_data_start     <= 32'd0;
       s_l2c            <= 3'd0;
+      s_insec          <= 1'b0;
       s_grant          <= 3'd0;
       // client 0 scanned first. The truncation is SAFE here and only here:
       // at N_CLIENTS==8, N_CLIENTS[2:0] is 3'b000 and 0-1 wraps to 7, which
@@ -1065,6 +1088,7 @@ module nd_storage_engine #(
             sdw_burst_len <= 9'd1;
             sdw_sector    <= s_fat_sec;
             s_fat_acc     <= 32'd0;
+            s_insec       <= 1'b0;
             s_state       <= F_FAT_WAIT;
           end else if (s_wd_hit) begin
             s_err_c    <= 1'b1;
@@ -1075,9 +1099,27 @@ module nd_storage_engine #(
         end
 
         F_FAT_WAIT: begin
-          // Capture only the entry's bytes as the sector streams by - no
-          // FAT sector buffer anywhere (LUT/BSRAM budget; the memo makes
-          // the steady state 0..1 hops so re-reads are rare).
+          // Capture the entry's bytes as the sector streams by - no FAT sector
+          // buffer anywhere (LUT/BSRAM budget).
+          //
+          // IN-SECTOR CHAIN FOLLOWING (24-AUG-2026). The original design took
+          // ONE hop per card read, on the assumption that access is sequential
+          // and the per-client memo makes the steady state 0..1 hops
+          // (docs/PLAN-fatwalk-runtime.md). SINTRAN's demand paging is RANDOM,
+          // so nearly every access is a backward seek that restarts at the
+          // chain head - hundreds of hops, each its own CMD17. Measured on
+          // silicon: 351 ms of the 362 ms a disc operation costs is SD read
+          // time, ~200x the wire rate.
+          //
+          // The fix needs no buffer. FAT32 packs 128 entries per 512-byte
+          // sector, and for a contiguous run the next cluster's entry lies
+          // LATER IN THE SAME SECTOR. So when an entry completes mid-stream,
+          // advance the walk immediately: s_ent_off is combinational from
+          // s_cur_clu, so the capture retargets itself and the same pass keeps
+          // following the chain. One card read can now cover up to a whole
+          // sector's worth of hops instead of one.
+          //
+          // Escape hatch: -DND_STORAGE_FAT_ONEHOP restores one hop per read.
           if (sdw_rx_we) begin
             if (sdw_rx_addr == s_ent_off)
               s_fat_acc[7:0]   <= sdw_rx_data;
@@ -1087,11 +1129,35 @@ module nd_storage_engine #(
               s_fat_acc[23:16] <= sdw_rx_data;
             if (fat_is_fat32 && sdw_rx_addr == s_ent_off + 9'd3)
               s_fat_acc[31:24] <= sdw_rx_data;
+`ifndef ND_STORAGE_FAT_ONEHOP
+            // The entry completes on its last byte; that byte is on sdw_rx_data
+            // this cycle, so form the value here rather than a cycle later.
+            if (fat_is_fat32 ? (sdw_rx_addr == s_ent_off + 9'd3)
+                             : (sdw_rx_addr == s_ent_off + 9'd1)) begin
+              if (!(fat_is_fat32
+                     ? (s_nxt32[27:0] >= 28'hFFFFFF7 || s_nxt32[27:0] < 28'd2)
+                     : (s_nxt16       >= 16'hFFF7    || s_nxt16       < 16'd2))
+                  && (s_cur_idx != s_tgt_idx)
+                  && s_nxt_same_sec && s_nxt_later) begin
+                s_cur_clu <= fat_is_fat32 ? s_nxt32[27:0] : {12'd0, s_nxt16};
+                s_cur_idx <= s_cur_idx + 20'd1;
+                s_hops    <= s_hops + 18'd1;
+                s_fat_acc <= 32'd0;
+                s_insec   <= 1'b1;   // this pass already advanced
+              end
+            end
+`endif
           end
           if (sdw_err) begin
             s_err_c    <= 1'b1;
             s_err_code <= `NDS_ERR_CARDIO;
             s_state    <= E_DONE;
+          end else if (sdw_done && s_insec) begin
+            // This pass already followed the chain in-sector; the walk state
+            // is current, so just re-evaluate (F_STEP either finishes or reads
+            // the next FAT sector).
+            s_insec <= 1'b0;
+            s_state <= F_STEP;
           end else if (sdw_done) begin
             // FAT16 EOC: masked >= FFF7; FAT32: bits[27:0] >= 0FFFFF7 with
             // the top nibble ignored (same shapes as nd_storage_fatchk.v).
@@ -1301,5 +1367,8 @@ module nd_storage_engine #(
       assign size_bytes[32*gc +: 32] = r_size;
     end
   endgenerate
+
+  assign dbg_sd_busy    = sdw_busy;
+  assign dbg_cache_pend = cache_lookup_req;
 
 endmodule

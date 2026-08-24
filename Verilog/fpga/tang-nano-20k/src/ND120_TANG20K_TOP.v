@@ -202,6 +202,8 @@ module ND120_TANG20K_TOP (
   // [7] = wdec (F924 A160 D3 decode input), [6] = WRITE (registered out).
   wire [15:0] s_dbg_memw;
   wire [15:0] s_dbg_ptw;   // page-table write stream from CPU_MMU_24 (23-AUG)
+  wire [1:0]  s_dbg_wdstage;   // [0] WD controller active, [1] its DMA busy
+  wire        s_dbg_sd_busy, s_dbg_cache_pend;
   wire [15:0] s_dbg_pgw;    // SDRAM-bridge page-write watch (24-AUG zero-page campaign)
   wire [13:0] s_dbg_ppn;    // physical page number PPN[23:10] (24-AUG zero-fetch campaign)
   wire [20:0] s_pf_captured; // ND120_PF_CAPTURE: [0] frozen, [1] no-permit access pulse, [2] fault pulse at the matched page, [3] fault pulse ANY address with [13:4]=LA[19:10] [20:14]=PT[15:9] (23-AUG)
@@ -483,6 +485,98 @@ module ND120_TANG20K_TOP (
   wire        s_cap_event = ((s_pil_3_0 == 4'd14) && (s_xmic_dbg[15:0] == 16'o004546))
                           || s_hang;
   localparam [8:0] CAP_POST = 9'd8;
+`elsif TANG_STAGE_TIMER
+  // ---------------------------------------------------------------------------
+  // WHERE DOES A DISC OPERATION'S ~1 SECOND GO?  (24-AUG-2026)
+  //
+  // Measured: the oracle needs 221 disc operations to start S3; the Tang takes
+  // 234 s for the same step, and led[0] blinks about once a second - so the
+  // COUNT is sane and each operation costs ~1 s. The known terms account for
+  // ~23 ms of that: 8 ms modelled drive latency (ND120_CORE.v:373), ~6 ms of
+  // SD wire time, ~7.7 ms of DMA, ~1.4 ms of CDC handshake. ~977 ms per
+  // operation is unexplained, and guessing which stage owns it has been wrong
+  // twice, so this measures every stage instead.
+  //
+  // Free-running tick accumulators, all on clk_cpu, dumped as totals:
+  //   t_wd    ticks while the Winchester controller is ACTIVE (a command is
+  //           outstanding) - the wall clock a disc operation costs
+  //   t_dma   ticks while that card's DMA master is busy
+  //   t_sd    ticks while the SD writer is reading the card
+  //   t_cache ticks while a cache lookup is outstanding
+  //   n_ops   completed operations (falling edge of active)
+  //   t_all   total ticks, so shares can be worked out
+  //
+  // READING IT: t_wd/n_ops is the true per-operation cost. If t_dma, t_sd and
+  // t_cache together are far less than t_wd, the card is idle and WAITING -
+  // and none of the three suspects is the answer.
+  reg [39:0] t_all = 40'd0, t_wd = 40'd0, t_dma = 40'd0, t_sd = 40'd0, t_cache = 40'd0;
+  reg [23:0] n_ops = 24'd0;
+  reg        wd_act_d = 1'b0;
+  always @(posedge clk_cpu) begin
+    t_all <= t_all + 40'd1;
+    if (s_dbg_wdstage[0])  t_wd    <= t_wd    + 40'd1;
+    if (s_dbg_wdstage[1])  t_dma   <= t_dma   + 40'd1;
+    if (s_dbg_sd_busy)     t_sd    <= t_sd    + 40'd1;
+    if (s_dbg_cache_pend)  t_cache <= t_cache + 40'd1;
+    wd_act_d <= s_dbg_wdstage[0];
+    if (wd_act_d && !s_dbg_wdstage[0]) n_ops <= n_ops + 24'd1;
+  end
+
+  // Dump on the frozen-CSA detector or on a long timer, whichever comes first;
+  // the operator simply lets S3 run and the totals cover the whole window.
+  // 36 bits: bit 33 is the ~5.3 minute mark at 27 MHz (2^33 / 27e6 = 318 s),
+  // long enough to cover a cold S3 start. A 32-bit counter cannot be indexed
+  // at [33] - Gowin catches that as EX3784 where a -Wno-fatal lint does not.
+  reg [35:0] st_tmr = 36'd0;
+  always @(posedge clk_cpu) if (cap_armed && !cap_trig) st_tmr <= st_tmr + 36'd1;
+
+  // Serialise the counters into the ring CONTINUOUSLY, on clk2x (the ring's
+  // own domain), so the last 18 records before the freeze are always a fresh
+  // snapshot. The first version emitted records only AFTER cap_trig, which
+  // cannot work: this ring is a PRE-trigger recorder and `cap_post` counts
+  // down in clk2x CYCLES, not strobes, so the window shuts microseconds after
+  // the trigger and nothing was ever written. Measured 24-AUG-2026: zero
+  // records dumped.
+  reg [4:0]  st_idx = 5'd0;
+  reg [9:0]  st_div = 10'd0;
+  reg [19:0] st_word = 20'd0;
+  reg        st_stb = 1'b0;
+  always @(posedge clk2x) begin
+    st_stb <= 1'b0;
+    st_div <= st_div + 10'd1;
+    if (st_div == 10'd0) begin          // one record per 1024 clk2x cycles
+      st_stb <= 1'b1;
+      st_idx <= (st_idx == 5'd17) ? 5'd0 : st_idx + 5'd1;
+      case (st_idx)
+        5'd0:  st_word <= {4'h1, t_all[15:0]};
+        5'd1:  st_word <= {4'h1, t_all[31:16]};
+        5'd2:  st_word <= {4'h1, 8'd0, t_all[39:32]};
+        5'd3:  st_word <= {4'h2, t_wd[15:0]};
+        5'd4:  st_word <= {4'h2, t_wd[31:16]};
+        5'd5:  st_word <= {4'h2, 8'd0, t_wd[39:32]};
+        5'd6:  st_word <= {4'h3, t_dma[15:0]};
+        5'd7:  st_word <= {4'h3, t_dma[31:16]};
+        5'd8:  st_word <= {4'h3, 8'd0, t_dma[39:32]};
+        5'd9:  st_word <= {4'h4, t_sd[15:0]};
+        5'd10: st_word <= {4'h4, t_sd[31:16]};
+        5'd11: st_word <= {4'h4, 8'd0, t_sd[39:32]};
+        5'd12: st_word <= {4'h5, t_cache[15:0]};
+        5'd13: st_word <= {4'h5, t_cache[31:16]};
+        5'd14: st_word <= {4'h5, 8'd0, t_cache[39:32]};
+        5'd15: st_word <= {4'h6, n_ops[15:0]};
+        5'd16: st_word <= {4'h6, 8'd0, n_ops[23:16]};
+        default: st_word <= {4'h7, 16'hA5A5};   // frame marker
+      endcase
+    end
+  end
+
+  wire [19:0] s_cap_src   = st_word;
+  wire        s_cap_stb   = st_stb;
+  wire        s_cap_arm   = cap_armed;
+  wire        s_hang      = &csa_stable;
+  // freeze ~318 s after arming (2^33 clk_cpu ticks at 27 MHz) - mid-S3
+  wire        s_cap_event = st_tmr[33] || s_hang;
+  localparam [8:0] CAP_POST = 9'd2;
 `elsif TANG_PGW_CAPTURE
   // ---------------------------------------------------------------------------
   // DID ANY WRITE EVER REACH THE PAGE THE CPU FETCHES ZEROS FROM?
@@ -1643,8 +1737,14 @@ module ND120_TANG20K_TOP (
       end
     end
   end
+  // FIXED 24-AUG-2026: this was hardcoded 1406, i.e. 13.5 MHz / 9600, which is
+  // right ONLY for the slow bring-up variant. The dumper is clocked on clk2x,
+  // which is 2 x BOARD_CLK_FREQ - so at -Variant full (clk2x 54 MHz) every
+  // capture dump went out at ~38400 baud while the reader listened at 9600,
+  // and arrived as garbage. Measured: two stage-timer runs produced "no
+  // records" and looked like a stripped probe. Derive it instead.
   uart_tx #(
-      .DELAY_FRAMES(1406)  // 13.5 MHz / 9600
+      .DELAY_FRAMES((2 * `BOARD_CLK_FREQ) / `UART_BAUD_RATE)
   ) u_dbg_tx (
       .clk(clk2x),
       .rst_n(sys_rst_n),
@@ -1698,6 +1798,10 @@ module ND120_TANG20K_TOP (
   // dumper takes the TX pin and streams the ring of {tag,addr,data} write
   // records. WITHOUT this branch the ring is dead logic and synthesis strips
   // the whole probe (the TANG_PF_CAPTURE lesson two branches up).
+  assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
+`elsif TANG_STAGE_TIMER
+  // Stage timer: the dumper streams the tick totals once the window closes.
+  // Without this branch synthesis strips the whole probe.
   assign uart_txp = dbg_dumping ? dbg_txd : cpu_txd;
 `elsif TANG_PGW_CAPTURE
   // Page-write watch: after the ERRFATAL/frozen-CSA trigger the dumper takes
@@ -1988,6 +2092,8 @@ module ND120_TANG20K_TOP (
       .sd_dat0_i (sd_dat0),
       .sd_dat0_o (s_sd_dat0_o),
       .sd_dat0_oe(s_sd_dat0_oe),
+      .dbg_sd_busy   (s_dbg_sd_busy),
+      .dbg_cache_pend(s_dbg_cache_pend),
       .sd_dat1_i (sd_dat1),
       .sd_dat1_o (s_sd_dat1_o),
       .sd_dat1_oe(s_sd_dat1_oe),
@@ -2293,6 +2399,7 @@ module ND120_TANG20K_TOP (
       .DBG_MEMW(s_dbg_memw),
       .DBG_PTW(s_dbg_ptw),   // page-table write stream (23-AUG, zero-read campaign)
       .PF_CAPTURED(s_pf_captured),
+      .DBG_WDSTAGE(s_dbg_wdstage),
       .DBG_PPN(s_dbg_ppn),
       .DBG_PGW(s_dbg_pgw),
 

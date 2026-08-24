@@ -57,11 +57,19 @@ module rPLL (output CLKOUT, output LOCK, output CLKOUTP, output CLKOUTD,
 endmodule
 STUB
   # shellcheck disable=SC2086
-  if verilator --lint-only -Wno-fatal --top-module ND120_TANG20K_TOP \
-       $incs "$stub" $files 2>&1 | grep -q '%Error'; then
+  # Grep for %Error AND the warning classes that Gowin treats as hard errors.
+  # Measured 24-AUG-2026: `st_tmr[33]` on a 32-bit reg passed this check
+  # (verilator calls it a warning) and then failed synthesis 20 minutes later
+  # with EX3784 "Index 33 is out of range". Catching it here is free.
+  lintout=$(verilator --lint-only -Wno-fatal --top-module ND120_TANG20K_TOP \
+              $incs "$stub" $files 2>&1)
+  if printf '%s' "$lintout" | grep -q '%Error'; then
     bad "board top does NOT elaborate - fix before building"
+  elif printf '%s' "$lintout" | grep -qE 'SELRANGE|Index .* out of range'; then
+    bad "out-of-range bit select - Gowin will reject this (EX3784)"
+    printf '%s' "$lintout" | grep -E 'SELRANGE|out of range' | head -3 | sed 's/^/        /'
   else
-    good "board top elaborates"
+    good "board top elaborates, no out-of-range selects"
   fi
   rm -f "$stub"
 else

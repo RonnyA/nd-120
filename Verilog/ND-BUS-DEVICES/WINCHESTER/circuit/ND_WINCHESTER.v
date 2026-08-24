@@ -149,6 +149,9 @@ module ND_WINCHESTER #(
     // its own, because the card is also quiet for many seconds while the
     // diagnostic collects its prompts from the operator.
     output reg         trace_done,
+    //! DEBUG (24-AUG-2026): the controller-active flag, for the stage timer
+    //! that measures WHERE a disc operation's ~1 s actually goes.
+    output wire        dbg_active,
     output wire [3:0]  int_pending,
     input  wire        ident_strobe,
     input  wire [3:0]  ident_level,
@@ -227,6 +230,7 @@ module ND_WINCHESTER #(
   reg        s_int_en;        // b0
   reg        s_errint_en;     // b1
   reg        s_active;        // b2
+  assign dbg_active = s_active;
   reg        s_rft;           // b3  finished with a device operation
   reg        s_rtz_viol;      // b5
   reg        s_time_out;      // b6
