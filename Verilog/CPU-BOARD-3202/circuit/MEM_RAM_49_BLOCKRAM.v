@@ -15,9 +15,12 @@
 **                                                                       **
 ** Capacity: NUM_BANKS x 2^BANK_ADDR_BITS 18-bit words. Default 3 banks  **
 ** x 4K words = 24 KB (Basys3 xc7a35t BRAM budget). Boards with more     **
-** BRAM raise BANK_ADDR_BITS. Linear word address = {col, row} like the  **
-** proven SIP1M9 FPGA path; the low BANK_ADDR_BITS are used, so keep     **
-** test addresses inside a bank to avoid aliasing.                       **
+** BRAM raise BANK_ADDR_BITS (Nexys 4 DDR: ND120_BLOCKRAM_ADDR_BITS=15   **
+** in fpga/nexys4ddr/build.tcl). Linear word address = {row, col}: the   **
+** row captured at RAS is the HIGH CPU address half (PAL 44902A drives   **
+** HIEN during RAS, LOEN during CAS), so lin[BANK_ADDR_BITS-1:0] keeps   **
+** the CONTIGUOUS low CPU address bits - addresses inside a bank slot    **
+** are alias-free.                                                       **
 **                                                                       **
 ** Last reviewed: 8-JUL-2026                                             **
 ** Ronny Hansen                                                          **
@@ -56,7 +59,11 @@ module MEM_RAM_49_BLOCKRAM #(
   // DD[8] and DD[17] are dropped on write and regenerated as ODD parity on
   // read, exactly as MEM_RAM_49_SDRAM and SIP1M9 do. 18 bits wide would have
   // cost extra block RAM to hold bits nothing reads back.
-  (* ram_style = "block", syn_ramstyle = "block_ram" *)
+  // cascade_height = 1: at BANK_ADDR_BITS=15 the 128K-word array otherwise
+  // infers CASCADED RAMB36 pairs, and Vivado's DRC REQP-1962 (cascade ADDR15
+  // tie-off check) rejects the inferred netlist at place_design (measured
+  // 22-AUG-2026, Nexys clk=12 build). Standalone RAMB36 + LUT decode passes.
+  (* ram_style = "block", cascade_height = 1, syn_ramstyle = "block_ram" *)
   reg [15:0] mem[0:(4 << BANK_ADDR_BITS)-1];
 
   // {high byte, low byte} -> full 18-bit word with regenerated odd parity
@@ -78,13 +85,31 @@ module MEM_RAM_49_BLOCKRAM #(
   reg [15:0] rd_raw;
   wire [17:0] rd_q = with_parity(rd_raw);
 
-  // Linear word address {col, row}, low bits (same mapping as the proven
-  // SIP1M9 FPGA path: contiguous CPU addresses stay contiguous)
-  wire [19:0] lin = {AA_9_0, row_q};
+  // Linear word address {row, col}. PAL 44902A (sheet 50) drives HIEN_n
+  // during the RAS phase and LOEN_n during the CAS phase, so the ROW
+  // captured at the RAS edge is the HIGH address half (CPU addr[19:10])
+  // and AA during the window carries the LOW half (CPU addr[9:0]) - the
+  // same order the silicon-proven Tang bridge uses (MEM_RAM_49_SDRAM.v
+  // s_addr = {bank, row_q, AA_9_0}). The 22-AUG-2026 Nexys 400& fault was
+  // this concatenation REVERSED: lin[11:0] then kept only {addr[1:0],
+  // addr[19:10]} and CPU address bits [9:2] never reached the BRAM
+  // (proven by OPCOM deposit aliasing 1000<->1004<->...<->0).
+  wire [19:0] lin = {row_q, AA_9_0};
   wire [BANK_ADDR_BITS-1:0] a = lin[BANK_ADDR_BITS-1:0];
   wire [1:0] bidx = BANK1 ? 2'd1 : (BANK2 ? 2'd2 : 2'd0);
   wire bsel = BANK0 | BANK1 | BANK2;
   wire win = RAS & CAS & bsel;
+
+`ifdef ND120_ILA_MARK_DEBUG
+  // Nexys build.tcl -tclargs ila: named copies of the write port for the
+  // JTAG ILA (LIST-FILE-NAMES corruption-writer hunt, 24-AUG). The write
+  // fires on the first win edge with MWRITE50_n low - s_ila_ram_wr is that
+  // exact condition, s_ila_ram_addr/wdata the address and data it uses.
+  // No functional effect; the define is set only by that build flag.
+  (* mark_debug = "true" *) wire [BANK_ADDR_BITS-1:0] s_ila_ram_addr = a;
+  (* mark_debug = "true" *) wire s_ila_ram_wr = win & ~win_d & ~MWRITE50_n;
+  (* mark_debug = "true" *) wire [15:0] s_ila_ram_wdata = {dd_q[16:9], dd_q[7:0]};
+`endif
 
   always @(posedge sysclk) begin
     if (!sys_rst_n) begin

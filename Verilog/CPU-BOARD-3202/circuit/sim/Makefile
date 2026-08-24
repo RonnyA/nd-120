@@ -73,6 +73,19 @@ test-blockram: MEM_RAM_49_BLOCKRAM_tb
 MEM_RAM_49_BLOCKRAM_tb: MEM_RAM_49_BLOCKRAM_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
 	$(IVERILOG) -g2012 -o $@ MEM_RAM_49_BLOCKRAM_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
 
+# Address-SPACE integrity gate (24-AUG-2026 LIST-FILE-NAMES runaway): the
+# backend must span the full 64K-word logical space. Built at the size the
+# Nexys build ships (ND120_BLOCKRAM_ADDR_BITS=16 - keep in step with
+# fpga/nexys4ddr/build.tcl); any ADDR_BITS < 16 fails the contract check,
+# and the 16-bit address-bit walk catches dropped/swapped/truncated bits.
+# Teeth proven: -DND120_BLOCKRAM_ADDR_BITS=15 fails loudly.
+test-blockram-space: MEM_RAM_49_BLOCKRAM_SPACE_tb
+	./MEM_RAM_49_BLOCKRAM_SPACE_tb | tee blockram_space_result.tmp
+	@grep -q "TB_RESULT: PASS" blockram_space_result.tmp && rm -f blockram_space_result.tmp MEM_RAM_49_BLOCKRAM_SPACE_tb.vcd
+
+MEM_RAM_49_BLOCKRAM_SPACE_tb: MEM_RAM_49_BLOCKRAM_SPACE_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
+	$(IVERILOG) -g2012 -DND120_BLOCKRAM_ADDR_BITS=16 -o $@ MEM_RAM_49_BLOCKRAM_SPACE_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
+
 # BIF datapath sheets: run the same vectors in latch mode (plain) and FF
 # mode (-DFPGA_FF_MODE, the P1c-2/P1d sysclk edge-captures). Both must pass.
 BIF_SUPPORT = ../../../Shared/support

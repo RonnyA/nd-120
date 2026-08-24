@@ -187,9 +187,11 @@ module MEM_CHAIN_tb;
     access(0, 20'o0000022, 1'b1, 18'o0, r);
     check(r, 18'o054321, "readback of deposit at 22");
 
-    // More write/read pairs. NOTE the FPGA BRAM (ramSize=3) is only 4K words:
-    // lin_addr = {col,row} low 12 bits, so keep col in 0..3 and row in
-    // 0..1023 to stay alias-free (col[1:0] become the top address bits).
+    // More write/read pairs. NOTE the FPGA BRAM backend is only 4K words per
+    // bank at the default size: lin_addr = {row,col} low 12 bits (22-AUG-2026
+    // fix - the row captured at RAS is the HIGH CPU address half, PAL 44902A
+    // drives HIEN during RAS), so the contiguous low CPU address bits
+    // addr[11:0] are all alias-free; keep addresses under 4K words.
     access(0, 20'o0002000, 1'b0, 18'o012345, r);   // row 1, col 0
     access(1, 20'o0000003, 1'b0, 18'o177777, r);   // bank1, row 0, col 3
     access(0, 20'o0006002, 1'b0, 18'o123456, r);   // row 3, col 2
@@ -217,7 +219,7 @@ module MEM_CHAIN_tb;
       pat  = PATTERNS[p];
       // written word: data + INVERTED parity in both positions
       wr18 = {(^pat[15:8]), pat[15:8], (^pat[7:0]), pat[7:0]};
-      addr = ({10'd0, p[9:0]} + 20'd100) << 10;   // bank0, col 0, rows 100..115
+      addr = {10'd0, p[9:0]} + 20'd100;           // bank0, row 0, cols 100..115
       access(0, addr, 1'b0, wr18, r);
       access(0, addr, 1'b1, 18'o0, r);
       check(r, wr18, "parity regen sweep");

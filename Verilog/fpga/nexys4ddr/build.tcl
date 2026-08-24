@@ -28,8 +28,12 @@ set vroot  [file normalize [file join $srcdir .. ..]]   ;# Verilog/
 #  MUST move together or every derived count (UART baud, RTC tick,
 #  watchdogs) is wrong.
 #
-#  MEASURED 20-AUG-2026 with tape + floppy + Winchester in, at 16.667 MHz:
-#  WNS -35.107 ns. The worst path runs from an interrupt mask bit
+#  STALE MEASUREMENT KEPT FOR HISTORY (superseded): 20-AUG-2026 builds
+#  measured WNS -35.107 ns at 16.667 MHz. After the 22-AUG FIDBO ring cut
+#  (commit b3ee391) the SAME configuration closes with WNS ~+1.4 ns at
+#  16.667 MHz (verified across every 23/24-AUG build). The bucket analysis
+#  below describes the PRE-CUT worst path:
+#  The worst path ran from an interrupt mask bit
 #  (INTR/CNTLR/IRQ_MASK/MASKBIT10) to the WCS BRAM address input over 181
 #  logic levels / 94.4 ns, with NO register in between. Measured Fmax of the
 #  CPU domain is therefore about 10.5 MHz, so clk=8 is the first entry that
@@ -200,10 +204,22 @@ set defines [list \
     TARGET_NEXYS4DDR \
     FPGA_FF_MODE \
     MAIN_RAM_BLOCKRAM \
+    ND120_BLOCKRAM_ADDR_BITS=16 \
     ND120_N4DDR_MMCM_DIV=$mmcm_div \
     BOARD_CLK_FREQ=$board_clk \
     UART_BAUD_RATE=9600]
 if {$skip_wcs} { lappend defines SKIP_WCS_LOAD }
+# -tclargs nocache: compile the CPU cache out exactly as the Tang build does
+# (tang20k_defines.v: ND120_NO_CACHE). The Nexys otherwise runs with the
+# never-validated cache ENABLED (ND120_CORE ties SW1_CONSOLE high), which is
+# the first real configuration difference between the two boards.
+if {[lsearch $argv "nocache"] >= 0} { lappend defines ND120_NO_CACHE }
+# -tclargs ila: keep the CGA_MAC address-chain nets and cpu_txd through
+# synthesis (mark_debug attributes in CGA_MAC.v / the top, guarded by this
+# define) so the ILA probe patterns below can find them. Measured 23-AUG:
+# without this, synthesis renames/absorbs the nets and the patterns match
+# nothing ("ILA: NO NET").
+if {[lsearch $argv "ila"] >= 0} { lappend defines ND120_ILA_MARK_DEBUG }
 
 set synth_args {}
 foreach d $defines { lappend synth_args -verilog_define $d }
@@ -230,19 +246,43 @@ if {[llength $_ccpu] == 0 || [llength $_cst] == 0 || [llength $_cui] == 0} {
     puts "  clocks present: [get_clocks]"
     exit 1
 }
-set_clock_groups -asynchronous -group $_ccpu -group $_cst -group $_cui
-puts "Declared clk_cpu_pre / clk_stor_pre / clk_pll_i asynchronous."
+# 22-AUG-2026: set_clock_groups -asynchronous left every cross-domain path
+# UNTIMED - including the nds_sync toggle-handshake PAYLOAD buses, whose
+# contract is "payload settles before the 2-FF-synced toggle arrives". On
+# the Tang that held by placement luck; on this part the floppy client's
+# payload raced its toggle (FILSYS floppy reads failed intermittently with
+# status 020032 and finally wedged, while the tape client was fine - each
+# client has its own toggle/payload nets). set_clock_groups outranks
+# set_max_delay, so the groups are REPLACED by pairwise datapath-only
+# bounds: phase alignment is still not demanded (that is the -datapath_only
+# part), but no payload bit may take longer than one destination period.
+#   clk_cpu  80 ns   clk_stor 37 ns   ui_clk 13.3 ns
+foreach {src dst lim} [list \
+    $_ccpu $_cst 37.000 \
+    $_cst  $_ccpu 80.000 \
+    $_cst  $_cui 13.300 \
+    $_cui  $_cst 37.000 \
+    $_ccpu $_cui 13.300 \
+    $_cui  $_ccpu 80.000] {
+    set_max_delay -datapath_only -from $src -to $dst $lim
+}
+puts "Bounded clk_cpu_pre / clk_stor_pre / clk_pll_i crossings with datapath-only max delays."
 
 # ---------------------------------------------------------------------------
 # KNOWN COMBINATIONAL LOOPS - acknowledged deliberately, not hidden.
 #
-# 12 loops remain in the CGA's internal data bus, one per IDB bit. The ring is
+# Last verified 24-AUG-2026 (this block used to claim "12 loops remain" -
+# that was pre-ring-cut and STALE; commit b3ee391 cut the FIDBO ring):
+# the current builds report ZERO LUTLP-1 errors and Vivado auto-inserts
+# exactly TWO loop-breaking false paths (Synth 8-326):
+#   set_false_path -through .../CGA/DELILAH/ALU/ALU_OUTMUX/D_15_0[8]... 
+#   set_false_path -through ALU_i_426/O
+# Paths THROUGH those two nodes are untimed - the WNS gate below does not
+# cover them. The historical ring was:
 #   ALU_OUTMUX D_15_0[n] -> G_15_0[n] -> CGA.v FIDBO
 #     -> MAC / INTR (CGA.v:614-615 feed FIDBO into their IDB inputs)
 #     -> PCR / PGS / PICMASK -> CGA_IDBCTL_SEL6 -> back to FIDBO
-# They are FUNCTIONALLY impossible: the IDB source select (CSIDBS_4_0) is
-# one-hot, so the contributors are mutually exclusive - the tool simply cannot
-# prove that across the module boundaries.
+# functionally impossible (one-hot CSIDBS_4_0), unprovable by the tool.
 #
 # EVIDENCE THAT THIS IS SAFE TO SHIP, not merely convenient:
 #  - the SAME RTL with the SAME loops runs on the Tang Nano 20K and boots
@@ -262,6 +302,92 @@ puts "Declared clk_cpu_pre / clk_stor_pre / clk_pll_i asynchronous."
 set_property SEVERITY {Warning} [get_drc_checks LUTLP-1]
 puts "NOTE: LUTLP-1 downgraded to Warning - 12 known CGA IDB loops, see build.tcl"
 
+# --- optional JTAG ILA on the floppy CB-fetch / FDISK seam (-tclargs ila) ---
+# Captures, in the clk_cpu domain: the floppy controller's DMA client port
+# (command-block fetch + data transfers) and the FDISK request/answer seam.
+# Nothing in the sources changes; the core is inserted post-synth. Arm and
+# read it with ila_capture.tcl.
+if {[lsearch $argv "ila"] >= 0} {
+    # v3 probe set (23-AUG night): address-formation chain for the
+    # LIST-FILE-NAMES wrong indirect-jump target (0o060004 read back as
+    # 0o016004). All three stages of the chain at the CGA_MAC boundary:
+    #   s_cd_15_0      - the memory data word entering the MAC (was the
+    #                    pointer cell delivered wrong?)
+    #   s_ica_15_0     - the effective address out of the AP09 mux (did the
+    #                    P/CD/ADD/NLCA selection corrupt it?)
+    #   s_la_23_10_out - the physical address out of LA1025.
+    # Plus CSA_12_0 (microcode address, carries the captrans trigger) and
+    # cpu_txd for console context. FDISK seam dropped - floppy DMA proven.
+    # get_nets -hier applies a plain pattern to the LEAF name only, so a
+    # pattern containing '/' NEVER matches (measured 23-AUG: both v3 runs
+    # printed NO NET for every */MAC/... pattern). Leaf patterns for the
+    # top-level signals; the CGA_MAC address-chain buses are selected by
+    # the MARK_DEBUG property their RTL attributes set (ND120_ILA_MARK_DEBUG
+    # define, CGA_MAC.v) with a NAME =~ filter for the full name.
+    set _dbg_pats {
+        CSA_12_0[*]
+        cpu_txd
+    }
+    set _probes {}
+    foreach pat $_dbg_pats {
+        set n [get_nets -hier -quiet $pat]
+        if {[llength $n] == 0} {
+            puts "ERROR: ILA net missing for pattern $pat"; exit 1
+        } else {
+            lappend _probes [lsort -dictionary $n]
+        }
+    }
+    # v4 additions (24-AUG, never-ready campaign): the console status-capture
+    # seam in IO_UART_42 - live TBMT_n vs the CHIP_33G-captured IOR bits,
+    # plus the FF-mode capture pulse CLK_EN and the IOR read enable EIOR_n.
+    # s_io_idb_15_0_out bits 10:5 are constant zeros and may synthesize away;
+    # the count check only demands at least one net per bus.
+    # Marked-net selection: each item is a NAME =~ glob evaluated against
+    # nets carrying MARK_DEBUG (the ND120_ILA_MARK_DEBUG RTL attributes).
+    # '[' opens a character class in the glob, so bus items match the base
+    # name as a substring; scalars whose name prefixes another marked net
+    # (s_dev_iox_rd vs s_dev_iox_rdata) use an exact-suffix pattern with no
+    # trailing '*'. v5 adds the device-chain IOX seam (ND120_CORE.v).
+    foreach pat {
+        *s_cd_15_0* *s_ica_15_0* *s_la_23_10_out*
+        *s_io_idb_15_0_out* *s_tbmt_n *s_clk_en *s_eiorn_n
+        *s_dev_iox_addr* *s_dev_iox_wr *s_dev_iox_rd
+        *s_dev_iox_rdata* *s_dev_int_pending*
+        *s_dev_ident_strobe *s_dev_ident_level* *s_dev_ident_hit
+        *s_dev_ident_code* *s_grant_tape_flp
+        *s_ila_ram_addr* *s_ila_ram_wr *s_ila_ram_wdata*
+        *s_reg14_r6_15_0* *RBLOCK/s_wr_15_0* *RBLOCK/s_rb_15_0*
+    } {
+        set n [get_nets -hier -quiet -filter "MARK_DEBUG && NAME =~ $pat"]
+        if {[llength $n] == 0} {
+            puts "ERROR: ILA marked net missing for $pat (ND120_ILA_MARK_DEBUG define not effective?)"; exit 1
+        } else {
+            puts "ILA: $pat -> [llength $n] nets, first = [lindex [lsort -dictionary $n] 0]"
+            lappend _probes [lsort -dictionary $n]
+        }
+    }
+    foreach n $_probes { set_property MARK_DEBUG true $n }
+    create_debug_core u_ila_0 ila
+    set_property C_DATA_DEPTH 4096        [get_debug_cores u_ila_0]
+    set_property C_TRIGIN_EN false        [get_debug_cores u_ila_0]
+    set_property C_TRIGOUT_EN false       [get_debug_cores u_ila_0]
+    set_property C_ADV_TRIGGER false      [get_debug_cores u_ila_0]
+    set_property C_INPUT_PIPE_STAGES 2    [get_debug_cores u_ila_0]
+    set_property C_EN_STRG_QUAL true      [get_debug_cores u_ila_0]
+    set_property ALL_PROBE_SAME_MU true   [get_debug_cores u_ila_0]
+    set_property ALL_PROBE_SAME_MU_CNT 2  [get_debug_cores u_ila_0]
+    # clock: the BUFG output that drives the CPU domain
+    connect_debug_port u_ila_0/clk [get_nets clk_cpu]
+    set _pidx 0
+    foreach n $_probes {
+        if {$_pidx > 0} { create_debug_port u_ila_0 probe }
+        set_property PORT_WIDTH [llength $n] [get_debug_ports u_ila_0/probe$_pidx]
+        connect_debug_port u_ila_0/probe$_pidx $n
+        incr _pidx
+    }
+    puts "ILA: [llength $_probes] probe groups connected."
+}
+
 opt_design
 place_design
 route_design
@@ -280,6 +406,9 @@ if {$wns < 0} {
 }
 
 set bit [file join $srcdir nd120_nexys4ddr.bit]
+if {[lsearch $argv "ila"] >= 0} {
+    write_debug_probes -force [file join $srcdir nd120_nexys4ddr.ltx]
+}
 write_bitstream -force $bit
 puts "BITSTREAM: $bit"
 

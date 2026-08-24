@@ -507,6 +507,45 @@ module mem_ram_49_sdram_tb;
     check(dev_ops_done >= 200, "too few device ops completed");
 `endif
 
+    // ---- 4 MB ADDRESS-SPACE BIT WALK (24-AUG-2026, after the Nexys
+    // BLOCKRAM ADDR_BITS=15 truncation broke FILSYS on silicon): a unique
+    // tag at physical word 0 and at every power-of-two word index across
+    // the FULL 2M-word (4 MB) space - idx = {physbank, row[9:0], col[9:0]},
+    // physbank 0 = BANK0, 1 = BANK2 (the silicon-validated map above).
+    // Any dropped, swapped, or truncated address bit in the bridge or the
+    // SDRAM model aliases at least one pair and fails loudly. Random soaks
+    // can miss a single dead bit; this walk cannot. Only walks rows below
+    // TB_ROWS when a reduced CPU partition is built (test-pack16-part).
+    $display("TB: 4 MB address-space bit walk...");
+    begin : space_walk
+      integer wb;
+      reg [20:0] widx;
+      reg [1:0]  wbank;
+      wr18(0, 10'd0, 10'd0, 18'o000700);
+      for (wb = 0; wb < 21; wb = wb + 1) begin
+        widx  = 21'd1 << wb;
+        wbank = widx[20] ? 2'd2 : 2'd0;
+        if (present(wbank, widx[19:10]))
+          wr18(wbank, widx[19:10], widx[9:0], 18'o000100 + wb[17:0]);
+      end
+      rd18(0, 10'd0, 10'd0);
+      for (wb = 0; wb < 21; wb = wb + 1) begin
+        widx  = 21'd1 << wb;
+        wbank = widx[20] ? 2'd2 : 2'd0;
+        if (present(wbank, widx[19:10]))
+          rd18(wbank, widx[19:10], widx[9:0]);
+      end
+      // top-of-space distinctness: the last word of each populated bank
+      if (present(0, 10'h3FF)) begin
+        wr18(0, 10'h3FF, 10'h3FF, 18'o000711);
+        rd18(0, 10'h3FF, 10'h3FF);
+      end
+      if (present(2, 10'h3FF)) begin
+        wr18(2, 10'h3FF, 10'h3FF, 18'o000722);
+        rd18(2, 10'h3FF, 10'h3FF);
+      end
+    end
+
     if (errors == 0) $display("TB_RESULT: PASS");
     else $display("TB_RESULT: FAIL (%0d errors)", errors);
     $finish;

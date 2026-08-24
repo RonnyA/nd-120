@@ -60,7 +60,7 @@ module MEM_RAM_49_BLOCKRAM_tb;
     end
   endtask
 
-  // lin = {col, row}; the module uses lin[BANK_ADDR_BITS-1:0]
+  // lin = {row, col}; the module uses lin[BANK_ADDR_BITS-1:0] (row = HIGH CPU half)
   task mem_write(input [1:0] b, input [9:0] row, input [9:0] col, input [17:0] data);
     begin
       @(negedge sysclk); set_bank(b); aa = row; ras = 1; mwrite50_n = 0; // RAS rise, AA=row
@@ -128,25 +128,37 @@ module MEM_RAM_49_BLOCKRAM_tb;
     mem_read (2, 10'd5, 10'd1, r, c); check_eq(r, exp18(18'o002405), "bank2 rdbk");
 
     // ---- 2. no-alias: distinct rows and columns in one bank ----
+    // Address map (22-AUG-2026): lin = {row, col}, a = lin[BANK_ADDR_BITS-1:0]
+    // = {row[1:0], col[9:0]} at the default 12 bits. The COLUMN is the
+    // contiguous CPU axis (all 10 bits live); rows are distinct only in
+    // their low 2 bits at this size, so the row sweep stays in 0..3.
+    // This sweep would have caught the pre-fix {col,row} reversal: with the
+    // old order, col 100+i collapsed onto col[1:0] and i, i+4 aliased.
     for (i = 0; i < 8; i = i + 1)
-      mem_write(0, 10'd100 + i, 10'd2, 18'o000100 + i);
+      mem_write(0, 10'd2, 10'd100 + i, 18'o000100 + i);
     for (i = 0; i < 8; i = i + 1) begin
-      mem_read(0, 10'd100 + i, 10'd2, r, c);
-      check_eq(r, exp18(18'o000100 + i[17:0]), "no-alias row");
+      mem_read(0, 10'd2, 10'd100 + i, r, c);
+      check_eq(r, exp18(18'o000100 + i[17:0]), "no-alias col");
     end
-    mem_write(0, 10'd100, 10'd3, 18'o000777);
-    mem_read (0, 10'd100, 10'd2, r, c); check_eq(r, exp18(18'o000100), "col3 not aliased to col2");
-    mem_read (0, 10'd100, 10'd3, r, c); check_eq(r, exp18(18'o000777), "col3 rdbk");
+    for (i = 0; i < 4; i = i + 1)
+      mem_write(0, i[9:0], 10'd200, 18'o000200 + i);
+    for (i = 0; i < 4; i = i + 1) begin
+      mem_read(0, i[9:0], 10'd200, r, c);
+      check_eq(r, exp18(18'o000200 + i[17:0]), "no-alias row");
+    end
+    mem_write(0, 10'd2, 10'd300, 18'o000777);
+    mem_read (0, 10'd2, 10'd100, r, c); check_eq(r, exp18(18'o000100), "col300 not aliased to col100");
+    mem_read (0, 10'd2, 10'd300, r, c); check_eq(r, exp18(18'o000777), "col300 rdbk");
 
     // ---- 3. row captured at the RAS EDGE, not level ----
-    @(negedge sysclk); set_bank(0); aa = 10'd200; ras = 1; mwrite50_n = 0; // row=200 at edge
+    @(negedge sysclk); set_bank(0); aa = 10'd201; ras = 1; mwrite50_n = 0; // row=201 at edge
     @(negedge sysclk); aa = 10'd4; dd_in = 18'o000021;                     // col=4
     @(negedge sysclk); aa = 10'd4;                                          // AA stays col
     @(negedge sysclk); cas = 1;
     @(negedge sysclk);
     @(negedge sysclk); ras = 0; cas = 0; mwrite50_n = 1; set_bank(3);
     @(negedge sysclk);
-    mem_read(0, 10'd200, 10'd4, r, c); check_eq(r, exp18(18'o000021), "row from RAS edge");
+    mem_read(0, 10'd201, 10'd4, r, c); check_eq(r, exp18(18'o000021), "row from RAS edge");
     mem_read(0, 10'd4,   10'd4, r, c);
     if (r === exp18(18'o000021)) begin
       errors = errors + 1;
@@ -165,8 +177,8 @@ module MEM_RAM_49_BLOCKRAM_tb;
     mem_read(0, 10'd300, 10'd5, r, c); check_eq(r, exp18(18'o000104), "write-once pre-CAS data");
 
     // ---- 5. read does not write ----
-    mem_read(0, 10'd100, 10'd2, r, c);
-    mem_read(0, 10'd100, 10'd2, r, c); check_eq(r, exp18(18'o000100), "read is non-destructive");
+    mem_read(0, 10'd2, 10'd100, r, c);
+    mem_read(0, 10'd2, 10'd100, r, c); check_eq(r, exp18(18'o000100), "read is non-destructive");
 
     // ---- 6. a BAD-parity write is ABSORBED, never flagged ----
     // 18'o000003 has an even-parity low half, i.e. deliberately WRONG parity
