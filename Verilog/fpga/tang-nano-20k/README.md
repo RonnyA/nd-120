@@ -189,6 +189,61 @@ First light checklist: heartbeat LED blinking -> OPCOM console at **9600 8N1**
 on the board's USB serial -> compare boot behaviour against
 [`../../docs/boot-golden-spec.md`](../../docs/boot-golden-spec.md).
 
+## Clock variants and measured boot timings (24-AUG-2026)
+
+Three clock variants, selected with `gowin_build.ps1 -Variant <slow|mid|full>`.
+`clk_cpu` is always exactly half of `clk2x`; all three share one 864 MHz VCO.
+
+| Variant | CPU | SDRAM | Setup violations | CPU-domain Fmax (Gowin STA) |
+|---------|-----|-------|------------------|------------------------------|
+| `crawl` | 3.375 MHz | 6.75 MHz | - | - |
+| `slow` (default) | 6.75 MHz | 13.5 MHz | **0** | 17.68 MHz |
+| `mid` | 13.5 MHz | 27 MHz | **0** | 19.03 MHz |
+| `full` | 27 MHz | 54 MHz | **1667** | 19.55 MHz |
+
+### Measured on silicon, SINTRAN III booting from WD0
+
+Cold boot each time (reflash, then `20500&`), driven by `measure_s3.py`.
+`banner` = to `SINTRAN III RUNNING`; `watchdog` = to
+`ERS/SINTRAN III Watchdog has started`, i.e. ready for login; `S3` = from the
+CR that submits `S3` to its first output byte, after `SET-T-T,,93`.
+
+| CPU clock | banner | watchdog (login ready) | S3 first output |
+|-----------|--------|------------------------|-----------------|
+| 6.75 MHz  | 168.2 s | 539.3 s | 3.90 s |
+| 13.5 MHz  | 119.0 s | 480.1 s | 2.70 s |
+| 27 MHz    | 101.9 s | 451.9 s | 2.40 s |
+
+**Boot is NOT CPU-bound.** Four times the clock buys only 1.65x on the banner
+and 1.19x on time-to-login. The banner->watchdog segment barely moves at all -
+371 s, 361 s, 350 s - so that phase is essentially clock-independent. That is
+consistent with it being disc-bound: the SD/storage stack deliberately runs off
+the fixed 27 MHz crystal (`clk_stor = sys_clk`) regardless of the CPU clock,
+because `sd_file_reader`'s identification divider is only in spec there.
+
+**S3 starts in under 4 seconds at every clock.** A "slow S3 start" is therefore
+not S3 being slow - it is almost certainly the machine still being in the long
+post-banner phase, before the watchdog line says it is ready. Wait for the
+watchdog before concluding anything about S3.
+
+### Which variant to use
+
+`full` (27 MHz) runs SINTRAN, LIST-FILES and S3, and is the fastest measured -
+but it does NOT close timing (1667 setup violations against a 19.55 MHz Fmax),
+so its margin over temperature and voltage is unquantified. `mid` (13.5 MHz)
+closes with zero violations and gives most of the gain: 1.41x on the banner
+against `slow`, versus 1.65x for `full`.
+
+Note the `.sdc` is a single `create_clock` line with no multicycle on the known
+52 ns WCS->ACAL path to a clock-enable pin, so these Fmax figures are a floor,
+not a verdict. Real constraints are the route to a fast build that is also
+defensible.
+
+Known clock-dependent constant, NOT slaved to `BOARD_CLK_FREQ`: the debug
+dumper baud divisor, `ND120_TANG20K_TOP.v` `DELAY_FRAMES(1406)`, assumes
+clk2x = 13.5 MHz. Capture dumps come out garbage at any other variant. The
+console UART and the RTC do scale correctly.
+
 ## LEDs (active low, pins 15-20; map of 07-AUG-2026)
 
 | LED | Meaning |
