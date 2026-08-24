@@ -208,11 +208,15 @@ Cold boot each time (reflash, then `20500&`), driven by `measure_s3.py`.
 `ERS/SINTRAN III Watchdog has started`, i.e. ready for login; `S3` = from the
 CR that submits `S3` to its first output byte, after `SET-T-T,,93`.
 
+All figures are SECONDS (decimal), not minutes:seconds. `2.4 sec` means two
+point four seconds - S3 responds almost immediately at every clock. The
+minute:second equivalents are given in brackets for the longer ones.
+
 | CPU clock | banner | watchdog (login ready) | S3 first output |
 |-----------|--------|------------------------|-----------------|
-| 6.75 MHz  | 168.2 s | 539.3 s | 3.90 s |
-| 13.5 MHz  | 119.0 s | 480.1 s | 2.70 s |
-| 27 MHz    | 101.9 s | 451.9 s | 2.40 s |
+| 6.75 MHz  | 168.2 sec (2 min 48) | 539.3 sec (8 min 59) | 3.9 sec |
+| 13.5 MHz  | 119.0 sec (1 min 59) | 480.1 sec (8 min 00) | 2.7 sec |
+| 27 MHz    | 101.9 sec (1 min 42) | 451.9 sec (7 min 32) | 2.4 sec |
 
 **Boot is NOT CPU-bound.** Four times the clock buys only 1.65x on the banner
 and 1.19x on time-to-login. The banner->watchdog segment barely moves at all -
