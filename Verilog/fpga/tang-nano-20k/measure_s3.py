@@ -27,7 +27,7 @@ def main():
     ap.add_argument("--label", default="run")
     ap.add_argument("--log", default="/tmp/measure_s3.log")
     ap.add_argument("--boot-timeout", type=float, default=420.0)
-    ap.add_argument("--s3-timeout", type=float, default=600.0)
+    ap.add_argument("--s3-timeout", type=float, default=1200.0)
     a = ap.parse_args()
 
     import serial
@@ -100,35 +100,68 @@ def main():
     send("SET-T-T,,93"); time.sleep(2.5); rx()
 
     # ---- the measurement -----------------------------------------------
-    note("S3 - timing from the submitting CR to the first output byte")
-    for ch in "S3":
-        s.write(ch.encode()); s.flush(); time.sleep(CHAR_GAP)
-    mark = len("".join(buf))
-    s.write(b"\r"); s.flush()
-    t0 = time.time()
+    # S3 is timed TWICE in one session, because the two runs measure different
+    # things (Ronny, 24-AUG-2026): the FIRST start pays a demand-paging storm -
+    # every SINTRAN MON call can fault in a page that is not resident yet, and
+    # each page-in costs one disc operation = 8 ms of modelled drive latency
+    # (ND120_CORE.v:373) plus a fixed-rate SD transfer. Both are WALL-CLOCK
+    # constants, so a cold first start should barely improve with a faster CPU.
+    # The SECOND start finds the pages resident and shows the CPU-bound cost.
+    #
+    # Getting this wrong once already produced a false comparison: a 27 MHz
+    # "11.4 s" was a WARM start measured against a 6.75 MHz COLD start.
+    def time_s3(tag):
+        """Type S3, return (first_output_s, menu_s) or (None, None) on timeout."""
+        note("draining before S3 (%s)" % tag)
+        rx(); time.sleep(2.0); rx()
+        note("S3 %s - timing to first real output and to the menu" % tag)
+        for ch in "S3":
+            s.write(ch.encode()); s.flush(); time.sleep(CHAR_GAP)
+        m = len("".join(buf))
+        s.write(b"\r"); s.flush()
+        t = time.time()
+        tf = None
+        end2 = t + a.s3_timeout
+        while time.time() < end2:
+            rx()
+            tail = "".join(buf)[m:]
+            body = tail.replace("S3", "", 1).strip(" \r\n\x00")
+            # the previous command's trailing OK can still be in flight; it is
+            # not S3 output, so do not let it stop the clock
+            if tf is None and body and body.strip() != "OK":
+                tf = time.time() - t
+                note("  %s: first real output after %.2f s" % (tag, tf))
+            if re.search(r"SINTRAN\s+III\s+configuration", tail, re.I):
+                tm = time.time() - t
+                note("  %s: MENU after %.2f s" % (tag, tm))
+                return tf, tm
+        note("  %s: TIMEOUT - no menu in %.0f s" % (tag, a.s3_timeout))
+        return tf, None
 
-    first = None
-    end = t0 + a.s3_timeout
-    while time.time() < end:
-        got = rx()
-        if got:
-            tail = "".join(buf)[mark:]
-            # ignore the echo of the CR/LF itself
-            if tail.strip(" \r\n"):
-                first = time.time() - t0
-                break
-    if first is None:
-        note("TIMEOUT: S3 produced no output in %.0fs" % a.s3_timeout)
-        return 3
+    cold_first, cold_menu = time_s3("COLD (first start, pages not resident)")
+    if cold_menu is not None:
+        time.sleep(2.0); rx()
+        note("exit S3 (E, E) before the warm run")
+        send("E"); time.sleep(2.0); rx()
+        send("E"); time.sleep(3.0); rx()
+        warm_first, warm_menu = time_s3("WARM (second start, pages resident)")
+    else:
+        warm_first = warm_menu = None
 
-    note("RESULT %s: S3 first output after %.2f s" % (a.label, first))
+    note("RESULT %s: cold menu %s s, warm menu %s s"
+         % (a.label,
+            ("%.2f" % cold_menu) if cold_menu else "TIMEOUT",
+            ("%.2f" % warm_menu) if warm_menu else "n/a"))
 
     time.sleep(3.0); rx()
     note("exit S3 (E, E)")
     send("E"); time.sleep(2.0); rx()
     send("E"); time.sleep(2.0); rx()
     s.close()
-    print("S3_SECONDS %s %.2f  (banner %.1fs)" % (a.label, first, t_banner))
+    print("S3_RESULT %s banner=%.1fs coldmenu=%s warmmenu=%s"
+          % (a.label, t_banner,
+             ("%.2f" % cold_menu) if cold_menu else "TIMEOUT",
+             ("%.2f" % warm_menu) if warm_menu else "n/a"))
     return 0
 
 

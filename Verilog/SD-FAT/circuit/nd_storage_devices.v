@@ -36,6 +36,9 @@ module nd_storage_devices #(
     parameter INCLUDE_FLOPPY = 0,  // 1 = also serve FLOPPY1.IMG to the DMA floppy
     parameter INCLUDE_SMD    = 0,  // 1 = also serve SMD0.IMG to ND_SMD (client 3)
     parameter INCLUDE_WD     = 0,  // 1 = also serve WD0.IMG to ND_WINCHESTER (client 6)
+    // SD 4-bit data bus. Off by default: it needs DAT1-3 pinned and wired at
+    // the board top, so a board that only brings out DAT0 stays correct.
+    parameter USE_4BIT       = 0,
     // client-0 (tape) file name on the card. Default BOOT.BPUN (the boot tape);
     // a tb can point it at another 8.3 name on a shared test image.
     parameter [52*8-1:0] BOOT_NAME = "BOOT.BPUN",
@@ -123,6 +126,16 @@ module nd_storage_devices #(
     input  wire       sd_dat0_i,
     output wire       sd_dat0_o,
     output wire       sd_dat0_oe,
+    // DAT1-3: 4-bit data bus (USE_4BIT). Released when not in 4-bit mode.
+    input  wire       sd_dat1_i,
+    output wire       sd_dat1_o,
+    output wire       sd_dat1_oe,
+    input  wire       sd_dat2_i,
+    output wire       sd_dat2_o,
+    output wire       sd_dat2_oe,
+    input  wire       sd_dat3_i,
+    output wire       sd_dat3_o,
+    output wire       sd_dat3_oe,
 
     // SDRAM device port (clk_stor domain) - same contract as nds_mem_model.v
     output wire        mem_start,
@@ -568,8 +581,10 @@ module nd_storage_devices #(
       // If the read then returns real data, the fault is in the Phase-4
       // cache path on hardware, not in the controller or the FAT stack.
 `ifdef ND_STORAGE_DISCS_UNCACHED
+      .USE_4BIT   (USE_4BIT),
       .CACHE_MASK (8'b00000000),
 `else
+      .USE_4BIT   (USE_4BIT),
       .CACHE_MASK ((INCLUDE_SMD ? 8'b00111000 : 8'b00000000) |
                    (INCLUDE_WD  ? 8'b11000000 : 8'b00000000)),
 `endif
@@ -616,6 +631,15 @@ module nd_storage_devices #(
       .sd_dat0_i (sd_dat0_i),
       .sd_dat0_o (sd_dat0_o),
       .sd_dat0_oe(sd_dat0_oe),
+      .sd_dat1_i (sd_dat1_i),
+      .sd_dat1_o (sd_dat1_o),
+      .sd_dat1_oe(sd_dat1_oe),
+      .sd_dat2_i (sd_dat2_i),
+      .sd_dat2_o (sd_dat2_o),
+      .sd_dat2_oe(sd_dat2_oe),
+      .sd_dat3_i (sd_dat3_i),
+      .sd_dat3_o (sd_dat3_o),
+      .sd_dat3_oe(sd_dat3_oe),
       .mem_start (mem_start),
       .mem_we    (mem_we),
       .mem_addr  (mem_addr),

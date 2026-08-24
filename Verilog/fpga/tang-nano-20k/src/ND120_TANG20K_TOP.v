@@ -34,6 +34,9 @@ module ND120_TANG20K_TOP (
     output wire sd_clk,
     inout  wire sd_cmd,   //! bidirectional: host commands / card responses
     inout  wire sd_dat0,  //! bidirectional: card read data
+    inout  wire sd_dat1,  //! 4-bit bus mode only; released (pulled high) otherwise
+    inout  wire sd_dat2,
+    inout  wire sd_dat3,
 
     // Embedded SDRAM ("magic" port names - Gowin EDA connects these to the
     // on-package SDRAM die automatically; the OSS flow pins them in a cst)
@@ -1799,6 +1802,9 @@ module ND120_TANG20K_TOP (
   wire        s_sd_clk_o;
   wire        s_sd_cmd_o, s_sd_cmd_oe;
   wire        s_sd_dat0_o, s_sd_dat0_oe;
+  wire        s_sd_dat1_o, s_sd_dat1_oe;
+  wire        s_sd_dat2_o, s_sd_dat2_oe;
+  wire        s_sd_dat3_o, s_sd_dat3_oe;
   wire [ 1:0] s_sd_status;
 
   // SDRAM device port (clk_stor domain) into MEM_RAM_49_SDRAM's upper half
@@ -1900,6 +1906,11 @@ module ND120_TANG20K_TOP (
 
 
   nd_storage_devices #(
+      // 24-AUG-2026: 4-bit did NOT boot (no banner in 420 s; the CPU was alive -
+      // OPCOM echoed 20500& - so the SD read path failed). Two variables had
+      // been changed together, the bit clock 2.7->13.5 MHz AND the width.
+      // Back to 1-bit to test the clock change ALONE.
+      .USE_4BIT      (0),   // DAT1-3 pinned and wired, but not used yet
       .SIMULATE(0),                     // real card: full-length SD init
       .INCLUDE_TAPE(TANG_INC_TAPE),
       .INCLUDE_FLOPPY(TANG_INC_FLOPPY),
@@ -1977,6 +1988,15 @@ module ND120_TANG20K_TOP (
       .sd_dat0_i (sd_dat0),
       .sd_dat0_o (s_sd_dat0_o),
       .sd_dat0_oe(s_sd_dat0_oe),
+      .sd_dat1_i (sd_dat1),
+      .sd_dat1_o (s_sd_dat1_o),
+      .sd_dat1_oe(s_sd_dat1_oe),
+      .sd_dat2_i (sd_dat2),
+      .sd_dat2_o (s_sd_dat2_o),
+      .sd_dat2_oe(s_sd_dat2_oe),
+      .sd_dat3_i (sd_dat3),
+      .sd_dat3_o (s_sd_dat3_o),
+      .sd_dat3_oe(s_sd_dat3_oe),
 
       .mem_start(s_mem_start),
       .mem_we   (s_mem_we),
@@ -2014,6 +2034,17 @@ module ND120_TANG20K_TOP (
   assign sd_clk  = s_sd_clk_o;
   assign sd_cmd  = s_sd_cmd_oe  ? s_sd_cmd_o  : 1'bz;
   assign sd_dat0 = s_sd_dat0_oe ? s_sd_dat0_o : 1'bz;
+  // EVERY pad below MUST stay in this single-ternary  oe ? val : 1'bz  form.
+  // A nested ternary (e.g. park-driven-high with 1'bz in the inner branch) is
+  // silently collapsed by yosys into an always-driving OBUF: the FPGA then
+  // fights the card on DAT1-3 through every 4-bit read data phase, which
+  // simulates perfectly and fails on silicon. Proven from the synthesis
+  // netlist 12-JUL-2026 - see docs/sd-speed-plan.md rung c. The pads idle
+  // released and the slot's external 10K pull-ups hold the lines high,
+  // including DAT3 at CMD0 (SD-native mode select).
+  assign sd_dat1 = s_sd_dat1_oe ? s_sd_dat1_o : 1'bz;
+  assign sd_dat2 = s_sd_dat2_oe ? s_sd_dat2_o : 1'bz;
+  assign sd_dat3 = s_sd_dat3_oe ? s_sd_dat3_o : 1'bz;
 
   /**********************************************
   *  STORAGE BRING-UP LED SET (ACTIVE LOW)      *

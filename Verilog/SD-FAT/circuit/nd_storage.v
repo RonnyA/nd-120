@@ -63,7 +63,14 @@
 module nd_storage #(
     parameter            N_CLIENTS    = 8,
     parameter [2:0]      RD_CLK_DIV   = 3'd2,          // sd_file_reader (25-50 MHz clk)
-    parameter [7:0]      WR_CLKDIV    = 8'd5,          // sd_writer bit clock divider
+    // Bit clock and bus width for the DATA path (sd_writer). The 2.7 MHz
+    // 1-bit default here was the bring-up setting; sd-fat-test proved
+    // CLKDIV=1 (13.5 MHz) + 4-bit on this exact board with a real SDHC card -
+    // READ 5981 KB/s vs the 137 KB/s baseline (docs/sd-speed-plan.md rung c,
+    // 12-JUL-2026). USE_4BIT additionally needs DAT1-3 pinned and wired at
+    // the board top; it is a parameter so a board without them stays 1-bit.
+    parameter [7:0]      WR_CLKDIV    = 8'd1,          // sd_writer bit clock divider
+    parameter integer    USE_4BIT     = 0,             // 1 = 4-bit data bus
     parameter [31:0]     WD_MAX       = 32'd270_000_000,
     parameter            SIMULATE     = 0,             // short SD init in sim
     // Phase 4. CACHE_MASK[c]=1 -> client c is served through the shared
@@ -118,6 +125,17 @@ module nd_storage #(
     input  wire sd_dat0_i,
     output wire sd_dat0_o,
     output wire sd_dat0_oe,
+    // DAT1-3: driven only in 4-bit mode (USE_4BIT); released otherwise, and
+    // the slot's external pull-ups hold them high.
+    input  wire sd_dat1_i,
+    output wire sd_dat1_o,
+    output wire sd_dat1_oe,
+    input  wire sd_dat2_i,
+    output wire sd_dat2_o,
+    output wire sd_dat2_oe,
+    input  wire sd_dat3_i,
+    output wire sd_dat3_o,
+    output wire sd_dat3_oe,
 
     // ---- SDRAM device port (clk_stor domain, design section 5.2) ----
     output wire        mem_start,   // 1-cycle pulse, only when mem_busy=0
@@ -275,6 +293,9 @@ module nd_storage #(
   wire        wr_sdclk;
   wire        wr_cmd_o, wr_cmd_oe, wr_dat0_o, wr_dat0_oe;
   wire        sdw_start, sdw_rd_mode, sdw_busy, sdw_done, sdw_err;
+  wire        wr_dat1_o, wr_dat1_oe;
+  wire        wr_dat2_o, wr_dat2_oe;
+  wire        wr_dat3_o, wr_dat3_oe;
   wire [8:0]  sdw_burst_len;
   wire        e_sdw_rd_mode;
   wire [8:0]  e_sdw_burst_len;
@@ -299,6 +320,16 @@ module nd_storage #(
       .sd_dat0_i (sd_dat0_i),
       .sd_dat0_o (wr_dat0_o),
       .sd_dat0_oe(wr_dat0_oe),
+      .sd_dat1_i (sd_dat1_i),
+      .sd_dat1_o (wr_dat1_o),
+      .sd_dat1_oe(wr_dat1_oe),
+      .sd_dat2_i (sd_dat2_i),
+      .sd_dat2_o (wr_dat2_o),
+      .sd_dat2_oe(wr_dat2_oe),
+      .sd_dat3_i (sd_dat3_i),
+      .sd_dat3_o (wr_dat3_o),
+      .sd_dat3_oe(wr_dat3_oe),
+      .use_4bit  (USE_4BIT != 0),
       .start     (sdw_start),
       .rd_mode   (sdw_rd_mode),
       .sector    (sdw_sector),
@@ -322,6 +353,17 @@ module nd_storage #(
   assign sd_cmd_oe  = s_phase_write ? wr_cmd_oe : rd_cmd_oe;
   assign sd_dat0_o  = wr_dat0_o;
   assign sd_dat0_oe = s_phase_write & wr_dat0_oe;
+  // DAT1-3 only ever driven by the writer, and only in the write phase. The
+  // board top must use the single-ternary  oe ? val : 1'bz  form for these:
+  // a nested ternary is silently collapsed to an always-on driver by yosys,
+  // which made the FPGA fight the card through every 4-bit read data phase -
+  // simulating perfectly and failing on silicon (docs/sd-speed-plan.md).
+  assign sd_dat1_o  = wr_dat1_o;
+  assign sd_dat1_oe = s_phase_write & wr_dat1_oe;
+  assign sd_dat2_o  = wr_dat2_o;
+  assign sd_dat2_oe = s_phase_write & wr_dat2_oe;
+  assign sd_dat3_o  = wr_dat3_o;
+  assign sd_dat3_oe = s_phase_write & wr_dat3_oe;
 
   // ------------------------------------------------------------- mount FSM
   wire        mnt_start, mnt_done, mnt_err, mnt_busy;
