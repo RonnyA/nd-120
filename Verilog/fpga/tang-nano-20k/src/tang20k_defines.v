@@ -259,7 +259,15 @@
 // zero-read: the DIRECT tape client reads the same card correctly while the
 // CACHED Winchester client returns zeros with a clean status. See the long
 // note at the CACHE_MASK parameter in nd_storage_devices.v.
-`define ND_STORAGE_DISCS_UNCACHED
+// RE-ENABLED 24-AUG-2026 (Ronny): the Winchester read cache is BACK ON.
+// This define was left active from the 09-AUG zero-read diagnostic and forced
+// CACHE_MASK to 0, so every disc client ran DIRECT. With it commented out the
+// mask at nd_storage_devices.v:573-574 evaluates to 8'b11000000 - clients 6
+// and 7, i.e. the Winchester - so WD0 reads go through the Phase-4 cache
+// again. The 23-AUG triple-null experiment measured no functional difference
+// (cache on / masked off / not synthesized all reached the same ERRFATAL in
+// the same 143 s), and the ERRFATAL itself is now fixed at ND3202D.v:533.
+//`define ND_STORAGE_DISCS_UNCACHED
 
 // ND_STORAGE_WD_BADNAME = control experiment: make the Winchester client
 // open a file that is NOT on the card, so the mount must fail. Proves

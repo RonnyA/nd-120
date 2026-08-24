@@ -1845,6 +1845,59 @@ module ND120_TANG20K_TOP (
 `else
   localparam TANG_INC_WD     = 0;
 `endif
+  // ---------------------------------------------------------------------
+  // STORAGE SEAM NETS - declared HERE, ABOVE their first use.
+  //
+  // Moved 24-AUG-2026. These were declared several hundred lines BELOW the
+  // instantiations that use them, so every one was created as an IMPLICIT
+  // 1-bit net at first use and the real declaration came too late - 42
+  // EX3638 warnings in the Gowin log. Implicit nets are 1 bit wide, which
+  // silently truncates every multi-bit member of this group, and it left
+  // the block-activity LEDs reading a net nothing drove.
+  // ---------------------------------------------------------------------
+  // Floppy seam (1560&) is WIRED to the SD-FAT stack (FLOPPY1.IMG via the
+  // nd_storage floppy adapter inside TAPE_SDFAT_SOURCE). The SMD seam (1540&)
+  // is wired the same way (SMD0.IMG via nd_storage_disc_adapter, client 3)
+  // when TANG_SMD is defined; otherwise the source ties it idle and the core
+  // leaves the device out.
+  wire [15:0] DMA_RDATA;
+  wire        DMA_ACK, DMA_ERR, DMA_BUSY;
+  // core -> floppy backend (request)
+  wire        FDISK_REQ, FDISK_WR;
+  wire [15:0] FDISK_LSECT;
+  wire [1:0]  FDISK_FORMAT, FDISK_DRIVE;
+  wire [10:0] FDISK_WORDCOUNT;
+  wire [15:0] FDBUF_RDATA;
+  // floppy backend -> core (completion + buffer fill + media format)
+  wire        FDISK_DONE, FDISK_ERR;
+  wire [ 3:0] FDISK_ERR_CODE;
+  wire [3:0]  FDISK_MEDIA_FMT;
+  wire [9:0]  FDBUF_ADDR;
+  wire [15:0] FDBUF_WDATA;
+  wire        FDBUF_WE;
+  wire        SDISK_START, SDISK_REQ, SDISK_WR;
+  wire        WDISK_START, WDISK_REQ, WDISK_WR;
+  wire [15:0] SDISK_BLKADDR1, SDISK_BLKADDR2;
+  wire [2:0]  SDISK_UNIT;
+  wire [10:0] SDISK_WORDCOUNT;
+  wire [15:0] SDBUF_RDATA;
+  wire [15:0] WDISK_BLKADDR1, WDISK_BLKADDR2;
+  wire [ 2:0] WDISK_UNIT;
+  wire [10:0] WDISK_WORDCOUNT;
+  wire        WDISK_DONE, WDISK_ERR;
+  wire [ 3:0] WDISK_ERR_CODE;
+  wire [ 9:0] WDBUF_ADDR;
+  wire [15:0] WDBUF_WDATA;
+  wire        WDBUF_WE;
+  wire [15:0] WDBUF_RDATA;
+  // SMD backend -> core (completion + buffer fill); tied idle by the
+  // source's gen_no_smd when TANG_SMD is absent
+  wire        SDISK_DONE, SDISK_ERR;
+  wire [ 3:0] SDISK_ERR_CODE;
+  wire [9:0]  SDBUF_ADDR;
+  wire [15:0] SDBUF_WDATA;
+  wire        SDBUF_WE;
+
 
   nd_storage_devices #(
       .SIMULATE(0),                     // real card: full-length SD init
@@ -2006,18 +2059,30 @@ module ND120_TANG20K_TOP (
   // Sources are the device-side backend seams (clk_cpu domain): floppy and
   // Winchester block requests, direction from the WR flag. The old meanings
   // (tape-req-seen / sd-clk-seen) served bring-up and are retired.
-  reg [21:0] s_led_rd_stretch, s_led_wr_stretch;
+  //
+  // 24-AUG-2026: widened from 22 to 24 bits (~155 ms -> ~620 ms at 27 MHz).
+  // A block op is microseconds and SINTRAN's disc bursts are short, so the
+  // old stretch was easy to miss by eye. A THIRD stretcher watches the SD
+  // card clock itself, so there is an indicator that lights for ANY card
+  // traffic even if a device seam is mis-wired.
+  reg [23:0] s_led_rd_stretch, s_led_wr_stretch, s_led_sd_stretch;
   wire s_blk_rd_ev = (FDISK_REQ & ~FDISK_WR) | (WDISK_REQ & ~WDISK_WR);
   wire s_blk_wr_ev = (FDISK_REQ &  FDISK_WR) | (WDISK_REQ &  WDISK_WR);
+  // s_sdclk_d is already registered at line 1989 for s_sdclk_seen - reuse it
+  // rather than declaring a second copy of the same delayed sample.
+  wire s_sd_activity = (s_sd_clk_o != s_sdclk_d);
   always @(posedge clk_cpu or negedge sys_rst_n)
     if (!sys_rst_n) begin
-      s_led_rd_stretch <= 22'd0;
-      s_led_wr_stretch <= 22'd0;
+      s_led_rd_stretch <= 24'd0;
+      s_led_wr_stretch <= 24'd0;
+      s_led_sd_stretch <= 24'd0;
     end else begin
-      if (s_blk_rd_ev)                 s_led_rd_stretch <= {22{1'b1}};
-      else if (|s_led_rd_stretch)      s_led_rd_stretch <= s_led_rd_stretch - 22'd1;
-      if (s_blk_wr_ev)                 s_led_wr_stretch <= {22{1'b1}};
-      else if (|s_led_wr_stretch)      s_led_wr_stretch <= s_led_wr_stretch - 22'd1;
+      if (s_blk_rd_ev)                 s_led_rd_stretch <= {24{1'b1}};
+      else if (|s_led_rd_stretch)      s_led_rd_stretch <= s_led_rd_stretch - 24'd1;
+      if (s_blk_wr_ev)                 s_led_wr_stretch <= {24{1'b1}};
+      else if (|s_led_wr_stretch)      s_led_wr_stretch <= s_led_wr_stretch - 24'd1;
+      if (s_sd_activity)               s_led_sd_stretch <= {24{1'b1}};
+      else if (|s_led_sd_stretch)      s_led_sd_stretch <= s_led_sd_stretch - 24'd1;
     end
 
   assign led[0] = ~|s_led_rd_stretch; // ON = storage BLOCK READ in the last ~150 ms
@@ -2030,7 +2095,12 @@ module ND120_TANG20K_TOP (
 `elsif TANG_JPL_CAPTURE
   assign led[2] = ~dbg_dumping;
 `else
-  assign led[2] = ~s_tape_byte_seen;  // ON = a tape byte was actually served
+  // 24-AUG-2026: was ~s_tape_byte_seen (a bring-up indicator). Now RAW SD CARD
+  // TRAFFIC: ON = the SD clock toggled in the last ~620 ms. led[0]/led[1] say
+  // a device asked for a block; this one says the card was actually talked to,
+  // so a dark led[2] with a lit led[0] means the request never reached the
+  // card.
+  assign led[2] = ~|s_led_sd_stretch;
 `endif
   assign led[3] = ~s_sd_status[0];    // sd_status low bit
   assign led[4] = ~s_sd_status[1];    // sd_status high bit (both lit = OK)
@@ -2042,48 +2112,6 @@ module ND120_TANG20K_TOP (
                                 s_sdclk_seen, 1'b0};
   /* verilator lint_on UNUSEDSIGNAL */
 
-  // Floppy seam (1560&) is WIRED to the SD-FAT stack (FLOPPY1.IMG via the
-  // nd_storage floppy adapter inside TAPE_SDFAT_SOURCE). The SMD seam (1540&)
-  // is wired the same way (SMD0.IMG via nd_storage_disc_adapter, client 3)
-  // when TANG_SMD is defined; otherwise the source ties it idle and the core
-  // leaves the device out.
-  wire [15:0] DMA_RDATA;
-  wire        DMA_ACK, DMA_ERR, DMA_BUSY;
-  // core -> floppy backend (request)
-  wire        FDISK_REQ, FDISK_WR;
-  wire [15:0] FDISK_LSECT;
-  wire [1:0]  FDISK_FORMAT, FDISK_DRIVE;
-  wire [10:0] FDISK_WORDCOUNT;
-  wire [15:0] FDBUF_RDATA;
-  // floppy backend -> core (completion + buffer fill + media format)
-  wire        FDISK_DONE, FDISK_ERR;
-  wire [ 3:0] FDISK_ERR_CODE;
-  wire [3:0]  FDISK_MEDIA_FMT;
-  wire [9:0]  FDBUF_ADDR;
-  wire [15:0] FDBUF_WDATA;
-  wire        FDBUF_WE;
-  wire        SDISK_START, SDISK_REQ, SDISK_WR;
-  wire        WDISK_START, WDISK_REQ, WDISK_WR;
-  wire [15:0] SDISK_BLKADDR1, SDISK_BLKADDR2;
-  wire [2:0]  SDISK_UNIT;
-  wire [10:0] SDISK_WORDCOUNT;
-  wire [15:0] SDBUF_RDATA;
-  wire [15:0] WDISK_BLKADDR1, WDISK_BLKADDR2;
-  wire [ 2:0] WDISK_UNIT;
-  wire [10:0] WDISK_WORDCOUNT;
-  wire        WDISK_DONE, WDISK_ERR;
-  wire [ 3:0] WDISK_ERR_CODE;
-  wire [ 9:0] WDBUF_ADDR;
-  wire [15:0] WDBUF_WDATA;
-  wire        WDBUF_WE;
-  wire [15:0] WDBUF_RDATA;
-  // SMD backend -> core (completion + buffer fill); tied idle by the
-  // source's gen_no_smd when TANG_SMD is absent
-  wire        SDISK_DONE, SDISK_ERR;
-  wire [ 3:0] SDISK_ERR_CODE;
-  wire [9:0]  SDBUF_ADDR;
-  wire [15:0] SDBUF_WDATA;
-  wire        SDBUF_WE;
 
   /* verilator lint_off UNUSEDSIGNAL */
   // FDISK_*/FDBUF_* and (under TANG_SMD) SDISK_*/SDBUF_* are used; only the
