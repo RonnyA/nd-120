@@ -1,0 +1,13 @@
+boardtest-results/
+*.bit
+*.ltx
+*.log
+*.jou
+*.rpt
+*.str
+ila_data.csv
+AM27256_*.hex
+wcs_*.hex
+util.rpt
+timing.rpt
+clockInfo.txt

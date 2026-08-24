@@ -1,0 +1,10 @@
+# SINTRAN boot from the Winchester (task 4). EXPECTED TO FAIL until the
+# early ERRFATAL (L-reg 042514) is fixed - FAILON catches it precisely,
+# and a HANG verdict means it died silently instead.
+FAILON ERRFATAL
+FAILON System malfunction
+LABEL boot SINTRAN from Winchester
+SEND 201540&
+LABEL waiting for the SINTRAN banner (long)
+EXPECT 600 SINTRAN|RUNNING|ENTER
+QUIET 5

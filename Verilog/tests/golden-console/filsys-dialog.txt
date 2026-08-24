@@ -1,0 +1,17 @@
+# GOLDEN: the FILSYS boot dialog, prompt by prompt.
+# Source: silicon (Nexys) + nd100x oracle, both 24-AUG-2026, identical.
+# Automated driver: fpga/nexys4ddr/boardtests/lfn.bt
+OPCOM:   #                                (prompt after reset)
+SEND:    400&
+BANNER:  File System Investigator - Version: Q04 - 1987-10-10
+PROMPT:  Device name :  :
+SEND:    FLOPPY-DISC-1<CR>
+PROMPT:  Device unit :
+SEND:    0<CR>
+OUTPUT:  Total no. of disk pages is 001150
+OUTPUT:  THE COMMAND HELP GIVES YOU A LIST OF THE COMMANDS
+PROMPT:  >
+# LIST-FILE-NAMES asks: User no. (0-0377):   (bare CR = user 0)
+# DUMP-PAGE asks: Page no. / First wordno. / Second wordno. / Ascii or octal (A/O)
+# Notes: letters at numeric prompts are swallowed silently; a bad device
+# name prints the legal-device list and re-prompts.

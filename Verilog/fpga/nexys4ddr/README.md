@@ -215,3 +215,50 @@ written up in [`EXTENSIONS-PLAN.md`](EXTENSIONS-PLAN.md):
 - `../../docs/build-defines.md` - the compile-time defines.
 - `../../docs/nd120-dram-memory.md` - the measured ND-120 DRAM protocol and the
   sheet-49 backend contract (what any DDR2 bridge must satisfy).
+
+## Unattended board operations (24-AUG-2026)
+
+Everything here runs from WSL with no human at the board. Vivado lives on
+the Windows host; the scripts invoke it through `powershell.exe`.
+
+### Reset / program (the reset button, in software)
+
+    vivado -mode batch -source program_only.tcl        # plain bitstream
+    vivado -mode batch -source ila_capture.tcl -tclargs program   # with ILA probes
+
+Both need `XILINXD_LICENSE_FILE` set (enterprise licence) and force JTAG
+TCK to 5 MHz (faster corrupts ILA uploads, Labtools 27-3312).
+
+### Self-checking board tests (send / expect / hang detection)
+
+    ./run_board_test.sh lfn                 # FILSYS LIST-FILE-NAMES regression
+    ./run_board_test.sh tpe_boot            # TPE monitor boot + live prompt
+    ./run_board_test.sh sintran_boot        # SINTRAN boot (ERRFATAL = precise FAIL)
+    ./run_board_test.sh <name> -ila         # bitstream has an ILA: on any FAIL,
+                                            # a capnow of the LIVE machine is saved
+
+Each run: JTAG-resets the board, drives the console through
+`board_expect.ps1` (`boardtests/<name>.bt` scripts: SEND / EXPECT
+<sec> <regex> / FAILON <regex> / QUIET <sec>), and leaves artifacts in
+`boardtest-results/<name>-<stamp>/` (timestamped console log, verdict,
+optional ILA capture). Verdict line: `BOARD_TEST: PASS|FAIL`. A HANG
+leaves the machine untouched until after the ILA capture, so the stuck
+state is inspectable. If a human holds COM11 the runner reports
+port-busy and exits without touching anything.
+
+These need the physical board, so they are NOT in `run_all_tests.sh`;
+run them after every bitstream change.
+
+### Known traps
+
+- usbipd "Shared" state on the FT2232 blocks Vivado's hw_target while
+  COM11 still works: `usbipd unbind --busid <id>` + replug.
+- A finishing background build overwrites `nd120_nexys4ddr.bit/.ltx`;
+  never capture while a build is writing out - see
+  `../../docs/ILA-PROBE-SEMANTICS.md` for this and every other capture
+  lesson.
+- Console: 9600 8N1, commands UPPERCASE, pace characters (the .bt driver
+  paces at 150 ms/char).
+- Golden dialogs for expect scripts: `../../tests/golden-console/`.
+- Machine invariants (register maps, address-space contract, board
+  differences): `../../docs/nd120-facts.md`.

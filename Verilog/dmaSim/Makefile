@@ -19,10 +19,44 @@
 VERILATOR = verilator
 
 SUPPRESS_FLAGS = -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY -Wno-UNUSED -Wno-UNDRIVEN \
-                 -Wno-WIDTH -Wno-EOFNEWLINE -Wno-LATCH -Wno-SYNCASYNCNET
+                 -Wno-WIDTH -Wno-EOFNEWLINE -Wno-LATCH -Wno-SYNCASYNCNET \
+                 -Wno-PINMISSING -Wno-IMPLICIT
+# PINMISSING: the L8/L4 registered-tap outputs (QA_R..) are deliberately
+# unconnected at most instantiation sites. IMPLICIT: the in-flight DBG_PTW
+# wiring in ND3202D.v/CPU_15.v (another session's work) - drop this
+# suppression when that lands.
 
 # USE_LATCHES=0 (FF mode) - the default every build uses.
 SIM_DEFINES = -DVERILATOR_SIM -DFPGA_FF_MODE -DND_SDRAM_PACK16 -DND120_VERILOG_DEVICES $(EXTRA_VDEFINES)
+
+###############################################################################
+# BOARD-PARITY BUILDS (24-AUG-2026, after the ADDR_BITS=15 hunt: the LFN
+# runaway reproduced in sim ONLY once the rig was built with the exact
+# board configuration). One command per board; keep the define lists in
+# step with fpga/nexys4ddr/build.tcl and fpga/tang-nano-20k/src/
+# tang20k_defines.v - any board-only bug should reproduce here first.
+#
+#   make rig-nexys    - Nexys 4 DDR main-memory config (BLOCKRAM, 64K
+#                       words/bank) + real-timing 9600 UART (16.67 MHz
+#                       clocks-per-bit) + the BLOCKRAM RAM backdoor
+#   make rig-tang     - Tang Nano 20K flavor: no CPU cache, real-timing
+#                       UART at the Tang CPU clock (6.75 MHz / 9600 = 703)
+#                       (main memory stays the sim model - the SDRAM
+#                       bridge needs the Gowin primitives)
+###############################################################################
+NEXYS_VDEFINES = -DMAIN_RAM_BLOCKRAM -DND120_BLOCKRAM_ADDR_BITS=16 \
+                 -DND120_UART_DELAY_FRAMES=1736
+NEXYS_CFLAGS   = -std=gnu++20 -fcoroutines -DDMASIM_BLOCKRAM -DDMASIM_RAM_MASK=0xFFFF
+
+TANG_VDEFINES  = -DND120_NO_CACHE -DND120_UART_DELAY_FRAMES=703
+
+rig-nexys:
+	$(MAKE) compile EXTRA_VDEFINES="$(NEXYS_VDEFINES)" TIMING_CFLAGS="$(NEXYS_CFLAGS)"
+
+rig-tang:
+	$(MAKE) compile EXTRA_VDEFINES="$(TANG_VDEFINES)"
+
+.PHONY: rig-nexys rig-tang
 
 # TIMING=1 (default): Verilator --timing (event-driven scheduler). The green
 # test-dma-rtl gate builds this way (SD_STORAGE=1 -> TIMING=1), and the DMA
@@ -45,7 +79,8 @@ CGA_COMPONENTS = -I../DELILAH-CPU/CGA_ALU/circuit -I../DELILAH-CPU/CGA_DCD/circu
 DGA_COMPONENTS = -I../DECODE-GateArray/DGA/circuit
 BUSDEV_COMPONENTS = -I../ND-BUS-DEVICES/BUS-IF/circuit -I../ND-BUS-DEVICES/TAPE-400/circuit \
                     -I../ND-BUS-DEVICES/DMA/circuit -I../ND-BUS-DEVICES/FLOPPY/circuit \
-                    -I../ND-BUS-DEVICES/FLOPPY-DMA/circuit -I../ND-BUS-DEVICES/SMD/circuit
+                    -I../ND-BUS-DEVICES/FLOPPY-DMA/circuit -I../ND-BUS-DEVICES/SMD/circuit \
+                    -I../SD-FAT/circuit
 
 VERILATOR_DIRS = -I.. $(TOP_3202D_COMPONENTS) $(CGA_COMPONENTS) $(DGA_COMPONENTS) $(BUSDEV_COMPONENTS) -I../PAL
 

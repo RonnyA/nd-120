@@ -1,0 +1,14 @@
+# TPE monitor boot from floppy (task 3 smoke test).
+# Assumes a freshly reset board at the OPCOM '#' prompt.
+# KNOWN OPEN BUG: CONF/LOAD report "TPE version too old" - this script
+# only gates the BOOT and prompt liveness, not the overlays.
+LABEL boot TPE from floppy
+SEND 1560&
+EXPECT 90 TPE Monitor, ND-100 series
+EXPECT 30 TPE>
+LABEL prompt idle
+QUIET 5
+LABEL prompt answers (unknown command returns to the prompt)
+SEND XYZZY
+SENDCR
+EXPECT 20 TPE>
