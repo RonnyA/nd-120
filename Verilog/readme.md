@@ -20,6 +20,11 @@ the `runSim/` harness to interact with it).
 6.75 MHz validated, 13.5 MHz timing-clean, and 27 MHz boots but does not close
 timing.
 
+>  The "Status Vivado" column below refers to the XILINX boards and has NOT
+>  been re-verified since the 24-AUG-2026 bus bank-decode fix
+>  (`ND3202D.v:533`), which is shared board logic. Treat it as last-known,
+>  not current.
+
 | Folder                                         | Status Logisim           |  Status Verilog                                | Status Vivado                         | Comment    |
 |------------------------------------------------|--------------------------|------------------------------------------------|---------------------------------------|------------|
 | [DELILAH-CPU](CPU-BOARD-3202/readme.md)        | Logisim drawing complete | Verilog compiles - Missing a lot of testcases  | Syntehesis OK, implementation fails   | CGA        |

@@ -1,3 +1,19 @@
+> # SOLVED 24-AUG-2026 - this document is a HISTORICAL RECORD
+>
+> The ERRFATAL page-fault investigation this file belongs to is **closed**.
+> Root cause: the memory bank was decoded from the wrong side of the bus
+> transceiver (`ND3202D.v:533`). On an incoming DMA write the board drives
+> nothing and that net idles all-ones, so every transfer decoded to BANK0 -
+> disc data landed at the right ROW in the wrong BANK, the CPU fetched zeros
+> from a page nothing had written, executed them as STZ and halted in
+> ERRFATAL after exactly 143 s on every boot.
+>
+> **SINTRAN III now boots on the Tang Nano 20K.**
+>
+> Anything below describing the fault as open, or naming a suspect, is
+> superseded. The measured trail and the theories that were REFUTED are in
+> `PLAN-pf-campaign-prio.md`; the regression guard is `make test-bdbank`.
+
 # Plan: identify the root cause of the page fault on the Tang
 
 **Full path:** `Verilog/fpga/tang-nano-20k/PLAN-pagefault-root-cause.md`

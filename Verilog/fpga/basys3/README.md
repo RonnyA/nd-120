@@ -3,7 +3,10 @@
 **Full path:** `Verilog/fpga/basys3/`
 
 Vivado build/flash flow for the Digilent **Basys3** board. This was the first
-FPGA target; synthesis works but the design does not yet boot on hardware (a
+FPGA target; synthesis works but the design did not boot on hardware at the
+last test. NOTE (24-AUG-2026): not re-tested since the bus bank-decode fix in
+`ND3202D.v:533` - shared board logic that made SINTRAN III boot on the Tang.
+Whether it helps here is UNKNOWN and untested.
 timing-closure problem, see [Status](#status)).
 
 ## Board / device

@@ -25,7 +25,11 @@ functional registry by skipping the first entry (`test-tb-catalog`) in
 
 Also parked: `DELILAH-CPU/CGA/sim/ND120_PF_CAPTURE_tb.v` wires a port
 `c_pgs_at_read` that `ND120_PF_CAPTURE.v` does not have (elaboration error) -
-belongs to the ERRFATAL/PGS-capture investigation, fix it there.
+belonged to the ERRFATAL/PGS-capture investigation. **That investigation
+closed 24-AUG-2026** (bus bank-decode fix, `ND3202D.v:533`; SINTRAN III boots).
+`ND120_PF_CAPTURE.v` did gain `c_pgs_at_read` plus `evt_noperm`/`evt_fault`/
+`evt_any*` during the campaign, so this testbench should be re-checked - it may
+simply elaborate now.
 
 ---
 

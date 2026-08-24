@@ -237,8 +237,8 @@ Build flows live under `Verilog/fpga/<board>/`, see `Verilog/fpga/README.md`.
 
 | Board | FPGA | State |
 |-------|------|-------|
-| **Tang Nano 20K** | GoWin GW2AR-18 | CPU boots on silicon; SDRAM and SD/FAT storage proven |
-| **Basys3** | Xilinx Artix-7 `xc7a35t` | Synthesises, CPU boot does not work yet |
+| **Tang Nano 20K** | GoWin GW2AR-18 | **SINTRAN III boots on silicon (24-AUG-2026)**; SDRAM and SD/FAT storage proven |
+| **Basys3** | Xilinx Artix-7 `xc7a35t` | Synthesises, CPU boot did not work as of the last test. NOT re-tested since the 24-AUG-2026 bus bank-decode fix in `ND3202D.v:533`, which is shared board logic and could change this - the fix is untested here |
 | **QMTech A35T** | Xilinx Artix-7 | Bring-up paused |
 | **Cmod A7-35T** | Xilinx Artix-7 | Research only, no build validated |
 | **MiSTer (DE10-Nano)** | Intel Cyclone V SoC | Planned, not started |

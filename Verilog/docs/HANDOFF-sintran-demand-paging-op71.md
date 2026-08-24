@@ -1,3 +1,17 @@
+> # SUPERSEDED 24-AUG-2026 - SINTRAN III BOOTS
+>
+> This document's title and conclusion no longer hold. SINTRAN III boots on
+> the Tang Nano 20K. Root cause of the failure described below: the memory
+> bank was decoded from the wrong side of the bus transceiver
+> (`ND3202D.v:533`), so every incoming DMA write decoded to BANK0 - the disc
+> data landed at the right ROW in the wrong BANK and the CPU read a page
+> nothing had written.
+>
+> The reasoning below about "a decision made inside SINTRAN" was wrong: it was
+> an RTL fault after all, in the bus address path rather than the fault
+> delivery path. Kept as a record of the investigation.
+> See `HISTORY.md` and `Verilog/fpga/tang-nano-20k/PLAN-pf-campaign-prio.md`.
+
 # HANDOFF: SINTRAN III never boots - the first demand page-in is never serviced
 
 Date: 17-AUG-2026.
