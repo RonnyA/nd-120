@@ -1,5 +1,22 @@
 # Project History
 
+## Milestones
+
+The results that mark eras, pulled out of the full table below:
+
+| Date | Milestone |
+|------|-----------|
+| 11. March 2023 | Design documentation received from Lasse Bockelie - the project becomes possible |
+| April 2024 | The whole CPU board compiles in Verilator for the first time |
+| 13. December 2024 | The CPU executes microcode in Verilator: MACL runs, OPCOM answers over UART |
+| 7. July 2026 | OPCOM boots on real hardware for the first time (Basys3) |
+| 13. July 2026 | Instruction set validated: 13/13 INSTRUCTION-B areas pass vs ND-110 golden traces, self-test clean |
+| 19. July 2026 | **First CPU boot on FPGA silicon** (Tang Nano 20K) |
+| **24. August 2026** | **SINTRAN III boots on the Tang Nano 20K** - the operating system runs on real hardware, login and programs work |
+| **25. August 2026** | **SINTRAN III boots on the Nexys 4 DDR** - second board, main memory in DDR2, timing-clean |
+
+## Full history
+
 Compressed history of the work progress on the ND-120 recreation:
 
 | Date | Area | Description |
