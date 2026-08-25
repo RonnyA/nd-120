@@ -15,18 +15,17 @@ On the way to the FPGA code, there will be testable Logisim Circuits and Logisim
 
 ## Current Status
 
-### Where the project stands (25-AUG-2026)
+### Where the project stands (26-AUG-2026)
 
-The machine runs the original operating system on real hardware. **SINTRAN III
-boots on the Tang Nano 20K**, from a Winchester disc image on an SD card, and
-you can log in and run programs. That is the headline result and the Tang is
-the primary target.
+The machine runs the original operating system on real hardware - on **two
+boards**. **SINTRAN III boots on the Tang Nano 20K** (24-AUG) and on the
+**Nexys 4 DDR** (25-AUG), each from a Winchester disc image on an SD card,
+and you can log in and run programs. The Tang is the primary target.
 
 Verilator is no longer "the thing that works while hardware doesn't" - it is
 the **signal-level reference**: waveforms, unit testbenches, and the
-latch-versus-flip-flop comparison that proves a refactor changed nothing. The
-Xilinx boards (Basys3, Nexys 4 DDR) synthesize and produce bitstreams but do
-not meet timing, so they run OPCOM and not the OS.
+latch-versus-flip-flop comparison that proves a refactor changed nothing. Of
+the Xilinx boards only the Basys3 remains OPCOM-only (does not meet timing).
 
 **Simulation (Verilator - the signal-level reference):**
 - Microcode loads, Master Clear executes, and the CPU self-test passes
@@ -92,6 +91,14 @@ forever.
   computed parity - `ND_SDRAM_PACK16`), the other 4 MB for the SD disk-image
   cache; SD/FAT stack proven on hardware (read + write, safety-gated).
   Timings and clock variants: `Verilog/fpga/tang-nano-20k/README.md`.
+- **Nexys 4 DDR - SINTRAN III BOOTS (25-AUG-2026).** Full CPU at
+  16.667 MHz, timing-clean (WNS +1.46), main memory in **DDR2 through a
+  BRAM cache** (`MEM_RAM_49_DDR2`), boot disc on the on-board microSD:
+  banner in ~40 s, console login verified, 7/7 boot cycles. The blocker
+  was a dropped cache-hit update on late DDR2 write strobes - root cause,
+  fix and validation in `Verilog/fpga/nexys4ddr/SINTRAN-BOOT-25AUG.md`.
+  The board carries a debug panel (RGB health LEDs incl. a DDR2 watchdog,
+  8-digit live state display): `Verilog/fpga/nexys4ddr/DEBUG-PANEL.md`.
 - **Basys3**: OPCOM boots on the board (tag `fpga-opcom-working-basys3`);
   active debug line at 16.67 MHz. Does not meet timing (WNS -29.778 ns at
   16.667 MHz, measured 21-AUG-2026), so it does not boot the OS.
