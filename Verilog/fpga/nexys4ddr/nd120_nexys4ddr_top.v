@@ -60,6 +60,10 @@ module nd120_nexys4ddr_top (
     output wire        uart_rxd_out,  // D4, FPGA -> PC
 
     output wire [15:0] led,
+    // tri-colour LEDs LD16/LD17 (active high) - DDR2/arbiter health panel,
+    // see DEBUG-PANEL.md
+    output wire        led16_r, led16_g, led16_b,
+    output wire        led17_r, led17_g, led17_b,
     output wire        ca, cb, cc, cd, ce, cf, cg, dp,
     output wire [ 7:0] an,
 
@@ -595,6 +599,14 @@ module nd120_nexys4ddr_top (
       .rsp_rdata(st_rsp_rdata)
   );
 
+  // arbiter health flags (sticky, ui_clk domain; quasi-static once set,
+  // so sampling them from another domain is safe)
+  wire       arb_stuck, arb_orphan;
+  wire [1:0] arb_grant;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *) wire [1:0] s_ila_arbflags = {arb_orphan, arb_stuck};
+`endif
+
   nd_ddr2_arb u_arb (
       .ui_clk(ui_clk),
       .ui_rst(ui_rst),
@@ -624,7 +636,11 @@ module nd120_nexys4ddr_top (
       .req_wmask(req_wmask),
       .req_ready(req_ready),
       .rsp_valid(rsp_valid),
-      .rsp_rdata(rsp_rdata)
+      .rsp_rdata(rsp_rdata),
+
+      .dbg_stuck (arb_stuck),
+      .dbg_orphan(arb_orphan),
+      .dbg_grant (arb_grant)
   );
 
   nd_ddr2_port u_ddr2 (
@@ -707,6 +723,45 @@ module nd120_nexys4ddr_top (
   assign led[15] = ~s_debug_cc_term[4];
 
   /**********************************************
+  *  Tri-colour LEDs: DDR2/arbiter health at a  *
+  *  glance (DEBUG-PANEL.md). Full-on RGB LEDs  *
+  *  are blinding - a ~6% duty PWM dims them.   *
+  ***********************************************/
+  reg [3:0] rgb_pwm_cnt = 4'd0;
+  always @(posedge clk100) rgb_pwm_cnt <= rgb_pwm_cnt + 4'd1;
+  wire rgb_on = (rgb_pwm_cnt == 4'd0);
+
+  // MEM_HOLD (DDR2 cache-miss freeze) and a storage grant are short pulses -
+  // stretch them to eye speed like the SD activity LEDs above. Both come
+  // from other clock domains (bridge = CPU clocks, grant = ui_clk), so
+  // 2-FF synchronize before the stretchers - these are eyes-only signals,
+  // latency is irrelevant, but an untimed crossing into a register is not.
+  reg [1:0] sync_hold = 2'd0, sync_grb = 2'd0;
+  always @(posedge clk100) begin
+    sync_hold <= {sync_hold[0], s_dbg_ddr2_bridge[4]};
+    sync_grb  <= {sync_grb[0],  arb_grant == 2'd2};
+  end
+  reg [22:0] s_led_hold_stretch = 23'd0, s_led_grb_stretch = 23'd0;
+  always @(posedge clk100) begin
+    if (sync_hold[1])                s_led_hold_stretch <= {23{1'b1}};
+    else if (|s_led_hold_stretch)    s_led_hold_stretch <= s_led_hold_stretch - 23'd1;
+    if (sync_grb[1])                 s_led_grb_stretch  <= {23{1'b1}};
+    else if (|s_led_grb_stretch)     s_led_grb_stretch  <= s_led_grb_stretch - 23'd1;
+  end
+
+  // LD16 = arbiter/DDR2 health: GREEN calibrated+healthy, RED dbg_stuck
+  // (port dead, watchdog fired), BLUE dbg_orphan (unowned response seen).
+  assign led16_r = rgb_on & arb_stuck;
+  assign led16_b = rgb_on & arb_orphan;
+  assign led16_g = rgb_on & calib_done & ~arb_stuck & ~arb_orphan;
+
+  // LD17 = memory traffic: GREEN CPU running, RED MEM_HOLD activity
+  // (DDR2 cache misses happening), BLUE storage client on the DDR2 port.
+  assign led17_g = rgb_on & ~s_run;
+  assign led17_r = rgb_on & (|s_led_hold_stretch);
+  assign led17_b = rgb_on & (|s_led_grb_stretch);
+
+  /**********************************************
   *  7-segment display                          *
   *  sw[15:14] = 00: sw[0] picks CSA / LA (as before)                       *
   *  sw[15:14] = 01: {FDISK req count[7:0], done count[7:0]}                *
@@ -748,26 +803,33 @@ module nd120_nexys4ddr_top (
       (sw[15:14] == 2'b11) ? dbg_lsect_first :
       sw[0] ? {2'b0, s_debug_la_23_10}
             : {3'b0, CSA_12_0};
-  wire [6:0] nd_seg;
-  wire [3:0] nd_an;
+  // Left four digits: a fixed live debug panel (DEBUG-PANEL.md):
+  //   digit 7 = PIL          digit 6 = {DDR2 astate[2:0], MEM_HOLD}
+  //   digit 5 = {last_hit, refill_pend, op_busy, have_data}
+  //   digit 4 = {2'b00, dbg_orphan, dbg_stuck}  (0 = healthy)
+  wire [15:0] panel_value =
+      {s_pil, s_dbg_ddr2_bridge, 2'b00, arb_orphan, arb_stuck};
 
-  SevenSegDebug SEVEN_SEG (
+  wire [6:0] nd_seg;
+  wire [7:0] nd_an;
+
+  SevenSegDebug8 SEVEN_SEG (
       .clk  (clk100),
-      .value(seg_value),
+      .value({panel_value, seg_value}),
       .seg  (nd_seg),
       .an   (nd_an)
   );
 
   assign {cg, cf, ce, cd, cc, cb, ca} = nd_seg;
   assign dp = 1'b1;                 // decimal points off (active low)
-  assign an = {4'b1111, nd_an};     // only the right-hand four digits
+  assign an = nd_an;
 
   /* verilator lint_off UNUSEDSIGNAL */
-  wire _unused = &{1'b0, sw[15:1], sd_cd, s_pil, s_debug_ca_9_0,
+  wire _unused = &{1'b0, sw[15:1], sd_cd, s_debug_ca_9_0,
                    s_debug_fetch, s_debug_clear_n, s_debug_refrq_n,
                    s_debug_intrq_n, s_debug_powfail_n, s_debug_fidbo,
                    s_ireq_15_0_n, s_xmic_dbg, s_cpu_led[6:2], s_sd_status[1],
-                   DMA_RDATA, DMA_ACK, DMA_ERR, DMA_BUSY, calib_done, 1'b0};
+                   DMA_RDATA, DMA_ACK, DMA_ERR, DMA_BUSY, 1'b0};
   /* verilator lint_on UNUSEDSIGNAL */
 
 endmodule

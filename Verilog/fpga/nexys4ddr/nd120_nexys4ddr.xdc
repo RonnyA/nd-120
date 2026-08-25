@@ -52,6 +52,14 @@ set_property -dict {PACKAGE_PIN V14 IOSTANDARD LVCMOS33} [get_ports {led[13]}]
 set_property -dict {PACKAGE_PIN V12 IOSTANDARD LVCMOS33} [get_ports {led[14]}]
 set_property -dict {PACKAGE_PIN V11 IOSTANDARD LVCMOS33} [get_ports {led[15]}]
 
+## Tri-colour LEDs LD16/LD17 (active high) - DDR2/arbiter health panel
+set_property -dict {PACKAGE_PIN N15 IOSTANDARD LVCMOS33} [get_ports {led16_r}]
+set_property -dict {PACKAGE_PIN M16 IOSTANDARD LVCMOS33} [get_ports {led16_g}]
+set_property -dict {PACKAGE_PIN R12 IOSTANDARD LVCMOS33} [get_ports {led16_b}]
+set_property -dict {PACKAGE_PIN N16 IOSTANDARD LVCMOS33} [get_ports {led17_r}]
+set_property -dict {PACKAGE_PIN R11 IOSTANDARD LVCMOS33} [get_ports {led17_g}]
+set_property -dict {PACKAGE_PIN G14 IOSTANDARD LVCMOS33} [get_ports {led17_b}]
+
 ## 7-segment display - segments (active low)
 set_property -dict {PACKAGE_PIN T10 IOSTANDARD LVCMOS33} [get_ports ca]
 set_property -dict {PACKAGE_PIN R10 IOSTANDARD LVCMOS33} [get_ports cb]

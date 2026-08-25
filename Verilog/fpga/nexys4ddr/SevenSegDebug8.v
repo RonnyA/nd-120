@@ -1,0 +1,60 @@
+/**************************************************************************
+** 8-digit 7-segment multiplexer for the Nexys 4 DDR                     **
+**                                                                       **
+** Same segment decode and refresh scheme as Shared/support/             **
+** SevenSegDebug.v (the Basys3 4-digit version), widened to the Nexys'   **
+** 8 digits: value[31:0] shown in hex, digit 0 (value[3:0]) rightmost.   **
+** Segments and anodes are active LOW.                                   **
+**                                                                       **
+** Last reviewed: 25-AUG-2026                                            **
+** Ronny Hansen                                                          **
+***************************************************************************/
+
+module SevenSegDebug8 (
+    input wire clk,             // 100 MHz clock
+    input wire [31:0] value,    // 8 hex digits, [3:0] = rightmost
+
+    output reg [6:0] seg,       // segments, active LOW (gfedcba)
+    output reg [7:0] an         // digit anodes, active LOW
+);
+
+  // 100 MHz / 2^14 = ~6.1 kHz digit steps, ~763 Hz full 8-digit sweep
+  reg [16:0] refresh_counter = 0;
+  wire [2:0] digit_select;
+
+  always @(posedge clk)
+    refresh_counter <= refresh_counter + 1;
+
+  assign digit_select = refresh_counter[16:14];
+
+  reg [3:0] hex_digit;
+
+  always @(*) begin
+    an = 8'b11111111;
+    an[digit_select] = 1'b0;
+    hex_digit = value[4*digit_select +: 4];
+  end
+
+  // Hex to 7-segment decoder (active LOW: 0=ON), same table as the 4-digit
+  always @(*) begin
+    case (hex_digit)
+      4'h0: seg = 7'b1000000;
+      4'h1: seg = 7'b1111001;
+      4'h2: seg = 7'b0100100;
+      4'h3: seg = 7'b0110000;
+      4'h4: seg = 7'b0011001;
+      4'h5: seg = 7'b0010010;
+      4'h6: seg = 7'b0000010;
+      4'h7: seg = 7'b1111000;
+      4'h8: seg = 7'b0000000;
+      4'h9: seg = 7'b0010000;
+      4'hA: seg = 7'b0001000;
+      4'hB: seg = 7'b0000011;
+      4'hC: seg = 7'b1000110;
+      4'hD: seg = 7'b0100001;
+      4'hE: seg = 7'b0000110;
+      4'hF: seg = 7'b0001110;
+    endcase
+  end
+
+endmodule

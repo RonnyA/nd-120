@@ -174,7 +174,7 @@ puts "CPU sources from nd120_tang20k.gprj: [llength $srcs] files"
 # Winchester) exists only on the core - the same reason the Tang top does it.
 lappend srcs \
     [file join $vroot CPU-BOARD-3202 circuit MEM_RAM_49_BLOCKRAM.v] \
-    [file join $vroot Shared support SevenSegDebug.v] \
+    [file join $srcdir SevenSegDebug8.v] \
     [file join $vroot fpga nexys4ddr ddr2 nd_ddr2_port.v] \
     [file join $vroot fpga nexys4ddr ddr2 nd_ddr2_storage.v] \
     [file join $vroot fpga nexys4ddr ddr2 nd_ddr2_arb.v] \
@@ -274,13 +274,23 @@ if {[llength $_ccpu] == 0 || [llength $_cst] == 0 || [llength $_cui] == 0} {
 # bounds: phase alignment is still not demanded (that is the -datapath_only
 # part), but no payload bit may take longer than one destination period.
 #   clk_cpu  80 ns   clk_stor 37 ns   ui_clk 13.3 ns
+# 25-AUG-2026: the debug panel (RGB LEDs, 8-digit display) samples CPU- and
+# ui_clk-domain bits into sys_clk (100 MHz) through 2-FF synchronizers;
+# bound those crossings the same way (one destination period = 10 ns).
+set _csys [get_clocks -quiet sys_clk]
+if {[llength $_csys] == 0} {
+    puts "ERROR: sys_clk not found. clocks present: [get_clocks]"
+    exit 1
+}
 foreach {src dst lim} [list \
     $_ccpu $_cst 37.000 \
     $_cst  $_ccpu 80.000 \
     $_cst  $_cui 13.300 \
     $_cui  $_cst 37.000 \
     $_ccpu $_cui 13.300 \
-    $_cui  $_ccpu 80.000] {
+    $_cui  $_ccpu 80.000 \
+    $_ccpu $_csys 10.000 \
+    $_cui  $_csys 10.000] {
     set_max_delay -datapath_only -from $src -to $dst $lim
 }
 puts "Bounded clk_cpu_pre / clk_stor_pre / clk_pll_i crossings with datapath-only max delays."

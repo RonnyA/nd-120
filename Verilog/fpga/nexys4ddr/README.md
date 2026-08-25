@@ -191,15 +191,22 @@ producing a board that boots erratically.
 
 ## Board I/O map
 
-| Board control | Wired to | Meaning |
-|---|---|---|
-| **CPU RESET** button (red, C12, active low) | `ND120_TOP.btn1` | Held down = ND-120 held in reset; released = full boot sequence restarts |
-| **BTNC** (N17) | OR'ed into the same reset | Second reset button |
-| **SW0** (J15) | `ND120_TOP.btn2` | 7-segment source: off = microcode address (CSA), on = latched address bus |
-| LD0-LD15 | `ND120_TOP.led[15:0]` | Basys3 LED map - LD0 CPU RED, LD1 CPU GREEN, LD2 RUN, LD3 reset released, LD4 UART TX, LD5 heartbeat, LD6 MCLK, LD7 LCS (microcode loaded), LD8 MR_n, LD11-LD15 CC0-3 + TERM |
-| 7-segment | `seg`/`an` via `SevenSegDebug` | Only the **right-hand four digits** are used; the left four are blanked |
-| USB-UART (C4/D4) | OPCOM console | 9600 baud |
-| microSD | `sd_reset` driven low (slot powered), bus not connected yet | See `EXTENSIONS-PLAN.md` |
+**The complete indicator reference is [`DEBUG-PANEL.md`](DEBUG-PANEL.md)** -
+every LED, both tri-colour LEDs, all 8 display digits, switches and buttons,
+plus the how-to for reading a frozen machine off the panel. Summary:
+
+| Board control | Meaning |
+|---|---|
+| CPU RESET (red) / BTNC | ND-120 reset - held = in reset, released = full boot restart |
+| LD0-LD2 | storage/SD activity |
+| LD3-LD10 | reset, UART TX, heartbeat, RUN, microcode loaded, MR_n, DDR2 calibrated, SD mounted |
+| LD11-LD15 | microcode CC0-CC3 + TERM |
+| **LD16 (RGB)** | DDR2/arbiter health: green = healthy, red = watchdog `dbg_stuck`, blue = orphan response |
+| **LD17 (RGB)** | green = CPU running, red = MEM_HOLD (cache-miss) activity, blue = storage on the DDR2 port |
+| 7-segment right 4 digits | CSA / LA / FDISK counters, selected by sw15:14 + sw0 |
+| 7-segment left 4 digits | live panel: PIL, DDR2 bridge state, arbiter health flags |
+| USB-UART (C4/D4) | OPCOM console, 9600 baud |
+| microSD | the boot disc (SD/FAT stack, 1-bit bus) |
 
 ## Extensions
 
