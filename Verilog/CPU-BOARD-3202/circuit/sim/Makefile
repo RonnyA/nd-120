@@ -333,6 +333,16 @@ test-ddr2ram: MEM_RAM_49_DDR2_tb_bin
 	./MEM_RAM_49_DDR2_tb_bin | tee ddr2ram_result.tmp
 	@grep -q "TB_RESULT: PASS" ddr2ram_result.tmp && rm -f ddr2ram_result.tmp
 
+# nd_ddr2_arb: fairness under a one-client stream, watchdog on a dead
+# port (sticky dbg_stuck, grant held, nothing invented), orphan-response
+# flag. Teeth: the pre-25-AUG strict-A arbiter fails all three.
+test-ddr2arb: ND_DDR2_ARB_tb_bin
+	./ND_DDR2_ARB_tb_bin | tee ddr2arb_result.tmp
+	@grep -q "TB_RESULT: PASS" ddr2arb_result.tmp && rm -f ddr2arb_result.tmp
+
+ND_DDR2_ARB_tb_bin: ND_DDR2_ARB_tb.v ../../../fpga/nexys4ddr/ddr2/nd_ddr2_arb.v
+	$(IVERILOG) -g2012 -o $@ ND_DDR2_ARB_tb.v ../../../fpga/nexys4ddr/ddr2/nd_ddr2_arb.v
+
 MEM_RAM_49_DDR2_tb_bin: $(DDR2RAM_SRCS)
 	$(IVERILOG) -g2012 -o $@ $(DDR2RAM_SRCS)
 

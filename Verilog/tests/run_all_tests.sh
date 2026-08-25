@@ -113,6 +113,7 @@ REGISTRY=(
   # 16-bit address-bit walk also catches dropped/swapped address bits
   "CPU-BOARD-3202/circuit/sim :: test-blockram-space :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-ddr2ram   :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-ddr2arb   :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-memchain-ddr2 :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-blockram-errfa :: TB_RESULT: PASS"
   "fpga/nexys4ddr/sim :: test-wdiox-ring :: TB_RESULT: PASS"
