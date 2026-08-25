@@ -1,0 +1,10 @@
+LABEL is anything answering after the hang - CR then P register
+SENDCR
+PAUSE 3
+SEND P/
+PAUSE 3
+SENDCR
+PAUSE 2
+SEND P/
+PAUSE 3
+QUIET 3

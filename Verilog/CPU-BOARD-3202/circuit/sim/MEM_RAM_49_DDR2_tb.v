@@ -364,6 +364,44 @@ module MEM_RAM_49_DDR2_tb;
       access(bank_t, ra, wr, rd);
     end
 
+    // ---- 6. late-CAS write with AA drift (25-AUG stale-word root cause) ----
+    // On the board CAS can rise LATER than N+2 (stretched cycles, refresh
+    // interleave) and by then AA has moved off the column. tag_rd reloads
+    // every posedge from the LIVE AA, so a hit computed at wr_edge time read
+    // a foreign line's tag: the cache update was dropped while DDR2 took the
+    // write - one stale cached word (SINTRAN spun forever on 056063).
+    // Sequence: cache a line, write one word of it with CAS delayed two extra
+    // cycles while AA drifts to a foreign column, then read it back.
+    begin : latecas
+      access(0, 20'o0500020, 1, 16'h1111);   // fill target word
+      access(0, 20'o0500020, 0, 0);          // miss -> line cached
+      access(0, 20'o0500020, 0, 0);          // hit (line resident)
+      @(negedge sysclk);
+      AA = 10'o0240;                        // row of 0500020 (addr[19:10])
+      BANK0 = 1; BANK1 = 0; BANK2 = 0;
+      MWRITE50_n = 0;
+      DD_IN = {1'b0, 8'h22, 1'b0, 8'h22};   // write 0x2222
+      RAS = 1; CAS = 0;
+      @(negedge sysclk);                    // posedge N passed: row latched
+      AA = 10'o0020;                        // N+1: column
+      @(negedge sysclk);                    // A_COL latches col at next edge
+      @(negedge sysclk);                    // col latched; A_CHK next edge
+      AA = 10'o0777;                        // AA drifts off the column
+      @(negedge sysclk);                    // posedge N+2 passed: A_CHK done
+      @(negedge sysclk);                    // extra stretch, CAS still low
+      CAS = 1;                              // CAS finally rises (late)
+      @(negedge sysclk);
+      @(negedge sysclk);
+      @(negedge sysclk);
+      RAS = 0;
+      @(negedge sysclk);
+      CAS = 0; BANK0 = 0; MWRITE50_n = 1;
+      @(negedge sysclk);
+      ref_mem[21'o0500020] = 16'h2222;
+      repeat (5) @(negedge sysclk);
+    end
+    access(0, 20'o0500020, 0, 0);           // MUST read 0x2222, not stale 0x1111
+
     drain();
 
     $display("accesses=%0d hits=%0d misses=%0d errors=%0d",

@@ -339,7 +339,7 @@ if {[lsearch $argv "ilaslim"] >= 0} {
         lappend _probes [lsort -dictionary $n]
     }
     foreach pat {
-        *s_ila_ram_addr* *s_ila_ram_wr *s_ila_ram_wdata*
+        *s_ila_ddr2* *s_ila_la* *s_ila_xmic* *s_ila_maddr* *s_ila_mdata* *s_ila_pil* *s_ila_ireq* *s_ila_picmask* *s_ila_intrq_n* *s_ila_picv* *s_ila_tvec* *s_ila_trapn*
     } {
         set n [get_nets -hier -quiet -filter "MARK_DEBUG && NAME =~ $pat"]
         if {[llength $n] == 0} { puts "ERROR: ILA marked net missing for $pat"; exit 1 }

@@ -557,7 +557,12 @@ module MEM_43 (
   // BANK0+BANK2 = 4 MB like the Tang, BANK1 absent). A cache miss freezes
   // the two control PALs (MEM_HOLD) until the line arrives - the CPU waits
   // via CGNTCACT_n, DMA via BDRY_n; see the module header for the proof.
-  MEM_RAM_49_DDR2 RAM (
+`ifndef ND120_DDR2_CACHE_BITS
+  `define ND120_DDR2_CACHE_BITS 14
+`endif
+  MEM_RAM_49_DDR2 #(
+      .CACHE_IDX_BITS(`ND120_DDR2_CACHE_BITS)
+  ) RAM (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
       .AA_9_0(s_aa_9_0[9:0]),

@@ -221,7 +221,10 @@ module MEM_RAM_49_DDR2 #(
 
   // Enqueue/dequeue can land in the same sysclk cycle; wcnt is updated in ONE
   // place from these two strobes so the two paths can never race each other.
-  wire wf_enq = (wr_edge & ~wfifo_full) | (~wr_edge & wpend_v & ~wfifo_full);
+  // exactly one word enters the FIFO whenever a slot exists and either a new
+  // write lands (wr_edge) or a parked write waits (wpend_v) - including the
+  // wr_edge&wpend_v case, where the PARKED write is the one enqueued.
+  wire wf_enq = (wr_edge | wpend_v) & ~wfifo_full;
   wire wf_deq = ~op_busy & ~wfifo_empty;
 
   /*******************************************************************************
@@ -259,6 +262,8 @@ module MEM_RAM_49_DDR2 #(
   reg wpend_v;       // captured write waiting for a FIFO slot
   reg [36:0] wpend;
   reg last_hit;      // DBG
+  reg hit_q;         // hit verdict latched at A_CHK (see whit below)
+  reg wovr_r;        // sticky: a write landed with wpend full AND FIFO full (write LOST)
 
   assign MEM_HOLD = hold_r | whold_r;
 
@@ -288,6 +293,8 @@ module MEM_RAM_49_DDR2 #(
       wpend_v     <= 0;
       wpend       <= 0;
       last_hit    <= 0;
+      hit_q       <= 0;
+      wovr_r      <= 0;
       wcnt        <= 0;
       wrp         <= 0;
       wwp         <= 0;
@@ -339,6 +346,7 @@ module MEM_RAM_49_DDR2 #(
 
         A_CHK: begin  // N+2: hit/miss known
           last_hit <= hit;
+          hit_q    <= hit;  // stable copy for a LATE wr_edge (tag_rd drifts)
           if (wn_q) begin
             if (hit) begin
               dd_hold   <= {~(^line_word[15:8]), line_word[15:8],
@@ -385,7 +393,23 @@ module MEM_RAM_49_DDR2 #(
        **********************************************************************/
       if (wr_edge) begin
         // cache update on hit happens in the dedicated write block below
-        if (!wfifo_full) begin
+        if (wpend_v) begin
+          if (!wfifo_full) begin
+            // A parked write already waits: it is OLDER than this one, so it
+            // must enter the FIFO first and the NEW write takes its place in
+            // wpend. Enqueuing the new write directly would reorder the two
+            // (wrong final value on a same-address pair) - 25-AUG audit BUG 1.
+            wfifo[wwp] <= wpend;
+            wwp        <= wwp + 1'b1;
+            wpend      <= {word_addr, dd_q[16:9], dd_q[7:0]};
+            // wpend_v and whold_r stay 1 until wpend itself drains
+          end else begin
+            // Two parked writes and no slot: whold_r (MEM_HOLD) is supposed
+            // to make this unreachable. If it happens anyway the write is
+            // LOST - latch the sticky error flag rather than corrupt order.
+            wovr_r <= 1;
+          end
+        end else if (!wfifo_full) begin
           wfifo[wwp] <= {word_addr, dd_q[16:9], dd_q[7:0]};
           wwp        <= wwp + 1'b1;
         end else begin
@@ -414,7 +438,10 @@ module MEM_RAM_49_DDR2 #(
           wrp          <= wrp + 1'b1;
           op_busy      <= 1;
           op_tgl       <= ~op_tgl;
-        end else if (refill_pend) begin
+        end else if (refill_pend && !wpend_v) begin
+          // !wpend_v: a parked write not yet in the FIFO is still an EARLIER
+          // write; a refill issued past it would cache the pre-write line
+          // FOREVER (write-through, no dirty state) - 25-AUG audit BUG 2.
           op_we        <= 0;
           op_addr      <= {word_addr[20:3], 3'b000};
           op_wdata     <= 0;
@@ -440,7 +467,17 @@ module MEM_RAM_49_DDR2 #(
    *******************************************************************************/
   wire refill_wr = (astate == A_MISS) & op_done_edge & op_is_refill;
   wire [15:0] wr_data16 = {dd_q[16:9], dd_q[7:0]};
-  wire whit = wr_edge & hit;
+  // 25-AUG stale-word root cause: `hit` is combinational from tag_rd, and
+  // tag_rd reloads EVERY posedge from l_idx = f(live AA bus). wr_edge lands
+  // at N+2 *or later* (stretched cycles, refresh interleave); by then AA has
+  // moved on, tag_rd holds a FOREIGN line's tag, `hit` reads falsely 0 and
+  // the cache update is dropped while DDR2 takes the write - one stale word
+  // stays cached forever (silicon: SINTRAN spins on 056063 reading old
+  // buffer content its own load had overwritten). Use the hit verdict
+  // LATCHED at A_CHK, when tag_rd provably belongs to this access; the
+  // same-edge case (wr_edge at the A_CHK posedge itself) still sees the
+  // valid live value.
+  wire whit = wr_edge & ((astate == A_CHK) ? hit : hit_q);
 
   always @(posedge sysclk) begin
     if (refill_wr) tags[idx_q] <= {1'b1, atag_q};
@@ -538,6 +575,19 @@ module MEM_RAM_49_DDR2 #(
 
   assign DD_17_0_OUT = read_active ? dd_hold : 18'b0;
   assign CORR_n = read_active ? ((^dd_hold[8:0]) & (^dd_hold[17:9])) : 1'b1;
+
+`ifdef ND120_ILA_MARK_DEBUG
+  // 25-AUG loop hunt: full word address + direction of every access, for the
+  // ILA (pattern *s_ila_maddr* in build.tcl ilaslim). [21]=read [20:0]=word.
+  (* mark_debug = "true" *) wire [21:0] s_ila_maddr = {wn_q, word_addr};
+  // the 16-bit DATA word of the access (parity bits dropped): reads show the
+  // served word (dd_hold); writes show the CAPTURED WRITE DATA (dd_q) - the
+  // value that actually enters the cache and the write FIFO. 25-AUG stale-
+  // word hunt: a corrupt written value was invisible while this only showed
+  // dd_hold.
+  (* mark_debug = "true" *) wire [15:0] s_ila_mdata =
+      wn_q ? {dd_hold[16:9], dd_hold[7:0]} : {dd_q[16:9], dd_q[7:0]};
+`endif
 
   assign DBG_BRIDGE = {astate[2:0],   // [7:5]
                        MEM_HOLD,      // [4]

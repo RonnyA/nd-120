@@ -144,6 +144,16 @@ module CGA_INTR (
   assign HIGSN              = s_highs_n_out;
   assign INTRQN             = s_intrq_n;
   assign IRQ                = s_irq_out;
+
+`ifdef ND120_ILA_MARK_DEBUG
+  // 25-AUG SINTRAN-idle hunt (Nexys): the machine idles at PIL 0 and no
+  // interrupt ever dispatches. Capture the controller's own view: the PIC
+  // mask (PIE as the Am2914 chain sees it), the grant request to the
+  // microcode, and the winning vector.
+  (* mark_debug = "true" *) wire [15:0] s_ila_picmask = s_picmask_15_0_out;
+  (* mark_debug = "true" *) wire        s_ila_intrq_n = s_intrq_n;
+  (* mark_debug = "true" *) wire [ 2:0] s_ila_picv    = s_picv_2_0_out[2:0];
+`endif
   assign LOGSN              = s_logs_n_out;
   assign PD                 = s_pd_out;
   assign PICMASK_15_0       = s_picmask_15_0_out[15:0];

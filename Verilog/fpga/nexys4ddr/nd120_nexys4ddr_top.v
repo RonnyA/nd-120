@@ -38,9 +38,10 @@
 **   The three are declared asynchronous in build.tcl; every crossing is a  **
 **   two-flop synchroniser or a toggle handshake.                           **
 **                                                                         **
-** MAIN MEMORY is BRAM (MAIN_RAM_BLOCKRAM), same as the Basys3 and Cmod     **
-** builds. Moving it to DDR2 is EXTENSIONS-PLAN.md stage 2 and is gated on  **
-** the read-latency number the SD tool's M command measures.                **
+** MAIN MEMORY is DDR2 with a BRAM cache in front (MAIN_RAM_DDR2, default   **
+** since 25-AUG-2026): MEM_RAM_49_DDR2 inside MEM_43 reaches the MIG        **
+** through nd_ddr2_arb, sharing it with the storage region. The old         **
+** BRAM-only configuration is kept behind build.tcl -tclargs bramram.       **
 **                                                                         **
 ** Build: vivado -mode batch -source build.tcl   (see README.md)            **
 **                                                                         **
@@ -539,6 +540,21 @@ module nd120_nexys4ddr_top (
   wire [127:0]  mm_req_wdata, mm_rsp_rdata;
   wire [ 15:0]  mm_req_wmask;
   wire [  7:0]  s_dbg_ddr2_bridge;
+`ifdef ND120_ILA_MARK_DEBUG
+  // ilaslim (build.tcl): DDR2 main-RAM bridge state next to CSA/cpu_txd.
+  // [7:5] astate  [4] MEM_HOLD  [3] last_hit  [2] refill_pend
+  // [1] op_busy   [0] have_data
+  (* mark_debug = "true" *) wire [7:0] s_ila_ddr2 = s_dbg_ddr2_bridge;
+  // 25-AUG SINTRAN-hang hunt: the CPU loops at CSA 0o6000 (the execute-zeros
+  // signature) - capture WHERE it fetches from and the microsequencer state.
+  (* mark_debug = "true" *) wire [13:0] s_ila_la = s_debug_la_23_10;
+  (* mark_debug = "true" *) wire [15:0] s_ila_xmic = s_xmic_dbg;
+  // interrupt-subsystem view for the idle-loop diagnosis: current level and
+  // the raw request vector into the controller (PIE/PID themselves are
+  // serviced constructs inside CGA_INTR, not plain registers)
+  (* mark_debug = "true" *) wire [3:0]  s_ila_pil  = s_pil;
+  (* mark_debug = "true" *) wire [15:0] s_ila_ireq = s_ireq_15_0_n;
+`endif
 `ifndef MAIN_RAM_DDR2
   // Built without the DDR2 main-memory backend: park client A so the
   // arbiter never sees a floating request.
@@ -649,13 +665,37 @@ module nd120_nexys4ddr_top (
   reg [26:0] ticks;
   always @(posedge clk_cpu) ticks <= ticks + 27'd1;
 
-  assign led[0]  = ~s_cpu_led[0];       // CPU RED   (master clear active)
-  assign led[1]  = ~s_cpu_led[1];       // CPU GREEN (init complete)
-  assign led[2]  = ~s_run;              // running
+  // led[0..2]: the Tang bring-up trio (ND120_TANG20K_TOP.v led[0..2]) so the
+  // two boards read the same by eye. A storage block op lasts microseconds,
+  // so each event stretches to ~500 ms (2^23 at 16.667 MHz).
+  reg [22:0] s_led_rd_stretch, s_led_wr_stretch, s_led_sd_stretch;
+  reg s_sdclk_led_d;
+  wire s_blk_rd_ev = (FDISK_REQ & ~FDISK_WR) | (WDISK_REQ & ~WDISK_WR);
+  wire s_blk_wr_ev = (FDISK_REQ &  FDISK_WR) | (WDISK_REQ &  WDISK_WR);
+  always @(posedge clk_cpu) begin
+    if (!sys_rst_n) begin
+      s_led_rd_stretch <= 23'd0;
+      s_led_wr_stretch <= 23'd0;
+      s_led_sd_stretch <= 23'd0;
+      s_sdclk_led_d    <= 1'b0;
+    end else begin
+      s_sdclk_led_d <= s_sd_clk_o;
+      if (s_blk_rd_ev)                  s_led_rd_stretch <= {23{1'b1}};
+      else if (|s_led_rd_stretch)       s_led_rd_stretch <= s_led_rd_stretch - 23'd1;
+      if (s_blk_wr_ev)                  s_led_wr_stretch <= {23{1'b1}};
+      else if (|s_led_wr_stretch)       s_led_wr_stretch <= s_led_wr_stretch - 23'd1;
+      if (s_sd_clk_o != s_sdclk_led_d)  s_led_sd_stretch <= {23{1'b1}};
+      else if (|s_led_sd_stretch)       s_led_sd_stretch <= s_led_sd_stretch - 23'd1;
+    end
+  end
+
+  assign led[0]  = |s_led_rd_stretch;   // ON = storage BLOCK READ  (Tang led[0])
+  assign led[1]  = |s_led_wr_stretch;   // ON = storage BLOCK WRITE (Tang led[1])
+  assign led[2]  = |s_led_sd_stretch;   // ON = SD-card wire activity (Tang led[2])
   assign led[3]  = sys_rst_n;           // reset released
   assign led[4]  = ~cpu_txd;            // UART TX activity
   assign led[5]  = ticks[26];           // heartbeat
-  assign led[6]  = s_debug_mclk;
+  assign led[6]  = ~s_run;              // running (was on led[2])
   assign led[7]  = ~s_debug_lcs_n;      // microcode loaded
   assign led[8]  = s_debug_mr_n;
   assign led[9]  = calib_done;          // DDR2 calibrated

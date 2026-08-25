@@ -784,6 +784,64 @@ module ND120_TOP
   wire        s_wdbuf_we       = 1'b0;
 `endif
 
+`ifdef MAIN_RAM_DDR2
+  /*************************************************************************
+   * Sim-only DDR2 backend plumbing (25-AUG-2026, freeze-injection study):
+   * the REAL MEM_RAM_49_DDR2 runs inside the core; this block provides the
+   * ui_clk domain and a behavioral nd_ddr2_port (random 10..70-cycle
+   * latency, 2M x 16 backing store) so full-system Verilator runs exercise
+   * the REAL cache-miss freeze against the REAL PALs and microcode.
+   *************************************************************************/
+  // no-timing Verilator: run the "ui" domain on the same clock; the toggle
+  // CDC degrades to a synchronous pipeline and the model's 10..70-cycle
+  // latency becomes 10..70 SYSCLK cycles = LONGER stalls = more stress.
+  wire sim_ui_clk = sysclk;
+
+  wire         mm_req_valid, mm_req_we;
+  wire [26:0]  mm_req_addr;
+  wire [127:0] mm_req_wdata;
+  wire [15:0]  mm_req_wmask;
+  reg          mm_req_ready = 0;
+  reg          mm_rsp_valid = 0;
+  reg  [127:0] mm_rsp_rdata = 0;
+  wire [7:0]   mm_dbg_bridge;
+
+  reg [15:0] sim_ddr_mem[0:2097151];
+  integer sd_lat = 0, sd_state = 0, sd_cnt = 0, sd_i;
+  reg [26:0] sd_addr; reg sd_we; reg [127:0] sd_wdata; reg [15:0] sd_wmask;
+  reg [20:0] sd_unit;
+  reg [31:0] sd_lfsr = 32'hACE1ACE1;
+  always @(posedge sim_ui_clk) begin
+    mm_rsp_valid <= 0;
+    if (!sys_rst_n) begin sd_state <= 0; mm_req_ready <= 0; end
+    else begin
+      mm_req_ready <= (sd_state == 0);
+      if (sd_state == 0 && mm_req_valid && mm_req_ready) begin
+        sd_addr <= mm_req_addr; sd_we <= mm_req_we;
+        sd_wdata <= mm_req_wdata; sd_wmask <= mm_req_wmask;
+        sd_lfsr <= {sd_lfsr[30:0], sd_lfsr[31]^sd_lfsr[21]^sd_lfsr[1]^sd_lfsr[0]};
+        sd_lat <= 10 + (sd_lfsr[5:0] % 61);
+        sd_cnt <= 0; sd_state <= 1; mm_req_ready <= 0;
+      end else if (sd_state == 1) begin
+        sd_cnt <= sd_cnt + 1;
+        if (sd_cnt == sd_lat) begin
+          sd_unit = sd_addr[20:0] & 21'h1FFFF8;
+          if (sd_we) begin
+            for (sd_i = 0; sd_i < 8; sd_i = sd_i + 1) begin
+              if (!sd_wmask[2*sd_i])   sim_ddr_mem[sd_unit+sd_i][7:0]  <= sd_wdata[16*sd_i+:8];
+              if (!sd_wmask[2*sd_i+1]) sim_ddr_mem[sd_unit+sd_i][15:8] <= sd_wdata[16*sd_i+8+:8];
+            end
+          end else begin
+            for (sd_i = 0; sd_i < 8; sd_i = sd_i + 1)
+              mm_rsp_rdata[16*sd_i+:16] <= sim_ddr_mem[sd_unit+sd_i];
+          end
+          mm_rsp_valid <= 1; sd_state <= 0;
+        end
+      end
+    end
+  end
+`endif
+
   ND120_CORE #(
       .INCLUDE_TAPE  (CORE_INCLUDE_TAPE),
       .INCLUDE_FLOPPY(CORE_INCLUDE_FLOPPY),
@@ -913,6 +971,20 @@ module ND120_TOP
       .DEBUG_INTRQ_n(s_debug_intrq_n),
       .DEBUG_POWFAIL_n(s_debug_powfail_n),
       .DEBUG_FIDBO_15_0(s_debug_fidbo)
+`ifdef MAIN_RAM_DDR2
+      ,
+      .ui_clk      (sim_ui_clk),
+      .ui_rst      (~sys_rst_n),
+      .mm_req_valid(mm_req_valid),
+      .mm_req_we   (mm_req_we),
+      .mm_req_addr (mm_req_addr),
+      .mm_req_wdata(mm_req_wdata),
+      .mm_req_wmask(mm_req_wmask),
+      .mm_req_ready(mm_req_ready),
+      .mm_rsp_valid(mm_rsp_valid),
+      .mm_rsp_rdata(mm_rsp_rdata),
+      .DBG_DDR2_BRIDGE(mm_dbg_bridge)
+`endif
   );
 
 `ifdef ND120_INSTR_TRACE

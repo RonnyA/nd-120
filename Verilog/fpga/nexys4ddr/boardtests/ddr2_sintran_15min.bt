@@ -1,0 +1,11 @@
+# 20500& SINTRAN boot on the DDR2 build - 15-min observation window.
+# The 20-s hangboot window is far too short for a disc-bound boot
+# (Tang measures 29-168 s); this waits for ANY letter output (banner).
+FAILON System malfunction
+FAILON ERRFATAL
+SENDCR
+PAUSE 2
+LABEL boot SINTRAN from 20500 octal
+SEND 20500&
+EXPECT 900 [A-Za-z]
+PAUSE 30

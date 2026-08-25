@@ -104,6 +104,18 @@ int main(int argc, char **argv)
 #endif
 
 	// Load data
+#ifdef ND120_SIM_DDR2
+	// DDR2 backend (MAIN_RAM_DDR2): preload the behavioral DDR2 store in
+	// ND120_TOP (pack16: one 16-bit word per location, parity dropped).
+	{
+		static uint8_t plo[1 << 20], plop[1 << 20], phi[1 << 20], phip[1 << 20];
+		char *fname = strdup("INSTRUCTION-B.BPUN");
+		loadfile(fname, 0, plo, plop, phi, phip);
+		auto &dmem = top->rootp->ND120_TOP__DOT__sim_ddr_mem;
+		for (int i = 0; i < (1 << 20); i++)
+			dmem[i] = (uint16_t)((phi[i] << 8) | plo[i]);
+	}
+#else
 	// Access MEM->RAM fields via rootp
 	auto &ram_low = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo;
 	auto &ram_low_9 = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo_p;
@@ -112,6 +124,7 @@ int main(int argc, char **argv)
 	auto &ram_high_9 = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi_p;
 	char *fname = strdup("INSTRUCTION-B.BPUN"); // strdup creates a modifiable copy
 	loadfile(fname, 0, &ram_low[0], &ram_low_9[0], &ram_high[0], &ram_high_9[0]);
+#endif
 
 	uint8_t led = 0;
 	uint8_t new_led = 0;

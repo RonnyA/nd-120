@@ -110,6 +110,14 @@ module CGA_TRAP (
   assign TRAPN          = s_trap_n_out;
   assign TVEC_3_0       = s_tvec_3_0_out[3:0];
 
+`ifdef ND120_ILA_MARK_DEBUG
+  // 25-AUG spurious-page-fault hunt (Nexys/SINTRAN): the trap-fire event is
+  // TRAPN falling with TVEC != 15. Probed so the ILA can trigger on the
+  // exact fault and show MEM_HOLD/PIL/address state around it.
+  (* mark_debug = "true" *) wire [3:0] s_ila_tvec  = s_tvec_3_0_out;
+  (* mark_debug = "true" *) wire       s_ila_trapn = s_trap_n_out;
+`endif
+
 `ifdef TRAPDBG
   // Low-volume trap/restart probe: log each TRAP falling edge + RESTR rising
   // edge with the trap vector (find the trap that reboots the CPU).

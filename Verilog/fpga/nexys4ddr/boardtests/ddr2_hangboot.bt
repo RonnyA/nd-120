@@ -1,0 +1,6 @@
+LABEL verify OPCOM then start the hanging boot
+SENDCR
+PAUSE 2
+SEND 20500&
+PAUSE 20
+QUIET 2
