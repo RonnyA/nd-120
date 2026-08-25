@@ -179,6 +179,23 @@ test-nds-mount: nd_storage_tb.vvp nds_storage.img
 	$(VVP) nd_storage_tb.vvp | tee nds_mount_out.log
 	@grep -q "TB_RESULT: PASS" nds_mount_out.log
 
+# Same stack, same card image, but the writer engine runs the 4-bit DAT bus
+# (CMD55 + ACMD6 per operation). This is the gate for the card RCA: CMD55
+# carries the card's published address, and the sim card model refuses RCA 0
+# once CMD3 has run - exactly as real silicon does. A stack that never picks
+# up the reader's card_rca fails here instead of only on the board.
+nd_storage_4bit_tb.vvp: $(MOUNT_SRCS)
+	$(IVERILOG) -g2005 -DNDS_TB_4BIT -I../circuit -o $@ $(MOUNT_SRCS)
+
+test-nds-mount-4bit: nd_storage_4bit_tb.vvp nds_storage.img
+	$(VVP) nd_storage_4bit_tb.vvp | tee nds_mount_4bit_out.log
+	@grep -q "TB_RESULT: PASS" nds_mount_4bit_out.log
+	@! grep -q "wrong RCA" nds_mount_4bit_out.log \
+	  || (echo "FAIL: card rejected a CMD55 - the writer's RCA is wrong"; false)
+	@echo "4-bit mount gate: PASS"
+
+.PHONY: test-nds-mount-4bit
+
 # Error reporting: every way a storage op can fail must COMPLETE, with
 # err=1 and the right reason code (nd_storage_status.vh). Needs both
 # images - the good one and the deliberately broken nds_badfat.img.

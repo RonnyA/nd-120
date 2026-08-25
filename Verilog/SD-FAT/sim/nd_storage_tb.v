@@ -102,6 +102,18 @@ module nd_storage_tb;
   wire        sd1_cmd  = sd1_cmd_oe  ? sd1_cmd_o  : (c1_cmd_oe  ? c1_cmd_o  : 1'b1);
   wire        sd1_dat0 = sd1_dat0_oe ? sd1_dat0_o : (c1_dat0_oe ? c1_dat0_o : 1'b1);
 
+  // DAT1-3. Only the 4-bit bus uses them for data; in 1-bit mode both sides
+  // release and the board's external pull-ups hold them high, which is the
+  // 1'b1 default below. Wiring them for real is what lets this tb exercise
+  // the CMD55+ACMD6 width switch - the path that needs the card's published
+  // RCA and that no nd_storage harness covered before.
+  wire        sd1_dat1_o, sd1_dat1_oe, c1_dat1_o, c1_dat1_oe;
+  wire        sd1_dat2_o, sd1_dat2_oe, c1_dat2_o, c1_dat2_oe;
+  wire        sd1_dat3_o, sd1_dat3_oe, c1_dat3_o, c1_dat3_oe;
+  wire        sd1_dat1 = sd1_dat1_oe ? sd1_dat1_o : (c1_dat1_oe ? c1_dat1_o : 1'b1);
+  wire        sd1_dat2 = sd1_dat2_oe ? sd1_dat2_o : (c1_dat2_oe ? c1_dat2_o : 1'b1);
+  wire        sd1_dat3 = sd1_dat3_oe ? sd1_dat3_o : (c1_dat3_oe ? c1_dat3_o : 1'b1);
+
   wire        mem_start_w, mem_we_w, mem_busy_w, mem_done_w;
   wire [19:0] mem_addr_w;
   wire [31:0] mem_wdata_w, mem_rdata_w;
@@ -125,6 +137,9 @@ module nd_storage_tb;
       .RD_CLK_DIV(3'd1),          // 27 MHz class clock in the tb
       .WR_CLKDIV (8'd2),          // never used here (no writes)
       .WD_MAX    (32'd5_000_000),
+`ifdef NDS_TB_4BIT
+      .USE_4BIT  (1),
+`endif
       .SIMULATE  (1)
   ) dut (
       .clk_stor  (clk_stor),
@@ -138,6 +153,15 @@ module nd_storage_tb;
       .sd_dat0_i (sd1_dat0),
       .sd_dat0_o (sd1_dat0_o),
       .sd_dat0_oe(sd1_dat0_oe),
+      .sd_dat1_i (sd1_dat1),
+      .sd_dat1_o (sd1_dat1_o),
+      .sd_dat1_oe(sd1_dat1_oe),
+      .sd_dat2_i (sd1_dat2),
+      .sd_dat2_o (sd1_dat2_o),
+      .sd_dat2_oe(sd1_dat2_oe),
+      .sd_dat3_i (sd1_dat3),
+      .sd_dat3_o (sd1_dat3_o),
+      .sd_dat3_oe(sd1_dat3_oe),
       .mem_start (mem_start_w),
       .mem_we    (mem_we_w),
       .mem_addr  (mem_addr_w),
@@ -187,9 +211,9 @@ module nd_storage_tb;
       .sd_clk   (sd1_clk),
       .sd_cmd_i (sd1_cmd),  .sd_cmd_o (c1_cmd_o),  .sd_cmd_oe (c1_cmd_oe),
       .sd_dat0_i(sd1_dat0), .sd_dat0_o(c1_dat0_o), .sd_dat0_oe(c1_dat0_oe),
-      .sd_dat1_i(1'b1), .sd_dat1_o(), .sd_dat1_oe(),
-      .sd_dat2_i(1'b1), .sd_dat2_o(), .sd_dat2_oe(),
-      .sd_dat3_i(1'b1), .sd_dat3_o(), .sd_dat3_oe()
+      .sd_dat1_i(sd1_dat1), .sd_dat1_o(c1_dat1_o), .sd_dat1_oe(c1_dat1_oe),
+      .sd_dat2_i(sd1_dat2), .sd_dat2_o(c1_dat2_o), .sd_dat2_oe(c1_dat2_oe),
+      .sd_dat3_i(sd1_dat3), .sd_dat3_o(c1_dat3_o), .sd_dat3_oe(c1_dat3_oe)
   );
 
   // client 1 buffer: REGISTERED BRAM (the sterner timing case)

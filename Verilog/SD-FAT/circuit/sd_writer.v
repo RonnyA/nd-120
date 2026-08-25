@@ -188,6 +188,8 @@ module sd_writer #(
   reg [15:0] crc16_2;      // 4-bit mode: per-line CRC16 for DAT2
   reg [15:0] crc16_3;      // 4-bit mode: per-line CRC16 for DAT3
   reg [12:0] bitcnt;
+  reg [45:0] r1sr;       // R1 capture: first received bit ends at [45],
+                         // card status = r1sr[38:7] (see W_R1)
   reg [7:0]  shreg;
   reg [31:0] toctr;
   reg [3:0]  csbits;
@@ -352,20 +354,47 @@ module sd_writer #(
             end
           end
 
-          W_R1:  // skip the remaining 47 bits of the R1 response
+          W_R1:  // receive the remaining 47 bits of the R1 response
           if (rise_tick) begin
+            // capture as we go. After the shift at bitcnt 45 the register
+            // holds 46 of the 47 bits (only the end bit is still to come),
+            // first received bit at [45]: [45]=transmission, [44:39]=command
+            // index, [38:7]=card status, [6:0]=CRC7.
+            r1sr <= {r1sr[44:0], sd_cmd_i};
             if (bitcnt == 13'd46) begin
               bitcnt <= 0;
               toctr  <= 0;
               case (cphase)
                 CP_C55W: begin
-                  // ACMD6: bus width in arg[1:0], 10 = 4 bits
-                  cmdreg <= {2'b01, 6'd6, 32'h0000_0002, 7'b0000000, 1'b1};
-                  crc7   <= 0;
-                  cphase <= CP_A6;
-                  state  <= W_CGAP;
+                  // CMD55 must be ACKNOWLEDGED before ACMD6 means anything.
+                  // Card status bit 5 (APP_CMD) = r1sr[7+5] = r1sr[12] says
+                  // the card will interpret the NEXT command as an ACMD. If
+                  // it is clear the card did not accept CMD55 as addressed to
+                  // it - the classic cause being a wrong or zero RCA in the
+                  // argument - and ACMD6 would be taken as plain CMD6. Going
+                  // wide anyway is the dangerous case: the host would drive
+                  // and sample DAT3..DAT0 while the card still answers on
+                  // DAT0 alone, which reads as data corruption rather than as
+                  // a rejected command. Fail loudly instead.
+                  if (!r1sr[12]) begin
+                    wide  <= 1'b0;
+                    state <= W_ERR;
+                  end else begin
+                    // ACMD6: bus width in arg[1:0], 10 = 4 bits
+                    cmdreg <= {2'b01, 6'd6, 32'h0000_0002, 7'b0000000, 1'b1};
+                    crc7   <= 0;
+                    cphase <= CP_A6;
+                    state  <= W_CGAP;
+                  end
                 end
                 CP_A6: begin
+                  // ACMD6 answered. Card status bit 22 (ILLEGAL_COMMAND) =
+                  // r1sr[29] and bit 23 (COM_CRC_ERROR) = r1sr[30]; either
+                  // means the width switch did not happen, so do NOT go wide.
+                  if (r1sr[29] || r1sr[30]) begin
+                    wide  <= 1'b0;
+                    state <= W_ERR;
+                  end else begin
                   // bus is 4-bit now: issue the main command (the same
                   // routing the 1-bit path performs directly at start)
                   crc7 <= 0;
@@ -383,6 +412,7 @@ module sd_writer #(
                     cphase <= CP_RW;
                   end
                   state <= W_CGAP;
+                  end
                 end
                 CP_C55: begin
                   // ACMD23: pre-erase block count in arg[22:0]

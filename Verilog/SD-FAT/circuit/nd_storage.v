@@ -13,8 +13,9 @@
 **     proven rewind/card-swap recovery. target_name/target_len are       **
 **     muxed from the FILEn_NAME/LEN parameters by the granted client.    **
 **   - sd_writer: always alive; the engine's write-through path drives    **
-**     its single-sector CMD24 interface (burst_len=0, rca=0 - the burst  **
-**     interface is a later step). Under SDFAT_STORAGE_CHECK the mount-   **
+**     its single-sector CMD24 interface (burst_len=0; rca comes from    **
+**     the reader's CMD3 export - the burst interface is a later step).   **
+**     Under SDFAT_STORAGE_CHECK the mount-                               **
 **     time contiguity checker (nd_storage_fatchk.v) owns the writer's    **
 **     command pins (start/sector, rd_mode=1) while chk_busy - the mount  **
 **     FSM guarantees the engine and the checker never contend: the       **
@@ -245,6 +246,7 @@ module nd_storage #(
   wire [7:0]  rd_fs_cs;
   wire [31:0] rd_fs_fat0;
   wire [31:0] rd_found_cluster;
+  wire [15:0] rd_card_rca;
 
   sd_file_reader #(
       .CLK_DIV (RD_CLK_DIV),
@@ -285,8 +287,27 @@ module nd_storage #(
       .fs_root_cluster        (),
       .found_dir_entry_sector (),
       .found_dir_entry_index  (),
-      .found_file_cluster     (rd_found_cluster)
+      .found_file_cluster     (rd_found_cluster),
+      .card_rca               (rd_card_rca)
   );
+
+  // ---------------------------------------------------- card RCA for CMD55
+  // The card publishes its relative address in the R6 answer to CMD3, and it
+  // is NEVER zero (zero is reserved - CMD7 uses it to deselect). CMD55
+  // (APP_CMD) carries that address in arg[31:16]; with the wrong value the
+  // card does not enter application-command mode and the ACMD that follows is
+  // taken as an ordinary command. The 4-bit switch (CMD55 + ACMD6) therefore
+  // depends on this being right.
+  //
+  // The reader is held in reset between mounts (every open is a full card
+  // re-init), which clears its rca back to 0, so latch the last published
+  // non-zero value and hand THAT to the writer. A re-init republishes through
+  // the same CMD3, so the latch tracks the current card.
+  reg [15:0] s_card_rca;
+  always @(posedge clk_stor or negedge rst_stor_n) begin
+    if (!rst_stor_n) s_card_rca <= 16'd0;
+    else if (rd_card_rca != 16'd0) s_card_rca <= rd_card_rca;
+  end
 
   // ------------------------------------------------------------- SD writer
   // Engine write-through path, single-sector CMD24 API. burst_len/rca are
@@ -340,7 +361,7 @@ module nd_storage #(
       .done      (sdw_done),
       .err       (sdw_err),
       .burst_len (sdw_burst_len),
-      .rca       (16'd0),
+      .rca       (s_card_rca),
       .block_next(),
       .rd_addr   (sdw_rd_addr),
       .rd_data   (sdw_rd_data),

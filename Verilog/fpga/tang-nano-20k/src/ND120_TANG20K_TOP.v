@@ -2014,12 +2014,13 @@ module ND120_TANG20K_TOP (
       // OPCOM echoed 20500& - so the SD read path failed). Two variables had
       // been changed together, the bit clock 2.7->13.5 MHz AND the width.
       // Back to 1-bit to test the clock change ALONE.
-      // DAT1-3 are wired on the board (J7 -> FPGA 85/80/81, schematic
-      // table in doc/SD-SLOT-WIRING.md) and 4-bit is proven on this slot
-      // by sd-fat-test. It is 0 here because USE_4BIT=1 does not reach the
-      // SINTRAN banner in THIS integration - a reader/writer sharing fault,
-      // not a board limit.
-      .USE_4BIT      (0),
+      // 4-bit DAT bus. DAT1-3 are wired on the board (J7 -> FPGA 85/80/81,
+      // schematic table in doc/SD-SLOT-WIRING.md). This was 0 until 25-AUG
+      // because nd_storage tied the writer's CMD55 argument to rca=0, so the
+      // card never accepted the ACMD6 width switch and every 4-bit transfer
+      // read garbage; the reader's published card_rca is now wired through
+      // (gate: make test-nds-mount-4bit in SD-FAT/sim).
+      .USE_4BIT      (1),
       .SIMULATE(0),                     // real card: full-length SD init
       .INCLUDE_TAPE(TANG_INC_TAPE),
       .INCLUDE_FLOPPY(TANG_INC_FLOPPY),

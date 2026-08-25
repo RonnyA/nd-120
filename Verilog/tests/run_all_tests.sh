@@ -328,6 +328,11 @@ REGISTRY=(
   "SD-FAT/sim                         :: test-nds-engine :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-write :: TB_RESULT: PASS"
   "SD-FAT/sim                         :: test-nds-mount :: TB_RESULT: PASS"
+  # Same stack on the 4-bit DAT bus. CMD55 must carry the card's PUBLISHED
+  # RCA (the reader exports it from CMD3); the card model refuses RCA 0
+  # once CMD3 has run, as real silicon does. Guards the fault that made
+  # USE_4BIT=1 read garbage on the Tang while simulating clean.
+  "SD-FAT/sim                         :: test-nds-mount-4bit :: TB_RESULT: PASS"
   # Client bus slice continuity. nd_storage_devices hands nd_storage its
   # per-client ports as five hand-written flat concatenations, and nothing
   # else checks that a client actually got a slice in each one - a forgotten
