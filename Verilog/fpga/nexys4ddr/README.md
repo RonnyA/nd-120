@@ -8,10 +8,13 @@ legacy and points there). Built from the **Basys3 flow as template** - same
 compile-time defines, same source set, same fail-on-negative-slack gate - and
 extended from there.
 
-> **Status (19-AUG-2026): files written, NOTHING built and NOTHING run.**
-> No bitstream has been produced and no hardware has been touched. Every
-> statement below about clock speed, utilization or boot behaviour is a
-> target, not a measurement.
+> **Status (25-AUG-2026): SINTRAN III boots on this board.** DDR2-backed
+> main memory with a BRAM cache, 16.667 MHz CPU clock, timing-clean
+> (WNS +1.46). 5/5 reprogram+`20500&` cycles reach the banner and the
+> Watchdog, ~40 s to banner, and a console login works. The full root-cause
+> and validation record is [`SINTRAN-BOOT-25AUG.md`](SINTRAN-BOOT-25AUG.md).
+> Earlier milestones: tape boot + MEMORY-REFERENCE diagnostics on DDR2,
+> SD/FAT storage and floppy server proven, ILA capture kit in place.
 
 ## Board / device
 
@@ -56,7 +59,9 @@ memory.
 | `Nexys-4-DDR-Master.xdc` | Digilent master XDC, kept whole as the pin reference. |
 | `usb-attach.sh` | Bring the board into WSL over usbipd as `/dev/ttyUSB*` (selects by FTDI serial, since the Tang shares the same VID:PID); `--detach` returns it to Windows. |
 | `console.ps1` | Serial console for the board's USB-UART, run from the Windows host (`-Port`, `-Baud`, `-Send`, `-Pace`). |
-| `ddr2/` | `nd_ddr2_port.v` - the reusable DDR2 access port, shared by the memory test and the future ND-120 memory backend. |
+| `ddr2/` | The DDR2 memory stack: `nd_ddr2_port.v` (MIG wrapper, one op at a time), `MEM_RAM_49_DDR2.v` (sheet-49 main-memory backend - BRAM cache, write-through, miss freezes the control PALs via MEM_HOLD), `nd_ddr2_arb.v` (two-client arbiter: main memory + storage), `nd_ddr2_storage.v` (storage region 64 MiB in). |
+| `SINTRAN-BOOT-25AUG.md` | The SINTRAN boot record: stale-cached-word root cause, the hit_q fix, and the 5/5 silicon validation. |
+| `ila_ddr2hang.tcl` | ILA capture modes for the memory funnel (snap/at/wrat/wratraw/wrpage/wrval/rdval/trap/hold). |
 | `ddr2-test/` | `gen_mig.tcl` + the generated MIG controller (`ip/`), from Digilent's own MIG project file. |
 | `sd-fat-test/` | The SD/FAT menu tool on the on-board microSD slot, with the memory tests as menu commands `B` and `M`. |
 | `board-test/` | Board bring-up check - switches, LEDs, 7-seg, buttons, UART, SD detect. Run this before the CPU build. |
@@ -158,11 +163,11 @@ Microcode `AM27256_4513{2,3}L.hex` is copied automatically from
 `Code/Microcode/`; the build aborts if either file is missing (an absent image
 means an empty microcode ROM, which looks like a dead CPU).
 
-## Configuration of this first build
+## Configuration of the current build
 
 | Item | Setting | Why |
 |------|---------|-----|
-| Main memory | `MAIN_RAM_BLOCKRAM` (24 KB BRAM) | Same as Basys3/Cmod. DDR2 comes later - see `EXTENSIONS-PLAN.md`. |
+| Main memory | `MAIN_RAM_DDR2` (default) - full DDR2-backed main RAM with BRAM cache | The BRAM-only config (`-tclargs bramram`, 64 K words/bank) aliases high addresses onto low memory, which forbids SINTRAN. |
 | Clocking | `FPGA_FF_MODE`, one clock domain | The latch model never ships on FPGA. |
 | CPU clock | 16.667 MHz (`clk=16`, MMCM divider 60.0) | The only speed proven on Artix-7 silicon (Basys3). The microengine's WCS-read-to-next-address path measured ~49 ns there. |
 | WCS load | runtime load from the PROM images | The -100T has BRAM to spare; `-skipwcs` switches to the Basys3-style bitstream preload. |
@@ -201,12 +206,12 @@ producing a board that boots erratically.
 Both planned extensions have their design, risks and acceptance criteria
 written up in [`EXTENSIONS-PLAN.md`](EXTENSIONS-PLAN.md):
 
-1. **microSD** - reuse the SD/FAT stack already proven on Tang Nano 20K
-   silicon; the Nexys has an on-board slot, so no Pmod is needed.
-2. **DDR2 main memory** - MIG-generated controller plus a sheet-49 backend, to
-   replace the 24 KB BRAM with real ND-120 main memory. The open question is
-   the ND-120 memory protocol's fixed no-wait-state read deadline against MIG
-   read latency; the plan names the measurement that decides it.
+1. **microSD** - DONE: the SD/FAT stack runs on the on-board slot (1-bit
+   bus; the Tang runs 4-bit - the likely lever if boot speed matters here).
+2. **DDR2 main memory** - DONE: `ddr2/MEM_RAM_49_DDR2.v` + `nd_ddr2_arb.v`
+   replaced the BRAM config on 25-AUG-2026; the no-wait-state deadline is
+   met by freezing the control PALs on a cache miss (MEM_HOLD). Known open
+   items live in `SINTRAN-BOOT-25AUG.md`.
 
 ## Related docs
 
