@@ -143,3 +143,22 @@ Verilog/sim/*.fst
 Verilog/sim/*.fst.hier
 # Scratch folder (never commit its contents)
 tmp/
+# iverilog test binaries with ad-hoc suffixes (DGA mode-variant runs) and
+# scratch result files
+Verilog/DECODE-GateArray/DGA/sim/*_tb_ff
+Verilog/DECODE-GateArray/DGA/sim/*_tb_vs
+Verilog/DECODE-GateArray/DGA/sim/*_tb_vs20
+Verilog/DECODE-GateArray/DGA/sim/*_tb_vsff
+**/sim/*.tmp
+# nexys4ddr generated output: ILA captures, Vivado reports/logs, MIG
+# checkpoint, build-watch stderr
+Verilog/fpga/nexys4ddr/ila_hang*.csv
+Verilog/fpga/nexys4ddr/**/tight_setup_hold_pins.txt
+Verilog/fpga/nexys4ddr/tight_setup_hold_pins.txt
+Verilog/fpga/nexys4ddr/build-watch.stdout.log.err
+Verilog/fpga/nexys4ddr/ddr2-test/ip/ddr/ddr.dcp
+Verilog/tests/instruction-verify/vivado.log
+# analysis scratch (cycle-timeline diffing, dmaSim CSA sequence dump)
+Verilog/CPU-BOARD-3202/circuit/sim/cycle_timeline.diff
+Verilog/CPU-BOARD-3202/circuit/sim/cycle_timeline_out.trace
+Verilog/dmaSim/csa_seq.txt
