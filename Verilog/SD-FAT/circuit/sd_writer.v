@@ -100,8 +100,16 @@ module sd_writer #(
     output reg  sd_dat3_o,
     output reg  sd_dat3_oe,
 
-    // 1 = 4-bit bus (ACMD6 per operation); 0/unconnected = original 1-bit
+    // 1 = 4-bit bus; 0/unconnected = original 1-bit
     input  wire use_4bit,
+    // 1 = the card has NOT been re-initialised since the last successful
+    // ACMD6, so a negotiated 4-bit width still stands and this operation may
+    // skip the CMD55+ACMD6 prefix. Drive it low whenever anything else can
+    // re-init the card (a mount, a card swap): CMD0 returns the card to
+    // 1-bit and the width has to be negotiated again.
+    // UNCONNECTED IS SAFE: z reads as false, so every operation re-issues
+    // the prefix - exactly the behaviour before this input existed.
+    input  wire width_hold,
 
     // command interface
     input  wire        start,    // 1-cycle pulse; only when busy=0
@@ -176,6 +184,7 @@ module sd_writer #(
   reg        rd_r;         // latched rd_mode
   reg        multi;        // latched burst mode (burst_len > 1)
   reg        wide;         // latched use_4bit (clean 0/1, never x/z)
+  reg        wide_ok;      // a 4-bit width is negotiated and still valid
   reg        err_pending;  // burst aborted: err (not done) after CMD12 completes
   reg [2:0]  cphase;
   reg [8:0]  blen_r;       // latched burst_len (ACMD23 argument)
@@ -227,6 +236,7 @@ module sd_writer #(
       rd_r        <= 1'b0;
       multi       <= 1'b0;
       wide        <= 1'b0;
+      wide_ok     <= 1'b0;
       err_pending <= 1'b0;
       cphase      <= CP_RW;
       blen_r      <= 9'd1;
@@ -244,6 +254,11 @@ module sd_writer #(
       csbits      <= 0;
       s_pause     <= 0;
     end else begin
+      // A negotiated 4-bit width survives only while the holder says the card
+      // has not been re-initialised (CMD0 returns a card to 1-bit). Cleared
+      // here, set where ACMD6 is acknowledged. width_hold low - including an
+      // unconnected input, which is not 1 - means renegotiate every operation.
+      if (width_hold != 1'b1) wide_ok <= 1'b0;
       done       <= 1'b0;
       err        <= 1'b0;
       rx_we      <= 1'b0;
@@ -281,9 +296,25 @@ module sd_writer #(
           end
           // an unconnected use_4bit is x/z: the if condition is then false,
           // so the latched wide flag is a clean 0 (original 1-bit engine)
-          if (use_4bit) begin
-            // 4-bit: switch the bus width first (CMD55 -> ACMD6); the main
-            // command chain continues from the CP_A6 routing below
+          if (use_4bit && wide_ok) begin
+            // The width is already negotiated and nothing has re-initialised
+            // the card since, so go straight to the data command. This is
+            // what makes 4-bit cost two commands per MOUNT instead of two
+            // per operation.
+            wide <= 1'b1;
+            if (burst_len[8:1] != 8'd0) begin
+              if (rd_mode) begin
+                cmdreg <= {2'b01, 6'd18, sector, 7'b0000000, 1'b1};
+              end else begin
+                cmdreg <= {2'b01, 6'd55, rca, 16'h0000, 7'b0000000, 1'b1};
+                cphase <= CP_C55;
+              end
+            end else begin
+              cmdreg <= {2'b01, rd_mode ? 6'd17 : 6'd24, sector, 7'b0000000, 1'b1};
+            end
+          end else if (use_4bit) begin
+            // 4-bit, width not established: switch it first (CMD55 -> ACMD6);
+            // the main command chain continues from the CP_A6 routing below
             wide   <= 1'b1;
             cmdreg <= {2'b01, 6'd55, rca, 16'h0000, 7'b0000000, 1'b1};
             cphase <= CP_C55W;
@@ -392,9 +423,11 @@ module sd_writer #(
                   // r1sr[29] and bit 23 (COM_CRC_ERROR) = r1sr[30]; either
                   // means the width switch did not happen, so do NOT go wide.
                   if (r1sr[29] || r1sr[30]) begin
-                    wide  <= 1'b0;
-                    state <= W_ERR;
+                    wide    <= 1'b0;
+                    wide_ok <= 1'b0;
+                    state   <= W_ERR;
                   end else begin
+                  wide_ok <= 1'b1;   // negotiated: later operations may skip
                   // bus is 4-bit now: issue the main command (the same
                   // routing the 1-bit path performs directly at start)
                   crc7 <= 0;

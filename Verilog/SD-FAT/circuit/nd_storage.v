@@ -354,6 +354,12 @@ module nd_storage #(
       .sd_dat3_o (wr_dat3_o),
       .sd_dat3_oe(wr_dat3_oe),
       .use_4bit  (USE_4BIT != 0),
+      // The reader does a FULL card re-init whenever the mount FSM releases
+      // its reset, and CMD0 returns the card to 1-bit. So the negotiated
+      // width may be kept only while the reader is parked - which it is for
+      // everything except an open. That turns the CMD55+ACMD6 prefix from a
+      // per-operation cost into a per-mount one.
+      .width_hold(~s_rd_run),
       .start     (sdw_start),
       .rd_mode   (sdw_rd_mode),
       .sector    (sdw_sector),

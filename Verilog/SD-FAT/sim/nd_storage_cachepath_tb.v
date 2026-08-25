@@ -246,7 +246,9 @@ module nd_storage_cachepath_tb;
       .done      (sdw_done_w),
       .err       (sdw_err_w),
       .burst_len (sdw_burst_len_w),
-      .rca       (16'd0),
+      .rca       (16'd0),        // 1-bit engine here: rca is unused
+      .use_4bit  (1'b0),
+      .width_hold(1'b0),
       .block_next(),
       .rd_addr   (sdw_rd_addr_w),
       .rd_data   (sdw_rd_data_w),

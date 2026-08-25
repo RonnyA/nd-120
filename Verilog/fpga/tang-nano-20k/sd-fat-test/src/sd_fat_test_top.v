@@ -431,6 +431,9 @@ module sd_fat_test_top #(
       .sd_dat3_o (wr_dat3_o),
       .sd_dat3_oe(wr_dat3_oe),
       .use_4bit  (s_use4),
+      // this design's reader re-initialises the card between commands, so a
+      // negotiated width never survives: renegotiate every operation
+      .width_hold(1'b0),
       .start     (fx_busy ? fx_eng_start : ck_busy ? ck_eng_start
                           : fsn_busy ? fsn_eng_start : wr_start),
 `ifdef SDFAT_TEST_READONLY
