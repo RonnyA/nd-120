@@ -55,6 +55,10 @@ Compressed history of the work progress on the ND-120 recreation:
 | 24. August 2026 | SILICON | Boot was disc-bound: the FAT chain was walked one card read per hop. Following it inside the streamed sector cut boot 168 -> 29.4 s and S3 cold start 235.8 -> 13.2 s |
 | 24. August 2026 | SILICON | SD write bit clock raised 2.7 -> 13.5 MHz. The 4-bit data bus was wired and pinned but left disabled - it does not reach the SINTRAN banner |
 | 25. August 2026 | DOC | Tang microSD slot wiring settled from the Sipeed schematic: all four data lines are routed, so a 4-bit failure is logic and not wiring |
+| 25. August 2026 | FPGA | Nexys 4 DDR main memory moved from 24 KB BRAM to the 128 MiB DDR2: MIG port wrapper, two-client arbiter (main memory + SD storage), sheet-49 backend with a BRAM cache whose miss freezes the control PALs (`MEM_HOLD`) to meet the no-wait-state deadline |
+| 25. August 2026 | SILICON | **SINTRAN III boots on the Nexys 4 DDR.** The DDR2 cache dropped its update when a late write strobe compared against the live tag RAM (address already drifted), leaving one stale cached word per boot - spin hangs, ERRFATALs and silent WAITs from the same bitstream. Fix: hit verdict latched at address-check. 7/7 boots to banner (~40 s), console login, timing-clean at 16.667 MHz |
+| 26. August 2026 | TEST | DDR2 arbiter hardened with a testbench that the old logic fails: ties alternate instead of starving the storage client, a watchdog flags a dead port (sticky, report-only - no invented completions), orphan responses are recorded instead of vanishing |
+| 26. August 2026 | FPGA | Nexys debug panel: tri-colour LEDs show DDR2/arbiter health (green healthy, red watchdog, blue orphan) and memory traffic; the four blanked 7-segment digits now show PIL, DDR2 bridge state and the health flags live (`DEBUG-PANEL.md`) |
 
 ## Area tags
 
