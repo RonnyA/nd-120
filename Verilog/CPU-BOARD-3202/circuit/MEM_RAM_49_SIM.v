@@ -237,4 +237,21 @@ module MEM_RAM_49_SIM (
   wire prd_b2h = (cas_b2 && MWRITE50_n) ? (^q2e[17:9]) : 1'b1;
   assign CORR_n = prd_b0l & prd_b0h & prd_b1l & prd_b1h & prd_b2l & prd_b2h;
 
+`ifdef ND120_MEMTRACE
+  // Address-trace capture for cache-hit-rate replay (25-AUG-2026): one line
+  // per sheet-49 access, "bank,wordindex,MWRITE50_n" (1 = read). File name
+  // from +memtrace=<path>, default memtrace.csv in the run directory. Used
+  // by the MEM_RAM_49_DDR2 cache-sizing measurement - see
+  // fpga/nexys4ddr/ddr2/MEM_RAM_49_DDR2.v.
+  integer mt_fd = 0;
+  reg [1023:0] mt_fn;
+  initial begin
+    if (!$value$plusargs("memtrace=%s", mt_fn)) mt_fd = $fopen("memtrace.csv", "w");
+    else mt_fd = $fopen(mt_fn, "w");
+  end
+  always @(posedge cas_b0) if (ras_b0) $fdisplay(mt_fd, "0,%0d,%0d", idx0, MWRITE50_n);
+  always @(posedge cas_b1) if (ras_b1) $fdisplay(mt_fd, "1,%0d,%0d", idx1, MWRITE50_n);
+  always @(posedge cas_b2) if (ras_b2) $fdisplay(mt_fd, "2,%0d,%0d", idx2, MWRITE50_n);
+`endif
+
 endmodule

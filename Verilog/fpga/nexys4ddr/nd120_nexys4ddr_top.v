@@ -220,7 +220,31 @@ module nd120_nexys4ddr_top (
   wire [15:0] DMA_RDATA;
   wire        DMA_ACK, DMA_ERR, DMA_BUSY;
 
+`ifdef ND120_ERRFA_PROBE
+  // ERRFA evidence probe (MEM_RAM_49_BLOCKRAM) + the WD-IOX ring: both
+  // TX lines wire-ANDed onto the console - all idle high; after the
+  // SINTRAN halt only the probes talk, in disjoint time slots
+  // (P line ~0.5 s, EF line ~2.0 s, W line ~2.2 s after the crash text).
+  wire s_errfa_txd, s_wdiox_txd;
+  wire [15:0] s_efp_iox_addr, s_efp_iox_wdata, s_efp_iox_rdata;
+  wire        s_efp_iox_rd, s_efp_iox_wr;
+
+  nd120_errfa_wdiox_ring WDIOX_RING (
+      .clk(clk_cpu),
+      .rst_n(sys_rst_n),
+      .iox_addr(s_efp_iox_addr),
+      .iox_rd(s_efp_iox_rd),
+      .iox_wr(s_efp_iox_wr),
+      .iox_wdata(s_efp_iox_wdata),
+      .iox_rdata(s_efp_iox_rdata),
+      .contx(cpu_txd),
+      .txd(s_wdiox_txd)
+  );
+
+  assign uart_rxd_out = cpu_txd & s_errfa_txd & s_wdiox_txd;
+`else
   assign uart_rxd_out = cpu_txd;
+`endif
 
   /**********************************************
   *  The ND-120 core with its device chain      *
@@ -231,6 +255,15 @@ module nd120_nexys4ddr_top (
       .INCLUDE_SMD   (0),
       .INCLUDE_WD    (1)
   ) CORE (
+`ifdef ND120_ERRFA_PROBE
+      .ERRFA_CONTX(cpu_txd),
+      .ERRFA_TXD(s_errfa_txd),
+      .ERRFA_IOX_ADDR(s_efp_iox_addr),
+      .ERRFA_IOX_RD(s_efp_iox_rd),
+      .ERRFA_IOX_WR(s_efp_iox_wr),
+      .ERRFA_IOX_WDATA(s_efp_iox_wdata),
+      .ERRFA_IOX_RDATA(s_efp_iox_rdata),
+`endif
       .clk_cpu  (clk_cpu),
       .sys_rst_n(sys_rst_n),
 
@@ -343,6 +376,21 @@ module nd120_nexys4ddr_top (
       .DEBUG_FIDBO_15_0 (s_debug_fidbo),
       .DEBUG_IREQ_15_0_N(s_ireq_15_0_n),
       .XMIC_DBG_15_0    (s_xmic_dbg)
+`ifdef MAIN_RAM_DDR2
+      ,
+      // main-memory DDR2 client (MEM_RAM_49_DDR2 inside MEM_43) -> nd_ddr2_arb
+      .ui_clk      (ui_clk),
+      .ui_rst      (ui_rst),
+      .mm_req_valid(mm_req_valid),
+      .mm_req_we   (mm_req_we),
+      .mm_req_addr (mm_req_addr),
+      .mm_req_wdata(mm_req_wdata),
+      .mm_req_wmask(mm_req_wmask),
+      .mm_req_ready(mm_req_ready),
+      .mm_rsp_valid(mm_rsp_valid),
+      .mm_rsp_rdata(mm_rsp_rdata),
+      .DBG_DDR2_BRIDGE(s_dbg_ddr2_bridge)
+`endif
   );
 
   /**********************************************
@@ -473,13 +521,40 @@ module nd120_nexys4ddr_top (
   assign sd_dat3 = 1'bz;
 
   /**********************************************
-  *  The storage region, held in DDR2           *
+  *  DDR2: main memory (BRAM cache in front,    *
+  *  MEM_RAM_49_DDR2 inside the core) and the   *
+  *  storage region share the MIG through       *
+  *  nd_ddr2_arb. Main memory wins a tie - a    *
+  *  frozen CPU cycle is waiting on it.         *
   ***********************************************/
   wire          ui_clk, ui_rst, calib_done;
   wire          req_valid, req_we, req_ready, rsp_valid;
   wire [ 26:0]  req_addr;
   wire [127:0]  req_wdata, rsp_rdata;
   wire [ 15:0]  req_wmask;
+
+  // client A: main memory (from ND120_CORE / MEM_RAM_49_DDR2)
+  wire          mm_req_valid, mm_req_we, mm_req_ready, mm_rsp_valid;
+  wire [ 26:0]  mm_req_addr;
+  wire [127:0]  mm_req_wdata, mm_rsp_rdata;
+  wire [ 15:0]  mm_req_wmask;
+  wire [  7:0]  s_dbg_ddr2_bridge;
+`ifndef MAIN_RAM_DDR2
+  // Built without the DDR2 main-memory backend: park client A so the
+  // arbiter never sees a floating request.
+  assign mm_req_valid = 1'b0;
+  assign mm_req_we    = 1'b0;
+  assign mm_req_addr  = 27'd0;
+  assign mm_req_wdata = 128'd0;
+  assign mm_req_wmask = 16'hFFFF;
+  assign s_dbg_ddr2_bridge = 8'd0;
+`endif
+
+  // client B: the storage region
+  wire          st_req_valid, st_req_we, st_req_ready, st_rsp_valid;
+  wire [ 26:0]  st_req_addr;
+  wire [127:0]  st_req_wdata, st_rsp_rdata;
+  wire [ 15:0]  st_req_wmask;
 
   nd_ddr2_storage u_region (
       .stor_clk  (clk_stor),
@@ -494,6 +569,38 @@ module nd120_nexys4ddr_top (
 
       .ui_clk   (ui_clk),
       .ui_rst   (ui_rst),
+      .req_valid(st_req_valid),
+      .req_we   (st_req_we),
+      .req_addr (st_req_addr),
+      .req_wdata(st_req_wdata),
+      .req_wmask(st_req_wmask),
+      .req_ready(st_req_ready),
+      .rsp_valid(st_rsp_valid),
+      .rsp_rdata(st_rsp_rdata)
+  );
+
+  nd_ddr2_arb u_arb (
+      .ui_clk(ui_clk),
+      .ui_rst(ui_rst),
+
+      .a_req_valid(mm_req_valid),
+      .a_req_we   (mm_req_we),
+      .a_req_addr (mm_req_addr),
+      .a_req_wdata(mm_req_wdata),
+      .a_req_wmask(mm_req_wmask),
+      .a_req_ready(mm_req_ready),
+      .a_rsp_valid(mm_rsp_valid),
+      .a_rsp_rdata(mm_rsp_rdata),
+
+      .b_req_valid(st_req_valid),
+      .b_req_we   (st_req_we),
+      .b_req_addr (st_req_addr),
+      .b_req_wdata(st_req_wdata),
+      .b_req_wmask(st_req_wmask),
+      .b_req_ready(st_req_ready),
+      .b_rsp_valid(st_rsp_valid),
+      .b_rsp_rdata(st_rsp_rdata),
+
       .req_valid(req_valid),
       .req_we   (req_we),
       .req_addr (req_addr),

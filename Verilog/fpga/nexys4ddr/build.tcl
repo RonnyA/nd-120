@@ -177,6 +177,9 @@ lappend srcs \
     [file join $vroot Shared support SevenSegDebug.v] \
     [file join $vroot fpga nexys4ddr ddr2 nd_ddr2_port.v] \
     [file join $vroot fpga nexys4ddr ddr2 nd_ddr2_storage.v] \
+    [file join $vroot fpga nexys4ddr ddr2 nd_ddr2_arb.v] \
+    [file join $vroot fpga nexys4ddr ddr2 MEM_RAM_49_DDR2.v] \
+    [file join $srcdir nd120_errfa_wdiox_ring.v] \
     [file join $srcdir nd120_nexys4ddr_top.v]
 
 read_verilog $srcs
@@ -200,26 +203,40 @@ read_xdc [file join $srcdir nd120_timing.xdc]
 set_msg_config -id {Synth 8-3936} -suppress
 set_msg_config -id {Synth 8-5837} -suppress
 
+# Main memory: DDR2 with a BRAM cache in front (MEM_RAM_49_DDR2), default
+# since 25-AUG-2026. The old BRAM-only backend held 64K words per bank while
+# PAL_44446B advertised 4 MB - everything above word 0o200000 in a bank
+# ALIASED onto low memory, which forbids SINTRAN. -tclargs bramram rebuilds
+# the old (aliasing, 64K-words/bank) BRAM configuration for A/B experiments.
+if {[lsearch $argv "bramram"] >= 0} {
+    set ram_defines [list MAIN_RAM_BLOCKRAM ND120_BLOCKRAM_ADDR_BITS=16]
+} else {
+    set ram_defines [list MAIN_RAM_DDR2]
+}
 set defines [list \
     TARGET_NEXYS4DDR \
     FPGA_FF_MODE \
-    MAIN_RAM_BLOCKRAM \
-    ND120_BLOCKRAM_ADDR_BITS=16 \
+    {*}$ram_defines \
     ND120_N4DDR_MMCM_DIV=$mmcm_div \
     BOARD_CLK_FREQ=$board_clk \
     UART_BAUD_RATE=9600]
 if {$skip_wcs} { lappend defines SKIP_WCS_LOAD }
-# -tclargs nocache: compile the CPU cache out exactly as the Tang build does
-# (tang20k_defines.v: ND120_NO_CACHE). The Nexys otherwise runs with the
-# never-validated cache ENABLED (ND120_CORE ties SW1_CONSOLE high), which is
-# the first real configuration difference between the two boards.
-if {[lsearch $argv "nocache"] >= 0} { lappend defines ND120_NO_CACHE }
+# CPU cache: OFF BY DEFAULT (Ronny, 24-AUG-2026) - same as the Tang
+# (tang20k_defines.v: ND120_NO_CACHE). The cache is the never-validated
+# subsystem and the first real configuration difference between the two
+# boards (one of its arrays, MMU/CACHE/CHIP_21F, also falls back to LUTRAM
+# on this part). Re-enable for experiments with -tclargs cache.
+if {[lsearch $argv "cache"] < 0} { lappend defines ND120_NO_CACHE }
 # -tclargs ila: keep the CGA_MAC address-chain nets and cpu_txd through
 # synthesis (mark_debug attributes in CGA_MAC.v / the top, guarded by this
 # define) so the ILA probe patterns below can find them. Measured 23-AUG:
 # without this, synthesis renames/absorbs the nets and the patterns match
 # nothing ("ILA: NO NET").
-if {[lsearch $argv "ila"] >= 0} { lappend defines ND120_ILA_MARK_DEBUG }
+if {[lsearch $argv "ila"] >= 0 || [lsearch $argv "ilaslim"] >= 0} { lappend defines ND120_ILA_MARK_DEBUG }
+# -tclargs errfaprobe: SINTRAN ERRFATAL evidence probe (MEM_RAM_49_BLOCKRAM):
+# latches the ERRFA X,T,A,D,L saves (0o4347-0o4353) in FFs and repeats them
+# on the console TX after the halt. Zero BRAM - fits where no ILA does.
+if {[lsearch $argv "errfaprobe"] >= 0} { lappend defines ND120_ERRFA_PROBE }
 
 set synth_args {}
 foreach d $defines { lappend synth_args -verilog_define $d }
@@ -307,6 +324,49 @@ puts "NOTE: LUTLP-1 downgraded to Warning - 12 known CGA IDB loops, see build.tc
 # (command-block fetch + data transfers) and the FDISK request/answer seam.
 # Nothing in the sources changes; the core is inserted post-synth. Arm and
 # read it with ila_capture.tcl.
+# -tclargs ilaslim: MINIMAL probe set (RAM write port + CSA + cpu_txd only,
+# depth 1024) so an ILA fits NEXT TO the addr16 main RAM (128/135 RAMB36).
+# Purpose: trigger on the SINTRAN ERRFA register save (RAM write to 0o4347)
+# and read the saved X,T,A,D,L words off the write port.
+if {[lsearch $argv "ilaslim"] >= 0} {
+    set _probes {}
+    foreach pat {
+        CSA_12_0[*]
+        cpu_txd
+    } {
+        set n [get_nets -hier -quiet $pat]
+        if {[llength $n] == 0} { puts "ERROR: ILA net missing for pattern $pat"; exit 1 }
+        lappend _probes [lsort -dictionary $n]
+    }
+    foreach pat {
+        *s_ila_ram_addr* *s_ila_ram_wr *s_ila_ram_wdata*
+    } {
+        set n [get_nets -hier -quiet -filter "MARK_DEBUG && NAME =~ $pat"]
+        if {[llength $n] == 0} { puts "ERROR: ILA marked net missing for $pat"; exit 1 }
+        puts "ILA: $pat -> [llength $n] nets"
+        lappend _probes [lsort -dictionary $n]
+    }
+    foreach n $_probes { set_property MARK_DEBUG true $n }
+    create_debug_core u_ila_0 ila
+    set_property C_DATA_DEPTH 1024        [get_debug_cores u_ila_0]
+    set_property C_TRIGIN_EN false        [get_debug_cores u_ila_0]
+    set_property C_TRIGOUT_EN false       [get_debug_cores u_ila_0]
+    set_property C_ADV_TRIGGER false      [get_debug_cores u_ila_0]
+    set_property C_INPUT_PIPE_STAGES 2    [get_debug_cores u_ila_0]
+    set_property C_EN_STRG_QUAL true      [get_debug_cores u_ila_0]
+    set_property ALL_PROBE_SAME_MU true   [get_debug_cores u_ila_0]
+    set_property ALL_PROBE_SAME_MU_CNT 2  [get_debug_cores u_ila_0]
+    connect_debug_port u_ila_0/clk [get_nets clk_cpu]
+    set _pidx 0
+    foreach n $_probes {
+        if {$_pidx > 0} { create_debug_port u_ila_0 probe }
+        set_property PORT_WIDTH [llength $n] [get_debug_ports u_ila_0/probe$_pidx]
+        connect_debug_port u_ila_0/probe$_pidx $n
+        incr _pidx
+    }
+    puts "ILA-SLIM: [llength $_probes] probe groups connected."
+}
+
 if {[lsearch $argv "ila"] >= 0} {
     # v3 probe set (23-AUG night): address-formation chain for the
     # LIST-FILE-NAMES wrong indirect-jump target (0o060004 read back as
@@ -406,7 +466,7 @@ if {$wns < 0} {
 }
 
 set bit [file join $srcdir nd120_nexys4ddr.bit]
-if {[lsearch $argv "ila"] >= 0} {
+if {[lsearch $argv "ila"] >= 0 || [lsearch $argv "ilaslim"] >= 0} {
     write_debug_probes -force [file join $srcdir nd120_nexys4ddr.ltx]
 }
 write_bitstream -force $bit

@@ -300,6 +300,28 @@ module ND120_CORE #(
     output wire        mem_done
 `endif
 `endif
+`ifdef MAIN_RAM_DDR2
+    /***************************************************
+     *  (b2) RAM BACKEND - DDR2 client pass-through     *
+     *  RAM lives INSIDE ND3202D (MEM_43 ->             *
+     *  MEM_RAM_49_DDR2); the ui_clk-domain client      *
+     *  port is threaded up to the board top, where     *
+     *  nd_ddr2_arb shares the MIG with the storage     *
+     *  region. Absent in every other build.            *
+     ***************************************************/
+    ,
+    input  wire         ui_clk,
+    input  wire         ui_rst,
+    output wire         mm_req_valid,
+    output wire         mm_req_we,
+    output wire [ 26:0] mm_req_addr,
+    output wire [127:0] mm_req_wdata,
+    output wire [ 15:0] mm_req_wmask,
+    input  wire         mm_req_ready,
+    input  wire         mm_rsp_valid,
+    input  wire [127:0] mm_rsp_rdata,
+    output wire [  7:0] DBG_DDR2_BRIDGE
+`endif
 `ifdef TANG_WD_TRACE_DUMP
     ,
     // Winchester IOX trace tap, brought out for the board-level capture and
@@ -1207,6 +1229,20 @@ module ND120_CORE #(
       .mem_busy  (mem_busy),
       .mem_done  (mem_done)
 `endif
+`endif
+`ifdef MAIN_RAM_DDR2
+      ,
+      .ui_clk(ui_clk),
+      .ui_rst(ui_rst),
+      .mm_req_valid(mm_req_valid),
+      .mm_req_we(mm_req_we),
+      .mm_req_addr(mm_req_addr),
+      .mm_req_wdata(mm_req_wdata),
+      .mm_req_wmask(mm_req_wmask),
+      .mm_req_ready(mm_req_ready),
+      .mm_rsp_valid(mm_rsp_valid),
+      .mm_rsp_rdata(mm_rsp_rdata),
+      .DBG_DDR2_BRIDGE(DBG_DDR2_BRIDGE)
 `endif
   );
 

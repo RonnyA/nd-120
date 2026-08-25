@@ -76,6 +76,7 @@ module MEM_RAMC_50_tb;
       .RLRQ_n   (rlrq_n),
       .SEMRQ50_n(semrq50_n),
       .SSEMA_n  (ssema_n),
+      .MEM_HOLD (1'b0),
 
       .BCGNT25   (bcgnt25),
       .BGNT_n    (bgnt_n),

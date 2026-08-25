@@ -24,6 +24,8 @@ module MEM_RAMC_50 (
     input RLRQ_n,     //! RAM Load Request
     input SEMRQ50_n,  //! Bus Semaphore Request (Delayed 50ns)
     input SSEMA_n,    //! Bus Semaphore Enable
+    input MEM_HOLD,   //! Freeze both control PALs (MAIN_RAM_DDR2 cache-miss
+                      //! stretch; tie 0 for the original fixed-length cycle)
 
     // Output signals
     output BCGNT25,     //! CPU Grant (Delayed 25ns)
@@ -119,6 +121,7 @@ module MEM_RAMC_50 (
   PAL_44803A PAL_44803_URAMA (
       .CK  (s_osc),
       .OE_n(s_pd1),
+      .HOLD(MEM_HOLD),
 
       .LOEN_n   (s_loen_n),    // I0 - LOEN_n
       .RLRQ_n   (s_rlrq_n),    // I1 - RLRQ_n
@@ -142,6 +145,7 @@ module MEM_RAMC_50 (
   PAL_44902A PAL_44902_URAMC (
       .CK  (s_osc),
       .OE_n(s_pd3),
+      .HOLD(MEM_HOLD),
 
       .RGNT_n  (s_rgnt_n),    // I0 - RGNT_n (RAM Grant)
       //.CGNT_n(s_cgnt_n),    // I1 - CGNT_n (NOT USED EXTERN!!) (CPU Grant)

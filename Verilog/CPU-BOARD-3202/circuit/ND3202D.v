@@ -11,6 +11,10 @@
 // Onboard 4MB RAM (controlled by PAL 44446B)
 
 module ND3202D (
+`ifdef ND120_ERRFA_PROBE
+    input  ERRFA_CONTX,  // console TX line in (probe arming)
+    output ERRFA_TXD,    // SINTRAN ERRFATAL evidence probe TX (from MEM_43/RAM)
+`endif
     input sysclk,    //! System clock in FPGA
     input sys_rst_n, //! System reset in FPGA
 
@@ -189,6 +193,23 @@ module ND3202D (
     output wire        mem_busy,
     output wire        mem_done
 `endif
+`endif
+`ifdef MAIN_RAM_DDR2
+    // DDR2 main-memory backend (Nexys 4 DDR) - threaded down to MEM_43.
+    // ui_clk is the MIG user clock; the client port reaches nd_ddr2_arb at
+    // the board top. Absent in every other build.
+    ,
+    input  wire         ui_clk,
+    input  wire         ui_rst,
+    output wire         mm_req_valid,
+    output wire         mm_req_we,
+    output wire [ 26:0] mm_req_addr,
+    output wire [127:0] mm_req_wdata,
+    output wire [ 15:0] mm_req_wmask,
+    input  wire         mm_req_ready,
+    input  wire         mm_rsp_valid,
+    input  wire [127:0] mm_rsp_rdata,
+    output wire [  7:0] DBG_DDR2_BRIDGE
 `endif
 );
 
@@ -1014,6 +1035,10 @@ TODO: Sort bits on output LED to match led numbering
 `endif
 
   MEM_43 MEM (
+`ifdef ND120_ERRFA_PROBE
+      .ERRFA_CONTX(ERRFA_CONTX),
+      .ERRFA_TXD(ERRFA_TXD),
+`endif
       .sysclk   (sysclk),    // System clock in FPGA
       .sys_rst_n(sys_rst_n), // System reset in FPGA
 
@@ -1044,6 +1069,20 @@ TODO: Sort bits on output LED to match led numbering
       .mem_busy  (mem_busy),
       .mem_done  (mem_done),
 `endif
+`endif
+`ifdef MAIN_RAM_DDR2
+      // DDR2 main-memory backend (Nexys 4 DDR)
+      .ui_clk(ui_clk),
+      .ui_rst(ui_rst),
+      .mm_req_valid(mm_req_valid),
+      .mm_req_we(mm_req_we),
+      .mm_req_addr(mm_req_addr),
+      .mm_req_wdata(mm_req_wdata),
+      .mm_req_wmask(mm_req_wmask),
+      .mm_req_ready(mm_req_ready),
+      .mm_rsp_valid(mm_rsp_valid),
+      .mm_rsp_rdata(mm_rsp_rdata),
+      .DBG_DDR2_BRIDGE(DBG_DDR2_BRIDGE),
 `endif
 
       // INPUTS

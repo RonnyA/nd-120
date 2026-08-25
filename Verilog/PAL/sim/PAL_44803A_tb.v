@@ -68,7 +68,7 @@ module PAL_44803A_tb;
   integer checks = 0, errors = 0, vec, st, dumped = 0;
 
   PAL_44803A DUT (
-      .CK(CK), .OE_n(OE_n),
+      .CK(CK), .OE_n(OE_n), .HOLD(1'b0),
       .LOEN_n(LOEN_n), .RLRQ_n(RLRQ_n), .MR_n(MR_n), .CLRQ_n(CLRQ_n),
       .BLRQ50_n(BLRQ50_n), .SSEMA_n(SSEMA_n), .SEMRQ50_n(SEMRQ50_n),
       .RGNT_n(RGNT_n), .CGNT_n(CGNT_n), .BGNT_n(BGNT_n),

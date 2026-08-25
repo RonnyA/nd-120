@@ -10,6 +10,11 @@
 
 module MEM_43 (
 
+`ifdef ND120_ERRFA_PROBE
+    input  ERRFA_CONTX,  // console TX line in (probe arming)
+    output ERRFA_TXD,    // SINTRAN ERRFATAL evidence probe TX (MEM_RAM_49_BLOCKRAM)
+`endif
+
     // Input signals
 
     input sysclk,    // System clock in FPGA
@@ -105,6 +110,25 @@ module MEM_43 (
     output wire        mem_done
 `endif
 `endif
+`ifdef MAIN_RAM_DDR2
+    // DDR2 main-memory backend (Nexys 4 DDR): the sheet-49 RAM is replaced by
+    // MEM_RAM_49_DDR2 (BRAM cache in front of the MIG, reached through
+    // nd_ddr2_arb at the board top). The ui_clk-domain client port is
+    // threaded to the top level. MEM_HOLD never leaves this sheet - it
+    // freezes the two control PALs inside MEM_RAMC_50 on a cache miss.
+    ,
+    input  wire         ui_clk,
+    input  wire         ui_rst,
+    output wire         mm_req_valid,
+    output wire         mm_req_we,
+    output wire [ 26:0] mm_req_addr,
+    output wire [127:0] mm_req_wdata,
+    output wire [ 15:0] mm_req_wmask,
+    input  wire         mm_req_ready,
+    input  wire         mm_rsp_valid,
+    input  wire [127:0] mm_rsp_rdata,
+    output wire [  7:0] DBG_DDR2_BRIDGE
+`endif
 );
 
 
@@ -113,6 +137,11 @@ module MEM_43 (
    *******************************************************************************/
   wire [ 2:0] s_bank_2_0;
   wire [ 4:0] s_bus_bd;
+`ifdef MAIN_RAM_DDR2
+  wire        s_mem_hold;  // cache-miss cycle stretch from MEM_RAM_49_DDR2
+`else
+  wire        s_mem_hold = 1'b0;
+`endif
   wire [ 4:0] s_bus_ppn;
   wire [ 9:0] s_aa_9_0;
   wire [15:0] s_idb_15_0_out;
@@ -427,6 +456,7 @@ module MEM_43 (
       .RLRQ_n(s_rlrq_n),
       .SEMRQ50_n(s_semreq50_n),
       .SSEMA_n(s_ssema_n),
+      .MEM_HOLD(s_mem_hold),
 
       // Output signals
       .LED_CPU_GI(LED_CPU_GI),
@@ -521,6 +551,40 @@ module MEM_43 (
       .mem_done  (mem_done)
 `endif
   );
+`elsif MAIN_RAM_DDR2
+  // Nexys 4 DDR: sheet-49 RAM implemented as a BRAM cache in front of the
+  // 128 MiB DDR2 (fpga/nexys4ddr/ddr2/MEM_RAM_49_DDR2.v; same interface,
+  // BANK0+BANK2 = 4 MB like the Tang, BANK1 absent). A cache miss freezes
+  // the two control PALs (MEM_HOLD) until the line arrives - the CPU waits
+  // via CGNTCACT_n, DMA via BDRY_n; see the module header for the proof.
+  MEM_RAM_49_DDR2 RAM (
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
+      .AA_9_0(s_aa_9_0[9:0]),
+      .BANK0(s_bank_2_0[0]),
+      .BANK1(s_bank_2_0[1]),
+      .BANK2(s_bank_2_0[2]),
+      .CAS(s_cas),
+      .RAS(s_ras),
+      .MWRITE50_n(s_mwrite50_n),
+      .DD_17_0_IN(s_ram_dd_17_0_in[17:0]),
+      .DD_17_0_OUT(s_ram_dd_17_0_out[17:0]),
+      .CORR_n(s_corr_n),
+      .MEM_HOLD(s_mem_hold),
+
+      // DDR2 client port, threaded to the board top (nd_ddr2_arb)
+      .ui_clk(ui_clk),
+      .ui_rst(ui_rst),
+      .mm_req_valid(mm_req_valid),
+      .mm_req_we(mm_req_we),
+      .mm_req_addr(mm_req_addr),
+      .mm_req_wdata(mm_req_wdata),
+      .mm_req_wmask(mm_req_wmask),
+      .mm_req_ready(mm_req_ready),
+      .mm_rsp_valid(mm_rsp_valid),
+      .mm_rsp_rdata(mm_rsp_rdata),
+      .DBG_BRIDGE(DBG_DDR2_BRIDGE)
+  );
 `elsif MAIN_RAM_BLOCKRAM
   // FPGA block-RAM backend: one clean synchronous BRAM instead of the six
   // emulated SIP1M9 chips (MEM_RAM_49_BLOCKRAM.v). Default 3 banks x 4K words
@@ -533,6 +597,10 @@ module MEM_43 (
   MEM_RAM_49_BLOCKRAM #(
       .BANK_ADDR_BITS(`ND120_BLOCKRAM_ADDR_BITS)
   ) RAM (
+`ifdef ND120_ERRFA_PROBE
+      .ERRFA_CONTX(ERRFA_CONTX),
+      .ERRFA_TXD(ERRFA_TXD),
+`endif
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
       .AA_9_0(s_aa_9_0[9:0]),

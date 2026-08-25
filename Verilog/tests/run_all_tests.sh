@@ -41,6 +41,7 @@ REGISTRY=(
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"
   "Shared/support/sim :: test-uart-txabort :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-uart-txint :: TB_RESULT: PASS"
   # exhaustive 74245 transceiver gate: guards the removal of the shared
   # 'internalBus' helper that closed a combinational loop on the FIDB bus
   "Shared/support/sim :: test-74245   :: TB_RESULT: PASS"
@@ -111,6 +112,10 @@ REGISTRY=(
   # ADDR_BITS=15 wrapping addresses >= 0o100000 onto low memory); the
   # 16-bit address-bit walk also catches dropped/swapped address bits
   "CPU-BOARD-3202/circuit/sim :: test-blockram-space :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-ddr2ram   :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-memchain-ddr2 :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-blockram-errfa :: TB_RESULT: PASS"
+  "fpga/nexys4ddr/sim :: test-wdiox-ring :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-cdlbd    :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-bdlbd    :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-memdata  :: TB_RESULT: PASS"
@@ -180,6 +185,10 @@ REGISTRY=(
   "CPU-BOARD-3202/circuit/sim :: test-lbdif     :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-pancal    :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-mmucache  :: TB_RESULT: PASS"
+  # Cache subsystem coherence (CACHE_25+HIT_27+glue, 2 modes): real-tag
+  # hit/refill/write paths PLUS the two demonstrated defects (DMA write
+  # never invalidates; CCLR_n does not clear the Am9150 used bits)
+  "CPU-BOARD-3202/circuit/sim :: test-mmucache-dma :: TB_RESULT: PASS"
   # BIF_BCTL_SYNC_8 delay-tap pipeline (AM29C821 x2 + PD1/PD3 kills)
   "CPU-BOARD-3202/circuit/sim :: test-bifsync   :: TB_RESULT: PASS"
   # BIF_DPATH_LDBCTL_12 LBC PAL trio (44303B/44302B/44304E, FF+latch modes)

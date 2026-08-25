@@ -86,6 +86,18 @@ test-blockram-space: MEM_RAM_49_BLOCKRAM_SPACE_tb
 MEM_RAM_49_BLOCKRAM_SPACE_tb: MEM_RAM_49_BLOCKRAM_SPACE_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
 	$(IVERILOG) -g2012 -DND120_BLOCKRAM_ADDR_BITS=16 -o $@ MEM_RAM_49_BLOCKRAM_SPACE_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
 
+# ERRFA evidence probe (ND120_ERRFA_PROBE in MEM_RAM_49_BLOCKRAM.v): the
+# five save-cell writes 0o4347-0o4353 must come back verbatim as the
+# "EF X T A D L" octal console line, and the TX must stay SILENT until the
+# L save (an early-firing probe garbles the live console). Fast-sim gap
+# and baud via the ND120_ERRFA_* overrides.
+test-blockram-errfa: MEM_RAM_49_BLOCKRAM_ERRFA_tb
+	./MEM_RAM_49_BLOCKRAM_ERRFA_tb | tee blockram_errfa_result.tmp
+	@grep -q "TB_RESULT: PASS" blockram_errfa_result.tmp && rm -f blockram_errfa_result.tmp
+
+MEM_RAM_49_BLOCKRAM_ERRFA_tb: MEM_RAM_49_BLOCKRAM_ERRFA_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
+	$(IVERILOG) -g2012 -DND120_ERRFA_PROBE -DND120_ERRFA_BAUD_DIV=16 -DND120_ERRFA_GAP_BITS=18 -DND120_ERRFA_RWAIT_BITS=13 -o $@ MEM_RAM_49_BLOCKRAM_ERRFA_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
+
 # BIF datapath sheets: run the same vectors in latch mode (plain) and FF
 # mode (-DFPGA_FF_MODE, the P1c-2/P1d sysclk edge-captures). Both must pass.
 BIF_SUPPORT = ../../../Shared/support
@@ -310,6 +322,36 @@ test-stoc: CPU_STOC_35_tb_bin
 
 .PHONY: test-stoc
 
+# MEM_RAM_49_DDR2 (Nexys 4 DDR main-memory backend): protocol replay with
+# a random-latency behavioral DDR2 port model. Covers hit timing (no hold),
+# miss stretch (MEM_HOLD freeze emulated in the driver), write-through
+# ordering, the 22-AUG alias map incl. the 64K-word boundary, the absent
+# bank, parity regeneration, and 4000 random accesses vs a reference model.
+DDR2RAM_SRCS = MEM_RAM_49_DDR2_tb.v ../../../fpga/nexys4ddr/ddr2/MEM_RAM_49_DDR2.v
+
+test-ddr2ram: MEM_RAM_49_DDR2_tb_bin
+	./MEM_RAM_49_DDR2_tb_bin | tee ddr2ram_result.tmp
+	@grep -q "TB_RESULT: PASS" ddr2ram_result.tmp && rm -f ddr2ram_result.tmp
+
+MEM_RAM_49_DDR2_tb_bin: $(DDR2RAM_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(DDR2RAM_SRCS)
+
+# Chain-level DDR2 freeze gate: the REAL MEM_RAMC_50 PALs (with HOLD) +
+# MEM_LBDIF_48 + MEM_ADDR_44 + MEM_RAM_49_DDR2. Reads checked at the real
+# RDATA strobe; grant must stay active and RAS/CAS stand still during every
+# freeze; BDRY only after the stretched phases; refresh never holds.
+CHAINDDR2_SRCS = MEM_CHAIN_DDR2_tb.v $(CIRCUIT)/MEM_RAMC_50.v $(CIRCUIT)/MEM_LBDIF_48.v \
+	$(CIRCUIT)/MEM_ADDR_44.v ../../../fpga/nexys4ddr/ddr2/MEM_RAM_49_DDR2.v \
+	$(PAL)/PAL_44803A.v $(PAL)/PAL_44902A.v $(PAL)/PAL_44310D.v \
+	$(SUPPORT)/AM29C821.v $(SUPPORT)/AM29861A.v
+
+test-memchain-ddr2: MEM_CHAIN_DDR2_tb_bin
+	./MEM_CHAIN_DDR2_tb_bin | tee chainddr2_result.tmp
+	@grep -q "TB_RESULT: PASS" chainddr2_result.tmp && rm -f chainddr2_result.tmp
+
+MEM_CHAIN_DDR2_tb_bin: $(CHAINDDR2_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(CHAINDDR2_SRCS)
+
 # MEM_RAMC_50: RAM arbiter (PAL_44803A) + RAM control state machine
 # (PAL_44902A) vs an independent Python model (gen_ramc_golden.py):
 # directed grant walks + one-hot invariant + LFSR checksum.
@@ -373,6 +415,28 @@ CPU_MMU_CACHE_25_ug_tb_bin: $(MMUCACHE_SRCS)
 
 CPU_MMU_CACHE_25_ff_tb_bin: $(MMUCACHE_SRCS)
 	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o $@ $(MMUCACHE_SRCS)
+
+# CACHE SUBSYSTEM COHERENCE: CACHE_25 + HIT_27 + the CPU_MMU_24 glue, with
+# a bench-side memory and DMA master. Real tag/used-bit driven hits: cold
+# miss/refill/hit, data-read used bit, CPU write update, FMISS/WCINH/LSHADOW
+# refill blocks - plus two DOCUMENTED DEFECTS the bench demonstrates
+# (KNOWN-DEFECT lines): DMA writes never invalidate a cached line, and
+# CCLR_n does not clear the Am9150 used-bit array (reset is a no-op in the
+# model). PASS = behaviour verified WITH the defects present; fixing the
+# RTL flips those checks and this bench must then be updated.
+MMUCACHE_DMA_SRCS = CPU_MMU_CACHE_DMA_tb.v $(CIRCUIT)/CPU_MMU_CACHE_25.v $(CIRCUIT)/CPU_MMU_HIT_27.v $(SUPPORT)/TMM2018D_25.v $(SUPPORT)/Am9150.v $(PAL)/PAL_44402D_EN.v $(PAL)/PAL_44402D.v
+
+test-mmucache-dma: CPU_MMU_CACHE_DMA_tb_bin CPU_MMU_CACHE_DMA_ff_tb_bin
+	./CPU_MMU_CACHE_DMA_tb_bin | tee mmucache_dma_result.tmp
+	@grep -q "TB_RESULT: PASS" mmucache_dma_result.tmp
+	./CPU_MMU_CACHE_DMA_ff_tb_bin | tee mmucache_dma_result.tmp
+	@grep -q "TB_RESULT: PASS" mmucache_dma_result.tmp && rm -f mmucache_dma_result.tmp
+
+CPU_MMU_CACHE_DMA_tb_bin: $(MMUCACHE_DMA_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(MMUCACHE_DMA_SRCS)
+
+CPU_MMU_CACHE_DMA_ff_tb_bin: $(MMUCACHE_DMA_SRCS)
+	$(IVERILOG) -g2012 -DFPGA_FF_MODE -o $@ $(MMUCACHE_DMA_SRCS)
 
 # BIF_BCTL_SYNC_8: two AM29C821 delay-tap registers (25/50/75ns) + PD1/PD3
 # comb output kills. The netlist has NO ifdef branches (AM29C821 default

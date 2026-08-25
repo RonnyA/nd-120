@@ -30,6 +30,11 @@
 module PAL_44902A (
     input CK,   //! Clock signal
     input OE_n, //! OUTPUT ENABLE (active-low) for Q0-Q5
+    input HOLD, //! Freeze the register state (added 25-AUG-2026 for the
+                //! MAIN_RAM_DDR2 backend: MEM_RAM_49_DDR2 stretches a memory
+                //! cycle on a cache miss by holding this PAL and PAL_44803A;
+                //! RAS/CAS/HIEN/LOEN stand still until the miss is served).
+                //! Tie 0 for the original fixed-length behaviour.
 
     input RGNT_n,    //! I0 - RGNT_n (RAM Grant)
     //input CGNT_n,       //! I1 - CGNT_n (NOT USED!!)
@@ -85,7 +90,7 @@ module PAL_44902A (
 
 
   //**** Sequential logic triggered on the rising edge of CLK ****
-  always @(posedge CK) begin
+  always @(posedge CK) if (!HOLD) begin
 
 
     // Logic for QA, QB, QC, QD

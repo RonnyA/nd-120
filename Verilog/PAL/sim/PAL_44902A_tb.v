@@ -52,7 +52,7 @@ module PAL_44902A_tb;
   integer checks = 0, errors = 0, vec, st, dumped = 0;
 
   PAL_44902A DUT (
-      .CK(CK), .OE_n(OE_n),
+      .CK(CK), .OE_n(OE_n), .HOLD(1'b0),
       .RGNT_n(RGNT_n), .BDAP50_n(BDAP50_n), .MR_n(MR_n),
       .BGNT25_n(BGNT25_n), .CGNT25_n(CGNT25_n), .BDRY50_n(BDRY50_n),
       .QA_n(QA_n), .QB_n(QB_n), .QC_n(QC_n), .QD_n(QD_n),
