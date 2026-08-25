@@ -2,7 +2,13 @@
 
 **Full path:** `Verilog/docs/HANDOFF-tpe-memory-test-corruption.md`
 **Date:** 2026-07-23
-**Status:** ACTIVE investigation. First-ever driving of the real TPE Monitor's
+**Status:** **CLOSED.** The banner-string corruption was the MMU cache data
+output not being gated by `HIT`, so a stale cache line jammed the wired-OR `CD`
+bus (fixed 27-JUL-2026 in `CPU-BOARD-3202/circuit/CPU_MMU_CACHE_25.v`; same
+defect produced the garbled `INST??CTION` banner). The TPE **MEMORY** diagnostic
+passes on the Tang. Kept as the record of the investigation.
+
+Original status line: ACTIVE investigation. First-ever driving of the real TPE Monitor's
 own diagnostics from a Verilator floppy boot. A concrete, reproducible
 instruction bug is now on the table (banner-string corruption).
 

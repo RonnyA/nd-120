@@ -191,10 +191,22 @@ does not model. Check these in order:
   Vivado project dir and actually initialises the BRAM (not empty).
 - Check `IDT6168A`/control-store RAM inferred as block RAM, not distributed.
 
-### 3.2 Timing closure — CONFIRMED ROOT CAUSE (from the Vivado logs, 2026-07)
+### 3.2 Timing closure on the Xilinx boards
 
-The Basys3 build **fails timing catastrophically** — this, not a functional bug,
-is why the FPGA does not boot:
+> **Numbers below the 2026-07 line were superseded on 21-AUG-2026.** Measured
+> then, Vivado 2026.1: Basys3 **WNS -29.778 ns** at 16.667 MHz, TNS -44293.688,
+> 1714 failing endpoints of 44510 — with **hold CLEAN** (WHS +0.035 ns) and the
+> **Inter Clock Table EMPTY**. The asynchronous clock grouping works, so every
+> remaining violation is inside the CPU clock domain and is genuine logic depth
+> (worst path 156 logic levels, WCS BRAM output straight into a WRF clock
+> enable). Nexys 4 DDR the same day: **WNS -17.143 ns**, zero combinational
+> loop alerts. Chasing a constraint fix for these is wasted work.
+>
+> Note also that the FPGA-does-not-boot framing is Xilinx-only now: the **Tang
+> Nano 20K boots SINTRAN III** (24-AUG-2026).
+
+The Basys3 build **fails timing** — this, not a functional bug, is why that
+board does not boot. From the Vivado logs, 2026-07 (historical, superseded):
 - `CRITICAL WARNING [Timing 38-282]: design failed to meet timing requirements`
 - **WNS approx -65 to -101 ns, TNS approx -50,000 ns**, plus hold violations
   (THS approx -163 ns). A generated clock with **period < 2 ns** is reported.
@@ -219,7 +231,10 @@ clock domain (`sysclk`) and the derived signals become clock *enables*. Then STA
 constrains cleanly and timing closes (the ND-120 is a slow CPU; a single modest
 sysclk has plenty of margin).
 
-**Work list — files with derived-clock always-blocks (35):** the PAL set
+**Work list — files with derived-clock always-blocks (35 when written; 22
+remain as of 25-AUG-2026 - the base primitives `LATCH`, `L4`, `L8` and the
+`*_EN` variants are converted and clock on `sysclk`, the PAL set mostly is
+not):** the PAL set
 (`PAL_44302B/44303B/44304E/44310D/44401B/44407A/44408B/44445B/44446B/44511A/
 44601B/44801A/44803A/44902A/44904B/45001B/45008B/45009B`), Shared support
 (`AM29841`, `AM29C821`, `TTL_74534/74646/74648`, `SC2661_UART`), Shared ndlib

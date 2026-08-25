@@ -26,7 +26,7 @@ FF-mode build (`USE_LATCHES=0`). Deep logs: session scratchpad
 | PRIVILEGED | PASS, 0 err | PASS |
 | 32-BITS-FLOATING | PASS, 0 err | PASS |
 | 48-BITS-FLOATING | **N/A** - machine is 32-bit-float configured (see docs/48bit-float-not-configured.md) | n/a |
-| RUN | deferred - needs level-12/14 stress-interrupt device models in runSim | pending |
+| RUN | **reaches its `== END OF TEST ==`** (15-JUL-2026, after the Am2914 status fence became default and MOR was wired to level 12). Was "deferred" when this table was written | see `Verilog/docs/RUN-level14-livelock-analysis.md` |
 
 Bugs found and fixed by the campaign:
 1. `CGA_ALU_QREG` MUXQ15.D3 - multiply product/overflow

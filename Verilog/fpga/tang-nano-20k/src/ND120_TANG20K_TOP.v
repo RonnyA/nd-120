@@ -2014,7 +2014,12 @@ module ND120_TANG20K_TOP (
       // OPCOM echoed 20500& - so the SD read path failed). Two variables had
       // been changed together, the bit clock 2.7->13.5 MHz AND the width.
       // Back to 1-bit to test the clock change ALONE.
-      .USE_4BIT      (0),   // DAT1-3 pinned and wired, but not used yet
+      // DAT1-3 are wired on the board (J7 -> FPGA 85/80/81, schematic
+      // table in doc/SD-SLOT-WIRING.md) and 4-bit is proven on this slot
+      // by sd-fat-test. It is 0 here because USE_4BIT=1 does not reach the
+      // SINTRAN banner in THIS integration - a reader/writer sharing fault,
+      // not a board limit.
+      .USE_4BIT      (0),
       .SIMULATE(0),                     // real card: full-length SD init
       .INCLUDE_TAPE(TANG_INC_TAPE),
       .INCLUDE_FLOPPY(TANG_INC_FLOPPY),

@@ -1,7 +1,12 @@
 # ND-120 Verilog TODO
 
-> Last updated: 02-AUG-2026 (SMD controller handed to another session; plan
-> below says who owns what)
+> Last updated: 25-AUG-2026. Newest entries are at the top; the "CURRENT PLAN -
+> 02-AUG-2026" section below keeps its own date and says who owns what.
+>
+> Standing context: **SINTRAN III boots on the Tang Nano 20K** (24-AUG-2026).
+> The ERRFATAL / page-fault campaign is CLOSED (`ND3202D.v:533` bank decode).
+> The SD FAT-chain walk was fixed 24-AUG (boot 168 s -> 29.4 s, S3 cold
+> 235.8 s -> 13.2 s).
 
 ---
 

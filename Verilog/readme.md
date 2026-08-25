@@ -181,12 +181,13 @@ per-target.
 | Target | Device | Toolchain | Status |
 |--------|--------|-----------|--------|
 | **Verilator** (reference) | — (simulation) | Verilator + GTKWave, Linux/WSL | **Works** — boots microcode, self-test clean (STERR=0), OPCOM UART |
-| [**Tang Nano 20K**](fpga/tang-nano-20k/README.md) *(primary FPGA)* | Gowin `GW2AR-18` (20,736 LUT4, 828 Kbit BSRAM, 8 MB SDRAM, 27 MHz) | Gowin EDA / OSS yosys+nextpnr (Linux-native) | Bring-up in progress |
-| [**Basys3**](fpga/basys3/README.md) | Xilinx Artix-7 `xc7a35tcpg236-1` (33,280 LUT6, ~1,800 Kbit BRAM, 100 MHz) | Vivado (Windows host) | Synthesis OK; **fails timing** (WNS approx -100 ns), does not boot |
+| [**Tang Nano 20K**](fpga/tang-nano-20k/README.md) *(primary FPGA)* | Gowin `GW2AR-18` (20,736 LUT4, 828 Kbit BSRAM, 8 MB SDRAM, 27 MHz) | Gowin EDA / OSS yosys+nextpnr (Linux-native) | **Boots SINTRAN III** (24-AUG-2026) - banner in 29.4 s, disc + SD/FAT stack proven on silicon |
+| [**Basys3**](fpga/basys3/README.md) | Xilinx Artix-7 `xc7a35tcpg236-1` (33,280 LUT6, ~1,800 Kbit BRAM, 100 MHz) | Vivado (Windows host) | Synthesis + bitstream OK; **fails timing** (WNS **-29.778 ns** at 16.667 MHz, measured 21-AUG-2026). OPCOM boots on the board; the OS does not |
 
-**Current FPGA focus is the Tang Nano 20K** - faster Gowin synthesis than Vivado,
+**The Tang Nano 20K is the working machine** - faster Gowin synthesis than Vivado,
 a Linux-native OSS toolchain, and 8 MB SDRAM that lets the FPGA run the full
-memory config like the simulator. Basys3 is the second target once Tang works.
+memory config like the simulator. It has booted SINTRAN III since 24-AUG-2026.
+The Xilinx boards are the second target and neither meets timing yet.
 
 ### Verilator (simulation — the working reference)
 

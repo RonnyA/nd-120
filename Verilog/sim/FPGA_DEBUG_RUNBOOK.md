@@ -5,7 +5,10 @@ comparison workflow from scratch. It is self-contained and does not assume prior
 
 ## Problem Statement
 
-The ND-120 CPU boots correctly in Verilator simulation but fails to boot on FPGA (Basys3).
+The ND-120 CPU boots correctly in Verilator simulation and **boots SINTRAN III on
+the Tang Nano 20K** (24-AUG-2026), but fails to boot on the Xilinx boards, which
+do not meet timing (Basys3 WNS -29.778 ns at 16.667 MHz, measured 21-AUG-2026).
+The workflow below was written for the Basys3 and still applies there.
 The Verilator VCD trace serves as the "golden reference". The FPGA behavior is captured via
 Vivado ILA (Integrated Logic Analyzer) and exported as CSV. The goal is to find where the
 FPGA diverges from the reference and fix the Verilog.

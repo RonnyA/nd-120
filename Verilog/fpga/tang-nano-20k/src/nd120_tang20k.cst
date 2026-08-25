@@ -53,8 +53,11 @@ IO_LOC "sd_cmd" 82;
 IO_PORT "sd_cmd" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
 IO_LOC "sd_dat0" 84;
 IO_PORT "sd_dat0" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
-// DAT1-3 for the 4-bit data bus. Pin numbers taken from the sd-fat-test
-// build, which ran 4-bit on this board with a real SDHC card 12-JUL-2026.
+// DAT1-3 for the 4-bit data bus. Pin numbers read from the Sipeed schematic
+// (J7 pin 8 = DAT1 = FPGA 85, pin 1 = DAT2 = 80, pin 2 = DAT3/CD = 81);
+// the full table and the vendored schematic are in doc/SD-SLOT-WIRING.md.
+// The sd-fat-test build ran 4-bit on this slot with a real SDHC card
+// 12-JUL-2026 at 3418 KB/s write / 5981 KB/s read.
 IO_LOC "sd_dat1" 85;
 IO_PORT "sd_dat1" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
 IO_LOC "sd_dat2" 80;

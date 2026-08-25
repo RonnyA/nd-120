@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository contains a complete HDL implementation of the 1988 Norsk Data ND-120 CPU, recreated from original design documents and implemented in both Logisim-Evolution and Verilog. The goal is FPGA-synthesizable code that runs as the original ND-120 CPU. The Verilator simulation is the working reference; the FPGA (Basys3 / `xc7a35t`) build synthesizes but does not yet boot correctly, and closing that gap is the current focus.
+This repository contains a complete HDL implementation of the 1988 Norsk Data ND-120 CPU, recreated from original design documents and implemented in both Logisim-Evolution and Verilog. The goal is FPGA-synthesizable code that runs as the original ND-120 CPU. **SINTRAN III boots on the Tang Nano 20K (24-AUG-2026)** - that is the working machine and the primary target. Verilator remains the signal-level reference for unit checks and waveform work. The Xilinx boards (Basys3 `xc7a35t`, Nexys 4 DDR `xc7a100t`) synthesize but do not meet timing and do not boot; closing that gap is a separate workstream.
 
 ## Environment
 
@@ -112,7 +112,7 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
 
 ## Status & known issues
 
-> Last verified: 13-JUL-2026. State only what is measured here — this section
+> Last verified: 25-AUG-2026. State only what is measured here — this section
 > is what other people (and other agents) read first, so stale claims here
 > propagate as fact.
 

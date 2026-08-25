@@ -48,10 +48,13 @@ Compressed history of the work progress on the ND-120 recreation:
 | 21. August 2026 | FPGA | Nexys 4 DDR board port added |
 | 22. August 2026 | CPU | IDB combinational ring cut - FIDBO is OUTMUX-only and the PCR readback is registered; BRAM inference for main RAM and sysclk edge-capture for the parity-error latches |
 | 23. August 2026 | CPU | Level-10 interrupt request was wired to `BINPUT~` (sheet 5C) |
-| 24. August 2026 | SILICON | **SINTRAN III boots on the Tang Nano 20K.** The memory bank was decoded from the wrong side of the bus transceiver (`ND3202D.v:533`), so every DMA write landed in BANK0 - disc data reached the right row in the wrong bank and the CPU fetched zeros from a page nothing had written, halting in ERRFATAL after exactly 143 s on every boot |
-| 24. August 2026 | FPGA | 42 storage seam nets were implicit 1-bit (declared below first use); moving the declarations took `EX3638` from 42 to 0 and made the disc-activity LEDs work. Winchester read cache re-enabled |
-| 24. August 2026 | SILICON | Clock raised from 6.75 MHz: a 13.5 MHz variant added that closes with 0 setup violations, and **27 MHz runs SINTRAN, LIST-FILES and s3** and is visibly faster. Gowin still reports 1667 setup violations at 27 MHz against a CPU-domain Fmax of 17.7-19.6 MHz, so it is fast and functional but NOT timing-clean - margin over temperature and voltage is unquantified. An s3 "hang" first read as 27 MHz corruption was wrong: a slow first start and a quick second start is a caching effect, seen at 13.5 MHz too |
+| 24. August 2026 | SILICON | **SINTRAN III boots on the Tang Nano 20K.** The memory bank was decoded from the wrong side of the bus transceiver (`ND3202D.v:533`), so every DMA write landed in BANK0 and the CPU fetched a page nothing had written |
+| 24. August 2026 | FPGA | 42 storage seam nets were implicit 1-bit (declared below first use); `EX3638` 42 -> 0 and the disc-activity LEDs work. Winchester read cache re-enabled |
+| 24. August 2026 | SILICON | Clock variants added above the 6.75 MHz baseline: 13.5 MHz closes with 0 setup violations, 27 MHz runs SINTRAN and s3 but reports 1667 setup violations - fast and functional, not timing-clean |
 | 24. August 2026 | TEST | Regression guards for the bank decode (`make test-bdbank`) and for flip-flop mode on every board (`make test-no-latches`); board `preflight.sh` and a hard sim log-size cap |
+| 24. August 2026 | SILICON | Boot was disc-bound: the FAT chain was walked one card read per hop. Following it inside the streamed sector cut boot 168 -> 29.4 s and S3 cold start 235.8 -> 13.2 s |
+| 24. August 2026 | SILICON | SD write bit clock raised 2.7 -> 13.5 MHz. The 4-bit data bus was wired and pinned but left disabled - it does not reach the SINTRAN banner |
+| 25. August 2026 | DOC | Tang microSD slot wiring settled from the Sipeed schematic: all four data lines are routed, so a 4-bit failure is logic and not wiring |
 
 ## Area tags
 

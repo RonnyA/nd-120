@@ -2,6 +2,12 @@
 
 Date: 2026-07-27. **Platform: VERILATOR (FF-mode), the fixed hand-maintained RTL.**
 
+> UPDATE 25-AUG-2026: the Tang boot divergence described in the correction below
+> is RESOLVED. The Tang Nano 20K boots SINTRAN III (24-AUG-2026, bus bank-decode
+> fix in `ND3202D.v:533`), and CONFIGURE, INSTRUCTION, PAGING and MEMORY all run
+> on the board. The correction below is kept as the record of where things stood
+> on 27-JUL-2026.
+>
 > CORRECTION: this diagnostic pass is in the **Verilator simulation**, NOT on the Tang
 > silicon. The Tang was flashed with this same RTL (`make flash-gowin`, config flash,
 > persistent) but **still hard-hangs on boot** — BOTH `400$` (tape) and `1560&` (floppy)

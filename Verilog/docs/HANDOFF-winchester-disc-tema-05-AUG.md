@@ -1,3 +1,18 @@
+> # SUPERSEDED 24-AUG-2026 - THE MACHINE BOOTS FROM THE WINCHESTER
+>
+> Section 8's "the machine cannot boot from the Winchester" no longer holds.
+> `20500&` boots SINTRAN III on the Tang Nano 20K and reaches the banner in
+> 29.4 s. The suspicion recorded below that the fault was "in the mass-load
+> microcode path" was WRONG: the actual defect was the memory bank being decoded
+> from the wrong side of the bus transceiver (`ND3202D.v:533`), so every incoming
+> DMA write landed in BANK0 and the CPU read a page nothing had written.
+> Guarded since by `make test-bdbank`.
+>
+> The DISC-TEMA `Memory address Register not as expected` complaint is a separate
+> matter and is NOT closed by this. Everything else below is kept as the record
+> of the investigation.
+> See `HISTORY.md` and `Verilog/fpga/tang-nano-20k/README.md`.
+
 # HANDOFF — Winchester (ND_WINCHESTER, IOX 500) vs DISC-TEMA J02
 
 Date: 05-AUG-2026. Nothing committed. Nothing in this document is speculation

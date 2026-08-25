@@ -1,3 +1,17 @@
+> # HISTORICAL - this phase is over (banner added 25-AUG-2026)
+>
+> Written 2026-07-03 on branch `redo-idb`. Two things below are no longer true:
+>
+> - **"The CPU does not boot on FPGA."** The Tang Nano 20K boots SINTRAN III
+>   (24-AUG-2026) and the Basys3 boots OPCOM. The Xilinx boards still fail
+>   timing, which is what keeps them from running the OS.
+> - **"Current known FPGA bug: stuck in boot Phase 3, CSA oscillates
+>   0x0425 <-> 0x0426."** That was fixed long ago.
+>
+> The Verilator-vs-FPGA comparison method described here is still sound and
+> still used. Current status lives in `CLAUDE.md`, `Verilog/readme.md` and
+> `Verilog/fpga/tang-nano-20k/README.md`; live tasks in `Verilog/TODO.md`.
+
 # ND-120 FPGA Bring-up Plan (redo-idb)
 
 **Full path:** `Verilog/FPGA-BRINGUP-PLAN.md`

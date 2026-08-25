@@ -303,11 +303,23 @@ The FAT mount/scan path (sd_file_reader) always runs 1-bit; bulk data
 (speed tests, CHECK/COPY/WRBLK1 FAT and payload traffic through
 sd_writer) follows this switch.
 
-11-JUL-2026 hardware status: 4-bit is sim-proven (all safety gates) but
-FAILED its first silicon run (CHECK reported every cluster chain BAD =
-FAT sector reads returning garbage on DAT0-3 while all 1-bit paths
-worked). USE_4BIT is parked at 0 while the 4-bit signal path on the
-Tang slot is being debugged; flip back to 1 once resolved.
+Hardware status: **4-bit works on this board and is the default**
+(`USE_4BIT = 1`). Measured 12-JUL-2026 on a real 32 GB SDHC FAT32 card:
+WRITE 3418 KB/s, READ 5981 KB/s, and the full FAT walk (LIST freescan,
+CHECK over a 75 MB image) over 4-bit as well.
+
+The board wiring question is settled - all four data lines are routed
+from socket J7 to FPGA pins 84/85/80/81, with 10K pull-ups R53-R57. The
+schematic table and its evidence are in
+`Verilog/fpga/tang-nano-20k/doc/SD-SLOT-WIRING.md`.
+
+(An earlier 11-JUL-2026 note here said 4-bit had FAILED its first
+silicon run and was parked at 0. That was true for one day. Three
+silicon-only bugs were then found and fixed - the nested-ternary pad
+idiom that yosys collapsed to an always-on OBUF, a mount reader parked
+mid-CMD17, and an RCA snooped off the CMD line instead of taken from
+the reader's CMD3 export. Full story in `Verilog/docs/sd-speed-plan.md`
+rung c.)
 
 ## Simulation (run BEFORE hardware, in this order)
 

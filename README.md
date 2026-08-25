@@ -15,10 +15,32 @@ On the way to the FPGA code, there will be testable Logisim Circuits and Logisim
 
 ## Current Status
 
-**Simulation (Verilator, the golden reference):**
+### Where the project stands (25-AUG-2026)
+
+The machine runs the original operating system on real hardware. **SINTRAN III
+boots on the Tang Nano 20K**, from a Winchester disc image on an SD card, and
+you can log in and run programs. That is the headline result and the Tang is
+the primary target.
+
+Verilator is no longer "the thing that works while hardware doesn't" - it is
+the **signal-level reference**: waveforms, unit testbenches, and the
+latch-versus-flip-flop comparison that proves a refactor changed nothing. The
+Xilinx boards (Basys3, Nexys 4 DDR) synthesize and produce bitstreams but do
+not meet timing, so they run OPCOM and not the OS.
+
+**Simulation (Verilator - the signal-level reference):**
 - Microcode loads, Master Clear executes, and the CPU self-test passes
   clean: **0 execution-phase STERR visits** (measured with the
-  `ND120_COUNT_STERR` probe)
+  `ND120_COUNT_STERR` probe in `Verilog/runSim/Run120.cpp`).
+  An older status here read "self-test runs, 7 of 14 subtests passing".
+  **That figure is retracted** - it predated the fixes and was never
+  re-measured (`Verilog/docs/RETRACTED.md`). Careful when measuring: the
+  WCS loader walks past the STERR address once while loading, so only
+  execution-phase visits count.
+- The self-test result is **not** a memory-parity question. Microcode
+  analysis proved the self-test never touches memory parity, which is why
+  FPGA targets compute parity on the read path instead of storing it
+  (`Verilog/docs/nd120-parity-analysis.md`).
 - **13 of 13 testable INSTRUCTION-B areas pass** on both layers - each
   area's own end-of-test with zero error lines, and the 400-instruction
   golden-trace comparison against the ND-110 reference
@@ -29,13 +51,50 @@ On the way to the FPGA code, there will be testable Logisim Circuits and Logisim
   papertape device; DMA bus mastering against the real arbiter
 - Golden-console and latch-vs-FF regression gates keep it all pinned
 
+### TPE diagnostic programs - what actually runs
+
+These are the original Norsk Data test programs, not our own testbenches.
+Each row says where the result was measured; nothing here is inferred from
+a passing run somewhere else.
+
+| Program | Result | Measured on |
+|---|---|---|
+| **CONFIGURATION** (`load conf`) | **Passes** - runs to completion with `NO ERRORS DETECTED` and correctly enumerates the machine (ND-120/CX, 32-bit float, MMS-2, cache present, ALD 400B, print number 3202). Version D05, 1988-11-08 | Verilator (logged, 27-JUL-2026); confirmed working on the Tang |
+| **INSTRUCTION** | **Passes.** In Verilator, **13 of 13** testable INSTRUCTION-B areas - each area's own deep end-of-test with zero error lines, plus a golden 400-instruction trace gate against the ND-110 reference. On the board, the full multi-level run over interrupt **levels 1-9 passes clean** | Verilator (13-JUL-2026) + Tang silicon (31-JUL-2026) |
+| **PAGING** | **Passes 11 of 11**, including test 3 (PGU/WIP), test 4 (alternative PIT) and test 11 (physical address generation) | Tang silicon (30-JUL-2026) |
+| **MEMORY** | **Passes.** An earlier open item here - the TPE Monitor's memory diagnostic returning a corrupted banner string (23-JUL) - was closed by the MMU cache fix on 27-JUL: the cache data output was not gated by `HIT`, so a stale line jammed the wired-OR `CD` bus. That is the same defect that produced the garbled `INST??CTION` banner | Tang silicon |
+| **TPE Monitor B01** | Boots from a floppy image (`1560&` at the OPCOM `#` prompt), reaches the `TPE>` prompt and accepts its own commands - this is the harness the diagnostics above are loaded and run from | Verilator (27-JUL-2026) + Tang silicon |
+| **RUN** | Reaches its `== END OF TEST ==` after the Am2914 interrupt status fence was made default and MOR (memory-out-of-range) was wired to level 12 | Verilator (15-JUL-2026) |
+| **48-BITS-FLOATING** | **Not applicable** - this machine's PROM microcode implements the 32-bit float option, so the area cannot apply (`Verilog/docs/48bit-float-not-configured.md`) | - |
+| **DISC-TEMA J02** | **Not passing.** Loads and transfers real data off the disc image, register-for-register matching the reference model, but still reports `Memory address Register not as expected`. Unexplained, and the one known open diagnostic | Verilator + Tang silicon |
+
+The four that pass clean on the board - **CONFIGURE, INSTRUCTION, PAGING and
+MEMORY** - are the machine's own acceptance suite: they check the CPU
+identifies itself correctly, executes every instruction group correctly, that
+the MMU translates and faults correctly, and that main memory is sound. With
+those green and SINTRAN III booting, the ND-120 is a working machine rather
+than a partially working one.
+
+These campaigns are also what found the real CPU bugs, which is the argument
+for running the original diagnostics rather than only our own testbenches:
+INSTRUCTION caught a multiply bug (every product's low word was zero) and a
+shift-control bug (all rotate and sign-extending shifts ran as plain shifts);
+PAGING caught an MMU fault where the physical-page map RAM was never written
+at all; CONFIGURATION caught a trap-vector generator that resolved a
+simultaneous page-fault-plus-PGU to an unimplemented vector and self-jumped
+forever.
+
 **FPGA hardware:**
+- **Tang Nano 20K - SINTRAN III BOOTS (24-AUG-2026).** The operating system
+  runs on the FPGA from a Winchester disc image on the SD card: banner in
+  **29.4 s**, login, `LIST-FILES`, and the S3 program (cold start 13.2 s).
+  Full CPU bitstream with **4 MB SDRAM main memory** (packed 16-bit storage,
+  computed parity - `ND_SDRAM_PACK16`), the other 4 MB for the SD disk-image
+  cache; SD/FAT stack proven on hardware (read + write, safety-gated).
+  Timings and clock variants: `Verilog/fpga/tang-nano-20k/README.md`.
 - **Basys3**: OPCOM boots on the board (tag `fpga-opcom-working-basys3`);
-  active debug line at 16.67 MHz
-- **Tang Nano 20K**: full CPU bitstream with **4 MB SDRAM main memory**
-  (packed 16-bit storage, computed parity - `ND_SDRAM_PACK16`), the other
-  4 MB reserved for the SD disk-image cache; SD/FAT stack proven on
-  hardware (read + write, safety-gated)
+  active debug line at 16.67 MHz. Does not meet timing (WNS -29.778 ns at
+  16.667 MHz, measured 21-AUG-2026), so it does not boot the OS.
 - **Dual toolchain**: the Tang builds with the OSS CAD Suite
   (yosys/nextpnr, primary) and Gowin EDA (backup) - all clock variants;
   nextpnr closes the full 27/54 MHz target with >2x margin
