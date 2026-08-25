@@ -62,9 +62,13 @@ module PAL_44306A (
       (DOUBLE & LSHADOW & WRITE));      // WRITING IN SHADOW IN SEX MODE WILL WRITE A FULL BIT PAGE NUMBER
 
   // Logic for EIPL_n (active-low)
+  // PALASM 44306A: third term is LSHADOW * WRITE (no DOUBLE) - the lower PPN
+  // byte is written on every shadow write, REX and SEX alike. An extra
+  // DOUBLE term here left the PPN map RAM unwritten in REX mode (physical
+  // page always 0 when paging is on).
   assign EIPL_n = ~((WCHIM) |  // PASS PAGE NUMBER TO BE INHIBITED FROM IDB
       (DOUBLE & LSHADOW & CA0) |  // SHADOW ACCESSES IN SEX MODE
-      (DOUBLE & LSHADOW & WRITE));  // WRITING LOWER BYTE (SAME FOR REX AND SEX)
+      (LSHADOW & WRITE));  // WRITING LOWER BYTE (SAME FOR REX AND SEX)
 
   // Logic for EPTI_n (active-low)
   assign EPTI_n = ~((LSHADOW & EMCL_n & WRITE) |  // DISABLE DURING EMCL TO AVOID JAMMING THE IDB

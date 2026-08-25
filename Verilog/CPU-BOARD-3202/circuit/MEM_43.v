@@ -84,7 +84,10 @@ module MEM_43 (
     output [ 1:0] O_sdram_ba,
     output [ 3:0] O_sdram_dqm,
     // Write-path debug: raw signal bus for the on-chip capture (see top)
-    output [15:0] DBG_MEMW
+    output [15:0] DBG_MEMW,
+    //! SDRAM-bridge page-write watch (24-AUG zero-page campaign): every access
+    //! to physical rows 1016..1023 in both banks, taken AT THE BRIDGE.
+    output [15:0] DBG_PGW
 `ifdef ND_STORAGE_PORT
     // nd_storage device port, passed straight down to MEM_RAM_49_SDRAM (which
     // forces the leading address 1, so device traffic physically cannot reach
@@ -231,7 +234,11 @@ module MEM_43 (
   assign GNT50_n             = s_gnt50_n;
   assign IDB_15_0_OUT        = s_idb_15_0_out[15:0];
   assign LERR_n              = s_lerr_n;
-  assign LPERR_n             = s_lperr_n | 1; // Always set to 1 to avoid Parity Error. TODO: FIX! ?
+  // The 74LS112 local-parity-error flip-flop (8J, sheet 46 region F6) was
+  // computed and then thrown away by the `| 1`, so LPERR~ could never go
+  // active. Restored - see the note in MEM_DATA_46.v about why memory
+  // classifies as Mpm 5 rather than Local when nothing can report an error.
+  assign LPERR_n             = s_lperr_n;
   assign MOFF_n              = s_moff_n;
   assign MOR25_n             = s_mor25_n;
   assign MWRITE_n            = s_mwrite_n;
@@ -497,6 +504,7 @@ module MEM_43 (
       .O_sdram_wen_n(O_sdram_wen_n),
       .IO_sdram_dq(IO_sdram_dq),
       .DBG_BRIDGE(s_dbg_bridge),
+      .DBG_PGW(DBG_PGW),
       .O_sdram_addr(O_sdram_addr),
       .O_sdram_ba(O_sdram_ba),
       .O_sdram_dqm(O_sdram_dqm)
@@ -515,8 +523,16 @@ module MEM_43 (
   );
 `elsif MAIN_RAM_BLOCKRAM
   // FPGA block-RAM backend: one clean synchronous BRAM instead of the six
-  // emulated SIP1M9 chips (MEM_RAM_49_BLOCKRAM.v). Default 3 banks x 4K words.
-  MEM_RAM_49_BLOCKRAM RAM (
+  // emulated SIP1M9 chips (MEM_RAM_49_BLOCKRAM.v). Default 3 banks x 4K words
+  // (Basys3 xc7a35t budget); boards with more BRAM override the words-per-bank
+  // exponent with ND120_BLOCKRAM_ADDR_BITS (Nexys 4 DDR sets 15 = 32K words
+  // per bank in fpga/nexys4ddr/build.tcl).
+`ifndef ND120_BLOCKRAM_ADDR_BITS
+  `define ND120_BLOCKRAM_ADDR_BITS 12
+`endif
+  MEM_RAM_49_BLOCKRAM #(
+      .BANK_ADDR_BITS(`ND120_BLOCKRAM_ADDR_BITS)
+  ) RAM (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
       .AA_9_0(s_aa_9_0[9:0]),
@@ -556,26 +572,30 @@ module MEM_43 (
       .RAS(s_ras),
       .DD_17_0_OUT(s_ram_dd_17_0_out[17:0])
   );
-`else
+`elsif MAIN_RAM_SIP1M9
   // ===========================================================================
-  // HISTORICAL FALLBACK - NOT USED BY ANY CURRENT BUILD. DO NOT ASSUME THIS IS
-  // THE SIMULATION OR FPGA RAM.
+  // OPT-IN ONLY (3-AUG-2026): the original six-chip SIP1M9 sheet
+  // (MEM_RAM_49.v + Shared/support/SIP1M9.v), kept as a schematic-faithful
+  // reference of the real sheet-49 DRAM array. It is NO LONGER a fallback -
+  // a board reaches it only by defining MAIN_RAM_SIP1M9 deliberately.
   //
-  //   * Verilator sim  -> MEM_RAM_49_SIM   (the `elsif VERILATOR_SIM` branch)
-  //   * Tang Nano 20K  -> MEM_RAM_49_SDRAM (the `ifdef MAIN_RAM_SDRAM` branch)
-  //   * BRAM boards    -> MEM_RAM_49_BLOCKRAM (the `elsif MAIN_RAM_BLOCKRAM`)
+  // Why this changed: until today this was the `else branch, and its own
+  // comment claimed "NOT USED BY ANY CURRENT BUILD". That was WRONG. Basys3
+  // defined no MAIN_RAM_* at all - the real synthesis logs show only
+  // FPGA_FF_MODE, SKIP_WCS_LOAD, BOARD_CLK_FREQ and UART_BAUD_RATE - so it had
+  // been silently landing here, which is precisely what the old comment said
+  // must never happen. Basys3 now selects MAIN_RAM_BLOCKRAM explicitly in
+  // fpga/basys3/vivado_build.tcl, and a missing selection is a COMPILE ERROR
+  // (the `else below) instead of a silent choice.
   //
-  // This branch (the original six-chip SIP1M9 sheet, MEM_RAM_49.v, Shared/
-  // support/SIP1M9.v) is reached ONLY when NONE of the above defines is set -
-  // which today is no build at all. It is kept purely as a schematic-faithful
-  // reference of the real sheet-49 DRAM array.
-  //
-  // It may be DELETED in the future. When it is, every FPGA board must select
-  // one of the MAIN_RAM_* backends above - either reuse an existing one
-  // (MEM_RAM_49_BLOCKRAM / _SDRAM / _SIM) or add its own MEM_RAM_49_<board>.v
-  // implementing the same sheet-49 interface (AA_9_0, BANK0/1/2, RAS, CAS,
-  // MWRITE50_n, DD_17_0_IN/OUT, CORR_n). A board must never silently fall
-  // through to this SIP1M9 path.
+  // Backend map:
+  //   * Verilator sim  -> MEM_RAM_49_SIM      (`elsif VERILATOR_SIM)
+  //   * Tang Nano 20K  -> MEM_RAM_49_SDRAM    (`ifdef MAIN_RAM_SDRAM)
+  //   * BRAM boards    -> MEM_RAM_49_BLOCKRAM (`elsif MAIN_RAM_BLOCKRAM)
+  //   * this reference -> MEM_RAM_49          (`elsif MAIN_RAM_SIP1M9)
+  // A new board either reuses one of those or adds its own
+  // MEM_RAM_49_<board>.v implementing the same sheet-49 interface (AA_9_0,
+  // BANK0/1/2, RAS, CAS, MWRITE50_n, DD_17_0_IN/OUT, CORR_n).
   // ===========================================================================
   MEM_RAM_49 RAM (
       .sysclk(sysclk),
@@ -594,5 +614,21 @@ module MEM_43 (
       // Output signals
       .DD_17_0_OUT(s_ram_dd_17_0_out[17:0])
   );
+`else
+  // ===========================================================================
+  // NO MAIN MEMORY BACKEND SELECTED - this is a build-configuration error.
+  //
+  // Every build must choose one, explicitly:
+  //   MAIN_RAM_SDRAM     Tang Nano 20K (8 MB SDRAM via sdram-bridge)
+  //   MAIN_RAM_BLOCKRAM  BRAM boards (Basys3, Cmod A7, QMTech)
+  //   VERILATOR_SIM      Verilator harnesses (6 MB behavioural model)
+  //   MAIN_RAM_SIP1M9    the six-chip sheet-49 reference (opt-in only)
+  //
+  // Instantiating a module that does not exist is the portable way to fail at
+  // ELABORATION in every tool we use (iverilog, Verilator, Vivado, Gowin) -
+  // there is no standard `error directive in Verilog-2001. The module name is
+  // the diagnostic; read it and go define one of the four above.
+  // ===========================================================================
+  ND120_ERROR_no_main_ram_backend_selected NO_RAM_BACKEND ();
 `endif
 endmodule

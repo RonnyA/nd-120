@@ -77,20 +77,28 @@ module AM29833A (
   wire ReceiveMode;
   assign ReceiveMode = OET_n & !OER_n;
 
-  // Both OET_n is low and OER_n is low
-  wire ResetMode;
-  assign ResetMode = !OET_n & !OER_n;
+  // Both OET_n and OER_n low = FORCED-ERROR (diagnostic) mode, per the
+  // datasheet text quoted above: "the user can force a parity error by
+  // enabling both OER and OET simultaneously. This transmission of inverted
+  // parity gives the designer more system diagnostic capability." The chip
+  // TRANSMITS R -> T normally but with the parity bit INVERTED; the R port is
+  // NOT driven. (The old model drove neither port in this mode, so the ND
+  // memory-test mode - 45008B TST asserting OER during writes - wrote zeros
+  // instead of data and crashed CONFIGURE's memory-type probe. 30-JUL-2026.)
+  wire ForcedErrorMode;
+  assign ForcedErrorMode = !OET_n & !OER_n;
 
   // Data path
-  assign T_OUT = (TransmitMode) ? R : 8'b0;  // TRANSMIT MODE
-  //assign R_OUT = (ReceiveMode) ? T : 8'b0;   // RECEIVE MODE
+  assign T_OUT = (TransmitMode | ForcedErrorMode) ? R : 8'b0;  // TRANSMIT (also in forced-error mode)
   assign R_OUT = (ReceiveMode) ? T : 8'b0;   // RECEIVE MODE
 
   // In receivemode PAR_OUT is high-impediance (we use 0 for that here)
   //
   // ^ (in Verilig) is XOR giving 0=if even, 1=if odd.
   // Invert this so that the PAR signal is according to Am29833A documentation: PAR=L on ODD and PAR=H on EVEN
-  assign PAR_OUT = (!ReceiveMode) ? ~(^R) : 1'b0;
+  // Forced-error mode transmits the INVERTED parity bit (see datasheet note above).
+  assign PAR_OUT = ForcedErrorMode ? (^R) :
+                   (!ReceiveMode) ? ~(^R) : 1'b0;
 
   // ERR register logic (latched on CLK)
   generate

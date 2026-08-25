@@ -135,10 +135,10 @@ Action items:
 
 Full pipeline used for the o500 patch, reusable for any future microcode work:
 
-1. Edit the .uc source (E:\Dev\Repos\Ronny\ND110Compile\ND110Compile\uCode\,
+1. Edit the .uc source ($ND_REPOS/ND110Compile/ND110Compile/uCode/,
    version-L files; CRLF line endings - patch with line-targeted sed).
 2. Build the assembler in WSL: `dotnet build -c Release` in
-   /mnt/e/Dev/Repos/Ronny/ND110Compile/ND110Compile/, then run with
+   $ND_REPOS/ND110Compile/ND110Compile/, then run with
    `DOTNET_ROLL_FORWARD=LatestMajor dotnet ./bin/Release/net8.0/ND110Compile.dll`
    (WSL has .NET 9; the project targets 8). Program.cs selects input files by
    File.Exists - WSL-path entries run only under Linux, E:\ entries only on

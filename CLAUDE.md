@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository contains a complete HDL implementation of the 1988 Norsk Data ND-120 CPU, recreated from original design documents and implemented in both Logisim-Evolution and Verilog. The goal is FPGA-synthesizable code that runs as the original ND-120 CPU. The Verilator simulation is the working reference; the FPGA (Basys3 / `xc7a35t`) build synthesizes but does not yet boot correctly, and closing that gap is the current focus.
+This repository contains a complete HDL implementation of the 1988 Norsk Data ND-120 CPU, recreated from original design documents and implemented in both Logisim-Evolution and Verilog. The goal is FPGA-synthesizable code that runs as the original ND-120 CPU. **SINTRAN III boots on the Tang Nano 20K (24-AUG-2026)** - that is the working machine and the primary target. Verilator remains the signal-level reference for unit checks and waveform work. The Xilinx boards (Basys3 `xc7a35t`, Nexys 4 DDR `xc7a100t`) synthesize but do not meet timing and do not boot; closing that gap is a separate workstream.
 
 ## Environment
 
@@ -112,7 +112,7 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
 
 ## Status & known issues
 
-> Last verified: 13-JUL-2026. State only what is measured here — this section
+> Last verified: 25-AUG-2026. State only what is measured here — this section
 > is what other people (and other agents) read first, so stale claims here
 > propagate as fact.
 
@@ -160,11 +160,34 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
 
 **FPGA**
 
-- Synthesis passes; **CPU boot on FPGA still does not work** — this remains
-  the open problem, and it is what the `clock-enable-fix` branch is about
-  (latch→FF conversion of the unconstrained register-as-clock domains).
-- Proven on real silicon (Tang Nano 20K): the SDRAM controller, and the
-  SD/FAT stack incl. 4-bit-bus transfers. Those are subsystems, not a CPU boot.
+- **SINTRAN III boots on the Tang Nano 20K (24-AUG-2026).** The last blocker
+  was the memory bank being decoded from the wrong side of the bus
+  transceiver (`ND3202D.v:533`): on an incoming DMA write the board drives
+  nothing, that net idles all-ones, so every transfer decoded to BANK0. Disc
+  data landed at the right ROW in the wrong BANK, the CPU fetched zeros from
+  a page nothing had written, executed them as STZ and halted in ERRFATAL
+  after exactly 143 s on every boot. Guarded by `make test-bdbank`; that
+  class of fault is invisible in Verilator, whose memory model has all three
+  banks present.
+- Also proven on real silicon (Tang Nano 20K): the SDRAM controller, and the
+  SD/FAT stack incl. 4-bit-bus transfers.
+- **Clock:** 6.75 MHz is the long-validated speed. A 13.5 MHz variant
+  (`-Variant mid`) closes with 0 setup violations. **27 MHz (`-Variant full`)
+  runs SINTRAN, LIST-FILES and s3** and is visibly faster, but Gowin reports
+  1667 setup violations against a CPU-domain Fmax of 17.7–19.6 MHz — fast and
+  functional, but NOT timing-clean: margin over temperature and voltage is
+  unquantified, so it is not a configuration to trust for long unattended
+  runs or anything writing to the card.
+  - Beware a false signal here: an s3 "hang" at 27 MHz was first read as
+    corruption. It was not. **A slow first start and a quick second start is
+    a caching effect** — first run loads from disc, second finds it resident —
+    and the same apparent hang appears at 13.5 MHz. No comparative startup
+    timing exists between the clock variants; each observation came from a
+    different boot with a different cache state.
+  - The `.sdc` is a single `create_clock` line with no multicycle on the known
+    52 ns WCS→ACAL path, so the timing numbers are a floor, not a verdict.
+    Writing a real `.sdc` is the route to a fast machine that is also
+    defensible.
 
 - Live task list: `Verilog/TODO.md`. Historical latch-refactor notes:
   `Verilog/verilog-remove-latch.md`, `Verilog/worklog-latch-refactor.md`.

@@ -6,7 +6,7 @@
 > labelled **inferred** or **unverified**.
 >
 > Companion doc (do not duplicate): the WCS repack maths lives in
-> `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md`.
+> `Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md`.
 > This plan extends it to cover the **storage stack** that was added to the Tang
 > build *after* that doc was written, and to answer Ronny's FAT-cache question.
 
@@ -231,15 +231,15 @@ priority.
 
 ## References (full paths)
 
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md` — WCS repack maths + Part 2 device-buffer sync-read note (companion doc)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/build/nd120_tang20k_build/impl/pnr/nd120_tang20k_build.rpt.txt` — 14-JUL PnR report (44/46 BSRAM, CLS 83%, with storage)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj` — Tang source file list (storage stack now included)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/tang20k_defines.v` — `SKIP_WCS_LOAD`, `MAIN_RAM_SDRAM`, `ND_SDRAM_PACK16`, `ND_STORAGE_PORT`
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/sd_fat_features.vh` — `SDFAT_NO_*` feature-strip macros (incl. `SDFAT_NO_STORAGE_CHECK`)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/sd_file_reader.v:289` — `secbuf` 512×8
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/nd_storage_engine.v:278` — `s_staging` 512×32; `:59` `N_CLIENTS`
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/nd_storage_fatchk.v:79` — `fbuf` 512×8 (the FAT-sector buffer)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/nd_storage_tape_adapter.v:78` — `s_blkbuf` 1024×16 (tape 1-block data cache)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/nd_storage.v:47,167,225,405` — facade: `N_CLIENTS`, reader/writer/fatchk instances + `SDFAT_STORAGE_CHECK` gate
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_CS_WCS_21_22.v` — the WCS (32 chips)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/IDT6168A_20.v` — 4096×4 chip model; read the timing comment before Lever 1
+- `Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md` — WCS repack maths + Part 2 device-buffer sync-read note (companion doc)
+- `Verilog/fpga/tang-nano-20k/build/nd120_tang20k_build/impl/pnr/nd120_tang20k_build.rpt.txt` — 14-JUL PnR report (44/46 BSRAM, CLS 83%, with storage)
+- `Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj` — Tang source file list (storage stack now included)
+- `Verilog/fpga/tang-nano-20k/src/tang20k_defines.v` — `SKIP_WCS_LOAD`, `MAIN_RAM_SDRAM`, `ND_SDRAM_PACK16`, `ND_STORAGE_PORT`
+- `Verilog/SD-FAT/circuit/sd_fat_features.vh` — `SDFAT_NO_*` feature-strip macros (incl. `SDFAT_NO_STORAGE_CHECK`)
+- `Verilog/SD-FAT/circuit/sd_file_reader.v:289` — `secbuf` 512×8
+- `Verilog/SD-FAT/circuit/nd_storage_engine.v:278` — `s_staging` 512×32; `:59` `N_CLIENTS`
+- `Verilog/SD-FAT/circuit/nd_storage_fatchk.v:79` — `fbuf` 512×8 (the FAT-sector buffer)
+- `Verilog/SD-FAT/circuit/nd_storage_tape_adapter.v:78` — `s_blkbuf` 1024×16 (tape 1-block data cache)
+- `Verilog/SD-FAT/circuit/nd_storage.v:47,167,225,405` — facade: `N_CLIENTS`, reader/writer/fatchk instances + `SDFAT_STORAGE_CHECK` gate
+- `Verilog/CPU-BOARD-3202/circuit/CPU_CS_WCS_21_22.v` — the WCS (32 chips)
+- `Verilog/Shared/support/IDT6168A_20.v` — 4096×4 chip model; read the timing comment before Lever 1

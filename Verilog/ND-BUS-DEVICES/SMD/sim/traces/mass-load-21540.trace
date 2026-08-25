@@ -1,0 +1,9 @@
+# 21540& - MASS STORAGE LOAD microroutine (CSA o2217) driving ND_SMD
+# Captured with -DND120_SMD_TRACE, runSim, ND120_SMD_IMG set. Ground truth
+# for what the REAL ND-120 microcode emits - not a model.
+#21540[SMD] t=0 WR +1 val=000000 boot=1 cwr=0 mawff=0 wcwff=0
+&[SMD] t=0 WR +1 val=000000 boot=0 cwr=0 mawff=1 wcwff=0
+[SMD] t=0 WR +3 val=000000 boot=0 cwr=0 mawff=0 wcwff=0
+[SMD] t=0 WR +7 val=002000 boot=0 cwr=0 mawff=0 wcwff=0
+[SMD] t=0 WR +5 val=000004 boot=0 cwr=0 mawff=0 wcwff=1
+[SMD] t=0 RD +4 -> 040010 boot=0 active=0 rft=1

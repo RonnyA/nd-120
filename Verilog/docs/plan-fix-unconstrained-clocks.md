@@ -1,6 +1,6 @@
 # Plan: eliminate all 47 unconstrained-clock warnings (17 rogue clock nets)
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/plan-fix-unconstrained-clocks.md`
+**Full path:** `Verilog/docs/plan-fix-unconstrained-clocks.md`
 **Date:** 9-JUL-2026
 **Branch:** clock-enable-fix
 **Why:** the Tang deposit bug was measured down to cross-clock-domain timing:

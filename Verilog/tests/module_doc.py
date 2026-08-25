@@ -1,0 +1,435 @@
+#!/usr/bin/env python3
+"""
+module_doc.py - generate a module symbol PNG and a README.md from Verilog source.
+
+WHY THIS EXISTS INSTEAD OF DOXYGEN
+    The RTL in this tree is already annotated in Doxygen style (`//!` on ports,
+    `//! @title` / `//! @author` in headers). The obvious move would be to run
+    Doxygen over it - but Doxygen CANNOT DRAW A MODULE SYMBOL. Its graphviz
+    output is call / include / inheritance graphs, which mean nothing for
+    Verilog. There is no Doxygen feature that renders a box with inputs on the
+    left and outputs on the right, which is the picture actually wanted. Its
+    Verilog support also needs a third-party filter and emits HTML that is
+    awkward to commit.
+
+    So this reads the SAME comments and emits the two artifacts that are
+    actually useful, with no new dependency:
+        <module>.png        block symbol - inputs left, outputs right
+        <module>.md         description, parameter table, port table
+
+    Dependencies: python3 + Pillow. Both already present. Nothing is fetched.
+
+REPO CONVENTIONS IT UNDERSTANDS
+    _n / _N suffix        active low  -> drawn with an inversion bubble
+    NAME_23_0 / [15:0]    bus         -> width shown on the pin
+    inout                 bidirectional -> drawn on the right with a double arrow
+    //! text              the port's description, taken straight from the source
+
+USAGE
+    module_doc.py FILE.v [-o OUTDIR] [--module NAME] [--png-only|--md-only]
+                         [--note "TB_RESULT: PASS (n checks)"]
+
+EXAMPLE
+    python3 tests/module_doc.py Shared/support/TTL_74245.v -o Shared/support/doc \\
+        --note "TB_RESULT: PASS - 524292 checks, exhaustive"
+
+Last reviewed: 20-AUG-2026
+Ronny Hansen
+"""
+import argparse
+import os
+import re
+import sys
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    sys.exit("module_doc: needs Pillow (python3 -m pip install pillow)")
+
+BG      = (250, 250, 252)
+BOX     = (255, 255, 255)
+BOXLINE = (40, 46, 60)
+TITLECOL= (20, 24, 34)
+# Palette: Verilog/docs/COLOR-STANDARDS.md (WCAG 2.1 AA, light mode).
+# Contrast against the #FAFAFC page: input 8.4:1, output 5.0:1, inout 7.1:1.
+# Direction is ALSO carried by side and arrow head, so the drawing stays
+# readable in greyscale - colour is reinforcement, never the carrier (1.4.1).
+INCOL   = (13, 71, 161)     # #0D47A1 blue   - inputs
+OUTCOL  = (46, 125, 50)     # #2E7D32 green  - outputs
+BIDICOL = (154, 52, 18)     # #9A3412 orange - inouts
+CLKCOL  = (106, 27, 154)    # #6A1B9A purple - clocks (9.4:1)
+MUTED   = (110, 118, 132)
+BUSFILL = (232, 240, 254)
+
+
+def _font(sz, bold=False):
+    cands = ["/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf" if bold
+             else "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold
+             else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+    for p in cands:
+        if os.path.exists(p):
+            try:
+                return ImageFont.truetype(p, sz)
+            except Exception:
+                pass
+    return ImageFont.load_default()
+
+
+def strip_comments_keep_doc(src):
+    """Remove /* */ blocks but keep //! doc comments attached to their line."""
+    return re.sub(r"/\*.*?\*/", "", src, flags=re.S)
+
+
+def parse_header(src):
+    """The leading banner comment: title/author/description lines."""
+    m = re.match(r"\s*/\*+(.*?)\*+/", src, flags=re.S)
+    title = author = ""
+    desc = []
+    if m:
+        for raw in m.group(1).splitlines():
+            line = raw.strip().strip("*").strip()
+            line = re.sub(r"^\*+", "", line).strip()
+            if line.startswith("**") and line.endswith("**"):
+                line = line.strip("*").strip()
+            line = line.rstrip("*").strip()
+            if not line:
+                continue
+            t = re.match(r"//!\s*@title\s+(.*)", line)
+            a = re.match(r"//!\s*@author\s+(.*)", line)
+            if t:
+                title = t.group(1).strip(); continue
+            if a:
+                author = a.group(1).strip(); continue
+            desc.append(line)
+    # also catch //! @title outside the banner
+    for tag, dest in (("title", "t"), ("author", "a")):
+        mm = re.search(r"//!\s*@%s\s+(.+)" % tag, src)
+        if mm:
+            if tag == "title" and not title:
+                title = mm.group(1).strip()
+            if tag == "author" and not author:
+                author = mm.group(1).strip()
+    return title, author, desc
+
+
+def parse_module(src, want=None):
+    """Return (name, params, ports). ports = [(dir, width, name, comment)]."""
+    s = strip_comments_keep_doc(src)
+    for m in re.finditer(r"\bmodule\s+([A-Za-z_]\w*)", s):
+        name = m.group(1)
+        if want and name != want:
+            continue
+        # body from module name to the ');' that closes the port list
+        rest = s[m.end():]
+        end = rest.find(");")
+        if end < 0:
+            continue
+        head = rest[:end]
+
+        params = []
+        for pm in re.finditer(
+                r"parameter\s+(?:\[[^\]]*\]\s*)?(?:integer\s+|real\s+)?"
+                r"([A-Za-z_]\w*)\s*=\s*([^,\n)]+)", head):
+            params.append((pm.group(1), pm.group(2).strip()))
+
+        ports = []
+        for line in head.splitlines():
+            pm = re.match(
+                # \s* not \s+ after the direction: this tree contains
+                # "output[7:0] A_OUT" with NO space (Shared/support/TTL_74646.v),
+                # and requiring whitespace silently dropped BOTH outputs and both
+                # wide inputs - the symbol drew "7 in / 0 out" for a transceiver.
+                # Also allow "signed" and multiple type words.
+                r"\s*(input|output|inout)\b\s*"
+                r"(?:(?:wire|reg|logic|signed)\s+)*"
+                r"(\[[^\]]*\]\s*)?([A-Za-z_]\w*)", line)
+            if not pm:
+                continue
+            direction = pm.group(1)
+            width = (pm.group(2) or "").strip()
+            pname = pm.group(3)
+            cm = re.search(r"//!?\s*(.+?)\s*$", line)
+            comment = ""
+            if cm:
+                comment = cm.group(1).strip()
+                comment = re.sub(r"^!\s*", "", comment).rstrip(",")
+            ports.append((direction, width, pname, comment))
+
+        # ---- Verilog-1995 (non-ANSI) header ---------------------------------
+        # Logisim-evolution emits "module T_FLIPFLOP( clock, preset, q, ... );"
+        # with the DIRECTIONS declared further down the body, not in the header.
+        # 35 modules in Shared/logisim are written this way, and treating an
+        # empty port list as "no module found" silently dropped every one of
+        # them from the documentation sweep. Fall back to reading the names
+        # from the header and the directions from the body.
+        if not ports:
+            # strip the opening paren, or the FIRST port stays glued to it
+            # ("( clock" fails the name match and the clock vanishes from the
+            # drawing - which is exactly what happened to T_FLIPFLOP).
+            hdr = head.lstrip().lstrip("(")
+            names = [n.strip() for n in re.split(r"[,\n]", hdr) if n.strip()]
+            names = [n for n in names
+                     if re.fullmatch(r"[A-Za-z_]\w*", n) and n != name]
+            body = rest[end + 2:]
+            # stop at the matching endmodule so a following module's
+            # declarations are not attributed to this one
+            em = re.search(r"\bendmodule\b", body)
+            if em:
+                body = body[:em.start()]
+            decl = {}
+            for dm in re.finditer(
+                    r"^\s*(input|output|inout)\b\s*"
+                    r"(?:(?:wire|reg|logic|signed)\s+)*"
+                    r"(\[[^\]]*\]\s*)?([A-Za-z_]\w*)\s*;?(.*)$",
+                    body, re.M):
+                cm2 = re.search(r"//!?\s*(.+?)\s*$", dm.group(4) or "")
+                decl[dm.group(3)] = (dm.group(1),
+                                     (dm.group(2) or "").strip(),
+                                     cm2.group(1).strip() if cm2 else "")
+            for n in names:
+                if n in decl:
+                    d, w, c = decl[n]
+                    ports.append((d, w, n, c))
+            # a port named in the header but never declared is a REAL defect in
+            # the source - surface it rather than dropping it from the drawing
+            for n in names:
+                if n not in decl:
+                    ports.append(("input", "", n, "UNDECLARED in source"))
+
+        if ports or params:
+            return name, params, ports
+    return None, [], []
+
+
+def bus_label(width, name):
+    if width:
+        return width.replace(" ", "")
+    m = re.search(r"_(\d+)_(\d+)$", name)
+    if m:
+        return "[%s:%s]" % (m.group(1), m.group(2))
+    return ""
+
+
+CLOCK_NAMES = ("clk", "sysclk", "clock", "sys_clk", "ui_clk", "clk_cpu",
+               "clk_stor", "clk2x", "mclk", "aluclk", "maclk", "uclk", "osc")
+
+
+def is_clock(pname):
+    """A clock gets its own colour because it is the thing every other signal
+    is read RELATIVE TO - burying it in the input blue makes a timing diagram
+    much harder to read. Matched on name: the RTL has no other marker.
+    Deliberately NOT matching resets or strobes - over-colouring is as bad as
+    under-colouring, and those stay input-blue unless a case is made."""
+    n = pname.lower().rstrip("_n")
+    return (n in CLOCK_NAMES or n.endswith("clk") or n.endswith("clock")
+            or n.startswith("clk"))
+
+
+def port_colour(direction, pname):
+    if is_clock(pname):
+        return CLKCOL
+    if direction == "inout":
+        return BIDICOL
+    return INCOL if direction == "input" else OUTCOL
+
+
+def draw_symbol(name, params, ports, note, out_png):
+    ins  = [p for p in ports if p[0] == "input"]
+    outs = [p for p in ports if p[0] == "output"]
+    bidi = [p for p in ports if p[0] == "inout"]
+    right = outs + bidi
+
+    f_pin  = _font(13)
+    f_w    = _font(10)
+    f_name = _font(20, bold=True)
+    f_note = _font(12)
+    f_par  = _font(11)
+
+    PIN_DY   = 26
+    rows     = max(len(ins), len(right), 1)
+    box_h    = max(110, rows * PIN_DY + 46)
+    stub     = 62
+    lbl_w    = 230
+    box_w    = 300
+    W        = lbl_w + stub + box_w + stub + lbl_w
+    par_h    = (len(params) + 1) * 16 + 10 if params else 0
+    H        = 74 + box_h + par_h + (34 if note else 12)
+
+    img = Image.new("RGB", (W, H), BG)
+    d   = ImageDraw.Draw(img)
+
+    d.text((16, 14), name, font=f_name, fill=TITLECOL)
+    d.text((16, 42), f"{len(ins)} in / {len(outs)} out"
+                     + (f" / {len(bidi)} inout" if bidi else ""),
+           font=f_par, fill=MUTED)
+
+    bx0, by0 = lbl_w + stub, 70
+    bx1, by1 = bx0 + box_w, by0 + box_h
+    d.rounded_rectangle([bx0, by0, bx1, by1], radius=8, fill=BOX,
+                        outline=BOXLINE, width=2)
+    tw = d.textlength(name, font=f_pin)
+    d.text((bx0 + (box_w - tw) / 2, by0 + box_h / 2 - 8), name,
+           font=f_pin, fill=TITLECOL)
+
+    def pin(idx, total, side, port, colour):
+        direction, width, pname, comment = port
+        y = by0 + 30 + idx * PIN_DY
+        active_low = pname.endswith(("_n", "_N")) or pname.endswith("_n_IN")
+        wl = bus_label(width, pname)
+        if side == "L":
+            xa, xb = bx0 - stub, bx0
+            d.line([(xa, y), (xb - (7 if active_low else 0), y)],
+                   fill=colour, width=2)
+            d.polygon([(xb - 9, y - 4), (xb, y), (xb - 9, y + 4)], fill=colour)
+            tx = xa - 8 - d.textlength(pname, font=f_pin)
+            d.text((tx, y - 8), pname, font=f_pin, fill=colour)
+            if wl:
+                d.text((xa + 4, y - 15), wl, font=f_w, fill=MUTED)
+            if comment:
+                # RIGHT-ALIGN the description so it ENDS at the pin and grows
+                # leftwards. Drawing it left-aligned from the name's x (which
+                # is what this did until 20-AUG-2026) sends a long description
+                # straight under the box and destroys readability - the name
+                # is short, the description is not.
+                c = comment
+                avail = (xa - 8) - 12          # 12 px page margin on the left
+                while c and d.textlength(c, font=f_w) > avail:
+                    c = c[:-1]
+                if c != comment and len(c) > 1:
+                    c = c[:-1] + "\u2026"      # ellipsis: say it was truncated
+                d.text((xa - 8 - d.textlength(c, font=f_w), y + 4),
+                       c, font=f_w, fill=MUTED)
+        else:
+            xa, xb = bx1, bx1 + stub
+            d.line([(xa + (7 if active_low else 0), y), (xb, y)],
+                   fill=colour, width=2)
+            if direction == "inout":
+                d.polygon([(xb - 9, y - 4), (xb, y), (xb - 9, y + 4)], fill=colour)
+                d.polygon([(xa + 9, y - 4), (xa, y), (xa + 9, y + 4)], fill=colour)
+            else:
+                d.polygon([(xb - 9, y - 4), (xb, y), (xb - 9, y + 4)], fill=colour)
+            d.text((xb + 8, y - 8), pname, font=f_pin, fill=colour)
+            if wl:
+                d.text((xa + 6, y - 15), wl, font=f_w, fill=MUTED)
+            if comment:
+                c = comment
+                avail = (W - 12) - (xb + 8)    # to the right page margin
+                while c and d.textlength(c, font=f_w) > avail:
+                    c = c[:-1]
+                if c != comment and len(c) > 1:
+                    c = c[:-1] + "\u2026"
+                d.text((xb + 8, y + 4), c, font=f_w, fill=MUTED)
+        if active_low:      # inversion bubble, repo convention _n = active low
+            cx = bx0 - 4 if side == "L" else bx1 + 4
+            d.ellipse([cx - 4, y - 4, cx + 4, y + 4], fill=BG, outline=colour)
+
+    for i, p in enumerate(ins):
+        pin(i, len(ins), "L", p, port_colour(p[0], p[2]))
+    for i, p in enumerate(right):
+        pin(i, len(right), "R", p,
+            port_colour(p[0], p[2]))
+
+    y = by1 + 14
+    if params:
+        d.text((16, y), "parameters", font=f_par, fill=TITLECOL)
+        y += 16
+        for pn, pv in params:
+            d.text((28, y), f"{pn} = {pv}"[:96], font=f_par, fill=MUTED)
+            y += 16
+    if note:
+        col = (198, 40, 40) if "FAIL" in note.upper() else (46, 125, 50)
+        d.text((16, H - 26), note, font=f_note, fill=col)
+
+    os.makedirs(os.path.dirname(os.path.abspath(out_png)), exist_ok=True)
+    img.save(out_png)
+    return out_png
+
+
+def write_md(name, title, author, desc, params, ports, note, src_rel,
+             png_rel, out_md):
+    L = []
+    L.append(f"# {name}")
+    L.append("")
+    if title:
+        L.append(f"**{title}**")
+        L.append("")
+    L.append(f"Source: `{src_rel}`")
+    if author:
+        L.append(f"  ·  Author: {author}")
+    L.append("")
+    L.append("> Generated by `Verilog/tests/module_doc.py` from the `//!`")
+    L.append("> comments in the source. Do not edit by hand - edit the RTL"
+             " comments and regenerate.")
+    L.append("")
+    if png_rel:
+        L.append(f"![{name} symbol]({png_rel})")
+        L.append("")
+    if desc:
+        L.append("## Description")
+        L.append("")
+        for line in desc:
+            L.append(line)
+        L.append("")
+    if params:
+        L.append("## Parameters")
+        L.append("")
+        L.append("| Parameter | Default |")
+        L.append("|---|---|")
+        for pn, pv in params:
+            L.append(f"| `{pn}` | `{pv}` |")
+        L.append("")
+    if ports:
+        L.append("## Ports")
+        L.append("")
+        L.append("| Direction | Width | Name | Description |")
+        L.append("|---|---|---|---|")
+        for direction, width, pname, comment in ports:
+            wl = bus_label(width, pname) or "1"
+            al = " *(active low)*" if pname.endswith(("_n", "_N")) else ""
+            L.append(f"| {direction} | `{wl}` | `{pname}`{al} | {comment} |")
+        L.append("")
+    if note:
+        L.append("## Validation")
+        L.append("")
+        L.append(f"`{note}`")
+        L.append("")
+    os.makedirs(os.path.dirname(os.path.abspath(out_md)), exist_ok=True)
+    with open(out_md, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(L))
+    return out_md
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="Verilog module -> symbol PNG + README.md (no Doxygen)")
+    ap.add_argument("source")
+    ap.add_argument("-o", "--outdir", default=".")
+    ap.add_argument("--module")
+    ap.add_argument("--note", default="")
+    ap.add_argument("--png-only", action="store_true")
+    ap.add_argument("--md-only", action="store_true")
+    args = ap.parse_args()
+
+    src = open(args.source, encoding="utf-8", errors="replace").read()
+    title, author, desc = parse_header(src)
+    name, params, ports = parse_module(src, args.module)
+    if not name:
+        sys.exit(f"module_doc: no module found in {args.source}")
+
+    made = []
+    png = os.path.join(args.outdir, f"{name}.png")
+    md  = os.path.join(args.outdir, f"{name}.md")
+    if not args.md_only:
+        made.append(draw_symbol(name, params, ports, args.note, png))
+    if not args.png_only:
+        made.append(write_md(name, title, author, desc, params, ports,
+                             args.note, args.source,
+                             os.path.basename(png) if not args.md_only else "",
+                             md))
+    for f in made:
+        print("module_doc:", f)
+
+
+if __name__ == "__main__":
+    main()

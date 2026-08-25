@@ -1,0 +1,465 @@
+/**************************************************************************
+** TESTBENCH: ND_WINCHESTER - register protocol, status and IDENT         **
+**                                                                       **
+** The register-level bench for the ST506/8-inch Winchester controller.   **
+** It drives the SAME behaviour that the two host-gated C implementations **
+** are cross-checked on (the shared conformance sequence in nd100x        **
+** tests/wd_conformance_seq.h and the portable core's copy), so a         **
+** divergence between the RTL and the C models shows up here rather than  **
+** on silicon.                                                           **
+**                                                                       **
+** What it covers, and why each one is here:                              **
+**   1. identity: 500-507, ident 1, level 11 (sec 3.1)                    **
+**   2. memory address: writes HI-then-LO, reads LO-then-HI (sec 3.2).    **
+**      The asymmetry is the single easiest thing in this card to get     **
+**      wrong.                                                            **
+**   3. all FOUR flip-flop reset conditions (sec 3.2): master clear,      **
+**      device clear, a status read, and ACTIVATION. The fourth is the    **
+**      one implementations forget.                                       **
+**   4. word count loads in a SINGLE access - THE property that           **
+**      distinguishes this card from the 15 MHz SMD and the reason the    **
+**      ND-120 mass-storage microcode works here at all.                  **
+**   5. block address split: cylinder b15-5, sector b4-0 (sec 3.3)        **
+**   6. status constants: b15 always 0 (not the 10 Mb controller),        **
+**      b12 always 0, b13 always 1 on the 3041                            **
+**   7. the interrupt / IDENT probe of sec 4.1 - the TPE CONFIGURATION    **
+**      sequence. The C port shipped once without it and TPE reported     **
+**      "No identcode found on level 11D, expected identcode : 1B", so    **
+**      this is the one case that must never regress silently.            **
+**   8. M6 must NOT activate (sec 3.4)                                    **
+**   9. +2 reads 0 - "IOX 502 Not used" in the sec 3.1 table. Both C      **
+**      models modelled a readable sector counter here until a            **
+**      cross-check sent us back to the manual.                           **
+**  10. write-only registers read 0                                       **
+**                                                                       **
+** Verdict line: TB_RESULT: PASS / TB_RESULT: FAIL                       **
+**                                                                       **
+** Ronny Hansen                                                          **
+***************************************************************************/
+
+`timescale 1ns / 1ps
+
+module nd_winchester_iox_tb;
+
+  localparam [15:0] BASE = 16'o000500;
+
+  // Long enough that a GO stays active across many IOX cycles, short enough
+  // that the bench finishes quickly. E_DELAY counts down one per sysclk.
+  localparam [31:0] LONG_DELAY = 32'd2000;
+
+  // Status bit positions (see the s_status assembly in ND_WINCHESTER.v).
+  localparam SB_BIT15    = 15;
+  localparam SB_ONCYL    = 14;
+  localparam SB_CONTRID  = 13;
+  localparam SB_NOTUSED  = 12;
+  localparam SB_DMAERR   = 11;
+  localparam SB_ADDRMISM = 8;
+  localparam SB_FAULT    = 7;
+  localparam SB_INCLOR   = 4;
+  localparam SB_FINISHED = 3;
+  localparam SB_ACTIVE   = 2;
+  localparam SB_ERRINTEN = 1;
+  localparam SB_INTEN    = 0;
+
+  // Register offsets.
+  localparam R_READ_MA    = 16'd0;
+  localparam R_LOAD_MA    = 16'd1;
+  localparam R_READ_SECT  = 16'd2;
+  localparam R_LOAD_BLOCK = 16'd3;
+  localparam R_STATUS     = 16'd4;
+  localparam R_CONTROL    = 16'd5;
+  localparam R_READ_BLOCK = 16'd6;
+  localparam R_LOAD_WC    = 16'd7;
+
+  // Control-word bits.
+  localparam CW_INT_EN   = 16'h0001;
+  localparam CW_ERR_INT  = 16'h0002;
+  localparam CW_ACTIVE   = 16'h0004;
+  localparam CW_TEST     = 16'h0008;
+  localparam CW_DEVCLR   = 16'h0010;
+  localparam CW_UNIT     = 16'h0200;
+  localparam CW_DIR      = 16'h4000;
+
+  reg sysclk = 0;
+  reg sys_rst_n = 0;
+  always #10 sysclk = ~sysclk;
+
+  reg  [15:0] iox_addr  = 16'd0;
+  reg         iox_wr    = 1'b0;
+  reg  [15:0] iox_wdata = 16'd0;
+  reg         iox_rd    = 1'b0;
+  wire [15:0] iox_rdata;
+  wire        iox_sel;
+  wire [3:0]  int_pending;
+
+  reg         ident_strobe    = 1'b0;
+  reg  [3:0]  ident_level     = 4'd0;
+  reg         ident_grant_in  = 1'b0;
+  wire        ident_grant_out, ident_hit;
+  wire [15:0] ident_code;
+
+  wire        dma_req, dma_wr;
+  wire [23:0] dma_addr;
+  wire [15:0] dma_wdata;
+  wire        disk_start, disk_req, disk_wr;
+  wire [15:0] disk_blkaddr1, disk_blkaddr2;
+  wire [2:0]  disk_unit;
+  wire [10:0] disk_wordcount;
+  wire [15:0] dbuf_rdata;
+
+  ND_WINCHESTER #(.DELAY_TICKS(LONG_DELAY)) dut (
+      .sysclk        (sysclk),
+      .sys_rst_n     (sys_rst_n),
+      .iox_addr      (iox_addr),
+      .iox_wr        (iox_wr),
+      .iox_wdata     (iox_wdata),
+      .iox_rd        (iox_rd),
+      .iox_rdata     (iox_rdata),
+      .iox_sel       (iox_sel),
+      .int_pending   (int_pending),
+      .ident_strobe  (ident_strobe),
+      .ident_level   (ident_level),
+      .ident_grant_in(ident_grant_in),
+      .ident_grant_out(ident_grant_out),
+      .ident_hit     (ident_hit),
+      .ident_code    (ident_code),
+      .dma_req       (dma_req),
+      .dma_wr        (dma_wr),
+      .dma_addr      (dma_addr),
+      .dma_wdata     (dma_wdata),
+      .dma_rdata     (16'd0),
+      .dma_ack       (1'b0),
+      .dma_err       (1'b0),
+      .dma_busy      (1'b0),
+      .disk_start    (disk_start),
+      .disk_req      (disk_req),
+      .disk_wr       (disk_wr),
+      .disk_blkaddr1 (disk_blkaddr1),
+      .disk_blkaddr2 (disk_blkaddr2),
+      .disk_unit     (disk_unit),
+      .disk_wordcount(disk_wordcount),
+      .disk_done     (1'b0),
+      .disk_err_in   (1'b0),
+      .disk_err_code (4'd0),
+      .dbuf_addr     (10'd0),
+      .dbuf_wdata    (16'd0),
+      .dbuf_we       (1'b0),
+      .dbuf_rdata    (dbuf_rdata)
+  );
+
+  integer errors = 0;
+  integer checks = 0;
+
+  task check(input cond, input [1023:0] msg);
+    begin
+      checks = checks + 1;
+      if (!cond) begin
+        errors = errors + 1;
+        $display("  FAIL: %0s", msg);
+      end
+    end
+  endtask
+
+  task check_eq(input [15:0] got, input [15:0] want, input [1023:0] msg);
+    begin
+      checks = checks + 1;
+      if (got !== want) begin
+        errors = errors + 1;
+        $display("  FAIL: %0s - expected %06o, got %06o", msg, want, got);
+      end
+    end
+  endtask
+
+  task iox_read(input [15:0] a, output [15:0] d);
+    begin
+      @(negedge sysclk);
+      iox_addr = a;
+      iox_rd   = 1'b1;
+      #1 d = iox_rdata;
+      @(posedge sysclk);
+      @(negedge sysclk);
+      iox_rd   = 1'b0;
+    end
+  endtask
+
+  task iox_write(input [15:0] a, input [15:0] data);
+    begin
+      @(negedge sysclk);
+      iox_addr  = a;
+      iox_wdata = data;
+      iox_wr    = 1'b1;
+      @(negedge sysclk);
+      iox_wr    = 1'b0;
+    end
+  endtask
+
+  task master_clear;
+    begin
+      @(negedge sysclk);
+      sys_rst_n = 1'b0;
+      repeat (3) @(negedge sysclk);
+      sys_rst_n = 1'b1;
+      repeat (2) @(negedge sysclk);
+    end
+  endtask
+
+  // Present an IDENT on the given level with the daisy-chain grant in, and
+  // report the code this card answers (0 = not mine, pass the chain on).
+  task do_ident(input [3:0] level, output [15:0] code);
+    begin
+      @(negedge sysclk);
+      ident_level    = level;
+      ident_grant_in = 1'b1;
+      ident_strobe   = 1'b1;
+      #1 code = ident_code;
+      @(posedge sysclk);
+      @(negedge sysclk);
+      ident_strobe   = 1'b0;
+      ident_grant_in = 1'b0;
+      repeat (2) @(negedge sysclk);
+    end
+  endtask
+
+  reg [15:0] d;
+  reg [15:0] code;
+
+  initial begin
+    $display("=== ND_WINCHESTER register / status / IDENT bench ===");
+
+    master_clear;
+
+    // ---- 1. identity and address decode (sec 3.1) --------------------
+    @(negedge sysclk);
+    iox_addr = BASE;
+    #1 check(iox_sel === 1'b1, "the card claims its base address");
+    iox_addr = BASE + 16'd7;
+    #1 check(iox_sel === 1'b1, "the card claims base+7");
+    iox_addr = BASE + 16'd8;
+    #1 check(iox_sel === 1'b0, "the card does NOT claim base+8");
+    iox_addr = 16'o001540;
+    #1 check(iox_sel === 1'b0, "the card does NOT claim the SMD block");
+    iox_addr = 16'd0;
+
+    // ---- 2. memory address: write HI-then-LO, read LO-then-HI --------
+    iox_write(BASE + R_LOAD_MA, 16'h0012);   // first write  -> HI 8
+    iox_write(BASE + R_LOAD_MA, 16'h3456);   // second write -> LO 16
+    iox_read(BASE + R_READ_MA, d);
+    check_eq(d, 16'h3456, "first MA read returns the LOW 16 bits");
+    iox_read(BASE + R_READ_MA, d);
+    check_eq(d, 16'h0012, "second MA read returns the HIGH 8 bits");
+    iox_read(BASE + R_READ_MA, d);
+    check_eq(d, 16'h3456, "a third MA read wraps back to the LOW word");
+
+    // ---- 3a. a status read resets the write flip-flop (sec 3.2) ------
+    iox_write(BASE + R_LOAD_MA, 16'h0077);   // leaves the FF mid-sequence
+    iox_read(BASE + R_STATUS, d);            // reset condition #3
+    iox_write(BASE + R_LOAD_MA, 16'h0011);   // must be taken as HI again
+    iox_write(BASE + R_LOAD_MA, 16'h2222);
+    iox_read(BASE + R_READ_MA, d);
+    check_eq(d, 16'h2222, "after a status read the LO word is right");
+    iox_read(BASE + R_READ_MA, d);
+    check_eq(d, 16'h0011, "after a status read the HI byte is right");
+
+    // ---- 3b. a device clear resets the write flip-flop ---------------
+    iox_write(BASE + R_LOAD_MA, 16'h0077);
+    iox_write(BASE + R_CONTROL, CW_DEVCLR);  // reset condition #2
+    iox_write(BASE + R_LOAD_MA, 16'h0033);
+    iox_write(BASE + R_LOAD_MA, 16'h4444);
+    iox_read(BASE + R_READ_MA, d);
+    check_eq(d, 16'h4444, "after a device clear the LO word is right");
+    iox_read(BASE + R_READ_MA, d);
+    check_eq(d, 16'h0033, "after a device clear the HI byte is right");
+
+    // ---- 3c. a master clear resets it too ----------------------------
+    iox_write(BASE + R_LOAD_MA, 16'h0077);
+    master_clear;                            // reset condition #1
+    iox_write(BASE + R_LOAD_MA, 16'h0055);
+    iox_write(BASE + R_LOAD_MA, 16'h6666);
+    iox_read(BASE + R_READ_MA, d);
+    check_eq(d, 16'h6666, "after a master clear the LO word is right");
+    iox_read(BASE + R_READ_MA, d);
+    check_eq(d, 16'h0055, "after a master clear the HI byte is right");
+
+    // ---- 4. word count is a SINGLE access ----------------------------
+    // On a two-access card the second write would land in a HI byte. Here it
+    // must REPLACE. This is what makes the ND-120 mass-storage load work.
+    iox_write(BASE + R_LOAD_WC, 16'o002000);
+    check_eq(dut.s_word_cnt, 16'o002000, "word count 002000 loaded in ONE write");
+    iox_write(BASE + R_LOAD_WC, 16'o000777);
+    check_eq(dut.s_word_cnt, 16'o000777, "a second write REPLACES, no HI latch");
+
+    // ---- 5. block address split (sec 3.3) ----------------------------
+    iox_write(BASE + R_LOAD_BLOCK, (16'd17 << 5) | 16'd6);
+    check_eq({5'd0, dut.w_cyl}, 16'd17, "cylinder from block address b15-5");
+    check_eq({11'd0, dut.w_sector}, 16'd6, "sector from block address b4-0");
+    iox_read(BASE + R_READ_BLOCK, d);
+    check_eq(d, (16'd17 << 5) | 16'd6, "+6 reads the block address back");
+    iox_write(BASE + R_LOAD_BLOCK, 16'hFFFF);
+    check_eq({5'd0, dut.w_cyl}, 16'h07FF, "cylinder is 11 bits wide");
+    check_eq({11'd0, dut.w_sector}, 16'h001F, "sector is 5 bits wide");
+
+    // ---- 6. status constants (sec 3.5) -------------------------------
+    master_clear;
+    iox_read(BASE + R_STATUS, d);
+    check(d[SB_BIT15] === 1'b0,
+          "status b15 always 0 - distinguishes from the 10 Mb controller");
+    check(d[SB_NOTUSED] === 1'b0, "status b12 always 0");
+    check(d[SB_CONTRID] === 1'b1, "3041: status b13 always 1");
+    check(d !== 16'd0, "status is readable straight after master clear");
+
+    // ---- 9. +2 is Not used (sec 3.1 table) ---------------------------
+    iox_read(BASE + R_READ_SECT, d);
+    check_eq(d, 16'd0, "+2 is Not used - reads 0");
+
+    // ---- 10. write-only registers read 0 -----------------------------
+    iox_read(BASE + R_LOAD_MA, d);
+    check_eq(d, 16'd0, "+1 is write-only, reads 0");
+    iox_read(BASE + R_LOAD_BLOCK, d);
+    check_eq(d, 16'd0, "+3 is write-only, reads 0");
+    iox_read(BASE + R_CONTROL, d);
+    check_eq(d, 16'd0, "+5 is write-only, reads 0");
+    iox_read(BASE + R_LOAD_WC, d);
+    check_eq(d, 16'd0, "+7 is write-only, reads 0");
+
+    // ---- 7. the sec 4.1 interrupt / IDENT probe ----------------------
+    // "If the controller is ready for an operation (status bit 3 = 1), and
+    //  interrupt is enabled (status bit 0 ...), the interrupt signal BINT11
+    //  will be active ... The IDENT code may now be read by an IDENT PL11."
+    master_clear;
+    check(int_pending[1] === 1'b0, "level 11 quiet after master clear");
+
+    iox_write(BASE + R_CONTROL, CW_INT_EN);   // arm on an IDLE controller
+    iox_read(BASE + R_STATUS, d);
+    check(d[SB_FINISHED] === 1'b1, "idle controller reports ready (b3)");
+    check(d[SB_INTEN]    === 1'b1, "interrupt-enable reaches status b0");
+    check(int_pending[1] === 1'b1,
+          "ready + enabled asserts BINT11 on an idle controller");
+
+    do_ident(4'd11, code);
+    check_eq(code, 16'o000001, "IDENT PL11 answers with ident code 1");
+    check(int_pending[1] === 1'b0, "IDENT cleared the interrupt line");
+
+    do_ident(4'd11, code);
+    check_eq(code, 16'd0, "a second IDENT with nothing pending stays silent");
+
+    // A wrong-level IDENT is never answered and never clears the line.
+    // Level 11 is shared with the floppy (ident 021) and the SMD card (017).
+    iox_write(BASE + R_CONTROL, CW_INT_EN);
+    check(int_pending[1] === 1'b1, "interrupt re-armed");
+    do_ident(4'd10, code);
+    check_eq(code, 16'd0, "IDENT on level 10 is not answered");
+    do_ident(4'd13, code);
+    check_eq(code, 16'd0, "IDENT on level 13 is not answered");
+    check(int_pending[1] === 1'b1,
+          "a wrong-level IDENT left level 11 pending");
+    do_ident(4'd11, code);
+    check_eq(code, 16'o000001, "IDENT PL11 finally answers");
+
+    // Device clear AND interrupt enable in ONE control word: the clear must
+    // not swallow the interrupt update. An early return there is the bug that
+    // made TPE report "No identcode found on level 11D".
+    iox_write(BASE + R_CONTROL, CW_DEVCLR | CW_INT_EN);
+    check(int_pending[1] === 1'b1,
+          "device clear + interrupt enable in one word still interrupts");
+
+    // Dropping the enable takes the line away again.
+    iox_write(BASE + R_CONTROL, 16'd0);
+    check(int_pending[1] === 1'b0, "clearing the enable drops BINT11");
+
+    // ---- 8. M6 must NOT be activated (sec 3.4) -----------------------
+    master_clear;
+    iox_write(BASE + R_CONTROL, (16'd6 << 11) | CW_ACTIVE);
+    iox_read(BASE + R_STATUS, d);
+    check(d[SB_ACTIVE] === 1'b0,
+          "M6 load-control-bits is never activated - b2 must stay 0");
+    check(d[SB_FINISHED] === 1'b1,
+          "M6 leaves the controller READY, not wedged not-ready");
+
+    // ---- activation is flip-flop reset condition #4 (sec 3.2) --------
+    // M4 seek needs no disk backend: it completes through E_DELAY.
+    master_clear;
+    iox_write(BASE + R_LOAD_WC, 16'd0);
+    iox_write(BASE + R_LOAD_MA, 16'h0099);     // FF left mid-sequence
+    iox_write(BASE + R_CONTROL, CW_ACTIVE | (16'd4 << 11));
+    repeat (LONG_DELAY + 100) @(posedge sysclk);
+    iox_read(BASE + R_STATUS, d);
+    check(d[SB_ACTIVE] === 1'b0, "M4 seek completed");
+    check(d[SB_FINISHED] === 1'b1, "M4 seek reports finished");
+
+    iox_write(BASE + R_LOAD_MA, 16'h0044);     // must be taken as HI again
+    iox_write(BASE + R_LOAD_MA, 16'h5555);
+    iox_read(BASE + R_READ_MA, d);
+    check_eq(d, 16'h5555, "activation re-synchronised the MA write FF (LO)");
+    iox_read(BASE + R_READ_MA, d);
+    check_eq(d, 16'h0044, "activation re-synchronised the MA write FF (HI)");
+
+    // ---- M4 is a RELATIVE STEP seek (sec 3.4.5) ----------------------
+    master_clear;
+    iox_write(BASE + R_LOAD_WC, 16'd100);
+    iox_write(BASE + R_CONTROL, CW_ACTIVE | CW_DIR | (16'd4 << 11));
+    repeat (LONG_DELAY + 100) @(posedge sysclk);
+    check_eq(dut.s_cyl_pos[0], 16'd100, "M4 out: arm stepped away from cylinder 0");
+
+    iox_write(BASE + R_LOAD_WC, 16'd30);
+    iox_write(BASE + R_CONTROL, CW_ACTIVE | (16'd4 << 11));  // b14 = 0: inwards
+    repeat (LONG_DELAY + 100) @(posedge sysclk);
+    check_eq(dut.s_cyl_pos[0], 16'd70, "M4 in: arm stepped towards cylinder 0");
+
+    iox_write(BASE + R_LOAD_WC, 16'd5000);
+    iox_write(BASE + R_CONTROL, CW_ACTIVE | (16'd4 << 11));
+    repeat (LONG_DELAY + 100) @(posedge sysclk);
+    check_eq(dut.s_cyl_pos[0], 16'd0, "M4: arm clamps at cylinder 0, no wrap");
+
+    // Each unit has its OWN arm - the card has exactly two.
+    iox_write(BASE + R_LOAD_WC, 16'd42);
+    iox_write(BASE + R_CONTROL, CW_ACTIVE | CW_DIR | CW_UNIT | (16'd4 << 11));
+    repeat (LONG_DELAY + 100) @(posedge sysclk);
+    check_eq(dut.s_cyl_pos[1], 16'd42, "unit 1 has its own arm position");
+    check_eq(dut.s_cyl_pos[0], 16'd0,  "unit 0's arm did not move");
+
+    // ---- M7 return to zero -------------------------------------------
+    iox_write(BASE + R_CONTROL, CW_ACTIVE | CW_UNIT | (16'd7 << 11));
+    repeat (LONG_DELAY + 100) @(posedge sysclk);
+    check_eq(dut.s_cyl_pos[1], 16'd0, "M7 returned unit 1's arm to cylinder 0");
+
+    // ---- an out-of-range block address is an address mismatch --------
+    master_clear;
+    iox_write(BASE + R_LOAD_MA, 16'd0);
+    iox_write(BASE + R_LOAD_MA, 16'h0100);
+    iox_write(BASE + R_LOAD_BLOCK, 16'd20);      // sector 20, drive has 9
+    iox_write(BASE + R_LOAD_WC, 16'd512);
+    iox_write(BASE + R_CONTROL, CW_ACTIVE);      // M0 read
+    repeat (20) @(posedge sysclk);
+    iox_read(BASE + R_STATUS, d);
+    check(d[SB_ADDRMISM] === 1'b1, "sector past the end of a track mismatches");
+    check(d[SB_INCLOR]   === 1'b1, "address mismatch feeds the inclusive OR");
+    check(d[SB_ACTIVE]   === 1'b0, "address mismatch terminates the operation");
+    check(d[SB_FINISHED] === 1'b1, "a failed operation has still FINISHED");
+
+    // Test mode bypasses the bounds check (sec 3.4).
+    master_clear;
+    iox_write(BASE + R_LOAD_BLOCK, 16'd20);
+    iox_write(BASE + R_LOAD_WC, 16'd0);          // zero-length: no backend
+    iox_write(BASE + R_CONTROL, CW_ACTIVE | CW_TEST);
+    repeat (LONG_DELAY + 100) @(posedge sysclk);
+    iox_read(BASE + R_STATUS, d);
+    check(d[SB_ADDRMISM] === 1'b0,
+          "test mode bypasses the address bounds check");
+
+    if (errors == 0)
+      $display("=== %0d checks passed ===\nTB_RESULT: PASS", checks);
+    else
+      $display("=== %0d of %0d checks FAILED ===\nTB_RESULT: FAIL",
+               errors, checks);
+    $finish;
+  end
+
+  // Watchdog: a wedge must fail loudly, not hang the suite.
+  initial begin
+    #20_000_000;
+    $display("  FAIL: testbench watchdog - the DUT wedged");
+    $display("TB_RESULT: FAIL");
+    $finish;
+  end
+
+endmodule

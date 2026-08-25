@@ -1,6 +1,6 @@
 # QMTECH XC7A35T board - manual & vendor-sample analysis
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/qmtech-a35t/docs/board-notes.md`
+**Full path:** `Verilog/fpga/qmtech-a35t/docs/board-notes.md`
 
 Analysis of [`QMTECH_XC7A35T_SDRAM-User_Manual_V01.pdf`](QMTECH_XC7A35T_SDRAM-User_Manual_V01.pdf)
 (all 14 pages, V1.0 formal release 2023-08-19), the board schematic

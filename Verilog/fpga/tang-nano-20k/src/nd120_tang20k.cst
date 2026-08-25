@@ -42,12 +42,25 @@ IO_PORT "led[0]" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
 // snestang). The slot has EXTERNAL 10K pull-ups on CMD and DAT0-3 (R53-R57),
 // so both pins run PULL_MODE=NONE and released lines idle high - the same
 // configuration MiSTeryNano uses on this slot.
-// DAT1-3 are intentionally NOT in this design: the storage reader is 1-bit.
-// They stay undriven and the external pull-ups hold them high, which is what
-// keeps DAT3 high at CMD0 (card stays out of SPI mode).
+// DAT1-3 ADDED 24-AUG-2026 for the 4-bit data bus (was: "intentionally NOT in
+// this design, the storage reader is 1-bit"). They are driven ONLY during a
+// 4-bit write phase; the pads idle RELEASED and the external pull-ups still
+// hold them high, so DAT3 is high at CMD0 and the card stays out of SPI mode
+// exactly as before.
 IO_LOC "sd_clk" 83;
 IO_PORT "sd_clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
 IO_LOC "sd_cmd" 82;
 IO_PORT "sd_cmd" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
 IO_LOC "sd_dat0" 84;
 IO_PORT "sd_dat0" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+// DAT1-3 for the 4-bit data bus. Pin numbers read from the Sipeed schematic
+// (J7 pin 8 = DAT1 = FPGA 85, pin 1 = DAT2 = 80, pin 2 = DAT3/CD = 81);
+// the full table and the vendored schematic are in doc/SD-SLOT-WIRING.md.
+// The sd-fat-test build ran 4-bit on this slot with a real SDHC card
+// 12-JUL-2026 at 3418 KB/s write / 5981 KB/s read.
+IO_LOC "sd_dat1" 85;
+IO_PORT "sd_dat1" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+IO_LOC "sd_dat2" 80;
+IO_PORT "sd_dat2" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+IO_LOC "sd_dat3" 81;
+IO_PORT "sd_dat3" IO_TYPE=LVCMOS33 PULL_MODE=NONE;

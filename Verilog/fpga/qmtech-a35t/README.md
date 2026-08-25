@@ -1,6 +1,6 @@
 # ND-120 on QMTECH XC7A35T SDRAM core board (planned side experiment)
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/qmtech-a35t/`
+**Full path:** `Verilog/fpga/qmtech-a35t/`
 
 Side experiment; **Basys3 stays the main Artix-7 target.** The point of this
 board: same FPGA die as the Basys3 but with 32 MB SDRAM on board, which removes

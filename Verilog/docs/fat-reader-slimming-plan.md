@@ -1,7 +1,7 @@
 # ND-120 SD/FAT reader slimming plan (analysis only)
 
 Target: shrink the hardware FAT reader
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/sd_file_reader.v`, the
+`Verilog/SD-FAT/circuit/sd_file_reader.v`, the
 single biggest logic block on the Tang Nano 20K (GW2AR-18C) and the reason the
 OSS (yosys/nextpnr) placer runs out of room. **This is a plan only. No RTL,
 build, or bitstream is modified by this document.**
@@ -89,7 +89,7 @@ subdirectory-traversal logic to remove — that lever yields 0 LUT.**
 ## (b) What is dead weight in the Tang build right now
 
 The Tang gprj
-(`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj`)
+(`Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj`)
 compiles the **full** SD-FAT stack. `tang20k_defines.v` sets **no** `SDFAT_NO_*`
 macro, so `sd_fat_features.vh` turns **everything on** by default:
 `SDFAT_WRITE`, `SDFAT_STORAGE`, `SDFAT_CHECK`, `SDFAT_STORAGE_CHECK`.

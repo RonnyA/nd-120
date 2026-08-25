@@ -28,7 +28,7 @@ module CGA_TRAP_TVGEN_P2 (
     input RD,
     input RV,
     input TCLK,  //! TRAP CLOCK
-    input VACC,
+    input VACC,  //! MMU-translated memory reference this cycle - qualifies the level-2 vector terms
     input VTRAPN,
     input WIP,
     input WIPN,
@@ -243,11 +243,19 @@ module CGA_TRAP_TVGEN_P2 (
 
 
   // TVEC 2
+  // NOTE (fix 27-JUL): the original schematic (DELILAH p.104) uses a 3-input mux MUX31LP
+  // (D0,D1,D2) with A=LEV1 (priority) / B=LEV2 select and an inverting Z output. There is no
+  // D3: select A=B=1 maps to D2 (level-1 wins - a page fault must beat a level-2 trap). The
+  // Logisim/Verilog conversion modeled it as a 4-input Multiplexer_4 and tied the phantom
+  // muxIn_3 to 1'b0, so sel=11 produced TVEC=0111=7 (an unimplemented "SINTRAN 4" trap vector
+  // that self-jumps -> hang) whenever a page fault (LEV1) and PGU (LEV2) fired together (e.g.
+  // the CX-instruction test's access to a not-present page, IPT=2). Restore the MUX31LP
+  // behaviour: muxIn_3 = muxIn_2 (D2) so A=B=1 -> the level-1 (page-fault, vector 1) encoding.
   Multiplexer_4 TVEC2_MUX (
       .muxIn_0(s_gnd),
       .muxIn_1(s_l2v2_n),
       .muxIn_2(s_power),
-      .muxIn_3(1'b0),
+      .muxIn_3(s_power),   // MUX31LP: A=B=1 selects D2 (=muxIn_2), not a phantom D3
       .muxOut(s_tvec2_n),
       .sel(s_mux_selector[1:0])
   );
@@ -257,7 +265,7 @@ module CGA_TRAP_TVGEN_P2 (
       .muxIn_0(s_l3v1_n),
       .muxIn_1(s_l2v1_n),
       .muxIn_2(s_l1v1_n),
-      .muxIn_3(1'b0),
+      .muxIn_3(s_l1v1_n),  // MUX31LP: A=B=1 selects D2 (=muxIn_2); see TVEC2_MUX note
       .muxOut(s_tvec1_n),
       .sel(s_mux_selector[1:0])
   );
@@ -267,7 +275,7 @@ module CGA_TRAP_TVGEN_P2 (
       .muxIn_0(s_l3v0_n),
       .muxIn_1(s_l2v0_n),
       .muxIn_2(s_l1v0_n),
-      .muxIn_3(1'b0),
+      .muxIn_3(s_l1v0_n),  // MUX31LP: A=B=1 selects D2 (=muxIn_2); see TVEC2_MUX note
       .muxOut(s_tvec0_n),
       .sel(s_mux_selector[1:0])
   );
@@ -287,6 +295,21 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
+  // RESTORED 17-AUG-2026 to match the drawing. Page 104 (/CGA/TRAP/TVGEN sheet
+  // 2 of 2) draws ALL SEVEN vector bits - L2V2N, L3V1N, L2V1N, L1V1N, L3V0N,
+  // L2V0N, L1V0N - as FD1 flip-flops with their CK pins fed from the single
+  // TCLK net entering top-left. The level-2 bits are NOT combinational on the
+  // sheet.
+  //
+  // The 27-JUL change replaced these three with `assign s_l2vN_n = ~gate` to
+  // cure a trap-vector-7 dispatch (Issue D). That removed a divergence symptom
+  // by introducing a divergence: it made the level-2 slot behave differently
+  // from the level-1 and level-3 slots, which the drawing treats identically.
+  // Since all seven are drawn the same, a stale-capture effect is what the REAL
+  // hardware does too, so the real fault must be WHEN TCLK fires relative to
+  // the condition becoming valid - not the flip-flops. Chasing that is the
+  // point of restoring these.
+  //
   // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
   D_FLIPFLOP_EN #(
       .USE_ENABLE(TCLK_CE)
@@ -317,6 +340,7 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
+  // RESTORED 17-AUG-2026 to match page 104 - see the L2V2_FF note above.
   // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
   D_FLIPFLOP_EN #(
       .USE_ENABLE(TCLK_CE)
@@ -362,6 +386,7 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
+  // RESTORED 17-AUG-2026 to match page 104 - see the L2V2_FF note above.
   // InvertClockEnable(0): fires on the rising edge of s_tclk = posedge TCLK
   D_FLIPFLOP_EN #(
       .USE_ENABLE(TCLK_CE)
@@ -377,5 +402,19 @@ module CGA_TRAP_TVGEN_P2 (
       .tick(1'b1)
   );
 
+`ifdef TRAPDBG
+  // Internal vector-7 diagnosis: on the cycle the vector first becomes 7, dump
+  // the select + every level-condition + the registered l*v* bits, so we can see
+  // WHICH sel/condition path produces 7 (algebra says it should be impossible
+  // with the mux fix - this settles which assumption is wrong).
+  reg r_v7_d = 1'b0;
+  always @(posedge sysclk) begin
+    r_v7_d <= (s_tvec_3_0_out == 4'd7);
+    if (!r_v7_d && (s_tvec_3_0_out == 4'd7))
+      $display("[tv7] sel=%b(L1=%b L2=%b) WIP=%b PGU=%b PGF=%b RD=%b RV=%b PVIOL=%b VACC=%b IFE=%b | l2v2n=%b l2v1n=%b l2v0n=%b l1v1n=%b l1v0n=%b l3v1n=%b l3v0n=%b",
+        s_mux_selector, LEV1, LEV2, s_wip, s_pgu, s_pgf, s_rd, s_rv, s_pviol, s_vacc, s_ifetch,
+        s_l2v2_n, s_l2v1_n, s_l2v0_n, s_l1v1_n, s_l1v0_n, s_l3v1_n, s_l3v0_n);
+  end
+`endif
 
 endmodule

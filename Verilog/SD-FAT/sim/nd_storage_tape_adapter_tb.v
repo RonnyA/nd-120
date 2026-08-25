@@ -1,3 +1,4 @@
+`include "nd_storage_status.vh"
 /****************************************************************************
 ** Testbench for nd_storage_tape_adapter (iverilog) - step 7, spec        **
 ** acceptance test 4 (byte-compare, mid-stream rewind, EOF silence).      **
@@ -85,6 +86,14 @@ module nd_storage_tape_adapter_tb;
   reg         u_err_inject = 0;
 
   reg         u_busy = 0, u_done = 0, u_err = 0, u_bwe = 0;
+  // The reason the scripted client reports with u_err, and the adapter's
+  // STICKY diagnostic pair. The paper tape reader has no error register of
+  // its own (see ND_TAPE_400.v's header), so this pair is the only place a
+  // storage failure is distinguishable from the end of the tape - which
+  // makes it worth testing, not less.
+  reg  [ 3:0] u_err_code = `NDS_ERR_CARDIO;
+  wire        ua_fault;
+  wire [ 3:0] ua_fault_code;
   reg  [9:0]  u_baddr = 0;
   reg  [15:0] u_bwdata = 0;
 
@@ -106,6 +115,9 @@ module nd_storage_tape_adapter_tb;
       .c_busy       (u_busy),
       .c_done       (u_done),
       .c_err        (u_err),
+      .c_err_code   (u_err_code),
+      .fault        (ua_fault),
+      .fault_code   (ua_fault_code),
       .c_buf_addr   (u_baddr),
       .c_buf_wdata  (u_bwdata),
       .c_buf_we     (u_bwe),
@@ -238,6 +250,9 @@ module nd_storage_tape_adapter_tb;
   wire [15:0] fa_buf_rdata;
 
   wire [N-1:0]    open_ok_w, open_err_w, busy_w, done_w, err_w, buf_we_w;
+  wire [N*4-1:0]  err_code_w;
+  wire            fb_fault;
+  wire [ 3:0]     fb_fault_code;
   wire [N*32-1:0] size_bytes_w;
   wire [N*10-1:0] buf_addr_w;
   wire [N*16-1:0] buf_wdata_w;
@@ -261,6 +276,9 @@ module nd_storage_tape_adapter_tb;
       .c_busy       (busy_w[0]),
       .c_done       (done_w[0]),
       .c_err        (err_w[0]),
+      .c_err_code   (err_code_w[3:0]),
+      .fault        (fb_fault),
+      .fault_code   (fb_fault_code),
       .c_buf_addr   (buf_addr_w[9:0]),
       .c_buf_wdata  (buf_wdata_w[15:0]),
       .c_buf_we     (buf_we_w[0]),
@@ -302,6 +320,7 @@ module nd_storage_tape_adapter_tb;
       .busy      (busy_w),
       .done      (done_w),
       .err       (err_w),
+      .err_code  (err_code_w),
       .buf_addr  (buf_addr_w),
       .buf_wdata (buf_wdata_w),
       .buf_we    (buf_we_w),
@@ -479,6 +498,20 @@ module nd_storage_tape_adapter_tb;
       $display("FAIL: (a6) errored fetch not attempted (%0d)", u_fetches);
       errors = errors + 1;
     end
+    // The device stays silent - correct, the card has no way to say more.
+    // But the STICKY diagnostic must now hold the real reason, otherwise
+    // "the SD card fell out" and "you reached the end of the tape" are the
+    // same observation from every point in the design.
+    if (!ua_fault) begin
+      $display("FAIL: (a6) a storage failure left fault low - silence and");
+      $display("      end-of-tape are then indistinguishable");
+      errors = errors + 1;
+    end
+    if (ua_fault_code !== u_err_code) begin
+      $display("FAIL: (a6) fault_code %0d, want the injected %0d",
+               ua_fault_code, u_err_code);
+      errors = errors + 1;
+    end
     u_err_inject = 0;
     u_getb(32'd5000, gok, gd);
     if (!gok || gd !== pat_tape(0)) begin
@@ -488,6 +521,12 @@ module nd_storage_tape_adapter_tb;
     end
     if (u_fetches !== 5) begin
       $display("FAIL: (a6) retry fetch count %0d (want 5)", u_fetches);
+      errors = errors + 1;
+    end
+    // a rewind starts a new tape pass, so the old verdict must be cleared
+    u_pulse_rewind;
+    if (ua_fault) begin
+      $display("FAIL: (a6) fault survived a rewind - a stale verdict");
       errors = errors + 1;
     end
 

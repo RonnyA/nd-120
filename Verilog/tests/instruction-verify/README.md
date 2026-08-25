@@ -8,14 +8,14 @@ plus the final full RUN.
 
 ## Reference material (delivered by the ND-110 side)
 
-- Golden traces: `/mnt/e/Dev/Repos/Ronny/ND110Compile/traces/TRACE-INSTRUCTION-VERIFY-<AREA>.md`
+- Golden traces: `$ND_REPOS/ND110Compile/traces/TRACE-INSTRUCTION-VERIFY-<AREA>.md`
   (AREA = ARGUMENT, MEMORY-REFERENCE, SEQUENCE, REGISTER-OPERATIONS,
   BIT-OPERATIONS, SHIFT-INSTRUCTIONS, 32-BITS-FLOATING, 48-BITS-FLOATING,
   PRIVILEGED, BYTE-STRING, ND100-24BIT, BCD, ND100-CX, STACK).
   Regenerated on the ND-110 side with `dotnet test --filter "Name~GenerateTrace"`.
-- ND-110 microcode listing: `/mnt/e/Dev/Repos/Ronny/ND110Compile/ND110Compile/uCode/ND-110-RASK.LISTING.TXT`
-- ND-110 symbols: `/mnt/e/Dev/Repos/Ronny/ND110Compile/ND110Compile/uCode/ND-110-RASK.SYMBOLS.TXT`
-- ND-120 microcode listing: `/mnt/e/Dev/Repos/Ronny/ND110Compile/ND110Compile/uCode/ND-120-DELILAH-K.LISTING.TXT`
+- ND-110 microcode listing: `$ND_REPOS/ND110Compile/ND110Compile/uCode/ND-110-RASK.LISTING.TXT`
+- ND-110 symbols: `$ND_REPOS/ND110Compile/ND110Compile/uCode/ND-110-RASK.SYMBOLS.TXT`
+- ND-120 microcode listing: `$ND_REPOS/ND110Compile/ND110Compile/uCode/ND-120-DELILAH-K.LISTING.TXT`
 
 ## Trace format (per golden file)
 
@@ -85,7 +85,7 @@ printf '400$ARGUMENT\r' | ND120_MAX_CNT=400000000 ND120_STDIN_GAP=300000 \
 
 # 3. compare against the golden trace
 python3 ../tests/instruction-verify/compare_trace.py \
-  /mnt/e/Dev/Repos/Ronny/ND110Compile/traces/TRACE-INSTRUCTION-VERIFY-ARGUMENT.md \
+  $ND_REPOS/ND110Compile/traces/TRACE-INSTRUCTION-VERIFY-ARGUMENT.md \
   trace_nd120_argument.md
 ```
 

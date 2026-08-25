@@ -20,7 +20,7 @@
 ** Storage seam: the core exposes the byte/disk SOURCE ports and knows   **
 ** nothing of SD-FAT or of the C harness. The board supplies the         **
 ** implementation (sim: forwarded to ND120_TOP ports, served by the C    **
-** model; hardware: nd_storage / nd_tape_sdfat_source).                  **
+** model; hardware: nd_storage / nd_storage_devices).                  **
 **                                                                       **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
@@ -42,6 +42,38 @@ module ND120_CORE #(
     parameter INCLUDE_TAPE   = 0,  //! ND_TAPE_400 papertape at 400
     parameter INCLUDE_FLOPPY = 0,  //! ND_FLOPPY_DMA floppy 1560 (DMA flavor)
     parameter INCLUDE_SMD    = 0,  //! ND_SMD disk at 1540
+    parameter INCLUDE_WD     = 0,  //! ND_WINCHESTER disk at 500 (ST506/8 inch)
+
+    // SMD controller type (passed straight to ND_SMD's HAS_WC_FLIPFLOP strap;
+    // see docs/design/SMD-CONTROLLER-TYPE-SEAM.md). 0 = ECC / BIG-DISC card
+    // (core-address / word-count registers load in a SINGLE write) - THE DEFAULT,
+    // because this is the card that BOOTS: the mass-storage microcode writes the
+    // word counter ONCE with 002000, which loads 1024 words only on a single-
+    // write card. On a flip-flop card that single write lands in the HI byte and
+    // the count stays 0, so the boot would transfer nothing. 1 = 15/10 MHz card
+    // (24-bit registers loaded HI-then-LO by TWO writes).
+    //
+    // Default is define-driven so a plain build boots with NO file edit, exactly
+    // like BOARD_CLK_FREQ / ND120_SYSNO. The 15 MHz two-write card is the opt-in:
+    // build with EXTRA_VDEFINES="-DND120_SMD_15MHZ" (or set the parameter from a
+    // higher instance) to select it. Absent the define it stays 0 = the ECC
+    // single-write card that boots the image.
+`ifdef ND120_SMD_15MHZ
+    parameter SMD_HAS_FLIPFLOP = 1,
+`else
+    parameter SMD_HAS_FLIPFLOP = 0,
+`endif
+
+    // WORD-COUNTER protocol. Follows the card type. A card with a
+    // single-access word counter is NOT a documented controller - I built one
+    // briefly to reconcile DISC-TEMA with the mass-load microcode, before the
+    // PROM listing showed the microcode is simply written for a single-access
+    // card. Override only for experiments, never as a shipping configuration.
+`ifdef ND120_SMD_WCNT_SINGLE
+    parameter SMD_WCNT_FLIPFLOP = 0,
+`else
+    parameter SMD_WCNT_FLIPFLOP = SMD_HAS_FLIPFLOP,
+`endif
 
     // Back-wiring PROM (installation number) contents. These are what SINTRAN's
     // GCPUNR reads with VERSN through IDBS,INR=35, and they are meant to be
@@ -54,6 +86,16 @@ module ND120_CORE #(
     parameter [15:0] HWINFO2 = `ND120_HWINFO2, //! CPU TYPE   (16'hFFFF = "not present")
     parameter [ 7:0] NLEGU   = `ND120_NLEGU    //! legal users (8'o377  = "not present")
 ) (
+`ifdef ND120_ERRFA_PROBE
+    input  wire ERRFA_CONTX,  // console TX line in (probe arming)
+    output wire ERRFA_TXD,    // SINTRAN ERRFATAL evidence probe TX (MEM RAM probe)
+    // device-chain IOX seam, exported for the board-level WD-IOX ring
+    output wire [15:0] ERRFA_IOX_ADDR,
+    output wire        ERRFA_IOX_RD,
+    output wire        ERRFA_IOX_WR,
+    output wire [15:0] ERRFA_IOX_WDATA,
+    output wire [15:0] ERRFA_IOX_RDATA,
+`endif
     /***************************************************
      *  (a) CLOCK / RESET                              *
      ***************************************************/
@@ -137,6 +179,7 @@ module ND120_CORE #(
     output wire [10:0] FDISK_WORDCOUNT,
     input  wire        FDISK_DONE,
     input  wire        FDISK_ERR,
+    input  wire [ 3:0] FDISK_ERR_CODE,
     //! media format from the image size (deviceFloppyDMA.c READ FORMAT):
     //! {doubleDensity, doubleSided, bytesPerSector[1:0]}
     input  wire [3:0]  FDISK_MEDIA_FMT,
@@ -155,10 +198,30 @@ module ND120_CORE #(
     output wire [10:0] SDISK_WORDCOUNT,
     input  wire        SDISK_DONE,
     input  wire        SDISK_ERR,
+    input  wire [ 3:0] SDISK_ERR_CODE,
     input  wire [9:0]  SDBUF_ADDR,
     input  wire [15:0] SDBUF_WDATA,
     input  wire        SDBUF_WE,
     output wire [15:0] SDBUF_RDATA,
+
+    // Winchester disk backend (INCLUDE_WD). Same port shape as the SMD one:
+    // the card reuses nd_storage_disc_adapter with Winchester geometry, since
+    // that adapter has nothing SMD-specific in it (see the adapter header and
+    // ND-BUS-DEVICES/WINCHESTER/sim/nd_winchester_adapter_tb.v).
+    output wire        WDISK_START,
+    output wire        WDISK_REQ,
+    output wire        WDISK_WR,
+    output wire [15:0] WDISK_BLKADDR1,
+    output wire [15:0] WDISK_BLKADDR2,
+    output wire [2:0]  WDISK_UNIT,
+    output wire [10:0] WDISK_WORDCOUNT,
+    input  wire        WDISK_DONE,
+    input  wire        WDISK_ERR,
+    input  wire [ 3:0] WDISK_ERR_CODE,
+    input  wire [9:0]  WDBUF_ADDR,
+    input  wire [15:0] WDBUF_WDATA,
+    input  wire        WDBUF_WE,
+    output wire [15:0] WDBUF_RDATA,
 
     /***************************************************
      *  (f) DEBUG / STATUS (all outputs)               *
@@ -170,7 +233,7 @@ module ND120_CORE #(
     output wire [13:0] LA_23_10,   //! MAC upper address (XLA 23:10)
     output wire [9:0]  CA_9_0,     //! MAC lower address (XCA 9:0)
     output wire [4:0]  DEBUG_CC_TERM,    //! {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
-    output wire        DEBUG_MCLK,       //! Memory clock
+    output wire        DEBUG_MCLK,       //! Microcycle clock
     output wire        DEBUG_LCS_n,      //! 0 = loading microcode, 1 = loaded
     output wire        DEBUG_FETCH,
     output wire        DEBUG_MR_n,       //! Master Reset
@@ -203,11 +266,19 @@ module ND120_CORE #(
     output wire [10:0] O_sdram_addr,
     output wire [ 1:0] O_sdram_ba,
     output wire [ 3:0] O_sdram_dqm,
-    output wire [15:0] DBG_MEMW      //! write-path debug bus from MEM_43
+    output wire [15:0] DBG_MEMW,     //! write-path debug bus from MEM_43
+    output wire [15:0] DBG_PTW,      //! page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
+    output wire [20:0]        PF_CAPTURED,  //! ND120_PF_CAPTURE freeze flag (23-AUG)
+    //! DEBUG stage timer (24-AUG-2026): [0] Winchester controller active,
+    //! [1] the Winchester's DMA master busy. Used to find where a disc
+    //! operation's ~1 s of wall clock actually goes.
+    output wire [1:0]         DBG_WDSTAGE,
+    output wire [13:0]        DBG_PPN,      //! physical page number PPN[23:10] (24-AUG)
+    output wire [15:0]        DBG_PGW       //! SDRAM-bridge page-write watch (24-AUG)
 `ifdef ND_STORAGE_PORT
     /***************************************************
      *  (c) STORAGE seam into the SDRAM device port     *
-     *  The board's storage stack (nd_tape_sdfat_source)*
+     *  The board's storage stack (nd_storage_devices)*
      *  reaches MEM_RAM_49_SDRAM's upper-half region     *
      *  through here. The backend forces the leading     *
      *  address 1, so device traffic physically cannot   *
@@ -228,6 +299,15 @@ module ND120_CORE #(
     output wire        mem_busy,
     output wire        mem_done
 `endif
+`endif
+`ifdef TANG_WD_TRACE_DUMP
+    ,
+    // Winchester IOX trace tap, brought out for the board-level capture and
+    // UART dump. Present ONLY under TANG_WD_TRACE_DUMP - the normal build
+    // never carries it.
+    output wire [19:0] wd_trace_rec,
+    output wire        wd_trace_we,
+    output wire        wd_trace_done
 `endif
 );
 
@@ -271,13 +351,60 @@ module ND120_CORE #(
   *  inputs of the CPU board.                   *
   ***********************************************/
 
-  localparam ANY_DEVICE = (INCLUDE_TAPE != 0) || (INCLUDE_FLOPPY != 0) || (INCLUDE_SMD != 0);
+  localparam ANY_DEVICE = (INCLUDE_TAPE != 0) || (INCLUDE_FLOPPY != 0) || (INCLUDE_SMD != 0) || (INCLUDE_WD != 0);
   // The DMA test master is the head of the DMA grant chain (its INGRANT_n is
   // the CPU's OUTGRANT_n), so it must exist whenever any bus master exists.
-  localparam ANY_DMA_MASTER = (INCLUDE_FLOPPY != 0) || (INCLUDE_SMD != 0);
+  localparam ANY_DMA_MASTER = (INCLUDE_FLOPPY != 0) || (INCLUDE_SMD != 0) || (INCLUDE_WD != 0);
 
   // Every device shares this one clock with the CPU board.
   wire s_dev_clk = clk_cpu;
+
+  // ---- device timing expressed as TIME, converted here to clk_cpu cycles ---
+  // BOARD_CLK_FREQ is the actual clk_cpu frequency in Hz. The Tang defines it
+  // in fpga/tang-nano-20k/src/tang20k_defines.v: 6_750_000 for the default
+  // slow bring-up (the PLL gives CLKOUT 13.5 MHz and clk_cpu = CLKOUT/2),
+  // 27_000_000 full speed, 3_375_000 crawl. Builds that do not define it
+  // (the Verilator sim) fall back to the same 100 MHz DECODE_DGA_POW uses,
+  // so the macro's meaning stays identical everywhere.
+`ifdef BOARD_CLK_FREQ
+  localparam integer DEV_CLK_HZ = `BOARD_CLK_FREQ;
+`else
+  localparam integer DEV_CLK_HZ = 100_000_000;
+`endif
+
+  // SMD: how long the controller holds ACTIVE after a GO before reporting
+  // completion. This is a mechanical time on a real drive - a 75 MB SMD at
+  // 3600 rpm averages 8.3 ms of rotational latency alone, and a seek is tens
+  // of milliseconds - and diagnostics rely on it: DISC-TEMA reads the status
+  // a few thousand clocks after activating and reports "Controller not active
+  // after activate" if the operation has already finished. 8 ms is close to
+  // the real rotational figure and leaves a wide margin over that check at
+  // every clock variant (54,000 cycles at 6.75 MHz, 216,000 at 27 MHz).
+  localparam integer SMD_DELAY_MS    = 8;
+  // The delay is a WALL-CLOCK time, so the CYCLE count it becomes depends on
+  // DEV_CLK_HZ: 216,000 cycles on the Tang (27 MHz) but 800,000 in Verilator,
+  // which falls back to 100 MHz. The CPU executes per CYCLE, so the sim gives
+  // a spinning driver 3.7x MORE instructions before the card completes - and
+  // DISC-TEMA's wait for the seek is a software loop with a bounded count.
+  // ND120_DEV_DELAY_TICKS overrides the cycle count directly so a sim run can
+  // be made cycle-identical to silicon. Overriding is a DIAGNOSTIC lever, not
+  // a fix: it changes what the drive models, so leave it undefined unless a
+  // specific experiment needs it.
+`ifdef ND120_DEV_DELAY_TICKS
+  localparam [31:0]  SMD_DELAY_TICKS = `ND120_DEV_DELAY_TICKS;
+`else
+  localparam [31:0]  SMD_DELAY_TICKS = (DEV_CLK_HZ / 1000) * SMD_DELAY_MS;
+`endif
+
+  // TESTED AND EXONERATED 05-AUG-2026, confirmed 06-AUG: the completion
+  // latency was never the cause of DISC-TEMA's "Memory address Register not
+  // as expected". The real fault was the CPU zeroing the A register at the
+  // end of every IOX WRITE (the CDLBD 74646's bidirectional LBD pin was
+  // transcribed as separate in/out nets, so the DSTB_n-rise capture read a
+  // dead bus and the microcode's unconditional A := DBR loaded 0). Fixed
+  // 06-AUG-2026 in CPU-BOARD-3202/circuit/BIF_DPATH_9.v (one OR-term restores
+  // the pin node); verified clean on silicon and in simulation.
+
 
   // Bus-slave contributions onto the CPU's bus inputs (active low)
   wire [23:0] s_dev_bd_n;
@@ -285,38 +412,90 @@ module ND120_CORE #(
   wire        s_dev_bint10_n, s_dev_bint11_n, s_dev_bint12_n, s_dev_bint13_n;
 
   // IOX fan-out from the bus slave to the device cores
-  wire [15:0] s_dev_iox_addr, s_dev_iox_wdata;
-  wire        s_dev_iox_wr, s_dev_iox_rd;
+  // ND120_ILA_MARK_DEBUG (Nexys build.tcl -tclargs ila): keep the device
+  // IOX seam nets for the JTAG ILA - which register the CPU polls during
+  // the LIST-FILE-NAMES runaway and what the device answers (24-AUG).
+  // No functional effect; the define is set only by that build flag.
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
+  wire [15:0] s_dev_iox_addr;
+  wire [15:0] s_dev_iox_wdata;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
+  wire        s_dev_iox_wr;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
+  wire        s_dev_iox_rd;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire        s_dev_ident_strobe;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire [3:0]  s_dev_ident_level;
 
   // OR-bus contributions per device core (tape, floppy, SMD)
-  wire [15:0] s_tape_rdata, s_flp_rdata, s_smd_rdata;
-  wire [3:0]  s_tape_intp, s_flp_intp, s_smd_intp;
-  wire        s_tape_hit, s_flp_hit, s_smd_hit;
-  wire [15:0] s_tape_code, s_flp_code, s_smd_code;
+  wire [15:0] s_tape_rdata, s_flp_rdata, s_smd_rdata, s_wd_rdata;
+  wire [3:0]  s_tape_intp, s_flp_intp, s_smd_intp, s_wd_intp;
+  wire        s_tape_hit, s_flp_hit, s_smd_hit, s_wd_hit;
+  wire [15:0] s_tape_code, s_flp_code, s_smd_code, s_wd_code;
+
+  // Per-core IOX address-match. When NO core owns the captured IOX address the
+  // slave must answer nothing (no BDRY) so the CPU bus-times-out into the
+  // level-14 IOX error, instead of the slave answering every address.
+  wire        s_tape_sel, s_flp_sel, s_smd_sel, s_wd_sel;
 
   // IDENT daisy chain: head -> tape -> floppy -> SMD (absent stage = pass-through)
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire        s_grant_tape_flp;  // ident chain: tape -> floppy
   wire        s_grant_flp_smd;   // ident chain: floppy -> SMD
+  wire        s_grant_smd_wd;    // ident chain: SMD -> Winchester
 
-  wire [15:0] s_dev_iox_rdata   = s_tape_rdata | s_flp_rdata | s_smd_rdata;
-  wire [3:0]  s_dev_int_pending = s_tape_intp  | s_flp_intp  | s_smd_intp;
-  wire        s_dev_ident_hit   = s_tape_hit   | s_flp_hit   | s_smd_hit;
-  wire [15:0] s_dev_ident_code  = s_tape_code  | s_flp_code  | s_smd_code;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
+  wire [15:0] s_dev_iox_rdata   = s_tape_rdata | s_flp_rdata | s_smd_rdata | s_wd_rdata;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
+  wire [3:0]  s_dev_int_pending = s_tape_intp  | s_flp_intp  | s_smd_intp  | s_wd_intp;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
+  wire        s_dev_ident_hit   = s_tape_hit   | s_flp_hit   | s_smd_hit   | s_wd_hit;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
+  wire [15:0] s_dev_ident_code  = s_tape_code  | s_flp_code  | s_smd_code  | s_wd_code;
+  wire        s_dev_iox_hit     = s_tape_sel   | s_flp_sel   | s_smd_sel   | s_wd_sel;
+
+`ifdef ND120_ERRFA_PROBE
+  assign ERRFA_IOX_ADDR  = s_dev_iox_addr;
+  assign ERRFA_IOX_RD    = s_dev_iox_rd;
+  assign ERRFA_IOX_WR    = s_dev_iox_wr;
+  assign ERRFA_IOX_WDATA = s_dev_iox_wdata;
+  assign ERRFA_IOX_RDATA = s_dev_iox_rdata;
+`endif
 
   // DMA grant chain (active low): CPU OUTGRANT_n -> test master -> floppy
   // master -> SMD master. Declared up front: s_grant_fdma_smdm_n is used by
   // the floppy master before the SMD master is instantiated.
   wire        s_grant_dma_fdma_n;   // grant chain: test DMA master -> floppy master
   wire        s_grant_fdma_smdm_n;  // grant chain: floppy master  -> SMD master
+  wire        s_grant_smdm_wdm_n;   // grant chain: SMD master     -> Winchester master
 
   // Per-master bus contributions (active low; tied high when the master is absent)
-  wire [23:0] s_dma_bd_n,   s_fdmam_bd_n,   s_smdm_bd_n;
-  wire        s_dma_breq_n, s_fdmam_breq_n, s_smdm_breq_n;
-  wire        s_dma_bapr_n, s_fdmam_bapr_n, s_smdm_bapr_n;
-  wire        s_dma_binput_n, s_fdmam_binput_n, s_smdm_binput_n;
-  wire        s_dma_bdap_n, s_fdmam_bdap_n, s_smdm_bdap_n;
+  wire [23:0] s_dma_bd_n,   s_fdmam_bd_n,   s_smdm_bd_n,   s_wdm_bd_n;
+  wire        s_dma_breq_n, s_fdmam_breq_n, s_smdm_breq_n, s_wdm_breq_n;
+  wire        s_dma_bapr_n, s_fdmam_bapr_n, s_smdm_bapr_n, s_wdm_bapr_n;
+  wire        s_dma_binput_n, s_fdmam_binput_n, s_smdm_binput_n, s_wdm_binput_n;
+  wire        s_dma_bdap_n, s_fdmam_bdap_n, s_smdm_bdap_n, s_wdm_bdap_n;
 
   /*---------------------------------------------
   *  ND-BUS slave shell (present with any device)
@@ -344,6 +523,7 @@ module ND120_CORE #(
           .iox_wdata(s_dev_iox_wdata),
           .iox_rd(s_dev_iox_rd),
           .iox_rdata(s_dev_iox_rdata),
+          .iox_hit(s_dev_iox_hit),
           .int_pending(s_dev_int_pending),
           .ident_strobe(s_dev_ident_strobe),
           .ident_level(s_dev_ident_level),
@@ -386,6 +566,7 @@ module ND120_CORE #(
           .iox_wdata(s_dev_iox_wdata),
           .iox_rd(s_dev_iox_rd),
           .iox_rdata(s_tape_rdata),
+          .iox_sel(s_tape_sel),
           .int_pending(s_tape_intp),
           .ident_strobe(s_dev_ident_strobe),
           .ident_level(s_dev_ident_level),
@@ -400,6 +581,7 @@ module ND120_CORE #(
       );
     end else begin : gen_no_tape
       assign s_tape_rdata     = 16'd0;
+      assign s_tape_sel       = 1'b0;
       assign s_tape_intp      = 4'd0;
       assign s_tape_hit       = 1'b0;
       assign s_tape_code      = 16'd0;
@@ -434,6 +616,7 @@ module ND120_CORE #(
           .iox_wdata(s_dev_iox_wdata),
           .iox_rd(s_dev_iox_rd),
           .iox_rdata(s_flp_rdata),
+          .iox_sel(s_flp_sel),
           .int_pending(s_flp_intp),
           .ident_strobe(s_dev_ident_strobe),
           .ident_level(s_dev_ident_level),
@@ -457,6 +640,7 @@ module ND120_CORE #(
           .disk_wordcount(FDISK_WORDCOUNT),
           .disk_done(FDISK_DONE),
           .disk_err_in(FDISK_ERR),
+          .disk_err_code(FDISK_ERR_CODE),
           .disk_media_fmt(FDISK_MEDIA_FMT),
           .dbuf_addr(FDBUF_ADDR),
           .dbuf_wdata(FDBUF_WDATA),
@@ -490,6 +674,7 @@ module ND120_CORE #(
       );
     end else begin : gen_no_floppy
       assign s_flp_rdata          = 16'd0;
+      assign s_flp_sel            = 1'b0;
       assign s_flp_intp           = 4'd0;
       assign s_flp_hit            = 1'b0;
       assign s_flp_code           = 16'd0;
@@ -523,9 +708,15 @@ module ND120_CORE #(
       wire        s_smd_ack, s_smd_err, s_smd_busy;
 
       ND_SMD #(
-          .BASE_ADDR (16'o001540),
-          .IDENT_CODE(16'o000017),
-          .INT_LEVEL (4'd11)
+          .BASE_ADDR  (16'o001540),
+          .IDENT_CODE (16'o000017),
+          .INT_LEVEL  (4'd11),
+          .DELAY_TICKS(SMD_DELAY_TICKS),
+          // Controller-type strap: default ECC single-write (boots the SMD
+          // image). Override the top-level SMD_HAS_FLIPFLOP to 1 (or build with
+          // -DND120_SMD_15MHZ) for the 15 MHz two-write card.
+          .HAS_WC_FLIPFLOP(SMD_HAS_FLIPFLOP),
+          .HAS_WCNT_FLIPFLOP(SMD_WCNT_FLIPFLOP)
       ) SMD_1540 (
           .sysclk(s_dev_clk),
           .sys_rst_n(sys_rst_n),
@@ -534,11 +725,12 @@ module ND120_CORE #(
           .iox_wdata(s_dev_iox_wdata),
           .iox_rd(s_dev_iox_rd),
           .iox_rdata(s_smd_rdata),
+          .iox_sel(s_smd_sel),
           .int_pending(s_smd_intp),
           .ident_strobe(s_dev_ident_strobe),
           .ident_level(s_dev_ident_level),
           .ident_grant_in(s_grant_flp_smd),
-          .ident_grant_out(),
+          .ident_grant_out(s_grant_smd_wd),
           .ident_hit(s_smd_hit),
           .ident_code(s_smd_code),
           .dma_req(s_smd_req),
@@ -558,6 +750,7 @@ module ND120_CORE #(
           .disk_wordcount(SDISK_WORDCOUNT),
           .disk_done(SDISK_DONE),
           .disk_err_in(SDISK_ERR),
+          .disk_err_code(SDISK_ERR_CODE),
           .dbuf_addr(SDBUF_ADDR),
           .dbuf_wdata(SDBUF_WDATA),
           .dbuf_we(SDBUF_WE),
@@ -579,7 +772,7 @@ module ND120_CORE #(
           .dma_busy(s_smd_busy),
           .BREQ_n(s_smdm_breq_n),
           .INGRANT_n(s_grant_fdma_smdm_n),
-          .OUTGRANT_n(),
+          .OUTGRANT_n(s_grant_smdm_wdm_n),
           .BMEM_n(BMEM_n),
           .BD_23_0_n_OUT(s_smdm_bd_n),
           .BD_23_0_n_IN(BD_23_0_n_OUT),
@@ -589,7 +782,10 @@ module ND120_CORE #(
           .BDRY_n(BDRY_n_OUT)
       );
     end else begin : gen_no_smd
+      assign s_grant_smd_wd   = s_grant_flp_smd;      // ident chain pass-through
+      assign s_grant_smdm_wdm_n = s_grant_fdma_smdm_n; // DMA grant pass-through
       assign s_smd_rdata      = 16'd0;
+      assign s_smd_sel        = 1'b0;
       assign s_smd_intp       = 4'd0;
       assign s_smd_hit        = 1'b0;
       assign s_smd_code       = 16'd0;
@@ -606,6 +802,178 @@ module ND120_CORE #(
       assign SDISK_UNIT       = 3'd0;
       assign SDISK_WORDCOUNT  = 11'd0;
       assign SDBUF_RDATA      = 16'd0;
+    end
+  endgenerate
+
+  /*---------------------------------------------
+  *  Winchester disc controller at 500 (ST506
+  *  card 3041 / 8 inch card 3038) with its own
+  *  bus master, fourth in the grant chain
+  *  (test -> floppy -> SMD -> Winchester).
+  *
+  *  NOTE 500-507 is the SAME IOX block as the
+  *  CDC cartridge disc: a machine has one card
+  *  or the other, never both.
+  *--------------------------------------------*/
+  generate
+    if (INCLUDE_WD != 0) begin : gen_wd
+      wire        s_wd_req, s_wd_wr;
+      wire [23:0] s_wd_addr;
+      wire [15:0] s_wd_wdata, s_wd_rdata_dma;
+      wire        s_wd_ack, s_wd_err, s_wd_busy;
+      wire        s_wd_dbg_active;
+
+      ND_WINCHESTER #(
+          .BASE_ADDR  (16'o000500),
+          .IDENT_CODE (16'o000001),
+          .INT_LEVEL  (4'd11),
+          .DELAY_TICKS(SMD_DELAY_TICKS),
+          // Micropolis 1325 (the DISC-74-1) - the drive SINTRAN boots from,
+          // and the default in both C models. MUST match the GEO_* the
+          // storage adapter in front of the backend is given.
+          .GEO_HEADS  (16'd8),
+          .GEO_SPT    (16'd9),
+          .GEO_MAX_CYL(16'd1024)
+      ) WD_500 (
+          .sysclk(s_dev_clk),
+          .sys_rst_n(sys_rst_n),
+          .iox_addr(s_dev_iox_addr),
+          .iox_wr(s_dev_iox_wr),
+          .iox_wdata(s_dev_iox_wdata),
+          .iox_rd(s_dev_iox_rd),
+          .iox_rdata(s_wd_rdata),
+          .iox_sel(s_wd_sel),
+`ifdef TANG_WD_TRACE_DUMP
+          .trace_rec(wd_trace_rec),
+          .trace_we(wd_trace_we),
+          .trace_done(wd_trace_done),
+`else
+          .trace_rec(),
+          .trace_we(),
+          .trace_done(),
+`endif
+          .int_pending(s_wd_intp),
+          .ident_strobe(s_dev_ident_strobe),
+          .ident_level(s_dev_ident_level),
+          .ident_grant_in(s_grant_smd_wd),
+          .ident_grant_out(),
+          .ident_hit(s_wd_hit),
+          .ident_code(s_wd_code),
+          .dma_req(s_wd_req),
+          .dma_wr(s_wd_wr),
+          .dma_addr(s_wd_addr),
+          .dma_wdata(s_wd_wdata),
+          .dma_rdata(s_wd_rdata_dma),
+          .dma_ack(s_wd_ack),
+          .dma_err(s_wd_err),
+          .dma_busy(s_wd_busy),
+          .dbg_active(s_wd_dbg_active),
+          .disk_start(WDISK_START),
+          .disk_req(WDISK_REQ),
+          .disk_wr(WDISK_WR),
+          .disk_blkaddr1(WDISK_BLKADDR1),
+          .disk_blkaddr2(WDISK_BLKADDR2),
+          .disk_unit(WDISK_UNIT),
+          .disk_wordcount(WDISK_WORDCOUNT),
+          .disk_done(WDISK_DONE),
+          .disk_err_in(WDISK_ERR),
+          .disk_err_code(WDISK_ERR_CODE),
+          .dbuf_addr(WDBUF_ADDR),
+          .dbuf_wdata(WDBUF_WDATA),
+          .dbuf_we(WDBUF_WE),
+          .dbuf_rdata(WDBUF_RDATA)
+      );
+
+      // stage timer: [0] controller active, [1] its DMA master busy
+      assign DBG_WDSTAGE = {s_wd_busy, s_wd_dbg_active};
+
+      ND_DMA_MASTER #(
+          .TIMEOUT_TICKS(16'd8192)
+      ) WD_DMA_MASTER (
+          .sysclk(s_dev_clk),
+          .sys_rst_n(sys_rst_n),
+          .dma_req(s_wd_req),
+          .dma_wr(s_wd_wr),
+          .dma_addr(s_wd_addr),
+          .dma_wdata(s_wd_wdata),
+          .dma_rdata(s_wd_rdata_dma),
+          .dma_ack(s_wd_ack),
+          .dma_err(s_wd_err),
+          .dma_busy(s_wd_busy),
+          .BREQ_n(s_wdm_breq_n),
+          .INGRANT_n(s_grant_smdm_wdm_n),
+          .OUTGRANT_n(),
+          .BMEM_n(BMEM_n),
+          .BD_23_0_n_OUT(s_wdm_bd_n),
+          .BD_23_0_n_IN(BD_23_0_n_OUT),
+          .BAPR_n(s_wdm_bapr_n),
+          .BINPUT_n(s_wdm_binput_n),
+          .BDAP_n(s_wdm_bdap_n),
+          .BDRY_n(BDRY_n_OUT)
+      );
+
+`ifdef ND120_DMA_STALL_DBG
+      // ------------------------------------------------------------------
+      // WINCHESTER DMA STALL PROBE (inert unless -DND120_DMA_STALL_DBG).
+      //
+      // The SINTRAN boot stops with the DISC side finished - every disk read
+      // reported done - and the controller still reporting ACTIVE (status
+      // 060005 instead of the oracle's 060011). A bench replaying the exact
+      // IOX sequence completes, a word-count sweep completes, and the real
+      // ND_DMA_MASTER driving the real SD card completes. The one thing no
+      // bench reproduces is the CPU competing for the same bus, so the
+      // question is whether this master ever WINS a grant once the CPU is
+      // spinning in its IOX poll loop.
+      //
+      // Reports a request that stays outstanding far longer than a memory
+      // cycle can take, and prints the bus lines that decide it: our own
+      // BREQ, the grant coming in, BMEM from the bus control unit, and BDRY
+      // from memory. Whichever of those is stuck names the culprit - it is
+      // not inferred from the absence of an acknowledge.
+      integer r_wdstall;
+      reg     r_wdstall_said;
+      initial begin r_wdstall = 0; r_wdstall_said = 1'b0; end
+      always @(posedge s_dev_clk) begin
+        if (s_wd_busy || s_wd_req) begin
+          r_wdstall <= r_wdstall + 1;
+          if (r_wdstall == 20000 && !r_wdstall_said) begin
+            r_wdstall_said <= 1'b1;
+            $display("[wddma] STALLED %0d cycles: req=%b busy=%b ack=%b err=%b  BREQ_n=%b INGRANT_n=%b BMEM_n=%b BDRY_n=%b addr=%o",
+                     r_wdstall, s_wd_req, s_wd_busy, s_wd_ack, s_wd_err,
+                     s_wdm_breq_n, s_grant_smdm_wdm_n, BMEM_n, BDRY_n_OUT,
+                     s_wd_addr);
+          end
+        end else begin
+          r_wdstall      <= 0;
+          r_wdstall_said <= 1'b0;
+        end
+      end
+`endif
+    end else begin : gen_no_wd
+      assign s_wd_rdata      = 16'd0;
+      assign s_wd_sel        = 1'b0;
+`ifdef TANG_WD_TRACE_DUMP
+      assign wd_trace_rec    = 20'd0;
+      assign wd_trace_we     = 1'b0;
+      assign wd_trace_done   = 1'b0;
+`endif
+      assign s_wd_intp       = 4'd0;
+      assign s_wd_hit        = 1'b0;
+      assign s_wd_code       = 16'd0;
+      assign s_wdm_bd_n      = 24'hFFFFFF;
+      assign s_wdm_breq_n    = 1'b1;
+      assign s_wdm_bapr_n    = 1'b1;
+      assign s_wdm_binput_n  = 1'b1;
+      assign s_wdm_bdap_n    = 1'b1;
+      assign WDISK_START     = 1'b0;
+      assign DBG_WDSTAGE     = 2'b00;
+      assign WDISK_REQ       = 1'b0;
+      assign WDISK_WR        = 1'b0;
+      assign WDISK_BLKADDR1  = 16'd0;
+      assign WDISK_BLKADDR2  = 16'd0;
+      assign WDISK_UNIT      = 3'd0;
+      assign WDISK_WORDCOUNT = 11'd0;
+      assign WDBUF_RDATA     = 16'd0;
     end
   endgenerate
 
@@ -663,11 +1031,11 @@ module ND120_CORE #(
   *  contribute all-ones, so the AND is exactly
   *  the ND120_TOP no-device pass-through.
   *--------------------------------------------*/
-  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN & s_dev_bd_n & s_dma_bd_n & s_fdmam_bd_n & s_smdm_bd_n;
-  wire        s_bus_breq_n      = BREQ_n & s_dma_breq_n & s_fdmam_breq_n & s_smdm_breq_n;
-  wire        s_bus_bapr_in_n   = BAPR_n_IN & s_dma_bapr_n & s_fdmam_bapr_n & s_smdm_bapr_n;
-  wire        s_bus_binput_in_n = BINPUT_n_IN & s_dev_binput_n & s_dma_binput_n & s_fdmam_binput_n & s_smdm_binput_n;
-  wire        s_bus_bdap_in_n   = BDAP_n_IN & s_dev_bdap_n & s_dma_bdap_n & s_fdmam_bdap_n & s_smdm_bdap_n;
+  wire [23:0] s_bus_bd_in_n     = BD_23_0_n_IN & s_dev_bd_n & s_dma_bd_n & s_fdmam_bd_n & s_smdm_bd_n & s_wdm_bd_n;
+  wire        s_bus_breq_n      = BREQ_n & s_dma_breq_n & s_fdmam_breq_n & s_smdm_breq_n & s_wdm_breq_n;
+  wire        s_bus_bapr_in_n   = BAPR_n_IN & s_dma_bapr_n & s_fdmam_bapr_n & s_smdm_bapr_n & s_wdm_bapr_n;
+  wire        s_bus_binput_in_n = BINPUT_n_IN & s_dev_binput_n & s_dma_binput_n & s_fdmam_binput_n & s_smdm_binput_n & s_wdm_binput_n;
+  wire        s_bus_bdap_in_n   = BDAP_n_IN & s_dev_bdap_n & s_dma_bdap_n & s_fdmam_bdap_n & s_smdm_bdap_n & s_wdm_bdap_n;
   wire        s_bus_bdry_in_n   = BDRY_n_IN & s_dev_bdry_n;
   wire        s_bus_bint10_n    = BINT10_n & s_dev_bint10_n;
   wire        s_bus_bint11_n    = BINT11_n & s_dev_bint11_n;
@@ -701,6 +1069,10 @@ module ND120_CORE #(
   ***********************************************/
 
   ND3202D CPU_BOARD (
+`ifdef ND120_ERRFA_PROBE
+      .ERRFA_CONTX(ERRFA_CONTX),
+      .ERRFA_TXD(ERRFA_TXD),
+`endif
       .sysclk(clk_cpu),   // CPU core, OSC and bus all share one domain
       .sys_rst_n(sys_rst_n),
       .CLOCK_1(clk_cpu),  // XTAL1 = 39.3216MHZ on the real board
@@ -791,7 +1163,7 @@ module ND120_CORE #(
       .CSA_12_0   (CSA_12_0),       // Microcode Address (for debugging)
       .LED        (LED[6:0]),       // 7 bit LED signals
       .DEBUG_CC_TERM(DEBUG_CC_TERM), // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
-      .DEBUG_MCLK(DEBUG_MCLK),       // Memory clock
+      .DEBUG_MCLK(DEBUG_MCLK),       // Microcycle clock
       .DEBUG_LCS_n(DEBUG_LCS_n),     // LCS_n: 0=loading, 1=loaded
       .DEBUG_FETCH(DEBUG_FETCH),
       .DEBUG_MR_n(DEBUG_MR_n),
@@ -818,7 +1190,11 @@ module ND120_CORE #(
       .O_sdram_addr(O_sdram_addr),
       .O_sdram_ba(O_sdram_ba),
       .O_sdram_dqm(O_sdram_dqm),
-      .DBG_MEMW(DBG_MEMW)
+      .DBG_MEMW(DBG_MEMW),
+      .DBG_PTW(DBG_PTW),
+      .PF_CAPTURED(PF_CAPTURED),
+      .DBG_PPN(DBG_PPN),
+      .DBG_PGW(DBG_PGW)
 `ifdef ND_STORAGE_PORT
       ,
       .stor_clk  (stor_clk),

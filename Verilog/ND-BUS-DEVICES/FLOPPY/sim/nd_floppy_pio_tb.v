@@ -49,7 +49,7 @@ module nd_floppy_pio_tb;
       .BINT10_n(bint10_n), .BINT11_n(bint11_n),
       .BINT12_n(bint12_n), .BINT13_n(bint13_n),
       .iox_addr(iox_addr), .iox_wr(iox_wr), .iox_wdata(iox_wdata),
-      .iox_rd(iox_rd), .iox_rdata(iox_rdata),
+      .iox_rd(iox_rd), .iox_rdata(iox_rdata), .iox_hit(1'b1),
       .int_pending(intp),
       .ident_strobe(ident_strobe), .ident_level(ident_level),
       .ident_hit(ident_hit), .ident_code(ident_code)

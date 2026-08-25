@@ -82,6 +82,11 @@ static void adapter(void)
 {
     nd_device *d = nd_lineprinter_device(&g_lp);
 
+    /* iox_hit: does the C core own the captured IOX address? The slave now
+     * gates its BDRY response on this (unmapped address -> no answer -> the
+     * CPU bus-times-out into a level-14 IOX error). */
+    dut->iox_hit = nd_device_claims(d, dut->iox_addr) ? 1 : 0;
+
     if (dut->iox_wr && nd_device_claims(d, dut->iox_addr))
         d->vt->write(d, dut->iox_addr, dut->iox_wdata);
 
@@ -200,7 +205,7 @@ int main(int argc, char **argv)
     /* Reset the RTL. */
     bus_idle();
     dut->sys_rst_n = 0;
-    dut->iox_rdata = 0; dut->int_pending = 0; dut->ident_hit = 0; dut->ident_code = 0;
+    dut->iox_rdata = 0; dut->iox_hit = 0; dut->int_pending = 0; dut->ident_hit = 0; dut->ident_code = 0;
     for (int i = 0; i < 5; i++) tick();
     dut->sys_rst_n = 1;
     settle(3);

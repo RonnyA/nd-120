@@ -1,6 +1,6 @@
 # ND-120 Boot Golden Spec — Microcode Execution Reference
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/boot-golden-spec.md`
+**Full path:** `Verilog/docs/boot-golden-spec.md`
 **Last updated:** 2026-07-03
 
 Ground-truth description of the ND-120 microcode boot flow: what address the
@@ -12,7 +12,7 @@ three sources that agree:
    the Verilator run (`sim/trace_latch.csv`, `sim/waveform.fst`).
 2. **ND-120 microcode listing** (OCR) — `Code/Microcode/ND-120 Mikroprogramlisting-L-ocr.md`.
 3. **ND-110 microcode source** (clean, ROM-validated) —
-   `/mnt/e/Dev/Repos/Ronny/ND110Compile/ND110Compile/uCode/ND-110-RASK.uc`.
+   `$ND_REPOS/ND110Compile/ND110Compile/uCode/ND-110-RASK.uc`.
    Same label names as ND-120; use it to decode OCR ambiguities. NOTE: ND-110 is
    *similar in principle, not identical* to ND-120 — trust the trace + ND-120
    listing for exact addresses, use ND-110 for semantics/labels.
@@ -174,5 +174,5 @@ same form, and `compare_boot_trace.py` applies the Section 3 rule.
 - `Verilog/DELILAH-CPU/CGA_MIC/LDLCN_o000016_investigation.md` — o16 PANVC/RTC path.
 - `Verilog/SignalReport.md` — signal cross-ref (`CSA_12_0 = MA_12_0`).
 - `Code/Microcode/ND-120 Mikroprogramlisting-L-ocr.md` — ND-120 listing (addresses).
-- `/mnt/e/Dev/Repos/Ronny/ND110Compile/ND110Compile/uCode/ND-110-RASK.uc` — clean ND-110 source (label/semantic decode).
+- `$ND_REPOS/ND110Compile/ND110Compile/uCode/ND-110-RASK.uc` — clean ND-110 source (label/semantic decode).
 - `Verilog/FPGA-BRINGUP-PLAN.md` — overall phase plan (sections 11-12: golden model + capture automation).

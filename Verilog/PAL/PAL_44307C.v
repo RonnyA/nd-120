@@ -30,12 +30,40 @@ module PAL_44307C(
     input TRAP_n,    //! I8 Trap
     input VEX,       //! I9 Vector Exception (Disable Traps)
 
-    output MCLK_n,   //! Y0_n - MCLK_n    Main Clock ?
-    output MACLK_n,  //! Y1_n - MACLK_n   Memory Access Clock (MAP CLOCK)
-    output WRFSTB,   //! B0_n - WRFSTB    Write Strobe ?
-    output CYD,      //! B1_n - CYD_n     Cycle Done ?
-    output EORF_n,   //! B2_n - EORF_n    End of Read Flag ? (Miscellaneous write pulse)
-    output UCLK,     //! B3_n - UCLK      Update Clock ? (A universal clock signal for memory requests)
+    // NAMING (corrected 08-AUG-2026 - the old names were guesses and they
+    // actively misled debugging of the control-store readback path):
+    //
+    //   MCLK  = MICROCYCLE CLOCK, not "Main Clock". Its equation below has
+    //           ONLY RWCS terms, so outside a RWCS cycle the PAL never
+    //           asserts it and the board's MCLK = ~(TERM_n & MCLK_n)
+    //           collapses to plain TERM - one pulse per microinstruction
+    //           cycle. The RWCS terms STRETCH it so the gate array sees a
+    //           single long cycle while MA is used twice (first the control
+    //           store address to be read, then the address to be executed).
+    //           This PAL is named CYCLK on the board for that reason.
+    //
+    //   MACLK = MICRO-ADDRESS LATCH STROBE, not "Memory Access Clock". It has
+    //           nothing to do with memory cycles. Its ONLY consumer on the
+    //           whole board is CPU_CS_ACAL_17's control-store address latches
+    //           (CHIP_30H 74373 pin C, CHIP_31F AM29841 pin LE), reached via
+    //           CPU_15 -> CPU_CS_16. All three of its product terms do the
+    //           same job from different sources - "CAPTURE CD FROM MEMORY
+    //           THROUGH MAP", "CAPTURE TRAP VECTOR", "CAPTURE MICROADDRESS" -
+    //           latch whatever is currently on MA into those latches. The
+    //           latches are TRANSPARENT while MACLK is high and HOLD when it
+    //           falls, so MACLK's FALLING edge is the capture.
+    output MCLK_n,   //! Y0_n - MCLK_n    Microcycle clock (negated). = TERM outside RWCS; stretched during RWCS.
+    output MACLK_n,  //! Y1_n - MACLK_n   Micro-address latch strobe (negated). Latch enable for the control-store address latches (ACAL).
+    // The four below have UNKNOWN function - nobody has traced what consumes
+    // them. The names are the pin names off the listing; any expansion of them
+    // ("Write Strobe", "Cycle Done", "End of Read Flag", "Update Clock") was a
+    // guess and has been removed. Their TIMING is measured and regression-
+    // gated - see Verilog/docs/SIGNALS.md and, for the per-state waveform,
+    // CPU-BOARD-3202/circuit/sim :: make test-cycle-timeline.
+    output WRFSTB,   //! B0_n - WRFSTB    UNKNOWN function. Fires in state 0001 of most cycle kinds.
+    output CYD,      //! B1_n - CYD_n     UNKNOWN function. Listing comment: "WRITE PULSE USED IN WMAP AND WCA" (the memory map and the microinstruction cache); wired to CPU_MMU_24 / CPU_MMU_CACHE_25.
+    output EORF_n,   //! B2_n - EORF_n    UNKNOWN function. Listing comment: "MISC WRITE PULSE", on state d only.
+    output UCLK,     //! B3_n - UCLK      UNKNOWN function. Listing comment: "ON ALL MEMORY REQUESTS. USED TO UPDATE USED BITS".
     output ETRAP_n,  //! B4_n - ETRAP_n   Enable Trap signals
     output MAP_n     //! B5_n - MAP_n
 );

@@ -24,7 +24,7 @@ module CGA_TRAP_BRKDET (
     input [6:0] IPT_15_9_N,
     input       IWRITE,
     input       IWRITEN,
-    input       VACC,
+    input       VACC,       //! MMU-translated memory reference this cycle - qualifies every break/protect term
     input       VTRAPN,
 
 

@@ -41,7 +41,13 @@ module DECODE_DGA_COMM (
     output CEUARTN,      //! Enable UART
     output CLRTIN,       //! Clear Real Time Clock
     output DTN,          //! Data Transfer
-    output DVACCN,       //! Data Valid
+    // DVACCN - the DECODER gate array's own access qualifier, Q-bar of flip-flop
+    // A227 clocked on CLK2 with A220 as D. It leaves the DGA, crosses IO_DCD_38
+    // and IO_37, and arrives on ND3202D as s_dvacc_n, where CPU_15 and
+    // CPU_MMU_24 consume it. DISTINCT NET from the CGA's own VACC/DVACC in
+    // CGA_DCD.v - same name, different logic; do not reason about one from the
+    // other.
+    output DVACCN,       //! DGA access qualifier, active low (see comment above)
     output ECREQ,        //! Enable CPU Request
     output EMCLN,        //! Enable Master Clear
     output EMPIDN,       //! Enable MPID - Set bits in the micro—PID (Priority Interrupt Detect) register in the PIC. Command #012. "set mask reg: inh all ints"

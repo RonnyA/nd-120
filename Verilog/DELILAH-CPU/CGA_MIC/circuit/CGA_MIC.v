@@ -331,7 +331,32 @@ module CGA_MIC (
   // sees. Correct STZ word => CSBIT_11_0=0x065 (=> jmpaddr 0145). If instead
   // CSBIT_11_0=0xC00 (=address 06000 low bits) => the WCS control-store READ is
   // returning the ADDRESS not the DATA on silicon = ROOT CAUSE (WCS read path).
+`ifdef ND_WD_TRACE_CSATRAP
+  assign XMIC_DBG           = {s_tvec_3_0[3:0], s_trap_n, 11'b0};
+`elsif ND_WD_TRACE_TVEC
+  // Same export as TANG_TRAP_CAPTURE below, under a second name so the trap
+  // dispatch can be ringed by the WINCHESTER dump path. TANG_TRAP_CAPTURE
+  // sits EARLIER in the capture-mode chain in ND120_TANG20K_TOP.v and would
+  // take the ring over completely, including its own CSA-stuck trigger, which
+  // never fires on a machine that is livelocking rather than stalled.
+  assign XMIC_DBG           = {s_tvec_3_0[3:0], s_trap_n, 11'b0};
+`elsif ND_WD_TRACE_TVEC_CSA
+  // ND_WD_TRACE_TVEC_CSA was missing from this chain, so a build using it got
+  // the sim-probe XMIC meanings from the `else` below and its ring recorded no
+  // trap vector at all. The top level reads s_xmic_dbg[15:11] = {TVEC, TRAPN}
+  // for BOTH its capture word and its falling-edge-of-TRAPN strobe
+  // (ND120_TANG20K_TOP.v:470 and :611), so it needs exactly the same export as
+  // the two modes above.
+  assign XMIC_DBG           = {s_tvec_3_0[3:0], s_trap_n, 11'b0};
+`elsif TANG_TRAP_CAPTURE
+  // Issue-D on-chip probe (Tang builds only; the sim never defines this, so the
+  // sim-probe XMIC bit meanings below are untouched): export the trap dispatch
+  // inputs this module already receives - {TVEC[3:0], TRAPN, 11'b0}. The Tang
+  // top combines bits 15:11 with CSA into the analyzer word (tang20k_defines.v).
+  assign XMIC_DBG           = {s_tvec_3_0[3:0], s_trap_n, 11'b0};
+`else
   assign XMIC_DBG           = {s_csbit20, s_sc_6_3_out[3], MCLK_EN, 1'b0, s_csbit_15_0[11:0]};
+`endif
 
   /*******************************************************************************
    ** Here all in-lined components are defined                                   **

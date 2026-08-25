@@ -2,15 +2,28 @@
 
 The Verilog code has been split into subfolder matching the structure of the LogiSim and Design Documents
 
+
+> **Setting up a machine?** Every prerequisite - FPGA toolchains, simulators,
+> linters, test and documentation tooling - with copy-paste install and
+> validation commands: [`docs/PREREQUISITES.md`](docs/PREREQUISITES.md).
+
 ## Status
 
 Verilator compiles and runs the full boot path: microcode load, "Master Clear",
 then the MACL CPU self-test (**passes clean - 0 STERR visits**, measured 13-JUL
 with the runSim ND120_COUNT_STERR probe; the old "7 of 14" figure predated the
 07-JUL transparent-latch fix), after which OPCOM UART communication works (use
-the `runSim/` harness to interact with it). FPGA
-synthesis passes but implementation/boot does not yet run correctly — closing the
-latch-vs-flip-flop timing gap is the current focus.
+the `runSim/` harness to interact with it).
+
+**SINTRAN III boots on FPGA silicon (Tang Nano 20K, 24-AUG-2026)** — see the
+`ND3202D.v:533` bus bank-decode fix in `HISTORY.md`. The board runs at
+6.75 MHz validated, 13.5 MHz timing-clean, and 27 MHz boots but does not close
+timing.
+
+>  The "Status Vivado" column below refers to the XILINX boards and has NOT
+>  been re-verified since the 24-AUG-2026 bus bank-decode fix
+>  (`ND3202D.v:533`), which is shared board logic. Treat it as last-known,
+>  not current.
 
 | Folder                                         | Status Logisim           |  Status Verilog                                | Status Vivado                         | Comment    |
 |------------------------------------------------|--------------------------|------------------------------------------------|---------------------------------------|------------|
@@ -20,6 +33,15 @@ latch-vs-flip-flop timing gap is the current focus.
 | [PAL](../DesignDocuments/PAL-Code/readme.md)   | No logisim, PALASM source| Verilog compiles - Missing a lot of testcases  | Syntehesis OK, implementation fails   | Hand converted PALASM to Verilog for all PAL's |
 | [Shared](Shared/readme.md)                     |                          | Verilog compiles - Missing a lot of testcases  | Syntehesis OK, implementation fails   | Shared code between the CPU, DGA and 3202D CPU board. Mix of converted logisim and manually created modules |
 
+
+## Reference documents
+
+- `tests/README.md` — what `make test` runs, measured coverage, and the orphan gate
+- `OWNERSHIP.md` — who may edit what, and the hard rules around builds, boards and git
+- `docs/SIGNALS.md` — what each control signal is, who drives it, and how that was established
+- `docs/RETRACTED.md` — claims this repo once asserted that turned out to be wrong
+- `PAL/PROVENANCE.md` — how a PAL is proved faithful to its PALASM listing
+- `../DesignDocuments/PAL-Code/` — the PALASM listings (`SRC/`), the scans (`IMG/`, authoritative), and the 2026 transcription audit
 
 ## Testbench conventions
 
@@ -53,7 +75,7 @@ This keeps the test next to what it tests — no searching. Examples:
 
 ```bash
 # From WSL, cd to the module's sim/ directory
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_MIC/sim
+cd Verilog/DELILAH-CPU/CGA_MIC/sim
 
 # iverilog testbenches
 make test-masel          # run all MASEL tests
@@ -88,7 +110,7 @@ it** (stdin reading is intentionally disabled). This is the harness for
 signal-level debugging and for proving a refactor didn't change behaviour.
 
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 make clean
 make all            # compile + run + open GTKWave (waveform.fst + top_3202d.gtkw)
 make test_nd120     # compile only
@@ -111,7 +133,7 @@ link. The loop runs **indefinitely until you press Ctrl+C**. Defaults to
 loading `DEBUG.BPUN`; pass a different tape as the first argument.
 
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim
+cd Verilog/runSim
 make clean
 make compile
 make run                                # loads DEBUG.BPUN, gives you the console
@@ -138,6 +160,17 @@ The design uses different RAM sizes for Verilator simulation vs FPGA synthesis:
 
 The configuration is automatic based on compile-time defines in `MEM_RAM_49.v`. No manual changes needed.
 
+## Devices, addresses and disc geometry
+
+- `docs/device-address-map.md` - every ND-BUS device: octal IOX base, ident
+  code, interrupt level, module and backing image, plus the boot/mass-load
+  console commands.
+- `ND-BUS-DEVICES/README.md` - the bus handshake, IDENT cascade rules, and the
+  **Winchester vs SMD disc geometry** table (they are nearly the same size
+  with different geometries; mixing them up corrupts transfers silently).
+- `SD-FAT/CARD-LAYOUT.md` - what the SD card must look like: root directory
+  only, 8.3 names, length-exact matching.
+
 ## Supported hardware targets
 
 The same HDL source builds for one simulator and two FPGA boards. FPGA
@@ -148,12 +181,13 @@ per-target.
 | Target | Device | Toolchain | Status |
 |--------|--------|-----------|--------|
 | **Verilator** (reference) | — (simulation) | Verilator + GTKWave, Linux/WSL | **Works** — boots microcode, self-test clean (STERR=0), OPCOM UART |
-| [**Tang Nano 20K**](fpga/tang-nano-20k/README.md) *(primary FPGA)* | Gowin `GW2AR-18` (20,736 LUT4, 828 Kbit BSRAM, 8 MB SDRAM, 27 MHz) | Gowin EDA / OSS yosys+nextpnr (Linux-native) | Bring-up in progress |
-| [**Basys3**](fpga/basys3/README.md) | Xilinx Artix-7 `xc7a35tcpg236-1` (33,280 LUT6, ~1,800 Kbit BRAM, 100 MHz) | Vivado (Windows host) | Synthesis OK; **fails timing** (WNS approx -100 ns), does not boot |
+| [**Tang Nano 20K**](fpga/tang-nano-20k/README.md) *(primary FPGA)* | Gowin `GW2AR-18` (20,736 LUT4, 828 Kbit BSRAM, 8 MB SDRAM, 27 MHz) | Gowin EDA / OSS yosys+nextpnr (Linux-native) | **Boots SINTRAN III** (24-AUG-2026) - banner in 29.4 s, disc + SD/FAT stack proven on silicon |
+| [**Basys3**](fpga/basys3/README.md) | Xilinx Artix-7 `xc7a35tcpg236-1` (33,280 LUT6, ~1,800 Kbit BRAM, 100 MHz) | Vivado (Windows host) | Synthesis + bitstream OK; **fails timing** (WNS **-29.778 ns** at 16.667 MHz, measured 21-AUG-2026). OPCOM boots on the board; the OS does not |
 
-**Current FPGA focus is the Tang Nano 20K** - faster Gowin synthesis than Vivado,
+**The Tang Nano 20K is the working machine** - faster Gowin synthesis than Vivado,
 a Linux-native OSS toolchain, and 8 MB SDRAM that lets the FPGA run the full
-memory config like the simulator. Basys3 is the second target once Tang works.
+memory config like the simulator. It has booted SINTRAN III since 24-AUG-2026.
+The Xilinx boards are the second target and neither meets timing yet.
 
 ### Verilator (simulation — the working reference)
 
@@ -174,7 +208,7 @@ The repo lives on `E:`; the Vivado project is outside the repo at
 `F:/Xilinx/ND120/ND3202D/`. Run from **Windows PowerShell**:
 
 ```powershell
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\basys3
+cd Verilog/fpga/basys3
 
 # Synthesize + implement + write bitstream (~1h full synth; copies microcode hex first)
 .\vivado_build.ps1
@@ -236,6 +270,10 @@ Key shared facts:
 - Per-target compile-time defines: [`docs/build-defines.md`](docs/build-defines.md).
 - Expected boot sequence for validation: [`docs/boot-golden-spec.md`](docs/boot-golden-spec.md).
 - Overall plan: [`FPGA-BRINGUP-PLAN.md`](FPGA-BRINGUP-PLAN.md).
+- All design docs, handoffs, and plans are indexed in [`docs/README.md`](docs/README.md);
+  the ND-100 bus protocol (IOX / IDENT / DMA) is written up in
+  [`docs/nd100-bus-dma.md`](docs/nd100-bus-dma.md) with a slide deck at
+  [`docs/nd100-bus-deck.pptx`](docs/nd100-bus-deck.pptx).
 
 ## Verilog code status
 

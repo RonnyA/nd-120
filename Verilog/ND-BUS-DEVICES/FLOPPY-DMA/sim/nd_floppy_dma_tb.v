@@ -66,7 +66,7 @@ module nd_floppy_dma_tb;
       .BINT10_n(bint10_n), .BINT11_n(bint11_n),
       .BINT12_n(bint12_n), .BINT13_n(bint13_n),
       .iox_addr(iox_addr), .iox_wr(iox_wr), .iox_wdata(iox_wdata),
-      .iox_rd(iox_rd), .iox_rdata(iox_rdata),
+      .iox_rd(iox_rd), .iox_rdata(iox_rdata), .iox_hit(1'b1),
       .int_pending(intp),
       .ident_strobe(ident_strobe), .ident_level(ident_level),
       .ident_hit(ident_hit), .ident_code(ident_code)
@@ -106,6 +106,10 @@ module nd_floppy_dma_tb;
   wire [1:0]  disk_format, disk_drive;
   wire [10:0] disk_wordcount;
   reg         disk_done = 0, disk_err_in = 0;
+  // WHY the backend failed (SD-FAT/circuit/nd_storage_status.vh). 0 = NONE;
+  // this bench drives disk_err_in by hand, so a specific reason is not the
+  // point here - the mapping itself is proven in the adapter benches.
+  reg [3:0]   disk_err_code = 4'd0;
   // media descriptor for the 1.2MB image: 1024 B/s + DS + DD = 017
   reg  [3:0]  disk_media_fmt = 4'b1111;
   reg  [9:0]  dbuf_addr = 0;
@@ -134,6 +138,7 @@ module nd_floppy_dma_tb;
       .disk_lsect(disk_lsect), .disk_format(disk_format),
       .disk_drive(disk_drive), .disk_wordcount(disk_wordcount),
       .disk_done(disk_done), .disk_err_in(disk_err_in),
+      .disk_err_code(disk_err_code),
       .disk_media_fmt(disk_media_fmt),
       .dbuf_addr(dbuf_addr), .dbuf_wdata(dbuf_wdata), .dbuf_we(dbuf_we),
       .dbuf_rdata(dbuf_rdata)

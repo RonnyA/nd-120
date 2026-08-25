@@ -1,0 +1,29 @@
+# FILSYS LIST-FILE-NAMES regression (the 24-AUG-2026 runaway repro).
+# Assumes a freshly reset board at the OPCOM '#' prompt.
+FAILON o update and check directories
+LABEL boot FILSYS from tape
+SEND 400&
+EXPECT 40 File System Investigator
+EXPECT 10 Device name
+SEND FLOPPY-DISC-1
+SENDCR
+EXPECT 10 Device unit
+SEND 0
+SENDCR
+EXPECT 20 Total no\. of disk pages is 001150
+EXPECT 10 >
+LABEL LIST-FILE-NAMES bare-CR answer (the 20-second repro)
+SEND LIST-FILE-NAMES
+SENDCR
+EXPECT 10 User no\.
+SENDCR
+EXPECT 60 0041 UNIVERS-DMA-C02
+EXPECT 10 >
+LABEL prompt must be idle (no runaway reprint)
+QUIET 8
+LABEL LIST-USERS still healthy
+SEND LIST-USERS
+SENDCR
+EXPECT 20 FLOPPY-USER
+EXPECT 10 >
+QUIET 5

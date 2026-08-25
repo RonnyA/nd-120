@@ -1,8 +1,8 @@
 # Basys3 SD-FAT test - SD-card Pmod on JB (top-right connector)
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/basys3/sd-fat-test/`
+**Full path:** `Verilog/fpga/basys3/sd-fat-test/`
 **Date:** 13-JUL-2026. Basys3 port of the hardware-proven Tang Nano 20K
-SD-FAT test (`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/sd-fat-test/`).
+SD-FAT test (`Verilog/fpga/tang-nano-20k/sd-fat-test/`).
 The test design and all SD/FAT RTL are reused unchanged from
 `Verilog/SD-FAT/circuit/` and the Tang `sd-fat-test/src/`; only this thin
 wrapper (MMCM + pins) is Basys3-specific.
@@ -17,9 +17,9 @@ wrapper (MMCM + pins) is Basys3-specific.
    reference manual).
 2. Card: same recipe as the Tang test - FAT32 stick with `BOOT.BPUN`,
    pre-created `TEST.TXT` and `IO.DAT` (see
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/sd-fat-test/README.md`
+   `Verilog/fpga/tang-nano-20k/sd-fat-test/README.md`
    for the exact card preparation and the WRITE-PATH SAFETY POLICY in
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/README.md`).
+   `Verilog/SD-FAT/README.md`).
 3. USB cable to the Basys3 micro-B (J4): serial console at **9600 8N1**
    (same FT2232 COM port as JTAG). Menu prompt `#`: 1=LIST, 2=DUMP,
    3=COPY, 4=WRBLK1, speed tests, H=help.
@@ -29,7 +29,7 @@ wrapper (MMCM + pins) is Basys3-specific.
 ## Build + program (Windows host with Vivado)
 
 ```
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\basys3\sd-fat-test
+cd Verilog/fpga/basys3/sd-fat-test
 vivado -mode batch -source build.tcl              # build + JTAG program
 vivado -mode batch -source build.tcl -tclargs -noburn   # build only
 ```
@@ -67,7 +67,7 @@ Bitstream: `basys3_sd_fat.bit` in this directory (volatile JTAG load, like
 - After bring-up, eyeball the synthesis log for the `sd_cmd`/`sd_dat*`
   IOBUF inferences (Vivado handles the top-level ternary tristates
   correctly, unlike the yosys collapse documented in
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/sd-fat-test/sim/check_tristate.py`
+  `Verilog/fpga/tang-nano-20k/sd-fat-test/sim/check_tristate.py`
   - verify, don't assume).
 
 ## Scope
@@ -77,4 +77,4 @@ NOT bring `nd_storage` (the ND-120 disk-image cache) to the Basys3: that
 architecture preloads images into the Tang's 8 MB SDRAM, and the Basys3
 has no external RAM. Basys3 ND-120 storage needs the tag-based-cache mode
 (storage plan Phase 4) or a UART sector-server - see
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/usb-storage-options.md`.
+`Verilog/docs/usb-storage-options.md`.

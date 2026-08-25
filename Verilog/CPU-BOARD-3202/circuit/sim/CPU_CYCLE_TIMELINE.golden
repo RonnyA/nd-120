@@ -1,0 +1,158 @@
+== microcycle timelines ==
+(1 = signal ASSERTED, active-low pins shown already inverted)
+
+---- cycle: NORMAL (no SHORT, no SLOW) ----
+     CC  TERM MCLK MACLK ALUCLK CLK WRFSTB CYD EORF UCLK ETRAP MAP | ECSL EWCA EUPP ELOW WICA WCSTB
+   0000    0    0     0      0    0     0     0   0    0     0    0 |   0    0    0    1    0     0
+   0001    0    0     0      0    0     1     0   0    0     1    0 |   0    0    0    1    0     0
+   0011    0    0     0      0    0     0     0   0    1     1    0 |   0    0    0    1    0     0
+   0010    0    0     0      0    0     0     1   1    0     1    0 |   0    0    0    1    0     0
+   0110    0    0     0      0    0     0     1   0    0     1    0 |   0    0    0    1    0     0
+   0111    0    0     0      0    0     0     1   0    0     1    0 |   0    0    0    1    0     0
+   0101    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   0100    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1100    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1101    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1111    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1110    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1010    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1011    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1001    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1000    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   -> terminated after 16 states, in state CC=1000
+[ ok ] NORMAL : cycle terminates (no hang)
+
+---- cycle: SHORT ----
+     CC  TERM MCLK MACLK ALUCLK CLK WRFSTB CYD EORF UCLK ETRAP MAP | ECSL EWCA EUPP ELOW WICA WCSTB
+   0000    0    0     0      0    0     0     0   0    0     0    0 |   0    0    0    1    0     0
+   -> terminated after 1 states, in state CC=0000
+[ ok ] SHORT : cycle terminates (no hang)
+
+---- cycle: SLOW ----
+     CC  TERM MCLK MACLK ALUCLK CLK WRFSTB CYD EORF UCLK ETRAP MAP | ECSL EWCA EUPP ELOW WICA WCSTB
+   0000    0    0     0      0    0     0     0   0    0     0    0 |   0    0    0    1    0     0
+   0001    0    0     0      0    0     1     0   0    0     1    0 |   0    0    0    1    0     0
+   0011    0    0     0      0    0     0     0   0    1     1    0 |   0    0    0    1    0     0
+   0010    0    0     0      0    0     0     1   1    0     1    0 |   0    0    0    1    0     0
+   0110    0    0     0      0    0     0     1   0    0     1    0 |   0    0    0    1    0     0
+   0111    0    0     0      0    0     0     1   0    0     1    0 |   0    0    0    1    0     0
+   0101    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   -> terminated after 7 states, in state CC=0101
+[ ok ] SLOW : cycle terminates (no hang)
+
+---- cycle: FETCH ----
+     CC  TERM MCLK MACLK ALUCLK CLK WRFSTB CYD EORF UCLK ETRAP MAP | ECSL EWCA EUPP ELOW WICA WCSTB
+   0000    0    0     0      0    0     0     0   0    0     0    0 |   0    0    1    0    0     0
+   0001    0    0     0      0    0     1     0   0    0     1    0 |   0    0    1    0    0     0
+   0011    0    0     0      0    0     0     0   0    1     1    0 |   0    0    0    0    0     0
+   0010    0    0     0      0    0     0     1   1    0     1    0 |   0    0    0    0    0     0
+   0110    0    0     0      0    0     0     1   0    0     1    0 |   0    0    0    0    0     0
+   0111    0    0     0      0    0     0     1   0    0     1    0 |   0    0    0    0    0     0
+   0101    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    0    0     0
+   0100    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    0    0     0
+   1100    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    0    0     0
+   1101    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    0    0     0
+   1111    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    0    0     0
+   1110    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    0    0     0
+   1010    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    0    0     0
+   1011    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    0    0     0
+   1001    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    0    0     0
+   1000    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    0    0     0
+   -> terminated after 16 states, in state CC=1000
+[ ok ] FETCH : cycle terminates (no hang)
+
+---- cycle: FORM (drives the MAP term in PAL_44307C) ----
+     CC  TERM MCLK MACLK ALUCLK CLK WRFSTB CYD EORF UCLK ETRAP MAP | ECSL EWCA EUPP ELOW WICA WCSTB
+   0000    0    0     0      0    0     0     0   0    0     0    0 |   0    0    0    1    0     0
+   0001    0    0     0      0    0     1     0   0    0     1    0 |   0    0    0    1    0     0
+   0011    0    0     0      0    0     0     0   0    1     1    0 |   0    0    0    1    0     0
+   0010    0    0     0      0    0     0     1   1    0     1    0 |   0    0    0    1    0     0
+   0110    0    0     1      0    0     0     1   0    0     1    1 |   0    0    0    1    0     0
+   0111    0    0     1      0    0     0     1   0    0     1    1 |   0    0    0    1    0     0
+   0101    0    0     0      0    0     0     0   0    0     1    1 |   0    0    0    1    0     0
+   0100    0    0     0      0    0     0     0   0    0     1    1 |   0    0    0    1    0     0
+   1100    0    0     0      0    0     0     0   0    0     1    1 |   0    0    0    1    0     0
+   1101    0    0     0      0    0     0     0   0    0     1    1 |   0    0    0    1    0     0
+   1111    0    0     0      0    0     0     0   0    0     1    1 |   0    0    0    1    0     0
+   1110    0    0     0      0    0     0     0   0    0     1    1 |   0    0    0    1    0     0
+   1010    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1011    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1001    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1000    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   -> terminated after 16 states, in state CC=1000
+[ ok ] FORM : cycle terminates (no hang)
+
+---- cycle: TRAP ----
+     CC  TERM MCLK MACLK ALUCLK CLK WRFSTB CYD EORF UCLK ETRAP MAP | ECSL EWCA EUPP ELOW WICA WCSTB
+   0000    0    0     0      0    0     0     0   0    0     0    0 |   0    0    0    1    0     0
+   0001    0    0     0      0    0     1     0   0    0     1    0 |   0    0    0    1    0     0
+   0011    0    0     0      0    0     0     0   0    1     1    0 |   0    0    0    1    0     0
+   0010    0    0     1      0    0     0     1   1    0     1    0 |   0    0    0    1    0     0
+   0110    0    0     1      0    0     0     1   0    0     1    0 |   0    0    0    1    0     0
+   0111    0    0     0      0    0     0     1   0    0     1    0 |   0    0    0    1    0     0
+   0101    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   0100    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1100    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1101    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1111    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1110    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1010    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1011    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1001    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1000    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   -> terminated after 16 states, in state CC=1000
+[ ok ] TRAP : cycle terminates (no hang)
+
+---- cycle: RWCS read (TRA CS / control-store readback) ----
+     CC  TERM MCLK MACLK ALUCLK CLK WRFSTB CYD EORF UCLK ETRAP MAP | ECSL EWCA EUPP ELOW WICA WCSTB
+   0000    0    1     1      0    0     0     0   0    0     0    0 |   0    0    0    1    0     0
+   0001    0    1     1      0    0     1     0   0    0     1    0 |   0    0    0    1    0     0
+   0011    0    1     1      0    0     0     0   0    1     1    0 |   0    1    0    1    0     0
+   0010    0    1     1      0    0     0     1   1    0     1    0 |   0    1    0    1    0     0
+   0110    0    1     1      0    0     0     1   0    0     1    0 |   0    1    0    1    0     0
+   0111    0    1     1      0    0     0     1   0    0     1    0 |   0    1    0    1    0     0
+   0101    0    1     1      0    0     0     0   0    0     1    0 |   1    1    0    1    0     0
+   0100    0    1     1      0    0     0     0   0    0     1    0 |   1    1    0    1    0     0
+   1100    0    1     1      0    0     0     0   0    0     1    0 |   1    0    0    1    0     0
+   1101    0    1     1      0    0     0     0   0    0     1    0 |   1    0    0    1    0     0
+   1111    0    1     0      0    0     0     0   0    0     1    0 |   1    0    0    1    0     0
+   1110    0    1     0      0    0     0     0   0    0     1    0 |   1    0    0    1    0     0
+   1010    0    0     0      0    0     0     0   0    0     1    0 |   1    0    0    1    0     0
+   1011    0    0     0      0    0     0     0   0    0     1    0 |   1    0    0    1    0     0
+   1001    0    0     0      0    0     0     0   0    0     1    0 |   1    0    0    1    0     0
+   1000    0    0     0      0    0     0     0   0    0     1    0 |   1    0    0    1    0     0
+   -> terminated after 16 states, in state CC=1000
+[ ok ] RWCS : cycle terminates (no hang)
+
+---- cycle: LCS (microcode load) ----
+     CC  TERM MCLK MACLK ALUCLK CLK WRFSTB CYD EORF UCLK ETRAP MAP | ECSL EWCA EUPP ELOW WICA WCSTB
+   0000    0    0     0      0    0     0     0   0    0     0    0 |   0    0    0    1    0     0
+   0001    0    0     0      0    0     1     0   0    0     1    0 |   0    0    0    1    0     0
+   0011    0    0     0      0    0     0     0   0    1     1    0 |   0    0    0    1    0     0
+   0010    0    0     0      0    0     0     1   1    0     1    0 |   0    0    0    1    0     0
+   0110    0    0     0      0    0     0     1   0    0     1    0 |   0    0    0    1    0     0
+   0111    0    0     0      0    0     0     1   0    0     1    0 |   0    0    0    1    0     0
+   0101    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   0100    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1100    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1101    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1111    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1110    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1010    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     1
+   1011    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     1
+   1001    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   1000    0    0     0      0    0     0     0   0    0     1    0 |   0    0    0    1    0     0
+   -> terminated after 16 states, in state CC=1000
+[ ok ] LCS : cycle terminates (no hang)
+
+---- cycle: BRK (break) ----
+     CC  TERM MCLK MACLK ALUCLK CLK WRFSTB CYD EORF UCLK ETRAP MAP | ECSL EWCA EUPP ELOW WICA WCSTB
+   0000    0    0     0      0    0     0     0   0    0     0    0 |   0    0    0    1    0     0
+   0001    0    0     0      0    0     1     0   0    0     1    0 |   0    0    0    1    0     0
+   0011    0    0     0      0    0     0     0   0    1     1    0 |   0    0    0    1    0     0
+   0010    0    0     0      0    0     0     1   1    0     1    0 |   0    0    0    1    0     0
+   0110    0    0     0      0    0     0     1   0    0     1    0 |   0    0    0    1    0     0
+   0111    0    0     0      0    0     0     1   0    0     1    0 |   0    0    0    1    0     0
+   -> terminated after 6 states, in state CC=0111
+[ ok ] BRK : cycle terminates (no hang)
+

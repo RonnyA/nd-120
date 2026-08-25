@@ -61,13 +61,20 @@ cd "$(dirname "$0")"
 TAPE_BYTES=3001
 FLP_BYTES=4096
 FRAG_BYTES=2048
+# WD0.IMG: the Winchester client (client 6). It is a CACHED client
+# (CACHE_MASK bit 6), and until 08-AUG-2026 NO card-image testbench ever
+# opened a cached client through the real mount - every full-stack read here
+# was tape or floppy, both DIRECT. 16384 bytes = 8 blocks, several clusters,
+# enough to walk the FAT for a later block while block 0 needs no hop.
+WD_BYTES=16384
 IMG=nds_storage.img
 
-python3 - "$TAPE_BYTES" "$FLP_BYTES" "$FRAG_BYTES" <<'EOF'
+python3 - "$TAPE_BYTES" "$FLP_BYTES" "$FRAG_BYTES" "$WD_BYTES" <<'EOF'
 import sys
 tape_n = int(sys.argv[1])
 flp_n = int(sys.argv[2])
 frag_n = int(sys.argv[3])
+wd_n = int(sys.argv[4])
 with open("nds_tape.bin", "wb") as f:
     f.write(bytes(((k % 256) + 37 * ((k // 256) % 256) + 129) % 256
                   for k in range(tape_n)))
@@ -77,6 +84,9 @@ with open("nds_flp1.bin", "wb") as f:
 with open("nds_frag.bin", "wb") as f:
     f.write(bytes(((k % 256) + 53 * ((k // 256) % 256) + 201) % 256
                   for k in range(frag_n)))
+with open("nds_wd0.bin", "wb") as f:
+    f.write(bytes(((k % 256) + 61 * ((k // 256) % 256) + 83) % 256
+                  for k in range(wd_n)))
 EOF
 
 # 4 MB sparse FAT16, 1 sector/cluster (~8000 clusters: a REAL FAT16),
@@ -87,6 +97,7 @@ mkfs.vfat -F 16 -s 1 -r 112 -n NDSTOR "$IMG" > /dev/null
 
 mcopy -i "$IMG" nds_tape.bin ::TAPE.BPUN
 mcopy -i "$IMG" nds_flp1.bin ::FLOPPY1.IMG
+mcopy -i "$IMG" nds_wd0.bin ::WD0.IMG
 # FLOPPY2.IMG intentionally not created
 mcopy -i "$IMG" nds_frag.bin ::FRAG.IMG
 
@@ -205,8 +216,9 @@ for i in range(rootn):
         die("entry %r no longer contiguous - refusing to emit"
             % bytes(data[off:off + 11]))
     others += 1
-if others != 2:
-    die("expected 2 other files (TAPE.BPUN, FLOPPY1.IMG), found %d" % others)
+if others != 3:
+    die("expected 3 other files (TAPE.BPUN, FLOPPY1.IMG, WD0.IMG), found %d"
+        % others)
 
 open(img_path, "wb").write(data)
 print("make_storage_image.sh: FRAG.IMG fragmented OK (chain %s -> %s)"
@@ -224,7 +236,7 @@ if ! fsck.vfat -n "$IMG" > /dev/null; then
     exit 1
 fi
 
-echo "make_storage_image.sh: built $IMG (TAPE.BPUN=$TAPE_BYTES B, FLOPPY1.IMG=$FLP_BYTES B, FLOPPY2.IMG absent, FRAG.IMG=$FRAG_BYTES B fragmented)"
+echo "make_storage_image.sh: built $IMG (TAPE.BPUN=$TAPE_BYTES B, FLOPPY1.IMG=$FLP_BYTES B, FLOPPY2.IMG absent, WD0.IMG=$WD_BYTES B, FRAG.IMG=$FRAG_BYTES B fragmented)"
 
 ###############################################################################
 # Second image for the step-6 Verilator system gate (SD-FAT/sim target
@@ -347,3 +359,150 @@ if ! fsck.vfat -n "$IMG_FULL" > /dev/null; then
 fi
 
 echo "make_storage_image.sh: built $IMG_FULL (TAPE.BPUN=$TAPE_BYTES B, FLOPPY1.IMG=$FLP1_FULL_BYTES B, FLOPPY2.IMG=$FLP2_BYTES B, SMD0.IMG absent)"
+
+###############################################################################
+# Third image for the error-code testbench (nd_storage_errors_tb.v, targets
+# test-nds-errors / test-nds-errors-fatchain):
+#
+#   nds_badfat.img  4 MB FAT16, same recipe, containing
+#                     FLOPPY1.IMG  4096 bytes, CONTIGUOUS and intact (the
+#                                  control: every error case must be able to
+#                                  prove the stack still succeeds normally)
+#                     BADFAT.IMG   4096 bytes, then DELIBERATELY BROKEN: the
+#                                  FAT entry of its SECOND cluster is set to
+#                                  0x0000 (free) in both FAT copies, so a
+#                                  chain walk hits a free cluster (at hop 2
+#                                  of the 8 the size demands) before it
+#                                  reaches the target sector. That is the one
+#                                  and only way to reach nd_storage_engine.v's
+#                                  NDS_ERR_FATCHAIN arm - a fabricated c_err
+#                                  input would prove nothing about the engine.
+#
+# TAPE.BPUN is deliberately ABSENT here (the missing-file NDS_ERR_NOTOPEN
+# case reads through client 0).
+#
+# This image is BROKEN ON PURPOSE, so - unlike the other two - it is NOT
+# handed to fsck.vfat: fsck would rightly reject it. What IS verified is
+# that the damage is exactly the damage intended (FLOPPY1.IMG still walks
+# clean, BADFAT.IMG's walk dies at hop 1 on a free cluster) - otherwise the
+# image is deleted and the script exits 1, because a testbench that passes
+# against an accidentally-healthy image proves nothing.
+#
+# The engine's own fatchk contiguity gate (SDFAT_STORAGE_CHECK) would refuse
+# to OPEN BADFAT.IMG, which is a different (and also correct) failure. The
+# fatchain target therefore compiles the testbench with -DSDFAT_NO_CHECK so
+# the request reaches the engine's per-request FAT walk.
+###############################################################################
+
+BADFAT_BYTES=4096
+IMG_BAD=nds_badfat.img
+
+python3 - "$BADFAT_BYTES" <<'EOF'
+import sys
+n = int(sys.argv[1])
+with open("nds_badfat.bin", "wb") as f:
+    f.write(bytes(((k % 256) + 71 * ((k // 256) % 256) + 19) % 256
+                  for k in range(n)))
+EOF
+
+rm -f "$IMG_BAD"
+dd if=/dev/zero of="$IMG_BAD" bs=1M count=0 seek=4 status=none
+mkfs.vfat -F 16 -s 1 -r 112 -n NDSBAD "$IMG_BAD" > /dev/null
+
+mcopy -i "$IMG_BAD" nds_flp1.bin   ::FLOPPY1.IMG
+mcopy -i "$IMG_BAD" nds_badfat.bin ::BADFAT.IMG
+# TAPE.BPUN intentionally not created (the missing-file case)
+
+if ! python3 - "$IMG_BAD" <<'EOF'
+import struct, sys
+
+img_path = sys.argv[1]
+data = bytearray(open(img_path, "rb").read())
+
+bps    = struct.unpack_from("<H", data, 11)[0]
+spc    = data[13]
+rsvd   = struct.unpack_from("<H", data, 14)[0]
+nfats  = data[16]
+rootn  = struct.unpack_from("<H", data, 17)[0]
+spf    = struct.unpack_from("<H", data, 22)[0]
+fat0   = rsvd
+fat1   = rsvd + spf
+root_s = rsvd + nfats * spf
+
+def die(msg):
+    sys.stderr.write("make_storage_image.sh: BADFAT surgery FAILED: %s\n" % msg)
+    sys.exit(1)
+
+def fat_get(c):
+    return struct.unpack_from("<H", data, fat0 * bps + c * 2)[0]
+
+def fat_set(c, v):
+    for base in (fat0, fat1):
+        struct.pack_into("<H", data, base * bps + c * 2, v)
+
+def dirent(name83):
+    for i in range(rootn):
+        off = root_s * bps + i * 32
+        if data[off] in (0x00, 0xE5):
+            continue
+        if data[off:off + 11] == name83:
+            return off
+    return None
+
+def walk(first, size):
+    """Walk the chain; return (chain, 'ok') or (partial, 'died at hop N')."""
+    n = (size + spc * bps - 1) // (spc * bps)
+    chain, c = [], first
+    while len(chain) < n:
+        chain.append(c)
+        c = fat_get(c)
+        if len(chain) < n and (c < 2 or c >= 0xFFF7):
+            return chain, "died at hop %d (entry 0x%04X)" % (len(chain), c)
+    return chain, "ok" if c >= 0xFFF7 else "no end-of-chain (0x%04X)" % c
+
+ent = dirent(b"BADFAT  IMG")
+if ent is None:
+    die("BADFAT.IMG root entry not found")
+first = struct.unpack_from("<H", data, ent + 26)[0]
+size  = struct.unpack_from("<I", data, ent + 28)[0]
+
+chain, verdict = walk(first, size)
+if verdict != "ok":
+    die("BADFAT.IMG was already broken before surgery: %s" % verdict)
+if len(chain) < 3:
+    die("need >= 3 clusters to break, got %d" % len(chain))
+
+# Free the SECOND cluster. The walk appends chain[0], reads FAT[chain[0]]
+# (still intact, so it appends chain[1]), then reads FAT[chain[1]] = 0x0000
+# and stops - i.e. it dies at hop 2, having produced 2 of the 8 clusters the
+# directory size demands. That is exactly the "chain ended before the target
+# block" condition nd_storage_engine.v reports as NDS_ERR_FATCHAIN.
+fat_set(chain[1], 0x0000)
+
+chain2, verdict2 = walk(first, size)
+if verdict2 != "died at hop 2 (entry 0x0000)":
+    die("BADFAT.IMG did not break as intended: %s" % verdict2)
+
+# the control file MUST still be intact - otherwise a passing testbench
+# would only prove that everything fails
+good = dirent(b"FLOPPY1 IMG")
+if good is None:
+    die("FLOPPY1.IMG root entry not found")
+gfirst = struct.unpack_from("<H", data, good + 26)[0]
+gsize  = struct.unpack_from("<I", data, good + 28)[0]
+gchain, gverdict = walk(gfirst, gsize)
+if gverdict != "ok":
+    die("control file FLOPPY1.IMG is damaged too: %s" % gverdict)
+if not all(gchain[i + 1] == gchain[i] + 1 for i in range(len(gchain) - 1)):
+    die("control file FLOPPY1.IMG is not contiguous")
+
+open(img_path, "wb").write(data)
+print("make_storage_image.sh: BADFAT.IMG broken OK (chain %s, now %s; "
+      "control FLOPPY1.IMG intact at %s)" % (chain, verdict2, gchain))
+EOF
+then
+    rm -f "$IMG_BAD"
+    exit 1
+fi
+
+echo "make_storage_image.sh: built $IMG_BAD (FLOPPY1.IMG=$FLP_BYTES B intact, BADFAT.IMG=$BADFAT_BYTES B chain broken at hop 2, TAPE.BPUN absent)"

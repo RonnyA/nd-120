@@ -112,6 +112,24 @@ module BIF_DPATH_BDLBD_10_tb;
     @(negedge sysclk);
     check_eq(bd_n_out, ~24'o00070707, "BD_n_OUT back after EBD_n");
 
+    // ---- 7. DIR gating of the A side (the read half of a bus cycle) ----
+    // A 74AS648 drives its A pins only when OE~ is LOW **and** DIR selects
+    // B->A. Steps 1 and 2 above already sat in ebd_n=0, wbd_n=1 but only ever
+    // checked lbd_out, so this state was completely unguarded - and the RTL
+    // published 24'h000000 there, which on this ACTIVE-LOW wired-AND net is
+    // the BIF asserting all 24 BD lines instead of releasing them. Devices on
+    // the ND bus latch ~BD_23_0_n_OUT as the bus address, so they saw
+    // 24'hFFFFFF for the whole window. Found by a drawing audit 11-AUG-2026.
+    @(negedge sysclk); wbd_n = 1;              // A->B: the A drivers are OFF
+    @(negedge sysclk);
+    check_eq(bd_n_out, ~24'b0, "WBD_n=1 releases BD_n_OUT to ones");
+    @(negedge sysclk); bd_n_in = ~24'o00011111;  // bus traffic must not leak
+    @(negedge sysclk);
+    check_eq(bd_n_out, ~24'b0, "still released while BD_n moves");
+    @(negedge sysclk); wbd_n = 0;              // B->A again: drivers back on
+    @(negedge sysclk);
+    check_eq(bd_n_out, ~24'o00070707, "BD_n_OUT back after WBD_n");
+
     $display("checks=%0d errors=%0d", checks, errors);
     if (errors == 0) $display("TB_RESULT: PASS");
     else             $display("TB_RESULT: FAIL");

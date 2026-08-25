@@ -1,6 +1,6 @@
 # TODO: pack16 SRAM bridge for the Cmod A7 (512 KB main memory at 27-33 MHz)
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/cmod-a7-35t/SRAM-BRIDGE-PLAN.md`
+**Full path:** `Verilog/fpga/cmod-a7-35t/SRAM-BRIDGE-PLAN.md`
 **Date:** 13-JUL-2026. Status: PLANNED, not started. The first-version Cmod
 build (`build.tcl` in this directory) uses BRAM main memory; this plan
 upgrades it to the on-board 512 KB SRAM = **256K ND words**, 4-8x the BRAM
@@ -8,7 +8,7 @@ ceiling.
 
 ## 0. Why pack16 is mandatory (validated 13-JUL-2026)
 
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/basys3-memory-speed-validation.md`
+`Verilog/docs/basys3-memory-speed-validation.md`
 section 4.3 invalidated the originally recorded plan (~4 byte-accesses per
 18-bit word): the protocol budget is **3 OSC cycles from column-known
 (N+1) to data-valid (start of N+4)**, no wait states possible, so a
@@ -17,7 +17,7 @@ viable shape is **pack16**: store the 16 DATA bits as 2 bytes, drop the 2
 parity bits, regenerate parity on the read path (odd parity, AM29833A
 convention) - the exact contract already proven on the Tang
 (`ND_SDRAM_PACK16`, semantics pinned by
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd120-parity-analysis.md`:
+`Verilog/docs/nd120-parity-analysis.md`:
 the self-test never reads stored parity; runtime uses only the PES/PEA/IIC
 error machinery).
 
@@ -41,10 +41,10 @@ on the Cmod's dedicated short traces. At the build's 27 MHz
 
 ## 2. Bridge design (MEM_RAM_49_SRAM.v, sheet-49 backend)
 
-New file `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/cmod-a7-35t/MEM_RAM_49_SRAM.v`
+New file `Verilog/fpga/cmod-a7-35t/MEM_RAM_49_SRAM.v`
 implementing the sheet-49 contract (same interface as
 `MEM_RAM_49_BLOCKRAM` / `MEM_RAM_49_SDRAM`; the contract table is in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd120-dram-memory.md` section 1),
+`Verilog/docs/nd120-dram-memory.md` section 1),
 selected in `MEM_43.v` by a new define **`MAIN_RAM_SRAM`** in the existing
 backend chain (`MAIN_RAM_SDRAM` / `MAIN_RAM_BLOCKRAM` / `VERILATOR_SIM` /
 default - add the new arm, everything else untouched).
@@ -101,9 +101,9 @@ report absent (read 0, writes dropped), boot sizing shrinks accordingly.
 3. `nd120_cmod_top.v` + `nd120_cmod.xdc` - add the 30 SRAM pins from
    `Cmod-A7-Master.xdc` (uncomment/rename), pass through the wrapper.
 4. **Testbench BEFORE hardware** (registered in
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/run_all_tests.sh`,
+   `Verilog/tests/run_all_tests.sh`,
    `TB_RESULT: PASS`): protocol-replay tb mirroring
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/sdram-bridge/sim/mem_ram_49_sdram_tb.v`
+   `Verilog/fpga/tang-nano-20k/sdram-bridge/sim/mem_ram_49_sdram_tb.v`
    (measured 6-cycle access signature, late-N+4/N+5 sampling, adjacent-word
    independence, bad-parity absorption, partition boundary, 2000-access
    soak) plus a behavioral IS61WV model with real tAA delay so the

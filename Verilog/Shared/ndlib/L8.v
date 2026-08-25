@@ -40,10 +40,30 @@ module L8 (
     output QG,
     output QGN,
     output QH,
-    output QHN
+    output QHN,
+
+    // Registered-value taps (21-AUG-2026): the stored value WITHOUT the
+    // FF-mode transparent bypass mux (L ? D : reg). Combinational-loop cut
+    // for IDB readback paths - see CGA_MAC_SEGPT_PCR. In latch mode reg8bit
+    // updates combinationally while L is high, so the tap equals the
+    // transparent output there; only FF mode behaves differently (the tap
+    // lags the bypass by one sysclk during the load window). Leave
+    // unconnected everywhere the transparent output is the wanted one.
+    output QA_R,
+    output QB_R,
+    output QC_R,
+    output QD_R,
+    output QE_R,
+    output QF_R,
+    output QG_R,
+    output QH_R
 );
 
 reg [7:0] reg8bit;
+
+assign {QA_R, QB_R, QC_R, QD_R, QE_R, QF_R, QG_R, QH_R} =
+       {reg8bit[0], reg8bit[1], reg8bit[2], reg8bit[3],
+        reg8bit[4], reg8bit[5], reg8bit[6], reg8bit[7]};
 
 `ifdef USE_TRANSPARENT_LATCHES
 assign QA=reg8bit[0]; assign QAN=~reg8bit[0];

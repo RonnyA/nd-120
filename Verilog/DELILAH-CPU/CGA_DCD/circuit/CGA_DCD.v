@@ -56,7 +56,16 @@ module CGA_DCD (
     output LDLCN,            //! Load LCN
     output LDPILN,           //! Load PIL negated
     output LWCAN,            //! Latch WCA negated
-    output VACCN,            //! Violation access negated
+    // VACCN - active-low VACC. VACC marks the cycle as a MEMORY REFERENCE THAT
+    // GOES THROUGH THE MMU: the page table is addressed and its status bits are
+    // evaluated for this access. It is the qualifier on every memory-protect
+    // trap term (page fault, ring violation, WIP, PGU) in CGA_TRAP, and it is
+    // the load enable of the PGS register in CGA_IDBCTL_PGSREG, so PGS holds
+    // the last logical address latched while VACC was high. Generated on sheet
+    // 10/10 (drawing page 75) - see the block comment at "Signal VACCN" below
+    // for the exact decode. Name expansion is INFERRED as "Valid ACCess"; the
+    // drawing gives no expansion, only the logic.
+    output VACCN,            //! Valid access negated (see block comment, sheet 10/10)
     output WRITEN,           //! Write enable negated
     output WRTRF,            //! Write TRF
     output XFETCHN           //! XFETCH negated
@@ -131,10 +140,14 @@ module CGA_DCD (
   wire       s_csmreq6;
   wire       s_dstop_n_out;
   wire       s_dstopn_group;
-  wire       s_dvacc_n;
-  wire       s_dvacc1;
-  wire       s_dvacc2;
-  wire       s_dvacc3;
+  // DVACC chain - see the big block comment at "Signal VACCN" (sheet 10/10).
+  // s_dvacc1..3 are NAND outputs: each goes LOW when its condition holds, and
+  // each condition INHIBITS VACC. s_dvacc_n is the registered permit line and
+  // must be HIGH for VACC to rise.
+  wire       s_dvacc_n;  // Q-bar of MEMORY_100. High = no inhibit term active = VACC permitted this cycle.
+  wire       s_dvacc1;   // low when paging is OFF (PONI_n high) and the control store is not being loaded (LCS_n high)
+  wire       s_dvacc2;   // low on CSCOMM 0o34 or 0o35 (C4.C3.C2 = 111, C1 = 0, C0 don't-care) with CSMIS 3, no VEX, no LCS  -> drawing labels 34.3, 35.3
+  wire       s_dvacc3;   // low on CSCOMM 0o37 (all five bits 1) with CSMIS 2 or 3 (CSMIS bit 0 don't-care), no LCS. No VEX input on this gate. -> labels 37.2, 37.3
   wire       s_emcl_n;
   wire       s_epcr_n_group;
   wire       s_epcr_n_out;
@@ -219,11 +232,11 @@ module CGA_DCD (
   wire       s_poni;
   wire       s_sgr;
   wire       s_sioc_n;
-  wire       s_dvacc_n_group;
-  wire       s_vacc_n_out;
-  wire       s_vacc;
-  wire       s_vacc1;
-  wire       s_vacc2;
+  wire       s_dvacc_n_group;  // D input of MEMORY_100: the three inhibit conditions OR'd together (all three OR inputs are bubbled). High = inhibit.
+  wire       s_vacc_n_out;     // ~s_vacc, driven out on the VACCN port
+  wire       s_vacc;           // VACC: this cycle is an MMU-translated memory reference (page table addressed, its status bits evaluated)
+  wire       s_vacc1;          // NAND, low when all six stage-2 terms hold with FETCH_n
+  wire       s_vacc2;          // NAND, low when all six stage-2 terms hold with INTRQ_n; OR'd with s_vacc1 through bubbled inputs
   wire       s_vex_n;
   wire       s_vex;
   wire       s_wp_n;
@@ -1594,13 +1607,79 @@ module CGA_DCD (
 
   /*** Signal VACCN ****/
   /*** Input: ICSCOMM ***/
+  //
+  // VACC - "this cycle is a memory reference that goes through the MMU".
+  // Two stages, exactly as drawn on page 75:
+  //
+  //   stage 1  the three INHIBIT terms -> OR -> D flip-flop on MCLK
+  //   stage 2  the permit line from that flip-flop, gated by the bus conditions
+  //            of this cycle, produces VACC
+  //
+  // POLARITY - read this before changing anything here. GATES_75/76/78 are
+  // NAND gates, so each output goes LOW when its condition holds. GATES_77 ORs
+  // them with ALL THREE INPUTS BUBBLED, so the flip-flop's D input is HIGH when
+  // ANY condition holds. The flip-flop's Q-bar feeds stage 2, and GATES_81/82
+  // require it HIGH. So every one of the three conditions BLOCKS VACC; none of
+  // them enables it. Written out:
+  //
+  //   VACC-permitted = NOT( paging-off-term OR 34.3/35.3-term OR 37.2/37.3-term )
+  //
+  // The gate labels on the drawing (34.3 / 35.3 / 37.2 / 37.3) are CSCOMM.CSMIS
+  // microcode command values - they name exactly which microcode commands hit
+  // these terms, and are the golden specification for the decode:
+  //
+  //   GATES_75  low when  PONI_n & LCS_n
+  //                       i.e. paging is OFF and the control store is not being
+  //                       loaded. THIS IS THE ONE THAT MATTERS FOR PGS: with
+  //                       paging off, VACC cannot rise at all, so the PGS
+  //                       register holds whatever address it last captured.
+  //   GATES_76  low when  CSCOMM 0o34 or 0o35 & CSMIS 3 & VEX_n & LCS_n
+  //                       0o34 = 11100 and 0o35 = 11101 differ only in bit 0,
+  //                       so the gate decodes C4.C3.C2 = 111 with C1 = 0 and no
+  //                       C0 input at all. Six decode terms in an 8-input gate
+  //                       leaves exactly two qualifiers: VEX_n and LCS_n.
+  //                                                            -> labels 34.3, 35.3
+  //   GATES_78  low when  CSCOMM 0o37 & CSMIS 2 or 3 & LCS_n
+  //                       0o37 = 11111, so all five CSCOMM bits are decoded;
+  //                       CSMIS 2 and 3 differ only in bit 0, so only CSMIS bit 1
+  //                       is decoded. Six decode terms in a 7-input gate leaves
+  //                       exactly ONE qualifier - LCS_n. THERE IS NO VEX INPUT
+  //                       ON THIS GATE, unlike GATES_76.
+  //                                                            -> labels 37.2, 37.3
+  //   GATES_77  ORs the three (bubbled inputs), MEMORY_100 registers that on
+  //             MCLK, and s_dvacc_n is its Q-bar = the permit line.
+  //
+  // Stage 2 (GATES_81 / GATES_82 / GATES_1, further down this sheet):
+  //
+  //   VACC = permit & LSHADOW_n & MREQ & EMCL_n & VEX_n & (FETCH_n | INTRQ_n)
+  //
+  //   LSHADOW_n  not a shadow-memory (page table) access - those bypass the MMU
+  //   MREQ       a memory request is actually asserted this cycle
+  //   EMCL_n     not master clear
+  //   VEX_n      not a VEX access
+  //   FETCH_n | INTRQ_n  the two NANDs differ only in this last input and are
+  //              OR'd, so only ONE of the two has to be inactive. VACC is
+  //              blocked by this pair only when FETCH and INTRQ are BOTH active
+  //              at once; an ordinary instruction fetch still raises VACC.
+  //
+  // Who consumes VACC:
+  //   CGA_TRAP      qualifies every memory-protect trap term (page fault,
+  //                 ring violation, WIP, PGU) - see CGA_TRAP_TVGEN.v
+  //   CGA_IDBCTL_PGSREG  load enable (TE) of the PGS register, so PGS = the
+  //                 last LA_21_10 latched while VACC was high
+  //   CGA_TESTMUX   VACC_n is readable on the test multiplexer
+  //
+  // NOT the same signal: the board-level DVACC_n on ND3202D (into CPU_15 and
+  // CPU_MMU_24) is generated independently by the decoder gate array, in
+  // DECODE_DGA_COMM.v flip-flop A227 on CLK2. Same name, different net - do not
+  // reason about one from the other.
 
   NAND_GATE #(
       .BubblesMask(2'b00)
   ) GATES_75 (
       .input1(s_poni_n),
       .input2(s_lcs_n),
-      .result(s_dvacc1)   // ping + ilcs
+      .result(s_dvacc1)   // low = paging off and no control-store load -> inhibits VACC
   );
 
   NAND_GATE_8_INPUTS #(
@@ -1614,7 +1693,7 @@ module CGA_DCD (
       .input6(s_icsmis_1_0[0]),
       .input7(s_vex_n),
       .input8(s_lcs_n),
-      .result(s_dvacc2)  // 34.3, 35.3
+      .result(s_dvacc2)  // low = CSCOMM.CSMIS 34.3 or 35.3 -> inhibits VACC
   );
 
 
@@ -1629,7 +1708,7 @@ module CGA_DCD (
       .input5(s_icscomm_4_0[0]),
       .input6(s_icsmis_1_0[1]),
       .input7(s_lcs_n),
-      .result(s_dvacc3)  // 37.2, 37.3
+      .result(s_dvacc3)  // low = CSCOMM.CSMIS 37.2 or 37.3 -> inhibits VACC
   );
 
   OR_GATE_3_INPUTS #(
@@ -1638,7 +1717,7 @@ module CGA_DCD (
       .input1(s_dvacc1),
       .input2(s_dvacc2),
       .input3(s_dvacc3),
-      .result(s_dvacc_n_group)
+      .result(s_dvacc_n_group)  // high = at least one inhibit term active
   );
 
 

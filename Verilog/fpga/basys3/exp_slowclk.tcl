@@ -6,7 +6,7 @@
 # whether the frequency move is the lever.
 #
 # Usage (from Verilog\fpga\basys3):
-#   & "F:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat" -mode batch -source exp_slowclk.tcl
+#   & "F:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat" -mode batch -source exp_slowclk.tcl
 
 set dcp "F:/Xilinx/ND120/ND3202D/ND3202D.runs/impl_1/ND120_TOP_routed.dcp"
 set logdir "E:/Dev/Repos/Ronny/nd-120/Verilog/fpga/basys3/logs"

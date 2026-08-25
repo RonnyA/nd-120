@@ -11,10 +11,10 @@ this efficiently since the standard `vcdvcd` library takes 67+ seconds just for 
 
 | File | Path | Description |
 |:-----|:-----|:------------|
-| VCD dump | `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/waveform.vcd` | 496MB Verilator trace, ~6824 unique signal IDs (34849 names with aliases) |
-| GTKWave config | `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/top_3202d.gtkw` | GTKWave saved session with 1109 signals of interest |
-| Extraction tool | `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/vcd_extract.py` | Custom fast VCD parser (~1s header parse vs 67s with vcdvcd) |
-| Boot analysis | `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/boot_analysis.md` | Complete boot sequence reference with timings, addresses, and Vivado debug checklist |
+| VCD dump | `Verilog/sim/waveform.vcd` | 496MB Verilator trace, ~6824 unique signal IDs (34849 names with aliases) |
+| GTKWave config | `Verilog/sim/top_3202d.gtkw` | GTKWave saved session with 1109 signals of interest |
+| Extraction tool | `Verilog/sim/vcd_extract.py` | Custom fast VCD parser (~1s header parse vs 67s with vcdvcd) |
+| Boot analysis | `Verilog/sim/boot_analysis.md` | Complete boot sequence reference with timings, addresses, and Vivado debug checklist |
 
 ## The Extraction Tool: vcd_extract.py
 

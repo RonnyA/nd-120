@@ -2,7 +2,7 @@
 
 Resume point for the storage workstream. Read this top to bottom, then
 continue at "NEXT ACTIONS". Everything referenced lives relative to the
-repo root /mnt/e/Dev/Repos/Ronny/nd-120/.
+repo root .
 
 ## The four documents that govern this work
 

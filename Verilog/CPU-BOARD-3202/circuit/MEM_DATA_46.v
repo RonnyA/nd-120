@@ -118,8 +118,27 @@ module MEM_DATA_46 (
   assign s_clr_15_8j         = ~s_clr_n;
   assign s_clr_14_8j         = ~s_nor_mrn_pan;
 
-  assign s_loerr_out         = s_oet_n ? 0 : ~s_loerr_n_out; // Pulled to 0 if s_oet_n is not 0 
-  assign s_hierr_out         = s_oet_n ? 0 : ~s_hierr_n_out; // Pulled to 0 if s_oet_n is not 0
+  // Sheet 46, region E2-F3: the AM29833A ERR pins (1H pin 10, 2H pin 10) are
+  // OPEN COLLECTOR, pulled up by R21/R26, and feed the 74F04 (1F) directly -
+  // pin 1->2 = LOERR, pin 3->4 = HIERR. Nothing on the drawing gates them.
+  //
+  // These were gated by OET_n, and OET_n = MWRITE_n (PAL 45008), so OET_n high
+  // is precisely a READ - the one case where a stored parity error would be
+  // reported. A memory error could therefore never raise LERR~, never set the
+  // PES bits and never light LED4.
+  //
+  // That matters beyond fidelity: the CONFIGURATION diagnostic decides whether
+  // a memory bank is LOCAL or MULTIPORT by arming the ECC-simulate probe and
+  // waiting for a level-14 parity interrupt. Silence means "Mpm 5". Measured
+  // 11-AUG-2026 on the Tang: all 4 MB reports as Mpm 5, and SINTRAN then treats
+  // a page fault in it as a fault in the ND-500/5000 shared-memory window,
+  // which is fatal on a machine with no ND-500.
+  //
+  // NOTE: this restores the REPORTING path only. With parity recomputed on
+  // every read (ND_SDRAM_PACK16) no error can be generated, so behaviour does
+  // not change until the ECCR simulate path exists.
+  assign s_loerr_out         = ~s_loerr_n_out;
+  assign s_hierr_out         = ~s_hierr_n_out;
 
   // LED: LED4_RED_PARITY_ERROR
   assign LED4                = ~s_led4;
@@ -155,6 +174,32 @@ module MEM_DATA_46 (
   */
   assign s_lerr_n_out= ~(s_loerr_out | s_hierr_out);
 
+  // MEMORY_4/MEMORY_5 hold the parity-error state (LED4 and LPERR_n). The
+  // original chips are J-K flip-flops CLOCKED by LERR_n - a combinational
+  // net (s_lerr_n_out = ~(LOERR | HIERR)). On FPGA that is an unconstrained
+  // fabric clock rooted in the AM29833A regERR FFs (check_timing no_clock,
+  // Place 30-568, measured 21-AUG-2026). In FF mode, replace with the same
+  // sysclk edge-capture pattern AM29833A itself uses (gen_sysclk_edge):
+  // sample LERR_n on s_osc, set on its falling edge (j=1, k=0), reset wins.
+  // Latch mode keeps the original J-K chips.
+`ifdef FPGA_FF_MODE
+  reg s_lerr_n_d = 1'b1;
+  reg s_perr4_q = 1'b0;    // MEMORY_4 state (q); s_led4 is qBar
+  reg s_perr5_q = 1'b0;    // MEMORY_5 state (q); s_lperr_n_out is qBar
+  // Pending falling edge of LERR_n, visible combinationally the moment it
+  // falls (the original J-K sets ON the edge, not a clock later); registered
+  // at the next s_osc edge. s_lerr_n_d is an FF, so this adds no loop.
+  wire s_perr_set = s_lerr_n_d & ~s_lerr_n_out & s_power;
+  always @(posedge s_osc) begin
+    s_lerr_n_d <= s_lerr_n_out;
+    if (s_clr_15_8j)      s_perr4_q <= 1'b0;
+    else if (s_perr_set)  s_perr4_q <= 1'b1;
+    if (s_clr_14_8j)      s_perr5_q <= 1'b0;
+    else if (s_perr_set)  s_perr5_q <= 1'b1;
+  end
+  assign s_led4        = ~(s_perr4_q | (s_perr_set & ~s_clr_15_8j));
+  assign s_lperr_n_out = ~(s_perr5_q | (s_perr_set & ~s_clr_14_8j));
+`else
   J_K_FLIPFLOP #(
       .InvertClockEnable(1)
   ) MEMORY_4 (
@@ -180,6 +225,7 @@ module MEM_DATA_46 (
       .reset(s_clr_14_8j),
       .tick(1'b1)
   );
+`endif
 
 
   /*******************************************************************************

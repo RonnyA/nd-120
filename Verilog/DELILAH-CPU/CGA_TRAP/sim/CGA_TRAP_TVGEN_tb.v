@@ -118,7 +118,8 @@ module CGA_TRAP_TVGEN_tb;
       2'b00: begin g_t2n=1'b0;   g_t1n=l3v1_n; g_t0n=l3v0_n; end
       2'b01: begin g_t2n=l2v2_n; g_t1n=l2v1_n; g_t0n=l2v0_n; end
       2'b10: begin g_t2n=1'b1;   g_t1n=l1v1_n; g_t0n=l1v0_n; end
-      2'b11: begin g_t2n=1'b0;   g_t1n=1'b0;   g_t0n=1'b0;   end
+      // MUX31LP (fix 27-JUL): no D3 - A=B=1 selects D2, level 1 wins.
+      2'b11: begin g_t2n=1'b1;   g_t1n=l1v1_n; g_t0n=l1v0_n; end
     endcase
   end
   wire [3:0] g_tvec = { (~g_lev2 & ~g_lev1), ~g_t2n, ~g_t1n, ~g_t0n } ^ TEETH;

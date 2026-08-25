@@ -21,7 +21,33 @@ VIDPID="0403:6010"
 
 # --- 1. locate the shared Tang FTDI on the Windows host ---------------------
 LIST=$(powershell.exe -Command "usbipd list" 2>/dev/null | tr -d '\r')
-BUSID=$(echo "$LIST" | awk -v vp="$VIDPID" '$2==vp && /Shared|Attached/ {print $1; exit}')
+# TWO BOARDS ON THIS MACHINE SHARE 0403:6010 - the Tang Nano 20K and the
+# Nexys 4 DDR. Taking the first match picks whichever sorts first, and on
+# 21-AUG-2026 that was the NEXYS: the script announced "Tang FTDI at busid 2-1"
+# and tried to detach the Nexys from Windows while Vivado was using it.
+#
+# Selection order:
+#   1. $TANG_BUSID if set          - explicit wins, and keeps a machine-specific
+#                                    busid OUT of this repo
+#   2. the one already Attached    - only one FTDI can be attached to WSL
+#   3. exactly one Shared candidate
+#   4. otherwise REFUSE and list them - guessing detaches someone else's board
+CANDS=$(echo "$LIST" | awk -v vp="$VIDPID" '$2==vp && /Shared|Attached/ {print $1}')
+ATTACHED=$(echo "$LIST" | awk -v vp="$VIDPID" '$2==vp && /Attached/ {print $1}')
+
+if [ -n "$TANG_BUSID" ]; then
+    BUSID="$TANG_BUSID"
+elif [ "$(echo "$ATTACHED" | grep -c .)" = "1" ]; then
+    BUSID="$ATTACHED"
+elif [ "$(echo "$CANDS" | grep -c .)" = "1" ]; then
+    BUSID="$CANDS"
+else
+    echo "ERROR: more than one $VIDPID device and none attached - refusing to guess." >&2
+    echo "Both the Tang Nano 20K and the Nexys 4 DDR use $VIDPID." >&2
+    echo "Set TANG_BUSID to the right one and re-run, e.g.  TANG_BUSID=2-4 $0" >&2
+    echo "$LIST" | awk -v vp="$VIDPID" '$2==vp {print "  candidate: " $0}' >&2
+    exit 1
+fi
 
 if [ -z "$BUSID" ]; then
     echo "ERROR: no shared $VIDPID device found in 'usbipd list'." >&2

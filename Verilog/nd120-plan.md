@@ -632,9 +632,9 @@ In our C implementation, we abstract away the explicit clock signals and instead
 The original hardware uses the following major timing signals:
 - **TERM** - Terminate signal that marks the end of a cycle
 - **CC0-CC3** - Cycle control bits that sequence operations within a cycle
-- **MCLK** - Main clock signal for controlling register updates
+- **MCLK** - Microcycle clock. One pulse per microinstruction cycle (equals TERM outside RWCS cycles); the RWCS terms in PAL_44307C stretch it so the gate array sees one long cycle while MA is used twice.
 - **WRFSTB** - Write register file strobe for updating registers
-- **MACLK** - Memory address clock for latching addresses
+- **MACLK** - Micro-address latch strobe. Latch enable for the control-store address latches (CPU_CS_ACAL_17 CHIP_30H/CHIP_31F); transparent while high, captures on the falling edge. Not a memory clock.
 - **UCLK** - Microcode clock for controlling microinstruction sequences
 
 Our software model replaces these hardware timing signals with sequential function calls that model the same behavior.

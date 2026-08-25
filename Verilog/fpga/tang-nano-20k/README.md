@@ -1,12 +1,67 @@
 # Tang Nano 20K (Gowin GW2AR-18) FPGA target
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/`
+**Full path:** `Verilog/fpga/tang-nano-20k/`
 
 Gowin build/flow for the Sipeed **Tang Nano 20K**. This is the **primary FPGA
 target** going forward - chosen for faster synthesis than Vivado, a Linux-native
 open-source toolchain option, and 8 MB of SDRAM that lets the FPGA run the full
 memory config like the simulator. Full analysis and staged plan:
 `../../docs/tang-nano-20k-port.md`.
+
+## Bring-up: getting the board talking (do this first)
+
+Every session starts here. The whole USB dance is already scripted - it does
+not need to be done by hand, and doing it by hand is how most of the wasted
+time on this board has been spent.
+
+```bash
+cd Verilog/fpga/tang-nano-20k
+make usb            # find the Tang on the Windows host, attach it to WSL,
+                    # open the raw USB node AND /dev/ttyUSB* permissions
+make flash-gowin    # program the current bitstream
+```
+
+After `make usb` you have:
+
+| Device | Use |
+|--------|-----|
+| `/dev/ttyUSB0` | JTAG side (openFPGALoader) |
+| `/dev/ttyUSB1` | OPCOM console, **9600 8N1** |
+
+**Reflashing reboots the design - no power cycle needed.** Measured
+09-AUG-2026: `make flash-gowin` restarts the ND-120 and the console comes back
+to the `#` prompt on its own. So a build/flash/test cycle can run unattended.
+
+**A real power cycle is different.** Pulling power detaches the device from
+WSL and the host busid CHANGES (seen 3-3, then 2-4, then 5-2 on different
+days). After a power cycle, run `make usb` again - never assume the old busid.
+
+### When it will not talk
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `unable to open ftdi device: -4 (usb_open() failed)` | the raw USB node's permissions reset when the device re-enumerated | `make usb`, or `sudo chmod 666 $(lsusb -d 0403:6010 \| sed -E 's#Bus ([0-9]+) Device ([0-9]+).*#/dev/bus/usb/\1/\2#')` |
+| `unable to open ftdi device: -3 (device not found)` | not attached to WSL at all | `make usb` |
+| `cannot open /dev/ttyUSB1: No such file or directory` | attached, but `ftdi_sio` has not created the serial nodes | `make usb` |
+| `openFPGALoader: command not found` | running the command on the Windows side instead of inside WSL | run it from WSL |
+
+### Driving the console
+
+OPCOM is picky and the rules are not guessable:
+
+- **UPPERCASE only.**
+- **~0.30 s between characters.** At 0.12 s characters are dropped silently in
+  the middle of a number and OPCOM answers `?` - which looks like a machine
+  fault and is not one.
+- 9600 8N1 on `/dev/ttyUSB1`.
+
+Use the committed driver rather than writing another one:
+
+```bash
+python3 ../../tools/ndconsole.py --seconds 90 --out run.log '400$'
+```
+
+Command reference: `Verilog/docs/opcom-console.md` and the `nd120-fpga` skill.
 
 ## Board / device
 
@@ -101,7 +156,7 @@ The complete ND-120 CPU now has a Tang top-level and Gowin project here:
 
 | File | Purpose |
 |------|---------|
-| `src/ND120_TANG20K_TOP.v` | Board top: instantiates `ND3202D`, ties off the external bus, S1 = Master Clear, OPCOM UART 9600 on the BL616 (pins 69/70), 6-LED bring-up set (grants, UART RX/TX, parity, heartbeat) |
+| `src/ND120_TANG20K_TOP.v` | Board top: instantiates `ND3202D`, ties off the external bus, S1 = Master Clear, OPCOM UART 9600 on the BL616 (pins 69/70), 6 LEDs: block-read/write activity, tape byte served, SD status pair, heartbeat (see the LED table below) |
 | `src/tang20k_defines.v` | **Must stay FIRST in the project** - defines `GOWIN`, `TARGET_TANG20K`, `FPGA_FF_MODE`, `SKIP_WCS_LOAD`, `MAIN_RAM_SDRAM`, `BOARD_CLK_FREQ=27_000_000`, `UART_BAUD_RATE=9600` |
 | `src/gowin_rpll_27_54.v` | One rPLL: 54 MHz (SDRAM ctrl) + 54 MHz shifted (SDRAM chip) + 27 MHz (CPU/bus/OSC) |
 | `src/nd120_tang20k.cst` / `.sdc` | Pins (verified 20K pinout) + 27 MHz input clock |
@@ -133,6 +188,143 @@ from `BOARD_CLK_FREQ` automatically. Comment the define out for 27/54 MHz.
 First light checklist: heartbeat LED blinking -> OPCOM console at **9600 8N1**
 on the board's USB serial -> compare boot behaviour against
 [`../../docs/boot-golden-spec.md`](../../docs/boot-golden-spec.md).
+
+## Clock variants and measured boot timings (24-AUG-2026)
+
+Three clock variants, selected with `gowin_build.ps1 -Variant <slow|mid|full>`.
+`clk_cpu` is always exactly half of `clk2x`; all three share one 864 MHz VCO.
+
+| Variant | CPU | SDRAM | Setup violations | CPU-domain Fmax (Gowin STA) |
+|---------|-----|-------|------------------|------------------------------|
+| `crawl` | 3.375 MHz | 6.75 MHz | - | - |
+| `slow` (default) | 6.75 MHz | 13.5 MHz | **0** | 17.68 MHz |
+| `mid` | 13.5 MHz | 27 MHz | **0** | 19.03 MHz |
+| `full` | 27 MHz | 54 MHz | **1667** | 19.55 MHz |
+
+### Measured on silicon, SINTRAN III booting from WD0
+
+Cold boot each time (reflash, then `20500&`), driven by `measure_s3.py`.
+`banner` = to `SINTRAN III RUNNING`; `watchdog` = to
+`ERS/SINTRAN III Watchdog has started`, i.e. ready for login; `S3` = from the
+CR that submits `S3` to its first output byte, after `SET-T-T,,93`.
+
+All figures are SECONDS (decimal), not minutes:seconds. `2.4 sec` means two
+point four seconds - S3 responds almost immediately at every clock. The
+minute:second equivalents are given in brackets for the longer ones.
+
+| CPU clock | banner | watchdog (login ready) | S3 first output |
+|-----------|--------|------------------------|-----------------|
+| 6.75 MHz  | 168.2 sec (2 min 48) | 539.3 sec (8 min 59) | 3.9 sec |
+| 13.5 MHz  | 119.0 sec (1 min 59) | 480.1 sec (8 min 00) | 2.7 sec |
+| 27 MHz    | 101.9 sec (1 min 42) | 451.9 sec (7 min 32) | 2.4 sec |
+
+**Boot is NOT CPU-bound.** Four times the clock buys only 1.65x on the banner
+and 1.19x on time-to-login. The banner->watchdog segment barely moves at all -
+371 s, 361 s, 350 s - so that phase is essentially clock-independent. That is
+consistent with it being disc-bound: the SD/storage stack deliberately runs off
+the fixed 27 MHz crystal (`clk_stor = sys_clk`) regardless of the CPU clock,
+because `sd_file_reader`'s identification divider is only in spec there.
+
+**S3 starts in under 4 seconds at every clock.** A "slow S3 start" is therefore
+not S3 being slow - it is almost certainly the machine still being in the long
+post-banner phase, before the watchdog line says it is ready. Wait for the
+watchdog before concluding anything about S3.
+
+### Which variant to use
+
+`full` (27 MHz) runs SINTRAN, LIST-FILES and S3, and is the fastest measured -
+but it does NOT close timing (1667 setup violations against a 19.55 MHz Fmax),
+so its margin over temperature and voltage is unquantified. `mid` (13.5 MHz)
+closes with zero violations and gives most of the gain: 1.41x on the banner
+against `slow`, versus 1.65x for `full`.
+
+Note the `.sdc` is a single `create_clock` line with no multicycle on the known
+52 ns WCS->ACAL path to a clock-enable pin, so these Fmax figures are a floor,
+not a verdict. Real constraints are the route to a fast build that is also
+defensible.
+
+Known clock-dependent constant, NOT slaved to `BOARD_CLK_FREQ`: the debug
+dumper baud divisor, `ND120_TANG20K_TOP.v` `DELAY_FRAMES(1406)`, assumes
+clk2x = 13.5 MHz. Capture dumps come out garbage at any other variant. The
+console UART and the RTC do scale correctly.
+
+## LEDs (active low, pins 15-20; map of 07-AUG-2026)
+
+| LED | Meaning |
+|---|---|
+| `led[0]` | **Storage BLOCK READ** - flashes ~150 ms per floppy/Winchester block read (`FDISK_REQ`/`WDISK_REQ` with WR low), solid under sustained reads |
+| `led[1]` | **Storage BLOCK WRITE** - same stretcher, for block writes (WR high) |
+| `led[2]` | A tape byte was served - the SD -> TAPE-400 path delivered data (`400$` working) |
+| `led[3]` | `sd_status[0]` \ together: `00` = mount never ran, `01` = no card, |
+| `led[4]` | `sd_status[1]` / `10` = mount/FAT error, `11` = SD-FAT OK (both lit) |
+| `led[5]` | Heartbeat ~0.8 Hz - `clk_cpu` alive at all |
+
+Reading it: `led[4]`+`led[3]` both lit = the whole SD-FAT chain works. After
+`400$`, `led[2]` dark = the CPU never got tape bytes. `led[0]`/`led[1]` are
+the disc activity lights: one flash per block, a steady glow during a
+transfer burst. (Before 07-AUG, `led[0]`/`led[1]` were the bring-up
+indicators tape-request-seen / SD-clock-seen; those are retired.)
+
+## Storage build: SD-FAT + floppy + SMD (measured 3-AUG-2026)
+
+The SD-FAT reader, the floppy at 1560 and the SMD disc at 1540 are all in one
+bitstream and it places and routes. This is the build to use for disc work.
+
+**Defines** (`src/tang20k_defines.v`, both active):
+
+| Define | Effect |
+|---|---|
+| `TANG_FLOPPY` | floppy-only base build: `ND_FLOPPY_DMA` at 1560 + `nd_storage` client for `FLOPPY1.IMG`. **Drops the papertape** - `TANG_INC_TAPE` goes to 0, so `400$` is not available in this bitstream. |
+| `TANG_SMD` | adds `ND_SMD` at 1540 with its own `ND_DMA_MASTER`, plus `nd_storage_disc_adapter` serving `SMD0.IMG` (client 3, slot 1376 blocks -> image limit 2,818,048 bytes). |
+
+They resolve to `TANG_INC_FLOPPY = 1`, `TANG_INC_SMD = 1`, `TANG_INC_TAPE = 0`
+in `src/ND120_TANG20K_TOP.v`, applied both to the core (which devices exist) and
+to `nd_storage_devices` (which client the SD-FAT reader serves).
+
+With either define set, the SD-FAT slimming cut `SDFAT_NO_STORAGE_CHECK` is
+suppressed automatically - floppy and SMD do random access and writeback, so the
+mount-time contiguity checker (`nd_storage_fatchk.v`) must stay in. That cut is
+for the tape-only build.
+
+**Measured utilization** (Gowin EDA flow, `VARIANT=slow`, 3-AUG-2026, from
+`build/nd120_tang20k_build/impl/pnr/nd120_tang20k_build.rpt.html`):
+
+| Resource | Used | % |
+|---|---|---|
+| LUT/ALU/ROM16 | 14464 (12955 LUT, 1509 ALU) | - |
+| CLS | 9103/10368 | 88% |
+| Register | 7579/15915 | 48% |
+| - as Latch | 0/15552 | 0% |
+| - as FF | 7529/15552 | 49% |
+| BSRAM | 34 SP10 SDPB | 96% |
+| DSP | 2 MULTALU36X18 | 9% |
+| PLL | 1/2 | 50% |
+
+Read those two numbers together: **BSRAM 96% and CLS 88%** is what "everything
+fits, with nothing to spare" looks like on this board. The SMD's 1024x16 sector
+buffer is the last BSRAM block; dropping `TANG_SMD` alone is the intended escape
+hatch if something else needs one. **Register as Latch is 0** - no inferred
+latches, which is a standing gate for every build here.
+
+This supersedes the older claim below that floppy and SMD "need a sync-read
+refactor before they fit at all": that refactor was done, both sector buffers
+are synchronous-read now, and the build above is the measurement.
+
+Build and program (Gowin EDA flow, Windows host):
+
+```
+.\gowin_build.ps1 -Variant slow      # or: make gowin VARIANT=slow
+make load-gowin                      # SRAM  - gone at power-off
+make flash-gowin                     # SPI flash - survives a power cut
+```
+
+Power-cycle the board after every loader operation before judging anything on
+the console.
+
+Note before flashing rather than loading: this build's SMD write path is live
+(full aligned 1024-word blocks only; anything else answers `disk_err`), and a
+flashed bitstream comes up on its own at every power-on, so it can write
+`SMD0.IMG` on the card without anyone asking.
 
 ## Files here (legacy)
 
@@ -172,11 +364,11 @@ there, both analysis-only / not implemented:
   microcode in words 0..1355 - the top two thirds is a computable address ramp -
   so repacking that bank as one 2048x64 array frees 8 blocks. Note the naive fix
   (just narrowing the chips to 2048 deep) saves *nothing*; the doc explains why.
-- **Floppy / SMD need a sync-read refactor before they fit at all.** Their 2 KB
-  sector buffers (`s_buffer[0:1023]`) are 1 BSRAM block each and the budget is
-  fine, but as written they use three *asynchronous* read ports - BSRAM is
-  sync-read only, so they will not infer and cannot fit as registers either.
-  Blocker, not an optimisation. Same fix serves Basys3.
+- **Floppy / SMD sync-read refactor - DONE, no longer a blocker.** Their 2 KB
+  sector buffers (`s_buffer[0:1023]`) once used three *asynchronous* read ports,
+  which BSRAM cannot do; they are synchronous-read now and both devices are in a
+  placed bitstream (see [Storage build](#storage-build-sd-fat--floppy--smd-measured-3-aug-2026)
+  - BSRAM 96% with both in). Same fix serves Basys3.
 
 ## Planned build defines
 

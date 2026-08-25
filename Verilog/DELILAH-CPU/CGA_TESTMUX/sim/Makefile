@@ -41,4 +41,24 @@ run: test_testmux
 gtk: run
 	gtkwave waveform.vcd testmux.gtkw &
 
-.PHONY: all clean
+# Registry target: build (Verilator) + run + strict verdict check.
+test-testmux: test_testmux
+	./obj_dir/VCGA_TESTMUX | tee testmux_result.tmp
+	@grep -q "TB_RESULT: PASS" testmux_result.tmp && rm -f testmux_result.tmp
+
+.PHONY: all clean run test-testmux
+
+# --- iverilog gate-level testbenches (self-checking, TB_RESULT: PASS) --------
+IV_LIB = -y ${VERILOG_ROOT}/Shared/logisim -y ${VERILOG_ROOT}/Shared/support -y ${VERILOG_ROOT}/Shared/ndlib
+iv-%:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_$* $*_tb.v && vvp -N /tmp/ndtb_$*
+
+# --- CGA_TESTMUX verification ------------------------------------------------
+# Exhaustive TSEL sweep (all 8 selects x both PTSTN values) with a walking one
+# across all 36 data inputs, the PTSTN select-collapse override and 512 LFSR
+# vectors, against the five-slice MUX81 source map read off CGA_TESTMUX.v.
+# Purely combinational - built both ways to prove FPGA_FF_MODE cannot reach it.
+# Registered in tests/run_all_tests.sh.
+test-testmux-iv:
+	iverilog -g2012 $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_testmux CGA_TESTMUX_tb.v && vvp -N /tmp/ndtb_testmux
+	iverilog -g2012 -DFPGA_FF_MODE $(IV_LIB) -y ${COMPONENT_ROOT} -o /tmp/ndtb_testmux_ff CGA_TESTMUX_tb.v && vvp -N /tmp/ndtb_testmux_ff

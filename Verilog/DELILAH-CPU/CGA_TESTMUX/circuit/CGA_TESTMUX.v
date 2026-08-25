@@ -37,7 +37,7 @@ module CGA_TESTMUX (
     input [2:0] TSEL_2_0,
     input [3:0] TVEC_3_0,
     input       UPN,
-    input       VACCN,
+    input       VACCN,       //! VACC_n - readable on the test multiplexer, D1 input
     input       VEX,
     input       WPN,
     input       WRITEN,

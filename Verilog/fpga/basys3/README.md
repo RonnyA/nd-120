@@ -1,9 +1,12 @@
 # Basys3 (Xilinx Artix-7) FPGA target
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/basys3/`
+**Full path:** `Verilog/fpga/basys3/`
 
 Vivado build/flash flow for the Digilent **Basys3** board. This was the first
-FPGA target; synthesis works but the design does not yet boot on hardware (a
+FPGA target; synthesis works but the design did not boot on hardware at the
+last test. NOTE (24-AUG-2026): not re-tested since the bus bank-decode fix in
+`ND3202D.v:533` - shared board logic that made SINTRAN III boot on the Tang.
+Whether it helps here is UNKNOWN and untested.
 timing-closure problem, see [Status](#status)).
 
 ## Board / device
@@ -42,7 +45,7 @@ are run from this folder. The Vivado project itself lives **outside the repo** a
 ## Build & flash (Windows PowerShell)
 
 ```powershell
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\basys3
+cd Verilog/fpga/basys3
 
 # Full synth (needed after any logic change; ~1h). Default ps1 does full_synth.
 .\vivado_build.ps1
@@ -72,14 +75,36 @@ Then compare against the Verilator golden trace - see
 
 - **Synthesis:** passes. Utilization ~9,302 LUT primitives, ~1,044 Kbit BRAM
   (dominated by the duplicated microcode PROM + WCS).
-- **Implementation:** **FAILS TIMING** - WNS approx **-100 ns**, TNS approx
-  **-50,000 ns**, plus hold violations. The CPU therefore does not boot on
-  hardware.
-- **Root cause:** ~35 modules clock flip-flops on *derived* signals
-  (`always @(posedge CK/CP/s_aluclk/...)`) instead of `sysclk`, so synthesis
-  creates dozens of un-constrainable clock nets. This is a clocking-architecture
-  problem, not a logic bug (the FF-mode Verilator sim boots correctly). Fix =
-  convert derived clocks to clock-enables on a single `sysclk`.
+- **Implementation:** **FAILS TIMING**, so the CPU does not boot on hardware.
+  Measured 21-AUG-2026, Vivado 2026.1, from `logs/timing_impl.rpt`:
+
+  | clock | period | WNS | TNS | failing endpoints |
+  |---|---|---|---|---|
+  | `sys_clk` | 10.000 ns (100 MHz) | **+7.475** MET | 0.000 | 0 of 44 |
+  | `clk_cpu_pre` | 60.000 ns (16.667 MHz) | **-29.778** | -44293.688 | 1714 of 44510 |
+
+  Hold is clean (WHS +0.035 ns, 0 failing of 44,593). A bitstream IS produced.
+  Implied Fmax as routed is about **11.1 MHz** against the 16.667 MHz target.
+  (This supersedes an older "WNS approx -100 ns / TNS approx -50,000 ns" claim.
+  Do not read -100 -> -29.8 as an improvement from any one change: the design
+  also changed substantially in between and the attribution is unmeasured.)
+- **What the timing report actually says:** the **Inter Clock Table is EMPTY** -
+  the `set_clock_groups -asynchronous` works, no cross-domain path is timed, so
+  every remaining violation is INSIDE the CPU clock domain and is real logic
+  depth. Do not go looking for a constraint fix. The worst path (-29.778 ns,
+  89.336 ns of data path against a 60 ns budget, **156 logic levels**) runs from
+  a WCS microcode BRAM output combinationally into a write-register-file clock
+  enable in a single cycle:
+
+      source: CORE/CPU_BOARD/CPU/CS/WCS/CHIP_22D/idt_memory_array_reg/CLKARDCLK
+      dest  : CORE/CPU_BOARD/CPU/PROC/CGA/DELILAH/WRF/RBLOCK/R2_REG_10/regFF_reg[15]/CE
+
+- **Derived clocks:** the clock-enable refactor is PARTIAL, not finished. The
+  base primitives are converted (`LATCH`, `L4`, `L8`, the `*_EN` variants all
+  clock on `sysclk`), but **22 derived-clock `always` blocks remain**, mostly in
+  `Verilog/PAL/`. That is still worth finishing, but note it is no longer the
+  measured explanation for the -29.778 ns: that path is logic depth in one
+  domain.
 - Full analysis + fix plan: `../../docs/fpga-debug-methodology.md` (section 3.2).
 
 ## Related docs

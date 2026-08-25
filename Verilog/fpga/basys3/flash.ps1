@@ -3,7 +3,7 @@
 #        .\flash.ps1 -Quick       (JTAG only, volatile, fast)
 
 param(
-    [string]$VivadoPath = "F:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat",
+    [string]$VivadoPath = "F:\AMDDesignTools\2026.1\Vivado\bin\vivado.bat",
     [switch]$Quick
 )
 

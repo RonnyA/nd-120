@@ -1,6 +1,6 @@
 # Floppy Verilog Validation Campaign
 
-Location of this plan: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/floppyTester/PLAN-floppy-validation.md`
+Location of this plan: `Verilog/floppyTester/PLAN-floppy-validation.md`
 Owner: floppy-validation work (this session). Status: PLAN APPROVED by Ronny 20-JUL-2026, execution starts at Phase 0.
 
 ## Goal
@@ -10,14 +10,19 @@ bottom-up with self-checking testbenches, from single IOX register accesses to a
 full `1560&` boot off a simulated SD card, so that the Tang floppy boot can be
 trusted. SMD gets the same treatment AFTER the floppy is validated (Ronny).
 
+**Bus protocol reference** (the IOX/IDENT/DMA behavior these testbenches check):
+`Verilog/docs/nd100-bus-dma.md` (writeup) and
+`Verilog/docs/nd100-bus-deck.pptx` (slide deck,
+all bus phases). See also `../ND-BUS-DEVICES/README.md`.
+
 ## Ground rules
 
 - **Oracle:** `/home/ronny/repos/nd100x/src/devices/floppy/deviceFloppyDMA.c`
   (+ `.h`) is the behavioral truth for floppy semantics (Ronny 20-JUL).
   Tiebreaker when the C and the 3112 manual disagree: ND-11.021
-  (see `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/floppy-3112-register-spec-ND-11.021.md`).
+  (see `Verilog/docs/floppy-3112-register-spec-ND-11.021.md`).
 - **Canonical test image:** the diskette with the test programs — content =
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/FLOPPY.IMG` (1,261,568 B, FLOMON
+  `Verilog/runSim/FLOPPY.IMG` (1,261,568 B, FLOMON
   boot sector, TPE-MON-100-A02:BPUN + 20 :TEST programs), named `FLOPPY1.IMG`
   on SD cards. (Assumed identical to the card's FLOPPY1.IMG — confirm with Ronny.)
 - **FLOMON:** the boot-sector format on real diskettes ("almost like BPUN",
@@ -54,7 +59,7 @@ trusted. SMD gets the same treatment AFTER the floppy is validated (Ronny).
 ## Deliverables layout
 
 ```
-/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/floppyTester/
+Verilog/floppyTester/
   PLAN-floppy-validation.md      this file
   CONFORMANCE.md                 Phase 0 output: Verilog-vs-C matrix
   Makefile                       all phase targets (test-floppy-p1 .. p5)
@@ -66,7 +71,7 @@ trusted. SMD gets the same treatment AFTER the floppy is validated (Ronny).
   testdata/                      generated diskettes (BPUN + FLOMON variants)
 ```
 Every phase prints `TB_RESULT: PASS/FAIL` and is registered in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/run_all_tests.sh`.
+`Verilog/tests/run_all_tests.sh`.
 
 ## Phases
 
@@ -112,7 +117,7 @@ diskette (expected behavior per Phase 0 finding). Gate: `test-floppy-p4`.
 
 ### Phase 5 — floppy_tester.cpp: full stack against the SD card
 Verilator harness in `floppyTester/` (side by side with runSim, own obj_dir):
-`ND_FLOPPY_DMA` + `ND_BUS_SLAVE` + `ND_DMA_MASTER` + `nd_tape_sdfat_source`
+`ND_FLOPPY_DMA` + `ND_BUS_SLAVE` + `ND_DMA_MASTER` + `nd_storage_devices`
 (INCLUDE_TAPE=0, INCLUDE_FLOPPY=1 — the exact Tang config) + `sd_card_model`
 (card carrying FLOPPY1.IMG) + `nds_mem_model`. Scripted escalation: mount ->
 IOX regs -> sector reads byte-diffed against the card image -> writes -> boot

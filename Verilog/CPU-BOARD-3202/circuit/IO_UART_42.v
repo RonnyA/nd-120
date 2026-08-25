@@ -50,6 +50,9 @@ module IO_UART_42 (
   wire [ 7:0] s_idb_7_0_in;
   wire [ 1:0] s_mis_1_0;
 
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire [15:0] s_io_idb_15_0_out;
   wire [ 7:0] s_uart_idb_7_0_out;
 
@@ -57,10 +60,21 @@ module IO_UART_42 (
 
   wire        s_ceuart_n;
   wire        s_clk;
+  // ND120_ILA_MARK_DEBUG (Nexys build.tcl -tclargs ila): keep the console
+  // status-capture nets through synthesis so the JTAG ILA can compare the
+  // LIVE TBMT_n against the CHIP_33G-captured IOR bit and see whether the
+  // FF-mode CLK_EN capture pulse arrives (LIST-FILE-NAMES never-ready
+  // campaign, 24-AUG). No functional effect; define set only by that flag.
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire        s_clk_en;
   wire        s_console_n;
   wire        s_da_n;
   wire        s_eauto_n;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire        s_eiorn_n;
   wire        s_gnd;
   wire        s_lcs_n;
@@ -69,6 +83,9 @@ module IO_UART_42 (
   wire        s_ruart_n;
   wire        s_rx;
   wire        s_rxd;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire        s_tbmt_n;
   wire        s_txd;
   wire        s_xtr;
@@ -138,6 +155,26 @@ module IO_UART_42 (
       .D({s_tbmt_n, s_da_n, s_eauto_n, s_lock_n, s_console_n, 1'b1, BAUD_RATE_SWITCH[3:0]}),
       .Y({s_io_idb_15_0_out[15:11], s_io_idb_15_0_out[4:0]})
   );
+
+`ifdef ND120_IOR_PROBE
+  // DIAGNOSTIC (IDENT PL10 hunt, 20-AUG-2026): every microcode IDBS,IOR read
+  // (EIOR_n low) logs the CAPTURED CHIP_33G bits 15/14 next to the LIVE
+  // TBMT_n/DA_n, so a stale FF-mode capture is visible as cap!=live.
+  // TBMT_n edges are logged too. Sim-only, no logic effect.
+  reg r_iorp_eior_prev, r_iorp_tbmt_prev, r_iorp_da_prev;
+  always @(posedge sysclk) begin
+    if (!s_eiorn_n && r_iorp_eior_prev)
+      $display("[ior] t=%0t READ cap15=%b cap14=%b live_tbmt_n=%b live_da_n=%b",
+               $time, s_io_idb_15_0_out[15], s_io_idb_15_0_out[14], s_tbmt_n, s_da_n);
+    if (s_tbmt_n != r_iorp_tbmt_prev)
+      $display("[ior] t=%0t TBMT_n=%b", $time, s_tbmt_n);
+    if (s_da_n != r_iorp_da_prev)
+      $display("[ior] t=%0t DA_n=%b", $time, s_da_n);
+    r_iorp_eior_prev <= s_eiorn_n;
+    r_iorp_tbmt_prev <= s_tbmt_n;
+    r_iorp_da_prev   <= s_da_n;
+  end
+`endif
 
   SC2661_UART CHIP_32H (
       .sysclk(sysclk),  // System clock in FPGA

@@ -5,7 +5,7 @@
 The ND-120 CPU implementation consists of **75,511 lines of Verilog code** across **259 files**, representing a complete recreation of the 1988 Norsk Data ND-120 16-bit minicomputer processor. This HDL implementation transforms original paper documentation into modern, synthesizable Verilog suitable for FPGA platforms.
 
 **Key Technical Achievements:**
-- Complete CPU simulation with microcode execution (7/14 self-tests passing)
+- Complete CPU simulation with microcode execution (self-test clean, 0 execution-phase STERR visits)
 - UART communication and OPCOM (operator communication) operational
 - All 25+ PAL chips converted from PALASM to behavioral Verilog
 - Comprehensive bus interface and I/O subsystem
@@ -106,7 +106,7 @@ graph TB
 ### 1. Top-Level Modules
 
 #### ND120_TOP.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\ND120_TOP.v`
+**Location:** `Verilog/ND120_TOP.v`
 **Function:** FPGA top-level interface module
 **Description:**
 - Interfaces with external FPGA pins and I/O
@@ -124,7 +124,7 @@ graph TB
 - `led[6:0]` - Status LED outputs
 
 #### ND3202D.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v`
+**Location:** `Verilog/CPU-BOARD-3202/circuit/ND3202D.v`
 **Function:** Main CPU board integration
 **Description:**
 - Complete CPU board implementation with all subsystems
@@ -143,7 +143,7 @@ graph TB
 ### 2. CPU Core Components
 
 #### CPU_15.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_15.v`
+**Location:** `Verilog/CPU-BOARD-3202/circuit/CPU_15.v`
 **Function:** Top-level CPU control and coordination
 **Description:**
 - Central CPU control module
@@ -152,7 +152,7 @@ graph TB
 - Coordinates between different CPU subsystems
 
 #### CPU_CS_16.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_CS_16.v`
+**Location:** `Verilog/CPU-BOARD-3202/circuit/CPU_CS_16.v`
 **Function:** Control Store management
 **Description:**
 - Contains microcode storage and access logic
@@ -166,7 +166,7 @@ graph TB
   - `CPU_CS_WCS_21_22.v` - Writable control store
 
 #### CPU_PROC_32.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_32.v`
+**Location:** `Verilog/CPU-BOARD-3202/circuit/CPU_PROC_32.v`
 **Function:** High-level processor control
 **Description:**
 - Integrates CGA (CPU Gate Array) and command decoder
@@ -177,7 +177,7 @@ graph TB
 ### 3. CGA (DELILAH CPU) - Core Processing Engine
 
 #### CGA.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA\circuit\CGA.v`
+**Location:** `Verilog/DELILAH-CPU/CGA/circuit/CGA.v`
 **Function:** CPU Gate Array integration
 **Description:**
 - Central processing unit with all core execution logic
@@ -186,7 +186,7 @@ graph TB
 - Manages internal data buses and control signals
 
 #### CGA_ALU.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU.v`
+**Location:** `Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_ALU.v`
 **Function:** Arithmetic Logic Unit
 **Description:**
 - 16-bit ALU with comprehensive operation set
@@ -196,7 +196,7 @@ graph TB
 - Working register file integration
 
 #### CGA_MAC.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MAC\circuit\CGA_MAC.v`
+**Location:** `Verilog/DELILAH-CPU/CGA_MAC/circuit/CGA_MAC.v`
 **Function:** Memory Access Controller
 **Description:**
 - Coordinates all memory access operations
@@ -205,7 +205,7 @@ graph TB
 - Interface between CPU and memory subsystem
 
 #### CGA_MIC.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_MIC\circuit\CGA_MIC.v`
+**Location:** `Verilog/DELILAH-CPU/CGA_MIC/circuit/CGA_MIC.v`
 **Function:** Microcode Controller
 **Description:**
 - Microcode instruction fetch and decode
@@ -214,7 +214,7 @@ graph TB
 - Conditional execution handling
 
 #### CGA_INTR.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_INTR\circuit\CGA_INTR.v`
+**Location:** `Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR.v`
 **Function:** Interrupt Controller
 **Description:**
 - Priority interrupt handling for multiple sources
@@ -223,7 +223,7 @@ graph TB
 - EPIC (Enable Priority Interrupt Controller) command processing
 
 #### CGA_TRAP.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TRAP\circuit\CGA_TRAP.v`
+**Location:** `Verilog/DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP.v`
 **Function:** Trap and Exception Handler
 **Description:**
 - Exception detection and handling
@@ -232,7 +232,7 @@ graph TB
 - Debug and breakpoint support
 
 #### CGA_WRF.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_WRF\circuit\CGA_WRF.v`
+**Location:** `Verilog/DELILAH-CPU/CGA_WRF/circuit/CGA_WRF.v`
 **Function:** Working Register File
 **Description:**
 - CPU register file management
@@ -241,7 +241,7 @@ graph TB
 - Read/write port management
 
 #### CGA_DCD.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_DCD\circuit\CGA_DCD.v`
+**Location:** `Verilog/DELILAH-CPU/CGA_DCD/circuit/CGA_DCD.v`
 **Function:** Instruction Decoder
 **Description:**
 - Machine instruction decode
@@ -250,7 +250,7 @@ graph TB
 - Instruction format handling
 
 #### CGA_IDBCTL.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_IDBCTL\circuit\CGA_IDBCTL.v`
+**Location:** `Verilog/DELILAH-CPU/CGA_IDBCTL/circuit/CGA_IDBCTL.v`
 **Function:** Internal Data Bus Controller
 **Description:**
 - Internal data bus arbitration and control
@@ -258,7 +258,7 @@ graph TB
 - Data path management between CPU components
 
 #### CGA_TESTMUX.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_TESTMUX\circuit\CGA_TESTMUX.v`
+**Location:** `Verilog/DELILAH-CPU/CGA_TESTMUX/circuit/CGA_TESTMUX.v`
 **Function:** Test Signal Multiplexer
 **Description:**
 - Debug and test signal routing
@@ -268,7 +268,7 @@ graph TB
 ### 4. DGA (Decoder Gate Array)
 
 #### DECODE_DGA.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA.v`
+**Location:** `Verilog/DECODE-GateArray/DGA/circuit/DECODE_DGA.v`
 **Function:** Instruction Decode Gate Array
 **Description:**
 - 28 Verilog files, 4,316 lines of code
@@ -286,7 +286,7 @@ graph TB
 ### 5. Memory Management System
 
 #### CPU_MMU_24.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_MMU_24.v`
+**Location:** `Verilog/CPU-BOARD-3202/circuit/CPU_MMU_24.v`
 **Function:** Memory Management Unit
 **Description:**
 - Virtual memory address translation
@@ -304,7 +304,7 @@ graph TB
 - `CPU_MMU_WCA_31.v` - Write cache address handling
 
 #### MEM_43.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_43.v`
+**Location:** `Verilog/CPU-BOARD-3202/circuit/MEM_43.v`
 **Function:** Main Memory Controller
 **Description:**
 - Primary memory subsystem control
@@ -324,7 +324,7 @@ graph TB
 ### 6. I/O and Communication System
 
 #### IO_37.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_37.v`
+**Location:** `Verilog/CPU-BOARD-3202/circuit/IO_37.v`
 **Function:** I/O System Controller
 **Description:**
 - Central I/O operations management
@@ -333,7 +333,7 @@ graph TB
 - Device selection and control
 
 #### IO_UART_42.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_UART_42.v`
+**Location:** `Verilog/CPU-BOARD-3202/circuit/IO_UART_42.v`
 **Function:** UART Communication Controller
 **Description:**
 - Serial communication interface
@@ -343,7 +343,7 @@ graph TB
 - OPCOM (operator communication) support
 
 #### BIF_5.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_5.v`
+**Location:** `Verilog/CPU-BOARD-3202/circuit/BIF_5.v`
 **Function:** Bus Interface Controller
 **Description:**
 - ND-100 bus protocol implementation
@@ -386,7 +386,7 @@ The system includes 25+ PAL chips implementing various control and decode functi
 ### 8. Support and Control Modules
 
 #### CYC_36.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CYC_36.v`
+**Location:** `Verilog/CPU-BOARD-3202/circuit/CYC_36.v`
 **Function:** Cycle Controller
 **Description:**
 - CPU cycle timing and sequencing
@@ -394,7 +394,7 @@ The system includes 25+ PAL chips implementing various control and decode functi
 - Timing control for various operations
 
 #### CPU_PROC_CMDDEC_34.v
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_CMDDEC_34.v`
+**Location:** `Verilog/CPU-BOARD-3202/circuit/CPU_PROC_CMDDEC_34.v`
 **Function:** Command Decoder
 **Description:**
 - Microcode command field decoding
@@ -409,7 +409,7 @@ The Verilog code is designed to work seamlessly with C++ testbenches using Veril
 
 ### Run120.cpp Integration
 
-**Location:** `E:\Dev\Repos\Ronny\nd-120\Verilog\runSim\Run120.cpp`
+**Location:** `Verilog/runSim/Run120.cpp`
 
 #### Key Features
 
@@ -555,7 +555,7 @@ The ND-120 implements the complete ND-100 bus protocol with the following key si
 **✅ Working Features:**
 - Complete Verilator compilation (259 files, 75,511 lines)
 - Microcode loading and execution (64KB ROM)
-- CPU self-test execution (7 out of 14 tests passing)
+- CPU self-test execution (clean: 0 execution-phase STERR visits)
 - UART communication (7E2 format)
 - OPCOM operator interface
 - Interactive console operation
@@ -571,7 +571,8 @@ The ND-120 implements the complete ND-100 bus protocol with the following key si
 - Static/Dynamic RAM module refactoring for FPGA
 
 **🔧 Areas for Improvement:**
-- Complete remaining 7 CPU self-tests
+- Close the remaining gap between the Verilator reference and the FPGA builds
+- Functionally validate the MMU data cache, which has never been tested
 - FPGA implementation optimization
 - Memory bandwidth optimization
 - Additional peripheral device support
@@ -580,7 +581,7 @@ The ND-120 implements the complete ND-100 bus protocol with the following key si
 
 The system successfully runs several test programs:
 - **DEBUG.BPUN** - Debug test program (default)
-- **INSTRUCTION-B.BPUN** - Instruction test suite (7/14 tests passing)
+- **INSTRUCTION-B.BPUN** - Instruction test suite (13 of 13 testable areas pass)
 - **FLOPPY-FU-1986F.BPUN** - Floppy controller test
 - Custom BPUN format programs
 

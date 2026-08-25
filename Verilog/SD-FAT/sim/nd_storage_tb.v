@@ -49,10 +49,16 @@ module nd_storage_tb;
 
   localparam STOR_HALF = 18.5;  // ~27.03 MHz
   localparam CPU_HALF  = 21.7;  // ~23.04 MHz
-  localparam N         = 7;
+  // 8, matching nd_storage's client count since SMD3.IMG was replaced by
+  // WD0/WD1.IMG. This is deliberately the FULL count: the mount FSM's range
+  // guard truncates if written as N_CLIENTS[2:0], and at 8 that becomes
+  // 3'b000 so NO client mounts at all. Running this bench at 7 could never
+  // catch that - it is the one configuration where the bug exists.
+  localparam N         = 8;
 
   localparam integer TAPE_BYTES = 3001;
   localparam integer FLP_BYTES  = 4096;
+  localparam integer WD_BYTES   = 16384;   // WD0.IMG, client 6 (cached)
   localparam integer SLOT0_BASE = 0;    // blocks (dut defaults)
   localparam integer SLOT1_BASE = 32;
   localparam IMG_BYTES = 4 * 1024 * 1024;
@@ -72,8 +78,18 @@ module nd_storage_tb;
     pat_tape = ((k % 256) + 37 * ((k / 256) % 256) + 129) % 256;
   endfunction
 
+  // FRAG.IMG payload pattern (make_storage_image.sh nds_frag.bin)
+  function [7:0] pat_frag(input integer k);
+    pat_frag = ((k % 256) + 53 * ((k / 256) % 256) + 201) % 256;
+  endfunction
+
   function [7:0] pat_flp(input integer k);
     pat_flp = ((k % 256) + 29 * ((k / 256) % 256) + 7) % 256;
+  endfunction
+
+  // WD0.IMG payload pattern (make_storage_image.sh nds_wd0.bin)
+  function [7:0] pat_wd(input integer k);
+    pat_wd = ((k % 256) + 61 * ((k / 256) % 256) + 83) % 256;
   endfunction
 
   // ------------------------------------------------------------- DUT 1
@@ -85,6 +101,18 @@ module nd_storage_tb;
   wire        c1_cmd_o, c1_cmd_oe, c1_dat0_o, c1_dat0_oe;
   wire        sd1_cmd  = sd1_cmd_oe  ? sd1_cmd_o  : (c1_cmd_oe  ? c1_cmd_o  : 1'b1);
   wire        sd1_dat0 = sd1_dat0_oe ? sd1_dat0_o : (c1_dat0_oe ? c1_dat0_o : 1'b1);
+
+  // DAT1-3. Only the 4-bit bus uses them for data; in 1-bit mode both sides
+  // release and the board's external pull-ups hold them high, which is the
+  // 1'b1 default below. Wiring them for real is what lets this tb exercise
+  // the CMD55+ACMD6 width switch - the path that needs the card's published
+  // RCA and that no nd_storage harness covered before.
+  wire        sd1_dat1_o, sd1_dat1_oe, c1_dat1_o, c1_dat1_oe;
+  wire        sd1_dat2_o, sd1_dat2_oe, c1_dat2_o, c1_dat2_oe;
+  wire        sd1_dat3_o, sd1_dat3_oe, c1_dat3_o, c1_dat3_oe;
+  wire        sd1_dat1 = sd1_dat1_oe ? sd1_dat1_o : (c1_dat1_oe ? c1_dat1_o : 1'b1);
+  wire        sd1_dat2 = sd1_dat2_oe ? sd1_dat2_o : (c1_dat2_oe ? c1_dat2_o : 1'b1);
+  wire        sd1_dat3 = sd1_dat3_oe ? sd1_dat3_o : (c1_dat3_oe ? c1_dat3_o : 1'b1);
 
   wire        mem_start_w, mem_we_w, mem_busy_w, mem_done_w;
   wire [19:0] mem_addr_w;
@@ -99,15 +127,19 @@ module nd_storage_tb;
   wire [N*10-1:0] buf_addr_w;
   wire [N*16-1:0] buf_wdata_w;
   reg  [15:0]     rd1 = 0;
-  wire [N*16-1:0] buf_rdata_w = {80'd0, rd1, 16'd0};
+  wire [N*16-1:0] buf_rdata_w = {96'd0, rd1, 16'd0};
 
   wire [1:0] sd_status_w, card_type_w, fs_type_w;
 
   nd_storage #(
       .N_CLIENTS (N),
+      .FILE4_NAME("FRAG.IMG"), .FILE4_LEN(8'd8),
       .RD_CLK_DIV(3'd1),          // 27 MHz class clock in the tb
       .WR_CLKDIV (8'd2),          // never used here (no writes)
       .WD_MAX    (32'd5_000_000),
+`ifdef NDS_TB_4BIT
+      .USE_4BIT  (1),
+`endif
       .SIMULATE  (1)
   ) dut (
       .clk_stor  (clk_stor),
@@ -121,6 +153,15 @@ module nd_storage_tb;
       .sd_dat0_i (sd1_dat0),
       .sd_dat0_o (sd1_dat0_o),
       .sd_dat0_oe(sd1_dat0_oe),
+      .sd_dat1_i (sd1_dat1),
+      .sd_dat1_o (sd1_dat1_o),
+      .sd_dat1_oe(sd1_dat1_oe),
+      .sd_dat2_i (sd1_dat2),
+      .sd_dat2_o (sd1_dat2_o),
+      .sd_dat2_oe(sd1_dat2_oe),
+      .sd_dat3_i (sd1_dat3),
+      .sd_dat3_o (sd1_dat3_o),
+      .sd_dat3_oe(sd1_dat3_oe),
       .mem_start (mem_start_w),
       .mem_we    (mem_we_w),
       .mem_addr  (mem_addr_w),
@@ -170,14 +211,30 @@ module nd_storage_tb;
       .sd_clk   (sd1_clk),
       .sd_cmd_i (sd1_cmd),  .sd_cmd_o (c1_cmd_o),  .sd_cmd_oe (c1_cmd_oe),
       .sd_dat0_i(sd1_dat0), .sd_dat0_o(c1_dat0_o), .sd_dat0_oe(c1_dat0_oe),
-      .sd_dat1_i(1'b1), .sd_dat1_o(), .sd_dat1_oe(),
-      .sd_dat2_i(1'b1), .sd_dat2_o(), .sd_dat2_oe(),
-      .sd_dat3_i(1'b1), .sd_dat3_o(), .sd_dat3_oe()
+      .sd_dat1_i(sd1_dat1), .sd_dat1_o(c1_dat1_o), .sd_dat1_oe(c1_dat1_oe),
+      .sd_dat2_i(sd1_dat2), .sd_dat2_o(c1_dat2_o), .sd_dat2_oe(c1_dat2_oe),
+      .sd_dat3_i(sd1_dat3), .sd_dat3_o(c1_dat3_o), .sd_dat3_oe(c1_dat3_oe)
   );
 
   // client 1 buffer: REGISTERED BRAM (the sterner timing case)
   reg [15:0] cbuf1[0:1023];
+  // Phase 4: the region is a cache, not a staged copy, so correctness is
+  // checked by READING blocks through the client port (which drives the
+  // fetch/hit path) instead of inspecting region words after an open.
+  reg [15:0] cbuf0 [0:1023];
+  reg [15:0] cbuf3 [0:1023];
+  reg [15:0] cbuf4 [0:1023];
+  // client 6 = WD0.IMG, the Winchester. It is a CACHED client (CACHE_MASK
+  // bit 6) and, until 08-AUG-2026, no card-image testbench ever read a
+  // block through a cached client with real mount geometry - every
+  // full-stack read here was tape (0) or floppy (1), both DIRECT.
+  reg [15:0] cbuf6 [0:1023];
+
   always @(posedge clk_cpu) begin
+    if (buf_we_w[0]) cbuf0[buf_addr_w[9:0]]   <= buf_wdata_w[15:0];
+    if (buf_we_w[3]) cbuf3[buf_addr_w[39:30]] <= buf_wdata_w[63:48];
+    if (buf_we_w[4]) cbuf4[buf_addr_w[49:40]] <= buf_wdata_w[79:64];
+    if (buf_we_w[6]) cbuf6[buf_addr_w[69:60]] <= buf_wdata_w[111:96];
     if (buf_we_w[1]) cbuf1[buf_addr_w[19:10]] <= buf_wdata_w[31:16];
     rd1 <= cbuf1[buf_addr_w[19:10]];
   end
@@ -337,33 +394,50 @@ module nd_storage_tb;
     end
   endtask
 
-  // SDRAM slot content vs the pattern file (fbytes bytes from base_blk,
-  // tail 32-bit word zero-padded)
-  task check_slot(input integer base_blk, input integer fbytes, input integer is_tape,
-                  input [127:0] what);
-    integer m, nw, k, b;
-    reg [31:0] gotw, expw;
+  // Read every block of a file through the CLIENT PORT and compare against
+  // the pattern. This replaces v1's check_slot, which read the region
+  // directly on the assumption that an open had staged the whole image
+  // there. Nothing is staged now, so the only meaningful question is
+  // whether a block request returns the right bytes - which exercises the
+  // cache miss/fill (or the DIRECT fetch) all the way to the card.
+  task check_blocks(input [2:0] c, input integer fbytes, input integer is_tape,
+                    input [127:0] what);
+    integer blk, nblk, j, k0, k1;
+    reg [15:0] gotw, expw;
     begin
-      nw = (fbytes + 3) / 4;
-      for (m = 0; m < nw; m = m + 1) begin
-        expw = 32'd0;
-        for (b = 0; b < 4; b = b + 1) begin
-          k = 4 * m + b;
-          if (k < fbytes)
-            expw[8*(3-b)+:8] = is_tape ? pat_tape(k) : pat_flp(k);
-        end
-        gotw = u_mem.mem[base_blk*512+m];
-        if (gotw !== expw) begin
-          if (errors < 10)
-            $display("FAIL: %0s SDRAM word %0d: got %08x want %08x", what, m, gotw, expw);
-          errors = errors + 1;
+      nblk = (fbytes + 2047) / 2048;
+      for (blk = 0; blk < nblk; blk = blk + 1) begin
+        do_read(c, blk[15:0], what);
+        for (j = 0; j < 1024; j = j + 1) begin
+          k0 = blk*2048 + 2*j;
+          k1 = k0 + 1;
+          if (k0 < fbytes) begin
+            expw[15:8] = (is_tape == 2) ? pat_frag(k0)
+                       : (is_tape == 1) ? pat_tape(k0) : pat_flp(k0);
+            expw[7:0]  = (k1 < fbytes)
+                       ? ((is_tape == 2) ? pat_frag(k1)
+                          : (is_tape == 1) ? pat_tape(k1) : pat_flp(k1))
+                       : 8'd0;
+            case (c)
+              3'd0:    gotw = cbuf0[j];
+              3'd3:    gotw = cbuf3[j];
+              3'd4:    gotw = cbuf4[j];
+              default: gotw = cbuf1[j];
+            endcase
+            if (gotw !== expw) begin
+              if (errors < 10)
+                $display("FAIL: %0s blk %0d word %0d: got %04x want %04x",
+                         what, blk, j, gotw, expw);
+              errors = errors + 1;
+            end
+          end
         end
       end
     end
   endtask
 
   // ------------------------------------------------------------- test
-  integer w, guard;
+  integer w, guard, blkn;
   reg [15:0] expw16;
   initial begin
     repeat (10) @(posedge clk_stor);
@@ -394,7 +468,7 @@ module nd_storage_tb;
       $display("FAIL: sd_status not OK after tape open (%0d)", sd_status_w);
       errors = errors + 1;
     end
-    check_slot(SLOT0_BASE, TAPE_BYTES, 1, "tape");
+    check_blocks(3'd0, TAPE_BYTES, 1, "tape");
 
     // ---- (b) open client 1: FLOPPY1.IMG -------------------------------
     do_open(3'd1, "open floppy1");
@@ -411,7 +485,7 @@ module nd_storage_tb;
       $display("FAIL: floppy1 n_blocks %0d (want 2)", dut.u_mount.r_nblk[1]);
       errors = errors + 1;
     end
-    check_slot(SLOT1_BASE, FLP_BYTES, 0, "floppy1");
+    check_blocks(3'd1, FLP_BYTES, 0, "floppy1");
 
     // ---- (c) open client 2: FLOPPY2.IMG is MISSING ---------------------
     do_open(3'd2, "open missing");
@@ -425,22 +499,41 @@ module nd_storage_tb;
       errors = errors + 1;
     end
 
-    // ---- (d) SMD client 3: v1 answers open_err with zero card traffic --
+    // ---- (d2) FRAGMENTED file via the FAT walker -------------------------
+    // FRAG.IMG's second cluster is deliberately relocated past the chain
+    // (make_storage_image.sh FAT surgery). Under the retired contiguity
+    // fence this file was the open_err case; with runtime FAT walking the
+    // read must return byte-exact content ACROSS the fragment seam.
+    do_open(3'd4, "open frag");
+    if (err_w[4] !== 1'b0 || open_ok_w[4] !== 1'b1 || open_err_w[4] !== 1'b0) begin
+      $display("FAIL: frag open flags (err=%b ok=%b oerr=%b)",
+               err_w[4], open_ok_w[4], open_err_w[4]);
+      errors = errors + 1;
+    end
+    check_blocks(3'd4, 2048, 2, "frag");
+
+    // ---- (d) disc-class client 3: Phase 4 OPENS it -----------------------
+    // v1 asserted the opposite: a client outside PRELOAD_MASK answered
+    // open_err with ZERO card traffic, because v1 could only serve an image
+    // it had staged whole into the region and a disc image never fits. The
+    // cache removed that restriction, so the SAME open must now SUCCEED and
+    // must talk to the card to do it.
     smd_sdclk_edges = 0;
     smd_watch = 1;
     do_open(3'd3, "open smd0");
     smd_watch = 0;
-    if (err_w[3] !== 1'b1 || open_err_w[3] !== 1'b1 || open_ok_w[3] !== 1'b0) begin
-      $display("FAIL: SMD open flags (err=%b oerr=%b ok=%b)",
-               err_w[3], open_err_w[3], open_ok_w[3]);
+    // SMD0.IMG is NOT on the test card (make_storage_image.sh builds only
+    // TAPE.BPUN, FLOPPY1.IMG and FRAG.IMG), so this open must fail as
+    // file-not-found. The Phase-4 difference from v1 is WHY: v1 refused it
+    // sight-unseen because it was outside PRELOAD_MASK, doing zero card
+    // traffic. A cached client is a real client now - it has to go and look.
+    if (open_err_w[3] !== 1'b1 || open_ok_w[3] !== 1'b0) begin
+      $display("FAIL: missing-file open flags (oerr=%b ok=%b, want err)",
+               open_err_w[3], open_ok_w[3]);
       errors = errors + 1;
     end
-    if (smd_sdclk_edges !== 0) begin
-      $display("FAIL: SMD open produced %0d SD clock edges (want 0)", smd_sdclk_edges);
-      errors = errors + 1;
-    end
-    if (sd_status_w !== 2'd2) begin
-      $display("FAIL: SMD mask-fail changed sd_status (%0d, want still 2)", sd_status_w);
+    if (smd_sdclk_edges === 0) begin
+      $display("FAIL: cached client open did no card traffic - it must look");
       errors = errors + 1;
     end
 
@@ -463,6 +556,54 @@ module nd_storage_tb;
     if (err_w[1] !== 1'b1) begin
       $display("FAIL: out-of-range block 2 read did not return err");
       errors = errors + 1;
+    end
+
+    // ---- (h) block READ on client 6 (WD0.IMG) - the CACHED path --------
+    // This is the case the guest was failing on real silicon 08-AUG-2026:
+    // the Winchester controller reported finished, no error, a full 1024-
+    // word DMA - and every word was zero. Client 6 is CACHED, so a cold
+    // read must MISS, fetch four card sectors, fill the region line,
+    // publish the tag and only then serve the client. Anything that serves
+    // the line before the fill lands returns exactly 1024 zero words.
+    do_open(3'd6, "open wd0");
+    if (!open_ok_w[6] || open_err_w[6]) begin
+      $display("FAIL: WD0.IMG open (ok=%b err=%b)", open_ok_w[6], open_err_w[6]);
+      errors = errors + 1;
+    end
+    if (size_bytes_w[32*6+:32] !== WD_BYTES) begin
+      $display("FAIL: WD0.IMG size %0d, want %0d",
+               size_bytes_w[32*6+:32], WD_BYTES);
+      errors = errors + 1;
+    end
+    for (blkn = 0; blkn < 3; blkn = blkn + 1) begin
+      for (w = 0; w < 1024; w = w + 1) cbuf6[w] = 16'hDEAD;  // poison
+      do_read(3'd6, blkn[15:0], "read wd0");
+      if (err_w[6] !== 1'b0) begin
+        $display("FAIL: WD0 block %0d read returned err", blkn);
+        errors = errors + 1;
+      end
+      for (w = 0; w < 1024; w = w + 1) begin
+        expw16 = {pat_wd(blkn*2048 + 2*w), pat_wd(blkn*2048 + 2*w + 1)};
+        if (cbuf6[w] !== expw16) begin
+          if (errors < 10)
+            $display("FAIL: WD0 blk %0d word %0d: got %04x want %04x",
+                     blkn, w, cbuf6[w], expw16);
+          errors = errors + 1;
+        end
+      end
+    end
+    // re-read block 0: now RESIDENT, so it must come back from the region
+    // line with no card traffic and still be the card's bytes
+    for (w = 0; w < 1024; w = w + 1) cbuf6[w] = 16'hDEAD;
+    do_read(3'd6, 16'd0, "reread wd0 blk0");
+    for (w = 0; w < 1024; w = w + 1) begin
+      expw16 = {pat_wd(2*w), pat_wd(2*w + 1)};
+      if (cbuf6[w] !== expw16) begin
+        if (errors < 10)
+          $display("FAIL: WD0 blk0 HIT word %0d: got %04x want %04x",
+                   w, cbuf6[w], expw16);
+        errors = errors + 1;
+      end
     end
 
     // ---- (f) reopen client 0: the rewind path --------------------------
@@ -493,7 +634,7 @@ module nd_storage_tb;
       $display("FAIL: sd_status not OK after reopen (%0d)", sd_status_w);
       errors = errors + 1;
     end
-    check_slot(SLOT0_BASE, TAPE_BYTES, 1, "tape-reopen");
+    check_blocks(3'd0, TAPE_BYTES, 1, "tape-reopen");
 
     // ---- (g) oversize file vs tiny slot (second instance) --------------
     // wake the clock-gated instance and give it a clean reset window
@@ -525,13 +666,20 @@ module nd_storage_tb;
       $finish;
     end
     repeat (20) @(posedge clk_cpu);
-    if (ov_err_w[0] !== 1'b1 || ov_open_err_w[0] !== 1'b1 || ov_open_ok_w[0] !== 1'b0) begin
-      $display("FAIL: oversize open flags (err=%b oerr=%b ok=%b)",
-               ov_err_w[0], ov_open_err_w[0], ov_open_ok_w[0]);
+    // Phase 4: a file LARGER THAN ITS SLOT is the normal case now - that is
+    // the whole point, a 75 MB image against a 4 MB region. The open must
+    // SUCCEED. v1 asserted it failed.
+    if (ov_open_ok_w[0] !== 1'b1 || ov_open_err_w[0] !== 1'b0) begin
+      $display("FAIL: oversize open flags (oerr=%b ok=%b, want ok)",
+               ov_open_err_w[0], ov_open_ok_w[0]);
       errors = errors + 1;
     end
+    // And it must stage NOTHING. This is the assertion that proves the
+    // preload is really gone: a mount that still streamed the file into the
+    // region would show hundreds of mem pulses here (751 before M_LOAD was
+    // taken out of the path), and on a 75 MB image would never finish.
     if (m2_starts !== 0) begin
-      $display("FAIL: oversize open touched the mem port (%0d pulses)", m2_starts);
+      $display("FAIL: open staged into the region (%0d mem pulses, want 0)", m2_starts);
       errors = errors + 1;
     end
 

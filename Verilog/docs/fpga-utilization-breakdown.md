@@ -12,16 +12,16 @@
 - **Target:** Gowin `GW2AR-LV18QN88C8/I7`, device GW2AR-18 (Tang Nano 20K),
   family `GW2A-18C`. Top = `ND120_TANG20K_TOP`.
 - **Flow measured:** the OSS CAD flow the Tang Makefile drives
-  (`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/Makefile`),
+  (`Verilog/fpga/tang-nano-20k/Makefile`),
   `yosys` (oss-cad-suite build 0.66+183 at
   `/home/ronny/oss-cad-suite/bin/yosys`) → `nextpnr-himbaechel` → `gowin_pack`,
   VARIANT=slow (the default).
 - **Source list:** the ordered `.v` list from
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj`
+  `Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj`
   with defines file `src/tang20k_defines.v` first and `-I../../SD-FAT/circuit`,
   exactly as the Makefile assembles them.
 - **Ground-truth PnR report:** the repo already contains today's failing run at
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/build/nd120_tang20k_oss-slow-pnr.log`
+  `Verilog/fpga/tang-nano-20k/build/nd120_tang20k_oss-slow-pnr.log`
   (16-JUL 00:26). All utilization percentages below are quoted from it. The
   per-memory and per-module attributions were reproduced independently in a
   scratch synthesis in `/tmp/utilscan` (not in the repo build tree).
@@ -189,17 +189,17 @@ storage (+3)". Measured against the two PnR reports in the build tree:
 
 ## References (all absolute)
 
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/build/nd120_tang20k_oss-slow-pnr.log` — today's failing PnR utilisation + error (ground truth)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/build/nd120_tang20k_oss-full-pnr.log` — 12-JUL pre-storage PnR (41 BSRAM / 42% LUT4)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj` — ordered source list
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/tang20k_defines.v` — SKIP_WCS_LOAD / MAIN_RAM_SDRAM / ND_SDRAM_PACK16 / ND_STORAGE_PORT
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md` — prior (Gowin-EDA, pre-storage) WCS analysis and reclaim plan
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_CS_WCS_21_22.v` — WCS, 32 IDT6168A_20 instances
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/IDT6168A_20.v` — 4096×4 chip model (block-RAM template)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/TMM2018D_25.v` — 2048×8 SRAM
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/Shared/support/IMS1403_25.v` — 16384×1 SRAM
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/CPU_PROC_32.v` — CPU register file (distributed under YOSYS, lines 449-459)
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/sd_file_reader.v` — largest single LUT consumer; `secbuf` at line 289
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/nd_storage_engine.v` — `s_staging` at line 278
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/nd_storage_tape_adapter.v` — `s_blkbuf` at line 78
-- `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/nd_storage_fatchk.v` — `fbuf` at line 79
+- `Verilog/fpga/tang-nano-20k/build/nd120_tang20k_oss-slow-pnr.log` — today's failing PnR utilisation + error (ground truth)
+- `Verilog/fpga/tang-nano-20k/build/nd120_tang20k_oss-full-pnr.log` — 12-JUL pre-storage PnR (41 BSRAM / 42% LUT4)
+- `Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj` — ordered source list
+- `Verilog/fpga/tang-nano-20k/src/tang20k_defines.v` — SKIP_WCS_LOAD / MAIN_RAM_SDRAM / ND_SDRAM_PACK16 / ND_STORAGE_PORT
+- `Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md` — prior (Gowin-EDA, pre-storage) WCS analysis and reclaim plan
+- `Verilog/CPU-BOARD-3202/circuit/CPU_CS_WCS_21_22.v` — WCS, 32 IDT6168A_20 instances
+- `Verilog/Shared/support/IDT6168A_20.v` — 4096×4 chip model (block-RAM template)
+- `Verilog/Shared/support/TMM2018D_25.v` — 2048×8 SRAM
+- `Verilog/Shared/support/IMS1403_25.v` — 16384×1 SRAM
+- `Verilog/CPU-BOARD-3202/circuit/CPU_PROC_32.v` — CPU register file (distributed under YOSYS, lines 449-459)
+- `Verilog/SD-FAT/circuit/sd_file_reader.v` — largest single LUT consumer; `secbuf` at line 289
+- `Verilog/SD-FAT/circuit/nd_storage_engine.v` — `s_staging` at line 278
+- `Verilog/SD-FAT/circuit/nd_storage_tape_adapter.v` — `s_blkbuf` at line 78
+- `Verilog/SD-FAT/circuit/nd_storage_fatchk.v` — `fbuf` at line 79

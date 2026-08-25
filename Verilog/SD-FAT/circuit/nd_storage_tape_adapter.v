@@ -28,6 +28,18 @@
 **   - c_err on a fetch -> drop s_have_blk, stay silent (tape runout       **
 **     semantics); the next byte_req simply retries the fetch.             **
 **                                                                         **
+** WHY THIS ONE CANNOT TELL THE GUEST WHY IT STOPPED: the byte source      **
+** port is byte_req / byte_valid / byte_data / source_rewind and nothing   **
+** else - a real ND-400 paper tape reader has no register in which "the    **
+** SD card is missing" could be expressed, and inventing one would put a   **
+** signal on the card that its manual does not define. So the guest still  **
+** sees exactly the runout silence it saw before, and the reason is        **
+** instead published on the STICKY diagnostic pair fault / fault_code      **
+** (nd_storage_status.vh), which no ND logic reads - it exists for a       **
+** testbench, a probe or a board LED. Cleared by source_rewind and reset.  **
+** Without it, "the card fell out" and "you reached the end of the tape"   **
+** are the same event from every observation point.                        **
+**                                                                         **
 ** READ-ONLY by construction: c_wr is tied 0 and c_buf_rdata is tied 0,    **
 ** so the step-6 FLAG (never write the partial tail block of a file whose  **
 ** size is not a 2048-byte multiple) holds trivially - there is no write   **
@@ -40,6 +52,8 @@
 ** Ronny Hansen                                                            **
 *****************************************************************************/
 
+`include "nd_storage_status.vh"
+
 module nd_storage_tape_adapter (
     input wire clk_cpu,
     input wire rst_n,
@@ -49,6 +63,12 @@ module nd_storage_tape_adapter (
     output reg        byte_valid,     // 1-cycle pulse: byte_data is the byte
     output reg  [7:0] byte_data,
     input  wire       source_rewind,  // 1-cycle pulse: back to byte 0
+
+    // Sticky diagnostic (NOT part of the ND-400 device contract - see the
+    // header). Set the first time a byte request is refused for a reason
+    // that is not plain end-of-tape; cleared by rewind and reset.
+    output reg        fault,
+    output reg  [3:0] fault_code,
 
     // Board/boot control
     input wire open_start,  // 1-cycle pulse: (re)open the file
@@ -64,6 +84,7 @@ module nd_storage_tape_adapter (
     input  wire        c_busy,
     input  wire        c_done,        // 1-cycle pulse
     input  wire        c_err,         // valid with c_done
+    input  wire [ 3:0] c_err_code,    // valid with c_done when c_err
     input  wire [ 9:0] c_buf_addr,
     input  wire [15:0] c_buf_wdata,
     input  wire        c_buf_we,
@@ -108,6 +129,8 @@ module nd_storage_tape_adapter (
       s_pend     <= 1'b0;
       s_drop     <= 1'b0;
       s_word     <= 16'd0;
+      fault      <= 1'b0;
+      fault_code <= `NDS_ERR_NONE;
     end else begin
       byte_valid <= 1'b0;
       c_req      <= 1'b0;
@@ -121,6 +144,14 @@ module nd_storage_tape_adapter (
             if (!c_open_ok || (s_bptr >= c_size_bytes)) begin
               // EOF / not open: SILENCE - drop the request, no traffic
               s_pend <= 1'b0;
+              // ...but say WHY on the diagnostic pair. Running off the end
+              // of the tape is normal and is NOT a fault; having no file to
+              // read is. (Both are true at once when the open failed, since
+              // c_size_bytes is then 0 - so test !c_open_ok first.)
+              if (!c_open_ok && !fault) begin
+                fault      <= 1'b1;
+                fault_code <= `NDS_ERR_NOTOPEN;
+              end
             end else if (s_have_blk && (s_cur_blk == s_bptr[26:11])) begin
               s_state <= A_RD1;
             end else if (!c_busy) begin
@@ -139,10 +170,15 @@ module nd_storage_tape_adapter (
               s_have_blk <= 1'b0;
               s_state    <= A_IDLE;
             end else if (c_err) begin
-              // tape runout: silent, retryable on the next byte_req
+              // silent to the device, retryable on the next byte_req - but
+              // this is a real storage failure, not the end of the tape
               s_have_blk <= 1'b0;
               s_pend     <= 1'b0;
               s_state    <= A_IDLE;
+              if (!fault) begin
+                fault      <= 1'b1;
+                fault_code <= c_err_code;
+              end
             end else begin
               s_have_blk <= 1'b1;
               s_cur_blk  <= c_block;
@@ -178,6 +214,8 @@ module nd_storage_tape_adapter (
         s_have_blk <= 1'b0;
         s_pend     <= 1'b0;
         byte_valid <= 1'b0;
+        fault      <= 1'b0;   // new tape pass: the old verdict is stale
+        fault_code <= `NDS_ERR_NONE;
         if ((s_state == A_WAIT) && !c_done) begin
           s_drop <= 1'b1;  // stay in A_WAIT until the fetch completes
         end else begin

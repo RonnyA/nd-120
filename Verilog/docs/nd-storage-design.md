@@ -801,8 +801,8 @@ hook if it ever matters.
 ---
 
 ### Critical Files for Implementation
-- /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd-storage-interface-spec.md (binding contract: ports, handshake, tests)
-- /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/sd-fat-test/src/sd_fat_test_top.v (proven reader/writer pin-mux, park/re-init, geometry-latch and watchdog patterns to lift)
-- /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/sd_file_reader.v (mount source: target_name port, geometry/first-sector exports, outen/outbyte stream semantics)
-- /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/sd_writer.v (write-through engine contract: start/busy/done/err, registered rd_addr/rd_data timing)
-- /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/sdram-bridge/MEM_RAM_49_SDRAM.v (device-port + partition edits; B_POST/idle grant slots)
+- Verilog/docs/nd-storage-interface-spec.md (binding contract: ports, handshake, tests)
+- Verilog/fpga/tang-nano-20k/sd-fat-test/src/sd_fat_test_top.v (proven reader/writer pin-mux, park/re-init, geometry-latch and watchdog patterns to lift)
+- Verilog/SD-FAT/circuit/sd_file_reader.v (mount source: target_name port, geometry/first-sector exports, outen/outbyte stream semantics)
+- Verilog/SD-FAT/circuit/sd_writer.v (write-through engine contract: start/busy/done/err, registered rd_addr/rd_data timing)
+- Verilog/fpga/tang-nano-20k/sdram-bridge/MEM_RAM_49_SDRAM.v (device-port + partition edits; B_POST/idle grant slots)

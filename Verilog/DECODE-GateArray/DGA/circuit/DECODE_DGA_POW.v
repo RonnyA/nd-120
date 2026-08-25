@@ -357,8 +357,22 @@ module DECODE_DGA_POW (
 `elsif VERILATOR_SIM
   // Original TESTE=1 F714 chain: RTOSC(period=256cyc) -> /2(A624) -> /8(A616/A618/A617) -> /2(A577) ~ 8192 sysclk per interrupt
   // 256 was too fast (32x) - instruction verify programs couldn't execute enough instructions per RTC period
+  //
+  // RTC_SIM_20MS: optional build-time override of the simulation RTC period, in
+  // sysclk cycles (RTC_5MS tracks it at 1/4, preserving the 4:1 ratio). Used to
+  // study rate-sensitive software: the TPE INSTRUCTION verifier's init sweep
+  // clears each IDENT level and re-reads it, and at the 8192 default the RTC
+  // re-asserts level 13 (IOC bit3) inside that clear-verify window. Leave it
+  // undefined for the historical 8192 baseline - all golden traces assume it.
+  // Scale ND120_SEND_GAP in the probe/harness with this value: OPCOM input is
+  // serviced once per RTC tick, so a longer period drops typed characters.
+`ifdef RTC_SIM_20MS
+  localparam RTC_20MS = 21'd`RTC_SIM_20MS;
+  localparam RTC_5MS  = 21'd`RTC_SIM_20MS / 21'd4;
+`else
   localparam RTC_20MS = 21'd8192;   // Matches original ~8K-cycle period (TESTE=1 baseline)
   localparam RTC_5MS  = 21'd2048;   // Proportional (1/4 of 20ms)
+`endif
 `else
   // Derive from the real board clock. The old fixed 1_999_999 assumed 100 MHz;
   // on the Basys3 the CPU/board domain is 16.67 MHz, which stretched the
@@ -371,6 +385,29 @@ module DECODE_DGA_POW (
   reg [20:0] s_rtc_cnt;
   reg        s_rtc_n_reg;
 
+`ifdef VERILATOR_SIM
+  // Harness-writable copies of the period, so the simulation RTC can be retuned
+  // at RUNTIME (nd120_probe "rtc" command) rather than only at build time. The
+  // boot itself is RTC-paced - OPCOM services one character per RTC tick - so a
+  // build-time-only period multiplies boot time by the same factor (measured:
+  // 8x period => boot still short of TPE> at 177M ticks vs 44M at the default).
+  // Booting fast and slowing the clock down only for rate-sensitive software
+  // avoids that. Initialised to the compiled-in values, so a run that never
+  // pokes them is bit-identical to the old behaviour (golden traces unaffected).
+  // The public_flat_rw attributes are REQUIRED: nothing in the RTL ever assigns
+  // these, so without them Verilator constant-folds both away and the harness
+  // has no member to write.
+  reg [20:0] s_rtc_20ms_var /* verilator public_flat_rw */ = RTC_20MS;
+  reg [20:0] s_rtc_5ms_var  /* verilator public_flat_rw */ = RTC_5MS;
+  wire [20:0] s_rtc_limit = s_sel5ms_n ? s_rtc_20ms_var : s_rtc_5ms_var;
+`else
+  // Sized copies: RTC_20MS/RTC_5MS are 32-bit integer localparams, so selecting
+  // between them directly would widen the conditional to 32 bits on a 21-bit net.
+  localparam [20:0] RTC_20MS_S = RTC_20MS[20:0];
+  localparam [20:0] RTC_5MS_S  = RTC_5MS[20:0];
+  wire [20:0] s_rtc_limit = s_sel5ms_n ? RTC_20MS_S : RTC_5MS_S;
+`endif
+
   always @(posedge sysclk) begin
     if (s_clrti) begin
       // Preset (re-arm): microcode cleared CLRTIN, restart the counter
@@ -379,7 +416,7 @@ module DECODE_DGA_POW (
     end else if (s_rescl) begin
       s_rtc_n_reg <= 1'b1;
       s_rtc_cnt   <= 21'd0;
-    end else if (s_rtc_cnt >= (s_sel5ms_n ? RTC_20MS : RTC_5MS)) begin
+    end else if (s_rtc_cnt >= s_rtc_limit) begin
       s_rtc_cnt   <= 21'd0;
       s_rtc_n_reg <= 1'b0;  // Fire RTC interrupt
     end else begin

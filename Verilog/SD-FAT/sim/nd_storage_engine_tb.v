@@ -14,7 +14,8 @@
 **       req and holds until done, done is a single-cycle pulse, err is  **
 **       valid with done                                                  **
 **   (d) out-of-range block answers done+err with ZERO mem-port traffic  **
-**       (mem_start pulses counted), and the engine recovers             **
+**       (mem_start pulses counted: 1024 per DIRECT op - 512 fill writes  **
+**       + 512 serve reads), and the engine recovers                     **
 **   (e) open path plumbing: open_req reaches the mount stub             **
 **       (mnt_start/mnt_client) and completes with done, err=0;          **
 **       size_bytes is sampled at the open_ok rise                       **
@@ -59,6 +60,7 @@ module nd_storage_engine_tb;
   reg  [N-1:0]    t_wr = 0;
   reg  [15:0]     t_block0 = 0, t_block1 = 0;
   wire [N-1:0]    open_ok_w, open_err_w, busy_w, done_w, err_w, buf_we_w;
+  wire [N*4-1:0]  err_code_w;   // WHY (nd_storage_status.vh)
   wire [N*32-1:0] size_bytes_w;
   wire [N*10-1:0] buf_addr_w;
   wire [N*16-1:0] buf_wdata_w;
@@ -69,6 +71,49 @@ module nd_storage_engine_tb;
   wire [31:0] sdw_sector_w;
   wire [8:0]  sdw_rd_addr_unused = 9'd0;
   wire [7:0]  sdw_rd_data_w;
+
+  // ---------------------------------------------------------- card model
+  // Phase 4: the engine FETCHES blocks from the card - v1 assumed the region
+  // already held the image, so this tb tied sdw_done/err to constants and a
+  // fetch could never complete. This responder streams one sector per
+  // sdw_start, which makes the fill path the thing under test.
+  function [7:0] cardbyte(input [31:0] sec, input [31:0] b);
+    reg [31:0] v;
+    begin
+      v = sec * 32'd512 + b;
+      cardbyte = v[7:0] ^ 8'h5A;
+    end
+  endfunction
+
+  reg        cr_busy = 1'b0;
+  reg [8:0]  cr_addr = 9'd0;
+  reg [31:0] cr_sec  = 32'd0;
+  reg        cr_we   = 1'b0;
+  reg [8:0]  cr_ao   = 9'd0;
+  reg [7:0]  cr_data = 8'd0;
+  reg        cr_last = 1'b0;
+  reg        cr_done = 1'b0;
+
+  always @(posedge clk_stor) begin
+    cr_we   <= 1'b0;
+    cr_done <= cr_last;
+    cr_last <= 1'b0;
+    if (sdw_start_w && !cr_busy) begin
+      cr_busy <= 1'b1;
+      cr_addr <= 9'd0;
+      cr_sec  <= sdw_sector_w;
+    end else if (cr_busy) begin
+      cr_we   <= 1'b1;
+      cr_ao   <= cr_addr;
+      cr_data <= cardbyte(cr_sec, {23'd0, cr_addr});
+      if (cr_addr == 9'd511) begin
+        cr_busy <= 1'b0;
+        cr_last <= 1'b1;   // done pulses AFTER the last byte lands
+      end else begin
+        cr_addr <= cr_addr + 9'd1;
+      end
+    end
+  end
 
   nd_storage_engine #(
       .N_CLIENTS     (N),
@@ -93,18 +138,36 @@ module nd_storage_engine_tb;
       .mnt_client(mnt_client_w),
       .mnt_done  (mnt_done_r),
       .mnt_err   (1'b0),
+      // no card / no mount is not what this bench exercises: it drives a
+      // successful mount handshake, so the reason seam is tied inactive.
+      // The failure reasons themselves are covered by nd_storage_errors_tb.v
+      .mnt_nocard(1'b0),
 
       .open_ok_stor   ({N{1'b1}}),
       .open_err_stor  ({N{1'b0}}),
       .size_bytes_stor({32'd8192, 32'd8192}),
       .n_blocks       ({16'd4, 16'd4}),
-      .first_sector   (64'd0),
+      // Distinct first_sector per client: card content is keyed on the
+      // ABSOLUTE sector, so this is what makes a cross-client leak
+      // visible instead of two clients happening to fetch the same bytes.
+      .first_sector   ({32'd1000, 32'd0}),
+      // FAT-walk geometry: 128 sectors/cluster = 64 KB clusters, so the
+      // 8 KB test files live in ONE cluster each - the walker resolves with
+      // zero FAT hops and the LBAs equal the old contiguity arithmetic.
+      // first_cluster=2 makes data_start = first_sector exactly.
+      .first_cluster  ({28'd2, 28'd2}),
+      .fat_spc        (8'd128),
+      .fat0_sector    (32'd0),
+      .fat_is_fat32   (1'b1),
 
       .sdw_start  (sdw_start_w),
       .sdw_sector (sdw_sector_w),
-      .sdw_busy   (1'b0),
-      .sdw_done   (1'b0),
+      .sdw_busy   (cr_busy),
+      .sdw_done   (cr_done),
       .sdw_err    (1'b0),
+      .sdw_rx_we  (cr_we),
+      .sdw_rx_addr(cr_ao),
+      .sdw_rx_data(cr_data),
       .sdw_rd_addr(sdw_rd_addr_unused),
       .sdw_rd_data(sdw_rd_data_w),
 
@@ -120,6 +183,7 @@ module nd_storage_engine_tb;
       .busy      (busy_w),
       .done      (done_w),
       .err       (err_w),
+      .err_code  (err_code_w),
       .buf_addr  (buf_addr_w),
       .buf_wdata (buf_wdata_w),
       .buf_we    (buf_we_w),
@@ -299,9 +363,12 @@ module nd_storage_engine_tb;
     reg [15:0] expw, gotw;
     begin
       for (w = 0; w < 1024; w = w + 1) begin
-        ma   = ((c == 0 ? BASE0 : BASE1) + blk) * 512 + (w / 2);
-        a32  = u_mem.mem[ma];
-        expw = (w % 2 == 1) ? a32[15:0] : a32[31:16];
+        // Expected content is what the CARD holds, not what the region was
+        // seeded with: nothing is preloaded, so a block's bytes come from
+        // first_sector + blk*4 + (byte offset / 512).
+        ma   = (c == 0 ? 32'd0 : 32'd1000) + blk * 4 + ((2 * w) / 512);
+        a32  = (2 * w) % 512;
+        expw = {cardbyte(ma, a32), cardbyte(ma, a32 + 32'd1)};
         gotw = (c == 0) ? cbuf0[w] : cbuf1[w];
         if (gotw !== expw) begin
           if (errors < 10)
@@ -427,9 +494,14 @@ module nd_storage_engine_tb;
     end
     check_buf(0, 16'd0);
 
-    // total mem traffic: exactly 512 reads per successful block op
-    if (mem_starts !== 8 * 512) begin
-      $display("FAIL: mem_start pulses = %0d (want %0d)", mem_starts, 8 * 512);
+    // Total region traffic per successful block op. v1 was 512 READS: the
+    // image was already staged, so serving a client only read it back. A
+    // DIRECT client now FETCHES first, so each op is 512 writes (the fill)
+    // plus 512 reads (serving the client) = 1024. This is the cost caching
+    // buys back: a CACHED client that HITS does the 512 reads only, with no
+    // fill and no card traffic at all.
+    if (mem_starts !== 8 * 1024) begin
+      $display("FAIL: mem_start pulses = %0d (want %0d)", mem_starts, 8 * 1024);
       errors = errors + 1;
     end
     if (eng_wd_err_w !== 1'b0) begin

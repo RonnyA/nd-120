@@ -1,6 +1,6 @@
 # Tang Nano 20K - debugging options for the ND-120
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/DEBUG-OPTIONS.md`
+**Full path:** `Verilog/fpga/tang-nano-20k/DEBUG-OPTIONS.md`
 Written 17-JUL-2026, during the masked-grant hunt. Status column tells you what
 exists TODAY vs what is planned. Pick the lightest tool that answers the
 question; the heavier ones cost rebuilds, resources, or wiring.
@@ -49,10 +49,10 @@ start; on an EMPTY machine `n!` executes garbage and kills the console.
 
 ## 3. The on-chip 512x16 ring analyzer (ours, proven)
 
-Guide: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/TRACE-CAPTURE-GUIDE.md`.
+Guide: `Verilog/fpga/tang-nano-20k/TRACE-CAPTURE-GUIDE.md`.
 A 512-sample x 16-bit ring buffer in `src/ND120_TANG20K_TOP.v`, sampling a
 retargetable debug bus (`assign DBG_MEMW` in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/ND3202D.v` -
+`Verilog/CPU-BOARD-3202/circuit/ND3202D.v` -
 READ THE CURRENT MAP BEFORE DECODING), trigger = rising bit[7] after an arm
 delay, dump over the console UART. Solved the memory-write mystery. Cost:
 one map edit + `make gowin` + reflash per investigation; console dies after
@@ -64,7 +64,7 @@ GAO = Gowin's ILA: capture internal nets on trigger conditions, view
 waveforms over JTAG in the Gowin tool on Windows. GVIO = drive internal
 control signals over JTAG (reset/halt/step without pins). Integration into
 our SCRIPTED build (gowin_build.tcl, not the IDE) is in progress - see
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/GAO-HOWTO.md`
+`Verilog/fpga/tang-nano-20k/GAO-HOWTO.md`
 (being written). Probe nets for the current hunt are already marked with
 `syn_keep` in the RTL: the interrupt-request-enable FF (HIRL/LORL), the
 claim outputs, CSA_12_0 at the top.

@@ -1,7 +1,7 @@
 # HANDOFF — ND-120 interrupt/trap testbenches + RUN blocker fix
 
-Written 15-JUL-2026. Branch `clock-enable-fix`. Repo root: `/mnt/e/Dev/Repos/Ronny/nd-120`.
-Verilog root: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog`.
+Written 15-JUL-2026. Branch `clock-enable-fix`. Repo root: ``.
+Verilog root: `Verilog`.
 
 This is a cold-start handoff for the next LLM. All paths are absolute.
 NOTHING has been committed — see "Commit" below (needs Ronny's explicit git permission).
@@ -11,7 +11,7 @@ NOTHING has been committed — see "Commit" below (needs Ronny's explicit git pe
 ## 1. What is DONE and PROVEN this session
 
 ### 1a. RUN blocker root-caused + fixed (THIRD CPU transcription bug)
-- **File:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR.v`
+- **File:** `Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR.v`
   lines ~129-131.
 - **Bug:** `s_fidbo_2_0[1]` and `[2]` were swapped on the status-write path
   (`s_fidbo_2_0 -> VECGEN.FIDBO_2_0 -> HISIN/LOSIN` = the microcode LDSTAT
@@ -27,11 +27,11 @@ NOTHING has been committed — see "Commit" below (needs Ronny's explicit git pe
 - **Validated:** self-test 0 STERR; unit suite green; 13/13 instruction-verify
   areas PASS vs golden; sim/ latch-vs-FF golden traces byte-identical; console
   swap-neutral; RUN now handles IOX-ERROR -> LEVEL 13 -> END-OF-TEST.
-- Full analysis: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/RUN-level14-livelock-analysis.md`.
+- Full analysis: `Verilog/docs/RUN-level14-livelock-analysis.md`.
 
 Also in the coordinated (uncommitted) change set, validated green earlier this session:
 - **Am2914 status fence** default-ON (escape hatch `ND120_INTR_STATUS_FENCE_OFF`):
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_STAT.v`
+  `Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_STAT.v`
   and `.../CGA_INTR_CNTLR_VECGEN_STAT_SBIT.v`.
 - **MOR level-12 wiring** (from the MON-signal LLM), KEPT:
   `.../CGA_INTR/circuit/CGA_INTR.v` (`assign s_mor_n = MORN;`) + `NORN->MORN`
@@ -43,14 +43,14 @@ Also in the coordinated (uncommitted) change set, validated green earlier this s
   `TB_RESULT: PASS`, and has a `-DTEETH_TEST` perturbation proven to force FAIL.
 - **NO DUT bug was found in any of the 29** (~600k+ total checks). The gate
   netlists match the independently-derived behavior everywhere.
-- Files: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/sim/*_tb.v`
-  (24) and `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_TRAP/sim/*_tb.v` (5).
+- Files: `Verilog/DELILAH-CPU/CGA_INTR/sim/*_tb.v`
+  (24) and `Verilog/DELILAH-CPU/CGA_TRAP/sim/*_tb.v` (5).
 - **Runner:** a generic `iv-%` rule was added to BOTH Makefiles
   (`.../CGA_INTR/sim/Makefile`, `.../CGA_TRAP/sim/Makefile`):
   `make iv-<MODULE>` compiles `<MODULE>_tb.v` against the gate netlists via `-y`
   (Shared libs + circuit dir) and runs it.
 - **Registered:** all 29 added to
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/run_all_tests.sh`
+  `Verilog/tests/run_all_tests.sh`
   (entries `... :: iv-<MODULE> :: TB_RESULT: PASS`).
 - **Verified in-harness:** running every registered target exactly as the suite
   does gave PASS=29 FAIL=0. (I did NOT run the full `make test` end-to-end —
@@ -68,11 +68,11 @@ Modules covered by the 29:
 
 ### 1c. RTC question answered (Ronny asked: free-running or manual-start for "bit 3"?)
 - The **RTC timebase is FREE-RUNNING from master clear** — `s_rtc_cnt` in
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DECODE-GateArray/DGA/circuit/DECODE_DGA_POW.v:363-382`
+  `Verilog/DECODE-GateArray/DGA/circuit/DECODE_DGA_POW.v:363-382`
   has NO enable/start input; it counts every `sysclk`, zeroed only by power-on
   reset (`s_rescl`) or the microcode re-arm (`COMM,CLRTC` -> `s_clrti`).
 - **"bit 3" = IOC-register bit 3** (`s_ioc_3`,
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/CPU-BOARD-3202/circuit/IO_REG_41.v:180`,
+  `Verilog/CPU-BOARD-3202/circuit/IO_REG_41.v:180`,
   "clock interrupt generated from RTC trap handler"). It is a `TTL_74273` Q
   output written ONLY by software (IOX/`COMM,SIOC`); after master clear it is 0.
   It becomes 1 when the 20 ms RTC trap-handler microcode (`MS20`, `o2333` in the
@@ -130,7 +130,7 @@ through realistic command sequences and validate the reported level. His words:
    (d) the HI/LO -> 16-level cascade mapping (which `IREQ` bit index = which
    (group, level) = which reported `PICV`+`PICS`); (e) a concrete worked
    sequence with expected outputs at each step. Write it to
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/am2914-command-model.md`.
+   `Verilog/docs/am2914-command-model.md`.
    Do NOT let the builder agents each re-derive the command model — they will
    disagree. One shared spec, then fan out.
 2. **Builder agents** (2-3) consume that spec + the RTL and build the sequence
@@ -147,7 +147,7 @@ through realistic command sequences and validate the reported level. His words:
 - Microcode listing (PIC command usage, AIIC at CS 000725):
   `/mnt/e/Dev/Ronny/nd120uc/source/ND-120-DELILAH-L.LISTING.txt`
 - C# PIC ground-truth trace:
-  `/mnt/e/Dev/Repos/Ronny/ND110Compile/traces/PIC-TRACE-RUN-ND120.md`
+  `$ND_REPOS/ND110Compile/traces/PIC-TRACE-RUN-ND120.md`
 - nd100x IIC reference: `~/repos/nd100x/src/cpu/cpu.c` (`calcIIC`) and
   `cpu_instr.c:1888` (`TRA IIC`).
 - Established interrupt architecture facts (verified this session, DO NOT
@@ -169,7 +169,7 @@ through realistic command sequences and validate the reported level. His words:
   not pushed. **NEVER put the word "claude" in the commit message.**
 - **Task #41 (PHASE D):** Tang Nano 20K `400$` FF-mode hang (level-12 tape
   storm suspect) — owned by the devices/FAT workstream, not this one.
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/HANDOFF-tang-sd-tape-boot.md`.
+  `Verilog/fpga/tang-nano-20k/HANDOFF-tang-sd-tape-boot.md`.
 
 ---
 
@@ -180,13 +180,13 @@ Modified (tracked): `CGA_INTR/circuit/CGA_INTR.v`, `CGA_INTR/circuit/CGA_INTR_CN
 `CGA_INTR/circuit/CGA_INTR_IRSRC.v`, `CGA_INTR/sim/Makefile`,
 `CGA_TRAP/sim/Makefile`, `docs/RUN-level14-livelock-analysis.md`,
 `runSim/Run120.cpp`, `tests/run_all_tests.sh` (all under
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/`).
+`Verilog/`).
 Untracked (new): 29 `*_tb.v` under the two `sim/` dirs, `CGA_INTR/sim/test_irsrc.cpp`,
 `CGA_INTR/sim/obj_dir_irsrc/` (build artifact — do not commit).
 
 ## 5. How to run
 ```
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog
+cd Verilog
 # one unit tb:
 make -C DELILAH-CPU/CGA_INTR/sim iv-CGA_INTR_CNTLR      # -> TB_RESULT: PASS
 make -C DELILAH-CPU/CGA_TRAP/sim iv-CGA_TRAP            # -> TB_RESULT: PASS

@@ -1,6 +1,20 @@
+> # HISTORICAL - this phase is over (banner added 25-AUG-2026)
+>
+> Written 2026-07-03 on branch `redo-idb`. Two things below are no longer true:
+>
+> - **"The CPU does not boot on FPGA."** The Tang Nano 20K boots SINTRAN III
+>   (24-AUG-2026) and the Basys3 boots OPCOM. The Xilinx boards still fail
+>   timing, which is what keeps them from running the OS.
+> - **"Current known FPGA bug: stuck in boot Phase 3, CSA oscillates
+>   0x0425 <-> 0x0426."** That was fixed long ago.
+>
+> The Verilator-vs-FPGA comparison method described here is still sound and
+> still used. Current status lives in `CLAUDE.md`, `Verilog/readme.md` and
+> `Verilog/fpga/tang-nano-20k/README.md`; live tasks in `Verilog/TODO.md`.
+
 # ND-120 FPGA Bring-up Plan (redo-idb)
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/FPGA-BRINGUP-PLAN.md`
+**Full path:** `Verilog/FPGA-BRINGUP-PLAN.md`
 **Branch:** `redo-idb`
 **Last updated:** 2026-07-03
 
@@ -13,8 +27,9 @@ records **what we are fixing**, **which side (WSL vs Windows) does what**, and
 
 ## 1. Goal of this phase
 
-The CPU boots correctly in **Verilator** (microcode load, Master Clear, MACL
-self-test 7/14, OPCOM works) but does **not** boot on the **Basys3 FPGA**
+The CPU boots correctly in **Verilator** (microcode load, Master Clear, MACL,
+self-test clean at 0 execution-phase STERR visits, OPCOM works) but does **not**
+boot on the **Basys3 FPGA**
 (`xc7a35tcpg236-1`). Verilator is the golden reference; the FPGA behavior is
 captured with the Vivado ILA and compared against it.
 
@@ -82,9 +97,9 @@ split is about tools, not files.
 | | WSL / Linux (bash) | Windows 11 (PowerShell + Vivado) |
 |---|---|---|
 | Role | Edit Verilog, Verilator reference, validation | Synthesize, flash FPGA, capture ILA |
-| Source path | `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog` | `E:\Dev\Repos\Ronny\nd-120\Verilog` |
+| Source path | the repo checkout, `Verilog/` | the same checkout over the Windows drive letter, `Verilog\` |
 | Vivado project | — | `F:\Xilinx\ND120\ND3202D` (`ND3202D.xpr`) |
-| Vivado install | — | `F:\AMDDesignTools\2025.2.1\Vivado` |
+| Vivado install | — | `F:\AMDDesignTools\2026.1\Vivado` |
 | Tools | `verilator`, `iverilog`, `gtkwave`, `python3 vcd_extract.py` | `vivado_build.ps1`, `flash.ps1`, Hardware Manager (ILA) |
 | Output | `waveform.vcd`/`.fst` (golden), `trace_*.csv` | `output/ND120_TOP.bit` + `ND120_TOP.ltx` |
 
@@ -103,11 +118,11 @@ fails in simulation.
 
 ```bash
 # a) Unit-test the MASEL race directly (iverilog, ~1s)
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_MIC/sim
+cd Verilog/DELILAH-CPU/CGA_MIC/sim
 make test-masel                 # MASEL_cycle_tb + MASEL_iw_capture_tb
 
 # b) Prove the change did not alter sim behaviour (latch vs FF, ~2 min)
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 make compare                    # "IDENTICAL" (good) or "DIVERGENCE FOUND" -> trace_diff.txt
 ```
 
@@ -121,14 +136,14 @@ harmless init-transient divergences are listed in
 ### Regenerate golden reference — WSL (only if logic changed)
 
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 make clean && make all          # produces the reference waveform + opens GTKWave
 ```
 
 ### Outer loop — Windows PowerShell (only once inner loop passes)
 
 ```powershell
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\basys3
+cd Verilog/fpga/basys3
 
 # Logic changed -> FULL re-synth required (~1h). ps1 default already does full_synth.
 .\vivado_build.ps1
@@ -156,7 +171,7 @@ On WSL, extract the same signal window from the golden VCD and compare the
 microcode address trace:
 
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 python3 vcd_extract.py waveform.vcd -e "TOP.CSA_12_0" \
   --tstart 5734355 --tend 7600000 --ticks --table
 ```
@@ -345,7 +360,7 @@ comparator as the sim.
 
 - **Architecture:** Windows runs `hw_server` (owns the USB-JTAG cable); WSL drives
   captures over TCP `localhost:3121`. Avoids passing the Digilent device into WSL.
-  `hw_server.bat` is under `F:\AMDDesignTools\2025.2.1\Vivado\bin\`.
+  `hw_server.bat` is under `F:\AMDDesignTools\2026.1\Vivado\bin\`.
 - **`scripts/capture_ila.tcl`** — `connect_hw_server -url`, select ILA, set a real
   **trigger condition** (NOT `-trigger_now`), `run_hw_ila` / `wait_on_hw_ila` /
   `upload_hw_ila_data`, then export CSV in one step with

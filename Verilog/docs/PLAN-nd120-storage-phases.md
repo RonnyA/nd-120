@@ -6,15 +6,15 @@
 > promote those to fact without checking.
 >
 > Companion docs (read them, they are load-bearing):
-> - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/PLAN-nd120-core-extraction.md` — phase 1, the core seam
-> - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md` — the BSRAM analysis this plan depends on
-> - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/HANDOFF-nd-storage.md` — the storage stack's own handoff
+> - `Verilog/docs/PLAN-nd120-core-extraction.md` — phase 1, the core seam
+> - `Verilog/fpga/tang-nano-20k/BSRAM-BUDGET.md` — the BSRAM analysis this plan depends on
+> - `Verilog/SD-FAT/HANDOFF-nd-storage.md` — the storage stack's own handoff
 
 ## The goal in one paragraph
 
 `ND120_CORE` exposes a storage seam (`TAPE_BYTE_*`, `FDISK_*`/`FDBUF_*`,
 `SDISK_*`/`SDBUF_*`). Today that seam is served by **C file-servers** in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/simDevices/NDBus.cpp` in sim, and by
+`Verilog/simDevices/NDBus.cpp` in sim, and by
 **nothing** on Tang. The goal is to serve it from the **real Verilog SD-FAT
 stack reading a simulated/real SD card**, in *both* Verilator runSim and on
 Tang, so the same devices and the same images are exercised in both places —
@@ -28,9 +28,9 @@ Tang, so the same devices and the same images are exercised in both places —
    and must keep compiling; `make` supports both paths and `make help` documents
    both.
 2. **Test images are real, local, gitignored.** Already in place:
-   - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/testdata/210523I01-XX-01D.img`
+   - `Verilog/ND-BUS-DEVICES/testdata/210523I01-XX-01D.img`
      (1,261,568 B) ← `/home/ronny/repos/nd100x/images/Nd-210523I01-XX-01D.img` → serves **FLOPPY1.IMG**
-   - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/testdata/BIGDISK0-L2-100.IMG`
+   - `Verilog/ND-BUS-DEVICES/testdata/BIGDISK0-L2-100.IMG`
      (78,643,200 B) ← `F:\RC\RonnyTest\HDLC1\BIGDISK0-L2-100.IMG` → serves **SMD0.IMG**
    - Both already matched by `.gitignore:94-95` (`testdata/*.img`, `testdata/*.IMG`). Keep it that way.
 3. **TWO boot BPUNs**, both served as `BOOT.BPUN` (one per card variant):
@@ -52,7 +52,7 @@ Tang, so the same devices and the same images are exercised in both places —
    is ONLY needed IF we plan to have external bus activated to talk to other
    cards via external ND bus — that we are at the moment not planning".**
 
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/sim/sd_card_model.v:69-73` uses
+   `Verilog/SD-FAT/sim/sd_card_model.v:69-73` uses
    `inout sd_cmd/sd_dat*` + `pullup()` in the TB, which is iverilog-only and
    already violates the repo's own no-tristate rule
    (`SD-FAT/circuit/nd_storage.v:24-25`; CLAUDE.md: "inside the FPGA `z` does not
@@ -76,7 +76,7 @@ Tang, so the same devices and the same images are exercised in both places —
    `sd_writer_tb.v` / the engine+write TBs.
    **Gate: every one of those TBs must still pass after the conversion** — that
    is the regression proof. They are all registered in
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/run_all_tests.sh`.
+   `Verilog/tests/run_all_tests.sh`.
 
    **The ONLY real tristate is the physical SD pad on Tang**, and it already
    lives at the board top where it belongs — `nd_storage` deliberately exposes
@@ -138,7 +138,7 @@ Tang, so the same devices and the same images are exercised in both places —
    `nd_storage_mount.v:193` "preload only writes"). Serving a floppy sector
    straight off the card is therefore **new engine work**, not a parameter
    change — and it is now needed in Phase 4, not just Phase 5.
-   Consistent with the ruling: `nd_tape_sdfat_source.v` already sets
+   Consistent with the ruling: `nd_storage_devices.v` already sets
    `PRELOAD_MASK(7'b0000001)` — tape only.
 
    **Upside:** dropping the floppy preload frees SLOT1+SLOT2 (1280 blocks =
@@ -199,7 +199,7 @@ Findings from doing it (all measured):
 - **`--timing` is FREE.** sd_card_model drives the SD bus from tasks so the
   whole runSim build needs Verilator `--timing`. Measured before adopting:
   console byte-identical to golden, 1m23.5s vs 1m25.1s. No dilemma after all.
-- **nd_tape_sdfat_source had a DEADLOCK** (never instantiated anywhere, so never
+- **nd_storage_devices had a DEADLOCK** (never instantiated anywhere, so never
   caught): it waited for `sd_status == OK` before opening, but a mount only runs
   on `open_req` (`nd_storage_mount.v:8`) and sd_status is only set at mount end
   (`nd_storage.v:35`). No open -> no mount -> no status -> no open; sd_clk never
@@ -216,7 +216,7 @@ Findings from doing it (all measured):
 `400$` boots `BOOT.BPUN` off a simulated/real card. C backends still available.
 
 **Why first:** it is the only device whose adapter exists, whose file fits a
-full-preload slot, and whose board-side wrapper (`nd_tape_sdfat_source.v`) is
+full-preload slot, and whose board-side wrapper (`nd_storage_devices.v`) is
 already written and elaborates — it just has **no instantiation anywhere in the
 repo** (verified).
 
@@ -227,7 +227,7 @@ repo** (verified).
 `inout`. Add on-demand `$fseek`/`$fread` so a 76 MB card needs no 76 MB array.
 **Gate: every existing iverilog storage tb still passes** (`test-nds-mount`,
 `test-nds-tape`, `test-nds-floppy`, `test-nds-fatchk`, `test-writer`, …) — all
-in `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/run_all_tests.sh`.
+in `Verilog/tests/run_all_tests.sh`.
 
 **(b) Mem backend for runSim.** nd_storage's `mem_*` is mandatory but generic
 (fact 2). Reuse the proven behavioral mem model — the C++ one from
@@ -261,10 +261,10 @@ FLOPPY1.IMG **+** SMD0.IMG.
 ### Step 2.3 — runSim: `SD_STORAGE` path, default ON ✅ DONE (ffdc745)
 - `runSim/Makefile`: add `-I../SD-FAT/circuit` to `VERILATOR_DIRS` (**missing
   today** — verified; first hard blocker). Add `SD_STORAGE ?= 1`.
-- Wire `nd_tape_sdfat_source` (or `nd_storage` + tape adapter) into the sim
+- Wire `nd_storage_devices` (or `nd_storage` + tape adapter) into the sim
   harness, feeding the core's `TAPE_BYTE_*`; C++ card model on the SD pads, C++
   mem model on `mem_*`. Set `SIMULATE=1` (short SD init,
-  `nd_tape_sdfat_source.v:33`).
+  `nd_storage_devices.v:33`).
 - `SD_STORAGE=0` selects the existing C path (`process_verilog_tape`,
   `NDBus.cpp:299-337`). **Both must build and pass.**
 - **`make help` must document both** (decision 1).
@@ -287,8 +287,8 @@ capture and assert on the output: **is the tape controller detected correctly?**
   expected text.
 - Extend with floppy in Phase 4 and SMD in Phase 5 — same test, more devices.
 
-### Step 2.5 — Tang: instantiate `nd_tape_sdfat_source`
-- `ND120_CORE #(1,0,0)` on Tang; hang `nd_tape_sdfat_source` off `TAPE_BYTE_*`.
+### Step 2.5 — Tang: instantiate `nd_storage_devices`
+- `ND120_CORE #(1,0,0)` on Tang; hang `nd_storage_devices` off `TAPE_BYTE_*`.
 - Resolve the SD tristate **at the board top** — `nd_storage` exposes only
   `_i`/`_o`/`_oe` (`nd_storage.v:24-25`). Note `sd-fat-test` found silicon-only
   tristate bugs (yosys nested-ternary `z` collapse) — the `test-tristate` gate
@@ -450,7 +450,7 @@ assert SMD detection. `make test-smd-boot` against the SD path.
 | P5 SMD | `1540&` boot | still green | pass | if SDRAM allows | measure | +SMD |
 
 **Standing rules:** every new tb goes in
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/run_all_tests.sh` with a strict
+`Verilog/tests/run_all_tests.sh` with a strict
 `TB_RESULT: PASS` pattern — a test that can pass silently can fail silently.
 `make test` must stay 48/48 (modulo the pre-existing `test-memchain`,
 TODO.md:83), and `sim/`'s latch/FF trace goldens must stay byte-identical —
@@ -507,7 +507,7 @@ on silicon — any real pad work must re-run it.
   path, that golden must be re-recorded deliberately — not silently.
 - `nd_storage` hard max is **7 files** (FILE0..FILE6, 3-bit client index,
   `PRELOAD_MASK[6:0]`). Our set is 3. Fine, but do not plan an 8th.
-- `SIMULATE=1` shortens SD init in sim (`nd_tape_sdfat_source.v:33`). Hardware
+- `SIMULATE=1` shortens SD init in sim (`nd_storage_devices.v:33`). Hardware
   needs 0. Do not ship a bitstream with 1.
 - `sd_fat_features.vh`: `SDFAT_STORAGE` requires `SDFAT_WRITE` (`:62-66`);
   `SDFAT_STORAGE_CHECK` requires `SDFAT_CHECK` (`:67-78`).

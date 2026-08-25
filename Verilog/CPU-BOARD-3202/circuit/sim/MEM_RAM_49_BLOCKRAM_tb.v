@@ -12,7 +12,9 @@
 ** Checks: write/readback across all 3 banks, no-alias, row captured at  **
 ** RAS EDGE (AA change after the edge must not move the row), write-once **
 ** (DD change during a held window must not re-write), read-vs-write     **
-** gating by MWRITE50_n, and CORR_n parity (odd halves -> 1, even -> 0). **
+** gating by MWRITE50_n, and the PARITY POLICY: parity is regenerated on   **
+** read and never stored, so a bad-parity write is absorbed (data intact,  **
+** CORR_n stays 1). See docs/nd120-parity-analysis.md section 6b.          **
 **                                                                       **
 ** Run: make test-blockram   (CPU-BOARD-3202/circuit/sim)                **
 ***************************************************************************/
@@ -58,7 +60,7 @@ module MEM_RAM_49_BLOCKRAM_tb;
     end
   endtask
 
-  // lin = {col, row}; the module uses lin[BANK_ADDR_BITS-1:0]
+  // lin = {row, col}; the module uses lin[BANK_ADDR_BITS-1:0] (row = HIGH CPU half)
   task mem_write(input [1:0] b, input [9:0] row, input [9:0] col, input [17:0] data);
     begin
       @(negedge sysclk); set_bank(b); aa = row; ras = 1; mwrite50_n = 0; // RAS rise, AA=row
@@ -82,6 +84,16 @@ module MEM_RAM_49_BLOCKRAM_tb;
       @(negedge sysclk);
     end
   endtask
+
+  // PARITY IS REGENERATED, NEVER STORED (policy, 3-AUG-2026 - see
+  // docs/nd120-parity-analysis.md section 6b). Whatever parity a write puts on
+  // DD[8] / DD[17] is dropped; the read returns ODD parity computed from the
+  // data. So every expected word below is the WRITTEN DATA with its parity
+  // bits replaced - the data checks keep their full strength, and a backend
+  // that stored parity would fail them.
+  function [17:0] exp18(input [17:0] written);
+    exp18 = {~(^written[16:9]), written[16:9], ~(^written[7:0]), written[7:0]};
+  endfunction
 
   task check_eq(input [17:0] got, input [17:0] want, input [127:0] label);
     begin
@@ -110,33 +122,45 @@ module MEM_RAM_49_BLOCKRAM_tb;
     mem_write(0, 10'd5, 10'd1, 18'o001001);
     mem_write(1, 10'd5, 10'd1, 18'o001403);
     mem_write(2, 10'd5, 10'd1, 18'o002405);
-    mem_read (0, 10'd5, 10'd1, r, c); check_eq(r, 18'o001001, "bank0 rdbk");
+    mem_read (0, 10'd5, 10'd1, r, c); check_eq(r, exp18(18'o001001), "bank0 rdbk");
     check_eq({17'b0, c}, 18'b1, "bank0 corr_n odd parity");
-    mem_read (1, 10'd5, 10'd1, r, c); check_eq(r, 18'o001403, "bank1 rdbk");
-    mem_read (2, 10'd5, 10'd1, r, c); check_eq(r, 18'o002405, "bank2 rdbk");
+    mem_read (1, 10'd5, 10'd1, r, c); check_eq(r, exp18(18'o001403), "bank1 rdbk");
+    mem_read (2, 10'd5, 10'd1, r, c); check_eq(r, exp18(18'o002405), "bank2 rdbk");
 
     // ---- 2. no-alias: distinct rows and columns in one bank ----
+    // Address map (22-AUG-2026): lin = {row, col}, a = lin[BANK_ADDR_BITS-1:0]
+    // = {row[1:0], col[9:0]} at the default 12 bits. The COLUMN is the
+    // contiguous CPU axis (all 10 bits live); rows are distinct only in
+    // their low 2 bits at this size, so the row sweep stays in 0..3.
+    // This sweep would have caught the pre-fix {col,row} reversal: with the
+    // old order, col 100+i collapsed onto col[1:0] and i, i+4 aliased.
     for (i = 0; i < 8; i = i + 1)
-      mem_write(0, 10'd100 + i, 10'd2, 18'o000100 + i);
+      mem_write(0, 10'd2, 10'd100 + i, 18'o000100 + i);
     for (i = 0; i < 8; i = i + 1) begin
-      mem_read(0, 10'd100 + i, 10'd2, r, c);
-      check_eq(r, 18'o000100 + i, "no-alias row");
+      mem_read(0, 10'd2, 10'd100 + i, r, c);
+      check_eq(r, exp18(18'o000100 + i[17:0]), "no-alias col");
     end
-    mem_write(0, 10'd100, 10'd3, 18'o000777);
-    mem_read (0, 10'd100, 10'd2, r, c); check_eq(r, 18'o000100, "col3 not aliased to col2");
-    mem_read (0, 10'd100, 10'd3, r, c); check_eq(r, 18'o000777, "col3 rdbk");
+    for (i = 0; i < 4; i = i + 1)
+      mem_write(0, i[9:0], 10'd200, 18'o000200 + i);
+    for (i = 0; i < 4; i = i + 1) begin
+      mem_read(0, i[9:0], 10'd200, r, c);
+      check_eq(r, exp18(18'o000200 + i[17:0]), "no-alias row");
+    end
+    mem_write(0, 10'd2, 10'd300, 18'o000777);
+    mem_read (0, 10'd2, 10'd100, r, c); check_eq(r, exp18(18'o000100), "col300 not aliased to col100");
+    mem_read (0, 10'd2, 10'd300, r, c); check_eq(r, exp18(18'o000777), "col300 rdbk");
 
     // ---- 3. row captured at the RAS EDGE, not level ----
-    @(negedge sysclk); set_bank(0); aa = 10'd200; ras = 1; mwrite50_n = 0; // row=200 at edge
+    @(negedge sysclk); set_bank(0); aa = 10'd201; ras = 1; mwrite50_n = 0; // row=201 at edge
     @(negedge sysclk); aa = 10'd4; dd_in = 18'o000021;                     // col=4
     @(negedge sysclk); aa = 10'd4;                                          // AA stays col
     @(negedge sysclk); cas = 1;
     @(negedge sysclk);
     @(negedge sysclk); ras = 0; cas = 0; mwrite50_n = 1; set_bank(3);
     @(negedge sysclk);
-    mem_read(0, 10'd200, 10'd4, r, c); check_eq(r, 18'o000021, "row from RAS edge");
+    mem_read(0, 10'd201, 10'd4, r, c); check_eq(r, exp18(18'o000021), "row from RAS edge");
     mem_read(0, 10'd4,   10'd4, r, c);
-    if (r === 18'o000021) begin
+    if (r === exp18(18'o000021)) begin
       errors = errors + 1;
       $display("FAIL row-level: row picked up post-edge AA (level capture)");
     end
@@ -150,20 +174,27 @@ module MEM_RAM_49_BLOCKRAM_tb;
     @(negedge sysclk); dd_in = 18'o000707;
     @(negedge sysclk); ras = 0; cas = 0; mwrite50_n = 1; set_bank(3);
     @(negedge sysclk);
-    mem_read(0, 10'd300, 10'd5, r, c); check_eq(r, 18'o000104, "write-once pre-CAS data");
+    mem_read(0, 10'd300, 10'd5, r, c); check_eq(r, exp18(18'o000104), "write-once pre-CAS data");
 
     // ---- 5. read does not write ----
-    mem_read(0, 10'd100, 10'd2, r, c);
-    mem_read(0, 10'd100, 10'd2, r, c); check_eq(r, 18'o000100, "read is non-destructive");
+    mem_read(0, 10'd2, 10'd100, r, c);
+    mem_read(0, 10'd2, 10'd100, r, c); check_eq(r, exp18(18'o000100), "read is non-destructive");
 
-    // ---- 6. CORR_n flags even parity ----
-    // 18'o000003 = low half 000000011b: even parity -> CORR_n must drop to 0
+    // ---- 6. a BAD-parity write is ABSORBED, never flagged ----
+    // 18'o000003 has an even-parity low half, i.e. deliberately WRONG parity
+    // on DD[8]. Because parity is regenerated on read and never stored, the
+    // backend returns the data with CORRECT parity and CORR_n stays 1. This is
+    // the policy, not a defect: nothing on the ND-120 reads stored parity as
+    // data (docs/nd120-parity-analysis.md sections 3-5), and MEM_43 masks
+    // LPERR_n anyway. A backend that STORED the bad bit would drop CORR_n here
+    // and fail - which is exactly the regression this check now guards.
     mem_write(0, 10'd310, 10'd6, 18'o000003);
     mem_read (0, 10'd310, 10'd6, r, c);
+    check_eq(r, exp18(18'o000003), "bad-parity write absorbed, data intact");
     checks = checks + 1;
-    if (c !== 1'b0) begin
+    if (c !== 1'b1) begin
       errors = errors + 1;
-      $display("FAIL corr_n even parity: got %b expected 0", c);
+      $display("FAIL corr_n after bad-parity write: got %b expected 1", c);
     end
 
     // ---- 7. output gating: DD_17_0_OUT is 0 outside a read window ----

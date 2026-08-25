@@ -75,10 +75,28 @@ module MEM_CHAIN_tb;
 
   integer errors = 0;
 
+  // ---- the 18-bit word: 16 data bits + 2 REGENERATED parity bits -----------
+  // The word is two lots of 8 data + 1 parity: data in DD[7:0] and DD[16:9],
+  // parity in DD[8] and DD[17] - MEM_DATA_46.v wires exactly those two bits to
+  // the AM29833A PAR / PAR_OUT pins (CHIP_1H low byte, CHIP_2H high byte).
+  //
+  // NO BACKEND STORES PARITY (policy, Ronny 3-AUG-2026): every sheet-49 backend
+  // drops the two parity bits on write and regenerates ODD parity on read, so
+  // the readback is fully determined by the 16 data bits that were written -
+  // whatever parity the writer supplied is irrelevant. The expectation below is
+  // therefore identical for SIP1M9, BLOCKRAM, SIM and SDRAM: the data bits must
+  // match exactly AND the parity bits must come back correct for that data.
+  // A backend that stored parity, returned 0, or got the polarity backwards all
+  // fail this check.
+  function [17:0] expect_word(input [17:0] written);
+    expect_word = {~(^written[16:9]), written[16:9], ~(^written[7:0]), written[7:0]};
+  endfunction
+
   task check(input [17:0] got, input [17:0] expect_dd, input [127:0] what);
-    if (got !== expect_dd) begin
+    if (got !== expect_word(expect_dd)) begin
       errors = errors + 1;
-      $display("FAIL at %0t: %0s (got=%o expected %o)", $time, what, got, expect_dd);
+      $display("FAIL at %0t: %0s (got=%o expected %o)", $time, what,
+               got, expect_word(expect_dd));
     end
   endtask
 
@@ -132,6 +150,32 @@ module MEM_CHAIN_tb;
 
   reg [17:0] r;
 
+  // Parity-regeneration sweep state: 16 data patterns covering all four
+  // odd/even population combinations of the two bytes.
+  integer    p;
+  reg [15:0] pat;
+  reg [17:0] wr18;
+  reg [19:0] addr;
+  reg [15:0] PATTERNS [0:15];
+  initial begin
+    PATTERNS[0]  = 16'h0000;  // even  / even
+    PATTERNS[1]  = 16'h0001;  // odd   / even
+    PATTERNS[2]  = 16'h0100;  // even  / odd
+    PATTERNS[3]  = 16'h0101;  // odd   / odd
+    PATTERNS[4]  = 16'hFFFF;
+    PATTERNS[5]  = 16'hAA55;
+    PATTERNS[6]  = 16'h5AA5;
+    PATTERNS[7]  = 16'h8000;
+    PATTERNS[8]  = 16'h0080;
+    PATTERNS[9]  = 16'h7FFF;
+    PATTERNS[10] = 16'hFFFE;
+    PATTERNS[11] = 16'h1234;
+    PATTERNS[12] = 16'hCAFE;
+    PATTERNS[13] = 16'hBEEF;
+    PATTERNS[14] = 16'h0F0F;
+    PATTERNS[15] = 16'hF0F0;
+  end
+
   initial begin
     repeat (6) @(posedge sysclk);
     sys_rst_n = 1;
@@ -143,9 +187,11 @@ module MEM_CHAIN_tb;
     access(0, 20'o0000022, 1'b1, 18'o0, r);
     check(r, 18'o054321, "readback of deposit at 22");
 
-    // More write/read pairs. NOTE the FPGA BRAM (ramSize=3) is only 4K words:
-    // lin_addr = {col,row} low 12 bits, so keep col in 0..3 and row in
-    // 0..1023 to stay alias-free (col[1:0] become the top address bits).
+    // More write/read pairs. NOTE the FPGA BRAM backend is only 4K words per
+    // bank at the default size: lin_addr = {row,col} low 12 bits (22-AUG-2026
+    // fix - the row captured at RAS is the HIGH CPU address half, PAL 44902A
+    // drives HIEN during RAS), so the contiguous low CPU address bits
+    // addr[11:0] are all alias-free; keep addresses under 4K words.
     access(0, 20'o0002000, 1'b0, 18'o012345, r);   // row 1, col 0
     access(1, 20'o0000003, 1'b0, 18'o177777, r);   // bank1, row 0, col 3
     access(0, 20'o0006002, 1'b0, 18'o123456, r);   // row 3, col 2
@@ -158,6 +204,31 @@ module MEM_CHAIN_tb;
     // and the original cell must still be intact
     access(0, 20'o0000022, 1'b1, 18'o0, r);
     check(r, 18'o054321, "addr 22 still intact after other writes");
+
+    // ---- parity regeneration sweep --------------------------------------
+    // Every backend must drop the two parity bits on write and regenerate them
+    // on read. Each pattern is WRITTEN WITH DELIBERATELY WRONG PARITY (both
+    // bits inverted); the readback must still carry the CORRECT odd parity for
+    // the data. That proves the write-side bits are ignored, not stored - a
+    // backend that stored them returns the wrong parity and fails here.
+    //
+    // The 16 data patterns cover all four odd/even population combinations of
+    // the two bytes, so a backend that regenerated only one byte, or got the
+    // polarity backwards, cannot pass by luck.
+    for (p = 0; p < 16; p = p + 1) begin
+      pat  = PATTERNS[p];
+      // written word: data + INVERTED parity in both positions
+      wr18 = {(^pat[15:8]), pat[15:8], (^pat[7:0]), pat[7:0]};
+      addr = {10'd0, p[9:0]} + 20'd100;           // bank0, row 0, cols 100..115
+      access(0, addr, 1'b0, wr18, r);
+      access(0, addr, 1'b1, 18'o0, r);
+      check(r, wr18, "parity regen sweep");
+      if (r[8] !== ~(^r[7:0]) || r[17] !== ~(^r[16:9])) begin
+        errors = errors + 1;
+        $display("FAIL: readback parity not regenerated for pattern %04h (got %o)",
+                 pat, r);
+      end
+    end
 
     if (errors == 0) $display("TB_RESULT: PASS");
     else $display("TB_RESULT: FAIL (%0d errors)", errors);

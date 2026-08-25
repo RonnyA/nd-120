@@ -73,6 +73,26 @@ module MEM_RAM_49_SIM (
   reg [7:0] b2_hi  [0:DEPTH-1];
   reg       b2_hi_p[0:DEPTH-1];
 
+  // Deliberate-corruption flags, one bit per byte lane. 1 = the parity bit
+  // presented on this write did NOT match the data, i.e. an AM29833A
+  // forced-error write (45008B TST armed by "TRR ECCR"). Everything else -
+  // every ordinary write, and every location never written - leaves these 0.
+  //
+  // These exist so that parity can stay COMPUTED-ON-READ (Ronny's 3-AUG-2026
+  // policy) while the ECC-simulate probe still works. Storing the parity bit
+  // itself and reading it back would be wrong here: an untouched location
+  // holds data 0 with a 0 parity array, but odd parity of a zero byte is 1,
+  // so every word the machine had not yet written would report a parity
+  // error. A flag defaults to "not corrupted" and has no such failure mode.
+  // It also leaves the b*_p arrays and the C++ preload hooks in
+  // sim/nd120_probe.cpp and runSim/Run120.cpp exactly as they were.
+  reg       b0_lo_bad[0:DEPTH-1];
+  reg       b0_hi_bad[0:DEPTH-1];
+  reg       b1_lo_bad[0:DEPTH-1];
+  reg       b1_hi_bad[0:DEPTH-1];
+  reg       b2_lo_bad[0:DEPTH-1];
+  reg       b2_hi_bad[0:DEPTH-1];
+
   // Bank-gated strobes: posedge (RAS & BANKx) is the same event as the old
   // negedge of the chips' s_ras_bX = ~(RAS & BANKx)
   wire ras_b0 = RAS & BANK0;
@@ -84,6 +104,29 @@ module MEM_RAM_49_SIM (
 
   reg [9:0] row0, row1, row2;
   reg [17:0] q0, q1, q2;
+  reg qbad0_lo, qbad0_hi, qbad1_lo, qbad1_hi, qbad2_lo, qbad2_hi;
+
+  // Odd parity, AM29833A convention (PAR low on ODD, high on EVEN)
+  function automatic odd_par(input [7:0] d);
+    odd_par = ~(^d);
+  endfunction
+
+`ifdef ND120_PARFLAG_TRACE
+  // Diagnostic only: report the first flag-setting writes, so it can be MEASURED
+  // whether anything other than an AM29833A forced-error write marks a location.
+  integer par_seen = 0;
+  task par_report(input integer bank, input [19:0] idx, input [17:0] d);
+    begin
+      if (par_seen < 40) begin
+        par_seen = par_seen + 1;
+        $display("PARFLAG bank=%0d idx=%0h data=%h par_lo=%b/%b par_hi=%b/%b",
+                 bank, idx, d[17:0],
+                 d[8],  odd_par(d[7:0]),
+                 d[17], odd_par(d[16:9]));
+      end
+    end
+  endtask
+`endif
 
   always @(posedge ras_b0) row0 <= AA_9_0;
   always @(posedge ras_b1) row1 <= AA_9_0;
@@ -96,42 +139,87 @@ module MEM_RAM_49_SIM (
 
   always @(posedge cas_b0)
     if (ras_b0) begin
-      if (MWRITE50_n) q0 <= {b0_hi_p[idx0], b0_hi[idx0], b0_lo_p[idx0], b0_lo[idx0]};
-      else begin
+      if (MWRITE50_n) begin
+        q0 <= {b0_hi_p[idx0], b0_hi[idx0], b0_lo_p[idx0], b0_lo[idx0]};
+        qbad0_lo <= b0_lo_bad[idx0];
+        qbad0_hi <= b0_hi_bad[idx0];
+      end else begin
         {b0_hi_p[idx0], b0_hi[idx0], b0_lo_p[idx0], b0_lo[idx0]} <= DD_17_0_IN;
+        b0_lo_bad[idx0] <= DD_17_0_IN[8] ^ odd_par(DD_17_0_IN[7:0]);
+        b0_hi_bad[idx0] <= DD_17_0_IN[17] ^ odd_par(DD_17_0_IN[16:9]);
+`ifdef ND120_PARFLAG_TRACE
+        if ((DD_17_0_IN[8] ^ odd_par(DD_17_0_IN[7:0])) |
+            (DD_17_0_IN[17] ^ odd_par(DD_17_0_IN[16:9])))
+          par_report(0, idx0, DD_17_0_IN);
+`endif
       end
     end
 
   always @(posedge cas_b1)
     if (ras_b1) begin
-      if (MWRITE50_n) q1 <= {b1_hi_p[idx1], b1_hi[idx1], b1_lo_p[idx1], b1_lo[idx1]};
-      else begin
+      if (MWRITE50_n) begin
+        q1 <= {b1_hi_p[idx1], b1_hi[idx1], b1_lo_p[idx1], b1_lo[idx1]};
+        qbad1_lo <= b1_lo_bad[idx1];
+        qbad1_hi <= b1_hi_bad[idx1];
+      end else begin
         {b1_hi_p[idx1], b1_hi[idx1], b1_lo_p[idx1], b1_lo[idx1]} <= DD_17_0_IN;
+        b1_lo_bad[idx1] <= DD_17_0_IN[8] ^ odd_par(DD_17_0_IN[7:0]);
+        b1_hi_bad[idx1] <= DD_17_0_IN[17] ^ odd_par(DD_17_0_IN[16:9]);
+`ifdef ND120_PARFLAG_TRACE
+        if ((DD_17_0_IN[8] ^ odd_par(DD_17_0_IN[7:0])) |
+            (DD_17_0_IN[17] ^ odd_par(DD_17_0_IN[16:9])))
+          par_report(1, idx1, DD_17_0_IN);
+`endif
       end
     end
 
   always @(posedge cas_b2)
     if (ras_b2) begin
-      if (MWRITE50_n) q2 <= {b2_hi_p[idx2], b2_hi[idx2], b2_lo_p[idx2], b2_lo[idx2]};
-      else begin
+      if (MWRITE50_n) begin
+        q2 <= {b2_hi_p[idx2], b2_hi[idx2], b2_lo_p[idx2], b2_lo[idx2]};
+        qbad2_lo <= b2_lo_bad[idx2];
+        qbad2_hi <= b2_hi_bad[idx2];
+      end else begin
         {b2_hi_p[idx2], b2_hi[idx2], b2_lo_p[idx2], b2_lo[idx2]} <= DD_17_0_IN;
+        b2_lo_bad[idx2] <= DD_17_0_IN[8] ^ odd_par(DD_17_0_IN[7:0]);
+        b2_hi_bad[idx2] <= DD_17_0_IN[17] ^ odd_par(DD_17_0_IN[16:9]);
+`ifdef ND120_PARFLAG_TRACE
+        if ((DD_17_0_IN[8] ^ odd_par(DD_17_0_IN[7:0])) |
+            (DD_17_0_IN[17] ^ odd_par(DD_17_0_IN[16:9])))
+          par_report(2, idx2, DD_17_0_IN);
+`endif
       end
     end
 
-`ifdef ND_SDRAM_PACK16
-  // Packed-storage contract: parity is never READ from storage - recompute
-  // it from the 16 data bits at the output (odd parity, AM29833A
-  // convention). Stored parity still flows into q* above, keeping the
-  // b*_p arrays alive for the C++ preload hooks; it is replaced here, so
-  // observably it was never stored.
-  wire [17:0] q0e = {~(^q0[16:9]), q0[16:9], ~(^q0[7:0]), q0[7:0]};
-  wire [17:0] q1e = {~(^q1[16:9]), q1[16:9], ~(^q1[7:0]), q1[7:0]};
-  wire [17:0] q2e = {~(^q2[16:9]), q2[16:9], ~(^q2[7:0]), q2[7:0]};
-`else
-  wire [17:0] q0e = q0;
-  wire [17:0] q1e = q1;
-  wire [17:0] q2e = q2;
-`endif
+  // PARITY IS ALWAYS REGENERATED, NEVER READ FROM STORAGE (policy, Ronny
+  // 3-AUG-2026 - see SIP1M9.v). Odd parity per byte, AM29833A convention.
+  // This was previously done only under ND_SDRAM_PACK16, which left this
+  // model returning STORED parity in every other build while the FPGA paths
+  // regenerated it - exactly the kind of sim-vs-silicon split that hides bugs
+  // from the Verilator golden reference. Now unconditional.
+  //
+  // The b*_p arrays stay (they are written above and read by the C++ preload
+  // hooks in runSim/Run120.cpp and sim/nd120_probe.cpp), but nothing they hold
+  // ever reaches the bus - this model is Verilator-only, so no FPGA memory is
+  // spent on them.
+  //
+  // The ONE exception is a byte lane whose b*_bad flag is set, meaning the
+  // write that put it there carried a parity bit that disagreed with its data.
+  // Only an AM29833A forced-error write can do that (45008B asserts OER during
+  // a write while TST is armed by "TRR ECCR"), which is precisely the
+  // ECC-simulate probe the TPE CONFIGURATION diagnostic uses to decide whether
+  // a 16 Kword block is Local or Multiport. Regenerating parity unconditionally
+  // healed the injected error on the way back out, no level-14 parity interrupt
+  // was ever raised, and CONFIGURATION recorded all 4 MB as "Mpm 5" - which
+  // makes SINTRAN III M treat a page fault there as a fault in the ND-500/5000
+  // shared-memory window and halt in ERRFATAL (measured on the Tang Nano 20K,
+  // 11-AUG-2026).
+  //
+  // Parity is still COMPUTED from the data on every read; the flag only
+  // inverts it. Nothing is stored that a normal write can set.
+  wire [17:0] q0e = {odd_par(q0[16:9]) ^ qbad0_hi, q0[16:9], odd_par(q0[7:0]) ^ qbad0_lo, q0[7:0]};
+  wire [17:0] q1e = {odd_par(q1[16:9]) ^ qbad1_hi, q1[16:9], odd_par(q1[7:0]) ^ qbad1_lo, q1[7:0]};
+  wire [17:0] q2e = {odd_par(q2[16:9]) ^ qbad2_hi, q2[16:9], odd_par(q2[7:0]) ^ qbad2_lo, q2[7:0]};
 
   // Data out valid while the bank's CAS is active on a read; banks OR together
   wire [17:0] dd0 = (cas_b0 && MWRITE50_n) ? q0e : 18'b0;

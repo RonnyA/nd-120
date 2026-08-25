@@ -445,13 +445,13 @@
 | M0 | PAL_44408B |  | I6 - CSMIS0   - CSBIT #42 - ALU MIS0 SIGNAL (also used for sub-commands for CSCOMM) |
 | M1 | PAL_44408B |  | I5 - CSMIS1   - CSBIT #43 - ALU MIS1 SIGNAL (also used for sub-commands for CSCOMM) |
 | MA_12_0 [12:0] |  | CGA_MIC, CGA_MIC_IPOS | Memory address bits 12 to 0, Microcode Address (13 bits) |
-| MACLK_n |  | PAL_44307C | Y1_n - MACLK_n   Memory Access Clock ? |
+| MACLK_n |  | PAL_44307C | Y1_n - MACLK_n   Micro-address latch strobe (ACAL control-store address latch enable) |
 | MAP_n | PAL_44403C, CPU_PROC_32, CPU_PROC_CGA_33 | PAL_44307C | B5_n - MAP_n, I7, MAP_n (MAP = Enable Map), Memory Access Protection, active low |
 | MAPN | CGA_MIC |  | MAP Opcode |
 | MCA_9_0 [9:0] |  | CGA_MAC, CGA_MAC_APOS_CALCA | Microcode Address bits 9 to 0, Memory Address Output (10 bits) |
 | MCL |  | ND3202D, DECODE_DGA_POW | Output-signal to "C PLIG", signal B20 MCL~ (after negation), Master Clear |
 | MCLK | CPU_PROC_32, CPU_PROC_CGA_33, CGA_DCD, CGA_INTR, CGA_MAC, CGA_MAC_APOS_CALCA, CGA_MIC, CGA_MIC_CONDREG |  | Clock, Main Clock, Master Clock, Memory Clock, Main clock signal |
-| MCLK_n |  | PAL_44307C | Y0_n - MCLK_n    Main Clock ? |
+| MCLK_n |  | PAL_44307C | Y0_n - MCLK_n    Microcycle clock (= TERM outside RWCS; stretched during RWCS) |
 | MDLY_n |  | PAL_44403C | Q1_n |
 | MEM_n | BIF_BCTL_BDRV_7 | PAL_44801A | Q3_n - MEM_n (n.c.) (MEM SIGNAL TO LAST FOR ENTIRE BUS CYCLE), Memory |
 | MI | CGA_MIC |  | M bit |

@@ -30,7 +30,7 @@ module CGA_TRAP_TVGEN (
     input       PAN,
     input       PONI,
     input       TCLK,
-    input       VACC,
+    input       VACC,       //! MMU-translated memory reference this cycle - qualifies every trap-vector term below
     input       VTRAPN,
 
     output       PVIOL,

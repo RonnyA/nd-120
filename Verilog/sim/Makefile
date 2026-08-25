@@ -49,8 +49,31 @@ test_nd120: $(CPP_SOURCES)
 clean:
 	rm -rf obj_dir obj_dir_latch obj_dir_ff
 
+# ---------------------------------------------------------------------------
+# LOG SIZE CAP - enforced here, not remembered.
+#
+# "any log file you create are not allowed to excced 1GB" had to be stated in
+# THREE separate sessions. A sim run that prints per-tick can fill a drive in
+# minutes. ND120_LOG_CAP is a hard ceiling applied to any redirected run;
+# override it deliberately (e.g. ND120_LOG_CAP=10G) for a campaign capture -
+# 10 GB is the standing allowance for the oracle/campaign logs in
+# $ND120_ORACLE_DIR.
+ND120_LOG_CAP ?= 1G
+
 run: test_nd120
 	./obj_dir/VND120_TOP
+
+# run-log: same run, but tee'd to a file that CANNOT exceed the cap.
+# head -c closes the pipe at the limit, so the run stops writing rather than
+# filling the disk. Use this whenever the output is being kept.
+run-log: test_nd120
+	@echo "[log cap $(ND120_LOG_CAP) -> $(or $(LOG),run.log)]"
+	./obj_dir/VND120_TOP 2>&1 | head -c $(ND120_LOG_CAP) | tee $(or $(LOG),run.log)
+	@sz=$$(du -h $(or $(LOG),run.log) | cut -f1); echo "[log $$sz]"; \
+	 if [ "$$(stat -c%s $(or $(LOG),run.log))" -ge "$$(numfmt --from=iec $(ND120_LOG_CAP))" ]; then \
+	   echo "WARNING: log hit the $(ND120_LOG_CAP) cap and was TRUNCATED - the run"; \
+	   echo "         may have continued past what the file shows."; \
+	 fi
 
 gtk: run
 	# FST format: compressed, indexed, much faster to load than VCD
@@ -124,6 +147,122 @@ probe-floppy: nd120_probe.cpp
 	cd obj_dir_probe_floppy && make -f VND120_TOP.mk VND120_TOP
 	@echo "=== probe-floppy engine built: obj_dir_probe_floppy/VND120_TOP (mount ND120_FLOPPY_IMG) ==="
 
+# --- PROBE variant WITH the WINCHESTER disc (ST506/8 inch card at IOX 500) ----
+# ADDITIVE target, own Mdir - never clobbers probe / probe-floppy.
+#
+# WHY: the Winchester seam (WDISK_*/WDBUF_*) has been a port on ND120_TOP since
+# the card was written, but the card was never once built into a Verilator run
+# with the real CPU - WINCHESTER was missing from BUSDEV_COMPONENTS in BOTH
+# harnesses, and simDevices/NDBus.cpp had a server for the SMD seam and none for
+# this one, so WDISK_DONE sat tied low and no transfer could ever complete. The
+# card therefore went from iverilog unit benches straight to the Tang, where the
+# only instrument is a 128-entry IOX ring dumped over a UART.
+#
+#   * -DND120_VERILOG_DEVICES  -> the Verilog bus device chain (as probe-floppy)
+#   * -DND120_INCLUDE_WD       -> opts IOX 500-507 in. NOT default: 500 is the
+#                                 CDC cartridge disc's block, so the Winchester
+#                                 must only appear when asked for.
+#   * WINCHESTER/circuit on the include path so Verilator can find ND_WINCHESTER
+#
+# The disc image is chosen at RUN time by env ND120_WD_IMG (no default - without
+# it every operation reports an error, like a drive with no pack). Set
+# ND120_WD_TRACE=1 for a per-operation START/REQ log.
+#   make probe-wd            # FF mode default (USE_LATCHES=0)
+# EXTRA_WD_DEFINES: pass-through for one-off diagnostic defines, e.g.
+#   make probe-wd USE_LATCHES=0 EXTRA_WD_DEFINES=-DND120_DEV_DELAY_TICKS=216000
+# to make the disc completion delay cycle-identical to the Tang (27 MHz)
+# instead of the sim's 100 MHz fallback.
+EXTRA_WD_DEFINES ?=
+PROBE_WD_DEFINES = $(PROBE_FLOPPY_DEFINES) -DND120_INCLUDE_WD $(EXTRA_WD_DEFINES)
+PROBE_WD_DIRS    = $(PROBE_FLOPPY_DIRS) -I../ND-BUS-DEVICES/WINCHESTER/circuit
+
+probe-wd: nd120_probe.cpp
+	$(VERILATOR) --trace-fst --vpi -Wall --cc ../ND120_TOP.v $(SUPPRESS_FLAGS) $(PROBE_WD_DEFINES) --public-flat-rw $(PROBE_WD_DIRS) --exe $(PROBE_SOURCES) -CFLAGS "$(VERILATOR_DIRS) -I../../simDevices -DND120_VERILOG_DEVICES -DND120_RTC_RUNTIME" --Mdir obj_dir_probe_wd
+	cd obj_dir_probe_wd && make -f VND120_TOP.mk VND120_TOP
+	@echo "=== probe-wd engine built: obj_dir_probe_wd/VND120_TOP (set ND120_WD_IMG) ==="
+
+# --- PROBE variant: WINCHESTER SERVED THROUGH THE REAL SD-FAT STACK ----------
+# ADDITIVE target, own Mdir - never clobbers probe / probe-floppy / probe-wd.
+#
+# WHY: `probe-wd` above boots SINTRAN with the disc image handed to the C file
+# server in simDevices/NDBus.cpp - one fread per block. That means the storage
+# RTL the Tang actually runs is NOT in the path at all:
+#
+#     sd_card_ctrl -> sd_file_reader (FAT mount + root scan)
+#       -> nd_storage_engine -> nd_storage_cache (Phase-4 block cache)
+#         -> nd_storage_disc_adapter -> ND_WINCHESTER
+#
+# None of it executes, so no defect in it can show up in simulation - it can
+# only show up on silicon, where the instrument is a 128-entry IOX ring over a
+# UART. The storage testbenches do drive that chain, but against a 16384-byte
+# stand-in WD0.IMG (SD-FAT/sim/make_storage_image.sh, WD_BYTES=16384) with a
+# hand-written access pattern. A real image is ~75 MB and SINTRAN's pattern is
+# nothing like a testbench's. This target closes that gap: same CPU, same
+# boot, but every disc block travels the full SD/FAT/cache path off a
+# simulated FAT card.
+#
+#   * everything probe-wd sets, plus
+#   * -DND120_SD_STORAGE   -> the sim-only sd_card_model + nds_mem_model
+#   * -DND120_SD_WD        -> nd_storage client 6 = WD0.IMG (CACHED, CACHE_MASK
+#                             bit 6) answers WDISK_*; NDBus.cpp's C file server
+#                             stands down (same guard style as the tape)
+#   * -DND120_SD_CARD_IMG  -> the card image (SD_CARD_IMG below)
+#   * -DND120_SD_CARD_BYTES-> sd_card_model slurps the card into a byte array at
+#                             time 0; sectors past MAX_BYTES read back 0xFF, so
+#                             this MUST be >= the card file. make_wd_card.sh
+#                             prints the right value as CARD_BYTES=<n>.
+#   * --timing             -> sd_card_model drives the SD bus from tasks with
+#                             @(negedge sd_clk) (as runSim's SD_STORAGE=1 does)
+#   * -v nds_sync.v / sd_file_reader.v -> both hold modules whose names differ
+#                             from the filename, so -I alone cannot find them
+#
+# BUILD THE CARD FIRST - the Winchester image lives outside the repo, so its
+# path must be given explicitly (no default; the script refuses to guess):
+#
+#   ../SD-FAT/sim/make_wd_card.sh /path/to/WD0.IMG
+#   make probe-wd-sd SD_CARD_BYTES=<the CARD_BYTES it printed>
+#   ./obj_dir_probe_wd_sd/VND120_TOP
+#
+# Note there is NO ND120_WD_IMG here: the image is a file ON the card now, and
+# the FAT reader finds it by name. To compare the two backends on one boot,
+# run probe-wd and probe-wd-sd with the same image and diff the traces - any
+# difference is the storage stack, since the CPU build is otherwise identical.
+SD_CARD_IMG   ?= ../SD-FAT/sim/nd_wd_card.img
+SD_CARD_BYTES ?= 100663296
+# Scoped to this build only, so the CPU sources keep their full -Wall. All four
+# are pre-existing and benign in the SD-FAT stack; runSim/Makefile and
+# SD-FAT/sim/Makefile suppress exactly the same set:
+#   PINMISSING    BY DESIGN - nd_storage instantiates sd_writer without the
+#                 4-bit ports; unconnected use_4bit = the proven 1-bit engine
+#   DECLFILENAME  nds_sync.v / sd_file_reader.v hold >1 module (see -v above)
+#   BLKSEQ        blocking assigns in the card MODEL's sequential tasks
+#   TIMESCALEMOD  the SD-FAT sources carry a timescale, the CPU ones do not
+SDFAT_SUPPRESS = -Wno-PINMISSING -Wno-DECLFILENAME -Wno-BLKSEQ -Wno-TIMESCALEMOD
+SDFAT_VFILES   = -v ../SD-FAT/circuit/nds_sync.v -v ../SD-FAT/circuit/sd_file_reader.v
+PROBE_WD_SD_DEFINES = $(PROBE_WD_DEFINES) -DND120_SD_STORAGE -DND120_SD_WD \
+                      -DND120_SD_CARD_IMG='"$(SD_CARD_IMG)"' \
+                      -DND120_SD_CARD_BYTES=$(SD_CARD_BYTES)
+
+probe-wd-sd: nd120_probe.cpp
+	@if [ ! -f "$(SD_CARD_IMG)" ]; then \
+	  echo "probe-wd-sd: card image $(SD_CARD_IMG) does not exist." >&2; \
+	  echo "probe-wd-sd: build it first, e.g." >&2; \
+	  echo "    ../SD-FAT/sim/make_wd_card.sh /path/to/WD0.IMG" >&2; \
+	  echo "probe-wd-sd: it is NOT auto-built - only you know which Winchester image to use." >&2; \
+	  exit 1; \
+	fi
+	@sz=$$(stat -c%s "$(SD_CARD_IMG)"); \
+	if [ "$$sz" -gt "$(SD_CARD_BYTES)" ]; then \
+	  echo "probe-wd-sd: $(SD_CARD_IMG) is $$sz bytes but SD_CARD_BYTES=$(SD_CARD_BYTES)." >&2; \
+	  echo "probe-wd-sd: sd_card_model would read every sector past that back as 0xFF." >&2; \
+	  echo "probe-wd-sd: rebuild with SD_CARD_BYTES=$$sz (make_wd_card.sh prints it as CARD_BYTES=)." >&2; \
+	  exit 1; \
+	fi
+	$(VERILATOR) --trace-fst --vpi -Wall --cc ../ND120_TOP.v $(SUPPRESS_FLAGS) $(SDFAT_SUPPRESS) --timing $(PROBE_WD_SD_DEFINES) --public-flat-rw $(PROBE_WD_DIRS) $(SDFAT_VFILES) --exe $(PROBE_SOURCES) -CFLAGS "$(VERILATOR_DIRS) -I../../simDevices -DND120_VERILOG_DEVICES -DND120_RTC_RUNTIME -DND120_SD_STORAGE -DND120_SD_WD -std=gnu++20 -fcoroutines" --Mdir obj_dir_probe_wd_sd
+	cd obj_dir_probe_wd_sd && make -f VND120_TOP.mk VND120_TOP
+	@echo "=== probe-wd-sd engine built: obj_dir_probe_wd_sd/VND120_TOP ==="
+	@echo "=== disc served by the SD-FAT stack off $(SD_CARD_IMG) (no ND120_WD_IMG) ==="
+
 # --- PROBE variant with the PORTABLE C FLOPPY CORE (real TPE-MON boot) --------
 # ADDITIVE target: mirrors runSim's `run-tpe` device config
 #   make compile VERILOG_TAPE=0 SD_STORAGE=0 DEVICECORE=1 DEVICECORE_FLOPPY=1
@@ -162,4 +301,4 @@ probe-floppycore: nd120_probe.cpp
 	cd obj_dir_probe_floppycore && make -f VND120_TOP.mk VND120_TOP
 	@echo "=== probe-floppycore engine built: obj_dir_probe_floppycore/VND120_TOP (set ND120_FLOPPYCORE_IMG) ==="
 
-.PHONY: all clean probe probe-floppy probe-floppycore compare compare_latch compare_ff
+.PHONY: all clean probe probe-floppy probe-wd probe-floppycore compare compare_latch compare_ff

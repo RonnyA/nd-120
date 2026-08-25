@@ -127,9 +127,9 @@ stateDiagram-v2
 
 The cycle control system is implemented across several modules:
 
-- **PAL_44601B** (`E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44601B.v`): Main cycle control state machine (CYCFSM)
-- **PAL_44307C** (`E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\PAL_44307C.v`): Cycle clock generator (CYCLK)
-- **CYC_36** (`E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CYC_36.v`): Top-level cycle control module
+- **PAL_44601B** (`Verilog/PAL/PAL_44601B.v`): Main cycle control state machine (CYCFSM)
+- **PAL_44307C** (`Verilog/PAL/PAL_44307C.v`): Cycle clock generator (CYCLK)
+- **CYC_36** (`Verilog/CPU-BOARD-3202/circuit/CYC_36.v`): Top-level cycle control module
 
 ### Signal Description
 
@@ -571,8 +571,8 @@ PAL_44307C generates several derivative clock signals from the cycle control bit
 
 | Signal | Logic | Purpose |
 |--------|-------|---------|
-| MCLK_n | `~(RWCS & CC3_n) \| (RWCS & CC2)` | Main memory clock |
-| MACLK_n | Complex logic involving MAP, TRAP, RWCS | Memory address clock |
+| MCLK_n | `~(RWCS & CC3_n) \| (RWCS & CC2)` | Microcycle clock (= TERM outside RWCS; stretched during RWCS) |
+| MACLK_n | Complex logic involving MAP, TRAP, RWCS | Micro-address latch strobe (ACAL control-store address latch enable) |
 | UCLK | `~(CC3 \| CC2 \| CC1_n \| CC0_n \| TERM)` | Microcode update clock |
 | WRFSTB | `~(CC3 \| CC2 \| CC1 \| CC0_n \| TERM)` | Write register file strobe |
 | CYD | `~(CC3 \| CC1_n \| (CC2_n & CC0) \| TERM)` | Cycle done indicator |
@@ -642,7 +642,7 @@ Manages basic cycle progression and timing.
 
 The cycle control can be verified by:
 
-1. **Simulation**: Using the existing testbench in `E:\Dev\Repos\Ronny\nd-120\Verilog\PAL\44601B\sim`
+1. **Simulation**: Using the existing testbench in `Verilog/PAL/44601B/sim`
 2. **GTKWave Analysis**: Examining state transitions and timing
 3. **Hardware Testing**: Running on actual FPGA implementation
 
@@ -808,7 +808,7 @@ UCLK = ~(CC3 | CC2 | CC1_n | CC0_n | TERM)
 - **Active when**: Multiple states including `0011`, `0001`, `0000`
 - **Purpose**: Universal clock for memory requests
 
-#### MACLK_n (Memory Address Clock)
+#### MACLK_n (Micro-address latch strobe)
 ```verilog
 MACLK_n = ~(
     (MAP & CC3_n & CC2 & CC1)     |  // States 0110, 0111 (e+f)

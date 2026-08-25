@@ -1,0 +1,18 @@
+# GOLDEN: the TPE monitor boot dialog.
+# Source: nd100x oracle 24-AUG-2026 (--boot=floppy FLOPPY.IMG); silicon
+# (Nexys addr16) matches EXCEPT the noted divergences.
+# Automated driver: fpga/nexys4ddr/boardtests/tpe_boot.bt
+OPCOM:   #
+SEND:    1560&
+BANNER:  TPE Monitor, ND-100 series - Version: B01 - 1988-10-07
+ORACLE:  (no warning line)
+BOARDS:  ==TPE42=> The clock is not updated (display panel wrong or unesting)
+         (expected on our RTL: no panel processor - see docs/nd120-facts.md)
+OUTPUT:  The command HELP gives you the full list of available commands
+PROMPT:  TPE>
+# HELP is INTERACTIVE: it prompts "Command:" (CR there = All-commands, a
+# long paginated listing). For a liveness probe use an unknown command -
+# it returns straight to TPE>.
+# OPEN BUG (24-AUG-2026): on silicon, CONF and LOAD INSTR abort with
+# "*** TPE version too old ***" against versions OLDER than B01. The
+# oracle runs CONF clean: banner "CONFIGURATION - Version: D05" then TPE>.

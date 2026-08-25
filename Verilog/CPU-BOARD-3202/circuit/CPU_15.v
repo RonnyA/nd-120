@@ -19,8 +19,8 @@ module CPU_15 (
    ** The inputs are defined here                                                **
    *******************************************************************************/
     input CLK,          //! Main system clock
-    input MCLK,         //! Memory clock
-    input MACLK,        //! Memory access clock
+    input MCLK,         //! Microcycle clock - one pulse per microinstruction cycle (= TERM outside RWCS), stretched during RWCS. Not a master/memory clock.
+    input MACLK,        //! Micro-address latch strobe - latch enable for the control-store address latches in CPU_CS_ACAL_17 (transparent high, captures on the FALLING edge). NOT a memory clock.
     input ALUCLK_EN,    //! ALUCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input MCLK_EN,      //! MCLK clock-enable pulse (FPGA_FF_MODE, else 0)
     input MCLK_FALL_EN, //! MCLK fall-enable pulse (FPGA_FF_MODE, else 0)
@@ -34,7 +34,7 @@ module CPU_15 (
 
     input       CYD,          //! Cycle done signal
     input       DT_n,         //! Data transfer
-    input       DVACC_n,      //! Data valid access
+    input       DVACC_n,      //! DGA access qualifier (DECODE_DGA_COMM A227), passed down to CPU_MMU_24 - not the CGA's VACC
     input       ECSR_n,       //! Enable control store read
     input       EDO_n,        //! Enable data out
     input       EMCL_n,       //! Enable master clear
@@ -111,9 +111,11 @@ module CPU_15 (
     output ECCR,         //! ECC Register Detected for IOX
     output HIT,          //! Cache hit
     output LEV0,         //! Level 0 active
-    output LED1,         //! Cache enabled ?
+    output LED1,         //! UNKNOWN: believed to indicate cache enabled, never traced. See Verilog/docs/SIGNALS.md
     output [12:0] CSA_12_0,     //! Microcode Address (for debugging)
-    output [15:0] XMIC_DBG_15_0 //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [15:0] XMIC_DBG_15_0, //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [15:0] DBG_PTW,      //! DEBUG: page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
+    output [20:0]        PF_CAPTURED   //! DEBUG: ND120_PF_CAPTURE freeze flag (23-AUG)
 );
 
 
@@ -346,7 +348,13 @@ module CPU_15 (
 
 
   assign s_cpu_cd_15_0_out = s_stoc_cd_15_0_out | s_mmu_cd_15_0_out;
-  assign s_cpu_cd_15_0_out = s_cpu_cd_15_0_out;
+  // REMOVED 20-AUG-2026: 'assign s_cpu_cd_15_0_out = s_cpu_cd_15_0_out;'
+  // It was a SECOND continuous driver on this wire (the line above is the
+  // real one), and it drove the wire FROM ITSELF - a zero-logic
+  // combinational loop. Two continuous assignments on one wire resolve to x
+  // wherever they disagree, and this wire leaves the board as CD_15_0_OUT
+  // (line 316). Nothing sourced a value through it that line 348 does not
+  // already provide.
 
   // other signals
 
@@ -480,7 +488,8 @@ module CPU_15 (
     .WCS_n(s_wcs_n),
 
     .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
-    .XMIC_DBG_15_0(XMIC_DBG_15_0)
+    .XMIC_DBG_15_0(XMIC_DBG_15_0),
+    .PF_CAPTURED(PF_CAPTURED)
   );
 
   CPU_CS_16 CS (
@@ -574,7 +583,8 @@ module CPU_15 (
     .LAPA_n(s_lapa_n),
     .PT_15_9_OUT(s_pt_15_9[6:0]),
     .WCA_n(s_wca_n),
-    .LED1(s_led1)
+    .LED1(s_led1),
+    .DBG_PTW(DBG_PTW)
   );
 
 

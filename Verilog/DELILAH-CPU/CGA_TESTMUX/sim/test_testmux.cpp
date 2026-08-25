@@ -250,13 +250,13 @@ int main(int argc, char **argv)
     }
 
 
-    if (errCnt ==0)
+    if (errCnt == 0)
     {
-        printf("Passed \r\n");
+        printf("TB_RESULT: PASS (%d checks)\n", (int)testCases.size());
     }
     else
     {
-        printf("FAILED!! \r\n");
+        printf("TB_RESULT: FAIL (%d errors / %d checks)\n", errCnt, (int)testCases.size());
     }
 
 

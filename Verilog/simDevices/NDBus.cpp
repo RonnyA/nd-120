@@ -49,6 +49,36 @@ int bus_address = 0;
 int bus_data = 0;
 int bus_claimed = 0; // a C-model device owns the strobed address
 
+/* Winchester trace sink. ND120_WD_TRACE_FILE names a file that nothing else
+** writes to - a plain printf is useless under the nd120_probe engine, whose
+** stdout carries the machine-readable line protocol, so trace lines would be
+** parsed as junk and dropped.
+**
+** DEFINED HERE, OUTSIDE `ifdef ND120_VERILOG_DEVICES`, because it is CALLED
+** from the C-model bus path below (the IDENT and IOX 500 trace lines) which is
+** NOT inside that guard. It used to live with the Winchester backend further
+** down, inside the guard, so every build WITHOUT ND120_VERILOG_DEVICES failed
+** to link with four "undefined reference to wd_trace()" errors. That is what
+** broke `make -C sim compare`, the latch-vs-FF golden gate. */
+static FILE *vwd_trc = 0;
+static int vwd_trc_tried = 0;
+
+static FILE *wd_trace(void)
+{
+	if (!vwd_trc_tried)
+	{
+		vwd_trc_tried = 1;
+		const char *tf = getenv("ND120_WD_TRACE_FILE");
+		if (tf != 0)
+		{
+			vwd_trc = fopen(tf, "w");
+			if (vwd_trc)
+				setvbuf(vwd_trc, 0, _IOLBF, 0);
+		}
+	}
+	return vwd_trc;
+}
+
 void proccess_bif_signal(VND120_TOP *top)
 {
 	// Nedgative edge of BAPR (A valid address is present on the bus. Read it!)
@@ -120,6 +150,18 @@ void proccess_bif_signal(VND120_TOP *top)
 
 		// Try to identify which device has interrupt
 		idcode = deviceManager.IDENT(idlevel);
+
+		// WINCHESTER INTERRUPT WATCH. Silicon's DISC-TEMA run shows
+		// "INTERRUPT raised" then "IDENT answered, code 1" from the Verilog
+		// card; the Verilator run reaches the same point and then dies with
+		// "Software Timeout" without ever programming the transfer. So the
+		// question is whether the CPU takes an interrupt at all here, and
+		// what answers the IDENT: the C DeviceManager (idcode below) or the
+		// Verilog card on the internal bus. A level-11 IDENT that the C model
+		// answers with 0 is exactly where the card's code 1 should appear.
+		if (wd_trace())
+			fprintf(wd_trace(), "IDENT level=%d c_model_code=%d\n",
+			        idlevel, (int)idcode);
 		// IDENT tracing belongs to the DEBUG_INTERRUPT channel as well as the
 		// broader DEBUG_BIF one: golden/console_ff_golden.log holds these lines
 		// and the console gate turns them back on with -DDEBUG_INTERRUPT alone
@@ -200,6 +242,16 @@ void proccess_bif_signal(VND120_TOP *top)
 		bus_data = (~top->BD_23_0_n_OUT) & 0xFFFF;
 
 		
+		// WINCHESTER IOX WATCH (500-507). The disc-side trace showed the card
+		// never issuing a single START/REQ while still reporting "finished",
+		// so the question is whether the CPU programs the card at all. This
+		// logs every IOX the CPU aims at the card's own address block,
+		// independent of whether any C-model device claims it.
+		if ((bus_address & ~07) == 0500 && wd_trace())
+			fprintf(wd_trace(), "IOX %s reg=%ld addr=%06o data=%06o\n",
+			        (bus_address & 1) ? "W" : "R",
+			        (long)((bus_address - 0500) >> 1), bus_address, bus_data);
+
 		if (bifState == BIF_State::WRITE && bus_claimed)
 		{
 			if (DEBUG_BIF) printf("WRITE IOX Address: %o Data: %o \n", bus_address, bus_data);
@@ -286,6 +338,16 @@ void proccess_bif_signal(VND120_TOP *top)
 #endif
 	process_verilog_floppy(top);
 	process_verilog_smd(top);
+#ifndef ND120_SD_WD
+	// ND120_SD_WD: nd_storage client 6 inside ND120_TOP serves WD0.IMG off a
+	// simulated FAT card, so this C file server must stand down for exactly
+	// the same reason process_verilog_tape() does above. ND120_TOP takes the
+	// WDISK return path from its own seam in that build, so leaving this
+	// running would not corrupt anything - it would just quietly open the
+	// host image named by ND120_WD_IMG and answer into wires nobody reads,
+	// which is precisely the confusion this guard exists to prevent.
+	process_verilog_wd(top);
+#endif
 #endif
 
 	// Tick deviceManager
@@ -357,14 +419,21 @@ void addDevices()
 ** flag spans one full clock; the device tolerates seeing the same
 ** byte on two edges (same data, no position change). */
 static FILE *vtape_file = 0;
+static int vtape_file_tried = 0;
 static int vtape_prev_req = 0;
 static int vtape_prev_rewind = 0;
 static int vtape_valid_ticks = 0;
 
 void process_verilog_tape(VND120_TOP *top)
 {
-	if (vtape_file == 0)
+	/* Open ONCE, whether or not it succeeds. Retrying a failed open on
+	** every tick costs two filesystem round-trips per tick and made the
+	** whole simulation 17x slower (measured: 100k ticks in 52.8 s with the
+	** retry, 3.1 s without) - and it printed one line per tick as well.
+	** Same "tried" guard the SMD and Winchester backends below already use. */
+	if (vtape_file == 0 && !vtape_file_tried)
 	{
+		vtape_file_tried = 1;
 		vtape_file = fopen("INSTRUCTION-B.BPUN", "r");
 		if (vtape_file == 0)
 			printf("VerilogTape: unable to open INSTRUCTION-B.BPUN\r\n");
@@ -406,6 +475,8 @@ void process_verilog_tape(VND120_TOP *top)
 ** size; sector size by format: 0=512, 1=256, 2=128, 3=1024 bytes
 ** (nd100x deviceFloppyDMA). One word moves per half-clock call. */
 static FILE *vflp_file = 0;
+static int vflp_file_tried = 0;
+static int vflp_media_fmt = 0xF;
 static int vflp_dbg = (getenv("ND120_FLOPPY_DEBUG") != 0);
 static int vflp_prev_req = 0;
 static int vflp_state = 0;    // 0 idle, 1 read-stream, 2 write-addr, 3 write-take, 4 read-tail
@@ -415,8 +486,16 @@ static int vflp_done_ticks = 0;
 
 void process_verilog_floppy(VND120_TOP *top)
 {
-	if (vflp_file == 0)
+	/* Open ONCE, whether or not it succeeds. This used to retry on EVERY
+	** tick whenever the image was absent - two failed opens per tick, which
+	** on a /mnt filesystem cost ~30 us each and made the whole simulation
+	** 17x slower (measured: 100k ticks in 52.8 s with the retry, 3.1 s
+	** without). A run with no floppy mounted is a normal case (the machine
+	** may be booting from the Winchester), so the absent image must be
+	** cheap. Same "tried" guard the SMD and Winchester backends below use. */
+	if (vflp_file == 0 && !vflp_file_tried)
 	{
+		vflp_file_tried = 1;
 		// ND120_FLOPPY_IMG selects the image (unit tests use a generated
 		// one); default FLOPPY.IMG
 		const char *img = getenv("ND120_FLOPPY_IMG");
@@ -430,7 +509,7 @@ void process_verilog_floppy(VND120_TOP *top)
 		// (512 B/sector, format word 0); >= 1261568 bytes = 5.25"
 		// 1.2MB (1024 B/sector + double sided + double density = 017
 		// octal). Default 0xF (the 1.2MB descriptor) if unknown.
-		top->FDISK_MEDIA_FMT = 0xF;
+		vflp_media_fmt = 0xF;
 		if (vflp_file != 0)
 		{
 			long sz;
@@ -438,11 +517,14 @@ void process_verilog_floppy(VND120_TOP *top)
 			sz = ftell(vflp_file);
 			fseek(vflp_file, 0, SEEK_SET);
 			if (sz == 315392)
-				top->FDISK_MEDIA_FMT = 0x0;
+				vflp_media_fmt = 0x0;
 			else if (sz >= 1261568)
-				top->FDISK_MEDIA_FMT = 0xF;
+				vflp_media_fmt = 0xF;
 		}
 	}
+	// Driven every call, as it was before the open was guarded, so the
+	// device port never depends on how often this function runs.
+	top->FDISK_MEDIA_FMT = vflp_media_fmt;
 
 	if (vflp_done_ticks > 0)
 	{
@@ -551,8 +633,18 @@ void process_verilog_floppy(VND120_TOP *top)
 /* Disk backend for the Verilog ND_SMD (disk 0). Image selected by
 ** ND120_SMD_IMG (no default - without it every operation reports an
 ** error, like a drive with no pack). Position mapping (same as the
-** SMD unit tb): word offset = blkaddrII * 2048 + blkaddrI * 64;
+** SMD unit tb and nd_storage_disc_adapter.v): the block address is
+** cylinder/head/sector, so
+**   LBA        = (cyl * SMD_GEO_HEADS + head) * SMD_GEO_SPT + sector
+**   byte offset = LBA * SMD_SECTOR_BYTES
+** with head = blkaddrI bits 15-8 and sector = blkaddrI bits 7-0.
+** (Was blkaddrII * 2048 + blkaddrI * 64, which matches the real geometry
+** only at block 0 - so the boot worked and everything past it read the
+** wrong part of the image.)
 ** SDISK_START latches the position, chunks advance linearly. */
+#define SMD_GEO_HEADS    5
+#define SMD_GEO_SPT      18
+#define SMD_SECTOR_BYTES 1024L
 static FILE *vsmd_file = 0;
 static int vsmd_file_tried = 0;
 static int vsmd_prev_req = 0;
@@ -588,8 +680,13 @@ void process_verilog_smd(VND120_TOP *top)
 
 	if (top->SDISK_START)
 	{
-		vsmd_pos = 2L * ((long)top->SDISK_BLKADDR2 * 2048 +
-		                 (long)top->SDISK_BLKADDR1 * 64);
+		{
+			long cyl  = (long)top->SDISK_BLKADDR2;
+			long head = ((long)top->SDISK_BLKADDR1 >> 8) & 0xFF;
+			long sect = (long)top->SDISK_BLKADDR1 & 0xFF;
+			long lba  = (cyl * SMD_GEO_HEADS + head) * SMD_GEO_SPT + sect;
+			vsmd_pos  = lba * SMD_SECTOR_BYTES;
+		}
 		if (getenv("ND120_SMD_TRACE"))
 			printf("[smd] START blk2=%06o blk1=%06o unit=%d pos=%ld\r\n",
 			       top->SDISK_BLKADDR2, top->SDISK_BLKADDR1,
@@ -675,6 +772,175 @@ void process_verilog_smd(VND120_TOP *top)
 	}
 
 	vsmd_prev_req = top->SDISK_REQ;
+}
+
+/* Disk backend for the Verilog ND_WINCHESTER (ST506/8 inch card at IOX 500).
+** Image selected by ND120_WD_IMG (no default - without it every operation
+** reports an error, like a drive with no pack).
+**
+** WHY THIS EXISTS: the Winchester seam (the WDISK_ and WDBUF_ ports) has
+** been a port on
+** ND120_TOP since the card was written, but NOTHING drove it here - only the
+** SMD seam above had a server. So WDISK_DONE was tied low and the card could
+** never complete a transfer with the real CPU in Verilator. The card was
+** therefore taken straight from iverilog unit benches to the Tang, where the
+** only instrument is a 128-entry IOX ring over a UART. That cost four wrong
+** trigger designs and eleven dead hypotheses to find one bug. This closes it.
+**
+** Geometry is the Micropolis 1325 (DISC-74-1): 8 heads, 9 sectors/track,
+** 1024-byte sectors - it MUST match the ND_WINCHESTER GEO_* parameters in
+** ND120_CORE.v (gen_wd) and the nd_storage_disc_adapter in front of the card
+** on hardware, or sim and silicon read different parts of the image.
+** Mapping is the same oracle CHS->LBA formula the SMD uses:
+**   LBA         = (cyl * WD_GEO_HEADS + head) * WD_GEO_SPT + sector
+**   byte offset = LBA * WD_SECTOR_BYTES
+** with head = blkaddrI bits 15-8 and sector = blkaddrI bits 7-0. */
+#define WD_GEO_HEADS    8
+#define WD_GEO_SPT      9
+#define WD_SECTOR_BYTES 1024L
+static FILE *vwd_file = 0;
+static int vwd_file_tried = 0;
+/* Trace sink. ND120_WD_TRACE alone printf()s, which is USELESS under the
+** nd120_probe engine: its stdout carries the machine-readable line protocol,
+** so trace lines are parsed as junk and dropped. Set ND120_WD_TRACE_FILE to a
+** path to get the trace in a file that nothing else writes to. */
+/* wd_trace() and its two statics now live near the top of this file, outside
+** the ND120_VERILOG_DEVICES guard - see the comment there. */
+static int vwd_prev_req = 0;
+static int vwd_state = 0;
+static long vwd_pos = 0;   // byte position, advances across chunks
+static int vwd_words = 0, vwd_idx = 0;
+static int vwd_done_ticks = 0;
+
+void process_verilog_wd(VND120_TOP *top)
+{
+	if (vwd_file == 0 && !vwd_file_tried)
+	{
+		vwd_file_tried = 1;
+		const char *img = getenv("ND120_WD_IMG");
+		if (img != 0)
+		{
+			vwd_file = fopen(img, "r+");
+			if (vwd_file == 0)
+				vwd_file = fopen(img, "r");
+			if (vwd_file == 0)
+				printf("VerilogWD: cannot open %s\r\n", img);
+			if (wd_trace())
+				fprintf(wd_trace(), "open %s -> %s\n", img,
+				        vwd_file ? "OK" : "FAILED");
+		}
+		else if (wd_trace())
+		{
+			fprintf(wd_trace(), "open SKIPPED - ND120_WD_IMG unset\n");
+		}
+	}
+
+	if (vwd_done_ticks > 0)
+	{
+		if (--vwd_done_ticks == 0)
+		{
+			top->WDISK_DONE = 0;
+			top->WDISK_ERR = 0;
+		}
+	}
+
+	if (top->WDISK_START)
+	{
+		{
+			long cyl  = (long)top->WDISK_BLKADDR2;
+			long head = ((long)top->WDISK_BLKADDR1 >> 8) & 0xFF;
+			long sect = (long)top->WDISK_BLKADDR1 & 0xFF;
+			long lba  = (cyl * WD_GEO_HEADS + head) * WD_GEO_SPT + sect;
+			vwd_pos   = lba * WD_SECTOR_BYTES;
+		}
+		if (wd_trace())
+			fprintf(wd_trace(), "START blk2=%06o blk1=%06o unit=%d pos=%ld\n",
+			        top->WDISK_BLKADDR2, top->WDISK_BLKADDR1,
+			        (int)top->WDISK_UNIT, vwd_pos);
+	}
+
+	if (top->WDISK_REQ && !vwd_prev_req)
+	{
+		if (wd_trace())
+			fprintf(wd_trace(), "REQ wr=%d words=%d pos=%ld\n",
+			        (int)top->WDISK_WR, (int)top->WDISK_WORDCOUNT, vwd_pos);
+		vwd_words = top->WDISK_WORDCOUNT;
+		vwd_idx = 0;
+		if (vwd_file == 0 || fseek(vwd_file, vwd_pos, SEEK_SET) != 0)
+		{
+			top->WDISK_ERR = 1;
+			top->WDISK_DONE = 1;
+			vwd_done_ticks = 2;
+		}
+		else if (!top->WDISK_WR)
+		{
+			vwd_state = 1;
+		}
+		else
+		{
+			vwd_state = 2;
+		}
+	}
+	else if (vwd_state == 1) // read: one word per call into the buffer
+	{
+		int hi = getc(vwd_file);
+		int lo = getc(vwd_file);
+		if (hi < 0 || lo < 0)
+		{
+			top->WDISK_ERR = 1;
+			top->WDISK_DONE = 1;
+			vwd_done_ticks = 2;
+			top->WDBUF_WE = 0;
+			vwd_state = 0;
+		}
+		else
+		{
+			top->WDBUF_ADDR = vwd_idx & 0x3FF;
+			top->WDBUF_WDATA = ((hi & 0xFF) << 8) | (lo & 0xFF);
+			top->WDBUF_WE = 1;
+			vwd_idx++;
+			if (vwd_idx >= vwd_words)
+				vwd_state = 4;
+		}
+	}
+	else if (vwd_state == 4)
+	{
+		if (wd_trace())
+			fprintf(wd_trace(), "READ DONE %d words, next pos=%ld\n",
+			        vwd_words, vwd_pos + 2L * vwd_words);
+		top->WDBUF_WE = 0;
+		vwd_pos += 2L * vwd_words;
+		top->WDISK_DONE = 1;
+		vwd_done_ticks = 2;
+		vwd_state = 0;
+	}
+	else if (vwd_state == 2) // write: present the buffer address
+	{
+		top->WDBUF_WE = 0;
+		top->WDBUF_ADDR = vwd_idx & 0x3FF;
+		vwd_state = 3;
+	}
+	else if (vwd_state == 3) // write: take the word
+	{
+		unsigned short w = top->WDBUF_RDATA;
+		putc((w >> 8) & 0xFF, vwd_file);
+		putc(w & 0xFF, vwd_file);
+		vwd_idx++;
+		if (vwd_idx >= vwd_words)
+		{
+			fflush(vwd_file);
+			vwd_pos += 2L * vwd_words;
+			top->WDISK_DONE = 1;
+			vwd_done_ticks = 2;
+			vwd_state = 0;
+		}
+		else
+		{
+			vwd_state = 2;
+		}
+	}
+
+	vwd_prev_req = top->WDISK_REQ;
 }
 #endif
 

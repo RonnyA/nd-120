@@ -57,6 +57,10 @@ module basys3_mem_test_tb;
     repeat (100) @(negedge clk);
     $display("\n--- DONE: fail flag = %b  (0 = all reads matched) ---", dut.fail);
     if (dut.fail) $display("=== RESULT: FAIL ==="); else $display("=== RESULT: PASS ===");
+    // Machine-checkable verdict. The registry greps for this exact
+    // string; the human-readable line above is kept as-is.
+    if (dut.fail) $display("TB_RESULT: FAIL");
+    else          $display("TB_RESULT: PASS");
     $finish;
   end
 

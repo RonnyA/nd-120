@@ -55,12 +55,28 @@
 #                    its status register. PASS = the exact bytes landed in
 #                    the sim capture backend. ~12 min (one compile + run).
 
-.PHONY: verify-devicecore-c-only test-demodma test-floppy-core-iox test-floppy-core-boot test-tape-core test test-full test-tape test-dma-rtl test-dma-xcheck test-floppy-boot test-floppy-stdin test-smd-boot test-instr test-democore
+.PHONY: test-audit verify-devicecore-c-only test-demodma test-floppy-core-iox test-floppy-core-boot test-tape-core test test-full test-tape test-dma-rtl test-dma-xcheck test-floppy-boot test-floppy-stdin test-smd-boot test-instr test-democore
 
-test:
+test: test-audit
 	@bash tests/run_all_tests.sh
 
+# Coverage audit: every *_tb.v must be runnable from its own sim/Makefile and
+# registered in tests/run_all_tests.sh. The three orphans it found on
+# 09-AUG-2026 are fixed (DECODE_DGA_COMM got a build rule; the Basys3 and
+# QMTECH mem-test benches got Makefiles, a TB_RESULT verdict and registry
+# entries), so this now gates - a new testbench that nothing runs fails the
+# build instead of quietly rotting.
+test-audit:
+	@./tests/audit_testbenches.sh
+
 test-full: test
+# Storage failure reporting, the SLOW half: the card-goes-silent case, whose
+# only terminator is sd_writer.v's TO_DATA read watchdog (2,000,000 sdclk =
+# 148 ms simulated, measured 09-AUG-2026). TO_DATA is a real device timeout,
+# so it is not shortened to suit a testbench - the case lives here instead.
+# The other seven failure modes run in the fail-fast tier as test-nds-errors.
+	@echo "==== storage gate: card-goes-silent reason code ===="
+	$(MAKE) -C SD-FAT/sim test-nds-errors-slow
 	@echo "==== system gate: sim/ latch-vs-FF golden compare ===="
 	$(MAKE) -C sim compare
 	cmp sim/trace_ff.csv    sim/golden/trace_ff_golden.csv
@@ -82,6 +98,7 @@ test-full: test
 	@echo "==== system gate: Tang vtest (boot + deposit + readback) ===="
 	$(MAKE) -C fpga/tang-nano-20k/sim vtest
 	$(MAKE) test-floppy-stdin
+	$(MAKE) test-smd-boot
 	$(MAKE) test-democore
 	$(MAKE) test-instr-argument
 	@echo ""
@@ -163,7 +180,12 @@ test-smd-boot:
 	python3 tests/gen_fboot_img.py /tmp/nd120_sboot.img /tmp/nd120_sboot_exp.txt
 	$(MAKE) -C runSim clean >/dev/null
 	$(MAKE) -C runSim compile USE_LATCHES=0 VERILOG_TAPE=1 SD_STORAGE=0 EXTRA_CFLAGS="-DSCRIPT_INPUT -DSCRIPT_CMD_SBOOT" >/dev/null
-	cd runSim && ND120_SMD_IMG=/tmp/nd120_sboot.img ND120_BINLOAD_CHECK=002000:16 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_sboot.log 2>&1
+	# ND120_MAX_CNT is what ENDS the run: Run120's main loop is while(true) and
+	# the BINLOAD RAM check only prints after the loop exits. Without it this
+	# gate never terminated (it ran for six hours) even though the boot itself
+	# finishes in milliseconds of simulated time. Same value as the floppy
+	# stdin gate above.
+	cd runSim && ND120_SMD_IMG=/tmp/nd120_sboot.img ND120_BINLOAD_CHECK=002000:16 ND120_MAX_CNT=120000000 ./obj_dir/VND120_TOP </dev/null > /tmp/nd120_sboot.log 2>&1
 	grep -a "RAM check" /tmp/nd120_sboot.log > /tmp/nd120_sboot_got.txt
 	cat /tmp/nd120_sboot_got.txt
 	# loaded program + the 000077 it stores when it RUNS (see the

@@ -2,12 +2,12 @@
 
 Validation of nd-storage-interface-spec.md against the repository state before implementation. The three factual findings and sixteen gap decisions below are folded into nd-storage-design.md.
 
-Spec: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd-storage-interface-spec.md` (read in full).
+Spec: `Verilog/docs/nd-storage-interface-spec.md` (read in full).
 Verdict up front: the spec is implementable, but **three claims are factually wrong** - (1) the device side is NOT "already built against" the section-4 contract (the floppy backend is a sector-level command port, not a block port; test 6's "map 1:1" is false), (2) the "leftover-cycles device port" does not exist and, worse, the current CPU mapping consumes the ENTIRE SDRAM address space, so there is no "high region" today, and (3) `sd_fat_check` cannot detect fragmentation, so it cannot enforce the contiguity rule as written.
 
 ## (a) Client contract vs ND-BUS-DEVICES - pin-for-pin
 
-Device inventory: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/` contains BUS-IF (ND_BUS_SLAVE.v), DMA (ND_DMA_MASTER.v), FLOPPY (ND_FLOPPY_PIO.v), TAPE-400 (ND_TAPE_400.v). Note `TAPE-400/sim/` is empty (its acceptance gate is the top-level `make test-tape`, per `Verilog/docs/device-bus-todo.md:98-102`).
+Device inventory: `Verilog/ND-BUS-DEVICES/` contains BUS-IF (ND_BUS_SLAVE.v), DMA (ND_DMA_MASTER.v), FLOPPY (ND_FLOPPY_PIO.v), TAPE-400 (ND_TAPE_400.v). Note `TAPE-400/sim/` is empty (its acceptance gate is the top-level `make test-tape`, per `Verilog/docs/device-bus-todo.md:98-102`).
 
 ### Buffer port (spec lines 85-99 vs `ND_FLOPPY_PIO.v:77-80`)
 
@@ -41,7 +41,7 @@ Matches: `byte_req` out pulse / `byte_valid` in pulse / `byte_data[7:0]` in / `s
 
 ## (b) SDRAM reality vs spec assumption
 
-What exists (all in `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/sdram-bridge/`):
+What exists (all in `Verilog/fpga/tang-nano-20k/sdram-bridge/`):
 
 1. **No second port exists.** `sdram18.v` has exactly one command port (`rd/wr/refresh/addr[20:0]/din[17:0]/dout[17:0]/data_ready/busy`, lines 48-58), and `MEM_RAM_49_SDRAM.v` instantiates it privately (lines 122-147) and owns refresh generation (lines 152-168, 297-303). The second device port is only a promise in `Verilog/docs/device-bus-todo.md:133-135` ("sdram18.v gets a second (device) port; CPU absolute priority"). nd_storage must request/define it; the natural place is a port-arbiter layer inside `MEM_RAM_49_SDRAM.v` (its `B_IDLE`/`B_POST` states already know when the CPU is guaranteed idle - the earliest next CPU access is N+11, line 297-300).
 
@@ -84,7 +84,7 @@ What nd_storage can rely on TODAY: nothing - every SDRAM interface is private to
 
 ## (e) Test infrastructure notes (spec section 9)
 
-- **Registry**: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/tests/run_all_tests.sh` - format `<dir relative to Verilog/> :: <make target> :: <pass regex>` (lines 16-18), fail-fast, output must not contain FAIL and must contain the pass pattern (lines 103-115); convention `TB_RESULT: PASS`. SD-FAT entries already exist at lines 55-59; the six nd_storage tests slot in as new `SD-FAT/sim` targets (or a `SD-FAT/sim` + system entry) with strict patterns.
+- **Registry**: `Verilog/tests/run_all_tests.sh` - format `<dir relative to Verilog/> :: <make target> :: <pass regex>` (lines 16-18), fail-fast, output must not contain FAIL and must contain the pass pattern (lines 103-115); convention `TB_RESULT: PASS`. SD-FAT entries already exist at lines 55-59; the six nd_storage tests slot in as new `SD-FAT/sim` targets (or a `SD-FAT/sim` + system entry) with strict patterns.
 - **SD card model**: `Verilog/SD-FAT/sim/sd_card_model.v` covers CMD17/CMD24 with image file load and CRC checking - sufficient for tests 1, 2, 3, 4, 6. **It has no error-injection hook** (unknown commands just time out, lines 205-252): test 5's "write failure injected in the card model" requires adding a fault input/parameter (e.g. answer CRC status != 010, or suppress the response). Small, but it is new work.
 - **SDRAM model**: `fpga/tang-nano-20k/sdram-test/sim/sdram_model.v` (2M x 32, CL=2, DQM byte masking, auto-precharge-tolerant) is suitable - it is exactly what the sdram-bridge tb already links (`sdram-bridge/sim/Makefile:9`); **sdram-bridge/sim has no separate/better model**. DQM support matters if gap 9's packed 32-bit device port is adopted. For pure nd_storage unit tests a port-level stub behind the new device port is faster than the full chip model; use the chip model for the bridge-arbiter test.
 - **Simulator choice**: the pure-iverilog full-stack SD sim takes 30-60 min and is deliberately unregistered (`run_all_tests.sh:70-72`, `sd-fat-test/sim/Makefile` header) - the registered path is Verilator with a **C++ SD card model inside `sd-fat-test/sim/test_sd_fat.cpp`**. The nd_storage system test (test 6, full stack with the floppy) should follow that Verilator pattern to stay registry-viable; iverilog remains fine for tests 1/3/5 with the SDRAM stub.

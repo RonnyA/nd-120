@@ -418,8 +418,8 @@ module CYC_36 (
       .RWCS_n (s_rwcs_n),       // I7  - Read/Write Control Store signal
       .TRAP_n (s_trap_n),       // I8  - Trap condition signal
       .VEX    (s_vex),          // I9  - Vector Exception signal (disable traps)
-      .MCLK_n (s_mclk_n),       // Y0_n - Memory Clock output (active low)
-      .MACLK_n(s_maclk_n),      // Y1_n - Memory Address Clock output (active low)
+      .MCLK_n (s_mclk_n),       // Y0_n - Microcycle clock output (active low)
+      .MACLK_n(s_maclk_n),      // Y1_n - Micro-address latch strobe (active low) - ACAL latch enable
       .WRFSTB (s_wrfstb),       // B0_n - Write Fast Strobe signal
       .CYD    (s_cyd),          // B1_n - Cycle Done indicator
       .EORF_n (s_eorf_n),       // B2_n - End Of Read Format signal (active low)
@@ -489,6 +489,51 @@ module CYC_36 (
       .SLCOND_n(s_slcond_n),  // B2_n
       .DLY1_n  (s_dly1_n)     // B3_n
   );
+
+`ifdef PTDBG
+  // ------------------------------------------------------------------
+  // ETRAP-BLOCK PROBE (inert unless -DPTDBG). 18-AUG-2026.
+  //
+  // WHAT IT ANSWERS. Measured in Verilator: across 200 consecutive page-fault
+  // windows the trap NEVER dispatches - TRAPN never goes low at any point while
+  // PGF is asserted. Derived from CGA_TRAP_BRKDET.v GATES_16
+  // (TRAPN = brk_n | cbrk | etrap_n) with brk_n=0 and cbrk=0 measured, that
+  // means ETRAP_n was HIGH - traps disabled - for the whole window.
+  //
+  // ETRAP_n comes from PAL_44307C.v:125, which is a faithful copy of the
+  // original PAL and is NOT to be "fixed":
+  //
+  //   ETRAP_n = ~( TERM_n & VEX_n & (CC3 | CC2 | CC1 | CC0) )
+  //   ; ENABLE TRAPS ONLY OUTSIDE t OR a
+  //   ; UNSTABLE TRAP IN THIS PERIOD CAN DESTROY MA !
+  //
+  // So ETRAP_n is high when TERM_n=0, or VEX=1, or all four CC bits are 0.
+  // This probe logs which of those actually holds while a break is pending, so
+  // the defect can be named instead of guessed.
+  //
+  // Triggered on BRK_n low rather than on PGF, because PGF lives in the CGA and
+  // BRK_n is already an input here. Caveat: BRK_n also rises for the other
+  // break sources (IPV, WIP, RD2, RV3, CBRK), so a line is not PROOF of a page
+  // fault - correlate with the [pgf] records from the CGA probe.
+  //
+  // Edge-filtered and hard-capped: an unfiltered probe wrote 327 MB in 2.5
+  // minutes earlier in this investigation.
+  localparam ETRAPDBG_MAX = 60;
+  reg [31:0] r_etd_n    = 0;
+  reg [5:0]  r_etd_prev = 6'h3F;
+  wire [5:0] w_etd_now  = {s_term_n, s_vex, s_cc_3_1_n[2], s_cc_3_1_n[1],
+                           s_cc_3_1_n[0], s_cc0_n};
+  always @(posedge sysclk) begin
+    if (!s_brk_n && s_etrap_n && r_etd_n < ETRAPDBG_MAX &&
+        w_etd_now != r_etd_prev) begin
+      r_etd_n    <= r_etd_n + 1;
+      r_etd_prev <= w_etd_now;
+      $display("[etrap] #%0d BRKpending ETRAPn=1 TERMn=%b VEX=%b CC3n=%b CC2n=%b CC1n=%b CC0n=%b",
+               r_etd_n, s_term_n, s_vex, s_cc_3_1_n[2], s_cc_3_1_n[1],
+               s_cc_3_1_n[0], s_cc0_n);
+    end
+  end
+`endif
 
 endmodule
 

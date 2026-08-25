@@ -134,9 +134,25 @@ module MEM_ADEC_45 (
    ** Here all in-lined components are defined                                   **
    *******************************************************************************/
 
-  // Pulled high when CGNT_n and BGNT_n both are high
-  assign s_bank_2_0_out =   (~s_bgnt_n & ~s_cgnt_n) ? 3'b111 : (s_uc_bank_2_0 | s_ub_bank_2_0);
-  assign s_mwrite_n_out =  (~s_bgnt_n & ~s_cgnt_n) ? 1 : (~s_bgnt_n & s_ub_mwrite_n) | (~s_cgnt_n & s_uc_mwrite_n);
+  // Pulled high when CGNT_n and BGNT_n both are high.
+  //
+  // 9G (44445/UCADEC, /OE = CGNT~) and 6G (44446/UBADEC, /OE = BGNT~) both
+  // drive BANK2:0 and MWRITE~ onto four shared nets, each with a pull-up in
+  // RN18 (sheet 45, region B4-D5). The pull-up wins only when BOTH PALs are
+  // output-DISABLED, which is both grants HIGH - not both grants low.
+  //
+  // This tested (~BGNT_n & ~CGNT_n), i.e. both grants ACTIVE, contradicting
+  // the comment directly above it. With no grant outstanding the sheet then
+  // held BANK=000 and MWRITE_n=0 - a write asserted while the bus is idle.
+  // MWRITE~ is not only the RAM write qualifier: it is I0 of PAL 45008 on
+  // sheet 46, where OET_n = ~MWRITE, so an idle-asserted MWRITE left both
+  // AM29833A transceivers transmitting LBD onto DD continuously, where the
+  // board leaves them off.
+  //
+  // Confirmed against the 600 dpi REV-D drawing, sheet 45. The testbench had
+  // this pinned as PIN-1 "SUSPECTED-TRANSCRIPTION-ERROR" pending that audit.
+  assign s_bank_2_0_out =   (s_bgnt_n & s_cgnt_n) ? 3'b111 : (s_uc_bank_2_0 | s_ub_bank_2_0);
+  assign s_mwrite_n_out =  (s_bgnt_n & s_cgnt_n) ? 1'b1 : (~s_bgnt_n & s_ub_mwrite_n) | (~s_cgnt_n & s_uc_mwrite_n);
 
   // Power
   assign  s_power  =  1'b1;

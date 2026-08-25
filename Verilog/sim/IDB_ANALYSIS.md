@@ -181,22 +181,22 @@ All of these should eventually become IDBS-controlled muxes:
 
 | Module | Full path |
 |--------|-----------|
-| CGA top | `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA\circuit\CGA.v` |
-| CGA_ALU | `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU.v` |
-| CGA_ALU_OUTMUX_IDBS | `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_ALU\circuit\CGA_ALU_OUTMUX_IDBS.v` |
-| CGA_IDBCTL | `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_IDBCTL\circuit\CGA_IDBCTL.v` |
-| CGA_IDBCTL_SEL6 | `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_IDBCTL\circuit\CGA_IDBCTL_SEL6.v` |
-| CGA_IDBCTL_PGSREG | `E:\Dev\Repos\Ronny\nd-120\Verilog\DELILAH-CPU\CGA_IDBCTL\circuit\CGA_IDBCTL_PGSREG.v` |
-| ND3202D (CPU board top) | `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\ND3202D.v` |
-| CPU_PROC_CGA_33 | `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\CPU_PROC_CGA_33.v` |
-| IO_37 | `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_37.v` |
-| IO_REG_41 | `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_REG_41.v` |
-| IO_UART_42 | `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_UART_42.v` |
-| IO_PANCAL_40 | `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\IO_PANCAL_40.v` |
-| BIF_5 | `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\BIF_5.v` |
-| MEM_43 | `E:\Dev\Repos\Ronny\nd-120\Verilog\CPU-BOARD-3202\circuit\MEM_43.v` |
-| DECODE_DGA | `E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA.v` |
-| DECODE_DGA_IDBS | `E:\Dev\Repos\Ronny\nd-120\Verilog\DECODE-GateArray\DGA\circuit\DECODE_DGA_IDBS.v` |
+| CGA top | `Verilog/DELILAH-CPU/CGA/circuit/CGA.v` |
+| CGA_ALU | `Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_ALU.v` |
+| CGA_ALU_OUTMUX_IDBS | `Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_OUTMUX_IDBS.v` |
+| CGA_IDBCTL | `Verilog/DELILAH-CPU/CGA_IDBCTL/circuit/CGA_IDBCTL.v` |
+| CGA_IDBCTL_SEL6 | `Verilog/DELILAH-CPU/CGA_IDBCTL/circuit/CGA_IDBCTL_SEL6.v` |
+| CGA_IDBCTL_PGSREG | `Verilog/DELILAH-CPU/CGA_IDBCTL/circuit/CGA_IDBCTL_PGSREG.v` |
+| ND3202D (CPU board top) | `Verilog/CPU-BOARD-3202/circuit/ND3202D.v` |
+| CPU_PROC_CGA_33 | `Verilog/CPU-BOARD-3202/circuit/CPU_PROC_CGA_33.v` |
+| IO_37 | `Verilog/CPU-BOARD-3202/circuit/IO_37.v` |
+| IO_REG_41 | `Verilog/CPU-BOARD-3202/circuit/IO_REG_41.v` |
+| IO_UART_42 | `Verilog/CPU-BOARD-3202/circuit/IO_UART_42.v` |
+| IO_PANCAL_40 | `Verilog/CPU-BOARD-3202/circuit/IO_PANCAL_40.v` |
+| BIF_5 | `Verilog/CPU-BOARD-3202/circuit/BIF_5.v` |
+| MEM_43 | `Verilog/CPU-BOARD-3202/circuit/MEM_43.v` |
+| DECODE_DGA | `Verilog/DECODE-GateArray/DGA/circuit/DECODE_DGA.v` |
+| DECODE_DGA_IDBS | `Verilog/DECODE-GateArray/DGA/circuit/DECODE_DGA_IDBS.v` |
 
 ---
 

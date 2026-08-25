@@ -343,6 +343,67 @@ module CGA_MAC_LASEL (
       .result(s_shadow_n)
   );
 
+`ifdef PTDBG
+  // ------------------------------------------------------------------
+  // SHADOW-BLOCK PROBE (inert unless -DPTDBG). 17-AUG-2026.
+  //
+  // WHAT IT IS FOR. A Winchester boot shows 258293 zero-entry page-table
+  // lookups in 5M ticks, and LSHADOW alone decides the table: LSH=0 -> table 0
+  // (134053 rows, 100%), LSH=1 -> table 3 (124240 rows, 100%), 98% of them at
+  // VPN 0o77 - the top page, which IS the shadow (page-table) region. So the
+  // machine keeps making shadow-region accesses that are NOT recognised as
+  // shadow, get TRANSLATED through table 0, find an empty entry and fault.
+  //
+  // Worked out from GATES_18..22 above:
+  //
+  //   SHADOW = [EX | (ICA10 & ICA9)]                     g21
+  //          & [(REXN | ICA8) & ICA15..ICA11 all ones]   g18  address in range
+  //          & CSMREQ
+  //          & [(PCR1 & PCR0) | ~PONI | PEX]             g19  RING MUST BE 3
+  //          & [~PEX | SEGZ]                             g20
+  //
+  // This logs ONLY the failure case - the address is in the shadow range but
+  // SHADOW did not assert - and prints each term separately, so the answer is
+  // "term X is the one that is low" rather than a guess. Gated and capped
+  // because an ungated probe in CGA.v captured 327 MB in 2.5 minutes.
+  //
+  // NOTE ON $time: it prints 0 in this build (no timescale), so a cycle
+  // counter is logged instead. Do not reintroduce a $time-based join.
+  localparam SHDBG_MAX = 20000;
+  reg [31:0] r_shdbg_n = 0;
+  reg [31:0] r_shdbg_cyc = 0;
+  reg [11:0] r_shdbg_prev = 12'hFFF;
+  // PONI QUALIFIER - added 17-AUG-2026 after the first run wasted its whole
+  // 20000-row budget. Without it the cap filled inside the first 5M ticks with
+  // rows that ALL carried PONI=0, i.e. paging off. With paging off there is no
+  // translation and no page fault, an address like 0177xxx is just high
+  // physical memory, and g19 passes unconditionally through its ~PONI input -
+  // so every one of those rows was a benign early-boot access. The demand-
+  // paging phase this probe is aimed at (disc operation 71 onward) only exists
+  // once PON has run, so require PONI here or the interesting phase is never
+  // reached before the cap.
+  wire       w_shdbg_inrange = (&s_ica_15_8[7:3]) & s_poni;
+  wire [11:0] w_shdbg_now = {s_ex_out, s_rexn, s_ica_15_8[2], s_ica_15_8[1],
+                             s_ica_15_8[0], c_csmreq, s_pcr_2_0[1],
+                             s_pcr_2_0[0], s_poni, s_pex, s_segz_n,
+                             s_shadow_n};
+  always @(posedge sysclk) begin
+    r_shdbg_cyc <= r_shdbg_cyc + 1;
+    if (w_shdbg_inrange && s_shadow_n && r_shdbg_n < SHDBG_MAX &&
+        w_shdbg_now != r_shdbg_prev) begin
+      r_shdbg_n    <= r_shdbg_n + 1;
+      r_shdbg_prev <= w_shdbg_now;
+      $display("[shb] c=%0d SHADOW_BLOCKED ica15_8=%08b | g21=%b(EX=%b ICA10=%b ICA9=%b) g18=%b(REXN=%b ICA8=%b) CSMREQ=%b g19=%b(PCR1=%b PCR0=%b PONI=%b PEX=%b) g20=%b(SEGZn=%b)",
+                 r_shdbg_cyc, s_ica_15_8,
+                 s_gates21_out, s_ex_out, s_ica_15_8[2], s_ica_15_8[1],
+                 s_gates18_out, s_rexn, s_ica_15_8[0],
+                 c_csmreq,
+                 s_gates19_out, s_pcr_2_0[1], s_pcr_2_0[0], s_poni, s_pex,
+                 s_gates20_out, s_segz_n);
+    end
+  end
+`endif
+
   NAND_GATE_3_INPUTS #(
       .BubblesMask(3'b000)
   ) GATES_23 (

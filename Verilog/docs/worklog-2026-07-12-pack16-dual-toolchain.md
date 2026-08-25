@@ -1,6 +1,6 @@
 # Worklog 11/12-JUL-2026: packed 16-bit SDRAM memory + dual-toolchain Tang builds
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/worklog-2026-07-12-pack16-dual-toolchain.md`
+**Full path:** `Verilog/docs/worklog-2026-07-12-pack16-dual-toolchain.md`
 **Branch:** `clock-enable-fix`. Commits (oldest first): `d26fd66`, `879410a`,
 `b79b96d`, `2c44efb`, `5d58328`. All pushed.
 
@@ -136,7 +136,7 @@ becomes the default and the slow-bringup era ends.**
 ## Next steps (hardware, needs the board attached)
 
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k
+cd Verilog/fpga/tang-nano-20k
 make load                                  # slow variant first (safe)
 make VARIANT=full && make load VARIANT=full   # then the big one
 ```

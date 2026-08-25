@@ -126,6 +126,7 @@ module sd_writer_tb #(
       .sd_dat3_o (wr_dat3_o),
       .sd_dat3_oe(wr_dat3_oe),
       .use_4bit  (tb_use4),
+      .width_hold(1'b0),  // renegotiate every operation (unchanged behaviour)
       .start     (start),
       .rd_mode   (rd_mode),
       .sector    (sector),

@@ -1,0 +1,135 @@
+/****************************************************************************
+** ND38GLP - exhaustive functional testbench                              **
+**                                                                         **
+** WHAT THIS MODULE ACTUALLY IS                                            **
+**   A 3-to-8 decoder wrapping Decoder_8, same select wiring as ND38GHP:   **
+**   s_input_2_0[0]=A, [1]=B, [2]=C, so sel = {C,B,A} with A the LOW bit.  **
+**   G is ACTIVE HIGH (fed straight to Decoder_8's enable, no inversion).  **
+**   Outputs ARE inverted (Zi = ~decoder_out_i), so this part is           **
+**   ACTIVE LOW one-hot: when enabled, exactly the selected output is 0    **
+**   and the rest are 1.                                                   **
+**                                                                         **
+**   DISABLED STATE (G=0): Decoder_8's else branch drives all internal     **
+**   decoder outputs to 0, and ND38GLP inverts every one of them, so       **
+**   ALL EIGHT Zi = 1. ND38GLP disabled = ALL ONE - the OPPOSITE of        **
+**   ND38GHP's all-zero disabled state, even though both wrap the same     **
+**   Decoder_8 primitive. This is because ND38GHP does not invert its      **
+**   outputs and ND38GLP does.                                             **
+**                                                                         **
+** COVERAGE: EXHAUSTIVE. Inputs are A, B, C, G = 4 bits, so 2^4 = 16       **
+**   combinations. For every one, all 8 outputs are checked against the    **
+**   reference model, plus a one-hot(active-low)-or-all-one invariant.     **
+**                                                                         **
+** VCD: 16 combinations, dumped in full.                                   **
+**                                                                         **
+** Run: cd Verilog/Shared/ndlib/sim && iverilog -g2012 -o ND38GLP_tb.vvp \
+**          ND38GLP_tb.v -y .. -y ../../logisim && vvp ND38GLP_tb.vvp      **
+**                                                                         **
+** Last reviewed: 20-AUG-2026                                              **
+** Ronny Hansen                                                            **
+*****************************************************************************/
+`timescale 1ns / 1ps
+`default_nettype none
+
+module ND38GLP_tb;
+
+  reg A, B, C, G;
+  wire Z0, Z1, Z2, Z3, Z4, Z5, Z6, Z7;
+  wire [7:0] Z = {Z7, Z6, Z5, Z4, Z3, Z2, Z1, Z0};
+
+  integer errors = 0;
+  integer checks = 0;
+  integer combo;
+  reg [7:0] expected;
+
+  ND38GLP DUT (
+      .A (A), .B(B), .C(C), .G(G),
+      .Z0(Z0), .Z1(Z1), .Z2(Z2), .Z3(Z3),
+      .Z4(Z4), .Z5(Z5), .Z6(Z6), .Z7(Z7)
+  );
+
+  // reference model: sel = {C,B,A}, A is the low bit; G active high enable;
+  // active low one-hot outputs; disabled = all one
+  function [7:0] ref_z;
+    input a, b, c, g;
+    reg [2:0] sel;
+    begin
+      if (!g) begin
+        ref_z = 8'b11111111;
+      end else begin
+        sel = {c, b, a};
+        ref_z = ~(8'b1 << sel);
+      end
+    end
+  endfunction
+
+  initial begin
+    $dumpfile("ND38GLP_tb.vcd");
+    $dumpvars(0, ND38GLP_tb);
+
+    G=1; A=0; B=0; C=0; #10;  // sel=0 enabled
+    A=1; B=0; C=0; #10;       // sel=1
+    A=0; B=1; C=0; #10;       // sel=2
+    A=1; B=1; C=1; #10;       // sel=7
+    G=0; #10;                 // disabled
+
+    $display("=====================================================");
+    $display(" ND38GLP exhaustive functional testbench");
+    $display(" (all 16 input combinations; sel = {C,B,A}, A is the low bit)");
+    $display("=====================================================");
+
+    for (combo = 0; combo < 16; combo = combo + 1) begin
+      {A, B, C, G} = combo[3:0];
+      #1;
+      expected = ref_z(A, B, C, G);
+      checks   = checks + 8;
+      if (Z !== expected) begin
+        errors = errors + 1;
+        $display("FAIL: A=%b B=%b C=%b G=%b -> Z=%08b expected %08b", A, B, C, G, Z, expected);
+      end
+      // active-low one-hot (enabled: exactly one 0) or all-one (disabled) invariant
+      checks = checks + 1;
+      if (G == 1'b1) begin
+        if ($countones(~Z) !== 1) begin
+          errors = errors + 1;
+          $display("FAIL ONEHOT_LOW: enabled Z=%08b has %0d zero bits, expected exactly 1", Z, $countones(~Z));
+        end
+      end else begin
+        if (Z !== 8'b11111111) begin
+          errors = errors + 1;
+          $display("FAIL DISABLED_NOT_ONE: G=0 Z=%08b expected all one", Z);
+        end
+      end
+    end
+
+    // ---- named property checks -------------------------------------------
+
+    // 1. Disabled state is ALL ONE (active-low part, G active high) -
+    //    the OPPOSITE of ND38GHP's all-zero disabled state
+    G = 1'b0; A = 1'b1; B = 1'b1; C = 1'b1; #1;
+    checks = checks + 1;
+    if (Z !== 8'b11111111) begin
+      errors = errors + 1;
+      $display("FAIL DISABLED_ALL_ONE: Z=%08b expected 11111111 when G=0", Z);
+    end
+
+    // 2. Select bit order: A is the low bit, C is the high bit
+    G = 1'b1; A = 1'b0; B = 1'b1; C = 1'b0; #1;  // {C,B,A}=010=2 -> Z2 low, rest high
+    checks = checks + 1;
+    if (Z !== 8'b11111011) begin
+      errors = errors + 1;
+      $display("FAIL SEL_ORDER: A=0,B=1,C=0 -> Z=%08b expected Z2 low only (11111011)", Z);
+    end
+
+    $display("-----------------------------------------------------");
+    $display(" checks run : %0d", checks);
+    $display(" failures   : %0d", errors);
+    if (errors == 0) $display("TB_RESULT: PASS");
+    else             $display("TB_RESULT: FAIL");
+    $display("=====================================================");
+    $finish;
+  end
+
+endmodule
+
+`default_nettype wire

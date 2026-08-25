@@ -140,7 +140,7 @@ module ND3202D (
 
     // Debug outputs for FPGA
     output [4:0] DEBUG_CC_TERM,  // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
-    output       DEBUG_MCLK,     // Memory clock
+    output       DEBUG_MCLK,     // Microcycle clock
     output       DEBUG_LCS_n,    // LCS_n: 0=loading microcode, 1=microcode loaded
 
     // Additional debug outputs for microcode load/boot analysis
@@ -170,7 +170,11 @@ module ND3202D (
     output [10:0] O_sdram_addr,
     output [ 1:0] O_sdram_ba,
     output [ 3:0] O_sdram_dqm,
-    output [15:0] DBG_MEMW  // write-path debug bus from MEM_43
+    output [15:0] DBG_MEMW,  // write-path debug bus from MEM_43
+    output [15:0] DBG_PTW,   // page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
+    output [13:0] DBG_PPN,   // physical page number PPN[23:10] (24-AUG, zero-fetch campaign)
+    output [15:0] DBG_PGW,   // SDRAM-bridge page-write watch (24-AUG, zero-page campaign)
+    output [20:0]        PF_CAPTURED // ND120_PF_CAPTURE freeze flag (23-AUG)
 `ifdef ND_STORAGE_PORT
     // nd_storage device port - straight through to MEM_43/MEM_RAM_49_SDRAM.
     // stor_clk is its own domain (the backend toggle-CDCs it into clk2x).
@@ -238,6 +242,11 @@ TODO: Sort bits on output LED to match led numbering
   wire [ 4:0] s_dp_5_1_n;
   
   wire [13:0] s_ppn_23_10;
+  // 24-AUG: the physical page number the MMU presents, out to the board for
+  // the zero-fetch probe. PPN20 = [10] and PPN21 = [11] are the two bits the
+  // bank decode uses (PAL_44445B.v:65-67), and on the Tang BANK1 is NOT
+  // POPULATED (MEM_RAM_49_SDRAM.v:18 - "never written, reads as 0").
+  assign DBG_PPN = s_ppn_23_10;
 
   wire [ 4:0] s_test_4_0;
   wire [ 7:0] s_inr_7_0;  //! INR signals from CONNECTOR B.
@@ -331,7 +340,7 @@ TODO: Sort bits on output LED to match led numbering
   wire        s_dap_n;
   wire        s_dbapr;
   wire        s_dt_n;
-  wire        s_dvacc_n;
+  wire        s_dvacc_n;  // DGA access qualifier: IO_37 drives it, CPU_15/CPU_MMU_24 consume it. Not the CGA's VACC (CGA_DCD.v).
   wire        s_eauto_n;
   wire        s_ebus_n;
   wire        s_eccr;
@@ -521,7 +530,33 @@ TODO: Sort bits on output LED to match led numbering
 
   // Bif BD_23_0 comes from BIF_DPATH_9
   // BD & LBD in and out of BIF
-  assign s_ram_bd_23_19_n[4:0] = s_bif_bd_23_0_n_out[23:19];  // for address decoding
+  // FIX 24-AUG-2026 - the memory bank was decoded from the WRONG SIDE of the
+  // bus transceiver, so every DMA write landed in BANK0.
+  //
+  // This took the bank-decode bits from s_bif_bd_23_0_n_OUT, which is what
+  // THIS BOARD DRIVES onto the bus. On a DMA write the board is the SLAVE and
+  // drives nothing, and BIF_DPATH_BDLBD_10.v:76 idles that output at ~24'b0 -
+  // all ones, i.e. active-low idle. BD23..BD19 therefore read as 0 on every
+  // incoming transfer, PAL_44446B.v:66 gives BANK0_n = BD21|BD20 = 0, and the
+  // write went to BANK0 whatever address the master presented. The row and
+  // column were unaffected because they come from LBD_19_0, which IS captured
+  // from the bus INPUT through the TTL_74648 transceivers - so the data landed
+  // at the right ROW in the wrong BANK.
+  //
+  // Measured on Tang silicon 24-AUG-2026: SINTRAN's segment load wrote
+  // physical page 1016 = {BANK0, row 1016} while the MMU resolved the same
+  // logical page to 2040 = {BANK2, row 1016}. The CPU then fetched zeros,
+  // executed them as STZ, ran off into data and died in ERRFATAL. The proof
+  // was the content: the oracle's words at 064540..064547
+  // (021114 146145 146131 170017 135111 135111 124064 175035) were found in
+  // the writes to page 1016.
+  //
+  // BD is a shared, active-low bus node: any driver may pull a line low and it
+  // idles high. The faithful model is therefore the wired-AND of both sides,
+  // which also stays correct when THIS board is the bus master and drives the
+  // address itself.
+  assign s_ram_bd_23_19_n[4:0] = s_bif_bd_23_0_n_in[23:19]
+                               & s_bif_bd_23_0_n_out[23:19];  // for address decoding
 
   // Buffer
   assign s_run_n = s_stp;
@@ -805,7 +840,9 @@ TODO: Sort bits on output LED to match led numbering
       .HIT         (s_hit),                     // Cache hit
       .LEV0        (s_lev0),                    // Level 0 active
       .CSA_12_0    (CSA_12_0),                  // Microcode Address (for debugging)
-      .XMIC_DBG_15_0(XMIC_DBG_15_0)             // DEBUG: microsequencer address-advance probe
+      .XMIC_DBG_15_0(XMIC_DBG_15_0),            // DEBUG: microsequencer address-advance probe
+      .DBG_PTW     (DBG_PTW),                   // DEBUG: page-table write stream (23-AUG)
+      .PF_CAPTURED (PF_CAPTURED)                // DEBUG: freeze flag (23-AUG)
   );
 
 
@@ -820,7 +857,7 @@ TODO: Sort bits on output LED to match led numbering
 
   assign s_ibinput_n = (s_binput_n_out & s_binput_n_in);
   assign s_isemrq_n = (s_semrq_n_out & s_semrq_n_in);
-  assign s_ibint10_n =(s_binput_n_out & s_binput_n_in);
+  assign s_ibint10_n = s_bint10_n;
 
   // A2 => Y2
   assign s_ibapr_n = (s_bapr_n_out & s_bapr_n_in);
@@ -995,6 +1032,7 @@ TODO: Sort bits on output LED to match led numbering
       .O_sdram_ba(O_sdram_ba),
       .O_sdram_dqm(O_sdram_dqm),
       .DBG_MEMW(s_dbg_mem43),
+      .DBG_PGW(DBG_PGW),
 `ifdef ND_STORAGE_PORT
       .stor_clk  (stor_clk),
       .stor_rst_n(stor_rst_n),

@@ -79,9 +79,12 @@ module PAL_44310D (
         (REF100) | (MWRITE50_n & BDAP50 & BGNT50_n & BGNT75)  // LATE BDRY FOR 10MHZ DISK
         )
       BDRY = 1'b1;
-    else if (((MR_n & BDAP50) == 0) |  // HOLD TERM FOR MEMORY
-        ((MR_n & BIOXE) == 0)  // HOLD TERM FOR IOX CYCLE
-        )
+    // PALASM 44310D: hold = /MR*BDRY*BDAP50 + /MR*BDRY*BIOXE - BDRY holds
+    // while MR_n & (BDAP50 | BIOXE); clear only when BOTH hold terms fail
+    // (30-JUL audit: was OR of the negated terms, so the memory hold never
+    // held in DMA cycles where BIOXE is off - lost/shortened BDRY, the exact
+    // failure this PAL's own 1986 errata describes).
+    else if (~MR_n | (~BDAP50 & ~BIOXE))
       BDRY = 1'b0;
   end
   /* verilator lint_on LATCH */
@@ -96,8 +99,8 @@ module PAL_44310D (
           (BIOXL & ECCR) |
           (REF100) | (MWRITE50_n & BDAP50 & BGNT50_n & BGNT75))
         BDRY <= 1'b1;
-      else if (((MR_n & BDAP50) == 0) |
-          ((MR_n & BIOXE) == 0))
+      // Clear rule per PALASM (see latch branch comment, 30-JUL audit fix)
+      else if (~MR_n | (~BDAP50 & ~BIOXE))
         BDRY <= 1'b0;
     end
   end

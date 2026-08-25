@@ -1,6 +1,6 @@
 # Tang Nano 20K: dual-toolchain build flows (OSS primary, Gowin EDA backup)
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/tang20k-build-flows.md`
+**Full path:** `Verilog/docs/tang20k-build-flows.md`
 **Date:** 12-JUL-2026. Decision by the project owner: support BOTH toolchains
 for the full ND-120 CPU bitstream, all clock variants, with the OSS suite as
 the primary flow and Gowin EDA as the backup.

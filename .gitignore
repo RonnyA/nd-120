@@ -28,6 +28,13 @@ Verilog/sim/trace_latch.csv
 Verilog/sim/trace_ff.csv
 Verilog/sim/trace_diff.txt
 
+# Probe CSV captures from the sim harness (24-AUG-2026). These are REGENERATED
+# by a sim run - they are test output, not source - and they get big: the two
+# GitHub flagged over its 50 MB advisory were lbyt_st.csv at 99 MB and
+# word2e_w2e.csv at 61 MB. Durable captures belong in $ND120_ORACLE_DIR.
+Verilog/sim/lbyt_*.csv
+Verilog/sim/word2*_*.csv
+
 # Waveform dumps
 Verilog/sim/waveform-sync.vcd
 
@@ -134,3 +141,5 @@ Verilog/sim/tpe_*.log
 Verilog/sim/fc2_console.txt
 Verilog/sim/*.fst
 Verilog/sim/*.fst.hier
+# Scratch folder (never commit its contents)
+tmp/

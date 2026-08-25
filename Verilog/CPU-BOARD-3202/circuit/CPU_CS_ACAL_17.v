@@ -24,21 +24,37 @@ module CPU_CS_ACAL_17 (
    ** The wires and registers are defined here                                   **
    *******************************************************************************/
 
+  // MACLK is the MICRO-ADDRESS LATCH STROBE - the latch enable for these
+  // chips, and their ONLY clock. It is not a "memory access clock"; these
+  // latches are its only consumer on the whole board. Confirmed against the
+  // drawing (08-AUG-2026): CHIP_31F pin LE = MACLK, CHIP_30H pin C = MACLK,
+  // and both output enables (/OE, /OC) = PD1. See PAL_44307C.v for the
+  // equation and the naming note.
+  //
   // Original chips (74373, AM29841) are TRANSPARENT LATCHES with enable.
   // When enable (MACLK) = 1: output follows input (transparent, ZERO latency).
   // When enable = 0: output holds last value (latch).
-  // During execution, MACLK = 1 always (TERM_n=0), so LUA = CSA with no delay.
+  // The capture is therefore MACLK's FALLING edge.
+  //
+  // CORRECTION (08-AUG-2026): the line that used to sit here claimed "during
+  // execution, MACLK = 1 always (TERM_n=0), so LUA = CSA with no delay". That
+  // is WRONG and was never measured. MACLK pulses once per microcycle - the
+  // PAL_44307C equation asserts it only for MAP, TRAP and RWCS cases, and the
+  // board's MACLK = ~(TERM_n & MACLK_n) adds only TERM. Measured in the
+  // waveform, MACLK goes low mid-cycle on ordinary microwords. LUA does still
+  // need to track CSA with ZERO latency while MACLK is high (see below) - that
+  // part of the reasoning stands - but not because MACLK is permanently high.
   // LUA is the WCS control-store READ ADDRESS and feeds the WCS BRAM
   // combinationally, so LUA MUST track CSA with zero latency - on a microcode
   // JUMP the target's microword must be read the same cycle the address changes.
   //
-  // BOTH build modes now implement the TRANSPARENT latch:
-  //  - VERILATOR_SIM: always @(*) latch (matches real hardware).
-  //  - FPGA (else):   synthesizable transparent latch = mux + hold-FF
-  //                   (Shared/ndlib/LATCH.v pattern), ZERO latency, no inferred latch.
+  // ONE implementation for simulation and silicon (18-AUG-2026): hold-FF plus an
+  // output mux. Edge-triggered storage only, no inferred latch, and zero latency
+  // while the enable is high. There is deliberately no build-mode switch here -
+  // what Verilator measures is what the FPGA runs.
   // HISTORY: the FPGA branch was previously a plain posedge FF+CE that lagged
   // LUA by 1 cycle. That lag corrupted CSBITS on JUMPs and was the Tang Nano 20K
-  // boot hang (wedge at microcode 06000 = STZ->CONT). Root-caused + fixed 19-JUL;
+  // boot hang (hang at microcode 06000 = STZ->CONT). Root-caused + fixed 19-JUL;
   // the old "1-cycle lag acceptable / ILA-confirmed" claim was WRONG.
   // Regression tests: sim/CPU_CS_ACAL_17_tb.v (asserts zero-latency transparency).
 
@@ -107,50 +123,35 @@ module CPU_CS_ACAL_17 (
   assign UUA_11_0    = s_uua[11:0];
 
   /*******************************************************************************
-   ** Latch logic — transparent latch (sim) vs posedge FF+CE (FPGA)             **
+   ** Latch logic - ONE implementation, identical for Verilator and silicon      **
    *******************************************************************************/
 
-`ifdef VERILATOR_SIM
-  // True transparent latch behavior matching original chips.
-  // always @(*) + conditional assign = transparent when enable=1, holds when 0.
-  // Required so LUA = CSA with zero latency during execution (MACLK=1 always).
-  // Without this, LUA lags CSA by 1 sysclk causing stale CSBITS on 1-cycle steps.
-
-  // CHIP_30H: 74373 transparent latch, enable=MACLK
-  always @(*) begin
-    if (s_maclk) s_q_chip30h_7_0 = s_d_chip30h_7_0;
-  end
-
-  // CHIP_31F: AM29841 transparent latch, enable=MACLK
-  always @(*) begin
-    if (s_maclk) s_lua_9_0 = s_csa_12_0[9:0];
-  end
-
-  // CHIP_32G: AM29841 transparent latch, enable=MACLK && lua12
-  always @(*) begin
-    if (s_maclk && s_lua12) s_uua_32g_9_0 = s_csa_12_0[9:0];
-  end
-
-  // CHIP_31G: AM29841 transparent latch, enable=CLK && !lua12
-  always @(*) begin
-    if (s_clk && ~s_lua12) s_uua_31g_9_0 = s_csca_9_0[9:0];
-  end
-
-`else
-  // FPGA mode: SYNTHESIZABLE TRANSPARENT LATCH = mux + hold-FF (the sanctioned
-  // Shared/ndlib/LATCH.v pattern), NOT a plain posedge FF.
-  //
-  // ROOT CAUSE FIX (19-JUL, Tang boot hang): the previous `posedge sysclk`
-  // FF+CE version lagged LUA (the WCS control-store READ ADDRESS) by 1 cycle.
-  // LUA is combinational into the WCS BRAM, so on a microcode JUMP (e.g. STZ at
-  // 06000 -> CONT at 0145) LUA held the stale address for a cycle and the WCS
-  // returned the WRONG microword; the sequencer then computed a garbage jump
-  // target (measured on silicon: CSBIT_11_0=0xC00 = the address, s_jmpaddr=
-  // 16000 instead of 0145) and wedged at 06000 forever. The transparent latch
-  // (LUA follows CSA with ZERO latency while MACLK=1, exactly as the original
-  // 74373/AM29841 chips and the VERILATOR_SIM path above) removes the lag.
-  // The hold-FF captures on posedge sysclk when enable is high; the output mux
-  // is transparent when enable is high, held otherwise -> no inferred latch.
+// 18-AUG-2026: the transparent-latch branch that used to live here is DELETED.
+//
+// It was selected by a bare VERILATOR_SIM test, so EVERY Verilator build took it
+// - including builds compiled with -DFPGA_FF_MODE. FPGA_FF_MODE never reached
+// this module at all, which meant "FF-mode" simulations were still executing
+// four real transparent latches while the FPGA executed flip-flops. Sim and
+// silicon were running DIFFERENT HARDWARE, and this is the worst module for that
+// to happen in: ACAL is where the TRAP VECTOR is captured (PAL_44307C.v:119,
+// MACLK "d+e CAPTURE TRAP VECTOR"), i.e. exactly the path a page fault must take
+// to reach the microcode.
+//
+// There is now ONE implementation below and no build-mode switch, so whatever is
+// measured in Verilator is what runs on the FPGA. Do not reintroduce a
+// simulation-only variant of this logic.
+//
+// Note on what "flip-flops" means here: the pair below is a hold flip-flop plus
+// an output mux. It is entirely edge-triggered storage - no latch is inferred
+// (verified: verilator lint with -Wno-LATCH REMOVED reports zero LATCH warnings)
+// - while still presenting the zero-latency transparency the original 74373 and
+// AM29841 chips had. That transparency is load-bearing: a plain posedge FF
+// without it was tried on 19-JUL-2026 and hung the CPU, because LUA lagged the
+// control-store read address by one cycle, the WCS returned the wrong microword,
+// and the sequencer jumped to 16000 instead of 0145 and stuck at 06000 forever.
+  // Hold-FF + output mux. Captures on posedge sysclk when the enable is high;
+  // the mux passes the input through while the enable is high and holds the
+  // captured value otherwise. Edge-triggered storage only - no inferred latch.
 
   reg [7:0] r_chip30h_hold;
   reg [9:0] r_lua_9_0_hold;
@@ -172,7 +173,5 @@ module CPU_CS_ACAL_17 (
   // CHIP_31G: AM29841 transparent latch, enable=CLK && !lua12
   always @(posedge sysclk) if (s_clk && ~s_lua12) r_uua_31g_hold <= s_csca_9_0[9:0];
   always @(*) s_uua_31g_9_0 = (s_clk && ~s_lua12) ? s_csca_9_0[9:0] : r_uua_31g_hold;
-
-`endif
 
 endmodule

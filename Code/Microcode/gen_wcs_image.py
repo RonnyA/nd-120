@@ -46,6 +46,25 @@ def main():
             w |= p16 << (16 * rf)            # RF=0 -> LSB group
         words.append(w)
 
+    # RUNTIME MICROCODE PATCH (found 24-AUG-2026, applied since 07-DEC-2024
+    # to every Verilator harness copy - commit 895f360 "Need pacthed hex
+    # files for the run-simulator"): microword 0o2002 (MACL+1) must have
+    # RF0 bits 14:13 CLEARED - the PROM's "COND,F=0 F,JMP F,HOLD" fields
+    # there misbehave in this RTL. All simulation and instruction-verify
+    # validation runs with the patched word; a preload built from the raw
+    # PROM dump put the UNPATCHED word on the FPGA, where it broke FILSYS
+    # LIST-FILE-NAMES (the board ran microcode no simulation had ever
+    # validated). The raw PROM dumps in this directory stay untouched;
+    # the patch is applied here so the preload equals what the simulators
+    # load at runtime.
+    PATCHES = {
+        0o2002: (0x0000000000006000, 0x0000000000000000),  # (clear-mask bits, set bits)
+    }
+    for lua, (clear, setb) in PATCHES.items():
+        before = words[lua]
+        words[lua] = (words[lua] & ~clear) | setb
+        print(f"  patch LUA {lua:o}: {before:016x} -> {words[lua]:016x}")
+
     os.makedirs(OUT, exist_ok=True)
 
     # Unified 64-bit image

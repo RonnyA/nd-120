@@ -46,6 +46,9 @@ module CGA_WRF_RBLOCK (
   wire [15:0] s_eb_15_0;
   wire [15:0] s_ncla_15_0;
   wire [15:0] s_pr_15_0_out;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire [15:0] s_rb_15_0;
 
   wire [15:0] s_reg0_z_15_0;
@@ -62,6 +65,9 @@ module CGA_WRF_RBLOCK (
   wire [15:0] s_reg11_r3_15_0;
   wire [15:0] s_reg12_r4_15_0;
   wire [15:0] s_reg13_r5_15_0;
+`ifdef ND120_ILA_MARK_DEBUG
+  (* mark_debug = "true" *)
+`endif
   wire [15:0] s_reg14_r6_15_0;
   wire [15:0] s_reg15_r7_15_0;
 
@@ -82,6 +88,14 @@ module CGA_WRF_RBLOCK (
   wire [15:0] s_sel14_in_15_0;
   wire [15:0] s_sel15_in_15_0;
 
+`ifdef ND120_ILA_MARK_DEBUG
+  // Nexys build.tcl -tclargs ila (LFN campaign 24-AUG): scratch register
+  // R6 (console soft status - the "device activated" bit the IOX 302
+  // microcode ORs into the returned status), the write-select one-hot,
+  // and the write-data bus. No functional effect; define set only by
+  // that build flag.
+  (* mark_debug = "true" *)
+`endif
   wire [15:0] s_wr_15_0;
   wire [15:0] s_xr_15_0_out;
 
@@ -1268,5 +1282,22 @@ module CGA_WRF_RBLOCK (
       .PB(s_b_15_0_out[15]),
       .SI_15_0(s_sel15_in_15_0[15:0])
   );
+
+`ifdef ND120_R6_PROBE
+  // Sim-only diagnostic (24-AUG LFN campaign): log every write to the
+  // microcode scratch registers R6/R1/R4 (regs 14/9/12 - the console
+  // soft-status and the masks the IOX 302/303 service uses) with the
+  // written data and the register's value. No logic effect.
+  reg [15:0] r_r6p_wr_prev;
+  always @(posedge sysclk) begin
+    if (s_wr_15_0[14] && !r_r6p_wr_prev[14])
+      $display("[r6] t=%0t R6 write data=%06o (was %06o)", $time, s_rb_15_0, s_reg14_r6_15_0);
+    if (s_wr_15_0[9] && !r_r6p_wr_prev[9])
+      $display("[r6] t=%0t R1 write data=%06o", $time, s_rb_15_0);
+    if (s_wr_15_0[12] && !r_r6p_wr_prev[12])
+      $display("[r6] t=%0t R4 write data=%06o", $time, s_rb_15_0);
+    r_r6p_wr_prev <= s_wr_15_0;
+  end
+`endif
 
 endmodule

@@ -44,6 +44,7 @@ module ND_BUS_SLAVE (
     output reg  [15:0] iox_wdata,      // write data, valid with iox_wr
     output reg         iox_rd,         // 1-cycle read strobe
     input  wire [15:0] iox_rdata,      // OR-bus from cores, valid during iox_rd
+    input  wire        iox_hit,        // 1 = some core owns iox_addr (else no answer)
     input  wire [3:0]  int_pending,    // {lvl13,lvl12,lvl11,lvl10} OR of all cores
     output reg         ident_strobe,   // 1-cycle IDENT poll
     output reg  [3:0]  ident_level,    // binary 10..13, valid with ident_strobe
@@ -118,14 +119,17 @@ module ND_BUS_SLAVE (
         BINPUT_n   <= 1'b1;
       end
 
-      // IOX window opens: data (write) is on the bus now
+      // IOX window opens: data (write) is on the bus now.
+      // Only answer if a device core owns this address (iox_hit). If none
+      // does, drive nothing so the CPU bus-times-out -> level-14 IOX error,
+      // instead of the slave answering every address.
       if (s_bioxe_fall) begin
-        if (s_state == ST_WRITE) begin
+        if (s_state == ST_WRITE && iox_hit) begin
           iox_wdata <= ~BD_23_0_n_OUT[15:0];
           iox_wr    <= 1'b1;
           BDRY_n    <= 1'b0;  // data accepted
         end
-        if (s_state == ST_READ) begin
+        if (s_state == ST_READ && iox_hit) begin
           BINPUT_n <= 1'b0;   // we will put data on the bus, wait for BINACK
         end
       end
@@ -139,7 +143,7 @@ module ND_BUS_SLAVE (
           BD_23_0_n_IN <= ~{8'h00, s_ident_code_q};
           BDAP_n       <= 1'b0;
           BDRY_n       <= 1'b0;
-        end else if (s_state == ST_READ) begin
+        end else if (s_state == ST_READ && iox_hit) begin
           iox_rd <= 1'b1;
         end
       end

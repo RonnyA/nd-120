@@ -43,6 +43,11 @@
 **   fail_sector - one-shot: a write targeting exactly this sector        **
 **     (CMD24 or a CMD25 burst block) is rejected the same way, then the  **
 **     register self-clears to the all-ones sentinel (disabled).           **
+**   fail_next_reads - while nonzero, that many upcoming READ data blocks **
+**     are not sent at all: the command is answered, then the card goes    **
+**     silent, and the host's read watchdog must catch it. See the long    **
+**     note at the register for why a corrupted read CRC16 would NOT work  **
+**     (sd_writer.v does not check the read data CRC).                     **
 **   corrupt_line - one-shot, 4-bit mode only: 0..3 makes the card-side   **
 **     CRC16 of that DAT line mismatch for the next received write block  **
 **     (a simulated wire error on one line): the block is rejected with   **
@@ -103,8 +108,29 @@ module sd_card_model #(
   // error injection hooks (testbench-settable, default off = stock behavior)
   reg [31:0] fail_next_writes;  // reject this many upcoming write blocks ("101")
   reg [31:0] fail_sector;       // one-shot: reject a write to this sector
+  // READ-side injection, added 09-AUG-2026. There was write injection but
+  // no read injection, so "the card failed a read" - the single most
+  // common real storage fault - could not be tested at all.
+  //
+  // WHAT IT DOES: while nonzero, this many upcoming read data blocks are
+  // NOT SENT AT ALL. The card answers the command normally and then goes
+  // quiet, which is what a card that stops mid-transfer looks like on the
+  // wire; the host's read watchdog in sd_writer.v fires and raises its err
+  // output, and nd_storage_engine.v reports that as NDS_ERR_CARDIO.
+  //
+  // WHY NOT A BAD CRC16 (measured 09-AUG-2026, not assumed): sd_writer.v's
+  // R_DATA state SKIPS the read data CRC16 entirely - the comment at the
+  // bitcnt == s_rx_end branch says "CRC skipped, end bit", and no compare
+  // against the received CRC exists anywhere in that file. So a corrupted
+  // read CRC is invisible to this stack and could never have failed a test.
+  // Withholding the block is the injection the host can actually detect.
+  // (That the read CRC is unchecked at all is a real gap in sd_writer.v,
+  // separate from this model - a silently corrupted sector currently reads
+  // back as success.)
+  reg [31:0] fail_next_reads;
   initial fail_next_writes = 32'd0;
   initial fail_sector = 32'hFFFF_FFFF;
+  initial fail_next_reads = 32'd0;
 
   // reserved-region write detector (RAW images; see header)
   integer illegal_writes;
@@ -113,8 +139,10 @@ module sd_card_model #(
   // multi-block bookkeeping for testbench assertions
   integer cmd12_count;   // STOP_TRANSMISSION commands received
   reg [22:0] acmd23_count;  // last ACMD23 pre-erase block count
+  reg        rca_published; // CMD3 has run: RCA 0 is no longer accepted
   initial cmd12_count = 0;
   initial acmd23_count = 23'd0;
+  initial rca_published = 1'b0;
 
   initial begin : load_image
     integer fd;
@@ -640,9 +668,11 @@ module sd_card_model #(
       do_data18  = 1'b0;
       do_write25 = 1'b0;
       case (cmd)
-        6'd0: begin  // GO_IDLE: no response; bus width resets to 1-bit
-          app_cmd = 1'b0;
-          bus4    = 1'b0;
+        6'd0: begin  // GO_IDLE: no response; bus width resets to 1-bit and
+          // the card leaves the addressed states, so its RCA is not assigned
+          app_cmd       = 1'b0;
+          bus4          = 1'b0;
+          rca_published = 1'b0;
         end
         6'd6: begin  // ACMD6 -> R1: bus width (arg 2 = 4-bit); bare CMD6
           // (SWITCH_FUNC) is not modeled: no response, the host times out
@@ -662,14 +692,24 @@ module sd_card_model #(
           resp[135:88] = r48(6'd8, 32'h000001AA);
           resp_len = 48;
         end
-        6'd55: begin  // APP_CMD -> R1; only for RCA 0x0000 (pre-init) / 0x0001
-          if (arg[31:16] == 16'h0000 || arg[31:16] == 16'h0001) begin
+        6'd55: begin  // APP_CMD -> R1, and ONLY when addressed to this card.
+          // Before CMD3 the card has no address yet and RCA 0 is how the host
+          // reaches it (that is the ACMD41 init path). AFTER CMD3 has
+          // published 0x0001, RCA 0 is NOT this card's address - a real card
+          // ignores it, and the ACMD that follows is taken as an ordinary
+          // command. Modelling that is what catches a host which never picked
+          // up the published RCA: it looks fine until it meets real silicon.
+          if ((!rca_published && arg[31:16] == 16'h0000)
+              || arg[31:16] == 16'h0001) begin
             resp[135:88] = r48(6'd55, 32'h00000120);
             resp_len = 48;
             app_cmd  = 1'b1;
           end else begin
-            $display("sd_card_model: CMD55 with wrong RCA %04x ignored at %0t",
-                     arg[31:16], $time);
+            $display("sd_card_model: CMD55 with wrong RCA %04x ignored at %0t%s",
+                     arg[31:16], $time,
+                     (rca_published && arg[31:16] == 16'h0000)
+                       ? " (RCA 0 after CMD3 - host never took the card's published RCA)"
+                       : "");
             app_cmd = 1'b0;
           end
         end
@@ -698,6 +738,7 @@ module sd_card_model #(
         6'd3: begin  // SEND_RELATIVE_ADDR -> R6: RCA=0x0001, status 0x0500
           resp[135:88] = r48(6'd3, {16'h0001, 16'h0500});
           resp_len = 48;
+          rca_published = 1'b1;
         end
         6'd9: begin  // SEND_CSD -> R2: CSD v2, capacity = the loaded image
           // frame = {00, 111111, CSD[127:1], end 1} so resp[k] = CSD[k]
@@ -774,7 +815,15 @@ module sd_card_model #(
         cmd_out   <= 1'b1;
       end
 
-      if (do_data) send_block(data_base);
+      if (do_data) begin
+        if (fail_next_reads != 32'd0) begin
+          // injected read fault: answer the command, then send NOTHING.
+          // The host's read watchdog is what must catch this.
+          fail_next_reads = fail_next_reads - 32'd1;
+        end else begin
+          send_block(data_base);
+        end
+      end
       if (do_data18) stream_blocks(data_base);
       if (do_write) begin
         // wait for the host's data start bit (with a timeout), then receive

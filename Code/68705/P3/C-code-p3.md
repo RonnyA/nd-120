@@ -1,6 +1,6 @@
 # C code emualtion of the P3 chip
 
-I have successfully created a comprehensive C code emulation of the Motorola 68705 ND-5000 Panel Control firmware based on the Ghidra disassembly analysis with help from Claude.AI
+I have successfully created a comprehensive C code emulation of the Motorola 68705 ND-5000 Panel Control firmware based on the Ghidra disassembly analysis with AI assistance
 
 The code does not compile, so its a RAW output from the Ghidra/AI - and is meant for inspiration - not for compile.
 Maybe in the future I will make it compilable.
@@ -9,7 +9,6 @@ Maybe in the future I will make it compilable.
 * Reference 
   *  Ghidra - https://github.com/NationalSecurityAgency/ghidra
   *  GhidraMCP - https://github.com/LaurieWired/GhidraMCP
-  *  Claude -  https://claude.ai/
   
 
 ## Source

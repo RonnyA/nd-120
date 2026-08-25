@@ -21,7 +21,13 @@ module CPU_MMU_24 (
     input        CYD,            //! Cycle done
     input        DOUBLE,         //! Extended Adressing Mode (SEXI)
     input        DT_n,           //! Data transfer
-    input        DVACC_n,        //! Data valid acknowledge
+    // DVACC_n comes from the DECODER gate array (DECODE_DGA_COMM.v flip-flop
+    // A227 on CLK2) via IO_37, and is the access qualifier for the page-table
+    // control PAL below: PAL_44306A uses it (input I2) together with WRITE,
+    // DOUBLE, WCA_n and LSHADOW to decide ECD_n / LAPA_n, i.e. when the page
+    // table is actually addressed. NOT the CGA's VACC (CGA_DCD.v) - different
+    // net, same name.
+    input        DVACC_n,        //! DGA access qualifier, active low (see comment above)
     input        ECSR_n,         //! Enable cache status register
     input        EDO_n,          //! Enable data output
     input        EMCL_n,         //! Enable master clear
@@ -58,7 +64,14 @@ module CPU_MMU_24 (
     output LAPA_n,               //! Latch Page Address, controls latching of the page address
     output [6:0] PT_15_9_OUT,    //! Page Table data output, top 7 bits
     output WCA_n,                //! Write Cache Address, controls writing to the cache address register
-    output LED1                  //! Cache enabled ?
+    output LED1,                 //! UNKNOWN: believed to indicate cache enabled, never traced. See Verilog/docs/SIGNALS.md
+    //! DEBUG: page-table WRITE stream (23-AUG-2026, zero-read campaign).
+    //! On every PT-chip write strobe (EPT_n low & WMAP_n low) two words are
+    //! emitted on consecutive sysclks, 16'h0000 otherwise:
+    //!   word A = {2'b10, addr[10:0], data[15:13]}   (addr = LA_20_10 index)
+    //!   word B = {2'b11, data[12:0], 1'b0}
+    //! Same pattern as MEM_43's DBG_MEMW; consumed by TANG_PTWR_CAPTURE.
+    output [15:0] DBG_PTW
 );
 
 
@@ -256,7 +269,15 @@ module CPU_MMU_24 (
   (
     // Input signals
     .CPN_23_10_IN(s_hit_cpn_23_10_in[13:0]),
-    .PPN_23_10_IN(s_ppn_25_10_in[13:0]),
+    // The PPN(25:10) bus on sheet 24 is ONE node: the PT map RAM output, the
+    // PPNX output and the external PPN input all sit on it, and the vertical
+    // into the HIT block drops off that shared bus. This passed only
+    // s_ppn_25_10_in, which per CPU_15.v:391-393 is the LAPA latch alone and
+    // is ZERO whenever LAPA~ is high - i.e. on every MAPPED access. So the
+    // cache hit decision for paged memory was made by comparing the stored
+    // tag against a constant 0. s_wca_ppn_23_10_in (built at :234-237) is the
+    // same merge the WCA feed already uses, and is the bus the drawing shows.
+    .PPN_23_10_IN(s_wca_ppn_23_10_in[13:0]),
 
     .LSHADOW(s_lshadow),
     .FMISS  (s_fmiss),
@@ -451,5 +472,127 @@ module CPU_MMU_24 (
     // Outputs
     .WCINH_n(s_wcinh_n)         // Write control inhibit (active low)
   );
+
+  // ---- DBG_PTW: the page-table write stream (see the port comment) --------
+  // Edge-detected on the strobe conjunction so one write emits exactly one
+  // A/B word pair however long the strobe lasts.
+  //
+  // 23-AUG second revision: ALSO emit an ATTEMPT word (tag 01) on the IDB->PT
+  // transfer (EPTI_n low & WRITE) - the step a shadow-area page-table write
+  // reaches even when the RAM strobe never fires. First silicon run recorded
+  // ZERO write strobes across a whole boot while the same-RTL FF-mode
+  // sim boot recorded 3053 (Verilator); attempts-present-with-strobes-absent
+  // separates a broken EPT/WMAP conjunction from a dead probe, and
+  // attempts-absent moves the question up to the shadow-address decode.
+  wire       s_ptw_wr  = ~s_ept_n & ~s_wmap_n;
+  wire       s_ptw_att = ~s_epti_n & s_write;
+  reg        r_ptw_wr_d = 1'b0;
+  reg        r_ptw_att_d = 1'b0;
+  reg [1:0]  r_ptw_phase = 2'd0;
+  reg [10:0] r_ptw_addr = 11'd0;
+  reg [15:0] r_ptw_data = 16'd0;
+  always @(posedge sysclk) begin
+    r_ptw_wr_d  <= s_ptw_wr;
+    r_ptw_att_d <= s_ptw_att;
+    if (s_ptw_wr && !r_ptw_wr_d) begin
+      r_ptw_addr  <= s_la_20_10;
+      r_ptw_data  <= s_pt_pt_15_0_in;
+      r_ptw_phase <= 2'd1;
+    end else if (r_ptw_phase == 2'd1) begin
+      r_ptw_phase <= 2'd2;
+    end else if (s_ptw_att && !r_ptw_att_d) begin
+      // one attempt word; an in-progress write pair wins the bus
+      r_ptw_addr  <= s_la_20_10;
+      r_ptw_data  <= s_ptidb_idb_15_0_in;
+      r_ptw_phase <= 2'd3;
+    end else begin
+      r_ptw_phase <= 2'd0;
+    end
+  end
+  assign DBG_PTW = (r_ptw_phase == 2'd1) ? {2'b10, r_ptw_addr, r_ptw_data[15:13]}
+                 : (r_ptw_phase == 2'd2) ? {2'b11, r_ptw_data[12:0], 1'b0}
+                 : (r_ptw_phase == 2'd3) ? {2'b01, r_ptw_addr, r_ptw_data[15:13]}
+                 : 16'h0000;
+
+`ifdef PTDBG
+  // Issue-D probe (inert unless -DPTDBG): log all program-visible page-table
+  // traffic so the PAGING test-3 PGU/WIP failure can be pinned - does the
+  // trap handler WRITE the PT entry with the PGU/WIP status bits set, and
+  // does the test's read-back RETURN them?
+  //   [pt] WR  = a PT-chip write strobe (EPT_n low + WMAP_n low): addr + data
+  //   [pt] RDI = PT entry driven onto the IDB (EPTI_n low, read direction)
+  //   [pt] WRI = IDB driven onto the PT bus (EPTI_n low, write direction)
+  // Each is edge/change-detected so one strobe logs once.
+  reg        r_ptdbg_wr_d, r_ptdbg_rdi_d, r_ptdbg_wri_d;
+  reg [10:0] r_ptdbg_addr_d;
+  reg [15:0] r_ptdbg_data_d;
+  always @(posedge sysclk) begin
+    r_ptdbg_wr_d   <= (!s_ept_n && !s_wmap_n);
+    r_ptdbg_rdi_d  <= (!s_epti_n && !s_write);
+    r_ptdbg_wri_d  <= (!s_epti_n &&  s_write);
+    r_ptdbg_addr_d <= s_la_20_10;
+    r_ptdbg_data_d <= s_pt_pt_15_0_in;
+    if ((!s_ept_n && !s_wmap_n) &&
+        (!r_ptdbg_wr_d || r_ptdbg_addr_d != s_la_20_10 || r_ptdbg_data_d != s_pt_pt_15_0_in))
+      $display("[pt] t=%0t WR  addr=%04o data=%06o (pt15_9=%03o)",
+               $time, s_la_20_10, s_pt_pt_15_0_in, s_pt_pt_15_0_in[15:9]);
+    if ((!s_epti_n && !s_write) && !r_ptdbg_rdi_d)
+      $display("[pt] RDI addr=%04o data=%06o (pt15_9=%03o)",
+               s_la_20_10, s_ptidb_pt_15_0_in, s_ptidb_pt_15_0_in[15:9]);
+    if ((!s_epti_n && s_write) && !r_ptdbg_wri_d)
+      // v24 (23-AUG-2026): the strobe legs, printed AT the write attempt.
+      // WMAP_n = ~(LSHADOW & WRITE & CYD) (this file, the s_wmap_n assign);
+      // the status-bank RAM write needs EPT_n low AND WMAP_n low
+      // (CPU_MMU_PT_29.v CHIP_24G/25G: CS_n=EPT_n, W_n=WMAP_n). Printing all
+      // legs at the attempt separates: (a) LSHADOW never asserted,
+      // (b) LSHADOW&WRITE without CYD, (c) all three but EPT_n high.
+      $display("[pt] WRI addr=%04o idb=%06o (pt15_9=%03o) EPTn=%b WMAPn=%b LSH=%b WR=%b CYD=%b DBL=%b CA0=%b",
+               s_la_20_10, s_ptidb_idb_15_0_in, s_ptidb_idb_15_0_in[15:9],
+               s_ept_n, s_wmap_n, s_lshadow, s_write, s_cyd, s_double,
+               s_ca_10_0[0]);
+  end
+
+  // v24 (23-AUG-2026): WMAP-leg coincidence census. Counts cycles where
+  // LSHADOW & WRITE is true, split by whether CYD coincided. Printed at every
+  // 2^20th event and at each WRI attempt, so the failing leg is named by
+  // NUMBERS: lshwr_cyd==0 forever = CYD never coincides (leg b);
+  // both counters 0 while WRI attempts exist = LSHADOW never asserted (leg a);
+  // healthy counts with [pt] WR still absent = EPT_n high at the instant (leg c).
+  reg [31:0] r_lshwr_nocyd = 0;
+  reg [31:0] r_lshwr_cyd   = 0;
+  always @(posedge sysclk) begin
+    if (s_lshadow & s_write) begin
+      if (s_cyd) r_lshwr_cyd   <= r_lshwr_cyd + 1;
+      else       r_lshwr_nocyd <= r_lshwr_nocyd + 1;
+      if (((r_lshwr_cyd + r_lshwr_nocyd) & 32'hFFFFF) == 32'd0)
+        $display("[ptleg] lshwr_cyd=%0d lshwr_nocyd=%0d", r_lshwr_cyd, r_lshwr_nocyd);
+    end
+    if ((!s_epti_n && s_write) && !r_ptdbg_wri_d)
+      $display("[ptleg] at-WRI lshwr_cyd=%0d lshwr_nocyd=%0d",
+               r_lshwr_cyd, r_lshwr_nocyd);
+  end
+
+  // Zero-entry translation probe: log every PT translation read (EPT active,
+  // not a write) that returns an entry with ALL-ZERO status bits - the
+  // signature of the spurious PV trap (access through an unmapped entry).
+  // Logs the PT INDEX (= PIT + virtual page), which the trap probes cannot see.
+  reg        r_ptdbg_z_d;
+  reg [10:0] r_ptdbg_zaddr_d;
+  always @(posedge sysclk) begin
+    r_ptdbg_z_d     <= (!s_ept_n && s_wmap_n && s_pt_pt_15_0_out[15:9] == 7'd0);
+    r_ptdbg_zaddr_d <= s_la_20_10;
+    if ((!s_ept_n && s_wmap_n && s_pt_pt_15_0_out[15:9] == 7'd0) &&
+        (!r_ptdbg_z_d || r_ptdbg_zaddr_d != s_la_20_10))
+      // $time added 17-AUG-2026 so this log can be JOINED with the [acc] probe
+      // in CGA.v, which carries the access class (FETCH/READ/WRITE/IND) and the
+      // addressing mode. Those signals never leave the CGA, so the correlation
+      // is done on the timestamp rather than by plumbing ports down here.
+      // pit/vpn are split out because the whole question is which page TABLE
+      // was used - `addr` alone hides it.
+      $display("[pt] Z t=%0t addr=%04o pit=%02o vpn=%02o data=%06o DBL=%b WR=%b LSH=%b CYD=%b",
+               $time, s_la_20_10, s_la_20_10[10:6], s_la_20_10[5:0],
+               s_pt_pt_15_0_out, s_double, s_write, s_lshadow, s_cyd);
+  end
+`endif
 
 endmodule

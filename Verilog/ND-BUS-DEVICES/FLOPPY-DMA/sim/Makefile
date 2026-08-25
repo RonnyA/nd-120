@@ -6,8 +6,12 @@
 #   ND_DMA_MASTER, sector data disk<->memory by DMA, status writeback,
 #   dualDensity bit, interrupt + IDENT
 
-IVERILOG = iverilog
-VVP      = vvp
+# Shared include paths (Verilog/mk/iverilog.mk). Provides $(ND_INC),
+# which covers SD-FAT/circuit - the controllers include
+# nd_storage_status.vh from there.
+VERILOG_ROOT = ../../..
+include $(VERILOG_ROOT)/mk/iverilog.mk
+
 VERILATOR = verilator
 
 SRCS = ../../BUS-IF/circuit/ND_BUS_SLAVE.v \
@@ -25,8 +29,25 @@ BOOT_SRCS = ../../BUS-IF/circuit/ND_BUS_SLAVE.v \
             ../circuit/ND_FLOPPY_DMA.v \
             nd_floppy_boot_tb.v
 
+# test-floppy-iox: floppy campaign phase P1 - the IOX register / status /
+# control-word conformance matrix (CONFORMANCE.md sec 1-3, 6) asserted
+# directly at the device IOX slave port. ND_FLOPPY_DMA only (no BUS_SLAVE);
+# the bus-strobe / boot-consume interaction is P2.
+IOX_SRCS = ../circuit/ND_FLOPPY_DMA.v \
+           nd_floppy_iox_tb.v
+
+# test-floppy-p2: floppy campaign phase P2 - iox_rd strobe width + the
+# boot-read CONSUME rule, driven through the REAL CPU-side bus handshake
+# (ND_BUS_SLAVE + ND_FLOPPY_DMA). Asserts single-cycle strobe, one consume
+# per +0 read, refill at exactly 512, and pins the >512 overrun wedge
+# (CONFORMANCE.md sec 7 cand. 1-2, sec 9.4). No DMA master (autoload never
+# issues a dma_req); the disk backend fills the boot buffer.
+P2_SRCS = ../../BUS-IF/circuit/ND_BUS_SLAVE.v \
+          ../circuit/ND_FLOPPY_DMA.v \
+          nd_floppy_p2_tb.v
+
 # test-floppy-sdfat: the DMA-floppy backend seam served by the REAL SD-FAT
-# stack (nd_tape_sdfat_source #(.INCLUDE_FLOPPY(1)) -> nd_storage -> floppy
+# stack (nd_storage_devices #(.INCLUDE_FLOPPY(1)) -> nd_storage -> floppy
 # adapter -> sd_card_model with FLOPPY1.IMG). Verilator (--timing) because the
 # SD stack + card model need it; proves the Tang floppy integration functionally.
 SDFAT = ../../../SD-FAT
@@ -35,25 +56,39 @@ VFLAGS = --binary --timing -j 4 -Wno-fatal -Wno-WIDTH -Wno-UNOPTFLAT -Wno-CASEIN
          -CFLAGS "-std=gnu++20 -fcoroutines"
 VSDFAT_SRCS = $(wildcard $(SDFAT)/circuit/*.v) \
               $(SDFAT)/sim/sd_card_model.v $(SDFAT)/sim/nds_mem_model.v \
-              ../../TAPE-400/circuit/nd_tape_sdfat_source.v
+              ../../../SD-FAT/circuit/nd_storage_devices.v
 
 all: test
 
-test: test-floppy-dma test-floppy-boot
+test: test-floppy-dma test-floppy-boot test-floppy-iox test-floppy-p2
 
 nd_floppy_dma_tb.vvp: $(SRCS)
-	$(IVERILOG) -g2005 -o $@ $(SRCS)
+	$(IVERILOG) -g2005 $(ND_INC) -o $@ $(SRCS)
 
 test-floppy-dma: nd_floppy_dma_tb.vvp
 	$(VVP) nd_floppy_dma_tb.vvp | tee floppy_dma_out.log
 	@grep -q "TB_RESULT: PASS" floppy_dma_out.log
 
 nd_floppy_boot_tb.vvp: $(BOOT_SRCS)
-	$(IVERILOG) -g2005 -o $@ $(BOOT_SRCS)
+	$(IVERILOG) -g2005 $(ND_INC) -o $@ $(BOOT_SRCS)
 
 test-floppy-boot: nd_floppy_boot_tb.vvp
 	$(VVP) nd_floppy_boot_tb.vvp | tee floppy_boot_out.log
 	@grep -q "TB_RESULT: PASS" floppy_boot_out.log
+
+nd_floppy_iox_tb.vvp: $(IOX_SRCS)
+	$(IVERILOG) -g2005 $(ND_INC) -o $@ $(IOX_SRCS)
+
+test-floppy-iox: nd_floppy_iox_tb.vvp
+	$(VVP) nd_floppy_iox_tb.vvp | tee floppy_iox_out.log
+	@grep -q "TB_RESULT: PASS" floppy_iox_out.log
+
+nd_floppy_p2_tb.vvp: $(P2_SRCS)
+	$(IVERILOG) -g2005 $(ND_INC) -o $@ $(P2_SRCS)
+
+test-floppy-p2: nd_floppy_p2_tb.vvp
+	$(VVP) nd_floppy_p2_tb.vvp | tee floppy_p2_out.log
+	@grep -q "TB_RESULT: PASS" floppy_p2_out.log
 
 test-floppy-sdfat:
 	cd $(SDFAT)/sim && bash make_storage_image.sh >/dev/null 2>&1

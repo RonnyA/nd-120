@@ -71,7 +71,7 @@ module IO_37(
 
    output [4:0] DP_5_1_n,
    output       DT_n,
-   output       DVACC_n,
+   output       DVACC_n,   //! DGA access qualifier from IO_DCD_38, on towards CPU_15/CPU_MMU_24 - not the CGA's VACC
    output       ECREQ,
    output       ECSR_n,
    output       EDO_n,

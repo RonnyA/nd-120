@@ -9,7 +9,7 @@ This tool runs the simulation in two modes and compares key internal signals.
 ## Quick Start
 
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 
 # Run both modes and compare (takes ~2 minutes)
 make compare

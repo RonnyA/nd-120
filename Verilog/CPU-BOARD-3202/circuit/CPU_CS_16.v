@@ -147,6 +147,8 @@ module CPU_CS_16 (
 
   CPU_CS_TCV_20 TCV (
       // Input signals
+      .sysclk(sysclk),
+      .sys_rst_n(sys_rst_n),
       .CSBITS(s_csbits_out_wcs[63:0]),
       .ECSL_n(s_ecsl_n),
       .EW_3_0_n(s_ew_3_0_n[3:0]),

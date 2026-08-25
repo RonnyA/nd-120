@@ -2,12 +2,12 @@
 
 > **ANSWERED 18-JUL-2026.** Root cause found (trap-unit vector-17 misclassification,
 > NOT an async latch in the mask/claim cone) and RTL fix implemented; see
-> `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/ANALYSIS-cga-intr-masked-grant-root-cause.md`.
+> `Verilog/fpga/tang-nano-20k/ANALYSIS-cga-intr-masked-grant-root-cause.md`.
 > Silicon re-test still pending (that doc, §5).
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/HANDOFF-cga-intr-masked-grant-analysis.md`
+**Full path:** `Verilog/fpga/tang-nano-20k/HANDOFF-cga-intr-masked-grant-analysis.md`
 **Written:** 18-JUL-2026, after the S3 vector-claim fix was proven insufficient on silicon.
-**Repo root:** `/mnt/e/Dev/Repos/Ronny/nd-120`  (branch `clock-enable-fix`)
+**Repo root:** ``  (branch `clock-enable-fix`)
 **Audience:** a fresh analyst with no prior context. Everything below is grounded in
 measured evidence or source; where something is inferred it is labelled INFERRED.
 
@@ -32,7 +32,7 @@ which it never returns.
 
 Measured 18-JUL on the physical Tang over the OPCOM console (`/dev/ttyUSB1`,
 9600 8N1), on the **correctly-flashed fixed bitstream**
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/build/nd120_tang20k_build/impl/pnr/ao_0.fs`.
+`Verilog/fpga/tang-nano-20k/build/nd120_tang20k_build/impl/pnr/ao_0.fs`.
 
 Method: btn1 (clean Master Clear, keeps SDRAM) → software `MACL` → deposit P=0
 (the `0!` cold-start entry) → single-step (`Z`), reading the internal-register
@@ -56,7 +56,7 @@ at PIL=0 for thousands of instructions. **Sim is the reference / truth. Silicon
 diverges. That divergence is the bug.**
 
 Reproduce it yourself with:
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/scratch_piltrace.py`
+`Verilog/fpga/tang-nano-20k/scratch_piltrace.py`
 (paced single-step tracer; read its header for the OPCOM protocol rules).
 Console command reference:
 `/home/ronny/.claude/skills/nd120-fpga/references/opcom-commands.md`.
@@ -92,9 +92,9 @@ phase mismatches can be timing-model artefacts. Here the artefact is load-bearin
 1. **S3 vector-claim enable-FF gate (THE failed fix).** The hypothesis was that
    the vector-claim outputs HVE/LVE were missing an interrupt-request-enable term.
    Added it:
-   - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL_HIRL.v`
+   - `Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL_HIRL.v`
      `GATES_7`: `AND_GATE` → `AND_GATE_3_INPUTS`, added `.input3(s_int_req_qn)` → `s_hve_out`.
-   - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL_LORL.v`
+   - `Verilog/DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL_LORL.v`
      `GATES_4`: same, added `.input3(s_int_req_enable_q_n)` → `s_lve_out`.
    Built into `ao_0.fs` (verified: bitstream mtime 18:56 > source mtime 18:50).
    **Result: masked grant STILL fires (§2). Insufficient.** These edits are
@@ -129,7 +129,7 @@ phase mismatches can be timing-model artefacts. Here the artefact is load-bearin
    (commits `3acef36`, and the fence is RTL default). Not this bug.
 
 Full ranked-suspect writeup from the first pass:
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/tang-masked-grant-audit.md`.
+`Verilog/docs/tang-masked-grant-audit.md`.
 
 ---
 
@@ -143,7 +143,7 @@ sim collapses to nothing.
 
 Trace this path end-to-end and find every async latch / combinational feedback
 in it. The modules (all under
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/DELILAH-CPU/CGA_INTR/circuit/`):
+`Verilog/DELILAH-CPU/CGA_INTR/circuit/`):
 
 | Stage | File | What it does |
 |---|---|---|
@@ -182,7 +182,7 @@ Specific questions to answer:
 
 The behavioural reference for the Am2914 priority interrupt controller is the C#
 emulator, which matches the ND-110/ND-120 hardware behaviour:
-`/mnt/e/Dev/Repos/Ronny/ND110Compile/ND110CPU/AMD/Amd2914PIC.cs`
+`$ND_REPOS/ND110Compile/ND110CPU/AMD/Amd2914PIC.cs`
 (the grant/status logic is around lines 950-977; read the whole class).
 
 Established facts from that source (project memory `[[intr-verilog-is-truth]]`
@@ -220,7 +220,7 @@ interrupt granted while masked).
   in `IRGEL_HIRL.v` / `IRGEL_LORL.v`.
 - The Logisim schematics are the source for most of this Verilog. Keep new code
   compatible with the generated structure; note any Logisim-regeneration hazard
-  you introduce (there is a hazard list in `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/TODO.md`).
+  you introduce (there is a hazard list in `Verilog/TODO.md`).
 - Do not use LINQ (C# side) or introduce unicode into anything that feeds the
   1980s C/assembler toolchain (not relevant to RTL, but a global rule).
 - These are silicon-only changes; **land them behind a clear escape hatch/`ifdef`
@@ -232,9 +232,9 @@ interrupt granted while masked).
 1. **Sim regression (necessary, not sufficient):** the fix must keep the
    reference behaviour byte-identical. Run the CGA_INTR/CGA_TRAP unit suite
    (31 tbs incl. the Am2914 command-sequence functional tbs) and the full
-   `make test` / `make test-full` from `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog`.
+   `make test` / `make test-full` from `Verilog`.
    Handoff for those tbs:
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/HANDOFF-interrupt-trap-testbenches.md`.
+   `Verilog/docs/HANDOFF-interrupt-trap-testbenches.md`.
    Remember §3: sim CANNOT show the cure, only the absence of regression.
 2. **Structural check:** confirm no async latch / combinational loop remains in
    the grant path — OSS flow (`make gowin` via yosys) reports combinational loops
@@ -246,7 +246,7 @@ interrupt granted while masked).
    start. Optionally capture the grant net with GAO first to *see* the mechanism
    before/after — `ao_0.fs` already carries the AO core (trigger = rising HVE
    while PICV==2); see
-   `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/GAO-HOWTO.md`.
+   `Verilog/fpga/tang-nano-20k/GAO-HOWTO.md`.
 
 ## 9. Pointers / index
 
@@ -254,9 +254,9 @@ interrupt granted while masked).
   `.../tang-nano-20k/tang_validate.py`,
   `/home/ronny/.claude/skills/nd120-fpga/references/opcom-commands.md`.
 - Debug avenues (GAO, ring analyzer, external LA, reset options):
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/DEBUG-OPTIONS.md`.
+  `Verilog/fpga/tang-nano-20k/DEBUG-OPTIONS.md`.
 - First-pass suspect ranking: `.../Verilog/docs/tang-masked-grant-audit.md`.
-- Am2914 reference: `/mnt/e/Dev/Repos/Ronny/ND110Compile/ND110CPU/AMD/Amd2914PIC.cs`.
+- Am2914 reference: `$ND_REPOS/ND110Compile/ND110CPU/AMD/Amd2914PIC.cs`.
 - The `nd120-fpga` skill has the FPGA-debug / latch→FF workflow guidance.
 
 ## 9b. Appendix — SDF gate-level timing-sim recipe (VERIFIED artifacts present)

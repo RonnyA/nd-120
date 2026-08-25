@@ -10,7 +10,7 @@ Grounded design (line-accurate against the real RTL). Execute from this.
   "MEM_RAM_49-facing" wording in the original brief.
 
 Execution status: **steps 1-3 DONE + COMMITTED (14-JUL-2026) on clock-enable-fix.**
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND120_CORE.v` is instantiated by both
+`Verilog/ND120_CORE.v` is instantiated by both
 tops. Step 1 (new-file-first, instantiated by nothing) elaborated clean in every
 configuration:
 - verilator --lint-only -Wall (runSim suppression set), top-module ND120_CORE:
@@ -30,17 +30,17 @@ with the storage seam tied off otherwise). External port list UNCHANGED.
 
 - **PLAN CORRECTION: the `__DOT__` edit is 3 files, not 1.** The plan said only
   runSim/Run120.cpp; in fact:
-  - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/Run120.cpp`          120 refs
-  - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/latch_ff_compare.cpp`    18 refs  <- the latch-vs-FF golden gate in test-full
-  - `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/test_nd120.cpp`           4 refs
+  - `Verilog/runSim/Run120.cpp`          120 refs
+  - `Verilog/sim/latch_ff_compare.cpp`    18 refs  <- the latch-vs-FF golden gate in test-full
+  - `Verilog/sim/test_nd120.cpp`           4 refs
   Only TWO symbol classes needed rewriting, both mechanical:
   `ND120_TOP__DOT__CPU_BOARD` -> `ND120_TOP__DOT__CORE__DOT__CPU_BOARD` and
   `ND120_TOP__DOT__s_csbits` -> `ND120_TOP__DOT__CORE__DOT__s_csbits`.
   The other top-level symbols readers touch (clockTicks, s_debug_fidbo,
   s_debug_mr_n, s_test_4_0) stay at ND120_TOP or are unused by the C++.
 - **Also needed:** `-I..` (the Verilog root, where ND120_CORE.v lives) added to
-  VERILATOR_DIRS in `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/runSim/Makefile` and
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim/Makefile` -- otherwise Verilator
+  VERILATOR_DIRS in `Verilog/runSim/Makefile` and
+  `Verilog/sim/Makefile` -- otherwise Verilator
   cannot find ND120_CORE.
 
 **BEHAVIOUR-NEUTRALITY PROVEN (not inferred).** Built HEAD's pre-refactor RTL in
@@ -64,14 +64,14 @@ Gates green after step 2: `make test` 48/48 (memchain filtered, as above);
 `make test-dma-xcheck` PASSED (OPCOM-written word read back over DMA).
 
 **Step 3 DONE (14-JUL-2026).**
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
+`Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`
 now instantiates `ND120_CORE #(0,0,0) CORE(...)` instead of ND3202D directly
 (device-LESS = previous Tang behaviour). Board keeps rPLL/POR/tie-offs/
 LED-write-analyzer/clockTicks; its duplicate installation_number / s_high /
 s_low / SEL_TESTMUX / baud-rate wires are dropped (now core-internal).
 - **Also needed:** the Tang flow uses an EXPLICIT file list, not -I dirs, so
   `<File path="../../ND120_CORE.v" .../>` was added to
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj`
+  `Verilog/fpga/tang-nano-20k/nd120_tang20k.gprj`
   (right before src/ND120_TANG20K_TOP.v). Without it Gowin/vtest cannot find
   the core.
 - Gate: `make -C fpga/tang-nano-20k/sim vtest` -> **TB_RESULT: PASS**
@@ -169,11 +169,11 @@ All shared nets are OR-buses / daisy chains — tie ABSENT devices to inactive i
 - Bus wired-AND (709-718): absent device bus contribs tied `24'hFFFFFF`/`1'b1` so the AND stays. The else (719-730) = all-absent case. Declare all chain wires up front (forward-ref s_grant_fdma_smdm_n used @589 declared @650).
 
 ## Storage seam = the byte/disk SOURCE ports at the core boundary; nd_storage adapter lives on the BOARD.
-Core instantiates ND_TAPE_400, wires byte_req/valid/data/rewind → core TAPE_BYTE_* ports; core knows nothing of SD-FAT. Sim board forwards TAPE_BYTE_* to ND120_TOP ports (NDBus.cpp file model, unchanged). Tang board instantiates `nd_tape_sdfat_source` pin-for-pin. DO NOT pull the nd_storage client port to the core boundary (would break the C reference path + test-tape gate). Clock note: nd_tape_sdfat_source needs clk_stor + clk_cpu; board feeds its clk_cpu with the SAME net as core clk_cpu, supplies clk_stor from storage domain; rst_cpu_n aligned to sys_rst_n. clk_stor never enters the core.
+Core instantiates ND_TAPE_400, wires byte_req/valid/data/rewind → core TAPE_BYTE_* ports; core knows nothing of SD-FAT. Sim board forwards TAPE_BYTE_* to ND120_TOP ports (NDBus.cpp file model, unchanged). Tang board instantiates `nd_storage_devices` pin-for-pin. DO NOT pull the nd_storage client port to the core boundary (would break the C reference path + test-tape gate). Clock note: nd_storage_devices needs clk_stor + clk_cpu; board feeds its clk_cpu with the SAME net as core clk_cpu, supplies clk_stor from storage domain; rst_cpu_n aligned to sys_rst_n. clk_stor never enters the core.
 
 ## Top rewiring
 - ND120_TOP.v (Basys3+sim): unchanged external ports; keeps POR/MMCM/LED/7-seg/heartbeat/FPGA-tie-offs; instantiates `ND120_CORE #(.INCLUDE_TAPE(1),.INCLUDE_FLOPPY(1),.INCLUDE_SMD(1)) CORE(...)` forwarding clk_cpu, sys_rst_n, C-PLUG bus (ports in sim / tie-offs in FPGA), RXD/TXD, all TAPE_BYTE_*/DMA_*/FDISK_*/SDISK_* 1:1, debug bundle → s_debug_*/s_cpu_led/s_run. DMA-test stays wired to sim ports (683-706) so DMA gates pass.
-- ND120_TANG20K_TOP.v: keeps rPLL/POR/tie-offs/LED-write-analyzer/clockTicks; replaces direct ND3202D (294-405) with `ND120_CORE #(0,0,0)` for **Phase 1** (device-less = current Tang behavior, keeps vtest green); feeds clk_cpu, sys_rst_n, (b) SDRAM pass-through, tied bus, uart, DBG_MEMW; drops local installation_number. Phase 2 (separate change): INCLUDE_TAPE(1) + nd_tape_sdfat_source on board.
+- ND120_TANG20K_TOP.v: keeps rPLL/POR/tie-offs/LED-write-analyzer/clockTicks; replaces direct ND3202D (294-405) with `ND120_CORE #(0,0,0)` for **Phase 1** (device-less = current Tang behavior, keeps vtest green); feeds clk_cpu, sys_rst_n, (b) SDRAM pass-through, tied bus, uart, DBG_MEMW; drops local installation_number. Phase 2 (separate change): INCLUDE_TAPE(1) + nd_storage_devices on board.
 - Future boards: ND120_CORE + own I/O; no device-chain copy = no drift.
 
 ## Validation staging (green at every commit)

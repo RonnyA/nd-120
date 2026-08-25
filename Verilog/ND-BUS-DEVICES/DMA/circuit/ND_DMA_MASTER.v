@@ -51,7 +51,15 @@ module ND_DMA_MASTER #(
     //       re-asserted after the BDRY trailing edge)
     //   1 = a dma_req arriving during a transfer is buffered and BREQ
     //       re-asserted already in the cycle tail (overlapping BDRY)
+    // `ND_DMA_EARLY_REREQ overrides the default at COMPILE time ONLY - no
+    // build defines it, so every normal build keeps 0. The dmaSim P3 teeth
+    // target sets it to 1 (with MIN_GAP 0) to reproduce the back-to-back
+    // hazard, proving the recovery gap is load-bearing.
+`ifdef ND_DMA_EARLY_REREQ
+    parameter EARLY_REREQ = `ND_DMA_EARLY_REREQ,
+`else
     parameter EARLY_REREQ = 0,
+`endif
     // Recovery gap between granted cycles, in sysclk ticks. MEASURED on
     // the real CPU-board RTL (full-RTL gate): the memory-side grant and
     // decode chain (BLRQ/BCGNT 25/50ns stages) needs time to unwind
@@ -61,7 +69,24 @@ module ND_DMA_MASTER #(
     // controllers re-request at 1.4us+ periods (manual II.4 examples),
     // so hardware never hit this. The request is ACCEPTED at any time;
     // only the BREQ assertion is deferred.
+    //
+    // UNITS - READ THIS: the quantity that matters is a real-TIME interval,
+    // not a tick count. The target is the ND-100 controller re-request
+    // period, ~1.4us (manual II.4). "32 ticks" is only that interval
+    // expressed in sysclk periods AT THE SIM CLOCK. This design does not pin
+    // one CPU/bus clock frequency (see the clocking docs), so the equivalent
+    // tick count is clock-dependent, NOT a physical constant - 32 is the
+    // sim-era default. At a known silicon clock, re-derive it from the time
+    // (ticks = ceil(1.4us * f_sysclk)); do not carry 32 over blindly.
+    // `ND_DMA_MIN_GAP_TICKS overrides the default at COMPILE time ONLY - no
+    // build defines it, so every normal build keeps 32. The dmaSim P3 teeth
+    // target sets it to 0 (with EARLY_REREQ 1) to reproduce "every second
+    // read lost", proving the recovery gap is load-bearing.
+`ifdef ND_DMA_MIN_GAP_TICKS
+    parameter [7:0] MIN_GAP_TICKS = `ND_DMA_MIN_GAP_TICKS
+`else
     parameter [7:0] MIN_GAP_TICKS = 8'd32
+`endif
 ) (
     input wire sysclk,
     input wire sys_rst_n,
@@ -101,6 +126,7 @@ module ND_DMA_MASTER #(
   reg [15:0] s_wdata;
   reg [15:0] s_rd_capture;  // last driven bus value seen in the data window
   reg        s_rd_captured;
+  reg [1:0]  s_rd_idle_cnt; // consecutive undriven-bus ticks while BDRY idle
   reg        s_pend;        // EARLY_REREQ: buffered next request
   reg        s_pend_wr;
   reg [23:0] s_pend_addr;
@@ -229,6 +255,7 @@ module ND_DMA_MASTER #(
             end
             BDAP_n  <= 1'b0;
             s_rd_captured <= 1'b0;
+            s_rd_idle_cnt <= 2'd0;
             s_state <= ST_DATA;
           end
         end
@@ -241,14 +268,50 @@ module ND_DMA_MASTER #(
         // its data drivers before the externally visible BDRY edge
         // (measured in the full-RTL gate; see docs/nd100-bus-dma.md).
         ST_DATA: begin
-          if (!s_wr && (BD_23_0_n_IN != 24'hFFFFFF)) begin
+          // Capture only GENUINELY-DRIVEN read data by rejecting BOTH idle
+          // patterns of this inverted wired-AND bus:
+          //   0xFFFFFF = idle-high (tb model + the DMA's own idle drive + a
+          //              memory word of 0, which drives ~0 = 0xFFFFFF), and
+          //   0x000000 = released/undriven (ND120_TOP+FPGA "drive 0 when
+          //              disabled", and the pre-data phase there).
+          // Real non-zero data is neither (the upper byte is driven 0xFF, e.g.
+          // data 0x0F00 -> bus 0xFFF0FF; even data 0xFFFF -> bus 0xFF0000).
+          // For a data value of 0 the bus is 0xFFFFFF at the BDRY edge in BOTH
+          // environments, so the `~BD_23_0_n_IN` fallback below yields 0 - no
+          // capture needed. This makes the capture value-independent and works
+          // for both the standalone tbs (data presented AT BDRY) and ND120_TOP
+          // (data presented BEFORE BDRY, released to 0xFFFFFF at the edge).
+          // The old `!= 0xFFFFFF` captured the ND120_TOP pre-data 0x000000 as
+          // garbage 0xFFFF, corrupting zero-word reads (FLOMON command block
+          // sector -> 65535 -> floppy boot hang); `!= 0x000000` alone broke the
+          // tbs (idle-high captured as 0). Rejecting both is correct everywhere.
+          if (!s_wr && (BD_23_0_n_IN != 24'hFFFFFF) && (BD_23_0_n_IN != 24'h000000)) begin
             s_rd_capture  <= ~BD_23_0_n_IN[15:0];
             s_rd_captured <= 1'b1;
+            s_rd_idle_cnt <= 2'd0;
+          end else if (!s_wr && s_rd_captured && (s_rd_idle_cnt != 2'd3)) begin
+            // Undriven tick: age the capture. A captured value is only
+            // trusted at the BDRY edge while FRESH (bus driven within the
+            // last 2 ticks) - see the acceptance test below.
+            s_rd_idle_cnt <= s_rd_idle_cnt + 2'd1;
           end
           if (BDRY_n == 1'b0) begin
             if (!s_wr) begin
-              dma_rdata <= s_rd_captured ? s_rd_capture
-                                         : ~BD_23_0_n_IN[15:0];
+              // Accept the captured value only if the drive window ran
+              // (near-)contiguously into this BDRY edge: the board may
+              // release its data drivers up to ~2 ticks before the edge
+              // (measured 0-1 ticks), but a CPU-fetch TRANSIENT leaking
+              // through the BIF transceiver sits at least a memory-access
+              // time (~6 ticks) before BDRY, so an age limit of 2 rejects
+              // every transient - including TRAINS of them, which the
+              // earlier clear-after-2-idle-ticks rule could miss when a
+              // new flicker kept resetting the idle counter. For a read
+              // of a ZERO word the answer drives ~0 = 24'hFFFFFF
+              // (idle-indistinguishable), so a stale capture used to win
+              // there; with the age limit the fallback 0 wins instead.
+              dma_rdata <= (s_rd_captured && (s_rd_idle_cnt <= 2'd2))
+                               ? s_rd_capture
+                               : ~BD_23_0_n_IN[15:0];
             end
             // Leading edge of BDRY terminates the grant: release our
             // strobes and data

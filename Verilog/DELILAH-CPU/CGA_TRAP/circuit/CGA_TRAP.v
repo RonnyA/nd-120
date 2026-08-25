@@ -27,6 +27,9 @@ module CGA_TRAP (
     input PONI,
     input [6:0] PT_15_9,
     input TCLK,
+    // VACC_n from CGA_DCD. Inverted here and handed to TBUF/TVGEN/BRKDET, where
+    // it qualifies EVERY memory-protect trap term - page fault, ring violation,
+    // WIP and PGU are all AND'ed with VACC. No VACC, no memory-protect trap.
     input VACCN,
     input VTRAPN,
     input WRITEN,
@@ -106,6 +109,26 @@ module CGA_TRAP (
   assign RESTR          = s_restr_out;
   assign TRAPN          = s_trap_n_out;
   assign TVEC_3_0       = s_tvec_3_0_out[3:0];
+
+`ifdef TRAPDBG
+  // Low-volume trap/restart probe: log each TRAP falling edge + RESTR rising
+  // edge with the trap vector (find the trap that reboots the CPU).
+  reg r_trapn_d = 1'b1, r_restr_d = 1'b0;
+  always @(posedge sysclk) begin
+    r_trapn_d <= s_trap_n_out;
+    r_restr_d <= s_restr_out;
+    if (r_trapn_d && !s_trap_n_out && s_tvec_3_0_out != 4'd15)
+      $display("[trap] t=%0t TRAP tvec=%0d pviol=%b brkn=%b restr=%b pt15_9=%o",
+               $time, s_tvec_3_0_out, s_pviol_out, s_brk_n_out, s_restr_out, PT_15_9);
+    // Vector-7 (unimplemented SINTRAN-4) detail: dump the page-status / ring /
+    // access-type inputs so we can tell a mis-vector from a genuine trap.
+    if (r_trapn_d && !s_trap_n_out && s_tvec_3_0_out == 4'd7)
+      $display("[trap7] pt15_9=%o(b%b) pcr=%b vaccn=%b writen=%b fetchn=%b indn=%b",
+               PT_15_9, PT_15_9, PCR_1_0, VACCN, WRITEN, FETCHN, INDN);
+    if (!r_restr_d && s_restr_out)
+      $display("[trap] RESTR(restart) tvec=%0d", s_tvec_3_0_out);
+  end
+`endif
 
   /*******************************************************************************
    ** Here all sub-circuits are defined                                          **

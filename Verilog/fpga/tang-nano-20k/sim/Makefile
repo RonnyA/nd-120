@@ -31,7 +31,12 @@ DEFS = -DGOWIN -DTARGET_TANG20K -DFPGA_FF_MODE -DSKIP_WCS_LOAD \
        -DBOARD_CLK_FREQ=6750000 -DUART_BAUD_RATE=421875 -DSIM
 
 # sd_fat_features.vh lives with the SD-FAT RTL (`include in nd_storage.v etc.)
-INCS = -I$(TOPDIR)/../../SD-FAT/circuit
+# nd120_backwiring_defaults.vh lives with the support models and is `include'd
+# by BACKWIRING_PROM.v - without this second path the build dies on
+# "Cannot find include file", then on every `ND120_SYSNO / `ND120_HWINFO2 /
+# `ND120_NLEGU that the missing file defines, and finally on a cascade of
+# syntax errors in ND120_CORE.v's port list where those macros are used.
+INCS = -I$(TOPDIR)/../../SD-FAT/circuit -I$(TOPDIR)/../../Shared/support
 
 test: $(VVP)
 	cd $(TOPDIR) && vvp sim/$(VVP) | tee sim/$(TB).log

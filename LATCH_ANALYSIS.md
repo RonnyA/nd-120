@@ -786,5 +786,4 @@ Converting latches to flip-flops in the ND-120 design is **feasible and recommen
 ---
 
 **Document Version:** 1.0
-**Author:** Analysis by Claude (Anthropic)
 **Last Updated:** 2025-11-07

@@ -1,6 +1,6 @@
 # Tang Nano 20K: BSRAM Rearrange + SDRAM Implementation Plan
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/tang-bsram-sdram-plan.md`
+**Full path:** `Verilog/docs/tang-bsram-sdram-plan.md`
 **Last updated:** 2026-07-04
 
 ## Context

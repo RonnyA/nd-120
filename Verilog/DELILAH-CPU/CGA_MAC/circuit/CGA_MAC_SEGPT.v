@@ -29,6 +29,7 @@ module CGA_MAC_SEGPT (
 
     // Output signals
     output [15:0] PCR_15_0,
+    output [15:0] PCR_RB_15_0,  //! registered readback tap for IDBCTL/SEL6 (loop cut)
     output        PEX,
     output        SEGZN,
     output [ 7:0] SEG_7_0,
@@ -132,7 +133,8 @@ module CGA_MAC_SEGPT (
     .MCLKN(s_mclk_n),
 
     // Output signals
-    .PCR_15_0(s_pcr_15_0_out[15:0])
+    .PCR_15_0(s_pcr_15_0_out[15:0]),
+    .PCR_RB_15_0(PCR_RB_15_0)
   );
 
 endmodule

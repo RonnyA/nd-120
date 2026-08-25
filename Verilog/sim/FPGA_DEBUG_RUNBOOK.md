@@ -5,7 +5,10 @@ comparison workflow from scratch. It is self-contained and does not assume prior
 
 ## Problem Statement
 
-The ND-120 CPU boots correctly in Verilator simulation but fails to boot on FPGA (Basys3).
+The ND-120 CPU boots correctly in Verilator simulation and **boots SINTRAN III on
+the Tang Nano 20K** (24-AUG-2026), but fails to boot on the Xilinx boards, which
+do not meet timing (Basys3 WNS -29.778 ns at 16.667 MHz, measured 21-AUG-2026).
+The workflow below was written for the Basys3 and still applies there.
 The Verilator VCD trace serves as the "golden reference". The FPGA behavior is captured via
 Vivado ILA (Integrated Logic Analyzer) and exported as CSV. The goal is to find where the
 FPGA diverges from the reference and fix the Verilog.
@@ -13,7 +16,7 @@ FPGA diverges from the reference and fix the Verilog.
 ## Repository Layout
 
 ```
-E:\Dev\Repos\Ronny\nd-120\Verilog\
+Verilog/
   sim/                          # Verilator simulation directory
     waveform.vcd                # ~500MB Verilator trace (golden reference)
     top_3202d.gtkw              # GTKWave session (1109 signals)
@@ -58,7 +61,7 @@ Handles Verilator signal aliasing (same short ID reused for connected wires).
 
 Key commands:
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 
 # List all signals
 python3 vcd_extract.py waveform.vcd --list
@@ -190,14 +193,14 @@ When the Verilog changes or a new VCD/ILA capture is available:
 
 ### Step 1: Generate new Verilator reference (if Verilog changed)
 ```powershell
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\sim
+cd Verilog/sim
 make clean && make all
 ```
 This produces a new `waveform.vcd`.
 
 ### Step 2: Re-extract boot sequence from VCD
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 
 # Verify boot timeline
 python3 vcd_extract.py waveform.vcd \
@@ -235,7 +238,7 @@ python3 vcd_extract.py waveform.vcd \
 
 ### Step 3: Rebuild FPGA with new probes (if needed)
 ```powershell
-cd E:\Dev\Repos\Ronny\nd-120\Verilog
+cd Verilog
 .\vivado_build.ps1
 ```
 
@@ -286,7 +289,7 @@ signals on every clock edge to a CSV file. Two runs produce two CSVs; `diff` sho
 
 **How to use:**
 ```powershell
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\sim
+cd Verilog/sim
 
 # Before making changes: capture reference
 make compare_latch          # produces trace_latch.csv (or whatever the "golden" is)
@@ -313,7 +316,7 @@ use full VCD captures and compare with `vcd_extract.py`.
 
 **Pattern:**
 ```bash
-cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/sim
+cd Verilog/sim
 
 # 1. Capture BEFORE state
 make clean && make all           # produces waveform.vcd

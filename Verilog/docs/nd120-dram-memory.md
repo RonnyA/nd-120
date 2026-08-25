@@ -1,6 +1,6 @@
 # ND-120 main memory: how MEM_RAM_49 and the DRAM protocol work, and how to map it per board
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/nd120-dram-memory.md`
+**Full path:** `Verilog/docs/nd120-dram-memory.md`
 **Date:** 8-JUL-2026. Measured numbers come from a Verilator run with `-DDBG_MEM`
 (25,008 memory accesses captured, see [Measured protocol](#measured-protocol-ground-truth-from-simulation)).
 
@@ -236,9 +236,19 @@ the primary mechanism and the watchdog only covers an idle CPU.
 The SDRAM is 2M x 32. The original mapping is **one 18-bit ND word per 32-bit
 SDRAM word** (needs the controller's 32-bit port instead of the byte port - a
 small modification; `dout32` already exists, writes need a 4-lane DQM=0000
-variant). Capacity: 2M words = **2 banks of 1M words = 4 MB** - BANK2 simply
-reports absent, the ND-120's boot-time size probing handles missing banks
-(that is how the machine was sold with less than max memory).
+variant). Capacity: 2M words = **2 banks of 1M words = 4 MB**. The populated pair is
+**BANK0 + BANK2**; **BANK1** is the one that reports absent, and the ND-120's
+boot-time size probing handles missing banks (that is how the machine was sold
+with less than max memory).
+
+> **Corrected 24-AUG-2026.** This paragraph and the one below used to say
+> BANK2 was the absent bank and that BANK0+BANK1 were populated. That is
+> backwards, and `MEM_RAM_49_SDRAM.v:17-21` has always said so. The board
+> decode PAL wires the three 1M-word banks in PHYSICAL-ADDRESS order
+> BANK0, BANK2, BANK1 - see `PAL/PAL_44445B.v:65-67`, where PPN[21:20] decodes
+> 00 -> BANK0 (words 0-1M), 01 -> BANK2 (1M-2M), 10 -> BANK1 (2M-3M). So the
+> contiguous first 2M words are BANK0+BANK2 and the absent bank sits at the
+> TOP of the range, not in the middle of it.
 
 **Superseded 11-JUL-2026 by `ND_SDRAM_PACK16`** (work order
 `nd120-parity-refactor-order.md`): store only the 16 DATA bits, TWO ND words
@@ -248,7 +258,7 @@ path. The old "rejected: the self-test deliberately writes bad parity"
 rationale was folklore - the microcode self-test never touches memory parity
 and runtime software only consumes the PES/PEA/IIC error machinery; see
 `docs/nd120-parity-analysis.md` for the evidence and the pinned contract.
-With the define on, BANK0+BANK1 (still the full 4 MB, boot sizing unchanged)
+With the define on, BANK0+BANK2 (still the full 4 MB, boot sizing unchanged)
 occupy the LOWER half of the chip (location bit 20 = 0) and the upper 4 MB
 is reserved for the nd_storage disk-image cache (`nd-storage-design.md`
 section 5.2). The CPU/storage split is parameterized at ND-row granularity

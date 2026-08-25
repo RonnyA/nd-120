@@ -24,8 +24,10 @@
 **       UNTOUCHED (zero mem traffic - no partial write), sd_writer      **
 **       started exactly 3 times, the two accepted sectors on the card,  **
 **       the rejected and never-sent sectors still zero                  **
-**   (e) a subsequent READ op of a different block still works (engine   **
-**       recovers after the card error)                                   **
+**   (e) a subsequent READ of the block written in (a) returns exactly   **
+**       the words that were written - the engine recovered from the      **
+**       card error AND the write round-trips through the card (Phase 4:  **
+**       a read FETCHES from the card, it does not serve a preload)       **
 **   (f) write to an out-of-range block -> done+err with zero sd_writer  **
 **       starts and zero mem traffic                                      **
 **   plus: card model counters stay zero (CMD CRC7, data CRC16, and      **
@@ -45,6 +47,7 @@ module nd_storage_write_tb;
   localparam N         = 2;     // clients under test
   localparam BASE0     = 0;     // SLOT0_BASE_BLK (2048-byte blocks)
   localparam BASE1     = 32;    // SLOT1_BASE_BLK
+  localparam STAGE_BLK = 0;     // = nd_storage_engine's STAGE_BASE_BLK
   localparam NBLK      = 4;     // n_blocks per client
   localparam [31:0] FIRST0 = 32'd8;   // client 0 file first SD sector
   localparam [31:0] FIRST1 = 32'd40;  // client 1 file first SD sector
@@ -68,7 +71,7 @@ module nd_storage_write_tb;
   wire [31:0] mem_wdata_w, mem_rdata_w;
 
   wire        mnt_start_w;
-  wire [1:0]  mnt_client_w;
+  wire [2:0]  mnt_client_w;
 
   reg  [N-1:0]    t_open_req = 0;
   reg  [N-1:0]    t_req = 0;
@@ -85,6 +88,27 @@ module nd_storage_write_tb;
   wire [31:0] sdw_sector_w;
   wire [8:0]  sdw_rd_addr_w;
   wire [7:0]  sdw_rd_data_w;
+  // Phase 4 fetch path: sd_writer is a sector READ/WRITE engine and the
+  // engine drives rd_mode/burst_len itself; the received bytes come back on
+  // rx_we/rx_addr/rx_data. Without these the engine can command a CMD17 but
+  // never sees a byte of it.
+  wire        sdw_rd_mode_w;
+  wire [8:0]  sdw_burst_len_w;
+  wire        sdw_rx_we_w;
+  wire [8:0]  sdw_rx_addr_w;
+  wire [7:0]  sdw_rx_data_w;
+
+  // Cache directory. Both clients here are DIRECT (CACHE_MASK = 0), so the
+  // engine never raises lookup_req - the instance is wired anyway so this
+  // testbench sees exactly the connection nd_storage.v makes. The cached
+  // path has its own testbench (nd_storage_cachepath_tb.v).
+  wire        c_lookup_req_w, c_lookup_done_w, c_lookup_hit_w;
+  wire [2:0]  c_lookup_client_w, c_lookup_way_w;
+  wire [15:0] c_lookup_block_w;
+  wire [10:0] c_lookup_line_w;
+  wire        c_alloc_req_w, c_alloc_done_w;
+  wire [2:0]  c_alloc_client_w, c_alloc_way_w;
+  wire [15:0] c_alloc_block_w;
 
   nd_storage_engine #(
       .N_CLIENTS     (N),
@@ -115,6 +139,13 @@ module nd_storage_write_tb;
       .size_bytes_stor({32'd8192, 32'd8192}),
       .n_blocks       ({16'd4, 16'd4}),
       .first_sector   ({FIRST1, FIRST0}),
+      // Zero-hop FAT-walk geometry (64 KB clusters, first_cluster=2):
+      // data_start = first_sector, so resolved LBAs equal the old
+      // contiguity arithmetic this bench's card model expects.
+      .first_cluster  ({28'd2, 28'd2}),
+      .fat_spc        (8'd128),
+      .fat0_sector    (32'd0),
+      .fat_is_fat32   (1'b1),
 
       .sdw_start  (sdw_start_w),
       .sdw_sector (sdw_sector_w),
@@ -123,6 +154,24 @@ module nd_storage_write_tb;
       .sdw_err    (sdw_err_w),
       .sdw_rd_addr(sdw_rd_addr_w),
       .sdw_rd_data(sdw_rd_data_w),
+      .sdw_rd_mode  (sdw_rd_mode_w),
+      .sdw_burst_len(sdw_burst_len_w),
+      .sdw_rx_we    (sdw_rx_we_w),
+      .sdw_rx_addr  (sdw_rx_addr_w),
+      .sdw_rx_data  (sdw_rx_data_w),
+
+      .cache_lookup_req   (c_lookup_req_w),
+      .cache_lookup_client(c_lookup_client_w),
+      .cache_lookup_block (c_lookup_block_w),
+      .cache_lookup_done  (c_lookup_done_w),
+      .cache_lookup_hit   (c_lookup_hit_w),
+      .cache_lookup_way   (c_lookup_way_w),
+      .cache_lookup_line  (c_lookup_line_w),
+      .cache_alloc_req    (c_alloc_req_w),
+      .cache_alloc_client (c_alloc_client_w),
+      .cache_alloc_block  (c_alloc_block_w),
+      .cache_alloc_way    (c_alloc_way_w),
+      .cache_alloc_done   (c_alloc_done_w),
 
       .eng_wd_err(eng_wd_err_w),
 
@@ -140,6 +189,25 @@ module nd_storage_write_tb;
       .buf_wdata (buf_wdata_w),
       .buf_we    (buf_we_w),
       .buf_rdata ({rd1, rd0})
+  );
+
+  nd_storage_cache #(
+      .WAYS(4), .SETS(4), .SETIDX(2), .POOL_BASE_BLK(32'd64), .BLKW(16)
+  ) u_cache (
+      .clk(clk_stor), .rst_n(rst_n),
+      .lookup_req   (c_lookup_req_w),
+      .lookup_client(c_lookup_client_w),
+      .lookup_block (c_lookup_block_w),
+      .lookup_done  (c_lookup_done_w),
+      .lookup_hit   (c_lookup_hit_w),
+      .lookup_way   (c_lookup_way_w),
+      .lookup_line  (c_lookup_line_w),
+      .alloc_req    (c_alloc_req_w),
+      .alloc_client (c_alloc_client_w),
+      .alloc_block  (c_alloc_block_w),
+      .alloc_way    (c_alloc_way_w),
+      .alloc_done   (c_alloc_done_w),
+      .inval_req(1'b0), .inval_client(3'd0), .inval_done()
   );
 
   nds_mem_model #(
@@ -161,11 +229,6 @@ module nd_storage_write_tb;
   wire sd_cmd;
   wire sd_dat0;
   wire wr_cmd_o, wr_cmd_oe, wr_dat0_o, wr_dat0_oe;
-  wire rx_we_nc;
-  wire [8:0] rx_addr_nc;
-  wire [7:0] rx_data_nc;
-
-
   sd_writer #(
       .CLKDIV(8'd2)  // fast bit clock for the unit test (27/4 MHz)
   ) u_wr (
@@ -179,16 +242,21 @@ module nd_storage_write_tb;
       .sd_dat0_o (wr_dat0_o),
       .sd_dat0_oe(wr_dat0_oe),
       .start     (sdw_start_w),
-      .rd_mode   (1'b0),
+      .rd_mode   (sdw_rd_mode_w),
       .sector    (sdw_sector_w),
       .busy      (sdw_busy_w),
       .done      (sdw_done_w),
       .err       (sdw_err_w),
+      .burst_len (sdw_burst_len_w),
+      .rca       (16'd0),        // 1-bit engine here: rca is unused
+      .use_4bit  (1'b0),
+      .width_hold(1'b0),
+      .block_next(),
       .rd_addr   (sdw_rd_addr_w),
       .rd_data   (sdw_rd_data_w),
-      .rx_we     (rx_we_nc),
-      .rx_addr   (rx_addr_nc),
-      .rx_data   (rx_data_nc)
+      .rx_we     (sdw_rx_we_w),
+      .rx_addr   (sdw_rx_addr_w),
+      .rx_data   (sdw_rx_data_w)
   );
 
   // SD lines resolved by MUX, no tristates (14-JUL-2026): host output-enable
@@ -246,14 +314,6 @@ module nd_storage_write_tb;
     end
   endfunction
 
-  // SDRAM preload for the recovery read
-  function [31:0] rdw(input integer a);
-    reg [31:0] t;
-    begin
-      t   = a;
-      rdw = {t[15:0] ^ 16'h1111, t[15:0] ^ 16'hEEEE};
-    end
-  endfunction
 
   // ------------------------------------------------------------- monitors
   integer errors = 0;
@@ -405,13 +465,19 @@ module nd_storage_write_tb;
     end
   endtask
 
-  // SDRAM copy of a block equals the written pattern
+  // Region copy of a written block equals the written pattern.
+  //
+  // Phase 4: base_blk/blk no longer say WHERE a block lives. These clients
+  // are DIRECT (not in CACHE_MASK), so a write lands in the shared staging
+  // line at STAGE_BASE_BLK - one line, because the arbiter serves one client
+  // at a time and the line never has to outlive its own grant. The arguments
+  // are kept so the call sites still document which client/block was written.
   task check_sdram_block(input integer base_blk, input [15:0] blk, input integer code);
     integer m;
     reg [31:0] gotw, expw;
     begin
       for (m = 0; m < 512; m = m + 1) begin
-        gotw = u_mem.mem[(base_blk+blk)*512+m];
+        gotw = u_mem.mem[STAGE_BLK*512+m];
         expw = {pat16(code, 2 * m), pat16(code, 2 * m + 1)};
         if (gotw !== expw) begin
           if (errors < 10)
@@ -422,22 +488,12 @@ module nd_storage_write_tb;
     end
   endtask
 
-  // SDRAM copy of a block still holds the OLD preload (failed write)
-  task check_sdram_old(input integer base_blk, input [15:0] blk);
-    integer m;
-    reg [31:0] gotw;
-    begin
-      for (m = 0; m < 512; m = m + 1) begin
-        gotw = u_mem.mem[(base_blk+blk)*512+m];
-        if (gotw !== oldw((base_blk + blk) * 512 + m)) begin
-          if (errors < 10)
-            $display("FAIL: SDRAM blk %0d word %0d modified after failed write: %08x",
-                     blk, m, gotw);
-          errors = errors + 1;
-        end
-      end
-    end
-  endtask
+  // check_sdram_old is GONE. It asserted that a failed write left block N of
+  // a slot holding its original preload - two things that no longer exist:
+  // nothing is preloaded, and a block does not live at slot_base+blk. The
+  // invariant it was protecting is still checked, and more strongly, at the
+  // call site: mem_starts must not move across the failed write, which proves
+  // the region was not written AT ALL rather than that one block survived.
 
   // a card sector is still all zero (never committed)
   task check_card_sector_zero(input [31:0] sec);
@@ -454,22 +510,21 @@ module nd_storage_write_tb;
   endtask
 
   // ------------------------------------------------------------- preload
+  // Phase 4: there is no per-slot copy to preload any more. What must be
+  // preloaded is the STAGING LINE, because the mid-write peek (b) proves the
+  // region still holds its OLD contents while the card phase is only half
+  // done - and the staging line is now the only region block a DIRECT write
+  // ever touches. Preloading (BASE0+1)*512 as v1 did would peek at a block
+  // the write never writes, so the check would pass no matter what.
   integer pm;
   initial begin
-    // OLD data in the SDRAM copies of client 0 blocks 1 and 2
-    for (pm = 0; pm < 512; pm = pm + 1) begin
-      u_mem.mem[(BASE0+1)*512+pm] = oldw((BASE0 + 1) * 512 + pm);
-      u_mem.mem[(BASE0+2)*512+pm] = oldw((BASE0 + 2) * 512 + pm);
-      u_mem.mem[(BASE1+0)*512+pm] = oldw((BASE1 + 0) * 512 + pm);
-      // recovery-read data in client 0 block 0
-      u_mem.mem[(BASE0+0)*512+pm] = rdw((BASE0 + 0) * 512 + pm);
-    end
+    for (pm = 0; pm < 512; pm = pm + 1)
+      u_mem.mem[STAGE_BLK*512+pm] = oldw(STAGE_BLK * 512 + pm);
   end
 
   // ------------------------------------------------------------- test
   integer w;
   integer mem_starts_snap, sdw_starts_snap;
-  reg [31:0] a32;
   reg [15:0] expw16;
   initial begin
     repeat (10) @(posedge clk_stor);
@@ -478,7 +533,7 @@ module nd_storage_write_tb;
 
     // ---- (a)+(b)+(c): client 0 writes block 1, mid-write SDRAM peek ----
     fill_cbuf(0, PAT_W1);
-    mid_base = (BASE0 + 1) * 512;
+    mid_base = STAGE_BLK * 512;
     mid_checked = 0;
     mid_arm = 1;
     order_arm = 1;
@@ -552,7 +607,6 @@ module nd_storage_write_tb;
       $display("FAIL: failed write issued %0d mem writes before done", memwr_at_done);
       errors = errors + 1;
     end
-    check_sdram_old(BASE0, 16'd2);              // SDRAM copy fully intact
     check_card_sector_zero(FIRST0 + 2 * 4 + 2); // rejected sector not committed
     check_card_sector_zero(FIRST0 + 2 * 4 + 3); // fourth sector never sent
     if (card.fail_sector !== 32'hFFFF_FFFF) begin
@@ -560,18 +614,30 @@ module nd_storage_write_tb;
       errors = errors + 1;
     end
 
-    // ---- (e): the engine recovers - a read of a different block works ----
-    do_op(0, 16'd0, 1'b0);
+    // ---- (e): the engine recovers, AND the write round-trips -------------
+    // Phase 4: a read no longer serves an SDRAM preload, it FETCHES the block
+    // from the card into the staging line and serves the client from there.
+    // So reading back block 1 - the block written in (a) - proves two things
+    // at once: the engine recovered from the injected CMD24 failure, and the
+    // bytes that write put on the card come back as the same client words.
+    // (v1 read block 0 and expected an SDRAM preload that no longer exists.)
+    for (w = 0; w < 1024; w = w + 1) cbuf0[w] = 16'hDEAD;  // must be overwritten
+    sdw_starts_snap = sdw_starts;
+    do_op(0, 16'd1, 1'b0);
     if (last_err0 !== 1'b0) begin
       $display("FAIL: read after failed write returned err");
       errors = errors + 1;
     end
+    if (sdw_starts - sdw_starts_snap !== 4) begin
+      $display("FAIL: read fetched %0d sectors from the card (want 4)",
+               sdw_starts - sdw_starts_snap);
+      errors = errors + 1;
+    end
     for (w = 0; w < 1024; w = w + 1) begin
-      a32    = rdw((BASE0 + 0) * 512 + w / 2);
-      expw16 = (w % 2 == 1) ? a32[15:0] : a32[31:16];
+      expw16 = pat16(PAT_W1, w);
       if (cbuf0[w] !== expw16) begin
         if (errors < 10)
-          $display("FAIL: recovery read word %0d: got %04x want %04x", w, cbuf0[w], expw16);
+          $display("FAIL: read-back word %0d: got %04x want %04x", w, cbuf0[w], expw16);
         errors = errors + 1;
       end
     end

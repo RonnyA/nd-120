@@ -1,10 +1,10 @@
 # Floppy Conformance Matrix — Phase 0 deliverable
 
-Full path: `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/floppyTester/CONFORMANCE.md`
+Full path: `Verilog/floppyTester/CONFORMANCE.md`
 Date: 20-JUL-2026. Sources: three cited extractions —
 (A) C oracle `/home/ronny/repos/nd100x/src/devices/floppy/deviceFloppyDMA.c` + `.h`,
-(B) Verilog `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND-BUS-DEVICES/FLOPPY-DMA/circuit/ND_FLOPPY_DMA.v`,
-(C) Microcode `/mnt/e/Dev/Repos/Ronny/nd-120/Code/Microcode/ND-120-DELILAH-L.LISTING.txt`
+(B) Verilog `Verilog/ND-BUS-DEVICES/FLOPPY-DMA/circuit/ND_FLOPPY_DMA.v`,
+(C) Microcode `Code/Microcode/ND-120-DELILAH-L.LISTING.txt`
 (cross-verified against the EPROM words in `microcode.md` and the nd120uc token JSON).
 Every claim below carries its origin (A/B/C + line/CSA). Tags: **BUG** (must fix),
 **DEVIATE** (differs from oracle, decide), **QUIRK** (oracle oddity, probably keep ours),
@@ -78,7 +78,7 @@ Every claim below carries its origin (A/B/C + line/CSA). Tags: **BUG** (must fix
   parsing the format from its own spec — we have that: the ndfs FLOMON parser
   (`/mnt/e/Dev/Ronny/norskdata-ndfs/ndfs-py/src/ndfs/boot_loader.py`) + real
   diskettes to validate against. Ground-truth memory images for validation:
-  `E:\Dev\Repos\Ronny\RetroGhidra\N100-FLOPPY-3112\ND Code\` (Load_error.txt,
+  `$ND_REPOS/RetroGhidra/N100-FLOPPY-3112/ND Code\` (Load_error.txt,
   wrong_bootstrap.txt, `DEPOSIT 0 77400.txt` = a working bootstrap image).
 
 **Implementation shape that keeps today's working path intact:** leave the

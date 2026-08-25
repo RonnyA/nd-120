@@ -205,7 +205,7 @@ while listening (NUL junk); verify .fs timestamp before programming; a
 
 ---
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/HANDOFF-basys3-memory-write.md`
+**Full path:** `Verilog/docs/HANDOFF-basys3-memory-write.md`
 **Date:** 2026-07-08
 **Goal:** OPCOM memory examine/deposit works on the Basys3 (write a value, read it back).
 
@@ -301,7 +301,7 @@ the correct cell content `125005` again).
 
 1. **Bisect the sim write-break (fast):**
    ```
-   cd /mnt/e/Dev/Repos/Ronny/nd-120/Verilog
+   cd Verilog
    git stash push CPU-BOARD-3202/circuit/MEM_43.v      # park the uncommitted edit
    cd runSim && make clean && make compile && make run # does RAM write work now?
    ```

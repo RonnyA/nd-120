@@ -1,6 +1,6 @@
 # HANDOFF: QMTECH XC7A35T board bring-up (paused)
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md`
+**Full path:** `Verilog/fpga/qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md`
 **Date paused:** 2026-07-08
 **Priority:** side experiment - Basys3 debugging is the main line. Resume whenever.
 

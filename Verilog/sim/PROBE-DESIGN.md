@@ -1,6 +1,6 @@
 # ND-120 generic sim probe + Python driver — design
 
-**Full path:** `E:\Dev\Repos\Ronny\nd-120\Verilog\sim\PROBE-DESIGN.md`
+**Full path:** `Verilog/sim/PROBE-DESIGN.md`
 
 Goal: replace the hardcoded, recompile-per-signal tracing in `test_nd120.cpp` /
 `latch_ff_compare.cpp` with ONE reusable, scriptable probe you can point at *any*

@@ -39,4 +39,5 @@ void proccess_bif_signal(VND120_TOP *top);
 void process_verilog_tape(VND120_TOP *top);
 void process_verilog_floppy(VND120_TOP *top);
 void process_verilog_smd(VND120_TOP *top);
+void process_verilog_wd(VND120_TOP *top);
 #endif

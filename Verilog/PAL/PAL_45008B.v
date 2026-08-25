@@ -94,12 +94,18 @@ module PAL_45008B (
   /* verilator lint_off LATCH */
   always @(*) begin
     if ((LBD3 & BIOXL & ECCR) == 1) DISB_reg = 1'b1;
-    else if (((MR_n & BIOXL_n) == 0) | ((MR_n & ECCR_n)) == 0)
+    // PALASM 45008B: hold = /MR*DISB*/BIOXL + /MR*DISB*/ECCR - clear ONLY
+    // when ALL hold terms fail: MR or the NEXT IOX addressed to ECCR
+    // (30-JUL audit: was OR of the negated hold terms, dropping DISB on any
+    // IOX anywhere).
+    else if (MR | (BIOXL & ECCR))
       DISB_reg = 1'b0;
 
     if (((LBD0 & BIOXL & ECCR) == 1) | ((LBD1 & BIOXL & ECCR) == 1) | ((LBD4 & BIOXL & ECCR) == 1))
       TST_reg = 1'b1;
-    else if (((MR_n & BIOXL) == 0) | ((MR_n & ECCR_n) == 0))
+    // PALASM 45008B: hold = /MR*TST*/BIOXL + /MR*TST*/ECCR - same clear rule
+    // as DISB (30-JUL audit: OR-for-AND plus BIOXL where /BIOXL belongs).
+    else if (MR | (BIOXL & ECCR))
       TST_reg = 1'b0;
   end
   /* verilator lint_on LATCH */
@@ -111,12 +117,14 @@ module PAL_45008B (
       TST_reg <= 1'b0;
     end else begin
       if ((LBD3 & BIOXL & ECCR) == 1) DISB_reg <= 1'b1;
-      else if (((MR_n & BIOXL_n) == 0) | ((MR_n & ECCR_n)) == 0)
+      // Clear rule per PALASM (see latch branch comment, 30-JUL audit fix)
+      else if (MR | (BIOXL & ECCR))
         DISB_reg <= 1'b0;
 
       if (((LBD0 & BIOXL & ECCR) == 1) | ((LBD1 & BIOXL & ECCR) == 1) | ((LBD4 & BIOXL & ECCR) == 1))
         TST_reg <= 1'b1;
-      else if (((MR_n & BIOXL) == 0) | ((MR_n & ECCR_n) == 0))
+      // Clear rule per PALASM (see latch branch comment, 30-JUL audit fix)
+      else if (MR | (BIOXL & ECCR))
         TST_reg <= 1'b0;
     end
   end

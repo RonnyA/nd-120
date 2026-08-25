@@ -15,7 +15,7 @@
 **     valid at done).                                                    **
 **   - Client ports 0..3 are wired out individually (flat, narrow ports - **
 **     easy for the C++ side); clients 4..6 are tied off. Client 3 is     **
-**     INSIDE PRELOAD_MASK here (unlike the board default) so the harness **
+**     CACHED here (client 3) so the harness exercises the cache path   **
 **     can exercise the missing-file open_err path against a real card    **
 **     scan (SMD0.IMG is absent from the test image).                     **
 **   - clk_stor and clk_cpu are separate inputs; the harness drives them  **
@@ -128,7 +128,7 @@ module nd_storage_vtop (
       .WR_CLKDIV   (8'd2),            // fast writer bit clock for sim speed
       .WD_MAX      (32'd5_000_000),
       .SIMULATE    (1),
-      .PRELOAD_MASK(7'b0001111)       // client 3 mountable: missing-file case
+      .CACHE_MASK(8'b00001000)        // client 3 CACHED: the disc-class path
   ) u_dut (
       .clk_stor  (clk_stor),
       .rst_stor_n(rst_n),

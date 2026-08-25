@@ -1,6 +1,6 @@
 # ND-120 on Digilent Cmod A7-35T (future target)
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/cmod-a7-35t/`
+**Full path:** `Verilog/fpga/cmod-a7-35t/`
 
 ## Status
 
@@ -9,7 +9,7 @@ files are in this directory (BRAM main memory, CPU at 27 MHz = the Tang
 Nano 20K's full CPU speed; see "First build" below). The 512 KB SRAM
 main-memory upgrade is specified in
 [`SRAM-BRIDGE-PLAN.md`](SRAM-BRIDGE-PLAN.md) (pack16, <= 33 MHz validated -
-see `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/basys3-memory-speed-validation.md`).
+see `Verilog/docs/basys3-memory-speed-validation.md`).
 Board docs live with the board, not in `Verilog/docs/`.
 
 ## First build: ND-120 CPU on BRAM at 27 MHz
@@ -19,7 +19,7 @@ runtime WCS load from the PROM images) but self-contained (no Vivado GUI
 project) and clocked at 27 MHz:
 
 ```
-cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\cmod-a7-35t
+cd Verilog/fpga/cmod-a7-35t
 vivado -mode batch -source build.tcl                  # build + JTAG program
 vivado -mode batch -source build.tcl -tclargs -noburn # build only
 ```
@@ -27,7 +27,7 @@ vivado -mode batch -source build.tcl -tclargs -noburn # build only
 
 - **Clocking - how 27 MHz comes from the 12 MHz crystal:** the
   `TARGET_CMOD_A7` branch in
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/ND120_TOP.v` sets the MMCM to
+  `Verilog/ND120_TOP.v` sets the MMCM to
   VCO = 12 x 63 = 756 MHz (inside the 600-1200 MHz range), clk_cpu =
   756 / 28 = **27.000 MHz exactly** - so `BOARD_CLK_FREQ=27000000` and
   every UART/RTC count matches the Tang. (A PLL cannot be used - its
@@ -43,7 +43,7 @@ vivado -mode batch -source build.tcl -tclargs -noburn # build only
   24 KB). Raising it toward the 32-64K-word ceiling = `BANK_ADDR_BITS`
   in `MEM_RAM_49_BLOCKRAM.v` (+ `SKIP_WCS_LOAD` for the top of the range) -
   see the capacity math in
-  `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/basys3-memory-speed-validation.md`
+  `Verilog/docs/basys3-memory-speed-validation.md`
   section 4.1.
 
 ## SD-card Pmod on the single Pmod connector (JA)
@@ -79,7 +79,7 @@ straight into JA. Wiring (Pmod pin -> JA pin -> FPGA pin, from
   the stack needs released lines idling high (DAT3 high at CMD0 keeps
   the card out of SPI mode); the Pmod module's own pull-ups are not
   guaranteed. Same reasoning as the Basys3 port
-  (`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/basys3/sd-fat-test/`),
+  (`Verilog/fpga/basys3/sd-fat-test/`),
   which is also the wrapper template for a Cmod SD test build (swap the
   MMCM input for 12 MHz, pins from the table above).
 

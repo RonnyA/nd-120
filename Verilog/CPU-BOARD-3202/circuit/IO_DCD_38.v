@@ -52,7 +52,7 @@ module IO_DCD_38 (
     output CEUART_n,
     output CLEAR_n,
     output DT_n,
-    output DVACC_n,
+    output DVACC_n,   //! DGA access qualifier (DECODE_DGA_COMM A227, arrives as XDVN) - not the CGA's VACC
     output ECREQ,
     output ECSR_n,
     output EDO_n,

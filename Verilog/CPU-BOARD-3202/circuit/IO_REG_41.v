@@ -131,7 +131,13 @@ module IO_REG_41 (
 
 
   // Constant for ALD settings. ALD boot switch (for options, see comment at end of this file)
-  assign s_ALD[3:0] = 4'b0100;  //  0100 (4) == ALD boot switch for 400 (paper tape reader).
+  // 07-AUG-2026 (Ronny): default boot is the WINCHESTER. Vector 0010 (2) =
+  // switch setting 13 in the table below = "Bootstrap load from Winchester
+  // disk (500) and run" - block 0 into memory, execution from address 20
+  // (note 3). A bare '&' (or the LOAD button) now boots the disc; the paper
+  // tape stays reachable explicitly with 400$ / 400&.
+  // Previous value: 4'b0100 (switch 11, BPUN load from 400 paper tape).
+  assign s_ALD[3:0] = 4'b0010;  //  0010 (2) == bootstrap load Winchester 500, run from 20.
 
 
 
@@ -184,6 +190,27 @@ module IO_REG_41 (
       })
   );
 
+
+`ifdef ND120_IOR_PROBE
+  // DIAGNOSTIC (IDENT PL10 hunt, 20-AUG-2026): log IOC control-register loads
+  // and BINT10_n edges so the interrupt-enable state at each level-10
+  // dispatch is on record. Sim-only, no logic effect.
+  reg [7:0] r_iorp_ioc_prev;
+  reg       r_iorp_b10_prev;
+  always @(posedge sysclk) begin
+    if (r_iorp_ioc_prev != {s_reset, s_scons_n, s_emcl_n, s_led3_green_n,
+                            s_ioc_3, s_ioc_2, s_ioc_1, s_ioc_0})
+      $display("[ior] t=%0t IOC=%b (rst,cons_n,emcl_n,led_n,i3,i2,i1,i0)",
+               $time, {s_reset, s_scons_n, s_emcl_n, s_led3_green_n,
+                       s_ioc_3, s_ioc_2, s_ioc_1, s_ioc_0});
+    if (s_bint10_n != r_iorp_b10_prev)
+      $display("[ior] t=%0t BINT10_n=%b (ioc2=%b tbmt=%b)",
+               $time, s_bint10_n, s_ioc_2, s_tbmt);
+    r_iorp_ioc_prev <= {s_reset, s_scons_n, s_emcl_n, s_led3_green_n,
+                        s_ioc_3, s_ioc_2, s_ioc_1, s_ioc_0};
+    r_iorp_b10_prev <= s_bint10_n;
+  end
+`endif
 
   // TTL_74244 CHIP_24A_INR (simplified..)
   assign s_idb_7_0_inr_out[7:0] = s_rinr_n ? 8'b0 : s_inr_7_0[7:0];
@@ -238,6 +265,31 @@ module IO_REG_41 (
         s_idb_15_0_ald_out[3], s_idb_15_0_ald_out[2], s_idb_15_0_ald_out[1], s_idb_15_0_ald_out[0]
       })
   );
+
+`ifdef ND120_INT12_PROBE
+  // Sim-only diagnostic (24-AUG TPE deaf-prompt hunt): log the console
+  // interrupt enables (IOC bits), DA, and the BINT10/12/13 lines on every
+  // change. Shows whether TPE ever enables the console input interrupt
+  // (IOC1) and whether BINT12 fires when a character arrives.
+  reg [7:0] r_i12_prev;
+  always @(posedge sysclk) begin : int12_probe
+    reg [7:0] now;
+    now = {s_ioc_0, s_ioc_1, s_ioc_2, s_ioc_3, s_da, s_bint10_n, s_bint12_n, s_bint13_n};
+    if (now != r_i12_prev)
+      $display("[int12] t=%0t ioc0=%b ioc1=%b ioc2=%b ioc3=%b da=%b bint10_n=%b bint12_n=%b bint13_n=%b",
+               $time, now[7], now[6], now[5], now[4], now[3], now[2], now[1], now[0]);
+    r_i12_prev <= now;
+  end
+  // log every SIOC strobe with the IDB byte being written to the IOC
+  // register - distinguishes "TPE never asks for the input interrupt"
+  // from "the FF-mode strobe capture lost bit 1".
+  reg r_i12_sioc_prev;
+  always @(posedge sysclk) begin
+    if (!s_sioc_n && r_i12_sioc_prev)
+      $display("[int12] t=%0t SIOC write IDB=%03o", $time, s_ioc_idb_7_0_in);
+    r_i12_sioc_prev <= s_sioc_n;
+  end
+`endif
 
 endmodule
 

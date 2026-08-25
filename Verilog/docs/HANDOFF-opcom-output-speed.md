@@ -1,6 +1,6 @@
 # HANDOFF: OPCOM console output is far too slow on the FPGA
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/HANDOFF-opcom-output-speed.md`
+**Full path:** `Verilog/docs/HANDOFF-opcom-output-speed.md`
 **Written:** 2026-07-07 · Repo: nd-120 (ND-120 CPU HDL) · Board: Basys3 (xc7a35t) at
 `clk_cpu ≈ 16.67 MHz` · Branch: `clock-enable-fix`
 

@@ -1,10 +1,10 @@
 # USB flash-drive storage for the ND-120 boards: feasibility, options, effort
 
-**Full path:** `/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/docs/usb-storage-options.md`
+**Full path:** `Verilog/docs/usb-storage-options.md`
 **Date:** 13-JUL-2026. Research answer to: "the Basys3 has a USB port - can
 the FAT SD-card logic get a variant that uses USB?" Sources cited inline;
 the code-layering facts come from
-`/mnt/e/Dev/Repos/Ronny/nd-120/Verilog/SD-FAT/circuit/` (analyzed
+`Verilog/SD-FAT/circuit/` (analyzed
 13-JUL-2026).
 
 ---
