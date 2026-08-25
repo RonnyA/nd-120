@@ -1,0 +1,11 @@
+# After the SC2661 TBMT-on-write fix: boot INSTRUCTION-B (400$), issue RUN,
+# and capture the level-10 dummy output. Before the fix this flooded with
+# low-nibble-stripped @P0 garbage; expect paced/readable output now.
+LABEL boot INSTRUCTION-B from tape
+SEND 400$
+EXPECT 40 INSTRUCTION  VERIFY
+EXPECT 15 >
+LABEL RUN (full stress) - capture dummy output
+SEND run
+SENDCR
+PAUSE 12

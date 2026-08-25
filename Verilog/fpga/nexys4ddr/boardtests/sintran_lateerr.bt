@@ -1,0 +1,14 @@
+# Capture the LATE crash evidence (FAT fix in): boot &, wait for ERRFATAL
+# (long window - it now happens deep in the boot, not at 2.5 s), then read
+# the probe lines P / EF / W.
+LABEL boot SINTRAN via bare &
+SEND &
+LABEL waiting for the (late) crash
+EXPECT 900 ERRFATAL
+LABEL probe read-history line
+EXPECT 30 P [0-7]{6}
+LABEL EF register line
+EXPECT 30 EF [0-7]{6}
+LABEL W device-traffic line
+EXPECT 30 W [RW][0-7]
+PAUSE 5

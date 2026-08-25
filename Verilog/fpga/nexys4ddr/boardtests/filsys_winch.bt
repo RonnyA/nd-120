@@ -1,0 +1,27 @@
+# FILSYS investigator on the WINCHESTER (DISC-74MB-1) - exercises the
+# FAT-chain-fixed disc read path directly, no full SINTRAN boot needed.
+FAILON o update and check directories
+LABEL boot FILSYS from tape
+SEND 400&
+EXPECT 40 File System Investigator
+EXPECT 10 Device name
+SEND DISC-74MB-1
+SENDCR
+EXPECT 15 Device unit
+SEND 0
+SENDCR
+LABEL waiting for the disc to open (FAT walk over a 75 MB image)
+EXPECT 120 Total no\. of disk pages
+EXPECT 15 >
+LABEL LIST-USERS on the Winchester
+SEND LIST-USERS
+SENDCR
+EXPECT 30 User
+EXPECT 15 >
+LABEL LIST-FILE-NAMES user 0
+SEND LIST-FILE-NAMES
+SENDCR
+EXPECT 10 User no\.
+SENDCR
+EXPECT 60 >
+QUIET 5

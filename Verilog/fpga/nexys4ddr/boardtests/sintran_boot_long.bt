@@ -1,0 +1,8 @@
+# Longer SINTRAN boot watch after the FAT fix. The crash is gone; find out
+# if it is still loading or truly stuck. Any non-empty output ends the wait.
+FAILON System malfunction
+FAILON ERRFATAL
+LABEL boot SINTRAN via bare & (10 min window)
+SEND &
+EXPECT 600 [A-Za-z]
+PAUSE 30

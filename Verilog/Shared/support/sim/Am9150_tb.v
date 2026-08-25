@@ -1,46 +1,47 @@
 /****************************************************************************
 ** Am9150 (1024 x 4 SRAM) testbench                                        **
 **                                                                         **
-** Read from Am9150.v: data_out is a CONTINUOUS ASSIGN reading the memory  **
-** array DIRECTLY and COMBINATIONALLY:                                    **
-**   assign data_out = (!CS_n & !OE_n & WE_n & RESET_n) ?                  **
-**                      am_memory_array[address] : 4'b0;                  **
-** There IS a registered `data4bit` signal captured every posedge clk      **
-** (data4bit <= am_memory_array[address]), but it is WRITTEN and NEVER     **
-** READ anywhere else in the module - dead code, reported below and in    **
-** the job report. The actual read path is ASYNCHRONOUS (address-driven,  **
-** no clock needed to see new data once memory[address] changes) while     **
-** WRITE is synchronous (posedge clk, when CHIP_SELECT_n=0 & WRITE_ENABLE  **
-** _n=0).                                                                  **
+** Targets the FIXED Shared/support/Am9150.v (24-AUG memory reset):        **
 **                                                                         **
-** RESET_n: the header/doc block above the module (and the AM9150         **
-** datasheet) describe a memory-clear-in-two-cycles reset feature. The    **
-** RTL's write/read always block has that code COMMENTED OUT - RESET_n    **
-** low here does nothing but ADD ITSELF as a fourth AND term in the       **
-** data_out output mask (forces data_out to 0, exactly like CS_n/OE_n/    **
-** WE_n do). It never clears am_memory_array. REPORTED AS A DEVIATION     **
-** from the real part and from this file's own doc comment.               **
+** READ PATH: data_out is a CONTINUOUS ASSIGN reading the array            **
+** combinationally, masked by /S, /G, /W, /R AND the sweep-active flag:    **
+**   assign data_out = (!CS_n & !OE_n & WE_n & RESET_n & !sweep_active)    **
+**                      ? am_memory_array[address] : 4'b0;                 **
+** WRITE is synchronous (posedge clk, CS_n=0 & WE_n=0).                    **
 **                                                                         **
-** COVERAGE: exhaustive over all 1024 addresses is not attempted here (16  **
-** values each would be 16,384 write+read pairs and this is a functional, **
-** not timing-closure, check) - covered explicitly: address 0, address    **
-** 1023 (max), and addresses 5, 500, 777 (arbitrary/no-alias set), each    **
-** with two different data values to also prove overwrite works. Plus:    **
-** no-aliasing cross-check, read-during-write masking, each of the four    **
-** output-mask terms (CS_n, OE_n, WE_n, RESET_n) forced individually with  **
-** known-nonzero data underneath, and the RESET_n-does-not-clear-memory    **
-** proof.                                                                  **
+** RESET (/R) - the datasheet "memory reset function": the real part       **
+** clears the ENTIRE array to 0. The model implements it as a 1024-step    **
+** write-port sweep started by the falling edge of RESET_n; the SAME       **
+** sweep runs once at POWER-UP (counter initializer), scrubbing the        **
+** undefined cold state. While a sweep is active (~1024 clks):             **
+**   - data_out reads 0 (nothing stale can be seen mid-clear)              **
+**   - external writes are DROPPED (the sweep owns the write port)         **
+** The old model skipped the clear entirely (array contents survived a     **
+** /R pulse) - the T3 whole-array-cleared check below FAILS against it.    **
 **                                                                         **
-** Run: cd Verilog/Shared/support/sim && iverilog -g2012 -o tb.vvp         **
-**      Am9150_tb.v ../Am9150.v && vvp tb.vvp                             **
+** COVERAGE:                                                               **
+**   T0 power-up sweep: reads 0 during the sweep; a write issued during    **
+**      the sweep is dropped; after the sweep ALL 1024 locations read 0    **
+**   T1 write/read: addr 0, addr 1023, arbitrary set, overwrite,           **
+**      no-aliasing neighbours, read-during-write masking                  **
+**   T2 output-mask terms /S /G /W /R forced individually                  **
+**   T3 /R falling edge clears the ENTIRE array: scatter of written        **
+**      locations + full 1024-location scan reads 0 after the sweep,       **
+**      and the part accepts writes again afterwards                       **
 **                                                                         **
-** Last reviewed: 20-AUG-2026                                             **
+** Self-checking, exact check count enforced; TB_RESULT: PASS / FAIL.      **
+**                                                                         **
+** Run: make test-am9150   (Shared/support/sim)                            **
+**                                                                         **
+** Last reviewed: 24-AUG-2026                                              **
 ** Ronny Hansen                                                            **
 *****************************************************************************/
 `timescale 1ns / 1ps
 `default_nettype none
 
 module Am9150_tb;
+
+  localparam integer EXPECTED_CHECKS = 29;
 
   reg        clk = 0;
   always #5 clk = ~clk;
@@ -52,6 +53,7 @@ module Am9150_tb;
 
   integer errors = 0;
   integer checks = 0;
+  integer i, mismatches;
 
   Am9150 DUT (
       .clk             (clk),
@@ -86,6 +88,35 @@ module Am9150_tb;
     end
   endtask
 
+  // wait out a clear sweep (1024 steps) with margin
+  task sweep_wait;
+    begin
+      repeat (1200) @(posedge clk);
+    end
+  endtask
+
+  // scan every location, count nonzero reads, book ONE aggregated check
+  task expect_all_zero(input [255:0] label);
+    begin
+      mismatches = 0;
+      CHIP_SELECT_n = 0; WRITE_ENABLE_n = 1; OUTPUT_ENABLE_n = 0; RESET_n = 1;
+      for (i = 0; i < 1024; i = i + 1) begin
+        address = i[9:0];
+        #1;
+        if (data_out !== 4'h0) begin
+          if (mismatches < 8)
+            $display("  %0s: addr=%0d reads %h, expected 0", label, i, data_out);
+          mismatches = mismatches + 1;
+        end
+      end
+      checks = checks + 1;
+      if (mismatches != 0) begin
+        errors = errors + 1;
+        $display("FAIL %0s: %0d of 1024 locations nonzero", label, mismatches);
+      end
+    end
+  endtask
+
   initial begin
     $dumpfile("Am9150_tb.vcd");
     $dumpvars(0, Am9150_tb);
@@ -94,63 +125,63 @@ module Am9150_tb;
     WRITE_ENABLE_n = 1; CHIP_SELECT_n = 1; OUTPUT_ENABLE_n = 1; RESET_n = 1;
     @(posedge clk); #1;
 
-    // ---- short documented sequence first (readable in the VCD) ----------
-    do_write(10'd0, 4'hA);
-    expect_read(10'd0, 4'hA, "doc: addr0=A");
-    do_write(10'd1023, 4'hF);
-    expect_read(10'd1023, 4'hF, "doc: addr1023=F");
-    do_write(10'd500, 4'h3);
-    expect_read(10'd500, 4'h3, "doc: addr500=3");
+    // ---- T0: power-up sweep ----------------------------------------------
+    // reads are dead while the cold-state scrub runs
+    address = 10'd37;
+    CHIP_SELECT_n = 0; WRITE_ENABLE_n = 1; OUTPUT_ENABLE_n = 0; RESET_n = 1;
+    #1;
+    checks = checks + 1;
+    if (data_out !== 4'h0) begin
+      errors = errors + 1;
+      $display("FAIL T0_READ_DURING_POWERUP_SWEEP: data_out=%h, expected 0", data_out);
+    end
+    // a write issued during the sweep must be DROPPED
+    do_write(10'd900, 4'hB);
+    sweep_wait;
+    expect_read(10'd900, 4'h0, "T0_WRITE_DURING_SWEEP_DROPPED");
+    // after the scrub the whole array reads 0 (no X, no random cold state)
+    expect_all_zero("T0_ARRAY_ZERO_AFTER_POWERUP");
 
     $dumpoff;
 
-    // ---- 1. write-then-read at address 0 ---------------------------------
+    // ---- T1: normal write/read after the sweep ---------------------------
     do_write(10'd0, 4'h5);
-    expect_read(10'd0, 4'h5, "addr 0 = 5");
+    expect_read(10'd0, 4'h5, "T1 addr 0 = 5");
 
-    // ---- 2. write-then-read at address 1023 (max) ------------------------
     do_write(10'd1023, 4'h9);
-    expect_read(10'd1023, 4'h9, "addr 1023 = 9");
+    expect_read(10'd1023, 4'h9, "T1 addr 1023 = 9");
 
-    // ---- 3. arbitrary addresses (also proves overwrite) -------------------
     do_write(10'd5, 4'h1);
-    do_write(10'd500, 4'h6);
+    do_write(10'd500, 4'h3);
+    do_write(10'd500, 4'h6);            // overwrite
     do_write(10'd777, 4'hC);
-    expect_read(10'd5, 4'h1, "addr 5 = 1");
-    expect_read(10'd500, 4'h6, "addr 500 = 6 (overwrite of earlier 3)");
-    expect_read(10'd777, 4'hC, "addr 777 = C");
+    expect_read(10'd5, 4'h1, "T1 addr 5 = 1");
+    expect_read(10'd500, 4'h6, "T1 addr 500 = 6 (overwrite of earlier 3)");
+    expect_read(10'd777, 4'hC, "T1 addr 777 = C");
 
-    // ---- 4. no aliasing: neighbours of the written addresses must not ----
-    //        have picked up the neighbour's value.
-    do_write(10'd4, 4'h0);
-    do_write(10'd6, 4'h0);
-    do_write(10'd501, 4'h0);
-    do_write(10'd499, 4'h0);
-    expect_read(10'd4, 4'h0, "addr 4 unaffected by addr5 write");
-    expect_read(10'd6, 4'h0, "addr 6 unaffected by addr5 write");
-    expect_read(10'd501, 4'h0, "addr 501 unaffected by addr500 write");
-    expect_read(10'd499, 4'h0, "addr 499 unaffected by addr500 write");
-    expect_read(10'd5, 4'h1, "addr 5 still 1 (not disturbed by neighbours)");
-    expect_read(10'd500, 4'h6, "addr 500 still 6 (not disturbed by neighbours)");
+    // no aliasing: neighbours keep their (swept-to-0) contents
+    expect_read(10'd4, 4'h0, "T1 addr 4 unaffected by addr5 write");
+    expect_read(10'd6, 4'h0, "T1 addr 6 unaffected by addr5 write");
+    expect_read(10'd499, 4'h0, "T1 addr 499 unaffected by addr500 write");
+    expect_read(10'd501, 4'h0, "T1 addr 501 unaffected by addr500 write");
+    expect_read(10'd5, 4'h1, "T1 addr 5 still 1");
+    expect_read(10'd500, 4'h6, "T1 addr 500 still 6");
 
-    // ---- 5. read-during-write: WE_n asserted forces data_out to 0 --------
-    //        (WRITE_ENABLE_n is one of the AND terms in the output mask,
-    //        so the chip cannot show read data while writing).
-    do_write(10'd0, 4'h7);   // known content at addr 0
+    // read-during-write: WE_n low forces data_out to 0, write then commits
+    do_write(10'd0, 4'h7);
     address = 10'd0; data_in = 4'hE;
     CHIP_SELECT_n = 0; WRITE_ENABLE_n = 0; OUTPUT_ENABLE_n = 0; RESET_n = 1;
     #1;
     checks = checks + 1;
     if (data_out !== 4'h0) begin
       errors = errors + 1;
-      $display("FAIL READ_DURING_WRITE: data_out=%h while WE_n=0, expected 0 (masked)", data_out);
+      $display("FAIL T1_READ_DURING_WRITE: data_out=%h while WE_n=0, expected 0", data_out);
     end
     @(posedge clk); #1;
     WRITE_ENABLE_n = 1;
-    expect_read(10'd0, 4'hE, "addr 0 = E after the write committed");
+    expect_read(10'd0, 4'hE, "T1 addr 0 = E after the write committed");
 
-    // ---- 6. output-mask terms, each forced individually with known -------
-    //        nonzero data underneath.
+    // ---- T2: output-mask terms, each forced individually -----------------
     do_write(10'd10, 4'hD);
     address = 10'd10; WRITE_ENABLE_n = 1; RESET_n = 1;
 
@@ -158,53 +189,84 @@ module Am9150_tb;
     checks = checks + 1;
     if (data_out !== 4'h0) begin
       errors = errors + 1;
-      $display("FAIL MASK_CS_n: data_out=%h with CHIP_SELECT_n=1, expected 0", data_out);
+      $display("FAIL T2_MASK_CS_n: data_out=%h with CHIP_SELECT_n=1, expected 0", data_out);
     end
 
     CHIP_SELECT_n = 0; OUTPUT_ENABLE_n = 1; #1;
     checks = checks + 1;
     if (data_out !== 4'h0) begin
       errors = errors + 1;
-      $display("FAIL MASK_OE_n: data_out=%h with OUTPUT_ENABLE_n=1, expected 0", data_out);
+      $display("FAIL T2_MASK_OE_n: data_out=%h with OUTPUT_ENABLE_n=1, expected 0", data_out);
     end
 
     CHIP_SELECT_n = 0; OUTPUT_ENABLE_n = 0; WRITE_ENABLE_n = 0; #1;
     checks = checks + 1;
     if (data_out !== 4'h0) begin
       errors = errors + 1;
-      $display("FAIL MASK_WE_n: data_out=%h with WRITE_ENABLE_n=0, expected 0", data_out);
+      $display("FAIL T2_MASK_WE_n: data_out=%h with WRITE_ENABLE_n=0, expected 0", data_out);
     end
     WRITE_ENABLE_n = 1;
+    // note: WE_n was low across a posedge here, so addr 10 was rewritten
+    // with data_in - harmless, T3 clears everything anyway
 
     CHIP_SELECT_n = 0; OUTPUT_ENABLE_n = 0; RESET_n = 0; #1;
     checks = checks + 1;
     if (data_out !== 4'h0) begin
       errors = errors + 1;
-      $display("FAIL MASK_RESET_n: data_out=%h with RESET_n=0, expected 0", data_out);
+      $display("FAIL T2_MASK_RESET_n: data_out=%h with RESET_n=0, expected 0", data_out);
     end
-
-    // ---- 7. RESET_n does NOT clear the memory array (deviation from the --
-    //        real part / doc comment: content at addr 10 survives a
-    //        RESET_n pulse).
-    RESET_n = 0;
-    @(posedge clk); @(posedge clk); #1;   // hold reset for 2 full clocks,
-                                           // matching the doc's "two cycle
-                                           // times" claim
     RESET_n = 1;
-    expect_read(10'd10, 4'hD, "RESET_n pulse did NOT clear addr 10 (still D)");
-    expect_read(10'd0, 4'hE, "RESET_n pulse did NOT clear addr 0 (still E)");
+
+    // ---- T3: /R falling edge clears the ENTIRE array ---------------------
+    // (datasheet "memory reset function"; the check that FAILS against the
+    // old model, whose /R pulse left every location's contents intact)
+    // scatter is already written: 0=E, 5=1, 500=6, 777=C, 1023=9, 10=x
+    //
+    // The T2 mask check above dropped /R for 1 ns BETWEEN clock edges: no
+    // posedge sampled it low, so no clear started - and must not have
+    // (the datasheet reset needs /R held for two cycle times, not a
+    // sub-cycle glitch):
+    expect_read(10'd777, 4'hC, "T3 addr 777 intact after sub-cycle /R glitch");
+    // now a proper /R pulse, held across two clock edges
+    RESET_n = 0;
+    @(posedge clk); @(posedge clk); #1;
+    RESET_n = 1;
+    // reads are dead while the clear sweep runs
+    address = 10'd777;
+    CHIP_SELECT_n = 0; WRITE_ENABLE_n = 1; OUTPUT_ENABLE_n = 0; RESET_n = 1;
+    #1;
+    checks = checks + 1;
+    if (data_out !== 4'h0) begin
+      errors = errors + 1;
+      $display("FAIL T3_READ_DURING_CLEAR_SWEEP: data_out=%h, expected 0", data_out);
+    end
+    sweep_wait;
+    expect_read(10'd0, 4'h0, "T3 addr 0 cleared by /R");
+    expect_read(10'd5, 4'h0, "T3 addr 5 cleared by /R");
+    expect_read(10'd500, 4'h0, "T3 addr 500 cleared by /R");
+    expect_read(10'd777, 4'h0, "T3 addr 777 cleared by /R");
+    expect_read(10'd1023, 4'h0, "T3 addr 1023 cleared by /R");
+    expect_all_zero("T3_ARRAY_ZERO_AFTER_RESET");
+    // and the part is alive again after the sweep
+    do_write(10'd10, 4'hD);
+    expect_read(10'd10, 4'hD, "T3 addr 10 = D written after the clear");
 
     $display("-----------------------------------------------------");
-    $display(" Am9150 testbench");
-    $display(" checks run : %0d", checks);
+    $display(" Am9150 testbench (memory reset function model)");
+    $display(" checks run : %0d (expected %0d)", checks, EXPECTED_CHECKS);
     $display(" failures   : %0d", errors);
-    if (errors == 0) $display("TB_RESULT: PASS");
-    else             $display("TB_RESULT: FAIL");
+    if (errors == 0 && checks == EXPECTED_CHECKS)
+      $display("TB_RESULT: PASS");
+    else begin
+      if (checks != EXPECTED_CHECKS)
+        $display("FAIL: check count %0d != expected %0d - vacuous or truncated run", checks, EXPECTED_CHECKS);
+      $display("TB_RESULT: FAIL");
+    end
     $finish;
   end
 
   initial begin
-    #100000;
+    #200000;
     $display("TB_RESULT: FAIL (timeout)");
     $finish;
   end

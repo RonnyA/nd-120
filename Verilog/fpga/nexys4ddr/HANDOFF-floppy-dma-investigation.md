@@ -1013,3 +1013,381 @@ KNOWLEDGE CAPTURE:
   block now states the current truth (0 LUTLP, 2 auto-false-pathed
   nodes), and the WNS -35 measurement is marked superseded (post-ring-
   cut ~+1.4 ns).
+
+## 24-AUG ~17:15 - SINTRAN front: boot incantation found, ERRFATAL localized
+
+AUTONOMOUS BOARD RESULTS (run_board_test.sh, no human):
+- `201540&` is the WRONG incantation - silent bootstrap death on both
+  cache configs. Bare `&` (the ALD default, Winchester autoboot) LOADS
+  SINTRAN and reproduces Ronny's exact ERRFATAL (L-reg 042514) within
+  ~30 s on the cache-enabled addr16 build. boardtests/sintran_amp.bt is
+  the repro; sintran_boot.bt kept for the 201540& form.
+- Cache A/B: cache ON -> ERRFATAL with report; cache OFF -> the
+  Winchester bootstrap dies SILENTLY (nothing printed in 10 min) while
+  FILSYS/LFN still PASSES on the same nocache bitstream. So nocache has
+  its own EARLIER failure on the Winchester path (separate open item),
+  and the CPU cache is NOT the ERRFATAL's cause.
+- The instrumented nocache+ILA build over-utilizes BRAM (166/135
+  RAMB36): the v8 probe set + 64K-word RAM do not fit together. To
+  instrument SINTRAN hangs, trim probe groups or halve C_DATA_DEPTH in
+  build.tcl's ILA section.
+
+ERRFATAL LOCALIZED (oracle DAP on a COPY of WD0-M.IMG, breakpoint at
+0x454C = 0o042514):
+- The healthy boot also passes 0o042514: it is the return of `JPL I 7`
+  at 0o042513 (pointer 0x4552 -> 0o004356), inside a two-call loop at
+  0o042510-14 (A:=0, T:=0, loop{call 0o077132; call 0o004356}).
+- 0o004356 = SINTRAN's internal-register/paging init: IOF, clear SSPTM,
+  then a 16-iteration loop that BUILDS an internal-register instruction
+  per index (SHA/RORA arithmetic into T) and `EXR ST`s it, storing each
+  result (`STA I ,X 150`), then POF. On silicon one of these 16 built
+  TRA/TRR-class ops misbehaves -> ERRFATAL with NPIT/APIT zero, level 0.
+  Same instruction class as the old "Micro-code not loaded. CPU revision
+  too low" incident.
+NEXT: single-step the oracle loop (parked AT the breakpoint) to log the
+16 built instruction words + healthy results, then compare on silicon
+(deposit a mini-program via OPCOM that EXRs the same 16 ops and prints
+the results - the tests/floppy-dma-test generator pattern fits).
+
+## 24-AUG ~17:35 - SINTRAN ERRFATAL: the caller and the check are IDENTIFIED
+
+Measured on the parked oracle (DAP, breakpoints + single-step) plus the M06
+symbol list and the NPL source:
+
+- `ERRFA = 004356` (SYMBOL-1-LIST). The routine at 0o004356 that an earlier
+  note called "internal-register init" is **ERRFATAL itself**; its SAT-17
+  loop is ERRFATAL's own internal-register DUMP (EXR of built TRA ops into
+  the save area at `,X 150`).
+- The loop at 042510-042514 is a Winchester driver wait loop:
+  `042512 JPL I -104` calls **WISTA** (the Winchester status/termination
+  routine, `23-WINCHESTER-POF.NPL` line ~225; runtime address 077132),
+  `042513 JPL I 7` = **CALL ERRFATAL** (the driver's ERROR return slot),
+  `042514 JMP -2` = the BUSY return (wait, poll again).
+- L-reg 042514 in the crash = the JPL at 042513 -> ERRFATAL entered from
+  WISTA's ERROR EXIT. On the healthy booted oracle WISTA always leaves by
+  the BUSY/FINISHED path (measured: bp at 042513 never fires).
+- WISTA error taxonomy (source lines 484-491) sets a SOFTWARE status in T:
+  `0` HDERR (hardware error, X = hardware status), `1` MORER (bank >377),
+  `4` MEMER (memory address register readback mismatch after transfer),
+  `10` LAOUR, `100` DILLC (illegal code), `200` CNACT (controller not
+  active after activate).
+- **ERRFA saves the registers at entry**: X->0o004347, T->0o004350,
+  A->0o004351, D->0o004352, L->0o004353. The WD datafield base B=042346:
+  SSTAT (last IOX 504 status) at 042244, BADTR 042273, WANKN 042274,
+  SEEKF 042300, TRTZ 042305, BUSFL 042311, SVLCA 042312, SVLWC 042313.
+- SINTRAN's ERRFATAL ends in WAIT with interrupts off -> the ND-120 drops
+  to STOP -> **OPCOM answers on the console after the crash**, so the whole
+  dump is readable over serial with no ILA build.
+
+RUNNING NOW: `boardtests/sintran_crashdump.bt` (cache addr16 bitstream,
+-Pace 300) - boots bare `&`, waits for ERRFATAL, dumps the cells above.
+T at 0o004350 names the failing check.
+
+## 24-AUG ~18:45 - SINTRAN front: rig reproduction running, slim ILA building
+
+- Silicon repro sharpened: ERRFATAL arrives **2.4 s** after `&` (transcript
+  `boardtest-results/sintran_crashdump.log`). OPCOM does NOT answer at the
+  halt - the RTL never drops to STOP on SINTRAN's final WAIT, so the
+  post-crash serial dump plan is dead. TODO(worth an RTL thought later:
+  a way into OPCOM from a running/halted CPU).
+- **The dmaSim rig now boots `&` through the REAL SD/FAT Winchester path**:
+  new target `rig-nexys-wd` (dmaSim/Makefile) = Nexys config (BLOCKRAM
+  addr16, cache, real-timing UART) + ND120_INCLUDE_WD + ND120_SD_STORAGE +
+  ND120_SD_WD; card built by SD-FAT/sim/make_wd_card.sh from a fresh COPY
+  of WD0-M.IMG (card at SD-FAT/sim/nd_wd_card.img, 82837504 bytes; image
+  copy at /mnt/f/tmp/verilog/lfnrun/WD0-RIG-COPY.IMG). dma_p3_main.cpp:
+  console watcher triggers on "ERRFATAL" and dumps the ERRFA saves
+  (0o4347-53) + WD datafield cells via the BLOCKRAM backdoor.
+- Measured in the rig (ND120_WD_TRACE, log rig_sintran_wdtrace.log):
+  mass load (block 0, 2000 words, ctrl 000004) COMPLETES (rft=1), then
+  SEEK M4, then reads to 172000/161000 complete with CORRECT end-address
+  readbacks. ~10M cycles per transfer at sim SD speed - the earlier
+  "hang" readings were the boot CRAWLING, not stuck. Cache ON vs
+  ND_STORAGE_DISCS_UNCACHED: identical behavior so far (cache exonerated
+  for this phase). Logs: rig_sintran_amp.log (cached, 600M ticks),
+  rig_sintran_uncached.log, all in /mnt/f/tmp/verilog/lfnrun/.
+- RUNNING: 4G-half-tick cached rig boot (rig_sintran_long.log) - either
+  ERRFATAL fires the dump hook (T at 0o4350 names the failing WISTA check:
+  0=HDERR 1=MORER 4=MEMER 10=LAOUR 100=DILLC 200=CNACT) or the banner
+  appears and the rig diverges from silicon.
+- BUILDING: `-tclargs -noburn ilaslim` (build.tcl new mode) - minimal ILA
+  (RAM write port + CSA + cpu_txd, depth 1024) that fits beside the
+  addr16 RAM; trigger plan: RAM write to 0o4347 catches ERRFA's X,T,A,D,L
+  saves on silicon directly. Log: /mnt/f/tmp/verilog/lfnrun/build_ilaslim.log.
+
+## 24-AUG ~20:20 - cache EXONERATED for the ERRFATAL; CCLR defect found+fixed anyway
+
+- Ronny's direction: CPU cache now compiled OUT BY DEFAULT on the Nexys
+  (build.tcl: ND120_NO_CACHE unless `-tclargs cache`), matching the Tang.
+- MEASURED: the addr16 NOCACHE build hits the IDENTICAL ERRFATAL
+  (L-042514, ~2.5 s after `&`) - transcript
+  boardtest-results/sintran_nocache_probe.log. The cache is NOT this
+  crash's cause. (The earlier "nocache dies silently" reading belonged to
+  an older bitstream.)
+- Cache-audit agent result (real, kept, just not this bug): the CCLR
+  cache-clear was a NO-OP - Shared/support/Am9150.v ignored RESET_n for
+  the array contents, so SINTRAN's cache flush after DMA flushed nothing.
+  FIXED with a write-port clear sweep (power-up + /R falling edge, reads 0
+  mid-sweep). New bench CPU-BOARD-3202/circuit/sim/CPU_MMU_CACHE_DMA_tb.v
+  (test-mmucache-dma, registered); agent is updating test-am9150 and the
+  test-mmucache golden that had encoded the broken semantics.
+- ERRFA probe history: v1 (L-cell trigger) armed on the bulk resident
+  load (octal 4347..4353 are consecutive - a sweep is indistinguishable);
+  v2/v3 (strict-order + neighbor guard) never armed on silicon - the real
+  microcode's write pattern is not the clean ascending burst; v4 (BUILDING
+  NOW) assumes nothing: always-latch the five cells, arm ONLY when the
+  console TX itself spells "ERRFA" (8N1 deserializer in the probe).
+  Bench updated and PASSING for v4 (scrambled order + text arming).
+
+## 24-AUG ~20:25 - EVIDENCE CAPTURED: the ERRFATAL is DILLC (illegal function code 0o13)
+
+The v4 probe (console-text-armed) delivered on silicon
+(boardtest-results/sintran_errfa_v4_r1.log):
+
+    EF 060005 040000 177773 000000 042514
+        X      T      A      D      L
+
+- T = 040000 = software status BIT 14 = **DILLC, ILLEGAL CODE** (the DERR
+  taxonomy values are shifted left 8 into the status word: 1->bit8 MORER,
+  4->bit10 MEMER, 10->bit11 LAOUR, 100->bit14 DILLC, 200->bit15 CNACT).
+- A = 177773 = -5 = (function & 77) - 20 at the DILLC test
+  -> **the driver was handed function code 0o13** (legal: 0..3 and 020).
+- L = 042514 confirms entry from the driver's ERROR slot at 042513.
+- X = 060005 (b0,b2 ACTIVE,b13,b14) - surprising ACTIVE at the error exit,
+  not yet explained; do not over-read it.
+- Outcome distribution over 4 boots of IDENTICAL nocache bitstreams:
+  2x ERRFATAL (~2.5 s), 2x silent hang >300 s. NON-DETERMINISTIC.
+
+READING: the Winchester driver is being CALLED with a garbage function -
+the request block / caller state in memory is wrong, i.e. the SINTRAN
+resident or its tables LOADED FROM DISC ARE CORRUPT in memory. Fits the
+flavor split (whichever corrupt word bites first: illegal-code crash vs
+infinite loop) and fits the CPU being oracle-exact.
+
+NEXT: SINTRAN-free Winchester DATA-INTEGRITY test on the board - OPCOM
+deposit a reader program (encode with nd100-as, never by hand), read
+block N to a buffer, examine the buffer over the console, diff against
+the image file. The probe bitstream for this evidence run is saved as
+nd120_nexys4ddr_nocache_errfaprobe_v4.bit (also the current default
+nd120_nexys4ddr.bit).
+
+## 24-AUG ~21:20 - Winchester READ path proven CLEAN on Nexys silicon
+
+The SINTRAN-free integrity test (tests/wd-integrity-test/gen_wd_read_test.py,
+boardtests/wd_integrity.bt - deposits a reader via OPCOM, program prints
+per-block "K <blk> M <mismatch> C <checksum>"):
+- M=000000 on every block: double-reads agree, the path is DETERMINISTIC.
+- Checksums for sectors 2,3,5,6,7 match the pristine WD0-M image EXACTLY
+  (big-endian, 1 KB sectors, GEO_SPT=9). Sectors 0-1 differ by the same
+  delta 0o314 in both overlapping reads = ONE word of sector 1 changed =
+  the card image legitimately modified by earlier boots.
+- Blocks 9+ returning identical data was the TEST's own naivety (sector
+  field > SPT-1 takes the out-of-range path) - not a bug.
+CONCLUSION: disc->memory data is good; the DILLC function code 0o13 is
+manufactured elsewhere (in-memory corruption by something else, or a bad
+call path). NEXT INSTRUMENT (bench-verified, building as v5): the probe
+now also keeps a 128-entry ring of the last RAM READ addresses, frozen at
+the jump into ERRFA (read of 0o4356 not preceded by 0o4355), printed once
+as a "P ..." line ~0.5 s after the crash text - the dying path plus the
+operand read that delivered the 0o13.
+
+## 24-AUG ~22:15 - MEMER path CONFIRMED by the P ring; standalone repro so far NEGATIVE
+
+- v5 probe P-ring decoded against the oracle disassembly: the crash run
+  executed WISTA's address-readback compare (077234..077251), took
+  `JAF 2` at 077251 (A != 0), landed on `JMP I 65` -> pointer read 077340
+  -> fetches 077760 `SAT 4` = **the MEMER arm**, then the DERR tail
+  crossing 077777->100000 and EXIT into the caller's error slot 042513.
+  T=002000 at ERRFA = 4<<8 = MEMER ✓ (that boot; an earlier boot showed
+  T=040000 DILLC - the verdict varies per boot). A = 177773 = -5: the
+  memory-address readback disagreed with the driver's expected end
+  address by FIVE words. B is correct (datafield reads at 0423xx match).
+- Winchester DATA path exonerated everywhere it was tested: silicon
+  double-reads deterministic + checksum-exact vs the image (lower AND
+  upper buffer halves); rig identical (blocks 0-8 MATCH; 9+ = the test's
+  own sector>SPT artifact, GEO_SPT=9, 1 KB sectors, linear LBA verified).
+- Standalone MA-readback repro NEGATIVE so far: after block reads
+  (0o2000 words, cyl 0, head 0), MA reads back EXACT (122000) - polled
+  (ctrl 000004) AND interrupt-enabled (ctrl 000005), double-readback
+  clean (boardtests/wd_integrity_ma.bt, wd_integrity_int.bt).
+- The failing SINTRAN transfer's SHAPE is the missing variable ->
+  v6 probe (BUILDING) extends the EF line to 8 groups:
+  EF <X> <T> <A> <D> <L> <SVLCA> <SVLWC> <SSTAT> - the driver's
+  issue-time expected address + word count + last status, latched from
+  the datafield writes (042312/042313/042244). Next crash names the
+  exact transfer to replay standalone.
+
+## 24-AUG ~23:05 - three crash flavors, one signature; standalone repro still negative
+
+Three instrumented crashes (v5/v6 probe):
+  1. T=040000 DILLC (function 0o13), A=-5
+  2. T=002000 MEMER (readback residue),  A=-5
+  3. T=000000 HDERR (via the IERR/retry region, TRTZ read -> HDERR),
+     A=-5, SSTAT=060005 (ACTIVE **set** at WISTA's save), SVLCA=062000,
+     SVLWC=011000 = 4608 words = EXACTLY one full track (9 sectors).
+Standalone repro all NEGATIVE (data + MA readback EXACT):
+  block reads 0o2000 words polled AND int-enabled, double readback, full-
+  track 0o11000-word reads (boardtests/wd_track.bt). The RTL updates the
+  visible MA register ONLY at FinishOperation (E_DELAY end, ND_WINCHESTER
+  ~line 1100) - atomically with ACTIVE->0, rft->1, irq<=int_en - so a
+  short readback cannot come from a completed transfer; a MID-transfer
+  read returns the START address (would give -COUNT, not -5).
+A=-5 appears in ALL THREE flavors through DIFFERENT formulas (DILLC:
+  (func&77)-20+14 with func=0o13; MEMER: end-address residue) - too
+  specific for coincidence, cause not yet identified. Candidate theories
+  still open: interrupt/level-switch register corruption (T garbled
+  between caller and driver), spurious level-11 IDENT re-entry (fits
+  SSTAT ACTIVE + silent-hang flavor), IOX-write corruption under load.
+v7 probe (BUILDING): EF line now 10 groups - adds 9TREG (042314, the
+  function argument WISTA saved at entry) and 9XREG (042317). If the
+  next DILLC crash shows 9TREG=000013 the garbage came from the CALLER
+  (software/context-switch side); if 9TREG is legal the driver misread it
+  (IOX/hardware side). Rig 12G boot still grinding (7.9G, silent).
+
+## 24-AUG ~23:20 - the "-5" was a red herring (A=IRETR); reentrancy now prime suspect
+
+Source decode of the driver's exit code (23-WINCHESTER-POF.NPL WFINI/DERR):
+- ERRFA's A = IRETR (the retry-limit constant, -5) - loaded on EVERY error
+  exit. The constant A=177773 across all three crash flavors is EXPLAINED
+  and carries no information. Discard every -5-based inference.
+- ERRFA's X = SSTAT (= the cap; 060005, ACTIVE **set** at the fatal pass).
+- ERRFA's T = (DERR code << 8) | (9TREG & 377). All three crashes have low
+  byte 0 -> in the DILLC crash the function-code CHECK saw an illegal
+  value while DERR's later read of the SAME cell contributed 0: the
+  driver's view of its own datafield was INCONSISTENT within one pass.
+- v7 capture (r1, MEMER flavor): 9TREG=000000 (function READ, legal),
+  SVLCA marches 062000 -> 073000 between crashes (the sequential full-
+  track resident reads), SVLWC=011000 every time.
+PRIME SUSPECT: WISTA reentrancy/interleave - the polled wait-loop call
+racing the level-11 interrupt call (entry save TAD=:SATAD clobbers
+9TREG/SATAD mid-use; ACTIVE=1 status fits the other call's transfer
+running). RTL corroboration: ND_WINCHESTER's non-activating control-word
+branch raises s_irq from iox_wdata[0] OUTSIDE the ready guard
+(~line 936), against its own sec-4.1 comment; the 05-AUG-measured
+"ACTIVE and FINISHED at once" flaw in the same branch is still there.
+NEXT INSTRUMENT (v8): ring of the last IOX accesses to the WD card
+(reg, rd/wr, data) via the s_dev_iox_* seam, printed as a third line
+after the crash - shows interleaved GO/clear/status traffic directly.
+
+## 24-AUG ~23:50 - SMOKING GUN: IOX reads deliver the WRONG WORD to the CPU
+
+v8 probe (adds the "W" line - ring of the last 48 IOX accesses to the WD
+card at the DEVICE seam, module fpga/nexys4ddr/nd120_errfa_wdiox_ring.v,
+bench test-wdiox-ring registered):
+- Crash r1: the device answered EVERY status read R4:060005 (busy,
+  consistent, dozens in a row) - but the CPU-side SSTAT save holds
+  **164000**, an impossible status word, and 0o164000 is the IOX OPCODE
+  BASE: the CPU captured its own instruction word instead of the card's
+  answer. X=SSTAT=164000 on the CPU side vs 060005 at the seam, SAME READ
+  WINDOW.
+- Crash r3: the L=042513 flavor with X=000067, T=060000, D=171400 - more
+  junk-shaped CPU-side values.
+READING: the device chain answers correctly; the value is corrupted
+between the device OR-bus and the CPU register - an IDB/bus capture race
+that only bites while the WD DMA is stealing cycles (every crash is
+mid-transfer; the Tang at 6.75 MHz never sees it; verdict varies with
+timing phase). Earlier standalone tests were BLIND to it: a corrupted
+POLL read merely loops again; only SINTRAN's decision reads convert
+corruption into a crash.
+RUNNING: boardtests/wd_ioxhunt.bt - endless full-track sweeps with a
+poll loop that counts IMPOSSIBLE status words (bit15/bit12 set); an
+"X <count>" line = standalone reproduction. 15-minute window.
+
+## 25-AUG ~01:15 - rig hang DECODED = SINTRAN software timeout (sim-pace
+## artifact); silicon gets a second candidate mechanism
+
+The rig hang-trace (rig_sintran_hangtrace.log, ND120_WD_TRACE) shows the
+boot doing healthy full-CYLINDER reads (block 002040, count 011000, MA
+hi=000001 = bank 1, heads marching in the GO words 345/305/245...), each
+taking ~50M sim cycles at sim SD pace - then the driver DEVICE-CLEARS a
+still-ACTIVE transfer, issues M4 SEEK (step 41), clears it, M7 RTZ,
+clears that: the recalibrate spiral, forever = the silent hang.
+**SINTRAN's software timeout fired because the sim SD is ~1000x slower
+than real - the rig hang is an ARTIFACT of sim pace, not the silicon
+bug.** (Same lesson class as ND120_DEV_DELAY_TICKS.)
+
+But it names a SECOND candidate for silicon: if a real transfer ever
+stalls ~2 s (DDR2 staging hiccup?), the same timeout spiral produces
+every observed verdict, and 2.4 s to the crash fits a timeout constant.
+Standalone counter-evidence: ~4,500 clean fast transfers with zero
+timeouts in the hunters. Undecided.
+
+Silicon hunters v1/v2 (tight status polls during DMA; + console IOX
+interleave): ZERO impossible status words in 15 min each. The 164000
+capture does NOT reproduce without SINTRAN's interrupt/level activity.
+
+DISCRIMINATOR BUILDING (v9): the W ring now carries a per-entry
+delta-time field (floor(log2(cycles)) in octal; 30-31 = 1-2 s at
+16.67 MHz). On the next crash: polls spaced ~seconds before the clear =
+the TIMEOUT mechanism; microsecond spacing with garbage capture = the
+IOX-read race. Ring bench updated and PASSING (test-wdiox-ring).
+
+## 25-AUG ~01:30 - CONSOLIDATION: what is proven, what is open, decision needed
+
+TWO distinct silicon crash mechanisms now separated by evidence:
+
+  (1) TRANSFER NEVER COMPLETES. v9 timestamped W ring (r2, MEMER flavor,
+      X=060005 correct): the card answered R4:060005 = ACTIVE for all 42
+      polls, each t12 apart (~245 us, steady, NOT seconds) - then the
+      driver errored. The transfer STAYED ACTIVE and never reached
+      FinishOperation. The failing transfer targets MA-hi=1 (bank 1,
+      phys >= 0x10000) - the ONE path no standalone test covered (all
+      integrity buffers were bank 0). Same bank-decode class as the Tang
+      root cause.
+  (2) IOX-READ CAPTURE RACE. v8 (r1): card answered 060005, CPU stored
+      164000 = the IOX opcode itself. Rare, only with SINTRAN's live
+      interrupt/level activity; not reproduced standalone.
+
+NEXT DECISIVE EXPERIMENT (not yet run): a full-track READ into a BANK-1
+physical buffer (MA-hi=1), watching whether status bit3 ever completes.
+Best run in the dmaSim rig (rig-nexys-wd) where bank-1 writes are
+visible via the BLOCKRAM backdoor - the OPCOM assembler path needs a
+PUTC trampoline first (gen_wd_read_test.py grew past P-relative reach).
+
+DELIVERABLES THIS SESSION (all bench-verified, NONE committed - awaiting
+Ronny):
+  - build.tcl: CPU cache OFF BY DEFAULT on Nexys (-tclargs cache to
+    re-enable). Cache exonerated for this crash.
+  - Am9150.v: CCLR clear-sweep fix (was a no-op). Benches updated:
+    test-am9150, test-mmucache (golden re-proven), test-mmucache-dma
+    (new), test-mmucache-nocache - all PASS.
+  - MEM_RAM_49_BLOCKRAM.v: ND120_ERRFA_PROBE (console-armed EF + P + W
+    evidence lines, zero BRAM). Bench test-blockram-errfa PASS.
+  - nd120_errfa_wdiox_ring.v + top wiring: the W device-seam ring.
+    Bench test-wdiox-ring PASS.
+  - dmaSim: rig-nexys-wd target (Nexys config + real SD/FAT Winchester).
+  - tests/wd-integrity-test/: standalone WD read-integrity generator
+    (base config good; advanced variants need the trampoline).
+  - 9 probe bitstreams saved nd120_nexys4ddr_*errfaprobe*.bit.
+
+OPEN DECISION FOR RONNY: which mechanism to chase first - (1) the
+bank-1 transfer completion (rig experiment, my recommendation, fits the
+Tang precedent) or (2) the IOX-read race (needs a live-interrupt probe).
+
+## 25-AUG ~07:30 - FAT-CHAIN FIX RESOLVES THE DISC PATH; ERRFATAL GONE
+
+The Tang LLM's commit 830629d (FAT chain walked in-sector; a disc op that
+cost 362 ms, 97% SD FAT-sector reads, dropped to ~13 ms) was rebuilt into
+the Nexys bitstream (nocache default). MEASURED on silicon:
+
+- **The SINTRAN ERRFATAL is GONE.** Bare `&` no longer halts at ~2.5 s;
+  the board now runs silently (boot in progress or slow) with no crash.
+- **FILSYS floppy LFN still PASSES** (lfn_fatfix.log) - LIST-FILE-NAMES,
+  LIST-USERS, no runaway.
+- **FILSYS on the WINCHESTER (DISC-74MB-1) PASSES** (filsys_winch.log):
+  opened the 75 MB disc, listed users (RT, RONNY, ...), and dumped user 0's
+  real SINTRAN directory - SINTRAN:DATA, SEGFIL0:DATA, ND500-MONITOR:BPUN,
+  SYMBOL-1/2-LIST, etc. The Winchester read path over the fixed FAT chain
+  is HEALTHY end to end. Device name discovered via FILSYS HELP; our card
+  geometry = DISC-74-1 (8 heads, 9 spt, 1024 cyl, 1 KB sectors).
+
+CONCLUSION: the earlier ERRFATAL/DILLC/MEMER crashes were the driver's
+software TIMEOUT firing because each disc op took ~362 ms (the FAT-walk
+cost), not a bank-1 transfer bug or an IOX-read race. Both of those
+theories are now downgraded (the IOX 164000 capture was seen once and may
+have been a probe/console artifact; not reproduced and no longer needed).
+
+OPEN: does the full `&` SINTRAN boot now COMPLETE? It ran silent past
+10 min. Next: let it run longer / watch for the operator banner (may be
+7E2 once SINTRAN owns the console; board_expect now takes -Parity/-DataBits
+/-StopBits). The disc is no longer the blocker.

@@ -35,8 +35,8 @@ LIST=$(powershell.exe -Command "usbipd list" 2>/dev/null | tr -d '\r')
 CANDS=$(echo "$LIST" | awk -v vp="$VIDPID" '$2==vp && /Shared|Attached/ {print $1}')
 ATTACHED=$(echo "$LIST" | awk -v vp="$VIDPID" '$2==vp && /Attached/ {print $1}')
 
-if [ -n "$TANG_BUSID" ]; then
-    BUSID="$TANG_BUSID"
+if [ -n "${TANG_BUSID:-}" ]; then
+    BUSID="${TANG_BUSID:-}"
 elif [ "$(echo "$ATTACHED" | grep -c .)" = "1" ]; then
     BUSID="$ATTACHED"
 elif [ "$(echo "$CANDS" | grep -c .)" = "1" ]; then

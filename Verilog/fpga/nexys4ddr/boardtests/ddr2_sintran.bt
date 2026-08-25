@@ -1,0 +1,6 @@
+LABEL SINTRAN Winchester boot on the DDR2 build - long patience window
+FAILON ERRFATAL
+FAILON ERROR IN
+SEND 20500&
+EXPECT 420 SINTRAN
+QUIET 5

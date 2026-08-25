@@ -34,6 +34,9 @@ param(
     [string]$Port = "COM11",
     [int]$Baud = 9600,
     [int]$Pace = 150,
+    [string]$Parity = "None",
+    [int]$DataBits = 8,
+    [string]$StopBits = "One",
     [string]$Log = "board_expect.log"
 )
 
@@ -42,7 +45,7 @@ $ErrorActionPreference = "Stop"
 function Stamp { (Get-Date).ToString("HH:mm:ss.fff") }
 
 $lines = Get-Content $Script
-$sp = New-Object System.IO.Ports.SerialPort $Port, $Baud, "None", 8, "One"
+$sp = New-Object System.IO.Ports.SerialPort $Port, $Baud, $Parity, $DataBits, $StopBits
 $sp.ReadTimeout = 100
 $sp.DtrEnable = $true
 $sp.RtsEnable = $true

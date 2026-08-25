@@ -1,0 +1,7 @@
+# Full SINTRAN & boot, 15-min window, disc path now healthy (FAT fix).
+FAILON System malfunction
+FAILON ERRFATAL
+LABEL boot SINTRAN via bare &
+SEND &
+EXPECT 900 [A-Za-z]
+PAUSE 30

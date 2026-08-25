@@ -9,7 +9,7 @@ IVERILOG = iverilog
 VVP      = vvp
 INCDIRS  = -I.. -I../../ndlib -I../../logisim
 
-.PHONY: test-uart test-ram test-am29833a test-am29833a-parity test-am29c821 test-inrprom clean
+.PHONY: test-uart test-uart-txint test-ram test-am29833a test-am29833a-parity test-am29c821 test-inrprom clean
 
 # Back-wiring PROM (installation number), addressed by PIL 3:0.
 # -I.. also gives iverilog the include path for nd120_backwiring_defaults.vh.
@@ -66,6 +66,17 @@ test-uart-txabort: SC2661_TX_ABORT_tb
 
 SC2661_TX_ABORT_tb: SC2661_TX_ABORT_tb.v ../SC2661_UART.v
 	$(IVERILOG) -g2012 -o $@ $(INCDIRS) SC2661_TX_ABORT_tb.v ../SC2661_UART.v
+
+# TX-interrupt re-fire regression (25-AUG-2026, RUN dummy-output flood):
+# BINT10 is level-sensitive (IOC2 & TBMT), so TBMT must drop the same cycle
+# the CPU writes THR or the level-10 interrupt handler re-fires and floods
+# the console. FAILS against the pre-fix SC2661 (1-cycle re-fire window).
+test-uart-txint: SC2661_TXINT_tb
+	$(VVP) SC2661_TXINT_tb | tee txint_result.tmp
+	@grep -q "TB_RESULT: PASS" txint_result.tmp && rm -f txint_result.tmp SC2661_TXINT_tb.vcd
+
+SC2661_TXINT_tb: SC2661_TXINT_tb.v ../SC2661_UART.v
+	$(IVERILOG) -g2012 -o $@ $(INCDIRS) SC2661_TXINT_tb.v ../SC2661_UART.v
 
 SC2661_UART_tb: SC2661_UART_tb.v ../SC2661_UART.v
 	$(IVERILOG) -g2012 -o $@ $(INCDIRS) SC2661_UART_tb.v ../SC2661_UART.v

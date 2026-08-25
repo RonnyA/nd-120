@@ -1,0 +1,7 @@
+LABEL identify the program at the > prompt
+SENDCR
+PAUSE 2
+SEND HELP
+SENDCR
+PAUSE 5
+QUIET 3

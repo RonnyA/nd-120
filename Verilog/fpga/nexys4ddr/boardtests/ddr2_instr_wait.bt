@@ -1,0 +1,6 @@
+LABEL wait out the looping phase, expect final END OF TEST and prompt
+FAILON ERROR IN
+EXPECT 240 END OF TEST
+PAUSE 2
+SENDCR
+QUIET 5

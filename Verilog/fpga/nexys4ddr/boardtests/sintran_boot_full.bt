@@ -1,0 +1,10 @@
+# Full SINTRAN boot attempt after the SD-FAT chain fix. Bare & = ALD
+# default Winchester autoboot. Fail on the crash; succeed on any sign of
+# SINTRAN reaching its operator dialog.
+FAILON System malfunction
+FAILON ERRFATAL
+LABEL boot SINTRAN via bare & (ALD default = Winchester)
+SEND &
+LABEL waiting for SINTRAN to come up (up to 5 min)
+EXPECT 300 SINTRAN|ENTER|DATE|@|OPCOM|VERSION|RT|:
+PAUSE 5

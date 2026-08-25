@@ -56,7 +56,30 @@ rig-nexys:
 rig-tang:
 	$(MAKE) compile EXTRA_VDEFINES="$(TANG_VDEFINES)"
 
-.PHONY: rig-nexys rig-tang
+# rig-nexys-wd: the Nexys config PLUS the real Winchester-over-SD-FAT path
+# (ND120_INCLUDE_WD + ND120_SD_STORAGE + ND120_SD_WD - the same seam sim/'s
+# probe-wd-sd uses, built here with the NEXYS memory/UART config so the
+# SINTRAN '&' ERRFATAL can be reproduced with full visibility). Card image:
+# build with ../SD-FAT/sim/make_wd_card.sh <WD0 image copy>; WD_CARD_BYTES
+# is read from the file. The harness types ND120_OPCOM_SCRIPT and dumps the
+# ERRFA save cells (see dma_p3_main.cpp) when the console prints ERRFATAL.
+WD_CARD ?= ../SD-FAT/sim/nd_wd_card.img
+WD_CARD_BYTES ?= $(shell stat -c%s $(WD_CARD) 2>/dev/null || echo 0)
+WD_SD_DEFINES = -DND120_INCLUDE_WD -DND120_SD_STORAGE -DND120_SD_WD \
+  -DND120_SD_CARD_IMG='"$(WD_CARD)"' -DND120_SD_CARD_BYTES=$(WD_CARD_BYTES) \
+  -v ../SD-FAT/circuit/nds_sync.v -v ../SD-FAT/circuit/sd_file_reader.v
+
+# ONE make level (no sub-make): the quoted -DND120_SD_CARD_IMG='"file"'
+# survives exactly one shell, the same way sim/Makefile passes it.
+rig-nexys-wd: SUPPRESS_FLAGS += -Wno-DECLFILENAME -Wno-BLKSEQ -Wno-TIMESCALEMOD
+rig-nexys-wd: VERILATOR_DIRS += -I../SD-FAT/sim
+rig-nexys-wd: SIM_DEFINES += $(NEXYS_VDEFINES) $(WD_SD_DEFINES)
+rig-nexys-wd: $(CPP_SOURCES)
+	@test -s "$(WD_CARD)" || { echo "rig-nexys-wd: no card at $(WD_CARD) - run ../SD-FAT/sim/make_wd_card.sh <image>"; exit 1; }
+	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILATOR_DIRS) --exe $(CPP_SOURCES) -CFLAGS "$(VERILATOR_DIRS) -std=gnu++20 -fcoroutines $(NEXYS_CFLAGS)"
+	cd obj_dir && make -f VND120_TOP.mk VND120_TOP
+
+.PHONY: rig-nexys rig-tang rig-nexys-wd
 
 # TIMING=1 (default): Verilator --timing (event-driven scheduler). The green
 # test-dma-rtl gate builds this way (SD_STORAGE=1 -> TIMING=1), and the DMA
@@ -80,7 +103,7 @@ DGA_COMPONENTS = -I../DECODE-GateArray/DGA/circuit
 BUSDEV_COMPONENTS = -I../ND-BUS-DEVICES/BUS-IF/circuit -I../ND-BUS-DEVICES/TAPE-400/circuit \
                     -I../ND-BUS-DEVICES/DMA/circuit -I../ND-BUS-DEVICES/FLOPPY/circuit \
                     -I../ND-BUS-DEVICES/FLOPPY-DMA/circuit -I../ND-BUS-DEVICES/SMD/circuit \
-                    -I../SD-FAT/circuit
+                    -I../ND-BUS-DEVICES/WINCHESTER/circuit -I../SD-FAT/circuit
 
 VERILATOR_DIRS = -I.. $(TOP_3202D_COMPONENTS) $(CGA_COMPONENTS) $(DGA_COMPONENTS) $(BUSDEV_COMPONENTS) -I../PAL
 

@@ -1,0 +1,8 @@
+# SINTRAN boot via the ALD default (bare '&' = Winchester autoboot).
+FAILON ERRFATAL
+FAILON System malfunction
+LABEL boot SINTRAN via bare & (ALD default = Winchester)
+SEND &
+LABEL waiting for SINTRAN output (long)
+EXPECT 600 SINTRAN|RUNNING|ENTER|TT:
+QUIET 5

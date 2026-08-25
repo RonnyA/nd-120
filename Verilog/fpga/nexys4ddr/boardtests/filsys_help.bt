@@ -1,0 +1,9 @@
+LABEL boot FILSYS from tape
+SEND 400&
+EXPECT 40 File System Investigator
+EXPECT 10 Device name
+SEND HELP
+SENDCR
+LABEL capture the legal-device list
+EXPECT 15 Device name
+PAUSE 3

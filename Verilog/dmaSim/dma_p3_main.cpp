@@ -347,6 +347,7 @@ static int  op_rxen = 0, op_rxbit = 0, op_rxdata = 0, op_rxticks = 0;
 static int  op_rxhold = 0;               // half-ticks the line must stay HIGH before re-arming (back-to-back frame alignment)
 static std::string op_line;
 
+static int g_errfatal = 0;  // 1 = console printed ERRFATAL, dump pending
 static int g_csa_rec = 0;   // 1 = recording microcode addresses
 static std::vector<std::pair<unsigned, long>> g_csa_seq;  // (csa, repeat count)
 // [csapair] ND120_CSA_PAIR=<octal>: count which CSA follows each visit to
@@ -416,6 +417,10 @@ static void opcom_tick(VND120_TOP *top)
 					if (!op_line.empty()) printf("[console] %s\n", op_line.c_str());
 					if (op_line.find("0041 ") != std::string::npos) g_csa_rec = 1;
 					if (g_csa_rec == 1 && op_line.find("update and check") != std::string::npos) g_csa_rec = 2;
+					// SINTRAN crash: ERRFA (0o4356) saved X,T,A,D,L to
+					// 0o4347-0o4353 BEFORE printing - dump them (main loop).
+					if (op_line.find("ERRFATAL") != std::string::npos && g_errfatal == 0)
+						g_errfatal = 1;
 					op_line.clear();
 				} else if (c >= 32) op_line += c;
 			}
@@ -795,6 +800,47 @@ int main(int argc, char **argv)
 				}
 			}
 			if (cnt >= g_settle) opcom_tick(top);
+			// SINTRAN ERRFATAL: the console watcher set g_errfatal=1. ERRFA
+			// (0o4356) has ALREADY saved X,T,A,D,L to 0o4347-0o4353 (its first
+			// instructions, before any printing), so dump the evidence now,
+			// let the rest of the message flush, then stop.
+			{
+				static long errfatal_end = 0;
+				if (g_errfatal == 1)
+				{
+					g_errfatal = 2;
+					errfatal_end = cnt + 8000000;
+					static const struct { unsigned a; const char *n; } cells[] = {
+						{04347, "X (= hardware status when T=0/HDERR)"},
+						{04350, "T (driver software status - the WHY)"},
+						{04351, "A"}, {04352, "D"}, {04353, "L"},
+						{042244, "SSTAT last IOX 504 status seen by WISTA"},
+						{042273, "BADTR"}, {042274, "WANKN"},
+						{042300, "SEEKF"}, {042305, "TRTZ"}, {042311, "BUSFL"},
+						{042312, "SVLCA expected end address low"},
+						{042313, "SVLWC expected word count"},
+					};
+					printf("[errfatal] ERRFA entry saves + WD datafield:\n");
+					for (unsigned i = 0; i < sizeof(cells)/sizeof(cells[0]); i++)
+						printf("[errfatal]   %06o = %06o  %s\n",
+						       cells[i].a, g_peek ? g_peek(cells[i].a) : 0, cells[i].n);
+					unsigned t = g_peek ? g_peek(04350) : 0xFFFF;
+					const char *why =
+					    t == 0    ? "HDERR hardware error (X = hardware status)" :
+					    t == 1    ? "MORER bank number > 377" :
+					    t == 4    ? "MEMER memory address register not as expected" :
+					    t == 010  ? "LAOUR logical address outside device" :
+					    t == 0100 ? "DILLC illegal code" :
+					    t == 0200 ? "CNACT controller not active after activate" :
+					                "UNKNOWN code";
+					printf("[errfatal] T=%06o -> %s\n", t, why);
+				}
+				if (g_errfatal == 2 && cnt > errfatal_end)
+				{
+					printf("TB_RESULT: FAIL (SINTRAN ERRFATAL reproduced - see [errfatal] dump)\n");
+					break;
+				}
+			}
 			csa_record(top);
 			csa_pair(top);
 			// stop the CSA recording ~400k ticks after it started (enough for

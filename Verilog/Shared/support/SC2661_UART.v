@@ -226,6 +226,15 @@ module SC2661_UART (
     This output is valid only when the transmitter is enabled. It is an open-drain output which can be used as an interrupt to the CPU.
    */
   assign s_txrdy_n = cmd_txEnabled ? ~regStatusRegister[0] : 1'b1;
+
+  // A THR write happening THIS cycle (address 0, write, chip enabled, not yet
+  // executed). Used to drop TBMT (status[0]) the SAME cycle the CPU loads the
+  // holding register, so an interrupt driven off TBMT (BINT10 = IOC2 & TBMT,
+  // level-sensitive) deasserts before the handler can re-enter. Without this
+  // the level-10 "dummy output" stress floods and overwrites THR, because the
+  // old code cleared TBMT only later in the TX state machine. Polled output
+  // never saw it (software re-reads status after the TX machine has advanced).
+  wire s_thr_write = !s_ce_n & !regCommandExecuted & s_read_n & (s_address == 2'b00);
   /*
     /RxRDY
 
@@ -316,6 +325,8 @@ module SC2661_UART (
                   //Write to transmit holding register
                   regTransmitHoldingRegister <= s_data_in;  // Write transmit holding register
                   regDataInSendRegister <= 1;  // Send data to transmitter
+                  regStatusRegister[0] <= 0;  // THR now BUSY -> TBMT drops same cycle
+                  regStatusRegister[2] <= 0;  // TxEMT low (a character is pending)
                 end
 
                 2'b01: begin
@@ -489,7 +500,10 @@ module SC2661_UART (
                 regStatusRegister[2] <= 0;  // 0=Transmit Shift Register BUSY (TxEMT low)
                 txState              <= TX_STATE_START_BIT;
                 txCounter            <= 0;
-              end else begin
+              end else if (!s_thr_write) begin
+                // Do NOT re-assert THR-empty on the cycle a write lands, or
+                // the write's status[0]<=0 above would be overridden and TBMT
+                // would stay high for a cycle (the level-10 re-entry bug).
                 txBit <= 1;
                 regStatusRegister[0] <= 1; // tx empty (THR empty, TxRDY)
                 regStatusRegister[2] <= 1; // TxEMT: shift register empty (level, idle)

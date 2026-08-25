@@ -1,0 +1,73 @@
+# Reproduce the SINTRAN ERRFATAL (bare & = ALD Winchester autoboot) on the
+# CACHE-enabled addr16 bitstream, then use OPCOM (CPU drops to STOP at the
+# ERRFATAL WAIT) to dump the evidence:
+#   ERRFA entry saves: 4347=X 4350=T 4351=A 4352=D 4353=L
+#     T = driver software status: 0=hw error (X=status), 1=bank>377,
+#         4=memory address register mismatch, 10=log addr outside device,
+#         100=illegal code, 200=controller not active after activate
+#   WD driver datafield (B=042346): 42244=SSTAT(last IOX 504 status),
+#     42273=BADTR 42274=WANKN 42300=SEEKF 42305=TRTZ 42311=BUSFL
+#     42312=SVLCA 42313=SVLWC
+LABEL boot SINTRAN via bare & (ALD default = Winchester)
+SEND &
+LABEL waiting for ERRFATAL
+EXPECT 300 ERRFATAL
+PAUSE 10
+LABEL trying OPCOM at the halt
+SENDCR
+EXPECT 10 #
+LABEL ERRFA register saves
+SEND 4347/
+PAUSE 2
+SENDCR
+SEND 4350/
+PAUSE 2
+SENDCR
+SEND 4351/
+PAUSE 2
+SENDCR
+SEND 4352/
+PAUSE 2
+SENDCR
+SEND 4353/
+PAUSE 2
+SENDCR
+LABEL WD driver datafield
+SEND 42244/
+PAUSE 2
+SENDCR
+SEND 42273/
+PAUSE 2
+SENDCR
+SEND 42274/
+PAUSE 2
+SENDCR
+SEND 42300/
+PAUSE 2
+SENDCR
+SEND 42305/
+PAUSE 2
+SENDCR
+SEND 42311/
+PAUSE 2
+SENDCR
+SEND 42312/
+PAUSE 2
+SENDCR
+SEND 42313/
+PAUSE 2
+SENDCR
+LABEL live registers at halt
+SEND P/
+PAUSE 2
+SENDCR
+SEND L/
+PAUSE 2
+SENDCR
+SEND T/
+PAUSE 2
+SENDCR
+SEND X/
+PAUSE 2
+SENDCR
+QUIET 3

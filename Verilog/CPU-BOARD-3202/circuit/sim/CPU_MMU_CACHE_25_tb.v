@@ -260,7 +260,15 @@ module CPU_MMU_CACHE_25_tb;
     clk_en = 1;
 
     // ---- P2: fill 16 addresses through the refill-write path ----
+    // Am9150 24-AUG fix: the used-bit RAM runs a 1024-step clear sweep at
+    // POWER-UP (and after every CCLR_n falling edge); while it runs, reads
+    // return 0 and external writes are DROPPED. Release CCLR_n first, then
+    // wait the sweep out, or the 16 refill writes below never land and
+    // every P3/P5 hit fails. The P0/P1 folds are unaffected (the 21F
+    // output was already forced 0 there: previously by the CCLR_n gate,
+    // now by the sweep), so the recorded golden checksums still hold.
     cclr_n = 1;
+    repeat (1200) @(posedge sysclk);
     ecd_n  = 0;
     for (ai = 0; ai < 16; ai = ai + 1) begin
       ca = fill[ai]; cd_in = pat(fill[ai]); cpn_in = cpnpat(fill[ai]);

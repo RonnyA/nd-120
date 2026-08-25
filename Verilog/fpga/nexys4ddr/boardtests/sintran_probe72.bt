@@ -1,0 +1,12 @@
+# After a & boot, probe the booted SINTRAN console (7E2) with an attention
+# keystroke to see if the OS is up but its banner was missed at 8N1.
+LABEL boot
+SEND &
+PAUSE 90
+LABEL attention (ESC) + CR at 7E2
+SENDCR
+PAUSE 3
+SENDCR
+LABEL listen
+EXPECT 30 [A-Za-z@:]
+PAUSE 3

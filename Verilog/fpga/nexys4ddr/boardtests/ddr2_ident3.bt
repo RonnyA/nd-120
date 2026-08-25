@@ -1,0 +1,4 @@
+LABEL answer 'All commands' prompt with CR and capture the list
+SENDCR
+PAUSE 15
+QUIET 5

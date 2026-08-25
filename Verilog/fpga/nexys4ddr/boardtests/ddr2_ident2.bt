@@ -1,0 +1,4 @@
+LABEL HELP asked for a subcommand - answer with CR for full list
+SENDCR
+PAUSE 8
+QUIET 4

@@ -1,0 +1,14 @@
+# SINTRAN ERRFATAL evidence run (errfaprobe bitstream): boot bare '&',
+# let the crash happen, then read the probe's repeating console line
+#   EF <X> <T> <A> <D> <L>    (octal; ERRFA's entry saves)
+# T decodes the failing Winchester-driver check: 0=HDERR (X=hw status)
+# 1=MORER 4=MEMER 10=LAOUR 100=DILLC 200=CNACT.
+LABEL boot SINTRAN via bare & (ALD default = Winchester)
+SEND &
+LABEL waiting for ERRFATAL
+EXPECT 240 ERRFATAL
+LABEL waiting for the P read-history line (~0.5 s after the crash text)
+EXPECT 60 P [0-7]{6}
+LABEL waiting for the EF evidence line
+EXPECT 60 EF [0-7]{6}
+PAUSE 10

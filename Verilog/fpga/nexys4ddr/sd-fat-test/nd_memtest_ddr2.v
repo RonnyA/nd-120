@@ -88,6 +88,7 @@ module nd_memtest_ddr2 #(
   reg          req_valid, req_we;
   reg  [ 26:0] req_addr;
   reg  [127:0] req_wdata;
+  reg  [ 15:0] req_wmask;
   wire         req_ready, rsp_valid;
   wire [127:0] rsp_rdata;
 
@@ -102,7 +103,8 @@ module nd_memtest_ddr2 #(
       .req_we   (req_we),
       .req_addr (req_addr),
       .req_wdata(req_wdata),
-      .req_wmask(16'h0000),   // the test writes whole 128-bit words
+      .req_wmask(req_wmask),   // whole-beat writes use 0000; the MASKW
+                               // phase drives the region's byte-lane masks
       .req_ready(req_ready),
       .rsp_valid(rsp_valid),
       .rsp_rdata(rsp_rdata),
@@ -221,6 +223,15 @@ module nd_memtest_ddr2 #(
   localparam S_RESULT  = 5'd10;
   localparam S_ERRLINE = 5'd11;
   localparam S_END     = 5'd12;
+  // MASKW: byte-masked partial writes - the storage region's idiom
+  // (nd_ddr2_storage lane_mask), which the full-beat sweep never touches
+  localparam S_MW      = 5'd13;  // full-beat base write
+  localparam S_MW_W    = 5'd14;
+  localparam S_MP      = 5'd15;  // masked 4-byte write
+  localparam S_MP_W    = 5'd16;
+  localparam S_MR      = 5'd17;  // read back, verify lanes
+  localparam S_MR_W    = 5'd18;
+  localparam S_MWLINE  = 5'd19;
 
   reg [ 4:0] state, after_emit;
   reg [26:0] burst;
@@ -232,6 +243,17 @@ module nd_memtest_ddr2 #(
 
   // read-latency measurement, in ui_clk cycles
   reg [15:0] lat_cnt, lat_max;
+
+  // MASKW bookkeeping
+  reg [ 3:0]  mw_i;
+  reg [ 7:0]  mw_err;
+  reg [127:0] mw_exp;
+  wire [ 1:0]  mw_lane  = mw_i[1:0];
+  wire [26:0]  mw_addr  = {4'd0, mw_i, 16'h0000, 3'b000};
+  wire [127:0] mw_base  = {32'hDDCC0000 | {28'd0,mw_i}, 32'h99880000 | {28'd0,mw_i},
+                           32'h55440000 | {28'd0,mw_i}, 32'h11000000 | {28'd0,mw_i}};
+  wire [31:0]  mw_bword = 32'hC3C30000 | {28'd0, mw_i};
+  wire [15:0]  mw_mask  = ~(16'h000F << {mw_lane, 2'b00});
 
   wire [26:0] addr = {burst[23:0], 3'b000};
 
@@ -266,6 +288,10 @@ module nd_memtest_ddr2 #(
       lat_cnt    <= 16'd0;
       lat_max    <= 16'd0;
       expect_r   <= 128'd0;
+      req_wmask  <= 16'h0000;
+      mw_i       <= 4'd0;
+      mw_err     <= 8'd0;
+      mw_exp     <= 128'd0;
     end else begin
       case (state)
         S_IDLE: begin
@@ -420,6 +446,81 @@ module nd_memtest_ddr2 #(
           line[19]<=" "; line[20]<="C"; line[21]<="Y"; line[22]<="C";
           line[23]<=8'h0D; line[24]<=8'h0A;
           line_len   <= 6'd25;
+          line_ptr   <= 6'd0;
+          after_emit <= S_MW;
+          mw_i       <= 4'd0;
+          mw_err     <= 8'd0;
+          state      <= S_EMIT;
+        end
+
+        // ---- MASKW: base beat, masked lane update, verify ------------
+        S_MW: begin
+          req_we    <= 1'b1;
+          req_addr  <= mw_addr;
+          req_wdata <= mw_base;
+          req_wmask <= 16'h0000;
+          req_valid <= 1'b1;
+          if (req_valid && req_ready) begin
+            req_valid <= 1'b0;
+            state     <= S_MW_W;
+          end
+        end
+        S_MW_W: if (rsp_valid) state <= S_MP;
+
+        S_MP: begin
+          req_we    <= 1'b1;
+          req_addr  <= mw_addr;
+          req_wdata <= {4{mw_bword}};      // the region's exact write shape
+          req_wmask <= mw_mask;
+          req_valid <= 1'b1;
+          if (req_valid && req_ready) begin
+            req_valid <= 1'b0;
+            state     <= S_MP_W;
+          end
+        end
+        S_MP_W: if (rsp_valid) state <= S_MR;
+
+        S_MR: begin
+          req_we    <= 1'b0;
+          req_addr  <= mw_addr;
+          req_wmask <= 16'h0000;
+          case (mw_lane)
+            2'd0: mw_exp <= {mw_base[127:32], mw_bword};
+            2'd1: mw_exp <= {mw_base[127:64], mw_bword, mw_base[31:0]};
+            2'd2: mw_exp <= {mw_base[127:96], mw_bword, mw_base[63:0]};
+            2'd3: mw_exp <= {mw_bword, mw_base[95:0]};
+          endcase
+          req_valid <= 1'b1;
+          if (req_valid && req_ready) begin
+            req_valid <= 1'b0;
+            state     <= S_MR_W;
+          end
+        end
+        S_MR_W:
+        if (rsp_valid) begin
+          if (rsp_rdata != mw_exp) mw_err <= mw_err + 8'd1;
+          if (mw_i == 4'd15) state <= S_MWLINE;
+          else begin
+            mw_i  <= mw_i + 4'd1;
+            state <= S_MW;
+          end
+        end
+
+        S_MWLINE: begin
+          line[0]<="M"; line[1]<="A"; line[2]<="S"; line[3]<="K"; line[4]<="W";
+          line[5]<=" ";
+          if (mw_err == 8'd0) begin
+            line[6]<="P"; line[7]<="A"; line[8]<="S"; line[9]<="S";
+            line[10]<=8'h0D; line[11]<=8'h0A;
+            line_len <= 6'd12;
+          end else begin
+            line[6]<="F"; line[7]<="A"; line[8]<="I"; line[9]<="L"; line[10]<=" ";
+            line[11]<=hexch(mw_err[7:4]);
+            line[12]<=hexch(mw_err[3:0]);
+            line[13]<=8'h0D; line[14]<=8'h0A;
+            line_len <= 6'd15;
+            ui_fail  <= 1'b1;
+          end
           line_ptr   <= 6'd0;
           after_emit <= S_RESULT;
           state      <= S_EMIT;

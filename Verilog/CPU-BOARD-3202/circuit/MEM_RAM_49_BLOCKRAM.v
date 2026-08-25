@@ -47,6 +47,11 @@ module MEM_RAM_49_BLOCKRAM #(
     input  [17:0] DD_17_0_IN,
     output [17:0] DD_17_0_OUT,
 
+`ifdef ND120_ERRFA_PROBE
+    input  ERRFA_CONTX,  // the console TX line (arming: SINTRAN prints ERRFA)
+    output ERRFA_TXD,
+`endif
+
     output CORR_n
 );
 
@@ -138,6 +143,279 @@ module MEM_RAM_49_BLOCKRAM #(
       end
     end
   end
+
+`ifdef ND120_ERRFA_PROBE
+  // SINTRAN ERRFATAL evidence probe (24-AUG-2026). SINTRAN's ERRFA routine
+  // (0o004356 in the M06 resident) saves X,T,A,D,L to words 0o4347-0o4353
+  // of bank 0 BEFORE printing "Sintran halt in ERRFATAL" and halting. On
+  // the crash the CPU never drops to STOP (OPCOM unreachable) and no JTAG
+  // ILA fits beside the addr16 main RAM (270/270 RAMB18 sites), so this
+  // latches those five write values into flip-flops and, once the L save
+  // has been seen and ~2 s passed, repeats them forever as one octal line
+  //   EF <X> <T> <A> <D> <L> <SVLCA> <SVLWC> <SSTAT> <9TREG> <9XREG>
+  // on its own 9600-baud TX line, which the board top wire-ANDs onto the
+  // console TX (idle high; SINTRAN is halted, the console is free).
+  // T decodes the failing Winchester-driver check: 0=HDERR 1=MORER
+  // 4=MEMER 10=LAOUR 100=DILLC 200=CNACT (23-WINCHESTER-POF.NPL DERR).
+  // Zero block RAM, no functional effect; define set by build.tcl
+  // -tclargs errfaprobe only.
+  // Bit clock and arming gap, define-overridable so the unit bench
+  // (sim/MEM_RAM_49_BLOCKRAM_ERRFA_tb.v) can run in sim time.
+`ifndef ND120_ERRFA_BAUD_DIV
+  `define ND120_ERRFA_BAUD_DIV 1736
+`endif
+`ifndef ND120_ERRFA_GAP_BITS
+  `define ND120_ERRFA_GAP_BITS 25
+`endif
+`ifndef ND120_ERRFA_RWAIT_BITS
+  `define ND120_ERRFA_RWAIT_BITS 23
+`endif
+  localparam integer EFP_BAUD_DIV = `ND120_ERRFA_BAUD_DIV;  // clk / 9600
+  localparam integer EFP_GAP_BITS = `ND120_ERRFA_GAP_BITS;  // ~2 s arming gap
+  localparam integer EFP_RWAIT_BITS = `ND120_ERRFA_RWAIT_BITS;  // ~0.5 s to the P line
+
+  reg [15:0] efp_cap[0:9];
+  reg        efp_armed;
+  reg [EFP_GAP_BITS-1:0] efp_gap;  // inter-line pacing / initial ~2 s delay
+  reg [ 6:0] efp_char;     // 0..74 within the line
+  reg [ 3:0] efp_bit;      // 10 bits per char
+  reg [11:0] efp_baud;
+  reg        efp_txd;
+  reg        efp_sending;
+
+  wire efp_wr = win & ~win_d & ~MWRITE50_n & BANK0;
+  wire [15:0] efp_wdata = {dd_q[16:9], dd_q[7:0]};
+  wire [15:0] efp_a16 = {{(16 - BANK_ADDR_BITS) {1'b0}}, a};
+
+  // ARMING (third design, 24-AUG). The first trigger ("L cell written")
+  // armed during the bulk resident load - in octal 4347..4353 are
+  // consecutive, so a memory sweep writes the same five cells in the same
+  // order. The second ("five writes in strict order, not preceded by the
+  // 4346 neighbor") never armed on silicon - the real microcode's write
+  // pattern around ERRFA's saves is not the clean ascending burst the
+  // bench modeled. This design assumes NOTHING about write order:
+  //   * the five capture registers always track the LAST value written to
+  //     their cell (bulk loads just update them harmlessly);
+  //   * arming watches the CONSOLE TX line for SINTRAN's own crash text -
+  //     a 9600-baud deserializer on ERRFA_CONTX matches the ASCII
+  //     sequence "ERRFA". Only a machine that is announcing the crash can
+  //     arm the probe, so the live console is never garbled.
+  // console-TX "ERRFA" matcher state
+  reg [11:0] efp_rxbaud;
+  reg [ 3:0] efp_rxbit;   // 0 = hunting start bit
+  reg [ 7:0] efp_rxsh;
+  reg [39:0] efp_txt;     // last five received chars
+
+  // ---- READ-HISTORY RING (the "P" line) --------------------------------
+  // 128-entry LUTRAM ring of the last RAM READ addresses before the fatal
+  // ERRFA entry. Freeze rule: a read of 0o4356 (ERRFA's first word) whose
+  // PREVIOUS read was not the sequential neighbor 0o4355 = a JUMP into
+  // ERRFA (the fatal call). Sequential sweeps (SINTRAN's memory scrub
+  // reads 4355 then 4356) never freeze it; nothing else reads 4356.
+  // At freeze the ring holds the last ~128 reads of the dying path -
+  // WISTA's final instructions, the caller, and the operand read that
+  // delivered the illegal function code. Printed ONCE as
+  //   P aaaaaa aaaaaa ... (oldest first, 128 entries)
+  // starting ~0.5 s after the console matcher arms - after SINTRAN's
+  // crash text has flushed, before the first EF line at ~2 s.
+  reg [15:0] efp_ring[0:127];
+  reg [ 6:0] efp_rwp;
+  reg        efp_frozen;
+  reg [15:0] efp_prev_rd;
+  reg        efp_rdump;     // ring dump done
+  reg        efp_rsend;     // ring dump in progress
+  reg [EFP_RWAIT_BITS-1:0] efp_rwait;  // delay from arming to the ring line
+  reg [ 9:0] efp_rchar;     // 0..898: "P " + 128*7 chars + CR LF
+  reg [ 3:0] efp_rbit;
+  reg [11:0] efp_rbaud;
+  reg        efp_rtxd;
+  reg [15:0] efp_rword;
+  wire efp_rd = win & ~win_d & MWRITE50_n & bsel;
+
+  // one line = 40 chars: "EF " + five "dddddd " groups (last group's
+  // trailing slot pair = CR LF)
+  function [7:0] efp_octdig(input [15:0] w, input [2:0] d);
+    case (d)
+      3'd0: efp_octdig = 8'h30 + {7'b0, w[15]};
+      3'd1: efp_octdig = 8'h30 + {5'b0, w[14:12]};
+      3'd2: efp_octdig = 8'h30 + {5'b0, w[11:9]};
+      3'd3: efp_octdig = 8'h30 + {5'b0, w[8:6]};
+      3'd4: efp_octdig = 8'h30 + {5'b0, w[5:3]};
+      default: efp_octdig = 8'h30 + {5'b0, w[2:0]};
+    endcase
+  endfunction
+
+  // ring line character mux: "P " + 128 x "dddddd " + CR LF = 900 chars
+  wire [9:0] efp_rrel = efp_rchar - 10'd2;
+  wire [9:0] efp_rg10 = efp_rrel / 10'd7;
+  wire [9:0] efp_rd10 = efp_rrel % 10'd7;
+  wire [6:0] efp_rg   = efp_rg10[6:0];
+  wire [3:0] efp_rd7  = efp_rd10[3:0];
+  wire [6:0]  efp_ridx = efp_rwp + efp_rg;           // explicit 7-bit wrap
+  wire [15:0] efp_rw  = efp_ring[efp_ridx];          // oldest-first
+  reg [7:0] efp_rch;
+  always @(*) begin
+    if (efp_rchar == 10'd0) efp_rch = "P";
+    else if (efp_rchar == 10'd1) efp_rch = " ";
+    else if (efp_rchar == 10'd898) efp_rch = 8'h0D;
+    else if (efp_rchar == 10'd899) efp_rch = 8'h0A;
+    else if (efp_rd7 == 4'd6) efp_rch = " ";
+    else efp_rch = efp_octdig(efp_rw, efp_rd7[2:0]);
+  end
+
+  wire [6:0] efp_rel = efp_char - 7'd3;  // 0..69 inside the digit groups
+  wire [6:0] efp_w6  = efp_rel / 7'd7;   // word index 0..9
+  wire [6:0] efp_d6  = efp_rel % 7'd7;   // digit 0..5, 6 = separator space
+
+  reg [7:0] efp_ch;
+  always @(*) begin
+    if (efp_char == 7'd0) efp_ch = "E";
+    else if (efp_char == 7'd1) efp_ch = "F";
+    else if (efp_char == 7'd2) efp_ch = " ";
+    else if (efp_char == 7'd73) efp_ch = 8'h0D;
+    else if (efp_char == 7'd74) efp_ch = 8'h0A;
+    else if (efp_d6 == 7'd6) efp_ch = " ";
+    else efp_ch = efp_octdig(efp_cap[efp_w6[3:0]], efp_d6[2:0]);
+  end
+
+  always @(posedge sysclk) begin
+    if (!sys_rst_n) begin
+      efp_armed   <= 1'b0;
+      efp_gap     <= {EFP_GAP_BITS{1'b0}};
+      efp_char    <= 7'd0;
+      efp_bit     <= 4'd0;
+      efp_baud    <= 12'd0;
+      efp_txd     <= 1'b1;
+      efp_sending <= 1'b0;
+      efp_rxbaud <= 12'd0;
+      efp_rxbit  <= 4'd0;
+      efp_rxsh   <= 8'd0;
+      efp_txt    <= 40'd0;
+      efp_rwp    <= 7'd0;
+      efp_frozen <= 1'b0;
+      efp_prev_rd <= 16'hFFFF;
+      efp_rdump  <= 1'b0;
+      efp_rsend  <= 1'b0;
+      efp_rwait  <= {EFP_RWAIT_BITS{1'b0}};
+      efp_rchar  <= 10'd0;
+      efp_rbit   <= 4'd0;
+      efp_rbaud  <= 12'd0;
+      efp_rtxd   <= 1'b1;
+    end else begin
+      // read-history ring: record every RAM read until the jump into ERRFA
+      if (efp_rd) begin
+        efp_prev_rd <= efp_a16;
+        if (!efp_frozen) begin
+          efp_ring[efp_rwp] <= efp_a16;
+          efp_rwp <= efp_rwp + 7'd1;
+          if (efp_a16 == 16'o4356 && efp_prev_rd != 16'o4355)
+            efp_frozen <= 1'b1;                  // the fatal call - stop here
+        end
+      end
+
+      // ring dump: once, ~0.5 s after the console matcher arms (after the
+      // crash text, before the first EF line at ~2 s)
+      if (efp_armed && efp_frozen && !efp_rdump && !efp_rsend) begin
+        efp_rwait <= efp_rwait + 1'b1;
+        if (&efp_rwait) begin
+          efp_rsend <= 1'b1;
+          efp_rchar <= 10'd0;
+          efp_rbit  <= 4'd0;
+          efp_rbaud <= 12'd0;
+        end
+      end
+      if (efp_rsend) begin
+        if (efp_rbaud == EFP_BAUD_DIV[11:0] - 12'd1) begin
+          efp_rbaud <= 12'd0;
+          if (efp_rbit == 4'd9) begin
+            efp_rbit <= 4'd0;
+            efp_rtxd <= 1'b1;
+            if (efp_rchar == 10'd899) begin
+              efp_rsend <= 1'b0;
+              efp_rdump <= 1'b1;                 // once only
+            end else efp_rchar <= efp_rchar + 10'd1;
+          end else begin
+            efp_rbit <= efp_rbit + 4'd1;
+            if (efp_rbit == 4'd0) efp_rtxd <= 1'b0;
+            else if (efp_rbit <= 4'd8) efp_rtxd <= efp_rch[efp_rbit-1];
+            else efp_rtxd <= 1'b1;
+          end
+        end else efp_rbaud <= efp_rbaud + 12'd1;
+      end
+
+      // capture: always track the last write into each save cell
+      if (efp_wr) begin
+        case (efp_a16)
+          16'o4347: efp_cap[0] <= efp_wdata;
+          16'o4350: efp_cap[1] <= efp_wdata;
+          16'o4351: efp_cap[2] <= efp_wdata;
+          16'o4352: efp_cap[3] <= efp_wdata;
+          16'o4353: efp_cap[4] <= efp_wdata;
+          // the Winchester driver datafield (B=042346): issue-time values
+          // of the FAILING transfer - SVLCA (expected low address), SVLWC
+          // (word count), SSTAT (last hardware status WISTA saw)
+          16'o42312: efp_cap[5] <= efp_wdata;
+          16'o42313: efp_cap[6] <= efp_wdata;
+          16'o42244: efp_cap[7] <= efp_wdata;
+          // WISTA's entry save of the caller's T,A,D / X (TAD=:SATAD at
+          // B-32 / X at B-27): cap[8] = 9TREG = the FUNCTION argument the
+          // driver was handed, cap[9] = 9XREG.
+          16'o42314: efp_cap[8] <= efp_wdata;
+          16'o42317: efp_cap[9] <= efp_wdata;
+          default: ;
+        endcase
+      end
+
+      // arming: deserialize the console TX (8N1) and match "ERRFA"
+      if (efp_rxbit == 4'd0) begin
+        if (!ERRFA_CONTX) begin                  // start bit edge
+          efp_rxbit  <= 4'd1;
+          efp_rxbaud <= EFP_BAUD_DIV[11:0] + EFP_BAUD_DIV[11:0] / 12'd2 - 12'd1;
+        end
+      end else if (efp_rxbaud != 12'd0) begin
+        efp_rxbaud <= efp_rxbaud - 12'd1;
+      end else if (efp_rxbit <= 4'd8) begin      // data bits, LSB first
+        efp_rxsh   <= {ERRFA_CONTX, efp_rxsh[7:1]};
+        efp_rxbit  <= efp_rxbit + 4'd1;
+        efp_rxbaud <= EFP_BAUD_DIV[11:0] - 12'd1;
+      end else begin                             // stop-bit slot: char done
+        efp_rxbit <= 4'd0;
+        efp_txt   <= {efp_txt[31:0], efp_rxsh};
+        if ({efp_txt[31:0], efp_rxsh} == {"E", "R", "R", "F", "A"})
+          efp_armed <= 1'b1;
+      end
+      if (efp_armed && !efp_sending) begin
+        efp_gap <= efp_gap + 1'b1;
+        if (&efp_gap) begin                      // ~2 s after arming
+          efp_sending <= 1'b1;
+          efp_char    <= 7'd0;
+          efp_bit     <= 4'd0;
+          efp_baud    <= 12'd0;
+        end
+      end
+      if (efp_sending) begin
+        if (efp_baud == EFP_BAUD_DIV[11:0] - 12'd1) begin
+          efp_baud <= 12'd0;
+          if (efp_bit == 4'd9) begin
+            efp_bit <= 4'd0;
+            efp_txd <= 1'b1;
+            if (efp_char == 7'd74) begin
+              efp_sending <= 1'b0;               // line done; gap restarts
+              efp_gap     <= {EFP_GAP_BITS{1'b0}};
+            end else efp_char <= efp_char + 7'd1;
+          end else begin
+            efp_bit <= efp_bit + 4'd1;
+            if (efp_bit == 4'd0) efp_txd <= 1'b0;               // start bit
+            else if (efp_bit <= 4'd8) efp_txd <= efp_ch[efp_bit-1];
+            else efp_txd <= 1'b1;                               // stop
+          end
+        end else efp_baud <= efp_baud + 12'd1;
+      end
+    end
+  end
+
+  assign ERRFA_TXD = efp_txd & efp_rtxd;
+`endif
 
   // Output gating: same convention as the chips (0 when not selected/reading)
   wire read_active = CAS & MWRITE50_n & bsel;

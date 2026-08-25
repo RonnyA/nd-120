@@ -1,0 +1,7 @@
+LABEL interrupt the looping tests, return to the verifier prompt
+SEND Q
+SENDCR
+PAUSE 3
+SENDCR
+EXPECT 20 >
+QUIET 3
