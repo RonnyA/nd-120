@@ -1,0 +1,14 @@
+# fix-sd-card verification part 2: a console MACL must power-cycle the SD
+# slot (150 ms) and re-mount, and the machine must still boot discs after.
+FAILON ERRFATAL
+FAILON System malfunction
+SENDCR
+PAUSE 2
+LABEL master clear - triggers the SD power cycle
+SEND MACL
+SENDCR
+PAUSE 8
+LABEL boot SINTRAN from 20500 octal after the power cycle
+SEND 20500&
+EXPECT 900 RUNNING
+PAUSE 20
