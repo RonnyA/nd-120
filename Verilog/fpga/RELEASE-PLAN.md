@@ -66,7 +66,7 @@ an image still comes up in OPCOM - the quickstart shows that as the
 | File | Content |
 |---|---|
 | `fpga/QUICKSTART-nexys4ddr.md` | **WRITTEN 26-AUG** - both deployment paths (USB volatile/QSPI-persistent + microSD config with an UNVERIFIED banner and the test checklist), terminal settings, OPCOM smoke test, `20500&`, troubleshooting |
-| `fpga/QUICKSTART-tang-nano-20k.md` | download -> openFPGALoader install matrix (Linux/Mac/Windows) -> flash command -> terminal -> same boot walkthrough |
+| `fpga/QUICKSTART-tang-nano-20k.md` | **WRITTEN 26-AUG** - openFPGALoader install matrix, persistent `-f` flash, WSL usbipd note, second-serial-port console, boot walkthrough, troubleshooting |
 | Release-notes template | source commit, file table above, link to quickstarts, changed-since-last list |
 
 Terminal settings table (both quickstarts): 7 data bits, EVEN parity,
@@ -89,8 +89,7 @@ picocom and PuTTY.
 
 ## Open questions (parked, not blocking release 1)
 
-- Release cadence/naming: date tag (`bitstreams-2026-08`) vs semver -
-  decide at step 4.
+- Release cadence/naming: date tag chosen at step 4: `bitstreams-2026-08`.
 - Basys3/Cmod A7 artifacts (OPCOM-only demos) - maybe release 2.
 - CI-built releases: blocked (Vivado size/licence in CI; OSS Tang flow
   still blocked by the comb loops). Revisit after the IDB ring cut.
