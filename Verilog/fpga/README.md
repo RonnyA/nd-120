@@ -7,6 +7,12 @@ under `Verilog/` - the build scripts reference it by absolute path. Only the
 board-specific build/flow files (scripts, constraints, tool projects) live here,
 one folder per board.
 
+**Ready-built bitstreams** for the two SINTRAN-booting boards are on the
+[Releases page](https://github.com/RonnyA/nd-120/releases) with
+step-by-step loading guides: [QUICKSTART-nexys4ddr.md](QUICKSTART-nexys4ddr.md)
+and [QUICKSTART-tang-nano-20k.md](QUICKSTART-tang-nano-20k.md). Release
+process: [RELEASE-PLAN.md](RELEASE-PLAN.md).
+
 ## Targets
 
 | Target | FPGA | Toolchain | Status | Details |

@@ -84,6 +84,13 @@ simultaneous page-fault-plus-PGU to an unimplemented vector and self-jumped
 forever.
 
 **FPGA hardware:**
+
+> **Ready-built bitstreams:** grab them from the
+> [Releases page](https://github.com/RonnyA/nd-120/releases) - no FPGA
+> toolchain needed. Quickstarts: `Verilog/fpga/QUICKSTART-nexys4ddr.md`
+> (incl. the no-software SD-card path) and
+> `Verilog/fpga/QUICKSTART-tang-nano-20k.md`.
+
 - **Tang Nano 20K - SINTRAN III BOOTS (24-AUG-2026).** The operating system
   runs on the FPGA from a Winchester disc image on the SD card: banner in
   **29.4 s**, login, `LIST-FILES`, and the S3 program (cold start 13.2 s).
