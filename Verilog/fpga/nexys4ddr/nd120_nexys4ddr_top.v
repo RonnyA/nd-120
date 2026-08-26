@@ -153,16 +153,76 @@ module nd120_nexys4ddr_top (
   end
   wire sys_rst_n = sys_rst_n_r;
 
-  reg [7:0] por_stor = 8'd0;
-  reg       rst_stor_n_r = 1'b0;
+  /**********************************************
+  *  Storage reset + SD slot power cycle        *
+  *  (fix-sd-card, 26-AUG-2026)                 *
+  ***********************************************/
+  // The card itself must be POWER CYCLED, not just our logic reset:
+  //  - After SD-card configuration the on-board microcontroller has used
+  //    the card in SPI mode; a card that entered SPI mode leaves it only
+  //    by a power cycle. The manual's own post-DONE slot power cycle can
+  //    be defeated when the fabric drives SD_RESET low (slot ON) the
+  //    instant configuration completes - measured 26-AUG-2026 as FDISK
+  //    error 3 on every disc op after SD-config, while the same card
+  //    boots everything when the bitstream comes in over JTAG.
+  //  - MACL (master clear, DEBUG_MR_n) must reach the card too, so a
+  //    console MACL gives the machine a disc subsystem in a known state.
+  // So: on ANY trigger (configuration/POR, CPU RESET/BTNC via rst_req_n,
+  // or a master-clear pulse) the slot is powered OFF for T_OFF, then ON
+  // with the storage stack held in reset a further T_SETTLE for the
+  // card's internal boot, then the stack is released and the mount runs
+  // its full init+scan against a freshly reset card.
+  localparam [21:0] SDPWR_T_OFF    = 22'd2_702_700;  // 100 ms at 27.027 MHz
+  localparam [21:0] SDPWR_T_SETTLE = 22'd1_351_350;  //  50 ms
+  localparam [1:0] SDPWR_OFF = 2'd0, SDPWR_SETTLE = 2'd1, SDPWR_RUN = 2'd2;
+
+  // master clear crosses from the CPU domain: 2-FF sync, active low
+  wire s_debug_mr_n;   // DEBUG_MR_n from the core (declared here: first use)
+  reg [1:0] sdpwr_mr_sync = 2'b11;
+  always @(posedge clk_stor) sdpwr_mr_sync <= {sdpwr_mr_sync[0], s_debug_mr_n};
+
+  reg [1:0]  sdpwr_state = SDPWR_OFF;
+  reg [21:0] sdpwr_cnt   = 22'd0;
+  reg        sd_pwroff_r = 1'b1;   // 1 = slot power OFF (sd_reset high)
+  reg        rst_stor_n_r = 1'b0;
   always @(posedge clk_stor) begin
     if (!rst_req_n) begin
-      por_stor     <= 8'd0;
+      sdpwr_state  <= SDPWR_OFF;
+      sdpwr_cnt    <= 22'd0;
+      sd_pwroff_r  <= 1'b1;
       rst_stor_n_r <= 1'b0;
-    end else if (por_stor != 8'hFF) begin
-      por_stor <= por_stor + 8'd1;
     end else begin
-      rst_stor_n_r <= 1'b1;
+      case (sdpwr_state)
+        SDPWR_OFF: begin
+          sd_pwroff_r  <= 1'b1;
+          rst_stor_n_r <= 1'b0;
+          if (sdpwr_cnt != SDPWR_T_OFF) sdpwr_cnt <= sdpwr_cnt + 22'd1;
+          else if (sdpwr_mr_sync[1]) begin
+            // master clear released (or never asserted): power back on
+            sdpwr_cnt   <= 22'd0;
+            sdpwr_state <= SDPWR_SETTLE;
+          end
+          // mr still low: hold here, the cycle restarts when it releases
+        end
+        SDPWR_SETTLE: begin
+          sd_pwroff_r  <= 1'b0;
+          rst_stor_n_r <= 1'b0;
+          if (sdpwr_cnt != SDPWR_T_SETTLE) sdpwr_cnt <= sdpwr_cnt + 22'd1;
+          else begin
+            sdpwr_cnt   <= 22'd0;
+            sdpwr_state <= SDPWR_RUN;
+          end
+        end
+        default: begin  // SDPWR_RUN
+          sd_pwroff_r  <= 1'b0;
+          rst_stor_n_r <= 1'b1;
+          if (!sdpwr_mr_sync[1]) begin
+            // MACL: power-cycle the card and re-mount
+            sdpwr_cnt   <= 22'd0;
+            sdpwr_state <= SDPWR_OFF;
+          end
+        end
+      endcase
     end
   end
   wire rst_stor_n = rst_stor_n_r;
@@ -215,7 +275,7 @@ module nd120_nexys4ddr_top (
   wire [ 9:0] s_debug_ca_9_0;
   wire [ 4:0] s_debug_cc_term;
   wire        s_debug_mclk, s_debug_lcs_n, s_debug_fetch;
-  wire        s_debug_mr_n, s_debug_clear_n, s_debug_refrq_n;
+  wire        s_debug_clear_n, s_debug_refrq_n;
   wire        s_debug_intrq_n, s_debug_powfail_n;
   wire [15:0] s_debug_fidbo, s_ireq_15_0_n, s_xmic_dbg;
 `ifdef ND120_ILA_MARK_DEBUG
@@ -403,8 +463,11 @@ module nd120_nexys4ddr_top (
   ***********************************************/
   // The slot's power gate. Reference manual section 12: after configuration
   // the on-board microcontroller releases the SD bus and SD_RESET must be
-  // driven LOW by the FPGA to power the slot. Without this nothing mounts.
-  assign sd_reset = 1'b0;
+  // driven LOW by the FPGA to power the slot. Driven by the power-cycle
+  // controller above (fix-sd-card): held HIGH (slot OFF) for 100 ms at
+  // every configuration, reset and master clear, so the card always
+  // starts from power-on state - never a constant again.
+  assign sd_reset = sd_pwroff_r;
 
   wire s_sd_clk_o;
   wire s_sd_cmd_o, s_sd_cmd_oe;
