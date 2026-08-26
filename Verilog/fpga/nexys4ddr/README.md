@@ -8,10 +8,13 @@ legacy and points there). Built from the **Basys3 flow as template** - same
 compile-time defines, same source set, same fail-on-negative-slack gate - and
 extended from there.
 
-> **Status (25-AUG-2026): SINTRAN III boots on this board.** DDR2-backed
-> main memory with a BRAM cache, 16.667 MHz CPU clock, timing-clean
-> (WNS +1.46). 5/5 reprogram+`20500&` cycles reach the banner and the
-> Watchdog, ~40 s to banner, and a console login works. The full root-cause
+> **Status (26-AUG-2026): SINTRAN III boots on this board at 45.45 MHz
+> with the console at 115200 baud** (`clk 45 ilaslim physopt`, WNS +0.020,
+> Ronny-verified on the board) - the deployed configuration. 50 MHz also
+> booted (9600-baud build, WNS +0.007), but that closure is single-seed
+> fragile; see [`timing.md`](timing.md). The original 25-AUG milestone:
+> 16.667 MHz, timing-clean (WNS +1.46), 5/5 reprogram+`20500&` cycles to
+> banner and Watchdog, ~40 s to banner, console login works. The full root-cause
 > and validation record is [`SINTRAN-BOOT-25AUG.md`](SINTRAN-BOOT-25AUG.md).
 > Earlier milestones: tape boot + MEMORY-REFERENCE diagnostics on DDR2,
 > SD/FAT storage and floppy server proven, ILA capture kit in place.
@@ -106,7 +109,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File console.ps1 -Send "1" -S
 
 ```bash
 ./usb-attach.sh            # attach; prints which /dev/ttyUSB* is the console
-picocom -b 9600 /dev/ttyUSBn
+picocom -b 115200 /dev/ttyUSBn   # 9600 for builds older than 26-AUG-2026
 ./usb-attach.sh --detach   # hand the board back to Windows before a Vivado build
 ```
 
@@ -169,16 +172,40 @@ means an empty microcode ROM, which looks like a dead CPU).
 |------|---------|-----|
 | Main memory | `MAIN_RAM_DDR2` (default) - full DDR2-backed main RAM with BRAM cache | The BRAM-only config (`-tclargs bramram`, 64 K words/bank) aliases high addresses onto low memory, which forbids SINTRAN. |
 | Clocking | `FPGA_FF_MODE`, one clock domain | The latch model never ships on FPGA. |
-| CPU clock | 16.667 MHz (`clk=16`, MMCM divider 60.0) | The only speed proven on Artix-7 silicon (Basys3). The microengine's WCS-read-to-next-address path measured ~49 ns there. |
+| CPU clock | **45.45 MHz** (`clk 45` + `physopt`) since 26-AUG-2026 | Boots SINTRAN on silicon. The frequency search and bottleneck analysis are in [`timing.md`](timing.md); `clk=16` remains the high-margin fallback. |
 | WCS load | runtime load from the PROM images | The -100T has BRAM to spare; `-skipwcs` switches to the Basys3-style bitstream preload. |
-| Console | 9600 8N1 / 7E1 on the USB-UART | `UART_BAUD_RATE=9600` matches the microcode's baud thumbwheel, exactly as on the Basys3. |
+| Console | **115200** 7E1 on the USB-UART since 26-AUG-2026 | The physical rate is the `UART_BAUD_RATE` build constant alone: the emulated SC2661 stores the microcode's BAUDV mode value (thumbwheel 8 = 9600 - the 1988 table tops out there) but times every bit off the compile-time divider, and TX-ready is a polled flag. The machine believes 9600; the wire runs 115200. |
 
 ### Raising the clock
 
 The board oscillator is 100 MHz and the MMCM branch `TARGET_NEXYS4DDR` in
 `Verilog/ND120_TOP.v` takes the divider as a build flag, so `clk=<MHz>` selects
-CPU speed. Supported: **16, 20, 25, 27, 33, 50, 100** MHz (VCO fixed at
-1000 MHz).
+CPU speed. Supported: **16, 20, 25, 27, 33, 35, 38, 40, 42, 45, 50, 100** MHz
+(VCO fixed at 1000 MHz; the 35-45 entries are fractional dividers added by the
+26-AUG-2026 clock-up campaign).
+
+Measured post-route STA results, one run each, Vivado 2026.1, `ilaslim`
+config (evidence: `timing-analysis/run_clk*/`, analysis:
+`timing-analysis/TIMING_CLOSURE_REPORT.md`):
+
+| clk= | period | CPU-domain WNS | verdict |
+|------|--------|----------------|---------|
+| 16 | 60 ns | +26.455 | PASS (shipped, SINTRAN boots) |
+| 25 | 40 ns | +9.293 | PASS |
+| 33 | 30 ns | +1.282 | PASS |
+| 35 | 28 ns | +1.308 | PASS |
+| 38 | 26 ns | +0.316 | PASS |
+| 40 | 25 ns | +0.319 | PASS |
+| 42 | 24 ns | +0.152 | PASS |
+| 45 | 22 ns | +0.085 | PASS (razor-thin, single seed) |
+| 50 | 20 ns | **-2.546** | **FAIL** (1213 endpoints, gate refuses bitstream) |
+
+STA passing is NOT functional validation by itself. Silicon-verified
+26-AUG-2026: SINTRAN boots at 45.45 MHz (115200 console, deployed) and at
+50 MHz (9600 build). No soak yet at either; the two auto-inserted
+loop-breaking false paths (CGA IDB ring remnants, see `build.tcl`) make
+every CPU WNS a floor, not a guarantee; and the 50 MHz closure died on a
+one-constant edit (`timing.md`), so every new build must pass its own gate.
 
 `clk=` sets the MMCM divider **and** `BOARD_CLK_FREQ` together - they must
 always move as a pair, or the UART baud divisor, the RTC tick and every
@@ -205,7 +232,7 @@ plus the how-to for reading a frozen machine off the panel. Summary:
 | **LD17 (RGB)** | green = CPU running, red = MEM_HOLD (cache-miss) activity, blue = storage on the DDR2 port |
 | 7-segment right 4 digits | CSA / LA / FDISK counters, selected by sw15:14 + sw0 |
 | 7-segment left 4 digits | live panel: PIL, DDR2 bridge state, arbiter health flags |
-| USB-UART (C4/D4) | OPCOM console, 9600 baud |
+| USB-UART (C4/D4) | OPCOM console, 115200 baud (9600 before 26-AUG-2026) |
 | microSD | the boot disc (SD/FAT stack, 1-bit bus) |
 
 ## Extensions
@@ -269,8 +296,9 @@ run them after every bitstream change.
   never capture while a build is writing out - see
   `../../docs/ILA-PROBE-SEMANTICS.md` for this and every other capture
   lesson.
-- Console: 9600 8N1, commands UPPERCASE, pace characters (the .bt driver
-  paces at 150 ms/char).
+- Console: 115200 8N1 host-side since 26-AUG-2026 (9600 for older builds;
+  pass `-Baud 115200` to board_expect.ps1/console.ps1), commands UPPERCASE,
+  pace characters (the .bt driver paces at 150 ms/char).
 - Golden dialogs for expect scripts: `../../tests/golden-console/`.
 - Machine invariants (register maps, address-space contract, board
   differences): `../../docs/nd120-facts.md`.

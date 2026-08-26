@@ -91,9 +91,12 @@ forever.
   computed parity - `ND_SDRAM_PACK16`), the other 4 MB for the SD disk-image
   cache; SD/FAT stack proven on hardware (read + write, safety-gated).
   Timings and clock variants: `Verilog/fpga/tang-nano-20k/README.md`.
-- **Nexys 4 DDR - SINTRAN III BOOTS (25-AUG-2026).** Full CPU at
-  16.667 MHz, timing-clean (WNS +1.46), main memory in **DDR2 through a
-  BRAM cache** (`MEM_RAM_49_DDR2`), boot disc on the on-board microSD:
+- **Nexys 4 DDR - SINTRAN III BOOTS (25-AUG-2026), clocked up to
+  45.45 MHz with a 115200 console (26-AUG-2026).** Full CPU, deployed at
+  **45.45 MHz** (50 MHz also booted; frequency search and bottleneck
+  analysis in `Verilog/fpga/nexys4ddr/timing.md`), main memory in **DDR2
+  through a BRAM cache** (`MEM_RAM_49_DDR2`), boot disc on the on-board
+  microSD:
   banner in ~40 s, console login verified, 7/7 boot cycles. The blocker
   was a dropped cache-hit update on late DDR2 write strobes - root cause,
   fix and validation in `Verilog/fpga/nexys4ddr/SINTRAN-BOOT-25AUG.md`.

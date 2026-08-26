@@ -11,3 +11,7 @@ wcs_*.hex
 util.rpt
 timing.rpt
 clockInfo.txt
+timing-analysis/baseline_*/
+timing-analysis/run_*/
+timing-analysis/*.log
+*.dcp

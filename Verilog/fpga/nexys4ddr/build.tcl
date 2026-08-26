@@ -72,6 +72,11 @@ set clk_table {
     25  {40.0 25000000}
     27  {37.0 27027027}
     33  {30.0 33333333}
+    35  {28.0 35714286}
+    38  {26.0 38461538}
+    40  {25.0 40000000}
+    42  {24.0 41666667}
+    45  {22.0 45454545}
     50  {20.0 50000000}
     100 {10.0 100000000}
 }
@@ -219,7 +224,14 @@ set defines [list \
     {*}$ram_defines \
     ND120_N4DDR_MMCM_DIV=$mmcm_div \
     BOARD_CLK_FREQ=$board_clk \
-    UART_BAUD_RATE=9600]
+    UART_BAUD_RATE=115200]
+# Console baud 115200 since 26-AUG-2026 (was 9600). The physical bit rate is
+# UART_BAUD_RATE alone: the emulated SC2661 stores the mode register the
+# microcode programs (BAUDV thumbwheel table, tops out at 9600 - it is 1988)
+# but times every bit off the compile-time DELAY_FRAMES constant
+# (SC2661_UART.v:157), and TX-ready is a polled flag, not a timed wait. So
+# the machine still BELIEVES 9600 while the wire runs 115200. Host side must
+# open the port at 115200 (board_expect.ps1/console.ps1 -Baud 115200).
 if {$skip_wcs} { lappend defines SKIP_WCS_LOAD }
 # CPU cache: OFF BY DEFAULT (Ronny, 24-AUG-2026) - same as the Tang
 # (tang20k_defines.v: ND120_NO_CACHE). The cache is the never-validated
@@ -282,13 +294,18 @@ if {[llength $_csys] == 0} {
     puts "ERROR: sys_clk not found. clocks present: [get_clocks]"
     exit 1
 }
+# 26-AUG-2026: the bounds INTO clk_cpu were hard-coded 80.000 ns - one
+# destination period of the 12.5 MHz era. They stopped tracking clk_sel when
+# the default moved to 16.667 MHz (60 ns), and at higher CPU clocks an 80 ns
+# payload bound would exceed even the 2-cycle toggle-sync margin. The CPU
+# period in ns IS $mmcm_div (VCO is 1000 MHz), so the bound tracks clk_sel.
 foreach {src dst lim} [list \
     $_ccpu $_cst 37.000 \
-    $_cst  $_ccpu 80.000 \
+    $_cst  $_ccpu $mmcm_div \
     $_cst  $_cui 13.300 \
     $_cui  $_cst 37.000 \
     $_ccpu $_cui 13.300 \
-    $_cui  $_ccpu 80.000 \
+    $_cui  $_ccpu $mmcm_div \
     $_ccpu $_csys 10.000 \
     $_cui  $_csys 10.000] {
     set_max_delay -datapath_only -from $src -to $dst $lim
@@ -460,10 +477,54 @@ if {[lsearch $argv "ila"] >= 0} {
 
 opt_design
 place_design
+# -tclargs physopt: post-place physical optimization (26-AUG clock-up
+# campaign experiment). Not in the default flow yet - the default stays
+# byte-identical to the builds that booted SINTRAN.
+if {[lsearch $argv "physopt"] >= 0} {
+    phys_opt_design -directive AggressiveExplore
+}
 route_design
+if {[lsearch $argv "physopt"] >= 0} {
+    phys_opt_design -directive AggressiveExplore
+}
 
 report_utilization    -file [file join $srcdir util.rpt]
 report_timing_summary -file [file join $srcdir timing.rpt]
+
+# --- post-route analysis battery (clock-up campaign, 26-AUG-2026) ---
+# Every run leaves its full evidence set in timing-analysis/run_clk<sel>[_N]/
+# without ever overwriting a previous run. Placed BEFORE the WNS gate so a
+# failing frequency candidate still yields its reports. The checkpoint lets
+# any later report be regenerated without a rebuild (open_checkpoint).
+set _rundir [file join $srcdir timing-analysis run_clk$clk_sel]
+set _sfx 1
+while {[file exists $_rundir]} {
+    set _rundir [file join $srcdir timing-analysis run_clk${clk_sel}_$_sfx]
+    incr _sfx
+}
+file mkdir $_rundir
+puts "REPORTS: $_rundir"
+foreach {rname rcmd} [list \
+    timing_summary_post_route.rpt {report_timing_summary -delay_type min_max -report_unconstrained -check_timing_verbose -max_paths 100 -file $_rf} \
+    setup_paths_post_route.rpt    {report_timing -delay_type max -max_paths 100 -nworst 20 -path_type full_clock_expanded -input_pins -file $_rf} \
+    hold_paths_post_route.rpt     {report_timing -delay_type min -max_paths 100 -nworst 20 -path_type full_clock_expanded -input_pins -file $_rf} \
+    clocks.rpt                    {report_clocks -file $_rf} \
+    clock_interaction.rpt         {report_clock_interaction -delay_type min_max -file $_rf} \
+    cdc.rpt                       {report_cdc -details -file $_rf} \
+    methodology.rpt               {report_methodology -file $_rf} \
+    qor_assessment.rpt            {report_qor_assessment -file $_rf} \
+    qor_suggestions.rpt           {report_qor_suggestions -file $_rf} \
+    utilization_hierarchical.rpt  {report_utilization -hierarchical -file $_rf} \
+    design_analysis.rpt           {report_design_analysis -logic_level_distribution -of_timing_paths [get_timing_paths -max_paths 100 -setup] -file $_rf} \
+    high_fanout_nets.rpt          {report_high_fanout_nets -timing -max_nets 100 -file $_rf} \
+    drc.rpt                       {report_drc -file $_rf} \
+    power.rpt                     {report_power -file $_rf}] {
+    set _rf [file join $_rundir $rname]
+    if {[catch {eval $rcmd} _err]} {
+        puts "WARNING: $rname failed: $_err"
+    }
+}
+write_checkpoint -force [file join $_rundir post_route.dcp]
 
 # Fail loudly on negative slack - a missed clock target must not be flashed
 # silently (the Basys3 board's whole history is a timing-closure problem).
