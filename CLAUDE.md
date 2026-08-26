@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository contains a complete HDL implementation of the 1988 Norsk Data ND-120 CPU, recreated from original design documents and implemented in both Logisim-Evolution and Verilog. The goal is FPGA-synthesizable code that runs as the original ND-120 CPU. **SINTRAN III boots on the Tang Nano 20K (24-AUG-2026) and on the Nexys 4 DDR (25-AUG-2026)** - the Tang is the primary target; the Nexys boots from its DDR2-backed main RAM at a 16.667 MHz CPU clock, timing-clean (see `Verilog/fpga/nexys4ddr/SINTRAN-BOOT-25AUG.md`). Verilator remains the signal-level reference for unit checks and waveform work. The Basys3 `xc7a35t` synthesizes but does not meet timing and does not boot.
+This repository contains a complete HDL implementation of the 1988 Norsk Data ND-120 CPU, recreated from original design documents and implemented in both Logisim-Evolution and Verilog. The goal is FPGA-synthesizable code that runs as the original ND-120 CPU. **SINTRAN III boots on the Tang Nano 20K (24-AUG-2026) and on the Nexys 4 DDR (25-AUG-2026)** - the Tang is the primary target. Clocked up 26-AUG-2026: the Nexys runs deployed at **45.45 MHz with a 115200 console** (50 MHz also booted; search + bottlenecks in `Verilog/fpga/nexys4ddr/timing.md`), the Tang boots the timing-clean `fast20` variant at **20.25 MHz with a 115200 console** (boot record: `Verilog/fpga/nexys4ddr/SINTRAN-BOOT-25AUG.md`). Verilator remains the signal-level reference for unit checks and waveform work. The Basys3 `xc7a35t` synthesizes but does not meet timing and does not boot.
 
 ## Environment
 
@@ -112,7 +112,7 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
 
 ## Status & known issues
 
-> Last verified: 25-AUG-2026. State only what is measured here — this section
+> Last verified: 26-AUG-2026. State only what is measured here — this section
 > is what other people (and other agents) read first, so stale claims here
 > propagate as fact.
 
@@ -172,7 +172,10 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
 - Also proven on real silicon (Tang Nano 20K): the SDRAM controller, and the
   SD/FAT stack incl. 4-bit-bus transfers.
 - **Clock:** 6.75 MHz is the long-validated speed. A 13.5 MHz variant
-  (`-Variant mid`) closes with 0 setup violations. **27 MHz (`-Variant full`)
+  (`-Variant mid`) closes with 0 setup violations. **NEW 26-AUG-2026:
+  `-Variant fast20` boots SINTRAN at 20.25 MHz with a 115200 console,
+  TIMING-CLEAN (TNS 0, Fmax 20.556 MHz - only 1.5% margin, recheck the .tr
+  on every rebuild)** - the fastest clean Tang. **27 MHz (`-Variant full`)
   runs SINTRAN, LIST-FILES and s3** and is visibly faster, but Gowin reports
   1667 setup violations against a CPU-domain Fmax of 17.7–19.6 MHz — fast and
   functional, but NOT timing-clean: margin over temperature and voltage is

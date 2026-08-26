@@ -191,15 +191,26 @@ on the board's USB serial -> compare boot behaviour against
 
 ## Clock variants and measured boot timings (24-AUG-2026)
 
-Three clock variants, selected with `gowin_build.ps1 -Variant <slow|mid|full>`.
-`clk_cpu` is always exactly half of `clk2x`; all three share one 864 MHz VCO.
+Clock variants, selected with `gowin_build.ps1 -Variant
+<slow|mid|fast20|full>`. `clk_cpu` is always exactly half of `clk2x`;
+slow/mid/full share one 864 MHz VCO, `fast20` uses 648 MHz.
 
 | Variant | CPU | SDRAM | Setup violations | CPU-domain Fmax (Gowin STA) |
 |---------|-----|-------|------------------|------------------------------|
 | `crawl` | 3.375 MHz | 6.75 MHz | - | - |
 | `slow` (default) | 6.75 MHz | 13.5 MHz | **0** | 17.68 MHz |
 | `mid` | 13.5 MHz | 27 MHz | **0** | 19.03 MHz |
+| `fast20` (26-AUG-2026) | **20.25 MHz** | 40.5 MHz | **0** | **20.556 MHz** |
 | `full` | 27 MHz | 54 MHz | **1667** | 19.55 MHz |
+
+`fast20` is the fastest TIMING-CLEAN variant (TNS 0; margin over Fmax is
+only 1.5%, so every rebuild must re-check its own `.tr`). It also switches
+the console to **115200 baud** (7E2) - slow/mid/full stay at 9600 so their
+tooling is untouched. The physical baud is the `UART_BAUD_RATE` build
+constant alone; the microcode's BAUDV thumbwheel value (8 = 9600) is stored
+by the SC2661 emulation but never used for bit timing, proven on the Nexys
+and now here. **Silicon 26-AUG-2026: SINTRAN III boots on `fast20`,
+banner + Watchdog in ~40 s, clean text on a 115200 7E2 console.**
 
 ### Measured on silicon, SINTRAN III booting from WD0
 

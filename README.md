@@ -90,7 +90,10 @@ forever.
   Full CPU bitstream with **4 MB SDRAM main memory** (packed 16-bit storage,
   computed parity - `ND_SDRAM_PACK16`), the other 4 MB for the SD disk-image
   cache; SD/FAT stack proven on hardware (read + write, safety-gated).
-  Timings and clock variants: `Verilog/fpga/tang-nano-20k/README.md`.
+  **Clocked up 26-AUG-2026: the `fast20` variant boots SINTRAN at
+  20.25 MHz with a 115200 console, timing-clean (TNS 0)** - 3x the
+  long-validated 6.75 MHz. Timings and clock variants:
+  `Verilog/fpga/tang-nano-20k/README.md`.
 - **Nexys 4 DDR - SINTRAN III BOOTS (25-AUG-2026), clocked up to
   45.45 MHz with a 115200 console (26-AUG-2026).** Full CPU, deployed at
   **45.45 MHz** (50 MHz also booted; frequency search and bottleneck

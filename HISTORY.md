@@ -14,6 +14,7 @@ The results that mark eras, pulled out of the full table below:
 | 19. July 2026 | **First CPU boot on FPGA silicon** (Tang Nano 20K) |
 | **24. August 2026** | **SINTRAN III boots on the Tang Nano 20K** - the operating system runs on real hardware, login and programs work |
 | **25. August 2026** | **SINTRAN III boots on the Nexys 4 DDR** - second board, main memory in DDR2, timing-clean |
+| **26. August 2026** | **Both boards clocked up, both verified on silicon**: Nexys deployed at 45.45 MHz (50 MHz also booted) and Tang at 20.25 MHz timing-clean, each with a 115200 console - up from 16.667/6.75 MHz and 9600 baud |
 
 ## Full history
 
@@ -76,6 +77,9 @@ Compressed history of the work progress on the ND-120 recreation:
 | 25. August 2026 | SILICON | **SINTRAN III boots on the Nexys 4 DDR.** The DDR2 cache dropped its update when a late write strobe compared against the live tag RAM (address already drifted), leaving one stale cached word per boot - spin hangs, ERRFATALs and silent WAITs from the same bitstream. Fix: hit verdict latched at address-check. 7/7 boots to banner (~40 s), console login, timing-clean at 16.667 MHz |
 | 26. August 2026 | TEST | DDR2 arbiter hardened with a testbench that the old logic fails: ties alternate instead of starving the storage client, a watchdog flags a dead port (sticky, report-only - no invented completions), orphan responses are recorded instead of vanishing |
 | 26. August 2026 | FPGA | Nexys debug panel: tri-colour LEDs show DDR2/arbiter health (green healthy, red watchdog, blue orphan) and memory traffic; the four blanked 7-segment digits now show PIL, DDR2 bridge state and the health flags live (`DEBUG-PANEL.md`) |
+| 26. August 2026 | FPGA | Nexys clock-up campaign: ten post-route frequency probes found the wall - every step 25 to 45.45 MHz closes the default flow, 50 MHz needs `phys_opt_design`; one path family at every clock (WCS microcode BRAM through the full microcycle to the register-file clock-enables, routing-dominated); stale 80 ns crossing bounds fixed; per-run report battery added to `build.tcl` (`fpga/nexys4ddr/timing.md`) |
+| 26. August 2026 | SILICON | **SINTRAN boots on the Nexys at 50 MHz, then deployed at 45.45 MHz with a 115200 console** (3x/2.7x the 25-AUG clock). The 50 MHz closure proved fragile: changing one UART constant re-rolled placement from +0.007 to -0.210 ns. Console physical baud is the build constant alone - the microcode's 1988 BAUDV thumbwheel table tops out at 9600 and its value is stored but never times a bit |
+| 26. August 2026 | SILICON | **Tang `fast20` variant: SINTRAN boots at 20.25 MHz with a 115200 console, TIMING-CLEAN (TNS 0, Fmax 20.556 MHz)** - the fastest clean Tang (3x the validated 6.75 MHz; the 27 MHz variant runs 32% past its own Fmax). New rPLL branch 40.5/20.25 MHz on a 648 MHz VCO |
 
 ## Area tags
 

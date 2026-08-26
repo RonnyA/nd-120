@@ -51,6 +51,17 @@ module Gowin_rPLL_ND120 (
   defparam rpll_inst.FBDIV_SEL = 0;
   defparam rpll_inst.IDIV_SEL = 3;
   defparam rpll_inst.ODIV_SEL = 128;
+`elsif TANG_FAST20_BRINGUP
+  // fast20 (26-AUG-2026): CLKOUT = 27 * (FBDIV+1)/(IDIV+1) = 27 * 3/2 =
+  // 40.5 MHz (SDRAM pair), CLKOUTD = 20.25 MHz (CPU/bus). VCO = 40.5 * 16
+  // = 648 MHz - inside the rPLL range, lower than the 864 MHz the other
+  // variants use. 20.25 MHz sits AT the measured CPU-domain Fmax (20.4);
+  // this is a wall probe, not a validated operating point. SDRAM at
+  // 40.5 MHz is between the silicon-proven 27 and 54 MHz points and far
+  // inside sdram18's 66.7 MHz rating.
+  defparam rpll_inst.FBDIV_SEL = 2;
+  defparam rpll_inst.IDIV_SEL = 1;
+  defparam rpll_inst.ODIV_SEL = 16;
 `elsif TANG_MID_BRINGUP
   // MID (added 24-AUG-2026): CLKOUT = 27 * (FBDIV+1)/(IDIV+1) = 27 * 2/2 = 27
   // MHz (SDRAM pair), CLKOUTD = 13.5 MHz (CPU/bus). VCO = 27 * 32 = 864 MHz,

@@ -506,6 +506,12 @@
 // default as before. See docs/tang20k-build-flows.md.
 `ifdef TANG_VARIANT_FULL
   // full speed 27/54 MHz: neither SLOW nor CRAWL defined
+`elsif TANG_VARIANT_FAST20
+  // fast20 (26-AUG-2026): CPU 20.25 MHz / SDRAM 40.5 MHz - deliberately AT
+  // the measured CPU-domain Fmax (20.4 MHz, nd120_tang20k_build.tr), the
+  // Tang's equivalent of the Nexys wall probes. Console 115200 in this
+  // variant only.
+  `define TANG_FAST20_BRINGUP
 `elsif TANG_VARIANT_MID
   `define TANG_MID_BRINGUP
 `elsif TANG_VARIANT_CRAWL
@@ -522,7 +528,19 @@
 `define BOARD_CLK_FREQ 6_750_000
 `elsif TANG_MID_BRINGUP
 `define BOARD_CLK_FREQ 13_500_000
+`elsif TANG_FAST20_BRINGUP
+`define BOARD_CLK_FREQ 20_250_000
 `else
 `define BOARD_CLK_FREQ 27_000_000
 `endif
+// Console baud. The physical rate is this constant alone - the SC2661
+// emulation stores the microcode's BAUDV mode value (thumbwheel 8 = 9600)
+// but times every bit off DELAY_FRAMES, and TX-ready is a polled flag
+// (proven on the Nexys 26-AUG-2026: SINTRAN runs a 115200 console while
+// believing 9600). 115200 is scoped to fast20 so the validated slow/mid
+// builds and their 9600-baud tooling stay untouched.
+`ifdef TANG_FAST20_BRINGUP
+`define UART_BAUD_RATE 115200
+`else
 `define UART_BAUD_RATE 9600
+`endif
