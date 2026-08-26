@@ -38,11 +38,10 @@ then uses the same card for the disc image, so ONE card carries both:
 2. Move jumper JP1 to USB/SD (one-time).
 3. Insert card, power on, open the terminal. No software installed at all.
 
-VERIFY FIRST (needs Ronny at the board): one power-on with JP1 moved and
-both files on the card - config must succeed AND the SD stack must still
-mount the disc image afterwards. Until that run passes, the documented
-path is JTAG. Fallback path either way: `openFPGALoader -b nexys_a7_100`
-or Vivado Lab Tools (free, ~3 GB) over USB-JTAG.
+VERIFIED 26-AUG-2026 on the board (Ronny): config from the card succeeds
+and the SD stack mounts the disc image afterwards - one card carries
+both. Two jumpers: JP1 cap to pins 3-4 ("USB/SD") AND JP2 to the SD
+side. Fallback path: Vivado Lab Tools or openFPGALoader over USB-JTAG.
 
 **Tang Nano 20K - one command, once:** the SD slot goes to fabric pins,
 not to configuration, so there is no SD-config on this board. Instead:
@@ -76,7 +75,10 @@ picocom and PuTTY.
 
 ## Work list, in order
 
-1. Ronny: JP1 SD-config verification on the Nexys (15 min at the board).
+1. DONE 26-AUG (Ronny, on the board): SD-config verified working - JP1
+   cap on pins 3-4 (far right, "USB/SD"; factory default is 1-2) AND JP2
+   on the SD side; FPGA configures from the card and the ND-120 boots
+   from the same card. Quickstart Path 2 updated with the verified steps.
 2. Rebuild the four release bitstreams from ONE tagged commit (the safe
    Nexys build needs a rebuild at clk 16 - the current .bit on disk is
    45.45 MHz; the Tang slow build likewise) and record each build's own

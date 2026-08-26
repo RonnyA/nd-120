@@ -88,42 +88,30 @@ flash or move JP1 back.
 
 ## Path 2: microSD card - no software on the PC at all
 
-> **STATUS: NOT yet verified on this project's hardware.** The steps
-> below are read straight from the board's reference manual
-> (`nexys4ddr/docs/nexys4ddr_rm.pdf`, section 3.3 "USB Host and MicroSD
-> Programming" and the Figure 3 callouts), so the jumpers and LED
-> behaviour are the vendor's word, not guesswork. The one thing the
-> manual does NOT answer and only a test on this board can: whether the
-> config controller hands the SD slot cleanly to the running ND-120,
-> whose SD/FAT stack then mounts the disc image on the SAME card. Until
-> that run passes, Path 1 is the known-good fallback.
+> **VERIFIED WORKING 26-AUG-2026** on this project's board: the FPGA
+> configures itself from the card and the ND-120 boots from the same
+> card afterwards. Reference: the board manual in this repo,
+> `nexys4ddr/docs/nexys4ddr_rm.pdf`, Figure 3 and section 3.3.
 
-Steps, per the reference manual:
-
-1. Format the microSD FAT32. Copy **both** files to the root:
-   - **exactly ONE `.bit`** - the manual requires "a single .bit
-     configuration file in the root directory". A `.bit` built for a
-     different FPGA part is rejected, so a wrong-board file fails safe.
-   - the Winchester disc image (the ND-120's requirement - its FAT
-     reader only looks in the root)
-2. Two jumpers, one-time:
-   - **JP1** (Programming Mode, callout 16 - up by the mode/DONE LEDs):
-     set to **USB/SD**
-   - **JP2** (Media Select, callout 3 - next to the microSD slot): set
-     to the **SD** side (it chooses microSD vs USB pen drive)
-3. Insert the card, power on (or push the **PROG** button). The
-   **BUSY** LED is steady while the card is read, pulses slowly if no
-   medium is found, and **DONE** lights when configuration succeeds -
-   a few seconds for a 3.8 MB bitstream.
-4. Open the terminal exactly as in Path 1 and continue from the OPCOM
-   smoke test.
-
-What the pending hardware test must still settle:
-
-- the SD-slot hand-over: config controller done, ND-120's own SD/FAT
-  stack mounts the disc image from the same card (measured, not assumed);
-- that the disc-image file next to the `.bit` does not disturb the
-  single-`.bit` search.
+1. Format the microSD FAT32. Copy **both** files to the root directory:
+   - **exactly ONE `.bit`** file (the config controller picks the `.bit`
+     it finds - two on one card is asking for the wrong one)
+   - the Winchester disc image
+2. Set **two** jumpers (both verified on hardware):
+   - **JP1** ("MODE", the header up by the DONE LED): move the blue
+     jumper cap to the **far-right position, covering pins 3 and 4** -
+     that is "USB/SD". The factory default is pins 1 and 2, which is a
+     different mode - the cap MUST be moved.
+   - **JP2** ("MEDIA SELECT", down by the microSD slot): set to the
+     **SD** side (it chooses between a USB pen drive and the microSD).
+3. Insert the card and power-cycle (or press the **PROG** button).
+4. Watch the LEDs: **BUSY** steady = the controller is reading the card
+   and configuring the FPGA; **DONE** lights when configuration
+   succeeded. A slow BUSY pulse means no usable medium was found -
+   check the card and JP2. A `.bit` built for a different FPGA part is
+   rejected automatically.
+5. Open the terminal (settings above) and continue from the OPCOM smoke
+   test - the machine is running with no software installed on the PC.
 
 ## Troubleshooting
 
@@ -133,4 +121,6 @@ What the pending hardware test must still settle:
 | Nothing on the terminal at all | Wrong baud (release builds are all 115200; bitstreams older than 26-AUG-2026 were 9600), or wrong COM/tty (on Linux usually `/dev/ttyUSB1`) |
 | OPCOM answers, `20500&` prints nothing | No disc image on the card, image not in the FAT root, or card not FAT32 |
 | Board dark after power-cycle | The JTAG load (path 1a) is volatile - use 1b (QSPI) or path 2 (SD) for persistence |
+| BUSY pulses slowly, no config from SD | JP2 not on the SD side, card not FAT32, or no `.bit` in the root |
+| Configures from SD but was not supposed to | JP1 cap left on pins 3-4 - move it back to the JTAG position |
 | LD16 lit red | The DDR2 watchdog tripped - power-cycle; if it repeats, report it with the LED/7-segment state (`nexys4ddr/DEBUG-PANEL.md`) |
