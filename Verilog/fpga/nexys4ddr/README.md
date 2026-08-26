@@ -12,7 +12,13 @@ extended from there.
 > with the console at 115200 baud** (`clk 45 ilaslim physopt`, WNS +0.020,
 > Ronny-verified on the board) - the deployed configuration. 50 MHz also
 > booted (9600-baud build, WNS +0.007), but that closure is single-seed
-> fragile; see [`timing.md`](timing.md). The original 25-AUG milestone:
+> fragile; see [`timing.md`](timing.md). **27-AUG: SD-card deployment
+> works end to end** - the board configures itself from the microSD and
+> boots SINTRAN from the same card, no PC software; needs a post-fix
+> bitstream (the SD slot is now power-cycled at configuration, reset,
+> MACL and system clear - see
+> [`../QUICKSTART-nexys4ddr.md`](../QUICKSTART-nexys4ddr.md)).
+> The original 25-AUG milestone:
 > 16.667 MHz, timing-clean (WNS +1.46), 5/5 reprogram+`20500&` cycles to
 > banner and Watchdog, ~40 s to banner, console login works. The full root-cause
 > and validation record is [`SINTRAN-BOOT-25AUG.md`](SINTRAN-BOOT-25AUG.md).
