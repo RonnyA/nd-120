@@ -102,7 +102,9 @@ forever.
   long-validated 6.75 MHz. Timings and clock variants:
   `Verilog/fpga/tang-nano-20k/README.md`.
 - **Nexys 4 DDR - SINTRAN III BOOTS (25-AUG-2026), clocked up to
-  45.45 MHz with a 115200 console (26-AUG-2026).** Full CPU, deployed at
+  45.45 MHz with a 115200 console (26-AUG-2026), SD-card deployment
+  end to end (27-AUG-2026: the board configures itself from the microSD
+  and boots from the same card - no PC software).** Full CPU, deployed at
   **45.45 MHz** (50 MHz also booted; frequency search and bottleneck
   analysis in `Verilog/fpga/nexys4ddr/timing.md`), main memory in **DDR2
   through a BRAM cache** (`MEM_RAM_49_DDR2`), boot disc on the on-board
