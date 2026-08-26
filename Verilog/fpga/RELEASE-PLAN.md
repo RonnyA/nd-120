@@ -11,17 +11,21 @@ documented as the primary path.
 Attached to a GitHub Release on a tagged commit (binaries never enter git
 history):
 
-| File | Board | CPU clock | Console | Status behind it |
-|---|---|---|---|---|
-| `nd120_nexys4ddr_45MHz_115200.bit` | Nexys 4 DDR | 45.45 MHz | 115200 7E2 | boots SINTRAN, deployed 26-AUG |
-| `nd120_nexys4ddr_16MHz_9600.bit` | Nexys 4 DDR | 16.667 MHz | 9600 7E2 | the 7/7-validated safe build |
-| `nd120_tang20k_fast20_20MHz_115200.fs` | Tang Nano 20K | 20.25 MHz | 115200 7E2 | boots SINTRAN, timing-clean |
-| `nd120_tang20k_slow_6.75MHz_9600.fs` | Tang Nano 20K | 6.75 MHz | 9600 7E2 | long-validated build |
-| `SHA256SUMS` | - | - | - | checksums of the four above |
+ALL releases run the console at 115200 7E2 (Ronny, 26-AUG) - one terminal
+setting for every file, no per-file baud confusion:
 
-Every filename carries board + clock + baud so a user cannot open the
-terminal at the wrong speed for the file they flashed. Release notes state
-the source commit SHA and link the quickstarts below.
+| File | Board | CPU clock | Status behind it |
+|---|---|---|---|
+| `nd120_nexys4ddr_45MHz_115200.bit` | Nexys 4 DDR | 45.45 MHz | boots SINTRAN, deployed 26-AUG - the exact silicon-verified artifact, NOT rebuilt (rebuilds re-roll the thin +0.020 ns closure) |
+| `nd120_nexys4ddr_16MHz_115200.bit` | Nexys 4 DDR | 16.667 MHz | safe build (huge timing margin), fresh 26-AUG build at 115200 |
+| `nd120_tang20k_fast20_20MHz_115200.fs` | Tang Nano 20K | 20.25 MHz | boots SINTRAN, timing-clean - the exact silicon-verified artifact |
+| `nd120_tang20k_slow_6.75MHz_115200.fs` | Tang Nano 20K | 6.75 MHz | safe build, fresh 26-AUG build at 115200 |
+| `SHA256SUMS` | - | - | checksums of the four above |
+
+Filenames still carry board + clock + baud. Release notes state each
+artifact's source commit SHA and timing verdict, and link the quickstarts.
+Staging area for the artifacts before the GitHub Release:
+`fpga/release-staging/` (gitignored).
 
 ## How users load them
 

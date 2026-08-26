@@ -533,14 +533,12 @@
 `else
 `define BOARD_CLK_FREQ 27_000_000
 `endif
-// Console baud. The physical rate is this constant alone - the SC2661
-// emulation stores the microcode's BAUDV mode value (thumbwheel 8 = 9600)
-// but times every bit off DELAY_FRAMES, and TX-ready is a polled flag
-// (proven on the Nexys 26-AUG-2026: SINTRAN runs a 115200 console while
-// believing 9600). 115200 is scoped to fast20 so the validated slow/mid
-// builds and their 9600-baud tooling stay untouched.
-`ifdef TANG_FAST20_BRINGUP
+// Console baud: 115200 for EVERY variant since 26-AUG-2026 (Ronny). The
+// physical rate is this constant alone - the SC2661 emulation stores the
+// microcode's BAUDV mode value (thumbwheel 8 = 9600) but times every bit
+// off DELAY_FRAMES, and TX-ready is a polled flag (proven on the Nexys and
+// on fast20: SINTRAN runs a 115200 console while believing 9600).
+// NOTE for tooling: pf_capture_run.py, boardtests and every console script
+// that opened 9600 must open 115200 (7E2) against bitstreams built after
+// this change.
 `define UART_BAUD_RATE 115200
-`else
-`define UART_BAUD_RATE 9600
-`endif

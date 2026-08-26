@@ -14,23 +14,23 @@ What you need:
   bitstream too)
 - A serial terminal program (picocom, PuTTY, TeraTerm, ...)
 - A bitstream from the GitHub Release. The filename tells you the CPU
-  clock and the console speed:
-  - `nd120_nexys4ddr_45MHz_115200.bit` - fast build, console 115200
-  - `nd120_nexys4ddr_16MHz_9600.bit` - safe build, console 9600
+  clock; the console is 115200 on every release file:
+  - `nd120_nexys4ddr_45MHz_115200.bit` - fast build (45.45 MHz CPU)
+  - `nd120_nexys4ddr_16MHz_115200.bit` - safe build (16.667 MHz CPU,
+    large timing margin - try this one if the fast build misbehaves)
 
 ## Console settings (both paths)
 
-The machine talks **7 data bits, EVEN parity, 2 stop bits**, no flow
-control. Baud comes from the bitstream filename.
+The machine talks **115200 baud, 7 data bits, EVEN parity, 2 stop bits**,
+no flow control - the same setting for every release bitstream.
 
 ```
-picocom -b 115200 -y e -d 7 -p 2 /dev/ttyUSB1     # fast build
-picocom -b 9600   -y e -d 7 -p 2 /dev/ttyUSB1     # safe build
+picocom -b 115200 -y e -d 7 -p 2 /dev/ttyUSB1
 ```
 
-PuTTY: Serial, speed as above, 7 data bits, parity Even, 2 stop bits,
-flow control None. On Windows the board's COM port appears when the
-USB cable is plugged in (Device Manager -> Ports).
+PuTTY: Serial, 115200, 7 data bits, parity Even, 2 stop bits, flow
+control None. On Windows the board's COM port appears when the USB cable
+is plugged in (Device Manager -> Ports).
 
 If every character shows as `?` or accented garbage, the terminal is
 open at 8N1 - the parity bit is being read as data. Fix the framing,
@@ -125,7 +125,7 @@ Points the pending hardware test must settle (the manual is thin here):
 | Symptom | Cause |
 |---|---|
 | Terminal shows `?`-garbage | 8N1 framing - set 7 bits, EVEN parity, 2 stop bits |
-| Nothing on the terminal at all | Wrong baud for the bitstream (read the filename), or wrong COM/tty (the board exposes one port; on Linux usually `/dev/ttyUSB1`) |
+| Nothing on the terminal at all | Wrong baud (release builds are all 115200; bitstreams older than 26-AUG-2026 were 9600), or wrong COM/tty (on Linux usually `/dev/ttyUSB1`) |
 | OPCOM answers, `20500&` prints nothing | No disc image on the card, image not in the FAT root, or card not FAT32 |
 | Board dark after power-cycle | The JTAG load (path 1a) is volatile - use 1b (QSPI) or path 2 (SD) for persistence |
 | LD16 lit red | The DDR2 watchdog tripped - power-cycle; if it repeats, report it with the LED/7-segment state (`nexys4ddr/DEBUG-PANEL.md`) |

@@ -102,7 +102,21 @@ for {set i 0} {$i < $_n} {incr i} {
         set clk_sel [lindex $argv [expr {$i + 1}]]
     }
 }
-puts "argv: $argv  -> clk_sel = $clk_sel"
+# Console baud argument, same two accepted forms as clk (cmd.exe splits '=').
+set uart_baud 115200
+for {set i 0} {$i < $_n} {incr i} {
+    set a [lindex $argv $i]
+    if {[regexp {^baud=(\d+)$} $a -> v]} {
+        set uart_baud $v
+    } elseif {$a eq "baud" && $i + 1 < $_n} {
+        set uart_baud [lindex $argv [expr {$i + 1}]]
+    }
+}
+if {$uart_baud != 9600 && $uart_baud != 115200} {
+    puts "ERROR: baud=$uart_baud not supported (9600 or 115200)."
+    exit 1
+}
+puts "argv: $argv  -> clk_sel = $clk_sel, uart_baud = $uart_baud"
 
 if {![dict exists $clk_table $clk_sel]} {
     puts "ERROR: clk=$clk_sel not supported. Choose one of: [dict keys $clk_table]"
@@ -224,8 +238,9 @@ set defines [list \
     {*}$ram_defines \
     ND120_N4DDR_MMCM_DIV=$mmcm_div \
     BOARD_CLK_FREQ=$board_clk \
-    UART_BAUD_RATE=115200]
-# Console baud 115200 since 26-AUG-2026 (was 9600). The physical bit rate is
+    UART_BAUD_RATE=$uart_baud]
+# Console baud default 115200 since 26-AUG-2026 (-tclargs baud 9600 for the
+# legacy speed). The physical bit rate is
 # UART_BAUD_RATE alone: the emulated SC2661 stores the mode register the
 # microcode programs (BAUDV thumbwheel table, tops out at 9600 - it is 1988)
 # but times every bit off the compile-time DELAY_FRAMES constant
