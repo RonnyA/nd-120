@@ -88,17 +88,19 @@ flash or move JP1 back.
 
 ## Path 2: microSD card - no software on the PC at all
 
-> **PARTIALLY WORKING - KNOWN ISSUE (26-AUG-2026).** Verified on this
-> project's board: the FPGA DOES configure itself from the card (OPCOM
-> answers, no PC software needed). NOT yet working: disc boots
-> afterwards - the config controller leaves the card in a state the
-> ND-120's SD stack cannot read a filesystem from, so `20500&`/`1560&`
-> hang with FDISK error 3 (sw15 up shows a climbing `xx33` count).
-> Measured A/B 26-AUG: the SAME card with the SAME files boots
-> everything when the bitstream is loaded over USB instead. Until the
-> hand-over is fixed in the SD stack, use Path 1 for a machine that
-> boots discs; Path 2 currently gets you OPCOM only. Reference:
-> `nexys4ddr/docs/nexys4ddr_rm.pdf`, Figure 3 and section 3.3.
+> **VERIFIED WORKING end to end (27-AUG-2026)** with bitstreams built
+> after the fix-sd-card change: the FPGA configures itself from the
+> card AND boots SINTRAN from the same card afterwards. History of the
+> bug this needed: the board's microcontroller reads the card in SPI
+> mode during configuration, and a card that entered SPI mode only
+> leaves it by a power cycle; the design used to hold slot power ON
+> constantly (`sd_reset` a constant), so every disc operation after an
+> SD-card configuration failed with FDISK error 3 while the same card
+> booted fine over USB. The design now power-cycles the slot itself at
+> every configuration, reset and master clear. Bitstreams older than
+> 27-AUG-2026 still have the bug - with those, Path 2 gives OPCOM only.
+> Reference: `nexys4ddr/docs/nexys4ddr_rm.pdf`, Figure 3 and
+> section 3.3.
 
 1. Format the microSD FAT32. Copy **both** files to the root directory:
    - **exactly ONE `.bit`** file (the config controller picks the `.bit`
