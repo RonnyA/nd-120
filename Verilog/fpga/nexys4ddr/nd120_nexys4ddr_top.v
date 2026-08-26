@@ -176,10 +176,23 @@ module nd120_nexys4ddr_top (
   localparam [21:0] SDPWR_T_SETTLE = 22'd1_351_350;  //  50 ms
   localparam [1:0] SDPWR_OFF = 2'd0, SDPWR_SETTLE = 2'd1, SDPWR_RUN = 2'd2;
 
-  // master clear crosses from the CPU domain: 2-FF sync, active low
-  wire s_debug_mr_n;   // DEBUG_MR_n from the core (declared here: first use)
+  // Two reset lines cross from the CPU domain, 2-FF synced, both active
+  // low, either one triggers the power cycle:
+  //   DEBUG_MR_n    - master clear (console MACL, power-up)
+  //   DEBUG_CLEAR_n - the machine's own SYSTEM CLEAR (CLEAR_n out of the
+  //                   IO block, ND3202D sheet: "CLEAR_n=0 during reset ->
+  //                   MCL fires, initialising all modules") - the same
+  //                   reset a real ND-bus peripheral saw, so the disc
+  //                   subsystem resets exactly when the machine does.
+  wire s_debug_mr_n;      // declared here: first use is in this block
+  wire s_debug_clear_n;
   reg [1:0] sdpwr_mr_sync = 2'b11;
-  always @(posedge clk_stor) sdpwr_mr_sync <= {sdpwr_mr_sync[0], s_debug_mr_n};
+  reg [1:0] sdpwr_clr_sync = 2'b11;
+  always @(posedge clk_stor) begin
+    sdpwr_mr_sync  <= {sdpwr_mr_sync[0], s_debug_mr_n};
+    sdpwr_clr_sync <= {sdpwr_clr_sync[0], s_debug_clear_n};
+  end
+  wire sdpwr_trigger_n = sdpwr_mr_sync[1] & sdpwr_clr_sync[1];  // 0 = reset asserted
 
   reg [1:0]  sdpwr_state = SDPWR_OFF;
   reg [21:0] sdpwr_cnt   = 22'd0;
@@ -197,12 +210,12 @@ module nd120_nexys4ddr_top (
           sd_pwroff_r  <= 1'b1;
           rst_stor_n_r <= 1'b0;
           if (sdpwr_cnt != SDPWR_T_OFF) sdpwr_cnt <= sdpwr_cnt + 22'd1;
-          else if (sdpwr_mr_sync[1]) begin
-            // master clear released (or never asserted): power back on
+          else if (sdpwr_trigger_n) begin
+            // reset lines released (or never asserted): power back on
             sdpwr_cnt   <= 22'd0;
             sdpwr_state <= SDPWR_SETTLE;
           end
-          // mr still low: hold here, the cycle restarts when it releases
+          // a reset line still low: hold here until it releases
         end
         SDPWR_SETTLE: begin
           sd_pwroff_r  <= 1'b0;
@@ -216,8 +229,8 @@ module nd120_nexys4ddr_top (
         default: begin  // SDPWR_RUN
           sd_pwroff_r  <= 1'b0;
           rst_stor_n_r <= 1'b1;
-          if (!sdpwr_mr_sync[1]) begin
-            // MACL: power-cycle the card and re-mount
+          if (!sdpwr_trigger_n) begin
+            // MACL or system clear: power-cycle the card and re-mount
             sdpwr_cnt   <= 22'd0;
             sdpwr_state <= SDPWR_OFF;
           end
@@ -275,7 +288,7 @@ module nd120_nexys4ddr_top (
   wire [ 9:0] s_debug_ca_9_0;
   wire [ 4:0] s_debug_cc_term;
   wire        s_debug_mclk, s_debug_lcs_n, s_debug_fetch;
-  wire        s_debug_clear_n, s_debug_refrq_n;
+  wire        s_debug_refrq_n;
   wire        s_debug_intrq_n, s_debug_powfail_n;
   wire [15:0] s_debug_fidbo, s_ireq_15_0_n, s_xmic_dbg;
 `ifdef ND120_ILA_MARK_DEBUG
