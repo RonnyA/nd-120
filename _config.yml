@@ -7,3 +7,8 @@ description: Contains original ND-120 design documents, Logisim drawings of the 
 
 toc: true
 toc_position: left
+
+# The Xilinx MIG-generated docs contain "{{bl}" which the Liquid parser rejects,
+# aborting every Pages build. Vendor IP is not site content - exclude it.
+exclude:
+- Verilog/fpga/nexys4ddr/ddr2-test/ip/
