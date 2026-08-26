@@ -88,37 +88,42 @@ flash or move JP1 back.
 
 ## Path 2: microSD card - no software on the PC at all
 
-> **STATUS: vendor-documented, NOT yet verified on this project's
-> hardware.** The Digilent Nexys 4 DDR reference manual (section "FPGA
-> Configuration") states the board's config controller loads a `.bit`
-> from a FAT-formatted microSD at power-on. What has NOT been tested
-> here yet: that path with OUR bitstream, and the hand-over of the SD
-> slot to the running design afterwards (the ND-120 uses the same card
-> for its disc image). This section will be tightened after that test;
-> until then, treat it as the manual's claim, with Path 1 as the
-> known-good fallback.
+> **STATUS: NOT yet verified on this project's hardware.** The steps
+> below are read straight from the board's reference manual
+> (`nexys4ddr/docs/nexys4ddr_rm.pdf`, section 3.3 "USB Host and MicroSD
+> Programming" and the Figure 3 callouts), so the jumpers and LED
+> behaviour are the vendor's word, not guesswork. The one thing the
+> manual does NOT answer and only a test on this board can: whether the
+> config controller hands the SD slot cleanly to the running ND-120,
+> whose SD/FAT stack then mounts the disc image on the SAME card. Until
+> that run passes, Path 1 is the known-good fallback.
 
-The idea, per the reference manual:
+Steps, per the reference manual:
 
 1. Format the microSD FAT32. Copy **both** files to the root:
-   - the `.bit` (the manual warns config picks a `.bit` it finds - keep
-     exactly ONE .bit on the card)
-   - the Winchester disc image
-2. Move jumper **JP1** to the **USB/SD** position (it sits next to the
-   JTAG header; the three positions are JTAG / QSPI / USB-SD).
-3. Insert the card, power the board on. The BUSY/DONE LED behaviour
-   during config is described in the manual; configuration from SD takes
+   - **exactly ONE `.bit`** - the manual requires "a single .bit
+     configuration file in the root directory". A `.bit` built for a
+     different FPGA part is rejected, so a wrong-board file fails safe.
+   - the Winchester disc image (the ND-120's requirement - its FAT
+     reader only looks in the root)
+2. Two jumpers, one-time:
+   - **JP1** (Programming Mode, callout 16 - up by the mode/DONE LEDs):
+     set to **USB/SD**
+   - **JP2** (Media Select, callout 3 - next to the microSD slot): set
+     to the **SD** side (it chooses microSD vs USB pen drive)
+3. Insert the card, power on (or push the **PROG** button). The
+   **BUSY** LED is steady while the card is read, pulses slowly if no
+   medium is found, and **DONE** lights when configuration succeeds -
    a few seconds for a 3.8 MB bitstream.
 4. Open the terminal exactly as in Path 1 and continue from the OPCOM
    smoke test.
 
-Points the pending hardware test must settle (the manual is thin here):
+What the pending hardware test must still settle:
 
-- whether the config controller and the ND-120's SD/FAT stack coexist on
-  one card (config releases the slot to the fabric after DONE - measured
-  behaviour wanted, not assumed);
-- whether the disc-image file's presence confuses the `.bit` search;
-- exact JP1/JP2 jumper positions on this board revision, photographed.
+- the SD-slot hand-over: config controller done, ND-120's own SD/FAT
+  stack mounts the disc image from the same card (measured, not assumed);
+- that the disc-image file next to the `.bit` does not disturb the
+  single-`.bit` search.
 
 ## Troubleshooting
 
