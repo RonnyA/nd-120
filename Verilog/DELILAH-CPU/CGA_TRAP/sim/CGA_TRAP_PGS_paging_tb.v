@@ -81,7 +81,7 @@
 **                                                                                                **
 ** Stimulus is driven on the NEGEDGE so it is stable at the sampling posedge (the anti-race       **
 ** convention of the other benches in this tree). Default build = latch/CP mode: the vector flip- **
-** flops clock on posedge TCLK and PGS on posedge MCLK (sysclk/*_EN unused).                      **
+** flops clock on posedge TCLK and PGS on posedge MCLK (sysclk and the _EN enables unused).                      **
 **                                                                                                **
 ** Self-checking: prints TB_RESULT: PASS / FAIL (never silent).                                   **
 **                                                                                                **
