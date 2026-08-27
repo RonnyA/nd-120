@@ -26,7 +26,7 @@ import time
 import serial
 
 PORT = "/dev/ttyUSB1"
-BAUD = 9600
+BAUD = 115200
 CHAR_PACE = 0.13  # MOPC has no RX FIFO; pace every char
 
 HEXLINE = re.compile(rb"^[0-9A-Fa-f]{4}$")

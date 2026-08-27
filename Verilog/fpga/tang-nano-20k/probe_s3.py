@@ -7,7 +7,7 @@ Assumes the console is already logged in at the '@' prompt.
 import sys, time, serial
 
 port = sys.argv[1] if len(sys.argv) > 1 else "/dev/ttyUSB1"
-s = serial.Serial(port, 9600, bytesize=serial.SEVENBITS,
+s = serial.Serial(port, 115200, bytesize=serial.SEVENBITS,
                   parity=serial.PARITY_EVEN, stopbits=serial.STOPBITS_ONE,
                   timeout=0.3)
 

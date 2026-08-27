@@ -9,7 +9,7 @@
 import serial, time, sys
 
 BANK = sys.argv[1] if len(sys.argv) > 1 else "0"   # bank number to test
-s = serial.Serial("/dev/ttyUSB1", 9600, timeout=0.5)
+s = serial.Serial("/dev/ttyUSB1", 115200, timeout=0.5)
 
 def paced(x, cpd=0.10):
     for c in x.encode('latin1'): s.write(bytes([c])); time.sleep(cpd)

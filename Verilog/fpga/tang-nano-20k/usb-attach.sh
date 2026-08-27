@@ -84,7 +84,7 @@ for i in $(seq 1 20); do
 done
 if ls /dev/ttyUSB* >/dev/null 2>&1; then
     sudo chmod 666 /dev/ttyUSB*
-    echo "serial ready: $(ls /dev/ttyUSB* | tr '\n' ' ')(ttyUSB1 = console, 9600 8N1)"
+    echo "serial ready: $(ls /dev/ttyUSB* | tr '\n' ' ')(ttyUSB1 = console, 115200 7E2 since 27-AUG-2026; 9600 for older bitstreams)"
 else
     echo "ERROR: no /dev/ttyUSB* appeared (ftdi_sio)" >&2
     exit 1

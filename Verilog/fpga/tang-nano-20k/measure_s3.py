@@ -31,7 +31,7 @@ def main():
     a = ap.parse_args()
 
     import serial
-    s = serial.Serial(a.port, 9600,
+    s = serial.Serial(a.port, 115200,
                       bytesize=serial.SEVENBITS,
                       parity=serial.PARITY_EVEN,
                       # ONE stop bit: what picocom -d 7 -p e uses, and what

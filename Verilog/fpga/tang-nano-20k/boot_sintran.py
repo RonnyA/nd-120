@@ -28,7 +28,7 @@ CHAR_GAP = 0.30      # the console drops characters without a gap
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", default="/dev/ttyUSB1")
-    ap.add_argument("--baud", type=int, default=9600)
+    ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--minutes", type=float, default=45.0)
     ap.add_argument("--log", default="$ND120_ORACLE_DIR/boot_sintran.log")
     ap.add_argument("--no-send", action="store_true",

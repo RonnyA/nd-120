@@ -58,7 +58,7 @@ def annot(csa):
     return ""
 
 # --- serial helpers (verbatim protocol from scratch_piltrace.py) ------------
-s = serial.Serial(PORT, 9600, timeout=0.4)
+s = serial.Serial(PORT, 115200, timeout=0.4)
 time.sleep(0.3); s.reset_input_buffer()
 def paced(d, cpd=0.07):
     if isinstance(d, str): d = d.encode('latin1')

@@ -38,7 +38,7 @@ def main():
     ap.add_argument("--log", default="tang_lddtx_probe.log")
     ap.add_argument("--macl", action="store_true", help="issue MACL (master clear) before probing - needed after an ERRFATAL halt, where ! does not run")
     a = ap.parse_args()
-    s = serial.Serial(a.port, 9600, timeout=0.3)
+    s = serial.Serial(a.port, 115200, timeout=0.3)
     log = open(a.log, "w", buffering=1)
 
     def emit(t):

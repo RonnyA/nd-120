@@ -8,7 +8,7 @@
 import serial, time, sys
 
 PORT = "/dev/ttyUSB1"
-s = serial.Serial(PORT, 9600, timeout=0.4)
+s = serial.Serial(PORT, 115200, timeout=0.4)
 
 def paced(d, cpd=0.05):
     for b in d.encode('latin1'):

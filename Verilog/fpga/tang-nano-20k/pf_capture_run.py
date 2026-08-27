@@ -7,7 +7,7 @@ Full path:
   Verilog/fpga/tang-nano-20k/pf_capture_run.py
 
 WHAT IT DOES
-  1. Opens the console (/dev/ttyUSB1, 9600 8N1).
+  1. Opens the console (/dev/ttyUSB1, 115200; 9600 for pre-27-AUG bitstreams).
   2. Sends the Winchester mass load '20500&', one character at a time with a
      gap - this console DROPS characters if a string is written at once.
   3. Logs everything with timestamps until either
@@ -297,7 +297,7 @@ def report(frozen, zeroread=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", default="/dev/ttyUSB1")
-    ap.add_argument("--baud", type=int, default=9600)
+    ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--minutes", type=float, default=45.0)
     ap.add_argument("--log", default="pf_capture_run.log")
     ap.add_argument("--decode-file")

@@ -8,7 +8,7 @@
 # Full path: /mnt/e/Dev/Repos/Ronny/nd-120/Verilog/fpga/tang-nano-20k/capture_floppy.py
 import serial, time, sys
 
-s = serial.Serial("/dev/ttyUSB1", 9600, timeout=0.5)
+s = serial.Serial("/dev/ttyUSB1", 115200, timeout=0.5)
 
 def paced(x, cpd=0.09):
     for c in x.encode('latin1'): s.write(bytes([c])); time.sleep(cpd)

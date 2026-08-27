@@ -12,7 +12,7 @@ import os
 LOG = os.path.join(os.environ.get("ND120_ORACLE_DIR", "/tmp"), "stage_timer_run.log")
 GAP = 0.30
 
-s = serial.Serial(PORT, 9600, bytesize=serial.SEVENBITS,
+s = serial.Serial(PORT, 115200, bytesize=serial.SEVENBITS,
                   parity=serial.PARITY_EVEN, stopbits=serial.STOPBITS_ONE,
                   timeout=0.3)
 log = open(LOG, "w", buffering=1)
