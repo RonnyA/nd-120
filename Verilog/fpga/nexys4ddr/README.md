@@ -18,7 +18,8 @@ extended from there.
 > bitstream (the SD slot is now power-cycled at configuration, reset,
 > MACL and system clear - see
 > [`../QUICKSTART-nexys4ddr.md`](../QUICKSTART-nexys4ddr.md)).
-> The original 25-AUG milestone:
+> **Soaked 27-AUG: 4 unattended hours at 45.45 MHz, 8/8 console probes
+> answered byte-identically.** The original 25-AUG milestone:
 > 16.667 MHz, timing-clean (WNS +1.46), 5/5 reprogram+`20500&` cycles to
 > banner and Watchdog, ~40 s to banner, console login works. The full root-cause
 > and validation record is [`SINTRAN-BOOT-25AUG.md`](SINTRAN-BOOT-25AUG.md).

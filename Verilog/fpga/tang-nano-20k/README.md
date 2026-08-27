@@ -210,7 +210,10 @@ tooling is untouched. The physical baud is the `UART_BAUD_RATE` build
 constant alone; the microcode's BAUDV thumbwheel value (8 = 9600) is stored
 by the SC2661 emulation but never used for bit timing, proven on the Nexys
 and now here. **Silicon 26-AUG-2026: SINTRAN III boots on `fast20`,
-banner + Watchdog in ~40 s, clean text on a 115200 7E2 console.**
+banner + Watchdog in ~40 s, clean text on a 115200 7E2 console. Soaked
+27-AUG: 4 unattended hours, 8/8 console probes.** Since 27-AUG the console
+is 115200 for EVERY variant, and all the python console tools in this
+directory default to it (`--baud 9600` for pre-27-AUG bitstreams).
 
 ### Measured on silicon, SINTRAN III booting from WD0
 

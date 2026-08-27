@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository contains a complete HDL implementation of the 1988 Norsk Data ND-120 CPU, recreated from original design documents and implemented in both Logisim-Evolution and Verilog. The goal is FPGA-synthesizable code that runs as the original ND-120 CPU. **SINTRAN III boots on the Tang Nano 20K (24-AUG-2026) and on the Nexys 4 DDR (25-AUG-2026)** - the Tang is the primary target. Clocked up 26-AUG-2026: the Nexys runs deployed at **45.45 MHz with a 115200 console** (50 MHz also booted; search + bottlenecks in `Verilog/fpga/nexys4ddr/timing.md`), the Tang boots the timing-clean `fast20` variant at **20.25 MHz with a 115200 console** (boot record: `Verilog/fpga/nexys4ddr/SINTRAN-BOOT-25AUG.md`). Verilator remains the signal-level reference for unit checks and waveform work. The Basys3 `xc7a35t` synthesizes but does not meet timing and does not boot.
+This repository contains a complete HDL implementation of the 1988 Norsk Data ND-120 CPU, recreated from original design documents and implemented in both Logisim-Evolution and Verilog. The goal is FPGA-synthesizable code that runs as the original ND-120 CPU. **SINTRAN III boots on the Tang Nano 20K (24-AUG-2026) and on the Nexys 4 DDR (25-AUG-2026)** - the Tang is the primary target. Clocked up 26-AUG-2026: the Nexys runs deployed at **45.45 MHz with a 115200 console** (50 MHz also booted; search + bottlenecks in `Verilog/fpga/nexys4ddr/timing.md`), the Tang boots the timing-clean `fast20` variant at **20.25 MHz with a 115200 console** (boot record: `Verilog/fpga/nexys4ddr/SINTRAN-BOOT-25AUG.md`). **Soaked 27-AUG-2026: both fast configurations ran SINTRAN for 4 unattended hours, 8/8 console probes each** - SD-card WRITE workloads at speed remain the one unproven item. Verilator remains the signal-level reference for unit checks and waveform work. The Basys3 `xc7a35t` synthesizes but does not meet timing and does not boot.
 
 ## Environment
 
@@ -78,6 +78,14 @@ Testbenches live in a `sim/` directory **next to the module** they test — no c
 
 **Global test suite** (from `Verilog/`): `make test` runs every self-checking
 unit testbench, fail-fast — the first failure aborts loudly with exit 1.
+Green end to end since 27-AUG-2026: **328/328 in ~34 min** after the backlog
+burn-down (101 unregistered -> 0 unmeasured; 5 evaluated stragglers live in
+`tests/tb_catalog.py` ORPHAN_BASELINE, each with its reason and its
+register-or-retire condition — that reasoned-baseline convention is the ONLY
+acceptable way to leave a testbench out). CI: `.github/workflows/verilog-ci.yml`
+runs the registry + the Tang yosys netlist gates on every push/PR, and builds
+the Tang OSS bitstream as an artifact on `bitstreams-*` release tags —
+Vivado/Gowin stay local-only.
 `make test-full` adds the heavy system gates (latch-vs-FF golden trace compare,
 runSim golden console, Tang vtest boot+deposit). The registry lives in
 `Verilog/tests/run_all_tests.sh`: **every new testbench must be added there**

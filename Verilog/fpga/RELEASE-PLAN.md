@@ -16,10 +16,10 @@ setting for every file, no per-file baud confusion:
 
 | File | Board | CPU clock | Status behind it |
 |---|---|---|---|
-| `nd120_nexys4ddr_45MHz_115200.bit` | Nexys 4 DDR | 45.45 MHz | **refreshed 27-AUG with the SD power-cycle fix** (WNS +0.064); silicon-verified three ways: JTAG boot, MACL-then-boot, SD-card-config-then-boot |
-| `nd120_nexys4ddr_16MHz_115200.bit` | Nexys 4 DDR | 16.667 MHz | safe build, rebuilt 27-AUG with the SD power-cycle fix |
-| `nd120_tang20k_fast20_20MHz_115200.fs` | Tang Nano 20K | 20.25 MHz | boots SINTRAN, timing-clean - the exact silicon-verified artifact |
-| `nd120_tang20k_slow_6.75MHz_115200.fs` | Tang Nano 20K | 6.75 MHz | safe build, fresh 26-AUG build at 115200 |
+| `nd120_nexys4ddr_45MHz_115200.bit` | Nexys 4 DDR | 45.45 MHz | **refreshed 27-AUG with the SD power-cycle fix** (WNS +0.064); silicon-verified four ways: JTAG boot, MACL-then-boot, SD-card-config-then-boot, **4-hour soak 8/8 probes** |
+| `nd120_nexys4ddr_16MHz_115200.bit` | Nexys 4 DDR | 16.667 MHz | safe build with the SD power-cycle fix; **boot-checked on silicon 27-AUG** |
+| `nd120_tang20k_fast20_20MHz_115200.fs` | Tang Nano 20K | 20.25 MHz | boots SINTRAN, timing-clean; **4-hour soak 8/8 probes (27-AUG)** |
+| `nd120_tang20k_slow_6.75MHz_115200.fs` | Tang Nano 20K | 6.75 MHz | safe build; **boot-checked on silicon 27-AUG** (Watchdog in 106 s) |
 | `SHA256SUMS` | - | - | checksums of the four above |
 
 Filenames still carry board + clock + baud. Release notes state each
