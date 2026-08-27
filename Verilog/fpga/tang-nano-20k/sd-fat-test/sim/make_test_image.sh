@@ -40,6 +40,17 @@ if [ "$FS" = "32" ]; then DEFMB=40; fi
 MB="${5:-$DEFMB}"
 
 if [ ! -f "$PAYLOAD" ]; then
+    # The default payload RTC.BPUN is a Norsk Data diagnostic - deliberately
+    # untracked (not this project's to distribute), so fresh clones and CI
+    # do not have it. The benches only compare the DUT's read-back against
+    # payload.bin, a COPY of whatever payload went in, so any deterministic
+    # bytes carry the same test meaning. Generate a 2342-byte stand-in
+    # (the real file's size) and say so loudly.
+    echo "make_test_image.sh: $PAYLOAD not present - generating a deterministic stand-in payload" >&2
+    PAYLOAD=payload_standin.bin
+    python3 -c "import sys; sys.stdout.buffer.write(bytes((7*i+13) & 0xFF for i in range(2342)))" > "$PAYLOAD"
+fi
+if [ ! -f "$PAYLOAD" ]; then
     echo "make_test_image.sh: payload $PAYLOAD not found" >&2
     exit 1
 fi
