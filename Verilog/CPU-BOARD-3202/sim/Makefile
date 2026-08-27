@@ -96,8 +96,8 @@ test-bifdpath9: BIF_DPATH_9_tb.v $(CIRCUIT)/BIF_DPATH_9.v
 # reachable from the run directory. Symlink them in, run, take them away.
 test-prom19: CPU_CS_PROM_19_tb.v $(CIRCUIT)/CPU_CS_PROM_19.v
 	$(IV) -o CPU_CS_PROM_19_tb.vvp $^
-	ln -sf $(CIRCUIT)/AM27256_45132L.hex AM27256_45132L.hex
-	ln -sf $(CIRCUIT)/AM27256_45133L.hex AM27256_45133L.hex
+	ln -sf ../../../Code/Microcode/AM27256_45132L.hex AM27256_45132L.hex
+	ln -sf ../../../Code/Microcode/AM27256_45133L.hex AM27256_45133L.hex
 	vvp CPU_CS_PROM_19_tb.vvp; rc=$$?; \
 	  rm -f AM27256_45132L.hex AM27256_45133L.hex; exit $$rc
 
