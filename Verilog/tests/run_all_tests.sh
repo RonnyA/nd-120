@@ -37,6 +37,44 @@ REGISTRY=(
   # one microcode, everywhere: every PROM-image copy matches Code/Microcode
   # (dated exceptions only) - the 895f360 sim-vs-board split detector
   "tests :: test-microcode-sync :: TB_RESULT: PASS"
+  # --- Terminal core (board-independent console: screen + keyboard) ---------
+  # 800x600@60 VGA timing: counts a whole frame and checks pixels, lines, both
+  # sync widths and the polarity. A wrong polarity is a monitor saying "no
+  # signal" with nothing else to go on, so it is checked rather than eyeballed.
+  "Terminals/sim :: test-vga-timing :: TB_RESULT: PASS"
+  # Stage A glass TTY: printable characters, CR/LF/BS/HT/FF, wrap at column 80
+  # (the 80th character IS written) and the hardware scroll - top_row advances
+  # and the newly exposed bottom line comes back blank.
+  "Terminals/sim :: test-terminal-ctrl :: TB_RESULT: PASS"
+  # PS/2 keyboard: 11-bit framing, odd parity (a bad frame is DROPPED - a
+  # corrupted scancode can leave shift stuck on), press-vs-release, shift,
+  # caps-lock-on-letters-only, ctrl. It does NOT prove the scancode->ASCII
+  # table, which can only be checked by typing on a real keyboard.
+  "Terminals/sim :: test-ps2-keyboard :: TB_RESULT: PASS"
+  # Console UART loopback, run at BOTH framings the machine can be programmed
+  # to (7E1 and 8N1). The 7-bit path shifts the byte down out of the top of the
+  # register - the step that silently mangles every character if DATA_BITS is
+  # wrong, which on hardware looks like "the terminal shows garbage" with
+  # nothing to point at.
+  "Terminals/sim :: test-console-uart :: TB_RESULT: PASS"
+  # The whole console loop end to end, board pins removed: a byte serialized
+  # by a stand-in machine survives framing, deserialization, the clock-domain
+  # crossing, the control state machine and the address arithmetic to land in
+  # the right character cell - and a PS/2 key press comes back out of the
+  # machine's own receiver as the right character, THROUGH the idle-high AND
+  # merge. Every piece passing alone proves nothing about them being wired the
+  # right way round, which is what costs a bitstream build and a trip to the
+  # hardware.
+  "Terminals/sim :: test-console-loop :: TB_RESULT: PASS"
+  # The pixel pipeline, checked EVERY pixel of four frames (1,920,000) against
+  # a model built independently in the testbench from the same font file. Not a
+  # spot check: this module is a 2-clock fetch pipeline, the hardware-scroll row
+  # mapping and the cursor/attribute inversion at once, and each fails in a way
+  # that looks almost right - a pipeline off by one just shifts the picture.
+  # The testbench also counts the pixels it compared and FAILS if the count is
+  # short, because the first version scanned a window inside vertical blanking
+  # and cheerfully reported "0 wrong" over zero pixels.
+  "Terminals/sim :: test-text-screen :: TB_RESULT: PASS"
   # --- Shared support chips -------------------------------------------------
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"
