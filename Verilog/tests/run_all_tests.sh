@@ -67,6 +67,65 @@ REGISTRY=(
   "Shared/support/sim :: test-inrprom  :: TB_RESULT: PASS"
   "Shared/support/sim :: test-fifo     :: TB_RESULT: PASS"
   "Shared/support/sim :: test-idt6168a :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "Shared/support/sim :: test-am29841       :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-am29861a      :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-am29c821-func :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-am9150        :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-am9150-clk    :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-ims1403       :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-sevenseg      :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-tmm2018d      :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-74139         :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-74241         :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-74244         :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-74273         :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-74373         :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-74374         :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-74393         :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-74521         :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-74534         :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-74646-func    :: TB_RESULT: PASS"
+  "Shared/support/sim :: test-74648-func    :: TB_RESULT: PASS"
+  "Shared/logisim/sim :: test-dffsimple     :: TB_RESULT: PASS"
+  "Shared/logisim/sim :: test-dff           :: TB_RESULT: PASS"
+  "Shared/logisim/sim :: test-jkff          :: TB_RESULT: PASS"
+  "Shared/logisim/sim :: test-mux2          :: TB_RESULT: PASS"
+  "Shared/logisim/sim :: test-mux2en        :: TB_RESULT: PASS"
+  "Shared/logisim/sim :: test-mux4          :: TB_RESULT: PASS"
+  "Shared/logisim/sim :: test-mux8          :: TB_RESULT: PASS"
+  "Shared/logisim/sim :: test-muxbus2       :: TB_RESULT: PASS"
+  "Shared/logisim/sim :: test-tff           :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-a02           :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-bd4tu         :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-dffen         :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-f924en        :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-jkffen        :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-l4            :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-latch         :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-m169c         :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-m169cen       :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-mux21l        :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-mux21lp       :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-mux24p        :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-mux31lp       :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-mux34p        :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-mux41p        :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-mux81         :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-nd38ghp       :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-nd38glp       :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-r41p          :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-r41pen        :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-r81p          :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-r81en         :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-rmuxgates     :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-scanffen      :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-scanrst       :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-scanrsten     :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-scanset       :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-scanseten     :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-sr44          :: TB_RESULT: PASS"
+  "Shared/ndlib/sim   :: test-sr44en        :: TB_RESULT: PASS"
   # --- PALs -------------------------------------------------------------
   "PAL/sim :: test-all :: RESULT: PASS"
   # provenance gate: no PAL may drive an output its PALASM listing does not
@@ -88,6 +147,25 @@ REGISTRY=(
   "PAL/sim :: test-44446b-d :: TB_RESULT: PASS"
   # --- CPU board sheets -------------------------------------------------
   "CPU-BOARD-3202/sim         :: test-reqgnt   :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "CPU-BOARD-3202/sim         :: test-bdrv7           :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-bifdpath9       :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-ppnlbd14-latch  :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-ppnlbd14-ff     :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-csctl18         :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-prom19          :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-csr26           :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-hit27           :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-ptidb30         :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-wca31           :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-cmddec34-latch  :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-cmddec34-ff     :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-iodcd38-latch   :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-iodcd38-ff      :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-ioreg41-latch   :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-ioreg41-ff      :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-iouart42-latch  :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/sim         :: test-iouart42-ff     :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-cyctermd :: RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-ccd      :: RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-memaddr  :: TB_RESULT: PASS"
@@ -179,6 +257,9 @@ REGISTRY=(
   # DECODE_DGA_POW power-up/MCL/RTC/TOUT sheet (5 builds: plain, VERILATOR_SIM,
   # +RTC_SIM_20MS, FPGA_FF_MODE+BOARD_CLK_FREQ, VERILATOR_SIM+FPGA_FF_MODE)
   "DECODE-GateArray/DGA/sim :: test-dga-pow     :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "DECODE-GateArray/DGA/sim :: test-dga-top     :: TB_RESULT: PASS"
+  "DECODE-GateArray/DGA/sim :: test-f924        :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-stoc      :: TB_RESULT: PASS"
   # --- CPU-board Tier-3: RAMC grant chain / LBDIF delays (2 modes) /
   #     PANCAL stub contract / MMU cache HIT-gate (3 modes, teeth=ungated) --
@@ -206,8 +287,12 @@ REGISTRY=(
   # golden re-derived from the drawing's gate labels (34.3/35.3, 37.2/37.3,
   # ND2). Two builds: plain + FPGA_FF_MODE.
   "DELILAH-CPU/CGA_DCD/sim  :: test-dcd-vacc    :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "DELILAH-CPU/CGA_DCD/sim  :: test-dcd-idbs-enables :: TB_RESULT: PASS"
   # CGA_TESTMUX Verilator tb: 25 directed vectors on the TM0-TM4 test mux
   "DELILAH-CPU/CGA_TESTMUX/sim :: test-testmux  :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "DELILAH-CPU/CGA_TESTMUX/sim :: test-testmux-iv :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_MIC/sim  :: test-masel-basic :: PASS"
   # --- CGA_MIC counter/select tbs (CSEL+INCOUNT dual build modes) ----------
   "DELILAH-CPU/CGA_MIC/sim  :: test-mic-csel    :: TB_RESULT: PASS"
@@ -222,6 +307,8 @@ REGISTRY=(
   "DELILAH-CPU/CGA_MIC/sim  :: test-mic-condreg    :: TB_RESULT: PASS"
   # --- CGA_MIC Tier-5: MASEL repeat register (dual modes, SC5/SC6 pinned) --
   "DELILAH-CPU/CGA_MIC/sim  :: test-mic-repeat     :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "DELILAH-CPU/CGA_MIC/sim  :: test-mic-top        :: TB_RESULT: PASS"
   # --- CGA_MAC_DECODE exhaustive decode check (both build modes, Issue-C
   #     GATES_5 regression tooth: SPT/SAPT mutual exclusion) ---------------
   "DELILAH-CPU/CGA_MAC/sim  :: test-decode      :: TB_RESULT: PASS"
@@ -250,12 +337,17 @@ REGISTRY=(
   # --- CGA_IDBCTL / CGA_WRF Tier-1 tbs (PGSREG dual, LR16 triple modes) ----
   "DELILAH-CPU/CGA_IDBCTL/sim :: test-idbctl-sel6   :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_IDBCTL/sim :: test-idbctl-pgsreg :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "DELILAH-CPU/CGA_IDBCTL/sim :: test-idbctl        :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_WRF/sim    :: test-wrf-sel16     :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_WRF/sim    :: test-wrf-lr16      :: TB_RESULT: PASS"
   # --- CGA_WRF Tier-5: DR16 WR-qualified register (dual modes) -------------
   "DELILAH-CPU/CGA_WRF/sim    :: test-wrf-dr16      :: TB_RESULT: PASS"
   # --- CGA_WRF Tier-4: RBLOCK parent register-file wiring (triple modes) ---
   "DELILAH-CPU/CGA_WRF/sim    :: test-wrf-rblock    :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "DELILAH-CPU/CGA_WRF/sim    :: test-wrf-preg      :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_WRF/sim    :: test-wrf           :: TB_RESULT: PASS"
   # --- CGA_ALU small mux/swap exhaustive tbs (SWAP dual build modes) -------
   "DELILAH-CPU/CGA_ALU/sim  :: test-alu-swap    :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_ALU/sim  :: test-alu-sel7    :: TB_RESULT: PASS"
@@ -264,6 +356,11 @@ REGISTRY=(
   "DELILAH-CPU/CGA_ALU/sim  :: test-alu-rmux    :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_ALU/sim  :: test-alu-logop   :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_ALU/sim  :: test-alu-smux    :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-gpr         :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-outmux-idbs :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_ALU/sim  :: test-alu-top         :: TB_RESULT: PASS"
+  "DELILAH-CPU/CGA_ALU/sim  :: test-cpu-alu-ralu    :: TB_RESULT: PASS"
   # SHIFT: full 2^20 exhaustive incl. every serial-input combination
   "DELILAH-CPU/CGA_ALU/sim  :: test-alu-shift   :: TB_RESULT: PASS"
   # --- CGA_ALU Tier-3 register tbs (dual modes; QREG teeth = the MPY bug) --
@@ -290,6 +387,8 @@ REGISTRY=(
   "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR_VECGEN_ISMUX       :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR_VECGEN_OSMUX       :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR_VECGEN_VHR         :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "DELILAH-CPU/CGA_INTR/sim :: test-intr-irsrc                      :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR_IRQ_REG_RQBIT      :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_INTR/sim :: test-rqbitv2                         :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA_INTR/sim :: iv-CGA_INTR_CNTLR_IRQ_REG            :: TB_RESULT: PASS"
@@ -383,6 +482,15 @@ REGISTRY=(
   # time for one case, and TO_DATA is a real device timeout that must not be
   # shortened to suit a testbench.
   "SD-FAT/sim                         :: test-nds-errors :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "SD-FAT/sim                         :: test-nds-devices     :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-nds-discadapter :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-nds-mountfsm    :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-nds-synclevel   :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-sd-cardctrl     :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-fat-check       :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-fat-freescan    :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-fat-rewrite     :: TB_RESULT: PASS"
   # --- board memory-test benches ---------------------------------------
   # Found by `make test-audit` 09-AUG-2026: both existed with no Makefile at
   # all, so nothing could run them. They build and pass; they were simply
@@ -420,8 +528,12 @@ REGISTRY=(
   # --- ND-100 external bus devices --------------------------------------
   "ND-BUS-DEVICES/BUS-IF/sim :: test-bus-slave :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/FLOPPY/sim :: test-floppy-pio :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "ND-BUS-DEVICES/FLOPPY/sim :: test-floppy-ioxmap :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/DMA/sim    :: test-dma-master :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/DMA/sim    :: test-dma-stale-capture :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "ND-BUS-DEVICES/DMA/sim    :: test-dma-reset-pend    :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-dma :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-boot :: TB_RESULT: PASS"
   "ND-BUS-DEVICES/FLOPPY-DMA/sim :: test-floppy-iox :: TB_RESULT: PASS"
@@ -451,6 +563,8 @@ REGISTRY=(
   # 8-tick fast path, which made the File System Investigator read 060011
   # where the nd100x oracle reads 060005.
   "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-rtz :: TB_RESULT: PASS"
+  # --- backlog burn-down: previously orphaned tbs, verified passing, registered 27-AUG-2026 ---
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-decode :: TB_RESULT: PASS"
   # M3 compare reads the sector, compares it against ND memory, and leaves the
   # memory address register ADVANCED by the word count. M3 used to share the
   # do-nothing stub with M2 and M5, so the register read back holding whatever
