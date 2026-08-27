@@ -863,8 +863,8 @@ TODO: Sort bits on output LED to match led numbering
       .LEV0        (s_lev0),                    // Level 0 active
       .CSA_12_0    (CSA_12_0),                  // Microcode Address (for debugging)
       .XMIC_DBG_15_0(XMIC_DBG_15_0),            // DEBUG: microsequencer address-advance probe
-      .DBG_PTW     (DBG_PTW),                   // DEBUG: page-table write stream (23-AUG),
-      .DBG_PTW_LVL(DBG_PTW_LVL)
+      .DBG_PTW     (DBG_PTW),                   // DEBUG: page-table write stream (23-AUG)
+      .DBG_PTW_LVL (DBG_PTW_LVL),               // DEBUG: live PT write-strobe level (27-AUG)
       .PF_CAPTURED (PF_CAPTURED)                // DEBUG: freeze flag (23-AUG)
   );
 
