@@ -597,7 +597,7 @@ CPU_CYCLE_TIMELINE_tb: CPU_CYCLE_TIMELINE_tb.v \
 test-cycle-timeline: CPU_CYCLE_TIMELINE_tb
 	@./CPU_CYCLE_TIMELINE_tb > cycle_timeline_out.log 2>&1 || true
 	@cat cycle_timeline_out.log
-	@grep -v '^TB_RESULT:' cycle_timeline_out.log > cycle_timeline_out.trace
+	@grep -vE '^TB_RESULT:|\$$finish called at' cycle_timeline_out.log > cycle_timeline_out.trace
 	@if ! diff -u CPU_CYCLE_TIMELINE.golden cycle_timeline_out.trace > cycle_timeline.diff; then \
 	    echo ""; \
 	    echo "TIMELINE CHANGED - a microcycle edge moved. Diff:"; \
