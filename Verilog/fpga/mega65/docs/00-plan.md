@@ -73,6 +73,43 @@ persistence + versioning (needs CORE/release.toml, version constant in
 config.vhd); bare-metal can still emit a .cor via bit2core but gets no
 config/slot conventions.
 
+## Console front-end research (27-AUG, third report in)
+
+**Display - VGA first, no encoder needed:** the MEGA65's FPGA drives a
+video DAC directly (vgared/green/blue[7:0] + syncs + vdac_clk, pins from
+mega65r5.xdc) and the board has a real VGA connector - any 80x25 text
+core plus a pixel clock is the whole path. HDMI later = the same
+RGB+syncs into hdl-util/hdmi (MIT OR Apache-2.0) or the MEGA65-proven
+Tyto vga_to_hdmi (LGPLv3, ships in every M2M production core) plus the
+10:1 serializer.
+
+**Terminal core - the one license fork:** (A, recommended) write it
+in-repo, ~300-500 lines Verilog (VGA timing + 2 KB char RAM + font ROM +
+CR/LF/BS/scroll; SINTRAN login needs no more) - keeps everything MIT;
+font from a public-domain IBM clone or OFL-licensed Terminus. (B) vendor
+Grant Searle's SBCTextDisplayRGB - richest and battle-proven, but its
+"never charge" clause is a field-of-use restriction that lives in the
+repo forever. (C) grow aap/fpga-vt (MIT, immature). GPL candidates
+(vt52-fpga) flagged only.
+
+**Keyboard - exists, nothing to invent:** vendor four mega65-core files
+(mega65kbd_to_matrix, kb_matrix_ram, matrix_to_ascii - yes, matrix
+STRAIGHT to ASCII with shift/ctrl tables and repeat - plus mk2_to_mk1
+for MK-II keyboards) as marked third-party LGPLv3 VHDL in their own
+directory with license notes. Protocol: 3 wires to the keyboard CPLD,
+FPGA-clocked 141-phase serial frame (128 LED bits out / matrix bits in).
+Do NOT take M2M's m2m_keyb (GPL-3.0, MK-I only).
+
+**Glue written from scratch (small):** two byte FIFOs at the ND-120
+console-UART seam - tap the console TX byte BEFORE 7E2 serialization
+(so the baud/framing quirks never reach the terminal core), inject
+keyboard ASCII as RX. ~100-200 lines + CDC. Estimated fabric cost of the
+whole front-end: ~2-3k LUTs + ~10 KB BRAM - noise on the A200T.
+
+ISOLATION RULE (Ronny, 27-AUG): everything for this port lives under
+`fpga/mega65/` - vendored third-party files included. No shared-RTL
+changes for the MEGA65; the seam contract is the only interface.
+
 ## Phases
 
 | Phase | Content | Exit gate |
