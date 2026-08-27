@@ -192,7 +192,21 @@ if {$mode eq "at"} {
     run_hw_ila -trigger_now $ila
     wait_on_hw_ila $ila
 }
+# MEASURED 27-AUG-2026 (Vivado 2026.1): wait_on_hw_ila -timeout does NOT
+# throw on timeout - it silently STOPS the core ("stopped by user", "No
+# data to upload") and returns normally, so the catch branches above never
+# fire and a timed-out run used to print CAPTURE WRITTEN over an EMPTY csv
+# (header + radix rows only). Detect the empty upload and say so.
 upload_hw_ila_data $ila
 write_hw_ila_data -csv_file -force [file join $srcdir ila_hang.csv] [current_hw_ila_data]
-puts "CAPTURE WRITTEN: ila_hang.csv"
+set _fh [open [file join $srcdir ila_hang.csv] r]
+set _nl 0
+while {[gets $_fh _line] >= 0} { incr _nl }
+close $_fh
+if {$_nl <= 2} {
+    puts "NO TRIGGER: the wait timed out (empty capture) - ila_hang.csv has no samples"
+    close_hw_manager
+    exit 2
+}
+puts "CAPTURE WRITTEN: ila_hang.csv ($_nl lines)"
 close_hw_manager

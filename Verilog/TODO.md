@@ -31,10 +31,18 @@ registry entries added, every one proven passing before registration; the
 4 orphans above are all registered too (PT_stale_read_tvec converted to a
 contract-pinning regression - lead=0 stale IS the contract). The 5 left,
 all measured, none baselined:
-  - CYC_STRETCH_STROBES_tb: FAILS with 41 strobe divergences - a stretched
-    CGNTCACT grant elongates CYD/UCLK. The header says this CONFIRMS the
-    write-strobe corruption mechanism from the OPEN Nexys wrong-PPN hunt -
-    a real finding awaiting that investigation, not a delete candidate.
+  - CYC_STRETCH_STROBES_tb: measured 27-AUG - 39 of its 41 divergences are
+    the bench's own artifacts (inverted CYD/UCLK polarity, growing count
+    window, phase aliasing; WAIT1/WAIT2 tied 0 bypasses the real wait
+    states). The surviving fact: a stretched grant holds CYD, and WMAP_n
+    (CPU_MMU_24.v:256) is combinational off CYD, so PT RAMs rewrite every
+    sysclk of a freeze - MEASURED HARMLESS on silicon: the overlap probe
+    (DBG_PTW_LVL & MEM_HOLD, sticky+counter, panel digit 4 bit 2) stayed
+    0/0 across a full SINTRAN boot, and the wrong-PPN trap signature
+    (TVEC 3 at PIL>=8) did not fire in two armed full boots. The 25-AUG
+    wrong-PPN ERRFATAL is attributed to the stale-word cache bug fixed the
+    same evening. The bench needs a rewrite before it can gate (fixed
+    window, true polarities, board-real waits) - or retirement.
   - CGA_MAC_pt_apt_selection_tb: FAILS 129/259 ("PT request selects
     PCR[14:11]"); 17-AUG ERRFATAL-campaign probe, campaign closed by the
     bank-decode fix - stale expectations vs real defect UNRESOLVED.

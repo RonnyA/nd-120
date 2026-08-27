@@ -65,7 +65,7 @@ Driver: `SevenSegDebug8.v`. All digits hex. Digit 0 is rightmost.
 | 7 | PIL | current interrupt level, one hex digit (B = the PIL-11 disc level) |
 | 6 | {astate[2:0], MEM_HOLD} | DDR2 bridge state x2 + hold; even = astate with HOLD low, odd = the CPU is frozen right now |
 | 5 | {last_hit, refill_pend, op_busy, have_data} | bridge detail bits |
-| 4 | {0, 0, dbg_orphan, dbg_stuck} | 0 = healthy, 1 = watchdog fired, 2 = orphan response, 3 = both |
+| 4 | {0, ptw_overlap, dbg_orphan, dbg_stuck} | 0 = healthy; bit0 = DDR2 watchdog fired; bit1 = orphan response; bit2 = a page-table write strobe overlapped a MEM_HOLD freeze at least once (sticky; measured 0 across full boots - if it ever lights, capture s_ila_ptwhold_* with the ILA) |
 
 Reading digit 6: the value is `astate*2 + MEM_HOLD`. astate: 0=A_IDLE,
 1=A_COL (column on AA, lookup issued), 2=A_CHK (tag compare), 3=A_MISS
