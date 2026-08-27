@@ -53,3 +53,49 @@ Reuse pointers: `../nexys4ddr/build.tcl` (the Vivado flow to clone),
 `../nexys4ddr/ddr2/` (the seam + cache that port unchanged),
 `../nexys4ddr/timing.md` (the microcycle bottleneck analysis - fabric is
 the same family, so it transfers).
+
+## Ecosystem context (m65-altcores survey, 27-AUG-2026)
+
+Source: the community alternative-core catalogue at
+<https://kugelblitz360.github.io/m65-altcores/> (site last updated
+21-JUL-2026 at survey time). What it establishes for this port:
+
+- **~34 alternative cores exist, all community-built**, catalogued at
+  <https://kugelblitz360.github.io/m65-altcores/quick-core-overview.html>.
+  Non-Commodore machines are normal there: Amiga 500, ZX Spectrum,
+  Game Boy / Game Boy Color, TI-99/4A, Nascom2, MSX-1 all ship as
+  "fully/mostly functional"; Apple II, Sinclair QL and C128 are in
+  development. A non-Commodore core is established practice - but **no
+  minicomputer core exists in the catalogue**; the ND-120 would be the
+  first, consistent with the plan's note that no non-MiSTer core has yet
+  gone through the M2M framework.
+- **Most cores are MiSTer ports via MiSTer2MEGA65** ("Many of the Cores
+  for the MEGA65 started out as MiSTer projects, like the C64 and Game
+  Boy Cores" -
+  <https://kugelblitz360.github.io/m65-altcores/creating-new-cores-for-mega65.html>).
+- **Distribution convention:** one download entry per core on
+  **files.mega65.org** (per-core UUID URL) plus the author's GitHub repo.
+  Several cores ship separate R3 and R6 `.cor` files (Ghosts'n Goblins,
+  Xevious on the overview page), and repo names carry the compatibility
+  (`..._R3_R6`). Catalogue listing is by mail to the site maintainer
+  (boris@dreisechzig.net, per the site's contact note).
+- **Slot count note:** the install guide
+  (<https://kugelblitz360.github.io/m65-altcores/how-to-use-alternative-cores.html>)
+  says 8 slots numbered 0-7 - matching the "8 QSPI slots" claim in the
+  table above - while the site's front page says "seven slots"; the site
+  is internally inconsistent on this. The install guide recommends
+  keeping slot 1 for the stock MEGA65 core.
+
+## Links
+
+| Link | What it is |
+|---|---|
+| <https://kugelblitz360.github.io/m65-altcores/> | Community alt-core catalogue (source of the survey above) |
+| <https://kugelblitz360.github.io/m65-altcores/quick-core-overview.html> | Every released/in-dev alt core, with download + repo links |
+| <https://kugelblitz360.github.io/m65-altcores/mega65-revisions-and-cores.html> | R3-vs-R6 core-compatibility guide (end-user view) |
+| <https://kugelblitz360.github.io/m65-altcores/how-to-use-alternative-cores.html> | End-user `.cor` install procedure (slots, key combos) |
+| <https://kugelblitz360.github.io/m65-altcores/creating-new-cores-for-mega65.html> | Core-development pointers (M2M framework) |
+| <https://files.mega65.org> | The filehost every released core distributes through |
+| <https://github.com/sy2002/MiSTer2MEGA65/wiki> | MiSTer2MEGA65 framework wiki |
+| <https://mega65.org/> | MEGA65 project home |
+| <https://www.forum64.de/index.php?board/457-mega65/> | Forum64 MEGA65 board (mostly German) |

@@ -6,7 +6,9 @@ fabric pins, 100 MHz oscillator). Sources for every hardware claim: the
 mega65-core Vivado scripts (`mega65r4/r5/r6_gen.tcl`, part string), the
 board XDCs (`src/vhdl/mega65r5.xdc`: 100 MHz on V13, SDRAM/SD pin blocks),
 the MEGA65 user-guide appendix (R4 SDRAM addition), and the MEGA65 wiki
-("Bitstream and Corefile Know-How" - .cor slots). Full source URLs in the
+("Bitstream and Corefile Know-How" - .cor slots), and the community
+alt-core catalogue <https://kugelblitz360.github.io/m65-altcores/>
+(revision/install/ecosystem facts, sections below). Full source URLs in the
 27-AUG feasibility report (session record); re-verify against the R6 XDC
 when the pin file is written.
 
@@ -29,6 +31,33 @@ when the pin file is written.
   owns keyboard/video - if the ND-120's device seams can ride that, our
   FAT stack is not needed on this platform and the machine gets a real
   console on its own keyboard and screen.
+
+## Board-revision facts from the alt-core ecosystem (m65-altcores, 27-AUG-2026)
+
+Source: <https://kugelblitz360.github.io/m65-altcores/mega65-revisions-and-cores.html>
+(end-user compatibility guide on the community alt-core catalogue).
+
+- **R3** is the most common board on machines bought before 2024; "every
+  released Core is available for R3 models".
+- **R6** is the boards shipped 2024 or later, serial numbers above 1000;
+  "some Cores might not be fully adapted to the R6 model yet".
+- **The flash menu enforces the revision match:** installing a `.cor`
+  built for the wrong model aborts with "Core hardware model mismatch!".
+  So released `.cor` files are per-revision, and core filenames carry R3
+  or R6.
+- **Revision check on a real machine:** hold RESTORE ~2 s (enters the
+  freezer), press HELP (MegaInfo); the revision shows as "MEGA65 MODEL".
+- **DISCREPANCY / gap to note:** this plan targets R4+ and treats
+  R4/R5/R6 as electrically equivalent, with the FPGA/memory specs taken
+  from the mega65-core build scripts and board XDCs (header above).
+  m65-altcores only ever distinguishes R3 vs R6 - about other revisions
+  it says only "there are others" - and gives no FPGA or memory specs,
+  so it neither confirms nor contradicts the XC7A200T fbg484 -2 claim.
+  The open question it raises: what model string an R4 or R5 board
+  reports, and whether an "R6" `.cor` installs on R4/R5 or trips the
+  mismatch check. Resolve before phase 5; make_release.py already emits
+  per-revision `.cor` files, so the likely answer is simply building
+  R4, R5 and R6 variants.
 
 ## Phase-0 decisions (both research reports in, 27-AUG-2026)
 
@@ -121,6 +150,37 @@ changes for the MEGA65; the seam contract is the only interface.
 | 3.5 | QNICE vdrive throughput benchmark (the M2M gate): random-LBA sd_rd->sd_ack latency against a 75 MB image on real hardware | a measured table that says Winchester-class paging is feasible or not |
 | 4 | M2M integration (gated on 3.5): virtual drives replace the FAT stack; terminal-emulator front-end (char gen + screen buffer + MEGA65-key mapping) gives the console on the machine's own keyboard/HDMI | boot + login using only the MEGA65's own keyboard/screen/SD |
 | 5 | Release: `.cor` packaging (bit2core / make_release.py style), QUICKSTART, entry in the bitstream release | a downloadable ND-120.cor that boots SINTRAN on a stock MEGA65 |
+
+### Phase-5 release conventions (from the alt-core ecosystem, 27-AUG-2026)
+
+What "release" means in practice, taken from the community catalogue's
+install guide
+(<https://kugelblitz360.github.io/m65-altcores/how-to-use-alternative-cores.html>)
+and core overview
+(<https://kugelblitz360.github.io/m65-altcores/quick-core-overview.html>):
+
+- **Per-revision `.cor` files, revision in the filename** (R3 / R6 today;
+  see the revision-facts section above for the R4/R5 open question). The
+  flash menu rejects a wrong-model file with "Core hardware model
+  mismatch!", so this is enforced, not a convention.
+- **Distribution channel:** every released core has a download entry on
+  <https://files.mega65.org> (per-core UUID link) plus the author's
+  GitHub repo; catalogue listing on m65-altcores is by mail to the
+  maintainer (boris@dreisechzig.net). Plan: `ND-120` entry on
+  files.mega65.org + this repo, then the catalogue mail.
+- **Install procedure the QUICKSTART must document** (from the install
+  guide, quoted facts): `.cor` on a micro-SD card (internal or external
+  slot); power on holding **NO SCROLL** to reach the flash menu; **8
+  slots numbered 0-7**; press **CTRL + slot number** to flash; "do not
+  reset or turn off the MEGA65 for the next minute or two until you see
+  a confirmation message"; keep **slot 1 for the stock MEGA65 core**
+  (recommended by the guide). To run: hold NO SCROLL at power-on and
+  press the slot number; the chosen core stays active across the Reset
+  button; a plain power cycle returns to the default core.
+- Note: the site's front page says "seven slots" while its install guide
+  says 8 numbered 0-7 - internally inconsistent; the install guide is
+  the concrete one and matches the 8-QSPI-slot claim already in the
+  README.
 
 ## Reuse ledger
 
