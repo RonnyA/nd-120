@@ -88,8 +88,28 @@ module MEM_CHAIN_tb;
   // match exactly AND the parity bits must come back correct for that data.
   // A backend that stored parity, returned 0, or got the polarity backwards all
   // fail this check.
+  //
+  // EXCEPTION - MEM_RAM_49_SIM (behavior changed 11-AUG-2026, this tb updated
+  // 27-AUG-2026): the SIM backend keeps a 1-bit per-byte-lane corruption flag.
+  // A write whose parity bit DISAGREES with its data sets the flag, and the
+  // read-side regenerated parity is XORed with it (MEM_RAM_49_SIM.v, the
+  // b*_bad arrays and the q0e/q1e/q2e assigns). Net effect: the readback
+  // parity bit always equals the WRITTEN parity bit. This is deliberate - it
+  // is what lets the AM29833A forced-error write (the TPE CONFIGURATION
+  // ECC-simulate probe) survive to the read and raise a real parity error;
+  // unconditional regeneration healed the injected error and CONFIGURATION
+  // mis-typed all memory as Multiport, ending in ERRFATAL (measured on the
+  // Tang Nano 20K, 11-AUG-2026). Only a forced-error write can produce a
+  // mismatched parity bit through the real AM29833A datapath; this tb drives
+  // DD directly, so its deliberately-wrong-parity writes exercise exactly
+  // that flag path. Expectation for SIM is therefore: readback == written,
+  // all 18 bits.
   function [17:0] expect_word(input [17:0] written);
+`ifdef CHAIN_USE_SIM
+    expect_word = written;
+`else
     expect_word = {~(^written[16:9]), written[16:9], ~(^written[7:0]), written[7:0]};
+`endif
   endfunction
 
   task check(input [17:0] got, input [17:0] expect_dd, input [127:0] what);
@@ -223,11 +243,22 @@ module MEM_CHAIN_tb;
       access(0, addr, 1'b0, wr18, r);
       access(0, addr, 1'b1, 18'o0, r);
       check(r, wr18, "parity regen sweep");
+`ifdef CHAIN_USE_SIM
+      // SIM backend contract (11-AUG-2026, see expect_word above): a bad
+      // parity bit written is a bad parity bit read back - the corruption
+      // flag must preserve the injected error, not heal it.
+      if (r[8] !== wr18[8] || r[17] !== wr18[17]) begin
+        errors = errors + 1;
+        $display("FAIL: injected bad parity not preserved for pattern %04h (got %o)",
+                 pat, r);
+      end
+`else
       if (r[8] !== ~(^r[7:0]) || r[17] !== ~(^r[16:9])) begin
         errors = errors + 1;
         $display("FAIL: readback parity not regenerated for pattern %04h (got %o)",
                  pat, r);
       end
+`endif
     end
 
     if (errors == 0) $display("TB_RESULT: PASS");
