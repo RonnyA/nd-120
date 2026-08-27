@@ -273,3 +273,26 @@ test-wd-decode: nd_winchester_decode_tb.vvp nd_winchester_decode_ff_tb.vvp
 	@grep -q "TB_RESULT: PASS" wd_decode_ff_out.log
 
 .PHONY: test-wd-decode
+
+# Registered 27-AUG-2026 (orphans from the 18-AUG boot-hang campaign):
+# test-wd-boothang - exact replay of the SINTRAN boot poll pattern that hung
+#   (op 11, 060005 forever); self-checking, PASSES since the fix.
+# test-wd-ticks - tick-cost instrumentation copy of the dmapath bench
+#   (real ND_DMA_MASTER + full storage stack + card image).
+BOOTHANG_SRCS = ../circuit/ND_WINCHESTER.v nd_winchester_boot_hang_tb.v
+nd_winchester_boot_hang_tb.vvp: $(BOOTHANG_SRCS)
+	$(IVERILOG) -g2012 $(ND_INC) -o $@ $(BOOTHANG_SRCS)
+test-wd-boothang: nd_winchester_boot_hang_tb.vvp
+	$(VVP) nd_winchester_boot_hang_tb.vvp | tee wd_boothang_out.log
+	@grep -q "TB_RESULT: PASS" wd_boothang_out.log
+
+WDTICKS_SRCS = ../circuit/ND_WINCHESTER.v \
+               ../../DMA/circuit/ND_DMA_MASTER.v \
+               $(WD_STOR_COMMON) \
+               nd_winchester_ticks_tb.v
+nd_winchester_ticks_tb.vvp: $(WDTICKS_SRCS)
+	$(IVERILOG) -g2005 $(ND_INC) -I../circuit -o $@ $(WDTICKS_SRCS)
+test-wd-ticks: nd_winchester_ticks_tb.vvp ../../../SD-FAT/sim/nds_storage.img
+	$(VVP) nd_winchester_ticks_tb.vvp | tee wd_ticks_out.log
+	@grep -q "TB_RESULT: PASS" wd_ticks_out.log
+.PHONY: test-wd-boothang test-wd-ticks

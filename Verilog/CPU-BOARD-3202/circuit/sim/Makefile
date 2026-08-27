@@ -760,3 +760,20 @@ test-mmucache-nocache: CPU_MMU_CACHE_25_nocache_tb_bin
 	@grep -q "TB_RESULT: PASS" mmucache_nc_result.tmp && rm -f mmucache_nc_result.tmp
 
 .PHONY: test-mmucache-nocache
+
+# test-pt-stale: PT status RAM (TMM2018D sync BRAM) wired to the real
+# trap-vector generator. Registered 27-AUG-2026 as a CONTRACT-PINNING
+# regression (was the ERRFATAL-era stale-read demo): lead=0 access sees the
+# STALE entry (TVEC 3) by construction - that is WHY the trap is consumed at
+# the mid-cycle MACLK strobe - and one sysclk of lead suffices (TVEC 1).
+PTSTALE_SRCS = PT_stale_read_tvec_tb.v \
+               ../../../DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_TVGEN.v \
+               ../../../Shared/support/TMM2018D_25.v
+PT_stale_read_tvec_tb_bin: $(PTSTALE_SRCS)
+	$(IVERILOG) -g2012 -y ../../../Shared/logisim -y ../../../Shared/ndlib \
+	  -y ../../../Shared/support -y ../../../DELILAH-CPU/CGA_TRAP/circuit \
+	  -o $@ $(PTSTALE_SRCS)
+test-pt-stale: PT_stale_read_tvec_tb_bin
+	vvp PT_stale_read_tvec_tb_bin | tee pt_stale_out.log
+	@grep -q "TB_RESULT: PASS" pt_stale_out.log
+.PHONY: test-pt-stale

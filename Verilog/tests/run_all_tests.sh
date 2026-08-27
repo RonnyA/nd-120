@@ -199,6 +199,7 @@ REGISTRY=(
   # MEM_ADEC_45 real sheet-45 DUT (UCADEC/UBADEC PALs + BLRQ/RLRQ flags,
   # plain + FPGA_FF_MODE _D-mirror builds)
   "CPU-BOARD-3202/circuit/sim :: test-adec      :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-pt-stale  :: TB_RESULT: PASS"
   "DELILAH-CPU/CGA/sim      :: test-busdriver16 :: Testbench Complete"
   # CGA_DCD sheet 10 (p.75) DVACCN + VACCN decode: exhaustive CSCOMM x CSMIS x
   # LCSN x PONI x VEX x LSHADOW x INTRQN sweep, EMCLN=0 and EMCLN=1 passes,
@@ -343,6 +344,7 @@ REGISTRY=(
   # once CMD3 has run, as real silicon does. Guards the fault that made
   # USE_4BIT=1 read garbage on the Tang while simulating clean.
   "SD-FAT/sim                         :: test-nds-mount-4bit :: TB_RESULT: PASS"
+  "SD-FAT/sim                         :: test-nds-ticks :: TB_RESULT: PASS"
   # Client bus slice continuity. nd_storage_devices hands nd_storage its
   # per-client ports as five hand-written flat concatenations, and nothing
   # else checks that a client actually got a slice in each one - a forgotten
@@ -456,6 +458,8 @@ REGISTRY=(
   # That is what made the '20500&' boot re-issue block 0 seven times and print
   # TRANSFER ERROR while every status word looked perfect.
   "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-compare :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-boothang :: TB_RESULT: PASS"
+  "ND-BUS-DEVICES/WINCHESTER/sim :: test-wd-ticks :: TB_RESULT: PASS"
 )
 # NOT in the registry (run manually, documented reasons):
 #   DECODE-GateArray/DGA/sim test-f595-transparency - FAILS BY DESIGN on the

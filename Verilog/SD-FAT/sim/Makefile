@@ -613,3 +613,15 @@ test-sd-cardctrl: sd_card_ctrl_tb.vvp
 
 .PHONY: test-fat-check test-fat-freescan test-nds-mountfsm test-nds-mountfsm-chk \
         test-nds-discadapter test-nds-devices test-sd-cardctrl
+
+# test-nds-ticks: tick-cost instrumentation of the full stack against the
+# same FAT16 card image as test-nds-mount - self-checking (TB_RESULT), and
+# the [TICKS] lines are the per-operation cost record. Registered 27-AUG-2026
+# (was an orphan from the disc-cost campaign).
+TICKS_SRCS = $(STACK_SRCS) nd_storage_ticks_tb.v
+nd_storage_ticks_tb.vvp: $(TICKS_SRCS)
+	$(IVERILOG) -g2012 -I ../circuit -o $@ $(TICKS_SRCS)
+test-nds-ticks: nd_storage_ticks_tb.vvp nds_storage.img
+	$(VVP) nd_storage_ticks_tb.vvp | tee nds_ticks_out.log
+	@grep -q "TB_RESULT: PASS" nds_ticks_out.log
+.PHONY: test-nds-ticks

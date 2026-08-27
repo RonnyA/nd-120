@@ -96,10 +96,12 @@ module PT_stale_read_tvec_tb;
       checks = checks + 1;
       if (TVEC_3_0 !== want) begin
         errors = errors + 1;
-        $display("*** FAIL lead=%0d sysclk: TVEC=%0d, REQUIRED %0d  ipt=%b (WPM=%b RPM=%b FPM=%b)  <- STALE",
+        $display("*** FAIL lead=%0d sysclk: TVEC=%0d, expected %0d  ipt=%b (WPM=%b RPM=%b FPM=%b)",
                  ld, TVEC_3_0, want, ipt, ipt[6], ipt[5], ipt[4]);
       end else begin
-        $display("ok   lead=%0d sysclk: TVEC=%0d (page fault seen correctly)", ld, TVEC_3_0);
+        $display("ok   lead=%0d sysclk: TVEC=%0d%s", ld, TVEC_3_0,
+                 (want == 4'd3) ? " (stale by construction - sync BRAM, the reason the strobe is mid-cycle)"
+                                : " (page fault seen correctly)");
       end
     end
   endtask
@@ -185,7 +187,19 @@ module PT_stale_read_tvec_tb;
       if (lead == 0) pt_addr = ADDR_UNMAPPED;
       TCLK = 1; TCLK_EN = 0;
       @(negedge sysclk);
-      #1 check_lead(lead, 4'd1);
+      // CONTRACT PINNED 27-AUG-2026 (was: REQUIRED 1 at every lead, and the
+      // lead=0 FAIL was the whole point of this bench during the ERRFATAL
+      // hunt). The machine-level answer is now settled: the trap is consumed
+      // at the MID-CYCLE MACLK strobe (PAL_44307C.v:119), never in the same
+      // sysclk the address changes, so lead=0 does not occur in the real
+      // pairing - PGF_COMMITTED_ACCESS_tb is the machine-level gate. What
+      // this bench pins as a REGRESSION is the RAM property that FORCES that
+      // design: a synchronous BRAM read is one sysclk stale (lead=0 shows
+      // the OLD entry -> TVEC 3), and one sysclk of lead is enough (lead>=1
+      // -> TVEC 1). If lead=0 ever starts "passing", the RAM stopped being
+      // synchronous - which would silently invalidate the mid-cycle-strobe
+      // reasoning and must be looked at, not celebrated.
+      #1 check_lead(lead, (lead == 0) ? 4'd3 : 4'd1);
       @(negedge sysclk); TCLK = 0;
     end
 
