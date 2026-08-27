@@ -1,0 +1,86 @@
+# ND-120 Verilog CI - the OSS-toolchain gates that CAN run on a hosted
+# runner. Vivado (Nexys) and Gowin EDA are licensed/Windows and stay
+# local-only; what runs here:
+#
+#   test          every push and PR: the full self-checking testbench
+#                 registry (Verilog/tests/run_all_tests.sh, fail-fast,
+#                 ~335 entries: iverilog + a few Verilator harnesses),
+#                 including the tb-catalog and audit meta-gates.
+#   netlist-gates every push and PR: the Tang yosys gates (make check) -
+#                 tristate contract on IO_sdram_dq + inferred-latch census.
+#   tang-oss     release tags (bitstreams-*) and manual dispatch: full OSS
+#                 bitstream build (yosys -> nextpnr-himbaechel ->
+#                 gowin_pack) as a workflow ARTIFACT. Deliberately NOT
+#                 attached to the release: release bitstreams are the
+#                 silicon-verified vendor-flow builds, and an OSS-flow .fs
+#                 is a different artifact that has not earned that label.
+#
+# The WCS preload hexes (Verilog needs 33 wcs_*.hex) are gitignored;
+# Code/Microcode/gen_wcs_image.py regenerates them from the tracked PROM
+# images - every job runs it first.
+name: Verilog CI
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["bitstreams-*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install simulators and FAT tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            iverilog verilator dosfstools mtools python3
+          iverilog -V | head -1
+          verilator --version
+      - name: Regenerate WCS preload images
+        run: cd Code/Microcode && python3 gen_wcs_image.py
+      - name: Run the testbench registry (fail-fast)
+        run: make -C Verilog test
+
+  netlist-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install yosys
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends yosys python3
+          yosys -V
+      - name: Regenerate WCS preload images
+        run: cd Code/Microcode && python3 gen_wcs_image.py
+      - name: Tang netlist gates (tristate + latch census)
+        run: make -C Verilog/fpga/tang-nano-20k check
+
+  tang-oss:
+    # Full OSS bitstream on release tags and on demand - the oss-cad-suite
+    # download is ~1.5 GB, too heavy for every push.
+    if: startsWith(github.ref, 'refs/tags/bitstreams-') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install oss-cad-suite
+        run: |
+          URL=$(curl -s https://api.github.com/repos/YosysHQ/oss-cad-suite-build/releases/latest \
+            | grep browser_download_url | grep linux-x64 | cut -d'"' -f4 | head -1)
+          curl -L "$URL" -o oss-cad-suite.tgz
+          tar -xzf oss-cad-suite.tgz
+          echo "$PWD/oss-cad-suite/bin" >> "$GITHUB_PATH"
+      - name: Regenerate WCS preload images
+        run: cd Code/Microcode && python3 gen_wcs_image.py
+      - name: Build Tang OSS bitstream (slow variant)
+        run: make -C Verilog/fpga/tang-nano-20k VARIANT=slow
+      - name: Upload bitstream artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: nd120_tang20k_oss-slow
+          path: Verilog/fpga/tang-nano-20k/build/*.fs
