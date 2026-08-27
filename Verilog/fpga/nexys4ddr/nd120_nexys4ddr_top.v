@@ -92,6 +92,25 @@ module nd120_nexys4ddr_top (
     output wire [ 0:0] ddr2_cs_n,
     output wire [ 1:0] ddr2_dm,
     output wire [ 0:0] ddr2_odt
+
+`ifdef ND120_CONSOLE_VGA
+    ,
+    // ---- Console on the board's own screen and keyboard --------------------
+    // Only present when ND120_CONSOLE_VGA is defined, so the default build is
+    // unchanged down to the pin list. Pins and the plan behind them:
+    // PLAN-vga-console.md; constraints in nd120_nexys4ddr_console_vga.xdc.
+    output wire [3:0] vga_r,     // A3, B4, C5, A4
+    output wire [3:0] vga_g,     // C6, A5, B6, A6
+    output wire [3:0] vga_b,     // B7, C7, D7, D8
+    output wire       vga_hs,    // B11
+    output wire       vga_vs,    // B12
+
+    // The board's onboard microcontroller is the USB host and hands us a
+    // plain PS/2 pair - "##USB HID (PS/2)" in Nexys-4-DDR-Master.xdc.
+    // Receive only, so these are inputs and never driven.
+    input  wire       ps2_clk,   // F4
+    input  wire       ps2_data   // B2
+`endif
 );
 
   /**********************************************
@@ -100,6 +119,9 @@ module nd120_nexys4ddr_top (
   wire clk_cpu_pre, clk_stor_pre, clk200_pre;
   wire clkfb_out, clkfb_in, mmcm_locked;
   wire clk_cpu, clk_stor, clk200;
+`ifdef ND120_CONSOLE_VGA
+  wire clk_pix_pre, clk_pix;   // 40 MHz, the VGA console pixel clock
+`endif
 
 `ifndef ND120_N4DDR_MMCM_DIV
   `define ND120_N4DDR_MMCM_DIV 60.0
@@ -112,6 +134,12 @@ module nd120_nexys4ddr_top (
       .CLKOUT0_DIVIDE_F(`ND120_N4DDR_MMCM_DIV),  // CPU / bus
       .CLKOUT1_DIVIDE  (37),     // 27.027 MHz - SD/FAT stack
       .CLKOUT2_DIVIDE  (5),      // 200 MHz    - DDR2 controller
+`ifdef ND120_CONSOLE_VGA
+      // 1000 / 25 = 40.000 MHz EXACTLY - the 800x600@60 pixel clock. No
+      // fractional divide, no tolerance argument. (640x480 wants 25.175 MHz,
+      // which this VCO cannot make: the nearest is 25.000, 0.7% low.)
+      .CLKOUT3_DIVIDE  (25),     // 40 MHz     - VGA console pixel clock
+`endif
       .DIVCLK_DIVIDE   (1),
       .STARTUP_WAIT    ("FALSE")
   ) mmcm (
@@ -121,6 +149,9 @@ module nd120_nexys4ddr_top (
       .CLKOUT0 (clk_cpu_pre),
       .CLKOUT1 (clk_stor_pre),
       .CLKOUT2 (clk200_pre),
+`ifdef ND120_CONSOLE_VGA
+      .CLKOUT3 (clk_pix_pre),
+`endif
       .LOCKED  (mmcm_locked),
       .PWRDWN  (1'b0),
       .RST     (1'b0)
@@ -130,6 +161,9 @@ module nd120_nexys4ddr_top (
   BUFG bufg_st  (.I(clk_stor_pre), .O(clk_stor));
   // MIG's project sets SystemClock = "No Buffer", so this must arrive buffered
   BUFG bufg_200 (.I(clk200_pre),   .O(clk200));
+`ifdef ND120_CONSOLE_VGA
+  BUFG bufg_pix (.I(clk_pix_pre),  .O(clk_pix));
+`endif
 
   /**********************************************
   *  Reset                                      *
@@ -325,6 +359,146 @@ module nd120_nexys4ddr_top (
 `endif
 
   /**********************************************
+  *  Console on the board's own screen+keyboard *
+  *  (ND120_CONSOLE_VGA - PLAN-vga-console.md)  *
+  ***********************************************/
+`ifdef ND120_CONSOLE_VGA
+
+  // Framing. The console UART inside the machine is a SC2661 EPCI, which is
+  // SOFTWARE PROGRAMMED - baud and framing are set at run time, not fixed in
+  // RTL, so these must match whatever the machine is actually running.
+  // console.ps1:17 says the OPCOM console is "7E1 in some configurations;
+  // the board check is plain 8N1"; the deployed fast builds run 115200.
+  // Wrong values here look like garbage on screen and nothing else.
+`ifndef ND120_CONSOLE_BAUD
+  `define ND120_CONSOLE_BAUD 115200
+`endif
+`ifndef ND120_CONSOLE_DATA_BITS
+  `define ND120_CONSOLE_DATA_BITS 7
+`endif
+`ifndef ND120_CONSOLE_PARITY
+  `define ND120_CONSOLE_PARITY 1'b1
+`endif
+
+  // Reset for the pixel domain, same shape as the CPU one above.
+  reg [7:0] por_pix = 8'd0;
+  reg       pix_rst_n_r = 1'b0;
+  always @(posedge clk_pix) begin
+    if (!rst_req_n) begin
+      por_pix     <= 8'd0;
+      pix_rst_n_r <= 1'b0;
+    end else if (por_pix != 8'hFF) begin
+      por_pix <= por_pix + 8'd1;
+    end else begin
+      pix_rst_n_r <= 1'b1;
+    end
+  end
+  wire pix_rst_n = pix_rst_n_r;
+
+  // --- machine -> screen ---------------------------------------------------
+  // Deserialize the console line the machine is already driving. Tapping the
+  // byte before serialization would be cleaner, but that means adding a port
+  // to SC2661_UART - shared RTL used by every board and by the Verilator
+  // reference. This costs one small module and touches nothing shared.
+  wire       s_con_byte_valid;
+  wire [7:0] s_con_byte_data;
+
+  console_uart_rx #(
+      .CLK_HZ   (40_000_000),
+      .BAUD     (`ND120_CONSOLE_BAUD),
+      .DATA_BITS(`ND120_CONSOLE_DATA_BITS),
+      .PARITY   (`ND120_CONSOLE_PARITY)
+  ) CONSOLE_RX (
+      .clk       (clk_pix),
+      .rst_n     (pix_rst_n),
+      .rxd       (cpu_txd),
+      .byte_valid(s_con_byte_valid),
+      .byte_data (s_con_byte_data)
+  );
+
+  wire s_pixel, s_de, s_bell;
+
+  terminal_top #(
+      .FONT_FILE("font8x16.hex")   // Vivado resolves $readmemh next to the .v
+  ) TERMINAL (
+      // The deserializer already runs on the pixel clock, so the crossing
+      // inside terminal_top is a no-op here. Left in place rather than
+      // bypassed: it is what makes the core drop onto MiSTer and the MEGA65
+      // unchanged, and it costs three flops.
+      .byte_clk  (clk_pix),
+      .byte_rst_n(pix_rst_n),
+      .byte_valid(s_con_byte_valid),
+      .byte_data (s_con_byte_data),
+      .byte_ready(),
+
+      .pix_clk  (clk_pix),
+      .pix_rst_n(pix_rst_n),
+      .pixel    (s_pixel),
+      .hsync    (vga_hs),
+      .vsync    (vga_vs),
+      .de       (s_de),
+      .bell     (s_bell)
+  );
+
+  // Monochrome: the terminal says ink or paper, the board picks the colour.
+  // Green on black, because this is a 1988 minicomputer console and the
+  // Tandberg terminals it grew up with were green.
+  wire s_ink = s_pixel & s_de;
+  assign vga_r = 4'h0;
+  assign vga_g = s_ink ? 4'hF : 4'h0;
+  assign vga_b = 4'h0;
+
+  // --- keyboard -> machine -------------------------------------------------
+  wire       s_key_valid;
+  wire [7:0] s_key_data;
+
+  ps2_keyboard KEYBOARD (
+      .clk  (clk_pix),
+      .rst_n(pix_rst_n),
+
+      .ps2_clk_in (ps2_clk),
+      .ps2_data_in(ps2_data),
+
+      .ascii_valid(s_key_valid),
+      .ascii_data (s_key_data),
+      // raw scancodes are for the TDV work later; nothing consumes them yet
+      .code_valid   (),
+      .code_data    (),
+      .code_release (),
+      .code_extended()
+  );
+
+  wire s_kbd_txd;
+
+  console_uart_tx #(
+      .CLK_HZ    (40_000_000),
+      .BAUD      (`ND120_CONSOLE_BAUD),
+      .DATA_BITS (`ND120_CONSOLE_DATA_BITS),
+      .PARITY    (`ND120_CONSOLE_PARITY),
+      .PARITY_ODD(1'b0)
+  ) CONSOLE_TX (
+      .clk       (clk_pix),
+      .rst_n     (pix_rst_n),
+      .byte_valid(s_key_valid),
+      .byte_data (s_key_data),
+      // A dropped key while a character is still going out is acceptable at
+      // human typing speed against 115200; wiring a FIFO here would be
+      // solving a problem nobody has.
+      .ready     (),
+      .txd       (s_kbd_txd)
+  );
+
+  // Both lines idle HIGH, so ANDing merges them - the same idiom this file
+  // already uses outbound (uart_rxd_out above). The PC console keeps working
+  // exactly as before; the two only collide if somebody types on the keyboard
+  // at the instant the PC sends a character.
+  wire s_console_rxd = uart_txd_in & s_kbd_txd;
+
+`else
+  wire s_console_rxd = uart_txd_in;
+`endif
+
+  /**********************************************
   *  The ND-120 core with its device chain      *
   ***********************************************/
   ND120_CORE #(
@@ -373,7 +547,9 @@ module nd120_nexys4ddr_top (
       .OUTIDENT_n   (),
       .MCL          (),
 
-      .RXD(uart_txd_in),
+      // s_console_rxd is the PC line alone by default, or the PC line ANDed
+      // with the local keyboard when ND120_CONSOLE_VGA is defined.
+      .RXD(s_console_rxd),
       .TXD(cpu_txd),
 
       .TAPE_BYTE_REQ  (TAPE_BYTE_REQ),

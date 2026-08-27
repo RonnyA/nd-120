@@ -163,3 +163,9 @@ Verilog/CPU-BOARD-3202/circuit/sim/cycle_timeline.diff
 Verilog/CPU-BOARD-3202/circuit/sim/cycle_timeline_out.trace
 Verilog/dmaSim/csa_seq.txt
 Verilog/fpga/release-staging/
+
+# Board-independent terminal core (Verilog/Terminals/) - simulation output.
+# fpga/**/sim is already covered above; Terminals is not under fpga.
+Verilog/Terminals/sim/*.vvp
+Verilog/Terminals/sim/*.vcd
+Verilog/Terminals/sim/*.log

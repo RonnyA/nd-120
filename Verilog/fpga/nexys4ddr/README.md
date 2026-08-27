@@ -309,3 +309,18 @@ run them after every bitstream change.
 - Golden dialogs for expect scripts: `../../tests/golden-console/`.
 - Machine invariants (register maps, address-space contract, board
   differences): `../../docs/nd120-facts.md`.
+
+
+## Console on the board's own screen and keyboard (planned, 27-AUG-2026)
+
+The Nexys has a VGA connector and an onboard USB host that presents a keyboard
+to the FPGA as **plain PS/2** (`Nexys-4-DDR-Master.xdc:226-227`, in the section
+headed `##USB HID (PS/2)`) - so a keyboard costs a ~50-line PS/2 receiver, not
+a USB stack. Since this board already boots SINTRAN III, it is the cheapest
+place to prove the shared terminal core in `Verilog/Terminals/`: the terminal
+is the only new thing in the build, and phases 1-3 need no ND-120 RTL at all.
+
+Plan: [PLAN-vga-console.md](PLAN-vga-console.md). The serial console is kept
+live in parallel - the build define `ND120_CONSOLE_VGA` *adds* the screen, it
+does not remove the UART - so `console.ps1`, the board tests and the soak
+scripts keep working.

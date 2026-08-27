@@ -1,0 +1,34 @@
+# Source list for the ND-120 MiSTer core.
+#
+# Paths are relative to THIS file (Verilog/fpga/mister/). The shared terminal
+# core is referenced in place under Verilog/Terminals/ rather than copied here
+# - copies drift, and the whole point of that folder is that the Nexys, MiSTer
+# and MEGA65 builds compile the SAME files.
+#
+# BUILD 1 (28-AUG-2026): console only, no ND-120 RTL. The CPU sources join
+# this list in build 2.
+
+# --- MiSTer-specific glue ---------------------------------------------------
+set_global_assignment -name VERILOG_FILE rtl/nd120_console_mister.v
+
+# --- the shared, board-independent terminal core ----------------------------
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/terminal_top.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/terminal_ctrl.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/text_screen.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/char_ram.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/vga_timing.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/font_rom.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/cdc_byte.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_decoder.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_ascii_table.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_banner.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_banner_rom.v
+
+# NOTE: ps2_keyboard.v is deliberately NOT here. It is the PS/2 SERIAL front
+# end, which the Nexys needs because its onboard microcontroller hands the FPGA
+# a raw clock/data pair. On MiSTer, Linux has already done the framing and
+# hps_io delivers decoded scancodes, so only ps2_decoder.v is wanted.
+
+# --- top level --------------------------------------------------------------
+set_global_assignment -name SDC_FILE nd120.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE nd120.sv

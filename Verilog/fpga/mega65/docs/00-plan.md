@@ -12,8 +12,92 @@ alt-core catalogue <https://kugelblitz360.github.io/m65-altcores/>
 27-AUG feasibility report (session record); re-verify against the R6 XDC
 when the pin file is written.
 
+## HARDWARE GATE (Ronny, 27/28-AUG-2026) - READ THIS FIRST
+
+**There is no MEGA65 board here, but friends have one and will test
+bitstreams we send them** (Ronny, 28-AUG-2026). That is not the same as
+having hardware, and the plan must be built around the difference.
+
+**MiSTer comes first** (Ronny, 28-AUG-2026). Reasons in
+`../mister/README.md`: it is on his desk so the loop is minutes not days,
+and the SDRAM interface is the same shape (16-bit DQ SDR on fabric pins), so
+the memory backend is one piece of work serving both boards and gets debugged
+on hardware he controls.
+
+### What remote testing changes - the rules for anything we send
+
+A friend with a board is a slow, precious, non-interactive channel. Every
+round trip costs days and they cannot poke at it. So:
+
+1. **No debugging by iteration.** A bitstream that only says "it does not
+   work" has wasted a week. Every bitstream sent out must diagnose itself and
+   SHOW the result without a host tool.
+2. **The console is a precondition, not a phase-4 nicety.** The MEGA65 has no
+   built-in USB-UART - our bring-up console assumes a TE0790 module on the
+   internal JB1 header, which a friend almost certainly does not have and
+   should not be asked to fit. So the FIRST bitstream worth sending must
+   already put its output on the machine's OWN screen: VGA out of the VDAC,
+   text from `Verilog/Terminals/`. Phase order changes accordingly - the
+   terminal core moves BEFORE the SD/disc work, not after it.
+3. **Results come back as a photograph.** Design the on-screen report for
+   that: big text, pass/fail words rather than blinking codes, the build ID
+   visible so we know which bitstream they actually flashed.
+4. **One variable per send.** Batch nothing. A bitstream that changes two
+   things and fails has told us nothing.
+5. **Get the revision first.** R4/R5/R6 report different model strings and
+   the flash menu refuses a mismatched `.cor` outright ("Core hardware model
+   mismatch!"). Ask which board each friend has - RESTORE ~2 s, then HELP -
+   before building anything for them.
+
+Everything from phase 1 onward is still **not started**, deliberately, and
+this document is a paper plan until the MiSTer work has taken the shared
+pieces through real silicon.
+
+The reasoning, which a friend of Ronny's put plainly and which matches our
+own Nexys and Tang experience: no tool emulates the full MEGA65, so without
+a board you are building blind. Our two worst bugs to date were both
+invisible in simulation - the Tang's memory-bank decode read from the wrong
+side of a bus transceiver (only real DMA showed it) and the Nexys DDR2
+backend grew three separate silicon-only faults before SINTRAN booted. The
+phase table's insistence on "on real R4+ silicon" for every exit gate is not
+caution, it is the lesson.
+
+Two items here can ONLY be settled with hardware in hand, so do not attempt
+them or estimate around them:
+
+- **Phase 3.5, the QNICE throughput gate.** M2M serves disc sectors from a
+  50 MHz soft CPU parsing FAT32 in firmware, sized for floppy-class traffic;
+  SINTRAN pages at Winchester rates. No M2M core with a hard-disc-class
+  virtual drive exists to compare against.
+- **Any memory-backend claim.** See the risks section.
+
+What is NOT blocked, and is where the effort goes meanwhile: the terminal
+front-end. It is the largest single new item for this port and the only one
+that can be built blind, which is why it lives at `Verilog/Terminals/` as
+board-independent RTL and is being proven on the Nexys 4 DDR's VGA output
+first. When a MEGA65 appears, the console is already done and debugged.
+
+### M2M scope - what the project actually claims (verified 27-AUG-2026)
+
+Checked against the source because it matters: the M2M README says only
+*"a framework to simplify porting MiSTer cores to the MEGA65"*, and neither
+it nor the wiki index describes the framework as a way to build arbitrary
+non-MiSTer logic. The vdrives facility genuinely IS generic - that is an
+inference we drew by reading `M2M/vhdl/vdrives.vhd` ourselves, not a
+supported use the project documents. Combined with "no non-MiSTer core has
+been ported through M2M yet", an ND-120 on M2M is unprecedented in both
+directions. Treat the hybrid decision below as what it is: bare-metal is the
+path with evidence behind it, M2M is the attractive release face with two
+unmeasured gates in front of it.
+
+Also note for the licence ledger: **M2M is GPL-3.0.** Adopting it as the
+release face means the MEGA65 core is not an MIT artifact, the same shape as
+the MiSTer `sys/` decision already taken (keep in-repo, note it, split later
+if released).
+
 ## Decisions taken
 
+- **NO HARDWARE - paper plan only** (27-AUG-2026). See the gate above.
 - **R4+ only.** R3's HyperRAM-only memory is a second backend for no
   gain; R3 owners can run the Nexys-class experience later if someone
   wants the work.
@@ -207,3 +291,12 @@ and core overview
 - No switch bank / debug LEDs like the Nexys panel: plan the debug
   surface early (the framework OSD could show what LD16/the 7-seg shows
   today).
+
+## Terminal core - now a shared plan (27-AUG-2026)
+
+Option (A) above (write it in-repo, keep MIT) is confirmed, and the same core
+serves the MiSTer port. The written-up plan, including the PDP2011 licence
+finding that closed off the "just vendor a VT100" shortcut, is
+[`Verilog/docs/PLAN-vt100-terminal-core.md`](../../../Terminals/docs/PLAN-vt100-terminal-core.md).
+Only the two ends differ per board: keyboard source (MEGA65 matrix vs MiSTer
+`hps_io ps2_key`) and video sink (VDAC vs the MiSTer video_mixer).

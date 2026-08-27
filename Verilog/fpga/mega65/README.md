@@ -1,6 +1,22 @@
 # ND-120 on the MEGA65
 
-**Status: PLANNING (27-AUG-2026).** Target: the MEGA65 retro computer,
+**Status: PAPER PLAN, QUEUED BEHIND MiSTer (28-AUG-2026).** There is no MEGA65
+board here; friends who own one will test bitstreams we send them. That makes
+this a slow, non-interactive channel where each round trip costs days, so the
+bar for anything we send is much higher than for a board on the desk - the
+rules are in the hardware gate at the top of
+[`docs/00-plan.md`](docs/00-plan.md), and the biggest one is that a MEGA65
+bitstream must report its own results on the machine's own screen, because a
+friend will not have the TE0790 UART module our bring-up console assumes.
+
+**[`../mister/`](../mister/) goes first** (Ronny, 28-AUG-2026) - same SDRAM
+interface shape, on hardware he can iterate against in minutes, so the memory
+backend meets silicon there before it is ever sent to anyone.
+
+The one piece of this port being built meanwhile is the terminal front-end,
+board-independent by design, at [`../../Terminals/`](../../Terminals/).
+
+Target: the MEGA65 retro computer,
 board revisions **R4 and later** (R4/R5/R6 are electrically equivalent for
 our purposes). The goal is the full consumer story: an `ND-120.cor` file
 plus the disc images on one SD card, flashed from the machine's own menu -
