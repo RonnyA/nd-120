@@ -37,7 +37,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            iverilog verilator dosfstools mtools python3
+            iverilog verilator dosfstools mtools python3 yosys
           iverilog -V | head -1
           verilator --version
       - name: Regenerate WCS preload images
