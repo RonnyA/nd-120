@@ -9,8 +9,8 @@ the small debt items are cleared.
 
 | # | Item | How | Status |
 |---|------|-----|--------|
-| 1.1 | Boot-check the exact `nd120_nexys4ddr_16MHz_115200.bit` release file | JTAG program the staged file, `20500&` to banner at 115200 7E2 | pending |
-| 1.2 | Boot-check the exact `nd120_tang20k_slow_6.75MHz_115200.fs` release file | openFPGALoader SRAM load, `20500&` on /dev/ttyUSB1 at 115200 7E2 | pending |
+| 1.1 | Boot-check the exact `nd120_nexys4ddr_16MHz_115200.bit` release file | JTAG program the staged file, `20500&` to banner at 115200 7E2 | **PASS 27-AUG** (banner + Watchdog) |
+| 1.2 | Boot-check the exact `nd120_tang20k_slow_6.75MHz_115200.fs` release file | openFPGALoader SRAM load, `20500&` on /dev/ttyUSB1 at 115200 7E2 | **PASS 27-AUG** (Watchdog in 106 s) |
 | 1.3 | Nexys soak at 45.45 MHz | JTAG the 45 MHz release file, boot SINTRAN, leave running with hourly console probes (ESC attention), 4+ hours, no hang/ERRFATAL/watchdog-red | pending |
 | 1.4 | Tang soak at 20.25 MHz (fast20) | same recipe on /dev/ttyUSB1 | pending |
 | 1.5 | SD-config boot at 16.667 MHz (fix verified at 45 only) | needs Ronny: swap the .bit on the card, power-cycle | NEEDS RONNY |
@@ -21,23 +21,23 @@ the small debt items are cleared.
 Every Tang bitstream built after 26-AUG talks 115200 7E2. Sweep
 `Verilog/fpga/tang-nano-20k/` for scripts/docs that open 9600
 (`pf_capture_run.py`, boardtest drivers, README console lines) and update
-them; note the memory files are already flagged via the skill. | pending
+them; note the memory files are already flagged via the skill. | **DONE 27-AUG** (18 scripts + usb-attach.sh) |
 
 ## Phase 3 - test-gate backlog (TODO.md, Ronny's 21-AUG decision)
 
 | # | Item | Status |
 |---|------|--------|
-| 3.1 | Re-check `DELILAH-CPU/CGA/sim/ND120_PF_CAPTURE_tb.v` - may elaborate now that `ND120_PF_CAPTURE.v` gained `c_pgs_at_read` | pending |
-| 3.2 | 4 orphan testbenches: register or delete each (PT_stale_read_tvec, 2x winchester, nd_storage_ticks) | pending |
-| 3.3 | 101 unregistered testbenches from the 21-AUG sweep: register or delete each, NO baselining away | pending |
-| 3.4 | `test-memchain` pre-existing failure - diagnose, fix or document | pending |
+| 3.1 | Re-check `DELILAH-CPU/CGA/sim/ND120_PF_CAPTURE_tb.v` - may elaborate now that `ND120_PF_CAPTURE.v` gained `c_pgs_at_read` | **PASSES** (was already registered) |
+| 3.2 | 4 orphan testbenches: register or delete each (PT_stale_read_tvec, 2x winchester, nd_storage_ticks) | **ALL 4 REGISTERED, all pass** |
+| 3.3 | 101 unregistered testbenches from the 21-AUG sweep: register or delete each, NO baselining away | **101 -> 5**; 100 entries added, all proven; the 5 rest documented in TODO.md (one is a live finding: CYC_STRETCH) |
+| 3.4 | `test-memchain` pre-existing failure - diagnose, fix or document | **RESOLVED**: SIM-variant stale expectation of pre-11-AUG parity handling; tb fixed, 4/4 variants pass + sim/blockram now registered |
 
 ## Phase 4 - small debts
 
 | # | Item | Status |
 |---|------|--------|
-| 4.1 | Trim MEMORY.md under its 24.4 KB load limit (index lines only, content stays in topic files) | pending |
-| 4.2 | Pages workflow Node-20 deprecation: bump actions versions | pending |
+| 4.1 | Trim MEMORY.md under its 24.4 KB load limit (index lines only, content stays in topic files) | **DONE** (27.9 -> 23.4 KB) |
+| 4.2 | Pages workflow Node-20 deprecation: bump actions versions | edited; commit needs Ronny's workflow-scope push |
 
 ## Phase 5 - the IDB ring cut (structural, own campaign)
 

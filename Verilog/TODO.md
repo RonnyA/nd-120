@@ -24,9 +24,27 @@ functional test, for reasons that predate the IDB-ring work:
   committed testbench sweep (`TB_RESULT: FAIL 101 unregistered testbenches`).
 
 Decision 21-AUG (Ronny): leave as a backlog, burn down in its own session -
-register or delete each, do not baseline them away. Until then, run the
-functional registry by skipping the first entry (`test-tb-catalog`) in
-`tests/run_all_tests.sh`; the remaining 205 entries were green on 21-AUG.
+register or delete each, do not baseline them away.
+
+BURNED DOWN 27-AUG-2026 (branch fpga-soak): 101 -> 5 unregistered. 100
+registry entries added, every one proven passing before registration; the
+4 orphans above are all registered too (PT_stale_read_tvec converted to a
+contract-pinning regression - lead=0 stale IS the contract). The 5 left,
+all measured, none baselined:
+  - CYC_STRETCH_STROBES_tb: FAILS with 41 strobe divergences - a stretched
+    CGNTCACT grant elongates CYD/UCLK. The header says this CONFIRMS the
+    write-strobe corruption mechanism from the OPEN Nexys wrong-PPN hunt -
+    a real finding awaiting that investigation, not a delete candidate.
+  - CGA_MAC_pt_apt_selection_tb: FAILS 129/259 ("PT request selects
+    PCR[14:11]"); 17-AUG ERRFATAL-campaign probe, campaign closed by the
+    bank-decode fix - stale expectations vs real defect UNRESOLVED.
+  - CGA_TRAP_TVGEN_ptrace_tb: deliberately-red detector (early PT_15_9
+    release latches a false page fault), same family as the baselined
+    TVGEN race benches; register when the trap-vector timing is fixed.
+  - CGA_MAC_replay_tb: SKIP - needs a maccap_vectors.txt capture that has
+    never triggered.
+  - fpga/nexys4ddr/floppy-hw-test/sim tb: no Makefile in its dir; board
+    workstream.
 
 Also parked: `DELILAH-CPU/CGA/sim/ND120_PF_CAPTURE_tb.v` wires a port
 `c_pgs_at_read` that `ND120_PF_CAPTURE.v` does not have (elaboration error) -

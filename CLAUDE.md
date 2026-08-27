@@ -150,8 +150,11 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
     `BIF_BCTL_BDRV_7.v` -> level 12. See
     `Verilog/docs/HANDOFF-mor-level12-wiring.md` and
     `Verilog/docs/RUN-level14-livelock-analysis.md`.
-- Unit suite: 48/48 green (`make test`), except a pre-existing `test-memchain`
-  failure belonging to the memory/device workstream (see `Verilog/TODO.md`).
+- Unit suite green (`make test`); the registry grew from ~48 to 150+ entries
+  in the 27-AUG backlog burn-down (101 unregistered testbenches -> 5, every
+  addition proven passing). The old "pre-existing test-memchain failure" is
+  RESOLVED: it was the SIM variant's stale expectation of pre-11-AUG parity
+  behavior - tb fixed, all four memchain variants pass and are registered.
 - CPU bugs found and fixed by the campaign (both were single-input
   transcription errors from the schematics, both have Logisim regeneration
   hazards listed in `Verilog/TODO.md`): `CGA_ALU_QREG` (every MPY product's

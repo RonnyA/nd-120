@@ -170,6 +170,8 @@ REGISTRY=(
   "CPU-BOARD-3202/circuit/sim :: test-ccd      :: RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-memaddr  :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-memchain :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-memchain-blockram :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-memchain-sim :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-cs-rwcs  :: TB_RESULT: PASS"
   # microcycle timing golden gate: walks NORMAL/SHORT/SLOW/FETCH/FORM/TRAP/
   # RWCS/LCS/BRK through the real cycle PALs and diffs every clock and strobe
