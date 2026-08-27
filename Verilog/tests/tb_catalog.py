@@ -38,13 +38,13 @@ REGISTRY = os.path.join(HERE, "run_all_tests.sh")
 # This list may only SHRINK. A new orphan is a failure.
 ORPHAN_BASELINE = {
     "DELILAH-CPU/CGA_MAC/sim/CGA_MAC_pt_apt_selection_tb.v":
-        "UNRESOLVED - 27-AUG-2026. FAILS 129/259 (PT request selects "
+        "UNRESOLVED - 27-AUG-2026. red at 129/259 (PT request selects "
         "PCR[14:11]: got 1 expected 12). 17-AUG ERRFATAL-campaign probe; that "
         "campaign closed via the bank-decode root cause, and whether this is "
         "stale bench expectations or a real PT/APT defect has NOT been "
         "determined. Needs its own look before register-or-delete.",
     "DELILAH-CPU/CGA_TRAP/sim/CGA_TRAP_TVGEN_ptrace_tb.v":
-        "DETECTOR, deliberately FAILING against today's RTL - same family as "
+        "DETECTOR, deliberately RED against today's RTL - same family as "
         "the two TVGEN benches below (early PT_15_9 release latches a page "
         "fault from a legal access, 49/99). Register it the day the "
         "trap-vector timing is fixed.",
@@ -53,7 +53,7 @@ ORPHAN_BASELINE = {
         "capture artifact the MAC capture rig has never produced. Cannot "
         "gate until a capture exists.",
     "DELILAH-CPU/CGA_TRAP/sim/CGA_TRAP_TVGEN_transition_tb.v":
-        "DETECTOR, deliberately FAILING against today's RTL - 17-AUG-2026. "
+        "DETECTOR, deliberately RED against today's RTL - 17-AUG-2026. "
         "Checks every ordered pair of trap-condition classes: when a condition "
         "becomes live, the dispatched TVEC must name THAT condition. Today all "
         "30 transitions dispatch the previous condition's vector, 8 of them as "
@@ -62,13 +62,13 @@ ORPHAN_BASELINE = {
         "the bench in milliseconds. Register it the day the trap-vector "
         "timing is fixed - it is the acceptance gate for that fix.",
     "DELILAH-CPU/CGA_TRAP/sim/CGA_TRAP_TVGEN_pgfrace_tb.v":
-        "DETECTOR, deliberately FAILING against today's RTL - 17-AUG-2026. "
+        "DETECTOR, deliberately RED against today's RTL - 17-AUG-2026. "
         "Narrow version of the transition bench: PGF stable across the TCLK "
         "edge gives the correct TVEC=1, PGF arriving AT the edge gives TVEC=3. "
         "Kept as the minimal reproduction of the stale-vector capture. "
         "Register alongside CGA_TRAP_TVGEN_transition_tb.v.",
     "CPU-BOARD-3202/circuit/sim/PT_stale_read_tvec_tb.v":
-        "EXPERIMENT, deliberately FAILING in the sync build - 17-AUG-2026. "
+        "EXPERIMENT, deliberately RED in the sync build - 17-AUG-2026. "
         "Wires the real TMM2018D_25 page-table status RAM to CGA_TRAP_TVGEN "
         "and sweeps how early the PT address must change before the capturing "
         "edge. Its measured result RETIRED the async-read theory: sync and "
