@@ -10,7 +10,7 @@ SUPPRESS_FLAGS = -Wno-UNOPTFLAT -Wno-PINCONNECTEMPTY -Wno-UNUSED -Wno-UNDRIVEN -
 # This is the path to the root of the verilog directory
 VERILOG_ROOT = ../../..
 
-SHARED_COMPONENTS = -I${VERILOG_ROOT}/shared/ndlib --I${VERILOG_ROOT}/shared/logisim --I${VERILOG_ROOT}/shared/support
+SHARED_COMPONENTS = -y ${VERILOG_ROOT}/Shared/ndlib -y ${VERILOG_ROOT}/Shared/logisim -y ${VERILOG_ROOT}/Shared/support
 
 DGA_ROOT = ${VERILOG_ROOT}/DECODE-GateArray
 COMPONENT_ROOT = ${DGA_ROOT}/${TEST_FOLDER}/circuit
