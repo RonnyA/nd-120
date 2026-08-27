@@ -52,10 +52,6 @@ ORPHAN_BASELINE = {
         "SKIP by construction - 27-AUG-2026. Replays maccap_vectors.txt, a "
         "capture artifact the MAC capture rig has never produced. Cannot "
         "gate until a capture exists.",
-    "fpga/nexys4ddr/floppy-hw-test/sim/floppy_hwtest_core_tb.v":
-        "Board-workstream bench with no Makefile in its sim dir - "
-        "27-AUG-2026. Belongs to the Nexys floppy hardware test tool; "
-        "register when that dir gets its build rule.",
     "DELILAH-CPU/CGA_TRAP/sim/CGA_TRAP_TVGEN_transition_tb.v":
         "DETECTOR, deliberately FAILING against today's RTL - 17-AUG-2026. "
         "Checks every ordered pair of trap-condition classes: when a condition "
