@@ -106,9 +106,11 @@ design-wide WNS and are unaffected by the CPU divider.
      WNS +0.007).
    - **SINTRAN III boots at 45.45 MHz with the console at 115200 baud**
      (`clk 45 ilaslim physopt`, WNS +0.020) - the deployed configuration.
-   Long unattended runs and SD-card writes at these clocks are still
-   unproven. Clocks between 16.667 and 45 remain STA-passed but never
-   booted.
+   SOAKED 27-AUG-2026: a booted SINTRAN at 45.45 MHz answered all 8
+   console-attention probes over a 4-hour unattended run (the Tang fast20
+   did the same). SD-card WRITE workloads at these clocks remain
+   unproven. Clocks between 16.667 and 45 are STA-passed; the 16.667 MHz
+   release artifact is boot-checked.
 2. **The WNS is a floor, not a guarantee.** Synthesis auto-inserts two
    loop-breaking false paths through the historical CGA IDB ring
    (`ALU_OUTMUX/D_15_0[8]`, `ALU_i_426/O`; `check_timing` reports 6

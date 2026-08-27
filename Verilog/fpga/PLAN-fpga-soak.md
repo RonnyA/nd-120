@@ -11,8 +11,8 @@ the small debt items are cleared.
 |---|------|-----|--------|
 | 1.1 | Boot-check the exact `nd120_nexys4ddr_16MHz_115200.bit` release file | JTAG program the staged file, `20500&` to banner at 115200 7E2 | **PASS 27-AUG** (banner + Watchdog) |
 | 1.2 | Boot-check the exact `nd120_tang20k_slow_6.75MHz_115200.fs` release file | openFPGALoader SRAM load, `20500&` on /dev/ttyUSB1 at 115200 7E2 | **PASS 27-AUG** (Watchdog in 106 s) |
-| 1.3 | Nexys soak at 45.45 MHz | JTAG the 45 MHz release file, boot SINTRAN, leave running with hourly console probes (ESC attention), 4+ hours, no hang/ERRFATAL/watchdog-red | pending |
-| 1.4 | Tang soak at 20.25 MHz (fast20) | same recipe on /dev/ttyUSB1 | pending |
+| 1.3 | Nexys soak at 45.45 MHz | JTAG the 45 MHz release file, boot SINTRAN, leave running with hourly console probes (ESC attention), 4+ hours, no hang/ERRFATAL/watchdog-red | **PASS 27-AUG: 8/8 probes alive over 4 h, identical 104-byte attention responses every 30 min** |
+| 1.4 | Tang soak at 20.25 MHz (fast20) | same recipe on /dev/ttyUSB1 | **PASS 27-AUG: 8/8 probes alive over 4 h, identical 78-byte responses** |
 | 1.5 | SD-config boot at 16.667 MHz (fix verified at 45 only) | needs Ronny: swap the .bit on the card, power-cycle | NEEDS RONNY |
 | 1.6 | SD-card WRITE at speed (dirty-page flush during a session) | part of the soak if SINTRAN writes during it; a deliberate write test is follow-up | follow-up |
 
