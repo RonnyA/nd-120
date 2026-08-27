@@ -268,6 +268,7 @@ module ND120_CORE #(
     output wire [ 3:0] O_sdram_dqm,
     output wire [15:0] DBG_MEMW,     //! write-path debug bus from MEM_43
     output wire [15:0] DBG_PTW,      //! page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
+    output wire DBG_PTW_LVL,  //! live PT write-strobe level (27-AUG overlap probe)
     output wire [20:0]        PF_CAPTURED,  //! ND120_PF_CAPTURE freeze flag (23-AUG)
     //! DEBUG stage timer (24-AUG-2026): [0] Winchester controller active,
     //! [1] the Winchester's DMA master busy. Used to find where a disc
@@ -1214,6 +1215,7 @@ module ND120_CORE #(
       .O_sdram_dqm(O_sdram_dqm),
       .DBG_MEMW(DBG_MEMW),
       .DBG_PTW(DBG_PTW),
+      .DBG_PTW_LVL(DBG_PTW_LVL),
       .PF_CAPTURED(PF_CAPTURED),
       .DBG_PPN(DBG_PPN),
       .DBG_PGW(DBG_PGW)

@@ -467,7 +467,8 @@ module nd120_nexys4ddr_top (
       .mm_req_ready(mm_req_ready),
       .mm_rsp_valid(mm_rsp_valid),
       .mm_rsp_rdata(mm_rsp_rdata),
-      .DBG_DDR2_BRIDGE(s_dbg_ddr2_bridge)
+      .DBG_DDR2_BRIDGE(s_dbg_ddr2_bridge),
+      .DBG_PTW_LVL    (s_dbg_ptw_lvl)
 `endif
   );
 
@@ -625,6 +626,26 @@ module nd120_nexys4ddr_top (
   // [7:5] astate  [4] MEM_HOLD  [3] last_hit  [2] refill_pend
   // [1] op_busy   [0] have_data
   (* mark_debug = "true" *) wire [7:0] s_ila_ddr2 = s_dbg_ddr2_bridge;
+
+  // PT-write-during-freeze overlap probe (27-AUG, wrong-PPN option 1).
+  // DBG_PTW_LVL = the LIVE ~EPT_n & ~WMAP_n strobe conjunction out of
+  // CPU_MMU_24; bridge[4] = MEM_HOLD. Sticky + cycle counter: if the sticky
+  // never sets across a boot, a PT write NEVER overlaps a DDR2 freeze and
+  // the write-during-freeze corruption hypothesis is dead; if it sets, the
+  // counter says how many overlap cycles, and the ILA nets let a capture
+  // look at what moved during the window.
+  wire s_dbg_ptw_lvl;
+  reg        r_ptwhold_sticky = 1'b0;
+  reg [15:0] r_ptwhold_cnt = 16'd0;
+  always @(posedge clk_cpu) begin
+    if (s_dbg_ptw_lvl & s_dbg_ddr2_bridge[4]) begin
+      r_ptwhold_sticky <= 1'b1;
+      r_ptwhold_cnt    <= r_ptwhold_cnt + 16'd1;
+    end
+  end
+  (* mark_debug = "true" *) wire        s_ila_ptwhold_stk = r_ptwhold_sticky;
+  (* mark_debug = "true" *) wire [15:0] s_ila_ptwhold_cnt = r_ptwhold_cnt;
+  (* mark_debug = "true" *) wire        s_ila_ptwhold_lvl = s_dbg_ptw_lvl;
   // 25-AUG SINTRAN-hang hunt: the CPU loops at CSA 0o6000 (the execute-zeros
   // signature) - capture WHERE it fetches from and the microsequencer state.
   (* mark_debug = "true" *) wire [13:0] s_ila_la = s_debug_la_23_10;
@@ -884,7 +905,7 @@ module nd120_nexys4ddr_top (
   //   digit 5 = {last_hit, refill_pend, op_busy, have_data}
   //   digit 4 = {2'b00, dbg_orphan, dbg_stuck}  (0 = healthy)
   wire [15:0] panel_value =
-      {s_pil, s_dbg_ddr2_bridge, 2'b00, arb_orphan, arb_stuck};
+      {s_pil, s_dbg_ddr2_bridge, 1'b0, r_ptwhold_sticky, arb_orphan, arb_stuck};
 
   wire [6:0] nd_seg;
   wire [7:0] nd_an;

@@ -176,6 +176,7 @@ module ND3202D (
     output [ 3:0] O_sdram_dqm,
     output [15:0] DBG_MEMW,  // write-path debug bus from MEM_43
     output [15:0] DBG_PTW,   // page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
+    output DBG_PTW_LVL,  //! live PT write-strobe level (27-AUG overlap probe)
     output [13:0] DBG_PPN,   // physical page number PPN[23:10] (24-AUG, zero-fetch campaign)
     output [15:0] DBG_PGW,   // SDRAM-bridge page-write watch (24-AUG, zero-page campaign)
     output [20:0]        PF_CAPTURED // ND120_PF_CAPTURE freeze flag (23-AUG)
@@ -862,7 +863,8 @@ TODO: Sort bits on output LED to match led numbering
       .LEV0        (s_lev0),                    // Level 0 active
       .CSA_12_0    (CSA_12_0),                  // Microcode Address (for debugging)
       .XMIC_DBG_15_0(XMIC_DBG_15_0),            // DEBUG: microsequencer address-advance probe
-      .DBG_PTW     (DBG_PTW),                   // DEBUG: page-table write stream (23-AUG)
+      .DBG_PTW     (DBG_PTW),                   // DEBUG: page-table write stream (23-AUG),
+      .DBG_PTW_LVL(DBG_PTW_LVL)
       .PF_CAPTURED (PF_CAPTURED)                // DEBUG: freeze flag (23-AUG)
   );
 

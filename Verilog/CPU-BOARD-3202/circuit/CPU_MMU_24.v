@@ -71,7 +71,12 @@ module CPU_MMU_24 (
     //!   word A = {2'b10, addr[10:0], data[15:13]}   (addr = LA_20_10 index)
     //!   word B = {2'b11, data[12:0], 1'b0}
     //! Same pattern as MEM_43's DBG_MEMW; consumed by TANG_PTWR_CAPTURE.
-    output [15:0] DBG_PTW
+    output [15:0] DBG_PTW,
+    //! DEBUG level (27-AUG, wrong-PPN option-1 probe): PT-chip write strobe
+    //! conjunction LIVE (~EPT_n & ~WMAP_n) - unlike DBG_PTW's edge-detected
+    //! stream, this stays high for the WHOLE elongated strobe, so the top
+    //! can AND it with MEM_HOLD to measure write-during-freeze overlap.
+    output DBG_PTW_LVL
 );
 
 
@@ -485,6 +490,7 @@ module CPU_MMU_24 (
   // separates a broken EPT/WMAP conjunction from a dead probe, and
   // attempts-absent moves the question up to the shadow-address decode.
   wire       s_ptw_wr  = ~s_ept_n & ~s_wmap_n;
+  assign DBG_PTW_LVL = s_ptw_wr;
   wire       s_ptw_att = ~s_epti_n & s_write;
   reg        r_ptw_wr_d = 1'b0;
   reg        r_ptw_att_d = 1'b0;
