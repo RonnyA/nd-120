@@ -243,7 +243,8 @@ module ND120_CORE #(
     output wire        DEBUG_POWFAIL_n,  //! Power Fail
     output wire [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
     output wire [15:0] DEBUG_IREQ_15_0_N, //! DEBUG: raw interrupt-request vector (active low)
-    output wire [15:0] XMIC_DBG_15_0     //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output wire [15:0] XMIC_DBG_15_0,    //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output wire DBG_PTW_LVL              //! live PT write-strobe level (~EPT_n & ~WMAP_n, 27-AUG overlap probe) - unconditional: every backend has PT chips
 
 `ifdef MAIN_RAM_SDRAM
     /***************************************************
@@ -268,7 +269,6 @@ module ND120_CORE #(
     output wire [ 3:0] O_sdram_dqm,
     output wire [15:0] DBG_MEMW,     //! write-path debug bus from MEM_43
     output wire [15:0] DBG_PTW,      //! page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
-    output wire DBG_PTW_LVL,  //! live PT write-strobe level (27-AUG overlap probe)
     output wire [20:0]        PF_CAPTURED,  //! ND120_PF_CAPTURE freeze flag (23-AUG)
     //! DEBUG stage timer (24-AUG-2026): [0] Winchester controller active,
     //! [1] the Winchester's DMA master busy. Used to find where a disc
@@ -1196,7 +1196,8 @@ module ND120_CORE #(
       .DEBUG_POWFAIL_n(DEBUG_POWFAIL_n),
       .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
       .DEBUG_IREQ_15_0_N(DEBUG_IREQ_15_0_N),
-      .XMIC_DBG_15_0(XMIC_DBG_15_0)
+      .XMIC_DBG_15_0(XMIC_DBG_15_0),
+      .DBG_PTW_LVL(DBG_PTW_LVL)
 
 `ifdef MAIN_RAM_SDRAM
       // SDRAM main memory (threaded down to MEM_43 -> MEM_RAM_49_SDRAM)
@@ -1215,7 +1216,6 @@ module ND120_CORE #(
       .O_sdram_dqm(O_sdram_dqm),
       .DBG_MEMW(DBG_MEMW),
       .DBG_PTW(DBG_PTW),
-      .DBG_PTW_LVL(DBG_PTW_LVL),
       .PF_CAPTURED(PF_CAPTURED),
       .DBG_PPN(DBG_PPN),
       .DBG_PGW(DBG_PGW)

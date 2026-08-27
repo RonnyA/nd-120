@@ -156,7 +156,8 @@ module ND3202D (
     output       DEBUG_POWFAIL_n, // Power Fail
     output [15:0] DEBUG_FIDBO_15_0, // FIDBO internal data bus
     output [15:0] DEBUG_IREQ_15_0_N, // DEBUG: raw interrupt-request vector (active low)
-    output [15:0] XMIC_DBG_15_0     // DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [15:0] XMIC_DBG_15_0,    // DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output       DBG_PTW_LVL        // live PT write-strobe level (~EPT_n & ~WMAP_n, 27-AUG overlap probe)
 
 `ifdef MAIN_RAM_SDRAM
     // SDRAM main-memory backend (Tang Nano 20K) - threaded down to MEM_43.
@@ -176,7 +177,6 @@ module ND3202D (
     output [ 3:0] O_sdram_dqm,
     output [15:0] DBG_MEMW,  // write-path debug bus from MEM_43
     output [15:0] DBG_PTW,   // page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
-    output DBG_PTW_LVL,  //! live PT write-strobe level (27-AUG overlap probe)
     output [13:0] DBG_PPN,   // physical page number PPN[23:10] (24-AUG, zero-fetch campaign)
     output [15:0] DBG_PGW,   // SDRAM-bridge page-write watch (24-AUG, zero-page campaign)
     output [20:0]        PF_CAPTURED // ND120_PF_CAPTURE freeze flag (23-AUG)
