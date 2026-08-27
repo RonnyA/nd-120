@@ -2,13 +2,13 @@
 # runner. Vivado (Nexys) and Gowin EDA are licensed/Windows and stay
 # local-only; what runs here:
 #
-#   test          every push and PR: the full self-checking testbench
-#                 registry (Verilog/tests/run_all_tests.sh, fail-fast,
-#                 ~335 entries: iverilog + a few Verilator harnesses),
+#   test          release tags and manual dispatch: the full self-checking
+#                 testbench registry (Verilog/tests/run_all_tests.sh,
+#                 fail-fast, ~335 entries: iverilog + Verilator harnesses),
 #                 including the tb-catalog and audit meta-gates.
-#   netlist-gates every push and PR: the Tang yosys gates (make check) -
+#   netlist-gates same triggers: the Tang yosys gates (make check) -
 #                 tristate contract on IO_sdram_dq + inferred-latch census.
-#   tang-oss     release tags (bitstreams-*) and manual dispatch: full OSS
+#   tang-oss     same triggers: full OSS
 #                 bitstream build (yosys -> nextpnr-himbaechel ->
 #                 gowin_pack) as a workflow ARTIFACT. Deliberately NOT
 #                 attached to the release: release bitstreams are the
@@ -20,11 +20,11 @@
 # images - every job runs it first.
 name: Verilog CI
 
+# Triggers (Ronny, 28-AUG-2026): NOT on every push - the full registry is
+# a 35-60 min runner job. It runs on release tags and on demand.
 on:
   push:
-    branches: ["**"]
     tags: ["bitstreams-*"]
-  pull_request:
   workflow_dispatch:
 
 jobs:
