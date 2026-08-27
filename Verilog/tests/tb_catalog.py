@@ -37,6 +37,31 @@ REGISTRY = os.path.join(HERE, "run_all_tests.sh")
 # Testbenches known not to be reached by `make test`, with the reason.
 # This list may only SHRINK. A new orphan is a failure.
 ORPHAN_BASELINE = {
+    "CPU-BOARD-3202/circuit/sim/CYC_STRETCH_STROBES_tb.v":
+        "LIVE FINDING, deliberately unregistered - 27-AUG-2026. FAILS with 41 "
+        "strobe divergences: a stretched CGNTCACT grant elongates CYD "
+        "(18 -> 45..55 cycles) and UCLK (16 -> 27). The header ties this to "
+        "the OPEN Nexys wrong-PPN write-strobe corruption hypothesis. "
+        "Evidence for that investigation; register or retire when it closes.",
+    "DELILAH-CPU/CGA_MAC/sim/CGA_MAC_pt_apt_selection_tb.v":
+        "UNRESOLVED - 27-AUG-2026. FAILS 129/259 (PT request selects "
+        "PCR[14:11]: got 1 expected 12). 17-AUG ERRFATAL-campaign probe; that "
+        "campaign closed via the bank-decode root cause, and whether this is "
+        "stale bench expectations or a real PT/APT defect has NOT been "
+        "determined. Needs its own look before register-or-delete.",
+    "DELILAH-CPU/CGA_TRAP/sim/CGA_TRAP_TVGEN_ptrace_tb.v":
+        "DETECTOR, deliberately FAILING against today's RTL - same family as "
+        "the two TVGEN benches below (early PT_15_9 release latches a page "
+        "fault from a legal access, 49/99). Register it the day the "
+        "trap-vector timing is fixed.",
+    "DELILAH-CPU/CGA_MAC/sim/CGA_MAC_replay_tb.v":
+        "SKIP by construction - 27-AUG-2026. Replays maccap_vectors.txt, a "
+        "capture artifact the MAC capture rig has never produced. Cannot "
+        "gate until a capture exists.",
+    "fpga/nexys4ddr/floppy-hw-test/sim/floppy_hwtest_core_tb.v":
+        "Board-workstream bench with no Makefile in its sim dir - "
+        "27-AUG-2026. Belongs to the Nexys floppy hardware test tool; "
+        "register when that dir gets its build rule.",
     "DELILAH-CPU/CGA_TRAP/sim/CGA_TRAP_TVGEN_transition_tb.v":
         "DETECTOR, deliberately FAILING against today's RTL - 17-AUG-2026. "
         "Checks every ordered pair of trap-condition classes: when a condition "
