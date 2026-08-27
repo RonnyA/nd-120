@@ -192,7 +192,7 @@ def run_area(con, area, timeout):
 def main():
     ap = argparse.ArgumentParser(description="Tang Nano 20K INSTRUCTION-B validator")
     ap.add_argument("--port", default="/dev/ttyUSB1")
-    ap.add_argument("--baud", type=int, default=9600)
+    ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--areas", default="all",
                    help="'all', 'quick', or comma list e.g. STACK,RUN")
     ap.add_argument("--reset", choices=["none", "jtag"], default="none",

@@ -16,7 +16,7 @@ import argparse, sys, time
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", default="/dev/ttyUSB1")
-    ap.add_argument("--baud", type=int, default=9600)
+    ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--minutes", type=float, default=12.0)
     ap.add_argument("--log", required=True)
     a = ap.parse_args()

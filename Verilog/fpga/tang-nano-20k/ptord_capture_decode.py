@@ -172,7 +172,7 @@ def report(events, dropped):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", default="/dev/ttyUSB1")
-    ap.add_argument("--baud", type=int, default=9600)
+    ap.add_argument("--baud", type=int, default=115200)
     ap.add_argument("--minutes", type=float, default=20.0)
     ap.add_argument("--log", default="ptord_capture_run.log")
     ap.add_argument("--decode-file")
