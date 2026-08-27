@@ -777,3 +777,19 @@ test-pt-stale: PT_stale_read_tvec_tb_bin
 	vvp PT_stale_read_tvec_tb_bin | tee pt_stale_out.log
 	@grep -q "TB_RESULT: PASS" pt_stale_out.log
 .PHONY: test-pt-stale
+
+# test-cycstretch: CYCFSM strobe contract under a stretched memory grant.
+# Rewritten 27-AUG-2026 as a CONTRACT-PINNING regression (the old bench's 41
+# "failures" were its own artifacts - inverted CYD/UCLK polarity, a count
+# window that grew with the stretch, WAIT1/WAIT2 tied 0 which bypasses the
+# wait states, and no TERM anchor). Pinned: a delayed grant stretches state d,
+# a held grant stretches state e; CYD (HIGH, d..f) and EORF (LOW, d) ELONGATE
+# with the stretch but every strobe rises exactly ONCE per machine cycle -
+# the single-edge invariant is the corruption-relevant property, measured
+# harmless on silicon 27-AUG (overlap probe 0/0, trap never fired).
+CYC_STRETCH_STROBES_tb_bin: CYC_STRETCH_STROBES_tb.v $(PAL)/PAL_44601B.v $(PAL)/PAL_44307C.v
+	$(IVERILOG) -g2012 -o $@ CYC_STRETCH_STROBES_tb.v $(PAL)/PAL_44601B.v $(PAL)/PAL_44307C.v
+test-cycstretch: CYC_STRETCH_STROBES_tb_bin
+	./CYC_STRETCH_STROBES_tb_bin | tee cycstretch_out.log
+	@grep -q "TB_RESULT: PASS" cycstretch_out.log
+.PHONY: test-cycstretch

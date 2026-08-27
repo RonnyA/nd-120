@@ -186,6 +186,11 @@ REGISTRY=(
   # (150017) reproducer and it went GREEN on 08-AUG-2026 when the sheet-20
   # capture was added - registered that same day, as promised.
   "CPU-BOARD-3202/circuit/sim :: test-cs-rwcs-cycle :: TB_RESULT: PASS"
+  # CYCFSM strobe contract under a stretched memory grant (rewritten
+  # 27-AUG-2026; the old bench's 41 failures were its own artifacts). Pins:
+  # delayed grant stretches state d, held grant stretches state e, CYD/EORF
+  # elongate but every strobe rises exactly ONCE per TERM-anchored cycle.
+  "CPU-BOARD-3202/circuit/sim :: test-cycstretch :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-blockram :: TB_RESULT: PASS"
   # address-SPACE integrity gate: the BLOCKRAM backend must span the full
   # 64K-word logical space (the 24-AUG-2026 LIST-FILE-NAMES runaway was

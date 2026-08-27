@@ -37,12 +37,6 @@ REGISTRY = os.path.join(HERE, "run_all_tests.sh")
 # Testbenches known not to be reached by `make test`, with the reason.
 # This list may only SHRINK. A new orphan is a failure.
 ORPHAN_BASELINE = {
-    "CPU-BOARD-3202/circuit/sim/CYC_STRETCH_STROBES_tb.v":
-        "LIVE FINDING, deliberately unregistered - 27-AUG-2026. FAILS with 41 "
-        "strobe divergences: a stretched CGNTCACT grant elongates CYD "
-        "(18 -> 45..55 cycles) and UCLK (16 -> 27). The header ties this to "
-        "the OPEN Nexys wrong-PPN write-strobe corruption hypothesis. "
-        "Evidence for that investigation; register or retire when it closes.",
     "DELILAH-CPU/CGA_MAC/sim/CGA_MAC_pt_apt_selection_tb.v":
         "UNRESOLVED - 27-AUG-2026. FAILS 129/259 (PT request selects "
         "PCR[14:11]: got 1 expected 12). 17-AUG ERRFATAL-campaign probe; that "
