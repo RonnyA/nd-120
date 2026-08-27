@@ -133,50 +133,40 @@ module nd120_console_mister #(
   // wrong.
   //--------------------------------------------------------------------------
 
-  wire       s_banner_valid;
-  wire [7:0] s_banner_data;
-  wire       s_banner_done;
-  wire       s_term_ready;
+  wire s_term_ready;
+  wire s_src_valid;
+  wire [7:0] s_src_data;
 
-  term_banner BANNER (
+  //! The banner and the source priority live in the shared core, not here -
+  //! every board needs exactly the same rules and one of them was already got
+  //! wrong once when it was inline. See term_console_feed.v.
+  term_console_feed FEED (
       .clk  (clk),
       .rst_n(rst_n),
-      .valid(s_banner_valid),
-      .data (s_banner_data),
-      .ready(s_term_ready),
-      .done (s_banner_done)
+
+      .cpu_valid(cpu_byte_valid),
+      .cpu_data (cpu_byte_data),
+      .cpu_ready(cpu_byte_ready),
+
+      // Build 1 has no machine behind the seam, so the terminal echoes for
+      // itself. Build 2 ties these off: the ND-120 echoes, and doing both
+      // shows every character twice.
+      .echo_valid((LOCAL_ECHO != 0) && s_kbd_ascii_valid),
+      .echo_data (s_kbd_ascii_data),
+
+      .term_valid(s_src_valid),
+      .term_data (s_src_data),
+      .term_ready(s_term_ready),
+
+      .banner_done()
   );
-
-  wire s_echo_valid = (LOCAL_ECHO != 0) && s_kbd_ascii_valid;
-
-  //! Gated on s_banner_done, and that is NOT the same as gating on
-  //! !s_banner_valid. There is exactly one clock where the banner has reached
-  //! its terminator so `valid` has already fallen but `done` has not yet risen.
-  //! Selecting on !valid would let a machine byte through in that cycle while
-  //! cpu_byte_ready (which follows `done`) was still low - so the terminal
-  //! would print the byte and the machine, never seeing it accepted, would
-  //! send it again. One duplicated character at the top of every boot, and a
-  //! miserable thing to find on hardware.
-  wire s_cpu_sel  = s_banner_done && cpu_byte_valid;
-  wire s_echo_sel = s_banner_done && s_echo_valid && !cpu_byte_valid;
-
-  wire       s_src_valid = s_banner_valid || s_cpu_sel || s_echo_sel;
-  wire [7:0] s_src_data  = s_banner_valid ? s_banner_data :
-                           (s_cpu_sel ? cpu_byte_data : s_kbd_ascii_data);
-
-  //! The machine is only told the terminal is ready when the banner is out of
-  //! the way, so a byte arriving during the banner is refused rather than
-  //! silently dropped.
-  assign cpu_byte_ready = s_term_ready && s_banner_done;
 
   //! NOTE on the echo path: a keystroke is a one-clock strobe with no queue
   //! behind it, so a character typed while the terminal is busy is lost rather
   //! than delayed. The busy window is a clear-screen, 1920 pixel clocks = 48 us
   //! at 40 MHz, and the banner is ~320 clocks = 8 us; a human cannot type into
-  //! either. This is the same argument already recorded in terminal_top.v for
-  //! the CDC, and it stops being good enough at the same moment - when Stage B
-  //! adds escape sequences and the busy windows get longer. Written down
-  //! rather than left as a surprise.
+  //! either. It stops being good enough when Stage B adds escape sequences and
+  //! the busy windows get longer. Written down rather than left as a surprise.
 
   //--------------------------------------------------------------------------
   // The shared terminal core

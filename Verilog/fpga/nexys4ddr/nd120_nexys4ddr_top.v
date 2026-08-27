@@ -325,6 +325,14 @@ module nd120_nexys4ddr_top (
   wire        s_debug_refrq_n;
   wire        s_debug_intrq_n, s_debug_powfail_n;
   wire [15:0] s_debug_fidbo, s_ireq_15_0_n, s_xmic_dbg;
+
+  // PT-write-during-freeze probe. Declared HERE, at module scope with the other
+  // debug nets, and not inside any `ifdef - see the long note above the DDR2
+  // port connection. s_dbg_ptw_lvl is driven by the DDR2 main-RAM client and
+  // r_ptwhold_sticky is read by the 7-segment panel, which every build has.
+  wire        s_dbg_ptw_lvl;
+  reg         r_ptwhold_sticky = 1'b0;
+  reg  [15:0] r_ptwhold_cnt    = 16'd0;
 `ifdef ND120_ILA_MARK_DEBUG
   (* mark_debug = "true" *)   // keep the name for the ILA (build.tcl ila flag)
 `endif
@@ -418,6 +426,41 @@ module nd120_nexys4ddr_top (
 
   wire s_pixel, s_de, s_bell;
 
+  // --- the power-on banner -------------------------------------------------
+  // Prints a self-test message before the machine says anything, then gets out
+  // of the way for good. It is what turns a blank screen from one useless
+  // symptom into two useful ones: text but no response means the KEYBOARD is
+  // at fault, nothing at all means the video path is. Shared with the MiSTer
+  // and MEGA65 consoles - see Terminals/rtl/term_console_feed.v.
+  wire       s_feed_valid;
+  wire [7:0] s_feed_data;
+  wire       s_term_ready;
+
+  term_console_feed FEED (
+      .clk  (clk_pix),
+      .rst_n(pix_rst_n),
+
+      .cpu_valid(s_con_byte_valid),
+      .cpu_data (s_con_byte_data),
+      // Nothing to back-pressure. This byte came off a real serial line that
+      // has already sent it - there is no way to ask the machine to wait, so
+      // a byte arriving mid-banner is dropped. That is safe here and not by
+      // luck: the banner runs for ~1900 pixel clocks (~48 us) immediately
+      // after reset, which is under one byte time at 115200, and the CPU is
+      // still in reset for all of it.
+      .cpu_ready(),
+
+      // No local echo on this board: the ND-120 echoes what you type, and a
+      // terminal that echoes as well shows every character twice.
+      .echo_valid(1'b0),
+      .echo_data (8'h00),
+
+      .term_valid(s_feed_valid),
+      .term_data (s_feed_data),
+      .term_ready(s_term_ready),
+      .banner_done()
+  );
+
   terminal_top #(
       .FONT_FILE("font8x16.hex")   // Vivado resolves $readmemh next to the .v
   ) TERMINAL (
@@ -427,9 +470,9 @@ module nd120_nexys4ddr_top (
       // unchanged, and it costs three flops.
       .byte_clk  (clk_pix),
       .byte_rst_n(pix_rst_n),
-      .byte_valid(s_con_byte_valid),
-      .byte_data (s_con_byte_data),
-      .byte_ready(),
+      .byte_valid(s_feed_valid),
+      .byte_data (s_feed_data),
+      .byte_ready(s_term_ready),
 
       .pix_clk  (clk_pix),
       .pix_rst_n(pix_rst_n),
@@ -630,6 +673,26 @@ module nd120_nexys4ddr_top (
       .DEBUG_FIDBO_15_0 (s_debug_fidbo),
       .DEBUG_IREQ_15_0_N(s_ireq_15_0_n),
       .XMIC_DBG_15_0    (s_xmic_dbg)
+
+// ---------------------------------------------------------------------------
+// PT-write-during-freeze probe - DECLARED UNCONDITIONALLY, and that is the
+// whole point (fixed 28-AUG-2026).
+//
+// These three sat inside `ifdef ND120_ILA_MARK_DEBUG` while s_dbg_ptw_lvl is
+// used by the DDR2 port connection just below, and r_ptwhold_sticky is used by
+// the 7-segment debug panel, which is in no `ifdef` at all. So any build with
+// DDR2 main memory and WITHOUT an ILA lost the declarations and kept the uses:
+//   ERROR: [Synth 8-36] 's_dbg_ptw_lvl' is not declared
+// Nobody hit it because every recorded build used an ILA flavour (the timing
+// table in README.md says `ilaslim` for every run), so the plain path was
+// never synthesized.
+//
+// This is the SECOND time this exact bug has been fixed here - b958fcc moved
+// DBG_PTW_LVL out of the MAIN_RAM_SDRAM port block for the same reason, and it
+// landed inside the ILA block instead of at module scope. A debug signal that
+// anything outside a conditional touches must be declared outside every
+// conditional. The mark_debug wires that only the ILA reads stay inside.
+// ---------------------------------------------------------------------------
 `ifdef MAIN_RAM_DDR2
       ,
       // main-memory DDR2 client (MEM_RAM_49_DDR2 inside MEM_43) -> nd_ddr2_arb
@@ -797,6 +860,17 @@ module nd120_nexys4ddr_top (
   wire [127:0]  mm_req_wdata, mm_rsp_rdata;
   wire [ 15:0]  mm_req_wmask;
   wire [  7:0]  s_dbg_ddr2_bridge;
+
+  // Sticky/counter for the PT-write-during-freeze probe. Unconditional: the
+  // sticky bit is shown on the 7-segment panel in every build. See the long
+  // note above the DDR2 port connection for why this is not inside the ILA
+  // ifdef where it used to live.
+  always @(posedge clk_cpu) begin
+    if (s_dbg_ptw_lvl & s_dbg_ddr2_bridge[4]) begin
+      r_ptwhold_sticky <= 1'b1;
+      r_ptwhold_cnt    <= r_ptwhold_cnt + 16'd1;
+    end
+  end
 `ifdef ND120_ILA_MARK_DEBUG
   // ilaslim (build.tcl): DDR2 main-RAM bridge state next to CSA/cpu_txd.
   // [7:5] astate  [4] MEM_HOLD  [3] last_hit  [2] refill_pend
@@ -810,15 +884,6 @@ module nd120_nexys4ddr_top (
   // the write-during-freeze corruption hypothesis is dead; if it sets, the
   // counter says how many overlap cycles, and the ILA nets let a capture
   // look at what moved during the window.
-  wire s_dbg_ptw_lvl;
-  reg        r_ptwhold_sticky = 1'b0;
-  reg [15:0] r_ptwhold_cnt = 16'd0;
-  always @(posedge clk_cpu) begin
-    if (s_dbg_ptw_lvl & s_dbg_ddr2_bridge[4]) begin
-      r_ptwhold_sticky <= 1'b1;
-      r_ptwhold_cnt    <= r_ptwhold_cnt + 16'd1;
-    end
-  end
   (* mark_debug = "true" *) wire        s_ila_ptwhold_stk = r_ptwhold_sticky;
   (* mark_debug = "true" *) wire [15:0] s_ila_ptwhold_cnt = r_ptwhold_cnt;
   (* mark_debug = "true" *) wire        s_ila_ptwhold_lvl = s_dbg_ptw_lvl;

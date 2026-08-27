@@ -175,10 +175,22 @@ level:
    control characters, the TDV cursor keys - shared with MiSTer and the MEGA65).
    `build.tcl` has been updated; no change to `nd120_nexys4ddr_top.v`.
 
-**Not done here, deliberately:** the power-on banner (`term_banner.v`) is wired
-into the MiSTer console but NOT into this board's top level. The sources are in
-`build.tcl` so it compiles, but nothing instantiates it. Adding it would be a
-small and clearly useful change - it is what tells a blank screen apart from a
-dead keyboard - but this board's top level is untouched until Ronny asks for a
-Vivado build, and changing it now would mean the first synthesis run tests two
-things at once.
+**DONE 28-AUG-2026, after Ronny asked why the terminal was not being proven on
+this board first:** the power-on banner is now wired into this top level too,
+through the shared `term_console_feed` (banner + source priority in one block,
+so the three boards cannot drift apart). Local echo is tied OFF here - the
+ND-120 echoes what you type, and doing both shows every character twice.
+
+**THIS BOARD GOES FIRST** (Ronny, 28-AUG-2026), ahead of MiSTer, and the reason
+is the keyboard. `ps2_ascii_table.v` says of itself that every scancode in it
+is "a claim, not a fact" until someone types on a real keyboard - and this is
+the ONLY board where that claim can be checked, because the serial console
+keeps running alongside the VGA one. Type a key, and the serial terminal shows
+what the machine ACTUALLY received; the screen alone can only show you what the
+table produced, which looks healthy whatever it produced. MiSTer's local echo
+cannot do this at all, and there is no machine behind it to ask.
+
+Two more reasons this board is the right first target: SINTRAN already boots
+here, so the terminal sees real console traffic - a boot banner, a login
+prompt, scrolling - instead of an echo of itself; and a bad bitstream costs one
+Vivado run rather than a package to another country.

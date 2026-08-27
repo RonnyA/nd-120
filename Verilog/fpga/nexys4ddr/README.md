@@ -311,7 +311,7 @@ run them after every bitstream change.
   differences): `../../docs/nd120-facts.md`.
 
 
-## Console on the board's own screen and keyboard (planned, 27-AUG-2026)
+## Console on the board's own screen and keyboard (built, not yet synthesized - 28-AUG-2026)
 
 The Nexys has a VGA connector and an onboard USB host that presents a keyboard
 to the FPGA as **plain PS/2** (`Nexys-4-DDR-Master.xdc:226-227`, in the section
@@ -324,3 +324,38 @@ Plan: [PLAN-vga-console.md](PLAN-vga-console.md). The serial console is kept
 live in parallel - the build define `ND120_CONSOLE_VGA` *adds* the screen, it
 does not remove the UART - so `console.ps1`, the board tests and the soak
 scripts keep working.
+
+**That parallel serial console is the whole reason this board goes first**
+(Ronny, 28-AUG-2026). `Terminals/rtl/ps2_ascii_table.v` says of itself that
+every scancode in it is "a claim, not a fact" until someone types on a real
+keyboard - and this is the only board where the claim can be CHECKED, because
+you can watch both paths at once. Press a key: the screen shows what our table
+produced, and the serial terminal shows what the machine actually received. A
+screen on its own looks perfectly healthy whatever the table produced. No other
+board can do this - MiSTer's console echoes locally and has no machine behind
+it.
+
+### What is built
+
+```bash
+vivado -mode batch -source build.tcl -tclargs vgaconsole -noburn
+```
+
+`vgaconsole` adds the 12 terminal sources, copies the font next to `font_rom.v`
+(Vivado resolves `$readmemh` relative to the .v, not the project), reads the
+extra XDC, and defines `ND120_CONSOLE_VGA` plus the console baud. `-noburn`
+builds without programming the board - **`build.tcl` programs over JTAG by
+default**, which would replace whatever is currently running.
+
+The console prints a power-on self-test message before the machine says
+anything, then gets out of the way permanently. That is deliberate: it turns a
+blank screen from one useless symptom into two useful ones. Text on screen but
+no response to typing means the keyboard half; nothing at all means the video
+half. The banner and the banner/machine priority are shared with the MiSTer and
+MEGA65 consoles (`Terminals/rtl/term_console_feed.v`), so the three boards
+cannot drift apart.
+
+Verified in simulation only so far: 8 testbenches (7 in `Terminals/sim`, 1 for
+the MiSTer glue), Verilator lint clean, zero inferred latches, and the default
+non-console bitstream proven unchanged by preprocessing the top level both ways
+and diffing. **Never synthesized, never on hardware.**

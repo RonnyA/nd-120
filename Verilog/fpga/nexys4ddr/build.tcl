@@ -220,6 +220,7 @@ if {$vga_console} {
     foreach f {vga_timing.v font_rom.v char_ram.v text_screen.v terminal_ctrl.v
                cdc_byte.v terminal_top.v ps2_keyboard.v ps2_decoder.v
                ps2_ascii_table.v term_banner.v term_banner_rom.v
+               term_console_feed.v
                console_uart_rx.v console_uart_tx.v} {
         lappend srcs [file join $tdir $f]
     }

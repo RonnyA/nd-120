@@ -133,11 +133,11 @@ module nd120_console_mister_tb;
 
     // Let the banner finish. 318 characters, a few clocks each.
     i = 0;
-    while (!DUT.BANNER.done && i < 200000) begin
+    while (!DUT.FEED.BANNER.done && i < 200000) begin
       @(posedge clk);
       i = i + 1;
     end
-    if (!DUT.BANNER.done) begin
+    if (!DUT.FEED.BANNER.done) begin
       $display("FAIL: the banner never finished");
       errors = errors + 1;
     end

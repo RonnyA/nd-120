@@ -58,7 +58,7 @@ test-console-loop: terminal_console_tb.vvp
 	@$(VVP) $< | tee terminal_console_tb.log
 	@grep -q "TB_RESULT: PASS" terminal_console_tb.log || { echo "terminal_console_tb FAILED"; exit 1; }
 
-terminal_console_tb.vvp: terminal_console_tb.v $(RTL)/console_uart_tx.v $(RTL)/console_uart_rx.v $(RTL)/terminal_top.v $(RTL)/terminal_ctrl.v $(RTL)/char_ram.v $(RTL)/text_screen.v $(RTL)/vga_timing.v $(RTL)/font_rom.v $(RTL)/cdc_byte.v $(RTL)/ps2_keyboard.v $(RTL)/ps2_decoder.v $(RTL)/ps2_ascii_table.v
+terminal_console_tb.vvp: terminal_console_tb.v $(RTL)/console_uart_tx.v $(RTL)/console_uart_rx.v $(RTL)/terminal_top.v $(RTL)/terminal_ctrl.v $(RTL)/char_ram.v $(RTL)/text_screen.v $(RTL)/vga_timing.v $(RTL)/font_rom.v $(RTL)/cdc_byte.v $(RTL)/ps2_keyboard.v $(RTL)/ps2_decoder.v $(RTL)/ps2_ascii_table.v $(RTL)/term_console_feed.v $(RTL)/term_banner.v $(RTL)/term_banner_rom.v
 	$(IVERILOG) $(IVFLAGS) -o $@ $^
 
 test-text-screen: text_screen_tb.vvp
