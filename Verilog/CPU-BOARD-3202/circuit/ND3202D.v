@@ -395,6 +395,12 @@ TODO: Sort bits on output LED to match led numbering
   wire        s_gnt50_n;
   wire        s_hit;
   wire        s_dbg_lapa_n;
+
+  //! LHIT from IO_37 - the panel's own cache-hit signal. Declared HERE, at
+  //! module scope and unconditionally. Two builds have already been lost to a
+  //! debug wire declared inside an `ifdef` that some configurations do not
+  //! define (b958fcc, and again during the panel work).
+  wire        s_lhit;
   wire        s_ibapr_n;
   wire        s_ibdap_n;
   wire        s_ibdry_n;
@@ -644,11 +650,20 @@ TODO: Sort bits on output LED to match led numbering
   assign LA_23_10 = 13'b0; //TODO: Where is the LA signal ??
 
   // The five Port-D panel signals, in Port-D order. See the port comment.
-  // [6] is LAPA_n, the cache/MMU lookup strobe. It is not a Port-D signal on
-  // the real board - the MC68705 there computes the hit rate in firmware from
-  // LHIT alone over time. We need the denominator explicitly, so it rides in
-  // the spare bit rather than costing another port.
-  assign DBG_PANEL = {1'b0, s_dbg_lapa_n, s_lev0, s_hit, s_ioni, s_poni,
+  //
+  // [4] IS LHIT, NOT s_hit - corrected 28-AUG-2026 (Ronny spotted it). The
+  // real panel's cache-hit field is fed from LHIT on Port D bit 4
+  // (IO_PANCAL_40.v:195), exactly as UTILIZATION is fed from LEV0 on bit 5.
+  // LHIT is the LATCHED "Load Hit" out of the DGA (DECODE_DGA_COMM.v:60,
+  // taken off a flip-flop's qBar). What sat here before was s_hit, the raw
+  // combinational comparator output inside CPU_MMU_CACHE_25 - our own choice,
+  // not the machine's.
+  //
+  // [6] is LAPA_n, the cache/MMU lookup strobe. It is NO LONGER the hit-rate
+  // denominator - the MC68705 samples Port D periodically and works the rate
+  // out from LHIT alone over time, so there is no denominator to supply. Kept
+  // here because it is still a useful debug signal.
+  assign DBG_PANEL = {1'b0, s_dbg_lapa_n, s_lev0, s_lhit, s_ioni, s_poni,
                       s_pcr_1_0[1:0]};
   assign CA_9_0 =s_ca_9_0;
 
@@ -917,6 +932,9 @@ TODO: Sort bits on output LED to match led numbering
     // FPGA system signals
     .sysclk(sysclk),  // System clock in FPGA
     .sys_rst_n(sys_rst_n),  // System reset in FPGA
+
+    // Debug outputs
+    .DBG_LHIT(s_lhit),   // panel cache-hit signal, Port D bit 4
 
     // Input Signals
     .BAUD_RATE_SWITCH(BAUD_RATE_SWITCH),

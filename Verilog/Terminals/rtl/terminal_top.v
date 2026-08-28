@@ -113,7 +113,7 @@ module terminal_top #(
     input  wire       panel_hit,        //! HIT  - the ND-120's own cache
     //! High while the lookup HIT belongs to is happening. Without it there is
     //! no denominator and the CACHE HIT RATE bar cannot mean anything.
-    input  wire       panel_lookup,
+
     input  wire [1:0] panel_ring,       //! PCR protect ring
     input  wire       panel_paging_on,  //! PONI
     input  wire       panel_interrupt_on, //! IONI
@@ -292,7 +292,7 @@ module terminal_top #(
 
     reg [3:0] s_pil_m, s_pil_s, s_pil_t, s_pil_q;
     reg [2:0] s_pil_cnt;
-    reg [1:0] s_lev0_sync, s_hit_sync, s_look_sync;
+    reg [1:0] s_lev0_sync, s_hit_sync;
     reg [1:0] s_pag_sync, s_int_sync, s_run_sync;
     reg [1:0] s_hrd_sync, s_hwr_sync, s_frd_sync, s_fwr_sync;
     reg [1:0] s_ring_m, s_ring_s, s_ring_q;
@@ -302,7 +302,7 @@ module terminal_top #(
         s_pil_m <= 4'd0; s_pil_s <= 4'd0; s_pil_t <= 4'd0; s_pil_q <= 4'd0;
         s_pil_cnt <= 3'd0;
         s_ring_m <= 2'd0; s_ring_s <= 2'd0; s_ring_q <= 2'd0;
-        s_lev0_sync <= 2'd0; s_hit_sync <= 2'd0; s_look_sync <= 2'd0;
+        s_lev0_sync <= 2'd0; s_hit_sync <= 2'd0;
         s_pag_sync  <= 2'd0; s_int_sync <= 2'd0; s_run_sync  <= 2'd0;
         s_hrd_sync  <= 2'd0; s_hwr_sync <= 2'd0;
         s_frd_sync  <= 2'd0; s_fwr_sync <= 2'd0;
@@ -325,7 +325,6 @@ module terminal_top #(
 
         s_lev0_sync <= {s_lev0_sync[0], panel_lev0};
         s_hit_sync  <= {s_hit_sync[0],  panel_hit};
-        s_look_sync <= {s_look_sync[0], panel_lookup};
         s_pag_sync  <= {s_pag_sync[0],  panel_paging_on};
         s_int_sync  <= {s_int_sync[0],  panel_interrupt_on};
         s_run_sync  <= {s_run_sync[0],  panel_running};
@@ -340,7 +339,6 @@ module terminal_top #(
     wire [1:0] w_ring = s_ring_q;
     wire w_lev0 = s_lev0_sync[1];
     wire w_hit  = s_hit_sync[1];
-    wire w_look = s_look_sync[1];
     wire w_pag  = s_pag_sync[1];
     wire w_int  = s_int_sync[1];
     wire w_run  = s_run_sync[1];
@@ -362,14 +360,25 @@ module terminal_top #(
     );
 
     wire [3:0] s_cache_hit;
-    //! A RATIO, not a duty cycle. CACHE HIT RATE means hits per LOOKUP; the
-    //! duty-cycle meter measured hits per CLOCK, and lookups are a small
-    //! fraction of cycles, so the bar sat empty whatever the machine did.
-    //! 2^15 lookups per window with the same peak hold as UTILIZATION.
-    ratio_meter #(.PEAK_HOLD(1), .WINDOW_BITS(15)) HIT_METER (
-        .clk(pix_clk), .rst_n(pix_rst_n),
-        .attempt(w_look), .success(w_hit),
-        .eighths(s_cache_hit)
+    //! MEASURED THE WAY THE MACHINE MEASURED IT. The input is LHIT, the
+    //! latched Load Hit that the real panel's MC68705 reads on Port D bit 4 -
+    //! the same treatment UTILIZATION gets from LEV0 on bit 5.
+    //!
+    //! A duty cycle is the honest model here, not a hits-per-lookup ratio.
+    //! The 68705 SAMPLES Port D periodically and works the rate out from LHIT
+    //! alone over time; it never had a lookup count to divide by. An earlier
+    //! version here invented one (LAPA_n as a denominator, through
+    //! ratio_meter) because a duty cycle taken on the cache's raw comparator
+    //! output sat near empty. That was solving the wrong problem: the raw
+    //! output was the wrong signal, and LHIT is asserted for a whole load
+    //! cycle rather than one clock.
+    //!
+    //! Same window and peak hold as UTILIZATION so the two bars move at the
+    //! same speed and can be read together. If it reads persistently low once
+    //! the cache actually works, WINDOW_BITS is the knob - but check the cache
+    //! first, because with CUP dead this reads a true zero.
+    rate_meter #(.PEAK_HOLD(1), .WINDOW_BITS(24)) HIT_METER (
+        .clk(pix_clk), .rst_n(pix_rst_n), .sample(w_hit), .eighths(s_cache_hit)
     );
 
     //! Uptime, counted in FRAMES rather than clocks. The frame rate is 60 Hz in

@@ -616,14 +616,14 @@ module nd120_nexys4ddr_top (
       // Operator panel. Signals come straight off ND3202D's DBG_PANEL port,
       // which is the SAME five the real MC68705 panel processor samples on its
       // Port D - see the port comment in ND3202D.v.
-      //   [1:0] PCR   [2] PONI   [3] IONI   [4] HIT   [5] LEV0
+      //   [1:0] PCR   [2] PONI   [3] IONI   [4] LHIT   [5] LEV0
       .panel_enable      (s_panel_en),
       .panel_pil         (s_pil),
       .panel_lev0        (s_dbg_panel[5]),
+      // [4] is LHIT - the same signal the real MC68705 panel samples, not the
+      // cache's raw comparator output. [6] (LAPA_n) is no longer read here:
+      // the rate comes from LHIT over time, so there is no denominator.
       .panel_hit         (s_dbg_panel[4]),
-      // [6] is LAPA_n, active low, so lookup-in-progress is its inverse - the
-      // denominator of the hit rate.
-      .panel_lookup      (~s_dbg_panel[6]),
       .panel_ring        (s_dbg_panel[1:0]),
       .panel_paging_on   (s_dbg_panel[2]),
       .panel_interrupt_on(s_dbg_panel[3]),

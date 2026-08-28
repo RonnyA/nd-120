@@ -101,7 +101,15 @@ module IO_37(
    output       TXD,
    output       WCHIM_n,
    output       WRITE,
-   output [1:0] IOLED // 0=RED,1=GREEN
+   output [1:0] IOLED, // 0=RED,1=GREEN
+
+   //! LHIT - "Load Hit", the cache hit the panel actually displays. It is
+   //! generated in the DGA (DECODE_DGA_COMM.v:60) and consumed here by
+   //! IO_PANCAL_40, where it lands on the MC68705's Port D bit 4
+   //! (IO_PANCAL_40.v:195) - the same port that carries LEV0 on bit 5.
+   //! Brought out so the on-screen panel can show the same signal the real
+   //! fascia did, rather than the raw comparator output from the cache.
+   output       DBG_LHIT
 );
 
 
@@ -170,6 +178,7 @@ module IO_37(
    wire        s_poni;
    wire        s_ssema_n;
    wire        s_lhit;
+   assign DBG_LHIT = s_lhit;
    wire        s_rwcs_n;
    wire        s_fetch;
    wire        s_tout;
@@ -404,6 +413,8 @@ module IO_37(
    IO_PANCAL_40   PANCAL
    (
       .sysclk(sysclk),
+      .CLK(s_clk),       // DGA FIFO clock, for the 68705 clock emulation
+      .CLK_EN(CLK_EN),   // (ND120_PANEL_CLOCK builds; unused otherwise)
       .CLEAR_n(s_clear_n),
       .DP_5_1_n(s_dp_5_1_n[4:0]),
       .EMP_n(s_emp_n),
