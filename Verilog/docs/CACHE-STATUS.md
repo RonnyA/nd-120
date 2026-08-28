@@ -84,20 +84,56 @@ Both of the obvious "the cache is switched off" explanations are wrong:
   chip selects. `ND3202D.v:603` ties it to 0, so the PAL drives and the RAMs are
   selected. It is not that either.
 
-## Where the fault is likely to be
+## The fault, found 28-AUG-2026
 
-`CUP` - Cache UPdate - is an **output of `CPU_PROC_32`**, i.e. it comes from the
-microcode/decode path, and an input to `CPU_MMU_24`. The diagnostic's very first
-complaint is `CUP does not work (Bit 0 in Cache Status)`, read back through the
-Cache Status Register (`CPU_MMU_CSR_26.v:42`, `idb = {1'b1, ~CON, CON, CUP}`).
+`CUP` never asserts, and the reason is one character in a Verilog file.
 
-If `CUP` never asserts, the used-bit PAL `PAL_44402D_EN` never writes a new used
-bit, `CHIP_21F` stays zero, and every symptom above follows from that one cause.
+The original PALASM, `DesignDocuments/PAL-Code/SRC/44511A.txt`:
 
-**Next step for anyone picking this up:** determine whether `CUP` ever asserts.
-It is not currently observable at the top level; `DBG_PANEL` has one spare bit
-(`[7]`) if a probe is wanted, which is how `LAPA_n` was brought out for the
-panel's hit-rate denominator.
+```
+IF (VCC) CWR  = MREQ * WCA + CWR * /CLK      <- '='  combinational
+        /CUP := /CWR * MREQ + /CUP * /MREQ   <- ':=' registered
+```
+
+In PALASM `=` declares a combinational output and `:=` a registered one. On a
+PAL16R4 only Q0-Q3 carry flip-flops; `CWR` is pin B0, which has none. Our
+`PAL_44511A.v` evaluated it inside the clocked `always` block anyway, so `CWR`
+only moved on a clock edge.
+
+`/CUP := /CWR * MREQ` needs both terms in the **same** cycle. With `CWR` one
+edge late, `MREQ` has already gone, so `CUP` never asserted at all. Every line
+of the diagnostic above follows from that: no `CUP`, so the used-bit PAL never
+writes, so `CHIP_21F` stays zero, so `HIT` - which requires `!s_used_n` - can
+never fire. Test 6 passing fits exactly: the data RAMs were always fine, and
+the bookkeeping around them never ran.
+
+**The deviation was already known.** `PAL/sim/PAL_44511A_EN_tb.v` documented it
+as "DEVIATION 1", pinned it with a check named
+`CWR_IS_CLOCKED_NOT_COMBINATIONAL_DEVIATION`, and even stated the consequence -
+*"a mid-cycle MREQ \* WCA does not reach the pin"*. It was recorded as an
+accepted difference and the algebra was called equivalent. It was not
+equivalent, and that sentence was the bug description all along.
+
+Fixed in `PAL_44511A.v` and `PAL_44511A_EN.v` (commit `e178f04`): combinational
+set term, hold term qualified by `/CLK` so it dies at the start of the next
+cycle. Modelled in FF mode (`USE_LATCHES=0`, the path the FPGA builds); the
+residual difference from the level-sensitive original is written out in both
+files. The testbench expectations were re-derived from the listing rather than
+from either RTL (commit `5cec840`) - 9244 checks, 0 failures, full PAL suite
+green.
+
+**Not yet measured on hardware.** Whether this makes `CACHE-120-A00` pass is an
+open question until the build with the fix is flashed and the diagnostic re-run.
+Nothing in this section claims the cache works.
+
+Two things this does not explain and which stay open:
+
+- the earlier `CON` and `PD2` checks above ruled those out, and they stay
+  ruled out - this is a third, separate cause;
+- `PAL/sim` has a provenance gate that reports "22 PALs agree with their
+  listing on every output", and it passed throughout. It did not catch this,
+  so whatever it compares does not include combinational-vs-registered intent.
+  Worth understanding before trusting it on another PAL.
 
 Second, unrelated finding: **test 1, control-store verification of the upper
 1k, fails** with `Found 140000B, Expected 000000B` across `017000B`-`017004B`.
