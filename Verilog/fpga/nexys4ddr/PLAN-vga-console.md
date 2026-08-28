@@ -235,3 +235,19 @@ Worth checking cheaply first, because it is one line: whether `panel_pil` is
 even four bits wide end to end. `DBG_PANEL` carries only `s_pcr_1_0[1:0]` of
 PCR, and if the panel's level input is being widened or sign-filled anywhere
 along the way, a change on the narrow field could present as all-ones.
+
+## OPEN - the reset banner says too much
+
+**Ronny, 28-AUG-2026.** After a reset the text buffer should contain only two
+lines:
+
+```
+ND-120/CX CPU CORE
+80x25 TDV2200 console
+```
+
+Nothing else. The banner currently carries more than that. It is built in
+`Verilog/Terminals/rtl/term_banner_rom.v` and fed through
+`term_console_feed.v`, which is shared by all three boards - so this is one
+edit, not three, and `Terminals/sim/term_banner_tb.v` is the gate that must be
+updated with it.

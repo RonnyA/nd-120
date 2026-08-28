@@ -146,3 +146,71 @@ Leave `ND120_NO_CACHE` as the default. Not because the cache might not build -
 it does - but because it is now *known* to be functionally incorrect, and a
 cache that silently never hits is a worse configuration than no cache at all.
 Change the default when `CUP` is fixed and `CACHE-120-A00` passes.
+
+## 28-AUG-2026, later - the CWR fix did NOT fix it, and the trail moved
+
+Flashed the CWR fix (WNS +0.075 ns, cache enabled) and re-ran the diagnostic
+from the floppy: `1560&` -> TPE -> `LOAD-PROGRAM CACHE-1X0-A00:TEST`.
+
+**Test 2 still fails identically** - `CUP does not work (Bit 0 in Cache
+Status)`, `DATA is NOT COPIED to DATA CACHE`. So the PALASM deviation was real
+and worth fixing, but it was not the cause. Said plainly because the earlier
+section of this document was written as though it would be.
+
+Two things now known that were not before:
+
+1. **The config probe and the functional test disagree.** `CACHE-1X0-A00`
+   prints `Cache updated bit.........: Working` at load time, on the very same
+   bitstream where test 2 reports CUP dead. Whatever the load-time probe reads,
+   it is not what test 2 exercises. Do not trust that line as evidence.
+
+2. **The machine points at the inhibit logic.** `PRINT-NOTE 6`, the
+   diagnostic's own note for this error:
+
+   > The fault may come from the inhibit logic, and in such a case many other
+   > troubles will occur as many test sequences disable the whole cache by
+   > setting the lower and upper inhibit registers to 0:37777 [...] Test
+   > section 3 must be able to find if the fault comes from the inhibit logic
+   > or from the status register itself.
+
+   Test 3 then reports `Cache not updated (Use of limit registers)` for three
+   limit/page combinations.
+
+**The chain, traced through the RTL** (all verified by reading, none assumed):
+
+```
+inhibit-bit RAM CHIP_20G  ->  WCINH_n   (CPU_MMU_PT_29.v:155)
+  -> s_ewc_n = ~(s_brk_n & s_con & s_wcinh_n)   (CPU_MMU_CACHE_25.v:178)
+  -> PAL_44402D_EN: WCA_n = ~((RT_n & DT & EWC & CYD & FMISS_n & LSHADOW_n)|..)
+  -> PAL_44511A_EN: CWR = MREQ * WCA
+  -> /CUP := /CWR * MREQ                          -> Cache Status bit 0
+```
+
+Ruled out along the way, so nobody re-checks them: `PD1` is tied 0
+(`ND3202D.v:602`) so the 44511A output enable is not gating CUP; the
+`assign s_wca_n = 1'b1` tie-off in `CPU_MMU_CACHE_25.v:210` is inside
+`ifdef ND120_NO_CACHE` and does not apply to a cache build; and CUP genuinely
+comes from the `PAL_44511A_EN` instance `PAL_44511_ULEV0`
+(`CPU_PROC_CMDDEC_34.v:130`), which is the one that was fixed.
+
+**The current suspect, NOT yet proven.** The inhibit bit is stored per page in
+`IMS1403_25 CHIP_20G`, addressed by
+
+```verilog
+assign s_ims_ppn_25_10_in = s_ppn_25_10_in | s_ppn_25_10_out;
+// maybe do a conditional expression here to select which PPN to write to RAM chip 20G
+```
+
+`CPU_MMU_PT_29.v:71`. The comment is the original author's own doubt. ORing the
+incoming and outgoing PPN yields neither address once both are non-zero, so a
+write could land on one page and the read-back come from another - which is
+exactly "cache not updated (use of limit registers)". It is a hypothesis with a
+motive, not a measurement.
+
+**Next step, and do it in this order.** `CPU_MMU_PT_29` has three testbenches
+(`_tb`, `_replay_tb`, `_shadow_rmw_tb`) and NONE of them checks WCINH_n - each
+mentions it twice, both times a port connection. None appears in
+`tests/run_all_tests.sh`. Write the missing unit test first: set the inhibit
+bit for page X, read it back for page X and for page Y, with both PPN busses
+non-zero. If the OR is wrong the test says so, and only then change the RTL.
+Changing that line on the strength of a comment would be guessing at the CPU.
