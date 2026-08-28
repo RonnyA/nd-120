@@ -311,7 +311,8 @@ if {[lsearch $argv "cache"] < 0} { lappend defines ND120_NO_CACHE }
 # define) so the ILA probe patterns below can find them. Measured 23-AUG:
 # without this, synthesis renames/absorbs the nets and the patterns match
 # nothing ("ILA: NO NET").
-if {[lsearch $argv "ila"] >= 0 || [lsearch $argv "ilaslim"] >= 0} { lappend defines ND120_ILA_MARK_DEBUG }
+if {[lsearch $argv "ila"] >= 0 || [lsearch $argv "ilaslim"] >= 0 ||
+    [lsearch $argv "ilacache"] >= 0} { lappend defines ND120_ILA_MARK_DEBUG }
 # -tclargs errfaprobe: SINTRAN ERRFATAL evidence probe (MEM_RAM_49_BLOCKRAM):
 # latches the ERRFA X,T,A,D,L saves (0o4347-0o4353) in FFs and repeats them
 # on the console TX after the halt. Zero BRAM - fits where no ILA does.
@@ -436,6 +437,64 @@ puts "NOTE: LUTLP-1 downgraded to Warning - 12 known CGA IDB loops, see build.tc
 # depth 1024) so an ILA fits NEXT TO the addr16 main RAM (128/135 RAMB36).
 # Purpose: trigger on the SINTRAN ERRFA register save (RAM write to 0o4347)
 # and read the saved X,T,A,D,L words off the write port.
+
+# --- -tclargs ilacache: the cache-write question, and nothing else ----------
+#
+# Added 28-AUG-2026. CACHE-1X0-A00 test 2 says the cache is inert in both
+# directions - never written, therefore never hit. A cache write is
+# PAL_44402D asserting WCA:
+#
+#   WCA = /RT * DT * EWC * CYD * /FMISS * /LSHADOW
+#       + RT * /IHIT * EWC * CYD * /FMISS * /LSHADOW
+#
+# The PAL is transcribed correctly and CON is tied high, so one of WCINH_n,
+# BRK_n, CYD, FMISS or LSHADOW is holding WCA off and the source cannot say
+# which. s_ila_cache carries all six (see CPU_MMU_24.v's DBG_CACHE comment).
+#
+# This is its OWN flag rather than an addition to "ila" because that probe
+# set is aimed at the floppy/IOX seam, is large, and currently references
+# s_ila_ram_addr, which no longer exists in this configuration - so "ila"
+# fails before it gets anywhere near the cache. Keeping the sets separate
+# means the cache capture does not depend on that being tidied up first.
+if {[lsearch $argv "ilacache"] >= 0} {
+    set _probes {}
+    foreach pat {
+        CSA_12_0[*]
+        cpu_txd
+    } {
+        set n [get_nets -hier -quiet $pat]
+        if {[llength $n] == 0} { puts "ERROR: ILA net missing for pattern $pat"; exit 1 }
+        lappend _probes [lsort -dictionary $n]
+    }
+    foreach pat {
+        *s_ila_cache* *s_ila_la* *s_ila_pil*
+    } {
+        set n [get_nets -hier -quiet -filter "MARK_DEBUG && NAME =~ $pat"]
+        if {[llength $n] == 0} { puts "ERROR: ILA marked net missing for $pat"; exit 1 }
+        puts "ILA: $pat -> [llength $n] nets"
+        lappend _probes [lsort -dictionary $n]
+    }
+    foreach n $_probes { set_property MARK_DEBUG true $n }
+    create_debug_core u_ila_0 ila
+    set_property C_DATA_DEPTH 1024        [get_debug_cores u_ila_0]
+    set_property C_TRIGIN_EN false        [get_debug_cores u_ila_0]
+    set_property C_TRIGOUT_EN false       [get_debug_cores u_ila_0]
+    set_property C_ADV_TRIGGER false      [get_debug_cores u_ila_0]
+    set_property C_INPUT_PIPE_STAGES 2    [get_debug_cores u_ila_0]
+    set_property C_EN_STRG_QUAL true      [get_debug_cores u_ila_0]
+    set_property ALL_PROBE_SAME_MU true   [get_debug_cores u_ila_0]
+    set_property ALL_PROBE_SAME_MU_CNT 2  [get_debug_cores u_ila_0]
+    connect_debug_port u_ila_0/clk [get_nets clk_cpu]
+    set _pidx 0
+    foreach n $_probes {
+        if {$_pidx > 0} { create_debug_port u_ila_0 probe }
+        set_property PORT_WIDTH [llength $n]     [get_debug_ports u_ila_0/probe$_pidx]
+        connect_debug_port u_ila_0/probe$_pidx $n
+        incr _pidx
+    }
+    puts "ILA: ilacache core built with $_pidx probe ports"
+}
+
 if {[lsearch $argv "ilaslim"] >= 0} {
     set _probes {}
     foreach pat {
@@ -447,7 +506,7 @@ if {[lsearch $argv "ilaslim"] >= 0} {
         lappend _probes [lsort -dictionary $n]
     }
     foreach pat {
-        *s_ila_ddr2* *s_ila_ptwhold* *s_ila_la* *s_ila_xmic* *s_ila_maddr* *s_ila_mdata* *s_ila_pil* *s_ila_cache* *s_ila_ireq* *s_ila_picmask* *s_ila_intrq_n* *s_ila_picv* *s_ila_tvec* *s_ila_trapn*
+        *s_ila_ddr2* *s_ila_ptwhold* *s_ila_la* *s_ila_xmic* *s_ila_maddr* *s_ila_mdata* *s_ila_pil* *s_ila_ireq* *s_ila_picmask* *s_ila_intrq_n* *s_ila_picv* *s_ila_tvec* *s_ila_trapn*
     } {
         set n [get_nets -hier -quiet -filter "MARK_DEBUG && NAME =~ $pat"]
         if {[llength $n] == 0} { puts "ERROR: ILA marked net missing for $pat"; exit 1 }
