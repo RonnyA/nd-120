@@ -292,10 +292,19 @@ set defines [list \
 # open the port at 115200 (board_expect.ps1/console.ps1 -Baud 115200).
 if {$skip_wcs} { lappend defines SKIP_WCS_LOAD }
 # CPU cache: OFF BY DEFAULT (Ronny, 24-AUG-2026) - same as the Tang
-# (tang20k_defines.v: ND120_NO_CACHE). The cache is the never-validated
-# subsystem and the first real configuration difference between the two
-# boards (one of its arrays, MMU/CACHE/CHIP_21F, also falls back to LUTRAM
-# on this part). Re-enable for experiments with -tclargs cache.
+# (tang20k_defines.v: ND120_NO_CACHE). Re-enable with -tclargs cache.
+#
+# MEASURED 28-AUG-2026, so the reason has changed - see docs/CACHE-STATUS.md.
+# It BUILDS and BOOTS: WNS +0.166 ns, SINTRAN comes up, TPE reports
+# "Cache: Yes / NO ERRORS DETECTED". The old worry that CHIP_21F falling back
+# to LUTRAM would not fit or close is dead; it costs ~0.1 ns of margin.
+#
+# It is off because it is now KNOWN BROKEN rather than merely unvalidated. The
+# machine's own diagnostic (CACHE-120-A00 under TPE) fails: the used-bit memory
+# never sets, so nothing is written to the cache and nothing is read from it.
+# HIT requires the used bit, so the hit rate is a true 0%. A cache that silently
+# never hits is worse than no cache. Turn this default around when CUP is fixed
+# and CACHE-120-A00 passes.
 if {[lsearch $argv "cache"] < 0} { lappend defines ND120_NO_CACHE }
 # -tclargs ila: keep the CGA_MAC address-chain nets and cpu_txd through
 # synthesis (mark_debug attributes in CGA_MAC.v / the top, guarded by this
