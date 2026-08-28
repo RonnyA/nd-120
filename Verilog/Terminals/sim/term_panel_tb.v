@@ -65,6 +65,55 @@ module term_panel_tb;
 
   always #12.5 clk = ~clk;
 
+  //! A REAL frame tick, one clock wide, once every FRAME_CLOCKS.
+  //!
+  //! This used to be tied to 1'b1 "so the testbench sees values immediately".
+  //! That tie is why this bench could not see the bug Ronny reported on
+  //! 28-AUG-2026 (the ACTIVE LEVEL row lighting far more lamps than the CPU
+  //! was using). term_panel RELOADS s_glow[pil] every clock and DECAYS one
+  //! step per frame_tick. With frame_tick high the two happen at the same
+  //! rate, so the glow behaved sanely here while on hardware - where a frame
+  //! is 666,666 clocks at 40 MHz - a level needs 63 whole frames untouched
+  //! before it goes dark, and anything the CPU revisits sooner stays lit for
+  //! ever.
+  //!
+  //! FRAME_CLOCKS is 400 rather than 666,666: the point is only that a frame
+  //! must be MUCH longer than one clock, so the reload/decay ratio is the one
+  //! the hardware has. 400 keeps the run short enough to be a unit test.
+  localparam integer FRAME_CLOCKS = 400;
+  reg  [15:0] frame_div = 16'd0;
+  reg         frame_tick = 1'b0;
+  always @(posedge clk) begin
+    if (frame_div == FRAME_CLOCKS - 1) begin
+      frame_div  <= 16'd0;
+      frame_tick <= 1'b1;
+    end else begin
+      frame_div  <= frame_div + 16'd1;
+      frame_tick <= 1'b0;
+    end
+  end
+
+  //! Run the panel for a number of whole frames.
+  task run_frames (input integer frames);
+    integer f;
+    begin
+      for (f = 0; f < frames; f = f + 1) begin
+        @(posedge frame_tick);
+      end
+      @(posedge clk);
+    end
+  endtask
+
+  //! How many of the 16 level lamps are lit right now.
+  function integer lamps_lit;
+    integer k, c;
+    begin
+      c = 0;
+      for (k = 0; k < 16; k = k + 1) if (DUT.s_glow[k] != 6'd0) c = c + 1;
+      lamps_lit = c;
+    end
+  endfunction
+
   term_panel #(
       .FONT_FILE("../font/font8x16.hex"),
       .ORIGIN_X (ORIGIN_X),
@@ -72,9 +121,7 @@ module term_panel_tb;
   ) DUT (
       .clk(clk), .rst_n(rst_n),
       .x(x), .y(y), .mode(mode), .enable(enable),
-      // Held high so the testbench sees values immediately; on hardware
-      // this is one pulse per frame.
-      .frame_tick(1'b1),
+      .frame_tick(frame_tick),
       .pil(pil), .utilization(utilization), .cache_hit(cache_hit),
       .ring(ring), .paging_on(paging_on), .interrupt_on(interrupt_on),
       .running(running),
@@ -121,7 +168,7 @@ module term_panel_tb;
     input integer lvl;
     output lit;
     begin
-      lit = DUT.s_glow[lvl] != 4'd0;
+      lit = DUT.s_glow[lvl] != 6'd0;
     end
   endtask
 
@@ -204,10 +251,11 @@ module term_panel_tb;
     // 5. Afterglow: moving off a level must FADE it, not drop it, and the
     //    fade must eventually complete.
     //
-    //    frame_tick is tied high in this testbench, so the decay runs once per
-    //    clock rather than once per frame - 15 clocks instead of 15 frames.
-    //    On hardware that is about a quarter second, and identical in both
-    //    video modes because it counts frames, not clocks.
+    //    Timed in REAL FRAMES since 28-AUG-2026. frame_tick used to be tied
+    //    high here, which made the decay run once per clock and hid the fact
+    //    that on hardware the reload is per CLOCK while the decay is per
+    //    FRAME. Anything measured in clocks was measuring a ratio the
+    //    hardware does not have.
     //------------------------------------------------------------------
     pil = 4'd2;
     @(posedge clk);
@@ -218,7 +266,9 @@ module term_panel_tb;
       errors = errors + 1;
     end else $display("-- level 7 still glowing just after moving off it");
 
-    repeat (40) @(posedge clk);
+    // 63 decay steps, one per FRAME - about a second at 60 Hz on hardware.
+    // Wait comfortably past it, in frames.
+    run_frames(70);
     level_lit(7, lit_a);
     level_lit(2, lit_b);
     if (lit_a) begin
@@ -245,6 +295,46 @@ module term_panel_tb;
         $display("FAIL: %0d levels claim to be current, expected exactly 1", n_current);
         errors = errors + 1;
       end else $display("-- exactly one level is current");
+    end
+
+    //------------------------------------------------------------------
+    // 7. THE RELOAD/DECAY RATIO, which nothing checked before.
+    //
+    //    s_glow[pil] is reloaded to full on EVERY CLOCK, and decays one step
+    //    per FRAME. So a level the CPU keeps returning to is pinned lit, and
+    //    only a level left alone for 63 whole frames goes dark. With
+    //    frame_tick tied high that asymmetry did not exist here at all.
+    //
+    //    This checks the property that actually matters for the display being
+    //    readable: a level the CPU has STOPPED using must go dark within the
+    //    afterglow window, even if it was hammered before. It says nothing
+    //    about how many lamps SHOULD be lit while several levels are in use -
+    //    on this machine several at once is normal.
+    //------------------------------------------------------------------
+    begin : ratio_check
+      integer c, k;
+      // hammer levels 2..6, switching far faster than one frame
+      for (k = 0; k < 200; k = k + 1) begin
+        pil = 4'd2 + (k % 5);
+        repeat (20) @(posedge clk);
+      end
+      c = lamps_lit();
+      $display("-- after hammering levels 2..6: %0d lamps lit", c);
+      if (c < 5) begin
+        $display("FAIL: only %0d lamps lit while 5 levels were in use", c);
+        errors = errors + 1;
+      end
+
+      // now use ONLY level 2 and let the rest age out
+      pil = 4'd2;
+      run_frames(70);
+      c = lamps_lit();
+      $display("-- after 70 idle frames on level 2 alone: %0d lamps lit", c);
+      if (c != 1) begin
+        $display("FAIL: %0d lamps still lit after the others stopped running - expected 1",
+                 c);
+        errors = errors + 1;
+      end else $display("-- levels that stopped running went dark");
     end
 
     if (errors == 0) $display("TB_RESULT: PASS (region bounded, levels and afterglow)");
