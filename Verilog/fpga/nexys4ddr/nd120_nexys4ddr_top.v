@@ -430,6 +430,9 @@ module nd120_nexys4ddr_top (
   //! Declared here at module scope, above every use, for the same reason the
   //! PT-write probe signals now are.
   wire [7:0]  s_dbg_panel;
+  //! Cache-write gating bus. Read by the ILA only - see CPU_MMU_24.v's
+  //! DBG_CACHE port comment for the bit layout and why it was added.
+  wire [7:0]  s_dbg_cache;
   reg         r_ptwhold_sticky = 1'b0;
   reg  [15:0] r_ptwhold_cnt    = 16'd0;
 `ifdef ND120_ILA_MARK_DEBUG
@@ -914,7 +917,8 @@ module nd120_nexys4ddr_top (
       .mm_rsp_rdata(mm_rsp_rdata),
       .DBG_DDR2_BRIDGE(s_dbg_ddr2_bridge),
       .DBG_PTW_LVL    (s_dbg_ptw_lvl),
-      .DBG_PANEL      (s_dbg_panel)
+      .DBG_PANEL      (s_dbg_panel),
+      .DBG_CACHE      (s_dbg_cache)
 `endif
   );
 
@@ -1101,6 +1105,12 @@ module nd120_nexys4ddr_top (
   // interrupt-subsystem view for the idle-loop diagnosis: current level and
   // the raw request vector into the controller (PIE/PID themselves are
   // serviced constructs inside CGA_INTR, not plain registers)
+  //! The cache-write gating bus. WCA_n is the one that matters: if it never
+  //! goes low the cache is never written, which is exactly what CACHE-1X0-A00
+  //! test 2 reports. The other five bits say WHICH term is holding it off.
+  //!   [0] LSHADOW  [1] FMISS  [2] CYD  [3] BRK_n  [4] WCINH_n  [5] WCA_n
+  (* mark_debug = "true" *) wire [7:0]  s_ila_cache = s_dbg_cache;
+
   (* mark_debug = "true" *) wire [3:0]  s_ila_pil  = s_pil;
   (* mark_debug = "true" *) wire [15:0] s_ila_ireq = s_ireq_15_0_n;
 `endif

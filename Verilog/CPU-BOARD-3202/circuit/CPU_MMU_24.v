@@ -64,6 +64,39 @@ module CPU_MMU_24 (
     output LAPA_n,               //! Latch Page Address, controls latching of the page address
     output [6:0] PT_15_9_OUT,    //! Page Table data output, top 7 bits
     output WCA_n,                //! Write Cache Address, controls writing to the cache address register
+    //! DBG_CACHE - the six signals that gate a cache write, brought out so an
+    //! ILA can say which one is actually blocking it. Added 28-AUG-2026.
+    //!
+    //! WHY. On the Nexys 4 DDR the machine's own diagnostic CACHE-1X0-A00,
+    //! test 2, reports the cache totally inert: data and instructions are
+    //! never COPIED INTO the cache when read, and never TAKEN FROM it when
+    //! present, both with paging off and on. Nothing is ever written, so
+    //! nothing can ever hit, so CUP never sets.
+    //!
+    //! A cache write happens when PAL_44402D asserts WCA, and its PALASM
+    //! (DesignDocuments/PAL-Code/SRC/44402D.txt) says
+    //!
+    //!   WCA = /RT * DT * EWC * CYD * /FMISS * /LSHADOW
+    //!       + RT * /IHIT * EWC * CYD * /FMISS * /LSHADOW
+    //!
+    //! Both terms need EWC and CYD high and FMISS and LSHADOW low. The PAL
+    //! itself is transcribed correctly - checked against that listing on
+    //! 28-AUG-2026, both product terms and the registered/combinational split
+    //! (WCA is "=", combinational; only IHIT/NUBI/NUBD are ":=" - which is
+    //! exactly the mistake that had been made in PAL_44511A). CON is tied
+    //! high in ND120_CORE.v, so it is not the blocker either. That leaves one
+    //! of WCINH_n, BRK_n, CYD, FMISS or LSHADOW, and reading the source
+    //! cannot choose between them - it has to be measured while it runs.
+    //!
+    //! FMISS is the standing suspect: it comes off flip-flop A160 in
+    //! DECODE_DGA_COMM.v, whose D input runs back through A177 =
+    //! NAND(LCS_n, MREQ, FMISS) - a self-hold. Once FMISS sets it stays set
+    //! while MREQ is asserted, and the PAL's own history note says "WCA
+    //! SHOULD NOT APPEAR WHEN FMISS (TSET FAILS)". SUSPECT, NOT VERIFIED.
+    //!
+    //! Bit layout, low to high:
+    //!   [0] LSHADOW  [1] FMISS  [2] CYD  [3] BRK_n  [4] WCINH_n  [5] WCA_n
+    output [7:0] DBG_CACHE,
     output LED1,                 //! UNKNOWN: believed to indicate cache enabled, never traced. See Verilog/docs/SIGNALS.md
     //! DEBUG: page-table WRITE stream (23-AUG-2026, zero-read campaign).
     //! On every PT-chip write strobe (EPT_n low & WMAP_n low) two words are
@@ -193,6 +226,9 @@ module CPU_MMU_24 (
   assign s_cwr = CWR;
   assign s_wchim_n = WCHIM_n;
   assign s_cyd = CYD;
+  //! See the DBG_CACHE port comment for what this bus is and why it exists.
+  assign DBG_CACHE = {2'b00, s_wca_n, s_wcinh_n, s_brk_n, s_cyd, s_fmiss,
+                      s_lshadow};
   assign s_pd2 = PD2;
   assign s_sw1_console = SW1_CONSOLE;
   assign s_eorf_n = EORF_n;

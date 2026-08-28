@@ -316,6 +316,10 @@ if {[lsearch $argv "ila"] >= 0 || [lsearch $argv "ilaslim"] >= 0} { lappend defi
 # latches the ERRFA X,T,A,D,L saves (0o4347-0o4353) in FFs and repeats them
 # on the console TX after the halt. Zero BRAM - fits where no ILA does.
 if {[lsearch $argv "errfaprobe"] >= 0} { lappend defines ND120_ERRFA_PROBE }
+# panelclock: emulate the MC68705 panel processor's CLOCK path (IO_PANCAL_40.v
+# -> PANCAL_68705_CLOCK.v) so SINTRAN can set/read the hardware clock via
+# TRR PANC / TRA PANS. Opt-in, same switch as the Tang's -PanelClock.
+if {[lsearch $argv "panelclock"] >= 0} { lappend defines ND120_PANEL_CLOCK }
 # The VGA console needs its define to reach synthesis. Its framing must match
 # what the machine is actually programmed to - the console UART is a software
 # programmed SC2661, so this is a configuration fact, not a constant (long
@@ -443,7 +447,7 @@ if {[lsearch $argv "ilaslim"] >= 0} {
         lappend _probes [lsort -dictionary $n]
     }
     foreach pat {
-        *s_ila_ddr2* *s_ila_ptwhold* *s_ila_la* *s_ila_xmic* *s_ila_maddr* *s_ila_mdata* *s_ila_pil* *s_ila_ireq* *s_ila_picmask* *s_ila_intrq_n* *s_ila_picv* *s_ila_tvec* *s_ila_trapn*
+        *s_ila_ddr2* *s_ila_ptwhold* *s_ila_la* *s_ila_xmic* *s_ila_maddr* *s_ila_mdata* *s_ila_pil* *s_ila_cache* *s_ila_ireq* *s_ila_picmask* *s_ila_intrq_n* *s_ila_picv* *s_ila_tvec* *s_ila_trapn*
     } {
         set n [get_nets -hier -quiet -filter "MARK_DEBUG && NAME =~ $pat"]
         if {[llength $n] == 0} { puts "ERROR: ILA marked net missing for $pat"; exit 1 }

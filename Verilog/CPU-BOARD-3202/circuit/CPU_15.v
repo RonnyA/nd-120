@@ -121,6 +121,9 @@ module CPU_15 (
     output [15:0] XMIC_DBG_15_0, //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
     output [15:0] DBG_PTW,      //! DEBUG: page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
     output DBG_PTW_LVL,  //! live PT write-strobe level (27-AUG overlap probe)
+    //! DEBUG: cache-write gating bus, straight through from CPU_MMU_24. See
+    //! the DBG_CACHE port comment there for the bit layout and the reason.
+    output [7:0] DBG_CACHE,
     output [20:0]        PF_CAPTURED   //! DEBUG: ND120_PF_CAPTURE freeze flag (23-AUG)
 );
 
@@ -160,6 +163,7 @@ module CPU_15 (
   wire        s_brk_n;
   wire        s_rt_n;
   wire        s_ewca_n;
+  wire [7:0]  s_dbg_cache;   //! cache-write gating bus from CPU_MMU_24
   wire        s_eorf_n;
   wire        s_wcs_n;
   wire        s_emcl_n;
@@ -289,6 +293,7 @@ module CPU_15 (
   assign s_ibint12_n = IBINT12_n;
   assign s_stoc_n = STOC_n;
   assign s_cyd = CYD;
+  assign DBG_CACHE = s_dbg_cache;
   assign s_sw1_console = SW1_CONSOLE;
   assign s_empid_n = EMPID_n;
   assign s_edo_n = EDO_n;
@@ -592,7 +597,8 @@ module CPU_15 (
     .WCA_n(s_wca_n),
     .LED1(s_led1),
     .DBG_PTW(DBG_PTW),
-      .DBG_PTW_LVL(DBG_PTW_LVL)
+      .DBG_PTW_LVL(DBG_PTW_LVL),
+      .DBG_CACHE(s_dbg_cache)   // cache-write gating bus, see the port comment
   );
 
 

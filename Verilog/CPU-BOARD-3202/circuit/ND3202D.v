@@ -171,7 +171,13 @@ module ND3202D (
     //
     // Bits [7:6] read zero. Purely an observation port: nothing here changes
     // what the CPU does, and leaving it unconnected costs nothing.
-    output [7:0] DBG_PANEL
+    output [7:0] DBG_PANEL,
+    //! DEBUG: cache-write gating bus from CPU_15/CPU_MMU_24. Bit layout and
+    //! the reason it exists are in CPU_MMU_24.v's DBG_CACHE port comment.
+    //! Declared unconditionally and at module scope on purpose - two builds
+    //! have already been lost to a debug wire that lived inside an `ifdef`
+    //! some configurations do not define.
+    output [7:0] DBG_CACHE
 
 `ifdef MAIN_RAM_SDRAM
     // SDRAM main-memory backend (Tang Nano 20K) - threaded down to MEM_43.
@@ -903,6 +909,7 @@ TODO: Sort bits on output LED to match led numbering
       .XMIC_DBG_15_0(XMIC_DBG_15_0),            // DEBUG: microsequencer address-advance probe
       .DBG_PTW     (DBG_PTW),                   // DEBUG: page-table write stream (23-AUG)
       .DBG_PTW_LVL (DBG_PTW_LVL),               // DEBUG: live PT write-strobe level (27-AUG)
+      .DBG_CACHE   (DBG_CACHE),                 // DEBUG: cache-write gating bus (28-AUG)
       .PF_CAPTURED (PF_CAPTURED),                // DEBUG: freeze flag (23-AUG)
       .DBG_LAPA_n  (s_dbg_lapa_n)                // DEBUG: MMU/cache lookup strobe - the hit-rate denominator
   );
