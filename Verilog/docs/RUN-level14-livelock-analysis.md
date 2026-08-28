@@ -276,8 +276,8 @@ Microcode (ND-120-DELILAH-L.LISTING, CS 000725):
         733: PIC,LOSTS status=Q; 734: A=R3-Q (COND,F=0 F,RETURN);
         735: Q=Q-1, CLIRQ, loop-while-COND,IRQ; 736: Q=0 ->AIIC2;
         737 AIIC3: Q=Q-12oct; 740: A,16 SMPID; 742 AIIC2: LOSTS=R5 ->CLR14.
-  Fence Q maps to chip status by bits: FIDBO_2_0=Q[2:0], FIDBO3=Q[3](HIGE=~),
-  FIDBO4=Q[4](LOGE=~). So Q selects high vs low group and the 3-bit status.
+  Fence Q maps to chip status by bits: FIDBO_2_0=Q[2:0], FIDBO3=Q[3] (HIGE=~),
+  FIDBO4=Q[4] (LOGE=~). So Q selects high vs low group and the 3-bit status.
 
 MEASURED at the failing TRA IIC (probe [scan], csa 725-745):
 - At CS 732 (PIC,ION B,13) hivec drops 6->2: the INT14 request (mireq bit14)

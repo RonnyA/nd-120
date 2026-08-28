@@ -8,9 +8,9 @@
 | DECODE_DGA.v             |      |  [Verilog created](DGA/circuit/DECODE_DGA.v)               |                                                 | Top module of the DGA 
 | DECODE_DGA_COMM.v        |      |  [Verilog created](DGA/circuit/DECODE_DGA_COMM.v)          |                                                 | Decode Internal Databus Commands    
 | DECODE_DGA_IDBS.v        |      |  [Verilog created](DGA/circuit/DECODE_DGA_IDBS.v)          |                                                 | Decode Internal Databus SOURCE (IDBS). Generates ENABLE signals for the chips to be read or written            
-| DECODE_DGA_PFIFC.v       |      |  [Verilog created](DGA/circuit/DECODE_DGA_PFIFC.v)         |                                                 | FIFO controller. Replaced by FIFO_8BIT.v  
-| DECODE_DGA_PFIFC_DELAY.v |      |  [Verilog created](DGA/circuit/DECODE_DGA_PFIFC_DELAY.v)   |                                                 | FIFO delay. Replaced by FIFO_8BIT.v  
-| DECODE_DGA_PFIFD.v       |      |  [Verilog created](DGA/circuit/DECODE_DGA_PFIFD.v)         |                                                 | FIFO data. Replaced by FIFO_8BIT.v  
+| DECODE_DGA_PFIFC.v       |      |  Verilog created (file removed)         |                                                 | FIFO controller. Replaced by FIFO_8BIT.v  
+| DECODE_DGA_PFIFC_DELAY.v |      |  Verilog created (file removed)   |                                                 | FIFO delay. Replaced by FIFO_8BIT.v  
+| DECODE_DGA_PFIFD.v       |      |  Verilog created (file removed)         |                                                 | FIFO data. Replaced by FIFO_8BIT.v  
 | DECODE_DGA_POW.v         |      |  [Verilog created](DGA/circuit/DECODE_DGA_POW.v)           |                                                 | POWER detection 
 | F091.v                   |      |  [Verilog created](DGA/circuit/F091.v)                     |                                                 | NEC F091 - H,L LEVEL GENERATOR     
 | F103.v                   |      |  [Verilog created](DGA/circuit/F103.v)                     |                                                 | NEC F103 - Inverter x3 signal drive
@@ -23,5 +23,5 @@
                                                                                
 # Test program verification
 
-[GTKWave](DGA\readme.md)
+[GTKWave](DGA/readme.md)
 

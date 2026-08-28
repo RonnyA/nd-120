@@ -147,7 +147,7 @@ The minimum requirements to make the CPU work:
 | Component | Schematic | HDL | Status |
 |-----------|-----------|-----|--------|
 | [DELILAH CPU Gate Array (CGA)](DesignDocuments/DELILAH-CPU/readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
-| [NEC Decoder Gate Array (DGA)](DesignDocuments/DECODE-GateArray/readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
+| [NEC Decoder Gate Array (DGA)](DesignDocuments/DECODE-GateArray/Readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
 | [ND 3202 CPU Board revision D](DesignDocuments/CPU-BOARD-3202/Readme.md) | Completed | Logisim generated Verilog | QA on schematic/Verilog ongoing |
 | [PAL Chips](DesignDocuments/PAL-Code/Readme.md) | All PALASM code has been validated | Verilog and testcode created | QA on Verilog ongoing |
 

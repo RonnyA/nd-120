@@ -110,6 +110,41 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
 
 **Always compile before reporting success.** Never create standalone test programs — use the existing sim/ infrastructure. No linter is configured; Verilator warnings (see the `-Wno-*` suppression list in the Makefiles) and `vivado_lint.tcl` are the quality gates.
 
+## Toolchain traps (measured, each cost real time - do not relearn them)
+
+- **git log --follow is unusable here** (>2 min on the /mnt/e checkout,
+  times out): use a plain pathspec with globs ('*NAME.md' finds moved
+  files) or `git log -S`.
+- **A root-only pathspec proves nothing about existence** - the
+  DEVELOPMENT.md/HARDWARE.md files "never existed" for two compactions
+  because the search skipped subdirectories. `make docs-check` (the
+  dead-link gate) now guards the README side of this.
+- **Windows env vars do not reach Vivado launched through WSL interop**
+  unless named in WSLENV. Licence variables especially.
+- **Vivado runs go in background tasks** (they exceed the 2-minute
+  foreground limit) and failure-grep must anchor `^ERROR:` - Vivado
+  echoes sourced script text, so an unanchored ERROR pattern matches the
+  build script's own puts lines.
+- **Every command chain uses absolute paths** - the shell's working
+  directory does not reliably persist between calls, and a failed `cd`
+  silently eats the rest of a && chain (this destroyed commits).
+- **Canonical build commands**: Nexys 4 DDR = `Verilog/fpga/nexys4ddr/build.tcl`
+  (via powershell, see its header; build-watch.ps1 wraps it), Basys3 =
+  `Verilog/fpga/basys3/vivado_build.ps1`, Tang = `Verilog/fpga/tang-nano-20k/gowin_build.ps1`
+  or the OSS `make` in that folder.
+- **Board power-cycle detaches USB from WSL** - after asking for one, run
+  the board's `usb-attach.sh` before declaring the console ready.
+- **git update-index --chmod stages file CONTENT too**, not just the mode
+  - it once swallowed another session's uncommitted edits. Stage
+  explicitly, never broadly, when other sessions share the tree.
+- **Committed files must carry the executable bit and exact casing** -
+  the Windows-drive checkout shows every file as rwx and case-insensitive;
+  the Linux CI runner does not (14 CI rounds of exactly this, 27/28-AUG).
+- **Never reference Claude, CLAUDE.md or any AI tool in committed files
+  or commit messages**, and **never use `git checkout --` / `git restore`
+  on tracked files without explicit permission** - both are standing
+  rules that must survive compaction.
+
 ## Conventions
 
 - Internal signals use the `s_` prefix.

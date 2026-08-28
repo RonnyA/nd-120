@@ -25,7 +25,7 @@ in total, and every jump label identical** — that is the entire difference
 between the two ROMs.
 
 The reconstruction pipeline, gates and the full change-log live in the
-[ND120UC repo](E:\Dev\Ronny\ND120UC) (`docs/K-to-L-source-changes.md`).
+ND120UC repo (external repository, not in this tree) (`docs/K-to-L-source-changes.md`).
 
 ## The EPROMs
 

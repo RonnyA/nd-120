@@ -67,7 +67,7 @@ Reference NORSK-DATA.COM:
 
 ### P3 Analysis
 
-[Analysis of the code in the R3 PROM](P3/Analysis.md)
+[Analysis of the code in the R3 PROM](P3/P3-COMPLETE.MD)
 
 
 ### R3 Dissasembly
@@ -87,6 +87,6 @@ Reverse engineered C code (draft)
 # 6805 CPU doc
 
 * MC68705P3, 18 page PDF - [MC68705PR 8-BIT EPROM Microcomputer Unit](6805/MC68705P3.PDF)
-* 6805P_Oct84, 15 page PDF - [MC68(7)05P SERIES 8-BIT MICROCOMPUTERS](6805/6805P_Oct84.PDF)
-* 6805_Users_Manual_2ed_1983, 263 page PDF - [M6805 HMOS/M146805 CMOS FAMILY USERS MANUAL](6805/6805_Users_Manual_2ed_1983.PDF)
+* 6805P_Oct84, 15 page PDF - [MC68(7)05P SERIES 8-BIT MICROCOMPUTERS](6805/6805P_Oct84.pdf)
+* 6805_Users_Manual_2ed_1983, 263 page PDF - [M6805 HMOS/M146805 CMOS FAMILY USERS MANUAL](6805/6805_Users_Manual_2ed_1983.pdf)
 * Motorola DL139, 995 page PDF (U3 from Page 3-684) -  [Microprocessor, Microcontroller and Peripheral - Volume I](6805/1988MicroprocessorMicrocontrollerandPeripheralDataVolume1.410212374.pdf) 

@@ -58,7 +58,7 @@ Standard is 4Mb memory configured contiguosly from address 0.
 |6G      | 45          |3EF5    | 16R4D  | 10ns      | 513060   | 44446B   | BADEC     | [B IMG](IMG/44446B.png)     | [B PDS](SRC/44446B.txt)      | [Converted.](../../Verilog/PAL/PAL_44446B.v) Tested! |
 |22F     | 34          |3160    | 16R4D  | 10ns      | 513060   | 44408B   | VEXFIX    | [B IMG](IMG/44408B.png)     | [B PDS](SRC/44408B.txt)      | [Converted.](../../Verilog/PAL/PAL_44408B.v).  Tested! |
 |_22F_   | 34          |        | 16R6D  | 10ns      | 513061   | 44608A   | VXFIX     | **Missing**                 | **Missing**                  | PAL 44608A replaces the 44408B in the schematic. We dont have PAL source. Until we do, use PAL 44408B and take RT_n signal from DGA |
-|12D     | 36          |7F40    | 16R6D  | 10ns      | 513061   | 44601B   | CYCFSM    | [B IMG](IMG/44601B.png)     | [B PDS](SRC/44601B.txt)      | [Converted.](../../Verilog/PAL/PAL_444601B.v) Needs more test |
+|12D     | 36          |7F40    | 16R6D  | 10ns      | 513061   | 44601B   | CYCFSM    | [B IMG](IMG/44601B.png)     | [B PDS](SRC/44601B.txt)      | [Converted.](../../Verilog/PAL/PAL_44601B.v) Needs more test |
 |10D     | 6           |6B08    | 16R8D  | 10ns      | 513062   | 44801A   | BARB      | [A IMG](IMG/44801A.png)     | [A PDS](SRC/44801A.txt)      | [Converted.](../../Verilog/PAL/PAL_44801A.v) Needs more test |
 |5F      | 50          |605E    | 16R8D  | 10ns      | 513062   | 44803A   | RAMA      | [A IMG](IMG/44803A.png)     | [A PDS](SRC/44803A.txt)      | [Converted.](../../Verilog/PAL/PAL_44803A.v) Needs more test |
 |6F      | 50          |        | 16R8B  | 15ns      | 500829   | 44902A   | RAMC      | [A IMG](IMG/44902A.png)     | [A PDS](SRC/44902A.txt)      | [Converted.](../../Verilog/PAL/PAL_44902A.v) Needs more test |
@@ -109,7 +109,7 @@ Microcode PROM's. One set for 32 bit FPU and one set for 48 Bit FPU opcodes.
 
 |Pos. no.|Checksum| Device | Max. delay| Stock no.| Reg. no. | Floating format | Bit no.|
 |--------|--------|--------|-----------|----------|----------|-----------------|--------|
-| 23B    |        | 27256  | 250ns     | 500854   | [45132L](/Microcode/AM27256_45132L.bin)   | 32 bit          | 0-7    |
-| 26B    |        | 27256  | 250ns     | 500854   | [45133L](/Microcode/AM27256_45133L.bin)   | 32 bit          | 8-15   |
+| 23B    |        | 27256  | 250ns     | 500854   | [45132L](../../Code/Microcode/AM27256_45132L.bin)   | 32 bit          | 0-7    |
+| 26B    |        | 27256  | 250ns     | 500854   | [45133L](../../Code/Microcode/AM27256_45133L.bin)   | 32 bit          | 8-15   |
 | 23B    |        | 27256  | 250ns     | 500854   | 45148L   | 48 bi           | 0-7    |
 | 26B    |        | 27256  | 250ns     | 500854   | 45149L   | 48 bi           | 8-15   |

@@ -37,6 +37,8 @@ REGISTRY=(
   # one microcode, everywhere: every PROM-image copy matches Code/Microcode
   # (dated exceptions only) - the 895f360 sim-vs-board split detector
   "tests :: test-microcode-sync :: TB_RESULT: PASS"
+  # every relative link in tracked markdown resolves (dead-link gate)
+  "tests :: test-docs-check :: TB_RESULT: PASS"
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"
   "Shared/support/sim :: test-uart-txabort :: TB_RESULT: PASS"

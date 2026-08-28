@@ -46,7 +46,7 @@ Using these documents its possible to decode the different components like F571,
 
 >??
 
-![F924](F924.png)
+![F924](../../Verilog/DECODE-GateArray/DGA/circuit/doc/F924.png)
 
 
 
@@ -54,6 +54,6 @@ Using these documents its possible to decode the different components like F571,
 
 > 
 
-![F714](F714.png)
+![F714](../../Verilog/DECODE-GateArray/DGA/circuit/doc/F714.png)
 
 

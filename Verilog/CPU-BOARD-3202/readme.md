@@ -6,7 +6,7 @@
 | Page name         |                       | Sheet number       | Area        | QA  | Status                                          | Comment                                                                 |
 |-------------------|-----------------------|--------------------|-------------|-----|-------------------------------------------------|-------------------------------------------------------------------------|
 | **Main PCB**                              |
-| DELILAH TOP LEVEL | BLOCK DIAGRAM         | 1                  | D3202       |     | [Verilog created](circuit/TOP_3202D.v)          | [Test](circuit/TOP_3202D/readme.md)
+| DELILAH TOP LEVEL | BLOCK DIAGRAM         | 1                  | D3202       |     | [Verilog created](circuit/ND3202D.v)          | [Test](circuit/ND3202D/readme.md)
 | DELILAH TOP LEVEL | A PLUG                | 2                  | D3202       |     |
 | DELILAH TOP LEVEL | B PLUG                | 3                  | D3202       |     |
 | DELILAH TOP LEVEL | C PLUG                | 4                  | D3202       |     |
