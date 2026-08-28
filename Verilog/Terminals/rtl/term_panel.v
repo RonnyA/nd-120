@@ -465,6 +465,21 @@ module term_panel #(
                  && s_col < COL_UPTIME_VALUE[6:0] + 7'd8) begin
       s_live_char   = s_uptime_char;
       s_live_colour = C_LCDINK;
+    end else if (s_row == 3'd1 &&
+                 (s_col == COL_HDD_R[6:0] || s_col == COL_HDD_W[6:0] ||
+                  s_col == COL_FLP_R[6:0] || s_col == COL_FLP_W[6:0])) begin
+      //! The letter appears ONLY while that disc is active. An idle lamp is
+      //! blank, not a dimmed letter - a letter that is always there reads as a
+      //! label rather than an indicator, and the LCD should be empty when
+      //! nothing is happening. The cell is reversed at the same time (see
+      //! s_disk_reversed), so an active lamp is a filled box with the letter
+      //! knocked out of it.
+      s_live_char = (s_col == COL_HDD_R[6:0] && r_disk[0]) ? "R"
+                  : (s_col == COL_HDD_W[6:0] && r_disk[1]) ? "W"
+                  : (s_col == COL_FLP_R[6:0] && r_disk[2]) ? "R"
+                  : (s_col == COL_FLP_W[6:0] && r_disk[3]) ? "W"
+                                                           : 8'h20;
+      s_live_colour = C_LCDINK;
     end else if (s_col >= COL_LEGEND[6:0] && s_col < COL_LEGEND[6:0] + 7'd7) begin
       // The two lit legend words, driven by the RUN line. On the real fascia
       // only the currently usable words are lit; here RUNNING and OPCOM are

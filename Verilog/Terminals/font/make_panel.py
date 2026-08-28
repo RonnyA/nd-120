@@ -117,12 +117,16 @@ def build():
     put_dynamic(g, 1, COL_INT_VALUE, 3)     # "ON " or "OFF"
     put_dynamic(g, 1, COL_PAGE_VALUE, 3)
 
-    # The letters are static; term_panel.v inverts the cell when that disc is
-    # active, so an idle lamp is a plain letter and a busy one is a filled box.
-    put(g, 1, COL_HDD_R, "R")
-    put(g, 1, COL_HDD_W, "W")
-    put(g, 1, COL_FLP_R, "R")
-    put(g, 1, COL_FLP_W, "W")
+    # DYNAMIC, not static text. An idle lamp must be BLANK - a letter sitting
+    # there permanently reads as a label, not an indicator, and the LCD should
+    # be empty when nothing is happening. term_panel.v supplies the R or W only
+    # while that disc is active, and reverses the cell at the same time, so the
+    # lamp appears as a filled box with the letter knocked out and disappears
+    # completely when the access ends.
+    put_dynamic(g, 1, COL_HDD_R, 1)
+    put_dynamic(g, 1, COL_HDD_W, 1)
+    put_dynamic(g, 1, COL_FLP_R, 1)
+    put_dynamic(g, 1, COL_FLP_W, 1)
 
     # --- row 2: uptime, and the level cells ---------------------------------
     #

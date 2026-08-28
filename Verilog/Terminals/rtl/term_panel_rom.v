@@ -132,10 +132,10 @@ module term_panel_rom (
       9'd133: data = 8'h00;  // r1 c53 dynamic
       9'd134: data = 8'h00;  // r1 c54 dynamic
       9'd135: data = 8'h00;  // r1 c55 dynamic
-      9'd140: data = 8'h52;  // r1 c60 R
-      9'd142: data = 8'h57;  // r1 c62 W
-      9'd145: data = 8'h52;  // r1 c65 R
-      9'd147: data = 8'h57;  // r1 c67 W
+      9'd140: data = 8'h00;  // r1 c60 dynamic
+      9'd142: data = 8'h00;  // r1 c62 dynamic
+      9'd145: data = 8'h00;  // r1 c65 dynamic
+      9'd147: data = 8'h00;  // r1 c67 dynamic
       9'd152: data = 8'h00;  // r1 c72 dynamic
       9'd153: data = 8'h00;  // r1 c73 dynamic
       9'd154: data = 8'h00;  // r1 c74 dynamic
