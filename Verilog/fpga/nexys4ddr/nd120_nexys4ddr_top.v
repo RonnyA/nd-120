@@ -121,11 +121,7 @@ module nd120_nexys4ddr_top (
   wire clk_cpu, clk_stor, clk200;
 `ifdef ND120_CONSOLE_VGA
   wire clk_pix_pre, clk_pix;    // 40 MHz  - 800x600@60
-  wire clk_pix2_pre, clk_pix2;  // 148.4 MHz - 1920x1080@60
-  //! The buffered 40 MHz, before the mux. Declared HERE, above the BUFG that
-  //! drives it - a signal used above its declaration is what stopped the first
-  //! console build of the night, and it is an easy mistake to repeat.
-  wire clk_pix_lo;
+  wire clk_pix2_pre;            // 148.4 MHz - 1920x1080@60, into the mux
 `endif
 
 `ifndef ND120_N4DDR_MMCM_DIV
@@ -192,7 +188,7 @@ module nd120_nexys4ddr_top (
       .BANDWIDTH       ("OPTIMIZED"),
       .CLKFBOUT_MULT_F (11.875),   // VCO = 100 * 11.875 = 1187.5 MHz
       .CLKIN1_PERIOD   (10.0),
-      .CLKOUT0_DIVIDE_F(8.0),      // 148.4375 MHz - the 1080p pixel clock
+      .CLKOUT0_DIVIDE_F(8.5),      // 139.706 MHz - 1080p CVT reduced blanking
       .DIVCLK_DIVIDE   (1),
       .STARTUP_WAIT    ("FALSE")
   ) mmcm_video (
@@ -205,22 +201,61 @@ module nd120_nexys4ddr_top (
       .RST     (1'b0)
   );
   BUFG bufg_fb2  (.I(clkfb2_out),   .O(clkfb2_in));
-  BUFG bufg_pix1 (.I(clk_pix_pre),  .O(clk_pix_lo));
-  BUFG bufg_pix2 (.I(clk_pix2_pre), .O(clk_pix2));
+
+  //! NO BUFG on either clock before the mux, and that is not an oversight.
+  //! BUFGMUX_CTRL *is* a BUFGCTRL - a global buffer - so putting an ordinary
+  //! BUFG in front of it cascades two of them, and Vivado will only place that
+  //! if the two sites happen to be cyclically adjacent in the same half of the
+  //! SLR. They were not, and placement failed outright:
+  //!
+  //!   Clock Rule: rule_cascaded_bufg ... Status: FAILED
+  //!   ERROR: [Place 30-99] Placer failed with error: 'IO Clock Placer failed'
+  //!
+  //! An MMCM output drives a BUFGCTRL directly on a dedicated route, which is
+  //! both legal and the intended path. The buffering happens in the mux.
 
   //! sw[2] = 0 : 800x600 at 40 MHz    sw[2] = 1 : 1920x1080 at 148.4 MHz
   //!
   //! The mode bit and the clock MUST change together - the timing generator
   //! only counts, it has no way to know what the clock actually is. They are
   //! driven from this one net for exactly that reason.
+  //! sw[2] MUST be debounced before it reaches a clock mux.
+  //!
+  //! It was wired straight to the select, unlike sw[1] and sw[3] which are
+  //! synchronised - an oversight, and a highly visible one. A slide switch has
+  //! no debounce of its own, so every bounce and every bit of picked-up noise
+  //! made BUFGMUX_CTRL change the pixel clock between 40 MHz and 139.7 MHz.
+  //! On screen that does not look like a switch problem, it looks like the
+  //! picture itself is unstable - reported from hardware as "flickering, like
+  //! a bad TV from the 1980s".
+  //!
+  //! Two flops to synchronise, then a counter requiring the level to hold
+  //! steady for 2^20 clocks - about 17 ms at 60 MHz, far longer than any
+  //! mechanical bounce - before the mux is allowed to move.
+  reg  [1:0]  s_vmode_sync = 2'b00;
+  reg  [19:0] s_vmode_cnt  = 20'd0;
+  reg         s_vmode_r    = 1'b0;
+
+  always @(posedge clk_cpu) begin
+      s_vmode_sync <= {s_vmode_sync[0], sw[2]};
+      if (s_vmode_sync[1] == s_vmode_r) begin
+          s_vmode_cnt <= 20'd0;
+      end else if (&s_vmode_cnt) begin
+          s_vmode_r   <= s_vmode_sync[1];
+          s_vmode_cnt <= 20'd0;
+      end else begin
+          s_vmode_cnt <= s_vmode_cnt + 20'd1;
+      end
+  end
+
   BUFGMUX_CTRL bufg_pixmux (
-      .I0(clk_pix_lo),
-      .I1(clk_pix2),
-      .S (sw[2]),
+      .I0(clk_pix_pre),    // 40 MHz    straight off the main MMCM
+      .I1(clk_pix2_pre),   // 139.7 MHz straight off the video MMCM
+      .S (s_vmode_r),
       .O (clk_pix)
   );
 
-  wire s_vmode = sw[2];
+  wire s_vmode = s_vmode_r;
 `endif
 
   /**********************************************
@@ -505,7 +540,7 @@ module nd120_nexys4ddr_top (
   //! clock domain, so a compile-time divisor would be right in one video mode
   //! and produce garbage in the other.
   localparam integer CON_DIV_LO = 40_000_000  / `ND120_CONSOLE_BAUD;
-  localparam integer CON_DIV_HI = 148_437_500 / `ND120_CONSOLE_BAUD;
+  localparam integer CON_DIV_HI = 139_705_882 / `ND120_CONSOLE_BAUD;
   wire [15:0] s_con_divisor = s_vmode ? CON_DIV_HI[15:0] : CON_DIV_LO[15:0];
 
   console_uart_rx #(

@@ -49,14 +49,25 @@ module term_panel #(
     //! 80 columns of 8 pixels is 640 wide - the same width as the console grid,
     //! which is why it lines up underneath it with no arithmetic.
     parameter integer ORIGIN_X = 80,
-    parameter integer ORIGIN_Y = 420
+    parameter integer ORIGIN_Y = 420,
+
+    //! Mode-1 origin, also in LOGICAL pixels - i.e. physical/2, because at 2x
+    //! every logical pixel lasts two real ones. The text grid sits differently
+    //! in the two modes, so the panel has to as well; sharing one origin is
+    //! what pushed the panel off the bottom of a 1080p screen.
+    parameter integer ORIGIN_X2 = 160,
+    parameter integer ORIGIN_Y2 = 440
 ) (
     input wire clk,
     input wire rst_n,
 
-    //! Raw pixel counters from the timing generator, and the mode. This module
-    //! delays its own output by the SAME two clocks as the text pipeline, so
-    //! the two stay aligned without either knowing about the other.
+    //! Raw pixel counters from the timing generator, and the mode.
+    //!
+    //! This module's pipeline is THREE clocks deep, one more than the text
+    //! path, because it had to be split to close timing at 148.4 MHz. That
+    //! difference is deliberate and harmless: the panel occupies its own screen
+    //! region, so nothing has to line up with the text grid pixel for pixel and
+    //! the whole panel simply lands one pixel further right.
     input wire [11:0] x,
     input wire [11:0] y,
     input wire        mode,     //! 0 = 1x glyphs, 1 = 2x
@@ -107,8 +118,11 @@ module term_panel #(
   wire [11:0] s_lx = mode ? {1'b0, x[11:1]} : x;
   wire [11:0] s_ly = mode ? {1'b0, y[11:1]} : y;
 
-  wire signed [12:0] s_px = $signed({1'b0, s_lx}) - ORIGIN_X;
-  wire signed [12:0] s_py = $signed({1'b0, s_ly}) - ORIGIN_Y;
+  wire [11:0] s_org_x = mode ? ORIGIN_X2[11:0] : ORIGIN_X[11:0];
+  wire [11:0] s_org_y = mode ? ORIGIN_Y2[11:0] : ORIGIN_Y[11:0];
+
+  wire signed [12:0] s_px = $signed({1'b0, s_lx}) - $signed({1'b0, s_org_x});
+  wire signed [12:0] s_py = $signed({1'b0, s_ly}) - $signed({1'b0, s_org_y});
 
   wire s_in_panel = enable &&
                     (s_px >= 0) && (s_px < PANEL_COLS * 8) &&
@@ -117,10 +131,48 @@ module term_panel #(
   wire [11:0] s_ux = s_px[11:0];
   wire [11:0] s_uy = s_py[11:0];
 
-  wire [6:0] s_col      = s_ux[9:3];
-  wire [2:0] s_row      = s_uy[6:4];
-  wire [2:0] s_pixel_col = s_ux[2:0];
-  wire [3:0] s_pixel_row = s_uy[3:0];
+  wire [6:0] c_col       = s_ux[9:3];
+  wire [2:0] c_row       = s_uy[6:4];
+  wire [2:0] c_pixel_col = s_ux[2:0];
+  wire [3:0] c_pixel_row = s_uy[3:0];
+
+  //--------------------------------------------------------------------------
+  // PIPELINE STAGE 1 - registered cell position
+  //
+  // Everything above is arithmetic on the raw pixel counters: subtract the
+  // origin, compare the bounds, slice out row and column. Everything below is a
+  // ROM lookup, a character mux and a font-ROM address. Doing all of it in one
+  // clock is what failed timing at 148.4 MHz:
+  //
+  //   Source: TERMINAL/SCREEN/TIMING/s_vcount_reg[2]
+  //   Dest:   PANEL/PANELFONT font ROM address
+  //   Data Path Delay: 8.013 ns   Logic Levels: 12  (budget 6.737 ns)
+  //   Slack: -1.889 ns
+  //
+  // Splitting it here costs one clock of latency and nothing else. The panel is
+  // its own screen region - nothing has to line up with the text grid pixel for
+  // pixel - so the whole panel simply lands one pixel further right, which no
+  // monitor and no person can see.
+  //--------------------------------------------------------------------------
+
+  reg [6:0] r1_col;
+  reg [2:0] r1_row;
+  reg [2:0] r1_pixel_col;
+  reg [3:0] r1_pixel_row;
+  reg       r1_in_panel;
+
+  always @(posedge clk) begin
+    r1_col       <= c_col;
+    r1_row       <= c_row;
+    r1_pixel_col <= c_pixel_col;
+    r1_pixel_row <= c_pixel_row;
+    r1_in_panel  <= s_in_panel;
+  end
+
+  wire [6:0] s_col       = r1_col;
+  wire [2:0] s_row       = r1_row;
+  wire [2:0] s_pixel_col = r1_pixel_col;
+  wire [3:0] s_pixel_row = r1_pixel_row;
 
   //--------------------------------------------------------------------------
   // The static layer
@@ -152,9 +204,28 @@ module term_panel #(
   localparam integer COL_LEGEND       = 62;
 
   //! Which of the 16 level cells this column is in, and whether it is lit.
-  wire [4:0] s_level_index = (s_col - COL_LEVELS[6:0]) >> 1;
-  wire       s_in_levels   = (s_col >= COL_LEVELS[6:0]) &&
+  //!
+  //! COUNTED FROM THE RIGHT. make_panel.py prints the ruler high-to-low - level
+  //! 15 leftmost, level 0 rightmost, exactly as on the real fascia:
+  //!     col = COL_LEVELS + (15 - lvl) * LEVEL_CELL_W
+  //! Counting left to right here mirrored the display against its own ruler, so
+  //! an idle machine sitting on level 1 or 2 lit the cells under the digits 14
+  //! and 13. From hardware: "level 14,14,13 is always on".
+  wire [3:0] s_level_pair  = (s_col - COL_LEVELS[6:0]) >> 1;
+  wire [3:0] s_level_index = 4'd15 - s_level_pair;
+
+  //! ROW 2 ONLY. Without the row test this claimed columns 24-55 on every row,
+  //! and because it is the first branch of the mux it overwrote the PROTECT
+  //! RING digit, INTERRUPT and PAGING values that live on row 1. From hardware:
+  //! those fields "seem a bit random".
+  //!
+  //! ONE column of each pair, not both. The cell is 2 columns wide so the octal
+  //! ruler's two-digit labels fit underneath, but the lamp itself is a single
+  //! square - two filled columns read as two lamps per level.
+  wire       s_in_levels   = (s_row == 3'd2) &&
+                             (s_col >= COL_LEVELS[6:0]) &&
                              (s_col <  COL_LEVELS[6:0] + 7'd32);
+  wire       s_level_lamp  = s_in_levels && (s_col[0] == COL_LEVELS[0]);
 
   //! Afterglow. The real field has it so a single instruction on a level stays
   //! visible; without it a level the CPU touches for a few microseconds would
@@ -188,7 +259,7 @@ module term_panel #(
     end
   end
 
-  wire s_level_lit = (s_glow[s_level_index[3:0]] != 8'd0);
+  wire s_level_lit = (s_glow[s_level_index] != 8'd0);
 
   //! Uptime digits. Two cells per field plus the colons, laid out hh:mm:ss.
   wire [3:0] s_up_col = s_col - COL_UPTIME_VALUE[6:0];
@@ -240,7 +311,11 @@ module term_panel #(
     s_live_colour = C_LCDINK;
 
     if (s_in_levels) begin
-      s_live_char   = s_level_lit ? G_LEVEL_ON : G_LEVEL_OFF;
+      // Only the first column of the pair carries the lamp; the second is the
+      // gap between lamps, so each level reads as one square.
+      s_live_char   = !s_level_lamp ? 8'h20
+                    : s_level_lit   ? G_LEVEL_ON
+                                    : G_LEVEL_OFF;
       s_live_colour = C_LCDINK;
     end else if (s_col >= COL_UTIL_BAR[6:0] &&
                  s_col <  COL_UTIL_BAR[6:0] + UTIL_BAR_W[6:0] && s_row == 3'd1) begin
@@ -284,7 +359,20 @@ module term_panel #(
   //--------------------------------------------------------------------------
 
   wire s_is_dynamic = (s_rom_char == 8'h00);
-  wire [7:0] s_char = s_is_dynamic ? s_live_char : s_rom_char;
+  wire [7:0] c_char = s_is_dynamic ? s_live_char : s_rom_char;
+
+  //--------------------------------------------------------------------------
+  // PIPELINE STAGE 2 - registered character, straight into the font ROM
+  //
+  // The layout ROM is a 169-entry case and the live-value mux sits on top of
+  // it. Registering the result here means the font ROM sees a flop output
+  // rather than the far end of that logic, which is the other half of the
+  // 8 ns path above.
+  //--------------------------------------------------------------------------
+  reg [7:0] r2_char;
+  always @(posedge clk) r2_char <= c_char;
+
+  wire [7:0] s_char = r2_char;
 
   //! The LCD window - rows 1 and 2 across the fields, which is the lit area of
   //! the real display. Everything else is fascia.
@@ -319,6 +407,18 @@ module term_panel #(
   // Two clocks of delay, matching the text pipeline exactly
   //--------------------------------------------------------------------------
 
+  //! STILL TWO DEEP, even though the pipeline gained two stages - and getting
+  //! this wrong is subtle enough to be worth spelling out.
+  //!
+  //! These delay lines are fed from the STAGE 1 registers, so they already
+  //! start one clock in. The font path is: stage 1 -> layout ROM -> stage 2
+  //! (r2_char) -> font ROM's registered output = 3 clocks. A signal entering
+  //! here at stage 1 therefore needs exactly 2 more, not 3.
+  //!
+  //! Making them 3 deep put the region flags at 4 clocks against the font's 3.
+  //! The panel testbench caught it immediately - "claimed 639 of 640 pixels"
+  //! and one pixel outside the origin - which on a screen would have been a
+  //! one-pixel smear nobody would ever have investigated.
   reg [2:0] s_pixel_col_d1, s_pixel_col_d2;
   reg [1:0] s_in_panel_dly;
   reg [1:0] s_in_lcd_dly, s_reversed_dly, s_silk_dly;
@@ -333,7 +433,7 @@ module term_panel #(
     s_pixel_row_d1 <= s_pixel_row;
     s_pixel_col_d1 <= s_pixel_col;
     s_pixel_col_d2 <= s_pixel_col_d1;
-    s_in_panel_dly <= {s_in_panel_dly[0], s_in_panel};
+    s_in_panel_dly <= {s_in_panel_dly[0], r1_in_panel};
     s_in_lcd_dly   <= {s_in_lcd_dly[0], s_in_lcd};
     s_reversed_dly <= {s_reversed_dly[0], s_ruler_reversed};
     s_silk_dly     <= {s_silk_dly[0], s_in_lcd ? 1'b0 : 1'b1};

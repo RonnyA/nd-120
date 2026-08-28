@@ -96,9 +96,14 @@ module term_panel_tb;
           @(negedge clk);
           x = xi[11:0];
           y = yi[11:0];
-          @(posedge clk);
-          @(posedge clk);
-          @(posedge clk);
+          // FOUR clocks, matching term_panel's pipeline depth: stage 1 (cell
+          // position), stage 2 (composed character), the font ROM's registered
+          // output, and one to settle. It was three until the panel was
+          // pipelined to close timing at 148.4 MHz, and the symptom of getting
+          // this wrong is precise and misleading - "claimed 639 of 640 pixels"
+          // plus one pixel outside the origin, which reads like an off-by-one
+          // in the region maths rather than a stale number in the testbench.
+          repeat (4) @(posedge clk);
           if (active) claimed = claimed + 1;
         end
       end

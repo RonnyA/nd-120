@@ -52,15 +52,18 @@ module vga_timing #(
     // exactly why the mode and the clock must be switched by the same bit.
     // ------------------------------------------------------------------
     parameter integer H2_VISIBLE     = 1920,
-    parameter integer H2_FRONT_PORCH = 88,
-    parameter integer H2_SYNC        = 44,
-    parameter integer H2_BACK_PORCH  = 148,
+    parameter integer H2_FRONT_PORCH = 48,
+    parameter integer H2_SYNC        = 32,
+    parameter integer H2_BACK_PORCH  = 80,
     parameter integer V2_VISIBLE     = 1080,
-    parameter integer V2_FRONT_PORCH = 4,
+    parameter integer V2_FRONT_PORCH = 3,
     parameter integer V2_SYNC        = 5,
-    parameter integer V2_BACK_PORCH  = 36,
+    parameter integer V2_BACK_PORCH  = 23,
+    //! CVT-RB polarity: hsync POSITIVE, vsync NEGATIVE. Getting this wrong does
+    //! not blank the screen, it makes a monitor guess the wrong mode - which
+    //! looks like the design being broken.
     parameter         H2_SYNC_POSITIVE = 1'b1,
-    parameter         V2_SYNC_POSITIVE = 1'b1
+    parameter         V2_SYNC_POSITIVE = 1'b0
 ) (
     input wire clk,      //! pixel clock - MUST match the selected mode
     input wire rst_n,    //! async reset, active low

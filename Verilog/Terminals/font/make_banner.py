@@ -27,7 +27,7 @@ NL = "\r\n"
 # alive - this message is the proof that the VIDEO half works on its own.
 MESSAGE = (
     "ND-120 TERMINAL CORE - SELF TEST" + NL +
-    "80x25 TDV2200, 800x600 60Hz" + NL +
+    "80x25 TDV2200 console" + NL +
     NL +
     "If you can read this, the pixel path works:" + NL +
     "  clock, sync timing, font ROM, character RAM, scroll mapping." + NL +

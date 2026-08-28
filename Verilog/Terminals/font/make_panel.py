@@ -117,11 +117,15 @@ def build():
 
     # --- row 4: the caption --------------------------------------------------
     #
-    # CURRENT LEVEL, not ACTIVE LEVEL. The real display shows every level that
-    # is active at once, fed from the microprogram in PANC packets. We have the
-    # current level only. Same picture, different claim - so the caption is
-    # changed rather than the picture faked.
-    caption = "CURRENT LEVEL"
+    # ACTIVE LEVEL, matching the real fascia - Ronny checked his own panel,
+    # 28-AUG-2026, and that is what is silkscreened on it.
+    #
+    # Worth knowing what we can and cannot put under it: the real display lights
+    # every level that is active at once, fed from the microprogram in PANC
+    # packets. All the RTL exposes is PIL, the level running now, so one cell
+    # lights rather than several. The level shown IS active - the display is
+    # incomplete, not wrong - and the afterglow keeps brief visits readable.
+    caption = "ACTIVE LEVEL"
     centre = COL_LEVELS + (16 * LEVEL_CELL_W - len(caption)) // 2
     put(g, 4, centre, caption)
 

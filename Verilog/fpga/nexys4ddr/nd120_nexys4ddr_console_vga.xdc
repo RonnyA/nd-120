@@ -64,8 +64,50 @@ set_property -dict { PACKAGE_PIN B2  IOSTANDARD LVCMOS33 PULLUP true } [get_port
 # "small" block is free on a board with this little margin.
 # ---------------------------------------------------------------------------
 
+# THE TWO PIXEL CLOCKS ARE MUTUALLY EXCLUSIVE (28-AUG-2026).
+#
+# sw[2] selects between them through a BUFGMUX_CTRL, so only one ever reaches
+# the console. Without saying so, the timer sees the same registers reachable
+# from both clocks and analyses crossings BETWEEN them - and with no sensible
+# phase relationship between the two it invents brutal requirements:
+#
+#   Source: TERMINAL/.../s_vcount_reg[3]  (clk_pix_pre,  25.000 ns)
+#   Dest:   TERMINAL/.../PANELFONT        (clk_pix2_pre,  6.737 ns)
+#   Requirement: 0.053ns   Slack: -10.103ns
+#
+# A 53-picosecond requirement is not a real constraint, it is the timer being
+# asked an impossible question. -physically_exclusive is the documented answer
+# for a clock mux: those paths exist in no configuration of the hardware.
+set_clock_groups -physically_exclusive \
+    -group [get_clocks -of_objects [get_pins mmcm/CLKOUT3]] \
+    -group [get_clocks -of_objects [get_pins mmcm_video/CLKOUT0]]
+
+# The video clocks are asynchronous to the CPU and storage domains. The 148 MHz
+# clock was missing from this list entirely, which produced the worst path of
+# the first panel build:
+#
+#   Source: CORE/.../WCS/CHIP_22C  (clk_cpu_pre,  60.000 ns)
+#   Dest:   TERMINAL/.../PANELFONT (clk_pix2_pre,  6.737 ns)
+#   Requirement: 0.211ns   Slack: -14.762ns
+#
+# The only real crossings are the console byte - a toggle handshake in
+# cdc_byte.v - and the serial lines, which are asynchronous by nature.
+#
+# NO BRACES around a -group list. TCL braces prevent command substitution, so
+# `-group {[get_clocks ...] [get_clocks ...]}` passes the text literally and
+# Vivado goes looking for a clock actually named "[get_clocks". It does not
+# error - it WARNS, and carries on with the constraint doing nothing:
+#
+#   WARNING: [Vivado 12-646] clock '[get_clocks' not found.
+#   WARNING: [Vivado 12-646] clock 'mmcm/CLKOUT3]]' not found.
+#
+# The build then completes and reports a timing number that means nothing.
+# Each clock gets its own -group instead, which needs no grouping syntax at
+# all. If this file is ever edited, grep the build log for "12-646" - a
+# constraint that silently does nothing is worse than one that fails loudly.
 set_clock_groups -asynchronous \
     -group [get_clocks -of_objects [get_pins mmcm/CLKOUT3]] \
+    -group [get_clocks -of_objects [get_pins mmcm_video/CLKOUT0]] \
     -group [get_clocks -of_objects [get_pins mmcm/CLKOUT0]] \
     -group [get_clocks -of_objects [get_pins mmcm/CLKOUT1]]
 

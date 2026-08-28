@@ -54,15 +54,21 @@ module text_screen #(
     parameter integer V_SYNC        = 4,
     parameter integer V_BACK_PORCH  = 23,
 
-    // Mode 1: 1920x1080@60 (148.5 MHz), glyphs doubled to 16x32
+    // Mode 1: 1920x1080@60 CVT-REDUCED BLANKING, glyphs doubled to 16x32.
+    //
+    // Reduced blanking, not the CEA-861 timings, and the reason is timing not
+    // taste. Same visible 1920x1080, but 2080x1111 total instead of 2200x1125,
+    // so 60 Hz needs 139.7 MHz instead of 148.5. The design was 0.171 ns short
+    // at 148.5 after two rounds of pipelining; the lower clock buys 0.48 ns of
+    // budget without touching the logic again. CVT-RB is a standard mode.
     parameter integer H2_VISIBLE     = 1920,
-    parameter integer H2_FRONT_PORCH = 88,
-    parameter integer H2_SYNC        = 44,
-    parameter integer H2_BACK_PORCH  = 148,
+    parameter integer H2_FRONT_PORCH = 48,
+    parameter integer H2_SYNC        = 32,
+    parameter integer H2_BACK_PORCH  = 80,
     parameter integer V2_VISIBLE     = 1080,
-    parameter integer V2_FRONT_PORCH = 4,
+    parameter integer V2_FRONT_PORCH = 3,
     parameter integer V2_SYNC        = 5,
-    parameter integer V2_BACK_PORCH  = 36
+    parameter integer V2_BACK_PORCH  = 23
 ) (
     input wire clk,    //! pixel clock
     input wire rst_n,  //! async reset, active low
@@ -158,7 +164,17 @@ module text_screen #(
   //! down - the same lesson as the 108-vs-100 bug that shipped in terminal_top:
   //! a hand-maintained origin goes stale the moment anything around it changes.
   localparam integer ORIGIN2_X = (H2_VISIBLE - COLS * CELL_W * 2) / 2;
-  localparam integer ORIGIN2_Y = (V2_VISIBLE - ROWS * CELL_H * 2) / 2;
+
+  //! NOT centred vertically, unlike mode 0, and that is deliberate.
+  //!
+  //! Centring 800 rows of text in 1080 leaves 140 above and 140 below - which
+  //! in the panel's halved coordinates is only 70 logical rows, and the panel
+  //! needs 80. It was therefore drawn past the bottom of the screen and simply
+  //! disappeared at 1080p while working fine at 800x600.
+  //!
+  //! Sitting the text at y=40 leaves 240 physical rows underneath: the panel
+  //! takes 160 of them and 40 remain as a bottom margin.
+  localparam integer ORIGIN2_Y = 40;
 
   wire [11:0] s_origin_x = mode ? ORIGIN2_X[11:0] : ORIGIN_X[11:0];
   wire [11:0] s_origin_y = mode ? ORIGIN2_Y[11:0] : ORIGIN_Y[11:0];
@@ -188,7 +204,27 @@ module text_screen #(
 
   // address = stored_row * COLS + col. COLS is 80 = 64 + 16, so the multiply is
   // two shifts and an add - no DSP, no multiplier inferred.
-  assign ram_raddr = ({s_stored_row, 6'b0} + {s_stored_row, 4'b0} + s_col);
+  //
+  // THE ROW HALF IS REGISTERED, and that is what makes 148.4 MHz reachable.
+  // Done in one lump this was the critical path of the whole design:
+  //
+  //   Source: TIMING/s_vcount_reg[1] -> Dest: CHARRAM address
+  //   Data Path Delay: 7.623 ns   Logic Levels: 11 (CARRY4=7)
+  //   Slack: -1.696 ns   (budget 6.737 ns)
+  //
+  // Subtracting the origin, deriving the text row, adding top_row, wrapping it
+  // and multiplying by 80 is seven carry chains - and all of it recomputed for
+  // every pixel, when the row only changes once every 16 SCANLINES.
+  //
+  // Registering it is free of artefacts because of WHEN y changes: the vertical
+  // counter advances at the end of a line, during horizontal blanking, which is
+  // hundreds of clocks before the next visible pixel. The register has long
+  // settled by the time `de` rises. What is left in the per-pixel path is one
+  // adder.
+  reg [AWIDTH-1:0] s_row_base;
+  always @(posedge clk) s_row_base <= ({s_stored_row, 6'b0} + {s_stored_row, 4'b0});
+
+  assign ram_raddr = s_row_base + {{(AWIDTH-8){1'b0}}, s_col};
 
   //--------------------------------------------------------------------------
   // Stage 1 - character code out of the RAM, into the font ROM

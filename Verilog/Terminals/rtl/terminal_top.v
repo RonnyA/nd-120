@@ -274,7 +274,13 @@ module terminal_top #(
     term_panel #(
         .FONT_FILE(FONT_FILE),
         .ORIGIN_X (ORIGIN_X),
-        .ORIGIN_Y (ORIGIN_Y + ROWS * CELL_H + CELL_H)
+        .ORIGIN_Y (ORIGIN_Y + ROWS * CELL_H + CELL_H),
+        //! Mode 1, in LOGICAL (halved) pixels. The mode-1 text sits at physical
+        //! y=40 and is 800 tall, ending at 840 = 420 logical, so the panel goes
+        //! just below at 440 logical = 880 physical. Sharing the mode-0 origin
+        //! is what pushed the panel off the bottom of a 1080p screen.
+        .ORIGIN_X2(160),
+        .ORIGIN_Y2(440)
     ) PANEL (
         .clk  (pix_clk),
         .rst_n(pix_rst_n),
