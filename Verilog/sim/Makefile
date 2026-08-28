@@ -18,6 +18,14 @@ endif
 # Requires the 32 wcs_*.hex files in this dir (Code/Microcode/gen_wcs_image.py).
 # CPP_DEFINES also forwards the flag to the C++ testbench so it can trace from
 # tick 0 (no load phase to skip).
+# PANEL_CLOCK=1: emulate the MC68705/MM58274 clock path (IO_PANCAL_40.v ->
+# PANCAL_68705_CLOCK.v) so TRR PANC / TRA PANS can set and read the hardware
+# clock. Off by default so the golden traces/console are unchanged.
+PANEL_CLOCK ?= 0
+ifeq ($(PANEL_CLOCK),1)
+  SIM_DEFINES += -DND120_PANEL_CLOCK
+endif
+
 CPP_DEFINES =
 ifeq ($(SKIP_WCS),1)
   SIM_DEFINES += -DSKIP_WCS_LOAD
@@ -111,6 +119,9 @@ PROBE_DEFINES = -DVERILATOR_SIM
 ifneq ($(USE_LATCHES),1)
   # Probe defaults to FF mode unless the caller explicitly sets USE_LATCHES=1.
   PROBE_DEFINES += -DFPGA_FF_MODE
+endif
+ifeq ($(PANEL_CLOCK),1)
+  PROBE_DEFINES += -DND120_PANEL_CLOCK
 endif
 
 probe: nd120_probe.cpp

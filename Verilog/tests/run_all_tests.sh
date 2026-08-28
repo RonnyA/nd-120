@@ -336,6 +336,10 @@ REGISTRY=(
   "CPU-BOARD-3202/circuit/sim :: test-ramc      :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-lbdif     :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-pancal    :: TB_RESULT: PASS"
+  # IO_PANCAL_40 + ND120_PANEL_CLOCK: MC68705/MM58274 clock path (PANCAL_68705_CLOCK)
+  # through a real FIFO_8BIT + the DGA VAL/RIWR handshake, latch and FF builds
+  "CPU-BOARD-3202/circuit/sim :: test-pancal-clock    :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-pancal-clock-ff :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-mmucache  :: TB_RESULT: PASS"
   # Cache subsystem coherence (CACHE_25+HIT_27+glue, 2 modes): real-tag
   # hit/refill/write paths PLUS the two demonstrated defects (DMA write

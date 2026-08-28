@@ -6,6 +6,7 @@
 **Architecture:** Motorola MC68705U3 (6805 family), 4KB ROM (0x0000–0x0FFF), 128-byte RAM (page 0)  
 **Crystal:** 4 MHz  
 **Analysis date:** 2026-04-06
+**Corrected:** 2026-08-28 - every pin/strobe statement below was re-checked against the ROM bytes with a fresh disassembly (see section 17, "Corrections 28-AUG-2026"). The clock path is now emulated in `Verilog/CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v` (doc: `Verilog/docs/panel-clock-68705.md`).
 
 ---
 
@@ -77,20 +78,20 @@ The MC68705U3 (chip 44A) is the dedicated front-panel controller for the ND-120 
 
 ### Port B — Control Signals (Output, DDRB=0xFF, init=0x2F = 0b00101111)
 
-There are **three distinct IDB strobe signals** on Port B, serving different directions. This is critical to understand:
+Pin names are from sheet 40 of the 3202D schematic; the use of each pin is what the ROM bytes do with it (corrected 28-AUG-2026):
 
-| Bit | Signal | Direction | Function |
-|-----|--------|-----------|----------|
-| PB0 | /WMM → 74LS374 CK | **Panel → ND-120** | Single-byte IDB write strobe. Rising edge latches PA[7:0] into 74LS374 → IDB[7:0]. Used by `Output_Response_To_ND120_IDB` (0x09C5). |
-| PB1 | IDB multi-byte strobe | **Panel → ND-120** | Time-packet IDB write strobe. Same latching action as PB0 but used exclusively for the multi-byte RTC time packet. Used by `Output_Status_Code_1_To_ND120` (0x09EE). Also confirmed as /WRCLK for MM58274 (hardware schematic). |
-| PB2 | /ROCLK | MM58274 only | MM58274 read clock / CS strobe (used in boot RTC init at 0x0AC0). |
-| PB3 | State flag | Internal | Mode/direction state flag |
-| PB4 | WMM FIFO strobe | **ND-120 → Panel** | Clock to advance FIFO and read next byte into PA. Used by `Strobe_WMM_Read_From_FIFO` (0x09BC). Opposite direction to PB0/PB1. |
-| PB5 | Sync control | Internal | Timer sync / IDB transaction state flag |
-| PB6 | RTC mode | Internal | Set during RTC reinit operations |
+| Bit | Signal (sheet 40) | Direction | Function |
+|-----|-------------------|-----------|----------|
+| PB0 | WMM~ → 74LS374 (32B) CK | **Panel → ND-120** | Answer-byte strobe. Rising edge latches PA[7:0] into the 74LS374 → IDB[7:0] on EPANS. Used by `Output_Response_To_ND120_IDB` (0x09C5). The ONLY path from the panel to the CPU. |
+| PB1 | WRCLK~ → MM58274 /WR | MM58274 only | Write strobe to the calendar chip. Used by 0x09EE, which writes the whole calendar (PA[7:4] = register address, PA[3:0] = BCD digit) after the CPU has set the time. Never reaches the ND-120. |
+| PB2 | ROCLK~ → MM58274 /RD | MM58274 only | Read strobe. Used by 0x0AC0 to read the calendar (at boot and at every time READ, see 0x0705). |
+| PB3 | RMM~ → DGA | **ND-120 → Panel** | FIFO read strobe. `Strobe_WMM_Read_From_FIFO` (0x09BC) = `BCLR 3,PORTB ; LDA PORTA ; BSET 3,PORTB`. While RMM~ is low the DGA drives the FIFO head on PA and pops it. |
+| PB4 | STAT3 → DGA | Panel → ND-120 | Panel request. Pulsed high→low in the idle loop (0x0153/0x0155) every 255 EMP~ polls. The DGA (IDBS A282/A283) turns the edge into PRQ. Also PANS bit 11 via the 74LS244. |
+| PB5 | STAT4 → DGA + PANS bit 12 path | Panel → ND-120 | "Answered" level: 1 at reset (PORTB=0x2F), cleared at the start of a clock command (0x06D3), set after the answer is latched (0x06ED/0x0712), cleared at 0x0195 after every command's display pipeline. The DGA makes VAL (PANS bit 12) from it. |
+| PB6 | READ → PANS bit 13 | Panel → ND-120 | 1 = the latched answer byte is clock data (set 0x06FA on a read, cleared 0x06E1 on a write). |
 | PB7 | PRES source | Hardware only | Permanently driven 0. Inverted by 74F04 (13G) → PRES=1 always → IDB:15=1 via 74LS244 |
 
-> **PB0 vs PB4 — do not confuse these:** PB4 reads bytes FROM the ND-120 (FIFO→PA). PB0 writes bytes TO the ND-120 (PA→74LS374→IDB). They are opposite directions on the same data bus.
+> **PB0 vs PB3 — do not confuse these:** PB3 (RMM~) reads bytes FROM the ND-120 (FIFO→PA). PB0 (WMM~) writes ONE byte TO the ND-120 (PA→74LS374→IDB). They are opposite directions on the same data bus.
 
 > **PB0 initial state = 1 (HIGH = /WMM deasserted).** The strobe fires as a LOW pulse: PB0 goes LOW then immediately HIGH. The 74LS374 latches PA on the **rising edge** (PB0 going HIGH).
 
@@ -100,7 +101,7 @@ There are **three distinct IDB strobe signals** on Port B, serving different dir
 
 | Bit | Signal | Function |
 |-----|--------|----------|
-| PC[2:0] | Reserved/low | Held low (init 0xF8 = 1111 1000) |
+| PC[2:0] | STAT0-2 → 74LS244 → PANS bits 8-10 | PFUNC echo: 0x06C5-0x06CB copies the command's bits 2:0 here for every bit3=0 command (init 0xF8 = 000) |
 | PC3 | DISP1 | Bit for display digit 1 (serial shift chain) |
 | PC4 | DISP2 | Bit for display digit 2 |
 | PC5 | DISP3 | Bit for display digit 3 |
@@ -117,10 +118,10 @@ Port C is the serial shift register output. All 5 display bits are clocked simul
 | PD1 | PCR Ring[1] | CPU ring level bit 1 |
 | PD2 | PONI | Memory Protection ON (from ND-120) |
 | PD3 | IONI | Interrupt system ON (from ND-120) |
-| PD4 | Reserved | — |
-| PD5 | Reserved | — |
-| PD6 | LHIT | Load hit / cache hit indicator |
-| PD7 | /EMP | FIFO data ready (active low in hardware; seen as 1=data available in code) |
+| PD4 | LHIT | Cache hit (sampled by 0x09AF `BRCLR 4,PORTD`) |
+| PD5 | LEV0 | 1 = CPU on level 0 = idle (sampled by 0x09B4 `BRSET 5,PORTD`) |
+| PD6 | GND | Tied low on sheet 40 |
+| PD7 | EMP~ | DGA FIFO not empty (XEMN = ~fifo_empty): 1 = a command byte is waiting |
 
 ---
 
@@ -201,14 +202,14 @@ After boot, the MCU enters an infinite polling loop at the end of `Init_And_Main
 ```
 0x09BC: Strobe_WMM_Read_From_FIFO
   SEI                    ; protect the bus transaction
-  BCLR PB3              ; PB3 LOW  → enable read direction (IDB→PA buffer active)
-  A = PORTA             ; read byte from PA (driven from IDB/FIFO output)
-  BSET PB3              ; PB3 HIGH → disable read direction buffer
+  BCLR PB3              ; PB3 = RMM~ LOW  → DGA drives the FIFO head on PA and pops it
+  A = PORTA             ; read the byte
+  BSET PB3              ; PB3 = RMM~ HIGH
   CLI
   RTS
 ```
 
-PB3 controls the direction buffer that gates IDB[7:0] onto PA[7:0] for reading. PB4 is used separately to advance/prime the FIFO before reading.
+PB3 is RMM~ (sheet 40). The DGA (DECODE_DGA.v) does `XA_7_0 = RMM_n ? 0 : fifo_out` and pops one byte per XCLK while RMM~ is low. PB4 is STAT3 (panel request), NOT a FIFO strobe - see below.
 
 ---
 
@@ -219,13 +220,13 @@ This is the **normal wakeup path**. The MCU loops at 0x014E–0x0161, repeatedly
 ```mermaid
 flowchart TD
     IDLE[Main loop idle\n0x014E] --> T[Load timeout = 255\nRAM 0x1F = 0xFF]
-    T --> P4[Pulse PB4 HIGH then LOW\nWMM strobe: advance FIFO\noutput byte onto IDB]
+    T --> P4[Pulse PB4 = STAT3 HIGH then LOW\npanel request to the DGA]
     P4 --> CHK{BRSET 7,PORTD\nPD7 == 1?\n/EMP asserted?}
     CHK -->|no: FIFO empty| DEC[DEC RAM 0x1F\ntimeout--]
     DEC --> ZRO{timeout == 0?}
     ZRO -->|no: keep waiting| CHK
     ZRO -->|yes: re-prime FIFO| IDLE
-    CHK -->|yes: FIFO has data| CMD[JSR 0x04D8\nProcess_PANC_Command_From_FIFO\nread command byte via PB3]
+    CHK -->|yes: FIFO has data| CMD[JSR 0x04D8\nProcess_PANC_Command_From_FIFO\nread command byte via PB3 = RMM~]
     CMD --> DISP[Run full display pipeline\nclear bitmap → ROM lookup →\n3-pass bit merge → Port C serialize]
     DISP --> SYNC[Wait TDR==3\ntimer sync point]
     SYNC --> XCHG[Exchange CPU stats with ND-120\nvia IDB]
@@ -261,7 +262,7 @@ flowchart TD
 stateDiagram-v2
     [*] --> IDLE: Boot complete
 
-    IDLE: Idle — polling PD7\nPulse PB4 every 255 checks
+    IDLE: Idle — polling PD7\nPulse STAT3 (PB4) every 255 checks
     IDLE --> CMD_ACTIVE: PD7=1 (/EMP asserted)\n→ jump to 0x0161
 
     CMD_ACTIVE: Command active\nReading FIFO bytes via PB3\nRunning display pipeline
@@ -274,14 +275,14 @@ stateDiagram-v2
 
 ---
 
-### PB3 vs PB4 — Receive-side strobe distinction
+### PB3 vs PB4 (corrected 28-AUG-2026)
 
-| Pin | When used | What it does |
-|-----|-----------|-------------|
-| **PB4** | Main idle loop (0x0152–0x0155) | Pulses WMM strobe HIGH→LOW to advance/prime FIFO, present byte on IDB |
-| **PB3** | Inside every `Strobe_WMM_Read_From_FIFO` (0x09BC) | Gates IDB[7:0] → PA[7:0] read direction buffer; MCU reads PORTA while PB3 is LOW |
+| Pin | Sheet 40 | When used | What it does |
+|-----|----------|-----------|-------------|
+| **PB4** | STAT3 | Main idle loop (0x0152–0x0155), once per 255-poll timeout (~3 ms) | Pulses STAT3 HIGH→LOW towards the DGA. The DGA's A282/A283 edge detector turns it into a PRQ (panel request) that vectors the microcode to MOPC (PRQ: at o2340). It has nothing to do with the FIFO. |
+| **PB3** | RMM~ | Inside every `Strobe_WMM_Read_From_FIFO` (0x09BC) | Read strobe to the DGA FIFO; MCU reads PORTA while RMM~ is LOW |
 
-PB4 fires first (once per timeout cycle) to tell the FIFO to output the next byte. PB3 fires each time the MCU actually reads a byte. For a 5-byte command, PB4 fires once and PB3 fires 5 times.
+For a 5-byte command PB3 fires 5 times. PB4 fires only while the panel is idle.
 
 ---
 
@@ -290,7 +291,7 @@ PB4 fires first (once per timeout cycle) to tell the FIFO to output the next byt
 ```mermaid
 flowchart TD
     START[Main loop entry\n0x014E] --> A[Timeout = 255\n0x001F = 0xFF]
-    A --> B[SEI\nPB4 HIGH→LOW\nWMM FIFO strobe\nCLI]
+    A --> B[SEI\nPB4 = STAT3 HIGH→LOW\npanel request\nCLI]
     B --> C{PD7 == 1?\n0x0158: BRSET 7,PORTD}
     C -->|no| D[DEC 0x001F]
     D --> E{== 0?}
@@ -318,13 +319,15 @@ flowchart TD
 
 ### Transport Layer
 
-The ND-120 CPU sends commands by filling the FIFO hardware on the 3202D CBP board. The FIFO signals readiness on PD7 (/EMP). The MC68705 reads bytes one at a time using the WMM strobe (PB4).
+The ND-120 CPU sends commands with `TRR PANC`. Microcode RPANC (o1045 in the DELILAH-L listing) does `IDBS,SWAP COMM,LDPANC` twice, so the FIFO in the DGA receives A[15:8] first and A[7:0] second. The FIFO signals "not empty" on PD7 (EMP~). The MC68705 reads bytes one at a time with RMM~ (PB3).
 
 **`Strobe_WMM_Read_From_FIFO` (0x09BC):**
-1. Assert WMM strobe: `BCLR 0x4, PortB` (PB4 LOW)
+1. `BCLR 3, PortB` (RMM~ LOW - the DGA drives the FIFO head on PA and pops it on XCLK)
 2. Read Port A: `LDA PORTA`
-3. Deassert WMM strobe: `BSET 0x4, PortB` (PB4 HIGH)
+3. `BSET 3, PortB` (RMM~ HIGH)
 4. Return byte in A
+
+So the command byte IS the high byte of the PANC register: bit 5 = PANC bit 13 ("read request"), bit 3 = PANC bit 11, bits 2:0 = PFUNC (PANC bits 10:8). The second byte is WPAN (PANC bits 7:0).
 
 ### Command Byte Format
 
@@ -337,7 +340,7 @@ The ND-120 CPU sends commands by filling the FIFO hardware on the 3202D CBP boar
 
 | Bit | Name | Value=0 | Value=1 |
 |-----|------|---------|---------|
-| 3 (DIR) | Direction | ND-120 requests data FROM panel (time/status output) | ND-120 sends data TO panel (display/config) |
+| 3 (DIR) | Direction | clock path (0x06BE): PFUNC 4-7 read or write one of the four time bytes, PFUNC 0-3 do nothing | text/display command 0-7 |
 | [2:0] (CMD) | Command type | — | 0–7 |
 
 **Dispatch logic (0x04D8–0x04EA):**
@@ -467,18 +470,41 @@ sequenceDiagram
 
 ## 8. PANC Response Protocol — Sending Data to ND-120
 
-When command byte has **bit3=0**, the ND-120 is requesting data from the panel controller. Entry: **0x06BE** `Output_RTC_Time_Data_To_ND120`.
+When the command byte has **bit3=0**, the clock path at **0x06BE** runs. This is the ND-100 hardware-clock protocol (ND-06.014 ch. 4.3, `ND-HWCLCK`): the time is four bytes, addressed by PFUNC 4..7, and every access carries a read/write bit.
 
-### IDB Write Strobe Summary
+```
+0x06BE:  X = cmd ; PORTC[2:0] = cmd & 7          ; STAT2:0 = PFUNC (PANS bits 10:8)
+         if (cmd & 4) == 0: RTS                  ; PFUNC 0-3: nothing (the WPAN byte
+                                                 ;   stays in the FIFO and is read as
+                                                 ;   the NEXT command byte)
+         BCLR 5,PORTB                            ; STAT4 = 0 (busy)
+         idx = (cmd & 3) ^ 3                     ; RAM $47+idx
+         if (cmd & 0x20) == 0:                   ; --- CPU WRITES the clock
+             BCLR 6,PORTB                        ; READ = 0
+             A = FIFO byte (WPAN) ; $47[idx] = A ; answer(A) via 0x09C5 (WMM~)
+             BSET 5,PORTB                        ; STAT4 = 1 (answered)
+             if idx == 0: 0x0715 ($47..$4A -> calendar $20..$25) ; 0x09EE (write MM58274)
+         else:                                   ; --- CPU READS the clock
+             BSET 6,PORTB                        ; READ = 1
+             FIFO byte read and discarded (WPAN)
+             if idx == 3: 0x0AC0 (read MM58274 -> $20..$26) ; 0x0803 (calendar -> $47..$4A)
+             answer($47[idx]) via 0x09C5 ; BSET 5,PORTB
+```
 
-There are two separate Port B pins used to write data to IDB[7:0], never active at the same time:
+| PFUNC | idx | RAM | Byte |
+|-------|-----|-----|------|
+| 4 | 3 | $4A | seconds within the half-day (0..43199), low byte |
+| 5 | 2 | $49 | seconds, high byte |
+| 6 | 1 | $48 | half-days since 1979-01-01 00:00, low byte |
+| 7 | 0 | $47 | half-days, high byte |
 
-| Strobe | Pin | Function | Code |
-|--------|-----|----------|------|
-| Single-byte response | **PB0** | One byte → 74LS374 → IDB[7:0] | 0x09C5 `Output_Response_To_ND120_IDB` |
-| Multi-byte time packet | **PB1** | Each byte of 18-byte packet → 74LS374 → IDB[7:0] | 0x09EE `Output_Status_Code_1_To_ND120` |
+The format is proven by the constants at ROM $80..$83: `02DA` = 730 half-days per year (732 in a leap year, 0x0751-0x0753), `0E10` = 3600 s/hour, `07BB` = 1979 (0x0763 `ADD #$4F` = 79 -> two-digit year), and by 0x07A2 `LSRA` / `BCC`: an odd half-day count sets hour = 12. A write only becomes the clock when PFUNC 7 arrives (the CPU writes 4,5,6,7 in that order); a read takes a fresh snapshot of the calendar on PFUNC 4 and returns bytes of that snapshot for 5,6,7.
 
-Both use the **same hardware path**: PA[7:0] → 74LS374 D[7:0] → IDB[7:0]. Only the strobe pin differs.
+### IDB Write Strobe
+
+There is exactly ONE path from the panel to the CPU: PA[7:0] → 74LS374 (32B) → IDB[7:0], clocked by **PB0 = WMM~** in 0x09C5 `Output_Response_To_ND120_IDB`. The CPU reads it with `TRA PANS` (EPANS) together with {PRES, FUL~, READ, VAL, STAT3..0} from the 74LS244 (33B).
+
+**PB1 is NOT an IDB strobe.** 0x09EE pulses PB1 = WRCLK~, the MM58274's /WR, with PA[7:4] = register address and PA[3:0] = one BCD digit: F←0 (stop), F←0, 0←5 (hold), F←1|leap, D←year tens, C←year units, B←month tens, A←month units, 9←day tens, 8←day units, 7←hour tens, 6←hour units, 5←min tens, 4←min units, 3←sec tens, 2←sec units, 0←1 (start). That is the MM58274 register map exactly. DDRA is FF for the whole sequence and cleared at the end (0x0ABD).
 
 ---
 
@@ -519,14 +545,16 @@ IDB[7:0] — Internal Data Bus to ND-120 CPU
 
 #### When does PB0 fire?
 
-PB0 fires **only** when a command with **bit3=0 AND bit2=1** is received — meaning the ND-120 is requesting a data response. It does **not** fire during any display/config command (bit3=1).
+PB0 fires **only** for a clock command (**bit3=0 AND bit2=1**, i.e. PFUNC 4-7), once per command. It does **not** fire during any display/text command (bit3=1) and not for PFUNC 0-3.
 
 ```
 Command byte decode (0x06BE):
-  bit3 = 0  → ND-120 wants data back from panel
-  bit2 = 1  → address is valid (if bit2=0: early RTS, no output)
-  bit5 = 0  → standard read path → PB0 fires once (then PB1 for time packet if addr=0)
-  bit5 = 1  → RTC reinit path → PB0 fires once only
+  bit3 = 0  → clock path
+  bit2 = 1  → PFUNC 4-7 (if bit2=0: early RTS, no answer)
+  bit5 = 0  → CPU WRITES a time byte: it is stored and echoed back (PB0 once);
+              on PFUNC 7 the calendar is recomputed and written to the MM58274 (PB1 = WRCLK~)
+  bit5 = 1  → CPU READS a time byte: on PFUNC 4 the MM58274 is read first (PB2 = ROCLK~);
+              the byte is answered (PB0 once)
 ```
 
 ```mermaid
@@ -553,21 +581,16 @@ sequenceDiagram
     LS374->>IDB: Q[7:0] latched from D[7:0]=PA[7:0]
     MCU->>PA: DDRA=0 → PA tristate (IDB released)
     MCU->>MCU: CLI (re-enable interrupts)
-    alt address field == 0
-        Note over MCU,IDB: Follow-up: full 18-byte time packet via PB1 strobe
-        loop 18 bytes
-            MCU->>PA: PA = next_time_byte
-            MCU->>PB0: PB1 LOW then PB1 HIGH → latch
-            LS374->>IDB: Q[7:0] = next byte
-        end
+    alt write of PFUNC 7 (idx 0)
+        Note over MCU: 0x0715 converts $47..$4A to a calendar, 0x09EE writes it to the MM58274 (PB1 = WRCLK~, not the IDB)
     end
 ```
 
 ---
 
-### Full Time Packet (0x09EE) — PB1 Strobe
+### 0x09EE — MM58274 write (was wrongly called "Full Time Packet to the ND-120")
 
-`Output_Status_Code_1_To_ND120` uses **PB1** (not PB0) to strobe each byte. The hardware path is identical (PA → 74LS374 → IDB) but the strobe pin differs:
+0x09EE uses **PB1 = WRCLK~**, the MM58274's /WR. Nothing in it reaches the IDB. The old description of an "18-byte packet" is kept below only so the byte list can be compared with the register map: byte 0/1 = register F (clock stop), byte 2 = register 0 (hold), byte 3 = register F (leap-year field), then year..seconds digits into registers D..2, and the last byte (0x0AB5, `01`) = register 0 = start.
 
 ```asm
 ; Pattern repeated for each of 18 bytes:
@@ -597,7 +620,7 @@ BSET 0x1, 0x0001     ; PB1 HIGH → strobe rises → 74LS374 latches → IDB upd
 
 Each field is tagged with a high-nibble identifier (0xD0=year, 0xC0=year-low, 0xB0=month, etc.) so the ND-120 can parse the packet independently of byte position.
 
-All data sourced from **software RTC counters** (RAM 0x20–0x26), not the MM58274 hardware after boot.
+The digits come from the calendar in RAM $20-$25 that 0x0715 just computed from the four bytes the CPU wrote. On a READ the MM58274 is read again (0x0705 → 0x0AC0), so the battery-backed chip - not the software counters - is the source of the time the CPU gets.
 
 ---
 
@@ -671,7 +694,7 @@ sequenceDiagram
 
 ## 10. MM58274 RTC Interface
 
-The MM58274 is an external hardware RTC chip. It is **only read at boot** to seed the software RTC. The MC68705 does not write to it during normal operation.
+The MM58274 is the battery-backed calendar chip. It is read at boot (0x013C) AND at every time READ from the CPU (0x0705, PFUNC 4), and it is WRITTEN (0x09EE, PB1 = WRCLK~) whenever the CPU has written all four time bytes (PFUNC 7). The software RTC counters are only for the display.
 
 ### Hardware Connection
 
@@ -682,7 +705,7 @@ The MM58274 is an external hardware RTC chip. It is **only read at boot** to see
 | PB2 | /ROCLK | /RD | Read clock (active low pulse) — **confirmed from code** |
 | PB1 | /WRCLK | /WR | Write clock (active low pulse) — **confirmed from hardware schematic** |
 
-> **Note on PB1/PB2:** The boot init code at 0x0AC0 uses PB2 for all visible MM58274 accesses (both address setup write and data read-back). PB1 usage was not observed in the disassembled init code. The user-confirmed schematic has PB1=/WRCLK and PB2=/ROCLK. It is possible that the firmware uses PB2 for a combined CS/ROCLK function while PB1 is used for any write operations (not visible in the boot-only RTC init, which primarily reads). **Treat PB1=/WRCLK as hardware-confirmed, PB2=/ROCLK as code-confirmed.**
+> **PB1/PB2 (corrected 28-AUG-2026):** 0x0AC0 reads with PB2 = ROCLK~; 0x09EE writes with PB1 = WRCLK~ (`STA PORTA ; BCLR 1,PORTB ; BSET 1,PORTB` per register, DDRA = FF). Both confirmed in the ROM and on sheet 40.
 
 ### MM58274 Read Protocol (from boot code 0x0AC0)
 
@@ -740,12 +763,11 @@ ROM table at 0x0E37 (days-in-month) has separate entries for leap (month[13]) an
 
 ## 12. CPU Performance Monitoring (Port D)
 
-Every timer ISR tick (~247 Hz):
+Every timer ISR tick (the seconds counter in 0x08F9 advances once per 16 x 200 x 2 = 6400 ticks, so the ISR runs at 6400 Hz - the "~247 Hz" given earlier cannot be right or the software clock would gain a second every 26 s; with TDR=3 and the /32 prescaler that puts PANOSC at about 614 kHz, i.e. RTOSC/4 in DECODE_DGA_POW.v - the absolute RTOSC frequency has NOT been verified here):
 
-1. `Sample_ND120_CPU_Status_Signals` (0x09D4): Read PORTD → RAM[0x19]
-2. Extract ring level (PD[1:0]), PONI (PD2), IONI (PD3), LHIT (PD6)
-3. Build composite status byte
-4. `Update_CPU_Ring_PONI_IONI_Statistics` (0x06B2): Update LED accumulator RAM[0x60]
+1. `Sample_ND120_CPU_Status_Signals` (0x09D4): `A = PORTD ; $70 = A ; $19 = (A & 0x0C) << 2` = {PONI, IONI} in bits 5:4. Then, **only if PONI (bit 2) is set**: `X = A & 3` (the protect ring from PCR1:0), `$19 |= ROM[0x0F0C + X]` with the table `01 02 04 08` - one-hot ring bit in bits 3:0. Without paging the ring bits are meaningless, so they are skipped.
+2. `Update_CPU_Ring_PONI_IONI_Statistics` (0x06B2): `$60 = ($60 & ~$6F) | $19 ; $19 = $60` - ORs the sample into the accumulator, dropping what fell out of the history window.
+3. If display flag $1B bit 1 (performance mode, set by command 2): `Monitor_LEV0_LHIT` (0x0985), below.
 
 **Ring level utilization accumulation:**
 
@@ -753,15 +775,35 @@ Every 16 ticks: `Shift_CPU_Utilization_History_Buffer` (0x0948) shifts the 16-by
 
 Every 200×2 ticks (≈1.62s): Utilization percentages are calculated and made available to the ND-120 via `Exchange_CPU_Stats_With_DGA` (IDB output).
 
-**Port D signals observed:**
+**Cache hit rate and CPU utilisation - `Monitor_LEV0_LHIT` (0x0985), added 28-AUG-2026:**
+
+```
+0x0985:  DEC $71 ; BNE sample              ; $71 = window counter, reloaded with 128
+         $71 = 128
+         A = $72 (LHIT count)               ; if 0 -> bar = 0
+         if A != 0: A = A >> 1 ; $72 = A    ; (halved, kept as a decaying carry-over)
+                    A = A >> 4 ; A = A + 1  ; count/32 + 1  -> 1..5
+         $11 = A + 0x21                     ; display position 1: bar character index
+         A = $73 (busy count)               ; same maths
+         $10 = A + 0x21                     ; display position 0: bar character index
+sample:  BRCLR 4,PORTD,+2 ; INC $72         ; LHIT = 1  -> one more cache hit
+         BRSET 5,PORTD,+2 ; INC $73         ; LEV0 = 0  -> one more busy sample (not idle)
+         RTS
+```
+
+So the panel's "cache" bar is the number of ticks out of the last 128 (20 ms at 6400 Hz) in which LHIT was high, in five steps of 32; the "load" bar is the number of ticks in which the CPU was NOT on level 0. No PIL value ever reaches the panel: the only level information on Port D is LEV0.
+
+**Port D signals (sheet 40):**
 
 | PD bit | Signal | Meaning when 1 |
 |--------|--------|----------------|
-| PD[1:0] | Ring[1:0] | CPU ring level (0=user, 3=supervisor) |
-| PD2 | PONI | Memory protection active |
-| PD3 | IONI | Interrupt system enabled |
-| PD6 | LHIT | Cache hit this cycle |
-| PD7 | /EMP | FIFO has command data ready |
+| PD[1:0] | PCR1:0 | Current protect ring (0..3), used only while PONI=1 |
+| PD2 | PONI | Paging (memory protection) on |
+| PD3 | IONI | Interrupt system on |
+| PD4 | LHIT | Cache hit |
+| PD5 | LEV0 | CPU on level 0 (idle) |
+| PD6 | GND | - |
+| PD7 | EMP~ | FIFO has a command byte |
 
 ---
 
@@ -858,6 +900,22 @@ IDB:15 = 1 (always)
 
 ## 17. Corrections to Existing Analysis Documents
 
+### Corrections 28-AUG-2026 (to THIS document's 2026-04-06 text, from a fresh disassembly of the ROM)
+
+| Old claim | ROM says | Where |
+|-----------|----------|-------|
+| PB4 is the "WMM FIFO strobe", PB3 a "state flag" | PB3 = RMM~ is the FIFO read strobe; PB4 = STAT3 is pulsed in the idle loop (panel request) | 0x09BC, 0x0153 |
+| PB1 strobes an "18-byte time packet" to the ND-120 | PB1 = WRCLK~ writes the calendar into the MM58274; nothing but the single WMM~ byte reaches the CPU | 0x09EE |
+| PB5 "sync control", PB6 "RTC mode" | PB5 = STAT4 (answered / VAL source), PB6 = READ (PANS bit 13) | 0x06D3, 0x06E1, 0x06FA, 0x0195 |
+| PC[2:0] "reserved/low" | PC2:0 = STAT2:0 = PFUNC echo, PANS bits 10:8 | 0x06C5 |
+| PD4/PD5 "reserved", PD6 = LHIT | PD4 = LHIT, PD5 = LEV0, PD6 = GND | 0x09AF, 0x09B4, sheet 40 |
+| MM58274 "only read at boot", never written | read at boot and at every PFUNC 4 read; written after every PFUNC 7 write | 0x0705, 0x06F3 |
+| Timer ISR "~247 Hz" | 6400 Hz (16 x 200 x 2 ticks per second in 0x08C8/0x08F9) | 0x08DA-0x08F5 |
+| "IDB[11:8] for STAT bits - not confirmed" | confirmed: 74LS244 33B puts STAT3:0 on IDB11:8, VAL/READ/FUL~/PRES on IDB12:15 | sheet 40 |
+| bit 3 = "ND-120 requests data FROM panel" | bit3=0 is the clock path: PFUNC 4-7 with bit 5 = read/write; PFUNC 0-3 do nothing | 0x06BE |
+
+The four-byte time format (half-days since 1979 + seconds in the half-day) and the PFUNC/idx table are in section 8.
+
 The following documents in `E:\Dev\Repos\Ronny\nd-120\Code\68705\U3\AI\` contain errors:
 
 ### `mm58274_rtc_analysis.md` — CRITICAL ERRORS
@@ -903,12 +961,12 @@ This document is a guidance framework, not factual analysis. Port C described as
 | 0x05DF | cmd4_SET_CHAR_DISPLAY | ROM character lookup into 0x10–0x13 |
 | 0x051B | cmd0_SET_DISPLAY_DATA | 5 bytes → 0x14–0x18 + set "PEXM"/"PT##" |
 | 0x06BE | Output_RTC_Time_Data_To_ND120 | cmd bit3=0: send time/status to ND-120 |
-| 0x09BC | Strobe_WMM_Read_From_FIFO | Read one byte via WMM strobe (PB4) from IDB/74LS374 |
+| 0x09BC | Strobe_WMM_Read_From_FIFO | Read one byte from the DGA FIFO via RMM~ (PB3) |
 | 0x09C5 | Output_Response_To_ND120_IDB | Write one byte via IDB to ND-120 (PB0 latch) |
-| 0x09EE | Output_Status_Code_1_To_ND120 | Send full RTC time packet (8 bytes) |
-| 0x08C8 | Timer_ISR | ~247 Hz: sample CPU status, drive RTC chain |
+| 0x09EE | Write_MM58274_Calendar | Write the calendar ($20-$26) into the MM58274 via WRCLK~ (PB1) - NOT an ND-120 output |
+| 0x08C8 | Timer_ISR | 6400 Hz: sample CPU status, drive the software RTC chain |
 | 0x08F9 | Increment_Software_RTC_Counters | Tick sec→min→hr→day→month→year |
 | 0x0948 | Shift_CPU_Utilization_History_Buffer | Shift 16-byte ring buffer left |
 | 0x09D4 | Sample_ND120_CPU_Status_Signals | PORTD → RAM[0x19] composite status |
-| 0x0AC0 | Initialize_MM58274_RTC_Chip | Boot-time read of MM58274 registers → software RTC seed |
+| 0x0AC0 | Read_MM58274 | Read the MM58274 registers → $20-$26 (at boot and at every PFUNC 4 read) |
 | 0x09BA | SWI_Dummy | NOP + RTI (software interrupt handler, unused) |

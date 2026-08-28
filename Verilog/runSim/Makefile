@@ -18,6 +18,15 @@ ifeq ($(USE_LATCHES),0)
   SIM_DEFINES += -DFPGA_FF_MODE
 endif
 
+# PANEL_CLOCK=1: emulate the MC68705/MM58274 clock path (IO_PANCAL_40.v ->
+# PANCAL_68705_CLOCK.v) so TRR PANC / TRA PANS can set and read the hardware
+# clock. Off by default so the golden traces/console are unchanged.
+PANEL_CLOCK ?= 0
+ifeq ($(PANEL_CLOCK),1)
+  SIM_DEFINES += -DND120_PANEL_CLOCK
+endif
+
+
 # Packed-memory contract (default ON, matching the Tang build): parity is
 # never read from storage, MEM_RAM_49_SIM recomputes it from the data on
 # every read. Set PACK16=0 to model classic stored-parity DRAM.

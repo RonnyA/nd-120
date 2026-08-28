@@ -203,6 +203,18 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
     Writing a real `.sdc` is the route to a fast machine that is also
     defensible.
 
+- **Panel clock (28-AUG-2026):** the MC68705/MM58274 hardware clock
+  (TRR PANC / TRA PANS, PFUNC 4-7) is emulated by
+  `Verilog/CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v`, OPT-IN via
+  `ND120_PANEL_CLOCK` (`gowin_build.ps1 -PanelClock`, Nexys `panelclock`,
+  sims `PANEL_CLOCK=1`) because the Tang is nearly full. Without it the panel
+  is a stub and SINTRAN cannot set or read the time. Proven in Verilator with
+  the TPE Monitor floppy (its start-up clock probe passes). Finding it exposed
+  two UNCONDITIONAL DGA fixes: `TRA PANS` used to return 0 to A, and
+  `TRR PANC` never reached the panel FIFO - so before 29-AUG-2026 no panel
+  command of any kind (incl. the microcode's own ACTLV/0x0A traffic) ever
+  left the CPU. Details and what is not modelled:
+  `Verilog/docs/panel-clock-68705.md`.
 - Live task list: `Verilog/TODO.md`. Historical latch-refactor notes:
   `Verilog/verilog-remove-latch.md`, `Verilog/worklog-latch-refactor.md`.
 

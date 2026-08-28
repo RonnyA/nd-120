@@ -3,7 +3,7 @@
 #  dir - see docs/tang20k-build-flows.md)
 #
 #   cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k
-#   .\gowin_build.ps1 [-Variant slow|crawl|full] [-Gao] [-PfCapture] [-PcHistory] [-JplCapture]
+#   .\gowin_build.ps1 [-Variant slow|crawl|full] [-Gao] [-PfCapture] [-PcHistory] [-JplCapture] [-PanelClock]
 #
 # -Variant selects the clocking (default slow, same as always):
 #   slow  = CPU 6.75 MHz / SDRAM 13.5 MHz
@@ -43,7 +43,8 @@ param(
     [switch]$PtOrder,
     [switch]$PfLog,
     [switch]$PgWrite,
-    [switch]$StageTimer
+    [switch]$StageTimer,
+    [switch]$PanelClock
 )
 
 $ErrorActionPreference = "Stop"
@@ -187,6 +188,15 @@ if ($NoStorageCache) {
     }
     $variantContent += "``define ND_STORAGE_NO_CACHE`n"
     Write-Host "STORAGE CACHE: NOT SYNTHESIZED (ND_STORAGE_NO_CACHE)"
+}
+if ($PanelClock) {
+    # ND120_PANEL_CLOCK (IO_PANCAL_40.v -> PANCAL_68705_CLOCK.v): emulate the
+    # MC68705 panel processor's CLOCK path so SINTRAN can set and read the
+    # hardware clock through TRR PANC / TRA PANS (PFUNC 4-7, half-days +
+    # seconds since 1979). OPT-IN: a few hundred extra flops on a device that
+    # is nearly full - check the utilisation and timing report after enabling.
+    $variantContent += "``define ND120_PANEL_CLOCK`n"
+    Write-Host "PANEL CLOCK: ENABLED (ND120_PANEL_CLOCK) - 68705/MM58274 clock path emulated"
 }
 Set-Content -Path $variantFile -Value $variantContent -Encoding Ascii
 # In a PowerShell double-quoted string the backtick is the ESCAPE character, so

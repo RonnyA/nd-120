@@ -1,6 +1,6 @@
 # ND-120 Verilog TODO
 
-> Last updated: 25-AUG-2026. Newest entries are at the top; the "CURRENT PLAN -
+> Last updated: 28-AUG-2026. Newest entries are at the top; the "CURRENT PLAN -
 > 02-AUG-2026" section below keeps its own date and says who owns what.
 >
 > Standing context: **SINTRAN III boots on the Tang Nano 20K** (24-AUG-2026).
@@ -9,6 +9,42 @@
 > 235.8 s -> 13.2 s).
 
 ---
+
+## Panel clock (MC68705 + MM58274) - 28-AUG-2026
+
+DONE: `CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v` emulates the clock path of
+the panel processor (TRR PANC PFUNC 4-7 / TRA PANS: half-days since 1979 +
+seconds, read/write, STAT4/VAL handshake, text-command drain), wired into
+`IO_PANCAL_40.v` behind `ND120_PANEL_CLOCK`. Off by default (Tang is full):
+`gowin_build.ps1 -PanelClock`, Nexys `build.tcl panelclock`, sims `PANEL_CLOCK=1`.
+Protocol taken from a fresh disassembly of the ROM; `Code/68705/U3/U3-COMPLETE.MD`
+corrected. Doc: `docs/panel-clock-68705.md`. Unit tests `test-pancal-clock(-ff)`
+registered and green.
+
+PROVEN in Verilator 29-AUG-2026: TPE Monitor B01 (`1560&`) no longer prints
+"The clock is not updated" - it reads PFUNC 4-7 and gets the time. That needed
+two DGA fixes that had nothing to do with the panel clock and hid ALL panel
+commands (docs/panel-clock-68705.md, "Two DGA bugs"): `TRA PANS` returned 0 to
+A (EPANSN window, `DECODE_DGA_IDBS.v`), and `TRR PANC` never wrote the FIFO
+(LDPANC~ pulse vs XCLK, `DECODE_DGA.v`). Both are UNCONDITIONAL (not behind
+the define) - the microcode's own 0x0A ACTLV / 0x0D traffic now reaches the
+panel too. Not yet committed; instruction-verify regression running.
+
+Open:
+- Flash `-PanelClock` (Tang) / `panelclock` (Nexys) and do the SINTRAN
+  `@UPDAT` / `@CLOCK` / `@DATCL` round trip on silicon.
+- Host preset of the time at power-up (TIME_HALFDAYS/TIME_SECONDS are brought
+  out of the module for it) - today the clock starts at 1979-01-01 00:00.
+- STAT3 idle pulse: the ROM pulses PB4 every ~3 ms while idle (0x0153); the
+  Tang analysis 3f says it does not. Decide whether to model it (it is the
+  same edge the old "conkick" manufactured, and that tripped the INTRQN lag).
+- Verilator `sim/ make test_nd120` and `runSim/ make compile` fail at HEAD with
+  82 `-Wall` warnings (IMPLICIT `DBG_PPN`/`DBG_PTW`/`PF_CAPTURED` in
+  `ND3202D.v` - ports declared under `ifdef MAIN_RAM_SDRAM`, assigned
+  unconditionally; `DBG_WDSTAGE` in `ND120_CORE.v`; PINMISSING `DBG_PTW_LVL`/
+  `DBG_PANEL` at `ND120_TOP.v:850`). Present since the 25-AUG squash
+  (`202c606`). The TPE run above was built with `-Wno-IMPLICIT -Wno-PINMISSING`
+  on the make line only; the tree itself needs the `ifdef` guards.
 
 ## Test-gate backlog - 21-AUG-2026
 
