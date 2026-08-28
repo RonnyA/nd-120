@@ -214,3 +214,39 @@ mentions it twice, both times a port connection. None appears in
 bit for page X, read it back for page X and for page Y, with both PPN busses
 non-zero. If the OR is wrong the test says so, and only then change the RTL.
 Changing that line on the strength of a comment would be guessing at the CPU.
+
+## Correction, same evening - the inhibit-RAM lead is NOT the fault
+
+I wrote the section above pointing at `CPU_MMU_PT_29.v:71` and its ORed PPN
+address. Reading **sheet 29 of the 3202D schematic** (page 29 of
+`DesignDocuments/CPU-BOARD-3202/3202-REV-D-OCT-87-600DPI-ocr.pdf`) kills that
+lead, and it should be killed loudly because it was recorded as promising.
+
+The sheet shows **one** bidirectional bus, `PPN(25:10)`, feeding the IMS1403's
+address pins (PPN10-PPN23) and its data pin (PPN25). There are not two busses.
+So the OR is a **wired-OR model of a tri-state bus** - the standard trick - and
+it is correct provided the non-driver contributes 0. It does:
+
+```verilog
+// CPU_15.v:406
+assign s_lapa_ppn_25_10[15:0] = s_lapa_n ? 16'b0 : {2'b0, s_la_23_10[13:0]};
+```
+
+The CPU side is all zeroes whenever `LAPA_n` is high. The mixture my testbench
+forces - both sides non-zero at once - is therefore probably unreachable in the
+real design, which is exactly the caveat that bench was committed with.
+
+A second theory died on the way as well: `{2'b0, ...}` looked like it hardwired
+PPN25 (the inhibit RAM's data bit) to 0, which would have meant the inhibit bit
+could never be set to 1. It does not - `CPU_MMU_PPNX_28` drives PPN25-PPN18
+from the IDB (chips 10B/9B/8B on that sheet). That is how the bit gets written.
+
+**Where that leaves the cache.** CUP is still dead and the cause is still not
+found. What is now excluded, with evidence rather than by inspection: CON, PD2,
+PD1, the `ND120_NO_CACHE` WCA tie-off, the 44511A CWR timing, and the PPN
+addressing into the inhibit RAM. What has NOT been examined: `CON` and `BRK_n`
+as they actually behave at run time in `s_ewc_n = ~(s_brk_n & s_con &
+s_wcinh_n)`, and whether the limit registers are ever successfully WRITTEN -
+`WCLIM_n` itself has never been observed. The next measurement should be
+whether `WCLIM_n` ever goes low on hardware, because everything downstream is
+moot if the limit RAM is never written.

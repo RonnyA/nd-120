@@ -47,11 +47,25 @@ ORPHAN_BASELINE = {
         "s_ppn_25_10_in | s_ppn_25_10_out - a bitwise OR of the two "
         "directions of one bidirectional bus. With the CPU presenting page "
         "0005B and the map presenting 0012B the RAM is addressed at 0017B, a "
-        "page neither side asked for. The bench takes no side on which "
-        "direction should win - that needs the schematic - it only asserts "
-        "the address is a real page number. Register it the day that line is "
-        "resolved; it is the acceptance gate for that fix. STILL UNPROVEN: "
-        "whether both busses are ever non-zero at once in the real design.",
+        "page neither side asked for.
+
+"
+        "CORRECTED SAME DAY, AGAINST MYSELF. Sheet 29 of the 3202D schematic "
+        "shows ONE bidirectional bus PPN(25:10) feeding the IMS1403 address "
+        "pins (PPN10-23) and its data pin (PPN25). The OR is therefore a "
+        "WIRED-OR model of that tri-state bus, which is legitimate as long as "
+        "the non-driver contributes 0 - and CPU_15.v:406 does exactly that: "
+        "s_lapa_ppn_25_10 = s_lapa_n ? 16'b0 : {2'b0, s_la_23_10}. So the CPU "
+        "side is 0 whenever it is not driving, and the mixture this bench "
+        "forces is probably UNREACHABLE in the real design. PPN25 is not "
+        "stuck at 0 either - CPU_MMU_PPNX_28 drives PPN25-18 from the IDB.
+
+"
+        "So this is NOT a proven defect and must not be cited as one. It is "
+        "kept as COVERAGE for a path that had none, and as a guard: if anyone "
+        "ever makes the CPU side drive the PPN bus while the map is driving "
+        "it, this goes red and says why. Retire it or rewrite it to assert "
+        "the wired-OR precondition instead.",
     "DELILAH-CPU/CGA_MAC/sim/CGA_MAC_pt_apt_selection_tb.v":
         "UNRESOLVED - 27-AUG-2026. red at 129/259 (PT request selects "
         "PCR[14:11]: got 1 expected 12). 17-AUG ERRFATAL-campaign probe; that "
