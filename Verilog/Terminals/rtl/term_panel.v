@@ -281,34 +281,43 @@ module term_panel #(
   reg [4:0]  r_up_h;
   reg [5:0]  r_up_m, r_up_s;
 
-  //! Afterglow. The real field has it so a single instruction on a level stays
-  //! visible; without it a level the CPU touches for a few microseconds would
-  //! never be seen on a 60 Hz screen. One counter per level, reloaded while the
-  //! level is current and counting down after.
-  //! 8 bits decaying on a ~2 ms tick is about half a second of afterglow at
-  //! 40 MHz. The first version used a 16-bit counter on a 26 ms tick, which is
-  //! a 28-MINUTE decay - every level would have appeared permanently lit, and
-  //! the display would have looked plausible while telling you nothing.
+  //! Afterglow, and the display is THREE-STATE because of what the field
+  //! actually means. The ND-100 Reference Manual, on the ACTIVE LEVEL display:
   //!
-  //! The rate follows the pixel clock, so at 148 MHz the glow is ~3.7x shorter.
-  //! Left as is rather than parameterised: both are in the range that reads as
-  //! afterglow, and a wrong parameter is worse than a known approximation.
-  reg [7:0]  s_glow[0:15];
-  reg [16:0] s_glow_tick;
+  //!   "There are 16 positions (0-15), one for each level. A one ( I ) is set
+  //!    in ONE of these positions, indicating the active level."
+  //!
+  //! Singular. One position at a time, with afterglow so that a level the CPU
+  //! visits for a few microseconds is still visible on a 60 Hz screen.
+  //!
+  //! The first version was binary and held for 0.84 s, so a level touched most
+  //! of a second ago looked exactly as lit as the one running now - a row of
+  //! equals, which is not what the machine is doing and not what the panel
+  //! showed. Now:
+  //!
+  //!   current level      full box     - exactly one, always
+  //!   recently visited   thin bar     - the fading trace
+  //!   idle               blank
+  //!
+  //! DECAYED ON FRAMES, not clocks. The frame rate is 60 Hz in both video
+  //! modes while the pixel clock is not, so counting frames keeps the fade the
+  //! same length at 800x600 and at 1080p. Counting clocks made it 3.5x shorter
+  //! in one of the two modes - the same trap the uptime counter avoids.
+  //! 15 frames is ~250 ms.
+  reg [3:0]  s_glow[0:15];
   integer gi;
 
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
-      s_glow_tick <= 17'd0;
-      for (gi = 0; gi < 16; gi = gi + 1) s_glow[gi] <= 8'd0;
+      for (gi = 0; gi < 16; gi = gi + 1) s_glow[gi] <= 4'd0;
     end else begin
-      s_glow_tick <= s_glow_tick + 17'd1;
-      // Reload continuously: whichever level is current is fully lit.
-      s_glow[pil] <= 8'hFF;
-      // Decay everything else slowly.
-      if (s_glow_tick == 17'd0) begin
+      // Reloaded every clock, so a visit of even one cycle is caught.
+      s_glow[pil] <= 4'hF;
+      // One step per FRAME - 15 frames, about a quarter second, identical in
+      // both video modes.
+      if (frame_tick) begin
         for (gi = 0; gi < 16; gi = gi + 1)
-          if (s_glow[gi] != 8'd0 && gi[3:0] != pil) s_glow[gi] <= s_glow[gi] - 8'd1;
+          if (s_glow[gi] != 4'd0 && gi[3:0] != pil) s_glow[gi] <= s_glow[gi] - 4'd1;
       end
     end
   end
@@ -318,18 +327,18 @@ module term_panel #(
   //! same reason: a disc request is a strobe a few clocks long, which at 60 Hz
   //! would be invisible almost every time it happened. Held for ~0.25 s so a
   //! single sector access registers as a visible blink.
-  reg [7:0] s_disk_hold[0:3];
+  reg [3:0] s_disk_hold[0:3];
   wire [3:0] s_disk_in = {flp_wr, flp_rd, hdd_wr, hdd_rd};
   integer di;
 
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
-      for (di = 0; di < 4; di = di + 1) s_disk_hold[di] <= 8'd0;
+      for (di = 0; di < 4; di = di + 1) s_disk_hold[di] <= 4'd0;
     end else begin
       for (di = 0; di < 4; di = di + 1) begin
-        if (s_disk_in[di[1:0]]) s_disk_hold[di] <= 8'hFF;
-        else if (s_glow_tick == 17'd0 && s_disk_hold[di] != 8'd0)
-          s_disk_hold[di] <= s_disk_hold[di] - 8'd1;
+        if (s_disk_in[di[1:0]]) s_disk_hold[di] <= 4'hF;
+        else if (frame_tick && s_disk_hold[di] != 4'd0)
+          s_disk_hold[di] <= s_disk_hold[di] - 4'd1;
       end
     end
   end
@@ -338,7 +347,7 @@ module term_panel #(
   genvar dk;
   generate
     for (dk = 0; dk < 4; dk = dk + 1) begin : g_disk
-      assign s_disk_now[dk] = (s_disk_hold[dk] != 8'd0);
+      assign s_disk_now[dk] = (s_disk_hold[dk] != 4'd0);
     end
   endgenerate
 
@@ -346,7 +355,7 @@ module term_panel #(
   genvar gl;
   generate
     for (gl = 0; gl < 16; gl = gl + 1) begin : g_lamp
-      assign s_lamp_now[gl] = (s_glow[gl] != 8'd0);
+      assign s_lamp_now[gl] = (s_glow[gl] != 4'd0);
     end
   endgenerate
 
@@ -382,7 +391,10 @@ module term_panel #(
     end
   end
 
-  wire s_level_lit = r_lamp[s_level_index];
+  //! Two questions, not one: is this the CURRENT level, and has it been
+  //! visited recently. Exactly one lamp can answer yes to the first.
+  wire s_level_current = (s_level_index == r_pil);
+  wire s_level_fading  = r_lamp[s_level_index] && !s_level_current;
 
   //! Uptime digits. Two cells per field plus the colons, laid out hh:mm:ss.
   wire [3:0] s_up_col = s_col - COL_UPTIME_VALUE[6:0];
@@ -437,10 +449,15 @@ module term_panel #(
       // Only the first column of the pair carries the lamp; the second is the
       // gap between lamps, so each level reads as one square.
       // Both columns, each with its own half-glyph, so the pair forms one
-      // 14 px lamp with a clear gap to the next level.
-      s_live_char   = s_level_lamp
-                    ? (s_level_lit ? G_LEVEL_ON_L : G_LEVEL_OFF_L)
-                    : (s_level_lit ? G_LEVEL_ON_R : G_LEVEL_OFF_R);
+      // 14 px lamp with a clear gap to the next level. Three states: a full box
+      // for the level running now, a thin bar for one visited in the last
+      // quarter second, nothing at all otherwise.
+      if (s_level_current)
+        s_live_char = s_level_lamp ? G_LEVEL_ON_L  : G_LEVEL_ON_R;
+      else if (s_level_fading)
+        s_live_char = s_level_lamp ? G_LEVEL_OFF_L : G_LEVEL_OFF_R;
+      else
+        s_live_char = 8'h20;
       s_live_colour = C_LCDINK;
     end else if (s_col >= COL_UTIL_BAR[6:0] &&
                  s_col <  COL_UTIL_BAR[6:0] + UTIL_BAR_W[6:0] && s_row == 3'd1) begin

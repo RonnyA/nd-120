@@ -238,6 +238,77 @@ module terminal_top #(
 
   generate
     if (WITH_PANEL != 0) begin : g_panel
+    //------------------------------------------------------------------
+    // CLOCK-DOMAIN CROSSING for every panel signal
+    //
+    // These all come from the CPU clock domain and are sampled here in the
+    // PIXEL domain. Reading them directly - which is what this did until
+    // 28-AUG-2026 - is a genuine CDC violation, and PIL showed exactly why.
+    //
+    // PIL is four bits that change together. Sampled asynchronously they
+    // arrive SKEWED, so a transition like 7 -> 8 (0111 -> 1000) is seen as
+    // whatever intermediate codes the individual bits happen to produce -
+    // including 1111. That transient got latched into the afterglow and lit
+    // level 15, on a machine that never uses level 15. Reported from hardware
+    // as "level 15 lights a lot and level 15 is NEVER used", which is precisely
+    // what a skewed multi-bit crossing looks like once something downstream
+    // remembers what it saw.
+    //
+    // Two flops for metastability, then - for the multi-bit bus - a stability
+    // gate: a value is only accepted once two consecutive samples agree. A
+    // skew artefact does not survive that, because the bits settle within a
+    // clock or two of each other and a glitch code appears exactly once.
+    //------------------------------------------------------------------
+    reg [3:0] s_pil_m, s_pil_s, s_pil_q;
+    reg [1:0] s_lev0_sync, s_hit_sync, s_look_sync;
+    reg [1:0] s_pag_sync, s_int_sync, s_run_sync;
+    reg [1:0] s_hrd_sync, s_hwr_sync, s_frd_sync, s_fwr_sync;
+    reg [1:0] s_ring_m, s_ring_s, s_ring_q;
+
+    always @(posedge pix_clk or negedge pix_rst_n) begin
+      if (!pix_rst_n) begin
+        s_pil_m <= 4'd0; s_pil_s <= 4'd0; s_pil_q <= 4'd0;
+        s_ring_m <= 2'd0; s_ring_s <= 2'd0; s_ring_q <= 2'd0;
+        s_lev0_sync <= 2'd0; s_hit_sync <= 2'd0; s_look_sync <= 2'd0;
+        s_pag_sync  <= 2'd0; s_int_sync <= 2'd0; s_run_sync  <= 2'd0;
+        s_hrd_sync  <= 2'd0; s_hwr_sync <= 2'd0;
+        s_frd_sync  <= 2'd0; s_fwr_sync <= 2'd0;
+      end else begin
+        s_pil_m <= panel_pil;
+        s_pil_s <= s_pil_m;
+        //! Accept only a value that held still for two samples.
+        if (s_pil_s == s_pil_m) s_pil_q <= s_pil_s;
+
+        s_ring_m <= panel_ring;
+        s_ring_s <= s_ring_m;
+        if (s_ring_s == s_ring_m) s_ring_q <= s_ring_s;
+
+        s_lev0_sync <= {s_lev0_sync[0], panel_lev0};
+        s_hit_sync  <= {s_hit_sync[0],  panel_hit};
+        s_look_sync <= {s_look_sync[0], panel_lookup};
+        s_pag_sync  <= {s_pag_sync[0],  panel_paging_on};
+        s_int_sync  <= {s_int_sync[0],  panel_interrupt_on};
+        s_run_sync  <= {s_run_sync[0],  panel_running};
+        s_hrd_sync  <= {s_hrd_sync[0],  panel_hdd_rd};
+        s_hwr_sync  <= {s_hwr_sync[0],  panel_hdd_wr};
+        s_frd_sync  <= {s_frd_sync[0],  panel_flp_rd};
+        s_fwr_sync  <= {s_fwr_sync[0],  panel_flp_wr};
+      end
+    end
+
+    wire [3:0] w_pil  = s_pil_q;
+    wire [1:0] w_ring = s_ring_q;
+    wire w_lev0 = s_lev0_sync[1];
+    wire w_hit  = s_hit_sync[1];
+    wire w_look = s_look_sync[1];
+    wire w_pag  = s_pag_sync[1];
+    wire w_int  = s_int_sync[1];
+    wire w_run  = s_run_sync[1];
+    wire w_hrd  = s_hrd_sync[1];
+    wire w_hwr  = s_hwr_sync[1];
+    wire w_frd  = s_frd_sync[1];
+    wire w_fwr  = s_fwr_sync[1];
+
     //! UTILIZATION is the inverse of LEV0: the real panel's caption is how much
     //! time the machine was NOT idle, and idle on an ND is "running at level 0".
     wire [3:0] s_utilization;
@@ -247,7 +318,7 @@ module terminal_top #(
     //! reads as noise rather than as a measurement. PEAK_HOLD lets it rise at
     //! once and fall one eighth per window, so bursts of work stay visible.
     rate_meter #(.PEAK_HOLD(1), .WINDOW_BITS(24)) UTIL_METER (
-        .clk(pix_clk), .rst_n(pix_rst_n), .sample(!panel_lev0), .eighths(s_utilization)
+        .clk(pix_clk), .rst_n(pix_rst_n), .sample(!w_lev0), .eighths(s_utilization)
     );
 
     wire [3:0] s_cache_hit;
@@ -257,7 +328,7 @@ module terminal_top #(
     //! 2^15 lookups per window with the same peak hold as UTILIZATION.
     ratio_meter #(.PEAK_HOLD(1), .WINDOW_BITS(15)) HIT_METER (
         .clk(pix_clk), .rst_n(pix_rst_n),
-        .attempt(panel_lookup), .success(panel_hit),
+        .attempt(w_look), .success(w_hit),
         .eighths(s_cache_hit)
     );
 
@@ -315,17 +386,17 @@ module terminal_top #(
         //! the beam is still crossing the glyph.
         .frame_tick(s_frame_end),
 
-        .pil         (panel_pil),
+        .pil         (w_pil),
         .utilization (s_utilization),
         .cache_hit   (s_cache_hit),
-        .ring        (panel_ring),
-        .paging_on   (panel_paging_on),
-        .interrupt_on(panel_interrupt_on),
-        .running     (panel_running),
-        .hdd_rd      (panel_hdd_rd),
-        .hdd_wr      (panel_hdd_wr),
-        .flp_rd      (panel_flp_rd),
-        .flp_wr      (panel_flp_wr),
+        .ring        (w_ring),
+        .paging_on   (w_pag),
+        .interrupt_on(w_int),
+        .running     (w_run),
+        .hdd_rd      (w_hrd),
+        .hdd_wr      (w_hwr),
+        .flp_rd      (w_frd),
+        .flp_wr      (w_fwr),
         .up_hours    (s_up_hr),
         .up_minutes  (s_up_min),
         .up_seconds  (s_up_sec),

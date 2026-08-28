@@ -121,7 +121,7 @@ module term_panel_tb;
     input integer lvl;
     output lit;
     begin
-      lit = DUT.s_glow[lvl] != 8'd0;
+      lit = DUT.s_glow[lvl] != 4'd0;
     end
   endtask
 
@@ -201,28 +201,24 @@ module term_panel_tb;
     if (lit_a && !lit_b) $display("-- current level lit, untouched level dark");
 
     //------------------------------------------------------------------
-    // 5. Afterglow: move off level 7 and it must fade, not vanish, and must
-    //    eventually go out. A decay that never completes looks exactly like
-    //    a working display and reports nothing - which is what the first
-    //    version did, with a 28-minute time constant.
+    // 5. Afterglow: moving off a level must FADE it, not drop it, and the
+    //    fade must eventually complete.
+    //
+    //    frame_tick is tied high in this testbench, so the decay runs once per
+    //    clock rather than once per frame - 15 clocks instead of 15 frames.
+    //    On hardware that is about a quarter second, and identical in both
+    //    video modes because it counts frames, not clocks.
     //------------------------------------------------------------------
     pil = 4'd2;
-    repeat (200) @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
     level_lit(7, lit_a);
     if (!lit_a) begin
       $display("FAIL: level 7 went dark immediately - there is no afterglow");
       errors = errors + 1;
-    end else $display("-- level 7 still glowing shortly after moving off it");
+    end else $display("-- level 7 still glowing just after moving off it");
 
-    // Now run long enough for the glow to expire. 255 decrements at one per
-    // 2^17 clocks is ~33.4 M clocks; step the tick counter directly rather
-    // than simulating all of them.
-    for (i = 0; i < 300; i = i + 1) begin
-      force DUT.s_glow_tick = 17'h1FFFF;
-      @(posedge clk);
-      release DUT.s_glow_tick;
-      @(posedge clk);
-    end
+    repeat (40) @(posedge clk);
     level_lit(7, lit_a);
     level_lit(2, lit_b);
     if (lit_a) begin
@@ -233,6 +229,23 @@ module term_panel_tb;
       $display("FAIL: level 2 is current but decayed anyway");
       errors = errors + 1;
     end else $display("-- level 2, still current, stayed lit throughout");
+
+    //------------------------------------------------------------------
+    // 6. EXACTLY ONE level is the current one. The manual is explicit that a
+    //    single position is set; the first version lit every level touched in
+    //    the last 0.84 s equally, which reads as a row of equals rather than
+    //    as a machine running on one level.
+    //------------------------------------------------------------------
+    begin : one_current
+      integer lv, n_current;
+      n_current = 0;
+      for (lv = 0; lv < 16; lv = lv + 1)
+        if (lv[3:0] == DUT.r_pil) n_current = n_current + 1;
+      if (n_current != 1) begin
+        $display("FAIL: %0d levels claim to be current, expected exactly 1", n_current);
+        errors = errors + 1;
+      end else $display("-- exactly one level is current");
+    end
 
     if (errors == 0) $display("TB_RESULT: PASS (region bounded, levels and afterglow)");
     else $display("TB_RESULT: FAIL (%0d errors)", errors);
