@@ -250,3 +250,100 @@ s_wcinh_n)`, and whether the limit registers are ever successfully WRITTEN -
 `WCLIM_n` itself has never been observed. The next measurement should be
 whether `WCLIM_n` ever goes low on hardware, because everything downstream is
 moot if the limit RAM is never written.
+
+
+---
+
+## 28-AUG-2026, late evening: the full test-2 output, on hardware
+
+Everything above worked from one line of the diagnostic, "CUP does not work".
+The whole of test 2 says considerably more. Captured from the board over the
+115200 console after flashing the `vgaconsole cache` build:
+
+```
+   2. Basic functions
+
+*** ERROR *** In test  2.
+CUP does not work (Bit 0 in Cache Status) (See note 6).
+DATA is taken FROM MEMORY when present in DATA CACHE (See note 1).
+  >Paging: Off  Addressing: Physical
+DATA is taken FROM MEMORY when present in DATA CACHE (See note 1).
+  >Paging: On , Addressing: Through normal page table
+DATA is NOT COPIED to DATA CACHE when READING from memory (See note 1).
+INSTRUCTION is taken FROM MEMORY when present in INSTRUCTION CACHE (See note 1).
+INSTRUCTION is NOT COPIED to INSTRUCTION CACHE when READING from memory (See note 1).
+MIXED UP ADDRESSING between DATA CACHE and INSTRUCTION CACHE (See note 21).
+```
+
+Read that as a whole rather than line by line. The cache is **inert in both
+directions, in both halves, paged and unpaged**: nothing is ever written into
+it, and nothing is ever read out of it. CUP being dead is not a separate fault
+to chase - it is what a never-written cache looks like from the status register.
+
+Note 21 ("Data Cache and Instruction Cache were written with two different data
+... when using Data Cache, the data from Instruction Cache is found") is most
+likely a CONSEQUENCE, not a second fault. If both caches are dead, both reads
+fall through to main memory and return whichever of the two patterns was
+written there last - which the test cannot distinguish from a cross-wired
+address. Stated as the reading it is, not as a measurement.
+
+### What that rules in
+
+A cache write is `PAL_44402D` asserting WCA. From the PALASM
+(`DesignDocuments/PAL-Code/SRC/44402D.txt`):
+
+```
+IF (VCC) WCA = /RT * DT * EWC * CYD * /FMISS * /LSHADOW    ; WRITE OUTSIDE SHADOW
+              + RT * /IHIT * EWC * CYD * /FMISS * /LSHADOW ; FETCH/READ WITHOUT HIT
+```
+
+Both terms need `EWC` and `CYD` high and `FMISS` and `LSHADOW` low.
+
+**Checked and cleared tonight, against the listing rather than by inspection:**
+
+- `PAL_44402D_EN.v` is transcribed correctly. Both product terms match term for
+  term, and so does the registered/combinational split: `WCA` and `USED` are
+  `=` (combinational, pins 18 and 19), only `IHIT`, `NUBI` and `NUBD` are `:=`
+  (pins 14-17, the four flip-flops a PAL16R4 actually has). This is the exact
+  axis on which `PAL_44511A` was wrong, so it was worth checking here first.
+- `CON` is not the blocker. With the cache enabled `s_con = SW1_CONSOLE`, and
+  `ND120_CORE.v:1184` ties `SW1_CONSOLE` high.
+- The cache RAMs really are present in this build. The block that omits them
+  sits inside `ifdef ND120_NO_CACHE`, and `cache` was passed, so the `else`
+  branch with the five real memories is what got built. (Worth stating because
+  the omission block reads alarmingly like the bug when skimmed.)
+
+**That leaves exactly five candidates:** `WCINH_n`, `BRK_n`, `CYD`, `FMISS`,
+`LSHADOW`. None of them is tied off anywhere in the hierarchy - checked - so
+reading the source cannot choose between them. It has to be measured running.
+
+### Standing suspect, NOT verified
+
+`FMISS`. It is Q0 of flip-flop `A160` in `DECODE_DGA_COMM.v`, and its D input
+comes back through `A177 = NAND(LCS_n, MREQ, FMISS)` - a self-hold. Once FMISS
+sets it stays set for as long as MREQ is asserted. The PAL's own revision note
+says why that would be fatal here:
+
+```
+;D 030987 JLB: ... WCA SHOULD NOT APPEAR WHEN FMISS (TSET FAILS).
+```
+
+A stuck FMISS blocks both WCA terms and produces precisely the symptom
+measured. This is a suspicion with a mechanism, not a finding.
+
+### The measurement now armed
+
+`DBG_CACHE` carries all six signals from `CPU_MMU_24` up through `CPU_15`,
+`ND3202D` and `ND120_CORE` to `s_ila_cache` at the top, on the ILA:
+
+```
+[0] LSHADOW  [1] FMISS  [2] CYD  [3] BRK_n  [4] WCINH_n  [5] WCA_n
+```
+
+Build it with `-tclargs vgaconsole cache ila` and capture while CACHE-1X0-A00
+test 2 runs. If WCA_n never falls, the other five bits name the term holding it
+off, and the guessing stops.
+
+This supersedes the earlier "next measurement should be whether `WCLIM_n` ever
+goes low". WCLIM_n is downstream of the same question and narrower; if nothing
+is ever written to the cache at all, the limit registers are not where to start.
