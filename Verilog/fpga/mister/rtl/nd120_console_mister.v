@@ -206,6 +206,7 @@ module nd120_console_mister #(
       .panel_pil         (4'd0),
       .panel_lev0        (1'b0),
       .panel_hit         (1'b0),
+      .panel_lookup      (1'b0),
       .panel_ring        (2'd0),
       .panel_paging_on   (1'b0),
       .panel_interrupt_on(1'b0),

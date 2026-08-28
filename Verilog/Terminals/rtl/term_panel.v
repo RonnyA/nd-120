@@ -73,6 +73,10 @@ module term_panel #(
     input wire        mode,     //! 0 = 1x glyphs, 1 = 2x
     input wire        enable,   //! 0 = draw nothing at all
 
+    //! One pulse per frame. EVERYTHING displayed is latched on it - see the
+    //! frame-snapshot note below.
+    input wire        frame_tick,
+
     // ---- what the machine is doing -------------------------------------
     input wire [3:0] pil,          //! current program level, 0..15
     input wire [3:0] utilization,  //! 0..8, eighths of a bargraph
@@ -103,8 +107,14 @@ module term_panel #(
   // Block glyphs synthesised into the font's control-code slots by
   // font/make_font.py - see the note there.
   localparam [7:0] G_BAR0    = 8'h01;  //! +0..8 for eighths filled
-  localparam [7:0] G_LEVEL_ON  = 8'h0A;
-  localparam [7:0] G_LEVEL_OFF = 8'h0B;
+  //! A lamp is two cells wide, so each half has its own glyph - the outer pixel
+  //! of each is blank, giving 14 lit pixels with a 2 px gap to the next level.
+  //! One glyph used twice either runs the lamps together (full width) or splits
+  //! each one down the middle (narrow).
+  localparam [7:0] G_LEVEL_ON_L  = 8'h0A;
+  localparam [7:0] G_LEVEL_ON_R  = 8'h0E;
+  localparam [7:0] G_LEVEL_OFF_L = 8'h0B;
+  localparam [7:0] G_LEVEL_OFF_R = 8'h0F;
 
   localparam integer PANEL_COLS = 80;
   localparam integer PANEL_ROWS = 5;
@@ -227,6 +237,36 @@ module term_panel #(
                              (s_col <  COL_LEVELS[6:0] + 7'd32);
   wire       s_level_lamp  = s_in_levels && (s_col[0] == COL_LEVELS[0]);
 
+  //--------------------------------------------------------------------------
+  // THE FRAME SNAPSHOT
+  //
+  // Every value the panel draws is captured once per frame and held for all of
+  // it. Not tidiness - the fix for what the display actually looked like.
+  //
+  // The inputs change on the CPU's schedule, not the beam's: PIL moves every
+  // few microseconds, the glow counters decay continuously, the meters publish
+  // whenever their window closes. Rendering straight from them lets a lamp be
+  // lit while the beam draws its top half and dark by the bottom - a single
+  // glyph not even rendering consistently down its own 16 rows. That is what
+  // "shadows on the boxes" and "unstable rendering" were on hardware.
+  //
+  // The STATUS fields go slower still. PROTECT RING, INTERRUPT and PAGING
+  // flipping the instant an instruction changes them is not what the real
+  // machine did - its panel processor sends packets every 20 ms and the LCD has
+  // response time on top, which Ronny puts at 200-300 ms. SLOW_FRAMES gives
+  // ~267 ms. A field that changes 60 times a second is a strobe, not a display.
+  //--------------------------------------------------------------------------
+
+  localparam integer SLOW_FRAMES = 16;   //! ~267 ms at 60 Hz
+
+  reg [4:0]  s_slow_cnt;
+  reg [15:0] r_lamp;
+  reg [3:0]  r_util, r_hit, r_pil;
+  reg [1:0]  r_ring;
+  reg        r_paging, r_interrupt, r_running;
+  reg [4:0]  r_up_h;
+  reg [5:0]  r_up_m, r_up_s;
+
   //! Afterglow. The real field has it so a single instruction on a level stays
   //! visible; without it a level the CPU touches for a few microseconds would
   //! never be seen on a 60 Hz screen. One counter per level, reloaded while the
@@ -259,21 +299,60 @@ module term_panel #(
     end
   end
 
-  wire s_level_lit = (s_glow[s_level_index] != 8'd0);
+  //! All 16 lamps as one vector, so the frame latch captures them together.
+  wire [15:0] s_lamp_now;
+  genvar gl;
+  generate
+    for (gl = 0; gl < 16; gl = gl + 1) begin : g_lamp
+      assign s_lamp_now[gl] = (s_glow[gl] != 8'd0);
+    end
+  endgenerate
+
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      s_slow_cnt <= 5'd0;
+      r_lamp <= 16'd0; r_util <= 4'd0; r_hit <= 4'd0; r_pil <= 4'd0;
+      r_ring <= 2'd0; r_paging <= 1'b0; r_interrupt <= 1'b0; r_running <= 1'b0;
+      r_up_h <= 5'd0; r_up_m <= 6'd0; r_up_s <= 6'd0;
+    end else if (frame_tick) begin
+      // Per frame: the things that must keep up with the machine. The lamp
+      // vector especially - the afterglow exists to make brief visits visible,
+      // and sampling it slowly would discard the very events it is for.
+      r_lamp <= s_lamp_now;
+      r_util <= utilization;
+      r_hit  <= cache_hit;
+      r_pil  <= pil;
+      r_up_h <= up_hours;
+      r_up_m <= up_minutes;
+      r_up_s <= up_seconds;
+
+      if (s_slow_cnt == SLOW_FRAMES[4:0] - 5'd1) begin
+        s_slow_cnt  <= 5'd0;
+        r_ring      <= ring;
+        r_paging    <= paging_on;
+        r_interrupt <= interrupt_on;
+        r_running   <= running;
+      end else begin
+        s_slow_cnt <= s_slow_cnt + 5'd1;
+      end
+    end
+  end
+
+  wire s_level_lit = r_lamp[s_level_index];
 
   //! Uptime digits. Two cells per field plus the colons, laid out hh:mm:ss.
   wire [3:0] s_up_col = s_col - COL_UPTIME_VALUE[6:0];
   reg  [7:0] s_uptime_char;
   always @(*) begin
     case (s_up_col)
-      4'd0: s_uptime_char = 8'h30 + {4'b0, up_hours   / 5'd10};
-      4'd1: s_uptime_char = 8'h30 + {4'b0, up_hours   % 5'd10};
+      4'd0: s_uptime_char = 8'h30 + {4'b0, r_up_h   / 5'd10};
+      4'd1: s_uptime_char = 8'h30 + {4'b0, r_up_h   % 5'd10};
       4'd2: s_uptime_char = ":";
-      4'd3: s_uptime_char = 8'h30 + {4'b0, up_minutes / 6'd10};
-      4'd4: s_uptime_char = 8'h30 + {4'b0, up_minutes % 6'd10};
+      4'd3: s_uptime_char = 8'h30 + {4'b0, r_up_m / 6'd10};
+      4'd4: s_uptime_char = 8'h30 + {4'b0, r_up_m % 6'd10};
       4'd5: s_uptime_char = ":";
-      4'd6: s_uptime_char = 8'h30 + {4'b0, up_seconds / 6'd10};
-      4'd7: s_uptime_char = 8'h30 + {4'b0, up_seconds % 6'd10};
+      4'd6: s_uptime_char = 8'h30 + {4'b0, r_up_s / 6'd10};
+      4'd7: s_uptime_char = 8'h30 + {4'b0, r_up_s % 6'd10};
       default: s_uptime_char = 8'h20;
     endcase
   end
@@ -313,28 +392,30 @@ module term_panel #(
     if (s_in_levels) begin
       // Only the first column of the pair carries the lamp; the second is the
       // gap between lamps, so each level reads as one square.
-      s_live_char   = !s_level_lamp ? 8'h20
-                    : s_level_lit   ? G_LEVEL_ON
-                                    : G_LEVEL_OFF;
+      // Both columns, each with its own half-glyph, so the pair forms one
+      // 14 px lamp with a clear gap to the next level.
+      s_live_char   = s_level_lamp
+                    ? (s_level_lit ? G_LEVEL_ON_L : G_LEVEL_OFF_L)
+                    : (s_level_lit ? G_LEVEL_ON_R : G_LEVEL_OFF_R);
       s_live_colour = C_LCDINK;
     end else if (s_col >= COL_UTIL_BAR[6:0] &&
                  s_col <  COL_UTIL_BAR[6:0] + UTIL_BAR_W[6:0] && s_row == 3'd1) begin
-      s_live_char   = bar_char(utilization, s_col - COL_UTIL_BAR[6:0], UTIL_BAR_W[3:0]);
+      s_live_char   = bar_char(r_util, s_col - COL_UTIL_BAR[6:0], UTIL_BAR_W[3:0]);
       s_live_colour = C_LCDINK;
     end else if (s_col >= COL_HIT_BAR[6:0] &&
                  s_col <  COL_HIT_BAR[6:0] + HIT_BAR_W[6:0] && s_row == 3'd1) begin
-      s_live_char   = bar_char(cache_hit, s_col - COL_HIT_BAR[6:0], HIT_BAR_W[3:0]);
+      s_live_char   = bar_char(r_hit, s_col - COL_HIT_BAR[6:0], HIT_BAR_W[3:0]);
       s_live_colour = C_LCDINK;
     end else if (s_col == COL_RING_VALUE[6:0] && s_row == 3'd1) begin
-      s_live_char   = 8'h30 + {6'b0, ring};
+      s_live_char   = 8'h30 + {6'b0, r_ring};
       s_live_colour = C_LCDINK;
     end else if (s_col >= COL_INT_VALUE[6:0] && s_col < COL_INT_VALUE[6:0] + 7'd3
                  && s_row == 3'd1) begin
-      s_live_char   = onoff_char(s_col - COL_INT_VALUE[6:0], interrupt_on);
+      s_live_char   = onoff_char(s_col - COL_INT_VALUE[6:0], r_interrupt);
       s_live_colour = C_LCDINK;
     end else if (s_col >= COL_PAGE_VALUE[6:0] && s_col < COL_PAGE_VALUE[6:0] + 7'd3
                  && s_row == 3'd1) begin
-      s_live_char   = onoff_char(s_col - COL_PAGE_VALUE[6:0], paging_on);
+      s_live_char   = onoff_char(s_col - COL_PAGE_VALUE[6:0], r_paging);
       s_live_colour = C_LCDINK;
     end else if (s_row == 3'd2 && s_col >= COL_UPTIME_VALUE[6:0]
                  && s_col < COL_UPTIME_VALUE[6:0] + 7'd8) begin
@@ -345,8 +426,8 @@ module term_panel #(
       // only the currently usable words are lit; here RUNNING and OPCOM are
       // mutually exclusive, which is what the machine actually reports.
       if (s_row == 3'd1) begin
-        s_live_char   = running ? {8'h20} : 8'h20;
-        s_live_colour = running ? C_LIT : C_DARK;
+        s_live_char   = 8'h20;
+        s_live_colour = r_running ? C_LIT : C_DARK;
       end else begin
         s_live_char   = 8'h20;
         s_live_colour = C_DARK;

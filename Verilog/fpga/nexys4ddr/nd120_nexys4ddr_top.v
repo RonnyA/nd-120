@@ -559,6 +559,8 @@ module nd120_nexys4ddr_top (
 
   wire s_pixel, s_de, s_bell;
   wire [2:0] s_colour;
+  //! Sync straight off the core, before the output register below.
+  wire s_hs_w, s_vs_w;
 
   // --- the power-on banner -------------------------------------------------
   // Prints a self-test message before the machine says anything, then gets out
@@ -619,6 +621,9 @@ module nd120_nexys4ddr_top (
       .panel_pil         (s_pil),
       .panel_lev0        (s_dbg_panel[5]),
       .panel_hit         (s_dbg_panel[4]),
+      // [6] is LAPA_n, active low, so lookup-in-progress is its inverse - the
+      // denominator of the hit rate.
+      .panel_lookup      (~s_dbg_panel[6]),
       .panel_ring        (s_dbg_panel[1:0]),
       .panel_paging_on   (s_dbg_panel[2]),
       .panel_interrupt_on(s_dbg_panel[3]),
@@ -631,8 +636,8 @@ module nd120_nexys4ddr_top (
       .pix_clk  (clk_pix),
       .pix_rst_n(pix_rst_n),
       .pixel    (s_pixel),
-      .hsync    (vga_hs),
-      .vsync    (vga_vs),
+      .hsync    (s_hs_w),
+      .vsync    (s_vs_w),
       .de       (s_de),
       .bell     (s_bell)
   );
@@ -660,10 +665,27 @@ module nd120_nexys4ddr_top (
     endcase
   end
 
-  wire [11:0] s_rgb_on = s_de ? s_rgb : 12'h000;
-  assign vga_r = s_rgb_on[11:8];
-  assign vga_g = s_rgb_on[7:4];
-  assign vga_b = s_rgb_on[3:0];
+  //! REGISTERED on the way out, not driven combinationally from the palette
+  //! lookup. A combinational path to a pin carries every intermediate value the
+  //! logic passes through on the way to its answer, and into a resistor-ladder
+  //! DAC those are real analogue steps - narrow, but the monitor samples
+  //! continuously, so they show as shimmer on edges. One flop costs one pixel
+  //! of delay and gives the DAC a single clean transition per pixel. Sync goes
+  //! through the same stage so it stays aligned with the colour.
+  reg [11:0] s_rgb_q;
+  reg        s_hs_q, s_vs_q;
+
+  always @(posedge clk_pix) begin
+      s_rgb_q <= s_de ? s_rgb : 12'h000;
+      s_hs_q  <= s_hs_w;
+      s_vs_q  <= s_vs_w;
+  end
+
+  assign vga_hs = s_hs_q;
+  assign vga_vs = s_vs_q;
+  assign vga_r  = s_rgb_q[11:8];
+  assign vga_g  = s_rgb_q[7:4];
+  assign vga_b  = s_rgb_q[3:0];
 
   // --- keyboard -> machine -------------------------------------------------
   wire       s_key_valid;

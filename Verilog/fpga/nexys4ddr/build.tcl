@@ -221,6 +221,7 @@ if {$vga_console} {
                cdc_byte.v terminal_top.v ps2_keyboard.v ps2_decoder.v
                ps2_ascii_table.v term_banner.v term_banner_rom.v
                term_console_feed.v term_panel.v term_panel_rom.v rate_meter.v
+               ratio_meter.v
                console_uart_rx.v console_uart_tx.v} {
         lappend srcs [file join $tdir $f]
     }

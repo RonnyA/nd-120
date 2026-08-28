@@ -160,10 +160,22 @@ def block_glyphs():
             # r counts from the top; fill the bottom (n*2) rows
             rows.append(0x7E if r >= 16 - n * 2 else 0x00)
         g[0x01 + n] = bytes(rows)
-    # 0x0A - ACTIVE LEVEL cell, lit
-    g[0x0A] = bytes([0x00]*3 + [0x3C]*10 + [0x00]*3)
-    # 0x0B - ACTIVE LEVEL cell, unlit (the faint ghost segment)
-    g[0x0B] = bytes([0x00]*7 + [0x3C] + [0x00]*8)
+    # ACTIVE LEVEL lamps. A lamp spans TWO character cells, so it needs a left
+    # half and a right half rather than one glyph used twice:
+    #
+    #   narrow glyph (0x3C) in both halves -> a gap down the MIDDLE of every
+    #     lamp, which reads as two small boxes per level
+    #   full width (0xFF) in both halves   -> 16 px with no gap at all, and the
+    #     row of lamps runs together into one continuous bar
+    #
+    # Blanking only the OUTER pixel of each half gives 14 lit pixels per lamp
+    # with a 2 px gap to its neighbour: one solid box per level, clearly
+    # separated. 0x7F drops the leftmost pixel (MSB is leftmost), 0xFE the
+    # rightmost.
+    g[0x0A] = bytes([0x00]*3 + [0x7F]*10 + [0x00]*3)   # lit, left half
+    g[0x0E] = bytes([0x00]*3 + [0xFE]*10 + [0x00]*3)   # lit, right half
+    g[0x0B] = bytes([0x00]*7 + [0x7F] + [0x00]*8)      # unlit, left half
+    g[0x0F] = bytes([0x00]*7 + [0xFE] + [0x00]*8)      # unlit, right half
     # 0x0C - solid block, for rules and the LCD surround
     g[0x0C] = bytes([0xFF]*16)
     # 0x0D - thin horizontal rule, vertically centred

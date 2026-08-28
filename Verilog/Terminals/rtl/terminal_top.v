@@ -111,6 +111,9 @@ module terminal_top #(
     input  wire [3:0] panel_pil,        //! current program level
     input  wire       panel_lev0,       //! LEV0 - running at level 0, i.e. idle
     input  wire       panel_hit,        //! HIT  - the ND-120's own cache
+    //! High while the lookup HIT belongs to is happening. Without it there is
+    //! no denominator and the CACHE HIT RATE bar cannot mean anything.
+    input  wire       panel_lookup,
     input  wire [1:0] panel_ring,       //! PCR protect ring
     input  wire       panel_paging_on,  //! PONI
     input  wire       panel_interrupt_on, //! IONI
@@ -231,13 +234,24 @@ module terminal_top #(
     //! UTILIZATION is the inverse of LEV0: the real panel's caption is how much
     //! time the machine was NOT idle, and idle on an ND is "running at level 0".
     wire [3:0] s_utilization;
-    rate_meter UTIL_METER (
+    //! WINDOW_BITS 24 is ~420 ms per step at 40 MHz rather than the default
+    //! 22's ~105 ms. Ronny's recollection of the real machine is that
+    //! UTILIZATION moved about twice a second at most; ten times a second
+    //! reads as noise rather than as a measurement. PEAK_HOLD lets it rise at
+    //! once and fall one eighth per window, so bursts of work stay visible.
+    rate_meter #(.PEAK_HOLD(1), .WINDOW_BITS(24)) UTIL_METER (
         .clk(pix_clk), .rst_n(pix_rst_n), .sample(!panel_lev0), .eighths(s_utilization)
     );
 
     wire [3:0] s_cache_hit;
-    rate_meter HIT_METER (
-        .clk(pix_clk), .rst_n(pix_rst_n), .sample(panel_hit), .eighths(s_cache_hit)
+    //! A RATIO, not a duty cycle. CACHE HIT RATE means hits per LOOKUP; the
+    //! duty-cycle meter measured hits per CLOCK, and lookups are a small
+    //! fraction of cycles, so the bar sat empty whatever the machine did.
+    //! 2^15 lookups per window with the same peak hold as UTILIZATION.
+    ratio_meter #(.PEAK_HOLD(1), .WINDOW_BITS(15)) HIT_METER (
+        .clk(pix_clk), .rst_n(pix_rst_n),
+        .attempt(panel_lookup), .success(panel_hit),
+        .eighths(s_cache_hit)
     );
 
     //! Uptime, counted in FRAMES rather than clocks. The frame rate is 60 Hz in
@@ -289,6 +303,10 @@ module terminal_top #(
         .y     (s_y_raw),
         .mode  (mode),
         .enable(panel_enable),
+        //! Everything the panel draws is latched on this, so a frame renders
+        //! from one coherent snapshot instead of from values that move while
+        //! the beam is still crossing the glyph.
+        .frame_tick(s_frame_end),
 
         .pil         (panel_pil),
         .utilization (s_utilization),

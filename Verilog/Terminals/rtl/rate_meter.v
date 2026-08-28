@@ -24,7 +24,12 @@
 module rate_meter #(
     //! 2^22 clocks is ~105 ms at 40 MHz - about ten updates a second, which is
     //! fast enough to look live and slow enough to read.
-    parameter integer WINDOW_BITS = 22
+    parameter integer WINDOW_BITS = 22,
+
+    //! 1 = the bar RISES at once and FALLS one eighth per window. Without it a
+    //! machine that pauses drops the bar straight to zero and the display flicks
+    //! between full and empty, which reads as noise. A real bargraph has lag.
+    parameter integer PEAK_HOLD = 0
 ) (
     input wire clk,
     input wire rst_n,
@@ -36,6 +41,9 @@ module rate_meter #(
 
   reg [WINDOW_BITS-1:0] s_window;
   reg [WINDOW_BITS-1:0] s_count;
+
+  //! This window's answer, before the peak hold decides what to show.
+  wire [3:0] s_new = {1'b0, s_count[WINDOW_BITS-1:WINDOW_BITS-3]};
 
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -49,7 +57,10 @@ module rate_meter #(
         // End of the window: publish, then start again. The ratio's top three
         // bits ARE the eighths - no divide, which is the reason the window is a
         // power of two.
-        eighths <= {1'b0, s_count[WINDOW_BITS-1:WINDOW_BITS-3]};
+        eighths <= (PEAK_HOLD == 0)      ? s_new
+                 : (s_new > eighths)     ? s_new
+                 : (eighths == 4'd0)     ? 4'd0
+                                         : eighths - 4'd1;
         s_count <= {{(WINDOW_BITS-1){1'b0}}, sample};
       end else if (sample) begin
         s_count <= s_count + 1'b1;

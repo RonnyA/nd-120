@@ -394,6 +394,7 @@ TODO: Sort bits on output LED to match led numbering
   wire        s_gnt_n;
   wire        s_gnt50_n;
   wire        s_hit;
+  wire        s_dbg_lapa_n;
   wire        s_ibapr_n;
   wire        s_ibdap_n;
   wire        s_ibdry_n;
@@ -643,7 +644,12 @@ TODO: Sort bits on output LED to match led numbering
   assign LA_23_10 = 13'b0; //TODO: Where is the LA signal ??
 
   // The five Port-D panel signals, in Port-D order. See the port comment.
-  assign DBG_PANEL = {2'b00, s_lev0, s_hit, s_ioni, s_poni, s_pcr_1_0[1:0]};
+  // [6] is LAPA_n, the cache/MMU lookup strobe. It is not a Port-D signal on
+  // the real board - the MC68705 there computes the hit rate in firmware from
+  // LHIT alone over time. We need the denominator explicitly, so it rides in
+  // the spare bit rather than costing another port.
+  assign DBG_PANEL = {1'b0, s_dbg_lapa_n, s_lev0, s_hit, s_ioni, s_poni,
+                      s_pcr_1_0[1:0]};
   assign CA_9_0 =s_ca_9_0;
 
   /* CHIP 21A 74LS374 */
@@ -882,7 +888,8 @@ TODO: Sort bits on output LED to match led numbering
       .XMIC_DBG_15_0(XMIC_DBG_15_0),            // DEBUG: microsequencer address-advance probe
       .DBG_PTW     (DBG_PTW),                   // DEBUG: page-table write stream (23-AUG)
       .DBG_PTW_LVL (DBG_PTW_LVL),               // DEBUG: live PT write-strobe level (27-AUG)
-      .PF_CAPTURED (PF_CAPTURED)                // DEBUG: freeze flag (23-AUG)
+      .PF_CAPTURED (PF_CAPTURED),                // DEBUG: freeze flag (23-AUG)
+      .DBG_LAPA_n  (s_dbg_lapa_n)                // DEBUG: MMU/cache lookup strobe - the hit-rate denominator
   );
 
 

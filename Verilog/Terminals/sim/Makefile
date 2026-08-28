@@ -59,7 +59,7 @@ test-console-loop: terminal_console_tb.vvp
 	@$(VVP) $< | tee terminal_console_tb.log
 	@grep -q "TB_RESULT: PASS" terminal_console_tb.log || { echo "terminal_console_tb FAILED"; exit 1; }
 
-terminal_console_tb.vvp: terminal_console_tb.v $(RTL)/console_uart_tx.v $(RTL)/console_uart_rx.v $(RTL)/terminal_top.v $(RTL)/terminal_ctrl.v $(RTL)/char_ram.v $(RTL)/text_screen.v $(RTL)/vga_timing.v $(RTL)/font_rom.v $(RTL)/cdc_byte.v $(RTL)/ps2_keyboard.v $(RTL)/ps2_decoder.v $(RTL)/ps2_ascii_table.v $(RTL)/term_console_feed.v $(RTL)/term_banner.v $(RTL)/term_banner_rom.v $(RTL)/term_panel.v $(RTL)/term_panel_rom.v $(RTL)/rate_meter.v
+terminal_console_tb.vvp: terminal_console_tb.v $(RTL)/console_uart_tx.v $(RTL)/console_uart_rx.v $(RTL)/terminal_top.v $(RTL)/terminal_ctrl.v $(RTL)/char_ram.v $(RTL)/text_screen.v $(RTL)/vga_timing.v $(RTL)/font_rom.v $(RTL)/cdc_byte.v $(RTL)/ps2_keyboard.v $(RTL)/ps2_decoder.v $(RTL)/ps2_ascii_table.v $(RTL)/term_console_feed.v $(RTL)/term_banner.v $(RTL)/term_banner_rom.v $(RTL)/term_panel.v $(RTL)/term_panel_rom.v $(RTL)/rate_meter.v $(RTL)/ratio_meter.v
 	$(IVERILOG) $(IVFLAGS) -o $@ $^
 
 test-text-screen: text_screen_tb.vvp
@@ -98,10 +98,10 @@ VERILATOR ?= verilator
 VVFLAGS = --lint-only -Wall   -Wno-BLKSEQ -Wno-DECLFILENAME -Wno-EOFNEWLINE -Wno-LATCH -Wno-PINCONNECTEMPTY   -Wno-PINMISSING -Wno-SYNCASYNCNET -Wno-TIMESCALEMOD -Wno-UNDRIVEN   -Wno-UNOPTFLAT -Wno-UNUSED -Wno-WIDTH
 
 lint:
-	$(VERILATOR) $(VVFLAGS) --top-module terminal_top $(RTL)/terminal_top.v $(RTL)/terminal_ctrl.v $(RTL)/char_ram.v $(RTL)/text_screen.v $(RTL)/vga_timing.v $(RTL)/font_rom.v $(RTL)/cdc_byte.v $(RTL)/term_panel.v $(RTL)/term_panel_rom.v $(RTL)/rate_meter.v
+	$(VERILATOR) $(VVFLAGS) --top-module terminal_top $(RTL)/terminal_top.v $(RTL)/terminal_ctrl.v $(RTL)/char_ram.v $(RTL)/text_screen.v $(RTL)/vga_timing.v $(RTL)/font_rom.v $(RTL)/cdc_byte.v $(RTL)/term_panel.v $(RTL)/term_panel_rom.v $(RTL)/rate_meter.v $(RTL)/ratio_meter.v
 	$(VERILATOR) $(VVFLAGS) --top-module ps2_keyboard 	  $(RTL)/ps2_keyboard.v $(RTL)/ps2_decoder.v $(RTL)/ps2_ascii_table.v
 	$(VERILATOR) $(VVFLAGS) --top-module ps2_decoder 	  $(RTL)/ps2_decoder.v $(RTL)/ps2_ascii_table.v
-	$(VERILATOR) $(VVFLAGS) --top-module term_panel 	  $(RTL)/term_panel.v $(RTL)/term_panel_rom.v $(RTL)/rate_meter.v $(RTL)/font_rom.v
+	$(VERILATOR) $(VVFLAGS) --top-module term_panel 	  $(RTL)/term_panel.v $(RTL)/term_panel_rom.v $(RTL)/rate_meter.v $(RTL)/ratio_meter.v $(RTL)/font_rom.v
 	$(VERILATOR) $(VVFLAGS) --top-module term_banner 	  $(RTL)/term_banner.v $(RTL)/term_banner_rom.v
 	$(VERILATOR) $(VVFLAGS) --top-module console_uart_rx $(RTL)/console_uart_rx.v
 	$(VERILATOR) $(VVFLAGS) --top-module console_uart_tx $(RTL)/console_uart_tx.v

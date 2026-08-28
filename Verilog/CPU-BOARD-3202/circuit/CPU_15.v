@@ -110,6 +110,11 @@ module CPU_15 (
     output RRF_n,        //! Output RRF signal from CPU to CYCLE
     output ECCR,         //! ECC Register Detected for IOX
     output HIT,          //! Cache hit
+    //! Page-address latch, active low - asserted while the MMU/cache lookup
+    //! that HIT belongs to is happening. Exported purely so the operator panel
+    //! can compute a hit RATE: HIT on its own is a level with no denominator,
+    //! and hits-per-clock is not what the CACHE HIT RATE field means.
+    output DBG_LAPA_n,
     output LEV0,         //! Level 0 active
     output LED1,         //! UNKNOWN: believed to indicate cache enabled, never traced. See Verilog/docs/SIGNALS.md
     output [12:0] CSA_12_0,     //! Microcode Address (for debugging)
@@ -380,6 +385,7 @@ module CPU_15 (
   assign RRF_n = s_rrf_n;
   assign ECCR = s_eccr;
   assign HIT = s_hit;
+  assign DBG_LAPA_n = s_lapa_n;
   assign LEV0 = s_lev0;
 
   assign LED1 = s_led1;

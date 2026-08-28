@@ -72,6 +72,9 @@ module term_panel_tb;
   ) DUT (
       .clk(clk), .rst_n(rst_n),
       .x(x), .y(y), .mode(mode), .enable(enable),
+      // Held high so the testbench sees values immediately; on hardware
+      // this is one pulse per frame.
+      .frame_tick(1'b1),
       .pil(pil), .utilization(utilization), .cache_hit(cache_hit),
       .ring(ring), .paging_on(paging_on), .interrupt_on(interrupt_on),
       .running(running),
