@@ -82,6 +82,14 @@ REGISTRY=(
   # the NUL for one cycle - it honours backpressure, and it goes silent forever
   # once done, so it can never collide with the machine's own output later.
   "Terminals/sim :: test-banner :: TB_RESULT: PASS"
+  # The operator panel. Checks properties rather than comparing a rendered
+  # frame - a model of the renderer would just repeat the renderer's own
+  # misunderstandings. Bounded region on all four sides (a region-maths error
+  # silently eats the console text above it), zero pixels claimed when disabled,
+  # and the level afterglow both FADES and EXPIRES. That last one is a
+  # regression test: the first decay constant took 28 minutes, which would have
+  # shown every level permanently lit and looked entirely plausible.
+  "Terminals/sim :: test-panel :: TB_RESULT: PASS"
   # --- MiSTer core ----------------------------------------------------------
   # The board-specific console glue, NOT the terminal core (that is above). The
   # three things tested here exist only on this board and each fails in a way

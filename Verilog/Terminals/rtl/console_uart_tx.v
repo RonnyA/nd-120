@@ -33,6 +33,16 @@ module console_uart_tx #(
     input wire clk,
     input wire rst_n,
 
+    //! CLOCKS PER BIT, AT RUN TIME. Zero means "use the CLK_HZ/BAUD parameters",
+    //! which is what every board did until the Nexys gained a second video mode.
+    //!
+    //! WHY THIS EXISTS. The console shares one clock domain with the video, so
+    //! switching the pixel clock between 800x600 (40 MHz) and 1920x1080 (148.5
+    //! MHz) also changes what a bit time is worth. A compile-time divisor would
+    //! be right in one mode and produce garbage in the other - and it would look
+    //! like a terminal bug rather than a clock bug, which is the expensive kind.
+    input wire [15:0] divisor_ovr,
+
     input  wire       byte_valid,  //! one clock; ignored unless ready
     input  wire [7:0] byte_data,
     output wire       ready,       //! high when idle
@@ -41,6 +51,8 @@ module console_uart_tx #(
 );
 
   localparam integer DIVISOR = CLK_HZ / BAUD;
+
+  wire [15:0] s_divisor = (divisor_ovr != 16'd0) ? divisor_ovr : DIVISOR[15:0];
   //! start + data + optional parity + stop
   localparam integer FRAME_BITS = 1 + DATA_BITS + (PARITY ? 1 : 0) + 1;
 
@@ -91,7 +103,7 @@ module console_uart_tx #(
           txd         <= 1'b0;  // start bit goes out immediately
         end
       end else begin
-        if (s_count == DIVISOR - 1) begin
+        if (s_count == s_divisor - 16'd1) begin
           s_count <= 16'd0;
           if (s_bit_index == FRAME_BITS - 1) begin
             s_busy <= 1'b0;

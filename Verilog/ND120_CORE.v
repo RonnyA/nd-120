@@ -244,7 +244,13 @@ module ND120_CORE #(
     output wire [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
     output wire [15:0] DEBUG_IREQ_15_0_N, //! DEBUG: raw interrupt-request vector (active low)
     output wire [15:0] XMIC_DBG_15_0,    //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
-    output wire DBG_PTW_LVL              //! live PT write-strobe level (~EPT_n & ~WMAP_n, 27-AUG overlap probe) - unconditional: every backend has PT chips
+    output wire DBG_PTW_LVL,             //! live PT write-strobe level (~EPT_n & ~WMAP_n, 27-AUG overlap probe) - unconditional: every backend has PT chips
+
+    //! Operator-panel status in MC68705 Port-D order - see the port comment in
+    //! ND3202D.v. Unconditional for the same reason DBG_PTW_LVL is: a debug
+    //! signal that anything outside a conditional touches must be declared
+    //! outside every conditional, or it vanishes on some builds and not others.
+    output wire [7:0] DBG_PANEL
 
 `ifdef MAIN_RAM_SDRAM
     /***************************************************
@@ -1197,7 +1203,8 @@ module ND120_CORE #(
       .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
       .DEBUG_IREQ_15_0_N(DEBUG_IREQ_15_0_N),
       .XMIC_DBG_15_0(XMIC_DBG_15_0),
-      .DBG_PTW_LVL(DBG_PTW_LVL)
+      .DBG_PTW_LVL(DBG_PTW_LVL),
+      .DBG_PANEL  (DBG_PANEL)
 
 `ifdef MAIN_RAM_SDRAM
       // SDRAM main memory (threaded down to MEM_43 -> MEM_RAM_49_SDRAM)

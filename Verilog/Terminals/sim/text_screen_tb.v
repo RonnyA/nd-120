@@ -85,6 +85,10 @@ module text_screen_tb;
   ) DUT (
       .clk(clk), .rst_n(rst_n),
       .ram_raddr(raddr), .ram_rdata(rdata),
+      // Font page 0 (US) and mode 0. The model reads the same hex file and
+      // page 0 is its first 128 glyphs, so model and DUT agree by construction.
+      .national(1'b0),
+      .mode(1'b0),
       .top_row(top_row),
       .cursor_col(cursor_col), .cursor_row(cursor_row),
       .cursor_enable(cursor_enable),

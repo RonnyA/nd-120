@@ -24,6 +24,9 @@ set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_ascii_table.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_banner.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_banner_rom.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_console_feed.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_panel.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_panel_rom.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/rate_meter.v
 
 # NOTE: ps2_keyboard.v is deliberately NOT here. It is the PS/2 SERIAL front
 # end, which the Nexys needs because its onboard microcontroller hands the FPGA

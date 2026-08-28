@@ -48,6 +48,8 @@ module ps2_keyboard #(
     input wire ps2_clk_in,   //! PS/2 clock from the keyboard
     input wire ps2_data_in,  //! PS/2 data from the keyboard
 
+    input wire layout_no,    //! 0 = US ANSI, 1 = Norwegian - see ps2_decoder.v
+
     output wire       ascii_valid,  //! one clock per decoded character
     output wire [7:0] ascii_data,   //! the character
 
@@ -213,6 +215,8 @@ module ps2_keyboard #(
       .code_data    (code_data),
       .code_release (code_release),
       .code_extended(code_extended),
+
+      .layout_no(layout_no),
 
       .ascii_valid(ascii_valid),
       .ascii_data (ascii_data),

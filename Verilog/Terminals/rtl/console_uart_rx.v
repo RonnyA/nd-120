@@ -39,6 +39,16 @@ module console_uart_rx #(
     input wire clk,
     input wire rst_n,
 
+    //! CLOCKS PER BIT, AT RUN TIME. Zero means "use the CLK_HZ/BAUD parameters",
+    //! which is what every board did until the Nexys gained a second video mode.
+    //!
+    //! WHY THIS EXISTS. The console shares one clock domain with the video, so
+    //! switching the pixel clock between 800x600 (40 MHz) and 1920x1080 (148.5
+    //! MHz) also changes what a bit time is worth. A compile-time divisor would
+    //! be right in one mode and produce garbage in the other - and it would look
+    //! like a terminal bug rather than a clock bug, which is the expensive kind.
+    input wire [15:0] divisor_ovr,
+
     input wire rxd,  //! the serial line, idle high
 
     output reg       byte_valid,  //! one clock per received byte
@@ -47,6 +57,9 @@ module console_uart_rx #(
 
   localparam integer DIVISOR   = CLK_HZ / BAUD;      //! clocks per bit
   localparam integer HALF_BIT  = DIVISOR / 2;
+
+  wire [15:0] s_divisor  = (divisor_ovr != 16'd0) ? divisor_ovr : DIVISOR[15:0];
+  wire [15:0] s_half_bit = {1'b0, s_divisor[15:1]};
   //! data bits + optional parity + the stop bit we wait through
   localparam integer TAIL_BITS = DATA_BITS + (PARITY ? 1 : 0);
 
@@ -89,7 +102,7 @@ module console_uart_rx #(
         end
 
         ST_START: begin
-          if (s_count == HALF_BIT - 1) begin
+          if (s_count == s_half_bit - 16'd1) begin
             if (!s_rxd) begin
               // Still low at the middle of the bit: a real start bit.
               s_state     <= ST_DATA;
@@ -106,7 +119,7 @@ module console_uart_rx #(
         ST_DATA: begin
           // From the middle of the start bit, every DIVISOR clocks lands in
           // the middle of the next bit.
-          if (s_count == DIVISOR - 1) begin
+          if (s_count == s_divisor - 16'd1) begin
             s_count <= 16'd0;
 
             if (s_bit_index < DATA_BITS) begin
@@ -126,7 +139,7 @@ module console_uart_rx #(
         end
 
         ST_STOP: begin
-          if (s_count == DIVISOR - 1) begin
+          if (s_count == s_divisor - 16'd1) begin
             s_count <= 16'd0;
             s_state <= ST_IDLE;
             if (s_rxd) begin

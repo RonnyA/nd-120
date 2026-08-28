@@ -41,10 +41,33 @@ module vga_timing #(
     //! 640x480 would want 0 on both - the one thing that changes with the mode
     //! besides the counts.
     parameter         H_SYNC_POSITIVE = 1'b1,
-    parameter         V_SYNC_POSITIVE = 1'b1
+    parameter         V_SYNC_POSITIVE = 1'b1,
+
+    // ------------------------------------------------------------------
+    // MODE 1 - a SECOND, runtime-selectable video mode.
+    //
+    // Defaults are 1920x1080@60 (CEA-861: 148.5 MHz pixel clock, both syncs
+    // POSITIVE). The board supplies the matching pixel clock; this module only
+    // counts, so it does not know or care what the clock actually is - which is
+    // exactly why the mode and the clock must be switched by the same bit.
+    // ------------------------------------------------------------------
+    parameter integer H2_VISIBLE     = 1920,
+    parameter integer H2_FRONT_PORCH = 88,
+    parameter integer H2_SYNC        = 44,
+    parameter integer H2_BACK_PORCH  = 148,
+    parameter integer V2_VISIBLE     = 1080,
+    parameter integer V2_FRONT_PORCH = 4,
+    parameter integer V2_SYNC        = 5,
+    parameter integer V2_BACK_PORCH  = 36,
+    parameter         H2_SYNC_POSITIVE = 1'b1,
+    parameter         V2_SYNC_POSITIVE = 1'b1
 ) (
-    input wire clk,      //! pixel clock
+    input wire clk,      //! pixel clock - MUST match the selected mode
     input wire rst_n,    //! async reset, active low
+
+    //! 0 = mode 0 (the H_*/V_* parameters), 1 = mode 1 (H2_*/V2_*).
+    //! Change this only together with the pixel clock.
+    input wire mode,
 
     output wire [11:0] x,        //! visible pixel column, 0..H_VISIBLE-1 (only valid while de)
     output wire [11:0] y,        //! visible pixel row,    0..V_VISIBLE-1 (only valid while de)
@@ -66,14 +89,34 @@ module vga_timing #(
   localparam integer V_SYNC_START = V_VISIBLE + V_FRONT_PORCH;
   localparam integer V_SYNC_END   = V_SYNC_START + V_SYNC;
 
+  localparam integer H2_TOTAL = H2_VISIBLE + H2_FRONT_PORCH + H2_SYNC + H2_BACK_PORCH;
+  localparam integer V2_TOTAL = V2_VISIBLE + V2_FRONT_PORCH + V2_SYNC + V2_BACK_PORCH;
+  localparam integer H2_SYNC_START = H2_VISIBLE + H2_FRONT_PORCH;
+  localparam integer H2_SYNC_END   = H2_SYNC_START + H2_SYNC;
+  localparam integer V2_SYNC_START = V2_VISIBLE + V2_FRONT_PORCH;
+  localparam integer V2_SYNC_END   = V2_SYNC_START + V2_SYNC;
+
+  //! The counts actually in force. Muxed rather than parameterised, because the
+  //! mode is chosen by a switch on the board at run time - the whole point.
+  wire [11:0] h_total     = mode ? H2_TOTAL[11:0]       : H_TOTAL[11:0];
+  wire [11:0] v_total     = mode ? V2_TOTAL[11:0]       : V_TOTAL[11:0];
+  wire [11:0] h_visible   = mode ? H2_VISIBLE[11:0]     : H_VISIBLE[11:0];
+  wire [11:0] v_visible   = mode ? V2_VISIBLE[11:0]     : V_VISIBLE[11:0];
+  wire [11:0] h_sync_beg  = mode ? H2_SYNC_START[11:0]  : H_SYNC_START[11:0];
+  wire [11:0] h_sync_fin  = mode ? H2_SYNC_END[11:0]    : H_SYNC_END[11:0];
+  wire [11:0] v_sync_beg  = mode ? V2_SYNC_START[11:0]  : V_SYNC_START[11:0];
+  wire [11:0] v_sync_fin  = mode ? V2_SYNC_END[11:0]    : V_SYNC_END[11:0];
+  wire        h_sync_pos  = mode ? H2_SYNC_POSITIVE     : H_SYNC_POSITIVE;
+  wire        v_sync_pos  = mode ? V2_SYNC_POSITIVE     : V_SYNC_POSITIVE;
+
   reg [11:0] s_hcount;
   reg [11:0] s_vcount;
 
   //! last pixel clock of a line / of a frame - used to advance the counters and
   //! exported so the character generator can do its per-line and per-frame work
   //! (cursor blink, row address reload) without re-deriving them.
-  assign line_end  = (s_hcount == H_TOTAL - 1);
-  assign frame_end = line_end && (s_vcount == V_TOTAL - 1);
+  assign line_end  = (s_hcount == h_total - 12'd1);
+  assign frame_end = line_end && (s_vcount == v_total - 12'd1);
 
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -89,8 +132,8 @@ module vga_timing #(
     end
   end
 
-  assign hblank = (s_hcount >= H_VISIBLE);
-  assign vblank = (s_vcount >= V_VISIBLE);
+  assign hblank = (s_hcount >= h_visible);
+  assign vblank = (s_vcount >= v_visible);
   assign de     = !hblank && !vblank;
 
   // x and y are only meaningful inside the visible area; outside it they keep
@@ -102,11 +145,11 @@ module vga_timing #(
   // The raw sync window, then the polarity applied. Kept in two steps because
   // getting the polarity backwards is the classic "monitor says no signal" bug
   // and this way the window itself is readable in a waveform.
-  wire s_hsync_window = (s_hcount >= H_SYNC_START) && (s_hcount < H_SYNC_END);
-  wire s_vsync_window = (s_vcount >= V_SYNC_START) && (s_vcount < V_SYNC_END);
+  wire s_hsync_window = (s_hcount >= h_sync_beg) && (s_hcount < h_sync_fin);
+  wire s_vsync_window = (s_vcount >= v_sync_beg) && (s_vcount < v_sync_fin);
 
-  assign hsync = H_SYNC_POSITIVE ? s_hsync_window : ~s_hsync_window;
-  assign vsync = V_SYNC_POSITIVE ? s_vsync_window : ~s_vsync_window;
+  assign hsync = h_sync_pos ? s_hsync_window : ~s_hsync_window;
+  assign vsync = v_sync_pos ? s_vsync_window : ~s_vsync_window;
 
 endmodule
 

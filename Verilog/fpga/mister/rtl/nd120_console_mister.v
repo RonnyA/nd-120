@@ -57,6 +57,13 @@ module nd120_console_mister #(
     //! From hps_io. {toggle, pressed, extended, code[7:0]}
     input wire [10:0] ps2_key,
 
+    //! 0 = US ANSI, 1 = Norwegian (NS 4551-1). Drives the keyboard table AND
+    //! the font page from one bit - see the note in ps2_ascii_table.v. On the
+    //! Nexys this is a slide switch; here it should become an OSD option
+    //! (CONF_STR) once build 2 has a machine behind the console. Wired now so
+    //! the two boards do not drift.
+    input wire        layout_no,
+
     //! The machine seam. Bytes from the ND-120's console UART come in here;
     //! keystrokes go back out. Unused in build 1.
     input  wire       cpu_byte_valid,
@@ -67,6 +74,7 @@ module nd120_console_mister #(
     output reg  [7:0] kbd_data,
 
     // Video, straight onto the framework's VGA_* ports
+    output wire [2:0] colour,  //! palette index - see terminal_top.v
     output wire pixel,  //! 1 = ink
     output wire hsync,
     output wire vsync,
@@ -103,6 +111,8 @@ module nd120_console_mister #(
       //! hps_io reports `pressed`; the decoder wants `release`.
       .code_release (~ps2_key[9]),
       .code_extended(ps2_key[8]),
+
+      .layout_no(layout_no),
 
       .ascii_valid(s_kbd_ascii_valid),
       .ascii_data (s_kbd_ascii_data),
@@ -184,6 +194,24 @@ module nd120_console_mister #(
       .byte_valid(s_src_valid),
       .byte_data (s_src_data),
       .byte_ready(s_term_ready),
+
+      .national (layout_no),
+      .mode     (1'b0),   // MiSTer runs one video mode; the scaler does the rest
+
+      // The operator panel is off on this board for now. Build 1 has no
+      // ND-120 behind the console, so every field would be a constant - and a
+      // panel showing constants is worse than no panel. It comes on in build 2
+      // with the CPU, wired from the same DBG_PANEL port the Nexys uses.
+      .panel_enable      (1'b0),
+      .panel_pil         (4'd0),
+      .panel_lev0        (1'b0),
+      .panel_hit         (1'b0),
+      .panel_ring        (2'd0),
+      .panel_paging_on   (1'b0),
+      .panel_interrupt_on(1'b0),
+      .panel_running     (1'b0),
+
+      .colour   (colour),
 
       .pix_clk  (clk),
       .pix_rst_n(rst_n),

@@ -397,3 +397,67 @@ Simulation coverage behind it: 8 testbenches (7 in `Terminals/sim` including a
 1,920,000-pixel frame comparison, 1 for the MiSTer glue), Verilator lint clean,
 zero inferred latches, and the default non-console bitstream proven unchanged by
 preprocessing the top level both ways.
+
+
+### Slide switches
+
+They have accumulated; this is the map.
+
+| Switch | 0 | 1 |
+|---|---|---|
+| `sw[0]` | 7-segment shows CSA | shows LA *(always zero - see below)* |
+| `sw[1]` | US keyboard + font | **Norwegian** (NS 4551-1) |
+| `sw[2]` | 800x600 @ 40 MHz | **1920x1080 @ 148.4 MHz** |
+| `sw[3]` | operator panel hidden | **operator panel shown** |
+| `sw[15:14]` | 7-segment right-hand source select | |
+
+`sw[13:4]` are free.
+
+**`sw[1]` switches the keyboard AND the font together, from one bit.** That is
+deliberate: a national variant is not a font choice and not a keyboard choice,
+it is one agreement about what six byte values mean. Selecting them separately
+would allow the state where you type AE and the screen draws `[`, which looks
+like a font bug and is not one.
+
+**`sw[2]` switches the pixel clock as well as the timing**, through a
+`BUFGMUX_CTRL`. A plain logic mux on a clock produces runt pulses, and a runt on
+the pixel clock does not give a glitchy picture - it gives flip-flops latching
+garbage into the character RAM. The console UART's divisor follows the same bit,
+because the console shares that clock domain: 347 clocks per bit at 40 MHz,
+1288 at 148.4 MHz.
+
+**`sw[3]` hides the panel; it does not remove it.** The logic is in the
+bitstream either way, so the switch costs one LUT and saves screen space, not
+fabric.
+
+### The operator panel
+
+A recreation of the machine's own folio panel, drawn below the console text.
+The fields are not a design choice: the ND-120's panel processor - an MC68705U3
+at board position 35C, schematic sheet 40 of 50 dated 5-OCT-1987, transcribed
+here as `IO_PANCAL_40.v` - samples exactly these on its Port D, and
+`ND3202D.DBG_PANEL` now brings the same five signals out in the same bit order.
+
+| Field | Signal |
+|---|---|
+| PROTECT RING | `PCR_1_0` |
+| PAGING ON/OFF | `PONI` |
+| INTERRUPT ON/OFF | `IONI` |
+| CACHE HIT RATE | `HIT` - the ND-120's **own** cache, not the FPGA line cache |
+| UTILIZATION | `LEV0` - idle is "running at level 0", so the bar is `!LEV0` |
+| CURRENT LEVEL | `PIL`, with afterglow |
+
+Two fields deliberately depart from the real panel, because the alternative
+would look right and be wrong:
+
+- **CURRENT LEVEL, not ACTIVE LEVEL.** The real display lights every *active*
+  level at once, fed from the microprogram in PANC packets. We have PIL, the one
+  level running now. Same picture, different claim - so the caption changed.
+- **`UP:hh:mm:ss`, not DAY/TIME.** The real clock is a battery-backed MM58274 on
+  standby power. We have no panel processor and no calendar. Uptime is counted
+  in *frames*, not clocks, so it stays correct when `sw[2]` changes the pixel
+  clock.
+
+Design mockup and the full provenance of every field:
+<https://claude.ai/code/artifact/65f75e7c-ce77-4724-89ab-8b219d19f9a9>
+

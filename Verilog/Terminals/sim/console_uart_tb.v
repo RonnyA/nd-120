@@ -58,6 +58,7 @@ module console_uart_tb;
       .CLK_HZ(CLK_HZ), .BAUD(BAUD), .DATA_BITS(7), .PARITY(1'b1), .PARITY_ODD(1'b0)
   ) TX7 (
       .clk(clk), .rst_n(rst_n),
+      .divisor_ovr(16'd0),   // use the CLK_HZ/BAUD parameters
       .byte_valid(tx7_valid), .byte_data(tx7_data), .ready(tx7_ready),
       .txd(tx7_line)
   );
@@ -66,6 +67,7 @@ module console_uart_tb;
       .CLK_HZ(CLK_HZ), .BAUD(BAUD), .DATA_BITS(7), .PARITY(1'b1)
   ) RX7 (
       .clk(clk), .rst_n(rst_n),
+      .divisor_ovr(16'd0),   // use the CLK_HZ/BAUD parameters
       .rxd(merged7),
       .byte_valid(rx7_valid), .byte_data(rx7_data)
   );
@@ -86,6 +88,7 @@ module console_uart_tb;
       .CLK_HZ(CLK_HZ), .BAUD(BAUD), .DATA_BITS(8), .PARITY(1'b0)
   ) TX8 (
       .clk(clk), .rst_n(rst_n),
+      .divisor_ovr(16'd0),   // use the CLK_HZ/BAUD parameters
       .byte_valid(tx8_valid), .byte_data(tx8_data), .ready(tx8_ready),
       .txd(tx8_line)
   );
@@ -94,6 +97,7 @@ module console_uart_tb;
       .CLK_HZ(CLK_HZ), .BAUD(BAUD), .DATA_BITS(8), .PARITY(1'b0)
   ) RX8 (
       .clk(clk), .rst_n(rst_n),
+      .divisor_ovr(16'd0),   // use the CLK_HZ/BAUD parameters
       .rxd(tx8_line),
       .byte_valid(rx8_valid), .byte_data(rx8_data)
   );

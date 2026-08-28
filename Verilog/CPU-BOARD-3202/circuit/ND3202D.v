@@ -157,7 +157,21 @@ module ND3202D (
     output [15:0] DEBUG_FIDBO_15_0, // FIDBO internal data bus
     output [15:0] DEBUG_IREQ_15_0_N, // DEBUG: raw interrupt-request vector (active low)
     output [15:0] XMIC_DBG_15_0,    // DEBUG: microsequencer address-advance probe (Tang 06000-hang)
-    output       DBG_PTW_LVL        // live PT write-strobe level (~EPT_n & ~WMAP_n, 27-AUG overlap probe)
+    output       DBG_PTW_LVL,       // live PT write-strobe level (~EPT_n & ~WMAP_n, 27-AUG overlap probe)
+
+    // Operator-panel status, packed in the SAME BIT ORDER as the MC68705U3's
+    // Port D on the real board (schematic sheet 40 of 50, 5-OCT-1987; see
+    // IO_PANCAL_40.v). Every one of these already feeds the panel processor
+    // instance below - this port only brings the same five signals out to the
+    // FPGA top so a screen can draw what the real panel drew:
+    //
+    //   [1:0] PCR_1_0  protect ring      [4] HIT   cache hit (the ND-120's OWN
+    //   [2]   PONI     paging on             cache, not the FPGA line cache)
+    //   [3]   IONI     interrupt on      [5] LEV0  running at level 0 = idle
+    //
+    // Bits [7:6] read zero. Purely an observation port: nothing here changes
+    // what the CPU does, and leaving it unconnected costs nothing.
+    output [7:0] DBG_PANEL
 
 `ifdef MAIN_RAM_SDRAM
     // SDRAM main-memory backend (Tang Nano 20K) - threaded down to MEM_43.
@@ -627,6 +641,9 @@ TODO: Sort bits on output LED to match led numbering
   assign CD_15_0 = s_cpu_cd_15_0_in;
   assign LBD_15_0 = s_bif_lbd_23_0_out[15:0] | s_mem_lbd_23_0_out[15:0];
   assign LA_23_10 = 13'b0; //TODO: Where is the LA signal ??
+
+  // The five Port-D panel signals, in Port-D order. See the port comment.
+  assign DBG_PANEL = {2'b00, s_lev0, s_hit, s_ioni, s_poni, s_pcr_1_0[1:0]};
   assign CA_9_0 =s_ca_9_0;
 
   /* CHIP 21A 74LS374 */

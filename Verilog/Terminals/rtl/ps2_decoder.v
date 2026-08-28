@@ -41,6 +41,11 @@ module ps2_decoder (
     input wire       code_release,   //! this was a key RELEASE (F0 seen)
     input wire       code_extended,  //! this had the E0 prefix
 
+    //! 0 = US ANSI, 1 = Norwegian. Changes both which key carries a character
+    //! and which ISO 646 byte it sends - see ps2_ascii_table.v. The SCREEN must
+    //! be switched with the same bit or a typed AE draws as '['.
+    input wire       layout_no,
+
     output reg       ascii_valid,  //! one clock per character produced
     output reg [7:0] ascii_data,
 
@@ -69,6 +74,7 @@ module ps2_decoder (
 
   ps2_ascii_table TABLE (
       .code     (code_data),
+      .layout_no(layout_no),
       .unshifted(s_ascii_unshifted),
       .shifted  (s_ascii_shifted),
       .extended (s_ascii_extended)

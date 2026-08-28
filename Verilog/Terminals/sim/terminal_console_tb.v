@@ -59,6 +59,7 @@ module terminal_console_tb;
       .CLK_HZ(CLK_HZ), .BAUD(BAUD), .DATA_BITS(DATA_BITS), .PARITY(PARITY)
   ) MACHINE_TX (
       .clk(clk), .rst_n(rst_n),
+      .divisor_ovr(16'd0),   // use the CLK_HZ/BAUD parameters
       .byte_valid(mach_valid), .byte_data(mach_data), .ready(mach_ready),
       .txd(mach_line)
   );
@@ -70,6 +71,7 @@ module terminal_console_tb;
       .CLK_HZ(CLK_HZ), .BAUD(BAUD), .DATA_BITS(DATA_BITS), .PARITY(PARITY)
   ) CONSOLE_RX (
       .clk(clk), .rst_n(rst_n),
+      .divisor_ovr(16'd0),   // use the CLK_HZ/BAUD parameters
       .rxd(mach_line),
       .byte_valid(con_valid), .byte_data(con_data)
   );
@@ -81,6 +83,25 @@ module terminal_console_tb;
   ) TERMINAL (
       .byte_clk(clk), .byte_rst_n(rst_n),
       .byte_valid(con_valid), .byte_data(con_data), .byte_ready(),
+
+      // US font page, mode 0 (800x600, 1x glyphs). Both must be driven: an
+      // unconnected `mode` is X, and X into the sync comparators means no
+      // hsync and no vsync at all - which is exactly how this testbench failed
+      // when the ports were added and this instance was not updated.
+      .national(1'b0),
+      .mode(1'b0),
+
+      // Panel off: this testbench is about the console text path. The panel
+      // has its own checks.
+      .panel_enable(1'b0),
+      .panel_pil(4'd0),
+      .panel_lev0(1'b0),
+      .panel_hit(1'b0),
+      .panel_ring(2'd0),
+      .panel_paging_on(1'b0),
+      .panel_interrupt_on(1'b0),
+      .panel_running(1'b0),
+      .colour(),
 
       .pix_clk(clk), .pix_rst_n(rst_n),
       .pixel(pixel), .hsync(hsync), .vsync(vsync), .de(de),
@@ -110,6 +131,7 @@ module terminal_console_tb;
       .CLK_HZ(CLK_HZ), .BAUD(BAUD), .DATA_BITS(DATA_BITS), .PARITY(PARITY)
   ) CONSOLE_TX (
       .clk(clk), .rst_n(rst_n),
+      .divisor_ovr(16'd0),   // use the CLK_HZ/BAUD parameters
       .byte_valid(key_valid), .byte_data(key_data), .ready(),
       .txd(kbd_line)
   );
@@ -126,6 +148,7 @@ module terminal_console_tb;
       .CLK_HZ(CLK_HZ), .BAUD(BAUD), .DATA_BITS(DATA_BITS), .PARITY(PARITY)
   ) MACHINE_RX (
       .clk(clk), .rst_n(rst_n),
+      .divisor_ovr(16'd0),   // use the CLK_HZ/BAUD parameters
       .rxd(machine_rxd),
       .byte_valid(mrx_valid), .byte_data(mrx_data)
   );

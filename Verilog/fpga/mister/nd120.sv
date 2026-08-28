@@ -60,6 +60,8 @@ localparam CONF_STR = {
 	"-;",
 	"O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
 	"-;",
+	"O[6],Keyboard,US,Norwegian;",
+	"-;",
 	// Build 1 has no ND-120 in it, so there is nothing here to configure yet.
 	// Resisting the urge to leave the template's demo options in place: an
 	// option that does nothing is worse than no option, because the first
@@ -136,6 +138,7 @@ end
 // mapping and the keyboard with nothing of the CPU able to be blamed.
 
 wire con_pixel, con_hs, con_vs, con_de, con_bell;
+wire [2:0] con_colour;
 
 nd120_console_mister #(
 	.FONT_FILE("font8x16.hex"),   // found via SEARCH_PATH or the make font copy
@@ -146,6 +149,10 @@ nd120_console_mister #(
 
 	.ps2_key(ps2_key),
 
+	// Keyboard/font national variant, from the OSD. One bit drives both, which
+	// is the point - see Terminals/rtl/ps2_ascii_table.v.
+	.layout_no(status[6]),
+
 	// The machine seam. Nothing drives it in build 1.
 	.cpu_byte_valid(1'b0),
 	.cpu_byte_data (8'h00),
@@ -154,6 +161,7 @@ nd120_console_mister #(
 	.kbd_valid(),
 	.kbd_data (),
 
+	.colour(con_colour),
 	.pixel(con_pixel),
 	.hsync(con_hs),
 	.vsync(con_vs),
@@ -172,11 +180,26 @@ assign VGA_DE = con_de;
 assign VGA_HS = con_hs;
 assign VGA_VS = con_vs;
 
-// White on black. Monochrome is what the real terminal was, and it also means
-// a wrong colour cannot be mistaken for a wrong pixel.
-assign VGA_R = con_pixel ? 8'hFF : 8'h00;
-assign VGA_G = con_pixel ? 8'hFF : 8'h00;
-assign VGA_B = con_pixel ? 8'hFF : 8'h00;
+// The core says WHICH of eight things a pixel is; this board picks the colour.
+// Panel colours are sampled from the photograph of the real folio panel.
+reg [23:0] rgb;
+always @(*) begin
+	case (con_colour)
+		3'd0: rgb = 24'h000000;   // black
+		3'd1: rgb = 24'hFFFFFF;   // console text
+		3'd2: rgb = 24'h191b19;   // panel fascia
+		3'd3: rgb = 24'hd6d9d2;   // silkscreen
+		3'd4: rgb = 24'hb6c2a4;   // LCD ground
+		3'd5: rgb = 24'h2a3226;   // LCD segment
+		3'd6: rgb = 24'he04a63;   // lit legend
+		3'd7: rgb = 24'h444444;   // unlit legend
+		default: rgb = 24'h000000;
+	endcase
+end
+
+assign VGA_R = con_de ? rgb[23:16] : 8'h00;
+assign VGA_G = con_de ? rgb[15:8]  : 8'h00;
+assign VGA_B = con_de ? rgb[7:0]   : 8'h00;
 
 // Heartbeat off the PLL output. This is the ONE signal that still means
 // something when the screen is black: if it breathes, the PLL locked and

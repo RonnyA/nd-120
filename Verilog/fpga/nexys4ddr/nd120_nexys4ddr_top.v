@@ -55,7 +55,7 @@ module nd120_nexys4ddr_top (
     input wire cpu_resetn,  // C12, red CPU RESET button (ACTIVE LOW)
     input wire btnc,        // N17, centre button
 
-    input  wire [15:0] sw,  // sw[0] = 7-segment source select
+    input  wire [15:0] sw,  // [0] 7-seg source  [1] US/Norwegian  [3] operator panel
     input  wire        uart_txd_in,   // C4, PC -> FPGA
     output wire        uart_rxd_out,  // D4, FPGA -> PC
 
@@ -120,7 +120,12 @@ module nd120_nexys4ddr_top (
   wire clkfb_out, clkfb_in, mmcm_locked;
   wire clk_cpu, clk_stor, clk200;
 `ifdef ND120_CONSOLE_VGA
-  wire clk_pix_pre, clk_pix;   // 40 MHz, the VGA console pixel clock
+  wire clk_pix_pre, clk_pix;    // 40 MHz  - 800x600@60
+  wire clk_pix2_pre, clk_pix2;  // 148.4 MHz - 1920x1080@60
+  //! The buffered 40 MHz, before the mux. Declared HERE, above the BUFG that
+  //! drives it - a signal used above its declaration is what stopped the first
+  //! console build of the night, and it is an easy mistake to repeat.
+  wire clk_pix_lo;
 `endif
 
 `ifndef ND120_N4DDR_MMCM_DIV
@@ -162,7 +167,60 @@ module nd120_nexys4ddr_top (
   // MIG's project sets SystemClock = "No Buffer", so this must arrive buffered
   BUFG bufg_200 (.I(clk200_pre),   .O(clk200));
 `ifdef ND120_CONSOLE_VGA
-  BUFG bufg_pix (.I(clk_pix_pre),  .O(clk_pix));
+  // ------------------------------------------------------------------------
+  // The second pixel clock, and the glitchless mux between them
+  //
+  // 1920x1080@60 wants 148.5 MHz, which the main MMCM's 1000 MHz VCO cannot
+  // divide to (1000/6.73). So the high mode gets its own MMCM:
+  //
+  //     100 MHz x 11.875 = 1187.5 MHz VCO,  / 8 = 148.4375 MHz
+  //
+  // 148.4375 is 0.042% below the nominal 148.5 - far inside what a monitor
+  // tolerates, and the alternative would be a fractional CLKOUT this part
+  // cannot produce on anything but CLKOUT0. The VCO sits near the top of the
+  // -1 speed grade's 600-1200 MHz range; if a future rebuild fails to lock,
+  // this is the first thing to look at.
+  //
+  // BUFGMUX_CTRL, not a plain mux: switching a clock with logic produces runt
+  // pulses, and a runt pulse on the pixel clock does not give you a glitchy
+  // picture - it gives you flip-flops that latch garbage in the character RAM.
+  // The primitive waits for a low phase on both clocks before it changes over.
+  // ------------------------------------------------------------------------
+  wire mmcm2_locked, clkfb2_out, clkfb2_in;
+
+  MMCME2_BASE #(
+      .BANDWIDTH       ("OPTIMIZED"),
+      .CLKFBOUT_MULT_F (11.875),   // VCO = 100 * 11.875 = 1187.5 MHz
+      .CLKIN1_PERIOD   (10.0),
+      .CLKOUT0_DIVIDE_F(8.0),      // 148.4375 MHz - the 1080p pixel clock
+      .DIVCLK_DIVIDE   (1),
+      .STARTUP_WAIT    ("FALSE")
+  ) mmcm_video (
+      .CLKIN1  (clk100),
+      .CLKFBIN (clkfb2_in),
+      .CLKFBOUT(clkfb2_out),
+      .CLKOUT0 (clk_pix2_pre),
+      .LOCKED  (mmcm2_locked),
+      .PWRDWN  (1'b0),
+      .RST     (1'b0)
+  );
+  BUFG bufg_fb2  (.I(clkfb2_out),   .O(clkfb2_in));
+  BUFG bufg_pix1 (.I(clk_pix_pre),  .O(clk_pix_lo));
+  BUFG bufg_pix2 (.I(clk_pix2_pre), .O(clk_pix2));
+
+  //! sw[2] = 0 : 800x600 at 40 MHz    sw[2] = 1 : 1920x1080 at 148.4 MHz
+  //!
+  //! The mode bit and the clock MUST change together - the timing generator
+  //! only counts, it has no way to know what the clock actually is. They are
+  //! driven from this one net for exactly that reason.
+  BUFGMUX_CTRL bufg_pixmux (
+      .I0(clk_pix_lo),
+      .I1(clk_pix2),
+      .S (sw[2]),
+      .O (clk_pix)
+  );
+
+  wire s_vmode = sw[2];
 `endif
 
   /**********************************************
@@ -331,6 +389,12 @@ module nd120_nexys4ddr_top (
   // port connection. s_dbg_ptw_lvl is driven by the DDR2 main-RAM client and
   // r_ptwhold_sticky is read by the 7-segment panel, which every build has.
   wire        s_dbg_ptw_lvl;
+
+  //! Operator-panel status off the CPU board, in MC68705 Port-D order:
+  //!   [1:0] PCR protect ring  [2] PONI  [3] IONI  [4] HIT  [5] LEV0
+  //! Declared here at module scope, above every use, for the same reason the
+  //! PT-write probe signals now are.
+  wire [7:0]  s_dbg_panel;
   reg         r_ptwhold_sticky = 1'b0;
   reg  [15:0] r_ptwhold_cnt    = 16'd0;
 `ifdef ND120_ILA_MARK_DEBUG
@@ -403,6 +467,32 @@ module nd120_nexys4ddr_top (
   end
   wire pix_rst_n = pix_rst_n_r;
 
+  // --- keyboard/screen national layout, on a physical switch ---------------
+  //
+  // sw[1] = 0 : US ANSI      sw[1] = 1 : Norwegian (NS 4551-1)
+  //
+  // ONE bit drives BOTH the keyboard table and the font page, deliberately. A
+  // national variant is not a font choice and not a keyboard choice - it is
+  // one agreement about what six byte values mean. Letting the two be selected
+  // separately would allow the state where you type AE and the screen draws
+  // '[', which looks like a font bug and is not one.
+  //
+  // Two flops of synchronizer because a slide switch is asynchronous to every
+  // clock in the design. No debounce: a bouncing switch changes the glyph page
+  // for a few microseconds, which is invisible, and the keyboard table is only
+  // consulted at the instant a key is decoded.
+  //! sw[3] shows/hides the operator panel. Runtime only: the panel logic is in
+  //! the bitstream either way, so this costs one LUT and saves screen space,
+  //! not fabric. Removing it entirely is a build-time choice (leave the
+  //! terminal sources out), not this switch.
+  reg [1:0] s_panel_sync = 2'b00;
+  always @(posedge clk_pix) s_panel_sync <= {s_panel_sync[0], sw[3]};
+  wire s_panel_en = s_panel_sync[1];
+
+  reg [1:0] s_layout_sync = 2'b00;
+  always @(posedge clk_pix) s_layout_sync <= {s_layout_sync[0], sw[1]};
+  wire s_layout_no = s_layout_sync[1];
+
   // --- machine -> screen ---------------------------------------------------
   // Deserialize the console line the machine is already driving. Tapping the
   // byte before serialization would be cleaner, but that means adding a port
@@ -410,6 +500,13 @@ module nd120_nexys4ddr_top (
   // reference. This costs one small module and touches nothing shared.
   wire       s_con_byte_valid;
   wire [7:0] s_con_byte_data;
+
+  //! Clocks per bit, chosen with the pixel clock. The console shares the video
+  //! clock domain, so a compile-time divisor would be right in one video mode
+  //! and produce garbage in the other.
+  localparam integer CON_DIV_LO = 40_000_000  / `ND120_CONSOLE_BAUD;
+  localparam integer CON_DIV_HI = 148_437_500 / `ND120_CONSOLE_BAUD;
+  wire [15:0] s_con_divisor = s_vmode ? CON_DIV_HI[15:0] : CON_DIV_LO[15:0];
 
   console_uart_rx #(
       .CLK_HZ   (40_000_000),
@@ -419,12 +516,14 @@ module nd120_nexys4ddr_top (
   ) CONSOLE_RX (
       .clk       (clk_pix),
       .rst_n     (pix_rst_n),
+      .divisor_ovr(s_con_divisor),
       .rxd       (cpu_txd),
       .byte_valid(s_con_byte_valid),
       .byte_data (s_con_byte_data)
   );
 
   wire s_pixel, s_de, s_bell;
+  wire [2:0] s_colour;
 
   // --- the power-on banner -------------------------------------------------
   // Prints a self-test message before the machine says anything, then gets out
@@ -474,6 +573,26 @@ module nd120_nexys4ddr_top (
       .byte_data (s_feed_data),
       .byte_ready(s_term_ready),
 
+      .national (s_layout_no),
+      .mode     (s_vmode),
+
+      // Operator panel. Signals come straight off ND3202D's DBG_PANEL port,
+      // which is the SAME five the real MC68705 panel processor samples on its
+      // Port D - see the port comment in ND3202D.v.
+      //   [1:0] PCR   [2] PONI   [3] IONI   [4] HIT   [5] LEV0
+      .panel_enable      (s_panel_en),
+      .panel_pil         (s_pil),
+      .panel_lev0        (s_dbg_panel[5]),
+      .panel_hit         (s_dbg_panel[4]),
+      .panel_ring        (s_dbg_panel[1:0]),
+      .panel_paging_on   (s_dbg_panel[2]),
+      .panel_interrupt_on(s_dbg_panel[3]),
+      // RUN_n is active LOW on this board - "low while CPU is running", which
+      // is what drives the real front-panel RUN lamp.
+      .panel_running     (~s_run),
+
+      .colour   (s_colour),
+
       .pix_clk  (clk_pix),
       .pix_rst_n(pix_rst_n),
       .pixel    (s_pixel),
@@ -483,13 +602,33 @@ module nd120_nexys4ddr_top (
       .bell     (s_bell)
   );
 
-  // Monochrome: the terminal says ink or paper, the board picks the colour.
-  // Green on black, because this is a 1988 minicomputer console and the
-  // Tandberg terminals it grew up with were green.
-  wire s_ink = s_pixel & s_de;
-  assign vga_r = 4'h0;
-  assign vga_g = s_ink ? 4'hF : 4'h0;
-  assign vga_b = 4'h0;
+  // The terminal core says WHICH of eight things this pixel is; the board picks
+  // the actual colour, because colour depth is a board property. The console
+  // text stays green - this is a 1988 minicomputer and the Tandberg terminals
+  // it grew up with were green - and the panel colours are sampled from the
+  // photograph of the real folio panel, not chosen:
+  //
+  //   fascia  #191b19   LCD ground #b6c2a4   LCD segment #2a3226
+  //   silkscreen #d6d9d2   lit legend #e04a63 (measured red, NOT amber)
+  reg [11:0] s_rgb;
+  always @(*) begin
+    case (s_colour)
+      3'd0: s_rgb = 12'h000;   // black
+      3'd1: s_rgb = 12'h0F0;   // console text, green
+      3'd2: s_rgb = 12'h111;   // panel fascia
+      3'd3: s_rgb = 12'hDDD;   // silkscreen label
+      3'd4: s_rgb = 12'hBCA;   // LCD ground
+      3'd5: s_rgb = 12'h232;   // LCD segment
+      3'd6: s_rgb = 12'hE46;   // lit legend
+      3'd7: s_rgb = 12'h444;   // unlit legend
+      default: s_rgb = 12'h000;
+    endcase
+  end
+
+  wire [11:0] s_rgb_on = s_de ? s_rgb : 12'h000;
+  assign vga_r = s_rgb_on[11:8];
+  assign vga_g = s_rgb_on[7:4];
+  assign vga_b = s_rgb_on[3:0];
 
   // --- keyboard -> machine -------------------------------------------------
   wire       s_key_valid;
@@ -501,6 +640,8 @@ module nd120_nexys4ddr_top (
 
       .ps2_clk_in (ps2_clk),
       .ps2_data_in(ps2_data),
+
+      .layout_no  (s_layout_no),
 
       .ascii_valid(s_key_valid),
       .ascii_data (s_key_data),
@@ -520,6 +661,7 @@ module nd120_nexys4ddr_top (
       .PARITY    (`ND120_CONSOLE_PARITY),
       .PARITY_ODD(1'b0)
   ) CONSOLE_TX (
+      .divisor_ovr(s_con_divisor),
       .clk       (clk_pix),
       .rst_n     (pix_rst_n),
       .byte_valid(s_key_valid),
@@ -707,7 +849,8 @@ module nd120_nexys4ddr_top (
       .mm_rsp_valid(mm_rsp_valid),
       .mm_rsp_rdata(mm_rsp_rdata),
       .DBG_DDR2_BRIDGE(s_dbg_ddr2_bridge),
-      .DBG_PTW_LVL    (s_dbg_ptw_lvl)
+      .DBG_PTW_LVL    (s_dbg_ptw_lvl),
+      .DBG_PANEL      (s_dbg_panel)
 `endif
   );
 
@@ -1163,7 +1306,7 @@ module nd120_nexys4ddr_top (
   assign an = nd_an;
 
   /* verilator lint_off UNUSEDSIGNAL */
-  wire _unused = &{1'b0, sw[15:1], sd_cd, s_debug_ca_9_0,
+  wire _unused = &{1'b0, sw[15:4], sd_cd, s_debug_ca_9_0,
                    s_debug_fetch, s_debug_clear_n, s_debug_refrq_n,
                    s_debug_intrq_n, s_debug_powfail_n, s_debug_fidbo,
                    s_ireq_15_0_n, s_xmic_dbg, s_cpu_led[6:2], s_sd_status[1],

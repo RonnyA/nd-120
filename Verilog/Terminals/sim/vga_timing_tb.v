@@ -50,6 +50,11 @@ module vga_timing_tb;
       .V_SYNC       (V_SYNC),
       .V_BACK_PORCH (V_BP)
   ) DUT (
+      // Mode 0 - this testbench checks the H_*/V_* parameter set. An
+      // unconnected `mode` is X, which makes every counter comparison X:
+      // no line_end, no frame_end, and the testbench simply hangs. That is
+      // how it failed when the port was added.
+      .mode(1'b0),
       .clk      (clk),
       .rst_n    (rst_n),
       .x        (x),

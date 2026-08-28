@@ -34,6 +34,15 @@ module terminal_top #(
     parameter integer CELL_W = 8,
     parameter integer CELL_H = 16,
 
+    //! 0 removes the operator panel from the design ENTIRELY - the renderer,
+    //! its font ROM, the rate meters and the uptime counter all disappear.
+    //!
+    //! This is NOT the same as the board's panel switch. That switch blanks the
+    //! panel at run time and the logic stays in the bitstream; this parameter is
+    //! what you reach for when fabric or timing is actually tight. Both exist
+    //! because they answer different questions.
+    parameter integer WITH_PANEL = 1,
+
     // VGA mode - defaults are 800x600@60 from a 40.000 MHz pixel clock
     parameter integer H_VISIBLE     = 800,
     parameter integer H_FRONT_PORCH = 40,
@@ -66,13 +75,46 @@ module terminal_top #(
     input  wire [7:0] byte_data,
     output wire       byte_ready,  //! low while the previous byte is in flight
 
+    //! Font page: 0 = US / ISO 646 IRV, 1 = Norwegian (NS 4551-1). Must be
+    //! driven from the SAME source as the keyboard's layout_no - the two
+    //! disagreeing is worse than either being wrong, because what you type and
+    //! what you see stop matching.
+    input  wire national,
+
+    //! Video mode: 0 = the H_*/V_* parameters at 1x glyphs, 1 = H2_*/V2_* at
+    //! 2x. The board MUST switch the pixel clock with it - this core only
+    //! counts, it cannot know what the clock really is.
+    input  wire mode,
+
     // Video out - pixel clock domain
     input  wire pix_clk,
     input  wire pix_rst_n,
-    output wire pixel,   //! 1 = ink, 0 = paper
+    output wire pixel,   //! 1 = ink, 0 = paper (the console text alone)
+
+    //! Palette index for this pixel. The BOARD maps it to its own colour
+    //! depth, so nothing board-specific lives in this core:
+    //!   0 black  1 text ink  2 fascia  3 silkscreen
+    //!   4 LCD ground  5 LCD segment  6 lit legend  7 unlit legend
+    output wire [2:0] colour,
     output wire hsync,
     output wire vsync,
     output wire de,
+
+    //! ---- operator panel -------------------------------------------------
+    //! Drawn in the empty area below the text grid. `panel_enable` low draws
+    //! nothing; it does NOT remove the logic, which is a build-time choice.
+    //! RAW machine signals, exactly as they leave ND3202D's DBG_PANEL port in
+    //! MC68705 Port-D order. The rate meters and the uptime counter live in
+    //! here rather than in each board's top level, so three boards cannot end
+    //! up with three slightly different definitions of "utilization".
+    input  wire       panel_enable,
+    input  wire [3:0] panel_pil,        //! current program level
+    input  wire       panel_lev0,       //! LEV0 - running at level 0, i.e. idle
+    input  wire       panel_hit,        //! HIT  - the ND-120's own cache
+    input  wire [1:0] panel_ring,       //! PCR protect ring
+    input  wire       panel_paging_on,  //! PONI
+    input  wire       panel_interrupt_on, //! IONI
+    input  wire       panel_running,    //! CPU running (already de-inverted)
 
     output wire bell,       //! one pix_clk per BEL received
     output wire [2:0] leds  //! TDV keyboard lamps (ENQ/ACK/NAK set, SYN clears)
@@ -177,6 +219,99 @@ module terminal_top #(
   wire s_screen_pixel;
   assign pixel = s_screen_pixel & s_video_on;
 
+  //! The panel works from the raw counters and applies its own two clocks of
+  //! delay, matching the text pipeline. It never overlaps the text grid, so
+  //! there is no arbitration - just a priority in the final mux.
+  wire [11:0] s_x_raw, s_y_raw;
+  wire        s_panel_active;
+  wire [2:0]  s_panel_colour;
+
+  generate
+    if (WITH_PANEL != 0) begin : g_panel
+    //! UTILIZATION is the inverse of LEV0: the real panel's caption is how much
+    //! time the machine was NOT idle, and idle on an ND is "running at level 0".
+    wire [3:0] s_utilization;
+    rate_meter UTIL_METER (
+        .clk(pix_clk), .rst_n(pix_rst_n), .sample(!panel_lev0), .eighths(s_utilization)
+    );
+
+    wire [3:0] s_cache_hit;
+    rate_meter HIT_METER (
+        .clk(pix_clk), .rst_n(pix_rst_n), .sample(panel_hit), .eighths(s_cache_hit)
+    );
+
+    //! Uptime, counted in FRAMES rather than clocks. The frame rate is 60 Hz in
+    //! both video modes while the pixel clock is not - 40 MHz at 800x600 and
+    //! 148.5 MHz at 1080p - so counting frames keeps the clock correct when the
+    //! resolution switch is thrown. Counting clocks would have made the panel run
+    //! 3.7x fast in one of the two modes, which is the kind of bug that gets
+    //! blamed on the machine.
+    reg [5:0]  s_up_frames;
+    reg [5:0]  s_up_sec;
+    reg [5:0]  s_up_min;
+    reg [4:0]  s_up_hr;
+
+    always @(posedge pix_clk or negedge pix_rst_n) begin
+      if (!pix_rst_n) begin
+        s_up_frames <= 6'd0;
+        s_up_sec    <= 6'd0;
+        s_up_min    <= 6'd0;
+        s_up_hr     <= 5'd0;
+      end else if (s_frame_end) begin
+        if (s_up_frames == 6'd59) begin
+          s_up_frames <= 6'd0;
+          if (s_up_sec == 6'd59) begin
+            s_up_sec <= 6'd0;
+            if (s_up_min == 6'd59) begin
+              s_up_min <= 6'd0;
+              s_up_hr  <= (s_up_hr == 5'd23) ? 5'd0 : s_up_hr + 5'd1;
+            end else s_up_min <= s_up_min + 6'd1;
+          end else s_up_sec <= s_up_sec + 6'd1;
+        end else s_up_frames <= s_up_frames + 6'd1;
+      end
+    end
+
+    term_panel #(
+        .FONT_FILE(FONT_FILE),
+        .ORIGIN_X (ORIGIN_X),
+        .ORIGIN_Y (ORIGIN_Y + ROWS * CELL_H + CELL_H)
+    ) PANEL (
+        .clk  (pix_clk),
+        .rst_n(pix_rst_n),
+
+        .x     (s_x_raw),
+        .y     (s_y_raw),
+        .mode  (mode),
+        .enable(panel_enable),
+
+        .pil         (panel_pil),
+        .utilization (s_utilization),
+        .cache_hit   (s_cache_hit),
+        .ring        (panel_ring),
+        .paging_on   (panel_paging_on),
+        .interrupt_on(panel_interrupt_on),
+        .running     (panel_running),
+        .up_hours    (s_up_hr),
+        .up_minutes  (s_up_min),
+        .up_seconds  (s_up_sec),
+
+        .active(s_panel_active),
+        .colour(s_panel_colour)
+    );
+    end else begin : g_no_panel
+      //! Nothing to draw, and nothing built. The colour mux below then
+      //! collapses to the text path alone.
+      assign s_panel_active = 1'b0;
+      assign s_panel_colour = 3'd0;
+    end
+  endgenerate
+
+  //! Panel first, then the text. They occupy different rows of the screen, so
+  //! the priority never actually arbitrates - it just picks which of the two
+  //! is speaking about this pixel.
+  assign colour = s_panel_active ? s_panel_colour
+                : (s_screen_pixel & s_video_on) ? 3'd1 : 3'd0;
+
   text_screen #(
       .COLS         (COLS),
       .ROWS         (ROWS),
@@ -201,6 +336,9 @@ module terminal_top #(
       .ram_raddr(s_raddr),
       .ram_rdata(s_rdata),
 
+      .national     (national),
+      .mode         (mode),
+
       .top_row      (s_top_row),
       .cursor_col   (s_cursor_col),
       .cursor_row   (s_cursor_row),
@@ -210,7 +348,9 @@ module terminal_top #(
       .hsync    (hsync),
       .vsync    (vsync),
       .de       (de),
-      .frame_end(s_frame_end)
+      .frame_end(s_frame_end),
+      .x_raw    (s_x_raw),
+      .y_raw    (s_y_raw)
   );
 
 endmodule
