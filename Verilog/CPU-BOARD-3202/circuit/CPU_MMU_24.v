@@ -96,6 +96,7 @@ module CPU_MMU_24 (
     //!
     //! Bit layout, low to high:
     //!   [0] LSHADOW  [1] FMISS  [2] CYD  [3] BRK_n  [4] WCINH_n  [5] WCA_n
+    //!   [6] WCLIM_n - inhibit-RAM write strobe (added after the first capture)
     output [7:0] DBG_CACHE,
     output LED1,                 //! UNKNOWN: believed to indicate cache enabled, never traced. See Verilog/docs/SIGNALS.md
     //! DEBUG: page-table WRITE stream (23-AUG-2026, zero-read campaign).
@@ -227,8 +228,18 @@ module CPU_MMU_24 (
   assign s_wchim_n = WCHIM_n;
   assign s_cyd = CYD;
   //! See the DBG_CACHE port comment for what this bus is and why it exists.
-  assign DBG_CACHE = {2'b00, s_wca_n, s_wcinh_n, s_brk_n, s_cyd, s_fmiss,
-                      s_lshadow};
+  //! Bit 6 is WCLIM_n, added 29-AUG-2026 after the first capture. That one
+  //! measured WCINH_n LOW - the page marked cache-inhibited - in 914 of 1024
+  //! samples, while FMISS and LSHADOW were 0 throughout and WCA_n did fire
+  //! whenever WCINH_n happened to be high. So the inhibit BIT is the question
+  //! now, and the first half of it is whether the inhibit RAM is ever written
+  //! at all: IMS1403_25 has no reset (the commented-out loop there says Vivado
+  //! would not take one), so an untouched cell reads whatever the block RAM
+  //! powers up as - which would produce "inhibited nearly everywhere" with the
+  //! CPU never involved. WCLIM_n is that RAM's write strobe, so triggering on
+  //! it going low says directly whether anything ever writes the bit.
+  assign DBG_CACHE = {1'b0, s_wclim_n, s_wca_n, s_wcinh_n, s_brk_n, s_cyd,
+                      s_fmiss, s_lshadow};
   assign s_pd2 = PD2;
   assign s_sw1_console = SW1_CONSOLE;
   assign s_eorf_n = EORF_n;
