@@ -240,11 +240,78 @@ module CPU_PROC_CMDDEC_34_tb;
       end
     end
 
+    // ---- 1b. IDB2, DIRECTED. The random sweep above cannot reach it, and
+    //      that is a property of the sweep, not of the sheet.
+    //
+    //      IDB2 leaves this sheet through exactly one gate, in
+    //      PAL_44408B_EN.v:73:
+    //
+    //          if ((LDEXM_int && ~IDB2) || (~LDEXM_int && VEX_n_int) || LCS)
+    //
+    //      so it can only move VEX while LDEXM_int is high, and LDEXM_int is
+    //      REGISTERED off one exact command code:
+    //
+    //          C4 & ~C3 & ~C2 & ~C1 & C0 & M1 & M0 & LCS_n
+    //
+    //      - CSCOMM = 21B, CSMIS = 3B, LCS_n = 1. For the sweep to see it, the
+    //      PREVIOUS trial's random word would have to land on that 1-in-256
+    //      code AND the current word differ from it in IDB2 alone. Over 400
+    //      trials that never happens, so IDB2 scored 0 and the bench called it
+    //      dead. It is not dead; it is unreachable by random stimulus.
+    //
+    //      (Before 28-AUG-2026 IDB2 scored 120 here, which looked like proof
+    //      that it was alive. It was not proof of anything. PAL_44511A drove
+    //      CWR off a flip-flop then, so out_a was computed from the PREVIOUS
+    //      apply() rather than from stim, and EVERY input scored non-zero for
+    //      that reason alone. Fixing CWR to be combinational - which the
+    //      PALASM says it is, `CWR =` not `CWR :=` - removed the false credit
+    //      and left the genuine gap showing.)
+    //
+    //      So drive the one operating point directly: load the LDEXM command,
+    //      clock it into LDEXM_int, then clock again with IDB2 low and with
+    //      IDB2 high and require VEX to differ.
+    begin : idb2_directed
+      reg [NIN-1:0] cmd;
+      reg vex_lo, vex_hi;
+
+      cmd = {NIN{1'b0}};
+      cmd[4:0]   = 5'b10001;  // CSCOMM = 21B: C4=1 C3=0 C2=0 C1=0 C0=1
+      cmd[11:10] = 2'b11;     // CSMIS  = 3B:  M1=1 M0=1
+      cmd[17]    = 1'b1;      // LCS_n high - LCS asserted would force VEX_n
+      cmd[18]    = 1'b1;      // MREQ_n high, so CUP/CWR sit still meanwhile
+      CGABRK_n   = 1'b1;
+
+      cmd[16] = 1'b0;                     // IDB2 low
+      apply(cmd); clk_cycle;              // LDEXM_int <= 1
+      clk_cycle;                          // VEX_n_int computed with LDEXM_int=1
+      vex_lo = VEX;
+
+      cmd[16] = 1'b1;                     // IDB2 high, same command
+      apply(cmd); clk_cycle;              // LDEXM_int <= 1 again
+      clk_cycle;                          // VEX_n_int recomputed
+      vex_hi = VEX;
+
+      checks = checks + 1;
+      if (vex_lo === vex_hi) begin
+        errors = errors + 1;
+        $display("FAIL IDB2_DEAD: with the LDEXM command loaded, VEX=%b for IDB2=0 and VEX=%b for IDB2=1 - IDB2 reaches nothing",
+                 vex_lo, vex_hi);
+      end else begin
+        $display(" IDB2 directed: VEX=%b with IDB2=0, VEX=%b with IDB2=1 - alive",
+                 vex_lo, vex_hi);
+        sens[16] = sens[16] + 1;   // credit it, so the report below is honest
+      end
+    end
+
     $display(" per-input sensitivity (operating points out of %0d where the",
              NTRIALS);
     $display(" bit ALONE changed an output):");
     for (i = 0; i < NIN; i = i + 1) begin
-      $display("   %0s %0d", name_of(i), sens[i]);
+      //! IDB2's count is 1 and comes from the directed check above, not from
+      //! the random sweep - see the comment there for why the sweep cannot
+      //! reach it. Every other input is swept.
+      $display("   %0s %0d%0s", name_of(i), sens[i],
+               (i == 16) ? "  (directed, not swept)" : "");
       checks = checks + 1;
       if (sens[i] == 0) begin
         errors = errors + 1;
