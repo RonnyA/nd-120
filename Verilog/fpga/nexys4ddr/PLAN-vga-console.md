@@ -194,3 +194,44 @@ Two more reasons this board is the right first target: SINTRAN already boots
 here, so the terminal sees real console traffic - a boot banner, a login
 prompt, scrolling - instead of an echo of itself; and a bad bitstream costs one
 Vivado run rather than a package to another country.
+
+## OPEN - ACTIVE LEVEL lights all 16 lamps on every level change
+
+**Reported from hardware by Ronny, 28-AUG-2026.** Running a test program that
+walks levels 2, 3, 4, 5, 6: every time the level changes, **all sixteen lamps
+light at once**, not just the level being entered. Levels 0, 1 and 7-15 have no
+business lighting at all - 15 in particular is never used on this machine.
+
+This is not the earlier level-15 report and must not be filed under it. That
+one was a single wrong lamp and was explained by skew on the four PIL bits
+crossing into the pixel domain; a two-flop sync plus a two-sample stability
+gate went in for it (`terminal_top.v`). **Bit skew cannot produce all sixteen.**
+Skew on a 4-bit bus during 2 -> 3 (0010 -> 0011) can only ever show 2 or 3, and
+during 6 -> 2 only 6, 4, 2 or 0. Sixteen lamps means something is lighting them
+that is not "the value of PIL", so the previous explanation does not stretch to
+cover this and the fix for it is not the fix for this.
+
+**Do not start by grepping for the suspected cause.** Capture what the panel
+inputs actually do across one level change and read it in order - ILA on
+`panel_pil` and the CPU-side source, or a Verilator run of `term_panel` driven
+with a recorded PIL sequence. A search can only confirm something already
+imagined; the whole point here is that the mechanism has not been imagined yet.
+
+Candidates worth eliminating once there is a capture, all **unverified guesses**
+at this stage, listed so nobody re-derives them:
+
+- the frame snapshot (`r_lamp <= s_lamp_now`) sampling while `s_glow[]` is being
+  written, so the whole array reads back as one value;
+- the decay loop in `term_panel.v` - it walks all 16 entries in one `always`
+  block, and a reload of `s_glow[pil]` racing that loop would touch every entry;
+- `s_level_index = 4'd15 - s_level_pair` and the row/column guards, if the
+  index is momentarily out of range while the row is being drawn;
+- the stability gate itself: it compares `s_pil_s` against `s_pil_m`, and
+  `s_pil_m` is the FIRST flop of the synchroniser, i.e. the one allowed to be
+  metastable. Comparing against a metastable value is not a stability test.
+  This one is a real weakness in the current code whether or not it is this bug.
+
+Worth checking cheaply first, because it is one line: whether `panel_pil` is
+even four bits wide end to end. `DBG_PANEL` carries only `s_pcr_1_0[1:0]` of
+PCR, and if the panel's level input is being widened or sign-filled anywhere
+along the way, a change on the narrow field could present as all-ones.
