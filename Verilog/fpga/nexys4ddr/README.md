@@ -355,7 +355,45 @@ half. The banner and the banner/machine priority are shared with the MiSTer and
 MEGA65 consoles (`Terminals/rtl/term_console_feed.v`), so the three boards
 cannot drift apart.
 
-Verified in simulation only so far: 8 testbenches (7 in `Terminals/sim`, 1 for
-the MiSTer glue), Verilator lint clean, zero inferred latches, and the default
-non-console bitstream proven unchanged by preprocessing the top level both ways
-and diffing. **Never synthesized, never on hardware.**
+### First build, 28-AUG-2026 - SYNTHESIZED, PROGRAMMED, AND SINTRAN STILL BOOTS
+
+`vivado -mode batch -source build.tcl -tclargs vgaconsole`, Vivado 2026.1,
+default `clk_sel 16` and 115200 baud. Measured, not estimated:
+
+| | |
+|---|---|
+| Setup | **WNS +1.460 ns**, TNS 0.000 |
+| Hold | WHS +0.016 ns, THS 0.000 |
+| DRC | 0 errors |
+| Bitstream | `nd120_nexys4ddr.bit`, 3,825,999 bytes |
+| Programmed | yes, over JTAG |
+
+So the terminal core fits and closes timing on top of the whole ND-120, with
++1.46 ns of setup margin left. Hold margin is thin (+0.016 ns) but positive.
+
+**SINTRAN III boots on the resulting bitstream** - confirmed by reading COM11
+while the board came up:
+
+```
+ 09.45.15     16 SEPTEMBER   1994
+ SINTRAN III - VSX/500 M
+--- NEXYS4 FPGA ---
+ CPU TYPE:      102      CPU NUMBER:    120
+SINTRAN III RUNNING -
+PAGES FOR SWAPPING:   3074B
+```
+
+That is the important negative result too: adding the console did NOT break the
+machine. The serial console still works exactly as before, which is the whole
+premise of testing the terminal on this board.
+
+**Still unverified, and only a monitor can answer it:** whether anything
+appears on the VGA connector, whether the font ROM loaded (blank boxes = the
+`$readmemh` path), and whether the keyboard table is right. That last one is
+the reason this board was chosen - type a key and compare the screen against
+what COM11 shows the machine actually received.
+
+Simulation coverage behind it: 8 testbenches (7 in `Terminals/sim` including a
+1,920,000-pixel frame comparison, 1 for the MiSTer glue), Verilator lint clean,
+zero inferred latches, and the default non-console bitstream proven unchanged by
+preprocessing the top level both ways.
