@@ -631,6 +631,13 @@ module nd120_nexys4ddr_top (
       // is what drives the real front-panel RUN lamp.
       .panel_running     (~s_run),
 
+      // Disc activity. REQ with WR low is a read, WR high a write - the same
+      // decode the board's activity LEDs already use a few hundred lines down.
+      .panel_hdd_rd      (WDISK_REQ & ~WDISK_WR),
+      .panel_hdd_wr      (WDISK_REQ &  WDISK_WR),
+      .panel_flp_rd      (FDISK_REQ & ~FDISK_WR),
+      .panel_flp_wr      (FDISK_REQ &  FDISK_WR),
+
       .colour   (s_colour),
 
       .pix_clk  (clk_pix),

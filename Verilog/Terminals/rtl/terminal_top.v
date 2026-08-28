@@ -119,6 +119,13 @@ module terminal_top #(
     input  wire       panel_interrupt_on, //! IONI
     input  wire       panel_running,    //! CPU running (already de-inverted)
 
+    //! Disc access strobes - Winchester and floppy, read and write. Held and
+    //! displayed by the panel; see term_panel.v.
+    input  wire       panel_hdd_rd,
+    input  wire       panel_hdd_wr,
+    input  wire       panel_flp_rd,
+    input  wire       panel_flp_wr,
+
     output wire bell,       //! one pix_clk per BEL received
     output wire [2:0] leds  //! TDV keyboard lamps (ENQ/ACK/NAK set, SYN clears)
 );
@@ -315,6 +322,10 @@ module terminal_top #(
         .paging_on   (panel_paging_on),
         .interrupt_on(panel_interrupt_on),
         .running     (panel_running),
+        .hdd_rd      (panel_hdd_rd),
+        .hdd_wr      (panel_hdd_wr),
+        .flp_rd      (panel_flp_rd),
+        .flp_wr      (panel_flp_wr),
         .up_hours    (s_up_hr),
         .up_minutes  (s_up_min),
         .up_seconds  (s_up_sec),

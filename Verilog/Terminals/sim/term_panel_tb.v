@@ -78,6 +78,7 @@ module term_panel_tb;
       .pil(pil), .utilization(utilization), .cache_hit(cache_hit),
       .ring(ring), .paging_on(paging_on), .interrupt_on(interrupt_on),
       .running(running),
+      .hdd_rd(1'b0), .hdd_wr(1'b0), .flp_rd(1'b0), .flp_wr(1'b0),
       .up_hours(up_hours), .up_minutes(up_minutes), .up_seconds(up_seconds),
       .active(active), .colour(colour)
   );

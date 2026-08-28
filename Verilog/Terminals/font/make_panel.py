@@ -57,7 +57,27 @@ COL_UPTIME_VALUE = 4          # hh:mm:ss, 8 cells
 COL_LEVELS       = 24         # 16 cells, 2 columns each -> 24..55
 LEVEL_CELL_W     = 2
 
-COL_LEGEND       = 62         # RUNNING / OPCOM, driven by the RUN line
+# --- disc activity ---------------------------------------------------------
+#
+# NOT on the real ND-120 fascia. Ronny asked for it (28-AUG-2026) and it earns
+# its place: the machine is disc-bound, and on the real hardware you knew what
+# the discs were doing by listening to them. A screen cannot do that.
+#
+# The R and W are STATIC text in this ROM. Only the inversion is driven - an
+# active lamp reverses the cell, so the letter is knocked out of a filled box,
+# exactly like the octal ruler's reversed triplets. That is cheaper than a
+# glyph per state and it reads instantly: you can see WHICH kind of access it
+# is, not just that something happened.
+COL_HDD_LABEL    = 60
+COL_HDD_R        = 60
+COL_HDD_W        = 62
+COL_FLP_LABEL    = 65
+COL_FLP_R        = 65
+COL_FLP_W        = 67
+
+# FLOPPY spans columns 65-70, so the legend starts at 72. RUNNING is 7
+# characters, 72-78, which is the last thing that fits in 80.
+COL_LEGEND       = 72         # RUNNING / OPCOM, driven by the RUN line
 
 DYNAMIC = 0x00                # "term_panel.v fills this cell in"
 
@@ -87,6 +107,8 @@ def build():
     put(g, 0, COL_RING_LABEL, "PROTECT RING")
     put(g, 0, COL_INT_LABEL,  "INTERRUPT")
     put(g, 0, COL_PAGE_LABEL, "PAGING")
+    put(g, 0, COL_HDD_LABEL,  "HDD")
+    put(g, 0, COL_FLP_LABEL,  "FLOPPY")
 
     # --- row 1: the values under them --------------------------------------
     put_dynamic(g, 1, COL_UTIL_BAR, UTIL_BAR_W)
@@ -94,6 +116,13 @@ def build():
     put_dynamic(g, 1, COL_RING_VALUE, 1)
     put_dynamic(g, 1, COL_INT_VALUE, 3)     # "ON " or "OFF"
     put_dynamic(g, 1, COL_PAGE_VALUE, 3)
+
+    # The letters are static; term_panel.v inverts the cell when that disc is
+    # active, so an idle lamp is a plain letter and a busy one is a filled box.
+    put(g, 1, COL_HDD_R, "R")
+    put(g, 1, COL_HDD_W, "W")
+    put(g, 1, COL_FLP_R, "R")
+    put(g, 1, COL_FLP_W, "W")
 
     # --- row 2: uptime, and the level cells ---------------------------------
     #
@@ -187,6 +216,8 @@ def main():
         ("COL_INT_VALUE", COL_INT_VALUE), ("COL_PAGE_VALUE", COL_PAGE_VALUE),
         ("COL_UPTIME_VALUE", COL_UPTIME_VALUE),
         ("COL_LEVELS", COL_LEVELS), ("LEVEL_CELL_W", LEVEL_CELL_W),
+        ("COL_HDD_R", COL_HDD_R), ("COL_HDD_W", COL_HDD_W),
+        ("COL_FLP_R", COL_FLP_R), ("COL_FLP_W", COL_FLP_W),
         ("COL_LEGEND", COL_LEGEND),
         ("PANEL_COLS", COLS), ("PANEL_ROWS", ROWS),
     ]:

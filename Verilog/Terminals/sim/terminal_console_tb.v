@@ -101,6 +101,8 @@ module terminal_console_tb;
       .panel_paging_on(1'b0),
       .panel_interrupt_on(1'b0),
       .panel_running(1'b0),
+      .panel_hdd_rd(1'b0), .panel_hdd_wr(1'b0),
+      .panel_flp_rd(1'b0), .panel_flp_wr(1'b0),
       .colour(),
 
       .pix_clk(clk), .pix_rst_n(rst_n),

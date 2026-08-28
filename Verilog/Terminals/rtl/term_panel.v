@@ -85,6 +85,15 @@ module term_panel #(
     input wire       paging_on,    //! PONI
     input wire       interrupt_on, //! IONI
     input wire       running,      //! CPU running (already de-inverted)
+
+    //! Disc activity, one bit per direction per device. These are ACCESS
+    //! STROBES - high for a request, not for the duration of a transfer - so
+    //! they are held below rather than displayed directly; a single sector
+    //! request is far too brief to see on a 60 Hz screen.
+    input wire       hdd_rd,
+    input wire       hdd_wr,
+    input wire       flp_rd,
+    input wire       flp_wr,
     input wire [4:0] up_hours,
     input wire [5:0] up_minutes,
     input wire [5:0] up_seconds,
@@ -211,7 +220,11 @@ module term_panel #(
   localparam integer COL_PAGE_VALUE   = 53;
   localparam integer COL_UPTIME_VALUE = 4;
   localparam integer COL_LEVELS       = 24;
-  localparam integer COL_LEGEND       = 62;
+  localparam integer COL_HDD_R        = 60;
+  localparam integer COL_HDD_W        = 62;
+  localparam integer COL_FLP_R        = 65;
+  localparam integer COL_FLP_W        = 67;
+  localparam integer COL_LEGEND       = 72;
 
   //! Which of the 16 level cells this column is in, and whether it is lit.
   //!
@@ -260,6 +273,7 @@ module term_panel #(
   localparam integer SLOW_FRAMES = 16;   //! ~267 ms at 60 Hz
 
   reg [4:0]  s_slow_cnt;
+  reg [3:0]  r_disk;        //! {flp_wr, flp_rd, hdd_wr, hdd_rd}, held
   reg [15:0] r_lamp;
   reg [3:0]  r_util, r_hit, r_pil;
   reg [1:0]  r_ring;
@@ -300,6 +314,34 @@ module term_panel #(
   end
 
   //! All 16 lamps as one vector, so the frame latch captures them together.
+  //! Disc lamps get the same treatment as the level afterglow, and for the
+  //! same reason: a disc request is a strobe a few clocks long, which at 60 Hz
+  //! would be invisible almost every time it happened. Held for ~0.25 s so a
+  //! single sector access registers as a visible blink.
+  reg [7:0] s_disk_hold[0:3];
+  wire [3:0] s_disk_in = {flp_wr, flp_rd, hdd_wr, hdd_rd};
+  integer di;
+
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      for (di = 0; di < 4; di = di + 1) s_disk_hold[di] <= 8'd0;
+    end else begin
+      for (di = 0; di < 4; di = di + 1) begin
+        if (s_disk_in[di[1:0]]) s_disk_hold[di] <= 8'hFF;
+        else if (s_glow_tick == 17'd0 && s_disk_hold[di] != 8'd0)
+          s_disk_hold[di] <= s_disk_hold[di] - 8'd1;
+      end
+    end
+  end
+
+  wire [3:0] s_disk_now;
+  genvar dk;
+  generate
+    for (dk = 0; dk < 4; dk = dk + 1) begin : g_disk
+      assign s_disk_now[dk] = (s_disk_hold[dk] != 8'd0);
+    end
+  endgenerate
+
   wire [15:0] s_lamp_now;
   genvar gl;
   generate
@@ -311,6 +353,7 @@ module term_panel #(
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
       s_slow_cnt <= 5'd0;
+      r_disk <= 4'd0;
       r_lamp <= 16'd0; r_util <= 4'd0; r_hit <= 4'd0; r_pil <= 4'd0;
       r_ring <= 2'd0; r_paging <= 1'b0; r_interrupt <= 1'b0; r_running <= 1'b0;
       r_up_h <= 5'd0; r_up_m <= 6'd0; r_up_s <= 6'd0;
@@ -319,6 +362,7 @@ module term_panel #(
       // vector especially - the afterglow exists to make brief visits visible,
       // and sampling it slowly would discard the very events it is for.
       r_lamp <= s_lamp_now;
+      r_disk <= s_disk_now;
       r_util <= utilization;
       r_hit  <= cache_hit;
       r_pil  <= pil;
@@ -462,6 +506,15 @@ module term_panel #(
   //! The octal ruler's alternating triplets are REVERSED OUT on the real
   //! fascia: dark digits on a light block, at {14,13,12} {8,7,6} {2,1,0}.
   wire [4:0] s_ruler_level = 5'd15 - ((s_col - COL_LEVELS[6:0]) >> 1);
+  //! An active disc lamp REVERSES its cell, so the R or W is knocked out of a
+  //! filled box. The letters themselves are static text in term_panel_rom, so
+  //! nothing here has to draw them - only decide the box.
+  wire s_disk_reversed = (s_row == 3'd1) &&
+                         ((s_col == COL_HDD_R[6:0] && r_disk[0]) ||
+                          (s_col == COL_HDD_W[6:0] && r_disk[1]) ||
+                          (s_col == COL_FLP_R[6:0] && r_disk[2]) ||
+                          (s_col == COL_FLP_W[6:0] && r_disk[3]));
+
   wire s_ruler_reversed = (s_row == 3'd3) && s_in_levels &&
                           ((s_ruler_level >= 5'd12 && s_ruler_level <= 5'd14) ||
                            (s_ruler_level >= 5'd6  && s_ruler_level <= 5'd8)  ||
@@ -516,7 +569,7 @@ module term_panel #(
     s_pixel_col_d2 <= s_pixel_col_d1;
     s_in_panel_dly <= {s_in_panel_dly[0], r1_in_panel};
     s_in_lcd_dly   <= {s_in_lcd_dly[0], s_in_lcd};
-    s_reversed_dly <= {s_reversed_dly[0], s_ruler_reversed};
+    s_reversed_dly <= {s_reversed_dly[0], s_ruler_reversed | s_disk_reversed};
     s_silk_dly     <= {s_silk_dly[0], s_in_lcd ? 1'b0 : 1'b1};
     s_colour_d1    <= s_ink;
     s_colour_d2    <= s_colour_d1;
