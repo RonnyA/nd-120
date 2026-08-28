@@ -347,3 +347,58 @@ off, and the guessing stops.
 This supersedes the earlier "next measurement should be whether `WCLIM_n` ever
 goes low". WCLIM_n is downstream of the same question and narrower; if nothing
 is ever written to the cache at all, the limit registers are not where to start.
+
+
+---
+
+## 29-AUG-2026, 00:40: MEASURED. FMISS is innocent; WCINH_n is the story
+
+ILA capture on the running board (`-tclargs ilacache`, `ila_cache_run.tcl`),
+armed on WCA_n going low, while CACHE-1X0-A00 was loaded and test 2 ran.
+1024 samples. Bits: `[0]LSHADOW [1]FMISS [2]CYD [3]BRK_n [4]WCINH_n [5]WCA_n`.
+
+| hex  | WCA_n | WCINH_n | BRK_n | CYD | FMISS | LSHADOW | samples |
+|------|-------|---------|-------|-----|-------|---------|---------|
+| `2c` | 1     | **0**   | 1     | 1   | 0     | 0       | 514     |
+| `28` | 1     | **0**   | 1     | 0   | 0     | 0       | 400     |
+| `38` | 1     | 1       | 1     | 0   | 0     | 0       | 63      |
+| `1c` | **0** | 1       | 1     | 1   | 0     | 0       | 24      |
+| `3c` | 1     | 1       | 1     | 1   | 0     | 0       | 16      |
+| `30` | 1     | 1       | 0     | 0   | 0     | 0       | 4       |
+| `34` | 1     | 1       | 0     | 1   | 0     | 0       | 3       |
+
+**Three things this settles.**
+
+1. **WCA_n DOES go low.** The `1c` rows are real cache writes. The earlier
+   working theory - "WCA never asserts, nothing is ever written" - is WRONG as
+   an absolute. The cache is written, just very rarely.
+2. **FMISS is innocent.** It is 0 in every one of the 1024 samples. It was the
+   standing suspect on the strength of its self-hold through `A177` and the
+   PAL's own "WCA SHOULD NOT APPEAR WHEN FMISS" note. The mechanism was real
+   and the suspicion was still wrong. LSHADOW is likewise 0 throughout, and
+   BRK_n is high in all but 7 samples.
+3. **WCINH_n is low - the cache INHIBITED - in 914 of 1024 samples, 89%.**
+   Every sample where WCA fires has WCINH_n high. The pattern is consistent
+   and simple: when the page is not inhibited and CYD is high, the cache is
+   written; the reason it almost never happens is that almost every access is
+   marked inhibited.
+
+That puts the fault back exactly where the diagnostic's own PRINT-NOTE 6 put
+it - the inhibit logic - and it was previously written off in this document as
+"excluded with evidence". That exclusion was wrong. What had been checked was
+the PPN ADDRESSING into the inhibit RAM, which is a different question from
+whether the RAM holds the right BITS.
+
+**Honest limits of this capture.** 1024 samples is one window around one WCA
+event, not the whole of test 2, and the trigger could have fired at any point
+while the machine was running rather than inside the test proper. The 89%
+figure is "89% of this window", not a duty cycle over the test. What the window
+does establish beyond doubt: WCA can fire, FMISS is not blocking it, and
+WCINH_n is low the overwhelming majority of the time.
+
+**Next.** Find out why the inhibit bit reads set for nearly every page. Two
+candidates worth separating before anything else: whether the inhibit RAM is
+ever correctly WRITTEN (it has no reset - `IMS1403_25.v` says Vivado would not
+take one - so an untouched cell is whatever the block RAM powers up as), and
+whether the CPU ever clears it for normal pages. A capture triggered on
+WCLIM_n, the inhibit-RAM write strobe, answers the first directly.
