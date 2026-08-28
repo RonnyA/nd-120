@@ -62,10 +62,12 @@ jobs:
 
   tang-oss:
     # Full OSS bitstream on release tags and on demand - the oss-cad-suite
-    # download is ~1.5 GB, too heavy for every push.
+    # download is ~1.5 GB, too heavy for every push. Measured 28-AUG-2026:
+    # nextpnr on the full CPU exceeds 120 min on the 2-core runner (two
+    # runs killed at exactly 2 h); 300 min gives real headroom.
     if: startsWith(github.ref, 'refs/tags/bitstreams-') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v7
       - name: Install oss-cad-suite
