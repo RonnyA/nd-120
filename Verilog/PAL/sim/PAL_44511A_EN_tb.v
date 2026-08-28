@@ -14,20 +14,33 @@
 **                  + CWR * /CLK      ; HOLD UNTIL START OF NEXT CYCLE      **
 **   /CUP := /CWR * MREQ + /CUP * /MREQ                                     **
 **                                                                         **
-** DEVIATION 1 - CWR IS COMBINATIONAL IN THE LISTING. /CWR is pin 19, a     **
-** 16R4 combinational I/O pin carrying "IF (VCC)", and its equation is a    **
-** feedback latch (CWR * /CLK). The RTL evaluates it inside the clocked     **
-** always block instead, so CWR only moves on a clock edge. The algebra is  **
-** the same - CWR' = MREQ * WCA + CWR * /CLK - so the values agree at every **
-** edge, but a mid-cycle MREQ * WCA does not reach the pin. Pinned below by **
-** CWR_IS_CLOCKED_NOT_COMBINATIONAL_DEVIATION.                              **
+** DEVIATION 1 IS GONE - IT WAS A BUG, AND IT WAS THE CACHE BUG.            **
+** This file used to record it as an accepted difference: /CWR is pin 19, a **
+** 16R4 combinational I/O pin carrying "IF (VCC)", and the RTL evaluated it **
+** inside the clocked always block, so CWR only moved on a clock edge. The  **
+** note even spelled out the consequence - "a mid-cycle MREQ * WCA does not **
+** reach the pin" - and then called the algebra equivalent. It is not.      **
+**                                                                         **
+** /CUP := /CWR * MREQ needs BOTH terms in the SAME cycle. With CWR one     **
+** edge late, MREQ has already gone, so CUP never asserted at all. On real  **
+** hardware (Nexys 4 DDR, 28-AUG-2026) CACHE-120-A00 under TPE reported     **
+** exactly that chain: "CUP does not work", "DATA is NOT COPIED to DATA     **
+** CACHE", used bit "Expected 1 Found 0" - while the cache DATA memory test **
+** PASSED. The RAMs were fine; the bookkeeping never ran.                   **
+**                                                                         **
+** The RTL now models the listing: a combinational set term, and a hold     **
+** term qualified by /CLK. The checks below assert the LISTING's behaviour, **
+** not the RTL's - if the two ever disagree again, the listing wins.        **
 **                                                                         **
 ** DEVIATION 2 - /CWR IS OE-GATED IN THE RTL. On a PAL16R4 only pins 14-17  **
 ** sit under /OE; pin 19 has its own enable term and the listing gives it   **
-** "IF (VCC)" - always enabled. The RTL drives it to 0 when OE_n is high,   **
-** which also feeds a false /CWR = 0 into the /CUP equation. Unreachable on **
-** the 3202D, where /OE is PD1 and PD1..PD4 are always low                  **
-** (PAL_44511A.v:22). Pinned below by CWR_OE_GATED_DEVIATION.               **
+** "IF (VCC)" - always enabled. The RTL still drives the PIN to 0 when OE_n **
+** is high. Unreachable on the 3202D, where /OE is PD1 and PD1..PD4 are     **
+** always low (PAL_44511A.v:22), so it is left alone rather than changed    **
+** blind. Pinned below by CWR_OE_GATED_DEVIATION.                           **
+** What HAS changed: the /CUP equation now takes the UNGATED CWR, matching  **
+** the listing's always-enabled pin 19, instead of the OE-gated pin value.  **
+** With OE_n low - every case on the 3202D - the two are identical.         **
 ** CUP is pin 17, genuinely registered and genuinely /OE controlled; LEV0   **
 ** is pin 12, always enabled - the RTL matches for both.                    **
 **                                                                         **
@@ -48,7 +61,7 @@
 **                                                                         **
 ** Run: cd Verilog/PAL/sim && make test-pal44511a                           **
 **                                                                         **
-** Last reviewed: 20-AUG-2026                                               **
+** Last reviewed: 28-AUG-2026 - expectations re-derived from the PALASM     **
 ** Ronny Hansen                                                             **
 *****************************************************************************/
 `timescale 1ns / 1ps
@@ -86,11 +99,22 @@ module PAL_44511A_EN_tb;
 
   wire g_LEV0 = ~(PIL3 | PIL2 | PIL1 | PIL0);
 
-  // the /CWR pin as this RTL drives it - see DEVIATION 2 in the header
-  wire g_CWR_pin_n = OE_n ? 1'b0 : ~r_cwr;
+  // CWR IS COMBINATIONAL - this is the pin value RIGHT NOW, straight off the
+  // listing's equation, with r_cwr as the held feedback term. No clock edge is
+  // involved in reading it, which is the whole point.
+  wire g_cwr = (g_MREQ & g_WCA) | (r_cwr & ~CLK);
 
-  wire g_cwr_next   = (g_MREQ & g_WCA) | (r_cwr & ~CLK);
-  wire g_cup_n_next = (g_CWR_pin_n & g_MREQ) | (r_cup_n & MREQ_n);
+  // the /CWR pin as this RTL drives it - see DEVIATION 2 in the header
+  wire g_CWR_pin_n = OE_n ? 1'b0 : ~g_cwr;
+
+  // What the registered hold captures at a clock edge, and what CWR therefore
+  // reads immediately after one.
+  wire g_cwr_hold_next = g_MREQ & g_WCA;
+  wire g_cwr_after     = (g_MREQ & g_WCA) | (g_cwr_hold_next & ~CLK);
+
+  // /CUP is the registered output. Its set term takes the UNGATED CWR - pin 19
+  // is always enabled in the listing. See DEVIATION 2.
+  wire g_cup_n_next = (~g_cwr & g_MREQ) | (r_cup_n & MREQ_n);
 
   task chk (input [127:0] name, input got, input exp);
     begin
@@ -159,8 +183,8 @@ module PAL_44511A_EN_tb;
         end
 
         tick;
-        chk("EN1_CWR_n_next", e_CWR_n, OE_n ? 1'b0 : ~g_cwr_next);
-        chk("OR0_CWR_n_next", o_CWR_n, OE_n ? 1'b0 : ~g_cwr_next);
+        chk("EN1_CWR_n_next", e_CWR_n, OE_n ? 1'b0 : ~g_cwr_after);
+        chk("OR0_CWR_n_next", o_CWR_n, OE_n ? 1'b0 : ~g_cwr_after);
         if (OE_n === 1'b0) begin
           chk("EN1_CUP_next", e_CUP, ~g_cup_n_next);
           chk("OR0_CUP_next", o_CUP, ~g_cup_n_next);
@@ -185,14 +209,15 @@ module PAL_44511A_EN_tb;
     end
     {PIL3, PIL2, PIL1, PIL0} = 4'b0000;
 
-    // 2. DEVIATION 1: the listing's CWR is combinational, so MREQ * WCA
-    //    would reach the pin with no clock edge. This RTL needs the edge.
+    // 2. CWR IS COMBINATIONAL. MREQ * WCA must reach the pin with NO clock
+    //    edge at all. This is the check that would have caught the cache bug:
+    //    the old RTL needed an edge here, so CUP never saw CWR in time.
     MREQ_n = 1'b0; WCA_n = 1'b0; CLK = 1'b0;
     set_state(1'b0, 1'b1);
     checks = checks + 1;
-    if (e_CWR_n !== 1'b1) begin
+    if (e_CWR_n !== 1'b0) begin
       errors = errors + 1;
-      $display("FAIL CWR_IS_CLOCKED_NOT_COMBINATIONAL_DEVIATION: e_CWR_n=%b, expected the RTL's clocked behaviour", e_CWR_n);
+      $display("FAIL CWR_IS_COMBINATIONAL: e_CWR_n=%b, MREQ * WCA must reach the pin with no clock edge", e_CWR_n);
     end
     tick;
     checks = checks + 1;
@@ -219,10 +244,12 @@ module PAL_44511A_EN_tb;
       $display("FAIL CWR_NEEDS_MREQ: e_CWR_n=%b, WCA alone must not set CWR", e_CWR_n);
     end
 
-    // 4. the CWR hold term is /CLK: CLK low holds, CLK high releases
+    // 4. The hold term is CWR * /CLK, and it is a LEVEL, not an edge: with
+    //    the hold state set, CLK low keeps CWR asserted and CLK high releases
+    //    it ("HOLD UNTIL START OF NEXT CYCLE"). Checked with no tick, because
+    //    a clock edge is not what makes this term move.
     MREQ_n = 1'b1; WCA_n = 1'b1; CLK = 1'b0;
     set_state(1'b1, 1'b1);
-    tick;
     checks = checks + 1;
     if (e_CWR_n !== 1'b0) begin
       errors = errors + 1;
@@ -230,7 +257,6 @@ module PAL_44511A_EN_tb;
     end
     CLK = 1'b1;
     set_state(1'b1, 1'b1);
-    tick;
     checks = checks + 1;
     if (e_CWR_n !== 1'b1) begin
       errors = errors + 1;
@@ -267,20 +293,26 @@ module PAL_44511A_EN_tb;
       $display("FAIL CUP_CLEAR: e_CUP=%b, MREQ without CWR must clear CUP", e_CUP);
     end
 
-    // 6. the clock enable really gates the USE_ENABLE=1 registers
-    MREQ_n = 1'b0; WCA_n = 1'b0; CLK = 1'b0;
-    set_state(1'b0, 1'b1);
+    // 6. The clock enable really gates the USE_ENABLE=1 registers. This is
+    //    checked on CUP, not on CWR: CUP is the genuinely registered output,
+    //    and CWR's set term is combinational by design, so EN cannot block it
+    //    and must not be expected to. Testing EN on CWR is what the old
+    //    version did, and it only appeared to work because CWR was wrongly
+    //    registered.
+    //    Setup: CWR held, MREQ asserted -> /CUP would go 0, i.e. CUP -> 1.
+    MREQ_n = 1'b0; WCA_n = 1'b1; CLK = 1'b0;
+    set_state(1'b1, 1'b1);        // CWR held set, /CUP = 1 so CUP reads 0
     EN = 1'b0; sysclk = 1'b1; #1; sysclk = 1'b0; #1;
     checks = checks + 1;
-    if (e_CWR_n !== 1'b1) begin
+    if (e_CUP !== 1'b0) begin
       errors = errors + 1;
-      $display("FAIL EN_GATE: e_CWR_n=%b, EN low must block the capture", e_CWR_n);
+      $display("FAIL EN_GATE: e_CUP=%b, EN low must block the capture", e_CUP);
     end
     EN = 1'b1; tick;
     checks = checks + 1;
-    if (e_CWR_n !== 1'b0) begin
+    if (e_CUP !== 1'b1) begin
       errors = errors + 1;
-      $display("FAIL EN_RELEASE: e_CWR_n=%b, EN high must capture", e_CWR_n);
+      $display("FAIL EN_RELEASE: e_CUP=%b, EN high must capture", e_CUP);
     end
 
     // 7. nothing floats
