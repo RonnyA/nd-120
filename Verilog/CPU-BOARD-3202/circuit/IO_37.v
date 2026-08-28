@@ -413,8 +413,6 @@ module IO_37(
    IO_PANCAL_40   PANCAL
    (
       .sysclk(sysclk),
-      .CLK(s_clk),       // DGA FIFO clock, for the 68705 clock emulation
-      .CLK_EN(CLK_EN),   // (ND120_PANEL_CLOCK builds; unused otherwise)
       .CLEAR_n(s_clear_n),
       .DP_5_1_n(s_dp_5_1_n[4:0]),
       .EMP_n(s_emp_n),
