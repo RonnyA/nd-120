@@ -225,6 +225,19 @@ test-mmupt: CPU_MMU_PT_29_tb_bin
 	./CPU_MMU_PT_29_tb_bin | tee mmupt_result.tmp
 	@grep -q "TB_RESULT: PASS" mmupt_result.tmp && rm -f mmupt_result.tmp
 
+# CPU_MMU_PT_29 CACHE INHIBIT BIT (WCINH_n). The gate on the whole cache -
+# CHIP_20G -> WCINH_n -> EWC -> WCA -> CWR -> CUP - and it had no coverage
+# whatsoever until 28-AUG-2026, while CACHE-120-A00 was failing on hardware
+# with "Cache not updated (Use of limit registers)".
+WCINH_SRCS = CPU_MMU_PT_29_wcinh_tb.v $(CIRCUIT)/CPU_MMU_PT_29.v              $(MMUPT_SUPPORT)/TMM2018D_25.v $(MMUPT_SUPPORT)/IMS1403_25.v
+
+CPU_MMU_PT_29_wcinh_tb_bin: $(WCINH_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(WCINH_SRCS)
+
+test-mmu-wcinh: CPU_MMU_PT_29_wcinh_tb_bin
+	./CPU_MMU_PT_29_wcinh_tb_bin | tee wcinh_result.tmp
+	@grep -q "TB_RESULT: PASS" wcinh_result.tmp && rm -f wcinh_result.tmp
+
 # CPU_MMU_PT_29 SHADOW-MEMORY read-modify-write bench: the PT STATUS bank
 # (EPT_n) that had no coverage at all, bank shifting over PT_number*64+vpn,
 # the shared-WMAP_n bank isolation, and the trap handler's read/modify/
@@ -402,6 +415,30 @@ test-pancal: IO_PANCAL_40_tb_bin
 IO_PANCAL_40_tb_bin: $(PANCAL_SRCS)
 	$(IVERILOG) -g2012 -o $@ $(PANCAL_SRCS)
 
+# IO_PANCAL_40 + ND120_PANEL_CLOCK: the MC68705/MM58274 clock path
+# (PANCAL_68705_CLOCK) driven through a real FIFO_8BIT and the DGA IDBS
+# VAL/RIWR handshake - TRR PANC write/read of the 4-byte time, wrap,
+# text-command drain, missing-byte recovery, CLEAR_n. Two builds:
+# latch mode (FIFO on CLK) and FPGA_FF_MODE (FIFO on sysclk + CLK_EN).
+# BOARD_CLK_FREQ=2048000 makes the STAT4 hold 4096 sysclk, the panel
+# "second" is 2000 sysclk.
+PANCAL_CLOCK_SRCS = IO_PANCAL_40_clock_tb.v $(CIRCUIT)/IO_PANCAL_40.v $(CIRCUIT)/PANCAL_68705_CLOCK.v 	$(SUPPORT)/TTL_74374.v $(SUPPORT)/TTL_74244.v $(SUPPORT)/FIFO_8BIT.v
+PANCAL_CLOCK_DEFS = -DND120_PANEL_CLOCK -DBOARD_CLK_FREQ=2048000 -DND120_PANEL_CLOCK_TICK_CYCLES=2000
+
+test-pancal-clock: IO_PANCAL_40_clock_tb_bin
+	./IO_PANCAL_40_clock_tb_bin | tee pancal_clock_result.tmp
+	@grep -q "TB_RESULT: PASS" pancal_clock_result.tmp && rm -f pancal_clock_result.tmp
+
+test-pancal-clock-ff: IO_PANCAL_40_clock_ff_tb_bin
+	./IO_PANCAL_40_clock_ff_tb_bin | tee pancal_clock_ff_result.tmp
+	@grep -q "TB_RESULT: PASS" pancal_clock_ff_result.tmp && rm -f pancal_clock_ff_result.tmp
+
+IO_PANCAL_40_clock_tb_bin: $(PANCAL_CLOCK_SRCS)
+	$(IVERILOG) -g2012 $(PANCAL_CLOCK_DEFS) -o $@ $(PANCAL_CLOCK_SRCS)
+
+IO_PANCAL_40_clock_ff_tb_bin: $(PANCAL_CLOCK_SRCS)
+	$(IVERILOG) -g2012 $(PANCAL_CLOCK_DEFS) -DFPGA_FF_MODE -o $@ $(PANCAL_CLOCK_SRCS)
+
 # CPU_MMU_CACHE_25: cache sheet incl. the 26-JUL HIT-gate on CD_15_0_OUT
 # (banner word-2 stale-line fix). Three builds: gated (default), the
 # -DND120_CACHE_DRIVE_UNGATED escape hatch (raw schematic drive), and
@@ -529,9 +566,10 @@ MEM_ADEC_45_ff_tb_bin: $(ADEC_SRCS)
 clean-tier3:
 	rm -f MEM_RAMC_50_tb_bin MEM_LBDIF_48_ff_tb_bin MEM_LBDIF_48_lm_tb_bin
 	rm -f IO_PANCAL_40_tb_bin CPU_MMU_CACHE_25_tb_bin
+	rm -f IO_PANCAL_40_clock_tb_bin IO_PANCAL_40_clock_ff_tb_bin
 	rm -f CPU_MMU_CACHE_25_ug_tb_bin CPU_MMU_CACHE_25_ff_tb_bin
 
-.PHONY: test-ramc test-lbdif test-pancal test-mmucache clean-tier3
+.PHONY: test-ramc test-lbdif test-pancal test-pancal-clock test-pancal-clock-ff test-mmucache clean-tier3
 
 # Control-store readback (the TRA CS / TRA 17 path SINTRAN's microcode-revision
 # test uses). Isolates the hardware half: RWCS command decode (PAL_44408B),

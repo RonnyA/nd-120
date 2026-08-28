@@ -37,6 +37,21 @@ REGISTRY = os.path.join(HERE, "run_all_tests.sh")
 # Testbenches known not to be reached by `make test`, with the reason.
 # This list may only SHRINK. A new orphan is a failure.
 ORPHAN_BASELINE = {
+    "CPU-BOARD-3202/circuit/sim/CPU_MMU_PT_29_wcinh_tb.v":
+        "DETECTOR, deliberately RED against today's RTL - 28-AUG-2026. The "
+        "cache-inhibit bit (WCINH_n, CHIP_20G) gates the whole cache: "
+        "WCINH_n -> EWC -> WCA -> CWR -> CUP. It had NO coverage at all while "
+        "CACHE-120-A00 was failing on hardware with 'Cache not updated (Use "
+        "of limit registers)'. Checks 1 and 2 pass; check 3 fails because "
+        "CPU_MMU_PT_29.v:71 addresses the RAM with "
+        "s_ppn_25_10_in | s_ppn_25_10_out - a bitwise OR of the two "
+        "directions of one bidirectional bus. With the CPU presenting page "
+        "0005B and the map presenting 0012B the RAM is addressed at 0017B, a "
+        "page neither side asked for. The bench takes no side on which "
+        "direction should win - that needs the schematic - it only asserts "
+        "the address is a real page number. Register it the day that line is "
+        "resolved; it is the acceptance gate for that fix. STILL UNPROVEN: "
+        "whether both busses are ever non-zero at once in the real design.",
     "DELILAH-CPU/CGA_MAC/sim/CGA_MAC_pt_apt_selection_tb.v":
         "UNRESOLVED - 27-AUG-2026. red at 129/259 (PT request selects "
         "PCR[14:11]: got 1 expected 12). 17-AUG ERRFATAL-campaign probe; that "
