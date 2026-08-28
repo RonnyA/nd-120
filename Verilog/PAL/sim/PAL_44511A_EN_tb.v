@@ -108,9 +108,9 @@ module PAL_44511A_EN_tb;
   task set_state (input w, input u);
     begin
       r_cwr = w; r_cup_n = u;
-      DUT_EN.gen_enable.CWR_reg   = w;
+      DUT_EN.gen_enable.CWR_hold   = w;
       DUT_EN.gen_enable.CUP_n_reg = u;
-      DUT_OR.gen_orig.PAL.CWR_reg   = w;
+      DUT_OR.gen_orig.PAL.CWR_hold   = w;
       DUT_OR.gen_orig.PAL.CUP_n_reg = u;
       #1;
     end
