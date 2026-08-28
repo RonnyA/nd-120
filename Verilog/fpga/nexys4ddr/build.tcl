@@ -677,7 +677,11 @@ if {$wns < 0} {
 }
 
 set bit [file join $srcdir nd120_nexys4ddr.bit]
-if {[lsearch $argv "ila"] >= 0 || [lsearch $argv "ilaslim"] >= 0} {
+# The .ltx names the ILA probes for the hardware manager. Every flag that
+# builds a debug core must be listed here or the capture comes back as
+# probe0..probeN with no names - ilacache was missed on its first build.
+if {[lsearch $argv "ila"] >= 0 || [lsearch $argv "ilaslim"] >= 0 ||
+    [lsearch $argv "ilacache"] >= 0} {
     write_debug_probes -force [file join $srcdir nd120_nexys4ddr.ltx]
 }
 write_bitstream -force $bit
