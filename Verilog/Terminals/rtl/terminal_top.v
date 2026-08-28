@@ -255,11 +255,43 @@ module terminal_top #(
     // remembers what it saw.
     //
     // Two flops for metastability, then - for the multi-bit bus - a stability
-    // gate: a value is only accepted once two consecutive samples agree. A
-    // skew artefact does not survive that, because the bits settle within a
-    // clock or two of each other and a glitch code appears exactly once.
+    // gate: a value is only accepted once it has held still for a while.
+    //
+    // TWO SAMPLES WAS NOT ENOUGH - 28-AUG-2026. The first version accepted a
+    // value as soon as two consecutive samples agreed, and compared one of
+    // them against s_pil_m, the FIRST flop of the synchroniser, which is the
+    // one allowed to be metastable. Comparing against a metastable flop is not
+    // a stability test at all.
+    //
+    // It also could not reject what PIL actually does. PIL is STS[11:8]
+    // (CGA_ALU.v:134) - the level field of a status register that is selected
+    // PER LEVEL, so on a level change the bus settles through intermediate
+    // codes before it lands. At 40 MHz pixel clock against a 16.67 MHz CPU
+    // clock, one CPU cycle of transient spans about 2.4 pixel samples, which
+    // walks straight through a two-sample gate. Downstream, term_panel reloads
+    // s_glow[pil] to full brightness on EVERY clock, so a single transient
+    // code lights that lamp for the whole ~1 s afterglow. Ronny's report -
+    // levels walking 2,3,4,5,6 and "every time the level changes all the
+    // levels light up" - is exactly that shape.
+    //
+    // So: three flops, the comparison taken between the SECOND and THIRD (both
+    // past the metastable one), and the value accepted only after it has been
+    // identical for 8 consecutive samples - 200 ns at 40 MHz, comfortably
+    // longer than a CPU cycle. Any code the bus merely passes through on its
+    // way somewhere else is discarded.
+    //
+    // NOT YET CONFIRMED ON HARDWARE. Verilator cannot show this class of
+    // fault: it evaluates settled values once per clock, so an intra-cycle
+    // transient does not exist in simulation - the same reason the ND3202D
+    // bank-decode bug was invisible in sim. s_ila_pil is already a mark_debug
+    // probe (nd120_nexys4ddr_top.v:1104), so an ILA build can capture PIL
+    // across a level change and settle it. Until someone does, this fix is
+    // reasoned from the source, not measured.
     //------------------------------------------------------------------
-    reg [3:0] s_pil_m, s_pil_s, s_pil_q;
+    localparam [2:0] PIL_STABLE_SAMPLES = 3'd7;   //! 8 samples: 0..7
+
+    reg [3:0] s_pil_m, s_pil_s, s_pil_t, s_pil_q;
+    reg [2:0] s_pil_cnt;
     reg [1:0] s_lev0_sync, s_hit_sync, s_look_sync;
     reg [1:0] s_pag_sync, s_int_sync, s_run_sync;
     reg [1:0] s_hrd_sync, s_hwr_sync, s_frd_sync, s_fwr_sync;
@@ -267,7 +299,8 @@ module terminal_top #(
 
     always @(posedge pix_clk or negedge pix_rst_n) begin
       if (!pix_rst_n) begin
-        s_pil_m <= 4'd0; s_pil_s <= 4'd0; s_pil_q <= 4'd0;
+        s_pil_m <= 4'd0; s_pil_s <= 4'd0; s_pil_t <= 4'd0; s_pil_q <= 4'd0;
+        s_pil_cnt <= 3'd0;
         s_ring_m <= 2'd0; s_ring_s <= 2'd0; s_ring_q <= 2'd0;
         s_lev0_sync <= 2'd0; s_hit_sync <= 2'd0; s_look_sync <= 2'd0;
         s_pag_sync  <= 2'd0; s_int_sync <= 2'd0; s_run_sync  <= 2'd0;
@@ -276,8 +309,15 @@ module terminal_top #(
       end else begin
         s_pil_m <= panel_pil;
         s_pil_s <= s_pil_m;
-        //! Accept only a value that held still for two samples.
-        if (s_pil_s == s_pil_m) s_pil_q <= s_pil_s;
+        s_pil_t <= s_pil_s;
+        //! Compare the two flops PAST the metastable one, and only publish a
+        //! value that has survived 8 consecutive identical samples.
+        if (s_pil_t == s_pil_s) begin
+          if (s_pil_cnt != PIL_STABLE_SAMPLES) s_pil_cnt <= s_pil_cnt + 3'd1;
+          else                                 s_pil_q   <= s_pil_t;
+        end else begin
+          s_pil_cnt <= 3'd0;
+        end
 
         s_ring_m <= panel_ring;
         s_ring_s <= s_ring_m;
