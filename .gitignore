@@ -163,3 +163,4 @@ Verilog/CPU-BOARD-3202/circuit/sim/cycle_timeline.diff
 Verilog/CPU-BOARD-3202/circuit/sim/cycle_timeline_out.trace
 Verilog/dmaSim/csa_seq.txt
 Verilog/fpga/release-staging/
+*.vvp
