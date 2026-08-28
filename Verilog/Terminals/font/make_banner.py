@@ -25,16 +25,22 @@ NL = "\r\n"
 
 # Keep every line inside 80 columns. Nothing here should need the machine to be
 # alive - this message is the proof that the VIDEO half works on its own.
+# TRIMMED TO TWO LINES, 28-AUG-2026, at Ronny's request: "it should only say
+# 'ND-120/CX CPU CORE', and then '80x25 TDV2200 console'".
+#
+# What went away was eight lines of instructions for a first-time bring-up -
+# what the pixel path proves, what to type, which half is at fault if nothing
+# appears. Every one of those questions is now answered: the pixel path, the
+# keyboard and the scroll map have all been working for weeks. The message had
+# stopped splitting one failure into two (see the module header) and become
+# eight lines of scrollback to page past on every single reset.
+#
+# The two lines that remain still do the original job. Either they are on the
+# screen or they are not, and that alone still separates "the display is dead"
+# from "the display works and the machine is not talking".
 MESSAGE = (
-    "ND-120 TERMINAL CORE - SELF TEST" + NL +
-    "80x25 TDV2200 console" + NL +
-    NL +
-    "If you can read this, the pixel path works:" + NL +
-    "  clock, sync timing, font ROM, character RAM, scroll mapping." + NL +
-    NL +
-    "Now type. Characters should appear below, and the cursor should move." + NL +
-    "If nothing appears, the KEYBOARD half is at fault, not the display." + NL +
-    NL
+    "ND-120/CX CPU CORE" + NL +
+    "80x25 TDV2200 console" + NL
 )
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -113,6 +119,20 @@ def main():
     # compares against it before stopping.
     if (1 << (abits + 1)) <= length:
         abits += 1
+
+    # FLOOR OF 9 BITS, added 28-AUG-2026. term_banner.v declares its own
+    # counter as reg [8:0] s_addr and wires it straight to this port. When the
+    # message was trimmed to two lines the computed width fell to 6, and
+    # Verilog would have quietly dropped the top three bits of that connection
+    # - no error, just a truncation warning in a toolchain that emits hundreds.
+    # The message happens to stop at the first 0x00 long before the wrap, so
+    # nothing would have gone wrong TODAY; the next person to lengthen or
+    # shorten the text is the one who would have paid. Nine bits costs nothing
+    # in a case statement and keeps the two files agreeing.
+    #
+    # If you ever change s_addr in term_banner.v, change this floor with it.
+    if abits < 8:
+        abits = 8
 
     out = [HEADER % {"len": length, "abits": abits}]
     for i, ch in enumerate(msg):
