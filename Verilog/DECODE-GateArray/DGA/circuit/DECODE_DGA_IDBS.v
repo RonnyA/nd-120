@@ -542,7 +542,7 @@ module DECODE_DGA_IDBS (
       .D1_H02 (s_a265_nand_out),
       .D2_H03 (s_a258_nand_out),
       .D3_H04 (s_a262_nand_out),
-      .N01_Q0 (),             // EPANSN: combinatorial bypass below (see comment)
+      .N01_Q0 (),             // EPANSN: see the o20/o21 split below (comb o20, CLK0-registered o21)
       .N02_Q1 (s_rinr_n),
       .N03_Q2 (s_epan_n),
       .N04_Q3 (s_traald_n),
@@ -560,7 +560,26 @@ module DECODE_DGA_IDBS (
   // CSIDBS=o020 settles at MCLK falling (start of idle), so s_epans_n=0 is visible
   // during the idle phase when CSEL is transparent, allowing COND=F[15]=1 to be
   // captured before o002336 CONDENABL executes.
-  assign s_epans_n = s_a260_nand_out;
+  //
+  // 28-AUG-2026 (panel clock work), MEASURED with sim/examples/panel_pans_capture.py:
+  // the macro instruction TRA PANS (VECT2 o3660, IDBS,MAPANS -> A) stored
+  // 000000 in A although the sheet-40 drivers held PRES=1. The capture shows
+  // why: with the comb bypass the panel drives the IDB from the CLK fall at
+  // which CSIDBS=o21 appears until the next CLK fall - one CLK period - and
+  // the ALU samples FIDBI one phase later (reference: a UART read, IDBS o37,
+  // whose CLK0-registered enable asserts at the following CLK rise and holds
+  // the data through the next CLK-low phase, where the ALU takes it).
+  // So the macro read needs the REGISTERED window, while the 20 ms check
+  // (o2335: IDBS,MIPANS then COND,F15) needs the early comb one.
+  // Adding a registered window to o20 (either A259.Q0 for o20|o21, or the
+  // plain AND of both windows) kills OPCOM console input - the extra window
+  // lands in the data phase of the microinstruction AFTER o2335, which uses
+  // the IDB. So the two codes are split: o20 (MIPANS) keeps the comb bypass
+  // and nothing else; o21 (MAPANS) uses s_mapans, the A275 CLK0-registered
+  // decode that already exists for the VAL/RIWR handshake - the same clock
+  // and timing as RUARTN, the UART read that is known to work.
+  wire s_mipans_comb_n = ~(s_csidbs_4_0[4] & s_csidbs_3_n & s_csidbs_2_n & s_csidbs_1_n & s_csidbs_0_n & s_lcs_n);  // o20
+  assign s_epans_n = s_mipans_comb_n & ~s_mapans;
 
   F924_EN #(.USE_ENABLE(CLK_CE)) A248 (
       .sysclk(sysclk),

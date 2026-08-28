@@ -23,7 +23,9 @@
 **   ECSRN<=o24  EIORN<=o16  EPESN<=o13  EPEAN<=o12  RUARTN<=o37        **
 **   RINRN<=o35  EPANN<=o27  TRAALDN<=o26  MAPANS(int)<=o21             **
 **   EDON <= {0,1,2,3,4,6,10,11,14,15,22,23,25,31,36} (octal)           **
-**   EPANSN = COMB ~((CSIDBS==o20|o21)&LCSN)  (the documented WCS-      **
+**   EPANSN = COMB ~(CSIDBS==o20 & LCSN) & ~MAPANS(A275, CLK0)          **
+**            (28-AUG-2026 split: comb for the 20 ms MIPANS check,      **
+**             registered for the macro TRA PANS read - see the DUT)    **
 **            latency bypass; A259.Q0 is left unconnected)              **
 **   Panel FSM (all products gated by LCSN):                            **
 **     VAL'    = RIWR_n & STAT4                                         **
@@ -36,7 +38,7 @@
 **      active-low enable output reads 0 (asserted) and the Q-bar-       **
 **      sourced signals read 1: VAL=1, RIWR=1, DSTAT3=1, PRQ=1,          **
 **      MAPANS(internal)=1, only EDON=1 deasserted. Checked at t=0.      **
-**  P2. EPANSN is combinational (A259.Q0 bypass, see DUT comment); the   **
+**  P2. EPANSN = comb o20 term AND ~MAPANS (A275.Q3B) (see DUT comment); **
 **      other 9 enables are registered - one clock later.                **
 **                                                                       **
 ** STALE-COMMENT findings (gates are internally consistent, comments     **
@@ -124,6 +126,15 @@ module DECODE_DGA_IDBS_tb;
 
   function dec2021(input [4:0] c, input lcs);
     dec2021 = lcs & ((c == 5'o20) | (c == 5'o21));
+  endfunction
+  function dec20(input [4:0] c, input lcs);
+    dec20 = lcs & (c == 5'o20);
+  endfunction
+  // EPANSN as the pins show it (28-AUG-2026): comb o20 term (MIPANS, the
+  // 20 ms COND,F15 check) AND the A275 CLK0-registered o21 term (MAPANS,
+  // the macro TRA PANS read) - see the DUT comment.
+  function epansn_exp(input [4:0] c, input lcs, input mapans_n);
+    epansn_exp = ~dec20(c, lcs) & mapans_n;
   endfunction
 
   function edo_hit(input [4:0] c, input lcs);
@@ -247,7 +258,7 @@ module DECODE_DGA_IDBS_tb;
       check1(tag, "EDON", EDON, ~m_edo);
       check1(tag, "EIORN", EIORN, m_eior_n);
       check1(tag, "EPANN", EPANN, m_epan_n);
-      check1(tag, "EPANSN", EPANSN, ~dec2021(CSIDBS, LCSN));
+      check1(tag, "EPANSN", EPANSN, epansn_exp(CSIDBS, LCSN, m_mapans_n));
       check1(tag, "EPEAN", EPEAN, m_epea_n);
       check1(tag, "EPESN", EPESN, m_epes_n);
       check1(tag, "RINRN", RINRN, m_rinr_n);
@@ -322,7 +333,7 @@ module DECODE_DGA_IDBS_tb;
     // stat lines held 0 so the panel FSM decays deterministically.
     for (i = 0; i < 64; i = i + 1) begin
       apply(i[4:0], ~i[5], 1'b0, 1'b0);
-      check1("B_comb", "EPANSN", EPANSN, ~dec2021(CSIDBS, LCSN));
+      check1("B_comb", "EPANSN", EPANSN, epansn_exp(CSIDBS, LCSN, m_mapans_n));
       tick_both;
       check_all("B_sweep");
     end

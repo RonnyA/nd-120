@@ -288,6 +288,7 @@ module DECODE_DGA_tb;
 
   integer ic, il;
   reg [4:0] code;
+  reg        prev_pans_reg;   // registered o21 (MAPANS) XPSN term from the previous step
   reg lcs;
   reg [3:0] panel_nibble;
   reg [3:0] first_nibble;
@@ -306,6 +307,7 @@ module DECODE_DGA_tb;
     XID_4_0 = 5'o17; XLCN = 1'b1;
     xclk_capture;
     xclk_capture;
+    prev_pans_reg = 1'b0;   // o17 decodes nothing -> registered o21 term idle
 
     // =================================================================
     // A. EXHAUSTIVE XID_4_0 sweep x XLCN, at the top-level pins.
@@ -318,10 +320,12 @@ module DECODE_DGA_tb;
         XLCN    = lcs;
         #1;
 
-        // XPSN is COMBINATIONAL - it must already be right, before the
-        // clock that loads the other nine.
+        // XPSN (28-AUG-2026): comb o20 term (MIPANS, the 20 ms COND,F15
+        // check) AND the CLK0-registered o21 term (MAPANS, the macro TRA
+        // PANS read). Before the clock the registered half still holds the
+        // PREVIOUS code's decode.
         ck("A_XPSN_COMB_BEFORE_CLOCK", XPSN,
-           !(lcs && ((code == 5'o20) || (code == 5'o21))));
+           !(lcs && (code == 5'o20)) && !prev_pans_reg);
 
         xclk_capture;
 
@@ -336,6 +340,7 @@ module DECODE_DGA_tb;
         ck("A_XDON_EDO_SET",    XDON, !edo_hit(code, lcs));
         ck("A_XPSN_COMB_AFTER_CLOCK", XPSN,
            !(lcs && ((code == 5'o20) || (code == 5'o21))));
+        prev_pans_reg = (lcs && (code == 5'o21));
 
         // the FIFO output port stays at ZERO the whole time, because
         // XRMN is parked high (disabled bus outputs drive 0, never z)
