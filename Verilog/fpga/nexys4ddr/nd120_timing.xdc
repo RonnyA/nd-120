@@ -50,13 +50,20 @@ set_clock_groups -asynchronous \
 # Measured on the routed checkpoints of both failed builds
 # (timing-analysis/ring_fp_test.tcl): -10.4 -> +0.044 ns overall with the CPU
 # domain at +27.6 ns / 39 levels, and -50.7 -> -0.19 ns (a keyboard path).
-# Every path that the tool used to cut on its own is now covered by this
-# one, so the auto-cuts should disappear; if Synth 8-326 lines come back,
-# the ring has grown a new edge - look before adding a constraint.
+# The Synth 8-326 auto-cuts do NOT go away: synthesis breaks loops
+# structurally on its own, before any XDC applies. Measured on the first
+# build with this file (29-AUG, build-ringcut.log): 3 x CPUi_6/O883 and
+# 16 x MMUi_5/O880 still inferred, and the CPU worst path was 40 levels /
+# 42.8 ns, WNS +0.261 ns - the checkpoint test predicted 39 levels. So the
+# 8-326 lines are noise; this constraint is what makes the result stable.
 #
-# If synthesis renames these pins the constraint is dropped with a
-# CRITICAL WARNING [Vivado 12-4739] and the -50 ns path returns: grep the
-# build log for 12-4739 whenever the WNS gate fails.
+# At the pre-synthesis read Vivado reports [Vivado 12-508] "No pins matched"
+# for the F_15_0 pins and [Project 1-498] "constraints failed evaluation";
+# that is expected - the pins exist only after elaboration and the file is
+# re-read after synth_design, where all three patterns resolve. What must
+# NOT appear is [Vivado 12-4739] after synthesis: that means a pattern was
+# dropped and the -50 ns path is back. Grep the build log for 12-4739
+# whenever the WNS gate fails.
 set_false_path \
   -through [get_pins -hier -filter {NAME =~ *DELILAH/ALU/FIDBI_15_0[*]}] \
   -through [get_pins -hier -filter {NAME =~ *DELILAH/ALU/ALU_OUTMUX/OUTMUX_IDBS/IDBS_R*/F_15_0[*]}] \
