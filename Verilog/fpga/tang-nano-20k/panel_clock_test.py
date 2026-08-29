@@ -36,6 +36,11 @@ def main():
                     help="seconds to collect output after each command")
     ap.add_argument("--login", action="store_true",
                     help="press ESC and log in as SYSTEM first")
+    ap.add_argument("--macl", action="store_true",
+                    help="issue MACL at the OPCOM prompt first (master clear,\n"
+                         "RAM preserved) - the panel clock keeps its time")
+    ap.add_argument("--boot", action="store_true",
+                    help="send 20500& and wait for the watchdog line")
     a = ap.parse_args()
 
     import serial
@@ -73,6 +78,36 @@ def main():
             s.write(b"\r"); s.flush()
 
     time.sleep(1.0); s.reset_input_buffer()
+
+    if a.macl:
+        note("MACL (master clear) at the OPCOM prompt")
+        send("MACL"); rx(4.0)
+
+    if a.boot:
+        note("boot: 20500&")
+        t0 = time.time()
+        send("20500&")
+        # collect until the watchdog line, or give up after 8 minutes. The
+        # boot banner is not enough - SINTRAN is not ready for a login until
+        # the watchdog has started.
+        seen = []
+        end = time.time() + 480
+        while time.time() < end:
+            t = rx(2.0)
+            seen.append(t)
+            joined = "".join(seen)
+            if "Watchdog has started" in joined:
+                note("watchdog after %.1fs - ready for login" % (time.time() - t0))
+                break
+        else:
+            note("TIMEOUT waiting for the watchdog line")
+        joined = "".join(seen)
+        # the message is printed with the high bit set on this console
+        clean = "".join(chr(ord(c) & 0x7F) for c in joined).upper()
+        if "PANEL CLOCK INCORRECT" in clean:
+            note(">>> SINTRAN SAID: ND-100 PANEL CLOCK INCORRECT")
+        else:
+            note(">>> no 'PANEL CLOCK INCORRECT' line in this boot")
 
     if a.login:
         note("ESC for the login prompt")
