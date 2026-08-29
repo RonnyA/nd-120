@@ -410,6 +410,13 @@ puts "Bounded clk_cpu_pre / clk_stor_pre / clk_pll_i crossings with datapath-onl
 # ---------------------------------------------------------------------------
 # KNOWN COMBINATIONAL LOOPS - acknowledged deliberately, not hidden.
 #
+# 29-AUG-2026: the ring is now cut EXPLICITLY in nd120_timing.xdc (ordered
+# false path ALU FIDBI -> OUTMUX F -> FIDBO, measured on two failed
+# checkpoints with timing-analysis/ring_fp_test.tcl). The auto-inserted cuts
+# described below were moving with every netlist change and left a 208-level
+# path timed in the cache + panel-clock build (-50.7 ns). The text below is
+# kept as the record of what the tool used to do.
+#
 # Last verified 24-AUG-2026 (this block used to claim "12 loops remain" -
 # that was pre-ring-cut and STALE; commit b3ee391 cut the FIDBO ring):
 # the current builds report ZERO LUTLP-1 errors and Vivado auto-inserts
