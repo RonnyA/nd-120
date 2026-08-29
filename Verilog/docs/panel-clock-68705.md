@@ -88,8 +88,8 @@ Off by default everywhere - the Tang Nano 20K is nearly full.
 
 | where | how |
 |-------|-----|
-| Tang Nano 20K | `.\gowin_build.ps1 -Variant fast20 -PanelClock` (adds `` `define ND120_PANEL_CLOCK`` to `build/tang20k_variant.v`) |
-| Nexys 4 DDR | `build.tcl ... panelclock` (adds `ND120_PANEL_CLOCK` to the synth defines) |
+| Tang Nano 20K | ON BY DEFAULT (adds `` `define ND120_PANEL_CLOCK`` to `build/tang20k_variant.v`); `.\gowin_build.ps1 -Variant fast20 -NoPanelClock` falls back to the stub |
+| Nexys 4 DDR | ON BY DEFAULT (adds `ND120_PANEL_CLOCK` to the synth defines); `build.tcl ... nopanelclock` falls back to the stub |
 | Verilator `sim/` and `runSim/` | `PANEL_CLOCK=1` on the make line (also reaches the `probe*` engines in `sim/`) |
 | unit tests | always built (`test-pancal-clock`, `test-pancal-clock-ff`); the stub contract test `test-pancal` still builds without the define |
 
@@ -183,5 +183,27 @@ builds in `sim/` and `runSim/` stop on 82 pre-existing `-Wall` warnings
 `DBG_PTW_LVL`/`DBG_PANEL`, all from the 25-AUG squash); the runs above passed
 `SUPPRESS_FLAGS="... -Wno-IMPLICIT -Wno-PINMISSING"` on the make line only.
 
-Not yet done: SINTRAN `@UPDAT` / `@CLOCK` / `@DATCL` round trip on silicon
-(Tang `-PanelClock`, Nexys `panelclock`).
+DONE 29-AUG-2026 on the Tang (fast20, config flash). All three checks pass:
+
+- SINTRAN boots, console works (banner 37.6 s).
+- Hardware clock round trip. Read DIRECTLY from OPCOM with SINTRAN out of the
+  loop (`fpga/tang-nano-20k/tang_panel_clock_probe.py`), after `@UPDAT` and a
+  real master clear: half-days 11439, seconds 1455 - the set value advanced by
+  the 54 min 14 s that had actually elapsed (expected 11439 / 1454). Then
+  `@OPCOM` + `MACL` + `20500&`: no "PANEL CLOCK INCORRECT" line and the boot
+  banner itself came up at 12.11.05 1 OCTOBER 1994, taken from the panel.
+- TPE `1560&` reaches `TPE>` with no "clock is not updated" line.
+
+TWO TRAPS, both of which produced convincing false results first:
+
+1. **SINTRAN refuses a panel clock EARLIER than its own stored date.** This
+   image was generated 16 SEPTEMBER 1994, so a test date of 29 AUGUST 1994 is
+   rejected as "ND-100 PANEL CLOCK INCORRECT" even though the panel held it
+   correctly. Test with a date AFTER the system's generated date.
+2. **`MACL` is an OPCOM command.** Sent to a running SINTRAN it answers `NO
+   SUCH FILE NAME`, `20500&` answers `ILLEGAL CHARACTER IN PARAMETER`, and
+   nothing reboots - a `@DATCL` afterwards then reads the still-running
+   software clock and looks like a pass. `@OPCOM` is the way there.
+
+Still open: the Nexys round trip, and the power-up preset (the clock starts at
+1979-01-01, so the first boot after power-on always reports it incorrect).

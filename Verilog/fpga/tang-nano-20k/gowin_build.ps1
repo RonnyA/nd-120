@@ -3,7 +3,7 @@
 #  dir - see docs/tang20k-build-flows.md)
 #
 #   cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k
-#   .\gowin_build.ps1 [-Variant slow|crawl|full] [-Gao] [-PfCapture] [-PcHistory] [-JplCapture] [-PanelClock]
+#   .\gowin_build.ps1 [-Variant slow|crawl|full] [-Gao] [-PfCapture] [-PcHistory] [-JplCapture] [-NoPanelClock]
 #
 # -Variant selects the clocking (default slow, same as always):
 #   slow  = CPU 6.75 MHz / SDRAM 13.5 MHz
@@ -44,7 +44,7 @@ param(
     [switch]$PfLog,
     [switch]$PgWrite,
     [switch]$StageTimer,
-    [switch]$PanelClock
+    [switch]$NoPanelClock
 )
 
 $ErrorActionPreference = "Stop"
@@ -189,12 +189,22 @@ if ($NoStorageCache) {
     $variantContent += "``define ND_STORAGE_NO_CACHE`n"
     Write-Host "STORAGE CACHE: NOT SYNTHESIZED (ND_STORAGE_NO_CACHE)"
 }
-if ($PanelClock) {
+if ($NoPanelClock) {
+    # The old stub: PRES=1, the FIFO is never drained, and TRR PANC / TRA PANS
+    # can neither set nor read the time. SINTRAN then reports "ND-100 PANEL
+    # CLOCK INCORRECT" at every boot and TPE prints its "clock is not updated"
+    # line. Use this only to take the panel out of the picture while chasing
+    # something else, or if the device runs out of room.
+    Write-Host "PANEL CLOCK: DISABLED (-NoPanelClock) - sheet 40 is the old stub"
+} else {
     # ND120_PANEL_CLOCK (IO_PANCAL_40.v -> PANCAL_68705_CLOCK.v): emulate the
     # MC68705 panel processor's CLOCK path so SINTRAN can set and read the
     # hardware clock through TRR PANC / TRA PANS (PFUNC 4-7, half-days +
-    # seconds since 1979). OPT-IN: a few hundred extra flops on a device that
-    # is nearly full - check the utilisation and timing report after enabling.
+    # seconds since 1979). ON BY DEFAULT since 29-AUG-2026: measured on the
+    # Tang at fast20 - SINTRAN takes the time from the panel across a MACL,
+    # and TPE boots without its clock warning. Costs a few hundred flops;
+    # fast20 still closed with zero negative setup paths (CPU-clock Fmax
+    # 23.946 MHz against the 20.250 MHz constraint).
     $variantContent += "``define ND120_PANEL_CLOCK`n"
     Write-Host "PANEL CLOCK: ENABLED (ND120_PANEL_CLOCK) - 68705/MM58274 clock path emulated"
 }

@@ -317,10 +317,12 @@ if {[lsearch $argv "ila"] >= 0 || [lsearch $argv "ilaslim"] >= 0 ||
 # latches the ERRFA X,T,A,D,L saves (0o4347-0o4353) in FFs and repeats them
 # on the console TX after the halt. Zero BRAM - fits where no ILA does.
 if {[lsearch $argv "errfaprobe"] >= 0} { lappend defines ND120_ERRFA_PROBE }
-# panelclock: emulate the MC68705 panel processor's CLOCK path (IO_PANCAL_40.v
-# -> PANCAL_68705_CLOCK.v) so SINTRAN can set/read the hardware clock via
-# TRR PANC / TRA PANS. Opt-in, same switch as the Tang's -PanelClock.
-if {[lsearch $argv "panelclock"] >= 0} { lappend defines ND120_PANEL_CLOCK }
+# The MC68705 panel processor's CLOCK path (IO_PANCAL_40.v ->
+# PANCAL_68705_CLOCK.v) so SINTRAN can set/read the hardware clock via
+# TRR PANC / TRA PANS. ON BY DEFAULT, same as the Tang; pass "nopanelclock"
+# to fall back to the old stub, which cannot set or read the time (SINTRAN
+# then says "ND-100 PANEL CLOCK INCORRECT" at every boot).
+if {[lsearch $argv "nopanelclock"] < 0} { lappend defines ND120_PANEL_CLOCK }
 # The VGA console needs its define to reach synthesis. Its framing must match
 # what the machine is actually programmed to - the console UART is a software
 # programmed SC2661, so this is a configuration fact, not a constant (long

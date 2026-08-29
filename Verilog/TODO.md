@@ -16,7 +16,10 @@ DONE: `CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v` emulates the clock path of
 the panel processor (TRR PANC PFUNC 4-7 / TRA PANS: half-days since 1979 +
 seconds, read/write, STAT4/VAL handshake, text-command drain), wired into
 `IO_PANCAL_40.v` behind `ND120_PANEL_CLOCK`. Off by default (Tang is full):
-`gowin_build.ps1 -PanelClock`, Nexys `build.tcl panelclock`, sims `PANEL_CLOCK=1`.
+ON BY DEFAULT on the FPGA builds since 29-AUG-2026 - disable with
+`gowin_build.ps1 -NoPanelClock` / Nexys `build.tcl nopanelclock`. The sim
+harnesses still opt IN with `PANEL_CLOCK=1` (their default is unchanged so the
+golden traces and console stay comparable).
 Protocol taken from a fresh disassembly of the ROM; `Code/68705/U3/U3-COMPLETE.MD`
 corrected. Doc: `docs/panel-clock-68705.md`. Unit tests `test-pancal-clock(-ff)`
 registered and green.
@@ -31,7 +34,9 @@ the define) - the microcode's own 0x0A ACTLV / 0x0D traffic now reaches the
 panel too. Not yet committed; instruction-verify regression running.
 
 Open:
-- Flash `-PanelClock` (Tang) / `panelclock` (Nexys) and do the SINTRAN
+- DONE 29-AUG on the Tang (fast20): SINTRAN takes the time from the panel
+  across a MACL and TPE boots without its clock warning. Still to do on Nexys:
+  the SINTRAN
   `@UPDAT` / `@CLOCK` / `@DATCL` round trip on silicon.
 - Host preset of the time at power-up (TIME_HALFDAYS/TIME_SECONDS are brought
   out of the module for it) - today the clock starts at 1979-01-01 00:00.

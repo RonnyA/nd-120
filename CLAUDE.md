@@ -206,7 +206,8 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
 - **Panel clock (28-AUG-2026):** the MC68705/MM58274 hardware clock
   (TRR PANC / TRA PANS, PFUNC 4-7) is emulated by
   `Verilog/CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v`, OPT-IN via
-  `ND120_PANEL_CLOCK` (`gowin_build.ps1 -PanelClock`, Nexys `panelclock`,
+  `ND120_PANEL_CLOCK` (ON by default on both FPGA builds; disable with
+  `gowin_build.ps1 -NoPanelClock` / Nexys `build.tcl nopanelclock`,
   sims `PANEL_CLOCK=1`) because the Tang is nearly full. Without it the panel
   is a stub and SINTRAN cannot set or read the time. Proven in Verilator with
   the TPE Monitor floppy (its start-up clock probe passes). Finding it exposed
