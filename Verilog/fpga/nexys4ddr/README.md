@@ -167,7 +167,7 @@ On the Windows host, call the tcl directly:
 vivado -mode batch -source build.tcl -tclargs -noburn        # build only
 vivado -mode batch -source build.tcl -tclargs clk=50         # 50 MHz attempt
 vivado -mode batch -source build.tcl -tclargs -skipwcs       # preload the WCS
-vivado -mode batch -source build.tcl -tclargs nopanelclock   # drop the panel clock (make PANELCLOCK=0)
+vivado -mode batch -source build.tcl -tclargs -NoPanelClock  # drop the panel clock (make PANELCLOCK=0)
 vivado -mode batch -source build.tcl -tclargs novgaconsole   # drop the VGA console (make VGACONSOLE=0)
 ```
 
@@ -185,7 +185,7 @@ means an empty microcode ROM, which looks like a dead CPU).
 | WCS load | runtime load from the PROM images | The -100T has BRAM to spare; `-skipwcs` switches to the Basys3-style bitstream preload. |
 | CPU cache | compiled in (default since 29-AUG-2026); **runtime on/off on slide switch `sw[4]`: down = on, up = off** (the console's SW1, sheet 25 CON) | Still fails CACHE-120-A00 (used bit never sets, `docs/HANDOFF-cache-and-panel-29AUG.md`), but it is being worked on on this board, so it ships. `nocache` / `make CACHE=0` compiles the RAMs out. |
 | VGA console | `ND120_CONSOLE_VGA` (default since 29-AUG-2026) - console on the VGA connector + USB keyboard, serial console kept in parallel | Every deployed image since 28-AUG had it. `novgaconsole` / `make VGACONSOLE=0` leaves it out to save space; the screen is then dark and only the serial console works. |
-| Panel clock | `ND120_PANEL_CLOCK` (default since 29-AUG-2026) - the MC68705/MM58274 hardware clock emulated in `CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v`, 1 Hz tick derived from `BOARD_CLK_FREQ` so it follows `clk=` | Proven on the Tang (SINTRAN takes the time across a master clear, TPE starts without "clock is not updated"). `nopanelclock` / `make PANELCLOCK=0` brings back the old stub if the space is needed for something else; then SINTRAN prints "ND-100 PANEL CLOCK INCORRECT" at every boot. Details: `Verilog/docs/panel-clock-68705.md`. |
+| Panel clock | `ND120_PANEL_CLOCK` (default since 29-AUG-2026) - the MC68705/MM58274 hardware clock emulated in `CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v`, 1 Hz tick derived from `BOARD_CLK_FREQ` so it follows `clk=` | Proven on the Tang (SINTRAN takes the time across a master clear, TPE starts without "clock is not updated"). `-NoPanelClock` / `make PANELCLOCK=0` brings back the old stub if the space is needed for something else; then SINTRAN prints "ND-100 PANEL CLOCK INCORRECT" at every boot. Details: `Verilog/docs/panel-clock-68705.md`. |
 | Console | **115200** 7E1 on the USB-UART since 26-AUG-2026 | The physical rate is the `UART_BAUD_RATE` build constant alone: the emulated SC2661 stores the microcode's BAUDV mode value (thumbwheel 8 = 9600 - the 1988 table tops out there) but times every bit off the compile-time divider, and TX-ready is a polled flag. The machine believes 9600; the wire runs 115200. |
 
 ### Raising the clock

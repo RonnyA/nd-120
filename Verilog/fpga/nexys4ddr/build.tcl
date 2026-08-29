@@ -92,6 +92,21 @@ set clk_table {
 #
 #   So: accept "clk=10" (works when run from a real shell), accept "clk 10"
 #   (what cmd.exe delivers), and FAIL LOUDLY on anything else.
+# One spelling of a flag on BOTH boards. The Tang build is PowerShell, where a
+# switch MUST be written "-NoPanelClock"; this one is a tcl script reading bare
+# argv words. Rather than make the operator remember which board wants which
+# spelling, every flag checked with has_flag matches with or without a leading
+# dash and ignoring case: "nopanelclock", "-nopanelclock" and "-NoPanelClock"
+# are all the same flag here.
+proc has_flag {name} {
+    global argv
+    set want [string tolower [string trimleft $name "-"]]
+    foreach a $argv {
+        if {[string tolower [string trimleft $a "-"]] eq $want} { return 1 }
+    }
+    return 0
+}
+
 set clk_sel 16
 set _n [llength $argv]
 for {set i 0} {$i < $_n} {incr i} {
@@ -330,10 +345,10 @@ if {[lsearch $argv "ila"] >= 0 || [lsearch $argv "ilaslim"] >= 0 ||
 if {[lsearch $argv "errfaprobe"] >= 0} { lappend defines ND120_ERRFA_PROBE }
 # The MC68705 panel processor's CLOCK path (IO_PANCAL_40.v ->
 # PANCAL_68705_CLOCK.v) so SINTRAN can set/read the hardware clock via
-# TRR PANC / TRA PANS. ON BY DEFAULT, same as the Tang; pass "nopanelclock"
+# TRR PANC / TRA PANS. ON BY DEFAULT, same as the Tang; pass -NoPanelClock
 # to fall back to the old stub, which cannot set or read the time (SINTRAN
 # then says "ND-100 PANEL CLOCK INCORRECT" at every boot).
-if {[lsearch $argv "nopanelclock"] < 0} { lappend defines ND120_PANEL_CLOCK }
+if {![has_flag nopanelclock]} { lappend defines ND120_PANEL_CLOCK }
 # The VGA console needs its define to reach synthesis. Its framing must match
 # what the machine is actually programmed to - the console UART is a software
 # programmed SC2661, so this is a configuration fact, not a constant (long

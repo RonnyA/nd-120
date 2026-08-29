@@ -89,7 +89,7 @@ Off by default everywhere - the Tang Nano 20K is nearly full.
 | where | how |
 |-------|-----|
 | Tang Nano 20K | ON BY DEFAULT (adds `` `define ND120_PANEL_CLOCK`` to `build/tang20k_variant.v`); `.\gowin_build.ps1 -Variant fast20 -NoPanelClock` falls back to the stub |
-| Nexys 4 DDR | ON BY DEFAULT (adds `ND120_PANEL_CLOCK` to the synth defines); `build.tcl ... nopanelclock` falls back to the stub |
+| Nexys 4 DDR | ON BY DEFAULT (adds `ND120_PANEL_CLOCK` to the synth defines); `build.tcl ... -NoPanelClock` falls back to the stub (same spelling as the Tang; the tcl matches with or without the dash, any case) |
 | Verilator `sim/` and `runSim/` | `PANEL_CLOCK=1` on the make line (also reaches the `probe*` engines in `sim/`) |
 | unit tests | always built (`test-pancal-clock`, `test-pancal-clock-ff`); the stub contract test `test-pancal` still builds without the define |
 

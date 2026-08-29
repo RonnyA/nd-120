@@ -17,7 +17,8 @@ the panel processor (TRR PANC PFUNC 4-7 / TRA PANS: half-days since 1979 +
 seconds, read/write, STAT4/VAL handshake, text-command drain), wired into
 `IO_PANCAL_40.v` behind `ND120_PANEL_CLOCK`. Off by default (Tang is full):
 ON BY DEFAULT on the FPGA builds since 29-AUG-2026 - disable with
-`gowin_build.ps1 -NoPanelClock` / Nexys `build.tcl nopanelclock`. The sim
+`-NoPanelClock` on both boards (`gowin_build.ps1 -NoPanelClock`,
+Nexys `build.tcl -tclargs -NoPanelClock`). The sim
 harnesses still opt IN with `PANEL_CLOCK=1` (their default is unchanged so the
 golden traces and console stay comparable).
 Protocol taken from a fresh disassembly of the ROM; `Code/68705/U3/U3-COMPLETE.MD`

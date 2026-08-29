@@ -34,7 +34,7 @@ ifeq ($(VGACONSOLE),0)
 ARGS   += novgaconsole
 endif
 ifeq ($(PANELCLOCK),0)
-ARGS   += nopanelclock
+ARGS   += -NoPanelClock
 endif
 
 all:
