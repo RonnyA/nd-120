@@ -201,12 +201,17 @@ lappend srcs \
     [file join $srcdir nd120_errfa_wdiox_ring.v] \
     [file join $srcdir nd120_nexys4ddr_top.v]
 
-# -tclargs vgaconsole: put the console on the board's own VGA connector and a
-# USB keyboard (which the on-board microcontroller presents as plain PS/2),
-# instead of only the USB serial port. See PLAN-vga-console.md. The serial
-# console is NOT removed - it keeps working in parallel, so console.ps1, the
-# board tests and the soak scripts are unaffected.
-set vga_console [expr {[lsearch $argv "vgaconsole"] >= 0}]
+# VGA console: the console on the board's own VGA connector and a USB keyboard
+# (which the on-board microcontroller presents as plain PS/2), next to the USB
+# serial port. See PLAN-vga-console.md. The serial console is NOT removed - it
+# keeps working in parallel, so console.ps1, the board tests and the soak
+# scripts are unaffected.
+#
+# ON BY DEFAULT since 29-AUG-2026 (Ronny): every image deployed since 28-AUG
+# carried it, and a build that silently dropped it left the board with a dead
+# screen. Pass "novgaconsole" to leave it out if the space is needed for
+# something else. "vgaconsole" is still accepted and means the default.
+set vga_console [expr {[lsearch $argv "novgaconsole"] < 0}]
 if {$vga_console} {
     set tdir [file join $vroot Terminals rtl]
     # ps2_decoder.v is separate from ps2_keyboard.v since 28-AUG-2026: the

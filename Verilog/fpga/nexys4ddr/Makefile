@@ -5,6 +5,8 @@
 #   make build        build only (no board needed)
 #   make load         same as 'make' - JTAG is the only programming path here
 #   make CLK=33       build at 33.333 MHz instead of the default 16.667 MHz
+#   make VGACONSOLE=0 leave out the VGA console + USB keyboard (ON by default;
+#                     only drop it if the chip space is needed for something else)
 #   make PANELCLOCK=0 leave out the MC68705/MM58274 panel clock (ON by default;
 #                     only drop it if the chip space is needed for something else -
 #                     without it SINTRAN says "ND-100 PANEL CLOCK INCORRECT" at
@@ -20,7 +22,11 @@ VIVADO ?= F:\\AMDDesignTools\\2026.1\\Vivado\\bin\\vivado.bat
 CMD     = cmd.exe /c
 CLK    ?= 16
 PANELCLOCK ?= 1
+VGACONSOLE ?= 1
 ARGS    = clk=$(CLK)
+ifeq ($(VGACONSOLE),0)
+ARGS   += novgaconsole
+endif
 ifeq ($(PANELCLOCK),0)
 ARGS   += nopanelclock
 endif
