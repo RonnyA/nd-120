@@ -296,9 +296,15 @@ set defines [list \
 # the machine still BELIEVES 9600 while the wire runs 115200. Host side must
 # open the port at 115200 (board_expect.ps1/console.ps1 -Baud 115200).
 if {$skip_wcs} { lappend defines SKIP_WCS_LOAD }
-# CPU cache: OFF BY DEFAULT (Ronny, 24-AUG-2026) - same as the Tang
-# (tang20k_defines.v: ND120_NO_CACHE). Re-enable with -tclargs cache.
+# CPU cache: COMPILED IN BY DEFAULT since 29-AUG-2026 (Ronny) - every image
+# deployed to this board since 28-AUG carried it, and another session is
+# working on it ON THE BOARD. The 24-AUG "off by default, same as the Tang"
+# decision below is superseded. At runtime slide switch sw[4] is the console's
+# cache switch (down = on, up = off; nd120_nexys4ddr_top.v). "-tclargs nocache"
+# compiles the cache RAMs out entirely (ND120_NO_CACHE) if the space is needed;
+# "cache" is still accepted and means the default.
 #
+# HISTORY, kept because the measurements in it are still true:
 # MEASURED 28-AUG-2026, so the reason has changed - see docs/CACHE-STATUS.md.
 # It BUILDS and BOOTS: WNS +0.166 ns, SINTRAN comes up, TPE reports
 # "Cache: Yes / NO ERRORS DETECTED". The old worry that CHIP_21F falling back
@@ -310,7 +316,7 @@ if {$skip_wcs} { lappend defines SKIP_WCS_LOAD }
 # HIT requires the used bit, so the hit rate is a true 0%. A cache that silently
 # never hits is worse than no cache. Turn this default around when CUP is fixed
 # and CACHE-120-A00 passes.
-if {[lsearch $argv "cache"] < 0} { lappend defines ND120_NO_CACHE }
+if {[lsearch $argv "nocache"] >= 0} { lappend defines ND120_NO_CACHE }
 # -tclargs ila: keep the CGA_MAC address-chain nets and cpu_txd through
 # synthesis (mark_debug attributes in CGA_MAC.v / the top, guarded by this
 # define) so the ILA probe patterns below can find them. Measured 23-AUG:

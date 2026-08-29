@@ -183,6 +183,7 @@ means an empty microcode ROM, which looks like a dead CPU).
 | Clocking | `FPGA_FF_MODE`, one clock domain | The latch model never ships on FPGA. |
 | CPU clock | **45.45 MHz** (`clk 45` + `physopt`) since 26-AUG-2026 | Boots SINTRAN on silicon. The frequency search and bottleneck analysis are in [`timing.md`](timing.md); `clk=16` remains the high-margin fallback. |
 | WCS load | runtime load from the PROM images | The -100T has BRAM to spare; `-skipwcs` switches to the Basys3-style bitstream preload. |
+| CPU cache | compiled in (default since 29-AUG-2026); **runtime on/off on slide switch `sw[4]`: down = on, up = off** (the console's SW1, sheet 25 CON) | Still fails CACHE-120-A00 (used bit never sets, `docs/HANDOFF-cache-and-panel-29AUG.md`), but it is being worked on on this board, so it ships. `nocache` / `make CACHE=0` compiles the RAMs out. |
 | VGA console | `ND120_CONSOLE_VGA` (default since 29-AUG-2026) - console on the VGA connector + USB keyboard, serial console kept in parallel | Every deployed image since 28-AUG had it. `novgaconsole` / `make VGACONSOLE=0` leaves it out to save space; the screen is then dark and only the serial console works. |
 | Panel clock | `ND120_PANEL_CLOCK` (default since 29-AUG-2026) - the MC68705/MM58274 hardware clock emulated in `CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v`, 1 Hz tick derived from `BOARD_CLK_FREQ` so it follows `clk=` | Proven on the Tang (SINTRAN takes the time across a master clear, TPE starts without "clock is not updated"). `nopanelclock` / `make PANELCLOCK=0` brings back the old stub if the space is needed for something else; then SINTRAN prints "ND-100 PANEL CLOCK INCORRECT" at every boot. Details: `Verilog/docs/panel-clock-68705.md`. |
 | Console | **115200** 7E1 on the USB-UART since 26-AUG-2026 | The physical rate is the `UART_BAUD_RATE` build constant alone: the emulated SC2661 stores the microcode's BAUDV mode value (thumbwheel 8 = 9600 - the 1988 table tops out there) but times every bit off the compile-time divider, and TX-ready is a polled flag. The machine believes 9600; the wire runs 115200. |
@@ -344,6 +345,7 @@ it.
 ```bash
 vivado -mode batch -source build.tcl -tclargs -noburn                # VGA console is the default
 vivado -mode batch -source build.tcl -tclargs novgaconsole -noburn   # serial console only
+vivado -mode batch -source build.tcl -tclargs nocache -noburn        # cache RAMs compiled out (make CACHE=0)
 ```
 
 The VGA console is ON BY DEFAULT since 29-AUG-2026 (`novgaconsole` drops it).
@@ -414,6 +416,7 @@ They have accumulated; this is the map.
 | `sw[0]` | 7-segment shows CSA | shows LA *(always zero - see below)* |
 | `sw[1]` | US keyboard + font | **Norwegian** (NS 4551-1) |
 | `sw[2]` | 800x600 @ 40 MHz | **1920x1080 @ 148.4 MHz** |
+| `sw[4]` | **CPU cache ON** (console SW1) | cache OFF - every access to main memory, CSR reports it disabled |
 | `sw[3]` | operator panel hidden | **operator panel shown** |
 | `sw[15:14]` | 7-segment right-hand source select | |
 

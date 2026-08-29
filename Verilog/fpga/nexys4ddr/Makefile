@@ -5,6 +5,8 @@
 #   make build        build only (no board needed)
 #   make load         same as 'make' - JTAG is the only programming path here
 #   make CLK=33       build at 33.333 MHz instead of the default 16.667 MHz
+#   make CACHE=0      compile the CPU cache RAMs out (ON by default; at runtime
+#                     sw[4] up turns the cache off without a rebuild)
 #   make VGACONSOLE=0 leave out the VGA console + USB keyboard (ON by default;
 #                     only drop it if the chip space is needed for something else)
 #   make PANELCLOCK=0 leave out the MC68705/MM58274 panel clock (ON by default;
@@ -23,7 +25,11 @@ CMD     = cmd.exe /c
 CLK    ?= 16
 PANELCLOCK ?= 1
 VGACONSOLE ?= 1
+CACHE ?= 1
 ARGS    = clk=$(CLK)
+ifeq ($(CACHE),0)
+ARGS   += nocache
+endif
 ifeq ($(VGACONSOLE),0)
 ARGS   += novgaconsole
 endif

@@ -103,6 +103,19 @@ module ND120_CORE #(
     input wire sys_rst_n,  //! Active-low reset, from the board's power-on reset
 
     /***************************************************
+     *  (b) CONSOLE SWITCHES                           *
+     ***************************************************/
+    //! The ND-100 console's SW1, the cache on/off switch (sheet 25 CON):
+    //! 1 = cache on, 0 = every access goes to main memory and the CSR
+    //! reports the cache disabled. Until 29-AUG-2026 this was tied high
+    //! inside the core; now the board decides. Nexys 4 DDR: slide switch
+    //! sw[4]. Tang / Verilator: tied high (the Tang builds with
+    //! ND120_NO_CACHE anyway, which overrides this to off).
+    //! Already synchronised by the board top; treat it as slow-changing
+    //! but not glitch-free - the real switch was a toggle on the console.
+    input wire CACHE_SW,
+
+    /***************************************************
      *  (e) ND-100 C-PLUG BUS                          *
      *  Always present on the core; the board either   *
      *  drives it (sim harness) or ties it off (FPGA). *
@@ -1184,7 +1197,7 @@ module ND120_CORE #(
       .DP_5_1_n   (s_dp_5_1_n),   // Data Path 5-1 A-> 1=C25, 2=C26, 3=C27, 4=C28, 5=C29
 
       /* Configuration switches (input to ND3202D board) */
-      .SW1_CONSOLE     (s_high),             // Console switch
+      .SW1_CONSOLE     (CACHE_SW),           // Console SW1 = cache on/off, from the board top
       .SEL_TESTMUX     (s_SEL_TESTMUX),      // Test MUX (select signals to test pads)
       .BAUD_RATE_SWITCH(s_baud_rate_switch), // Baud rate switch
 

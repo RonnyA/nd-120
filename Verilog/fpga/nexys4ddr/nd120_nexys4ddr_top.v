@@ -55,7 +55,7 @@ module nd120_nexys4ddr_top (
     input wire cpu_resetn,  // C12, red CPU RESET button (ACTIVE LOW)
     input wire btnc,        // N17, centre button
 
-    input  wire [15:0] sw,  // [0] 7-seg source  [1] US/Norwegian  [3] operator panel
+    input  wire [15:0] sw,  // [0] 7-seg source  [1] US/Norwegian  [3] operator panel  [4] cache OFF
     input  wire        uart_txd_in,   // C4, PC -> FPGA
     output wire        uart_rxd_out,  // D4, FPGA -> PC
 
@@ -753,6 +753,20 @@ module nd120_nexys4ddr_top (
   /**********************************************
   *  The ND-120 core with its device chain      *
   ***********************************************/
+  //! sw[4] = the ND-100 console's cache switch (SW1 on the real console,
+  //! sheet 25 CON). DOWN (0) = cache ON - the state every image deployed
+  //! since 28-AUG-2026 had - UP (1) = cache OFF, every access to main memory,
+  //! CSR reports the cache disabled. A runtime switch so the cache can be
+  //! compared A/B on one bitstream (Ronny, 29-AUG-2026); -tclargs nocache
+  //! still compiles the cache RAMs out entirely. Two flops on clk_cpu: the
+  //! switch is a plain slide switch on another domain. Flipping it while
+  //! SINTRAN runs is the same as throwing the real switch on a running
+  //! machine - allowed by the hardware, but the cache contents are not
+  //! flushed by it, so do it at the OPCOM prompt or reboot afterwards.
+  reg [1:0] s_cache_sw_sync = 2'b00;
+  always @(posedge clk_cpu) s_cache_sw_sync <= {s_cache_sw_sync[0], sw[4]};
+  wire s_cache_on = ~s_cache_sw_sync[1];
+
   ND120_CORE #(
       .INCLUDE_TAPE  (1),
       .INCLUDE_FLOPPY(1),
@@ -770,6 +784,7 @@ module nd120_nexys4ddr_top (
 `endif
       .clk_cpu  (clk_cpu),
       .sys_rst_n(sys_rst_n),
+      .CACHE_SW (s_cache_on),   // console SW1 from slide switch sw[4], see above
 
       .BREQ_n       (BREQ_n),
       .BINT10_n     (BINT10_n),
@@ -1380,7 +1395,7 @@ module nd120_nexys4ddr_top (
   assign an = nd_an;
 
   /* verilator lint_off UNUSEDSIGNAL */
-  wire _unused = &{1'b0, sw[15:4], sd_cd, s_debug_ca_9_0,
+  wire _unused = &{1'b0, sw[15:5], sd_cd, s_debug_ca_9_0,
                    s_debug_fetch, s_debug_clear_n, s_debug_refrq_n,
                    s_debug_intrq_n, s_debug_powfail_n, s_debug_fidbo,
                    s_ireq_15_0_n, s_xmic_dbg, s_cpu_led[6:2], s_sd_status[1],
