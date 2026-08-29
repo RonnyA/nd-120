@@ -416,8 +416,8 @@ They have accumulated; this is the map.
 | `sw[0]` | 7-segment shows CSA | shows LA *(always zero - see below)* |
 | `sw[1]` | US keyboard + font | **Norwegian** (NS 4551-1) |
 | `sw[2]` | 800x600 @ 40 MHz | **1920x1080 @ 148.4 MHz** |
-| `sw[4]` | **CPU cache ON** (console SW1) | cache OFF - every access to main memory, CSR reports it disabled |
 | `sw[3]` | operator panel hidden | **operator panel shown** |
+| `sw[4]` | **CPU cache ON** (console SW1) | cache OFF - every access to main memory, CSR reports it disabled |
 | `sw[15:14]` | 7-segment right-hand source select | |
 
 `sw[13:4]` are free.
