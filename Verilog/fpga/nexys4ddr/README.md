@@ -167,6 +167,7 @@ On the Windows host, call the tcl directly:
 vivado -mode batch -source build.tcl -tclargs -noburn        # build only
 vivado -mode batch -source build.tcl -tclargs clk=50         # 50 MHz attempt
 vivado -mode batch -source build.tcl -tclargs -skipwcs       # preload the WCS
+vivado -mode batch -source build.tcl -tclargs nopanelclock   # drop the panel clock (make PANELCLOCK=0)
 ```
 
 Microcode `AM27256_4513{2,3}L.hex` is copied automatically from
@@ -181,6 +182,7 @@ means an empty microcode ROM, which looks like a dead CPU).
 | Clocking | `FPGA_FF_MODE`, one clock domain | The latch model never ships on FPGA. |
 | CPU clock | **45.45 MHz** (`clk 45` + `physopt`) since 26-AUG-2026 | Boots SINTRAN on silicon. The frequency search and bottleneck analysis are in [`timing.md`](timing.md); `clk=16` remains the high-margin fallback. |
 | WCS load | runtime load from the PROM images | The -100T has BRAM to spare; `-skipwcs` switches to the Basys3-style bitstream preload. |
+| Panel clock | `ND120_PANEL_CLOCK` (default since 29-AUG-2026) - the MC68705/MM58274 hardware clock emulated in `CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v`, 1 Hz tick derived from `BOARD_CLK_FREQ` so it follows `clk=` | Proven on the Tang (SINTRAN takes the time across a master clear, TPE starts without "clock is not updated"). `nopanelclock` / `make PANELCLOCK=0` brings back the old stub if the space is needed for something else; then SINTRAN prints "ND-100 PANEL CLOCK INCORRECT" at every boot. Details: `Verilog/docs/panel-clock-68705.md`. |
 | Console | **115200** 7E1 on the USB-UART since 26-AUG-2026 | The physical rate is the `UART_BAUD_RATE` build constant alone: the emulated SC2661 stores the microcode's BAUDV mode value (thumbwheel 8 = 9600 - the 1988 table tops out there) but times every bit off the compile-time divider, and TX-ready is a polled flag. The machine believes 9600; the wire runs 115200. |
 
 ### Raising the clock
@@ -454,7 +456,10 @@ would look right and be wrong:
   level at once, fed from the microprogram in PANC packets. We have PIL, the one
   level running now. Same picture, different claim - so the caption changed.
 - **`UP:hh:mm:ss`, not DAY/TIME.** The real clock is a battery-backed MM58274 on
-  standby power. We have no panel processor and no calendar. Uptime is counted
+  standby power. Since 29-AUG-2026 the CPU build does carry an emulated panel
+  clock (`ND120_PANEL_CLOCK`, table above), but its day/time counters
+  (`TIME_HALFDAYS` / `TIME_SECONDS` in `PANCAL_68705_CLOCK.v`) are not brought
+  out to `DBG_PANEL` yet, so the VGA panel still shows uptime. Uptime is counted
   in *frames*, not clocks, so it stays correct when `sw[2]` changes the pixel
   clock.
 
