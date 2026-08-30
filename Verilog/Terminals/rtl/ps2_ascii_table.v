@@ -44,13 +44,18 @@ module ps2_ascii_table (
   //--------------------------------------------------------------------------
   // Extended (E0-prefixed) keys -> VT100 (30-AUG-2026)
   //
-  // A VT100 (SINTRAN terminal type 6) sends ESC [ A/B/C/D for the arrows -
-  // three bytes per keypress. One lookup cannot produce three bytes, so the
-  // table emits a MARKER: 0x80 OR'ed onto the sequence's final byte, and
-  // key_vt100.v turns marker 0x80|f into ESC [ f on the wire. Bit 7 is safe
-  // as a marker because the ND-120 is a 7-bit machine - no typed character
-  // ever has it - and a marker that leaks unexpanded shows up as a printable
-  // on the far side instead of vanishing.
+  // A VT100 sends multi-byte escape sequences for the special keys - three
+  // to five bytes per keypress. One lookup cannot produce that, so the table
+  // emits a MARKER byte that key_vt100.v expands. Bit 7 is the marker flag
+  // (safe: the ND-120 is a 7-bit machine, no typed character has it, and a
+  // marker that leaks unexpanded is visible instead of vanishing); bits 6:5
+  // select the sequence FAMILY, bits 4:0 the payload
+  // (SPEC-vt100-keys.md has the full story):
+  //
+  //   100f_ffff  ESC [ <0x40+f>    arrows: f 1..4 = A B C D
+  //   101f_ffff  ESC O <0x40+f>    DEC PF keys: f 16..19 = P Q R S
+  //   110n_nnnn  ESC [ <n> ~       editing keys n=1..6, F5-F12 n=15..24
+  //   111x_xxxx  reserved - key_vt100 drops it
   //
   // (Until 30-AUG-2026 these were the TDV bare C0 bytes - UP=0x1C, DOWN=0x0B,
   // LEFT=0x08, RIGHT=0x18, HOME=0x1D - correct for terminal type 53, whose
@@ -63,14 +68,18 @@ module ps2_ascii_table (
 
   always @(*) begin
     case (code)
-      8'h75:   extended = 8'h80 | "A";  // Up    -> ESC [ A
-      8'h72:   extended = 8'h80 | "B";  // Down  -> ESC [ B
-      8'h74:   extended = 8'h80 | "C";  // Right -> ESC [ C
-      8'h6B:   extended = 8'h80 | "D";  // Left  -> ESC [ D
-      8'h6C:   extended = 8'h80 | "H";  // Home  -> ESC [ H (CUP home)
-      8'h71:   extended = 8'h7F;  // Delete-> DEL
+      8'h75:   extended = 8'h81;  // Up     -> ESC [ A
+      8'h72:   extended = 8'h82;  // Down   -> ESC [ B
+      8'h74:   extended = 8'h83;  // Right  -> ESC [ C
+      8'h6B:   extended = 8'h84;  // Left   -> ESC [ D
+      8'h6C:   extended = 8'hC1;  // Home   -> ESC [ 1 ~  (DEC FIND)
+      8'h70:   extended = 8'hC2;  // Insert -> ESC [ 2 ~  (DEC INSERT HERE)
+      8'h71:   extended = 8'hC3;  // Delete -> ESC [ 3 ~  (DEC REMOVE)
+      8'h69:   extended = 8'hC4;  // End    -> ESC [ 4 ~  (DEC SELECT)
+      8'h7D:   extended = 8'hC5;  // PgUp   -> ESC [ 5 ~  (DEC PREV SCREEN)
+      8'h7A:   extended = 8'hC6;  // PgDn   -> ESC [ 6 ~  (DEC NEXT SCREEN)
       8'h5A:   extended = 8'h0D;  // keypad Enter -> CR
-      default: extended = 8'h00;  // no VT100 equivalent (PgUp, End, ...):
+      default: extended = 8'h00;  // no VT100 equivalent (GUI keys, menu...):
                                   // send NOTHING rather than invent bytes.
     endcase
   end
@@ -212,6 +221,25 @@ module ps2_ascii_table (
 
       // 0x00 = no character for this key. Modifiers land here too, which is
       // correct: the decoder handles them before it ever consults this table.
+      // --- function keys - marker in BOTH columns: a VT220 sends the same
+      // code shifted or not, and there is no Shift-F encoding in this era
+      // (SPEC-vt100-keys.md, "Modifiers"). F1-F4 are DEC's keypad PF1-PF4
+      // by universal emulator convention; F5-F12 the VT220 top-row codes
+      // 15,17,18,19,20,21,23,24 - the gaps at 16 and 22 are DEC's.
+      // NOTE F7 = scancode 0x83, the one printable-range oddity in set 2.
+      8'h05: begin us_unshifted = 8'hB0; us_shifted = 8'hB0; end  // F1  ESC O P
+      8'h06: begin us_unshifted = 8'hB1; us_shifted = 8'hB1; end  // F2  ESC O Q
+      8'h04: begin us_unshifted = 8'hB2; us_shifted = 8'hB2; end  // F3  ESC O R
+      8'h0C: begin us_unshifted = 8'hB3; us_shifted = 8'hB3; end  // F4  ESC O S
+      8'h03: begin us_unshifted = 8'hCF; us_shifted = 8'hCF; end  // F5  ESC [ 15 ~
+      8'h0B: begin us_unshifted = 8'hD1; us_shifted = 8'hD1; end  // F6  ESC [ 17 ~
+      8'h83: begin us_unshifted = 8'hD2; us_shifted = 8'hD2; end  // F7  ESC [ 18 ~
+      8'h0A: begin us_unshifted = 8'hD3; us_shifted = 8'hD3; end  // F8  ESC [ 19 ~
+      8'h01: begin us_unshifted = 8'hD4; us_shifted = 8'hD4; end  // F9  ESC [ 20 ~
+      8'h09: begin us_unshifted = 8'hD5; us_shifted = 8'hD5; end  // F10 ESC [ 21 ~
+      8'h78: begin us_unshifted = 8'hD7; us_shifted = 8'hD7; end  // F11 ESC [ 23 ~
+      8'h07: begin us_unshifted = 8'hD8; us_shifted = 8'hD8; end  // F12 ESC [ 24 ~
+
       default: begin us_unshifted = 8'h00; us_shifted = 8'h00; end
     endcase
   end

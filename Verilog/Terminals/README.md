@@ -93,13 +93,18 @@ scroll is a real row copy through the character RAM's second port (~96 us
 worst case at 40 MHz), which is why `byte_fifo.v` now sits in front of the
 controller - one 115200 byte time is only 87 us and the UART does not wait.
 
-**Keyboard: VT100 too (30-AUG-2026, same day).** The arrows and HOME leave
-`ps2_ascii_table.v` as sequence markers (`0x80 | final`), and `key_vt100.v`
-expands each into `ESC [ A/B/C/D/H` toward the console UART, buffered so
-three bytes per keypress survive one UART's worth of ready. Wired on the
-Nexys top; MiSTer build 1 has no UART, its local-echo path drops the markers
-harmlessly (arrows inert until build 2 - noted in `nd120_console_mister.v`).
-Extended keys with no VT100 meaning still send nothing.
+**Keyboard: the full DEC key set (30-AUG-2026).** Every special key leaves
+`ps2_ascii_table.v` as a sequence marker (bit 7 flag, 2 family bits, 5
+payload bits) and `key_vt100.v` expands it on the way to the console UART:
+arrows `ESC[A-D`; Home/Insert/Delete/End/PgUp/PgDn as the DEC editing six
+`ESC[1~..6~` (Home=FIND, End=SELECT - `ESC[H` was xterm's Home, not DEC's,
+and is gone); F1-F4 as DEC PF1-PF4 `ESC O P/Q/R/S`; F5-F12 as the VT220
+codes `ESC[15~..24~`. Modifiers per the standard: Shift/Ctrl on a special
+key send the base sequence (no modifier encoding existed in this era), Alt
+sends nothing. Sequences up to five bytes ride a 16-deep FIFO. Full
+analysis + the VTM-side evidence: [docs/SPEC-vt100-keys.md](docs/SPEC-vt100-keys.md).
+Wired on the Nexys top; MiSTer build 1 has no UART, its local-echo path
+drops the markers harmlessly (noted in `nd120_console_mister.v`).
 
 **Verilator lint clean** (`make lint` in `sim/`, using the SAME suppression
 set as `Verilog/sim` and `Verilog/runSim` - deviating would make "clean" mean

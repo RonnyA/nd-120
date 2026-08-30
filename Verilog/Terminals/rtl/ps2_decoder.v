@@ -129,7 +129,12 @@ module ps2_decoder (
                 end
               end else if (s_ascii_plain != 8'h00) begin
                 ascii_valid <= 1'b1;
-                ascii_data  <= s_ctrl ? s_ascii_ctrl : s_ascii_plain;
+                // A sequence MARKER (bit 7) is never ctrl-masked: there is
+                // no Ctrl-F1 or Ctrl-arrow encoding on a VT100, so the
+                // modifier is simply ignored and the base sequence goes out
+                // (SPEC-vt100-keys.md, "Modifiers").
+                ascii_data  <= (s_ctrl && !s_ascii_plain[7]) ? s_ascii_ctrl
+                                                             : s_ascii_plain;
               end
             end
           end

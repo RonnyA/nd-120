@@ -230,33 +230,61 @@ module ps2_keyboard_tb;
     mark = ascii_count;
     ps2_send(8'hE0); ps2_send(8'h74);             // right arrow
     check(ascii_count == mark + 1, "right arrow produced no byte");
-    check(last_ascii == (8'h80 | "C"), "right arrow should send marker 0x80|'C'");
+    check(last_ascii == 8'h83, "right arrow should send marker 0x83 (ESC [ C)");
     check(code_data == 8'h74 && code_extended, "extended scancode not reported");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h74);  // its release
 
     mark = ascii_count;
     ps2_send(8'hE0); ps2_send(8'h75);             // up
-    check(last_ascii == (8'h80 | "A"), "up arrow should send marker 0x80|'A'");
+    check(last_ascii == 8'h81, "up arrow should send marker 0x81 (ESC [ A)");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h75);
 
     ps2_send(8'hE0); ps2_send(8'h72);             // down
-    check(last_ascii == (8'h80 | "B"), "down arrow should send marker 0x80|'B'");
+    check(last_ascii == 8'h82, "down arrow should send marker 0x82 (ESC [ B)");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h72);
 
     ps2_send(8'hE0); ps2_send(8'h6B);             // left
-    check(last_ascii == (8'h80 | "D"), "left arrow should send marker 0x80|'D'");
+    check(last_ascii == 8'h84, "left arrow should send marker 0x84 (ESC [ D)");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h6B);
 
     ps2_send(8'hE0); ps2_send(8'h6C);             // home
-    check(last_ascii == (8'h80 | "H"), "HOME should send marker 0x80|'H'");
+    check(last_ascii == 8'hC1, "HOME should send marker 0xC1 (ESC [ 1 ~, DEC FIND)");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h6C);
 
-    // An extended key with no VT100 equivalent must send NOTHING rather
-    // than invented bytes.
+    // Page Up now HAS a VT100 sequence: marker 0xC5 = ESC [ 5 ~.
     mark = ascii_count;
     ps2_send(8'hE0); ps2_send(8'h7D);             // Page Up
-    check(ascii_count == mark, "an extended key with no TDV code sent something");
+    check(ascii_count == mark + 1, "Page Up produced no byte");
+    check(last_ascii == 8'hC5, "Page Up should send marker 0xC5 (ESC [ 5 ~)");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h7D);
+
+    // F1 is NOT an extended key - a plain scancode in the main table - and
+    // must send its marker whether shift is held or not (a VT220 sends the
+    // same code shifted; there is no Shift-F encoding).
+    mark = ascii_count;
+    ps2_send(8'h05);                              // F1
+    check(ascii_count == mark + 1, "F1 produced no byte");
+    check(last_ascii == 8'hB0, "F1 should send marker 0xB0 (ESC O P)");
+    ps2_send(8'hF0); ps2_send(8'h05);
+    ps2_send(8'h12);                              // shift down
+    ps2_send(8'h05);
+    check(last_ascii == 8'hB0, "shift-F1 must send the SAME marker");
+    ps2_send(8'hF0); ps2_send(8'h05);
+    ps2_send(8'hF0); ps2_send(8'h12);
+
+    // Ctrl must not mangle a marker either (no Ctrl-F encoding exists).
+    ps2_send(8'h14);                              // ctrl down
+    ps2_send(8'h05);
+    check(last_ascii == 8'hB0, "ctrl-F1 must send the SAME marker");
+    ps2_send(8'hF0); ps2_send(8'h05);
+    ps2_send(8'hF0); ps2_send(8'h14);
+
+    // An extended key with no VT100 equivalent must still send NOTHING -
+    // the left GUI (Windows) key.
+    mark = ascii_count;
+    ps2_send(8'hE0); ps2_send(8'h1F);             // left GUI
+    check(ascii_count == mark, "a dead extended key sent something");
+    ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h1F);
 
     // An extended RELEASE must never produce a byte either.
     mark = ascii_count;

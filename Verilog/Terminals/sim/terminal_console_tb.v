@@ -170,11 +170,13 @@ module terminal_console_tb;
   );
 
   reg [7:0] got_at_machine = 8'h00;
-  //! The last three bytes, oldest first - an arrow key arrives as ESC [ x.
-  reg [7:0] got_hist2 = 8'h00, got_hist1 = 8'h00;
+  //! The last four bytes, oldest first - special keys arrive as sequences
+  //! of up to four bytes (ESC [ 5 ~) at this tb's key set.
+  reg [7:0] got_hist3 = 8'h00, got_hist2 = 8'h00, got_hist1 = 8'h00;
   integer   n_at_machine = 0;
 
   always @(posedge clk) if (mrx_valid) begin
+    got_hist3      = got_hist2;
     got_hist2      = got_hist1;
     got_hist1      = got_at_machine;
     got_at_machine = mrx_data;
@@ -369,6 +371,44 @@ module terminal_console_tb;
     check(n_at_machine == n_start + 3, "an arrow must produce exactly 3 bytes");
     check(got_hist2 == 8'h1B && got_hist1 == "[" && got_at_machine == "C",
           "right arrow must arrive as ESC [ C");
+
+    //------------------------------------------------------------------
+    // 7. A tilde-family key: Page Up is FOUR bytes, ESC [ 5 ~ - the
+    //    two-stage expansion (digit conversion) on the wire.
+    //------------------------------------------------------------------
+    n_start = n_at_machine;
+    ps2_send(8'hE0); ps2_send(8'h7D);                   // Page Up press
+    ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h7D);  // release
+    begin : wait_pgup
+      integer guard;
+      guard = 0;
+      while (n_at_machine < n_start + 4 && guard < 3_000_000) begin
+        @(posedge clk);
+        guard = guard + 1;
+      end
+    end
+    check(n_at_machine == n_start + 4, "Page Up must produce exactly 4 bytes");
+    check(got_hist3 == 8'h1B && got_hist2 == "[" &&
+          got_hist1 == "5" && got_at_machine == "~",
+          "Page Up must arrive as ESC [ 5 ~");
+
+    //------------------------------------------------------------------
+    // 8. An SS3-family key: F1 is ESC O P (DEC PF1).
+    //------------------------------------------------------------------
+    n_start = n_at_machine;
+    ps2_send(8'h05);                                    // F1 press
+    ps2_send(8'hF0); ps2_send(8'h05);                   // release
+    begin : wait_f1
+      integer guard;
+      guard = 0;
+      while (n_at_machine < n_start + 3 && guard < 3_000_000) begin
+        @(posedge clk);
+        guard = guard + 1;
+      end
+    end
+    check(n_at_machine == n_start + 3, "F1 must produce exactly 3 bytes");
+    check(got_hist2 == 8'h1B && got_hist1 == "O" && got_at_machine == "P",
+          "F1 must arrive as ESC O P");
 
     //------------------------------------------------------------------
     // 5. Video is alive: sync must be toggling. A terminal that renders
