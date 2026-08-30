@@ -187,14 +187,33 @@ module terminal_ctrl #(
   reg [7:0] s_cp_col;
   reg       s_cp_down; //! 0 = scroll up (src = dst+1), 1 = down (src = dst-1)
 
-  // Parameter-apply engine
-  localparam [1:0] AP_SGR  = 2'd0;
-  localparam [1:0] AP_MODE = 2'd1;
-  localparam [1:0] AP_LED  = 2'd2;
-  reg [1:0] s_ap_kind;
+  // Parameter-apply engine. The four cursor moves also execute here, ONE
+  // CYCLE after their final byte - a timing fix, not a semantics change:
+  // synthesized at the 1080p pixel clock (139.7 MHz) the one-cycle path
+  // "byte decode -> margin mux -> 9-bit add -> clamp -> cursor_row" missed
+  // by 0.33 ns (first Vivado run of this file, 30-AUG-2026, worst path
+  // cursor_row_reg[2] -> cursor_row_reg[1]). Deferring the execute means the
+  // cursor registers are enabled from a REGISTERED kind, and the margins
+  // used are the REGISTERED ones below - the front half of that path is
+  // gone. Cost: one extra 7 ns cycle per cursor-move sequence.
+  localparam [2:0] AP_SGR  = 3'd0;
+  localparam [2:0] AP_MODE = 3'd1;
+  localparam [2:0] AP_LED  = 3'd2;
+  localparam [2:0] AP_CUU  = 3'd3;
+  localparam [2:0] AP_CUD  = 3'd4;
+  localparam [2:0] AP_CUF  = 3'd5;
+  localparam [2:0] AP_CUB  = 3'd6;
+  reg [2:0] s_ap_kind;
   reg [2:0] s_ap_idx;
   reg       s_ap_enable;  //! for modes: 'h' = 1, 'l' = 0
   reg       s_ap_priv;
+
+  //! Margin-aware cursor bounds, REGISTERED - one cycle behind cursor_row,
+  //! which is exactly current at the deferred-execute cycle: the final byte
+  //! that dispatched the move does not move the cursor, so the value latched
+  //! at the dispatch edge is the value the move must clamp against.
+  reg [7:0] s_floor_q;  //! CUU stops here (region top if inside the region)
+  reg [7:0] s_ceil_q;   //! CUD stops here
 
   assign ready = (s_state == ST_RUN) && !s_wr_hold;
 
@@ -403,36 +422,19 @@ module terminal_ctrl #(
     reg [7:0] t, b;
     reg [8:0] sum9;
     begin
-      // Margin-aware bounds: a cursor inside the region is confined to it,
-      // one outside is confined to the screen (RetroTerm MoveCursor*WithinMargins).
-      floor_row = (cursor_row >= s_rtop) ? s_rtop : 8'd0;
-      ceil_row  = (cursor_row <= s_rbot) ? s_rbot : (ROWS[7:0] - 8'd1);
-      n         = par_or(s_par[0], 8'd1);
+      // (The margin-aware bounds for CUU/CUD live in s_floor_q/s_ceil_q -
+      // registered, used by the deferred execute in ST_APPLY. Only the
+      // origin-based bounds for CUP/VPA are computed here.)
+      n = par_or(s_par[0], 8'd1);
 
       case (fin)
 
-        "A": begin  // CUU
-          s_pending <= 1'b0;
-          cursor_row <= (({1'b0, cursor_row} > {1'b0, floor_row} + {1'b0, n}))
-                        ? (cursor_row - n) : floor_row;
-        end
-
-        "B": begin  // CUD
-          s_pending <= 1'b0;
-          sum9 = {1'b0, cursor_row} + {1'b0, n};
-          cursor_row <= (sum9 < {1'b0, ceil_row}) ? sum9[7:0] : ceil_row;
-        end
-
-        "C": begin  // CUF
-          s_pending <= 1'b0;
-          sum9 = {1'b0, cursor_col} + {1'b0, n};
-          cursor_col <= (sum9 < COLS - 1) ? sum9[7:0] : (COLS[7:0] - 8'd1);
-        end
-
-        "D": begin  // CUB
-          s_pending <= 1'b0;
-          cursor_col <= ({1'b0, cursor_col} > {1'b0, n}) ? (cursor_col - n) : 8'd0;
-        end
+        // The four cursor moves execute in ST_APPLY one cycle later - see
+        // the AP_* localparams for why (a 139.7 MHz timing fix).
+        "A": begin s_pending <= 1'b0; s_ap_kind <= AP_CUU; s_state <= ST_APPLY; end
+        "B": begin s_pending <= 1'b0; s_ap_kind <= AP_CUD; s_state <= ST_APPLY; end
+        "C": begin s_pending <= 1'b0; s_ap_kind <= AP_CUF; s_state <= ST_APPLY; end
+        "D": begin s_pending <= 1'b0; s_ap_kind <= AP_CUB; s_state <= ST_APPLY; end
 
         "G": begin  // CHA - column absolute, 1-based
           s_pending  <= 1'b0;
@@ -533,6 +535,7 @@ module terminal_ctrl #(
       s_cp_dst  <= 8'd0; s_cp_col <= 8'd0; s_cp_down <= 1'b0;
       s_ap_kind <= AP_SGR; s_ap_idx <= 3'd0;
       s_ap_enable <= 1'b0; s_ap_priv <= 1'b0;
+      s_floor_q <= 8'd0; s_ceil_q <= ROWS[7:0] - 8'd1;
       s_sv_row <= 8'd0; s_sv_col <= 8'd0;
       s_sv_rev <= 1'b0; s_sv_bold <= 1'b0; s_sv_ul <= 1'b0; s_sv_blink <= 1'b0;
       s_sv_origin <= 1'b0; s_sv_shift <= 1'b0; s_sv_g0 <= 1'b0; s_sv_g1 <= 1'b0;
@@ -541,6 +544,10 @@ module terminal_ctrl #(
       // Defaults - overridden below where something actually happens.
       ram_we <= 1'b0;
       bell   <= 1'b0;
+
+      // Cursor bounds for the deferred moves - see the AP_* note above.
+      s_floor_q <= (cursor_row >= s_rtop) ? s_rtop : 8'd0;
+      s_ceil_q  <= (cursor_row <= s_rbot) ? s_rbot : (ROWS[7:0] - 8'd1);
 
       case (s_state)
 
@@ -601,10 +608,34 @@ module terminal_ctrl #(
         end
 
         //--------------------------------------------------------------------
-        // Walk the parameter list of SGR / SM / RM / DECLL, one per clock.
+        // Walk the parameter list of SGR / SM / RM / DECLL, one per clock -
+        // and execute the deferred cursor moves (see the AP_* note). The
+        // moves clamp margin-aware: a cursor inside the DECSTBM region is
+        // confined to it, one outside to the screen (RetroTerm
+        // MoveCursor*WithinMargins) - via the registered bounds.
         //--------------------------------------------------------------------
-        ST_APPLY: begin
-          if (s_ap_idx >= s_npar) begin
+        ST_APPLY: begin : apply
+          reg [7:0] ap_n;
+          reg [8:0] ap_sum;
+          ap_n = par_or(s_par[0], 8'd1);
+
+          if (s_ap_kind == AP_CUU) begin
+            cursor_row <= ({1'b0, cursor_row} > {1'b0, s_floor_q} + {1'b0, ap_n})
+                          ? (cursor_row - ap_n) : s_floor_q;
+            s_state <= ST_RUN;
+          end else if (s_ap_kind == AP_CUD) begin
+            ap_sum = {1'b0, cursor_row} + {1'b0, ap_n};
+            cursor_row <= (ap_sum < {1'b0, s_ceil_q}) ? ap_sum[7:0] : s_ceil_q;
+            s_state <= ST_RUN;
+          end else if (s_ap_kind == AP_CUF) begin
+            ap_sum = {1'b0, cursor_col} + {1'b0, ap_n};
+            cursor_col <= (ap_sum < COLS - 1) ? ap_sum[7:0] : (COLS[7:0] - 8'd1);
+            s_state <= ST_RUN;
+          end else if (s_ap_kind == AP_CUB) begin
+            cursor_col <= ({1'b0, cursor_col} > {1'b0, ap_n})
+                          ? (cursor_col - ap_n) : 8'd0;
+            s_state <= ST_RUN;
+          end else if (s_ap_idx >= s_npar) begin
             s_state <= ST_RUN;
           end else begin
             s_ap_idx <= s_ap_idx + 3'd1;
