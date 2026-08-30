@@ -79,6 +79,18 @@ COL_FLP_W        = 67
 # characters, 72-78, which is the last thing that fits in 80.
 COL_LEGEND       = 72         # RUNNING / OPCOM, driven by the RUN line
 
+# --- MIPS ------------------------------------------------------------------
+#
+# Also not on the real fascia. Ronny asked for it (29-AUG-2026): million macro
+# instructions per second, live, after the FLOPPY lamps. Row 1 is full there,
+# so it sits on row 2 to the right of the level cells - under the disc lamps.
+# The value is XX.XX (two integer digits because the 45 MHz Nexys can pass
+# 10 MIPS; the 6.75 MHz original never could) - term_panel.v renders the
+# digits from the mips_counter's BCD word and supplies the dot itself, so a
+# machine showing 00.00 is measured-idle rather than broken.
+COL_MIPS_LABEL   = 58         # "MIPS"
+COL_MIPS_VALUE   = 63         # XX.XX, 5 cells
+
 DYNAMIC = 0x00                # "term_panel.v fills this cell in"
 
 
@@ -137,6 +149,8 @@ def build():
     put(g, 2, COL_UPTIME_LABEL, "UP:")
     put_dynamic(g, 2, COL_UPTIME_VALUE, 8)          # hh:mm:ss
     put_dynamic(g, 2, COL_LEVELS, 16 * LEVEL_CELL_W)
+    put(g, 2, COL_MIPS_LABEL, "MIPS")
+    put_dynamic(g, 2, COL_MIPS_VALUE, 5)            # XX.XX
 
     # --- row 3: the octal ruler ---------------------------------------------
     #
@@ -223,6 +237,7 @@ def main():
         ("COL_HDD_R", COL_HDD_R), ("COL_HDD_W", COL_HDD_W),
         ("COL_FLP_R", COL_FLP_R), ("COL_FLP_W", COL_FLP_W),
         ("COL_LEGEND", COL_LEGEND),
+        ("COL_MIPS_VALUE", COL_MIPS_VALUE),
         ("PANEL_COLS", COLS), ("PANEL_ROWS", ROWS),
     ]:
         out.append("  localparam integer %-18s = %d;\n" % (name, value))

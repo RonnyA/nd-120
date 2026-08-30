@@ -26,8 +26,10 @@
 //!   is active at once, fed from the microprogram in PANC packets, with
 //!   afterglow so a single instruction on a level stays visible. We have PIL -
 //!   the one level running now. The picture would be identical and the claim
-//!   would not, so the caption is changed. The afterglow is kept, because that
-//!   part we can do honestly and it is what makes the display readable.
+//!   would not, so the caption is changed. There is NO afterglow any more: a
+//!   lamp shows the levels used during the frame being drawn, and nothing
+//!   older (see the per-frame occupancy note below for why the afterglow was
+//!   the bug that lit the whole row).
 //!
 //!   UP:hh:mm:ss, not DAY/TIME. The real clock is a battery-backed MM58274 that
 //!   survives a power failure. There is no panel processor in our RTL and no
@@ -79,6 +81,11 @@ module term_panel #(
 
     // ---- what the machine is doing -------------------------------------
     input wire [3:0] pil,          //! current program level, 0..15
+    //! ACTIVE LEVEL word from the panel processor: the two data bytes of the
+    //! microcode's LDPANC 0x0A command, sent every 20 ms. This IS what the
+    //! real panel's row shows. 0 until the first command has arrived; the
+    //! row then switches from the PIL-derived view to this, for good.
+    input wire [15:0] actlv,
     input wire [3:0] utilization,  //! 0..8, eighths of a bargraph
     input wire [3:0] cache_hit,    //! 0..8, eighths of a bargraph
     input wire [1:0] ring,         //! PCR protect ring, 0..3
@@ -97,6 +104,10 @@ module term_panel #(
     input wire [4:0] up_hours,
     input wire [5:0] up_minutes,
     input wire [5:0] up_seconds,
+
+    //! MIPS from mips_counter, {d3,d2,d1,d0} BCD, rendered as "d3d2.d1d0".
+    //! Updates once per second, so the per-frame latch below is plenty.
+    input wire [15:0] mips,
 
     output wire       active,  //! this pixel belongs to the panel
     output wire [2:0] colour   //! palette index, see the localparams below
@@ -227,6 +238,7 @@ module term_panel #(
   localparam integer COL_FLP_R        = 65;
   localparam integer COL_FLP_W        = 67;
   localparam integer COL_LEGEND       = 72;
+  localparam integer COL_MIPS_VALUE   = 63;
 
   //! Which of the 16 level cells this column is in, and whether it is lit.
   //!
@@ -282,52 +294,59 @@ module term_panel #(
   reg        r_paging, r_interrupt, r_running;
   reg [4:0]  r_up_h;
   reg [5:0]  r_up_m, r_up_s;
+  reg [15:0] r_mips;
 
-  //! Afterglow, and the display is THREE-STATE because of what the field
-  //! actually means. The ND-100 Reference Manual, on the ACTIVE LEVEL display:
+  //! PER-FRAME OCCUPANCY - a lamp means "the CPU was on this level at some
+  //! point during the frame you are looking at". Nothing older than that.
+  //!
+  //! The ND-100 Reference Manual, on the ACTIVE LEVEL display:
   //!
   //!   "There are 16 positions (0-15), one for each level. A one ( I ) is set
   //!    in ONE of these positions, indicating the active level."
   //!
-  //! Singular. One position at a time, with afterglow so that a level the CPU
-  //! visits for a few microseconds is still visible on a 60 Hz screen.
+  //! Singular. One position at a time. The problem is that a 60 Hz screen
+  //! cannot show a level the CPU visits for a microsecond unless something
+  //! stretches the visit, and the way it was stretched here was the bug.
   //!
-  //! The first version was binary and held for 0.84 s, so a level touched most
-  //! of a second ago looked exactly as lit as the one running now - a row of
-  //! equals, which is not what the machine is doing and not what the panel
-  //! showed. Now:
+  //! HISTORY OF THE BUG (measured on the Nexys with an ILA, 29-AUG-2026, TPE
+  //! INSTRUCTION test): PIL pulses to 12, 13, 14, 15 for exactly 15 CPU clocks
+  //! each - about 1 us - with ~150 clocks at level 0 in between. The machine
+  //! never RUNS at those levels, it touches them. The previous code reloaded
+  //! an afterglow counter for `pil` on EVERY clock and decayed it one step per
+  //! frame over 63 frames (~1 s; the version before that used 15 frames and
+  //! had the same fault four times less visibly). A 1 us blip therefore became
+  //! a lamp lit for a whole second, every level the microcode brushes past
+  //! stayed lit, and the row saturated - "ACTIVE LEVEL shows all 16 segments".
   //!
-  //!   current level, or visited in the last ~1 s   full box
-  //!   idle                                          blank
+  //! Now: `s_seen` accumulates a one-hot of every level PIL takes during the
+  //! frame being drawn. At `frame_tick` that vector is latched into `r_lamp`
+  //! (below) and `s_seen` starts again, seeded with the level current at the
+  //! tick so a level that is live across the boundary is never dropped. The
+  //! smear is one frame (~16 ms) instead of ~1 s, and a level the CPU has
+  //! stopped using is dark on the very next frame. It still shows several
+  //! lamps when the CPU really does touch several levels inside one frame,
+  //! because that is true.
   //!
-  //! TWO states, not three. An earlier version left a thin bar behind as a
-  //! "fading" trace, which reads as debris: a row of little horizontal lines
-  //! marking everywhere the CPU has been. The real LCD cell is either showing
-  //! its segment or it is not. Blank means blank.
+  //! TWO states: full box or blank. An earlier version left a thin bar behind
+  //! as a "fading" trace, which read as debris. The real LCD cell is either
+  //! showing its segment or it is not.
   //!
-  //! DECAYED ON FRAMES, not clocks. The frame rate is 60 Hz in both video
-  //! modes while the pixel clock is not, so counting frames keeps the fade the
-  //! same length at 800x600 and at 1080p. Counting clocks made it 3.5x shorter
-  //! in one of the two modes - the same trap the uptime counter avoids.
-  //! 63 frames is ~1 s at 60 Hz. The first version held for 15 frames (~250
-  //! ms), which is long enough to catch a brief visit but too short to watch -
-  //! levels appeared and vanished before the eye settled on them.
-  reg [5:0]  s_glow[0:15];
-  integer gi;
+  //! Counted in FRAMES, not clocks: the frame rate is 60 Hz in both video
+  //! modes while the pixel clock is not, so the window is the same length at
+  //! 800x600 and at 1080p.
+  //!
+  //! What the real machine shows here is ACTLV - the "levels active" word the
+  //! microcode sends the panel processor as LDPANC 0x0A - which is state, not
+  //! a sampled bus. PIL has no counterpart on the real panel. This is the
+  //! least-wrong thing to do with PIL; a latched-ACTLV row is the right end
+  //! state now that panel commands reach the FIFO (commits 1a8c0e1/d80ef7f).
+  reg [15:0] s_seen;
+  wire [15:0] s_pil_onehot = 16'd1 << pil;
 
   always @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
-      for (gi = 0; gi < 16; gi = gi + 1) s_glow[gi] <= 6'd0;
-    end else begin
-      // Reloaded every clock, so a visit of even one cycle is caught.
-      s_glow[pil] <= 6'h3F;
-      // One step per FRAME - 15 frames, about a quarter second, identical in
-      // both video modes.
-      if (frame_tick) begin
-        for (gi = 0; gi < 16; gi = gi + 1)
-          if (s_glow[gi] != 6'd0 && gi[3:0] != pil) s_glow[gi] <= s_glow[gi] - 6'd1;
-      end
-    end
+    if (!rst_n)          s_seen <= 16'd0;
+    else if (frame_tick) s_seen <= s_pil_onehot;            // new frame, seeded with the current level
+    else                 s_seen <= s_seen | s_pil_onehot;   // every level touched this frame
   end
 
   //! All 16 lamps as one vector, so the frame latch captures them together.
@@ -359,13 +378,78 @@ module term_panel #(
     end
   endgenerate
 
-  wire [15:0] s_lamp_now;
-  genvar gl;
+  //! The level lamps for the frame about to be drawn: everything seen since
+  //! the last tick, plus the level current AT the tick (which `s_seen` only
+  //! folds in on the next clock, so it is added here to avoid missing it).
+  wire [15:0] s_lamp_now_pil = s_seen | s_pil_onehot;
+
+  //! WHICH SOURCE THE ROW SHOWS (29-AUG-2026). PIL is the CGA's level bus,
+  //! and the ILA showed it stepping through 12, 13, 14, 15 for ~1 us each
+  //! every few hundred clocks - the microcode selecting other levels'
+  //! registers, not the machine running there. Any time-based view of PIL,
+  //! per frame included, lights the whole row on a machine that is idle.
+  //! Ronny reported exactly that (29-AUG-2026, "the ACTIVE LEVEL bug has not
+  //! been fixed"). The real panel never looks at PIL: the microcode sends it
+  //! the ACTIVE LEVEL word (LDPANC 0x0A) and the 68705 displays that. So once
+  //! an ACTLV word has arrived the row shows it, latched per frame, and the
+  //! PIL view is only the fallback for builds without the panel processor.
+  reg s_actlv_seen;
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n)              s_actlv_seen <= 1'b0;
+    else if (actlv != 16'd0) s_actlv_seen <= 1'b1;
+  end
+
+  //! HOW LONG AN ACTLV LAMP STAYS ON (29-AUG-2026, evening). The first
+  //! ACTLV row sampled the word once, AT the frame tick, and showed that for
+  //! one frame. Ronny on the Nexys: the all-16-lit bug is gone, but "the
+  //! active box flickers like stupid when there is a lot of changes" - a
+  //! level that was active for a few ms between two ticks was never shown,
+  //! and one that was active at the tick was shown for 16 ms and dropped.
+  //! Two changes, both in frames so they are the same at 800x600 and 1080p:
+  //!
+  //!  1. `s_actlv_acc` ORs the word over the whole frame, exactly as `s_seen`
+  //!     does for PIL, so a level active anywhere inside a frame is shown.
+  //!  2. each lamp then stays on for ACTLV_HOLD_FRAMES frames counted from
+  //!     the frame it was last seen in. Ronny asked for the old time doubled:
+  //!     1 frame (16 ms) -> 2 frames (33 ms). Raise the parameter if the row
+  //!     still flickers; the counter is 3 bits wide, so up to 7 frames
+  //!     (117 ms) needs no other change. The PIL fallback below keeps its
+  //!     strict one-frame view - its testbench pins that down, and it is not
+  //!     what the board shows.
+  localparam integer ACTLV_HOLD_FRAMES = 2;
+
+  reg [15:0] s_actlv_acc;
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n)          s_actlv_acc <= 16'd0;
+    else if (frame_tick) s_actlv_acc <= actlv;                // new frame, seeded with the word now
+    else                 s_actlv_acc <= s_actlv_acc | actlv;  // every level active this frame
+  end
+  //! everything seen since the last tick, plus the word AT the tick (which
+  //! `s_actlv_acc` only folds in on the next clock)
+  wire [15:0] s_actlv_frame = s_actlv_acc | actlv;
+
+  //! Per-lamp hold, in frames still to show AFTER the frame it was seen in.
+  reg [2:0] s_actlv_hold[0:15];
+  wire [15:0] s_actlv_held;
+  integer hi;
+  always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+      for (hi = 0; hi < 16; hi = hi + 1) s_actlv_hold[hi] <= 3'd0;
+    end else if (frame_tick) begin
+      for (hi = 0; hi < 16; hi = hi + 1) begin
+        if (s_actlv_frame[hi])            s_actlv_hold[hi] <= ACTLV_HOLD_FRAMES - 1;
+        else if (s_actlv_hold[hi] != 3'd0) s_actlv_hold[hi] <= s_actlv_hold[hi] - 3'd1;
+      end
+    end
+  end
+  genvar hk;
   generate
-    for (gl = 0; gl < 16; gl = gl + 1) begin : g_lamp
-      assign s_lamp_now[gl] = (s_glow[gl] != 6'd0);
+    for (hk = 0; hk < 16; hk = hk + 1) begin : g_actlv_hold
+      assign s_actlv_held[hk] = (s_actlv_hold[hk] != 3'd0);
     end
   endgenerate
+
+  wire [15:0] s_lamp_now = s_actlv_seen ? (s_actlv_frame | s_actlv_held) : s_lamp_now_pil;
 
   always @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin
@@ -374,10 +458,11 @@ module term_panel #(
       r_lamp <= 16'd0; r_util <= 4'd0; r_hit <= 4'd0; r_pil <= 4'd0;
       r_ring <= 2'd0; r_paging <= 1'b0; r_interrupt <= 1'b0; r_running <= 1'b0;
       r_up_h <= 5'd0; r_up_m <= 6'd0; r_up_s <= 6'd0;
+      r_mips <= 16'd0;
     end else if (frame_tick) begin
       // Per frame: the things that must keep up with the machine. The lamp
-      // vector especially - the afterglow exists to make brief visits visible,
-      // and sampling it slowly would discard the very events it is for.
+      // vector especially - it is the occupancy of exactly this frame, and
+      // sampling it any slower would either drop visits or smear them.
       r_lamp <= s_lamp_now;
       r_disk <= s_disk_now;
       r_util <= utilization;
@@ -386,6 +471,7 @@ module term_panel #(
       r_up_h <= up_hours;
       r_up_m <= up_minutes;
       r_up_s <= up_seconds;
+      r_mips <= mips;
 
       if (s_slow_cnt == SLOW_FRAMES[4:0] - 5'd1) begin
         s_slow_cnt  <= 5'd0;
@@ -399,7 +485,7 @@ module term_panel #(
     end
   end
 
-  //! Lit means "running here now, or within the last second". Nothing is
+  //! Lit means "the CPU was on this level during this frame". Nothing is
   //! drawn otherwise - see the note on two states above.
   wire s_level_lit = r_lamp[s_level_index];
 
@@ -417,6 +503,21 @@ module term_panel #(
       4'd6: s_uptime_char = 8'h30 + {4'b0, r_up_s / 6'd10};
       4'd7: s_uptime_char = 8'h30 + {4'b0, r_up_s % 6'd10};
       default: s_uptime_char = 8'h20;
+    endcase
+  end
+
+  //! MIPS digits, "XX.XX". The dot is drawn here rather than stored in the
+  //! ROM so the whole 5-cell field is one dynamic run, like uptime.
+  wire [2:0] s_mips_col = s_col[2:0] - COL_MIPS_VALUE[2:0];
+  reg  [7:0] s_mips_char;
+  always @(*) begin
+    case (s_mips_col)
+      3'd0: s_mips_char = 8'h30 + {4'b0, r_mips[15:12]};
+      3'd1: s_mips_char = 8'h30 + {4'b0, r_mips[11:8]};
+      3'd2: s_mips_char = ".";
+      3'd3: s_mips_char = 8'h30 + {4'b0, r_mips[7:4]};
+      3'd4: s_mips_char = 8'h30 + {4'b0, r_mips[3:0]};
+      default: s_mips_char = 8'h20;
     endcase
   end
 
@@ -485,6 +586,10 @@ module term_panel #(
     end else if (s_row == 3'd2 && s_col >= COL_UPTIME_VALUE[6:0]
                  && s_col < COL_UPTIME_VALUE[6:0] + 7'd8) begin
       s_live_char   = s_uptime_char;
+      s_live_colour = C_LCDINK;
+    end else if (s_row == 3'd2 && s_col >= COL_MIPS_VALUE[6:0]
+                 && s_col < COL_MIPS_VALUE[6:0] + 7'd5) begin
+      s_live_char   = s_mips_char;
       s_live_colour = C_LCDINK;
     end else if (s_row == 3'd1 &&
                  (s_col == COL_HDD_R[6:0] || s_col == COL_HDD_W[6:0] ||
@@ -568,7 +673,7 @@ module term_panel #(
       .FONT_FILE(FONT_FILE)
   ) PANELFONT (
       .clk      (clk),
-      .char_code({1'b0, s_char[6:0]}),
+      .char_code({2'b00, s_char[6:0]}),  // page 0 always - the panel draws no graphics
       .row      (s_pixel_row_d1),
       .pixels   (s_font_pixels)
   );

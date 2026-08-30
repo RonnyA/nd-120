@@ -24,7 +24,7 @@
 
 module terminal_top #(
     parameter integer COLS      = 80,
-    parameter integer ROWS      = 25,
+    parameter integer ROWS      = 24,
     parameter integer AWIDTH    = 11,
     parameter         FONT_FILE = "../font/font8x16.hex",
 
@@ -109,6 +109,7 @@ module terminal_top #(
     //! up with three slightly different definitions of "utilization".
     input  wire       panel_enable,
     input  wire [3:0] panel_pil,        //! current program level
+    input  wire [15:0] panel_actlv,     //! ACTIVE LEVEL word from the panel processor (0 = none yet)
     input  wire       panel_lev0,       //! LEV0 - running at level 0, i.e. idle
     input  wire       panel_hit,        //! HIT  - the ND-120's own cache
     //! High while the lookup HIT belongs to is happening. Without it there is
@@ -126,8 +127,13 @@ module terminal_top #(
     input  wire       panel_flp_rd,
     input  wire       panel_flp_wr,
 
+    //! MIPS word from the board's mips_counter (CPU clock domain), {d3,d2,
+    //! d1,d0} BCD. Boards without a counter tie it to 0 and the panel shows
+    //! 00.00. Synced below exactly as ACTLV is.
+    input  wire [15:0] panel_mips,
+
     output wire bell,       //! one pix_clk per BEL received
-    output wire [2:0] leds  //! TDV keyboard lamps (ENQ/ACK/NAK set, SYN clears)
+    output wire [3:0] leds  //! DECLL (CSI Ps q) - the VT100 keyboard lamps L1-L4
 );
 
   //--------------------------------------------------------------------------
@@ -136,8 +142,12 @@ module terminal_top #(
 
   wire       s_pix_byte_valid;
   wire [7:0] s_pix_byte_data;
+  wire       s_fifo_in_ready;
+  wire       s_ctrl_byte_valid;
+  wire [7:0] s_ctrl_byte_data;
   //! terminal_ctrl is not always able to take a byte - a clear-screen sweep
-  //! walks 2000 cells and holds this low throughout. See the CDC note.
+  //! walks 1920 cells and a DECSTBM region scroll ~3.8k clocks, holding this
+  //! low throughout. See the CDC note and byte_fifo.v.
   wire       s_ctrl_ready;
 
   cdc_byte CDC (
@@ -151,7 +161,22 @@ module terminal_top #(
       .dst_rst_n(pix_rst_n),
       .dst_valid(s_pix_byte_valid),
       .dst_data (s_pix_byte_data),
-      .dst_ready(s_ctrl_ready)
+      .dst_ready(s_fifo_in_ready)
+  );
+
+  //! Elastic buffer between the crossing and the controller. A VT100 region
+  //! scroll runs ~96 us at 40 MHz - longer than one 115200-baud byte time -
+  //! and the console UART receiver does not respect ready, so without slack
+  //! here a byte arriving mid-scroll would be lost. See byte_fifo.v.
+  byte_fifo FIFO (
+      .clk      (pix_clk),
+      .rst_n    (pix_rst_n),
+      .in_valid (s_pix_byte_valid),
+      .in_data  (s_pix_byte_data),
+      .in_ready (s_fifo_in_ready),
+      .out_valid(s_ctrl_byte_valid),
+      .out_data (s_ctrl_byte_data),
+      .out_ready(s_ctrl_ready)
   );
 
   //--------------------------------------------------------------------------
@@ -163,18 +188,22 @@ module terminal_top #(
   wire [      15:0] s_wdata;
   wire [AWIDTH-1:0] s_raddr;
   wire [      15:0] s_rdata;
+  wire [AWIDTH-1:0] s_raddr2;
+  wire [      15:0] s_rdata2;
 
   char_ram #(
       .COLS  (COLS),
       .ROWS  (ROWS),
       .AWIDTH(AWIDTH)
   ) CHARRAM (
-      .clk  (pix_clk),
-      .we   (s_we),
-      .waddr(s_waddr),
-      .wdata(s_wdata),
-      .raddr(s_raddr),
-      .rdata(s_rdata)
+      .clk   (pix_clk),
+      .we    (s_we),
+      .waddr (s_waddr),
+      .wdata (s_wdata),
+      .raddr2(s_raddr2),
+      .rdata2(s_rdata2),
+      .raddr (s_raddr),
+      .rdata (s_rdata)
   );
 
   //--------------------------------------------------------------------------
@@ -186,9 +215,8 @@ module terminal_top #(
   wire [7:0] s_cursor_row;
   wire       s_cursor_enable;
   wire       s_frame_end;
-  //! STX/ETX blank the display WITHOUT erasing it - so this gates the pixel
-  //! on the way out, it does not touch the character RAM.
-  wire       s_video_on;
+  wire       s_rev_screen;
+  wire       s_blink_on;
 
   terminal_ctrl #(
       .COLS  (COLS),
@@ -198,28 +226,28 @@ module terminal_top #(
       .clk  (pix_clk),
       .rst_n(pix_rst_n),
 
-      .byte_valid(s_pix_byte_valid),
-      .byte_data (s_pix_byte_data),
-      // FED BACK, since 28-AUG-2026. This used to be left unconnected on the
-      // argument that a 115200 console byte (every ~87 us) could never catch
-      // the ~48 us clear-screen window. True of a UART, and false the moment
-      // term_banner.v became a source: it hands over a byte every ~150 ns and
-      // the power-on clear ate the entire startup message. The handshake is
-      // now real, which also removes the caveat Stage B was going to have to
-      // fix anyway.
+      .byte_valid(s_ctrl_byte_valid),
+      .byte_data (s_ctrl_byte_data),
+      // FED BACK, since 28-AUG-2026 (and since 30-AUG through the FIFO). This
+      // used to be left unconnected on the argument that a 115200 console
+      // byte (every ~87 us) could never catch the ~48 us clear-screen window.
+      // True of a UART, and false the moment term_banner.v became a source:
+      // it hands over a byte every ~150 ns and the power-on clear ate the
+      // entire startup message.
       .ready     (s_ctrl_ready),
 
-      .ram_we   (s_we),
-      .ram_waddr(s_waddr),
-      .ram_wdata(s_wdata),
+      .ram_we    (s_we),
+      .ram_waddr (s_waddr),
+      .ram_wdata (s_wdata),
+      .ram_raddr2(s_raddr2),
+      .ram_rdata2(s_rdata2),
 
       .top_row      (s_top_row),
       .cursor_col   (s_cursor_col),
       .cursor_row   (s_cursor_row),
       .cursor_enable(s_cursor_enable),
-
-      .video_on (s_video_on),
-      .charset  (),   // one font page today - see the SO/SI note in terminal_ctrl.v
+      .rev_screen   (s_rev_screen),
+      .blink_on     (s_blink_on),
 
       .frame_end(s_frame_end),
       .bell     (bell),
@@ -227,7 +255,7 @@ module terminal_top #(
   );
 
   wire s_screen_pixel;
-  assign pixel = s_screen_pixel & s_video_on;
+  assign pixel = s_screen_pixel;
 
   //! The panel works from the raw counters and applies its own two clocks of
   //! delay, matching the text pipeline. It never overlaps the text grid, so
@@ -268,11 +296,11 @@ module terminal_top #(
     // PER LEVEL, so on a level change the bus settles through intermediate
     // codes before it lands. At 40 MHz pixel clock against a 16.67 MHz CPU
     // clock, one CPU cycle of transient spans about 2.4 pixel samples, which
-    // walks straight through a two-sample gate. Downstream, term_panel reloads
-    // s_glow[pil] to full brightness on EVERY clock, so a single transient
-    // code lights that lamp for the whole ~1 s afterglow. Ronny's report -
+    // walks straight through a two-sample gate. Downstream, term_panel USED TO
+    // reload an afterglow counter for pil on EVERY clock, so a single transient
+    // code lit that lamp for the whole ~1 s afterglow. Ronny's report -
     // levels walking 2,3,4,5,6 and "every time the level changes all the
-    // levels light up" - is exactly that shape.
+    // levels light up" - looked like exactly that shape.
     //
     // So: three flops, the comparison taken between the SECOND and THIRD (both
     // past the metastable one), and the value accepted only after it has been
@@ -280,13 +308,16 @@ module terminal_top #(
     // longer than a CPU cycle. Any code the bus merely passes through on its
     // way somewhere else is discarded.
     //
-    // NOT YET CONFIRMED ON HARDWARE. Verilator cannot show this class of
-    // fault: it evaluates settled values once per clock, so an intra-cycle
-    // transient does not exist in simulation - the same reason the ND3202D
-    // bank-decode bug was invisible in sim. s_ila_pil is already a mark_debug
-    // probe (nd120_nexys4ddr_top.v:1104), so an ILA build can capture PIL
-    // across a level change and settle it. Until someone does, this fix is
-    // reasoned from the source, not measured.
+    // MEASURED ON HARDWARE 29-AUG-2026, AND IT WAS NOT THE CAUSE. Two ILA
+    // captures of s_ila_pil on the Nexys (TPE INSTRUCTION test) show a level
+    // change as ONE clean transition with no intermediate codes - the bus is
+    // fine. What the captures did show is PIL genuinely pulsing to 12, 13,
+    // 14, 15 for 15 CPU clocks each (~1 us), and the 63-frame afterglow in
+    // term_panel stretched each 1 us blip into a lamp lit for a second. That
+    // afterglow is gone - term_panel now shows per-frame occupancy. This gate
+    // stays because it is harmless and the reasoning above about a transient
+    // code is still sound for a bus that does glitch; it just fixes nothing
+    // here.
     //------------------------------------------------------------------
     localparam [2:0] PIL_STABLE_SAMPLES = 3'd7;   //! 8 samples: 0..7
 
@@ -336,6 +367,32 @@ module terminal_top #(
     end
 
     wire [3:0] w_pil  = s_pil_q;
+
+    // ACTLV crosses from the CPU clock too. It is a 16-bit word that changes
+    // every 20 ms, so plain two-flop synchronisers per bit are enough: a bit
+    // caught mid-change is right on the next frame anyway.
+    reg [15:0] s_actlv_m, s_actlv_s;
+    always @(posedge pix_clk or negedge pix_rst_n) begin
+      if (!pix_rst_n) begin
+        s_actlv_m <= 16'd0; s_actlv_s <= 16'd0;
+      end else begin
+        s_actlv_m <= panel_actlv;
+        s_actlv_s <= s_actlv_m;
+      end
+    end
+    wire [15:0] w_actlv = s_actlv_s;
+
+    // The MIPS word changes once a second - the same treatment as ACTLV.
+    reg [15:0] s_mips_m, s_mips_s;
+    always @(posedge pix_clk or negedge pix_rst_n) begin
+      if (!pix_rst_n) begin
+        s_mips_m <= 16'd0; s_mips_s <= 16'd0;
+      end else begin
+        s_mips_m <= panel_mips;
+        s_mips_s <= s_mips_m;
+      end
+    end
+    wire [15:0] w_mips = s_mips_s;
     wire [1:0] w_ring = s_ring_q;
     wire w_lev0 = s_lev0_sync[1];
     wire w_hit  = s_hit_sync[1];
@@ -436,6 +493,7 @@ module terminal_top #(
         .frame_tick(s_frame_end),
 
         .pil         (w_pil),
+        .actlv       (w_actlv),
         .utilization (s_utilization),
         .cache_hit   (s_cache_hit),
         .ring        (w_ring),
@@ -449,6 +507,7 @@ module terminal_top #(
         .up_hours    (s_up_hr),
         .up_minutes  (s_up_min),
         .up_seconds  (s_up_sec),
+        .mips        (w_mips),
 
         .active(s_panel_active),
         .colour(s_panel_colour)
@@ -465,7 +524,7 @@ module terminal_top #(
   //! the priority never actually arbitrates - it just picks which of the two
   //! is speaking about this pixel.
   assign colour = s_panel_active ? s_panel_colour
-                : (s_screen_pixel & s_video_on) ? 3'd1 : 3'd0;
+                : s_screen_pixel ? 3'd1 : 3'd0;
 
   text_screen #(
       .COLS         (COLS),
@@ -492,6 +551,8 @@ module terminal_top #(
       .ram_rdata(s_rdata),
 
       .national     (national),
+      .rev_screen   (s_rev_screen),
+      .blink_on     (s_blink_on),
       .mode         (mode),
 
       .top_row      (s_top_row),

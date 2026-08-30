@@ -411,10 +411,12 @@ module nd120_nexys4ddr_top (
   wire        s_run;
   wire [12:0] CSA_12_0;
   wire [ 3:0] s_pil;
+  wire [15:0] s_panel_actlv;   // the microcode's ACTIVE LEVEL word, via the panel processor
   wire [13:0] s_debug_la_23_10;
   wire [ 9:0] s_debug_ca_9_0;
   wire [ 4:0] s_debug_cc_term;
   wire        s_debug_mclk, s_debug_lcs_n, s_debug_fetch;
+  wire [15:0] s_panel_mips;   // XX.XX BCD from mips_counter, once a second
   wire        s_debug_refrq_n;
   wire        s_debug_intrq_n, s_debug_powfail_n;
   wire [15:0] s_debug_fidbo, s_ireq_15_0_n, s_xmic_dbg;
@@ -622,6 +624,7 @@ module nd120_nexys4ddr_top (
       //   [1:0] PCR   [2] PONI   [3] IONI   [4] LHIT   [5] LEV0
       .panel_enable      (s_panel_en),
       .panel_pil         (s_pil),
+      .panel_actlv       (s_panel_actlv),
       .panel_lev0        (s_dbg_panel[5]),
       // [4] is LHIT - the same signal the real MC68705 panel samples, not the
       // cache's raw comparator output. [6] (LAPA_n) is no longer read here:
@@ -640,6 +643,11 @@ module nd120_nexys4ddr_top (
       .panel_hdd_wr      (WDISK_REQ &  WDISK_WR),
       .panel_flp_rd      (FDISK_REQ & ~FDISK_WR),
       .panel_flp_wr      (FDISK_REQ &  FDISK_WR),
+
+      // MIPS - counted from the board FETCH signal on the CPU clock, four
+      // BCD digits once a second. See mips_counter.v; crossing is inside
+      // terminal_top, same as ACTLV.
+      .panel_mips        (s_panel_mips),
 
       .colour   (s_colour),
 
@@ -721,6 +729,24 @@ module nd120_nexys4ddr_top (
 
   wire s_kbd_txd;
 
+  //! VT100 sequence expander (30-AUG-2026): an arrow key is THREE bytes
+  //! (ESC [ A...) on terminal type 6, and the UART needs ~870 us per byte -
+  //! so this carries the FIFO that used to be "a problem nobody has". Plain
+  //! characters pass straight through it.
+  wire       s_seq_valid;
+  wire [7:0] s_seq_data;
+  wire       s_tx_ready;
+
+  key_vt100 KEYEXP (
+      .clk      (clk_pix),
+      .rst_n    (pix_rst_n),
+      .key_valid(s_key_valid),
+      .key_data (s_key_data),
+      .out_valid(s_seq_valid),
+      .out_data (s_seq_data),
+      .out_ready(s_tx_ready)
+  );
+
   console_uart_tx #(
       .CLK_HZ    (40_000_000),
       .BAUD      (`ND120_CONSOLE_BAUD),
@@ -731,12 +757,9 @@ module nd120_nexys4ddr_top (
       .divisor_ovr(s_con_divisor),
       .clk       (clk_pix),
       .rst_n     (pix_rst_n),
-      .byte_valid(s_key_valid),
-      .byte_data (s_key_data),
-      // A dropped key while a character is still going out is acceptable at
-      // human typing speed against 115200; wiring a FIFO here would be
-      // solving a problem nobody has.
-      .ready     (),
+      .byte_valid(s_seq_valid),
+      .byte_data (s_seq_data),
+      .ready     (s_tx_ready),
       .txd       (s_kbd_txd)
   );
 
@@ -933,8 +956,28 @@ module nd120_nexys4ddr_top (
       .DBG_DDR2_BRIDGE(s_dbg_ddr2_bridge),
       .DBG_PTW_LVL    (s_dbg_ptw_lvl),
       .DBG_PANEL      (s_dbg_panel),
+      .PANEL_ACTLV    (s_panel_actlv),
       .DBG_CACHE      (s_dbg_cache)
 `endif
+  );
+
+  // --- MIPS counter --------------------------------------------------------
+  // Macro instructions per second for the panel, counted from the board's
+  // FETCH signal (ND3202D DEBUG_FETCH) on the CPU clock. The CPU frequency
+  // follows the MMCM divisor define, so a -Variant build measures itself
+  // correctly without another number to keep in sync.
+  // real->integer localparam rounds at elaboration; every tool here (Vivado,
+  // Verilator, iverilog) does this, while $rtoi in a parameter position is
+  // less universally loved.
+  localparam integer MIPS_CLOCK_HZ = 1000000000.0 / `ND120_N4DDR_MMCM_DIV;
+
+  mips_counter #(
+      .CLOCK_HZ(MIPS_CLOCK_HZ)
+  ) MIPS (
+      .clk     (clk_cpu),
+      .rst_n   (sys_rst_n),
+      .fetch   (s_debug_fetch),
+      .mips_bcd(s_panel_mips)
   );
 
   /**********************************************

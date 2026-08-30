@@ -34,7 +34,7 @@
 module text_screen_tb;
 
   localparam integer COLS     = 80;
-  localparam integer ROWS     = 25;
+  localparam integer ROWS     = 24;
   localparam integer CELL_W   = 8;
   localparam integer CELL_H   = 16;
   localparam integer AWIDTH   = 11;
@@ -75,6 +75,7 @@ module text_screen_tb;
   ) RAM (
       .clk(clk),
       .we(we), .waddr(waddr), .wdata(wdata),
+      .raddr2({AWIDTH{1'b0}}), .rdata2(),
       .raddr(raddr), .rdata(rdata)
   );
 
@@ -88,6 +89,10 @@ module text_screen_tb;
       // Font page 0 (US) and mode 0. The model reads the same hex file and
       // page 0 is its first 128 glyphs, so model and DUT agree by construction.
       .national(1'b0),
+      // Attribute machinery off/steady: the model below knows reverse video
+      // (bit 8) only, so the cells this tb writes never set bits 10-12.
+      .rev_screen(1'b0),
+      .blink_on(1'b1),
       .mode(1'b0),
       .top_row(top_row),
       .cursor_col(cursor_col), .cursor_row(cursor_row),

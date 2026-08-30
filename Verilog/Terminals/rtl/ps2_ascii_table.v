@@ -17,11 +17,10 @@
 //! Ronny types on his own keyboard.
 //!
 //! Extended (E0-prefixed) keys ARE here, in their own `extended` output and
-//! their own case block below. That is only possible because a TDV sends BARE
-//! C0 BYTES for the arrows and HOME, not escape sequences - so no sequencer is
-//! needed, just a second lookup. See the block comment on that case for the
-//! evidence from RetroTerm's key registry. The function keys, which DO need
-//! sequences (F1 = ESC [ 5 0 _), are still Stage B/C work and are absent.
+//! their own case block below. Since the 30-AUG-2026 VT100 decision the
+//! arrows and HOME emit SEQUENCE MARKERS (0x80 | final byte) that
+//! key_vt100.v expands into the real ESC [ x bytes on the way to the UART -
+//! see the block comment on the case below.
 //!
 //! Written 27-AUG-2026.
 //============================================================================
@@ -38,30 +37,25 @@ module ps2_ascii_table (
 
     //! Byte for the same scancode when it arrived with the E0 (extended)
     //! prefix - the arrows, HOME and DELETE. 0x00 = this extended key sends
-    //! nothing. See the TDV note below; these are NOT escape sequences.
+    //! nothing; 0x80|f = key_vt100.v expands it to ESC [ f (see below).
     output reg  [7:0] extended
 );
 
   //--------------------------------------------------------------------------
-  // Extended (E0-prefixed) keys -> TDV control bytes
+  // Extended (E0-prefixed) keys -> VT100 (30-AUG-2026)
   //
-  // On a TDV the cursor keys are BARE C0 BYTES, not escape sequences. There is
-  // no ESC [ A. Send VT100 arrows and SINTRAN's full-screen tools do not see
-  // cursor keys at all.
+  // A VT100 (SINTRAN terminal type 6) sends ESC [ A/B/C/D for the arrows -
+  // three bytes per keypress. One lookup cannot produce three bytes, so the
+  // table emits a MARKER: 0x80 OR'ed onto the sequence's final byte, and
+  // key_vt100.v turns marker 0x80|f into ESC [ f on the wire. Bit 7 is safe
+  // as a marker because the ND-120 is a 7-bit machine - no typed character
+  // ever has it - and a marker that leaks unexpanded shows up as a printable
+  // on the far side instead of vanishing.
   //
-  // This was worth checking rather than trusting: RetroTerm's
-  // docs\TDV-KEYBOARD-COMPLETE-REFERENCE.md has a table showing
-  // "TDV2200 Extended = ESC [ A" for the arrows. The CODE disagrees -
-  // TDV2200KeyRegistry.cs registers UP/DOWN/LEFT/RIGHT/HOME with the flag
-  // AlwaysSameCode and the SAME C0 byte in every column:
-  //     Reg("C48","UP",   ...AlwaysSameCode, 38, "\x1C","\x1C",null,"\x1C",null)
-  //     Reg("A48","DOWN", ...AlwaysSameCode, 40, "\x0B","\x0B",null,"\x0B",null)
-  //     Reg("B47","LEFT", ...AlwaysSameCode, 37, "\x08","\x08",null,"\x08",null)
-  //     Reg("B49","RIGHT",...AlwaysSameCode, 39, "\x18","\x18",null,"\x18",null)
-  //     Reg("B48","HOME", ...AlwaysSameCode, 36, "\x1D","\x1D",null,"\x10",null)
-  // The code is the source of truth; that doc table is a claim, and a wrong
-  // one. HOME is the one key that differs between modes (0x1D native, 0x10 in
-  // Simple ASCII) - we send the native code.
+  // (Until 30-AUG-2026 these were the TDV bare C0 bytes - UP=0x1C, DOWN=0x0B,
+  // LEFT=0x08, RIGHT=0x18, HOME=0x1D - correct for terminal type 53, whose
+  // evidence trail is in docs/SPEC-tdv2200.md and the git history. The
+  // terminal is a VT100 now.)
   //
   // !! The PS/2 SCANCODES below are from the published set-2 tables and are
   // !! UNVERIFIED against a physical keyboard, same as the main table.
@@ -69,17 +63,15 @@ module ps2_ascii_table (
 
   always @(*) begin
     case (code)
-      8'h75:   extended = 8'h1C;  // Up    -> FS
-      8'h72:   extended = 8'h0B;  // Down  -> VT
-      8'h6B:   extended = 8'h08;  // Left  -> BS
-      8'h74:   extended = 8'h18;  // Right -> CAN
-      8'h6C:   extended = 8'h1D;  // Home  -> GS
+      8'h75:   extended = 8'h80 | "A";  // Up    -> ESC [ A
+      8'h72:   extended = 8'h80 | "B";  // Down  -> ESC [ B
+      8'h74:   extended = 8'h80 | "C";  // Right -> ESC [ C
+      8'h6B:   extended = 8'h80 | "D";  // Left  -> ESC [ D
+      8'h6C:   extended = 8'h80 | "H";  // Home  -> ESC [ H (CUP home)
       8'h71:   extended = 8'h7F;  // Delete-> DEL
-      8'h5A:   extended = 8'h0D;  // keypad Enter -> CR (KPENTER is 0x0D always)
-      default: extended = 8'h00;  // no TDV equivalent: send NOTHING.
-                                  // Deliberate - RetroTerm has no VT100
-                                  // fallback either. A fallback sends bytes a
-                                  // real TDV never sent.
+      8'h5A:   extended = 8'h0D;  // keypad Enter -> CR
+      default: extended = 8'h00;  // no VT100 equivalent (PgUp, End, ...):
+                                  // send NOTHING rather than invent bytes.
     endcase
   end
 

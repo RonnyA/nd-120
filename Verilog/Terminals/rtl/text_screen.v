@@ -34,7 +34,7 @@
 
 module text_screen #(
     parameter integer COLS        = 80,
-    parameter integer ROWS        = 25,
+    parameter integer ROWS        = 24,
     parameter integer CELL_W      = 8,
     parameter integer CELL_H      = 16,
     parameter integer AWIDTH      = 11,
@@ -80,7 +80,15 @@ module text_screen #(
     // Screen state, driven by terminal_ctrl
     //! Font page. 0 = US / ISO 646 IRV, 1 = Norwegian (NS 4551-1). It changes
     //! what six existing byte values LOOK like - it does not add characters.
+    //! A cell whose DEC-graphics attribute bit is set overrides this and
+    //! reads font page 2 (VT100 line drawing) instead.
     input wire       national,
+
+    //! DECSCNM - reverse the whole screen (ink and paper swap everywhere).
+    input wire       rev_screen,
+    //! Blink phase from terminal_ctrl; cells with the blink attribute show
+    //! their glyph only while this is high.
+    input wire       blink_on,
 
     //! Video mode. 0 = the H_*/V_* parameters at 1x glyphs; 1 = the H2_*/V2_*
     //! parameters at 2x glyphs. MUST be switched together with the pixel clock.
@@ -235,20 +243,24 @@ module text_screen #(
 
   wire [7:0] s_font_pixels;
 
-  //! WHICH FONT PAGE. The ROM holds two 128-glyph pages: page 0 is US / ISO
-  //! 646 IRV, page 1 is the Norwegian variant, where six bytes draw AE OE AA
-  //! ae oe aa and the currency sign instead of [ \ ] { | } and $. See the long
-  //! note in font/make_font.py for why a national variant has to work this way
-  //! on a 7-bit machine.
+  //! WHICH FONT PAGE. The ROM holds three 128-glyph pages: page 0 is US /
+  //! ISO 646 IRV, page 1 the Norwegian variant (six bytes draw AE OE AA
+  //! ae oe aa and the currency sign instead of [ \ ] { | } and $ - see the
+  //! long note in font/make_font.py), page 2 the DEC Special Graphics set the
+  //! VT100 draws boxes with. The cell's graphics attribute (bit 12, set by
+  //! terminal_ctrl from the SO/SI + ESC()0 charset state at write time) wins
+  //! over `national`: a line-drawing cell is line drawing on both layouts.
   //!
   //! Bit 7 of the stored character is REPLACED, not ORed: the ND-120 is 7-bit,
   //! so bit 7 carries no information, and replacing it means a stray high byte
   //! cannot land on the wrong page.
+  wire [1:0] s_font_page = ram_rdata[12] ? 2'd2 : {1'b0, national};
+
   font_rom #(
       .FONT_FILE(FONT_FILE)
   ) FONT (
       .clk      (clk),
-      .char_code({national, ram_rdata[6:0]}),
+      .char_code({s_font_page, ram_rdata[6:0]}),
       .row      (s_pixel_row_d1),
       .pixels   (s_font_pixels)
   );
@@ -259,10 +271,11 @@ module text_screen #(
 
   reg [1:0] s_de_dly, s_hsync_dly, s_vsync_dly, s_in_grid_dly;
   reg [2:0] s_pixel_col_d1, s_pixel_col_d2;
-  //! Per-cell reverse-video attribute. It arrives WITH the character code, one
-  //! stage later than everything else, so it needs one register to reach the
+  //! Per-cell attributes. They arrive WITH the character code, one stage
+  //! later than everything else, so they need one register to reach the
   //! output while the rest need two.
-  reg s_reverse_d2;
+  reg s_reverse_d2, s_under_d2, s_blink_d2;
+  reg [3:0] s_pixel_row_d2;  //! for the underline - drawn at one fixed row
   reg [1:0] s_cursor_dly;    //! this cell is the cursor cell
 
   // Is the cell being fetched at stage 0 the cursor cell? Compared in SCREEN
@@ -279,6 +292,9 @@ module text_screen #(
     s_pixel_col_d1 <= s_pixel_col;
     s_pixel_col_d2 <= s_pixel_col_d1;
     s_reverse_d2   <= ram_rdata[8];
+    s_under_d2     <= ram_rdata[10];
+    s_blink_d2     <= ram_rdata[11];
+    s_pixel_row_d2 <= s_pixel_row_d1;
   end
 
   //--------------------------------------------------------------------------
@@ -286,12 +302,20 @@ module text_screen #(
   //--------------------------------------------------------------------------
 
   // MSB is the leftmost pixel, so column 0 selects bit 7.
-  wire s_glyph_pixel = s_font_pixels[3'd7 - s_pixel_col_d2];
+  wire s_glyph_bit = s_font_pixels[3'd7 - s_pixel_col_d2];
 
-  // Reverse video and the cursor are both "swap ink and paper". Doing the
-  // cursor this way means it works on top of any character, needs no separate
-  // shape, and costs one XOR.
-  wire s_invert = s_reverse_d2 ^ s_cursor_dly[1];
+  //! Underline: force pixel row 14 to ink - below the baseline of every glyph
+  //! in the shipped font, the same row the VT100 used relative to its cell.
+  //! Blink: while the phase is low the glyph (underline included) is hidden;
+  //! reverse and the cursor still show, so a blinking reverse cell blinks
+  //! between reverse-space and reverse-glyph, as a real terminal does.
+  wire s_glyph_pixel = (s_glyph_bit | (s_under_d2 && s_pixel_row_d2 == 4'd14))
+                       && (!s_blink_d2 || blink_on);
+
+  // Reverse video (per cell and DECSCNM whole-screen) and the cursor are all
+  // "swap ink and paper". Doing the cursor this way means it works on top of
+  // any character, needs no separate shape, and costs one XOR.
+  wire s_invert = s_reverse_d2 ^ s_cursor_dly[1] ^ rev_screen;
 
   assign pixel = s_in_grid_dly[1] ? (s_glyph_pixel ^ s_invert) : 1'b0;
   assign de    = s_de_dly[1];

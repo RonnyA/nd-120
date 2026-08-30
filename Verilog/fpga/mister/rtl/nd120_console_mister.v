@@ -161,6 +161,13 @@ module nd120_console_mister #(
       // Build 1 has no machine behind the seam, so the terminal echoes for
       // itself. Build 2 ties these off: the ND-120 echoes, and doing both
       // shows every character twice.
+      // NOTE 30-AUG-2026: the arrows/HOME now come out of the decoder as
+      // VT100 sequence markers (0x80|final, see ps2_ascii_table.v). This
+      // echo path passes them RAW and terminal_ctrl drops bytes >= 0x7F, so
+      // in build 1 the arrow keys simply do nothing locally. Build 2, which
+      // has a real UART to the machine, must route keys through key_vt100
+      // the way the Nexys top does - the expander's handshake is written
+      // for a UART's ready, not for this feed's.
       .echo_valid((LOCAL_ECHO != 0) && s_kbd_ascii_valid),
       .echo_data (s_kbd_ascii_data),
 
@@ -204,6 +211,8 @@ module nd120_console_mister #(
       // with the CPU, wired from the same DBG_PANEL port the Nexys uses.
       .panel_enable      (1'b0),
       .panel_pil         (4'd0),
+      .panel_actlv       (16'd0),
+      .panel_mips        (16'd0),   // no counter on this board yet
       .panel_lev0        (1'b0),
       .panel_hit         (1'b0),
       .panel_ring        (2'd0),

@@ -1,4 +1,9 @@
-# TDV 2200 - the specification we will build Stage C against
+# TDV 2200 - the specification Stage C WOULD have been built against
+
+> **Overtaken 30-AUG-2026: the terminal is a plain VT100** (SINTRAN terminal
+> type 6), decided by Ronny. Nothing below is wrong - it describes terminal
+> type 53, which we no longer emulate. Kept because it is the best TDV 2200
+> reference this repo has, and because the traps list cost real time to earn.
 
 **Full path:** `Verilog/Terminals/docs/SPEC-tdv2200.md`
 Answered 27-AUG-2026 by `retroterm-09`, read out of RetroTerm's source rather
@@ -18,7 +23,7 @@ have shown only after a wasted build.
 and `TDV-COMPREHENSIVE-REFERENCE.md`, cross-checked against each other, plus
 `TDV-DLE-CURSOR-BUG-FIX.md`.
 
-### The TDV C0 set (implemented in terminal_ctrl.v)
+### The TDV C0 set (was implemented in terminal_ctrl.v until the 30-AUG-2026 VT100 rewrite)
 
 | Byte | Name | TDV meaning | What ANSI would have done |
 |---|---|---|---|

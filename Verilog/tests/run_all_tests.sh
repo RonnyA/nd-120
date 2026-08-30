@@ -90,6 +90,9 @@ REGISTRY=(
   # regression test: the first decay constant took 28 minutes, which would have
   # shown every level permanently lit and looked entirely plausible.
   "Terminals/sim :: test-panel :: TB_RESULT: PASS"
+  # the panel's MIPS counter - window arithmetic, idle clear, saturation
+  # (30-AUG-2026, with the MIPS field on the panel)
+  "Terminals/sim :: test-mips-counter :: TB_RESULT: PASS"
   # --- MiSTer core ----------------------------------------------------------
   # The board-specific console glue, NOT the terminal core (that is above). The
   # three things tested here exist only on this board and each fails in a way

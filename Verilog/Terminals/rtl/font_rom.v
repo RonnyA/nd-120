@@ -3,8 +3,10 @@
 //!
 //! Part of the board-independent terminal core (Verilog/Terminals/).
 //!
-//! 256 characters x 16 rows x 8 pixels = 4096 bytes. Address is
-//! {char_code, row}; data is the pixel row, MSB = leftmost pixel.
+//! Three 128-glyph pages x 16 rows x 8 pixels = 6144 bytes. Address is
+//! {char_code, row}; data is the pixel row, MSB = leftmost pixel. char_code
+//! is {page[1:0], code[6:0]}: page 0 = US / ISO 646 IRV, page 1 = Norwegian
+//! (NS 4551-1), page 2 = DEC Special Graphics (VT100 line drawing).
 //!
 //! The contents come from Verilog/Terminals/font/font8x16.hex, built by
 //! font/make_font.py out of a Linux PSF console font. Regenerate rather than
@@ -25,13 +27,13 @@ module font_rom #(
     parameter FONT_FILE = "../font/font8x16.hex"
 ) (
     input  wire       clk,        //! pixel clock
-    input  wire [7:0] char_code,  //! which character
+    input  wire [8:0] char_code,  //! {page[1:0], code[6:0]}
     input  wire [3:0] row,        //! which of its 16 pixel rows
     output reg  [7:0] pixels      //! that row, MSB = leftmost. Valid one clock later
 );
 
   (* rom_style = "block" *)
-  reg [7:0] s_rom[0:4095];
+  reg [7:0] s_rom[0:6143];
 
   initial begin
     $readmemh(FONT_FILE, s_rom);

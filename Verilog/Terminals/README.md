@@ -18,20 +18,22 @@ This folder is **board-independent RTL**. It knows nothing about MiSTer,
 MEGA65, Tang or Nexys. Each board supplies the two ends - a source of key
 events and a video sink - and the board folder owns that wiring.
 
-## Module list (28-AUG-2026)
+## Module list (30-AUG-2026)
 
 | File | What it is | Used by |
 |---|---|---|
 | `rtl/terminal_top.v` | the whole terminal: bytes in, pixels out | every board |
-| `rtl/terminal_ctrl.v` | TDV control set, DLE cursor addressing, scroll | every board |
-| `rtl/text_screen.v` | the pixel pipeline: RAM -> font -> pixel | every board |
-| `rtl/char_ram.v` | 80x25 cells, 8 bits character + 8 bits attribute | every board |
+| `rtl/terminal_ctrl.v` | **VT100**: ESC/CSI parser, CUP/ED/EL, SGR, DECSTBM, charsets | every board |
+| `rtl/text_screen.v` | the pixel pipeline: RAM -> font -> pixel, attributes | every board |
+| `rtl/char_ram.v` | 80x24 cells, 8 bits character + 8 bits attribute | every board |
+| `rtl/byte_fifo.v` | 16-byte slack in front of the controller (region scroll > 1 byte time) | every board |
 | `rtl/vga_timing.v` | parameterised sync generator, 800x600@60 default | every board |
 | `rtl/font_rom.v` | 8x16 glyphs from `font/font8x16.hex` | every board |
 | `rtl/cdc_byte.v` | one-byte clock crossing, full valid/ready handshake | every board |
 | `rtl/term_banner.v` | power-on self-test message sender | every board |
 | `rtl/term_banner_rom.v` | the message itself - **GENERATED**, see below | every board |
-| `rtl/ps2_decoder.v` | scancode -> byte: modifiers, caps, ctrl, TDV arrows | Nexys **and** MiSTer |
+| `rtl/ps2_decoder.v` | scancode -> byte: modifiers, caps, ctrl; arrows/HOME emit sequence markers | Nexys **and** MiSTer |
+| `rtl/key_vt100.v` | expands the markers to `ESC [ x` toward the UART, with the FIFO that makes 3 bytes per keypress survive | Nexys (MiSTer build 2) |
 | `rtl/ps2_ascii_table.v` | the scancode lookup tables | Nexys and MiSTer |
 | `rtl/ps2_keyboard.v` | PS/2 **serial** front end (11-bit framing, prefixes) | Nexys only |
 | `rtl/console_uart_rx.v` / `_tx.v` | the machine seam, 7/8 bits + optional parity | Nexys only |
@@ -57,28 +59,47 @@ all, because the ROM returns 0x00 past the end and the sender stops there.
 | `font/` | character-generator ROM data + the script that builds it |
 | `docs/` | the plan and the spec notes |
 
-## What exists (27-AUG-2026) - Stage A, simulated, never on hardware
+## The terminal is a VT100 - decided 30-AUG-2026
 
-| File | What |
-|---|---|
-| `rtl/vga_timing.v` | pixel/line counters, sync, blanking. Parameterised; defaults 800x600@60 from a 40.000 MHz pixel clock |
-| `rtl/font_rom.v` | 8x16 character generator, 4 KB, $readmemh from `font/font8x16.hex` |
-| `rtl/char_ram.v` | 80x25 dual-port character RAM, 16-bit cells (8 char + 8 attribute) |
-| `rtl/text_screen.v` | the pixel pipeline: RAM -> font -> pixel, with the 2-clock delay lines, hardware scroll and the cursor |
-| `rtl/terminal_ctrl.v` | the TDV native control set: printable, BS/HT/LF/VT/CR/BEL, FF=roll up, ETB=roll down, EM=erase page, EOT=erase line, FS/CAN/GS cursor moves, STX/ETX video, lamps, **and DLE cursor addressing** |
-| `rtl/cdc_byte.v` | one byte from the CPU clock to the pixel clock, toggle handshake |
-| `rtl/console_uart_rx.v` | deserializes the machine's console TX line - 7 or 8 data bits, optional parity |
-| `rtl/console_uart_tx.v` | sends keyboard bytes into the machine's console RX line, idle-high so it ANDs with the PC's |
-| `rtl/terminal_top.v` | the four above wired together - bytes in, pixels out |
-| `rtl/ps2_keyboard.v` | PS/2 receiver + set-2 decoder: framing, odd parity, press/release, shift, caps, ctrl |
-| `rtl/ps2_ascii_table.v` | scancode -> byte lookup, incl. the extended keys (arrows/HOME send TDV **C0 bytes**, not escape sequences). **Scancodes transcribed from published tables, never checked against a real keyboard** |
-| `font/make_font.py` | builds the font ROM from a Linux PSF console font |
-| `sim/vga_timing_tb.v` | counts a whole frame: pixels, lines, both sync widths, polarity |
-| `sim/terminal_ctrl_tb.v` | drives bytes in and reads the character RAM back |
-| `sim/ps2_keyboard_tb.v` | shifts real PS/2 frames in, incl. a deliberately corrupt one |
-| `sim/console_uart_tb.v` | tx -> rx loopback at BOTH framings (7E1 and 8N1) |
-| `sim/terminal_console_tb.v` | **the whole loop end to end** - serial in -> screen, key press -> serial out |
-| `sim/text_screen_tb.v` | **every pixel of four frames (1,920,000)** against an independent model |
+**Decision (Ronny): plain VT100, matching SINTRAN terminal type 6
+(`@SET-TERMINAL-TYPE <n> 6`), not TDV2200.** RetroTerm's own class hierarchy
+settled the question: its TDV2200 emulator derives from the same ECMA-48 core
+its VT100 is, adding ND private CSI finals, rectangles, work areas and nine
+character sets on top - so a TDV2200 is a VT100 plus a delta, and the delta is
+not needed to give SINTRAN a working console. The earlier TDV-native C0 build
+(FF=roll up, EM=erase page, DLE cursor addressing, 80x25) was REMOVED with the
+30-AUG rewrite of `terminal_ctrl.v`; the geometry is now the VT100's **80x24**
+and the C0 codes have their ASCII meanings. If TDV2200 is ever wanted it is a
+delta on this parser (the header of `terminal_ctrl.v` says exactly where).
+
+What the controller implements - the list, with the reasons, is the header of
+`rtl/terminal_ctrl.v`:
+
+- CSI: CUP/HVP, CUU/CUD/CUF/CUB, CHA, VPA, ED 0/1/2, EL 0/1/2,
+  SGR (reverse, bold, underline, blink), DECSTBM scroll regions,
+  DECLL lamps, modes DECSCNM / DECOM / DECAWM / DECTCEM / LNM.
+- ESC: IND, NEL, RI, DECSC/DECRC, RIS, charset designation.
+- The VT100 last-column flag (autowrap done right).
+- Character sets: G0/G1 with **DEC Special Graphics** (`ESC ( 0` / `ESC ) 0`
+  + SO/SI) - font page 2, generated by `font/make_font.py`, so line-drawn
+  boxes render. Page 0 US, page 1 Norwegian NS 4551-1 (the `national` pin).
+- NOT implemented, deliberately: anything needing a transmit path (DA/DSR/CPR
+  reports - SINTRAN is configured, it does not probe), VT102 IL/DL/ICH/DCH,
+  132 columns, double-size lines. Unknown sequences are swallowed, never
+  printed.
+
+Scrolling: full-screen scroll is still the `top_row` ring; a DECSTBM region
+scroll is a real row copy through the character RAM's second port (~96 us
+worst case at 40 MHz), which is why `byte_fifo.v` now sits in front of the
+controller - one 115200 byte time is only 87 us and the UART does not wait.
+
+**Keyboard: VT100 too (30-AUG-2026, same day).** The arrows and HOME leave
+`ps2_ascii_table.v` as sequence markers (`0x80 | final`), and `key_vt100.v`
+expands each into `ESC [ A/B/C/D/H` toward the console UART, buffered so
+three bytes per keypress survive one UART's worth of ready. Wired on the
+Nexys top; MiSTer build 1 has no UART, its local-echo path drops the markers
+harmlessly (arrows inert until build 2 - noted in `nd120_console_mister.v`).
+Extended keys with no VT100 meaning still send nothing.
 
 **Verilator lint clean** (`make lint` in `sim/`, using the SAME suppression
 set as `Verilog/sim` and `Verilog/runSim` - deviating would make "clean" mean
@@ -86,13 +107,14 @@ something different here than everywhere else), and **zero inferred latches**
 with `-Wno-LATCH` removed, checked separately because the repo suppresses that
 warning by default and latches are the one thing this project cannot have.
 
-**All six testbenches pass** (`cd Terminals/sim && make`, iverilog under WSL) and
-both are registered in `Verilog/tests/run_all_tests.sh`; `make test-tb-catalog`
-is green with them in. **Nothing has been near an FPGA** - no synthesis has
-been run, so there is no resource or timing number for this yet.
-
-Not written yet: the board wiring, and the whole escape-sequence parser
-(Stages B and C).
+**All eight testbenches pass** (`cd Terminals/sim && make`, iverilog under
+WSL) and are registered in `Verilog/tests/run_all_tests.sh`.
+`sim/terminal_ctrl_tb.v` was rewritten with the VT100 controller: it checks
+the parser against sequences split across gaps, CAN aborts, the last-column
+flag, region scrolls through the copy engine, SGR attribute bits landing in
+the cells, charset shifts, DECOM addressing and RIS - seventeen sections.
+**The VT100 controller has not been near an FPGA yet** - no synthesis has
+been run since the rewrite.
 
 **One thing a green run does NOT prove.** `ps2_ascii_table.v` is transcribed
 from the published scancode-set-2 tables; nobody has typed on a real keyboard
@@ -161,6 +183,12 @@ would have hidden a real defect.
 
 ### Corrected by retroterm-09, 27-AUG-2026 - the important one
 
+> **Overtaken 30-AUG-2026:** the paragraphs below are the case for a TDV
+> layer, kept as history. The decision went the other way - the terminal is a
+> plain VT100 and SINTRAN's line is set to terminal type 6, where VT100 IS the
+> right grammar. The TDV facts stay true; they just describe type 53, which we
+> no longer emulate.
+
 **TDV 2200 is NOT "ANSI with extras".** It is a genuinely different grammar,
 and a plain VT100 pointed at SINTRAN will not do. Keys come back as **TDV grid
 positions** - e.g. `ESC [ 4 6 _`, note the **underscore terminator**, which is
@@ -210,15 +238,16 @@ the must-have / nice-to-have / never-seen split of what SINTRAN III actually
 exercises, the geometry and attribute answer, and the traps list. Folded in
 here when it lands.
 
-## Scope, smallest useful first
+## Scope - where the stages landed (30-AUG-2026)
 
-- **Stage A - the TDV native control set (built):** 80x25, font ROM, VGA
-  timing, the TDV C0 codes and **DLE cursor addressing**. Enough to log in to
-  SINTRAN - confirmed against a live session - and DLE gives full-screen
-  cursor positioning with no escape parser at all.
-  **Careful: the TDV C0 codes are NOT the ASCII meanings.** FF is a ROLL UP,
-  not a clear; EM is the clear. See [docs/SPEC-tdv2200.md](docs/SPEC-tdv2200.md).
-- **Stage B - VT100 proper:** the CSI subset - cursor addressing, erase in
-  line/display, cursor movement, save/restore, reverse video.
-- **Stage C - TDV 2200:** mode switching, the ND private character sets, the
-  unique keys and soft keys. Stretch goal.
+- **Stage A (TDV C0 glass TTY)** - built 27-AUG, **removed 30-AUG** when the
+  VT100 decision landed. Its history and the TDV C0 facts live on in
+  [docs/SPEC-tdv2200.md](docs/SPEC-tdv2200.md).
+- **Stage B (VT100 proper)** - **BUILT, and it is the terminal now.** See
+  "The terminal is a VT100" above.
+- **Stage C (TDV 2200)** - not planned. If it ever returns it is a delta on
+  the VT100 parser; `terminal_ctrl.v`'s header says where the ND finals and
+  private modes would hook in.
+- **Open:** first synthesis of the VT100 build (waiting for the board/tools
+  to be free), and typing on the REAL keyboard - the scancode table is still
+  transcription-only.

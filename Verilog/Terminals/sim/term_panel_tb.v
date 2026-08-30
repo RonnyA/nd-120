@@ -16,16 +16,25 @@
 //!      rather than assumed from the parameters that produced it.
 //!   4. the level cell for the current PIL lights, and a level the CPU has
 //!      never been on does not. That is the whole point of the field.
-//!   5. changing PIL moves the lit cell, and the old one FADES rather than
-//!      dropping instantly - the afterglow the real panel had.
+//!   5. changing PIL moves the lit cell: the old level is still shown for
+//!      the frame it was used in, and is DARK on the frame after. There is
+//!      no afterglow - see check 7 for why.
+//!   6. exactly one level is the current one.
+//!   7. PER-FRAME OCCUPANCY. Several levels used inside one frame all show;
+//!      once the CPU stops using them they are dark within ONE frame.
+//!   8. THE MEASURED BUG SHAPE: a level touched for 15 clocks (the ~1 us
+//!      pulses the ILA saw on 29-AUG-2026) shows for that one frame and no
+//!      longer. The old 63-frame afterglow turned every such pulse into a
+//!      lamp lit for a second and the row saturated.
 //!
-//! Check 5 is the one worth the effort: the first implementation had a decay
-//! constant that took 28 minutes, which would have shown every level lit for
-//! ever and looked entirely plausible while telling you nothing.
+//! Checks 7 and 8 are the ones worth the effort: the first implementation
+//! had a decay constant that took 28 minutes, the next held for 63 frames,
+//! and both showed every level the microcode brushes past as lit while
+//! looking entirely plausible.
 //!
 //! Prints "TB_RESULT: PASS" or "TB_RESULT: FAIL".
 //!
-//! Written 28-AUG-2026.
+//! Written 28-AUG-2026. Rewritten for per-frame occupancy 29-AUG-2026.
 //============================================================================
 
 `timescale 1ns / 1ps
@@ -56,6 +65,7 @@ module term_panel_tb;
   reg [4:0] up_hours = 5'd1;
   reg [5:0] up_minutes = 6'd23;
   reg [5:0] up_seconds = 6'd45;
+  reg [15:0] mips = 16'd0;    //! BCD {d3,d2,d1,d0}, from the board's mips_counter
 
   wire       active;
   wire [2:0] colour;
@@ -70,16 +80,13 @@ module term_panel_tb;
   //! This used to be tied to 1'b1 "so the testbench sees values immediately".
   //! That tie is why this bench could not see the bug Ronny reported on
   //! 28-AUG-2026 (the ACTIVE LEVEL row lighting far more lamps than the CPU
-  //! was using). term_panel RELOADS s_glow[pil] every clock and DECAYS one
-  //! step per frame_tick. With frame_tick high the two happen at the same
-  //! rate, so the glow behaved sanely here while on hardware - where a frame
-  //! is 666,666 clocks at 40 MHz - a level needs 63 whole frames untouched
-  //! before it goes dark, and anything the CPU revisits sooner stays lit for
-  //! ever.
+  //! was using): with frame_tick high every clock, a frame and a clock are
+  //! the same thing, and anything that accumulates over a frame is invisible.
+  //! On hardware a frame is 666,666 clocks at 40 MHz.
   //!
   //! FRAME_CLOCKS is 400 rather than 666,666: the point is only that a frame
-  //! must be MUCH longer than one clock, so the reload/decay ratio is the one
-  //! the hardware has. 400 keeps the run short enough to be a unit test.
+  //! must be MUCH longer than one clock - and much longer than the 15-clock
+  //! pulses of check 8. 400 keeps the run short enough to be a unit test.
   localparam integer FRAME_CLOCKS = 400;
   reg  [15:0] frame_div = 16'd0;
   reg         frame_tick = 1'b0;
@@ -93,23 +100,28 @@ module term_panel_tb;
     end
   end
 
-  //! Run the panel for a number of whole frames.
+  //! Run the panel for a number of whole frames, and come back AFTER the
+  //! panel has latched the frame that just ended. frame_tick goes high at
+  //! one clock edge; the DUT sees it and loads r_lamp at the next; so two
+  //! clocks after the tick the latched lamps are the ones for that frame.
   task run_frames (input integer frames);
     integer f;
     begin
       for (f = 0; f < frames; f = f + 1) begin
         @(posedge frame_tick);
       end
-      @(posedge clk);
+      repeat (2) @(posedge clk);
     end
   endtask
 
-  //! How many of the 16 level lamps are lit right now.
+  //! How many of the 16 level lamps are lit in the frame being displayed.
+  //! r_lamp is what the renderer draws from - read that, not the accumulator
+  //! behind it, so the check sees what the screen sees.
   function integer lamps_lit;
     integer k, c;
     begin
       c = 0;
-      for (k = 0; k < 16; k = k + 1) if (DUT.s_glow[k] != 6'd0) c = c + 1;
+      for (k = 0; k < 16; k = k + 1) if (DUT.r_lamp[k]) c = c + 1;
       lamps_lit = c;
     end
   endfunction
@@ -122,11 +134,12 @@ module term_panel_tb;
       .clk(clk), .rst_n(rst_n),
       .x(x), .y(y), .mode(mode), .enable(enable),
       .frame_tick(frame_tick),
-      .pil(pil), .utilization(utilization), .cache_hit(cache_hit),
+      .pil(pil), .actlv(actlv), .utilization(utilization), .cache_hit(cache_hit),
       .ring(ring), .paging_on(paging_on), .interrupt_on(interrupt_on),
       .running(running),
       .hdd_rd(1'b0), .hdd_wr(1'b0), .flp_rd(1'b0), .flp_wr(1'b0),
       .up_hours(up_hours), .up_minutes(up_minutes), .up_seconds(up_seconds),
+      .mips(mips),
       .active(active), .colour(colour)
   );
 
@@ -161,19 +174,20 @@ module term_panel_tb;
     end
   endtask
 
-  //! Is the level cell for `lvl` showing its lit glyph? Sampled by parking on a
-  //! pixel inside that cell and reading the panel's own decision, rather than
-  //! re-deriving the address here.
+  //! Is the level cell for `lvl` lit in the frame being displayed? Read from
+  //! the panel's own latched lamp vector - the thing the renderer draws from -
+  //! rather than re-deriving it here.
   task level_lit;
     input integer lvl;
     output lit;
     begin
-      lit = DUT.s_glow[lvl] != 6'd0;
+      lit = DUT.r_lamp[lvl];
     end
   endtask
 
   integer claimed;
   reg lit_a, lit_b;
+  reg [15:0] actlv = 16'd0;   //! the panel processor's ACTIVE LEVEL word; 0 = none yet (PIL fallback)
 
   initial begin
     $dumpfile("term_panel_tb.vcd");
@@ -234,7 +248,7 @@ module term_panel_tb;
     // 4. The current level lights; an untouched one does not.
     //------------------------------------------------------------------
     pil = 4'd7;
-    repeat (50) @(posedge clk);
+    run_frames(1);          // the lamps show once the frame is latched
     level_lit(7, lit_a);
     level_lit(3, lit_b);
     if (!lit_a) begin
@@ -248,37 +262,37 @@ module term_panel_tb;
     if (lit_a && !lit_b) $display("-- current level lit, untouched level dark");
 
     //------------------------------------------------------------------
-    // 5. Afterglow: moving off a level must FADE it, not drop it, and the
-    //    fade must eventually complete.
-    //
-    //    Timed in REAL FRAMES since 28-AUG-2026. frame_tick used to be tied
-    //    high here, which made the decay run once per clock and hid the fact
-    //    that on hardware the reload is per CLOCK while the decay is per
-    //    FRAME. Anything measured in clocks was measuring a ratio the
-    //    hardware does not have.
+    // 5. Moving off a level. We are just past a frame tick, and the new
+    //    frame was seeded with level 7 (current at the tick). Switch to 2 at
+    //    once: the frame now in progress has seen BOTH 7 and 2, so when it is
+    //    latched both show. The frame after that has only seen 2, so 7 must
+    //    be dark by then - one frame, no afterglow.
     //------------------------------------------------------------------
     pil = 4'd2;
-    @(posedge clk);
-    @(posedge clk);
+    run_frames(1);
     level_lit(7, lit_a);
+    level_lit(2, lit_b);
     if (!lit_a) begin
-      $display("FAIL: level 7 went dark immediately - there is no afterglow");
+      $display("FAIL: level 7 was used in this frame but is not shown");
       errors = errors + 1;
-    end else $display("-- level 7 still glowing just after moving off it");
+    end
+    if (!lit_b) begin
+      $display("FAIL: level 2 was used in this frame but is not shown");
+      errors = errors + 1;
+    end
+    if (lit_a && lit_b) $display("-- the frame that spanned the change shows both 7 and 2");
 
-    // 63 decay steps, one per FRAME - about a second at 60 Hz on hardware.
-    // Wait comfortably past it, in frames.
-    run_frames(70);
+    run_frames(1);
     level_lit(7, lit_a);
     level_lit(2, lit_b);
     if (lit_a) begin
-      $display("FAIL: level 7 never decayed - the afterglow does not expire");
+      $display("FAIL: level 7 still lit one whole frame after the CPU left it");
       errors = errors + 1;
-    end else $display("-- level 7 decayed to dark");
+    end else $display("-- level 7 dark on the next frame");
     if (!lit_b) begin
-      $display("FAIL: level 2 is current but decayed anyway");
+      $display("FAIL: level 2 is current but is not shown");
       errors = errors + 1;
-    end else $display("-- level 2, still current, stayed lit throughout");
+    end else $display("-- level 2, still current, stays lit");
 
     //------------------------------------------------------------------
     // 6. EXACTLY ONE level is the current one. The manual is explicit that a
@@ -298,46 +312,170 @@ module term_panel_tb;
     end
 
     //------------------------------------------------------------------
-    // 7. THE RELOAD/DECAY RATIO, which nothing checked before.
-    //
-    //    s_glow[pil] is reloaded to full on EVERY CLOCK, and decays one step
-    //    per FRAME. So a level the CPU keeps returning to is pinned lit, and
-    //    only a level left alone for 63 whole frames goes dark. With
-    //    frame_tick tied high that asymmetry did not exist here at all.
-    //
-    //    This checks the property that actually matters for the display being
-    //    readable: a level the CPU has STOPPED using must go dark within the
-    //    afterglow window, even if it was hammered before. It says nothing
-    //    about how many lamps SHOULD be lit while several levels are in use -
-    //    on this machine several at once is normal.
+    // 7. PER-FRAME OCCUPANCY. Several levels used within one frame all show
+    //    in that frame - on this machine several at once is normal. And a
+    //    level the CPU has STOPPED using must be dark within one frame, not
+    //    63. The old reload-every-clock / decay-per-frame scheme kept a level
+    //    pinned lit for ~1 s after its last visit, and that is what lit the
+    //    whole row on hardware.
     //------------------------------------------------------------------
-    begin : ratio_check
+    begin : occupancy_check
       integer c, k;
-      // hammer levels 2..6, switching far faster than one frame
-      for (k = 0; k < 200; k = k + 1) begin
+      // hammer levels 2..6, cycling through all five in 100 clocks, for
+      // 10.5 frames. NOT a whole number of frames: the loop starts just after
+      // a tick, and 200 iterations (exactly 10 frames) ended 2 clocks into a
+      // fresh frame, so the frame read below had seen only two levels and
+      // the check failed against a correct DUT. 210 leaves 200 clocks - two
+      // full cycles of all five levels - in the frame that gets read.
+      for (k = 0; k < 210; k = k + 1) begin
         pil = 4'd2 + (k % 5);
         repeat (20) @(posedge clk);
       end
+      // finish the frame the hammering ended in and read it
+      pil = 4'd2;
+      run_frames(1);
       c = lamps_lit();
       $display("-- after hammering levels 2..6: %0d lamps lit", c);
-      if (c < 5) begin
-        $display("FAIL: only %0d lamps lit while 5 levels were in use", c);
+      if (c != 5) begin
+        $display("FAIL: %0d lamps lit while exactly 5 levels were in use", c);
         errors = errors + 1;
       end
 
-      // now use ONLY level 2 and let the rest age out
-      pil = 4'd2;
-      run_frames(70);
+      // now ONLY level 2. The very next frame must show nothing else.
+      run_frames(1);
       c = lamps_lit();
-      $display("-- after 70 idle frames on level 2 alone: %0d lamps lit", c);
+      $display("-- one frame later on level 2 alone: %0d lamps lit", c);
       if (c != 1) begin
-        $display("FAIL: %0d lamps still lit after the others stopped running - expected 1",
+        $display("FAIL: %0d lamps still lit one frame after the others stopped - expected 1",
                  c);
         errors = errors + 1;
-      end else $display("-- levels that stopped running went dark");
+      end else $display("-- levels that stopped running went dark within one frame");
     end
 
-    if (errors == 0) $display("TB_RESULT: PASS (region bounded, levels and afterglow)");
+    //------------------------------------------------------------------
+    // 8. THE MEASURED BUG SHAPE. The ILA on the Nexys (29-AUG-2026, TPE
+    //    INSTRUCTION test) saw PIL pulse to 12, 13, 14, 15 for exactly 15 CPU
+    //    clocks each, ~150 clocks apart, with level 0 in between - the CPU
+    //    touching those levels, not running on them. Each such pulse must
+    //    show for the frame it happened in and be gone the frame after.
+    //------------------------------------------------------------------
+    begin : pulse_check
+      integer c, lv;
+      pil = 4'd0;
+      run_frames(2);                    // settle: only level 0 shown
+      c = lamps_lit();
+      if (c != 1 || !DUT.r_lamp[0]) begin
+        $display("FAIL: expected only level 0 lit before the pulses, got %0d lamps", c);
+        errors = errors + 1;
+      end
+      // the four pulses, same shape as the capture, all inside one frame
+      for (lv = 12; lv <= 15; lv = lv + 1) begin
+        pil = lv[3:0];
+        repeat (15) @(posedge clk);
+        pil = 4'd0;
+        repeat (50) @(posedge clk);     // 4 x 65 = 260 clocks < one 400-clock frame
+      end
+      run_frames(1);
+      c = lamps_lit();
+      $display("-- frame containing the 12..15 pulses: %0d lamps lit", c);
+      if (c != 5 || !DUT.r_lamp[12] || !DUT.r_lamp[13] || !DUT.r_lamp[14] || !DUT.r_lamp[15]) begin
+        $display("FAIL: the frame with the pulses should show 0,12,13,14,15 - got %b", DUT.r_lamp);
+        errors = errors + 1;
+      end
+      run_frames(1);
+      c = lamps_lit();
+      $display("-- frame after the pulses: %0d lamps lit", c);
+      if (c != 1 || !DUT.r_lamp[0]) begin
+        $display("FAIL: a 15-clock pulse is still lit a frame later - got %b", DUT.r_lamp);
+        errors = errors + 1;
+      end else $display("-- 1 us pulses show for one frame only");
+    end
+
+    //------------------------------------------------------------------
+    // 9. THE ACTLV ROW AND ITS HOLD (29-AUG-2026, evening). Once the panel
+    //    processor has sent an ACTIVE LEVEL word the row shows THAT, not
+    //    PIL. A level set anywhere inside a frame - not only at the tick -
+    //    must show, and it must stay lit for ACTLV_HOLD_FRAMES frames after
+    //    the frame it was seen in, then go dark. Ronny saw the one-frame
+    //    version "flicker like stupid" on the Nexys and asked for double.
+    //------------------------------------------------------------------
+    begin : actlv_check
+      integer c, f;
+      pil = 4'd0;
+      actlv = 16'h0002;                 // level 1 active, steady
+      run_frames(2);
+      c = lamps_lit();
+      if (c != 1 || !DUT.r_lamp[1]) begin
+        $display("FAIL: ACTLV=0002 should light only level 1 - got %b", DUT.r_lamp);
+        errors = errors + 1;
+      end else $display("-- ACTLV word drives the row once it has arrived");
+      // PIL must be ignored now
+      pil = 4'd9;
+      run_frames(1);
+      if (DUT.r_lamp[9]) begin
+        $display("FAIL: PIL=9 lit its lamp although an ACTLV word has arrived");
+        errors = errors + 1;
+      end else $display("-- PIL ignored once ACTLV is live");
+      pil = 4'd0;
+      // a 20-clock blip on level 5 in the MIDDLE of a frame (the old code
+      // sampled only at the tick and missed it entirely)
+      repeat (150) @(posedge clk);
+      actlv = 16'h0022;
+      repeat (20) @(posedge clk);
+      actlv = 16'h0002;
+      run_frames(1);
+      if (!DUT.r_lamp[5]) begin
+        $display("FAIL: a mid-frame ACTLV blip on level 5 is not shown - got %b", DUT.r_lamp);
+        errors = errors + 1;
+      end else $display("-- mid-frame ACTLV blip shown in its frame");
+      // held for ACTLV_HOLD_FRAMES frames in total, then dark
+      for (f = 1; f < DUT.ACTLV_HOLD_FRAMES; f = f + 1) begin
+        run_frames(1);
+        if (!DUT.r_lamp[5]) begin
+          $display("FAIL: level 5 dropped after %0d frames, hold is %0d", f, DUT.ACTLV_HOLD_FRAMES);
+          errors = errors + 1;
+        end
+      end
+      run_frames(1);
+      c = lamps_lit();
+      if (DUT.r_lamp[5] || c != 1) begin
+        $display("FAIL: level 5 still lit after its %0d-frame hold - got %b", DUT.ACTLV_HOLD_FRAMES, DUT.r_lamp);
+        errors = errors + 1;
+      end else $display("-- level 5 held %0d frames then dark", DUT.ACTLV_HOLD_FRAMES);
+    end
+
+    //------------------------------------------------------------------
+    // 10. THE MIPS FIELD (30-AUG-2026). Four BCD digits in, "XX.XX" out at
+    //     row 2 columns 63-67. Checked at the character mux: the pixel walk
+    //     positions the pipeline on each cell and reads the composed char,
+    //     so this fails if the digits, the dot, the column or the row move.
+    //------------------------------------------------------------------
+    begin : mips_check
+      integer ci;
+      reg [7:0] expect_ch;
+      mips = 16'h0342;              // 03.42 MIPS
+      run_frames(1);                // latched at the tick
+      if (DUT.r_mips !== 16'h0342) begin
+        $display("FAIL: r_mips latched %04x, expected 0342", DUT.r_mips);
+        errors = errors + 1;
+      end
+      for (ci = 0; ci < 5; ci = ci + 1) begin
+        @(negedge clk);
+        x = (ORIGIN_X + (63 + ci) * 8);
+        y = (ORIGIN_Y + 2 * 16);
+        repeat (4) @(posedge clk);
+        expect_ch = (ci == 0) ? "0" : (ci == 1) ? "3" : (ci == 2) ? "." :
+                    (ci == 3) ? "4" : "2";
+        if (DUT.s_live_char !== expect_ch) begin
+          $display("FAIL: MIPS cell %0d shows 0x%02x, expected '%c'",
+                   ci, DUT.s_live_char, expect_ch);
+          errors = errors + 1;
+        end
+      end
+      if (errors == 0) $display("-- MIPS 0342 renders as 03.42 at row 2 col 63");
+    end
+
+    if (errors == 0) $display("TB_RESULT: PASS (region bounded, levels, per-frame occupancy, ACTLV hold, MIPS field)");
     else $display("TB_RESULT: FAIL (%0d errors)", errors);
 
     $finish;

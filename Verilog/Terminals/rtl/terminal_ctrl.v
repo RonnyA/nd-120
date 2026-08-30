@@ -1,100 +1,98 @@
 //============================================================================
-//! Terminal control - the TDV native control set ("Stage A")
+//! Terminal control - a VT100 (ANSI/ECMA-48 subset)
 //!
 //! Part of the board-independent terminal core (Verilog/Terminals/).
 //! Plan: Verilog/Terminals/docs/PLAN-vt100-terminal-core.md
-//! Spec: Verilog/Terminals/docs/SPEC-tdv2200.md
 //!
 //! Takes one byte at a time and turns it into character-RAM writes and cursor
-//! movement.
+//! movement. This is the terminal SINTRAN terminal type 6 (DEC-VT100)
+//! expects.
 //!
-//! READ THIS BEFORE CHANGING ANY CODE BELOW: the TDV C0 codes are NOT the
-//! ASCII/ANSI meanings. This module first implemented the ANSI ones and was
-//! wrong in ways that matter. From RetroTerm's own reference documents
-//! (docs/TDV-COMPLETE-ESCAPE-SEQUENCE-REFERENCE.md and
-//! docs/TDV-COMPREHENSIVE-REFERENCE.md, cross-checked against each other):
+//! DECISION 30-AUG-2026 (Ronny): plain VT100, not TDV2200. The specification
+//! source is RetroTerm (E:\Dev\Ronny\RetroTerm, MIT, Ronny's own), whose
+//! class hierarchy settles the relationship: TDV2200Emulator derives from the
+//! same ECMA-48 core VT100Emulator is, and adds ND private CSI finals,
+//! rectangles, work areas and nine character sets on top. We build the base.
+//! The earlier TDV-native C0 build (FF=roll, EM=erase, DLE addressing) was
+//! REMOVED with this rewrite - the C0 codes here have their ASCII meanings
+//! again. If TDV2200 is ever wanted, it is a delta on this parser, not a
+//! rewrite: route the ND finals (z u v ~ < { } | p q s t) and ND private
+//! modes (40/66/67/68/69) out of the CSI dispatch below.
 //!
-//!     0x02 STX  video OFF                    0x03 ETX  video ON
-//!     0x04 EOT  ERASE LINE
-//!     0x05 ENQ  LED 1 on                     0x06 ACK  LED 2 on
-//!     0x07 BEL  bell
-//!     0x08 BS   cursor LEFT
-//!     0x09 HT   tab to the next tab stop
-//!     0x0A LF   cursor down (scrolls at the bottom line)
-//!     0x0B VT   cursor down - same as LF here
-//!     0x0C FF   ROLL UP    <-- NOT "form feed / clear screen"
-//!     0x0D CR   cursor to column 0
-//!     0x0E SO   invoke G1 (character set) - see the SO/SI note below
-//!     0x0F SI   invoke G0 (character set) - see the SO/SI note below
-//!     0x10 DLE  DIRECT LINE ENTRY - binary cursor addressing, 2 bytes follow
-//!     0x15 NAK  LED 3 on                     0x16 SYN  all LEDs off
-//!     0x17 ETB  ROLL DOWN
-//!     0x18 CAN  cursor RIGHT
-//!     0x19 EM   ERASE PAGE  <-- this is the "clear screen", not FF
-//!     0x1C FS   cursor UP
-//!     0x1D GS   cursor HOME
-//!     0x20-0x7E printable, written at the cursor
-//!     0x7F DEL  ignored
+//! What is implemented (verified against RetroTerm's TerminalEmulatorBase):
 //!
-//! The two costly ones: **FF is a scroll, not a clear** (an ANSI terminal
-//! would wipe the screen every time SINTRAN rolled the page), and **EM is the
-//! clear**. Both were wrong here until the reference documents were read.
+//!   C0:   BEL BS HT LF VT FF CR SO SI, CAN/SUB abort a sequence,
+//!         ESC starts one. Everything else is dropped.
+//!   ESC:  D (IND)  E (NEL)  M (RI)  7/8 (DECSC/DECRC)  c (RIS)
+//!         = > (keypad modes, swallowed)  H (HTS, swallowed - fixed 8 tabs)
+//!         ( ) * + <final> character-set designation: final '0' = DEC Special
+//!         Graphics, anything else = US ASCII. Only G0 ( '(' ) and G1 ( ')' )
+//!         are stored; G2/G3 designations are parsed and dropped.
+//!   CSI:  A B C D (cursor, margin-aware)   G (CHA)  d (VPA)
+//!         H f (CUP, origin-aware)          J (ED 0/1/2)  K (EL 0/1/2)
+//!         m (SGR: 0 1 4 5 7 22 24 25 27)   r (DECSTBM)
+//!         h l (modes - see below)          q (DECLL, the four lamps)
+//!   Modes (CSI ? n h/l): 5 DECSCNM  6 DECOM  7 DECAWM  25 DECTCEM.
+//!         Unmarked mode 20 (LNM). Every other mode number is swallowed.
 //!
-//! DLE - CURSOR ADDRESSING WITHOUT ESCAPE SEQUENCES. `DLE row col`, three
-//! bytes total: row is the next byte masked with 0b0001_1111, column the byte
-//! after masked with 0b0111_1111, both 0-based. This matters more than it
-//! looks: SINTRAN positions the cursor with DLE, confirmed by a live RX
-//! capture of terminal type 53 (RetroTerm docs/TDV-DLE-CURSOR-BUG-FIX.md), so
-//! full-screen addressing costs a three-state machine here and no escape
-//! parser at all.
+//! Deliberately NOT implemented, and why:
+//!   - Reports (DA, DSR, CPR, ESC Z): they need a transmit path back to the
+//!     host, which this module does not have. SINTRAN does not probe - the
+//!     terminal type is configured (@SET-TERMINAL-TYPE n 6), not negotiated.
+//!   - IL/DL/ICH/DCH: VT102, not VT100.
+//!   - 132 columns, double-width/height, smooth scroll, tab set/clear.
 //!
-//! !! DOC CONFLICT, recorded rather than guessed: the escape-sequence
-//! !! reference calls the COLUMN mask 5 bits, which cannot express the
-//! !! documented range 0-79. RetroTerm's code uses 7 bits and its bug-fix
-//! !! report calls the 5-bit figure a doc defect. 7 bits is used here.
+//! THE PARSER IS A STATE MACHINE, NOT A MATCHER. Escape sequences arrive
+//! split across bytes as a matter of course (one byte per UART frame), so
+//! there is never a whole sequence in a buffer to match against. The states
+//! follow RetroTerm's EscapeSequenceParser.cs: GROUND -> ESC -> CSI, with
+//! intermediates 0x20-0x2F collected, private markers 0x3C-0x3F flagged, a
+//! final 0x40-0x7E dispatching. Rules that matter and are easy to lose:
+//!   - ESC inside any sequence abandons it and starts a new one.
+//!   - CAN (0x18) and SUB (0x1A) abandon the sequence, output nothing.
+//!   - An executable C0 (BS, CR, LF...) arriving INSIDE a sequence executes
+//!     without abandoning the sequence. Real hosts do this.
+//!   - A sequence with an intermediate byte we do not know is swallowed
+//!     whole, never printed.
 //!
-//! SO/SI - RESOLVED 27-AUG-2026, and the answer was "both":
-//! TDV-COMPLETE-ESCAPE-SEQUENCE-REFERENCE.md (underline on/off) and
-//! TDV-COMPREHENSIVE-REFERENCE.md (ISO G1/G0 shifts) are BOTH correct - they
-//! describe different MODES, and neither names the mode it applies in, which
-//! is why they read as a contradiction. RetroTerm implements both:
-//!   native TDV2200/2215 : G1/G0 shifts  (TDV2200Emulator.cs:303-306)
-//!   2115 compatibility  : underline on/off (TDV2115CompatibilityHandler.cs:218-234)
-//! 2115 mode is entered by ND private mode 66, which ALSO swaps the whole
-//! keyboard encoding - so the two meanings travel together.
+//! AUTOWRAP is the VT100's "last column flag": printing in column 79 sets a
+//! pending-wrap flag instead of moving; the NEXT printable resolves it as
+//! CR+LF (scrolling if needed) and then prints. Without this, every 80-column
+//! line ends in a spurious blank line - the classic wrong-wrap bug. CUP and
+//! friends clear the flag. Default ON: SINTRAN writes 80-column tables and
+//! expects them to wrap.
 //!
-//! We do not implement 2115 mode, so the G1/G0 reading is correct for every
-//! case this module can reach. The charset output tracks it. Rendering a G1 glyph needs
-//! a second font page, which font8x16.hex does not have yet - so the state is
-//! carried and exported rather than silently dropped, and the day a second
-//! font page lands the wiring is already here.
+//! SCROLLING. With the scroll region covering the whole screen (the normal
+//! state), scrolling moves the top-of-screen pointer `top_row` - one register
+//! increment plus blanking the row that has come round. With a DECSTBM region
+//! set, the ring trick cannot work (rows outside the region must not move),
+//! so a copy engine moves the region row by row through the second RAM port:
+//! two clocks per cell, 160 per row - a full 23-row region scroll is ~3.8k
+//! clocks (~96 us at 40 MHz). `ready` is low throughout; terminal_top has a
+//! FIFO in front of this module so a 115200 console cannot lose bytes to it.
 //!
-//! ESC (0x1B) is ignored, not printed. The escape sequences are Stage B/C
-//! (SPEC-tdv2200.md); ignoring the byte leaves the following letters visible
-//! as text, which looks wrong in a way that tells you immediately what
-//! happened - better than a screenful of graphics characters that hides it.
-//!
-//! SCROLLING moves the top-of-screen pointer, not the data: `top_row` says
-//! which stored row is displayed at the top, so a scroll is one increment
-//! plus blanking the row that has come round. That blank takes COLS clocks,
-//! during which `ready` drops.
+//! CELL LAYOUT written to the character RAM (text_screen.v reads it):
+//!   [7:0]  character code      [8]  reverse   [9]  bold (stored, not drawn)
+//!   [10]   underline           [11] blink     [12] DEC graphics charset
+//!   [15:13] reserved
 //!
 //! CLOCK DOMAIN: everything here runs on the pixel clock, the same as the
 //! character RAM and the screen. Bytes cross into this domain BEFORE they
 //! arrive here - see terminal_top.v.
 //!
-//! Written 27-AUG-2026.
+//! Rewritten 30-AUG-2026 (was the TDV-native C0 controller, 27-AUG-2026).
 //============================================================================
 
 `default_nettype none
 
 module terminal_ctrl #(
     parameter integer COLS     = 80,
-    //! 80x25 is TDV 2200/2215 geometry (RetroTerm EmulatorFactory). NOT 24.
-    parameter integer ROWS     = 25,
+    //! 80x24 is DEC VT100 geometry (RetroTerm EmulatorFactory.cs:197).
+    //! The earlier 25 was TDV 2200 geometry and left with the TDV build.
+    parameter integer ROWS     = 24,
     parameter integer AWIDTH   = 11,
     parameter integer TAB_STOP = 8,
-    //! Cursor blink period in frames. 30 frames at ~60 Hz is a ~1 Hz blink.
+    //! Cursor/attribute blink period in frames. 30 frames at ~60 Hz ~ 1 Hz.
     parameter integer BLINK_FRAMES = 30
 ) (
     input wire clk,    //! pixel clock
@@ -103,54 +101,112 @@ module terminal_ctrl #(
     // Byte in, already in this clock domain
     input  wire       byte_valid,  //! one clock per byte
     input  wire [7:0] byte_data,
-    output wire       ready,       //! low while clearing - hold off the source
+    output wire       ready,       //! low while an engine runs - hold the source
 
-    // Character RAM write port
+    // Character RAM port A - write, plus the copy engine's read
     output reg               ram_we,
     output reg  [AWIDTH-1:0] ram_waddr,
     output reg  [      15:0] ram_wdata,
+    output wire [AWIDTH-1:0] ram_raddr2,  //! copy-engine read address
+    input  wire [      15:0] ram_rdata2,  //! registered, valid the clock after
 
     // Screen state, consumed by text_screen
     output reg  [7:0] top_row,
     output reg  [7:0] cursor_col,
     output reg  [7:0] cursor_row,
-    output wire       cursor_enable,
-    output reg        video_on,    //! STX/ETX blank the display without erasing
-    //! Active ISO character set: 0 = G0 (SI), 1 = G1 (SO). See the SO/SI note
-    //! in the header. Nothing renders differently yet - there is only one font
-    //! page - but the state is tracked so it is not lost.
-    output reg        charset,
+    output wire       cursor_enable,  //! blink phase AND DECTCEM
+    output reg        rev_screen,     //! DECSCNM - whole-screen reverse video
+    output wire       blink_on,       //! blink phase for the blink attribute
 
     input  wire frame_end,  //! one pulse per video frame, for the blink
     output reg  bell,       //! one clock per BEL
-    output reg  [2:0] leds  //! ENQ/ACK/NAK set, SYN clears. Board may ignore.
+    output reg  [3:0] leds  //! DECLL (CSI Ps q) - the VT100 keyboard lamps L1-L4
 );
 
   localparam [15:0] BLANK_CELL = {8'h00, 8'h20};  //! space, no attributes
 
-  localparam [1:0] ST_RUN       = 2'd0;
-  localparam [1:0] ST_CLEAR_ALL = 2'd1;
-  localparam [1:0] ST_CLEAR_ROW = 2'd2;
+  //--------------------------------------------------------------------------
+  // Engine states - multi-clock screen operations. `ready` is low outside RUN.
+  //--------------------------------------------------------------------------
+  localparam [2:0] ST_RUN     = 3'd0;
+  localparam [2:0] ST_CLEAR   = 3'd1;  //! blank cells (r1,c1)..(r2,c2), screen coords
+  localparam [2:0] ST_COPY_RD = 3'd2;  //! region scroll: read one cell
+  localparam [2:0] ST_COPY_WR = 3'd3;  //! region scroll: write it one row over
+  localparam [2:0] ST_APPLY   = 3'd4;  //! walk SGR / mode / lamp parameters
 
-  reg [1:0] s_state;
-  reg [7:0] s_clear_col;
-  reg [7:0] s_clear_row;
+  reg [2:0] s_state;
 
-  //! DLE takes the next two bytes as row and column. While this is non-zero
-  //! the incoming byte is DATA, never a control code.
-  reg [1:0] s_dle;
+  //--------------------------------------------------------------------------
+  // Parser states - where we are inside an escape sequence
+  //--------------------------------------------------------------------------
+  localparam [1:0] P_GROUND = 2'd0;
+  localparam [1:0] P_ESC    = 2'd1;  //! ESC seen, awaiting the next byte
+  localparam [1:0] P_ESCINT = 2'd2;  //! ESC + intermediate(s): ( ) * + #
+  localparam [1:0] P_CSI    = 2'd3;  //! inside ESC [
 
-  assign ready = (s_state == ST_RUN);
+  reg [1:0] p_state;
+  reg [7:0] s_par  [0:3];  //! numeric parameters, saturating at 255
+  reg [2:0] s_npar;        //! how many parameters have been started
+  reg       s_priv;        //! saw a private marker (0x3C-0x3F, e.g. '?')
+  reg       s_ign;         //! unknown intermediate - swallow to the final
+  reg [7:0] s_escint;      //! the ESC intermediate byte itself
+
+  //--------------------------------------------------------------------------
+  // Terminal modes and rendition state
+  //--------------------------------------------------------------------------
+  reg s_origin;      //! DECOM  - cursor addressing relative to the region
+  reg s_autowrap;    //! DECAWM - default ON, see the header
+  reg s_cursor_vis;  //! DECTCEM
+  reg s_lnm;         //! LNM - LF implies CR
+
+  reg [7:0] s_rtop;  //! scroll region, screen rows, inclusive
+  reg [7:0] s_rbot;
+
+  reg s_at_rev, s_at_bold, s_at_ul, s_at_blink;  //! current SGR state
+  reg s_shift;    //! SO/SI: 0 = G0 active, 1 = G1 active
+  reg s_g0_gfx;   //! G0 designated DEC Special Graphics (ESC ( 0)
+  reg s_g1_gfx;   //! G1 designated DEC Special Graphics (ESC ) 0)
+
+  reg s_pending;  //! the VT100 last-column flag (see header)
+
+  // DECSC/DECRC saved state
+  reg [7:0] s_sv_row, s_sv_col;
+  reg s_sv_rev, s_sv_bold, s_sv_ul, s_sv_blink;
+  reg s_sv_origin, s_sv_shift, s_sv_g0, s_sv_g1;
+
+  //! A printable held over while the wrap-triggered scroll runs; written the
+  //! moment the engine is idle again.
+  reg       s_wr_hold;
+  reg [7:0] s_wr_char;
+
+  // Clear engine bounds, SCREEN coordinates, inclusive
+  reg [7:0] s_cl_row, s_cl_col, s_cl_erow, s_cl_ecol;
+
+  // Copy engine (region scroll)
+  reg [7:0] s_cp_dst;  //! destination screen row this pass
+  reg [7:0] s_cp_col;
+  reg       s_cp_down; //! 0 = scroll up (src = dst+1), 1 = down (src = dst-1)
+
+  // Parameter-apply engine
+  localparam [1:0] AP_SGR  = 2'd0;
+  localparam [1:0] AP_MODE = 2'd1;
+  localparam [1:0] AP_LED  = 2'd2;
+  reg [1:0] s_ap_kind;
+  reg [2:0] s_ap_idx;
+  reg       s_ap_enable;  //! for modes: 'h' = 1, 'l' = 0
+  reg       s_ap_priv;
+
+  assign ready = (s_state == ST_RUN) && !s_wr_hold;
 
   //--------------------------------------------------------------------------
   // Address arithmetic
   //--------------------------------------------------------------------------
 
-  //! stored row for a given screen row = (top_row + screen_row) mod ROWS
+  //! stored row for a given screen row = (top_row + screen_row) mod ROWS.
   //! automatic, not the Verilog default: task and function locals are STATIC
-  //! unless you say otherwise, and this one is called from two places in the
-  //! same always block. Static locals shared between call sites are a real
-  //! synthesis hazard, not a style point.
+  //! unless you say otherwise, and this one is called from several places in
+  //! the same always block. Static locals shared between call sites are a
+  //! real synthesis hazard, not a style point.
   function automatic [7:0] stored_row;
     input [7:0] top;
     input [7:0] screen;
@@ -171,8 +227,35 @@ module terminal_ctrl #(
     end
   endfunction
 
+  //! A CSI parameter with its default: 0 or absent means `dflt` (ECMA-48).
+  function automatic [7:0] par_or;
+    input [7:0] value;
+    input [7:0] dflt;
+    begin
+      par_or = (value == 8'd0) ? dflt : value;
+    end
+  endfunction
+
+  //! Accumulate one decimal digit into a parameter, saturating at 255 - a
+  //! host sending "CSI 999 A" must clamp, not wrap to a small number.
+  function automatic [7:0] dig_acc;
+    input [7:0] cur;
+    input [7:0] digit;
+    reg [11:0] wide;
+    begin
+      wide = {4'd0, cur} * 12'd10 + {8'd0, digit[3:0]};
+      dig_acc = (wide > 12'd255) ? 8'd255 : wide[7:0];
+    end
+  endfunction
+
+  //! The copy engine's source row: one below (scroll up) or above (down) the
+  //! destination, converted to a stored row here so the mapping through the
+  //! top_row ring is applied exactly once, in one place.
+  wire [7:0] s_cp_src = s_cp_down ? (s_cp_dst - 8'd1) : (s_cp_dst + 8'd1);
+  assign ram_raddr2 = cell_addr(stored_row(top_row, s_cp_src), s_cp_col);
+
   //--------------------------------------------------------------------------
-  // Cursor blink - free-running off the frame pulse
+  // Cursor / attribute blink - free-running off the frame pulse
   //--------------------------------------------------------------------------
 
   reg [7:0] s_blink_count;
@@ -192,44 +275,234 @@ module terminal_ctrl #(
     end
   end
 
-  assign cursor_enable = s_blink_on;
+  assign cursor_enable = s_blink_on && s_cursor_vis;
+  assign blink_on      = s_blink_on;
 
   //--------------------------------------------------------------------------
-  // The three ways the screen moves. Written as tasks because LF, FF, ETB and
-  // the right-margin wrap all need them and they are the fiddly part.
+  // The screen movers. Tasks because LF, RI, the wrap and CUP all need them
+  //  and they are the fiddly part.
   //--------------------------------------------------------------------------
 
-  //! Scroll up one line: the top line leaves, a blank line appears at the
-  //! bottom. The cursor does not move.
-  task automatic roll_up;
+  //! Blank a rectangle of cells, screen coordinates, inclusive, row-major.
+  task automatic start_clear;
+    input [7:0] r1; input [7:0] c1;
+    input [7:0] r2; input [7:0] c2;
     begin
-      top_row     <= (top_row == ROWS - 1) ? 8'd0 : (top_row + 8'd1);
-      // The row to blank is the one leaving the top, i.e. the CURRENT
-      // top_row - the new value has not taken effect at this point.
-      s_clear_row <= top_row;
-      s_clear_col <= 8'd0;
-      s_state     <= ST_CLEAR_ROW;
+      s_cl_row  <= r1;
+      s_cl_col  <= c1;
+      s_cl_erow <= r2;
+      s_cl_ecol <= c2;
+      s_state   <= ST_CLEAR;
     end
   endtask
 
-  //! Scroll down one line: a blank line appears at the top, the bottom line
-  //! leaves. The newly exposed row IS the new top_row.
-  task automatic roll_down;
-    reg [7:0] new_top;
+  //! Scroll the region up one line (text moves up, blank line at the bottom).
+  //! Full-screen region: rotate the ring and blank the row that came round.
+  //! Partial region: the copy engine, then blank the bottom region row.
+  task automatic scroll_up;
     begin
-      new_top     = (top_row == 8'd0) ? (ROWS[7:0] - 8'd1) : (top_row - 8'd1);
-      top_row     <= new_top;
-      s_clear_row <= new_top;
-      s_clear_col <= 8'd0;
-      s_state     <= ST_CLEAR_ROW;
+      if (s_rtop == 8'd0 && s_rbot == ROWS - 1) begin
+        top_row <= (top_row == ROWS - 1) ? 8'd0 : (top_row + 8'd1);
+        // top_row is updated this same edge, so next cycle's stored_row()
+        // already maps screen row ROWS-1 onto the vacated storage row.
+        start_clear(ROWS[7:0] - 8'd1, 8'd0, ROWS[7:0] - 8'd1, COLS[7:0] - 8'd1);
+      end else begin
+        s_cp_down <= 1'b0;
+        s_cp_dst  <= s_rtop;
+        s_cp_col  <= 8'd0;
+        s_state   <= ST_COPY_RD;
+      end
     end
   endtask
 
-  //! Cursor down; at the bottom line this scrolls instead.
-  task automatic line_feed;
+  //! Scroll the region down one line (text moves down, blank line at the top).
+  task automatic scroll_down;
     begin
-      if (cursor_row == ROWS - 1) roll_up;
-      else cursor_row <= cursor_row + 8'd1;
+      if (s_rtop == 8'd0 && s_rbot == ROWS - 1) begin
+        top_row <= (top_row == 8'd0) ? (ROWS[7:0] - 8'd1) : (top_row - 8'd1);
+        start_clear(8'd0, 8'd0, 8'd0, COLS[7:0] - 8'd1);
+      end else begin
+        s_cp_down <= 1'b1;
+        s_cp_dst  <= s_rbot;
+        s_cp_col  <= 8'd0;
+        s_state   <= ST_COPY_RD;
+      end
+    end
+  endtask
+
+  //! Cursor down; at the region's bottom line this scrolls instead. Below the
+  //! region (possible with DECOM off) it stops at the screen edge - it must
+  //! never scroll a region the cursor is not in.
+  task automatic do_index;
+    begin
+      if (cursor_row == s_rbot) scroll_up;
+      else if (cursor_row < ROWS - 1) cursor_row <= cursor_row + 8'd1;
+    end
+  endtask
+
+  //! Cursor up; at the region's top line this scrolls down instead.
+  task automatic do_rev_index;
+    begin
+      if (cursor_row == s_rtop) scroll_down;
+      else if (cursor_row != 8'd0) cursor_row <= cursor_row - 8'd1;
+    end
+  endtask
+
+  //! Write one printable at the cursor and advance. Printing in the LAST
+  //! column sets the pending-wrap flag instead of moving - the VT100 rule.
+  task automatic put_char;
+    input [7:0] ch;
+    begin
+      ram_we    <= 1'b1;
+      ram_waddr <= cell_addr(stored_row(top_row, cursor_row), cursor_col);
+      ram_wdata <= {3'b000, (s_shift ? s_g1_gfx : s_g0_gfx),
+                    s_at_blink, s_at_ul, s_at_bold, s_at_rev, ch};
+      if (cursor_col == COLS - 1) begin
+        if (s_autowrap) s_pending <= 1'b1;
+      end else begin
+        cursor_col <= cursor_col + 8'd1;
+      end
+    end
+  endtask
+
+  //! Everything RIS resets and power-up starts from. The screen clear itself
+  //! is started by the caller.
+  task automatic reset_modes;
+    begin
+      top_row      <= 8'd0;
+      cursor_col   <= 8'd0;
+      cursor_row   <= 8'd0;
+      s_rtop       <= 8'd0;
+      s_rbot       <= ROWS[7:0] - 8'd1;
+      s_origin     <= 1'b0;
+      s_autowrap   <= 1'b1;   // see the header - deliberate, not the manual default
+      s_cursor_vis <= 1'b1;
+      s_lnm        <= 1'b0;
+      rev_screen   <= 1'b0;
+      s_at_rev     <= 1'b0;
+      s_at_bold    <= 1'b0;
+      s_at_ul      <= 1'b0;
+      s_at_blink   <= 1'b0;
+      s_shift      <= 1'b0;
+      s_g0_gfx     <= 1'b0;
+      s_g1_gfx     <= 1'b0;
+      s_pending    <= 1'b0;
+      leds         <= 4'b0000;
+      p_state      <= P_GROUND;
+    end
+  endtask
+
+  //--------------------------------------------------------------------------
+  // CSI final dispatch - one task so the byte-intake case stays readable
+  //--------------------------------------------------------------------------
+
+  task automatic dispatch_csi;
+    input [7:0] fin;
+    reg [7:0] n;
+    reg [7:0] floor_row, ceil_row;
+    reg [7:0] t, b;
+    reg [8:0] sum9;
+    begin
+      // Margin-aware bounds: a cursor inside the region is confined to it,
+      // one outside is confined to the screen (RetroTerm MoveCursor*WithinMargins).
+      floor_row = (cursor_row >= s_rtop) ? s_rtop : 8'd0;
+      ceil_row  = (cursor_row <= s_rbot) ? s_rbot : (ROWS[7:0] - 8'd1);
+      n         = par_or(s_par[0], 8'd1);
+
+      case (fin)
+
+        "A": begin  // CUU
+          s_pending <= 1'b0;
+          cursor_row <= (({1'b0, cursor_row} > {1'b0, floor_row} + {1'b0, n}))
+                        ? (cursor_row - n) : floor_row;
+        end
+
+        "B": begin  // CUD
+          s_pending <= 1'b0;
+          sum9 = {1'b0, cursor_row} + {1'b0, n};
+          cursor_row <= (sum9 < {1'b0, ceil_row}) ? sum9[7:0] : ceil_row;
+        end
+
+        "C": begin  // CUF
+          s_pending <= 1'b0;
+          sum9 = {1'b0, cursor_col} + {1'b0, n};
+          cursor_col <= (sum9 < COLS - 1) ? sum9[7:0] : (COLS[7:0] - 8'd1);
+        end
+
+        "D": begin  // CUB
+          s_pending <= 1'b0;
+          cursor_col <= ({1'b0, cursor_col} > {1'b0, n}) ? (cursor_col - n) : 8'd0;
+        end
+
+        "G": begin  // CHA - column absolute, 1-based
+          s_pending  <= 1'b0;
+          cursor_col <= (n <= COLS) ? (n - 8'd1) : (COLS[7:0] - 8'd1);
+        end
+
+        "d": begin  // VPA - row absolute, 1-based, origin-aware like CUP
+          s_pending <= 1'b0;
+          floor_row = s_origin ? s_rtop : 8'd0;
+          ceil_row  = s_origin ? s_rbot : (ROWS[7:0] - 8'd1);
+          sum9      = {1'b0, floor_row} + {1'b0, n} - 9'd1;
+          cursor_row <= (sum9 < {1'b0, ceil_row}) ? sum9[7:0] : ceil_row;
+        end
+
+        "H", "f": begin  // CUP / HVP - both coordinates 1-based
+          s_pending <= 1'b0;
+          floor_row = s_origin ? s_rtop : 8'd0;
+          ceil_row  = s_origin ? s_rbot : (ROWS[7:0] - 8'd1);
+          sum9      = {1'b0, floor_row} + {1'b0, n} - 9'd1;
+          cursor_row <= (sum9 < {1'b0, ceil_row}) ? sum9[7:0] : ceil_row;
+          n = par_or(s_par[1], 8'd1);
+          cursor_col <= (n <= COLS) ? (n - 8'd1) : (COLS[7:0] - 8'd1);
+        end
+
+        "J": begin  // ED - erase in display. Does NOT move the cursor.
+          s_pending <= 1'b0;
+          case (s_par[0])
+            8'd1: start_clear(8'd0, 8'd0, cursor_row, cursor_col);
+            8'd2: start_clear(8'd0, 8'd0, ROWS[7:0] - 8'd1, COLS[7:0] - 8'd1);
+            default: start_clear(cursor_row, cursor_col,
+                                 ROWS[7:0] - 8'd1, COLS[7:0] - 8'd1);
+          endcase
+        end
+
+        "K": begin  // EL - erase in line
+          s_pending <= 1'b0;
+          case (s_par[0])
+            8'd1: start_clear(cursor_row, 8'd0, cursor_row, cursor_col);
+            8'd2: start_clear(cursor_row, 8'd0, cursor_row, COLS[7:0] - 8'd1);
+            default: start_clear(cursor_row, cursor_col,
+                                 cursor_row, COLS[7:0] - 8'd1);
+          endcase
+        end
+
+        "m", "h", "l", "q": begin  // SGR / SM / RM / DECLL - walk the list
+          s_ap_kind   <= (fin == "m") ? AP_SGR : (fin == "q") ? AP_LED : AP_MODE;
+          s_ap_enable <= (fin == "h");
+          s_ap_priv   <= s_priv;
+          s_ap_idx    <= 3'd0;
+          // No parameters at all still means one default parameter (SGR 0
+          // resets, DECLL 0 clears) - ECMA-48's omitted-parameter rule.
+          if (s_npar == 3'd0) s_npar <= 3'd1;  // s_par[0] is already 0
+          s_state <= ST_APPLY;
+        end
+
+        "r": begin  // DECSTBM - set region, home the cursor (origin-aware)
+          t = par_or(s_par[0], 8'd1);
+          b = par_or(s_par[1], ROWS[7:0]);
+          if (t < b && b <= ROWS) begin
+            s_rtop     <= t - 8'd1;
+            s_rbot     <= b - 8'd1;
+            cursor_row <= s_origin ? (t - 8'd1) : 8'd0;
+            cursor_col <= 8'd0;
+            s_pending  <= 1'b0;
+          end
+        end
+
+        default: ;  // unknown final - swallowed, never printed
+
+      endcase
     end
   endtask
 
@@ -241,20 +514,29 @@ module terminal_ctrl #(
     if (!rst_n) begin
       // Power-up: blank the whole screen. On a real FPGA the character RAM
       // holds whatever the tool loaded, so this is not optional.
-      s_state     <= ST_CLEAR_ALL;
-      s_clear_col <= 8'd0;
-      s_clear_row <= 8'd0;
-      s_dle       <= 2'd0;
-      top_row     <= 8'd0;
-      cursor_col  <= 8'd0;
-      cursor_row  <= 8'd0;
-      ram_we      <= 1'b0;
-      ram_waddr   <= {AWIDTH{1'b0}};
-      ram_wdata   <= BLANK_CELL;
-      bell        <= 1'b0;
-      leds        <= 3'b000;
-      video_on    <= 1'b1;
-      charset     <= 1'b0;
+      s_state   <= ST_CLEAR;
+      s_cl_row  <= 8'd0;
+      s_cl_col  <= 8'd0;
+      s_cl_erow <= ROWS[7:0] - 8'd1;
+      s_cl_ecol <= COLS[7:0] - 8'd1;
+      ram_we    <= 1'b0;
+      ram_waddr <= {AWIDTH{1'b0}};
+      ram_wdata <= BLANK_CELL;
+      bell      <= 1'b0;
+      s_wr_hold <= 1'b0;
+      s_wr_char <= 8'd0;
+      s_npar    <= 3'd0;
+      s_priv    <= 1'b0;
+      s_ign     <= 1'b0;
+      s_escint  <= 8'd0;
+      s_par[0]  <= 8'd0; s_par[1] <= 8'd0; s_par[2] <= 8'd0; s_par[3] <= 8'd0;
+      s_cp_dst  <= 8'd0; s_cp_col <= 8'd0; s_cp_down <= 1'b0;
+      s_ap_kind <= AP_SGR; s_ap_idx <= 3'd0;
+      s_ap_enable <= 1'b0; s_ap_priv <= 1'b0;
+      s_sv_row <= 8'd0; s_sv_col <= 8'd0;
+      s_sv_rev <= 1'b0; s_sv_bold <= 1'b0; s_sv_ul <= 1'b0; s_sv_blink <= 1'b0;
+      s_sv_origin <= 1'b0; s_sv_shift <= 1'b0; s_sv_g0 <= 1'b0; s_sv_g1 <= 1'b0;
+      reset_modes;
     end else begin
       // Defaults - overridden below where something actually happens.
       ram_we <= 1'b0;
@@ -263,135 +545,305 @@ module terminal_ctrl #(
       case (s_state)
 
         //--------------------------------------------------------------------
-        ST_CLEAR_ALL: begin
+        ST_CLEAR: begin
           ram_we    <= 1'b1;
-          ram_waddr <= cell_addr(s_clear_row, s_clear_col);
+          ram_waddr <= cell_addr(stored_row(top_row, s_cl_row), s_cl_col);
           ram_wdata <= BLANK_CELL;
 
-          if (s_clear_col == COLS - 1) begin
-            s_clear_col <= 8'd0;
-            if (s_clear_row == ROWS - 1) s_state <= ST_RUN;
-            else s_clear_row <= s_clear_row + 8'd1;
+          if (s_cl_row == s_cl_erow && s_cl_col == s_cl_ecol) begin
+            s_state <= ST_RUN;
+          end else if (s_cl_col == COLS - 1) begin
+            s_cl_col <= 8'd0;
+            s_cl_row <= s_cl_row + 8'd1;
           end else begin
-            s_clear_col <= s_clear_col + 8'd1;
+            s_cl_col <= s_cl_col + 8'd1;
           end
         end
 
         //--------------------------------------------------------------------
-        ST_CLEAR_ROW: begin
-          ram_we    <= 1'b1;
-          ram_waddr <= cell_addr(s_clear_row, s_clear_col);
-          ram_wdata <= BLANK_CELL;
+        // Region scroll: read src cell this clock, write it to dst the next.
+        // Two clocks per cell; see the header for the arithmetic.
+        //--------------------------------------------------------------------
+        ST_COPY_RD: begin
+          // ram_raddr2 is combinational from s_cp_dst/s_cp_col; the RAM
+          // registers the read on this edge, so rdata2 is valid in COPY_WR.
+          s_state <= ST_COPY_WR;
+        end
 
-          if (s_clear_col == COLS - 1) begin
-            s_clear_col <= 8'd0;
-            s_state     <= ST_RUN;
+        ST_COPY_WR: begin
+          ram_we    <= 1'b1;
+          ram_waddr <= cell_addr(stored_row(top_row, s_cp_dst), s_cp_col);
+          ram_wdata <= ram_rdata2;
+
+          if (s_cp_col != COLS - 1) begin
+            s_cp_col <= s_cp_col + 8'd1;
+            s_state  <= ST_COPY_RD;
           end else begin
-            s_clear_col <= s_clear_col + 8'd1;
+            s_cp_col <= 8'd0;
+            if (!s_cp_down) begin
+              // Scrolling up: rows walk rtop..rbot-1, then blank rbot.
+              if (s_cp_dst == s_rbot - 1) begin
+                start_clear(s_rbot, 8'd0, s_rbot, COLS[7:0] - 8'd1);
+              end else begin
+                s_cp_dst <= s_cp_dst + 8'd1;
+                s_state  <= ST_COPY_RD;
+              end
+            end else begin
+              // Scrolling down: rows walk rbot..rtop+1, then blank rtop.
+              if (s_cp_dst == s_rtop + 1) begin
+                start_clear(s_rtop, 8'd0, s_rtop, COLS[7:0] - 8'd1);
+              end else begin
+                s_cp_dst <= s_cp_dst - 8'd1;
+                s_state  <= ST_COPY_RD;
+              end
+            end
+          end
+        end
+
+        //--------------------------------------------------------------------
+        // Walk the parameter list of SGR / SM / RM / DECLL, one per clock.
+        //--------------------------------------------------------------------
+        ST_APPLY: begin
+          if (s_ap_idx >= s_npar) begin
+            s_state <= ST_RUN;
+          end else begin
+            s_ap_idx <= s_ap_idx + 3'd1;
+            case (s_ap_kind)
+
+              AP_SGR: begin
+                case (s_par[s_ap_idx[1:0]])
+                  8'd0: begin
+                    s_at_rev <= 1'b0; s_at_bold <= 1'b0;
+                    s_at_ul  <= 1'b0; s_at_blink <= 1'b0;
+                  end
+                  8'd1:  s_at_bold  <= 1'b1;
+                  8'd4:  s_at_ul    <= 1'b1;
+                  8'd5:  s_at_blink <= 1'b1;
+                  8'd7:  s_at_rev   <= 1'b1;
+                  8'd22: s_at_bold  <= 1'b0;
+                  8'd24: s_at_ul    <= 1'b0;
+                  8'd25: s_at_blink <= 1'b0;
+                  8'd27: s_at_rev   <= 1'b0;
+                  default: ;  // 2 (dim), colours, the rest: swallowed
+                endcase
+              end
+
+              AP_MODE: begin
+                if (s_ap_priv) begin
+                  case (s_par[s_ap_idx[1:0]])
+                    8'd5: rev_screen <= s_ap_enable;       // DECSCNM
+                    8'd6: begin                            // DECOM - homes cursor
+                      s_origin   <= s_ap_enable;
+                      cursor_row <= s_ap_enable ? s_rtop : 8'd0;
+                      cursor_col <= 8'd0;
+                      s_pending  <= 1'b0;
+                    end
+                    8'd7: begin                            // DECAWM
+                      s_autowrap <= s_ap_enable;
+                      if (!s_ap_enable) s_pending <= 1'b0;
+                    end
+                    8'd25: s_cursor_vis <= s_ap_enable;    // DECTCEM
+                    default: ;  // ?1 ?3 ?4 ?8 ... swallowed
+                  endcase
+                end else begin
+                  case (s_par[s_ap_idx[1:0]])
+                    8'd20: s_lnm <= s_ap_enable;           // LNM
+                    default: ;
+                  endcase
+                end
+              end
+
+              AP_LED: begin
+                case (s_par[s_ap_idx[1:0]])
+                  8'd0: leds <= 4'b0000;
+                  8'd1: leds[0] <= 1'b1;
+                  8'd2: leds[1] <= 1'b1;
+                  8'd3: leds[2] <= 1'b1;
+                  8'd4: leds[3] <= 1'b1;
+                  default: ;
+                endcase
+              end
+
+              default: ;
+            endcase
           end
         end
 
         //--------------------------------------------------------------------
         ST_RUN: begin
-          if (byte_valid) begin
+          if (s_wr_hold) begin
+            // The printable that triggered a wrap, now that the scroll it
+            // caused has finished. Column is already 0.
+            s_wr_hold <= 1'b0;
+            put_char(s_wr_char);
+          end else if (byte_valid) begin
 
             //----------------------------------------------------------------
-            // DLE payload. These two bytes are POSITION DATA - they must not
-            // be looked at as control codes, which is why this test comes
-            // before everything else.
+            // C0 controls first. Executable ones act WITHOUT abandoning a
+            // sequence in progress; CAN/SUB abandon it; ESC restarts it.
             //----------------------------------------------------------------
-            if (s_dle == 2'd1) begin
-              // Row: 5-bit mask, 0-based. Clamped so a bad byte cannot put the
-              // cursor off-screen and corrupt an address.
-              cursor_row <= (byte_data[4:0] < ROWS) ? {3'b000, byte_data[4:0]}
-                                                    : (ROWS[7:0] - 8'd1);
-              s_dle      <= 2'd2;
-            end else if (s_dle == 2'd2) begin
-              // Column: SEVEN-bit mask. The escape-sequence reference says 5,
-              // which cannot reach column 79 - see the header note.
-              cursor_col <= (byte_data[6:0] < COLS) ? {1'b0, byte_data[6:0]}
-                                                    : (COLS[7:0] - 8'd1);
-              s_dle      <= 2'd0;
-            end else begin
-
+            if (byte_data < 8'h20) begin
               case (byte_data)
-
-                8'h02: video_on <= 1'b0;   // STX - video off, screen kept
-                8'h03: video_on <= 1'b1;   // ETX - video on
-
-                8'h04: begin               // EOT - erase line
-                  s_clear_row <= stored_row(top_row, cursor_row);
-                  s_clear_col <= 8'd0;
-                  s_state     <= ST_CLEAR_ROW;
+                8'h07: bell <= 1'b1;                                     // BEL
+                8'h08: begin                                             // BS
+                  s_pending <= 1'b0;
+                  if (cursor_col != 0) cursor_col <= cursor_col - 8'd1;
                 end
-
-                8'h05: leds[0] <= 1'b1;    // ENQ - LED 1
-                8'h06: leds[1] <= 1'b1;    // ACK - LED 2
-                8'h15: leds[2] <= 1'b1;    // NAK - LED 3
-                8'h16: leds    <= 3'b000;  // SYN - all lamps off
-
-                8'h07: bell <= 1'b1;       // BEL
-
-                8'h08: if (cursor_col != 0) cursor_col <= cursor_col - 8'd1;  // BS
-
-                8'h09: begin               // HT
-                  if (cursor_col + TAB_STOP[7:0] >= COLS - 1)
+                8'h09: begin                                             // HT
+                  // Next multiple of TAB_STOP, stopping at the right margin.
+                  // (The old form jumped from column 71 straight to 79 - the
+                  // comparison ran on the CURRENT column, not the next stop.)
+                  s_pending <= 1'b0;
+                  if (((cursor_col / TAB_STOP) + 8'd1) * TAB_STOP >= COLS)
                     cursor_col <= COLS[7:0] - 8'd1;
                   else
                     cursor_col <= ((cursor_col / TAB_STOP) + 8'd1) * TAB_STOP;
                 end
-
-                8'h0A, 8'h0B: line_feed;   // LF, VT - cursor down
-
-                8'h0C: roll_up;            // FF - ROLL UP, not a clear
-
-                8'h0D: cursor_col <= 8'd0; // CR
-
-                8'h0E: charset <= 1'b1;    // SO - invoke G1
-                8'h0F: charset <= 1'b0;    // SI - invoke G0
-
-                8'h10: s_dle <= 2'd1;      // DLE - two position bytes follow
-
-                8'h17: roll_down;          // ETB - roll down
-
-                8'h18: if (cursor_col < COLS - 1) cursor_col <= cursor_col + 8'd1;  // CAN
-
-                8'h19: begin               // EM - erase page, cursor home
-                  s_state     <= ST_CLEAR_ALL;
-                  s_clear_col <= 8'd0;
-                  s_clear_row <= 8'd0;
-                  top_row     <= 8'd0;
-                  cursor_col  <= 8'd0;
-                  cursor_row  <= 8'd0;
+                8'h0A, 8'h0B, 8'h0C: begin                               // LF VT FF
+                  s_pending <= 1'b0;
+                  if (s_lnm) cursor_col <= 8'd0;
+                  do_index;
                 end
-
-                8'h1C: if (cursor_row != 0) cursor_row <= cursor_row - 8'd1;  // FS
-
-                8'h1D: begin               // GS - cursor home
+                8'h0D: begin                                             // CR
+                  s_pending  <= 1'b0;
                   cursor_col <= 8'd0;
-                  cursor_row <= 8'd0;
                 end
+                8'h0E: s_shift <= 1'b1;                                  // SO -> G1
+                8'h0F: s_shift <= 1'b0;                                  // SI -> G0
+                8'h18, 8'h1A: p_state <= P_GROUND;                       // CAN SUB
+                8'h1B: begin                                             // ESC
+                  p_state <= P_ESC;
+                  s_npar  <= 3'd0;
+                  s_priv  <= 1'b0;
+                  s_ign   <= 1'b0;
+                  s_par[0] <= 8'd0; s_par[1] <= 8'd0;
+                  s_par[2] <= 8'd0; s_par[3] <= 8'd0;
+                end
+                default: ;  // NUL, ENQ, the TDV lamp codes... all dropped
+              endcase
 
-                default: begin
-                  // Printable. 0x7F (DEL) and any unhandled control code is
-                  // dropped rather than printed as a graphic.
-                  if (byte_data >= 8'h20 && byte_data < 8'h7F) begin
-                    ram_we    <= 1'b1;
-                    ram_waddr <= cell_addr(stored_row(top_row, cursor_row), cursor_col);
-                    ram_wdata <= {8'h00, byte_data};
+            end else begin
+              case (p_state)
 
-                    if (cursor_col == COLS - 1) begin
-                      // The character IS written in the last column, then the
-                      // cursor moves to the start of the next line. Holding it
-                      // on the last column instead silently eats every 81st
-                      // character.
+                //------------------------------------------------------------
+                P_GROUND: begin
+                  if (byte_data < 8'h7F) begin
+                    if (s_pending && s_autowrap) begin
+                      // Resolve the last-column flag: CR + LF now, print after
+                      // the scroll (if any) has run.
+                      s_pending  <= 1'b0;
                       cursor_col <= 8'd0;
-                      line_feed;
+                      s_wr_hold  <= 1'b1;
+                      s_wr_char  <= byte_data;
+                      do_index;
                     end else begin
-                      cursor_col <= cursor_col + 8'd1;
+                      put_char(byte_data);
                     end
                   end
+                  // 0x7F DEL and 0x80-0xFF: dropped. The ND-120 is a 7-bit
+                  // machine; a high bit here is line noise, not a character.
                 end
+
+                //------------------------------------------------------------
+                P_ESC: begin
+                  p_state <= P_GROUND;  // every arm below that stays is explicit
+                  case (byte_data)
+                    "[": begin
+                      p_state <= P_CSI;
+                    end
+                    8'h20, "#", "(", ")", "*", "+", "%": begin
+                      s_escint <= byte_data;
+                      p_state  <= P_ESCINT;
+                    end
+                    "D": begin s_pending <= 1'b0; do_index; end          // IND
+                    "E": begin                                           // NEL
+                      s_pending  <= 1'b0;
+                      cursor_col <= 8'd0;
+                      do_index;
+                    end
+                    "M": begin s_pending <= 1'b0; do_rev_index; end      // RI
+                    "7": begin                                           // DECSC
+                      s_sv_row    <= cursor_row;
+                      s_sv_col    <= cursor_col;
+                      s_sv_rev    <= s_at_rev;
+                      s_sv_bold   <= s_at_bold;
+                      s_sv_ul     <= s_at_ul;
+                      s_sv_blink  <= s_at_blink;
+                      s_sv_origin <= s_origin;
+                      s_sv_shift  <= s_shift;
+                      s_sv_g0     <= s_g0_gfx;
+                      s_sv_g1     <= s_g1_gfx;
+                    end
+                    "8": begin                                           // DECRC
+                      cursor_row <= s_sv_row;
+                      cursor_col <= s_sv_col;
+                      s_at_rev   <= s_sv_rev;
+                      s_at_bold  <= s_sv_bold;
+                      s_at_ul    <= s_sv_ul;
+                      s_at_blink <= s_sv_blink;
+                      s_origin   <= s_sv_origin;
+                      s_shift    <= s_sv_shift;
+                      s_g0_gfx   <= s_sv_g0;
+                      s_g1_gfx   <= s_sv_g1;
+                      s_pending  <= 1'b0;
+                    end
+                    "c": begin                                           // RIS
+                      reset_modes;
+                      start_clear(8'd0, 8'd0, ROWS[7:0] - 8'd1, COLS[7:0] - 8'd1);
+                    end
+                    // '=' '>' keypad modes, 'H' HTS, 'Z' DECID, 'N' 'O' SS2/3,
+                    // 'n' 'o' LS2/3 and anything unknown: swallowed.
+                    default: ;
+                  endcase
+                end
+
+                //------------------------------------------------------------
+                // ESC + intermediate. Character-set designation is the one
+                // that matters: final '0' = DEC Special Graphics (the VT100
+                // line-drawing set the SINTRAN full-screen tools use for
+                // boxes - PED's init sends ESC ) 0). Everything else, incl.
+                // ESC # line sizes, is parsed and dropped.
+                //------------------------------------------------------------
+                P_ESCINT: begin
+                  if (byte_data >= 8'h20 && byte_data <= 8'h2F) begin
+                    s_escint <= byte_data;  // keep the LAST intermediate
+                  end else begin
+                    p_state <= P_GROUND;
+                    case (s_escint)
+                      "(": s_g0_gfx <= (byte_data == "0");
+                      ")": s_g1_gfx <= (byte_data == "0");
+                      default: ;  // * + (G2/G3), # (line size), % : dropped
+                    endcase
+                  end
+                end
+
+                //------------------------------------------------------------
+                P_CSI: begin
+                  if (byte_data >= "0" && byte_data <= "9") begin
+                    if (s_npar == 3'd0) begin
+                      s_npar   <= 3'd1;
+                      s_par[0] <= dig_acc(s_par[0], byte_data);
+                    end else if (s_npar <= 3'd4) begin
+                      s_par[s_npar[1:0] - 2'd1]
+                        <= dig_acc(s_par[s_npar[1:0] - 2'd1], byte_data);
+                    end
+                  end else if (byte_data == ";") begin
+                    if (s_npar == 3'd0) s_npar <= 3'd2;  // leading ';' = omitted first
+                    else if (s_npar < 3'd4) s_npar <= s_npar + 3'd1;
+                    else s_ign <= 1'b1;  // more than 4 parameters - swallow
+                  end else if (byte_data >= 8'h3C && byte_data <= 8'h3F) begin
+                    s_priv <= 1'b1;  // '<' '=' '>' '?'
+                  end else if (byte_data >= 8'h20 && byte_data <= 8'h2F) begin
+                    s_ign <= 1'b1;   // intermediate we know nothing about
+                  end else if (byte_data >= 8'h40 && byte_data <= 8'h7E) begin
+                    p_state <= P_GROUND;
+                    if (!s_ign) dispatch_csi(byte_data);
+                  end else begin
+                    p_state <= P_GROUND;  // 0x7F or garbage - abandon
+                  end
+                end
+
+                default: p_state <= P_GROUND;
 
               endcase
             end

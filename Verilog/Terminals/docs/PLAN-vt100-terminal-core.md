@@ -1,5 +1,11 @@
 # Plan - an in-repo VT-style terminal core (screen + keyboard console)
 
+> **DECIDED 30-AUG-2026 (Ronny): the terminal is a plain VT100** - SINTRAN's
+> console line is set to terminal type 6 (DEC-VT100), so the TDV stages below
+> are history, not plan. Stage B is built (`rtl/terminal_ctrl.v`, rewritten
+> 30-AUG); Stage A's TDV C0 controller was removed by that rewrite; Stage C is
+> not planned. Geometry is the VT100's 80x24. Current state: ../README.md.
+
 **Full path:** `Verilog/Terminals/docs/PLAN-vt100-terminal-core.md`
 Written 27-AUG-2026. Serves two boards that both want the console on the
 machine's own screen and keyboard instead of a USB serial cable:

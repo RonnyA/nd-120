@@ -84,7 +84,9 @@ def unicode_map(kind, table, glyph_count):
                 skipping = False
             elif value == 0xFFFE:
                 skipping = True
-            elif not skipping and value < 256:
+            elif not skipping and value < 0x3000:
+                # Kept up to U+2FFF, not just Latin-1: the DEC Special
+                # Graphics page wants box-drawing (U+25xx) and friends.
                 mapping.setdefault(value, glyph)
     else:
         # psf2: UTF-8 sequences, 0xFF terminates the glyph, 0xFE starts combining
@@ -98,7 +100,7 @@ def unicode_map(kind, table, glyph_count):
                 if current and not skipping:
                     try:
                         text = current.decode("utf-8")
-                        if len(text) == 1 and ord(text) < 256:
+                        if len(text) == 1 and ord(text) < 0x3000:
                             mapping.setdefault(ord(text), glyph)
                     except UnicodeDecodeError:
                         pass
@@ -109,7 +111,7 @@ def unicode_map(kind, table, glyph_count):
                 if current and not skipping:
                     try:
                         text = current.decode("utf-8")
-                        if len(text) == 1 and ord(text) < 256:
+                        if len(text) == 1 and ord(text) < 0x3000:
                             mapping.setdefault(ord(text), glyph)
                     except UnicodeDecodeError:
                         pass
@@ -183,6 +185,123 @@ def block_glyphs():
     return g
 
 
+# ---------------------------------------------------------------------------
+# DEC Special Graphics - the THIRD font page (VT100 line drawing)
+#
+# Designated with ESC ( 0 / ESC ) 0 and selected with SO/SI; it is how a VT100
+# draws boxes, and SINTRAN's full-screen tools use it (PED's init sends
+# ESC ) 0). Codes 0x00-0x5E render as ASCII; 0x5F is blank; 0x60-0x7E are the
+# graphics. The line/corner/tee/cross/scan-line glyphs are SYNTHESIZED here -
+# they are geometry, and synthesizing them means the page exists whatever PSF
+# font is used. The symbol glyphs (degree, plus-minus, pi, ...) are taken from
+# the source font's unicode table when it has them, from the hand bitmaps
+# below when it does not, and only then blank (with a warning).
+# ---------------------------------------------------------------------------
+
+def dec_graphics_page(page0, glyph_for):
+    """The 128 glyphs of the DEC Special Graphics set."""
+    blank = bytes(16)
+
+    # Line-drawing pieces. One-pixel strokes through the cell centre: the
+    # vertical runs down column 4 (bit 0x08, MSB = leftmost = column 0), the
+    # horizontal along pixel row 8. The four half-strokes union into every
+    # corner, tee and the cross - build them once, OR them together.
+    V_BIT, H_ROW = 0x08, 8
+
+    def draw(up=False, down=False, left=False, right=False):
+        rows = [0] * 16
+        if up:
+            for r in range(0, H_ROW + 1):
+                rows[r] |= V_BIT
+        if down:
+            for r in range(H_ROW, 16):
+                rows[r] |= V_BIT
+        if left:
+            rows[H_ROW] |= 0xF8  # columns 0-4
+        if right:
+            rows[H_ROW] |= 0x0F  # columns 4-7
+        return bytes(rows)
+
+    def hline(row):
+        rows = [0] * 16
+        rows[row] = 0xFF
+        return bytes(rows)
+
+    # Hand bitmaps for the symbols a Latin console font may not carry.
+    HAND = {
+        0x25C6: bytes([0, 0, 0, 0x18, 0x3C, 0x7E, 0xFF, 0xFF,
+                       0x7E, 0x3C, 0x18, 0, 0, 0, 0, 0]),          # diamond
+        0x2592: bytes([0xAA, 0x55] * 8),                            # checker
+        0x00B0: bytes([0, 0, 0x38, 0x44, 0x44, 0x38, 0, 0,
+                       0, 0, 0, 0, 0, 0, 0, 0]),                    # degree
+        0x00B1: bytes([0, 0, 0, 0x10, 0x10, 0x7C, 0x10, 0x10,
+                       0, 0x7C, 0, 0, 0, 0, 0, 0]),                 # plus-minus
+        0x03C0: bytes([0, 0, 0, 0, 0, 0x7E, 0x24, 0x24,
+                       0x24, 0x24, 0x24, 0x24, 0, 0, 0, 0]),        # pi
+        0x2260: bytes([0, 0, 0, 0x02, 0x04, 0x7E, 0x18, 0x7E,
+                       0x20, 0x40, 0, 0, 0, 0, 0, 0]),              # not equal
+        0x2264: bytes([0, 0, 0x0C, 0x18, 0x30, 0x60, 0x30, 0x18,
+                       0x0C, 0, 0x7E, 0, 0, 0, 0, 0]),              # <=
+        0x2265: bytes([0, 0, 0x30, 0x18, 0x0C, 0x06, 0x0C, 0x18,
+                       0x30, 0, 0x7E, 0, 0, 0, 0, 0]),              # >=
+        0x00B7: bytes([0, 0, 0, 0, 0, 0, 0, 0x18,
+                       0x18, 0, 0, 0, 0, 0, 0, 0]),                 # centre dot
+        0x00A3: None,  # pound - font only; the hand version is not worth it
+    }
+
+    def symbol(codepoint):
+        g = glyph_for(codepoint)
+        if g is None:
+            g = HAND.get(codepoint)
+        return g  # may be None - the caller records the gap
+
+    absent = []
+
+    def sym(code, codepoint):
+        g = symbol(codepoint)
+        if g is None:
+            absent.append((code, codepoint))
+            return blank
+        return g
+
+    page = list(page0[:0x5F])          # 0x00-0x5E render as ASCII
+    page.append(blank)                 # 0x5F is blank in this set
+    page += [
+        sym(0x60, 0x25C6),             # ` diamond
+        sym(0x61, 0x2592),             # a checkerboard
+        blank, blank, blank, blank,    # b-e HT/FF/CR/LF pictures - not drawn:
+                                       #   status-display oddities nothing in
+                                       #   the ND world ever writes
+        sym(0x66, 0x00B0),             # f degree
+        sym(0x67, 0x00B1),             # g plus/minus
+        blank, blank,                  # h-i NL/VT pictures - same as b-e
+        draw(up=True, left=True),      # j lower-right corner
+        draw(down=True, left=True),    # k upper-right corner
+        draw(down=True, right=True),   # l upper-left corner
+        draw(up=True, right=True),     # m lower-left corner
+        draw(up=True, down=True, left=True, right=True),  # n cross
+        hline(1),                      # o scan line 1
+        hline(4),                      # p scan line 3
+        draw(left=True, right=True),   # q scan line 5 (the centre line)
+        hline(11),                     # r scan line 7
+        hline(14),                     # s scan line 9
+        draw(up=True, down=True, right=True),  # t left tee
+        draw(up=True, down=True, left=True),   # u right tee
+        draw(up=True, left=True, right=True),  # v bottom tee
+        draw(down=True, left=True, right=True),  # w top tee
+        draw(up=True, down=True),      # x vertical bar
+        sym(0x79, 0x2264),             # y less-or-equal
+        sym(0x7A, 0x2265),             # z greater-or-equal
+        sym(0x7B, 0x03C0),             # { pi
+        sym(0x7C, 0x2260),             # | not equal
+        sym(0x7D, 0x00A3),             # } pound sterling
+        sym(0x7E, 0x00B7),             # ~ centre dot
+        blank,                         # 0x7F
+    ]
+    assert len(page) == 128
+    return page, absent
+
+
 NATIONAL_VARIANTS = {
     # ISO 646 position -> the Unicode codepoint to draw there
     "no": {
@@ -243,12 +362,17 @@ def main():
             page1[pos] = g
             substituted.append(pos)
 
-    rom = page0 + page1
+    # Page 2: DEC Special Graphics - the VT100 line-drawing set.
+    page2, gfx_absent = dec_graphics_page(page0, glyph_for)
+
+    rom = page0 + page1 + page2
 
     with open(dst, "w", encoding="ascii", newline="\n") as out:
         out.write("// 8x16 character generator ROM, generated by make_font.py\n")
         out.write("// source: %s\n" % src)
-        out.write("// index = character code * 16 + pixel row; MSB = leftmost pixel\n")
+        out.write("// page 0: US/ISO 646 IRV  page 1: Norwegian NS 4551-1\n")
+        out.write("// page 2: DEC Special Graphics (VT100 line drawing)\n")
+        out.write("// index = page * 2048 + code * 16 + pixel row; MSB = leftmost pixel\n")
         out.write("// character->glyph mapping: %s\n"
                   % ("from the font's unicode table"
                      if mapping else "glyph order (font carried no table)"))
@@ -259,7 +383,11 @@ def main():
     # Space (0x20) is legitimately all-zero, so it is excluded from the check -
     # counting it as "missing" produced a false warning on a perfectly good font.
     missing = [code for code in range(0x21, 0x7F) if rom[code] == blank]
-    print("wrote %s: 2 pages x 128 glyphs x 16 rows" % dst)
+    print("wrote %s: 3 pages x 128 glyphs x 16 rows" % dst)
+    if gfx_absent:
+        print("WARNING: DEC graphics page is blank at %s - neither the font nor"
+              % " ".join("0x%02X (U+%04X)" % (p, c) for p, c in gfx_absent))
+        print("         the hand bitmaps had a glyph")
     print("panel block glyphs at 0x01-0x0D (bargraph, level cells, rules)")
     print("norwegian page: substituted %s"
           % " ".join("0x%02X" % p for p in substituted))

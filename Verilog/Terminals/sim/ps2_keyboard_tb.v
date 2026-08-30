@@ -222,37 +222,37 @@ module ps2_keyboard_tb;
     //------------------------------------------------------------------
     // 6. Extended keys: raw code appears, no ASCII
     //------------------------------------------------------------------
-    // On a TDV the arrows are BARE C0 BYTES, not escape sequences - verified
-    // in TDV2200KeyRegistry.cs, where UP/DOWN/LEFT/RIGHT/HOME carry the flag
-    // AlwaysSameCode and the same byte in every column. RetroTerm's
-    // docs\TDV-KEYBOARD-COMPLETE-REFERENCE.md claims ESC[A for these in
-    // extended mode; the code disagrees and the code wins.
+    // Since 30-AUG-2026 (the VT100 decision) an arrow comes out of the
+    // DECODER as a sequence marker - 0x80 | the CSI final byte - which
+    // key_vt100.v expands to ESC [ x on its way to the UART. The marker is
+    // what is checked here; the expansion has its own checks in
+    // terminal_console_tb.v.
     mark = ascii_count;
     ps2_send(8'hE0); ps2_send(8'h74);             // right arrow
     check(ascii_count == mark + 1, "right arrow produced no byte");
-    check(last_ascii == 8'h18, "right arrow should send CAN 0x18");
+    check(last_ascii == (8'h80 | "C"), "right arrow should send marker 0x80|'C'");
     check(code_data == 8'h74 && code_extended, "extended scancode not reported");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h74);  // its release
 
     mark = ascii_count;
     ps2_send(8'hE0); ps2_send(8'h75);             // up
-    check(last_ascii == 8'h1C, "up arrow should send FS 0x1C");
+    check(last_ascii == (8'h80 | "A"), "up arrow should send marker 0x80|'A'");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h75);
 
     ps2_send(8'hE0); ps2_send(8'h72);             // down
-    check(last_ascii == 8'h0B, "down arrow should send VT 0x0B");
+    check(last_ascii == (8'h80 | "B"), "down arrow should send marker 0x80|'B'");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h72);
 
     ps2_send(8'hE0); ps2_send(8'h6B);             // left
-    check(last_ascii == 8'h08, "left arrow should send BS 0x08");
+    check(last_ascii == (8'h80 | "D"), "left arrow should send marker 0x80|'D'");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h6B);
 
     ps2_send(8'hE0); ps2_send(8'h6C);             // home
-    check(last_ascii == 8'h1D, "HOME should send GS 0x1D in native mode");
+    check(last_ascii == (8'h80 | "H"), "HOME should send marker 0x80|'H'");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h6C);
 
-    // An extended key with no TDV equivalent must send NOTHING - no VT100
-    // fallback, deliberately, the same rule RetroTerm follows.
+    // An extended key with no VT100 equivalent must send NOTHING rather
+    // than invented bytes.
     mark = ascii_count;
     ps2_send(8'hE0); ps2_send(8'h7D);             // Page Up
     check(ascii_count == mark, "an extended key with no TDV code sent something");

@@ -115,7 +115,9 @@ toolchain underneath. From WSL (the Windows-hosted tools are reached via
 Board-specific extras: `basys3` adds `make reuse` (skip the ~1h resynth,
 reuse the `synth_1` checkpoint) and `make lint`; `qmtech-a35t` takes
 `TEST=led-test|mem-test` (default `mem-test`) and has no `flash` flow yet;
-`nexys4ddr` takes `CLK=<MHz>` (default 16) and has no `flash` flow yet;
+`nexys4ddr` takes `CLK=<MHz>` (default 16) plus `CACHE=0` / `VGACONSOLE=0` /
+`PANELCLOCK=0`, and has the full `load` (JTAG, volatile) / `flash` (QSPI,
+permanent) pair;
 `mister` is a placeholder until the Quartus project exists; `cmod-a7-35t`
 uses the same Vivado flow as Basys3 (`make` / `make build` / `make clean`,
 delegating to `build.tcl`). The standalone

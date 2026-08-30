@@ -161,6 +161,23 @@ make CLK=33             # try a 33.333 MHz CPU clock instead of 16.667 MHz
 make clean
 ```
 
+**Getting a built bitstream onto the board - two different things:**
+
+```bash
+make load    # TEMPORARY: JTAG into configuration RAM, seconds.
+             # A power cycle restores whatever the QSPI flash holds -
+             # the worst case of a bad bitstream is "switch it off and on".
+             # Use this while iterating.
+make flash   # PERMANENT: writes the QSPI config flash (flash.tcl builds the
+             # .mcs, erases, programs, verifies, then boots the FPGA from it).
+             # Survives power cycles - this is the release/deploy step.
+```
+
+Neither triggers a rebuild: both refuse politely if `nd120_nexys4ddr.bit` is
+missing. The board's USB must be attached to Windows, not WSL (usbipd).
+Releasing a build = `make build` (it fails loudly on negative slack, so a
+broken-timing image cannot reach this step) followed by `make flash`.
+
 On the Windows host, call the tcl directly:
 
 ```powershell
@@ -169,6 +186,8 @@ vivado -mode batch -source build.tcl -tclargs clk=50         # 50 MHz attempt
 vivado -mode batch -source build.tcl -tclargs -skipwcs       # preload the WCS
 vivado -mode batch -source build.tcl -tclargs -NoPanelClock  # drop the panel clock (make PANELCLOCK=0)
 vivado -mode batch -source build.tcl -tclargs novgaconsole   # drop the VGA console (make VGACONSOLE=0)
+vivado -mode batch -source program.tcl                       # 'make load'  (JTAG, volatile)
+vivado -mode batch -source flash.tcl                         # 'make flash' (QSPI, permanent)
 ```
 
 Microcode `AM27256_4513{2,3}L.hex` is copied automatically from

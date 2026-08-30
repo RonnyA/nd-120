@@ -41,6 +41,7 @@ module term_panel_rom (
   localparam integer COL_FLP_R          = 65;
   localparam integer COL_FLP_W          = 67;
   localparam integer COL_LEGEND         = 72;
+  localparam integer COL_MIPS_VALUE     = 63;
   localparam integer PANEL_COLS         = 80;
   localparam integer PANEL_ROWS         = 5;
 
@@ -186,6 +187,15 @@ module term_panel_rom (
       9'd213: data = 8'h00;  // r2 c53 dynamic
       9'd214: data = 8'h00;  // r2 c54 dynamic
       9'd215: data = 8'h00;  // r2 c55 dynamic
+      9'd218: data = 8'h4D;  // r2 c58 M
+      9'd219: data = 8'h49;  // r2 c59 I
+      9'd220: data = 8'h50;  // r2 c60 P
+      9'd221: data = 8'h53;  // r2 c61 S
+      9'd223: data = 8'h00;  // r2 c63 dynamic
+      9'd224: data = 8'h00;  // r2 c64 dynamic
+      9'd225: data = 8'h00;  // r2 c65 dynamic
+      9'd226: data = 8'h00;  // r2 c66 dynamic
+      9'd227: data = 8'h00;  // r2 c67 dynamic
       9'd232: data = 8'h00;  // r2 c72 dynamic
       9'd233: data = 8'h00;  // r2 c73 dynamic
       9'd234: data = 8'h00;  // r2 c74 dynamic

@@ -37,7 +37,7 @@ module terminal_console_tb;
   localparam integer COLS = 80;
   //! 80x25 - TDV2200 geometry, confirmed by retroterm-09 from RetroTerm's
   //! EmulatorFactory. NOT 80x24; that is a whole row of difference.
-  localparam integer ROWS = 25;
+  localparam integer ROWS = 24;
 
   reg clk = 1'b0;
   reg rst_n = 1'b0;
@@ -129,12 +129,26 @@ module terminal_console_tb;
 
   wire kbd_line;
 
+  //! The VT100 sequence expander sits between the keyboard and the UART on
+  //! every real board, so it sits here too - part 3/4 then prove a plain key
+  //! STILL passes through it unchanged, and part 6 proves an arrow becomes
+  //! ESC [ C on the wire.
+  wire       seq_valid;
+  wire [7:0] seq_data;
+  wire       tx_ready;
+
+  key_vt100 KEYEXP (
+      .clk(clk), .rst_n(rst_n),
+      .key_valid(key_valid), .key_data(key_data),
+      .out_valid(seq_valid), .out_data(seq_data), .out_ready(tx_ready)
+  );
+
   console_uart_tx #(
       .CLK_HZ(CLK_HZ), .BAUD(BAUD), .DATA_BITS(DATA_BITS), .PARITY(PARITY)
   ) CONSOLE_TX (
       .clk(clk), .rst_n(rst_n),
       .divisor_ovr(16'd0),   // use the CLK_HZ/BAUD parameters
-      .byte_valid(key_valid), .byte_data(key_data), .ready(),
+      .byte_valid(seq_valid), .byte_data(seq_data), .ready(tx_ready),
       .txd(kbd_line)
   );
 
@@ -156,9 +170,13 @@ module terminal_console_tb;
   );
 
   reg [7:0] got_at_machine = 8'h00;
+  //! The last three bytes, oldest first - an arrow key arrives as ESC [ x.
+  reg [7:0] got_hist2 = 8'h00, got_hist1 = 8'h00;
   integer   n_at_machine = 0;
 
   always @(posedge clk) if (mrx_valid) begin
+    got_hist2      = got_hist1;
+    got_hist1      = got_at_machine;
     got_at_machine = mrx_data;
     n_at_machine   = n_at_machine + 1;
   end
@@ -331,6 +349,26 @@ module terminal_console_tb;
       end
     end
     check(got_at_machine == "A", "a shifted key did not arrive as upper case");
+
+    //------------------------------------------------------------------
+    // 6. An arrow key becomes a full VT100 sequence ON THE WIRE - three
+    //    UART frames from one keypress, through the expander's FIFO.
+    //------------------------------------------------------------------
+    n_start = n_at_machine;
+    ps2_send(8'hE0); ps2_send(8'h74);             // right arrow press
+    ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h74);  // and release
+
+    begin : wait_arrow
+      integer guard;
+      guard = 0;
+      while (n_at_machine < n_start + 3 && guard < 2_000_000) begin
+        @(posedge clk);
+        guard = guard + 1;
+      end
+    end
+    check(n_at_machine == n_start + 3, "an arrow must produce exactly 3 bytes");
+    check(got_hist2 == 8'h1B && got_hist1 == "[" && got_at_machine == "C",
+          "right arrow must arrive as ESC [ C");
 
     //------------------------------------------------------------------
     // 5. Video is alive: sync must be toggling. A terminal that renders

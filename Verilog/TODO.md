@@ -10,6 +10,34 @@
 
 ---
 
+## Terminal core is a VT100 - 30-AUG-2026
+
+DONE: `Terminals/rtl/terminal_ctrl.v` rewritten as a plain VT100 (SINTRAN
+terminal type 6) - ESC/CSI parser, CUP/ED/EL, SGR, DECSTBM regions with a
+copy engine, DECOM/DECAWM/DECSCNM/DECTCEM, DECSC/DECRC, RIS, G0/G1 with DEC
+Special Graphics (font page 2, `font/make_font.py`). Geometry 80x24 (was the
+TDV's 80x25). New `byte_fifo.v` in front of the controller (a region scroll
+outlasts one 115200 byte time). Unit suite green; decision + state in
+`Terminals/README.md`.
+
+DONE same day: keyboard arrows are VT100 too - `Terminals/rtl/key_vt100.v`
+expands the decoder's new sequence markers into `ESC [ A/B/C/D/H` (FIFO'd, so
+3 bytes per keypress survive the UART); wired on the Nexys top, tested end to
+end in `terminal_console_tb.v`. MiSTer build 1 keeps raw bytes on its echo
+path (arrows inert there until build 2 has a UART).
+
+Also new: `fpga/nexys4ddr/flash.tcl` + Makefile targets - `make load` (JTAG,
+volatile) and `make flash` (QSPI, permanent); README documents build /
+release / flash.
+
+Open:
+- First synthesis of the VT100 build: IN FLIGHT 30-AUG via the CACHEFIX
+  session's cache build 8 (Nexys, clk 16 + physopt, from the nd-120-build
+  worktree with the complete terminal set copied in); that session reports
+  the synth/timing verdict for the terminal files. Nothing on hardware yet.
+
+---
+
 ## Panel clock (MC68705 + MM58274) - 28-AUG-2026
 
 DONE: `CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v` emulates the clock path of
