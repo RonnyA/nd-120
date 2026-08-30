@@ -104,12 +104,22 @@ module PAL_44511A_EN_tb;
   // involved in reading it, which is the whole point.
   wire g_cwr = (g_MREQ & g_WCA) | (r_cwr & ~CLK);
 
-  // the /CWR pin as this RTL drives it - see DEVIATION 2 in the header
-  wire g_CWR_pin_n = OE_n ? 1'b0 : ~g_cwr;
+  // pin 19 as this RTL drives it - see DEVIATION 2 in the header for the OE
+  // gate. POLARITY (29-AUG-2026): the pin FOLLOWS the CWR expression - low
+  // on a read, high across a cache write. Sheet 25 feeds it into the 74S260
+  // NOR (21H) that makes HIT, which needs every input LOW; with the pin as
+  // ~CWR the cache could never hit on a read (measured in runSim and on the
+  // Nexys, CACHE-1X0-A00 test 2). The note in PAL_44511A_EN.v has the full
+  // chain.
+  wire g_CWR_pin_n = OE_n ? 1'b0 : g_cwr;
 
-  // What the registered hold captures at a clock edge, and what CWR therefore
-  // reads immediately after one.
-  wire g_cwr_hold_next = g_MREQ & g_WCA;
+  // What the hold LATCH holds after a clock edge, and what CWR therefore
+  // reads immediately after one. Since 29-AUG-2026 the hold is the listing's
+  // level latch (CWR * /CLK): it keeps a set CWR for as long as CLK is low,
+  // and a clock edge with unchanged inputs does not change it. Before that
+  // the RTL reloaded the hold with MREQ * WCA at every edge, which forgot a
+  // WCA pulse that had ended before the CLK rise - the cache bug.
+  wire g_cwr_hold_next = (g_MREQ & g_WCA) | (r_cwr & ~CLK);
   wire g_cwr_after     = (g_MREQ & g_WCA) | (g_cwr_hold_next & ~CLK);
 
   // /CUP is the registered output. Its set term takes the UNGATED CWR - pin 19
@@ -183,8 +193,8 @@ module PAL_44511A_EN_tb;
         end
 
         tick;
-        chk("EN1_CWR_n_next", e_CWR_n, OE_n ? 1'b0 : ~g_cwr_after);
-        chk("OR0_CWR_n_next", o_CWR_n, OE_n ? 1'b0 : ~g_cwr_after);
+        chk("EN1_CWR_n_next", e_CWR_n, OE_n ? 1'b0 : g_cwr_after);
+        chk("OR0_CWR_n_next", o_CWR_n, OE_n ? 1'b0 : g_cwr_after);
         if (OE_n === 1'b0) begin
           chk("EN1_CUP_next", e_CUP, ~g_cup_n_next);
           chk("OR0_CUP_next", o_CUP, ~g_cup_n_next);
@@ -209,19 +219,21 @@ module PAL_44511A_EN_tb;
     end
     {PIL3, PIL2, PIL1, PIL0} = 4'b0000;
 
+    // Checks 2-4 read the PIN, which since 29-AUG-2026 FOLLOWS CWR (high when
+    // set, low when clear) - see g_CWR_pin_n above and the note in the RTL.
     // 2. CWR IS COMBINATIONAL. MREQ * WCA must reach the pin with NO clock
     //    edge at all. This is the check that would have caught the cache bug:
     //    the old RTL needed an edge here, so CUP never saw CWR in time.
     MREQ_n = 1'b0; WCA_n = 1'b0; CLK = 1'b0;
     set_state(1'b0, 1'b1);
     checks = checks + 1;
-    if (e_CWR_n !== 1'b0) begin
+    if (e_CWR_n !== 1'b1) begin
       errors = errors + 1;
       $display("FAIL CWR_IS_COMBINATIONAL: e_CWR_n=%b, MREQ * WCA must reach the pin with no clock edge", e_CWR_n);
     end
     tick;
     checks = checks + 1;
-    if (e_CWR_n !== 1'b0) begin
+    if (e_CWR_n !== 1'b1) begin
       errors = errors + 1;
       $display("FAIL CWR_SET: e_CWR_n=%b, MREQ * WCA must set CWR at the edge", e_CWR_n);
     end
@@ -231,7 +243,7 @@ module PAL_44511A_EN_tb;
     set_state(1'b0, 1'b1);
     tick;
     checks = checks + 1;
-    if (e_CWR_n !== 1'b1) begin
+    if (e_CWR_n !== 1'b0) begin
       errors = errors + 1;
       $display("FAIL CWR_NEEDS_WCA: e_CWR_n=%b, MREQ alone must not set CWR", e_CWR_n);
     end
@@ -239,7 +251,7 @@ module PAL_44511A_EN_tb;
     set_state(1'b0, 1'b1);
     tick;
     checks = checks + 1;
-    if (e_CWR_n !== 1'b1) begin
+    if (e_CWR_n !== 1'b0) begin
       errors = errors + 1;
       $display("FAIL CWR_NEEDS_MREQ: e_CWR_n=%b, WCA alone must not set CWR", e_CWR_n);
     end
@@ -251,14 +263,14 @@ module PAL_44511A_EN_tb;
     MREQ_n = 1'b1; WCA_n = 1'b1; CLK = 1'b0;
     set_state(1'b1, 1'b1);
     checks = checks + 1;
-    if (e_CWR_n !== 1'b0) begin
+    if (e_CWR_n !== 1'b1) begin
       errors = errors + 1;
       $display("FAIL CWR_HOLD: e_CWR_n=%b, /CLK must hold CWR", e_CWR_n);
     end
     CLK = 1'b1;
     set_state(1'b1, 1'b1);
     checks = checks + 1;
-    if (e_CWR_n !== 1'b1) begin
+    if (e_CWR_n !== 1'b0) begin
       errors = errors + 1;
       $display("FAIL CWR_RELEASE: e_CWR_n=%b, CLK high must release CWR", e_CWR_n);
     end

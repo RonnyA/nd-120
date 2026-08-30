@@ -471,7 +471,7 @@ CPU_MMU_CACHE_25_ff_tb_bin: $(MMUCACHE_SRCS)
 # CCLR_n does not clear the Am9150 used-bit array (reset is a no-op in the
 # model). PASS = behaviour verified WITH the defects present; fixing the
 # RTL flips those checks and this bench must then be updated.
-MMUCACHE_DMA_SRCS = CPU_MMU_CACHE_DMA_tb.v $(CIRCUIT)/CPU_MMU_CACHE_25.v $(CIRCUIT)/CPU_MMU_HIT_27.v $(SUPPORT)/TMM2018D_25.v $(SUPPORT)/Am9150.v $(PAL)/PAL_44402D_EN.v $(PAL)/PAL_44402D.v
+MMUCACHE_DMA_SRCS = CPU_MMU_CACHE_DMA_tb.v $(CIRCUIT)/CPU_MMU_CACHE_25.v $(CIRCUIT)/CPU_MMU_HIT_27.v $(SUPPORT)/TMM2018D_25.v $(SUPPORT)/Am9150.v $(PAL)/PAL_44402D_EN.v $(PAL)/PAL_44402D.v $(PAL)/PAL_44511A_EN.v $(PAL)/PAL_44511A.v
 
 test-mmucache-dma: CPU_MMU_CACHE_DMA_tb_bin CPU_MMU_CACHE_DMA_ff_tb_bin
 	./CPU_MMU_CACHE_DMA_tb_bin | tee mmucache_dma_result.tmp

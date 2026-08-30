@@ -47,75 +47,61 @@ module Am9150 (
     input  wire       OUTPUT_ENABLE_n,  // /G - Output Enable (active low)
     input  wire       RESET_n           // /R - Reset (active low)
 );
-  //integer i;
-
-
   reg  [3:0] data4bit;
 
   /*******************************************************************************
-   ** Memory array using block RAM                                               **
-   **                                                                            **
-   ** yosys: the asynchronous read on data_out (assign below) cannot map to a   **
-   ** BSRAM, and yosys treats ram_style="block" as a hard requirement ("ERROR:  **
-   ** no valid mapping") where Vivado/Gowin EDA treat it as advisory and fall   **
-   ** back. 1024x4 = 4 Kbit as distributed LUT RAM (~256 LUT4); one instance    **
-   ** in the design (MMU cache CHIP_21F). yosys pre-defines YOSYS, so every     **
-   ** other flow (Vivado, Gowin EDA, Verilator, iverilog) is untouched.         **
+   ** Memory array - distributed LUT RAM on every FPGA flow: the read below is  **
+   ** asynchronous (the real chip is a 20 ns SRAM), which no block RAM can do.  **
+   ** 1024x4 = 4 Kbit (~256 LUT4); one instance in the design (MMU cache        **
+   ** CHIP_21F, the used/valid bits).                                            **
    *******************************************************************************/
-`ifdef YOSYS
   (* ram_style = "distributed" *) reg [3:0] am_memory_array[0:1023];
-`else
-  (* ram_style = "block" *) reg [3:0] am_memory_array[0:1023];
-`endif
-
 
   /*******************************************************************************
    ** RESET (/R) - the real chip resets the ENTIRE memory to 0 "in two cycle   **
-   ** times" (datasheet, controlling /R and /S). The old model skipped this    **
-   ** ("NO CAN DO WITH BLOCK RAM") and only gated data_out to 0 WHILE /R was   **
-   ** low - so every location came back with its old contents the moment the  **
-   ** reset pulse ended. In the MMU cache (CHIP_21F, the used/valid bits)     **
-   ** that made the CCLR cache-clear command a NO-OP: SINTRAN's cache flush   **
-   ** after a disc DMA transfer flushed nothing and stale pre-DMA data kept   **
-   ** hitting (found 24-AUG-2026, ND120_ERRFA hunt; demonstrated by          **
-   ** CPU-BOARD-3202/circuit/sim/CPU_MMU_CACHE_DMA_tb.v).                    **
+   ** times" (datasheet, controlling /R and /S).                                **
    **                                                                         **
-   ** The array is distributed LUT RAM on every FPGA flow (the async read     **
-   ** below forbids BSRAM), so a write-port sweep IS implementable: the       **
-   ** falling edge of /R starts a 1024-step sweep writing 0. While the sweep  **
-   ** runs, data_out reads as 0 (everything is invalid), so no stale value    **
-   ** can hit before its location has been cleared. The sweep also runs once  **
-   ** at power-up (counter initializer), which scrubs the X/random power-up   **
-   ** state instead of trusting bitstream zero-init. External writes during   **
-   ** the ~1024-clock sweep may be swept afterwards - for a cache valid bit   **
-   ** that only causes a spurious later miss, never a stale hit.              **
+   ** History, because this location has been wrong twice:                    **
+   **  - the first model skipped the reset ("NO CAN DO WITH BLOCK RAM") and    **
+   **    only gated data_out while /R was low, so CCLR was a no-op and stale  **
+   **    pre-DMA lines kept hitting (24-AUG-2026, CPU_MMU_CACHE_DMA_tb.v);    **
+   **  - the 24-AUG fix cleared the array with a 1024-step write sweep and    **
+   **    DROPPED every external write while the sweep ran, saying that "only  **
+   **    causes a spurious later miss". It did: CACHE-1X0-A00 test 2 issues a **
+   **    cache clear and writes its test word within the next few hundred     **
+   **    clocks, the tag and data RAMs took the write, this chip did not, and **
+   **    the line stayed "not used" forever - "DATA is taken FROM MEMORY when **
+   **    present in DATA CACHE", "NOT COPIED", "MIXED UP ADDRESSING" on the    **
+   **    board and in Verilator alike (29-AUG-2026, runSim ND120_CACHE_WIN:   **
+   **    sweep=1 at the write, used_mem=0 after it).                          **
+   **                                                                         **
+   ** Now: one VALID flip-flop per location. /R low clears all 1024 in ONE     **
+   ** clock (the chip's two cycle times); a write sets its location's valid   **
+   ** bit together with the data; a read returns 0 for a location that has   **
+   ** not been written since the last reset. Nothing is ever dropped or       **
+   ** swept. Power-up: the valid vector initialises to 0, so the X/random    **
+   ** power-up contents of the array are never visible. Cost on the FPGA:    **
+   ** 1024 flip-flops, on a board that has 126k.                              **
    *******************************************************************************/
-  reg        reset_n_d = 1'b1;
-  reg [10:0] sweep = 11'd0;         // bit10 clear = sweep active; starts at power-up
-  wire       sweep_active = !sweep[10];
+  reg [1023:0] valid = {1024{1'b0}};
 
   // Read, write and reset operations
   always @(posedge clk)
   begin
-    reset_n_d <= RESET_n;
-    if (reset_n_d && !RESET_n) begin
-      // /R falling edge: restart the clear sweep
-      sweep <= 11'd0;
-      am_memory_array[10'd0] <= 4'b0000;
-    end else if (sweep_active) begin
-      sweep <= sweep + 11'd1;
-      am_memory_array[sweep[9:0]] <= 4'b0000;
+    if (!RESET_n) begin
+      valid <= {1024{1'b0}};             // /R: everything invalid at once
     end else if (!CHIP_SELECT_n && !WRITE_ENABLE_n) begin
       // Write operation: active when chip is selected and write enable is low
       am_memory_array[address] <= data_in;
+      valid[address]           <= 1'b1;
     end
 
-    data4bit <= am_memory_array[address];
+    data4bit <= valid[address] ? am_memory_array[address] : 4'b0000;   // registered copy for waveforms/probes
   end
 
   // Read operation: active when chip is selected and output enable is low
-  // (and not writing, not in reset, not mid-sweep)
-  assign data_out = (!CHIP_SELECT_n & !OUTPUT_ENABLE_n & WRITE_ENABLE_n & RESET_n & !sweep_active)
+  // (and not writing, not in reset); a never-written location reads 0.
+  assign data_out = (!CHIP_SELECT_n & !OUTPUT_ENABLE_n & WRITE_ENABLE_n & RESET_n & valid[address])
                     ? am_memory_array[address] : 4'b0;
 
 endmodule

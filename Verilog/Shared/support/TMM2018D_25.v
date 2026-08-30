@@ -13,7 +13,19 @@
 
 
 module TMM2018D_25 #(
-    parameter INSTANCE_NAME = "TMM2018"
+    parameter INSTANCE_NAME = "TMM2018",
+    //! 1 = read the array COMBINATIONALLY, as the real 25 ns SRAM does. The
+    //! FPGA then builds it from distributed (LUT) RAM instead of block RAM:
+    //! 2K x 8 = 16 kbit per chip. Set on the four CACHE chips (sheet 25)
+    //! since 29-AUG-2026: with the block-RAM read the tag came out one sysclk
+    //! after CA changed, so HIT was decided a cycle-controller state too late
+    //! - late for the 75/100 ns hit-terminate terms of PAL 44601 but in time
+    //! to cancel the memory request at state d - and CACHE-1X0-A00 test 2
+    //! ended in an illegal-instruction trap (docs/CACHE-STATUS.md). With the
+    //! async read that trap is gone, in Verilator. The page-table chips on
+    //! sheet 29 keep the block-RAM read (0). The old global -DTMM_ASYNC_READ
+    //! still forces async on every instance, for the testbenches that use it.
+    parameter integer ASYNC_READ = 0
 ) (
     // Input signals
     input wire    clk, // Clock input (needed for BLOCK RAM)
@@ -29,54 +41,52 @@ module TMM2018D_25 #(
     output wire [ 7:0] D_OUT    // 8 bit data output (when Chip is selected, no write, and output is enabled)
 );
 
-  //  integer i;
-
-  reg [7:0] data_out_reg;
-
   /*******************************************************************************
-** Memory array using block RAM                                               **
-*******************************************************************************/
-  (* ram_style = "block" *)reg [7:0] tmm_memory_array[0:2047];  // 2^11 addresses, each 8-bit wide = 2KB (or 16Kbit)
-
-  always @(posedge clk) begin
-    if (!reset_n) begin
-      /* verilator lint_off BLKSEQ */
-
-      // BLOCK RAM DOESNT SUPPORT INITIALISATION
-
-      // Reset operation: set all memory locations to 0
-      //for (i = 0; i < 2047; i = i + 1) begin
-      //   memory_array[i] = 8'b00000000; // none delayed initialisation
-      //end
-      /* verilator lint_on BLKSEQ */
-    end else begin
-      if (!CS_n) begin
-        if (!W_n) begin
-          // Write operation: active when chip is selected and write enable is low
-          tmm_memory_array[ADDRESS] <= D;
-          //$display("%s WRITE Address %04h Value %2h", INSTANCE_NAME, ADDRESS, D);
-        end else begin
-          // Example synchronous read:
-          data_out_reg <= tmm_memory_array[ADDRESS];
-        end
-      end
-    end
-  end
-
-  // Output is enabled when OE_n and CS_n, but not during write
+   ** Memory array                                                               **
+   *******************************************************************************/
 `ifdef TMM_ASYNC_READ
-  // DIAGNOSTIC (Issue D, PAGING test 3): the real TMM2018D is an ASYNC SRAM -
-  // data follows the address combinationally. The sync-read BRAM model below
-  // serves data one clock stale when the address changes just before the
-  // consuming edge (PT translation / trap-handler PT read-modify-write).
-  // This define restores the faithful async read for simulation. NOT
-  // BRAM-inferrable - do not enable for FPGA synthesis without a timing plan.
-  assign D_OUT = (!OE_n & !CS_n & W_n) ? tmm_memory_array[ADDRESS] : 8'b0; // <== ASYNC read
+  localparam integer USE_ASYNC = 1;
 `else
-  assign D_OUT = (!OE_n & !CS_n & W_n) ? data_out_reg : 8'b0; //<== SYNC read
-  //assign D_OUT = (!OE_n & !CS_n & W_n) ? tmm_memory_array[ADDRESS] : 8'b0; // <== ASYNC read
+  localparam integer USE_ASYNC = ASYNC_READ;
 `endif
 
+  // Two self-contained implementations. Block RAM cannot be read
+  // asynchronously, so the ASYNC_READ one is distributed (LUT) RAM; the
+  // block-RAM one keeps the registered read the FPGA has always used.
+  // No reset of the contents: block RAM does not support it, and the real
+  // chip powers up random.
+  generate
+    if (USE_ASYNC) begin : g_async
+      // ASYNC (parameter ASYNC_READ=1, or the global -DTMM_ASYNC_READ): the
+      // real TMM2018D is a 25 ns SRAM - data follows the address
+      // combinationally. The sync-read model serves data one clock stale when
+      // the address changes just before the consuming edge (PT translation /
+      // trap-handler PT read-modify-write - Issue D, PAGING test 3; and the
+      // cache HIT, see the parameter comment).
+      (* ram_style = "distributed" *) reg [7:0] tmm_memory_array[0:2047];
+      always @(posedge clk) begin
+        if (reset_n && !CS_n && !W_n) begin
+          tmm_memory_array[ADDRESS] <= D;   // write: chip selected, write enable low
+        end
+      end
+      assign D_OUT = (!OE_n & !CS_n & W_n) ? tmm_memory_array[ADDRESS] : 8'b0; // <== ASYNC read
+    end else begin : g_sync
+      (* ram_style = "block" *) reg [7:0] tmm_memory_array[0:2047];  // 2^11 addresses, each 8-bit wide = 2KB (or 16Kbit)
+      reg [7:0] data_out_reg;
+      always @(posedge clk) begin
+        if (reset_n && !CS_n) begin
+          if (!W_n) begin
+            tmm_memory_array[ADDRESS] <= D;   // write: chip selected, write enable low
+            //$display("%s WRITE Address %04h Value %2h", INSTANCE_NAME, ADDRESS, D);
+          end else begin
+            data_out_reg <= tmm_memory_array[ADDRESS];  // synchronous read, one clock late
+          end
+        end
+      end
+      // Output is enabled when OE_n and CS_n, but not during write
+      assign D_OUT = (!OE_n & !CS_n & W_n) ? data_out_reg : 8'b0; //<== SYNC read
+    end
+  endgenerate
 
 endmodule
 
