@@ -128,15 +128,17 @@ rewrite. Utilization delta vs the old TDV terminal: +695 LUTs, +494 regs,
 session's cache build 8; first hardware exercise (TPE console traffic) ran
 right after - what a human sees on the screen is still unreported.
 
-**One thing a green run does NOT prove.** `ps2_ascii_table.v` is transcribed
-from the published scancode-set-2 tables; nobody has typed on a real keyboard
-to check it, and the testbench asserts against the table AS WRITTEN, so it
-will stay green even if an entry is wrong. It also assumes a **US ANSI**
-layout - a Norwegian keyboard moves several punctuation keys, and the ones
-SINTRAN needs (parentheses, colon, comma, full stop, slash) are the ones to
-check first. That check IS phase 3 of
-[../fpga/nexys4ddr/PLAN-vga-console.md](../fpga/nexys4ddr/PLAN-vga-console.md):
-type on the real thing and read the screen.
+**The scancode table is verified against the standard, not against fingers.**
+Every set-2 code in `ps2_ascii_table.v` was cross-checked 30-AUG-2026 against
+two independent published references - the OSDev wiki set-2 table and Vetra
+Systems' translation table - and both agree with every entry, F7=0x83
+included. Scan code set 2 is a fixed standard, so the codes are settled by
+documentation. What still needs the real board (phase 3 of
+[../fpga/nexys4ddr/PLAN-vga-console.md](../fpga/nexys4ddr/PLAN-vga-console.md)):
+that the Nexys USB-HID bridge behaves as the standard says, and the
+**Norwegian layout positions**, which come from RetroTerm's KBD-ND-246 grid
+rather than from any scancode standard - parentheses, colon, comma, full
+stop and slash are the ones SINTRAN needs first.
 
 Plan: [docs/PLAN-vt100-terminal-core.md](docs/PLAN-vt100-terminal-core.md).
 
@@ -260,6 +262,6 @@ here when it lands.
 - **Stage C (TDV 2200)** - not planned. If it ever returns it is a delta on
   the VT100 parser; `terminal_ctrl.v`'s header says where the ND finals and
   private modes would hook in.
-- **Open:** eyes on the real screen and fingers on the real keyboard - the
-  scancode table is still transcription-only, and nobody has watched the
-  VT100 render on the monitor yet (it is flashed and running).
+- **Open:** eyes on the real screen (rendering confirmed good by Ronny
+  30-AUG) and the Norwegian layout positions at the real keyboard - the
+  set-2 scancodes themselves are settled against published references.

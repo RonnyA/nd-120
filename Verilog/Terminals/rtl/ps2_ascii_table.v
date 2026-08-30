@@ -4,17 +4,17 @@
 //! Part of the board-independent terminal core (Verilog/Terminals/).
 //! Pure combinational lookup; 0x00 out means "this key has no character".
 //!
-//! !! UNVERIFIED DATA. These codes are transcribed from the published
-//! !! scancode-set-2 tables. NOTHING here has been checked against a physical
-//! !! keyboard, and the person who wrote it could not check it. Phase 3 of
-//! !! fpga/nexys4ddr/PLAN-vga-console.md is exactly that check - type every
-//! !! key on a real keyboard and read the screen. Until then every line below
-//! !! is a claim, not a fact.
-//!
-//! Layout assumed: US ANSI. A Norwegian keyboard puts several of the
-//! punctuation keys elsewhere, and the ones that matter for SINTRAN
-//! (parentheses, colon, comma, full stop, slash) should be checked first when
-//! Ronny types on his own keyboard.
+//! SCANCODES CROSS-CHECKED 30-AUG-2026 against two independent published
+//! references, which agree with every entry below including the F7=0x83
+//! oddity: the OSDev wiki's set-2 table (wiki.osdev.org/PS/2_Keyboard) and
+//! Vetra Systems' scan-code translation table (vetra.com/scancodes.html).
+//! Scan code set 2 is a fixed standard every PS/2-compatible keyboard and
+//! the Nexys board's USB-HID bridge implement, so the codes are facts, not
+//! transcription hopes. What documentation CANNOT settle - and typing on
+//! the real board still can (fpga/nexys4ddr/PLAN-vga-console.md phase 3):
+//! whether the board's bridge really emits set 2 unsurprisingly, and the
+//! NORWEGIAN LAYOUT POSITIONS below, which come from RetroTerm's
+//! KBD-ND-246.md rather than from a scancode standard.
 //!
 //! Extended (E0-prefixed) keys ARE here, in their own `extended` output and
 //! their own case block below. Since the 30-AUG-2026 VT100 decision the
@@ -62,8 +62,8 @@ module ps2_ascii_table (
   // evidence trail is in docs/SPEC-tdv2200.md and the git history. The
   // terminal is a VT100 now.)
   //
-  // !! The PS/2 SCANCODES below are from the published set-2 tables and are
-  // !! UNVERIFIED against a physical keyboard, same as the main table.
+  // Scancodes cross-checked against OSDev + Vetra 30-AUG-2026 - see the
+  // module header. Both agree on every code below.
   //--------------------------------------------------------------------------
 
   always @(*) begin

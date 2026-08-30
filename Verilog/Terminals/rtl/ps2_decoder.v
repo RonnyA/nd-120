@@ -21,10 +21,10 @@
 //! then fixed on all of them, which is not true if each board carries its own
 //! copy.
 //!
-//! !! THE SCANCODE TABLE IS STILL UNVERIFIED against a physical keyboard -
-//! !! see the warnings in ps2_ascii_table.v. This module's LOGIC is tested
-//! !! (ps2_keyboard_tb.v drives it through the serial front end); the DATA it
-//! !! looks things up in is not.
+//! The scancode table's data is cross-checked against two independent
+//! published set-2 references (see ps2_ascii_table.v's header, 30-AUG-2026);
+//! this module's LOGIC is tested by ps2_keyboard_tb.v through the serial
+//! front end.
 //!
 //! Written 28-AUG-2026.
 //============================================================================

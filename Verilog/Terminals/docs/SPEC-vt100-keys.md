@@ -124,9 +124,9 @@ PS/2 side (`ps2_ascii_table.v`): the six editing keys are E0-extended
 are plain set-2 codes (05 06 04 0C 03 0B 83 0A 01 09 78 07 for F1..F12,
 note F7 = 0x83, the one two-byte-looking oddity) and sit in the MAIN table,
 which today returns 0 for them; they need marker entries there, emitted for
-both shifted and unshifted (rule above). Scancodes are transcription from
-the published set-2 tables, same caveat as the rest of that file: unverified
-against a physical keyboard until someone types on the real thing.
+both shifted and unshifted (rule above). Scancodes cross-checked 30-AUG-2026
+against the OSDev wiki set-2 table and Vetra Systems' translation table -
+both agree on every code used here, F7 = 0x83 included.
 
 ## Decision and implementation (Ronny, 30-AUG-2026)
 
