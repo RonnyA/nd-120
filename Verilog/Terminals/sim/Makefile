@@ -11,6 +11,7 @@
 #   make test-banner         the power-on message sender
 #   make test-panel          the ND-120 operator panel
 #   make test-mips-counter   the panel's MIPS counter arithmetic
+#   make test-key-vt100      every keyboard marker against its byte sequence
 #   make lint       Verilator lint over the whole terminal core
 #   make clean
 #
@@ -29,9 +30,9 @@ RTL       = ../rtl
 # elsewhere in this repo; -Wall to catch width mistakes early.
 IVFLAGS = -g2012 -Wall -I$(RTL)
 
-.PHONY: all test-vga-timing test-terminal-ctrl test-ps2-keyboard test-console-uart test-console-loop test-text-screen test-banner test-panel test-mips-counter lint clean
+.PHONY: all test-vga-timing test-terminal-ctrl test-ps2-keyboard test-console-uart test-console-loop test-text-screen test-banner test-panel test-mips-counter test-key-vt100 lint clean
 
-all: test-vga-timing test-terminal-ctrl test-ps2-keyboard test-console-uart test-console-loop test-text-screen test-banner test-panel test-mips-counter
+all: test-vga-timing test-terminal-ctrl test-ps2-keyboard test-console-uart test-console-loop test-text-screen test-banner test-panel test-mips-counter test-key-vt100
 	@echo "terminal core: all testbenches passed"
 
 test-vga-timing: vga_timing_tb.vvp
@@ -68,6 +69,13 @@ test-text-screen: text_screen_tb.vvp
 	@grep -q "TB_RESULT: PASS" text_screen_tb.log || { echo "text_screen_tb FAILED"; exit 1; }
 
 text_screen_tb.vvp: text_screen_tb.v $(RTL)/text_screen.v $(RTL)/vga_timing.v $(RTL)/font_rom.v $(RTL)/char_ram.v
+	$(IVERILOG) $(IVFLAGS) -o $@ $^
+
+test-key-vt100: key_vt100_tb.vvp
+	@$(VVP) $< | tee key_vt100_tb.log
+	@grep -q "TB_RESULT: PASS" key_vt100_tb.log || { echo "key_vt100_tb FAILED"; exit 1; }
+
+key_vt100_tb.vvp: key_vt100_tb.v $(RTL)/key_vt100.v
 	$(IVERILOG) $(IVFLAGS) -o $@ $^
 
 test-mips-counter: mips_counter_tb.vvp

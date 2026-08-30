@@ -93,6 +93,9 @@ REGISTRY=(
   # the panel's MIPS counter - window arithmetic, idle clear, saturation
   # (30-AUG-2026, with the MIPS field on the panel)
   "Terminals/sim :: test-mips-counter :: TB_RESULT: PASS"
+  # the VT100 key-sequence expander - every marker byte-exact against its
+  # DEC sequence, incl. the two-digit ESC[nn~ form and a FIFO burst
+  "Terminals/sim :: test-key-vt100 :: TB_RESULT: PASS"
   # --- MiSTer core ----------------------------------------------------------
   # The board-specific console glue, NOT the terminal core (that is above). The
   # three things tested here exist only on this board and each fails in a way
