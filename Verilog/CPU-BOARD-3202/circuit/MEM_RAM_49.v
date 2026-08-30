@@ -19,6 +19,13 @@ module MEM_RAM_49 #(
 `ifdef VERILATOR_SIM
   `ifdef FORCE_SMALL_RAM
     parameter integer RAM_SIZE = 3  // FORCE FPGA-size BRAM in sim to reproduce the FPGA RAM bug
+  `elsif ND120_SIM_RAM_64K
+    // 64K words per chip. Added 29-AUG-2026 so the TPE test programs can be
+    // run in Verilator in a bearable time: TPE initialises ALL memory before
+    // RUN, one progress '>' per bank, and at ~270k sim cycles/s the 1M-word
+    // default takes hours. The cache diagnostic needs very little memory.
+    // Build with EXTRA_VDEFINES="-DND120_SIM_RAM_64K" (runSim Makefile).
+    parameter integer RAM_SIZE = 1
   `else
     parameter integer RAM_SIZE = 2  // 1MB for simulation
   `endif
