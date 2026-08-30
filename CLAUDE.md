@@ -31,7 +31,9 @@ Three defines control behavior; understanding them is essential:
 
 - `VERILATOR_SIM` — set for **all** Verilator sim builds. Enables bus ports, fast UART, and large sim RAM (6MB, `ramSize=2`). Absent for FPGA synthesis, which uses tiny BRAM-friendly RAM (24KB, `ramSize=3`) — the `xc7a35t` only has 100 RAMB18 blocks. Selected automatically in `MEM_RAM_49.v`.
 - `FPGA_FF_MODE` — forces edge-triggered flip-flop behavior instead of the original transparent-latch behavior. Added by the Makefiles when `USE_LATCHES=0`.
-- `USE_LATCHES` (Makefile var, default `1`) — `1` = transparent latches (matches original hardware), `0` = FF mode (what the FPGA needs). This latch-vs-FF split is the crux of the FPGA boot divergence work.
+- `USE_LATCHES` (Makefile var, default `1` in `sim/`, `0` in `runSim/`) — `1` = transparent latches (matches original hardware), `0` = FF mode (what the FPGA needs). This latch-vs-FF split is the crux of the FPGA boot divergence work.
+
+The full reference for EVERY build option — all Verilog defines, sim make variables (`CACHE`, `PANEL_CLOCK`, `PACK16`, `SD_STORAGE`, …), Nexys `build.tcl` args + clock table, Tang `gowin_build.ps1`/OSS-make switches, Basys3 flags, and the runSim runtime env-var probes — is `Verilog/docs/build-defines.md`. Look there before adding or renaming any option, and keep it updated when one changes.
 
 ## Development Commands
 
