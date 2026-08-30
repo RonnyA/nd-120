@@ -469,7 +469,8 @@ module DECODE_DGA (
 
     // Control/Status inputs
     .CSIDBS_4_0(s_csidbs_4_0[4:0]),  // 5-bit control input
-    .LCSN(s_xlcn),           // Load Control Store
+    .LCSN(s_xlcn),
+    .RWCSN(s_xrwn),          // the DGA's OWN RWCS decode (COMM sheet output, net s_xrwn) - gates the IDBS sheet's simulation-compensation window
     .STAT3(s_xst_4_3[0]),    // Status bit 4 from PANEL/CALENDAR CPU 68705
     .STAT4(s_xst_4_3[1]),    // Status bit 4 from PANEL/CALENDAR CPU 68705
 
