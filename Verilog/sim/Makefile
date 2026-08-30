@@ -14,6 +14,15 @@ ifeq ($(USE_LATCHES),0)
   SIM_DEFINES += -DFPGA_FF_MODE
 endif
 
+# CACHE: Set to 1 (default) to build the CPU cache (today's behavior).
+#        Set to 0 to compile it out (-DND120_NO_CACHE, CPU_MMU_CACHE_25.v):
+#        omits the five cache memories + used-bit PAL, forces hit=0, and the
+#        machine reports the cache as disabled - matches the Tang FPGA build.
+CACHE ?= 1
+ifeq ($(CACHE),0)
+  SIM_DEFINES += -DND120_NO_CACHE
+endif
+
 # SKIP_WCS: pre-load the WCS and skip the microcode load phase (docs/skip-wcs-load.md).
 # Requires the 32 wcs_*.hex files in this dir (Code/Microcode/gen_wcs_image.py).
 # CPP_DEFINES also forwards the flag to the C++ testbench so it can trace from

@@ -18,6 +18,22 @@ ifeq ($(USE_LATCHES),0)
   SIM_DEFINES += -DFPGA_FF_MODE
 endif
 
+# CACHE: Set to 1 (default) to build the CPU cache (today's behavior).
+#        Set to 0 to compile it out (-DND120_NO_CACHE, CPU_MMU_CACHE_25.v):
+#        omits the five cache memories + used-bit PAL, forces hit=0, and the
+#        machine reports the cache as disabled - matches the Tang FPGA build.
+#        The define is ALSO forwarded to the C++ harness: Run120.cpp's cache
+#        probes ([inh], ND120_CACHE_TRACE/WIN/PPN) dereference cache-internal
+#        Verilator signals that a no-cache build compiles out, so those probe
+#        blocks are #ifndef ND120_NO_CACHE in Run120.cpp.
+#        'override' for the same reason VERILOG_TAPE uses it: EXTRA_CFLAGS is
+#        usually given on the make command line, which beats plain +=.
+CACHE ?= 1
+ifeq ($(CACHE),0)
+  SIM_DEFINES += -DND120_NO_CACHE
+  override EXTRA_CFLAGS += -DND120_NO_CACHE
+endif
+
 # PANEL_CLOCK=1: emulate the MC68705/MM58274 clock path (IO_PANCAL_40.v ->
 # PANCAL_68705_CLOCK.v) so TRR PANC / TRA PANS can set and read the hardware
 # clock. Off by default so the golden traces/console are unchanged.

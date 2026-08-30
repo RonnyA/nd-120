@@ -937,6 +937,271 @@ int main(int argc, char **argv)
 				}
 			}
 
+			// Inhibit-limits golden-timeline probe (ND120_INHIBIT_TRACE=1,
+			// run-time). Written 30-AUG-2026 to capture a PASSING Verilator
+			// run of CACHE-1X0-A00 test 3 ("Inhibit limits") for comparison
+			// against the Nexys, where the same test hangs at P=124563B.
+			// Four captures, all octal, each with its own print cap:
+			//   [inh] CCLR   - every falling edge of CCLR_n (TRR CCLR, code
+			//                  010): cnt, CSA, P and A at that instant.
+			//   [inh] sweep  - the inhibit-map programming done by TRR LCIL
+			//                  (011) / UCIL (012): the microcode sweeps the
+			//                  16Kx1 inhibit RAM via WCLIM_n one page per
+			//                  strobe (microwords 02045/02046 etc.), so the
+			//                  burst IS the limit programming. Logged as a
+			//                  start line (P, A when the first strobe lands)
+			//                  and an end line with the min..max page range
+			//                  written per data value plus the whole-map
+			//                  count and the map's inhibited (=0) range.
+			//   [inh] acc    - sampled proof of behaviour: at each cycle-
+			//                  controller TERM with a memory request, the
+			//                  access is classed by the inhibit map bit of
+			//                  its PPN x cache HIT; the first few lines of
+			//                  each class after every sweep are printed and
+			//                  all four classes are counted. "inh=0 hit=1"
+			//                  lines after the limits are set would be the
+			//                  smoking gun (inhibited access served by
+			//                  cache); their absence plus "inh=1 hit=1"
+			//                  lines is the pass evidence.
+			//   [inh] pc     - THE key artifact: every change of P while P
+			//                  is inside 124400..125000 (octal), with CSA,
+			//                  PIL, HIT, BRK_n, MREQ and the map bit of the
+			//                  current PPN - plus an explicit exit line
+			//                  naming the P it left to. This is the window
+			//                  the Nexys spins in at 124563.
+			// P and A are read from the WRF flops directly (the flat aliases
+			// fold; the flops survive a build without --public-flat-rw, same
+			// trick as the [live] probe).
+#ifndef ND120_NO_CACHE // probe reads cache internals a CACHE=0 build compiles out
+			{
+				static int it_on = -1;
+				if (it_on < 0) it_on = getenv("ND120_INHIBIT_TRACE") ? 1 : 0;
+				if (it_on)
+				{
+					auto rp = top->rootp;
+					unsigned it_p = (((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__P_REG_2__DOT__L_PR_8_15__DOT__reg8bit & 0xFFu) << 8)
+					              | ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__P_REG_2__DOT__L_PR_7_0__DOT__reg8bit & 0xFFu);
+					unsigned it_a = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__A_REG_5__DOT__regFF & 0xFFFFu;
+					unsigned it_csa = (unsigned)top->CSA_12_0;
+					// PIL = STS bits 11..8 (sx_pil_3_0_out is folded in this
+					// build; the ALU's STS word survives)
+					int it_pil = (int)((rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_sts_15_0 >> 8) & 0xFu);
+
+					// --- [inh] CCLR: TRR CCLR (function code 010) ---
+					{
+						static int cc_prev = 1, cc_prints = 0;
+						int cclr_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__s_cclr_n;
+						if (!cclr_n && cc_prev && cc_prints < 200)
+						{
+							printf("[inh] CCLR cnt=%ld csa=%05o P=%06o A=%06o\n", cnt, it_csa, it_p, it_a);
+							fflush(stdout);
+							if (++cc_prints == 200) printf("[inh] CCLR print cap reached\n");
+						}
+						cc_prev = cclr_n;
+					}
+
+					// --- [inh] sweep: inhibit-RAM write bursts (TRR LCIL/UCIL) ---
+					static long it_sweeps = 0;   // completed sweeps; resets the acc sampler
+					{
+						static long sw_writes = 0, sw_last_cnt = 0, sw_start_cnt = 0;
+						static unsigned sw_pmin[2] = {0xFFFFu, 0xFFFFu}, sw_pmax[2] = {0, 0};
+						static long sw_ndata[2] = {0, 0};
+						static unsigned sw_prev_page = 0xFFFFu;
+						static int sw_prints = 0;
+						int wclim_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__s_wclim_n;
+						if (!wclim_n)
+						{
+							unsigned ram = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PT__DOT__s_ims_ppn_25_10_in & 0xFFFFu;
+							unsigned page = ram & 0x3FFFu;
+							unsigned d = (ram >> 15) & 1u;
+							if (sw_writes == 0)
+							{
+								sw_start_cnt = cnt;
+								sw_pmin[0] = sw_pmin[1] = 0xFFFFu; sw_pmax[0] = sw_pmax[1] = 0;
+								sw_ndata[0] = sw_ndata[1] = 0;
+								if (sw_prints < 400)
+									printf("[inh] sweep start cnt=%ld csa=%05o P=%06o A=%06o first page=%05o data=%u\n",
+										cnt, it_csa, it_p, it_a, page, d);
+							}
+							// count each page once per strobe (a strobe spans clocks)
+							if (page != sw_prev_page)
+							{
+								sw_writes++;
+								if (page < sw_pmin[d]) sw_pmin[d] = page;
+								if (page > sw_pmax[d]) sw_pmax[d] = page;
+								sw_ndata[d]++;
+								sw_prev_page = page;
+							}
+							sw_last_cnt = cnt;
+						}
+						else
+							sw_prev_page = 0xFFFFu;
+						if (sw_writes > 0 && cnt > sw_last_cnt + 20000)
+						{
+							// burst over: report what got programmed and the map state
+							long ones = 0, zeros = 0;
+							unsigned zmin = 0xFFFFu, zmax = 0;
+							for (unsigned i = 0; i < 16384; i++)
+							{
+								if (rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PT__DOT__CHIP_20G__DOT__ims_memory_array[i]) ones++;
+								else { zeros++; if (i < zmin) zmin = i; if (i > zmax) zmax = i; }
+							}
+							if (sw_prints < 400)
+							{
+								printf("[inh] sweep end cnt=%ld (start %ld): %ld pages written | data=0 (inhibit): %ld pages %05o..%05o | data=1 (allow): %ld pages %05o..%05o | map: %ld inhibited (%05o..%05o), %ld allowed\n",
+									cnt, sw_start_cnt, sw_writes,
+									sw_ndata[0], sw_ndata[0] ? sw_pmin[0] : 0, sw_ndata[0] ? sw_pmax[0] : 0,
+									sw_ndata[1], sw_ndata[1] ? sw_pmin[1] : 0, sw_ndata[1] ? sw_pmax[1] : 0,
+									zeros, zeros ? zmin : 0, zeros ? zmax : 0, ones);
+								fflush(stdout);
+								if (++sw_prints == 400) printf("[inh] sweep print cap reached\n");
+							}
+							sw_writes = 0;
+							it_sweeps++;
+						}
+					}
+
+					// --- [inh] acc: sampled hit/miss vs inhibit-map class ---
+					{
+						static int ac_prev_term = 0;
+						static long ac_seen_sweep = -1;
+						static long ac_class_n[4];        // [inh<<1 | hit]
+						static int ac_class_prints[4];
+						static int ac_sum_prints = 0;
+						static long ac_next_sum = 0;
+						int term = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__TERM_reg;
+						int mreq = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_csmreq;
+						if (ac_seen_sweep != it_sweeps)
+						{
+							// fresh limits: reopen the per-class sample budget
+							ac_seen_sweep = it_sweeps;
+							ac_class_prints[0] = ac_class_prints[1] = ac_class_prints[2] = ac_class_prints[3] = 0;
+						}
+						if (term && !ac_prev_term && mreq)
+						{
+							unsigned ppn = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_ppn_23_10 & 0x3FFFu;
+							int hit = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_hit;
+							int allow = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PT__DOT__CHIP_20G__DOT__ims_memory_array[ppn]; // 1 = cache allowed, 0 = inhibited
+							int cls = ((allow ? 0 : 2) | (hit ? 1 : 0));
+							ac_class_n[cls]++;
+							if (it_sweeps > 0 && ac_class_prints[cls] < 12)
+							{
+								static const char *nm[4] = {"allow-miss", "ALLOW-HIT ", "inhib-miss", "INHIB-HIT!"};
+								printf("[inh] acc %s cnt=%ld csa=%05o P=%06o ppn=%05o hit=%d allow=%d\n",
+									nm[cls], cnt, it_csa, it_p, ppn, hit, allow);
+								ac_class_prints[cls]++;
+							}
+						}
+						ac_prev_term = term;
+						if (cnt >= ac_next_sum && ac_sum_prints < 400)
+						{
+							ac_next_sum = cnt + 50000000;
+							printf("[inh] acc summary cnt=%ld sweeps=%ld | allow-miss=%ld allow-hit=%ld inhib-miss=%ld inhib-hit=%ld\n",
+								cnt, it_sweeps, ac_class_n[0], ac_class_n[1], ac_class_n[2], ac_class_n[3]);
+							fflush(stdout);
+							ac_sum_prints++;
+						}
+					}
+
+					// --- [inh] pc: P-change trace inside 124400..125000 octal ---
+					{
+						static unsigned pc_prev_p = 0xFFFFFFFFu;
+						static int pc_inside = 0;
+						static long pc_prints = 0, pc_exit_prints = 0;
+						const unsigned PC_LO = 0124400u, PC_HI = 0125000u;
+						if (it_p != pc_prev_p)
+						{
+							int in = (it_p >= PC_LO && it_p <= PC_HI);
+							if (in && pc_prints < 60000)
+							{
+								unsigned ppn = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_ppn_23_10 & 0x3FFFu;
+								printf("[inh] pc cnt=%ld P=%06o csa=%05o pil=%02o hit=%d brk_n=%d mreq=%d allow=%d ppn=%05o A=%06o\n",
+									cnt, it_p, it_csa, it_pil,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_hit,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_brk_n,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_csmreq,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PT__DOT__CHIP_20G__DOT__ims_memory_array[ppn],
+									ppn, it_a);
+								if (++pc_prints == 60000) { printf("[inh] pc print cap reached\n"); fflush(stdout); }
+							}
+							if (!in && pc_inside && pc_exit_prints < 2000)
+							{
+								printf("[inh] pc EXIT cnt=%ld window left to P=%06o (csa=%05o pil=%02o A=%06o)\n",
+									cnt, it_p, it_csa, it_pil, it_a);
+								fflush(stdout);
+								pc_exit_prints++;
+							}
+							pc_inside = in;
+							pc_prev_p = it_p;
+						}
+					}
+
+					// --- [inh] fx: per-cycle fetch-source detail inside the
+					// window. The board hangs on the FETCH of 124563 - the
+					// first newly-cacheable instruction fetch after TRR LCIL
+					// raises the lower limit past the code's own page (52) -
+					// so the question the golden run must answer is: on that
+					// fetch, hit or miss, what tag/data sit in the cache
+					// line at that index, and which bus supplied the word.
+					// One line per cycle-controller TERM rise while P is in
+					// the window: the cache line at CA (tag chips 16F/20F,
+					// data chips 23F/24F, used/valid from 21F), the HIT
+					// chain, the inhibit-map bit, and both CD buses (cache
+					// contribution vs what the CPU received). fetch=1 marks
+					// instruction-fetch cycles (CGA DCD CFETCH flop).
+					{
+						static int fx_prev_term = 0;
+						static long fx_prints = 0;
+						static long fx_n[2][2];        // [P==124563?0:1][hit] fetch counters
+						static long fx_next_sum = 0;
+						static int fx_sum_prints = 0;
+						int term = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__TERM_reg;
+						int in_win = (it_p >= 0124400u && it_p <= 0125000u);
+						if (term && !fx_prev_term && in_win)
+						{
+							unsigned ca   = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x7FFu;
+							unsigned ppn  = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_ppn_23_10 & 0x3FFFu;
+							int hit   = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_hit;
+							int fetch = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__DCD__DOT__s_cfetchff_q;
+							unsigned tag = ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_16F__DOT__g_async__DOT__tmm_memory_array[ca] << 8)
+							             |  (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_20F__DOT__g_async__DOT__tmm_memory_array[ca];
+							unsigned dat = ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_23F__DOT__g_async__DOT__tmm_memory_array[ca] << 8)
+							             |  (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_24F__DOT__g_async__DOT__tmm_memory_array[ca];
+							unsigned uidx = ca & 0x3FFu;
+							unsigned umem = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_21F__DOT__am_memory_array[uidx] & 0xFu;
+							unsigned uval = ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_21F__DOT__valid[uidx >> 5] >> (uidx & 31u)) & 1u;
+							int allow = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PT__DOT__CHIP_20G__DOT__ims_memory_array[ppn];
+							if (fetch && it_p == 0124563u) fx_n[0][hit ? 1 : 0]++;
+							if (fetch && it_p == 0124564u) fx_n[1][hit ? 1 : 0]++;
+							if (fx_prints < 120000)
+							{
+								printf("[inh] fx cnt=%ld P=%06o csa=%05o fetch=%d ca=%04o ppn=%05o allow=%d hit=%d h0n=%d h1n=%d ihit=%d | tag=%06o dat=%06o used=%x uval=%d | cd_cache=%06o cd_cpu=%06o mreq=%d A=%06o\n",
+									cnt, it_p, it_csa, fetch, ca, ppn, allow, hit,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__MMU_HIT__DOT__HIT0n_reg,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__MMU_HIT__DOT__HIT1n_reg,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__PAL_44402_UBITS__DOT__gen_enable__DOT__IHIT_reg,
+									tag, dat, umem, uval,
+									(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_mmu_cd_15_0_in & 0xFFFFu,
+									(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_proc_cd_15_0_in & 0xFFFFu,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_csmreq,
+									it_a);
+								if (++fx_prints == 120000) { printf("[inh] fx print cap reached\n"); fflush(stdout); }
+							}
+						}
+						fx_prev_term = term;
+						if (cnt >= fx_next_sum && fx_sum_prints < 400)
+						{
+							fx_next_sum = cnt + 50000000;
+							printf("[inh] fx summary cnt=%ld | fetch@124563: hit=%ld miss=%ld | fetch@124564: hit=%ld miss=%ld\n",
+								cnt, fx_n[0][1], fx_n[0][0], fx_n[1][1], fx_n[1][0]);
+							fflush(stdout);
+							fx_sum_prints++;
+						}
+					}
+				}
+			}
+#endif // ND120_NO_CACHE (end of the ND120_INHIBIT_TRACE probe)
+
 			// Liveness probe (ND120_LIVE_TRACE=<cycles>, run-time). Every
 			// <cycles> evals print the P register, CSA, and the P range
 			// seen since the last line - enough to tell "halted", "tight
@@ -1074,6 +1339,7 @@ int main(int argc, char **argv)
 				}
 			}
 
+#ifndef ND120_NO_CACHE // these three probes read cache internals a CACHE=0 build compiles out
 			// Cache write chain probe (ND120_CACHE_TRACE=1, run-time). CACHE-1X0-A00
 			// test 2 fails in Verilator exactly as on the board (29-AUG-2026) while
 			// the inhibit map is proven correct, so the fault is downstream of
@@ -1344,6 +1610,7 @@ int main(int argc, char **argv)
 					if (t_rise) { cp_wca_seen = 0; cp_mreq_seen = 0; }
 				}
 			}
+#endif // ND120_NO_CACHE (end of ND120_CACHE_TRACE / ND120_CACHE_WIN / ND120_CACHE_PPN probes)
 
 			// ND120_WCS_RD=1 (30-AUG-2026): per-CLOCK dump of every RWCS
 			// (read/write control store) microinstruction - CACHE-1X0-A00 test 1
