@@ -30,11 +30,16 @@ Also new: `fpga/nexys4ddr/flash.tcl` + Makefile targets - `make load` (JTAG,
 volatile) and `make flash` (QSPI, permanent); README documents build /
 release / flash.
 
+DONE 30-AUG: first synthesis, via the CACHEFIX session's cache build 8.
+Round 1 failed the 1080p pixel clock (139.7 MHz) by -0.328 ns on the
+cursor-move paths; fixed in two commits (191bdee defer the moves, e26f44b
+latch their operands) -> WNS +0.211 ns, all endpoints met. Flashed to the
+Nexys 06:22, exercised by TPE console traffic. Utilization delta vs the
+old terminal: +695 LUTs, +494 regs, +2.5 BRAM.
+
 Open:
-- First synthesis of the VT100 build: IN FLIGHT 30-AUG via the CACHEFIX
-  session's cache build 8 (Nexys, clk 16 + physopt, from the nd-120-build
-  worktree with the complete terminal set copied in); that session reports
-  the synth/timing verdict for the terminal files. Nothing on hardware yet.
+- Nobody has LOOKED at the VGA output or typed on the real keyboard since
+  the VT100 rewrite - the scancode table remains transcription-only.
 
 ---
 

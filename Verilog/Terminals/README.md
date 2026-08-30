@@ -107,14 +107,21 @@ something different here than everywhere else), and **zero inferred latches**
 with `-Wno-LATCH` removed, checked separately because the repo suppresses that
 warning by default and latches are the one thing this project cannot have.
 
-**All eight testbenches pass** (`cd Terminals/sim && make`, iverilog under
+**All nine testbenches pass** (`cd Terminals/sim && make`, iverilog under
 WSL) and are registered in `Verilog/tests/run_all_tests.sh`.
 `sim/terminal_ctrl_tb.v` was rewritten with the VT100 controller: it checks
 the parser against sequences split across gaps, CAN aborts, the last-column
 flag, region scrolls through the copy engine, SGR attribute bits landing in
 the cells, charset shifts, DECOM addressing and RIS - seventeen sections.
-**The VT100 controller has not been near an FPGA yet** - no synthesis has
-been run since the rewrite.
+**Synthesized and timing-clean on the Nexys 4 DDR (30-AUG-2026)**: first
+Vivado run failed the 1080p pixel clock (139.7 MHz) on the cursor-move
+paths; two rounds of fixes (defer the moves into the apply state, then
+latch their operands before use - commits 191bdee, e26f44b) closed it at
+WNS +0.211 ns, all endpoints met, better margin than the build before the
+rewrite. Utilization delta vs the old TDV terminal: +695 LUTs, +494 regs,
++2.5 BRAM. Flashed to the board 30-AUG 06:22 as part of the CACHEFIX
+session's cache build 8; first hardware exercise (TPE console traffic) ran
+right after - what a human sees on the screen is still unreported.
 
 **One thing a green run does NOT prove.** `ps2_ascii_table.v` is transcribed
 from the published scancode-set-2 tables; nobody has typed on a real keyboard
@@ -248,6 +255,6 @@ here when it lands.
 - **Stage C (TDV 2200)** - not planned. If it ever returns it is a delta on
   the VT100 parser; `terminal_ctrl.v`'s header says where the ND finals and
   private modes would hook in.
-- **Open:** first synthesis of the VT100 build (waiting for the board/tools
-  to be free), and typing on the REAL keyboard - the scancode table is still
-  transcription-only.
+- **Open:** eyes on the real screen and fingers on the real keyboard - the
+  scancode table is still transcription-only, and nobody has watched the
+  VT100 render on the monitor yet (it is flashed and running).
