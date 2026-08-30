@@ -41,7 +41,8 @@ module IO_PANCAL_40 (
     // Output signals
     output [4:0] DP_5_1_n,
     output       RMM_n,
-    output [1:0] STAT_4_3
+    output [1:0] STAT_4_3,
+    output [15:0] PANEL_ACTLV  //! the microcode's ACTIVE LEVEL word (0 without ND120_PANEL_CLOCK)
 );
 
   // There are some unused signals in this module until we have implemented the missing parts..
@@ -203,6 +204,7 @@ module IO_PANCAL_40 (
   wire       s_stat_4;
   wire [15:0] s_time_halfdays;   // observation only (waveforms / a later host preset)
   wire [15:0] s_time_seconds;
+  wire [15:0] s_actlv;
 
   PANCAL_68705_CLOCK #(
       .TICK_CYCLES(PANEL_TICK_CYCLES),
@@ -223,8 +225,10 @@ module IO_PANCAL_40 (
       .PA_OUT  (s_pa_out),
       .PA_DRIVE(s_pa_drive),
       .TIME_HALFDAYS(s_time_halfdays),
-      .TIME_SECONDS (s_time_seconds)
+      .TIME_SECONDS (s_time_seconds),
+      .ACTLV        (s_actlv)
   );
+  assign PANEL_ACTLV = s_actlv;
   (* keep = "true", DONT_TOUCH = "true" *) wire [31:0] unused_time_bits = {s_time_halfdays, s_time_seconds};
 
   assign s_pa_bus   = s_pa_drive ? s_pa_out : s_pa_7_0;
@@ -245,6 +249,7 @@ module IO_PANCAL_40 (
 `else
   // ---------------------------------------------------------------------------
   // STUB (no ND120_PANEL_CLOCK): the 68705 is absent. Constant port values.
+  assign PANEL_ACTLV = 16'd0;   // no panel processor, no ACTLV
   // ---------------------------------------------------------------------------
   assign s_pa_bus = s_pa_7_0;
 

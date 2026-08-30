@@ -98,7 +98,16 @@ module PANCAL_68705_CLOCK #(
 
     // Observation only (waveforms, tests, a future host preset)
     output [15:0] TIME_HALFDAYS,
-    output [15:0] TIME_SECONDS
+    output [15:0] TIME_SECONDS,
+
+    //! ACTIVE LEVEL word as the microcode last sent it: command 0x0A + two
+    //! data bytes (docs/panel-clock-68705.md - it arrives every 20 ms once
+    //! the DGA FIFO path works). This is what the real panel's ACTIVE LEVEL
+    //! row shows, and since 29-AUG-2026 the VGA panel row shows it too
+    //! (term_panel.v). Byte order MEASURED 29-AUG-2026 (ND120_PANEL_CLOCK_TRACE
+    //! at boot, machine on level 0): "cmd 0a, data 01, data 00" - the FIRST
+    //! data byte is the LOW byte (levels 7:0), the second the high byte.
+    output reg [15:0] ACTLV
 );
 
   /*******************************************************************************
@@ -142,6 +151,7 @@ module PANCAL_68705_CLOCK #(
 
   reg [3:0]  r_state    = S_IDLE;
   reg [7:0]  r_cmd      = 8'h00;    // RAM $1C: the command byte
+  reg [7:0]  r_actlv_lo = 8'h00;    // first data byte of an 0x0A command = levels 7:0
   reg [7:0]  r_data     = 8'h00;    // the data byte just read
   reg [2:0]  r_bytes    = 3'd0;     // data bytes still to drain (text commands)
   reg        r_is_clock = 1'b0;     // bit3=0 and bit2=1: answered clock command
@@ -203,6 +213,7 @@ module PANCAL_68705_CLOCK #(
       STAT4    <= 1'b1;
       STAT_2_0 <= 3'b000;
       PA_DRIVE <= 1'b0;
+      ACTLV    <= 16'd0;
     end else begin
       // ---- STAT4 hold-down = ROM 0x0195 BCLR 5,PORTB after the pipeline --
       if (r_hold != 32'd0) begin
@@ -291,6 +302,11 @@ module PANCAL_68705_CLOCK #(
 
         S_DAT_GET: begin
           r_data  <= PA_IN;
+          // Command 0x0A (text_bytes(2) = 2 bytes) carries the ACTLV word.
+          if (r_cmd == 8'h0A) begin
+            if (r_bytes == 3'd2)      r_actlv_lo <= PA_IN;               // low byte first
+            else if (r_bytes == 3'd1) ACTLV      <= {PA_IN, r_actlv_lo};  // then the high byte
+          end
 `ifdef ND120_PANEL_CLOCK_TRACE
           $display("[panel] t=%0t data byte %02x", $time, PA_IN);
 `endif

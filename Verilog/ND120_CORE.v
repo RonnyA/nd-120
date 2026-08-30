@@ -264,6 +264,7 @@ module ND120_CORE #(
     //! signal that anything outside a conditional touches must be declared
     //! outside every conditional, or it vanishes on some builds and not others.
     output wire [7:0] DBG_PANEL,
+    output wire [15:0] PANEL_ACTLV,  //! ACTIVE LEVEL word from the panel processor
     //! DEBUG: cache-write gating bus, straight through from ND3202D. Bit
     //! layout and the reason are in CPU_MMU_24.v's DBG_CACHE port comment.
     output wire [7:0] DBG_CACHE
@@ -1221,6 +1222,7 @@ module ND120_CORE #(
       .XMIC_DBG_15_0(XMIC_DBG_15_0),
       .DBG_PTW_LVL(DBG_PTW_LVL),
       .DBG_PANEL  (DBG_PANEL),
+      .PANEL_ACTLV(PANEL_ACTLV),
       .DBG_CACHE  (DBG_CACHE)
 
 `ifdef MAIN_RAM_SDRAM

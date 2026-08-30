@@ -84,6 +84,7 @@ module IO_37(
    output       IORQ_n,
    output       MCL,
    output       MREQ_n,
+   output [15:0] PANEL_ACTLV,   //! the panel processor's ACTIVE LEVEL word (IO_PANCAL_40)
    output       OSC,
    output       PAN_n,
    output       PA_n,
@@ -430,7 +431,8 @@ module IO_37(
       .PONI(s_poni),
       .RMM_n(s_rmm_n),
       .STAT_4_3(s_stat_4_3[1:0]),
-      .VAL(s_val)
+      .VAL(s_val),
+      .PANEL_ACTLV(PANEL_ACTLV)
    );
 
    IO_UART_42   UART

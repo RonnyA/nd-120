@@ -172,6 +172,7 @@ module ND3202D (
     // Bits [7:6] read zero. Purely an observation port: nothing here changes
     // what the CPU does, and leaving it unconnected costs nothing.
     output [7:0] DBG_PANEL,
+    output [15:0] PANEL_ACTLV,  //! ACTIVE LEVEL word from the panel processor (IO_37/IO_PANCAL_40)
     //! DEBUG: cache-write gating bus from CPU_15/CPU_MMU_24. Bit layout and
     //! the reason it exists are in CPU_MMU_24.v's DBG_CACHE port comment.
     //! Declared unconditionally and at module scope on purpose - two builds
@@ -942,6 +943,7 @@ TODO: Sort bits on output LED to match led numbering
 
     // Debug outputs
     .DBG_LHIT(s_lhit),   // panel cache-hit signal, Port D bit 4
+    .PANEL_ACTLV(PANEL_ACTLV),  // the panel processor's ACTIVE LEVEL word, up to the top level
 
     // Input Signals
     .BAUD_RATE_SWITCH(BAUD_RATE_SWITCH),
