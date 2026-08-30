@@ -287,10 +287,74 @@ Build flows live under `Verilog/fpga/<board>/`, see `Verilog/fpga/README.md`.
 - **Arbitration**: Fixed priority
 
 ### Serial Interface (UART)
+
+**The original ND-120 hardware:**
 - **Standard**: RS-232 compatible
 - **Baud Rates**: 110 to 19200 bps
 - **Data Format**: 7/8 bits, 1/2 stop bits, optional parity
 - **Flow Control**: XON/XOFF software control
+
+#### What THIS Verilog actually implements: 115200 8N1, and no parity at all
+
+**Connect your terminal as 8 data bits, no parity, 1 stop bit. NOT 7E1.**
+
+The four lines above describe what the real SC2661 chip could be programmed to do. They are not
+what `Verilog/Shared/support/SC2661_UART.v` does, and reading them as a terminal setting is how a
+whole evening got lost on 30 August 2026 — a PC was set to 7E1 against this UART, the PC's driver
+then validated a parity bit that is never sent, and every character it judged bad came back as a
+question mark sprinkled through the text.
+
+The mode registers that would select character length and parity are **not implemented**. From the
+file's own comment, line 108:
+
+```verilog
+/*******************************************************************************
+ ** Mode register 1 and 2 bits                                                 **
+ *******************************************************************************/
+// Not implemented, we use constant 9600 8N1, or later 115200 8N1
+```
+
+The state machines agree with the comment rather than merely asserting it:
+
+- **Transmit**: `IDLE → START_BIT → WRITE → STOP_BIT → DONE`. `TX_STATE_WRITE` shifts out
+  `txBitNumber` 0 through 7 (`if (txBitNumber == 3'b111)`), then goes straight to `STOP_BIT`.
+- **Receive**: `IDLE → START_BIT → READ_WAIT → READ → STOP_BIT → DONE`. `RX_STATE_READ` shifts in
+  8 bits (`if (rxBitNumber == 3'b111)`), then goes straight to `STOP_BIT`.
+- **Neither machine has a parity state**, and the word "parity" does not appear anywhere in the
+  file. No parity bit is generated on transmit and none is checked on receive.
+
+So the framing is fixed in hardware: **8 data bits, no parity, 1 stop bit.** Only the baud rate is
+configurable, through the defines:
+
+```verilog
+`define BOARD_CLK_FREQ 100_000_000   // 100 MHz (Basys3/Arty)
+`define UART_BAUD_RATE 115_200       // clocks-per-bit = BOARD_CLK_FREQ / UART_BAUD_RATE
+```
+
+#### Why setting a terminal to 7E1 corrupts the text
+
+A terminal told to expect even parity samples the **8th data bit** in the parity position. For
+7-bit ASCII that bit is 0, so any character with an odd number of set bits fails the check. What
+happens then is the terminal's business, and the two behave differently:
+
+- **PuTTY / TeraTerm** and the FPGA's own VGA console show the text clean.
+- **A .NET `System.IO.Ports` program** substitutes a replacement byte for the failed character.
+  `SerialPort.ParityReplace` defaults to **63**, which is `?` — so the failures arrive as question
+  marks embedded in the data, looking exactly like characters the ND sent.
+
+Measured on real hardware, same wire, same command:
+
+| Reader | Framing | Bytes | `?` |
+|---|---|---|---|
+| pyserial | 7E1 | 42 | 0 |
+| .NET, `ParityReplace=63` (its default) | 7E1 | 48 | 6 |
+| .NET, `ParityReplace=0` | 7E1 | 42 | 0 |
+| pyserial / .NET | 8N1 | 42 | 0 |
+
+**Not fully explained:** that model predicts a failure on nearly every odd-population character,
+which would shred the text. In the capture only 6 of 42 bytes came back as `?`, clustered around
+the echo and the prompts. The framing mismatch is verified from this source file; the exact rate
+and clustering are not, and pinning them down would need a controlled capture.
 
 ### Parallel Interface
 - **Width**: 8-bit bidirectional

@@ -8,6 +8,27 @@
 *****************************************************************************/
 
 //
+// SET YOUR TERMINAL TO 8N1. NOT 7E1.
+//
+// This implementation is FIXED at 8 data bits, no parity, 1 stop bit. Only the baud rate is
+// configurable (BOARD_CLK_FREQ / UART_BAUD_RATE below, default 115200). The real chip's mode
+// registers - which is where character length and parity would be selected - are not
+// implemented; see the comment where they would have been.
+//
+// The state machines are the proof, not just that comment: TX_STATE_WRITE shifts out bits 0..7
+// and goes straight to TX_STATE_STOP_BIT, RX_STATE_READ shifts in bits 0..7 and goes straight to
+// RX_STATE_STOP_BIT. Neither has a parity state, and the word "parity" appears nowhere in this
+// file. No parity bit is generated, and none is checked.
+//
+// WHY THIS WARNING IS HERE, 30-AUG-2026: a PC was set to 7E1 against this UART because the
+// datasheet and HARDWARE.md both describe what the REAL chip could be programmed to do. The PC
+// then validated a parity bit that is never sent, and the characters it judged bad were replaced
+// with '?' scattered through the text - which read like the ND was sending them. An evening went
+// into finding that. The full account, with the measurements, is in HARDWARE.md under
+// "Serial Interface (UART)".
+//
+
+//
 // Documentation
 //
 // http://www.norsk-data.com/hardware/nd-100/nd-350104.html
