@@ -60,19 +60,28 @@ if {$dev eq ""} {
 }
 current_hw_device $dev
 
-set parts [get_cfgmem_parts -filter {NAME =~ "s25fl128*" && NAME =~ "*x1_x2_x4*"}]
+# The Nexys 4 DDR carries a Spansion S25FL128S at 3.3 V, and Vivado names that
+# family "s25fl128sxxxxxx0-spi-x1_x2_x4" for 7-series (the "-qspi-...-single"
+# spelling exists but is UltraScale-only: artix7 rejects it with
+# [Labtoolstcl 44-655] "not supported for device artix7"). The trailing 0 vs 1
+# is the sector architecture; the Nexys 4 DDR uses the 0 variant.
+# Ask for it BY NAME: the old
+# "first s25fl128* match" heuristic picked s25fl128l-spi-x1_x2_x4 - the
+# S25FL128L, a DIFFERENT device with a different ID and command set - and the
+# readback failed with [Labtools 27-3307] Readback CfgMem Error (31-AUG-2026).
+# The S parts are never named "*x1_x2_x4*", so that filter could only ever
+# match the wrong one.
+set parts [get_cfgmem_parts -filter {NAME == "s25fl128sxxxxxx0-spi-x1_x2_x4"}]
 if {[llength $parts] == 0} {
-    # Fall back to any s25fl128 entry this Vivado knows.
-    set parts [get_cfgmem_parts -filter {NAME =~ "s25fl128*"}]
+    set parts [get_cfgmem_parts -filter {NAME =~ "s25fl128sxxxxxx*-spi-x1_x2_x4"}]
 }
 if {[llength $parts] == 0} {
-    puts "ERROR: this Vivado has no cfgmem part matching s25fl128 - list them with"
-    puts "       get_cfgmem_parts and put the right one here."
+    puts "ERROR: no s25fl128s spi-x1_x2_x4 cfgmem part in this Vivado."
     close_hw_manager
     exit 1
 }
 set part [lindex $parts 0]
-puts "FLASH PART: [get_property NAME $part] (first s25fl128 match)"
+puts "FLASH PART: [get_property NAME $part]"
 
 # --- 3. program the flash ---------------------------------------------------
 set cfgmem [create_hw_cfgmem -hw_device $dev $part]
