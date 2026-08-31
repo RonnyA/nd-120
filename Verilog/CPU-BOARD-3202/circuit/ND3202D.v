@@ -149,6 +149,13 @@ module ND3202D (
 
     // Additional debug outputs for microcode load/boot analysis
     output       DEBUG_FETCH,    // Fetch signal
+    output       DEBUG_CFETCH,   // one rise per macro instruction (CGA CFETCH via XCFETCH_DBG) - the MIPS event
+    output       DEBUG_MAP_n,    // MAP: the last microinstruction of every macro instruction
+                                 // loads the next micro-address from the DGA's opcode mapper.
+                                 // One falling edge = one macro instruction dispatched, cache
+                                 // hit or miss - unlike FETCH, which marks memory CYCLES and
+                                 // goes quiet when the cache serves the fetch (the panel MIPS
+                                 // read 00.00 on build 8 for exactly that reason, 30-AUG-2026).
     output       DEBUG_MR_n,     // Master Reset
     output       DEBUG_CLEAR_n,  // Clear
     output       DEBUG_REFRQ_n,  // Refresh Request
@@ -270,6 +277,8 @@ TODO: Sort bits on output LED to match led numbering
   assign DEBUG_MCLK = s_mclk;
   assign DEBUG_LCS_n = s_lcs_n;
   assign DEBUG_FETCH = s_fetch;
+  assign DEBUG_MAP_n = s_map_n;
+  assign DEBUG_CFETCH = s_cfetch_dbg;
   assign DEBUG_MR_n = s_mr_n;
   assign DEBUG_CLEAR_n = s_clear_n;
   assign DEBUG_REFRQ_n = s_refrq_n;
@@ -284,6 +293,20 @@ TODO: Sort bits on output LED to match led numbering
   wire [ 4:0] s_csidbs_4_0;
   wire [ 4:0] s_dp_5_1_n;
   
+`ifndef MAIN_RAM_SDRAM
+  // DBG_PPN / DBG_PTW / PF_CAPTURED are output ports only in the
+  // MAIN_RAM_SDRAM section of the port list, but the assign below and the
+  // CPU instance connections use them unconditionally. Without these
+  // fallbacks the non-SDRAM builds (Verilator, DDR2) create IMPLICIT 1-bit
+  // nets - which Verilator -Wall treats as a hard error (found 30-AUG-2026
+  // when runSim stopped verilating). Same rule as the DBG_CACHE port
+  // comment: a debug wire touched outside a conditional must exist in
+  // every build.
+  wire [13:0] DBG_PPN;
+  wire [15:0] DBG_PTW;
+  wire [20:0] PF_CAPTURED;
+`endif
+
   wire [13:0] s_ppn_23_10;
   // 24-AUG: the physical page number the MMU presents, out to the board for
   // the zero-fetch probe. PPN20 = [10] and PPN21 = [11] are the two bits the
@@ -438,6 +461,7 @@ TODO: Sort bits on output LED to match led numbering
   wire        s_lshadow;
   wire        s_maclk /* verilator public_flat_rd */;  // kept observable for the sim trace harness
   wire        s_map_n;
+  wire        s_cfetch_dbg;   // CGA CFETCH out of CPU_15 (XCFETCH_DBG)
   wire        s_mclk;
   wire        s_mem_bdry_n; // BDRY signal out from MEM module
   wire        s_moff_n;
@@ -907,6 +931,7 @@ TODO: Sort bits on output LED to match led numbering
       .HIT         (s_hit),                     // Cache hit
       .LEV0        (s_lev0),                    // Level 0 active
       .CSA_12_0    (CSA_12_0),                  // Microcode Address (for debugging)
+      .XCFETCH_DBG(s_cfetch_dbg),
       .XMIC_DBG_15_0(XMIC_DBG_15_0),            // DEBUG: microsequencer address-advance probe
       .DBG_PTW     (DBG_PTW),                   // DEBUG: page-table write stream (23-AUG)
       .DBG_PTW_LVL (DBG_PTW_LVL),               // DEBUG: live PT write-strobe level (27-AUG)

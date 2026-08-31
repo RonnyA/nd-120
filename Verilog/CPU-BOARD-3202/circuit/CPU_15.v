@@ -52,7 +52,7 @@ module CPU_15 (
     input       IBINT15_n,    //! Interrupt bus 15
     input       IOXERR_n,     //! I/O transfer error
     input       LCS_n,        //! Load control store
-    input       MAP_n,        //! Memory Address Present (MAP microcode address)
+    input       MAP_n,        //! MAP Opcode - microsequencer loads next micro-address from the opcode mapper; last microinstruction of every macro instruction (active low)
     input       MOR_n,        //! Memory Error
     input       MR_n,         //! Memory read
     input       PAN_n,        //! Page address not valid
@@ -119,6 +119,7 @@ module CPU_15 (
     output LED1,         //! UNKNOWN: believed to indicate cache enabled, never traced. See Verilog/docs/SIGNALS.md
     output [12:0] CSA_12_0,     //! Microcode Address (for debugging)
     output [15:0] XMIC_DBG_15_0, //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output        XCFETCH_DBG,   //! DEBUG: one rise per macro instruction (see CGA.v)
     output [15:0] DBG_PTW,      //! DEBUG: page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
     output DBG_PTW_LVL,  //! live PT write-strobe level (27-AUG overlap probe)
     //! DEBUG: cache-write gating bus, straight through from CPU_MMU_24. See
@@ -501,6 +502,7 @@ module CPU_15 (
 
     .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
     .XMIC_DBG_15_0(XMIC_DBG_15_0),
+      .XCFETCH_DBG(XCFETCH_DBG),
     .PF_CAPTURED(PF_CAPTURED)
   );
 

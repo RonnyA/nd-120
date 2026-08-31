@@ -268,7 +268,9 @@ module ND120_TOP
   (* mark_debug = "true" *) wire [4:0] s_debug_cc_term;    // {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n}
   (* mark_debug = "true" *) wire       s_debug_mclk;       // Memory clock
   (* mark_debug = "true" *) wire       s_debug_lcs_n;      // LCS_n: 0=loading, 1=loaded
-  (* mark_debug = "true" *) wire       s_debug_fetch;      // Fetch signal
+  (* mark_debug = "true" *) wire       s_debug_fetch;
+  wire s_debug_map_n /* verilator public_flat_rd */;  // one falling edge per macro instruction - MIPS validation probe
+  wire s_debug_cfetch_dbg /* verilator public_flat_rd */;  // CGA CFETCH - the MIPS event, validate vs TRACE_VERIFY
   (* mark_debug = "true" *) wire       s_debug_mr_n;       // Master Reset
   (* mark_debug = "true" *) wire       s_debug_clear_n;    // Clear
   (* mark_debug = "true" *) wire       s_debug_refrq_n;    // Refresh Request
@@ -966,12 +968,22 @@ module ND120_TOP
       .DEBUG_MCLK(s_debug_mclk),
       .DEBUG_LCS_n(s_debug_lcs_n),
       .DEBUG_FETCH(s_debug_fetch),
+      .DEBUG_MAP_n(s_debug_map_n),
+      .DEBUG_CFETCH(s_debug_cfetch_dbg),
       .DEBUG_MR_n(s_debug_mr_n),
       .DEBUG_CLEAR_n(s_debug_clear_n),
       .DEBUG_REFRQ_n(s_debug_refrq_n),
       .DEBUG_INTRQ_n(s_debug_intrq_n),
       .DEBUG_POWFAIL_n(s_debug_powfail_n),
-      .DEBUG_FIDBO_15_0(s_debug_fidbo)
+      .DEBUG_FIDBO_15_0(s_debug_fidbo),
+      // ND120_CORE brings these four out unconditionally (they are debug taps
+      // that must exist for every memory backend). This top does not use them;
+      // naming them empty says "deliberately unconnected" so PINMISSING stays
+      // a real gate for a genuinely forgotten pin.
+      .DBG_PTW_LVL(),         // PT write-strobe level probe; unused in this top
+      .DBG_PANEL(),           // panel debug byte; unused in this top
+      .PANEL_ACTLV(),         // panel ACTIVE LEVEL word; unused in this top
+      .DBG_CACHE()            // cache debug byte; unused in this top
 `ifdef MAIN_RAM_DDR2
       ,
       .ui_clk      (sim_ui_clk),

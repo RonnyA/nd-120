@@ -145,6 +145,14 @@ module CGA (
     output [15:0] DEBUG_FIDBO_15_0,
     output [15:0] XFIDB_15_0_OUT,
     output [15:0] XMIC_DBG_15_0, //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output        XCFETCH_DBG,   //! DEBUG: CFETCH (Command Fetch, CGA_DCD registered) - one rise
+                                 //! per macro instruction fetched, cache hit or miss. Read-only
+                                 //! fan-out for the panel MIPS counter; adds NO logic to the
+                                 //! gate array. 30-AUG-2026, after the board FETCH and MAP_n
+                                 //! taps both proved to be memory-cycle signals a warm cache
+                                 //! starves. Once-per-instruction is stated from the DCD's
+                                 //! design intent, NOT yet proven in sim - validate with the
+                                 //! [map]-style probe vs ND120_TRACE_VERIFY when WSL is back.
     output [20:0] PF_CAPTURED    //! DEBUG: ND120_PF_CAPTURE. [0] froze (1 once the targeted fault/access happened); [1] pulse per no-permit access at the matched page; [2] pulse per page-fault vector at that page; [3] pulse per page-fault vector at ANY address, with [13:4]=LA[19:10] and [20:14]=PT[15:9] of that fault. All 0 when not built
 );
 
@@ -219,6 +227,13 @@ module CGA (
   wire        s_BDEST;
   wire        s_cbrk_n;
   wire        s_cfetch;
+  wire        s_gprload_dbg;   // CGA_ALU XGPRLOAD_DBG - the MIPS event
+  // MIPS tap. Was s_cfetch (CGA_DCD CFETCH) - MEASURED DEAD 31-AUG-2026: that
+  // FF holds its own Q and only reloads through the BRK scan path, giving 0
+  // pulses in 460 executed instructions. The real "new opcode arrives" event is
+  // the GPR load from CD, exposed by CGA_ALU as XGPRLOAD_DBG. s_cfetch itself is
+  // still used by DCD/MIC/TESTMUX below - only this debug tap changed.
+  assign XCFETCH_DBG = s_gprload_dbg;
   wire        s_clff_n;
   wire        s_clirq_n;
   (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_cond;
@@ -742,6 +757,7 @@ module CGA (
   // and produces output signals indicating the results of the operations,
   // including flags for carry, overflow, and specific operation results.
   CGA_ALU ALU (
+      .XGPRLOAD_DBG(s_gprload_dbg),
       // FPGA system clock
       .sysclk(sysclk),  // System clock in FPGA
       .sys_rst_n(sys_rst_n),  // System reset in FPGA
@@ -1066,7 +1082,7 @@ module CGA (
       .LDIRV(s_ldirv),                          // Load direction vector
       .LDLCN(s_ldlc_n),                         // Load LCN
       .LWCAN(s_lwca_n),                         // Latch WCA
-      .MAPN(sx_map_n),                          // Memory Address Present signal
+      .MAPN(sx_map_n),                          // MAP Opcode (active low)
       .MCLK(sx_mclk),                           // Microcycle clock
       .MI(s_mi),                                // STS M bit
       .MRN(sx_mrn),                             // Memory Read, active low

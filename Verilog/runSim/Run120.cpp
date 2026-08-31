@@ -133,6 +133,39 @@ static long g_last_rx_cnt = 0;     // cnt of the most recent console output char
 static long g_rx_lf_total = 0;     // total newlines seen on console output
 static long g_lf_at_mark = -1;     // g_rx_lf_total when '&' was sent (-1 = not waiting)
 static long g_amp_settle = 3000000; // quiet time required after the greeting (ND120_AMP_SETTLE)
+// Macro-instruction boundaries seen by the ND120_TRACE_VERIFY detector,
+// counted UNCONDITIONALLY (before arming, PIL filtering or the 400 cap) so a
+// candidate MIPS tap can be checked against it edge for edge. See the
+// ND120_COUNT_CFETCH probe.
+static unsigned long long g_macro_boundaries = 0;
+// CFETCH rising edges (ND120_COUNT_CFETCH), plus a snapshot of both counters
+// taken the moment ND120_TRACE_VERIFY arms. The honest comparison is the
+// WINDOW from arming onward: before arming the machine is loading microcode
+// and running self-test, where "macro instruction" is not a meaningful unit.
+static unsigned long long g_cfetch_rises = 0;
+static unsigned long long g_arm_cfetch = 0, g_arm_macro = 0;
+static int g_arm_taken = 0;
+// Candidate MIPS taps measured side by side in one run (31-AUG-2026). The
+// event we actually want is "the instruction register takes a new opcode":
+// CGA_ALU_GPR loads GPR from CD_15_0, which the MUX41P selects when
+// GPRC[1:0] == 01 (D1 = CD_15_0, CGA_ALU_GPR.v:110-118), captured on the
+// ALUCLK_EN enable pulse. CFETCH was measured DEAD (its FF holds its own Q
+// and only reloads through the scan path on BRK), so it is kept here only
+// as the control that proves the harness sees a real difference.
+static unsigned long long g_gprload = 0;   // ALUCLK_EN & GPRC==01  (candidate)
+static unsigned long long g_arm_gprload = 0;
+// Why gprload can exceed the reference count: the ND120_TRACE_VERIFY boundary
+// detector needs the OPCODE WORD to change (v[17] != prev), so two consecutive
+// instructions with the identical opcode are ONE detected boundary but TWO real
+// instruction loads. Counting those separately turns "close to 1:1" into an
+// explained number instead of a hand-wave.
+static unsigned long long g_gprload_same = 0;    // load whose opcode == previous load
+static unsigned long long g_arm_gprload_same = 0;
+static unsigned g_gprload_prev_cd = 0xFFFFFFFFu;
+// The CORRECTED CGA CFETCH (CGA_DCD CFETCH_FF, fixed 31-AUG so BRK_n clears it
+// and IFETCHN is the real D). Counted as RISING edges of the CGA-level net.
+static unsigned long long g_cfetch2 = 0, g_arm_cfetch2 = 0;
+static unsigned char g_cfetch2_prev = 0;
 #ifdef TRACE_CSA
 static FILE *g_csa_fp = nullptr;
 static unsigned g_last_csa = 0xFFFFu;
@@ -1612,6 +1645,93 @@ int main(int argc, char **argv)
 			}
 #endif // ND120_NO_CACHE (end of ND120_CACHE_TRACE / ND120_CACHE_WIN / ND120_CACHE_PPN probes)
 
+			// MAP counter (ND120_COUNT_MAP=1, 30-AUG-2026). One falling edge
+			// of MAP_n = one macro instruction dispatched - the last
+			// microinstruction of every macro instruction runs MAP, cache
+			// hit or miss. The panel's mips_counter counts this exact
+			// event on the Nexys (it counted FETCH before, and a warm
+			// cache starved it to 00.00). Validation: run together with
+			// ND120_TRACE_VERIFY - the trace writes ONE LINE per macro
+			// instruction, so trace lines and MAP edges over the same
+			// window must agree.
+			{
+				static int mc_on = -1;
+				if (mc_on < 0) mc_on = getenv("ND120_COUNT_MAP") ? 1 : 0;
+				if (mc_on)
+				{
+					static unsigned char      mc_prev = 1;
+					static unsigned long long mc_edges = 0;
+					static long               mc_next = 50000000;
+					unsigned char m = (unsigned char)top->rootp->ND120_TOP__DOT__s_debug_map_n;
+					if (mc_prev && !m) mc_edges++;
+					mc_prev = m;
+					if (cnt >= mc_next)
+					{
+						printf("[map] cnt=%d edges=%llu\n", cnt, mc_edges);
+						mc_next += 50000000;
+					}
+				}
+			}
+
+			// CFETCH counter (ND120_COUNT_CFETCH=1, 31-AUG-2026). CFETCH is the
+			// CGA_DCD-registered "command fetch" strobe - it rises once when the
+			// decoder takes a new macro instruction, so unlike DEBUG_FETCH (a
+			// memory-cycle qualifier, which a warm cache starved to 00.00) and
+			// MAP_n (a board net gated by FORM and the cycle state) it does not
+			// depend on where the fetch came from. This is the THIRD tap tried for
+			// the panel MIPS field; the first two were flashed without a sim proof
+			// and both read 00.00. THE RULE: no tap goes to the board until its
+			// edge count here agrees with the instruction count that
+			// ND120_TRACE_VERIFY writes over the same window.
+			{
+				static int cf_on = -1;
+				if (cf_on < 0) cf_on = getenv("ND120_COUNT_CFETCH") ? 1 : 0;
+				if (cf_on)
+				{
+					static unsigned char cf_prev = 0;
+					static long          cf_next = 10000000;   // report every 10M clocks
+					unsigned char f = (unsigned char)top->rootp->ND120_TOP__DOT__s_debug_cfetch_dbg;
+					// s_debug_cfetch_dbg is the TOP-LEVEL routed wire (ND120_TOP ->
+					// CORE -> ND3202D -> CPU_15 -> PROC -> CGA), i.e. exactly the
+					// signal the FPGA panel counter would see - not an internal
+					// probe. After the 31-AUG re-point it carries the GPR<-CD
+					// strobe. It is a one-clock enable product, so count it HIGH,
+					// the same way the panel's edge detector will.
+					if (f) g_cfetch_rises++;
+					{   // candidate tap: GPR <- CD (instruction register load)
+						auto rq = top->rootp;
+						unsigned gc = (unsigned)rq->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_gprc_2_0;
+						unsigned ae = (unsigned)rq->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_aluclk_en_i;
+						{   // corrected CFETCH, measured as a rising edge on the CGA net
+							unsigned char c2 = (unsigned char)rq->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_cfetch;
+							if (!g_cfetch2_prev && c2) g_cfetch2++;
+							g_cfetch2_prev = c2;
+						}
+						if (ae && (gc & 1u) && !(gc & 2u))
+						{
+							g_gprload++;
+							unsigned cdw = (unsigned)rq->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_cd_15_0 & 0xFFFFu;
+							if (cdw == g_gprload_prev_cd) g_gprload_same++;
+							g_gprload_prev_cd = cdw;
+						}
+					}
+					cf_prev = f;
+					if (cnt >= cf_next)
+					{
+						unsigned long long wg = g_gprload - g_arm_gprload;
+						unsigned long long wc = g_cfetch_rises - g_arm_cfetch;
+						unsigned long long wm = g_macro_boundaries - g_arm_macro;
+						printf("[cfetch] cnt=%d rises=%llu macro=%llu | armed=%d window: cfetch=%llu macro=%llu ratio=%.4f\n",
+						    cnt, g_cfetch_rises, g_macro_boundaries, g_arm_taken,
+						    wc, wm, wm ? (double)wc / (double)wm : 0.0);
+						printf("[gprld]  cnt=%d gprload=%llu | window: gprload=%llu macro=%llu ratio=%.4f\n",
+						    cnt, g_gprload, wg, wm, wm ? (double)wg / (double)wm : 0.0);
+						fflush(stdout);
+						cf_next += 10000000;
+					}
+				}
+			}
+
 			// ND120_WCS_RD=1 (30-AUG-2026): per-CLOCK dump of every RWCS
 			// (read/write control store) microinstruction - CACHE-1X0-A00 test 1
 			// reads the upper 1K of the WCS back OR-ed with a constant (board:
@@ -2213,6 +2333,7 @@ int main(int argc, char **argv)
 				{
 					if (tv_boundary)
 					{
+						g_macro_boundaries++;   // every boundary, unfiltered
 						if (!tv_armed)
 						{
 							if (tv_arm_addr >= 0)
@@ -2223,6 +2344,19 @@ int main(int argc, char **argv)
 							}
 							else if (pil >= 1 && pil <= 9)
 								tv_armed = 1;
+							// freeze the MIPS-tap comparison window at arming
+							if (tv_armed && !g_arm_taken)
+							{
+								g_arm_taken  = 1;
+								g_arm_cfetch = g_cfetch_rises;
+								g_arm_macro  = g_macro_boundaries;
+								g_arm_gprload = g_gprload;
+								g_arm_gprload_same = g_gprload_same;
+								g_arm_cfetch2 = g_cfetch2;
+								printf("[cfetch] ARMED at cnt=%d (cfetch=%llu macro=%llu before arming)\n",
+								    cnt, g_cfetch_rises, g_macro_boundaries);
+								fflush(stdout);
+							}
 						}
 						if (!tv_armed)
 							tv_skipped++;
@@ -2239,6 +2373,31 @@ int main(int argc, char **argv)
 							fclose(tv_fp);
 							tv_done = 1;
 							printf("\n[tverify] %d instructions traced, done\n", tv_max);
+							{
+								unsigned long long wc = g_cfetch_rises - g_arm_cfetch;
+								unsigned long long wm = g_macro_boundaries - g_arm_macro;
+								unsigned long long wg = g_gprload - g_arm_gprload;
+								unsigned long long wsame = g_gprload_same - g_arm_gprload_same;
+								unsigned long long wc2 = g_cfetch2 - g_arm_cfetch2;
+								printf("[cfetch2] CORRECTED CFETCH rises in window = %llu  vs macro = %llu  ratio=%.4f\n",
+								    wc2, wm, wm ? (double)wc2 / (double)wm : 0.0);
+								printf("[gprld]  repeat-opcode loads in window = %llu  (the reference cannot see these)\n", wsame);
+								printf("[gprld]  gprload - repeats = %llu  vs macro = %llu -> %s\n",
+								    wg - wsame, wm,
+								    ((wg - wsame) == wm) ? "EXPLAINED EXACTLY - tap is 1:1 per instruction"
+								                         : "still unexplained - investigate before flashing");
+								printf("[gprld]  VERDICT over the traced window: GPR<-CD loads=%llu, "
+								       "macro boundaries=%llu, ratio=%.4f -> %s\n",
+								    wg, wm, wm ? (double)wg / (double)wm : 0.0,
+								    (wg == wm) ? "EXACT 1:1 - THIS is the MIPS tap"
+								               : "MISMATCH - not 1:1");
+								printf("[cfetch] VERDICT over the traced window: cfetch rises=%llu, "
+								       "macro boundaries=%llu, ratio=%.4f -> %s\n",
+								    wc, wm, wm ? (double)wc / (double)wm : 0.0,
+								    (wc == wm) ? "EXACT 1:1 - tap is valid for the MIPS counter"
+								               : "MISMATCH - do NOT flash this tap");
+								fflush(stdout);
+							}
 							// Trace complete and flushed - exit instead of
 							// spinning to ND120_MAX_CNT (which just pegs a CPU
 							// core). Set ND120_TVERIFY_NOEXIT=1 to keep running.
