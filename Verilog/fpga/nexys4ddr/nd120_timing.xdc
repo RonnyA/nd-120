@@ -68,3 +68,64 @@ set_false_path \
   -through [get_pins -hier -filter {NAME =~ *DELILAH/ALU/FIDBI_15_0[*]}] \
   -through [get_pins -hier -filter {NAME =~ *DELILAH/ALU/ALU_OUTMUX/OUTMUX_IDBS/IDBS_R*/F_15_0[*]}] \
   -through [get_pins -hier -filter {NAME =~ *DELILAH/ALU/FIDBO_15_0_OUT[*]}]
+
+# ---------------------------------------------------------------------------
+# Multicycle: MIC operand-address registers -> control-store address (30-AUG-2026).
+#
+# Full derivation with file:line evidence: docs/wcs-multicycle-analysis.md
+# (written for the clk=45 attempt; summarised here).
+#
+# The build-10 (clk=45) worst path was
+#   MIC/LAA_REG/gen_enable.q_r_reg[*] (+replicas)
+#     -> WRF read -> ALU carry chain -> TRAP/TVGEN + BRKDET
+#     -> IPOS trap-vector override of MA_12_0 -> ACAL (transparent on MACLK)
+#     -> CS/WCS CHIP_* BRAM ADDRARDADDR      (27.986 ns, 36 levels)
+#
+# Why 2 cycles is safe (proof from PAL_44601B.v, PAL_44307C.v,
+# CGA_MIC_IPOS.v, CGA_TRAP_BRKDET.v GATES_16, CPU_CS_ACAL_17.v):
+#  - LAA_REG/LBA_REG capture ONLY on MCLK_EN, i.e. at the edge entering the
+#    1-clk TERM pulse (or, in RWCS cycles, entering state a=0000).
+#  - The WCS address can only take new data at posedges that close a
+#    MACLK-high cycle. The only such capture 1 clk after an MCLK_EN launch
+#    closes the TERM pulse (or RWCS state a).
+#  - In BOTH those states the machine's own fences pin the IPOS mux away
+#    from every route these registers can reach:
+#      ETRAP_n = ~(TERM_n & VEX_n & (CC3|CC2|CC1|CC0)) = 1  ("UNSTABLE TRAP
+#        IN THIS PERIOD CAN DESTROY MA !") -> TRAPN=1 -> TVEC deselected;
+#      MAP_n = ~(FORM & BRK_n & CC2 & TERM_n) = 1 -> CD branch deselected,
+#        BRK_n cannot move the selector;
+#      the MAC's MCA latch (UUA/CSCA side) is opaque while MCLK is high.
+#    The surviving W/WCA branches come from regREP/regIW/WCAREG - all
+#    registered, all OUTSIDE the -from set below, all still single-cycle.
+#  - Captures 2 clks after a launch are real (RWCS window, trap fence open
+#    from state b), so the exception must be exactly 2, no more.
+#
+# Deliberately NOT relaxed (would corrupt the machine):
+#  - anything from MIC/MASEL regREP/regW/regIW - the microcode-JUMP
+#    same-cycle route; a 1-cycle lag there was the Tang o06000 boot hang;
+#  - WRF register outputs - WRFSTB writes land in state b, 1 clk before an
+#    open RWCS capture window with traps enabled: no masking proof.
+#
+# Style matches the ring cut above: bare commands, wildcard cell/pin
+# patterns (placement replicas ..._replica_N and BRAM splitting stay
+# covered), evaluated for real after synth_design. Expect [Vivado 12-508] /
+# [Project 1-498] at the pre-synth read; what must NOT appear post-synth is
+# [Vivado 12-4739] - that means a pattern was dropped and the family is
+# single-cycle again. The -hold 1 lines return the hold check to the launch
+# edge (the default relationship), so hold closure is unchanged.
+set_multicycle_path 2 -setup \
+  -from [get_cells -hier -filter {NAME =~ */DELILAH/MIC/LAA_REG/*q_r_reg* || NAME =~ */DELILAH/MIC/LBA_REG/*q_r_reg*}] \
+  -to [get_pins -hier -filter {(NAME =~ */CPU/CS/WCS/CHIP_*/idt_memory_array_reg*/ADDR*) || (NAME =~ */CPU/CS/PROM/rom_lo_reg*/ADDR*) || (NAME =~ */CPU/CS/PROM/rom_hi_reg*/ADDR*)}]
+set_multicycle_path 1 -hold \
+  -from [get_cells -hier -filter {NAME =~ */DELILAH/MIC/LAA_REG/*q_r_reg* || NAME =~ */DELILAH/MIC/LBA_REG/*q_r_reg*}] \
+  -to [get_pins -hier -filter {(NAME =~ */CPU/CS/WCS/CHIP_*/idt_memory_array_reg*/ADDR*) || (NAME =~ */CPU/CS/PROM/rom_lo_reg*/ADDR*) || (NAME =~ */CPU/CS/PROM/rom_hi_reg*/ADDR*)}]
+# Same exception to the ACAL hold FFs on the CSA side - they capture on the
+# same MACLK-window edges as the BRAM address pins and would otherwise
+# become the new worst endpoints. The CSCA-fed r_uua_31g_hold is NOT
+# included (different source route, no proof).
+set_multicycle_path 2 -setup \
+  -from [get_cells -hier -filter {NAME =~ */DELILAH/MIC/LAA_REG/*q_r_reg* || NAME =~ */DELILAH/MIC/LBA_REG/*q_r_reg*}] \
+  -to [get_cells -hier -filter {NAME =~ */CPU/CS/ACAL/r_chip30h_hold_reg* || NAME =~ */CPU/CS/ACAL/r_lua_9_0_hold_reg* || NAME =~ */CPU/CS/ACAL/r_uua_32g_hold_reg*}]
+set_multicycle_path 1 -hold \
+  -from [get_cells -hier -filter {NAME =~ */DELILAH/MIC/LAA_REG/*q_r_reg* || NAME =~ */DELILAH/MIC/LBA_REG/*q_r_reg*}] \
+  -to [get_cells -hier -filter {NAME =~ */CPU/CS/ACAL/r_chip30h_hold_reg* || NAME =~ */CPU/CS/ACAL/r_lua_9_0_hold_reg* || NAME =~ */CPU/CS/ACAL/r_uua_32g_hold_reg*}]

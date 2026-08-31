@@ -4,43 +4,37 @@
 Living plan. Outstanding work only - finished items are deleted, not ticked.
 Findings live in [`CACHE-STATUS.md`](CACHE-STATUS.md), not here.
 
-> **Next:** TEST 3 ("Inhibit limits") - the one remaining CACHE-1X0-A00
-> failure, now known to be BOARD-SPECIFIC: it PASSES in Verilator (run 26,
-> 30-AUG 04:3x, "- End of test -") and hangs identically on the Nexys at
-> 45.45 MHz (builds 4 and 7: "hanging on level: 0D - P=124563B"). So the
-> route is the board, not more sim tracing: an ILA on the inhibit-limit
-> path (TRR LCIL/UCIL, inhibit RAM - DBG_CACHE bit 7), or a slower-clock
-> build to see if the hang follows frequency. Test 1 is FIXED and proven on
-> BOTH board (0 error lines, was 20062) and sim (End of test, 0 errors);
-> tests 2,4-8 clean on board. Unit registry: ALL 342 TESTS PASSED end to
-> end (30-AUG, three stale-test blockers cleared - see CACHE-STATUS).
+> **Next:** three things are WSL-GATED (WSL crashed 30-AUG after a process
+> pile-up; Ronny restarts it when ready, nothing touches it until then):
+>  1. TEST 3 golden trace in Verilator - the board-specific hang
+>     (P=124563B; the disassembly pinned the exact mechanism: the first
+>     newly-cacheable instruction fetch after TRR LCIL, before the CCL
+>     cache clear - see CACHE-STATUS and scratchpad test3-disasm/
+>     RECONSTRUCTION.md). The first trace attempt was stopped (agent
+>     drifted); rerun with the proven fifo/setsid recipe, ONE job at a
+>     time - Ronny's hard limit: never more than 5 concurrent processes.
+>  2. MIPS: the panel number is STILL WRONG on builds 9-11 - both tapped
+>     nets (DEBUG_FETCH, then board MAP_n = PAL_44307C's FORM-gated bus
+>     signal) are memory-cycle qualifiers a warm cache starves. The real
+>     event is CFETCH inside the CGA (add a debug output like XMIC_DBG -
+>     but ONLY after a sim run proves it pulses once per macro
+>     instruction; two unvalidated taps already wasted two flash cycles,
+>     and the CGA's own comments record two older probes lost the same
+>     way. Validation recipe: count edges vs ND120_TRACE_VERIFY lines -
+>     the [map] probe pattern in Run120.cpp is the template).
+>  3. The N=2 multicycle derivation's one assertion check (see
+>     fpga/nexys4ddr/docs/wcs-multicycle-analysis.md, weakest link).
 >
-> DONE 30-AUG 06:2x: Nexys build 8 (cache fix + MIPS panel + VT100
-> terminal, commits 1c02698/e26f44b + the uncommitted cache/DGA set) is
-> FLASHED and VALIDATED - WNS +0.211 ns clean, RUN 1-8 executed by the
-> build agent over the console: 1,2,4-8 "- End of test -", 0 error lines
-> in the whole run; test 3 the identical board-specific hang. The board
-> shows the VT100 terminal and the MIPS field. Remaining MIPS item:
-> validate the FETCH count against a known instruction loop (section 7
-> step 1) before trusting the displayed number.
+> BOARD: build 11 = cache + VT100 + (wrong) MIPS at 33.333 MHz, WNS
+> +0.037, flashed 14:37. 45.45 MHz with the real cache is PARKED - full
+> record in fpga/nexys4ddr/timing.md 30-AUG section (N=2 exception is in
+> nd120_timing.xdc and stays; the wall is the un-relaxable WRF->WCS cone,
+> a routing-pressure/restructuring problem).
 >
-> MIPS counter: IMPLEMENTED 30-AUG-2026 (Ronny asked twice on the night) -
-> `Terminals/rtl/mips_counter.v` counts board FETCH (ND3202D DEBUG_FETCH)
-> rising edges, publishes XX.XX BCD once a second, panel field at row 2 col
-> 63 ("MIPS" label col 58), plumbed nexys top -> terminal_top -> term_panel,
-> MiSTer tied 0. Testbenches green: mips_counter_tb (window arithmetic, idle
-> clear, saturation - registered in run_all_tests.sh), term_panel_tb MIPS
-> layer, MiSTer console tb. OUTSTANDING: (a) a Nexys build+flash to put it
-> on the board - needs Ronny's go, board is in use, and build 7 showed this
-> clock needs the physopt flag; (b) validate the FETCH count against a known
-> instruction loop before trusting the number (plan section 7 step 1).
->
-> Then, in order: rate meters (section 3), SINTRAN boot on the Nexys with
-> the cache live.
->
-> Build 7 timing note: the DGA RWCS-gate change costs real margin at clk=16 -
-> plain args FAILED timing (WNS -0.134), the physopt retry closed at +0.137.
-> Every future Nexys build should pass the physopt flag.
+> UNCOMMITTED in the tree: the MAP re-tap trio (ND3202D, ND120_CORE,
+> nexys top) + ND120_TOP sim tap + Run120.cpp [map] probe + the MAP
+> comment fixes (6 files) + nd120_timing.xdc + the multicycle analysis
+> doc + timing.md/plan updates. Commit when Ronny says.
 
 Findings and evidence: `CACHE-STATUS.md`. Faults 1 (CUP), 2 (44511A CWR
 > pin), the Am9150 dropped write and the EPANS data-window leak are all
