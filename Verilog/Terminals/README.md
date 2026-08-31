@@ -18,25 +18,39 @@ This folder is **board-independent RTL**. It knows nothing about MiSTer,
 MEGA65, Tang or Nexys. Each board supplies the two ends - a source of key
 events and a video sink - and the board folder owns that wiring.
 
-## Module list (30-AUG-2026)
+## Module list (31-AUG-2026)
 
 | File | What it is | Used by |
 |---|---|---|
-| `rtl/terminal_top.v` | the whole terminal: bytes in, pixels out | every board |
-| `rtl/terminal_ctrl.v` | **VT100**: ESC/CSI parser, CUP/ED/EL, SGR, DECSTBM, charsets | every board |
+| `rtl/terminal_top.v` | the whole terminal: bytes in, pixels out. Selects VT100 vs TDV2200 at compile time - see below | every board |
+| `rtl/terminal_ctrl.v` | **VT100** (type 6): ESC/CSI parser, CUP/ED/EL, SGR, DECSTBM, charsets | every board (via `-DND120_TERMINAL_VT100`) |
+| `rtl/terminal_ctrl_tdv.v` | **TDV2200** (type 93, DEFAULT): TDV-native C0 table, DLE binary cursor addressing, generic mode/DCS swallow | every board (default, no define) |
 | `rtl/text_screen.v` | the pixel pipeline: RAM -> font -> pixel, attributes | every board |
-| `rtl/char_ram.v` | 80x24 cells, 8 bits character + 8 bits attribute | every board |
+| `rtl/char_ram.v` | cells (80x24 VT100 / 80x25 TDV2200), 8 bits character + 8 bits attribute | every board |
 | `rtl/byte_fifo.v` | 16-byte slack in front of the controller (region scroll > 1 byte time) | every board |
 | `rtl/vga_timing.v` | parameterised sync generator, 800x600@60 default | every board |
 | `rtl/font_rom.v` | 8x16 glyphs from `font/font8x16.hex` | every board |
 | `rtl/cdc_byte.v` | one-byte clock crossing, full valid/ready handshake | every board |
 | `rtl/term_banner.v` | power-on self-test message sender | every board |
 | `rtl/term_banner_rom.v` | the message itself - **GENERATED**, see below | every board |
-| `rtl/ps2_decoder.v` | scancode -> byte: modifiers, caps, ctrl; arrows/HOME emit sequence markers | Nexys **and** MiSTer |
-| `rtl/key_vt100.v` | expands the markers to `ESC [ x` toward the UART, with the FIFO that makes 3 bytes per keypress survive | Nexys (MiSTer build 2) |
-| `rtl/ps2_ascii_table.v` | the scancode lookup tables | Nexys and MiSTer |
-| `rtl/ps2_keyboard.v` | PS/2 **serial** front end (11-bit framing, prefixes) | Nexys only |
+| `rtl/ps2_decoder.v` | scancode -> byte, VT100 marker scheme: modifiers, caps, ctrl; arrows/HOME emit sequence markers | Nexys **and** MiSTer |
+| `rtl/ps2_decoder_tdv.v` | sibling of the above for the TDV2200 table - same logic, different `ps2_ascii_table_*` instance | Nexys (default) |
+| `rtl/key_vt100.v` | expands VT100 markers to `ESC [ x` toward the UART, with the FIFO that makes 3-5 bytes per keypress survive | Nexys/MiSTer (via `-DND120_TERMINAL_VT100`) |
+| `rtl/key_tdv2200.v` | expands TDV2200 markers to `ESC [ nn _` (shift = n+1) toward the UART | Nexys (default) |
+| `rtl/ps2_ascii_table.v` | the VT100 scancode lookup tables | Nexys and MiSTer |
+| `rtl/ps2_ascii_table_tdv.v` | the TDV2200 scancode lookup tables - bare C0 bytes for arrows/Home/Delete, `ESC[nn_` markers for F-keys | Nexys (default) |
+| `rtl/ps2_keyboard.v` | PS/2 **serial** front end (11-bit framing, prefixes) + VT100 decoder | Nexys only, via `-DND120_TERMINAL_VT100` |
+| `rtl/ps2_keyboard_tdv.v` | same framing, TDV2200 decoder | Nexys only, default |
 | `rtl/console_uart_rx.v` / `_tx.v` | the machine seam, 7/8 bits + optional parity | Nexys only |
+
+**VT100 and TDV2200 are two genuinely separate module pairs, never both
+elaborated in the same build** - selected by `` `ifdef ND120_TERMINAL_VT100 ``
+in `terminal_top.v` and each board's top level (Nexys: `-VT100Terminal`
+build flag). Default is TDV2200 (type 93) since 31-AUG-2026: PED and LED are
+built for the Tandberg keyboard's own key set, not VT100 CSI input - see
+`docs/SPEC-tdv2200.md`. MiSTer forces VT100 explicitly
+(`fpga/mister/rtl/nd120_console_mister.v`) since its keyboard glue only
+wires the VT100 pair.
 
 The keyboard is split in two on purpose. MiSTer's `hps_io` delivers scancodes
 that Linux has already framed, and the MEGA65 has a matrix behind a CPLD -

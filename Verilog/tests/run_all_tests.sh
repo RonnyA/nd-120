@@ -96,6 +96,17 @@ REGISTRY=(
   # the VT100 key-sequence expander - every marker byte-exact against its
   # DEC sequence, incl. the two-digit ESC[nn~ form and a FIFO burst
   "Terminals/sim :: test-key-vt100 :: TB_RESULT: PASS"
+  # TDV2200 (type 93, default terminal, 31-AUG-2026) key-sequence expander -
+  # every ESC[nn_ marker byte-exact, incl. zero-padding and a FIFO burst
+  "Terminals/sim :: test-key-tdv2200 :: TB_RESULT: PASS"
+  # TDV2200 PS/2 -> ASCII path end to end: bare C0 bytes for arrows/Home/
+  # Delete (no marker at all, unlike VT100), ESC[nn_ markers for F-keys
+  "Terminals/sim :: test-ps2-keyboard-tdv :: TB_RESULT: PASS"
+  # TDV2200 display controller - C0 table, DLE binary cursor addressing
+  # (both encodings), EOT/EM erase, and the REAL captured PED-at-type-93
+  # startup sequence replayed byte-exact (DCS soft-key blocks skipped
+  # without leaking to the screen, zero-padded CUP, ED)
+  "Terminals/sim :: test-terminal-ctrl-tdv :: TB_RESULT: PASS"
   # --- MiSTer core ----------------------------------------------------------
   # The board-specific console glue, NOT the terminal core (that is above). The
   # three things tested here exist only on this board and each fails in a way

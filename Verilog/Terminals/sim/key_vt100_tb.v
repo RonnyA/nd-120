@@ -170,8 +170,12 @@ module key_vt100_tb;
     expect_seq(8'hB2, {16'h0, ESC, "O", "R"}, 3, "F3 / PF3");
     expect_seq(8'hB3, {16'h0, ESC, "O", "S"}, 3, "F4 / PF4");
 
-    // Editing keys - one-digit tilde.
-    expect_seq(8'hC1, {8'h0, ESC, "[", "1", "~"}, 4, "Home / FIND");
+    // Home - CSI-final family, payload 8 = 'H' (measured: PED's HOME).
+    expect_seq(8'h88, {16'h0, ESC, "[", "H"}, 3, "Home = ESC [ H");
+
+    // Editing keys - one-digit tilde. (0xC1 = ESC[1~ stays a valid marker;
+    // no key maps to it since Home moved to ESC[H.)
+    expect_seq(8'hC1, {8'h0, ESC, "[", "1", "~"}, 4, "tilde-1 / FIND");
     expect_seq(8'hC2, {8'h0, ESC, "[", "2", "~"}, 4, "Insert");
     expect_seq(8'hC3, {8'h0, ESC, "[", "3", "~"}, 4, "Delete / REMOVE");
     expect_seq(8'hC4, {8'h0, ESC, "[", "4", "~"}, 4, "End / SELECT");

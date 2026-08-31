@@ -12,6 +12,7 @@
 #   make test-panel          the ND-120 operator panel
 #   make test-mips-counter   the panel's MIPS counter arithmetic
 #   make test-key-vt100      every keyboard marker against its byte sequence
+#   make test-key-tdv2200    every TDV2200 ESC[nn_ marker against its byte sequence
 #   make lint       Verilator lint over the whole terminal core
 #   make clean
 #
@@ -30,9 +31,9 @@ RTL       = ../rtl
 # elsewhere in this repo; -Wall to catch width mistakes early.
 IVFLAGS = -g2012 -Wall -I$(RTL)
 
-.PHONY: all test-vga-timing test-terminal-ctrl test-ps2-keyboard test-console-uart test-console-loop test-text-screen test-banner test-panel test-mips-counter test-key-vt100 lint clean
+.PHONY: all test-vga-timing test-terminal-ctrl test-ps2-keyboard test-console-uart test-console-loop test-text-screen test-banner test-panel test-mips-counter test-key-vt100 test-key-tdv2200 test-ps2-keyboard-tdv test-terminal-ctrl-tdv lint clean
 
-all: test-vga-timing test-terminal-ctrl test-ps2-keyboard test-console-uart test-console-loop test-text-screen test-banner test-panel test-mips-counter test-key-vt100
+all: test-vga-timing test-terminal-ctrl test-ps2-keyboard test-console-uart test-console-loop test-text-screen test-banner test-panel test-mips-counter test-key-vt100 test-key-tdv2200 test-ps2-keyboard-tdv test-terminal-ctrl-tdv
 	@echo "terminal core: all testbenches passed"
 
 test-vga-timing: vga_timing_tb.vvp
@@ -46,6 +47,13 @@ test-terminal-ctrl: terminal_ctrl_tb.vvp
 test-ps2-keyboard: ps2_keyboard_tb.vvp
 	@$(VVP) $< | tee ps2_keyboard_tb.log
 	@grep -q "TB_RESULT: PASS" ps2_keyboard_tb.log || { echo "ps2_keyboard_tb FAILED"; exit 1; }
+
+test-ps2-keyboard-tdv: ps2_keyboard_tdv_tb.vvp
+	@$(VVP) $< | tee ps2_keyboard_tdv_tb.log
+	@grep -q "TB_RESULT: PASS" ps2_keyboard_tdv_tb.log || { echo "ps2_keyboard_tdv_tb FAILED"; exit 1; }
+
+ps2_keyboard_tdv_tb.vvp: ps2_keyboard_tdv_tb.v $(RTL)/ps2_keyboard_tdv.v $(RTL)/ps2_decoder_tdv.v $(RTL)/ps2_ascii_table_tdv.v
+	$(IVERILOG) $(IVFLAGS) -o $@ $^
 
 ps2_keyboard_tb.vvp: ps2_keyboard_tb.v $(RTL)/ps2_keyboard.v $(RTL)/ps2_decoder.v $(RTL)/ps2_ascii_table.v
 	$(IVERILOG) $(IVFLAGS) -o $@ $^
@@ -62,7 +70,7 @@ test-console-loop: terminal_console_tb.vvp
 	@grep -q "TB_RESULT: PASS" terminal_console_tb.log || { echo "terminal_console_tb FAILED"; exit 1; }
 
 terminal_console_tb.vvp: terminal_console_tb.v $(RTL)/console_uart_tx.v $(RTL)/console_uart_rx.v $(RTL)/key_vt100.v $(RTL)/terminal_top.v $(RTL)/terminal_ctrl.v $(RTL)/byte_fifo.v $(RTL)/char_ram.v $(RTL)/text_screen.v $(RTL)/vga_timing.v $(RTL)/font_rom.v $(RTL)/cdc_byte.v $(RTL)/ps2_keyboard.v $(RTL)/ps2_decoder.v $(RTL)/ps2_ascii_table.v $(RTL)/term_console_feed.v $(RTL)/term_banner.v $(RTL)/term_banner_rom.v $(RTL)/term_panel.v $(RTL)/term_panel_rom.v $(RTL)/rate_meter.v $(RTL)/ratio_meter.v
-	$(IVERILOG) $(IVFLAGS) -o $@ $^
+	$(IVERILOG) $(IVFLAGS) -DND120_TERMINAL_VT100 -o $@ $^
 
 test-text-screen: text_screen_tb.vvp
 	@$(VVP) $< | tee text_screen_tb.log
@@ -76,6 +84,13 @@ test-key-vt100: key_vt100_tb.vvp
 	@grep -q "TB_RESULT: PASS" key_vt100_tb.log || { echo "key_vt100_tb FAILED"; exit 1; }
 
 key_vt100_tb.vvp: key_vt100_tb.v $(RTL)/key_vt100.v
+	$(IVERILOG) $(IVFLAGS) -o $@ $^
+
+test-key-tdv2200: key_tdv2200_tb.vvp
+	@$(VVP) $< | tee key_tdv2200_tb.log
+	@grep -q "TB_RESULT: PASS" key_tdv2200_tb.log || { echo "key_tdv2200_tb FAILED"; exit 1; }
+
+key_tdv2200_tb.vvp: key_tdv2200_tb.v $(RTL)/key_tdv2200.v
 	$(IVERILOG) $(IVFLAGS) -o $@ $^
 
 test-mips-counter: mips_counter_tb.vvp
@@ -102,6 +117,13 @@ term_banner_tb.vvp: term_banner_tb.v $(RTL)/term_banner.v $(RTL)/term_banner_rom
 vga_timing_tb.vvp: vga_timing_tb.v $(RTL)/vga_timing.v
 	$(IVERILOG) $(IVFLAGS) -o $@ $^
 
+test-terminal-ctrl-tdv: terminal_ctrl_tdv_tb.vvp
+	@$(VVP) $< | tee terminal_ctrl_tdv_tb.log
+	@grep -q "TB_RESULT: PASS" terminal_ctrl_tdv_tb.log || { echo "terminal_ctrl_tdv_tb FAILED"; exit 1; }
+
+terminal_ctrl_tdv_tb.vvp: terminal_ctrl_tdv_tb.v $(RTL)/terminal_ctrl_tdv.v $(RTL)/char_ram.v
+	$(IVERILOG) $(IVFLAGS) -o $@ $^
+
 terminal_ctrl_tb.vvp: terminal_ctrl_tb.v $(RTL)/terminal_ctrl.v $(RTL)/char_ram.v
 	$(IVERILOG) $(IVFLAGS) -o $@ $^
 
@@ -117,9 +139,13 @@ lint:
 	$(VERILATOR) $(VVFLAGS) --top-module terminal_top $(RTL)/terminal_top.v $(RTL)/terminal_ctrl.v $(RTL)/byte_fifo.v $(RTL)/char_ram.v $(RTL)/text_screen.v $(RTL)/vga_timing.v $(RTL)/font_rom.v $(RTL)/cdc_byte.v $(RTL)/term_panel.v $(RTL)/term_panel_rom.v $(RTL)/rate_meter.v $(RTL)/ratio_meter.v
 	$(VERILATOR) $(VVFLAGS) --top-module ps2_keyboard 	  $(RTL)/ps2_keyboard.v $(RTL)/ps2_decoder.v $(RTL)/ps2_ascii_table.v
 	$(VERILATOR) $(VVFLAGS) --top-module ps2_decoder 	  $(RTL)/ps2_decoder.v $(RTL)/ps2_ascii_table.v
+	$(VERILATOR) $(VVFLAGS) --top-module ps2_keyboard_tdv $(RTL)/ps2_keyboard_tdv.v $(RTL)/ps2_decoder_tdv.v $(RTL)/ps2_ascii_table_tdv.v
+	$(VERILATOR) $(VVFLAGS) --top-module ps2_decoder_tdv  $(RTL)/ps2_decoder_tdv.v $(RTL)/ps2_ascii_table_tdv.v
 	$(VERILATOR) $(VVFLAGS) --top-module term_panel 	  $(RTL)/term_panel.v $(RTL)/term_panel_rom.v $(RTL)/rate_meter.v $(RTL)/ratio_meter.v $(RTL)/font_rom.v
 	$(VERILATOR) $(VVFLAGS) --top-module term_banner 	  $(RTL)/term_banner.v $(RTL)/term_banner_rom.v
 	$(VERILATOR) $(VVFLAGS) --top-module key_vt100 	  $(RTL)/key_vt100.v
+	$(VERILATOR) $(VVFLAGS) --top-module key_tdv2200 	  $(RTL)/key_tdv2200.v
+	$(VERILATOR) $(VVFLAGS) --top-module terminal_ctrl_tdv $(RTL)/terminal_ctrl_tdv.v $(RTL)/char_ram.v
 	$(VERILATOR) $(VVFLAGS) --top-module console_uart_rx $(RTL)/console_uart_rx.v
 	$(VERILATOR) $(VVFLAGS) --top-module console_uart_tx $(RTL)/console_uart_tx.v
 	@echo "terminal core: verilator lint clean"

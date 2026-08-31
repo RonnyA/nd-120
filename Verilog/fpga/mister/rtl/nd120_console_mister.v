@@ -36,6 +36,15 @@
 
 `default_nettype none
 
+//! Forces terminal_top.v to instantiate the VT100 controller, not the
+//! TDV2200 one that became the DEFAULT (undefined) on 31-AUG-2026
+//! (Verilog/Terminals/docs/SPEC-tdv2200.md). This board's keyboard end
+//! above only wires ps2_decoder + key_vt100 - there is no TDV keyboard
+//! path here yet - so this file must keep forcing VT100 regardless of
+//! what the shared core's own default becomes, or the display and
+//! keyboard would speak two different terminal types.
+`define ND120_TERMINAL_VT100
+
 module nd120_console_mister #(
     //! A BARE FILENAME on purpose. Vivado resolves $readmemh next to the .v
     //! that contains it and Quartus is believed to resolve it relative to the

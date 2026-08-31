@@ -218,11 +218,27 @@ module terminal_top #(
   wire       s_rev_screen;
   wire       s_blink_on;
 
+  // Two separate, compile-time-selected controllers - VT100 (type 6) and
+  // TDV2200 (type 93), never both in the same build. Default TDV2200: PED
+  // and LED are built for the Tandberg keyboard's own key set, not VT100
+  // CSI sequences (Verilog/Terminals/docs/SPEC-tdv2200.md has the full
+  // account of why). Build with -DND120_TERMINAL_VT100 for the VT100
+  // variant instead. Same port list either way - only the module name (and
+  // the caller's ROWS, 24 vs 25) differs, so this is the one place that
+  // needs to know which one exists.
+`ifdef ND120_TERMINAL_VT100
   terminal_ctrl #(
       .COLS  (COLS),
       .ROWS  (ROWS),
       .AWIDTH(AWIDTH)
   ) CTRL (
+`else
+  terminal_ctrl_tdv #(
+      .COLS  (COLS),
+      .ROWS  (ROWS),
+      .AWIDTH(AWIDTH)
+  ) CTRL (
+`endif
       .clk  (pix_clk),
       .rst_n(pix_rst_n),
 

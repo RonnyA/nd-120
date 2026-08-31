@@ -50,18 +50,24 @@ keypad ("In VT100 or VT52 modes the editing keys do not generate codes") -
 yet VTM's type-6 table decodes them anyway. Good for us: a PC keyboard has
 exactly those six positions.
 
-### Home and End - the one judgment call, and the current BUG
+### Home and End - SETTLED BY MEASUREMENT, 30-AUG-2026, and this page was wrong
 
-Today's build sends `ESC [ H` for Home (chosen when the marker scheme was
-built, from the CUP-home analogy). **`ESC [ H` is xterm's Home, and it is
-NOT in VTM's measured type-6 table** - so on a type-6 SINTRAN line it most
-likely leaks as raw bytes. It must go.
+This section first argued Home must become `ESC [ 1 ~` because `ESC [ H`
+is absent from VTM's measured table. **Measured live in PED on a type-6
+SINTRAN line (D100), the truth is the opposite:**
 
-A VT220 keyboard has no Home/End at all; xterm itself derives its Home/End
-from DEC's FIND/SELECT positions. So: **PC Home sends `ESC [ 1 ~` (FIND),
-PC End sends `ESC [ 4 ~` (SELECT)** - both measured-decoded. What a given
-SINTRAN program DOES with codes 130/160 is that program's table; the point
-is the codes arrive as one key each instead of as byte spray.
+- **`ESC [ H` IS decoded and IS PED's HOME** - it toggles between the text
+  area and the `PED:` command line, both directions, tested.
+- **`ESC [ 1 ~` does NOTHING in PED** - decoded by VTM to code 130 (FIND),
+  but PED has no use for it.
+- `ESC [ A` / `ESC [ B` move the cursor in PED's text area - the arrows
+  genuinely work at type 6, including after a LIVE
+  `@SET-TERMINAL-TYPE ,6` with PED already running (no restart needed).
+
+So: **PC Home sends `ESC [ H`** (marker 0x88, CSI-final family). End keeps
+`ESC [ 4 ~` (SELECT) - harmless if a program ignores it. The lesson this
+section now carries: the measured table's SILENCE about a sequence proved
+nothing in either direction; only sending the sequence at the editor did.
 
 ### F-keys
 
@@ -134,9 +140,9 @@ both agree on every code used here, F7 = 0x83 included.
 measuring.** Implemented the same day:
 
 - `rtl/ps2_ascii_table.v` - the full marker table: arrows 0x81-0x84,
-  editing six 0xC1-0xC6 (Home=FIND, End=SELECT; the `ESC [ H` Home is
-  gone), F1-F4 0xB0-0xB3, F5-F12 0xCF/0xD1-0xD5/0xD7/0xD8. F-keys carry
-  the SAME marker shifted and unshifted, per the standard.
+  Home 0x88 (`ESC [ H` - measured, see above), Insert/Delete/End/PgUp/PgDn
+  0xC2-0xC6, F1-F4 0xB0-0xB3, F5-F12 0xCF/0xD1-0xD5/0xD7/0xD8. F-keys
+  carry the SAME marker shifted and unshifted, per the standard.
 - `rtl/ps2_decoder.v` - Ctrl never masks a marker (no Ctrl-F or Ctrl-arrow
   encoding exists on a VT100; the modifier is ignored). Alt is not tracked
   at all.
