@@ -249,6 +249,8 @@ module ND120_CORE #(
     output wire        DEBUG_MCLK,       //! Microcycle clock
     output wire        DEBUG_LCS_n,      //! 0 = loading microcode, 1 = loaded
     output wire        DEBUG_FETCH,
+    output wire        DEBUG_MAP_n,   //! one falling edge per macro instruction (see ND3202D)
+    output wire        DEBUG_CFETCH,  //! one rise per macro instruction (CGA CFETCH) - the MIPS event
     output wire        DEBUG_MR_n,       //! Master Reset
     output wire        DEBUG_CLEAR_n,
     output wire        DEBUG_REFRQ_n,    //! Refresh Request
@@ -451,6 +453,17 @@ module ND120_CORE #(
   // 06-AUG-2026 in CPU-BOARD-3202/circuit/BIF_DPATH_9.v (one OR-term restores
   // the pin node); verified clean on silicon and in simulation.
 
+
+`ifndef MAIN_RAM_SDRAM
+  // DBG_WDSTAGE is an output port only in the MAIN_RAM_SDRAM section of the
+  // port list, but the Winchester generate below drives it unconditionally.
+  // Without this fallback the non-SDRAM builds (Verilator, DDR2) create an
+  // IMPLICIT 1-bit net - which Verilator -Wall treats as a hard error
+  // (found 30-AUG-2026 when runSim stopped verilating). Same rule as the
+  // DBG_CACHE port comment: a debug wire touched outside a conditional must
+  // exist in every build.
+  wire [1:0] DBG_WDSTAGE;
+`endif
 
   // Bus-slave contributions onto the CPU's bus inputs (active low)
   wire [23:0] s_dev_bd_n;
@@ -1212,6 +1225,8 @@ module ND120_CORE #(
       .DEBUG_MCLK(DEBUG_MCLK),       // Microcycle clock
       .DEBUG_LCS_n(DEBUG_LCS_n),     // LCS_n: 0=loading, 1=loaded
       .DEBUG_FETCH(DEBUG_FETCH),
+      .DEBUG_MAP_n(DEBUG_MAP_n),
+      .DEBUG_CFETCH(DEBUG_CFETCH),
       .DEBUG_MR_n(DEBUG_MR_n),
       .DEBUG_CLEAR_n(DEBUG_CLEAR_n),
       .DEBUG_REFRQ_n(DEBUG_REFRQ_n),

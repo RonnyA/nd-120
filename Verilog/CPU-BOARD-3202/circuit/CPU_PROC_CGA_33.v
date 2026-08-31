@@ -32,7 +32,7 @@ module CPU_PROC_CGA_33 (
     input        IBINT15_n,   //! Internal Bus Interrupt 15, active low
     input        IOXERR_n,    //! I/O Error, active low
     input        LCS_n,       //! Local Chip Select, active low
-    input        MAP_n,       //! Memory Address Present signal
+    input        MAP_n,       //! MAP Opcode (active low) - last microinstruction of every macro instruction
     input        MCLK,        //! Microcycle clock (= TERM outside RWCS, stretched during RWCS)
     input        MOR_n,       //! Memory Out of Range, active low
     input        MR_n,        //! Memory Read, active low
@@ -79,6 +79,7 @@ module CPU_PROC_CGA_33 (
     // Debug
     output [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
     output [15:0] XMIC_DBG_15_0,    //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output        XCFETCH_DBG,      //! DEBUG: one rise per macro instruction (see CGA.v)
     output [20:0]        PF_CAPTURED       //! DEBUG: ND120_PF_CAPTURE freeze flag (23-AUG)
 );
 
@@ -301,6 +302,7 @@ module CPU_PROC_CGA_33 (
 
       .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
       .XMIC_DBG_15_0(XMIC_DBG_15_0),
+      .XCFETCH_DBG(XCFETCH_DBG),
       .PF_CAPTURED(PF_CAPTURED)
   );
 

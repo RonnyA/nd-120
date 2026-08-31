@@ -416,6 +416,8 @@ module nd120_nexys4ddr_top (
   wire [ 9:0] s_debug_ca_9_0;
   wire [ 4:0] s_debug_cc_term;
   wire        s_debug_mclk, s_debug_lcs_n, s_debug_fetch;
+  wire        s_debug_map_n;   // one falling edge per macro instruction (ND3202D)
+  wire        s_debug_cfetch;  // one rise per macro instruction (CGA CFETCH) - feeds the MIPS counter
   wire [15:0] s_panel_mips;   // XX.XX BCD from mips_counter, once a second
   wire        s_debug_refrq_n;
   wire        s_debug_intrq_n, s_debug_powfail_n;
@@ -603,7 +605,15 @@ module nd120_nexys4ddr_top (
   );
 
   terminal_top #(
-      .FONT_FILE("font8x16.hex")   // Vivado resolves $readmemh next to the .v
+      .FONT_FILE("font8x16.hex"),  // Vivado resolves $readmemh next to the .v
+      // TDV2200 is 80x25 (the status-line row PED uses), VT100 is 80x24 -
+      // see terminal_ctrl_tdv.v's header. Must track the same
+      // ND120_TERMINAL_VT100 define the controller selection uses below.
+`ifdef ND120_TERMINAL_VT100
+      .ROWS(24)
+`else
+      .ROWS(25)
+`endif
   ) TERMINAL (
       // The deserializer already runs on the pixel clock, so the crossing
       // inside terminal_top is a no-op here. Left in place rather than
@@ -709,7 +719,17 @@ module nd120_nexys4ddr_top (
   wire       s_key_valid;
   wire [7:0] s_key_data;
 
+  // Same VT100/TDV2200 compile-time select as the display side - see
+  // terminal_top.v's CTRL instantiation. ps2_keyboard/key_vt100 and
+  // ps2_keyboard_tdv/key_tdv2200 are genuinely separate module pairs (the
+  // PS/2 framing and the sequence-expander FIFO are near-identical, but the
+  // scancode table and the wire format they expand to are not), never both
+  // in the same build.
+`ifdef ND120_TERMINAL_VT100
   ps2_keyboard KEYBOARD (
+`else
+  ps2_keyboard_tdv KEYBOARD (
+`endif
       .clk  (clk_pix),
       .rst_n(pix_rst_n),
 
@@ -720,7 +740,7 @@ module nd120_nexys4ddr_top (
 
       .ascii_valid(s_key_valid),
       .ascii_data (s_key_data),
-      // raw scancodes are for the TDV work later; nothing consumes them yet
+      // raw scancodes: nothing at this top level consumes them
       .code_valid   (),
       .code_data    (),
       .code_release (),
@@ -729,15 +749,19 @@ module nd120_nexys4ddr_top (
 
   wire s_kbd_txd;
 
-  //! VT100 sequence expander (30-AUG-2026): an arrow key is THREE bytes
-  //! (ESC [ A...) on terminal type 6, and the UART needs ~870 us per byte -
-  //! so this carries the FIFO that used to be "a problem nobody has". Plain
-  //! characters pass straight through it.
+  //! Sequence expander: a TDV F-key or a VT100 arrow is several bytes on
+  //! the wire (ESC [ ...), and the UART needs ~870 us per byte - so this
+  //! carries the FIFO that used to be "a problem nobody has". Plain
+  //! characters pass straight through it either way.
   wire       s_seq_valid;
   wire [7:0] s_seq_data;
   wire       s_tx_ready;
 
+`ifdef ND120_TERMINAL_VT100
   key_vt100 KEYEXP (
+`else
+  key_tdv2200 KEYEXP (
+`endif
       .clk      (clk_pix),
       .rst_n    (pix_rst_n),
       .key_valid(s_key_valid),
@@ -912,6 +936,8 @@ module nd120_nexys4ddr_top (
       .DEBUG_MCLK       (s_debug_mclk),
       .DEBUG_LCS_n      (s_debug_lcs_n),
       .DEBUG_FETCH      (s_debug_fetch),
+      .DEBUG_MAP_n      (s_debug_map_n),
+      .DEBUG_CFETCH     (s_debug_cfetch),
       .DEBUG_MR_n       (s_debug_mr_n),
       .DEBUG_CLEAR_n    (s_debug_clear_n),
       .DEBUG_REFRQ_n    (s_debug_refrq_n),
@@ -962,10 +988,16 @@ module nd120_nexys4ddr_top (
   );
 
   // --- MIPS counter --------------------------------------------------------
-  // Macro instructions per second for the panel, counted from the board's
-  // FETCH signal (ND3202D DEBUG_FETCH) on the CPU clock. The CPU frequency
-  // follows the MMCM divisor define, so a -Variant build measures itself
-  // correctly without another number to keep in sync.
+  // Macro instructions per second for the panel. Counted from MAP, not
+  // FETCH (changed 30-AUG-2026): the microsequencer's MAP operation is the
+  // last microinstruction of every macro instruction - one falling edge of
+  // MAP_n per instruction, cache hit or miss. FETCH marks memory CYCLES,
+  // and build 8 (the first image whose cache really hits) starved it: a
+  // warm machine fetched from the cache, no memory cycle ran, and the
+  // panel said 00.00 while SINTRAN was visibly running. The counter takes
+  // a rising-edge input, so MAP_n goes in inverted.
+  // The CPU frequency follows the MMCM divisor define, so a -Variant build
+  // measures itself correctly without another number to keep in sync.
   // real->integer localparam rounds at elaboration; every tool here (Vivado,
   // Verilator, iverilog) does this, while $rtoi in a parameter position is
   // less universally loved.
@@ -976,7 +1008,11 @@ module nd120_nexys4ddr_top (
   ) MIPS (
       .clk     (clk_cpu),
       .rst_n   (sys_rst_n),
-      .fetch   (s_debug_fetch),
+      // CFETCH since 30-AUG evening: the CGA's own Command Fetch state,
+      // once per macro instruction, cache present or not. The FETCH and
+      // MAP_n taps before it were both memory-cycle signals (see the
+      // history above) - kept wired for probes, no longer counted.
+      .fetch   (s_debug_cfetch),
       .mips_bcd(s_panel_mips)
   );
 

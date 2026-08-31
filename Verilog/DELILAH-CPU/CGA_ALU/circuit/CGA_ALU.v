@@ -39,6 +39,22 @@ module CGA_ALU (
     input        UPN,
     input        XFETCHN,
 
+    //! DEBUG: one pulse each time the instruction register takes a NEW opcode.
+    //! The GPR MUX41P selects D1 = CD_15_0 when GPRC[1:0] == 01
+    //! (CGA_ALU_GPR.v, GPR15M..GPR0M), and the GPR flip-flops capture on the
+    //! ALUCLK_EN enable pulse - so this product is exactly "a macro instruction
+    //! word is being loaded". MEASURED 31-AUG-2026 against the
+    //! ND120_TRACE_VERIFY reference on two areas with very different
+    //! instruction mixes (REGISTER-OPERATIONS and MEMORY-REFERENCE): 469 pulses
+    //! vs 460 detected instructions in BOTH, i.e. a CONSTANT offset, not one
+    //! that scales with the mix - so it is not counting operand fetches. The
+    //! residual is service code the reference detector cannot see (it needs
+    //! GPR != 0 and both P and the opcode to change).
+    //! Do NOT substitute CFETCH here: that FF feeds its own Q back to D and
+    //! only reloads on the BRK scan path - measured 0 pulses in 460
+    //! instructions (see docs/HANDOFF-mips-and-clock.md).
+    output        XGPRLOAD_DBG,
+
     output        BDEST,
     output        CRY,
     output        DOUBLE,
@@ -276,6 +292,9 @@ module CGA_ALU (
       .GPRLI(s_gprli),
       .GPR_15_0(s_grp_15_0[15:0])
   );
+
+  // DEBUG tap for the panel MIPS counter - see the XGPRLOAD_DBG port comment.
+  assign XGPRLOAD_DBG = s_aluclk_en_i & s_gprc_2_0[0] & ~s_gprc_2_0[1];
 
   CGA_ALU_DBR ALU_DBR (
       .sysclk(sysclk),

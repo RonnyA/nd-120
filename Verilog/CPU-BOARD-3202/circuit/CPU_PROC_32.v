@@ -34,7 +34,7 @@ module CPU_PROC_32 (
     input        IBINT15_n,   //! Input Interrupt 15
     input        IOXERR_n,    //! IOX Error
     input        LCS_n,       //! LCS_n (LCS = Load Control Store)
-    input        MAP_n,       //! Memory Address Present signal
+    input        MAP_n,       //! MAP Opcode (active low) - last microinstruction of every macro instruction
     input        MCLK,        //! Clock
     input        MOR_n,       //! Memory Error
     input        MREQ_n,      //! Memory Request
@@ -94,6 +94,7 @@ module CPU_PROC_32 (
     // Debug
     output [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
     output [15:0] XMIC_DBG_15_0,    //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output        XCFETCH_DBG,      //! DEBUG: one rise per macro instruction (see CGA.v)
     output [20:0]        PF_CAPTURED       //! DEBUG: ND120_PF_CAPTURE freeze flag (23-AUG)
 );
 
@@ -455,6 +456,41 @@ module CPU_PROC_32 (
   // ("ERROR: no valid mapping") where Vivado/Gowin EDA treat it as advisory
   // and fall back. 2048x16 = 32 Kbit as distributed LUT RAM (~2K LUT4).
   // yosys pre-defines YOSYS; every other flow is untouched.
+`ifdef QUARTUS_ALTSYNCRAM
+  // Quartus-only: explicit altsyncram, MLAB block type, UNREGISTERED output
+  // (31-AUG-2026, MiSTer build 2). This read is genuinely, deliberately
+  // asynchronous - s_idb_erf_out below is a plain combinational function of
+  // the array, same as Xilinx distributed RAM / Gowin's fallback - so this
+  // is not a coding-pattern workaround, it is telling Quartus to build the
+  // same async-read LUTRAM the other tools already infer on their own.
+  // Read and write are mutually exclusive on s_twrf_n (never asserted
+  // together), so read-during-write behavior is irrelevant here.
+  wire [15:0] s_regblock_q_a;
+
+  altsyncram #(
+      .operation_mode         ("SINGLE_PORT"),
+      .width_a                (16),
+      .widthad_a               (11),
+      .numwords_a              (2048),
+      .outdata_reg_a           ("UNREGISTERED"),
+      .ram_block_type          ("MLAB"),
+      .lpm_type                ("altsyncram"),
+      .intended_device_family  ("Cyclone V")
+  ) REGBLOCK_INST (
+      .clock0    (sysclk),
+      .clocken0  (1'b1),
+      .address_a (s_address_10_0[10:0]),
+      .data_a    (s_idb_erf_in),
+      .wren_a    (!s_erf_n && !s_twrf_n),
+      .rden_a    (1'b1),
+      .aclr0     (1'b0),
+      .q_a       (s_regblock_q_a)
+  );
+
+  // s_erf_n <= CHIP SELECT active low (Enable Register File negated)
+  // s_twrf_n = 0 <== WRITE TO registerBlock. s_twrf_n == 1, READ FROM registerBlock
+  assign s_idb_erf_out = s_erf_n ? 16'b0 : s_twrf_n ? s_regblock_q_a : 16'b0;
+`else
 `ifdef YOSYS
   (* ram_style = "distributed" *) reg [15:0] registerBlock[0:2047];
 `else
@@ -475,6 +511,7 @@ module CPU_PROC_32 (
   // s_erf_n <= CHIP SELECT active low (Enable Register File negated)
   // s_twrf_n = 0 <== WRITE TO registerBlock. s_twrf_n == 1, READ FROM registerBlock
   assign s_idb_erf_out = s_erf_n ? 16'b0 : s_twrf_n ? registerBlock[s_address_10_0[10:0]] : 16'b0;
+`endif
 
 
   /*
@@ -510,7 +547,7 @@ module CPU_PROC_32 (
       .IBINT15_n(s_ibint15_n),               // Input Bus Interrupt 15
       .IOXERR_n(s_ioxerr_n),                 // IOX Error signal
       .LCS_n(s_lcs_n),                       // Load Control Store signal
-      .MAP_n(s_map_n),                       // Memory Address Present signal
+      .MAP_n(s_map_n),                       // MAP Opcode (active low)
       .MCLK(s_mclk),                         // Microcycle clock
       .MOR_n(s_mor_n),                       // Memory Error signal
       .MR_n(s_mr_n),                         // Master Reset signal
@@ -549,6 +586,7 @@ module CPU_PROC_32 (
 
       .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
       .XMIC_DBG_15_0(XMIC_DBG_15_0),
+      .XCFETCH_DBG(XCFETCH_DBG),
       .PF_CAPTURED(PF_CAPTURED)
   );
 
