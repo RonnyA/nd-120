@@ -208,6 +208,10 @@ module ps2_keyboard_tb;
     ps2_send(8'h14);             // ctrl press
     press_expect(8'h21, 8'h03);  // ctrl-C
     press_expect(8'h1C, 8'h01);  // ctrl-A
+    // Ctrl+Space is NUL - 0x20 masked to 0x00. The send condition tests the
+    // PLAIN byte (0x20, nonzero), so the NUL must actually be emitted, not
+    // suppressed as "no character" - the classic way terminals lose it.
+    press_expect(8'h29, 8'h00);  // ctrl-space -> NUL
     ps2_send(8'hF0); ps2_send(8'h14);
     press_expect(8'h21, "c");
 
@@ -248,7 +252,7 @@ module ps2_keyboard_tb;
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h6B);
 
     ps2_send(8'hE0); ps2_send(8'h6C);             // home
-    check(last_ascii == 8'hC1, "HOME should send marker 0xC1 (ESC [ 1 ~, DEC FIND)");
+    check(last_ascii == 8'h88, "HOME should send marker 0x88 (ESC [ H - measured in PED)");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h6C);
 
     // Page Up now HAS a VT100 sequence: marker 0xC5 = ESC [ 5 ~.

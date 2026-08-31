@@ -1,9 +1,56 @@
-# TDV 2200 - the specification Stage C WOULD have been built against
+# TDV 2200 - the specification the 31-AUG-2026 build was built against
 
-> **Overtaken 30-AUG-2026: the terminal is a plain VT100** (SINTRAN terminal
-> type 6), decided by Ronny. Nothing below is wrong - it describes terminal
-> type 53, which we no longer emulate. Kept because it is the best TDV 2200
-> reference this repo has, and because the traps list cost real time to earn.
+> **IMPLEMENTED 31-AUG-2026, and now the DEFAULT terminal again.** The
+> 30-AUG-2026 VT100 rewrite (below, superseded) was tried first and works
+> perfectly for DISPLAY OUTPUT - but live testing that same night proved
+> SINTRAN's screen editors (PED, confirmed on real hardware; LED by its own
+> manual) are built around the Tandberg keyboard's key set, not VT100 CSI
+> input, on TWO independent implementations (our FPGA and RetroCore's
+> software emulation) - ruling out a hardware bug. VT100 input was never
+> going to drive PED's cursor.
+>
+> Built as `Verilog/Terminals/rtl/terminal_ctrl_tdv.v` +
+> `ps2_ascii_table_tdv.v` + `ps2_decoder_tdv.v` + `ps2_keyboard_tdv.v` +
+> `key_tdv2200.v` - genuinely SEPARATE modules from the VT100 ones, kept
+> (not replaced), selected at COMPILE TIME via
+> `` `ifdef ND120_TERMINAL_VT100 `` (default = TDV2200; build with
+> `-VT100Terminal` on the Nexys for the VT100 variant instead). See
+> `Verilog/docs/build-defines.md`.
+>
+> **The exact target is terminal type 93** ("Tandberg TDV-2200/9S
+> ND-NOTIS"), NOT type 53 ("Tandberg TDV 2200/9", no S) that most of this
+> document's original research (below) was measured against - these are
+> different real hardware models. Type 93 was independently re-confirmed
+> end to end against a real ND-100 host (RetroTerm
+> `docs/manual-tests/FINDINGS-2026-08-20.md`, "the TDV key registry checked
+> end to end against a real ND host", 13/13 exact matches) and by a
+> **directly captured PED-at-type-93 startup sequence**, replayed byte-exact
+> as `terminal_ctrl_tdv_tb.v`'s primary test:
+> ```
+> ESC Q
+> ESC[30;7;80l  ESC[62;62h        (mode set/reset, unmarked, mode 62 unknown)
+> ESC P L10 ESC\  (x4, L10/L20/L30/L40)   (DCS soft-key programming - skipped
+>                                          as a unit, matches what RetroTerm's
+>                                          own TDV2200Emulator does)
+> ESC[001;001H                    (CUP, zero-padded parameters)
+> ESC[2J
+> ```
+> Also reconfirmed on real hardware: Home really is bare `GS 0x1D` - PED's
+> own guide says "HOME - Move to command line (PED:)", and `SENDKEY HOME`
+> transmitted `GS 0x1D` with the cursor landing exactly there.
+> V1 scope is deliberately narrow - C0 table, DLE addressing (7-bit column,
+> confirmed below), the CUP/ED/EL trio, generic mode/DCS swallow, character-
+> set designation bytes consumed but not all 9 sets rendered. Deferred until
+> a live capture shows they are actually used: ND private rectangle ops,
+> Tektronix/ND graphics, DCS soft-key *programming* (skip-only is
+> implemented), 132-column mode (no TDV terminal type supports it), PUSH
+> keys P1-8 (registry: no fixed sequence exists).
+>
+> Everything below this point is the ORIGINAL 27-AUG-2026 research this was
+> built from - still the best TDV 2200 reference in this repo, and mostly
+> unchanged by the type-93-specific confirmation above. Read it for the
+> traps list and the keyboard rules; the geometry/keyboard/C0 facts below
+> all held up.
 
 **Full path:** `Verilog/Terminals/docs/SPEC-tdv2200.md`
 Answered 27-AUG-2026 by `retroterm-09`, read out of RetroTerm's source rather
@@ -23,7 +70,7 @@ have shown only after a wasted build.
 and `TDV-COMPREHENSIVE-REFERENCE.md`, cross-checked against each other, plus
 `TDV-DLE-CURSOR-BUG-FIX.md`.
 
-### The TDV C0 set (was implemented in terminal_ctrl.v until the 30-AUG-2026 VT100 rewrite)
+### The TDV C0 set (implemented in terminal_ctrl_tdv.v)
 
 | Byte | Name | TDV meaning | What ANSI would have done |
 |---|---|---|---|
@@ -198,7 +245,7 @@ a third document in this family that turned out to be a claim rather than a
 fact. HOME is the exception the registry itself shows: 0x1D native, 0x10 in
 Simple ASCII, exactly as stated below.
 
-Implemented in `ps2_ascii_table.v` with the registry lines quoted in the
+Implemented in `ps2_ascii_table_tdv.v`, with the registry lines quoted in the
 source, so the next person does not have to re-do this.
 
 #### The whole table was wrong, not just that row (retroterm-09, 27-AUG-2026)

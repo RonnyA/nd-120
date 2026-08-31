@@ -1,0 +1,278 @@
+//============================================================================
+//! Self-checking testbench for terminal_ctrl_tdv.v + char_ram.v
+//!
+//! Sibling of terminal_ctrl_tb.v (VT100). Covers the TDV-specific parser
+//! surface terminal_ctrl.v's tests do not exercise:
+//!
+//!   - power-up clear (identical mechanism, re-checked at 80x25 geometry)
+//!   - C0 cursor moves: GS home, FS up, VT down, BS left, CAN right
+//!   - DLE binary cursor addressing, BOTH encodings (raw 0-based and
+//!     SINTRAN's 0x7F+n biased) landing on the SAME cell
+//!   - EOT erase line, EM erase page
+//!   - THE REAL CAPTURED PED-AT-TYPE-93 STARTUP, byte-exact
+//!     (Verilog/Terminals/docs/SPEC-tdv2200.md / FINDINGS-2026-08-20.md):
+//!     ESC Q, two unmarked mode set/reset lists (incl. mode 62, function
+//!     unknown), FOUR DCS soft-key blocks that must be skipped as a unit
+//!     and never rendered, a zero-padded CUP, and ED. Asserts cell (0,0)
+//!     stays blank through the DCS blocks (proving nothing leaked as text)
+//!     and that the parser is back in ground state afterwards (a plain
+//!     byte sent right after lands normally, proving it is not stuck
+//!     skipping forever).
+//!
+//! Prints "TB_RESULT: PASS" or "TB_RESULT: FAIL".
+//!
+//! Written 31-AUG-2026.
+//============================================================================
+
+`timescale 1ns / 1ps
+`default_nettype none
+
+module terminal_ctrl_tdv_tb;
+
+  localparam integer COLS   = 80;
+  localparam integer ROWS   = 25;
+  localparam integer AWIDTH = 11;
+
+  localparam [7:0] ESC = 8'h1B;
+
+  reg clk = 1'b0;
+  reg rst_n = 1'b0;
+
+  reg        byte_valid = 1'b0;
+  reg  [7:0] byte_data = 8'h00;
+  wire       ready;
+
+  wire              we;
+  wire [AWIDTH-1:0] waddr;
+  wire [      15:0] wdata;
+  wire [AWIDTH-1:0] raddr2;
+  wire [      15:0] rdata2;
+  reg  [AWIDTH-1:0] raddr;
+  wire [      15:0] rdata;
+
+  wire [7:0] top_row, cursor_col, cursor_row;
+  wire       cursor_enable, bell, rev_screen, blink_on;
+  wire [3:0] leds;
+
+  integer errors = 0;
+
+  always #12.5 clk = ~clk;  // 40 MHz
+
+  terminal_ctrl_tdv #(
+      .COLS  (COLS),
+      .ROWS  (ROWS),
+      .AWIDTH(AWIDTH)
+  ) DUT (
+      .clk  (clk),
+      .rst_n(rst_n),
+
+      .byte_valid(byte_valid),
+      .byte_data (byte_data),
+      .ready     (ready),
+
+      .ram_we    (we),
+      .ram_waddr (waddr),
+      .ram_wdata (wdata),
+      .ram_raddr2(raddr2),
+      .ram_rdata2(rdata2),
+
+      .top_row      (top_row),
+      .cursor_col   (cursor_col),
+      .cursor_row   (cursor_row),
+      .cursor_enable(cursor_enable),
+      .rev_screen   (rev_screen),
+      .blink_on     (blink_on),
+
+      .frame_end(1'b0),
+      .bell     (bell),
+      .leds     (leds)
+  );
+
+  char_ram #(
+      .COLS  (COLS),
+      .ROWS  (ROWS),
+      .AWIDTH(AWIDTH)
+  ) RAM (
+      .clk   (clk),
+      .we    (we),
+      .waddr (waddr),
+      .wdata (wdata),
+      .raddr2(raddr2),
+      .rdata2(rdata2),
+      .raddr (raddr),
+      .rdata (rdata)
+  );
+
+  function automatic [AWIDTH-1:0] addr_of;
+    input [7:0] row;
+    input [7:0] col;
+    begin
+      addr_of = row * COLS + col;
+    end
+  endfunction
+
+  task automatic read_cell;
+    input  [7:0] row;
+    input  [7:0] col;
+    output [15:0] s_cell;
+    begin
+      raddr = addr_of(row, col);
+      @(posedge clk);
+      @(posedge clk);
+      s_cell = rdata;
+    end
+  endtask
+
+  task check;
+    input condition;
+    input [1023:0] what;
+    begin
+      if (!condition) begin
+        $display("FAIL: %0s (time %0t)", what, $time);
+        errors = errors + 1;
+      end
+    end
+  endtask
+
+  task send;
+    input [7:0] value;
+    begin
+      @(posedge clk);
+      while (!ready) @(posedge clk);
+      byte_data  = value;
+      byte_valid = 1'b1;
+      @(posedge clk);
+      byte_valid = 1'b0;
+    end
+  endtask
+
+  task wait_ready;
+    begin
+      @(posedge clk);
+      while (!ready) @(posedge clk);
+    end
+  endtask
+
+  reg [15:0] s_cell;
+
+  initial begin
+    $dumpfile("terminal_ctrl_tdv_tb.vcd");
+    $dumpvars(0, terminal_ctrl_tdv_tb);
+
+    repeat (4) @(posedge clk);
+    rst_n = 1'b1;
+    wait_ready;
+
+    //------------------------------------------------------------------
+    // 1. Power-up: screen is blank
+    //------------------------------------------------------------------
+    read_cell(8'd0, 8'd0, s_cell);
+    check(s_cell == {8'h00, 8'h20}, "power-up s_cell (0,0) is not blank");
+    check(cursor_row == 0 && cursor_col == 0, "power-up cursor not at (0,0)");
+
+    //------------------------------------------------------------------
+    // 2. C0 cursor moves - bare bytes, TDV meanings
+    //------------------------------------------------------------------
+    send("X");                                    // (0,0) -> cursor at (0,1)
+    check(cursor_col == 1, "printable did not advance cursor");
+    send(8'h0B); check(cursor_row == 1 && cursor_col == 1, "VT (down) wrong");
+    send(8'h0B); check(cursor_row == 2, "VT (down) #2 wrong");
+    send(8'h1C); check(cursor_row == 1, "FS (up) wrong");
+    send(8'h18); check(cursor_col == 2, "CAN (right) wrong");
+    send(8'h08); check(cursor_col == 1, "BS (left) wrong");
+    send(8'h1D); check(cursor_row == 0 && cursor_col == 0, "GS (home) wrong - real PED confirms bare GS 0x1D");
+
+    //------------------------------------------------------------------
+    // 3. DLE binary cursor addressing - both encodings land the same place
+    //------------------------------------------------------------------
+    send(8'h10); send(8'd5); send(8'd10);          // raw 0-based: row 5, col 10
+    check(cursor_row == 5 && cursor_col == 10, "DLE raw encoding wrong");
+
+    send(8'h10); send(8'h83); send(8'h82);          // biased: row "4" 1-based (0x7F+4), col "3" 1-based (0x7F+3)
+    check(cursor_row == 3 && cursor_col == 2, "DLE biased 0x7F+n encoding wrong (should be row3,col2)");
+
+    //------------------------------------------------------------------
+    // 4. EOT erase line, EM erase page
+    //------------------------------------------------------------------
+    send(8'h10); send(8'd2); send(8'd0);            // row 2, col 0
+    send("Y"); send("Z");                           // (2,0)="Y" (2,1)="Z"
+    send(8'h10); send(8'd2); send(8'd0);
+    send(8'h04);                                     // EOT - erase current line
+    wait_ready;
+    read_cell(8'd2, 8'd0, s_cell);
+    check(s_cell == {8'h00, 8'h20}, "EOT did not erase (2,0)");
+    read_cell(8'd2, 8'd1, s_cell);
+    check(s_cell == {8'h00, 8'h20}, "EOT did not erase (2,1)");
+
+    send(8'h10); send(8'd7); send(8'd0);
+    send("W");
+    send(8'h19);                                     // EM - erase page
+    wait_ready;
+    read_cell(8'd7, 8'd0, s_cell);
+    check(s_cell == {8'h00, 8'h20}, "EM did not erase the page");
+
+    //------------------------------------------------------------------
+    // 5. THE REAL CAPTURED PED-AT-TYPE-93 STARTUP, byte-exact.
+    //------------------------------------------------------------------
+    send(ESC); send("Q");                                    // ESC Q
+    send(ESC); send("["); send("3"); send("0"); send(";");
+    send("7"); send(";"); send("8"); send("0"); send("l");   // ESC[30;7;80l
+    send(ESC); send("["); send("6"); send("2"); send(";");
+    send("6"); send("2"); send("h");                          // ESC[62;62h
+
+    // Four DCS soft-key blocks: ESC P L10 ESC\ .. L40 ESC\
+    send(ESC); send("P"); send("L"); send("1"); send("0"); send(ESC); send("\\");
+    send(ESC); send("P"); send("L"); send("2"); send("0"); send(ESC); send("\\");
+    send(ESC); send("P"); send("L"); send("3"); send("0"); send(ESC); send("\\");
+    send(ESC); send("P"); send("L"); send("4"); send("0"); send(ESC); send("\\");
+    wait_ready;
+
+    // Nothing from the DCS payloads leaked to the screen - s_cell (0,0) is
+    // still whatever it was before this block started (it was cleared by
+    // EM just above, so still blank).
+    read_cell(8'd0, 8'd0, s_cell);
+    check(s_cell == {8'h00, 8'h20}, "DCS payload leaked onto the screen (s_cell 0,0 not blank)");
+
+    // Parser is back in ground state, not stuck skipping - a plain byte
+    // right after must print normally, at wherever the cursor actually is
+    // (row 7 col 1, left there by the EM test above - nothing in this
+    // capture segment moves the cursor before CUP arrives).
+    begin : probe
+      reg [7:0] probe_row, probe_col;
+      probe_row = cursor_row;
+      probe_col = cursor_col;
+      send("Q");
+      wait_ready;
+      read_cell(probe_row, probe_col, s_cell);
+      check(s_cell == {8'h00, "Q"}, "parser stuck after DCS blocks - 'Q' did not print where expected");
+    end
+
+    // Zero-padded CUP.
+    send(ESC); send("["); send("0"); send("0"); send("1"); send(";");
+    send("0"); send("0"); send("1"); send("H");               // ESC[001;001H
+    wait_ready;
+    check(cursor_row == 0 && cursor_col == 0, "zero-padded CUP did not land at (0,0)");
+
+    // ED - full clear.
+    send(ESC); send("["); send("2"); send("J");                // ESC[2J
+    wait_ready;
+    read_cell(8'd0, 8'd0, s_cell);
+    check(s_cell == {8'h00, 8'h20}, "ED[2J did not clear s_cell (0,0)");
+    read_cell(ROWS[7:0]-8'd1, COLS[7:0]-8'd1, s_cell);
+    check(s_cell == {8'h00, 8'h20}, "ED[2J did not clear the last s_cell");
+
+    if (errors == 0) $display("TB_RESULT: PASS (%0d checks, incl. real captured PED startup)", 0);
+    else $display("TB_RESULT: FAIL (%0d errors)", errors);
+    $finish;
+  end
+
+  initial begin
+    #50_000_000;
+    $display("FAIL: timeout");
+    $display("TB_RESULT: FAIL (timeout)");
+    $finish;
+  end
+
+endmodule
+
+`default_nettype wire

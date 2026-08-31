@@ -72,7 +72,11 @@ module ps2_ascii_table (
       8'h72:   extended = 8'h82;  // Down   -> ESC [ B
       8'h74:   extended = 8'h83;  // Right  -> ESC [ C
       8'h6B:   extended = 8'h84;  // Left   -> ESC [ D
-      8'h6C:   extended = 8'hC1;  // Home   -> ESC [ 1 ~  (DEC FIND)
+      // Home is ESC [ H, MEASURED (30-AUG-2026, live PED on a type-6
+      // SINTRAN line): ESC[H toggles to/from the PED: command line, while
+      // ESC[1~ (DEC FIND, which the spec first chose) does NOTHING in PED.
+      // The doc-derived guess pointed both ways; the live editor settled it.
+      8'h6C:   extended = 8'h88;  // Home   -> ESC [ H
       8'h70:   extended = 8'hC2;  // Insert -> ESC [ 2 ~  (DEC INSERT HERE)
       8'h71:   extended = 8'hC3;  // Delete -> ESC [ 3 ~  (DEC REMOVE)
       8'h69:   extended = 8'hC4;  // End    -> ESC [ 4 ~  (DEC SELECT)
