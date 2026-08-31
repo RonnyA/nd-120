@@ -243,7 +243,17 @@ module CGA_MAC_APOS_CALCA (
     .QG (s_mca_9_0_out[6]),
     .QGN(),
     .QH (s_mca_9_0_out[7]),
-    .QHN()
+    .QHN(),
+    // registered-value taps: deliberately unconnected here -
+    // the transparent output is the wanted one (see L8/L4 header).
+    .QA_R(),
+    .QB_R(),
+    .QC_R(),
+    .QD_R(),
+    .QE_R(),
+    .QF_R(),
+    .QG_R(),
+    .QH_R()
 );
 
   L8 L_HI (
@@ -277,7 +287,17 @@ module CGA_MAC_APOS_CALCA (
     .QG (s_mca14),
     .QGN(),
     .QH (s_mca15),
-    .QHN()
+    .QHN(),
+    // registered-value taps: deliberately unconnected here -
+    // the transparent output is the wanted one (see L8/L4 header).
+    .QA_R(),
+    .QB_R(),
+    .QC_R(),
+    .QD_R(),
+    .QE_R(),
+    .QF_R(),
+    .QG_R(),
+    .QH_R()
   );
 
 endmodule
