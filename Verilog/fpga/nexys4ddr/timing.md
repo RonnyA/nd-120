@@ -146,3 +146,29 @@ the WNS gate refuses to write a bitstream on negative slack. Add `physopt`
 for the phys_opt flow. **Every passing run overwrites
 `nd120_nexys4ddr.bit`** - rebuild at the intended clock before programming
 the board.
+
+## 30-AUG-2026: 45.45 MHz with the REAL cache - parked, and why
+
+Every earlier 45.45 boot ran the broken cache (dead logic after synthesis).
+With the cache real (builds 9+), 45.45 fails and the record is:
+
+- Build 10 (clk=45 physopt, no exceptions): WNS -6.552, TNS -10047, 4248
+  endpoints, all clk_cpu. Worst: MIC LAA_REG -> WCS BRAM address, 36 logic
+  levels, 27.986 ns (72% route) vs 22 ns.
+- N=2 multicycle for the LAA/LBA -> WCS-address family derived from the
+  PAL fences (docs/wcs-multicycle-analysis.md) and added to
+  nd120_timing.xdc. It APPLIED (build 12: no 12-4739, LAA gone from the
+  violation list) and is kept - it is correct at every clock.
+- Build 12 (clk=45 physopt + the exception): WNS -6.780, 4269 endpoints.
+  New worst: WRF R2_REG_10 regFF[6] -> WCS CHIP_20D address - the family
+  the analysis DELIBERATELY did not relax (WRFSTB writes land in state b,
+  1 clk before an open RWCS capture window; no masking proof). The whole
+  WRF -> ALU -> TVGEN -> ACAL -> WCS cone is ~28 ns whoever launches it.
+- The same cone closed at +0.085 pre-cache: the cache added ~1900 LUTs of
+  ROUTING pressure (path is 72% route), not logic in the cone.
+
+Routes to 45 with cache, rising cost: placement/strategy runs to recover
+route delay; a masking-proof analysis for the WRF launch family;
+pipelining the TVGEN/ACAL cone (RTL surgery). Parked 30-AUG (Ronny) in
+favour of test-3 and MIPS work; the deployed cache clock is 33.333 MHz
+(build 11: WNS +0.037, physopt required).
