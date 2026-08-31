@@ -367,6 +367,10 @@ if {![has_flag nopanelclock]} { lappend defines ND120_PANEL_CLOCK }
 if {$vga_console} {
     lappend defines ND120_CONSOLE_VGA
     lappend defines ND120_CONSOLE_BAUD=$uart_baud
+    # The panel MIPS field only exists with the VGA console, so the CGA-side
+    # tap that feeds it is built only here (CGA_ALU.v XGPRLOAD_DBG). Without
+    # this the tap is tied off, keeping its fanout off ALUCLK_EN and GPRC.
+    lappend defines ND120_MIPS_TAP
 }
 # Terminal type: TDV2200 (type 93) by default - PED and LED are built for
 # the Tandberg keyboard's own key set, not VT100 CSI sequences
@@ -664,18 +668,29 @@ if {[lsearch $argv "ila"] >= 0} {
     puts "ILA: [llength $_probes] probe groups connected."
 }
 
-opt_design
-place_design
+# -tclargs timingexplore (31-AUG-2026): opt/place/route run with their DEFAULT
+# directives above, and only phys_opt_design was ever tuned. The cache-on
+# critical path is 7.1 ns of logic against 20.9 ns of ROUTING (75%), and the
+# cone itself cannot be shortened - pages 103/104 show the memory-protection
+# decision reaching the control-store address combinationally, by design. So
+# routing effort is the only lever that needs neither RTL nor constraints.
+# Off by default: the default flow stays byte-identical to the builds that
+# booted SINTRAN.
+set _te [expr {[lsearch $argv "timingexplore"] >= 0}]
+
+if {$_te} { opt_design -directive ExploreWithRemap } else { opt_design }
+if {$_te} { place_design -directive ExtraTimingOpt } else { place_design }
 # -tclargs physopt: post-place physical optimization (26-AUG clock-up
 # campaign experiment). Not in the default flow yet - the default stays
 # byte-identical to the builds that booted SINTRAN.
 if {[lsearch $argv "physopt"] >= 0} {
     phys_opt_design -directive AggressiveExplore
 }
-route_design
+if {$_te} { route_design -directive AggressiveExplore } else { route_design }
 if {[lsearch $argv "physopt"] >= 0} {
     phys_opt_design -directive AggressiveExplore
 }
+
 
 report_utilization    -file [file join $srcdir util.rpt]
 report_timing_summary -file [file join $srcdir timing.rpt]

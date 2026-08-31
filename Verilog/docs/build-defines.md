@@ -88,6 +88,7 @@ Status and open faults: `docs/CACHE-STATUS.md`.
 | `UART_BAUD_RATE` | Console wire speed. The emulated SC2661 times bits off `DELAY_FRAMES = BOARD_CLK_FREQ / UART_BAUD_RATE` (`SC2661_UART.v:157`), regardless of the 9600-max thumbwheel the microcode believes - so the machine can THINK 9600 while the wire runs 115200 | `SC2661_UART.v:143` fallback; Nexys `baud` arg; Basys3 `=9600` | 115200 (Basys3: 9600) |
 | `ND120_N4DDR_MMCM_DIV` | Nexys MMCM divider off the 1000 MHz VCO; the CPU period in ns equals the divider. Set together with `BOARD_CLK_FREQ` by the clk table, never alone | `build.tcl` clk table; fallback `nd120_nexys4ddr_top.v:128` | 60.0 (16.667 MHz) |
 | `ND120_CONSOLE_VGA` / `ND120_CONSOLE_BAUD` | The Nexys VGA console + USB keyboard next to the serial console (serial keeps working in parallel) | `build.tcl:359-360` | Nexys: ON (`novgaconsole` to drop) |
+| `ND120_MIPS_TAP` | Builds the CGA-side tap that feeds the panel MIPS counter (`CGA_ALU.v` `XGPRLOAD_DBG` = `ALUCLK_EN & GPRC[0] & ~GPRC[1]`, the instruction-register load). Set automatically with the VGA console, since that panel is the only thing that displays it; without it the net is tied to 0, keeping the extra fanout off `ALUCLK_EN` and `GPRC` on boards with no panel (Tang, Basys3, sims) | Nexys `build.tcl` with `vgaconsole` | ON with the VGA console |
 | `ND120_TERMINAL_VT100` | Selects which of the two SEPARATE, compile-time-only terminal modules the VGA console builds: VT100 (SINTRAN type 6) if defined, TDV2200/type 93 if not. `terminal_ctrl.v`/`ps2_ascii_table.v`/`key_vt100.v` vs `terminal_ctrl_tdv.v`/`ps2_ascii_table_tdv.v`/`key_tdv2200.v` - never both elaborated in the same build (`ifdef` in `terminal_top.v` and `nd120_nexys4ddr_top.v`). PED/LED are built for the Tandberg keyboard's own key set, not VT100 CSI input (`Terminals/docs/SPEC-tdv2200.md`) | Nexys `-VT100Terminal` (only matters with the VGA console on) | TDV2200 (undefined) |
 | `TANG_VARIANT_CRAWL` / `_MID` / `_FULL` / `_FAST20` | Tang clock variants, consumed by `tang20k_defines.v`. No variant define = slow (6.75 MHz) | generated `build\tang20k_variant.v` (ps1) or `-DTANG_VARIANT_*` (OSS Makefile) | slow |
 
@@ -164,6 +165,7 @@ both `clk=10` and `clk 10` are accepted.
 | `ila` / `ilaslim` / `ilacache` | off | JTAG ILA probe sets; all three add `ND120_ILA_MARK_DEBUG` so the probed nets survive synthesis |
 | `errfaprobe` | off | `ND120_ERRFA_PROBE`: latch the SINTRAN ERRFATAL register saves (0o4347-0o4353) and repeat them on the console TX after the halt. Zero BRAM |
 | `physopt` | off | Post-place physical optimization (26-AUG clock-up work) |
+| `timingexplore` | off | `opt_design -directive ExploreWithRemap`, `place_design -directive ExtraTimingOpt`, `route_design -directive AggressiveExplore`. Measured 31-AUG on clk=45 with cache: WNS -6.780 -> -6.440, i.e. 0.34 ns of the 6.4 ns needed. Routing effort is not the lever |
 
 Clock table (`build.tcl:70`): `clk=` 8, 10, 12, 16, 20, 25, 27, 33, 35, 38,
 40, 42, 45, 50, 100. The deployed proven speed is 45 (45.45 MHz); the build

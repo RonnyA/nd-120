@@ -294,7 +294,17 @@ module CGA_ALU (
   );
 
   // DEBUG tap for the panel MIPS counter - see the XGPRLOAD_DBG port comment.
+  // Built ONLY where a panel exists to display it (ND120_MIPS_TAP, set by the
+  // Nexys build.tcl alongside ND120_CONSOLE_VGA). The Tang core has no panel,
+  // so there the net is tied off rather than left for synthesis to strip: this
+  // product adds fanout to ALUCLK_EN - the fanout-238 net at the end of the
+  // control-store critical cone - and to GPRC, so it should not exist at all
+  // in a build that cannot show the number.
+`ifdef ND120_MIPS_TAP
   assign XGPRLOAD_DBG = s_aluclk_en_i & s_gprc_2_0[0] & ~s_gprc_2_0[1];
+`else
+  assign XGPRLOAD_DBG = 1'b0;   // no panel in this build
+`endif
 
   CGA_ALU_DBR ALU_DBR (
       .sysclk(sysclk),
