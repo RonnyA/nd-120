@@ -43,8 +43,85 @@
 > set designation bytes consumed but not all 9 sets rendered. Deferred until
 > a live capture shows they are actually used: ND private rectangle ops,
 > Tektronix/ND graphics, DCS soft-key *programming* (skip-only is
-> implemented), 132-column mode (no TDV terminal type supports it), PUSH
-> keys P1-8 (registry: no fixed sequence exists).
+> implemented), 132-column mode (no TDV terminal type supports it).
+>
+> **REAL-HARDWARE FOLLOW-UP, same day.** Testing the flashed build on the
+> Nexys surfaced two more real bugs, both fixed and tested:
+> - **Character sets were never actually implemented, only swallowed.**
+>   TDV designates a character set with a bare TWO-byte `ESC <digit>`
+>   (NDSS1-9 - e.g. `ESC 6` for Box), not VT100's three-byte `ESC ( <final>`
+>   this parser only recognised at first. SCONF's box-drawing screen showed
+>   the bug directly: cell `0x60` rendered as a literal backtick instead of
+>   a top-left corner. Fixed: `ESC <digit>` is now recognised, NDSS6 (Box)
+>   sets the graphics attribute and renders from a new font page 3
+>   (`font/make_font.py`'s `tdv_box_page()`, light/heavy/double strokes
+>   synthesized the same way page 2's DEC graphics are); every other digit
+>   falls back to plain ASCII. `terminal_ctrl_tdv_tb.v` has the regression
+>   test.
+> - **Backspace was wired to `BS` (0x08), which is wrong.** `BS` is pure
+>   cursor-left on a TDV, with no delete at all - it is the exact same byte
+>   Left arrow sends. A destructive backward-delete needs `DEL` (0x7F),
+>   same as the PC Delete key. Fixed in `ps2_ascii_table_tdv.v`.
+>
+> **ALT+KEY APPLICATION SHORTCUTS, same day** (user-requested, not a PC
+> keyboard or TDV standard - most of these functions have no PC key at
+> all): `ps2_decoder_tdv.v` now tracks Alt as a modifier (scancode 0x11,
+> both Left and Right), and a held Alt over a bound key sends a DEDICATED
+> marker instead of the plain character - a key with NO Alt binding sends
+> NOTHING while Alt is held, never falling through to the plain letter.
+> Markers live at `0xE0`-`0xF8` in `ps2_ascii_table_tdv.v` (`ALTM_*`),
+> chosen with headroom above the highest ESC[nn_ marker actually in use
+> (Insert's own marker is `0x80|82=0xD2` - NOT capped at n=67 the way an
+> earlier cut of this file assumed, which is exactly the bug that first
+> revealed the need for headroom: that earlier cut used `0xC4` and it
+> landed on top of Insert's marker). Two trust levels, kept distinct in the
+> source comments and here:
+> - **Registry-trusted** (same `TDV2200KeyRegistry.cs` as the F-key table):
+>   Alt+H=HELP(HJELP,46) Alt+U=FUNC(FUNK,42) Alt+X=EXIT(SLUTT,48)
+>   Alt+C=CANCEL(ANGRE,30) Alt+K=COPY(KOPI,12) Alt+V=MOVE(FLYTT,14)
+>   Alt+J=JUST(24) Alt+A=MARK(MERK,00) Alt+L=FIELD(FELT,02)
+>   Alt+P=PARA(AVSH,04) Alt+E=SENT(SETN,06) Alt+W=WORD(ORD,08).
+> - **User-specified, NOT in the registry - unconfirmed against real
+>   hardware or the registry, no other source exists for these**:
+>   Alt+D=DO (`ESC[29~`), Alt+M=COMMAND (`ESC[26~`), Alt+F=FIND
+>   (`ESC[1;2R`), Alt+S=SELECT (`ESC[4;2~`), Alt+1..Alt+8=PUSH1-8
+>   (`ESC P N<1-8> ESC \`) - the registry says PUSH keys are
+>   host-programmable with **no fixed sequence at all**, so this is a
+>   guess dressed as a sequence, not a fact; treat it as such until a real
+>   TDV or a live capture settles it. Alt+I=INSERT HERE is an
+>   approximate match (mapped to D99 INNS/EXPS, `ESC[82_`, the TDV's own
+>   Insert-mode toggle - the closest real function, not a confirmed match
+>   for "insert at cursor"). `key_tdv2200.v` expands each marker into its
+>   own fixed byte sequence (up to 6 bytes total, PUSH/FIND/SELECT run
+>   longest - the queue grew from 4 lookahead bytes to 5 for this).
+>
+> **Arrow keys: found and fixed, same day.** The keyboard side (traced
+> above as clean end to end) was never the problem. A RetroCore protocol
+> trace, captured live while navigating PED with terminal type 93 active,
+> showed the real mechanism: SINTRAN's own cursor-move ECHO for a TDV
+> keypress is STANDARD VT100 CSI, not another bare TDV byte -
+>
+> ```
+> TX 08 BS   (TDV: cursor left)   -> RX ESC[D  CUB
+> TX 0B VT   (TDV: cursor down)   -> RX ESC[B  CUD
+> TX 1C FS   (TDV: cursor up)     -> RX ESC[A  CUU
+> TX 18 CAN  (TDV: cursor right)  -> RX ESC[C  CUF
+> ```
+>
+> So SINTRAN was receiving and correctly processing every keypress all
+> along - the DISPLAY side just never implemented CSI `A`/`B`/`C`/`D` at
+> all (only `H`/`f`/`J`/`K` existed), so the echoed cursor move was
+> silently swallowed and the cursor never visibly moved. This matches
+> RetroTerm's own class hierarchy exactly (`TDV2200Emulator` derives from
+> the same ECMA-48 core `VT100Emulator` uses, adding ND extensions on top
+> - not a separate protocol) - `terminal_ctrl_tdv.v` needed the SAME base
+> CSI set `terminal_ctrl.v` already has, not a narrower one. Ported over
+> (same arithmetic, no scroll-region floor/ceiling since TDV has none):
+> `A`/`B`/`C`/`D` (CUU/CUD/CUF/CUB), `G` (CHA), `d` (VPA), and `m` (SGR -
+> also independently confirmed needed, the captured PED startup's own
+> `ESC[2;7m` dim-reverse status line was being swallowed too before this).
+> `terminal_ctrl_tdv_tb.v` replays the exact RetroCore trace shape as its
+> regression test.
 >
 > Everything below this point is the ORIGINAL 27-AUG-2026 research this was
 > built from - still the best TDV 2200 reference in this repo, and mostly

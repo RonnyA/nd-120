@@ -95,7 +95,7 @@ module key_tdv2200_tb;
 
   task expect_seq;
     input [7:0]  marker;
-    input [39:0] seq;
+    input [47:0] seq;  //! up to 6 bytes - the Alt+key PUSH/FIND/SELECT sequences
     input integer len;
     input [1023:0] what;
     integer start, i;
@@ -190,6 +190,17 @@ module key_tdv2200_tb;
         errors = errors + 1;
       end
     end
+
+    // Alt+key family (0xE0-0xF8) - each marker has its OWN fixed sequence,
+    // not the ESC[nn_ shape. Found and fixed a real collision here
+    // 31-AUG-2026: an earlier cut placed this range at 0xC4, landing
+    // directly on Insert's own marker (0x80|82=0xD2) - Insert silently
+    // sent SENT instead. That collision is what the Insert test above
+    // (n=82, the highest n-based marker in use) now guards against.
+    expect_seq(8'hE0, {8'h0, ESC, "[", "4", "6", "_"}, 5, "Alt+H HELP -> ESC[46_");
+    expect_seq(8'hE6, {ESC, "[", "1", ";", "2", "R"}, 6, "Alt+F FIND -> ESC[1;2R (user-specified, 6 bytes)");
+    expect_seq(8'hF1, {ESC, "P", "N", "1", ESC, "\\"}, 6, "Alt+1 PUSH1 -> ESC P N1 ESC \\ (embedded ESC as data)");
+    expect_seq(8'hF8, {ESC, "P", "N", "8", ESC, "\\"}, 6, "Alt+8 PUSH8 -> ESC P N8 ESC \\");
 
     if (errors == 0) $display("TB_RESULT: PASS (every marker byte-exact, incl. zero-padding)");
     else $display("TB_RESULT: FAIL (%0d errors)", errors);

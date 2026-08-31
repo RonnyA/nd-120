@@ -186,6 +186,34 @@ module ps2_keyboard_tdv_tb;
     check(ascii_count == mark, "a dead extended key sent something");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h1F);
 
+    //------------------------------------------------------------------
+    // Alt+key: a dedicated marker, not the plain letter underneath - and
+    // holding Alt over a key with NO binding sends nothing at all (not
+    // the plain letter either), so Alt+typing cannot leak stray text.
+    //------------------------------------------------------------------
+    ps2_send(8'h11);                              // Alt down
+    mark = ascii_count;
+    ps2_send(8'h33);                              // 'h' scancode
+    check(ascii_count == mark + 1, "Alt+H produced no byte");
+    check(last_ascii == 8'hE0, "Alt+H should send the HELP marker (0xE0), not 'h'");
+    ps2_send(8'hF0); ps2_send(8'h33);
+
+    mark = ascii_count;
+    ps2_send(8'h1C);                              // 'a' scancode -> Alt+A MARK
+    check(last_ascii == 8'hEB, "Alt+A should send the MARK marker (0xEB)");
+    ps2_send(8'hF0); ps2_send(8'h1C);
+
+    // A key with no Alt binding (e.g. 'z') sends nothing while Alt is held.
+    mark = ascii_count;
+    ps2_send(8'h1A);                              // 'z', no Alt binding
+    check(ascii_count == mark, "Alt+Z (no binding) sent something");
+    ps2_send(8'hF0); ps2_send(8'h1A);
+
+    ps2_send(8'hF0); ps2_send(8'h11);             // Alt up
+
+    // Alt released: 'a' goes back to being a plain letter.
+    press_expect(8'h1C, "a");
+
     if (errors == 0) $display("TB_RESULT: PASS (%0d characters decoded)", ascii_count);
     else $display("TB_RESULT: FAIL (%0d errors)", errors);
 

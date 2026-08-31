@@ -35,32 +35,40 @@ module ps2_decoder_tdv (
     //! Modifier state, exposed because a board may want to light a lamp.
     output wire shift_active,
     output wire ctrl_active,
-    output wire caps_active
+    output wire caps_active,
+    output wire alt_active
 );
 
   localparam [7:0] SC_LSHIFT = 8'h12;
   localparam [7:0] SC_RSHIFT = 8'h59;
   localparam [7:0] SC_CTRL   = 8'h14;
   localparam [7:0] SC_CAPS   = 8'h58;
+  //! Left Alt is a plain (non-extended) 0x11; Right Alt arrives as E0 11.
+  //! Both held to the same modifier bit - there is no separate AltGr
+  //! behaviour implemented, matching Ctrl's single bit above.
+  localparam [7:0] SC_ALT    = 8'h11;
 
-  reg s_lshift, s_rshift, s_ctrl, s_caps;
+  reg s_lshift, s_rshift, s_ctrl, s_caps, s_lalt, s_ralt;
 
   assign shift_active = s_lshift | s_rshift;
   assign ctrl_active  = s_ctrl;
   assign caps_active  = s_caps;
+  assign alt_active   = s_lalt | s_ralt;
 
   wire s_shifted = s_lshift | s_rshift;
 
   wire [7:0] s_ascii_unshifted;
   wire [7:0] s_ascii_shifted;
   wire [7:0] s_ascii_extended;
+  wire [7:0] s_alt_marker;
 
   ps2_ascii_table_tdv TABLE (
-      .code     (code_data),
-      .layout_no(layout_no),
-      .unshifted(s_ascii_unshifted),
-      .shifted  (s_ascii_shifted),
-      .extended (s_ascii_extended)
+      .code      (code_data),
+      .layout_no (layout_no),
+      .unshifted (s_ascii_unshifted),
+      .shifted   (s_ascii_shifted),
+      .extended  (s_ascii_extended),
+      .alt_marker(s_alt_marker)
   );
 
   //! Caps lock affects letters only - not digits, not punctuation.
@@ -80,6 +88,8 @@ module ps2_decoder_tdv (
       s_rshift    <= 1'b0;
       s_ctrl      <= 1'b0;
       s_caps      <= 1'b0;
+      s_lalt      <= 1'b0;
+      s_ralt      <= 1'b0;
       ascii_valid <= 1'b0;
       ascii_data  <= 8'h00;
     end else begin
@@ -91,10 +101,22 @@ module ps2_decoder_tdv (
           SC_RSHIFT: s_rshift <= !code_release;
           SC_CTRL:   s_ctrl   <= !code_release;
           SC_CAPS:   if (!code_release) s_caps <= !s_caps;
+          SC_ALT: if (code_extended) s_ralt <= !code_release;
+                  else               s_lalt <= !code_release;
 
           default: begin
             if (!code_release) begin
-              if (code_extended) begin
+              // Alt+key: a dedicated TDV application/editing-key marker,
+              // never the plain letter/digit underneath. A key with no
+              // Alt binding sends NOTHING while Alt is held, rather than
+              // falling through to the plain character - holding Alt and
+              // typing should not leak stray text.
+              if (alt_active && !code_extended && s_alt_marker != 8'h00) begin
+                ascii_valid <= 1'b1;
+                ascii_data  <= s_alt_marker;
+              end else if (alt_active && !code_extended) begin
+                // no Alt binding for this key: send nothing
+              end else if (code_extended) begin
                 if (s_ascii_extended != 8'h00) begin
                   ascii_valid <= 1'b1;
                   ascii_data  <= s_ascii_extended;

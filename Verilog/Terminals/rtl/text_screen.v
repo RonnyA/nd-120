@@ -38,6 +38,11 @@ module text_screen #(
     parameter integer CELL_W      = 8,
     parameter integer CELL_H      = 16,
     parameter integer AWIDTH      = 11,
+    //! Which font page a cell's graphics-attribute bit (RAM bit 12) selects.
+    //! 2 = DEC Special Graphics (VT100), 3 = TDV2200 Box - the two builds
+    //! never run at once, so this is fixed per instantiation, not a runtime
+    //! signal. See terminal_top.v's own ND120_TERMINAL_VT100 select.
+    parameter integer GFX_PAGE    = 3,
     //! Where the character grid sits inside the visible area. 80x25 of 8x16 is
     //! 640x400; centred in 800x600 that is (800-640)/2 = 80, (600-400)/2 = 100.
     parameter integer ORIGIN_X    = 80,
@@ -243,18 +248,20 @@ module text_screen #(
 
   wire [7:0] s_font_pixels;
 
-  //! WHICH FONT PAGE. The ROM holds three 128-glyph pages: page 0 is US /
+  //! WHICH FONT PAGE. The ROM holds four 128-glyph pages: page 0 is US /
   //! ISO 646 IRV, page 1 the Norwegian variant (six bytes draw AE OE AA
   //! ae oe aa and the currency sign instead of [ \ ] { | } and $ - see the
-  //! long note in font/make_font.py), page 2 the DEC Special Graphics set the
-  //! VT100 draws boxes with. The cell's graphics attribute (bit 12, set by
-  //! terminal_ctrl from the SO/SI + ESC()0 charset state at write time) wins
-  //! over `national`: a line-drawing cell is line drawing on both layouts.
+  //! long note in font/make_font.py), page 2 the DEC Special Graphics set
+  //! VT100 draws boxes with, page 3 the TDV2200 Box set. The cell's graphics
+  //! attribute (bit 12, set by terminal_ctrl(_tdv) from its own charset
+  //! state at write time) wins over `national`: a line-drawing cell is line
+  //! drawing on both layouts. GFX_PAGE picks 2 or 3 - fixed per build, see
+  //! the parameter comment.
   //!
   //! Bit 7 of the stored character is REPLACED, not ORed: the ND-120 is 7-bit,
   //! so bit 7 carries no information, and replacing it means a stray high byte
   //! cannot land on the wrong page.
-  wire [1:0] s_font_page = ram_rdata[12] ? 2'd2 : {1'b0, national};
+  wire [1:0] s_font_page = ram_rdata[12] ? GFX_PAGE[1:0] : {1'b0, national};
 
   font_rom #(
       .FONT_FILE(FONT_FILE)

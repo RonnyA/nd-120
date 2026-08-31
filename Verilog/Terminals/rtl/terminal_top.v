@@ -548,6 +548,11 @@ module terminal_top #(
       .CELL_W       (CELL_W),
       .CELL_H       (CELL_H),
       .AWIDTH       (AWIDTH),
+`ifdef ND120_TERMINAL_VT100
+      .GFX_PAGE     (2),  // DEC Special Graphics
+`else
+      .GFX_PAGE     (3),  // TDV2200 Box
+`endif
       .ORIGIN_X     (ORIGIN_X),
       .ORIGIN_Y     (ORIGIN_Y),
       .FONT_FILE    (FONT_FILE),

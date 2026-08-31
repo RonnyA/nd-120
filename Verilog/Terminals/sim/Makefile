@@ -136,7 +136,8 @@ VERILATOR ?= verilator
 VVFLAGS = --lint-only -Wall   -Wno-BLKSEQ -Wno-DECLFILENAME -Wno-EOFNEWLINE -Wno-LATCH -Wno-PINCONNECTEMPTY   -Wno-PINMISSING -Wno-SYNCASYNCNET -Wno-TIMESCALEMOD -Wno-UNDRIVEN   -Wno-UNOPTFLAT -Wno-UNUSED -Wno-WIDTH
 
 lint:
-	$(VERILATOR) $(VVFLAGS) --top-module terminal_top $(RTL)/terminal_top.v $(RTL)/terminal_ctrl.v $(RTL)/byte_fifo.v $(RTL)/char_ram.v $(RTL)/text_screen.v $(RTL)/vga_timing.v $(RTL)/font_rom.v $(RTL)/cdc_byte.v $(RTL)/term_panel.v $(RTL)/term_panel_rom.v $(RTL)/rate_meter.v $(RTL)/ratio_meter.v
+	$(VERILATOR) $(VVFLAGS) -DND120_TERMINAL_VT100 --top-module terminal_top $(RTL)/terminal_top.v $(RTL)/terminal_ctrl.v $(RTL)/byte_fifo.v $(RTL)/char_ram.v $(RTL)/text_screen.v $(RTL)/vga_timing.v $(RTL)/font_rom.v $(RTL)/cdc_byte.v $(RTL)/term_panel.v $(RTL)/term_panel_rom.v $(RTL)/rate_meter.v $(RTL)/ratio_meter.v
+	$(VERILATOR) $(VVFLAGS) --top-module terminal_top $(RTL)/terminal_top.v $(RTL)/terminal_ctrl_tdv.v $(RTL)/byte_fifo.v $(RTL)/char_ram.v $(RTL)/text_screen.v $(RTL)/vga_timing.v $(RTL)/font_rom.v $(RTL)/cdc_byte.v $(RTL)/term_panel.v $(RTL)/term_panel_rom.v $(RTL)/rate_meter.v $(RTL)/ratio_meter.v
 	$(VERILATOR) $(VVFLAGS) --top-module ps2_keyboard 	  $(RTL)/ps2_keyboard.v $(RTL)/ps2_decoder.v $(RTL)/ps2_ascii_table.v
 	$(VERILATOR) $(VVFLAGS) --top-module ps2_decoder 	  $(RTL)/ps2_decoder.v $(RTL)/ps2_ascii_table.v
 	$(VERILATOR) $(VVFLAGS) --top-module ps2_keyboard_tdv $(RTL)/ps2_keyboard_tdv.v $(RTL)/ps2_decoder_tdv.v $(RTL)/ps2_ascii_table_tdv.v

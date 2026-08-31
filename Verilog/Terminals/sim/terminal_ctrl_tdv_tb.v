@@ -9,6 +9,10 @@
 //!   - DLE binary cursor addressing, BOTH encodings (raw 0-based and
 //!     SINTRAN's 0x7F+n biased) landing on the SAME cell
 //!   - EOT erase line, EM erase page
+//!   - ESC 6 (NDSS6/Box) sets the graphics-attribute bit on subsequent
+//!     printables, and any other NDSS digit clears it back to plain ASCII -
+//!     found missing and fixed 31-AUG-2026 against a live SCONF capture
+//!     (cell 0x60 printed as a literal backtick instead of a corner)
 //!   - THE REAL CAPTURED PED-AT-TYPE-93 STARTUP, byte-exact
 //!     (Verilog/Terminals/docs/SPEC-tdv2200.md / FINDINGS-2026-08-20.md):
 //!     ESC Q, two unmarked mode set/reset lists (incl. mode 62, function
@@ -181,6 +185,64 @@ module terminal_ctrl_tdv_tb;
     send(8'h18); check(cursor_col == 2, "CAN (right) wrong");
     send(8'h08); check(cursor_col == 1, "BS (left) wrong");
     send(8'h1D); check(cursor_row == 0 && cursor_col == 0, "GS (home) wrong - real PED confirms bare GS 0x1D");
+
+    //------------------------------------------------------------------
+    // 2b. ESC 6 (NDSS6/Box) - the bug found live in SCONF, 31-AUG-2026.
+    // A cell printed while Box is designated must carry the graphics
+    // attribute (RAM bit 12, which text_screen.v uses to select font
+    // page 3); any other NDSS digit must clear it back to plain ASCII.
+    //------------------------------------------------------------------
+    send(ESC); send("6");                          // NDSS6 - Box
+    send(8'h60);                                     // would-be top-left corner
+    wait_ready;
+    read_cell(cursor_row, 8'd0, s_cell);
+    check(s_cell[12] == 1'b1, "ESC 6 (NDSS6/Box) did not set the graphics attribute");
+    check(s_cell[7:0] == 8'h60, "ESC 6 cell did not store the raw character code");
+
+    send(ESC); send("1");                           // NDSS1 - Graphics I, not Box
+    send(8'h60);
+    wait_ready;
+    read_cell(cursor_row, 8'd1, s_cell);
+    check(s_cell[12] == 1'b0, "ESC 1 did not clear the graphics attribute back to plain ASCII");
+
+    //------------------------------------------------------------------
+    // 2c. CSI A/B/C/D (cursor moves) and SGR (m) - the real bug, found
+    // 31-AUG-2026 from a live RetroCore trace: SINTRAN echoes a TDV
+    // keypress's cursor move back as STANDARD VT100 CSI (ESC[A/B/C/D),
+    // not another bare TDV byte, and this parser did not implement them
+    // at all - arrows looked completely dead in PED even though the
+    // keyboard side was correct and SINTRAN was receiving every keypress.
+    //------------------------------------------------------------------
+    send(8'h10); send(8'd10); send(8'd10);           // DLE to a known start: row 10, col 10
+    send(ESC); send("["); send("A"); wait_ready;      // CUU, no param = 1
+    check(cursor_row == 9 && cursor_col == 10, "ESC[A (CUU) did not move up 1");
+    send(ESC); send("["); send("B"); wait_ready;      // CUD, no param = 1
+    check(cursor_row == 10, "ESC[B (CUD) did not move down 1");
+    send(ESC); send("["); send("C"); wait_ready;      // CUF, no param = 1
+    check(cursor_col == 11, "ESC[C (CUF) did not move right 1");
+    send(ESC); send("["); send("D"); wait_ready;      // CUB, no param = 1
+    check(cursor_col == 10, "ESC[D (CUB) did not move left 1");
+    send(ESC); send("["); send("3"); send("A"); wait_ready; // CUU with an explicit count
+    check(cursor_row == 7, "ESC[3A (CUU n=3) did not move up 3");
+    send(ESC); send("["); send("2"); send("0"); send("A"); wait_ready; // clamps at row 0, does not wrap
+    check(cursor_row == 0, "ESC[20A did not clamp at row 0");
+
+    begin : sgr_probe
+      reg [7:0] pr, pc;
+      send(ESC); send("["); send("7"); send("m"); wait_ready; // SGR reverse video
+      pr = cursor_row; pc = cursor_col;
+      send("R");                                       // 'R' with reverse set
+      wait_ready;
+      read_cell(pr, pc, s_cell);
+      check(s_cell[8] == 1'b1, "ESC[7m (SGR reverse) did not set the reverse attribute bit");
+
+      send(ESC); send("["); send("0"); send("m"); wait_ready; // SGR reset
+      pr = cursor_row; pc = cursor_col;
+      send("N");                                       // 'N' with attributes cleared
+      wait_ready;
+      read_cell(pr, pc, s_cell);
+      check(s_cell[8] == 1'b0, "ESC[0m (SGR reset) did not clear the reverse attribute bit");
+    end
 
     //------------------------------------------------------------------
     // 3. DLE binary cursor addressing - both encodings land the same place
