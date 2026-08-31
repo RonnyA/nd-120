@@ -3,10 +3,11 @@
 //!
 //! Part of the board-independent terminal core (Verilog/Terminals/).
 //!
-//! Three 128-glyph pages x 16 rows x 8 pixels = 6144 bytes. Address is
+//! Four 128-glyph pages x 16 rows x 8 pixels = 8192 bytes. Address is
 //! {char_code, row}; data is the pixel row, MSB = leftmost pixel. char_code
 //! is {page[1:0], code[6:0]}: page 0 = US / ISO 646 IRV, page 1 = Norwegian
-//! (NS 4551-1), page 2 = DEC Special Graphics (VT100 line drawing).
+//! (NS 4551-1), page 2 = DEC Special Graphics (VT100 line drawing), page 3 =
+//! TDV2200 Box (ESC 6 / NDSS6 line drawing).
 //!
 //! The contents come from Verilog/Terminals/font/font8x16.hex, built by
 //! font/make_font.py out of a Linux PSF console font. Regenerate rather than
@@ -33,7 +34,7 @@ module font_rom #(
 );
 
   (* rom_style = "block" *)
-  reg [7:0] s_rom[0:6143];
+  reg [7:0] s_rom[0:8191];
 
   initial begin
     $readmemh(FONT_FILE, s_rom);

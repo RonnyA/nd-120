@@ -38,14 +38,21 @@
 //! biased encoding - masking off the low 5/7 bits collapses both cases to
 //! the same result, so no mode flag is needed to pick which one arrived.
 //!
+//! CHARACTER SETS: "ESC <digit>" (NDSS1-9, e.g. "ESC 6" for Box) - a bare
+//! TWO-byte designation, NOT VT100's three-byte "ESC ( <final>". Only NDSS6
+//! (Box, font page 3 - see font/make_font.py) actually renders differently;
+//! every other digit falls back to plain ASCII (page 0), same conservative
+//! choice terminal_ctrl.v makes for any VT100 charset it does not implement.
+//! Found missing and fixed 31-AUG-2026 against a live SCONF capture: cell
+//! 0x60 printed as a literal backtick instead of a top-left corner, because
+//! this parser only recognised VT100's ESC( form, which a TDV never sends.
+//!
 //! DEFERRED, NOT IMPLEMENTED (no evidence PED/LED use them; add only if a
 //! live capture shows otherwise): ND private rectangle ops (z { } u v ~ | p
 //! q s t), Tektronix/ND graphics, DCS soft-key/PUSH-key PROGRAMMING (only
 //! skip-and-discard is implemented), 132-column mode (no TDV terminal type
-//! supports it), character-set rendering beyond the existing DEC-graphics
-//! font page (charset DESIGNATION bytes are still consumed correctly, just
-//! do not change what is drawn - same conservative choice terminal_ctrl.v
-//! makes for anything beyond page 0/DEC-graphics).
+//! supports it), NDSS1-5/7-9 (Graphics I/II, Math, Greek, Diacritics, NIX,
+//! T, ND private) and the ISO 646 national-variant switch (ESC %).
 //!
 //! CELL LAYOUT, clock domain, blink: identical to terminal_ctrl.v - see
 //! that file's header.
@@ -135,9 +142,10 @@ module terminal_ctrl_tdv #(
   reg s_cursor_vis;
 
   reg s_at_rev, s_at_bold, s_at_ul, s_at_blink;
-  reg s_shift;
-  reg s_g0_gfx;
-  reg s_g1_gfx;
+  reg s_shift;    //! SO/SI: 0 = G0 active, 1 = G1 active
+  reg s_g0_gfx;   //! G0 designated NDSS6/Box (ESC 6) - font page 3
+  reg s_g1_gfx;   //! G1's own designation - never set (no NDSS G1 form
+                  //! implemented yet), so G1 always reads as plain ASCII
 
   reg s_pending;  //! last-column flag - same VT100-derived autowrap behavior;
                   //! a TDV wraps too, and nothing in the captures says otherwise.
@@ -148,15 +156,43 @@ module terminal_ctrl_tdv #(
   reg [7:0] s_cp_col;
   reg       s_cp_down;
 
-  //! Deferred CUP commit - same two-phase reasoning as terminal_ctrl.v
-  //! (latch operands one cycle, commit the next) to keep the combinational
-  //! cone off the cursor registers short. TDV has no scroll region, so
-  //! there is no floor/ceiling clamp to register separately - CUP clamps
-  //! straight to the screen edges.
-  reg       s_ap_cup;      //! 1 = a deferred CUP is in flight
+  //! Deferred cursor-move commit - same two-phase reasoning as
+  //! terminal_ctrl.v (latch operands one cycle, commit the next) to keep
+  //! the combinational cone off the cursor registers short. TDV has no
+  //! scroll region, so there is no floor/ceiling clamp to register
+  //! separately - every move clamps straight to the screen edges.
+  //!
+  //! CUU/CUD/CUF/CUB exist because SINTRAN's own cursor-move ECHO for an
+  //! arrow keypress is standard VT100 CSI (ESC[A/B/C/D), not another bare
+  //! TDV byte - measured on real hardware (RetroCore trace, 31-AUG-2026):
+  //! sending TDV-native FS (cursor up) got ESC[A back, sending BS (cursor
+  //! left) got ESC[D back, and so on for all four. Found missing here:
+  //! this parser only handled H/f (CUP) - A/B/C/D fell through the
+  //! `default: ;` and never moved the cursor, which is why arrows looked
+  //! completely dead in PED even though the keyboard side was correct all
+  //! along and SINTRAN was receiving and processing every keypress.
+  localparam [3:0] AP_CUP = 4'd0;
+  localparam [3:0] AP_CUU = 4'd1;
+  localparam [3:0] AP_CUD = 4'd2;
+  localparam [3:0] AP_CUF = 4'd3;
+  localparam [3:0] AP_CUB = 4'd4;
+  //! CHA (col-absolute) and VPA (row-absolute) - ported from terminal_ctrl.v
+  //! along with the cursor moves above: SINTRAN's type-93 line speaks the
+  //! same base ECMA-48 CSI set VT100 does (RetroTerm's own class hierarchy
+  //! has TDV2200Emulator derive from the identical core VT100Emulator
+  //! uses, adding ND extensions on top - not a separate protocol), so this
+  //! parser should carry the same base set terminal_ctrl.v already proved,
+  //! not reinvent a narrower one.
+  localparam [3:0] AP_CHA = 4'd5;
+  localparam [3:0] AP_VPA = 4'd6;
+  //! SGR walks s_par like AP_MODE/AP_LED do in terminal_ctrl.v - one
+  //! parameter per clock via s_ap_idx, not the two-phase latch above.
+  localparam [3:0] AP_SGR = 4'd7;
+  reg [3:0] s_ap_kind;
   reg       s_ap_phase;
-  reg [7:0] s_ap_row_q;
-  reg [7:0] s_ap_col_q;
+  reg [7:0] s_ap_row_q;  //! CUP/VPA's row operand, or CUU/CUD/CUF/CUB/CHA's count/column
+  reg [7:0] s_ap_col_q;  //! CUP's column operand only
+  reg [2:0] s_ap_idx;    //! SGR parameter walk index
 
   assign ready = (s_state == ST_RUN) && !s_wr_hold;
 
@@ -182,6 +218,15 @@ module terminal_ctrl_tdv #(
     input [7:0] col;
     begin
       cell_addr = {row, 6'b0} + {row, 4'b0} + col;
+    end
+  endfunction
+
+  //! A CSI parameter with its default: 0 or absent means `dflt` (ECMA-48).
+  function automatic [7:0] par_or;
+    input [7:0] value;
+    input [7:0] dflt;
+    begin
+      par_or = (value == 8'd0) ? dflt : value;
     end
   endfunction
 
@@ -307,26 +352,44 @@ module terminal_ctrl_tdv #(
   endtask
 
   //--------------------------------------------------------------------------
-  // CSI final dispatch. Only H/f (CUP), J (ED) and K (EL) are implemented -
-  // the three confirmed in the captured PED startup plus EL for symmetry
-  // with ED (both are ECMA-48 basics, cheap, and PED almost certainly uses
-  // EL to redraw its status line the same way it does under VT100). Every
-  // other final, INCLUDING every h/l mode set/reset (mode 62 among them,
-  // "function unknown" per the real TDV2200 termcap's own init string) is
-  // the existing `default: ;` - swallowed, never printed, never corrupts
-  // parser state. That is deliberate: it is what lets an unknown mode
-  // number arrive safely instead of needing to be enumerated first.
+  // CSI final dispatch. A/B/C/D (cursor moves), G/d (CHA/VPA), H/f (CUP),
+  // J (ED), K (EL) and m (SGR) are the base ECMA-48/VT100 set, ported from
+  // terminal_ctrl.v - see the AP_CHA/AP_VPA declaration above for why: a
+  // type-93 line speaks this same base set, confirmed on real hardware
+  // for A/B/C/D (SINTRAN's cursor-move ECHO for a TDV keypress) and for m
+  // (the captured PED startup's own "ESC[2;7m" dim-reverse status line).
+  // Every other final, INCLUDING every h/l mode set/reset (mode 62 among
+  // them, "function unknown" per the real TDV2200 termcap's own init
+  // string) is the existing `default: ;` - swallowed, never printed,
+  // never corrupts parser state. That is deliberate: it is what lets an
+  // unknown mode number arrive safely instead of needing to be enumerated
+  // first, and it is also why DECSTBM/scroll-region CSI (`r`) and the DEC
+  // private modes stay out - no capture has shown TDV mode using them.
   //--------------------------------------------------------------------------
 
   task automatic dispatch_csi;
     input [7:0] fin;
     begin
       case (fin)
+        "A": begin s_pending<=1'b0; s_ap_kind<=AP_CUU; s_ap_phase<=1'b0; s_state<=ST_APPLY; end
+        "B": begin s_pending<=1'b0; s_ap_kind<=AP_CUD; s_ap_phase<=1'b0; s_state<=ST_APPLY; end
+        "C": begin s_pending<=1'b0; s_ap_kind<=AP_CUF; s_ap_phase<=1'b0; s_state<=ST_APPLY; end
+        "D": begin s_pending<=1'b0; s_ap_kind<=AP_CUB; s_ap_phase<=1'b0; s_state<=ST_APPLY; end
+        "G": begin s_pending<=1'b0; s_ap_kind<=AP_CHA; s_ap_phase<=1'b0; s_state<=ST_APPLY; end
+        "d": begin s_pending<=1'b0; s_ap_kind<=AP_VPA; s_ap_phase<=1'b0; s_state<=ST_APPLY; end
+
         "H", "f": begin
           s_pending  <= 1'b0;
-          s_ap_cup   <= 1'b1;
+          s_ap_kind  <= AP_CUP;
           s_ap_phase <= 1'b0;
           s_state    <= ST_APPLY;
+        end
+
+        "m": begin  // SGR - walk the parameter list, one per clock
+          s_ap_kind <= AP_SGR;
+          s_ap_idx  <= 3'd0;
+          if (s_npar == 3'd0) s_npar <= 3'd1;  // no params = SGR 0 (reset)
+          s_state   <= ST_APPLY;
         end
 
         "J": begin
@@ -379,7 +442,7 @@ module terminal_ctrl_tdv #(
       s_dle_row <= 5'd0;
       s_par[0]  <= 8'd0; s_par[1] <= 8'd0; s_par[2] <= 8'd0; s_par[3] <= 8'd0;
       s_cp_dst  <= 8'd0; s_cp_col <= 8'd0; s_cp_down <= 1'b0;
-      s_ap_cup  <= 1'b0; s_ap_phase <= 1'b0;
+      s_ap_kind <= AP_CUP; s_ap_phase <= 1'b0; s_ap_idx <= 3'd0;
       s_ap_row_q <= 8'd0; s_ap_col_q <= 8'd0;
       reset_modes;
     end else begin
@@ -425,23 +488,70 @@ module terminal_ctrl_tdv #(
         end
 
         //----------------------------------------------------------------
-        // Deferred CUP commit - see the s_ap_cup declaration for why this
-        // is two phases.
+        // Deferred cursor-move commit for AP_CUP/CUU/CUD/CUF/CUB/CHA/VPA
+        // (two-phase, see the declaration above for why), OR the SGR
+        // parameter walk for AP_SGR (one param per clock, same shape as
+        // terminal_ctrl.v's AP_SGR/AP_MODE/AP_LED).
         //----------------------------------------------------------------
-        ST_APPLY: begin
-          if (!s_ap_phase) begin
-            s_ap_row_q <= s_par[0];
-            s_ap_col_q <= s_par[1];
-            s_ap_phase <= 1'b1;
+        ST_APPLY: begin : apply
+          reg [8:0] ap_sum;
+
+          if (s_ap_kind != AP_SGR) begin
+            if (!s_ap_phase) begin
+              s_ap_row_q <= par_or(s_par[0], 8'd1);
+              s_ap_col_q <= par_or(s_par[1], 8'd1);
+              s_ap_phase <= 1'b1;
+            end else begin
+              s_state <= ST_RUN;
+              case (s_ap_kind)
+                AP_CUP: begin
+                  cursor_row <= (s_ap_row_q == 8'd0) ? 8'd0
+                              : (s_ap_row_q >= ROWS) ? (ROWS[7:0] - 8'd1)
+                              : (s_ap_row_q - 8'd1);
+                  cursor_col <= (s_ap_col_q == 8'd0) ? 8'd0
+                              : (s_ap_col_q >= COLS) ? (COLS[7:0] - 8'd1)
+                              : (s_ap_col_q - 8'd1);
+                end
+                AP_CUU: cursor_row <=
+                    ({1'b0, cursor_row} > {1'b0, s_ap_row_q})
+                    ? (cursor_row - s_ap_row_q) : 8'd0;
+                AP_CUD: begin
+                  ap_sum = {1'b0, cursor_row} + {1'b0, s_ap_row_q};
+                  cursor_row <= (ap_sum < ROWS) ? ap_sum[7:0] : (ROWS[7:0] - 8'd1);
+                end
+                AP_CUF: begin
+                  ap_sum = {1'b0, cursor_col} + {1'b0, s_ap_row_q};
+                  cursor_col <= (ap_sum < COLS - 1) ? ap_sum[7:0] : (COLS[7:0] - 8'd1);
+                end
+                AP_CUB: cursor_col <=
+                    ({1'b0, cursor_col} > {1'b0, s_ap_row_q})
+                    ? (cursor_col - s_ap_row_q) : 8'd0;
+                AP_CHA: cursor_col <=
+                    (s_ap_row_q <= COLS) ? (s_ap_row_q - 8'd1) : (COLS[7:0] - 8'd1);
+                AP_VPA: cursor_row <=
+                    (s_ap_row_q <= ROWS) ? (s_ap_row_q - 8'd1) : (ROWS[7:0] - 8'd1);
+                default: ;
+              endcase
+            end
+          end else if (s_ap_idx >= s_npar) begin
+            s_state <= ST_RUN;
           end else begin
-            s_ap_cup <= 1'b0;
-            s_state  <= ST_RUN;
-            cursor_row <= (s_ap_row_q == 8'd0) ? 8'd0
-                        : (s_ap_row_q >= ROWS) ? (ROWS[7:0] - 8'd1)
-                        : (s_ap_row_q - 8'd1);
-            cursor_col <= (s_ap_col_q == 8'd0) ? 8'd0
-                        : (s_ap_col_q >= COLS) ? (COLS[7:0] - 8'd1)
-                        : (s_ap_col_q - 8'd1);
+            s_ap_idx <= s_ap_idx + 3'd1;
+            case (s_par[s_ap_idx[1:0]])
+              8'd0: begin
+                s_at_rev <= 1'b0; s_at_bold <= 1'b0;
+                s_at_ul  <= 1'b0; s_at_blink <= 1'b0;
+              end
+              8'd1:  s_at_bold  <= 1'b1;
+              8'd4:  s_at_ul    <= 1'b1;
+              8'd5:  s_at_blink <= 1'b1;
+              8'd7:  s_at_rev   <= 1'b1;
+              8'd22: s_at_bold  <= 1'b0;
+              8'd24: s_at_ul    <= 1'b0;
+              8'd25: s_at_blink <= 1'b0;
+              8'd27: s_at_rev   <= 1'b0;
+              default: ;  // 2 (dim), colours, the rest: swallowed
+            endcase
           end
         end
 
@@ -569,6 +679,17 @@ module terminal_ctrl_tdv #(
                       reset_modes;
                       start_clear(8'd0, 8'd0, ROWS[7:0] - 8'd1, COLS[7:0] - 8'd1);
                     end
+                    // NDSS1-9: bare "ESC <digit>" character-set designation
+                    // (Verilog/Terminals/docs/SPEC-tdv2200.md) - NOT VT100's
+                    // three-byte "ESC ( <final>". Only NDSS6 (Box) actually
+                    // renders differently (font page 3, confirmed against a
+                    // live SCONF capture 31-AUG-2026: cell 0x60 printed as a
+                    // literal backtick instead of a top-left corner before
+                    // this was implemented). Any other designation - incl.
+                    // "1" back to plain ASCII - falls back to page 0, same
+                    // conservative choice as an unimplemented VT100 charset.
+                    "1", "2", "3", "4", "5", "6", "7", "8", "9":
+                      s_g0_gfx <= (byte_data == "6");
                     // "Q" (exit/enable EC switch) and anything else
                     // unrecognised: swallowed.
                     default: ;
@@ -576,22 +697,20 @@ module terminal_ctrl_tdv #(
                 end
 
                 //--------------------------------------------------------
-                // ESC + intermediate - character-set DESIGNATION bytes are
-                // consumed correctly (so they never leak as garbage text)
-                // but only the existing DEC-graphics font page actually
-                // renders differently, same conservative choice
-                // terminal_ctrl.v makes - see the header.
+                // ESC + intermediate: "#" (double-height/width lines) and
+                // "%" (ISO 646 national variant) are parsed and dropped -
+                // deferred, no live capture has shown them used yet. "(" ")"
+                // "*" "+" (VT100's G0-G3 designation prefixes) are consumed
+                // the same way in case anything ever sends them, but they
+                // are not how a TDV designates its own character sets (see
+                // the NDSS digit case in P_ESC above) - a byte here never
+                // leaks as garbage text either way.
                 //--------------------------------------------------------
                 P_ESCINT: begin
                   if (byte_data >= 8'h20 && byte_data <= 8'h2F) begin
                     s_escint <= byte_data;
                   end else begin
-                    p_state <= P_GROUND;
-                    case (s_escint)
-                      "(": s_g0_gfx <= (byte_data == "0");
-                      ")": s_g1_gfx <= (byte_data == "0");
-                      default: ;
-                    endcase
+                    p_state <= P_GROUND;  // final byte consumed, nothing acted on
                   end
                 end
 

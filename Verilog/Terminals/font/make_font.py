@@ -302,6 +302,142 @@ def dec_graphics_page(page0, glyph_for):
     return page, absent
 
 
+# ---------------------------------------------------------------------------
+# TDV2200 Box - the FOURTH font page
+#
+# Designated with the bare two-byte "ESC 6" (NDSS6, Verilog/Terminals/docs/
+# SPEC-tdv2200.md) - NOT VT100's three-byte "ESC ( 0". Needed because SINTRAN
+# draws box screens (SCONF confirmed live, 31-AUG-2026: cell 0x60 rendered as
+# a literal backtick instead of a top-left corner) using this set, not the
+# VT100 DEC Special Graphics one page 2 already carries.
+#
+# Mapping at 0x60-0x7E per RetroTerm's TDVCharacterSets.cs (Box dictionary,
+# cross-checked byte for byte against the SCONF screen capture: 0x60/'`' sat
+# where a top-left corner belongs, 0x67/'g' where a light up+horizontal tee
+# belongs, 0x6A/'j' where a vertical bar belongs - all three match exactly).
+# Light box-drawing reuses the same one-pixel-stroke primitives as the DEC
+# Special Graphics page; heavy is a 3-pixel stroke, double is two parallel
+# 1-pixel strokes 3 pixels apart - both are geometry, synthesized the same
+# way as page 2's corners rather than sourced from a font, for the same
+# reason: the page exists whatever PSF font is used.
+# ---------------------------------------------------------------------------
+
+def tdv_box_page(page0):
+    """The 128 glyphs of the TDV2200 Box character set."""
+    blank = bytes(16)
+    V_BIT, H_ROW = 0x08, 8  # centre column (MSB=leftmost, bit 0x08=col 4), centre row
+
+    def light(up=False, down=False, left=False, right=False):
+        rows = [0] * 16
+        if up:
+            for r in range(0, H_ROW + 1):
+                rows[r] |= V_BIT
+        if down:
+            for r in range(H_ROW, 16):
+                rows[r] |= V_BIT
+        if left:
+            rows[H_ROW] |= 0xF8
+        if right:
+            rows[H_ROW] |= 0x0F
+        return bytes(rows)
+
+    def light_hline():
+        rows = [0] * 16
+        rows[H_ROW] = 0xFF
+        return bytes(rows)
+
+    def light_vline():
+        return light(up=True, down=True)
+
+    # Heavy: a 3-pixel-wide stroke (columns 3-5 vertical, rows 7-9 horizontal)
+    # instead of light's 1-pixel stroke - visibly bolder at 8x16.
+    HV_BITS = 0x1C  # columns 3-5
+    def heavy(up=False, down=False, left=False, right=False):
+        rows = [0] * 16
+        if up:
+            for r in range(0, H_ROW + 2):
+                rows[r] |= HV_BITS
+        if down:
+            for r in range(H_ROW - 1, 16):
+                rows[r] |= HV_BITS
+        if left:
+            for r in range(H_ROW - 1, H_ROW + 2):
+                rows[r] |= 0xFC
+        if right:
+            for r in range(H_ROW - 1, H_ROW + 2):
+                rows[r] |= 0x1F
+        return bytes(rows)
+
+    def heavy_hline():
+        rows = [0] * 16
+        for r in range(H_ROW - 1, H_ROW + 2):
+            rows[r] = 0xFF
+        return bytes(rows)
+
+    def heavy_vline():
+        return heavy(up=True, down=True)
+
+    # Double: two parallel light strokes either side of centre.
+    def double(up=False, down=False, left=False, right=False):
+        rows = [0] * 16
+        vbits = 0x0A  # columns 3 and 5 (either side of centre column 4)
+        if up:
+            for r in range(0, H_ROW - 1):
+                rows[r] |= vbits
+            for r in range(0, H_ROW + 2):
+                rows[r] |= vbits
+        if down:
+            for r in range(H_ROW + 2, 16):
+                rows[r] |= vbits
+            for r in range(H_ROW - 1, 16):
+                rows[r] |= vbits
+        if left:
+            rows[H_ROW - 1] |= 0xF8
+            rows[H_ROW + 1] |= 0xF8
+        if right:
+            rows[H_ROW - 1] |= 0x0F
+            rows[H_ROW + 1] |= 0x0F
+        return bytes(rows)
+
+    page = list(page0[:0x60])           # 0x00-0x5F render as ASCII
+    page += [
+        light(down=True, right=True),   # 0x60 ` - down+right (top-left corner)
+        light(down=True, left=True),    # 0x61 a - down+left (top-right corner)
+        light(up=True, right=True),     # 0x62 b - up+right (bottom-left corner)
+        light(up=True, left=True),      # 0x63 c - up+left (bottom-right corner)
+        light(up=True, down=True, right=True),  # 0x64 d - vertical+right
+        light(up=True, down=True, left=True),   # 0x65 e - vertical+left
+        light(down=True, left=True, right=True),  # 0x66 f - down+horizontal
+        light(up=True, left=True, right=True),    # 0x67 g - up+horizontal
+        light(up=True, down=True, left=True, right=True),  # 0x68 h - cross
+        light_hline(),                  # 0x69 i - horizontal
+        light_vline(),                  # 0x6A j - vertical
+        heavy(down=True, right=True),   # 0x6B k
+        heavy(down=True, left=True),    # 0x6C l
+        heavy(up=True, right=True),     # 0x6D m
+        heavy(up=True, left=True),      # 0x6E n
+        heavy(up=True, down=True, right=True),  # 0x6F o
+        heavy(up=True, down=True, left=True),   # 0x70 p
+        heavy(down=True, left=True, right=True),  # 0x71 q
+        heavy(up=True, left=True, right=True),    # 0x72 r
+        heavy(up=True, down=True, left=True, right=True),  # 0x73 s
+        heavy_hline(),                  # 0x74 t
+        heavy_vline(),                  # 0x75 u
+        double(down=True, right=True),  # 0x76 v
+        double(down=True, left=True),   # 0x77 w
+        double(up=True, right=True),    # 0x78 x
+        double(up=True, left=True),     # 0x79 y
+        double(up=True, down=True, right=True),  # 0x7A z
+        double(up=True, down=True, left=True),   # 0x7B {
+        double(down=True, left=True, right=True),  # 0x7C |
+        double(up=True, left=True, right=True),    # 0x7D }
+        double(up=True, down=True, left=True, right=True),  # 0x7E ~
+        blank,                          # 0x7F
+    ]
+    assert len(page) == 128
+    return page
+
+
 NATIONAL_VARIANTS = {
     # ISO 646 position -> the Unicode codepoint to draw there
     "no": {
@@ -365,13 +501,17 @@ def main():
     # Page 2: DEC Special Graphics - the VT100 line-drawing set.
     page2, gfx_absent = dec_graphics_page(page0, glyph_for)
 
-    rom = page0 + page1 + page2
+    # Page 3: TDV2200 Box - the TDV2200 line-drawing set (ESC 6 / NDSS6).
+    page3 = tdv_box_page(page0)
+
+    rom = page0 + page1 + page2 + page3
 
     with open(dst, "w", encoding="ascii", newline="\n") as out:
         out.write("// 8x16 character generator ROM, generated by make_font.py\n")
         out.write("// source: %s\n" % src)
         out.write("// page 0: US/ISO 646 IRV  page 1: Norwegian NS 4551-1\n")
         out.write("// page 2: DEC Special Graphics (VT100 line drawing)\n")
+        out.write("// page 3: TDV2200 Box (ESC 6 / NDSS6 line drawing)\n")
         out.write("// index = page * 2048 + code * 16 + pixel row; MSB = leftmost pixel\n")
         out.write("// character->glyph mapping: %s\n"
                   % ("from the font's unicode table"
@@ -383,7 +523,7 @@ def main():
     # Space (0x20) is legitimately all-zero, so it is excluded from the check -
     # counting it as "missing" produced a false warning on a perfectly good font.
     missing = [code for code in range(0x21, 0x7F) if rom[code] == blank]
-    print("wrote %s: 3 pages x 128 glyphs x 16 rows" % dst)
+    print("wrote %s: 4 pages x 128 glyphs x 16 rows" % dst)
     if gfx_absent:
         print("WARNING: DEC graphics page is blank at %s - neither the font nor"
               % " ".join("0x%02X (U+%04X)" % (p, c) for p, c in gfx_absent))

@@ -168,7 +168,8 @@ module ps2_keyboard_tdv #(
 
       .shift_active(),
       .ctrl_active (),
-      .caps_active ()
+      .caps_active (),
+      .alt_active  ()
   );
 
 endmodule

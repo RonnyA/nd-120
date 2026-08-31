@@ -42,7 +42,12 @@ module ps2_ascii_table_tdv (
 
     //! Byte for the same scancode when it arrived with the E0 (extended)
     //! prefix. 0x00 = sends nothing.
-    output reg  [7:0] extended
+    output reg  [7:0] extended,
+
+    //! Alt+key marker for TDV application/editing functions (Insert-mode
+    //! toggle aside, these have no PC-keyboard analog at all) - 0x00 = no
+    //! Alt binding for this key. See the ALT+KEY table below.
+    output reg  [7:0] alt_marker
 );
 
   //--------------------------------------------------------------------------
@@ -210,7 +215,14 @@ module ps2_ascii_table_tdv (
       // --- the control keys a console needs --------------------------------
       8'h29: begin us_unshifted = 8'h20; us_shifted = 8'h20; end  // space
       8'h5A: begin us_unshifted = 8'h0D; us_shifted = 8'h0D; end  // Enter -> CR
-      8'h66: begin us_unshifted = 8'h08; us_shifted = 8'h08; end  // Backspace -> BS
+      // Backspace -> DEL (0x7F), NOT BS. On a TDV, BS (0x08) is pure
+      // cursor-left with no delete - it is the exact same byte the Left
+      // arrow sends (see the extended table above). A destructive
+      // backward-delete needs DEL, same as the PC Delete key already
+      // sends. Found wrong 31-AUG-2026 on real PED: Backspace produced a
+      // cursor move, not a delete - confirmed by the user's own
+      // expectation of 127 dec before this was fixed.
+      8'h66: begin us_unshifted = 8'h7F; us_shifted = 8'h7F; end
       8'h0D: begin us_unshifted = 8'h09; us_shifted = 8'h09; end  // Tab -> HT
       8'h76: begin us_unshifted = 8'h1B; us_shifted = 8'h1B; end  // Esc
 
@@ -229,6 +241,88 @@ module ps2_ascii_table_tdv (
       8'h07: begin us_unshifted = 8'h80|8'd30; us_shifted = 8'h80|8'd31; end  // F12 -> ANGRE
 
       default: begin us_unshifted = 8'h00; us_shifted = 8'h00; end
+    endcase
+  end
+
+  //--------------------------------------------------------------------------
+  // ALT+KEY - user-requested application/editing shortcuts (31-AUG-2026),
+  // not a PC keyboard/TDV standard - there is no PC key for most of these
+  // functions at all, same situation as the F9-F12 remap above. Markers use
+  // 0xE0 upward. The ESC[nn_ family above is NOT capped at n=67 - Insert
+  // alone already uses n=82 (marker 0x80|82=0xD2), and the registry's own
+  // n range runs to 86 (NEWPARA) - so this range starts well past the
+  // highest n-based marker actually in use, with headroom to spare (up to
+  // n=95 before a collision, comfortably above the registry's max of 86).
+  // Found this exact collision 31-AUG-2026: an earlier cut used 0xC4,
+  // which put Insert's own marker (0xD2) on top of Alt+E's SENT marker -
+  // Insert silently sent SENT instead. key_tdv2200.v expands each Alt
+  // marker into its own fixed byte sequence.
+  //
+  // SOURCE, per key - two different trust levels, both stated so nobody
+  // mistakes one for the other later:
+  //   TRUSTED (TDV2200KeyRegistry.cs, same registry as the F-key table
+  //   above): HELP=HJELP(46) FUNC=FUNK(42) EXIT=SLUTT(48) CANCEL=ANGRE(30)
+  //   COPY=KOPI(12) MOVE=FLYTT(14) JUST(24) MARK=MERK(00) FIELD=FELT(02)
+  //   PARA=AVSH(04) SENT=SETN(06) WORD=ORD(08).
+  //   USER-SPECIFIED, NOT IN THE REGISTRY - no confirmed TDV2200 sequence
+  //   exists for these at all (DO, COMMAND, FIND, SELECT are not TDV2200
+  //   registry keys; PUSH1-8 are host-programmable with no fixed sequence
+  //   per the registry's own IsProgrammable flag): DO=ESC[29~
+  //   COMMAND=ESC[26~ FIND=ESC[1;2R SELECT=ESC[4;2~
+  //   PUSH1-8=ESC P N<1-8> ESC \. Treat these as unverified until a live
+  //   capture or a real TDV settles them.
+  //   APPROXIMATE, no registry key matches the name: INSERT HERE mapped to
+  //   D99 INNS/EXPS (n=82), the TDV's own Insert-mode toggle - the closest
+  //   real function, not a confirmed match for "insert at cursor."
+  //--------------------------------------------------------------------------
+
+  localparam [7:0] ALTM_HELP    = 8'hE0;
+  localparam [7:0] ALTM_DO      = 8'hE1;  // user-specified, unconfirmed
+  localparam [7:0] ALTM_FUNC    = 8'hE2;
+  localparam [7:0] ALTM_EXIT    = 8'hE3;
+  localparam [7:0] ALTM_CANCEL  = 8'hE4;
+  localparam [7:0] ALTM_COMMAND = 8'hE5;  // user-specified, unconfirmed
+  localparam [7:0] ALTM_FIND    = 8'hE6;  // user-specified, unconfirmed
+  localparam [7:0] ALTM_SELECT  = 8'hE7;  // user-specified, unconfirmed
+  localparam [7:0] ALTM_COPY    = 8'hE8;
+  localparam [7:0] ALTM_MOVE    = 8'hE9;
+  localparam [7:0] ALTM_JUST    = 8'hEA;
+  localparam [7:0] ALTM_MARK    = 8'hEB;
+  localparam [7:0] ALTM_FIELD   = 8'hEC;
+  localparam [7:0] ALTM_PARA    = 8'hED;
+  localparam [7:0] ALTM_SENT    = 8'hEE;
+  localparam [7:0] ALTM_WORD    = 8'hEF;
+  localparam [7:0] ALTM_INSHERE = 8'hF0;  // approximate - see header
+  localparam [7:0] ALTM_PUSH1   = 8'hF1;  // user-specified, unconfirmed (x8)
+
+  always @(*) begin
+    case (code)
+      8'h33: alt_marker = ALTM_HELP;      // Alt+H
+      8'h23: alt_marker = ALTM_DO;        // Alt+D
+      8'h3C: alt_marker = ALTM_FUNC;      // Alt+U
+      8'h22: alt_marker = ALTM_EXIT;      // Alt+X
+      8'h21: alt_marker = ALTM_CANCEL;    // Alt+C
+      8'h3A: alt_marker = ALTM_COMMAND;   // Alt+M
+      8'h2B: alt_marker = ALTM_FIND;      // Alt+F
+      8'h1B: alt_marker = ALTM_SELECT;    // Alt+S
+      8'h42: alt_marker = ALTM_COPY;      // Alt+K
+      8'h2A: alt_marker = ALTM_MOVE;      // Alt+V
+      8'h3B: alt_marker = ALTM_JUST;      // Alt+J
+      8'h1C: alt_marker = ALTM_MARK;      // Alt+A
+      8'h4B: alt_marker = ALTM_FIELD;     // Alt+L
+      8'h4D: alt_marker = ALTM_PARA;      // Alt+P
+      8'h24: alt_marker = ALTM_SENT;      // Alt+E
+      8'h1D: alt_marker = ALTM_WORD;      // Alt+W
+      8'h43: alt_marker = ALTM_INSHERE;   // Alt+I
+      8'h16: alt_marker = ALTM_PUSH1 + 8'd0;  // Alt+1
+      8'h1E: alt_marker = ALTM_PUSH1 + 8'd1;  // Alt+2
+      8'h26: alt_marker = ALTM_PUSH1 + 8'd2;  // Alt+3
+      8'h25: alt_marker = ALTM_PUSH1 + 8'd3;  // Alt+4
+      8'h2E: alt_marker = ALTM_PUSH1 + 8'd4;  // Alt+5
+      8'h36: alt_marker = ALTM_PUSH1 + 8'd5;  // Alt+6
+      8'h3D: alt_marker = ALTM_PUSH1 + 8'd6;  // Alt+7
+      8'h3E: alt_marker = ALTM_PUSH1 + 8'd7;  // Alt+8
+      default: alt_marker = 8'h00;
     endcase
   end
 
