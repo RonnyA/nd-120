@@ -111,6 +111,10 @@ REGISTRY=(
   "Shared/support/sim :: test-uart     :: DONE"
   "Shared/support/sim :: test-uart-txabort :: TB_RESULT: PASS"
   "Shared/support/sim :: test-uart-txint :: TB_RESULT: PASS"
+  # RX overrun regression (31-AUG-2026, PED keyboard-input investigation):
+  # a CPU read landing mid-shift used to see a torn value matching neither
+  # byte of a back-to-back pair. See SC2661_RX_OVERRUN_tb.v.
+  "Shared/support/sim :: test-uart-rxoverrun :: TB_RESULT: PASS"
   # exhaustive 74245 transceiver gate: guards the removal of the shared
   # 'internalBus' helper that closed a combinational loop on the FIDB bus
   "Shared/support/sim :: test-74245   :: TB_RESULT: PASS"
