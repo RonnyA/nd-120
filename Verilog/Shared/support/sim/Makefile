@@ -9,7 +9,7 @@ IVERILOG = iverilog
 VVP      = vvp
 INCDIRS  = -I.. -I../../ndlib -I../../logisim
 
-.PHONY: test-uart test-uart-txint test-ram test-am29833a test-am29833a-parity test-am29c821 test-inrprom clean
+.PHONY: test-uart test-uart-txint test-uart-txabort test-uart-rxoverrun test-ram test-am29833a test-am29833a-parity test-am29c821 test-inrprom clean
 
 # Back-wiring PROM (installation number), addressed by PIL 3:0.
 # -I.. also gives iverilog the include path for nd120_backwiring_defaults.vh.
@@ -87,8 +87,21 @@ test-ram: SIP1M9_bram_tb
 SIP1M9_bram_tb: SIP1M9_bram_tb.v ../SIP1M9.v
 	$(IVERILOG) -g2012 -o $@ $(INCDIRS) SIP1M9_bram_tb.v ../SIP1M9.v
 
+# RX overrun regression (31-AUG-2026, PED keyboard-input investigation):
+# a new start bit used to clear regReceiveHoldingRegister immediately and
+# shift the new byte into it live, so a CPU read landing mid-shift got a
+# torn value matching neither byte. Back-to-back characters with zero gap
+# (local loopback) must leave RHR holding the LAST byte clean, with the
+# Overrun flag set - never a torn value.
+test-uart-rxoverrun: SC2661_RX_OVERRUN_tb
+	$(VVP) SC2661_RX_OVERRUN_tb | tee rxoverrun_result.tmp
+	@grep -q "TB_RESULT: PASS" rxoverrun_result.tmp && rm -f rxoverrun_result.tmp
+
+SC2661_RX_OVERRUN_tb: SC2661_RX_OVERRUN_tb.v ../SC2661_UART.v
+	$(IVERILOG) -g2012 -o $@ $(INCDIRS) SC2661_RX_OVERRUN_tb.v ../SC2661_UART.v
+
 clean:
-	rm -f SC2661_UART_tb SIP1M9_bram_tb *.vcd
+	rm -f SC2661_UART_tb SIP1M9_bram_tb SC2661_RX_OVERRUN_tb *.vcd
 
 # P1c-2/P1d/P3: TTL_74646/74648 strobe-clock edge-capture equivalence
 test-7464x: TTL_7464x_equiv_tb

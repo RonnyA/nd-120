@@ -200,6 +200,10 @@ module SC2661_UART (
   reg  [ 2:0] rxState = 0;
   reg  [31:0] rxCounter = 0;
   reg  [ 2:0] rxBitNumber = 0;
+  //! Live shift-in register for the byte currently arriving. Separate from
+  //! regReceiveHoldingRegister on purpose - see the overrun fix note at the
+  //! receiver state machine below (31-AUG-2026).
+  reg  [ 7:0] regRxShift = 0;
 
   wire        receiver_input;
 
@@ -309,6 +313,7 @@ module SC2661_UART (
         //$display("Time: %0t | UART RESET!", $time);  //  debug
 
         regReceiveHoldingRegister <= 8'b0;
+        regRxShift <= 8'b0;
         regTransmitHoldingRegister <= 8'b0;
         regStatusRegister <= 8'b00000101; // TX empty: THR(bit0)=1 AND TxEMT(bit2)=1 (idle)
         regModeRegister <= 8'b0;
@@ -419,17 +424,36 @@ module SC2661_UART (
           case (rxState)
             RX_STATE_IDLE: begin
               if (receiver_input == 0) begin
-                if (regStatusRegister[1] == 1) begin
-                  //regStatusRegister[1] <= 0;  // Clear status register bit RxRDY  -- SET OVERRUN?
-                  regStatusRegister[4] <= 1;  // Overrun: 0=Normal, 1=Overrun
-                end
-
+                // OVERRUN FIX (31-AUG-2026): this used to clear
+                // regReceiveHoldingRegister right here, at the START of the new
+                // byte - the SAME register the CPU reads directly. If the CPU
+                // had not yet read the PREVIOUS byte (RXRDY still 1), that byte
+                // was destroyed immediately, and any CPU read that landed while
+                // the new byte was still shifting in (RX_STATE_READ, below) saw
+                // a torn, partially-shifted value that matched neither the old
+                // nor the new byte - not a lost/skipped character but a wrong
+                // one. Measured 30-AUG-2026: sending "PED\r" over a real 115200
+                // serial link with no gap between characters landed as a single
+                // byte 0x28 '(' at the ND-120 - not P, E, D or CR, exactly the
+                // signature of a mid-shift snapshot.
+                //
+                // The fix shifts the new byte into regRxShift (below), which
+                // the CPU cannot see, and only copies a COMPLETE byte into
+                // regReceiveHoldingRegister once at RX_STATE_STOP_BIT -> DONE.
+                // The old byte therefore stays intact and readable for the
+                // CPU right up until the instant it is genuinely overwritten -
+                // matching how the real chip's overrun behaviour is documented
+                // (previous byte lost, but never a torn value) - and that is
+                // also the moment overrun is now actually flagged; setting the
+                // flag here at start-of-frame was too early and, combined with
+                // the immediate clear above, is what let the corruption reach
+                // the CPU instead of just losing the earlier character cleanly.
                 rxState              <= RX_STATE_START_BIT;
                 //$display("-> RX START BIT");
 
-                regReceiveHoldingRegister <=0;
-                rxCounter            <= 1;
-                rxBitNumber          <= 0;
+                regRxShift  <= 0;
+                rxCounter   <= 1;
+                rxBitNumber <= 0;
               end
             end
             RX_STATE_START_BIT: begin
@@ -448,9 +472,10 @@ module SC2661_UART (
             end
             RX_STATE_READ: begin
               rxCounter <= 1;
-              regReceiveHoldingRegister <= {
-                receiver_input, regReceiveHoldingRegister[7:1]
-              };  // Shift right and insert s_rxt at MSB.
+              regRxShift <= {
+                receiver_input, regRxShift[7:1]
+              };  // Shift right and insert s_rxt at MSB. Live shift register,
+                  // not CPU-visible - see the overrun fix note in RX_STATE_IDLE.
               rxBitNumber <= rxBitNumber + 1;
               //$display("-> RX STATE READ bit %d",receiver_input);
 
@@ -468,6 +493,16 @@ module SC2661_UART (
                 rxState <= RX_STATE_DONE;
                 //$display("-> RX STATE DONE");
                 rxCounter <= 0;
+
+                // Atomic transfer of a COMPLETE byte - the only place
+                // regReceiveHoldingRegister is written on receive. If the CPU
+                // had not read the previous byte (RXRDY still 1), it is lost
+                // now, cleanly, and Overrun is flagged here - the true moment
+                // data is discarded. See the fix note in RX_STATE_IDLE.
+                if (regStatusRegister[1] == 1) begin
+                  regStatusRegister[4] <= 1;  // Overrun: 0=Normal, 1=Overrun
+                end
+                regReceiveHoldingRegister <= regRxShift;
                 regStatusRegister[1] <= 1;  // Set RXRDY
               end
             end
