@@ -172,3 +172,33 @@ route delay; a masking-proof analysis for the WRF launch family;
 pipelining the TVGEN/ACAL cone (RTL surgery). Parked 30-AUG (Ronny) in
 favour of test-3 and MIPS work; the deployed cache clock is 33.333 MHz
 (build 11: WNS +0.037, physopt required).
+
+## 31-AUG-2026: why 45 MHz with cache is not a build-flow problem
+
+Measured, so nobody re-runs it: the cone is ~28 ns whichever endpoint the tool
+picks (27.986 / 28.039 / 28.047 ns across builds 10, 12 and 18, on three
+different worst paths), and it is 75-80% ROUTING.
+
+- **Build effort is exhausted.** `timingexplore` (opt ExploreWithRemap, place
+  ExtraTimingOpt, route AggressiveExplore) moved WNS from -6.780 to -6.440 -
+  0.34 ns of the 6.4 ns needed.
+- **Not congestion.** The part is 31% LUTs, 47% slices, 11% registers. The
+  routing delay is DISTANCE: Block RAM is 68% (91.5 of 135 tiles), so the WCS
+  BRAMs sit spread across fixed BRAM columns and the cone runs out to them and
+  back every cycle.
+- **The cone is architectural, from the schematics.** DELILAH.pdf page 103
+  (`/CGA/TRAP/BRKDET`, sheet 1 of 1) has NO flip-flops at all: the page-table
+  bits, `IPCR`, `IWRITE`, `IFETCH` and `VACC` reach `BRKN` and then
+  `TRAPN = NAND(BRKN, CBRK, ETRAPN)` through pure combinational logic. Page 104
+  (`/CGA/TRAP/TVGEN`, sheet 2 of 2) registers every trap TERM in FD1 flops on
+  TCLK, but `TVEC3` is a bare NAND of `LEV1`/`LEV2` and those same signals
+  select the `MUX31LP`s producing TVEC0-2 - and `LEV1`/`LEV2` are combinational
+  from `VACC` + the page-table bits. So both the trap vector AND the IPOS mux
+  select come live from the MMU protection check, with no register between the
+  ALU's address and the WCS address pins. That is by design; `ETRAP_n`
+  ("UNSTABLE TRAP IN THIS PERIOD CAN DESTROY MA !") is how the 1988 designers
+  made it safe in time rather than by pipelining.
+
+**So no local register can cut this cone**, and the only real fix is a pipeline
+stage in the memory-protection path, which moves every fault a cycle later
+machine-wide. Deployed answer stays 33.333 MHz with cache (7.52 MIPS).

@@ -79,6 +79,31 @@ instruction register taking a new opcode. `CGA_ALU_GPR` loads GPR from
 `[gprld]` in `Run120.cpp` counts exactly that; it must print
 `EXACT 1:1 - THIS is the MIPS tap` before anything is wired to the panel.
 
+## CFETCH is CORRECT AS TRANSCRIBED - do not "fix" it (31-AUG-2026)
+
+Verified against the schematic: **DELILAH.pdf page 69, `/CGA/DCD` SHEET 5 OF
+10**, the `FD1S` cell that drives CFETCH. The drawing shows:
+
+- **D tied to Q** - the feedback wire loops from the D pin up, across and back
+  into Q. The self-feedback is ORIGINAL, not a transcription artefact.
+- `TI` <- the FETCH flip-flop's Qbar (`IFETCHN`)
+- `TE` <- `BRKN` through inverter `IVA`, i.e. BRK active-high
+- `CP` <- MCLK; `QN` -> `CFETCH`
+- the `FD1S` has **no CL pin** - the flip-flop above it has PR/CL, this one
+  does not, so BRK_n CANNOT clear it.
+
+`CGA_DCD.v:1041` matches that pin for pin. So CFETCH holds by design and
+reloads `IFETCHN` only when BRK asserts: "hold, and on a break capture the
+fetch state". It is a microcode CONDITION (input 4 of `CGA_MIC_CSEL`'s
+PLEXERS_1), not a per-instruction strobe, and measuring 0 pulses in 460
+instructions is CORRECT behaviour, not a fault.
+
+**A rewrite was attempted on 31-AUG** (D driven from `s_ifetchn`, BRK as an
+async clear via `D_FLIPFLOP_EN` with `ASYNC_RESET`) on the theory that a
+schematic CLEAR pin had landed on the scan-test pins. **It broke SINTRAN boot
+("system malfunction") and was reverted.** The theory was wrong: there is no
+clear pin to land anywhere. Do not repeat this.
+
 ## Next action, in one line
 
 **Build and flash the Nexys at 45.45 MHz WITHOUT the cache, with the MIPS
