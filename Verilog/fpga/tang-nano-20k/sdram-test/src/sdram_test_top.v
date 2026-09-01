@@ -3,7 +3,7 @@
 **                                                                         **
 ** Exercises the 8 MB on-package SDRAM (64 Mbit, 32-bit SDR) through the   **
 ** nand2mario byte-based controller (src/sdram.v) and reports every step   **
-** over UART at 9600 baud 8N1 so the read/write behaviour is visible on a  **
+** over UART at 115200 baud 8N1 so the read/write behaviour is visible on a**
 ** terminal (the BL616 USB serial port of the board).                      **
 **                                                                         **
 ** Test sequence (started by pressing S1 or sending any UART character):   **
@@ -21,7 +21,7 @@
 
 module sdram_test_top #(
     parameter CLK_FREQ   = 27_000_000,  // PLL clkout frequency (see gowin_rpll.v)
-    parameter BAUD       = 9600,
+    parameter BAUD       = 115200,  // 27 MHz / 115200 = 234 clks/bit (-0.16%)
     parameter BLOCK_SIZE = 24'h800000,  // block test size in bytes (full 8 MB), power of 2
     parameter DOT_STEP   = 24'h40000    // progress dot interval (256 KB -> 32 dots), power of 2
 ) (
@@ -111,7 +111,7 @@ module sdram_test_top #(
   wire start_evt = s1_press | rx_valid;
 
   /*******************************************************************************
-   ** UART message printer (9600 8N1)                                            **
+   ** UART message printer (115200 8N1)                                          **
    *******************************************************************************/
   localparam MSG_BANNER   = 4'd0;
   localparam MSG_PROMPT   = 4'd1;
