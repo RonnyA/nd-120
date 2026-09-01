@@ -11,7 +11,7 @@
 *****************************************************************************/
 
 module msg_printer #(
-    parameter DELAY_FRAMES = 2812  // passed on to uart_tx
+    parameter DELAY_FRAMES = 234  // passed on to uart_tx (27 MHz / 115200)
 ) (
     input clk,
     input rst_n,
@@ -42,7 +42,7 @@ module msg_printer #(
 
   // Fixed strings (widths derived from the literals via $bits).
   // NOTE: \r is not a legal Verilog string escape - CR must be octal \015.
-  localparam S_BANNER = "\015\012ND120 TN20K SDRAM TEST 9600-8N1\015\012";
+  localparam S_BANNER = "\015\012ND120 TN20K SDRAM TEST 115200-8N1\015\012";
   localparam S_PROMPT = "PRESS S1 OR ANY KEY\015\012";
   localparam S_BLOCK  = "WRITE BLOCK\015\012";
   localparam S_VERIFY = "VERIFY BLOCK\015\012";
