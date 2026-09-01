@@ -67,14 +67,6 @@ localparam CONF_STR = {
 	// bit 0 = "On" and bit 1 = "Off" gives default-on with no extra default-
 	// value machinery. Same DBG_PANEL signals the Nexys build's sw[3] shows.
 	"O[7],Operator panel,On,Off;",
-	// Console baud, RUNTIME selectable (31-AUG-2026). The terminal's
-	// deserialiser takes a divisor at run time (console_uart_rx divisor_ovr),
-	// so the receive rate can be swept from the OSD instead of costing a
-	// ~15 minute rebuild per guess. 23040 is here on purpose: it is what the
-	// CPU transmits if BOARD_CLK_FREQ never reaches SC2661_UART.v and it
-	// falls back to its 100 MHz default while clocked at 20 MHz. If the
-	// console only reads correctly on that setting, THAT is the bug.
-	"O[9:8],Console baud,115200,23040,9600,57600;",
 	"-;",
 	// Disk and tape images (01-SEP-2026, PLAN-mister-storage.md). One OSD
 	// mount slot per drive, served through hps_io's block interface by
@@ -295,10 +287,11 @@ wire s_panel_enable = !status[7];
 // Console receive/transmit divisor, from the OSD. 0 means "use the module's
 // own CLK_HZ/BAUD parameters", which is the 115200 default; the rest are
 // 40 MHz / baud, the pixel clock these two run on.
-wire [15:0] s_con_divisor = (status[9:8] == 2'd0) ? 16'd0        // 115200 (parameters)
-                          : (status[9:8] == 2'd1) ? 16'd1736     // 23040 - the fallback-baud case
-                          : (status[9:8] == 2'd2) ? 16'd4167     // 9600
-                                                  : 16'd694;     // 57600
+// Console baud is FIXED at 115200 (01-SEP-2026, Ronny: "it's always
+// 115200"). The OSD selector that used to feed a runtime divisor into the
+// terminal's deserialiser (23040 / 9600 / 57600 for the bring-up hunt) is
+// gone; 0 = use the terminal's own 115200 parameters. status[9:8] is free.
+wire [15:0] s_con_divisor = 16'd0;
 
 // --- CPU status lamps ------------------------------------------------------
 // The ND-120's own two CPU lamps, straight onto the board's status LEDs
