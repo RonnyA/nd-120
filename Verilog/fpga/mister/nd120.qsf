@@ -670,7 +670,16 @@ set_global_assignment -name VERILOG_MACRO "MAIN_RAM_BLOCKRAM=1"
 # while only banks 0-2 are addressable, so 4 x 64K x 16 = 512 M10K.
 # ND120_BLOCKRAM_BANK_SLOTS=3 declares just the three real banks: 3 x 64K x
 # 16 bits = 308 M10K, against 218 for everything else in v48 = 526/553.
-set_global_assignment -name VERILOG_MACRO "ND120_BLOCKRAM_ADDR_BITS=16"
+# MEASURED 02-SEP-2026 (build v49): ADDR_BITS=16 with three slots does NOT
+# fit either - the Fitter wanted 7802 LABs of 4191 (77,153 ALMs = 184%),
+# 140,089 registers against 33,583 in v48, M10K 534/553. So block RAM cannot
+# give this machine its 64K-word banks, let alone the 4 MB SINTRAN needs;
+# main memory moves to the SDRAM module (docs/PLAN-mister-sdram.md). Until
+# that lands the board stays at 15 = 32K words/bank = 192 KB, which BOOTS
+# but WRAPS (the LIST-FILE-NAMES runaway) - a known-broken stopgap, not a
+# configuration to test disc software on. Three slots kept: 154 M10K
+# instead of 205.
+set_global_assignment -name VERILOG_MACRO "ND120_BLOCKRAM_ADDR_BITS=15"
 set_global_assignment -name VERILOG_MACRO "ND120_BLOCKRAM_BANK_SLOTS=3"
 # --- Quartus RAM handling. Pick exactly ONE of the two macros below. -------
 #
