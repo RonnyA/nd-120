@@ -42,6 +42,28 @@ extracted from `SD-FAT/sim/nd_wd_card.img` with mtools, md5 verified).
 `/media/fat/ND120-storage-test.mgl` mounts slots 0, 1, 2 and 4 on core
 load: `load_core /media/fat/ND120-storage-test.mgl`.
 
+BOARD RESULTS with v48 (Ronny at the keyboard, 01-SEP-2026 evening):
+- `400$` from the tape slot loads FILSYS (fs.BPU) - the tape path and the
+  byte order are RIGHT (a swapped stream cannot parse a BPUN).
+- FILSYS LIST-USERS works on FLOPPY-DISC-1 and on DISC-74MB-1 (WD0): both
+  disc read paths deliver correct pages.
+- FILSYS LIST-FILE-NAMES runs away on both. Same signature as the Nexys
+  on 24-AUG-2026, whose root cause is in `docs/nd120-facts.md`: a 32K-word
+  bank (`ND120_BLOCKRAM_ADDR_BITS=15`) wraps every address >= 0o100000.
+  The MiSTer qsf had 15. Fixed in `d26540d`: 64K-word banks, and a new
+  `BANK_SLOTS` parameter (3 on the MiSTer) so they fit - 3 x 64K x 16 =
+  308 M10K instead of 512 with the unreachable fourth slot. Main memory
+  is now 384 KB of block RAM; SINTRAN still needs the SDRAM job.
+- Also removed on request: the Console baud OSD option (`ad320fc`).
+- Build v49 with 64K-word banks DID NOT FIT (Fitter: 7802 LABs of 4191,
+  140K registers, M10K 534/553). Block RAM cannot hold this machine's
+  memory; the board stays on v48 (192 KB, wraps) and main memory moves
+  to the SDRAM module: `docs/PLAN-mister-sdram.md`. LIST-FILE-NAMES is
+  retested there.
+- On the board now: 32 floppy images from `d:
+d\s` plus the two runSim
+  ones, all 18 runSim tapes as `.BPU`, `WD0.IMG`.
+
 Typing OPCOM commands over ssh does NOT work yet: a `/dev/uinput` keyboard
 (`mister_type.py`, on the board in the games folder) is registered by the
 kernel but neither the console nor the F12 OSD react, so either MiSTer's
@@ -180,11 +202,6 @@ The rules of the block interface, from the code:
 
 ## Phase 4 - board (needs Ronny's go for every build and flash)
 
-- [ ] Byte-order check FIRST: mount a floppy image with a known first
-      sector in slot 0, read it with OPCOM, compare the words to the image
-      bytes. Flip the one swap line if wrong, rebuild.
-- [ ] Mount the tape in slot 4, `400$` from OPCOM: the tape loader must
-      reach the same console output as the Verilator `INSTRUCTION-B` run.
 - [ ] `1560&`: floppy boot from slot 0. Then drive 1 from slot 1.
 - [ ] Winchester: mount `WD0.IMG`, read known sectors with OPCOM and compare
       bytes against the Verilator run (`ND120_WD_IMG`, same CHS->LBA); write
