@@ -1,0 +1,191 @@
+# PLAN - MiSTer storage: floppy, Winchester and paper tape from OSD-mounted files
+
+> Living plan, outstanding work only. Started 01-SEP-2026.
+
+## Next
+
+Phase 2: the MiSTer aggregator (two floppy adapters, two Winchester
+adapters, the tape adapter) on top of `nd_storage_hps`, sim only.
+
+Phase 1 landed 01-SEP-2026: `Verilog/fpga/mister/rtl/nd_storage_hps.v`
+(the backend), `Verilog/fpga/mister/sim/hps_io_model.v` (signal-level
+ARM+hps_io model that also checks the handshake rules) and
+`Verilog/fpga/mister/sim/nd_storage_hps_tb.v` (8 checks: unmounted slot,
+open semantics, read, write + round trip, read-only, range, two clients at
+once, unmount). `make test-storage-hps`, registered. Teeth: BYTE_SWAP=0
+fails on exactly the byte-order checks; passes at 20/40, 31/56 and 50/40
+MHz clock ratios. Verilator lint clean. Slot map: 0 floppy 0, 1 floppy 1,
+2 WD0, 3 WD1, 4 tape.
+
+## What is already true (verified 01-SEP-2026, so the plan does not re-derive it)
+
+- The controllers (`ND_FLOPPY_DMA`, `ND_WINCHESTER`, `ND_TAPE_400`) never talk
+  to an SD card. They talk to the storage client bus defined in
+  `Verilog/docs/nd-storage-interface-spec.md`: one request moves ONE
+  2048-byte block (1024 ND words), file-relative 16-bit block number, the
+  backend masters the client's own buffer with `buf_addr/buf_wdata/buf_we`.
+  The controller-facing adapters (`nd_storage_floppy_adapter`,
+  `nd_storage_disc_adapter`, `nd_storage_tape_adapter` in
+  `Verilog/SD-FAT/circuit/`) are board-agnostic and stay as they are.
+- On the MiSTer every one of those seams is tied off in
+  `Verilog/fpga/mister/nd120.sv:704-760`; `hps_io` is instantiated with no
+  storage ports at all (`nd120.sv:90-105`); `CONF_STR` has no `S` lines; the
+  physical SD pins are tristated. There is no storage on the MiSTer today.
+- Our vendored `Verilog/fpga/mister/sys/hps_io.sv` has `VDNUM`, `BLKSZ`
+  (default 2 = 512-byte blocks) and `sd_blk_cnt[VDNUM]` ("number of
+  blocks-1, total size must be <= 16384"). So one 2048-byte client block can
+  be ONE HPS transaction with `sd_blk_cnt = 3`, not four.
+- `WIDE=1` gives 16-bit `sd_buff_dout/din`. HPS words are little-endian
+  (`{byte 2w+1, byte 2w}`); ND image words are big-endian
+  (`{byte 2w, byte 2w+1}`, `nd_storage_disc_adapter.v:37-38`). The backend
+  swaps bytes once, in both directions.
+- `sd_lba` is file-relative on MiSTer: the HPS resolves the mounted file.
+  The whole FAT layer (`sd_file_reader`, `nd_storage_fatchk`, contiguity
+  rule, 8.3 root names) is not needed here.
+- The Winchester card has a ONE-bit unit field (control word b9,
+  `ND_WINCHESTER.v:59-60,181`): TWO units, WD0 and WD1. The four-unit device
+  in this design is the SMD card (`ND_SMD`, units 0-2 wired, `INCLUDE_SMD=0`
+  on the MiSTer today).
+- Only ONE floppy adapter (DRIVE 0) and ONE disc adapter (UNIT 0) are
+  instantiated anywhere in the tree (`nd_storage_devices.v:373,502`). The
+  adapters ignore requests for other drives, so more instances can be ORed;
+  the second instances have never been built or tested.
+- The paper tape reader is a pure byte stream: `byte_req` -> `byte_valid` +
+  `byte_data`, `source_rewind` on device clear. One file, read from the
+  start. EOF and "no image" are both silence (RFT never rises); the only
+  place that tells them apart is the adapter's sticky `fault/fault_code`.
+- `ND_FLOPPY_DMA` has a `DISK_TIMEOUT` parameter that defaults to 0 =
+  disabled; `ND_WINCHESTER` has no backend timeout. A backend that never
+  answers hangs the guest.
+- SINTRAN from the Winchester needs main memory above 0o200000, which the
+  MiSTer's BRAM main memory does not provide (memory file
+  `project_mister_memory_alignment`). That is the queued SDRAM job, not this
+  plan. This plan's boot targets are the floppy (`1560&`) and the tape
+  (`400$`); the Winchester path is proven with OPCOM deposits/reads and the
+  Verilator-identical image bytes until SDRAM lands.
+
+## The HPS contract (official docs, Main_MiSTer/user_io.cpp, the Template
+## hps_io.sv, and a survey of 11 official cores - all read 01-SEP-2026)
+
+Decision: drive `sd_rd/sd_wr` DIRECTLY, one OSD slot per drive. That is
+what 7 of the 11 mainstream computer cores do (Atari ST and Archie
+floppies, Apple II, C64, BK0011M, TRS-80, ZX Spectrum's floppy slot); the
+drive-select line picks the slot bit, `sd_lba` comes from the geometry,
+`img_mounted` is edge-detected to latch present/size/write-protect. The
+`sys/sd_card.sv` virtual SPI card appears in no doc page and is used only
+where the GUEST software bit-bangs an SPI card (DivMMC, MSX SD mapper,
+Acorn MMFS). PDP2011 uses it three times because its controllers were
+written for SPI, and nobody in the mainstream set copies that shape. Ours
+were never SPI. The remaining cores (ao486, PCXT, Minimig) use an
+ARM-served protocol that needs Main_MiSTer C++ changes - not for us.
+
+The rules of the block interface, from the code:
+
+- The ARM POLLS. It never sees `sd_rd` change; it reads a status word
+  (`{1, sd_blk_cnt[sdn], BLKSZ, sdn, sd_wr, sd_rd}`) up to 4 times per main
+  loop pass, picks ONE slot by rotating round-robin, reads that slot's
+  `sd_lba` in the same transaction, then runs one data transaction with
+  `sd_ack[slot]` high for its whole length. So:
+  - hold `sd_rd`/`sd_wr` until `sd_ack` RISES, then clear it (the official
+    `sys/sd_card.sv` does exactly this); the FALLING edge means done;
+  - `sd_lba` and `sd_blk_cnt` stable from request until ack;
+  - several slots may request at once; they are served one per poll.
+- `sd_blk_cnt = 3` with `BLKSZ = 2` (512) = one 2048-byte transaction, one
+  ack, `sd_buff_addr` running 0..1023 words in WIDE mode. BLKSZ is one
+  value for ALL slots. The HPS clamps at 16384 bytes.
+- Data arrives at the HPS SPI rate, not one word per clock; `sd_buff_wr`
+  pulses one `clk_sys` cycle per word, address increments two cycles later,
+  saturates, never wraps. For writes the core must present
+  `sd_buff_din = buffer[sd_buff_addr]` from address 0 the moment ack rises.
+  The buffer bus is BROADCAST: qualify every buffer write with the slot's
+  own `sd_ack` bit.
+- `clk_sys` into `hps_io` must be >= 20 MHz (sorgelig, Main_MiSTer #683).
+- A read on an unmounted or short image is still acked and returns ZEROS.
+  "No image" is only knowable from the mount pulse: `img_mounted[n]` is a
+  few-cycle PULSE, `img_size`/`img_readonly` are valid during it and the
+  size is sent first; unmount is the same pulse with `img_size == 0`.
+- Writes go to the file immediately (`O_SYNC`, fwrite+fflush). A write
+  past EOF is trimmed; an image cannot grow through the core. Read-only is
+  only reported (`img_readonly`), never enforced on the HPS side.
+- `S{slot}` is documented as 0-3 but the code accepts 0-9, `hps_io.sv`
+  allows VDNUM 1..10, and TRS-80_MiSTer ships `S4` with `VDNUM(5)`. Slot 4
+  is proven. (Bit 7 of the mount word is the read-only flag, so 7+ would
+  collide; irrelevant at five slots.) TRS-80 also found that an `FS`
+  save-file line clobbers slot 0 - we have no such line.
+- The HPS automounts `boot0.vhd`..`boot3.vhd` / `ND120.VHD` from the core's
+  folder into slots 0-3 at start. Do not ship such files.
+- Tapes in official cores (PDP-1, ZX Spectrum, C64, TRS-80) are `F`
+  downloads via `ioctl_*`, never `S` mounts. PDP-1 paces the download with
+  `ioctl_wait` from the reader (no buffer, no rewind, OSD dead until the
+  tape is consumed); ZX/C64 download into SDRAM and play from there. Our
+  tape adapter already reads blocks, gives rewind for free and holds one
+  2048-byte block, so the tape stays on an `S` slot (slot 4). Fallback if
+  that misbehaves on the board: an `F` line with `ioctl_wait` pacing, the
+  PDP-1 shape.
+
+## Phase 2 - adapters and the tape, still sim only
+
+- [ ] `nd_storage_mister_devices.v`: the MiSTer counterpart of
+      `nd_storage_devices` - two `nd_storage_floppy_adapter` (DRIVE 0, 1),
+      two `nd_storage_disc_adapter` (UNIT 0, 1, `GEO_HEADS=8, GEO_SPT=9`),
+      one `nd_storage_tape_adapter`, outputs ORed per controller exactly as
+      the Tang/Nexys aggregator does. Pin-for-pin `FDISK_*`, `WDISK_*`,
+      `TAPE_*` matching `ND120_CORE`.
+- [ ] Second-instance proof: a testbench that drives floppy drive 1 and WD
+      unit 1 through the aggregator and shows the traffic lands in slots 2
+      and 4, never 1 and 3.
+- [ ] Bring out `TDISK_FAULT`/`TDISK_ERR_CODE` and a per-slot mounted flag
+      for the OSD / LED, so "no tape mounted" is not "tape finished".
+- [ ] Set `DISK_TIMEOUT` on the floppy for this board so a missing image
+      returns an error to SINTRAN instead of hanging; note that the
+      Winchester has no such parameter (decide: add one, or rely on the
+      backend's immediate `done+err`).
+
+## Phase 3 - `nd120.sv` wiring and the OSD
+
+- [ ] Confirm `clk_sys` feeding `hps_io` in `nd120.sv` is >= 20 MHz.
+- [ ] `hps_io #(.CONF_STR, .VDNUM(5), .BLKSZ(2), .WIDE(1))` with `sd_lba,
+      sd_blk_cnt, sd_rd, sd_wr, sd_ack, sd_buff_addr, sd_buff_dout,
+      sd_buff_din, sd_buff_wr, img_mounted, img_readonly, img_size`.
+- [ ] `CONF_STR` (syntax `S{slot},{Ext},{Text};`, extensions in 3-char
+      groups, case-insensitive, space-padded):
+      `S0,IMG,Floppy drive 0;` `S1,IMG,Floppy drive 1;`
+      `S2,IMG,Winchester unit 0;` `S3,IMG,Winchester unit 1;`
+      `S4,BPU,Paper tape;` - `BPUN` is four characters and the HPS matches
+      3-char groups, so either the group is `BPU` (verify it matches
+      `.BPUN` files - unverified) or tapes are renamed `.BPU`/`.TAP`.
+- [ ] Do NOT ship `boot0.vhd`..`boot3.vhd` or `ND120.VHD` in the core's
+      folder: the HPS automounts those into slots 0-3 at core start.
+- [ ] Replace the tie-offs at `nd120.sv:704-760` with the aggregator.
+- [ ] `Verilog/docs/build-defines.md`: document the MiSTer storage
+      arrangement (no `SD_STORAGE`, no FAT, slot map, `VDNUM`).
+- [ ] `files.qip`: add the three adapters, `nd_storage_status.vh` include,
+      the new backend and aggregator. Nothing else from `SD-FAT/`.
+
+## Phase 4 - board (needs Ronny's go for every build and flash)
+
+- [ ] Quartus build in Docker (~25 min); check M10K/ALM delta against v47
+      (405/553 M10K before) - the adapters' buffers and the disc adapter's
+      stream-through should cost little; the floppy adapter holds one block.
+- [ ] Byte-order check FIRST: mount a floppy image with a known first
+      sector in slot 0, read it with OPCOM, compare the words to the image
+      bytes. Flip the one swap line if wrong, rebuild.
+- [ ] Mount the tape in slot 4, `400$` from OPCOM: the tape loader must
+      reach the same console output as the Verilator `INSTRUCTION-B` run.
+- [ ] `1560&`: floppy boot from slot 0. Then drive 1 from slot 1.
+- [ ] Winchester: mount `WD0.IMG`, read known sectors with OPCOM and compare
+      bytes against the Verilator run (`ND120_WD_IMG`, same CHS->LBA); write
+      a sector, unmount, verify the file changed on the Linux side.
+- [ ] Unmount/remount while idle; a mount while a request is pending.
+
+## Phase 5 - close out
+
+- [ ] `Verilog/fpga/mister/README.md`: storage section rewritten from
+      "roadmap" to "how it works", with the slot map and image sizes
+      (floppy 315 392 B / >= 1 261 568 B, WD 8x9x1024 cylinders x 1024 B).
+- [ ] Handoff updated; this plan deleted when everything above is green.
+
+## Decided by Ronny (01-SEP-2026)
+
+- Two Winchester slots (WD0, WD1), matching the card. SMD is not built.
+- Paper tape: one file, one slot.
