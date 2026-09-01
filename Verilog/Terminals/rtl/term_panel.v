@@ -97,6 +97,12 @@ module term_panel #(
     //! STROBES - high for a request, not for the duration of a transfer - so
     //! they are held below rather than displayed directly; a single sector
     //! request is far too brief to see on a 60 Hz screen.
+    //! The CPU board's own two lamps, ND3202D.v:143 LED[0]/LED[1]. RED =
+    //! Master Clear / MACL in progress, GREEN = initialisation complete,
+    //! which the microcode writes ONLY at MACL2 - so GREEN lit means the
+    //! CPU self-test PASSED. See boot-sequence.md section 10.
+    input wire       cpu_red,
+    input wire       cpu_green,
     input wire       hdd_rd,
     input wire       hdd_wr,
     input wire       flp_rd,
@@ -239,6 +245,8 @@ module term_panel #(
   localparam integer COL_FLP_W        = 67;
   localparam integer COL_LEGEND       = 72;
   localparam integer COL_MIPS_VALUE   = 63;
+  localparam integer COL_CPU_RED      = 64;
+  localparam integer COL_CPU_GREEN    = 66;
 
   //! Which of the 16 level cells this column is in, and whether it is lit.
   //!
@@ -288,6 +296,7 @@ module term_panel #(
 
   reg [4:0]  s_slow_cnt;
   reg [3:0]  r_disk;        //! {flp_wr, flp_rd, hdd_wr, hdd_rd}, held
+  reg        r_cpu_red, r_cpu_green;  //! CPU board lamps, frame-held
   reg [15:0] r_lamp;
   reg [3:0]  r_util, r_hit, r_pil;
   reg [1:0]  r_ring;
@@ -455,6 +464,7 @@ module term_panel #(
     if (!rst_n) begin
       s_slow_cnt <= 5'd0;
       r_disk <= 4'd0;
+      r_cpu_red <= 1'b0; r_cpu_green <= 1'b0;
       r_lamp <= 16'd0; r_util <= 4'd0; r_hit <= 4'd0; r_pil <= 4'd0;
       r_ring <= 2'd0; r_paging <= 1'b0; r_interrupt <= 1'b0; r_running <= 1'b0;
       r_up_h <= 5'd0; r_up_m <= 6'd0; r_up_s <= 6'd0;
@@ -465,6 +475,10 @@ module term_panel #(
       // sampling it any slower would either drop visits or smear them.
       r_lamp <= s_lamp_now;
       r_disk <= s_disk_now;
+      // Held per frame like everything else - these are steady states, not
+      // pulses, so they need no glow counter, only a stable value to draw.
+      r_cpu_red   <= cpu_red;
+      r_cpu_green <= cpu_green;
       r_util <= utilization;
       r_hit  <= cache_hit;
       r_pil  <= pil;
@@ -656,6 +670,22 @@ module term_panel #(
                           (s_col == COL_FLP_R[6:0] && r_disk[2]) ||
                           (s_col == COL_FLP_W[6:0] && r_disk[3]));
 
+  //! The CPU board's two lamps, on row 3 to the right of the octal ruler.
+  //! Same idiom as the disc lamps: the R and G letters are static text in
+  //! term_panel_rom, and a LIT lamp REVERSES its cell so the letter is
+  //! knocked out of a filled box. Unlit is a dim letter rather than blank -
+  //! unlike the disc lamps these are permanent CPU state, not activity, so
+  //! there is always something meaningful to read.
+  wire s_in_cpu_lamp = (s_row == 3'd3) &&
+                       ((s_col == COL_CPU_RED[6:0]) || (s_col == COL_CPU_GREEN[6:0]));
+  wire s_cpu_lamp_lit = ((s_col == COL_CPU_RED[6:0]) && r_cpu_red) ||
+                        ((s_col == COL_CPU_GREEN[6:0]) && r_cpu_green);
+  wire s_cpu_reversed = s_in_cpu_lamp && s_cpu_lamp_lit;
+  //! RED uses the fascia's lit-legend red; GREEN reuses the console ink,
+  //! which IS green on every board (the Tandberg terminals were green), so
+  //! the lamps come out in their real colours with no new palette entry.
+  wire [2:0] s_cpu_lamp_colour = (s_col == COL_CPU_GREEN[6:0]) ? C_TEXT : C_LIT;
+
   wire s_ruler_reversed = (s_row == 3'd3) && s_in_levels &&
                           ((s_ruler_level >= 5'd12 && s_ruler_level <= 5'd14) ||
                            (s_ruler_level >= 5'd6  && s_ruler_level <= 5'd8)  ||
@@ -701,8 +731,9 @@ module term_panel #(
 
   //! Which colour this cell's ink is. Silkscreen labels are white on fascia;
   //! everything inside the LCD window is dark olive on green-grey.
-  wire [2:0] s_ink = s_in_lcd ? (s_is_dynamic ? s_live_colour : C_LCDINK)
-                              : ((s_row == 3'd1 || s_row == 3'd2) ? C_LCDINK : C_SILK);
+  wire [2:0] s_ink = s_in_cpu_lamp ? (s_cpu_lamp_lit ? s_cpu_lamp_colour : C_DARK)
+                   : s_in_lcd      ? (s_is_dynamic ? s_live_colour : C_LCDINK)
+                                   : ((s_row == 3'd1 || s_row == 3'd2) ? C_LCDINK : C_SILK);
 
   always @(posedge clk) begin
     s_pixel_row_d1 <= s_pixel_row;
@@ -710,7 +741,7 @@ module term_panel #(
     s_pixel_col_d2 <= s_pixel_col_d1;
     s_in_panel_dly <= {s_in_panel_dly[0], r1_in_panel};
     s_in_lcd_dly   <= {s_in_lcd_dly[0], s_in_lcd};
-    s_reversed_dly <= {s_reversed_dly[0], s_ruler_reversed | s_disk_reversed};
+    s_reversed_dly <= {s_reversed_dly[0], s_ruler_reversed | s_disk_reversed | s_cpu_reversed};
     s_silk_dly     <= {s_silk_dly[0], s_in_lcd ? 1'b0 : 1'b1};
     s_colour_d1    <= s_ink;
     s_colour_d2    <= s_colour_d1;

@@ -153,7 +153,13 @@ module CGA_MIC_CSEL (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
+  // QUARTUS_LATCH_RENAME: see the header comment in Shared/ndlib/LATCH.v -
+  // Quartus's built-in LATCH primitive collides with this module's name.
+`ifdef QUARTUS_LATCH_RENAME
+  ND120_LATCH CSEL_LATCH (
+`else
   LATCH CSEL_LATCH (
+`endif
       .sysclk(sysclk),
       .D(s_pcond_n),
       .ENABLE(s_aluclk_n),

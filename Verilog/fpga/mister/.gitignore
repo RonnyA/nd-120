@@ -38,3 +38,8 @@ c5_pin_model_dump.txt
 *_netlist
 *.cdf
 **/.DS_Store
+# Generated from the wcs_*.hex microcode images by tools/wcs_hex_to_mif.py
+# (make wcs). Build output, not source - the .hex files are the source.
+wcs_*.hex.mif
+# Screenshots pulled off the board by tools/deploy_and_look.sh
+shots/

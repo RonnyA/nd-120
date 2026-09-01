@@ -13,7 +13,7 @@
 module CGA_MIC_IPOS (
     input [15:0] CD_15_0,    //! Command/Data bus - 16-bit input carrying instruction/data
     input        EWCAN,      //! External Write Cache Acknowledge Negated - Active low signal indicating cache write completion
-    input        MAPN,       //! Memory Address Present Negated - Active low signal indicating valid memory address
+    input        MAPN,       //! MAP Opcode, active low - microsequencer loads next micro-address from the opcode mapper
     input        TRAPN,      //! Trap Negated - Active low signal indicating trap condition
     input [ 3:0] TVEC_3_0,   //! Trap Vector - 4-bit input selecting trap handling routine address
     input [12:0] WCA_12_0,   //! Write Control Store Address - 13-bit address for writing to control store

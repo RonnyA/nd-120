@@ -398,3 +398,18 @@ AM29C821_func_tb: AM29C821_func_tb.v ../AM29C821.v
 	$(IVERILOG) -g2012 -o $@ $(INCDIRS) AM29C821_func_tb.v ../AM29C821.v
 
 .PHONY: test-am29c821-func
+
+###############################################################################
+# altsyncram (Quartus-only sections) vs the plain-Verilog reference model.
+#
+# Only the MiSTer build compiles `ifdef QUARTUS_ALTSYNCRAM` in IDT6168A_20.v
+# (the WCS) and MEM_RAM_49_BLOCKRAM.v (main memory) - every other toolchain
+# takes the plain model - so a difference there is invisible to normal
+# simulation and shows up only as a board that will not boot. That is what
+# happened on 01-SEP-2026: outdata_reg_a="CLOCK0" gave the WCS a TWO-clock
+# read (altsyncram registers the address too), the microsequencer ran a step
+# behind the cycle controller, and a nested T,RETURN popped the wrong address.
+###############################################################################
+.PHONY: test-altsyncram-equiv
+test-altsyncram-equiv:
+	@./run_altsyncram_equiv.sh

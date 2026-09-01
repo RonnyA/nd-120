@@ -10,6 +10,79 @@
 
 ---
 
+## MiSTer port - 01-SEP-2026
+
+**Next:** find why the CPU never reaches OPCOM. The state of the hunt is
+written up in `docs/mister-microcode-loop.md`, including the annotated
+31-microinstruction loop the board is stuck in.
+
+Measured on the board, all of it ruling something OUT:
+- CPU clock runs at exactly 20 MHz, a real PLL output on a global network;
+  reset released; 0 synthesis errors; timing clean.
+- `STERR` (002156) is NEVER entered and R2 is untouched - the self-test does
+  not fail.
+- Disabling the panel request (`TANG_NO_PAN`) removed a genuine spurious
+  interrupt (debug word 000005 -> 000000) and changed the loop by not one
+  address - the failure is not interrupt-driven.
+- MIPS reads 00.00 with `ND120_MIPS_TAP` built, so NO macro instructions are
+  being fetched: the loop is microcode-internal.
+- All 32 WCS MIFs match the canonical microcode - MiSTer runs exactly what
+  Nexys runs.
+- Verilator with MiSTer's RTL settings reaches the `#` prompt (see item 2
+  below for the caveat on that comparison).
+
+The live lead: `NOTI2` (001020) is an UNCONDITIONAL `T,RETURN`, and MACL calls
+`RIIE1` from 002026 with return address 002027 - the working sim returns
+there, the board goes to 001021, the next sequential address. Same for
+`CHKIT`, which returns to 001007 instead of the 2xxx caller. The
+microsubroutine stack itself works (PICFM's call/return is correct), so the
+question is why those particular returns take the wrong address.
+
+Debug loop: `fpga/mister/tools/deploy_and_look.sh` flashes the board and pulls
+a screenshot back over ssh, so no one has to watch the monitor. Probes:
+`rtl/nd120_diag_print.v` (status line), `rtl/nd120_csa_trace.v` (the
+consecutive microcode trace - the once-a-second sample ALIASES and must not be
+read as a loop), `rtl/nd120_sterr_catch.v` (STERR + R2). All three have
+self-checking testbenches registered in `tests/run_all_tests.sh`; retire them
+with the `ND120_DIAG_PRINT` define once the CPU runs.
+
+QUEUED, in order, once OPCOM is confirmed working on MiSTer:
+
+1. **Real main memory - the DE10-Nano's 128 MB SDRAM.** MiSTer is the only
+   target still on `MAIN_RAM_BLOCKRAM`, and `fpga/nexys4ddr/build.tcl:296-301`
+   already records why that backend was retired there: the BRAM banks hold far
+   less than the 4 MB `PAL_44446B` advertises, so everything above word
+   0o200000 in a bank ALIASES onto low memory, "which forbids SINTRAN". Nexys
+   keeps it only for A/B experiments. Nexys 4 DDR is the model to match.
+2. **WCS images: sim and hardware run different microcode, and no test
+   catches it** (found 01-SEP-2026). `Verilog/Shared/support`,
+   `Verilog/runSim` and `Verilog/sim` each carry a `wcs_28C.hex` that differs
+   from `Code/Microcode/wcs` by one line - a `6` where hardware has `0`, at
+   microcode address 0o2002 (MACL region). `Verilog/fpga/nexys4ddr` and
+   `Verilog/fpga/tang-nano-20k` match canonical, so all three BOARDS agree and
+   only the simulators differ. `tests/test-microcode-sync` checks the two
+   AM27256 PROM images (26 copies) and NOT the 32 WCS chip images, which is
+   why this drifted invisibly. Either canonicalise the sim copies or record a
+   dated exception, and extend the sync test to cover `wcs_*.hex`. Until then,
+   every sim-vs-board microcode comparison carries this caveat.
+3. **"uartmode: unknown option" popup** when the core starts (Ronny, 01-SEP).
+   Comes from `/media/fat/MiSTer.ini`: a `[ND120]` section with `uartmode=1`
+   was added 31-AUG-2026 while trying to reach the console over the HPS serial
+   bridge. That option name is not valid for this MiSTer build, so it must be
+   corrected or removed. Backup of the original: `MiSTer.ini.bak-nd120`.
+   Related: reading `/dev/ttyS1` returned 0 bytes at every baud, so the bridge
+   was never proven to work at all.
+4. **Storage in the MiSTer OSD** - WD0-3 plus floppy image selection, via
+   `sys/sd_card.sv` presenting an OSD-mounted image as a virtual SPI SD card
+   to the existing SD-FAT/SPI stack, rather than writing `hps_io` block-device
+   glue.
+
+For 1 and 2 the PDP-11 MiSTer core is a useful SPEC ONLY - read it for the
+shape of the solution, never copy its code (Ronny, 31-AUG-2026; also a licence
+boundary, that core is not MIT and its terminal files are non-free).
+
+---
+
 ## Terminal core is a VT100 - 30-AUG-2026
 
 DONE: `Terminals/rtl/terminal_ctrl.v` rewritten as a plain VT100 (SINTRAN

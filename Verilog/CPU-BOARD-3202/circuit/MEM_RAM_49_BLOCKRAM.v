@@ -59,6 +59,70 @@ module MEM_RAM_49_BLOCKRAM #(
   wire [31:0] unused_params = NUM_BANKS;
   /* verilator lint_on UNUSEDSIGNAL */
 
+  // {high byte, low byte} -> full 18-bit word with regenerated odd parity
+  function [17:0] with_parity(input [15:0] d);
+    with_parity = {~(^d[15:8]), d[15:8], ~(^d[7:0]), d[7:0]};
+  endfunction
+
+  reg [9:0] row_q;
+  reg       ras_d;
+  reg [17:0] dd_q;    // write data captured while RAS active, CAS not yet seen
+  reg        win_d;   // access window (RAS & CAS & bank), one sysclk delayed
+
+`ifdef QUARTUS_ALTSYNCRAM
+  // Quartus-only: explicit altsyncram (31-AUG-2026, MiSTer build 2). Same
+  // reason as Shared/support/IDT6168A_20.v and the CPU_PROC_32.v register
+  // file - Quartus 17.0.2 refused to infer M10K for this array too ("Cannot
+  // convert all sets of registers into RAM megafunctions", the register
+  // fallback overflows the device). This read genuinely IS synchronous
+  // (registered raw read below, no combinational read of mem anywhere) -
+  // sidestepping inference is the fix, not a real async/sync question.
+  // Vivado/Gowin/iverilog never see this branch and keep the plain-Verilog
+  // array below, unchanged, exactly as their own inference already accepts.
+  wire [15:0] rd_raw;
+
+  altsyncram #(
+      .operation_mode                  ("SINGLE_PORT"),
+      .width_a                         (16),
+      .widthad_a                       (BANK_ADDR_BITS + 2),
+      .numwords_a                      (4 << BANK_ADDR_BITS),
+      //! UNREGISTERED, not "CLOCK0" - same fix as Shared/support/IDT6168A_20.v,
+      //! 01-SEP-2026. altsyncram ALWAYS registers the address in synchronous
+      //! mode, so "CLOCK0" added a SECOND output register and made the read
+      //! take TWO clocks. The plain-Verilog model below takes ONE
+      //! (`rd_raw <= mem[{bidx, a}]`), and that is what every other board and
+      //! the simulator run. An extra clock of memory latency is not something
+      //! any other target has.
+      .outdata_reg_a                   ("UNREGISTERED"),
+      .read_during_write_mode_port_a   ("DONT_CARE"),
+      .ram_block_type                  ("M10K"),
+      .lpm_type                        ("altsyncram"),
+      .intended_device_family          ("Cyclone V")
+  ) RAM_INST (
+      .clock0    (sysclk),
+      .clocken0  (win),
+      .address_a ({bidx, a}),
+      .data_a    ({dd_q[16:9], dd_q[7:0]}),
+      .wren_a    (win && !win_d && !MWRITE50_n),
+      //! READ ONLY WHEN NOT WRITING, matching the plain-Verilog model below:
+      //!     if (win) begin
+      //!       if (MWRITE50_n) rd_raw <= mem[...];   // read
+      //!       else if (!win_d) mem[...] <= ...;     // write - rd_raw HOLDS
+      //!     end
+      //! This was `1'b1` (read every cycle). With
+      //! read_during_write_mode_port_a="DONT_CARE" that made rd_raw UNDEFINED
+      //! on every write cycle, where the plain model holds its previous value.
+      //! Only this board compiles the altsyncram branch, so the simulator -
+      //! which runs the plain branch - could never show the difference, and
+      //! the equivalence testbench that "proved" them the same shared the
+      //! same wrong assumption. 01-SEP-2026.
+      .rden_a    (win && MWRITE50_n),
+      .aclr0     (1'b0),
+      .q_a       (rd_raw)
+  );
+
+  wire [17:0] rd_q = with_parity(rd_raw);
+`else
   // One 16-bit wide BRAM, 4 bank slots (bank 3 unused).
   // PARITY IS NEVER STORED (policy, Ronny 3-AUG-2026): the two parity bits
   // DD[8] and DD[17] are dropped on write and regenerated as ODD parity on
@@ -71,16 +135,6 @@ module MEM_RAM_49_BLOCKRAM #(
   (* ram_style = "block", cascade_height = 1, syn_ramstyle = "block_ram" *)
   reg [15:0] mem[0:(4 << BANK_ADDR_BITS)-1];
 
-  // {high byte, low byte} -> full 18-bit word with regenerated odd parity
-  function [17:0] with_parity(input [15:0] d);
-    with_parity = {~(^d[15:8]), d[15:8], ~(^d[7:0]), d[7:0]};
-  endfunction
-
-  reg [9:0] row_q;
-  reg       ras_d;
-  reg [17:0] dd_q;    // write data captured while RAS active, CAS not yet seen
-  reg        win_d;   // access window (RAS & CAS & bank), one sysclk delayed
-
   // Raw registered array read. The parity regeneration must sit AFTER this
   // register: with_parity() between the array and the register put an XOR
   // function in the read path, which stopped Vivado inferring block RAM -
@@ -89,6 +143,7 @@ module MEM_RAM_49_BLOCKRAM #(
   // BRAM-mappable; the parity bits are combinational on the FF output.
   reg [15:0] rd_raw;
   wire [17:0] rd_q = with_parity(rd_raw);
+`endif
 
   // Linear word address {row, col}. PAL 44902A (sheet 50) drives HIEN_n
   // during the RAS phase and LOEN_n during the CAS phase, so the ROW
@@ -131,6 +186,10 @@ module MEM_RAM_49_BLOCKRAM #(
       // capture (the CAS-fall edge) holds the settled pre-CAS value
       if (RAS && !CAS) dd_q <= DD_17_0_IN;
 
+`ifndef QUARTUS_ALTSYNCRAM
+      // Quartus takes this read/write through the altsyncram instance above
+      // instead (clocken0/wren_a/rden_a) - see the QUARTUS_ALTSYNCRAM branch
+      // by the mem/rd_raw declarations.
       if (win) begin
         if (MWRITE50_n) begin
           // read: registered raw, re-reads while CAS; parity regenerated
@@ -141,6 +200,7 @@ module MEM_RAM_49_BLOCKRAM #(
           mem[{bidx, a}] <= {dd_q[16:9], dd_q[7:0]};
         end
       end
+`endif
     end
   end
 

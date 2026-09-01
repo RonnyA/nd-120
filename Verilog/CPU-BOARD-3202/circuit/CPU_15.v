@@ -119,6 +119,7 @@ module CPU_15 (
     output LED1,         //! UNKNOWN: believed to indicate cache enabled, never traced. See Verilog/docs/SIGNALS.md
     output [12:0] CSA_12_0,     //! Microcode Address (for debugging)
     output [15:0] XMIC_DBG_15_0, //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [19:0] XWRFB_DBG_19_0,   //! DEBUG: register-file B port {LBA_3_0, B_15_0} - STERR error number
     output        XCFETCH_DBG,   //! DEBUG: one rise per macro instruction (see CGA.v)
     output [15:0] DBG_PTW,      //! DEBUG: page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
     output DBG_PTW_LVL,  //! live PT write-strobe level (27-AUG overlap probe)
@@ -502,6 +503,7 @@ module CPU_15 (
 
     .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
     .XMIC_DBG_15_0(XMIC_DBG_15_0),
+    .XWRFB_DBG_19_0(XWRFB_DBG_19_0),
       .XCFETCH_DBG(XCFETCH_DBG),
     .PF_CAPTURED(PF_CAPTURED)
   );

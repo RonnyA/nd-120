@@ -79,6 +79,7 @@ module CPU_PROC_CGA_33 (
     // Debug
     output [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
     output [15:0] XMIC_DBG_15_0,    //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [19:0] XWRFB_DBG_19_0,   //! DEBUG: register-file B port {LBA_3_0, B_15_0} - STERR error number
     output        XCFETCH_DBG,      //! DEBUG: one rise per macro instruction (see CGA.v)
     output [20:0]        PF_CAPTURED       //! DEBUG: ND120_PF_CAPTURE freeze flag (23-AUG)
 );
@@ -302,6 +303,7 @@ module CPU_PROC_CGA_33 (
 
       .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
       .XMIC_DBG_15_0(XMIC_DBG_15_0),
+      .XWRFB_DBG_19_0(XWRFB_DBG_19_0),
       .XCFETCH_DBG(XCFETCH_DBG),
       .PF_CAPTURED(PF_CAPTURED)
   );

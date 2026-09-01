@@ -73,7 +73,19 @@ void DumpLedInfo(uint8_t led, uint8_t changed)
 vluint64_t sim_time = 0;
 vluint64_t time_step = 5;
 
+// Clocks per UART bit for the HARNESS's own deserialiser. This MUST match
+// what SC2661_UART.v is built with or every received character is garbage:
+// the RTL defaults to 16 under VERILATOR_SIM (a fast sim UART) but takes
+// ND120_UART_DELAY_FRAMES when given, and a real board runs
+// BOARD_CLK_FREQ/UART_BAUD_RATE - 173 for 20 MHz at 115200. Hardcoding 16
+// here meant the sim could not test real console timing at all: the RTL
+// sent at 173 and this decoded at 16, producing junk that looked like a CPU
+// fault (31-AUG-2026). Pass -DND120_UART_DELAY_FRAMES=<n> to both halves.
+#ifdef ND120_UART_DELAY_FRAMES
+int DELAY_FRAMES = ND120_UART_DELAY_FRAMES;
+#else
 int DELAY_FRAMES = 16;					   // 16 frames
+#endif
 int HALF_DELAY_WAIT = (DELAY_FRAMES >> 1); // Equivalent to DELAY_FRAMES / 2
 
 int txData = 0;
@@ -114,6 +126,28 @@ int main(int argc, char **argv)
 		auto &dmem = top->rootp->ND120_TOP__DOT__sim_ddr_mem;
 		for (int i = 0; i < (1 << 20); i++)
 			dmem[i] = (uint16_t)((phi[i] << 8) | plo[i]);
+	}
+#elif defined(ND120_SIM_BLOCKRAM)
+	// BLOCK-RAM backend (MAIN_RAM_BLOCKRAM): the SAME memory the FPGA boards
+	// build, so the sim can reproduce a board that will not boot instead of
+	// guessing at it. MEM_RAM_49_BLOCKRAM keeps ONE 16-bit array indexed
+	// {bank, addr}, parity regenerated on read and never stored - so bank 0
+	// is simply the low 2**BANK_ADDR_BITS entries, and the parity planes the
+	// loader produces are dropped here exactly as the hardware drops them.
+	//
+	// Added 31-AUG-2026 during the MiSTer bring-up: the sim booted to an
+	// OPCOM prompt on the 6 MB behavioural RAM while the board (192 KB of
+	// block RAM) did not, and there was no way to run the board's own memory
+	// configuration under the simulator to find out why.
+	{
+		static uint8_t plo[1 << 20], plop[1 << 20], phi[1 << 20], phip[1 << 20];
+		char *fname = strdup("INSTRUCTION-B.BPUN");
+		loadfile(fname, 0, plo, plop, phi, phip);
+		auto &bmem = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__mem;
+		const size_t words = sizeof(bmem) / sizeof(bmem[0]);
+		for (size_t i = 0; i < words && i < (1u << 20); i++)
+			bmem[i] = (uint16_t)((phi[i] << 8) | plo[i]);
+		printf("[sim] block-RAM backend preloaded, %zu words\n", words);
 	}
 #else
 	// Access MEM->RAM fields via rootp

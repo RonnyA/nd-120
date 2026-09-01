@@ -209,7 +209,7 @@ module ps2_ascii_table (
       8'h55: begin us_unshifted = "=";  us_shifted = "+"; end
       8'h54: begin us_unshifted = "[";  us_shifted = "{"; end
       8'h5B: begin us_unshifted = "]";  us_shifted = "}"; end
-      8'h5D: begin us_unshifted = "\\"; us_shifted = "|"; end
+      8'h5D: begin us_unshifted = 8'h5C; us_shifted = "|"; end  // 0x5C = backslash
       8'h4C: begin us_unshifted = ";";  us_shifted = ":"; end
       8'h52: begin us_unshifted = "'";  us_shifted = 8'h22; end  // 0x22 = double quote
       8'h41: begin us_unshifted = ",";  us_shifted = "<"; end

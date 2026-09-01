@@ -164,6 +164,8 @@ module ND3202D (
     output [15:0] DEBUG_FIDBO_15_0, // FIDBO internal data bus
     output [15:0] DEBUG_IREQ_15_0_N, // DEBUG: raw interrupt-request vector (active low)
     output [15:0] XMIC_DBG_15_0,    // DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [19:0] XWRFB_DBG_19_0,   // DEBUG: register-file B port {LBA_3_0, B_15_0} - STERR error number
+    output [11:0] XCYC_DBG_7_0,     // DEBUG: cycle-controller inputs + clock enables
     output       DBG_PTW_LVL,       // live PT write-strobe level (~EPT_n & ~WMAP_n, 27-AUG overlap probe)
 
     // Operator-panel status, packed in the SAME BIT ORDER as the MC68705U3's
@@ -820,6 +822,7 @@ TODO: Sort bits on output LED to match led numbering
       .MR_n(s_mr_n),
       .RRF_n(s_rrf_n),
       .TERM_n(s_term_n),
+      .XCYC_DBG_7_0(XCYC_DBG_7_0),   // DEBUG: terminate-plane inputs
       .VEX(s_vex),
       .WRFSTB(s_wrfstb),
 
@@ -933,6 +936,7 @@ TODO: Sort bits on output LED to match led numbering
       .CSA_12_0    (CSA_12_0),                  // Microcode Address (for debugging)
       .XCFETCH_DBG(s_cfetch_dbg),
       .XMIC_DBG_15_0(XMIC_DBG_15_0),            // DEBUG: microsequencer address-advance probe
+      .XWRFB_DBG_19_0(XWRFB_DBG_19_0),          // DEBUG: register-file B port, for STERR's R2
       .DBG_PTW     (DBG_PTW),                   // DEBUG: page-table write stream (23-AUG)
       .DBG_PTW_LVL (DBG_PTW_LVL),               // DEBUG: live PT write-strobe level (27-AUG)
       .DBG_CACHE   (DBG_CACHE),                 // DEBUG: cache-write gating bus (28-AUG)

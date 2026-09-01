@@ -74,7 +74,225 @@ set_global_assignment -name SEED 1
 #set_global_assignment -name VERILOG_MACRO "MISTER_DISABLE_ALSA=1"
 
 source sys/sys.tcl
+set_global_assignment -name FAMILY "Cyclone V"
+set_global_assignment -name DEVICE 5CSEBA6U23I7
+set_global_assignment -name DEVICE_FILTER_PACKAGE UFBGA
+set_global_assignment -name DEVICE_FILTER_PIN_COUNT 672
+set_global_assignment -name DEVICE_FILTER_SPEED_GRADE 7
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ADC_CONVST
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ADC_SCK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ADC_SDI
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ADC_SDO
+set_location_assignment PIN_U9 -to ADC_CONVST
+set_location_assignment PIN_V10 -to ADC_SCK
+set_location_assignment PIN_AC4 -to ADC_SDI
+set_location_assignment PIN_AD4 -to ADC_SDO
+set_location_assignment PIN_U14 -to IO_SCL
+set_location_assignment PIN_AG9 -to IO_SDA
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to IO_S*
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to IO_S*
+set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to IO_S*
+set_location_assignment PIN_AF17 -to USER_IO[6]
+set_location_assignment PIN_AF15 -to USER_IO[5]
+set_location_assignment PIN_AG16 -to USER_IO[4]
+set_location_assignment PIN_AH11 -to USER_IO[3]
+set_location_assignment PIN_AH12 -to USER_IO[2]
+set_location_assignment PIN_AH9 -to USER_IO[1]
+set_location_assignment PIN_AG11 -to USER_IO[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to USER_IO[*]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to USER_IO[*]
+set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to USER_IO[*]
+set_location_assignment PIN_AH7 -to SDCD_SPDIF
+set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to SDCD_SPDIF
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SDCD_SPDIF
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SDCD_SPDIF
+set_location_assignment PIN_Y11 -to SDRAM_A[0]
+set_location_assignment PIN_AA26 -to SDRAM_A[1]
+set_location_assignment PIN_AA13 -to SDRAM_A[2]
+set_location_assignment PIN_AA11 -to SDRAM_A[3]
+set_location_assignment PIN_W11 -to SDRAM_A[4]
+set_location_assignment PIN_Y19 -to SDRAM_A[5]
+set_location_assignment PIN_AB23 -to SDRAM_A[6]
+set_location_assignment PIN_AC23 -to SDRAM_A[7]
+set_location_assignment PIN_AC22 -to SDRAM_A[8]
+set_location_assignment PIN_C12 -to SDRAM_A[9]
+set_location_assignment PIN_AB26 -to SDRAM_A[10]
+set_location_assignment PIN_AD17 -to SDRAM_A[11]
+set_location_assignment PIN_D12 -to SDRAM_A[12]
+set_location_assignment PIN_Y17 -to SDRAM_BA[0]
+set_location_assignment PIN_AB25 -to SDRAM_BA[1]
+set_location_assignment PIN_V12 -to SDRAM_DQ[0]
+set_location_assignment PIN_E8 -to SDRAM_DQ[1]
+set_location_assignment PIN_D11 -to SDRAM_DQ[2]
+set_location_assignment PIN_W12 -to SDRAM_DQ[3]
+set_location_assignment PIN_AH13 -to SDRAM_DQ[4]
+set_location_assignment PIN_D8 -to SDRAM_DQ[5]
+set_location_assignment PIN_AH14 -to SDRAM_DQ[6]
+set_location_assignment PIN_AF7 -to SDRAM_DQ[7]
+set_location_assignment PIN_AE24 -to SDRAM_DQ[8]
+set_location_assignment PIN_AD23 -to SDRAM_DQ[9]
+set_location_assignment PIN_AE6 -to SDRAM_DQ[10]
+set_location_assignment PIN_AE23 -to SDRAM_DQ[11]
+set_location_assignment PIN_AG14 -to SDRAM_DQ[12]
+set_location_assignment PIN_AD5 -to SDRAM_DQ[13]
+set_location_assignment PIN_AF4 -to SDRAM_DQ[14]
+set_location_assignment PIN_AH3 -to SDRAM_DQ[15]
+set_location_assignment PIN_AG13 -to SDRAM_DQML
+set_location_assignment PIN_AF13 -to SDRAM_DQMH
+set_location_assignment PIN_AD20 -to SDRAM_CLK
+set_location_assignment PIN_AG10 -to SDRAM_CKE
+set_location_assignment PIN_AA19 -to SDRAM_nWE
+set_location_assignment PIN_AA18 -to SDRAM_nCAS
+set_location_assignment PIN_Y18 -to SDRAM_nCS
+set_location_assignment PIN_W14 -to SDRAM_nRAS
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SDRAM_*
+set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to SDRAM_*
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_*
+set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to SDRAM_DQ[*]
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM_DQ[*]
+set_instance_assignment -name ALLOW_SYNCH_CTRL_USAGE OFF -to *|SDRAM_*
+set_location_assignment PIN_AE15 -to SD_SPI_CS
+set_location_assignment PIN_AH8 -to SD_SPI_MISO
+set_location_assignment PIN_AG8 -to SD_SPI_CLK
+set_location_assignment PIN_U13 -to SD_SPI_MOSI
+set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to SD_SPI*
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SD_SPI*
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SD_SPI*
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to FPGA_CLK1_50
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to FPGA_CLK2_50
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to FPGA_CLK3_50
+set_location_assignment PIN_V11 -to FPGA_CLK1_50
+set_location_assignment PIN_Y13 -to FPGA_CLK2_50
+set_location_assignment PIN_E11 -to FPGA_CLK3_50
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HDMI_I2C_*
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HDMI_I2S
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HDMI_LRCLK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HDMI_MCLK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HDMI_SCLK
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HDMI_TX_*
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_D[*]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_DE
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_HS
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_VS
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_CLK
+set_location_assignment PIN_U10 -to HDMI_I2C_SCL
+set_location_assignment PIN_AA4 -to HDMI_I2C_SDA
+set_location_assignment PIN_T13 -to HDMI_I2S
+set_location_assignment PIN_T11 -to HDMI_LRCLK
+set_location_assignment PIN_U11 -to HDMI_MCLK
+set_location_assignment PIN_T12 -to HDMI_SCLK
+set_location_assignment PIN_AG5 -to HDMI_TX_CLK
+set_location_assignment PIN_AD19 -to HDMI_TX_DE
+set_location_assignment PIN_AD12 -to HDMI_TX_D[0]
+set_location_assignment PIN_AE12 -to HDMI_TX_D[1]
+set_location_assignment PIN_W8 -to HDMI_TX_D[2]
+set_location_assignment PIN_Y8 -to HDMI_TX_D[3]
+set_location_assignment PIN_AD11 -to HDMI_TX_D[4]
+set_location_assignment PIN_AD10 -to HDMI_TX_D[5]
+set_location_assignment PIN_AE11 -to HDMI_TX_D[6]
+set_location_assignment PIN_Y5 -to HDMI_TX_D[7]
+set_location_assignment PIN_AF10 -to HDMI_TX_D[8]
+set_location_assignment PIN_Y4 -to HDMI_TX_D[9]
+set_location_assignment PIN_AE9 -to HDMI_TX_D[10]
+set_location_assignment PIN_AB4 -to HDMI_TX_D[11]
+set_location_assignment PIN_AE7 -to HDMI_TX_D[12]
+set_location_assignment PIN_AF6 -to HDMI_TX_D[13]
+set_location_assignment PIN_AF8 -to HDMI_TX_D[14]
+set_location_assignment PIN_AF5 -to HDMI_TX_D[15]
+set_location_assignment PIN_AE4 -to HDMI_TX_D[16]
+set_location_assignment PIN_AH2 -to HDMI_TX_D[17]
+set_location_assignment PIN_AH4 -to HDMI_TX_D[18]
+set_location_assignment PIN_AH5 -to HDMI_TX_D[19]
+set_location_assignment PIN_AH6 -to HDMI_TX_D[20]
+set_location_assignment PIN_AG6 -to HDMI_TX_D[21]
+set_location_assignment PIN_AF9 -to HDMI_TX_D[22]
+set_location_assignment PIN_AE8 -to HDMI_TX_D[23]
+set_location_assignment PIN_T8 -to HDMI_TX_HS
+set_location_assignment PIN_AF11 -to HDMI_TX_INT
+set_location_assignment PIN_V13 -to HDMI_TX_VS
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to KEY[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to KEY[1]
+set_location_assignment PIN_AH17 -to KEY[0]
+set_location_assignment PIN_AH16 -to KEY[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[7]
+set_location_assignment PIN_W15 -to LED[0]
+set_location_assignment PIN_AA24 -to LED[1]
+set_location_assignment PIN_V16 -to LED[2]
+set_location_assignment PIN_V15 -to LED[3]
+set_location_assignment PIN_AF26 -to LED[4]
+set_location_assignment PIN_AE26 -to LED[5]
+set_location_assignment PIN_Y16 -to LED[6]
+set_location_assignment PIN_AA23 -to LED[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[3]
+set_location_assignment PIN_Y24 -to SW[0]
+set_location_assignment PIN_W24 -to SW[1]
+set_location_assignment PIN_W21 -to SW[2]
+set_location_assignment PIN_W20 -to SW[3]
+set_hps_location_assignment HPSINTERFACEPERIPHERALSPIMASTER_X52_Y72_N111 -to spi
+set_hps_location_assignment HPSINTERFACEPERIPHERALUART_X52_Y67_N111 -to uart
+set_hps_location_assignment HPSINTERFACEPERIPHERALI2C_X52_Y60_N111 -to hdmi_i2c
+set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:sys/build_id.tcl"
+set_global_assignment -name CDF_FILE jtag.cdf
+set_global_assignment -name QIP_FILE sys/sys.qip
 source sys/sys_analog.tcl
+set_location_assignment PIN_AF25 -to SDIO_DAT[0]
+set_location_assignment PIN_AF23 -to SDIO_DAT[1]
+set_location_assignment PIN_AD26 -to SDIO_DAT[2]
+set_location_assignment PIN_AF28 -to SDIO_DAT[3]
+set_location_assignment PIN_AF27 -to SDIO_CMD
+set_location_assignment PIN_AH26 -to SDIO_CLK
+set_instance_assignment -name CURRENT_STRENGTH_NEW "MAXIMUM CURRENT" -to SDIO_*
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SDIO_*
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SDIO_DAT[*]
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SDIO_CMD
+set_location_assignment PIN_AE17 -to VGA_R[0]
+set_location_assignment PIN_AE20 -to VGA_R[1]
+set_location_assignment PIN_AF20 -to VGA_R[2]
+set_location_assignment PIN_AH18 -to VGA_R[3]
+set_location_assignment PIN_AH19 -to VGA_R[4]
+set_location_assignment PIN_AF21 -to VGA_R[5]
+set_location_assignment PIN_AE19 -to VGA_G[0]
+set_location_assignment PIN_AG15 -to VGA_G[1]
+set_location_assignment PIN_AF18 -to VGA_G[2]
+set_location_assignment PIN_AG18 -to VGA_G[3]
+set_location_assignment PIN_AG19 -to VGA_G[4]
+set_location_assignment PIN_AG20 -to VGA_G[5]
+set_location_assignment PIN_AG21 -to VGA_B[0]
+set_location_assignment PIN_AA20 -to VGA_B[1]
+set_location_assignment PIN_AE22 -to VGA_B[2]
+set_location_assignment PIN_AF22 -to VGA_B[3]
+set_location_assignment PIN_AH23 -to VGA_B[4]
+set_location_assignment PIN_AH21 -to VGA_B[5]
+set_location_assignment PIN_AH22 -to VGA_HS
+set_location_assignment PIN_AG24 -to VGA_VS
+set_location_assignment PIN_AH27 -to VGA_EN
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to VGA_EN
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to VGA_*
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to VGA_*
+set_location_assignment PIN_AC24 -to AUDIO_L
+set_location_assignment PIN_AE25 -to AUDIO_R
+set_location_assignment PIN_AG26 -to AUDIO_SPDIF
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to AUDIO_*
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to AUDIO_*
+set_location_assignment PIN_Y15 -to LED_USER
+set_location_assignment PIN_AA15 -to LED_HDD
+set_location_assignment PIN_AG28 -to LED_POWER
+set_location_assignment PIN_AH24 -to BTN_USER
+set_location_assignment PIN_AG25 -to BTN_OSD
+set_location_assignment PIN_AG23 -to BTN_RESET
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED_*
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to BTN_*
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to BTN_*
 
 # --------------------------------------------------------------------------
 # Where $readmemh looks for the terminal font (28-AUG-2026).
@@ -89,9 +307,312 @@ source sys/sys_analog.tcl
 # the project directory before building. Whichever rule Quartus actually uses,
 # it finds the file. If the glyphs ever come out blank, look here first.
 # --------------------------------------------------------------------------
-set_global_assignment -name SEARCH_PATH "../../Terminals/font"
+set_global_assignment -name SEARCH_PATH ../../Terminals/font
+# Same belt-and-braces for the microcode PROM (CPU_CS_PROM_19.v's $readmemh),
+# build 2, 31-AUG-2026 - see the note in Makefile's "microcode" target.
+set_global_assignment -name SEARCH_PATH "../../CPU-BOARD-3202/circuit"
+# nd120_backwiring_defaults.vh: `include`d by ND120_CORE.v and BACKWIRING_PROM.v
+# (build 2, 31-AUG-2026). Quartus errored "can't open Verilog Design File"
+# without this - unlike a VERILOG_FILE module, an `include needs its own
+# directory on the search path, the SEARCH_PATH additions above do not cover it.
+set_global_assignment -name SEARCH_PATH ../../Shared/support
+# ND_FLOPPY_DMA.v and ND_WINCHESTER.v both open with
+# `include "nd_storage_status.vh", which lives with the SD-FAT sources rather
+# than beside them (01-SEP-2026, when the ND-bus devices were switched on).
+set_global_assignment -name SEARCH_PATH ../../SD-FAT/circuit
 
 source files.qip
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/mips_counter.v
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/MEM_RAM_49_BLOCKRAM.v"
+set_global_assignment -name VERILOG_FILE rtl/nd120_console_mister.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/terminal_top.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/terminal_ctrl.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/text_screen.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/char_ram.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/vga_timing.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/font_rom.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/cdc_byte.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/console_uart_rx.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/console_uart_tx.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/byte_fifo.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_decoder.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_ascii_table.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/key_vt100.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_banner.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_banner_rom.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_console_feed.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_panel.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_panel_rom.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/rate_meter.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ratio_meter.v
+set_global_assignment -name SDC_FILE nd120.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE nd120.sv
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/BIF_5.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/BIF_BCTL_6.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/BIF_BCTL_BDRV_7.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/BIF_BCTL_SYNC_8.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/BIF_DPATH_9.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/BIF_DPATH_BDLBD_10.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/BIF_DPATH_CDLBD_11.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/BIF_DPATH_LDBCTL_12.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/BIF_DPATH_PESPEA_13.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/BIF_DPATH_PPNLBD_14.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_15.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_CS_16.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_CS_ACAL_17.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_CS_CTL_18.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_CS_PROM_19.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_CS_TCV_20.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_CS_WCS_21_22.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_MMU_24.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_MMU_CACHE_25.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_MMU_CSR_26.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_MMU_HIT_27.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_MMU_PPNX_28.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_MMU_PTIDB_30.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_MMU_PT_29.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_PROC_32.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_PROC_CGA_33.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CPU_PROC_CMDDEC_34.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/PAL_44445B_D.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/PAL_44446B_D.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CYC_CC_D.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CYC_TERM_D.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/CYC_36.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/IO_37.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/IO_DCD_38.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/IO_PANCAL_40.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/IO_REG_41.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/IO_UART_42.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/MEM_43.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/MEM_ADDR_44.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/MEM_ADEC_45.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/MEM_DATA_46.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/MEM_ERROR_47.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/MEM_LBDIF_48.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/MEM_RAMC_50.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/MEM_RAM_49.v"
+set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/ND3202D.v"
+set_global_assignment -name VERILOG_FILE "../../DECODE-GateArray/DGA/circuit/DECODE_DGA.v"
+set_global_assignment -name VERILOG_FILE "../../DECODE-GateArray/DGA/circuit/DECODE_DGA_COMM.v"
+set_global_assignment -name VERILOG_FILE "../../DECODE-GateArray/DGA/circuit/DECODE_DGA_IDBS.v"
+set_global_assignment -name VERILOG_FILE "../../DECODE-GateArray/DGA/circuit/DECODE_DGA_POW.v"
+set_global_assignment -name VERILOG_FILE "../../DECODE-GateArray/DGA/circuit/F091.v"
+set_global_assignment -name VERILOG_FILE "../../DECODE-GateArray/DGA/circuit/F103.v"
+set_global_assignment -name VERILOG_FILE "../../DECODE-GateArray/DGA/circuit/F571.v"
+set_global_assignment -name VERILOG_FILE "../../DECODE-GateArray/DGA/circuit/F595.v"
+set_global_assignment -name VERILOG_FILE "../../DECODE-GateArray/DGA/circuit/F617.v"
+set_global_assignment -name VERILOG_FILE "../../DECODE-GateArray/DGA/circuit/F714.v"
+set_global_assignment -name VERILOG_FILE "../../DECODE-GateArray/DGA/circuit/F924.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA/circuit/BusDriver16.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA/circuit/CGA.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA/circuit/ND120_PF_CAPTURE.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_ARG.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_DBR.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_GPR.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_OUTMUX.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_OUTMUX_IDBS.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_OUTMUX_SEL8.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_QREG.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_RALU_LOGOP.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_RALU_MUX216L.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_SHIFT.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_SMUX.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_STS.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_SWAP.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_CONTR.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_OUTMUX_SEL7.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_RALU.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_RMUX.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_DCD/circuit/CGA_DCD.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_IDBCTL/circuit/CGA_IDBCTL.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_IDBCTL/circuit/CGA_IDBCTL_PGSREG.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_IDBCTL/circuit/CGA_IDBCTL_SEL6.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_CLR.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_CLR_CLRBIT.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL_HIGEL.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL_HIRL.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL_LOGEL.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL_LORL.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRGEL_VMUX.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_MASK.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_MASK_MASKBIT.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_MREQ.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_REG.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_REG_RQBIT.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_IRQ_REG_RQBIT_V2.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_MDCD.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_CMP.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_CMP_MAGCMP.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_ISMUX.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_OSMUX.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_PTY.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_PTY_PTYENC.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_STAT.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_STAT_SBIT.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_CNTLR_VECGEN_VHR.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_INTR/circuit/CGA_INTR_IRSRC.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_ADD.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_AP09.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_APOS_CALCA.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_APOS_INC.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_DECODE.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_FASTADD.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_LA1025.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_LASEL.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_PTSEL.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_SEGPT.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_SEGPT_PCR.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_SEGPT_SEG.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MAC/circuit/CGA_MAC_SEGPT_XPT.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MIC/circuit/CGA_MIC.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_CONDREG.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_CSEL.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_IINC.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_INCOUNT.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_IPOS.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_MASEL.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_STACK.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_STACK_BIT.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_STACK_BIT12.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_MIC/circuit/CGA_MIC_WCAREG.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_TESTMUX/circuit/CGA_TESTMUX.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_BRKDET.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_TBUF.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_TVGEN.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_TRAP/circuit/CGA_TRAP_TVGEN_P2.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_WRF/circuit/CGA_WRF.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK_DR16.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK_LR16.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK_PREG.v"
+set_global_assignment -name VERILOG_FILE "../../DELILAH-CPU/CGA_WRF/circuit/CGA_WRF_RBLOCK_SEL16.v"
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44302B.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44303B.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44304E.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44305D.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44306A.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44307C.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44310D.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44401B.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44402D.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44403C.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44404C.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44402D_EN.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44403C_EN.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44404C_EN.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44407A_EN.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44408B_EN.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44511A_EN.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44407A.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44408B.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44445B.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44446B.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44511A.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44601B.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44801A.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44803A.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44902A.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_44904B.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_45001B.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_45008B.v
+set_global_assignment -name VERILOG_FILE ../../PAL/PAL_45009B.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/AND_GATE.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/AND_GATE_3_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/AND_GATE_4_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/AND_GATE_6_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/Adder.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/Comparator.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/D_FLIPFLOP.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/Decoder_8.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/J_K_FLIPFLOP.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/Multiplexer_2.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/Multiplexer_2_w_enable.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/Multiplexer_4.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/Multiplexer_8.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/Multiplexer_bus_2.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/NAND_GATE.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/NAND_GATE_3_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/NAND_GATE_4_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/NAND_GATE_5_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/NAND_GATE_6_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/NAND_GATE_7_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/NAND_GATE_8_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/NOR_GATE.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/NOR_GATE_3_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/NOR_GATE_4_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/OR_GATE.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/OR_GATE_3_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/OR_GATE_4_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/OR_GATE_5_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/OR_GATE_6_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/OR_GATE_7_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/OR_GATE_8_INPUTS.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/XNOR_GATE_ONEHOT.v
+set_global_assignment -name VERILOG_FILE ../../Shared/logisim/XOR_GATE_ONEHOT.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/A02.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/CMP4.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/L4.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/L8.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/LATCH.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/M169C.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/MUX21L.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/MUX21LP.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/MUX24P.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/MUX31LP.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/MUX34P.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/MUX41P.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/MUX81.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/ND38GHP.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/ND38GLP.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/R41P.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/R81.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/R81_EN.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/R41P_EN.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/RMUX_Gates.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/SCAN_FF.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/SCAN_FF_EN.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/D_FLIPFLOP_EN.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/J_K_FLIPFLOP_EN.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/SR44_EN.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/SCAN_WITH_SET_N_EN.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/SCAN_WITH_RESET_N_EN.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/SCAN_WITH_RESET_N.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/M169C_EN.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/F924_EN.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/SCAN_WITH_SET_N.v
+set_global_assignment -name VERILOG_FILE ../../Shared/ndlib/SR44.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/BACKWIRING_PROM.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/AM29833A.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/AM29841.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/AM29861A.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/AM29C821.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/Am9150.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/FIFO_8BIT.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/IDT6168A_20.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/IMS1403_25.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/SC2661_UART.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/SIP1M9.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/TMM2018D_25.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/TTL_74139.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/TTL_74244.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/TTL_74245.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/TTL_74273.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/TTL_74374.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/TTL_74393.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/TTL_74534.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/TTL_74646.v
+set_global_assignment -name VERILOG_FILE ../../Shared/support/TTL_74648.v
+set_global_assignment -name VERILOG_FILE ../../ND120_CORE.v
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 # --- ND-120 core defines ------------------------------------------------
 # FPGA_FF_MODE: edge-triggered flip-flops instead of the original transparent
@@ -100,4 +621,140 @@ set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_
 # this. VERILATOR_SIM must NOT be defined here - that one switches in the 6 MB
 # sim RAM and the fast UART.
 set_global_assignment -name VERILOG_MACRO "FPGA_FF_MODE=1"
+# BOARD_CLK_FREQ / UART_BAUD_RATE: the console SC2661's baud generator divides
+# the REAL clk_cpu rate by these - they must match what nd120.sv actually
+# wires to CORE.clk_cpu (clk_sys, 40 MHz) or the console garbles. Build 2,
+# 31-AUG-2026 - see the note above the ND120_CORE instance in nd120.sv.
+# 20 MHz = clk_sys/2, the CPU clock. MUST match nd120.sv's clk_cpu divider:
+# SC2661_UART.v turns BOARD_CLK_FREQ/UART_BAUD_RATE into the console baud
+# divisor at COMPILE time, so a mismatch here garbles the console. The CPU
+# ran at 40 MHz until 31-AUG-2026, above this netlist's measured Fmax of
+# 36.91 MHz - see the long note by the divider in nd120.sv.
+set_global_assignment -name VERILOG_MACRO "BOARD_CLK_FREQ=20000000"
+set_global_assignment -name VERILOG_MACRO "UART_BAUD_RATE=115200"
+# ND120_UART_DELAY_FRAMES: the console UART's clocks-per-bit, stated OUTRIGHT
+# instead of left to `BOARD_CLK_FREQ / `UART_BAUD_RATE arithmetic inside
+# SC2661_UART.v. 20 MHz / 115200 = 173.
+#
+# Why say it explicitly (31-AUG-2026): if BOARD_CLK_FREQ does not reach that
+# file for any reason, its own `ifndef falls back to 100 MHz and the chip
+# transmits at 20e6/868 = 23 kbaud into a receiver expecting 115200 - which
+# looks exactly like the "console shows nothing" this board had, with the CPU
+# otherwise healthy (self-test passed, CPU GREEN lamp lit). This override
+# removes that entire class of doubt, and it is the same knob the sim uses to
+# get real-timing UART pacing. Note the simulator NEVER exercises this path:
+# under VERILATOR_SIM the divisor is hardcoded to 16, a fast sim UART, so no
+# amount of simulation can catch a real-baud mismatch.
+# 5 MHz / 115200 = 43.4 -> 43 (was 173 for 20 MHz). The on-screen diagnostics
+# do not depend on this - the diag printer feeds the console byte stream
+# directly, not through the CPU UART - but keep it consistent.
+set_global_assignment -name VERILOG_MACRO "ND120_UART_DELAY_FRAMES=173"
+# MAIN_RAM_BLOCKRAM: MEM_43.v requires an explicit main-memory backend choice
+# (a missing one is a deliberate elaboration error, not a silent default).
+# Cyclone V has plenty of on-chip block RAM for the small BRAM config
+# (MEM_RAM_49_BLOCKRAM), same choice as Basys3/Cmod A7/QMTech.
+set_global_assignment -name VERILOG_MACRO "MAIN_RAM_BLOCKRAM=1"
+# ND120_BLOCKRAM_ADDR_BITS: words per bank = 2**this. The RTL default is 12
+# (4K words/bank = 24 KB total), sized for the Basys3 xc7a35t's tiny BRAM -
+# and NO configuration that has ever booted runs that small (Nexys uses 16,
+# Tang has 8 MB SDRAM, runSim 6 MB). The microcode self-test includes a
+# MEMORY REFERENCE test and halts into STERR if it fails, which never
+# reaches MACL2 and so never gives an OPCOM prompt (boot-sequence.md 8/11) -
+# exactly the symptom this board had on 31-AUG-2026.
+# 15 = 32K words/bank = 192 KB. Nexys's 16 does NOT fit here: 262144 words
+# needs ~512 M10K blocks against this device's 553, plus ~147 already used
+# by the WCS/terminal/framework. 15 needs ~256, landing near 73%.
+set_global_assignment -name VERILOG_MACRO "ND120_BLOCKRAM_ADDR_BITS=15"
+# QUARTUS_ALTSYNCRAM: Quartus refused plain-Verilog RAM inference for both
+# IDT6168A_20.v (WCS) and CPU_PROC_32.v's registerBlock - see the header
+# comments there. This selects the explicit altsyncram primitive path in
+# both, instead of the plain-Verilog array every other toolchain still uses.
+set_global_assignment -name VERILOG_MACRO "QUARTUS_ALTSYNCRAM=1"
+# ND120_PANEL_CLOCK: ON by default on every other FPGA build (Tang, Nexys).
+# Missing here meant PANEL_ACTLV was a hardcoded stub constant (16'd0) - not
+# just a display gap: the project's own history (panel-clock-68705.md) notes
+# the CPU's panel-command microcode traffic (TRA PANS/TRR PANC) reaches the
+# DGA unconditionally now, and a stub that never acknowledges those commands
+# is a real candidate for a boot hang, not only a missing readout.
+set_global_assignment -name VERILOG_MACRO "ND120_PANEL_CLOCK=1"
+# ND120_MIPS_TAP: builds CGA_ALU's XGPRLOAD_DBG, which IS DEBUG_CFETCH
+# (CGA.v:236) and therefore the only thing feeding the panel's MIPS counter -
+# without it that field is hardwired 0 and the panel reads a permanent 00.00.
+# It costs fanout on ALUCLK_EN, the fanout-238 net at the end of the
+# control-store critical cone, which is why the Nexys gates it; this board has
+# room for it (Fmax 28.62 MHz against a 20 MHz clock, 43% margin) and during
+# bring-up a live "is the CPU executing anything" number is worth having.
+set_global_assignment -name VERILOG_MACRO "ND120_MIPS_TAP=1"
+# ND120_NO_CACHE: the Tang's configuration, and a COHERENT cache-off one.
+# Measured 31-AUG-2026: with CACHE_SW genuinely 1 this design needs 44,114
+# ALMs against the device's 41,910 (105%) - it does not fit, exactly as the
+# Tang found (tang20k_defines.v: 28330 cells against 20736). Tying CACHE_SW
+# to 0 instead only let Quartus constant-propagate the cache away, leaving a
+# halfway state NO booting board runs.
+#
+# This define is the proper version: it omits the five cache memories and the
+# used-bit PAL, forces the SW1 cache-off position, AND makes the machine
+# REPORT the cache as disabled - that last part is what CACHE_SW=0 alone did
+# not do. The Tang boots SINTRAN this way, with CACHE_SW tied HIGH and this
+# define overriding it, which is what nd120.sv now does too.
+# CACHE IS IN, matching the Nexys (build.tcl:323 "COMPILED IN BY DEFAULT since
+# 29-AUG-2026", nocache is opt-in there). Ronny, 01-SEP-2026: "Mister should
+# use the Nexys config. we should use cache, we should use panel clock. we
+# should include tape, floppy and wd."
+#
+# The earlier "it does not fit" measurement (44,114 ALMs against 41,910) was an
+# ARTIFACT, not the cache's real cost. The five cache RAMs carried only Vivado's
+# `ram_style` attribute; Quartus does not know that spelling, said so
+# ("Warning (10335): Unrecognized synthesis attribute ram_style" on Am9150.v
+# and TMM2018D_25.v), reported "Found 5 instances of uninferred RAM logic", and
+# built them from flip-flops - 4 x 2048 x 8 + 1024 x 4 bits of registers, which
+# is the whole overflow. Both spellings are now stated in those two files.
+#
+# MEASURED 01-SEP-2026: with the cache AND the three ND-bus devices both in,
+# the fitter needs 5537 LABs against the device's 4191 - 32% over. It is a real
+# device limit, not the old inference artifact: the ramstyle fix worked (the
+# "5 instances of uninferred RAM logic" message is gone), but the four cache
+# chips must keep an ASYNCHRONOUS read (TMM2018D_25.v: a registered read made
+# HIT decide a cycle late and broke CACHE test 2), and async read means LUT/
+# MLAB memory, which consumes LABs.
+#
+# Ronny's call: devices in, cache out. That is also what the Nexys actually
+# RUNS - build.tcl compiles the cache in, but the deployed image has the cache
+# switch off. Revisit when there is room, or if the cache RAMs get cheaper.
+set_global_assignment -name VERILOG_MACRO "ND120_NO_CACHE=1"
+# SKIP_WCS_LOAD: microcode preloaded into the WCS from the bitstream, the
+# SAME choice Nexys (build.tcl:155, default unless -promload) and Tang
+# (tang20k_defines.v:24) both make. Without it this board ran the runtime
+# PROM->WCS loader instead - a path NEITHER proven board exercises - and the
+# WCS came up empty, so the CPU executed blank microcode and did nothing at
+# all (measured on hardware 31-AUG-2026: console + panel fine, CPU dead).
+# `make wcs` converts the 32 wcs_*.hex images to the MIFs altsyncram needs.
+set_global_assignment -name VERILOG_MACRO "SKIP_WCS_LOAD=1"
+# Quartus's built-in LATCH primitive collides with Shared/ndlib/LATCH.v's
+# module name - see the header comment there.
+set_global_assignment -name VERILOG_MACRO "QUARTUS_LATCH_RENAME=1"
+# ND120_DIAG_PRINT: prints a CPU liveness line on the console once a second
+# (rtl/nd120_diag_print.v). DIAGNOSTIC SCAFFOLDING - remove this line once the
+# CPU runs. Added 31-AUG-2026 because every build report was clean while the
+# CPU showed no sign of life, so the next thing needed was a measurement of
+# the CPU itself, readable from a screenshot pulled over ssh.
+# DIAG PRINT OFF (01-SEP-2026): the CPU now reaches MACL2 - green lamp lit,
+# MIPS 00.43, and 001020 returns to 002027 as it should. Turn the scaffolding
+# off so the console shows the machine, not the probe.
+# set_global_assignment -name VERILOG_MACRO "ND120_DIAG_PRINT=1"
+# TANG_NO_PAN: A/B EXPERIMENT, 01-SEP-2026. Hard-disables the panel request
+# (PAN) input to INTRQN inside CGA_INTR.v:132 - the diagnostic that file was
+# already written for. Measured on this board: the interrupt debug word reads
+# PAN=1 and INTRQ=1 while PICV is EMPTY and no level ever goes active, and the
+# microcode loops forever in the interrupt-register routines
+# (RIIE1/RPIE1/RPID1/CHKIT/PICFM). CGA_INTR.v's own comment describes exactly
+# that shape: "the stale-INTRQN -> macro -> level 10". If disabling PAN makes
+# the loop stop, PAN is the trigger. REMOVE once the question is answered -
+# this is a measurement, not a fix.
+# ANSWERED 01-SEP-2026 and switched back off. With PAN disabled the phantom
+# interrupt DID vanish (the debug word went from 000005 to 000000), but the
+# microcode loop was completely unchanged and there was still no OPCOM prompt.
+# So PAN was a real spurious request AND a red herring: the boot failure is not
+# caused by interrupts. Left here, off, so nobody re-runs the same experiment.
+# set_global_assignment -name VERILOG_MACRO "TANG_NO_PAN=1"
 # ------------------------------------------------------------------------

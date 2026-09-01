@@ -42,6 +42,8 @@ module term_panel_rom (
   localparam integer COL_FLP_W          = 67;
   localparam integer COL_LEGEND         = 72;
   localparam integer COL_MIPS_VALUE     = 63;
+  localparam integer COL_CPU_RED        = 64;
+  localparam integer COL_CPU_GREEN      = 66;
   localparam integer PANEL_COLS         = 80;
   localparam integer PANEL_ROWS         = 5;
 
@@ -225,6 +227,11 @@ module term_panel_rom (
       9'd291: data = 8'h32;  // r3 c51 2
       9'd293: data = 8'h31;  // r3 c53 1
       9'd295: data = 8'h30;  // r3 c55 0
+      9'd300: data = 8'h43;  // r3 c60 C
+      9'd301: data = 8'h50;  // r3 c61 P
+      9'd302: data = 8'h55;  // r3 c62 U
+      9'd304: data = 8'h52;  // r3 c64 R
+      9'd306: data = 8'h47;  // r3 c66 G
       9'd354: data = 8'h41;  // r4 c34 A
       9'd355: data = 8'h43;  // r4 c35 C
       9'd356: data = 8'h54;  // r4 c36 T

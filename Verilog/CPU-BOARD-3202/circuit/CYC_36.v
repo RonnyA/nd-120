@@ -78,6 +78,21 @@ module CYC_36 (
     output [2:0] CC_3_1_n,
     output CC0_n,          // Cycle Control bit 0 (added for debug)
     output TERM_n,
+    //! DEBUG (01-SEP-2026): the INPUTS the terminate plane is built from, so
+    //! the MiSTer board and the simulator can be compared on what drives the
+    //! cycle controller rather than on its output. Measured there: the board
+    //! does not assert TERM at microcode 001007 and does not assert CC0 at
+    //! 001020, where a booting machine does, and its CC state is already
+    //! different one microinstruction earlier. See
+    //! Verilog/docs/mister-microcode-loop.md.
+    //!   [0] SHORT_n  [1] SLOW_n  [2] HIT   [3] BRK_n
+    //!   [4] DLY0_n   [5] DLY1_n  [7:6] CSDELAY_1_0
+    //! Read-only fan-out; adds no logic.
+    //!   [8] CLK_EN [9] MCLK_EN [10] ALUCLK_EN - the clock-enable pulses the
+    //!   cycle-control register actually steps on. Added after the board was
+    //!   found taking a DIFFERENT CC state from IDENTICAL inputs, which is
+    //!   either different clocking or different logic; these separate the two.
+    output [11:0] XCYC_DBG_7_0,
     output MAP_n,
     output CX_n,
     output EORF_n,
@@ -347,6 +362,15 @@ module CYC_36 (
   assign LCS_n               = s_lcs_n;
   assign MAP_n               = s_map_n;
   assign TERM_n              = s_term_n;
+
+  // DEBUG: the terminate plane's inputs - see the XCYC_DBG_7_0 port comment.
+  // [11] MCLK_FALL_EN: the enable the MICROCODE STACK shifts on
+  // (CGA_MIC_STACK_BIT SR44_EN). Added 01-SEP-2026: the board returns from a
+  // nested microsubroutine to the WRONG address (001015 instead of 002027),
+  // which is what a stack that never shifts would do.
+  assign XCYC_DBG_7_0 = {MCLK_FALL_EN, ALUCLK_EN, MCLK_EN, CLK_EN,
+                         s_csdelay_1_0[1:0], s_dly1_n, s_dly0_n,
+                         s_brk_n, s_hit, s_slow_n, s_short_n};
   // MCLK / MACLK / UCLK are assigned in the FPGA_FF_MODE block above
   // (phase-accurate) and in its `else` branch (original gated nets).
   assign WRFSTB              = s_wrfstb;
@@ -425,7 +449,7 @@ module CYC_36 (
       .EORF_n (s_eorf_n),       // B2_n - End Of Read Format signal (active low)
       .UCLK   (s_uclk),         // B3_n - Microcode Clock signal
       .ETRAP_n(s_etrap_n),      // B4_n - Enable Trap signal - Disabled during t and a cycles and VEX
-      .MAP_n  (s_map_n)         // B5_n - Memory Address Present signal
+      .MAP_n  (s_map_n)         // B5_n - MAP Opcode (active low)
   );
 
   // P2 (docs/plan-fix-unconstrained-clocks.md): the two CYIN PALs register
