@@ -187,8 +187,20 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
 - **Clock:** 6.75 MHz is the long-validated speed. A 13.5 MHz variant
   (`-Variant mid`) closes with 0 setup violations. **NEW 26-AUG-2026:
   `-Variant fast20` boots SINTRAN at 20.25 MHz with a 115200 console,
-  TIMING-CLEAN (TNS 0, Fmax 20.556 MHz - only 1.5% margin, recheck the .tr
-  on every rebuild)** - the fastest clean Tang. **27 MHz (`-Variant full`)
+  TIMING-CLEAN (TNS 0)** - the fastest clean Tang. **UPDATED 31-AUG-2026:
+  its margin is now 13.2%, Fmax 22.932 MHz (was 20.556 MHz / 1.5%).** The
+  old figure was not a property of the CPU: `nd120_tang20k.sdc` was one
+  `create_clock` line, so the data buses crossing between `nd_storage`'s
+  card side and its client side were analysed as synchronous with a
+  required time of 0.000 ns - 24 of the 25 worst setup paths in the build.
+  Two `set_false_path` lines took the CPU domain from -260.076 ns over 398
+  endpoints to -6.489 ns over 24; with `aa210eb` taking the MIPS tap off
+  `ALUCLK_EN`, TNS is now 0.000 on all five clocks, setup and hold. Details,
+  and the traps (a WIDER exception set measured WORSE; Gowin leaves the
+  previous `.tr` on disk when a build aborts):
+  `Verilog/fpga/tang-nano-20k/README.md`. The `slow`/`mid`/`full` Fmax
+  numbers still predate this and are pessimistic by an unmeasured amount.
+  **27 MHz (`-Variant full`)
   runs SINTRAN, LIST-FILES and s3** and is visibly faster, but Gowin reports
   1667 setup violations against a CPU-domain Fmax of 17.7–19.6 MHz — fast and
   functional, but NOT timing-clean: margin over temperature and voltage is
