@@ -62,7 +62,12 @@ set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_decoder.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_ascii_table.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/key_vt100.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_banner.v
-set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_banner_rom.v
+# The banner ROM is GENERATED per build by `make banner` (Makefile) with the
+# git hash, date and the board/clock/memory/cache line - the same stamp the
+# Nexys build.tcl makes. build/ is ignored by git; the committed
+# ../../Terminals/rtl/term_banner_rom.v is the fallback the Makefile copies in
+# when the generator cannot run.
+set_global_assignment -name VERILOG_FILE build/term_banner_rom.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_console_feed.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_panel.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_panel_rom.v

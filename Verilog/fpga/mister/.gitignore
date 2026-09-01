@@ -40,3 +40,5 @@ c5_pin_model_dump.txt
 **/.DS_Store
 # Screenshots pulled off the board by tools/deploy_and_look.sh
 shots/
+# Per-build generated files (the stamped banner ROM, `make banner`)
+build/

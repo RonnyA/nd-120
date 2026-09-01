@@ -22,7 +22,7 @@ RBF        = output_files/$(PROJECT).rbf
 # MiSTer network name/address for 'make load' (default is the stock hostname)
 MISTER    ?= root@MiSTer.local
 
-.PHONY: all build font microcode wcs gui check clean load flash
+.PHONY: all build font microcode banner wcs gui check clean load flash
 
 all: build
 
@@ -64,7 +64,29 @@ VERILOG_ROOT := $(realpath ../..)
 # MIF conversion that used to sit here fed the altsyncram megafunction arm,
 # deleted 01-SEP-2026 together with tools/wcs_hex_to_mif.py.
 
-build: font microcode
+# ---- build stamp in the power-on banner (02-SEP-2026) ----------------------
+# The same stamp the Nexys build.tcl puts on its screen - Ronny asked for it
+# on EVERY board that uses the terminal, and this one had been left out. The
+# generated ROM goes to build/ (ignored by git) and files.qip compiles THAT,
+# so the committed Terminals/rtl/term_banner_rom.v is never dirtied. Third
+# line: git short hash (+ if the tree was dirty) and the date/time. Fourth
+# line: board, CPU clock, main memory and cache - read from nd120.qsf, not
+# typed, so it cannot disagree with the bitstream. If git or python fail the
+# committed ROM is copied instead: a missing stamp must not stop a build.
+BANNER_GEN = ../../Terminals/font/make_banner.py
+BANNER_ROM = build/term_banner_rom.v
+
+banner: $(BANNER_ROM)
+
+$(BANNER_ROM): $(BANNER_GEN) nd120.qsf FORCE
+	@mkdir -p build
+	@stamp="$$(git -C ../.. rev-parse --short HEAD 2>/dev/null)"; 	if [ -n "$$stamp" ] && [ -n "$$(git -C ../.. status --porcelain 2>/dev/null)" ]; then stamp="$$stamp+"; fi; 	stamp="$$stamp $$(date '+%d-%b-%Y %H:%M')"; 	hz="$$(grep -o 'BOARD_CLK_FREQ=[0-9]*' nd120.qsf | tail -1 | cut -d= -f2)"; 	mhz="$$(awk -v h="$$hz" 'BEGIN{printf "%.2f", h/1000000}')"; 	if grep -q '^set_global_assignment -name VERILOG_MACRO "MAIN_RAM_SDRAM=1"' nd120.qsf; then mem="SDRAM 4 MB"; else mem="block RAM"; fi; 	if grep -q '^set_global_assignment -name VERILOG_MACRO "ND120_NO_CACHE=1"' nd120.qsf; then cache="no cache"; else cache="cache on"; fi; 	config="MiSTer DE10-Nano - $$mhz MHz - $$mem - $$cache"; 	if $(PYTHON) $(BANNER_GEN) "$$stamp" $(BANNER_ROM) "$$config"; then 		echo "BANNER: build stamp \"$$stamp\", config \"$$config\""; 	else 		echo "BANNER: generator failed - using the committed ROM"; 		cp ../../Terminals/rtl/term_banner_rom.v $(BANNER_ROM); 	fi
+
+FORCE:
+
+PYTHON ?= python3
+
+build: font microcode banner
 	docker run --rm -v "$(VERILOG_ROOT)":/build -w /build/fpga/mister $(QIMAGE) \
 		quartus_sh --flow compile $(PROJECT).qpf
 	@ls -l $(RBF)
