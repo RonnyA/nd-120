@@ -23,9 +23,21 @@
 #  which was itself wrong by one clock in BOTH settings, so the comparison    #
 #  passed. The stub is now faithful and this script is the gate.              #
 #                                                                            #
-#  METHOD: build each testbench twice - once plain, once with                 #
-#  -DQUARTUS_ALTSYNCRAM plus the stub - run both, and diff the logged         #
-#  waveforms. They must be byte-identical.                                    #
+#  METHOD: build each testbench THREE times and diff the logged waveforms -   #
+#  they must be byte-identical.                                               #
+#    ref - the plain arm Vivado, Gowin, Verilator and iverilog all build      #
+#    alt - -DQUARTUS_ALTSYNCRAM, the megafunction, against altsyncram_stub.v  #
+#    inf - -DQUARTUS_RAM_INFER, plain Verilog restructured for Quartus        #
+#                                                                            #
+#  The `inf` arm needs NO stub: it is ordinary Verilog, so iverilog runs the   #
+#  code Quartus will actually build rather than a model of it. That is the    #
+#  reason to prefer it over the megafunction.                                 #
+#                                                                            #
+#  TEETH, checked 01-SEP-2026: giving the `inf` arm one extra clock of read   #
+#  latency - the exact bug above - makes this script FAIL. Note that breaking #
+#  its write-first BYPASS does NOT, and that is correct: during a write       #
+#  regWE_n is low, so D_3_0_OUT is masked to 0 that cycle and the bypassed    #
+#  value is overwritten before the mask lifts. It is unobservable at the pin. #
 #############################################################################
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -36,31 +48,52 @@ IVERILOG=${IVERILOG:-iverilog}
 VVP=${VVP:-vvp}
 fail=0
 
-check () {          # $1 = label, $2 = tb, $3 = dut, $4 = logfile, $5 = workdir
-    local label="$1" tb="$2" dut="$3" log="$4" wd="$5"
-    cd "$wd" || return 1
-
+# run one arm and leave its logged waveform in /tmp/eq_<label>_<arm>.txt
+# $1=label $2=arm $3=tb $4=dut $5=logfile  (extra args: iverilog flags/files)
+run_arm () {
+    local label="$1" arm="$2" tb="$3" dut="$4" log="$5"; shift 5
     rm -f "$log"
-    $IVERILOG -g2012 -o "/tmp/eq_${label}_ref" "$tb" "$dut" || return 1
-    $VVP "/tmp/eq_${label}_ref" > /dev/null 2>&1
-    cp "$log" "/tmp/eq_${label}_ref.txt" 2>/dev/null || { echo "$label: no log"; return 1; }
+    $IVERILOG -g2012 -o "/tmp/eq_${label}_${arm}" "$tb" "$dut" "$@" || return 1
+    $VVP "/tmp/eq_${label}_${arm}" > /dev/null 2>&1
+    cp "$log" "/tmp/eq_${label}_${arm}.txt" 2>/dev/null \
+        || { echo "  $label/$arm: produced no log"; return 1; }
+}
 
-    rm -f "$log"
-    $IVERILOG -g2012 -DQUARTUS_ALTSYNCRAM=1 -o "/tmp/eq_${label}_alt" "$tb" "$dut" "$STUB" || return 1
-    $VVP "/tmp/eq_${label}_alt" > /dev/null 2>&1
-    cp "$log" "/tmp/eq_${label}_alt.txt" 2>/dev/null || { echo "$label: no alt log"; return 1; }
-
+# compare one Quartus arm against the reference arm
+cmp_arm () {            # $1 = label, $2 = arm, $3 = human name
+    local label="$1" arm="$2" what="$3"
     local n; n=$(wc -l < "/tmp/eq_${label}_ref.txt")
-    if diff -q "/tmp/eq_${label}_ref.txt" "/tmp/eq_${label}_alt.txt" > /dev/null; then
-        echo "  $label: MATCH ($n samples)"
+    if diff -q "/tmp/eq_${label}_ref.txt" "/tmp/eq_${label}_${arm}.txt" > /dev/null; then
+        echo "  $label / $what: MATCH ($n samples)"
         return 0
     fi
-    echo "  $label: MISMATCH - the Quartus path does not behave like the reference"
-    diff "/tmp/eq_${label}_ref.txt" "/tmp/eq_${label}_alt.txt" | head -8
+    echo "  $label / $what: MISMATCH - does not behave like the reference arm"
+    diff "/tmp/eq_${label}_ref.txt" "/tmp/eq_${label}_${arm}.txt" | head -8
     return 1
 }
 
-echo "altsyncram (Quartus-only) vs plain-Verilog reference:"
+check () {          # $1 = label, $2 = tb, $3 = dut, $4 = logfile, $5 = workdir
+    local label="$1" tb="$2" dut="$3" log="$4" wd="$5" rc=0
+    cd "$wd" || return 1
+
+    # the reference arm - what Vivado, Gowin, Verilator and iverilog all build
+    run_arm "$label" ref "$tb" "$dut" "$log" || return 1
+
+    # QUARTUS_ALTSYNCRAM: the megafunction arm, against the stub model
+    run_arm "$label" alt "$tb" "$dut" "$log" -DQUARTUS_ALTSYNCRAM=1 "$STUB" \
+        && cmp_arm "$label" alt "altsyncram"  || rc=1
+
+    # QUARTUS_RAM_INFER: the restructured plain-Verilog arm. NOTHING is stubbed
+    # here - it is ordinary Verilog, so iverilog runs the real thing. That is
+    # the whole point of preferring it to the megafunction: this comparison
+    # tests the code Quartus will actually build, not a model of it.
+    run_arm "$label" inf "$tb" "$dut" "$log" -DQUARTUS_RAM_INFER=1 \
+        && cmp_arm "$label" inf "inference arm" || rc=1
+
+    return $rc
+}
+
+echo "Quartus RAM arms vs the plain-Verilog reference arm:"
 check wcs  "$HERE/IDT6168A_20_equiv_tb.v" "$SUP/IDT6168A_20.v" equiv_log.txt "$HERE" || fail=1
 check mem  "$CIRC/sim/MEM_RAM_49_BLOCKRAM_equiv_tb.v" "$CIRC/MEM_RAM_49_BLOCKRAM.v" \
            mem_equiv_log.txt "$CIRC/sim" || fail=1
