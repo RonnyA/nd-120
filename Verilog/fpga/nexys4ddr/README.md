@@ -76,7 +76,64 @@ memory.
 | `sd-fat-test/` | The SD/FAT menu tool on the on-board microSD slot, with the memory tests as menu commands `B` and `M`. |
 | `board-test/` | Board bring-up check - switches, LEDs, 7-seg, buttons, UART, SD detect. Run this before the CPU build. |
 | `EXTENSIONS-PLAN.md` | The two planned extensions: **microSD** and **DDR2 main memory**. |
+| `flash.tcl` | Write a BUILT bitstream into the QSPI flash - permanent, survives power-off. |
+| `readback_qspi.tcl` | Read the QSPI flash to a file WITHOUT writing it. Run this before `flash.tcl` on a board whose flash contents you do not already have. |
+| `restore_qspi.tcl` | Write a RAW flash image back (`-loaddata`, not `-loadbit`). Used to put the factory Digilent demo back. |
+| `qspi_factory_backup.zip` | This board's factory QSPI contents: the Digilent demo, both a 4 MiB and a full 16 MiB dump. |
 | `docs/nexys4ddr_rm.pdf` | Digilent reference manual. |
+
+## QSPI flash: the demo, and putting it back
+
+The board ships with Digilent's demo application in its QSPI configuration
+flash, and that is what a power-on runs when jumper **JP1 is on QSPI**. JTAG
+loads (`program_only.tcl`, `build.tcl` without `-noburn`) are volatile and do
+not touch the flash - the demo survives them.
+
+**The archive is in this folder.** `qspi_factory_backup.zip` holds this board's
+own flash contents, read off it on 31-AUG-2026: one bitstream, sync word
+`AA995566` at `0x30`, content ending at `0x3A607B` (3.65 MiB), and nothing at
+all above that in the 16 MiB device.
+
+### Put the demo back
+
+```
+cd Verilog/fpga/nexys4ddr
+unzip qspi_factory_backup.zip                 # gives the two .bin dumps
+vivado -mode batch -source restore_qspi.tcl        -tclargs qspi_factory_backup_full16m.bin
+```
+
+Then **power-cycle** the board (the restore leaves Vivado's programming
+bitstream in the FPGA; the flash is only read at power-on) and check JP1 is on
+QSPI. `restore_qspi.tcl` erases, programs and verifies, and takes a RAW image
+rather than a `.bit` - `write_cfgmem -loaddata`, not `-loadbit`.
+
+Afterwards the FPGA holds Vivado's programming bitstream, not the ND-120: run
+`program_only.tcl` to put the machine back.
+
+### Save a board's flash before you overwrite it
+
+```
+vivado -mode batch -source readback_qspi.tcl -tclargs out.bin 16777216
+```
+
+Do this on any board whose flash contents are not already archived. It only
+reads. 4 MiB captures one xc7a100t image; the full device is 16777216 bytes and
+takes roughly four times as long, because JTAG at 5 MHz TCK is the bottleneck.
+
+### NAME THE FLASH PART - do not match it with a wildcard
+
+All three scripts ask for **`s25fl128sxxxxxx0-spi-x1_x2_x4`** by name. This is
+not fussiness. A filter like `s25fl128*` also matches `s25fl128l-spi-x1_x2_x4`,
+the **S25FL128L** - a different device with a different command set - and this
+board carries an **S25FL128S**. On 01-SEP-2026 a readback with the L part
+failed with `[Labtools 27-3307] Readback CfgMem Error`, but Vivado had already
+loaded its programming bitstream and driven L-series opcodes at the S-series
+chip, and **the factory demo did not survive it**. A script that only intends
+to read can still destroy the flash if it is talking to the wrong part.
+
+Also note `s25fl128s-3.3v-qspi-x4-single`, which looks right, is UltraScale
+only: Artix-7 rejects it with `[Labtoolstcl 44-655] not supported for device
+artix7`.
 
 ## Bring-up: validating a brand-new board
 
