@@ -140,6 +140,10 @@ REGISTRY=(
   # and a signal-level model of the HPS block interface. NOT scaffolding. Only
   # this board has it, so nothing else in the suite would notice it breaking.
   "fpga/mister/sim :: test-storage-hps :: TB_RESULT: PASS"
+  # ...and the whole MiSTer storage subsystem at the controller seams: two
+  # floppy adapters, two Winchester adapters, the tape adapter. Slot
+  # separation for drive 1 / unit 1, which no other board has ever built.
+  "fpga/mister/sim :: test-storage-devices :: TB_RESULT: PASS"
   # --- Shared support chips -------------------------------------------------
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"
