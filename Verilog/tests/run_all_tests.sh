@@ -136,6 +136,10 @@ REGISTRY=(
   "fpga/mister/sim :: test-csa-trace :: TB_RESULT: PASS"
   "fpga/mister/sim :: test-csa-trig :: TB_RESULT: PASS"
   "fpga/mister/sim :: test-sterr :: TB_RESULT: PASS"
+  # The MiSTer storage backend (nd_storage_hps) against the client contract
+  # and a signal-level model of the HPS block interface. NOT scaffolding. Only
+  # this board has it, so nothing else in the suite would notice it breaking.
+  "fpga/mister/sim :: test-storage-hps :: TB_RESULT: PASS"
   # --- Shared support chips -------------------------------------------------
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"

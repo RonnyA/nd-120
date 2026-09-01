@@ -28,10 +28,26 @@ TERM_SRC = $(TERM)/terminal_top.v $(TERM)/terminal_ctrl.v $(TERM)/text_screen.v 
            $(TERM)/term_banner.v $(TERM)/term_banner_rom.v \
            $(TERM)/term_console_feed.v $(TERM)/term_panel.v $(TERM)/term_panel_rom.v $(TERM)/rate_meter.v $(TERM)/ratio_meter.v
 
-.PHONY: all test-console test-diag-print test-csa-trace test-csa-trig test-sterr lint clean
+.PHONY: all test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps lint clean
 
-all: test-console test-diag-print test-csa-trace test-csa-trig test-sterr
+all: test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps
 	@echo "MiSTer core: all testbenches passed"
+
+# The storage backend: the ND-120 client bus (Verilog/docs/
+# nd-storage-interface-spec.md section 4) served by the HPS block interface.
+# Run against hps_io_model.v, a signal-level model of the ARM + hps_io that
+# also CHECKS the handshake rules the ARM depends on (request held until ack,
+# dropped on ack, lba stable) - the real ARM would silently misbehave rather
+# than complain. Checks the byte order, the no-image error path, read-only and
+# range refusals, and two clients at once on the broadcast buffer bus.
+SDFAT = ../../../SD-FAT/circuit
+
+test-storage-hps: nd_storage_hps_tb.vvp
+	@$(VVP) $< | tee nd_storage_hps_tb.log
+	@grep -q "TB_RESULT: PASS" nd_storage_hps_tb.log 		|| { echo "nd_storage_hps_tb FAILED"; exit 1; }
+
+nd_storage_hps_tb.vvp: nd_storage_hps_tb.v hps_io_model.v ../rtl/nd_storage_hps.v
+	$(IVERILOG) $(IVFLAGS) -I$(SDFAT) -o $@ $^
 
 # Microcode trace buffer. Ordering matters: its whole job is to be diffed
 # against the simulator's csa_trace.csv, so an off-by-one would point at the
