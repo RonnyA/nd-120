@@ -565,6 +565,11 @@ module nd120_nexys4ddr_top (
   );
 
   wire s_pixel, s_de, s_bell;
+  //! Box-charset debug taps (01-SEP-2026, sw[4] - see seg_value mux below):
+  //! whether the terminal is currently in NDSS6/Box mode, and whether it
+  //! has EVER seen ESC 6 since power-on - answers "did SINTRAN even send
+  //! the designation" directly, no software layer to doubt.
+  wire s_dbg_box_mode, s_dbg_saw_esc6;
   wire [2:0] s_colour;
   //! Sync straight off the core, before the output register below.
   wire s_hs_w, s_vs_w;
@@ -682,7 +687,10 @@ module nd120_nexys4ddr_top (
       .hsync    (s_hs_w),
       .vsync    (s_vs_w),
       .de       (s_de),
-      .bell     (s_bell)
+      .bell     (s_bell),
+
+      .dbg_box_mode(s_dbg_box_mode),
+      .dbg_saw_esc6(s_dbg_saw_esc6)
   );
 
   // The terminal core says WHICH of eight things this pixel is; the board picks
@@ -1472,6 +1480,11 @@ module nd120_nexys4ddr_top (
 
   /**********************************************
   *  7-segment display                          *
+  *  sw[15:14] = 00, sw[4] = 1: box-charset debug (01-SEP-2026) -           *
+  *    {14'b0, dbg_box_mode, dbg_saw_esc6} - bit0 = ESC 6 EVER received     *
+  *    since power-on (sticky, answers "did SINTRAN ever send the box      *
+  *    designation"), bit1 = box mode currently ACTIVE right now. 0000 =   *
+  *    never seen; 0001 = seen once but not active now; 0003 = active now. *
   *  sw[15:14] = 00, sw[6] = 1: DECODED keyboard byte debug (01-SEP-2026) -  *
   *    {seq2[3:0], 4'b0, ascii_data[7:0]} - the byte/marker ps2_keyboard_tdv *
   *    actually hands to key_tdv2200.v (post-table), NOT the raw scancode - *
@@ -1519,6 +1532,7 @@ module nd120_nexys4ddr_top (
       (sw[15:14] == 2'b01) ? {dbg_freq_cnt, dbg_fdone_cnt} :
       (sw[15:14] == 2'b10) ? {dbg_ferr_cnt, dbg_code_first, dbg_code_last} :
       (sw[15:14] == 2'b11) ? dbg_lsect_first :
+      sw[4]                ? {14'b0, s_dbg_box_mode, s_dbg_saw_esc6} :
       sw[6]                ? {r_dbg_seq2, 4'b0, r_dbg_last_ascii} :
       sw[5]                ? {r_dbg_seq, 2'b0, r_dbg_last_extended, r_dbg_last_release,
                                r_dbg_last_code} :

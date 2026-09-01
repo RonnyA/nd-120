@@ -66,6 +66,17 @@ module ps2_ascii_table_tdv (
   //   PageDown -> ROLLUP (registry: "D47 ROLLUP (Page Down, physically)")
   //   Insert   -> INNS/EXPS, the TDV's own Insert-mode toggle key (D99)
   //   End      -> SLUTT/EXIT (G54) - "slutt" is Norwegian for "end"
+  //
+  // Confirmed against RetroTerm's own TDV2200KeyRegistry.cs directly
+  // (01-SEP-2026): PAGEUP/PGUP alias to D49 (ROLLDN), PAGEDOWN/PGDN alias
+  // to D47 (ROLLUP), and the Alt-map entries agree (_defaultAltMap[33] =
+  // D49 for Alt+PageUp, [34] = D47 for Alt+PageDown) - this mapping IS the
+  // authentic TDV2200 assignment, not a guess. Measured live against PED
+  // that ROLLDN scrolls to LATER lines and ROLLUP to EARLIER ones, which
+  // feels backward from PC PageUp/PageDown intuition - but that is real ND
+  // terminal behavior (the names describe which way the paper rolls, not
+  // which way a PC user expects the viewport to move), not a bug to fix by
+  // remapping against the trusted registry.
   // These four need the ESC[nn_ expander (key_tdv2200.v), so they carry a
   // MARKER (bit7 set) rather than a raw byte - see the marker scheme note
   // on the main table below.
@@ -86,6 +97,13 @@ module ps2_ascii_table_tdv (
       8'h7A:   extended = 8'h80 | 8'd28;  // PageDown -> ROLLUP  ESC[28_
       8'h70:   extended = 8'h80 | 8'd82;  // Insert   -> INNS/EXPS ESC[82_
       8'h69:   extended = 8'h80 | 8'd48;  // End      -> SLUTT  ESC[48_
+
+      // Windows/GUI key (E0 1F) -> FUNK, same marker as F10 (01-SEP-2026,
+      // user-requested second entry point). FUNC-shift is the keyboard's
+      // documented design (FINDINGS-2026-08-20.md): press it, then the NEXT
+      // keystroke is what FUNC modifies - a stray press swallowing the
+      // next key is expected behavior, not a bug.
+      8'h1F:   extended = 8'h80 | 8'd42;  // Windows key -> FUNK ESC[42_
 
       default: extended = 8'h00;  // no TDV equivalent: send NOTHING
     endcase
@@ -211,6 +229,24 @@ module ps2_ascii_table_tdv (
       8'h41: begin us_unshifted = ",";  us_shifted = "<"; end
       8'h49: begin us_unshifted = ".";  us_shifted = ">"; end
       8'h4A: begin us_unshifted = "/";  us_shifted = "?"; end
+
+      // --- Up/Down arrows, bare (no E0 prefix) ------------------------------
+      // Measured live on real hardware 01-SEP-2026 via the 7-seg scancode
+      // debug tap (nd120_nexys4ddr_top.v sw[5]): this keyboard's Up and Down
+      // keys both send their bare numpad-dual-label code (0x75, 0x72) with
+      // NO E0 prefix, while Right correctly arrives E0-prefixed (extended
+      // table above, unaffected, confirmed still working). Standard PS/2
+      // Set 2 has the dedicated arrow-cluster keys always E0-prefixed -
+      // only the numpad-8/Up and numpad-2/Down dual-label keys send bare
+      // codes - so this is a real quirk of this keyboard, not a decode bug.
+      // Purely additive: neither bare code had a table entry before (sent
+      // nothing), so this cannot regress anything - it just also accepts
+      // the form this keyboard actually sends. Left NOT added here: a
+      // reported "Left" reading came back as 0x66, which is the Backspace
+      // scancode - adding that would break the Backspace->DEL fix instead,
+      // so that reading needs a clean re-test before acting on it.
+      8'h75: begin us_unshifted = 8'h1C; us_shifted = 8'h1C; end  // Up   (bare) -> FS
+      8'h72: begin us_unshifted = 8'h0B; us_shifted = 8'h0B; end  // Down (bare) -> VT
 
       // --- the control keys a console needs --------------------------------
       8'h29: begin us_unshifted = 8'h20; us_shifted = 8'h20; end  // space

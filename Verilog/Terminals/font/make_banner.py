@@ -38,13 +38,26 @@ NL = "\r\n"
 # The two lines that remain still do the original job. Either they are on the
 # screen or they are not, and that alone still separates "the display is dead"
 # from "the display works and the machine is not talking".
+# A THIRD line was added 01-SEP-2026: the build stamp. Six different bitstreams
+# went onto the Nexys in one day and the board had no way to say which one it
+# was running - "how do I know what version it is" was a fair question with no
+# answer. The stamp is passed in by the BUILD, not stored here, so it describes
+# the bitstream actually in the FPGA rather than whenever someone last ran this
+# script by hand. With no argument it reads "dev", which is itself informative:
+# it means the ROM was generated outside a real build.
+BUILD_ID = sys.argv[1] if len(sys.argv) > 1 else "dev"
+
 MESSAGE = (
     "ND-120/CX CPU CORE" + NL +
-    "80x25 TDV2200 console" + NL
+    "80x25 TDV2200 console" + NL +
+    "build " + BUILD_ID + NL
 )
 
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                   "..", "rtl", "term_banner_rom.v")
+# Second argument overrides the output path, so a build can generate its own
+# stamped copy without dirtying the committed one.
+OUT = (sys.argv[2] if len(sys.argv) > 2
+       else os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "..", "rtl", "term_banner_rom.v"))
 
 HEADER = """//============================================================================
 //! Power-on message ROM for term_banner.v - GENERATED FILE, DO NOT EDIT.

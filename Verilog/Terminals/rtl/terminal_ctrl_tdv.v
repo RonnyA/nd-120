@@ -94,8 +94,17 @@ module terminal_ctrl_tdv #(
 
     input  wire frame_end,
     output reg  bell,
-    output reg  [3:0] leds
+    output reg  [3:0] leds,
+
+    //! Box-charset debug taps (01-SEP-2026): live s_g0_gfx state, and a
+    //! STICKY latch set the first time ESC 6 (NDSS6/Box) is ever received
+    //! and never cleared by anything but rst_n - directly answers "has
+    //! SINTRAN ever sent the box designation at all" without racing a
+    //! live snapshot against a designation that toggles back off.
+    output wire dbg_box_mode,
+    output reg  dbg_saw_esc6
 );
+  assign dbg_box_mode = s_g0_gfx;
 
   localparam [15:0] BLANK_CELL = {8'h00, 8'h20};
 
@@ -143,9 +152,26 @@ module terminal_ctrl_tdv #(
 
   reg s_at_rev, s_at_bold, s_at_ul, s_at_blink;
   reg s_shift;    //! SO/SI: 0 = G0 active, 1 = G1 active
-  reg s_g0_gfx;   //! G0 designated NDSS6/Box (ESC 6) - font page 3
+  reg s_g0_gfx;   //! G0 designated NDSS6/Box (ESC 6) - font page 3. NEVER
+                  //! observed in a live capture (dbg_saw_esc6 stayed 0000
+                  //! through a full PED session, 01-SEP-2026) - kept for
+                  //! whatever program actually sends it, but NOT how
+                  //! PED's own box-drawing works - see s_ss2_armed below.
   reg s_g1_gfx;   //! G1's own designation - never set (no NDSS G1 form
                   //! implemented yet), so G1 always reads as plain ASCII
+
+  //! SS2 (ESC N) - single-shift the NEXT character only through the
+  //! graphics font (page 2, DEC Special Graphics). This is the REAL
+  //! mechanism PED's box-drawing (frame/fullbar in PLANC-SCREEN-H, per
+  //! NDInsight's VTM-TERMINAL-INTERFACES.md) actually uses: RetroTerm's
+  //! own TDVEmulatorBase.cs hardwires G2 to GraphicsI PERMANENTLY (no
+  //! designation escape at all - see _g2CharacterSet's initializer), so
+  //! ESC N + a data byte is the box-drawing character right there, not a
+  //! delayed G0 mode change. Confirmed against a live capture 01-SEP-2026:
+  //! PED repeats `ESC N <char>` once per graphics cell (e.g. the position
+  //! ruler's backtick run), never a single lasting SO. One-shot: cleared
+  //! the instant put_char consumes it, exactly like a real single shift.
+  reg s_ss2_armed;
 
   reg s_pending;  //! last-column flag - same VT100-derived autowrap behavior;
                   //! a TDV wraps too, and nothing in the captures says otherwise.
@@ -321,8 +347,13 @@ module terminal_ctrl_tdv #(
     begin
       ram_we    <= 1'b1;
       ram_waddr <= cell_addr(stored_row(top_row, cursor_row), cursor_col);
-      ram_wdata <= {3'b000, (s_shift ? s_g1_gfx : s_g0_gfx),
+      // s_ss2_armed wins over the G0/G1 designation bit - a single-shift
+      // graphics character regardless of which set is currently invoked.
+      // Cleared here, unconditionally, the instant this character is
+      // consumed - true single-shift semantics (one character only).
+      ram_wdata <= {3'b000, (s_ss2_armed ? 1'b1 : (s_shift ? s_g1_gfx : s_g0_gfx)),
                     s_at_blink, s_at_ul, s_at_bold, s_at_rev, ch};
+      s_ss2_armed <= 1'b0;
       if (cursor_col == COLS - 1) begin
         s_pending <= 1'b1;
       end else begin
@@ -345,6 +376,7 @@ module terminal_ctrl_tdv #(
       s_shift      <= 1'b0;
       s_g0_gfx     <= 1'b0;
       s_g1_gfx     <= 1'b0;
+      s_ss2_armed  <= 1'b0;
       s_pending    <= 1'b0;
       leds         <= 4'b0000;
       p_state      <= P_GROUND;
@@ -444,6 +476,7 @@ module terminal_ctrl_tdv #(
       s_cp_dst  <= 8'd0; s_cp_col <= 8'd0; s_cp_down <= 1'b0;
       s_ap_kind <= AP_CUP; s_ap_phase <= 1'b0; s_ap_idx <= 3'd0;
       s_ap_row_q <= 8'd0; s_ap_col_q <= 8'd0;
+      dbg_saw_esc6 <= 1'b0;
       reset_modes;
     end else begin
       ram_we <= 1'b0;
@@ -688,8 +721,17 @@ module terminal_ctrl_tdv #(
                     // this was implemented). Any other designation - incl.
                     // "1" back to plain ASCII - falls back to page 0, same
                     // conservative choice as an unimplemented VT100 charset.
-                    "1", "2", "3", "4", "5", "6", "7", "8", "9":
+                    "1", "2", "3", "4", "5", "6", "7", "8", "9": begin
                       s_g0_gfx <= (byte_data == "6");
+                      if (byte_data == "6") dbg_saw_esc6 <= 1'b1;
+                    end
+                    // SS2 (ESC N): single-shift the NEXT character only
+                    // through the graphics font - see s_ss2_armed's
+                    // declaration for why this, not NDSS6, is PED's real
+                    // box-drawing mechanism. SS3 (ESC O) would shift to
+                    // G3/GraphicsII (circles/shapes) - no font page built
+                    // for it yet, swallowed same as before (default arm).
+                    "N": s_ss2_armed <= 1'b1;
                     // "Q" (exit/enable EC switch) and anything else
                     // unrecognised: swallowed.
                     default: ;
