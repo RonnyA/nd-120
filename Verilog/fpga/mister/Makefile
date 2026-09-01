@@ -59,20 +59,12 @@ AM27256_45133L.hex: ../../CPU-BOARD-3202/circuit/AM27256_45133L.hex
 # the whole Verilog/ tree, at the same relative depth this project expects.
 VERILOG_ROOT := $(realpath ../..)
 
-# WCS microcode preload (SKIP_WCS_LOAD, 31-AUG-2026). Nexys/Tang read the
-# wcs_*.hex images directly via $readmemh; this board's WCS is an explicit
-# altsyncram (Quartus refused to infer the plain-Verilog array), and
-# altsyncram wants a MIF - so convert the same 32 images once, here.
-# WITHOUT this the WCS is empty and the CPU executes blank microcode.
-WCS_SRC = ../../../Code/Microcode/wcs
-PYTHON  ?= python3
+# WCS microcode preload (SKIP_WCS_LOAD): this board reads the 32 wcs_*.hex
+# images straight in via $readmemh, the same as Nexys/Tang. The `make wcs`
+# MIF conversion that used to sit here fed the altsyncram megafunction arm,
+# deleted 01-SEP-2026 together with tools/wcs_hex_to_mif.py.
 
-wcs: wcs_16C.hex.mif
-
-wcs_16C.hex.mif: $(wildcard $(WCS_SRC)/wcs_*.hex)
-	$(PYTHON) tools/wcs_hex_to_mif.py $(WCS_SRC) .
-
-build: font microcode wcs
+build: font microcode
 	docker run --rm -v "$(VERILOG_ROOT)":/build -w /build/fpga/mister $(QIMAGE) \
 		quartus_sh --flow compile $(PROJECT).qpf
 	@ls -l $(RBF)

@@ -69,63 +69,19 @@ module MEM_RAM_49_BLOCKRAM #(
   reg [17:0] dd_q;    // write data captured while RAS active, CAS not yet seen
   reg        win_d;   // access window (RAS & CAS & bank), one sysclk delayed
 
-`ifdef QUARTUS_ALTSYNCRAM
-  // Quartus-only: explicit altsyncram (31-AUG-2026, MiSTer build 2). Same
-  // reason as Shared/support/IDT6168A_20.v and the CPU_PROC_32.v register
-  // file - Quartus 17.0.2 refused to infer M10K for this array too ("Cannot
-  // convert all sets of registers into RAM megafunctions", the register
-  // fallback overflows the device). This read genuinely IS synchronous
-  // (registered raw read below, no combinational read of mem anywhere) -
-  // sidestepping inference is the fix, not a real async/sync question.
-  // Vivado/Gowin/iverilog never see this branch and keep the plain-Verilog
-  // array below, unchanged, exactly as their own inference already accepts.
-  wire [15:0] rd_raw;
-
-  altsyncram #(
-      .operation_mode                  ("SINGLE_PORT"),
-      .width_a                         (16),
-      .widthad_a                       (BANK_ADDR_BITS + 2),
-      .numwords_a                      (4 << BANK_ADDR_BITS),
-      //! UNREGISTERED, not "CLOCK0" - same fix as Shared/support/IDT6168A_20.v,
-      //! 01-SEP-2026. altsyncram ALWAYS registers the address in synchronous
-      //! mode, so "CLOCK0" added a SECOND output register and made the read
-      //! take TWO clocks. The plain-Verilog model below takes ONE
-      //! (`rd_raw <= mem[{bidx, a}]`), and that is what every other board and
-      //! the simulator run. An extra clock of memory latency is not something
-      //! any other target has.
-      .outdata_reg_a                   ("UNREGISTERED"),
-      .read_during_write_mode_port_a   ("DONT_CARE"),
-      .ram_block_type                  ("M10K"),
-      .lpm_type                        ("altsyncram"),
-      .intended_device_family          ("Cyclone V")
-  ) RAM_INST (
-      .clock0    (sysclk),
-      .clocken0  (win),
-      .address_a ({bidx, a}),
-      .data_a    ({dd_q[16:9], dd_q[7:0]}),
-      .wren_a    (win && !win_d && !MWRITE50_n),
-      //! READ ONLY WHEN NOT WRITING, matching the plain-Verilog model below:
-      //!     if (win) begin
-      //!       if (MWRITE50_n) rd_raw <= mem[...];   // read
-      //!       else if (!win_d) mem[...] <= ...;     // write - rd_raw HOLDS
-      //!     end
-      //! This was `1'b1` (read every cycle). With
-      //! read_during_write_mode_port_a="DONT_CARE" that made rd_raw UNDEFINED
-      //! on every write cycle, where the plain model holds its previous value.
-      //! Only this board compiles the altsyncram branch, so the simulator -
-      //! which runs the plain branch - could never show the difference, and
-      //! the equivalence testbench that "proved" them the same shared the
-      //! same wrong assumption. 01-SEP-2026.
-      .rden_a    (win && MWRITE50_n),
-      .aclr0     (1'b0),
-      .q_a       (rd_raw)
-  );
-
-  wire [17:0] rd_q = with_parity(rd_raw);
-`elsif QUARTUS_RAM_INFER
-  // Quartus arm, second attempt (01-SEP-2026) - plain Verilog instead of the
-  // megafunction above, for the reasons set out in Shared/support/IDT6168A_20.v.
-  // Same array, same 1-clock registered read, same hold-while-writing.
+`ifdef QUARTUS_RAM_INFER
+  // Quartus arm (01-SEP-2026) - plain Verilog, for the reasons set out in
+  // Shared/support/IDT6168A_20.v (Quartus 17.0.2 refused to infer M10K from
+  // the reference arm: "Cannot convert all sets of registers into RAM
+  // megafunctions", the register fallback overflows the device). An explicit
+  // altsyncram megafunction arm came first (31-AUG-2026) and was deleted
+  // 01-SEP-2026 once this arm had booted the board; its history, and the
+  // two-clock read it shipped with, are recorded in IDT6168A_20.v. One
+  // lesson from it is kept here: with read_during_write_mode "DONT_CARE" and
+  // rden_a tied high, rd_raw was UNDEFINED on every write cycle where the
+  // reference holds - only this board compiled that arm, so the simulator
+  // could never show the difference. Same array below, same 1-clock
+  // registered read, same hold-while-writing.
   //
   // Two differences from the reference arm below, both aimed at inference:
   //
@@ -140,8 +96,8 @@ module MEM_RAM_49_BLOCKRAM #(
   //     during a read window (win && MWRITE50_n), so what it carries during
   //     a write window is not observable.
   //
-  // If Quartus still reports 276007 for this array, this arm is wrong and
-  // QUARTUS_ALTSYNCRAM above remains the answer for main memory.
+  // Build v47 (01-SEP-2026) inferred this array as M10K (405/553 M10K used,
+  // one uninferred RAM left on the device and it is not this one).
   (* ramstyle = "no_rw_check, M10K" *)
   reg [15:0] mem[0:(4 << BANK_ADDR_BITS)-1];
 
@@ -152,7 +108,7 @@ module MEM_RAM_49_BLOCKRAM #(
     if (win) begin
       rd_raw <= mem[{bidx, a}];
       // write: ONCE, on the first window edge - same condition as the
-      // reference arm and the same condition the altsyncram used for wren_a
+      // reference arm
       if (!MWRITE50_n && !win_d) mem[{bidx, a}] <= {dd_q[16:9], dd_q[7:0]};
     end
   end
@@ -221,13 +177,11 @@ module MEM_RAM_49_BLOCKRAM #(
       // capture (the CAS-fall edge) holds the settled pre-CAS value
       if (RAS && !CAS) dd_q <= DD_17_0_IN;
 
-`ifndef QUARTUS_ALTSYNCRAM
 `ifndef QUARTUS_RAM_INFER
-      // Both Quartus arms take this read/write elsewhere - the altsyncram
-      // through clocken0/wren_a/rden_a, the inference arm through its own
-      // always block. See the mem/rd_raw declarations above. Note the array
-      // write below sits inside the sys_rst_n else-branch, which is one of
-      // the things the inference arm deliberately moves out.
+      // The Quartus arm takes this read/write elsewhere, in its own always
+      // block. See the mem/rd_raw declarations above. Note the array write
+      // below sits inside the sys_rst_n else-branch, which is one of the
+      // things the inference arm deliberately moves out.
       if (win) begin
         if (MWRITE50_n) begin
           // read: registered raw, re-reads while CAS; parity regenerated
@@ -238,7 +192,6 @@ module MEM_RAM_49_BLOCKRAM #(
           mem[{bidx, a}] <= {dd_q[16:9], dd_q[7:0]};
         end
       end
-`endif
 `endif
     end
   end

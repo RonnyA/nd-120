@@ -2,7 +2,8 @@
 //! Equivalence-check driver for MEM_RAM_49_BLOCKRAM (31-AUG-2026) - same
 //! purpose and method as IDT6168A_20_equiv_tb.v: drive the REAL DRAM
 //! protocol (RAS/CAS/AA phases) with a deterministic sequence, log every
-//! cycle, run once plain and once with -DQUARTUS_ALTSYNCRAM=1, diff.
+//! cycle, run once plain and once with -DQUARTUS_RAM_INFER=1, diff
+//! (Shared/support/sim/run_quartus_ram_equiv.sh).
 //============================================================================
 
 `timescale 1ns / 1ps

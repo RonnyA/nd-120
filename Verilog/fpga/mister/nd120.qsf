@@ -678,22 +678,21 @@ set_global_assignment -name VERILOG_MACRO "ND120_BLOCKRAM_ADDR_BITS=15"
 # to those arrays does NOT fix this. The attribute spelling was never the
 # reason - the shape of the output register is. So one of these two is needed.
 #
-# QUARTUS_RAM_INFER (current): plain-Verilog arrays restructured so Quartus
-# can infer them - the array read gets a register of its own and the
-# bypass/hold logic moves outside it. PREFERRED because it is ordinary
-# Verilog, so iverilog runs the real code and
-# Shared/support/sim/run_altsyncram_equiv.sh proves it cycle-identical to the
-# reference arm (test-altsyncram-equiv). Demonstrated to FAIL that gate when
-# given an extra clock of read latency.
-set_global_assignment -name VERILOG_MACRO "QUARTUS_RAM_INFER=1"
+# QUARTUS_RAM_INFER: plain-Verilog arrays restructured so Quartus can infer
+# them - the array read gets a register of its own and the bypass/hold logic
+# moves outside it. It is ordinary Verilog, so iverilog runs the real code
+# and Shared/support/sim/run_quartus_ram_equiv.sh proves it cycle-identical
+# to the reference arm (test-quartus-ram-equiv). Demonstrated to FAIL that
+# gate when given an extra clock of read latency. Proven on the board in
+# build v47 (01-SEP-2026): boots to the OPCOM prompt.
 #
-# QUARTUS_ALTSYNCRAM (fallback, known-good on the board 01-SEP-2026): explicit
-# altsyncram megafunction. Works, but NOTHING simulates a megafunction - the
-# equivalence gate can only compare it against a hand-written stub. That is
-# exactly how outdata_reg_a="CLOCK0" shipped a 2-clock WCS read and stopped
-# the CPU booting for a day. Re-enable this and comment out the line above if
-# the inference arm does not build or does not boot.
-# set_global_assignment -name VERILOG_MACRO "QUARTUS_ALTSYNCRAM=1"
+# Its predecessor, an explicit altsyncram megafunction arm
+# (QUARTUS_ALTSYNCRAM), was deleted 01-SEP-2026. NOTHING simulates a
+# megafunction - the equivalence gate could only compare it against a
+# hand-written stub, which is exactly how outdata_reg_a="CLOCK0" shipped a
+# 2-clock WCS read and stopped the CPU booting for a day. There is no
+# fallback macro any more; if inference ever breaks, fix the inference arm.
+set_global_assignment -name VERILOG_MACRO "QUARTUS_RAM_INFER=1"
 # ND120_PANEL_CLOCK: ON by default on every other FPGA build (Tang, Nexys).
 # Missing here meant PANEL_ACTLV was a hardcoded stub constant (16'd0) - not
 # just a display gap: the project's own history (panel-clock-68705.md) notes
@@ -752,7 +751,8 @@ set_global_assignment -name VERILOG_MACRO "ND120_NO_CACHE=1"
 # PROM->WCS loader instead - a path NEITHER proven board exercises - and the
 # WCS came up empty, so the CPU executed blank microcode and did nothing at
 # all (measured on hardware 31-AUG-2026: console + panel fine, CPU dead).
-# `make wcs` converts the 32 wcs_*.hex images to the MIFs altsyncram needs.
+# The 32 wcs_*.hex images are read straight in by $readmemh, as on the other
+# boards (the MIF conversion step went with the altsyncram arm, 01-SEP-2026).
 set_global_assignment -name VERILOG_MACRO "SKIP_WCS_LOAD=1"
 # Quartus's built-in LATCH primitive collides with Shared/ndlib/LATCH.v's
 # module name - see the header comment there.

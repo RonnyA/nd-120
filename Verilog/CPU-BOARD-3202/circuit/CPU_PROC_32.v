@@ -457,55 +457,20 @@ module CPU_PROC_32 (
   // ("ERROR: no valid mapping") where Vivado/Gowin EDA treat it as advisory
   // and fall back. 2048x16 = 32 Kbit as distributed LUT RAM (~2K LUT4).
   // yosys pre-defines YOSYS; every other flow is untouched.
-// QUARTUS_REGBLOCK_ALTSYNCRAM, not QUARTUS_ALTSYNCRAM (31-AUG-2026): this
-// array is now OPT-IN separately from the other two Quartus RAM overrides.
-//
-// The altsyncram version below was added when Quartus refused the plain
-// array - but it refused only because the WCS was failing at the same time
-// and their COMBINED register-fallback demand overflowed the device. With
-// the WCS in real M10K, this array alone is ~32,768 FFs (about 16K ALMs
-// against 41,910, on top of ~11.5K used) and builds fine as written.
-//
-// That matters because this is the CPU REGISTER FILE, read by every
-// instruction, and its combinational read was only ever verified against a
-// hand-written altsyncram stub in simulation - never against real Quartus
-// MLAB silicon. Letting Quartus build exactly what the RTL describes takes
-// that unverified assumption out of the CPU's most critical path.
-`ifdef QUARTUS_REGBLOCK_ALTSYNCRAM
-  // Quartus-only: explicit altsyncram, MLAB block type, UNREGISTERED output
-  // (31-AUG-2026, MiSTer build 2). This read is genuinely, deliberately
-  // asynchronous - s_idb_erf_out below is a plain combinational function of
-  // the array, same as Xilinx distributed RAM / Gowin's fallback - so this
-  // is not a coding-pattern workaround, it is telling Quartus to build the
-  // same async-read LUTRAM the other tools already infer on their own.
-  // Read and write are mutually exclusive on s_twrf_n (never asserted
-  // together), so read-during-write behavior is irrelevant here.
-  wire [15:0] s_regblock_q_a;
-
-  altsyncram #(
-      .operation_mode         ("SINGLE_PORT"),
-      .width_a                (16),
-      .widthad_a               (11),
-      .numwords_a              (2048),
-      .outdata_reg_a           ("UNREGISTERED"),
-      .ram_block_type          ("MLAB"),
-      .lpm_type                ("altsyncram"),
-      .intended_device_family  ("Cyclone V")
-  ) REGBLOCK_INST (
-      .clock0    (sysclk),
-      .clocken0  (1'b1),
-      .address_a (s_address_10_0[10:0]),
-      .data_a    (s_idb_erf_in),
-      .wren_a    (!s_erf_n && !s_twrf_n),
-      .rden_a    (1'b1),
-      .aclr0     (1'b0),
-      .q_a       (s_regblock_q_a)
-  );
-
-  // s_erf_n <= CHIP SELECT active low (Enable Register File negated)
-  // s_twrf_n = 0 <== WRITE TO registerBlock. s_twrf_n == 1, READ FROM registerBlock
-  assign s_idb_erf_out = s_erf_n ? 16'b0 : s_twrf_n ? s_regblock_q_a : 16'b0;
-`else
+// QUARTUS (MiSTer, Cyclone V): this array builds as written. An explicit
+// altsyncram (MLAB, UNREGISTERED) arm was added 31-AUG-2026 when Quartus
+// refused the plain array - but it refused only because the WCS was failing
+// at the same time and their COMBINED register-fallback demand overflowed
+// the device. With the WCS in real M10K (QUARTUS_RAM_INFER), this array
+// alone is ~32,768 FFs (about 16K ALMs against 41,910) and build v47
+// (01-SEP-2026) built and booted it exactly as the RTL below describes.
+// The megafunction arm was deleted the same day: this is the CPU REGISTER
+// FILE, read by every instruction, and its combinational read was only ever
+// verified against a hand-written altsyncram stub in simulation - never
+// against real Quartus MLAB silicon. Letting Quartus build what the RTL
+// says takes that unverified assumption out of the CPU's most critical
+// path, and it is the same reason the WCS and main-memory megafunction
+// arms went (see Shared/support/IDT6168A_20.v).
 `ifdef YOSYS
   (* ram_style = "distributed" *) reg [15:0] registerBlock[0:2047];
 `else
@@ -526,7 +491,6 @@ module CPU_PROC_32 (
   // s_erf_n <= CHIP SELECT active low (Enable Register File negated)
   // s_twrf_n = 0 <== WRITE TO registerBlock. s_twrf_n == 1, READ FROM registerBlock
   assign s_idb_erf_out = s_erf_n ? 16'b0 : s_twrf_n ? registerBlock[s_address_10_0[10:0]] : 16'b0;
-`endif
 
 
   /*

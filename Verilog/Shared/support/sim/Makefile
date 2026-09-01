@@ -400,16 +400,19 @@ AM29C821_func_tb: AM29C821_func_tb.v ../AM29C821.v
 .PHONY: test-am29c821-func
 
 ###############################################################################
-# altsyncram (Quartus-only sections) vs the plain-Verilog reference model.
+# The Quartus RAM arm (QUARTUS_RAM_INFER) vs the plain-Verilog reference model.
 #
-# Only the MiSTer build compiles `ifdef QUARTUS_ALTSYNCRAM` in IDT6168A_20.v
+# Only the MiSTer build compiles `ifdef QUARTUS_RAM_INFER` in IDT6168A_20.v
 # (the WCS) and MEM_RAM_49_BLOCKRAM.v (main memory) - every other toolchain
 # takes the plain model - so a difference there is invisible to normal
 # simulation and shows up only as a board that will not boot. That is what
-# happened on 01-SEP-2026: outdata_reg_a="CLOCK0" gave the WCS a TWO-clock
-# read (altsyncram registers the address too), the microsequencer ran a step
+# happened on 01-SEP-2026 with the arm's predecessor, an altsyncram
+# megafunction: outdata_reg_a="CLOCK0" gave the WCS a TWO-clock read
+# (altsyncram registers the address too), the microsequencer ran a step
 # behind the cycle controller, and a nested T,RETURN popped the wrong address.
+# The megafunction arm was deleted the same day; this gate is what keeps its
+# replacement honest.
 ###############################################################################
-.PHONY: test-altsyncram-equiv
-test-altsyncram-equiv:
-	@./run_altsyncram_equiv.sh
+.PHONY: test-quartus-ram-equiv
+test-quartus-ram-equiv:
+	@./run_quartus_ram_equiv.sh
