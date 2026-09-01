@@ -58,113 +58,30 @@ module IDT6168A_20 #(
     output wire [ 3:0] D_3_0_OUT  // Data output for read
 );
 
-`ifdef QUARTUS_ALTSYNCRAM
-  // ---------------------------------------------------------------------
-  // Quartus-only: explicit altsyncram primitive (31-AUG-2026, MiSTer
-  // build 2). Quartus 17.0.2 refused to infer M10K for the plain-Verilog
-  // write-first template below - it reported the read as ASYNCHRONOUS
-  // despite the whole thing sitting in one posedge-clk block (tried two
-  // different, behaviorally-equivalent codings; both refused the same
-  // way), then tried to build all 16 x 4Kx4 chips out of discrete
-  // registers - 262,144 flip-flops for this bank alone, more than the
-  // whole device has. Sidestepping inference entirely with Quartus's own
-  // RAM megafunction is the documented way around that. Vivado, Gowin and
-  // iverilog never see this branch and keep the plain-Verilog array below,
-  // unchanged, exactly as their own inference already accepted it.
-  //
-  // WRONG, AND CORRECTED 01-SEP-2026 - kept because the reasoning error is
-  // worth seeing: this comment used to claim that outdata_reg_a="CLOCK0" plus
-  // read_during_write_mode_port_a="NEW_DATA_NO_NBE_READ" "reproduce the same
-  // write-first, 1-sysclk-latency semantics as the plain-Verilog model".
-  //
-  // The read-during-write half is right. The LATENCY half is not. altsyncram
-  // ALREADY registers the address in synchronous mode, so "CLOCK0" added a
-  // SECOND register and made the read take TWO sysclks against the plain
-  // model's one. The claim was written from the parameter names rather than
-  // from what the primitive does, and nothing tested it - only this board
-  // compiles this branch, so no simulation could ever have caught it.
-  wire [3:0] s_q_a;
-  reg        regCE_n = 1'b1;
-  reg        regWE_n = 1'b1;
-
-  //! WCS PRELOAD under SKIP_WCS_LOAD (31-AUG-2026). The `initial
-  //! $readmemh(INIT_FILE, ...)` in the plain-Verilog branch below is how
-  //! Vivado and Gowin bake the microcode into the bitstream; altsyncram
-  //! takes its contents from init_file instead, and that wants a MIF, not a
-  //! $readmemh nibble list. fpga/mister/tools/wcs_hex_to_mif.py converts
-  //! each wcs_*.hex to wcs_*.hex.mif, so the name is just INIT_FILE with
-  //! ".mif" appended - derived here rather than adding a second per-chip
-  //! parameter to CPU_CS_WCS_21_22.v's 32 instantiations.
-  //!
-  //! An EMPTY WCS is exactly the "CPU does nothing at all" symptom this
-  //! board had on its first bring-up: no SKIP_WCS_LOAD meant the runtime
-  //! PROM->WCS loader ran instead, a path neither proven board uses.
-`ifdef SKIP_WCS_LOAD
-  localparam INIT_MIF = {INIT_FILE, ".mif"};
-`else
-  localparam INIT_MIF = "UNUSED";
-`endif
-
-  altsyncram #(
-      .operation_mode                  ("SINGLE_PORT"),
-      .width_a                         (4),
-      .widthad_a                       (12),
-      .numwords_a                      (4096),
-      //! UNREGISTERED, not "CLOCK0" (01-SEP-2026, Ronny: "data needs to come
-      //! out from WCS ASAP as address changes").
-      //!
-      //! altsyncram ALWAYS registers the address in synchronous mode. Adding
-      //! outdata_reg_a="CLOCK0" put a SECOND register on the output, making
-      //! the WCS read take TWO clocks - while the plain-Verilog model below,
-      //! which every other board and the simulator run, takes ONE:
-      //!     always @(posedge clk) data_out <= idt_memory_array[A_11_0];
-      //!
-      //! So on this board alone every microinstruction arrived a clock late.
-      //! Measured consequence: the microsequencer ran one step out of
-      //! alignment with the cycle controller, and a nested microsubroutine
-      //! return popped the wrong address (001015 instead of the 002027 MACL
-      //! pushed), so MACL never resumed and the machine looped forever in the
-      //! interrupt-register microcode. See docs/mister-microcode-loop.md.
-      .outdata_reg_a                   ("UNREGISTERED"),
-      .read_during_write_mode_port_a   ("NEW_DATA_NO_NBE_READ"),
-      .ram_block_type                  ("M10K"),
-      .lpm_type                        ("altsyncram"),
-      .intended_device_family          ("Cyclone V"),
-      .init_file                       (INIT_MIF)
-  ) RAM_INST (
-      .clock0    (clk),
-      .clocken0  (!CE_n),
-      .address_a (A_11_0),
-      .data_a    (D_3_0_IN),
-      .wren_a    (!WE_n),
-      .rden_a    (1'b1),
-      .aclr0     (1'b0),
-      .q_a       (s_q_a)
-  );
-
-  always @(posedge clk) begin
-    regCE_n <= CE_n;
-    regWE_n <= WE_n;
-  end
-
-  // Output: tri-state-equivalent. Drives the RAM's registered output only
-  // when the registered CE_n is asserted AND the registered WE_n is high
-  // (read mode) - same mask as the plain-Verilog branch.
-  assign D_3_0_OUT = (!regCE_n && regWE_n) ? s_q_a : 4'b0000;
-
-`elsif QUARTUS_RAM_INFER
+`ifdef QUARTUS_RAM_INFER
 
   // ---------------------------------------------------------------------
-  // Quartus arm, second attempt (01-SEP-2026): the SAME array and the SAME
-  // 1-clock write-first behaviour as the reference below, only restructured
-  // into a shape Quartus 17.0 will map onto M10K. PLAIN VERILOG on purpose.
+  // Quartus arm (01-SEP-2026): the SAME array and the SAME 1-clock
+  // write-first behaviour as the reference below, only restructured into a
+  // shape Quartus 17.0 will map onto M10K. PLAIN VERILOG on purpose.
   //
-  // Why plain Verilog and not the megafunction above: nothing simulates an
-  // altsyncram, so its 2-clock read went unnoticed until it cost a day on
-  // the board. Both arms here are ordinary Verilog, so
-  // Shared/support/sim/run_altsyncram_equiv.sh can compile and run BOTH and
-  // prove them cycle-identical. An arm that can be tested is worth more
-  // than an arm that is "obviously" right.
+  // HISTORY - the arm this replaced. The first Quartus arm (31-AUG-2026,
+  // deleted 01-SEP-2026 once this one had booted the board) was an explicit
+  // altsyncram megafunction. It shipped with outdata_reg_a="CLOCK0", which
+  // put a SECOND register on the output: altsyncram ALWAYS registers the
+  // address in synchronous mode, so the WCS read took TWO clocks against
+  // this model's ONE. Every microinstruction arrived a clock late on that
+  // board alone, the microsequencer ran one step out of alignment with the
+  // cycle controller, and a nested microsubroutine return popped the wrong
+  // address (001015 instead of the 002027 MACL pushed) - the CPU looped
+  // forever in the interrupt-register microcode. See
+  // docs/mister-microcode-loop.md. Nothing simulates a megafunction, so no
+  // simulation could ever have caught it; the equivalence check of the day
+  // compared it against a hand-written stub that was wrong by the same
+  // clock. That is why the arm below is plain Verilog and the megafunction
+  // is gone: Shared/support/sim/run_quartus_ram_equiv.sh compiles and runs
+  // BOTH this arm and the reference and proves them cycle-identical. An arm
+  // that can be tested is worth more than an arm that is "obviously" right.
   //
   // What Quartus objects to in the reference arm (measured, build v46):
   //     Info (276007): ... uninferred due to asynchronous read logic
@@ -180,8 +97,9 @@ module IDT6168A_20 #(
   // limit that forces the async cache RAMs onto MLAB).
   //
   // NOTE this is a reading of the evidence, not a rule quoted from Intel's
-  // documentation. The build is the proof; if the 276007 messages persist,
-  // this arm is wrong and QUARTUS_ALTSYNCRAM above is still the answer.
+  // documentation. The build is the proof, and build v47 (01-SEP-2026)
+  // delivered it: uninferred RAM 34 -> 1, all 32 WCS chips in M10K, and the
+  // board boots to the OPCOM prompt on this arm.
   //
   // The fix: give the array read a register of its own that does nothing
   // but hold array data, and rebuild the write-first bypass outside it from
@@ -195,8 +113,9 @@ module IDT6168A_20 #(
   reg [3:0] idt_memory_array[0:4095];
 
   // Same optional preload as the reference arm. Quartus honours an
-  // `initial $readmemh` as M10K bitstream init - unlike the megafunction
-  // above, which needed a separately generated .mif.
+  // `initial $readmemh` as M10K bitstream init - unlike the old megafunction
+  // arm, which needed a separately generated .mif per chip
+  // (fpga/mister/tools/wcs_hex_to_mif.py, deleted together with it).
 `ifdef SKIP_WCS_LOAD
   initial begin
     if (INIT_FILE != "") $readmemh(INIT_FILE, idt_memory_array);
@@ -229,7 +148,7 @@ module IDT6168A_20 #(
   // Write-first bypass, rebuilt outside the memory read register.
   wire [3:0] data_out = byp_sel ? byp_q : mem_q;
 
-  // Same output mask as both other arms.
+  // Same output mask as the reference arm.
   assign D_3_0_OUT = (!regCE_n && regWE_n) ? data_out : 4'b0000;
 
 `else
@@ -237,7 +156,7 @@ module IDT6168A_20 #(
   // Memory array - 4K x 4-bit. Marked for block RAM inference on FPGA targets.
   // This is the REFERENCE arm: Vivado (ram_style), Gowin (syn_ramstyle) plus
   // plus Verilator and iverilog, all take it and all infer block RAM from
-  // it. Quartus does not - it takes one of the two arms above instead.
+  // it. Quartus does not - it takes the QUARTUS_RAM_INFER arm above instead.
   // (Keep "Verilator" off the START of a comment line: Verilator reads a
   // comment beginning with that word as a lint metacomment and dies with
   // "Unknown verilator comment", which broke every sim build 01-SEP-2026.)

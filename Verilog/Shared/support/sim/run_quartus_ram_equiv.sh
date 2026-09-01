@@ -1,37 +1,37 @@
 #!/bin/bash
 #############################################################################
-#  run_altsyncram_equiv.sh - the Quartus altsyncram path vs the reference    #
+#  run_quartus_ram_equiv.sh - the Quartus RAM arm vs the reference arm       #
 #                                                                            #
 #  WHY THIS EXISTS (01-SEP-2026)                                             #
 #  ------------------------------                                            #
-#  Only the MiSTer build compiles the `ifdef QUARTUS_ALTSYNCRAM` sections of  #
+#  Only the MiSTer build compiles the `ifdef QUARTUS_RAM_INFER` sections of  #
 #  IDT6168A_20.v (the WCS) and MEM_RAM_49_BLOCKRAM.v (main memory). Vivado,   #
 #  Gowin and Verilator all compile the plain-Verilog model instead. So a      #
 #  difference between the two is invisible to every normal simulation, and    #
 #  shows up only as a board that does not boot.                              #
 #                                                                            #
-#  That is exactly what happened. The WCS was built with                      #
-#  outdata_reg_a="CLOCK0", which gives a TWO-clock read because altsyncram    #
-#  always registers the address as well (M10K cannot read asynchronously).    #
-#  The plain model takes ONE clock. Every microinstruction therefore reached   #
-#  the microsequencer a clock late on that board, the sequencer ran one step  #
-#  out of step with the cycle controller, and a nested microsubroutine        #
-#  T,RETURN popped the wrong address - so MACL never resumed and the CPU      #
-#  looped in the interrupt-register microcode instead of reaching OPCOM.      #
+#  That is exactly what happened to the arm's PREDECESSOR, an explicit        #
+#  altsyncram megafunction (31-AUG-2026, deleted 01-SEP-2026). The WCS was    #
+#  built with outdata_reg_a="CLOCK0", which gives a TWO-clock read because    #
+#  altsyncram always registers the address as well (M10K cannot read          #
+#  asynchronously). The plain model takes ONE clock. Every microinstruction   #
+#  therefore reached the microsequencer a clock late on that board, the       #
+#  sequencer ran one step out of step with the cycle controller, and a nested #
+#  microsubroutine T,RETURN popped the wrong address - so MACL never resumed  #
+#  and the CPU looped in the interrupt-register microcode instead of         #
+#  reaching OPCOM.                                                            #
 #                                                                            #
-#  It went unnoticed because the equivalence check used altsyncram_stub.v,    #
-#  which was itself wrong by one clock in BOTH settings, so the comparison    #
-#  passed. The stub is now faithful and this script is the gate.              #
+#  It went unnoticed because the equivalence check of the day compared the    #
+#  megafunction against a hand-written stub (altsyncram_stub.v), which was    #
+#  itself wrong by one clock in BOTH settings, so the comparison passed.      #
+#  Nothing can simulate a megafunction. That is why the megafunction arm and  #
+#  its stub are gone, and why the surviving Quartus arm is ordinary Verilog:  #
+#  iverilog runs the code Quartus will actually build, not a model of it.     #
 #                                                                            #
-#  METHOD: build each testbench THREE times and diff the logged waveforms -   #
-#  they must be byte-identical.                                               #
+#  METHOD: build each testbench TWICE and diff the logged waveforms - they    #
+#  must be byte-identical.                                                    #
 #    ref - the plain arm Vivado, Gowin, Verilator and iverilog all build      #
-#    alt - -DQUARTUS_ALTSYNCRAM, the megafunction, against altsyncram_stub.v  #
 #    inf - -DQUARTUS_RAM_INFER, plain Verilog restructured for Quartus        #
-#                                                                            #
-#  The `inf` arm needs NO stub: it is ordinary Verilog, so iverilog runs the   #
-#  code Quartus will actually build rather than a model of it. That is the    #
-#  reason to prefer it over the megafunction.                                 #
 #                                                                            #
 #  TEETH, checked 01-SEP-2026: giving the `inf` arm one extra clock of read   #
 #  latency - the exact bug above - makes this script FAIL. Note that breaking #
@@ -43,7 +43,6 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SUP="$HERE/.."
 CIRC="$HERE/../../../CPU-BOARD-3202/circuit"
-STUB="$HERE/altsyncram_stub.v"
 IVERILOG=${IVERILOG:-iverilog}
 VVP=${VVP:-vvp}
 fail=0
@@ -79,21 +78,16 @@ check () {          # $1 = label, $2 = tb, $3 = dut, $4 = logfile, $5 = workdir
     # the reference arm - what Vivado, Gowin, Verilator and iverilog all build
     run_arm "$label" ref "$tb" "$dut" "$log" || return 1
 
-    # QUARTUS_ALTSYNCRAM: the megafunction arm, against the stub model
-    run_arm "$label" alt "$tb" "$dut" "$log" -DQUARTUS_ALTSYNCRAM=1 "$STUB" \
-        && cmp_arm "$label" alt "altsyncram"  || rc=1
-
     # QUARTUS_RAM_INFER: the restructured plain-Verilog arm. NOTHING is stubbed
-    # here - it is ordinary Verilog, so iverilog runs the real thing. That is
-    # the whole point of preferring it to the megafunction: this comparison
-    # tests the code Quartus will actually build, not a model of it.
+    # here - it is ordinary Verilog, so iverilog runs the real thing. This
+    # comparison tests the code Quartus will actually build, not a model of it.
     run_arm "$label" inf "$tb" "$dut" "$log" -DQUARTUS_RAM_INFER=1 \
         && cmp_arm "$label" inf "inference arm" || rc=1
 
     return $rc
 }
 
-echo "Quartus RAM arms vs the plain-Verilog reference arm:"
+echo "Quartus RAM arm vs the plain-Verilog reference arm:"
 check wcs  "$HERE/IDT6168A_20_equiv_tb.v" "$SUP/IDT6168A_20.v" equiv_log.txt "$HERE" || fail=1
 check mem  "$CIRC/sim/MEM_RAM_49_BLOCKRAM_equiv_tb.v" "$CIRC/MEM_RAM_49_BLOCKRAM.v" \
            mem_equiv_log.txt "$CIRC/sim" || fail=1

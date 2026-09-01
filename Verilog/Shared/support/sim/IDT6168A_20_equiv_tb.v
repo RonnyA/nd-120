@@ -6,10 +6,12 @@
 //! writes, CE_n toggling mid-burst, address changes while WE_n stays low)
 //! and dumps every cycle's inputs/outputs to a text log. Run this file
 //! TWICE - once compiled plain (no defines: exercises the proven
-//! plain-Verilog path) and once with -DQUARTUS_ALTSYNCRAM=1 plus
-//! altsyncram_stub.v (exercises the new altsyncram path) - then diff the
-//! two logs. Identical logs = the two implementations are behaviorally
-//! equivalent for everything this sequence covers.
+//! plain-Verilog path) and once with -DQUARTUS_RAM_INFER=1 (exercises the
+//! arm Quartus builds for the MiSTer) - then diff the two logs. Identical
+//! logs = the two implementations are behaviorally equivalent for
+//! everything this sequence covers. run_quartus_ram_equiv.sh does exactly
+//! that. (Until 01-SEP-2026 the second run was the altsyncram megafunction
+//! arm against a hand-written stub; both are gone - see IDT6168A_20.v.)
 //============================================================================
 
 `timescale 1ns / 1ps

@@ -123,14 +123,16 @@ REGISTRY=(
   # fields sends the debugging the wrong way, which the MIPS tap already did.
   "fpga/mister/sim :: test-diag-print :: TB_RESULT: PASS"
   # Microcode trace buffer and STERR error-number catcher, same scaffolding.
-  # The Quartus-only altsyncram sections vs the plain-Verilog model every other
-  # toolchain runs. NOT scaffolding - this one stays. Only the MiSTer build
-  # compiles those sections, so a divergence is invisible to every normal
-  # simulation and appears only as a board that will not boot. On 01-SEP-2026
-  # outdata_reg_a="CLOCK0" gave the WCS a two-clock read (altsyncram registers
-  # the address as well), every microinstruction arrived a clock late, and a
-  # nested microsubroutine return popped the wrong address.
-  "Shared/support/sim :: test-altsyncram-equiv :: TB_RESULT: PASS"
+  # The Quartus-only RAM sections (QUARTUS_RAM_INFER) vs the plain-Verilog
+  # model every other toolchain runs. NOT scaffolding - this one stays. Only
+  # the MiSTer build compiles those sections, so a divergence is invisible to
+  # every normal simulation and appears only as a board that will not boot.
+  # On 01-SEP-2026 the predecessor arm (an altsyncram megafunction, deleted
+  # since) shipped outdata_reg_a="CLOCK0", giving the WCS a two-clock read
+  # (altsyncram registers the address as well): every microinstruction
+  # arrived a clock late and a nested microsubroutine return popped the wrong
+  # address.
+  "Shared/support/sim :: test-quartus-ram-equiv :: TB_RESULT: PASS"
   "fpga/mister/sim :: test-csa-trace :: TB_RESULT: PASS"
   "fpga/mister/sim :: test-csa-trig :: TB_RESULT: PASS"
   "fpga/mister/sim :: test-sterr :: TB_RESULT: PASS"
