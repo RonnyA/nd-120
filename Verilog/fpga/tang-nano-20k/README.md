@@ -26,7 +26,7 @@ After `make usb` you have:
 | Device | Use |
 |--------|-----|
 | `/dev/ttyUSB0` | JTAG side (openFPGALoader) |
-| `/dev/ttyUSB1` | OPCOM console, **9600 8N1** |
+| `/dev/ttyUSB1` | OPCOM console, **115200 7E2** |
 
 **Reflashing reboots the design - no power cycle needed.** Measured
 09-AUG-2026: `make flash-gowin` restarts the ND-120 and the console comes back
@@ -53,7 +53,9 @@ OPCOM is picky and the rules are not guessable:
 - **~0.30 s between characters.** At 0.12 s characters are dropped silently in
   the middle of a number and OPCOM answers `?` - which looks like a machine
   fault and is not one.
-- 9600 8N1 on `/dev/ttyUSB1`.
+- **115200 7E2** on `/dev/ttyUSB1`. Since 26-AUG-2026 `UART_BAUD_RATE` is
+  115200 for EVERY variant (`src/tang20k_defines.v:554`, unconditional) -
+  scripts written before that opened 9600 and must be updated.
 
 Use the committed driver rather than writing another one:
 
@@ -156,8 +158,8 @@ The complete ND-120 CPU now has a Tang top-level and Gowin project here:
 
 | File | Purpose |
 |------|---------|
-| `src/ND120_TANG20K_TOP.v` | Board top: instantiates `ND3202D`, ties off the external bus, S1 = Master Clear, OPCOM UART 9600 on the BL616 (pins 69/70), 6 LEDs: block-read/write activity, tape byte served, SD status pair, heartbeat (see the LED table below) |
-| `src/tang20k_defines.v` | **Must stay FIRST in the project** - defines `GOWIN`, `TARGET_TANG20K`, `FPGA_FF_MODE`, `SKIP_WCS_LOAD`, `MAIN_RAM_SDRAM`, `BOARD_CLK_FREQ=27_000_000`, `UART_BAUD_RATE=9600` |
+| `src/ND120_TANG20K_TOP.v` | Board top: instantiates `ND3202D`, ties off the external bus, S1 = Master Clear, OPCOM UART 115200 on the BL616 (pins 69/70), 6 LEDs: block-read/write activity, tape byte served, SD status pair, heartbeat (see the LED table below) |
+| `src/tang20k_defines.v` | **Must stay FIRST in the project** - defines `GOWIN`, `TARGET_TANG20K`, `FPGA_FF_MODE`, `SKIP_WCS_LOAD`, `MAIN_RAM_SDRAM`, `BOARD_CLK_FREQ` (per clock variant), `UART_BAUD_RATE=115200` |
 | `src/gowin_rpll_27_54.v` | One rPLL: 54 MHz (SDRAM ctrl) + 54 MHz shifted (SDRAM chip) + 27 MHz (CPU/bus/OSC) |
 | `src/nd120_tang20k.cst` / `.sdc` | Pins (verified 20K pinout) + 27 MHz input clock |
 | `nd120_tang20k.gprj` | Gowin GUI project - 247 files, generated from the Verilator dependency list (single source of truth for the tcl too) |
@@ -185,7 +187,7 @@ clock-enable refactor closes 27 MHz separately. It switches the rPLL and
 `BOARD_CLK_FREQ` together, and the SDRAM bridge derives its refresh counts
 from `BOARD_CLK_FREQ` automatically. Comment the define out for 27/54 MHz.
 
-First light checklist: heartbeat LED blinking -> OPCOM console at **9600 8N1**
+First light checklist: heartbeat LED blinking -> OPCOM console at **115200 7E2**
 on the board's USB serial -> compare boot behaviour against
 [`../../docs/boot-golden-spec.md`](../../docs/boot-golden-spec.md).
 
@@ -283,7 +285,10 @@ microcode-JUMP and TVEC routes. Those are real; see commit 9dc8507 for why
 they must not be constrained away.
 
 `fast20` also switches
-the console to **115200 baud** (7E2) - slow/mid/full stay at 9600 so their
+the console to **115200 baud** (7E2). NOTE: since 27-AUG-2026 EVERY variant
+runs 115200 - the sentence that slow/mid/full stay at 9600 was true only
+briefly and is no longer; `UART_BAUD_RATE` is unconditional in
+`src/tang20k_defines.v:554`. Originally this kept their
 tooling is untouched. The physical baud is the `UART_BAUD_RATE` build
 constant alone; the microcode's BAUDV thumbwheel value (8 = 9600) is stored
 by the SC2661 emulation but never used for bit timing, proven on the Nexys
