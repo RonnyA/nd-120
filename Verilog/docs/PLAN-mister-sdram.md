@@ -47,9 +47,10 @@ on the SDRAM and passes (green lamp).
 
 ## Outstanding
 
-- [ ] FPGA_CLK2_50 setup miss (-1.9 ns, framework HPS clock): find the
-      path; if it is the hps_io <-> core boundary it needs a proper
-      constraint, if it is placement noise a seed or physopt setting.
+- [ ] FPGA_CLK2_50 setup miss (-1.9 ns): FOUND - the CPU status-lamp
+      register into the framework's mcp23009 LED driver, an asynchronous
+      LED path. `nd120.sdc` now declares FPGA_CLK2_50 an asynchronous
+      group; takes effect at the next build - confirm TNS 0 there.
 - [ ] Flash; boot to `#`; tape `400$` FILSYS; LIST-FILE-NAMES on floppy
       and WD0 (the 64K-wrap test that failed on v48); TPE from floppy;
       SINTRAN from WD0 (`201540&` or `&`).

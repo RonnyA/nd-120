@@ -27,6 +27,14 @@ derive_clock_uncertainty
 # bus - so there is no real path to time between clk_cpu and clk_sys. Telling
 # TimeQuest that keeps it from spending effort, and reporting failures, on
 # transfers that are asynchronous by design.
+# FPGA_CLK2_50 is the framework's HPS-side clock (sys_top: the mcp23009 LED
+# expander driver, button timeouts, SPI). Build v50 (02-SEP-2026) reported a
+# -1.9 ns setup miss on it, and the failing path was the CPU's own status-lamp
+# register (IO_REG_41 TTL_74273 Q[5:4], clk_cpu) into mcp23009|din - i.e. the
+# two CPU lamps on LED_DISK/LED_POWER, which the framework serialises out over
+# I2C at leisure. That is not a synchronous transfer, and no other signal of
+# the core reaches that clock. Declared asynchronous, same as the other two.
 set_clock_groups -asynchronous \
     -group [get_clocks {emu|PLL_CPU|altera_pll_i|*divclk}] \
-    -group [get_clocks {emu|pll|pll_inst|altera_pll_i|*divclk}]
+    -group [get_clocks {emu|pll|pll_inst|altera_pll_i|*divclk}] \
+    -group [get_clocks {FPGA_CLK2_50}]
