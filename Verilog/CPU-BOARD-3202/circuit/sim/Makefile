@@ -86,6 +86,16 @@ test-blockram-space: MEM_RAM_49_BLOCKRAM_SPACE_tb
 MEM_RAM_49_BLOCKRAM_SPACE_tb: MEM_RAM_49_BLOCKRAM_SPACE_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
 	$(IVERILOG) -g2012 -DND120_BLOCKRAM_ADDR_BITS=16 -o $@ MEM_RAM_49_BLOCKRAM_SPACE_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
 
+# The same gate at the MiSTer's array shape: three bank slots instead of
+# four (ND120_BLOCKRAM_BANK_SLOTS=3, nd120.qsf). All three banks must still
+# be there at 64K words each - a slot count that dropped a bank would fail.
+test-blockram-space-3banks: MEM_RAM_49_BLOCKRAM_SPACE3_tb
+	./MEM_RAM_49_BLOCKRAM_SPACE3_tb | tee blockram_space3_result.tmp
+	@grep -q "TB_RESULT: PASS" blockram_space3_result.tmp && rm -f blockram_space3_result.tmp MEM_RAM_49_BLOCKRAM_SPACE_tb.vcd
+
+MEM_RAM_49_BLOCKRAM_SPACE3_tb: MEM_RAM_49_BLOCKRAM_SPACE_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
+	$(IVERILOG) -g2012 -DND120_BLOCKRAM_ADDR_BITS=16 -DND120_BLOCKRAM_BANK_SLOTS=3 -o $@ MEM_RAM_49_BLOCKRAM_SPACE_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
+
 # ERRFA evidence probe (ND120_ERRFA_PROBE in MEM_RAM_49_BLOCKRAM.v): the
 # five save-cell writes 0o4347-0o4353 must come back verbatim as the
 # "EF X T A D L" octal console line, and the TX must stay SILENT until the

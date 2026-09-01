@@ -661,10 +661,17 @@ set_global_assignment -name VERILOG_MACRO "MAIN_RAM_BLOCKRAM=1"
 # MEMORY REFERENCE test and halts into STERR if it fails, which never
 # reaches MACL2 and so never gives an OPCOM prompt (boot-sequence.md 8/11) -
 # exactly the symptom this board had on 31-AUG-2026.
-# 15 = 32K words/bank = 192 KB. Nexys's 16 does NOT fit here: 262144 words
-# needs ~512 M10K blocks against this device's 553, plus ~147 already used
-# by the WCS/terminal/framework. 15 needs ~256, landing near 73%.
-set_global_assignment -name VERILOG_MACRO "ND120_BLOCKRAM_ADDR_BITS=15"
+# 16 = 64K words/bank, the FULL logical space (01-SEP-2026). 15 was the
+# 24-AUG Nexys LIST-FILE-NAMES runaway exactly: a 32K-word bank wraps every
+# address >= 0o100000 onto low memory, LIST-USERS works and LIST-FILE-NAMES
+# runs away - and this board reproduced that on both floppy and WD0 with
+# build v48 (Verilog/docs/nd120-facts.md, test-blockram-space).
+# Why 16 "did not fit" before: the array was declared with FOUR bank slots
+# while only banks 0-2 are addressable, so 4 x 64K x 16 = 512 M10K.
+# ND120_BLOCKRAM_BANK_SLOTS=3 declares just the three real banks: 3 x 64K x
+# 16 bits = 308 M10K, against 218 for everything else in v48 = 526/553.
+set_global_assignment -name VERILOG_MACRO "ND120_BLOCKRAM_ADDR_BITS=16"
+set_global_assignment -name VERILOG_MACRO "ND120_BLOCKRAM_BANK_SLOTS=3"
 # --- Quartus RAM handling. Pick exactly ONE of the two macros below. -------
 #
 # Quartus 17.0.2 will not infer M10K from the plain-Verilog arrays in

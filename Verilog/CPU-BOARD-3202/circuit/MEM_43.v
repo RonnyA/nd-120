@@ -599,8 +599,17 @@ module MEM_43 (
 `ifndef ND120_BLOCKRAM_ADDR_BITS
   `define ND120_BLOCKRAM_ADDR_BITS 12
 `endif
+  // Bank slots the array is declared with: 4 (default, unchanged for every
+  // proven build) or 3 (MiSTer: only banks 0-2 exist, and the fourth slot
+  // is what kept a 64K-word bank from fitting the Cyclone V; a 32K-word bank
+  // wraps addresses >= 0o100000 and is the LIST-FILE-NAMES runaway of
+  // 24-AUG-2026 - Verilog/docs/nd120-facts.md).
+`ifndef ND120_BLOCKRAM_BANK_SLOTS
+  `define ND120_BLOCKRAM_BANK_SLOTS 4
+`endif
   MEM_RAM_49_BLOCKRAM #(
-      .BANK_ADDR_BITS(`ND120_BLOCKRAM_ADDR_BITS)
+      .BANK_ADDR_BITS(`ND120_BLOCKRAM_ADDR_BITS),
+      .BANK_SLOTS    (`ND120_BLOCKRAM_BANK_SLOTS)
   ) RAM (
 `ifdef ND120_ERRFA_PROBE
       .ERRFA_CONTX(ERRFA_CONTX),

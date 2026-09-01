@@ -49,6 +49,14 @@ module MEM_RAM_49_BLOCKRAM_SPACE_tb;
 `else
   localparam integer TB_ADDR_BITS = 16;
 `endif
+  // 4 slots = the Nexys/Basys3 array, 3 slots = the MiSTer array (the same
+  // three banks in three slots instead of four). The walk below touches all
+  // three banks, so a slot count that lost one would fail here.
+`ifdef ND120_BLOCKRAM_BANK_SLOTS
+  localparam integer TB_BANK_SLOTS = `ND120_BLOCKRAM_BANK_SLOTS;
+`else
+  localparam integer TB_BANK_SLOTS = 4;
+`endif
 
   reg sysclk = 0;
   always #5 sysclk = ~sysclk;
@@ -62,7 +70,7 @@ module MEM_RAM_49_BLOCKRAM_SPACE_tb;
   wire [17:0] dd_out;
   wire        corr_n;
 
-  MEM_RAM_49_BLOCKRAM #(.BANK_ADDR_BITS(TB_ADDR_BITS)) dut (
+  MEM_RAM_49_BLOCKRAM #(.BANK_ADDR_BITS(TB_ADDR_BITS), .BANK_SLOTS(TB_BANK_SLOTS)) dut (
       .sysclk(sysclk),
       .sys_rst_n(sys_rst_n),
       .AA_9_0(aa),
@@ -172,7 +180,7 @@ module MEM_RAM_49_BLOCKRAM_SPACE_tb;
     check_addr(2, 16'o123456, 16'o000333, "bank2");
 
     if (errors == 0)
-      $display("TB_RESULT: PASS (%0d checks, BANK_ADDR_BITS=%0d)", checks, TB_ADDR_BITS);
+      $display("TB_RESULT: PASS (%0d checks, BANK_ADDR_BITS=%0d, BANK_SLOTS=%0d)", checks, TB_ADDR_BITS, TB_BANK_SLOTS);
     else
       $display("TB_RESULT: FAIL (%0d of %0d checks)", errors, checks);
     $finish;

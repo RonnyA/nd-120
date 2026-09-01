@@ -308,6 +308,8 @@ REGISTRY=(
   # ADDR_BITS=15 wrapping addresses >= 0o100000 onto low memory); the
   # 16-bit address-bit walk also catches dropped/swapped address bits
   "CPU-BOARD-3202/circuit/sim :: test-blockram-space :: TB_RESULT: PASS"
+  # the same gate with the MiSTer's three-slot array (01-SEP-2026)
+  "CPU-BOARD-3202/circuit/sim :: test-blockram-space-3banks :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-ddr2ram   :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-ddr2arb   :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-memchain-ddr2 :: TB_RESULT: PASS"
