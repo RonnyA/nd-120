@@ -635,6 +635,21 @@ module nd120_nexys4ddr_top (
       .panel_enable      (s_panel_en),
       .panel_pil         (s_pil),
       .panel_actlv       (s_panel_actlv),
+      // CPU board lamps: LED[0] RED (MACL in progress), LED[1] GREEN
+      // (initialisation complete - only written once the self-test passes).
+      // INVERTED: active low at the source - IO_REG_41.v:145-148 drives
+      // these from s_emcl_n / s_led3_green_n, both marked "active low".
+      // NOT inverted (fixed 01-SEP-2026). LED[1:0] come from IO_REG_41's IOC
+      // register and are ON WHEN 1 - the register comments say so outright:
+      // bit 5 "Enable master clear: red LED ON1", bit 4 "Initialisation
+      // completed: green LED on1". The `_n` in s_emcl_n / s_led3_green_n
+      // describes those signals' OTHER role, not the lamp, and the assign
+      // comments in IO_REG_41.v that called the LEDs "active low" were wrong.
+      // term_panel lights a lamp on 1, so inverting here produced exactly the
+      // reported display: after init the green bit is 1 -> ~1 = 0 -> green
+      // dark, and the red bit is 0 -> ~0 = 1 -> red lit. Both backwards.
+      .panel_cpu_red     (s_cpu_led[0]),
+      .panel_cpu_green   (s_cpu_led[1]),
       .panel_lev0        (s_dbg_panel[5]),
       // [4] is LHIT - the same signal the real MC68705 panel samples, not the
       // cache's raw comparator output. [6] (LAPA_n) is no longer read here:
@@ -719,6 +734,51 @@ module nd120_nexys4ddr_top (
   wire       s_key_valid;
   wire [7:0] s_key_data;
 
+  //! Raw-scancode debug tap (01-SEP-2026): the Up arrow was reported dead
+  //! on real hardware while Down/Left/Right/PageUp all work, and static RTL
+  //! review of the identically-shaped table entries found nothing - so this
+  //! latches the actual PS/2 byte for eyeball verification on the 7-seg
+  //! display (sw[5], see the seg_value mux below) instead of trusting
+  //! another layer of software to report it faithfully.
+  //! r_dbg_seq (01-SEP-2026): a plain last-value latch cannot tell a real
+  //! repeat of the same byte from a dead key that never fired at all - the
+  //! display would just show whatever the PREVIOUS real keypress was
+  //! forever. This 4-bit counter increments on every code_valid, so the
+  //! leading digit visibly moves on a genuine new event; if it does NOT
+  //! move when a key is pressed, that key sent nothing.
+  wire       s_dbg_code_valid;
+  wire [7:0] s_dbg_code_data;
+  wire       s_dbg_code_release;
+  wire       s_dbg_code_extended;
+  reg  [3:0] r_dbg_seq = 4'h0;
+  reg  [7:0] r_dbg_last_code = 8'h00;
+  reg        r_dbg_last_release = 1'b0;
+  reg        r_dbg_last_extended = 1'b0;
+  always @(posedge clk_pix) begin
+    if (s_dbg_code_valid) begin
+      r_dbg_seq            <= r_dbg_seq + 4'h1;
+      r_dbg_last_code      <= s_dbg_code_data;
+      r_dbg_last_release   <= s_dbg_code_release;
+      r_dbg_last_extended  <= s_dbg_code_extended;
+    end
+  end
+
+  //! Decoded-byte debug tap (01-SEP-2026, sw[6]): F1/F2 confirmed correct
+  //! RAW scancodes (0x05/0x06) but were reported as doing nothing - the
+  //! raw-scancode tap above only proves the keyboard and the receiver are
+  //! right, not that ps2_ascii_table_tdv.v's marker or key_tdv2200.v's
+  //! ESC[nn_ expansion are. This latches s_key_valid/s_key_data (the
+  //! ps2_keyboard_tdv output that FEEDS key_tdv2200.v) the same way, so a
+  //! marker byte (0x80|n, e.g. 0xB2 for F1's ESC[50_) is directly visible.
+  reg [3:0] r_dbg_seq2 = 4'h0;
+  reg [7:0] r_dbg_last_ascii = 8'h00;
+  always @(posedge clk_pix) begin
+    if (s_key_valid) begin
+      r_dbg_seq2       <= r_dbg_seq2 + 4'h1;
+      r_dbg_last_ascii <= s_key_data;
+    end
+  end
+
   // Same VT100/TDV2200 compile-time select as the display side - see
   // terminal_top.v's CTRL instantiation. ps2_keyboard/key_vt100 and
   // ps2_keyboard_tdv/key_tdv2200 are genuinely separate module pairs (the
@@ -740,11 +800,11 @@ module nd120_nexys4ddr_top (
 
       .ascii_valid(s_key_valid),
       .ascii_data (s_key_data),
-      // raw scancodes: nothing at this top level consumes them
-      .code_valid   (),
-      .code_data    (),
-      .code_release (),
-      .code_extended()
+      // raw scancodes: latched above for the 7-seg debug tap, sw[5]
+      .code_valid   (s_dbg_code_valid),
+      .code_data    (s_dbg_code_data),
+      .code_release (s_dbg_code_release),
+      .code_extended(s_dbg_code_extended)
   );
 
   wire s_kbd_txd;
@@ -1412,7 +1472,16 @@ module nd120_nexys4ddr_top (
 
   /**********************************************
   *  7-segment display                          *
-  *  sw[15:14] = 00: sw[0] picks CSA / LA (as before)                       *
+  *  sw[15:14] = 00, sw[6] = 1: DECODED keyboard byte debug (01-SEP-2026) -  *
+  *    {seq2[3:0], 4'b0, ascii_data[7:0]} - the byte/marker ps2_keyboard_tdv *
+  *    actually hands to key_tdv2200.v (post-table), NOT the raw scancode - *
+  *    e.g. F1 should read 00B2 (0x80|50). See r_dbg_last_ascii above.      *
+  *  sw[15:14] = 00, sw[6] = 0, sw[5] = 1: raw PS/2 scancode debug -         *
+  *    {seq[3:0], 2'b0, extended, release, code_data[7:0]} - the last        *
+  *    scancode byte the keyboard sent, latched and held. seq increments    *
+  *    on every event, so a leading digit that does NOT move on a keypress  *
+  *    means that key sent nothing at all - see r_dbg_seq above.            *
+  *  sw[15:14] = 00, sw[6] = 0, sw[5] = 0: sw[0] picks CSA / LA (as before) *
   *  sw[15:14] = 01: {FDISK req count[7:0], done count[7:0]}                *
   *  sw[15:14] = 10: {err count[7:0], first err code, last err code}        *
   *  sw[15:14] = 11: first FDISK_LSECT requested                            *
@@ -1450,6 +1519,9 @@ module nd120_nexys4ddr_top (
       (sw[15:14] == 2'b01) ? {dbg_freq_cnt, dbg_fdone_cnt} :
       (sw[15:14] == 2'b10) ? {dbg_ferr_cnt, dbg_code_first, dbg_code_last} :
       (sw[15:14] == 2'b11) ? dbg_lsect_first :
+      sw[6]                ? {r_dbg_seq2, 4'b0, r_dbg_last_ascii} :
+      sw[5]                ? {r_dbg_seq, 2'b0, r_dbg_last_extended, r_dbg_last_release,
+                               r_dbg_last_code} :
       sw[0] ? {2'b0, s_debug_la_23_10}
             : {3'b0, CSA_12_0};
   // Left four digits: a fixed live debug panel (DEBUG-PANEL.md):

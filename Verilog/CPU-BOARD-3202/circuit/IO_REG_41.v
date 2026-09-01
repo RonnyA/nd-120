@@ -141,10 +141,14 @@ module IO_REG_41 (
 
 
 
-  // CPU BOARD LED: RED (Will light up run while MASTER CLEAR is running) active low
+  // CPU BOARD LED: RED (lights while MASTER CLEAR is running). ON WHEN 1 -
+  // see the IOC register bit 5 comment below ("red LED ON1"). It is NOT active
+  // low; the `_n` names EMCL_n's own polarity, not the lamp's. Saying "active
+  // low" here is what made the Nexys panel invert it (01-SEP-2026).
   assign IOLED[0] = s_emcl_n;
 
-  // CPU BOARD LED: GREEN (Will light up green) active low
+  // CPU BOARD LED: GREEN (initialisation completed). ON WHEN 1 - see the IOC
+  // register bit 4 comment below ("green LED on1"). NOT active low.
   assign IOLED[1] = s_led3_green_n;
 
   /*******************************************************************************
