@@ -28,9 +28,9 @@ TERM_SRC = $(TERM)/terminal_top.v $(TERM)/terminal_ctrl.v $(TERM)/text_screen.v 
            $(TERM)/term_banner.v $(TERM)/term_banner_rom.v \
            $(TERM)/term_console_feed.v $(TERM)/term_panel.v $(TERM)/term_panel_rom.v $(TERM)/rate_meter.v $(TERM)/ratio_meter.v
 
-.PHONY: all test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps lint clean
+.PHONY: all test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices lint clean
 
-all: test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps
+all: test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices
 	@echo "MiSTer core: all testbenches passed"
 
 # The storage backend: the ND-120 client bus (Verilog/docs/
@@ -47,6 +47,18 @@ test-storage-hps: nd_storage_hps_tb.vvp
 	@grep -q "TB_RESULT: PASS" nd_storage_hps_tb.log 		|| { echo "nd_storage_hps_tb FAILED"; exit 1; }
 
 nd_storage_hps_tb.vvp: nd_storage_hps_tb.v hps_io_model.v ../rtl/nd_storage_hps.v
+	$(IVERILOG) $(IVFLAGS) -I$(SDFAT) -o $@ $^
+
+# The whole storage subsystem at the controller seams: two floppy adapters,
+# two Winchester adapters and the tape adapter on the backend. The first
+# configuration anywhere with a second floppy drive and a second Winchester
+# unit - the bench exists to prove drive/unit 1 reads ITS slot and that the
+# OR of two adapters' outputs is clean.
+test-storage-devices: nd_storage_mister_devices_tb.vvp
+	@$(VVP) $< | tee nd_storage_mister_devices_tb.log
+	@grep -q "TB_RESULT: PASS" nd_storage_mister_devices_tb.log 		|| { echo "nd_storage_mister_devices_tb FAILED"; exit 1; }
+
+nd_storage_mister_devices_tb.vvp: nd_storage_mister_devices_tb.v hps_io_model.v 		../rtl/nd_storage_mister_devices.v ../rtl/nd_storage_hps.v 		$(SDFAT)/nd_storage_floppy_adapter.v $(SDFAT)/nd_storage_disc_adapter.v 		$(SDFAT)/nd_storage_tape_adapter.v
 	$(IVERILOG) $(IVFLAGS) -I$(SDFAT) -o $@ $^
 
 # Microcode trace buffer. Ordering matters: its whole job is to be diffed

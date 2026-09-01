@@ -4,8 +4,22 @@
 
 ## Next
 
-Phase 2: the MiSTer aggregator (two floppy adapters, two Winchester
-adapters, the tape adapter) on top of `nd_storage_hps`, sim only.
+Phase 3: wire `nd_storage_mister_devices` into `nd120.sv`, add the five
+OSD mount lines and the `hps_io` block ports, update `files.qip` and the
+build-defines doc. Still no build.
+
+Phase 2 landed 01-SEP-2026: `Verilog/fpga/mister/rtl/nd_storage_mister_devices.v`
+(two floppy adapters DRIVE 0/1, two Winchester adapters UNIT 0/1 with the
+8x9x1024 geometry, the tape adapter, outputs ORed per controller as the
+Tang aggregator does) and `Verilog/fpga/mister/sim/nd_storage_mister_devices_tb.v`
+(8 checks at the controller seams: empty-slot NOTOPEN, media format per
+drive, reads on drive 0/1 and unit 0/1 each from its own slot, floppy and
+Winchester read-modify-write sector writes with the neighbour sector
+intact, tape stream across a block edge, rewind, EOF silence without a
+fault, no-image fault). `make test-storage-devices`, registered. Verilator
+lint clean. The floppy `DISK_TIMEOUT` is not needed for a missing image
+any more (the backend answers NOTOPEN at once); it stays a Phase 3 item
+only as insurance against a silent HPS.
 
 Phase 1 landed 01-SEP-2026: `Verilog/fpga/mister/rtl/nd_storage_hps.v`
 (the backend), `Verilog/fpga/mister/sim/hps_io_model.v` (signal-level
@@ -122,24 +136,6 @@ The rules of the block interface, from the code:
   2048-byte block, so the tape stays on an `S` slot (slot 4). Fallback if
   that misbehaves on the board: an `F` line with `ioctl_wait` pacing, the
   PDP-1 shape.
-
-## Phase 2 - adapters and the tape, still sim only
-
-- [ ] `nd_storage_mister_devices.v`: the MiSTer counterpart of
-      `nd_storage_devices` - two `nd_storage_floppy_adapter` (DRIVE 0, 1),
-      two `nd_storage_disc_adapter` (UNIT 0, 1, `GEO_HEADS=8, GEO_SPT=9`),
-      one `nd_storage_tape_adapter`, outputs ORed per controller exactly as
-      the Tang/Nexys aggregator does. Pin-for-pin `FDISK_*`, `WDISK_*`,
-      `TAPE_*` matching `ND120_CORE`.
-- [ ] Second-instance proof: a testbench that drives floppy drive 1 and WD
-      unit 1 through the aggregator and shows the traffic lands in slots 2
-      and 4, never 1 and 3.
-- [ ] Bring out `TDISK_FAULT`/`TDISK_ERR_CODE` and a per-slot mounted flag
-      for the OSD / LED, so "no tape mounted" is not "tape finished".
-- [ ] Set `DISK_TIMEOUT` on the floppy for this board so a missing image
-      returns an error to SINTRAN instead of hanging; note that the
-      Winchester has no such parameter (decide: add one, or rely on the
-      backend's immediate `done+err`).
 
 ## Phase 3 - `nd120.sv` wiring and the OSD
 
