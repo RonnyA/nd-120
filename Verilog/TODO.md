@@ -65,19 +65,13 @@ QUEUED, in order, once OPCOM is confirmed working on MiSTer:
    why this drifted invisibly. Either canonicalise the sim copies or record a
    dated exception, and extend the sync test to cover `wcs_*.hex`. Until then,
    every sim-vs-board microcode comparison carries this caveat.
-3. **"uartmode: unknown option" popup** when the core starts (Ronny, 01-SEP).
-   Comes from `/media/fat/MiSTer.ini`: a `[ND120]` section with `uartmode=1`
-   was added 31-AUG-2026 while trying to reach the console over the HPS serial
-   bridge. That option name is not valid for this MiSTer build, so it must be
-   corrected or removed. Backup of the original: `MiSTer.ini.bak-nd120`.
-   Related: reading `/dev/ttyS1` returned 0 bytes at every baud, so the bridge
-   was never proven to work at all.
-4. **Storage in the MiSTer OSD** - WD0-3 plus floppy image selection, via
+3. **Storage in the MiSTer OSD** - WD0-3 plus floppy image selection, via
    `sys/sd_card.sv` presenting an OSD-mounted image as a virtual SPI SD card
    to the existing SD-FAT/SPI stack, rather than writing `hps_io` block-device
    glue.
 
-For 1 and 2 the PDP-11 MiSTer core is a useful SPEC ONLY - read it for the
+For 1 and 3 - main memory and storage - the PDP-11 MiSTer core is a useful
+SPEC ONLY - read it for the
 shape of the solution, never copy its code (Ronny, 31-AUG-2026; also a licence
 boundary, that core is not MIT and its terminal files are non-free).
 

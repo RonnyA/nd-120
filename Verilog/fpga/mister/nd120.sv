@@ -577,8 +577,14 @@ console_uart_rx #(
 //   * PARITY WITH THE OTHER BOARDS. Nexys and Tang both have a serial
 //     console; this board had only the screen.
 //
-// MiSTer can bridge this to the HPS (MiSTer.ini uartmode), so it is
-// reachable over the network as well as on the physical pins.
+// DO NOT put a [ND120] uartmode= section in /media/fat/MiSTer.ini for this.
+// Newer MiSTer main binaries can bridge a core's UART to the HPS that way,
+// but the one on this board does not know the option and answers with an
+// "ini error: uartmode unknown" popup on every core start (reported and
+// removed 01-SEP-2026; the board's MiSTer.ini is back to its original
+// content). Nothing here needs it: the console is on the video output, this
+// line drives the physical pins directly, and the link is always 8N1 at
+// 115200 - there is no mode to select. See Shared/support/SC2661_UART.v.
 assign UART_TXD = s_cpu_txd;
 
 // Both sources idle HIGH, so the CPU's RX line is the wired-AND of the local
