@@ -29,6 +29,17 @@ set_global_assignment -name VERILOG_FILE ../../ND-BUS-DEVICES/WINCHESTER/circuit
 set_global_assignment -name VERILOG_FILE rtl/nd120_csa_trace.v
 set_global_assignment -name VERILOG_FILE rtl/nd120_sterr_catch.v
 
+# --- storage from OSD-mounted images (01-SEP-2026) ---------------------------
+# The three controller-facing adapters are the SAME files the Tang and Nexys
+# build; only the backend differs: nd_storage_hps speaks hps_io's block
+# interface instead of an SD card. Nothing else from SD-FAT/ belongs here -
+# no FAT walker, no sector engine, no card init.
+set_global_assignment -name VERILOG_FILE rtl/nd_storage_hps.v
+set_global_assignment -name VERILOG_FILE rtl/nd_storage_mister_devices.v
+set_global_assignment -name VERILOG_FILE ../../SD-FAT/circuit/nd_storage_floppy_adapter.v
+set_global_assignment -name VERILOG_FILE ../../SD-FAT/circuit/nd_storage_disc_adapter.v
+set_global_assignment -name VERILOG_FILE ../../SD-FAT/circuit/nd_storage_tape_adapter.v
+
 # --- the shared, board-independent terminal core ----------------------------
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/terminal_top.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/terminal_ctrl.v
@@ -63,9 +74,9 @@ set_global_assignment -name SYSTEMVERILOG_FILE nd120.sv
 
 # --- ND-120 CPU core, build 2 (31-AUG-2026): ND3202D behind the console.
 # File set copied from fpga/tang-nano-20k/nd120_tang20k.gprj (same depth under
-# Verilog/fpga/, so the ../../ prefix resolves identically), storage-device
-# and board-specific files dropped - build 2 has no floppy/SMD/WD yet
-# (INCLUDE_TAPE/FLOPPY/SMD/WD all 0).
+# Verilog/fpga/, so the ../../ prefix resolves identically), board-specific
+# files dropped. The ND-bus devices and the storage subsystem are listed
+# above (INCLUDE_SMD stays 0).
 set_global_assignment -name VERILOG_FILE ../../CPU-BOARD-3202/circuit/BIF_5.v
 set_global_assignment -name VERILOG_FILE ../../CPU-BOARD-3202/circuit/BIF_BCTL_6.v
 set_global_assignment -name VERILOG_FILE ../../CPU-BOARD-3202/circuit/BIF_BCTL_BDRV_7.v
