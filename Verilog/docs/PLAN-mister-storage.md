@@ -19,11 +19,35 @@ flagged in any ND file (the only suppressed classes are two Verilator
 limitations in the framework's own PS/2 and video code, which Quartus
 built unchanged in v47). Not yet: a Quartus run.
 
-Small open item: `TDISK_FAULT`/`TDISK_ERR_CODE` and the per-slot
-`MOUNTED` flags are brought out of the aggregator to wires in `nd120.sv`
-but not shown anywhere yet - the two board LEDs carry the CPU lamps and
-`LED_USER` is the clock heartbeat, so a display needs an OSD status bit or
-the terminal's panel line. Decide with Ronny.
+Decided (Ronny, 01-SEP-2026): the mount flags and the tape fault code are
+NOT displayed - the OSD shows what is mounted, and the FDISK/WDISK error
+codes reach SINTRAN. The nets stay in `nd120.sv` for a probe.
+
+Phase 4 in progress. Build v48 (Quartus in Docker, from WSL - from Git
+Bash the container's working directory gets rewritten to a Windows path
+and the run dies before Quartus starts) done 01-SEP-2026, 22:47 elapsed:
+0 errors, TNS 0.000 on every clock (worst slack 0.394 ns), ALMs
+20,702/41,910 (49%, was 45%), M10K 423/553 (was 405), uninferred RAM 1
+(the register file, as in v47). No warning class touches the storage
+code. FLASHED: the board boots to the `#` prompt with the storage wired,
+and again after `load_core /media/fat/ND120-storage-test.mgl` mounts
+slots 0, 1, 2 and 4 - mounting does not disturb the CPU. Whether the
+mounts took cannot be seen (no display, by decision); the next checks are
+typed at OPCOM.
+
+Board prep done 01-SEP-2026: `/media/fat/games/ND120/` holds `FLOPPY.IMG`,
+`FLOPPY1.IMG` (runSim's 1.2 MB images), `INSTRUCTION-B.BPU` (the tape,
+renamed for the 3-char extension) and `WD0.IMG` (78 643 200 bytes,
+extracted from `SD-FAT/sim/nd_wd_card.img` with mtools, md5 verified).
+`/media/fat/ND120-storage-test.mgl` mounts slots 0, 1, 2 and 4 on core
+load: `load_core /media/fat/ND120-storage-test.mgl`.
+
+Typing OPCOM commands over ssh does NOT work yet: a `/dev/uinput` keyboard
+(`mister_type.py`, on the board in the games folder) is registered by the
+kernel but neither the console nor the F12 OSD react, so either MiSTer's
+main binary ignores uinput devices or the screenshot leaves out the OSD
+overlay. Until that is solved, the `400$` / `1560&` / OPCOM byte-order
+steps need Ronny at the keyboard while the screenshots are pulled here.
 
 Phase 2 landed 01-SEP-2026: `Verilog/fpga/mister/rtl/nd_storage_mister_devices.v`
 (two floppy adapters DRIVE 0/1, two Winchester adapters UNIT 0/1 with the
@@ -156,9 +180,6 @@ The rules of the block interface, from the code:
 
 ## Phase 4 - board (needs Ronny's go for every build and flash)
 
-- [ ] Quartus build in Docker (~25 min); check M10K/ALM delta against v47
-      (405/553 M10K before) - the adapters' buffers and the disc adapter's
-      stream-through should cost little; the floppy adapter holds one block.
 - [ ] Byte-order check FIRST: mount a floppy image with a known first
       sector in slot 0, read it with OPCOM, compare the words to the image
       bytes. Flip the one swap line if wrong, rebuild.
