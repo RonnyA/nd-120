@@ -91,6 +91,35 @@ COL_LEGEND       = 72         # RUNNING / OPCOM, driven by the RUN line
 COL_MIPS_LABEL   = 58         # "MIPS"
 COL_MIPS_VALUE   = 63         # XX.XX, 5 cells
 
+# --- CPU lamps -------------------------------------------------------------
+#
+# The two lamps the real ND-120 CPU board carries, asked for by Ronny
+# (31-AUG-2026). ND3202D.v:143 exports them as LED[0] = CPU RED and
+# LED[1] = CPU GREEN, and boot-sequence.md section 10 gives their meaning
+# from the COMM,SIOC register the microcode writes:
+#
+#   RED   (SIOC bit 5, value 000040) Master Clear / MACL in progress
+#   GREEN (SIOC bit 4, value 000020) initialisation complete - written ONLY
+#                                    at MACL2, i.e. only after the CPU
+#                                    self-test has PASSED
+#
+# So GREEN is the boot verdict at a glance: lit means the self-test passed
+# and OPCOM should be alive; RED alone means still in Master Clear, or
+# halted in STERR on a failed self-test, which never reaches OPCOM and so
+# never prints a prompt. That is exactly the question the MiSTer bring-up
+# could not answer from the screen.
+#
+# Rows 3 and 4 to the right of the octal ruler (which stops at column 55)
+# are the only free space wide enough - row 0 holds HDD/FLOPPY labels and
+# rows 1/2 hold the RUNNING/OPCOM legend out to column 78.
+#
+# The letters are STATIC text, like the disc lamps: term_panel.v reverses
+# the cell when the lamp is lit, so an unlit lamp is a plain dim letter and
+# a lit one is a filled box with the letter knocked out.
+COL_CPU_LABEL    = 60         # "CPU"
+COL_CPU_RED      = 64         # "R"
+COL_CPU_GREEN    = 66         # "G"
+
 DYNAMIC = 0x00                # "term_panel.v fills this cell in"
 
 
@@ -180,6 +209,13 @@ def build():
     put_dynamic(g, 1, COL_LEGEND, 7)     # "RUNNING" or blank
     put_dynamic(g, 2, COL_LEGEND, 7)     # "OPCOM  " or blank
 
+    # --- the CPU lamps, right of the octal ruler ----------------------------
+    # Static letters; term_panel.v reverses the cell to light a lamp, the same
+    # way the disc lamps and the ruler's reversed triplets work.
+    put(g, 3, COL_CPU_LABEL, "CPU")
+    put(g, 3, COL_CPU_RED,   "R")
+    put(g, 3, COL_CPU_GREEN, "G")
+
     return g
 
 
@@ -238,6 +274,7 @@ def main():
         ("COL_FLP_R", COL_FLP_R), ("COL_FLP_W", COL_FLP_W),
         ("COL_LEGEND", COL_LEGEND),
         ("COL_MIPS_VALUE", COL_MIPS_VALUE),
+        ("COL_CPU_RED", COL_CPU_RED), ("COL_CPU_GREEN", COL_CPU_GREEN),
         ("PANEL_COLS", COLS), ("PANEL_ROWS", ROWS),
     ]:
         out.append("  localparam integer %-18s = %d;\n" % (name, value))

@@ -361,7 +361,16 @@ module IO_DCD_38 (
   // Calculate OSC signal
   assign s_osc_inp1 = ~(s_XTAL1 & s_oc1 & s_oc0);  // Chip 10F
   assign s_osc_inp2 = ~(s_oc0_n & s_oc1_and_xtal2_n);
-`ifdef VERILATOR_SIM
+// ND120_FORCE_FPGA_OSC (01-SEP-2026): take the FPGA branch even in a Verilator
+// build. The two branches are NOT equivalent - one is a combinational decode of
+// XTAL/oc0/oc1, the other a clean clock net - and OSC clocks the AM29C821 delay
+// chain and PAL_44403C (DLY0/DLY1). So a simulator run is NOT a like-for-like
+// reference for anything that depends on OSC phase, which includes cycle
+// timing. Needed to tell a genuine MiSTer fault from a sim-vs-FPGA difference
+// that every board shares (Nexys and Tang boot on the FPGA branch).
+`ifdef ND120_FORCE_FPGA_OSC
+  assign s_osc = s_XTAL1;
+`elsif VERILATOR_SIM
   assign s_osc = ~(s_osc_inp1 & s_osc_inp2);
 `else
   // FPGA: OSC must be a CLEAN clock net, not a combinational LUT decode. The

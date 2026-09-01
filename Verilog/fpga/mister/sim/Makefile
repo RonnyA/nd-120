@@ -28,10 +28,55 @@ TERM_SRC = $(TERM)/terminal_top.v $(TERM)/terminal_ctrl.v $(TERM)/text_screen.v 
            $(TERM)/term_banner.v $(TERM)/term_banner_rom.v \
            $(TERM)/term_console_feed.v $(TERM)/term_panel.v $(TERM)/term_panel_rom.v $(TERM)/rate_meter.v $(TERM)/ratio_meter.v
 
-.PHONY: all test-console lint clean
+.PHONY: all test-console test-diag-print test-csa-trace test-csa-trig test-sterr lint clean
 
-all: test-console
+all: test-console test-diag-print test-csa-trace test-csa-trig test-sterr
 	@echo "MiSTer core: all testbenches passed"
+
+# Microcode trace buffer. Ordering matters: its whole job is to be diffed
+# against the simulator's csa_trace.csv, so an off-by-one would point at the
+# wrong microinstruction.
+test-csa-trace: nd120_csa_trace_tb.vvp
+	@$(VVP) $< | tee nd120_csa_trace_tb.log
+	@grep -q "TB_RESULT: PASS" nd120_csa_trace_tb.log \
+		|| { echo "nd120_csa_trace_tb FAILED"; exit 1; }
+
+nd120_csa_trace_tb.vvp: nd120_csa_trace_tb.v ../rtl/nd120_csa_trace.v
+	$(IVERILOG) $(IVFLAGS) -o $@ $^
+
+# The TRIGGERED capture mode: arm on a microcode address, record, then FREEZE.
+# The freeze is the part that must not break - the event under investigation
+# happens once and the machine then settles into a loop that would otherwise
+# overwrite it.
+test-csa-trig: nd120_csa_trace_trig_tb.vvp
+	@$(VVP) $< | tee nd120_csa_trace_trig_tb.log
+	@grep -q "TB_RESULT: PASS" nd120_csa_trace_trig_tb.log \
+		|| { echo "nd120_csa_trace_trig_tb FAILED"; exit 1; }
+
+nd120_csa_trace_trig_tb.vvp: nd120_csa_trace_trig_tb.v ../rtl/nd120_csa_trace.v
+	$(IVERILOG) $(IVFLAGS) -o $@ $^
+
+# Self-test failure catcher: must count ENTRIES into STERR, not clocks spent
+# there, or a single visit reports a meaningless large number and the "the WCS
+# loader walked past it once" case becomes invisible.
+test-sterr: nd120_sterr_catch_tb.vvp
+	@$(VVP) $< | tee nd120_sterr_catch_tb.log
+	@grep -q "TB_RESULT: PASS" nd120_sterr_catch_tb.log \
+		|| { echo "nd120_sterr_catch_tb FAILED"; exit 1; }
+
+nd120_sterr_catch_tb.vvp: nd120_sterr_catch_tb.v ../rtl/nd120_sterr_catch.v
+	$(IVERILOG) $(IVFLAGS) -o $@ $^
+
+# The CPU liveness probe. It exists to be BELIEVED when it reports a dead
+# clock or a stuck microcode address, so its formatting is checked rather
+# than eyeballed - the MIPS tap on this project was flashed wrong twice.
+test-diag-print: nd120_diag_print_tb.vvp
+	@$(VVP) $< | tee nd120_diag_print_tb.log
+	@grep -q "TB_RESULT: PASS" nd120_diag_print_tb.log \
+		|| { echo "nd120_diag_print_tb FAILED"; exit 1; }
+
+nd120_diag_print_tb.vvp: nd120_diag_print_tb.v ../rtl/nd120_diag_print.v
+	$(IVERILOG) $(IVFLAGS) -o $@ $^
 
 test-console: nd120_console_mister_tb.vvp
 	@$(VVP) $< | tee nd120_console_mister_tb.log

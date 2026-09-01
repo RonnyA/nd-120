@@ -66,6 +66,25 @@ module nd120_console_mister_tb;
       .cpu_byte_data (8'h00),
       .cpu_byte_ready(cpu_ready),
 
+      // Panel off for this testbench - it exercises the console byte path,
+      // not the panel (build 2, 31-AUG-2026 - see term_panel_tb.v for that).
+      .panel_enable      (1'b0),
+      .panel_pil         (4'd0),
+      .panel_actlv       (16'd0),
+      .panel_mips        (16'd0),
+      .panel_cpu_red     (1'b0),
+      .panel_cpu_green   (1'b0),
+      .panel_lev0        (1'b0),
+      .panel_hit         (1'b0),
+      .panel_ring        (2'd0),
+      .panel_paging_on   (1'b0),
+      .panel_interrupt_on(1'b0),
+      .panel_running     (1'b0),
+      .panel_hdd_rd      (1'b0),
+      .panel_hdd_wr      (1'b0),
+      .panel_flp_rd      (1'b0),
+      .panel_flp_wr      (1'b0),
+
       .kbd_valid(kbd_valid),
       .kbd_data (kbd_data),
 

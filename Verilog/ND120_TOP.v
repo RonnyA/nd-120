@@ -56,6 +56,20 @@ module ND120_TOP
     input wire DEBUGFLAG,  // DEBUG FLAG
     output wire [12:0] CSA_12_0,  //! Microcode Address (for debugging)
     output wire [15:0] XMIC_DBG_15_0, //! DEBUG: microsequencer address-advance probe (matches Tang capture: {SC6,s_mclk_n,MCLK_EN,regIW[12:0]})
+    //! DEBUG: FIDBO, the internal data bus. Brought out as a PORT (01-SEP-2026)
+    //! because the wire alone is driven and never read, so Verilator optimises
+    //! it away and the C harness cannot reach it. Needed to read the PIE value
+    //! at microcode 001011 - the value the 001013 branch is decided on, and
+    //! where the MiSTer board first diverges from this boot.
+    output wire [15:0] DEBUG_FIDBO_15_0,
+    //! DEBUG: {TERM_n, CC3_n, CC2_n, CC1_n, CC0_n} - the condition and
+    //! terminate lines the microsequencer branches on. Brought out for the
+    //! same reason as FIDBO above: the MiSTer board reaches NOTI2 and fails to
+    //! leave it while the datapath values agree, which points at the CONDITION
+    //! rather than the data.
+    output wire [4:0]  DEBUG_CC_TERM_OUT,
+    //! DEBUG: cycle-controller terminate-plane inputs (CYC_36.XCYC_DBG_7_0).
+    output wire [11:0] DEBUG_CYC_OUT,
 
     // C-PLUG bus signals
     input wire BREQ_n,      // Bus Request
@@ -277,6 +291,10 @@ module ND120_TOP
   (* mark_debug = "true" *) wire       s_debug_intrq_n;    // Interrupt Request
   (* mark_debug = "true" *) wire       s_debug_powfail_n;  // Power Fail
   (* mark_debug = "true", DONT_TOUCH = "true" *) wire [15:0] s_debug_fidbo;  // FIDBO internal data bus
+  assign DEBUG_FIDBO_15_0 = s_debug_fidbo;
+  assign DEBUG_CC_TERM_OUT = s_debug_cc_term;
+  wire [11:0] s_debug_cyc;
+  assign DEBUG_CYC_OUT = s_debug_cyc;
 
   // ALU debug probes: mark_debug applied directly in submodule source files:
   //   CGA_ALU.v:  s_q_15_0 (Q reg), s_f_15_0 (F result)
@@ -962,6 +980,11 @@ module ND120_TOP
       .PIL(),                 // debug-capture passthrough; unused in this top
       .DEBUG_IREQ_15_0_N(),   // debug-capture passthrough; unused in this top
       .XMIC_DBG_15_0(XMIC_DBG_15_0), // microsequencer address-advance probe (sim golden log)
+      // Register-file B port {LBA_3_0, B_15_0}. Used by the MiSTer bring-up to
+      // read the STERR error number out of R2; this top has no use for it, but
+      // the pin is listed so the instantiation stays complete.
+      .XWRFB_DBG_19_0(),
+      .XCYC_DBG_7_0(s_debug_cyc),
       .LA_23_10(s_debug_la_23_10),
       .CA_9_0(s_debug_ca_9_0),
       .DEBUG_CC_TERM(s_debug_cc_term),

@@ -22,7 +22,7 @@ RBF        = output_files/$(PROJECT).rbf
 # MiSTer network name/address for 'make load' (default is the stock hostname)
 MISTER    ?= root@MiSTer.local
 
-.PHONY: all build font gui check clean load flash
+.PHONY: all build font microcode wcs gui check clean load flash
 
 all: build
 
@@ -36,8 +36,44 @@ font: font8x16.hex
 font8x16.hex: $(FONT_SRC)
 	cp $< $@
 
-build: font
-	docker run --rm -v "$$(pwd)":/build -w /build $(QIMAGE) \
+# Microcode PROM (build 2, 31-AUG-2026): CPU_CS_PROM_19.v's $readmemh, same
+# belt-and-braces as the font - a SEARCH_PATH in nd120.qsf AND a copy here,
+# because which rule Quartus actually uses has not been proven. Canonical
+# source lives next to CPU_CS_PROM_19.v itself; Basys3's vivado_build.tcl
+# copies the same two files into ITS project dir for the same reason.
+MICROCODE_SRC = ../../CPU-BOARD-3202/circuit/AM27256_45132L.hex ../../CPU-BOARD-3202/circuit/AM27256_45133L.hex
+
+microcode: AM27256_45132L.hex AM27256_45133L.hex
+
+AM27256_45132L.hex: ../../CPU-BOARD-3202/circuit/AM27256_45132L.hex
+	cp $< $@
+
+AM27256_45133L.hex: ../../CPU-BOARD-3202/circuit/AM27256_45133L.hex
+	cp $< $@
+
+# files.qip pulls in ../../Terminals/rtl/*.v - paths outside this folder. A
+# container that only mounts this directory as /build cannot see them (they
+# resolve to a nonexistent /Terminals and Quartus reports the modules as
+# undefined entities, not as a missing-file error against the real path,
+# which is what made this confusing the first time). So the mount has to be
+# the whole Verilog/ tree, at the same relative depth this project expects.
+VERILOG_ROOT := $(realpath ../..)
+
+# WCS microcode preload (SKIP_WCS_LOAD, 31-AUG-2026). Nexys/Tang read the
+# wcs_*.hex images directly via $readmemh; this board's WCS is an explicit
+# altsyncram (Quartus refused to infer the plain-Verilog array), and
+# altsyncram wants a MIF - so convert the same 32 images once, here.
+# WITHOUT this the WCS is empty and the CPU executes blank microcode.
+WCS_SRC = ../../../Code/Microcode/wcs
+PYTHON  ?= python3
+
+wcs: wcs_16C.hex.mif
+
+wcs_16C.hex.mif: $(wildcard $(WCS_SRC)/wcs_*.hex)
+	$(PYTHON) tools/wcs_hex_to_mif.py $(WCS_SRC) .
+
+build: font microcode wcs
+	docker run --rm -v "$(VERILOG_ROOT)":/build -w /build/fpga/mister $(QIMAGE) \
 		quartus_sh --flow compile $(PROJECT).qpf
 	@ls -l $(RBF)
 
@@ -55,6 +91,11 @@ check:
 	@test -d sys && echo "sys/ framework present" || echo "MISSING sys/"
 	@echo "== terminal =="; test -f $(FONT_SRC) && echo "font present" || echo "MISSING $(FONT_SRC)"
 	@test -f ../../Terminals/rtl/terminal_top.v && echo "terminal core present" 		|| echo "MISSING ../../Terminals/rtl - the console will not build"
+	@echo "== microcode =="; for f in $(MICROCODE_SRC); do test -f $$f && echo "$$f present" || echo "MISSING $$f - the WCS will load empty microcode"; done
+	@echo "== wcs preload =="; n=$$(ls $(WCS_SRC)/wcs_*.hex 2>/dev/null | grep -v wcs_image | wc -l); \
+		test "$$n" = "32" && echo "32 WCS images present" \
+		|| echo "EXPECTED 32 WCS images in $(WCS_SRC), found $$n - the CPU will run blank microcode"
+	@test -f ../../ND120_CORE.v && echo "ND120_CORE.v present" || echo "MISSING ../../ND120_CORE.v - the CPU will not build"
 
 # scp the core to the MiSTer's SD card. The core is picked up from the menu
 # after a rescan; see docs/03-deploy-and-test.md for hot-load alternatives.

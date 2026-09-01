@@ -63,7 +63,17 @@ module TMM2018D_25 #(
       // the address changes just before the consuming edge (PT translation /
       // trap-handler PT read-modify-write - Issue D, PAGING test 3; and the
       // cache HIT, see the parameter comment).
-      (* ram_style = "distributed" *) reg [7:0] tmm_memory_array[0:2047];
+      //! TWO attributes on purpose. `ram_style` is VIVADO's spelling;
+      //! `ramstyle` is QUARTUS's, and Quartus does not recognise the Vivado
+      //! one - it says so out loud ("Warning (10335): Unrecognized synthesis
+      //! attribute ram_style"), then falls back to building the array out of
+      //! FLIP-FLOPS. Measured on MiSTer 31-AUG-2026: with the four cache
+      //! chips built that way the design wanted 44,114 ALMs against the
+      //! device's 41,910 and the cache had to be compiled out. 4 x 2048 x 8 =
+      //! 65,536 bits as registers is the whole overflow on its own. Each tool
+      //! ignores the attribute it does not know, so both can be stated.
+      (* ram_style = "distributed", ramstyle = "MLAB" *)
+      reg [7:0] tmm_memory_array[0:2047];
       always @(posedge clk) begin
         if (reset_n && !CS_n && !W_n) begin
           tmm_memory_array[ADDRESS] <= D;   // write: chip selected, write enable low
@@ -71,7 +81,9 @@ module TMM2018D_25 #(
       end
       assign D_OUT = (!OE_n & !CS_n & W_n) ? tmm_memory_array[ADDRESS] : 8'b0; // <== ASYNC read
     end else begin : g_sync
-      (* ram_style = "block" *) reg [7:0] tmm_memory_array[0:2047];  // 2^11 addresses, each 8-bit wide = 2KB (or 16Kbit)
+      // Vivado spelling + Quartus spelling, see the async branch above.
+      (* ram_style = "block", ramstyle = "M10K" *)
+      reg [7:0] tmm_memory_array[0:2047];  // 2^11 addresses, each 8-bit wide = 2KB (or 16Kbit)
       reg [7:0] data_out_reg;
       always @(posedge clk) begin
         if (reset_n && !CS_n) begin

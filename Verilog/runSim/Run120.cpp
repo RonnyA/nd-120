@@ -115,6 +115,9 @@ int HALF_DELAY_WAIT = (DELAY_FRAMES >> 1); // Equivalent to DELAY_FRAMES / 2
 // --- FF-vs-latch divergence instrumentation (build with EXTRA_CFLAGS) ---
 // -DSCRIPT_INPUT : after the boot '#' prompt, auto-inject a scripted command
 // -DTRACE_CSA    : log CSA_12_0 changes (post-boot) to csa_trace.csv
+// -DTRACE_CSA_BOOT : the same, but from cycle 0 - includes the boot itself,
+//                    which is what you want when comparing against a board
+//                    that never finishes booting
 static int g_boot_done_cnt = 0;    // cnt when first '#' output (0 = not yet)
 // Interactive stdin pacing (see the read() gate in the main loop): the sim
 // runs much slower than wall time, so typed or piped chars pile up in the
@@ -152,21 +155,11 @@ static int g_arm_taken = 0;
 // ALUCLK_EN enable pulse. CFETCH was measured DEAD (its FF holds its own Q
 // and only reloads through the scan path on BRK), so it is kept here only
 // as the control that proves the harness sees a real difference.
-static unsigned long long g_gprload = 0;   // ALUCLK_EN & GPRC==01  (candidate)
-static unsigned long long g_arm_gprload = 0;
-// Why gprload can exceed the reference count: the ND120_TRACE_VERIFY boundary
-// detector needs the OPCODE WORD to change (v[17] != prev), so two consecutive
-// instructions with the identical opcode are ONE detected boundary but TWO real
-// instruction loads. Counting those separately turns "close to 1:1" into an
-// explained number instead of a hand-wave.
-static unsigned long long g_gprload_same = 0;    // load whose opcode == previous load
-static unsigned long long g_arm_gprload_same = 0;
-static unsigned g_gprload_prev_cd = 0xFFFFFFFFu;
-// The CORRECTED CGA CFETCH (CGA_DCD CFETCH_FF, fixed 31-AUG so BRK_n clears it
-// and IFETCHN is the real D). Counted as RISING edges of the CGA-level net.
-static unsigned long long g_cfetch2 = 0, g_arm_cfetch2 = 0;
-static unsigned char g_cfetch2_prev = 0;
-#ifdef TRACE_CSA
+// The losing candidates (g_gprload, g_cfetch2 and their armed/repeat
+// counters) were removed 31-AUG-2026 once XGPRLOAD_DBG was settled as the
+// tap. They read ALU-internal aliases Verilator collapses, which broke the
+// build outright; s_debug_cfetch_dbg is the routed signal the panel sees.
+#if defined(TRACE_CSA) || defined(TRACE_CSA_BOOT)
 static FILE *g_csa_fp = nullptr;
 static unsigned g_last_csa = 0xFFFFu;
 #endif
@@ -540,11 +533,27 @@ int main(int argc, char **argv)
 
 	// Load data
 	// Access MEM->RAM fields via rootp
+#ifdef ND120_SIM_BLOCKRAM_RAM
+	// MAIN_RAM_BLOCKRAM builds MEM_RAM_49_BLOCKRAM instead of the sim RAM, so
+	// the b0_lo/b0_hi arrays below do not exist and the harness will not link.
+	// Every use of them is a DEBUG SHORTCUT (BPUN pre-deposit, the DMA test,
+	// and a dump) - none is needed to boot, which happens from the PROM/SD
+	// path. Backing them with scratch arrays keeps those call sites compiling
+	// without special-casing each one.
+	//
+	// Added 01-SEP-2026 so the simulator can be run in the MiSTer's EXACT
+	// configuration. Without the same memory backend the comparison is not
+	// like-for-like: the cycle controller's CC state is driven by the memory
+	// handshake, so a different backend can change CC and TERM all by itself.
+	static uint8_t ram_low[1 << 22], ram_low_9[1 << 22];
+	static uint8_t ram_high[1 << 22], ram_high_9[1 << 22];
+#else
 	auto &ram_low = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo;
 	auto &ram_low_9 = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo_p;
 
 	auto &ram_high = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi;
 	auto &ram_high_9 = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi_p;
+#endif
 
 	// DEBUG PRE-DEPOSIT of a BPUN straight into the RAM arrays, bypassing the
 	// CPU entirely. This is a debug shortcut, NOT how the machine works.
@@ -654,7 +663,7 @@ int main(int argc, char **argv)
 #endif
 
 	long cnt = 0;
-#ifdef TRACE_CSA
+#if defined(TRACE_CSA) || defined(TRACE_CSA_BOOT)
 	g_csa_fp = fopen("csa_trace.csv", "w");
 #endif
 #ifdef TRACE_MIC
@@ -1263,9 +1272,20 @@ int main(int argc, char **argv)
 							cnt, (unsigned)top->CSA_12_0, p, lv_pmin, lv_pmax, lv_pchg);
 						// console UART (2661, CHIP_32H) as the CPU sees it: does a
 						// received byte sit unread (RxRDY), is the receiver even on
-						printf("[live]   uart status=%02x rhr=%02x mode=%02x cmd=%02x rxEnabled=%d txEnabled=%d rxState=%d\n",
+						// NOTE 31-AUG-2026: this used to print
+						// regReceiveHoldingRegister. Commit 8111c7e ("uart: add a
+						// 16-byte RX FIFO") deleted that register - the CPU now
+						// reads s_rx_fifo[s_rx_rptr], and the byte still shifting
+						// in lives in regRxShift - so the old name no longer
+						// compiled at all and runSim could not be built. Printing
+						// the shift register plus both FIFO pointers says more than
+						// the single register ever did: rptr != wptr means a byte
+						// is waiting for the CPU.
+						printf("[live]   uart status=%02x rxshift=%02x rptr=%02u wptr=%02u mode=%02x cmd=%02x rxEnabled=%d txEnabled=%d rxState=%d\n",
 							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regStatusRegister & 0xFFu,
-							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regReceiveHoldingRegister & 0xFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regRxShift & 0xFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__s_rx_rptr & 0x1Fu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__s_rx_wptr & 0x1Fu,
 							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regModeRegister & 0xFFu,
 							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regCommandRegister & 0xFFu,
 							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__cmd_rxEnabled,
@@ -1698,34 +1718,23 @@ int main(int argc, char **argv)
 					// strobe. It is a one-clock enable product, so count it HIGH,
 					// the same way the panel's edge detector will.
 					if (f) g_cfetch_rises++;
-					{   // candidate tap: GPR <- CD (instruction register load)
-						auto rq = top->rootp;
-						unsigned gc = (unsigned)rq->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_gprc_2_0;
-						unsigned ae = (unsigned)rq->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_aluclk_en_i;
-						{   // corrected CFETCH, measured as a rising edge on the CGA net
-							unsigned char c2 = (unsigned char)rq->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_cfetch;
-							if (!g_cfetch2_prev && c2) g_cfetch2++;
-							g_cfetch2_prev = c2;
-						}
-						if (ae && (gc & 1u) && !(gc & 2u))
-						{
-							g_gprload++;
-							unsigned cdw = (unsigned)rq->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_cd_15_0 & 0xFFFFu;
-							if (cdw == g_gprload_prev_cd) g_gprload_same++;
-							g_gprload_prev_cd = cdw;
-						}
-					}
+					// REMOVED 31-AUG-2026: the side-by-side "candidate tap"
+					// probe that recomputed the GPR<-CD load from ALU internals
+					// (s_gprc_2_0, s_aluclk_en_i, s_cd_15_0) and counted the CGA
+					// s_cfetch net. That search is over - the winning tap is
+					// XGPRLOAD_DBG, and s_debug_cfetch_dbg above already carries
+					// it as a routed top-level wire, which is what the FPGA panel
+					// counter actually sees. The internals it read are pure
+					// combinational aliases that Verilator collapses, so the code
+					// no longer compiled at all and runSim could not be built.
 					cf_prev = f;
 					if (cnt >= cf_next)
 					{
-						unsigned long long wg = g_gprload - g_arm_gprload;
 						unsigned long long wc = g_cfetch_rises - g_arm_cfetch;
 						unsigned long long wm = g_macro_boundaries - g_arm_macro;
 						printf("[cfetch] cnt=%d rises=%llu macro=%llu | armed=%d window: cfetch=%llu macro=%llu ratio=%.4f\n",
 						    cnt, g_cfetch_rises, g_macro_boundaries, g_arm_taken,
 						    wc, wm, wm ? (double)wc / (double)wm : 0.0);
-						printf("[gprld]  cnt=%d gprload=%llu | window: gprload=%llu macro=%llu ratio=%.4f\n",
-						    cnt, g_gprload, wg, wm, wm ? (double)wg / (double)wm : 0.0);
 						fflush(stdout);
 						cf_next += 10000000;
 					}
@@ -2350,9 +2359,6 @@ int main(int argc, char **argv)
 								g_arm_taken  = 1;
 								g_arm_cfetch = g_cfetch_rises;
 								g_arm_macro  = g_macro_boundaries;
-								g_arm_gprload = g_gprload;
-								g_arm_gprload_same = g_gprload_same;
-								g_arm_cfetch2 = g_cfetch2;
 								printf("[cfetch] ARMED at cnt=%d (cfetch=%llu macro=%llu before arming)\n",
 								    cnt, g_cfetch_rises, g_macro_boundaries);
 								fflush(stdout);
@@ -2376,21 +2382,13 @@ int main(int argc, char **argv)
 							{
 								unsigned long long wc = g_cfetch_rises - g_arm_cfetch;
 								unsigned long long wm = g_macro_boundaries - g_arm_macro;
-								unsigned long long wg = g_gprload - g_arm_gprload;
-								unsigned long long wsame = g_gprload_same - g_arm_gprload_same;
-								unsigned long long wc2 = g_cfetch2 - g_arm_cfetch2;
-								printf("[cfetch2] CORRECTED CFETCH rises in window = %llu  vs macro = %llu  ratio=%.4f\n",
-								    wc2, wm, wm ? (double)wc2 / (double)wm : 0.0);
-								printf("[gprld]  repeat-opcode loads in window = %llu  (the reference cannot see these)\n", wsame);
-								printf("[gprld]  gprload - repeats = %llu  vs macro = %llu -> %s\n",
-								    wg - wsame, wm,
-								    ((wg - wsame) == wm) ? "EXPLAINED EXACTLY - tap is 1:1 per instruction"
-								                         : "still unexplained - investigate before flashing");
-								printf("[gprld]  VERDICT over the traced window: GPR<-CD loads=%llu, "
-								       "macro boundaries=%llu, ratio=%.4f -> %s\n",
-								    wg, wm, wm ? (double)wg / (double)wm : 0.0,
-								    (wg == wm) ? "EXACT 1:1 - THIS is the MIPS tap"
-								               : "MISMATCH - not 1:1");
+								// The [gprld] / [cfetch2] verdicts that used to
+								// print here compared three candidate MIPS taps
+								// against the golden instruction count. That
+								// search finished - XGPRLOAD_DBG won, and
+								// s_debug_cfetch_dbg below carries it - so the
+								// losing candidates and their ALU-internal reads
+								// were removed on 31-AUG-2026.
 								printf("[cfetch] VERDICT over the traced window: cfetch rises=%llu, "
 								       "macro boundaries=%llu, ratio=%.4f -> %s\n",
 								    wc, wm, wm ? (double)wc / (double)wm : 0.0,
@@ -2442,6 +2440,93 @@ int main(int argc, char **argv)
 				tv_have_prev = 1;
 			}
 			tv_prev_clk = tv_clk;
+		}
+#endif
+#ifdef TRACE_CSA_BOOT
+		// CSA from cycle 0, i.e. THROUGH the boot the plain TRACE_CSA gate
+		// deliberately skips. Added 31-AUG-2026: the MiSTer board was found
+		// spinning in the interrupt-check microcode (CHKIT/PICFM/PICF2) and
+		// never reaching OPCOM, so the question became what a machine that
+		// DOES boot goes through at the same point - which is exactly the
+		// window the post-boot gate throws away.
+		if (g_csa_fp && top->CSA_12_0 != g_last_csa)
+		{
+			fprintf(g_csa_fp, "%ld,%o\n", cnt, (unsigned)top->CSA_12_0);
+			// The PIE read at microcode 001011, whose value decides the
+			// 001013 branch. The MiSTer board falls through there while this
+			// sim jumps to NOTI2, so the two values are worth comparing
+			// directly. Printed, not logged, because it happens ONCE.
+			// 01011 is a C OCTAL literal = the microcode address 001011.
+			// Written 0521 first, which is octal 521 - a different address
+			// entirely, and the probe silently never fired.
+			(void)0;
+			g_last_csa = top->CSA_12_0;
+		}
+		// THE SAME WINDOW THE BOARD CAPTURES, in the same format.
+		//
+		// nd120_csa_trace.v on MiSTer arms on microcode 002026 and then records
+		// (CSA, FIDBO) pairs on each address CHANGE, printing them as
+		// "csa:fidbo". Producing an identical dump here means the two can be
+		// diffed line for line.
+		//
+		// This exists because comparing a single sample from each side gave a
+		// FALSE result once already: the board latched one microinstruction
+		// earlier than this harness printed, so a value the working machine
+		// also produces looked like a divergence. Compare windows, not points.
+		// ALUCLK_EN pulses per CPU clock - the ratio the board reports as
+		// PE/CK. Counting, not sampling: the enables are one-cycle pulses and
+		// a sampled comparison of them is phase-sensitive (see the FIDBO
+		// lesson in the MiSTer skill). Two machines running the same microcode
+		// must step the cycle controller the same number of times.
+		{
+			// This probe point runs ONCE PER SYSCLK PERIOD, always with
+			// top->sysclk == 1 (see the note at the RAM probe below), so each
+			// execution IS one CPU clock - no edge detection needed, and an
+			// edge detect here would never fire.
+			static unsigned long long s_alu = 0, s_clk = 0;
+			s_clk++;
+			if ((top->DEBUG_CYC_OUT >> 10) & 1) s_alu++;
+			if (s_clk == 65536ULL)
+				printf("[rate] clk_cpu=%llu ALUCLK_EN=%llu ratio=%.4f\n",
+				       s_clk, s_alu, (double)s_alu / (double)s_clk);
+		}
+		{
+			static int  s_armed = 0;
+			static int  s_n     = 0;
+			static unsigned s_prev = 0xFFFFu;
+			unsigned csa_now = (unsigned)top->CSA_12_0;
+
+			if (!s_armed && csa_now == 02026) s_armed = 1;
+			// PER-CLOCK, matching nd120_csa_trace.v's PER_CLOCK=1 on the board.
+			// One entry per CPU clock, so a cycle lasting N clocks occupies N
+			// entries and its LENGTH is readable straight off the dump. The
+			// board terminates 1.89x as many cycles as this machine over
+			// identical microcode; this shows which cycles are short.
+			// ND120_TRACE_CSA_LAG: print the PREVIOUS csa beside the current
+			// aux. The board's RTL records both at posedge clk_cpu (pre-edge
+			// values); this harness reads them after eval() with sysclk high
+			// (post-edge). For a registered signal that is a one-clock offset,
+			// so if lagging csa here reproduces the board's window exactly,
+			// the "board advances CSA one clock late" reading is a PROBE
+			// artifact and not a hardware difference.
+			static unsigned s_csa_lag = 0;
+			unsigned csa_show = csa_now;
+#ifdef ND120_TRACE_CSA_LAG
+			csa_show = s_csa_lag;
+#endif
+			s_csa_lag = csa_now;
+			if (s_armed && s_n < 64)
+			{
+				// {cycle-controller inputs, condition lines} - the SAME 13-bit
+				// word the board records as `aux`. The condition lines alone
+				// showed the board missing TERM at 001007 and CC0 at 001020;
+				// the cycle inputs say WHICH input drives the CC state apart.
+				printf("%05o:%06o ", csa_show,
+				       (((unsigned)top->DEBUG_CYC_OUT & 0x7FFu) << 5) |
+				       ((unsigned)top->DEBUG_CC_TERM_OUT & 0x1Fu));
+				if ((++s_n % 4) == 0) printf("\n");
+				s_prev = csa_now;
+			}
 		}
 #endif
 #if defined(TRACE_CSA) || defined(SCRIPT_INPUT)

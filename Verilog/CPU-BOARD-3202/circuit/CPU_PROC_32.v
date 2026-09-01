@@ -94,6 +94,7 @@ module CPU_PROC_32 (
     // Debug
     output [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
     output [15:0] XMIC_DBG_15_0,    //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [19:0] XWRFB_DBG_19_0,   //! DEBUG: register-file B port {LBA_3_0, B_15_0} - STERR error number
     output        XCFETCH_DBG,      //! DEBUG: one rise per macro instruction (see CGA.v)
     output [20:0]        PF_CAPTURED       //! DEBUG: ND120_PF_CAPTURE freeze flag (23-AUG)
 );
@@ -456,7 +457,21 @@ module CPU_PROC_32 (
   // ("ERROR: no valid mapping") where Vivado/Gowin EDA treat it as advisory
   // and fall back. 2048x16 = 32 Kbit as distributed LUT RAM (~2K LUT4).
   // yosys pre-defines YOSYS; every other flow is untouched.
-`ifdef QUARTUS_ALTSYNCRAM
+// QUARTUS_REGBLOCK_ALTSYNCRAM, not QUARTUS_ALTSYNCRAM (31-AUG-2026): this
+// array is now OPT-IN separately from the other two Quartus RAM overrides.
+//
+// The altsyncram version below was added when Quartus refused the plain
+// array - but it refused only because the WCS was failing at the same time
+// and their COMBINED register-fallback demand overflowed the device. With
+// the WCS in real M10K, this array alone is ~32,768 FFs (about 16K ALMs
+// against 41,910, on top of ~11.5K used) and builds fine as written.
+//
+// That matters because this is the CPU REGISTER FILE, read by every
+// instruction, and its combinational read was only ever verified against a
+// hand-written altsyncram stub in simulation - never against real Quartus
+// MLAB silicon. Letting Quartus build exactly what the RTL describes takes
+// that unverified assumption out of the CPU's most critical path.
+`ifdef QUARTUS_REGBLOCK_ALTSYNCRAM
   // Quartus-only: explicit altsyncram, MLAB block type, UNREGISTERED output
   // (31-AUG-2026, MiSTer build 2). This read is genuinely, deliberately
   // asynchronous - s_idb_erf_out below is a plain combinational function of
@@ -586,6 +601,7 @@ module CPU_PROC_32 (
 
       .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
       .XMIC_DBG_15_0(XMIC_DBG_15_0),
+      .XWRFB_DBG_19_0(XWRFB_DBG_19_0),
       .XCFETCH_DBG(XCFETCH_DBG),
       .PF_CAPTURED(PF_CAPTURED)
   );

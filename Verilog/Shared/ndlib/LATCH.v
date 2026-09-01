@@ -7,7 +7,23 @@
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
+// QUARTUS_LATCH_RENAME (31-AUG-2026, MiSTer build 2): Quartus Prime has a
+// built-in WYSIWYG primitive named exactly "LATCH" (3-port: d/ena/q) that
+// silently wins over a same-named user module - "Port ENABLE does not exist
+// in primitive LATCH" is Quartus telling you it resolved the instance to ITS
+// primitive, not this one. A PLAIN rename was tried first and reverted: it
+// broke every -y library build under Verilator (CPU_PROC_32/sim and others)
+// - that tool's -y module search requires the FILENAME to match the module
+// name, and this file stays LATCH.v for every other toolchain, so renaming
+// the module alone made it go looking for a nonexistent ND120_LATCH.v.
+// Gated instead: LATCH everywhere except a Quartus build, which defines
+// QUARTUS_LATCH_RENAME (nd120.qsf) and gets ND120_LATCH. Only one real
+// instantiation exists in the whole repo (CGA_MIC_CSEL.v), gated the same way.
+`ifdef QUARTUS_LATCH_RENAME
+module ND120_LATCH (
+`else
 module LATCH (
+`endif
     input  wire sysclk,    //! FPGA system clock — same code path for sim and FPGA
     input  wire D,
     input  wire ENABLE,

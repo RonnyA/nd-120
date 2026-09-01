@@ -371,7 +371,15 @@ module IO_37(
    // output; that manufactured PRQ->PAN edges the real chip never generates
    // (incl. at cold start), which the CGA_INTR/CGA_TRAP INTRQN lag then
    // mis-dispatched as a phantom macro interrupt -> PIL=10. It is now OPT-IN.
-`ifdef ND120_CONKICK_CONSOLE_SPEEDUP
+// ND120_FORCE_FPGA_STAT3 (01-SEP-2026): take the FPGA branch even in a
+// simulator build. Without it a sim run is NOT a like-for-like reference
+// for anything touching the panel or interrupts: the sim adds a STAT3 pulse
+// from console traffic that NO FPGA board has, and this file's own comment
+// says that pulse "only turns fatal with real FPGA timing". Needed to tell a
+// genuine MiSTer fault from a sim-vs-FPGA difference every board shares.
+`ifdef ND120_FORCE_FPGA_STAT3
+   assign s_stat_4_3_dga[0] = s_stat_4_3[0];
+`elsif ND120_CONKICK_CONSOLE_SPEEDUP
    assign s_stat_4_3_dga[0] = s_stat_4_3[0] | s_conkick;
 `elsif VERILATOR_SIM
    // Pure-sim builds (runSim / sim, VERILATOR_SIM): keep the console-output

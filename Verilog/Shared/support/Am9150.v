@@ -55,7 +55,13 @@ module Am9150 (
    ** 1024x4 = 4 Kbit (~256 LUT4); one instance in the design (MMU cache        **
    ** CHIP_21F, the used/valid bits).                                            **
    *******************************************************************************/
-  (* ram_style = "distributed" *) reg [3:0] am_memory_array[0:1023];
+  //! Vivado spells this `ram_style`, Quartus spells it `ramstyle`, and each
+  //! ignores the other's. Stating only the Vivado one made Quartus fall back
+  //! to flip-flops - see the long note in TMM2018D_25.v, where the same
+  //! omission cost 65,536 registers and forced the MiSTer cache to be
+  //! compiled out entirely.
+  (* ram_style = "distributed", ramstyle = "MLAB" *)
+  reg [3:0] am_memory_array[0:1023];
 
   /*******************************************************************************
    ** RESET (/R) - the real chip resets the ENTIRE memory to 0 "in two cycle   **

@@ -79,6 +79,29 @@ module nd120_console_mister #(
     input  wire [7:0] cpu_byte_data,
     output wire       cpu_byte_ready,
 
+    //! Operator panel (build 2, 31-AUG-2026). Real ports now, threaded
+    //! straight to terminal_top - see the port comment there and
+    //! nd120_nexys4ddr_top.v's wiring for the same DBG_PANEL bit layout
+    //! ([1:0] PCR ring, [2] PONI, [3] IONI, [4] LHIT, [5] LEV0). Build 1 had
+    //! no CPU, so every field would have been a constant; the board (not
+    //! this module) decides whether it is on, via the OSD.
+    input wire        panel_enable,
+    input wire [ 3:0] panel_pil,
+    input wire [15:0] panel_actlv,
+    input wire [15:0] panel_mips,
+    input wire        panel_cpu_red,     //! CPU board LED[0] - MACL in progress
+    input wire        panel_cpu_green,   //! CPU board LED[1] - init complete (self-test passed)
+    input wire        panel_lev0,
+    input wire        panel_hit,
+    input wire [ 1:0] panel_ring,
+    input wire        panel_paging_on,
+    input wire        panel_interrupt_on,
+    input wire        panel_running,
+    input wire        panel_hdd_rd,
+    input wire        panel_hdd_wr,
+    input wire        panel_flp_rd,
+    input wire        panel_flp_wr,
+
     output reg        kbd_valid,  //! one clock per keystroke to the machine
     output reg  [7:0] kbd_data,
 
@@ -214,24 +237,23 @@ module nd120_console_mister #(
       .national (layout_no),
       .mode     (1'b0),   // MiSTer runs one video mode; the scaler does the rest
 
-      // The operator panel is off on this board for now. Build 1 has no
-      // ND-120 behind the console, so every field would be a constant - and a
-      // panel showing constants is worse than no panel. It comes on in build 2
-      // with the CPU, wired from the same DBG_PANEL port the Nexys uses.
-      .panel_enable      (1'b0),
-      .panel_pil         (4'd0),
-      .panel_actlv       (16'd0),
-      .panel_mips        (16'd0),   // no counter on this board yet
-      .panel_lev0        (1'b0),
-      .panel_hit         (1'b0),
-      .panel_ring        (2'd0),
-      .panel_paging_on   (1'b0),
-      .panel_interrupt_on(1'b0),
-      .panel_running     (1'b0),
-      .panel_hdd_rd      (1'b0),
-      .panel_hdd_wr      (1'b0),
-      .panel_flp_rd      (1'b0),
-      .panel_flp_wr      (1'b0),
+      // Real signals now (build 2) - see the port comment above.
+      .panel_enable      (panel_enable),
+      .panel_pil         (panel_pil),
+      .panel_actlv       (panel_actlv),
+      .panel_mips        (panel_mips),
+      .panel_cpu_red     (panel_cpu_red),
+      .panel_cpu_green   (panel_cpu_green),
+      .panel_lev0        (panel_lev0),
+      .panel_hit         (panel_hit),
+      .panel_ring        (panel_ring),
+      .panel_paging_on   (panel_paging_on),
+      .panel_interrupt_on(panel_interrupt_on),
+      .panel_running     (panel_running),
+      .panel_hdd_rd      (panel_hdd_rd),
+      .panel_hdd_wr      (panel_hdd_wr),
+      .panel_flp_rd      (panel_flp_rd),
+      .panel_flp_wr      (panel_flp_wr),
 
       .colour   (colour),
 

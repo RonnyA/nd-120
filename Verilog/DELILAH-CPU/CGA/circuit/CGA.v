@@ -145,6 +145,15 @@ module CGA (
     output [15:0] DEBUG_FIDBO_15_0,
     output [15:0] XFIDB_15_0_OUT,
     output [15:0] XMIC_DBG_15_0, //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    //! DEBUG: the register-file B PORT, as {LBA_3_0, B_15_0}. Added 01-SEP-2026
+    //! for the MiSTer bring-up: the self-test failure path is
+    //!     STERR: B,R2 ALUF,PASSB ALUD,Q ...   (microcode 002156)
+    //! which puts the error number - held in R2 - onto this very port. Latching
+    //! it at CSA==002156 therefore reads the error number WITHOUT needing to
+    //! know which of the 16 register slots the assembler's "R2" decodes to, and
+    //! the LBA half reports that slot as a by-product. Read-only fan-out; adds
+    //! no logic to the gate array.
+    output [19:0] XWRFB_DBG_19_0,
     output        XCFETCH_DBG,   //! DEBUG: CFETCH (Command Fetch, CGA_DCD registered) - one rise
                                  //! per macro instruction fetched, cache hit or miss. Read-only
                                  //! fan-out for the panel MIPS counter; adds NO logic to the
@@ -234,6 +243,11 @@ module CGA (
   // the GPR load from CD, exposed by CGA_ALU as XGPRLOAD_DBG. s_cfetch itself is
   // still used by DCD/MIC/TESTMUX below - only this debug tap changed.
   assign XCFETCH_DBG = s_gprload_dbg;
+
+  // Register-file B port, straight out for the STERR error-number probe - see
+  // the XWRFB_DBG_19_0 port comment. s_b_15_0 is whatever register LBA selects
+  // this microinstruction, so at STERR it is R2.
+  assign XWRFB_DBG_19_0 = {sx_lba_3_0_out[3:0], s_b_15_0[15:0]};
   wire        s_clff_n;
   wire        s_clirq_n;
   (* mark_debug = "true", DONT_TOUCH = "true" *) wire        s_cond;

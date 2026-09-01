@@ -259,6 +259,13 @@ module ND120_CORE #(
     output wire [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
     output wire [15:0] DEBUG_IREQ_15_0_N, //! DEBUG: raw interrupt-request vector (active low)
     output wire [15:0] XMIC_DBG_15_0,    //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    //! DEBUG: register-file B port as {LBA_3_0, B_15_0}. At microcode address
+    //! 002156 (STERR) the microcode does "B,R2 ALUF,PASSB", so this carries the
+    //! self-test error number that STERR exists to display.
+    output wire [19:0] XWRFB_DBG_19_0,
+    //! DEBUG: cycle-controller terminate-plane inputs, see CYC_36.v.
+    //!   [0] SHORT_n [1] SLOW_n [2] HIT [3] BRK_n [4] DLY0_n [5] DLY1_n [7:6] CSDELAY
+    output wire [11:0] XCYC_DBG_7_0,
     output wire DBG_PTW_LVL,             //! live PT write-strobe level (~EPT_n & ~WMAP_n, 27-AUG overlap probe) - unconditional: every backend has PT chips
 
     //! Operator-panel status in MC68705 Port-D order - see the port comment in
@@ -1235,6 +1242,8 @@ module ND120_CORE #(
       .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
       .DEBUG_IREQ_15_0_N(DEBUG_IREQ_15_0_N),
       .XMIC_DBG_15_0(XMIC_DBG_15_0),
+      .XWRFB_DBG_19_0(XWRFB_DBG_19_0),
+      .XCYC_DBG_7_0(XCYC_DBG_7_0),
       .DBG_PTW_LVL(DBG_PTW_LVL),
       .DBG_PANEL  (DBG_PANEL),
       .PANEL_ACTLV(PANEL_ACTLV),
