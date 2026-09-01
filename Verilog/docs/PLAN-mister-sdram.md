@@ -6,15 +6,26 @@
 
 ## Next
 
-Ronny retries fs.BPU LIST-FILE-NAMES on floppy and WD0 on build v50,
-which is on the board.
+The garbled first lines of the SINTRAN boot on the console (dropped
+characters in the burst before the watchdog message; later output clean).
 
-Build v50 (02-SEP-2026): 0 errors, ALMs 20,474 (49%), M10K 165/553 (was
-423 - the block-RAM main memory is gone), CPU clock slack +6.0 ns, clk2x
-+4.2 ns. One miss: FPGA_CLK2_50, the framework's HPS clock, -1.9 ns
-(v48 had +0.39 on the same clock; placement moved it). FLASHED: boots to
-`#` with the images mounted - the self-test's memory reference test runs
-on the SDRAM and passes (green lamp).
+## BOARD RESULTS, build v50 (Ronny at the keyboard, 02-SEP-2026 00:30-00:50)
+
+- fs.BPU from tape: LIST-USERS and LIST-FILE-NAMES on floppy and WD0 - the
+  64K-wrap runaway is GONE.
+- `1560&` with runSim FLOPPY1.IMG in drive 0: TPE Monitor B01 banner, `TPE>`.
+  TPE CONFIG ok, INSTRUCTION ok, PAGING running. (The earlier "garbage"
+  after 1560& was a d:
+d\s image that is not a boot floppy.)
+- `&` (ALD autoload = 20500&) from WD0.IMG: **SINTRAN III boots** - paging
+  ON, ring 2, "ERS/SINTRAN III Watchdog has started", ESC gives a login.
+  The first ~12 lines of the boot text arrive with characters dropped
+  ("SNAN-VS500M", "PAGSSAPPNG:30B") and CRs missing (staircase); the INFO
+  line and everything after are clean. Subset of the real text, so not a
+  baud or framing mismatch. HDD R/W lamps on the panel line never lit
+  during the boot - a second, separate observation.
+- Banner build stamp added to the MiSTer build (`make banner`), same as the
+  Nexys; shows at the next build.
 
 ## What landed (`7e1e35f`)
 
