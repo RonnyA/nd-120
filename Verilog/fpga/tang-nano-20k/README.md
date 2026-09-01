@@ -200,11 +200,54 @@ slow/mid/full share one 864 MHz VCO, `fast20` uses 648 MHz.
 | `crawl` | 3.375 MHz | 6.75 MHz | - | - |
 | `slow` (default) | 6.75 MHz | 13.5 MHz | **0** | 17.68 MHz |
 | `mid` | 13.5 MHz | 27 MHz | **0** | 19.03 MHz |
-| `fast20` (26-AUG-2026) | **20.25 MHz** | 40.5 MHz | **0** | **20.556 MHz** |
+| `fast20` (26-AUG-2026) | **20.25 MHz** | 40.5 MHz | **0** | **22.932 MHz** (31-AUG; was 20.556) |
 | `full` | 27 MHz | 54 MHz | **1667** | 19.55 MHz |
 
-`fast20` is the fastest TIMING-CLEAN variant (TNS 0; margin over Fmax is
-only 1.5%, so every rebuild must re-check its own `.tr`). It also switches
+The `slow`/`mid`/`full` Fmax figures above predate the 31-AUG `.sdc` work
+and are therefore PESSIMISTIC by an unmeasured amount - they were taken
+while the storage crossings were still being analysed as synchronous. Only
+the `fast20` row has been re-measured.
+
+**31-AUG-2026: `fast20` margin went from 1.5% to 13.2%.** The CPU-domain
+Fmax was never a statement about the CPU. `nd120_tang20k.sdc` was a single
+`create_clock` line, so the data buses between `nd_storage`'s card side
+(`clk_stor`, the 27 MHz `sys_clk` domain) and its client side (`clk_cpu`,
+the PLL's `CLKOUTD`) were analysed as same-edge synchronous paths with a
+required time of 0.000 ns. That produced **24 of the 25 worst setup paths
+in the build**. Two `set_false_path` lines, measured with the `.sdc` as the
+only variable and the source tree hashed identical either side:
+
+| | CPU-domain TNS | failing endpoints |
+|---|---|---|
+| without the two lines | -260.076 ns | 398 |
+| with them | -6.489 ns | 24 |
+
+Together with `aa210eb` taking the MIPS tap off `ALUCLK_EN` (neither fix
+alone got there), `fast20` now closes at **TNS 0.000 on all five clocks,
+setup AND hold**, CPU Fmax **22.932 MHz** against the 20.250 MHz
+constraint. Flashed and confirmed running on the board.
+
+Three things learned doing it, all worth knowing before touching the
+`.sdc` again:
+
+- **A WIDER exception set measured WORSE.** Also excepting the synchroniser
+  first flops (`*/s_meta*` - `SD-FAT/circuit/nds_sync.v` calls it
+  `// first flop (metastability guard)`) and the `s_led_*_stretch` LED
+  counter describes the hardware just as correctly, but on an identical
+  tree gave **-35.352 ns over 90 endpoints** vs -6.489/24. Excluding a path
+  also removes the placer's reason to close it. Pick the exception set on
+  measurement, not on how thorough it looks.
+- **Gowin silently ignores a constraint that matches nothing** - check
+  section 3.8 `Timing Constraints Report` in the `.tr` for `Actived`. Worse,
+  a constraint naming a register that did not survive synthesis is a hard
+  `ERROR (TA2003)` that aborts the build and leaves the PREVIOUS `.tr` on
+  disk, where it reads as a perfectly plausible result. Compare the `.tr`
+  `<Created Time>` against the `.sdc` mtime.
+- **Do not reach for `set_clock_groups -asynchronous`** between the two
+  domains. It clears every violation in one line and excuses every crossing
+  nobody has read, including the one somebody adds next month.
+
+`fast20` also switches
 the console to **115200 baud** (7E2) - slow/mid/full stay at 9600 so their
 tooling is untouched. The physical baud is the `UART_BAUD_RATE` build
 constant alone; the microcode's BAUDV thumbwheel value (8 = 9600) is stored
