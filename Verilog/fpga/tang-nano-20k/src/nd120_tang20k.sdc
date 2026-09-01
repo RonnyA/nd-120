@@ -47,3 +47,52 @@ create_clock -name sys_clk -period 37.037 -waveform {0 18.518} [get_ports {sys_c
 # ---------------------------------------------------------------------------
 set_false_path -from [get_clocks {sys_clk}] -to [get_regs {*u_nd_storage/u_engine/*r_size*}]
 set_false_path -from [get_clocks {sys_clk}] -to [get_regs {*u_nd_storage/u_engine/*r_buf_wdata*}]
+
+# ---------------------------------------------------------------------------
+# WCS -> ... -> CSCA -> ACAL CHIP_31G -> WCS address  (01-SEP-2026)
+#
+# The control store's own data output cannot reach its own address input
+# through the MAC in one cycle. Two TRANSPARENT LATCHES sit on that route
+# and their enable windows are strictly complementary:
+#
+#   CHIP_31G  (CPU_CS_ACAL_17.v:174-175) enable = CLK && !lua12
+#             CLK = ~TERM_n            (CYC_36.v:293)
+#             -> transparent only while TERM is asserted
+#
+#   L_HI      (CGA_MAC_APOS_CALCA.v:264) enable = ~MCLK
+#             MCLK = ~(TERM_n & MCLK_n) (CYC_36.v:268)
+#             MCLK_n carries ONLY RWCS product terms (PAL_44307C.v:85-88),
+#             so TERM_n = 0 forces MCLK = 1 unconditionally
+#             -> transparent only while MCLK is LOW
+#
+# CHIP_31G open => TERM high => MCLK high => L_HI closed. The two are never
+# open together, so a value launched combinationally from the WCS/ALU/MAC
+# can never cross both in one cycle. What 31G samples is always the value
+# L_HI captured in an earlier phase. Gowin sees the path only because a
+# transparent latch is modelled as a mux (L ? D : reg) and static analysis
+# cannot see phase exclusivity.
+#
+# The original machine also gave this cone a WHOLE MICROCYCLE - minimum
+# 50 ns, typically 75-100 ns (cycle_clock.md:526-538) - not one clock.
+#
+# SCOPED BY LAUNCH POINT, deliberately. `-through [get_nets {*s_csca*}]`
+# alone would be WRONG: the path L_HI's register -> s_csca -> 31G -> WCS
+# address IS real and must stay timed. Only the leg launched by the WCS
+# BSRAM in the same cycle is impossible, so the exception names that launch.
+#
+# NOT relaxed here, both deliberately:
+#   - MIC/MASEL regREP/regW/regIW -> CSA -> LUA -> WCS. The microcode JUMP
+#     route, genuinely single-cycle; a 1-cycle lag there was the Tang
+#     o06000 boot hang (CPU_CS_ACAL_17.v:55-59, commit d076580).
+#   - WRF -> ALU -> TVGEN -> ACAL -> WCS. WRFSTB fires in state b, so no
+#     masking proof exists (see nexys4ddr/nd120_timing.xdc:108-113).
+#
+# This is the leg nexys4ddr/nd120_timing.xdc:120-123 left out for lack of
+# proof ("the CSCA-fed r_uua_31g_hold is NOT included ... no proof"). The
+# proof is the PAL equations cited above.
+#
+# STILL UNVERIFIED: the RWCS case is inferred from MCLK_n's product terms,
+# not simulated. TERM high forces MCLK high there too, so the exclusivity
+# appears to hold, but no simulation has confirmed it.
+# ---------------------------------------------------------------------------
+set_false_path -from [get_regs {*CS/WCS/CHIP_*}] -through [get_pins {*CALCA/L_HI/s_csca_9_0_*_s/F}]
