@@ -122,6 +122,10 @@ module terminal_top #(
 
     //! Disc access strobes - Winchester and floppy, read and write. Held and
     //! displayed by the panel; see term_panel.v.
+    //! CPU board lamps - LED[0] RED (MACL in progress) and LED[1] GREEN
+    //! (initialisation complete, written only at MACL2 = self-test passed).
+    input  wire       panel_cpu_red,
+    input  wire       panel_cpu_green,
     input  wire       panel_hdd_rd,
     input  wire       panel_hdd_wr,
     input  wire       panel_flp_rd,
@@ -133,7 +137,12 @@ module terminal_top #(
     input  wire [15:0] panel_mips,
 
     output wire bell,       //! one pix_clk per BEL received
-    output wire [3:0] leds  //! DECLL (CSI Ps q) - the VT100 keyboard lamps L1-L4
+    output wire [3:0] leds, //! DECLL (CSI Ps q) - the VT100 keyboard lamps L1-L4
+
+    //! Box-charset debug taps (01-SEP-2026, TDV only - tied 0 on VT100,
+    //! which has no NDSS6 concept). See terminal_ctrl_tdv.v's port comment.
+    output wire dbg_box_mode,
+    output wire dbg_saw_esc6
 );
 
   //--------------------------------------------------------------------------
@@ -227,6 +236,8 @@ module terminal_top #(
   // the caller's ROWS, 24 vs 25) differs, so this is the one place that
   // needs to know which one exists.
 `ifdef ND120_TERMINAL_VT100
+  assign dbg_box_mode  = 1'b0;
+  assign dbg_saw_esc6  = 1'b0;
   terminal_ctrl #(
       .COLS  (COLS),
       .ROWS  (ROWS),
@@ -238,6 +249,8 @@ module terminal_top #(
       .ROWS  (ROWS),
       .AWIDTH(AWIDTH)
   ) CTRL (
+      .dbg_box_mode(dbg_box_mode),
+      .dbg_saw_esc6(dbg_saw_esc6),
 `endif
       .clk  (pix_clk),
       .rst_n(pix_rst_n),
@@ -342,6 +355,7 @@ module terminal_top #(
     reg [1:0] s_lev0_sync, s_hit_sync;
     reg [1:0] s_pag_sync, s_int_sync, s_run_sync;
     reg [1:0] s_hrd_sync, s_hwr_sync, s_frd_sync, s_fwr_sync;
+    reg [1:0] s_cred_sync, s_cgrn_sync;
     reg [1:0] s_ring_m, s_ring_s, s_ring_q;
 
     always @(posedge pix_clk or negedge pix_rst_n) begin
@@ -351,6 +365,7 @@ module terminal_top #(
         s_ring_m <= 2'd0; s_ring_s <= 2'd0; s_ring_q <= 2'd0;
         s_lev0_sync <= 2'd0; s_hit_sync <= 2'd0;
         s_pag_sync  <= 2'd0; s_int_sync <= 2'd0; s_run_sync  <= 2'd0;
+        s_cred_sync <= 2'd0; s_cgrn_sync <= 2'd0;
         s_hrd_sync  <= 2'd0; s_hwr_sync <= 2'd0;
         s_frd_sync  <= 2'd0; s_fwr_sync <= 2'd0;
       end else begin
@@ -375,6 +390,8 @@ module terminal_top #(
         s_pag_sync  <= {s_pag_sync[0],  panel_paging_on};
         s_int_sync  <= {s_int_sync[0],  panel_interrupt_on};
         s_run_sync  <= {s_run_sync[0],  panel_running};
+        s_cred_sync <= {s_cred_sync[0], panel_cpu_red};
+        s_cgrn_sync <= {s_cgrn_sync[0], panel_cpu_green};
         s_hrd_sync  <= {s_hrd_sync[0],  panel_hdd_rd};
         s_hwr_sync  <= {s_hwr_sync[0],  panel_hdd_wr};
         s_frd_sync  <= {s_frd_sync[0],  panel_flp_rd};
@@ -415,6 +432,8 @@ module terminal_top #(
     wire w_pag  = s_pag_sync[1];
     wire w_int  = s_int_sync[1];
     wire w_run  = s_run_sync[1];
+    wire w_cred = s_cred_sync[1];
+    wire w_cgrn = s_cgrn_sync[1];
     wire w_hrd  = s_hrd_sync[1];
     wire w_hwr  = s_hwr_sync[1];
     wire w_frd  = s_frd_sync[1];
@@ -516,6 +535,8 @@ module terminal_top #(
         .paging_on   (w_pag),
         .interrupt_on(w_int),
         .running     (w_run),
+        .cpu_red     (w_cred),
+        .cpu_green   (w_cgrn),
         .hdd_rd      (w_hrd),
         .hdd_wr      (w_hwr),
         .flp_rd      (w_frd),
@@ -551,7 +572,16 @@ module terminal_top #(
 `ifdef ND120_TERMINAL_VT100
       .GFX_PAGE     (2),  // DEC Special Graphics
 `else
-      .GFX_PAGE     (3),  // TDV2200 Box
+      // Page 2 (DEC Special Graphics), not page 3 (TDV2200 Box) - 01-SEP-2026.
+      // PED's actual box-drawing goes through SS2 (ESC N, see s_ss2_armed in
+      // terminal_ctrl_tdv.v), which is the same VT100-style graphics alphabet
+      // RetroTerm's own GraphicsI table confirms. NDSS6 (which selected page
+      // 3) was never once observed in a live capture across a full PED
+      // session (dbg_saw_esc6 stayed 0000) - page 3 stays built for whatever
+      // program DOES send NDSS6, but the single graphics-bit in the cell
+      // format can only point at one page at a time, and SS2 is the one
+      // that is actually used.
+      .GFX_PAGE     (2),
 `endif
       .ORIGIN_X     (ORIGIN_X),
       .ORIGIN_Y     (ORIGIN_Y),

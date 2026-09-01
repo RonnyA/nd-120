@@ -243,17 +243,47 @@ if {$vga_console} {
     # which pair actually gets elaborated; Vivado is fine with the other
     # pair sitting unused in the project. Default (no define) is TDV2200 -
     # see Verilog/Terminals/docs/SPEC-tdv2200.md.
+    # ---- build stamp in the power-on banner (01-SEP-2026) -----------------
+    # Six bitstreams went onto this board in one day with no way to tell them
+    # apart on the screen. Regenerate term_banner_rom.v HERE, per build, with
+    # the git short hash and the date, into a build-local file so the committed
+    # one is never dirtied. If anything in this block fails - no git, no python,
+    # a detached tree - fall back to the committed ROM rather than failing the
+    # build over a cosmetic line.
+    set banner_rom [file join $tdir term_banner_rom.v]
+    set stamp ""
+    if {![catch {exec git -C $vroot rev-parse --short HEAD} _h]} {
+        set stamp [string trim $_h]
+        if {![catch {exec git -C $vroot status --porcelain} _d] && [string trim $_d] ne ""} {
+            append stamp "+"   ;# tree had uncommitted changes at build time
+        }
+    }
+    append stamp [clock format [clock seconds] -format { %d-%b-%Y %H:%M}]
+    set _gen [file join $srcdir build term_banner_rom.v]
+    file mkdir [file dirname $_gen]
+    if {[catch {exec python [file join $vroot Terminals font make_banner.py] $stamp $_gen} _e]} {
+        if {[catch {exec python3 [file join $vroot Terminals font make_banner.py] $stamp $_gen} _e2]} {
+            puts "BANNER: generator failed ($_e2) - using the committed ROM"
+            set _gen ""
+        }
+    }
+    if {$_gen ne "" && [file exists $_gen]} {
+        set banner_rom $_gen
+        puts "BANNER: build stamp \"$stamp\""
+    }
+
     foreach f {vga_timing.v font_rom.v char_ram.v text_screen.v terminal_ctrl.v
                terminal_ctrl_tdv.v
                cdc_byte.v byte_fifo.v terminal_top.v ps2_keyboard.v ps2_decoder.v
                ps2_ascii_table.v key_vt100.v
                ps2_keyboard_tdv.v ps2_decoder_tdv.v ps2_ascii_table_tdv.v key_tdv2200.v
-               mips_counter.v term_banner.v term_banner_rom.v
+               mips_counter.v term_banner.v
                term_console_feed.v term_panel.v term_panel_rom.v rate_meter.v
                ratio_meter.v
                console_uart_rx.v console_uart_tx.v} {
         lappend srcs [file join $tdir $f]
     }
+    lappend srcs $banner_rom
 
     # Vivado resolves $readmemh RELATIVE TO THE .v SOURCE, not the project
     # directory (the same trap the wcs_*.hex files hit). font_rom.v lives in

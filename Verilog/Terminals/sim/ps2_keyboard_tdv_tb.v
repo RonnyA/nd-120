@@ -180,11 +180,19 @@ module ps2_keyboard_tdv_tb;
     ps2_send(8'hF0); ps2_send(8'h05);
     ps2_send(8'hF0); ps2_send(8'h12);
 
-    // A dead extended key still sends nothing.
+    // Windows/GUI key (E0 1F) -> FUNK, same marker as F10 (01-SEP-2026,
+    // user-requested second entry point - real Left GUI keycode).
     mark = ascii_count;
-    ps2_send(8'hE0); ps2_send(8'h1F);             // left GUI
-    check(ascii_count == mark, "a dead extended key sent something");
+    ps2_send(8'hE0); ps2_send(8'h1F);             // left GUI / Windows
+    check(ascii_count == mark + 1, "Windows key produced no byte");
+    check(last_ascii == (8'h80 | 8'd42), "Windows key should send the FUNK marker (ESC[42_)");
     ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h1F);
+
+    // A dead extended key still sends nothing (E0 77, no TDV equivalent).
+    mark = ascii_count;
+    ps2_send(8'hE0); ps2_send(8'h77);
+    check(ascii_count == mark, "a dead extended key sent something");
+    ps2_send(8'hE0); ps2_send(8'hF0); ps2_send(8'h77);
 
     //------------------------------------------------------------------
     // Alt+key: a dedicated marker, not the plain letter underneath - and

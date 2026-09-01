@@ -206,6 +206,26 @@ module terminal_ctrl_tdv_tb;
     check(s_cell[12] == 1'b0, "ESC 1 did not clear the graphics attribute back to plain ASCII");
 
     //------------------------------------------------------------------
+    // 2b-2. SS2 (ESC N) - the REAL box-drawing mechanism, found 01-SEP-2026:
+    // NDSS6/ESC 6 above was never once seen in a live PED capture
+    // (dbg_saw_esc6 stayed 0000 through a full session) - RetroTerm's own
+    // TDVEmulatorBase.cs hardwires G2 to GraphicsI permanently, so ESC N
+    // shifts the very NEXT character only through the graphics font, no
+    // lasting mode change. Confirmed live: PED repeats ESC N per cell.
+    //------------------------------------------------------------------
+    send(ESC); send("N");                           // SS2 - next char only
+    send(8'h60);                                    // graphics cell
+    wait_ready;
+    read_cell(cursor_row, 8'd2, s_cell);
+    check(s_cell[12] == 1'b1, "ESC N (SS2) did not set the graphics attribute on the shifted character");
+    check(s_cell[7:0] == 8'h60, "ESC N cell did not store the raw character code");
+
+    send(8'h60);                                    // NOT preceded by ESC N this time
+    wait_ready;
+    read_cell(cursor_row, 8'd3, s_cell);
+    check(s_cell[12] == 1'b0, "SS2 leaked past one character - it must be single-shift only");
+
+    //------------------------------------------------------------------
     // 2c. CSI A/B/C/D (cursor moves) and SGR (m) - the real bug, found
     // 31-AUG-2026 from a live RetroCore trace: SINTRAN echoes a TDV
     // keypress's cursor move back as STANDARD VT100 CSI (ESC[A/B/C/D),
