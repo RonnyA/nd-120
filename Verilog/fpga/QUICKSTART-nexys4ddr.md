@@ -66,12 +66,30 @@ not accepted by your version, `--detect` prints the FTDI cable and
 
 ### 1b. Persistent - write the onboard QSPI flash, survives power-off
 
-In Vivado (Lab) Hardware Manager: Add Configuration Memory Device on the
-xc7a100t (the Nexys 4 DDR carries a Spansion S25FL128S quad-SPI flash),
-point it at the `.bit` (Vivado converts internally), program, then set
-jumper **JP1 to QSPI**. From then on the board boots the ND-120 at every
-power-on with no PC attached. To go back to a plain board, reprogram the
-flash or move JP1 back.
+```
+cd Verilog/fpga/nexys4ddr
+vivado -mode batch -source flash.tcl -tclargs nd120_nexys4ddr.bit
+```
+
+Then set jumper **JP1 to QSPI** and the board boots the ND-120 at every
+power-on with no PC attached. (By hand in the Hardware Manager: Add
+Configuration Memory Device on the xc7a100t and pick
+**`s25fl128sxxxxxx0-spi-x1_x2_x4`** - the board carries a Spansion
+S25FL128**S**, and the similarly named S25FL128**L** is a different chip.)
+
+**This ERASES whatever was in the flash, which on a factory board is
+Digilent's demo application.** Save it first if you want it back:
+
+```
+vivado -mode batch -source readback_qspi.tcl -tclargs demo.bin 16777216
+```
+
+and put it back later with `restore_qspi.tcl`. This repo already carries one
+board's demo in `fpga/nexys4ddr/qspi_factory_backup.zip`. Full detail, and why
+the flash part must be named rather than wildcarded, is in
+`fpga/nexys4ddr/README.md` under "QSPI flash: the demo, and putting it back".
+
+To go back to a plain board, restore the demo or move JP1 back to JTAG.
 
 ### 2. Disc image and boot
 
