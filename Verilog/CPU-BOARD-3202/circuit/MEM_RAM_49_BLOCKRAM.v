@@ -28,7 +28,15 @@
 
 module MEM_RAM_49_BLOCKRAM #(
     parameter integer BANK_ADDR_BITS = 12,  // words per bank = 2**BANK_ADDR_BITS
-    parameter integer NUM_BANKS = 3         // informational; storage is 4 bank slots
+    parameter integer NUM_BANKS = 3,        // informational; storage is BANK_SLOTS bank slots
+    // Bank slots the array is DECLARED with. bidx (below) is only ever 0, 1 or
+    // 2, so slot 3 can never be addressed: 4 slots waste a quarter of the
+    // array (on the MiSTer ~64 M10K, and it turned a 64K-word bank into "does
+    // not fit"), while 3 slots hold exactly the three banks. 4 stays the
+    // default so every proven build (Nexys, Basys3) is unchanged; the MiSTer
+    // sets 3 through ND120_BLOCKRAM_BANK_SLOTS (MEM_43.v). Either value is
+    // covered by test-blockram-space / test-blockram-space-3banks.
+    parameter integer BANK_SLOTS = 4
 ) (
     // Input signals (sheet-49 interface, same as MEM_RAM_49)
     input sysclk,
@@ -99,7 +107,7 @@ module MEM_RAM_49_BLOCKRAM #(
   // Build v47 (01-SEP-2026) inferred this array as M10K (405/553 M10K used,
   // one uninferred RAM left on the device and it is not this one).
   (* ramstyle = "no_rw_check, M10K" *)
-  reg [15:0] mem[0:(4 << BANK_ADDR_BITS)-1];
+  reg [15:0] mem[0:(BANK_SLOTS << BANK_ADDR_BITS)-1];
 
   reg [15:0] rd_raw;
   wire [17:0] rd_q = with_parity(rd_raw);
@@ -113,7 +121,8 @@ module MEM_RAM_49_BLOCKRAM #(
     end
   end
 `else
-  // One 16-bit wide BRAM, 4 bank slots (bank 3 unused).
+  // One 16-bit wide BRAM, BANK_SLOTS bank slots (slot 3, when declared,
+  // is unreachable - see the parameter).
   // PARITY IS NEVER STORED (policy, Ronny 3-AUG-2026): the two parity bits
   // DD[8] and DD[17] are dropped on write and regenerated as ODD parity on
   // read, exactly as MEM_RAM_49_SDRAM and SIP1M9 do. 18 bits wide would have
@@ -124,7 +133,7 @@ module MEM_RAM_49_BLOCKRAM #(
   // 22-AUG-2026, Nexys clk=12 build). Standalone RAMB36 + LUT decode passes.
   // ramstyle is QUARTUS's spelling - see the note in Shared/support/IDT6168A_20.v.
   (* ram_style = "block", cascade_height = 1, syn_ramstyle = "block_ram", ramstyle = "M10K" *)
-  reg [15:0] mem[0:(4 << BANK_ADDR_BITS)-1];
+  reg [15:0] mem[0:(BANK_SLOTS << BANK_ADDR_BITS)-1];
 
   // Raw registered array read. The parity regeneration must sit AFTER this
   // register: with_parity() between the array and the register put an XOR
