@@ -186,7 +186,7 @@ the OSS suite (`make` in `fpga/tang-nano-20k/`); Gowin EDA is the backup
 
 | Switch | Default | What it does |
 |---|---|---|
-| `-Variant slow\|crawl\|mid\|full\|fast20` | slow (6.75 MHz) | Clocking: crawl 3.375, mid 13.5, fast20 20.25 (timing-clean, the fastest trusted), full 27 MHz (1667 setup violations - do not trust unattended) |
+| `-Variant slow\|crawl\|mid\|full\|fast20` | slow (6.75 MHz) | Clocking: crawl 3.375, mid 13.5, fast20 20.25 (**timing-clean, TNS 0 all clocks, Fmax 22.932 MHz = 13.2% margin after the 31-AUG sdc fixes** - the fastest signed-off clock), full 27 MHz (**13 failing endpoints, worst -0.839 ns** - the old "1667 violations" figure predates the sdc work and was mostly an unconstrained crossing; still NOT clean, do not trust unattended). Intermediate clocks are NOT usable - only simple ratios of the 27 MHz crystal can be signed off, see `fpga/tang-nano-20k/README.md` |
 | `-Cache` | cache OUT | `ND120_FORCE_CACHE` - see the cache section above; does not currently fit this part |
 | `-NoPanelClock` | panel clock ON | Falls back to the panel stub |
 | `-DiscsUncached` | cached | `ND_STORAGE_DISCS_UNCACHED`: every disc client direct, no storage-cache reuse |
