@@ -57,11 +57,20 @@ BOARD RESULTS with v48 (Ronny at the keyboard, 01-SEP-2026 evening):
 - Also removed on request: the Console baud OSD option (`ad320fc`).
 - Build v49 with 64K-word banks DID NOT FIT (Fitter: 7802 LABs of 4191,
   140K registers, M10K 534/553). Block RAM cannot hold this machine's
-  memory; the board stays on v48 (192 KB, wraps) and main memory moves
-  to the SDRAM module: `docs/PLAN-mister-sdram.md`. LIST-FILE-NAMES is
-  retested there.
-- On the board now: 32 floppy images from `d:
-d\s` plus the two runSim
+  memory. On Ronny's call the SDRAM job was pulled forward: `7e1e35f`
+  puts 4 MB (2M words, BANK0+BANK2, the Tang and Nexys map) on the
+  DE10-Nano SDRAM module through the Tang's proven sheet-49 bridge in a
+  new 16-bit-module mode (`ND_SDRAM_DQ16`, `ND_SDRAM_REFRESH_US=7`), the
+  bridge's 2x clock from the CPU PLL so it stays edge-aligned. The WCS is
+  untouched (block RAM). Gates: the four Tang bridge configs, the
+  controller and the new `test-dq16` PASS; whole-top lint clean. Build
+  v50 done and FLASHED 02-SEP-2026: boots to `#` on the SDRAM memory
+  (M10K 165/553; one framework-clock timing miss, see PLAN-mister-sdram). Open after it: `nd120.sdc` has no SDRAM pin
+  constraints (neither has the Tang nor the PDP2011 port); at 40 MHz the
+  margins are wide, but if the board misbehaves that is the first thing
+  to add. Then Ronny retries fs.BPU LIST-FILE-NAMES on floppy and WD0,
+  and with 4 MB the SINTRAN boot from WD0 becomes possible here.
+- On the board now: 32 floppy images from `d:\nd\s` plus the two runSim
   ones, all 18 runSim tapes as `.BPU`, `WD0.IMG`.
 
 Typing OPCOM commands over ssh does NOT work yet: a `/dev/uinput` keyboard
