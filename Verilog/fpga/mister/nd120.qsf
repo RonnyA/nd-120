@@ -665,11 +665,35 @@ set_global_assignment -name VERILOG_MACRO "MAIN_RAM_BLOCKRAM=1"
 # needs ~512 M10K blocks against this device's 553, plus ~147 already used
 # by the WCS/terminal/framework. 15 needs ~256, landing near 73%.
 set_global_assignment -name VERILOG_MACRO "ND120_BLOCKRAM_ADDR_BITS=15"
-# QUARTUS_ALTSYNCRAM: Quartus refused plain-Verilog RAM inference for both
-# IDT6168A_20.v (WCS) and CPU_PROC_32.v's registerBlock - see the header
-# comments there. This selects the explicit altsyncram primitive path in
-# both, instead of the plain-Verilog array every other toolchain still uses.
-set_global_assignment -name VERILOG_MACRO "QUARTUS_ALTSYNCRAM=1"
+# --- Quartus RAM handling. Pick exactly ONE of the two macros below. -------
+#
+# Quartus 17.0.2 will not infer M10K from the plain-Verilog arrays in
+# IDT6168A_20.v (WCS, 32 instances) and MEM_RAM_49_BLOCKRAM.v that Vivado,
+# Gowin and Verilator all accept. It reports every one of them as
+#   Info (276007): ... uninferred due to asynchronous read logic
+# and then fails outright trying to build them from flip-flops:
+#   Error (276003): Cannot convert all sets of registers into RAM megafunctions
+#
+# MEASURED 01-SEP-2026 (build v46): adding Quartus's own "ramstyle" spelling
+# to those arrays does NOT fix this. The attribute spelling was never the
+# reason - the shape of the output register is. So one of these two is needed.
+#
+# QUARTUS_RAM_INFER (current): plain-Verilog arrays restructured so Quartus
+# can infer them - the array read gets a register of its own and the
+# bypass/hold logic moves outside it. PREFERRED because it is ordinary
+# Verilog, so iverilog runs the real code and
+# Shared/support/sim/run_altsyncram_equiv.sh proves it cycle-identical to the
+# reference arm (test-altsyncram-equiv). Demonstrated to FAIL that gate when
+# given an extra clock of read latency.
+set_global_assignment -name VERILOG_MACRO "QUARTUS_RAM_INFER=1"
+#
+# QUARTUS_ALTSYNCRAM (fallback, known-good on the board 01-SEP-2026): explicit
+# altsyncram megafunction. Works, but NOTHING simulates a megafunction - the
+# equivalence gate can only compare it against a hand-written stub. That is
+# exactly how outdata_reg_a="CLOCK0" shipped a 2-clock WCS read and stopped
+# the CPU booting for a day. Re-enable this and comment out the line above if
+# the inference arm does not build or does not boot.
+# set_global_assignment -name VERILOG_MACRO "QUARTUS_ALTSYNCRAM=1"
 # ND120_PANEL_CLOCK: ON by default on every other FPGA build (Tang, Nexys).
 # Missing here meant PANEL_ACTLV was a hardcoded stub constant (16'd0) - not
 # just a display gap: the project's own history (panel-clock-68705.md) notes

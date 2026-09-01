@@ -122,6 +122,40 @@ module MEM_RAM_49_BLOCKRAM #(
   );
 
   wire [17:0] rd_q = with_parity(rd_raw);
+`elsif QUARTUS_RAM_INFER
+  // Quartus arm, second attempt (01-SEP-2026) - plain Verilog instead of the
+  // megafunction above, for the reasons set out in Shared/support/IDT6168A_20.v.
+  // Same array, same 1-clock registered read, same hold-while-writing.
+  //
+  // Two differences from the reference arm below, both aimed at inference:
+  //
+  //  1. The array read and write live in their OWN always block, NOT inside
+  //     the sys_rst_n branch of the main one. A memory write sitting under a
+  //     reset condition is a well-known inference blocker, and there is no
+  //     reason for it here - the array is never reset, only ras_d/win_d are.
+  //
+  //  2. The read is unconditional apart from its enable. Where the reference
+  //     holds rd_raw through a write, this re-reads and discards - which is
+  //     what ramstyle "no_rw_check" declares. rd_raw is only ever SAMPLED
+  //     during a read window (win && MWRITE50_n), so what it carries during
+  //     a write window is not observable.
+  //
+  // If Quartus still reports 276007 for this array, this arm is wrong and
+  // QUARTUS_ALTSYNCRAM above remains the answer for main memory.
+  (* ramstyle = "no_rw_check, M10K" *)
+  reg [15:0] mem[0:(4 << BANK_ADDR_BITS)-1];
+
+  reg [15:0] rd_raw;
+  wire [17:0] rd_q = with_parity(rd_raw);
+
+  always @(posedge sysclk) begin
+    if (win) begin
+      rd_raw <= mem[{bidx, a}];
+      // write: ONCE, on the first window edge - same condition as the
+      // reference arm and the same condition the altsyncram used for wren_a
+      if (!MWRITE50_n && !win_d) mem[{bidx, a}] <= {dd_q[16:9], dd_q[7:0]};
+    end
+  end
 `else
   // One 16-bit wide BRAM, 4 bank slots (bank 3 unused).
   // PARITY IS NEVER STORED (policy, Ronny 3-AUG-2026): the two parity bits
@@ -132,7 +166,8 @@ module MEM_RAM_49_BLOCKRAM #(
   // infers CASCADED RAMB36 pairs, and Vivado's DRC REQP-1962 (cascade ADDR15
   // tie-off check) rejects the inferred netlist at place_design (measured
   // 22-AUG-2026, Nexys clk=12 build). Standalone RAMB36 + LUT decode passes.
-  (* ram_style = "block", cascade_height = 1, syn_ramstyle = "block_ram" *)
+  // ramstyle is QUARTUS's spelling - see the note in Shared/support/IDT6168A_20.v.
+  (* ram_style = "block", cascade_height = 1, syn_ramstyle = "block_ram", ramstyle = "M10K" *)
   reg [15:0] mem[0:(4 << BANK_ADDR_BITS)-1];
 
   // Raw registered array read. The parity regeneration must sit AFTER this
@@ -187,9 +222,12 @@ module MEM_RAM_49_BLOCKRAM #(
       if (RAS && !CAS) dd_q <= DD_17_0_IN;
 
 `ifndef QUARTUS_ALTSYNCRAM
-      // Quartus takes this read/write through the altsyncram instance above
-      // instead (clocken0/wren_a/rden_a) - see the QUARTUS_ALTSYNCRAM branch
-      // by the mem/rd_raw declarations.
+`ifndef QUARTUS_RAM_INFER
+      // Both Quartus arms take this read/write elsewhere - the altsyncram
+      // through clocken0/wren_a/rden_a, the inference arm through its own
+      // always block. See the mem/rd_raw declarations above. Note the array
+      // write below sits inside the sys_rst_n else-branch, which is one of
+      // the things the inference arm deliberately moves out.
       if (win) begin
         if (MWRITE50_n) begin
           // read: registered raw, re-reads while CAS; parity regenerated
@@ -200,6 +238,7 @@ module MEM_RAM_49_BLOCKRAM #(
           mem[{bidx, a}] <= {dd_q[16:9], dd_q[7:0]};
         end
       end
+`endif
 `endif
     end
   end
