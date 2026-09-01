@@ -141,14 +141,17 @@ module IO_REG_41 (
 
 
 
-  // CPU BOARD LED: RED (lights while MASTER CLEAR is running). ON WHEN 1 -
-  // see the IOC register bit 5 comment below ("red LED ON1"). It is NOT active
-  // low; the `_n` names EMCL_n's own polarity, not the lamp's. Saying "active
-  // low" here is what made the Nexys panel invert it (01-SEP-2026).
+  // CPU BOARD LED: RED (lights while MASTER CLEAR is running) ACTIVE LOW.
+  // Active low is MEASURED: the MiSTer port passed these through un-inverted
+  // on 31-AUG-2026 and every lamp came out backwards, so its console inverts
+  // both (fpga/mister/nd120.sv:511-518) and GREEN lights correctly there.
+  // The IOC register comments below say "red LED ON1" / "green LED on1";
+  // reading those as active-high and dropping the inversion is exactly the
+  // mistake made on 01-SEP-2026. The measurement wins.
   assign IOLED[0] = s_emcl_n;
 
-  // CPU BOARD LED: GREEN (initialisation completed). ON WHEN 1 - see the IOC
-  // register bit 4 comment below ("green LED on1"). NOT active low.
+  // CPU BOARD LED: GREEN (initialisation completed, i.e. the microcode
+  // reached MACL2 and the self-test passed) ACTIVE LOW - see above.
   assign IOLED[1] = s_led3_green_n;
 
   /*******************************************************************************

@@ -644,17 +644,20 @@ module nd120_nexys4ddr_top (
       // (initialisation complete - only written once the self-test passes).
       // INVERTED: active low at the source - IO_REG_41.v:145-148 drives
       // these from s_emcl_n / s_led3_green_n, both marked "active low".
-      // NOT inverted (fixed 01-SEP-2026). LED[1:0] come from IO_REG_41's IOC
-      // register and are ON WHEN 1 - the register comments say so outright:
-      // bit 5 "Enable master clear: red LED ON1", bit 4 "Initialisation
-      // completed: green LED on1". The `_n` in s_emcl_n / s_led3_green_n
-      // describes those signals' OTHER role, not the lamp, and the assign
-      // comments in IO_REG_41.v that called the LEDs "active low" were wrong.
-      // term_panel lights a lamp on 1, so inverting here produced exactly the
-      // reported display: after init the green bit is 1 -> ~1 = 0 -> green
-      // dark, and the red bit is 0 -> ~0 = 1 -> red lit. Both backwards.
-      .panel_cpu_red     (s_cpu_led[0]),
-      .panel_cpu_green   (s_cpu_led[1]),
+      // INVERTED, and that is MEASURED, not deduced. Both signals are ACTIVE
+      // LOW at the source (IO_REG_41.v drives IOLED[0] from s_emcl_n and
+      // IOLED[1] from s_led3_green_n), and term_panel lights a lamp on 1.
+      // The MiSTer port measured this on 31-AUG-2026: "passing them straight
+      // through showed every lamp backwards", and GREEN lights correctly
+      // there with these inversions in place (fpga/mister/nd120.sv:511-518).
+      //
+      // I removed these on 01-SEP on the strength of the IOC register
+      // comments ("red LED ON1", "green LED on1") reading as active-high.
+      // That was wrong: it overrode an existing hardware measurement with an
+      // interpretation of an ambiguous comment. Do not remove them again
+      // without a fresh measurement that contradicts MiSTer's.
+      .panel_cpu_red     (~s_cpu_led[0]),
+      .panel_cpu_green   (~s_cpu_led[1]),
       .panel_lev0        (s_dbg_panel[5]),
       // [4] is LHIT - the same signal the real MC68705 panel samples, not the
       // cache's raw comparator output. [6] (LAPA_n) is no longer read here:
