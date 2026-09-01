@@ -144,6 +144,11 @@ REGISTRY=(
   # floppy adapters, two Winchester adapters, the tape adapter. Slot
   # separation for drive 1 / unit 1, which no other board has ever built.
   "fpga/mister/sim :: test-storage-devices :: TB_RESULT: PASS"
+  # a back-to-back 115200 burst of the SINTRAN boot lines through the MiSTer
+  # receiver + console glue + TDV controller at 40 MHz and at the Nexys 139.7
+  # MHz: every byte must reach the screen (02-SEP-2026)
+  "fpga/mister/sim :: test-console-burst :: TB_RESULT: PASS"
+  "fpga/mister/sim :: test-console-burst-fast :: TB_RESULT: PASS"
   # --- Shared support chips -------------------------------------------------
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"

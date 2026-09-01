@@ -22,15 +22,17 @@ TERM      = ../../../Terminals/rtl
 
 IVFLAGS = -g2012 -Wall
 
-TERM_SRC = $(TERM)/terminal_top.v $(TERM)/terminal_ctrl.v $(TERM)/text_screen.v \
+# terminal_ctrl_tdv.v is the controller the board builds (terminal_top picks it
+# unless ND120_TERMINAL_VT100 is defined); terminal_ctrl.v is the VT100 sibling.
+TERM_SRC = $(TERM)/terminal_top.v $(TERM)/terminal_ctrl.v $(TERM)/terminal_ctrl_tdv.v $(TERM)/text_screen.v \
            $(TERM)/char_ram.v $(TERM)/vga_timing.v $(TERM)/font_rom.v \
            $(TERM)/cdc_byte.v $(TERM)/byte_fifo.v $(TERM)/ps2_decoder.v $(TERM)/ps2_ascii_table.v \
            $(TERM)/term_banner.v $(TERM)/term_banner_rom.v \
            $(TERM)/term_console_feed.v $(TERM)/term_panel.v $(TERM)/term_panel_rom.v $(TERM)/rate_meter.v $(TERM)/ratio_meter.v
 
-.PHONY: all test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices lint clean
+.PHONY: all test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices test-console-burst test-console-burst-fast lint clean
 
-all: test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices
+all: test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices test-console-burst test-console-burst-fast
 	@echo "MiSTer core: all testbenches passed"
 
 # The storage backend: the ND-120 client bus (Verilog/docs/
@@ -113,6 +115,25 @@ test-console: nd120_console_mister_tb.vvp
 
 nd120_console_mister_tb.vvp: nd120_console_mister_tb.v $(GLUE)/nd120_console_mister.v $(TERM_SRC)
 	$(IVERILOG) $(IVFLAGS) -o $@ $^
+
+# A back-to-back 115200-baud burst of the real SINTRAN boot lines through the
+# MiSTer's receiver + console glue at the board's 40 MHz (and, with
+# test-console-burst-fast, at the Nexys's 139.7 MHz pixel clock). Every sent
+# character must reach the screen. Written 02-SEP-2026 when the first SINTRAN
+# boot on this board showed those lines with every other character missing.
+test-console-burst: console_burst_tb.vvp
+	@$(VVP) $< | tee console_burst_tb.log
+	@grep -q "TB_RESULT: PASS" console_burst_tb.log 		|| { echo "console_burst_tb FAILED"; exit 1; }
+
+console_burst_tb.vvp: console_burst_tb.v $(GLUE)/nd120_console_mister.v $(TERM)/console_uart_rx.v $(TERM_SRC)
+	$(IVERILOG) $(IVFLAGS) -o $@ $^
+
+test-console-burst-fast: console_burst_fast_tb.vvp
+	@$(VVP) $< | tee console_burst_fast_tb.log
+	@grep -q "TB_RESULT: PASS" console_burst_fast_tb.log 		|| { echo "console_burst_fast_tb FAILED"; exit 1; }
+
+console_burst_fast_tb.vvp: console_burst_tb.v $(GLUE)/nd120_console_mister.v $(TERM)/console_uart_rx.v $(TERM_SRC)
+	$(IVERILOG) $(IVFLAGS) -DFAST_PIX -o $@ $^
 
 # Same suppression list as Verilog/sim and Verilog/Terminals/sim - "lint clean"
 # has to mean the same thing everywhere or it means nothing.
