@@ -28,6 +28,20 @@
 // change; with acc32 tied 0 the controller behaves bit-identically to the
 // plain pack16 build.
 //
+// ND_SDRAM_DQ16 (MiSTer / DE10-Nano, 01-SEP-2026; requires ND_SDRAM_PACK16):
+// the SDRAM module on that board is 16 bits wide (SDRAM_DQ[15:0], two DQM
+// pins, A[12:0]). One ND word per 16-bit location, so the pack16 "two words
+// per 32-bit location" folding disappears: addr[20:0] IS the location
+// ({ba[1:0], row[10:0], col[7:0]}, addr[21] unused and 0), both byte lanes
+// are always enabled, and the acc32/din32/dout32 full-location port is
+// meaningless (dout32 returns the 16-bit word zero-extended). The client
+// interface (16-bit din/dout, 22-bit addr, 5-cycle ops, 4-cycle read
+// latency) is otherwise identical, so MEM_RAM_49_SDRAM needs no change
+// beyond leaving the upper 16 DQ and upper 2 DQM bits unconnected at the
+// board top. 2M locations = 4 MB, the same BANK0+BANK2 the Tang has. Any
+// 16-bit module with at least 2048 rows x 256 columns x 4 banks holds it;
+// refresh is the caller's job (MEM_RAM_49_SDRAM, ND_SDRAM_REFRESH_US).
+//
 // Under default settings (max 66.7Mhz):
 // - Data read latency is 4 cycles, read/write take 5 cycles, no overlap.
 // - All ops use auto-precharge; caller must pulse `refresh` once per ~15 us.
@@ -37,7 +51,11 @@ module sdram18
 #(
     parameter         FREQ = 54_000_000,
 
+`ifdef ND_SDRAM_DQ16
+    parameter         DATA_WIDTH = 16,
+`else
     parameter         DATA_WIDTH = 32,
+`endif
     parameter         ROW_WIDTH = 11,  // 2K rows
     parameter         COL_WIDTH = 8,   // 256 words per row
     parameter         BANK_WIDTH = 2,  // 4 banks
@@ -97,7 +115,12 @@ reg [15:0] dout_buf;
 wire [15:0] dq_in_half;
 assign dout = data_ready ? dq_in_half : dout_buf;
 reg [31:0] dout32_buf;
-assign dout32 = data_ready ? dq_in : dout32_buf;
+`ifdef ND_SDRAM_DQ16
+wire [31:0] dq_in32 = {16'b0, dq_in};   // no full-location port on a 16-bit part
+`else
+wire [31:0] dq_in32 = dq_in;
+`endif
+assign dout32 = data_ready ? dq_in32 : dout32_buf;
 `else
 reg [17:0] dout_buf;
 assign dout = data_ready ? dq_in[17:0] : dout_buf;
@@ -132,7 +155,11 @@ reg [3:0] cycle;
 `ifdef ND_SDRAM_PACK16
 reg [15:0] din_buf;
 reg [21:0] addr_buf;    // {ba[1:0], row[10:0], col[7:0], half}
+`ifdef ND_SDRAM_DQ16
+assign dq_in_half = dq_in[15:0];        // one word per location: no half select
+`else
 assign dq_in_half = addr_buf[0] ? dq_in[31:16] : dq_in[15:0];
+`endif
 reg        acc32_buf;   // full-location op, latched with addr_buf
 reg [31:0] din32_buf;
 `else
@@ -179,7 +206,10 @@ always @(posedge clk) begin
         {IDLE, 4'bxxxx}: if (rd | wr) begin
             // bank activate; word address split: {ba, row, col}
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_BankActivate;
-`ifdef ND_SDRAM_PACK16
+`ifdef ND_SDRAM_DQ16
+            SDRAM_BA <= addr[20:19];                // 16-bit part: addr[20:0] is the location
+            SDRAM_A  <= addr[18:8];                 // 11-bit row address
+`elsif ND_SDRAM_PACK16
             SDRAM_BA <= addr[21:20];
             SDRAM_A  <= addr[19:9];                 // 11-bit row address
 `else
@@ -206,7 +236,9 @@ always @(posedge clk) begin
         {READ, T_RCD}: begin
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_Read;
             SDRAM_A[10] <= 1'b1;        // auto precharge
-`ifdef ND_SDRAM_PACK16
+`ifdef ND_SDRAM_DQ16
+            SDRAM_A[9:0] <= {2'b0, addr_buf[COL_WIDTH-1:0]};  // column
+`elsif ND_SDRAM_PACK16
             SDRAM_A[9:0] <= {2'b0, addr_buf[COL_WIDTH:1]};  // column (location)
 `else
             SDRAM_A[9:0] <= {2'b0, addr_buf[COL_WIDTH-1:0]};  // column
@@ -220,7 +252,7 @@ always @(posedge clk) begin
             data_ready <= 1'b0;
 `ifdef ND_SDRAM_PACK16
             dout_buf <= dq_in_half;
-            dout32_buf <= dq_in;
+            dout32_buf <= dq_in32;
 `else
             dout_buf <= dq_in[17:0];
 `endif
@@ -232,7 +264,11 @@ always @(posedge clk) begin
         {WRITE, T_RCD}: begin
             {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_Write;
             SDRAM_A[10] <= 1'b1;        // auto precharge
-`ifdef ND_SDRAM_PACK16
+`ifdef ND_SDRAM_DQ16
+            SDRAM_A[9:0] <= {2'b0, addr_buf[COL_WIDTH-1:0]};  // column
+            SDRAM_DQM <= 4'b0000;       // both byte lanes: one word per location
+            dq_out <= din_buf;
+`elsif ND_SDRAM_PACK16
             SDRAM_A[9:0] <= {2'b0, addr_buf[COL_WIDTH:1]};  // column (location)
             // lane-masked single-access write: mask (1) the half NOT addressed;
             // full-location (acc32) writes drive all four lanes from din32

@@ -29,6 +29,13 @@ set_global_assignment -name VERILOG_FILE ../../ND-BUS-DEVICES/WINCHESTER/circuit
 set_global_assignment -name VERILOG_FILE rtl/nd120_csa_trace.v
 set_global_assignment -name VERILOG_FILE rtl/nd120_sterr_catch.v
 
+# --- main memory: the SDRAM module through the Tang's sheet-49 bridge --------
+# (01-SEP-2026) Plain Verilog, no Gowin primitives; the 16-bit-module mode is
+# ND_SDRAM_DQ16 in nd120.qsf. MEM_RAM_49_BLOCKRAM.v stays listed for the
+# Verilog it shares, but MEM_43 no longer instantiates it here.
+set_global_assignment -name VERILOG_FILE ../../fpga/tang-nano-20k/sdram-bridge/MEM_RAM_49_SDRAM.v
+set_global_assignment -name VERILOG_FILE ../../fpga/tang-nano-20k/sdram-bridge/sdram18.v
+
 # --- storage from OSD-mounted images (01-SEP-2026) ---------------------------
 # The three controller-facing adapters are the SAME files the Tang and Nexys
 # build; only the backend differs: nd_storage_hps speaks hps_io's block

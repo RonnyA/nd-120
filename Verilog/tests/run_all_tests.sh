@@ -553,6 +553,8 @@ REGISTRY=(
   "fpga/tang-nano-20k/sdram-bridge/sim :: test-pack16 :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sdram-bridge/sim :: test-pack16-part :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sdram-bridge/sim :: test-storage-port :: TB_RESULT: PASS"
+  # the MiSTer's 16-bit module shape (ND_SDRAM_DQ16), same bridge, same replay
+  "fpga/tang-nano-20k/sdram-bridge/sim :: test-dq16 :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sdram-test/sim   :: test :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sdram18-test/sim :: test :: TB_RESULT: PASS"
   # --- SD-FAT library + Tang Nano 20K SD test ---------------------------
