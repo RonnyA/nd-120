@@ -247,6 +247,41 @@ Three things learned doing it, all worth knowing before touching the
   domains. It clears every violation in one line and excuses every crossing
   nobody has read, including the one somebody adds next month.
 
+### Only simple ratios of the 27 MHz crystal can be signed off (01-SEP-2026)
+
+Measured while looking for a clock above `fast20`. Four ratios, one build
+each, RTL and constraints identical - only the PLL dividers changed:
+
+| CPU clock | ratio to crystal | TNS reported | negative paths in the report |
+|---|---|---|---|
+| 20.25 MHz | **3/4** | **0.000 / 0** | 0 - agrees |
+| 27 MHz | **1/1** | -8.572 / 35 | 35, worst -0.839 - agrees |
+| 22.5 MHz | 5/6 | -1332 / 1129 | **0** - contradicts |
+| 24.75 MHz | 11/12 | -26678 / 2774 | 27, worst -2.806 - contradicts |
+
+At the two SIMPLE ratios the summary TNS and the path tables agree exactly.
+At the two awkward ones they contradict each other by two orders of
+magnitude - 22.5 MHz claims 1129 failing endpoints while its path table
+holds NONE - and the size of the discrepancy tracks the ratio's complexity
+(6 edge pairs -> -1332, 12 -> -26678). That is consistent with the tool
+enumerating launch/capture edge pairs across the common period while
+report_timing collapses to one representative per endpoint, but the
+mechanism is INFERRED. What is measured is the correlation.
+
+Constraining every sys_clk <-> CLKOUTD crossing did NOT clear it (24.75 MHz
+went from -21909/2629 to -26678/2774 with eight more exceptions applied), so
+it is not the storage crossings.
+
+**Consequence: do not ship an intermediate clock.** Not because the silicon
+cannot run it - at 24.75 MHz the worst SAME-domain path was only -0.271 ns -
+but because the report cannot be trusted to say so, and a bitstream signed
+off on a number you cannot trust is the thing this whole exercise was
+correcting. The usable rungs are 6.75, 13.5, 20.25 and 27 MHz.
+
+27 MHz remains 0.839 ns short on 13 endpoints, all WCS -> WCS by the
+microcode-JUMP and TVEC routes. Those are real; see commit 9dc8507 for why
+they must not be constrained away.
+
 `fast20` also switches
 the console to **115200 baud** (7E2) - slow/mid/full stay at 9600 so their
 tooling is untouched. The physical baud is the `UART_BAUD_RATE` build
