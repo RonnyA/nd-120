@@ -76,6 +76,24 @@ localparam CONF_STR = {
 	// console only reads correctly on that setting, THAT is the bug.
 	"O[9:8],Console baud,115200,23040,9600,57600;",
 	"-;",
+	// Disk and tape images (01-SEP-2026, PLAN-mister-storage.md). One OSD
+	// mount slot per drive, served through hps_io's block interface by
+	// rtl/nd_storage_hps.v - the pattern the mainstream MiSTer computer
+	// cores use (Atari ST, Apple II, C64, BK0011M, TRS-80...). The slot
+	// number IS the hps_io index IS the storage client: see the slot map in
+	// rtl/nd_storage_mister_devices.v. Slot 4 is outside the documented 0-3
+	// range but inside what the code accepts (hps_io VDNUM 1..10) and is
+	// what TRS-80_MiSTer ships; it carries the tape so the four disc slots
+	// stay in the documented range. Extensions are 3-character groups; a
+	// 4-letter ".BPUN" cannot be named, so tapes are ".BPU" or ".TAP" here.
+	// The HPS automounts boot0.vhd..boot3.vhd / ND120.VHD from the core's
+	// folder into slots 0-3 at start - never ship such files.
+	"S0,IMG,Floppy drive 0;",
+	"S1,IMG,Floppy drive 1;",
+	"S2,IMG,Winchester unit 0;",
+	"S3,IMG,Winchester unit 1;",
+	"S4,BPUTAP,Paper tape;",
+	"-;",
 	"T[0],Reset;",
 	"R[0],Reset and close OSD;",
 	"v,0;",
@@ -87,7 +105,36 @@ wire   [1:0] buttons;
 wire [127:0] status;
 wire  [10:0] ps2_key;
 
-hps_io #(.CONF_STR(CONF_STR)) hps_io
+// ---- the block interface to the mounted images (clk_sys) -----------------
+// VDNUM 5 = the five S slots above. BLKSZ 2 = 512-byte HPS blocks; the
+// storage backend asks for four at a time (sd_blk_cnt = 3) so one ND-120
+// storage block (2048 bytes) is one HPS transaction. WIDE = 16-bit words on
+// the buffer bus. The ND side of this is plain Verilog with flattened
+// per-slot vectors; the unpacking into hps_io's arrays is right here.
+localparam VDNUM = 5;
+wire [VDNUM-1:0] img_mounted;
+wire             img_readonly;
+wire      [63:0] img_size;
+wire      [31:0] sd_lba[VDNUM];
+wire       [5:0] sd_blk_cnt[VDNUM];
+wire [VDNUM-1:0] sd_rd, sd_wr, sd_ack;
+wire      [12:0] sd_buff_addr;
+wire      [15:0] sd_buff_dout;
+wire      [15:0] sd_buff_din[VDNUM];
+wire             sd_buff_wr;
+wire [VDNUM*32-1:0] sd_lba_flat;
+wire [VDNUM*6-1:0]  sd_blk_cnt_flat;
+wire      [15:0] sd_buff_din_one;   // one transaction in flight: same word to every slot
+genvar vd;
+generate
+	for (vd = 0; vd < VDNUM; vd = vd + 1) begin : g_vd
+		assign sd_lba[vd]      = sd_lba_flat[vd*32 +: 32];
+		assign sd_blk_cnt[vd]  = sd_blk_cnt_flat[vd*6 +: 6];
+		assign sd_buff_din[vd] = sd_buff_din_one;
+	end
+endgenerate
+
+hps_io #(.CONF_STR(CONF_STR), .VDNUM(VDNUM), .BLKSZ(2), .WIDE(1)) hps_io
 (
 	.clk_sys(clk_sys),
 	.HPS_BUS(HPS_BUS),
@@ -99,7 +146,20 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 	.buttons(buttons),
 	.status(status),
 	.status_menumask({status[5]}),
-	
+
+	.img_mounted(img_mounted),
+	.img_readonly(img_readonly),
+	.img_size(img_size),
+	.sd_lba(sd_lba),
+	.sd_blk_cnt(sd_blk_cnt),
+	.sd_rd(sd_rd),
+	.sd_wr(sd_wr),
+	.sd_ack(sd_ack),
+	.sd_buff_addr(sd_buff_addr),
+	.sd_buff_dout(sd_buff_dout),
+	.sd_buff_din(sd_buff_din),
+	.sd_buff_wr(sd_buff_wr),
+
 	.ps2_key(ps2_key)
 );
 
@@ -624,12 +684,91 @@ console_uart_tx #(
 // (ND120_TANG20K_TOP.v).
 wire [23:0] s_bd_in = 24'hFFFFFF;
 
-// Storage seam: build 2 has no floppy/SMD/WD yet (that is separate,
-// board-specific work - MiSTer serves images from the HPS/Linux side, not a
-// wired SD card, so the Tang/Basys3 SD-FAT stack does not apply here).
-// INCLUDE_* = 0 ties every device's outputs inactive inside the core
-// (graceful degradation, see ND120_CORE.v's header comment); the unused
-// inputs below are tied off the same way the Tang ties its DMA test client.
+// ---- storage: the floppy, Winchester and tape seams served from the ------
+// ---- images mounted in the OSD (01-SEP-2026, PLAN-mister-storage.md) ----
+// MiSTer serves images from the HPS/Linux side, not a wired SD card, so the
+// Tang/Nexys SD-FAT stack does not apply; rtl/nd_storage_mister_devices.v
+// is its counterpart - the same three controller-facing adapters on top of
+// rtl/nd_storage_hps.v, which speaks hps_io's block interface. Two floppy
+// drives, two Winchester units, one tape. The seams below are pin-for-pin
+// what ND120_CORE exposes; before this they were tied off and any disk or
+// tape access hung the guest (no done ever came).
+wire        s_tape_req, s_tape_valid, s_tape_rewind;
+wire [7:0]  s_tape_data;
+wire        s_tdisk_fault;
+wire [3:0]  s_tdisk_code;
+wire        s_fd_req, s_fd_wr, s_fd_done, s_fd_err, s_fdb_we;
+wire [15:0] s_fd_lsect, s_fdb_wdata, s_fdb_rdata;
+wire [1:0]  s_fd_format, s_fd_drive;
+wire [10:0] s_fd_wc;
+wire [3:0]  s_fd_code, s_fd_media;
+wire [9:0]  s_fdb_addr;
+wire        s_wd_start, s_wd_req, s_wd_wr, s_wd_done, s_wd_err, s_wdb_we;
+wire [15:0] s_wd_ba1, s_wd_ba2, s_wdb_wdata, s_wdb_rdata;
+wire [2:0]  s_wd_unit;
+wire [10:0] s_wd_wc;
+wire [3:0]  s_wd_code;
+wire [9:0]  s_wdb_addr;
+wire [4:0]  s_img_mounted_cpu;   // per-slot "a file is there" (clk_cpu)
+
+nd_storage_mister_devices STORAGE (
+	.clk_cpu   (clk_cpu),
+	.rst_cpu_n (cpu_rst_n),
+	.clk_sys   (clk_sys),
+	.rst_sys_n (pix_rst_n),
+
+	.byte_req      (s_tape_req),
+	.byte_valid    (s_tape_valid),
+	.byte_data     (s_tape_data),
+	.source_rewind (s_tape_rewind),
+	.TDISK_FAULT   (s_tdisk_fault),
+	.TDISK_ERR_CODE(s_tdisk_code),
+
+	.FDISK_REQ      (s_fd_req),
+	.FDISK_WR       (s_fd_wr),
+	.FDISK_LSECT    (s_fd_lsect),
+	.FDISK_FORMAT   (s_fd_format),
+	.FDISK_DRIVE    (s_fd_drive),
+	.FDISK_WORDCOUNT(s_fd_wc),
+	.FDISK_DONE     (s_fd_done),
+	.FDISK_ERR      (s_fd_err),
+	.FDISK_ERR_CODE (s_fd_code),
+	.FDISK_MEDIA_FMT(s_fd_media),
+	.FDBUF_ADDR     (s_fdb_addr),
+	.FDBUF_WDATA    (s_fdb_wdata),
+	.FDBUF_WE       (s_fdb_we),
+	.FDBUF_RDATA    (s_fdb_rdata),
+
+	.WDISK_START    (s_wd_start),
+	.WDISK_REQ      (s_wd_req),
+	.WDISK_WR       (s_wd_wr),
+	.WDISK_BLKADDR1 (s_wd_ba1),
+	.WDISK_BLKADDR2 (s_wd_ba2),
+	.WDISK_UNIT     (s_wd_unit),
+	.WDISK_WORDCOUNT(s_wd_wc),
+	.WDISK_DONE     (s_wd_done),
+	.WDISK_ERR      (s_wd_err),
+	.WDISK_ERR_CODE (s_wd_code),
+	.WDBUF_ADDR     (s_wdb_addr),
+	.WDBUF_WDATA    (s_wdb_wdata),
+	.WDBUF_WE       (s_wdb_we),
+	.WDBUF_RDATA    (s_wdb_rdata),
+
+	.img_mounted (img_mounted),
+	.img_readonly(img_readonly),
+	.img_size    (img_size),
+	.sd_lba      (sd_lba_flat),
+	.sd_blk_cnt  (sd_blk_cnt_flat),
+	.sd_rd       (sd_rd),
+	.sd_wr       (sd_wr),
+	.sd_ack      (sd_ack),
+	.sd_buff_addr(sd_buff_addr),
+	.sd_buff_dout(sd_buff_dout),
+	.sd_buff_din (sd_buff_din_one),
+	.sd_buff_wr  (sd_buff_wr),
+
+	.MOUNTED(s_img_mounted_cpu)
+);
 
 // ND-BUS DEVICES ON (01-SEP-2026, Ronny's call). This board built with all of
 // them OFF, which made it the ONLY target running a device-less machine -
@@ -700,10 +839,10 @@ ND120_CORE #(
 	.RXD(s_cpu_rxd_merged),
 	.TXD(s_cpu_txd),
 
-	.TAPE_BYTE_REQ(),
-	.TAPE_BYTE_VALID(1'b0),
-	.TAPE_BYTE_DATA(8'h00),
-	.TAPE_REWIND(),
+	.TAPE_BYTE_REQ(s_tape_req),
+	.TAPE_BYTE_VALID(s_tape_valid),
+	.TAPE_BYTE_DATA(s_tape_data),
+	.TAPE_REWIND(s_tape_rewind),
 
 	.DMA_REQ(1'b0),
 	.DMA_WR(1'b0),
@@ -714,20 +853,20 @@ ND120_CORE #(
 	.DMA_ERR(),
 	.DMA_BUSY(),
 
-	.FDISK_REQ(),
-	.FDISK_WR(),
-	.FDISK_LSECT(),
-	.FDISK_FORMAT(),
-	.FDISK_DRIVE(),
-	.FDISK_WORDCOUNT(),
-	.FDISK_DONE(1'b0),
-	.FDISK_ERR(1'b0),
-	.FDISK_ERR_CODE(4'd0),
-	.FDISK_MEDIA_FMT(4'd0),
-	.FDBUF_ADDR(10'd0),
-	.FDBUF_WDATA(16'd0),
-	.FDBUF_WE(1'b0),
-	.FDBUF_RDATA(),
+	.FDISK_REQ(s_fd_req),
+	.FDISK_WR(s_fd_wr),
+	.FDISK_LSECT(s_fd_lsect),
+	.FDISK_FORMAT(s_fd_format),
+	.FDISK_DRIVE(s_fd_drive),
+	.FDISK_WORDCOUNT(s_fd_wc),
+	.FDISK_DONE(s_fd_done),
+	.FDISK_ERR(s_fd_err),
+	.FDISK_ERR_CODE(s_fd_code),
+	.FDISK_MEDIA_FMT(s_fd_media),
+	.FDBUF_ADDR(s_fdb_addr),
+	.FDBUF_WDATA(s_fdb_wdata),
+	.FDBUF_WE(s_fdb_we),
+	.FDBUF_RDATA(s_fdb_rdata),
 
 	.SDISK_START(),
 	.SDISK_REQ(),
@@ -744,20 +883,20 @@ ND120_CORE #(
 	.SDBUF_WE(1'b0),
 	.SDBUF_RDATA(),
 
-	.WDISK_START(),
-	.WDISK_REQ(),
-	.WDISK_WR(),
-	.WDISK_BLKADDR1(),
-	.WDISK_BLKADDR2(),
-	.WDISK_UNIT(),
-	.WDISK_WORDCOUNT(),
-	.WDISK_DONE(1'b0),
-	.WDISK_ERR(1'b0),
-	.WDISK_ERR_CODE(4'd0),
-	.WDBUF_ADDR(10'd0),
-	.WDBUF_WDATA(16'd0),
-	.WDBUF_WE(1'b0),
-	.WDBUF_RDATA(),
+	.WDISK_START(s_wd_start),
+	.WDISK_REQ(s_wd_req),
+	.WDISK_WR(s_wd_wr),
+	.WDISK_BLKADDR1(s_wd_ba1),
+	.WDISK_BLKADDR2(s_wd_ba2),
+	.WDISK_UNIT(s_wd_unit),
+	.WDISK_WORDCOUNT(s_wd_wc),
+	.WDISK_DONE(s_wd_done),
+	.WDISK_ERR(s_wd_err),
+	.WDISK_ERR_CODE(s_wd_code),
+	.WDBUF_ADDR(s_wdb_addr),
+	.WDBUF_WDATA(s_wdb_wdata),
+	.WDBUF_WE(s_wdb_we),
+	.WDBUF_RDATA(s_wdb_rdata),
 
 	.LED(s_core_led),
 	.RUN_n(s_core_run_n),

@@ -249,6 +249,21 @@ be set there). The commented `MISTER_*` macros above it are the standard
 MiSTer framework options, not ND-120 options. No `MAIN_RAM_*` backend is
 selected in the .qsf yet.
 
+**Storage (01-SEP-2026):** no `SD_STORAGE`, no SD card, no FAT. The images
+are files mounted from the OSD; `nd120.sv` instantiates `hps_io` with
+`VDNUM=5, BLKSZ=2, WIDE=1` and `rtl/nd_storage_mister_devices.v` serves the
+core's FDISK/WDISK/TAPE seams from them through `rtl/nd_storage_hps.v`
+(hps_io's block interface, one 2048-byte storage block = one 4-block HPS
+transaction). Slot map = OSD `S<n>` line = hps_io index: 0 floppy drive 0,
+1 floppy drive 1, 2 Winchester unit 0, 3 Winchester unit 1, 4 paper tape
+(`.BPU`/`.TAP`, the HPS matches 3-character extension groups). One
+parameter matters: `BYTE_SWAP` on `nd_storage_hps` (default 1: HPS words
+little-endian, ND image words big-endian) - it is a reading of the
+framework, to be confirmed by the Phase-4 board test in
+`docs/PLAN-mister-storage.md`. Gates: `fpga/mister/sim` `test-storage-hps`,
+`test-storage-devices`. The `INCLUDE_*` parameters of `ND120_CORE` in
+`nd120.sv` are TAPE/FLOPPY/WD = 1, SMD = 0.
+
 ---
 
 ## 7. Debug and trace build defines

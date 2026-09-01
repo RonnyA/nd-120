@@ -4,9 +4,26 @@
 
 ## Next
 
-Phase 3: wire `nd_storage_mister_devices` into `nd120.sv`, add the five
-OSD mount lines and the `hps_io` block ports, update `files.qip` and the
-build-defines doc. Still no build.
+Phase 4: Quartus build (~25 min Docker) and the board checks, byte order
+first. Every build and flash on Ronny's go.
+
+Phase 3 landed 01-SEP-2026: `nd120.sv` carries the five `S` lines
+(`S0,IMG,Floppy drive 0` .. `S3,IMG,Winchester unit 1`, `S4,BPUTAP,Paper
+tape`), `hps_io` with `VDNUM=5, BLKSZ=2, WIDE=1` and all block ports, and
+`nd_storage_mister_devices` in place of the tie-offs; `files.qip` lists
+the backend, the aggregator and the three adapters; `build-defines.md`
+section 6 documents it. `clk_sys` into hps_io is 40 MHz (>= 20 required).
+Proof: Verilator lint of the WHOLE `emu` top with the framework's
+`hps_io.sv` and PLL black boxes, the qsf's define set - exit 0, nothing
+flagged in any ND file (the only suppressed classes are two Verilator
+limitations in the framework's own PS/2 and video code, which Quartus
+built unchanged in v47). Not yet: a Quartus run.
+
+Small open item: `TDISK_FAULT`/`TDISK_ERR_CODE` and the per-slot
+`MOUNTED` flags are brought out of the aggregator to wires in `nd120.sv`
+but not shown anywhere yet - the two board LEDs carry the CPU lamps and
+`LED_USER` is the clock heartbeat, so a display needs an OSD status bit or
+the terminal's panel line. Decide with Ronny.
 
 Phase 2 landed 01-SEP-2026: `Verilog/fpga/mister/rtl/nd_storage_mister_devices.v`
 (two floppy adapters DRIVE 0/1, two Winchester adapters UNIT 0/1 with the
@@ -136,27 +153,6 @@ The rules of the block interface, from the code:
   2048-byte block, so the tape stays on an `S` slot (slot 4). Fallback if
   that misbehaves on the board: an `F` line with `ioctl_wait` pacing, the
   PDP-1 shape.
-
-## Phase 3 - `nd120.sv` wiring and the OSD
-
-- [ ] Confirm `clk_sys` feeding `hps_io` in `nd120.sv` is >= 20 MHz.
-- [ ] `hps_io #(.CONF_STR, .VDNUM(5), .BLKSZ(2), .WIDE(1))` with `sd_lba,
-      sd_blk_cnt, sd_rd, sd_wr, sd_ack, sd_buff_addr, sd_buff_dout,
-      sd_buff_din, sd_buff_wr, img_mounted, img_readonly, img_size`.
-- [ ] `CONF_STR` (syntax `S{slot},{Ext},{Text};`, extensions in 3-char
-      groups, case-insensitive, space-padded):
-      `S0,IMG,Floppy drive 0;` `S1,IMG,Floppy drive 1;`
-      `S2,IMG,Winchester unit 0;` `S3,IMG,Winchester unit 1;`
-      `S4,BPU,Paper tape;` - `BPUN` is four characters and the HPS matches
-      3-char groups, so either the group is `BPU` (verify it matches
-      `.BPUN` files - unverified) or tapes are renamed `.BPU`/`.TAP`.
-- [ ] Do NOT ship `boot0.vhd`..`boot3.vhd` or `ND120.VHD` in the core's
-      folder: the HPS automounts those into slots 0-3 at core start.
-- [ ] Replace the tie-offs at `nd120.sv:704-760` with the aggregator.
-- [ ] `Verilog/docs/build-defines.md`: document the MiSTer storage
-      arrangement (no `SD_STORAGE`, no FAT, slot map, `VDNUM`).
-- [ ] `files.qip`: add the three adapters, `nd_storage_status.vh` include,
-      the new backend and aggregator. Nothing else from `SD-FAT/`.
 
 ## Phase 4 - board (needs Ronny's go for every build and flash)
 
