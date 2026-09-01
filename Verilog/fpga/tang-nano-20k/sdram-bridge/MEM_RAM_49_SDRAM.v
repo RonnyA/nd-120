@@ -235,7 +235,13 @@ module MEM_RAM_49_SDRAM #(
       .data_ready(s_data_ready),
       .busy(s_busy),
 
+`ifdef ND_SDRAM_DQ16
+      // 16-bit module: only the low half of the 32-bit port pair is a pin;
+      // IO_sdram_dq[31:16] is left unconnected at the board top
+      .SDRAM_DQ(IO_sdram_dq[15:0]),
+`else
       .SDRAM_DQ(IO_sdram_dq),
+`endif
       .SDRAM_A(O_sdram_addr),
       .SDRAM_BA(O_sdram_ba),
       .SDRAM_nCS(O_sdram_cs_n),
@@ -248,9 +254,18 @@ module MEM_RAM_49_SDRAM #(
   );
 
   /*******************************************************************************
-   ** Refresh timer: one auto-refresh per 15 us (fast-clock cycles)              **
+   ** Refresh timer: one auto-refresh per ND_SDRAM_REFRESH_US (default 15 us)   **
+   **                                                                            **
+   ** 15 us suits the Tang's 2K-row die (4096 refreshes per 64 ms). A 16-bit    **
+   ** DE10-Nano module (ND_SDRAM_DQ16) has 8192 rows and needs one auto-refresh **
+   ** every 7.8 us at most; the MiSTer build sets ND_SDRAM_REFRESH_US=7. Auto-  **
+   ** refresh walks the chip's OWN row counter, so this cadence covers the      **
+   ** whole die however many rows the CPU actually uses.                        **
    *******************************************************************************/
-  localparam REFRESH_INTERVAL = CLK2X_FREQ / 1_000_000 * 15;
+`ifndef ND_SDRAM_REFRESH_US
+  `define ND_SDRAM_REFRESH_US 15
+`endif
+  localparam REFRESH_INTERVAL = CLK2X_FREQ / 1_000_000 * `ND_SDRAM_REFRESH_US;
 
   reg [10:0] ref_cnt;
   reg refresh_needed;

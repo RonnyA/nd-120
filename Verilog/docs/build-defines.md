@@ -43,7 +43,9 @@ hand-edited defines.
 | `MAIN_RAM_BLOCKRAM` | Block-RAM backend (`MEM_RAM_49_BLOCKRAM.v`). With `ND120_BLOCKRAM_ADDR_BITS=16` it holds 64K words per bank and everything above word 0o200000 in a bank ALIASES onto low memory - SINTRAN cannot run on that | Basys3 (`vivado_build.tcl:239`); Nexys `-tclargs bramram` (`build.tcl:294`) |
 | `ND120_BLOCKRAM_BANK_SLOTS` | Bank slots the BLOCKRAM array is declared with: 4 (default; slot 3 is unreachable, bidx is 0-2) or 3. The MiSTer needs 3 to fit 64K-word banks (3 x 64K x 16 = 308 M10K); a 32K-word bank (`ADDR_BITS=15`) wraps and is the LIST-FILE-NAMES runaway | `fpga/mister/nd120.qsf` = 3; everyone else default 4 |
 | `MAIN_RAM_SDRAM` | The Tang's embedded 8 MB SDRAM through `MEM_RAM_49_SDRAM` (2 banks, 4 MB; upper half reserved for the disk-image cache) | `tang20k_defines.v:27` |
-| `ND_SDRAM_PACK16` | Packed memory: 16 data bits only, two ND words per 32-bit SDRAM location, parity recomputed on read. See `docs/nd120-parity-analysis.md` | `tang20k_defines.v:35`; `runSim/Makefile` `PACK16=1` (default) |
+| `ND_SDRAM_PACK16` | Packed memory: 16 data bits only, two ND words per 32-bit SDRAM location, parity recomputed on read. See `docs/nd120-parity-analysis.md` | `tang20k_defines.v:35`; `runSim/Makefile` `PACK16=1` (default); `fpga/mister/nd120.qsf` |
+| `ND_SDRAM_DQ16` | (needs `ND_SDRAM_PACK16`) The SDRAM module is 16 bits wide: one ND word per 16-bit location, both DQM lanes always on, `addr[20:0]` is the location. The MiSTer's DE10-Nano module. 2M words = 4 MB | `fpga/mister/nd120.qsf` |
+| `ND_SDRAM_REFRESH_US` | Auto-refresh cadence of `MEM_RAM_49_SDRAM` in microseconds (default 15, the Tang's 2K-row die). An 8192-row module needs 7 | `fpga/mister/nd120.qsf` = 7 |
 | `ND_STORAGE_PORT` | nd_storage device port on the SDRAM backend (own `stor_clk` domain, upper-half storage region only) | `tang20k_defines.v` |
 | `ND120_SIM_RAM_64K` | Sim-only: shrink the sim RAM to 64K words per bank (`MEM_RAM_49.v:22`) to reproduce the BRAM-aliasing class of bug in Verilator | `EXTRA_VDEFINES="-DND120_SIM_RAM_64K"` (runSim) |
 

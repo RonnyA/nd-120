@@ -39,6 +39,14 @@ module pll_cpu (
     input  wire refclk,   //! 50 MHz board clock (CLK_50M)
     input  wire rst,
     output wire outclk_0, //! 20 MHz, the ND-120 CPU/bus/device domain
+    //! SDRAM main memory (01-SEP-2026): the sheet-49 bridge MEM_RAM_49_SDRAM
+    //! runs on a 2x clock that must be EDGE-ALIGNED with the CPU clock - it
+    //! samples the OSC-domain RAS/CAS/AA as synchronous signals, which is only
+    //! true when both come from the SAME PLL (the Tang does exactly this with
+    //! its rPLL clkout / clkoutd). So the 40 MHz pair lives here, not on the
+    //! video PLL, which nd120.sdc declares asynchronous to this one.
+    output wire outclk_1, //! 40 MHz, 0 deg   - clk2x, the SDRAM controller
+    output wire outclk_2, //! 40 MHz, 180 deg - clk2x_sdram, to the SDRAM chip
     output wire locked
 );
 
@@ -46,7 +54,7 @@ module pll_cpu (
       .fractional_vco_multiplier("false"),
       .reference_clock_frequency("50.0 MHz"),
       .operation_mode("direct"),
-      .number_of_clocks(1),
+      .number_of_clocks(3),
       //! 20 MHz. MUST match nd120.qsf's BOARD_CLK_FREQ=20000000 and
       //! ND120_UART_DELAY_FRAMES=173 (20e6/115200), or the console garbles.
       // SLOW-CLOCK EXPERIMENT (01-SEP-2026, Ronny): 5 MHz instead of 20, to
@@ -57,11 +65,17 @@ module pll_cpu (
       .output_clock_frequency0("20.000000 MHz"),
       .phase_shift0("0 ps"),
       .duty_cycle0(50),
+      .output_clock_frequency1("40.000000 MHz"),
+      .phase_shift1("0 ps"),
+      .duty_cycle1(50),
+      .output_clock_frequency2("40.000000 MHz"),
+      .phase_shift2("12500 ps"),    // 180 degrees of 25 ns
+      .duty_cycle2(50),
       .pll_type("General"),
       .pll_subtype("General")
   ) altera_pll_i (
       .rst      (rst),
-      .outclk   ({outclk_0}),
+      .outclk   ({outclk_2, outclk_1, outclk_0}),
       .locked   (locked),
       .fboutclk ( ),
       .fbclk    (1'b0),

@@ -649,38 +649,25 @@ set_global_assignment -name VERILOG_MACRO "UART_BAUD_RATE=115200"
 # do not depend on this - the diag printer feeds the console byte stream
 # directly, not through the CPU UART - but keep it consistent.
 set_global_assignment -name VERILOG_MACRO "ND120_UART_DELAY_FRAMES=173"
-# MAIN_RAM_BLOCKRAM: MEM_43.v requires an explicit main-memory backend choice
-# (a missing one is a deliberate elaboration error, not a silent default).
-# Cyclone V has plenty of on-chip block RAM for the small BRAM config
-# (MEM_RAM_49_BLOCKRAM), same choice as Basys3/Cmod A7/QMTech.
-set_global_assignment -name VERILOG_MACRO "MAIN_RAM_BLOCKRAM=1"
-# ND120_BLOCKRAM_ADDR_BITS: words per bank = 2**this. The RTL default is 12
-# (4K words/bank = 24 KB total), sized for the Basys3 xc7a35t's tiny BRAM -
-# and NO configuration that has ever booted runs that small (Nexys uses 16,
-# Tang has 8 MB SDRAM, runSim 6 MB). The microcode self-test includes a
-# MEMORY REFERENCE test and halts into STERR if it fails, which never
-# reaches MACL2 and so never gives an OPCOM prompt (boot-sequence.md 8/11) -
-# exactly the symptom this board had on 31-AUG-2026.
-# 16 = 64K words/bank, the FULL logical space (01-SEP-2026). 15 was the
-# 24-AUG Nexys LIST-FILE-NAMES runaway exactly: a 32K-word bank wraps every
-# address >= 0o100000 onto low memory, LIST-USERS works and LIST-FILE-NAMES
-# runs away - and this board reproduced that on both floppy and WD0 with
-# build v48 (Verilog/docs/nd120-facts.md, test-blockram-space).
-# Why 16 "did not fit" before: the array was declared with FOUR bank slots
-# while only banks 0-2 are addressable, so 4 x 64K x 16 = 512 M10K.
-# ND120_BLOCKRAM_BANK_SLOTS=3 declares just the three real banks: 3 x 64K x
-# 16 bits = 308 M10K, against 218 for everything else in v48 = 526/553.
-# MEASURED 02-SEP-2026 (build v49): ADDR_BITS=16 with three slots does NOT
-# fit either - the Fitter wanted 7802 LABs of 4191 (77,153 ALMs = 184%),
-# 140,089 registers against 33,583 in v48, M10K 534/553. So block RAM cannot
-# give this machine its 64K-word banks, let alone the 4 MB SINTRAN needs;
-# main memory moves to the SDRAM module (docs/PLAN-mister-sdram.md). Until
-# that lands the board stays at 15 = 32K words/bank = 192 KB, which BOOTS
-# but WRAPS (the LIST-FILE-NAMES runaway) - a known-broken stopgap, not a
-# configuration to test disc software on. Three slots kept: 154 M10K
-# instead of 205.
-set_global_assignment -name VERILOG_MACRO "ND120_BLOCKRAM_ADDR_BITS=15"
-set_global_assignment -name VERILOG_MACRO "ND120_BLOCKRAM_BANK_SLOTS=3"
+# MAIN MEMORY = the DE10-Nano's SDRAM module (01-SEP-2026). MEM_43.v requires
+# an explicit backend choice; this is the Tang's proven sheet-49 SDRAM bridge
+# (MEM_RAM_49_SDRAM + sdram18) in its 16-bit-module mode:
+#   MAIN_RAM_SDRAM      select the bridge
+#   ND_SDRAM_PACK16     16 data bits stored, parity regenerated on read
+#   ND_SDRAM_DQ16       one ND word per 16-bit location (SDRAM_DQ[15:0])
+#   ND_SDRAM_REFRESH_US 7: an 8192-row die needs a refresh every 7.8 us
+# 2M words = 4 MB as BANK0 + BANK2, the Tang/Nexys map. The bridge's 2x clock
+# comes from pll_cpu (40 MHz, edge-aligned with the 20 MHz CPU clock - the
+# bridge samples the OSC-domain RAS/CAS synchronously, so both MUST come from
+# one PLL). BOARD_CLK_FREQ above is what the bridge derives CLK2X_FREQ from.
+# The WCS is unaffected: it stays in block RAM.
+# History: MAIN_RAM_BLOCKRAM with 32K-word banks (v48) wrapped every address
+# >= 0o100000 - the LIST-FILE-NAMES runaway; the 64K-word variant (v49) needed
+# 7802 LABs against 4191 and did not fit.
+set_global_assignment -name VERILOG_MACRO "MAIN_RAM_SDRAM=1"
+set_global_assignment -name VERILOG_MACRO "ND_SDRAM_PACK16=1"
+set_global_assignment -name VERILOG_MACRO "ND_SDRAM_DQ16=1"
+set_global_assignment -name VERILOG_MACRO "ND_SDRAM_REFRESH_US=7"
 # --- Quartus RAM handling. Pick exactly ONE of the two macros below. -------
 #
 # Quartus 17.0.2 will not infer M10K from the plain-Verilog arrays in

@@ -29,7 +29,8 @@ assign USER_OUT = '1;
 // CONSOLE". RTS/DTR stay inactive; the ND-120 console is 3-wire.
 assign {UART_RTS, UART_DTR} = 0;
 assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
-assign {SDRAM_DQ, SDRAM_A, SDRAM_BA, SDRAM_CLK, SDRAM_CKE, SDRAM_DQML, SDRAM_DQMH, SDRAM_nWE, SDRAM_nCAS, SDRAM_nRAS, SDRAM_nCS} = 'Z;
+// SDRAM: main memory (01-SEP-2026) - driven by the sheet-49 SDRAM bridge
+// through ND120_CORE, see the CLOCKS and MAIN MEMORY notes below.
 assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;  
 
 assign VGA_SL = 0;
@@ -231,11 +232,15 @@ end
 // A PLL output is global by construction, which is what the other boards
 // already do (Nexys clk_cpu from an MMCM output, Tang from an rPLL output).
 wire clk_cpu;
+wire clk2x;         // 40 MHz, edge-aligned with clk_cpu - the SDRAM bridge
+wire clk2x_sdram;   // 40 MHz, 180 degrees - the SDRAM chip's clock pin
 wire cpu_pll_locked;
 pll_cpu PLL_CPU (
 	.refclk  (CLK_50M),
 	.rst     (1'b0),
 	.outclk_0(clk_cpu),
+	.outclk_1(clk2x),
+	.outclk_2(clk2x_sdram),
 	.locked  (cpu_pll_locked)
 );
 
@@ -704,6 +709,15 @@ wire [3:0]  s_wd_code;
 wire [9:0]  s_wdb_addr;
 wire [4:0]  s_img_mounted_cpu;   // per-slot "a file is there" (clk_cpu)
 
+// SDRAM pin adapters for the 16-bit module (see the MAIN MEMORY note in the
+// core instance): the bridge's upper DQ/DQM bits go nowhere, A[12:11] = 0.
+wire [15:0] s_sdram_dq_hi;    // bridge DQ[31:16]: not driven, not read
+wire [10:0] s_sdram_a11;
+wire [ 3:0] s_sdram_dqm4;
+assign SDRAM_A    = {2'b00, s_sdram_a11};
+assign SDRAM_DQML = s_sdram_dqm4[0];
+assign SDRAM_DQMH = s_sdram_dqm4[1];
+
 nd_storage_mister_devices STORAGE (
 	.clk_cpu   (clk_cpu),
 	.rst_cpu_n (cpu_rst_n),
@@ -890,6 +904,40 @@ ND120_CORE #(
 	.WDBUF_WDATA(s_wdb_wdata),
 	.WDBUF_WE(s_wdb_we),
 	.WDBUF_RDATA(s_wdb_rdata),
+
+	// ---- MAIN MEMORY: the DE10-Nano's SDRAM module (01-SEP-2026) ---------
+	// MAIN_RAM_SDRAM + ND_SDRAM_PACK16 + ND_SDRAM_DQ16 (nd120.qsf): the
+	// Tang's proven sheet-49 bridge (fpga/tang-nano-20k/sdram-bridge/
+	// MEM_RAM_49_SDRAM.v + sdram18.v) in its 16-bit-module mode. 2M words =
+	// 4 MB as BANK0 + BANK2, the same map as the Tang and the Nexys; parity
+	// regenerated on read. The bridge runs on clk2x from the CPU's own PLL
+	// (edge-aligned, see pll_cpu.v) and meets the ND-120 DRAM read deadline
+	// (data at OSC N+4) exactly as on the Tang. This replaces the block-RAM
+	// main memory, whose 32K-word banks wrapped every address >= 0o100000
+	// (the LIST-FILE-NAMES runaway, build v48) and whose 64K-word variant
+	// did not fit the device (v49). The WCS is untouched: it stays in block
+	// RAM exactly as before.
+	// The module is 16 bits wide with two DQM pins and 13 address lines; the
+	// bridge's ports are the Tang's 32-bit shape, so the upper 16 DQ bits and
+	// upper 2 DQM bits are simply left unconnected and A[12:11] are 0.
+	.clk2x        (clk2x),
+	.clk2x_sdram  (clk2x_sdram),
+	.O_sdram_clk  (SDRAM_CLK),
+	.O_sdram_cke  (SDRAM_CKE),
+	.O_sdram_cs_n (SDRAM_nCS),
+	.O_sdram_cas_n(SDRAM_nCAS),
+	.O_sdram_ras_n(SDRAM_nRAS),
+	.O_sdram_wen_n(SDRAM_nWE),
+	.IO_sdram_dq  ({s_sdram_dq_hi, SDRAM_DQ}),
+	.O_sdram_addr (s_sdram_a11),
+	.O_sdram_ba   (SDRAM_BA),
+	.O_sdram_dqm  (s_sdram_dqm4),
+	.DBG_MEMW     (),
+	.DBG_PTW      (),
+	.PF_CAPTURED  (),
+	.DBG_WDSTAGE  (),
+	.DBG_PPN      (),
+	.DBG_PGW      (),
 
 	.LED(s_core_led),
 	.RUN_n(s_core_run_n),
