@@ -65,7 +65,9 @@ Verified 27-AUG-2026 from the mega65-core build scripts and board XDCs
 | `CORE/` | our side of the framework contract (the framework's `CORE/` template, copied and edited): `vhdl/main.vhd` is the thin VHDL skin over our Verilog, `vhdl/config.vhd` the OSD texts/menu, `CORE.xdc` our constraints, `m2m-rom/` the QNICE firmware build |
 | `rtl/` | the MEGA65 glue in Verilog: `m65_keys_to_ps2.v` (keyboard scan -> PS/2 events, keycap-faithful), `nd120_console_mega65.v` (the shared terminal on the framework's video/keyboard) |
 | `sim/` | their testbenches (`make test-keys`, `make test-console`, `make lint`), registered in `Verilog/tests/run_all_tests.sh` |
+| [`docs/01-using-the-core.md`](docs/01-using-the-core.md) | using the core: flashing, the SD card layout, every menu line (drives, colour, panel, cache, HDMI), what persists (`nd120cfg`) and what does not (mounts), booting, keys, differences from the MiSTer core |
 | [`docs/SEND-NOTE.md`](docs/SEND-NOTE.md) | what goes to a tester with the `.cor` files: which file, how to flash, how to boot SINTRAN, what to photograph |
+| `sdcard/nd120/nd120cfg` | the 35-byte settings file for `/nd120/` on the card - with it the menu settings survive a power cycle |
 | `tools/` | gitignored; `make toolchain` fetches MEGA65's `coretool` (the `.cor` packer) here |
 
 Reuse pointers: `../nexys4ddr/build.tcl` (the Vivado flow to clone),
