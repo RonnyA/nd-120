@@ -31,9 +31,9 @@ TERM_SRC = $(TERM)/terminal_top.v $(TERM)/terminal_ctrl.v $(TERM)/terminal_ctrl_
            $(TERM)/term_banner.v $(TERM)/term_banner_rom.v \
            $(TERM)/term_console_feed.v $(TERM)/term_panel.v $(TERM)/term_panel_rom.v $(TERM)/rate_meter.v $(TERM)/ratio_meter.v
 
-.PHONY: all test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices test-console-burst test-console-burst-fast test-storage-reset lint clean
+.PHONY: all test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices test-console-burst test-console-burst-fast test-storage-reset test-kbd-uart test-kbd-chain lint clean
 
-all: test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices test-console-burst test-console-burst-fast test-storage-reset
+all: test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices test-console-burst test-console-burst-fast test-storage-reset test-kbd-uart test-kbd-chain
 	@echo "MiSTer core: all testbenches passed"
 
 # The storage backend: the ND-120 client bus (Verilog/docs/
@@ -160,6 +160,27 @@ lint:
 	$(VERILATOR) $(VVFLAGS) --top-module nd120_console_mister \
 	  $(GLUE)/nd120_console_mister.v $(TERM_SRC)
 	@echo "MiSTer console glue: verilator lint clean"
+
+# The console keyboard path, tested end to end where the board wires it - a
+# seam the per-module tests miss. test-kbd-uart: key_tdv2200 -> console_uart_tx
+# (one keypress = one frame, not the 3 a naive edge-count sees, and not the
+# infinite repeat you get if out_ready is tied high). test-kbd-chain: the whole
+# nd120_console_mister decode + expander + serializer, a real PS/2 scancode in,
+# one correct byte out. Written 02-SEP-2026 when v56's keyboard was suspected.
+TERMR = ../../../Terminals/rtl
+test-kbd-uart: kbd_to_uart_tb.vvp
+	@$(VVP) $< | tee kbd_to_uart_tb.log
+	@grep -q "TB_RESULT: PASS" kbd_to_uart_tb.log || { echo "kbd_to_uart_tb FAILED"; exit 1; }
+
+kbd_to_uart_tb.vvp: kbd_to_uart_tb.v $(TERMR)/key_tdv2200.v $(TERMR)/console_uart_tx.v
+	$(IVERILOG) $(IVFLAGS) -o $@ $^
+
+test-kbd-chain: kbd_chain_tb.vvp
+	@$(VVP) $< | tee kbd_chain_tb.log
+	@grep -q "TB_RESULT: PASS" kbd_chain_tb.log || { echo "kbd_chain_tb FAILED"; exit 1; }
+
+kbd_chain_tb.vvp: kbd_chain_tb.v $(GLUE)/nd120_console_mister.v $(TERMR)/console_uart_tx.v 		$(TERMR)/ps2_decoder_tdv.v $(TERMR)/ps2_ascii_table_tdv.v $(TERMR)/key_tdv2200.v $(TERM_SRC)
+	$(IVERILOG) $(IVFLAGS) -o $@ $^
 
 clean:
 	rm -f *.vvp *.vcd *.log

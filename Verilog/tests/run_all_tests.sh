@@ -152,6 +152,25 @@ REGISTRY=(
   # no reset ordering of nd_storage_hps's two clock domains hangs a read
   # (the automount stuck-R root-cause: the reset CDC is exonerated)
   "fpga/mister/sim :: test-storage-reset :: TB_RESULT: PASS"
+  # the console keyboard path end to end (the board-wiring seam the per-module
+  # tests miss): key expander -> serializer, and a full PS/2 scancode -> byte
+  "fpga/mister/sim :: test-kbd-uart :: TB_RESULT: PASS"
+  "fpga/mister/sim :: test-kbd-chain :: TB_RESULT: PASS"
+  # --- MEGA65 core glue (02-SEP-2026) ---------------------------------------
+  # the MEGA65 keyboard scan -> PS/2 events, checked THROUGH the shared TDV
+  # decoder against the C64 keycaps (2" 6& :[ ;] + @ * = ...), ctrl, caps
+  # latch, cursor and function keys
+  "fpga/mega65/sim :: test-keys :: TB_RESULT: PASS"
+  # the console glue: scan -> screen and machine seam, banner priority, and
+  # the framework's video shape (de == !(hblank|vblank), RGB black outside de)
+  "fpga/mega65/sim :: test-console :: TB_RESULT: PASS"
+  # the storage backend on MiSTer2MEGA65's virtual drives (byte-wide buffer
+  # bus, QNICE-firmware-style strobes): the same 8 checks as the MiSTer's
+  # test-storage-hps, against vdrives_model.v
+  "fpga/mega65/sim :: test-storage-vdrives :: TB_RESULT: PASS"
+  # the R3 HyperRAM backend: nd_ddr2_port's contract on an Avalon-MM master,
+  # burst and single-beat fallback, random waitrequest/latency slave model
+  "fpga/mega65/sim :: test-avalon-port :: TB_RESULT: PASS"
   # --- Shared support chips -------------------------------------------------
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"

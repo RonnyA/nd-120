@@ -267,6 +267,7 @@ wire cpu_rst_n = cpu_rst_sync[1];
 
 wire con_pixel, con_hs, con_vs, con_de, con_bell;
 wire [2:0] con_colour;
+wire       con_panel_active;  //! 1 = this pixel is the operator panel
 
 // Machine seam: bytes from the CPU's console UART TX line, deserialized;
 // keystrokes serialized back out to its RX line. Byte-level ports only -
@@ -621,6 +622,7 @@ nd120_console_mister #(
 	.kbd_ready(s_kbd_ready),
 
 	.colour(con_colour),
+	.panel_active(con_panel_active),
 	.pixel(con_pixel),
 	.hsync(con_hs),
 	.vsync(con_vs),
@@ -1055,7 +1057,11 @@ always @(*) begin
 	// board's true-colour RGB path; Nexys rounds the same measured panel
 	// colours to its 12-bit VGA DAC, which is why those hex values differ
 	// slightly without being a mismatch.
-	3'd1: rgb = s_con_text_rgb;  // console text - colour picked in the OSD (status[9:8])
+	// Index 1 is BOTH the console-text ink and the panel's green CPU lamp
+	// (term_panel C_TEXT). Recolour it only where it is console text; on a
+	// panel pixel keep it fixed green so the CPU G lamp stays green while the
+	// console colour is amber/white/cyan (02-SEP-2026, Ronny).
+	3'd1: rgb = con_panel_active ? 24'h00FF00 : s_con_text_rgb;
 		3'd2: rgb = 24'h191b19;   // panel fascia
 		3'd3: rgb = 24'hd6d9d2;   // silkscreen
 		3'd4: rgb = 24'hb6c2a4;   // LCD ground

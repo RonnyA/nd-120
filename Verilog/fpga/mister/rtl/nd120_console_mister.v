@@ -114,6 +114,7 @@ module nd120_console_mister #(
 
     // Video, straight onto the framework's VGA_* ports
     output wire [2:0] colour,  //! palette index - see terminal_top.v
+    output wire       panel_active,  //! 1 = panel pixel (board keeps its lamp green)
     output wire pixel,  //! 1 = ink
     output wire hsync,
     output wire vsync,
@@ -273,6 +274,7 @@ module nd120_console_mister #(
       .panel_flp_wr      (panel_flp_wr),
 
       .colour   (colour),
+      .panel_active(panel_active),
 
       .pix_clk  (clk),
       .pix_rst_n(rst_n),
