@@ -138,8 +138,10 @@ routes: `Verilog/fpga/nexys4ddr/timing.md`.
 > **Ready-built bitstreams:** grab them from the
 > [Releases page](https://github.com/RonnyA/nd-120/releases) - no FPGA
 > toolchain needed. Quickstarts: `Verilog/fpga/QUICKSTART-nexys4ddr.md`
-> (incl. the no-software SD-card path) and
-> `Verilog/fpga/QUICKSTART-tang-nano-20k.md`.
+> (incl. the no-software SD-card path),
+> `Verilog/fpga/QUICKSTART-tang-nano-20k.md` and
+> `Verilog/fpga/QUICKSTART-mega65.md` (MEGA65 cores: built, not yet run on
+> a MEGA65 - the first testers are you).
 
 - **Tang Nano 20K - SINTRAN III BOOTS (24-AUG-2026).** The operating system
   runs on the FPGA from a Winchester disc image on the SD card: banner in
@@ -173,6 +175,17 @@ routes: `Verilog/fpga/nexys4ddr/timing.md`.
   (`Verilog/docs/tang20k-build-flows.md`)
 - **Cmod A7-35T**: first build ready (BRAM memory, CPU at 27 MHz);
   512 KB SRAM main-memory bridge planned
+- **MEGA65 - the whole machine builds for BOTH board revisions
+  (02-SEP-2026), timing-clean, NOT YET RUN ON A MEGA65.** On the
+  MiSTer2MEGA65 framework: ND-120 CPU with 4 MB main memory (R3: in the
+  HyperRAM through the Nexys cache seam and a new Avalon port, CPU
+  13.33 MHz; R4/R5/R6: in the 64 MB SDRAM through the MiSTer sheet-49
+  bridge, CPU 20 MHz), the TDV2200 terminal on the MEGA65's own keyboard
+  and screen (VGA + HDMI), floppy 0/1, Winchester 0/1 and paper tape as
+  image files on the SD card through the framework's virtual drives, one
+  `.cor` per revision flashed from the MEGA65's own menu. Every new block
+  has a self-checking bench; the port and its facts:
+  `Verilog/fpga/mega65/README.md`, `Verilog/fpga/mega65/docs/00-plan.md`.
   (`Verilog/fpga/cmod-a7-35t/SRAM-BRIDGE-PLAN.md`)
 - Memory-backend speed rules for every board (what meets the no-wait-state
   protocol at 40 MHz and what cannot):

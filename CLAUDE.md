@@ -231,6 +231,26 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
   command of any kind (incl. the microcode's own ACTLV/0x0A traffic) ever
   left the CPU. Details and what is not modelled:
   `Verilog/docs/panel-clock-68705.md`.
+- **MEGA65 (02-SEP-2026): the whole machine builds for both revisions on
+  the MiSTer2MEGA65 framework (submodule `Verilog/fpga/mega65/m2m/`),
+  timing-clean, NOT yet run on a MEGA65** - there is none here; the release
+  cores go to testers. R6 (and R4/R5): 4 MB in the 64 MB SDRAM via the
+  MiSTer sheet-49 bridge, CPU 20 MHz. R3: 4 MB in the 8 MiB HyperRAM via
+  the Nexys `MEM_RAM_49_DDR2` cache seam + `nd_avalon_port.v`, CPU
+  13.33 MHz (the R3 netlist times the CGA IDB ring through a longer
+  loop-break, 57 ns; the period fits it rather than untiming the IDB).
+  Console = `Verilog/Terminals/` on the framework's keyboard scan
+  (`m65_keys_to_ps2.v`, keycap-faithful) and video; storage = the MiSTer
+  `nd_storage_hps.v` logic on the framework's byte-wide vdrives
+  (`nd_storage_vdrives.v`), fd0/fd1/wd0/wd1/tape. Toolchain traps that
+  cost a build each: read the framework's `.v` as SystemVerilog,
+  `auto_detect_xpm` before `synth_design`, the framework's
+  `-through i_ascal/reset_na` false path matches nothing under 2026.1, the
+  router's hold estimate sits ~70 ps above sign-off on the framework's
+  `clk`. All in `Verilog/fpga/mega65/docs/00-plan.md` and `build.tcl`.
+  ALSO FOUND THERE: the committed `Shared/support/wcs_*.hex` were the
+  PRE-PATCH microcode (0o2002 unpatched) and the MiSTer's Quartus reads
+  them via `SEARCH_PATH` - decoded from its own MIF; refreshed 02-SEP.
 - Live task list: `Verilog/TODO.md`. Historical latch-refactor notes:
   `Verilog/verilog-remove-latch.md`, `Verilog/worklog-latch-refactor.md`.
 

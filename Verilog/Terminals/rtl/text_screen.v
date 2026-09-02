@@ -118,6 +118,12 @@ module text_screen #(
     output wire hsync,
     output wire vsync,
     output wire de,         //! display enable, already aligned with `pixel`
+    //! The two halves of `de`, same alignment. MiSTer wants only `de`; the
+    //! MiSTer2MEGA65 framework wants hblank and vblank SEPARATELY (its analog
+    //! path's video mixer derives its own de from them). Added 02-SEP-2026
+    //! for the MEGA65 glue; every other user leaves them unconnected.
+    output wire hblank,
+    output wire vblank,
     output wire frame_end,  //! one pulse per frame, un-delayed (for blink)
 
     //! The raw pixel counters, un-delayed. Anything else drawing on this screen
@@ -136,6 +142,8 @@ module text_screen #(
   wire        s_hsync_raw;
   wire        s_vsync_raw;
   wire        s_de_raw;
+  wire        s_hblank_raw;
+  wire        s_vblank_raw;
 
   vga_timing #(
       .H_VISIBLE    (H_VISIBLE),
@@ -163,8 +171,8 @@ module text_screen #(
       .hsync    (s_hsync_raw),
       .vsync    (s_vsync_raw),
       .de       (s_de_raw),
-      .hblank   (),
-      .vblank   (),
+      .hblank   (s_hblank_raw),
+      .vblank   (s_vblank_raw),
       .line_end (),
       .frame_end(frame_end)
   );
@@ -279,6 +287,7 @@ module text_screen #(
   //--------------------------------------------------------------------------
 
   reg [1:0] s_de_dly, s_hsync_dly, s_vsync_dly, s_in_grid_dly;
+  reg [1:0] s_hblank_dly, s_vblank_dly;
   reg [2:0] s_pixel_col_d1, s_pixel_col_d2;
   //! Per-cell attributes. They arrive WITH the character code, one stage
   //! later than everything else, so they need one register to reach the
@@ -296,6 +305,8 @@ module text_screen #(
     s_de_dly       <= {s_de_dly[0], s_de_raw};
     s_hsync_dly    <= {s_hsync_dly[0], s_hsync_raw};
     s_vsync_dly    <= {s_vsync_dly[0], s_vsync_raw};
+    s_hblank_dly   <= {s_hblank_dly[0], s_hblank_raw};
+    s_vblank_dly   <= {s_vblank_dly[0], s_vblank_raw};
     s_in_grid_dly  <= {s_in_grid_dly[0], s_in_grid};
     s_cursor_dly   <= {s_cursor_dly[0], s_is_cursor_cell};
     s_pixel_col_d1 <= s_pixel_col;
@@ -330,6 +341,8 @@ module text_screen #(
   assign de    = s_de_dly[1];
   assign hsync = s_hsync_dly[1];
   assign vsync = s_vsync_dly[1];
+  assign hblank = s_hblank_dly[1];
+  assign vblank = s_vblank_dly[1];
 
 endmodule
 
