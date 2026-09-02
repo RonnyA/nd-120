@@ -68,6 +68,12 @@ localparam CONF_STR = {
 	// bit 0 = "On" and bit 1 = "Off" gives default-on with no extra default-
 	// value machinery. Same DBG_PANEL signals the Nexys build's sw[3] shows.
 	"O[7],Operator panel,On,Off;",
+	// Console font colour (02-SEP-2026). The terminal core emits a palette
+	// INDEX; this only re-tints the console-text index in the RGB map below,
+	// so it is a board-only cosmetic - the panel colours and the terminal RTL
+	// are untouched. Default Green (the green Tandberg look the ND grew up
+	// with). status[9:8], freed when the baud selector was removed.
+	"O[9:8],Console colour,Green,Amber,White,Cyan;",
 	"-;",
 	// Disk and tape images (01-SEP-2026, PLAN-mister-storage.md). One OSD
 	// mount slot per drive, served through hps_io's block interface by
@@ -1022,6 +1028,20 @@ assign VGA_DE = con_de;
 assign VGA_HS = con_hs;
 assign VGA_VS = con_vs;
 
+// Console text colour, chosen in the OSD (status[9:8]). Full-brightness CRT
+// phosphor looks: green (the ND's Tandberg default), amber, white, cyan.
+// Amber is red plus a reduced green, the same recipe the PDP2011 core uses.
+reg [23:0] s_con_text_rgb;
+always @(*) begin
+	case (status[9:8])
+		2'd0: s_con_text_rgb = 24'h00FF00;  // green
+		2'd1: s_con_text_rgb = 24'hFFBF00;  // amber
+		2'd2: s_con_text_rgb = 24'hFFFFFF;  // white
+		2'd3: s_con_text_rgb = 24'h00FFFF;  // cyan
+		default: s_con_text_rgb = 24'h00FF00;
+	endcase
+end
+
 // The core says WHICH of eight things a pixel is; this board picks the colour.
 // Panel colours are sampled from the photograph of the real folio panel.
 reg [23:0] rgb;
@@ -1035,7 +1055,7 @@ always @(*) begin
 	// board's true-colour RGB path; Nexys rounds the same measured panel
 	// colours to its 12-bit VGA DAC, which is why those hex values differ
 	// slightly without being a mismatch.
-	3'd1: rgb = 24'h00FF00;   // console text, green
+	3'd1: rgb = s_con_text_rgb;  // console text - colour picked in the OSD (status[9:8])
 		3'd2: rgb = 24'h191b19;   // panel fascia
 		3'd3: rgb = 24'hd6d9d2;   // silkscreen
 		3'd4: rgb = 24'hb6c2a4;   // LCD ground
