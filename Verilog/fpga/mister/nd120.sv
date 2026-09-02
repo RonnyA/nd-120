@@ -270,6 +270,7 @@ wire       s_cpu_byte_valid;
 wire [7:0] s_cpu_byte_data;
 wire       s_kbd_valid;
 wire [7:0] s_kbd_data;
+wire       s_kbd_ready;   // console UART TX idle -> key_tdv2200 expander backpressure
 wire       s_cpu_txd, s_cpu_rxd;
 // Disc activity for the panel line, derived from the storage seams exactly
 // as fpga/nexys4ddr does (nd120_nexys4ddr_top.v: WDISK_REQ & ~WDISK_WR ...).
@@ -611,6 +612,7 @@ nd120_console_mister #(
 
 	.kbd_valid(s_kbd_valid),
 	.kbd_data (s_kbd_data),
+	.kbd_ready(s_kbd_ready),
 
 	.colour(con_colour),
 	.pixel(con_pixel),
@@ -698,7 +700,7 @@ console_uart_tx #(
 	.divisor_ovr(s_con_divisor),
 	.byte_valid (s_kbd_valid),
 	.byte_data  (s_kbd_data),
-	.ready      (),
+	.ready      (s_kbd_ready),
 	.txd        (s_cpu_rxd)
 );
 

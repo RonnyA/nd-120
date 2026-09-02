@@ -44,6 +44,18 @@ module nd120_console_mister_tb;
   wire       cpu_ready;
   wire       kbd_valid;
   wire [7:0] kbd_data;
+  //! Model the console UART TX's ready the way key_tdv2200_tb.v does: high
+  //! when idle, low for 40 clocks after it accepts a byte (transmitting).
+  //! Holding it high forever would stall the expander's read pointer (it
+  //! advances only when ready DROPS), so the same byte would re-emit - which
+  //! is exactly the tb artefact this replaces. The real board wires the UART
+  //! TX's own ready here (nd120.sv CONSOLE_UART_TX.ready).
+  reg  [7:0] s_kbd_busy = 8'd0;
+  wire       kbd_ready = (s_kbd_busy == 8'd0);
+  always @(posedge clk) begin
+    if (s_kbd_busy != 8'd0)   s_kbd_busy <= s_kbd_busy - 8'd1;
+    else if (kbd_valid)       s_kbd_busy <= 8'd40;
+  end
   wire       pixel, hsync, vsync, de, bell;
 
   integer errors = 0;
@@ -61,6 +73,8 @@ module nd120_console_mister_tb;
       .rst_n(rst_n),
 
       .ps2_key(ps2_key),
+
+      .layout_no(1'b0),   //! US ANSI for this test
 
       .cpu_byte_valid(1'b0),
       .cpu_byte_data (8'h00),
@@ -85,6 +99,7 @@ module nd120_console_mister_tb;
       .panel_flp_rd      (1'b0),
       .panel_flp_wr      (1'b0),
 
+      .kbd_ready(kbd_ready),
       .kbd_valid(kbd_valid),
       .kbd_data (kbd_data),
 

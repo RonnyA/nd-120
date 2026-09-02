@@ -327,6 +327,7 @@ set_global_assignment -name VERILOG_FILE "../../CPU-BOARD-3202/circuit/MEM_RAM_4
 set_global_assignment -name VERILOG_FILE rtl/nd120_console_mister.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/terminal_top.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/terminal_ctrl.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/terminal_ctrl_tdv.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/text_screen.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/char_ram.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/vga_timing.v
@@ -338,6 +339,9 @@ set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/byte_fifo.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_decoder.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_ascii_table.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/key_vt100.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_decoder_tdv.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_ascii_table_tdv.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/key_tdv2200.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_banner.v
 # term_banner_rom.v is GENERATED per build into build/ by `make banner` and
 # listed from files.qip - listing the committed copy here as well declared the
