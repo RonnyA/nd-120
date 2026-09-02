@@ -1,0 +1,176 @@
+#!/usr/bin/env python3
+"""Generate rtl/term_banner_rom.v - the power-on message ROM.
+
+WHY THIS IS GENERATED AND NOT HAND-WRITTEN. A message ROM in Verilog needs
+two things that must agree: the characters, and how many there are. Writing
+the length by hand is exactly the kind of constant that goes stale the moment
+someone edits the text - and a length that is one too short silently truncates
+the message, while one too long emits garbage. The generator cannot get it
+wrong.
+
+It also avoids $bits() on a packed string, which iverilog and Verilator handle
+but Quartus 17's Verilog mode may not - this port has to build under three
+different toolchains.
+
+Run:  python3 font/make_banner.py [build-stamp [output-path [config-line]]]
+from Verilog/Terminals/. Re-run and commit the result after editing MESSAGE.
+The build passes all three (fpga/nexys4ddr/build.tcl); by hand, none.
+"""
+
+import os
+import sys
+
+# CR then LF: our terminal treats 0x0D as "column 0" and 0x0A as "next line",
+# exactly as the TDV does, so a line break needs BOTH. See docs/SPEC-tdv2200.md.
+NL = "\r\n"
+
+# Keep every line inside 80 columns. Nothing here should need the machine to be
+# alive - this message is the proof that the VIDEO half works on its own.
+# TRIMMED TO TWO LINES, 28-AUG-2026, at Ronny's request: "it should only say
+# 'ND-120/CX CPU CORE', and then '80x25 TDV2200 console'".
+#
+# What went away was eight lines of instructions for a first-time bring-up -
+# what the pixel path proves, what to type, which half is at fault if nothing
+# appears. Every one of those questions is now answered: the pixel path, the
+# keyboard and the scroll map have all been working for weeks. The message had
+# stopped splitting one failure into two (see the module header) and become
+# eight lines of scrollback to page past on every single reset.
+#
+# The two lines that remain still do the original job. Either they are on the
+# screen or they are not, and that alone still separates "the display is dead"
+# from "the display works and the machine is not talking".
+# A THIRD line was added 01-SEP-2026: the build stamp. Six different bitstreams
+# went onto the Nexys in one day and the board had no way to say which one it
+# was running - "how do I know what version it is" was a fair question with no
+# answer. The stamp is passed in by the BUILD, not stored here, so it describes
+# the bitstream actually in the FPGA rather than whenever someone last ran this
+# script by hand. With no argument it reads "dev", which is itself informative:
+# it means the ROM was generated outside a real build.
+BUILD_ID = sys.argv[1] if len(sys.argv) > 1 else "dev"
+
+# A FOURTH line, 01-SEP-2026, at Ronny's request: which board, what CPU clock,
+# and whether the cache is in the build - the three things that decide how the
+# machine behaves and that the hash alone does not tell you. Like the stamp it
+# is composed by the BUILD (build.tcl derives the clock from the same table
+# the MMCM is generated from, and the cache text from the same flag that sets
+# ND120_NO_CACHE), so it cannot disagree with the bitstream. Absent when the
+# script is run by hand, in which case the banner is three lines as before.
+CONFIG = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] != "" else None
+
+MESSAGE = (
+    "ND-120/CX CPU CORE" + NL +
+    "80x25 TDV2200 console" + NL +
+    "build " + BUILD_ID + NL +
+    (CONFIG + NL if CONFIG is not None else "")
+)
+
+# Second argument overrides the output path, so a build can generate its own
+# stamped copy without dirtying the committed one.
+OUT = (sys.argv[2] if len(sys.argv) > 2
+       else os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         "..", "rtl", "term_banner_rom.v"))
+
+HEADER = """//============================================================================
+//! Power-on message ROM for term_banner.v - GENERATED FILE, DO NOT EDIT.
+//!
+//! Regenerate with:  python3 font/make_banner.py   (from Verilog/Terminals/)
+//! Edit the text in that script, not here.
+//!
+//! Part of the board-independent terminal core (Verilog/Terminals/).
+//!
+//! The message exists to split one failure into two. A blank screen and a
+//! screen showing this text but not responding to the keyboard are completely
+//! different faults, and telling them apart without this costs a build cycle -
+//! which matters little on a board on the desk and a great deal when the board
+//! belongs to someone in another country (see fpga/mega65/docs/00-plan.md).
+//============================================================================
+
+`default_nettype none
+
+module term_banner_rom (
+    input  wire [%(abits)d:0] addr,
+    output reg  [7:0] data
+);
+
+  //! Characters in the message, for the record only. term_banner.v does NOT
+  //! use this - it stops at the first 0x00, which the default branch below
+  //! returns for every address past the end. That is deliberate: a length
+  //! constant is a second number that can disagree with the text.
+  localparam integer LEN = %(len)d;
+
+  always @(*) begin
+    case (addr)
+"""
+
+FOOTER = """      default: data = 8'h00;
+    endcase
+  end
+
+endmodule
+
+`default_nettype wire
+"""
+
+
+def printable(ch):
+    """A comment showing the character, with the invisible ones named."""
+    names = {0x0D: "CR", 0x0A: "LF", 0x20: "space"}
+    code = ord(ch)
+    if code in names:
+        return names[code]
+    if 0x21 <= code <= 0x7E:
+        return ch
+    return "0x%02X" % code
+
+
+def main():
+    msg = MESSAGE
+    length = len(msg)
+
+    for i, ch in enumerate(msg):
+        if ord(ch) > 0x7F:
+            sys.exit("MESSAGE character %d (%r) is not 7-bit ASCII - the font "
+                     "ROM only has 128 usable glyphs" % (i, ch))
+        # term_banner.v stops at the first 0x00 rather than counting, so the
+        # message must not contain one. That is what makes the ROM
+        # self-terminating and keeps a length constant out of the design
+        # entirely - there is no second number that can disagree with the text.
+        if ord(ch) == 0x00:
+            sys.exit("MESSAGE contains a NUL at %d - that is the terminator" % i)
+
+    abits = max(1, (length - 1).bit_length()) - 1
+    # addr must be wide enough to reach LEN itself, since term_banner.v
+    # compares against it before stopping.
+    if (1 << (abits + 1)) <= length:
+        abits += 1
+
+    # FLOOR OF 9 BITS, added 28-AUG-2026. term_banner.v declares its own
+    # counter as reg [8:0] s_addr and wires it straight to this port. When the
+    # message was trimmed to two lines the computed width fell to 6, and
+    # Verilog would have quietly dropped the top three bits of that connection
+    # - no error, just a truncation warning in a toolchain that emits hundreds.
+    # The message happens to stop at the first 0x00 long before the wrap, so
+    # nothing would have gone wrong TODAY; the next person to lengthen or
+    # shorten the text is the one who would have paid. Nine bits costs nothing
+    # in a case statement and keeps the two files agreeing.
+    #
+    # If you ever change s_addr in term_banner.v, change this floor with it.
+    if abits < 8:
+        abits = 8
+
+    out = [HEADER % {"len": length, "abits": abits}]
+    for i, ch in enumerate(msg):
+        out.append("      %d'd%-4d: data = 8'h%02X;  // %s\n"
+                   % (abits + 1, i, ord(ch), printable(ch)))
+    out.append(FOOTER)
+
+    path = os.path.normpath(OUT)
+    with open(path, "w", newline="\n") as f:
+        f.write("".join(out))
+
+    print("wrote %s" % path)
+    print("  %d characters, addr is %d bits" % (length, abits + 1))
+
+
+if __name__ == "__main__":
+    main()

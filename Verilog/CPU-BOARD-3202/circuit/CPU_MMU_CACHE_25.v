@@ -58,21 +58,21 @@ module CPU_MMU_CACHE_25 (
   wire [15:0] s_cd_15_0_out;
   wire [10:0] s_ca_10_0;
   wire [ 1:0] s_hit_1_0_n;
-  wire        s_wca_n;
+  wire        s_wca_n   /* verilator public_flat_rd */;   // probed by runSim (cache log)
   wire        s_brk_n;
   wire        s_wcinh_n;
   wire        s_used_n;
   wire        s_con;
   wire        s_con_n;
-  wire        s_cclr_n;
+  wire        s_cclr_n  /* verilator public_flat_rd */;   // probed by runSim (cache log)
   wire        s_hit;
-  wire        s_dt_n;
+  wire        s_dt_n    /* verilator public_flat_rd */;   // probed by runSim (cache log)
   wire        s_lshadow;
   wire        s_cyd;
   wire        s_cwr;
   wire        s_uclk;
-  wire        s_rt_n;
-  wire        s_pd2;
+  wire        s_rt_n    /* verilator public_flat_rd */;   // probed by runSim (cache log)
+  wire        s_pd2     /* verilator public_flat_rd */;   // probed by runSim (cache log)
   wire        s_fmiss;
   wire        s_ecd_n;
   wire        s_ewc_n;
@@ -80,7 +80,7 @@ module CPU_MMU_CACHE_25 (
 
 
   wire [15:0] s_CPN_25_10_OUT;
-  wire [ 3:0] s_21f_in;
+  wire [ 3:0] s_21f_in  /* verilator public_flat_rd */;   // probed by runSim (cache log)
   wire [ 3:0] s_21f_out;
 
 
@@ -210,8 +210,8 @@ module CPU_MMU_CACHE_25 (
   assign s_wca_n          = 1'b1;   // never write a cache address
 `else
 
-  //  16K bit Static RAM  (2KByte)
-  TMM2018D_25 CHIP_23F
+  //  16K bit Static RAM  (2KByte) - ASYNC read, see the parameter in TMM2018D_25.v
+  TMM2018D_25 #(.ASYNC_READ(1)) CHIP_23F
   (
     .clk    (sysclk),               // Clock input (BLOCK RAM MUST HAVE CLOCK)
     .reset_n(sys_rst_n),            // FPGA Reset input (active low)
@@ -228,7 +228,7 @@ module CPU_MMU_CACHE_25 (
   );
 
   //  16K bit Static RAM  (2KByte)
-  TMM2018D_25 CHIP_24F
+  TMM2018D_25 #(.ASYNC_READ(1)) CHIP_24F
   (
     .clk    (sysclk),              // Clock input (BLOCK RAM MUST HAVE CLOCK)
     .reset_n(sys_rst_n),           // FPGA Reset input (active low)
@@ -302,7 +302,7 @@ module CPU_MMU_CACHE_25 (
   );
 
   //  16K bit Static RAM  (2KByte)
-  TMM2018D_25 CHIP_16F
+  TMM2018D_25 #(.ASYNC_READ(1)) CHIP_16F
   (
     .clk(sysclk),  // Clock input (BLOCK RAM MUST HAVE CLOCK)
     .reset_n(sys_rst_n),  // FPGA Reset input (active low)
@@ -321,7 +321,7 @@ module CPU_MMU_CACHE_25 (
   );
 
   //  16K bit Static RAM  (2KByte)
-  TMM2018D_25 CHIP_20F
+  TMM2018D_25 #(.ASYNC_READ(1)) CHIP_20F
   (
     .clk    (sysclk),                // Clock input (BLOCK RAM MUST HAVE CLOCK)
     .reset_n(sys_rst_n),             // FPGA Reset input (active low)

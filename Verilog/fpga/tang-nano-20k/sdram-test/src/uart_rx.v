@@ -10,8 +10,8 @@
 *****************************************************************************/
 
 module uart_rx #(
-    // Clock cycles per bit. 27 MHz / 9600 baud = 2812 (-0.02% error)
-    parameter DELAY_FRAMES = 2812
+    // Clock cycles per bit. 27 MHz / 115200 baud = 234 (-0.16% error)
+    parameter DELAY_FRAMES = 234
 ) (
     input clk,
     input rst_n,

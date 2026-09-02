@@ -31,13 +31,29 @@
 **        inputs  BDRY50_n, ICONTIN_n - both ARE connected (IO_DCD_38.v  **
 **                lines 440 and 444, ports XBDN and XCON); they need a   **
 **                directed bus-cycle sequence to have any effect         **
-**        outputs REFRQ_n, PAN_n, LHIT, DVACC_n, CLEAR_n (never seen     **
-**                low), PA_7_0 bits 2..4 and IDB_7_0_OUT bits 1..3       **
-**                (never seen high)                                      **
+**        outputs POWFAIL_n, MCL, FUL_n, CLEAR_n, CCLR_n (never seen    **
+**                low at a sample point) and IDB_7_0_OUT bits 3..7      **
+**                (never seen high; 7..4 are tied to zero by design).   **
+**                30-AUG-2026: the exempt list used to be printed with  **
+**                the WRONG NAMES - the liveness name table assumed a   **
+**                64-bit packing but outs() is 62 bits, so every name   **
+**                was off by two. Names above are the corrected ones.   **
 **      Everything NOT on that list must toggle, so a NEWLY stuck signal **
 **      still fails. Whether the exempt ones are genuinely unreachable   **
 **      or genuinely mis-wired is NOT decided by this testbench - it     **
 **      needs a directed DGA command sequence and is recorded as open.   **
+**                                                                       **
+**      PA_7_0 (the panel FIFO data out) is NOT exempt: commit 1a8c0e1   **
+**      fixed the DGA panel FIFO to write exactly ONE byte per LDPANC~   **
+**      pulse (the original PFIFC/PFIFD behavior, proven on hardware).   **
+**      Before that fix the FIFO wrote a byte on EVERY XCLK while        **
+**      LDPANC~ was low, so the random sweep kept it full of garbage     **
+**      and PA_7_0 happened to be non-zero at sample points. With the    **
+**      corrected RTL the FIFO drains within two board CLKs, so PA_7_0   **
+**      liveness is now proven by a DIRECTED push/pop phase instead      **
+**      (task fifo_directed): push o125 then o252 through the real       **
+**      decode (CSMIS=10, CSCOMM=o06, then an EORF_n write pulse), pop   **
+**      them with RMM_n low, and check the exact bytes on PA_7_0.        **
 **   3. X ON ANY OUTPUT once the sheet is out of reset.                  **
 **   4. IDB_7_0_OUT[7:4] MUST BE HARD ZERO (the RTL ties them off and    **
 **      says the earlier pass-through was WRONG), and IDB_7_0_OUT[3:0]   **
@@ -57,7 +73,7 @@
 **                                                                       **
 ** Run: cd Verilog/CPU-BOARD-3202/sim && make test-iodcd38               **
 **                                                                       **
-** Last reviewed: 20-AUG-2026                                            **
+** Last reviewed: 30-AUG-2026 (directed FIFO phase + name table fix)     **
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 `timescale 1ns / 1ps
@@ -282,6 +298,10 @@ module IO_DCD_38_tb;
         $display("   NOTE: %0s is now REACHABLE - the exemption can be removed", name_of(i));
     end
 
+    // ---- 4. directed panel-FIFO push/pop (see header) - proves the
+    // ----    LDPANC~ write path and PA_7_0 liveness with exact bytes
+    fifo_directed;
+
     report_liveness;
 
     $display("-----------------------------------------------------");
@@ -356,19 +376,95 @@ module IO_DCD_38_tb;
     end
   endtask
 
+  // Directed panel-FIFO exercise, added 30-AUG-2026. Commit 1a8c0e1 made the
+  // DGA panel FIFO write exactly ONE byte per LDPANC~ pulse (the original
+  // PFIFC/PFIFD behavior - LDPANC~ is a single one-sysclk EROF pulse on the
+  // real machine) instead of one byte per XCLK while LDPANC~ was low. The
+  // random sweep above used to depend on that over-writing to keep the FIFO
+  // full of garbage, which is why PA_7_0 happened to be non-zero at its
+  // sample points. This task drives the REAL write path instead:
+  //   1. present the LDPANC decode (DECODE_DGA_COMM A186: CSMIS=2'b10,
+  //      CSCOMM=o06, LCS_n=1) and latch it on a board-CLK rise (A188.Q2B)
+  //   2. pulse EORF_n low - LDPANC~ = NAND(EROF, latched) falls, and the
+  //      FIFO writes IDB_7_0_IN on the sysclk-detected falling edge
+  //   3. pop with RMM_n low - one byte per XCLK rise - and check the exact
+  //      bytes on PA_7_0 (o125 then o252 covers all eight bits high AND low;
+  //      the drained-empty reads give the zero side, XA = 0 when RMM_n = 1)
+  // Samples are OR-ed into or_seen/and_seen so PA_7_0 needs no exemption.
+  task fifo_directed;
+    integer k;
+    reg [63:0] o;
+    reg [7:0] expect_byte;
+    begin
+      apply({NIN{1'b1}});   // idle: LCS_n=1, EORF_n=1, RMM_n=1
+      clk_cycle;
+      for (k = 0; k < 2; k = k + 1) begin
+        // 1. decode + latch
+        CSMIS_1_0  = 2'b10;
+        CSCOMM_4_0 = 5'o06;
+        LCS_n      = 1'b1;
+        EORF_n     = 1'b1;
+        IDB_7_0_IN = (k == 0) ? 8'o125 : 8'o252;
+        clk_cycle;
+        // 2. EROF write pulse -> one FIFO byte
+        EORF_n = 1'b0;
+        repeat (2) @(posedge sysclk); #1;
+        EORF_n = 1'b1;
+        repeat (2) @(posedge sysclk); #1;
+        // clear the decode again before the next byte
+        CSCOMM_4_0 = 5'b11111;
+        CSMIS_1_0  = 2'b11;
+        clk_cycle;
+      end
+      // 3. pop: one byte per XCLK rise while RMM_n is low
+      RMM_n = 1'b0;
+      for (k = 0; k < 4; k = k + 1) begin
+        clk_cycle;
+        o = outs(0);
+        or_seen = or_seen | o;
+        and_seen = and_seen & o;
+        check_no_x;
+        if (k < 2) begin
+          expect_byte = (k == 0) ? 8'o125 : 8'o252;
+          checks = checks + 1;
+          if (PA_7_0 !== expect_byte) begin
+            errors = errors + 1;
+            $display("FAIL FIFO_POP_DATA: pop %0d PA_7_0=%o expected %o",
+                     k, PA_7_0, expect_byte);
+          end
+        end
+      end
+      // 4. drained: PA_7_0 must read zero again
+      checks = checks + 1;
+      if (PA_7_0 !== 8'o000) begin
+        errors = errors + 1;
+        $display("FAIL FIFO_NOT_DRAINED: PA_7_0=%o expected 000", PA_7_0);
+      end
+      RMM_n = 1'b1;
+      clk_cycle;
+    end
+  endtask
+
   // packed-bit numbers this random stimulus provably cannot drive - see the
   // header. Listing them by number keeps the gate live for everything else.
+  // 30-AUG-2026: bits 52..50 (PA_7_0[6:4]) removed from exempt_low - the
+  // directed FIFO phase now drives every PA_7_0 bit both ways. The bit
+  // numbers below were always the MEASURED ones; only the printed names
+  // were off by two (see liveness_name).
   function exempt_low;   // never seen high
     input integer j;
     begin
+      // 63,62 = zero-extension padding; 61..58 = IDB_7_0_OUT[7:4], tied to
+      // zero by design; 57 = IDB_7_0_OUT[3], not reached by this stimulus
       exempt_low = (j == 63) || (j == 62) || (j == 61) || (j == 60) ||
-                   (j == 59) || (j == 58) || (j == 57) ||
-                   (j == 52) || (j == 51) || (j == 50);
+                   (j == 59) || (j == 58) || (j == 57);
     end
   endfunction
   function exempt_high;  // never seen low
     input integer j;
     begin
+      // 21=POWFAIL_n 25=MCL 28=FUL_n 42=CLEAR_n 44=CCLR_n (CCLR_n does pulse
+      // low - 20 ns wide - but never at one of this tb's sample points)
       exempt_high = (j == 21) || (j == 25) || (j == 28) || (j == 42) || (j == 44);
     end
   endfunction
@@ -399,34 +495,41 @@ module IO_DCD_38_tb;
     end
   endtask
 
+  // Names must match the ACTUAL packing of outs(): 8 + 8 + 43 scalars +
+  // 3'b000 = 62 bits, so bits 63:62 are zero-extension padding, IDB is at
+  // 61..54, PA at 53..46, CA10 at 45 and so on down to EPAN_n at 3.
+  // Fixed 30-AUG-2026: the old table assumed a 64-bit packing (IDB at
+  // 63..56), so every printed name was off by two - the failing PA_7_0
+  // bits were reported as CCLR_n and CA10 and sent the whole diagnosis
+  // toward the cache-clear line.
   function [8*14:1] liveness_name;
     input integer j;
     begin
       case (j)
-        63,62,61,60,59,58,57,56: liveness_name = "IDB_7_0_OUT   ";
-        55,54,53,52,51,50,49,48: liveness_name = "PA_7_0        ";
-        47: liveness_name = "CA10          "; 46: liveness_name = "CCLR_n        ";
-        45: liveness_name = "CEUART_n      "; 44: liveness_name = "CLEAR_n       ";
-        43: liveness_name = "DT_n          "; 42: liveness_name = "DVACC_n       ";
-        41: liveness_name = "ECREQ         "; 40: liveness_name = "ECSR_n        ";
-        39: liveness_name = "EDO_n         "; 38: liveness_name = "EIOR_n        ";
-        37: liveness_name = "EMPID_n       "; 36: liveness_name = "EMP_n         ";
-        35: liveness_name = "EPANS_n       "; 34: liveness_name = "ESTOF_n       ";
-        33: liveness_name = "FETCH         "; 32: liveness_name = "FMISS         ";
-        31: liveness_name = "FORM_n        "; 30: liveness_name = "FUL_n         ";
-        29: liveness_name = "IORQ_n        "; 28: liveness_name = "LHIT          ";
-        27: liveness_name = "MCL           "; 26: liveness_name = "MREQ_n        ";
-        25: liveness_name = "PAN_n         "; 24: liveness_name = "PA_n          ";
-        23: liveness_name = "POWFAIL_n     "; 22: liveness_name = "PS_n          ";
-        21: liveness_name = "REFRQ_n       "; 20: liveness_name = "RINR_n        ";
-        19: liveness_name = "RT_n          "; 18: liveness_name = "RUART_n       ";
-        17: liveness_name = "RWCS_n        "; 16: liveness_name = "SHORT_n       ";
-        15: liveness_name = "SIOC_n        "; 14: liveness_name = "SLOW_n        ";
-        13: liveness_name = "SSEMA_n       "; 12: liveness_name = "STOC_n        ";
-        11: liveness_name = "STP           "; 10: liveness_name = "TOUT          ";
-        9:  liveness_name = "TRAALD_n      "; 8:  liveness_name = "VAL           ";
-        7:  liveness_name = "WCHIM_n       "; 6:  liveness_name = "WRITE         ";
-        5:  liveness_name = "EPAN_n        ";
+        61,60,59,58,57,56,55,54: liveness_name = "IDB_7_0_OUT   ";
+        53,52,51,50,49,48,47,46: liveness_name = "PA_7_0        ";
+        45: liveness_name = "CA10          "; 44: liveness_name = "CCLR_n        ";
+        43: liveness_name = "CEUART_n      "; 42: liveness_name = "CLEAR_n       ";
+        41: liveness_name = "DT_n          "; 40: liveness_name = "DVACC_n       ";
+        39: liveness_name = "ECREQ         "; 38: liveness_name = "ECSR_n        ";
+        37: liveness_name = "EDO_n         "; 36: liveness_name = "EIOR_n        ";
+        35: liveness_name = "EMPID_n       "; 34: liveness_name = "EMP_n         ";
+        33: liveness_name = "EPANS_n       "; 32: liveness_name = "ESTOF_n       ";
+        31: liveness_name = "FETCH         "; 30: liveness_name = "FMISS         ";
+        29: liveness_name = "FORM_n        "; 28: liveness_name = "FUL_n         ";
+        27: liveness_name = "IORQ_n        "; 26: liveness_name = "LHIT          ";
+        25: liveness_name = "MCL           "; 24: liveness_name = "MREQ_n        ";
+        23: liveness_name = "PAN_n         "; 22: liveness_name = "PA_n          ";
+        21: liveness_name = "POWFAIL_n     "; 20: liveness_name = "PS_n          ";
+        19: liveness_name = "REFRQ_n       "; 18: liveness_name = "RINR_n        ";
+        17: liveness_name = "RT_n          "; 16: liveness_name = "RUART_n       ";
+        15: liveness_name = "RWCS_n        "; 14: liveness_name = "SHORT_n       ";
+        13: liveness_name = "SIOC_n        "; 12: liveness_name = "SLOW_n        ";
+        11: liveness_name = "SSEMA_n       "; 10: liveness_name = "STOC_n        ";
+        9:  liveness_name = "STP           "; 8:  liveness_name = "TOUT          ";
+        7:  liveness_name = "TRAALD_n      "; 6:  liveness_name = "VAL           ";
+        5:  liveness_name = "WCHIM_n       "; 4:  liveness_name = "WRITE         ";
+        3:  liveness_name = "EPAN_n        ";
         default: liveness_name = "(pad)         ";
       endcase
     end

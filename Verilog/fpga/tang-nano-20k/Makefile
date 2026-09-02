@@ -53,6 +53,19 @@ else
   $(error VARIANT must be slow, crawl or full)
 endif
 
+# CACHE: 0 (default) = CPU cache compiled out (src/tang20k_defines.v defines
+# ND120_NO_CACHE - that file stays the default-off authority). CACHE=1
+# pre-defines ND120_FORCE_CACHE, which suppresses ND120_NO_CACHE so the five
+# cache memories + used-bit PAL are synthesized. WARNING: this does not
+# currently fit the GW2AR-18 - a live cache needs 28330 logic cells against
+# the part's 20736 (measured 25-AUG-2026). The knob exists so the cache
+# option is symmetric across every build flow and so anyone attacking the
+# fit problem has it. Same mechanism as gowin_build.ps1 -Cache.
+CACHE ?= 0
+ifeq ($(CACHE),1)
+  VDEFS += -DND120_FORCE_CACHE
+endif
+
 # One source of truth: the ordered .v list from the Gowin project file
 # (src/tang20k_defines.v is first; yosys keeps `defines across a single
 # read_verilog file list, same as the Gowin ordered compilation unit).

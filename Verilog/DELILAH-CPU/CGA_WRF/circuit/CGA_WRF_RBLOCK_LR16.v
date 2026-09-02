@@ -262,7 +262,17 @@ module CGA_WRF_RBLOCK_LR16 (
     .QG (s_lr_15_0_out[9]),
     .QGN(),
     .QH (s_lr_15_0_out[8]),
-    .QHN()
+    .QHN(),
+    // registered-value taps: deliberately unconnected here -
+    // the transparent output is the wanted one (see L8/L4 header).
+    .QA_R(),
+    .QB_R(),
+    .QC_R(),
+    .QD_R(),
+    .QE_R(),
+    .QF_R(),
+    .QG_R(),
+    .QH_R()
   );
 
 
@@ -298,7 +308,17 @@ module CGA_WRF_RBLOCK_LR16 (
     .QG (s_lr_15_0_out[1]),
     .QGN(),
     .QH (s_lr_15_0_out[0]),
-    .QHN()
+    .QHN(),
+    // registered-value taps: deliberately unconnected here -
+    // the transparent output is the wanted one (see L8/L4 header).
+    .QA_R(),
+    .QB_R(),
+    .QC_R(),
+    .QD_R(),
+    .QE_R(),
+    .QF_R(),
+    .QG_R(),
+    .QH_R()
   );
 
 endmodule

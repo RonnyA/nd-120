@@ -352,17 +352,31 @@ module DECODE_DGA (
 
   // FIFO IN wires
   wire fifo_rst = ~s_xcl_n;
-  // P2 (docs/plan-fix-unconstrained-clocks.md): the FIFO clocks on XCLK and
-  // samples IDB - part of the CLK group. In FF mode it runs on sysclk with
-  // wr/rd gated by the aligned XCLK_EN pulse (one op per XCLK rise).
+  // The original PFIFC/PFIFD wrote a byte on the LDPANC~ pulse itself.
+  // LDPANC~ = ~(EROF & ldpanc_latched) (DECODE_DGA_COMM A195): EROF is the
+  // CYC/PAL_44307C "misc write pulse" of cycle state d, ONE sysclk wide,
+  // mid-cycle - it never coincides with an XCLK rise. Gating the write with
+  // XCLK_EN (FF mode) or clocking it on XCLK (latch mode) therefore NEVER
+  // wrote a byte: the CPU->panel direction was dead since the FIFO replaced
+  // the PFIF* blocks (measured 28-AUG-2026, sim/examples/panel_pans_capture.py
+  // with PANS_TRIG="CSA_12_0 == o1045": ldpanc_n low for 1 sysclk, XCLK_EN=0,
+  // wr_ptr stayed 0). The FIFO now clocks on sysclk in both modes; the write
+  // is the sysclk-detected FALLING edge of LDPANC~ (one byte per pulse), the
+  // pop is one per XCLK rise while RMM~ is low (XCLK_EN in FF mode, the
+  // detected XCLK rise in latch mode) - the DGA pops one byte per XCLK
+  // while the 68705 holds RMM~ low, as before.
+  reg r_ldpanc_n_d = 1'b1;
+  reg r_xclk_d     = 1'b0;
+  always @(posedge sysclk) begin
+    r_ldpanc_n_d <= s_ldpanc_n;
+    r_xclk_d     <= s_xclk;
+  end
+  wire fifo_clk   = sysclk;
+  wire fifo_wr_en = ~s_ldpanc_n & r_ldpanc_n_d;   // LDPANC~ falling edge
 `ifdef FPGA_FF_MODE
-  wire fifo_clk = sysclk;
-  wire fifo_wr_en = ~s_ldpanc_n & XCLK_EN;
   wire fifo_rd_en = ~s_xrm_n & XCLK_EN;
 `else
-  wire fifo_clk = s_xclk;
-  wire fifo_wr_en = ~s_ldpanc_n;
-  wire fifo_rd_en = ~s_xrm_n;
+  wire fifo_rd_en = ~s_xrm_n & s_xclk & ~r_xclk_d;  // XCLK rising edge
 `endif
 
   // FIFO OUT wires
@@ -387,6 +401,20 @@ module DECODE_DGA (
       .full(fifo_full),
       .empty(fifo_empty)
   );
+
+`ifdef ND120_PANEL_CLOCK_TRACE
+  // Sim-only: every byte pushed into the panel FIFO (LDPANC) and every
+  // MAPANS (TRA PANS) so the CPU side of the panel protocol is visible.
+  always @(posedge fifo_clk) begin
+    if (fifo_wr_en && !fifo_full) $display("[dga] t=%0t LDPANC push %03o", $time, s_idb_7_0_in);
+    if (fifo_wr_en &&  fifo_full) $display("[dga] t=%0t LDPANC push %03o DROPPED (FIFO full)", $time, s_idb_7_0_in);
+  end
+  reg r_trc_mapans = 1'b0;
+  always @(posedge sysclk) begin
+    r_trc_mapans <= IDBS.s_mapans;
+    if (IDBS.s_mapans && !r_trc_mapans) $display("[dga] t=%0t MAPANS (TRA PANS)", $time);
+  end
+`endif
 
   // ****************************************************************************************************
   // FIFO MODULE END
@@ -441,7 +469,8 @@ module DECODE_DGA (
 
     // Control/Status inputs
     .CSIDBS_4_0(s_csidbs_4_0[4:0]),  // 5-bit control input
-    .LCSN(s_xlcn),           // Load Control Store
+    .LCSN(s_xlcn),
+    .RWCSN(s_xrwn),          // the DGA's OWN RWCS decode (COMM sheet output, net s_xrwn) - gates the IDBS sheet's simulation-compensation window
     .STAT3(s_xst_4_3[0]),    // Status bit 4 from PANEL/CALENDAR CPU 68705
     .STAT4(s_xst_4_3[1]),    // Status bit 4 from PANEL/CALENDAR CPU 68705
 

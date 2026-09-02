@@ -91,14 +91,24 @@
 // does not.
 `define TANG_WD
 
-// CACHE COMPILED OUT. Fixing the cache-hit comparator (sheets 27 and 24) made
-// the cache REAL: it used to compare six wrong bits against a signal that is
-// zero on every mapped access, so most of the cache path was dead logic the
-// synthesiser removed. With it live the design needs 28330 logic cells against
-// this part's 20736. ND120_NO_CACHE omits the five cache memories and the
+// CACHE COMPILED OUT (the default). Fixing the cache-hit comparator (sheets
+// 27 and 24) made the cache REAL: it used to compare six wrong bits against a
+// signal that is zero on every mapped access, so most of the cache path was
+// dead logic the synthesiser removed. With it live the design needs 28330
+// logic cells against this part's 20736 (measured 25-AUG-2026), so it DOES
+// NOT FIT the GW2AR-18. ND120_NO_CACHE omits the five cache memories and the
 // used-bit PAL, forces the board's own SW1 cache-off position, and makes the
 // machine REPORT the cache as disabled. Gate: make test-mmucache-nocache.
+//
+// ND120_FORCE_CACHE (gowin_build.ps1 -Cache, or `make CACHE=1` in the OSS
+// flow) suppresses ND120_NO_CACHE so the cache is synthesized. It exists so
+// the cache knob is symmetric across every build flow and so anyone attacking
+// the fit problem has the switch - expect the build to OVERFLOW the part
+// until someone closes that 28330-vs-20736 gap. This file stays the
+// default-off authority: with no pre-define the cache is out, same as always.
+`ifndef ND120_FORCE_CACHE
 `define ND120_NO_CACHE
+`endif
 
 // (the TANG_SMD / TANG_WD mutual-exclusion guard lives inside
 //  ND120_TANG20K_TOP.v, where an instantiation is legal syntax and the

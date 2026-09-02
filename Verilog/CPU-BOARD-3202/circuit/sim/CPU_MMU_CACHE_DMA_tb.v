@@ -27,6 +27,20 @@
 **   write data for 21F, IHIT hit-history) -> CYD=1 (WCA window; a miss  **
 **   or a CPU write pulls WCA_n low and the SRAMs write) -> CYD=0.       **
 **                                                                       **
+** THE CWR PIN IS REAL HERE (30-AUG-2026). CWR into the cache is no       **
+** longer a bench register: PAL 44511A (sheet 34, 26H) is instantiated   **
+** and its pin 19 drives the cache's CWR input, exactly as sheets 34/25   **
+** wire it. Sheet 25 makes HIT with a 74S260 5-input NOR (USED~, HIT~1,   **
+** HIT~0, CWR, gnd), so HIT needs that pin LOW on a read. The PAL model  **
+** used to drive the pin as ~CWR (the listing names it /CWR): every read  **
+** ran the full memory cycle and CACHE-1X0-A00 test 2 reported "DATA is  **
+** taken FROM MEMORY when present in DATA CACHE" on the Nexys and in     **
+** Verilator alike (29-AUG-2026, fault 2). With the bench driving CWR=0  **
+** itself this bench could not see that. Now T3/T4/T7 (data read HITs)   **
+** fail against the inverted pin - that is the regression guard. The     **
+** bench pulses the PAL's CLK at the end of every cycle (TERM), which is  **
+** what releases the CWR hold latch on the board.                        **
+**                                                                       **
 ** WHAT MUST PASS:                                                       **
 **   T0  power-up sweep: no hit while the cold-state scrub runs, and -   **
 **       with tags/data SEEDED to match but no refill ever executed -    **
@@ -74,7 +88,7 @@
 
 module CPU_MMU_CACHE_DMA_tb;
 
-  localparam integer EXPECTED_CHECKS = 42;
+  localparam integer EXPECTED_CHECKS = 44;   // +2 (30-AUG-2026): the CWR pin itself
 
   reg sysclk = 0;
   always #5 sysclk = ~sysclk;
@@ -84,7 +98,12 @@ module CPU_MMU_CACHE_DMA_tb;
   reg         brk_n = 1;
   reg  [10:0] ca = 0;
   reg         cclr_n = 1;
-  reg         cwr = 0;
+  // CWR comes from PAL 44511A pin 19 (see the header) - not a bench reg.
+  reg         mreq_n   = 1;   // /MREQ into the PAL: low for the whole microcycle
+  reg         pal_clk  = 0;   // CLK into the PAL: pulsed at cycle end (TERM)
+  reg         pal_clk_en = 0; // its rise-aligned enable (FPGA_FF_MODE)
+  wire        cwr;            // pin 19 as the cache sees it
+  wire        cup_unused, lev0_unused;
   reg         cyd = 0;
   reg         dt_n = 1;
   reg         ecd_n = 0;      // cache data SRAMs selected (PAL 44306A ECD)
@@ -120,6 +139,25 @@ module CPU_MMU_CACHE_DMA_tb;
       .CON_n(con_n),
       .HIT0_n(hit0_n),
       .HIT1_n(hit1_n)
+  );
+
+`ifdef FPGA_FF_MODE
+  localparam integer PAL_CE = 1;
+`else
+  localparam integer PAL_CE = 0;
+`endif
+  PAL_44511A_EN #(.USE_ENABLE(PAL_CE)) pal_26h (
+      .sysclk(sysclk),
+      .EN    (pal_clk_en),
+      .CK    (pal_clk),
+      .OE_n  (1'b0),          // PD1, always low on the 3202D
+      .PIL0  (1'b0), .PIL1(1'b0), .PIL2(1'b0), .PIL3(1'b0),
+      .CLK   (pal_clk),
+      .MREQ_n(mreq_n),
+      .WCA_n (wca_n),
+      .CUP   (cup_unused),
+      .CWR_n (cwr),           // pin 19 -> net CWR (sheet 34), into the sheet-25 NOR
+      .LEV0  (lev0_unused)
   );
 
   CPU_MMU_CACHE_25 dut (
@@ -221,6 +259,7 @@ module CPU_MMU_CACHE_DMA_tb;
       ca    = addr;
       ppn   = page;
       cd_in = memword;
+      mreq_n = 1'b0;
       settle;
       chk(name, {15'b0, hit}, {15'b0, exp_hit});
       uclk_tick;
@@ -232,6 +271,15 @@ module CPU_MMU_CACHE_DMA_tb;
       cyd  = 1'b0;
       rt_n = 1'b1;
       dt_n = 1'b1;
+      // TERM: CLK rises, the PAL's CWR hold latch releases, MREQ goes away
+      @(negedge sysclk);
+      pal_clk_en = 1'b1;
+      pal_clk    = 1'b1;
+      @(negedge sysclk);
+      pal_clk_en = 1'b0;
+      mreq_n     = 1'b1;
+      @(negedge sysclk);
+      pal_clk    = 1'b0;
       @(posedge sysclk);
     end
   endtask
@@ -261,19 +309,15 @@ module CPU_MMU_CACHE_DMA_tb;
     // state) EXCEPT a deliberately seeded poison line at C1 whose tag
     // MATCHES the first access - only the scrubbed used bits keep it dead.
     for (i = 0; i < 2048; i = i + 1) begin
-      dut.CHIP_23F.tmm_memory_array[i] = 8'b0;
-      dut.CHIP_24F.tmm_memory_array[i] = 8'b0;
-      dut.CHIP_16F.tmm_memory_array[i] = 8'b0;
-      dut.CHIP_20F.tmm_memory_array[i] = 8'b0;
+      dut.CHIP_23F.g_async.tmm_memory_array[i] = 8'b0;
+      dut.CHIP_24F.g_async.tmm_memory_array[i] = 8'b0;
+      dut.CHIP_16F.g_async.tmm_memory_array[i] = 8'b0;
+      dut.CHIP_20F.g_async.tmm_memory_array[i] = 8'b0;
     end
-    dut.CHIP_23F.tmm_memory_array[C1] = POISON[15:8];
-    dut.CHIP_24F.tmm_memory_array[C1] = POISON[7:0];
-    dut.CHIP_16F.tmm_memory_array[C1] = {2'b00, PPN_A[13:8]};
-    dut.CHIP_20F.tmm_memory_array[C1] = PPN_A[7:0];
-    dut.CHIP_23F.data_out_reg = 8'b0;
-    dut.CHIP_24F.data_out_reg = 8'b0;
-    dut.CHIP_16F.data_out_reg = 8'b0;
-    dut.CHIP_20F.data_out_reg = 8'b0;
+    dut.CHIP_23F.g_async.tmm_memory_array[C1] = POISON[15:8];
+    dut.CHIP_24F.g_async.tmm_memory_array[C1] = POISON[7:0];
+    dut.CHIP_16F.g_async.tmm_memory_array[C1] = {2'b00, PPN_A[13:8]};
+    dut.CHIP_20F.g_async.tmm_memory_array[C1] = PPN_A[7:0];
 
     sweep_wait;
 
@@ -308,6 +352,8 @@ module CPU_MMU_CACHE_DMA_tb;
     settle;
     chk("T3_DREAD_HIT", {15'b0, hit}, 16'h0001);
     chk("T3_CD", cd_out, W1);
+    // the pin itself: LOW on a plain read (sheet 25's NOR needs that)
+    chk("T3_CWR_PIN_LOW_ON_READ", {15'b0, cwr}, 16'h0000);
     rt_n = 1; dt_n = 1;
     // the fetch used bit was KEPT across the data-read refill
     rt_n = 0; dt_n = 1; settle;
@@ -316,7 +362,11 @@ module CPU_MMU_CACHE_DMA_tb;
 
     // ---- T4: CPU write updates the line (write-through) ----------------
     memA[C1] = W2;
+    // during the write's WCA window the pin must be HIGH (CWR = MREQ*WCA)
+    // - checked inside the next cycle() through exp_hit=0; here we also
+    // look at the pin directly right after the WCA pulse
     cycle(1'b1, 1'b0, C1, PPN_A, W2, 1'b0, 1'b0, "T4_WRITE");
+    chk("T4_CWR_PIN_RELEASED_AFTER_TERM", {15'b0, cwr}, 16'h0000);
     rt_n = 0; dt_n = 0; ca = C1; ppn = PPN_A; cd_in = memA[C1];
     settle;
     chk("T4_DREAD_HIT_NEW", {15'b0, hit}, 16'h0001);

@@ -62,13 +62,14 @@ a passing run somewhere else.
 | **INSTRUCTION** | **Passes.** In Verilator, **13 of 13** testable INSTRUCTION-B areas - each area's own deep end-of-test with zero error lines, plus a golden 400-instruction trace gate against the ND-110 reference. On the board, the full multi-level run over interrupt **levels 1-9 passes clean** | Verilator (13-JUL-2026) + Tang silicon (31-JUL-2026) |
 | **PAGING** | **Passes 11 of 11**, including test 3 (PGU/WIP), test 4 (alternative PIT) and test 11 (physical address generation) | Tang silicon (30-JUL-2026) |
 | **MEMORY** | **Passes.** An earlier open item here - the TPE Monitor's memory diagnostic returning a corrupted banner string (23-JUL) - was closed by the MMU cache fix on 27-JUL: the cache data output was not gated by `HIT`, so a stale line jammed the wired-OR `CD` bus. That is the same defect that produced the garbled `INST??CTION` banner | Tang silicon |
+| **CACHE** (`CACHE-1X0-A00`) | **Passes all 8 tests**, including test 3 "Inhibit limits", which used to hang the board at `P=124563B`. Four faults had to be fixed first, all single-input transcription errors: the PAL 44511A `CWR` feedback latch, that PAL's pin-19 polarity (sheet 25 forms `HIT` with a 74S260 NOR that needs the net LOW on a read, so with `~CWR` no read could ever hit), a dropped Am9150 used-bit write, and a DGA `EPANS` data-window leak that accounted for all 20062 of test 1's errors | Nexys 4 DDR silicon (31-AUG-2026) |
 | **TPE Monitor B01** | Boots from a floppy image (`1560&` at the OPCOM `#` prompt), reaches the `TPE>` prompt and accepts its own commands - this is the harness the diagnostics above are loaded and run from | Verilator (27-JUL-2026) + Tang silicon |
 | **RUN** | Reaches its `== END OF TEST ==` after the Am2914 interrupt status fence was made default and MOR (memory-out-of-range) was wired to level 12 | Verilator (15-JUL-2026) |
 | **48-BITS-FLOATING** | **Not applicable** - this machine's PROM microcode implements the 32-bit float option, so the area cannot apply (`Verilog/docs/48bit-float-not-configured.md`) | - |
 | **DISC-TEMA J02** | **Not passing.** Loads and transfers real data off the disc image, register-for-register matching the reference model, but still reports `Memory address Register not as expected`. Unexplained, and the one known open diagnostic | Verilator + Tang silicon |
 
-The four that pass clean on the board - **CONFIGURE, INSTRUCTION, PAGING and
-MEMORY** - are the machine's own acceptance suite: they check the CPU
+The five that pass clean on the board - **CONFIGURE, INSTRUCTION, PAGING,
+MEMORY and CACHE** - are the machine's own acceptance suite: they check the CPU
 identifies itself correctly, executes every instruction group correctly, that
 the MMU translates and faults correctly, and that main memory is sound. With
 those green and SINTRAN III booting, the ND-120 is a working machine rather
@@ -83,13 +84,64 @@ at all; CONFIGURATION caught a trap-vector generator that resolved a
 simultaneous page-fault-plus-PGU to an unimplemented vector and self-jumped
 forever.
 
+### What enabling the cache is worth (31-AUG-2026)
+
+The ND-120's cache can be compiled in or out (`cache` / `nocache` on the Nexys
+build, `ND120_NO_CACHE`; see `Verilog/docs/build-defines.md`). Measured on the
+Nexys 4 DDR with the operator panel's own MIPS counter, running SINTRAN III:
+
+| build | CPU clock | cache | MIPS running SINTRAN | clocks per instruction |
+|---|---|---|---|---|
+| 15 | 45.45 MHz | off | 2.44 | 18.6 |
+| 16 | 33.33 MHz | **on** | **> 7.0** | **< 4.8** |
+
+**Enabling the cache is worth about 2.9x the real throughput - on a clock 26%
+SLOWER.** Per instruction it is close to a 4x saving. Both figures are the same
+workload (ordinary SINTRAN operation) read off the same counter, so it is a
+like-for-like comparison rather than a benchmark.
+
+**Why it is so large: this machine is memory-latency bound, not clock bound.**
+With the cache out, every instruction fetch is a DDR2 read, and DDR2 does not
+get faster when the CPU clock rises. The evidence is a one-word loop
+(`124000` = `JMP` to its own address - no operand fetch, no write, no I/O),
+deposited from the panel and therefore running on a page the cache-inhibit RAM
+has not been set up for:
+
+- at 45.45 MHz it ran at 2.66 MIPS - **17.1 clocks for a single `JMP`**
+- at 33.33 MHz it ran at 1.95 MIPS - **17.1 clocks**, the identical figure
+
+Three independent uncached measurements agreeing at 17.1 clocks per
+instruction, with throughput scaling exactly with the clock (2.66/1.95 =
+1.364 = 45.45/33.33), is what pins the bottleneck on memory rather than on the
+CPU.
+
+**A caution worth repeating, because it cost a day.** The opposite conclusion
+was reached on 30-AUG - "speed beats cache", cache dropped to buy 45 MHz - and
+it was wrong. The MIPS counter was then fed from a signal that counts MEMORY
+CYCLES, so it went blind precisely when the cache started working: both
+configurations read 2.44 and the cache looked worthless. Only after the counter
+was re-tapped to a true per-instruction event (the instruction register taking
+a new opcode) did the 3x difference appear. Never compare two numbers taken
+with different instruments, and prove an instrument before trusting what it
+says (`Verilog/docs/HANDOFF-mips-and-clock.md`).
+
+**What this makes valuable.** Cache and a fast clock together is the real
+machine: at under 4.8 clocks per instruction, the cache running at 45.45 MHz
+would be roughly **9.5 MIPS**. It is not reachable today - with the cache in,
+the routed worst path is 28.039 ns, a hard ceiling near **35.6 MHz** - and that
+one path (`WRF -> ALU -> TVGEN -> ACAL -> WCS` address, 75% routing) is now the
+highest-value optimisation target on the board. Details and the three possible
+routes: `Verilog/fpga/nexys4ddr/timing.md`.
+
 **FPGA hardware:**
 
 > **Ready-built bitstreams:** grab them from the
 > [Releases page](https://github.com/RonnyA/nd-120/releases) - no FPGA
 > toolchain needed. Quickstarts: `Verilog/fpga/QUICKSTART-nexys4ddr.md`
-> (incl. the no-software SD-card path) and
-> `Verilog/fpga/QUICKSTART-tang-nano-20k.md`.
+> (incl. the no-software SD-card path),
+> `Verilog/fpga/QUICKSTART-tang-nano-20k.md` and
+> `Verilog/fpga/QUICKSTART-mega65.md` (MEGA65 cores: built, not yet run on
+> a MEGA65 - the first testers are you).
 
 - **Tang Nano 20K - SINTRAN III BOOTS (24-AUG-2026).** The operating system
   runs on the FPGA from a Winchester disc image on the SD card: banner in
@@ -123,6 +175,17 @@ forever.
   (`Verilog/docs/tang20k-build-flows.md`)
 - **Cmod A7-35T**: first build ready (BRAM memory, CPU at 27 MHz);
   512 KB SRAM main-memory bridge planned
+- **MEGA65 - the whole machine builds for BOTH board revisions
+  (02-SEP-2026), timing-clean, NOT YET RUN ON A MEGA65.** On the
+  MiSTer2MEGA65 framework: ND-120 CPU with 4 MB main memory (R3: in the
+  HyperRAM through the Nexys cache seam and a new Avalon port, CPU
+  13.33 MHz; R4/R5/R6: in the 64 MB SDRAM through the MiSTer sheet-49
+  bridge, CPU 20 MHz), the TDV2200 terminal on the MEGA65's own keyboard
+  and screen (VGA + HDMI), floppy 0/1, Winchester 0/1 and paper tape as
+  image files on the SD card through the framework's virtual drives, one
+  `.cor` per revision flashed from the MEGA65's own menu. Every new block
+  has a self-checking bench; the port and its facts:
+  `Verilog/fpga/mega65/README.md`, `Verilog/fpga/mega65/docs/00-plan.md`.
   (`Verilog/fpga/cmod-a7-35t/SRAM-BRIDGE-PLAN.md`)
 - Memory-backend speed rules for every board (what meets the no-wait-state
   protocol at 40 MHz and what cannot):

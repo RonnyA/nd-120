@@ -19,6 +19,9 @@ module DECODE_DGA_IDBS (
     input       CLK1,        //! Clock input 1
     input [4:0] CSIDBS_4_0,  //! Microcode IDB Source select
     input       LCSN,        //! Load Control Store
+    input       RWCSN,       //! /RWCS from the CMDDEC PAL (sheet 34). NOT a gate-array pin - a
+                             //! simulation-compensation input, see the EPANSN note below. Tie
+                             //! high to get the pin-exact gate array.
     input       STAT3,       //! Status bit 4 from PANEL/CALENDAR CPU 68705
     input       STAT4,       //! Status bit 4 from PANEL/CALENDAR CPU 68705
 
@@ -77,6 +80,8 @@ module DECODE_DGA_IDBS (
   wire       s_stat_4;
   wire       s_input1_a284;
   wire       s_epans_n;
+  wire       s_epans_reg_n;   //! A259 Q0 - the REGISTERED MIPANS/MAPANS decode, as the real DGA has it
+  wire       s_rwcs_n;        //! see RWCSN
   wire       s_a284_nor_out;
 
   wire       s_a262_nand_out;
@@ -112,6 +117,7 @@ module DECODE_DGA_IDBS (
    ** Here all input connections are defined                                     **
    *******************************************************************************/
   assign s_csidbs_4_0[4:0] = CSIDBS_4_0;
+  assign s_rwcs_n          = RWCSN;
   assign s_clk1 = CLK1;
   assign s_clk0 = CLK0;
 
@@ -542,7 +548,7 @@ module DECODE_DGA_IDBS (
       .D1_H02 (s_a265_nand_out),
       .D2_H03 (s_a258_nand_out),
       .D3_H04 (s_a262_nand_out),
-      .N01_Q0 (),             // EPANSN: combinatorial bypass below (see comment)
+      .N01_Q0 (s_epans_reg_n), // EPANSN, registered on CLK1 - the original DGA path (see below)
       .N02_Q1 (s_rinr_n),
       .N03_Q2 (s_epan_n),
       .N04_Q3 (s_traald_n),
@@ -560,7 +566,62 @@ module DECODE_DGA_IDBS (
   // CSIDBS=o020 settles at MCLK falling (start of idle), so s_epans_n=0 is visible
   // during the idle phase when CSEL is transparent, allowing COND=F[15]=1 to be
   // captured before o002336 CONDENABL executes.
-  assign s_epans_n = s_a260_nand_out;
+  //
+  // 28-AUG-2026 (panel clock work), MEASURED with sim/examples/panel_pans_capture.py:
+  // the macro instruction TRA PANS (VECT2 o3660, IDBS,MAPANS -> A) stored
+  // 000000 in A although the sheet-40 drivers held PRES=1. The capture shows
+  // why: with the comb bypass the panel drives the IDB from the CLK fall at
+  // which CSIDBS=o21 appears until the next CLK fall - one CLK period - and
+  // the ALU samples FIDBI one phase later (reference: a UART read, IDBS o37,
+  // whose CLK0-registered enable asserts at the following CLK rise and holds
+  // the data through the next CLK-low phase, where the ALU takes it).
+  // So the macro read needs the REGISTERED window, while the 20 ms check
+  // (o2335: IDBS,MIPANS then COND,F15) needs the early comb one.
+  // Adding a registered window to o20 (either A259.Q0 for o20|o21, or the
+  // plain AND of both windows) kills OPCOM console input - the extra window
+  // lands in the data phase of the microinstruction AFTER o2335, which uses
+  // the IDB. So the two codes are split: o20 (MIPANS) keeps the comb bypass
+  // and nothing else; o21 (MAPANS) uses s_mapans, the A275 CLK0-registered
+  // decode that already exists for the VAL/RIWR handshake - the same clock
+  // and timing as RUARTN, the UART read that is known to work.
+  //
+  // 30-AUG-2026, THE CONTROL-STORE DATA WINDOW. The bypass above reads
+  // CSIDBS live, and during an RWCS microinstruction the control store
+  // outputs the DATA WORD being read (EWCA to ECSL) or written (WCSTB),
+  // not a microinstruction. CACHE-1X0-A00 test 1 writes each word's own
+  // address into it: 017000B has bits 41:37 = o20, so while it is read
+  // back the bypass decoded MIPANS, EPANS enabled the panel status driver
+  // (sheet 40, 74LS244 33B) and its word was OR-ed onto the IDB with the
+  // TCV's - found XOR expected on the Nexys was the panel status word
+  // changing as the 68705 ran (163400, 020400, 120400 ...), in Verilator
+  // the stub panel's constant 100000. Every word whose bits 41:37 hit any
+  // decode is exposed the same way.
+  //
+  // The real DGA cannot do this - all its IDBS decodes are CLK-registered
+  // flops (A259 Q0 is EPANSN) and at the clock edges the store shows the
+  // next microinstruction. Putting EPANSN back on A259 Q0 was tried
+  // (build 6, 30-AUG-2026 01:52): with our 1-sysclk control-store read
+  // latency the registered window lands one microinstruction late, and
+  // OPCOM console input is dead, on the Nexys and in Verilator alike - the
+  // very thing this bypass was written for. So the bypass stays, and it is
+  // shut for the whole RWCS microinstruction (RWCSN low, from the 44408B
+  // on sheet 34 - the RWCS microword's own IDBS field is 0, so no real
+  // decode is lost), exactly as it is already shut for LCS. RWCSN is the
+  // one input this module has that the gate array does not; it exists only
+  // to qualify this compensation. -DND120_EPANS_REGISTERED gives the
+  // pin-exact registered EPANSN for A/B runs (console dead, see above).
+`ifdef ND120_EPANS_REGISTERED
+  assign s_epans_n = s_epans_reg_n;
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_rwcs_n = s_rwcs_n;
+  /* verilator lint_on UNUSEDSIGNAL */
+`else
+  wire s_mipans_comb_n = ~(s_csidbs_4_0[4] & s_csidbs_3_n & s_csidbs_2_n & s_csidbs_1_n & s_csidbs_0_n & s_lcs_n & s_rwcs_n);  // o20, not during LCS or RWCS
+  assign s_epans_n = s_mipans_comb_n & ~s_mapans;
+  /* verilator lint_off UNUSEDSIGNAL */
+  wire unused_epans_reg = s_epans_reg_n;
+  /* verilator lint_on UNUSEDSIGNAL */
+`endif
 
   F924_EN #(.USE_ENABLE(CLK_CE)) A248 (
       .sysclk(sysclk),

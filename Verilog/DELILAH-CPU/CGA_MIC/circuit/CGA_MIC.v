@@ -973,7 +973,17 @@ module CGA_MIC (
     .QG (s_ir_6_0[6]),
     .QGN(),
     .QH (),
-    .QHN()
+    .QHN(),
+    // registered-value taps: deliberately unconnected here -
+    // the transparent output is the wanted one (see L8/L4 header).
+    .QA_R(),
+    .QB_R(),
+    .QC_R(),
+    .QD_R(),
+    .QE_R(),
+    .QF_R(),
+    .QG_R(),
+    .QH_R()
   );
 
   CGA_MIC_CONDREG CONDREG (

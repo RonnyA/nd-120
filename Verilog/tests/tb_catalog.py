@@ -37,6 +37,31 @@ REGISTRY = os.path.join(HERE, "run_all_tests.sh")
 # Testbenches known not to be reached by `make test`, with the reason.
 # This list may only SHRINK. A new orphan is a failure.
 ORPHAN_BASELINE = {
+    "CPU-BOARD-3202/circuit/sim/CPU_MMU_PT_29_wcinh_tb.v":
+        "DETECTOR, deliberately RED against today's RTL - 28-AUG-2026. The "
+        "cache-inhibit bit (WCINH_n, CHIP_20G) gates the whole cache: "
+        "WCINH_n -> EWC -> WCA -> CWR -> CUP. It had NO coverage at all while "
+        "CACHE-120-A00 was failing on hardware with 'Cache not updated (Use "
+        "of limit registers)'. Checks 1 and 2 pass; check 3 fails because "
+        "CPU_MMU_PT_29.v:71 addresses the RAM with "
+        "s_ppn_25_10_in | s_ppn_25_10_out - a bitwise OR of the two "
+        "directions of one bidirectional bus. With the CPU presenting page "
+        "0005B and the map presenting 0012B the RAM is addressed at 0017B, a "
+        "page neither side asked for.\n\n"
+        "CORRECTED SAME DAY, AGAINST MYSELF. Sheet 29 of the 3202D schematic "
+        "shows ONE bidirectional bus PPN(25:10) feeding the IMS1403 address "
+        "pins (PPN10-23) and its data pin (PPN25). The OR is therefore a "
+        "WIRED-OR model of that tri-state bus, which is legitimate as long as "
+        "the non-driver contributes 0 - and CPU_15.v:406 does exactly that: "
+        "s_lapa_ppn_25_10 = s_lapa_n ? 16'b0 : {2'b0, s_la_23_10}. So the CPU "
+        "side is 0 whenever it is not driving, and the mixture this bench "
+        "forces is probably UNREACHABLE in the real design. PPN25 is not "
+        "stuck at 0 either - CPU_MMU_PPNX_28 drives PPN25-18 from the IDB.\n\n"
+        "So this is NOT a proven defect and must not be cited as one. It is "
+        "kept as COVERAGE for a path that had none, and as a guard: if anyone "
+        "ever makes the CPU side drive the PPN bus while the map is driving "
+        "it, this goes red and says why. Retire it or rewrite it to assert "
+        "the wired-OR precondition instead.",
     "DELILAH-CPU/CGA_MAC/sim/CGA_MAC_pt_apt_selection_tb.v":
         "UNRESOLVED - 27-AUG-2026. red at 129/259 (PT request selects "
         "PCR[14:11]: got 1 expected 12). 17-AUG ERRFATAL-campaign probe; that "

@@ -1,5 +1,11 @@
 # MC68705 Panel/Calendar Controller Firmware Analysis
 
+> **Read this first (28-AUG-2026):** superseded by `U3-COMPLETE.MD` (see its section 17, "Corrections
+> 28-AUG-2026"). Known errors here: the port-B pin table (PB3 is RMM~, the FIFO read strobe; PB4 is STAT3;
+> PB5 is STAT4; PB6 is READ), the "1200 Hz" timer rate (the seconds counter needs 6400 ticks per second),
+> and the 0x09EE description (it writes the MM58274, not the ND-120).
+
+
 Analysis of the code in the 68705 U3 chip
 
 ## Introduction

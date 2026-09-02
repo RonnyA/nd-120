@@ -76,7 +76,64 @@ memory.
 | `sd-fat-test/` | The SD/FAT menu tool on the on-board microSD slot, with the memory tests as menu commands `B` and `M`. |
 | `board-test/` | Board bring-up check - switches, LEDs, 7-seg, buttons, UART, SD detect. Run this before the CPU build. |
 | `EXTENSIONS-PLAN.md` | The two planned extensions: **microSD** and **DDR2 main memory**. |
+| `flash.tcl` | Write a BUILT bitstream into the QSPI flash - permanent, survives power-off. |
+| `readback_qspi.tcl` | Read the QSPI flash to a file WITHOUT writing it. Run this before `flash.tcl` on a board whose flash contents you do not already have. |
+| `restore_qspi.tcl` | Write a RAW flash image back (`-loaddata`, not `-loadbit`). Used to put the factory Digilent demo back. |
+| `qspi_factory_backup.zip` | This board's factory QSPI contents: the Digilent demo, both a 4 MiB and a full 16 MiB dump. |
 | `docs/nexys4ddr_rm.pdf` | Digilent reference manual. |
+
+## QSPI flash: the demo, and putting it back
+
+The board ships with Digilent's demo application in its QSPI configuration
+flash, and that is what a power-on runs when jumper **JP1 is on QSPI**. JTAG
+loads (`program_only.tcl`, `build.tcl` without `-noburn`) are volatile and do
+not touch the flash - the demo survives them.
+
+**The archive is in this folder.** `qspi_factory_backup.zip` holds this board's
+own flash contents, read off it on 31-AUG-2026: one bitstream, sync word
+`AA995566` at `0x30`, content ending at `0x3A607B` (3.65 MiB), and nothing at
+all above that in the 16 MiB device.
+
+### Put the demo back
+
+```
+cd Verilog/fpga/nexys4ddr
+unzip qspi_factory_backup.zip                 # gives the two .bin dumps
+vivado -mode batch -source restore_qspi.tcl        -tclargs qspi_factory_backup_full16m.bin
+```
+
+Then **power-cycle** the board (the restore leaves Vivado's programming
+bitstream in the FPGA; the flash is only read at power-on) and check JP1 is on
+QSPI. `restore_qspi.tcl` erases, programs and verifies, and takes a RAW image
+rather than a `.bit` - `write_cfgmem -loaddata`, not `-loadbit`.
+
+Afterwards the FPGA holds Vivado's programming bitstream, not the ND-120: run
+`program_only.tcl` to put the machine back.
+
+### Save a board's flash before you overwrite it
+
+```
+vivado -mode batch -source readback_qspi.tcl -tclargs out.bin 16777216
+```
+
+Do this on any board whose flash contents are not already archived. It only
+reads. 4 MiB captures one xc7a100t image; the full device is 16777216 bytes and
+takes roughly four times as long, because JTAG at 5 MHz TCK is the bottleneck.
+
+### NAME THE FLASH PART - do not match it with a wildcard
+
+All three scripts ask for **`s25fl128sxxxxxx0-spi-x1_x2_x4`** by name. This is
+not fussiness. A filter like `s25fl128*` also matches `s25fl128l-spi-x1_x2_x4`,
+the **S25FL128L** - a different device with a different command set - and this
+board carries an **S25FL128S**. On 01-SEP-2026 a readback with the L part
+failed with `[Labtools 27-3307] Readback CfgMem Error`, but Vivado had already
+loaded its programming bitstream and driven L-series opcodes at the S-series
+chip, and **the factory demo did not survive it**. A script that only intends
+to read can still destroy the flash if it is talking to the wrong part.
+
+Also note `s25fl128s-3.3v-qspi-x4-single`, which looks right, is UltraScale
+only: Artix-7 rejects it with `[Labtoolstcl 44-655] not supported for device
+artix7`.
 
 ## Bring-up: validating a brand-new board
 
@@ -161,12 +218,33 @@ make CLK=33             # try a 33.333 MHz CPU clock instead of 16.667 MHz
 make clean
 ```
 
+**Getting a built bitstream onto the board - two different things:**
+
+```bash
+make load    # TEMPORARY: JTAG into configuration RAM, seconds.
+             # A power cycle restores whatever the QSPI flash holds -
+             # the worst case of a bad bitstream is "switch it off and on".
+             # Use this while iterating.
+make flash   # PERMANENT: writes the QSPI config flash (flash.tcl builds the
+             # .mcs, erases, programs, verifies, then boots the FPGA from it).
+             # Survives power cycles - this is the release/deploy step.
+```
+
+Neither triggers a rebuild: both refuse politely if `nd120_nexys4ddr.bit` is
+missing. The board's USB must be attached to Windows, not WSL (usbipd).
+Releasing a build = `make build` (it fails loudly on negative slack, so a
+broken-timing image cannot reach this step) followed by `make flash`.
+
 On the Windows host, call the tcl directly:
 
 ```powershell
 vivado -mode batch -source build.tcl -tclargs -noburn        # build only
 vivado -mode batch -source build.tcl -tclargs clk=50         # 50 MHz attempt
 vivado -mode batch -source build.tcl -tclargs -skipwcs       # preload the WCS
+vivado -mode batch -source build.tcl -tclargs -NoPanelClock  # drop the panel clock (make PANELCLOCK=0)
+vivado -mode batch -source build.tcl -tclargs novgaconsole   # drop the VGA console (make VGACONSOLE=0)
+vivado -mode batch -source program.tcl                       # 'make load'  (JTAG, volatile)
+vivado -mode batch -source flash.tcl                         # 'make flash' (QSPI, permanent)
 ```
 
 Microcode `AM27256_4513{2,3}L.hex` is copied automatically from
@@ -181,6 +259,9 @@ means an empty microcode ROM, which looks like a dead CPU).
 | Clocking | `FPGA_FF_MODE`, one clock domain | The latch model never ships on FPGA. |
 | CPU clock | **45.45 MHz** (`clk 45` + `physopt`) since 26-AUG-2026 | Boots SINTRAN on silicon. The frequency search and bottleneck analysis are in [`timing.md`](timing.md); `clk=16` remains the high-margin fallback. |
 | WCS load | runtime load from the PROM images | The -100T has BRAM to spare; `-skipwcs` switches to the Basys3-style bitstream preload. |
+| CPU cache | compiled in (default since 29-AUG-2026); **runtime on/off on slide switch `sw[4]`: down = on, up = off** (the console's SW1, sheet 25 CON) | Still fails CACHE-120-A00 (used bit never sets, `docs/HANDOFF-cache-and-panel-29AUG.md`), but it is being worked on on this board, so it ships. `nocache` / `make CACHE=0` compiles the RAMs out. |
+| VGA console | `ND120_CONSOLE_VGA` (default since 29-AUG-2026) - console on the VGA connector + USB keyboard, serial console kept in parallel | Every deployed image since 28-AUG had it. `novgaconsole` / `make VGACONSOLE=0` leaves it out to save space; the screen is then dark and only the serial console works. |
+| Panel clock | `ND120_PANEL_CLOCK` (default since 29-AUG-2026) - the MC68705/MM58274 hardware clock emulated in `CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v`, 1 Hz tick derived from `BOARD_CLK_FREQ` so it follows `clk=` | Proven on the Tang (SINTRAN takes the time across a master clear, TPE starts without "clock is not updated"). `-NoPanelClock` / `make PANELCLOCK=0` brings back the old stub if the space is needed for something else; then SINTRAN prints "ND-100 PANEL CLOCK INCORRECT" at every boot. Details: `Verilog/docs/panel-clock-68705.md`. |
 | Console | **115200** 7E1 on the USB-UART since 26-AUG-2026 | The physical rate is the `UART_BAUD_RATE` build constant alone: the emulated SC2661 stores the microcode's BAUDV mode value (thumbwheel 8 = 9600 - the 1988 table tops out there) but times every bit off the compile-time divider, and TX-ready is a polled flag. The machine believes 9600; the wire runs 115200. |
 
 ### Raising the clock
@@ -309,3 +390,162 @@ run them after every bitstream change.
 - Golden dialogs for expect scripts: `../../tests/golden-console/`.
 - Machine invariants (register maps, address-space contract, board
   differences): `../../docs/nd120-facts.md`.
+
+
+## Console on the board's own screen and keyboard (built, not yet synthesized - 28-AUG-2026)
+
+The Nexys has a VGA connector and an onboard USB host that presents a keyboard
+to the FPGA as **plain PS/2** (`Nexys-4-DDR-Master.xdc:226-227`, in the section
+headed `##USB HID (PS/2)`) - so a keyboard costs a ~50-line PS/2 receiver, not
+a USB stack. Since this board already boots SINTRAN III, it is the cheapest
+place to prove the shared terminal core in `Verilog/Terminals/`: the terminal
+is the only new thing in the build, and phases 1-3 need no ND-120 RTL at all.
+
+Plan: [PLAN-vga-console.md](PLAN-vga-console.md). The serial console is kept
+live in parallel - the build define `ND120_CONSOLE_VGA` *adds* the screen, it
+does not remove the UART - so `console.ps1`, the board tests and the soak
+scripts keep working.
+
+**That parallel serial console is the whole reason this board goes first**
+(Ronny, 28-AUG-2026). `Terminals/rtl/ps2_ascii_table.v` says of itself that
+every scancode in it is "a claim, not a fact" until someone types on a real
+keyboard - and this is the only board where the claim can be CHECKED, because
+you can watch both paths at once. Press a key: the screen shows what our table
+produced, and the serial terminal shows what the machine actually received. A
+screen on its own looks perfectly healthy whatever the table produced. No other
+board can do this - MiSTer's console echoes locally and has no machine behind
+it.
+
+### What is built
+
+```bash
+vivado -mode batch -source build.tcl -tclargs -noburn                # VGA console is the default
+vivado -mode batch -source build.tcl -tclargs novgaconsole -noburn   # serial console only
+vivado -mode batch -source build.tcl -tclargs nocache -noburn        # cache RAMs compiled out (make CACHE=0)
+```
+
+The VGA console is ON BY DEFAULT since 29-AUG-2026 (`novgaconsole` drops it).
+It adds the 12 terminal sources, copies the font next to `font_rom.v`
+(Vivado resolves `$readmemh` relative to the .v, not the project), reads the
+extra XDC, and defines `ND120_CONSOLE_VGA` plus the console baud. `-noburn`
+builds without programming the board - **`build.tcl` programs over JTAG by
+default**, which would replace whatever is currently running.
+
+The console prints a power-on self-test message before the machine says
+anything, then gets out of the way permanently. That is deliberate: it turns a
+blank screen from one useless symptom into two useful ones. Text on screen but
+no response to typing means the keyboard half; nothing at all means the video
+half. The banner and the banner/machine priority are shared with the MiSTer and
+MEGA65 consoles (`Terminals/rtl/term_console_feed.v`), so the three boards
+cannot drift apart.
+
+### First build, 28-AUG-2026 - SYNTHESIZED, PROGRAMMED, AND SINTRAN STILL BOOTS
+
+`vivado -mode batch -source build.tcl -tclargs vgaconsole`, Vivado 2026.1,
+default `clk_sel 16` and 115200 baud. Measured, not estimated:
+
+| | |
+|---|---|
+| Setup | **WNS +1.460 ns**, TNS 0.000 |
+| Hold | WHS +0.016 ns, THS 0.000 |
+| DRC | 0 errors |
+| Bitstream | `nd120_nexys4ddr.bit`, 3,825,999 bytes |
+| Programmed | yes, over JTAG |
+
+So the terminal core fits and closes timing on top of the whole ND-120, with
++1.46 ns of setup margin left. Hold margin is thin (+0.016 ns) but positive.
+
+**SINTRAN III boots on the resulting bitstream** - confirmed by reading COM11
+while the board came up:
+
+```
+ 09.45.15     16 SEPTEMBER   1994
+ SINTRAN III - VSX/500 M
+--- NEXYS4 FPGA ---
+ CPU TYPE:      102      CPU NUMBER:    120
+SINTRAN III RUNNING -
+PAGES FOR SWAPPING:   3074B
+```
+
+That is the important negative result too: adding the console did NOT break the
+machine. The serial console still works exactly as before, which is the whole
+premise of testing the terminal on this board.
+
+**Still unverified, and only a monitor can answer it:** whether anything
+appears on the VGA connector, whether the font ROM loaded (blank boxes = the
+`$readmemh` path), and whether the keyboard table is right. That last one is
+the reason this board was chosen - type a key and compare the screen against
+what COM11 shows the machine actually received.
+
+Simulation coverage behind it: 8 testbenches (7 in `Terminals/sim` including a
+1,920,000-pixel frame comparison, 1 for the MiSTer glue), Verilator lint clean,
+zero inferred latches, and the default non-console bitstream proven unchanged by
+preprocessing the top level both ways.
+
+
+### Slide switches
+
+They have accumulated; this is the map.
+
+| Switch | 0 | 1 |
+|---|---|---|
+| `sw[0]` | 7-segment shows CSA | shows LA *(always zero - see below)* |
+| `sw[1]` | US keyboard + font | **Norwegian** (NS 4551-1) |
+| `sw[2]` | 800x600 @ 40 MHz | **1920x1080 @ 148.4 MHz** |
+| `sw[3]` | operator panel hidden | **operator panel shown** |
+| `sw[4]` | **CPU cache ON** (console SW1) | cache OFF - every access to main memory, CSR reports it disabled |
+| `sw[15:14]` | 7-segment right-hand source select | |
+
+`sw[13:4]` are free.
+
+**`sw[1]` switches the keyboard AND the font together, from one bit.** That is
+deliberate: a national variant is not a font choice and not a keyboard choice,
+it is one agreement about what six byte values mean. Selecting them separately
+would allow the state where you type AE and the screen draws `[`, which looks
+like a font bug and is not one.
+
+**`sw[2]` switches the pixel clock as well as the timing**, through a
+`BUFGMUX_CTRL`. A plain logic mux on a clock produces runt pulses, and a runt on
+the pixel clock does not give a glitchy picture - it gives flip-flops latching
+garbage into the character RAM. The console UART's divisor follows the same bit,
+because the console shares that clock domain: 347 clocks per bit at 40 MHz,
+1288 at 148.4 MHz.
+
+**`sw[3]` hides the panel; it does not remove it.** The logic is in the
+bitstream either way, so the switch costs one LUT and saves screen space, not
+fabric.
+
+### The operator panel
+
+A recreation of the machine's own folio panel, drawn below the console text.
+The fields are not a design choice: the ND-120's panel processor - an MC68705U3
+at board position 35C, schematic sheet 40 of 50 dated 5-OCT-1987, transcribed
+here as `IO_PANCAL_40.v` - samples exactly these on its Port D, and
+`ND3202D.DBG_PANEL` now brings the same five signals out in the same bit order.
+
+| Field | Signal |
+|---|---|
+| PROTECT RING | `PCR_1_0` |
+| PAGING ON/OFF | `PONI` |
+| INTERRUPT ON/OFF | `IONI` |
+| CACHE HIT RATE | `HIT` - the ND-120's **own** cache, not the FPGA line cache |
+| UTILIZATION | `LEV0` - idle is "running at level 0", so the bar is `!LEV0` |
+| CURRENT LEVEL | `PIL`, with afterglow |
+
+Two fields deliberately depart from the real panel, because the alternative
+would look right and be wrong:
+
+- **CURRENT LEVEL, not ACTIVE LEVEL.** The real display lights every *active*
+  level at once, fed from the microprogram in PANC packets. We have PIL, the one
+  level running now. Same picture, different claim - so the caption changed.
+- **`UP:hh:mm:ss`, not DAY/TIME.** The real clock is a battery-backed MM58274 on
+  standby power. Since 29-AUG-2026 the CPU build does carry an emulated panel
+  clock (`ND120_PANEL_CLOCK`, table above), but its day/time counters
+  (`TIME_HALFDAYS` / `TIME_SECONDS` in `PANCAL_68705_CLOCK.v`) are not brought
+  out to `DBG_PANEL` yet, so the VGA panel still shows uptime. Uptime is counted
+  in *frames*, not clocks, so it stays correct when `sw[2]` changes the pixel
+  clock.
+
+Design mockup and the full provenance of every field:
+<https://claude.ai/code/artifact/65f75e7c-ce77-4724-89ab-8b219d19f9a9>
+

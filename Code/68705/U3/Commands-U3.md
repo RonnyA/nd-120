@@ -1,5 +1,13 @@
 # Command protocol used by the U3
 
+> **Read this first (28-AUG-2026):** this file was written from an early AI pass and has the read/write
+> bit and the pin roles partly wrong. The ROM-verified protocol is in `U3-COMPLETE.MD` sections 6, 8 and 17
+> ("Corrections 28-AUG-2026"). In short: command byte = PANC high byte; bit 5 = read request (PANC bit 13),
+> bits 2:0 = PFUNC; PFUNC 4-7 = the four bytes of the ND-100 hardware clock (half-days since 1979 + seconds),
+> answered through PB0 = WMM~ into the 74LS374; PB3 = RMM~ reads the FIFO; PB1/PB2 are the MM58274 strobes.
+> The "Response Generation" bit fields below are speculative - the answer byte is raw data.
+
+
 # MC68705 PANC Command Protocol - Detailed Specification
 
 ## Introduction

@@ -1,6 +1,6 @@
 # ND-120 Verilog TODO
 
-> Last updated: 25-AUG-2026. Newest entries are at the top; the "CURRENT PLAN -
+> Last updated: 28-AUG-2026. Newest entries are at the top; the "CURRENT PLAN -
 > 02-AUG-2026" section below keeps its own date and says who owns what.
 >
 > Standing context: **SINTRAN III boots on the Tang Nano 20K** (24-AUG-2026).
@@ -9,6 +9,148 @@
 > 235.8 s -> 13.2 s).
 
 ---
+
+## MiSTer port - 01-SEP-2026
+
+**Next:** find why the CPU never reaches OPCOM. The state of the hunt is
+written up in `docs/mister-microcode-loop.md`, including the annotated
+31-microinstruction loop the board is stuck in.
+
+Measured on the board, all of it ruling something OUT:
+- CPU clock runs at exactly 20 MHz, a real PLL output on a global network;
+  reset released; 0 synthesis errors; timing clean.
+- `STERR` (002156) is NEVER entered and R2 is untouched - the self-test does
+  not fail.
+- Disabling the panel request (`TANG_NO_PAN`) removed a genuine spurious
+  interrupt (debug word 000005 -> 000000) and changed the loop by not one
+  address - the failure is not interrupt-driven.
+- MIPS reads 00.00 with `ND120_MIPS_TAP` built, so NO macro instructions are
+  being fetched: the loop is microcode-internal.
+- All 32 WCS MIFs match the canonical microcode - MiSTer runs exactly what
+  Nexys runs.
+- Verilator with MiSTer's RTL settings reaches the `#` prompt (see item 2
+  below for the caveat on that comparison).
+
+The live lead: `NOTI2` (001020) is an UNCONDITIONAL `T,RETURN`, and MACL calls
+`RIIE1` from 002026 with return address 002027 - the working sim returns
+there, the board goes to 001021, the next sequential address. Same for
+`CHKIT`, which returns to 001007 instead of the 2xxx caller. The
+microsubroutine stack itself works (PICFM's call/return is correct), so the
+question is why those particular returns take the wrong address.
+
+Debug loop: `fpga/mister/tools/deploy_and_look.sh` flashes the board and pulls
+a screenshot back over ssh, so no one has to watch the monitor. Probes:
+`rtl/nd120_diag_print.v` (status line), `rtl/nd120_csa_trace.v` (the
+consecutive microcode trace - the once-a-second sample ALIASES and must not be
+read as a loop), `rtl/nd120_sterr_catch.v` (STERR + R2). All three have
+self-checking testbenches registered in `tests/run_all_tests.sh`; retire them
+with the `ND120_DIAG_PRINT` define once the CPU runs.
+
+QUEUED, in order, once OPCOM is confirmed working on MiSTer:
+
+1. **Real main memory - the DE10-Nano's 128 MB SDRAM.** MiSTer is the only
+   target still on `MAIN_RAM_BLOCKRAM`, and `fpga/nexys4ddr/build.tcl:296-301`
+   already records why that backend was retired there: the BRAM banks hold far
+   less than the 4 MB `PAL_44446B` advertises, so everything above word
+   0o200000 in a bank ALIASES onto low memory, "which forbids SINTRAN". Nexys
+   keeps it only for A/B experiments. Nexys 4 DDR is the model to match.
+2. **WCS images: sim and hardware run different microcode, and no test
+   catches it** (found 01-SEP-2026). `Verilog/Shared/support`,
+   `Verilog/runSim` and `Verilog/sim` each carry a `wcs_28C.hex` that differs
+   from `Code/Microcode/wcs` by one line - a `6` where hardware has `0`, at
+   microcode address 0o2002 (MACL region). `Verilog/fpga/nexys4ddr` and
+   `Verilog/fpga/tang-nano-20k` match canonical, so all three BOARDS agree and
+   only the simulators differ. `tests/test-microcode-sync` checks the two
+   AM27256 PROM images (26 copies) and NOT the 32 WCS chip images, which is
+   why this drifted invisibly. Either canonicalise the sim copies or record a
+   dated exception, and extend the sync test to cover `wcs_*.hex`. Until then,
+   every sim-vs-board microcode comparison carries this caveat.
+3. **Storage in the MiSTer OSD** - WD0-3 plus floppy image selection, via
+   `sys/sd_card.sv` presenting an OSD-mounted image as a virtual SPI SD card
+   to the existing SD-FAT/SPI stack, rather than writing `hps_io` block-device
+   glue.
+
+For 1 and 3 - main memory and storage - the PDP-11 MiSTer core is a useful
+SPEC ONLY - read it for the
+shape of the solution, never copy its code (Ronny, 31-AUG-2026; also a licence
+boundary, that core is not MIT and its terminal files are non-free).
+
+---
+
+## Terminal core is a VT100 - 30-AUG-2026
+
+DONE: `Terminals/rtl/terminal_ctrl.v` rewritten as a plain VT100 (SINTRAN
+terminal type 6) - ESC/CSI parser, CUP/ED/EL, SGR, DECSTBM regions with a
+copy engine, DECOM/DECAWM/DECSCNM/DECTCEM, DECSC/DECRC, RIS, G0/G1 with DEC
+Special Graphics (font page 2, `font/make_font.py`). Geometry 80x24 (was the
+TDV's 80x25). New `byte_fifo.v` in front of the controller (a region scroll
+outlasts one 115200 byte time). Unit suite green; decision + state in
+`Terminals/README.md`.
+
+DONE same day: keyboard arrows are VT100 too - `Terminals/rtl/key_vt100.v`
+expands the decoder's new sequence markers into `ESC [ A/B/C/D/H` (FIFO'd, so
+3 bytes per keypress survive the UART); wired on the Nexys top, tested end to
+end in `terminal_console_tb.v`. MiSTer build 1 keeps raw bytes on its echo
+path (arrows inert there until build 2 has a UART).
+
+Also new: `fpga/nexys4ddr/flash.tcl` + Makefile targets - `make load` (JTAG,
+volatile) and `make flash` (QSPI, permanent); README documents build /
+release / flash.
+
+DONE 30-AUG: first synthesis, via the CACHEFIX session's cache build 8.
+Round 1 failed the 1080p pixel clock (139.7 MHz) by -0.328 ns on the
+cursor-move paths; fixed in two commits (191bdee defer the moves, e26f44b
+latch their operands) -> WNS +0.211 ns, all endpoints met. Flashed to the
+Nexys 06:22, exercised by TPE console traffic. Utilization delta vs the
+old terminal: +695 LUTs, +494 regs, +2.5 BRAM.
+
+Open:
+- Nobody has LOOKED at the VGA output or typed on the real keyboard since
+  the VT100 rewrite - the scancode table remains transcription-only.
+
+---
+
+## Panel clock (MC68705 + MM58274) - 28-AUG-2026
+
+DONE: `CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v` emulates the clock path of
+the panel processor (TRR PANC PFUNC 4-7 / TRA PANS: half-days since 1979 +
+seconds, read/write, STAT4/VAL handshake, text-command drain), wired into
+`IO_PANCAL_40.v` behind `ND120_PANEL_CLOCK`. Off by default (Tang is full):
+ON BY DEFAULT on the FPGA builds since 29-AUG-2026 - disable with
+`-NoPanelClock` on both boards (`gowin_build.ps1 -NoPanelClock`,
+Nexys `build.tcl -tclargs -NoPanelClock`). The sim
+harnesses still opt IN with `PANEL_CLOCK=1` (their default is unchanged so the
+golden traces and console stay comparable).
+Protocol taken from a fresh disassembly of the ROM; `Code/68705/U3/U3-COMPLETE.MD`
+corrected. Doc: `docs/panel-clock-68705.md`. Unit tests `test-pancal-clock(-ff)`
+registered and green.
+
+PROVEN in Verilator 29-AUG-2026: TPE Monitor B01 (`1560&`) no longer prints
+"The clock is not updated" - it reads PFUNC 4-7 and gets the time. That needed
+two DGA fixes that had nothing to do with the panel clock and hid ALL panel
+commands (docs/panel-clock-68705.md, "Two DGA bugs"): `TRA PANS` returned 0 to
+A (EPANSN window, `DECODE_DGA_IDBS.v`), and `TRR PANC` never wrote the FIFO
+(LDPANC~ pulse vs XCLK, `DECODE_DGA.v`). Both are UNCONDITIONAL (not behind
+the define) - the microcode's own 0x0A ACTLV / 0x0D traffic now reaches the
+panel too. Not yet committed; instruction-verify regression running.
+
+Open:
+- DONE 29-AUG on the Tang (fast20): SINTRAN takes the time from the panel
+  across a MACL and TPE boots without its clock warning. Still to do on Nexys:
+  the SINTRAN
+  `@UPDAT` / `@CLOCK` / `@DATCL` round trip on silicon.
+- Host preset of the time at power-up (TIME_HALFDAYS/TIME_SECONDS are brought
+  out of the module for it) - today the clock starts at 1979-01-01 00:00.
+- STAT3 idle pulse: the ROM pulses PB4 every ~3 ms while idle (0x0153); the
+  Tang analysis 3f says it does not. Decide whether to model it (it is the
+  same edge the old "conkick" manufactured, and that tripped the INTRQN lag).
+- Verilator `sim/ make test_nd120` and `runSim/ make compile` fail at HEAD with
+  82 `-Wall` warnings (IMPLICIT `DBG_PPN`/`DBG_PTW`/`PF_CAPTURED` in
+  `ND3202D.v` - ports declared under `ifdef MAIN_RAM_SDRAM`, assigned
+  unconditionally; `DBG_WDSTAGE` in `ND120_CORE.v`; PINMISSING `DBG_PTW_LVL`/
+  `DBG_PANEL` at `ND120_TOP.v:850`). Present since the 25-AUG squash
+  (`202c606`). The TPE run above was built with `-Wno-IMPLICIT -Wno-PINMISSING`
+  on the make line only; the tree itself needs the `ifdef` guards.
 
 ## Test-gate backlog - 21-AUG-2026
 

@@ -115,6 +115,9 @@ int HALF_DELAY_WAIT = (DELAY_FRAMES >> 1); // Equivalent to DELAY_FRAMES / 2
 // --- FF-vs-latch divergence instrumentation (build with EXTRA_CFLAGS) ---
 // -DSCRIPT_INPUT : after the boot '#' prompt, auto-inject a scripted command
 // -DTRACE_CSA    : log CSA_12_0 changes (post-boot) to csa_trace.csv
+// -DTRACE_CSA_BOOT : the same, but from cycle 0 - includes the boot itself,
+//                    which is what you want when comparing against a board
+//                    that never finishes booting
 static int g_boot_done_cnt = 0;    // cnt when first '#' output (0 = not yet)
 // Interactive stdin pacing (see the read() gate in the main loop): the sim
 // runs much slower than wall time, so typed or piped chars pile up in the
@@ -133,7 +136,30 @@ static long g_last_rx_cnt = 0;     // cnt of the most recent console output char
 static long g_rx_lf_total = 0;     // total newlines seen on console output
 static long g_lf_at_mark = -1;     // g_rx_lf_total when '&' was sent (-1 = not waiting)
 static long g_amp_settle = 3000000; // quiet time required after the greeting (ND120_AMP_SETTLE)
-#ifdef TRACE_CSA
+// Macro-instruction boundaries seen by the ND120_TRACE_VERIFY detector,
+// counted UNCONDITIONALLY (before arming, PIL filtering or the 400 cap) so a
+// candidate MIPS tap can be checked against it edge for edge. See the
+// ND120_COUNT_CFETCH probe.
+static unsigned long long g_macro_boundaries = 0;
+// CFETCH rising edges (ND120_COUNT_CFETCH), plus a snapshot of both counters
+// taken the moment ND120_TRACE_VERIFY arms. The honest comparison is the
+// WINDOW from arming onward: before arming the machine is loading microcode
+// and running self-test, where "macro instruction" is not a meaningful unit.
+static unsigned long long g_cfetch_rises = 0;
+static unsigned long long g_arm_cfetch = 0, g_arm_macro = 0;
+static int g_arm_taken = 0;
+// Candidate MIPS taps measured side by side in one run (31-AUG-2026). The
+// event we actually want is "the instruction register takes a new opcode":
+// CGA_ALU_GPR loads GPR from CD_15_0, which the MUX41P selects when
+// GPRC[1:0] == 01 (D1 = CD_15_0, CGA_ALU_GPR.v:110-118), captured on the
+// ALUCLK_EN enable pulse. CFETCH was measured DEAD (its FF holds its own Q
+// and only reloads through the scan path on BRK), so it is kept here only
+// as the control that proves the harness sees a real difference.
+// The losing candidates (g_gprload, g_cfetch2 and their armed/repeat
+// counters) were removed 31-AUG-2026 once XGPRLOAD_DBG was settled as the
+// tap. They read ALU-internal aliases Verilator collapses, which broke the
+// build outright; s_debug_cfetch_dbg is the routed signal the panel sees.
+#if defined(TRACE_CSA) || defined(TRACE_CSA_BOOT)
 static FILE *g_csa_fp = nullptr;
 static unsigned g_last_csa = 0xFFFFu;
 #endif
@@ -507,11 +533,27 @@ int main(int argc, char **argv)
 
 	// Load data
 	// Access MEM->RAM fields via rootp
+#ifdef ND120_SIM_BLOCKRAM_RAM
+	// MAIN_RAM_BLOCKRAM builds MEM_RAM_49_BLOCKRAM instead of the sim RAM, so
+	// the b0_lo/b0_hi arrays below do not exist and the harness will not link.
+	// Every use of them is a DEBUG SHORTCUT (BPUN pre-deposit, the DMA test,
+	// and a dump) - none is needed to boot, which happens from the PROM/SD
+	// path. Backing them with scratch arrays keeps those call sites compiling
+	// without special-casing each one.
+	//
+	// Added 01-SEP-2026 so the simulator can be run in the MiSTer's EXACT
+	// configuration. Without the same memory backend the comparison is not
+	// like-for-like: the cycle controller's CC state is driven by the memory
+	// handshake, so a different backend can change CC and TERM all by itself.
+	static uint8_t ram_low[1 << 22], ram_low_9[1 << 22];
+	static uint8_t ram_high[1 << 22], ram_high_9[1 << 22];
+#else
 	auto &ram_low = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo;
 	auto &ram_low_9 = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_lo_p;
 
 	auto &ram_high = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi;
 	auto &ram_high_9 = top->rootp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__MEM__DOT__RAM__DOT__b0_hi_p;
+#endif
 
 	// DEBUG PRE-DEPOSIT of a BPUN straight into the RAM arrays, bypassing the
 	// CPU entirely. This is a debug shortcut, NOT how the machine works.
@@ -621,7 +663,7 @@ int main(int argc, char **argv)
 #endif
 
 	long cnt = 0;
-#ifdef TRACE_CSA
+#if defined(TRACE_CSA) || defined(TRACE_CSA_BOOT)
 	g_csa_fp = fopen("csa_trace.csv", "w");
 #endif
 #ifdef TRACE_MIC
@@ -840,6 +882,965 @@ int main(int argc, char **argv)
 				sts_last = sts;
 			}
 #endif
+
+			// Cache-inhibit map write probe (ND120_WCLIM_TRACE=1, run-time, no
+			// rebuild). Context: docs/HANDOFF-cache-and-panel-29AUG.md. On the
+			// Nexys the ILA showed the inhibit RAM (CPU_MMU_PT_29 CHIP_20G, an
+			// IMS1403 16Kx1) IS written - 69 WCLIM_n strobes in one window -
+			// yet WCINH_n reads "inhibited" for ~90% of accesses, and the
+			// cache is inert. The open question there was WHAT is written and
+			// WHERE. This prints, for every sysclk edge on which the RAM sees
+			// W_n low, the RAM's own address/data input (s_ims_ppn_25_10_in:
+			// PPN23-10 is the address, PPN25 the data bit), the IDB word the
+			// page number is supposed to come from (PAL 44306A: EIPU = EIPL =
+			// WCHIM, "pass page number to be inhibited from IDB"), the PPNX
+			// transceiver's output onto the PPN bus, and the DGA's WCHIM /
+			// EORF / ESTOF, so a mis-steered address or a stuck data bit is
+			// visible directly. At the end of each write burst it counts the
+			// map: how many of the 16384 pages hold 1 (WCINH_n high = cache
+			// ALLOWED) vs 0 (inhibited).
+			//
+			// Signal names: Verilator folds the plain alias wires in
+			// CPU_MMU_24 (s_wchim_n, s_eorf_n, s_eipu_n ...) even under
+			// --public-flat-rw, so the sources used are the ones that survive:
+			// the DGA's A188 flop (Q3 = WCHIM_n), COMM's s_erof (= ~EORF_n),
+			// the board-level s_estof_n, and CPU_15's s_mmu_idb_15_0_in.
+			{
+				static int wt_on = -1, wt_prints = 0;
+				static long wt_burst = 0, wt_total = 0;
+				static unsigned wt_last_key = 0xFFFFFFFFu;
+				static long wt_last_write_cnt = 0;
+				if (wt_on < 0) wt_on = getenv("ND120_WCLIM_TRACE") ? 1 : 0;
+				if (wt_on)
+				{
+					auto rp = top->rootp;
+					int wclim_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__s_wclim_n;
+					// NOTE: the probes in this loop are evaluated once per sysclk
+					// period, always with top->sysclk == 1 (a "sysclk == 0" gate
+					// here is never true - it hid every write on the first run).
+					if (!wclim_n)
+					{
+						// clock is low: these are the values the RAM will
+						// latch at the coming posedge (IMS1403_25.v:62)
+						unsigned ram  = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PT__DOT__s_ims_ppn_25_10_in & 0xFFFFu;
+						unsigned idb  = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_mmu_idb_15_0_in & 0xFFFFu;
+						unsigned pxi  = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__s_ppnx_ppn_25_10_in & 0xFFFFu;
+						unsigned pxo  = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__s_ppnx_ppn_25_10_out & 0xFFFFu;
+						unsigned pto  = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__s_pt_ppn_25_10_out & 0xFFFFu;
+						unsigned preg = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PPNX__DOT__PPN_reg & 0xFFFFu;
+						int estof_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_estof_n;
+						int wchim_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__COMM__DOT__A188__DOT__gen_enable__DOT__MEMORY_4__DOT__gen_enable__DOT__q_r;
+						int eorf    = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__COMM__DOT__s_erof;
+						unsigned key = ram ^ (idb << 16);
+						wt_burst++; wt_total++;
+						// one line per distinct (ram input, idb) inside a
+						// strobe, so a multi-cycle strobe does not flood
+						if (key != wt_last_key && wt_prints < 60000)
+						{
+							printf("[wclim] cnt=%d csa=%05o page=%05o data=%d idb=%06o | ram_in=%06o pxi=%06o pxo=%06o pto=%06o ppn_reg=%06o estof_n=%d wchim_n=%d eorf_n=%d\n",
+								cnt, (unsigned)top->CSA_12_0, ram & 0x3FFFu, (ram >> 15) & 1u, idb,
+								ram, pxi, pxo, pto, preg, estof_n, wchim_n, !eorf);
+							if (++wt_prints == 60000) printf("[wclim] print cap reached\n");
+						}
+						wt_last_key = key;
+						wt_last_write_cnt = cnt;
+					}
+					if (wclim_n) wt_last_key = 0xFFFFFFFFu;
+					// WCHIM itself, before the EORF gate: WCLIM_n = WCHIM_n | EORF_n
+					// (CPU_MMU_24.v:321). If the DGA raises WCHIM but the two never
+					// overlap, the map is never written - the same shape as the
+					// TRR PANC bug that kept panel commands out of the FIFO.
+					{
+						static int wh_prev = 1, wh_prints = 0;
+						int wchim_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__COMM__DOT__A188__DOT__gen_enable__DOT__MEMORY_4__DOT__gen_enable__DOT__q_r;
+						int eorf    = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__COMM__DOT__s_erof;
+						if (wchim_n != wh_prev)
+						{
+							if (wh_prints < 400)
+								printf("[wchim] cnt=%d csa=%05o wchim_n %d->%d eorf_n=%d wclim_n=%d\n",
+									cnt, (unsigned)top->CSA_12_0, wh_prev, wchim_n, !eorf, wclim_n);
+							if (++wh_prints == 400) printf("[wchim] print cap reached\n");
+							wh_prev = wchim_n;
+						}
+					}
+					// burst-end report: no strobe for 20000 cycles after >0 writes
+					if (wt_burst > 0 && cnt > wt_last_write_cnt + 20000)
+					{
+						long ones = 0, zeros = 0;
+						for (int i = 0; i < 16384; i++)
+						{
+							if (rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PT__DOT__CHIP_20G__DOT__ims_memory_array[i]) ones++; else zeros++;
+						}
+						printf("[wclim] burst end at cnt=%d: %ld write-cycles this burst, %ld total; map now: %ld pages=1 (cache allowed), %ld pages=0 (inhibited)\n",
+							cnt, wt_burst, wt_total, ones, zeros);
+						fflush(stdout);
+						wt_burst = 0;
+					}
+				}
+			}
+
+			// Inhibit-limits golden-timeline probe (ND120_INHIBIT_TRACE=1,
+			// run-time). Written 30-AUG-2026 to capture a PASSING Verilator
+			// run of CACHE-1X0-A00 test 3 ("Inhibit limits") for comparison
+			// against the Nexys, where the same test hangs at P=124563B.
+			// Four captures, all octal, each with its own print cap:
+			//   [inh] CCLR   - every falling edge of CCLR_n (TRR CCLR, code
+			//                  010): cnt, CSA, P and A at that instant.
+			//   [inh] sweep  - the inhibit-map programming done by TRR LCIL
+			//                  (011) / UCIL (012): the microcode sweeps the
+			//                  16Kx1 inhibit RAM via WCLIM_n one page per
+			//                  strobe (microwords 02045/02046 etc.), so the
+			//                  burst IS the limit programming. Logged as a
+			//                  start line (P, A when the first strobe lands)
+			//                  and an end line with the min..max page range
+			//                  written per data value plus the whole-map
+			//                  count and the map's inhibited (=0) range.
+			//   [inh] acc    - sampled proof of behaviour: at each cycle-
+			//                  controller TERM with a memory request, the
+			//                  access is classed by the inhibit map bit of
+			//                  its PPN x cache HIT; the first few lines of
+			//                  each class after every sweep are printed and
+			//                  all four classes are counted. "inh=0 hit=1"
+			//                  lines after the limits are set would be the
+			//                  smoking gun (inhibited access served by
+			//                  cache); their absence plus "inh=1 hit=1"
+			//                  lines is the pass evidence.
+			//   [inh] pc     - THE key artifact: every change of P while P
+			//                  is inside 124400..125000 (octal), with CSA,
+			//                  PIL, HIT, BRK_n, MREQ and the map bit of the
+			//                  current PPN - plus an explicit exit line
+			//                  naming the P it left to. This is the window
+			//                  the Nexys spins in at 124563.
+			// P and A are read from the WRF flops directly (the flat aliases
+			// fold; the flops survive a build without --public-flat-rw, same
+			// trick as the [live] probe).
+#ifndef ND120_NO_CACHE // probe reads cache internals a CACHE=0 build compiles out
+			{
+				static int it_on = -1;
+				if (it_on < 0) it_on = getenv("ND120_INHIBIT_TRACE") ? 1 : 0;
+				if (it_on)
+				{
+					auto rp = top->rootp;
+					unsigned it_p = (((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__P_REG_2__DOT__L_PR_8_15__DOT__reg8bit & 0xFFu) << 8)
+					              | ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__P_REG_2__DOT__L_PR_7_0__DOT__reg8bit & 0xFFu);
+					unsigned it_a = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__A_REG_5__DOT__regFF & 0xFFFFu;
+					unsigned it_csa = (unsigned)top->CSA_12_0;
+					// PIL = STS bits 11..8 (sx_pil_3_0_out is folded in this
+					// build; the ALU's STS word survives)
+					int it_pil = (int)((rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__ALU__DOT__s_sts_15_0 >> 8) & 0xFu);
+
+					// --- [inh] CCLR: TRR CCLR (function code 010) ---
+					{
+						static int cc_prev = 1, cc_prints = 0;
+						int cclr_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__s_cclr_n;
+						if (!cclr_n && cc_prev && cc_prints < 200)
+						{
+							printf("[inh] CCLR cnt=%ld csa=%05o P=%06o A=%06o\n", cnt, it_csa, it_p, it_a);
+							fflush(stdout);
+							if (++cc_prints == 200) printf("[inh] CCLR print cap reached\n");
+						}
+						cc_prev = cclr_n;
+					}
+
+					// --- [inh] sweep: inhibit-RAM write bursts (TRR LCIL/UCIL) ---
+					static long it_sweeps = 0;   // completed sweeps; resets the acc sampler
+					{
+						static long sw_writes = 0, sw_last_cnt = 0, sw_start_cnt = 0;
+						static unsigned sw_pmin[2] = {0xFFFFu, 0xFFFFu}, sw_pmax[2] = {0, 0};
+						static long sw_ndata[2] = {0, 0};
+						static unsigned sw_prev_page = 0xFFFFu;
+						static int sw_prints = 0;
+						int wclim_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__s_wclim_n;
+						if (!wclim_n)
+						{
+							unsigned ram = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PT__DOT__s_ims_ppn_25_10_in & 0xFFFFu;
+							unsigned page = ram & 0x3FFFu;
+							unsigned d = (ram >> 15) & 1u;
+							if (sw_writes == 0)
+							{
+								sw_start_cnt = cnt;
+								sw_pmin[0] = sw_pmin[1] = 0xFFFFu; sw_pmax[0] = sw_pmax[1] = 0;
+								sw_ndata[0] = sw_ndata[1] = 0;
+								if (sw_prints < 400)
+									printf("[inh] sweep start cnt=%ld csa=%05o P=%06o A=%06o first page=%05o data=%u\n",
+										cnt, it_csa, it_p, it_a, page, d);
+							}
+							// count each page once per strobe (a strobe spans clocks)
+							if (page != sw_prev_page)
+							{
+								sw_writes++;
+								if (page < sw_pmin[d]) sw_pmin[d] = page;
+								if (page > sw_pmax[d]) sw_pmax[d] = page;
+								sw_ndata[d]++;
+								sw_prev_page = page;
+							}
+							sw_last_cnt = cnt;
+						}
+						else
+							sw_prev_page = 0xFFFFu;
+						if (sw_writes > 0 && cnt > sw_last_cnt + 20000)
+						{
+							// burst over: report what got programmed and the map state
+							long ones = 0, zeros = 0;
+							unsigned zmin = 0xFFFFu, zmax = 0;
+							for (unsigned i = 0; i < 16384; i++)
+							{
+								if (rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PT__DOT__CHIP_20G__DOT__ims_memory_array[i]) ones++;
+								else { zeros++; if (i < zmin) zmin = i; if (i > zmax) zmax = i; }
+							}
+							if (sw_prints < 400)
+							{
+								printf("[inh] sweep end cnt=%ld (start %ld): %ld pages written | data=0 (inhibit): %ld pages %05o..%05o | data=1 (allow): %ld pages %05o..%05o | map: %ld inhibited (%05o..%05o), %ld allowed\n",
+									cnt, sw_start_cnt, sw_writes,
+									sw_ndata[0], sw_ndata[0] ? sw_pmin[0] : 0, sw_ndata[0] ? sw_pmax[0] : 0,
+									sw_ndata[1], sw_ndata[1] ? sw_pmin[1] : 0, sw_ndata[1] ? sw_pmax[1] : 0,
+									zeros, zeros ? zmin : 0, zeros ? zmax : 0, ones);
+								fflush(stdout);
+								if (++sw_prints == 400) printf("[inh] sweep print cap reached\n");
+							}
+							sw_writes = 0;
+							it_sweeps++;
+						}
+					}
+
+					// --- [inh] acc: sampled hit/miss vs inhibit-map class ---
+					{
+						static int ac_prev_term = 0;
+						static long ac_seen_sweep = -1;
+						static long ac_class_n[4];        // [inh<<1 | hit]
+						static int ac_class_prints[4];
+						static int ac_sum_prints = 0;
+						static long ac_next_sum = 0;
+						int term = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__TERM_reg;
+						int mreq = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_csmreq;
+						if (ac_seen_sweep != it_sweeps)
+						{
+							// fresh limits: reopen the per-class sample budget
+							ac_seen_sweep = it_sweeps;
+							ac_class_prints[0] = ac_class_prints[1] = ac_class_prints[2] = ac_class_prints[3] = 0;
+						}
+						if (term && !ac_prev_term && mreq)
+						{
+							unsigned ppn = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_ppn_23_10 & 0x3FFFu;
+							int hit = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_hit;
+							int allow = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PT__DOT__CHIP_20G__DOT__ims_memory_array[ppn]; // 1 = cache allowed, 0 = inhibited
+							int cls = ((allow ? 0 : 2) | (hit ? 1 : 0));
+							ac_class_n[cls]++;
+							if (it_sweeps > 0 && ac_class_prints[cls] < 12)
+							{
+								static const char *nm[4] = {"allow-miss", "ALLOW-HIT ", "inhib-miss", "INHIB-HIT!"};
+								printf("[inh] acc %s cnt=%ld csa=%05o P=%06o ppn=%05o hit=%d allow=%d\n",
+									nm[cls], cnt, it_csa, it_p, ppn, hit, allow);
+								ac_class_prints[cls]++;
+							}
+						}
+						ac_prev_term = term;
+						if (cnt >= ac_next_sum && ac_sum_prints < 400)
+						{
+							ac_next_sum = cnt + 50000000;
+							printf("[inh] acc summary cnt=%ld sweeps=%ld | allow-miss=%ld allow-hit=%ld inhib-miss=%ld inhib-hit=%ld\n",
+								cnt, it_sweeps, ac_class_n[0], ac_class_n[1], ac_class_n[2], ac_class_n[3]);
+							fflush(stdout);
+							ac_sum_prints++;
+						}
+					}
+
+					// --- [inh] pc: P-change trace inside 124400..125000 octal ---
+					{
+						static unsigned pc_prev_p = 0xFFFFFFFFu;
+						static int pc_inside = 0;
+						static long pc_prints = 0, pc_exit_prints = 0;
+						const unsigned PC_LO = 0124400u, PC_HI = 0125000u;
+						if (it_p != pc_prev_p)
+						{
+							int in = (it_p >= PC_LO && it_p <= PC_HI);
+							if (in && pc_prints < 60000)
+							{
+								unsigned ppn = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_ppn_23_10 & 0x3FFFu;
+								printf("[inh] pc cnt=%ld P=%06o csa=%05o pil=%02o hit=%d brk_n=%d mreq=%d allow=%d ppn=%05o A=%06o\n",
+									cnt, it_p, it_csa, it_pil,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_hit,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_brk_n,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_csmreq,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PT__DOT__CHIP_20G__DOT__ims_memory_array[ppn],
+									ppn, it_a);
+								if (++pc_prints == 60000) { printf("[inh] pc print cap reached\n"); fflush(stdout); }
+							}
+							if (!in && pc_inside && pc_exit_prints < 2000)
+							{
+								printf("[inh] pc EXIT cnt=%ld window left to P=%06o (csa=%05o pil=%02o A=%06o)\n",
+									cnt, it_p, it_csa, it_pil, it_a);
+								fflush(stdout);
+								pc_exit_prints++;
+							}
+							pc_inside = in;
+							pc_prev_p = it_p;
+						}
+					}
+
+					// --- [inh] fx: per-cycle fetch-source detail inside the
+					// window. The board hangs on the FETCH of 124563 - the
+					// first newly-cacheable instruction fetch after TRR LCIL
+					// raises the lower limit past the code's own page (52) -
+					// so the question the golden run must answer is: on that
+					// fetch, hit or miss, what tag/data sit in the cache
+					// line at that index, and which bus supplied the word.
+					// One line per cycle-controller TERM rise while P is in
+					// the window: the cache line at CA (tag chips 16F/20F,
+					// data chips 23F/24F, used/valid from 21F), the HIT
+					// chain, the inhibit-map bit, and both CD buses (cache
+					// contribution vs what the CPU received). fetch=1 marks
+					// instruction-fetch cycles (CGA DCD CFETCH flop).
+					{
+						static int fx_prev_term = 0;
+						static long fx_prints = 0;
+						static long fx_n[2][2];        // [P==124563?0:1][hit] fetch counters
+						static long fx_next_sum = 0;
+						static int fx_sum_prints = 0;
+						int term = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__TERM_reg;
+						int in_win = (it_p >= 0124400u && it_p <= 0125000u);
+						if (term && !fx_prev_term && in_win)
+						{
+							unsigned ca   = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x7FFu;
+							unsigned ppn  = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_ppn_23_10 & 0x3FFFu;
+							int hit   = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_hit;
+							int fetch = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__DCD__DOT__s_cfetchff_q;
+							unsigned tag = ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_16F__DOT__g_async__DOT__tmm_memory_array[ca] << 8)
+							             |  (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_20F__DOT__g_async__DOT__tmm_memory_array[ca];
+							unsigned dat = ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_23F__DOT__g_async__DOT__tmm_memory_array[ca] << 8)
+							             |  (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_24F__DOT__g_async__DOT__tmm_memory_array[ca];
+							unsigned uidx = ca & 0x3FFu;
+							unsigned umem = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_21F__DOT__am_memory_array[uidx] & 0xFu;
+							unsigned uval = ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_21F__DOT__valid[uidx >> 5] >> (uidx & 31u)) & 1u;
+							int allow = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PT__DOT__CHIP_20G__DOT__ims_memory_array[ppn];
+							if (fetch && it_p == 0124563u) fx_n[0][hit ? 1 : 0]++;
+							if (fetch && it_p == 0124564u) fx_n[1][hit ? 1 : 0]++;
+							if (fx_prints < 120000)
+							{
+								printf("[inh] fx cnt=%ld P=%06o csa=%05o fetch=%d ca=%04o ppn=%05o allow=%d hit=%d h0n=%d h1n=%d ihit=%d | tag=%06o dat=%06o used=%x uval=%d | cd_cache=%06o cd_cpu=%06o mreq=%d A=%06o\n",
+									cnt, it_p, it_csa, fetch, ca, ppn, allow, hit,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__MMU_HIT__DOT__HIT0n_reg,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__MMU_HIT__DOT__HIT1n_reg,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__PAL_44402_UBITS__DOT__gen_enable__DOT__IHIT_reg,
+									tag, dat, umem, uval,
+									(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_mmu_cd_15_0_in & 0xFFFFu,
+									(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_proc_cd_15_0_in & 0xFFFFu,
+									(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_csmreq,
+									it_a);
+								if (++fx_prints == 120000) { printf("[inh] fx print cap reached\n"); fflush(stdout); }
+							}
+						}
+						fx_prev_term = term;
+						if (cnt >= fx_next_sum && fx_sum_prints < 400)
+						{
+							fx_next_sum = cnt + 50000000;
+							printf("[inh] fx summary cnt=%ld | fetch@124563: hit=%ld miss=%ld | fetch@124564: hit=%ld miss=%ld\n",
+								cnt, fx_n[0][1], fx_n[0][0], fx_n[1][1], fx_n[1][0]);
+							fflush(stdout);
+							fx_sum_prints++;
+						}
+					}
+				}
+			}
+#endif // ND120_NO_CACHE (end of the ND120_INHIBIT_TRACE probe)
+
+			// Liveness probe (ND120_LIVE_TRACE=<cycles>, run-time). Every
+			// <cycles> evals print the P register, CSA, and the P range
+			// seen since the last line - enough to tell "halted", "tight
+			// loop", "waiting at a prompt" and "running a long job" apart
+			// without a rebuild. Written 29-AUG-2026 when CACHE-1X0-A00 sat
+			// at its "Initialize memory : >" prompt ignoring every keystroke.
+			{
+				static long lv_every = -1, lv_next = 0;
+				static unsigned lv_pmin = 0xFFFFu, lv_pmax = 0, lv_pchg = 0, lv_plast = 0xFFFFFFFFu;
+				if (lv_every < 0) { const char *e = getenv("ND120_LIVE_TRACE"); lv_every = e ? atol(e) : 0; }
+				if (lv_every > 0)
+				{
+					auto rp = top->rootp;
+					// the two latched halves of P survive a build without
+					// --public-flat-rw (the flat s_reg2_p_15_0 alias does not, and
+					// --public-flat-rw makes the whole sim ~4x slower)
+					unsigned p = (((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__P_REG_2__DOT__L_PR_8_15__DOT__reg8bit & 0xFFu) << 8)
+					           | ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__WRF__DOT__RBLOCK__DOT__P_REG_2__DOT__L_PR_7_0__DOT__reg8bit & 0xFFu);
+					if (p != lv_plast) { lv_pchg++; lv_plast = p; }
+					if (p < lv_pmin) lv_pmin = p;
+					if (p > lv_pmax) lv_pmax = p;
+					if (cnt >= lv_next)
+					{
+						lv_next = cnt + lv_every;
+						printf("[live] cnt=%d csa=%05o P=%06o | P range %06o..%06o, %u changes\n",
+							cnt, (unsigned)top->CSA_12_0, p, lv_pmin, lv_pmax, lv_pchg);
+						// console UART (2661, CHIP_32H) as the CPU sees it: does a
+						// received byte sit unread (RxRDY), is the receiver even on
+						// NOTE 31-AUG-2026: this used to print
+						// regReceiveHoldingRegister. Commit 8111c7e ("uart: add a
+						// 16-byte RX FIFO") deleted that register - the CPU now
+						// reads s_rx_fifo[s_rx_rptr], and the byte still shifting
+						// in lives in regRxShift - so the old name no longer
+						// compiled at all and runSim could not be built. Printing
+						// the shift register plus both FIFO pointers says more than
+						// the single register ever did: rptr != wptr means a byte
+						// is waiting for the CPU.
+						printf("[live]   uart status=%02x rxshift=%02x rptr=%02u wptr=%02u mode=%02x cmd=%02x rxEnabled=%d txEnabled=%d rxState=%d\n",
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regStatusRegister & 0xFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regRxShift & 0xFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__s_rx_rptr & 0x1Fu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__s_rx_wptr & 0x1Fu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regModeRegister & 0xFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__regCommandRegister & 0xFFu,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__cmd_rxEnabled,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__cmd_txEnabled,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__UART__DOT__CHIP_32H__DOT__rxState);
+						fflush(stdout);
+						lv_pmin = 0xFFFFu; lv_pmax = 0; lv_pchg = 0;
+					}
+				}
+			}
+
+			// CSA watch (ND120_CSA_WATCH="1071,2046,3713" - octal, run-time).
+			// Prints every visit to the listed microword addresses. Written
+			// 29-AUG-2026 to find out whether the three PROM microwords that
+			// carry the WCHIM command (COMM=021, MIS=00 at 01071, 02046 and
+			// 03713 - found by scanning AM27256_4513{2,3}L.hex) are ever
+			// executed, after WCHIM_n was seen never to move.
+			{
+				static int cw_init = 0, cw_n = 0, cw_prints = 0;
+				static unsigned cw_addr[16];
+				static unsigned cw_prev_csa = 0xFFFFu;
+				if (!cw_init)
+				{
+					cw_init = 1;
+					if (const char *e = getenv("ND120_CSA_WATCH"))
+					{
+						const char *s = e;
+						while (*s && cw_n < 16)
+						{
+							char *end;
+							unsigned v = (unsigned)strtoul(s, &end, 8);
+							if (end == s) break;
+							cw_addr[cw_n++] = v;
+							s = end;
+							while (*s == ',' || *s == ' ') s++;
+						}
+					}
+				}
+				if (cw_n > 0)
+				{
+					unsigned csa = (unsigned)top->CSA_12_0;
+					auto rp = top->rootp;
+					// what the DGA decode actually sees: the microword's COMM and
+					// MIS fields, the CYC's LCS (1 = control store still LOADING;
+					// the DGA gates every COMM decode with LCS_n), and the A188
+					// flop Q3 that IS WCHIM_n
+					unsigned long long cs = (unsigned long long)rp->ND120_TOP__DOT__CORE__DOT__s_csbits;
+					int lcs     = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44403_UCYIN0__DOT__gen_enable__DOT__LCS;
+					int wchim_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__COMM__DOT__A188__DOT__gen_enable__DOT__MEMORY_4__DOT__gen_enable__DOT__q_r;
+					static int cw_lcs_prev = -1;
+					if (lcs != cw_lcs_prev)
+					{
+						printf("[csawatch] cnt=%d LCS %d->%d (csa=%05o)\n", cnt, cw_lcs_prev, lcs, csa);
+						cw_lcs_prev = lcs;
+					}
+					if (csa != cw_prev_csa)
+					{
+						for (int i = 0; i < cw_n; i++)
+							if (csa == cw_addr[i] && cw_prints < 200)
+							{
+								printf("[csawatch] cnt=%d csa=%05o (from %05o) comm=%02o mis=%d lcs=%d wchim_n=%d\n",
+									cnt, csa, cw_prev_csa, (unsigned)((cs >> 32) & 0x1f), (unsigned)((cs >> 42) & 3), lcs, wchim_n);
+								if (++cw_prints == 200) printf("[csawatch] print cap reached\n");
+							}
+						cw_prev_csa = csa;
+					}
+				}
+			}
+
+			// Cycle-controller window dump (ND120_CYC_WINDOW="<from>:<to>" in
+			// cnt, run-time). Every eval inside the window prints the CYC FSM
+			// state (PAL_44601 CC3..CC0 / TERM), the DGA's SHORT and EROF, the
+			// WCHIM_n / WCLIM_n pair and the CSA - to see which cycle states a
+			// given microword actually walks through. Written 29-AUG-2026 for
+			// the inhibit-map sweep at microwords 02045/02046: WCLIM_n =
+			// WCHIM_n | EORF_n and EORF is the 44307C "misc write pulse" of
+			// state d only, so a cycle that terminates before d never writes.
+			{
+				static long cy_from = -1, cy_to = -1;
+				if (cy_from < 0)
+				{
+					cy_from = 0; cy_to = 0;
+					if (const char *e = getenv("ND120_CYC_WINDOW"))
+					{
+						cy_from = atol(e);
+						const char *c = strchr(e, ':');
+						cy_to = c ? atol(c + 1) : cy_from + 200;
+					}
+				}
+				if (cy_to > 0 && cnt >= cy_from && cnt <= cy_to)
+				{
+					auto rp = top->rootp;
+					printf("[cyc] cnt=%d clk=%d csa=%05o CC=%d%d%d%d TERM=%d short_n=%d erof=%d wchim_n=%d wclim_n=%d\n",
+						cnt, (int)top->sysclk, (unsigned)top->CSA_12_0,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC3_reg,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC2_reg,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC1_reg,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC0_reg,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__TERM_reg,
+						(int)!rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__COMM__DOT__A214__DOT__gen_enable__DOT__MEMORY_2__DOT__gen_enable__DOT__q_r,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__COMM__DOT__s_erof,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__COMM__DOT__A188__DOT__gen_enable__DOT__MEMORY_4__DOT__gen_enable__DOT__q_r,
+						(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__s_wclim_n);
+				}
+			}
+
+#ifndef ND120_NO_CACHE // these three probes read cache internals a CACHE=0 build compiles out
+			// Cache write chain probe (ND120_CACHE_TRACE=1, run-time). CACHE-1X0-A00
+			// test 2 fails in Verilator exactly as on the board (29-AUG-2026) while
+			// the inhibit map is proven correct, so the fault is downstream of
+			// WCINH_n:  EWC = BRK_n & CON & WCINH_n  ->  PAL 44402D WCA  ->
+			// PAL 44511A CWR = MREQ*WCA  ->  /CUP := /CWR*MREQ.  This prints every
+			// transition of WCA (as the 44511 sees it), CWR, CWR_hold and CUP_n,
+			// with MREQ, CYD, BRK_n, IHIT, the HIT comparators and WCINH_n, and a
+			// count line every 50M cycles so a chain that never moves is visible
+			// as zeros rather than as silence.
+			{
+				static int ct_on = -1, ct_prints = 0;
+				static int ct_wca = -1, ct_cwr = -1, ct_cup = -1, ct_hold = -1;
+				static long ct_next = 0, n_wca = 0, n_cwr = 0, n_cup0 = 0, n_mreq = 0, n_wcinh1 = 0, n_cyd = 0;
+				if (ct_on < 0) ct_on = getenv("ND120_CACHE_TRACE") ? 1 : 0;
+				if (ct_on)
+				{
+					auto rp = top->rootp;
+					#define CT_ROOT ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__
+					int wca   = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CMDDEC__DOT__PAL_44511_ULEV0__DOT__gen_enable__DOT__WCA;
+					int cwr   = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_cwr;
+					int hold  = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CMDDEC__DOT__PAL_44511_ULEV0__DOT__gen_enable__DOT__CWR_hold;
+					int cup_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CMDDEC__DOT__PAL_44511_ULEV0__DOT__gen_enable__DOT__CUP_n_reg;
+					int mreq  = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_csmreq;
+					int cyd   = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_cyd;
+					int brk_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_brk_n;
+					int ihit  = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__PAL_44402_UBITS__DOT__gen_enable__DOT__IHIT_reg;
+					int hit0n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__MMU_HIT__DOT__HIT0n_reg;
+					int hit1n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__MMU_HIT__DOT__HIT1n_reg;
+					int wcinh_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__PT__DOT__CHIP_20G__DOT__data_out;  // s_wcinh_n itself is folded; this is the RAM output it comes from
+					if (wca) n_wca++;
+					if (cwr) n_cwr++;
+					if (!cup_n) n_cup0++;
+					if (mreq) n_mreq++;
+					if (wcinh_n) n_wcinh1++;
+					if (cyd) n_cyd++;
+					if ((wca != ct_wca || cwr != ct_cwr || cup_n != ct_cup || hold != ct_hold) && ct_prints < 600)
+					{
+						printf("[cache] cnt=%d csa=%05o wca=%d cwr=%d hold=%d cup_n=%d | mreq=%d cyd=%d brk_n=%d ihit=%d hit0n=%d hit1n=%d wcinh_n=%d\n",
+							cnt, (unsigned)top->CSA_12_0, wca, cwr, hold, cup_n, mreq, cyd, brk_n, ihit, hit0n, hit1n, wcinh_n);
+						if (++ct_prints == 600) printf("[cache] print cap reached\n");
+					}
+					ct_wca = wca; ct_cwr = cwr; ct_cup = cup_n; ct_hold = hold;
+					if (cnt >= ct_next)
+					{
+						ct_next = cnt + 50000000;
+						printf("[cache] summary cnt=%d: wca=%ld cwr=%ld cup_low=%ld mreq=%ld wcinh_high=%ld cyd=%ld (eval counts)\n",
+							cnt, n_wca, n_cwr, n_cup0, n_mreq, n_wcinh1, n_cyd);
+						fflush(stdout);
+					}
+				}
+			}
+
+			// Cache window dump (ND120_CACHE_WIN="<nth WCA rise>:<evals>", run-time).
+			// From the n-th rising edge of WCA on, print every eval for <evals>
+			// evals: cycle state, CSA, cache address CA, the physical page PPN
+			// on the bus, the tag the tag RAMs read back (16F/20F), the data the
+			// data RAMs read back (23F/24F), the used bits (21F), the two HIT
+			// comparators, WCA/CWR/CUP and the CD bus into the MMU and into the
+			// CPU. Written 29-AUG-2026 for the second cache fault: after the CUP
+			// fix, CACHE-1X0-A00 test 2 still says hits return memory data and
+			// reads do not fill the cache, then crashes on an illegal
+			// instruction - so a write-then-read of one line has to be seen.
+			{
+				static long cw_nth = -1, cw_left = 0, cw_seen = 0, cw_at_from = 0, cw_at_to = 0;
+				static int cw_prev_wca = 0;
+				static long cw_ppn = 0; static int cw_wr = 0;
+				if (cw_nth < 0)
+				{
+					cw_nth = 0;
+					if (const char *e = getenv("ND120_CACHE_WIN"))
+					{
+						cw_nth = atol(e);
+						const char *c = strchr(e, ':');
+						cw_left = c ? atol(c + 1) : 400;
+						if (cw_nth <= 0) cw_nth = 1;
+					}
+					// ND120_CWIN_AT="<from>:<to>" - the same dump for a cnt window.
+					// (Counts are NOT reproducible between runs: the typing times on
+					// the console fifo shift them. Prefer the WCA-count trigger.)
+					if (const char *e = getenv("ND120_CWIN_AT"))
+					{
+						cw_at_from = atol(e);
+						const char *c = strchr(e, ':');
+						cw_at_to = c ? atol(c + 1) : cw_at_from + 200;
+						if (cw_nth == 0) { cw_nth = 1; cw_left = 0; }
+					}
+					// ND120_CWIN_PPN=<octal page>: count only WCAs on that page;
+					// ND120_CWIN_WRITE=1: only WCAs during a WRITE cycle (DGA A160 Q3).
+					if (const char *e = getenv("ND120_CWIN_PPN")) cw_ppn = strtol(e, nullptr, 8);
+					cw_wr = getenv("ND120_CWIN_WRITE") ? 1 : 0;
+				}
+				if (cw_nth > 0)
+				{
+					auto rp = top->rootp;
+					int wca = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CMDDEC__DOT__PAL_44511_ULEV0__DOT__gen_enable__DOT__WCA;
+					int cw_ok = 1;
+					if (cw_ppn > 0 && ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_ppn_23_10 & 0x3FFFu) != (unsigned)cw_ppn) cw_ok = 0;
+					if (cw_wr && !(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__COMM__DOT__A160__DOT__gen_enable__DOT__MEMORY_4__DOT__gen_enable__DOT__q_r) cw_ok = 0;
+					if (wca && !cw_prev_wca && cw_ok) cw_seen++;
+					cw_prev_wca = wca;
+					int cw_in_at = (cw_at_to > 0 && cnt >= cw_at_from && cnt <= cw_at_to);
+					if (cw_in_at) cw_left = 1;
+					if (cw_seen >= cw_nth && cw_left > 0)
+					{
+						cw_left--;
+						unsigned tag = ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_16F__DOT__g_async__DOT__tmm_memory_array[(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x7FFu] << 8)
+						             |  (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_20F__DOT__g_async__DOT__tmm_memory_array[(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x7FFu];
+						unsigned dat = ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_23F__DOT__g_async__DOT__tmm_memory_array[(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x7FFu] << 8)
+						             |  (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_24F__DOT__g_async__DOT__tmm_memory_array[(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x7FFu];
+						printf("[cwin] cnt=%d csa=%05o CC=%d%d%d%d T=%d | ca=%04o ppn=%05o la=%05o | tag=%06o dat=%06o used=%x hit0n=%d hit1n=%d ihit=%d | wca=%d cwr=%d cup_n=%d mreq=%d cyd=%d brk_n=%d lsh=%d | cd_mmu=%06o cd_cpu=%06o | ca10q=%d ca10rst=%d uclk=%d write=%d | sweep=%d nubi_reg=%d nubd_reg=%d used_mem=%x cclr_n=%d\n",
+							cnt, (unsigned)top->CSA_12_0,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC3_reg,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC2_reg,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC1_reg,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC0_reg,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__TERM_reg,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x7FFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_ppn_23_10 & 0x3FFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_la_23_10 & 0x3FFFu,
+							tag, dat,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_21F__DOT__data4bit & 0xFu,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__MMU_HIT__DOT__HIT0n_reg,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__MMU_HIT__DOT__HIT1n_reg,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__PAL_44402_UBITS__DOT__gen_enable__DOT__IHIT_reg,
+							wca,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_cwr,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CMDDEC__DOT__PAL_44511_ULEV0__DOT__gen_enable__DOT__CUP_n_reg,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_csmreq,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_cyd,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_brk_n,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44404_UCYIN1__DOT__gen_enable__DOT__DLSHADOW_reg,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_mmu_cd_15_0_in & 0xFFFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_proc_cd_15_0_in & 0xFFFFu,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__COMM__DOT__MEMORY_63__DOT__gen_enable_arst__DOT__q_r,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__COMM__DOT____Vcellinp__MEMORY_63__reset,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__uclk_pa,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__DCD__DOT__DGA__DOT__COMM__DOT__A160__DOT__gen_enable__DOT__MEMORY_4__DOT__gen_enable__DOT__q_r,
+							0 /* sweep_active: gone, Am9150 clears in one clock since 29-AUG-2026 */,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__PAL_44402_UBITS__DOT__gen_enable__DOT__NUBI_n_reg,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__PAL_44402_UBITS__DOT__gen_enable__DOT__NUBD_n_reg,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_21F__DOT__am_memory_array[(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x3FFu] & 0xFu,
+							0 /* reset_n_d: gone with the sweep */);
+						if (cw_left == 0 && !cw_in_at) { printf("[cwin] window done\n"); fflush(stdout); }
+						if (cw_in_at && cnt == cw_at_to) { printf("[cwin] window done\n"); fflush(stdout); }
+					}
+				}
+			}
+
+			// Per-cycle cache log for one physical page (ND120_CACHE_PPN=<octal>,
+			// run-time). One line per cycle-controller TERM (T=1) whose PPN is
+			// that page, plus one per WCA rise: CA, tag/data read back, used
+			// bits, both HIT comparators, whether WCA/MREQ were seen during the
+			// cycle, and the CD bus at the end. Written 29-AUG-2026 to follow
+			// the CACHE-1X0-A00 test's own lines (it works in page 60) through
+			// write -> read-back, which the 1500-eval window is too short for.
+			{
+				static long cp_ppn = -1, cp_prints = 0;
+				static int cp_wca_seen = 0, cp_mreq_seen = 0, cp_prev_wca = 0, cp_prev_t = 0;
+				if (cp_ppn < 0) { const char *e = getenv("ND120_CACHE_PPN"); cp_ppn = e ? strtol(e, nullptr, 8) : 0; if (!e) cp_ppn = 0; }
+				if (cp_ppn > 0 && cp_prints < 30000)
+				{
+					auto rp = top->rootp;
+					int wca  = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CMDDEC__DOT__PAL_44511_ULEV0__DOT__gen_enable__DOT__WCA;
+					int mreq = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__s_csmreq;
+					int term = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__TERM_reg;
+					unsigned ppn = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_ppn_23_10 & 0x3FFFu;
+					if (wca) cp_wca_seen = 1;
+					if (mreq) cp_mreq_seen = 1;
+					int wca_rise = wca && !cp_prev_wca;
+					int t_rise = term && !cp_prev_t;
+					cp_prev_wca = wca; cp_prev_t = term;
+					// Skip the inhibit-map sweeps (microwords 01071/02046 walk every
+					// page number across the PPN bus) and quiet misses: keep every
+					// WCA, and every TERM where something in the cache matched.
+					unsigned cp_csa = (unsigned)top->CSA_12_0;
+					int cp_sweep = (cp_csa == 01070u || cp_csa == 01071u || cp_csa == 02045u || cp_csa == 02046u || cp_csa == 03712u || cp_csa == 03713u);
+					int cp_h0 = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__MMU_HIT__DOT__HIT0n_reg;
+					unsigned cp_used = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_21F__DOT__data4bit & 0xFu;
+					int cp_interesting = wca_rise || cp_h0 == 0 || cp_used != 0;
+					// 29-AUG-2026 late: also every clock of the WCA pulse (the Am9150
+					// writes on every posedge while /W is low), with the RAM's real
+					// contents (array + valid, NOT the one-clock-stale data4bit copy)
+					// for the index CA[9:0], the PAL's data into it, and the PAL inputs
+					// that decide those bits (PD2 = its output enable, DT, RT).
+					if ((wca_rise || t_rise || wca) && ppn == (unsigned)cp_ppn && !cp_sweep && (cp_interesting || wca))
+					{
+						unsigned uidx = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x3FFu;
+						unsigned umem = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_21F__DOT__am_memory_array[uidx] & 0xFu;
+						unsigned uval = ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_21F__DOT__valid[uidx >> 5] >> (uidx & 31u)) & 1u;
+						unsigned tag = ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_16F__DOT__g_async__DOT__tmm_memory_array[(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x7FFu] << 8)
+						             |  (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_20F__DOT__g_async__DOT__tmm_memory_array[(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x7FFu];
+						unsigned dat = ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_23F__DOT__g_async__DOT__tmm_memory_array[(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x7FFu] << 8)
+						             |  (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_24F__DOT__g_async__DOT__tmm_memory_array[(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x7FFu];
+						printf("[cpg] cnt=%d %s csa=%05o ca=%04o ppn=%05o tag=%06o dat=%06o used=%x hit0n=%d hit1n=%d ihit=%d | wca_in_cycle=%d mreq_in_cycle=%d cup_n=%d brk_n=%d lsh=%d | cd_mmu=%06o cd_cpu=%06o | umem=%x uval=%d din=%x pd2=%d dt_n=%d rt_n=%d nubi_reg=%d nubd_reg=%d we_n=%d cclr_n=%d\n",
+							cnt, wca_rise ? "WCA " : (t_rise ? "TERM" : "wca-"), (unsigned)top->CSA_12_0,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x7FFu, ppn, tag, dat,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_21F__DOT__data4bit & 0xFu,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__MMU_HIT__DOT__HIT0n_reg,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__MMU_HIT__DOT__HIT1n_reg,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__PAL_44402_UBITS__DOT__gen_enable__DOT__IHIT_reg,
+							cp_wca_seen, cp_mreq_seen,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CMDDEC__DOT__PAL_44511_ULEV0__DOT__gen_enable__DOT__CUP_n_reg,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_brk_n,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44404_UCYIN1__DOT__gen_enable__DOT__DLSHADOW_reg,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_mmu_cd_15_0_in & 0xFFFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_proc_cd_15_0_in & 0xFFFFu,
+							umem, uval,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__s_21f_in & 0xFu,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__s_pd2,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__s_dt_n,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__s_rt_n,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__PAL_44402_UBITS__DOT__gen_enable__DOT__NUBI_n_reg,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__PAL_44402_UBITS__DOT__gen_enable__DOT__NUBD_n_reg,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__s_wca_n,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__s_cclr_n);
+						if (++cp_prints == 30000) { printf("[cpg] print cap reached\n"); fflush(stdout); }
+					}
+					// ND120_CACHE_PPN_DT=1 (29-AUG-2026, 23:00): per-CLOCK dump of every
+					// DATA cycle (DT_n low) and every WCA pulse on the page - the HIT
+					// chain exactly as the cycle FSM sees it, clock by clock. Run 17
+					// showed the test's read with every HIT ingredient present at TERM
+					// (tags match, used bit set and valid, RT and DT) and the memory
+					// word delivered anyway; this shows when inside the cycle HIT was
+					// low, and which input made it low.
+					static int  cp_dt_mode = -1;
+					static long cp_dt_prints = 0;
+					if (cp_dt_mode < 0) cp_dt_mode = getenv("ND120_CACHE_PPN_DT") ? 1 : 0;
+					if (cp_dt_mode)
+					{
+						int cc = ((int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC3_reg << 3)
+						       | ((int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC2_reg << 2)
+						       | ((int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC1_reg << 1)
+						       |  (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC0_reg;
+						int dt_n = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__s_dt_n;
+						if (ppn == (unsigned)cp_ppn && (cc != 0 || term || mreq || wca) && (!dt_n || wca) && cp_dt_prints < 100000)
+						{
+							unsigned ca = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_ca_10_0 & 0x7FFu;
+							unsigned uidx = ca & 0x3FFu;
+							unsigned tag = ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_16F__DOT__g_async__DOT__tmm_memory_array[ca] << 8)
+							             |  (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_20F__DOT__g_async__DOT__tmm_memory_array[ca];
+							unsigned dat = ((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_23F__DOT__g_async__DOT__tmm_memory_array[ca] << 8)
+							             |  (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_24F__DOT__g_async__DOT__tmm_memory_array[ca];
+							printf("[cdt] cnt=%d csa=%05o CC=%x T=%d U=%d cyd=%d mreq=%d | ca=%04o ppn=%05o | hit=%d h0n=%d h1n=%d oubi=%d oubd=%d rt_n=%d dt_n=%d cwr=%d cwrh=%d brk_n=%d we_n=%d pd2=%d ihit=%d | umem=%x uval=%d tag=%06o dat=%06o | cd_mmu=%06o cd_cpu=%06o\n",
+								cnt, (unsigned)top->CSA_12_0, cc, term,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__uclk_pa,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_cyd, mreq,
+								ca, ppn,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_hit,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__MMU_HIT__DOT__HIT0n_reg,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__MMU_HIT__DOT__HIT1n_reg,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT____Vcellinp__PAL_44402_UBITS__OUBI,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT____Vcellinp__PAL_44402_UBITS__OUBD,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__s_rt_n, dt_n,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_cwr,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CMDDEC__DOT__PAL_44511_ULEV0__DOT__gen_enable__DOT__CWR_hold,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_brk_n,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__s_wca_n,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__s_pd2,
+								(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__PAL_44402_UBITS__DOT__gen_enable__DOT__IHIT_reg,
+								(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_21F__DOT__am_memory_array[uidx] & 0xFu,
+								(int)(((unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__MMU__DOT__CACHE__DOT__CHIP_21F__DOT__valid[uidx >> 5] >> (uidx & 31u)) & 1u),
+								tag, dat,
+								(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_mmu_cd_15_0_in & 0xFFFFu,
+								(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_proc_cd_15_0_in & 0xFFFFu);
+							if (++cp_dt_prints == 100000) { printf("[cdt] print cap reached\n"); fflush(stdout); }
+						}
+					}
+					if (t_rise) { cp_wca_seen = 0; cp_mreq_seen = 0; }
+				}
+			}
+#endif // ND120_NO_CACHE (end of ND120_CACHE_TRACE / ND120_CACHE_WIN / ND120_CACHE_PPN probes)
+
+			// MAP counter (ND120_COUNT_MAP=1, 30-AUG-2026). One falling edge
+			// of MAP_n = one macro instruction dispatched - the last
+			// microinstruction of every macro instruction runs MAP, cache
+			// hit or miss. The panel's mips_counter counts this exact
+			// event on the Nexys (it counted FETCH before, and a warm
+			// cache starved it to 00.00). Validation: run together with
+			// ND120_TRACE_VERIFY - the trace writes ONE LINE per macro
+			// instruction, so trace lines and MAP edges over the same
+			// window must agree.
+			{
+				static int mc_on = -1;
+				if (mc_on < 0) mc_on = getenv("ND120_COUNT_MAP") ? 1 : 0;
+				if (mc_on)
+				{
+					static unsigned char      mc_prev = 1;
+					static unsigned long long mc_edges = 0;
+					static long               mc_next = 50000000;
+					unsigned char m = (unsigned char)top->rootp->ND120_TOP__DOT__s_debug_map_n;
+					if (mc_prev && !m) mc_edges++;
+					mc_prev = m;
+					if (cnt >= mc_next)
+					{
+						printf("[map] cnt=%d edges=%llu\n", cnt, mc_edges);
+						mc_next += 50000000;
+					}
+				}
+			}
+
+			// CFETCH counter (ND120_COUNT_CFETCH=1, 31-AUG-2026). CFETCH is the
+			// CGA_DCD-registered "command fetch" strobe - it rises once when the
+			// decoder takes a new macro instruction, so unlike DEBUG_FETCH (a
+			// memory-cycle qualifier, which a warm cache starved to 00.00) and
+			// MAP_n (a board net gated by FORM and the cycle state) it does not
+			// depend on where the fetch came from. This is the THIRD tap tried for
+			// the panel MIPS field; the first two were flashed without a sim proof
+			// and both read 00.00. THE RULE: no tap goes to the board until its
+			// edge count here agrees with the instruction count that
+			// ND120_TRACE_VERIFY writes over the same window.
+			{
+				static int cf_on = -1;
+				if (cf_on < 0) cf_on = getenv("ND120_COUNT_CFETCH") ? 1 : 0;
+				if (cf_on)
+				{
+					static unsigned char cf_prev = 0;
+					static long          cf_next = 10000000;   // report every 10M clocks
+					unsigned char f = (unsigned char)top->rootp->ND120_TOP__DOT__s_debug_cfetch_dbg;
+					// s_debug_cfetch_dbg is the TOP-LEVEL routed wire (ND120_TOP ->
+					// CORE -> ND3202D -> CPU_15 -> PROC -> CGA), i.e. exactly the
+					// signal the FPGA panel counter would see - not an internal
+					// probe. After the 31-AUG re-point it carries the GPR<-CD
+					// strobe. It is a one-clock enable product, so count it HIGH,
+					// the same way the panel's edge detector will.
+					if (f) g_cfetch_rises++;
+					// REMOVED 31-AUG-2026: the side-by-side "candidate tap"
+					// probe that recomputed the GPR<-CD load from ALU internals
+					// (s_gprc_2_0, s_aluclk_en_i, s_cd_15_0) and counted the CGA
+					// s_cfetch net. That search is over - the winning tap is
+					// XGPRLOAD_DBG, and s_debug_cfetch_dbg above already carries
+					// it as a routed top-level wire, which is what the FPGA panel
+					// counter actually sees. The internals it read are pure
+					// combinational aliases that Verilator collapses, so the code
+					// no longer compiled at all and runSim could not be built.
+					cf_prev = f;
+					if (cnt >= cf_next)
+					{
+						unsigned long long wc = g_cfetch_rises - g_arm_cfetch;
+						unsigned long long wm = g_macro_boundaries - g_arm_macro;
+						printf("[cfetch] cnt=%d rises=%llu macro=%llu | armed=%d window: cfetch=%llu macro=%llu ratio=%.4f\n",
+						    cnt, g_cfetch_rises, g_macro_boundaries, g_arm_taken,
+						    wc, wm, wm ? (double)wc / (double)wm : 0.0);
+						fflush(stdout);
+						cf_next += 10000000;
+					}
+				}
+			}
+
+			// ND120_WCS_RD=1 (30-AUG-2026): per-CLOCK dump of every RWCS
+			// (read/write control store) microinstruction - CACHE-1X0-A00 test 1
+			// reads the upper 1K of the WCS back OR-ed with a constant (board:
+			// 163400 on bits 63:48). Shows the cycle state, the bank enables, the
+			// addresses, BOTH banks' outputs (the WCS output is their wired-OR),
+			// and the TCV capture, so the clock where the wrong bank still
+			// drives can be read off directly.
+			{
+				static int  wr_mode = -1;
+				static long wr_prints = 0;
+				static int  wr_prev_rwcs = 0;
+				if (wr_mode < 0) wr_mode = getenv("ND120_WCS_RD") ? 1 : 0;
+				if (wr_mode && wr_prints < 400000)
+				{
+					auto rp = top->rootp;
+					int rwcs = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CMDDEC__DOT__PAL_44408B_VEXFIX__DOT__gen_enable__DOT__RWCS_int;
+					int cc = ((int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC3_reg << 3)
+					       | ((int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC2_reg << 2)
+					       | ((int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC1_reg << 1)
+					       |  (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__CC0_reg;
+					unsigned wr_uua = (unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__s_uua & 0xFFFu;
+					if ((rwcs || wr_prev_rwcs) && wr_uua >= 07000u && wr_uua <= 07003u)
+					{
+						unsigned long long lo = (unsigned long long)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__WCS__DOT__s_lua_csbits_out;
+						unsigned long long up = (unsigned long long)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__WCS__DOT__s_uua_csbits_out;
+						printf("[wcs] cnt=%d csa=%05o CC=%x T=%d rwcs=%d ewca=%d | elow_n=%d eupp_n=%d lua=%05o uua=%04o | lo63_48=%06o up63_48=%06o lo15_0=%06o up15_0=%06o ce16C=%d ce16D=%d | ecsl_d=%d idbout=%06o cap=%06o wcstb_n=%d | idb: cs=%06o mmu=%06o proc=%06o board=%06o bif=%06o mem=%06o io_reg=%06o io_uart=%06o io_pan=%06o -> proc_in=%06o | cswan=%d%d rf=%d ew_n=%x\n",
+							cnt, (unsigned)top->CSA_12_0, cc,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CYC__DOT__PAL_44601_UCYCFSM__DOT__TERM_reg,
+							rwcs,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_IPOS__DOT__s_ewca,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__s_elow_n,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__s_eupp_n,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__ACAL__DOT__s_lua & 0x1FFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__s_uua & 0xFFFu,
+							(unsigned)((lo >> 48) & 0xFFFFull), (unsigned)((up >> 48) & 0xFFFFull),
+							(unsigned)(lo & 0xFFFFull), (unsigned)(up & 0xFFFFull),
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__WCS__DOT__CHIP_16C__DOT__regCE_n,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__WCS__DOT__CHIP_16D__DOT__regCE_n,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__TCV__DOT__r_ecsl_n_d,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__TCV__DOT__regIDB_out & 0xFFFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__TCV__DOT__r_cs_capture & 0xFFFFu,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__CTL__DOT__s_wcstb_n,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_cs_IDB_15_0_out & 0xFFFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_mmu_idb_15_0_out & 0xFFFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_proc_IDB_15_0_out & 0xFFFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_cpu_idb_15_0_in & 0xFFFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_bif_idb_15_0_out & 0xFFFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__s_mem_idb_15_0_out & 0xFFFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__s_idb_15_0_reg_out & 0xFFFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__s_idb_15_0_uart_out & 0xFFFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__IO__DOT__s_idb_15_0_pancal_out & 0xFFFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_proc_IDB_15_0_in & 0xFFFFu,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_INCOUNT__DOT__MEMORY_7__DOT__gen_enable_arst__DOT__q_r,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__PROC__DOT__CGA__DOT__DELILAH__DOT__MIC__DOT__MIC_INCOUNT__DOT__MEMORY_6__DOT__gen_enable_arst__DOT__q_r,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__s_rf_1_0 & 3u,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__s_ew_3_0_n & 0xFu);
+						if (++wr_prints == 400000) { printf("[wcs] print cap reached\n"); fflush(stdout); }
+					}
+					wr_prev_rwcs = rwcs;
+				}
+			}
+
+			// Control-store read-back probe (ND120_WCS_TRACE=1, run-time). CACHE-1X0-A00
+			// test 1 (upper 1K of the WCS = the microinstruction cache store) reads
+			// back every 16-bit group as expected | 0xE700 in groups 0, 1 and 3 on
+			// the Nexys (29-AUG-2026). CPU_CS_WCS_21_22.v merges the lower and the
+			// upper bank with a wired-OR, and IDT6168A_20.v gates each chip's output
+			// with a REGISTERED copy of CE_n, so a bank keeps driving its last word
+			// for one sysclk after it is deselected. This prints, at every falling
+			// edge of ECSL_n (the TCV capture edge), the two bank enables, the two
+			// bank outputs, the word the TCV selects and what it captured.
+			{
+				static int ws_on = -1, ws_prints = 0, ws_prev_ecsl = 1;
+				if (ws_on < 0) ws_on = getenv("ND120_WCS_TRACE") ? 1 : 0;
+				if (ws_on && ws_prints < 3000)
+				{
+					auto rp = top->rootp;
+					int ecsl_d = (int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__TCV__DOT__r_ecsl_n_d;
+					// r_ecsl_n_d is ECSL_n one sysclk late: a 1->0 step on it means
+					// the capture edge was the previous eval; print this eval's
+					// state too (the captured value is now in r_cs_capture).
+					if (ws_prev_ecsl && !ecsl_d)
+					{
+						unsigned long long lo = (unsigned long long)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__WCS__DOT__s_lua_csbits_out;
+						unsigned long long up = (unsigned long long)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__WCS__DOT__s_uua_csbits_out;
+						printf("[wcs] cnt=%d csa=%05o lua=%05o uua=%04o elow_n=%d eupp_n=%d ew_n=%x | lower=%016llx upper=%016llx | sel=%06o captured=%06o\n",
+							cnt, (unsigned)top->CSA_12_0,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__ACAL__DOT__s_lua & 0x1FFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__s_uua & 0xFFFu,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__s_elow_n,
+							(int)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__s_eupp_n,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__s_ew_3_0_n & 0xFu,
+							lo, up,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__TCV__DOT__regIDB_out & 0xFFFFu,
+							(unsigned)rp->ND120_TOP__DOT__CORE__DOT__CPU_BOARD__DOT__CPU__DOT__CS__DOT__TCV__DOT__r_cs_capture & 0xFFFFu);
+						if (++ws_prints == 3000) printf("[wcs] print cap reached\n");
+					}
+					ws_prev_ecsl = ecsl_d;
+				}
+			}
 
 #ifdef ND120_PROBE_MPYPHASE
 			// Fine-grained phase capture around the MPY CONDENABL branch:
@@ -1341,6 +2342,7 @@ int main(int argc, char **argv)
 				{
 					if (tv_boundary)
 					{
+						g_macro_boundaries++;   // every boundary, unfiltered
 						if (!tv_armed)
 						{
 							if (tv_arm_addr >= 0)
@@ -1351,6 +2353,16 @@ int main(int argc, char **argv)
 							}
 							else if (pil >= 1 && pil <= 9)
 								tv_armed = 1;
+							// freeze the MIPS-tap comparison window at arming
+							if (tv_armed && !g_arm_taken)
+							{
+								g_arm_taken  = 1;
+								g_arm_cfetch = g_cfetch_rises;
+								g_arm_macro  = g_macro_boundaries;
+								printf("[cfetch] ARMED at cnt=%d (cfetch=%llu macro=%llu before arming)\n",
+								    cnt, g_cfetch_rises, g_macro_boundaries);
+								fflush(stdout);
+							}
 						}
 						if (!tv_armed)
 							tv_skipped++;
@@ -1367,6 +2379,23 @@ int main(int argc, char **argv)
 							fclose(tv_fp);
 							tv_done = 1;
 							printf("\n[tverify] %d instructions traced, done\n", tv_max);
+							{
+								unsigned long long wc = g_cfetch_rises - g_arm_cfetch;
+								unsigned long long wm = g_macro_boundaries - g_arm_macro;
+								// The [gprld] / [cfetch2] verdicts that used to
+								// print here compared three candidate MIPS taps
+								// against the golden instruction count. That
+								// search finished - XGPRLOAD_DBG won, and
+								// s_debug_cfetch_dbg below carries it - so the
+								// losing candidates and their ALU-internal reads
+								// were removed on 31-AUG-2026.
+								printf("[cfetch] VERDICT over the traced window: cfetch rises=%llu, "
+								       "macro boundaries=%llu, ratio=%.4f -> %s\n",
+								    wc, wm, wm ? (double)wc / (double)wm : 0.0,
+								    (wc == wm) ? "EXACT 1:1 - tap is valid for the MIPS counter"
+								               : "MISMATCH - do NOT flash this tap");
+								fflush(stdout);
+							}
 							// Trace complete and flushed - exit instead of
 							// spinning to ND120_MAX_CNT (which just pegs a CPU
 							// core). Set ND120_TVERIFY_NOEXIT=1 to keep running.
@@ -1411,6 +2440,93 @@ int main(int argc, char **argv)
 				tv_have_prev = 1;
 			}
 			tv_prev_clk = tv_clk;
+		}
+#endif
+#ifdef TRACE_CSA_BOOT
+		// CSA from cycle 0, i.e. THROUGH the boot the plain TRACE_CSA gate
+		// deliberately skips. Added 31-AUG-2026: the MiSTer board was found
+		// spinning in the interrupt-check microcode (CHKIT/PICFM/PICF2) and
+		// never reaching OPCOM, so the question became what a machine that
+		// DOES boot goes through at the same point - which is exactly the
+		// window the post-boot gate throws away.
+		if (g_csa_fp && top->CSA_12_0 != g_last_csa)
+		{
+			fprintf(g_csa_fp, "%ld,%o\n", cnt, (unsigned)top->CSA_12_0);
+			// The PIE read at microcode 001011, whose value decides the
+			// 001013 branch. The MiSTer board falls through there while this
+			// sim jumps to NOTI2, so the two values are worth comparing
+			// directly. Printed, not logged, because it happens ONCE.
+			// 01011 is a C OCTAL literal = the microcode address 001011.
+			// Written 0521 first, which is octal 521 - a different address
+			// entirely, and the probe silently never fired.
+			(void)0;
+			g_last_csa = top->CSA_12_0;
+		}
+		// THE SAME WINDOW THE BOARD CAPTURES, in the same format.
+		//
+		// nd120_csa_trace.v on MiSTer arms on microcode 002026 and then records
+		// (CSA, FIDBO) pairs on each address CHANGE, printing them as
+		// "csa:fidbo". Producing an identical dump here means the two can be
+		// diffed line for line.
+		//
+		// This exists because comparing a single sample from each side gave a
+		// FALSE result once already: the board latched one microinstruction
+		// earlier than this harness printed, so a value the working machine
+		// also produces looked like a divergence. Compare windows, not points.
+		// ALUCLK_EN pulses per CPU clock - the ratio the board reports as
+		// PE/CK. Counting, not sampling: the enables are one-cycle pulses and
+		// a sampled comparison of them is phase-sensitive (see the FIDBO
+		// lesson in the MiSTer skill). Two machines running the same microcode
+		// must step the cycle controller the same number of times.
+		{
+			// This probe point runs ONCE PER SYSCLK PERIOD, always with
+			// top->sysclk == 1 (see the note at the RAM probe below), so each
+			// execution IS one CPU clock - no edge detection needed, and an
+			// edge detect here would never fire.
+			static unsigned long long s_alu = 0, s_clk = 0;
+			s_clk++;
+			if ((top->DEBUG_CYC_OUT >> 10) & 1) s_alu++;
+			if (s_clk == 65536ULL)
+				printf("[rate] clk_cpu=%llu ALUCLK_EN=%llu ratio=%.4f\n",
+				       s_clk, s_alu, (double)s_alu / (double)s_clk);
+		}
+		{
+			static int  s_armed = 0;
+			static int  s_n     = 0;
+			static unsigned s_prev = 0xFFFFu;
+			unsigned csa_now = (unsigned)top->CSA_12_0;
+
+			if (!s_armed && csa_now == 02026) s_armed = 1;
+			// PER-CLOCK, matching nd120_csa_trace.v's PER_CLOCK=1 on the board.
+			// One entry per CPU clock, so a cycle lasting N clocks occupies N
+			// entries and its LENGTH is readable straight off the dump. The
+			// board terminates 1.89x as many cycles as this machine over
+			// identical microcode; this shows which cycles are short.
+			// ND120_TRACE_CSA_LAG: print the PREVIOUS csa beside the current
+			// aux. The board's RTL records both at posedge clk_cpu (pre-edge
+			// values); this harness reads them after eval() with sysclk high
+			// (post-edge). For a registered signal that is a one-clock offset,
+			// so if lagging csa here reproduces the board's window exactly,
+			// the "board advances CSA one clock late" reading is a PROBE
+			// artifact and not a hardware difference.
+			static unsigned s_csa_lag = 0;
+			unsigned csa_show = csa_now;
+#ifdef ND120_TRACE_CSA_LAG
+			csa_show = s_csa_lag;
+#endif
+			s_csa_lag = csa_now;
+			if (s_armed && s_n < 64)
+			{
+				// {cycle-controller inputs, condition lines} - the SAME 13-bit
+				// word the board records as `aux`. The condition lines alone
+				// showed the board missing TERM at 001007 and CC0 at 001020;
+				// the cycle inputs say WHICH input drives the CC state apart.
+				printf("%05o:%06o ", csa_show,
+				       (((unsigned)top->DEBUG_CYC_OUT & 0x7FFu) << 5) |
+				       ((unsigned)top->DEBUG_CC_TERM_OUT & 0x1Fu));
+				if ((++s_n % 4) == 0) printf("\n");
+				s_prev = csa_now;
+			}
 		}
 #endif
 #if defined(TRACE_CSA) || defined(SCRIPT_INPUT)
@@ -1548,6 +2664,8 @@ int main(int argc, char **argv)
 					n = read(STDIN_FILENO, &ch, 1);
 					if (n > 0)
 					{
+						if (getenv("ND120_STDIN_DEBUG"))
+							printf("[stdin] sent %02x '%c' at cnt %d\n", (unsigned char)ch, (ch >= ' ' ? ch : '.'), cnt);
 						g_stdin_next_cnt = cnt + g_stdin_gap;
 						// after '&' hold further input until the booted
 						// program has printed its greeting and gone quiet

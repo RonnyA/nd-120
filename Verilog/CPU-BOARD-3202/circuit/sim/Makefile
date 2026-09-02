@@ -86,6 +86,16 @@ test-blockram-space: MEM_RAM_49_BLOCKRAM_SPACE_tb
 MEM_RAM_49_BLOCKRAM_SPACE_tb: MEM_RAM_49_BLOCKRAM_SPACE_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
 	$(IVERILOG) -g2012 -DND120_BLOCKRAM_ADDR_BITS=16 -o $@ MEM_RAM_49_BLOCKRAM_SPACE_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
 
+# The same gate at the MiSTer's array shape: three bank slots instead of
+# four (ND120_BLOCKRAM_BANK_SLOTS=3, nd120.qsf). All three banks must still
+# be there at 64K words each - a slot count that dropped a bank would fail.
+test-blockram-space-3banks: MEM_RAM_49_BLOCKRAM_SPACE3_tb
+	./MEM_RAM_49_BLOCKRAM_SPACE3_tb | tee blockram_space3_result.tmp
+	@grep -q "TB_RESULT: PASS" blockram_space3_result.tmp && rm -f blockram_space3_result.tmp MEM_RAM_49_BLOCKRAM_SPACE_tb.vcd
+
+MEM_RAM_49_BLOCKRAM_SPACE3_tb: MEM_RAM_49_BLOCKRAM_SPACE_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
+	$(IVERILOG) -g2012 -DND120_BLOCKRAM_ADDR_BITS=16 -DND120_BLOCKRAM_BANK_SLOTS=3 -o $@ MEM_RAM_49_BLOCKRAM_SPACE_tb.v $(CIRCUIT)/MEM_RAM_49_BLOCKRAM.v
+
 # ERRFA evidence probe (ND120_ERRFA_PROBE in MEM_RAM_49_BLOCKRAM.v): the
 # five save-cell writes 0o4347-0o4353 must come back verbatim as the
 # "EF X T A D L" octal console line, and the TX must stay SILENT until the
@@ -224,6 +234,19 @@ CPU_MMU_PT_29_tb_bin: $(MMUPT_SRCS)
 test-mmupt: CPU_MMU_PT_29_tb_bin
 	./CPU_MMU_PT_29_tb_bin | tee mmupt_result.tmp
 	@grep -q "TB_RESULT: PASS" mmupt_result.tmp && rm -f mmupt_result.tmp
+
+# CPU_MMU_PT_29 CACHE INHIBIT BIT (WCINH_n). The gate on the whole cache -
+# CHIP_20G -> WCINH_n -> EWC -> WCA -> CWR -> CUP - and it had no coverage
+# whatsoever until 28-AUG-2026, while CACHE-120-A00 was failing on hardware
+# with "Cache not updated (Use of limit registers)".
+WCINH_SRCS = CPU_MMU_PT_29_wcinh_tb.v $(CIRCUIT)/CPU_MMU_PT_29.v              $(MMUPT_SUPPORT)/TMM2018D_25.v $(MMUPT_SUPPORT)/IMS1403_25.v
+
+CPU_MMU_PT_29_wcinh_tb_bin: $(WCINH_SRCS)
+	$(IVERILOG) -g2012 -o $@ $(WCINH_SRCS)
+
+test-mmu-wcinh: CPU_MMU_PT_29_wcinh_tb_bin
+	./CPU_MMU_PT_29_wcinh_tb_bin | tee wcinh_result.tmp
+	@grep -q "TB_RESULT: PASS" wcinh_result.tmp && rm -f wcinh_result.tmp
 
 # CPU_MMU_PT_29 SHADOW-MEMORY read-modify-write bench: the PT STATUS bank
 # (EPT_n) that had no coverage at all, bank shifting over PT_number*64+vpn,
@@ -402,6 +425,30 @@ test-pancal: IO_PANCAL_40_tb_bin
 IO_PANCAL_40_tb_bin: $(PANCAL_SRCS)
 	$(IVERILOG) -g2012 -o $@ $(PANCAL_SRCS)
 
+# IO_PANCAL_40 + ND120_PANEL_CLOCK: the MC68705/MM58274 clock path
+# (PANCAL_68705_CLOCK) driven through a real FIFO_8BIT and the DGA IDBS
+# VAL/RIWR handshake - TRR PANC write/read of the 4-byte time, wrap,
+# text-command drain, missing-byte recovery, CLEAR_n. Two builds:
+# latch mode (FIFO on CLK) and FPGA_FF_MODE (FIFO on sysclk + CLK_EN).
+# BOARD_CLK_FREQ=2048000 makes the STAT4 hold 4096 sysclk, the panel
+# "second" is 2000 sysclk.
+PANCAL_CLOCK_SRCS = IO_PANCAL_40_clock_tb.v $(CIRCUIT)/IO_PANCAL_40.v $(CIRCUIT)/PANCAL_68705_CLOCK.v 	$(SUPPORT)/TTL_74374.v $(SUPPORT)/TTL_74244.v $(SUPPORT)/FIFO_8BIT.v
+PANCAL_CLOCK_DEFS = -DND120_PANEL_CLOCK -DBOARD_CLK_FREQ=2048000 -DND120_PANEL_CLOCK_TICK_CYCLES=2000
+
+test-pancal-clock: IO_PANCAL_40_clock_tb_bin
+	./IO_PANCAL_40_clock_tb_bin | tee pancal_clock_result.tmp
+	@grep -q "TB_RESULT: PASS" pancal_clock_result.tmp && rm -f pancal_clock_result.tmp
+
+test-pancal-clock-ff: IO_PANCAL_40_clock_ff_tb_bin
+	./IO_PANCAL_40_clock_ff_tb_bin | tee pancal_clock_ff_result.tmp
+	@grep -q "TB_RESULT: PASS" pancal_clock_ff_result.tmp && rm -f pancal_clock_ff_result.tmp
+
+IO_PANCAL_40_clock_tb_bin: $(PANCAL_CLOCK_SRCS)
+	$(IVERILOG) -g2012 $(PANCAL_CLOCK_DEFS) -o $@ $(PANCAL_CLOCK_SRCS)
+
+IO_PANCAL_40_clock_ff_tb_bin: $(PANCAL_CLOCK_SRCS)
+	$(IVERILOG) -g2012 $(PANCAL_CLOCK_DEFS) -DFPGA_FF_MODE -o $@ $(PANCAL_CLOCK_SRCS)
+
 # CPU_MMU_CACHE_25: cache sheet incl. the 26-JUL HIT-gate on CD_15_0_OUT
 # (banner word-2 stale-line fix). Three builds: gated (default), the
 # -DND120_CACHE_DRIVE_UNGATED escape hatch (raw schematic drive), and
@@ -434,7 +481,7 @@ CPU_MMU_CACHE_25_ff_tb_bin: $(MMUCACHE_SRCS)
 # CCLR_n does not clear the Am9150 used-bit array (reset is a no-op in the
 # model). PASS = behaviour verified WITH the defects present; fixing the
 # RTL flips those checks and this bench must then be updated.
-MMUCACHE_DMA_SRCS = CPU_MMU_CACHE_DMA_tb.v $(CIRCUIT)/CPU_MMU_CACHE_25.v $(CIRCUIT)/CPU_MMU_HIT_27.v $(SUPPORT)/TMM2018D_25.v $(SUPPORT)/Am9150.v $(PAL)/PAL_44402D_EN.v $(PAL)/PAL_44402D.v
+MMUCACHE_DMA_SRCS = CPU_MMU_CACHE_DMA_tb.v $(CIRCUIT)/CPU_MMU_CACHE_25.v $(CIRCUIT)/CPU_MMU_HIT_27.v $(SUPPORT)/TMM2018D_25.v $(SUPPORT)/Am9150.v $(PAL)/PAL_44402D_EN.v $(PAL)/PAL_44402D.v $(PAL)/PAL_44511A_EN.v $(PAL)/PAL_44511A.v
 
 test-mmucache-dma: CPU_MMU_CACHE_DMA_tb_bin CPU_MMU_CACHE_DMA_ff_tb_bin
 	./CPU_MMU_CACHE_DMA_tb_bin | tee mmucache_dma_result.tmp
@@ -529,9 +576,10 @@ MEM_ADEC_45_ff_tb_bin: $(ADEC_SRCS)
 clean-tier3:
 	rm -f MEM_RAMC_50_tb_bin MEM_LBDIF_48_ff_tb_bin MEM_LBDIF_48_lm_tb_bin
 	rm -f IO_PANCAL_40_tb_bin CPU_MMU_CACHE_25_tb_bin
+	rm -f IO_PANCAL_40_clock_tb_bin IO_PANCAL_40_clock_ff_tb_bin
 	rm -f CPU_MMU_CACHE_25_ug_tb_bin CPU_MMU_CACHE_25_ff_tb_bin
 
-.PHONY: test-ramc test-lbdif test-pancal test-mmucache clean-tier3
+.PHONY: test-ramc test-lbdif test-pancal test-pancal-clock test-pancal-clock-ff test-mmucache clean-tier3
 
 # Control-store readback (the TRA CS / TRA 17 path SINTRAN's microcode-revision
 # test uses). Isolates the hardware half: RWCS command decode (PAL_44408B),

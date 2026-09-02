@@ -233,7 +233,17 @@ module CGA_WRF_RBLOCK_PREG (
     .QG (),
     .QGN(s_pr_15_0_out[6]),
     .QH (),
-    .QHN(s_pr_15_0_out[7])
+    .QHN(s_pr_15_0_out[7]),
+    // registered-value taps: deliberately unconnected here -
+    // the transparent output is the wanted one (see L8/L4 header).
+    .QA_R(),
+    .QB_R(),
+    .QC_R(),
+    .QD_R(),
+    .QE_R(),
+    .QF_R(),
+    .QG_R(),
+    .QH_R()
   );
 
   /* Bits 8-15, right side on the schematic diagram page 62 */
@@ -270,7 +280,17 @@ module CGA_WRF_RBLOCK_PREG (
     .QG (),
     .QGN(s_pr_15_0_out[14]),
     .QH (),
-    .QHN(s_pr_15_0_out[15])
+    .QHN(s_pr_15_0_out[15]),
+    // registered-value taps: deliberately unconnected here -
+    // the transparent output is the wanted one (see L8/L4 header).
+    .QA_R(),
+    .QB_R(),
+    .QC_R(),
+    .QD_R(),
+    .QE_R(),
+    .QF_R(),
+    .QG_R(),
+    .QH_R()
   );
 
   MUX31LP R8 (

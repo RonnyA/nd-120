@@ -28,7 +28,15 @@
 
 module MEM_RAM_49_BLOCKRAM #(
     parameter integer BANK_ADDR_BITS = 12,  // words per bank = 2**BANK_ADDR_BITS
-    parameter integer NUM_BANKS = 3         // informational; storage is 4 bank slots
+    parameter integer NUM_BANKS = 3,        // informational; storage is BANK_SLOTS bank slots
+    // Bank slots the array is DECLARED with. bidx (below) is only ever 0, 1 or
+    // 2, so slot 3 can never be addressed: 4 slots waste a quarter of the
+    // array (on the MiSTer ~64 M10K, and it turned a 64K-word bank into "does
+    // not fit"), while 3 slots hold exactly the three banks. 4 stays the
+    // default so every proven build (Nexys, Basys3) is unchanged; the MiSTer
+    // sets 3 through ND120_BLOCKRAM_BANK_SLOTS (MEM_43.v). Either value is
+    // covered by test-blockram-space / test-blockram-space-3banks.
+    parameter integer BANK_SLOTS = 4
 ) (
     // Input signals (sheet-49 interface, same as MEM_RAM_49)
     input sysclk,
@@ -59,18 +67,6 @@ module MEM_RAM_49_BLOCKRAM #(
   wire [31:0] unused_params = NUM_BANKS;
   /* verilator lint_on UNUSEDSIGNAL */
 
-  // One 16-bit wide BRAM, 4 bank slots (bank 3 unused).
-  // PARITY IS NEVER STORED (policy, Ronny 3-AUG-2026): the two parity bits
-  // DD[8] and DD[17] are dropped on write and regenerated as ODD parity on
-  // read, exactly as MEM_RAM_49_SDRAM and SIP1M9 do. 18 bits wide would have
-  // cost extra block RAM to hold bits nothing reads back.
-  // cascade_height = 1: at BANK_ADDR_BITS=15 the 128K-word array otherwise
-  // infers CASCADED RAMB36 pairs, and Vivado's DRC REQP-1962 (cascade ADDR15
-  // tie-off check) rejects the inferred netlist at place_design (measured
-  // 22-AUG-2026, Nexys clk=12 build). Standalone RAMB36 + LUT decode passes.
-  (* ram_style = "block", cascade_height = 1, syn_ramstyle = "block_ram" *)
-  reg [15:0] mem[0:(4 << BANK_ADDR_BITS)-1];
-
   // {high byte, low byte} -> full 18-bit word with regenerated odd parity
   function [17:0] with_parity(input [15:0] d);
     with_parity = {~(^d[15:8]), d[15:8], ~(^d[7:0]), d[7:0]};
@@ -81,6 +77,64 @@ module MEM_RAM_49_BLOCKRAM #(
   reg [17:0] dd_q;    // write data captured while RAS active, CAS not yet seen
   reg        win_d;   // access window (RAS & CAS & bank), one sysclk delayed
 
+`ifdef QUARTUS_RAM_INFER
+  // Quartus arm (01-SEP-2026) - plain Verilog, for the reasons set out in
+  // Shared/support/IDT6168A_20.v (Quartus 17.0.2 refused to infer M10K from
+  // the reference arm: "Cannot convert all sets of registers into RAM
+  // megafunctions", the register fallback overflows the device). An explicit
+  // altsyncram megafunction arm came first (31-AUG-2026) and was deleted
+  // 01-SEP-2026 once this arm had booted the board; its history, and the
+  // two-clock read it shipped with, are recorded in IDT6168A_20.v. One
+  // lesson from it is kept here: with read_during_write_mode "DONT_CARE" and
+  // rden_a tied high, rd_raw was UNDEFINED on every write cycle where the
+  // reference holds - only this board compiled that arm, so the simulator
+  // could never show the difference. Same array below, same 1-clock
+  // registered read, same hold-while-writing.
+  //
+  // Two differences from the reference arm below, both aimed at inference:
+  //
+  //  1. The array read and write live in their OWN always block, NOT inside
+  //     the sys_rst_n branch of the main one. A memory write sitting under a
+  //     reset condition is a well-known inference blocker, and there is no
+  //     reason for it here - the array is never reset, only ras_d/win_d are.
+  //
+  //  2. The read is unconditional apart from its enable. Where the reference
+  //     holds rd_raw through a write, this re-reads and discards - which is
+  //     what ramstyle "no_rw_check" declares. rd_raw is only ever SAMPLED
+  //     during a read window (win && MWRITE50_n), so what it carries during
+  //     a write window is not observable.
+  //
+  // Build v47 (01-SEP-2026) inferred this array as M10K (405/553 M10K used,
+  // one uninferred RAM left on the device and it is not this one).
+  (* ramstyle = "no_rw_check, M10K" *)
+  reg [15:0] mem[0:(BANK_SLOTS << BANK_ADDR_BITS)-1];
+
+  reg [15:0] rd_raw;
+  wire [17:0] rd_q = with_parity(rd_raw);
+
+  always @(posedge sysclk) begin
+    if (win) begin
+      rd_raw <= mem[{bidx, a}];
+      // write: ONCE, on the first window edge - same condition as the
+      // reference arm
+      if (!MWRITE50_n && !win_d) mem[{bidx, a}] <= {dd_q[16:9], dd_q[7:0]};
+    end
+  end
+`else
+  // One 16-bit wide BRAM, BANK_SLOTS bank slots (slot 3, when declared,
+  // is unreachable - see the parameter).
+  // PARITY IS NEVER STORED (policy, Ronny 3-AUG-2026): the two parity bits
+  // DD[8] and DD[17] are dropped on write and regenerated as ODD parity on
+  // read, exactly as MEM_RAM_49_SDRAM and SIP1M9 do. 18 bits wide would have
+  // cost extra block RAM to hold bits nothing reads back.
+  // cascade_height = 1: at BANK_ADDR_BITS=15 the 128K-word array otherwise
+  // infers CASCADED RAMB36 pairs, and Vivado's DRC REQP-1962 (cascade ADDR15
+  // tie-off check) rejects the inferred netlist at place_design (measured
+  // 22-AUG-2026, Nexys clk=12 build). Standalone RAMB36 + LUT decode passes.
+  // ramstyle is QUARTUS's spelling - see the note in Shared/support/IDT6168A_20.v.
+  (* ram_style = "block", cascade_height = 1, syn_ramstyle = "block_ram", ramstyle = "M10K" *)
+  reg [15:0] mem[0:(BANK_SLOTS << BANK_ADDR_BITS)-1];
+
   // Raw registered array read. The parity regeneration must sit AFTER this
   // register: with_parity() between the array and the register put an XOR
   // function in the read path, which stopped Vivado inferring block RAM -
@@ -89,6 +143,7 @@ module MEM_RAM_49_BLOCKRAM #(
   // BRAM-mappable; the parity bits are combinational on the FF output.
   reg [15:0] rd_raw;
   wire [17:0] rd_q = with_parity(rd_raw);
+`endif
 
   // Linear word address {row, col}. PAL 44902A (sheet 50) drives HIEN_n
   // during the RAS phase and LOEN_n during the CAS phase, so the ROW
@@ -131,6 +186,11 @@ module MEM_RAM_49_BLOCKRAM #(
       // capture (the CAS-fall edge) holds the settled pre-CAS value
       if (RAS && !CAS) dd_q <= DD_17_0_IN;
 
+`ifndef QUARTUS_RAM_INFER
+      // The Quartus arm takes this read/write elsewhere, in its own always
+      // block. See the mem/rd_raw declarations above. Note the array write
+      // below sits inside the sys_rst_n else-branch, which is one of the
+      // things the inference arm deliberately moves out.
       if (win) begin
         if (MWRITE50_n) begin
           // read: registered raw, re-reads while CAS; parity regenerated
@@ -141,6 +201,7 @@ module MEM_RAM_49_BLOCKRAM #(
           mem[{bidx, a}] <= {dd_q[16:9], dd_q[7:0]};
         end
       end
+`endif
     end
   end
 

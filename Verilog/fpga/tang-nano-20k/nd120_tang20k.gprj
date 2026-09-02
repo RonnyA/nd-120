@@ -41,6 +41,7 @@
         <File path="../../CPU-BOARD-3202/circuit/IO_37.v" type="file.verilog" enable="1"/>
         <File path="../../CPU-BOARD-3202/circuit/IO_DCD_38.v" type="file.verilog" enable="1"/>
         <File path="../../CPU-BOARD-3202/circuit/IO_PANCAL_40.v" type="file.verilog" enable="1"/>
+        <File path="../../CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v" type="file.verilog" enable="1"/>
         <File path="../../CPU-BOARD-3202/circuit/IO_REG_41.v" type="file.verilog" enable="1"/>
         <File path="../../CPU-BOARD-3202/circuit/IO_UART_42.v" type="file.verilog" enable="1"/>
         <File path="../../CPU-BOARD-3202/circuit/MEM_43.v" type="file.verilog" enable="1"/>

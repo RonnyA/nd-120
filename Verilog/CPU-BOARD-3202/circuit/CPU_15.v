@@ -52,7 +52,7 @@ module CPU_15 (
     input       IBINT15_n,    //! Interrupt bus 15
     input       IOXERR_n,     //! I/O transfer error
     input       LCS_n,        //! Load control store
-    input       MAP_n,        //! Memory Address Present (MAP microcode address)
+    input       MAP_n,        //! MAP Opcode - microsequencer loads next micro-address from the opcode mapper; last microinstruction of every macro instruction (active low)
     input       MOR_n,        //! Memory Error
     input       MR_n,         //! Memory read
     input       PAN_n,        //! Page address not valid
@@ -110,12 +110,22 @@ module CPU_15 (
     output RRF_n,        //! Output RRF signal from CPU to CYCLE
     output ECCR,         //! ECC Register Detected for IOX
     output HIT,          //! Cache hit
+    //! Page-address latch, active low - asserted while the MMU/cache lookup
+    //! that HIT belongs to is happening. Exported purely so the operator panel
+    //! can compute a hit RATE: HIT on its own is a level with no denominator,
+    //! and hits-per-clock is not what the CACHE HIT RATE field means.
+    output DBG_LAPA_n,
     output LEV0,         //! Level 0 active
     output LED1,         //! UNKNOWN: believed to indicate cache enabled, never traced. See Verilog/docs/SIGNALS.md
     output [12:0] CSA_12_0,     //! Microcode Address (for debugging)
     output [15:0] XMIC_DBG_15_0, //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [19:0] XWRFB_DBG_19_0,   //! DEBUG: register-file B port {LBA_3_0, B_15_0} - STERR error number
+    output        XCFETCH_DBG,   //! DEBUG: one rise per macro instruction (see CGA.v)
     output [15:0] DBG_PTW,      //! DEBUG: page-table write stream from CPU_MMU_24 (23-AUG, zero-read campaign)
     output DBG_PTW_LVL,  //! live PT write-strobe level (27-AUG overlap probe)
+    //! DEBUG: cache-write gating bus, straight through from CPU_MMU_24. See
+    //! the DBG_CACHE port comment there for the bit layout and the reason.
+    output [7:0] DBG_CACHE,
     output [20:0]        PF_CAPTURED   //! DEBUG: ND120_PF_CAPTURE freeze flag (23-AUG)
 );
 
@@ -155,6 +165,7 @@ module CPU_15 (
   wire        s_brk_n;
   wire        s_rt_n;
   wire        s_ewca_n;
+  wire [7:0]  s_dbg_cache;   //! cache-write gating bus from CPU_MMU_24
   wire        s_eorf_n;
   wire        s_wcs_n;
   wire        s_emcl_n;
@@ -284,6 +295,7 @@ module CPU_15 (
   assign s_ibint12_n = IBINT12_n;
   assign s_stoc_n = STOC_n;
   assign s_cyd = CYD;
+  assign DBG_CACHE = s_dbg_cache;
   assign s_sw1_console = SW1_CONSOLE;
   assign s_empid_n = EMPID_n;
   assign s_edo_n = EDO_n;
@@ -380,6 +392,7 @@ module CPU_15 (
   assign RRF_n = s_rrf_n;
   assign ECCR = s_eccr;
   assign HIT = s_hit;
+  assign DBG_LAPA_n = s_lapa_n;
   assign LEV0 = s_lev0;
 
   assign LED1 = s_led1;
@@ -490,6 +503,8 @@ module CPU_15 (
 
     .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
     .XMIC_DBG_15_0(XMIC_DBG_15_0),
+    .XWRFB_DBG_19_0(XWRFB_DBG_19_0),
+      .XCFETCH_DBG(XCFETCH_DBG),
     .PF_CAPTURED(PF_CAPTURED)
   );
 
@@ -586,7 +601,8 @@ module CPU_15 (
     .WCA_n(s_wca_n),
     .LED1(s_led1),
     .DBG_PTW(DBG_PTW),
-      .DBG_PTW_LVL(DBG_PTW_LVL)
+      .DBG_PTW_LVL(DBG_PTW_LVL),
+      .DBG_CACHE(s_dbg_cache)   // cache-write gating bus, see the port comment
   );
 
 

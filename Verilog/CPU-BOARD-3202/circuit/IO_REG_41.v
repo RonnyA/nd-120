@@ -141,10 +141,17 @@ module IO_REG_41 (
 
 
 
-  // CPU BOARD LED: RED (Will light up run while MASTER CLEAR is running) active low
+  // CPU BOARD LED: RED (lights while MASTER CLEAR is running) ACTIVE LOW.
+  // Active low is MEASURED: the MiSTer port passed these through un-inverted
+  // on 31-AUG-2026 and every lamp came out backwards, so its console inverts
+  // both (fpga/mister/nd120.sv:511-518) and GREEN lights correctly there.
+  // The IOC register comments below say "red LED ON1" / "green LED on1";
+  // reading those as active-high and dropping the inversion is exactly the
+  // mistake made on 01-SEP-2026. The measurement wins.
   assign IOLED[0] = s_emcl_n;
 
-  // CPU BOARD LED: GREEN (Will light up green) active low
+  // CPU BOARD LED: GREEN (initialisation completed, i.e. the microcode
+  // reached MACL2 and the self-test passed) ACTIVE LOW - see above.
   assign IOLED[1] = s_led3_green_n;
 
   /*******************************************************************************

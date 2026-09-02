@@ -8,12 +8,20 @@
 ** Ronny Hansen                                                          **
 ***************************************************************************/
 
-// Statis: Module not working.
-// TODO: Implement logic for the MC68705 - 6805 Embedded CPU and the MM58274  - Real Time Clock
+// Status (28-AUG-2026): the CLOCK path of the MC68705 + MM58274 is emulated by
+// PANCAL_68705_CLOCK when the build defines ND120_PANEL_CLOCK (opt-in: the
+// Tang Nano 20K is nearly full, so synth builds must ask for it). Without the
+// define this sheet is the old stub: PRES=1, everything else constant, the
+// FIFO is never drained and TRR PANC / TRA PANS cannot set or read the time.
+// Still not modelled in either build: the DISP1-5 display output and the
+// Port D statistics (PCR/PONI/IONI/LHIT/LEV0) - display only, see
+// PANCAL_68705_CLOCK.v for what the ROM does with them.
 
 module IO_PANCAL_40 (
     // Input signals
     input       sysclk,   //! FPGA system clock — used for CK edge detection in CHIP_32B
+    input       CLK,      //! board CLK = DGA FIFO clock (68705 emulation, latch mode)
+    input       CLK_EN,   //! CLK-rise clock-enable pulse (FPGA_FF_MODE, else 0)
     input       CLEAR_n,
     input       EMP_n,
     input       EPANS,
@@ -33,7 +41,8 @@ module IO_PANCAL_40 (
     // Output signals
     output [4:0] DP_5_1_n,
     output       RMM_n,
-    output [1:0] STAT_4_3
+    output [1:0] STAT_4_3,
+    output [15:0] PANEL_ACTLV  //! the microcode's ACTIVE LEVEL word (0 without ND120_PANEL_CLOCK)
 );
 
   // There are some unused signals in this module until we have implemented the missing parts..
@@ -108,14 +117,17 @@ module IO_PANCAL_40 (
    ** Here all sub-circuits are defined                                          **
    *******************************************************************************/
 
-  wire s_wmm_n;
+  wire        s_wmm_n;
+  wire [7:0]  s_pa_bus;       // PA7:0 as the 74LS374 sees it: the 68705 drives it
+                              // (DDRA=FF) only while it latches an answer byte,
+                              // otherwise the DGA FIFO output is on the bus.
 
   // TTL_74374 CHIP_32B
   TTL_74374 CHIP_32B (
       .sysclk(sysclk),
       .CK(s_wmm_n),  // from 68705 PB0
       .OE_n(s_epans),
-      .D(s_pa_7_0),
+      .D(s_pa_bus),
       .Q(s_idb_15_0_chip_out[7:0])
   );
 
@@ -153,16 +165,99 @@ module IO_PANCAL_40 (
 
 
 
-  // TODO:
-  // ADD - MM58274  - Real Time Clock
-  // ADD - MC68705 - 6805 Embedded CPU
+`ifdef ND120_PANEL_CLOCK
+  // ---------------------------------------------------------------------------
+  // MC68705U3 + MM58274, clock path (TRR PANC PFUNC 4-7 / TRA PANS).
+  // Everything the CPU can observe on this sheet comes out of the emulator:
+  // PB0 WMM~, PB3 RMM~, PB5 STAT4, PB6 READ, PC2:0 STAT2:0 and the PA byte.
+  // PB4 STAT3 and PB7 (PRES) keep their stub values, see the module header.
+  // ---------------------------------------------------------------------------
+`ifndef BOARD_CLK_FREQ
+  // Same fallback as DECODE_DGA_POW.v: every FPGA build defines the real value.
+  `define BOARD_CLK_FREQ 100_000_000
+`endif
+`ifdef ND120_PANEL_CLOCK_TICK_CYCLES
+  // Explicit override: sysclk cycles per "second" of panel time.
+  localparam integer PANEL_TICK_CYCLES = `ND120_PANEL_CLOCK_TICK_CYCLES;
+`elsif RTC_REAL_PERIOD
+  localparam integer PANEL_TICK_CYCLES = `BOARD_CLK_FREQ;
+`elsif VERILATOR_SIM
+  // Keep the panel second on the SAME time scale as the DGA's simulated 20 ms
+  // RTC tick (DECODE_DGA_POW.v: 8192 sysclk, or RTC_SIM_20MS): 50 ticks per
+  // second. Software that times the panel clock against the RTC (TPE's
+  // "clock is not updated" probe, SINTRAN's clock adjust) then sees a
+  // consistent machine, and a simulated second costs 409600 cycles, not 10^8.
+`ifdef RTC_SIM_20MS
+  localparam integer PANEL_TICK_CYCLES = 50 * `RTC_SIM_20MS;
+`else
+  localparam integer PANEL_TICK_CYCLES = 50 * 8192;
+`endif
+`else
+  localparam integer PANEL_TICK_CYCLES = `BOARD_CLK_FREQ;
+`endif
+  // STAT4 hold / missing-byte limit: about 2 ms of sysclk, never below 4096.
+  localparam integer PANEL_HOLD_CYCLES = (`BOARD_CLK_FREQ / 500) < 4096 ? 4096 : (`BOARD_CLK_FREQ / 500);
 
-  // Add in logic later
+  wire       s_pa_drive;
+  wire [7:0] s_pa_out;
+  wire [2:0] s_stat_2_0;
+  wire       s_stat_4;
+  wire [15:0] s_time_halfdays;   // observation only (waveforms / a later host preset)
+  wire [15:0] s_time_seconds;
+  wire [15:0] s_actlv;
+
+  PANCAL_68705_CLOCK #(
+      .TICK_CYCLES(PANEL_TICK_CYCLES),
+      .HOLD_CYCLES(PANEL_HOLD_CYCLES),
+      .EXEC_CYCLES(64)
+  ) CHIP_35C (
+      .sysclk  (sysclk),
+      .CLEAR_n (s_clear_n),
+      .CLK     (CLK),
+      .CLK_EN  (CLK_EN),
+      .EMP_n   (s_emp_n),
+      .PA_IN   (s_pa_7_0),
+      .RMM_n   (s_rmm_n),
+      .WMM_n   (s_wmm_n),
+      .READ    (s_read),
+      .STAT4   (s_stat_4),
+      .STAT_2_0(s_stat_2_0),
+      .PA_OUT  (s_pa_out),
+      .PA_DRIVE(s_pa_drive),
+      .TIME_HALFDAYS(s_time_halfdays),
+      .TIME_SECONDS (s_time_seconds),
+      .ACTLV        (s_actlv)
+  );
+  assign PANEL_ACTLV = s_actlv;
+  (* keep = "true", DONT_TOUCH = "true" *) wire [31:0] unused_time_bits = {s_time_halfdays, s_time_seconds};
+
+  assign s_pa_bus   = s_pa_drive ? s_pa_out : s_pa_7_0;
+
+`ifdef ND120_PANEL_CLOCK_TRACE
+  // Sim-only: one line per PANS read (EPANS low) with the word the CPU gets.
+  reg r_epans_d = 1'b1;
+  always @(posedge sysclk) begin
+    r_epans_d <= s_epans;
+    if (!s_epans && r_epans_d)
+      $display("[panel] t=%0t TRA/MI PANS -> %06o (PRES=%0d FUL_n=%0d READ=%0d VAL=%0d STAT=%0d byte=%03o)",
+               $time, s_idb_15_0_out, s_idb_15_0_out[15], s_idb_15_0_out[14], s_idb_15_0_out[13],
+               s_idb_15_0_out[12], s_idb_15_0_out[11:8], s_idb_15_0_out[7:0]);
+  end
+`endif
+  assign s_stat_4_0 = {s_stat_4, 1'b0, s_stat_2_0};   // STAT3 (PB4) held low
+  assign s_pres     = 1;  // PB7=0 on MC68705U3, inverted by 74F04 (13G) -> PRES always 1
+`else
+  // ---------------------------------------------------------------------------
+  // STUB (no ND120_PANEL_CLOCK): the 68705 is absent. Constant port values.
+  assign PANEL_ACTLV = 16'd0;   // no panel processor, no ACTLV
+  // ---------------------------------------------------------------------------
+  assign s_pa_bus = s_pa_7_0;
+
   // Output signals from the MC68705 - 6805 Embedded CPU
 
   // *** PORT A ***
-  // PA0-PA7 connects to bus signal - s_pa_7_0. Unclear if the CPU only reads or writes to this bus..
-  // PA[7:0] is data coming from the FIFO in the DGA
+  // PA0-PA7 connects to bus signal - s_pa_7_0. Data from the FIFO in the DGA
+  // while RMM_n is low; the 68705 drives it while it latches an answer byte.
 
   // *** PORT B *** (output)
   assign s_stat_4_0 = 5'b00000;
@@ -172,9 +267,12 @@ module IO_PANCAL_40 (
   // pb5 =stat4
   // pb4 =stat3
   assign s_rmm_n = 1;  // RMM signal pb3 (not active!)
-  // pb2 = roclk_n (not connected to anything/not used)
-  // pb1 = wrclk_n (not connected to anything/not used)
+  // pb2 = roclk_n (RD~ to the MM58274, via PA7:4 = address, PA3:0 = data)
+  // pb1 = wrclk_n (WR~ to the MM58274)
   assign s_wmm_n = 1;  // WMM signal pb0 (not active)
+
+  (* keep = "true", DONT_TOUCH = "true" *) wire [1:0] unused_clk_bits = {CLK, CLK_EN};
+`endif
 
   // *** PORT C *** (output)
 

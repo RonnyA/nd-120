@@ -64,6 +64,41 @@ module CPU_MMU_24 (
     output LAPA_n,               //! Latch Page Address, controls latching of the page address
     output [6:0] PT_15_9_OUT,    //! Page Table data output, top 7 bits
     output WCA_n,                //! Write Cache Address, controls writing to the cache address register
+    //! DBG_CACHE - the six signals that gate a cache write, brought out so an
+    //! ILA can say which one is actually blocking it. Added 28-AUG-2026.
+    //!
+    //! WHY. On the Nexys 4 DDR the machine's own diagnostic CACHE-1X0-A00,
+    //! test 2, reports the cache totally inert: data and instructions are
+    //! never COPIED INTO the cache when read, and never TAKEN FROM it when
+    //! present, both with paging off and on. Nothing is ever written, so
+    //! nothing can ever hit, so CUP never sets.
+    //!
+    //! A cache write happens when PAL_44402D asserts WCA, and its PALASM
+    //! (DesignDocuments/PAL-Code/SRC/44402D.txt) says
+    //!
+    //!   WCA = /RT * DT * EWC * CYD * /FMISS * /LSHADOW
+    //!       + RT * /IHIT * EWC * CYD * /FMISS * /LSHADOW
+    //!
+    //! Both terms need EWC and CYD high and FMISS and LSHADOW low. The PAL
+    //! itself is transcribed correctly - checked against that listing on
+    //! 28-AUG-2026, both product terms and the registered/combinational split
+    //! (WCA is "=", combinational; only IHIT/NUBI/NUBD are ":=" - which is
+    //! exactly the mistake that had been made in PAL_44511A). CON is tied
+    //! high in ND120_CORE.v, so it is not the blocker either. That leaves one
+    //! of WCINH_n, BRK_n, CYD, FMISS or LSHADOW, and reading the source
+    //! cannot choose between them - it has to be measured while it runs.
+    //!
+    //! FMISS is the standing suspect: it comes off flip-flop A160 in
+    //! DECODE_DGA_COMM.v, whose D input runs back through A177 =
+    //! NAND(LCS_n, MREQ, FMISS) - a self-hold. Once FMISS sets it stays set
+    //! while MREQ is asserted, and the PAL's own history note says "WCA
+    //! SHOULD NOT APPEAR WHEN FMISS (TSET FAILS)". SUSPECT, NOT VERIFIED.
+    //!
+    //! Bit layout, low to high:
+    //!   [0] LSHADOW  [1] FMISS  [2] CYD  [3] BRK_n  [4] WCINH_n  [5] WCA_n
+    //!   [6] WCLIM_n - inhibit-RAM write strobe (added after the first capture)
+    //!   [7] PPN25 - the DATA being written into the inhibit RAM (second capture)
+    output [7:0] DBG_CACHE,
     output LED1,                 //! UNKNOWN: believed to indicate cache enabled, never traced. See Verilog/docs/SIGNALS.md
     //! DEBUG: page-table WRITE stream (23-AUG-2026, zero-read campaign).
     //! On every PT-chip write strobe (EPT_n low & WMAP_n low) two words are
@@ -193,6 +228,32 @@ module CPU_MMU_24 (
   assign s_cwr = CWR;
   assign s_wchim_n = WCHIM_n;
   assign s_cyd = CYD;
+  //! See the DBG_CACHE port comment for what this bus is and why it exists.
+  //! Bit 6 is WCLIM_n, added 29-AUG-2026 after the first capture. That one
+  //! measured WCINH_n LOW - the page marked cache-inhibited - in 914 of 1024
+  //! samples, while FMISS and LSHADOW were 0 throughout and WCA_n did fire
+  //! whenever WCINH_n happened to be high. So the inhibit BIT is the question
+  //! now, and the first half of it is whether the inhibit RAM is ever written
+  //! at all: IMS1403_25 has no reset (the commented-out loop there says Vivado
+  //! would not take one), so an untouched cell reads whatever the block RAM
+  //! powers up as - which would produce "inhibited nearly everywhere" with the
+  //! CPU never involved. WCLIM_n is that RAM's write strobe, so triggering on
+  //! it going low says directly whether anything ever writes the bit.
+  //! Bit 7 is the DATA the inhibit RAM is being written with - PPN bit 25 on
+  //! the bus that addresses CHIP_20G. Added 29-AUG-2026 after the WCLIM_n
+  //! capture, which proved the RAM IS written (69 write strobes in one
+  //! 1024-sample window), killing the "it is just uninitialised block RAM"
+  //! theory. So the bit is written and it still reads INHIBITED almost
+  //! everywhere, and the question becomes what value is going in.
+  //!
+  //! It cannot be read off WCINH_n. IMS1403_25.v:34 is
+  //!     assign Q = (!CE_n && W_n) ? data_out : 1'b0;
+  //! so the RAM's output is FORCED LOW for the whole of a write. Every one of
+  //! those 69 samples showed WCINH_n = 0 for that reason alone, and reading
+  //! "inhibited" from them would be reading the model's own artefact.
+  //! Sampling the data input is the only way to see what is stored.
+  assign DBG_CACHE = {s_pt_ppn_25_10_in[15], s_wclim_n, s_wca_n, s_wcinh_n,
+                      s_brk_n, s_cyd, s_fmiss, s_lshadow};
   assign s_pd2 = PD2;
   assign s_sw1_console = SW1_CONSOLE;
   assign s_eorf_n = EORF_n;

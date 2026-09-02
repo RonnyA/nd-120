@@ -84,6 +84,7 @@ module IO_37(
    output       IORQ_n,
    output       MCL,
    output       MREQ_n,
+   output [15:0] PANEL_ACTLV,   //! the panel processor's ACTIVE LEVEL word (IO_PANCAL_40)
    output       OSC,
    output       PAN_n,
    output       PA_n,
@@ -101,7 +102,15 @@ module IO_37(
    output       TXD,
    output       WCHIM_n,
    output       WRITE,
-   output [1:0] IOLED // 0=RED,1=GREEN
+   output [1:0] IOLED, // 0=RED,1=GREEN
+
+   //! LHIT - "Load Hit", the cache hit the panel actually displays. It is
+   //! generated in the DGA (DECODE_DGA_COMM.v:60) and consumed here by
+   //! IO_PANCAL_40, where it lands on the MC68705's Port D bit 4
+   //! (IO_PANCAL_40.v:195) - the same port that carries LEV0 on bit 5.
+   //! Brought out so the on-screen panel can show the same signal the real
+   //! fascia did, rather than the raw comparator output from the cache.
+   output       DBG_LHIT
 );
 
 
@@ -170,6 +179,7 @@ module IO_37(
    wire        s_poni;
    wire        s_ssema_n;
    wire        s_lhit;
+   assign DBG_LHIT = s_lhit;
    wire        s_rwcs_n;
    wire        s_fetch;
    wire        s_tout;
@@ -361,7 +371,15 @@ module IO_37(
    // output; that manufactured PRQ->PAN edges the real chip never generates
    // (incl. at cold start), which the CGA_INTR/CGA_TRAP INTRQN lag then
    // mis-dispatched as a phantom macro interrupt -> PIL=10. It is now OPT-IN.
-`ifdef ND120_CONKICK_CONSOLE_SPEEDUP
+// ND120_FORCE_FPGA_STAT3 (01-SEP-2026): take the FPGA branch even in a
+// simulator build. Without it a sim run is NOT a like-for-like reference
+// for anything touching the panel or interrupts: the sim adds a STAT3 pulse
+// from console traffic that NO FPGA board has, and this file's own comment
+// says that pulse "only turns fatal with real FPGA timing". Needed to tell a
+// genuine MiSTer fault from a sim-vs-FPGA difference every board shares.
+`ifdef ND120_FORCE_FPGA_STAT3
+   assign s_stat_4_3_dga[0] = s_stat_4_3[0];
+`elsif ND120_CONKICK_CONSOLE_SPEEDUP
    assign s_stat_4_3_dga[0] = s_stat_4_3[0] | s_conkick;
 `elsif VERILATOR_SIM
    // Pure-sim builds (runSim / sim, VERILATOR_SIM): keep the console-output
@@ -404,6 +422,8 @@ module IO_37(
    IO_PANCAL_40   PANCAL
    (
       .sysclk(sysclk),
+      .CLK(s_clk),       // DGA FIFO clock, for the 68705 clock emulation
+      .CLK_EN(CLK_EN),   // (ND120_PANEL_CLOCK builds; unused otherwise)
       .CLEAR_n(s_clear_n),
       .DP_5_1_n(s_dp_5_1_n[4:0]),
       .EMP_n(s_emp_n),
@@ -419,7 +439,8 @@ module IO_37(
       .PONI(s_poni),
       .RMM_n(s_rmm_n),
       .STAT_4_3(s_stat_4_3[1:0]),
-      .VAL(s_val)
+      .VAL(s_val),
+      .PANEL_ACTLV(PANEL_ACTLV)
    );
 
    IO_UART_42   UART

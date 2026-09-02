@@ -103,6 +103,19 @@ module ND120_CORE #(
     input wire sys_rst_n,  //! Active-low reset, from the board's power-on reset
 
     /***************************************************
+     *  (b) CONSOLE SWITCHES                           *
+     ***************************************************/
+    //! The ND-100 console's SW1, the cache on/off switch (sheet 25 CON):
+    //! 1 = cache on, 0 = every access goes to main memory and the CSR
+    //! reports the cache disabled. Until 29-AUG-2026 this was tied high
+    //! inside the core; now the board decides. Nexys 4 DDR: slide switch
+    //! sw[4]. Tang / Verilator: tied high (the Tang builds with
+    //! ND120_NO_CACHE anyway, which overrides this to off).
+    //! Already synchronised by the board top; treat it as slow-changing
+    //! but not glitch-free - the real switch was a toggle on the console.
+    input wire CACHE_SW,
+
+    /***************************************************
      *  (e) ND-100 C-PLUG BUS                          *
      *  Always present on the core; the board either   *
      *  drives it (sim harness) or ties it off (FPGA). *
@@ -236,6 +249,8 @@ module ND120_CORE #(
     output wire        DEBUG_MCLK,       //! Microcycle clock
     output wire        DEBUG_LCS_n,      //! 0 = loading microcode, 1 = loaded
     output wire        DEBUG_FETCH,
+    output wire        DEBUG_MAP_n,   //! one falling edge per macro instruction (see ND3202D)
+    output wire        DEBUG_CFETCH,  //! one rise per macro instruction (CGA CFETCH) - the MIPS event
     output wire        DEBUG_MR_n,       //! Master Reset
     output wire        DEBUG_CLEAR_n,
     output wire        DEBUG_REFRQ_n,    //! Refresh Request
@@ -244,7 +259,24 @@ module ND120_CORE #(
     output wire [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
     output wire [15:0] DEBUG_IREQ_15_0_N, //! DEBUG: raw interrupt-request vector (active low)
     output wire [15:0] XMIC_DBG_15_0,    //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
-    output wire DBG_PTW_LVL              //! live PT write-strobe level (~EPT_n & ~WMAP_n, 27-AUG overlap probe) - unconditional: every backend has PT chips
+    //! DEBUG: register-file B port as {LBA_3_0, B_15_0}. At microcode address
+    //! 002156 (STERR) the microcode does "B,R2 ALUF,PASSB", so this carries the
+    //! self-test error number that STERR exists to display.
+    output wire [19:0] XWRFB_DBG_19_0,
+    //! DEBUG: cycle-controller terminate-plane inputs, see CYC_36.v.
+    //!   [0] SHORT_n [1] SLOW_n [2] HIT [3] BRK_n [4] DLY0_n [5] DLY1_n [7:6] CSDELAY
+    output wire [11:0] XCYC_DBG_7_0,
+    output wire DBG_PTW_LVL,             //! live PT write-strobe level (~EPT_n & ~WMAP_n, 27-AUG overlap probe) - unconditional: every backend has PT chips
+
+    //! Operator-panel status in MC68705 Port-D order - see the port comment in
+    //! ND3202D.v. Unconditional for the same reason DBG_PTW_LVL is: a debug
+    //! signal that anything outside a conditional touches must be declared
+    //! outside every conditional, or it vanishes on some builds and not others.
+    output wire [7:0] DBG_PANEL,
+    output wire [15:0] PANEL_ACTLV,  //! ACTIVE LEVEL word from the panel processor
+    //! DEBUG: cache-write gating bus, straight through from ND3202D. Bit
+    //! layout and the reason are in CPU_MMU_24.v's DBG_CACHE port comment.
+    output wire [7:0] DBG_CACHE
 
 `ifdef MAIN_RAM_SDRAM
     /***************************************************
@@ -428,6 +460,17 @@ module ND120_CORE #(
   // 06-AUG-2026 in CPU-BOARD-3202/circuit/BIF_DPATH_9.v (one OR-term restores
   // the pin node); verified clean on silicon and in simulation.
 
+
+`ifndef MAIN_RAM_SDRAM
+  // DBG_WDSTAGE is an output port only in the MAIN_RAM_SDRAM section of the
+  // port list, but the Winchester generate below drives it unconditionally.
+  // Without this fallback the non-SDRAM builds (Verilator, DDR2) create an
+  // IMPLICIT 1-bit net - which Verilator -Wall treats as a hard error
+  // (found 30-AUG-2026 when runSim stopped verilating). Same rule as the
+  // DBG_CACHE port comment: a debug wire touched outside a conditional must
+  // exist in every build.
+  wire [1:0] DBG_WDSTAGE;
+`endif
 
   // Bus-slave contributions onto the CPU's bus inputs (active low)
   wire [23:0] s_dev_bd_n;
@@ -1175,7 +1218,7 @@ module ND120_CORE #(
       .DP_5_1_n   (s_dp_5_1_n),   // Data Path 5-1 A-> 1=C25, 2=C26, 3=C27, 4=C28, 5=C29
 
       /* Configuration switches (input to ND3202D board) */
-      .SW1_CONSOLE     (s_high),             // Console switch
+      .SW1_CONSOLE     (CACHE_SW),           // Console SW1 = cache on/off, from the board top
       .SEL_TESTMUX     (s_SEL_TESTMUX),      // Test MUX (select signals to test pads)
       .BAUD_RATE_SWITCH(s_baud_rate_switch), // Baud rate switch
 
@@ -1189,6 +1232,8 @@ module ND120_CORE #(
       .DEBUG_MCLK(DEBUG_MCLK),       // Microcycle clock
       .DEBUG_LCS_n(DEBUG_LCS_n),     // LCS_n: 0=loading, 1=loaded
       .DEBUG_FETCH(DEBUG_FETCH),
+      .DEBUG_MAP_n(DEBUG_MAP_n),
+      .DEBUG_CFETCH(DEBUG_CFETCH),
       .DEBUG_MR_n(DEBUG_MR_n),
       .DEBUG_CLEAR_n(DEBUG_CLEAR_n),
       .DEBUG_REFRQ_n(DEBUG_REFRQ_n),
@@ -1197,7 +1242,12 @@ module ND120_CORE #(
       .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
       .DEBUG_IREQ_15_0_N(DEBUG_IREQ_15_0_N),
       .XMIC_DBG_15_0(XMIC_DBG_15_0),
-      .DBG_PTW_LVL(DBG_PTW_LVL)
+      .XWRFB_DBG_19_0(XWRFB_DBG_19_0),
+      .XCYC_DBG_7_0(XCYC_DBG_7_0),
+      .DBG_PTW_LVL(DBG_PTW_LVL),
+      .DBG_PANEL  (DBG_PANEL),
+      .PANEL_ACTLV(PANEL_ACTLV),
+      .DBG_CACHE  (DBG_CACHE)
 
 `ifdef MAIN_RAM_SDRAM
       // SDRAM main memory (threaded down to MEM_43 -> MEM_RAM_49_SDRAM)

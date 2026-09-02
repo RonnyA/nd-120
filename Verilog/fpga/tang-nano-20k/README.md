@@ -26,7 +26,7 @@ After `make usb` you have:
 | Device | Use |
 |--------|-----|
 | `/dev/ttyUSB0` | JTAG side (openFPGALoader) |
-| `/dev/ttyUSB1` | OPCOM console, **9600 8N1** |
+| `/dev/ttyUSB1` | OPCOM console, **115200 7E2** |
 
 **Reflashing reboots the design - no power cycle needed.** Measured
 09-AUG-2026: `make flash-gowin` restarts the ND-120 and the console comes back
@@ -53,7 +53,9 @@ OPCOM is picky and the rules are not guessable:
 - **~0.30 s between characters.** At 0.12 s characters are dropped silently in
   the middle of a number and OPCOM answers `?` - which looks like a machine
   fault and is not one.
-- 9600 8N1 on `/dev/ttyUSB1`.
+- **115200 7E2** on `/dev/ttyUSB1`. Since 26-AUG-2026 `UART_BAUD_RATE` is
+  115200 for EVERY variant (`src/tang20k_defines.v:554`, unconditional) -
+  scripts written before that opened 9600 and must be updated.
 
 Use the committed driver rather than writing another one:
 
@@ -156,8 +158,8 @@ The complete ND-120 CPU now has a Tang top-level and Gowin project here:
 
 | File | Purpose |
 |------|---------|
-| `src/ND120_TANG20K_TOP.v` | Board top: instantiates `ND3202D`, ties off the external bus, S1 = Master Clear, OPCOM UART 9600 on the BL616 (pins 69/70), 6 LEDs: block-read/write activity, tape byte served, SD status pair, heartbeat (see the LED table below) |
-| `src/tang20k_defines.v` | **Must stay FIRST in the project** - defines `GOWIN`, `TARGET_TANG20K`, `FPGA_FF_MODE`, `SKIP_WCS_LOAD`, `MAIN_RAM_SDRAM`, `BOARD_CLK_FREQ=27_000_000`, `UART_BAUD_RATE=9600` |
+| `src/ND120_TANG20K_TOP.v` | Board top: instantiates `ND3202D`, ties off the external bus, S1 = Master Clear, OPCOM UART 115200 on the BL616 (pins 69/70), 6 LEDs: block-read/write activity, tape byte served, SD status pair, heartbeat (see the LED table below) |
+| `src/tang20k_defines.v` | **Must stay FIRST in the project** - defines `GOWIN`, `TARGET_TANG20K`, `FPGA_FF_MODE`, `SKIP_WCS_LOAD`, `MAIN_RAM_SDRAM`, `BOARD_CLK_FREQ` (per clock variant), `UART_BAUD_RATE=115200` |
 | `src/gowin_rpll_27_54.v` | One rPLL: 54 MHz (SDRAM ctrl) + 54 MHz shifted (SDRAM chip) + 27 MHz (CPU/bus/OSC) |
 | `src/nd120_tang20k.cst` / `.sdc` | Pins (verified 20K pinout) + 27 MHz input clock |
 | `nd120_tang20k.gprj` | Gowin GUI project - 247 files, generated from the Verilator dependency list (single source of truth for the tcl too) |
@@ -185,7 +187,7 @@ clock-enable refactor closes 27 MHz separately. It switches the rPLL and
 `BOARD_CLK_FREQ` together, and the SDRAM bridge derives its refresh counts
 from `BOARD_CLK_FREQ` automatically. Comment the define out for 27/54 MHz.
 
-First light checklist: heartbeat LED blinking -> OPCOM console at **9600 8N1**
+First light checklist: heartbeat LED blinking -> OPCOM console at **115200 7E2**
 on the board's USB serial -> compare boot behaviour against
 [`../../docs/boot-golden-spec.md`](../../docs/boot-golden-spec.md).
 
@@ -200,12 +202,93 @@ slow/mid/full share one 864 MHz VCO, `fast20` uses 648 MHz.
 | `crawl` | 3.375 MHz | 6.75 MHz | - | - |
 | `slow` (default) | 6.75 MHz | 13.5 MHz | **0** | 17.68 MHz |
 | `mid` | 13.5 MHz | 27 MHz | **0** | 19.03 MHz |
-| `fast20` (26-AUG-2026) | **20.25 MHz** | 40.5 MHz | **0** | **20.556 MHz** |
+| `fast20` (26-AUG-2026) | **20.25 MHz** | 40.5 MHz | **0** | **22.932 MHz** (31-AUG; was 20.556) |
 | `full` | 27 MHz | 54 MHz | **1667** | 19.55 MHz |
 
-`fast20` is the fastest TIMING-CLEAN variant (TNS 0; margin over Fmax is
-only 1.5%, so every rebuild must re-check its own `.tr`). It also switches
-the console to **115200 baud** (7E2) - slow/mid/full stay at 9600 so their
+The `slow`/`mid`/`full` Fmax figures above predate the 31-AUG `.sdc` work
+and are therefore PESSIMISTIC by an unmeasured amount - they were taken
+while the storage crossings were still being analysed as synchronous. Only
+the `fast20` row has been re-measured.
+
+**31-AUG-2026: `fast20` margin went from 1.5% to 13.2%.** The CPU-domain
+Fmax was never a statement about the CPU. `nd120_tang20k.sdc` was a single
+`create_clock` line, so the data buses between `nd_storage`'s card side
+(`clk_stor`, the 27 MHz `sys_clk` domain) and its client side (`clk_cpu`,
+the PLL's `CLKOUTD`) were analysed as same-edge synchronous paths with a
+required time of 0.000 ns. That produced **24 of the 25 worst setup paths
+in the build**. Two `set_false_path` lines, measured with the `.sdc` as the
+only variable and the source tree hashed identical either side:
+
+| | CPU-domain TNS | failing endpoints |
+|---|---|---|
+| without the two lines | -260.076 ns | 398 |
+| with them | -6.489 ns | 24 |
+
+Together with `aa210eb` taking the MIPS tap off `ALUCLK_EN` (neither fix
+alone got there), `fast20` now closes at **TNS 0.000 on all five clocks,
+setup AND hold**, CPU Fmax **22.932 MHz** against the 20.250 MHz
+constraint. Flashed and confirmed running on the board.
+
+Three things learned doing it, all worth knowing before touching the
+`.sdc` again:
+
+- **A WIDER exception set measured WORSE.** Also excepting the synchroniser
+  first flops (`*/s_meta*` - `SD-FAT/circuit/nds_sync.v` calls it
+  `// first flop (metastability guard)`) and the `s_led_*_stretch` LED
+  counter describes the hardware just as correctly, but on an identical
+  tree gave **-35.352 ns over 90 endpoints** vs -6.489/24. Excluding a path
+  also removes the placer's reason to close it. Pick the exception set on
+  measurement, not on how thorough it looks.
+- **Gowin silently ignores a constraint that matches nothing** - check
+  section 3.8 `Timing Constraints Report` in the `.tr` for `Actived`. Worse,
+  a constraint naming a register that did not survive synthesis is a hard
+  `ERROR (TA2003)` that aborts the build and leaves the PREVIOUS `.tr` on
+  disk, where it reads as a perfectly plausible result. Compare the `.tr`
+  `<Created Time>` against the `.sdc` mtime.
+- **Do not reach for `set_clock_groups -asynchronous`** between the two
+  domains. It clears every violation in one line and excuses every crossing
+  nobody has read, including the one somebody adds next month.
+
+### Only simple ratios of the 27 MHz crystal can be signed off (01-SEP-2026)
+
+Measured while looking for a clock above `fast20`. Four ratios, one build
+each, RTL and constraints identical - only the PLL dividers changed:
+
+| CPU clock | ratio to crystal | TNS reported | negative paths in the report |
+|---|---|---|---|
+| 20.25 MHz | **3/4** | **0.000 / 0** | 0 - agrees |
+| 27 MHz | **1/1** | -8.572 / 35 | 35, worst -0.839 - agrees |
+| 22.5 MHz | 5/6 | -1332 / 1129 | **0** - contradicts |
+| 24.75 MHz | 11/12 | -26678 / 2774 | 27, worst -2.806 - contradicts |
+
+At the two SIMPLE ratios the summary TNS and the path tables agree exactly.
+At the two awkward ones they contradict each other by two orders of
+magnitude - 22.5 MHz claims 1129 failing endpoints while its path table
+holds NONE - and the size of the discrepancy tracks the ratio's complexity
+(6 edge pairs -> -1332, 12 -> -26678). That is consistent with the tool
+enumerating launch/capture edge pairs across the common period while
+report_timing collapses to one representative per endpoint, but the
+mechanism is INFERRED. What is measured is the correlation.
+
+Constraining every sys_clk <-> CLKOUTD crossing did NOT clear it (24.75 MHz
+went from -21909/2629 to -26678/2774 with eight more exceptions applied), so
+it is not the storage crossings.
+
+**Consequence: do not ship an intermediate clock.** Not because the silicon
+cannot run it - at 24.75 MHz the worst SAME-domain path was only -0.271 ns -
+but because the report cannot be trusted to say so, and a bitstream signed
+off on a number you cannot trust is the thing this whole exercise was
+correcting. The usable rungs are 6.75, 13.5, 20.25 and 27 MHz.
+
+27 MHz remains 0.839 ns short on 13 endpoints, all WCS -> WCS by the
+microcode-JUMP and TVEC routes. Those are real; see commit 9dc8507 for why
+they must not be constrained away.
+
+`fast20` also switches
+the console to **115200 baud** (7E2). NOTE: since 27-AUG-2026 EVERY variant
+runs 115200 - the sentence that slow/mid/full stay at 9600 was true only
+briefly and is no longer; `UART_BAUD_RATE` is unconditional in
+`src/tang20k_defines.v:554`. Originally this kept their
 tooling is untouched. The physical baud is the `UART_BAUD_RATE` build
 constant alone; the microcode's BAUDV thumbwheel value (8 = 9600) is stored
 by the SC2661 emulation but never used for bit timing, proven on the Nexys

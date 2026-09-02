@@ -14,14 +14,65 @@ ifeq ($(USE_LATCHES),0)
   SIM_DEFINES += -DFPGA_FF_MODE
 endif
 
+# CACHE: Set to 1 (default) to build the CPU cache (today's behavior).
+#        Set to 0 to compile it out (-DND120_NO_CACHE, CPU_MMU_CACHE_25.v):
+#        omits the five cache memories + used-bit PAL, forces hit=0, and the
+#        machine reports the cache as disabled - matches the Tang FPGA build.
+CACHE ?= 1
+ifeq ($(CACHE),0)
+  SIM_DEFINES += -DND120_NO_CACHE
+endif
+
 # SKIP_WCS: pre-load the WCS and skip the microcode load phase (docs/skip-wcs-load.md).
 # Requires the 32 wcs_*.hex files in this dir (Code/Microcode/gen_wcs_image.py).
 # CPP_DEFINES also forwards the flag to the C++ testbench so it can trace from
 # tick 0 (no load phase to skip).
+# PANEL_CLOCK=1: emulate the MC68705/MM58274 clock path (IO_PANCAL_40.v ->
+# PANCAL_68705_CLOCK.v) so TRR PANC / TRA PANS can set and read the hardware
+# clock. Off by default so the golden traces/console are unchanged.
+PANEL_CLOCK ?= 0
+ifeq ($(PANEL_CLOCK),1)
+  SIM_DEFINES += -DND120_PANEL_CLOCK
+endif
+
 CPP_DEFINES =
 ifeq ($(SKIP_WCS),1)
   SIM_DEFINES += -DSKIP_WCS_LOAD
   CPP_DEFINES += -DSKIP_WCS_LOAD
+endif
+
+# BLOCKRAM: run the FPGA boards' own main-memory backend
+# (MEM_RAM_49_BLOCKRAM) instead of the 6 MB behavioural sim RAM, so a board
+# that will not boot can be REPRODUCED here rather than guessed at. Words per
+# bank = 2**BLOCKRAM_BITS; the MiSTer build ships 15, Nexys's bramram
+# variant used 16, and the RTL default of 12 is the Basys3 minimum.
+#
+#   make run SKIP_WCS=1 USE_LATCHES=0 BLOCKRAM=1
+#   make run SKIP_WCS=1 USE_LATCHES=0 BLOCKRAM=1 BLOCKRAM_BITS=16
+#
+# Added 31-AUG-2026 - the MiSTer board would not reach an OPCOM prompt while
+# this same sim did, and the memory backend was the biggest untested
+# difference between them.
+# UART_FRAMES: clocks per UART bit, handed to BOTH the RTL and the C++
+# harness so the two agree. Unset = the RTL's fast sim UART (16 clocks/bit,
+# hardcoded under VERILATOR_SIM) and the harness's matching default.
+#
+# Set it to the real board figure - 20 MHz / 115200 = 173 - to exercise
+# ACTUAL console timing. Nothing else can: with the fast UART the sim reaches
+# an OPCOM prompt while a board at real baud may not, and if only one half is
+# changed the harness decodes the other's bit rate as garbage, which looks
+# like a CPU fault (both traps hit on 31-AUG-2026).
+#
+#   make run SKIP_WCS=1 USE_LATCHES=0 BLOCKRAM=1 UART_FRAMES=173
+ifneq ($(UART_FRAMES),)
+  SIM_DEFINES += -DND120_UART_DELAY_FRAMES=$(UART_FRAMES)
+  CPP_DEFINES += -DND120_UART_DELAY_FRAMES=$(UART_FRAMES)
+endif
+
+BLOCKRAM_BITS ?= 15
+ifeq ($(BLOCKRAM),1)
+  SIM_DEFINES += -DMAIN_RAM_BLOCKRAM -DND120_BLOCKRAM_ADDR_BITS=$(BLOCKRAM_BITS)
+  CPP_DEFINES += -DND120_SIM_BLOCKRAM
 endif
 
 VERILATOR_FLAGS = --trace-fst -Wall --cc ../ND120_TOP.v  $(SUPPRESS_FLAGS) $(SIM_DEFINES)
@@ -111,6 +162,9 @@ PROBE_DEFINES = -DVERILATOR_SIM
 ifneq ($(USE_LATCHES),1)
   # Probe defaults to FF mode unless the caller explicitly sets USE_LATCHES=1.
   PROBE_DEFINES += -DFPGA_FF_MODE
+endif
+ifeq ($(PANEL_CLOCK),1)
+  PROBE_DEFINES += -DND120_PANEL_CLOCK
 endif
 
 probe: nd120_probe.cpp

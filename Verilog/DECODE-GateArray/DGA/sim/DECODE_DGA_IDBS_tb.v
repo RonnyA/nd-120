@@ -23,8 +23,14 @@
 **   ECSRN<=o24  EIORN<=o16  EPESN<=o13  EPEAN<=o12  RUARTN<=o37        **
 **   RINRN<=o35  EPANN<=o27  TRAALDN<=o26  MAPANS(int)<=o21             **
 **   EDON <= {0,1,2,3,4,6,10,11,14,15,22,23,25,31,36} (octal)           **
-**   EPANSN = COMB ~((CSIDBS==o20|o21)&LCSN)  (the documented WCS-      **
-**            latency bypass; A259.Q0 is left unconnected)              **
+**   EPANSN = COMB ~(CSIDBS==o20 & LCSN & RWCSN) & ~MAPANS(A275, CLK0)  **
+**            (28-AUG split: comb for the 20 ms MIPANS check, registered **
+**             for the macro TRA PANS read. 30-AUG: the comb window is   **
+**             SHUT while RWCSN is low - during an RWCS microinstruction **
+**             the control store carries DATA words, and decoding them   **
+**             put the panel status word on the IDB: CACHE-1X0-A00       **
+**             test 1, layer F below. RWCSN is the DGA's own COMM-sheet  **
+**             RWCS decode, not a gate-array pin.)                       **
 **   Panel FSM (all products gated by LCSN):                            **
 **     VAL'    = RIWR_n & STAT4                                         **
 **     RIWR'   = STAT4 & ((VAL & MAPANS) | RIWR)                        **
@@ -36,7 +42,7 @@
 **      active-low enable output reads 0 (asserted) and the Q-bar-       **
 **      sourced signals read 1: VAL=1, RIWR=1, DSTAT3=1, PRQ=1,          **
 **      MAPANS(internal)=1, only EDON=1 deasserted. Checked at t=0.      **
-**  P2. EPANSN is combinational (A259.Q0 bypass, see DUT comment); the   **
+**  P2. EPANSN = comb o20 term AND ~MAPANS (A275.Q3B) (see DUT comment); **
 **      other 9 enables are registered - one clock later.                **
 **                                                                       **
 ** STALE-COMMENT findings (gates are internally consistent, comments     **
@@ -58,6 +64,15 @@
 **     registered split (P2).                                            **
 **  D. (default build only) Clock-group routing: CLK1-only and           **
 **     CLK0-only pulses prove which register sits on which clock pin.    **
+**  F. THE CONTROL-STORE DATA WINDOW (regression for CACHE-1X0-A00       **
+**     test 1, 30-AUG-2026). With RWCSN low (an RWCS microinstruction:   **
+**     the store outputs the word being read/written, not a micro-       **
+**     instruction), every code is walked through CSIDBS with NO clock   **
+**     and ALL TEN enables must hold - o20 included, which with RWCSN    **
+**     high asserts EPANSN combinationally (checked there too). Without  **
+**     the gate, 017000B (bits 41:37 = o20) enabled the panel status     **
+**     driver during its own read-back: found XOR expected on the Nexys  **
+**     was the panel word (163400, 020400 ...), in Verilator 100000.     **
 **  E. 4000-step fixed-seed xorshift32 soak (seed 32'h1DB5C0DE),         **
 **     steered panel codes + stat lines, full 12-output check per step.  **
 **                                                                       **
@@ -68,9 +83,9 @@
 module DECODE_DGA_IDBS_tb;
 
 `ifdef FPGA_FF_MODE
-  localparam EXPECTED_CHECKS = 49137;  // A:12 B:832 C:293 E:48000
+  localparam EXPECTED_CHECKS = 49495;  // A:12 B:832 C:293 E:48000 F:358
 `else
-  localparam EXPECTED_CHECKS = 49281;  // + D:144 (12 single-clock checksets)
+  localparam EXPECTED_CHECKS = 49639;  // + D:144 (12 single-clock checksets) F:358
 `endif
 
   reg        sysclk;
@@ -79,6 +94,7 @@ module DECODE_DGA_IDBS_tb;
   reg        CLK1;
   reg  [4:0] CSIDBS;
   reg        LCSN;
+  reg        RWCSN;
   reg        STAT3;
   reg        STAT4;
 
@@ -92,6 +108,7 @@ module DECODE_DGA_IDBS_tb;
       .CLK1(CLK1),
       .CSIDBS_4_0(CSIDBS),
       .LCSN(LCSN),
+      .RWCSN(RWCSN),
       .STAT3(STAT3),
       .STAT4(STAT4),
       .ECSRN(ECSRN),
@@ -124,6 +141,15 @@ module DECODE_DGA_IDBS_tb;
 
   function dec2021(input [4:0] c, input lcs);
     dec2021 = lcs & ((c == 5'o20) | (c == 5'o21));
+  endfunction
+  function dec20(input [4:0] c, input lcs);
+    dec20 = lcs & (c == 5'o20);
+  endfunction
+  // EPANSN as the pins show it (28-AUG-2026): comb o20 term (MIPANS, the
+  // 20 ms COND,F15 check) AND the A275 CLK0-registered o21 term (MAPANS,
+  // the macro TRA PANS read) - see the DUT comment.
+  function epansn_exp(input [4:0] c, input lcs, input rwcs_n_hi, input mapans_n);
+    epansn_exp = ~(dec20(c, lcs) & rwcs_n_hi) & mapans_n;
   endfunction
 
   function edo_hit(input [4:0] c, input lcs);
@@ -247,7 +273,7 @@ module DECODE_DGA_IDBS_tb;
       check1(tag, "EDON", EDON, ~m_edo);
       check1(tag, "EIORN", EIORN, m_eior_n);
       check1(tag, "EPANN", EPANN, m_epan_n);
-      check1(tag, "EPANSN", EPANSN, ~dec2021(CSIDBS, LCSN));
+      check1(tag, "EPANSN", EPANSN, epansn_exp(CSIDBS, LCSN, RWCSN, m_mapans_n));
       check1(tag, "EPEAN", EPEAN, m_epea_n);
       check1(tag, "EPESN", EPESN, m_epes_n);
       check1(tag, "RINRN", RINRN, m_rinr_n);
@@ -303,6 +329,7 @@ module DECODE_DGA_IDBS_tb;
     CLK1   = 0;
     CSIDBS = 5'o17;  // decodes nothing
     LCSN   = 1;
+    RWCSN  = 1;
     STAT3  = 0;
     STAT4  = 0;
     checks = 0;
@@ -322,7 +349,7 @@ module DECODE_DGA_IDBS_tb;
     // stat lines held 0 so the panel FSM decays deterministically.
     for (i = 0; i < 64; i = i + 1) begin
       apply(i[4:0], ~i[5], 1'b0, 1'b0);
-      check1("B_comb", "EPANSN", EPANSN, ~dec2021(CSIDBS, LCSN));
+      check1("B_comb", "EPANSN", EPANSN, epansn_exp(CSIDBS, LCSN, RWCSN, m_mapans_n));
       tick_both;
       check_all("B_sweep");
     end
@@ -441,6 +468,34 @@ module DECODE_DGA_IDBS_tb;
       tick_both;
       check_all("E_soak");
     end
+
+    // ---- Layer F: the control-store data window (RWCSN low) ----
+    step("F_settle", 5'o17, 1, 0, 0);
+    step("F_settle2", 5'o17, 1, 0, 0);
+    RWCSN = 1'b0;   // an RWCS microinstruction is executing: CSIDBS now
+                    // carries bits 41:37 of DATA words, with no clock edge
+    for (i = 0; i < 32; i = i + 1) begin
+      apply(i[4:0], 1'b1, 1'b0, 1'b0);
+      check1("F_dataword", "EPANSN",  EPANSN,  1'b1);
+      check1("F_dataword", "RINRN",   RINRN,   1'b1);
+      check1("F_dataword", "RUARTN",  RUARTN,  1'b1);
+      check1("F_dataword", "TRAALDN", TRAALDN, 1'b1);
+      check1("F_dataword", "EPANN",   EPANN,   1'b1);
+      check1("F_dataword", "EIORN",   EIORN,   1'b1);
+      check1("F_dataword", "ECSRN",   ECSRN,   1'b1);
+      check1("F_dataword", "EPESN",   EPESN,   1'b1);
+      check1("F_dataword", "EPEAN",   EPEAN,   1'b1);
+      check1("F_dataword", "EDON",    EDON,    1'b1);
+    end
+    // the word that failed first on the board, 017000B (o20), held: nothing
+    apply(5'o20, 1'b1, 1'b0, 1'b0);
+    #40;
+    check1("F_017000", "EPANSN", EPANSN, 1'b1);
+    RWCSN = 1'b1;
+    // and the comb window itself is still alive outside RWCS
+    apply(5'o20, 1'b1, 1'b0, 1'b0);
+    check1("F_comb_alive", "EPANSN", EPANSN, 1'b0);
+    step("F_end", 5'o17, 1, 0, 0);
 
     // ---- Verdict ----
     if (errors == 0 && checks == EXPECTED_CHECKS) begin

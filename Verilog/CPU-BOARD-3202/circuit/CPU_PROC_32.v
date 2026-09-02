@@ -34,7 +34,7 @@ module CPU_PROC_32 (
     input        IBINT15_n,   //! Input Interrupt 15
     input        IOXERR_n,    //! IOX Error
     input        LCS_n,       //! LCS_n (LCS = Load Control Store)
-    input        MAP_n,       //! Memory Address Present signal
+    input        MAP_n,       //! MAP Opcode (active low) - last microinstruction of every macro instruction
     input        MCLK,        //! Clock
     input        MOR_n,       //! Memory Error
     input        MREQ_n,      //! Memory Request
@@ -94,6 +94,8 @@ module CPU_PROC_32 (
     // Debug
     output [15:0] DEBUG_FIDBO_15_0, //! FIDBO internal data bus
     output [15:0] XMIC_DBG_15_0,    //! DEBUG: microsequencer address-advance probe (Tang 06000-hang)
+    output [19:0] XWRFB_DBG_19_0,   //! DEBUG: register-file B port {LBA_3_0, B_15_0} - STERR error number
+    output        XCFETCH_DBG,      //! DEBUG: one rise per macro instruction (see CGA.v)
     output [20:0]        PF_CAPTURED       //! DEBUG: ND120_PF_CAPTURE freeze flag (23-AUG)
 );
 
@@ -455,6 +457,20 @@ module CPU_PROC_32 (
   // ("ERROR: no valid mapping") where Vivado/Gowin EDA treat it as advisory
   // and fall back. 2048x16 = 32 Kbit as distributed LUT RAM (~2K LUT4).
   // yosys pre-defines YOSYS; every other flow is untouched.
+// QUARTUS (MiSTer, Cyclone V): this array builds as written. An explicit
+// altsyncram (MLAB, UNREGISTERED) arm was added 31-AUG-2026 when Quartus
+// refused the plain array - but it refused only because the WCS was failing
+// at the same time and their COMBINED register-fallback demand overflowed
+// the device. With the WCS in real M10K (QUARTUS_RAM_INFER), this array
+// alone is ~32,768 FFs (about 16K ALMs against 41,910) and build v47
+// (01-SEP-2026) built and booted it exactly as the RTL below describes.
+// The megafunction arm was deleted the same day: this is the CPU REGISTER
+// FILE, read by every instruction, and its combinational read was only ever
+// verified against a hand-written altsyncram stub in simulation - never
+// against real Quartus MLAB silicon. Letting Quartus build what the RTL
+// says takes that unverified assumption out of the CPU's most critical
+// path, and it is the same reason the WCS and main-memory megafunction
+// arms went (see Shared/support/IDT6168A_20.v).
 `ifdef YOSYS
   (* ram_style = "distributed" *) reg [15:0] registerBlock[0:2047];
 `else
@@ -510,7 +526,7 @@ module CPU_PROC_32 (
       .IBINT15_n(s_ibint15_n),               // Input Bus Interrupt 15
       .IOXERR_n(s_ioxerr_n),                 // IOX Error signal
       .LCS_n(s_lcs_n),                       // Load Control Store signal
-      .MAP_n(s_map_n),                       // Memory Address Present signal
+      .MAP_n(s_map_n),                       // MAP Opcode (active low)
       .MCLK(s_mclk),                         // Microcycle clock
       .MOR_n(s_mor_n),                       // Memory Error signal
       .MR_n(s_mr_n),                         // Master Reset signal
@@ -549,6 +565,8 @@ module CPU_PROC_32 (
 
       .DEBUG_FIDBO_15_0(DEBUG_FIDBO_15_0),
       .XMIC_DBG_15_0(XMIC_DBG_15_0),
+      .XWRFB_DBG_19_0(XWRFB_DBG_19_0),
+      .XCFETCH_DBG(XCFETCH_DBG),
       .PF_CAPTURED(PF_CAPTURED)
   );
 

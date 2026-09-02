@@ -8,6 +8,27 @@
 *****************************************************************************/
 
 //
+// SET YOUR TERMINAL TO 8N1. NOT 7E1.
+//
+// This implementation is FIXED at 8 data bits, no parity, 1 stop bit. Only the baud rate is
+// configurable (BOARD_CLK_FREQ / UART_BAUD_RATE below, default 115200). The real chip's mode
+// registers - which is where character length and parity would be selected - are not
+// implemented; see the comment where they would have been.
+//
+// The state machines are the proof, not just that comment: TX_STATE_WRITE shifts out bits 0..7
+// and goes straight to TX_STATE_STOP_BIT, RX_STATE_READ shifts in bits 0..7 and goes straight to
+// RX_STATE_STOP_BIT. Neither has a parity state, and the word "parity" appears nowhere in this
+// file. No parity bit is generated, and none is checked.
+//
+// WHY THIS WARNING IS HERE, 30-AUG-2026: a PC was set to 7E1 against this UART because the
+// datasheet and HARDWARE.md both describe what the REAL chip could be programmed to do. The PC
+// then validated a parity bit that is never sent, and the characters it judged bad were replaced
+// with '?' scattered through the text - which read like the ND was sending them. An evening went
+// into finding that. The full account, with the measurements, is in HARDWARE.md under
+// "Serial Interface (UART)".
+//
+
+//
 // Documentation
 //
 // http://www.norsk-data.com/hardware/nd-100/nd-350104.html
@@ -161,7 +182,6 @@ module SC2661_UART (
 
   // Chip Registers
   reg  [ 7:0] regDataOut;
-  reg  [ 7:0] regReceiveHoldingRegister;
   reg  [ 7:0] regTransmitHoldingRegister;
   reg  [ 7:0] regStatusRegister;
   reg  [ 7:0] regModeRegister;
@@ -179,6 +199,36 @@ module SC2661_UART (
   reg  [ 2:0] rxState = 0;
   reg  [31:0] rxCounter = 0;
   reg  [ 2:0] rxBitNumber = 0;
+  //! Live shift-in register for the byte currently arriving. Separate from
+  //! the RX FIFO below on purpose - see the overrun fix note at the
+  //! receiver state machine below (31-AUG-2026).
+  reg  [ 7:0] regRxShift = 0;
+
+  //! 16-byte RX FIFO between the receiver and the CPU-visible read port
+  //! (added 31-AUG-2026, after the atomic-transfer fix above). The real
+  //! 2661 holds exactly one received byte - no queue - and until now this
+  //! model matched that. But a TDV2200 keyboard escape sequence can be up
+  //! to 6 bytes with NO inter-byte gap (see key_tdv2200.v), and at 115200
+  //! baud (~87us/byte) that arrives faster than SINTRAN's interrupt
+  //! handler always keeps up with a single holding register: measured on
+  //! real hardware 31-AUG-2026, Alt+H (meant to send ESC[46_) landed as
+  //! just "6_" - each earlier byte was overwritten by the next one before
+  //! the CPU's read reached it, exactly the single-register overrun this
+  //! FIFO exists to absorb. Software sees NO register-level difference -
+  //! address 0 is still one byte, SR1/RXRDY and SR4/Overrun mean the same
+  //! things - only WHEN Overrun actually fires changes: past 16 unread
+  //! bytes now, not past 1. Overrun policy: an arriving byte is dropped
+  //! (not the oldest queued one) when the FIFO is full, so a burst that
+  //! outruns the FIFO still preserves the earliest bytes, which is what a
+  //! catching-up interrupt handler needs most - the OPPOSITE of the old
+  //! single-register behavior (which always kept the newest byte). This is
+  //! a deliberate departure from real 2661 silicon, not an authenticity
+  //! bug - the user asked for it after this exact failure.
+  reg  [ 7:0] s_rx_fifo[0:15];
+  reg  [ 4:0] s_rx_wptr = 5'd0;
+  reg  [ 4:0] s_rx_rptr = 5'd0;
+  wire        s_rx_empty = (s_rx_wptr == s_rx_rptr);
+  wire        s_rx_full  = (s_rx_wptr[4] != s_rx_rptr[4]) && (s_rx_wptr[3:0] == s_rx_rptr[3:0]);
 
   wire        receiver_input;
 
@@ -287,7 +337,9 @@ module SC2661_UART (
     if (RESET | !sys_rst_n) begin
         //$display("Time: %0t | UART RESET!", $time);  //  debug
 
-        regReceiveHoldingRegister <= 8'b0;
+        regRxShift <= 8'b0;
+        s_rx_wptr <= 5'd0;
+        s_rx_rptr <= 5'd0;
         regTransmitHoldingRegister <= 8'b0;
         regStatusRegister <= 8'b00000101; // TX empty: THR(bit0)=1 AND TxEMT(bit2)=1 (idle)
         regModeRegister <= 8'b0;
@@ -356,15 +408,21 @@ module SC2661_UART (
             end else begin
               // read
               regDataOut <=
-                  (s_address == 2'b00) ? regReceiveHoldingRegister :
+                  (s_address == 2'b00) ? s_rx_fifo[s_rx_rptr[3:0]] :
                   (s_address == 2'b01) ? regStatusRegister         :
                   (s_address == 2'b10) ? regModeRegister           :
                   (s_address == 2'b11) ? regCommandRegister        : 8'b0;
 
               case (s_address)
                   2'b00: begin
-                    //regDataOut = regReceiveHoldingRegister;  // Read receive holding register  (data out)
-                    regStatusRegister[1] <= 0;  // 0=Receive Holding Register Empty
+                    // Pop the RX FIFO - see its declaration for why there is
+                    // one now. RXRDY (SR1) only drops when this was the
+                    // LAST queued byte, mirroring the real chip's "any byte
+                    // ready" meaning rather than "just read one".
+                    if (!s_rx_empty) begin
+                      s_rx_rptr <= s_rx_rptr + 5'd1;
+                      if (s_rx_wptr == s_rx_rptr + 5'd1) regStatusRegister[1] <= 0;
+                    end
                   end
                   2'b01: begin
                     //regDataOut = regStatusRegister;  // Read status register
@@ -398,17 +456,37 @@ module SC2661_UART (
           case (rxState)
             RX_STATE_IDLE: begin
               if (receiver_input == 0) begin
-                if (regStatusRegister[1] == 1) begin
-                  //regStatusRegister[1] <= 0;  // Clear status register bit RxRDY  -- SET OVERRUN?
-                  regStatusRegister[4] <= 1;  // Overrun: 0=Normal, 1=Overrun
-                end
-
+                // OVERRUN FIX (31-AUG-2026): this used to clear
+                // regReceiveHoldingRegister right here, at the START of the new
+                // byte - the SAME register the CPU reads directly. If the CPU
+                // had not yet read the PREVIOUS byte (RXRDY still 1), that byte
+                // was destroyed immediately, and any CPU read that landed while
+                // the new byte was still shifting in (RX_STATE_READ, below) saw
+                // a torn, partially-shifted value that matched neither the old
+                // nor the new byte - not a lost/skipped character but a wrong
+                // one. Measured 30-AUG-2026: sending "PED\r" over a real 115200
+                // serial link with no gap between characters landed as a single
+                // byte 0x28 '(' at the ND-120 - not P, E, D or CR, exactly the
+                // signature of a mid-shift snapshot.
+                //
+                // The fix shifts the new byte into regRxShift (below), which
+                // the CPU cannot see, and only pushes a COMPLETE byte into
+                // the RX FIFO once at RX_STATE_STOP_BIT -> DONE (the FIFO
+                // itself came later, 31-AUG-2026 - see its declaration).
+                // The old byte therefore stays intact and readable for the
+                // CPU right up until the instant it is genuinely overwritten -
+                // matching how the real chip's overrun behaviour is documented
+                // (previous byte lost, but never a torn value) - and that is
+                // also the moment overrun is now actually flagged; setting the
+                // flag here at start-of-frame was too early and, combined with
+                // the immediate clear above, is what let the corruption reach
+                // the CPU instead of just losing the earlier character cleanly.
                 rxState              <= RX_STATE_START_BIT;
                 //$display("-> RX START BIT");
 
-                regReceiveHoldingRegister <=0;
-                rxCounter            <= 1;
-                rxBitNumber          <= 0;
+                regRxShift  <= 0;
+                rxCounter   <= 1;
+                rxBitNumber <= 0;
               end
             end
             RX_STATE_START_BIT: begin
@@ -427,9 +505,10 @@ module SC2661_UART (
             end
             RX_STATE_READ: begin
               rxCounter <= 1;
-              regReceiveHoldingRegister <= {
-                receiver_input, regReceiveHoldingRegister[7:1]
-              };  // Shift right and insert s_rxt at MSB.
+              regRxShift <= {
+                receiver_input, regRxShift[7:1]
+              };  // Shift right and insert s_rxt at MSB. Live shift register,
+                  // not CPU-visible - see the overrun fix note in RX_STATE_IDLE.
               rxBitNumber <= rxBitNumber + 1;
               //$display("-> RX STATE READ bit %d",receiver_input);
 
@@ -447,20 +526,35 @@ module SC2661_UART (
                 rxState <= RX_STATE_DONE;
                 //$display("-> RX STATE DONE");
                 rxCounter <= 0;
-                regStatusRegister[1] <= 1;  // Set RXRDY
+
+                // Atomic transfer of a COMPLETE byte into the RX FIFO - the
+                // only place a byte is pushed. If the FIFO is already full
+                // (16 unread bytes backed up), THIS byte is lost, cleanly,
+                // and Overrun is flagged here - the true moment data is
+                // discarded. See the fix notes at RX_STATE_IDLE and the
+                // FIFO's declaration.
+                if (s_rx_full) begin
+                  regStatusRegister[4] <= 1;  // Overrun: 0=Normal, 1=Overrun
+                end else begin
+                  s_rx_fifo[s_rx_wptr[3:0]] <= regRxShift;
+                  s_rx_wptr <= s_rx_wptr + 5'd1;
+                  regStatusRegister[1] <= 1;  // Set RXRDY
+                end
               end
             end
             RX_STATE_DONE: begin
               rxState <= RX_STATE_IDLE;
-              //$display("-> RX STATE IDLE %h", regReceiveHoldingRegister);
+              //$display("-> RX STATE IDLE %h", regRxShift);
               //$display("-> RX READY_n FLAG %d",  s_rxrdy_n);
 
               // LOOPBACK?
               if (cmd_OperatingMode == cmd_OperatingMode_RemoteLoopback) begin
                 // Data assembled by the receiver are automatically placed in the
                 // transmit holding register and retransmitted by the transmitter on the TxD output.
+                // regRxShift still holds the byte just completed - the FIFO
+                // push above may have already advanced past it in the queue.
                 //$display("RX -> TX LOOPBACK");
-                regTransmitHoldingRegister <= regReceiveHoldingRegister; // Write rx holding register
+                regTransmitHoldingRegister <= regRxShift; // Write rx holding register
                 regDataInSendRegister <= 1;  // Send data to transmitter
               end
             end

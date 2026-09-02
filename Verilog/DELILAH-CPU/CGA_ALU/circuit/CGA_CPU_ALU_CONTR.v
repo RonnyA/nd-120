@@ -704,7 +704,17 @@ module CGA_CPU_ALU_CONTR (
       .QG (),
       .QGN(),
       .QH (),
-      .QHN()
+      .QHN(),
+      // registered-value taps: deliberately unconnected here -
+      // the transparent output is the wanted one (see L8/L4 header).
+      .QA_R(),
+      .QB_R(),
+      .QC_R(),
+      .QD_R(),
+      .QE_R(),
+      .QF_R(),
+      .QG_R(),
+      .QH_R()
   );
 
   NAND_GATE #(

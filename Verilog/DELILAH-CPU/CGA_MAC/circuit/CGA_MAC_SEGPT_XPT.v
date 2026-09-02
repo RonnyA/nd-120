@@ -121,7 +121,13 @@ module CGA_MAC_SEGPT_XPT (
     .QC (s_xpt_qc),
     .QCN(s_xpt_qc_n),
     .QD (),
-    .QDN()
+    .QDN(),
+    // registered-value taps: deliberately unconnected here -
+    // the transparent output is the wanted one (see L8/L4 header).
+    .QA_R(),
+    .QB_R(),
+    .QC_R(),
+    .QD_R()
   );
 
 endmodule

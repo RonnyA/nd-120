@@ -267,7 +267,9 @@ Key shared facts:
 - **Microcode preload:** `SKIP_WCS_LOAD` bitstream-preloads the WCS and skips the
   runtime load phase (verified in Verilator; required to fit the Tang's BSRAM).
   Details: [`docs/skip-wcs-load.md`](docs/skip-wcs-load.md).
-- Per-target compile-time defines: [`docs/build-defines.md`](docs/build-defines.md).
+- **All build options** — Verilog defines, sim make variables, Vivado/Gowin
+  build flags per board, and the runSim runtime probe env vars — in one
+  reference: [`docs/build-defines.md`](docs/build-defines.md).
 - Expected boot sequence for validation: [`docs/boot-golden-spec.md`](docs/boot-golden-spec.md).
 - Overall plan: [`FPGA-BRINGUP-PLAN.md`](FPGA-BRINGUP-PLAN.md).
 - All design docs, handoffs, and plans are indexed in [`docs/README.md`](docs/README.md);

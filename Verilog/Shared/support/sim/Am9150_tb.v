@@ -1,27 +1,29 @@
 /****************************************************************************
 ** Am9150 (1024 x 4 SRAM) testbench                                        **
 **                                                                         **
-** Targets the FIXED Shared/support/Am9150.v (24-AUG memory reset):        **
+** Targets Shared/support/Am9150.v with the 29-AUG-2026 memory reset:      **
 **                                                                         **
 ** READ PATH: data_out is a CONTINUOUS ASSIGN reading the array            **
-** combinationally, masked by /S, /G, /W, /R AND the sweep-active flag:    **
-**   assign data_out = (!CS_n & !OE_n & WE_n & RESET_n & !sweep_active)    **
+** combinationally, masked by /S, /G, /W, /R AND the location's VALID bit: **
+**   assign data_out = (!CS_n & !OE_n & WE_n & RESET_n & valid[address])   **
 **                      ? am_memory_array[address] : 4'b0;                 **
-** WRITE is synchronous (posedge clk, CS_n=0 & WE_n=0).                    **
+** WRITE is synchronous (posedge clk, CS_n=0 & WE_n=0) and sets valid.     **
 **                                                                         **
 ** RESET (/R) - the datasheet "memory reset function": the real part       **
-** clears the ENTIRE array to 0. The model implements it as a 1024-step    **
-** write-port sweep started by the falling edge of RESET_n; the SAME       **
-** sweep runs once at POWER-UP (counter initializer), scrubbing the        **
-** undefined cold state. While a sweep is active (~1024 clks):             **
-**   - data_out reads 0 (nothing stale can be seen mid-clear)              **
-**   - external writes are DROPPED (the sweep owns the write port)         **
-** The old model skipped the clear entirely (array contents survived a     **
-** /R pulse) - the T3 whole-array-cleared check below FAILS against it.    **
+** clears the ENTIRE array to 0 in two cycle times. The model keeps one    **
+** valid flip-flop per location: /R low clears all 1024 in ONE clock, a    **
+** never-written location reads 0, and NO write is ever dropped.           **
+** History: the first model skipped the clear (stale lines survived /R);   **
+** the 24-AUG model cleared with a 1024-step sweep that DROPPED writes     **
+** while it ran - CACHE-1X0-A00 test 2 writes its test word a few hundred  **
+** clocks after a cache clear, the used bit was dropped, and the cache     **
+** reported "DATA is taken FROM MEMORY when present in DATA CACHE" on the  **
+** board and in Verilator alike (29-AUG-2026). T0 pins that a write right  **
+** after power-up is KEPT.                                                 **
 **                                                                         **
 ** COVERAGE:                                                               **
-**   T0 power-up sweep: reads 0 during the sweep; a write issued during    **
-**      the sweep is dropped; after the sweep ALL 1024 locations read 0    **
+**   T0 power-up: reads 0 before anything is written; all 1024 locations   **
+**      read 0; a write issued immediately after power-up is KEPT          **
 **   T1 write/read: addr 0, addr 1023, arbitrary set, overwrite,           **
 **      no-aliasing neighbours, read-during-write masking                  **
 **   T2 output-mask terms /S /G /W /R forced individually                  **
@@ -125,22 +127,23 @@ module Am9150_tb;
     WRITE_ENABLE_n = 1; CHIP_SELECT_n = 1; OUTPUT_ENABLE_n = 1; RESET_n = 1;
     @(posedge clk); #1;
 
-    // ---- T0: power-up sweep ----------------------------------------------
-    // reads are dead while the cold-state scrub runs
+    // ---- T0: power-up ----------------------------------------------------
+    // a never-written location reads 0 (no X, no random cold state)
     address = 10'd37;
     CHIP_SELECT_n = 0; WRITE_ENABLE_n = 1; OUTPUT_ENABLE_n = 0; RESET_n = 1;
     #1;
     checks = checks + 1;
     if (data_out !== 4'h0) begin
       errors = errors + 1;
-      $display("FAIL T0_READ_DURING_POWERUP_SWEEP: data_out=%h, expected 0", data_out);
+      $display("FAIL T0_READ_AT_POWERUP: data_out=%h, expected 0", data_out);
     end
-    // a write issued during the sweep must be DROPPED
+    // the whole array reads 0 at power-up
+    expect_all_zero("T0_ARRAY_ZERO_AT_POWERUP");
+    // a write issued right after power-up is KEPT - the 24-AUG sweep model
+    // dropped it, and that dropped write was the cache's fault 2
     do_write(10'd900, 4'hB);
     sweep_wait;
-    expect_read(10'd900, 4'h0, "T0_WRITE_DURING_SWEEP_DROPPED");
-    // after the scrub the whole array reads 0 (no X, no random cold state)
-    expect_all_zero("T0_ARRAY_ZERO_AFTER_POWERUP");
+    expect_read(10'd900, 4'hB, "T0_WRITE_RIGHT_AFTER_POWERUP_KEPT");
 
     $dumpoff;
 
@@ -231,14 +234,14 @@ module Am9150_tb;
     RESET_n = 0;
     @(posedge clk); @(posedge clk); #1;
     RESET_n = 1;
-    // reads are dead while the clear sweep runs
+    // the whole array is invalid the moment /R has been sampled low
     address = 10'd777;
     CHIP_SELECT_n = 0; WRITE_ENABLE_n = 1; OUTPUT_ENABLE_n = 0; RESET_n = 1;
     #1;
     checks = checks + 1;
     if (data_out !== 4'h0) begin
       errors = errors + 1;
-      $display("FAIL T3_READ_DURING_CLEAR_SWEEP: data_out=%h, expected 0", data_out);
+      $display("FAIL T3_READ_RIGHT_AFTER_RESET: data_out=%h, expected 0", data_out);
     end
     sweep_wait;
     expect_read(10'd0, 4'h0, "T3 addr 0 cleared by /R");
@@ -247,7 +250,7 @@ module Am9150_tb;
     expect_read(10'd777, 4'h0, "T3 addr 777 cleared by /R");
     expect_read(10'd1023, 4'h0, "T3 addr 1023 cleared by /R");
     expect_all_zero("T3_ARRAY_ZERO_AFTER_RESET");
-    // and the part is alive again after the sweep
+    // and the part accepts writes again
     do_write(10'd10, 4'hD);
     expect_read(10'd10, 4'hD, "T3 addr 10 = D written after the clear");
 

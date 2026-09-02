@@ -75,11 +75,25 @@ HOLD 1) forever = a refill that never completes.
 
 ## Switches
 
-| Switch | Function |
-|--------|----------|
-| sw0 | right-display source when sw15:14=00 (0 = CSA, 1 = LA) |
-| sw1-sw13 | unused |
-| sw15:14 | right-display mode (table above) |
+All 16 slide switches, as wired in `nd120_nexys4ddr_top.v` (verified 30-AUG-2026).
+Down = 0, up = 1. Every switch is read through two flops on its clock domain;
+none has a debounce, none needs one.
+
+| Switch | 0 (down) | 1 (up) | Needs |
+|--------|----------|--------|-------|
+| sw0 | right display shows CSA (microcode address) | shows LA *(always zero, see 7-segment section)* | only when sw15:14 = 00 |
+| sw1 | US ANSI keyboard + font | Norwegian (NS 4551-1) keyboard + font - one bit drives both, so what you type is what you see | VGA console (default build) |
+| sw2 | VGA 800x600 at 40 MHz pixel clock | 1920x1080 at 148.4 MHz - debounced 26 ms before it reaches the clock mux | VGA console |
+| sw3 | operator panel hidden | operator panel drawn under the console text (PIL, hit rate, uptime ...) | VGA console |
+| sw4 | **CPU cache ON** - the ND-100 console's SW1 (sheet 25 CON), the state every deployed image has run with | cache OFF - every access goes to main memory, the CSR reports the cache disabled; flip it at the OPCOM prompt or reboot, the cache is not flushed by the switch | cache compiled in (default; `nocache` removes it and the switch does nothing) |
+| sw5-sw13 | unused | unused | - |
+| sw15:14 | right-display mode: 00 = sw0 picks CSA/LA, 01 = {FDISK request count, done count}, 10 = {FDISK error count, first error code, last error code}, 11 = first FDISK_LSECT requested (table above) | | - |
+
+`sw1`-`sw3` exist only in the VGA-console build; without it (`novgaconsole`)
+they are read by nothing. `sw4` reaches the CPU through `ND120_CORE.CACHE_SW`
+-> `ND3202D.SW1_CONSOLE` -> `CPU_MMU_CACHE_25.CON`, so it is the real
+machine's switch, not a debug override: SINTRAN sees the cache status change
+exactly as it would on a 3202 board.
 
 ## Buttons
 

@@ -2,3 +2,18 @@
 # Golden reference files must stay byte-exact (gate: cmp) - no EOL normalization
 Verilog/sim/golden/** -text
 Verilog/runSim/golden/** -text
+
+# Anything a POSIX shell or make actually EXECUTES must stay LF.
+#
+# core.autocrlf is true on this machine, so without these rules git rewrites
+# these files to CRLF on checkout - and then bash reads the trailing  as part
+# of the command and fails with lines like:
+#     tests/run_all_tests.sh: line 21: $'': command not found
+#
+# That is not hypothetical: it broke `make test` outright on 28-AUG-2026, the
+# moment a rebase caused git to re-write run_all_tests.sh. The scripts are run
+# from WSL while git runs on the Windows side, so this will happen again to
+# anyone who touches them without this rule.
+*.sh    text eol=lf
+Makefile text eol=lf
+*.mk    text eol=lf

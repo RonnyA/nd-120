@@ -3,7 +3,7 @@
 **Full path:** `Verilog/fpga/tang-nano-20k/sdram-test/`
 
 > **Status: PASSES on hardware - full 8 MB.** 2026-07-08: OSS-flow bitstream
-> loaded over usbipd/WSL2, runs observed on the board's UART at 9600 - all 4
+> loaded over usbipd/WSL2, runs observed on the board's UART at 115200 - all 4
 > verbose read/writes OK, and the block test now covers **all 8 MB**
 > (write + verify, progress dot per 256 KB), `PASS`, repeatable. The iverilog
 > testbench passes with the same sources. The Gowin EDA flow is set up but not
@@ -12,7 +12,7 @@
 A small standalone project that proves the Tang Nano 20K's **8 MB embedded
 SDRAM** works with the [nand2mario SDRAM controller](https://github.com/nand2mario/sdram-tang-nano-20k)
 before we wire that controller into the ND-120 memory system (`MEM_RAM_49.v`).
-Every memory operation is reported over **UART at 9600 baud 8N1** using the
+Every memory operation is reported over **UART at 115200 baud 8N1** using the
 UART TX/RX state machines borrowed from the ND-120's own
 `Verilog/Shared/support/SC2661_UART.v`, so you can watch reads and writes
 happen on a serial terminal.
@@ -83,10 +83,10 @@ replaces LiteX - restore it with
 4. Prints `PASS` or `FAIL` (also shown on the LEDs: `{error, pass, state}`
    active low). Press S1 / any key to run again.
 
-Expected terminal output (9600 8N1 on the board's USB COM port):
+Expected terminal output (115200 8N1 on the board's USB COM port):
 
 ```
-ND120 TN20K SDRAM TEST 9600-8N1
+ND120 TN20K SDRAM TEST 115200-8N1
 PRESS S1 OR ANY KEY
 W 000000=A5
 W 000001=5A
@@ -192,11 +192,11 @@ the output live. Either of:
 
 ```bash
 # screen (usually preinstalled)
-screen /dev/ttyUSB1 9600
+screen /dev/ttyUSB1 115200
 #   exit: Ctrl-A then k (kill, confirm y); Ctrl-A d detaches instead
 
 # picocom (sudo apt install picocom) - shows settings on start, keeps scrollback
-picocom -b 9600 /dev/ttyUSB1
+picocom -b 115200 /dev/ttyUSB1
 #   exit: Ctrl-A then Ctrl-X
 ```
 
@@ -206,7 +206,7 @@ terminal steals characters.
 **Scripted (no terminal)** - how the first automated run was captured:
 
 ```bash
-stty -F /dev/ttyUSB1 9600 cs8 -cstopb -parenb raw -echo
+stty -F /dev/ttyUSB1 115200 cs8 -cstopb -parenb raw -echo
 cat /dev/ttyUSB1 &              # watch the output
 printf 'G' > /dev/ttyUSB1       # any character starts / restarts the test
 ```
@@ -230,9 +230,10 @@ in SRAM mode, and keep the serial terminal on the Windows COM port.
 ### Serial terminal
 
 The BL616 exposes one USB serial port (this board enumerated as **COM5** on
-Windows). Connect at **9600 8N1** for this test (the factory LiteX BIOS uses
-115200 - different bitstream, different baud). Any terminal works: PuTTY,
-TeraTerm, `screen /dev/ttyACM0 9600`, etc. Press a key to start the test.
+Windows). Connect at **115200 8N1** for this test (01-SEP-2026: was 9600; every
+other Tang bitstream has been 115200 since 26-AUG-2026 and having this one
+project differ was a trap). Any terminal works: PuTTY,
+TeraTerm, `screen /dev/ttyACM0 115200`, etc. Press a key to start the test.
 
 ## Simulation
 

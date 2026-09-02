@@ -39,10 +39,149 @@ REGISTRY=(
   "tests :: test-microcode-sync :: TB_RESULT: PASS"
   # every relative link in tracked markdown resolves (dead-link gate)
   "tests :: test-docs-check :: TB_RESULT: PASS"
+  # --- Terminal core (board-independent console: screen + keyboard) ---------
+  # 800x600@60 VGA timing: counts a whole frame and checks pixels, lines, both
+  # sync widths and the polarity. A wrong polarity is a monitor saying "no
+  # signal" with nothing else to go on, so it is checked rather than eyeballed.
+  "Terminals/sim :: test-vga-timing :: TB_RESULT: PASS"
+  # Stage A glass TTY: printable characters, CR/LF/BS/HT/FF, wrap at column 80
+  # (the 80th character IS written) and the hardware scroll - top_row advances
+  # and the newly exposed bottom line comes back blank.
+  "Terminals/sim :: test-terminal-ctrl :: TB_RESULT: PASS"
+  # PS/2 keyboard: 11-bit framing, odd parity (a bad frame is DROPPED - a
+  # corrupted scancode can leave shift stuck on), press-vs-release, shift,
+  # caps-lock-on-letters-only, ctrl. It does NOT prove the scancode->ASCII
+  # table, which can only be checked by typing on a real keyboard.
+  "Terminals/sim :: test-ps2-keyboard :: TB_RESULT: PASS"
+  # Console UART loopback, run at BOTH framings the machine can be programmed
+  # to (7E1 and 8N1). The 7-bit path shifts the byte down out of the top of the
+  # register - the step that silently mangles every character if DATA_BITS is
+  # wrong, which on hardware looks like "the terminal shows garbage" with
+  # nothing to point at.
+  "Terminals/sim :: test-console-uart :: TB_RESULT: PASS"
+  # The whole console loop end to end, board pins removed: a byte serialized
+  # by a stand-in machine survives framing, deserialization, the clock-domain
+  # crossing, the control state machine and the address arithmetic to land in
+  # the right character cell - and a PS/2 key press comes back out of the
+  # machine's own receiver as the right character, THROUGH the idle-high AND
+  # merge. Every piece passing alone proves nothing about them being wired the
+  # right way round, which is what costs a bitstream build and a trip to the
+  # hardware.
+  "Terminals/sim :: test-console-loop :: TB_RESULT: PASS"
+  # The pixel pipeline, checked EVERY pixel of four frames (1,920,000) against
+  # a model built independently in the testbench from the same font file. Not a
+  # spot check: this module is a 2-clock fetch pipeline, the hardware-scroll row
+  # mapping and the cursor/attribute inversion at once, and each fails in a way
+  # that looks almost right - a pipeline off by one just shifts the picture.
+  # The testbench also counts the pixels it compared and FAILS if the count is
+  # short, because the first version scanned a window inside vertical blanking
+  # and cheerfully reported "0 wrong" over zero pixels.
+  "Terminals/sim :: test-text-screen :: TB_RESULT: PASS"
+  # The power-on message sender. Checks the properties that hold whatever the
+  # text says rather than re-listing the message (the message is generated, and
+  # a second copy is a second thing to forget): it never offers the 0x00
+  # terminator - a REGRESSION, the first version registered `valid` and leaked
+  # the NUL for one cycle - it honours backpressure, and it goes silent forever
+  # once done, so it can never collide with the machine's own output later.
+  "Terminals/sim :: test-banner :: TB_RESULT: PASS"
+  # The operator panel. Checks properties rather than comparing a rendered
+  # frame - a model of the renderer would just repeat the renderer's own
+  # misunderstandings. Bounded region on all four sides (a region-maths error
+  # silently eats the console text above it), zero pixels claimed when disabled,
+  # and the level afterglow both FADES and EXPIRES. That last one is a
+  # regression test: the first decay constant took 28 minutes, which would have
+  # shown every level permanently lit and looked entirely plausible.
+  "Terminals/sim :: test-panel :: TB_RESULT: PASS"
+  # the panel's MIPS counter - window arithmetic, idle clear, saturation
+  # (30-AUG-2026, with the MIPS field on the panel)
+  "Terminals/sim :: test-mips-counter :: TB_RESULT: PASS"
+  # the VT100 key-sequence expander - every marker byte-exact against its
+  # DEC sequence, incl. the two-digit ESC[nn~ form and a FIFO burst
+  "Terminals/sim :: test-key-vt100 :: TB_RESULT: PASS"
+  # TDV2200 (type 93, default terminal, 31-AUG-2026) key-sequence expander -
+  # every ESC[nn_ marker byte-exact, incl. zero-padding and a FIFO burst
+  "Terminals/sim :: test-key-tdv2200 :: TB_RESULT: PASS"
+  # TDV2200 PS/2 -> ASCII path end to end: bare C0 bytes for arrows/Home/
+  # Delete (no marker at all, unlike VT100), ESC[nn_ markers for F-keys
+  "Terminals/sim :: test-ps2-keyboard-tdv :: TB_RESULT: PASS"
+  # TDV2200 display controller - C0 table, DLE binary cursor addressing
+  # (both encodings), EOT/EM erase, and the REAL captured PED-at-type-93
+  # startup sequence replayed byte-exact (DCS soft-key blocks skipped
+  # without leaking to the screen, zero-padded CUP, ED)
+  "Terminals/sim :: test-terminal-ctrl-tdv :: TB_RESULT: PASS"
+  # --- MiSTer core ----------------------------------------------------------
+  # The board-specific console glue, NOT the terminal core (that is above). The
+  # three things tested here exist only on this board and each fails in a way
+  # that still looks plausible on a screen: the toggle->strobe edge detector on
+  # hps_io's ps2_key, the pressed/release polarity flip, and the source
+  # priority between banner, machine and local echo. The echo check types a
+  # 'q' specifically because the banner text contains no 'q' - the first
+  # version typed 's', found one in the banner's own word "this", and would
+  # have passed with the echo path completely dead.
+  "fpga/mister/sim :: test-console :: TB_RESULT: PASS"
+  # CPU liveness probe printed on the MiSTer console (ND120_DIAG_PRINT).
+  # DIAGNOSTIC SCAFFOLDING - retire this entry together with the module once
+  # the MiSTer CPU runs. Checked because a probe that misformats its own
+  # fields sends the debugging the wrong way, which the MIPS tap already did.
+  "fpga/mister/sim :: test-diag-print :: TB_RESULT: PASS"
+  # Microcode trace buffer and STERR error-number catcher, same scaffolding.
+  # The Quartus-only RAM sections (QUARTUS_RAM_INFER) vs the plain-Verilog
+  # model every other toolchain runs. NOT scaffolding - this one stays. Only
+  # the MiSTer build compiles those sections, so a divergence is invisible to
+  # every normal simulation and appears only as a board that will not boot.
+  # On 01-SEP-2026 the predecessor arm (an altsyncram megafunction, deleted
+  # since) shipped outdata_reg_a="CLOCK0", giving the WCS a two-clock read
+  # (altsyncram registers the address as well): every microinstruction
+  # arrived a clock late and a nested microsubroutine return popped the wrong
+  # address.
+  "Shared/support/sim :: test-quartus-ram-equiv :: TB_RESULT: PASS"
+  "fpga/mister/sim :: test-csa-trace :: TB_RESULT: PASS"
+  "fpga/mister/sim :: test-csa-trig :: TB_RESULT: PASS"
+  "fpga/mister/sim :: test-sterr :: TB_RESULT: PASS"
+  # The MiSTer storage backend (nd_storage_hps) against the client contract
+  # and a signal-level model of the HPS block interface. NOT scaffolding. Only
+  # this board has it, so nothing else in the suite would notice it breaking.
+  "fpga/mister/sim :: test-storage-hps :: TB_RESULT: PASS"
+  # ...and the whole MiSTer storage subsystem at the controller seams: two
+  # floppy adapters, two Winchester adapters, the tape adapter. Slot
+  # separation for drive 1 / unit 1, which no other board has ever built.
+  "fpga/mister/sim :: test-storage-devices :: TB_RESULT: PASS"
+  # a back-to-back 115200 burst of the SINTRAN boot lines through the MiSTer
+  # receiver + console glue + TDV controller at 40 MHz and at the Nexys 139.7
+  # MHz: every byte must reach the screen (02-SEP-2026)
+  "fpga/mister/sim :: test-console-burst :: TB_RESULT: PASS"
+  "fpga/mister/sim :: test-console-burst-fast :: TB_RESULT: PASS"
+  # no reset ordering of nd_storage_hps's two clock domains hangs a read
+  # (the automount stuck-R root-cause: the reset CDC is exonerated)
+  "fpga/mister/sim :: test-storage-reset :: TB_RESULT: PASS"
+  # the console keyboard path end to end (the board-wiring seam the per-module
+  # tests miss): key expander -> serializer, and a full PS/2 scancode -> byte
+  "fpga/mister/sim :: test-kbd-uart :: TB_RESULT: PASS"
+  "fpga/mister/sim :: test-kbd-chain :: TB_RESULT: PASS"
+  # --- MEGA65 core glue (02-SEP-2026) ---------------------------------------
+  # the MEGA65 keyboard scan -> PS/2 events, checked THROUGH the shared TDV
+  # decoder against the C64 keycaps (2" 6& :[ ;] + @ * = ...), ctrl, caps
+  # latch, cursor and function keys
+  "fpga/mega65/sim :: test-keys :: TB_RESULT: PASS"
+  # the console glue: scan -> screen and machine seam, banner priority, and
+  # the framework's video shape (de == !(hblank|vblank), RGB black outside de)
+  "fpga/mega65/sim :: test-console :: TB_RESULT: PASS"
+  # the storage backend on MiSTer2MEGA65's virtual drives (byte-wide buffer
+  # bus, QNICE-firmware-style strobes): the same 8 checks as the MiSTer's
+  # test-storage-hps, against vdrives_model.v
+  "fpga/mega65/sim :: test-storage-vdrives :: TB_RESULT: PASS"
+  # the R3 HyperRAM backend: nd_ddr2_port's contract on an Avalon-MM master,
+  # burst and single-beat fallback, random waitrequest/latency slave model
+  "fpga/mega65/sim :: test-avalon-port :: TB_RESULT: PASS"
+  # --- Shared support chips -------------------------------------------------
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"
   "Shared/support/sim :: test-uart-txabort :: TB_RESULT: PASS"
   "Shared/support/sim :: test-uart-txint :: TB_RESULT: PASS"
+  # RX overrun regression (31-AUG-2026, PED keyboard-input investigation):
+  # a CPU read landing mid-shift used to see a torn value matching neither
+  # byte of a back-to-back pair. See SC2661_RX_OVERRUN_tb.v.
+  "Shared/support/sim :: test-uart-rxoverrun :: TB_RESULT: PASS"
   # exhaustive 74245 transceiver gate: guards the removal of the shared
   # 'internalBus' helper that closed a combinational loop on the FIDB bus
   "Shared/support/sim :: test-74245   :: TB_RESULT: PASS"
@@ -198,6 +337,8 @@ REGISTRY=(
   # ADDR_BITS=15 wrapping addresses >= 0o100000 onto low memory); the
   # 16-bit address-bit walk also catches dropped/swapped address bits
   "CPU-BOARD-3202/circuit/sim :: test-blockram-space :: TB_RESULT: PASS"
+  # the same gate with the MiSTer's three-slot array (01-SEP-2026)
+  "CPU-BOARD-3202/circuit/sim :: test-blockram-space-3banks :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-ddr2ram   :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-ddr2arb   :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-memchain-ddr2 :: TB_RESULT: PASS"
@@ -274,6 +415,10 @@ REGISTRY=(
   "CPU-BOARD-3202/circuit/sim :: test-ramc      :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-lbdif     :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-pancal    :: TB_RESULT: PASS"
+  # IO_PANCAL_40 + ND120_PANEL_CLOCK: MC68705/MM58274 clock path (PANCAL_68705_CLOCK)
+  # through a real FIFO_8BIT + the DGA VAL/RIWR handshake, latch and FF builds
+  "CPU-BOARD-3202/circuit/sim :: test-pancal-clock    :: TB_RESULT: PASS"
+  "CPU-BOARD-3202/circuit/sim :: test-pancal-clock-ff :: TB_RESULT: PASS"
   "CPU-BOARD-3202/circuit/sim :: test-mmucache  :: TB_RESULT: PASS"
   # Cache subsystem coherence (CACHE_25+HIT_27+glue, 2 modes): real-tag
   # hit/refill/write paths PLUS the two demonstrated defects (DMA write
@@ -437,6 +582,8 @@ REGISTRY=(
   "fpga/tang-nano-20k/sdram-bridge/sim :: test-pack16 :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sdram-bridge/sim :: test-pack16-part :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sdram-bridge/sim :: test-storage-port :: TB_RESULT: PASS"
+  # the MiSTer's 16-bit module shape (ND_SDRAM_DQ16), same bridge, same replay
+  "fpga/tang-nano-20k/sdram-bridge/sim :: test-dq16 :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sdram-test/sim   :: test :: TB_RESULT: PASS"
   "fpga/tang-nano-20k/sdram18-test/sim :: test :: TB_RESULT: PASS"
   # --- SD-FAT library + Tang Nano 20K SD test ---------------------------

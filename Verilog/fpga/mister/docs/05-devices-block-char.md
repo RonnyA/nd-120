@@ -163,3 +163,18 @@ no purchase and ao486 proves it at far higher demands than ours.
 - [ ] Floppy image mounts from the OSD; ND floppy controller reads sector 0
       (verify content by checksumming the same file over ssh).
 - [ ] SINTRAN (or the test-and-boot floppy) boots from an image file.
+
+---
+
+## Addendum, 27-AUG-2026 - the built-in terminal, and why we cannot vendor PDP2011's
+
+PDP2011's VT100/VT105 (`rtl/vt.vhd`, `rtl/vga.vhd`, `rtl/vgacr.vhd`,
+`rtl/ps2.vhd`) is the exact feature we want - but those files carry a
+**non-commercial-use-only** header (Sytse van Slooten, 2008-2021), which is
+NOT the repo's GPL-2.0 `LICENSE` and cannot be mixed into this MIT repo.
+They are also a microcoded CPU running terminal firmware, i.e. far more
+terminal than a SINTRAN login needs.
+
+Decision: re-implement from the public VT100 / ECMA-48 documents, using
+PDP2011 only as a feature checklist. Shared with the MEGA65 port. Plan:
+[`Verilog/docs/PLAN-vt100-terminal-core.md`](../../../Terminals/docs/PLAN-vt100-terminal-core.md).

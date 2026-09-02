@@ -149,6 +149,13 @@ module ND3202D (
 
     // Additional debug outputs for microcode load/boot analysis
     output       DEBUG_FETCH,    // Fetch signal
+    output       DEBUG_CFETCH,   // one rise per macro instruction (CGA CFETCH via XCFETCH_DBG) - the MIPS event
+    output       DEBUG_MAP_n,    // MAP: the last microinstruction of every macro instruction
+                                 // loads the next micro-address from the DGA's opcode mapper.
+                                 // One falling edge = one macro instruction dispatched, cache
+                                 // hit or miss - unlike FETCH, which marks memory CYCLES and
+                                 // goes quiet when the cache serves the fetch (the panel MIPS
+                                 // read 00.00 on build 8 for exactly that reason, 30-AUG-2026).
     output       DEBUG_MR_n,     // Master Reset
     output       DEBUG_CLEAR_n,  // Clear
     output       DEBUG_REFRQ_n,  // Refresh Request
@@ -157,7 +164,30 @@ module ND3202D (
     output [15:0] DEBUG_FIDBO_15_0, // FIDBO internal data bus
     output [15:0] DEBUG_IREQ_15_0_N, // DEBUG: raw interrupt-request vector (active low)
     output [15:0] XMIC_DBG_15_0,    // DEBUG: microsequencer address-advance probe (Tang 06000-hang)
-    output       DBG_PTW_LVL        // live PT write-strobe level (~EPT_n & ~WMAP_n, 27-AUG overlap probe)
+    output [19:0] XWRFB_DBG_19_0,   // DEBUG: register-file B port {LBA_3_0, B_15_0} - STERR error number
+    output [11:0] XCYC_DBG_7_0,     // DEBUG: cycle-controller inputs + clock enables
+    output       DBG_PTW_LVL,       // live PT write-strobe level (~EPT_n & ~WMAP_n, 27-AUG overlap probe)
+
+    // Operator-panel status, packed in the SAME BIT ORDER as the MC68705U3's
+    // Port D on the real board (schematic sheet 40 of 50, 5-OCT-1987; see
+    // IO_PANCAL_40.v). Every one of these already feeds the panel processor
+    // instance below - this port only brings the same five signals out to the
+    // FPGA top so a screen can draw what the real panel drew:
+    //
+    //   [1:0] PCR_1_0  protect ring      [4] HIT   cache hit (the ND-120's OWN
+    //   [2]   PONI     paging on             cache, not the FPGA line cache)
+    //   [3]   IONI     interrupt on      [5] LEV0  running at level 0 = idle
+    //
+    // Bits [7:6] read zero. Purely an observation port: nothing here changes
+    // what the CPU does, and leaving it unconnected costs nothing.
+    output [7:0] DBG_PANEL,
+    output [15:0] PANEL_ACTLV,  //! ACTIVE LEVEL word from the panel processor (IO_37/IO_PANCAL_40)
+    //! DEBUG: cache-write gating bus from CPU_15/CPU_MMU_24. Bit layout and
+    //! the reason it exists are in CPU_MMU_24.v's DBG_CACHE port comment.
+    //! Declared unconditionally and at module scope on purpose - two builds
+    //! have already been lost to a debug wire that lived inside an `ifdef`
+    //! some configurations do not define.
+    output [7:0] DBG_CACHE
 
 `ifdef MAIN_RAM_SDRAM
     // SDRAM main-memory backend (Tang Nano 20K) - threaded down to MEM_43.
@@ -249,6 +279,8 @@ TODO: Sort bits on output LED to match led numbering
   assign DEBUG_MCLK = s_mclk;
   assign DEBUG_LCS_n = s_lcs_n;
   assign DEBUG_FETCH = s_fetch;
+  assign DEBUG_MAP_n = s_map_n;
+  assign DEBUG_CFETCH = s_cfetch_dbg;
   assign DEBUG_MR_n = s_mr_n;
   assign DEBUG_CLEAR_n = s_clear_n;
   assign DEBUG_REFRQ_n = s_refrq_n;
@@ -263,6 +295,20 @@ TODO: Sort bits on output LED to match led numbering
   wire [ 4:0] s_csidbs_4_0;
   wire [ 4:0] s_dp_5_1_n;
   
+`ifndef MAIN_RAM_SDRAM
+  // DBG_PPN / DBG_PTW / PF_CAPTURED are output ports only in the
+  // MAIN_RAM_SDRAM section of the port list, but the assign below and the
+  // CPU instance connections use them unconditionally. Without these
+  // fallbacks the non-SDRAM builds (Verilator, DDR2) create IMPLICIT 1-bit
+  // nets - which Verilator -Wall treats as a hard error (found 30-AUG-2026
+  // when runSim stopped verilating). Same rule as the DBG_CACHE port
+  // comment: a debug wire touched outside a conditional must exist in
+  // every build.
+  wire [13:0] DBG_PPN;
+  wire [15:0] DBG_PTW;
+  wire [20:0] PF_CAPTURED;
+`endif
+
   wire [13:0] s_ppn_23_10;
   // 24-AUG: the physical page number the MMU presents, out to the board for
   // the zero-fetch probe. PPN20 = [10] and PPN21 = [11] are the two bits the
@@ -380,6 +426,13 @@ TODO: Sort bits on output LED to match led numbering
   wire        s_gnt_n;
   wire        s_gnt50_n;
   wire        s_hit;
+  wire        s_dbg_lapa_n;
+
+  //! LHIT from IO_37 - the panel's own cache-hit signal. Declared HERE, at
+  //! module scope and unconditionally. Two builds have already been lost to a
+  //! debug wire declared inside an `ifdef` that some configurations do not
+  //! define (b958fcc, and again during the panel work).
+  wire        s_lhit;
   wire        s_ibapr_n;
   wire        s_ibdap_n;
   wire        s_ibdry_n;
@@ -410,6 +463,7 @@ TODO: Sort bits on output LED to match led numbering
   wire        s_lshadow;
   wire        s_maclk /* verilator public_flat_rd */;  // kept observable for the sim trace harness
   wire        s_map_n;
+  wire        s_cfetch_dbg;   // CGA CFETCH out of CPU_15 (XCFETCH_DBG)
   wire        s_mclk;
   wire        s_mem_bdry_n; // BDRY signal out from MEM module
   wire        s_moff_n;
@@ -627,6 +681,23 @@ TODO: Sort bits on output LED to match led numbering
   assign CD_15_0 = s_cpu_cd_15_0_in;
   assign LBD_15_0 = s_bif_lbd_23_0_out[15:0] | s_mem_lbd_23_0_out[15:0];
   assign LA_23_10 = 13'b0; //TODO: Where is the LA signal ??
+
+  // The five Port-D panel signals, in Port-D order. See the port comment.
+  //
+  // [4] IS LHIT, NOT s_hit - corrected 28-AUG-2026 (Ronny spotted it). The
+  // real panel's cache-hit field is fed from LHIT on Port D bit 4
+  // (IO_PANCAL_40.v:195), exactly as UTILIZATION is fed from LEV0 on bit 5.
+  // LHIT is the LATCHED "Load Hit" out of the DGA (DECODE_DGA_COMM.v:60,
+  // taken off a flip-flop's qBar). What sat here before was s_hit, the raw
+  // combinational comparator output inside CPU_MMU_CACHE_25 - our own choice,
+  // not the machine's.
+  //
+  // [6] is LAPA_n, the cache/MMU lookup strobe. It is NO LONGER the hit-rate
+  // denominator - the MC68705 samples Port D periodically and works the rate
+  // out from LHIT alone over time, so there is no denominator to supply. Kept
+  // here because it is still a useful debug signal.
+  assign DBG_PANEL = {1'b0, s_dbg_lapa_n, s_lev0, s_lhit, s_ioni, s_poni,
+                      s_pcr_1_0[1:0]};
   assign CA_9_0 =s_ca_9_0;
 
   /* CHIP 21A 74LS374 */
@@ -751,6 +822,7 @@ TODO: Sort bits on output LED to match led numbering
       .MR_n(s_mr_n),
       .RRF_n(s_rrf_n),
       .TERM_n(s_term_n),
+      .XCYC_DBG_7_0(XCYC_DBG_7_0),   // DEBUG: terminate-plane inputs
       .VEX(s_vex),
       .WRFSTB(s_wrfstb),
 
@@ -862,10 +934,14 @@ TODO: Sort bits on output LED to match led numbering
       .HIT         (s_hit),                     // Cache hit
       .LEV0        (s_lev0),                    // Level 0 active
       .CSA_12_0    (CSA_12_0),                  // Microcode Address (for debugging)
+      .XCFETCH_DBG(s_cfetch_dbg),
       .XMIC_DBG_15_0(XMIC_DBG_15_0),            // DEBUG: microsequencer address-advance probe
+      .XWRFB_DBG_19_0(XWRFB_DBG_19_0),          // DEBUG: register-file B port, for STERR's R2
       .DBG_PTW     (DBG_PTW),                   // DEBUG: page-table write stream (23-AUG)
       .DBG_PTW_LVL (DBG_PTW_LVL),               // DEBUG: live PT write-strobe level (27-AUG)
-      .PF_CAPTURED (PF_CAPTURED)                // DEBUG: freeze flag (23-AUG)
+      .DBG_CACHE   (DBG_CACHE),                 // DEBUG: cache-write gating bus (28-AUG)
+      .PF_CAPTURED (PF_CAPTURED),                // DEBUG: freeze flag (23-AUG)
+      .DBG_LAPA_n  (s_dbg_lapa_n)                // DEBUG: MMU/cache lookup strobe - the hit-rate denominator
   );
 
 
@@ -893,6 +969,10 @@ TODO: Sort bits on output LED to match led numbering
     // FPGA system signals
     .sysclk(sysclk),  // System clock in FPGA
     .sys_rst_n(sys_rst_n),  // System reset in FPGA
+
+    // Debug outputs
+    .DBG_LHIT(s_lhit),   // panel cache-hit signal, Port D bit 4
+    .PANEL_ACTLV(PANEL_ACTLV),  // the panel processor's ACTIVE LEVEL word, up to the top level
 
     // Input Signals
     .BAUD_RATE_SWITCH(BAUD_RATE_SWITCH),

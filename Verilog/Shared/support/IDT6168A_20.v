@@ -58,9 +58,123 @@ module IDT6168A_20 #(
     output wire [ 3:0] D_3_0_OUT  // Data output for read
 );
 
+`ifdef QUARTUS_RAM_INFER
+
+  // ---------------------------------------------------------------------
+  // Quartus arm (01-SEP-2026): the SAME array and the SAME 1-clock
+  // write-first behaviour as the reference below, only restructured into a
+  // shape Quartus 17.0 will map onto M10K. PLAIN VERILOG on purpose.
+  //
+  // HISTORY - the arm this replaced. The first Quartus arm (31-AUG-2026,
+  // deleted 01-SEP-2026 once this one had booted the board) was an explicit
+  // altsyncram megafunction. It shipped with outdata_reg_a="CLOCK0", which
+  // put a SECOND register on the output: altsyncram ALWAYS registers the
+  // address in synchronous mode, so the WCS read took TWO clocks against
+  // this model's ONE. Every microinstruction arrived a clock late on that
+  // board alone, the microsequencer ran one step out of alignment with the
+  // cycle controller, and a nested microsubroutine return popped the wrong
+  // address (001015 instead of the 002027 MACL pushed) - the CPU looped
+  // forever in the interrupt-register microcode. See
+  // docs/mister-microcode-loop.md. Nothing simulates a megafunction, so no
+  // simulation could ever have caught it; the equivalence check of the day
+  // compared it against a hand-written stub that was wrong by the same
+  // clock. That is why the arm below is plain Verilog and the megafunction
+  // is gone: Shared/support/sim/run_quartus_ram_equiv.sh compiles and runs
+  // BOTH this arm and the reference and proves them cycle-identical. An arm
+  // that can be tested is worth more than an arm that is "obviously" right.
+  //
+  // What Quartus objects to in the reference arm (measured, build v46):
+  //     Info (276007): ... uninferred due to asynchronous read logic
+  // for all 32 WCS chips, then
+  //     Error (276003): Cannot convert all sets of registers into RAM ...
+  // because 32 x 4K x 4 bits of flip-flops does not fit any device.
+  // Nothing reads the array outside the clocked block, so the read is not
+  // actually asynchronous. What it cannot map is the OUTPUT REGISTER: in
+  // the reference, data_out loads from the ARRAY on a read but from
+  // D_3_0_IN on a write. A register fed from a non-memory source cannot be
+  // the M10K's own output register, so the array read is left with nowhere
+  // synchronous to land - and M10K has no asynchronous read port (the same
+  // limit that forces the async cache RAMs onto MLAB).
+  //
+  // NOTE this is a reading of the evidence, not a rule quoted from Intel's
+  // documentation. The build is the proof, and build v47 (01-SEP-2026)
+  // delivered it: uninferred RAM 34 -> 1, all 32 WCS chips in M10K, and the
+  // board boots to the OPCOM prompt on this arm.
+  //
+  // The fix: give the array read a register of its own that does nothing
+  // but hold array data, and rebuild the write-first bypass outside it from
+  // ordinary flip-flops.
+  //
+  // ramstyle "no_rw_check": a read and a write can hit the same address in
+  // the same cycle. The bypass mux already supplies the new data there, so
+  // whatever the M10K hands back on that cycle is discarded. Saying so
+  // stops Quartus building bypass hardware we do not need.
+  (* ramstyle = "no_rw_check, M10K" *)
+  reg [3:0] idt_memory_array[0:4095];
+
+  // Same optional preload as the reference arm. Quartus honours an
+  // `initial $readmemh` as M10K bitstream init - unlike the old megafunction
+  // arm, which needed a separately generated .mif per chip
+  // (fpga/mister/tools/wcs_hex_to_mif.py, deleted together with it).
+`ifdef SKIP_WCS_LOAD
+  initial begin
+    if (INIT_FILE != "") $readmemh(INIT_FILE, idt_memory_array);
+  end
+`endif
+
+  reg [3:0] mem_q   = 4'h0;   // pure array read - THIS is the M10K output reg
+  reg [3:0] byp_q   = 4'h0;   // write data, held one clock to match mem_q
+  reg       byp_sel = 1'b0;   // the last enabled cycle was a write
+  reg       regCE_n = 1'b1;
+  reg       regWE_n = 1'b1;
+
+  always @(posedge clk) begin
+    regCE_n <= CE_n;
+    regWE_n <= WE_n;
+    if (!CE_n) begin
+      // Read on EVERY enabled cycle, with nothing but the enable gating it.
+      // On a write cycle the fetched value is thrown away by the mux below.
+      mem_q <= idt_memory_array[A_11_0];
+
+      if (!WE_n) idt_memory_array[A_11_0] <= D_3_0_IN;
+
+      byp_q   <= D_3_0_IN;
+      byp_sel <= ~WE_n;
+    end
+    // CE_n high: mem_q, byp_q and byp_sel all hold, so the output holds -
+    // exactly as data_out holds in the reference arm.
+  end
+
+  // Write-first bypass, rebuilt outside the memory read register.
+  wire [3:0] data_out = byp_sel ? byp_q : mem_q;
+
+  // Same output mask as the reference arm.
+  assign D_3_0_OUT = (!regCE_n && regWE_n) ? data_out : 4'b0000;
+
+`else
+
   // Memory array - 4K x 4-bit. Marked for block RAM inference on FPGA targets.
-  // Both Vivado/Xilinx (ram_style) and Gowin (syn_ramstyle) recognise this.
-  (* syn_ramstyle = "block_ram", ram_style = "block" *)
+  // This is the REFERENCE arm: Vivado (ram_style), Gowin (syn_ramstyle) plus
+  // plus Verilator and iverilog, all take it and all infer block RAM from
+  // it. Quartus does not - it takes the QUARTUS_RAM_INFER arm above instead.
+  // (Keep "Verilator" off the START of a comment line: Verilator reads a
+  // comment beginning with that word as a lint metacomment and dies with
+  // "Unknown verilator comment", which broke every sim build 01-SEP-2026.)
+  //
+  // MEASURED 01-SEP-2026 (build v46), correcting an earlier guess of mine:
+  // adding Quartus's own "ramstyle" spelling here does NOT make Quartus
+  // infer the array. It still reports every instance as
+  //   Info (276007): ... uninferred due to asynchronous read logic
+  // and fails Analysis & Synthesis trying to build them from flip-flops.
+  // The attribute spelling was never the reason inference failed; the
+  // structure of the output register is (see the QUARTUS_RAM_INFER arm).
+  // "ramstyle" is left in place because it is the correct spelling to state
+  // for Quartus and costs nothing, not because it fixes anything.
+  //
+  // Quartus also warns Warning (10306) on syn_ramstyle="block_ram": it does
+  // recognise Synplify's attribute NAME but not Gowin's VALUE for it. That
+  // warning is harmless - Quartus never builds this arm.
+  (* syn_ramstyle = "block_ram", ram_style = "block", ramstyle = "M10K" *)
   reg [3:0] idt_memory_array[0:4095];
 
   // Optional block-RAM preload (bitstream INIT on FPGA; $readmemh in sim).
@@ -126,5 +240,6 @@ module IDT6168A_20 #(
   // CE_n is asserted AND the registered WE_n is high (read mode).
   assign D_3_0_OUT = (!regCE_n && regWE_n) ? data_out : 4'b0000;
 
+`endif
 
 endmodule

@@ -3,7 +3,14 @@
 #  dir - see docs/tang20k-build-flows.md)
 #
 #   cd E:\Dev\Repos\Ronny\nd-120\Verilog\fpga\tang-nano-20k
-#   .\gowin_build.ps1 [-Variant slow|crawl|full] [-Gao] [-PfCapture] [-PcHistory] [-JplCapture]
+#   .\gowin_build.ps1 [-Variant slow|crawl|full] [-Gao] [-PfCapture] [-PcHistory] [-JplCapture] [-NoPanelClock] [-Cache]
+#
+# -Cache builds WITH the CPU cache (suppresses ND120_NO_CACHE via
+#   ND120_FORCE_CACHE). WARNING: this does not currently fit the GW2AR-18 -
+#   a live cache needs 28330 logic cells against the part's 20736 (measured
+#   25-AUG-2026). The switch exists so the cache option is symmetric across
+#   every build flow and so anyone attacking the fit problem has the knob.
+#   Default (no switch) = cache compiled out, same as always.
 #
 # -Variant selects the clocking (default slow, same as always):
 #   slow  = CPU 6.75 MHz / SDRAM 13.5 MHz
@@ -43,7 +50,9 @@ param(
     [switch]$PtOrder,
     [switch]$PfLog,
     [switch]$PgWrite,
-    [switch]$StageTimer
+    [switch]$StageTimer,
+    [switch]$NoPanelClock,
+    [switch]$Cache
 )
 
 $ErrorActionPreference = "Stop"
@@ -187,6 +196,37 @@ if ($NoStorageCache) {
     }
     $variantContent += "``define ND_STORAGE_NO_CACHE`n"
     Write-Host "STORAGE CACHE: NOT SYNTHESIZED (ND_STORAGE_NO_CACHE)"
+}
+if ($Cache) {
+    # ND120_FORCE_CACHE suppresses the default ND120_NO_CACHE in
+    # src/tang20k_defines.v, so the five cache memories + used-bit PAL are
+    # synthesized. WARNING: does not currently fit the GW2AR-18 - the live
+    # cache needs 28330 logic cells vs the part's 20736 (measured 25-AUG-2026).
+    # The knob exists for symmetry with the other flows and for whoever
+    # attacks the fit problem.
+    $variantContent += "``define ND120_FORCE_CACHE`n"
+    Write-Host "CPU CACHE: ENABLED (-Cache / ND120_FORCE_CACHE) - WARNING: 28330 cells needed vs 20736 on this part; expect overflow"
+} else {
+    Write-Host "CPU CACHE: compiled out (ND120_NO_CACHE, the default - use -Cache to build it in)"
+}
+if ($NoPanelClock) {
+    # The old stub: PRES=1, the FIFO is never drained, and TRR PANC / TRA PANS
+    # can neither set nor read the time. SINTRAN then reports "ND-100 PANEL
+    # CLOCK INCORRECT" at every boot and TPE prints its "clock is not updated"
+    # line. Use this only to take the panel out of the picture while chasing
+    # something else, or if the device runs out of room.
+    Write-Host "PANEL CLOCK: DISABLED (-NoPanelClock) - sheet 40 is the old stub"
+} else {
+    # ND120_PANEL_CLOCK (IO_PANCAL_40.v -> PANCAL_68705_CLOCK.v): emulate the
+    # MC68705 panel processor's CLOCK path so SINTRAN can set and read the
+    # hardware clock through TRR PANC / TRA PANS (PFUNC 4-7, half-days +
+    # seconds since 1979). ON BY DEFAULT since 29-AUG-2026: measured on the
+    # Tang at fast20 - SINTRAN takes the time from the panel across a MACL,
+    # and TPE boots without its clock warning. Costs a few hundred flops;
+    # fast20 still closed with zero negative setup paths (CPU-clock Fmax
+    # 23.946 MHz against the 20.250 MHz constraint).
+    $variantContent += "``define ND120_PANEL_CLOCK`n"
+    Write-Host "PANEL CLOCK: ENABLED (ND120_PANEL_CLOCK) - 68705/MM58274 clock path emulated"
 }
 Set-Content -Path $variantFile -Value $variantContent -Encoding Ascii
 # In a PowerShell double-quoted string the backtick is the ESCAPE character, so

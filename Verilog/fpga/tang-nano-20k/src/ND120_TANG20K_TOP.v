@@ -2271,6 +2271,7 @@ module ND120_TANG20K_TOP (
   ) CORE (
       .clk_cpu(clk_cpu),  // CPU core, OSC and bus all on 27 MHz
       .sys_rst_n(sys_rst_n),
+      .CACHE_SW(1'b1),    // console SW1: no free switch here; ND120_NO_CACHE overrides it to off
 
       // C-PLUG bus: no external bus on this board (tied off above)
       .BREQ_n(BREQ_n),

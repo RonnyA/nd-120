@@ -31,7 +31,9 @@ Three defines control behavior; understanding them is essential:
 
 - `VERILATOR_SIM` — set for **all** Verilator sim builds. Enables bus ports, fast UART, and large sim RAM (6MB, `ramSize=2`). Absent for FPGA synthesis, which uses tiny BRAM-friendly RAM (24KB, `ramSize=3`) — the `xc7a35t` only has 100 RAMB18 blocks. Selected automatically in `MEM_RAM_49.v`.
 - `FPGA_FF_MODE` — forces edge-triggered flip-flop behavior instead of the original transparent-latch behavior. Added by the Makefiles when `USE_LATCHES=0`.
-- `USE_LATCHES` (Makefile var, default `1`) — `1` = transparent latches (matches original hardware), `0` = FF mode (what the FPGA needs). This latch-vs-FF split is the crux of the FPGA boot divergence work.
+- `USE_LATCHES` (Makefile var, default `1` in `sim/`, `0` in `runSim/`) — `1` = transparent latches (matches original hardware), `0` = FF mode (what the FPGA needs). This latch-vs-FF split is the crux of the FPGA boot divergence work.
+
+The full reference for EVERY build option — all Verilog defines, sim make variables (`CACHE`, `PANEL_CLOCK`, `PACK16`, `SD_STORAGE`, …), Nexys `build.tcl` args + clock table, Tang `gowin_build.ps1`/OSS-make switches, Basys3 flags, and the runSim runtime env-var probes — is `Verilog/docs/build-defines.md`. Look there before adding or renaming any option, and keep it updated when one changes.
 
 ## Development Commands
 
@@ -220,8 +222,20 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
 - **Clock:** 6.75 MHz is the long-validated speed. A 13.5 MHz variant
   (`-Variant mid`) closes with 0 setup violations. **NEW 26-AUG-2026:
   `-Variant fast20` boots SINTRAN at 20.25 MHz with a 115200 console,
-  TIMING-CLEAN (TNS 0, Fmax 20.556 MHz - only 1.5% margin, recheck the .tr
-  on every rebuild)** - the fastest clean Tang. **27 MHz (`-Variant full`)
+  TIMING-CLEAN (TNS 0)** - the fastest clean Tang. **UPDATED 31-AUG-2026:
+  its margin is now 13.2%, Fmax 22.932 MHz (was 20.556 MHz / 1.5%).** The
+  old figure was not a property of the CPU: `nd120_tang20k.sdc` was one
+  `create_clock` line, so the data buses crossing between `nd_storage`'s
+  card side and its client side were analysed as synchronous with a
+  required time of 0.000 ns - 24 of the 25 worst setup paths in the build.
+  Two `set_false_path` lines took the CPU domain from -260.076 ns over 398
+  endpoints to -6.489 ns over 24; with `aa210eb` taking the MIPS tap off
+  `ALUCLK_EN`, TNS is now 0.000 on all five clocks, setup and hold. Details,
+  and the traps (a WIDER exception set measured WORSE; Gowin leaves the
+  previous `.tr` on disk when a build aborts):
+  `Verilog/fpga/tang-nano-20k/README.md`. The `slow`/`mid`/`full` Fmax
+  numbers still predate this and are pessimistic by an unmeasured amount.
+  **27 MHz (`-Variant full`)
   runs SINTRAN, LIST-FILES and s3** and is visibly faster, but Gowin reports
   1667 setup violations against a CPU-domain Fmax of 17.7–19.6 MHz — fast and
   functional, but NOT timing-clean: margin over temperature and voltage is
@@ -238,6 +252,40 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
     Writing a real `.sdc` is the route to a fast machine that is also
     defensible.
 
+- **Panel clock (28-AUG-2026):** the MC68705/MM58274 hardware clock
+  (TRR PANC / TRA PANS, PFUNC 4-7) is emulated by
+  `Verilog/CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v`, OPT-IN via
+  `ND120_PANEL_CLOCK` (ON by default on both FPGA builds; disable with
+  `-NoPanelClock` on both boards (`gowin_build.ps1 -NoPanelClock`,
+  `build.tcl -tclargs -NoPanelClock`),
+  sims `PANEL_CLOCK=1`) because the Tang is nearly full. Without it the panel
+  is a stub and SINTRAN cannot set or read the time. Proven in Verilator with
+  the TPE Monitor floppy (its start-up clock probe passes). Finding it exposed
+  two UNCONDITIONAL DGA fixes: `TRA PANS` used to return 0 to A, and
+  `TRR PANC` never reached the panel FIFO - so before 29-AUG-2026 no panel
+  command of any kind (incl. the microcode's own ACTLV/0x0A traffic) ever
+  left the CPU. Details and what is not modelled:
+  `Verilog/docs/panel-clock-68705.md`.
+- **MEGA65 (02-SEP-2026): the whole machine builds for both revisions on
+  the MiSTer2MEGA65 framework (submodule `Verilog/fpga/mega65/m2m/`),
+  timing-clean, NOT yet run on a MEGA65** - there is none here; the release
+  cores go to testers. R6 (and R4/R5): 4 MB in the 64 MB SDRAM via the
+  MiSTer sheet-49 bridge, CPU 20 MHz. R3: 4 MB in the 8 MiB HyperRAM via
+  the Nexys `MEM_RAM_49_DDR2` cache seam + `nd_avalon_port.v`, CPU
+  13.33 MHz (the R3 netlist times the CGA IDB ring through a longer
+  loop-break, 57 ns; the period fits it rather than untiming the IDB).
+  Console = `Verilog/Terminals/` on the framework's keyboard scan
+  (`m65_keys_to_ps2.v`, keycap-faithful) and video; storage = the MiSTer
+  `nd_storage_hps.v` logic on the framework's byte-wide vdrives
+  (`nd_storage_vdrives.v`), fd0/fd1/wd0/wd1/tape. Toolchain traps that
+  cost a build each: read the framework's `.v` as SystemVerilog,
+  `auto_detect_xpm` before `synth_design`, the framework's
+  `-through i_ascal/reset_na` false path matches nothing under 2026.1, the
+  router's hold estimate sits ~70 ps above sign-off on the framework's
+  `clk`. All in `Verilog/fpga/mega65/docs/00-plan.md` and `build.tcl`.
+  ALSO FOUND THERE: the committed `Shared/support/wcs_*.hex` were the
+  PRE-PATCH microcode (0o2002 unpatched) and the MiSTer's Quartus reads
+  them via `SEARCH_PATH` - decoded from its own MIF; refreshed 02-SEP.
 - Live task list: `Verilog/TODO.md`. Historical latch-refactor notes:
   `Verilog/verilog-remove-latch.md`, `Verilog/worklog-latch-refactor.md`.
 
