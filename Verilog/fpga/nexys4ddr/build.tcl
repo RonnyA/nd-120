@@ -259,17 +259,32 @@ if {$vga_console} {
         }
     }
     append stamp [clock format [clock seconds] -format { %d-%b-%Y %H:%M}]
+    # ---- fourth banner line: board, CPU clock, cache (01-SEP-2026) --------
+    # Ronny asked for the three settings that change how the machine behaves
+    # to be on the screen too, taken from the build and not typed in. The
+    # clock comes from $board_clk, the Hz value in $clk_table the MMCM is
+    # generated from; the cache text from the same nocache test that adds
+    # ND120_NO_CACHE below. "cache on" means the cache RAMs are in the
+    # bitstream - slide switch sw[4] still turns it off at run time (down =
+    # on), which the text says so nobody reads the banner as the live state.
+    set _mhz [format %.2f [expr {$board_clk / 1000000.0}]]
+    if {[lsearch $argv "nocache"] >= 0} {
+        set _cache "no cache"
+    } else {
+        set _cache "cache on (sw4 up = off)"
+    }
+    set config "Nexys 4 DDR - $_mhz MHz - $_cache"
     set _gen [file join $srcdir build term_banner_rom.v]
     file mkdir [file dirname $_gen]
-    if {[catch {exec python [file join $vroot Terminals font make_banner.py] $stamp $_gen} _e]} {
-        if {[catch {exec python3 [file join $vroot Terminals font make_banner.py] $stamp $_gen} _e2]} {
+    if {[catch {exec python [file join $vroot Terminals font make_banner.py] $stamp $_gen $config} _e]} {
+        if {[catch {exec python3 [file join $vroot Terminals font make_banner.py] $stamp $_gen $config} _e2]} {
             puts "BANNER: generator failed ($_e2) - using the committed ROM"
             set _gen ""
         }
     }
     if {$_gen ne "" && [file exists $_gen]} {
         set banner_rom $_gen
-        puts "BANNER: build stamp \"$stamp\""
+        puts "BANNER: build stamp \"$stamp\", config \"$config\""
     }
 
     foreach f {vga_timing.v font_rom.v char_ram.v text_screen.v terminal_ctrl.v
@@ -285,19 +300,29 @@ if {$vga_console} {
     }
     lappend srcs $banner_rom
 
-    # Vivado resolves $readmemh RELATIVE TO THE .v SOURCE, not the project
-    # directory (the same trap the wcs_*.hex files hit). font_rom.v lives in
-    # Terminals/rtl, so the font has to sit beside it - the master copy is
-    # generated into Terminals/font by make_font.py.
+    # $readmemh("font8x16.hex") in font_rom.v must find the FRESH font. MEASURED
+    # 02-SEP-2026, the hard way: Vivado resolved that relative path against its
+    # WORKING DIRECTORY ($srcdir = this fpga/nexys4ddr/ folder), NOT next to the
+    # .v source. A stale 3-page font8x16.hex had been left in $srcdir on
+    # 30-AUG, and every build read THAT - so no font edit reached silicon for
+    # two days (PED's box came out as diamonds/blank/backticks and cost a long
+    # night of chasing a phantom "Vivado page-shift"). Proof: the placed
+    # checkpoint's font BRAM was byte-identical to the stale $srcdir file.
+    #
+    # So copy the master font to BOTH places: next to font_rom.v ($tdir, the
+    # documented .v-relative location) AND into $srcdir (where Vivado actually
+    # read it here). Overwriting $srcdir/font8x16.hex also destroys any stale
+    # copy. The master is generated into Terminals/font by make_font.py.
     set font_src [file join $vroot Terminals font font8x16.hex]
-    set font_dst [file join $tdir font8x16.hex]
     if {![file exists $font_src]} {
         puts "ERROR: font ROM missing: $font_src"
         puts "Generate it: python3 Terminals/font/make_font.py <a .psf font> Terminals/font/font8x16.hex"
         exit 1
     }
+    set font_dst [file join $tdir font8x16.hex]
     file copy -force $font_src $font_dst
-    puts "VGA console: terminal sources added, font copied to $font_dst"
+    file copy -force $font_src [file join $srcdir font8x16.hex]
+    puts "VGA console: terminal sources added, font copied to $font_dst and $srcdir"
 }
 
 read_verilog $srcs

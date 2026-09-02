@@ -3,9 +3,12 @@
 
     python3 make_font.py /usr/share/consolefonts/Lat15-VGA16.psf.gz font8x16.hex
 
-Output is a $readmemh file: 4096 lines of two hex digits, one byte per line.
-Byte (code * 16 + row) is the pixel row of the glyph for character `code`,
-MSB = leftmost pixel. That is the layout `font_rom.v` expects.
+Output is a $readmemh file: four pages of 2048 lines of two hex digits, one
+byte per line. Byte (page * 2048 + code * 16 + row) is the pixel row of the
+glyph for character `code` on that page, MSB = leftmost pixel. That is the
+layout `font_rom.v` expects. The pages are listed in the file's own header.
+
+Run it from this directory (page 3 imports tdv2200_set2.py from here).
 
 Why a script and not a checked-in blob: the ROM must be regenerable, and the
 font we ship has to be one whose licence we can point at. See README.md here.
@@ -438,6 +441,89 @@ def tdv_box_page(page0):
     return page
 
 
+# ---------------------------------------------------------------------------
+# TDV2200 character set 2 - the FOURTH font page (page 3)
+#
+# What the TDV2200 shows for SS2 (ESC N <char>) and for a locking shift to G2
+# (see Terminals/docs/SPEC-tdv2200.md). PED draws every frame this way, one
+# ESC N per cell (live capture, 01-SEP-2026). It is a THIRD line-drawing
+# alphabet, different from both pages above:
+#
+# It is page 3, selected by BOTH the ESC 6 (Box) designation and SS2 (ESC N):
+# on a real TDV2200 those are one alphabet (RetroCore maps both to bank 2), so
+# they share one page and the ROM stays at four pages / 8192 bytes.
+#
+#   code  set 2 (this page)   DEC page 2
+#   0x60  horizontal line     diamond
+#   0x61  bottom-left corner  checkerboard
+#   0x67  top-left corner     plus/minus
+#   0x6A  vertical line       lower-right
+#
+# Measured on the Nexys 4 DDR, 01-SEP-2026: with SS2 pointed at page 2 (DEC),
+# PED's frames came out as rows of diamonds - every horizontal-line cell is
+# 0x60, which is the diamond on the DEC page.
+#
+# The glyphs are the real TDV2200 character ROM's, taken from RetroCore's dump
+# of it (FontTDV2200.cs, set 2 = ROM glyphs 128-255) by
+# tdv2200_set2_from_retrocore.py into tdv2200_set2.py - RetroCore renders PED
+# correctly by indexing exactly that table, so it is the reference. Set 2 is
+# not only lines: 0x20-0x5F carry Greek and mathematical symbols, 0x6B-0x7E
+# brackets, arrows and more, all copied as they are.
+#
+# The eleven line-drawing glyphs 0x60-0x6A are the one exception: the ROM
+# draws them 14 rows tall (the real terminal's cell is shorter than ours), so
+# copied verbatim a vertical line would show a two-pixel gap at every cell
+# boundary. They are synthesized here instead with the same one-pixel strokes
+# page 3 uses (column 4, row 8, full cell height), so lines meet edge to edge
+# and the ESC 6 and SS2 frames look alike on one screen.
+# ---------------------------------------------------------------------------
+
+def tdv_set2_page():
+    """The 128 glyphs of the TDV2200 character set 2."""
+    from tdv2200_set2 import SET2
+
+    # H_ROW is 7, NOT 8, and that is on purpose (02-SEP-2026). The eleven line
+    # glyphs 0x60-0x6a are synthesised here, but the rest of set 2 (symbols,
+    # arrows, brackets) is copied verbatim from RetroCore's ROM, whose
+    # horizontal strokes sit on pixel row 7. Synthesising the lines on row 8
+    # put every box stroke ONE PIXEL below the copied glyphs it joins, so a
+    # shaft-plus-arrowhead came out mis-stepped. Row 7 matches the copied set.
+    V_BIT, H_ROW = 0x08, 7
+
+    def light(up=False, down=False, left=False, right=False):
+        rows = [0] * 16
+        if up:
+            for r in range(0, H_ROW + 1):
+                rows[r] |= V_BIT
+        if down:
+            for r in range(H_ROW, 16):
+                rows[r] |= V_BIT
+        if left:
+            rows[H_ROW] |= 0xF8
+        if right:
+            rows[H_ROW] |= 0x0F
+        return bytes(rows)
+
+    page = list(SET2)
+    assert len(page) == 128
+    lines = {
+        0x60: light(left=True, right=True),             # ` horizontal
+        0x61: light(up=True, right=True),               # a bottom-left corner
+        0x62: light(up=True, left=True, right=True),    # b bottom tee
+        0x63: light(up=True, left=True),                # c bottom-right corner
+        0x64: light(up=True, down=True, right=True),    # d left tee
+        0x65: light(up=True, down=True, left=True, right=True),  # e cross
+        0x66: light(up=True, down=True, left=True),     # f right tee
+        0x67: light(down=True, right=True),             # g top-left corner
+        0x68: light(down=True, left=True, right=True),  # h top tee
+        0x69: light(down=True, left=True),              # i top-right corner
+        0x6A: light(up=True, down=True),                # j vertical
+    }
+    for code, glyph in lines.items():
+        page[code] = glyph
+    return page
+
+
 NATIONAL_VARIANTS = {
     # ISO 646 position -> the Unicode codepoint to draw there
     "no": {
@@ -498,11 +584,22 @@ def main():
             page1[pos] = g
             substituted.append(pos)
 
-    # Page 2: DEC Special Graphics - the VT100 line-drawing set.
-    page2, gfx_absent = dec_graphics_page(page0, glyph_for)
+    # Page 2: TDV2200 character set 2 - the ONE TDV line-drawing set, reached
+    # by both ESC 6 (Box) and SS2 (ESC N); PED draws its frames with it. On a
+    # real TDV2200 those are the same set (RetroCore maps both to bank 2).
+    #
+    # NOTE on the 01/02-SEP-2026 debugging marathon: the earlier "diamonds",
+    # "blank" and "backticks" on the Nexys were NOT a page-placement or
+    # Vivado-optimisation problem, as several since-deleted comments claimed.
+    # The Vivado build read a STALE 3-page font8x16.hex from its working
+    # directory (fpga/nexys4ddr/) instead of the fresh copy build.tcl put next
+    # to font_rom.v, so no font edit reached silicon for two days. See
+    # fpga/nexys4ddr/build.tcl's font-copy block. With the right file read,
+    # page 2 = set 2 and GFX_PAGE=2 render correctly.
+    page2 = tdv_set2_page()
 
-    # Page 3: TDV2200 Box - the TDV2200 line-drawing set (ESC 6 / NDSS6).
-    page3 = tdv_box_page(page0)
+    # Page 3: DEC Special Graphics - the VT100 build's line-drawing set.
+    page3, gfx_absent = dec_graphics_page(page0, glyph_for)
 
     rom = page0 + page1 + page2 + page3
 
@@ -510,8 +607,8 @@ def main():
         out.write("// 8x16 character generator ROM, generated by make_font.py\n")
         out.write("// source: %s\n" % src)
         out.write("// page 0: US/ISO 646 IRV  page 1: Norwegian NS 4551-1\n")
-        out.write("// page 2: DEC Special Graphics (VT100 line drawing)\n")
-        out.write("// page 3: TDV2200 Box (ESC 6 / NDSS6 line drawing)\n")
+        out.write("// page 2: TDV2200 character set 2 (ESC 6 Box AND SS2/ESC N - TDV build)\n")
+        out.write("// page 3: DEC Special Graphics (VT100 line drawing - VT100 build)\n")
         out.write("// index = page * 2048 + code * 16 + pixel row; MSB = leftmost pixel\n")
         out.write("// character->glyph mapping: %s\n"
                   % ("from the font's unicode table"

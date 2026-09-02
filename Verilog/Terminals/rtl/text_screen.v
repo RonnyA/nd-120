@@ -39,10 +39,12 @@ module text_screen #(
     parameter integer CELL_H      = 16,
     parameter integer AWIDTH      = 11,
     //! Which font page a cell's graphics-attribute bit (RAM bit 12) selects.
-    //! 2 = DEC Special Graphics (VT100), 3 = TDV2200 Box - the two builds
-    //! never run at once, so this is fixed per instantiation, not a runtime
-    //! signal. See terminal_top.v's own ND120_TERMINAL_VT100 select.
-    parameter integer GFX_PAGE    = 3,
+    //! 2 = TDV2200 character set 2 (TDV build - reached by both ESC 6 and SS2),
+    //! 3 = DEC Special Graphics (VT100 build) - the two builds never run at
+    //! once, so this is fixed per instantiation, not a runtime signal. See
+    //! terminal_top.v's select, and font/make_font.py for why the TDV set is
+    //! on the proven-present page 2, not page 3.
+    parameter integer GFX_PAGE    = 2,
     //! Where the character grid sits inside the visible area. 80x25 of 8x16 is
     //! 640x400; centred in 800x600 that is (800-640)/2 = 80, (600-400)/2 = 100.
     parameter integer ORIGIN_X    = 80,
@@ -85,8 +87,8 @@ module text_screen #(
     // Screen state, driven by terminal_ctrl
     //! Font page. 0 = US / ISO 646 IRV, 1 = Norwegian (NS 4551-1). It changes
     //! what six existing byte values LOOK like - it does not add characters.
-    //! A cell whose DEC-graphics attribute bit is set overrides this and
-    //! reads font page 2 (VT100 line drawing) instead.
+    //! A cell whose graphics attribute bit is set overrides this and reads
+    //! the GFX_PAGE font page (page 2 = TDV set 2, page 3 = DEC) instead.
     input wire       national,
 
     //! DECSCNM - reverse the whole screen (ink and paper swap everywhere).
@@ -252,11 +254,11 @@ module text_screen #(
   //! ISO 646 IRV, page 1 the Norwegian variant (six bytes draw AE OE AA
   //! ae oe aa and the currency sign instead of [ \ ] { | } and $ - see the
   //! long note in font/make_font.py), page 2 the DEC Special Graphics set
-  //! VT100 draws boxes with, page 3 the TDV2200 Box set. The cell's graphics
-  //! attribute (bit 12, set by terminal_ctrl(_tdv) from its own charset
-  //! state at write time) wins over `national`: a line-drawing cell is line
-  //! drawing on both layouts. GFX_PAGE picks 2 or 3 - fixed per build, see
-  //! the parameter comment.
+  //! the VT100 build draws boxes with, page 3 the TDV2200 character set 2 the
+  //! TDV build draws boxes with. The cell's graphics attribute (bit 12, set
+  //! by terminal_ctrl(_tdv) from its own charset state at write time) wins
+  //! over `national`: a line-drawing cell is line drawing on both layouts.
+  //! GFX_PAGE picks 2 or 3 - fixed per build, see the parameter comment.
   //!
   //! Bit 7 of the stored character is REPLACED, not ORed: the ND-120 is 7-bit,
   //! so bit 7 carries no information, and replacing it means a stray high byte

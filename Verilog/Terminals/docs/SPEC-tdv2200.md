@@ -58,6 +58,32 @@
 >   synthesized the same way page 2's DEC graphics are); every other digit
 >   falls back to plain ASCII. `terminal_ctrl_tdv_tb.v` has the regression
 >   test.
+> - **PED's box-drawing is SS2 into character set 2 (01-SEP-2026, measured
+>   on the Nexys).** PED draws every frame cell with SS2 (`ESC N <char>`), a
+>   single shift through G2, which on a TDV2200 is permanently **character
+>   set 2** of the terminal's own ROM (confirmed against a live serial trace:
+>   repeated `1B 4E` then one data byte per cell). Set 2 is the SAME alphabet
+>   the `ESC 6` Box designation selects - on a real TDV2200 they are one set
+>   (RetroCore maps both Box and G2 to bank 2) - so both use the ONE graphics
+>   bit (cell bit 12 -> font **page 3**). Set 2 is NOT the VT100 DEC Special
+>   Graphics alphabet: it has the horizontal line at `0x60` where DEC has a
+>   diamond, and the corners/tees at `0x61-0x6A`. Page 3's glyphs are the
+>   real ROM's, copied glyph for glyph from RetroCore's dump
+>   (`font/tdv2200_set2_from_retrocore.py` -> `font/tdv2200_set2.py`), with
+>   the eleven line glyphs re-drawn at full cell height so they join between
+>   cells.
+>   - **The Nexys detour that cost the evening:** a first cut pointed SS2 at
+>     the DEC page (page 2), and PED's frames rendered as rows of DIAMONDS.
+>     A second cut gave SS2 its OWN font page (page 4) and a second cell bit
+>     (bit 13); that fifth page pushed the font ROM past a block-RAM boundary
+>     and **Vivado, proving the page-4 address was never asserted, dropped it
+>     and aliased page 4 back onto page 0** - so PED's frames came out as
+>     backticks (`0x60`) and the odd `e` (`0x65`), exactly page 0 of the
+>     set-2 codes. The RTL and both testbenches were correct; the bug was
+>     synthesis-only and invisible in Verilator. Fix: Box and SS2 share one
+>     page, the ROM stays at four pages / 8192 bytes, and it synthesises as
+>     it did on the working build 24. Do not split them onto separate pages
+>     again without checking the font ROM actually grew in the BRAM report.
 > - **Backspace was wired to `BS` (0x08), which is wrong.** `BS` is pure
 >   cursor-left on a TDV, with no delete at all - it is the exact same byte
 >   Left arrow sends. A destructive backward-delete needs `DEL` (0x7F),

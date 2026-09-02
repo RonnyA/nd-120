@@ -106,26 +106,29 @@ module text_screen_tb;
   //--------------------------------------------------------------------------
 
   reg [15:0] model_cells[0:COLS*ROWS-1];
-  reg [ 7:0] model_font [0:4095];
+  reg [ 7:0] model_font [0:8191];  //! all four pages; only page 0 is read here
 
   initial $readmemh("../font/font8x16.hex", model_font);
 
-  //! Write one cell into BOTH the DUT's RAM and the model.
+  //! Write one cell into BOTH the DUT's RAM and the model. `gfx` is the
+  //! cell's graphics bit (bit 12): 1 selects the graphics font page
+  //! (GFX_PAGE), 0 is plain text - see text_screen.v's s_font_page.
   task put_cell;
     input [7:0] srow;    //! STORED row
     input [7:0] scol;
     input [7:0] ch;
     input       reverse;
+    input       gfx;
     reg [AWIDTH-1:0] addr;
     begin
       addr = srow * COLS + scol;
       @(posedge clk);
       we    = 1'b1;
       waddr = addr;
-      wdata = {7'b0, reverse, ch};
+      wdata = {3'b0, gfx, 3'b0, reverse, ch};
       @(posedge clk);
       we = 1'b0;
-      model_cells[addr] = {7'b0, reverse, ch};
+      model_cells[addr] = {3'b0, gfx, 3'b0, reverse, ch};
     end
   endtask
 
@@ -166,7 +169,14 @@ module text_screen_tb;
         stored = (sum >= ROWS) ? (sum - ROWS) : sum;
 
         cellv     = model_cells[stored * COLS + col];
-        glyph_row = model_font[cellv[7:0] * 16 + prow];
+        // Font page from first principles, the way text_screen.v documents
+        // it: bit 12 (graphics) -> page 2 (the DUT's default GFX_PAGE, the
+        // TDV2200 character set 2), else page 0 (national is 0 here). Bit 7
+        // of the code is ignored, as in the DUT.
+        if (cellv[12])
+          glyph_row = model_font[2 * 2048 + cellv[6:0] * 16 + prow];
+        else
+          glyph_row = model_font[cellv[6:0] * 16 + prow];
         ink       = glyph_row[7 - pcol];   // MSB is the leftmost pixel
 
         is_cursor = cursor_enable && (col == cursor_col) &&
@@ -254,7 +264,7 @@ module text_screen_tb;
     //------------------------------------------------------------------
     for (r = 0; r < ROWS; r = r + 1)
       for (c = 0; c < COLS; c = c + 1)
-        put_cell(r[7:0], c[7:0], 8'h20 + ((r*COLS + c) % 95), ((r + c) % 7) == 0);
+        put_cell(r[7:0], c[7:0], 8'h20 + ((r*COLS + c) % 95), ((r + c) % 7) == 0, 1'b0);
 
     //------------------------------------------------------------------
     // 1. Plain render, no cursor, no scroll.
@@ -297,18 +307,45 @@ module text_screen_tb;
     scan_frame;
     $display("-- frame 4 (top_row=24, wraps): %0d wrong", errors - before_errors);
 
+    //------------------------------------------------------------------
+    // 5. The graphics page (01-SEP-2026). Row 0: every code 0x20-0x7F with
+    //    the graphics bit (bit 12) set - font page 2, the TDV2200 character
+    //    set 2, which both SS2 (ESC N) and ESC 6 select and PED draws its
+    //    frames with. Row 1: bit 12 set AND bit 7 of the code also set -
+    //    bit 7 must be ignored (7-bit machine), so it renders the same as
+    //    row 0. Everything else stays plain text from the frames above, so
+    //    the same scan also proves the graphics bit does not leak into
+    //    neighbours. Rows sit at the top with top_row back to 0.
+    //
+    //    Added because build 25 on the Nexys drew PED's frame cells as the
+    //    letters g j a i j c - the raw set-2 codes through page 0 - and this
+    //    testbench had never rendered a cell with the graphics bit set. The
+    //    board bug was a font-ROM page that Vivado dropped; this frame is
+    //    what proves the DUT picks page 2 for a graphics cell.
+    //------------------------------------------------------------------
+    for (c = 0; c < COLS; c = c + 1) begin
+      put_cell(8'd0, c[7:0], 8'h20 + (c % 96), 1'b0, 1'b1);
+      put_cell(8'd1, c[7:0], 8'hA0 + (c % 96), 1'b0, 1'b1);
+    end
+    top_row       = 8'd0;
+    cursor_enable = 1'b0;
+    before_errors = errors;
+    scan_frame;
+    $display("-- frame 5 (graphics bit -> page 2, TDV2200 set 2; bit 7 ignored): %0d wrong",
+             errors - before_errors);
+
     $display("total visible pixels checked: %0d", checked);
 
-    // A frame is 800*600 visible pixels; four frames must have checked them
+    // A frame is 800*600 visible pixels; five frames must have checked them
     // all. If the counter is short the scan itself was broken, and "0 errors"
     // would mean nothing.
-    if (checked != 4 * H_VISIBLE * V_VISIBLE) begin
+    if (checked != 5 * H_VISIBLE * V_VISIBLE) begin
       $display("FAIL: checked %0d pixels, expected %0d - the scan is wrong, not the DUT",
-               checked, 4 * H_VISIBLE * V_VISIBLE);
+               checked, 5 * H_VISIBLE * V_VISIBLE);
       errors = errors + 1;
     end
 
-    if (errors == 0) $display("TB_RESULT: PASS (%0d pixels, 4 frames)", checked);
+    if (errors == 0) $display("TB_RESULT: PASS (%0d pixels, 5 frames)", checked);
     else $display("TB_RESULT: FAIL (%0d errors)", errors);
 
     $finish;

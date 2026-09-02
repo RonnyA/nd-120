@@ -152,25 +152,31 @@ module terminal_ctrl_tdv #(
 
   reg s_at_rev, s_at_bold, s_at_ul, s_at_blink;
   reg s_shift;    //! SO/SI: 0 = G0 active, 1 = G1 active
-  reg s_g0_gfx;   //! G0 designated NDSS6/Box (ESC 6) - font page 3. NEVER
-                  //! observed in a live capture (dbg_saw_esc6 stayed 0000
-                  //! through a full PED session, 01-SEP-2026) - kept for
-                  //! whatever program actually sends it, but NOT how
-                  //! PED's own box-drawing works - see s_ss2_armed below.
+  reg s_g0_gfx;   //! G0 designated NDSS6/Box (ESC 6) - cell bit 12, font
+                  //! page 3 (TDV2200 character set 2). SCONF draws with it
+                  //! (live capture 31-AUG-2026). A locking designation.
   reg s_g1_gfx;   //! G1's own designation - never set (no NDSS G1 form
                   //! implemented yet), so G1 always reads as plain ASCII
 
   //! SS2 (ESC N) - single-shift the NEXT character only through the
-  //! graphics font (page 2, DEC Special Graphics). This is the REAL
-  //! mechanism PED's box-drawing (frame/fullbar in PLANC-SCREEN-H, per
-  //! NDInsight's VTM-TERMINAL-INTERFACES.md) actually uses: RetroTerm's
-  //! own TDVEmulatorBase.cs hardwires G2 to GraphicsI PERMANENTLY (no
-  //! designation escape at all - see _g2CharacterSet's initializer), so
-  //! ESC N + a data byte is the box-drawing character right there, not a
-  //! delayed G0 mode change. Confirmed against a live capture 01-SEP-2026:
-  //! PED repeats `ESC N <char>` once per graphics cell (e.g. the position
-  //! ruler's backtick run), never a single lasting SO. One-shot: cleared
-  //! the instant put_char consumes it, exactly like a real single shift.
+  //! TDV2200's CHARACTER SET 2 (cell bit 12, font page 3 - the SAME set the
+  //! ESC 6 Box designation selects; on a real TDV2200 they are one alphabet,
+  //! and RetroCore maps both to bank 2). This is the mechanism PED's
+  //! box-drawing (frame/fullbar in PLANC-SCREEN-H, per NDInsight's
+  //! VTM-TERMINAL-INTERFACES.md) actually uses: RetroTerm's own
+  //! TDVEmulatorBase.cs hardwires G2 to set 2 PERMANENTLY (no designation
+  //! escape at all - see _g2CharacterSet's initializer), so ESC N + a data
+  //! byte is the box-drawing character right there, not a delayed G0 mode
+  //! change. Confirmed against a live capture 01-SEP-2026: PED repeats
+  //! `ESC N <char>` once per graphics cell (e.g. the position ruler), never
+  //! a lasting SO. One-shot: cleared the instant put_char consumes it.
+  //!
+  //! Set 2 is NOT the VT100 DEC Special Graphics alphabet. Measured on the
+  //! Nexys 01-SEP-2026: with SS2 pointed at the DEC page, PED's frames came
+  //! out as DIAMONDS, because in set 2 code 0x60 is the horizontal line
+  //! (DEC: diamond) and the corners/tees sit at 0x61-0x6A. Page 3 carries
+  //! the real TDV2200 character ROM as dumped in RetroCore's FontTDV2200.cs
+  //! (font/tdv2200_set2_from_retrocore.py).
   reg s_ss2_armed;
 
   reg s_pending;  //! last-column flag - same VT100-derived autowrap behavior;
@@ -347,10 +353,21 @@ module terminal_ctrl_tdv #(
     begin
       ram_we    <= 1'b1;
       ram_waddr <= cell_addr(stored_row(top_row, cursor_row), cursor_col);
-      // s_ss2_armed wins over the G0/G1 designation bit - a single-shift
-      // graphics character regardless of which set is currently invoked.
-      // Cleared here, unconditionally, the instant this character is
-      // consumed - true single-shift semantics (one character only).
+      // ONE graphics bit (cell bit 12 -> font page 3, the TDV2200 character
+      // set 2). It is set by EITHER of the two things that select that set on
+      // a real TDV2200, which are the same alphabet:
+      //   - SS2 (ESC N): a single shift, so s_ss2_armed is true for exactly
+      //     THIS character, whatever G0/G1 is invoked; and
+      //   - the invoked set being NDSS6/Box (ESC 6): s_g0_gfx / s_g1_gfx, a
+      //     locking designation that stays until the program changes it.
+      // s_ss2_armed wins and is cleared here, unconditionally, the instant
+      // this character is consumed - true single-shift semantics (one
+      // character only). Bits 15:13 are spare.
+      //
+      // This is the build-24 structure, which synthesised and rendered
+      // correctly on the Nexys; a two-bit / five-page variant (SS2 on its own
+      // page) was dropped by Vivado's optimiser and aliased to page 0 - see
+      // font_rom.v's header.
       ram_wdata <= {3'b000, (s_ss2_armed ? 1'b1 : (s_shift ? s_g1_gfx : s_g0_gfx)),
                     s_at_blink, s_at_ul, s_at_bold, s_at_rev, ch};
       s_ss2_armed <= 1'b0;

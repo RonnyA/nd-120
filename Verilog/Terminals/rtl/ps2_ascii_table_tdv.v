@@ -237,16 +237,24 @@ module ps2_ascii_table_tdv (
       // NO E0 prefix, while Right correctly arrives E0-prefixed (extended
       // table above, unaffected, confirmed still working). Standard PS/2
       // Set 2 has the dedicated arrow-cluster keys always E0-prefixed -
-      // only the numpad-8/Up and numpad-2/Down dual-label keys send bare
-      // codes - so this is a real quirk of this keyboard, not a decode bug.
-      // Purely additive: neither bare code had a table entry before (sent
-      // nothing), so this cannot regress anything - it just also accepts
-      // the form this keyboard actually sends. Left NOT added here: a
-      // reported "Left" reading came back as 0x66, which is the Backspace
-      // scancode - adding that would break the Backspace->DEL fix instead,
-      // so that reading needs a clean re-test before acting on it.
+      // The Nexys 4 DDR's onboard USB-to-PS/2 bridge DROPS THE E0 PREFIX for
+      // the Up, Down AND Left arrows (Right keeps it) - a documented Digilent
+      // quirk, reproduced on multiple keyboards against Digilent's own demo
+      // (forum.digilent.com topic 16515). So those three arrive here as the
+      // BARE base code (0x75/0x72/0x6B) instead of the E0-prefixed form the
+      // extended table above handles. This keyboard is fine - a PC reading it
+      // directly sees the proper extended keys; it is the bridge that strips
+      // the E0. Purely additive: none of these bare codes had a main-table
+      // entry before (they sent nothing), so this cannot regress anything.
+      //
+      // CORRECTED 02-SEP-2026: an earlier note here said Left came back as
+      // 0x66 (Backspace's code) and left it out to protect the Backspace->DEL
+      // fix. That was a 6B/66 misread on the 7-seg. Re-measured on the raw-
+      // scancode tap: Left is bare 0x6B, DISTINCT from Backspace 0x66, so it
+      // is added safely below - same as Up/Down, no conflict.
       8'h75: begin us_unshifted = 8'h1C; us_shifted = 8'h1C; end  // Up   (bare) -> FS
       8'h72: begin us_unshifted = 8'h0B; us_shifted = 8'h0B; end  // Down (bare) -> VT
+      8'h6B: begin us_unshifted = 8'h08; us_shifted = 8'h08; end  // Left (bare) -> BS
 
       // --- the control keys a console needs --------------------------------
       8'h29: begin us_unshifted = 8'h20; us_shifted = 8'h20; end  // space

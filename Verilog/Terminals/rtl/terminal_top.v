@@ -570,17 +570,22 @@ module terminal_top #(
       .CELL_H       (CELL_H),
       .AWIDTH       (AWIDTH),
 `ifdef ND120_TERMINAL_VT100
-      .GFX_PAGE     (2),  // DEC Special Graphics
+      .GFX_PAGE     (3),  // DEC Special Graphics (ESC ( 0 + SO/SI), VT100 build
 `else
-      // Page 2 (DEC Special Graphics), not page 3 (TDV2200 Box) - 01-SEP-2026.
-      // PED's actual box-drawing goes through SS2 (ESC N, see s_ss2_armed in
-      // terminal_ctrl_tdv.v), which is the same VT100-style graphics alphabet
-      // RetroTerm's own GraphicsI table confirms. NDSS6 (which selected page
-      // 3) was never once observed in a live capture across a full PED
-      // session (dbg_saw_esc6 stayed 0000) - page 3 stays built for whatever
-      // program DOES send NDSS6, but the single graphics-bit in the cell
-      // format can only point at one page at a time, and SS2 is the one
-      // that is actually used.
+      // TDV2200: cell bit 12 -> PAGE 2, the TDV2200 character set 2. BOTH the
+      // ESC 6 (Box) designation and SS2 (ESC N) select it - on a real
+      // TDV2200 they are one alphabet. Page 2's glyphs are the real TDV2200
+      // ROM's, from RetroCore's dump (font/tdv2200_set2_from_retrocore.py).
+      //
+      // Page 2 is DELIBERATE, not page 3. On the Nexys, Vivado materialises
+      // only the font-ROM pages the design has ever addressed: page 2 is the
+      // graphics page every build has used (build 24 rendered DEC diamonds
+      // from it), page 3 had never been addressed. Pointing the TDV graphics
+      // page at 3 gave a ROM with no page 3 - PED's frames rendered BLANK
+      // (02-SEP-2026). Two earlier cuts failed the same family of bug: SS2 on
+      // the DEC page (diamonds), then SS2 on a fifth page that pushed the ROM
+      // past a block-RAM boundary and was dropped (backticks). Keep the
+      // alphabet the Nexys actually draws on the proven page 2.
       .GFX_PAGE     (2),
 `endif
       .ORIGIN_X     (ORIGIN_X),
