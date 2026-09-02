@@ -36,14 +36,16 @@
 
 `default_nettype none
 
-//! Forces terminal_top.v to instantiate the VT100 controller, not the
-//! TDV2200 one that became the DEFAULT (undefined) on 31-AUG-2026
-//! (Verilog/Terminals/docs/SPEC-tdv2200.md). This board's keyboard end
-//! above only wires ps2_decoder + key_vt100 - there is no TDV keyboard
-//! path here yet - so this file must keep forcing VT100 regardless of
-//! what the shared core's own default becomes, or the display and
-//! keyboard would speak two different terminal types.
-`define ND120_TERMINAL_VT100
+// TDV2200 (the shared core's default, undefined) - matching the Nexys and
+// what SINTRAN drives both boards as. This file USED to `define
+// ND120_TERMINAL_VT100 because its keyboard end only wired ps2_decoder +
+// key_vt100 and "there is no TDV keyboard path here yet". That path is wired
+// now (02-SEP-2026): ps2_decoder_tdv + the key_tdv2200 marker expander below,
+// exactly as nd120_nexys4ddr_top.v does. Display and keyboard now speak the
+// same terminal type - TDV2200 - so the box glyphs (font page 2) and the TDV
+// cursor/function keys work here as they do on the Nexys. Do NOT re-add the
+// VT100 `define without also switching the keyboard back, or the two ends
+// would disagree again.
 
 module nd120_console_mister #(
     //! A BARE FILENAME on purpose. Vivado resolves $readmemh next to the .v
@@ -102,8 +104,13 @@ module nd120_console_mister #(
     input wire        panel_flp_rd,
     input wire        panel_flp_wr,
 
-    output reg        kbd_valid,  //! one clock per keystroke to the machine
-    output reg  [7:0] kbd_data,
+    //! Keystrokes to the machine, AFTER the key_tdv2200 expander (so a TDV
+    //! function/cursor key is already its full ESC[nn_ sequence). kbd_ready is
+    //! the console UART TX's idle flag - the expander only emits while it is
+    //! high, exactly as on the Nexys (nd120_nexys4ddr_top.v CONSOLE_TX.ready).
+    input  wire       kbd_ready,
+    output wire       kbd_valid,  //! one clock per byte to the machine, gated by kbd_ready
+    output wire [7:0] kbd_data,
 
     // Video, straight onto the framework's VGA_* ports
     output wire [2:0] colour,  //! palette index - see terminal_top.v
@@ -134,7 +141,7 @@ module nd120_console_mister #(
   wire       s_kbd_ascii_valid;
   wire [7:0] s_kbd_ascii_data;
 
-  ps2_decoder DECODER (
+  ps2_decoder_tdv DECODER (
       .clk  (clk),
       .rst_n(rst_n),
 
@@ -151,18 +158,28 @@ module nd120_console_mister #(
 
       .shift_active(),
       .ctrl_active (),
-      .caps_active ()
+      .caps_active (),
+      .alt_active  ()
   );
 
-  always @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
-      kbd_valid <= 1'b0;
-      kbd_data  <= 8'h00;
-    end else begin
-      kbd_valid <= s_kbd_ascii_valid;
-      kbd_data  <= s_kbd_ascii_data;
-    end
-  end
+  //! Marker expander. A TDV function/cursor key leaves the table above as a
+  //! single marker byte (0x80|final); key_tdv2200 turns it into the ESC[nn_
+  //! byte sequence the machine expects, one byte at a time, gated by the UART
+  //! TX's idle (kbd_ready). Plain characters pass straight through. This is
+  //! the exact KEYEXP the Nexys top wires (nd120_nexys4ddr_top.v) - without
+  //! it, arrows and function keys are single bytes >= 0x80 that the machine
+  //! never sees. HPS keyboards send the proper E0 extended codes (unlike the
+  //! Nexys USB-PS/2 bridge that drops E0), so the extended table handles the
+  //! arrows here; the bare-code entries added for the Nexys are harmless.
+  key_tdv2200 KEYEXP (
+      .clk      (clk),
+      .rst_n    (rst_n),
+      .key_valid(s_kbd_ascii_valid),
+      .key_data (s_kbd_ascii_data),
+      .out_valid(kbd_valid),
+      .out_data (kbd_data),
+      .out_ready(kbd_ready)
+  );
 
   //--------------------------------------------------------------------------
   // What the screen is told to display

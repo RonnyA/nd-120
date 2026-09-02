@@ -91,6 +91,7 @@ module console_burst_tb;
       .panel_hdd_wr      (1'b0),
       .panel_flp_rd      (1'b0),
       .panel_flp_wr      (1'b0),
+      .kbd_ready(1'b1),   //! no keyboard in this display-path test
       .kbd_valid(kbd_valid),
       .kbd_data (kbd_data),
       .pixel(pixel), .hsync(hsync), .vsync(vsync), .de(de), .bell(bell)

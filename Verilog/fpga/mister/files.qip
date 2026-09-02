@@ -53,6 +53,7 @@ set_global_assignment -name VERILOG_FILE ../../SD-FAT/circuit/nd_storage_tape_ad
 # --- the shared, board-independent terminal core ----------------------------
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/terminal_top.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/terminal_ctrl.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/terminal_ctrl_tdv.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/text_screen.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/char_ram.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/vga_timing.v
@@ -64,6 +65,9 @@ set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/byte_fifo.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_decoder.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_ascii_table.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/key_vt100.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_decoder_tdv.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/ps2_ascii_table_tdv.v
+set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/key_tdv2200.v
 set_global_assignment -name VERILOG_FILE ../../Terminals/rtl/term_banner.v
 # The banner ROM is GENERATED per build by `make banner` (Makefile) with the
 # git hash, date and the board/clock/memory/cache line - the same stamp the

@@ -27,6 +27,7 @@ IVFLAGS = -g2012 -Wall
 TERM_SRC = $(TERM)/terminal_top.v $(TERM)/terminal_ctrl.v $(TERM)/terminal_ctrl_tdv.v $(TERM)/text_screen.v \
            $(TERM)/char_ram.v $(TERM)/vga_timing.v $(TERM)/font_rom.v \
            $(TERM)/cdc_byte.v $(TERM)/byte_fifo.v $(TERM)/ps2_decoder.v $(TERM)/ps2_ascii_table.v \
+           $(TERM)/ps2_decoder_tdv.v $(TERM)/ps2_ascii_table_tdv.v $(TERM)/key_tdv2200.v \
            $(TERM)/term_banner.v $(TERM)/term_banner_rom.v \
            $(TERM)/term_console_feed.v $(TERM)/term_panel.v $(TERM)/term_panel_rom.v $(TERM)/rate_meter.v $(TERM)/ratio_meter.v
 
