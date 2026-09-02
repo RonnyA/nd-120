@@ -12,8 +12,9 @@ It also avoids $bits() on a packed string, which iverilog and Verilator handle
 but Quartus 17's Verilog mode may not - this port has to build under three
 different toolchains.
 
-Run:  python3 font/make_banner.py
+Run:  python3 font/make_banner.py [build-stamp [output-path [config-line]]]
 from Verilog/Terminals/. Re-run and commit the result after editing MESSAGE.
+The build passes all three (fpga/nexys4ddr/build.tcl); by hand, none.
 """
 
 import os
@@ -47,10 +48,20 @@ NL = "\r\n"
 # it means the ROM was generated outside a real build.
 BUILD_ID = sys.argv[1] if len(sys.argv) > 1 else "dev"
 
+# A FOURTH line, 01-SEP-2026, at Ronny's request: which board, what CPU clock,
+# and whether the cache is in the build - the three things that decide how the
+# machine behaves and that the hash alone does not tell you. Like the stamp it
+# is composed by the BUILD (build.tcl derives the clock from the same table
+# the MMCM is generated from, and the cache text from the same flag that sets
+# ND120_NO_CACHE), so it cannot disagree with the bitstream. Absent when the
+# script is run by hand, in which case the banner is three lines as before.
+CONFIG = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] != "" else None
+
 MESSAGE = (
     "ND-120/CX CPU CORE" + NL +
     "80x25 TDV2200 console" + NL +
-    "build " + BUILD_ID + NL
+    "build " + BUILD_ID + NL +
+    (CONFIG + NL if CONFIG is not None else "")
 )
 
 # Second argument overrides the output path, so a build can generate its own

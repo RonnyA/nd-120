@@ -59,6 +59,8 @@ module terminal_ctrl_tdv_tb;
   wire [3:0] leds;
 
   integer errors = 0;
+  integer checks = 0;  //! every check() call - the summary line used to print a
+                       //! hard-coded 0 here, which hid nothing but proved nothing
 
   always #12.5 clk = ~clk;  // 40 MHz
 
@@ -131,6 +133,7 @@ module terminal_ctrl_tdv_tb;
     input condition;
     input [1023:0] what;
     begin
+      checks = checks + 1;
       if (!condition) begin
         $display("FAIL: %0s (time %0t)", what, $time);
         errors = errors + 1;
@@ -206,12 +209,18 @@ module terminal_ctrl_tdv_tb;
     check(s_cell[12] == 1'b0, "ESC 1 did not clear the graphics attribute back to plain ASCII");
 
     //------------------------------------------------------------------
-    // 2b-2. SS2 (ESC N) - the REAL box-drawing mechanism, found 01-SEP-2026:
-    // NDSS6/ESC 6 above was never once seen in a live PED capture
-    // (dbg_saw_esc6 stayed 0000 through a full session) - RetroTerm's own
-    // TDVEmulatorBase.cs hardwires G2 to GraphicsI permanently, so ESC N
-    // shifts the very NEXT character only through the graphics font, no
-    // lasting mode change. Confirmed live: PED repeats ESC N per cell.
+    // 2b-2. SS2 (ESC N) - the REAL box-drawing mechanism PED uses, found
+    // 01-SEP-2026: RetroTerm's own TDVEmulatorBase.cs hardwires G2 to
+    // character set 2 permanently, so ESC N shifts the very NEXT character
+    // only through that set, no lasting mode change. Confirmed live: PED
+    // repeats ESC N per cell.
+    //
+    // Set 2 is the SAME alphabet the ESC 6 Box designation selects (on a
+    // real TDV2200 they are one set - RetroCore maps both to bank 2), so
+    // SS2 and Box share the ONE graphics bit (cell bit 12 -> font page 3).
+    // Set 2 is NOT the DEC alphabet: 0x60 is the horizontal line (DEC: a
+    // diamond), which is why an earlier cut that pointed SS2 at the DEC
+    // page drew PED's frames as diamonds.
     //------------------------------------------------------------------
     send(ESC); send("N");                           // SS2 - next char only
     send(8'h60);                                    // graphics cell
@@ -224,6 +233,24 @@ module terminal_ctrl_tdv_tb;
     wait_ready;
     read_cell(cursor_row, 8'd3, s_cell);
     check(s_cell[12] == 1'b0, "SS2 leaked past one character - it must be single-shift only");
+
+    // SS2 while Box is designated: both set the same bit 12, so the shifted
+    // cell and the following (still Box-designated) cell are both graphics.
+    send(ESC); send("6");                           // NDSS6 - Box again
+    send(ESC); send("N");                           // SS2 on top of it
+    send(8'h67);
+    wait_ready;
+    read_cell(cursor_row, 8'd4, s_cell);
+    check(s_cell[12] == 1'b1, "SS2 under a Box designation did not set the graphics attribute");
+    send(8'h67);
+    wait_ready;
+    read_cell(cursor_row, 8'd5, s_cell);
+    check(s_cell[12] == 1'b1, "the Box designation did not survive an SS2 (still graphics)");
+    send(ESC); send("1");                           // back to plain ASCII
+    send(8'h67);
+    wait_ready;
+    read_cell(cursor_row, 8'd6, s_cell);
+    check(s_cell[12] == 1'b0, "ESC 1 after Box did not return to plain ASCII");
 
     //------------------------------------------------------------------
     // 2c. CSI A/B/C/D (cursor moves) and SGR (m) - the real bug, found
@@ -343,8 +370,8 @@ module terminal_ctrl_tdv_tb;
     read_cell(ROWS[7:0]-8'd1, COLS[7:0]-8'd1, s_cell);
     check(s_cell == {8'h00, 8'h20}, "ED[2J did not clear the last s_cell");
 
-    if (errors == 0) $display("TB_RESULT: PASS (%0d checks, incl. real captured PED startup)", 0);
-    else $display("TB_RESULT: FAIL (%0d errors)", errors);
+    if (errors == 0) $display("TB_RESULT: PASS (%0d checks, incl. real captured PED startup)", checks);
+    else $display("TB_RESULT: FAIL (%0d of %0d checks)", errors, checks);
     $finish;
   end
 

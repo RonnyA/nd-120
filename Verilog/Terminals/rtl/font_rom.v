@@ -7,7 +7,16 @@
 //! {char_code, row}; data is the pixel row, MSB = leftmost pixel. char_code
 //! is {page[1:0], code[6:0]}: page 0 = US / ISO 646 IRV, page 1 = Norwegian
 //! (NS 4551-1), page 2 = DEC Special Graphics (VT100 line drawing), page 3 =
-//! TDV2200 Box (ESC 6 / NDSS6 line drawing).
+//! TDV2200 character set 2 - the ONE TDV line-drawing alphabet, reached by
+//! both ESC 6 (Box) and SS2 (ESC N); PED draws its frames with it.
+//!
+//! FOUR pages, not five, and that is deliberate. A fifth page (SS2 on its
+//! own page separate from Box) pushed this ROM past a block-RAM boundary,
+//! and Vivado - proving the fifth page's address was never asserted -
+//! dropped it and aliased page 4 onto page 0, so PED's frames rendered as
+//! backticks on the Nexys (01-SEP-2026). Box and SS2 are the same set on a
+//! real TDV2200 (RetroCore maps both to bank 2), so they share page 3 and
+//! the ROM stays 8192 bytes, the size build 24 synthesised cleanly.
 //!
 //! The contents come from Verilog/Terminals/font/font8x16.hex, built by
 //! font/make_font.py out of a Linux PSF console font. Regenerate rather than

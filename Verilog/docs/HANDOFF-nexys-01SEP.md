@@ -167,9 +167,25 @@ python is missing. Run by hand with no argument the generator writes
    clock-dependent.
 3. **`clk=35` with cache untested** - 28.0 ns against a 28.04 ns path, so it
    misses by 0.039 ns on paper. Probably not worth the margin.
-4. Terminal/keyboard items are in the TDV handoff (Left arrow is a keyboard
-   hardware fault, box-drawing fix not yet visually confirmed, Insert
-   unverified).
+4. Terminal/keyboard items are in the TDV handoff. Evening 01-SEP: Insert,
+   Up, Down, Right confirmed on build 24; Left is the keyboard fault. PED's
+   box-drawing is now FIXED in build 26 after two measured wrong turns
+   (diamonds on the DEC page, then backticks when a fifth font page was
+   silently dropped by Vivado's optimiser - identical BRAM counts proved the
+   ROM never grew). Build 26 shares one font page for Box and SS2 (the
+   build-24 structure), keeping the ROM at four pages. All builds since 25
+   also carry a fourth banner line "Nexys 4 DDR - 33.33 MHz - cache on (sw4
+   up = off)" composed by `build.tcl`. A file of the RetroTermWeb/RetroCore
+   TDV2200 facts (fonts, ESC/CSI, keyboard) is at
+   `Verilog/Terminals/docs/RETROTERMWEB-TDV2200-FACTS.md`.
+5. **Serial mirror shows PS/2-typed characters with bit 7 set** (`d` ->
+   0xE4, `s` -> 0xF3, `f` unchanged): the keyboard path sends 7 data bits +
+   EVEN parity, the machine's SC2661 runs 8N1 and echoes the parity bit as
+   data. The VGA side reads the echo back as 7E1 so the screen is right,
+   and SINTRAN masks to 7 bits so commands work. Cosmetic on the PC side
+   only, but it means the board's keyboard TX framing and the machine's
+   UART framing do not match - worth a look when `key_tdv2200.v`'s
+   transmitter is next touched.
 
 ## Process notes
 

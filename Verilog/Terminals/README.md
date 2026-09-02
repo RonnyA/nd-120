@@ -29,7 +29,7 @@ events and a video sink - and the board folder owns that wiring.
 | `rtl/char_ram.v` | cells (80x24 VT100 / 80x25 TDV2200), 8 bits character + 8 bits attribute | every board |
 | `rtl/byte_fifo.v` | 16-byte slack in front of the controller (region scroll > 1 byte time) | every board |
 | `rtl/vga_timing.v` | parameterised sync generator, 800x600@60 default | every board |
-| `rtl/font_rom.v` | 8x16 glyphs from `font/font8x16.hex` | every board |
+| `rtl/font_rom.v` | 8x16 glyphs from `font/font8x16.hex`: four 128-glyph pages - US, Norwegian, DEC Special Graphics (VT100 build), TDV2200 character set 2 (TDV build - both `ESC 6` Box and SS2/`ESC N`, what PED draws frames with) | every board |
 | `rtl/cdc_byte.v` | one-byte clock crossing, full valid/ready handshake | every board |
 | `rtl/term_banner.v` | power-on self-test message sender | every board |
 | `rtl/term_banner_rom.v` | the message itself - **GENERATED**, see below | every board |

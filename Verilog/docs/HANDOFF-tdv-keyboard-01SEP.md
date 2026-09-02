@@ -78,16 +78,17 @@ stale reading can't be mistaken for a live one):
 Both additions are purely additive (the bare codes had no table entry before,
 so this cannot regress anything) - see `ps2_ascii_table_tdv.v`.
 
-**Left arrow is a real hardware fault, confirmed, not a firmware bug.** The
-sequence-counter tap proved the dedicated Left key AND the numpad's Left
-position (Numpad-4) both produce byte-identical `0x66` - which is Backspace's
-scancode, not Left's. Two different physical keys giving the same byte means
-the FPGA receives identical data regardless of which was pressed; there is no
-way to disambiguate in firmware. This is either a matrix wiring fault in this
-specific keyboard, key-rollover ghosting, or a USB-PS/2 adapter remapping
-issue if one is in the signal path (not confirmed which). **Testing a second,
-known-good keyboard is the next step** - the user was about to do this when
-the session ended.
+**Left arrow: RESOLVED 02-SEP-2026, and it was NOT a keyboard fault.** The
+earlier "both keys give 0x66" reading was a **6B-vs-66 misread on the 7-seg**
+(`6` has a top bar, `b` does not). Re-measured on the raw-scancode tap and
+A/B'd against Backspace: the Left key gives bare **`0x6B`**, DISTINCT from
+Backspace's `0x66`. The real cause is the Nexys 4 DDR's onboard USB-to-PS/2
+bridge, which DROPS THE E0 PREFIX for Up, Down AND Left (Right keeps it) - a
+documented Digilent quirk (forum.digilent.com topic 16515), reproduced on
+multiple keyboards against Digilent's own demo. The keyboard is fine; a PC
+reading it directly sees proper extended keys. Fix: add bare `0x6B` -> BS (TDV
+Left) to the MAIN table in `ps2_ascii_table_tdv.v`, exactly as Up (0x75) and
+Down (0x72) already were. Purely additive, no conflict with Backspace.
 
 ## Debug infrastructure added (nd120_nexys4ddr_top.v)
 
@@ -113,9 +114,30 @@ future TDV protocol work rather than removing them as "debug clutter."
 
 ## Open items
 
-1. **Confirm box-drawing actually renders correctly on the physical screen**
-   post-SS2-fix. Not yet done - the fix is code-complete, tested in
-   simulation, and flashed, but never visually confirmed.
+1. **Box-drawing: root-caused and fixed 01-SEP-2026 late evening (build
+   26).** The mechanism was right all along (SS2 = `ESC N`, one per cell,
+   confirmed on a live serial trace). Two wrong turns, both measured on the
+   Nexys:
+   - Build 24/early: SS2 pointed at the DEC page (page 2) -> PED's frames
+     rendered as DIAMONDS (set 2's horizontal line is `0x60`, which is the
+     diamond on the DEC page).
+   - Build 25: SS2 given its OWN font page (page 4) plus a second cell bit
+     (bit 13) -> the fifth page pushed the font ROM past a block-RAM
+     boundary and **Vivado dropped it, aliasing page 4 onto page 0**, so PED
+     came out as backticks (`0x60`) and the odd `e` (`0x65`). Proven from
+     the build log: build 24 and 25 have identical BRAM counts (RAMB18 43,
+     RAMB36 70), so the ROM never grew. The RTL and both testbenches were
+     correct; the bug was synthesis-only, invisible in Verilator.
+   - **Fix (build 26):** on a real TDV2200 the `ESC 6` Box set and the SS2
+     G2 set are the SAME character set 2 (RetroCore maps both to bank 2), so
+     they share ONE font page (page 3) and ONE cell bit (bit 12, the
+     build-24 structure that synthesised cleanly). The ROM stays at four
+     pages / 8192 bytes. Page 3 holds the real set 2 from RetroCore's
+     `FontTDV2200.cs` (`Terminals/font/tdv2200_set2_from_retrocore.py`).
+     `terminal_ctrl_tdv_tb` (36 checks) and `text_screen_tb` (frame 5, the
+     graphics page) both pass. Visual confirmation of build 26 is the open
+     item. **Rule learned: do not split Box and SS2 onto separate font pages
+     without checking the BRAM report shows the ROM actually grew.**
 2. **Test a second keyboard** to confirm the Left-arrow fault is
    keyboard-specific (matrix/wiring fault) and not something about this
    board's PS/2 receiver. If a second keyboard also shows `0x66` for Left,
@@ -135,17 +157,14 @@ future TDV protocol work rather than removing them as "debug clutter."
    warning not to drop the inversions again without a fresh measurement that
    contradicts MiSTer's.
 
-4. **Persistent QSPI flash burn is blocked** - the physical flash chip
-   reports "cannot set write enable bit or block(s) protected" even after
-   fixing the part-name bug in `flash.tcl` (real bug, fixed: the wildcard
-   `s25fl128*` also matches the sibling S25FL128L family and picked the
-   wrong one). Unresolved - needs investigating whether the chip's status
-   register has protection bits that need clearing, separately from Vivado's
-   own flash-programming flow.
-5. **Insert key**: scancode confirmed correct at the wire level (E0 70 ->
-   marker 82 -> `ESC[82_`), but no live confirmation the INNS/EXPS toggle
-   has any visible effect in PED. Needs a live functional test, not more
-   code review.
+4. **QSPI burn - see `HANDOFF-nexys-01SEP.md`:** the "cannot set write
+   enable bit" failure did NOT recur; `restore_qspi.tcl` erased, programmed
+   and verified with the full part name `s25fl128sxxxxxx0-spi-x1_x2_x4`.
+   The wildcard `s25fl128*` was the whole problem (it picks the S25FL128L).
+5. **Insert key - CONFIRMED 01-SEP-2026 evening on build 24:** pressing
+   Insert in PED toggled the status line from "Expand" to blank, which is
+   the INNS/EXPS mode change. Up, Down and Right arrows confirmed working
+   on the same session; Left still sends 0x66 (keyboard fault, item 2).
 
 ## Known process problem this session (for whoever reads this next)
 
