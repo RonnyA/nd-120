@@ -608,11 +608,24 @@ nd120_console_mister #(
 // for the whole build, see the note below) - the 2-flop synchronizer inside
 // console_uart_rx is harmless and left in place rather than special-cased
 // out, the same call nd120_console_mister already makes for its own CDC.
+// 7 DATA BITS + PARITY, like the Nexys - NOT 8N1 (02-SEP-2026, measured).
+// The CPU's SC2661 frames 8 bits, but what SINTRAN puts in bit 7 during its
+// boot text is SOFTWARE PARITY: a raw capture of the serial line on the HPS
+// (/dev/ttyS1) during the first SINTRAN boot on this board shows CR as 8D,
+// space as A0, '4' as B4 - every character with an odd number of ones has
+// bit 7 set - while later output is plain 7-bit. The terminal controller
+// drops any byte >= 7F, so with an 8N1 receiver every other character of
+// those lines vanished ("SNAN-VS500M" for "SINTRAN III - VSX/500 M") and
+// so did every CR (the staircase). A 7E1 receiver treats bit 7 as the
+// parity bit and discards it, which is what the real TDV2200 did on a real
+// 7E1 line and what fpga/nexys4ddr does (ND120_CONSOLE_DATA_BITS 7,
+// ND120_CONSOLE_PARITY 1). Gate: sim/console_burst_tb.v sends the
+// parity-tagged stream and requires the 7-bit text on the screen.
 console_uart_rx #(
 	.CLK_HZ   (40_000_000),
 	.BAUD     (115_200),
-	.DATA_BITS(8),
-	.PARITY   (1'b0)
+	.DATA_BITS(7),
+	.PARITY   (1'b1)
 ) CONSOLE_UART_RX (
 	.clk        (clk_sys),
 	.rst_n      (pix_rst_n),

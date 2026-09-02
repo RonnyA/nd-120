@@ -6,15 +6,29 @@
 
 ## Next
 
-The garbled first lines of the SINTRAN boot on the console (dropped
-characters in the burst before the watchdog message; later output clean).
+Flash v51 (banner stamp) when it exits; then build v52 with the 7E1
+console receiver and flash it - the SINTRAN boot lines must then be clean.
+
+## ROOT CAUSE of the dropped boot characters (02-SEP-2026, measured)
+
+The framework routes emu's UART_TXD to the HPS peripheral UART, which is
+`/dev/ttyS1` on the board. A raw 115200 capture of it during the `&` boot
+shows SINTRAN's first lines with EVEN SOFTWARE PARITY in bit 7 (CR = 8D,
+space = A0, '4' = B4, '1' = B1; even-ones characters unchanged) and the
+later lines as plain 7-bit. `terminal_ctrl` drops bytes >= 7F. The MiSTer's
+`console_uart_rx` was 8N1 (DATA_BITS 8, PARITY 0) and passed bit 7 through;
+the Nexys's is 7E1 and discards it, hence clean there. Fixed in `nd120.sv`
+(7E1, like the Nexys). Gate: `sim/console_burst_tb.v` now sends the
+parity-tagged stream - with the 8N1 receiver it prints the board's exact
+"SNAN-VS500M", with 7E1 the full line; PASS at 40 MHz and 139.7 MHz.
 
 ## BOARD RESULTS, build v50 (Ronny at the keyboard, 02-SEP-2026 00:30-00:50)
 
 - fs.BPU from tape: LIST-USERS and LIST-FILE-NAMES on floppy and WD0 - the
   64K-wrap runaway is GONE.
 - `1560&` with runSim FLOPPY1.IMG in drive 0: TPE Monitor B01 banner, `TPE>`.
-  TPE CONFIG ok, INSTRUCTION ok, PAGING running. (The earlier "garbage"
+  TPE CONFIG, INSTRUCTION, PAGING and MEMORY all pass - the SDRAM main
+  memory is validated by the machine's own diagnostics. (The earlier "garbage"
   after 1560& was a d:
 d\s image that is not a boot floppy.)
 - `&` (ALD autoload = 20500&) from WD0.IMG: **SINTRAN III boots** - paging
