@@ -55,16 +55,15 @@ QUEUED, in order, once OPCOM is confirmed working on MiSTer:
    0o200000 in a bank ALIASES onto low memory, "which forbids SINTRAN". Nexys
    keeps it only for A/B experiments. Nexys 4 DDR is the model to match.
 2. **WCS images: sim and hardware run different microcode, and no test
-   catches it** (found 01-SEP-2026). `Verilog/Shared/support`,
-   `Verilog/runSim` and `Verilog/sim` each carry a `wcs_28C.hex` that differs
-   from `Code/Microcode/wcs` by one line - a `6` where hardware has `0`, at
-   microcode address 0o2002 (MACL region). `Verilog/fpga/nexys4ddr` and
-   `Verilog/fpga/tang-nano-20k` match canonical, so all three BOARDS agree and
-   only the simulators differ. `tests/test-microcode-sync` checks the two
-   AM27256 PROM images (26 copies) and NOT the 32 WCS chip images, which is
-   why this drifted invisibly. Either canonicalise the sim copies or record a
-   dated exception, and extend the sync test to cover `wcs_*.hex`. Until then,
-   every sim-vs-board microcode comparison carries this caveat.
+   catches it** (found 01-SEP-2026). **DONE 02-SEP-2026.** Decided
+   (Ronny): boards preload the RAW PROM word, simulators the 2024 patch.
+   The patch is `A,6 -> A,0` in word 0o2002 = the master-clear wait loop's
+   outer count 64 -> 1 (a 64x shorter power-on wait, nothing else; decoded
+   in `Code/Microcode/gen_wcs_image.py`). `gen_wcs_image.py` now writes
+   `wcs/` (raw, boards) and `wcs-sim/` (`--sim`, for SKIP_WCS sim runs);
+   `Shared/support` is raw again; `tests/test-microcode-sync` now checks
+   every `wcs_*.hex` copy in the tree against the variant its directory
+   must hold (231 images, PASS).
 3. **Storage in the MiSTer OSD** - WD0-3 plus floppy image selection, via
    `sys/sd_card.sv` presenting an OSD-mounted image as a virtual SPI SD card
    to the existing SD-FAT/SPI stack, rather than writing `hps_io` block-device

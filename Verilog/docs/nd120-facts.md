@@ -57,10 +57,25 @@ evidence; correct wrong ones rather than appending contradictions.
   PROM byte index = LUA*4 + RF (see `Code/Microcode/gen_wcs_image.py`).
 - TWO variants of word 0o2002 (MACL+1) exist historically: raw PROM
   (0x...60e0) and the 07-DEC-2024 run-simulator patch (0x...00e0,
-  commit 895f360, clears the COND/F,JMP bits). BOTH pass everything
-  (measured 24-AUG: rig raw PASS, rig patched PASS, Tang raw PASS).
-  Canonicalization pending (Ronny); `test-microcode-sync` guards
-  against any NEW split.
+  commit 895f360). Decoded 02-SEP-2026: the patch changes the A-operand
+  field (RF0 bits 15:12) from `A,6` to `A,0`; the word is
+  `A,6 B,R1 ALUF,PASSD ALUD,B IDBS,BMG`, so R1 <- 1<<A is the outer count
+  of the master-clear wait loop (listing 001777-002003, "% WAITING LOOP
+  0.5 - 1 SECOND", 64 x 65536 steps). Patched: 1 pass - a 64x shorter
+  power-on wait, a simulator speed-up, not a bug fix (the old "clears the
+  COND/F,JMP bits" wording here was wrong; those are bits 7:0, untouched).
+  BOTH pass everything (measured 24-AUG: rig raw PASS, rig patched PASS,
+  Tang raw PASS; MiSTer boots SINTRAN raw). **DECIDED 02-SEP-2026
+  (Ronny): raw on the boards, patched in the simulators.**
+  `gen_wcs_image.py` writes `Code/Microcode/wcs/` (raw - Nexys, Tang,
+  Basys3, MEGA65 and `Shared/support` for the MiSTer) and, with `--sim`,
+  `wcs-sim/` (patched, for SKIP_WCS sim runs; equal to the sims' patched
+  `AM27256_45133L.hex`). `test-microcode-sync` checks every copy of both
+  the PROM images and the 33 WCS images against the variant its directory
+  must hold. Builds made 24-AUG..02-SEP from `Code/Microcode/wcs` (Nexys
+  builds since 24-AUG, the MEGA65 02-SEP cores, the MiSTer 18:42 02-SEP
+  .rbf) carry the PATCHED word; they boot, and the only visible effect is
+  the shorter power-on wait.
 - A second single-bit variant exists in
   `CPU-BOARD-3202/circuit/BIF_BCTL_SYNC_8/sim/AM27256_45132L.hex`
   (byte 4109, LUA 0o2003 MACL3) - UNINVESTIGATED, listed in the gate.

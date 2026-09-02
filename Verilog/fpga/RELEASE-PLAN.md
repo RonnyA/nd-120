@@ -11,7 +11,7 @@ documented as the primary path.
 Attached to a GitHub Release on a tagged commit (binaries never enter git
 history):
 
-ALL releases run the console at 115200 7E2 (Ronny, 26-AUG) - one terminal
+ALL releases run the console at 115200 7E1 (Ronny, 26-AUG) - one terminal
 setting for every file, no per-file baud confusion:
 
 | File | Board | CPU clock | Status behind it |
@@ -106,10 +106,10 @@ an image still comes up in OPCOM - the quickstart shows that as the
 |---|---|
 | `fpga/QUICKSTART-nexys4ddr.md` | **WRITTEN 26-AUG** - both deployment paths (USB volatile/QSPI-persistent + microSD config with an UNVERIFIED banner and the test checklist), terminal settings, OPCOM smoke test, `20500&`, troubleshooting |
 | `fpga/QUICKSTART-tang-nano-20k.md` | **WRITTEN 26-AUG** - openFPGALoader install matrix, persistent `-f` flash, WSL usbipd note, second-serial-port console, boot walkthrough, troubleshooting |
-| Release-notes template | source commit, file table above, link to quickstarts, changed-since-last list |
+| Release-notes template | **WRITTEN 02-SEP** as `fpga/RELEASE-NOTES-release2.md` (Release 2, tag `bitstreams-2026-09`): source commit `b09302e`, artifact table with the MEGA65 rows filled + SHA-256, the "not yet run on a MEGA65" caveat, quickstart links, changed-since-Release-1 list. Nexys/Tang/MiSTer rows marked pending until built. |
 
 Terminal settings table (both quickstarts): 7 data bits, EVEN parity,
-2 stop bits, no flow control; baud from the filename. Example lines for
+1 stop bit, no flow control; baud from the filename. Example lines for
 picocom and PuTTY.
 
 ## Work list, in order

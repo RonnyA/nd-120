@@ -53,7 +53,8 @@ ifeq ($(PACK16),1)
 endif
 
 # SKIP_WCS: Set to 1 to pre-load the WCS and skip the microcode load phase.
-#           Requires the 32 wcs_*.hex files in this dir (gen_wcs_image.py).
+#           Requires the 32 wcs_*.hex files in this dir - the SIM variant
+#           (gen_wcs_image.py --sim -> Code/Microcode/wcs-sim/, copy here).
 #           See docs/skip-wcs-load.md.
 ifeq ($(SKIP_WCS),1)
   SIM_DEFINES += -DSKIP_WCS_LOAD

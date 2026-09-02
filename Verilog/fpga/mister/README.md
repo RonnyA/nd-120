@@ -4,6 +4,14 @@
 
 Port of the ND-120 CPU board to the [MiSTer FPGA](https://mister-devel.github.io/MkDocs_MiSTer/) platform.
 
+![ND-120 MiSTer boot screen at the MOPC `#` monitor](docs/images/boot-screen-mopc.png)
+
+*The core on real hardware (DE10-Nano, 02-SEP-2026), at the `#` MOPC monitor
+before SINTRAN is loaded: the four-line power-on banner (core / console / build
+stamp / board+clock+memory), the operator panel across the bottom, and the CPU
+`G` lamp lit green (self-test passed). Mount a Winchester image in the OSD and
+type `&` at `#` to boot SINTRAN.*
+
 **Plan: [docs/00-overview.md](docs/00-overview.md)** - phase by phase (setup,
 building, deploy/test, OSD menu, block/char devices, debugging), every external
 link validated. `docs/07-links.md` is the full link collection.
@@ -18,16 +26,31 @@ link validated. `docs/07-links.md` is the full link collection.
   the machine's own screen and keyboard (see the terminal plan below),
   microcode uploaded from the HPS at core load.
 
-## Status (28-AUG-2026)
+## Status (02-SEP-2026)
 
-**Phase 1 skeleton COMPILES.** `Template_MiSTer` has been copied in and renamed
-to `nd120.*`, and the whole flow has been run end to end through Quartus 17.0.2
-in Docker: `output_files/nd120.rbf`, 2,433,976 bytes, exit 0. No ND-120 RTL is
-in the build yet, so what compiled is the *template's* demo core - the point of
-the exercise was to prove the toolchain and measure what the framework alone
-costs before any of ours is added.
+**SINTRAN III boots on real hardware (DE10-Nano).** The whole ND-120 machine
+is in the build and running on silicon: it comes up at the `#` MOPC monitor
+(the screenshot above), and with a Winchester image mounted in the OSD, `&`
+boots SINTRAN. Verified this day on the board.
 
-Measured from `output_files/nd120.fit.summary` (27-AUG-2026):
+Shipping configuration of that build (stamp `e5bdea5+`):
+
+| Item | Value |
+|---|---|
+| CPU clock | 20 MHz (PLL output) |
+| Main memory | 4 MB (2M words) in the DE10-Nano SDRAM module, WCS in block RAM |
+| Cache | off |
+| Console | TDV2200, on the MiSTer's own screen + keyboard; also on the HPS `/dev/ttyS1` at 115200 |
+| Storage | floppy 0/1, Winchester 0/1, paper tape - mounted from the OSD |
+| `output_files/nd120.rbf` | 3,173,376 bytes |
+
+Confirmed working on the board: boot to OPCOM, SINTRAN boot from a mounted
+Winchester, CPU self-test (green `G` lamp), the TDV2200 box-drawing font, and
+the keyboard. This `.rbf` is the hardware-verified MiSTer artifact in
+Release 2 (`../RELEASE-NOTES-release2.md`).
+
+**Framework cost, for reference** (measured 27-AUG-2026 from the bare template,
+before any ND-120 RTL - the floor every figure sits on):
 
 | Resource | Framework alone | Device |
 |---|---|---|
@@ -36,11 +59,8 @@ Measured from `output_files/nd120.fit.summary` (27-AUG-2026):
 | DSP | 33 | 112 |
 | PLLs | 3 | 6 |
 
-That is the floor every ND-120 figure sits on top of - the framework is not
-free, and 17% of the fabric is gone before we start. **Never run on hardware.**
-
-**This board is the priority (Ronny, 28-AUG-2026).** See the ordering note
-below.
+**This board was the priority (Ronny, 28-AUG-2026)**; that goal is now met. The
+sections below are the phase-by-phase bring-up history, kept for the record.
 
 ### Build 1 - the console, with no ND-120 in it (28-AUG-2026)
 

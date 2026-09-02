@@ -60,10 +60,10 @@ preservation community keeps images; `ndtool` builds and inspects them.
 
 The board exposes TWO serial ports over the one USB cable; the console
 is the SECOND one (on Linux typically `/dev/ttyUSB1`). Settings:
-**115200 baud, 7 data bits, EVEN parity, 2 stop bits**, no flow control.
+**115200 baud, 7 data bits, EVEN parity, 1 stop bit**, no flow control.
 
 ```
-picocom -b 115200 -y e -d 7 -p 2 /dev/ttyUSB1
+picocom -b 115200 -y e -d 7 -p 1 /dev/ttyUSB1
 ```
 
 (Bitstreams older than 26-AUG-2026 used 9600.)
@@ -78,7 +78,7 @@ picocom -b 115200 -y e -d 7 -p 2 /dev/ttyUSB1
 
 | Symptom | Cause |
 |---|---|
-| Terminal shows `?`-garbage | 8N1 framing - set 7 data bits, EVEN parity, 2 stop bits |
+| Terminal shows `?`-garbage | 8N1 framing - set 7 data bits, EVEN parity, 1 stop bit |
 | Nothing on the terminal | Wrong port (use the second one) or wrong baud (release = 115200; pre-26-AUG builds = 9600) |
 | OPCOM answers, `20500&` prints nothing | No disc image in the card's FAT root, or card not FAT32 |
 | openFPGALoader does not see the board | WSL: board not usbipd-attached; any OS: cable is power-only |

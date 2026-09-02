@@ -283,9 +283,15 @@ Key `vivado_build.tcl` flags: `full_synth` (required for a ~1h full re-synth; ot
   `-through i_ascal/reset_na` false path matches nothing under 2026.1, the
   router's hold estimate sits ~70 ps above sign-off on the framework's
   `clk`. All in `Verilog/fpga/mega65/docs/00-plan.md` and `build.tcl`.
-  ALSO FOUND THERE: the committed `Shared/support/wcs_*.hex` were the
-  PRE-PATCH microcode (0o2002 unpatched) and the MiSTer's Quartus reads
-  them via `SEARCH_PATH` - decoded from its own MIF; refreshed 02-SEP.
+  ALSO FOUND THERE: microword 0o2002 exists in two variants - the raw PROM
+  word and the 2024 run-simulator patch (`A,6` -> `A,0` in the
+  master-clear wait loop's count: 64 passes -> 1, a 64x shorter power-on
+  wait, nothing else). NOT a bug either way. **Decided 02-SEP-2026: boards
+  preload the raw word (`gen_wcs_image.py` -> `Code/Microcode/wcs/`, and
+  `Shared/support/` for the MiSTer), simulators run the patched word
+  (`gen_wcs_image.py --sim` -> `wcs-sim/`, and their patched
+  `AM27256_45133L.hex`).** `test-microcode-sync` enforces the split per
+  directory. `Verilog/docs/nd120-facts.md`.
 - Live task list: `Verilog/TODO.md`. Historical latch-refactor notes:
   `Verilog/verilog-remove-latch.md`, `Verilog/worklog-latch-refactor.md`.
 

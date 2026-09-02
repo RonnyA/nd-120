@@ -26,7 +26,7 @@ After `make usb` you have:
 | Device | Use |
 |--------|-----|
 | `/dev/ttyUSB0` | JTAG side (openFPGALoader) |
-| `/dev/ttyUSB1` | OPCOM console, **115200 7E2** |
+| `/dev/ttyUSB1` | OPCOM console, **115200 7E1** |
 
 **Reflashing reboots the design - no power cycle needed.** Measured
 09-AUG-2026: `make flash-gowin` restarts the ND-120 and the console comes back
@@ -53,7 +53,7 @@ OPCOM is picky and the rules are not guessable:
 - **~0.30 s between characters.** At 0.12 s characters are dropped silently in
   the middle of a number and OPCOM answers `?` - which looks like a machine
   fault and is not one.
-- **115200 7E2** on `/dev/ttyUSB1`. Since 26-AUG-2026 `UART_BAUD_RATE` is
+- **115200 7E1** on `/dev/ttyUSB1`. Since 26-AUG-2026 `UART_BAUD_RATE` is
   115200 for EVERY variant (`src/tang20k_defines.v:554`, unconditional) -
   scripts written before that opened 9600 and must be updated.
 
@@ -187,7 +187,7 @@ clock-enable refactor closes 27 MHz separately. It switches the rPLL and
 `BOARD_CLK_FREQ` together, and the SDRAM bridge derives its refresh counts
 from `BOARD_CLK_FREQ` automatically. Comment the define out for 27/54 MHz.
 
-First light checklist: heartbeat LED blinking -> OPCOM console at **115200 7E2**
+First light checklist: heartbeat LED blinking -> OPCOM console at **115200 7E1**
 on the board's USB serial -> compare boot behaviour against
 [`../../docs/boot-golden-spec.md`](../../docs/boot-golden-spec.md).
 
@@ -285,7 +285,7 @@ microcode-JUMP and TVEC routes. Those are real; see commit 9dc8507 for why
 they must not be constrained away.
 
 `fast20` also switches
-the console to **115200 baud** (7E2). NOTE: since 27-AUG-2026 EVERY variant
+the console to **115200 baud** (7E1). NOTE: since 27-AUG-2026 EVERY variant
 runs 115200 - the sentence that slow/mid/full stay at 9600 was true only
 briefly and is no longer; `UART_BAUD_RATE` is unconditional in
 `src/tang20k_defines.v:554`. Originally this kept their
@@ -293,7 +293,7 @@ tooling is untouched. The physical baud is the `UART_BAUD_RATE` build
 constant alone; the microcode's BAUDV thumbwheel value (8 = 9600) is stored
 by the SC2661 emulation but never used for bit timing, proven on the Nexys
 and now here. **Silicon 26-AUG-2026: SINTRAN III boots on `fast20`,
-banner + Watchdog in ~40 s, clean text on a 115200 7E2 console. Soaked
+banner + Watchdog in ~40 s, clean text on a 115200 7E1 console. Soaked
 27-AUG: 4 unattended hours, 8/8 console probes.** Since 27-AUG the console
 is 115200 for EVERY variant, and all the python console tools in this
 directory default to it (`--baud 9600` for pre-27-AUG bitstreams).

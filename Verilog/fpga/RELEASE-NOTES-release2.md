@@ -19,7 +19,7 @@ MiSTer2MEGA65 framework, both revisions*.
   in from the build settings.
 
 **Console settings — every file, no exceptions:** 115200 baud, **7 data bits,
-EVEN parity, 2 stop bits**, no flow control. One terminal setting for the whole
+EVEN parity, 1 stop bit**, no flow control. One terminal setting for the whole
 release.
 
 ---
@@ -53,7 +53,7 @@ deb9e1ea499baa0dab8d6595f01f696a360b4df536209d9d42b0397df680520a  nd120_mister_2
 
 **These two cores are built and timing-clean, but no MEGA65 was available to
 run them on. You are the verification channel.** They go out labelled
-"not yet run on a MEGA65". `QUICKSTART-mega65.md` tells you what to see and what
+"not yet run on a MEGA65". [`QUICKSTART-mega65.md`](https://github.com/RonnyA/nd-120/blob/bitstreams-2026-09/Verilog/fpga/QUICKSTART-mega65.md) tells you what to see and what
 to report back.
 
 **Pick the core for your board revision — the flash menu refuses a
@@ -73,19 +73,19 @@ Winchester 0/1 + tape. Build stamp `e5bdea5+ 02-Sep-2026 16:27`.
 
 **What to report:** does the power-on banner render (including the box-drawing
 lines), does the Left arrow work, does OPCOM answer, does `20500&` run — and the
-power LED verdict. Details in `QUICKSTART-mega65.md`.
+power LED verdict. Details in [`QUICKSTART-mega65.md`](https://github.com/RonnyA/nd-120/blob/bitstreams-2026-09/Verilog/fpga/QUICKSTART-mega65.md).
 
 ---
 
 ## How to load them
 
 - **MEGA65** — `.cor` files flash from the MEGA65's own core menu; SD card holds
-  the `/nd120` disc images. Full walkthrough: **`QUICKSTART-mega65.md`**.
+  the `/nd120` disc images. Full walkthrough: **[`QUICKSTART-mega65.md`](https://github.com/RonnyA/nd-120/blob/bitstreams-2026-09/Verilog/fpga/QUICKSTART-mega65.md)**.
 - **Nexys 4 DDR** — microSD config at power-on (one card carries the `.bit` and
   the disc image), or Vivado/openFPGALoader over USB-JTAG.
-  See **`QUICKSTART-nexys4ddr.md`**.
+  See **[`QUICKSTART-nexys4ddr.md`](https://github.com/RonnyA/nd-120/blob/bitstreams-2026-09/Verilog/fpga/QUICKSTART-nexys4ddr.md)**.
 - **Tang Nano 20K** — `openFPGALoader -f` writes onboard SPI flash once, boots
-  the ND-120 at every power-on after. See **`QUICKSTART-tang-nano-20k.md`**.
+  the ND-120 at every power-on after. See **[`QUICKSTART-tang-nano-20k.md`](https://github.com/RonnyA/nd-120/blob/bitstreams-2026-09/Verilog/fpga/QUICKSTART-tang-nano-20k.md)**.
 - **MiSTer (DE10-Nano)** — copy `nd120_mister_20MHz_115200.rbf` to the SD card
   as `/media/fat/_Computer/ND120.rbf` and load it from the MiSTer menu. Attach
   a Winchester image (for example `WD0.IMG`) from the OSD, then at the `#`

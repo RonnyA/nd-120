@@ -24,7 +24,10 @@ ifeq ($(CACHE),0)
 endif
 
 # SKIP_WCS: pre-load the WCS and skip the microcode load phase (docs/skip-wcs-load.md).
-# Requires the 32 wcs_*.hex files in this dir (Code/Microcode/gen_wcs_image.py).
+# Requires the 32 wcs_*.hex files in this dir - the SIM variant:
+#   cd Code/Microcode && python3 gen_wcs_image.py --sim && cp wcs-sim/wcs_*.hex ../../Verilog/sim/
+# (patched word 0o2002, equal to this dir's AM27256_45133L.hex; the boards
+# preload the raw word - decided 02-SEP-2026, see tests/microcode_sync.py).
 # CPP_DEFINES also forwards the flag to the C++ testbench so it can trace from
 # tick 0 (no load phase to skip).
 # PANEL_CLOCK=1: emulate the MC68705/MM58274 clock path (IO_PANCAL_40.v ->

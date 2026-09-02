@@ -50,8 +50,10 @@ Verilog/___module_export.json
 # Floppy disk images (large binary)
 Verilog/runSim/FLOPPY.IMG
 
-# Generated WCS preload images (regenerate with Code/Microcode/gen_wcs_image.py)
+# Generated WCS preload images (regenerate with Code/Microcode/gen_wcs_image.py;
+# wcs/ = raw PROM word for the boards, wcs-sim/ = the --sim variant for SKIP_WCS sims)
 Code/Microcode/wcs/
+Code/Microcode/wcs-sim/
 Verilog/sim/wcs_*.hex
 Verilog/runSim/wcs_*.hex
 

@@ -16,15 +16,28 @@ Data mapping (verified against RTL):
       bank C (16C..31C) = lower, LUA 0..4095 ; bank D (16D..31D) = upper, 4096..8191
       chip (16+j) holds bits [63-4j : 60-4j]  (16 -> [63:60], 31 -> [3:0])
 
-Outputs (into ./wcs/):
+Outputs (into ./wcs/, or ./wcs-sim/ with --sim):
   - wcs_image.hex        : 8192 lines x 16 hex digits (unified, for inspection /
                            a single-BRAM WCS rewrite)
   - wcs_<16..31><C|D>.hex : 32 files x 4096 lines x 1 hex nibble (per IDT6168A chip)
+
+Two variants, DECIDED by Ronny 02-SEP-2026 ("raw on FPGA, patched in sims"):
+  - default (no flag) -> ./wcs/     : the RAW PROM microcode, byte for byte the
+                                      real ND-120. This is what every BOARD
+                                      preloads (Nexys, Tang, Basys3, MEGA65, and
+                                      the MiSTer via Verilog/Shared/support).
+  - --sim             -> ./wcs-sim/ : the run-simulator variant with the PATCHES
+                                      below applied, equal to the patched
+                                      AM27256_45133L.hex the Verilator harnesses
+                                      (Verilog/sim, runSim, dmaSim) load at
+                                      runtime. Only for SKIP_WCS=1 sim runs.
 """
 import os
+import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT  = os.path.join(HERE, "wcs")
+SIM  = "--sim" in sys.argv[1:]
+OUT  = os.path.join(HERE, "wcs-sim" if SIM else "wcs")
 
 def read_bytes(name):
     with open(os.path.join(HERE, name)) as f:
@@ -46,29 +59,47 @@ def main():
             w |= p16 << (16 * rf)            # RF=0 -> LSB group
         words.append(w)
 
-    # RUNTIME MICROCODE PATCH (found 24-AUG-2026, applied since 07-DEC-2024
-    # to every Verilator harness copy - commit 895f360 "Need pacthed hex
-    # files for the run-simulator"): microword 0o2002 (MACL+1) must have
-    # RF0 bits 14:13 CLEARED - the PROM's "COND,F=0 F,JMP F,HOLD" fields
-    # there misbehave in this RTL. All simulation and instruction-verify
-    # validation runs with the patched word; a preload built from the raw
-    # PROM dump put the UNPATCHED word on the FPGA, where it broke FILSYS
-    # LIST-FILE-NAMES (the board ran microcode no simulation had ever
-    # validated). The raw PROM dumps in this directory stay untouched;
-    # the patch is applied here so the preload equals what the simulators
-    # load at runtime.
+    # SIMULATOR MICROCODE PATCH (--sim only; applied since 07-DEC-2024 to
+    # every Verilator harness copy - commit 895f360 "Need pacthed hex files
+    # for the run-simulator"; decoded 02-SEP-2026): microword 0o2002 (MACL+1)
+    # with RF0 bits 14:13 cleared. Those bits are part of the A-OPERAND
+    # field (RF0 bits 15:12): the PROM word says "A,6", the patched word
+    # "A,0". The word is "A,6 B,R1 ALUF,PASSD ALUD,B IDBS,BMG" - the
+    # bit-mask generator (1 << A) loads scratch register R1 with the OUTER
+    # count of the master-clear wait loop (listing 001777-002003, "% WAITING
+    # LOOP 0.5 - 1 SECOND": 64 passes of a 65536-step inner loop). Patched,
+    # R1 = 1, so the power-on wait is 64x shorter. It is a simulation
+    # speed-up, NOT a bug fix: the raw word is the real ND-120 microcode and
+    # boots SINTRAN on the MiSTer and the Tang (Verilog/docs/nd120-facts.md).
+    # An earlier version of this comment blamed the COND/F,JMP/F,HOLD fields
+    # (bits 7:0, untouched) and a LIST-FILE-NAMES failure. The fields were
+    # misread, and the LFN claim was withdrawn the same day it was made:
+    # the 24-AUG 14:00 A/B matrix in
+    # Verilog/fpga/nexys4ddr/HANDOFF-floppy-dma-investigation.md shows the
+    # Nexys failing LFN with the PATCHED word too, and the rig and the Tang
+    # passing with the raw one ("MICROCODE FULLY EXONERATED"). Decoded
+    # against ND110Compile/ND120Tokens.cs ("A,6" = RF0 060000, "COND,F=0" =
+    # RF0 000340) and BUFALU.cs BMG() = 1 << A.
+    # The raw PROM dumps in this directory stay untouched. Boards get the
+    # raw word (default run); the patch is applied only for --sim so a
+    # SKIP_WCS preload equals what the simulators load at runtime.
     PATCHES = {
         0o2002: (0x0000000000006000, 0x0000000000000000),  # (clear-mask bits, set bits)
     }
-    for lua, (clear, setb) in PATCHES.items():
-        before = words[lua]
-        words[lua] = (words[lua] & ~clear) | setb
-        print(f"  patch LUA {lua:o}: {before:016x} -> {words[lua]:016x}")
+    if SIM:
+        for lua, (clear, setb) in PATCHES.items():
+            before = words[lua]
+            words[lua] = (words[lua] & ~clear) | setb
+            print(f"  --sim patch LUA {lua:o}: {before:016x} -> {words[lua]:016x}")
+    else:
+        print("  raw PROM microcode (no patches) - the board variant")
 
     os.makedirs(OUT, exist_ok=True)
 
     # Unified 64-bit image
-    with open(os.path.join(OUT, "wcs_image.hex"), "w") as f:
+    # newline="\n": LF on every host, so a Windows run and a WSL/CI run write
+    # byte-identical files (a CRLF copy fooled a cmp on 02-SEP-2026).
+    with open(os.path.join(OUT, "wcs_image.hex"), "w", newline="\n") as f:
         for w in words:
             f.write(f"{w:016x}\n")
 
@@ -78,7 +109,7 @@ def main():
         for j in range(16):                  # chip 16+j -> bits [63-4j : 60-4j]
             shift = 60 - 4 * j
             chip = 16 + j
-            with open(os.path.join(OUT, f"wcs_{chip}{name}.hex"), "w") as f:
+            with open(os.path.join(OUT, f"wcs_{chip}{name}.hex"), "w", newline="\n") as f:
                 for lua in range(lo_lua, hi_lua):
                     nib = (words[lua] >> shift) & 0xF
                     f.write(f"{nib:x}\n")

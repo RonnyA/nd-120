@@ -21,14 +21,14 @@ What you need:
 
 ## Console settings (both paths)
 
-The machine talks **115200 baud, 7 data bits, EVEN parity, 2 stop bits**,
+The machine talks **115200 baud, 7 data bits, EVEN parity, 1 stop bit**,
 no flow control - the same setting for every release bitstream.
 
 ```
-picocom -b 115200 -y e -d 7 -p 2 /dev/ttyUSB1
+picocom -b 115200 -y e -d 7 -p 1 /dev/ttyUSB1
 ```
 
-PuTTY: Serial, 115200, 7 data bits, parity Even, 2 stop bits, flow
+PuTTY: Serial, 115200, 7 data bits, parity Even, 1 stop bit, flow
 control None. On Windows the board's COM port appears when the USB cable
 is plugged in (Device Manager -> Ports).
 
@@ -144,7 +144,7 @@ To go back to a plain board, restore the demo or move JP1 back to JTAG.
 
 | Symptom | Cause |
 |---|---|
-| Terminal shows `?`-garbage | 8N1 framing - set 7 bits, EVEN parity, 2 stop bits |
+| Terminal shows `?`-garbage | 8N1 framing - set 7 bits, EVEN parity, 1 stop bit |
 | Nothing on the terminal at all | Wrong baud (release builds are all 115200; bitstreams older than 26-AUG-2026 were 9600), or wrong COM/tty (on Linux usually `/dev/ttyUSB1`) |
 | OPCOM answers, `20500&` prints nothing | No disc image on the card, image not in the FAT root, or card not FAT32 |
 | Board dark after power-cycle | The JTAG load (path 1a) is volatile - use 1b (QSPI) or path 2 (SD) for persistence |
