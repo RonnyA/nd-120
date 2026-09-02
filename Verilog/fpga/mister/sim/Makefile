@@ -30,9 +30,9 @@ TERM_SRC = $(TERM)/terminal_top.v $(TERM)/terminal_ctrl.v $(TERM)/terminal_ctrl_
            $(TERM)/term_banner.v $(TERM)/term_banner_rom.v \
            $(TERM)/term_console_feed.v $(TERM)/term_panel.v $(TERM)/term_panel_rom.v $(TERM)/rate_meter.v $(TERM)/ratio_meter.v
 
-.PHONY: all test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices test-console-burst test-console-burst-fast lint clean
+.PHONY: all test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices test-console-burst test-console-burst-fast test-storage-reset lint clean
 
-all: test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices test-console-burst test-console-burst-fast
+all: test-console test-diag-print test-csa-trace test-csa-trig test-sterr test-storage-hps test-storage-devices test-console-burst test-console-burst-fast test-storage-reset
 	@echo "MiSTer core: all testbenches passed"
 
 # The storage backend: the ND-120 client bus (Verilog/docs/
@@ -134,6 +134,18 @@ test-console-burst-fast: console_burst_fast_tb.vvp
 
 console_burst_fast_tb.vvp: console_burst_tb.v $(GLUE)/nd120_console_mister.v $(TERM)/console_uart_rx.v $(TERM_SRC)
 	$(IVERILOG) $(IVFLAGS) -DFAST_PIX -o $@ $^
+
+# No reset ordering of nd_storage_hps's two domains (clk_sys/rst_sys_n for the
+# mount record, clk_cpu/rst_cpu_n for the client) may HANG a read - the board's
+# stuck-R automount symptom. Written 02-SEP-2026 to root-cause it; result: the
+# reset CDC is exonerated (board order completes cleanly).
+SDFAT = ../../../SD-FAT/circuit
+test-storage-reset: nd_storage_reset_tb.vvp
+	@$(VVP) $< | tee nd_storage_reset_tb.log
+	@grep -q "TB_RESULT: PASS" nd_storage_reset_tb.log 		|| { echo "nd_storage_reset_tb FAILED"; exit 1; }
+
+nd_storage_reset_tb.vvp: nd_storage_reset_tb.v hps_io_model.v ../rtl/nd_storage_hps.v
+	$(IVERILOG) $(IVFLAGS) -I$(SDFAT) -o $@ $^
 
 # Same suppression list as Verilog/sim and Verilog/Terminals/sim - "lint clean"
 # has to mean the same thing everywhere or it means nothing.
