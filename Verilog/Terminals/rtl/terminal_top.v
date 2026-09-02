@@ -96,9 +96,19 @@ module terminal_top #(
     //!   0 black  1 text ink  2 fascia  3 silkscreen
     //!   4 LCD ground  5 LCD segment  6 lit legend  7 unlit legend
     output wire [2:0] colour,
+    //! 1 while this pixel belongs to the operator panel (not the console text
+    //! or banner). A board that lets the user recolour the console-text
+    //! palette index can gate on this so the panel's own green CPU lamp,
+    //! which uses the same index, stays fixed. Safe to leave unconnected.
+    output wire       panel_active,
     output wire hsync,
     output wire vsync,
     output wire de,
+    //! `de` split in two, for a board whose framework wants them separately
+    //! (MiSTer2MEGA65). Same two-clock alignment as `de`. Added 02-SEP-2026;
+    //! leave unconnected where only `de` is needed.
+    output wire hblank,
+    output wire vblank,
 
     //! ---- operator panel -------------------------------------------------
     //! Drawn in the empty area below the text grid. `panel_enable` low draws
@@ -560,6 +570,7 @@ module terminal_top #(
   //! Panel first, then the text. They occupy different rows of the screen, so
   //! the priority never actually arbitrates - it just picks which of the two
   //! is speaking about this pixel.
+  assign panel_active = s_panel_active;
   assign colour = s_panel_active ? s_panel_colour
                 : s_screen_pixel ? 3'd1 : 3'd0;
 
@@ -620,6 +631,8 @@ module terminal_top #(
       .hsync    (hsync),
       .vsync    (vsync),
       .de       (de),
+      .hblank   (hblank),
+      .vblank   (vblank),
       .frame_end(s_frame_end),
       .x_raw    (s_x_raw),
       .y_raw    (s_y_raw)
