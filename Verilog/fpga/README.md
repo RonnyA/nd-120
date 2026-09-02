@@ -119,7 +119,9 @@ reuse the `synth_1` checkpoint) and `make lint`; `qmtech-a35t` takes
 `nexys4ddr` takes `CLK=<MHz>` (default 16) plus `CACHE=0` / `VGACONSOLE=0` /
 `PANELCLOCK=0`, and has the full `load` (JTAG, volatile) / `flash` (QSPI,
 permanent) pair;
-`mister` is a placeholder until the Quartus project exists; `cmod-a7-35t`
+`mister` has a Quartus project (DE10-Nano / Cyclone V) and builds via the
+Quartus-in-Docker flow - `make build` / `make load` / `make flash` / `make sim`;
+its console is the TDV2200 terminal, same as the Nexys; `cmod-a7-35t`
 uses the same Vivado flow as Basys3 (`make` / `make build` / `make clean`,
 delegating to `build.tcl`). The standalone
 `tang-nano-20k/sdram-test/` keeps its own Makefile with the same
