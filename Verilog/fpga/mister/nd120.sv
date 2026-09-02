@@ -481,6 +481,22 @@ nd120_diag_print #(
 	.byte_data  (s_diag_data),
 	.byte_ready (s_diag_ready)
 );
+`elsif ND120_STORAGE_PROBE
+// storage mount + Winchester activity, on the console (see the module header).
+// Reuses the diag-print slot in the console priority mux below (CPU > trace >
+// this), so it prints only in the quiet a hung boot leaves.
+assign s_diag_ticks = 16'd0;
+nd120_storage_probe #(.CLK_HZ(40_000_000)) STORPROBE (
+	.clk       (clk_sys),
+	.rst_n     (pix_rst_n),
+	.mounted   (s_img_mounted_cpu),
+	.wd_req    (s_wd_req),
+	.wd_done   (s_wd_done),
+	.wd_err    (s_wd_err),
+	.byte_valid(s_diag_valid),
+	.byte_data (s_diag_data),
+	.byte_ready(s_diag_ready)
+);
 `else
 assign s_diag_ticks = 16'd0;
 assign s_diag_valid = 1'b0;
