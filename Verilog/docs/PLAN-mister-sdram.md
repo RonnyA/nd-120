@@ -6,8 +6,22 @@
 
 ## Next
 
-Flash v51 (banner stamp) when it exits; then build v52 with the 7E1
-console receiver and flash it - the SINTRAN boot lines must then be clean.
+Build v52 (7E1 console receiver) is compiling; flash it and have Ronny
+boot SINTRAN again - the opening lines must then be clean.
+
+v51 FLASHED 02-SEP-2026 02:08: 0 errors, TNS 0.000 on EVERY clock (worst
+slack +0.792 ns - the FPGA_CLK2_50 async group did it), M10K 165/553. The
+banner now reads "build f3a10b3+ 02-Sep-2026 01:50" / "MiSTer DE10-Nano -
+20.00 MHz - SDRAM 4 MB - no cache".
+
+## Default mounts (02-SEP-2026, Ronny: WD0.IMG on Winchester unit 0 by default)
+
+The HPS automounts `/media/fat/games/ND120/boot<n>.vhd` into slot n (0-3)
+at core start (Main_MiSTer user_io.cpp, the boot%d.vhd loop). Slot 2 is
+Winchester unit 0, so `boot2.vhd -> WD0.IMG` (symlink, made 02-SEP-2026)
+attaches the SINTRAN disc on every core load with no OSD action. Slots 0/1
+(floppies) and 4 (tape) are left to the OSD or the MGL. To be proven by a
+plain core load (no MGL) followed by `&`.
 
 ## ROOT CAUSE of the dropped boot characters (02-SEP-2026, measured)
 

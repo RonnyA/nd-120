@@ -271,6 +271,13 @@ wire [7:0] s_cpu_byte_data;
 wire       s_kbd_valid;
 wire [7:0] s_kbd_data;
 wire       s_cpu_txd, s_cpu_rxd;
+// Disc activity for the panel line, derived from the storage seams exactly
+// as fpga/nexys4ddr does (nd120_nexys4ddr_top.v: WDISK_REQ & ~WDISK_WR ...).
+// Declared here because the console sits above the storage block in this
+// file; assigned right after the STORAGE instance. Until 02-SEP-2026 these
+// four were tied to 0 - a leftover from build 2, which had no storage - so
+// the HDD/FLOPPY lamps never lit while SINTRAN was booting off WD0.
+wire       s_lamp_hdd_rd, s_lamp_hdd_wr, s_lamp_flp_rd, s_lamp_flp_wr;
 
 // Operator panel sources off CORE's debug ports (build 2, 31-AUG-2026).
 // Declared here, ahead of both instances, because CONSOLE consumes what
@@ -580,11 +587,11 @@ nd120_console_mister #(
 	.panel_paging_on   (s_core_dbg_panel[2]),
 	.panel_interrupt_on(s_core_dbg_panel[3]),
 	.panel_running     (~s_core_run_n),   // RUN_n is active low
-	// No floppy/WD backend in build 2 (see the storage-seam note below).
-	.panel_hdd_rd (1'b0),
-	.panel_hdd_wr (1'b0),
-	.panel_flp_rd (1'b0),
-	.panel_flp_wr (1'b0),
+	// one pulse per disc request, read or write, from the storage seams
+	.panel_hdd_rd (s_lamp_hdd_rd),
+	.panel_hdd_wr (s_lamp_hdd_wr),
+	.panel_flp_rd (s_lamp_flp_rd),
+	.panel_flp_wr (s_lamp_flp_wr),
 
 	.kbd_valid(s_kbd_valid),
 	.kbd_data (s_kbd_data),
@@ -789,6 +796,12 @@ nd_storage_mister_devices STORAGE (
 
 	.MOUNTED(s_img_mounted_cpu)
 );
+
+// panel lamps: the same four expressions the Nexys top uses
+assign s_lamp_hdd_rd = s_wd_req & ~s_wd_wr;
+assign s_lamp_hdd_wr = s_wd_req &  s_wd_wr;
+assign s_lamp_flp_rd = s_fd_req & ~s_fd_wr;
+assign s_lamp_flp_wr = s_fd_req &  s_fd_wr;
 
 // ND-BUS DEVICES ON (01-SEP-2026, Ronny's call). This board built with all of
 // them OFF, which made it the ONLY target running a device-less machine -
