@@ -149,6 +149,9 @@ REGISTRY=(
   # MHz: every byte must reach the screen (02-SEP-2026)
   "fpga/mister/sim :: test-console-burst :: TB_RESULT: PASS"
   "fpga/mister/sim :: test-console-burst-fast :: TB_RESULT: PASS"
+  # no reset ordering of nd_storage_hps's two clock domains hangs a read
+  # (the automount stuck-R root-cause: the reset CDC is exonerated)
+  "fpga/mister/sim :: test-storage-reset :: TB_RESULT: PASS"
   # --- Shared support chips -------------------------------------------------
   "Shared/support/sim :: test-ram      :: ALL PASS"
   "Shared/support/sim :: test-uart     :: DONE"
