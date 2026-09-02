@@ -46,12 +46,15 @@ module console_burst_tb;
   wire [7:0] kbd_data;
   wire       pixel, hsync, vsync, de, bell;
 
-  // the MiSTer's receiver, as instantiated in nd120.sv
+  // the MiSTer's receiver, as instantiated in nd120.sv: 7 data bits + parity.
+  // SINTRAN's boot text carries SOFTWARE parity in bit 7 (measured on the
+  // board's /dev/ttyS1, 02-SEP-2026: CR = 8D, space = A0); an 8N1 receiver
+  // hands those bytes to a terminal that drops everything >= 7F.
   console_uart_rx #(
       .CLK_HZ   (CLK_HZ),
       .BAUD     (115_200),
-      .DATA_BITS(8),
-      .PARITY   (1'b0)
+      .DATA_BITS(7),
+      .PARITY   (1'b1)
   ) RX (
       .clk        (clk),
       .rst_n      (rst_n),
@@ -97,6 +100,13 @@ module console_burst_tb;
   integer rx_count = 0;
   always @(posedge clk) if (cpu_byte_valid) rx_count = rx_count + 1;
 
+  // SINTRAN's boot printer sets bit 7 to EVEN parity over the 7-bit character
+  // (measured: 0D -> 8D, 20 -> A0, 34 -> B4, 31 -> B1; 30, 39, 2E, 35 unchanged).
+  // The later, interrupt-driven output sends plain 7-bit bytes; both must show.
+  function [7:0] par(input [7:0] b);
+    par = {^b[6:0], b[6:0]};
+  endfunction
+
   task send_byte(input [7:0] b);
     integer k;
     begin
@@ -119,9 +129,9 @@ module console_burst_tb;
       for (k = 0; k < 80; k = k + 1) if (line[n][8*(79-k) +: 8] != 8'h00) len = k + 1;
       for (k = 0; k < len; k = k + 1) begin
         c = line[n][8*(79-k) +: 8];
-        send_byte(c); sent = sent + 1;
+        send_byte(par(c)); sent = sent + 1;
       end
-      send_byte(8'h0D); send_byte(8'h0A); sent = sent + 2;
+      send_byte(par(8'h0D)); send_byte(par(8'h0A)); sent = sent + 2;
     end
   endtask
 
