@@ -635,7 +635,7 @@ module terminal_ctrl_tdv #(
               if (byte_data == 8'h1B) p_state <= P_DCS_ESC;
               // else: still inside the DCS payload, discard the byte.
             end else if (p_state == P_DCS_ESC) begin
-              if (byte_data == "\\") p_state <= P_GROUND;  // ST - done
+              if (byte_data == 8'h5C) p_state <= P_GROUND;  // ST - done (0x5C = backslash; 8'hXX not "\\", which Quartus' lexer rejects)
               else p_state <= P_DCS;  // not the terminator, keep skipping
 
             //--------------------------------------------------------------

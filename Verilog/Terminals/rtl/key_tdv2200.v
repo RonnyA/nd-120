@@ -154,14 +154,14 @@ module key_tdv2200 (
                 8'hF0: begin s_push<=PU_SEQ; s_len<=3'd4; s_q0<="["; s_q1<="8"; s_q2<="2"; s_q3<="_"; end            // Alt+I INSERT HERE -> INNS/EXPS ESC[82_ (approximate)
                 // PUSH1-8 (Alt+1..Alt+8): "ESC P N<digit> ESC \" - user-specified,
                 // unconfirmed (registry: PUSH keys have no fixed sequence at all).
-                8'hF1: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="1"; s_q3<=ESC; s_q4<="\\"; end
-                8'hF2: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="2"; s_q3<=ESC; s_q4<="\\"; end
-                8'hF3: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="3"; s_q3<=ESC; s_q4<="\\"; end
-                8'hF4: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="4"; s_q3<=ESC; s_q4<="\\"; end
-                8'hF5: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="5"; s_q3<=ESC; s_q4<="\\"; end
-                8'hF6: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="6"; s_q3<=ESC; s_q4<="\\"; end
-                8'hF7: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="7"; s_q3<=ESC; s_q4<="\\"; end
-                8'hF8: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="8"; s_q3<=ESC; s_q4<="\\"; end
+                8'hF1: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="1"; s_q3<=ESC; s_q4<=8'h5C; end
+                8'hF2: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="2"; s_q3<=ESC; s_q4<=8'h5C; end
+                8'hF3: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="3"; s_q3<=ESC; s_q4<=8'h5C; end
+                8'hF4: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="4"; s_q3<=ESC; s_q4<=8'h5C; end
+                8'hF5: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="5"; s_q3<=ESC; s_q4<=8'h5C; end
+                8'hF6: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="6"; s_q3<=ESC; s_q4<=8'h5C; end
+                8'hF7: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="7"; s_q3<=ESC; s_q4<=8'h5C; end
+                8'hF8: begin s_push<=PU_SEQ; s_len<=3'd5; s_q0<="P"; s_q1<="N"; s_q2<="8"; s_q3<=ESC; s_q4<=8'h5C; end
                 default: ;  // unrecognised marker: stays PU_IDLE, ESC alone sent (defensive only - never reached from ps2_ascii_table_tdv.v)
               endcase
             end
