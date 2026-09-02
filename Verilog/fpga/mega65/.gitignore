@@ -1,0 +1,24 @@
+# Per-revision Vivado outputs of build.tcl (build/<board>/: .bit, reports,
+# checkpoints, timing-analysis/)
+build/
+# Vivado leftovers when run from this folder
+.Xil/
+vivado*.jou
+vivado*.log
+vivado_pid*
+*.log
+# QNICE firmware build products (CORE/m2m-rom/make_rom.sh) - same list the
+# framework's own .gitignore uses for its CORE/
+CORE/m2m-rom/*.def
+CORE/m2m-rom/*.lis
+CORE/m2m-rom/*.out
+CORE/m2m-rom/*.rom
+CORE/m2m-rom/globals.asm
+CORE/m2m-rom/shell_fhandles.asm
+CORE/m2m-rom/shell_fh_ptrs.asm
+CORE/m2m-rom/__temp__.asm
+# Fetched build tools (make toolchain) - third-party, not vendored
+tools/
+sim/*.vvp
+sim/*.vcd
+sim/*.log

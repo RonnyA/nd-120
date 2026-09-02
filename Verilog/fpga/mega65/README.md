@@ -1,26 +1,28 @@
 # ND-120 on the MEGA65
 
-**Status: PAPER PLAN, QUEUED BEHIND MiSTer (28-AUG-2026).** There is no MEGA65
-board here; friends who own one will test bitstreams we send them. That makes
-this a slow, non-interactive channel where each round trip costs days, so the
-bar for anything we send is much higher than for a board on the desk - the
-rules are in the hardware gate at the top of
-[`docs/00-plan.md`](docs/00-plan.md), and the biggest one is that a MEGA65
-bitstream must report its own results on the machine's own screen, because a
-friend will not have the TE0790 UART module our bring-up console assumes.
+**Status: THE WHOLE MACHINE BUILDS, 02-SEP-2026 - unproven on a real
+MEGA65.** ND-120 CPU board with 4 MB main memory, TDV2200 terminal on the
+MEGA65's own keyboard and screen, floppy 0/1, Winchester 0/1 and paper tape
+on the framework's virtual drives, one `.cor` per board revision. Every
+piece has run on the DE10-Nano (MiSTer) or the Nexys 4 DDR, or passes its
+bench here; this exact combination has not met a MEGA65 yet. The living
+plan, with a "Next" line at the top, is [`docs/00-plan.md`](docs/00-plan.md).
 
-**[`../mister/`](../mister/) goes first** (Ronny, 28-AUG-2026) - same SDRAM
-interface shape, on hardware he can iterate against in minutes, so the memory
-backend meets silicon there before it is ever sent to anyone.
+**Two memories, picked by the board revision at build** (Ronny, 02-SEP-2026):
 
-The one piece of this port being built meanwhile is the terminal front-end,
-board-independent by design, at [`../../Terminals/`](../../Terminals/).
+| Boards | Memory | Path |
+|---|---|---|
+| R3 / R3A | 8 MiB HyperRAM (the only memory it has) | the Nexys variable-latency seam (`MEM_RAM_49_DDR2` cache + MEM_HOLD) over `rtl/nd_avalon_port.v` on M2M's HyperRAM port |
+| R4 / R5 / R6 | 64 MB SDRAM ("the latest memory") | the MiSTer sheet-49 bridge + `sdram18`, unchanged; M2M itself never drives this chip, so `CORE/vhdl/framework-overrides/` hands the pins into the core |
 
-Target: the MEGA65 retro computer,
-board revisions **R4 and later** (R4/R5/R6 are electrically equivalent for
-our purposes). The goal is the full consumer story: an `ND-120.cor` file
-plus the disc images on one SD card, flashed from the machine's own menu -
-SINTRAN III in a Commodore case, no cables, no toolchain.
+There is still no MEGA65 here; friends who own one test what we send. Each
+round trip costs days, so every bitstream must report its own result on the
+MEGA65's own screen - the rules are the remote-testing gate in the plan.
+
+Target: the MEGA65 retro computer, every board revision M2M supports
+(R3/R3A, R4, R5, R6). The goal is the full consumer story: an `ND-120.cor`
+file per revision plus the disc images on one SD card, flashed from the
+machine's own menu - SINTRAN III in a Commodore case, no cables, no toolchain.
 
 ## Why this board
 
@@ -38,32 +40,33 @@ Verified 27-AUG-2026 from the mega65-core build scripts and board XDCs
 | Distribution | `.cor` file flashed from SD via the built-in menu (8 QSPI slots) | beats every other board's deployment story |
 | Toolchain | same Vivado, free tier covers the A200T | pin XDC and part string change, flow identical |
 
-## Planned architecture
+## Architecture (decided 02-SEP-2026)
 
-- **Memory:** new `nd_sdram_port` implementing the exact `nd_ddr2_port`
-  request/response contract (one op outstanding, 128-bit data + 16-bit
-  mask, bounded latency, never drop/reorder) so the proven
-  `MEM_RAM_49_DDR2` cache + MEM_HOLD freeze layer ports UNCHANGED. An
-  existing community controller is preferred over writing one - survey in
-  progress (MJoergen/HyperRAM, mega65-core's sdram_controller, MiSTer SDR
-  controllers).
-- **Devices:** evaluate the MiSTer2MEGA65 framework's **virtual-drive**
-  facility (disk images served from SD by the framework Shell) as a
-  replacement for our own FAT stack on this platform, with the ND-120's
-  tape/floppy/Winchester seams riding it; fall back to porting our SD-FAT
-  stack against the fabric-wired slot if the model does not fit.
-- **Console/display:** the framework's keyboard + VGA/HDMI path as a
-  terminal (the real end goal on this machine), TE0790 UART as the
-  bring-up console.
-- **Framework decision** (bare-metal vs MiSTer2MEGA65 vs hybrid) is OPEN
-  pending the two research reports - see the plan.
+- **Framework:** MiSTer2MEGA65 (GPL-3, VHDL) as the git submodule `m2m/`.
+  It owns the per-revision tops and XDCs, keyboard scan, VGA + HDMI output,
+  the OSD, virtual drives and `.cor` packaging. Our side is a thin VHDL
+  `MEGA65_Core` wrapper with everything inside it in Verilog.
+- **Memory:** the table above. Both backends sit behind the sheet-49 seam;
+  nothing above it changes.
+- **Devices:** `vdrives` speaks the MiSTer `sd_rd/sd_wr/sd_buff` protocol,
+  so `../mister/rtl/nd_storage_hps.v` ports to it. Throughput of the
+  QNICE-served discs is the open measurement (build B4 in the plan).
+- **Console/display:** `../../Terminals/` on the framework's video path,
+  the MEGA65 keyboard through a key-number-to-ASCII table of ours. There is
+  no UART console on this board at all.
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| [`docs/00-plan.md`](docs/00-plan.md) | The phase plan, hardware facts with sources, open decisions |
-| `Makefile` | Standard board API - placeholders until the port starts |
+| [`docs/00-plan.md`](docs/00-plan.md) | The living plan: decisions, verified framework facts, the two memory backends, build sequence B0-B5, layout |
+| `m2m/` | MiSTer2MEGA65 framework, git submodule (`git submodule update --init --recursive`) |
+| `Makefile`, `build.tcl` | `make toolchain` (once), `make all BOARD=r6` (or r3/r4/r5) -> `build/<board>/nd120_mega65_<board>.bit` + `.cor`. Working since 02-SEP-2026 on Vivado 2026.1 |
+| `CORE/` | our side of the framework contract (the framework's `CORE/` template, copied and edited): `vhdl/main.vhd` is the thin VHDL skin over our Verilog, `vhdl/config.vhd` the OSD texts/menu, `CORE.xdc` our constraints, `m2m-rom/` the QNICE firmware build |
+| `rtl/` | the MEGA65 glue in Verilog: `m65_keys_to_ps2.v` (keyboard scan -> PS/2 events, keycap-faithful), `nd120_console_mega65.v` (the shared terminal on the framework's video/keyboard) |
+| `sim/` | their testbenches (`make test-keys`, `make test-console`, `make lint`), registered in `Verilog/tests/run_all_tests.sh` |
+| [`docs/SEND-NOTE.md`](docs/SEND-NOTE.md) | what goes to a tester with the `.cor` files: which file, how to flash, how to boot SINTRAN, what to photograph |
+| `tools/` | gitignored; `make toolchain` fetches MEGA65's `coretool` (the `.cor` packer) here |
 
 Reuse pointers: `../nexys4ddr/build.tcl` (the Vivado flow to clone),
 `../nexys4ddr/ddr2/` (the seam + cache that port unchanged),

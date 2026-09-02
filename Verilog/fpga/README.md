@@ -7,11 +7,13 @@ under `Verilog/` - the build scripts reference it by absolute path. Only the
 board-specific build/flow files (scripts, constraints, tool projects) live here,
 one folder per board.
 
-**Ready-built bitstreams** for the two SINTRAN-booting boards are on the
+**Ready-built bitstreams** are on the
 [Releases page](https://github.com/RonnyA/nd-120/releases) with
-step-by-step loading guides: [QUICKSTART-nexys4ddr.md](QUICKSTART-nexys4ddr.md)
-and [QUICKSTART-tang-nano-20k.md](QUICKSTART-tang-nano-20k.md). Release
-process: [RELEASE-PLAN.md](RELEASE-PLAN.md).
+step-by-step loading guides: [QUICKSTART-nexys4ddr.md](QUICKSTART-nexys4ddr.md),
+[QUICKSTART-tang-nano-20k.md](QUICKSTART-tang-nano-20k.md) and
+[QUICKSTART-mega65.md](QUICKSTART-mega65.md) (the MEGA65 cores are built and
+simulated but not yet run on a MEGA65 - the first testers are the users).
+Release process: [RELEASE-PLAN.md](RELEASE-PLAN.md).
 
 ## Targets
 
@@ -22,7 +24,7 @@ process: [RELEASE-PLAN.md](RELEASE-PLAN.md).
 | [**cmod-a7-35t/**](cmod-a7-35t/README.md) | Xilinx Artix-7 `xc7a35t-1cpg236` (Digilent Cmod A7-35T DIP module, 512 KB external SRAM) | Vivado (Windows host), same flow as Basys3 (same part) | **Active** - first bitstream ready (BRAM main memory, CPU at 27 MHz via MMCM); 512 KB pack16 SRAM main-memory bridge planned ([`cmod-a7-35t/SRAM-BRIDGE-PLAN.md`](cmod-a7-35t/SRAM-BRIDGE-PLAN.md)) | [cmod-a7-35t/README.md](cmod-a7-35t/README.md) |
 | [**nexys4ddr/**](nexys4ddr/README.md) | Xilinx Artix-7 `xc7a100tcsg324-1` (Digilent Nexys 4 DDR = Nexys A7-100T; 128 MiB DDR2, microSD, ~607 KB BRAM) | Vivado (Windows host), Basys3 flow as template | **SINTRAN III boots (25-AUG-2026), clocked up 26-AUG: deployed at 45.45 MHz with a 115200 console; 50 MHz also booted; 27-AUG: SD-card deployment end to end (configure + boot from one card, no PC software)** - DDR2-backed main RAM with BRAM cache; frequency search + bottlenecks in [`nexys4ddr/timing.md`](nexys4ddr/timing.md), boot record in [`nexys4ddr/SINTRAN-BOOT-25AUG.md`](nexys4ddr/SINTRAN-BOOT-25AUG.md), SD path in [`QUICKSTART-nexys4ddr.md`](QUICKSTART-nexys4ddr.md) | [nexys4ddr/README.md](nexys4ddr/README.md) |
 | [**qmtech-a35t/**](qmtech-a35t/README.md) | Xilinx Artix-7 `xc7a35tcsg325-1` (QMTECH XC7A35T SDRAM core board) | Vivado (Windows host), same flow as Basys3 | **Paused side experiment** - stages 1-2 (LED smoke test + mem-test port) written and sim-verified, nothing run on hardware yet; 40 MHz memory plan validated on paper; resume via [`qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md`](qmtech-a35t/HANDOFF-qmtech-a35t-bringup.md) | [qmtech-a35t/README.md](qmtech-a35t/README.md) |
-| [**mega65/**](mega65/README.md) | Xilinx Artix-7 `xc7a200tfbg484-2` (MEGA65 retro computer, R4+: 64 MiB SDR SDRAM + 8 MiB HyperRAM, dual SD on fabric pins, 100 MHz osc) | Vivado (same flow as nexys4ddr) | **Planning (27-AUG-2026)** - 2x the Nexys fabric one speed grade faster; plan targets the MiSTer2MEGA65 virtual-drive + keyboard/display path and `.cor` distribution ([`mega65/docs/00-plan.md`](mega65/docs/00-plan.md)) | [mega65/README.md](mega65/README.md) |
+| [**mega65/**](mega65/README.md) | Xilinx Artix-7 `xc7a200tfbg484-2` (MEGA65 retro computer; R3: 8 MiB HyperRAM, R4/R5/R6: + 64 MiB SDR SDRAM; 100 MHz osc) | Vivado 2026.1 in-memory flow on the MiSTer2MEGA65 framework (git submodule) | **Whole machine built for BOTH revisions (02-SEP-2026), timing-clean, not yet run on a MEGA65** - CPU + 4 MB main memory (R6: SDRAM via the MiSTer sheet-49 bridge, 20 MHz; R3: HyperRAM via the Nexys cache seam + an Avalon port, 13.33 MHz), TDV2200 terminal on the machine's own keyboard/screen (VGA + HDMI), floppy 0/1 + Winchester 0/1 + tape on the framework's virtual drives, one `.cor` per revision; every new block has a self-checking bench ([`mega65/docs/00-plan.md`](mega65/docs/00-plan.md), [`QUICKSTART-mega65.md`](QUICKSTART-mega65.md)) | [mega65/README.md](mega65/README.md) |
 | [**mister/**](mister/README.md) | Intel Cyclone V SE `5CSEBA6U23I7` (DE10-Nano / "MiSTer PI", ~110K LE + ARM HPS running Linux) | Quartus Lite 17.0.2 (free, Docker `raetro/quartus:17.0`) | **Future full-machine target** - MiSTer core with floppy/HDD as Linux-side image files, OSD menu, microcode upload from file; phase plan with validated links in [`mister/docs/00-overview.md`](mister/docs/00-overview.md) | [mister/README.md](mister/README.md) |
 | [**azure-x930613/**](azure-x930613/README.md) | Intel/Altera **Stratix V GS** (Microsoft Azure FPGA 40GbE QSFP+ PCIe, P/N X930613-001, PCB DAT6MTHUEB0; 4 GB DDR3 ECC, 2x QSFP+/40GbE, PCIe Gen3 x16) | Quartus Prime **Standard** (per third-party report, unverified against a datasheet) | **Paper plan (31-AUG-2026)** - a datacenter PCIe accelerator card, not a devboard: no confirmed console/GPIO, custom non-catalog FPGA part per a third-party blog, real specs still unverified against a datasheet or the physical card | [azure-x930613/README.md](azure-x930613/README.md) |
 
@@ -48,6 +50,7 @@ with the same die/fabric; unknown = never built or never measured.
 | **Cmod A7-35T** `xc7a35t-1` | same 28 nm Artix-7 fabric | *estimate*: identical per-level speed | first bitstream built at 27 MHz; its own timing report not yet examined for a ceiling | CPU runs; no OS (BRAM-only today) | Capacity until the 512 KB SRAM bridge lands (`cmod-a7-35t/SRAM-BRIDGE-PLAN.md`); then the SRAM protocol timing becomes the question, not the fabric |
 | **QMTECH XC7A35T** `xc7a35t-1` | same 28 nm Artix-7 fabric | *estimate*: identical per-level speed | unknown - nothing run on hardware | nothing yet | Paused. Same die as Basys3 + 32 MB SDRAM; the SDRAM bridge (40 MHz plan, paper only) would set the ceiling, not the fabric |
 | **MiSTer / DE10-Nano** `5CSEBA6U23I7` | 28 nm Cyclone V SE, ALM (vendor data) | unknown - never synthesized | unknown | nothing yet | Future target. 28 nm ALM fabric should land between the Tang and the Artix-7 per level - that is an *inference*, worth exactly one Quartus timing report |
+| **MEGA65** `xc7a200t-2` | same 28 nm Artix-7 fabric as the Nexys, one speed grade faster | **measured** 02-SEP-2026 on the post-route checkpoints: the WCS -> MAC microcycle path is 34 ns in the R6 netlist (58 levels) and 57 ns in the R3 netlist (93 levels) - the R3 netlist times the CGA IDB ring through a longer loop-break point, the same "impossible but unprovable" ring the Nexys documents | **measured**: R6 closes at 20 MHz with 15.9 ns of CPU-domain slack; R3 closes at 13.33 MHz with 29.8 ns | nothing yet - no MEGA65 here; the first testers are the users of the release cores | The IDB ring, not the fabric: the period was set to fit the ring path rather than untime the internal data bus. Cut the ring in RTL and the R3 goes to 20 MHz+ like the R6; the R6 has room for ~40 MHz on paper (unmeasured) |
 
 Three portable lessons from the Nexys campaign that apply to every row:
 
