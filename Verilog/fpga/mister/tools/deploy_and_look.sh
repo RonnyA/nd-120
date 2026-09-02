@@ -15,8 +15,8 @@
 #  screenshot, pull the PNG back. Nobody has to look at anything.            #
 #                                                                           #
 #  USAGE                                                                    #
-#    export MISTER_PASS=...                # required, never store it here   #
-#    ./tools/deploy_and_look.sh            # deploy, load, screenshot        #
+#    ./tools/deploy_and_look.sh            # deploy, load, screenshot (ssh key)#
+#    MISTER_PASS=... ./tools/deploy_and_look.sh   # fallback if no key set up  #
 #    ./tools/deploy_and_look.sh --look     # screenshot only, no reflash     #
 #                                                                           #
 #  Override the host with MISTER_HOST, the settle time with MISTER_SETTLE    #
@@ -33,14 +33,17 @@ RBF="${HERE}/../output_files/nd120.rbf"
 CORE_PATH="/media/fat/_Computer/ND120.rbf"
 OUTDIR="${MISTER_SHOTDIR:-${HERE}/../shots}"
 
-if [ -z "${MISTER_PASS:-}" ]; then
-    echo "MISTER_PASS is not set. Export the board's root password first." >&2
-    echo "It is deliberately not stored in this repo." >&2
-    exit 2
+# Auth: SSH KEY by default (the board has this host's public key). MISTER_PASS
+# is only the fallback for a board without the key installed - it is a
+# password so it is NEVER stored in the repo; pass it on the command line if
+# you must. With a key set up, no password is needed or wanted.
+if [ -n "${MISTER_PASS:-}" ]; then
+    SSH="sshpass -p ${MISTER_PASS} ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR"
+    SCP="sshpass -p ${MISTER_PASS} scp -o StrictHostKeyChecking=no -o LogLevel=ERROR"
+else
+    SSH="ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR -o BatchMode=yes"
+    SCP="scp -o StrictHostKeyChecking=no -o LogLevel=ERROR -o BatchMode=yes"
 fi
-
-SSH="sshpass -p ${MISTER_PASS} ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR"
-SCP="sshpass -p ${MISTER_PASS} scp -o StrictHostKeyChecking=no -o LogLevel=ERROR"
 
 LOOK_ONLY=0
 [ "${1:-}" = "--look" ] && LOOK_ONLY=1
