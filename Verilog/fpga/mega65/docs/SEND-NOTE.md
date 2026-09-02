@@ -22,7 +22,7 @@ opens), press **HELP**; "MEGA65 MODEL" is on that screen.
 ## How to flash (standard MEGA65 procedure, nothing installed on your machine)
 
 1. Copy the `.cor` onto a micro-SD card (FAT32; internal or external slot).
-2. Make a folder `/nd120` on the card and put the disc images in it (the
+2. Make a folder `/nd120` on the card, copy `nd120cfg` into it (keeps the menu settings), and put the disc images in it (the
    Winchester image with SINTRAN III on it at least; floppy and tape images
    if you have them).
 3. Power on while holding **NO SCROLL** - the core menu appears.
