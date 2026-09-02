@@ -28,6 +28,9 @@ set_global_assignment -name VERILOG_FILE ../../ND-BUS-DEVICES/FLOPPY-DMA/circuit
 set_global_assignment -name VERILOG_FILE ../../ND-BUS-DEVICES/WINCHESTER/circuit/ND_WINCHESTER.v
 set_global_assignment -name VERILOG_FILE rtl/nd120_csa_trace.v
 set_global_assignment -name VERILOG_FILE rtl/nd120_sterr_catch.v
+# Diagnostic: storage mount + Winchester activity on the console
+# (ND120_STORAGE_PROBE, 02-SEP-2026). Gated by the define; costs nothing off.
+set_global_assignment -name VERILOG_FILE rtl/nd120_storage_probe.v
 
 # --- main memory: the SDRAM module through the Tang's sheet-49 bridge --------
 # (01-SEP-2026) Plain Verilog, no Gowin primitives; the 16-bit-module mode is
