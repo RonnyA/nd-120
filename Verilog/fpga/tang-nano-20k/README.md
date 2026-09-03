@@ -2,6 +2,15 @@
 
 **Full path:** `Verilog/fpga/tang-nano-20k/`
 
+> **Status (02-SEP-2026): SINTRAN III BOOTS ON REAL SILICON.** The Tang Nano
+> 20K was the FIRST board to boot SINTRAN (24-AUG-2026) and is a working
+> machine you log into. `fast20` runs it at **20.25 MHz, 115200 7E1 console,
+> timing-clean (TNS 0)**; 6.75 MHz is the long-validated safe speed and `mid`
+> (13.5 MHz) also closes. Main memory is 4 MB of the embedded SDRAM (packed
+> 16-bit, `ND_SDRAM_PACK16`); the SD/FAT storage stack is proven on hardware.
+> The old page-fault / silicon-hang / level-14 livelock / bank-decode
+> campaigns are all RESOLVED - that is why it boots. Details below.
+
 Gowin build/flow for the Sipeed **Tang Nano 20K**. This is the **primary FPGA
 target** going forward - chosen for faster synthesis than Vivado, a Linux-native
 open-source toolchain option, and 8 MB of SDRAM that lets the FPGA run the full

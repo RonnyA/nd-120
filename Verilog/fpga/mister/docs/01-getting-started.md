@@ -1,7 +1,9 @@
-# Phase 0 — Getting Started (hardware, MiSTer install, dev environment)
+# Getting Started (hardware, MiSTer install, dev environment)
 
-Goal of this phase: a working MiSTer you can ssh into, and a dev machine that can
-compile the unmodified Template core. No ND-120 code yet.
+Setup reference: a working MiSTer you can ssh into, and a dev machine that can
+compile the core. If you only want to run the ready-built `.rbf`, use
+[`../../QUICKSTART-mister.md`](../../QUICKSTART-mister.md) instead - this doc is
+for setting up a build/debug environment.
 
 All links verified 2026-07-08.
 
@@ -139,10 +141,9 @@ Read/watch in roughly this order:
    non-browser user agents; use a real browser). Official Discord invite (from the
    docs site footer): https://discord.com/invite/misterfpga/
 
-## Phase 0 exit criteria
+## Setup checklist
 
 - [ ] MiSTer boots to OSD, downloader has run, an existing core loads and runs.
 - [ ] `ssh root@mister` works from your dev machine.
 - [ ] `docker run --rm raetro/quartus:17.0 quartus_sh --version` prints 17.0.2.
-- [ ] You have cloned Template_MiSTer and compiled it unmodified (see
-      [02-building.md](02-building.md)) — even before understanding it.
+- [ ] You can compile the project with Docker (see [02-building.md](02-building.md)).

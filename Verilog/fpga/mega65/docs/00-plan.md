@@ -4,8 +4,8 @@
 the testers and act on what comes back. Nothing of this port has run on a
 real MEGA65 yet.
 
-Delivered 02-SEP-2026 17:01: `nd120_mega65_r6.cor` (SDRAM, CPU 20 MHz,
-WNS +0.249 / WHS +0.003 ns) and `nd120_mega65_r3.cor` (HyperRAM, CPU
+Delivered 02-SEP-2026 17:01: `nd120_mega65_r6_20MHz_115200.cor` (SDRAM, CPU 20 MHz,
+WNS +0.249 / WHS +0.003 ns) and `nd120_mega65_rev3_13MHz_115200.cor` (HyperRAM, CPU
 13.33 MHz, WNS +0.093 / WHS +0.035 ns), both stamped `e5bdea5+ 02-Sep-2026
 16:27`. Timing-clean incl. hold; the CGA IDB-loop DRC downgraded exactly as
 on the Nexys. Two hold constraints on the framework's clk live in

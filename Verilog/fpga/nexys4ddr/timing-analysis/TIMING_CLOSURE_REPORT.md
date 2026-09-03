@@ -1,5 +1,12 @@
 # ND-120 on Nexys 4 DDR - Timing Closure Report (clock-up campaign)
 
+> **Historical / campaign closed (kept as the measured timing record).** The
+> STA numbers below stand. Since this was written, SINTRAN boots on silicon at
+> 45.45 MHz and 50 MHz, and the board is deployed at **33.333 MHz with the
+> cache ON** (the cache added routing pressure that reopened 45.45 - see
+> `../timing.md`, sections dated 30/31-AUG-2026). Read this report for the
+> per-domain analysis and the frequency search, not for the "next steps".
+
 Started 26-AUG-2026, branch `clock-up`. All paths in this document are
 relative to the repo root unless stated otherwise. Evidence directories:
 `Verilog/fpga/nexys4ddr/timing-analysis/baseline_clk16/` (preserved reports
@@ -26,8 +33,10 @@ measured the actual wall:
 - One stale constraint was found and fixed (crossing bounds into the CPU
   clock hard-coded at 80 ns; now track the selected period). No timing
   exception was added anywhere.
-- **STA pass is not functional proof.** Nothing above 16.667 MHz has booted
-  on this board yet; the two auto-inserted loop-breaking false paths (CGA
+- **STA pass is not functional proof.** (When this report was written nothing
+  above 16.667 MHz had booted; since then 45.45 MHz and 50 MHz have booted on
+  silicon, and the deployed build is 33.333 MHz with the cache ON.) The two
+  auto-inserted loop-breaking false paths (CGA
   IDB ring remnants) make every CPU WNS a floor; and WNS +0.007 (50 MHz)
   or +0.085 (45 MHz) leaves no allowance for the untimed paths, multi-run
   spread, or anything else. The defensible recommendation is below
@@ -226,8 +235,8 @@ cycle-faithful reconstruction):**
    DEBT" in `build.tcl`): removes the 2 auto false paths and the 6
    check_timing loops, making the WNS a real guarantee instead of a floor.
    This is a correctness-of-analysis improvement, not a speed improvement,
-   and the right long-term move (tracked in `EXTENSIONS-PLAN.md` and the
-   20-AUG analysis).
+   and the right long-term move (tracked in the 20-AUG analysis,
+   `../BUILD-WARNINGS-ANALYSIS.md`).
 
 **Constraint work (done during this campaign):**
 

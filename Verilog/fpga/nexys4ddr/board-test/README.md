@@ -8,8 +8,10 @@ so that a later failure can be blamed on the CPU instead of the hardware.
 Nothing from the ND-120 design is compiled here.
 
 > **Status:** UART paths verified in simulation (banner, echo, BTNC report all
-> come out correctly at 9600 baud against a bit-level decoder). **Not yet
-> built in Vivado and not yet run on hardware.**
+> come out correctly at 9600 baud against a bit-level decoder). The board
+> itself is now a known-good, deployed platform - it boots SINTRAN III from
+> the full ND-120 build - so this harness is here for bringing up a *fresh*
+> board, not for proving the design.
 
 ## What it proves
 

@@ -6,8 +6,9 @@
 > *measured* ND-120 DRAM protocol (2000-access random soak + directed tests)
 > against the bridge and a behavioral SDRAM model - data correct and held
 > through the deadline, parity round-trips (including deliberately bad
-> parity), refresh never gaps beyond 15.7 us. Not yet wired into a full ND-120
-> Tang build (that needs the Tang top-level, bring-up stage G1).
+> parity), refresh never gaps beyond 15.7 us. **Now wired into the full ND-120
+> Tang build as main memory** (2 banks = 4 MB, packed 16-bit `ND_SDRAM_PACK16`):
+> the Tang Nano 20K boots SINTRAN III from it on real silicon (24-AUG-2026).
 
 Drop-in replacement for the sheet-49 RAM (`CPU-BOARD-3202/circuit/MEM_RAM_49.v`)
 that maps the ND-120's DRAM protocol onto the Tang Nano 20K's 8 MB embedded

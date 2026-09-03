@@ -15,6 +15,10 @@ The results that mark eras, pulled out of the full table below:
 | **24. August 2026** | **SINTRAN III boots on the Tang Nano 20K** - the operating system runs on real hardware, login and programs work |
 | **25. August 2026** | **SINTRAN III boots on the Nexys 4 DDR** - second board, main memory in DDR2, timing-clean |
 | **26. August 2026** | **Both boards clocked up, both verified on silicon**: Nexys deployed at 45.45 MHz (50 MHz also booted) and Tang at 20.25 MHz timing-clean, each with a 115200 console - up from 16.667/6.75 MHz and 9600 baud |
+| **31. August 2026** | **Nexys cache on silicon**: all 8 CACHE-1X0-A00 tests pass; deployed cache-on at 33 MHz gives ~2.9x the throughput of 45 MHz cache-off on the same SINTRAN workload |
+| **1-2. September 2026** | **Board-independent TDV2200 terminal core**: real box-drawing font (set 2, from RetroCore) embedded in `font_rom.v`, PS/2 keyboard - the console is the machine's own screen and keyboard, on the Nexys, MiSTer and MEGA65 |
+| **2. September 2026** | **SINTRAN III boots on the MiSTer (DE10-Nano)** - third board on real silicon, TDV2200 console, self-test green |
+| **2. September 2026** | **MEGA65 cores built for both revisions** (R3 HyperRAM 13.33 MHz, R4/R5/R6 SDRAM 20 MHz), timing-clean, not yet run on a MEGA65; Release 2 (`bitstreams-2026-09`) ships the MEGA65 and MiSTer binaries |
 
 ## Full history
 
@@ -82,6 +86,10 @@ Compressed history of the work progress on the ND-120 recreation:
 | 26. August 2026 | SILICON | **Tang `fast20` variant: SINTRAN boots at 20.25 MHz with a 115200 console, TIMING-CLEAN (TNS 0, Fmax 20.556 MHz)** - the fastest clean Tang (3x the validated 6.75 MHz; the 27 MHz variant runs 32% past its own Fmax). New rPLL branch 40.5/20.25 MHz on a 648 MHz VCO |
 | 27. August 2026 | TEST | **Both fast configurations soaked: 4 unattended SINTRAN hours each (Nexys 45.45 MHz, Tang fast20), 8/8 console probes; all four release bitstreams boot-checked on silicon.** Same day: test backlog burned down (101 unregistered testbenches -> 0 unmeasured, 104 registered, memchain resolved as a stale expectation), `make test` green end to end for the first time since 21-AUG (328/328), and a Verilog CI added (registry + yosys netlist gates every push, Tang OSS bitstream on release tags) |
 | 27. August 2026 | SILICON | **Nexys SD-card deployment works end to end: configure from the card, boot SINTRAN from the same card - no PC software.** The bug: `sd_reset` was a constant, the card stayed in the SPI mode the board's config controller left it in (only a power cycle exits SPI mode), so every disc op after SD-config failed with FDISK error 3. Fix: a power-cycle controller (slot OFF 100 ms + 50 ms settle) triggered by configuration, reset, MACL and the machine's own system clear |
+| 31. August 2026 | SILICON | Nexys cache brought up on the board: all 8 CACHE-1X0-A00 tests pass after four single-input transcription fixes (PAL 44511A CWR latch + its pin-19 polarity, a dropped Am9150 used-bit write, a DGA EPANS data-window leak that alone caused 20062 test-1 errors). Deployed build runs cache ON at 33 MHz - ~2.9x the throughput of 45 MHz cache-off on the same SINTRAN workload |
+| 1-2. September 2026 | FPGA | Board-independent TDV2200 terminal core: 800x600 screen, PS/2 keyboard, console UART (7E1/8N1), the real TDV2200 box-drawing font (set 2, dumped from RetroCore) embedded in `font_rom.v` so every board carries the glyphs; wired on the Nexys with the physical keyboard (incl. the Left-arrow bridge fix). Console framing settled at 7E1 - the SC2661 sends one stop bit, so the earlier 7E2 in the docs was documentation only |
+| 2. September 2026 | SILICON | SINTRAN III boots on the MiSTer (DE10-Nano): the whole machine, 4 MB in the DE10-Nano SDRAM module, TDV2200 console on its own screen and keyboard, storage from the OSD; boot, CPU self-test (green G lamp), font and keyboard all confirmed |
+| 2. September 2026 | FPGA | MEGA65 cores built for both revisions on the MiSTer2MEGA65 framework (R3 HyperRAM 13.33 MHz / R4-R6 SDRAM 20 MHz), timing-clean, not yet run on hardware. Release 2 (`bitstreams-2026-09`) published with the MEGA65 and MiSTer binaries and per-board quickstarts |
 
 ## Area tags
 

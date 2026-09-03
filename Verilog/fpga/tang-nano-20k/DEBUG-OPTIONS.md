@@ -40,10 +40,10 @@ on this board:
 - `ndcomm` (fpga/tools/ndcomm/) scripts all of this: BPUN load/verify (-l -v),
   instruction trace (-t N -r), MW/MR command mode.
 
-LIMITS: needs the CPU microcode alive (a hard wedge kills the console);
+LIMITS: needs the CPU microcode alive (a hard hang kills the console);
 stepping hides pure-timing bugs; breakpoint runs are unrecoverable if the
-CPU wedges before the address (costs a reset).
-PROTOCOL RULES (learned the hard way): never free-run from a parked/wedged
+CPU hangs before the address (costs a reset).
+PROTOCOL RULES (learned the hard way): never free-run from a parked/hung
 state - reset first; `20!` restarts a loaded test program, `0!` is cold
 start; on an EMPTY machine `n!` executes garbage and kills the console.
 

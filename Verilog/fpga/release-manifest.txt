@@ -1,0 +1,26 @@
+# Canonical release artifacts for the ND-120 FPGA bitstreams.
+#
+# One line per downloadable file:
+#     <release-name>                          <build output, relative to Verilog/fpga/>
+#
+# The release name is board + CPU clock + console baud. The console is 115200
+# 7E1 on every board, so the baud is always 115200. This file is the ONE place
+# the download names are written down - stage-release.sh reads it, so nobody
+# retypes a name by hand.
+#
+# Stage a binary after building its config:
+#     ./stage-release.sh nd120_mega65_r6_20MHz_115200.cor
+#
+# Note: the Nexys .bit and Tang .fs build outputs are a single generic file that
+# each build OVERWRITES, so their two clock variants share one source path -
+# build the clock you want, THEN stage that clock's name. The MEGA65 r3/r6 and
+# the MiSTer outputs sit in their own directories and do not collide.
+#
+# release name                              build output (under Verilog/fpga/)
+nd120_nexys4ddr_45MHz_115200.bit           nexys4ddr/nd120_nexys4ddr.bit
+nd120_nexys4ddr_16MHz_115200.bit           nexys4ddr/nd120_nexys4ddr.bit
+nd120_tang20k_fast20_20MHz_115200.fs       tang-nano-20k/build/nd120_tang20k_build/impl/pnr/nd120_tang20k_build.fs
+nd120_tang20k_slow_6.75MHz_115200.fs       tang-nano-20k/build/nd120_tang20k_build/impl/pnr/nd120_tang20k_build.fs
+nd120_mister_20MHz_115200.rbf              mister/output_files/nd120.rbf
+nd120_mega65_rev3_13MHz_115200.cor         mega65/build/r3/nd120_mega65_r3.cor
+nd120_mega65_r6_20MHz_115200.cor           mega65/build/r6/nd120_mega65_r6.cor

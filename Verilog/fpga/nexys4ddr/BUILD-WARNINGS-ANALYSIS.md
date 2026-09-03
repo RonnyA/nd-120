@@ -1,5 +1,11 @@
 # Nexys 4 DDR build warnings - what they mean, ranked
 
+> **Historical reference (kept).** Taken from an early 12.5 MHz build log;
+> counts and the WNS figure are from that run, not the deployed build. The
+> board now boots SINTRAN and is deployed. The interpretation of each warning
+> code - especially the inferred timing-loop exceptions - still holds and is
+> why this analysis is kept.
+
 **Full path:** `Verilog/fpga/nexys4ddr/BUILD-WARNINGS-ANALYSIS.md`
 **Source log:** `Verilog/fpga/nexys4ddr/nd120_clk12.log` (the build that passed
 timing: 46 loops, WNS +1.460 ns at 12.5 MHz)

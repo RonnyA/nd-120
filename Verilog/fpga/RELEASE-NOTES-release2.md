@@ -90,7 +90,8 @@ power LED verdict. Details in [`QUICKSTART-mega65.md`](https://github.com/RonnyA
   as `/media/fat/_Computer/ND120.rbf` and load it from the MiSTer menu. Attach
   a Winchester image (for example `WD0.IMG`) from the OSD, then at the `#`
   monitor type `&` to boot it. The console is the MiSTer's own screen and
-  keyboard; the CPU's serial line is also on the HPS `/dev/ttyS1` at 115200.
+  keyboard; the CPU's serial line is also on the HPS `/dev/ttyS1` at 115200 7E1.
+  Full walkthrough: **[`QUICKSTART-mister.md`](https://github.com/RonnyA/nd-120/blob/main/Verilog/fpga/QUICKSTART-mister.md)**.
 
 **Disc image is not in the release** (instructions only): the machine needs a
 Winchester image on the card's FAT root. A bitstream with no image still comes

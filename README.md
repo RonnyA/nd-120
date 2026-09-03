@@ -15,17 +15,21 @@ On the way to the FPGA code, there will be testable Logisim Circuits and Logisim
 
 ## Current Status
 
-### Where the project stands (26-AUG-2026)
+### Where the project stands (02-SEP-2026)
 
-The machine runs the original operating system on real hardware - on **two
-boards**. **SINTRAN III boots on the Tang Nano 20K** (24-AUG) and on the
-**Nexys 4 DDR** (25-AUG), each from a Winchester disc image on an SD card,
-and you can log in and run programs. The Tang is the primary target.
+The machine runs the original operating system on real hardware - on **three
+boards**. **SINTRAN III boots on the Tang Nano 20K** (24-AUG), the **Nexys 4
+DDR** (25-AUG) and the **MiSTer / DE10-Nano** (02-SEP), each from a Winchester
+disc image, and you can log in and run programs. The Tang is the primary
+target. A fourth machine, the **MEGA65**, builds for both board revisions and
+is timing-clean, but has not yet run on a real MEGA65 - the release cores are
+its first hardware test.
 
 Verilator is no longer "the thing that works while hardware doesn't" - it is
 the **signal-level reference**: waveforms, unit testbenches, and the
-latch-versus-flip-flop comparison that proves a refactor changed nothing. Of
-the Xilinx boards only the Basys3 remains OPCOM-only (does not meet timing).
+latch-versus-flip-flop comparison that proves a refactor changed nothing. The
+Xilinx boards that only reach OPCOM (Basys3, Cmod A7) are held back by memory
+capacity or timing, not by the CPU.
 
 **Simulation (Verilator - the signal-level reference):**
 - Microcode loads, Master Clear executes, and the CPU self-test passes
@@ -139,7 +143,8 @@ routes: `Verilog/fpga/nexys4ddr/timing.md`.
 > [Releases page](https://github.com/RonnyA/nd-120/releases) - no FPGA
 > toolchain needed. Quickstarts: `Verilog/fpga/QUICKSTART-nexys4ddr.md`
 > (incl. the no-software SD-card path),
-> `Verilog/fpga/QUICKSTART-tang-nano-20k.md` and
+> `Verilog/fpga/QUICKSTART-tang-nano-20k.md`,
+> `Verilog/fpga/QUICKSTART-mister.md` and
 > `Verilog/fpga/QUICKSTART-mega65.md` (MEGA65 cores: built, not yet run on
 > a MEGA65 - the first testers are you).
 
@@ -166,6 +171,13 @@ routes: `Verilog/fpga/nexys4ddr/timing.md`.
   fix and validation in `Verilog/fpga/nexys4ddr/SINTRAN-BOOT-25AUG.md`.
   The board carries a debug panel (RGB health LEDs incl. a DDR2 watchdog,
   8-digit live state display): `Verilog/fpga/nexys4ddr/DEBUG-PANEL.md`.
+- **MiSTer (DE10-Nano) - SINTRAN III BOOTS (02-SEP-2026).** The whole ND-120
+  machine on the MiSTer framework: boots to OPCOM and, with a Winchester image
+  mounted in the OSD, boots SINTRAN. CPU at 20 MHz, **4 MB main memory in the
+  DE10-Nano SDRAM module**, the TDV2200 terminal on the MiSTer's own screen and
+  keyboard, floppy/Winchester/tape as image files from the OSD. Confirmed on the
+  board: boot, self-test (green `G` lamp), the box-drawing font and the keyboard.
+  Quickstart: `Verilog/fpga/QUICKSTART-mister.md`.
 - **Basys3**: OPCOM boots on the board (tag `fpga-opcom-working-basys3`);
   active debug line at 16.67 MHz. Does not meet timing (WNS -29.778 ns at
   16.667 MHz, measured 21-AUG-2026), so it does not boot the OS.

@@ -1,5 +1,13 @@
 # HANDOFF - Tang Nano 20K: BPUN boot from SD card
 
+> **RESOLVED 24-AUG-2026 - kept for the storage-proof detail in section 1.**
+> The "open blocker" below (`400$` / boot hangs the CPU on hardware) is closed:
+> the memory bank was decoded from the wrong side of the bus transceiver
+> (`ND3202D.v:533`), so DMA writes landed in BANK0 and the CPU fetched zeros.
+> With that fixed the Tang Nano 20K boots SINTRAN III (regression guard
+> `make test-bdbank`). What still stands here is the record of what the SD/FAT
+> storage stack proved on real silicon.
+
 Written 14-JUL-2026. Branch `clock-enable-fix`.
 Commits: `30e8e02`, `64fe9c4`, `bff68b5`, `5ba5b02`.
 

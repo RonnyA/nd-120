@@ -1,9 +1,17 @@
-# ANALYSIS — Tang "masked level-10 grant": root-cause investigation (OPEN)
+# ANALYSIS — Tang "masked level-10 grant": root-cause investigation (SOLVED 18-JUL-2026)
+
+> **SOLVED 18-JUL-2026 - kept as the root-cause record.** The root cause was
+> found and directly confirmed on silicon (section 3e): a stale-INTRQN panel
+> pulse taken as a macro interrupt, reading an empty vector that defaults to
+> level 10 - NOT an Am2914 masked grant. The "hunt in progress" note below is
+> the state before section 3e closed it. The Tang Nano 20K now boots SINTRAN
+> III (24-AUG-2026).
 
 **Full path:** `Verilog/fpga/tang-nano-20k/ANALYSIS-cga-intr-masked-grant-root-cause.md`
-**Status:** ROOT-CAUSE HUNT IN PROGRESS. An earlier trap-side guard was written and
-then **REVERTED** (18-JUL) at Ronny's direction — it treated the symptom, not the
-cause, and it deviated from the schematics. We are now finding the real cause.
+**Status:** ROOT CAUSE FOUND AND CONFIRMED ON SILICON (18-JUL, section 3e). An
+earlier trap-side guard was written and then **REVERTED** (18-JUL) at Ronny's
+direction — it treated the symptom, not the cause, and it deviated from the
+schematics; the real cause is in section 3e.
 **Answering:** `Verilog/fpga/tang-nano-20k/HANDOFF-cga-intr-masked-grant-analysis.md`.
 
 ---
@@ -39,7 +47,7 @@ logic is NOT where a transcription bug lives.
 
 ## 2. Why this is a ROOT-CAUSE question, not a patch target
 
-The real machine ran this design for years without wedging. Two things differ on
+The real machine ran this design for years without hanging. Two things differ on
 our board and are the actual suspects for *why the window is reachable here*:
 
 ### Suspect A — clock-phase fidelity of the FF conversion (PRIME)
@@ -87,7 +95,7 @@ silicon signature — PIL switching 0->nonzero. Each dumps the full claim pictur
 
 Run 1 — normal sim cadence, `20!`, 3M cycles:
 - CS 000017 entered 80x, **every time with PAN asserted** (pann=0), IRQ=0,
-  PIL stays 0, no wedge. These are legitimate panel/console dispatches (PAN is
+  PIL stays 0, no hang. These are legitimate panel/console dispatches (PAN is
   the cause; the panel path does not use the maskable IRQ mechanism).
 - A dispatch with PAN de-asserted (pann=1) + IRQ=0 (the bug fingerprint):
   **never occurs.**
@@ -100,7 +108,7 @@ Tang 27 MHz), `20!`, ~9M cycles (~17 real RTC ticks):
   period = the OS clock interrupt at level 13, driven by a real pending request
   (ireq_n bit 3 = 0), executing the normal PLINT/PLVO/LVSWP microcode
   (CSA 01140->01155). Legitimate.
-- **PIL->10 (the silicon wedge) NEVER occurs. No masked/causeless grant.**
+- **PIL->10 (the silicon hang) NEVER occurs. No masked/causeless grant.**
 - The one PILSW flagged "EMPTY-CLAIM" was the *tail* of a legitimate level-13
   switch (cause already consumed earlier in the routine) — a false positive of
   the empty test, not a real event.
@@ -149,11 +157,11 @@ Steps:
    `Verilog/fpga/tang-nano-20k/src/tang20k_defines.v`.
 2. Full Gowin rebuild (`make gowin`) and flash. (Mind the load-gowin
    stale-bitstream trap: verify the flashed .fs mtime/sha vs the fresh build.)
-3. Reproduce the wedge as before: btn1 (MACL, keeps SDRAM) -> software `MACL`
+3. Reproduce the hang as before: btn1 (MACL, keeps SDRAM) -> software `MACL`
    -> deposit P=0 -> single-step (`Z`) until PIL switches to 10 (~step 18).
 4. On that step the capture fires; the debug UART TX then streams **512 lines
    of 4 hex digits** at 9600. Capture them (they replace the console output;
-   the console is dead post-wedge anyway).
+   the console is dead post-hang anyway).
 5. Decode each line `HHHH`: **PIL = hex digit 1** (`H[15:12]`), **CSA =
    lower 3 hex digits** (`H[11:0]`) — then read CSA in OCTAL. The samples are
    oldest-first; the last ~64 are post-switch, the ~448 before are the lead-up.
@@ -186,13 +194,13 @@ it only seizes the UART if PIL actually hits 10 on the board.
   a few seconds (hold_cnt), then the debug dumper SEIZES the console TX and
   streams the 512 hex lines. So: once piltrace reports the PIL=10 grant, STOP
   stepping and just record the raw UART for ~5-10 s — those 512 `HHHH` lines
-  are the capture. (I can add a tiny post-wedge raw-UART reader to the script
+  are the capture. (I can add a tiny post-hang raw-UART reader to the script
   when you get to this step.)
 
 ## 3d. Experiment B1 RESULT — MEASURED ON SILICON (18-JUL) — DECISIVE
 
 Flashed the `TANG_GRANT_CAPTURE` bitstream (built here via `make gowin`, PnR fit),
-attached the Tang, ran `grant_capture.py`: single-step from P=0 wedged at
+attached the Tang, ran `grant_capture.py`: single-step from P=0 hung at
 **step 18 (P 0o21->0o24, STS=015000, PIL=10, PID=002000, PIE=0)** and the on-chip
 capture dumped the CSA path of that fatal step. Measured de-duplicated CSA
 sequence (octal), verbatim:
@@ -211,7 +219,7 @@ Decode against the microcode:
   microcode runs and lands PIL=10 at 01155 (LVSWP+7, ACTLV/PIL update). PID bit
   10 (=002000) is set here by PLINT as part of the switch.
 
-**CONCLUSION (proven on silicon): the wedge is a MACRO-INTERRUPT trap dispatch
+**CONCLUSION (proven on silicon): the hang is a MACRO-INTERRUPT trap dispatch
 (vector 17) taken with an EMPTY vector claim, which MACRI maps through ITSRV
 entry 0 to LEVEL 10.** It is NOT a hardware Am2914 grant-cone glitch; it goes
 through the CGA_TRAP dispatch + the ordinary level-switch microcode.
@@ -239,7 +247,7 @@ identify which PAN source triggered it - which decides the FAITHFUL fix:
 ## 3e. ROOT CAUSE — DIRECTLY CONFIRMED ON SILICON (18-JUL)
 
 Via the on-chip capture (grant_capture.py, TANG_GRANT_CAPTURE), stepping to the
-wedge and reading a debug word = {PAN, IRQ, INTRQ, PICV, MIREQ}. Measured
+hang and reading a debug word = {PAN, IRQ, INTRQ, PICV, MIREQ}. Measured
 sequence around the dispatch:
 
     PAN=1 IRQ=0 INTRQ=1 PICV=0 MIREQ=0   <- PAN pulses; INTRQN asserts (from PAN)
@@ -325,8 +333,8 @@ VALIDATION (must be FREE-RUN, not single-step): single-stepping injects its own
 panel Stop/Continue PAN pulses, so it cannot test the conkick fix. A fresh
 free-run cold start (400$ autostart, or MACL+P=0+run) has no panel-step ops, no
 console output yet, and no RTC tick in the first ~tens of us - so with the
-conkick gone there is no PAN pulse at the P=21 wedge point. If 400$ now boots
-past the wedge, the conkick was the free-run trigger and the faithful fix cures
+conkick gone there is no PAN pulse at the P=21 hang point. If 400$ now boots
+past the hang, the conkick was the free-run trigger and the faithful fix cures
 the real-operation failure.
 
 RESIDUAL / belt-and-suspenders: the INTRQN lag (a real RTL structural bug, see

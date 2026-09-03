@@ -1,7 +1,7 @@
 # Nexys 4 DDR extensions: microSD, then DDR2 main memory
 
 **Full path:** `Verilog/fpga/nexys4ddr/EXTENSIONS-PLAN.md`
-**Date:** 19-AUG-2026. **Status: PLANNED. Nothing here is built or measured.**
+**Date:** 19-AUG-2026. **Status: HISTORICAL (02-SEP-2026).** Both extensions are DONE and proven on silicon - the microSD/FAT stack and DDR2 main memory both ship in the deployed Nexys build that boots SINTRAN III. This document is kept for the DDR2 latency-budget rationale that the generated module docs cite; read it as the original plan, not current status.
 
 The first build in this folder is a Basys3 clone on a bigger part: BRAM main
 memory (24 KB), 16.667 MHz, UART console. This document covers the two things

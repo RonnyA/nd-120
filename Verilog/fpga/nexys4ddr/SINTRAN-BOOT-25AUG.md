@@ -64,8 +64,10 @@ Address-split reminder for anyone extending the tb: word address bits
 
 ## Still open on this board
 
-- Long soak under SINTRAN (hours, file activity) is unmeasured; the 5
-  cycles prove the boot path only.
+- Long soak under SINTRAN: DONE later - 4 unattended hours at 45.45 MHz on
+  27-AUG-2026, 8/8 console-attention probes answered (the 5 cycles here proved
+  only the boot path). SD-card WRITE workloads at speed remain the one
+  unproven item.
 - `nd_ddr2_arb.v`: no watchdog, strict-A starvation, silent response drop
   in G_IDLE - dormant defects, not implicated in the boot bug.
 - SD runs a 1-bit bus (Tang runs 4-bit); the likely lever if boot speed

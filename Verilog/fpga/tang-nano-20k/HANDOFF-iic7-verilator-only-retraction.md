@@ -11,15 +11,19 @@
 > **SINTRAN III now boots on the Tang Nano 20K.**
 >
 > Anything below describing the fault as open, or naming a suspect, is
-> superseded. The measured trail and the theories that were REFUTED are in
-> `PLAN-pf-campaign-prio.md`; the regression guard is `make test-bdbank`.
+> superseded. The root cause was the `ND3202D.v:533` bank-decode bug; the
+> regression guard is `make test-bdbank` and the current state is the README
+> status banner.
 
 # Handoff: the IIC-7 / IDENT PL10 line of work is RETRACTED (Verilator-only)
 
 **Repo path:** `Verilog/fpga/tang-nano-20k/HANDOFF-iic7-verilator-only-retraction.md`
 **Date:** 23-AUG-2026
 **Status:** closed as a dead end. One real but unrelated bug fixed and committed.
-**Active line of work is unchanged:** `PLAN-zero-read-nonresident-page.md`
+**Outcome (24-AUG-2026):** the page-fault campaign this belonged to is RESOLVED -
+the root cause was the `ND3202D.v:533` bank-decode bug and the Tang Nano 20K now
+boots SINTRAN III (guard `make test-bdbank`). This handoff is history, kept for
+the latent-bug list in section 4.
 
 External files live outside the repository and are referenced through
 `$ND120_ORACLE_DIR` (the directory holding `nd120_win.trc`, `oracle_full.trc`,
@@ -118,8 +122,11 @@ not this bug.
   not inflated), so there is a remap somewhere that nobody has located. Leave
   it alone until someone reads the drawing.
 
-## 5. Where to pick up
+## 5. How it ended
 
-`PLAN-zero-read-nonresident-page.md` is still the live plan: the board takes a
-genuine page fault at Perror 064406 on a page the oracle pages in normally.
-Nothing in this handoff changes that.
+At the time of writing, the open question was the genuine page fault the board
+took at Perror 064406 on a page the oracle pages in normally. That was RESOLVED
+24-AUG-2026: the root cause was the `ND3202D.v:533` bank-decode bug (DMA writes
+landed in BANK0, so the CPU fetched zeros from a page nothing had written), and
+the Tang Nano 20K now boots SINTRAN III. Guard: `make test-bdbank`. Nothing in
+this handoff's IIC-7 line of work bore on that; it stays retracted.

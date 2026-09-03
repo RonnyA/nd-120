@@ -37,7 +37,7 @@ Measured 18-JUL on the physical Tang over the OPCOM console (`/dev/ttyUSB1`,
 Method: btn1 (clean Master Clear, keeps SDRAM) → software `MACL` → deposit P=0
 (the `0!` cold-start entry) → single-step (`Z`), reading the internal-register
 dump (`IRD`) each step. Single-stepping (never free-running) is mandatory — a
-free-run to a breakpoint wedges the console before the event.
+free-run to a breakpoint hangs the console before the event.
 
 ```
 step  1..17 : STS = 010040   PIL = 0           (clean, running level 0)

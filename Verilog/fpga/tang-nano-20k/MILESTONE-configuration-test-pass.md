@@ -12,7 +12,8 @@ Date: 2026-07-27. **Platform: VERILATOR (FF-mode), the fixed hand-maintained RTL
 > silicon. The Tang was flashed with this same RTL (`make flash-gowin`, config flash,
 > persistent) but **still hard-hangs on boot** — BOTH `400$` (tape) and `1560&` (floppy)
 > hang on the board. So the fixes are validated in sim; the Tang boot divergence is a
-> separate open problem (see `DEBUG-PLAN-floppy-tape-boot.md`). In particular `400$` on the
+> separate problem - the `400$` floppy/tape boot hang, RESOLVED 24-AUG-2026 by the
+> `ND3202D.v:533` bank-decode fix (guard `make test-bdbank`). In particular `400$` on the
 > flashed build now updates NO memory at all (before the fixes it loaded ~23244 words then
 > hung on an instruction) — a possible FPGA-side regression from one of the fixes (prime
 > suspect: the MMU cache HIT-gate in `CPU_MMU_CACHE_25.v`, whose `s_hit` may behave

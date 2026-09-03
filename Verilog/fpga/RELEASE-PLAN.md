@@ -27,6 +27,16 @@ artifact's source commit SHA and timing verdict, and link the quickstarts.
 Staging area for the artifacts before the GitHub Release:
 `fpga/release-staging/` (gitignored).
 
+**Staging is scripted, not hand-typed.** The canonical download names
+(`board_clock_baud`) live in `fpga/release-manifest.txt`; `fpga/stage-release.sh`
+copies a build output into `release-staging/` under its release name and
+regenerates `SHA256SUMS`. Every board's build tool emits a generic name
+(`nd120_nexys4ddr.bit`, `nd120_mega65_r6.cor`, ...) - the clock/baud name is
+put on here, at staging, for all boards the same way. Build a config, then run
+`./stage-release.sh <release-name>` (`--list` prints the valid names). This
+replaces the hand-rename that once shipped a MEGA65 `.cor` named for a build it
+was not.
+
 ## Release 2 - in preparation (02-SEP-2026)
 
 Adds the MiSTer and MEGA65 boards, and REFRESHES the Nexys/Tang binaries to

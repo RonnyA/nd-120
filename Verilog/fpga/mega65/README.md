@@ -1,12 +1,15 @@
 # ND-120 on the MEGA65
 
-**Status: THE WHOLE MACHINE BUILDS, 02-SEP-2026 - unproven on a real
-MEGA65.** ND-120 CPU board with 4 MB main memory, TDV2200 terminal on the
-MEGA65's own keyboard and screen, floppy 0/1, Winchester 0/1 and paper tape
-on the framework's virtual drives, one `.cor` per board revision. Every
-piece has run on the DE10-Nano (MiSTer) or the Nexys 4 DDR, or passes its
-bench here; this exact combination has not met a MEGA65 yet. The living
-plan, with a "Next" line at the top, is [`docs/00-plan.md`](docs/00-plan.md).
+**Status: BOTH CORES BUILT AND TIMING-CLEAN, 02-SEP-2026 - not yet run on a
+real MEGA65.** ND-120 CPU board with 4 MB main memory, TDV2200 terminal on
+the MEGA65's own keyboard and screen, floppy 0/1, Winchester 0/1 and paper
+tape on the framework's virtual drives. One `.cor` per board revision -
+`nd120_mega65_rev3_13MHz_115200.cor` (R3/R3A) and `nd120_mega65_r6_20MHz_115200.cor` (R4/R5/R6) - both
+timing-clean including hold, shipped in Release 2 (`bitstreams-2026-09`).
+Every piece has run on the DE10-Nano (MiSTer) or the Nexys 4 DDR, or passes
+its bench here; this exact combination has not met a MEGA65 yet - the
+release is how it gets its first hardware test. The living plan, with a
+"Next" line at the top, is [`docs/00-plan.md`](docs/00-plan.md).
 
 **Two memories, picked by the board revision at build** (Ronny, 02-SEP-2026):
 

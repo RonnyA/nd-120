@@ -1,7 +1,16 @@
-# Phase 4 — Devices: Block (disks) and Character (console), with the PDP2011 Case Study
+# Devices: Block (disks) and Character (console), with the PDP2011 Case Study
 
-Goal: floppy/HDD as image files on the Linux side, OPCOM on a real terminal,
-microcode from files. All links verified 2026-07-08.
+Reference for how the shipped core serves storage and console: floppy/Winchester/
+tape as image files on the Linux side, the console on the machine's own screen and
+keyboard, microcode uploaded from the HPS at core load. All links verified
+2026-07-08.
+
+What actually shipped: five OSD mount slots (floppy 0/1, Winchester 0/1, paper
+tape) served over the block interface by `rtl/nd_storage_hps.v`; a clean-room
+TDV2200 terminal on the MiSTer's own screen + keyboard (shared with the MEGA65
+port); and 4 MB main memory in the DE10-Nano SDRAM add-on module. The two case
+studies below (PDP2011's disks, the DDRAM/SDRAM memory options) are the reference
+material that informed those choices.
 
 ## 1. Block devices — the hps_io protocol
 
@@ -135,9 +144,11 @@ PDP2011 instantiates four KL11 serial units and muxes unit 0/1 between the VT an
 the external UART with one status bit — a good template for OPCOM + extra ND
 terminal ports.
 
-## 5. Main memory for ramSize=2 (6 MB)
+## 5. Main memory — the options (shipped: 4 MB in the SDRAM module)
 
-Two validated options:
+The shipped core puts 4 MB (2M words) of main memory in the DE10-Nano SDRAM
+add-on module (WCS in block RAM, cache off). The two validated options below are
+the reference that led there:
 
 - **HPS DDR3 via the `DDRAM_*` emu ports** (64-bit data, `DDRAM_ADDR[28:0]` in
   64-bit words, bursts, `DDRAM_BUSY`/`DDRAM_DOUT_READY` flow control). ao486 uses
@@ -152,17 +163,16 @@ Two validated options:
   init/refresh FSM, 16-bit data). Our Tang Nano 20K SDRAM bridge work transfers
   almost directly. Deterministic latency, costs an add-on board.
 
-Recommendation: start with BRAM (24 KB config boots OPCOM), then DDRAM — it needs
-no purchase and ao486 proves it at far higher demands than ours.
+What shipped: the SDRAM add-on module (the Tang Nano 20K SDRAM bridge experience
+transferred almost directly, as expected). DDRAM stays the documented fallback.
 
-## Phase 4 exit criteria
+## Device checklist
 
-- [ ] Microcode loads via ioctl (F-entry or boot.rom), CPU boots to OPCOM.
-- [ ] 6 MB main memory on DDRAM (or SDRAM) passes the memory test that currently
-      runs in Verilator.
-- [ ] Floppy image mounts from the OSD; ND floppy controller reads sector 0
-      (verify content by checksumming the same file over ssh).
-- [ ] SINTRAN (or the test-and-boot floppy) boots from an image file.
+- [ ] Microcode loads from the HPS at core load, CPU boots to OPCOM.
+- [ ] Main memory in the SDRAM module passes the memory test that runs in Verilator.
+- [ ] A disc image mounts from the OSD; the controller reads sector 0 (verify by
+      checksumming the same file over ssh).
+- [ ] SINTRAN boots from a mounted Winchester image.
 
 ---
 
@@ -175,6 +185,8 @@ NOT the repo's GPL-2.0 `LICENSE` and cannot be mixed into this MIT repo.
 They are also a microcoded CPU running terminal firmware, i.e. far more
 terminal than a SINTRAN login needs.
 
-Decision: re-implement from the public VT100 / ECMA-48 documents, using
-PDP2011 only as a feature checklist. Shared with the MEGA65 port. Plan:
-[`Verilog/docs/PLAN-vt100-terminal-core.md`](../../../Terminals/docs/PLAN-vt100-terminal-core.md).
+Decision (carried out): the terminal was re-implemented clean-room, using
+PDP2011 only as a feature checklist, and shared with the MEGA65 port. The
+shipped console is a TDV2200 terminal on the MiSTer's own screen + keyboard
+(box-drawing font and keyboard confirmed on hardware 02-SEP-2026), not a VT100.
+Terminal core: [`../../../Terminals/`](../../../Terminals/).

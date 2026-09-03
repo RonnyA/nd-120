@@ -8,23 +8,27 @@ legacy and points there). Built from the **Basys3 flow as template** - same
 compile-time defines, same source set, same fail-on-negative-slack gate - and
 extended from there.
 
-> **Status (26-AUG-2026): SINTRAN III boots on this board at 45.45 MHz
-> with the console at 115200 baud** (`clk 45 ilaslim physopt`, WNS +0.020,
-> Ronny-verified on the board) - the deployed configuration. 50 MHz also
-> booted (9600-baud build, WNS +0.007), but that closure is single-seed
-> fragile; see [`timing.md`](timing.md). **27-AUG: SD-card deployment
-> works end to end** - the board configures itself from the microSD and
-> boots SINTRAN from the same card, no PC software; needs a post-fix
-> bitstream (the SD slot is now power-cycled at configuration, reset,
-> MACL and system clear - see
+> **Status: SINTRAN III boots on this board and it is a deployed, working
+> machine you log into.** The deployed configuration is **33.333 MHz with the
+> CPU cache ON** (build 24, `clk 33` + `physopt`, 7.52 MIPS) - main memory is
+> DDR2 behind a BRAM cache, and all 8 cache tests pass on the board
+> (31-AUG-2026; the earlier CACHE-120-A00 failure is fixed). The console is a
+> **TDV2200 terminal on the board's own VGA screen and USB keyboard** (the real
+> box-drawing font embedded in `font_rom.v`, the physical keyboard incl. the
+> Left-arrow fix), with the 115200 serial console kept live in parallel.
+> **SD-card deployment works end to end** - the board configures itself from
+> the microSD and boots SINTRAN from the same card, no PC software (the SD slot
+> is power-cycled at configuration, reset, MACL and system clear - see
 > [`../QUICKSTART-nexys4ddr.md`](../QUICKSTART-nexys4ddr.md)).
-> **Soaked 27-AUG: 4 unattended hours at 45.45 MHz, 8/8 console probes
-> answered byte-identically.** The original 25-AUG milestone:
-> 16.667 MHz, timing-clean (WNS +1.46), 5/5 reprogram+`20500&` cycles to
-> banner and Watchdog, ~40 s to banner, console login works. The full root-cause
-> and validation record is [`SINTRAN-BOOT-25AUG.md`](SINTRAN-BOOT-25AUG.md).
-> Earlier milestones: tape boot + MEMORY-REFERENCE diagnostics on DDR2,
-> SD/FAT storage and floppy server proven, ILA capture kit in place.
+> Faster clocks are proven too: **45.45 MHz boots** (soaked 27-AUG-2026, 4
+> unattended hours, 8/8 console probes answered byte-identically) and **50 MHz
+> has booted**; the frequency search and the cache-clock analysis are in
+> [`timing.md`](timing.md). The original 25-AUG-2026 milestone - 16.667 MHz,
+> timing-clean (WNS +1.46), 5/5 reprogram+`20500&` cycles to banner and
+> Watchdog, console login - and its full root-cause record are in
+> [`SINTRAN-BOOT-25AUG.md`](SINTRAN-BOOT-25AUG.md). Earlier milestones: tape
+> boot + MEMORY-REFERENCE diagnostics on DDR2, SD/FAT storage and floppy server
+> proven, ILA capture kit in place.
 
 ## Board / device
 
@@ -75,7 +79,6 @@ memory.
 | `ddr2-test/` | `gen_mig.tcl` + the generated MIG controller (`ip/`), from Digilent's own MIG project file. |
 | `sd-fat-test/` | The SD/FAT menu tool on the on-board microSD slot, with the memory tests as menu commands `B` and `M`. |
 | `board-test/` | Board bring-up check - switches, LEDs, 7-seg, buttons, UART, SD detect. Run this before the CPU build. |
-| `EXTENSIONS-PLAN.md` | The two planned extensions: **microSD** and **DDR2 main memory**. |
 | `flash.tcl` | Write a BUILT bitstream into the QSPI flash - permanent, survives power-off. |
 | `readback_qspi.tcl` | Read the QSPI flash to a file WITHOUT writing it. Run this before `flash.tcl` on a board whose flash contents you do not already have. |
 | `restore_qspi.tcl` | Write a RAW flash image back (`-loaddata`, not `-loadbit`). Used to put the factory Digilent demo back. |
@@ -257,9 +260,9 @@ means an empty microcode ROM, which looks like a dead CPU).
 |------|---------|-----|
 | Main memory | `MAIN_RAM_DDR2` (default) - full DDR2-backed main RAM with BRAM cache | The BRAM-only config (`-tclargs bramram`, 64 K words/bank) aliases high addresses onto low memory, which forbids SINTRAN. |
 | Clocking | `FPGA_FF_MODE`, one clock domain | The latch model never ships on FPGA. |
-| CPU clock | **45.45 MHz** (`clk 45` + `physopt`) since 26-AUG-2026 | Boots SINTRAN on silicon. The frequency search and bottleneck analysis are in [`timing.md`](timing.md); `clk=16` remains the high-margin fallback. |
+| CPU clock | **33.333 MHz** (`clk 33` + `physopt`) with the cache ON - the deployed clock (7.52 MIPS) | Boots SINTRAN on silicon. 45.45 MHz and 50 MHz also boot (cache-off builds); 45.45 with the real cache is parked as routing-bound. The frequency search, the cache-clock analysis and the bottleneck writeup are in [`timing.md`](timing.md); `clk=16` remains the high-margin fallback. |
 | WCS load | runtime load from the PROM images | The -100T has BRAM to spare; `-skipwcs` switches to the Basys3-style bitstream preload. |
-| CPU cache | compiled in (default since 29-AUG-2026); **runtime on/off on slide switch `sw[4]`: down = on, up = off** (the console's SW1, sheet 25 CON) | Still fails CACHE-120-A00 (used bit never sets, `docs/HANDOFF-cache-and-panel-29AUG.md`), but it is being worked on on this board, so it ships. `nocache` / `make CACHE=0` compiles the RAMs out. |
+| CPU cache | compiled in (default since 29-AUG-2026); **runtime on/off on slide switch `sw[4]`: down = on, up = off** (the console's SW1, sheet 25 CON) | All 8 cache tests pass on the board (31-AUG-2026); the earlier CACHE-120-A00 failure (used bit never set) is fixed. Root-cause: `docs/HANDOFF-cache-and-panel-29AUG.md`. `nocache` / `make CACHE=0` compiles the RAMs out. |
 | VGA console | `ND120_CONSOLE_VGA` (default since 29-AUG-2026) - console on the VGA connector + USB keyboard, serial console kept in parallel | Every deployed image since 28-AUG had it. `novgaconsole` / `make VGACONSOLE=0` leaves it out to save space; the screen is then dark and only the serial console works. |
 | Panel clock | `ND120_PANEL_CLOCK` (default since 29-AUG-2026) - the MC68705/MM58274 hardware clock emulated in `CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v`, 1 Hz tick derived from `BOARD_CLK_FREQ` so it follows `clk=` | Proven on the Tang (SINTRAN takes the time across a master clear, TPE starts without "clock is not updated"). `-NoPanelClock` / `make PANELCLOCK=0` brings back the old stub if the space is needed for something else; then SINTRAN prints "ND-100 PANEL CLOCK INCORRECT" at every boot. Details: `Verilog/docs/panel-clock-68705.md`. |
 | Console | **115200** 7E1 on the USB-UART since 26-AUG-2026 | The physical rate is the `UART_BAUD_RATE` build constant alone: the emulated SC2661 stores the microcode's BAUDV mode value (thumbwheel 8 = 9600 - the 1988 table tops out there) but times every bit off the compile-time divider, and TX-ready is a polled flag. The machine believes 9600; the wire runs 115200. |
@@ -325,12 +328,11 @@ plus the how-to for reading a frozen machine off the panel. Summary:
 
 ## Extensions
 
-Both planned extensions have their design, risks and acceptance criteria
-written up in [`EXTENSIONS-PLAN.md`](EXTENSIONS-PLAN.md):
+Both extensions the board added over the Basys3 are DONE:
 
-1. **microSD** - DONE: the SD/FAT stack runs on the on-board slot (1-bit
+1. **microSD** - the SD/FAT stack runs on the on-board slot (1-bit
    bus; the Tang runs 4-bit - the likely lever if boot speed matters here).
-2. **DDR2 main memory** - DONE: `ddr2/MEM_RAM_49_DDR2.v` + `nd_ddr2_arb.v`
+2. **DDR2 main memory** - `ddr2/MEM_RAM_49_DDR2.v` + `nd_ddr2_arb.v`
    replaced the BRAM config on 25-AUG-2026; the no-wait-state deadline is
    met by freezing the control PALs on a cache miss (MEM_HOLD). Known open
    items live in `SINTRAN-BOOT-25AUG.md`.
@@ -392,7 +394,7 @@ run them after every bitstream change.
   differences): `../../docs/nd120-facts.md`.
 
 
-## Console on the board's own screen and keyboard (built, not yet synthesized - 28-AUG-2026)
+## Console on the board's own screen and keyboard (TDV2200 terminal - deployed)
 
 The Nexys has a VGA connector and an onboard USB host that presents a keyboard
 to the FPGA as **plain PS/2** (`Nexys-4-DDR-Master.xdc:226-227`, in the section
@@ -401,10 +403,9 @@ a USB stack. Since this board already boots SINTRAN III, it is the cheapest
 place to prove the shared terminal core in `Verilog/Terminals/`: the terminal
 is the only new thing in the build, and phases 1-3 need no ND-120 RTL at all.
 
-Plan: [PLAN-vga-console.md](PLAN-vga-console.md). The serial console is kept
-live in parallel - the build define `ND120_CONSOLE_VGA` *adds* the screen, it
-does not remove the UART - so `console.ps1`, the board tests and the soak
-scripts keep working.
+The serial console is kept live in parallel - the build define
+`ND120_CONSOLE_VGA` *adds* the screen, it does not remove the UART - so
+`console.ps1`, the board tests and the soak scripts keep working.
 
 **That parallel serial console is the whole reason this board goes first**
 (Ronny, 28-AUG-2026). `Terminals/rtl/ps2_ascii_table.v` says of itself that
@@ -471,11 +472,12 @@ That is the important negative result too: adding the console did NOT break the
 machine. The serial console still works exactly as before, which is the whole
 premise of testing the terminal on this board.
 
-**Still unverified, and only a monitor can answer it:** whether anything
-appears on the VGA connector, whether the font ROM loaded (blank boxes = the
-`$readmemh` path), and whether the keyboard table is right. That last one is
-the reason this board was chosen - type a key and compare the screen against
-what COM11 shows the machine actually received.
+**All three are now verified on the board:** the VGA connector drives the
+picture, the font ROM loaded (the real box-drawing glyphs, embedded in
+`font_rom.v`), and the keyboard table is right, including the Left-arrow fix.
+That last one was the reason this board was chosen - typing a key and comparing
+the screen against what COM11 shows the machine actually received is what
+settled the scancode table.
 
 Simulation coverage behind it: 8 testbenches (7 in `Terminals/sim` including a
 1,920,000-pixel frame comparison, 1 for the MiSTer glue), Verilator lint clean,

@@ -1,4 +1,4 @@
-# Phase 3 — Core Configuration: CONF_STR, hps_io, the OSD Menu
+# Core Configuration: CONF_STR, hps_io, the OSD Menu
 
 Goal: understand exactly how the F12 menu is defined and how its selections reach
 your logic. Punchline up front: **the menu is a string constant in your Verilog.
@@ -91,24 +91,30 @@ localparam CONF_STR = {
 (abridged; full string in the source file). Note the pattern: S-slots for disks,
 O-bits for machine configuration, a P1 page for terminal cosmetics, T/R reset.
 
-## 4. Draft ND-120 CONF_STR
+## 4. The shipped ND-120 CONF_STR
 
-A starting point (adjust as the core grows) — **[our design, not validated
-anywhere yet]**:
+The menu the core actually ships with (verbatim from `nd120.sv`, comments
+trimmed — read the source for the full rationale on each line):
 
 ```verilog
 localparam CONF_STR = {
-    "ND120;UART9600:19200;",
+    "ND120;;",
     "-;",
-    "F1,HEXBIN,Load WCS microcode;",       // ioctl -> WCS load path
-    "S0,IMGDSK,Mount floppy;",             // block dev, drive 0
-    "S1,IMGVHD,Mount SMD disk;",           // block dev, drive 1
+    "O[122:121],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
     "-;",
-    "O[2:1],ALD boot source,Floppy,SMD,OPCOM;",
-    "O[3],CPU speed,Original,Fast;",
+    "O[6],Keyboard,US,Norwegian;",
+    "O[7],Operator panel,On,Off;",         // default On
+    "O[9:8],Console colour,Green,Amber,White,Cyan;",
     "-;",
-    "T[0],Master Clear;",
-    "R[0],Master Clear and close OSD;",
+    "S0,IMG,Floppy drive 0;",              // block dev, served by rtl/nd_storage_hps.v
+    "S1,IMG,Floppy drive 1;",
+    "S2,IMG,Winchester unit 0;",
+    "S3,IMG,Winchester unit 1;",
+    "S4,BPUTAP,Paper tape;",               // slot 4: TRS-80_MiSTer pattern
+    "-;",
+    "T[0],Reset;",
+    "R[0],Reset and close OSD;",
+    "v,0;",
     "V,v",`BUILD_DATE
 };
 ```
@@ -116,13 +122,17 @@ localparam CONF_STR = {
 Wiring notes:
 
 - `status[0]` (T/R) OR the framework `RESET` input → MCL (Master Clear).
-- `status[2:1]` → ALD switch equivalents (today's DIP/board constants).
-- The `F1` entry arrives as an ioctl stream with `ioctl_index==1`; parse and write
-  it into the WCS RAM while holding the CPU in reset
-  ([05-devices-block-char.md](05-devices-block-char.md) §3 has the signal list).
-- `hps_io` instance then needs `.VDNUM(2)` and the sd_* / img_* / ioctl_* ports
-  connected.
-- `status_menumask` can hide the SMD entry until that controller exists.
+- `status[6]` → keyboard layout (US / Norwegian); `status[7]` → operator panel
+  on/off (default on); `status[9:8]` → console text colour (a board-only re-tint
+  of the console-text palette index, terminal RTL untouched).
+- The five `S` slots are the storage mount points, served through hps_io's block
+  interface by `rtl/nd_storage_hps.v` — the slot number is the hps_io index is the
+  storage client (slot map in `rtl/nd_storage_mister_devices.v`). Extensions are
+  3-character groups, so paper tape is `.BPU`/`.TAP`, not `.BPUN`.
+- Microcode is NOT an F-entry here — it is uploaded from the HPS at core load; see
+  [05-devices-block-char.md](05-devices-block-char.md) §3.
+- The console is the machine's own TDV2200 screen + keyboard, not a `UART<speed>`
+  bridge; the CPU serial line is also on the HPS `/dev/ttyS1` at 115200 7E1.
 
 ## 5. The status word, both directions
 
@@ -143,9 +153,9 @@ the generic vhd path. If we ever want the Linux side to understand SINTRAN volum
 formats or e.g. expose files as ND floppy images on the fly, THAT would be a
 `support/nd120/` contribution to Main_MiSTer — strictly optional, much later.
 
-## Phase 3 exit criteria
+## Menu checklist
 
-- [ ] F12 shows the ND-120 menu with Master Clear, options, and (greyed) mount slots.
-- [ ] `status` bits observable in the core (route one to LED_USER to prove it).
-- [ ] WCS microcode loads via the F1 entry and the machine boots identically to the
-      baked-in-hex build.
+- [ ] F12 shows the ND-120 menu with Reset, options, and the disc/tape mount slots.
+- [ ] `status` bits reach the core (keyboard layout, panel on/off, console colour
+      all take effect).
+- [ ] Mounting a Winchester image in a slot lets `&` boot SINTRAN at the `#` prompt.

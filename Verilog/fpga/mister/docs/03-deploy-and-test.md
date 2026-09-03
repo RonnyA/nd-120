@@ -1,6 +1,7 @@
-# Phase 2 — Deploying and Testing on the MiSTer
+# Deploying and Testing on the MiSTer
 
-Goal: a fast edit-compile-run loop. Three deploy paths, fastest first.
+A fast edit-compile-run loop. Three deploy paths, fastest first. (For the
+user-facing copy-and-boot steps see [`../../QUICKSTART-mister.md`](../../QUICKSTART-mister.md).)
 All links verified 2026-07-08.
 
 ## 1. The everyday loop: scp + hot-load (no SD card swapping, no cable)
@@ -86,19 +87,19 @@ https://mister-devel.github.io/MkDocs_MiSTer/developer/debugging/
 
 ## 4. Testing the ND-120 core specifically
 
-Per-phase smoke tests, cheapest signal first:
+Smoke tests, cheapest signal first:
 
-- **Phase 1 skeleton:** LED blink rate correct (PLL ok)? UART banner at the right
-  baud (clocking ok)? Core name in OSD (CONF_STR ok)?
-- **Phase 2 OPCOM:** connect a terminal to the MiSTer's UART (the framework routes
-  `UART_TXD/RXD` to the Linux side — see the UART notes in
-  [05-devices-block-char.md](05-devices-block-char.md)); expect the same OPCOM
-  behavior as `runSim/` (prompt, `0/`, deposit/examine). Compare against the
-  Verilator reference transcript — divergence here means clock-domain or
-  latch-residue issues, not MiSTer issues.
-- **Phase 3 microcode upload:** deliberately load a corrupted WCS file — the core
-  should fail the same way the Verilator harness does with the same corruption.
-- **Phase 4 disks:** mount a known image via the OSD `S0` slot; watch `LED_DISK`
+- **Core loads:** LED heartbeat correct (PLL ok)? Core name in OSD (CONF_STR ok)?
+  Four-line banner on screen and the CPU `G` lamp green (self-test passed)?
+- **OPCOM:** the console is the MiSTer's own screen and keyboard (a TDV2200
+  terminal); the CPU serial line is also on the HPS `/dev/ttyS1` at 115200 7E1
+  (see the UART notes in [05-devices-block-char.md](05-devices-block-char.md)).
+  Expect the same OPCOM behavior as `runSim/` (prompt, `0/`, deposit/examine).
+  Compare against the Verilator reference transcript — divergence here means
+  clock-domain or latch-residue issues, not MiSTer issues.
+- **Microcode upload:** deliberately load a corrupted WCS file — the core should
+  fail the same way the Verilator harness does with the same corruption.
+- **Disks:** mount a known image via the OSD `S0` slot; watch `LED_DISK`
   activity; verify sector reads against the same image file checked with
   `xxd`/`dd` on the Linux side (ssh in — the image is just a file).
 
@@ -106,8 +107,8 @@ When something fails on the board but works in Verilator, go to
 [06-debugging.md](06-debugging.md) — that's the whole discipline this repo already
 practices, with SignalTap replacing Vivado ILA.
 
-## Phase 2 exit criteria
+## Deploy checklist
 
-- [ ] One-command deploy script works (`scp` + `load_core`).
+- [ ] One-command deploy works (`scp` + `load_core`).
 - [ ] Core appears under `_Computer` in the OSD with its own name + build date.
-- [ ] OPCOM prompt over the MiSTer UART, matching Verilator behavior.
+- [ ] Comes up at the `#` MOPC monitor; `&` boots SINTRAN from a mounted image.

@@ -1,5 +1,11 @@
 # HANDOFF: Nexys 4 DDR floppy path fault (ROOT-CAUSED + FIX IN TEST) + main-RAM fix (done)
 
+> **Historical / resolved (kept as the root-cause record).** SINTRAN III now
+> boots and is deployed on this board (33.333 MHz, cache ON). The floppy DMA
+> bus-flicker fix described here is in the RTL. This document is preserved for
+> its measured root-cause analysis; do not read its "OPEN" and "next" lines as
+> live work.
+
 Date: 23-AUG-2026 12:30 (originally 00:40). Every claim below is measured
 unless marked hypothesis.
 
@@ -594,7 +600,7 @@ WHERE THIS STANDS (for the morning):
   executes the 0o0604xx input wait + one menu-line reprint per ~0.85 s.
 - The uncommitted working tree carries all of the above + the night's
   plan/handoff/memory updates. Ronny's review + commit decisions per the
-  Phase 1 list in PLAN-nexys-floppy-next-phases.md.
+  Phase 1 list (the 23-AUG boot-test checklist, since completed and removed).
 
 ## 24-AUG morning - capmenu/capfix: the runaway's print source and the prompt descriptor
 
@@ -1388,6 +1394,6 @@ theories are now downgraded (the IOX 164000 capture was seen once and may
 have been a probe/console artifact; not reproduced and no longer needed).
 
 OPEN: does the full `&` SINTRAN boot now COMPLETE? It ran silent past
-10 min. Next: let it run longer / watch for the operator banner (may be
-7E2 once SINTRAN owns the console; board_expect now takes -Parity/-DataBits
+10 min. Next: let it run longer / watch for the operator banner (the console
+is 7E1 once SINTRAN owns it; board_expect now takes -Parity/-DataBits
 /-StopBits). The disc is no longer the blocker.

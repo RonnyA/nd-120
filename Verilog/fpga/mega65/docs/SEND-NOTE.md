@@ -13,8 +13,8 @@ MEGA65 refuses the wrong one ("Core hardware model mismatch!"):
 
 | Your MEGA65 model | File | Main memory it uses | CPU clock |
 |---|---|---|---|
-| R3 / R3A (most machines bought before 2024) | `nd120_mega65_r3.cor` | the 8 MB HyperRAM | 13.3 MHz |
-| R6 (machines shipped 2024 or later, serial > 1000) | `nd120_mega65_r6.cor` | the 64 MB SDRAM | 20 MHz |
+| R3 / R3A (most machines bought before 2024) | `nd120_mega65_rev3_13MHz_115200.cor` | the 8 MB HyperRAM | 13.3 MHz |
+| R6 (machines shipped 2024 or later, serial > 1000) | `nd120_mega65_r6_20MHz_115200.cor` | the 64 MB SDRAM | 20 MHz |
 
 Not sure which you have: hold **RESTORE** for ~2 seconds (the freezer
 opens), press **HELP**; "MEGA65 MODEL" is on that screen.

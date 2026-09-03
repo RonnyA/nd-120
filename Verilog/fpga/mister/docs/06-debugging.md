@@ -23,7 +23,7 @@ https://mister-devel.github.io/MkDocs_MiSTer/developer/emu/):
   system LED (drive `2'b00` to leave it to the OS).
 
 Same tricks as the Basys3 bring-up: heartbeat divider proves the PLL; a stuck-state
-flag on LED_USER proves/disproves "the CPU is wedged before microcode word N".
+flag on LED_USER proves/disproves "the CPU is stuck before microcode word N".
 
 ## 2. UART debug
 

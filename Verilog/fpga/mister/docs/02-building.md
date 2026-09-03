@@ -1,7 +1,9 @@
-# Phase 1 — Building the Core (project structure, Quartus, Docker)
+# Building the Core (project structure, Quartus, Docker)
 
-Goal: an `nd120.rbf` produced from a renamed Template, first with a trivial design,
-then with `ND3202D` inside. All links verified 2026-07-08.
+How the `nd120.rbf` is built: the project layout, the pinned Quartus version, and
+the Docker compile loop. The project already contains `ND3202D` and boots on
+hardware; this doc is the reference for the structure and the build. All links
+verified 2026-07-08.
 
 ## 1. Quartus version: 17.0.2, non-negotiable
 
@@ -76,8 +78,9 @@ pll pll
 );
 ```
 
-Regenerate the "PLL Intel FPGA IP" in the Quartus GUI to get 50 MHz -> ~39.06 MHz
-for the CPU/bus domain (add more outclk taps as needed). For odd sub-frequencies,
+Regenerate the "PLL Intel FPGA IP" in the Quartus GUI to set the CPU/bus domain
+clock (the shipping build runs the CPU at 20 MHz off the board's 50 MHz; add more
+outclk taps as needed). For odd sub-frequencies,
 prefer clock **enables** off one PLL clock — the official snippets page has a
 power-of-2 divider and a fractional clock-enable generator:
 https://mister-devel.github.io/MkDocs_MiSTer/developer/snippets/
@@ -122,23 +125,19 @@ Needed for PLL IP generation and SignalTap. Install per
 compile (play) button — that is the entire official flow
 (https://mister-devel.github.io/MkDocs_MiSTer/developer/mistercompile/).
 
-## 5. What goes in the first build (Phase 1 skeleton)
+## 5. How the core was brought up (historical)
 
-Do NOT start with ND3202D. First build = Template with:
+The first build was deliberately NOT `ND3202D` - it was the Template with just the
+core name `"ND120;;"` in CONF_STR, `LED_USER` blinking off the PLL, a byte pattern
+on `UART_TXD`, and the example video left in place, so a black screen had one cause
+at a time. The full `ND3202D` machine followed and now boots SINTRAN on hardware
+(see [`../README.md`](../README.md)). The build check below is what a healthy
+compile still looks like.
 
-- core name string changed to `"ND120;;"` in CONF_STR,
-- `LED_USER` blinking from your PLL clock (proves the PLL),
-- a hardcoded byte pattern on `UART_TXD` at 115200 (proves the UART path),
-- Template's example video left in place (proves the scaler is fed).
+## Build check
 
-That compiles fast, deploys per [03-deploy-and-test.md](03-deploy-and-test.md), and
-gives you a "ND120" entry in the OSD before any real hardware bring-up.
-
-## Phase 1 exit criteria
-
-- [ ] `docker run ... quartus_sh --flow compile nd120.qpf` produces
-      `output_files/nd120.rbf` with zero errors.
-- [ ] The skeleton core loads on the MiSTer, "ND120" shows in the OSD, LED blinks,
-      UART bytes visible.
+- [ ] `docker run ... quartus_sh --flow compile nd120.qpf` (or `make build`)
+      produces `output_files/nd120.rbf` with zero errors.
 - [ ] `files.qip` lists the ND-120 RTL and the full design passes Quartus synthesis
-      (fitting may come later — watch the resource report: ~110K LE available).
+      and fitting (watch the resource report: ~110K LE available).
+- [ ] The core loads on the MiSTer and comes up at the `#` MOPC monitor.
