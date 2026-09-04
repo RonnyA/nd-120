@@ -54,7 +54,10 @@ opens), press **HELP**; "MEGA65 MODEL" is on that screen.
 
 Keys type what the MEGA65 keycaps say, shifted symbols included. INST/DEL
 is Backspace, CLR/HOME is Home, the cursor keys and F1-F8 send the TDV2200
-codes. CAPS LOCK works as the keycap does.
+codes. CAPS LOCK works as the keycap does. **RUN/STOP is EXIT** - the
+TDV2200's SLUTT key, the way out of PED and other SINTRAN programs (ALT+X
+is the same key). HELP opens the core's own menu; RUN/STOP inside that
+menu just goes back a level.
 
 ## What to send back
 

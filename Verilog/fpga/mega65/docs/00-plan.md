@@ -4,10 +4,16 @@
 the testers and act on what comes back. Nothing of this port has run on a
 real MEGA65 yet.
 
-Delivered 02-SEP-2026 17:01: `nd120_mega65_r6_20MHz_115200.cor` (SDRAM, CPU 20 MHz,
-WNS +0.249 / WHS +0.003 ns) and `nd120_mega65_rev3_13MHz_115200.cor` (HyperRAM, CPU
-13.33 MHz, WNS +0.093 / WHS +0.035 ns), both stamped `e5bdea5+ 02-Sep-2026
-16:27`. Timing-clean incl. hold; the CGA IDB-loop DRC downgraded exactly as
+Rebuilt 04-SEP-2026 (both cores, ~19 min each): `nd120_mega65_r6_20MHz_115200.cor`
+(SDRAM, CPU 20 MHz, WNS +0.249 / WHS +0.002 ns, stamp `bc612ad+ 04-Sep-2026
+09:25`) and `nd120_mega65_rev3_13MHz_115200.cor` (HyperRAM, CPU 13.33 MHz,
+WNS +0.093 / WHS +0.032 ns, stamp `3e1f90c+ 04-Sep-2026 09:46`; the stamps
+differ only by a commit the build does not read - same sources). What
+changed since the 02-SEP cores: the boards' microcode preload is the RAW
+PROM word 0o2002 (decision of 02-SEP, `Verilog/docs/nd120-facts.md`), and
+RUN/STOP sends EXIT (SLUTT) - Alt+X proven on this path too
+(`sim/nd120_console_mega65_tb.v`). If a 02-SEP core (stamp `e5bdea5+`)
+is already out there, it has neither: RUN/STOP does nothing on it. Timing-clean incl. hold; the CGA IDB-loop DRC downgraded exactly as
 on the Nexys. Two hold constraints on the framework's clk live in
 `CORE/CORE.xdc` (a divider-feedback analysis artefact, and 100 ps of hold
 uncertainty because the router's hold estimate sat ~70 ps above sign-off).
