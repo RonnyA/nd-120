@@ -122,6 +122,43 @@ Read from `M2M/rom/options.asm` (not yet seen running on a MEGA65):
   the images must be mounted again from the menu. There is no automount
   in this core (the MiSTer's MGL launch has no equivalent here yet).
 
+### Reading the operator panel
+
+The strip under the text is a recreation of the ND-120's own folio panel,
+drawn by the terminal core (`Verilog/Terminals/rtl/term_panel.v`, static
+text from `font/make_panel.py`). Its fields are the signals the real
+panel processor (an MC68705 on schematic sheet 40) samples, plus the CPU
+board's lamps - nothing is invented, and a field with no honest source is
+not drawn. Menu line 7 hides or shows it; the setting persists like the
+others. What each field is, and where the MEGA65 build takes it from
+(`rtl/nd120_mega65_machine.v`, the `panel_*` ports):
+
+| Field | Reads | Source in this build |
+|---|---|---|
+| `UTILIZATION` bar | the share of the last ~0.4 s the CPU spent NOT idling at level 0 (idle = "running at level 0"), in eighths, peak-held | `LEV0` from the CPU board's `DBG_PANEL`, through `rate_meter` |
+| `CACHE HIT RATE` bar | hit rate of the ND-120's own cache (menu line 8), not any FPGA cache, same window | `HIT` from `DBG_PANEL` |
+| `PROTECT RING` | the current ring, 0-3 | `PCR` from `DBG_PANEL` |
+| `INTERRUPT` ON/OFF | the interrupt system switched on (`ION`) | `IONI` |
+| `PAGING` ON/OFF | memory management switched on (`PON`) | `PONI` |
+| `HDD` R / W | a lit box with R or W while Winchester 0/1 is being read or written; blank when idle | the disc controller's activity, through the storage glue |
+| `FLOPPY` R / W | the same for floppy 0/1 | as above |
+| `UP:hh:mm:ss` | time since the core's reset - NOT the machine's clock. The real panel shows day/time from a battery-backed clock chip; the emulated panel clock (`ND120_PANEL_CLOCK`) is in this build so SINTRAN can set and read the time, but its counters are not brought out to the display yet | frame counter in `term_panel.v` |
+| `ACTIVE LEVEL` row, ruler 15..0 | one cell per program level, lit while that level was active in the last two frames (~33 ms). Fed from the ACTLV word the microprogram sends the panel processor - the same thing the real panel shows. Until the first ACTLV word has arrived (before the panel processor is initialised) it falls back to the level running now (`PIL`) | `PANEL_ACTLV` from the panel processor; `PIL` as the fallback |
+| `MIPS` xx.xx | instruction fetches per second, counted over the last full second, 0.01 resolution | the board's FETCH signal (`ND120_MIPS_TAP`) into `mips_counter` |
+| `CPU` R / G | the CPU board's own two lamps, as on the real board's front edge: **R** lit = Master Clear / self-test running (or halted in STERR); **G** lit = self-test passed, microcode initialised. The case power LED shows the same two states (section 3) | `LED[0]`/`LED[1]` of `ND3202D`, active low at the source, inverted here (measured on the MiSTer - passed through straight, every lamp was backwards) |
+
+What to expect (from the RTL, not yet seen on a MEGA65): at the OPCOM
+prompt `INTERRUPT OFF`, `PAGING OFF`, ring 0, no disc boxes, `G` lit;
+with SINTRAN running `INTERRUPT ON`, `PAGING ON`, the level row moving,
+and the HDD box flashing on disc traffic.
+
+Not on this panel: the real fascia's DAY/TIME (see `UP:` above) and its
+lit RUNNING/OPCOM legend words - the legend cells exist in the layout but
+draw nothing yet, so do not read anything into that area being blank.
+The provenance of every field and the two deliberate departures from the
+real panel (level row, uptime) are in the header of `term_panel.v` and in
+`Verilog/fpga/nexys4ddr/README.md`, "The operator panel".
+
 ## 5. Booting SINTRAN
 
 1. Mount the Winchester image on `Winch. 0` (and whatever else), close the

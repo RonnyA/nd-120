@@ -76,7 +76,9 @@ The keyboard types what the MEGA65 keycaps say, shifted symbols included.
 INST/DEL is Backspace, CLR/HOME is Home, the cursor keys and F1-F8 send the
 TDV2200 codes, CAPS LOCK latches as the keycap does. The menu also sets the
 text colour (green/amber/white/cyan), the operator panel on/off, the CPU
-cache on/off and the HDMI mode.
+cache on/off and the HDMI mode. What each field of the operator panel
+means: `Verilog/fpga/mega65/docs/01-using-the-core.md`, "Reading the
+operator panel".
 
 ## Troubleshooting
 
