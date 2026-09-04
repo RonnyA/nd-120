@@ -175,6 +175,18 @@ CTRL+letter = control character, CAPS LOCK latches, left-arrow key = `_`,
 up-arrow key = `^`, pound = `\`. Full table and the why:
 `rtl/m65_keys_to_ps2.v`.
 
+**EXIT - the way out of a program.** The TDV2200's `SLUTT` key (`ESC [ 4 8 _`),
+which SINTRAN programs (PED, the file system, ...) use as EXIT. Two ways:
+
+- **RUN/STOP** - the C64 keycap for "stop this program" (choice, 04-SEP-2026).
+  Shift makes no difference. Note the framework claims RUN/STOP as "back one
+  level" while its menu is open; with the menu closed it reaches the terminal.
+- **ALT + X** - the shared decoder's Alt map, the same as on the Nexys/MiSTer
+  with a PC keyboard (where the End key is the third way).
+
+Both are proven end to end by `sim/nd120_console_mega65_tb.v` (the machine
+seam receives exactly the five bytes, once per press).
+
 ## 6. Differences from the MiSTer core, for someone who knows that one
 
 | | MiSTer | MEGA65 |

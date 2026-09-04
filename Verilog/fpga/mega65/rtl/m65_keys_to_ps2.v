@@ -57,7 +57,15 @@
 //! (typematic); the MEGA65 scan does not, so holding a key types it once.
 //! Fine for a console; write it here if it is ever wanted.
 //!
-//! Keys with no terminal meaning (MEGA, RUN/STOP, NO SCROLL, RESTORE, F13,
+//! RUN/STOP is EXIT (04-SEP-2026, Ronny): the TDV2200's SLUTT key, ESC[48_,
+//! the way out of a SINTRAN program - sent as the PC End key, which the
+//! shared table already maps to SLUTT. The C64 keycap that means "stop this
+//! program" is the right one for it; the framework only claims RUN/STOP
+//! while its menu is open (m2m_keyb.vhd enable_core_i), and then the core
+//! sees no keys at all. Alt+X reaches SLUTT too, through the decoder's Alt
+//! map - proven on this path by the testbench.
+//!
+//! Keys with no terminal meaning (MEGA, NO SCROLL, RESTORE, F13,
 //! shifted CLR/HOME) send nothing. Choices that are ours, not a standard,
 //! are marked "(choice)" in the table.
 //!
@@ -191,7 +199,10 @@ module m65_keys_to_ps2 (
         // --- the MEGA65 extras -----------------------------------------
         7'd65: begin u = {8'h0D, 1'b0, SH_PASS}; s = u; end  // TAB
         7'd71: begin u = {8'h76, 1'b0, SH_PASS}; s = u; end  // ESC
-        // 61 MEGA, 63 RUN/STOP, 64 NO SCROLL, 70 F13/F14, 75 RESTORE: nothing.
+        // RUN/STOP -> End (E0 69) -> SLUTT/EXIT ESC[48_. Shift forced OFF so
+        // a held shift cannot turn it into the shifted variant ESC[49_.
+        7'd63: begin u = {8'h69, 1'b1, SH_OFF};  s = u; end  // RUN/STOP -> EXIT (SLUTT)
+        // 61 MEGA, 64 NO SCROLL, 70 F13/F14, 75 RESTORE: nothing.
         // 15/52 shift, 58 ctrl, 66 alt, 72 caps lock: modifiers, handled below.
         default: begin end
       endcase

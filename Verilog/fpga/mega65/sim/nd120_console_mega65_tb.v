@@ -110,6 +110,33 @@ module nd120_console_mega65_tb;
   integer i;
   reg [7:0] got;
 
+  //! Every byte the machine seam receives, for the multi-byte key checks.
+  reg [7:0] seam [0:15];
+  integer   nseam = 0;
+  always @(posedge clk) begin
+    if (kbd_valid && kbd_ready) begin
+      if (nseam < 16) seam[nseam] <= kbd_data;
+      nseam <= nseam + 1;
+    end
+  end
+
+  //! Expect exactly ESC [ 4 8 _ (the TDV2200's SLUTT/EXIT key) since the
+  //! last clear of the seam log.
+  task expect_exit;
+    input [8*40-1:0] what;
+    begin
+      if (nseam != 5 || seam[0] !== 8'h1B || seam[1] !== "[" ||
+          seam[2] !== "4" || seam[3] !== "8" || seam[4] !== "_") begin
+        $display("FAIL: %0s: expected ESC [ 4 8 _ on the machine seam, got %0d byte(s): %02x %02x %02x %02x %02x",
+                 what, nseam, seam[0], seam[1], seam[2], seam[3], seam[4]);
+        errors = errors + 1;
+      end else begin
+        $display("-- %0s -> ESC [ 4 8 _ (SLUTT/EXIT)", what);
+      end
+      nseam = 0;
+    end
+  endtask
+
   //! One sweep of the keyboard, the framework's way.
   task sweep;
     integer k;
@@ -300,8 +327,40 @@ module nd120_console_mega65_tb;
     end
 
     //------------------------------------------------------------------
+    // 7b. EXIT (SLUTT) end to end, both ways (04-SEP-2026): RUN/STOP, and
+    //     Alt+X. The machine must see the TDV2200's ESC [ 4 8 _, five
+    //     bytes, once per press, and nothing on release. The seam's own
+    //     40-clock busy per byte (kbd_ready above) is in the path, so this
+    //     also proves the expander waits for it.
+    //------------------------------------------------------------------
+    nseam = 0;
+    down[63] = 1'b1;   // RUN/STOP
+    sweep();
+    down[63] = 1'b0;
+    sweep();
+    repeat (400) @(posedge clk);
+    expect_exit("RUN/STOP");
+
+    down[66] = 1'b1;   // ALT
+    sweep();
+    down[23] = 1'b1;   // X
+    sweep();
+    down[23] = 1'b0;
+    sweep();
+    down[66] = 1'b0;
+    sweep();
+    repeat (400) @(posedge clk);
+    expect_exit("Alt+X");
+
+    //------------------------------------------------------------------
     // 8. Video shape over more than one full frame (1056 x 628 clocks).
     //------------------------------------------------------------------
+    // Zero the counters on a NEGEDGE: the sampling block above increments
+    // them with non-blocking assignments on the posedge, and a blocking
+    // clear issued in the same posedge time step loses to that increment
+    // (found 04-SEP-2026 when step 7b left this block parked on a posedge -
+    // de_count came out as the whole run's total, 526548).
+    @(negedge clk);
     v_samples = 0; v_de_shape_errs = 0; v_rgb_errs = 0; v_de_count = 0; v_green_count = 0;
     repeat (1056 * 628 + 2000) @(posedge clk);
     if (v_de_shape_errs != 0) begin

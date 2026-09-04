@@ -148,7 +148,7 @@ module m65_keys_to_ps2_tb;
              K_UPARROW = 54, K_1 = 56,      K_LEFTARROW = 57, K_CTRL = 58,
              K_2 = 59,       K_SPACE = 60,  K_MEGA = 61, K_TAB = 65,
              K_ALT = 66,     K_HELP = 67,   K_ESC = 71,  K_CAPS = 72,
-             K_UP = 73,      K_LEFT = 74;
+             K_UP = 73,      K_LEFT = 74,   K_RUNSTOP = 63, K_X = 23;
 
   initial begin
     $dumpfile("m65_keys_to_ps2_tb.vcd");
@@ -220,6 +220,22 @@ module m65_keys_to_ps2_tb;
     tap(K_F1);       expect1(8'h80 | 8'd50, "F1");
     tap(K_F7);       expect1(8'h80 | 8'd64, "F7");
     tap(K_HELP);     expect1(8'h80 | 8'd46, "HELP = HJELP");
+
+    // --- EXIT (SLUTT, ESC[48_) two ways (04-SEP-2026) ----------------------
+    // RUN/STOP goes out as the PC End key; the decoder turns that into the
+    // SLUTT marker 0x80|48, which key_tdv2200 expands to ESC[48_ (the
+    // console tb checks the full sequence). Shift is forced off, so a held
+    // shift must not turn it into the shifted variant 49.
+    tap(K_RUNSTOP);  expect1(8'h80 | 8'd48, "RUN/STOP = EXIT (SLUTT)");
+    down[K_LSHIFT] = 1'b1; sweep(); expect_none("shift down for RUN/STOP");
+    tap(K_RUNSTOP);  expect1(8'h80 | 8'd48, "shift RUN/STOP = still EXIT");
+    down[K_LSHIFT] = 1'b0; sweep(); expect_none("shift up after RUN/STOP");
+    // Alt+X: the decoder's Alt map emits the ALTM_EXIT marker 0xE3, which
+    // key_tdv2200 expands to the same ESC[48_.
+    down[K_ALT] = 1'b1; sweep(); expect_none("alt down");
+    tap(K_X);        expect1(8'hE3, "alt X = EXIT marker");
+    down[K_ALT] = 1'b0; sweep(); expect_none("alt up");
+    tap(K_X);        expect1("x", "x after alt released");
 
     // --- control ------------------------------------------------------------
     down[K_CTRL] = 1'b1; sweep(); expect_none("ctrl down");
