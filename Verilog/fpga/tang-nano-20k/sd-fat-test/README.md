@@ -3,8 +3,8 @@
 A standalone test of the reusable SD/FAT library (`Verilog/SD-FAT/`) on
 real silicon with an interactive UART menu - no CPU, no ND-100 bus. It was
 Milestone 1 of `Verilog/docs/sd-bpun-device-plan.md`; both milestones are done
-(the SD stack was proven here 11-JUL-2026, and the ND-120 booted a BPUN tape
-from the card 14-JUL-2026 - see `HISTORY.md`). Use it to check a card or the
+(the SD stack was proven here, and the ND-120 booted a BPUN tape
+from the card - see `HISTORY.md`). Use it to check a card or the
 library without the CPU in the way.
 
 ## What it does
@@ -303,7 +303,7 @@ The FAT mount/scan path (sd_file_reader) always runs 1-bit; bulk data
 sd_writer) follows this switch.
 
 Hardware status: **4-bit works on this board and is the default**
-(`USE_4BIT = 1`). Measured 12-JUL-2026 on a real 32 GB SDHC FAT32 card:
+(`USE_4BIT = 1`). Measured on a real 32 GB SDHC FAT32 card:
 WRITE 3418 KB/s, READ 5981 KB/s, and the full FAT walk (LIST freescan,
 CHECK over a 75 MB image) over 4-bit as well.
 
@@ -312,13 +312,13 @@ from socket J7 to FPGA pins 84/85/80/81, with 10K pull-ups R53-R57. The
 schematic table and its evidence are in
 `Verilog/fpga/tang-nano-20k/doc/SD-SLOT-WIRING.md`.
 
-(An earlier 11-JUL-2026 note here said 4-bit had FAILED its first
+(An earlier note here said 4-bit had FAILED its first
 silicon run and was parked at 0. That was true for one day. Three
 silicon-only bugs were then found and fixed - the nested-ternary pad
 idiom that yosys collapsed to an always-on OBUF, a mount reader parked
 mid-CMD17, and an RCA snooped off the CMD line instead of taken from
 the reader's CMD3 export. The speed plan these rungs came from,
-`Verilog/docs/sd-speed-plan.md`, was deleted 28-SEP-2026 - git history.)
+`Verilog/docs/sd-speed-plan.md`, was deleted - git history.)
 
 ## Simulation (run BEFORE hardware, in this order)
 

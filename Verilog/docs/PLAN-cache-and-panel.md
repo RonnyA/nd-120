@@ -2,8 +2,8 @@
 
 **Full path:** `Verilog/docs/PLAN-cache-and-panel.md`
 Living plan. Outstanding work only - finished items are deleted, not ticked.
-The cache is fixed and board-confirmed (all 8 `CACHE-1X0-A00` tests pass,
-31-AUG-2026); the root causes and how to test are in
+The cache is fixed and board-confirmed (all 8 `CACHE-1X0-A00` tests pass);
+the root causes and how to test are in
 [`CACHE-STATUS.md`](CACHE-STATUS.md). The ACTIVE LEVEL row is driven by the
 ACTLV word from `PANCAL_68705_CLOCK.v` (commit `4c9855a`, hold time
 `ACTLV_HOLD_FRAMES = 2` in `term_panel.v`) and the MIPS counter is built
@@ -30,7 +30,7 @@ carrying over half of the previous window (ROM-checked,
 - **`term_panel.v`:** `s_ruler_reversed` is `(s_row == 3'd3) && s_in_levels
   && ...`, and `s_in_levels` already requires `s_row == 3'd2`. Always false,
   so the ruler row never highlights. Cosmetic.
-- **`Verilog/sim` `make test_nd120`** failed on 29-AUG with 80 missing-pin
+- **`Verilog/sim` `make test_nd120`** failed with 80 missing-pin
   warnings promoted to errors (`DBG_PANEL` and `DBG_CACHE` unconnected in
   `ND120_TOP.v`); it failed the same way at `54f30ca`. Not re-checked since.
 - **The N=2 multicycle derivation's one assertion** is still to be written

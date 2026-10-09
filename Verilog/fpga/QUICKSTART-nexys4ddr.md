@@ -3,7 +3,7 @@
 Run the 1988 Norsk Data ND-120 on this board from a ready-built bitstream -
 no FPGA toolchain needed. Two deployment paths: **USB** (proven, used for
 every build in this repo) and **microSD card** (verified end to end on our
-hardware 27-AUG-2026 - see the note in that section).
+hardware - see the note in that section).
 
 What you need:
 
@@ -106,7 +106,7 @@ To go back to a plain board, restore the demo or move JP1 back to JTAG.
 
 ## Path 2: microSD card - no software on the PC at all
 
-> **VERIFIED WORKING end to end (27-AUG-2026)** with bitstreams built
+> **VERIFIED WORKING end to end** with bitstreams built
 > after the fix-sd-card change: the FPGA configures itself from the
 > card AND boots SINTRAN from the same card afterwards. Bitstreams older
 > than 27-AUG-2026 give OPCOM only on this path (the fix and its history:

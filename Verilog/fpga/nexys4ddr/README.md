@@ -12,7 +12,7 @@ extended from there.
 > machine you log into.** The deployed configuration is **33.333 MHz with the
 > CPU cache ON** (build 24, `clk 33` + `physopt`, 7.52 MIPS) - main memory is
 > DDR2 behind a BRAM cache, and all 8 cache tests pass on the board
-> (31-AUG-2026; the earlier CACHE-120-A00 failure is fixed). The console is a
+> (the earlier CACHE-120-A00 failure is fixed). The console is a
 > **TDV2200 terminal on the board's own VGA screen and USB keyboard** (the real
 > box-drawing font embedded in `font_rom.v`, the physical keyboard incl. the
 > Left-arrow fix), with the 115200 serial console kept live in parallel.
@@ -20,10 +20,10 @@ extended from there.
 > the microSD and boots SINTRAN from the same card, no PC software (the SD slot
 > is power-cycled at configuration, reset, MACL and system clear - see
 > [`../QUICKSTART-nexys4ddr.md`](../QUICKSTART-nexys4ddr.md)).
-> Faster clocks are proven too: **45.45 MHz boots** (soaked 27-AUG-2026, 4
+> Faster clocks are proven too: **45.45 MHz boots** (soaked 4
 > unattended hours, 8/8 console probes answered byte-identically) and **50 MHz
 > has booted**; the frequency search and the cache-clock analysis are in
-> [`timing.md`](timing.md). The original 25-AUG-2026 milestone - 16.667 MHz,
+> [`timing.md`](timing.md). The original milestone - 16.667 MHz,
 > timing-clean (WNS +1.46), 5/5 reprogram+`20500&` cycles to banner and
 > Watchdog, console login - and its full root-cause record are in
 > [`SINTRAN-BOOT-25AUG.md`](SINTRAN-BOOT-25AUG.md). Earlier milestones: tape
@@ -54,7 +54,7 @@ memory.
 
 - Reference manual (web): <https://digilent.com/reference/programmable-logic/nexys-4-ddr/reference-manual>
 - Reference manual (PDF, in this repo): [`docs/nexys4ddr_rm.pdf`](docs/nexys4ddr_rm.pdf)
-  (Digilent original, downloaded 19-AUG-2026 from
+  (Digilent original, downloaded from
   <https://digilent.com/reference/_media/reference/programmable-logic/nexys-4-ddr/nexys4ddr_rm.pdf>)
 - Pin source of truth: [`Nexys-4-DDR-Master.xdc`](Nexys-4-DDR-Master.xdc)
   (Digilent official master XDC for Rev. C, from
@@ -65,7 +65,7 @@ memory.
 
 | File | Purpose |
 |------|---------|
-| `build.tcl` | The whole flow: in-memory project, synth, impl, timing gate, bitstream, JTAG program. No `.xpr` project (the Basys3 flow used one outside the repository until 30-SEP-2026; it is a non-project flow too now). Everything it writes goes to `$ND120_BUILD_DIR/nexys4ddr/`. |
+| `build.tcl` | The whole flow: in-memory project, synth, impl, timing gate, bitstream, JTAG program. No `.xpr` project (the Basys3 flow used one outside the repository; it is a non-project flow too now). Everything it writes goes to `$ND120_BUILD_DIR/nexys4ddr/`. |
 | `Makefile` | Standard board API - `make`, `make build`, `make load`, `make clean`, `CLK=<MHz>`. |
 | `nd120_nexys4ddr_top.v` | Board wrapper around `ND120_TOP` (8-digit display, active-low CPU RESET button, SD power gate). |
 | `nd120_nexys4ddr.xdc` | Active pin constraints. |
@@ -93,7 +93,7 @@ loads (`program_only.tcl`, `build.tcl` without `-noburn`) are volatile and do
 not touch the flash - the demo survives them.
 
 **The archive is in this folder.** `qspi_factory_backup.zip` holds this board's
-own flash contents, read off it on 31-AUG-2026: one bitstream, sync word
+own flash contents, read off it: one bitstream, sync word
 `AA995566` at `0x30`, content ending at `0x3A607B` (3.65 MiB), and nothing at
 all above that in the 16 MiB device.
 
@@ -128,7 +128,7 @@ takes roughly four times as long, because JTAG at 5 MHz TCK is the bottleneck.
 All three scripts ask for **`s25fl128sxxxxxx0-spi-x1_x2_x4`** by name. This is
 not fussiness. A filter like `s25fl128*` also matches `s25fl128l-spi-x1_x2_x4`,
 the **S25FL128L** - a different device with a different command set - and this
-board carries an **S25FL128S**. On 01-SEP-2026 a readback with the L part
+board carries an **S25FL128S**. A readback with the L part
 failed with `[Labtools 27-3307] Readback CfgMem Error`, but Vivado had already
 loaded its programming bitstream and driven L-series opcodes at the S-series
 chip, and **the factory demo did not survive it**. A script that only intends
@@ -277,14 +277,14 @@ means an empty microcode ROM, which looks like a dead CPU).
 | Clocking | `FPGA_FF_MODE`, one clock domain | The latch model never ships on FPGA. |
 | CPU clock | **33.333 MHz** (`clk 33` + `physopt`) with the cache ON - the deployed clock (7.52 MIPS) | Boots SINTRAN on silicon. 45.45 MHz and 50 MHz also boot (cache-off builds); 45.45 with the real cache is parked as routing-bound. The frequency search, the cache-clock analysis and the bottleneck writeup are in [`timing.md`](timing.md); `clk=16` remains the high-margin fallback. |
 | WCS load | runtime load from the PROM images | The -100T has BRAM to spare; `-skipwcs` switches to the Basys3-style bitstream preload. |
-| CPU cache | compiled in (default since 29-AUG-2026); **runtime on/off on slide switch `sw[4]`: down = on, up = off** (the console's SW1, sheet 25 CON) | All 8 cache tests pass on the board (31-AUG-2026); the earlier CACHE-120-A00 failure (used bit never set) is fixed. Root causes and how to test: `Verilog/docs/CACHE-STATUS.md`. `nocache` / `make CACHE=0` compiles the RAMs out. |
-| VGA console | `ND120_CONSOLE_VGA` (default since 29-AUG-2026) - console on the VGA connector + USB keyboard, serial console kept in parallel | Every deployed image since 28-AUG had it. `novgaconsole` / `make VGACONSOLE=0` leaves it out to save space; the screen is then dark and only the serial console works. |
-| Panel clock | `ND120_PANEL_CLOCK` (default since 29-AUG-2026) - the MC68705/MM58274 hardware clock emulated in `CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v`, 1 Hz tick derived from `BOARD_CLK_FREQ` so it follows `clk=` | Proven on the Tang (SINTRAN takes the time across a master clear, TPE starts without "clock is not updated"). `-NoPanelClock` / `make PANELCLOCK=0` brings back the old stub if the space is needed for something else; then SINTRAN prints "ND-100 PANEL CLOCK INCORRECT" at every boot. Details: `Verilog/docs/panel-clock-68705.md`. |
-| Console | **115200** 7E1 on the USB-UART since 26-AUG-2026 | The physical rate is the `UART_BAUD_RATE` build constant alone: the emulated SC2661 stores the microcode's BAUDV mode value (thumbwheel 8 = 9600 - the 1988 table tops out there) but times every bit off the compile-time divider, and TX-ready is a polled flag. The machine believes 9600; the wire runs 115200. |
+| CPU cache | compiled in (default); **runtime on/off on slide switch `sw[4]`: down = on, up = off** (the console's SW1, sheet 25 CON) | All 8 cache tests pass on the board; the earlier CACHE-120-A00 failure (used bit never set) is fixed. Root causes and how to test: `Verilog/docs/CACHE-STATUS.md`. `nocache` / `make CACHE=0` compiles the RAMs out. |
+| VGA console | `ND120_CONSOLE_VGA` (default) - console on the VGA connector + USB keyboard, serial console kept in parallel | Every deployed image since 28-AUG had it. `novgaconsole` / `make VGACONSOLE=0` leaves it out to save space; the screen is then dark and only the serial console works. |
+| Panel clock | `ND120_PANEL_CLOCK` (default) - the MC68705/MM58274 hardware clock emulated in `CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v`, 1 Hz tick derived from `BOARD_CLK_FREQ` so it follows `clk=` | Proven on the Tang (SINTRAN takes the time across a master clear, TPE starts without "clock is not updated"). `-NoPanelClock` / `make PANELCLOCK=0` brings back the old stub if the space is needed for something else; then SINTRAN prints "ND-100 PANEL CLOCK INCORRECT" at every boot. Details: `Verilog/docs/panel-clock-68705.md`. |
+| Console | **115200** 7E1 on the USB-UART | The physical rate is the `UART_BAUD_RATE` build constant alone: the emulated SC2661 stores the microcode's BAUDV mode value (thumbwheel 8 = 9600 - the 1988 table tops out there) but times every bit off the compile-time divider, and TX-ready is a polled flag. The machine believes 9600; the wire runs 115200. |
 
 **CPU board lamps are ACTIVE LOW.** `nd120_nexys4ddr_top.v` inverts
 `panel_cpu_red` / `panel_cpu_green` (lines 669-670). Measured on the MiSTer
-(31-AUG-2026, `fpga/mister/nd120.sv:601-607`) and confirmed here on build 24:
+(`fpga/mister/nd120.sv:601-607`) and confirmed here on build 24:
 GREEN lights with the inversions in place. Removing them on the strength of
 the IOC register comments made RED light while no master clear was running.
 
@@ -319,7 +319,7 @@ The board oscillator is 100 MHz and the MMCM branch `TARGET_NEXYS4DDR` in
 `Verilog/ND120_TOP.v` takes the divider as a build flag, so `clk=<MHz>` selects
 CPU speed. Supported: **16, 20, 25, 27, 33, 35, 38, 40, 42, 45, 50, 100** MHz
 (VCO fixed at 1000 MHz; the 35-45 entries are fractional dividers added by the
-26-AUG-2026 clock-up campaign).
+clock-up campaign).
 
 The measured post-route STA result for every clock (one run each, Vivado
 2026.1, `ilaslim` config) is the table in [`timing.md`](timing.md); the
@@ -327,9 +327,9 @@ per-domain analysis is `timing-analysis/TIMING_CLOSURE_REPORT.md` and the
 evidence is `timing-analysis/run_clk*/`. In short: 16 to 45 MHz close with the
 default flow, 50 MHz needs `physopt` and is fragile.
 
-STA passing is NOT functional validation by itself. Silicon-verified
-26-AUG-2026: SINTRAN boots at 45.45 MHz (115200 console, cache off) and at
-50 MHz (9600 build); 45.45 MHz was soaked 4 hours on 27-AUG-2026, 50 MHz
+STA passing is NOT functional validation by itself. Silicon-verified:
+SINTRAN boots at 45.45 MHz (115200 console, cache off) and at
+50 MHz (9600 build); 45.45 MHz was soaked 4 hours, 50 MHz
 never was. The deployed clock is 33.333 MHz with the cache ON (status above).
 The two auto-inserted loop-breaking false paths (CGA IDB ring remnants, see
 `build.tcl` and `Verilog/docs/HANDOFF-cga-idb-ring-cut.md`) make every CPU WNS
@@ -371,7 +371,7 @@ Both extensions the board added over the Basys3 are DONE:
 1. **microSD** - the SD/FAT stack runs on the on-board slot (1-bit
    bus; the Tang runs 4-bit - the likely lever if boot speed matters here).
 2. **DDR2 main memory** - `ddr2/MEM_RAM_49_DDR2.v` + `nd_ddr2_arb.v`
-   replaced the BRAM config on 25-AUG-2026; the no-wait-state deadline is
+   replaced the BRAM config; the no-wait-state deadline is
    met by freezing the control PALs on a cache miss (MEM_HOLD). Known open
    items live in `SINTRAN-BOOT-25AUG.md`.
 
@@ -383,7 +383,7 @@ Both extensions the board added over the Basys3 are DONE:
 - `../../docs/nd120-dram-memory.md` - the measured ND-120 DRAM protocol and the
   sheet-49 backend contract (what any DDR2 bridge must satisfy).
 
-## Unattended board operations (24-AUG-2026)
+## Unattended board operations
 
 Everything here runs from WSL with no human at the board. Vivado lives on
 the Windows host; the scripts invoke it through `powershell.exe`.
@@ -424,7 +424,7 @@ run them after every bitstream change.
   never capture while a build is writing out - see
   `../../docs/ILA-PROBE-SEMANTICS.md` for this and every other capture
   lesson.
-- Console: 115200 8N1 host-side since 26-AUG-2026 (9600 for older builds;
+- Console: 115200 8N1 host-side (9600 for older builds;
   pass `-Baud 115200` to board_expect.ps1/console.ps1), commands UPPERCASE,
   pace characters (the .bt driver paces at 150 ms/char).
 - Golden dialogs for expect scripts: `../../tests/golden-console/`.
@@ -446,7 +446,7 @@ The serial console is kept live in parallel - the build define
 `console.ps1`, the board tests and the soak scripts keep working.
 
 **That parallel serial console is the whole reason this board goes first**
-(Ronny, 28-AUG-2026). `Terminals/rtl/ps2_ascii_table.v` says of itself that
+(Ronny). `Terminals/rtl/ps2_ascii_table.v` says of itself that
 every scancode in it is "a claim, not a fact" until someone types on a real
 keyboard - and this is the only board where the claim can be CHECKED, because
 you can watch both paths at once. Press a key: the screen shows what our table
@@ -463,7 +463,7 @@ vivado -mode batch -source build.tcl -tclargs novgaconsole -noburn   # serial co
 vivado -mode batch -source build.tcl -tclargs nocache -noburn        # cache RAMs compiled out (make CACHE=0)
 ```
 
-The VGA console is ON BY DEFAULT since 29-AUG-2026 (`novgaconsole` drops it).
+The VGA console is ON BY DEFAULT (`novgaconsole` drops it).
 It adds the 12 terminal sources (the font is embedded in `font_rom.v`, no
 `.hex` file is read), reads the extra XDC, and defines `ND120_CONSOLE_VGA` plus the console baud. `-noburn`
 builds without programming the board - **`build.tcl` programs over JTAG by
@@ -479,7 +479,7 @@ cannot drift apart.
 
 ### Verified on the board
 
-The first console build (28-AUG-2026, `clk 16`, WNS +1.460 ns) programmed and
+The first console build (`clk 16`, WNS +1.460 ns) programmed and
 booted SINTRAN with the serial console unchanged. Since then the VGA picture,
 the embedded box-drawing font and the keyboard table (incl. the Left-arrow fix)
 are all verified on the board, by typing a key and comparing the screen with
@@ -543,7 +543,7 @@ would look right and be wrong:
   level at once, fed from the microprogram in PANC packets. We have PIL, the one
   level running now. Same picture, different claim - so the caption changed.
 - **`UP:hh:mm:ss`, not DAY/TIME.** The real clock is a battery-backed MM58274 on
-  standby power. Since 29-AUG-2026 the CPU build does carry an emulated panel
+  standby power. The CPU build does carry an emulated panel
   clock (`ND120_PANEL_CLOCK`, table above), but its day/time counters
   (`TIME_HALFDAYS` / `TIME_SECONDS` in `PANCAL_68705_CLOCK.v`) are not brought
   out to `DBG_PANEL` yet, so the VGA panel still shows uptime. Uptime is counted

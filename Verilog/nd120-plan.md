@@ -2,7 +2,7 @@
 
 This file used to be a plan for a C re-implementation of the CPU ("Architecture
 Implementation in C"). That port was never written and its pseudo-C was mostly
-guesswork, so it was cut on 28-SEP-2026 (the full old text is in git history).
+guesswork, so it was cut (the full old text is in git history).
 What is kept below is the reference part: the 64-bit microword field table, the
 cycle timing signal names, and the EPIC and UART command names.
 

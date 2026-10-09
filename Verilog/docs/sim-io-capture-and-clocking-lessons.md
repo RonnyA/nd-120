@@ -1,7 +1,7 @@
 # Lessons from the 300$ / JMP0-3 hunt - I/O capture, clocking, microcode hygiene
 
 11-JUL-2026, trimmed 28-SEP-2026. The dispatch story itself lives in
-`serial-binload-300.md`: 300$ is PARKED by owner decision (11-JUL-2026). A
+`serial-binload-300.md`: 300$ is PARKED by owner decision. A
 one-word microcode patch (`COMM,LDIRV` at o500) made the JMP0-3 dispatch work
 in sim, but it was not kept - the committed PROM images carry no o500 change
 (the `test-microcode-sync` gate allows no difference except the deliberate
@@ -9,7 +9,7 @@ in sim, but it was not kept - the committed PROM images carry no o500 change
 code.
 
 Removed in the trim (history is in git): the July strobed-I/O read problem
-(resolved 12-JUL-2026, not reproducible), and the "PROM copies have drifted"
+(resolved, not reproducible), and the "PROM copies have drifted"
 section - superseded by the 02-SEP-2026 raw-vs-sim decision in
 `nd120-facts.md` and the `test-microcode-sync` gate (`tests/microcode_sync.py`),
 which now checks every PROM copy.
@@ -18,7 +18,7 @@ which now checks every PROM copy.
 
 Shared/support/SC2661_UART.v registers its read response: regDataOut updates on
 the UART's clock edge AFTER chip-enable + read go active, and the pins show
-regDataOut during the strobe (re-checked 28-SEP-2026: still true, the read
+regDataOut during the strobe (re-checked: still true, the read
 assignment near line 421 and `D_OUT` near line 280). The real SCN2661 drives
 data combinationally within its access time once CE/read are asserted. The
 registered response adds artificial latency on top of a strobed-read race and
@@ -98,6 +98,6 @@ open historical question (candidates: the panel processor, or terminal-control
 reprogramming we have not traced) - only relevant if 300$ is ever attempted
 against a real SC2661.
 
-Note (28-SEP-2026): the SC2661 model ignores its mode register and is 8N1 only
+Note: the SC2661 model ignores its mode register and is 8N1 only
 (`Shared/support/SC2661_UART.v` header). The 7-data/even/2-stop reading of the
 boot microcode's mode word above dates from 11-JUL-2026 and was not re-checked.

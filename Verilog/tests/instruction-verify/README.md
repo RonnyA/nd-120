@@ -31,7 +31,7 @@ validated set is `INSTR_AREAS` in `Verilog/Makefile`.
 - Detail arms at the first macro instruction on a test level (PIL 1-9),
   records 400 instructions; console preamble is skipped.
 
-## Comparison rules (as calibrated 12-JUL-2026)
+## Comparison rules (as calibrated)
 
 1. The instruction-correctness gate is the **architectural registers**
    `A D T X B L P STS` plus the instruction stream (`addr : opcode`, PIL).
@@ -95,7 +95,7 @@ The emitter arms at the first PIL 1-9 macro instruction and records 400
 the ND-120 CONTINUE dispatch does NOT visit csa 0 (only level switches do),
 so csa-0 boundaries miss most instructions.
 
-## Calibration findings (12-JUL-2026)
+## Calibration findings
 
 Calibrated against ARGUMENT, STACK, BYTE-STRING, MEMORY-REFERENCE, SEQUENCE.
 Result: **every instruction executes correctly** - the architectural registers
@@ -138,7 +138,7 @@ What the automated gate checks: `run_area_test.sh` compares the first 400
 test-level instructions of an area against the golden (architectural registers
 A D T X B L P STS + instruction stream). It does not run the area to its own
 `== END OF TEST ==` and does not count the area's error lines. A missing golden
-file is a FAIL (since 28-SEP-2026; it used to print a PASS without testing).
+file is a FAIL (it used to print a PASS without testing).
 
 Coverage note: our emitter double-logs EXR (executed instruction as a second
 same-address row) and logs panel interludes, so to cover the golden's 400 unique
@@ -146,7 +146,7 @@ test-level instructions we run with ND120_TVERIFY_MAX=460 (~440 rows after
 normalization); the extra tail is harmless. A passing area typically also
 shows ~25-37 non-fatal `Q` scratch warnings (panel display-refresh noise).
 
-Arming: since the ND-110 side regenerated the goldens (~19:00 12-JUL-2026) the
+Arming: since the ND-110 side regenerated the goldens the
 14 area traces arm on the first test-code-region fetch at PIL 0; RUN arms
 strictly at the first PIL 1-9. Our emitter matches each golden's window via
 `ND120_TVERIFY_ARM_ADDR` (`run_area_test.sh` reads the golden's first `### #1`

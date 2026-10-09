@@ -104,7 +104,7 @@ register value as an EXR emission, not a control-flow difference.
 nd100x updates PGS ONLY on a fault (all four `UpdatePGS` call sites in
 `src/cpu/cpu_mms.c` are error paths); the real ND-120 PGS follows every
 VACC-qualified access. A PGS value that differs between the two traces
-outside a fault is expected. (Recorded 23-AUG-2026 in a retired Tang plan,
+outside a fault is expected. (Recorded in a retired Tang plan,
 git `043c460`; not re-checked against nd100x since.)
 
 ## Note on key tightness - it cuts BOTH ways

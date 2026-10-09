@@ -671,7 +671,7 @@ measurements before relying on details.
 
 1. BDAP driver in memory READ cycles: ND-06.016 V.4 Case 1 (master
    drives BDAP) vs the ND-06.026 page 126 quote in NDBus.cpp (memory
-   drives BDAP as data source). RESOLVED 11-JUL-2026 against our own
+   drives BDAP as data source). RESOLVED against our own
    schematic-faithful RTL: the RAM cycle-control PAL (PAL/PAL_44902A.v,
    "URAMC") contains an explicit wait state commented "PAUSE UNTIL
    BDAP OCCURS" for granted bus cycles, with the hold term
@@ -683,7 +683,7 @@ measurements before relying on details.
    The ND-06.026 wording matches only the IOX slave role, where the
    addressed device drives BDAP with its answer data.
 2. Address hold time for DMA masters: STRUCTURALLY RESOLVED
-   11-JUL-2026 from the original PDF figures (section 10). Figures
+   from the original PDF figures (section 10). Figures
    V.4.1/V.4.2 show the ordering: address valid on BD -> BAPR leading
    edge -> BAPR trailing edge -> address removed from BD - i.e. the
    address is held past the BAPR trailing edge, and BAPR itself is a
@@ -691,7 +691,7 @@ measurements before relying on details.
    NUMERIC hold (the figures are not dimensioned); the 50 ns figure
    remains a CPU-handshake number (III.2.4). The synchronous contract
    in 8.2 (hold through BAPR capture) is consistent with the figure.
-3. Exact trailing-edge ordering: RESOLVED 11-JUL-2026 from the
+3. Exact trailing-edge ordering: RESOLVED from the
    original PDF Figures V.4.1 and V.4.2 (both cases identical, and
    the same pattern as BIOXE/BDRY in Figure III.2.4): BDRY leading
    edge -> master releases BDAP (read: after strobing the data;
@@ -701,7 +701,7 @@ measurements before relying on details.
    BAPR is already inactive since the address window and BREQ since
    the grant. The BDRY leading edge also withdraws BMEM and
    INGRANT/OUTGRANT (arrows in the allocation group). See section 10.
-4. Setup/hold windows in nanoseconds: PARTIALLY RESOLVED 11-JUL-2026.
+4. Setup/hold windows in nanoseconds: PARTIALLY RESOLVED.
    The figures settle the qualitative setup relations (write data
    valid on BD BEFORE the BDAP leading edge; address valid BEFORE the
    BAPR leading edge; BINPUT active BEFORE the BAPR leading edge) but
@@ -742,12 +742,12 @@ measurements before relying on details.
     Anyone verifying against the .md file should ignore those pages
     and check the original PDF for the timing-diagram figures. The
     figures themselves have now been read from the original scanned
-    PDF and are transcribed in section 10 (11-JUL-2026).
+    PDF and are transcribed in section 10.
 
 
 ## 10. Timing diagrams (from the original PDF figures)
 
-Read 11-JUL-2026 directly from the original scanned PDF
+Read directly from the original scanned PDF
 (ND-06.016.01, Bitsavers scan), at 300 dpi where edge ordering
 mattered. PDF page numbers below are the scan's page numbers; manual
 page numbers (II-4-4 etc.) are the printed ones. Everything in this
@@ -1002,7 +1002,7 @@ BDRY    -------------------------------v__________^--------
       to BMEM/INGRANT trailing edges). BINPUT's trailing edge is
       drawn here, at the BDRY leading edge; the stretch of BINPUT's
       active level immediately before it is hatched.
-      RESOLVED (Ronny, 11-JUL-2026): BINPUT is an ADDRESS-PHASE
+      RESOLVED (Ronny): BINPUT is an ADDRESS-PHASE
       signal only. The memory latches the transfer direction at BAPR;
       once BAPR is inactive BINPUT carries no meaning - the data
       phase is governed by BDAP (data present, memory reads BD) and
@@ -1071,7 +1071,7 @@ resolution against PAL_44902A).
    Earliest re-assert point: the figures do not show a same-
    controller re-request during its own ongoing cycle - the examples
    only show re-requests after cycle end (6 us / 1.4 us periods).
-   SETTLED BY MEASUREMENT (full-RTL gate, 11-JUL-2026): back-to-back
+   SETTLED BY MEASUREMENT (full-RTL gate): back-to-back
    re-requests are NOT safe against this board's memory. The bus
    arbiter (PAL_44801A) happily grants again immediately, but the
    memory-side grant/decode chain (BLRQ latch, BCGNT 25/50ns stages)

@@ -5,11 +5,11 @@ storage backend of the ND-100 bus devices (paper tape reader 400, floppy,
 SMD, Winchester) and of the standalone board test projects.
 
 Consumers: `Verilog/fpga/tang-nano-20k/sd-fat-test/` (interactive UART
-menu; proven on hardware 11-JUL-2026), and `nd_storage` - the multi-client
+menu; proven on hardware), and `nd_storage` - the multi-client
 storage facade for the ND-100 bus devices (spec, validation and design in
 `Verilog/docs/nd-storage-*.md`). SINTRAN III boots on the Tang Nano 20K
 from a Winchester image on the SD card through `nd_storage`
-(24-AUG-2026, `Verilog/docs/nd-storage-design.md`).
+(`Verilog/docs/nd-storage-design.md`).
 
 ## Contents
 
@@ -32,9 +32,9 @@ or `CPU-BOARD-3202/`.
 | `sim/sd_writer_tb.v` + `sim/Makefile` | project | sd_writer unit test incl. the CMD25/CMD18 burst cases, a mid-burst CRC-status abort, and the 4-bit phase (single + burst both ways, injected per-line CRC error, DAT1-3 discipline monitor) after the full 1-bit suite as regression (registered in the global test registry as `SD-FAT/sim :: test-writer`) |
 | `circuit/nds_sync.v` | project (MIT) | 2-flop toggle/pulse + level CDC primitives for nd_storage |
 | `circuit/nd_storage_engine.v` | project (MIT) | nd_storage block engine: round-robin arbiter (up to 8 clients; `nd_storage` sets 8), per-client clk_cpu front-ends, CDC word bridge, cache fill, FAT-chain resolve, write-through (spec: docs/nd-storage-interface-spec.md, design: docs/nd-storage-design.md) |
-| `circuit/nd_storage_mount.v` | project (MIT) | nd_storage open FSM: per-open reader re-init, root-file scan, geometry latch, reader park (no preload since 04-AUG-2026; `M_LOAD` is dead code) |
+| `circuit/nd_storage_mount.v` | project (MIT) | nd_storage open FSM: per-open reader re-init, root-file scan, geometry latch, reader park (no preload; `M_LOAD` is dead code) |
 | `circuit/nd_storage.v` | project (MIT) | nd_storage top: reader+writer instances, phase_write SD pin mux, mount/engine mem-port mux, fatchk writer-command mux (rd_mode=1 while chk_busy), FILEn/SLOTn parameter set, CACHE_MASK / cache directory, sd_status/card_type/fs_type |
-| `circuit/nd_storage_fatchk.v` | project (MIT) | Mount-time contiguity checker (SDFAT_STORAGE_CHECK): verifies FAT[c]=c+1 over the opened file's whole chain + end-of-chain via sd_writer CMD17 reads (FAT16 + FAT32, cached FAT sector); machine ok/bad verdict. Diagnostic only since 07-AUG-2026 (`-DSDFAT_FORCE_STORAGE_CHECK`); the engine walks the FAT chain, so fragmented files work |
+| `circuit/nd_storage_fatchk.v` | project (MIT) | Mount-time contiguity checker (SDFAT_STORAGE_CHECK): verifies FAT[c]=c+1 over the opened file's whole chain + end-of-chain via sd_writer CMD17 reads (FAT16 + FAT32, cached FAT sector); machine ok/bad verdict. Diagnostic only (`-DSDFAT_FORCE_STORAGE_CHECK`); the engine walks the FAT chain, so fragmented files work |
 | `circuit/nd_storage_cache.v` | project (MIT) | tag/LRU directory of the shared block cache (design: docs/nd-storage-design.md 2.7) |
 | `sim/nds_mem_model.v` | project | behavioral SDRAM device-port model (randomized latency) |
 | `sim/nd_storage_cdc_tb.v`, `nd_storage_engine_tb.v`, `nd_storage_write_tb.v` | project | registered gates test-nds-cdc / test-nds-engine / test-nds-write |
@@ -43,7 +43,7 @@ or `CPU-BOARD-3202/`.
 
 ## The reader's interface (binding feature set)
 
-`sd_file_reader.v` (clean-room, 12-JUL-2026; it replaced an earlier
+`sd_file_reader.v` (clean-room; it replaced an earlier
 vendored reader and had to keep its interface) provides:
 
 1. `scan_done` output - the internal filesystem FSM reached DONE
@@ -74,7 +74,7 @@ The data phase runs at clk/2 (13.5 MHz at 27 MHz, CLK_DIV=1), and file
 bytes stream through CMD18 multi-block reads across contiguous cluster
 runs.
 
-## WRITE-PATH SAFETY POLICY (mandatory, 11-JUL-2026)
+## WRITE-PATH SAFETY POLICY (mandatory)
 
 Born from a real destroyed card: `sd_fat_rewrite.v` state `S_DIR_W`
 wrote the patched directory sector to the raw `dir_sector` input (0 on
@@ -127,7 +127,7 @@ nand2mario's NESTang), with a one-page mailbox diskio driving THIS
 library's sector engine. FatFs's ffconf.h config model mirrors the
 feature-flag philosophy above. The pure-Verilog ops in this library
 remain the fast boot/device path; the softcore tier is not built and no
-live plan schedules it (the old device plan was retired 28-SEP-2026).
+live plan schedules it (the old device plan was retired).
 
 ## Block access (ND-120 1-kiloword blocks)
 

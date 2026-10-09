@@ -3,7 +3,7 @@
 **Full path:** `Verilog/fpga/basys3/`
 
 Vivado build/flash flow for the Digilent **Basys3** board. This was the first
-FPGA target. OPCOM booted on hardware on 07-JUL-2026 (tag
+FPGA target. OPCOM booted on hardware (tag
 fpga-opcom-working-basys3, commit f5821fe); the 21-AUG build failed timing
 (WNS -29.8 ns at 16.667 MHz) and no build since has been tried on the board -
 see [Status](#status).
@@ -29,8 +29,8 @@ Neither board can ever run SINTRAN.
 
 ## Toolchain
 
-**Vivado, on the Windows host.** Scripts are run from this folder. Since
-30-SEP-2026 this is a **non-project flow** like the other Vivado boards:
+**Vivado, on the Windows host.** Scripts are run from this folder.
+This is a **non-project flow** like the other Vivado boards:
 everything the build needs is in this folder - the source list
 [`nd120_basys3_sources.txt`](nd120_basys3_sources.txt) (the 267 files of the
 old Vivado project, in its order) and the pin map
@@ -117,7 +117,7 @@ Then compare against the Verilator golden trace - see
 - **Synthesis:** passes. Utilization ~9,302 LUT primitives, ~1,044 Kbit BRAM
   (dominated by the duplicated microcode PROM + WCS).
 - **Implementation:** **FAILS TIMING**, so the CPU does not boot on hardware.
-  Measured 21-AUG-2026, Vivado 2026.1, from `logs/timing_impl.rpt`:
+  Measured with Vivado 2026.1, from `logs/timing_impl.rpt`:
 
   | clock | period | WNS | TNS | failing endpoints |
   |---|---|---|---|---|
@@ -151,7 +151,7 @@ Then compare against the Verilator golden trace - see
 ## Debug LEDs, switches, 7-segment and ILA (reference)
 
 UNVERIFIED against the current Basys3 top: nobody has re-checked this map
-against it. Moved here 28-SEP-2026 from
+against it. Moved here from
 `Verilog/doc/basys3-debug-reference.md`.
 
 ### LED Layout (LD15 left to LD0 right)

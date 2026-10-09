@@ -1,6 +1,6 @@
 # Multicycle proof: LAA_REG/LBA_REG -> WCS address pins (Nexys, FF mode)
 
-Written 30-AUG-2026, from static reading of the RTL only. No sim was run for
+Written from static reading of the RTL only. No sim was run for
 this document; the one thing that still wants a sim check is listed at the
 end. All file references are the evidence; read them before doubting a step.
 

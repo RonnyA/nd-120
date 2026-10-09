@@ -1,4 +1,4 @@
-# ND-120 CPU-BOARD-3202 — PAL Verilog transcription faults (audit 2026-07-21)
+# ND-120 CPU-BOARD-3202 — PAL Verilog transcription faults
 
 **Method.** Every Verilog PAL model in `Verilog/PAL/PAL_*.v` was diffed, equation-by-equation
 and product-term-by-product-term, against its authoritative original PALASM source in
@@ -8,7 +8,7 @@ testbench that instantiates the **real** module and compares it to a reference i
 one flagged literal/term is corrected** to match the PALASM. A nonzero diff count proves the fault
 changes real behaviour (i.e. it is not a redundant term or a De-Morgan-equivalent rewrite).
 
-**PNG re-verification (2026-07-21).** Every flagged PAL was then cross-checked against the
+**PNG re-verification.** Every flagged PAL was then cross-checked against the
 **scanned PALASM listing** in `DesignDocuments/PAL-Code/IMG/*.png` (the true original — the `.txt`
 SRC is OCR'd and has known garble). This CAUGHT ONE FALSE POSITIVE: **44601B CC0 is NOT a fault** —
 the scan shows `/CGNTCACT` (slashed) in the "WAIT FOR BUS OR LOC" term; the Verilog `CGNTCACT_n` is
@@ -19,7 +19,7 @@ active-low pin, so an unslashed literal `X` in an equation = active-high sense =
 `wire X = ~X_n`; a slashed `/X` = the raw `X_n` port. All 8 remaining faults were re-derived under
 this rule against the scan and hold.
 
-**Status (checked 28-SEP-2026): ALL 8 confirmed faults below are FIXED in the RTL** - each fixed
+**Status: ALL 8 confirmed faults below are FIXED in the RTL** - each fixed
 equation carries a "PALASM ..." / "30-JUL audit" comment in its `Verilog/PAL/PAL_*.v`
 (44306A EIPL, 44302B DSTB, 45001B SPES + SPEA, 44403C DLY0, 44310D BDRY, 45008B DISB + TST). The
 "Verilog as-built (wrong)" column and line numbers below describe the code as it was at the audit.
@@ -92,7 +92,7 @@ undelayed input used where the registered/delayed version was specified.
 random clocked cycles for registered), against a reference transcribed **independently from the
 PNG scan** (never from the `.v`). Run all with `run_pal_tbs.sh`.
 
-Verified result (24/24 run, 2026-07-21): **FAIL** = 44302B, 44306A, 44310D, 44403C, 45001B, 45008B
+Verified result (24/24 run): **FAIL** = 44302B, 44306A, 44310D, 44403C, 45001B, 45008B
 (the 6 confirmed-fault PALs). **PASS** = the other 18 (44303B, 44304E, 44305D, 44307C, 44401B,
 44402D, 44404C, 44407A, 44408B, 44445B, 44446B, 44511A[LEV0+CWR], 44601B, 44801A, 44803A, 44902A,
 44904B, 45009B). 44511A CUP is excluded from the tb (unresolved registered-pin polarity, n.c.);

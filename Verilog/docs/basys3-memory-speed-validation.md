@@ -508,4 +508,4 @@ Basys3's standard Pmod ports; the exact speed grade of the THM91020
 modules fitted in original ND-120s; all FPGA IOB/route delay figures
 (engineering estimates, to be replaced by post-route timing reports when
 a bridge is actually built). (The Pmod-routing quote was verified verbatim
-against the manual PDF on 13-JUL-2026.)
+against the manual PDF.)

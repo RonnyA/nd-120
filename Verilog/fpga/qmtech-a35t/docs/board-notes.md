@@ -83,10 +83,10 @@ Simple 1 Hz alternating blinker on `C8`/`D8`, reset on `H18`, `sys_clk` on
 Ships with a netlist-inserted ILA on the counter, again confirming the
 ILA-over-JTAG workflow.
 
-## Board setup and smoke tests (from the 08-JUL-2026 bring-up handoff)
+## Board setup and smoke tests (from the bring-up handoff)
 
-Merged here 28-SEP-2026 from `HANDOFF-qmtech-a35t-bringup.md` (superseded
-04-SEP-2026 by `../README.md`; git history keeps it). Hardware facts, verified
+Merged here from `HANDOFF-qmtech-a35t-bringup.md` (superseded
+by `../README.md`; git history keeps it). Hardware facts, verified
 against the manual and the schematic in this folder:
 
 - Same FPGA die as the Basys3, part **`xc7a35tcsg325-1`** (CSG325 package),

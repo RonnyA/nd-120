@@ -2,7 +2,7 @@
 
 **Full path:** `Verilog/docs/nd120-parity-analysis.md`
 **Date:** 11-JUL-2026 (section 6 corrected 28-SEP-2026). Written for the
-18-bit -> 16-bit SDRAM packing work (`ND_SDRAM_PACK16`, done 11-JUL-2026,
+18-bit -> 16-bit SDRAM packing work (`ND_SDRAM_PACK16`, done,
 commits d26fd66..2c44efb). Every claim below carries a microcode reference; the
 semantics are pinned by testbench (see section 6), not by this prose.
 
@@ -148,7 +148,7 @@ Testbench: `Verilog/fpga/tang-nano-20k/sdram-bridge/sim/` - the 18-bit tb
 (`test`) plus the packed-mode tb (`test-pack16`), both registered in
 `Verilog/tests/run_all_tests.sh` and emitting `TB_RESULT: PASS`.
 
-## 6b. POLICY (Ronny, 3-AUG-2026): no FPGA target ever STORES parity
+## 6b. POLICY (Ronny): no FPGA target ever STORES parity
 
 Section 6's contract was written for the Tang SDRAM backend only. It is now
 the rule for **every** sheet-49 memory backend, by decision, not by build
@@ -187,7 +187,7 @@ Gates:
 - `CPU-BOARD-3202/circuit/sim :: test-memchain{,-blockram,-sim}` - the same
   chain testbench against three backends. Its parity sweep writes 16 patterns
   **with deliberately wrong parity** and requires correct regenerated parity
-  back, so storing, zeroing or inverting all fail. Teeth-proven 3-AUG-2026: a
+  back, so storing, zeroing or inverting all fail. Teeth-proven: a
   build with Q9 forced back to 0 fails 35 checks.
 
 Two reasons parity was never CHECKED:
@@ -200,15 +200,14 @@ Two reasons parity was never CHECKED:
    R - so a memory READ is receive mode and the board's check does not
    evaluate there at all. See `Verilog/TODO.md`.
 
-## 6c. The forced-parity-error probe path (TRR ECCR), 11-AUG-2026
+## 6c. The forced-parity-error probe path (TRR ECCR)
 
 From the retired `HANDOFF-mpm5-parity-eccprobe.md` (git `202c606`).
 
 - Links 1-3 of the probe path exist and are correct: TRR ECCR (IOX 100115)
   is decoded in `CGA_MAC_APOS_CALCA.v:99` and reaches the memory sheets;
   PAL_45008B latches TST/DISB and drives both AM29833A output enables on a
-  test write; `AM29833A.v` forced-error mode inverts the parity bit (fixed
-  30-JUL).
+  test write; `AM29833A.v` forced-error mode inverts the parity bit (fixed).
 - Link 4 is the break: every backend regenerates parity on read, so the
   injected error is healed. Two downstream slips were fixed: 6d95b09
   (MEM_DATA_46 gated the AM29833A ERR pins on OET_n, not on the drawing,

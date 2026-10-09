@@ -11,8 +11,8 @@ hardcoded post-trigger window of `test_nd120.cpp`.
 **REPORT-ONLY**: no RTL is edited — the probe is a NEW harness
 (`nd120_probe.cpp`) built with the non-invasive flags `--public-flat-rw --vpi`.
 
-**Why it exists** (from the retired design note, folded in here
-28-SEP-2026): before it, `test_nd120.cpp` dumped the full FST with one
+**Why it exists** (from the retired design note, folded in here):
+before it, `test_nd120.cpp` dumped the full FST with one
 hard-coded post-trigger window (`logwin=60` on CSA 06000..06003 ->
 `mic_trace.csv`), and `latch_ff_compare.cpp` wrote a per-cycle CSV of a
 hard-coded signal list through `top->rootp->ND120_TOP__DOT__...` root paths.

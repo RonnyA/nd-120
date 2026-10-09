@@ -1,6 +1,6 @@
 # The ND-120 cache: status, root causes and how to test it
 
-> **Solved 31-AUG-2026.** All 8 tests of the machine's own cache diagnostic
+> **Solved.** All 8 tests of the machine's own cache diagnostic
 > (`CACHE-1X0-A00` under TPE) pass on the Nexys 4 DDR, and the cache is
 > compiled in by default there (`fpga/nexys4ddr/build.tcl`, runtime on/off on
 > slide switch `sw[4]`). Four separate RTL faults had to be fixed; they are
@@ -11,11 +11,11 @@
 
 | Board | Cache |
 |---|---|
-| Nexys 4 DDR | compiled in by default since 29-AUG-2026; deployed at 33.333 MHz (build 24, 7.52 MIPS). `-tclargs nocache` compiles the RAMs out (`ND120_NO_CACHE`). |
+| Nexys 4 DDR | compiled in by default; deployed at 33.333 MHz (build 24, 7.52 MIPS). `-tclargs nocache` compiles the RAMs out (`ND120_NO_CACHE`). |
 | Tang Nano 20K | out (`ND120_NO_CACHE`): a live cache needs 28330 logic cells against the GW2AR-18's 20736 (`build-defines.md`). |
 
 Build facts, measured on the Nexys: the cache builds, fits and boots (first
-cache build 28-AUG: WNS +0.166 ns, about 0.1 ns less margin than the same
+cache build: WNS +0.166 ns, about 0.1 ns less margin than the same
 build without it). The four cache tag/data RAMs read asynchronously
 (`TMM2018D_25 #(.ASYNC_READ(1))` in `CPU_MMU_CACHE_25.v`), so on Xilinx they
 are distributed RAM: +1014 LUTs (+961 LUT-as-memory), -2 BRAM tiles. With the
@@ -59,7 +59,7 @@ In `PAL_44402D` only `IHIT`, `NUBI`, `NUBD` are registered (`:=`, pins
 
 ### The cache-inhibit map
 
-Measured in Verilator (`ND120_WCLIM_TRACE=1`), 29-AUG-2026. Three microwords
+Measured in Verilator (`ND120_WCLIM_TRACE=1`). Three microwords
 carry the WCHIM command: **01071, 02046 and 03713**.
 
 - Power-up: microwords 02045/02046 sweep all 16384 pages with data 0, so
@@ -73,7 +73,7 @@ correct wired-OR model of the one bidirectional `PPN(25:10)` bus on sheet 29:
 the CPU side drives all zeroes whenever `LAPA_n` is high (`CPU_15.v`), and
 `CPU_MMU_PPNX_28` drives PPN25-PPN18 (the inhibit bit is PPN25) from the IDB.
 
-### DMA and stale lines - the HIT gate (26-JUL-2026)
+### DMA and stale lines - the HIT gate
 
 The schematic drives the cache data SRAMs (23F/24F, `CS~ = ECD~`,
 `W~ = WCA~`, `OE = GND`) onto the wired-OR `CD` bus for the whole first part
@@ -107,7 +107,7 @@ Also real and kept:
   ended in `UNEXPECTED INTERNAL INTERRUPT level 2, code 4` at 177006B. The
   real TMM2018 is a 25 ns async SRAM; `.ASYNC_READ(1)` on the four cache
   chips only.
-- **The 26-JUL HIT gate** (above).
+- **The HIT gate** (above).
 
 Found on the way and still worth knowing: the `PAL/sim` provenance gate
 ("22 PALs agree with their listing on every output") passed throughout and did
@@ -122,13 +122,13 @@ Each was measured, not inspected.
 | Excluded | Evidence |
 |---|---|
 | `CON` (SW1 cache switch) | `SW1_CONSOLE` comes from the board top's `CACHE_SW` (`ND120_CORE.v`): Nexys slide switch `sw[4]`, down = on; tied high in Verilator (`ND120_TOP.v`) and on the Tang |
-| `PD1`, `PD2` | tied 0 in `ND3202D.v`; PD2 stayed low for the whole WCA pulse (Verilator, 29-AUG) |
+| `PD1`, `PD2` | tied 0 in `ND3202D.v`; PD2 stayed low for the whole WCA pulse (Verilator) |
 | `FMISS`, `LSHADOW` | 0 in all 1024 board ILA samples, two captures |
 | `BRK_n` | high in all but 7 of 1024 |
 | inhibit map addressing / data / write strobe | full sweeps counted in Verilator (above) |
 | `PAL_44402D` transcription | both WCA terms and the registered/combinational split checked against `44402D.txt` |
 | "the cache RAMs are not built" | that block is inside `ifdef ND120_NO_CACHE`; a cache build takes the `else` branch |
-| CA10 cleared too late on a data write | the DGA clears it in time (Verilator, 29-AUG); it is a DGA flop with an async clear on WRITE & UCLK (A237), by design |
+| CA10 cleared too late on a data write | the DGA clears it in time (Verilator); it is a DGA flop with an async clear on WRITE & UCLK (A237), by design |
 | test 1 as a WCS bank mix-up | the same 16-bit constant was OR-ed into every group, so it is on the IDB side (fault 4) |
 
 ## CACHE-1X0-A00 results
@@ -148,7 +148,7 @@ The load-time line `Cache updated bit: Working` is not evidence: it printed
 
 ## Running the diagnostic in Verilator
 
-What worked, 29-AUG-2026:
+What worked:
 
 ```
 cd Verilog/runSim

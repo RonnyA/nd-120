@@ -1,4 +1,4 @@
-# SD CMD18 inter-block gap - research notes (12-JUL-2026)
+# SD CMD18 inter-block gap - research notes
 
 Background: on Tang Nano 20K hardware, CMD18 multi-block READ failed
 (menu 7 "SD READ FAILED") while CMD25 multi-block WRITE ran at
@@ -81,7 +81,7 @@ Pins, the on-board pull-ups (R53-R57), the CLK series resistor (R49),
 6. License hygiene: only LiteSDCard is vendorable (BSD-2); everything
    else in this survey is GPL-encumbered - patterns only, own RTL.
 
-## Speed facts (11/12-JUL-2026 speed work, formerly sd-speed-plan.md)
+## Speed facts (formerly sd-speed-plan.md)
 
 - Where the time goes on a single-sector write: at a 2.7 MHz bit clock one
   sector is 1.52 ms of data on the wire + 0.04 ms of command overhead + about
@@ -95,7 +95,7 @@ Pins, the on-board pull-ups (R53-R57), the CLK series resistor (R49),
   13.5 MHz already exceeds every device budget in nd-storage-design.md.
 - Multi-block write CRC status and busy stay on DAT0 in every bus width.
   Block-gap busy timeout budget: 250-500 ms.
-- Measured on the Tang (sd-fat-test menus 6/7, 12-JUL-2026, 32 GB SDHC FAT32,
+- Measured on the Tang (sd-fat-test menus 6/7, 32 GB SDHC FAT32,
   4-bit): WRITE 3418 KB/s, READ 5981 KB/s against a 137 KB/s 1-bit baseline.
   The three silicon-only bugs that had to be fixed first are in
   `Verilog/fpga/tang-nano-20k/sd-fat-test/README.md`.

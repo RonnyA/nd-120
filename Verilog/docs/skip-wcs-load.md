@@ -71,7 +71,7 @@ So the preload needs the 64-bit image demuxed into 32 nibble-wide 4096-deep file
 Validated against the real PROMs: 8192 non-zero words; `word[0x0401]` (o02001) =
 `1b80008780203050`. Re-run whenever the microcode hex changes.
 
-**Two image sets (decided 02-SEP-2026).** The boards preload the raw PROM
+**Two image sets.** The boards preload the raw PROM
 words from `Code/Microcode/wcs/`. The simulators use
 `gen_wcs_image.py --sim`, which writes `Code/Microcode/wcs-sim/` with the
 2024 simulator patch of word 0o2002 (a 64x shorter power-on wait, nothing

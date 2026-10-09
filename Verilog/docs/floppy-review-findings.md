@@ -1,6 +1,6 @@
-# Floppy stack review (12-JUL-2026) - open items only
+# Floppy stack review - open items only
 
-## Status (13-JUL-2026, re-checked against the code 28-SEP-2026)
+## Status (re-checked against the code)
 
 Settled against the ND-11.021.01 manual (spec:
 `floppy-3112-register-spec-ND-11.021.md`) and FIXED in `ND_FLOPPY_DMA.v`,
@@ -19,7 +19,7 @@ testbench-verified; the detail is in git history:
 Still open:
 
 - C2 (below): a watchdog exists (`DISK_TIMEOUT`) but defaults to 0 = off.
-- M4 and M5 (below): checked in code 28-SEP-2026 - `s_test_mode` is latched
+- M4 and M5 (below): checked in code - `s_test_mode` is latched
   and never used, and `disk_media_fmt` is one input for all drives.
 - M6-M10, the MINOR list, the stub table and the TESTGAP list were not
   re-checked item by item after the fixes above; treat them as UNVERIFIED.

@@ -1,10 +1,10 @@
 # ND-120 on the Microsoft Azure FPGA card (X930613-001)
 
-**Status: PAPER PLAN (31-AUG-2026).** No build files exist yet. This folder
+**Status: PAPER PLAN.** No build files exist yet. This folder
 only records the card's specs and the open questions that have to be
 answered before any Verilog gets written.
 
-Card facts, as given by Ronny (31-AUG-2026) - **not yet independently
+Card facts, as given by Ronny - **not yet independently
 verified against a datasheet or the physical card**:
 
 | Item | Value |
@@ -24,7 +24,7 @@ above is Ronny's own numbers.
 A third-party blog, [devops.lol](https://www.devops.lol/) (see Links,
 below), identifies this same part number (X930613-001) as the **Microsoft
 "Storey Peak" board (Catapult v2)** and gives more specific numbers. A
-second, unsourced report (31-AUG-2026) added more detail; every checkable
+second, unsourced report added more detail; every checkable
 claim in it was run against independent sources: a GitHub issue on the
 `corundum` project (corundum/corundum#213), the community
 reverse-engineering repo [`ruurdk/storey-peak`](https://github.com/ruurdk/storey-peak),
@@ -71,7 +71,7 @@ powers up and runs standalone. This card is a datacenter PCIe accelerator:
   supports power-on auto-config is unverified - the flash-size claim in
   the table above has no confirmed source.
 - **PCIe bifurcation is a new, real requirement - CONFIRMED SUPPORTED on
-  Ronny's board (31-AUG-2026).** The x16 edge connector is two bifurcated
+  Ronny's board.** The x16 edge connector is two bifurcated
   Gen3 x8 links, not a native x16 link. ASUS's own official bifurcation
   table (support FAQ #1037507) lists the PRIME Z690-P WIFI D4's
   CPU-connected slot (`PCIEX16(G5)_1`) as supporting **2 (X8+X8)** -
@@ -127,5 +127,5 @@ list and the planned (not yet built) build/flash/console workflow.
 | <https://www.asus.com/support/faq/1037507/> | ASUS's official PCIe bifurcation compatibility FAQ - the linked "Intel 600 Series" table lists **PRIME Z690-P WIFI D4** by name with its CPU slot (`PCIEX16(G5)_1`) supporting **2 (X8+X8)** bifurcation, confirming Ronny's host motherboard can electrically support this card's PCIe interface |
 | <https://github.com/ruurdk/jtag-quartus-ft232h> | Working driver + exact recipe for using the onboard FT232H as a Quartus JTAG interface on Linux (OpenOCD init, `libjtag_hw_otma.so`, udev rule) - confirms JTAG IDCODE `0x029070dd` matches this Stratix V part |
 | <https://github.com/ruurdk/sv_second_pcie_hip> | Working `LD_PRELOAD` shim to unlock the second PCIe hard IP block, which Quartus's stock device database disables for this part by default - required for the full bifurcated x8+x8, not just one x8 link |
-| <https://hub.docker.com/r/alterafpga/quartus-std> | Official Altera Quartus Prime Standard 25.1 Docker image - tested 31-AUG-2026, the `-all` tag does NOT include Stratix V device files (only Cyclone V + MAX 10), ruling out this specific container as a build environment |
+| <https://hub.docker.com/r/alterafpga/quartus-std> | Official Altera Quartus Prime Standard 25.1 Docker image - tested, the `-all` tag does NOT include Stratix V device files (only Cyclone V + MAX 10), ruling out this specific container as a build environment |
 | <https://www.macnica.co.jp/en/business/semiconductor/support/faqs/intel/128229/> | Official Altera-distributor FAQ confirming Quartus Prime Standard's 30-day unlicensed evaluation terms (full features, no programming-file output, one-time per machine) - used because intel.com/altera.com themselves blocked direct fetches |

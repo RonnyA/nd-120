@@ -1,4 +1,4 @@
-# Instruction-verify campaign status (table 13-JUL-2026, RUN row 15-JUL-2026)
+# Instruction-verify campaign status
 
 Two verification layers per INSTRUCTION-B area:
 - **Deep verdict**: run the area to its own `== END OF TEST ==` and count
@@ -8,7 +8,7 @@ Two verification layers per INSTRUCTION-B area:
   trace-compared against the ND-110 reference, mechanical comparator.
 
 Only the golden gate is automated (`make test-instr`, the 13 areas in
-`INSTR_AREAS`). The deep verdicts were measured by hand on 13-JUL-2026 in an
+`INSTR_AREAS`). The deep verdicts were measured by hand in an
 FF-mode build (`USE_LATCHES=0`); their logs were never committed, so the
 "0 err" column cannot be re-checked from this repository - re-run an area to
 its END OF TEST to confirm it today.

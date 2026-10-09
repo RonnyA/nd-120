@@ -5,12 +5,12 @@ Target: shrink the hardware FAT reader
 single biggest logic block on the Tang Nano 20K (GW2AR-18C) and the reason the
 OSS (yosys/nextpnr) placer runs out of room (July 2026).
 
-**Status (checked against the code, 28-SEP-2026):** Lever 1 is DONE
+**Status (checked against the code):** Lever 1 is DONE
 (`SDFAT_NO_LFN`, set in `fpga/tang-nano-20k/src/tang20k_defines.v`).
 Lever 2 is DONE and went further than planned: the contiguity checker is
 retired from every build since the engine walks the FAT chain itself
-(07-AUG-2026; it now needs `-DSDFAT_FORCE_STORAGE_CHECK`). Lever 3 was NOT
-done and no longer applies: since the block cache (04-AUG-2026) `sd_writer`
+(it now needs `-DSDFAT_FORCE_STORAGE_CHECK`). Lever 3 was NOT
+done and no longer applies: since the block cache `sd_writer`
 is also the engine that reads every block from the card, so a storage build
 cannot drop it (`SDFAT_NO_WRITE` exists in `sd_fat_features.vh` but only the
 sd-fat-test lint build uses it). Lever 4 (raw-LBA boot) is not built and is

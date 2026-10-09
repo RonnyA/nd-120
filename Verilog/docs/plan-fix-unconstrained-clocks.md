@@ -1,7 +1,7 @@
 # Plan: eliminate all 47 unconstrained-clock warnings (17 rogue clock nets)
 
 **Full path:** `Verilog/docs/plan-fix-unconstrained-clocks.md`
-**Date:** 9-JUL-2026. **Solved 10-JUL-2026** (P1-P4 done, 0 x Gowin TA1117,
+**Date:** 9-JUL-2026. **Solved** (P1-P4 done, 0 x Gowin TA1117,
 every real Tang clock closes with 0.000 TNS setup and hold, and the first
 console memory WRITE worked on silicon). This file is kept because about 70
 RTL files cite its phase names (P1a-P1e, P2, P2b-P2e, P3, P4) for the
@@ -44,7 +44,7 @@ dead logic on both boards - a residual risk, see P3.
 | 16 | `DCD/s_div_16`, `s_XRTOSC`| IO_DCD_38.v:403 RTC divider chain                  | P3    |
 | 17 | `sys_rst_n`               | `sys_rst_n_s0/F` (per .tr; find RTL flop in P4)    | P4    |
 
-### P0 inventory addendum (9-JUL-2026, RTL clock-port sweep)
+### P0 inventory addendum (RTL clock-port sweep)
 
 Additional register-as-clock consumers found by grepping every clock-capable
 port hookup (`.CK/.CP/.CLK/.clock/.CLKAB/.CLKBA/.LE/.RAS_n/.CAS_n`) in
@@ -100,11 +100,11 @@ fix that solved the MEM_ADDR_44 deposit regression):
 
 `CYC_36` additionally emits one-sysclk-wide enable pulses aligned with each
 level-registered clock: `CLK_EN, UCLK_EN, MCLK_EN, MACLK_EN, ALUCLK_EN`
-(**landed 9-JUL** - see progress log; alignment property tb = `test-cycen`).
+(**landed** - see progress log; alignment property tb = `test-cycen`).
 Consumers convert from `posedge s_xclk` to `posedge sysclk + if (XCLK_EN)`,
 one whole domain per commit, smallest first.
 
-**CORRECTION (9-JUL, from the P1d .tr):** the plan's original "P2a s_rfclk
+**CORRECTION (from the P1d .tr):** the plan's original "P2a s_rfclk
 (WRF)" was a misidentification - netlist s_rfclk's source is
 `DGA/POW/A633/reqQ_n` (the DGA power/RTC divider chain, 1 endpoint), NOT
 the CGA write register file. It moves to the P3 IO/divider batch. The WRF
@@ -116,7 +116,7 @@ is inside the ALUCLK/WRFSTB structure and is handled with P2b.
 - **P2e** s_clk domain (DGA XCLK + IO). Converting the DGA turns F924 into
   sysclk+CE and dissolves the internal clk2/clk3/clk3_n (#6) for free.
 
-**REVISION (10-JUL, from the P2b red gates): P2b-P2d cannot land as separate
+**REVISION (from the P2b red gates): P2b-P2d cannot land as separate
 commits - the CGA clock group must convert TOGETHER.** Proof by measurement:
 
 - With rise-aligned enables the P2b conversion is byte-identical to golden
@@ -153,7 +153,7 @@ commits - the CGA clock group must convert TOGETHER.** Proof by measurement:
   rebuilds. Ground zero for any new flip = convert that observer's module
   next.
 
-**GROUP CONVERSION (10-JUL):** the whole
+**GROUP CONVERSION:** the whole
 coupled group is now converted with rise-aligned enables:
 
 - CGA: ALU + WRF (P2b) + MIC (48 flops incl. M169C LC counters, SR44 stack
@@ -184,7 +184,7 @@ coupled group is now converted with rise-aligned enables:
 - With all of the above, latch-vs-FF divergence moved 557151 -> 738965
   (only CSA/LED/MCLK/TERM_n after 738965 + the baseline BDRY artifact).
 
-**ALL SIM GATES GREEN (10-JUL):** after two more fixes the full group
+**ALL SIM GATES GREEN:** after two more fixes the full group
 conversion passes everything:
 
 1. CMDDEC PALs 44407A/44408B/44511A converted (PAL_*_EN equation copies,
@@ -208,7 +208,7 @@ Fmax reality from the P1d .tr (why P2 matters): s_clk 3.06 MHz,
 s_mclk_Z 3.07 MHz, s_aluclk_Z 5.85 MHz, CLKOUTD domain 5.67 MHz vs the
 6.75 MHz crawl clock - and none of it hold-analyzed.
 
-## Phase 3 - control-strobe clocks (#11-#16) - done 10-JUL-2026
+## Phase 3 - control-strobe clocks (#11-#16) - done
 
 Same edge-capture conversion, batched per module: BIF batch (DSTB_n, SPES,
 ibapr_n), CGA batch (LDIRV), IO batch (sioc_n, div_16, XRTOSC divider chain
@@ -255,7 +255,7 @@ ibapr_n), CGA batch (LDIRV), IO batch (sioc_n, div_16, XRTOSC divider chain
   windowed capture above (TTL_74646 USE_SYSCLK_AB=3) fixed it; both
   goldens stayed byte-identical.
 
-## Phase 4 - sys_rst_n as clock (#17) - done 10-JUL-2026
+## Phase 4 - sys_rst_n as clock (#17) - done
 
 - After the P3 fixes the board stayed silent: hardware bisect (DIAG builds) showed the
   boot lived or died with the SIOC conversion - but DIAG2's timing report

@@ -9,7 +9,7 @@ evidence; correct wrong ones rather than appending contradictions.
 
 - **Logical space: 64K words (16-bit word address) - per bank.** Any main-
   memory backend smaller than this WRAPS silently and corrupts software
-  state (the 24-AUG LIST-FILE-NAMES runaway: `ND120_BLOCKRAM_ADDR_BITS=15`).
+  state (the LIST-FILE-NAMES runaway: `ND120_BLOCKRAM_ADDR_BITS=15`).
   Enforced by `test-blockram-space`.
 - Physical: 24-bit; the 3202D board decodes banks BANK0/1/2. The Nexys
   BLOCKRAM carries 3 x 64K words (384 KB); the Tang SDRAM carries 4 MB =
@@ -35,10 +35,10 @@ evidence; correct wrong ones rather than appending contradictions.
   `{TBMT_n, DA_n, EAUTO_n, LOCK_n, CONSOLE_n, 1, BAUD[3:0]}`.
 - Console interrupts (IO_REG_41.v): BINT10 = IOC bit2 & TBMT (output),
   BINT12 = IOC bit1 & DA (input), BINT13 = IOC bit3 & bit0 (RTC).
-  Measured 24-AUG: TPE never sets IOC bit 1 - TPE input is POLLED (RTC
+  Measured: TPE never sets IOC bit 1 - TPE input is POLLED (RTC
   tick), not interrupt-driven.
 - The SC2661: TxEN=0 must NOT abort a character in flight (real chip
-  finishes it) - fixed 24-AUG, guarded by `test-uart-txabort`.
+  finishes it) - fixed, guarded by `test-uart-txabort`.
 
 ## Interrupt sources (RTC and MOR)
 
@@ -59,7 +59,7 @@ evidence; correct wrong ones rather than appending contradictions.
   MOR -> `BIF_BCTL_6` -> `BIF_5` -> `ND3202D` -> `CPU_PROC_CGA_33` `.XMORN`
   -> `CGA.v` -> `CGA_INTR.v:125` (`assign s_mor_n = MORN`; the old tie-off
   survives only behind `ND120_MOR_TIED_OFF`) -> `CGA_INTR_IRSRC.v`
-  GATES_21 -> IREQ bit 12. Wired 15-JUL-2026, commit `3acef36`.
+  GATES_21 -> IREQ bit 12. Wired in commit `3acef36`.
 - On-board memory is decoded as 4 MB by PAL: `PAL_44445B.v:85` (CLRQ,
   PPN23..21 = 0) and `PAL_44446B.v:85` (`AOK = ~(BMEM_n|BD23|BD22|BD21|MOFF)`).
   Below 4 MB `PAL_44310D` always returns BDRY, so MOR can only fire for an
@@ -82,16 +82,16 @@ evidence; correct wrong ones rather than appending contradictions.
 - The word layout: bits [15:0] = PROM RF=0 group ... [63:48] = RF=3;
   PROM byte index = LUA*4 + RF (see `Code/Microcode/gen_wcs_image.py`).
 - TWO variants of word 0o2002 (MACL+1) exist historically: raw PROM
-  (0x...60e0) and the 07-DEC-2024 run-simulator patch (0x...00e0,
-  commit 895f360). Decoded 02-SEP-2026: the patch changes the A-operand
+  (0x...60e0) and the run-simulator patch (0x...00e0,
+  commit 895f360). Decoded: the patch changes the A-operand
   field (RF0 bits 15:12) from `A,6` to `A,0`; the word is
   `A,6 B,R1 ALUF,PASSD ALUD,B IDBS,BMG`, so R1 <- 1<<A is the outer count
   of the master-clear wait loop (listing 001777-002003, "% WAITING LOOP
   0.5 - 1 SECOND", 64 x 65536 steps). Patched: 1 pass - a 64x shorter
   power-on wait, a simulator speed-up, not a bug fix (the old "clears the
   COND/F,JMP bits" wording here was wrong; those are bits 7:0, untouched).
-  BOTH pass everything (measured 24-AUG: rig raw PASS, rig patched PASS,
-  Tang raw PASS; MiSTer boots SINTRAN raw). **DECIDED 02-SEP-2026
+  BOTH pass everything (measured: rig raw PASS, rig patched PASS,
+  Tang raw PASS; MiSTer boots SINTRAN raw). **DECIDED
   (Ronny): raw on the boards, patched in the simulators.** That decision
   covers word 0o2002 only - see 0o2003 below.
   `gen_wcs_image.py` writes `Code/Microcode/wcs/` (raw - Nexys, Tang,
@@ -110,26 +110,26 @@ evidence; correct wrong ones rather than appending contradictions.
   loop"). `gen_wcs_image.py` reads that `.hex`, so the board WCS preloads
   (`Code/Microcode/wcs/`, `Shared/support/wcs_*.hex`) carry this patch too;
   the `CPU-BOARD-3202/circuit/BIF_BCTL_SYNC_8/sim/AM27256_45132L.hex` fixture
-  is the copy that holds the raw byte. Measured 28-SEP-2026. Whether the
+  is the copy that holds the raw byte. Measured. Whether the
   boards should get the raw byte is an open owner decision.
 
 ## Boards - intended configuration differences (Tang vs Nexys)
 
 | item | Tang Nano 20K | Nexys 4 DDR |
 |---|---|---|
-| main memory | SDRAM 4 MB, PACK16 | DDR2 behind a BRAM cache (`MAIN_RAM_DDR2`, default since 25-AUG; `-tclargs bramram` = old 64K-words/bank BRAM, aliases) |
-| CPU cache | `ND120_NO_CACHE` (the cache does not fit) | compiled in by default (`-tclargs nocache` removes it); all 8 cache tests pass on the board (31-AUG, `CACHE-STATUS.md`) |
+| main memory | SDRAM 4 MB, PACK16 | DDR2 behind a BRAM cache (`MAIN_RAM_DDR2`, default; `-tclargs bramram` = old 64K-words/bank BRAM, aliases) |
+| CPU cache | `ND120_NO_CACHE` (the cache does not fit) | compiled in by default (`-tclargs nocache` removes it); all 8 cache tests pass on the board (`CACHE-STATUS.md`) |
 | CPU clock | `slow` 6.75 MHz is the build default; `fast20` 20.25 MHz is the timing-clean fast variant | build default `clk 16` (16.67 MHz); deployed build runs `clk 33` (33.333 MHz) |
 | WCS | preload (SKIP_WCS_LOAD) | preload (SKIP_WCS_LOAD; `-promload` for runtime) |
 | storage | SD via nd_storage, discs uncached | SD + DDR2 region, Winchester cached |
-| console | 115200 (`UART_BAUD_RATE`, every variant since 27-AUG) | 115200 by default (`baud=9600` still accepted) |
+| console | 115200 (`UART_BAUD_RATE`, every variant) | 115200 by default (`baud=9600` still accepted) |
 
 The microcode still believes the console runs 9600 (thumbwheel BAUDV 8);
 the physical rate is the `UART_BAUD_RATE` build constant alone
 (`fpga/tang-nano-20k/src/tang20k_defines.v`, `fpga/nexys4ddr/build.tcl`).
 
 Shadow RAM (TMM2018D page tables): IDENTICAL on both boards - sync-read
-model, `TMM_ASYNC_READ` defined by no build (verified 24-AUG).
+model, `TMM_ASYNC_READ` defined by no build.
 
 Board-parity sim builds: `make rig-nexys` / `make rig-tang` in
 `Verilog/dmaSim/`.
@@ -196,5 +196,4 @@ The addresses are for the SINTRAN image booted then; not re-checked since.
 ## Testbench lessons
 
 - Read the FIRST error, not the loudest cluster - a random soak repeats one
-  mismatch thousands of times after the real first failure (bank-map tb,
-  04-AUG-2026).
+  mismatch thousands of times after the real first failure (bank-map tb).

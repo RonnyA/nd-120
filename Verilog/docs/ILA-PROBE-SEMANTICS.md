@@ -17,7 +17,7 @@ Flow files: `fpga/nexys4ddr/build.tcl` (`-tclargs ila`, define
   build a story on a 1-sample hit.
 - **`CSA_12_0` flickers between microinstructions.** The flicker has the
   measured form `{3'b111, ICA[9:0]}` - values 0o16000-0o17777 are NEVER
-  real microaddresses (the microcode ends at 0o012513). The 23-AUG
+  real microaddresses (the microcode ends at 0o012513). The
   "CPU executes text at 0o016004" theory was built entirely on this
   flicker.
 - **The CSV columns skew by 1-2 samples** relative to each other. Pairing

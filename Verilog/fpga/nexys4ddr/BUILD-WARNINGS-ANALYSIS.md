@@ -99,7 +99,7 @@ module, in the same build mode.
 This sits directly in the parity-error path that commits `148594d` and `6d95b09`
 were about.
 
-**Status: FIXED (commit `202c606`, 25-AUG-2026).** In `FPGA_FF_MODE`,
+**Status: FIXED (commit `202c606`).** In `FPGA_FF_MODE`,
 `MEM_DATA_46.v:177-201` now replaces `MEMORY_4`/`MEMORY_5` with the same
 sysclk edge capture the `AM29833A` uses; latch mode keeps the J-K chips.
 
@@ -210,7 +210,7 @@ that failure is silent. Worth a cleanup pass, not urgent.
 
 ---
 
-## What to do, in order (status 28-SEP-2026)
+## What to do, in order
 
 1. **Break the CGA ring in RTL.** It removes `8-295`, `LUTLP-1` and `8-326`
    together and makes the WNS number mean something. Owned by

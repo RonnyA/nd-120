@@ -58,7 +58,7 @@ Driver: `SevenSegDebug8.v`. All digits hex. Digit 0 is rightmost.
 | 1 0 | {FDISK error count, first error code, last error code} |
 | 1 1 | first FDISK logical sector requested |
 
-**Left four digits (7..4)** - fixed live debug panel, new 25-AUG-2026:
+**Left four digits (7..4)** - fixed live debug panel:
 
 | Digit | Value | Decode |
 |-------|-------|--------|
@@ -75,7 +75,7 @@ HOLD 1) forever = a refill that never completes.
 
 ## Switches
 
-All 16 slide switches, as wired in `nd120_nexys4ddr_top.v` (verified 30-AUG-2026).
+All 16 slide switches, as wired in `nd120_nexys4ddr_top.v` (verified).
 Down = 0, up = 1. Every switch is read through two flops on its clock domain;
 none has a debounce, none needs one.
 
@@ -88,7 +88,7 @@ none has a debounce, none needs one.
 | sw4 | **CPU cache ON** - the ND-100 console's SW1 (sheet 25 CON), the state every deployed image has run with | cache OFF - every access goes to main memory, the CSR reports the cache disabled; flip it at the OPCOM prompt or reboot, the cache is not flushed by the switch | cache compiled in (default; `nocache` removes it and the switch does nothing) |
 | sw5 | keyboard debug off | 7-seg shows the last raw PS/2 scancode (extended/release + code), when sw6=0 and sw15:14=00 | debug |
 | sw6 | keyboard debug off | 7-seg shows the DECODED keyboard byte the table hands on (e.g. F1 = 00B2), when sw15:14=00 | debug |
-| sw7 | **console 115200 baud** (default) | **console 9600 baud** - drops BOTH the USB-serial line (SC2661) and the on-screen terminal to 9600, in lockstep, for software that cannot take 115200. No rebuild; the microcode baud thumbwheel stays at 9600 so boot is unaffected. Verified on hardware 06-SEP-2026 | - |
+| sw7 | **console 115200 baud** (default) | **console 9600 baud** - drops BOTH the USB-serial line (SC2661) and the on-screen terminal to 9600, in lockstep, for software that cannot take 115200. No rebuild; the microcode baud thumbwheel stays at 9600 so boot is unaffected. Verified on hardware | - |
 | sw8-sw13 | unused | unused | - |
 | sw15:14 | right-display mode: 00 = sw0 picks CSA/LA, 01 = {FDISK request count, done count}, 10 = {FDISK error count, first error code, last error code}, 11 = first FDISK_LSECT requested (table above) | | - |
 

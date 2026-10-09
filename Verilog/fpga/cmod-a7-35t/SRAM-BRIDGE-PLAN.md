@@ -6,7 +6,7 @@ build (`build.tcl` in this directory) uses BRAM main memory; this plan
 upgrades it to the on-board 512 KB SRAM = **256K ND words**, 4-8x the BRAM
 ceiling.
 
-## 0. Why pack16 is mandatory (validated 13-JUL-2026)
+## 0. Why pack16 is mandatory (validated)
 
 `Verilog/docs/basys3-memory-speed-validation.md`
 section 4.3 invalidated the originally recorded plan (~4 byte-accesses per

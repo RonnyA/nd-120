@@ -70,14 +70,14 @@ with them, both found on the first run and both now fixed in `build.tcl`:
    | MEGA65 R6 | 58 | NO - prose only |
    | MEGA65 R3 | 93 | NO - prose only |
 
-   **A "7 levels on the Nexys" figure stood here from 04-SEP-2026 and was
+   **A "7 levels on the Nexys" figure stood here and was
    WRONG** - it came from a sentence, not a report. Anything argued on top of
    it (notably "the constrained boards have huge headroom") does not follow
    from the real numbers. See `docs/HANDOFF-cga-idb-ring-cut.md` section 3a.
 
    This design also boots SINTRAN on the Tang, whose
    toolchain has no loop DRC at all. **A lower clock does not fix this - now
-   MEASURED, not estimated (07-SEP-2026).** The same build at 13.5 MHz
+   MEASURED, not estimated.** The same build at 13.5 MHz
    (`build.tcl -tclargs -slowclk`):
 
    | | 27 MHz | 13.5 MHz |
@@ -100,7 +100,7 @@ with them, both found on the first run and both now fixed in `build.tcl`:
 
 A routed checkpoint is now written before the timing gate
 (`nd120_cmod_routed.dcp`), so a failing build can be interrogated without
-paying for another run - the first 04-SEP failure could only report its single
+paying for another run - the first failure could only report its single
 worst path, which is exactly how the wrong hypothesis above survived as long
 as it did. Interrogate it with:
 
@@ -192,7 +192,7 @@ straight into JA. Wiring (Pmod pin -> JA pin -> FPGA pin, from
   which is also the wrapper template for a Cmod SD test build (swap the
   MMCM input for 12 MHz, pins from the table above).
 
-## Main-memory ceiling - MEASURED 07-SEP-2026
+## Main-memory ceiling - MEASURED
 
 **Neither this board nor the Basys3 can host the 64K words that standalone
 test programs want. The realistic ceiling is 24K words** - a third of what

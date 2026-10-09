@@ -1,6 +1,6 @@
-# RUN area level-14 livelock and IIC mis-decode: measured analysis (13/15-JUL-2026)
+# RUN area level-14 livelock and IIC mis-decode: measured analysis
 
-Solved 15-JUL-2026, commit `3acef36` (status-fence wiring + FIDBO swap fix;
+Solved, commit `3acef36` (status-fence wiring + FIDBO swap fix;
 MOR wired to level 12 in the same commit). What remains open is only that RUN
 has never been run to its end and is not gated - see
 `tests/instruction-verify/CAMPAIGN-STATUS.md`. The superseded theories and
@@ -49,7 +49,7 @@ during startup prove the flow works in other conditions.
 ## ROOT CAUSE FOUND: SBIT (status register bit) mis-wiring - schematic p.87
 
 The DELILAH interrupt system is a close copy of the **Am2914** Vectored
-Priority Interrupt Controller (Ronny, 13-JUL; confirmed against the 1978
+Priority Interrupt Controller (Ronny; confirmed against the 1978
 Am2900 Family Data Book). The Am2914 rule that RUN depends on:
 
 > "The Read Vector microinstruction ... **also automatically loads the value
@@ -65,7 +65,7 @@ D = (SIN & DCDG & DCDF & GPE)      <- load S-bus data   (LDSTAT)
   | (VINN & DCDF & DCDGN)          <- load vector+1     (RDVECT)
 ```
 
-TWO transcription bugs, both now schematic-verified with Ronny (13-JUL):
+TWO transcription bugs, both now schematic-verified with Ronny:
 
 1. **Cell** (`..._STAT_SBIT.v` GATES_3): the vector-load NAND's middle input
    was `GPE`; the sheet's SBIT detail box shows **`DCDF`**. With `GPE` there
@@ -96,7 +96,7 @@ REGENERATION HAZARD: the Logisim CGA_INTR sheet needs the same corrections
 (cell GATES_3 input + the six instance pin maps) or regenerating
 `CGA_INTR_CNTLR_VECGEN_STAT*.v` reintroduces both bugs.
 
-## 13-JUL: status-fence fix - the livelock is gone
+## Status-fence fix - the livelock is gone
 
 With the corrected wiring (below) - now the RTL default; `ND120_INTR_STATUS_FENCE_OFF` restores the old dead fence:
 
@@ -140,7 +140,7 @@ and IRGEL (p.90-95) were AUDITED and are CORRECT - no changes needed there.
 ## HIVCE hold-term input: ruled R (scan illegible - decided by analysis)
 
 The schematic scan (p.96) is unreadable at the HIVCE flop's hold input -
-could be `P` or `R` (Ronny: leaning R, 13-JUL). RULED **R** by analysis:
+could be `P` or `R` (Ronny: leaning R). RULED **R** by analysis:
 (1) the HI/LO halves are mirror-symmetric everywhere else and LOVCE legibly
 uses R; (2) R = the {MCLR,CLRMPID,LCLRMPID,RDVECT}&EPIC strobe, which gives
 the flop exactly the "armed by RDVECT until the next clear-family command"
@@ -151,7 +151,7 @@ both flops - **correct as-is, no change**. Functionally inert either way on
 this machine (DELILAH microcode never issues LCLRMPID); re-verify only if
 some future microcode uses the vector-read clear.
 
-## 15-JUL: IIC architecture confirmed (nd100x + ND-120 uc-emulator) - the exact mapping
+## IIC architecture confirmed (nd100x + ND-120 uc-emulator) - the exact mapping
 
 TRA IIC (nd100x cpu_instr.c:1888) returns calcIIC() = HIGHEST SET BIT of
 (IID & IIE), then clears IID/IIC. IID is a SEPARATE register from the Am2914
@@ -170,7 +170,7 @@ Reconciled mapping for our DELILAH hardware (IRSRC IREQ bits -> IIC):
   POW IREQ13(hivec5) -> IID/IIC bit 10 (IIC 12o)
   => IIC_bit = IREQ_bit - 3  (= hivec + 5)
 
-## 15-JUL: ROOT CAUSE FOUND + FIXED - FIDBO[1]<->[2] swap
+## ROOT CAUSE FOUND + FIXED - FIDBO[1]<->[2] swap
 
 THE BUG: CGA_INTR_CNTLR.v:109-111 swapped FIDBO bits 1 and 2 on the
 status-fence write path (s_fidbo_2_0 -> VECGEN.FIDBO_2_0 -> HISIN/LOSIN, the
@@ -204,7 +204,7 @@ RED HERRINGS RULED OUT along the way (all measured):
 FIX: `CGA_INTR_CNTLR.v` now assigns `s_fidbo_2_0[2:0]` straight through
 from `s_fidbo_15_0[2:0]` - one version, no ifdef and no escape hatch. The
 `CGA_INTR_CNTLR_tb.v` testbench carries dedicated FIDBO no-swap assertions.
-VALIDATED 15-JUL: self-test 0 STERR, unit suite 49/49, all 13
+VALIDATED: self-test 0 STERR, unit suite 49/49, all 13
 instruction-verify areas unchanged, and RUN handles IOX-ERROR and reaches
 LEVEL 13 / ARGUMENT == END OF TEST == (the reference RUN-console-ND120.log
 sequence). That is one area's end inside RUN's level loop, not the end of

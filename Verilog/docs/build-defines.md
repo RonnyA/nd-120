@@ -50,7 +50,7 @@ hand-edited defines.
 | `ND_SDRAM_REFRESH_US` | Auto-refresh cadence of `MEM_RAM_49_SDRAM` in microseconds (default 15, the Tang's 2K-row die). An 8192-row module needs 7 | `fpga/mister/nd120.qsf` = 7 |
 | `ND_STORAGE_PORT` | nd_storage device port on the SDRAM backend (own `stor_clk` domain, upper-half storage region only) | `tang20k_defines.v` |
 | `ND120_DDR2_CACHE_BITS` | Index width of the BRAM cache in front of the DDR2 (`MEM_43.v:560`, passed to `MEM_RAM_49_DDR2` as `CACHE_IDX_BITS`) | fallback 14 in `MEM_43.v`; no build sets it |
-| `QUARTUS_RAM_INFER` | Quartus-only: take the RAM-inference arm of `Shared/support/IDT6168A_20.v` (WCS) and `MEM_RAM_49_BLOCKRAM.v` that Quartus maps to M10K. Its altsyncram predecessor was deleted 01-SEP-2026. Gate: `test-quartus-ram-equiv` | `fpga/mister/nd120.qsf` |
+| `QUARTUS_RAM_INFER` | Quartus-only: take the RAM-inference arm of `Shared/support/IDT6168A_20.v` (WCS) and `MEM_RAM_49_BLOCKRAM.v` that Quartus maps to M10K. Its altsyncram predecessor was deleted. Gate: `test-quartus-ram-equiv` | `fpga/mister/nd120.qsf` |
 | `QUARTUS_LATCH_RENAME` | Quartus-only: renames `Shared/ndlib/LATCH.v`'s module, whose name collides with a Quartus built-in primitive (header comment there) | `fpga/mister/nd120.qsf` |
 | `ND120_SIM_RAM_64K` | Sim-only: shrink the sim RAM to 64K words per bank (`MEM_RAM_49.v:22`) to reproduce the BRAM-aliasing class of bug in Verilator | `EXTRA_VDEFINES="-DND120_SIM_RAM_64K"` (runSim) |
 
@@ -66,7 +66,7 @@ The RTL knob is `ND120_NO_CACHE` (`CPU-BOARD-3202/circuit/CPU_MMU_CACHE_25.v`):
 it compiles out the five cache memories and the used-bit PAL, forces the
 cache-off switch position, and makes the machine report the cache as disabled.
 `ND120_FORCE_CACHE` is Tang-only plumbing that suppresses the Tang's default
-`ND120_NO_CACHE`. One switch per flow (all landed 30-AUG-2026):
+`ND120_NO_CACHE`. One switch per flow:
 
 | Flow | Switch | Default | Mechanism |
 |---|---|---|---|
@@ -79,7 +79,7 @@ cache-off switch position, and makes the machine report the cache as disabled.
 The Tang default-off authority is `tang20k_defines.v`: `` `ifndef
 ND120_FORCE_CACHE `` -> `` `define ND120_NO_CACHE ``. The Tang switch exists for
 symmetry, but a live cache needs 28330 logic cells against the GW2AR-18's
-20736 (measured 25-AUG-2026) - expect overflow until that gap is closed.
+20736 - expect overflow until that gap is closed.
 Status and open faults: `docs/CACHE-STATUS.md`.
 
 ### Panel clock
@@ -105,12 +105,12 @@ Status and open faults: `docs/CACHE-STATUS.md`.
 | `ND120_TERMINAL_VT100` | Selects which of the two SEPARATE, compile-time-only terminal modules the VGA console builds: VT100 (SINTRAN type 6) if defined, TDV2200/type 93 if not. `terminal_ctrl.v`/`ps2_ascii_table.v`/`key_vt100.v` vs `terminal_ctrl_tdv.v`/`ps2_ascii_table_tdv.v`/`key_tdv2200.v` - never both elaborated in the same build (`ifdef` in `terminal_top.v` and `nd120_nexys4ddr_top.v`). PED/LED are built for the Tandberg keyboard's own key set, not VT100 CSI input (`Terminals/docs/SPEC-tdv2200.md`) | Nexys `-VT100Terminal` (only matters with the VGA console on) | TDV2200 (undefined) |
 | `TANG_VARIANT_CRAWL` / `_MID` / `_FULL` / `_FAST20` | Tang clock variants, consumed by `tang20k_defines.v`. No variant define = slow (6.75 MHz) | generated `build\tang20k_variant.v` (ps1) or `-DTANG_VARIANT_*` (OSS Makefile) | slow |
 
-**Validating a MIPS tap before it goes to a board (31-AUG-2026).** Three
+**Validating a MIPS tap before it goes to a board.** Three
 earlier taps were picked from a signal's name and all read 00.00 on the
 panel. `CFETCH` counted 0 pulses in 460 executed instructions: `CGA_DCD.v`
 `CFETCH_FF` ties `.D` to its own `.Q` and only reloads through the BRK scan
 path. That is correct as transcribed (DELILAH.pdf page 69, `/CGA/DCD` sheet 5
-of 10) - do not "fix" it; a rewrite on 01-SEP broke the SINTRAN boot and was
+of 10) - do not "fix" it; a rewrite broke the SINTRAN boot and was
 reverted. The recipe: run `tests/instruction-verify/run_area_test.sh <AREA>`
 with the environment variable `ND120_COUNT_CFETCH=1` (read by `Run120.cpp`)
 on TWO areas with different instruction mixes. `REGISTER-OPERATIONS` and
@@ -137,7 +137,7 @@ rules are in the header of `SD-FAT/circuit/sd_fat_features.vh`.
 |---|---|---|
 | `SDFAT_NO_WRITE` / `_NO_REWRITE` / `_NO_CHECK` / `_NO_SPEED` / `_NO_FREESCAN` / `_NO_STORAGE` | Strip the card write engine, the FAT rewriter, the chain checker, the speed tests, the free-space scan, the nd_storage facade. Stripping a prerequisite strips its dependents | sd-fat-test builds (`SDFAT_FEATURES=`) |
 | `SDFAT_NO_LFN` | Remove the VFAT long-filename parser from `sd_file_reader.v` (about 1800 LUTs); files match by 8.3 name only. Consumed directly by the reader, not by the header | `tang20k_defines.v`; QMTECH `build.tcl` |
-| `SDFAT_FORCE_STORAGE_CHECK` | Build the old mount-time contiguity checker. Retired as a default 07-AUG-2026: the storage engine walks the FAT chain at run time, so fragmented files work. Its testbenches still build it | SD-FAT testbenches only |
+| `SDFAT_FORCE_STORAGE_CHECK` | Build the old mount-time contiguity checker. Retired as a default: the storage engine walks the FAT chain at run time, so fragmented files work. Its testbenches still build it | SD-FAT testbenches only |
 | `ND_STORAGE_NO_CACHE` / `ND_STORAGE_DISCS_UNCACHED` | Leave the storage block-cache directory out of the netlist / make every disc client uncached. Use them together (`nd_storage.v:495`) | Tang `-NoStorageCache` / `-DiscsUncached`; QMTECH `build.tcl` |
 
 ### Behavior escape hatches (default OFF - defined by no build; set via `EXTRA_VDEFINES` only to reproduce old behavior)
@@ -205,8 +205,8 @@ both `clk=10` and `clk 10` are accepted.
 | `-VT100Terminal` | TDV2200 | Builds the VT100 (type 6) terminal module instead of the default TDV2200 (type 93) - see `ND120_TERMINAL_VT100` above |
 | `ila` / `ilaslim` / `ilacache` | off | JTAG ILA probe sets; all three add `ND120_ILA_MARK_DEBUG` so the probed nets survive synthesis |
 | `errfaprobe` | off | `ND120_ERRFA_PROBE`: latch the SINTRAN ERRFATAL register saves (0o4347-0o4353) and repeat them on the console TX after the halt. Zero BRAM |
-| `physopt` | off | Post-place physical optimization (26-AUG clock-up work) |
-| `timingexplore` | off | `opt_design -directive ExploreWithRemap`, `place_design -directive ExtraTimingOpt`, `route_design -directive AggressiveExplore`. Measured 31-AUG on clk=45 with cache: WNS -6.780 -> -6.440, i.e. 0.34 ns of the 6.4 ns needed. Routing effort is not the lever |
+| `physopt` | off | Post-place physical optimization (clock-up work) |
+| `timingexplore` | off | `opt_design -directive ExploreWithRemap`, `place_design -directive ExtraTimingOpt`, `route_design -directive AggressiveExplore`. Measured on clk=45 with cache: WNS -6.780 -> -6.440, i.e. 0.34 ns of the 6.4 ns needed. Routing effort is not the lever |
 
 Clock table (`build.tcl:66`): `clk=` 8, 10, 12, 16, 20, 25, 27, 33, 35, 38,
 40, 42, 45, 50, 100. The build gate refuses to write a bitstream with
@@ -229,7 +229,7 @@ only, and CI builds its bitstream. Install and flow notes:
 
 | Switch | Default | What it does |
 |---|---|---|
-| `-Variant slow\|crawl\|mid\|full\|fast20` | slow (6.75 MHz) | Clocking: crawl 3.375, mid 13.5, fast20 20.25 (**timing-clean, TNS 0 all clocks, Fmax 22.932 MHz = 13.2% margin after the 31-AUG sdc fixes** - the fastest signed-off clock), full 27 MHz (**13 failing endpoints, worst -0.839 ns** - the old "1667 violations" figure predates the sdc work and was mostly an unconstrained crossing; still NOT clean, do not trust unattended). Intermediate clocks are NOT usable - only simple ratios of the 27 MHz crystal can be signed off, see `fpga/tang-nano-20k/README.md` |
+| `-Variant slow\|crawl\|mid\|full\|fast20` | slow (6.75 MHz) | Clocking: crawl 3.375, mid 13.5, fast20 20.25 (**timing-clean, TNS 0 all clocks, Fmax 22.932 MHz = 13.2% margin after the sdc fixes** - the fastest signed-off clock), full 27 MHz (**13 failing endpoints, worst -0.839 ns** - the old "1667 violations" figure predates the sdc work and was mostly an unconstrained crossing; still NOT clean, do not trust unattended). Intermediate clocks are NOT usable - only simple ratios of the 27 MHz crystal can be signed off, see `fpga/tang-nano-20k/README.md` |
 | `-Cache` | cache OUT | `ND120_FORCE_CACHE` - see the cache section above; does not currently fit this part |
 | `-NoPanelClock` | panel clock ON | Falls back to the panel stub |
 | `-DiscsUncached` | cached | `ND_STORAGE_DISCS_UNCACHED`: every disc client direct, no storage-cache reuse |
@@ -286,7 +286,7 @@ this board stays at the thumbwheel-true 9600).
 ## 6. MiSTer
 
 `fpga/mister/` (Quartus 17.0.2, `nd120.qpf`/`nd120.qsf`). SINTRAN boots on
-the DE10-Nano (02-SEP-2026, `fpga/mister/README.md`). There are no
+the DE10-Nano (`fpga/mister/README.md`). There are no
 command-line switches: the ND-side defines are `VERILOG_MACRO` lines in
 `nd120.qsf` - `FPGA_FF_MODE`, `BOARD_CLK_FREQ=20000000`,
 `UART_BAUD_RATE=115200`, `ND120_UART_DELAY_FRAMES=173`, `MAIN_RAM_SDRAM`,
@@ -347,8 +347,8 @@ toolchain traps: `fpga/mega65/docs/00-plan.md`.
 ## 9. Cmod A7-35T
 
 `fpga/cmod-a7-35t/build.tcl` (Vivado, in-memory flow). Arguments:
-`-promload` (runtime PROM->WCS load; WCS preload is the default since
-04-SEP-2026) and `-noburn`. Fixed defines: `TARGET_CMOD_A7`,
+`-promload` (runtime PROM->WCS load; WCS preload is the default)
+and `-noburn`. Fixed defines: `TARGET_CMOD_A7`,
 `FPGA_FF_MODE`, `MAIN_RAM_BLOCKRAM`, `BOARD_CLK_FREQ` (27 MHz),
 `UART_BAUD_RATE=115200`. The CPU clock divider is `ND120_CMOD_MMCM_DIV`
 (section 1); a slower clock needs it and `BOARD_CLK_FREQ` changed together.

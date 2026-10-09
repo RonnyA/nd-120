@@ -7,7 +7,7 @@
 > `../timing.md`, sections dated 30/31-AUG-2026). Read this report for the
 > per-domain analysis and the frequency search, not for the "next steps".
 
-Started 26-AUG-2026, branch `clock-up`. All paths in this document are
+Branch `clock-up`. All paths in this document are
 relative to the repo root unless stated otherwise. Evidence directories:
 `Verilog/fpga/nexys4ddr/timing-analysis/baseline_clk16/` (preserved reports
 of the shipped build) and `timing-analysis/run_clk<N>/` (one per
@@ -129,7 +129,7 @@ ring cut is the real fix and is out of scope for this campaign.
 | # | Finding | Verdict / action |
 |---|---|---|
 | 1 | `create_clock` on `clk100` (sys_clk, 10 ns) present; all MMCM/MIG generated clocks auto-derived (`check_timing generated_clocks: 0`) | OK |
-| 2 | `set_max_delay -datapath_only` bounds INTO `clk_cpu` were hard-coded **80.000 ns** (one destination period of the 12.5 MHz era) while the actual period is 60 ns and shrinking. Contract in the comment: "no payload bit may take longer than one destination period" | **FIXED 26-AUG** in `build.tcl`: bound = `$mmcm_div` (the CPU period in ns), tracks `clk=`. Safe direction - strictly tighter |
+| 2 | `set_max_delay -datapath_only` bounds INTO `clk_cpu` were hard-coded **80.000 ns** (one destination period of the 12.5 MHz era) while the actual period is 60 ns and shrinking. Contract in the comment: "no payload bit may take longer than one destination period" | **FIXED** in `build.tcl`: bound = `$mmcm_div` (the CPU period in ns), tracks `clk=`. Safe direction - strictly tighter |
 | 3 | `nd120_timing.xdc` `set_clock_groups -asynchronous` (sys_clk vs clk_cpu_pre) OUTRANKS the later `set_max_delay` cpu->sys 10 ns in `build.tcl`, so cpu->sys crossings are untimed (no cpu_pre->sys row in the Inter Clock Table) | Accepted: those crossings are single-bit flags through 2-FF synchronizers (`nd120_nexys4ddr_top.v` `sync_hold`/`sync_grb`), where max-delay is a nicety, not a correctness need. Documented, not changed |
 | 4 | `check_timing`: 5 `no_input_delay` (UART RX, SD card inputs, buttons), 40 `no_output_delay` (LEDs, 7-seg, UART TX, SD) | Accepted: asynchronous human/serial interfaces; SD bus is source-synchronous to the FPGA-driven `sd_clk` in the fixed 27 MHz storage domain, unchanged by this campaign |
 | 5 | 6 combinational loops + 2 auto false paths (CGA IDB ring remnants) | Inherited parked debt, see section 4 caveat |
@@ -199,7 +199,7 @@ clock substantially. Options if more speed or more margin is wanted, ranked:
 **Low risk (no functional change):**
 
 1. `phys_opt_design` after place and after route (`-tclargs physopt`, added
-   26-AUG as an opt-in flag). Expected: recovers a few hundred ps on
+   as an opt-in flag). Expected: recovers a few hundred ps on
    routing-dominated paths; tested at clk=50 (run_clk50_1, section 8).
    Effort: none (done). Preserves cycle accuracy: yes.
 2. ASYNC_REG hygiene: add `(* ASYNC_REG = "true" *)` to the three flagged
@@ -266,7 +266,7 @@ config as the shipped SINTRAN-booting build except the CPU divider.
 | run_clk42 | new clk_table entry: divider 24.0 -> 41.667 MHz | +0.152 (24 ns req) | +0.152 | 0 | +0.025 | PASS - CPU worst arrival 23.85 ns |
 | run_clk45 | new clk_table entry: divider 22.0 -> 45.455 MHz | +0.085 (22 ns req) | +0.085 | 0 | +0.023 | PASS - CPU worst arrival 21.9 ns |
 | run_clk50 | existing entry: divider 20.0 -> 50.0 MHz | **-2.546** (20 ns req) | -2.546 | **-1600.263 / 1213 endpoints** | +0.020 | **FAIL** - gate refused the bitstream; the wall is between 20 and 22 ns |
-| run_clk50_1 | + `physopt` (post-place & post-route `phys_opt_design -directive AggressiveExplore`, new opt-in flag) | **+0.007** (20 ns req) | +0.007 | 0 | +0.020 | **PASS** - phys_opt recovered the full 2.55 ns; 50 MHz is STA-legal with zero practical margin. **SILICON 26-AUG: SINTRAN III BOOTS at 50 MHz** (this bitstream, one boot, banner reached, console driven by Ronny) |
+| run_clk50_1 | + `physopt` (post-place & post-route `phys_opt_design -directive AggressiveExplore`, new opt-in flag) | **+0.007** (20 ns req) | +0.007 | 0 | +0.020 | **PASS** - phys_opt recovered the full 2.55 ns; 50 MHz is STA-legal with zero practical margin. **SILICON: SINTRAN III BOOTS at 50 MHz** (this bitstream, one boot, banner reached, console driven by Ronny) |
 | run_clk50_2 | console baud 9600 -> 115200 (UART divider constant 5208 -> 434), same clk 50 + physopt | **-0.210** (20 ns req) | -0.210 | -4.586 / 54 endpoints | +0.052 | **FAIL** - the one-constant change re-rolled placement and the +0.007 closure did not survive. 50 MHz closure is FRAGILE: any netlist edit is a new seed |
 | run_clk45_1 | clk 45 + physopt + 115200 baud | +0.020 (22 ns req) | +0.020 | 0 | +0.031 | **PASS - programmed 26-AUG 10:17, SINTRAN BOOTS on silicon with the 115200 console (Ronny-verified). Deployed configuration** |
 
@@ -301,7 +301,7 @@ this campaign):
 3. `BOARD_CLK_FREQ` moves with `clk=` automatically (UART baud, RTC tick,
    watchdogs) - verified to be a single pair in `build.tcl`.
 
-Still open from this campaign (checked 28-SEP-2026): the ASYNC_REG hygiene
+Still open from this campaign: the ASYNC_REG hygiene
 (section 7 item 2 - `nd120_nexys4ddr_top.v` still has no `ASYNC_REG`), a
 directive/seed sweep to measure spread at the deployed clock (section 7 item
 3), and the CGA IDB ring cut (`Verilog/docs/HANDOFF-cga-idb-ring-cut.md`). The

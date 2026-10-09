@@ -14,8 +14,8 @@ Every claim below carries its origin (A/B/C + line/CSA). Tags: **BUG** (must fix
 
 ## Ground rules of the campaign
 
-Kept from the retired `PLAN-floppy-validation.md` (20-JUL-2026; its goal, a
-full `1560&` boot, was met 27-JUL-2026 - see `HISTORY.md`). The testbenches it
+Kept from the retired `PLAN-floppy-validation.md` (its goal, a
+full `1560&` boot, was met - see `HISTORY.md`). The testbenches it
 planned live in `Verilog/ND-BUS-DEVICES/FLOPPY-DMA/sim/`, not in this folder.
 
 - **Oracle:** the nd100x C device (`deviceFloppyDMA.c` + `.h`) is the
@@ -25,7 +25,7 @@ planned live in `Verilog/ND-BUS-DEVICES/FLOPPY-DMA/sim/`, not in this folder.
   boot sector, TPE-MON-100-A02:BPUN + 20 :TEST programs), named `FLOPPY1.IMG`
   on SD cards.
 - **Pass pattern for a real boot:** TPE ends at a `TPE>` prompt.
-- **Who owns what (agreed 20-JUL-2026 with the NDDeviceCore work).** The
+- **Who owns what (agreed with the NDDeviceCore work).** The
   NDDeviceCore side tests its portable C floppy by driving raw ND-bus signals
   from C in Verilator, with all Verilog devices disconnected.
 
@@ -245,7 +245,7 @@ builder as reference).
   (possibly unseen on the hung console) — with bug-candidates 7.2/7.3 available
   as aggravators. The `002000` RAM contents seen on the Tang were never verified
   against the image and are likely stale. P5/P6 re-tests with known media.
-- **Combined-tb 7/8 DMA errors**: RESOLVED 26-JUL-2026 - the device is correct; the
+- **Combined-tb 7/8 DMA errors**: RESOLVED - the device is correct; the
   errors were a harness ACK-sampling artifact, and the `MIN_GAP_TICKS` recovery gap
   was proven load-bearing. Measured results: `PLAN-P3-dma-master-validation.md` §0.
 

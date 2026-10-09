@@ -29,7 +29,7 @@ at all. This is why the Tang's tape boot file is `BOOT.TAP` and not
 instantiated in `Verilog/fpga/tang-nano-20k/src/ND120_TANG20K_TOP.v`.
 
 **4. Files should be contiguous, but no longer have to be.**
-Since 07-AUG-2026 the storage engine walks the FAT chain at runtime
+The storage engine walks the FAT chain at runtime
 (`nd_storage_engine.v`, the `F_RES`/`F_STEP`/`F_FAT_GO` states), so a
 fragmented file is read correctly. The mount-time contiguity gate is retired
 by default and only exists as a diagnostic build

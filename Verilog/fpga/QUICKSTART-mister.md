@@ -5,7 +5,7 @@ Retro Remake **MiSTer Pi** clone - same Cyclone V SoC, the core is the same
 `.rbf` either way). No FPGA toolchain needed - just the ready-built `.rbf`
 from the [Releases page](https://github.com/RetroCoreLabs/nd-120/releases).
 
-**Verified on real hardware (DE10-Nano, 02-SEP-2026):** boots to OPCOM, boots
+**Verified on real hardware (DE10-Nano):** boots to OPCOM, boots
 SINTRAN III from a mounted Winchester image, CPU self-test passes (green `G`
 lamp), and the TDV2200 box-drawing font and keyboard work.
 

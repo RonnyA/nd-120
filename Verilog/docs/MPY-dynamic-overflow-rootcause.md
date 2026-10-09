@@ -1,6 +1,6 @@
-# MPY "dynamic overflow bit not set" - root cause (12/13-JUL-2026)
+# MPY "dynamic overflow bit not set" - root cause
 
-Solved 13-JUL-2026. The fix is in `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_QREG.v`
+Solved. The fix is in `DELILAH-CPU/CGA_ALU/circuit/CGA_ALU_QREG.v`
 (MUXQ15 `.D3`, with a comment); the commit history for it was squashed into
 `cd9b94f`.
 
@@ -35,7 +35,7 @@ Intended: overflow => branch NOT taken => 004433 runs (R4=060) => both bits set.
 - MIC condition select `CGA_MIC_CSEL.v`: F=0 token (0o340) -> TSEL selects the ZF
   mux input (idx6); JMP/NEXT true/false mapping correct. No static wiring bug.
 
-## Final root cause (13-JUL, fixed)
+## Final root cause (fixed)
 
 The REAL bug (found via a 10-pair MPY operand sweep, deposited program
 MPYSWEEP2.BPUN, results read back from RAM):
@@ -68,7 +68,7 @@ VERIFIED after the fix (both USE_LATCHES=0 and =1):
   algorithm still flags it - nd100x does the same);
 - boot reaches "#".
 
-SCHEMATIC CONFIRMED (13-JUL, Ronny, CGA page 43): MUXQ15 inputs on the
+SCHEMATIC CONFIRMED (Ronny, CGA page 43): MUXQ15 inputs on the
 original schematic are D0=Q15, D1=F15, D2=Q14, D3=F0, mux output to the R81P
 A input whose QA output is Q15. The error was in the LOGISIM DRAWING (the
 original PDF scan is very unclear at exactly this point), and the generated

@@ -1,6 +1,6 @@
 # Nexys 4 DDR - CPU clock frequency search and timing bottlenecks
 
-Measured 26-AUG-2026 on branch `clock-up`, Vivado 2026.1 (win64), part
+Measured on branch `clock-up`, Vivado 2026.1 (win64), part
 `xc7a100tcsg324-1` (speed grade -1). Every number below is **post-route**
 static timing from a full `synth_design -> opt -> place -> route` run at
 that actual constraint - never synthesis estimates, never arithmetic on a
@@ -25,22 +25,22 @@ The CPU period in ns equals the divider (`clk_table` in `build.tcl`).
 |-------|-----------|----------------|---------|
 | 16 | 60 ns (16.667 MHz) | +26.455 | PASS - the 25-AUG build, SINTRAN boots; the high-margin fallback |
 | 25 | 40 ns | +9.293 | PASS |
-| 33 | 30 ns | +1.282 | PASS - with the cache ON this is the deployed clock since 31-AUG (see the 30/31-AUG sections below) |
+| 33 | 30 ns | +1.282 | PASS - with the cache ON this is the deployed clock (see the 30/31-AUG sections below) |
 | 35 | 28 ns | +1.308 | PASS |
 | 38 | 26 ns | +0.316 | PASS |
 | 40 | 25 ns | +0.319 | PASS |
 | 42 | 24 ns | +0.152 | PASS |
 | 45 | 22 ns | +0.085 | PASS - razor-thin |
 | 50 | 20 ns | **-2.546** | **FAIL** - default flow, 1213 failing endpoints, TNS -1600; the WNS gate refuses the bitstream |
-| 50 + `physopt` | 20 ns | **+0.007** | PASS - `phys_opt_design` recovered the full 2.55 ns; **BOOTS SINTRAN (silicon, 26-AUG)** |
-| 45 + `physopt`, 115200 console | 22 ns | +0.020 | PASS - **BOOTS SINTRAN with 115200 console (silicon, 26-AUG); deployed until the cache came on (31-AUG)** |
+| 50 + `physopt` | 20 ns | **+0.007** | PASS - `phys_opt_design` recovered the full 2.55 ns; **BOOTS SINTRAN (silicon)** |
+| 45 + `physopt`, 115200 console | 22 ns | +0.020 | PASS - **BOOTS SINTRAN with 115200 console (silicon); deployed until the cache came on** |
 | 50 + `physopt`, 115200 console | 20 ns | **-0.210** | **FAIL** - the baud-constant edit re-rolled placement; 50 MHz closure is single-seed fragile |
 
 Hold (WHS) stayed between +0.012 and +0.043 ns across all runs (hold does
 not scale with the period). Pulse width +0.264 ns (MIG clk200 domain) at
 every run. TNS 0 on every PASS row.
 
-`-tclargs physopt` (added 26-AUG, opt-in) runs
+`-tclargs physopt` (opt-in) runs
 `phys_opt_design -directive AggressiveExplore` after `place_design` and
 again after `route_design`. The default flow is unchanged.
 
@@ -100,15 +100,15 @@ design-wide WNS and are unaffected by the CPU divider.
 
 ## What STA does NOT prove (read before shipping a fast clock)
 
-1. **Functional validation.** UPDATE 26-AUG-2026, both Ronny-verified on
+1. **Functional validation.** Both Ronny-verified on
    the board, one boot each:
    - **SINTRAN III boots at 50 MHz** (the 9600-baud `physopt` build,
      WNS +0.007).
    - **SINTRAN III boots at 45.45 MHz with the console at 115200 baud**
      (`clk 45 ilaslim physopt`, WNS +0.020) - the deployed configuration
-     until 31-AUG-2026; since then the deployed build is 33.333 MHz with
+     until the cache came on; since then the deployed build is 33.333 MHz with
      the cache ON.
-   SOAKED 27-AUG-2026: a booted SINTRAN at 45.45 MHz answered all 8
+   SOAKED: a booted SINTRAN at 45.45 MHz answered all 8
    console-attention probes over a 4-hour unattended run (the Tang fast20
    did the same). SD-card WRITE workloads at these clocks remain
    unproven. Clocks between 16.667 and 45 are STA-passed; the 16.667 MHz
@@ -121,7 +121,7 @@ design-wide WNS and are unaffected by the CPU divider.
    `build.tcl`) is the prerequisite for trusting sub-0.5 ns margins.
 3. **Single-seed results, and the 50 MHz point is proven fragile.**
    Vivado is deterministic per configuration, so each row is one
-   placement. Demonstrated 26-AUG: changing ONLY the console baud
+   placement. Demonstrated: changing ONLY the console baud
    constant (9600 -> 115200, one UART divider) re-rolled placement and
    the 50 MHz + physopt closure went from +0.007 to **-0.210 ns FAIL**
    (`run_clk50_2`). Any netlist edit near the wall is a new dice roll.
@@ -171,7 +171,7 @@ With the cache real (builds 9+), 45.45 fails and the record is:
 
 Routes to 45 with cache, rising cost: placement/strategy runs to recover
 route delay; a masking-proof analysis for the WRF launch family;
-pipelining the TVGEN/ACAL cone (RTL surgery). Parked 30-AUG (Ronny) in
+pipelining the TVGEN/ACAL cone (RTL surgery). Parked (Ronny) in
 favour of test-3 and MIPS work; the deployed cache clock is 33.333 MHz
 (build 11: WNS +0.037, physopt required).
 

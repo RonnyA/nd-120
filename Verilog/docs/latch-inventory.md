@@ -3,7 +3,7 @@
 **Full path:** `Verilog/docs/latch-inventory.md`
 **Created:** 2026-07-07
 
-**Solved 2026-07-07, commit `8876b4a`.** This file is now a map of the
+**Solved, commit `8876b4a`.** This file is now a map of the
 latch sites; the per-latch conversion plan it once held was dropped (git
 history has it).
 

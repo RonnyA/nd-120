@@ -1,6 +1,6 @@
 # PLAN - MiSTer storage: floppy, Winchester and paper tape from OSD-mounted files
 
-> Living plan, outstanding work only. Started 01-SEP-2026.
+> Living plan, outstanding work only.
 
 Phases 1-3 are built and recorded: the backend `fpga/mister/rtl/nd_storage_hps.v`
 (`make test-storage-hps`), the device aggregator
@@ -9,7 +9,7 @@ and the five OSD slots in `nd120.sv` (`fpga/mister/docs/04-core-config-menu.md`,
 `05-devices-block-char.md`, `build-defines.md` section 6). Slot map: 0 floppy 0,
 1 floppy 1, 2 WD0, 3 WD1, 4 tape. On the board SINTRAN III boots from an
 OSD-mounted WD0 at the `&` prompt, with 4 MB main memory in the DE10-Nano
-SDRAM (`fpga/mister/README.md`, 02-SEP-2026). Also measured on the board: `400$`
+SDRAM (`fpga/mister/README.md`). Also measured on the board: `400$`
 from the tape slot loads FILSYS (the tape path and the byte order are right),
 and FILSYS LIST-USERS reads FLOPPY-DISC-1 and DISC-74MB-1 (WD0) correctly.
 
@@ -35,7 +35,7 @@ Board facts for these checks:
 - The working default mount is the MGL: `load_core
   /media/fat/ND120-storage-test.mgl` mounts floppy 0, floppy 1, WD0 and the
   tape. The framework automount (`/media/fat/games/ND120/boot2.vhd` -> slot 2)
-  did NOT attach anything for this core (measured 02-SEP-2026 with the
+  did NOT attach anything for this core (measured with the
   `ND120_STORAGE_PROBE` console probe: `MNT=00000`), so `boot2.vhd` was
   removed.
 - Typing OPCOM commands over ssh does NOT work yet: a `/dev/uinput` keyboard
@@ -55,7 +55,7 @@ Board facts for these checks:
 - [ ] Move "The HPS block contract" below into
       `fpga/mister/docs/05-devices-block-char.md`, then delete this plan.
 
-## Decided by Ronny (01-SEP-2026)
+## Decided by Ronny
 
 - Two Winchester slots (WD0, WD1), matching the card (its unit field is one
   bit, control word b9, `ND_WINCHESTER.v`). SMD is not built.
@@ -66,7 +66,7 @@ Board facts for these checks:
 
 ## The HPS block contract (reference)
 
-Read 01-SEP-2026 from the official docs, `Main_MiSTer/user_io.cpp`, the
+Read from the official docs, `Main_MiSTer/user_io.cpp`, the
 Template `hps_io.sv` and a survey of 11 official cores.
 
 Decision: drive `sd_rd/sd_wr` DIRECTLY, one OSD slot per drive. That is what

@@ -1,7 +1,7 @@
 # ND-120 Boot Golden Spec — Microcode Execution Reference
 
 **Full path:** `Verilog/docs/boot-golden-spec.md`
-**Last updated:** 2026-07-03 (stale FPGA-failure notes removed 28-SEP-2026:
+**Last updated:** 2026-07-03 (stale FPGA-failure notes removed:
 the Tang Nano 20K and Nexys 4 DDR boot SINTRAN, so the phase 3 stall below is history)
 
 Ground-truth description of the ND-120 microcode boot flow: what address the
@@ -137,7 +137,7 @@ All addresses verified against the Verilator trace from address 0. Ticks are
   The 20 ms RTC interrupt loads LC = o01, so it runs o003761 -> MS20
   (o002333 in DELILAH-L, o002261 in RASK). Path:
   `PANEL(o000050) -> o000051 -> o000052 -> o003761 -> MS20 -> MOPC/MRET1`.
-  Verilator shows LC = o01 loaded at the first PANVC dispatch (14-APR-2026);
+  Verilator shows LC = o01 loaded at the first PANVC dispatch;
   the ND110Compile emulator asserts the same in its unit test
   `PanelInterruptDispatch_TakesPanvcEntry1_MS20` (commit 4376d46, both RASK
   and DELILAH-L).

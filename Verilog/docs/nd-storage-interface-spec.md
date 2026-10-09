@@ -9,8 +9,8 @@ built against the client contract in section 4.
 Status: the contract (client port, no-queue arbiter, write-through before
 done) is what the built stack implements. Two things in the first version of
 this spec were replaced by owner decision and are corrected below: images are
-no longer preloaded into SDRAM (04-AUG-2026, block cache instead), and files
-no longer have to be contiguous (07-AUG-2026, the engine walks the FAT chain).
+no longer preloaded into SDRAM (block cache instead), and files
+no longer have to be contiguous (the engine walks the FAT chain).
 The as-built design is `Verilog/docs/nd-storage-design.md`.
 
 Companion docs: Verilog/docs/nd-storage-design.md (as-built design),
@@ -42,7 +42,7 @@ client sees done.
 
 ## 3. Concurrency model: no queue, one request per client
 
-Decision (11-JUL-2026): there is NO request queue.
+Decision: there is NO request queue.
 
 - Each client port carries AT MOST ONE outstanding request. The
   devices are single-threaded by construction: the tape streams
@@ -137,7 +137,7 @@ ready-for-transfer flag low - exactly the C model's EOF behavior.
 
 The first version of this section gave every client a fixed SDRAM slot,
 streamed the whole file into it at open, and refused a file larger than
-its slot. That was replaced on 04-AUG-2026 (owner decision: no image is
+its slot. That was replaced (owner decision: no image is
 preloaded). Now:
 
 - open_req: FAT-mount (reusing the sd_file_reader mount logic), find the
@@ -179,8 +179,8 @@ preloaded). Now:
 - No request queue, no out-of-order completion, no per-client
   priority levels (round-robin only).
 - (Two items of the first scope fence were lifted: tag-based caching
-  was built for the disc classes on 04-AUG-2026, and FAT-chain walking
-  replaced the contiguous-files rule on 07-AUG-2026.)
+  was built for the disc classes, and FAT-chain walking
+  replaced the contiguous-files rule.)
 
 ## 9. Acceptance tests (each self-checking, registered in
 tests/run_all_tests.sh per the standing rule)

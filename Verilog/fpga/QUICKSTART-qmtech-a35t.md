@@ -3,7 +3,7 @@
 Run the 1988 Norsk Data ND-120 on this board from a ready-built bitstream.
 
 > **READ THIS FIRST. This bitstream has never been run on a board.** It was
-> built 04-SEP-2026, meets timing with +4.645 ns of margin and has zero
+> built, meets timing with +4.645 ns of margin and has zero
 > errors, but no QMTECH board has yet loaded it. Everything below is written
 > from the schematic, the vendor manual and the build - not from a boot. If
 > you are the first person to try it, you are the verification channel: what

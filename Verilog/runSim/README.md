@@ -71,7 +71,7 @@ line and gone quiet (`ND120_AMP_SETTLE`). Without that pacing MOPC
 old "interactive boot hangs" bug. `ND120_MAX_CNT` bounds a run for
 tests.
 
-## Console input to a BOOTED program: WORKS (12-JUL-2026)
+## Console input to a BOOTED program: WORKS
 
 After `&` or `$` the loaded program owns the console, and typed
 input DOES reach it in Verilator: proven end-to-end by booting
@@ -80,7 +80,7 @@ program echoes and answers. A per-clock probe (ND120_PROBE_IOR)
 confirmed the IOR-word read, the UART status read and the UART
 data read all deliver real values through the full strobe window.
 
-The earlier "booted programs never see input" conclusion (11-JUL)
+The earlier "booted programs never see input" conclusion
 was wrong on two counts: the measurements predated the UART
 sysclk-edge fix and the P2 clock-enable conversions, and the TPE
 test case was not deaf - it was stuck retrying the floppy because

@@ -149,7 +149,7 @@ divider would have produced ~180). The sim DRAM model doesn't need refresh, so
 nothing in the sim exercises it. Conclusion for real dynamic memory backends:
 **do not rely on the board logic to schedule refresh; generate it yourself.**
 
-## 5. The aligned backend family (implemented 8-JUL-2026)
+## 5. The aligned backend family
 
 All main-memory backends share the **sheet-49 interface** and are selected in
 `MEM_43.v` by one define chain, checked in this order. A build that selects
@@ -165,7 +165,7 @@ section 1.
 | `VERILATOR_SIM` | `CPU-BOARD-3202/circuit/MEM_RAM_49_SIM.v` | Zero-delay DRAM model, 3 banks x 1M = 6 MB; C++ preload via `RAM.b0_lo/b0_lo_p/b0_hi/b0_hi_p` |
 | `MAIN_RAM_SIP1M9` | `CPU-BOARD-3202/circuit/MEM_RAM_49.v` | Original six SIP1M9 chips - schematic-faithful reference only; no build selects it |
 
-**Hardware-truth rules baked into the FPGA backends** (from the 8-JUL Tang
+**Hardware-truth rules baked into the FPGA backends** (from the Tang
 write debugging - three builds of evidence):
 
 1. Row: captured exactly once, at the RAS **rising edge** (never a level).
@@ -233,7 +233,7 @@ worst case - a refresh started on the same edge RAS falls - delays the read
 issue by ~2.5 OSC and the data to ~N+5, which is why post-access refresh is
 the primary mechanism and the watchdog only covers an idle CPU.
 
-### Word width: `ND_SDRAM_PACK16` (since 11-JUL-2026)
+### Word width: `ND_SDRAM_PACK16`
 
 The SDRAM stores only the 16 DATA bits, TWO ND words per 32-bit location
 (one per location on a 16-bit module, `ND_SDRAM_DQ16`), with DQM
@@ -252,7 +252,7 @@ three 1M-word banks in PHYSICAL-ADDRESS order BANK0, BANK2, BANK1 - see
 `PAL/PAL_44445B.v:65-67`, where PPN[21:20] decodes 00 -> BANK0 (words
 0-1M), 01 -> BANK2 (1M-2M), 10 -> BANK1 (2M-3M). So the contiguous first 2M
 words are BANK0+BANK2 and the absent bank sits at the TOP of the range.
-(Corrected 24-AUG-2026; this file used to say BANK0+BANK1.)
+(Corrected; this file used to say BANK0+BANK1.)
 
 BANK0+BANK2 occupy the LOWER half of the Tang chip (location bit 20 = 0)
 and the upper 4 MB is the nd_storage region (`nd-storage-design.md`

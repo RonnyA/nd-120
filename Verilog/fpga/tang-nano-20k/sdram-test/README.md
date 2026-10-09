@@ -2,7 +2,7 @@
 
 **Full path:** `Verilog/fpga/tang-nano-20k/sdram-test/`
 
-> **Status: PASSES on hardware - full 8 MB.** 2026-07-08: OSS-flow bitstream
+> **Status: PASSES on hardware - full 8 MB.** OSS-flow bitstream
 > loaded over usbipd/WSL2, runs observed on the board's UART at 115200 - all 4
 > verbose read/writes OK, and the block test now covers **all 8 MB**
 > (write + verify, progress dot per 256 KB), `PASS`, repeatable. The iverilog
@@ -54,7 +54,7 @@ Out of the box the board's flash contains a **LiteX SoC** (VexRiscv_Min @
 **115200** baud and its BIOS has `mem_test`, `mem_speed`, `sdram_test`
 commands - a handy independent cross-check of the SDRAM hardware.
 
-Useful facts from its boot report (observed on our board, 2026-07-08):
+Useful facts from its boot report (observed on our board):
 
 - SDRAM runs at **48 MHz, CL-2 CWL-2**, memtest of 2 MB passes -
   independently confirming the CL=2 timing the nand2mario controller uses.
@@ -185,7 +185,7 @@ cat /dev/ttyUSB1 &              # watch the output
 printf 'G' > /dev/ttyUSB1       # any character starts / restarts the test
 ```
 
-Notes from the real runs (2026-07-08, verified both scripted and interactively
+Notes from the real runs (verified both scripted and interactively
 via screen - several consecutive full passes):
 
 - Opening/configuring the port can glitch the RX line and trigger a run on its
@@ -204,8 +204,8 @@ in SRAM mode, and keep the serial terminal on the Windows COM port.
 ### Serial terminal
 
 The BL616 exposes one USB serial port (this board enumerated as **COM5** on
-Windows). Connect at **115200 8N1** for this test (01-SEP-2026: was 9600; every
-other Tang bitstream has been 115200 since 26-AUG-2026 and having this one
+Windows). Connect at **115200 8N1** for this test (was 9600; every
+other Tang bitstream has been 115200 and having this one
 project differ was a trap). Any terminal works: PuTTY,
 TeraTerm, `screen /dev/ttyACM0 115200`, etc. Press a key to start the test.
 

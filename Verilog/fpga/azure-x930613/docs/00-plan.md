@@ -9,7 +9,7 @@ verified against multiple independent sources (see
 ## Open questions (blocking everything else)
 
 1. **Does Ronny have the physical card, and a host machine confirmed
-   compatible?** CONFIRMED 31-AUG-2026: the reported host (i7-12700,
+   compatible?** CONFIRMED: the reported host (i7-12700,
    ASUS PRIME Z690-P WIFI D4) has its CPU-connected slot
    (`PCIEX16(G5)_1`) explicitly listed as supporting **2 (X8+X8)**
    bifurcation in ASUS's own official "Intel 600 Series" bifurcation
@@ -27,7 +27,7 @@ verified against multiple independent sources (see
    electrically it should (x8/x8 is standard PCIe), but this is unproven
    until the card is actually seated and tested.
 
-   **GPU relocation (31-AUG-2026, from the real E19403 manual, page
+   **GPU relocation (from the real E19403 manual, page
    1-7):** the board has 4 physical x16-length slots. Slot 1
    (`PCIEX16(G5)`, CPU-connected, currently holds the GTX 1080) is the
    only one that's electrically x16 and the only one that bifurcates to
@@ -47,7 +47,7 @@ verified against multiple independent sources (see
    FPGA pinout (see Links in `../README.md`).
 3. Confirm Quartus Prime **Standard** is available/licensed - Quartus
    Lite does not list this custom Stratix V part.
-   **Docker route TESTED and RULED OUT (31-AUG-2026):** pulled the
+   **Docker route TESTED and RULED OUT:** pulled the
    official `alterafpga/quartus-std:25.1std-all` image (5.64 GB) and
    queried it directly (`get_family_list` in `quartus_sh`) rather than
    trusting the tag name. Despite being called "-all", it only has
@@ -82,7 +82,7 @@ verified against multiple independent sources (see
   itself under that preload. Source + working C code:
   <https://github.com/ruurdk/sv_second_pcie_hip> (Linux) /
   `sv_second_pcie_hip_windows` (Windows variant, not yet checked).
-- **Licensing (31-AUG-2026, re-checked directly with an Altera source):**
+- **Licensing (re-checked directly with an Altera source):**
   intel.com and altera.com themselves blocked every direct fetch attempt
   (bot protection, both curl and the fetch tool - the archived copy
   found was also temporarily down), so this is confirmed via an
@@ -104,7 +104,7 @@ verified against multiple independent sources (see
   part, zero hits - so it's unknown whether they used a paid license, a
   work license, or ran unlicensed themselves.
 - **Open-source alternative to Quartus: checked, does not exist for this
-  chip (31-AUG-2026).** Yosys's two Intel/Altera synthesis backends were
+  chip.** Yosys's two Intel/Altera synthesis backends were
   read directly: `synth_intel` covers only MAX 10/Cyclone 10 LP/Cyclone
   IV(E); `synth_intel_alm` (the modern ALM-architecture backend) covers
   **Cyclone V only** - Stratix V isn't in either device list, and neither

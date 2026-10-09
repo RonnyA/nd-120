@@ -77,7 +77,7 @@ Copies of the `.hex` files and of the WCS images sit next to the harnesses and
 board builds that `$readmemh` them; `make test-microcode-sync` (in
 `Verilog/tests/`) checks every copy against the variant its folder must hold.
 
-### The two patched microwords (measured 28-SEP-2026 against the `.bin` files)
+### The two patched microwords (measured against the `.bin` files)
 
 Neither patch changes the `.bin` dumps. Both are in the master-clear wait loop,
 listing lines 5105-5123 of `ND-120-DELILAH-L.LISTING.txt`

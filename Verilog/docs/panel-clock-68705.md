@@ -1,6 +1,6 @@
 # Panel clock: MC68705U3 + MM58274 emulation (sheet 40)
 
-> 28-AUG-2026. RTL: `Verilog/CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v`,
+> RTL: `Verilog/CPU-BOARD-3202/circuit/PANCAL_68705_CLOCK.v`,
 > wired in `Verilog/CPU-BOARD-3202/circuit/IO_PANCAL_40.v` behind
 > `ND120_PANEL_CLOCK`. Unit test: `Verilog/CPU-BOARD-3202/circuit/sim/IO_PANCAL_40_clock_tb.v`
 > (`make test-pancal-clock` / `make test-pancal-clock-ff`, both registered in
@@ -111,7 +111,7 @@ Tang and the Nexys builds read); without the define it is an unused module.
 - `make test-pancal` (stub, no define): 8194 checks, PASS - the default build
   is unchanged.
 - Verilator lint (`-Wall`, latch and FF) of `IO_PANCAL_40` with the define: clean.
-- Full-tree `sim/ make test_nd120 PANEL_CLOCK=1 USE_LATCHES=0` (28-AUG-2026):
+- Full-tree `sim/ make test_nd120 PANEL_CLOCK=1 USE_LATCHES=0`:
   the same 82 pre-existing `-Wall` warnings as without the define (CGA_WRF/CGA_MAC
   PINMISSING etc.), none in the new or edited files.
 
@@ -130,7 +130,7 @@ Tang and the Nexys builds read); without the define it is an unused module.
   states the real chip "keeps PB4 low in the idle loop"; the ROM bytes say
   otherwise. Whether to add the idle pulse is a separate decision.
 
-## Two DGA bugs that hid every panel command (found 28-AUG-2026, measured)
+## Two DGA bugs that hid every panel command (measured)
 
 The emulator alone did not make TPE happy - its start-up probe still said
 `==TPE42=> The clock is not updated (display panel wrong or unexisting)`.
@@ -147,7 +147,7 @@ two faults in the recreated DGA, both independent of the panel clock:
    UART read, IDBS o37, CLK0-registered `RUARTN`) holds its data one phase
    later. Fix: `EPANSN = comb(o20) & ~MAPANS` - the comb window stays for
    o20 (MIPANS, needed by `COND,F15`), o21 (MAPANS, the macro read) uses the
-   existing A275 CLK0-registered decode. **Changed again 30-AUG-2026:** the
+   existing A275 CLK0-registered decode. **Changed again:** the
    o20 comb window is now also shut for the whole of any RWCS
    microinstruction (`RWCSN` input, `DECODE_DGA_IDBS.v`), because it let the
    panel status word onto the IDB while the control store was showing a data
@@ -192,7 +192,7 @@ builds in `sim/` and `runSim/` stop on 82 pre-existing `-Wall` warnings
 `DBG_PTW_LVL`/`DBG_PANEL`, all from the 25-AUG squash); the runs above passed
 `SUPPRESS_FLAGS="... -Wno-IMPLICIT -Wno-PINMISSING"` on the make line only.
 
-DONE 29-AUG-2026 on the Tang (fast20, config flash). All three checks pass:
+DONE on the Tang (fast20, config flash). All three checks pass:
 
 - SINTRAN boots, console works (banner 37.6 s).
 - Hardware clock round trip. Read DIRECTLY from OPCOM with SINTRAN out of the

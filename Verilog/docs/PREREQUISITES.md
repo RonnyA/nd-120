@@ -3,7 +3,7 @@
 **Full path:** `Verilog/docs/PREREQUISITES.md`
 **Last verified:** 20-AUG-2026 — every version below was read off this machine
 with the command shown next to it, not copied from documentation.
-**Corrected 28-SEP-2026:** the open-source Tang flow, the MiSTer and the
+**Corrected:** the open-source Tang flow, the MiSTer and the
 MEGA65 entries (§3.1-§3.3).
 
 This document is written so that a person **or an LLM** can bring a fresh
@@ -222,8 +222,8 @@ ls "$(wslpath "$GOWIN_BIN")" && echo "gw_sh present"
 oss-cad-suite (yosys + nextpnr-himbaechel + gowin_pack), from WSL, with
 `make` in `Verilog/fpga/tang-nano-20k/`. It covers the `slow`, `crawl` and
 `full` variants only; the deployed `fast20` variant needs Gowin EDA. The
-full CPU no longer fits with this flow (107-109% LUT4, measured
-28-SEP-2026), so bitstreams come from Gowin EDA. Install
+full CPU no longer fits with this flow (107-109% LUT4, measured),
+so bitstreams come from Gowin EDA. Install
 instructions (one prebuilt tarball, no sudo) are in
 `Verilog/fpga/tang-nano-20k/README.md`, section "Toolchain". That flow needs
 the oss-cad-suite yosys (0.4x+), not the distro 0.9 of §2.3.
@@ -235,8 +235,8 @@ the oss-cad-suite yosys (0.4x+), not the distro 0.9 of §2.3.
 
 **Quartus Prime Lite 17.0.2** exactly — free, no licence. MiSTer standardizes
 on that version. Nothing needs installing on the host: the community Docker
-image `raetro/quartus:17.0` carries it. The core boots SINTRAN on the board
-(02-SEP-2026). Build and deploy: `Verilog/fpga/mister/README.md` and
+image `raetro/quartus:17.0` carries it. The core boots SINTRAN on the board.
+Build and deploy: `Verilog/fpga/mister/README.md` and
 `Verilog/fpga/mister/docs/02-building.md`.
 
 ---

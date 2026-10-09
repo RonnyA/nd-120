@@ -1,10 +1,10 @@
 # SD-card BPUN loading and ND-100 device emulation - reference
 
-Status: BUILT. This started as the 11-JUL-2026 design plan for an SD card +
+Status: BUILT. This started as the design plan for an SD card +
 FAT stack, a Verilog paper tape reader at device 400 and the road to floppy
 and SMD. All of that exists now: the SD-FAT library (`Verilog/SD-FAT/`,
-clean-room MIT reader and writer, 4-bit bus proven on the Tang Nano 20K
-12-JUL-2026), the device bus interface (`ND-BUS-DEVICES/BUS-IF/circuit/ND_BUS_SLAVE.v`),
+clean-room MIT reader and writer, 4-bit bus proven on the Tang Nano 20K),
+the device bus interface (`ND-BUS-DEVICES/BUS-IF/circuit/ND_BUS_SLAVE.v`),
 the tape reader (`ND-BUS-DEVICES/TAPE-400/circuit/ND_TAPE_400.v`), and the
 storage facade that serves tape, floppy, SMD and Winchester images from the
 card (`Verilog/docs/nd-storage-design.md`). The plan sections (folder layout,
@@ -265,13 +265,13 @@ Verilog, pins only in each board's constraint file.
 - Tang Nano 20K SD pins: CLK=83, CMD=82, DAT0=84, DAT1=85, DAT2=80,
   DAT3=81, all LVCMOS33 (three independent .cst sources).
 - SD/FAT core: the clean-room MIT `Verilog/SD-FAT/circuit/sd_file_reader.v`
-  (replaced the GPL WangXuan95 reader on 12-JUL-2026) plus `sd_writer.v`.
+  (replaced the GPL WangXuan95 reader) plus `sd_writer.v`.
 - Device 400 octal: registers 400 data / 402 status / 403 control;
   status bit 3 = ready-for-transfer (polled by boot loader), control
   bit 2 = activate, bit 4 = device clear, bit 0 = interrupt enable;
   interrupt level 12, ident code 2 octal.
 - ALD strap in `Verilog/CPU-BOARD-3202/circuit/IO_REG_41.v` is the
-  Winchester (500) since 07-AUG-2026; `400$` / `400&` at OPCOM boots from
+  Winchester (500); `400$` / `400&` at OPCOM boots from
   the tape reader.
 - The device does not parse BPUN; the microcode binary loader does.
 - Device side of the ND-100 bus protocol = `proccess_bif_signal()` in

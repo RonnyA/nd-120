@@ -1,4 +1,4 @@
-# SOLVED 01-SEP-2026 - the WCS read was one clock too slow on the MiSTer
+# SOLVED - the WCS read was one clock too slow on the MiSTer
 
 **Root cause.** `Shared/support/IDT6168A_20.v` then built the WCS from an
 `altsyncram` megafunction in a section ONLY the MiSTer build compiled, and it

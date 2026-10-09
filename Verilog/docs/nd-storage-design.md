@@ -1,18 +1,18 @@
 # nd_storage - RTL design and implementation plan
 
 Status: BUILT and in use - SINTRAN III boots on the Tang Nano 20K from a
-Winchester image on the SD card through this stack (24-AUG-2026). Written as
-the plan of record on 11-JUL-2026, derived from nd-storage-interface-spec.md;
-the decisions of the 11-JUL spec review are folded in.
+Winchester image on the SD card through this stack. Written as
+the plan of record, derived from nd-storage-interface-spec.md;
+the decisions of the spec review are folded in.
 
 **Two parts of the original plan were replaced after it was built. Read this
 first - some sections below still describe the old model and say so:**
 
-- **Nothing is preloaded any more (04-AUG-2026).** A mount only finds the file
+- **Nothing is preloaded any more.** A mount only finds the file
   and latches its geometry. Disc clients (SMD, Winchester) are served through
   one shared block cache; tape and floppy are DIRECT (every request goes to the
   card). Image size is no longer bounded by a slot. See section 2.7.
-- **Files no longer have to be contiguous (07-AUG-2026).** The engine walks the
+- **Files no longer have to be contiguous.** The engine walks the
   FAT chain on every access (section 2.2, "FAT-chain resolve"). The mount-time
   contiguity checker (section 2.4) is retired from every build and kept only
   as a diagnostic.
@@ -41,7 +41,7 @@ Facts from the build steps that still hold:
   multiple of 2048 bytes: the card writes would spill past the file's
   clusters into the next file. Tape is read-only; the floppy adapter refuses
   a write unless `(block+1)*2048 <= size_bytes`.
-- Owner decisions 11-JUL: (i) the floppy adapter targets `ND_FLOPPY_DMA`'s
+- Owner decisions: (i) the floppy adapter targets `ND_FLOPPY_DMA`'s
   backend, not `ND_FLOPPY_PIO` (`1560&` mass boot is the proven path; a PIO
   adapter is optional later work); (ii) SMD images are real-world size
   (75 MB), so SMD is served by the cache - no small-image shortcut.
@@ -149,7 +149,7 @@ are still in `nd_storage.v` but bound nothing.
 | `nd_storage.v` | Top: SD reader+writer instances, SD pin mux (phase_write), mount/engine/cache wiring, status outputs | ~450 lines |
 | `nd_storage_engine.v` | Round-robin arbiter, per-client pending latches + clk_cpu front-ends (generate), CDC word bridge, block read/write engine, cache fill, FAT-chain resolve, 512x32 staging BRAM | ~750 lines (plan) |
 | `nd_storage_mount.v` | Open FSM: drive sd_file_reader per open, capture geometry/size/first-sector/first cluster, park reader (no preload since Phase 4) | ~320 lines (plan) |
-| `nd_storage_fatchk.v` | Mount-time contiguity walker (diagnostic only since 07-AUG, section 2.4) | ~180 lines |
+| `nd_storage_fatchk.v` | Mount-time contiguity walker (diagnostic only, section 2.4) | ~180 lines |
 | `nd_storage_cache.v` | Tag/LRU directory of the shared block cache (section 2.7) | - |
 | `nd_storage_tape_adapter.v` | Byte-stream adapter (spec section 5): one 1024x16 block buffer over one client port; byte_req/byte_valid/rewind, EOF = silence | ~230 lines |
 | `nd_storage_floppy_adapter.v` | Sector-device glue: ND_FLOPPY_DMA disk_*/dbuf_* onto one client port (section 2.6); write = read-modify-write with internal 1024x16 buffer | ~280 lines |
@@ -241,7 +241,7 @@ staging line and serves from it inside its own grant. Bytes at or past
 `size_bytes` read as zero (the fill zero-fills them), so the slack at the end
 of a file's last cluster never reaches a client. See section 2.7.
 
-**FAT-chain resolve (07-AUG-2026).** The card sector is no longer
+**FAT-chain resolve.** The card sector is no longer
 `first_sector + block*4 + sec`, which assumed a contiguous file. Both
 card-sector paths - the cache fill (`C_SEC_GO`) and the write-through
 (`W_SEC_GO`) - get a resolve step in front (states `F_RES`, `F_STEP`,
@@ -340,7 +340,7 @@ The mount-time contiguity checker. For
 `n = ceil(size_bytes / (cluster_size*512))` clusters from `first_cluster` it
 requires `FAT[first+i] == first+i+1` for i<n-1 and an end mark at
 `FAT[first+n-1]`, reading through `sd_writer` `rd_mode=1` with the reader
-parked. Since 07-AUG-2026 the engine walks the FAT chain itself, so a
+parked. The engine walks the FAT chain itself, so a
 fragmented file is simply correct and nothing is left for this gate to
 protect. `sd_fat_features.vh` only builds it under
 `-DSDFAT_FORCE_STORAGE_CHECK`; its testbenches force it so the diagnostic
@@ -368,7 +368,7 @@ drop have_blk, stay silent (tape runout).
 
 ### 2.6 nd_storage_floppy_adapter.v (clk_cpu) - AS BUILT (step 8)
 
-Retargeted 11-JUL (owner decision) to ND_FLOPPY_DMA's disk-image backend
+Retargeted (owner decision) to ND_FLOPPY_DMA's disk-image backend
 port - 1560& mass boot is the proven path; a PIO adapter is optional later
 work. The interview note guessed a disk_start/blkaddr1/blkaddr2/unit shape;
 the DEVICE SOURCE (ND-BUS-DEVICES/FLOPPY-DMA/circuit/ND_FLOPPY_DMA.v) is
@@ -425,7 +425,7 @@ open_start (board/boot pulse) passes through as c_open_req, as in the tape
 adapter. This module is used both by acceptance test 6 (gate
 test-nds-floppy) and by the real Tang build.
 
-### 2.7 nd_storage_cache.v - the shared block cache (Phase 4, as built 04/05-AUG-2026)
+### 2.7 nd_storage_cache.v - the shared block cache (Phase 4)
 
 **Why.** v1 mapped an image block straight onto a region block
 (`s_blk_abs <= slot_base + op_block`), so an image could never be larger than
@@ -435,7 +435,7 @@ block request then took the zero-fill error path, and DISC-TEMA reported a
 controller that finished with no error bit and all-zero data (status
 `060010b`). The controller was not at fault.
 
-**Owner's rules (04-AUG-2026):** no image is preloaded; a dynamic read cache
+**Owner's rules:** no image is preloaded; a dynamic read cache
 with write-through that keeps the most used blocks; floppy and tape are not
 cached (the SD card is quick enough for them), the SMD and the Winchester are,
 so SINTRAN runs quickly; caching can be turned on and off per device class.
@@ -503,7 +503,7 @@ with 6 errors, so the checks have teeth.
   3-way LRU - the 2-bit rank field and the `WAYW` derivation already handle
   3). The geometry is the owner's call.
 
-Measured null result (Tang, 6.75 MHz / 9600-baud era, 23-AUG-2026): cache on,
+Measured null result (Tang, 6.75 MHz / 9600-baud era): cache on,
 `-DiscsUncached` and `-NoStorageCache` all reached the same point at 143 s -
 no boot-speed difference at 1 s resolution over ~30 disc operations.
 
@@ -555,7 +555,7 @@ fatchk/mount read path):
 `endif
 ```
 
-Without SDFAT_STORAGE_CHECK (every normal build since 07-AUG-2026) the mount
+Without SDFAT_STORAGE_CHECK (every normal build) the mount
 skips M_CHK; the engine's FAT walk makes contiguity unnecessary.
 
 ## 4. Data-path definition and exact timing

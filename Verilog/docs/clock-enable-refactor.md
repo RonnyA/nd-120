@@ -2,9 +2,9 @@
 
 **Full path:** `Verilog/docs/clock-enable-refactor.md`
 **Last updated:** 2026-09-28
-**Status:** DONE 2026-07-05 (`CYC_TERM_D.v`, `CYC_CC_D.v`, the second
+**Status:** DONE (`CYC_TERM_D.v`, `CYC_CC_D.v`, the second
 `PAL_44307C` instance in `CYC_36.v`); the level fix for MCLK/MACLK/UCLK
-followed 2026-07-07. This file keeps how it works and the rules learned.
+followed. This file keeps how it works and the rules learned.
 The planning sections and the failed experiments are in git history.
 
 ## Why
@@ -16,7 +16,7 @@ could not constrain the dozens of gated clock domains (Basys3 routed WNS
 was about -38.7 ns on 2026-07-04). The fix below turns them into clean
 sysclk-generated flip-flop clocks in `FPGA_FF_MODE`.
 
-## IMPLEMENTED (2026-07-05): phase-accurate clocks via validated mirrors
+## IMPLEMENTED: phase-accurate clocks via validated mirrors
 
 The gated-combinational clocks minted in `CYC_36` are now clean sysclk-generated FF
 clocks in `FPGA_FF_MODE`, boot byte-identical to golden (seqcheck IDENTICAL). The
@@ -33,7 +33,7 @@ latency).
 - **MCLK/MACLK/UCLK next values**: a SECOND (combinational) `PAL_44307C` instance is
   fed the next-state (TERM_D + CC_D) - the real PAL reused, no mirror of 44307.
 - **Per clock**: register the predicted next LEVEL: `q <= <clock>_NEXT`.
-  UPDATE 2026-07-07: originally this registered the rise pulse
+  UPDATE: originally this registered the rise pulse
   `<clock>_NEXT & ~<clock>_NOW`. That kept every RISING edge phase-accurate
   (which is all boot seqcheck exercises) but collapsed the HIGH phase to
   1 sysclk. Level consumers then broke: `CPU_CS_ACAL_17`'s address latches are
@@ -88,7 +88,7 @@ Use for genuine edge-triggered registers whose source **pulses** every cycle
 (MCLK/MACLK/UCLK per bus cycle). NEVER use where the source can sit static - that
 is the exact failure LATCH hit.
 
-**RESOLVED RULE (2026-07-04 investigation).** The level-vs-edge choice is decided
+**RESOLVED RULE.** The level-vs-edge choice is decided
 by the primitive's *type*, not per-instance guesswork:
 
 - **Transparent latches** (`LATCH`, `L4`, `L8`) are level-sensitive - they must
@@ -103,7 +103,7 @@ So the FF-primitive conversion is uniform - edge-detect for all of them - and
 `make compare` (only-BDRY gate) confirms each one. This removes the biggest
 correctness risk the earlier draft flagged.
 
-## Lesson from the failed attempts (2026-07-04/05)
+## Lesson from the failed attempts
 
 Edge-detect, level-capture and a uniform sysclk migration of the consumers
 all failed at the same point: each captured ONE sysclk late, because an
@@ -115,7 +115,7 @@ exact sysclk edge the old gated clock did.
 ## References
 - `fpga-debug-methodology.md` 3.2 - root cause + the derived-clock work list.
 - `plan-fix-unconstrained-clocks.md` - the later net-by-net conversion of the
-  remaining derived clocks (finished 10-JUL-2026).
+  remaining derived clocks.
 - `sim/FPGA_REFACTORING_GUIDE.md` - the async-clock -> synchronous pattern.
 - `Shared/ndlib/LATCH.v` - the already-converted reference (pattern A + the LCS trap).
 - `boot-golden-spec.md` - the boot phases `make compare` must still hit.

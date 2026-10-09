@@ -9,9 +9,9 @@ levels (it does not loop forever like the MEMORY test).
 **Status.** The failures once logged in this file are solved; the
 investigation log is in git history:
 - Banner `INSTRUCTION` printed as `INST\x7f\x7fCTION` (word-index 2 read as
-  all-ones): solved 26-JUL-2026 by the cache HIT-gate in
+  all-ones): solved by the cache HIT-gate in
   `CPU-BOARD-3202/circuit/CPU_MMU_CACHE_25.v` (see the comment there).
-- Cx instructions / MOVEW APT->APT: solved 31-JUL-2026, commit `727c23e`
+- Cx instructions / MOVEW APT->APT: solved, commit `727c23e`
   (`CGA_MAC_DECODE.v` GATES_5). On the Tang Nano 20K the full sweep then ran
   clean: level 1 all 15 areas "End of test", levels 2-9 clean, ending
   "The tests are now looping" (the verifier's normal full-pass behaviour).
@@ -22,7 +22,7 @@ investigation log is in git history:
   it still hits a default Verilator build has not been measured since
   24-JUL-2026.
 
-> **BUILD TRAP (cost hours, 2026-07-24): the floppy-TPE boot needs FF mode.**
+> **BUILD TRAP (cost hours): the floppy-TPE boot needs FF mode.**
 > A probe engine built **without** `-DFPGA_FF_MODE` (i.e. latch mode, the
 > `USE_LATCHES=1` default) boots the microcode self-test fine but **never
 > reaches the floppy `TPE>` prompt** - the console stops right after the
@@ -47,7 +47,7 @@ investigation log is in git history:
    `Verilog/runSim/FLOPPY1.IMG`). Reaches `TPE>`
    in ~17-20 min at ~46k ticks/s. (Send-gap fix confirmed — boots real B01.)
 2. At `TPE>` load the INSTRUCTION diagnostic: **`INSTRUCTION`** (`load inst` also works,
-   as used on the Tang 31-JUL). Banner:
+   as used on the Tang). Banner:
    `INSTRUCTION - Version: C03 - 1988-03-04`.
 3. **Set parameters FIRST** (so each instruction name is printed and we can see
    which one runs and how it behaves):
@@ -152,7 +152,7 @@ Not assigned
 
 ---
 
-## 4. Sim-only hazard: RTC fires inside the masked init sweep (24-JUL-2026)
+## 4. Sim-only hazard: RTC fires inside the masked init sweep
 
 Seen in Verilator only, before the fixes listed at the top; not re-measured
 since. On `run`, our sim printed

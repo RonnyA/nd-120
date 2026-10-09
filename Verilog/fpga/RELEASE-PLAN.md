@@ -1,9 +1,9 @@
 # Bitstream release plan
 
-Decided 26-AUG-2026 (Ronny): GitHub Releases carry ready-built bitstreams so
+Decided (Ronny): GitHub Releases carry ready-built bitstreams so
 nobody has to install Vivado or Gowin EDA to run the ND-120. Binaries never
 enter git history. The disc image is NOT distributed - instructions only.
-Every release file runs the console at 115200 7E1 (Ronny, 26-AUG); filenames
+Every release file runs the console at 115200 7E1 (Ronny); filenames
 carry board + clock + baud; release notes carry each artifact's source commit
 and timing/silicon verdict, and link the quickstarts.
 
@@ -25,7 +25,7 @@ put on here, at staging, for all boards the same way. Build a config, then run
 replaces the hand-rename that once shipped a MEGA65 `.cor` named for a build it
 was not.
 
-## Release 2 - still open (checked against the release notes 28-SEP-2026)
+## Release 2 - still open (checked against the release notes)
 
 - `nd120_nexys4ddr_33MHz_115200.bit` - REFRESH with the embedded box font,
   the Left-arrow fix and the cache ON; build 30 boots and both are confirmed
@@ -36,7 +36,7 @@ was not.
 
 Rules that still apply: a row is attached only when BUILT and
 SILICON-VERIFIED (glyphs render, arrow keys work on the real board). The
-exception (Ronny, 02-SEP-2026) is a board that is not on this desk - the
+exception (Ronny) is a board that is not on this desk - the
 MEGA65 cores and the QMTECH `.bit` go out labelled "not yet run" and the
 quickstart tells the first testers what to report.
 
@@ -51,7 +51,7 @@ then uses the same card for the disc image, so ONE card carries both:
 2. Move jumper JP1 to USB/SD (one-time).
 3. Insert card, power on, open the terminal. No software installed at all.
 
-VERIFIED 26-AUG-2026 on the board (Ronny): config from the card succeeds
+VERIFIED on the board (Ronny): config from the card succeeds
 and the SD stack mounts the disc image afterwards - one card carries
 both. Two jumpers: JP1 cap to pins 3-4 ("USB/SD") AND JP2 to the SD
 side. Fallback path: Vivado Lab Tools or openFPGALoader over USB-JTAG.
@@ -90,4 +90,4 @@ an image still comes up in OPCOM - the quickstart shows that as the
 - Basys3/Cmod A7 artifacts (OPCOM-only demos).
 - CI-built releases: not done, by decision. Release bitstreams are built
   locally with the vendor tools and checked on the boards; GitHub Actions
-  only runs the tests (the Tang OSS bitstream job was removed 30-SEP-2026).
+  only runs the tests (the Tang OSS bitstream job was removed).

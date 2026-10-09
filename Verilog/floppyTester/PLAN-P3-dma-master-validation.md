@@ -1,6 +1,6 @@
 # P3 — DMA master vs the real board bus: adjudicating the 7/8 errors
 
-**Status: DONE + MEASURED (2026-07-26).** A standalone Verilator harness was
+**Status: DONE + MEASURED.** A standalone Verilator harness was
 built (its own dir + Makefile + obj_dir, NOT touching `sim/` or `runSim/`), it
 drives the real `ND_DMA_MASTER` against the real arbiter (`PAL_44801A` via BIF)
 and real RAM, and it **passes**. The "7/8 errors" were adjudicated: writes and
@@ -9,7 +9,7 @@ proven **load-bearing** by reproducing the documented "every second read lost".
 The measured outcome is in **§0 RESULTS** below. The original design and
 analysis (sections 1-7: the fidelity ladder, the planned iverilog Tier-1 bench,
 open decisions) was overtaken by the Verilator harness that was built instead,
-and was cut on 28-SEP-2026; it is in git history. Facts are cited by path+line.
+and was cut; it is in git history. Facts are cited by path+line.
 
 **Bus protocol reference** (what this P3 work validates the DMA master against):
 `Verilog/docs/nd100-bus-dma.md` (writeup; §10.8 =
@@ -18,7 +18,7 @@ measured DMA findings) and `Verilog/docs/nd100-bus-deck.pptx`
 
 ---
 
-## 0. RESULTS (built + measured, 2026-07-26)
+## 0. RESULTS (built + measured)
 
 **Harness:** `Verilog/dmaSim/` — own `Makefile`,
 own `obj_dir`, own C++ main `dma_p3_main.cpp` (+ copied `AM27256_4513{2,3}L.hex`

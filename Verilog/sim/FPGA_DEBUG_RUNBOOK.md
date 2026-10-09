@@ -6,8 +6,8 @@ comparison workflow from scratch. It is self-contained and does not assume prior
 ## Problem Statement
 
 The ND-120 CPU boots correctly in Verilator simulation. On silicon it boots
-SINTRAN III on the Tang Nano 20K (24-AUG-2026), the Nexys 4 DDR (25-AUG-2026)
-and the MiSTer (02-SEP-2026); the Basys3 boots OPCOM only (its 24K-word memory
+SINTRAN III on the Tang Nano 20K, the Nexys 4 DDR
+and the MiSTer; the Basys3 boots OPCOM only (its 24K-word memory
 cannot hold an OS). Board state per target: `Verilog/fpga/README.md`.
 The workflow below was written for the Basys3 during the 2026 bring-up and still
 applies to any board whose behaviour differs from Verilator.
@@ -402,7 +402,7 @@ When adding a new regression check:
 
 ## Comparing a whole boot: the golden-model method (designed, not built)
 
-Moved here on 28-SEP-2026 from the retired `Verilog/FPGA-BRINGUP-PLAN.md`
+Moved here from the retired `Verilog/FPGA-BRINGUP-PLAN.md`
 (sections 8, 11 and 12). Of the parts below only `docs/boot-golden-spec.md`
 exists; `boot_trace.json`, `compare_boot_trace.py` and `capture_ila.tcl` were
 never written. Kept because the reasoning still holds for the next board.

@@ -41,7 +41,7 @@ Latch sim boots  ─┐
 FF sim result   ─┘    If FF sim boots but FPGA fails → bug is silicon-only (timing/RAM/tristate).
 ```
 
-**Current evidence (updated 2026-07-04):** a **fresh** `make compare` shows FF sim
+**Current evidence:** a **fresh** `make compare` shows FF sim
 now boots **identically to latch sim** — all 16 tracked signals match except the
 documented harmless BDRY cycle-0 init transient; FF reaches exec start `o002001`
 (cycle 69778) and the Phase-3 exit `o002047` (cycle 72362), and keeps executing.
@@ -205,7 +205,7 @@ does not model. Check these in order:
 > loop alerts. Chasing a constraint fix for these is wasted work.
 >
 > Note also that the FPGA-does-not-boot framing is Xilinx-only now: the **Tang
-> Nano 20K boots SINTRAN III** (24-AUG-2026).
+> Nano 20K boots SINTRAN III**.
 
 **What was fixed, and what is left.** In 2026-07 the Xilinx builds failed
 timing by 65-101 ns because dozens of flip-flops were clocked on DERIVED
@@ -213,8 +213,8 @@ signals (`posedge s_aluclk`, `s_clock`, `s_clkab` ...): each became its own
 clock net that STA could not constrain. That class is fixed: the CYC_36
 clocks are clean generated flip-flop clocks (`docs/clock-enable-refactor.md`)
 and the rogue clock nets were converted one by one
-(`docs/plan-fix-unconstrained-clocks.md`, 0 unconstrained clocks on the Tang
-since 10-JUL-2026). The violations measured on 21-AUG (above) are inside
+(`docs/plan-fix-unconstrained-clocks.md`, 0 unconstrained clocks on the Tang).
+The violations measured above are inside
 the CPU clock domain and are real logic depth, not constraint gaps. Current
 per-board timing work: `fpga/nexys4ddr/timing.md` and
 `docs/HANDOFF-cga-idb-ring-cut.md` (the CGA IDB ring).
@@ -227,7 +227,7 @@ constrains cleanly and timing closes (the ND-120 is a slow CPU; a single modest
 sysclk has plenty of margin).
 
 **Work list — files with derived-clock always-blocks (35 when written; 22
-remain as of 25-AUG-2026 - the base primitives `LATCH`, `L4`, `L8` and the
+remain - the base primitives `LATCH`, `L4`, `L8` and the
 `*_EN` variants are converted and clock on `sysclk`, the PAL set mostly is
 not):** the PAL set
 (`PAL_44302B/44303B/44304E/44310D/44401B/44407A/44408B/44445B/44446B/44511A/

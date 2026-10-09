@@ -9,7 +9,7 @@ speed fixes. **This is the SINTRAN-capable Artix-7 target.**
 
 ## Status
 
-**BITSTREAM BUILT 04-SEP-2026: `nd120_qmtech.bit`, timing met, 0 errors.**
+**BITSTREAM BUILT: `nd120_qmtech.bit`, timing met, 0 errors.**
 Not yet run on the board.
 
 | measure | result |
@@ -62,7 +62,7 @@ Generated clocks do not exist when an XDC is read before synthesis, so the
 guard in `nd120_timing.xdc` found nothing and the constraint silently did
 nothing. The relationships now live in `build.tcl` after `synth_design`, as
 `set_max_delay -datapath_only` bounds rather than asynchronous groups (the
-Nexys proved on 22-AUG-2026 that groups leave the storage handshake payloads
+Nexys proved that groups leave the storage handshake payloads
 untimed and corrupt floppy reads). That file is deliberately almost empty now
 and explains why.
 
@@ -181,7 +181,7 @@ Developer notes that are not in the quickstart:
   not only the Platform Cable.
 - The build uses 1-bit SD mode (`USE_4BIT(0)` in the top level). Going to
   4-bit later is a parameter flip, not a rewiring job - but change one
-  variable at a time: the Tang's 4-bit attempt failed on 24-AUG-2026 because
+  variable at a time: the Tang's 4-bit attempt failed because
   the bit clock and the bus width were changed together, and it took a
   separate experiment to tell which broke it.
 
@@ -191,7 +191,7 @@ Developer notes that are not in the quickstart:
 understanding before reading a bring-up result, because the workaround shapes
 the whole storage path.
 
-The sheet-49 bridge has a 16-bit module mode, `ND_SDRAM_DQ16`, added 01-SEP-2026
+The sheet-49 bridge has a 16-bit module mode, `ND_SDRAM_DQ16`, added
 for the DE10-Nano. In that mode one ND word occupies one 16-bit location and
 the "two words per 32-bit location" folding disappears. The mode also drops
 the full-location 32-bit access: `sdram18.v`'s DQ16 write branch takes the
@@ -210,7 +210,7 @@ which fits in a single block RAM ([`rtl/nd_storage_bram.v`](rtl/nd_storage_bram.
 Image size is not affected - under Phase 4 a DIRECT client fetches every
 request from the card, so a 75 MB `WD0.IMG` is served through the same line.
 It costs disc speed, not function, and it is a configuration that has run:
-the Tang served every disc that way for weeks, and the 23-AUG-2026 experiment
+the Tang served every disc that way for weeks, and an experiment
 measured no functional difference between cache on, cache masked off, and
 cache not synthesized. `build.tcl` therefore defines `ND_STORAGE_NO_CACHE`
 **and** `ND_STORAGE_DISCS_UNCACHED` - the two go together and neither is
@@ -229,7 +229,7 @@ the 2048 the mode currently maps. `sdram-bridge/sim/mem_ram_49_sdram_tb.v`
 3. Port of the standalone [`../basys3/mem-test/`](../basys3/README.md).
    *(written, passes its testbench, never run)*
 4. Full ND-120 build: SDRAM main memory, SD storage, serial console.
-   *(built 04-SEP-2026, timing met WNS +4.645 ns, never run on the board - start here)*
+   *(built, timing met WNS +4.645 ns, never run on the board - start here)*
 5. Restore the disc cache by extending the 16-bit bridge mode, if disc speed
    turns out to matter. *(not started - see the section above)*
 

@@ -52,7 +52,7 @@ path is an ND extension (`FIDBO`+`EMPID` in `CGA_INTR_IRSRC`), **not** an Am2914
 instruction; and a full-`CGA_INTR_CNTLR` event-sim can **oscillate/hang** on
 X-initialised set/reset latches unless you issue Master Clear + several `MCLK`
 pulses first (or test submodules individually, as the existing tbs do).
-Since 15-JUL-2026 the 16 request bits use the loop-free `RQBIT_V2`
+The 16 request bits use the loop-free `RQBIT_V2`
 (`CGA_INTR_CNTLR_IRQ_REG.v` header), so the request-latch case below no longer
 applies as written; whether any other latch in the block (e.g. `MASKBIT`) can
 still oscillate from X has not been measured since.
@@ -325,7 +325,7 @@ ROM(7)              -> EPICMASKN=0 (OEM active), PICMASK unchanged (read-only)
 MCLR(0)             -> PICMASK=0000000000000000   (clears mask)
 ```
 
-**CAUTION — event-sim hazard (measured before 15-JUL-2026, when the request
+**CAUTION — event-sim hazard (measured when the request
 bits were still the cross-coupled `RQBIT`; they are now the loop-free
 `RQBIT_V2`).** Driving the *whole* `CGA_INTR_CNTLR` with
 interrupt-request latching from an X-initial state can make the set/reset latches

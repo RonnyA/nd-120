@@ -1,11 +1,11 @@
 # Booting SINTRAN in Verilator THROUGH the SD/FAT stack
 
-Status: **built and lint-clean; not yet run to a banner.** Added 21-AUG-2026.
+Status: **built and lint-clean; not yet run to a banner.**
 Whether a `probe-wd-sd` run has reached the banner since is not recorded
 anywhere (UNVERIFIED). The same SD Winchester path WAS run in the dmaSim rig
-on 24-AUG-2026 (target `rig-nexys-wd`, see
+(target `rig-nexys-wd`, see
 `Verilog/fpga/nexys4ddr/HANDOFF-floppy-dma-investigation.md`, "24-AUG ~18:45",
-retired 28-SEP-2026, in git at `c4896a4`):
+retired, in git at `c4896a4`):
 the mass load, the seek and the following reads complete with correct
 end-address readbacks.
 
@@ -37,7 +37,7 @@ A real Winchester image is about 75 MB - roughly 4800 times larger - and
 SINTRAN's access pattern is nothing like a testbench's.
 
 There is a specific open question this is meant to answer. From the comment in
-`Verilog/SD-FAT/circuit/nd_storage_devices.v` (09-AUG-2026): on silicon the
+`Verilog/SD-FAT/circuit/nd_storage_devices.v`: on silicon the
 Winchester read returns **zeros with a perfectly clean status** while block 0
 of `WD0.IMG` demonstrably holds data, and the same RTL chain **passes in
 simulation**. The one structural difference between the client that works on

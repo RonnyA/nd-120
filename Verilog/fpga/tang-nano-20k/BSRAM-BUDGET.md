@@ -6,7 +6,7 @@
 >   **Still open, not implemented** (`CPU_CS_WCS_21_22.v` still instantiates
 >   32 `IDT6168A_20` chips). Optional; do it when you need the space.
 > - **Part 2** - the floppy / SMD sector-buffer sync-read refactor. **DONE**
->   (commit `cd9b94f`, 23-JUL-2026): `ND_FLOPPY_DMA.v` and `ND_SMD.v` each hold
+>   (commit `cd9b94f`): `ND_FLOPPY_DMA.v` and `ND_SMD.v` each hold
 >   one synchronous-read buffer, and both devices are in the Tang storage build
 >   (BSRAM 96%, measured 3-AUG-2026 - see `README.md`, "Storage build").
 >
@@ -246,7 +246,7 @@ preserve posedge-clk, write-first, 1-cycle-read semantics exactly.
 
 # Part 2 — Device buffers (floppy / SMD): sync-read refactor (DONE)
 
-**Done in commit `cd9b94f` (23-JUL-2026).** BSRAM is synchronous-read only. The
+**Done in commit `cd9b94f`.** BSRAM is synchronous-read only. The
 floppy-DMA and SMD 2 KB sector buffers (`reg [15:0] s_buffer[0:1023]`, one
 1Kx18 block each) used to have three asynchronous read ports at independent
 addresses; Gowin cannot map that to BSRAM, and as registers one buffer would

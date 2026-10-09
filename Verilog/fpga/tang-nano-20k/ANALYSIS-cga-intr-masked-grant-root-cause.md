@@ -1,10 +1,10 @@
-# ANALYSIS — Tang "masked level-10 grant": root-cause investigation (SOLVED 18-JUL-2026)
+# ANALYSIS — Tang "masked level-10 grant": root-cause investigation (SOLVED)
 
-> **SOLVED 18-JUL-2026 - kept as the root-cause record.** The root cause was
+> **SOLVED - kept as the root-cause record.** The root cause was
 > found and directly confirmed on silicon (section 3e): a stale-INTRQN panel
 > pulse taken as a macro interrupt, reading an empty vector that defaults to
 > level 10 - NOT an Am2914 masked grant. The Tang Nano 20K now boots SINTRAN
-> III (24-AUG-2026). Trimmed 28-SEP-2026 to the mechanism (1), the root cause
+> III. Trimmed to the mechanism (1), the root cause
 > (3e), the fix (3f) and what was reverted (4); the experiments in between
 > (old sections 2, 3, 3b-3d) are in git history. In short: Verilator did NOT
 > reproduce the fault (experiment A, `-DND120_PROBE_VEC17` in `runSim`), and
@@ -13,8 +13,8 @@
 > of a single-step from P=0.
 
 **Full path:** `Verilog/fpga/tang-nano-20k/ANALYSIS-cga-intr-masked-grant-root-cause.md`
-**Status:** ROOT CAUSE FOUND AND CONFIRMED ON SILICON (18-JUL, section 3e). An
-earlier trap-side guard was written and then **REVERTED** (18-JUL) at Ronny's
+**Status:** ROOT CAUSE FOUND AND CONFIRMED ON SILICON (section 3e). An
+earlier trap-side guard was written and then **REVERTED** at Ronny's
 direction — it treated the symptom, not the cause, and it deviated from the
 schematics; the real cause is in section 3e.
 
@@ -27,7 +27,7 @@ grant:
 
 - `INTRQN` (CGA/INTR p.74, `CGA_INTR.v` `MEMORY_2`) = a one-MCLK-delayed register
   of `PAN | IRQ` (D = NAND(IRQN,PANN); async clear CLIRQN; **no hold feedback** —
-  schematic-confirmed by Ronny 18-JUL).
+  schematic-confirmed by Ronny).
 - The trap break trigger is `IFETCH & INTRQ` (CGA/TRAP/BRKDET p.103, `INTR` NAND —
   schematic-confirmed: exactly two inputs).
 - The panel-vs-macro classification is the 5-input NAND (CGA/TRAP/TVGEN p.104,
@@ -44,12 +44,12 @@ switches to **level 10**. Measured signature (`piltrace.log`): PIL 0→10, PIE=0
 P never advanced (instruction stream not involved). A *genuinely pending* level-10
 would read 010 octal → level 14, not 10 — confirming the read was empty.
 
-**Schematic validation (Ronny, 18-JUL):** all four transcription points above
+**Schematic validation (Ronny):** all four transcription points above
 (TBUF inverters, TVGEN 5-input NAND, BRKDET INTR NAND, INTRQN FF D-cone) match the
 original DELILAH sheets. **The window exists in the design as drawn.** So the trap
 logic is NOT where a transcription bug lives.
 
-## 3e. ROOT CAUSE — DIRECTLY CONFIRMED ON SILICON (18-JUL)
+## 3e. ROOT CAUSE — DIRECTLY CONFIRMED ON SILICON
 
 Via the on-chip capture (grant_capture.py, TANG_GRANT_CAPTURE), stepping to the
 hang and reading a debug word = {PAN, IRQ, INTRQ, PICV, MIREQ}. Measured
@@ -104,7 +104,7 @@ options (Ronny's call, faithfulness constraint):
 - (c) address the un-original console PRQ/conkick pulse generation so panel
   pulses are not manufactured the way the real 68705 never did.
 
-## 3f. The real MC68705U3 behavior + the FAITHFUL FIX (18-JUL)
+## 3f. The real MC68705U3 behavior + the FAITHFUL FIX
 
 Agent read the U3 firmware analysis AND the sheet-40 schematic
 (`Code/68705/3202D_PANCAL_SHEET40.png`). Findings:
@@ -126,7 +126,7 @@ CGA_INTR/CGA_TRAP INTRQN lag mis-dispatches as a phantom macro-interrupt ->
 level 10. So the phantom grant is, in normal (free-run) operation, an
 **emulation artifact of the conkick.**
 
-FAITHFUL FIX (prototype, 18-JUL): IO_37.v now drives STAT3 from real panel
+FAITHFUL FIX (prototype): IO_37.v now drives STAT3 from real panel
 activity only (IO_PANCAL) by DEFAULT; the old console-speedup conkick is behind
 opt-in `ND120_CONKICK_CONSOLE_SPEEDUP` (default OFF). This matches the real
 68705: STAT3 low at cold start and during console I/O. Cost: OPCOM console

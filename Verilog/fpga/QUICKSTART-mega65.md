@@ -7,7 +7,7 @@ terminal on the MEGA65's own keyboard and screen, and two floppy drives, two
 Winchester discs and a paper-tape reader served from image files on the SD
 card. It boots SINTRAN III from a Winchester image.
 
-> **Status (02-SEP-2026): built and simulated, NOT YET RUN ON A MEGA65.**
+> **Status: built and simulated, NOT YET RUN ON A MEGA65.**
 > Every part of this core has run on a DE10-Nano (MiSTer) or a Nexys 4 DDR
 > or passes its testbench, but this combination has never met a real MEGA65.
 > If you have one, you are the test - see "What to report" at the end. Keep

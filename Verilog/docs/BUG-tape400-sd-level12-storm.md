@@ -1,6 +1,6 @@
 # `400$` tape boot: the "level-12 interrupt storm" (C device model)
 
-Solved 13-JUL-2026 (landed in the squashed commit cd9b94f). Confirmed on a
+Solved (landed in the squashed commit cd9b94f). Confirmed on a
 rebuild: the `400$` boot log dropped from ~9.5 MB of interrupt messages to 59
 lines, and ARGUMENT ran all 9 levels to `== END OF TEST ==` in 60M cycles.
 Since then the default runSim build uses the Verilog tape device

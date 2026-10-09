@@ -1,14 +1,14 @@
 # GAO (Gowin Analyzer Oscilloscope) capture on the Tang Nano 20K
 
 Date: 17-JUL-2026. Written for the S1 experiment from
-Verilog/docs/tang-masked-grant-audit.md (deleted 28-SEP-2026, in git history) - capture the CGA_INTR grant chain
+Verilog/docs/tang-masked-grant-audit.md (deleted, in git history) - capture the CGA_INTR grant chain
 (int_req_q, INTRQN, PICV, mask/request bit 10, CSA) around a spurious
-PIL 0 -> 10 grant. **That fault was solved 18-JUL-2026 (see
+PIL 0 -> 10 grant. **That fault was solved (see
 `ANALYSIS-cga-intr-masked-grant-root-cause.md`).** The GAO mechanics below
 (build hook, cable handover, launching the analyzer, troubleshooting) are
 general; the signal list and trigger are what `src/nd120_tang20k_gao.rao`
 holds today - change the .rao for a different question. The campaign-only
-"what decides S1" reading guide was cut 28-SEP-2026 (git history keeps it).
+"what decides S1" reading guide was cut (git history keeps it).
 
 Every claim in this document is tagged VERIFIED (read from the named
 Gowin document / repo file / synthesized netlist) or INFERRED (labelled).
@@ -191,7 +191,7 @@ picocom. JTAG and UART are separate channels of the FT2232 emulation, so
 GAO capture and the console can run at the same time (INFERRED - the
 channels are independent in a real FT2232; verify on first session).
 
-### Launching the tools (VERIFIED 17-JUL-2026 on this board)
+### Launching the tools (VERIFIED on this board)
 
 Executables live in the Gowin EDA install's `IDE\bin\` folder:
 `gao_analyzer.exe` (the logic analyzer), `gvio_analyzer.exe`. The

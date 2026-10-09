@@ -1,6 +1,6 @@
 # nd100x device semantics - reference for the Verilog device port
 
-Extracted 11-JUL-2026 from the nd100x emulator (the nd100x repository).
+Extracted from the nd100x emulator (the nd100x repository).
 This was the first semantics source for ND-BUS-DEVICES; the other
 reference is Verilog/simDevices/NDDevices.cpp (the C models runSim boots
 with). File/line references below are into nd100x as of that date.

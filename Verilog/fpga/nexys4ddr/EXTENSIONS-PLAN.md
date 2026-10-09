@@ -1,7 +1,7 @@
 # Nexys 4 DDR extensions: microSD, then DDR2 main memory
 
 **Full path:** `Verilog/fpga/nexys4ddr/EXTENSIONS-PLAN.md`
-**Date:** 19-AUG-2026. **Status: HISTORICAL (02-SEP-2026).** Both extensions are DONE and proven on silicon - the microSD/FAT stack and DDR2 main memory both ship in the deployed Nexys build that boots SINTRAN III. This document is kept for the DDR2 latency-budget rationale that RTL comments cite (`ddr2/MEM_RAM_49_DDR2.v`, `ddr2/nd_ddr2_port.v`, `sd-fat-test/nd_memtest_ddr2.v`, `build.tcl`) and for the board's SD facts; the finished work lists, the 20-AUG status and the acceptance lists were cut 28-SEP-2026 (git history keeps them). Read it as the original plan, not current status.
+**Date:** 19-AUG-2026. **Status: HISTORICAL.** Both extensions are DONE and proven on silicon - the microSD/FAT stack and DDR2 main memory both ship in the deployed Nexys build that boots SINTRAN III. This document is kept for the DDR2 latency-budget rationale that RTL comments cite (`ddr2/MEM_RAM_49_DDR2.v`, `ddr2/nd_ddr2_port.v`, `sd-fat-test/nd_memtest_ddr2.v`, `build.tcl`) and for the board's SD facts; the finished work lists, the 20-AUG status and the acceptance lists were cut 28-SEP-2026 (git history keeps them). Read it as the original plan, not current status.
 
 The first build in this folder is a Basys3 clone on a bigger part: BRAM main
 memory (24 KB), 16.667 MHz, UART console. This document covers the two things
@@ -33,7 +33,7 @@ bidirectional `sd_dat0`, with a `*_oe` tristate pattern at the top level.
    configuration the on-board microcontroller relinquishes the SD bus, and
    *"the SD_RESET signal needs to be actively driven low by the FPGA to power
    the microSD card slot"* - without it the slot is dead and every SD command
-   times out. (Since 27-AUG-2026 the design also power-cycles the slot at
+   times out. (The design also power-cycles the slot at
    configuration, reset and master clear - see `HISTORY.md`.)
 2. **Pins** (Digilent master XDC, already listed commented-out in
    `nd120_nexys4ddr.xdc`): `SD_SCK B1`, `SD_CMD C1`, `SD_DAT C2/E1/F1/D2`,

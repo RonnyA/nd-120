@@ -4,8 +4,7 @@
 **Date:** 13-JUL-2026. Research answer to: "the Basys3 has a USB port - can
 the FAT SD-card logic get a variant that uses USB?" Sources cited inline;
 the code-layering facts come from
-`Verilog/SD-FAT/circuit/` (analyzed
-13-JUL-2026).
+`Verilog/SD-FAT/circuit/`.
 
 ---
 
@@ -141,7 +140,7 @@ READ(10) (~167 KB/s if done sector-at-a-time). Modern USB 2.0/3.x sticks
 are REQUIRED to fall back to full-speed operation, so they will work.
 That is 4-7x our measured 137 KB/s SD-SPI - but the SD speed ladder
 (13.5 MHz + CMD18/CMD25 multi-block) lands in the same league - and the
-4-bit bus measured 3418 KB/s write, 5981 KB/s read on the Tang on 12-JUL-2026
+4-bit bus measured 3418 KB/s write, 5981 KB/s read on the Tang
 (`sd-cmd18-block-gap-research.md`, last section). **USB wins on connector
 convenience, not on speed.**
 

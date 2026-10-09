@@ -69,7 +69,7 @@ Device READMEs and validation plans that build on the above:
   manual-quoted register spec of the 3106/3112 floppy controller (two
   status words).
 - [`floppy-review-findings.md`](floppy-review-findings.md) - the open items
-  from the 12-JUL floppy review.
+  from the floppy review.
 - [`HANDOFF-floppy-pio-c-and-csharp-fixes.md`](HANDOFF-floppy-pio-c-and-csharp-fixes.md) -
   open work order for the PIO floppy models in the nd100x (C) and RetroCore
   (C#) repositories.
@@ -120,9 +120,9 @@ Device READMEs and validation plans that build on the above:
   CYC_36 CPU clocks became clean flip-flop clocks; the latch-vs-edge rules.
 - [`plan-fix-unconstrained-clocks.md`](plan-fix-unconstrained-clocks.md) -
   the net-by-net conversion of the 17 rogue clock nets (phases P1-P4 are
-  cited from the RTL); solved 10-JUL, P5 still open.
+  cited from the RTL); solved, P5 still open.
 - [`latch-inventory.md`](latch-inventory.md) - map of the CGA datapath
-  latches and the latch-model fix (solved 07-JUL).
+  latches and the latch-model fix (solved).
 - [`skip-wcs-load.md`](skip-wcs-load.md) - `SKIP_WCS_LOAD`: preloading the
   WCS instead of the runtime PROM load; board and sim image sets.
 - [`backwiring-prom-installation-number.md`](backwiring-prom-installation-number.md) -
@@ -144,7 +144,7 @@ Device READMEs and validation plans that build on the above:
 
 ## Nexys 4 DDR - cache and panel
 
-- [`CACHE-STATUS.md`](CACHE-STATUS.md) - solved 31-AUG: the CPU cache, how a
+- [`CACHE-STATUS.md`](CACHE-STATUS.md) - solved: the CPU cache, how a
   hit works, the four faults and their fixes, what was ruled out, test
   results, how to run CACHE-1X0-A00 in Verilator.
 - [`PLAN-cache-and-panel.md`](PLAN-cache-and-panel.md) - open panel and
@@ -160,6 +160,6 @@ Device READMEs and validation plans that build on the above:
 
 - [`PLAN-mister-storage.md`](PLAN-mister-storage.md) - MiSTer OSD storage:
   open board checks, decisions, and the HPS block contract.
-- [`mister-microcode-loop.md`](mister-microcode-loop.md) - solved 01-SEP: the
+- [`mister-microcode-loop.md`](mister-microcode-loop.md) - solved: the
   MiSTer WCS read took two clocks (altsyncram); now the `QUARTUS_RAM_INFER`
   arm and its equivalence gate.

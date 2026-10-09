@@ -1,7 +1,7 @@
 # Tang Nano 20K - debugging options for the ND-120
 
 **Full path:** `Verilog/fpga/tang-nano-20k/DEBUG-OPTIONS.md`
-Written 17-JUL-2026, during the masked-grant hunt. Status column tells you what
+Written during the masked-grant hunt. Status column tells you what
 exists TODAY vs what is planned. Pick the lightest tool that answers the
 question; the heavier ones cost rebuilds, resources, or wiring.
 
@@ -124,7 +124,7 @@ mid-hunt.
 
 ## Proving a probe survived synthesis
 
-Moved here 28-SEP-2026 from the finished page-fault campaign plans. A build
+Moved here from the finished page-fault campaign plans. A build
 reporting success proves NOTHING about whether a diagnostic block is in it.
 Three mechanisms have removed one while the bitstream still flashed cleanly
 and streamed constants: (1) the new file is not in `nd120_tang20k.gprj`, so
@@ -139,8 +139,8 @@ without the define (the page-fault capture added +174 registers).
 
 ## Gate-level timing simulation with Gowin SDF (recipe, not yet used)
 
-Moved here 28-SEP-2026 from the answered masked-grant question sheet;
-confirmed available 18-JUL-2026 on the Gowin V1.9.10.02 install, not
+Moved here from the answered masked-grant question sheet;
+confirmed available on the Gowin V1.9.10.02 install, not
 re-checked since. The one simulation that models real delays:
 
 - The PnR option "Generate SDF File" exists (`IDE/data/config/

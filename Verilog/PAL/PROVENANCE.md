@@ -68,7 +68,7 @@ Three tables in `check_provenance.py` keep it honest:
   shrink.** Anything not in it fails the build.
 
 `ACKNOWLEDGED` is currently **empty**. Its one entry, 44404C `DLSHADOW`, was
-resolved on 08-AUG-2026:
+resolved:
 
 > `DLSHADOW` belongs to revision **44404D**, whose listing is not in
 > `DesignDocuments/PAL-Code/SRC`, and `PAL_44404C.v:81-83` records the

@@ -2,11 +2,11 @@
 
 This document details the hardware components, specifications, and requirements for the ND-120 CPU implementation.
 
-> **Provenance note (02-AUG-2026):** this document was drafted in September 2025.
+> **Provenance note:** this document was drafted in September 2025.
 > The component and status tables below have been re-checked against the RTL.
 > The timing, power, environmental, mechanical, bus and expansion figures that
 > stood further down were never traced back to the original Norsk Data
-> documentation; they were removed on 28-SEP-2026 (still in git history).
+> documentation; they were removed (still in git history).
 
 ## System Overview
 
@@ -34,7 +34,7 @@ The main CPU board contains all essential processing components in a single-boar
 |-----------|------|------|----------|---------|
 | **Microcode ROM** | 64KB | EPROM | Microinstruction storage | ✅ Dumped & implemented |
 | **Working Registers** | 32×16-bit | Static RAM | CPU register file | ✅ Implemented |
-| **Cache Memory** | Variable | Static RAM | MMU data cache | ✅ Implemented; all 8 CACHE-1X0-A00 tests pass on the Nexys 4 DDR (31-AUG-2026) |
+| **Cache Memory** | Variable | Static RAM | MMU data cache | ✅ Implemented; all 8 CACHE-1X0-A00 tests pass on the Nexys 4 DDR |
 | **Main Memory** | Up to 8MB | Dynamic RAM | System memory | ✅ Simulation (6MB) and SDRAM on Tang Nano 20K |
 
 ### DELILAH CPU Gate Array (CGA)
@@ -195,7 +195,7 @@ Build flows live under `Verilog/fpga/<board>/`; the board list, status and limit
 
 The four lines above describe what the real SC2661 chip could be programmed to do. They are not
 what `Verilog/Shared/support/SC2661_UART.v` does, and reading them as a terminal setting is how a
-whole evening got lost on 30 August 2026 — a PC was set to 7E1 against this UART, the PC's driver
+whole evening got lost — a PC was set to 7E1 against this UART, the PC's driver
 then validated a parity bit that is never sent, and every character it judged bad came back as a
 question mark sprinkled through the text.
 
@@ -228,14 +228,14 @@ configurable, through the defines:
 
 #### Why setting a terminal to 7E1 corrupts the text
 
-A terminal told to expect even parity samples the **8th data bit** in the parity position. For
-7-bit ASCII that bit is 0, so any character with an odd number of set bits fails the check. What
-happens then is the terminal's business, and the two behave differently:
+A terminal set to 7E1 treats the 8th data bit as a parity bit and checks it. This UART sends
+that bit as plain data, so some characters fail the check. What happens then depends on the
+reader:
 
 - **PuTTY / TeraTerm** and the FPGA's own VGA console show the text clean.
-- **A .NET `System.IO.Ports` program** substitutes a replacement byte for the failed character.
-  `SerialPort.ParityReplace` defaults to **63**, which is `?` — so the failures arrive as question
-  marks embedded in the data, looking exactly like characters the ND sent.
+- **A .NET `System.IO.Ports` program** puts `SerialPort.ParityReplace` into the data on a
+  parity error. Its default is **63**, which is `?`, so the failures arrive as question marks
+  that look exactly like characters the ND sent. Set `ParityReplace=0`, or use 8N1.
 
 Measured on real hardware, same wire, same command:
 
@@ -246,8 +246,6 @@ Measured on real hardware, same wire, same command:
 | .NET, `ParityReplace=0` | 7E1 | 42 | 0 |
 | pyserial / .NET | 8N1 | 42 | 0 |
 
-**Not fully explained:** that model predicts a failure on nearly every odd-population character,
-which would shred the text. In the capture only 6 of 42 bytes came back as `?`, clustered around
-the echo and the prompts. The framing mismatch is verified from this source file; the exact rate
-and clustering are not, and pinning them down would need a controlled capture.
+Which characters fail, and why .NET delivered 48 bytes instead of 42, is not explained (open
+item in `Verilog/TODO.md`). The rule does not depend on it: connect at 8N1.
 

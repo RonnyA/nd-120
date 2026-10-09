@@ -10,10 +10,9 @@ point-to-point, no PCB (design phase). Seam: `nd_bus_if.h`.
 > (Tang balls, from the Sipeed pin-label sheet) and `NDModulE/src/bus/nd_bus_gpio.h` /
 > `nd_bus_pins.h` (Pico GPIO). The wiring below is transcribed from that `.cst`.
 > The visual diagram is the artifact "Pico ↔ Tang Nano 20K — ND-bus rig wiring";
-> if the diagram and the `.cst` ever disagree, **the `.cst` wins** (Ronny's call,
-> 08-SEP-2026).
+> if the diagram and the `.cst` ever disagree, **the `.cst` wins** (Ronny's call).
 
-## Decisions locked (08-SEP-2026)
+## Decisions locked
 
 1. **Wire list = 31-wire latched-interrupt map** (the newer `.cst`), not the older
    34-wire `TANG-RIG-PIN-BUDGET.STALE.md` individual-interrupt map. Interrupts are NOT

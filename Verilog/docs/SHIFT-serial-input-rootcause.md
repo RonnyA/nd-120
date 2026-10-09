@@ -2,7 +2,7 @@
 
 **Status: FIXED** in `Verilog/DELILAH-CPU/CGA_ALU/circuit/CGA_CPU_ALU_CONTR.v`
 (MEMORY_46/47 rising-edge flip-flops replaced by the `SSEL_LATCH` transparent
-latch, mirroring the MIC IR latch). Found 13-JUL-2026 during the
+latch, mirroring the MIC IR latch). Found during the
 INSTRUCTION-B deep-validation campaign.
 
 ## Symptom

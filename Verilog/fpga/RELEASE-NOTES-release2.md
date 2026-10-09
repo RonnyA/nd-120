@@ -36,7 +36,7 @@ release.
 | `nd120_mega65_r6_20MHz_115200.cor` | MEGA65 **R4 / R5 / R6** | `.cor` | 20 MHz | **Built + timing-clean. NOT yet run on a MEGA65.** |
 | `nd120_nexys4ddr_33MHz_115200.bit` | Nexys 4 DDR | `.bit` | 33.333 MHz | *pending — refresh build in preparation* |
 | `nd120_tang20k_fast20_20MHz_115200.fs` | Tang Nano 20K | `.fs` | 20.25 MHz | *pending — refresh build in preparation* |
-| `nd120_mister_20MHz_115200.rbf` | MiSTer (DE10-Nano) | `.rbf` | 20 MHz | **Built + run on a DE10-Nano (02-SEP-2026): boots to OPCOM, boots SINTRAN from a mounted Winchester image, TDV2200 font and keyboard confirmed.** |
+| `nd120_mister_20MHz_115200.rbf` | MiSTer (DE10-Nano) | `.rbf` | 20 MHz | **Built + run on a DE10-Nano: boots to OPCOM, boots SINTRAN from a mounted Winchester image, TDV2200 font and keyboard confirmed.** |
 | `nd120_qmtech_a35t_20MHz_115200.bit` | QMTECH XC7A35T SDRAM core board | `.bit` | 20 MHz | **Built + timing met (+4.645 ns). NOT yet run on a board.** |
 | `SHA256SUMS` | — | — | — | regenerated when the whole set is final |
 

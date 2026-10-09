@@ -1,10 +1,10 @@
 # Serial binary loader (300$) - status and findings
 
-PARKED by owner decision, 11-JUL-2026 (see FINAL VERDICT). Trimmed
-28-SEP-2026: the blocker analysis, the sim repro recipe and the LDIRV
+PARKED by owner decision (see FINAL VERDICT). Trimmed:
+the blocker analysis, the sim repro recipe and the LDIRV
 documentation cross-check are in git history.
 
-10-JUL-2026. Goal: load BPUN programs fast by typing `300$` at the OPCOM
+Goal: load BPUN programs fast by typing `300$` at the OPCOM
 prompt and streaming the raw BPUN file bytes into the console UART - the
 BPUN format IS the microcode loader's wire format, no conversion needed.
 Reference: RetroTerm docs ND110-OPCOM-MICROCODE-REFERENCE.md (sections on
@@ -40,7 +40,7 @@ Verilator (runSim, `-DSCRIPT_CMD_BINLOAD` + the `ND120_BINLOAD_FILE` harness
 in `Run120.cpp`) and identical on hardware. The cause is that nothing in the
 ETLO1/INCH flow fires LDIRV, so IR is stale - see below.
 
-## FINAL VERDICT (11-JUL-2026) - hunt closed, bug not ours to fix
+## FINAL VERDICT - hunt closed, bug not ours to fix
 
 Sheet-verified conclusion after full instrumentation and schematic
 cross-check with the owner:
@@ -71,7 +71,7 @@ cross-check with the owner:
    macro/MOPC flows and deranges boot. No faithful-to-the-drawings rule
    exists because the drawings themselves lack the mechanism.
 
-DECISION (owner, 11-JUL-2026): STOP hunting. 300$ is parked as
+DECISION (owner): STOP hunting. 300$ is parked as
 "mechanism proven, hardware-as-drawn cannot do it, disabled". BPUN
 loading paths: ndcomm deposit mode (proven on silicon), and the
 device-400 SD tape reader (docs/sd-bpun-device-plan.md) which uses the

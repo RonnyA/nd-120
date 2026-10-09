@@ -1,6 +1,6 @@
 # ND-BUS seam gate (RTL ⟷ portable C core, in Verilator)
 
-**Status: WORKING, validated 2026-07-19.** `make` prints `TB_RESULT: PASS` (6/6).
+**Status: WORKING, validated.** `make` prints `TB_RESULT: PASS` (6/6).
 
 This is the first gate that proves the **portable C device cores** behave
 correctly when driven through the **authoritative Verilog bus seam**
@@ -44,5 +44,5 @@ On Windows the oss-cad-suite perl `verilator` wrapper does not work; set
 ## TODO to make this the real gate
 
 - Register in the machine-checkable test harness `Verilog/tests/run_all_tests.sh`
-  (it already emits `TB_RESULT: PASS`; not registered as of 28-SEP-2026).
+  (it already emits `TB_RESULT: PASS`; not registered).
 - Add terminal + IDENT + DMA (ND_DMA_MASTER) coverage.

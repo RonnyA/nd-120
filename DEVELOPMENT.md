@@ -114,7 +114,7 @@ Why the flip-flop mode is a fair copy of the latches (the reasoning from the
   BACT_n from PAL_44304E (both one way), and PAL_44304E and PAL_44401B take
   only delayed copies from the AM29C821 pipeline.
 - `make compare` in `Verilog/sim` is the proof for a given change. At the end
-  of the migration (29-MAR-2026, 1M cycles) the two modes differed only in the
+  of the migration (1M cycles) the two modes differed only in the
   BDRY start-up value (cycles 0-2: the latch settles to 1, the flip-flop resets
   to 0) and the CSA shift that follows from it at cycle 16415.
 

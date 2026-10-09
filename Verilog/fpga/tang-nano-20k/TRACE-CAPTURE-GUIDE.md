@@ -132,7 +132,7 @@ Reading the trace:
   rises (row on AA) -> `CAS` rises (column on AA, write data on DD) ->
   window ends. See `../../docs/nd120-dram-memory.md` for the protocol
   ground truth (the v1/v2 annotated traces of the 8-JUL write bug were in
-  `Verilog/docs/HANDOFF-basys3-memory-write.md`, deleted 28-SEP-2026 - git
+  `Verilog/docs/HANDOFF-basys3-memory-write.md`, deleted - git
   history keeps them).
 - Compare against the Verilator/iverilog sim of the same access when in
   doubt - the sim is the working reference.
@@ -185,7 +185,7 @@ inference. That is the method: probe, decode, move one layer, repeat.
 
 ## 9. The nd100x oracle traces (the reference side)
 
-Moved here 28-SEP-2026 from the finished page-fault campaign plans (git
+Moved here from the finished page-fault campaign plans (git
 history keeps them). Recorded 23-AUG-2026; the files live outside the repo
 under `$ND120_ORACLE_DIR` and were not re-checked since.
 

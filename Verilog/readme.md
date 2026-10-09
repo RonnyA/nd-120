@@ -10,14 +10,14 @@ The Verilog code has been split into subfolder matching the structure of the Log
 ## Status
 
 Verilator compiles and runs the full boot path: microcode load, "Master Clear",
-then the MACL CPU self-test (**passes clean - 0 STERR visits**, measured 13-JUL
+then the MACL CPU self-test (**passes clean - 0 STERR visits**, measured
 with the runSim ND120_COUNT_STERR probe; the old "7 of 14" figure predated the
-07-JUL transparent-latch fix), after which OPCOM UART communication works (use
+transparent-latch fix), after which OPCOM UART communication works (use
 the `runSim/` harness to interact with it).
 
-**SINTRAN III boots on FPGA silicon**: Tang Nano 20K (24-AUG-2026, the
-`ND3202D.v:533` bus bank-decode fix in `HISTORY.md`), Nexys 4 DDR (25-AUG-2026)
-and MiSTer / DE10-Nano (02-SEP-2026). The Basys3 boots OPCOM only; the MEGA65
+**SINTRAN III boots on FPGA silicon**: Tang Nano 20K (the
+`ND3202D.v:533` bus bank-decode fix in `HISTORY.md`), Nexys 4 DDR
+and MiSTer / DE10-Nano. The Basys3 boots OPCOM only; the MEGA65
 cores and the QMTECH bitstream are built and timing-clean but have not run on
 their boards. Per-board state, clocks and limits: [`fpga/README.md`](fpga/README.md).
 
@@ -241,8 +241,8 @@ Two flows (details in
   + ND-120 UART at 9600 baud) in
   [`fpga/tang-nano-20k/sdram-test/`](fpga/tang-nano-20k/sdram-test/README.md) -
   buildable with both Gowin EDA (`sdram_test.gprj`) and the OSS flow (`make`),
-  with a passing iverilog testbench (`make sim`). **Verified on hardware
-  2026-07-08**: OSS-flow bitstream, 1 MB write+verify passes; that README also
+  with a passing iverilog testbench (`make sim`). **Verified on hardware**:
+  OSS-flow bitstream, 1 MB write+verify passes; that README also
   documents the usbipd/WSL2 program-and-console workflow.
 
 Key shared facts:
