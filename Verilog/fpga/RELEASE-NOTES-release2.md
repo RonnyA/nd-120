@@ -22,9 +22,11 @@ MiSTer2MEGA65 framework, both revisions*.
 - A fourth power-on **banner line**: board / CPU clock / cache on-off, filled
   in from the build settings.
 
-**Console settings — every file, no exceptions:** 115200 baud, **7 data bits,
-EVEN parity, 1 stop bit**, no flow control. One terminal setting for the whole
-release.
+**Console settings for a PC on a USB serial console:** 115200 baud, **8 data
+bits, no parity, 1 stop bit (8N1)**, no flow control. The ND-120's UART
+(SC2661) is fixed at 8N1. A PC set to 7E1 shows clean text in PuTTY or
+TeraTerm, but a .NET program then inserts `?` characters (see `HARDWARE.md`).
+The built-in TDV2200 terminal on the MEGA65 and MiSTer needs no setting.
 
 ---
 
@@ -118,6 +120,21 @@ wrong-model `.cor`:**
 Both cores are the whole machine: CPU, 4 MB memory, TDV2200 console on the
 MEGA65's own keyboard and screen, and the framework's virtual floppy 0/1 +
 Winchester 0/1 + tape. Build stamp `e5bdea5+ 02-Sep-2026 16:27`.
+
+The console is built in: the TDV2200 terminal runs inside the core, so a
+MEGA65 needs no serial cable or PC terminal. The console settings above apply
+only to the boards with a USB serial console.
+
+**Build flags** (from the Vivado synthesis command in each core's build log):
+
+- R3 / R3A: `FPGA_FF_MODE BOARD_CLK_FREQ=13333333 UART_BAUD_RATE=115200
+  SKIP_WCS_LOAD ND120_MIPS_TAP ND120_PANEL_CLOCK MAIN_RAM_DDR2`
+- R4 / R5 / R6: `FPGA_FF_MODE BOARD_CLK_FREQ=20000000 UART_BAUD_RATE=115200
+  SKIP_WCS_LOAD ND120_MIPS_TAP ND120_PANEL_CLOCK MAIN_RAM_SDRAM
+  ND_SDRAM_PACK16 ND_SDRAM_DQ16 ND_SDRAM_REFRESH_US=7`
+
+So both cores include the MC68705 panel clock (`ND120_PANEL_CLOCK`) and the
+CPU cache (no `ND120_NO_CACHE`; switched on and off from the menu).
 
 **What to report:** does the power-on banner render (including the box-drawing
 lines), does the Left arrow work, does OPCOM answer, does `20500&` run — and the

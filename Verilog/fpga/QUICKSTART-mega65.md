@@ -13,6 +13,16 @@ card. It boots SINTRAN III from a Winchester image.
 > If you have one, you are the test - see "What to report" at the end. Keep
 > a copy of your disc images.
 
+Built into both cores, nothing to configure:
+
+- **The console.** The TDV2200 terminal runs inside the core on the MEGA65's
+  own keyboard and screen. No serial cable, no PC and no terminal program
+  are needed; the `115200` in the file name is the internal link between
+  the CPU and the terminal.
+- **The panel clock** (the MC68705 real-time clock), so SINTRAN can set and
+  read the time. The operator panel's `UP:` field is time since reset, not
+  this clock.
+
 What you need:
 
 - A MEGA65 (R3/R3A, or R4/R5/R6) and its keyboard and a monitor (VGA or
