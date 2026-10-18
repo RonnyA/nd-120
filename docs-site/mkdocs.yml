@@ -65,6 +65,8 @@ exclude_docs: |
 
 theme:
   name: material
+  # Adds the RetroCore Labs logo to the header (overrides/main.html), relative to this file.
+  custom_dir: overrides
   language: en
   icon:
     logo: material/chip

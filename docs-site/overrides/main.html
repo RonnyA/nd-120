@@ -1,0 +1,38 @@
+{#-
+  Adds the RetroCore Labs logo to the page header: the organisation's profile picture, linking back
+  to the front page of retrocorelabs.github.io. It sits in the top right, left of the repository
+  link (which shows the GitHub logo, see theme.icon.repo in mkdocs.yml).
+-#}
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  <style>
+    .rcl-org {
+      position: fixed;
+      top: 0;
+      right: 12.4rem;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      height: 2.4rem;
+      padding: 0 0.4rem;
+    }
+    .rcl-org img {
+      width: 1.6rem;
+      height: 1.6rem;
+      border-radius: 4px;
+    }
+    /* Below 76.25em the repository link is narrower, and below 60em it is gone. */
+    @media screen and (max-width: 76.1875em) {
+      .rcl-org { right: 6.4rem; }
+    }
+  </style>
+{% endblock %}
+
+{% block header %}
+  {{ super() }}
+  <a class="rcl-org" href="https://retrocorelabs.github.io/" title="RetroCore Labs">
+    <img src="{{ 'assets/RetroCoreLabs.png' | url }}" alt="RetroCore Labs">
+  </a>
+{% endblock %}
