@@ -27,6 +27,16 @@
     @media screen and (max-width: 76.1875em) {
       .rcl-org { right: 6.4rem; }
     }
+    /* Below 60em Material drops the repository link; keep just the GitHub logo, no repo name. */
+    @media screen and (max-width: 59.9375em) {
+      .md-header__source { display: block; width: 2.4rem; max-width: 2.4rem; margin-left: 0; }
+      .md-source { width: 2.4rem; }
+      .md-source__repository { display: none; }
+      .rcl-org { right: 7.6rem; z-index: 10; }
+      /* Leave room for the org logo so the site name is cut with "..." instead of run over. */
+      .md-header__title { margin-right: 2.4rem !important; }
+      .md-header__topic .md-ellipsis { overflow: hidden; text-overflow: ellipsis; }
+    }
   </style>
 {% endblock %}
 
