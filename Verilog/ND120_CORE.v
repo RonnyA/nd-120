@@ -51,7 +51,7 @@ module ND120_CORE #(
     // bits 0-15. 0 = ECC / BIG-DISC card (core-address / word-count registers
     // load in a SINGLE write). Both types load 1024 words from the
     // mass-storage microcode's single +7 write of 002000 (see ND_SMD.v,
-    // s_ma_wc_ff); only the 15 MHz card boots SINTRAN L from the BIGDISK
+    // s_ma_wc_ff). Only the 15 MHz card boots SINTRAN L from the BIGDISK
     // image (see the ND_SMD.v header).
     //
     // Default is define-driven so a plain build needs NO file edit, exactly
