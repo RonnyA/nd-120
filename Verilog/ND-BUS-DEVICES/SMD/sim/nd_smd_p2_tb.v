@@ -12,17 +12,17 @@
 ** strobe (CONFORMANCE-style, the SMD analogue of the floppy P2 tb):     **
 **                                                                       **
 **  1  STROBE WIDTH: the slave pulses iox_rd for exactly one sysclk      **
-**       cycle. A wider strobe would toggle mar_ff / wcr_ff TWICE per    **
+**       cycle. A wider strobe would toggle ma_wc_ff TWICE per           **
 **       bus read (returning the wrong readback half). Proven by a       **
 **       continuous monitor: iox_rd is never high on two consecutive     **
 **       sysclk edges over the whole run.                                **
 **  2  CORE ADDRESS readback (the toggle under the real strobe): load    **
 **       HI then LO via +1, read +0 twice through the bus -> LO then HI. **
 **       read2 == HI is the direct double-toggle detector: a 2-cycle     **
-**       strobe would leave mar_ff back at 0 and return LO again. Also    **
-**       asserted at the flip-flop: exactly one toggle per bus read.     **
+**       strobe would leave ma_wc_ff back at 0 and return LO again.      **
+**       Also asserted at the flip-flop: one toggle per bus read.        **
 **  3  WORD COUNTER readback (CWR=1 mux): load HI/LO via +7, read +0     **
-**       twice -> LO then HI, with one wcr_ff toggle per bus read.       **
+**       twice -> LO then HI, with one ma_wc_ff toggle per bus read.     **
 **  4  STATUS-READ clr_ff: a +4 status read (CWR=0) must reset the read  **
 **       flip-flops through the single-cycle strobe, so the following    **
 **       +0 read starts at LO again (not the stale HI phase).            **
@@ -87,8 +87,8 @@ module nd_smd_p2_tb;
   wire        ident_grant_out;
 
   // HAS_WC_FLIPFLOP(1): this tb is specifically about the 15 MHz read
-  // flip-flops (mar_ff/wcr_ff toggle), so it pins the flip-flop card (the
-  // module default is now the single-write ECC card that boots).
+  // flip-flop (s_ma_wc_ff toggle), so it pins the flip-flop card (the
+  // module default is the single-write ECC card).
   ND_SMD #(.HAS_WC_FLIPFLOP(1)) u_smd (
       .sysclk        (sysclk),
       .sys_rst_n     (sys_rst_n),
@@ -211,46 +211,50 @@ module nd_smd_p2_tb;
     ctrl_word(1'b0, 3'd0);
 
     // ============ Test 2: CORE ADDRESS readback under the real strobe ====
-    // Load HI (0xAB) then LO (0xCDEF); read +0 twice -> LO then HI. mar_ff
-    // starts at 0 (LO). Each bus read must toggle mar_ff exactly once.
+    // Load HI (0xAB) then LO (0xCDEF); read +0 twice -> LO then HI. ma_wc_ff
+    // starts at 0 (LO). Each bus read must toggle ma_wc_ff exactly once.
     iox_write(BASE + 16'd1, 16'h00AB);   // +1 first write  = HI byte
     iox_write(BASE + 16'd1, 16'hCDEF);   // +1 second write = LO 16
-    mar_a = u_smd.s_mar_ff;
+    mar_a = u_smd.s_ma_wc_ff;
     iox_read(BASE + 16'd0, r);           // first +0 read = LO
-    mar_b = u_smd.s_mar_ff;
+    mar_b = u_smd.s_ma_wc_ff;
     iox_read(BASE + 16'd0, r2);          // second +0 read = HI
-    mar_c = u_smd.s_mar_ff;
+    mar_c = u_smd.s_ma_wc_ff;
     check(r  === 16'hCDEF, "T2: core-addr LO via real bus strobe must be 0xCDEF");
     check(r2 === 16'h00AB,
           "T2: core-addr HI must be 0x00AB (read2==HI proves single toggle)");
-    check(mar_b !== mar_a, "T2: first bus +0 read must toggle mar_ff exactly once");
-    check(mar_c !== mar_b, "T2: second bus +0 read must toggle mar_ff exactly once");
+    check(mar_b !== mar_a, "T2: first bus +0 read must toggle ma_wc_ff exactly once");
+    check(mar_c !== mar_b, "T2: second bus +0 read must toggle ma_wc_ff exactly once");
 
     // ============ Test 4: STATUS READ resets the read flip-flops =========
-    // mar_ff is now back at 0 after two toggles. Toggle it once more with a
-    // +0 read (mar_ff -> 1), then a +4 status read (CWR=0) must clr_ff it
+    // ma_wc_ff is now back at 0 after two toggles. Toggle it once more with a
+    // +0 read (ma_wc_ff -> 1), then a +4 status read (CWR=0) must clr_ff it
     // back to 0, so the next +0 read starts at LO again.
-    iox_read(BASE + 16'd0, r);           // returns LO (mar_ff was 0), mar_ff -> 1
-    check(u_smd.s_mar_ff === 1'b1, "T4: a +0 read leaves mar_ff = 1");
+    iox_read(BASE + 16'd0, r);           // returns LO (ma_wc_ff was 0), ma_wc_ff -> 1
+    check(u_smd.s_ma_wc_ff === 1'b1, "T4: a +0 read leaves ma_wc_ff = 1");
     iox_read(BASE + 16'd4, r);           // +4 status read, CWR=0 -> clr_ff
-    check(u_smd.s_mar_ff === 1'b0, "T4: +4 status read must reset mar_ff (clr_ff)");
+    check(u_smd.s_ma_wc_ff === 1'b0, "T4: +4 status read must reset ma_wc_ff (clr_ff)");
     iox_read(BASE + 16'd0, r);           // starts at LO again
     check(r === 16'hCDEF, "T4: after status-read reset, +0 must return LO again");
 
     // ============ Test 3: WORD COUNTER readback (CWR=1 mux) ==============
     // Load HI (0x12) then LO (0x3456) via +7 (CWR=0), switch CWR=1, read +0
-    // twice -> LO then HI, one wcr_ff toggle per bus read.
+    // twice -> LO then HI, one ma_wc_ff toggle per bus read.
+    // The +0 read that closes Test 4 left the SHARED memory address / word
+    // count flip-flop in its second state, so a status read resets it first;
+    // otherwise the first +7 below would be the second access of a pair.
     ctrl_word(1'b0, 3'd0);               // ensure CWR=0 for the +7 loads
-    iox_write(BASE + 16'd7, 16'h0012);   // +7 first write  = WC HI byte
-    iox_write(BASE + 16'd7, 16'h3456);   // +7 second write = WC LO 16
-    ctrl_word(1'b1, 3'd0);               // switch to CWR=1, unit0 (wcr_ff still 0)
-    wcr_a = u_smd.s_wcr_ff;
+    iox_read(BASE + 16'd4, r);           // status read -> clr_ff
+    iox_write(BASE + 16'd7, 16'h0012);   // +7 first write: all 24 bits, b16-23 = 0x12
+    iox_write(BASE + 16'd7, 16'h3456);   // +7 second write: bits 0-15 only
+    ctrl_word(1'b1, 3'd0);               // switch to CWR=1, unit0 (ma_wc_ff still 0)
+    wcr_a = u_smd.s_ma_wc_ff;
     iox_read(BASE + 16'd0, r);           // +0 CWR=1 first read = WC LO
-    wcr_b = u_smd.s_wcr_ff;
+    wcr_b = u_smd.s_ma_wc_ff;
     iox_read(BASE + 16'd0, r2);          // +0 CWR=1 second read = WC HI
     check(r  === 16'h3456, "T3: word-count LO (CWR=1 mux) must be 0x3456");
-    check(r2 === 16'h0012, "T3: word-count HI must be 0x0012 (single wcr_ff toggle)");
-    check(wcr_b !== wcr_a, "T3: first CWR=1 +0 read must toggle wcr_ff exactly once");
+    check(r2 === 16'h0012, "T3: word-count HI must be 0x0012 (single ma_wc_ff toggle)");
+    check(wcr_b !== wcr_a, "T3: first CWR=1 +0 read must toggle ma_wc_ff exactly once");
 
     // ============ Test 1: STROBE WIDTH verdict ==========================
     check(rd_run_max == 1,

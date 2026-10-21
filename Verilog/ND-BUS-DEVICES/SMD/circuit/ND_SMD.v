@@ -9,18 +9,26 @@
 ** Where a behaviour is a documented DIVERGENCE in the C port, this RTL   **
 ** follows the same choice; those are marked "DIVERGENCE:" below.        **
 **                                                                       **
-** CONTROLLER TYPE is a strap (parameter HAS_WC_FLIPFLOP, DEFAULT 0):      **
-**   0 = ECC / BIG-DISC card (DEFAULT): NO flip-flops - each of the Core   **
+** CONTROLLER TYPE is a strap (parameter HAS_WC_FLIPFLOP, DEFAULT 1):      **
+**   0 = ECC / BIG-DISC card (opt-in): NO flip-flops - each of the Core  **
 **       Address / Word Count registers loads its full value in ONE write  **
 **       and reads back in one, and Core Address bits 16-17 come from       **
-**       control-word bits 5-6. This is the type that BOOTS: the mass-      **
-**       storage microcode writes the word counter ONCE (002000), which     **
-**       loads 1024 only on a single-write card. A plain build boots.       **
-**   1 = 15/10 MHz card (opt-in): it HAS the address/word-count FLIP-FLOPS, **
-**       so the 24-bit Core Address and Word Count registers are each       **
-**       loaded by TWO writes (HI 8 bits, then LO 16) and read back LO then **
-**       HI; control-word bits 5-6 (address 16-17) are IGNORED (old 10MHz). **
-**       Mirrors the C core nd_smd.has_flipflops exactly.                  **
+**       control-word bits 5-6.                                          **
+**       ADDRESS LIMIT (matches the card's manual, so not modelled short):  **
+**       the ECC card has an 18-bit core address. ND-11.013.01 Appendix N, **
+**       N.3.1 Control Word Content: "5 Address bit 16", "6 Address bit    **
+**       17"; section 9.10 (1155 - Bus Control) lists "Bit 16 and 17 of    **
+**       the core address register (17B)" and no higher bits. SINTRAN L on  **
+**       the BIGDISK image loads segments at 05 xxxxxx and 037 xxxxxx, so   **
+**       on this card bits 18-23 are lost (05 lands at 01), it overwrites  **
+**       what it loaded before and halts in ERRFATAL. The ECC setting       **
+**       cannot run that system; the 15 MHz card can.                     **
+**   1 = 15/10 MHz card (DEFAULT): ONE flip-flop (4E on card 3044) serves **
+**       the 24-bit Core Address AND the Word Count, writes and reads      **
+**       alike. The FIRST access of a pair loads all 24 bits (bits 16-23   **
+**       from A bits 0-7, bits 0-15 from A); the SECOND loads bits 0-15     **
+**       only. Reads give bits 0-15 first, then bits 16-23. Control-word    **
+**       bits 5-6 (address 16-17) are IGNORED (old 10 MHz). See s_ma_wc_ff. **
 **                                                                       **
 ** UNLIKE the floppy card there is NO command block in ND memory. The     **
 ** guest loads the transfer parameters into controller registers by IOX   **
@@ -110,37 +118,26 @@ module ND_SMD #(
     parameter [15:0] GEO_SPT     = 16'd18,
     parameter [15:0] GEO_MAX_CYL = 16'd823,
     // Controller-type strap (docs/design/SMD-CONTROLLER-TYPE-SEAM.md).
-    //   0 = ECC / BIG-DISC controller (THE DEFAULT): the Core Address and Word
+    //   0 = ECC / BIG-DISC controller (opt-in): the Core Address and Word
     //       Counter registers have NO flip-flops - each loads its FULL value in
     //       a SINGLE write, the reads return the full value every time, and Core
-    //       Address bits 16-17 come from control-word bits 5-6. This is the card
-    //       that BOOTS: the mass-storage microcode (CSA o2217) writes the Word
-    //       Counter ONCE with 002000, which loads 1024 on a single-write card.
-    //   1 = 15/10 MHz SMD (ND632): the 24-bit Core Address and Word Counter
-    //       registers load via a HI-then-LO TWO-write flip-flop, and the reads
-    //       return LO then HI. Control-word bits 5-6 are ignored (old 10 MHz).
-    // Mirrors the C core's nd_smd.has_flipflops EXACTLY (nd_smd_set_controller);
-    // the equivalence gate drives both sides to the same value.
+    //       Address bits 16-17 come from control-word bits 5-6.
+    //   1 = 15/10 MHz SMD (ND632, cards 3043/3044, THE DEFAULT): the 24-bit Core Address
+    //       and Word Counter share ONE flip-flop (s_ma_wc_ff). The first access
+    //       of a pair loads all 24 bits, the second bits 0-15 only; reads
+    //       return bits 0-15 first, then bits 16-23. Control-word bits 5-6 are
+    //       ignored (old 10 MHz). The single +7 write of 002000 that the
+    //       mass-storage microcode makes therefore loads 1024 words on this
+    //       card too.
     //
-    // DEFAULT IS 0 (no flip-flop) so a plain build BOOTS the SMD image with no
-    // define. The 15 MHz two-write card is the opt-in: set HAS_WC_FLIPFLOP(1)
-    // (the three flip-flop unit testbenches do exactly that, and ND120_CORE
-    // exposes it via -DND120_SMD_15MHZ). A parameter, not an `input wire`,
-    // because an unwired input floats to Z and would read as 0 anyway - the
-    // parameter makes the choice explicit and constant-foldable.
-    parameter HAS_WC_FLIPFLOP = 0,
-
-    // WORD-COUNTER protocol, SEPARATE from the card-type strap above.
-    // Defaults to the card type, but the ND-120 needs them to differ: the
-    // mass-storage microroutine at CSA o2217 writes the MEMORY ADDRESS with two
-    // +1 accesses (flip-flop protocol) and the WORD COUNT with ONE +7 write of
-    // 002000, which only loads 1024 words if the word counter is single-access.
-    // Ground truth: ND-BUS-DEVICES/SMD/sim/traces/mass-load-21540.trace.
-    // Measured in nd100x 03-AUG-2026 (ND100X_SMD_TYPE=smd15 ND100X_SMD_WC_FF=0):
-    // DISC-TEMA scores IDENTICALLY with the word counter single-access, so it
-    // constrains only the memory address - the two requirements are compatible.
-    // RetroCore models the same idea as four independent flip-flop flags.
-    parameter HAS_WCNT_FLIPFLOP = HAS_WC_FLIPFLOP
+    // DEFAULT IS 1, the 15 MHz card: it is the type that boots SINTRAN L from
+    // the BIGDISK image in Verilator (the ECC setting stops in ERRFATAL, see
+    // the address-bit note in the header). The ECC card is the opt-in: set
+    // HAS_WC_FLIPFLOP(0) (nd_smd_ecc_tb.v does, and ND120_CORE exposes it via
+    // -DND120_SMD_ECC_CARD). A parameter, not an `input wire`, because an
+    // unwired input floats to Z - the parameter makes the choice explicit and
+    // constant-foldable.
+    parameter HAS_WC_FLIPFLOP = 1
 ) (
     input wire sysclk,
     input wire sys_rst_n,
@@ -231,12 +228,26 @@ module ND_SMD #(
   reg        s_dma_ch_err;    // status b11
   reg        s_seek_err;      // seek-condition b11
 
-  // ---- flip-flops (15 MHz card: two-word HI/LO loads, cleared by a
-  //      status read or a device clear) ----
-  reg        s_maw_ff;        // core-address WRITE flip-flop
-  reg        s_mar_ff;        // core-address READ  flip-flop
-  reg        s_wcw_ff;        // word-counter WRITE flip-flop
-  reg        s_wcr_ff;        // word-counter READ  flip-flop
+  // ---- flip-flops (15 MHz card only, HAS_WC_FLIPFLOP = 1) ----
+  //
+  // s_ma_wc_ff: the memory address / word count flip-flop. From the 15 MHz
+  // card's logic diagram, card 3044 sheet 3, block "MEMORY ADDRESS & WORD
+  // COUNT" (ND-11.020.01, scan page 118), simulated gate by gate in
+  // Logisim/ND-BUS-DEVICES/SMD-3044 (readme.md there):
+  //  - ONE flip-flop (4E) serves the memory address (+1 write, +0 read with
+  //    CWR=0) AND the word count (+7 write with CWR=0, +0 read with CWR=1),
+  //    writes and reads alike. It toggles at the end of each of those four
+  //    accesses. It does NOT toggle on the control word (+5), the block
+  //    address (+3) or the ECC control register (+7 with CWR=1, a different
+  //    decoder).
+  //  - 0 = the next access is the FIRST of a pair. The first write loads all
+  //    24 bits: bits 16-23 get A bits 0-7 (through the 11B byte swapper) and
+  //    bits 0-15 get A. The second write loads bits 0-15 only. So one write
+  //    of V leaves (V & 0377) in bits 16-23 and V in bits 0-15.
+  //  - The first read gives bits 0-15, the second bits 16-23 on A bits 0-7.
+  //  - Reset to 0 by device clear, a status read (+4 with CWR=0) and the end
+  //    of a transfer (clr_ff).
+  reg        s_ma_wc_ff;      // memory address / word count flip-flop (4E)
   reg        s_wc_eccw_ff;    // ECC-control  WRITE flip-flop
 
   reg        s_irq;           // latched level-11 interrupt line
@@ -363,12 +374,12 @@ module ND_SMD #(
         // DISC-TEMA reports that as "Read (from NOT specified unit), Status
         // Bit 7b is 0 !". Fixed in the oracle too.
         case (s_reg)
-          // With flip-flops the read alternates LO then HI (the *_ff read
-          // toggles below); a single-write card has no HI phase and returns the
-          // full LO register every time.
+          // With the flip-flop the read alternates bits 0-15 then bits 16-23
+          // (s_ma_wc_ff, toggled below); a single-write card has no HI phase
+          // and returns the full LO register every time.
           3'd0: iox_rdata = s_cwr
-                          ? ((HAS_WCNT_FLIPFLOP && s_wcr_ff) ? {8'd0, s_word_cnt_hi}  : s_word_cnt)
-                          : ((HAS_WC_FLIPFLOP && s_mar_ff) ? {8'd0, s_core_addr_hi} : s_core_addr);
+                          ? ((HAS_WC_FLIPFLOP && s_ma_wc_ff) ? {8'd0, s_word_cnt_hi}  : s_word_cnt)
+                          : ((HAS_WC_FLIPFLOP && s_ma_wc_ff) ? {8'd0, s_core_addr_hi} : s_core_addr);
           3'd2: iox_rdata = s_cwr ? s_ecc_count : s_seek_cond;
           3'd4: iox_rdata = s_cwr ? s_ecc_pattern : s_status;
           3'd6: iox_rdata = s_cwr ? s_blkaddr2 : s_blkaddr1;
@@ -432,10 +443,7 @@ module ND_SMD #(
   // ClearFlipFlops (oracle).
   task clr_ff;
     begin
-      s_maw_ff     <= 1'b0;
-      s_mar_ff     <= 1'b0;
-      s_wcw_ff     <= 1'b0;
-      s_wcr_ff     <= 1'b0;
+      s_ma_wc_ff   <= 1'b0;
       s_wc_eccw_ff <= 1'b0;
     end
   endtask
@@ -588,10 +596,7 @@ module ND_SMD #(
       s_comparer_err <= 1'b0;
       s_dma_ch_err   <= 1'b0;
       s_seek_err     <= 1'b0;
-      s_maw_ff       <= 1'b0;
-      s_mar_ff       <= 1'b0;
-      s_wcw_ff       <= 1'b0;
-      s_wcr_ff       <= 1'b0;
+      s_ma_wc_ff     <= 1'b0;
       s_wc_eccw_ff   <= 1'b0;
       s_irq          <= 1'b0;
       s_boot_mode    <= 1'b1;
@@ -629,15 +634,15 @@ module ND_SMD #(
             s_bootptr <= s_bootptr + 11'd1;
             s_rft     <= 1'b0;
           end
-        end else if (s_disk_selected) begin
+        end else begin
+          // Not gated on a selected unit: the flip-flop is on the controller
+          // card (3044) and has no unit input, so a read toggles or resets it
+          // whether or not a drive is selected.
           case (s_reg)
-            // Only the flip-flop card alternates LO/HI on successive +0 reads;
-            // a single-write card has one 16-bit read, so leave the FFs alone.
-            3'd0: if (s_cwr) begin
-                    if (HAS_WCNT_FLIPFLOP) s_wcr_ff <= ~s_wcr_ff;  // WC: LO then HI
-                  end else begin
-                    if (HAS_WC_FLIPFLOP)   s_mar_ff <= ~s_mar_ff;  // CA: LO then HI
-                  end
+            // Only the flip-flop card alternates bits 0-15 / 16-23 on
+            // successive +0 reads, memory address (CWR=0) and word count
+            // (CWR=1) alike; a single-write card has one 16-bit read.
+            3'd0: if (HAS_WC_FLIPFLOP) s_ma_wc_ff <= ~s_ma_wc_ff;
             3'd4: if (!s_cwr) clr_ff;                // status read resets FFs
             default: ;
           endcase
@@ -653,7 +658,7 @@ module ND_SMD #(
           // polls +2, reads +0), while the microcode MASS STORAGE LOAD
           // routine at CSA o2217 (Code/Microcode/ND-120-DELILAH-L.LISTING.txt
           // line 5866, "MASS STORAGE LOAD, BECAUSE BIT 13 IS 1") starts with
-          // TWO +1 writes (core address HI then LO) before +3 / +7 / +5.
+          // TWO +1 writes (core address, 0 both times) before +3 / +7 / +5.
           // Swallowing them left '21540&' loading a word count of zero, so
           // the GO completed instantly and transferred nothing.
           3'd1: begin
@@ -676,12 +681,14 @@ module ND_SMD #(
               // Bits 16-17 are NOT loaded here; they come from control-word
               // bits 5-6 at the next +5 write (mirrors the nd100x oracle).
               s_core_addr <= iox_wdata;
-            end else if (s_maw_ff) begin
-              s_core_addr <= iox_wdata;      // second write: LO 16
-              s_maw_ff    <= 1'b0;
             end else begin
-              s_core_addr_hi <= iox_wdata[7:0]; // first write: HI 8
-              s_maw_ff       <= 1'b1;
+              // 15 MHz card (s_ma_wc_ff above): the first access of a pair
+              // loads all 24 bits - bits 16-23 from A bits 0-7 through the
+              // 11B byte swapper, bits 0-15 from A. The second loads bits
+              // 0-15 only.
+              if (!s_ma_wc_ff) s_core_addr_hi <= iox_wdata[7:0];
+              s_core_addr <= iox_wdata;
+              s_ma_wc_ff  <= ~s_ma_wc_ff;
             end
           end
 
@@ -924,18 +931,18 @@ module ND_SMD #(
                 end else begin
                   s_wc_eccw_ff  <= 1'b1;   // HI byte unused (as in the oracle)
                 end
-              end else if (!HAS_WCNT_FLIPFLOP) begin
-                // Single-access word counter: one write loads the full 16 bits.
-                // THE line that makes the mass-storage boot work - the microcode's
-                // single +7 write of 002000 now lands as 1024 words, not 0.
+              end else if (!HAS_WC_FLIPFLOP) begin
+                // ECC / BIG-DISC: no flip-flop - one write loads the full 16 bits.
                 s_word_cnt    <= iox_wdata;
                 s_word_cnt_hi <= 8'd0;
-              end else if (s_wcw_ff) begin
-                s_word_cnt <= iox_wdata;        // second write: LO 16
-                s_wcw_ff   <= 1'b0;
               end else begin
-                s_word_cnt_hi <= iox_wdata[7:0];// first write: HI 8
-                s_wcw_ff      <= 1'b1;
+                // 15 MHz card: the same flip-flop and the same load as the
+                // memory address (s_ma_wc_ff) - the first access loads all 24
+                // bits, the second bits 0-15. The mass-storage microcode's
+                // single +7 write of 002000 therefore leaves 00 002000.
+                if (!s_ma_wc_ff) s_word_cnt_hi <= iox_wdata[7:0];
+                s_word_cnt <= iox_wdata;
+                s_ma_wc_ff <= ~s_ma_wc_ff;
               end
             end
           end
@@ -1086,11 +1093,11 @@ module ND_SMD #(
       // model has no timescale and prints 0).
       s_trace_cyc <= s_trace_cyc + 32'd1;
       if (s_wr_here)
-        $display("[SMD] cyc=%0d WR +%0d val=%o boot=%b cwr=%b mawff=%b wcwff=%b",
-                 s_trace_cyc, s_reg, iox_wdata, s_boot_mode, s_cwr, s_maw_ff, s_wcw_ff);
+        $display("[SMD] cyc=%0d WR +%0d val=%o boot=%b cwr=%b mawcff=%b",
+                 s_trace_cyc, s_reg, iox_wdata, s_boot_mode, s_cwr, s_ma_wc_ff);
       if (s_rd_here)
-        $display("[SMD] cyc=%0d RD +%0d -> %o boot=%b active=%b rft=%b",
-                 s_trace_cyc, s_reg, iox_rdata, s_boot_mode, s_active, s_rft);
+        $display("[SMD] cyc=%0d RD +%0d -> %o boot=%b active=%b rft=%b cwr=%b mawcff=%b",
+                 s_trace_cyc, s_reg, iox_rdata, s_boot_mode, s_active, s_rft, s_cwr, s_ma_wc_ff);
       // Every IOX the CPU issues to a DISC-range address that is NOT ours.
       // The controller sees the whole bus, so this answers "which device is
       // the test program actually driving" without touching the bus RTL.

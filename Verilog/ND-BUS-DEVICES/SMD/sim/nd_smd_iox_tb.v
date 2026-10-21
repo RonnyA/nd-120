@@ -19,8 +19,13 @@
 **     b3 RFT, b2 active, b1 err-int-en, b0 int-en                        **
 **   - Seek condition (+2, CWR=0): b12 = 1 ALWAYS (the 15 MHz card id     **
 **     SINTRAN uses to tell it from the NORD-10), b0-7 seek-complete      **
-**   - 15 MHz flip-flops: 24-bit Core Address and Word Counter are each   **
-**     loaded HI-then-LO and read back LO-then-HI                         **
+**   - 15 MHz flip-flop: ONE flip-flop serves the 24-bit Core Address and **
+**     the Word Counter (+1 / +7 writes, +0 reads). The first write of a  **
+**     pair loads all 24 bits (bits 16-23 from A bits 0-7), the second    **
+**     bits 0-15; reads return bits 0-15 then 16-23. Sections 8-13 check  **
+**     one-write-loads-all, the mass-load word count (one +7 of 002000),  **
+**     the shared toggle, no toggle on ECC control / +3 / +5, and the     **
+**     status-read and device-clear resets                                **
 **   - CWR (control b15) multiplexes Core Address vs Word Counter on +0   **
 **   - interrupt is a latched level-11 line; a non-GO control word with   **
 **     int-enable set raises it (RFT already true); IDENT answers code    **
@@ -71,7 +76,7 @@ module nd_smd_iox_tb;
 
   // HAS_WC_FLIPFLOP(1): this conformance matrix exercises the 15 MHz two-write
   // HI/LO load + LO/HI readback, so it pins the flip-flop card (the module
-  // default is now the single-write ECC card that boots).
+  // default is the single-write ECC card).
   ND_SMD #(.HAS_WC_FLIPFLOP(1)) dut (
       .sysclk        (sysclk),
       .sys_rst_n     (sys_rst_n),
@@ -201,8 +206,8 @@ module nd_smd_iox_tb;
     // 3. 24-bit Core Address: load HI (0xAB) then LO (0xCDEF) via +1,
     //    read back LO then HI via +0 (CWR=0). mar_ff starts 0 -> LO first.
     // =================================================================
-    iox_write(BASE + 16'd1, 16'h00AB);   // first +1 write = HI byte
-    iox_write(BASE + 16'd1, 16'hCDEF);   // second +1 write = LO 16
+    iox_write(BASE + 16'd1, 16'h00AB);   // first +1 write: all 24 bits, b16-23 = 0xAB
+    iox_write(BASE + 16'd1, 16'hCDEF);   // second +1 write: bits 0-15 only
     iox_read (BASE + 16'd0, r);          // first +0 read = LO
     iox_read (BASE + 16'd0, r2);         // second +0 read = HI
     check(r  === 16'hCDEF, "core addr readback LO must be 0xCDEF");
@@ -213,8 +218,8 @@ module nd_smd_iox_tb;
     //    (CWR=0 is Load Word Counter), then switch CWR=1 and read back
     //    LO then HI via +0.
     // =================================================================
-    iox_write(BASE + 16'd7, 16'h0012);   // first +7 write (CWR=0) = WC HI byte
-    iox_write(BASE + 16'd7, 16'h3456);   // second +7 write = WC LO 16
+    iox_write(BASE + 16'd7, 16'h0012);   // first +7 write (CWR=0): all 24 bits, b16-23 = 0x12
+    iox_write(BASE + 16'd7, 16'h3456);   // second +7 write: bits 0-15 only
     ctrl_word(1'b1, 1'b0, 1'b0, 1'b0, 3'd0);   // switch to CWR=1, unit0
     iox_read (BASE + 16'd0, r);          // +0 CWR=1 first read = WC LO
     iox_read (BASE + 16'd0, r2);         // +0 CWR=1 second read = WC HI
@@ -267,6 +272,131 @@ module nd_smd_iox_tb;
     iox_read(BASE + 16'd0, r2);
     check(r  === 16'h0000, "device clear core addr LO must be 0");
     check(r2 === 16'h0000, "device clear core addr HI must be 0");
+
+    // =================================================================
+    // 8-13: the memory address / word count flip-flop of the 15 MHz card
+    //    (ND_SMD.v s_ma_wc_ff; card 3044 sheet 3, simulated in
+    //    Logisim/ND-BUS-DEVICES/SMD-3044). One flip-flop for +1 / +7 writes
+    //    and +0 reads; the first write of a pair loads all 24 bits (bits
+    //    16-23 from A bits 0-7), the second bits 0-15 only. Values octal.
+    //    Every check starts from a device clear or a status read, which
+    //    reset the flip-flop to "first access".
+    // =================================================================
+
+    // 8. One +1 write loads all 24 bits: 000401 -> bits 16-23 = 001,
+    //    bits 0-15 = 000401.
+    ctrl_word(1'b0, 1'b0, 1'b0, 1'b1, 3'd0);   // device clear, CWR=0
+    iox_write(BASE + 16'd1, 16'o000401);
+    iox_read(BASE + 16'd4, r);                 // status read -> first access
+    iox_read(BASE + 16'd0, r);                 // bits 0-15
+    iox_read(BASE + 16'd0, r2);                // bits 16-23
+    check(r  === 16'o000401, "8: one +1 write of 000401: bits 0-15 must be 000401");
+    check(r2 === 16'o000001, "8: one +1 write of 000401: bits 16-23 must be 001");
+
+    // 9. One +7 write loads all 24 bits of the word count the same way.
+    ctrl_word(1'b0, 1'b0, 1'b0, 1'b1, 3'd0);   // device clear, CWR=0
+    iox_write(BASE + 16'd7, 16'o000401);       // +7, CWR=0 = Load Word Count
+    iox_read(BASE + 16'd4, r);                 // status read -> first access
+    ctrl_word(1'b1, 1'b0, 1'b0, 1'b0, 3'd0);   // CWR=1 (no toggle on +5)
+    iox_read(BASE + 16'd0, r);                 // word count bits 0-15
+    iox_read(BASE + 16'd0, r2);                // word count bits 16-23
+    check(r  === 16'o000401, "9: one +7 write of 000401: WC bits 0-15 must be 000401");
+    check(r2 === 16'o000001, "9: one +7 write of 000401: WC bits 16-23 must be 001");
+
+    // 9b. The mass-storage load's word count: one +7 write of 002000 gives
+    //     00 002000 = 1024 words (bits 16-23 = 002000 & 0377 = 0).
+    ctrl_word(1'b0, 1'b0, 1'b0, 1'b1, 3'd0);   // device clear, CWR=0
+    iox_write(BASE + 16'd7, 16'o002000);
+    iox_read(BASE + 16'd4, r);                 // status read -> first access
+    ctrl_word(1'b1, 1'b0, 1'b0, 1'b0, 3'd0);   // CWR=1
+    iox_read(BASE + 16'd0, r);
+    iox_read(BASE + 16'd0, r2);
+    check(r  === 16'o002000, "9b: one +7 write of 002000: WC bits 0-15 must be 002000");
+    check(r2 === 16'o000000, "9b: one +7 write of 002000: WC bits 16-23 must be 0");
+
+    // 10. The flip-flop is SHARED by the memory address and the word count.
+    //     Writes: +1 then +7 - the +7 is the SECOND access, so it loads WC
+    //     bits 0-15 only and WC bits 16-23 stay 0 from the device clear.
+    ctrl_word(1'b0, 1'b0, 1'b0, 1'b1, 3'd0);   // device clear, CWR=0
+    iox_write(BASE + 16'd1, 16'o000003);       // first access
+    iox_write(BASE + 16'd7, 16'o000005);       // second access
+    ctrl_word(1'b1, 1'b0, 1'b0, 1'b0, 3'd0);   // CWR=1
+    iox_read(BASE + 16'd4, r);                 // +4 with CWR=1 = ECC pattern: no reset
+    iox_read(BASE + 16'd0, r);                 // flip-flop is at "first" again
+    iox_read(BASE + 16'd0, r2);                // (two writes = two toggles)
+    check(r  === 16'o000005, "10: +1 then +7: WC bits 0-15 must be 000005");
+    check(r2 === 16'o000000, "10: +1 then +7: the +7 is a second access, WC bits 16-23 must stay 0");
+
+    //     Reads: a memory address read then a word count read - the word
+    //     count read is the SECOND access and returns bits 16-23.
+    ctrl_word(1'b0, 1'b0, 1'b0, 1'b1, 3'd0);   // device clear, CWR=0
+    iox_write(BASE + 16'd1, 16'o000012);       // MA: 012 000012
+    iox_write(BASE + 16'd1, 16'o000345);       // MA bits 0-15 = 000345
+    iox_write(BASE + 16'd7, 16'o000067);       // WC: 067 000067
+    iox_write(BASE + 16'd7, 16'o001234);       // WC bits 0-15 = 001234
+    iox_read(BASE + 16'd4, r);                 // status read -> first access
+    iox_read(BASE + 16'd0, r);                 // CWR=0: MA bits 0-15
+    ctrl_word(1'b1, 1'b0, 1'b0, 1'b0, 3'd0);   // CWR=1 (no toggle on +5)
+    iox_read(BASE + 16'd0, r2);                // second access: WC bits 16-23
+    check(r  === 16'o000345, "10: MA read (first access) must be bits 0-15 = 000345");
+    check(r2 === 16'o000067, "10: WC read after an MA read is a second access, must be bits 16-23 = 067");
+
+    // 11. The ECC control register (+7 with CWR=1) does NOT toggle the
+    //     flip-flop: the +1 after it is still a first access.
+    ctrl_word(1'b1, 1'b0, 1'b0, 1'b1, 3'd0);   // device clear, CWR=1
+    iox_write(BASE + 16'd7, 16'o000000);       // +7 CWR=1 = ECC control
+    ctrl_word(1'b0, 1'b0, 1'b0, 1'b0, 3'd0);   // CWR=0
+    iox_write(BASE + 16'd1, 16'o000401);       // must be the first access
+    iox_read(BASE + 16'd4, r);
+    iox_read(BASE + 16'd0, r);
+    iox_read(BASE + 16'd0, r2);
+    check(r  === 16'o000401, "11: MA after an ECC control write: bits 0-15 must be 000401");
+    check(r2 === 16'o000001, "11: ECC control write must not toggle: MA bits 16-23 must be 001");
+
+    // 12. The block address (+3) and the control word (+5) do NOT toggle it:
+    //     +1, +3, +1 is still a pair, and so is +1, +5, +1.
+    ctrl_word(1'b0, 1'b0, 1'b0, 1'b1, 3'd0);   // device clear, CWR=0
+    iox_write(BASE + 16'd1, 16'o000002);       // first: MA 002 000002
+    iox_write(BASE + 16'd3, 16'o000000);       // block address I
+    iox_write(BASE + 16'd1, 16'o000100);       // second: bits 0-15 only
+    iox_read(BASE + 16'd4, r);
+    iox_read(BASE + 16'd0, r);
+    iox_read(BASE + 16'd0, r2);
+    check(r  === 16'o000100, "12: +1 +3 +1: MA bits 0-15 must be 000100");
+    check(r2 === 16'o000002, "12: +3 must not toggle: MA bits 16-23 must be 002");
+
+    ctrl_word(1'b0, 1'b0, 1'b0, 1'b1, 3'd0);   // device clear, CWR=0
+    iox_write(BASE + 16'd1, 16'o000002);       // first
+    ctrl_word(1'b0, 1'b0, 1'b0, 1'b0, 3'd0);   // control word, no clear
+    iox_write(BASE + 16'd1, 16'o000100);       // second
+    iox_read(BASE + 16'd4, r);
+    iox_read(BASE + 16'd0, r);
+    iox_read(BASE + 16'd0, r2);
+    check(r  === 16'o000100, "12: +1 +5 +1: MA bits 0-15 must be 000100");
+    check(r2 === 16'o000002, "12: +5 must not toggle: MA bits 16-23 must be 002");
+
+    // 13. A status read (+4, CWR=0) resets the flip-flop: +1, status, +1 -
+    //     the second +1 is a FIRST access again and loads bits 16-23.
+    ctrl_word(1'b0, 1'b0, 1'b0, 1'b1, 3'd0);   // device clear, CWR=0
+    iox_write(BASE + 16'd1, 16'o000007);       // first
+    iox_read(BASE + 16'd4, r);                 // status read -> reset
+    iox_write(BASE + 16'd1, 16'o000011);       // first again
+    iox_read(BASE + 16'd4, r);
+    iox_read(BASE + 16'd0, r);
+    iox_read(BASE + 16'd0, r2);
+    check(r  === 16'o000011, "13: +1 status +1: MA bits 0-15 must be 000011");
+    check(r2 === 16'o000011, "13: status read must reset: second +1 loads MA bits 16-23 = 011");
+
+    //     A device clear resets it the same way.
+    ctrl_word(1'b0, 1'b0, 1'b0, 1'b1, 3'd0);   // device clear, CWR=0
+    iox_write(BASE + 16'd1, 16'o000007);       // first
+    ctrl_word(1'b0, 1'b0, 1'b0, 1'b1, 3'd0);   // device clear -> reset
+    iox_write(BASE + 16'd1, 16'o000011);       // first again
+    iox_read(BASE + 16'd4, r);
+    iox_read(BASE + 16'd0, r);
+    iox_read(BASE + 16'd0, r2);
+    check(r  === 16'o000011, "13: +1 clear +1: MA bits 0-15 must be 000011");
+    check(r2 === 16'o000011, "13: device clear must reset: second +1 loads MA bits 16-23 = 011");
 
     // ---- verdict ----
     if (errors == 0) $display("TB_RESULT: PASS");

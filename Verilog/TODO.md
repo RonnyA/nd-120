@@ -167,8 +167,7 @@ from the old SMD handoff (now the `ND_SMD.v` header), together with the Pi Pico 
 side that is running ground-truth tests to confirm the nd100x oracle is 100%
 correct. Off our plate:
 
-- `ND-BUS-DEVICES/SMD/circuit/ND_SMD.v` - register semantics, the
-  controller-type / word-count flip-flop question, `21540&` mass-storage load.
+- `ND-BUS-DEVICES/SMD/circuit/ND_SMD.v` - register semantics.
 - `SD-FAT/circuit/nd_storage_disc_adapter.v` position mapping (still
   `blkaddr2*2048 + blkaddr1*64`, not the oracle's cylinder/head/sector -> LBA;
   changing it means changing the adapter, `ND-BUS-DEVICES/SMD/sim/nd_smd_tb.v`

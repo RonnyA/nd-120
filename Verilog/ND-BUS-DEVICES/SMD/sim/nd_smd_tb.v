@@ -9,8 +9,9 @@
 **                                                                       **
 ** Updated 23-JUL-2026 for the oracle-faithful ND_SMD rewrite:           **
 **  - Core Address and Word Count are 24-bit and loaded by TWO IOX        **
-**    writes each (HI 8 then LO 16) via the 15 MHz card's flip-flops;     **
-**    read back LO then HI.                                              **
+**    writes each via the 15 MHz card's one shared flip-flop (first      **
+**    write loads all 24 bits, second bits 0-15); read back LO then HI.  **
+**  - 9b: the MASS STORAGE LOAD sequence (one +7 write of 002000).       **
 **  - New status layout: b4 inclusive-OR, b5 illegal load, b8 address     **
 **    mismatch, b13 disk-unit-not-ready, b14 on-cylinder.               **
 **  - Seek condition: b0-7 per-unit seek-complete, b12 = 1 (15 MHz id).  **
@@ -117,7 +118,7 @@ module nd_smd_tb;
 
   // HAS_WC_FLIPFLOP(1): this tb exercises the 15 MHz two-write HI/LO register
   // load + LO/HI readback, so it pins the flip-flop card (the module default is
-  // now the single-write ECC card that boots).
+  // the single-write ECC card).
   ND_SMD #(.DELAY_TICKS(16'd10), .GEO_MAX_CYL(65535), .HAS_WC_FLIPFLOP(1)) u_smd (
       .sysclk(sysclk), .sys_rst_n(sys_rst_n),
       .iox_addr(iox_addr), .iox_wr(iox_wr), .iox_wdata(iox_wdata),
@@ -381,7 +382,8 @@ module nd_smd_tb;
     end
   endtask
 
-  // Core Address (24-bit): two writes, HI 8 then LO 16 (maw flip-flop).
+  // Core Address (24-bit): two writes (s_ma_wc_ff): the first loads all 24
+  // bits (bits 16-23 from A bits 0-7), the second bits 0-15.
   task load_core(input [23:0] a);
     begin
       iox_write(16'o001541, {8'd0, a[23:16]});
@@ -389,7 +391,7 @@ module nd_smd_tb;
     end
   endtask
 
-  // Word Counter (24-bit): two writes, HI 8 then LO 16 (wcw flip-flop).
+  // Word Counter (24-bit): two writes, same flip-flop and load as above.
   task load_wcnt(input [23:0] c);
     begin
       iox_write(16'o001547, {8'd0, c[23:16]});
@@ -473,10 +475,15 @@ module nd_smd_tb;
     // core address readback (CWR=0, LO) and word counter (CWR=1, LO)
     iox_read(16'o001540, rdata);
     check(rdata === (16'h4000 + 16'd1500), "core address readback wrong");
+    // The core address read left the shared memory address / word count
+    // flip-flop at "second access"; a status read resets it so the word
+    // counter read below returns bits 0-15.
+    iox_read(16'o001544, rdata);
     iox_write(16'o001545, 16'h8000);   // CWR=1
     iox_read(16'o001540, rdata);
     check(rdata === 16'd0, "word counter not 0 after transfer");
     iox_write(16'o001545, 16'h0000);   // CWR back to 0
+    iox_read(16'o001544, rdata);       // status read: flip-flop back to "first"
 
     // 3: M1 WRITE 800 words from core 0x5000 to blkaddrII=3, blkaddrI=0
     for (i = 0; i < 800; i = i + 1) memory[16'h5000 + i] = 16'hC000 + i[15:0];
@@ -557,6 +564,58 @@ module nd_smd_tb;
     check((rdata & 16'h3800) === 16'h3800, "ECC pattern bits 11-13 not all 1");
     check((rdata & 16'h8000) !== 0, "ECC pattern bit 15 (CWR) not set");
     iox_write(16'o001545, 16'h0000);   // CWR back to 0
+
+    // 9b: MASS STORAGE LOAD ('21540&') on the 15 MHz card. From a fresh
+    //     reset (boot mode), play the IOX sequence of the ND-120 MASS
+    //     microcode (Code/Microcode/ND-120-DELILAH-L.LISTING.txt CSA
+    //     002217-002235): +1 <- 0 twice, +3 <- 0, +7 <- 002000 ONCE,
+    //     +5 <- 000004 (GO, M0, unit 0), poll +4. On the card the single +7
+    //     write is the first access of a pair and loads all 24 bits, so the
+    //     word count is 00 002000 = 1024 words: block 0 must land at ND
+    //     memory 0-1777 and word 2000 must be untouched.
+    //     The +7 write leaves the flip-flop at "second access"; the end of
+    //     the transfer must reset it. That is checked BEFORE any status
+    //     read (which would also reset it) by waiting on the controller's
+    //     active bit inside the DUT and then writing +1 once: a first
+    //     access loads bits 16-23, a second would leave them at the end
+    //     address's 0.
+    begin : massload
+      integer guard;
+      reg [15:0] st;
+      for (i = 0; i < 65536; i = i + 1) memory[i] = 16'hDEAD;
+      sys_rst_n = 0;
+      repeat (5) @(negedge sysclk);
+      sys_rst_n = 1;
+      repeat (5) @(negedge sysclk);
+      iox_write(16'o001541, 16'o000000);   // +1 memory address
+      iox_write(16'o001541, 16'o000000);   // +1 memory address
+      iox_write(16'o001543, 16'o000000);   // +3 block address
+      iox_write(16'o001547, 16'o002000);   // +7 word count, ONCE
+      iox_write(16'o001545, 16'o000004);   // +5 GO
+      check(u_smd.s_words_left === 24'o0002000,
+            "MASS: GO must start with a word count of 00 002000 (1024)");
+      check(u_smd.s_mem_addr === 24'd0, "MASS: GO must start at memory address 0");
+      guard = 0;
+      while (u_smd.s_active !== 1'b0 && guard < 400000) begin
+        @(negedge sysclk);
+        guard = guard + 1;
+      end
+      check(u_smd.s_active === 1'b0, "MASS: transfer never finished");
+      for (i = 0; i < 1024; i = i + 1)
+        if (memory[i] !== (16'h7000 + i[15:0]))
+          check(1'b0, "MASS: block 0 data wrong in ND memory 0-1777");
+      check(memory[1024] === 16'hDEAD, "MASS: transfer overran 1024 words");
+      // end of transfer reset the flip-flop: this +1 is a FIRST access
+      iox_write(16'o001541, 16'o000003);
+      iox_read(16'o001544, st);           // status read: ready, not active
+      check((st & 16'h0004) === 0, "MASS: still active after the transfer");
+      check((st & 16'h0008) !== 0, "MASS: not ready after the transfer");
+      iox_read(16'o001540, rdata);        // bits 0-15
+      check(rdata === 16'o000003, "MASS: +1 after the transfer: bits 0-15 must be 000003");
+      iox_read(16'o001540, rdata);        // bits 16-23
+      check(rdata === 16'o000003,
+            "MASS: end of transfer must reset the flip-flop (+1 loads bits 16-23 = 003)");
+    end
 
     // 10: REAL IMAGE phase - three windows of the 75 MB SMD disk 0 (start,
     //     middle, far), each read through the controller and word-compared

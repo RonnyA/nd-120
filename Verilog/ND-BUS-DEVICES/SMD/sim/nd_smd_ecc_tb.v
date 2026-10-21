@@ -2,18 +2,17 @@
 ** TESTBENCH: ND_SMD - ECC / single-write (NO flip-flop) register model   **
 **                                                                       **
 ** The counterpart to nd_smd_iox_tb.v (which pins the 15 MHz two-write    **
-** card). This one leaves HAS_WC_FLIPFLOP at its DEFAULT (0 = ECC /       **
+** card). This one straps HAS_WC_FLIPFLOP to 0 (ECC /                    **
 ** BIG-DISC), so the Core Address and Word Counter registers load their   **
 ** full value in a SINGLE write and read back in a single read - there is **
 ** no HI/LO flip-flop phase. Core Address bits 16-17 come from control-   **
 ** word bits 5-6 instead of a second write.                              **
 **                                                                       **
-** The point of this tb is the MASS-STORAGE BOOT primitive: the ND-120    **
-** microcode (CSA o2217) writes the Word Counter register ONCE with       **
-** 002000 (octal) = 1024. On the flip-flop card that single write lands   **
-** in the HI byte (002000 & 0xFF == 0) and the count stays 0, so the GO   **
-** transfers nothing. On THIS single-write card the one write loads the   **
-** full 1024-word count - which is exactly what makes the SMD image boot. **
+** It also checks the MASS-STORAGE BOOT primitive on this card type: the  **
+** ND-120 microcode (CSA o2217) writes the Word Counter register ONCE     **
+** with 002000 (octal) = 1024, and the one write loads the full count.    **
+** (The 15 MHz card loads 1024 from that write too - its first write of   **
+** a pair loads all 24 bits; see nd_smd_iox_tb.v sections 8-13.)          **
 **                                                                       **
 ** Like the IOX conformance tb, NO command is ever GO'd (control bit 2    **
 ** stays 0), so the transfer engine never leaves E_IDLE and no DMA / disk **
@@ -59,8 +58,9 @@ module nd_smd_ecc_tb;
   wire [10:0] disk_wordcount;
   wire [15:0] dbuf_rdata;
 
-  // DEFAULT parameters -> HAS_WC_FLIPFLOP = 0 (the ECC / single-write card).
-  ND_SMD dut (
+  // HAS_WC_FLIPFLOP(0): the ECC / single-write card (the module default is
+  // the 15 MHz card).
+  ND_SMD #(.HAS_WC_FLIPFLOP(0)) dut (
       .sysclk        (sysclk),
       .sys_rst_n     (sys_rst_n),
       .iox_addr      (iox_addr),

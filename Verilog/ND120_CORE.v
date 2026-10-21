@@ -45,34 +45,23 @@ module ND120_CORE #(
     parameter INCLUDE_WD     = 0,  //! ND_WINCHESTER disk at 500 (ST506/8 inch)
 
     // SMD controller type (passed straight to ND_SMD's HAS_WC_FLIPFLOP strap;
-    // see docs/design/SMD-CONTROLLER-TYPE-SEAM.md). 0 = ECC / BIG-DISC card
-    // (core-address / word-count registers load in a SINGLE write) - THE DEFAULT,
-    // because this is the card that BOOTS: the mass-storage microcode writes the
-    // word counter ONCE with 002000, which loads 1024 words only on a single-
-    // write card. On a flip-flop card that single write lands in the HI byte and
-    // the count stays 0, so the boot would transfer nothing. 1 = 15/10 MHz card
-    // (24-bit registers loaded HI-then-LO by TWO writes).
+    // see docs/design/SMD-CONTROLLER-TYPE-SEAM.md). 1 = 15/10 MHz card (cards
+    // 3043/3044) - THE DEFAULT: one flip-flop for the 24-bit memory address
+    // and word count; the first write of a pair loads all 24 bits, the second
+    // bits 0-15. 0 = ECC / BIG-DISC card (core-address / word-count registers
+    // load in a SINGLE write). Both types load 1024 words from the
+    // mass-storage microcode's single +7 write of 002000 (see ND_SMD.v,
+    // s_ma_wc_ff); only the 15 MHz card boots SINTRAN L from the BIGDISK
+    // image (see the ND_SMD.v header).
     //
-    // Default is define-driven so a plain build boots with NO file edit, exactly
-    // like BOARD_CLK_FREQ / ND120_SYSNO. The 15 MHz two-write card is the opt-in:
-    // build with EXTRA_VDEFINES="-DND120_SMD_15MHZ" (or set the parameter from a
-    // higher instance) to select it. Absent the define it stays 0 = the ECC
-    // single-write card that boots the image.
-`ifdef ND120_SMD_15MHZ
-    parameter SMD_HAS_FLIPFLOP = 1,
-`else
+    // Default is define-driven so a plain build needs NO file edit, exactly
+    // like BOARD_CLK_FREQ / ND120_SYSNO. The ECC card is the opt-in: build with
+    // EXTRA_VDEFINES="-DND120_SMD_ECC_CARD" (or set the parameter from a higher
+    // instance) to select it. Absent the define it is 1 = the 15 MHz card.
+`ifdef ND120_SMD_ECC_CARD
     parameter SMD_HAS_FLIPFLOP = 0,
-`endif
-
-    // WORD-COUNTER protocol. Follows the card type. A card with a
-    // single-access word counter is NOT a documented controller - I built one
-    // briefly to reconcile DISC-TEMA with the mass-load microcode, before the
-    // PROM listing showed the microcode is simply written for a single-access
-    // card. Override only for experiments, never as a shipping configuration.
-`ifdef ND120_SMD_WCNT_SINGLE
-    parameter SMD_WCNT_FLIPFLOP = 0,
 `else
-    parameter SMD_WCNT_FLIPFLOP = SMD_HAS_FLIPFLOP,
+    parameter SMD_HAS_FLIPFLOP = 1,
 `endif
 
     // Back-wiring PROM (installation number) contents. These are what SINTRAN's
@@ -779,11 +768,10 @@ module ND120_CORE #(
           .IDENT_CODE (16'o000017),
           .INT_LEVEL  (4'd11),
           .DELAY_TICKS(SMD_DELAY_TICKS),
-          // Controller-type strap: default ECC single-write (boots the SMD
-          // image). Override the top-level SMD_HAS_FLIPFLOP to 1 (or build with
-          // -DND120_SMD_15MHZ) for the 15 MHz two-write card.
-          .HAS_WC_FLIPFLOP(SMD_HAS_FLIPFLOP),
-          .HAS_WCNT_FLIPFLOP(SMD_WCNT_FLIPFLOP)
+          // Controller-type strap: default the 15 MHz card. Override the
+          // top-level SMD_HAS_FLIPFLOP to 0 (or build with -DND120_SMD_ECC_CARD)
+          // for the ECC single-write card.
+          .HAS_WC_FLIPFLOP(SMD_HAS_FLIPFLOP)
       ) SMD_1540 (
           .sysclk(s_dev_clk),
           .sys_rst_n(sys_rst_n),
