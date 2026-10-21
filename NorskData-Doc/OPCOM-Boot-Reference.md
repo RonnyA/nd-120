@@ -58,6 +58,12 @@ values (100400, 101560, 101600) have bit 15 set, not bit 14.
 Switch 8 and switch 15 both hold the value 0, yet one runs and one stops, so
 the value alone does not decide that. What does is not known.
 
+The microcode does give bit 15 one meaning, in the restart routine `RSTRT`
+(CSA 002236, "entered from interrupt vector (3766), only if stand-by power is
+OK"): with the panel locked it reads the ALD switch and branches on bit 15,
+"LOAD IF BIT 15=1. START IN ADDRESS 20 IF BIT 15=0" (CSA 002245-002246). That
+is the power-restore path only, not the `&` / LOAD path.
+
 Run after load is determined by the ALD switch position:
 - ALD switch positions 8-15: load **and run** from address 20 (octal)
 - ALD switch positions 2-7: load only (CPU stops after load)
@@ -167,9 +173,31 @@ controller 1".
 
 | Step | Status |
 |---|---|
-| The CPU's mass load writes the control word with bit 2 (WCONT = 4) | From the microcode analysis in `Verilog/floppyTester/CONFORMANCE.md` |
+| The CPU's mass load writes the control word with bit 2 only (WCONT = 4) | Read from the microcode listing (see "What the mass load sends" below) |
 | That control word reaches the 3201's `CP 4` test on Z80 port 0x52 | NOT verified: which ND register value lands on port 0x52 |
 | The 3201 floppy half answers at 1560 (thumbwheel TH3) | NOT verified |
 | The handler plants the driver at 6000 and `JMP I` at 0 | Read from the ROM bytes |
 | The driver uses 144300 and drives the NCR with IOXT | Read from the ROM bytes |
-| Which disc blocks the driver reads, and where it jumps after | NOT traced yet |
+| The driver reads the first 2048 bytes of the disc to address 0 and jumps to 0 | Measured in nd100x running the planted ROM words against `SCSI-K.image`: one 8-byte-reply command, then a 2048-byte read; the driver ends with `COPY 0 DP` at 6050, and the words at 0 are the disc's first words (`150405 150001`) |
+
+### What the mass load sends
+
+`Code/Microcode/ND-120-DELILAH-L.LISTING.txt`, routine `MASS` (CSA 002217-002235).
+An ALD switch value and a typed `nnn&` both reach `LOAD1` (CSA 002214) with the
+value in Q; bit 13 clear goes to the stream loader `ETLO1`, bit 13 set goes to
+`MASS`, "MASS STORAGE LOAD, BECAUSE BIT 13 IS 1". With N the device address
+(1560 for 21560), the listing's own comments read:
+
+| CSA | IOX | Value | Listing comment |
+|---|---|---|---|
+| 002221 | N+1 | 0 | CORE ADDRESS |
+| 002222 | N+1 | 0 | CORE ADDRESS |
+| 002223 | N+3 | 0 | BLOCK ADDRESS |
+| 002224-25 | N+7 | 2000 | WORD COUNTER |
+| 002226-27 | N+5 | 4 | ACTIVATE DEVICE |
+| 002230-34 | N+4 (read) | - | READ STATUS, loop until done; on error back to `MAS1` |
+| 002235 | - | P = 0 | NO ERRORS, START IN 0 |
+
+The control word is bit 2 alone, which the 3106/3112 manual calls "Activate
+Autoload". The word count of 2000 (1024 words) is the 2048 bytes the ND-3201
+driver reads. The IOX goes to N+5 = 1565, not to the SCSI half at 144305.
