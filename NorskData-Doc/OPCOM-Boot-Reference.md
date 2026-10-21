@@ -158,7 +158,7 @@ the ROM bytes:
   144300 (SCSI bus 1, the only SCSI address in the ROM). From its entry at 6035
   it drives the NCR registers with `IOXT` (150415): WCONT 144305, WDESI 144347,
   the transfer counter 144371/144373/144375, and WNCOM 144343 with command
-  0x09 (Select with ATN). It does no I/O to 1560.
+  0x09 (Select without ATN - NCR 5386 datasheet code 01001). It does no I/O to 1560.
 
 So on such a machine `21560&` (or ALD switch 9) loads that driver, the CPU
 starts at address 0, jumps to 6035, and the ND-100 reads the SCSI disc through
