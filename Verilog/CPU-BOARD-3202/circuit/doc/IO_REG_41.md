@@ -65,7 +65,7 @@ Ronny Hansen
 [`Verilog/CPU-BOARD-3202/circuit/IO_REG_41.v`](https://github.com/RetroCoreLabs/nd-120/blob/main/Verilog/CPU-BOARD-3202/circuit/IO_REG_41.v) on GitHub.
 
 <details markdown="1">
-<summary>Show the Verilog of IO_REG_41 (352 lines)</summary>
+<summary>Show the Verilog of IO_REG_41 (357 lines)</summary>
 
 ```verilog
 /**************************************************************************
@@ -384,16 +384,16 @@ endmodule
 |12      |     x3           | 21540             | Bootstrap load from SMD disk (1540,) and run (*3)
 |11      |     x4           | 400               | BPUN load from paper tape (400) and run (*3)
 |10      |     x5           | 1600              | BPUN load from HDLC (1600) and run (*3)
-|9       |     x6           | 21560             | Run (*3) (No load)
+|9       |     x6           | 21560             | Mass storage load from 1560 and run (*3). "SCSI controller 1, only available on the ND-110/120 CPU" (read off a CPU 3095 board: I12 = 21560B)
 |8       |     x7           | 0                 | Run (*3) (No load)
 |7       |     x8           | 100000            | (Note 2)
-|6       |     x9           | 101560            | Binary load from 1560 (SCSI boot use this setting..?)
+|6       |     x9           | 101560            | Binary load from 1560
 |5       |     xA           | 120500            | Mass storage from 500
 |4       |     xB           | 121540            | Mass storage from 1540 (SMD disk)
 |3       |     xC           | 100400            | Binary load from 400 (paper tape reader)
 |2       |     xD           | 101600            | Switch setting 2 -  Binary load from 1600 (HDLC)
-|1       |     xE           | 121560            |
-|0       |     xF           | 100000            |
+|1       |     xE           | 121560            | Mass storage from 1560
+|0       |     xF           | 100000            | (Note 2)
 +--------+------------------+-------------------+-----------------------------------------------------------------------
 
 Note 1: The action will be taken if
@@ -411,6 +411,11 @@ The content of the internal register I12 reflects the ALD settings.
 ALD switch settings 8 to 15 specify load and run, settings 2 to 7 specify load only.
 ALD settings 4, 5, 12 and 13 specify a bootstrap load from a disk.
 All other settings expect BPUN format.
+
+(Not in the original list: settings 1 and 9 (121560, 21560) also have bit 13
+set, and setting 9 was measured on a CPU 3095 board as a mass storage load.
+On a machine with an ND-3201 SCSI card, see
+NorskData-Doc/OPCOM-Boot-Reference.md "21560 on a machine with an ND-3201".)
 
 The start address is always the power fail restart address (20).
 
