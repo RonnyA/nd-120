@@ -871,8 +871,23 @@ module ND_SMD #(
                       end
                     end
                     4'd4: begin  // M4 initiate seek
+                      // NO completion delay. ND-11.020.01 "M4: Initiate seek":
+                      // "As soon as this function is accepted by the disk, the
+                      // operation will be completed." Normal End of Operation
+                      // case 2 is "On cylinder is deactivated upon an initiate
+                      // seek command" - the drive taking the command, not the
+                      // heads arriving; arrival is reported later, through the
+                      // seek-complete bits (+2 b0-3). SINTRAN's driver polls
+                      // status 64 times (about 17,000 cycles) after an M4 and
+                      // then writes the next control word; holding ACTIVE for
+                      // DELAY_TICKS (800,000 cycles in Verilator) turned that
+                      // write into an illegal load (status 040064), every retry
+                      // of the request failed, and start-up printed "TRANSFER
+                      // ERROR". The C twin (nd_smd.c) completes M4 at once too.
+                      // This model positions the heads instantly, so ReadEnd
+                      // sets the unit's seek-complete bit in the same step.
                       s_seek_err  <= 1'b0;
-                      s_delay_cnt <= DELAY_TICKS;
+                      s_delay_cnt <= 32'd0;
                       s_eng       <= E_DELAY;
                     end
                     4'd6: begin  // M6 seek-complete search

@@ -503,6 +503,13 @@ module nd_smd_tb;
     //    (seek condition b0) and the 15 MHz card id (seek condition b12)
     load_block(16'd0, 16'd2);
     iox_write(16'o001545, 16'h2004);   // GO: ACTIVE, op M4 (0100)
+    // M4 completes as soon as the drive accepts it (ND-11.020.01 "M4:
+    // Initiate seek"), with no completion delay: the FIRST status read after
+    // the GO must already show active (b2) clear and ready (b3) set. SINTRAN
+    // polls only ~17,000 cycles before its next control word.
+    iox_read(16'o001544, rdata);
+    check((rdata & 16'h0004) === 0, "M4 still active on first read");
+    check((rdata & 16'h0008) !== 0, "M4 not ready on first read");
     wait_ready();
     iox_read(16'o001544, rdata);
     check((rdata & 16'h4000) !== 0, "onCylinder (status b14) not set after seek");

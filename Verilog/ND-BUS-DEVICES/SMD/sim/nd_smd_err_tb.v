@@ -24,10 +24,13 @@
 **   must ALWAYS reach the controller, including while it is active -     **
 **   it clears b2 and the error bits.                                     **
 **                                                                       **
-** Method: the DUT is instantiated with a long DELAY_TICKS so that an M4  **
-** Initiate-Seek GO holds the controller active for a wide window with no **
-** disk backend involved (M4 goes straight to E_DELAY). Register writes   **
-** are then issued inside that window.                                    **
+** Method: the DUT is instantiated with a long DELAY_TICKS so that an M7  **
+** Return-to-Zero GO holds the controller active for a wide window with   **
+** no disk backend involved (M7 goes straight to E_DELAY). Register writes**
+** are then issued inside that window. NOT M4: an initiate seek ends as   **
+** soon as the drive accepts it (ND-11.020.01 "M4: Initiate seek"), while **
+** a return to zero ends only when track 0 is reached (Normal End of      **
+** Operation, case 4).                                                    **
 **                                                                       **
 ** Verdict line: TB_RESULT: PASS / TB_RESULT: FAIL                       **
 **                                                                       **
@@ -156,14 +159,15 @@ module nd_smd_err_tb;
     end
   endtask
 
-  // GO with op M4 (initiate seek) on unit 0: no disk backend needed, the
-  // engine parks in E_DELAY for LONG_DELAY sysclks with b2 held high.
+  // GO with op M7 (return to zero) on unit 0: no disk backend needed, the
+  // engine parks in E_DELAY for LONG_DELAY sysclks with b2 held high - the
+  // heads travelling to track 0. (M4 would complete at once.)
   task go_seek;
     reg [15:0] cw;
     begin
       cw        = 16'd0;
       cw[2]     = 1'b1;      // activate
-      cw[14:11] = 4'd4;      // M4 initiate seek
+      cw[14:11] = 4'd7;      // M7 return to zero
       iox_write(BASE + 16'd5, cw);
     end
   endtask
