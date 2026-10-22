@@ -186,8 +186,9 @@ disc card. Measured with the 15 MHz card as default, `BIGDISK0-L2-100.IMG`:
   `simDevices/NDBus.cpp`) moves every word correctly (384 reads, 51 writes, checksums
   equal, no shifted word); only unit 0 is ever asked for; the CPU number (100 or 120)
   does not change it in Verilator; floppy status bit 14 (1 in nd100x, 0 in
-  `ND_FLOPPY_DMA.v`) does not change it; the Verilog M2 stub is not the cause,
-  because SINTRAN never reads the memory address or word count back after an M2.
+  `ND_FLOPPY_DMA.v` at the time) does not change it; the Verilog M2, a stub at the time,
+  was not the cause, because SINTRAN never reads the memory address or word count back
+  after an M2.
 - nd100x on the same image prints `DIRECTORY ENTERED BY ANOTHER SYSTEM` instead with
   CPU number 102 or 120 (nothing with 100). That message and error 97 are different
   entries in the same error table.
@@ -199,10 +200,26 @@ disc card. Measured with the 15 MHz card as default, `BIGDISK0-L2-100.IMG`:
   Verilator stores 000141 (97) at words 104 and 631, nd100x stores 003203.
 - Not tried: record the last instructions before the first 97 appears and read that
   code against the SINTRAN symbols (`BDISK`, the SMD driver routine, has no NPL source).
-- Fidelity gaps found on the way, not the cause: the Verilog M2 does not count the word
-  counter down (the card ends an M2 on word count zero); `process_verilog_smd()` ignores
-  the unit number; our floppy card returns status bit 14 as 0 while ND-11.021 lists it
-  as "streamer interface".
+- Found on the way and fixed, not the cause: the Verilog and C M2 now read the blocks,
+  count the words down and step the address, without a memory cycle (ND-11.020.01 "M2:
+  Read parity transfer"); the floppy hardware status word now returns bit 14 (streamer
+  interface) as 1, as ND-11.021 sec 3.7 lists it.
+- Still not modelled in the SMD: M3 compare, M5 write format and M8 run ECC complete
+  without doing the operation (`ND_SMD.v` default branch, `nd_smd.c` default case); M2
+  does not check the CRC check words, only a media fault ends it in error.
+
+**Open: SMD units 1-3 are NOT supported.** Only unit 0 has a disc image
+(`ND120_SMD_IMG`). SINTRAN could ask for another unit, and none is served yet:
+
+- Verilator: `process_verilog_smd()` in `simDevices/NDBus.cpp` fails every request for
+  unit 1-3 like a drive with no pack; the card turns that into "disk unit not ready"
+  (status b13) plus hardware error 2 (b7), error code 3 on the storage seam.
+- Boards (SD-FAT): `SD-FAT/circuit/nd_storage_disc_adapter.v` ignores a request for a
+  unit it does not serve (all outputs parked 0), so no done and no error ever come back
+  and the controller stays active until a device clear - a hang, not "not ready".
+- To support units: one image per unit in the Verilator backend (a name per unit, as
+  `ND120_SMD_IMG` is for unit 0), and per-unit storage with one adapter per unit on the
+  boards. The C card (`nd_smd.c`) already handles units through `smd_unit_info`.
 
 **Ronny's, not ours to start:** the combined floppy+SCSI PCB question (onboard
 Z80, decodes both the 1560 floppy/streamer window and SCSI at 144300).

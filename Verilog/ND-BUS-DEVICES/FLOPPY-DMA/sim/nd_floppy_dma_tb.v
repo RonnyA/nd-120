@@ -398,6 +398,7 @@ module nd_floppy_dma_tb;
     // 1: RSR1 basics before any command
     iox_read(16'o001562, rdata);
     check((rdata & 16'h8000) !== 0, "dualDensity not set at reset");
+    check((rdata & 16'h4000) !== 0, "streamer interface (b14) not set");
     check((rdata & 16'h0008) !== 0, "not ready at reset");
     // +0 outside boot mode returns the C model's constant 1
     iox_read(16'o001560, rdata);

@@ -396,6 +396,7 @@ module ND_SMD #(
   localparam E_MEM_RD  = 3'd3;  // DMA: ND memory -> buffer
   localparam E_DISK_WR = 3'd4;  // backend: buffer -> image chunk
   localparam E_DELAY   = 3'd5;  // completion delay -> ReadEnd
+  localparam E_PARITY  = 3'd6;  // M2: the chunk's words pass, NO memory cycle
 
   reg [2:0]  s_eng;
   reg [10:0] s_chunk_q;
@@ -405,6 +406,7 @@ module ND_SMD #(
   reg [23:0] s_mem_addr;      // running ND word address
   reg [23:0] s_words_left;    // words still to move
   reg [2:0]  s_unit;          // selected drive for this command
+  reg [3:0]  s_op;            // device operation code (M0-M9) of this command
 
   assign disk_wordcount = s_chunk_q;
 
@@ -611,6 +613,7 @@ module ND_SMD #(
       s_mem_addr     <= 24'd0;
       s_words_left   <= 24'd0;
       s_unit         <= 3'd0;
+      s_op           <= 4'd0;
       dma_req        <= 1'b0;
       dma_wr         <= 1'b0;
       dma_addr       <= 24'd0;
@@ -827,6 +830,7 @@ module ND_SMD #(
                 s_mem_addr   <= HAS_WC_FLIPFLOP ? {s_core_addr_hi, s_core_addr}
                                                 : {6'd0, iox_wdata[6:5], s_core_addr};
                 s_words_left <= w_words;
+                s_op         <= iox_wdata[14:11];
 
                 if (!iox_wdata[3] &&
                     ((w_lba > w_max_lba) ||
@@ -865,6 +869,37 @@ module ND_SMD #(
                                       BUF_WORDS : w_words[10:0];
                         s_sec_idx  <= 11'd0;
                         s_eng      <= E_MEM_RD;
+                      end else begin
+                        s_delay_cnt <= DELAY_TICKS;
+                        s_eng       <= E_DELAY;
+                      end
+                    end
+                    4'd2: begin  // M2 read parity transfer
+                      // ND-11.020.01 "M2: Read parity transfer": the data is
+                      // read from the disk into the controller and checked,
+                      // "No data transfer to the computer memory is
+                      // performed". The card ends an M2 when the word counter
+                      // reaches zero (sec 3.7.2: "M1,M2,M3 : SEC x WCZ x
+                      // FIFOEMPTY"), so the words are COUNTED although none
+                      // goes to memory. The counters are one Am2942 chain
+                      // (card 3044 sheet 3, 14C/12C/12A) and the idle
+                      // instruction is ENABLE COUNTERS, which steps the
+                      // address counter up and the word counter down on the
+                      // same clock; nothing on that sheet steps one without
+                      // the other. So the memory address advances by the
+                      // number of words counted, exactly as in an M0 - only
+                      // the memory cycle is missing. Same disk read, same
+                      // chunks and same completion as M0 (E_DISK_RD, then
+                      // E_PARITY in place of E_MEM_WR), so a media fault still
+                      // ends the command through the same error path.
+                      if (w_words != 24'd0) begin
+                        disk_start <= 1'b1;
+                        disk_req   <= 1'b1;
+                        disk_wr    <= 1'b0;
+                        s_chunk_q  <= (w_words > {13'd0, BUF_WORDS}) ?
+                                      BUF_WORDS : w_words[10:0];
+                        s_sec_idx  <= 11'd0;
+                        s_eng      <= E_DISK_RD;
                       end else begin
                         s_delay_cnt <= DELAY_TICKS;
                         s_eng       <= E_DELAY;
@@ -909,7 +944,7 @@ module ND_SMD #(
                       s_delay_cnt <= DELAY_TICKS;
                       s_eng       <= E_DELAY;
                     end
-                    default: begin  // M2/M3/M5/M8 stub completion
+                    default: begin  // M3/M5/M8 stub completion - NOT modelled
                       s_delay_cnt <= DELAY_TICKS;
                       s_eng       <= E_DELAY;
                     end
@@ -992,8 +1027,31 @@ module ND_SMD #(
               s_eng         <= E_IDLE;
             end else begin
               s_sec_idx <= 11'd0;
-              s_eng     <= E_MEM_WR;
+              s_eng     <= (s_op == 4'd2) ? E_PARITY : E_MEM_WR;
             end
+          end
+        end
+
+        // M2: the chunk just read passes through the controller, one word per
+        // clock, stepping the address and word counters as a pair (Am2942
+        // ENABLE COUNTERS) but making NO memory cycle. The chunk bookkeeping
+        // is the same as E_MEM_WR's, which is what M0 uses.
+        E_PARITY: begin
+          s_mem_addr   <= s_mem_addr   + 24'd1;
+          s_words_left <= s_words_left - 24'd1;
+          if (s_sec_idx + 11'd1 >= s_chunk_q || s_words_left == 24'd1) begin
+            if (s_words_left == 24'd1) begin
+              s_delay_cnt <= DELAY_TICKS;
+              s_eng       <= E_DELAY;
+            end else begin
+              s_chunk_q <= ((s_words_left - 24'd1) > {13'd0, BUF_WORDS}) ?
+                           BUF_WORDS : (s_words_left[10:0] - 11'd1);
+              disk_req  <= 1'b1;
+              disk_wr   <= 1'b0;
+              s_eng     <= E_DISK_RD;
+            end
+          end else begin
+            s_sec_idx <= s_sec_idx + 11'd1;
           end
         end
 

@@ -675,6 +675,7 @@ void process_verilog_smd(VND120_TOP *top)
 		{
 			top->SDISK_DONE = 0;
 			top->SDISK_ERR = 0;
+			top->SDISK_ERR_CODE = 0;
 		}
 	}
 
@@ -700,9 +701,20 @@ void process_verilog_smd(VND120_TOP *top)
 			       (int)top->SDISK_WR, (int)top->SDISK_WORDCOUNT, vsmd_pos);
 		vsmd_words = top->SDISK_WORDCOUNT;
 		vsmd_idx = 0;
-		if (vsmd_file == 0 || fseek(vsmd_file, vsmd_pos, SEEK_SET) != 0)
+		/* Only unit 0 has an image (ND120_SMD_IMG). A request for any other
+		** unit is answered like a drive with no pack: the transfer fails,
+		** which the card turns into "disk unit not ready" (status b13) and
+		** ends the command. Error code 3 = NDS_ERR_NOTOPEN, "this client has
+		** no mounted file" (SD-FAT/circuit/nd_storage_status.vh) - the card
+		** maps it to hardware error 2 (b7) as well as not ready.
+		** Units 1-3 are NOT supported yet; see the SMD item in TODO.md. */
+		int vsmd_no_pack = (top->SDISK_UNIT != 0);
+		if (vsmd_file == 0 || vsmd_no_pack ||
+		    fseek(vsmd_file, vsmd_pos, SEEK_SET) != 0)
 		{
 			top->SDISK_ERR = 1;
+			if (vsmd_no_pack)
+				top->SDISK_ERR_CODE = 3;
 			top->SDISK_DONE = 1;
 			vsmd_done_ticks = 2;
 		}

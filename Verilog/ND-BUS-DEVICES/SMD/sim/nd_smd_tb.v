@@ -24,6 +24,7 @@
 **                                                                       **
 ** Covered: reset status, '1540&' boot byte-server, M0 read (1500 words, **
 ** crosses the 1K chunk), 24-bit register readback, M1 write (800 words), **
+** M2 read parity (words counted, no memory cycle, media fault ends it,   **
 ** M4 seek (on-cyl + seek-complete + 15 MHz id), interrupt + IDENT 017,   **
 ** address mismatch, error interrupt, ECC pattern register, real 75 MB    **
 ** image windows, and a DMA bus fault -> disk-not-ready + recovery.       **
@@ -200,6 +201,19 @@ module nd_smd_tb;
   reg img_avail;
   initial img_avail = 0;
 
+  // How many memory cycles the controller asked for and how many disk
+  // requests it made - the M2 test needs both, because "no data goes to
+  // memory" is a statement about the DMA request line, not only the memory.
+  integer dma_reqs  = 0;
+  integer disk_reqs = 0;
+  always @(posedge sysclk) begin
+    if (c_dma_req) dma_reqs  = dma_reqs  + 1;
+    if (disk_req)  disk_reqs = disk_reqs + 1;
+  end
+
+  // When set, every disk request fails (media fault) instead of moving data.
+  reg inject_fault = 1'b0;
+
   task load_window(input integer word_base);
     integer fd, n;
     begin
@@ -230,7 +244,11 @@ module nd_smd_tb;
                   + (disk_blkaddr1 & 8'hFF)) * 512 - window_base;
     end
     if (disk_req) begin
-      if (!disk_wr) begin
+      if (inject_fault) begin
+        @(posedge sysclk);
+        disk_err_in <= 1'b1;
+        disk_done   <= 1'b1;
+      end else if (!disk_wr) begin
         for (w = 0; w < disk_wordcount; w = w + 1) begin
           @(posedge sysclk);
           dbuf_addr  <= w[9:0];
@@ -498,6 +516,70 @@ module nd_smd_tb;
         check(1'b0, "M1 written image data wrong");
     check(image[dpos + 800] === (16'h7000 + dpos[15:0] + 16'd800),
           "M1 overran the image");
+
+    // 3b: M2 READ PARITY, 1500 words (crosses the 1K chunk) from cyl 1, head 0,
+    //     sector 2 to core 0xA000. ND-11.020.01 "M2: Read parity transfer":
+    //     "No data transfer to the computer memory is performed". The card
+    //     ends an M2 on word count zero (sec 3.7.2), so the words are counted;
+    //     the address and word counters are one Am2942 chain stepped by the
+    //     same ENABLE COUNTERS clock (card 3044 sheet 3), so the address ends
+    //     at start + 1500 exactly as after an M0.
+    for (i = 0; i < 1600; i = i + 1) memory[16'hA000 + i] = 16'hBEEF;
+    load_core(24'h00A000);
+    load_block(16'd2, 16'd1);
+    load_wcnt(24'd1500);
+    nzcount = dma_reqs;                // memory cycles so far
+    dpos    = disk_reqs;               // disk requests so far
+    iox_write(16'o001545, 16'h1004);   // GO: ACTIVE (b2), op M2 (b12)
+    wait_ready();
+    iox_read(16'o001544, rdata);
+    check((rdata & 16'h0004) === 0, "M2 still active after ready");
+    check((rdata & 16'h0010) === 0, "M2 flagged an error on good data");
+    check(dma_reqs === nzcount, "M2 made a memory cycle");
+    check(disk_reqs === dpos + 2, "M2 disk reads != 2 chunks");
+    for (i = 0; i < 1600; i = i + 1)
+      if (memory[16'hA000 + i] !== 16'hBEEF)
+        check(1'b0, "M2 wrote to ND memory");
+    // address counter stepped with the word counter: 0xA000 + 1500
+    iox_read(16'o001540, rdata);       // core address LO (CWR=0)
+    check(rdata === (16'hA000 + 16'd1500), "M2 core address != start+words");
+    iox_read(16'o001540, rdata);       // second read: bits 16-23
+    check((rdata & 16'h00FF) === 16'd0, "M2 core address HI not 0");
+    iox_read(16'o001544, rdata);       // status read: flip-flop back to "first"
+    iox_write(16'o001545, 16'h8000);   // CWR=1
+    iox_read(16'o001540, rdata);
+    check(rdata === 16'd0, "M2 word counter not 0 at the end");
+    iox_read(16'o001540, rdata);
+    check((rdata & 16'h00FF) === 16'd0, "M2 word counter HI not 0");
+    iox_write(16'o001545, 16'h0000);   // CWR back to 0
+    iox_read(16'o001544, rdata);       // status read: flip-flop back to "first"
+
+    // 3c: M2 with a MEDIA FAULT still ends through the error path: the unit
+    //     goes not-ready (b13) and the command stops active, with no memory
+    //     cycle. A fresh M2 afterwards recovers.
+    inject_fault = 1'b1;
+    load_core(24'h00A000);
+    load_block(16'd2, 16'd1);
+    load_wcnt(24'd100);
+    nzcount = dma_reqs;
+    iox_write(16'o001545, 16'h1004);
+    wait_idle();
+    iox_read(16'o001544, rdata);
+    check((rdata & 16'h2000) !== 0, "M2 fault: not-ready b13 not set");
+    check((rdata & 16'h0004) === 0, "M2 fault: still active");
+    check((rdata & 16'h0010) !== 0, "M2 fault: error OR b4 not set");
+    check(dma_reqs === nzcount, "M2 fault: made a memory cycle");
+    inject_fault = 1'b0;
+    load_core(24'h00A000);
+    load_block(16'd2, 16'd1);
+    load_wcnt(24'd100);
+    iox_write(16'o001545, 16'h1004);
+    wait_ready();
+    iox_read(16'o001544, rdata);
+    check((rdata & 16'h2000) === 0, "M2 not-ready stuck after retry");
+    for (i = 0; i < 1600; i = i + 1)
+      if (memory[16'hA000 + i] !== 16'hBEEF)
+        check(1'b0, "M2 after fault wrote to memory");
 
     // 4: M4 seek -> on-cylinder (status b14), per-unit seek-complete
     //    (seek condition b0) and the 15 MHz card id (seek condition b12)

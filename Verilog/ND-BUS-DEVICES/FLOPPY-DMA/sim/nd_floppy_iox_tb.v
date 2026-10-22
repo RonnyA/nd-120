@@ -190,19 +190,21 @@ module nd_floppy_iox_tb;
 
     // =================================================================
     // sec2: hardware status word at power-on (RFT=1 "our way")
-    //   b15 dualDensity=1, b3 RFT=1, b2 active=0, b1 intEnabled=0
-    //   => 16'b1000_0000_0000_1000 = 16'h8008
+    //   b15 dualDensity=1, b14 streamer interface=1, b3 RFT=1, b2 active=0,
+    //   b1 intEnabled=0
+    //   => 16'b1100_0000_0000_1000 = 16'hC008
     // =================================================================
     iox_read(BASE + 16'd2, r);
-    check(r === 16'h8008, "+2 power-on hwstat must be 0x8008 (b15 dd=1, b3 rft=1)");
+    check(r === 16'hC008, "+2 power-on hwstat must be 0xC008 (b15,b14=1, b3 rft=1)");
     check(r[15] === 1'b1, "sec2: b15 dualDensity must be 1 (SINTRAN 3112 detect)");
+    check(r[14] === 1'b1, "sec2: b14 streamer interface must be 1 (3106/3112)");
     check(r[3]  === 1'b1, "sec2: b3 RFT must be 1 at power-on (DEVIATE vs oracle)");
     check(r[2]  === 1'b0, "sec2: b2 active must be 0 at power-on");
     check(r[1]  === 1'b0, "sec2: b1 intEnabled must be 0 at power-on");
 
     // sec1 Note 1: +2 and +4 return the SAME hardware status word
     iox_read(BASE + 16'd4, r);
-    check(r === 16'h8008, "+4 must equal +2 (sec1 Note 1: same status word)");
+    check(r === 16'hC008, "+4 must equal +2 (sec1 Note 1: same status word)");
 
     // =================================================================
     // sec1: +0 idle constant = 1; +1/+5/+6/+7 read = 0
@@ -224,10 +226,10 @@ module nd_floppy_iox_tb;
     // =================================================================
     iox_write(BASE + 16'd3, 16'h0002);       // b1 = 1
     iox_read (BASE + 16'd2, r);
-    check(r === 16'h800A, "sec3: +3 b1=1 must set hwstat b1 (0x800A)");
+    check(r === 16'hC00A, "sec3: +3 b1=1 must set hwstat b1 (0xC00A)");
     iox_write(BASE + 16'd3, 16'h0000);       // b1 = 0
     iox_read (BASE + 16'd2, r);
-    check(r === 16'h8008, "sec3: +3 b1=0 must clear hwstat b1 (0x8008)");
+    check(r === 16'hC008, "sec3: +3 b1=0 must clear hwstat b1 (0xC008)");
 
     // =================================================================
     // sec6: interrupt is level-sensitive (pending = enabled && RFT). At
@@ -296,7 +298,7 @@ module nd_floppy_iox_tb;
     iox_write(BASE + 16'd3, 16'h0010);       // b4 device clear
     @(negedge sysclk);
     iox_read(BASE + 16'd2, r);
-    check(r === 16'h8008, "sec3: device clear -> idle hwstat 0x8008 (rft=1,active=0)");
+    check(r === 16'hC008, "sec3: device clear -> idle hwstat 0xC008 (rft=1,active=0)");
     iox_read(BASE + 16'd0, r);
     check(r === 16'd1, "sec3: +0 after clear must return idle 1 (boot mode left)");
 

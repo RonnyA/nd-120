@@ -11,8 +11,10 @@
 **   HARDWARE STATUS WORD (§3.7) - what IOX +2 AND +4 return (§3.1 Note  **
 **     1: reading either gives the same result). b1 RFT/intEnabled,      **
 **     b2 deviceActive, b3 readyForTransfer, b4 OR-of-errors, b6 streamer**
-**     active, b7 hardError, b14 streamer interface, b15 dualDensity = 1 **
-**     ALWAYS (SINTRAN detects the 3112 by this bit). NO error code.     **
+**     active, b7 hardError, b14 streamer interface = 1 (hardware, set   **
+**     on a 3106/3112 floppy-and-streamer card, ND-11.021 sec 3.7; TPE   **
+**     tells a 3112 from a 3027 by it), b15 dualDensity = 1 ALWAYS       **
+**     (SINTRAN detects the 3112 by this bit). NO error code.            **
 **   STATUS WORD 1 (§3.4) - written back to command block CB+6 only.     **
 **     b4 OR-of-errors, b5 deleted, b6 retry, b7 hardError, b8 unused,   **
 **     b9-14 error code, b15 unused. The numeric error code lives ONLY   **
@@ -263,7 +265,7 @@ module ND_FLOPPY_DMA #(
   //     It carries NO numeric error code.
   wire s_or_err = (s_err_code != 6'd0) | s_hard_err;
   wire [15:0] s_hwstat = {1'b1,          // b15 dual density controller
-                          1'b0,          // b14 streamer interface
+                          1'b1,          // b14 streamer interface (present on a 3106/3112)
                           6'b0,          // b13-8 (b11 reserved)
                           s_hard_err,    // b7  hard error - DMA transfer
                           1'b0,          // b6  streamer active
