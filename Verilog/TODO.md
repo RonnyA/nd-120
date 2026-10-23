@@ -221,6 +221,17 @@ disc card. Measured with the 15 MHz card as default, `BIGDISK0-L2-100.IMG`:
   `ND120_SMD_IMG` is for unit 0), and per-unit storage with one adapter per unit on the
   boards. The C card (`nd_smd.c`) already handles units through `smd_unit_info`.
 
+**Unverified risk: the instant M4 (initiate seek) and DISC-TEMA.** `ND_SMD.v` ends an M4 as
+soon as it is accepted (ND-11.020.01 "M4: Initiate seek"); only reads, writes and the
+other operations keep the completion delay. DISC-TEMA reports "Controller not active
+after activate" (status bit 2) when the status read right after a GO shows the card
+already finished. Which operation DISC-TEMA activates for that check is not in the
+manuals we have (ND-830005.3 lists only the message). The SMD manual's own test loop
+(ND-11.020.01 troubleshooting, control word 000014) does the check on a read (M0), which
+still stays active. Every DISC-TEMA run in this repository was on the Winchester
+(`ND_WINCHESTER.v`, not changed). Nobody has run DISC-TEMA against the SMD in simulation.
+Check it the first time DISC-TEMA runs on the SMD.
+
 **Ronny's, not ours to start:** the combined floppy+SCSI PCB question (onboard
 Z80, decodes both the 1560 floppy/streamer window and SCSI at 144300).
 
